@@ -134,10 +134,14 @@ As pendências conhecidas estão em "Em aberto" e nas questões de `docs/decisoe
 
 ### Relatório no fim
 
+Toda sessão de QA termina com um relatório curto, nesta ordem:
+
 1. O que foi conferido.
 2. O que foi corrigido, com o commit e a branch.
 3. O que foi encontrado e ficou para o Gui decidir.
-4. O que não deu para conferir e por quê, com a lista do que o Gui precisa conferir na prévia, no Safari do iPhone e na produção.
+4. O que não deu para conferir e por quê, com a lista do que o Gui precisa conferir na homologação, no Safari do iPhone e na produção.
+
+Quando um achado merece virar regra permanente, o relatório propõe o teste ou a verificação na guarda (ver "Conferências"). Criá-la segue as mesmas regras de branch desta seção.
 
 ## Cuidados que já custaram tempo
 
