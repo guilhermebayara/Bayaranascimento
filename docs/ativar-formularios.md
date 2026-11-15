@@ -25,13 +25,19 @@ No projeto `bayaranascimento` → Settings → Variables and Secrets, crie dois 
 
   Os e-mails precisam ser os mesmos da política do Cloudflare Access. Os valores (`gui`, `giovanna`, `elizete`) são os nomes dos arquivos em `src/content/pessoas/`.
 
-## 3. Publicar
+## 3. Ajustar o build no Cloudflare
 
-Depois de revisar, incorpore o branch `formulario` ao `main`. O Cloudflare publica sozinho.
+No projeto `bayaranascimento` → Settings → Build:
 
-Confira no painel se o comando de build é `npm run build` e o de deploy é `npx wrangler deploy`.
+- **Build command:** hoje está vazio. Mude para `npm run build`. Antes o Cloudflare detectava o Astro sozinho. Com o arquivo `wrangler.jsonc` no repositório ele deixa de fazer isso, e sem esse comando a publicação falha.
+- **Deploy command:** continua `npx wrangler deploy`.
+- **Builds de outros branches:** o Cloudflare tenta publicar uma prévia de cada branch e falha, porque o projeto não tem prévias configuradas de propósito (uma prévia ficaria fora do login). Pode desativar os builds de branches que não são o `main`, ou ignorar o X vermelho que aparece neles.
 
-## 4. Testar no ar
+## 4. Publicar
+
+Depois de revisar, incorpore o branch `formulario` ao `main`. O Cloudflare publica sozinho. Se a publicação falhar, o site continua no ar com a versão anterior.
+
+## 5. Testar no ar
 
 1. Abra `memorias.bayara.com.br/nova`. Deve aparecer "Olá, Gui".
 2. Registre uma memória de teste com uma foto.
