@@ -1,0 +1,79 @@
+---
+import Base from '../../../layouts/Base.astro';
+import FichaDoCapitulo from '../../../components/FichaDoCapitulo.astro';
+import { podeEditarCapitulo } from '../../../lib/capitulos';
+import { formatarData } from '../../../lib/datas';
+import { podeEditarMemoria } from '../../../lib/servidor/permissoes';
+import { autoresDasMemoriasDoCapitulo, listarCapitulos, listarMemorias } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const capitulo = (await listarCapitulos(usuario)).find((c) => c.id === Astro.params.id);
+if (!capitulo) return new Response('Capítulo não encontrado', { status: 404 });
+const podeFicha = podeEditarCapitulo(usuario, capitulo, await autoresDasMemoriasDoCapitulo(capitulo.id));
+// As memórias que a pessoa pode corrigir são as que ela pode colocar ou tirar do capítulo
+const minhas = capitulo.modo === 'reunido' ? (await listarMemorias(usuario)).filter((m) => podeEditarMemoria(usuario, m).ok) : [];
+---
+
+<Base titulo={`Editar ${capitulo.titulo}`}>
+  <div class="abertura abertura--curta">
+    <h1>{capitulo.titulo}</h1>
+    <p><a href={`/capitulos/${capitulo.id}`}>Voltar para o capítulo</a></p>
+  </div>
+
+  {
+    capitulo.modo === 'reunido' && (
+      <section class="painel" id="memorias">
+        <h2>Memórias do capítulo</h2>
+        {minhas.length === 0 ? (
+          <p class="vazio">
+            Você ainda não tem memórias para colocar aqui. <a href="/nova">Registrar uma memória</a>.
+          </p>
+        ) : (
+          <form method="post" action="/api/capitulos" class="formulario">
+            <input type="hidden" name="acao" value="memorias" />
+            <input type="hidden" name="id" value={capitulo.id} />
+            <p class="dica">Marque as que fazem parte. Aparecem aqui as memórias que você criou ou em que foi citado.</p>
+            <div class="lista-de-marcar">
+              {minhas.map((m) => (
+                <label class="marcar">
+                  <input type="checkbox" name="memorias" value={m.id} checked={m.capitulos.includes(capitulo.id)} />
+                  <span>
+                    {m.titulo} <small>{formatarData(m)}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div class="acoes">
+              <button class="botao" type="submit">Salvar memórias do capítulo</button>
+            </div>
+          </form>
+        )}
+      </section>
+    )
+  }
+
+  {
+    podeFicha ? (
+      <section class="painel">
+        <h2>Sobre o capítulo</h2>
+        <FichaDoCapitulo capitulo={capitulo} />
+      </section>
+    ) : (
+      <p class="dica">O título e a abertura só podem ser alterados por quem criou o capítulo ou tem memórias nele.</p>
+    )
+  }
+
+  {
+    usuario.admin && (
+      <section class="alerta">
+        <h2>Excluir capítulo</h2>
+        <p>O capítulo vai para a lixeira e pode ser recuperado. As memórias dele continuam no acervo, só deixam de estar reunidas.</p>
+        <form method="post" action="/api/capitulos" class="acoes">
+          <input type="hidden" name="acao" value="excluir" />
+          <input type="hidden" name="id" value={capitulo.id} />
+          <button class="botao botao--perigo" type="submit">Excluir capítulo</button>
+        </form>
+      </section>
+    )
+  }
+</Base>

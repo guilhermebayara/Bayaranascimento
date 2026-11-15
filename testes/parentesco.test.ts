@@ -157,3 +157,19 @@ describe('laços do coração', async () => {
     expect(LINHA_DO_PAPEL.sobrinho).toBe('filhos');
   });
 });
+
+describe('laço do coração dito para o dono', async () => {
+  const { lacoParaODono } = await import('../src/lib/parentesco');
+  it('usa o tratamento da pessoa quando existe', () => {
+    expect(lacoParaODono('amigo-irmão', 'ele')).toBe('seu amigo-irmão');
+    expect(lacoParaODono('amiga', 'ela')).toBe('sua amiga');
+    expect(lacoParaODono('sobrinho de consideração', 'ele')).toBe('seu sobrinho de consideração');
+  });
+  it('sem tratamento, lê a primeira palavra do nome do laço', () => {
+    expect(lacoParaODono('amiga', null)).toBe('sua amiga');
+    expect(lacoParaODono('amigo', null)).toBe('seu amigo');
+    expect(lacoParaODono('afilhada', null)).toBe('sua afilhada');
+    expect(lacoParaODono('vó de coração', null)).toBe('sua vó de coração');
+    expect(lacoParaODono('sobrinho', null)).toBe('seu sobrinho');
+  });
+});

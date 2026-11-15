@@ -263,6 +263,58 @@ const MIGRACOES: Migracao[] = [
     id: '007-lixeira',
     sql: [`ALTER TABLE memorias ADD COLUMN excluida_em TEXT`, `ALTER TABLE memorias ADD COLUMN excluida_por TEXT`],
   },
+  {
+    // Capítulos reúnem memórias em um momento maior. Temas são etiquetas livres para memórias e capítulos.
+    id: '008-capitulos-e-temas',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS capitulos (
+        id TEXT PRIMARY KEY,
+        titulo TEXT NOT NULL,
+        abertura TEXT,
+        -- reunido: alguém adiciona as memórias. epoca: entram sozinhas pela data.
+        modo TEXT NOT NULL DEFAULT 'reunido' CHECK (modo IN ('reunido', 'epoca')),
+        inicio_ano INTEGER,
+        inicio_mes INTEGER,
+        fim_ano INTEGER,
+        fim_mes INTEGER,
+        pai_id TEXT REFERENCES capitulos(id),
+        visibilidade TEXT NOT NULL DEFAULT 'todos' CHECK (visibilidade IN ('todos', 'nucleos')),
+        criado_por TEXT NOT NULL REFERENCES integrantes(id),
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        atualizado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        excluido_em TEXT,
+        excluido_por TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS capitulo_nucleos (
+        capitulo_id TEXT NOT NULL REFERENCES capitulos(id) ON DELETE CASCADE,
+        nucleo_id TEXT NOT NULL REFERENCES nucleos(id),
+        PRIMARY KEY (capitulo_id, nucleo_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS capitulo_memorias (
+        capitulo_id TEXT NOT NULL REFERENCES capitulos(id) ON DELETE CASCADE,
+        memoria_id TEXT NOT NULL REFERENCES memorias(id) ON DELETE CASCADE,
+        PRIMARY KEY (capitulo_id, memoria_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS capitulos_da_memoria ON capitulo_memorias (memoria_id)`,
+      `CREATE TABLE IF NOT EXISTS temas (
+        id TEXT PRIMARY KEY,
+        nome TEXT NOT NULL,
+        criado_por TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+      `CREATE TABLE IF NOT EXISTS tema_memorias (
+        tema_id TEXT NOT NULL REFERENCES temas(id) ON DELETE CASCADE,
+        memoria_id TEXT NOT NULL REFERENCES memorias(id) ON DELETE CASCADE,
+        PRIMARY KEY (tema_id, memoria_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS temas_da_memoria ON tema_memorias (memoria_id)`,
+      `CREATE TABLE IF NOT EXISTS tema_capitulos (
+        tema_id TEXT NOT NULL REFERENCES temas(id) ON DELETE CASCADE,
+        capitulo_id TEXT NOT NULL REFERENCES capitulos(id) ON DELETE CASCADE,
+        PRIMARY KEY (tema_id, capitulo_id)
+      )`,
+    ],
+  },
 ];
 
 let pronto: Promise<void> | undefined;

@@ -1,0 +1,77 @@
+---
+import Base from '../../layouts/Base.astro';
+import { dentroDoPeriodo, formatarPeriodo, periodoDasMemorias, type Capitulo } from '../../lib/capitulos';
+import { listarCapitulos, listarMemorias, listarTemas } from '../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const capitulos = await listarCapitulos(usuario);
+const todas = await listarMemorias(usuario);
+const memoriasDe = (c: Capitulo) => {
+  if (c.modo === 'epoca') return c.inicio ? todas.filter((m) => dentroDoPeriodo(m, c.inicio!, c.fim)) : [];
+  const ids = new Set([c.id, ...capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id)]);
+  return todas.filter((m) => m.capitulos.some((id) => ids.has(id)));
+};
+const resumo = (c: Capitulo) => {
+  const memorias = memoriasDe(c);
+  const p = c.modo === 'epoca' ? (c.inicio ? { inicio: c.inicio, fim: c.fim } : null) : periodoDasMemorias(memorias);
+  return {
+    periodo: p ? formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca') : '',
+    ordem: p ? p.inicio.ano * 100 + (p.inicio.mes ?? 0) : 999999,
+    memorias: memorias.length,
+  };
+};
+// Capítulos de dentro aparecem sob o maior. Os demais, do mais antigo para o mais recente.
+const soltos = capitulos
+  .filter((c) => !c.dentroDe || !capitulos.some((x) => x.id === c.dentroDe))
+  .map((c) => ({ c, ...resumo(c), dentro: capitulos.filter((x) => x.dentroDe === c.id) }))
+  .sort((a, b) => a.ordem - b.ordem);
+const temas = await listarTemas();
+const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
+---
+
+<Base titulo="Capítulos">
+  <div class="abertura abertura--curta">
+    <h1>Capítulos</h1>
+    <p>Memórias reunidas em momentos maiores: um casamento, uma viagem, uma época da vida.</p>
+    <p class="acoes"><a class="botao botao--leve" href="/capitulos/novo">Novo capítulo</a></p>
+  </div>
+  {
+    soltos.length === 0 ? (
+      <p class="vazio">Ainda não há capítulos.</p>
+    ) : (
+      <ul class="lista-de-capitulos lista-de-capitulos--grande">
+        {soltos.map(({ c, periodo, memorias, dentro }) => (
+          <li>
+            <a href={`/capitulos/${c.id}`}>
+              <strong>{c.titulo}</strong>
+              <span>{[c.modo === 'epoca' && 'época', periodo, contar(memorias)].filter(Boolean).join(', ')}</span>
+            </a>
+            {dentro.length > 0 && (
+              <ul>
+                {dentro.map((d) => (
+                  <li>
+                    <a href={`/capitulos/${d.id}`}>{d.titulo}</a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  {
+    temas.length > 0 && (
+      <section class="familia">
+        <h2>Temas</h2>
+        <p class="opcoes">
+          {temas.map((t) => (
+            <a class="etiqueta" href={`/temas/${t.id}`}>
+              {t.nome}
+            </a>
+          ))}
+        </p>
+      </section>
+    )
+  }
+</Base>

@@ -1,10 +1,11 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Foto from '../../components/Foto.astro';
+import { dentroDoPeriodo } from '../../lib/capitulos';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { formatarData } from '../../lib/datas';
 import { podeEditarMemoria, podeExcluirMemoria } from '../../lib/servidor/permissoes';
-import { listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, obterMemoria } from '../../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemas, obterMemoria } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -20,6 +21,11 @@ const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 const tipo = tipoDaMemoria(Astro.locals.tipos, memoria);
 const dosNucleos = memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean);
 const podeEditar = podeEditarMemoria(usuario, memoria).ok;
+// Capítulos: os reunidos em que foi colocada e os de época em que a data cai
+const capitulos = (await listarCapitulos(usuario)).filter((c) =>
+  c.modo === 'reunido' ? memoria.capitulos.includes(c.id) : Boolean(c.inicio) && dentroDoPeriodo(memoria, c.inicio!, c.fim),
+);
+const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
 const podeExcluir = podeExcluirMemoria(usuario, memoria).ok;
 
 // Vizinhas na linha do tempo, entre as que a pessoa vê
@@ -58,6 +64,36 @@ const depois = todas[posicao + 1];
                   <>
                     {i > 0 && ', '}
                     <a href={`/pessoas/${id}`}>{nome(id)}</a>
+                  </>
+                ))}
+              </dd>
+            </>
+          )
+        }
+        {
+          capitulos.length > 0 && (
+            <>
+              <dt>{capitulos.length === 1 ? 'Capítulo' : 'Capítulos'}</dt>
+              <dd>
+                {capitulos.map((c, i) => (
+                  <>
+                    {i > 0 && ', '}
+                    <a href={`/capitulos/${c.id}`}>{c.titulo}</a>
+                  </>
+                ))}
+              </dd>
+            </>
+          )
+        }
+        {
+          temas.length > 0 && (
+            <>
+              <dt>Temas</dt>
+              <dd>
+                {temas.map((t, i) => (
+                  <>
+                    {i > 0 && ', '}
+                    <a href={`/temas/${t.id}`}>{t.nome}</a>
                   </>
                 ))}
               </dd>
