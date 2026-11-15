@@ -12,16 +12,20 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 
 | Ação | Quem |
 |---|---|
-| Criar memória | Qualquer pessoa com acesso |
-| Corrigir a ficha da memória | Qualquer pessoa do núcleo |
-| Acrescentar relato a uma memória | Qualquer pessoa com acesso |
-| Editar um relato | Só quem escreveu |
-| Registrar relato de quem não acessa o site | Qualquer pessoa com acesso, creditada como "registrado por" |
-| Acrescentar foto | Qualquer pessoa com acesso |
+| Criar memória, capítulo ou tema | Qualquer pessoa com acesso |
+| Corrigir a ficha da memória ou mudar a visibilidade | Quem criou e as pessoas citadas nela, desde que vejam a memória |
+| Acrescentar relato a uma memória | Qualquer pessoa que vê a memória, um relato por pessoa |
+| Editar um relato | Só quem escreveu (ou quem registrou, no relato de quem não acessa o site) |
+| Registrar relato de quem não acessa o site | Qualquer pessoa que vê a memória, creditada como "registrado por" |
+| Acrescentar foto | Qualquer pessoa que vê a memória |
 | Remover foto | Só quem enviou |
 | Editar a própria página | A própria pessoa |
-| Editar a página de quem não acessa o site | Qualquer pessoa do núcleo |
-| Excluir memória inteira | Só o Gui, com alerta de ação destrutiva |
+| Editar a página de quem não acessa o site | Quem divide um núcleo com a pessoa, quem a cadastrou e os admins |
+| Criar ou mudar laços de árvore | Os envolvidos, quem divide um núcleo com algum deles e os admins |
+| Criar ou mudar um laço do coração | Só o dono do laço |
+| Excluir memória inteira | Os admins (Gui e Giovanna), com alerta, e só o que enxergam. Quem escreve um rascunho pode descartá-lo |
+
+A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `testes/`.
 
 ## Princípios
 
@@ -120,13 +124,15 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 
 - Histórico de integrantes e laços no site (as versões já são guardadas) e apagar de vez o que está na lixeira
 - Foto de retrato do integrante, juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
-- Árvore: linhas ligando pais e filhos na visão geral, zoom e página do laço com linha do tempo (dependem do visual)
+- Árvore: regras de ocultar e de exigir parentes de sangue, centros padrão escolhidos na administração e página do laço com linha do tempo
+- Quem só existe em laço privado de outra pessoa já some da árvore, mas ainda aparece na lista de Pessoas
+- Painel pessoal como página inicial, com as boas-vindas de Natal na primeira visita
 - Círculo e avisos
 - Fotos enviadas em um formulário abandonado ficam no bucket sem uso: falta uma limpeza periódica
 
-## Ideias em discussão (ainda não decididas)
+## Origem
 
-Surgiram no jantar de casamento da Giovanna, em 14 de novembro de 2026, o dia em que o site nasceu.
+As ideias abaixo surgiram no jantar de casamento da Giovanna, em 14 de novembro de 2026, o dia em que o site nasceu. Todas viraram decisões, detalhadas no documento "Acervo da família: proposta de estrutura" e nas seções acima; a lista fica como registro.
 
 - **Árvore genealógica.** Guardar só os laços básicos de cada pessoa (pais e casal) e calcular o resto. A relação pode aparecer do ponto de vista de quem está olhando ("sua avó").
 - **Núcleos familiares** como entidade, com página, árvore e linha do tempo próprias: Bayara Nascimento, Bayara Bracarense (Giovanna e Lucas Magno) e Bracarense. Uma pessoa e uma memória podem pertencer a mais de um.
