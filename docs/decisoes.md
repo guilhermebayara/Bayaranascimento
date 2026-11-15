@@ -84,7 +84,8 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 
 - **Formulário longo vira etapas** (`src/lib/cliente/etapas.ts`): uma parte por vez, com a trilha no topo. Voltar é livre; para avançar, o obrigatório da etapa precisa estar preenchido. Sem JavaScript, as etapas aparecem todas em sequência.
 - **Nova memória** tem cinco etapas: o momento, pessoas e lugar, fotos, relato, quem vê. "Salvar rascunho" fica disponível em todas; "Publicar" só na última, depois de um resumo para conferir.
-- **Ano** vem preenchido com o ano atual e tem botões de −10, −1, +1 e +10. "Foi hoje" preenche a data inteira. O resumo final existe para pegar o caso de alguém esquecer de trocar o ano.
+- **Data:** o ano começa vazio (preenchido com o ano atual, alguém poderia publicar uma memória antiga com o ano errado) e tem botões de −10, −1, +1 e +10. Mês e dia são opcionais. Um calendário e o botão "Foi hoje" preenchem dia, mês e ano de uma vez, para quem sabe a data exata.
+- **Ações de etapa:** "Voltar" à esquerda; "Salvar rascunho" e a ação principal ("Continuar" ou "Publicar") à direita.
 - **Nova pessoa** pede só o essencial (nome, pessoa ou bicho, como se referir). Datas e história ficam recolhidas. O cadastro segue para uma segunda etapa só de laços.
 - **Tipo de laço** é escolhido em abas que dizem em uma frase o que cada uma é, e não em uma lista suspensa.
 - Lista de pessoas com mais de dez nomes ganha um campo para filtrar.

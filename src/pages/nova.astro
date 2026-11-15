@@ -25,6 +25,8 @@ const nucleosMarcados = memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usua
 // O relato só entra aqui enquanto a memória não foi publicada. Depois, cada um edita o seu na própria página.
 const meuRelato = memoria && !publicada ? await obterRelato(memoria.id, usuario.pessoa) : undefined;
 const anoAtual = new Date().getFullYear();
+// "Hoje" no horário de Brasília, para o limite do calendário
+const hojeIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'Continuar rascunho';
 ---
 
@@ -70,17 +72,17 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 
     <fieldset>
       <legend>Quando foi?</legend>
-      <div class="campos-data">
-        <div class="campo">
-          <label for="campo-ano">Ano</label>
-          <div class="ano" data-ano>
-            <button type="button" data-passo="-10" aria-label="Dez anos antes">−10</button>
-            <button type="button" data-passo="-1" aria-label="Um ano antes">−1</button>
-            <input id="campo-ano" type="number" name="ano" required inputmode="numeric" min="1800" max={anoAtual} value={memoria?.ano ?? anoAtual} />
-            <button type="button" data-passo="1" aria-label="Um ano depois">+1</button>
-            <button type="button" data-passo="10" aria-label="Dez anos depois">+10</button>
-          </div>
+      <div class="campo">
+        <label for="campo-ano">Ano</label>
+        <div class="passo-ano" data-ano>
+          <button type="button" data-passo="-10" aria-label="Dez anos antes">−10</button>
+          <button type="button" data-passo="-1" aria-label="Um ano antes">−1</button>
+          <input id="campo-ano" type="number" name="ano" required inputmode="numeric" min="1800" max={anoAtual} value={memoria?.ano ?? ''} placeholder="Ano" />
+          <button type="button" data-passo="1" aria-label="Um ano depois">+1</button>
+          <button type="button" data-passo="10" aria-label="Dez anos depois">+10</button>
         </div>
+      </div>
+      <div class="campos-data campos-data--dois">
         <label class="campo">
           <span>Mês, se souber</span>
           <select name="mes">
@@ -93,9 +95,13 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           <input type="number" name="dia" inputmode="numeric" min="1" max="31" value={memoria?.dia ?? ''} />
         </label>
       </div>
-      <p class="atalhos">
+      <div class="atalhos">
+        <label class="campo">
+          <span>Ou escolha no calendário</span>
+          <input type="date" data-calendario min="1800-01-01" max={hojeIso} />
+        </label>
         <button type="button" class="botao botao--leve" data-hoje>Foi hoje</button>
-      </p>
+      </div>
       <label class="marcar">
         <input type="checkbox" name="aproximada" checked={memoria?.aproximada} />
         <span>Não tenho certeza da data</span>
@@ -231,6 +237,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
     <div class="acoes acoes--etapas">
       <button type="button" class="botao botao--leve" data-etapa-voltar>Voltar</button>
+      {!publicada && <button type="submit" class="botao botao--leve acoes__rascunho" data-salvar="rascunho">Salvar rascunho</button>}
       <button type="button" class="botao" data-etapa-continuar>Continuar</button>
       {
         publicada ? (
@@ -239,7 +246,6 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           <button type="submit" class="botao" data-salvar="publicada" data-so-no-fim>Publicar memória</button>
         )
       }
-      {!publicada && <button type="submit" class="botao botao--leve acoes__rascunho" data-salvar="rascunho">Salvar rascunho</button>}
     </div>
     {memoria && !publicada && <p class="memoria__rodape"><a href={`/memorias/${memoria.id}/excluir`}>Descartar este rascunho</a></p>}
   </form>
@@ -315,12 +321,22 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       if (!form.querySelector<HTMLElement>('[data-resumo]')?.closest<HTMLElement>('[data-etapa]')?.hidden) montarResumo();
     });
     ligarCamposDeAno(form);
+    // Calendário e "Foi hoje" preenchem dia, mês e ano de uma vez
+    const calendario = form.querySelector<HTMLInputElement>('[data-calendario]');
+    const preencherData = (ano: number, mes: number, dia: number) => {
+      (form.elements.namedItem('ano') as HTMLInputElement).value = String(ano);
+      (form.elements.namedItem('mes') as HTMLSelectElement).value = String(mes);
+      (form.elements.namedItem('dia') as HTMLInputElement).value = String(dia);
+      (form.elements.namedItem('aproximada') as HTMLInputElement).checked = false;
+    };
+    calendario?.addEventListener('change', () => {
+      const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(calendario.value);
+      if (partes) preencherData(Number(partes[1]), Number(partes[2]), Number(partes[3]));
+    });
     form.querySelector('[data-hoje]')?.addEventListener('click', () => {
       const hoje = new Date();
-      (form.elements.namedItem('ano') as HTMLInputElement).value = String(hoje.getFullYear());
-      (form.elements.namedItem('mes') as HTMLSelectElement).value = String(hoje.getMonth() + 1);
-      (form.elements.namedItem('dia') as HTMLInputElement).value = String(hoje.getDate());
-      (form.elements.namedItem('aproximada') as HTMLInputElement).checked = false;
+      preencherData(hoje.getFullYear(), hoje.getMonth() + 1, hoje.getDate());
+      if (calendario) calendario.value = '';
     });
     // Com muita gente na lista, um campo filtra pelo nome
     const filtro = form.querySelector<HTMLInputElement>('[data-filtrar-pessoas]');
