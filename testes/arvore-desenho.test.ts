@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MEDIDAS, desenharArvore, type CasalNoDesenho, type FiliacaoNoDesenho, type PessoaNoDesenho } from '../src/lib/arvore-desenho';
+import { MEDIDAS, desenharArvore, passaPor, type CasalNoDesenho, type FiliacaoNoDesenho, type PessoaNoDesenho } from '../src/lib/arvore-desenho';
 
 const p = (id: string, geracao: number): PessoaNoDesenho => ({ id, geracao });
 const filho = (f: string, ...pais: string[]): FiliacaoNoDesenho[] => pais.map((responsavel) => ({ filho: f, responsavel, consideracao: false }));
@@ -239,3 +239,55 @@ describe('laços do coração em volta dos irmãos', () => {
     expect(x('vo-vivica')).toBeLessThan(x('aguilar'));
   });
 });
+
+describe('escadinha: o laço do coração passa pelo parente mais próximo', () => {
+  // Do FigJam: Dona Fátima é amiga-irmã da Elizete e tia de consideração do Gui. Dona Lourdes é mãe
+  // de consideração da Elizete e vó de consideração do Gui. Dona Déia é vó de consideração só do Gui.
+  const pessoas = [
+    { id: 'vo-vivica', geracao: 0, lado: 0 }, { id: 'vo-tonho', geracao: 0, lado: 0 }, { id: 'vo-bela', geracao: 0, lado: 0 },
+    { id: 'dona-lourdes', geracao: 0 }, { id: 'dona-deia', geracao: 0 },
+    { id: 'elizete', geracao: 1, lado: 0 }, { id: 'aguilar', geracao: 1, lado: 0 }, { id: 'dona-fatima', geracao: 1 },
+    { id: 'gui', geracao: 2, lado: 0 }, { id: 'giovanna', geracao: 2, lado: 0.25 },
+  ];
+  const casais = [{ a: 'vo-vivica', b: 'vo-tonho', ex: false }, { a: 'elizete', b: 'aguilar', ex: true }];
+  const filiacoes = [
+    ...filho('elizete', 'vo-vivica', 'vo-tonho'),
+    ...filho('aguilar', 'vo-bela'),
+    ...filho('gui', 'elizete', 'aguilar'),
+    ...filho('giovanna', 'elizete', 'aguilar'),
+  ];
+  const coracao = [
+    { dono: 'elizete', pessoa: 'dona-fatima' },
+    { dono: 'gui', pessoa: 'dona-fatima' },
+    { dono: 'elizete', pessoa: 'dona-lourdes' },
+    { dono: 'gui', pessoa: 'dona-lourdes' },
+    { dono: 'gui', pessoa: 'dona-deia' },
+  ];
+  const d = desenharArvore(pessoas, casais, filiacoes, coracao);
+  const linha = (a: string, b: string) => d.linhas.some((l) => l.tipo === 'coracao' && l.de.includes(a) && l.de.includes(b));
+  const fileira = (id: string) => {
+    const y = d.pessoas.find((p) => p.id === id)!.y;
+    return d.pessoas.filter((p) => p.y === y).sort((a, b) => a.x - b.x).map((p) => p.id);
+  };
+
+  it('quem passa pela mãe não ganha linha até o filho', () => {
+    expect(passaPor({ dono: 'gui', pessoa: 'dona-fatima' }, coracao, filiacoes)).toBe('elizete');
+    expect(linha('gui', 'dona-fatima')).toBe(false);
+    expect(linha('elizete', 'dona-fatima')).toBe(true);
+    expect(linha('gui', 'dona-lourdes')).toBe(false);
+    expect(linha('elizete', 'dona-lourdes')).toBe(true);
+  });
+  it('quem não passa por ninguém se liga direto', () => {
+    expect(passaPor({ dono: 'gui', pessoa: 'dona-deia' }, coracao, filiacoes)).toBeUndefined();
+    expect(linha('gui', 'dona-deia')).toBe(true);
+  });
+  it('as avós de consideração ficam do lado da Vó Vivica, a que passa pela Elizete mais perto', () => {
+    const f = fileira('vo-vivica');
+    expect(f.slice(0, 3), f.join(' ')).toEqual(['dona-deia', 'dona-lourdes', 'vo-vivica']);
+  });
+  it('a tia de consideração encosta na Elizete', () => {
+    const f = fileira('elizete');
+    expect(f.indexOf('elizete') - f.indexOf('dona-fatima'), f.join(' ')).toBe(1);
+  });
+});
+

@@ -324,7 +324,7 @@ export function periodoDaFase(fase: Fase): string {
 
 // --- Laços do coração ---
 
-export type Papel = 'avo' | 'tio' | 'irmao' | 'primo' | 'filho' | 'sobrinho';
+export type Papel = 'avo' | 'pai' | 'tio' | 'irmao' | 'primo' | 'filho' | 'sobrinho';
 
 export interface LacoDoCoracao {
   id: number;
@@ -343,6 +343,7 @@ export interface LacoDoCoracao {
 export const PAPEIS: Record<Papel, string> = {
   irmao: 'irmão ou irmã',
   tio: 'tio ou tia',
+  pai: 'pai ou mãe',
   avo: 'avô ou avó',
   primo: 'primo ou prima',
   sobrinho: 'sobrinho ou sobrinha',
@@ -354,6 +355,7 @@ export const PROXIMIDADES: Record<number, string> = { 1: 'Muito próximo', 2: 'P
 /** Em que linha da árvore centrada o papel coloca a pessoa. */
 export const LINHA_DO_PAPEL: Record<Papel, 'avos' | 'pais' | 'centro' | 'filhos'> = {
   avo: 'avos',
+  pai: 'pais',
   tio: 'pais',
   irmao: 'centro',
   primo: 'centro',
@@ -435,7 +437,7 @@ export function calcularGeracoes(
 }
 
 /** Quantas gerações o papel desloca a pessoa em relação a quem a escolheu. */
-export const DESLOCAMENTO_DO_PAPEL: Record<Papel, number> = { avo: -2, tio: -1, irmao: 0, primo: 0, filho: 1, sobrinho: 1 };
+export const DESLOCAMENTO_DO_PAPEL: Record<Papel, number> = { avo: -2, pai: -1, tio: -1, irmao: 0, primo: 0, filho: 1, sobrinho: 1 };
 
 /** Nome de uma geração vista por alguém: 0 é a da própria pessoa, negativo é acima. */
 export function nomeDaGeracao(diferenca: number): string {

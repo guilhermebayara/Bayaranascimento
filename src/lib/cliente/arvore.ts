@@ -1,6 +1,6 @@
 // A árvore interativa. Funciona como um mapa: arrasta, aproxima, afasta, e se
 // reorganiza com animação quando o foco ou os filtros mudam, sem recarregar a página.
-import { MEDIDAS, desenharArvore, type Desenho } from '../arvore-desenho';
+import { MEDIDAS, arredondado, desenharArvore, passaPor, type Desenho } from '../arvore-desenho';
 import { DESLOCAMENTO_DO_PAPEL, alinharPeloCoracao, calcularGeracoes, type Papel } from '../parentesco';
 import { linhaDireta, ramosRecolhidos, type Ramo } from '../linha-direta';
 
@@ -132,6 +132,30 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     vista.y = mapa.clientHeight / 2 - (no.y + MEDIDAS.altura / 2) * vista.zoom;
     aplicarVista(animado);
   };
+  // Depois de abrir um ramo, o mapa anda o mínimo para o cartão e a origem dele caberem na tela
+  const mostrarCartao = (chave: string) => {
+    const cartao = camada.querySelector<HTMLElement>(`[data-ramo-aberto="${CSS.escape(chave)}"]`);
+    const marca = camada.querySelector<HTMLElement>(`button.no__ramo[data-ramo="${CSS.escape(chave)}"]`);
+    if (!cartao || !marca) return;
+    const posicao = (el: HTMLElement) => el.style.transform.match(/-?[\d.]+/g)!.map(Number);
+    const [cx, cy] = posicao(cartao);
+    const [, my] = posicao(marca);
+    // Da linha dos avós (um pouco acima da marca) até o pé do cartão, com uma margem
+    const topo = my - MEDIDAS.altura - 40;
+    const caixa = { x: cx - 24, y: topo, w: cartao.offsetWidth + 48, h: cy + cartao.offsetHeight + 24 - topo };
+    const z = vista.zoom;
+    const ajuste = (inicio: number, tamanho: number, tela: number, atual: number) => {
+      const a = atual + inicio * z;
+      const b = a + tamanho * z;
+      if (tamanho * z > tela) return atual - a;
+      if (a < 0) return atual - a;
+      if (b > tela) return atual - (b - tela);
+      return atual;
+    };
+    vista.x = ajuste(caixa.x, caixa.w, mapa.clientWidth, vista.x);
+    vista.y = ajuste(caixa.y, caixa.h, mapa.clientHeight, vista.y);
+    aplicarVista(true);
+  };
   const verTudo = (animado = true) => {
     if (!desenho) return;
     const folga = 56;
@@ -209,6 +233,14 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       }
     }
     const coracao = todosDoCoracao.filter((l) => estado.abertos.has(l.dono) && principal.has(l.dono) && principal.has(l.pessoa));
+    // Escadinha: um laço que passa pela mãe de quem olha traz junto o laço dela, mesmo recolhido,
+    // porque é por ele que a pessoa se liga à árvore
+    for (const l of [...coracao]) {
+      const meio = passaPor(l, todosDoCoracao, filiacoes);
+      if (!meio || !principal.has(meio)) continue;
+      const doMeio = todosDoCoracao.find((x) => (x.dono === meio && x.pessoa === l.pessoa) || (x.dono === l.pessoa && x.pessoa === meio));
+      if (doMeio && !coracao.includes(doMeio)) coracao.push(doMeio);
+    }
     const lacosDe = new Map<string, number>();
     for (const l of todosDoCoracao) if (principal.has(l.dono)) lacosDe.set(l.dono, (lacosDe.get(l.dono) ?? 0) + 1);
 
@@ -260,7 +292,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     );
 
     // 4. Pessoas: cada caixa continua a mesma entre um desenho e outro, e desliza até o novo lugar
-    const rotuloDoCoracao = new Map(agregados.map((l) => [l.pessoa, l.rotulo]));
+    // O rótulo vem do laço de quem olha quando ele existe: "sua vó de consideração", e não o da Elizete
+    const rotuloDoCoracao = new Map([...agregados].sort((a, b) => Number(a.dono === dados.eu) - Number(b.dono === dados.eu)).map((l) => [l.pessoa, l.rotulo]));
     const presentes = new Set<string>();
     for (const lugar of desenho.pessoas) {
       const p = pessoa.get(lugar.id)!;
@@ -373,6 +406,9 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       const largura = arvoreDoRamo.largura + folga * 2;
       const altura = arvoreDoRamo.altura + folga * 2 + cabecalho;
       let esquerda = lado < 0 ? ancoraX + 60 - largura : lado > 0 ? ancoraX - 60 : ancoraX - largura / 2;
+      // Quem liga o ramo à árvore (a Elizete, no ramo da Tia Lourdes) fica sempre à vista, ao lado do cartão
+      if (daLinha && lado < 0) esquerda = Math.min(esquerda, daLinha.x - 12 - largura);
+      if (daLinha && lado > 0) esquerda = Math.max(esquerda, daLinha.x + MEDIDAS.largura + 12);
       const topo = yDaGeracao(primeira) - folga - cabecalho;
       // Se encosta em outro cartão já aberto, é empurrado para fora
       const sobrepoe = () => ocupados.find((o) => esquerda < o.x + o.w + 16 && esquerda + largura + 16 > o.x && topo < o.y + o.h && topo + altura > o.y);
@@ -409,9 +445,11 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       const filhosNoTopo = ramo.filhos.filter((f) => doRamo.get(f)?.y === 0);
       const xs = filhosNoTopo.map((f) => doRamo.get(f)!.x + MEDIDAS.largura / 2);
       const ancoraNoRamo = ancoraX - conteudoX;
-      const barra = -cabecalho / 2 - 4;
-      let ligacao = `M ${ancoraNoRamo} ${baseY + 32 - conteudoY} V ${barra} M ${Math.min(ancoraNoRamo, ...xs)} ${barra} H ${Math.max(ancoraNoRamo, ...xs)}`;
-      for (const x of xs) ligacao += ` M ${x} ${barra} V 0`;
+      // Do Figma: a linha sai da marca, corre por fora do cartão, logo acima dele, e só entra
+      // no cartão em cima de cada filho do ramo. Assim ela não cruza o título nem a árvore.
+      const daMarca = baseY + 32 - conteudoY;
+      const corredor = (daMarca + topo - conteudoY) / 2;
+      const ligacao = xs.map((x) => arredondado([[ancoraNoRamo, daMarca], [ancoraNoRamo, corredor], [x, corredor], [x, 0]], 8)).join(' ');
       const caminhos = [...arvoreDoRamo.linhas.map((l) => [l.d, `linha linha--${l.tipo}`]), [ligacao, 'linha linha--filhos linha--ramo']];
       linhasDoRamo.replaceChildren(
         ...caminhos.map(([d, classe]) => {
@@ -427,6 +465,24 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       camada.append(cartao);
       extras.push(cartao);
     }
+
+    // 4d. Com um ramo aberto, o resto da árvore recua. Ficam nítidos o cartão, a origem dele (o
+    // casal de onde o ramo nasce, com a marca) e quem está na mesma geração do ramo e vem do
+    // mesmo casal (a Elizete, no ramo da Tia Lourdes). Com vários abertos, vale o último.
+    const emFoco = [...estado.ramos].reverse().map((chave) => abertos.find((r) => r.chave === chave)).find(Boolean);
+    const nitidos = new Set<string>();
+    if (emFoco) {
+      for (const id of emFoco.pais) nitidos.add(id);
+      for (const f of filiacoesVisiveis) if (emFoco.pais.includes(f.responsavel) && principal.has(f.filho)) nitidos.add(f.filho);
+    }
+    const recuar = (el: Element, recua: boolean) => el.classList.toggle('recuado', Boolean(emFoco) && recua);
+    for (const [id, no] of nos) recuar(no, !nitidos.has(id));
+    for (const [id, botao] of botoesDoCoracao) recuar(botao, !nitidos.has(id));
+    for (const caminho of svg.children) {
+      const de = desenho.linhas[[...svg.children].indexOf(caminho)]?.de ?? [];
+      recuar(caminho, !de.every((id) => nitidos.has(id)));
+    }
+    for (const e of extras) recuar(e, e.getAttribute('data-ramo') !== emFoco?.chave && (e as HTMLElement).dataset.ramoAberto !== emFoco?.chave);
 
     // 5. Quem não tem laço nenhum com ninguém
     const comLaco = new Set([...dados.filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...dados.casais.flatMap((c) => [c.a, c.b]), ...dados.coracao.flatMap((l) => [l.dono, l.pessoa])]);
@@ -553,9 +609,11 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     if (doRamo) {
       // Abre ou recolhe um ramo lateral, sem mexer na árvore principal
       const chave = doRamo.dataset.ramo!;
-      if (!estado.ramos.delete(chave)) estado.ramos.add(chave);
+      const abrindo = !estado.ramos.delete(chave);
+      if (abrindo) estado.ramos.add(chave);
       guardarNoEndereco();
       desenhar();
+      if (abrindo) mostrarCartao(chave);
       return;
     }
     const botao = (evento.target as HTMLElement).closest<HTMLButtonElement>('button.no__coracao');

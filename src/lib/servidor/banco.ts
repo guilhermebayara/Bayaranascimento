@@ -5,7 +5,7 @@
 // na tabela _migracoes. Para mudar a estrutura, acrescente um item no fim da
 // lista: nunca edite uma migração que já foi publicada.
 import { env } from 'cloudflare:workers';
-import { semearAcervoDeExemplo, semearExemplos, semearParentesDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearConsideracoesDeExemplo, semearExemplos, semearParentesDeExemplo } from './semente';
 
 interface Migracao {
   id: string;
@@ -320,6 +320,30 @@ const MIGRACOES: Migracao[] = [
     id: '009-nucleo-bayara',
     sql: [`UPDATE nucleos SET nome = 'Bayara' WHERE id = 'bayara-nascimento'`],
   },
+  {
+    // Laço do coração "como se fosse pai ou mãe": a mãe de consideração da Elizete, por exemplo.
+    // O SQLite não muda um CHECK no lugar, então a tabela é refeita com os mesmos dados.
+    id: '010-papel-pai',
+    sql: [
+      `CREATE TABLE lacos_coracao_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        dono_id TEXT NOT NULL REFERENCES integrantes(id),
+        pessoa_id TEXT NOT NULL REFERENCES integrantes(id),
+        nome TEXT NOT NULL,
+        papel TEXT CHECK (papel IN ('avo', 'pai', 'tio', 'irmao', 'primo', 'filho', 'sobrinho')),
+        proximidade INTEGER CHECK (proximidade BETWEEN 1 AND 3),
+        privado INTEGER NOT NULL DEFAULT 0,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (dono_id, pessoa_id),
+        CHECK (dono_id <> pessoa_id)
+      )`,
+      `INSERT INTO lacos_coracao_novo (id, dono_id, pessoa_id, nome, papel, proximidade, privado, criado_em)
+        SELECT id, dono_id, pessoa_id, nome, papel, proximidade, privado, criado_em FROM lacos_coracao`,
+      `DROP TABLE lacos_coracao`,
+      `ALTER TABLE lacos_coracao_novo RENAME TO lacos_coracao`,
+      `CREATE INDEX IF NOT EXISTS lacos_coracao_da_pessoa ON lacos_coracao (pessoa_id)`,
+    ],
+  },
 ];
 
 let pronto: Promise<void> | undefined;
@@ -355,5 +379,6 @@ async function migrar(): Promise<void> {
     await semearExemplos(db);
     await semearParentesDeExemplo(db);
     await semearAcervoDeExemplo(db);
+    await semearConsideracoesDeExemplo(db);
   }
 }

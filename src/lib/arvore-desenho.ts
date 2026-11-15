@@ -61,6 +61,19 @@ export interface Desenho {
   altura: number;
 }
 
+/**
+ * Por quem um laço do coração passa antes de chegar ao dono: um pai ou mãe do dono que também tem
+ * laço do coração com a pessoa escolhida. Sem ninguém no meio, o laço se liga direto ao dono.
+ */
+export function passaPor(
+  laco: Pick<CoracaoNoDesenho, 'dono' | 'pessoa'>,
+  coracao: Pick<CoracaoNoDesenho, 'dono' | 'pessoa'>[],
+  filiacoes: Pick<FiliacaoNoDesenho, 'filho' | 'responsavel'>[],
+): string | undefined {
+  const pais = filiacoes.filter((f) => f.filho === laco.dono).map((f) => f.responsavel);
+  return pais.find((pai) => coracao.some((l) => (l.dono === pai && l.pessoa === laco.pessoa) || (l.dono === laco.pessoa && l.pessoa === pai)));
+}
+
 export function desenharArvore(
   pessoas: PessoaNoDesenho[],
   casais: CasalNoDesenho[],
@@ -105,6 +118,11 @@ export function desenharArvore(
   const raizDe = (id: string): string => (grupoDe.get(id) === id ? id : raizDe(grupoDe.get(id)!));
   for (const f of filiacoes) grupoDe.set(raizDe(f.filho), raizDe(f.responsavel));
   for (const c of casais) grupoDe.set(raizDe(c.a), raizDe(c.b));
+  // Escadinha: um laço "como se fosse" que já passa por um pai ou mãe de quem escolheu não ganha
+  // linha nem lugar próprios. A tia de consideração do Gui é amiga-irmã da Elizete, e a vó de
+  // consideração é mãe de consideração dela: as duas chegam ao Gui pela mãe dele.
+  const pelaEscada = new Set(coracao.filter((l) => passaPor(l, coracao, filiacoes) !== undefined));
+  const diretos = coracao.filter((l) => !pelaEscada.has(l));
   const escolhidoPor = new Map<string, string>();
   for (const l of coracao) if (raizDe(l.dono) !== raizDe(l.pessoa) && !escolhidoPor.has(raizDe(l.pessoa))) escolhidoPor.set(raizDe(l.pessoa), l.dono);
 
@@ -165,7 +183,7 @@ export function desenharArvore(
   // --- 1b. Melhora a ordem: menos cruzamentos, ligações mais curtas, cada núcleo do seu lado ---
   const ladoDe = new Map(pessoas.filter((p) => p.lado !== undefined).map((p) => [p.id, p.lado!]));
   const linhasDeBlocos = linhasDePessoas.map((linha) => blocosDaLinha.get(linha)!.map((b) => [...b]));
-  otimizarOrdem(linhasDeBlocos, [...paisDe].flatMap(([filho, pais]) => pais.map((pai) => [pai, filho] as [string, string])), coracao.map((l) => [l.dono, l.pessoa] as [string, string]), ladoDe, raizDe);
+  otimizarOrdem(linhasDeBlocos, [...paisDe].flatMap(([filho, pais]) => pais.map((pai) => [pai, filho] as [string, string])), diretos.map((l) => [l.dono, l.pessoa] as [string, string]), ladoDe, raizDe);
   linhasDePessoas.length = 0;
   blocosDaLinha.clear();
   for (const blocos of linhasDeBlocos) {
@@ -325,7 +343,7 @@ export function desenharArvore(
   // O filho de um amigo já se liga a quem escolheu pelo pai ou mãe: não precisa de linha própria
   const escolhidosPor = new Map<string, Set<string>>();
   for (const l of coracao) (escolhidosPor.get(l.dono) ?? escolhidosPor.set(l.dono, new Set()).get(l.dono)!).add(l.pessoa);
-  for (const l of coracao) {
+  for (const l of diretos) {
     const viaPais = (paisDe.get(l.pessoa) ?? []).some((p) => escolhidosPor.get(l.dono)!.has(p));
     if (!viaPais) linhas.push({ d: tracejada(l.dono, l.pessoa), tipo: 'coracao', de: [l.dono, l.pessoa] });
   }
@@ -359,7 +377,7 @@ function emFila(grupo: string[], paresDe: Map<string, string[]>, chave: Map<stri
 }
 
 /** Caminho que passa pelos pontos, com os cantos arredondados */
-function arredondado(pontos: [number, number][], raio = 12): string {
+export function arredondado(pontos: [number, number][], raio = 12): string {
   const p = pontos.filter((q, i) => i === 0 || q[0] !== pontos[i - 1][0] || q[1] !== pontos[i - 1][1]);
   let d = `M ${p[0][0]} ${p[0][1]}`;
   for (let i = 1; i < p.length - 1; i++) {
@@ -642,6 +660,11 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
       if (!ancora) {
         const ordem = melhor[n].flat();
         let parentes = [...(paisDe.get(dono) ?? []), ...(filhosDe.get(dono) ?? [])].filter((id) => naLinha.has(id));
+        // Duas gerações ou mais de distância (uma vó de consideração): sobe pelos ancestrais
+        for (let acima = paisDe.get(dono) ?? []; parentes.length === 0 && acima.length; ) {
+          acima = acima.flatMap((id) => paisDe.get(id) ?? []);
+          parentes = acima.filter((id) => naLinha.has(id));
+        }
         // Sem pai, mãe ou filho na fileira, encosta num sobrinho (filho de um irmão de quem escolheu)
         if (parentes.length === 0) {
           const irmaos = (irmaosDe.get(dono) ?? []);
@@ -673,7 +696,12 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
       }
       const porAncora = new Map<string, string[][]>();
       for (const b of prontos) empilhar(porAncora, `${ancoraDoBloco.get(b)!}|${donoDoBloco.get(b)!}`, b);
-      for (const [chave, blocos] of porAncora) {
+      // Na mesma âncora, quem chega por um laço mais perto dela fica mais perto: a mãe de
+      // consideração da Elizete encosta na Vó Vivica antes da vó de consideração do Gui
+      const distancia = (ancora: string, dono: string) =>
+        ancora === dono ? 0 : (paisDe.get(dono) ?? []).includes(ancora) || (filhosDe.get(dono) ?? []).includes(ancora) ? 1 : 2;
+      const entradas = [...porAncora].sort(([a], [b]) => distancia(...(b.split('|') as [string, string])) - distancia(...(a.split('|') as [string, string])));
+      for (const [chave, blocos] of entradas) {
         const [ancora, dono] = chave.split('|');
         const direcao = ancora === dono ? direcaoDe(dono, linha) : (lado.get(dono) ?? 0) > 0.5 ? 1 : -1;
         const perto = [...blocos].sort((a, b) => descendentes(a) - descendentes(b) || original.indexOf(a[0]) - original.indexOf(b[0]));

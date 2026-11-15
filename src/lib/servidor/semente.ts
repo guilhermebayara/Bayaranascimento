@@ -1211,3 +1211,37 @@ export async function semearAcervoDeExemplo(db: D1Database): Promise<void> {
   }
   await db.batch(comandos);
 }
+
+// Duas avós de consideração do Gui, para os dois caminhos de um laço "como se fosse":
+// Dona Déia não passa por ninguém e se liga direto ao Gui. Dona Lourdes é mãe de consideração
+// da Elizete, então chega ao Gui pela mãe dele, sem linha própria até ele.
+const AVOS_DE_CONSIDERACAO: { id: string; nome: string; nasceu: number }[] = [
+  { id: 'ex-dona-deia', nome: 'Dona Déia', nasceu: 1940 },
+  { id: 'ex-dona-lourdes', nome: 'Dona Lourdes', nasceu: 1936 },
+];
+const LACOS_DAS_AVOS: [string, string, string, string, number][] = [
+  ['gui', 'ex-dona-deia', 'Vó de consideração', 'avo', 1],
+  ['elizete', 'ex-dona-lourdes', 'Mãe de consideração', 'pai', 1],
+  ['gui', 'ex-dona-lourdes', 'Vó de consideração', 'avo', 2],
+];
+
+export async function semearConsideracoesDeExemplo(db: D1Database): Promise<void> {
+  const ja = await db.prepare(`SELECT 1 AS ok FROM integrantes WHERE id = 'ex-dona-deia'`).first();
+  if (ja) return;
+  const comandos: D1PreparedStatement[] = AVOS_DE_CONSIDERACAO.map((p, i) =>
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO integrantes (id, nome, tipo, tratamento, nascimento_ano, ordem, sobre)
+         VALUES (?, ?, 'pessoa', 'ela', ?, ?, 'Parente de exemplo, só existe na versão de teste.')`,
+      )
+      .bind(p.id, p.nome, p.nasceu, 100 + i),
+  );
+  for (const [dono, pessoa, nome, papel, proximidade] of LACOS_DAS_AVOS) {
+    comandos.push(
+      db
+        .prepare('INSERT OR IGNORE INTO lacos_coracao (dono_id, pessoa_id, nome, papel, proximidade, privado) VALUES (?, ?, ?, ?, ?, 0)')
+        .bind(dono, pessoa, nome, papel, proximidade),
+    );
+  }
+  await db.batch(comandos);
+}
