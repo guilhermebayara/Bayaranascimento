@@ -30,16 +30,19 @@ describe('árvore com os dados da prévia', () => {
 });
 
 describe('laços do coração em tronco', () => {
-  it('os laços do Gui do lado esquerdo saem juntos e entram pela lateral dele', () => {
+  it('os laços do Gui do lado esquerdo saem num tronco só, que entra pela lateral dele', () => {
     const { desenho } = montarDesenho(dados, estado(['gui']));
     const gui = desenho.pessoas.find((p) => p.id === 'gui')!;
-    const doGui = desenho.linhas.filter((l) => l.tipo === 'coracao' && l.de.includes('gui'));
-    const esquerda = doGui.filter((l) => ['renan', 'natalia-boaventura', 'ex-dona-deia'].some((id) => l.de.includes(id)));
-    expect(esquerda).toHaveLength(3);
-    // Todos terminam no mesmo ponto, no meio da lateral esquerda do Gui
-    for (const l of esquerda) expect(l.d.trim().endsWith(`${gui.x} ${gui.y + 38}`), l.d).toBe(true);
-    // E correm na mesma faixa: a altura do trecho horizontal é a mesma para os três
-    const faixas = esquerda.map((l) => [...l.d.matchAll(/Q (-?[\d.]+) (-?[\d.]+)/g)].map((m) => Number(m[2])).filter((y) => y < gui.y)[0]);
-    expect(new Set(faixas).size, faixas.join(' ')).toBe(1);
+    const troncos = desenho.linhas.filter((l) => l.tipo === 'coracao' && ['renan', 'natalia-boaventura', 'ex-dona-deia'].some((id) => l.de.includes(id)));
+    expect(troncos).toHaveLength(1);
+    const [tronco] = troncos;
+    expect(tronco.de).toEqual(expect.arrayContaining(['gui', 'renan', 'natalia-boaventura', 'ex-dona-deia']));
+    // Começa no meio da lateral esquerda do Gui
+    expect(tronco.d.startsWith(`M ${gui.x} ${gui.y + 38}`), tronco.d).toBe(true);
+    // Cada galho nasce na faixa do tronco: os trechos não se sobrepõem, e o tracejado aparece
+    const inicios = [...tronco.d.matchAll(/M (-?[\d.]+) (-?[\d.]+)/g)].slice(1).map((m) => Number(m[2]));
+    const faixa = [...tronco.d.matchAll(/Q (-?[\d.]+) (-?[\d.]+)/g)].map((m) => Number(m[2]))[1];
+    expect(inicios.length).toBe(2);
+    for (const y of inicios) expect(y).toBe(faixa);
   });
 });

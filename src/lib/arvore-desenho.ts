@@ -43,7 +43,7 @@ export interface Medidas {
   vaoY: number;
 }
 
-export const MEDIDAS: Medidas = { largura: 150, altura: 76, vaoX: 44, vaoY: 96 };
+export const MEDIDAS: Medidas = { largura: 150, altura: 76, vaoX: 44, vaoY: 136 };
 
 export interface Linha {
   /** caminho SVG */
@@ -304,7 +304,7 @@ export function desenharArvore(
     const baixo = Math.max(...pais.map((p) => em.get(p)!.y)) + m.altura;
     const ponto = pais.length === 2 && ehCasal(pais[0], pais[1]) ? pontoDoCasal.get(chave) : undefined;
     // Cada família usa uma altura um pouco diferente, para as linhas não se confundirem
-    const barra = baixo + m.vaoY * 0.4 + ((degrau++ % 3) - 1) * 7;
+    const barra = baixo + m.vaoY * 0.36 + ((degrau++ % 3) - 1) * 7;
     const origens = ponto ? [{ x: ponto.x, y: ponto.y }] : pais.map((p) => ({ x: meioX(p), y: baixo }));
     descidas.push({ pais, x: origens[0].x, y: origens[0].y, barra });
     let d = '';
@@ -322,7 +322,7 @@ export function desenharArvore(
   const faixa = (topo: number) => {
     const k = faixas.get(topo) ?? 0;
     faixas.set(topo, k + 1);
-    return topo - 16 - (k % 4) * 7;
+    return topo - 26 - (k % 4) * 8;
   };
   const tracejada = (a: string, b: string) => {
     const pa = em.get(a)!;
@@ -349,35 +349,51 @@ export function desenharArvore(
   for (const l of coracao) (escolhidosPor.get(l.dono) ?? escolhidosPor.set(l.dono, new Set()).get(l.dono)!).add(l.pessoa);
   // Os laços de uma pessoa saem juntos, como no FigJam: um tronco só, que entra pela lateral dela
   // e se divide em curvas para cada escolhido. Cada pessoa e lado tem a sua faixa, logo acima da
-  // fileira, e o tronco desce no vão ao lado dela. Linhas que se sobrepõem parecem uma só.
-  const faixaDoTronco = new Map<string, number>();
-  const tronco = (centro: string, outro: string) => {
-    const pc = em.get(centro)!;
-    const po = em.get(outro)!;
-    const lado = meioX(outro) < meioX(centro) ? -1 : 1;
-    const chave = `${centro}|${lado}`;
-    if (!faixaDoTronco.has(chave)) faixaDoTronco.set(chave, faixa(pc.y));
-    const alto = faixaDoTronco.get(chave)!;
-    const vao = lado < 0 ? pc.x - m.vaoX / 2 : pc.x + m.largura + m.vaoX / 2;
-    const entrada = lado < 0 ? pc.x : pc.x + m.largura;
-    const saida = po.y === pc.y ? po.y : po.y + m.altura;
-    return arredondado([[meioX(outro), saida], [meioX(outro), alto], [vao, alto], [vao, pc.y + m.altura / 2], [entrada, pc.y + m.altura / 2]]);
-  };
+  // fileira, e o tronco desce no vão ao lado dela. O tronco e cada galho são desenhados uma vez só,
+  // sem sobreposição, para o tracejado continuar visível.
+  const R = 20;
+  const troncos = new Map<string, { centro: string; lado: -1 | 1; outros: string[]; de: Set<string> }>();
   for (const l of diretos) {
     const viaPais = (paisDe.get(l.pessoa) ?? []).some((p) => escolhidosPor.get(l.dono)!.has(p));
     if (viaPais) continue;
     const [pd, pp] = [em.get(l.dono)!, em.get(l.pessoa)!];
-    let d: string;
     if (pd.y === pp.y) {
       const [esq, dir] = pd.x < pp.x ? [pd, pp] : [pp, pd];
       const entre = posicoes.some((o) => o.y === pd.y && o.x > esq.x && o.x < dir.x);
-      // Vizinhos: uma linha reta. Com alguém no meio: pelo tronco de quem escolheu.
-      d = entre ? tronco(l.dono, l.pessoa) : `M ${esq.x + m.largura} ${pd.y + m.altura / 2} H ${dir.x}`;
-    } else {
-      // Gerações diferentes: o tronco é de quem está embaixo, e a linha desce de quem está em cima
-      d = pd.y > pp.y ? tronco(l.dono, l.pessoa) : tronco(l.pessoa, l.dono);
+      // Vizinhos: uma linha reta
+      if (!entre) {
+        linhas.push({ d: `M ${esq.x + m.largura} ${pd.y + m.altura / 2} H ${dir.x}`, tipo: 'coracao', de: [l.dono, l.pessoa] });
+        continue;
+      }
     }
-    linhas.push({ d, tipo: 'coracao', de: [l.dono, l.pessoa] });
+    // O tronco é de quem escolheu, ou de quem está embaixo quando são de gerações diferentes
+    const [centro, outro] = pd.y === pp.y || pd.y > pp.y ? [l.dono, l.pessoa] : [l.pessoa, l.dono];
+    const lado: -1 | 1 = meioX(outro) < meioX(centro) ? -1 : 1;
+    const chave = `${centro}|${lado}`;
+    const t = troncos.get(chave) ?? troncos.set(chave, { centro, lado, outros: [], de: new Set([centro]) }).get(chave)!;
+    t.outros.push(outro);
+    t.de.add(outro);
+  }
+  for (const { centro, lado, outros, de } of troncos.values()) {
+    const pc = em.get(centro)!;
+    const alto = faixa(pc.y);
+    const meio = pc.y + m.altura / 2;
+    const vao = lado < 0 ? pc.x - m.vaoX / 2 : pc.x + m.largura + m.vaoX / 2;
+    const entrada = lado < 0 ? pc.x : pc.x + m.largura;
+    // Ponta de cada galho: o pé de quem está em cima, ou o topo de quem está na mesma fileira
+    const ponta = (id: string) => (em.get(id)!.y === pc.y ? em.get(id)!.y : em.get(id)!.y + m.altura);
+    const ordem = [...outros].sort((a, b) => Math.abs(meioX(b) - vao) - Math.abs(meioX(a) - vao));
+    const [maisLonge, ...resto] = ordem;
+    let d = arredondado([[entrada, meio], [vao, meio], [vao, alto], [meioX(maisLonge), alto], [meioX(maisLonge), ponta(maisLonge)]], R);
+    for (const id of resto) {
+      // O galho nasce na faixa, um pouco antes, e faz a curva até a pessoa
+      const x = meioX(id);
+      const y = ponta(id);
+      const r = Math.min(R, Math.abs(y - alto) / 2);
+      const sentido = y > alto ? 1 : -1;
+      d += ` M ${x - lado * r} ${alto} Q ${x} ${alto} ${x} ${alto + sentido * r} L ${x} ${y}`;
+    }
+    linhas.push({ d, tipo: 'coracao', de: [...de] });
   }
 
   return {
@@ -410,7 +426,7 @@ function emFila(grupo: string[], paresDe: Map<string, string[]>, chave: Map<stri
 }
 
 /** Caminho que passa pelos pontos, com os cantos arredondados */
-export function arredondado(pontos: [number, number][], raio = 12): string {
+export function arredondado(pontos: [number, number][], raio = 20): string {
   const p = pontos.filter((q, i) => i === 0 || q[0] !== pontos[i - 1][0] || q[1] !== pontos[i - 1][1]);
   let d = `M ${p[0][0]} ${p[0][1]}`;
   for (let i = 1; i < p.length - 1; i++) {

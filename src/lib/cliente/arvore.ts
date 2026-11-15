@@ -297,9 +297,31 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       marca.setAttribute('aria-pressed', String(aberto));
       marca.title = `${aberto ? 'Recolher' : 'Mostrar'} o ramo de ${nomes(ramo.filhos)}`;
       marca.setAttribute('aria-label', marca.title);
+      const galho = (d: string) => {
+        const caminho = document.createElementNS(SVG, 'path');
+        caminho.setAttribute('d', d);
+        caminho.setAttribute('class', 'linha linha--filhos');
+        caminho.dataset.de = ramo.pais.join(' ');
+        svg.append(caminho);
+      };
       if (aberto || !daLinha || !descida) {
-        // Aberto (como no Figma): a marca fica logo abaixo do casal, no tronco, e a linha segue dela até o cartão
-        marca.style.transform = `translate(${ancoraX - 22}px, ${baseY + 6}px)`;
+        // Aberto (como no Figma): a marca fica logo abaixo do casal, no tronco, e a linha segue dela até o
+        // cartão. Um casal sem ninguém na linha direta embaixo (Luísa e Bruno) ganha o ponto do casal e
+        // uma linha curta até a marca, para ela não ficar solta.
+        const topo = aberto ? baseY + 6 : baseY + 34;
+        marca.style.transform = `translate(${ancoraX - 22}px, ${topo}px)`;
+        if (!descida) {
+          const doCasal = pais.length === 2 && pais[0]!.y === pais[1]!.y;
+          const origemY = doCasal ? pais[0]!.y + MEDIDAS.altura / 2 : baseY;
+          galho(`M ${ancoraX} ${origemY} V ${topo}`);
+          if (doCasal) {
+            const ponto = document.createElementNS(SVG, 'path');
+            ponto.setAttribute('d', `M ${ancoraX - 5} ${origemY} a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0`);
+            ponto.setAttribute('class', 'linha linha--ponto');
+            ponto.dataset.de = ramo.pais.join(' ');
+            svg.append(ponto);
+          }
+        }
       } else {
         // Recolhido (como no FigJam): a marca ocupa o lugar de mais um filho, ao lado de quem está na
         // linha direta, e a linha dos pais se divide até ela. Assim fica claro que são mais filhos.
@@ -308,13 +330,9 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
         const vaga = (vagas.get(daLinha.id) ?? 0) + 1;
         vagas.set(daLinha.id, vaga);
         const x = daLinha.x + MEDIDAS.largura / 2 + (lado || 1) * vaga * (MEDIDAS.largura + MEDIDAS.vaoX);
-        const topo = descida.barra + 14;
+        const topo = descida.barra + 18;
         marca.style.transform = `translate(${x - 22}px, ${topo}px)`;
-        const galho = document.createElementNS(SVG, 'path');
-        galho.setAttribute('d', arredondado([[descida.x, descida.y], [descida.x, descida.barra], [x, descida.barra], [x, topo]]));
-        galho.setAttribute('class', 'linha linha--filhos');
-        galho.dataset.de = ramo.pais.join(' ');
-        svg.append(galho);
+        galho(arredondado([[descida.x, descida.y], [descida.x, descida.barra], [x, descida.barra], [x, topo]]));
       }
       camada.append(marca);
       extras.push(marca);
@@ -330,7 +348,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       if (!arvoreDoRamo.pessoas.length) continue;
       const primeira = Math.min(...membros.map((id) => geracoes.get(id)!));
       const folga = 18;
-      const cabecalho = 30;
+      // Sem título: a linha até o casal já diz de onde o ramo vem. Fica só o botão de fechar, no canto.
+      const cabecalho = 18;
       const largura = arvoreDoRamo.largura + folga * 2;
       const altura = arvoreDoRamo.altura + folga * 2 + cabecalho;
       let esquerda = lado < 0 ? ancoraX + 60 - largura : lado > 0 ? ancoraX - 60 : ancoraX - largura / 2;
@@ -353,12 +372,10 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       cartao.style.height = `${altura}px`;
       const titulo = document.createElement('header');
       titulo.className = 'ramo__titulo';
-      const texto = document.createElement('span');
-      texto.textContent = `Ramo de ${nomes(ramo.filhos)}`;
       const fechar = Object.assign(document.createElement('button'), { type: 'button', textContent: '×' });
       fechar.dataset.ramo = ramo.chave;
       fechar.setAttribute('aria-label', 'Recolher este ramo');
-      titulo.append(texto, fechar);
+      titulo.append(fechar);
       const conteudo = document.createElement('div');
       conteudo.className = 'ramo__conteudo';
       conteudo.style.left = `${folga}px`;
@@ -377,7 +394,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       // no cartão em cima de cada filho do ramo. Assim ela não cruza o título nem a árvore.
       const daMarca = baseY + 32 - conteudoY;
       const corredor = (daMarca + topo - conteudoY) / 2;
-      const ligacao = xs.map((x) => arredondado([[ancoraNoRamo, daMarca], [ancoraNoRamo, corredor], [x, corredor], [x, 0]], 8)).join(' ');
+      const ligacao = xs.map((x) => arredondado([[ancoraNoRamo, daMarca], [ancoraNoRamo, corredor], [x, corredor], [x, 0]])).join(' ');
       const caminhos = [...arvoreDoRamo.linhas.map((l) => [l.d, `linha linha--${l.tipo}`]), [ligacao, 'linha linha--filhos linha--ramo']];
       linhasDoRamo.replaceChildren(
         ...caminhos.map(([d, classe]) => {

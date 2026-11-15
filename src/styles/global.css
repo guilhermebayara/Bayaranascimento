@@ -1862,12 +1862,12 @@ p {
 
 .ramo__titulo {
   position: absolute;
-  top: 8px;
-  left: 18px;
-  right: 8px;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
   font-family: var(--titulo);
   font-size: 0.875rem;
