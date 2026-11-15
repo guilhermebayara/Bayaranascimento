@@ -2,7 +2,7 @@
 // núcleos, visibilidade e, se houver, o relato de quem está registrando.
 import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
-import { TIPOS_IDS } from '../../data/tipos';
+import { TIPO_OUTRO } from '../../lib/tipos';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { erro, json, mesmaOrigem } from '../../lib/servidor/http';
@@ -30,7 +30,8 @@ const Pedido = z.object({
   mes: z.number().int().min(1).max(12).optional(),
   dia: z.number().int().min(1).max(31).optional(),
   aproximada: z.boolean().default(false),
-  tipo: z.enum(TIPOS_IDS),
+  tipo: z.string().max(60),
+  tipoOutro: opcional(40),
   // ids de integrantes que já existem, ou "nova:0", "nova:1"... apontando para novasPessoas
   pessoas: z.array(z.string().max(80)).max(60).default([]),
   novasPessoas: z.array(z.object({ nome: z.string().trim().min(1).max(80) })).max(20).default([]),
@@ -55,6 +56,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const lido = Pedido.safeParse(bruto);
   if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
   const pedido = lido.data;
+
+  if (!locals.tipos.some((t) => t.id === pedido.tipo)) return erro(400, 'Escolha o tipo de momento.');
 
   const erroData = validarData(pedido.ano, pedido.mes, pedido.dia);
   if (erroData) return erro(400, erroData);
@@ -81,7 +84,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // Pessoas novas: cadastro mínimo, reaproveitando quem já existe com o mesmo nome
   const integrantesAtuais = await listarIntegrantes();
-  const idsIntegrantes = new Set(integrantesAtuais.map((i) => i.id));
+  // "nova" é o endereço do formulário de cadastro, então não pode ser id de ninguém
+  const idsIntegrantes = new Set([...integrantesAtuais.map((i) => i.id), 'nova']);
   const idsNovas: string[] = [];
   for (const nova of pedido.novasPessoas) {
     const base = criarSlug(nova.nome);
@@ -98,7 +102,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const resolver = (ref: string): string | undefined => {
     const nova = /^nova:(\d+)$/.exec(ref);
     if (nova) return idsNovas[Number(nova[1])];
-    return idsIntegrantes.has(ref) ? ref : undefined;
+    return ref !== 'nova' && idsIntegrantes.has(ref) ? ref : undefined;
   };
   const integrantes: string[] = [];
   for (const ref of pedido.pessoas) {
@@ -133,6 +137,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     dia: pedido.mes ? pedido.dia : undefined,
     aproximada: pedido.aproximada,
     tipo: pedido.tipo,
+    tipoOutro: pedido.tipo === TIPO_OUTRO ? pedido.tipoOutro || undefined : undefined,
     lugar: pedido.lugar || undefined,
     visibilidade: pedido.visibilidade,
     situacao,

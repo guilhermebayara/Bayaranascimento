@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Foto from '../../components/Foto.astro';
-import { TIPOS, type TipoId } from '../../data/tipos';
+import { tipoDaMemoria } from '../../lib/tipos';
 import { formatarData } from '../../lib/datas';
 import { podeEditarMemoria } from '../../lib/servidor/permissoes';
 import { listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, obterMemoria } from '../../lib/servidor/repositorio';
@@ -17,7 +17,7 @@ const nucleos = await listarNucleos();
 const relatos = await listarRelatos(usuario, memoria.id);
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
-const tipo = TIPOS[memoria.tipo as TipoId] ?? { rotulo: memoria.tipo, cor: 'var(--tinta)' };
+const tipo = tipoDaMemoria(Astro.locals.tipos, memoria);
 const dosNucleos = memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean);
 const podeEditar = podeEditarMemoria(usuario, memoria).ok;
 
@@ -78,7 +78,7 @@ const depois = todas[posicao + 1];
       memoria.fotos.length > 0 && (
         <div class="galeria">
           {memoria.fotos.map((foto) => (
-            <Foto foto={foto} tipo={memoria.tipo} />
+            <Foto foto={foto} cor={tipo.cor} />
           ))}
         </div>
       )

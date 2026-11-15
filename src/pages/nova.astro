@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { TIPOS, type TipoId } from '../data/tipos';
+import { TIPO_OUTRO, TIPO_PADRAO } from '../lib/tipos';
 import { MESES } from '../lib/datas';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { podeEditarMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
@@ -51,15 +51,20 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         <span id="rotulo-tipo">Que tipo de momento foi?</span>
         <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-tipo">
           {
-            (Object.keys(TIPOS) as TipoId[]).map((tipo) => (
-              <label class="opcao" style={`--cor-tipo: ${TIPOS[tipo].cor}`}>
-                <input type="radio" name="tipo" value={tipo} checked={tipo === (memoria?.tipo ?? 'cotidiano')} />
-                <span class="tipo">{TIPOS[tipo].rotulo}</span>
+            Astro.locals.tipos.map((tipo) => (
+              <label class="opcao" style={`--cor-tipo: ${tipo.cor}`}>
+                <input type="radio" name="tipo" value={tipo.id} checked={tipo.id === (memoria?.tipo ?? TIPO_PADRAO)} />
+                <span class="tipo">{tipo.rotulo}</span>
               </label>
             ))
           }
         </div>
       </div>
+      <label class="campo" data-tipo-outro hidden={(memoria?.tipo ?? TIPO_PADRAO) !== TIPO_OUTRO}>
+        <span>O que foi? <small>(opcional)</small></span>
+        <input type="text" name="tipoOutro" maxlength="40" autocomplete="off" value={memoria?.tipoOutro ?? ''} placeholder="Ex.: Formatura" />
+        <span class="dica">Uma ou duas palavras. Se outras memórias usarem o mesmo nome, ele pode virar um tipo da lista.</span>
+      </label>
     </fieldset>
 
     <fieldset>
@@ -225,6 +230,14 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     const RASCUNHO_LOCAL = 'rascunho-nova-memoria';
     let proximaFoto = 0;
 
+    // "Outro" abre um campo para dizer o que foi
+    const campoOutro = form.querySelector<HTMLElement>('[data-tipo-outro]');
+    for (const radio of form.querySelectorAll<HTMLInputElement>('input[name="tipo"]')) {
+      radio.addEventListener('change', () => {
+        if (campoOutro) campoOutro.hidden = radio.value !== 'outro';
+      });
+    }
+
     const avisar = (texto: string, tipo: 'normal' | 'erro' = 'normal') => {
       situacaoEl.textContent = texto;
       situacaoEl.dataset.tipo = tipo;
@@ -359,6 +372,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         dia: dados.get('dia') ? Number(dados.get('dia')) : undefined,
         aproximada: dados.get('aproximada') === 'on',
         tipo: dados.get('tipo'),
+        tipoOutro: dados.get('tipo') === 'outro' ? String(dados.get('tipoOutro') ?? '').trim() || undefined : undefined,
         pessoas: [...dados.getAll('pessoas').map(String), ...novas.map((_, i) => `nova:${i}`)],
         novasPessoas: novas,
         lugar: String(dados.get('lugar') ?? '').trim() || undefined,

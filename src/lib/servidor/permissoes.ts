@@ -107,3 +107,33 @@ export function podeExcluirMemoria(usuario: Usuario, m: AcessoDaMemoria): Decisa
   if (!podeVerMemoria(usuario, m)) return nao('Memória não encontrada.');
   return usuario.admin ? sim : nao('Só os administradores do acervo excluem memórias.');
 }
+
+export interface IntegranteParaPermissao {
+  id: string;
+  nucleos: string[];
+  criadoPor?: string | null;
+}
+
+const divideNucleo = (usuario: Usuario, integrante: IntegranteParaPermissao) => integrante.nucleos.some((n) => usuario.nucleos.includes(n));
+
+/**
+ * Editar o cadastro de um integrante.
+ * - Quem acessa o site cuida da própria página, e só ela.
+ * - Quem não acessa: membros de um núcleo em comum, quem cadastrou e os admins.
+ */
+export function podeEditarIntegrante(usuario: Usuario, integrante: IntegranteParaPermissao, comAcesso: ReadonlySet<string>): Decisao {
+  if (integrante.id === usuario.pessoa) return sim;
+  if (comAcesso.has(integrante.id)) return nao('Só a própria pessoa edita a página dela.');
+  if (usuario.admin || integrante.criadoPor === usuario.pessoa || divideNucleo(usuario, integrante)) return sim;
+  return nao('Só quem é de um núcleo em comum com a pessoa pode editar a página dela.');
+}
+
+/**
+ * Criar ou mudar um laço de árvore (filiação ou casal): quem é um dos envolvidos,
+ * quem divide um núcleo com algum deles, e os admins.
+ */
+export function podeMexerEmLaco(usuario: Usuario, envolvidos: IntegranteParaPermissao[]): Decisao {
+  if (usuario.admin) return sim;
+  if (envolvidos.some((e) => e.id === usuario.pessoa || divideNucleo(usuario, e))) return sim;
+  return nao('Só quem é de um núcleo em comum com as pessoas envolvidas pode mudar esse laço.');
+}

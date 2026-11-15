@@ -46,13 +46,34 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 - Prévias de branch usam o banco e o bucket `bayara-memorias-teste`, só com exemplos, e por isso funcionam sem login.
 - A proposta completa de estrutura (laços, árvore, capítulos, temas) está no documento "Acervo da família: proposta de estrutura".
 
+## Tipos de momento
+
+- A lista de tipos vive no banco (tabela `tipos`), não no código. Só os admins criam, renomeiam e mudam a cor, em `/admin/tipos`.
+- "Outro" é a saída de quem não achou o tipo: a pessoa pode escrever em uma ou duas palavras o que foi, e a memória é salva assim.
+- A tela de admin mostra o que foi escrito em "Outro" e quantas memórias usam cada nome. Um nome que se repete pode virar tipo novo ou ser juntado a um tipo que já existe, e as memórias mudam junto.
+- A contagem só considera memórias que o admin pode ver. A promoção vale para todas as memórias com aquele nome.
+- Detalhes mais específicos ficam para os temas, que são livres.
+
+## Integrantes e laços de árvore
+
+- O banco guarda só dois laços: filiação (biológica, adotiva ou de consideração) e casal. O resto é calculado em `src/lib/parentesco.ts`: avós, tios, primos, sobrinhos, sogros, cunhados, genro e nora, madrasta e enteado.
+- Um casal é uma sequência de fases (namoro, noivado, casamento, união, separação, amizade), com anos opcionais. A última fase é a atual. Separar é acrescentar uma fase, e não apagar o casal.
+- O parentesco aparece do ponto de vista de quem está logado ("sua avó"). Laço de consideração é dito com todas as letras ("seu filho de consideração"); adoção não ganha adjetivo.
+- Cada integrante tem "como se referir" (ela, ele ou não informar), usado só para escrever os nomes de parentesco.
+- Um casal pode ser marcado como "só os dois veem": aparece para as duas pessoas e para quem cadastrou. A opção "núcleos escolhidos" para casais desfeitos ainda não existe.
+- Quem edita a ficha: a própria pessoa. Para quem não acessa o site, membros de um núcleo em comum, quem cadastrou e os admins.
+- Quem mexe em laços de árvore: os envolvidos, quem divide um núcleo com algum deles e os admins.
+- Os laços entram por um formulário só, "Adicionar laço": um seletor escolhe o tipo (filho de, pai de, casal, do coração) e mostra os campos daquele tipo. A outra pessoa pode ser da lista ou um nome novo, cadastrado na hora.
+- **Laços do coração** (primeira versão): nome livre, "como se fosse" opcional (dá lugar na árvore de quem escolheu), proximidade que só o dono vê e a opção "só eu vejo". O laço é sempre de quem está logado. Ainda faltam o período do laço, o círculo e esconder do acervo a pessoa que só aparece em laços privados.
+- A árvore (`/arvore`) é centrada em uma pessoa e abre em quem está logado. Camadas que ligam e desligam: consideração, ex-casais e bichos.
+
 ## Em aberto
 
 - Histórico de mudanças visível no site, com restaurar (as versões anteriores já são guardadas)
 - Excluir memória, com lixeira
-- Editar a página de um integrante pelo site
-- Laços, árvore, capítulos, temas, círculo e avisos
-- Cópias de segurança automáticas do banco
+- Foto de retrato do integrante, juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
+- Árvore: visão geral com zoom, recorte por núcleo e página do laço com linha do tempo
+- Laços do coração, capítulos, temas, círculo e avisos
 - Fotos enviadas em um formulário abandonado ficam no bucket sem uso: falta uma limpeza periódica
 
 ## Ideias em discussão (ainda não decididas)

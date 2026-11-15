@@ -19,5 +19,7 @@ declare module 'cloudflare:workers' {
 declare namespace App {
   interface Locals {
     usuario: import('./lib/servidor/permissoes').Usuario;
+    /** tipos de momento, lidos uma vez por pedido */
+    tipos: import('./lib/tipos').Tipo[];
   }
 }

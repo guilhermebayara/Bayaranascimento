@@ -1,0 +1,289 @@
+---
+import Base from '../../../layouts/Base.astro';
+import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
+import { FASES, Familia, PAPEIS, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
+import { pessoasComAcesso } from '../../../lib/servidor/acesso';
+import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
+import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const integrantes = await listarIntegrantes();
+const pessoa = integrantes.find((i) => i.id === Astro.params.id);
+if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
+
+const podeFicha = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok;
+const podeLacos = podeMexerEmLaco(usuario, [pessoa]).ok;
+// Laço do coração qualquer pessoa cria, entre ela e quem quiser. Por isso a página abre para todos.
+const ehMinha = pessoa.id === usuario.pessoa;
+
+const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario));
+const nome = (id: string) => {
+  const i = integrantes.find((x) => x.id === id);
+  return i?.apelido ?? i?.nome ?? id;
+};
+const chamar = pessoa.apelido ?? pessoa.nome;
+const pais = familia.pais(pessoa.id);
+const filhos = familia.filhos(pessoa.id);
+const casais = familia.casais(pessoa.id);
+const outros = integrantes.filter((i) => i.id !== pessoa.id).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+const lacosDoCoracao = await listarLacosDoCoracao(usuario);
+// Na própria página, todos os laços da pessoa. Na página de outra, só o laço com ela.
+const meusLacos = lacosDoCoracao.filter((l) => l.dono === usuario.pessoa && (ehMinha || l.pessoa === pessoa.id));
+const papeis = Object.entries(PAPEIS) as [Papel, string][];
+const proximidades = Object.entries(PROXIMIDADES);
+const volta = `/pessoas/${pessoa.id}/editar#lacos`;
+const qualidades = Object.entries(QUALIDADES) as [Qualidade, string][];
+const fases = Object.entries(FASES) as [TipoDeFase, string][];
+const anoAtual = new Date().getFullYear();
+---
+
+<Base titulo={`Editar ${chamar}`}>
+  <div class="abertura abertura--curta">
+    <h1>{chamar}</h1>
+    <p><a href={`/pessoas/${pessoa.id}`}>Voltar para a página</a></p>
+  </div>
+
+  <section class="painel" id="lacos">
+    <h2>Laços</h2>
+
+    <form method="post" action="/api/lacos" class="casal" data-novo-laco data-minha={ehMinha ? 'sim' : 'nao'}>
+      <input type="hidden" name="acao" value="adicionar" />
+      <input type="hidden" name="volta" value={volta} />
+      <input type="hidden" name="sujeito" value={pessoa.id} />
+      <p class="casal__titulo"><strong>Adicionar laço</strong></p>
+      <label class="campo">
+        <span>Que laço é?</span>
+        <select name="laco" required data-tipo-de-laco>
+          <option value="">Escolha</option>
+          {podeLacos && <option value="filho-de">{chamar} é filho ou filha de alguém</option>}
+          {podeLacos && <option value="pai-de">Alguém é filho ou filha de {chamar}</option>}
+          {podeLacos && <option value="casal">{chamar} formou casal com alguém (namoro, casamento, ex)</option>}
+          <option value="coracao">
+            {ehMinha ? 'Laço do coração: amigo, afilhado, alguém que é como da família' : `Laço do coração entre você e ${chamar}`}
+          </option>
+        </select>
+      </label>
+
+      <div data-para="filho-de pai-de casal coracao-meu" hidden>
+        <div class="em-linha">
+          <label>
+            <span>Com quem</span>
+            <select name="pessoa">
+              <option value="">Escolha</option>
+              {outros.map((i) => <option value={i.id}>{i.nome}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>ou alguém que ainda não está no acervo</span>
+            <input type="text" name="nomeNovo" maxlength="80" autocomplete="off" placeholder="Escreva o nome" />
+          </label>
+        </div>
+      </div>
+
+      <div data-para="filho-de pai-de" hidden>
+        <div class="em-linha">
+          <label>
+            <span>Filiação</span>
+            <select name="qualidade">
+              {qualidades.map(([id, rotulo]) => <option value={id}>{rotulo}</option>)}
+            </select>
+          </label>
+        </div>
+        <p class="dica">"De consideração" é para quem criou ou é tratado como filho sem ser de sangue nem adotado.</p>
+      </div>
+
+      <div data-para="casal" hidden>
+        <div class="em-linha">
+          <label>
+            <span>Fase de hoje</span>
+            <select name="faseTipo">
+              {fases.map(([id, rotulo]) => <option value={id} selected={id === 'casamento'}>{rotulo}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Começou em</span>
+            <input type="number" name="faseInicio" min="1800" max={anoAtual} inputmode="numeric" />
+          </label>
+          <label>
+            <span>Terminou em</span>
+            <input type="number" name="faseFim" min="1800" max={anoAtual} inputmode="numeric" />
+          </label>
+        </div>
+        <p class="dica">Os anos são opcionais. Depois de salvar, dá para contar a história inteira em fases: namoro, noivado, casamento.</p>
+        <label class="marcar">
+          <input type="checkbox" name="visibilidade" value="privado" />
+          <span>Só os dois veem este casal</span>
+        </label>
+      </div>
+
+      <div data-para="coracao coracao-meu" hidden>
+        <label class="campo">
+          <span>Nome do laço</span>
+          <input type="text" name="nomeDoLaco" maxlength="40" autocomplete="off" placeholder="Ex.: amigo-irmão, afilhada, vó de coração" />
+          <span class="dica">Do jeito que você chama. É o que a família vê.</span>
+        </label>
+        <div class="em-linha">
+          <label>
+            <span>Lugar na sua árvore</span>
+            <select name="papel">
+              <option value="">Não aparece na árvore</option>
+              {papeis.map(([id, rotulo]) => <option value={id}>Como se fosse {rotulo}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Proximidade</span>
+            <select name="proximidade">
+              <option value="">Não dizer</option>
+              {proximidades.map(([n, rotulo]) => <option value={n}>{rotulo}</option>)}
+            </select>
+          </label>
+        </div>
+        <p class="dica">O laço é seu: vale para você, e não para o resto da família. A proximidade só você vê.</p>
+        <label class="marcar">
+          <input type="checkbox" name="privado" />
+          <span>Só eu vejo este laço</span>
+        </label>
+      </div>
+
+      <div class="em-linha" data-para="filho-de pai-de casal coracao coracao-meu" hidden>
+        <button class="botao" type="submit">Adicionar laço</button>
+      </div>
+    </form>
+
+    {
+      podeLacos && (pais.length > 0 || filhos.length > 0) && (
+        <>
+          <h3>Pais e filhos</h3>
+          <ul class="linhas">
+            {[
+              ...pais.map((p) => ({ filho: pessoa.id, responsavel: p.responsavel, outro: p.responsavel, qualidade: p.qualidade, texto: `${chamar} é filho ou filha` })),
+              ...filhos.map((f) => ({ filho: f.filho, responsavel: pessoa.id, outro: f.filho, qualidade: f.qualidade, texto: `é filho ou filha de ${chamar}` })),
+            ].map((l) => (
+              <li>
+                <div>
+                  <strong>{nome(l.outro)}</strong>
+                  <span>
+                    {l.texto}, filiação {QUALIDADES[l.qualidade].toLowerCase()}
+                  </span>
+                </div>
+                <form method="post" action="/api/lacos" class="em-linha">
+                  <input type="hidden" name="volta" value={volta} />
+                  <input type="hidden" name="filho" value={l.filho} />
+                  <input type="hidden" name="responsavel" value={l.responsavel} />
+                  <button class="botao botao--leve" type="submit" name="acao" value="filiacao-remover">Remover laço</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </>
+      )
+    }
+
+    {
+      podeLacos && casais.length > 0 && (
+        <>
+          <h3>Casal</h3>
+          <p class="dica">As fases ficam na ordem em que aconteceram. A última linha preenchida é a fase de hoje.</p>
+          {casais.map((c) => (
+            <form method="post" action="/api/lacos" class="casal">
+              <input type="hidden" name="volta" value={volta} />
+              <input type="hidden" name="a" value={pessoa.id} />
+              <input type="hidden" name="b" value={c.outro} />
+              <p class="casal__titulo">
+                <strong>{chamar} e {nome(c.outro)}</strong>
+                <span>{estaoJuntos(c.casal) ? 'juntos' : 'não estão mais juntos'}</span>
+              </p>
+              {[...c.casal.fases, null].map((fase) => (
+                <div class="em-linha">
+                  <label>
+                    <span>{fase ? 'Fase' : 'Nova fase'}</span>
+                    <select name="faseTipo">
+                      <option value="">{fase ? 'Remover esta fase' : 'Nenhuma'}</option>
+                      {fases.map(([id, rotulo]) => <option value={id} selected={fase?.tipo === id}>{rotulo}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Começou em</span>
+                    <input type="number" name="faseInicio" min="1800" max={anoAtual} inputmode="numeric" value={fase?.inicioAno ?? ''} />
+                  </label>
+                  <label>
+                    <span>Terminou em</span>
+                    <input type="number" name="faseFim" min="1800" max={anoAtual} inputmode="numeric" value={fase?.fimAno ?? ''} />
+                  </label>
+                </div>
+              ))}
+              <label class="marcar">
+                <input type="checkbox" name="visibilidade" value="privado" checked={c.casal.visibilidade === 'privado'} />
+                <span>Só os dois veem este casal</span>
+              </label>
+              <div class="em-linha">
+                <button class="botao botao--leve" type="submit" name="acao" value="casal-salvar">Salvar fases</button>
+                <button class="botao botao--leve" type="submit" name="acao" value="casal-remover" formnovalidate>Apagar, foi cadastrado por engano</button>
+              </div>
+              <input type="hidden" name="id" value={c.casal.id} />
+            </form>
+          ))}
+        </>
+      )
+    }
+
+    {
+      meusLacos.length > 0 && (
+        <>
+          <h3>{ehMinha ? 'Seus laços do coração' : `Seu laço do coração com ${chamar}`}</h3>
+          <ul class="linhas">
+            {meusLacos.map((l) => (
+              <li>
+                <div>
+                  <strong>{nome(l.pessoa)}</strong>
+                  <span>
+                    {[l.nome, l.papel && `como se fosse ${PAPEIS[l.papel]}`, l.proximidade && PROXIMIDADES[l.proximidade].toLowerCase(), l.privado && 'só você vê']
+                      .filter(Boolean)
+                      .join(', ')}
+                  </span>
+                </div>
+                <form method="post" action="/api/lacos" class="em-linha">
+                  <input type="hidden" name="volta" value={volta} />
+                  <input type="hidden" name="id" value={l.id} />
+                  <button class="botao botao--leve" type="submit" name="acao" value="coracao-remover">Remover laço</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+          <p class="dica">Para mudar um laço do coração, adicione de novo com a mesma pessoa: o novo substitui o anterior.</p>
+        </>
+      )
+    }
+  </section>
+
+  {
+    podeFicha ? (
+      <section class="painel">
+        <h2>Ficha</h2>
+        <FichaDoIntegrante integrante={pessoa} />
+      </section>
+    ) : (
+      <p class="dica">A ficha de {chamar} só pode ser alterada por {pessoa.tratamento === 'ela' ? 'ela mesma' : pessoa.tratamento === 'ele' ? 'ele mesmo' : 'quem é dono da página'}.</p>
+    )
+  }
+</Base>
+
+<script>
+  // O seletor "Que laço é?" mostra só os campos daquele tipo de laço
+  const form = document.querySelector<HTMLFormElement>('[data-novo-laco]');
+  const seletor = form?.querySelector<HTMLSelectElement>('[data-tipo-de-laco]');
+  if (form && seletor) {
+    const minha = form.dataset.minha === 'sim';
+    const aplicar = () => {
+      // Na própria página, o laço do coração também pede "com quem"
+      const chaves = seletor.value === 'coracao' && minha ? ['coracao', 'coracao-meu'] : [seletor.value];
+      for (const bloco of form.querySelectorAll<HTMLElement>('[data-para]')) {
+        const mostra = Boolean(seletor.value) && bloco.dataset.para!.split(' ').some((c) => chaves.includes(c));
+        bloco.hidden = !mostra;
+        for (const el of bloco.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) el.disabled = !mostra;
+      }
+    };
+    seletor.addEventListener('change', aplicar);
+    aplicar();
+  }
+</script>

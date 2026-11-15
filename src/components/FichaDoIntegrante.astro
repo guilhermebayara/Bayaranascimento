@@ -1,0 +1,116 @@
+---
+// Formulário da ficha de um integrante. Serve para cadastrar e para editar.
+import { MESES } from '../lib/datas';
+import type { Integrante } from '../lib/servidor/repositorio';
+
+interface Props {
+  integrante?: Integrante;
+}
+
+const { integrante: i } = Astro.props;
+const anoAtual = new Date().getFullYear();
+const datas = [
+  { prefixo: 'nascimento', rotulo: 'Nascimento', ano: i?.nascimentoAno, mes: i?.nascimentoMes, dia: i?.nascimentoDia },
+  { prefixo: 'falecimento', rotulo: 'Falecimento', ano: i?.falecimentoAno, mes: i?.falecimentoMes, dia: i?.falecimentoDia },
+];
+---
+
+<form class="formulario" method="post" action="/api/integrantes" data-ficha>
+  {i && <input type="hidden" name="id" value={i.id} />}
+  <fieldset>
+    <legend>Quem é</legend>
+    <label class="campo">
+      <span>Nome</span>
+      <input type="text" name="nome" required maxlength="80" autocomplete="off" value={i?.nome ?? ''} placeholder="Ex.: Maria Bayara" />
+    </label>
+    <label class="campo">
+      <span>Como é chamado na família <small>(opcional)</small></span>
+      <input type="text" name="apelido" maxlength="40" autocomplete="off" value={i?.apelido ?? ''} placeholder="Ex.: Vó Bela" />
+    </label>
+    <div class="campo">
+      <span id="rotulo-tipo-integrante">É pessoa ou bicho?</span>
+      <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-tipo-integrante">
+        <label class="opcao"><input type="radio" name="tipo" value="pessoa" checked={(i?.tipo ?? 'pessoa') === 'pessoa'} /><span>Pessoa</span></label>
+        <label class="opcao"><input type="radio" name="tipo" value="bicho" checked={i?.tipo === 'bicho'} /><span>Bicho</span></label>
+      </div>
+    </div>
+    <label class="campo" data-especie hidden={i?.tipo !== 'bicho'}>
+      <span>Que bicho?</span>
+      <input type="text" name="especie" maxlength="40" autocomplete="off" value={i?.especie ?? ''} placeholder="Ex.: cachorro" />
+    </label>
+    <div class="campo">
+      <span id="rotulo-tratamento">Como se referir</span>
+      <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-tratamento">
+        <label class="opcao"><input type="radio" name="tratamento" value="ela" checked={i?.tratamento === 'ela'} /><span>Ela</span></label>
+        <label class="opcao"><input type="radio" name="tratamento" value="ele" checked={i?.tratamento === 'ele'} /><span>Ele</span></label>
+        <label class="opcao"><input type="radio" name="tratamento" value="" checked={!i?.tratamento} /><span>Não informar</span></label>
+      </div>
+      <p class="dica">Serve para o site escrever "sua tia" ou "seu tio" na árvore.</p>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Datas</legend>
+    <p class="dica">Preencha o que souber. Só o ano já basta.</p>
+    {
+      datas.map((d) => (
+        <div class="campo">
+          <span>{d.rotulo}</span>
+          <div class="campos-data">
+            <label class="campo">
+              <span>Dia</span>
+              <input type="number" name={`${d.prefixo}Dia`} min="1" max="31" inputmode="numeric" value={d.dia ?? ''} />
+            </label>
+            <label class="campo">
+              <span>Mês</span>
+              <select name={`${d.prefixo}Mes`}>
+                <option value="">Não sei</option>
+                {MESES.map((m, n) => (
+                  <option value={n + 1} selected={d.mes === n + 1}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label class="campo">
+              <span>Ano</span>
+              <input type="number" name={`${d.prefixo}Ano`} min="1800" max={anoAtual} inputmode="numeric" value={d.ano ?? ''} />
+            </label>
+          </div>
+        </div>
+      ))
+    }
+  </fieldset>
+
+  <fieldset>
+    <legend>Sobre</legend>
+    <label class="campo">
+      <span>Quem é, do jeito que a família contaria <small>(opcional)</small></span>
+      <textarea name="sobre" rows="6" maxlength="5000">{i?.sobre ?? ''}</textarea>
+    </label>
+  </fieldset>
+
+  {
+    !i && (
+      <label class="marcar">
+        <input type="checkbox" name="outra" />
+        <span>É outra pessoa, mesmo que já exista alguém com esse nome</span>
+      </label>
+    )
+  }
+
+  <div class="acoes">
+    <button class="botao" type="submit">{i ? 'Salvar página' : 'Cadastrar'}</button>
+    <a class="botao botao--leve" href={i ? `/pessoas/${i.id}` : '/pessoas'}>Cancelar</a>
+  </div>
+</form>
+
+<script>
+  const ficha = document.querySelector<HTMLFormElement>('[data-ficha]');
+  const especie = ficha?.querySelector<HTMLElement>('[data-especie]');
+  for (const radio of ficha?.querySelectorAll<HTMLInputElement>('input[name="tipo"]') ?? []) {
+    radio.addEventListener('change', () => {
+      if (especie) especie.hidden = radio.value !== 'bicho';
+    });
+  }
+</script>

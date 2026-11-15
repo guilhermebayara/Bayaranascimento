@@ -1,6 +1,9 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
 import { env } from 'cloudflare:workers';
+import type { Casal, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
+import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
+import type { Tipo } from '../tipos';
 import type { AcessoDaMemoria, Usuario } from './permissoes';
 
 export interface Integrante {
@@ -9,10 +12,16 @@ export interface Integrante {
   apelido: string | null;
   tipo: 'pessoa' | 'bicho';
   especie: string | null;
+  tratamento: Tratamento;
   nascimentoAno: number | null;
+  nascimentoMes: number | null;
+  nascimentoDia: number | null;
   falecimentoAno: number | null;
+  falecimentoMes: number | null;
+  falecimentoDia: number | null;
   sobre: string | null;
   admin: boolean;
+  criadoPor: string | null;
   nucleos: string[];
 }
 
@@ -37,6 +46,8 @@ export interface Memoria extends AcessoDaMemoria {
   dia: number | null;
   aproximada: boolean;
   tipo: string;
+  /** texto livre de quem escolheu "Outro" */
+  tipoOutro: string | null;
   lugar: string | null;
   exemplo: boolean;
   fotos: Foto[];
@@ -84,10 +95,16 @@ export async function listarIntegrantes(): Promise<Integrante[]> {
     apelido: i.apelido as string | null,
     tipo: i.tipo as 'pessoa' | 'bicho',
     especie: i.especie as string | null,
+    tratamento: (i.tratamento as Tratamento) ?? null,
     nascimentoAno: i.nascimento_ano as number | null,
+    nascimentoMes: (i.nascimento_mes as number | null) ?? null,
+    nascimentoDia: (i.nascimento_dia as number | null) ?? null,
     falecimentoAno: i.falecimento_ano as number | null,
+    falecimentoMes: (i.falecimento_mes as number | null) ?? null,
+    falecimentoDia: (i.falecimento_dia as number | null) ?? null,
     sobre: i.sobre as string | null,
     admin: Boolean(i.admin),
+    criadoPor: (i.criado_por as string | null) ?? null,
     nucleos: membros.results.filter((m) => m.integrante_id === i.id).map((m) => m.nucleo_id as string),
   }));
 }
@@ -99,6 +116,242 @@ export async function listarNucleos(): Promise<Nucleo[]> {
 
 export async function criarIntegrante(id: string, nome: string, criadoPor: string): Promise<void> {
   await db().prepare(`INSERT INTO integrantes (id, nome, criado_por) VALUES (?, ?, ?)`).bind(id, nome, criadoPor).run();
+}
+
+export interface DadosDoIntegrante {
+  nome: string;
+  apelido?: string;
+  tipo: 'pessoa' | 'bicho';
+  especie?: string;
+  tratamento: Tratamento;
+  nascimentoAno?: number;
+  nascimentoMes?: number;
+  nascimentoDia?: number;
+  falecimentoAno?: number;
+  falecimentoMes?: number;
+  falecimentoDia?: number;
+  sobre?: string;
+}
+
+const valoresDoIntegrante = (d: DadosDoIntegrante) => [
+  d.nome,
+  d.apelido ?? null,
+  d.tipo,
+  d.tipo === 'bicho' ? (d.especie ?? null) : null,
+  d.tratamento,
+  d.nascimentoAno ?? null,
+  d.nascimentoMes ?? null,
+  d.nascimentoDia ?? null,
+  d.falecimentoAno ?? null,
+  d.falecimentoMes ?? null,
+  d.falecimentoDia ?? null,
+  d.sobre ?? null,
+];
+
+export async function criarIntegranteCompleto(id: string, dados: DadosDoIntegrante, usuario: Usuario): Promise<void> {
+  await db()
+    .prepare(
+      `INSERT INTO integrantes (nome, apelido, tipo, especie, tratamento, nascimento_ano, nascimento_mes, nascimento_dia,
+         falecimento_ano, falecimento_mes, falecimento_dia, sobre, id, criado_por)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(...valoresDoIntegrante(dados), id, usuario.pessoa)
+    .run();
+}
+
+/** Atualiza o cadastro, guardando a versão anterior no histórico. */
+export async function atualizarIntegrante(anterior: Integrante, dados: DadosDoIntegrante, usuario: Usuario): Promise<void> {
+  await db().batch([
+    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('integrante', ?, ?, ?)`).bind(anterior.id, JSON.stringify(anterior), usuario.pessoa),
+    db()
+      .prepare(
+        `UPDATE integrantes SET nome = ?, apelido = ?, tipo = ?, especie = ?, tratamento = ?, nascimento_ano = ?, nascimento_mes = ?,
+           nascimento_dia = ?, falecimento_ano = ?, falecimento_mes = ?, falecimento_dia = ?, sobre = ? WHERE id = ?`,
+      )
+      .bind(...valoresDoIntegrante(dados), anterior.id),
+  ]);
+}
+
+// --- Laços de árvore ---
+
+export async function listarFiliacoes(): Promise<Filiacao[]> {
+  const { results } = await db().prepare('SELECT filho_id, responsavel_id, qualidade FROM filiacoes').all<Record<string, unknown>>();
+  return results.map((r) => ({ filho: r.filho_id as string, responsavel: r.responsavel_id as string, qualidade: r.qualidade as Qualidade }));
+}
+
+export async function salvarFiliacao(filho: string, responsavel: string, qualidade: Qualidade, usuario: Usuario): Promise<void> {
+  await db()
+    .prepare(
+      `INSERT INTO filiacoes (filho_id, responsavel_id, qualidade, criado_por) VALUES (?, ?, ?, ?)
+       ON CONFLICT (filho_id, responsavel_id) DO UPDATE SET qualidade = excluded.qualidade`,
+    )
+    .bind(filho, responsavel, qualidade, usuario.pessoa)
+    .run();
+}
+
+export async function removerFiliacao(filho: string, responsavel: string, usuario: Usuario): Promise<void> {
+  await db().batch([
+    db()
+      .prepare(
+        `INSERT INTO versoes (tipo, item_id, dados, autor)
+         SELECT 'filiacao', filho_id || '>' || responsavel_id, json_object('filho', filho_id, 'responsavel', responsavel_id, 'qualidade', qualidade), ?
+         FROM filiacoes WHERE filho_id = ? AND responsavel_id = ?`,
+      )
+      .bind(usuario.pessoa, filho, responsavel),
+    db().prepare('DELETE FROM filiacoes WHERE filho_id = ? AND responsavel_id = ?').bind(filho, responsavel),
+  ]);
+}
+
+/** Todos os casais, sem filtro de visibilidade. Para conferências internas, nunca para mostrar. */
+async function lerCasais(): Promise<Casal[]> {
+  const [casais, fases] = await db().batch<Record<string, unknown>>([
+    db().prepare('SELECT * FROM casais ORDER BY id'),
+    db().prepare('SELECT * FROM casal_fases ORDER BY casal_id, ordem, id'),
+  ]);
+  return casais.results.map((c) => ({
+    id: c.id as number,
+    a: c.a_id as string,
+    b: c.b_id as string,
+    visibilidade: c.visibilidade as 'todos' | 'privado',
+    criadoPor: (c.criado_por as string | null) ?? null,
+    fases: fases.results
+      .filter((f) => f.casal_id === c.id)
+      .map((f) => ({ tipo: f.tipo as TipoDeFase, inicioAno: (f.inicio_ano as number | null) ?? null, fimAno: (f.fim_ano as number | null) ?? null })),
+  }));
+}
+
+/** Casais que o usuário pode ver: os abertos a todos e os privados de que ele faz parte ou que cadastrou. */
+export async function listarCasais(usuario: Usuario): Promise<Casal[]> {
+  return (await lerCasais()).filter((c) => podeVerCasal(usuario.pessoa, c));
+}
+
+export async function obterCasalDoPar(x: string, y: string): Promise<Casal | undefined> {
+  const [a, b] = x < y ? [x, y] : [y, x];
+  return (await lerCasais()).find((c) => c.a === a && c.b === b);
+}
+
+export async function obterCasal(id: number): Promise<Casal | undefined> {
+  return (await lerCasais()).find((c) => c.id === id);
+}
+
+/** Cria o casal ou troca as fases dele, guardando no histórico o que havia antes. */
+export async function salvarCasal(x: string, y: string, fases: Fase[], visibilidade: 'todos' | 'privado', usuario: Usuario): Promise<void> {
+  const [a, b] = x < y ? [x, y] : [y, x];
+  const anterior = await obterCasalDoPar(a, b);
+  const comandos: D1PreparedStatement[] = [];
+  if (anterior) {
+    comandos.push(
+      db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('casal', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(anterior), usuario.pessoa),
+      db().prepare('UPDATE casais SET visibilidade = ? WHERE id = ?').bind(visibilidade, anterior.id),
+      db().prepare('DELETE FROM casal_fases WHERE casal_id = ?').bind(anterior.id),
+    );
+  } else {
+    comandos.push(db().prepare('INSERT INTO casais (a_id, b_id, visibilidade, criado_por) VALUES (?, ?, ?, ?)').bind(a, b, visibilidade, usuario.pessoa));
+  }
+  fases.forEach((fase, ordem) => {
+    comandos.push(
+      db()
+        .prepare(
+          `INSERT INTO casal_fases (casal_id, tipo, inicio_ano, fim_ano, ordem)
+           VALUES ((SELECT id FROM casais WHERE a_id = ? AND b_id = ?), ?, ?, ?, ?)`,
+        )
+        .bind(a, b, fase.tipo, fase.inicioAno, fase.fimAno, ordem),
+    );
+  });
+  await db().batch(comandos);
+}
+
+export async function removerCasal(casal: Casal, usuario: Usuario): Promise<void> {
+  await db().batch([
+    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('casal', ?, ?, ?)`).bind(String(casal.id), JSON.stringify(casal), usuario.pessoa),
+    db().prepare('DELETE FROM casal_fases WHERE casal_id = ?').bind(casal.id),
+    db().prepare('DELETE FROM casais WHERE id = ?').bind(casal.id),
+  ]);
+}
+
+// --- Laços do coração ---
+
+/** Laços do coração que o usuário pode ver. A proximidade só acompanha os laços dele. */
+export async function listarLacosDoCoracao(usuario: Usuario): Promise<LacoDoCoracao[]> {
+  const { results } = await db().prepare('SELECT * FROM lacos_coracao ORDER BY COALESCE(proximidade, 9), nome').all<Record<string, unknown>>();
+  return results
+    .map((l) => ({
+      id: l.id as number,
+      dono: l.dono_id as string,
+      pessoa: l.pessoa_id as string,
+      nome: l.nome as string,
+      papel: (l.papel as Papel | null) ?? null,
+      proximidade: l.dono_id === usuario.pessoa ? ((l.proximidade as number | null) ?? null) : null,
+      privado: Boolean(l.privado),
+    }))
+    .filter((l) => podeVerLacoDoCoracao(usuario.pessoa, l));
+}
+
+export async function salvarLacoDoCoracao(
+  usuario: Usuario,
+  pessoa: string,
+  dados: { nome: string; papel: Papel | null; proximidade: number | null; privado: boolean },
+): Promise<void> {
+  await db()
+    .prepare(
+      `INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, papel, proximidade, privado) VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET nome = excluded.nome, papel = excluded.papel,
+         proximidade = excluded.proximidade, privado = excluded.privado`,
+    )
+    .bind(usuario.pessoa, pessoa, dados.nome, dados.papel, dados.proximidade, dados.privado ? 1 : 0)
+    .run();
+}
+
+/** Só o dono remove o próprio laço. */
+export async function removerLacoDoCoracao(usuario: Usuario, id: number): Promise<boolean> {
+  const resultado = await db().prepare('DELETE FROM lacos_coracao WHERE id = ? AND dono_id = ?').bind(id, usuario.pessoa).run();
+  return (resultado.meta.changes ?? 0) > 0;
+}
+
+// --- Tipos de momento ---
+
+export async function listarTipos(): Promise<Tipo[]> {
+  const { results } = await db().prepare('SELECT id, rotulo, cor FROM tipos ORDER BY ordem, rotulo').all<Tipo>();
+  return results;
+}
+
+export async function criarTipo(id: string, rotulo: string, cor: string, usuario: Usuario): Promise<void> {
+  await db()
+    .prepare(
+      `INSERT INTO tipos (id, rotulo, cor, ordem, criado_por)
+       VALUES (?, ?, ?, (SELECT COALESCE(MAX(ordem), 0) + 1 FROM tipos WHERE id <> 'outro'), ?)`,
+    )
+    .bind(id, rotulo, cor, usuario.pessoa)
+    .run();
+}
+
+export async function atualizarTipo(id: string, rotulo: string, cor: string): Promise<void> {
+  await db().prepare('UPDATE tipos SET rotulo = ?, cor = ? WHERE id = ?').bind(rotulo, cor, id).run();
+}
+
+/**
+ * O que as pessoas escreveram ao escolher "Outro", com quantas memórias cada texto tem.
+ * Conta só memórias que o admin pode ver, para não revelar nada de núcleos alheios.
+ */
+export async function listarTextosDeOutro(usuario: Usuario): Promise<{ texto: string; memorias: number }[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT MIN(TRIM(m.tipo_outro)) AS texto, COUNT(*) AS memorias FROM memorias m
+       WHERE m.tipo = 'outro' AND TRIM(COALESCE(m.tipo_outro, '')) <> '' AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       GROUP BY LOWER(TRIM(m.tipo_outro)) ORDER BY memorias DESC, texto`,
+    )
+    .bind(usuario.pessoa)
+    .all<{ texto: string; memorias: number }>();
+  return results;
+}
+
+/** Passa para um tipo oficial todas as memórias marcadas como "Outro" com aquele texto. */
+export async function promoverTextoDeOutro(texto: string, tipoId: string): Promise<number> {
+  const resultado = await db()
+    .prepare(`UPDATE memorias SET tipo = ?, tipo_outro = NULL WHERE tipo = 'outro' AND LOWER(TRIM(tipo_outro)) = LOWER(TRIM(?))`)
+    .bind(tipoId, texto)
+    .run();
+  return resultado.meta.changes ?? 0;
 }
 
 // --- Memórias ---
@@ -119,6 +372,7 @@ function lerMemoria(linha: Record<string, unknown>): Memoria {
     dia: linha.dia as number | null,
     aproximada: Boolean(linha.aproximada),
     tipo: linha.tipo as string,
+    tipoOutro: (linha.tipo_outro as string | null) ?? null,
     lugar: linha.lugar as string | null,
     visibilidade: linha.visibilidade as 'todos' | 'nucleos',
     situacao: linha.situacao as 'rascunho' | 'publicada',
@@ -205,6 +459,7 @@ export interface DadosDaMemoria {
   dia?: number;
   aproximada: boolean;
   tipo: string;
+  tipoOutro?: string;
   lugar?: string;
   visibilidade: 'todos' | 'nucleos';
   situacao: 'rascunho' | 'publicada';
@@ -239,10 +494,10 @@ export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: U
   await db().batch([
     db()
       .prepare(
-        `INSERT INTO memorias (id, titulo, ano, mes, dia, aproximada, tipo, lugar, visibilidade, situacao, criada_por)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO memorias (id, titulo, ano, mes, dia, aproximada, tipo, tipo_outro, lugar, visibilidade, situacao, criada_por)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .bind(id, dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.lugar ?? null, dados.visibilidade, dados.situacao, usuario.pessoa),
+      .bind(id, dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.tipoOutro ?? null, dados.lugar ?? null, dados.visibilidade, dados.situacao, usuario.pessoa),
     ...comandosDeLigacao(id, dados),
   ]);
 }
@@ -255,10 +510,10 @@ export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria,
       .bind(anterior.id, JSON.stringify(anterior), usuario.pessoa),
     db()
       .prepare(
-        `UPDATE memorias SET titulo = ?, ano = ?, mes = ?, dia = ?, aproximada = ?, tipo = ?, lugar = ?,
+        `UPDATE memorias SET titulo = ?, ano = ?, mes = ?, dia = ?, aproximada = ?, tipo = ?, tipo_outro = ?, lugar = ?,
            visibilidade = ?, situacao = ?, atualizada_em = datetime('now') WHERE id = ?`,
       )
-      .bind(dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.lugar ?? null, dados.visibilidade, dados.situacao, anterior.id),
+      .bind(dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.tipoOutro ?? null, dados.lugar ?? null, dados.visibilidade, dados.situacao, anterior.id),
     ...fotosRemovidas.map((id) => db().prepare(`UPDATE fotos SET removida_em = datetime('now') WHERE id = ?`).bind(id)),
     ...comandosDeLigacao(anterior.id, dados),
   ]);

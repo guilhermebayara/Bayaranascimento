@@ -1,6 +1,5 @@
 ---
 import Cartao from './Cartao.astro';
-import { TIPOS, type TipoId } from '../data/tipos';
 import { agruparPorAno } from '../lib/datas';
 import type { Integrante, Memoria, Nucleo } from '../lib/servidor/repositorio';
 
@@ -13,7 +12,7 @@ interface Props {
 
 const { memorias, integrantes, nucleos, vazio = 'Ainda não há memórias aqui.' } = Astro.props;
 const anos = agruparPorAno(memorias);
-const tiposPresentes = (Object.keys(TIPOS) as TipoId[]).filter((id) => memorias.some((m) => m.tipo === id));
+const tiposPresentes = Astro.locals.tipos.filter((t) => memorias.some((m) => m.tipo === t.id));
 ---
 
 {
@@ -28,10 +27,10 @@ const tiposPresentes = (Object.keys(TIPOS) as TipoId[]).filter((id) => memorias.
               Tudo
             </button>
           </li>
-          {tiposPresentes.map((id) => (
+          {tiposPresentes.map((t) => (
             <li>
-              <button type="button" data-filtro={id} data-cor style={`--cor-tipo: ${TIPOS[id].cor}`} aria-pressed="false">
-                {TIPOS[id].rotulo}
+              <button type="button" data-filtro={t.id} data-cor style={`--cor-tipo: ${t.cor}`} aria-pressed="false">
+                {t.rotulo}
               </button>
             </li>
           ))}

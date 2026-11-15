@@ -1,14 +1,12 @@
 ---
-import { TIPOS, type TipoId } from '../data/tipos';
-
 interface Props {
   foto: { chave: string; legenda: string | null };
-  tipo: string;
+  /** cor do tipo de momento da memória */
+  cor?: string;
   mostrarLegenda?: boolean;
 }
 
-const { foto, tipo, mostrarLegenda = true } = Astro.props;
-const cor = TIPOS[tipo as TipoId]?.cor ?? 'var(--tinta)';
+const { foto, cor = 'var(--tinta)', mostrarLegenda = true } = Astro.props;
 ---
 
 <figure class="foto" style={`--cor-tipo: ${cor}`}>
