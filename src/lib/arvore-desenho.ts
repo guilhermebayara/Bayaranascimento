@@ -575,12 +575,27 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
   for (let n = 0; n < melhor.length; n++) {
     const original = melhor[n].flat();
     const naLinha = new Set(original);
-    // Cada bloco escolhido acompanha o primeiro laço que o trouxe
+    // Cada bloco escolhido acompanha o primeiro laço que o trouxe. Se quem escolheu está em outra
+    // geração (uma tia de consideração, por exemplo), o escolhido encosta no pai ou mãe dessa pessoa
+    // que está nesta fileira, do lado do núcleo de origem de quem escolheu.
     const donoDoBloco = new Map<string[], string>();
+    const ancoraDoBloco = new Map<string[], string>();
     for (const [dono, escolhido] of coracao) {
-      if (!naLinha.has(dono) || !naLinha.has(escolhido) || familiaDe(dono) === familiaDe(escolhido)) continue;
+      if (!naLinha.has(escolhido) || familiaDe(dono) === familiaDe(escolhido)) continue;
+      let ancora: string | undefined = naLinha.has(dono) ? dono : undefined;
+      if (!ancora) {
+        const ordem = melhor[n].flat();
+        const parentes = [...(paisDe.get(dono) ?? []), ...(filhosDe.get(dono) ?? [])].filter((id) => naLinha.has(id));
+        if (parentes.length === 0) continue;
+        const l = lado.get(dono);
+        const paraEsquerda = l === undefined || l <= 0.5;
+        ancora = parentes.sort((a, b) => (ordem.indexOf(a) - ordem.indexOf(b)) * (paraEsquerda ? 1 : -1))[0];
+      }
       const bloco = melhor[n].find((b) => b.includes(escolhido))!;
-      if (!bloco.includes(dono) && !donoDoBloco.has(bloco)) donoDoBloco.set(bloco, dono);
+      if (!bloco.includes(ancora) && !donoDoBloco.has(bloco)) {
+        donoDoBloco.set(bloco, dono);
+        ancoraDoBloco.set(bloco, ancora);
+      }
     }
     const retirados = [...donoDoBloco.keys()];
     melhor[n] = melhor[n].filter((b) => !donoDoBloco.has(b));
@@ -589,15 +604,16 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
     let pendentes = retirados;
     while (pendentes.length) {
       const linha = melhor[n];
-      const prontos = pendentes.filter((b) => linha.some((x) => x.includes(donoDoBloco.get(b)!)));
+      const prontos = pendentes.filter((b) => linha.some((x) => x.includes(ancoraDoBloco.get(b)!)));
       if (prontos.length === 0) {
         linha.push(...pendentes);
         break;
       }
-      const porDono = new Map<string, string[][]>();
-      for (const b of prontos) empilhar(porDono, donoDoBloco.get(b)!, b);
-      for (const [dono, blocos] of porDono) {
-        const direcao = direcaoDe(dono, linha);
+      const porAncora = new Map<string, string[][]>();
+      for (const b of prontos) empilhar(porAncora, `${ancoraDoBloco.get(b)!}|${donoDoBloco.get(b)!}`, b);
+      for (const [chave, blocos] of porAncora) {
+        const [ancora, dono] = chave.split('|');
+        const direcao = ancora === dono ? direcaoDe(dono, linha) : (lado.get(dono) ?? 0) > 0.5 ? 1 : -1;
         const perto = [...blocos].sort((a, b) => descendentes(a) - descendentes(b) || original.indexOf(a[0]) - original.indexOf(b[0]));
         for (const bloco of perto) {
           // O escolhido fica na ponta do bloco virada para quem o escolheu
@@ -605,7 +621,7 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
           const ponta = direcao < 0 ? bloco.length - 1 : 0;
           if (bloco.length > 1 && bloco.indexOf(escolhido) !== ponta) bloco.reverse();
         }
-        const doDono = linha.findIndex((b) => b.includes(dono));
+        const doDono = linha.findIndex((b) => b.includes(ancora));
         if (direcao < 0) linha.splice(doDono, 0, ...[...perto].reverse());
         else linha.splice(doDono + 1, 0, ...perto);
       }

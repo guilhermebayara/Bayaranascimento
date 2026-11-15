@@ -212,4 +212,14 @@ describe('laços do coração em volta dos irmãos', () => {
     expect(d.linhas.some((l) => l.tipo === 'coracao' && l.de.includes('otto'))).toBe(false);
     expect(d.linhas.some((l) => l.tipo === 'coracao' && l.de.includes('nati'))).toBe(true);
   });
+  it('quem foi escolhido em outra geração encosta no pai ou mãe de quem escolheu', () => {
+    const comTia = desenharArvore(
+      [...pessoas, { id: 'tia-de-consideracao', geracao: 0 }],
+      casais,
+      filiacoes,
+      [...coracao, { dono: 'gui', pessoa: 'tia-de-consideracao' }],
+    );
+    const fileira = comTia.pessoas.filter((x) => x.y === 0).sort((a, b) => a.x - b.x).map((x) => x.id);
+    expect(fileira.indexOf('elizete') - fileira.indexOf('tia-de-consideracao'), fileira.join(' ')).toBe(1);
+  });
 });
