@@ -55,8 +55,12 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
 
     // 1b. A linha direta: os centros, os ancestrais, os irmãos, os descendentes e os casais.
     // O resto da família fica em ramos recolhidos, que abrem por cima da árvore.
-    const centros = estado.centro ? [estado.centro] : dados.centros.filter((id) => visiveis.has(id));
-    const principal = linhaDireta(centros.length ? centros : [dados.eu], [...visiveis], filiacoes, casais);
+    // O centro escolhido pode estar escondido pelos filtros (um bicho com "Bichos" desligado, alguém de
+    // fora do núcleo destacado com "Outros núcleos" desligado). Aí vale o padrão, depois quem está
+    // olhando, depois quem sobrou, para o mapa nunca ficar vazio.
+    const centros =
+      [estado.centro ? [estado.centro] : [], dados.centros, [dados.eu], [...visiveis]].map((ids) => ids.filter((id) => visiveis.has(id))).find((ids) => ids.length) ?? [];
+    const principal = linhaDireta(centros, [...visiveis], filiacoes, casais);
 
     // 1c. Laços do coração: só aparecem os de quem está com eles abertos. Quem foi escolhido entra
     // na árvore; se tem uma família que não é a nossa (a de uma amiga), ela vem junto.
@@ -104,9 +108,12 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
       coracao,
       dados.eu,
     );
-    // Quem só está na árvore por um "como se fosse" entra na geração que o papel indica
-    const agregados = coracao.filter((l) => l.papel && geracoes.has(l.dono) && !geracoes.has(l.pessoa));
-    for (const l of agregados) if (!geracoes.has(l.pessoa)) geracoes.set(l.pessoa, geracoes.get(l.dono)! + DESLOCAMENTO_DO_PAPEL[l.papel!]);
+    // Quem parte de alguém sem filiação nem casal (uma amiga, uma vó de consideração) vê a pessoa, e não um mapa vazio
+    for (const id of centros) if (principal.has(id) && !geracoes.has(id)) geracoes.set(id, 0);
+    // Quem só está na árvore por um laço do coração entra na geração que o "como se fosse" indica.
+    // Sem "como se fosse", fica na geração de quem escolheu.
+    const agregados = coracao.filter((l) => geracoes.has(l.dono) && !geracoes.has(l.pessoa));
+    for (const l of agregados) if (!geracoes.has(l.pessoa)) geracoes.set(l.pessoa, geracoes.get(l.dono)! + (l.papel ? DESLOCAMENTO_DO_PAPEL[l.papel] : 0));
     // Todo laço do coração aberto entra no desenho, com ou sem "como se fosse"
     const ligados = coracao.filter((l) => geracoes.has(l.dono) && geracoes.has(l.pessoa));
 
