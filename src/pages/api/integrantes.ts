@@ -73,5 +73,5 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // "nova" é o endereço deste formulário, então não pode ser id de ninguém
   const novoId = slugUnico(base, new Set([...integrantes.map((i) => i.id), 'nova']));
   await criarIntegranteCompleto(novoId, ficha, usuario);
-  return voltar(request, `/pessoas/${novoId}/editar`, { ok: `${nome} entrou no acervo. Agora dá para dizer de quem é filho, com quem é casado e assim por diante.` });
+  return voltar(request, `/pessoas/${novoId}/editar?novo=1`, { ok: `${nome} entrou no acervo. Agora, os laços.` });
 };

@@ -35,12 +35,13 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       {
         publicada
           ? 'Ajuste a ficha, as fotos ou quem pode ver. Os relatos não mudam por aqui: cada pessoa cuida do seu.'
-          : `Olá, ${usuario.nome}. Conte o que aconteceu, do seu jeito. Só o título e o ano são obrigatórios.`
+          : `Olá, ${usuario.nome}. Conte o que aconteceu, do seu jeito. Só o título e o ano são obrigatórios, e dá para salvar como rascunho a qualquer momento.`
       }
     </p>
   </div>
 
   <form class="formulario" data-formulario-memoria data-id={memoria?.id ?? ''} novalidate>
+    <section data-etapa="O momento">
     <fieldset>
       <legend>O que aconteceu?</legend>
       <label class="campo">
@@ -70,10 +71,16 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     <fieldset>
       <legend>Quando foi?</legend>
       <div class="campos-data">
-        <label class="campo">
-          <span>Ano</span>
-          <input type="number" name="ano" required inputmode="numeric" min="1800" max={anoAtual} value={memoria?.ano ?? ''} placeholder={String(anoAtual)} />
-        </label>
+        <div class="campo">
+          <label for="campo-ano">Ano</label>
+          <div class="ano" data-ano>
+            <button type="button" data-passo="-10" aria-label="Dez anos antes">−10</button>
+            <button type="button" data-passo="-1" aria-label="Um ano antes">−1</button>
+            <input id="campo-ano" type="number" name="ano" required inputmode="numeric" min="1800" max={anoAtual} value={memoria?.ano ?? anoAtual} />
+            <button type="button" data-passo="1" aria-label="Um ano depois">+1</button>
+            <button type="button" data-passo="10" aria-label="Dez anos depois">+10</button>
+          </div>
+        </div>
         <label class="campo">
           <span>Mês, se souber</span>
           <select name="mes">
@@ -86,26 +93,29 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           <input type="number" name="dia" inputmode="numeric" min="1" max="31" value={memoria?.dia ?? ''} />
         </label>
       </div>
+      <p class="atalhos">
+        <button type="button" class="botao botao--leve" data-hoje>Foi hoje</button>
+      </p>
       <label class="marcar">
         <input type="checkbox" name="aproximada" checked={memoria?.aproximada} />
         <span>Não tenho certeza da data</span>
       </label>
     </fieldset>
+    </section>
 
-    <fieldset>
-      <legend>Onde foi?</legend>
-      <label class="campo">
-        <span>Lugar, se quiser</span>
-        <input type="text" name="lugar" maxlength="120" value={memoria?.lugar ?? ''} placeholder="Ex.: Belo Horizonte" />
-      </label>
-    </fieldset>
-
+    <section data-etapa="Pessoas e lugar">
     <fieldset>
       <legend>Quem estava?</legend>
-      <div class="opcoes">
+      {integrantes.length > 10 && (
+        <label class="campo">
+          <span>Procurar pelo nome</span>
+          <input type="search" data-filtrar-pessoas autocomplete="off" placeholder="Digite para filtrar a lista" />
+        </label>
+      )}
+      <div class="opcoes" data-lista-de-pessoas>
         {
           integrantes.map((p) => (
-            <label class="opcao">
+            <label class="opcao" data-nome={`${p.nome} ${p.apelido ?? ''}`.toLowerCase()}>
               <input type="checkbox" name="pessoas" value={p.id} checked={memoria?.integrantes.includes(p.id)} />
               <span>{p.apelido ?? p.nome}</span>
             </label>
@@ -116,6 +126,16 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       <button type="button" class="botao botao--leve" data-adicionar-pessoa>Adicionar alguém que não está na lista</button>
     </fieldset>
 
+    <fieldset>
+      <legend>Onde foi?</legend>
+      <label class="campo">
+        <span>Lugar, se quiser</span>
+        <input type="text" name="lugar" maxlength="120" value={memoria?.lugar ?? ''} placeholder="Ex.: Belo Horizonte" />
+      </label>
+    </fieldset>
+    </section>
+
+    <section data-etapa="Fotos">
     <fieldset>
       <legend>Fotos</legend>
       <p class="dica">Escolha as fotos desse momento. Você pode escrever uma legenda para cada uma.</p>
@@ -150,7 +170,31 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         }
       </ul>
     </fieldset>
+    </section>
 
+    {
+      !publicada && (
+        <section data-etapa="Relato">
+        <fieldset>
+            <legend>Como foi?</legend>
+            <label class="campo">
+              <span>Quem está contando</span>
+              <select name="relatoPor" data-relato-por>
+                <option value={usuario.pessoa}>Eu, {usuario.nome}</option>
+                {semAcesso.map((p) => <option value={p.id}>{p.nome}, e eu estou escrevendo</option>)}
+              </select>
+            </label>
+            <label class="campo">
+              <span>O relato</span>
+              <textarea name="relato" rows="8" maxlength="20000" placeholder="Escreva como você lembra. Outras pessoas da família vão poder contar a versão delas depois.">{meuRelato?.texto ?? ''}</textarea>
+            </label>
+            <p class="dica">Só você vai poder alterar este texto.</p>
+          </fieldset>
+        </section>
+      )
+    }
+
+    <section data-etapa="Quem vê">
     <fieldset>
       <legend>Quem pode ver?</legend>
       {
@@ -178,31 +222,24 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       </label>
       <p class="dica">Dá para mudar depois. Quem não pode ver não fica sabendo que a memória existe.</p>
     </fieldset>
-
-    {
-      !publicada && (
-        <fieldset>
-          <legend>Como foi?</legend>
-          <label class="campo">
-            <span>Quem está contando</span>
-            <select name="relatoPor" data-relato-por>
-              <option value={usuario.pessoa}>Eu, {usuario.nome}</option>
-              {semAcesso.map((p) => <option value={p.id}>{p.nome}, e eu estou escrevendo</option>)}
-            </select>
-          </label>
-          <label class="campo">
-            <span>O relato</span>
-            <textarea name="relato" rows="8" maxlength="20000" placeholder="Escreva como você lembra. Outras pessoas da família vão poder contar a versão delas depois.">{meuRelato?.texto ?? ''}</textarea>
-          </label>
-          <p class="dica">Só você vai poder alterar este texto.</p>
-        </fieldset>
-      )
-    }
+      <div class="resumo" data-resumo hidden>
+        <h2>Confira antes de guardar</h2>
+        <dl data-resumo-lista></dl>
+      </div>
+    </section>
 
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
-    <div class="acoes">
-      <button type="submit" class="botao" data-salvar="publicada">{publicada ? 'Salvar alterações' : 'Publicar memória'}</button>
-      {!publicada && <button type="submit" class="botao botao--leve" data-salvar="rascunho">Salvar rascunho</button>}
+    <div class="acoes acoes--etapas">
+      <button type="button" class="botao botao--leve" data-etapa-voltar>Voltar</button>
+      <button type="button" class="botao" data-etapa-continuar>Continuar</button>
+      {
+        publicada ? (
+          <button type="submit" class="botao" data-salvar="publicada">Salvar alterações</button>
+        ) : (
+          <button type="submit" class="botao" data-salvar="publicada" data-so-no-fim>Publicar memória</button>
+        )
+      }
+      {!publicada && <button type="submit" class="botao botao--leve acoes__rascunho" data-salvar="rascunho">Salvar rascunho</button>}
     </div>
     {memoria && !publicada && <p class="memoria__rodape"><a href={`/memorias/${memoria.id}/excluir`}>Descartar este rascunho</a></p>}
   </form>
@@ -218,6 +255,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 </Base>
 
 <script>
+  import { ligarCamposDeAno, montarEtapas } from '../lib/cliente/etapas';
   import { prepararFoto } from '../lib/cliente/fotos';
 
   const form = document.querySelector<HTMLFormElement>('[data-formulario-memoria]');
@@ -230,6 +268,69 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     const idExistente = form.dataset.id || undefined;
     const RASCUNHO_LOCAL = 'rascunho-nova-memoria';
     let proximaFoto = 0;
+
+    // Etapas: uma parte do formulário por vez, com resumo na última
+    const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const montarResumo = () => {
+      const caixa = form.querySelector<HTMLElement>('[data-resumo]');
+      const lista = form.querySelector<HTMLElement>('[data-resumo-lista]');
+      if (!caixa || !lista) return;
+      const d = new FormData(form);
+      const tipo = form.querySelector<HTMLInputElement>('input[name="tipo"]:checked');
+      const rotuloDoTipo = tipo?.value === 'outro' && String(d.get('tipoOutro') ?? '').trim() ? String(d.get('tipoOutro')).trim() : (tipo?.nextElementSibling?.textContent ?? '');
+      let quando = String(d.get('ano') ?? '');
+      if (d.get('mes')) quando = `${MESES[Number(d.get('mes')) - 1]} de ${quando}`;
+      if (d.get('mes') && d.get('dia')) quando = `${d.get('dia')} de ${quando}`;
+      if (d.get('aproximada') === 'on') quando = `por volta de ${quando}`;
+      const pessoas = [
+        ...[...form.querySelectorAll<HTMLInputElement>('input[name="pessoas"]:checked')].map((c) => c.nextElementSibling?.textContent ?? ''),
+        ...[...form.querySelectorAll<HTMLInputElement>('[data-nova-pessoa] [data-nome]')].map((c) => c.value.trim()).filter(Boolean),
+      ];
+      const fotos = form.querySelectorAll('.foto-enviada').length;
+      const nucleos = [...form.querySelectorAll<HTMLInputElement>('input[name="nucleos"]:checked')].map((c) => c.nextElementSibling?.textContent ?? '');
+      const linhas: [string, string][] = [
+        ['O quê', `${String(d.get('titulo') ?? '').trim() || 'sem título'} (${rotuloDoTipo.trim()})`],
+        ['Quando', quando],
+        ['Quem', pessoas.join(', ') || 'ninguém marcado'],
+        ['Onde', String(d.get('lugar') ?? '').trim() || 'não informado'],
+        ['Fotos', fotos === 0 ? 'nenhuma' : fotos === 1 ? '1 foto' : `${fotos} fotos`],
+      ];
+      if (form.querySelector('[name="relato"]')) linhas.push(['Relato', String(d.get('relato') ?? '').trim() ? 'escrito' : 'em branco, dá para escrever depois']);
+      linhas.push(['Quem vê', d.get('visibilidade') === 'nucleos' ? `só ${nucleos.join(' e ') || 'os núcleos marcados'}` : 'toda a família']);
+      lista.replaceChildren(
+        ...linhas.flatMap(([termo, valor]) => {
+          const dt = document.createElement('dt');
+          dt.textContent = termo;
+          const dd = document.createElement('dd');
+          dd.textContent = valor;
+          return [dt, dd];
+        }),
+      );
+      caixa.hidden = false;
+    };
+    const etapas = montarEtapas(form, (_indice, secao) => {
+      if (secao.querySelector('[data-resumo]')) montarResumo();
+    });
+    form.addEventListener('change', () => {
+      if (!form.querySelector<HTMLElement>('[data-resumo]')?.closest<HTMLElement>('[data-etapa]')?.hidden) montarResumo();
+    });
+    ligarCamposDeAno(form);
+    form.querySelector('[data-hoje]')?.addEventListener('click', () => {
+      const hoje = new Date();
+      (form.elements.namedItem('ano') as HTMLInputElement).value = String(hoje.getFullYear());
+      (form.elements.namedItem('mes') as HTMLSelectElement).value = String(hoje.getMonth() + 1);
+      (form.elements.namedItem('dia') as HTMLInputElement).value = String(hoje.getDate());
+      (form.elements.namedItem('aproximada') as HTMLInputElement).checked = false;
+    });
+    // Com muita gente na lista, um campo filtra pelo nome
+    const filtro = form.querySelector<HTMLInputElement>('[data-filtrar-pessoas]');
+    filtro?.addEventListener('input', () => {
+      const termo = filtro.value.trim().toLowerCase();
+      for (const opcao of form.querySelectorAll<HTMLElement>('[data-lista-de-pessoas] .opcao')) {
+        const marcada = opcao.querySelector<HTMLInputElement>('input')?.checked;
+        opcao.hidden = Boolean(termo) && !marcada && !(opcao.dataset.nome ?? '').includes(termo);
+      }
+    });
 
     // "Outro" abre um campo para dizer o que foi
     const campoOutro = form.querySelector<HTMLElement>('[data-tipo-outro]');
@@ -352,8 +453,14 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       const dados = new FormData(form);
       const titulo = String(dados.get('titulo') ?? '').trim();
       const ano = Number(dados.get('ano'));
-      if (!titulo) return avisar('Dê um título para a memória.', 'erro');
-      if (!dados.get('ano') || !Number.isInteger(ano)) return avisar('Informe o ano, mesmo que seja aproximado.', 'erro');
+      if (!titulo) {
+        etapas?.ir(0);
+        return avisar('Dê um título para a memória.', 'erro');
+      }
+      if (!dados.get('ano') || !Number.isInteger(ano)) {
+        etapas?.ir(0);
+        return avisar('Informe o ano, mesmo que seja aproximado.', 'erro');
+      }
 
       const itens = [...listaFotos.querySelectorAll<HTMLElement>('.foto-enviada')];
       if (itens.some((i) => i.dataset.estado === 'enviando')) return avisar('Espere as fotos terminarem de enviar.', 'erro');

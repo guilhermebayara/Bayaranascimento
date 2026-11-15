@@ -1303,3 +1303,265 @@ p {
   object-fit: cover;
   border-radius: 4px;
 }
+
+/* Formulários em etapas */
+
+.formulario [data-etapa] {
+  display: grid;
+  gap: 2.5rem;
+}
+
+.etapas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.25rem;
+  max-width: 40rem;
+}
+
+.etapas li {
+  flex: 1;
+  min-width: 0;
+}
+
+.etapas button,
+.etapas--fluxo li > span {
+  width: 100%;
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+  padding: 0.6rem 0 0;
+  background: none;
+  border: 0;
+  border-top: 4px solid var(--linha);
+  font-family: var(--titulo);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--tinta-suave);
+  text-align: left;
+}
+
+.etapas button {
+  cursor: pointer;
+}
+
+.etapas b {
+  font-weight: 700;
+}
+
+.etapas [data-feita='true'] {
+  border-top-color: var(--tinta);
+  color: var(--tinta);
+}
+
+.etapas [aria-current='step'] {
+  border-top-color: var(--amarelo);
+  color: var(--tinta);
+}
+
+.etapas button:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 3px;
+}
+
+.etapas--fluxo {
+  margin-bottom: 2rem;
+}
+
+.etapas__contagem {
+  margin: -1.5rem 0 0;
+  font-family: var(--titulo);
+  font-size: 0.9375rem;
+  color: var(--tinta-suave);
+}
+
+/* Em tela estreita, a trilha vira só as barras e a contagem diz onde a pessoa está */
+@media (max-width: 34rem) {
+  .etapas button span,
+  .etapas button b {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .etapas button {
+    padding-top: 0.9rem;
+  }
+}
+
+@media (min-width: 34.01rem) {
+  .etapas__contagem {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+.acoes--etapas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.acoes__rascunho {
+  margin-left: auto;
+}
+
+.ano {
+  display: flex;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+.ano input {
+  width: 6.5rem;
+  text-align: center;
+  font-family: var(--titulo);
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.ano button {
+  min-width: 3rem;
+  padding: 0 0.6rem;
+  font-family: var(--titulo);
+  font-weight: 600;
+  color: var(--tinta);
+  background: var(--branco);
+  border: 1.5px solid var(--tinta-suave);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ano button:hover {
+  background: var(--papel-fundo);
+}
+
+.campo > label {
+  font-family: var(--titulo);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.atalhos {
+  margin: 0;
+}
+
+.resumo {
+  padding: 1.25rem 1.4rem;
+  background: var(--branco);
+  border: 1.5px solid var(--tinta);
+  border-radius: 8px;
+}
+
+.resumo h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+.resumo dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1.25rem;
+}
+
+.resumo dt {
+  font-family: var(--titulo);
+  font-weight: 600;
+  color: var(--tinta-suave);
+}
+
+.resumo dd {
+  margin: 0;
+}
+
+/* Parte opcional de um formulário, recolhida */
+.mais {
+  border-top: 1.5px solid var(--tinta);
+  padding-top: 1rem;
+}
+
+.mais summary {
+  font-family: var(--titulo);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mais summary small {
+  font-weight: 400;
+  font-size: 1rem;
+  color: var(--tinta-suave);
+}
+
+.mais[open] summary {
+  margin-bottom: 1.5rem;
+}
+
+.mais > fieldset + fieldset {
+  margin-top: 2.5rem;
+}
+
+/* Abas de escolha: um grupo de opções em que cada uma explica o que é */
+.abas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.5rem;
+}
+
+.aba {
+  position: relative;
+  cursor: pointer;
+}
+
+.aba input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.aba > span {
+  display: grid;
+  gap: 0.15rem;
+  height: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--branco);
+  border: 1.5px solid var(--tinta-suave);
+  border-radius: 8px;
+}
+
+.aba strong {
+  font-family: var(--titulo);
+  font-size: 1.0625rem;
+}
+
+.aba small {
+  font-size: 0.9375rem;
+  color: var(--tinta-suave);
+}
+
+.aba input:checked + span {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel);
+}
+
+.aba input:checked + span small {
+  color: var(--papel);
+}
+
+.aba input:focus-visible + span {
+  outline: 3px solid var(--tinta);
+  outline-offset: 3px;
+}
