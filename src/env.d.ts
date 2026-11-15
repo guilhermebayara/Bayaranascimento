@@ -7,6 +7,8 @@ declare namespace Cloudflare {
     /** "producao" exige login. "previa" e "desenvolvimento" usam dados de teste. */
     AMBIENTE: 'producao' | 'previa' | 'desenvolvimento';
     ACESSOS: string;
+    /** Client ID do token de serviço do Access usado pela cópia mensal no Google Drive. */
+    COPIA_CLIENT_ID?: string;
   }
 }
 

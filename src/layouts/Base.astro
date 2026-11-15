@@ -61,6 +61,9 @@ const aqui = Astro.url.pathname + Astro.url.search;
     <main class="miolo">
       <slot />
     </main>
-    <footer class="miolo rodape">Acervo privado da família. Você entrou como {usuario.nome}.</footer>
+    <footer class="miolo rodape">
+      Acervo privado da família. Você entrou como {usuario.nome}.
+      {usuario.admin && <a href="/api/copia" download>Baixar cópia do acervo</a>}
+    </footer>
   </body>
 </html>

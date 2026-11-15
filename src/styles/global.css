@@ -506,6 +506,17 @@ p {
   color: var(--tinta-suave);
 }
 
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  justify-content: space-between;
+}
+
+.rodape a {
+  color: inherit;
+}
+
 /* Página de pessoa e lista de pessoas */
 
 .bio {
