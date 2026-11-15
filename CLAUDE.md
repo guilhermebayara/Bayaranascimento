@@ -103,13 +103,22 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 
 Vale para sessões abertas só para conferir o site. As regras acima continuam valendo inteiras; esta seção diz o que muda quando o trabalho é QA.
 
+### Os dois níveis de aprovação
+
+1. O QA confere a `homologa` com o acervo de exemplo, que reúne casos difíceis inventados de propósito para estressar o site.
+2. Depois, o Gui olha a homologação com o espelho da produção: o formato real da família, com nomes inventados.
+3. Com os dois níveis certos, a `homologa` vai para a `main`.
+
+Uma sessão de QA por chat: cada rodada começa numa sessão nova do Claude Code, conectada na `homologa`.
+
 ### Onde a sessão trabalha
 
 - A branch testada é a `homologa`, salvo outra indicação: é o que está para ir ao ar.
 - A sessão trabalha numa branch `qa-AAAA-MM-DD` nascida da branch testada. Cada push gera a prévia dela, com o acervo de exemplo.
 - A sessão nunca faz push nem merge na `main`, na `homologa`, na `formulario` ou na branch testada. No fim, abre um PR para a branch testada e não faz o merge.
 - Correção grande ou arriscada vai para uma branch `qa-<assunto>` separada.
-- Tudo é conferido localmente, com `npm run dev` e o "Ver como" do topo, ou na prévia. Nunca na produção. A homologação fica atrás de login e a sessão não entra nela: o que só dá para ver lá vai para a lista do relatório.
+- Tudo é conferido com o acervo de exemplo: localmente, com `npm run dev` e o "Ver como" do topo, ou na prévia da branch de QA. Nunca na produção. A homologação fica atrás de login e a sessão não entra nela: o que só dá para ver lá vai para a lista do relatório.
+- O espelho troca todo o banco local pelo espelho. Se a rodada conferir o espelho, faça isso por último e, depois, apague a pasta `.wrangler` para o banco local voltar ao acervo de exemplo.
 
 ### Antes de começar e antes de cada push
 
