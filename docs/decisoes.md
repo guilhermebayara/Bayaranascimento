@@ -63,6 +63,8 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 - Um casal pode ser marcado como "só os dois veem": aparece para as duas pessoas e para quem cadastrou. A opção "núcleos escolhidos" para casais desfeitos ainda não existe.
 - Quem edita a ficha: a própria pessoa. Para quem não acessa o site, membros de um núcleo em comum, quem cadastrou e os admins.
 - Quem mexe em laços de árvore: os envolvidos, quem divide um núcleo com algum deles e os admins.
+- Os laços entram por um formulário só, "Adicionar laço": um seletor escolhe o tipo (filho de, pai de, casal, do coração) e mostra os campos daquele tipo. A outra pessoa pode ser da lista ou um nome novo, cadastrado na hora.
+- **Laços do coração** (primeira versão): nome livre, "como se fosse" opcional (dá lugar na árvore de quem escolheu), proximidade que só o dono vê e a opção "só eu vejo". O laço é sempre de quem está logado. Ainda faltam o período do laço, o círculo e esconder do acervo a pessoa que só aparece em laços privados.
 - A árvore (`/arvore`) é centrada em uma pessoa e abre em quem está logado. Camadas que ligam e desligam: consideração, ex-casais e bichos.
 
 ## Em aberto

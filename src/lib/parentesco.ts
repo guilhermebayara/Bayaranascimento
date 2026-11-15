@@ -309,3 +309,47 @@ export function periodoDaFase(fase: Fase): string {
   if (fase.fimAno) return `até ${fase.fimAno}`;
   return '';
 }
+
+// --- Laços do coração ---
+
+export type Papel = 'avo' | 'tio' | 'irmao' | 'primo' | 'filho' | 'sobrinho';
+
+export interface LacoDoCoracao {
+  id: number;
+  /** quem escolheu o laço: ele vale para essa pessoa */
+  dono: string;
+  pessoa: string;
+  /** nome livre: "amigo-irmão", "afilhada", "vó de coração" */
+  nome: string;
+  /** "como se fosse": dá um lugar na árvore do dono */
+  papel: Papel | null;
+  /** só chega preenchida para o dono */
+  proximidade: number | null;
+  privado: boolean;
+}
+
+export const PAPEIS: Record<Papel, string> = {
+  irmao: 'irmão ou irmã',
+  tio: 'tio ou tia',
+  avo: 'avô ou avó',
+  primo: 'primo ou prima',
+  sobrinho: 'sobrinho ou sobrinha',
+  filho: 'filho ou filha',
+};
+
+export const PROXIMIDADES: Record<number, string> = { 1: 'Muito próximo', 2: 'Próximo', 3: 'Conhecido' };
+
+/** Em que linha da árvore centrada o papel coloca a pessoa. */
+export const LINHA_DO_PAPEL: Record<Papel, 'avos' | 'pais' | 'centro' | 'filhos'> = {
+  avo: 'avos',
+  tio: 'pais',
+  irmao: 'centro',
+  primo: 'centro',
+  filho: 'filhos',
+  sobrinho: 'filhos',
+};
+
+/** Laço privado: só o dono vê. */
+export function podeVerLacoDoCoracao(pessoa: string, laco: Pick<LacoDoCoracao, 'dono' | 'privado'>): boolean {
+  return !laco.privado || laco.dono === pessoa;
+}

@@ -5,7 +5,7 @@ import { datasDeVida } from '../../../lib/datas';
 import { FASES, Familia, estaoJuntos, periodoDaFase, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
-import { listarCasais, listarFiliacoes, listarIntegrantes, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
+import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
@@ -34,6 +34,11 @@ const grupos = [
   { titulo: 'Avós', ids: [...new Set(pais.flatMap((p) => familia.pais(p).map((a) => a.responsavel)))] },
 ].filter((g) => g.ids.length > 0);
 const casais = familia.casais(pessoa.id);
+// Laços do coração: os que a pessoa escolheu, e os de quem a escolheu
+const lacos = await listarLacosDoCoracao(usuario);
+const escolhidos = lacos.filter((l) => l.dono === pessoa.id);
+const escolhidaPor = lacos.filter((l) => l.pessoa === pessoa.id);
+const temFamilia = grupos.length > 0 || casais.length > 0 || escolhidos.length > 0 || escolhidaPor.length > 0;
 
 const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok || podeMexerEmLaco(usuario, [pessoa]).ok;
 ---
@@ -47,14 +52,14 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
     {pessoa.sobre && <div class="bio">{pessoa.sobre.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
     <p class="acoes">
       <a class="botao botao--leve" href={`/arvore?centro=${pessoa.id}`}>Ver na árvore</a>
-      {podeEditar && <a class="botao botao--leve" href={`/pessoas/${pessoa.id}/editar`}>Editar página e laços</a>}
+      <a class="botao botao--leve" href={`/pessoas/${pessoa.id}/editar`}>{podeEditar ? 'Editar página e laços' : 'Adicionar laço'}</a>
     </p>
   </div>
 
   {
-    (grupos.length > 0 || casais.length > 0) && (
+    temFamilia && (
       <section class="familia">
-        <h2>Família</h2>
+        <h2>Família e laços</h2>
         <dl>
           {casais.length > 0 && (
             <div>
@@ -84,6 +89,30 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
               ))}
             </div>
           ))}
+          {escolhidos.length > 0 && (
+            <div>
+              <dt>Laços do coração</dt>
+              {escolhidos.map((l) => (
+                <dd>
+                  <a href={`/pessoas/${l.pessoa}`}>{nome(l.pessoa)}</a>
+                  <span>{l.nome}</span>
+                  {l.privado && <small>só você vê</small>}
+                </dd>
+              ))}
+            </div>
+          )}
+          {escolhidaPor.length > 0 && (
+            <div>
+              <dt>No coração de</dt>
+              {escolhidaPor.map((l) => (
+                <dd>
+                  <a href={`/pessoas/${l.dono}`}>{nome(l.dono)}</a>
+                  <span>{l.nome}</span>
+                  {l.privado && <small>só você vê</small>}
+                </dd>
+              ))}
+            </div>
+          )}
         </dl>
       </section>
     )

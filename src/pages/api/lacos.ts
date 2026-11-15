@@ -1,11 +1,15 @@
 // Laços de árvore: filiação (de quem alguém é filho) e casal, com suas fases.
 import type { APIRoute } from 'astro';
-import { FASES, Familia, QUALIDADES, type Fase, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
+import { FASES, Familia, PAPEIS, PROXIMIDADES, QUALIDADES, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
+import { criarSlug, slugUnico } from '../../lib/servidor/conteudo';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeMexerEmLaco } from '../../lib/servidor/permissoes';
 import {
+  criarIntegrante,
   listarFiliacoes,
   listarIntegrantes,
+  removerLacoDoCoracao,
+  salvarLacoDoCoracao,
   obterCasal,
   obterCasalDoPar,
   removerCasal,
@@ -18,13 +22,77 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!mesmaOrigem(request)) return new Response('Pedido recusado.', { status: 403 });
   const { usuario } = locals;
   const dados = await request.formData();
-  const acao = campo(dados, 'acao', 30);
+  let acao = campo(dados, 'acao', 30);
   const volta = campo(dados, 'volta', 200) || '/pessoas';
   const falhar = (erro: string) => voltar(request, volta, { erro });
 
-  const integrantes = await listarIntegrantes();
+  let integrantes = await listarIntegrantes();
   const achar = (id: string) => integrantes.find((i) => i.id === id);
   const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+
+  // Formulário "Adicionar laço": um seletor escolhe o tipo, e a outra pessoa pode
+  // ser alguém da lista ou um nome novo, cadastrado na hora.
+  if (acao === 'adicionar') {
+    const tipoDeLaco = campo(dados, 'laco', 20);
+    const sujeito = campo(dados, 'sujeito', 80);
+    // Na página de outra pessoa, o laço do coração é com ela: não há "com quem" a escolher
+    const comASujeita = tipoDeLaco === 'coracao' && sujeito !== usuario.pessoa;
+    let outra = comASujeita ? sujeito : campo(dados, 'pessoa', 80);
+    const nomeNovo = campo(dados, 'nomeNovo', 80);
+    if (!outra && nomeNovo) {
+      const base = criarSlug(nomeNovo);
+      const existente = integrantes.find((i) => criarSlug(i.nome) === base || (i.apelido && criarSlug(i.apelido) === base));
+      if (existente) return falhar(`Já existe ${existente.nome} no acervo. Escolha na lista em vez de escrever o nome.`);
+      outra = slugUnico(base, new Set([...integrantes.map((i) => i.id), 'nova']));
+      await criarIntegrante(outra, nomeNovo, usuario.pessoa);
+      integrantes = await listarIntegrantes();
+    }
+    if (!outra) return falhar('Escolha a pessoa na lista ou escreva o nome de quem ainda não está no acervo.');
+    if (tipoDeLaco === 'filho-de') {
+      dados.set('acao', 'filiacao-salvar');
+      dados.set('filho', sujeito);
+      dados.set('responsavel', outra);
+    } else if (tipoDeLaco === 'pai-de') {
+      dados.set('acao', 'filiacao-salvar');
+      dados.set('filho', outra);
+      dados.set('responsavel', sujeito);
+    } else if (tipoDeLaco === 'casal') {
+      dados.set('acao', 'casal-salvar');
+      dados.set('a', sujeito);
+      dados.set('b', outra);
+    } else if (tipoDeLaco === 'coracao') {
+      dados.set('acao', 'coracao-salvar');
+      // O laço do coração é sempre de quem está logado
+      dados.set('pessoa', outra);
+    } else {
+      return falhar('Escolha o tipo de laço.');
+    }
+    acao = campo(dados, 'acao', 30);
+  }
+
+  if (acao === 'coracao-salvar') {
+    const pessoa = achar(campo(dados, 'pessoa', 80));
+    if (!pessoa) return falhar('Escolha a pessoa.');
+    if (pessoa.id === usuario.pessoa) return falhar('O laço do coração é entre você e outra pessoa.');
+    const nomeDoLaco = campo(dados, 'nomeDoLaco', 40);
+    if (!nomeDoLaco) return falhar('Dê um nome ao laço, como "amigo-irmão" ou "afilhada".');
+    const papelBruto = campo(dados, 'papel', 12);
+    if (papelBruto && !(papelBruto in PAPEIS)) return falhar('Papel desconhecido.');
+    const proximidade = Number(campo(dados, 'proximidade', 2)) || null;
+    if (proximidade !== null && !(proximidade in PROXIMIDADES)) return falhar('Proximidade desconhecida.');
+    await salvarLacoDoCoracao(usuario, pessoa.id, {
+      nome: nomeDoLaco,
+      papel: (papelBruto as Papel) || null,
+      proximidade,
+      privado: dados.get('privado') === 'on',
+    });
+    return voltar(request, volta, { ok: `Laço com ${nome(pessoa.id)} salvo.` });
+  }
+
+  if (acao === 'coracao-remover') {
+    const removido = await removerLacoDoCoracao(usuario, Number(campo(dados, 'id', 12)));
+    return removido ? voltar(request, volta, { ok: 'Laço removido.' }) : falhar('Laço não encontrado.');
+  }
 
   if (acao === 'filiacao-salvar' || acao === 'filiacao-remover') {
     const filho = achar(campo(dados, 'filho', 80));

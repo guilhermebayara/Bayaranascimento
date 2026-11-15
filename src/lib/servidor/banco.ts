@@ -233,6 +233,31 @@ const MIGRACOES: Migracao[] = [
         UNION ALL SELECT id, 'casamento', 2 FROM casais WHERE a_id = 'giovanna' AND b_id = 'lucas-magno'`,
     ],
   },
+  {
+    // Laços do coração: pessoais, cada um define os seus. O dono é quem escolheu.
+    id: '006-lacos-do-coracao',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS lacos_coracao (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        dono_id TEXT NOT NULL REFERENCES integrantes(id),
+        pessoa_id TEXT NOT NULL REFERENCES integrantes(id),
+        nome TEXT NOT NULL,
+        -- "como se fosse": dá à pessoa um lugar na árvore do dono
+        papel TEXT CHECK (papel IN ('avo', 'tio', 'irmao', 'primo', 'filho', 'sobrinho')),
+        -- 1 muito próximo, 2 próximo, 3 conhecido. Só o dono vê.
+        proximidade INTEGER CHECK (proximidade BETWEEN 1 AND 3),
+        privado INTEGER NOT NULL DEFAULT 0,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (dono_id, pessoa_id),
+        CHECK (dono_id <> pessoa_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS lacos_coracao_da_pessoa ON lacos_coracao (pessoa_id)`,
+      `INSERT OR IGNORE INTO casais (a_id, b_id) VALUES ('ana-candida', 'lucio')`,
+      `INSERT INTO casal_fases (casal_id, tipo, ordem)
+        SELECT c.id, 'casamento', 0 FROM casais c
+        WHERE c.a_id = 'ana-candida' AND c.b_id = 'lucio' AND NOT EXISTS (SELECT 1 FROM casal_fases f WHERE f.casal_id = c.id)`,
+    ],
+  },
 ];
 
 let pronto: Promise<void> | undefined;

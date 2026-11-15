@@ -1,8 +1,8 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
 import { env } from 'cloudflare:workers';
-import type { Casal, Fase, Filiacao, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
-import { podeVerCasal } from '../parentesco';
+import type { Casal, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
+import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
 import type { Tipo } from '../tipos';
 import type { AcessoDaMemoria, Usuario } from './permissoes';
 
@@ -267,6 +267,45 @@ export async function removerCasal(casal: Casal, usuario: Usuario): Promise<void
     db().prepare('DELETE FROM casal_fases WHERE casal_id = ?').bind(casal.id),
     db().prepare('DELETE FROM casais WHERE id = ?').bind(casal.id),
   ]);
+}
+
+// --- Laços do coração ---
+
+/** Laços do coração que o usuário pode ver. A proximidade só acompanha os laços dele. */
+export async function listarLacosDoCoracao(usuario: Usuario): Promise<LacoDoCoracao[]> {
+  const { results } = await db().prepare('SELECT * FROM lacos_coracao ORDER BY COALESCE(proximidade, 9), nome').all<Record<string, unknown>>();
+  return results
+    .map((l) => ({
+      id: l.id as number,
+      dono: l.dono_id as string,
+      pessoa: l.pessoa_id as string,
+      nome: l.nome as string,
+      papel: (l.papel as Papel | null) ?? null,
+      proximidade: l.dono_id === usuario.pessoa ? ((l.proximidade as number | null) ?? null) : null,
+      privado: Boolean(l.privado),
+    }))
+    .filter((l) => podeVerLacoDoCoracao(usuario.pessoa, l));
+}
+
+export async function salvarLacoDoCoracao(
+  usuario: Usuario,
+  pessoa: string,
+  dados: { nome: string; papel: Papel | null; proximidade: number | null; privado: boolean },
+): Promise<void> {
+  await db()
+    .prepare(
+      `INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, papel, proximidade, privado) VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET nome = excluded.nome, papel = excluded.papel,
+         proximidade = excluded.proximidade, privado = excluded.privado`,
+    )
+    .bind(usuario.pessoa, pessoa, dados.nome, dados.papel, dados.proximidade, dados.privado ? 1 : 0)
+    .run();
+}
+
+/** Só o dono remove o próprio laço. */
+export async function removerLacoDoCoracao(usuario: Usuario, id: number): Promise<boolean> {
+  const resultado = await db().prepare('DELETE FROM lacos_coracao WHERE id = ? AND dono_id = ?').bind(id, usuario.pessoa).run();
+  return (resultado.meta.changes ?? 0) > 0;
 }
 
 // --- Tipos de momento ---

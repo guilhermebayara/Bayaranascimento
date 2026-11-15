@@ -3,8 +3,8 @@
 // filhos abaixo. Tocar em alguém recentra a árvore nessa pessoa.
 import Base from '../layouts/Base.astro';
 import { anosDeVida } from '../lib/datas';
-import { FASES, Familia, estaoJuntos, possessivo, type Tratamento } from '../lib/parentesco';
-import { listarCasais, listarFiliacoes, listarIntegrantes } from '../lib/servidor/repositorio';
+import { FASES, Familia, LINHA_DO_PAPEL, estaoJuntos, possessivo, type Tratamento } from '../lib/parentesco';
+import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao } from '../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
@@ -47,6 +47,11 @@ const pares = familia.casais(centro.id).filter((c) => aparece(c.outro));
 const filhos = unicos(familia.filhos(centro.id).map((f) => f.filho));
 const netos = unicos(filhos.flatMap((f) => familia.filhos(f).map((n) => n.filho)));
 
+// Laços do coração do centro com um lugar na árvore ("como se fosse"). Ficam ligados só a quem escolheu.
+const escolhidos = camadas.consideracao ? (await listarLacosDoCoracao(usuario)).filter((l) => l.dono === centro.id && l.papel && aparece(l.pessoa)) : [];
+const jaNaArvore = new Set([...pais, ...avos, ...irmaos, ...filhos, ...netos, ...pares.map((c) => c.outro)]);
+const doCoracao = (linha: 'avos' | 'pais' | 'centro' | 'filhos') => escolhidos.filter((l) => LINHA_DO_PAPEL[l.papel!] === linha && !jaNaArvore.has(l.pessoa));
+
 const paraVoce = (id: string) => {
   if (id === usuario.pessoa) return 'você';
   const relacao = completa.relacao(usuario.pessoa, id);
@@ -62,14 +67,15 @@ const chamar = (id: string) => achar(id)!.apelido ?? achar(id)!.nome;
 const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
 const linhas = [
-  { titulo: 'Avós', ids: avos, marca: () => false },
-  { titulo: 'Pais', ids: pais, marca: paisDeConsideracao },
+  { titulo: 'Avós', ids: avos, marca: () => false, coracao: doCoracao('avos') },
+  { titulo: 'Pais', ids: pais, marca: paisDeConsideracao, coracao: doCoracao('pais') },
 ];
 const abaixo = [
-  { titulo: 'Filhos', ids: filhos, marca: filhosDeConsideracao },
-  { titulo: 'Netos', ids: netos, marca: () => false },
+  { titulo: 'Filhos', ids: filhos, marca: filhosDeConsideracao, coracao: doCoracao('filhos') },
+  { titulo: 'Netos', ids: netos, marca: () => false, coracao: [] },
 ];
-const sozinha = pais.length + irmaos.length + pares.length + filhos.length === 0;
+const aoLado = doCoracao('centro');
+const sozinha = pais.length + irmaos.length + pares.length + filhos.length + escolhidos.length === 0;
 ---
 
 <Base titulo={`Árvore de ${chamar(centro.id)}`}>
@@ -98,7 +104,7 @@ const sozinha = pais.length + irmaos.length + pares.length + filhos.length === 0
   <div class="arvore">
     {
       linhas
-        .filter((l) => l.ids.length > 0)
+        .filter((l) => l.ids.length + l.coracao.length > 0)
         .map((l) => (
           <section class="arvore__linha">
             <h2>{l.titulo}</h2>
@@ -109,6 +115,15 @@ const sozinha = pais.length + irmaos.length + pares.length + filhos.length === 0
                     <strong>{chamar(id)}</strong>
                     <span>{paraVoce(id)}</span>
                     <small>{anosDeVida(achar(id)!)}</small>
+                  </a>
+                </li>
+              ))}
+              {l.coracao.map((c) => (
+                <li>
+                  <a class="no no--consideracao" href={link(c.pessoa)}>
+                    <strong>{chamar(c.pessoa)}</strong>
+                    <span>{c.nome}</span>
+                    <small>de {chamar(centro.id)}</small>
                   </a>
                 </li>
               ))}
@@ -131,6 +146,15 @@ const sozinha = pais.length + irmaos.length + pares.length + filhos.length === 0
               <strong>{chamar(id)}</strong>
               <span>{paraVoce(id)}</span>
               <small>{anosDeVida(achar(id)!)}</small>
+            </a>
+          </li>
+        ))}
+        {aoLado.map((c) => (
+          <li>
+            <a class="no no--consideracao" href={link(c.pessoa)}>
+              <strong>{chamar(c.pessoa)}</strong>
+              <span>{c.nome}</span>
+              <small>de {chamar(centro.id)}</small>
             </a>
           </li>
         ))}
@@ -157,7 +181,7 @@ const sozinha = pais.length + irmaos.length + pares.length + filhos.length === 0
 
     {
       abaixo
-        .filter((l) => l.ids.length > 0)
+        .filter((l) => l.ids.length + l.coracao.length > 0)
         .map((l) => (
           <section class="arvore__linha">
             <h2>{l.titulo}</h2>
@@ -168,6 +192,15 @@ const sozinha = pais.length + irmaos.length + pares.length + filhos.length === 0
                     <strong>{chamar(id)}</strong>
                     <span>{paraVoce(id)}</span>
                     <small>{anosDeVida(achar(id)!)}</small>
+                  </a>
+                </li>
+              ))}
+              {l.coracao.map((c) => (
+                <li>
+                  <a class="no no--consideracao" href={link(c.pessoa)}>
+                    <strong>{chamar(c.pessoa)}</strong>
+                    <span>{c.nome}</span>
+                    <small>de {chamar(centro.id)}</small>
                   </a>
                 </li>
               ))}
@@ -185,7 +218,7 @@ const sozinha = pais.length + irmaos.length + pares.length + filhos.length === 0
     )
   }
   <p class="dica">
-    Contorno tracejado: laço de consideração. Contorno pontilhado: casal que não está mais junto.{" "}
+    Contorno tracejado: laço de consideração ou do coração. Contorno pontilhado: casal que não está mais junto.{" "}
     <a href="/pessoas/nova">Cadastrar uma pessoa</a>
   </p>
 </Base>

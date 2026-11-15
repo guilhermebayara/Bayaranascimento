@@ -143,3 +143,17 @@ describe('estrutura', () => {
     expect(podeVerCasal('elizete', casais[5])).toBe(true);
   });
 });
+
+describe('laços do coração', async () => {
+  const { LINHA_DO_PAPEL, podeVerLacoDoCoracao } = await import('../src/lib/parentesco');
+  it('laço privado só o dono vê', () => {
+    expect(podeVerLacoDoCoracao('gui', { dono: 'gui', privado: true })).toBe(true);
+    expect(podeVerLacoDoCoracao('giovanna', { dono: 'gui', privado: true })).toBe(false);
+    expect(podeVerLacoDoCoracao('giovanna', { dono: 'gui', privado: false })).toBe(true);
+  });
+  it('o papel define a linha da árvore', () => {
+    expect(LINHA_DO_PAPEL.irmao).toBe('centro');
+    expect(LINHA_DO_PAPEL.avo).toBe('avos');
+    expect(LINHA_DO_PAPEL.sobrinho).toBe('filhos');
+  });
+});
