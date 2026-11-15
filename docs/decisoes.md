@@ -55,3 +55,14 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 - Reações e sugestões de correção em fotos e relatos
 - Personalização por pessoa que acessa
 - Direção visual definitiva (o visual atual é provisório)
+
+## Ideias em discussão (ainda não decididas)
+
+Surgiram no jantar de casamento da Giovanna, em 14 de novembro de 2026, o dia em que o site nasceu.
+
+- **Árvore genealógica.** Guardar só os laços básicos de cada pessoa (pais e casal) e calcular o resto. A relação pode aparecer do ponto de vista de quem está olhando ("sua avó").
+- **Núcleos familiares** como entidade, com página, árvore e linha do tempo próprias: Bayara Nascimento, Bayara Bracarense (Giovanna e Lucas Magno) e Bracarense. Uma pessoa e uma memória podem pertencer a mais de um.
+- **Visibilidade configurável** por memória, que pode ser mudada depois: todos, só determinados núcleos, ou privada da pessoa.
+- O site como registro para a próxima geração.
+
+Consequência técnica da visibilidade: páginas com conteúdo restrito não podem ser estáticas, porque uma página estática é igual para todos. As linhas do tempo e as memórias passariam a ser montadas para cada pessoa logada.
