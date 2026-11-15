@@ -43,12 +43,13 @@ export interface Medidas {
   vaoY: number;
 }
 
-export const MEDIDAS: Medidas = { largura: 150, altura: 76, vaoX: 26, vaoY: 64 };
+export const MEDIDAS: Medidas = { largura: 150, altura: 76, vaoX: 44, vaoY: 96 };
 
 export interface Linha {
   /** caminho SVG */
   d: string;
-  tipo: 'casal' | 'ex' | 'filhos' | 'consideracao' | 'coracao';
+  /** ponto: a bolinha no meio do casal, de onde saem as linhas dos filhos */
+  tipo: 'casal' | 'ex' | 'filhos' | 'consideracao' | 'coracao' | 'ponto';
   /** pessoas que a linha liga, para destacar ou apagar junto com elas */
   de: string[];
 }
@@ -239,8 +240,12 @@ export function desenharArvore(
   const meioY = (id: string) => em.get(id)!.y + m.altura / 2;
 
   // --- 3. Linhas ---
+  // Todas as linhas andam na horizontal e na vertical, com os cantos arredondados: a curva mostra
+  // para que lado a linha vai. Acima de cada geração há duas faixas: mais no alto, a das linhas que
+  // descem dos pais; mais perto das caixas, a dos laços do coração.
   const linhas: Linha[] = [];
   const ehCasal = (a: string, b: string) => casais.find((c) => (c.a === a && c.b === b) || (c.a === b && c.b === a));
+  const pontoDoCasal = new Map<string, { x: number; y: number }>();
 
   for (const c of casais) {
     const [esq, dir] = em.get(c.a)!.x <= em.get(c.b)!.x ? [c.a, c.b] : [c.b, c.a];
@@ -249,9 +254,11 @@ export function desenharArvore(
       ? `M ${em.get(esq)!.x + m.largura} ${meioY(esq)} H ${em.get(dir)!.x}`
       : `M ${meioX(esq)} ${meioY(esq)} L ${meioX(dir)} ${meioY(dir)}`;
     linhas.push({ d, tipo: c.ex ? 'ex' : 'casal', de: [c.a, c.b] });
+    if (mesmaLinha) pontoDoCasal.set([c.a, c.b].sort().join('+'), { x: (em.get(esq)!.x + m.largura + em.get(dir)!.x) / 2, y: meioY(esq) });
   }
 
-  // Filhos de sangue ou adotivos: uma linha desce dos pais e se abre para os irmãos
+  // Filhos de sangue ou adotivos: cada filho tem a sua linha, saindo do ponto do casal (ou de baixo
+  // de quem cria sozinho) e descendo até ele. Linhas de irmãos se sobrepõem e parecem uma só.
   const grupos = new Map<string, string[]>();
   for (const f of filiacoes) {
     if (f.consideracao) continue;
@@ -263,40 +270,54 @@ export function desenharArvore(
   for (const [chave, filhos] of grupos) {
     const pais = chave.split('+');
     const baixo = Math.max(...pais.map((p) => em.get(p)!.y)) + m.altura;
-    // A linha nasce do meio do casal, ou de baixo de quem cria sozinho
-    const doCasal = pais.length === 2 && ehCasal(pais[0], pais[1]) && em.get(pais[0])!.y === em.get(pais[1])!.y;
-    const origemX = media(pais.map(meioX));
-    const origemY = doCasal ? meioY(pais[0]) : baixo;
+    const ponto = pais.length === 2 && ehCasal(pais[0], pais[1]) ? pontoDoCasal.get(chave) : undefined;
     // Cada família usa uma altura um pouco diferente, para as linhas não se confundirem
-    const barra = baixo + m.vaoY / 2 + ((degrau++ % 3) - 1) * 8;
-    const xs = filhos.map(meioX);
-    let d = `M ${origemX} ${origemY} V ${barra} M ${Math.min(origemX, ...xs)} ${barra} H ${Math.max(origemX, ...xs)}`;
-    for (const filho of filhos) d += ` M ${meioX(filho)} ${barra} V ${em.get(filho)!.y}`;
-    if (pais.length === 2 && !doCasal) d = `M ${meioX(pais[0])} ${baixo} V ${baixo + 10} H ${meioX(pais[1])} V ${baixo} ` + d.replace(`M ${origemX} ${origemY}`, `M ${origemX} ${baixo + 10}`);
-    linhas.push({ d, tipo: 'filhos', de: [...pais, ...filhos] });
+    const barra = baixo + m.vaoY * 0.4 + ((degrau++ % 3) - 1) * 7;
+    const origens = ponto ? [{ x: ponto.x, y: ponto.y }] : pais.map((p) => ({ x: meioX(p), y: baixo }));
+    let d = '';
+    for (const filho of filhos) {
+      for (const o of origens) d += ' ' + arredondado([[o.x, o.y], [o.x, barra], [meioX(filho), barra], [meioX(filho), em.get(filho)!.y]]);
+    }
+    linhas.push({ d: d.trim(), tipo: 'filhos', de: [...pais, ...filhos] });
+    if (ponto) linhas.push({ d: circulo(ponto.x, ponto.y, 5), tipo: 'ponto', de: pais });
   }
 
-  // Consideração e coração usam o mesmo desenho reto das outras ligações, só que tracejado.
-  // Saem um pouco ao lado do centro da pessoa, para não se confundirem com a linha dos filhos.
-  let desvio = 0;
+  // Consideração e coração: tracejadas, com o mesmo desenho das outras.
+  // Vizinhos se ligam por uma reta curta no meio da caixa. Quem está mais longe recebe uma linha
+  // que sai do lado da pessoa, sobe para a faixa do coração e desce no alto de quem foi escolhido.
+  const faixas = new Map<number, number>();
+  const faixa = (topo: number) => {
+    const k = faixas.get(topo) ?? 0;
+    faixas.set(topo, k + 1);
+    return topo - 16 - (k % 4) * 7;
+  };
   const tracejada = (a: string, b: string) => {
     const pa = em.get(a)!;
     const pb = em.get(b)!;
-    const fuga = 14 + (desvio++ % 3) * 7;
     if (pa.y === pb.y) {
-      // Mesma geração: lado a lado, uma linha curta; longe, passa por baixo das duas pessoas
-      const [esq, dir] = pa.x <= pb.x ? [pa, pb] : [pb, pa];
-      if (dir.x - esq.x <= passo + 1) return `M ${esq.x + m.largura} ${esq.y + m.altura / 2} H ${dir.x}`;
-      const baixo = pa.y + m.altura + fuga;
-      return `M ${meioX(a) + 18} ${pa.y + m.altura} V ${baixo} H ${meioX(b) - 18} V ${pb.y + m.altura}`;
+      const paraDireita = pb.x > pa.x;
+      const [esq, dir] = paraDireita ? [pa, pb] : [pb, pa];
+      const entre = posicoes.some((o) => o.y === pa.y && o.x > esq.x && o.x < dir.x);
+      if (!entre) return `M ${esq.x + m.largura} ${pa.y + m.altura / 2} H ${dir.x}`;
+      const saida = paraDireita ? pa.x + m.largura : pa.x;
+      const recuo = saida + (paraDireita ? 14 : -14);
+      const alto = faixa(pa.y);
+      return arredondado([[saida, pa.y + m.altura / 2], [recuo, pa.y + m.altura / 2], [recuo, alto], [meioX(b), alto], [meioX(b), pb.y]]);
     }
-    const [cima, embaixo] = pa.y < pb.y ? [a, b] : [b, a];
-    const barra = em.get(embaixo)!.y - fuga;
-    const saida = meioX(cima) + (meioX(embaixo) >= meioX(cima) ? 18 : -18);
-    return `M ${saida} ${em.get(cima)!.y + m.altura} V ${barra} H ${meioX(embaixo)} V ${em.get(embaixo)!.y}`;
+    // Gerações diferentes: desce de quem está em cima até a faixa de quem está embaixo
+    const [cima, baixo] = pa.y < pb.y ? [a, b] : [b, a];
+    const alto = faixa(em.get(baixo)!.y);
+    const saida = meioX(cima) + (meioX(baixo) >= meioX(cima) ? 20 : -20);
+    return arredondado([[saida, em.get(cima)!.y + m.altura], [saida, alto], [meioX(baixo), alto], [meioX(baixo), em.get(baixo)!.y]]);
   };
   for (const f of filiacoes) if (f.consideracao) linhas.push({ d: tracejada(f.responsavel, f.filho), tipo: 'consideracao', de: [f.responsavel, f.filho] });
-  for (const l of coracao) linhas.push({ d: tracejada(l.dono, l.pessoa), tipo: 'coracao', de: [l.dono, l.pessoa] });
+  // O filho de um amigo já se liga a quem escolheu pelo pai ou mãe: não precisa de linha própria
+  const escolhidosPor = new Map<string, Set<string>>();
+  for (const l of coracao) (escolhidosPor.get(l.dono) ?? escolhidosPor.set(l.dono, new Set()).get(l.dono)!).add(l.pessoa);
+  for (const l of coracao) {
+    const viaPais = (paisDe.get(l.pessoa) ?? []).some((p) => escolhidosPor.get(l.dono)!.has(p));
+    if (!viaPais) linhas.push({ d: tracejada(l.dono, l.pessoa), tipo: 'coracao', de: [l.dono, l.pessoa] });
+  }
 
   return {
     pessoas: posicoes,
@@ -324,6 +345,27 @@ function emFila(grupo: string[], paresDe: Map<string, string[]>, chave: Map<stri
   andar(inicio);
   for (const id of grupo) if (!visto.has(id)) andar(id);
   return fila;
+}
+
+/** Caminho que passa pelos pontos, com os cantos arredondados */
+function arredondado(pontos: [number, number][], raio = 12): string {
+  const p = pontos.filter((q, i) => i === 0 || q[0] !== pontos[i - 1][0] || q[1] !== pontos[i - 1][1]);
+  let d = `M ${p[0][0]} ${p[0][1]}`;
+  for (let i = 1; i < p.length - 1; i++) {
+    const [a, b, c] = [p[i - 1], p[i], p[i + 1]];
+    const l1 = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const l2 = Math.hypot(c[0] - b[0], c[1] - b[1]);
+    const r = Math.min(raio, l1 / 2, l2 / 2);
+    const antes = [b[0] - ((b[0] - a[0]) / l1) * r, b[1] - ((b[1] - a[1]) / l1) * r];
+    const depois = [b[0] + ((c[0] - b[0]) / l2) * r, b[1] + ((c[1] - b[1]) / l2) * r];
+    d += ` L ${antes[0]} ${antes[1]} Q ${b[0]} ${b[1]} ${depois[0]} ${depois[1]}`;
+  }
+  const fim = p[p.length - 1];
+  return p.length > 1 ? `${d} L ${fim[0]} ${fim[1]}` : d;
+}
+
+function circulo(x: number, y: number, r: number): string {
+  return `M ${x - r} ${y} a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 ${-2 * r} 0`;
 }
 
 function media(valores: number[]): number {
@@ -509,14 +551,20 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
     if (!melhorou) break;
   }
 
-  // Por fim, quem veio de outra família por um laço do coração fica junto de quem o escolheu.
-  // A pessoa e os irmãos dela formam um grupo que não se separa. Os escolhidos ficam do lado
-  // do núcleo de origem de quem escolheu (Bayara à esquerda, Bracarense à direita), logo depois
-  // desse grupo. Quem não tem descendentes fica mais perto, para as linhas não se cruzarem.
-  const direcaoDe = (dono: string): -1 | 0 | 1 => {
+  // Por fim, os acabamentos que deixam cada família legível:
+  // 1. Quem veio de outra família por um laço do coração fica encostado em quem o escolheu, do lado
+  //    do núcleo de origem dessa pessoa (Bayara à esquerda, Bracarense à direita). Quem não tem
+  //    descendentes fica mais perto, para a linha dele não cruzar a dos filhos dos outros.
+  // 2. Filhos de um só dos pais (meio-irmãos) vão para fora do grupo de irmãos, do lado desse pai
+  //    ou mãe, depois também dos laços do coração do grupo.
+  const direcaoDe = (dono: string, linha: string[][]): -1 | 1 => {
     const l = lado.get(dono);
-    if (l === undefined || Math.abs(l - 0.5) < 1e-6) return 0;
-    return l < 0.5 ? -1 : 1;
+    if (l !== undefined && Math.abs(l - 0.5) > 1e-6) return l < 0.5 ? -1 : 1;
+    // Sem núcleo que diga o lado: para o lado oposto ao dos irmãos
+    const ordem = linha.flat();
+    const irmaos = (irmaosDe.get(dono) ?? []).filter((i) => ordem.includes(i));
+    if (irmaos.length) return media(irmaos.map((i) => ordem.indexOf(i))) > ordem.indexOf(dono) ? -1 : 1;
+    return -1;
   };
   const descendentes = (ids: string[]) => {
     const vistos = new Set<string>();
@@ -527,19 +575,17 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
   for (let n = 0; n < melhor.length; n++) {
     const original = melhor[n].flat();
     const naLinha = new Set(original);
-    const blocoDe = (id: string) => melhor[n].find((b) => b.includes(id));
     // Cada bloco escolhido acompanha o primeiro laço que o trouxe
     const donoDoBloco = new Map<string[], string>();
     for (const [dono, escolhido] of coracao) {
       if (!naLinha.has(dono) || !naLinha.has(escolhido) || familiaDe(dono) === familiaDe(escolhido)) continue;
-      const bloco = blocoDe(escolhido)!;
+      const bloco = melhor[n].find((b) => b.includes(escolhido))!;
       if (!bloco.includes(dono) && !donoDoBloco.has(bloco)) donoDoBloco.set(bloco, dono);
     }
-    if (donoDoBloco.size === 0) continue;
     const retirados = [...donoDoBloco.keys()];
     melhor[n] = melhor[n].filter((b) => !donoDoBloco.has(b));
 
-    // Em rodadas: primeiro os escolhidos por quem já está na linha, depois os escolhidos por eles
+    // 1. Laços do coração, em rodadas: primeiro os de quem já está na linha, depois os escolhidos por eles
     let pendentes = retirados;
     while (pendentes.length) {
       const linha = melhor[n];
@@ -548,42 +594,53 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
         linha.push(...pendentes);
         break;
       }
-      const grupos = new Map<string, { indice: number; direcao: -1 | 1; itens: { bloco: string[]; distancia: number; desc: number; ordem: number }[] }>();
-      for (const bloco of prontos) {
-        const dono = donoDoBloco.get(bloco)!;
-        const doDono = linha.findIndex((b) => b.includes(dono));
-        // O grupo do dono: o bloco dele e os blocos de irmãos de quem está nesse bloco
-        // (de pai e mãe ou não). Esse grupo não se separa.
-        const irmaosDoBloco = linha
-          .map((b, k) => (b.some((id) => linha[doDono].some((m) => m !== id && (paisDe.get(id) ?? []).some((p) => (paisDe.get(m) ?? []).includes(p)))) ? k : -1))
-          .filter((k) => k >= 0);
-        const todos = [...irmaosDoBloco, doDono];
-        const inicio = Math.min(...todos);
-        const fim = Math.max(...todos);
-        let direcao = direcaoDe(dono);
-        if (direcao === 0) {
-          // Sem núcleo que diga o lado: vai para o lado de fora do grupo, ou para onde já estava
-          if (doDono === inicio && fim > inicio) direcao = -1;
-          else if (doDono === fim && fim > inicio) direcao = 1;
-          else direcao = original.indexOf(bloco[0]) < original.indexOf(dono) ? -1 : 1;
+      const porDono = new Map<string, string[][]>();
+      for (const b of prontos) empilhar(porDono, donoDoBloco.get(b)!, b);
+      for (const [dono, blocos] of porDono) {
+        const direcao = direcaoDe(dono, linha);
+        const perto = [...blocos].sort((a, b) => descendentes(a) - descendentes(b) || original.indexOf(a[0]) - original.indexOf(b[0]));
+        for (const bloco of perto) {
+          // O escolhido fica na ponta do bloco virada para quem o escolheu
+          const escolhido = bloco.find((id) => coracao.some(([d, e]) => d === dono && e === id))!;
+          const ponta = direcao < 0 ? bloco.length - 1 : 0;
+          if (bloco.length > 1 && bloco.indexOf(escolhido) !== ponta) bloco.reverse();
         }
-        const indice = direcao < 0 ? inicio : fim + 1;
-        const chave = `${indice}:${direcao}`;
-        if (!grupos.has(chave)) grupos.set(chave, { indice, direcao: direcao as -1 | 1, itens: [] });
-        grupos.get(chave)!.itens.push({ bloco, distancia: direcao < 0 ? doDono - inicio : fim - doDono, desc: descendentes(bloco), ordem: original.indexOf(bloco[0]) });
-        // Dentro do bloco, o escolhido fica na ponta virada para quem o escolheu
-        const escolhido = bloco.find((id) => coracao.some(([d, e]) => d === dono && e === id))!;
-        const ponta = direcao < 0 ? bloco.length - 1 : 0;
-        if (bloco.length > 1 && bloco.indexOf(escolhido) !== ponta) bloco.reverse();
-      }
-      // Insere de trás para frente, para os índices continuarem valendo
-      const ordenados = [...grupos.values()].sort((a, b) => b.indice - a.indice || a.direcao - b.direcao);
-      for (const g of ordenados) {
-        const perto = [...g.itens].sort((a, b) => a.desc - b.desc || a.distancia - b.distancia || a.ordem - b.ordem).map((x) => x.bloco);
-        linha.splice(g.indice, 0, ...(g.direcao < 0 ? perto.reverse() : perto));
+        const doDono = linha.findIndex((b) => b.includes(dono));
+        if (direcao < 0) linha.splice(doDono, 0, ...[...perto].reverse());
+        else linha.splice(doDono + 1, 0, ...perto);
       }
       pendentes = pendentes.filter((b) => !prontos.includes(b));
     }
+
+    // 2. Meio-irmãos para fora do grupo
+    const linha = melhor[n];
+    const anterior = n > 0 ? melhor[n - 1].flat() : [];
+    const paisDoCasal = new Map<string, string[]>();
+    for (const id of linha.flat()) {
+      const ps = (paisDe.get(id) ?? []).filter((p) => anterior.includes(p));
+      if (ps.length === 2) empilhar(paisDoCasal, [...ps].sort().join('+'), id);
+    }
+    for (const [chave, irmaos] of paisDoCasal) {
+      const [a, b] = chave.split('+');
+      for (const meio of linha.flat()) {
+        const ps = (paisDe.get(meio) ?? []).filter((p) => anterior.includes(p));
+        if (ps.length !== 1 || (ps[0] !== a && ps[0] !== b)) continue;
+        const paraEsquerda = anterior.indexOf(ps[0]) < anterior.indexOf(ps[0] === a ? b : a);
+        // O grupo: os irmãos de pai e mãe e os laços do coração deles
+        const doGrupo = (bloco: string[]) =>
+          bloco.some((id) => irmaos.includes(id) || coracao.some(([d, e]) => e === id && irmaos.includes(d) && donoDoBloco.get(bloco) === d));
+        const blocoDoMeio = linha.find((x) => x.includes(meio))!;
+        if (doGrupo(blocoDoMeio)) continue;
+        linha.splice(linha.indexOf(blocoDoMeio), 1);
+        const indices = linha.map((x, k) => (doGrupo(x) ? k : -1)).filter((k) => k >= 0);
+        if (!indices.length) {
+          linha.push(blocoDoMeio);
+          continue;
+        }
+        linha.splice(paraEsquerda ? Math.min(...indices) : Math.max(...indices) + 1, 0, blocoDoMeio);
+      }
+    }
+
     // A família de quem foi escolhido acompanha: pais em cima, filhos embaixo
     for (const bloco of retirados) puxarPais(melhor, n, bloco);
     if (retirados.some((b) => b.some((id) => filhosDe.has(id)))) reorganizarAbaixo(melhor, n);

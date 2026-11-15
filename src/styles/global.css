@@ -1670,6 +1670,11 @@ p {
   stroke-width: 3;
 }
 
+.linha--ponto {
+  fill: var(--tinta);
+  stroke: none;
+}
+
 .linha--apagada {
   opacity: 0.2;
 }

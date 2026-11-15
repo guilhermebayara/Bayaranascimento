@@ -199,20 +199,17 @@ describe('laços do coração em volta dos irmãos', () => {
   const d = desenharArvore(pessoas, casais, filiacoes, coracao);
   const yDoGui = d.pessoas.find((x) => x.id === 'gui')!.y;
   const fila = d.pessoas.filter((x) => x.y === yDoGui).sort((a, b) => a.x - b.x).map((x) => x.id);
-  const em = (id: string) => fila.indexOf(id);
 
-  it('Gui e Giovanna ficam lado a lado', () => {
-    expect(em('giovanna') - em('gui'), fila.join(' ')).toBe(1);
+  it('fica na ordem do desenho que o Gui fez no FigJam', () => {
+    // Mel (filha só da Elizete) vai para fora, do lado da Elizete. Os amigos do Gui ficam à
+    // esquerda dele, com quem não tem filhos mais perto. A amiga da Giovanna fica à esquerda dela.
+    // O amigo do Magno fica à direita dele.
+    expect(fila.slice(fila.indexOf('mel'), fila.indexOf('irma-do-magno') + 1), fila.join(' ')).toEqual([
+      'mel', 'renan', 'nati', 'ed', 'gui', 'clara', 'giovanna', 'magno', 'amigo-do-magno', 'irma-do-magno',
+    ]);
   });
-  it('os laços do Gui vão para a esquerda: primeiro quem não tem filhos, depois a Nati com o Renan', () => {
-    expect(em('mel'), fila.join(' ')).toBe(em('gui') - 1);
-    expect(em('ed')).toBeLessThan(em('mel'));
-    expect(em('nati')).toBeLessThan(em('ed'));
-    expect(em('renan')).toBe(em('nati') - 1);
-  });
-  it('os da Giovanna também vão para a esquerda, e os do Magno para a direita', () => {
-    expect(em('clara'), fila.join(' ')).toBeLessThan(em('gui'));
-    expect(em('amigo-do-magno')).toBeGreaterThan(em('irma-do-magno'));
+  it('o filho de um amigo não ganha linha própria até quem escolheu o amigo', () => {
+    expect(d.linhas.some((l) => l.tipo === 'coracao' && l.de.includes('otto'))).toBe(false);
+    expect(d.linhas.some((l) => l.tipo === 'coracao' && l.de.includes('nati'))).toBe(true);
   });
 });
-
