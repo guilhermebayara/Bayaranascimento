@@ -3,6 +3,8 @@
 import { env } from 'cloudflare:workers';
 import type { Casal, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
+import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
+import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
 import type { AcessoDaMemoria, Usuario } from './permissoes';
 
@@ -51,6 +53,10 @@ export interface Memoria extends AcessoDaMemoria {
   lugar: string | null;
   exemplo: boolean;
   fotos: Foto[];
+  /** capítulos reunidos em que foi colocada (os de época são calculados pela data) */
+  capitulos: string[];
+  /** ids de temas */
+  temas: string[];
   /** quantidade de relatos publicados */
   relatos: number;
 }
@@ -364,6 +370,9 @@ interface FiltroDeMemorias {
   nucleo?: string;
   /** só os rascunhos de quem pede */
   rascunhos?: boolean;
+  /** memórias colocadas em qualquer um destes capítulos reunidos */
+  capitulos?: string[];
+  tema?: string;
 }
 
 function lerMemoria(linha: Record<string, unknown>): Memoria {
@@ -384,6 +393,8 @@ function lerMemoria(linha: Record<string, unknown>): Memoria {
     nucleos: [],
     integrantes: [],
     fotos: [],
+    capitulos: [],
+    temas: [],
     relatos: 0,
   };
 }
@@ -392,7 +403,7 @@ async function completar(memorias: Memoria[]): Promise<Memoria[]> {
   if (memorias.length === 0) return memorias;
   const ids = JSON.stringify(memorias.map((m) => m.id));
   const dentro = `IN (SELECT value FROM json_each(?))`;
-  const [nucleos, integrantes, fotos, relatos] = await db().batch<Record<string, unknown>>([
+  const [nucleos, integrantes, fotos, relatos, capitulos, temas] = await db().batch<Record<string, unknown>>([
     db().prepare(`SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id ${dentro}`).bind(ids),
     db().prepare(`SELECT memoria_id, integrante_id FROM memoria_integrantes WHERE memoria_id ${dentro}`).bind(ids),
     db()
@@ -401,6 +412,13 @@ async function completar(memorias: Memoria[]): Promise<Memoria[]> {
     db()
       .prepare(`SELECT memoria_id, COUNT(*) AS n FROM relatos WHERE situacao = 'publicada' AND memoria_id ${dentro} GROUP BY memoria_id`)
       .bind(ids),
+    db()
+      .prepare(
+        `SELECT cm.memoria_id, cm.capitulo_id FROM capitulo_memorias cm JOIN capitulos c ON c.id = cm.capitulo_id
+         WHERE c.excluido_em IS NULL AND cm.memoria_id ${dentro}`,
+      )
+      .bind(ids),
+    db().prepare(`SELECT memoria_id, tema_id FROM tema_memorias WHERE memoria_id ${dentro}`).bind(ids),
   ]);
   const porId = new Map(memorias.map((m) => [m.id, m]));
   for (const n of nucleos.results) porId.get(n.memoria_id as string)?.nucleos.push(n.nucleo_id as string);
@@ -414,6 +432,8 @@ async function completar(memorias: Memoria[]): Promise<Memoria[]> {
       enviadaPor: f.enviada_por as string,
     });
   }
+  for (const c of capitulos.results) porId.get(c.memoria_id as string)?.capitulos.push(c.capitulo_id as string);
+  for (const t of temas.results) porId.get(t.memoria_id as string)?.temas.push(t.tema_id as string);
   for (const r of relatos.results) {
     const memoria = porId.get(r.memoria_id as string);
     if (memoria) memoria.relatos = r.n as number;
@@ -432,6 +452,14 @@ export async function listarMemorias(usuario: Usuario, filtro: FiltroDeMemorias 
   if (filtro.nucleo) {
     valores.push(filtro.nucleo);
     condicoes.push(`EXISTS (SELECT 1 FROM memoria_nucleos mn2 WHERE mn2.memoria_id = m.id AND mn2.nucleo_id = ?${valores.length})`);
+  }
+  if (filtro.capitulos) {
+    valores.push(JSON.stringify(filtro.capitulos));
+    condicoes.push(`EXISTS (SELECT 1 FROM capitulo_memorias cm WHERE cm.memoria_id = m.id AND cm.capitulo_id IN (SELECT value FROM json_each(?${valores.length})))`);
+  }
+  if (filtro.tema) {
+    valores.push(filtro.tema);
+    condicoes.push(`EXISTS (SELECT 1 FROM tema_memorias tm WHERE tm.memoria_id = m.id AND tm.tema_id = ?${valores.length})`);
   }
   const { results } = await db()
     .prepare(`SELECT m.* FROM memorias m WHERE ${condicoes.join(' AND ')} ORDER BY m.ano, COALESCE(m.mes, 0), COALESCE(m.dia, 0), m.criada_em`)
@@ -468,6 +496,10 @@ export interface DadosDaMemoria {
   situacao: 'rascunho' | 'publicada';
   nucleos: string[];
   integrantes: string[];
+  /** capítulos reunidos em que a memória entra. undefined deixa como está. */
+  capitulos?: string[];
+  /** ids de temas. undefined deixa como está. */
+  temas?: string[];
   /** fotos na ordem final: ids já enviados, com legenda e qual é a principal */
   fotos: { id: number; legenda?: string; principal: boolean }[];
 }
@@ -482,6 +514,14 @@ function comandosDeLigacao(id: string, dados: DadosDaMemoria): D1PreparedStateme
   }
   for (const i of dados.integrantes) {
     comandos.push(db().prepare('INSERT OR IGNORE INTO memoria_integrantes (memoria_id, integrante_id) VALUES (?, ?)').bind(id, i));
+  }
+  if (dados.capitulos) {
+    comandos.push(db().prepare('DELETE FROM capitulo_memorias WHERE memoria_id = ?').bind(id));
+    for (const c of dados.capitulos) comandos.push(db().prepare('INSERT OR IGNORE INTO capitulo_memorias (capitulo_id, memoria_id) VALUES (?, ?)').bind(c, id));
+  }
+  if (dados.temas) {
+    comandos.push(db().prepare('DELETE FROM tema_memorias WHERE memoria_id = ?').bind(id));
+    for (const t of dados.temas) comandos.push(db().prepare('INSERT OR IGNORE INTO tema_memorias (tema_id, memoria_id) VALUES (?, ?)').bind(t, id));
   }
   dados.fotos.forEach((foto, ordem) => {
     comandos.push(
@@ -520,6 +560,158 @@ export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria,
     ...fotosRemovidas.map((id) => db().prepare(`UPDATE fotos SET removida_em = datetime('now') WHERE id = ?`).bind(id)),
     ...comandosDeLigacao(anterior.id, dados),
   ]);
+}
+
+// --- Capítulos e temas ---
+
+export async function listarTemas(): Promise<Tema[]> {
+  const { results } = await db().prepare('SELECT id, nome FROM temas ORDER BY nome').all<Tema>();
+  return results;
+}
+
+/** Devolve os ids dos temas com esses nomes, criando os que ainda não existem. */
+export async function garantirTemas(nomes: string[], usuario: Usuario): Promise<string[]> {
+  if (nomes.length === 0) return [];
+  const existentes = await listarTemas();
+  const ids = new Set(existentes.map((t) => t.id));
+  const resultado: string[] = [];
+  for (const nome of nomes) {
+    const igual = existentes.find((t) => t.nome.toLowerCase() === nome.toLowerCase() || t.id === criarSlug(nome));
+    if (igual) {
+      resultado.push(igual.id);
+      continue;
+    }
+    const id = slugUnico(criarSlug(nome) || 'tema', ids);
+    await db().prepare('INSERT INTO temas (id, nome, criado_por) VALUES (?, ?, ?)').bind(id, nome, usuario.pessoa).run();
+    ids.add(id);
+    existentes.push({ id, nome });
+    resultado.push(id);
+  }
+  return [...new Set(resultado)];
+}
+
+function lerCapitulo(c: Record<string, unknown>): Capitulo {
+  const data = (ano: unknown, mes: unknown) => (ano ? { ano: ano as number, mes: (mes as number | null) ?? null } : null);
+  return {
+    id: c.id as string,
+    titulo: c.titulo as string,
+    abertura: (c.abertura as string | null) ?? null,
+    modo: c.modo as 'reunido' | 'epoca',
+    inicio: data(c.inicio_ano, c.inicio_mes),
+    fim: data(c.fim_ano, c.fim_mes),
+    dentroDe: (c.pai_id as string | null) ?? null,
+    visibilidade: c.visibilidade as 'todos' | 'nucleos',
+    nucleos: [],
+    criadoPor: c.criado_por as string,
+    temas: [],
+  };
+}
+
+async function lerCapitulos(condicao: string): Promise<Capitulo[]> {
+  const [capitulos, nucleos, temas] = await db().batch<Record<string, unknown>>([
+    db().prepare(`SELECT * FROM capitulos WHERE ${condicao} ORDER BY COALESCE(inicio_ano, 9999), titulo`),
+    db().prepare('SELECT capitulo_id, nucleo_id FROM capitulo_nucleos'),
+    db().prepare('SELECT capitulo_id, tema_id FROM tema_capitulos'),
+  ]);
+  const lista = capitulos.results.map(lerCapitulo);
+  const porId = new Map(lista.map((c) => [c.id, c]));
+  for (const n of nucleos.results) porId.get(n.capitulo_id as string)?.nucleos.push(n.nucleo_id as string);
+  for (const t of temas.results) porId.get(t.capitulo_id as string)?.temas.push(t.tema_id as string);
+  return lista;
+}
+
+/** Capítulos que o usuário pode ver. */
+export async function listarCapitulos(usuario: Usuario): Promise<Capitulo[]> {
+  return (await lerCapitulos('excluido_em IS NULL')).filter((c) => podeVerCapitulo(usuario, c));
+}
+
+export async function idsDeCapitulos(): Promise<Set<string>> {
+  const { results } = await db().prepare('SELECT id FROM capitulos').all<{ id: string }>();
+  return new Set(results.map((r) => r.id));
+}
+
+/** Quem criou as memórias colocadas no capítulo: essas pessoas também podem editá-lo. */
+export async function autoresDasMemoriasDoCapitulo(capituloId: string): Promise<string[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT DISTINCT m.criada_por FROM capitulo_memorias cm JOIN memorias m ON m.id = cm.memoria_id
+       WHERE cm.capitulo_id = ? AND m.excluida_em IS NULL AND m.situacao = 'publicada'`,
+    )
+    .bind(capituloId)
+    .all<{ criada_por: string }>();
+  return results.map((r) => r.criada_por);
+}
+
+export interface DadosDoCapitulo {
+  titulo: string;
+  abertura?: string;
+  modo: 'reunido' | 'epoca';
+  inicio?: { ano: number; mes?: number };
+  fim?: { ano: number; mes?: number };
+  dentroDe?: string;
+  visibilidade: 'todos' | 'nucleos';
+  nucleos: string[];
+  temas: string[];
+}
+
+export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario: Usuario, novo: boolean): Promise<void> {
+  const valores = [
+    dados.titulo,
+    dados.abertura ?? null,
+    dados.modo,
+    dados.modo === 'epoca' ? (dados.inicio?.ano ?? null) : null,
+    dados.modo === 'epoca' ? (dados.inicio?.mes ?? null) : null,
+    dados.modo === 'epoca' ? (dados.fim?.ano ?? null) : null,
+    dados.modo === 'epoca' ? (dados.fim?.mes ?? null) : null,
+    dados.dentroDe ?? null,
+    dados.visibilidade,
+  ];
+  const comandos: D1PreparedStatement[] = [
+    novo
+      ? db()
+          .prepare(
+            `INSERT INTO capitulos (titulo, abertura, modo, inicio_ano, inicio_mes, fim_ano, fim_mes, pai_id, visibilidade, id, criado_por)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(...valores, id, usuario.pessoa)
+      : db()
+          .prepare(
+            `UPDATE capitulos SET titulo = ?, abertura = ?, modo = ?, inicio_ano = ?, inicio_mes = ?, fim_ano = ?, fim_mes = ?,
+               pai_id = ?, visibilidade = ?, atualizado_em = datetime('now') WHERE id = ?`,
+          )
+          .bind(...valores, id),
+    db().prepare('DELETE FROM capitulo_nucleos WHERE capitulo_id = ?').bind(id),
+    db().prepare('DELETE FROM tema_capitulos WHERE capitulo_id = ?').bind(id),
+    ...dados.nucleos.map((n) => db().prepare('INSERT OR IGNORE INTO capitulo_nucleos (capitulo_id, nucleo_id) VALUES (?, ?)').bind(id, n)),
+    ...dados.temas.map((t) => db().prepare('INSERT OR IGNORE INTO tema_capitulos (tema_id, capitulo_id) VALUES (?, ?)').bind(t, id)),
+  ];
+  await db().batch(comandos);
+}
+
+export async function mudarMemoriasDoCapitulo(capituloId: string, colocar: string[], tirar: string[]): Promise<void> {
+  const comandos = [
+    ...colocar.map((m) => db().prepare('INSERT OR IGNORE INTO capitulo_memorias (capitulo_id, memoria_id) VALUES (?, ?)').bind(capituloId, m)),
+    ...tirar.map((m) => db().prepare('DELETE FROM capitulo_memorias WHERE capitulo_id = ? AND memoria_id = ?').bind(capituloId, m)),
+  ];
+  if (comandos.length) await db().batch(comandos);
+}
+
+/** Manda o capítulo para a lixeira. As memórias continuam onde estão; capítulos de dentro ficam soltos. */
+export async function excluirCapitulo(id: string, usuario: Usuario): Promise<void> {
+  await db().batch([
+    db().prepare('UPDATE capitulos SET pai_id = NULL WHERE pai_id = ?').bind(id),
+    db().prepare(`UPDATE capitulos SET excluido_em = datetime('now'), excluido_por = ? WHERE id = ?`).bind(usuario.pessoa, id),
+  ]);
+}
+
+export async function listarCapitulosExcluidos(usuario: Usuario): Promise<(Capitulo & { excluidoEm: string })[]> {
+  const { results } = await db().prepare('SELECT id, excluido_em FROM capitulos WHERE excluido_em IS NOT NULL').all<{ id: string; excluido_em: string }>();
+  const quando = new Map(results.map((r) => [r.id, r.excluido_em]));
+  return (await lerCapitulos('excluido_em IS NOT NULL')).filter((c) => podeVerCapitulo(usuario, c)).map((c) => ({ ...c, excluidoEm: quando.get(c.id) ?? '' }));
+}
+
+export async function restaurarCapitulo(id: string): Promise<void> {
+  await db().prepare('UPDATE capitulos SET excluido_em = NULL, excluido_por = NULL WHERE id = ?').bind(id).run();
 }
 
 // --- Lixeira e histórico ---

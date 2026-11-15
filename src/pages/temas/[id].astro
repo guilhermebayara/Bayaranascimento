@@ -1,0 +1,36 @@
+---
+import Base from '../../layouts/Base.astro';
+import LinhaDoTempo from '../../components/LinhaDoTempo.astro';
+import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemas } from '../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const tema = (await listarTemas()).find((t) => t.id === Astro.params.id);
+if (!tema) return new Response('Tema não encontrado', { status: 404 });
+const capitulos = (await listarCapitulos(usuario)).filter((c) => c.temas.includes(tema.id));
+const memorias = await listarMemorias(usuario, { tema: tema.id });
+---
+
+<Base titulo={tema.nome}>
+  <div class="abertura abertura--curta">
+    <p class="memoria__etiquetas"><span class="selo">Tema</span></p>
+    <h1>{tema.nome}</h1>
+    <p><a href="/capitulos">Todos os capítulos e temas</a></p>
+  </div>
+  {
+    capitulos.length > 0 && (
+      <section class="familia">
+        <h2>Capítulos</h2>
+        <ul class="lista-de-capitulos">
+          {capitulos.map((c) => (
+            <li>
+              <a href={`/capitulos/${c.id}`}>
+                <strong>{c.titulo}</strong>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+  <LinhaDoTempo memorias={memorias} integrantes={await listarIntegrantes()} nucleos={await listarNucleos()} vazio="Nenhuma memória com este tema por enquanto." />
+</Base>

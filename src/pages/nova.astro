@@ -4,7 +4,7 @@ import { TIPO_OUTRO, TIPO_PADRAO } from '../lib/tipos';
 import { MESES } from '../lib/datas';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { podeEditarMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
-import { listarIntegrantes, listarNucleos, obterMemoria, obterRelato } from '../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantes, listarNucleos, listarTemas, obterMemoria, obterRelato } from '../lib/servidor/repositorio';
 
 // Esta página serve para três coisas: registrar uma memória nova, continuar
 // um rascunho e corrigir uma memória já publicada (?id=...).
@@ -24,6 +24,9 @@ const nucleosDisponiveis = nucleos.filter((n) => usuario.nucleos.includes(n.id) 
 const nucleosMarcados = memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usuario.nucleos : []);
 // O relato só entra aqui enquanto a memória não foi publicada. Depois, cada um edita o seu na própria página.
 const meuRelato = memoria && !publicada ? await obterRelato(memoria.id, usuario.pessoa) : undefined;
+const capitulosReunidos = (await listarCapitulos(usuario)).filter((c) => c.modo === 'reunido');
+const todosOsTemas = await listarTemas();
+const temasDaMemoria = (memoria?.temas ?? []).map((id) => todosOsTemas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
 const anoAtual = new Date().getFullYear();
 // "Hoje" no horário de Brasília, para o limite do calendário
 const hojeIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -139,6 +142,40 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         <input type="text" name="lugar" maxlength="120" value={memoria?.lugar ?? ''} placeholder="Ex.: Belo Horizonte" />
       </label>
     </fieldset>
+    </section>
+
+    <section data-etapa="Capítulo e temas">
+      <fieldset>
+        <legend>Faz parte de algo maior?</legend>
+        <p class="dica">Opcional. Um capítulo junta memórias de um mesmo momento, como as várias festas de um casamento.</p>
+        {
+          capitulosReunidos.length > 0 && (
+            <div class="campo">
+              <span id="rotulo-capitulos">Capítulos</span>
+              <div class="opcoes" role="group" aria-labelledby="rotulo-capitulos">
+                {capitulosReunidos.map((c) => (
+                  <label class="opcao">
+                    <input type="checkbox" name="capitulos" value={c.id} checked={memoria?.capitulos.includes(c.id)} />
+                    <span>{c.titulo}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )
+        }
+        <p class="dica">
+          {capitulosReunidos.length === 0 ? 'Ainda não há capítulos. ' : 'Não achou? '}
+          Dá para <a href="/capitulos/novo" target="_blank" rel="noopener">criar um capítulo</a> e colocar esta memória nele depois.
+        </p>
+        <label class="campo">
+          <span>Temas</span>
+          <input type="text" name="temas" maxlength="500" autocomplete="off" list="lista-de-temas" value={temasDaMemoria} placeholder="Ex.: viagens, casas onde moramos" />
+          <span class="dica">Etiquetas livres, separadas por vírgula. Cada tema tem uma página que junta tudo o que o usa.</span>
+        </label>
+        <datalist id="lista-de-temas">
+          {todosOsTemas.map((t) => <option value={t.nome} />)}
+        </datalist>
+      </fieldset>
     </section>
 
     <section data-etapa="Fotos">
@@ -299,6 +336,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         ['Quando', quando],
         ['Quem', pessoas.join(', ') || 'ninguém marcado'],
         ['Onde', String(d.get('lugar') ?? '').trim() || 'não informado'],
+        ['Capítulo', [...form.querySelectorAll<HTMLInputElement>('input[name="capitulos"]:checked')].map((c) => c.nextElementSibling?.textContent ?? '').join(', ') || 'nenhum'],
         ['Fotos', fotos === 0 ? 'nenhuma' : fotos === 1 ? '1 foto' : `${fotos} fotos`],
       ];
       if (form.querySelector('[name="relato"]')) linhas.push(['Relato', String(d.get('relato') ?? '').trim() ? 'escrito' : 'em branco, dá para escrever depois']);
@@ -500,6 +538,8 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         pessoas: [...dados.getAll('pessoas').map(String), ...novas.map((_, i) => `nova:${i}`)],
         novasPessoas: novas,
         lugar: String(dados.get('lugar') ?? '').trim() || undefined,
+        capitulos: dados.getAll('capitulos').map(String),
+        temas: String(dados.get('temas') ?? ''),
         nucleos: dados.getAll('nucleos').map(String),
         visibilidade: dados.get('visibilidade') ?? 'todos',
         situacao,

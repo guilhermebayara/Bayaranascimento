@@ -1,0 +1,169 @@
+---
+// Formulário de capítulo, em etapas. Serve para criar e para editar.
+import { MESES } from '../lib/datas';
+import type { Capitulo } from '../lib/capitulos';
+import { listarCapitulos, listarNucleos, listarTemas } from '../lib/servidor/repositorio';
+
+interface Props {
+  capitulo?: Capitulo;
+}
+
+const { capitulo: c } = Astro.props;
+const { usuario } = Astro.locals;
+const todos = await listarCapitulos(usuario);
+const temFilhos = Boolean(c) && todos.some((x) => x.dentroDe === c!.id);
+// Só entra em outro quem não tem capítulos dentro, e só em capítulos que não estão dentro de ninguém
+const maiores = temFilhos ? [] : todos.filter((x) => x.id !== c?.id && !x.dentroDe);
+const nucleos = (await listarNucleos()).filter((n) => usuario.nucleos.includes(n.id) || c?.nucleos.includes(n.id));
+const temas = await listarTemas();
+const temasDoCapitulo = (c?.temas ?? []).map((id) => temas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
+const anoAtual = new Date().getFullYear();
+const modo = c?.modo ?? 'reunido';
+const datas = [
+  { prefixo: 'inicio', rotulo: 'Começou em', data: c?.inicio, obrigatorio: true },
+  { prefixo: 'fim', rotulo: 'Terminou em', data: c?.fim, obrigatorio: false },
+];
+---
+
+<form class="formulario" method="post" action="/api/capitulos" data-ficha-capitulo>
+  <input type="hidden" name="acao" value="salvar" />
+  {c && <input type="hidden" name="id" value={c.id} />}
+
+  <section data-etapa="O capítulo">
+    <fieldset>
+      <legend>O capítulo</legend>
+      <label class="campo">
+        <span>Título</span>
+        <input type="text" name="titulo" required maxlength="120" autocomplete="off" value={c?.titulo ?? ''} placeholder="Ex.: Casamento da Giovanna e do Lucas Magno" />
+      </label>
+      <div class="campo">
+        <span id="rotulo-modo">Como as memórias entram?</span>
+        <div class="abas" role="radiogroup" aria-labelledby="rotulo-modo" data-modo>
+          <label class="aba">
+            <input type="radio" name="modo" value="reunido" checked={modo === 'reunido'} />
+            <span>
+              <strong>Reunido</strong>
+              <small>Você escolhe as memórias. O período é calculado por elas. Ex.: um casamento, uma viagem.</small>
+            </span>
+          </label>
+          <label class="aba">
+            <input type="radio" name="modo" value="epoca" checked={modo === 'epoca'} />
+            <span>
+              <strong>De época</strong>
+              <small>Tem começo e fim, e tudo o que aconteceu no período entra sozinho. Ex.: a pandemia.</small>
+            </span>
+          </label>
+        </div>
+      </div>
+      <div data-so-epoca hidden={modo !== 'epoca'}>
+        {
+          datas.map((d) => (
+            <div class="campo">
+              <label for={`campo-${d.prefixo}`}>
+                {d.rotulo} {!d.obrigatorio && <small>(deixe vazio se ainda não acabou)</small>}
+              </label>
+              <div class="passo-ano" data-ano>
+                <button type="button" data-passo="-10" aria-label="Dez anos antes">−10</button>
+                <button type="button" data-passo="-1" aria-label="Um ano antes">−1</button>
+                <input id={`campo-${d.prefixo}`} type="number" name={`${d.prefixo}Ano`} inputmode="numeric" min="1800" max={anoAtual} value={d.data?.ano ?? ''} placeholder="Ano" data-obrigatorio-na-epoca={d.obrigatorio ? '' : undefined} />
+                <button type="button" data-passo="1" aria-label="Um ano depois">+1</button>
+                <button type="button" data-passo="10" aria-label="Dez anos depois">+10</button>
+                <select name={`${d.prefixo}Mes`} aria-label={`Mês em que ${d.rotulo.toLowerCase()}`}>
+                  <option value="">Mês, se souber</option>
+                  {MESES.map((m, n) => <option value={n + 1} selected={d.data?.mes === n + 1}>{m}</option>)}
+                </select>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+      <label class="campo">
+        <span>Texto de abertura <small>(opcional)</small></span>
+        <textarea name="abertura" rows="5" maxlength="5000" placeholder="Algumas linhas que apresentam esse momento para quem chegar.">{c?.abertura ?? ''}</textarea>
+      </label>
+    </fieldset>
+  </section>
+
+  <section data-etapa="Onde se encaixa">
+    <fieldset>
+      <legend>Onde se encaixa</legend>
+      <p class="dica">Tudo aqui é opcional.</p>
+      {
+        maiores.length > 0 && (
+          <label class="campo">
+            <span>Fica dentro de um capítulo maior?</span>
+            <select name="dentroDe">
+              <option value="">Não, é um capítulo solto</option>
+              {maiores.map((m) => <option value={m.id} selected={c?.dentroDe === m.id}>{m.titulo}</option>)}
+            </select>
+            <span class="dica">Ex.: o chá de panela dentro do casamento. São no máximo dois níveis.</span>
+          </label>
+        )
+      }
+      {temFilhos && <p class="dica">Este capítulo tem outros dentro dele, então não pode entrar em um maior.</p>}
+      <label class="campo">
+        <span>Temas</span>
+        <input type="text" name="temas" maxlength="500" autocomplete="off" list="temas-do-capitulo" value={temasDoCapitulo} placeholder="Ex.: relacionamentos, viagens" />
+        <span class="dica">Etiquetas livres, separadas por vírgula, para ligar capítulos e memórias que têm a ver.</span>
+      </label>
+      <datalist id="temas-do-capitulo">
+        {temas.map((t) => <option value={t.nome} />)}
+      </datalist>
+    </fieldset>
+  </section>
+
+  <section data-etapa="Quem vê">
+    <fieldset>
+      <legend>Quem pode ver?</legend>
+      <p class="dica">Vale para o título e o texto de abertura. Cada memória dentro do capítulo continua com a visibilidade dela.</p>
+      <label class="marcar">
+        <input type="radio" name="visibilidade" value="todos" checked={(c?.visibilidade ?? 'todos') === 'todos'} />
+        <span>Toda a família vê</span>
+      </label>
+      <label class="marcar">
+        <input type="radio" name="visibilidade" value="nucleos" checked={c?.visibilidade === 'nucleos'} />
+        <span>Só quem é dos núcleos marcados abaixo</span>
+      </label>
+      {
+        nucleos.length > 0 && (
+          <div class="opcoes" role="group" aria-label="Núcleos">
+            {nucleos.map((n) => (
+              <label class="opcao">
+                <input type="checkbox" name="nucleos" value={n.id} checked={c?.nucleos.includes(n.id)} />
+                <span>{n.nome}</span>
+              </label>
+            ))}
+          </div>
+        )
+      }
+    </fieldset>
+  </section>
+
+  <div class="acoes acoes--etapas">
+    <button type="button" class="botao botao--leve" data-etapa-voltar>Voltar</button>
+    <button type="button" class="botao" data-etapa-continuar>Continuar</button>
+    <button type="submit" class="botao" data-so-no-fim={c ? undefined : ''}>{c ? 'Salvar capítulo' : 'Criar capítulo'}</button>
+  </div>
+</form>
+
+<script>
+  import { ligarCamposDeAno, montarEtapas } from '../lib/cliente/etapas';
+
+  const form = document.querySelector<HTMLFormElement>('[data-ficha-capitulo]');
+  if (form) {
+    // As datas só existem para capítulos de época
+    const epoca = form.querySelector<HTMLElement>('[data-so-epoca]')!;
+    const aplicar = () => {
+      const ehEpoca = form.querySelector<HTMLInputElement>('input[name="modo"]:checked')?.value === 'epoca';
+      epoca.hidden = !ehEpoca;
+      for (const el of epoca.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) {
+        el.disabled = !ehEpoca;
+        if ('obrigatorioNaEpoca' in el.dataset) (el as HTMLInputElement).required = ehEpoca;
+      }
+    };
+    form.querySelector('[data-modo]')!.addEventListener('change', aplicar);
+    aplicar();
+    ligarCamposDeAno(form);
+    montarEtapas(form);
+  }
+</script>

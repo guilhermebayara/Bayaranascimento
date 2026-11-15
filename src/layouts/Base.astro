@@ -56,6 +56,7 @@ const recadoErro = Astro.url.searchParams.get('erro');
             </a>
           ))
         }
+        <a href="/capitulos" aria-current={caminho.startsWith('/capitulos') || caminho.startsWith('/temas') ? 'page' : undefined}>Capítulos</a>
         <a href="/arvore" aria-current={caminho === '/arvore' ? 'page' : undefined}>Árvore</a>
         <a href="/pessoas" aria-current={caminho.startsWith('/pessoas') ? 'page' : undefined}>Pessoas</a>
         <a href="/rascunhos" aria-current={caminho === '/rascunhos' ? 'page' : undefined}>Rascunhos</a>

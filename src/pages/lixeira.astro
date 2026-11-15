@@ -2,12 +2,13 @@
 import Base from '../layouts/Base.astro';
 import { formatarData, formatarMomento } from '../lib/datas';
 import { podeExcluirMemoria } from '../lib/servidor/permissoes';
-import { listarExcluidas, listarIntegrantes } from '../lib/servidor/repositorio';
+import { listarCapitulosExcluidos, listarExcluidas, listarIntegrantes } from '../lib/servidor/repositorio';
 
 // Cada pessoa vê na lixeira só o que poderia recuperar: admins, as memórias que
 // enxergavam; os demais, os próprios rascunhos descartados.
 const { usuario } = Astro.locals;
 const excluidas = (await listarExcluidas(usuario)).filter((m) => podeExcluirMemoria(usuario, m).ok);
+const capitulos = usuario.admin ? await listarCapitulosExcluidos(usuario) : [];
 const integrantes = await listarIntegrantes();
 const nome = (id: string | null) => {
   const i = integrantes.find((x) => x.id === id);
@@ -23,7 +24,7 @@ const nome = (id: string | null) => {
     </p>
   </div>
   {
-    excluidas.length === 0 ? (
+    excluidas.length + capitulos.length === 0 ? (
       <p class="vazio">A lixeira está vazia.</p>
     ) : (
       <ul class="linhas">
@@ -43,6 +44,20 @@ const nome = (id: string | null) => {
             <form method="post" action="/api/lixeira" class="em-linha">
               <input type="hidden" name="acao" value="restaurar-excluida" />
               <input type="hidden" name="memoria" value={m.id} />
+              <button class="botao botao--leve" type="submit">Recuperar</button>
+            </form>
+          </li>
+        ))}
+        {capitulos.map((c) => (
+          <li>
+            <div>
+              <strong>{c.titulo}</strong>
+              <span>capítulo</span>
+            </div>
+            <p class="dica">Excluído em {formatarMomento(c.excluidoEm)}. As memórias dele continuam no acervo.</p>
+            <form method="post" action="/api/capitulos" class="em-linha">
+              <input type="hidden" name="acao" value="restaurar" />
+              <input type="hidden" name="id" value={c.id} />
               <button class="botao botao--leve" type="submit">Recuperar</button>
             </form>
           </li>

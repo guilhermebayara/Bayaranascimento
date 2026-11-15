@@ -2,6 +2,7 @@
 // núcleos, visibilidade e, se houver, o relato de quem está registrando.
 import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
+import { lerTemas } from '../../lib/capitulos';
 import { TIPO_OUTRO } from '../../lib/tipos';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
@@ -11,6 +12,8 @@ import {
   atualizarMemoria,
   criarIntegrante,
   criarMemoria,
+  garantirTemas,
+  listarCapitulos,
   idsDeMemorias,
   listarIntegrantes,
   listarNucleos,
@@ -40,6 +43,9 @@ const Pedido = z.object({
   visibilidade: z.enum(['todos', 'nucleos']).default('todos'),
   situacao: z.enum(['rascunho', 'publicada']).default('publicada'),
   fotos: z.array(z.object({ id: z.number().int(), legenda: opcional(200), principal: z.boolean().default(false) })).max(30).default([]),
+  // capítulos reunidos em que a memória entra, e temas como texto livre separado por vírgulas
+  capitulos: z.array(z.string().max(120)).max(20).optional(),
+  temas: z.string().max(500).optional(),
   relato: z.object({ por: z.string().max(80), texto: z.string().max(20000) }).optional(),
 });
 
@@ -130,6 +136,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!decisao.ok) return erro(403, decisao.motivo);
   }
 
+  // Capítulos: só os reunidos que a pessoa vê. Os que ela não vê e já estavam continuam.
+  let capitulos: string[] | undefined;
+  if (pedido.capitulos) {
+    const visiveis = new Set((await listarCapitulos(usuario)).filter((c) => c.modo === 'reunido').map((c) => c.id));
+    if (pedido.capitulos.some((c) => !visiveis.has(c))) return erro(400, 'Um dos capítulos marcados não existe.');
+    const ocultos = (anterior?.capitulos ?? []).filter((c) => !visiveis.has(c));
+    capitulos = [...new Set([...pedido.capitulos, ...ocultos])];
+  }
+  const temas = pedido.temas === undefined ? undefined : await garantirTemas(lerTemas(pedido.temas), usuario);
+
   const dados: DadosDaMemoria = {
     titulo: pedido.titulo,
     ano: pedido.ano,
@@ -143,6 +159,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     situacao,
     nucleos,
     integrantes,
+    capitulos,
+    temas,
     fotos,
   };
 

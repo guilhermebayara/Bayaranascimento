@@ -1,0 +1,124 @@
+---
+import Base from '../../../layouts/Base.astro';
+import LinhaDoTempo from '../../../components/LinhaDoTempo.astro';
+import { dentroDoPeriodo, formatarPeriodo, periodoDasMemorias, sobreposicao, type Capitulo } from '../../../lib/capitulos';
+import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemas, type Memoria } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const capitulos = await listarCapitulos(usuario);
+const capitulo = capitulos.find((c) => c.id === Astro.params.id);
+// Capítulo que a pessoa não pode ver é como se não existisse
+if (!capitulo) return new Response('Capítulo não encontrado', { status: 404 });
+
+const todas = await listarMemorias(usuario);
+const dentro = capitulos.filter((c) => c.dentroDe === capitulo.id);
+// As memórias de um capítulo, só entre as que a pessoa pode ver
+const memoriasDe = (c: Capitulo, comFilhos = true): Memoria[] => {
+  if (c.modo === 'epoca') return c.inicio ? todas.filter((m) => dentroDoPeriodo(m, c.inicio!, c.fim)) : [];
+  const ids = new Set([c.id, ...(comFilhos ? capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id) : [])]);
+  return todas.filter((m) => m.capitulos.some((id) => ids.has(id)));
+};
+const periodoDe = (c: Capitulo) => (c.modo === 'epoca' ? (c.inicio ? { inicio: c.inicio, fim: c.fim } : null) : periodoDasMemorias(memoriasDe(c)));
+
+const memorias = memoriasDe(capitulo);
+const periodo = periodoDe(capitulo);
+const textoDoPeriodo = periodo ? formatarPeriodo(periodo.inicio, periodo.fim, capitulo.modo === 'epoca') : '';
+const maior = capitulo.dentroDe ? capitulos.find((c) => c.id === capitulo.dentroDe) : undefined;
+
+// Relações pelo tempo, sem ninguém marcar: o que aconteceu dentro deste período, e as épocas em que ele caiu
+const outros = capitulos.filter((c) => c.id !== capitulo.id && c.dentroDe !== capitulo.id && c.id !== capitulo.dentroDe);
+const cruzamentos = periodo
+  ? outros
+      .map((c) => ({ c, p: periodoDe(c) }))
+      .filter((x): x is { c: Capitulo; p: NonNullable<ReturnType<typeof periodoDe>> } => Boolean(x.p))
+  : [];
+const aconteceramAqui =
+  capitulo.modo === 'epoca'
+    ? cruzamentos.map((x) => ({ ...x, como: sobreposicao(x.p, periodo!) })).filter((x) => x.como !== 'nada')
+    : [];
+const epocas = cruzamentos.filter((x) => x.c.modo === 'epoca').map((x) => ({ ...x, como: sobreposicao(periodo!, x.p) })).filter((x) => x.como !== 'nada');
+
+const temas = (await listarTemas()).filter((t) => capitulo.temas.includes(t.id));
+const integrantes = await listarIntegrantes();
+const nucleos = await listarNucleos();
+const restritoA = capitulo.visibilidade === 'nucleos' ? capitulo.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean) : [];
+const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
+---
+
+<Base titulo={capitulo.titulo}>
+  <div class="abertura">
+    <p class="memoria__etiquetas">
+      <span class="selo">{capitulo.modo === 'epoca' ? 'Capítulo de época' : 'Capítulo'}</span>
+      {restritoA.length > 0 && <span class="selo">Só {restritoA.join(' e ')}</span>}
+    </p>
+    <h1>{capitulo.titulo}</h1>
+    <p>{[textoDoPeriodo, contar(memorias.length)].filter(Boolean).join(', ')}</p>
+    {maior && <p class="dica">Parte de <a href={`/capitulos/${maior.id}`}>{maior.titulo}</a></p>}
+    {capitulo.abertura && <div class="bio">{capitulo.abertura.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
+    {temas.length > 0 && (
+      <p class="dica">
+        Temas: {temas.map((t, i) => <>{i > 0 && ', '}<a href={`/temas/${t.id}`}>{t.nome}</a></>)}
+      </p>
+    )}
+    <p class="acoes">
+      <a class="botao botao--leve" href={`/capitulos/${capitulo.id}/editar`}>{capitulo.modo === 'reunido' ? 'Escolher memórias e editar' : 'Editar capítulo'}</a>
+    </p>
+  </div>
+
+  {
+    dentro.length > 0 && (
+      <section class="familia">
+        <h2>Capítulos dentro deste</h2>
+        <ul class="lista-de-capitulos">
+          {dentro.map((c) => {
+            const p = periodoDe(c);
+            return (
+              <li>
+                <a href={`/capitulos/${c.id}`}>
+                  <strong>{c.titulo}</strong>
+                  <span>{[p && formatarPeriodo(p.inicio, p.fim), contar(memoriasDe(c).length)].filter(Boolean).join(', ')}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    aconteceramAqui.length > 0 && (
+      <section class="familia">
+        <h2>Aconteceu neste período</h2>
+        <ul class="lista-de-capitulos">
+          {aconteceramAqui.map(({ c, p, como }) => (
+            <li>
+              <a href={`/capitulos/${c.id}`}>
+                <strong>{c.titulo}</strong>
+                <span>
+                  {formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca')}
+                  {como === 'parte' && ', em parte neste período'}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    epocas.length > 0 && (
+      <p class="dica">
+        Aconteceu durante: {epocas.map(({ c, como }, i) => <>{i > 0 && ', '}<a href={`/capitulos/${c.id}`}>{c.titulo}</a>{como === 'parte' && ' (em parte)'}</>)}
+      </p>
+    )
+  }
+
+  <LinhaDoTempo
+    memorias={memorias}
+    integrantes={integrantes}
+    nucleos={nucleos}
+    vazio={capitulo.modo === 'epoca' ? 'Nenhuma memória registrada neste período ainda.' : 'Este capítulo ainda não tem memórias. Use o botão acima para escolher.'}
+  />
+</Base>

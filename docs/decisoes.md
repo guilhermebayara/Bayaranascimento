@@ -90,12 +90,23 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 - **Tipo de laço** é escolhido em abas que dizem em uma frase o que cada uma é, e não em uma lista suspensa.
 - Lista de pessoas com mais de dez nomes ganha um campo para filtrar.
 
+## Capítulos e temas
+
+- Um capítulo reúne memórias em um momento maior e tem dois modos. **Reunido:** alguém escolhe as memórias, e o período vai da primeira à última. **De época:** tem início e fim (o fim pode ficar em aberto), e as memórias entram sozinhas pela data.
+- Um capítulo pode ficar dentro de outro, com no máximo dois níveis. A página do maior mostra as memórias dele e as dos capítulos de dentro.
+- As relações pelo tempo são calculadas: a página de uma época lista os capítulos que aconteceram nela (inteiros ou "em parte"), e a de um capítulo diz durante quais épocas ele aconteceu.
+- **Temas** são etiquetas livres para memórias e capítulos, digitadas separadas por vírgula. Cada tema tem uma página que junta tudo o que o usa.
+- O capítulo tem visibilidade própria (título e abertura). Cada memória mantém a dela: contagem, período e lista consideram só o que quem olha pode ver.
+- Uma memória entra em um capítulo reunido pelo formulário da memória ou pela página do capítulo, onde cada pessoa marca as memórias que pode corrigir.
+- Edita o capítulo quem criou e quem tem memórias nele. Excluir é com os admins e manda para a lixeira; as memórias continuam no acervo.
+- Ficou para depois: capítulo ligado a uma fase de casal ou a pessoas, recorte de época por núcleo ou pessoa, foto de capa escolhida e os capítulos como faixas na linha do tempo (depende do visual).
+
 ## Em aberto
 
 - Histórico de integrantes e laços no site (as versões já são guardadas) e apagar de vez o que está na lixeira
 - Foto de retrato do integrante, juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
 - Árvore: visão geral com zoom, recorte por núcleo e página do laço com linha do tempo
-- Laços do coração, capítulos, temas, círculo e avisos
+- Círculo e avisos
 - Fotos enviadas em um formulário abandonado ficam no bucket sem uso: falta uma limpeza periódica
 
 ## Ideias em discussão (ainda não decididas)
