@@ -117,6 +117,25 @@ describe('ordem pensada para uma árvore limpa', () => {
     }
     expect(cruzadas.length, cruzadas.join(', ')).toBeLessThanOrEqual(1);
   });
+  it('irmãos ficam lado a lado, e os laços do coração vão para o lado de fora', () => {
+    const geracaoDoGui = pessoas.find((x) => x.id === 'gui')!.geracao;
+    const comAmigos = desenharArvore(
+      [
+        ...pessoas.filter((x) => !['caio', 'marta'].includes(x.id)).map((x) => ({ ...x, lado: lado[x.id] })),
+        { id: 'mae-do-amigo', geracao: geracaoDoGui - 1 },
+        { id: 'amigo', geracao: geracaoDoGui },
+        { id: 'par-do-amigo', geracao: geracaoDoGui },
+      ],
+      [...casais, { a: 'amigo', b: 'par-do-amigo', ex: false }],
+      [...filiacoes, { filho: 'amigo', responsavel: 'mae-do-amigo', consideracao: false }],
+      [{ dono: 'gui', pessoa: 'amigo' }],
+    );
+    // A ordem da geração do Gui, da esquerda para a direita
+    const yDoGui = comAmigos.pessoas.find((x) => x.id === 'gui')!.y;
+    const fila = comAmigos.pessoas.filter((x) => x.y === yDoGui).sort((x, z) => x.x - z.x).map((x) => x.id);
+    expect(fila.indexOf('giovanna') - fila.indexOf('gui'), fila.join(' ')).toBe(1);
+    expect(fila.indexOf('gui') - fila.indexOf('amigo'), fila.join(' ')).toBe(1);
+  });
   it('sem o meio-irmão, nenhuma linha se cruza', () => {
     const semCaio = desenharArvore(
       pessoas.filter((x) => !['caio', 'marta'].includes(x.id)).map((x) => ({ ...x, lado: lado[x.id] })),

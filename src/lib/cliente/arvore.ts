@@ -20,6 +20,8 @@ interface Estado {
   ex: boolean;
   bichos: boolean;
   outros: boolean;
+  /** de quem são os laços do coração abertos na árvore. Por padrão, só os de quem está olhando. */
+  abertos: Set<string>;
 }
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -53,11 +55,13 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     ex: ligada('ex'),
     bichos: ligada('bichos'),
     outros: ligada('outros'),
+    abertos: new Set(url.searchParams.has('coracao') ? url.searchParams.get('coracao')!.split(',').filter((id) => pessoa.has(id)) : [dados.eu]),
   };
   // Onde o mapa está: deslocamento e zoom
   const vista = { x: 0, y: 0, zoom: 1 };
   let desenho: Desenho | undefined;
   const nos = new Map<string, HTMLAnchorElement>();
+  const botoesDoCoracao = new Map<string, HTMLButtonElement>();
   const svg = document.createElementNS(SVG, 'svg');
   svg.setAttribute('class', 'mapa__linhas');
   svg.setAttribute('aria-hidden', 'true');
@@ -78,6 +82,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     if (estado.foco !== dados.eu) q.set('foco', estado.foco);
     if (estado.nucleo) q.set('nucleo', estado.nucleo);
     for (const nome of CHAVES) if (!estado[nome]) q.set(nome, '0');
+    const abertos = [...estado.abertos].sort();
+    if (abertos.join() !== dados.eu) q.set('coracao', abertos.join(','));
     history.replaceState(null, '', q.size ? `?${q}` : location.pathname);
   };
 
@@ -130,10 +136,39 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     const dentro = (...ids: string[]) => ids.every((id) => visiveis.has(id));
     const filiacoes = dados.filiacoes.filter((f) => dentro(f.filho, f.responsavel) && (estado.consideracao || !f.consideracao));
     const casais = dados.casais.filter((c) => dentro(c.a, c.b) && (estado.ex || !c.ex));
-    const coracao = estado.consideracao ? dados.coracao.filter((l) => dentro(l.dono, l.pessoa)) : [];
+    const todosDoCoracao = estado.consideracao ? dados.coracao.filter((l) => dentro(l.dono, l.pessoa)) : [];
+
+    // 1b. Laços do coração: só aparecem os de quem está com eles abertos. A família de uma amiga,
+    // que só se liga à árvore por um laço fechado, fica guardada até alguém abrir.
+    const grupoDe = new Map([...visiveis].map((id) => [id, id]));
+    const raiz = (id: string): string => (grupoDe.get(id) === id ? id : raiz(grupoDe.get(id)!));
+    const unir = (a: string, b: string) => grupoDe.set(raiz(a), raiz(b));
+    for (const f of filiacoes) unir(f.filho, f.responsavel);
+    for (const c of casais) unir(c.a, c.b);
+    const ancoras = [dados.eu, estado.foco].filter((id) => visiveis.has(id));
+    if (ancoras.length) {
+      const tocados = new Set(dados.coracao.flatMap((l) => [l.dono, l.pessoa]).filter((id) => visiveis.has(id)).map(raiz));
+      const mostrados = new Set(ancoras.map(raiz));
+      // Quem não tem laço do coração nenhum continua como antes
+      for (const id of visiveis) if (!tocados.has(raiz(id))) mostrados.add(raiz(id));
+      for (let mudou = true; mudou; ) {
+        mudou = false;
+        for (const l of todosDoCoracao) {
+          if (!estado.abertos.has(l.dono) || !mostrados.has(raiz(l.dono)) || mostrados.has(raiz(l.pessoa))) continue;
+          mostrados.add(raiz(l.pessoa));
+          mudou = true;
+        }
+      }
+      for (const id of [...visiveis]) if (!mostrados.has(raiz(id))) visiveis.delete(id);
+    }
+    const coracao = todosDoCoracao.filter((l) => estado.abertos.has(l.dono) && dentro(l.dono, l.pessoa));
+    const filiacoesVisiveis = filiacoes.filter((f) => dentro(f.filho, f.responsavel));
+    const casaisVisiveis = casais.filter((c) => dentro(c.a, c.b));
+    const lacosDe = new Map<string, number>();
+    for (const l of todosDoCoracao) if (visiveis.has(l.dono)) lacosDe.set(l.dono, (lacosDe.get(l.dono) ?? 0) + 1);
 
     // 2. Gerações. Famílias de amigos se encaixam pelos laços do coração.
-    const geracoes = alinharPeloCoracao(calcularGeracoes([...visiveis], filiacoes, casais), filiacoes, casais, coracao, dados.eu);
+    const geracoes = alinharPeloCoracao(calcularGeracoes([...visiveis], filiacoesVisiveis, casaisVisiveis), filiacoesVisiveis, casaisVisiveis, coracao, dados.eu);
     // Quem só está na árvore por um "como se fosse" entra na geração que o papel indica
     const agregados = coracao.filter((l) => l.papel && geracoes.has(l.dono) && !geracoes.has(l.pessoa));
     for (const l of agregados) if (!geracoes.has(l.pessoa)) geracoes.set(l.pessoa, geracoes.get(l.dono)! + DESLOCAMENTO_DO_PAPEL[l.papel!]);
@@ -141,7 +176,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
 
     // Na ordem da lista (que vem ordenada do servidor), para o desenho ser estável
     const naArvore = dados.pessoas.filter((p) => geracoes.has(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id) }));
-    desenho = desenharArvore(naArvore, casais, filiacoes, ligados);
+    desenho = desenharArvore(naArvore, casaisVisiveis, filiacoesVisiveis, ligados);
 
     // 3. Linhas: redesenhadas a cada vez, surgindo aos poucos
     svg.setAttribute('width', String(desenho.largura));
@@ -188,6 +223,36 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       if (presentes.has(id)) continue;
       no.remove();
       nos.delete(id);
+    }
+
+    // 4b. Em quem tem laços do coração, um botão para abrir e fechar
+    const comBotao = new Set<string>();
+    for (const lugar of desenho.pessoas) {
+      const quantos = lacosDe.get(lugar.id);
+      if (!quantos) continue;
+      comBotao.add(lugar.id);
+      let botao = botoesDoCoracao.get(lugar.id);
+      if (!botao) {
+        botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'no__coracao';
+        botao.dataset.coracaoDe = lugar.id;
+        botoesDoCoracao.set(lugar.id, botao);
+        camada.append(botao);
+      }
+      const aberto = estado.abertos.has(lugar.id);
+      const de = lugar.id === dados.eu ? 'seus laços' : `os laços de ${pessoa.get(lugar.id)!.nome}`;
+      botao.textContent = `♥ ${quantos}`;
+      botao.setAttribute('aria-pressed', String(aberto));
+      botao.title = `${aberto ? 'Recolher' : 'Mostrar'} ${de} do coração (${quantos})`;
+      botao.setAttribute('aria-label', botao.title);
+      botao.classList.toggle('no__coracao--apagado', Boolean(estado.nucleo) && !noNucleo(lugar.id));
+      botao.style.transform = `translate(${lugar.x + MEDIDAS.largura - 30}px, ${lugar.y - 13}px)`;
+    }
+    for (const [id, botao] of botoesDoCoracao) {
+      if (comBotao.has(id)) continue;
+      botao.remove();
+      botoesDoCoracao.delete(id);
     }
 
     // 5. Quem ficou de fora por não ter laços
@@ -306,6 +371,16 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   // Tocar em alguém põe essa pessoa em foco. O segundo toque abre a página dela.
   camada.addEventListener('click', (evento) => {
     if (Date.now() - fimDoArrasto < 300) return evento.preventDefault();
+    const botao = (evento.target as HTMLElement).closest<HTMLButtonElement>('button.no__coracao');
+    if (botao) {
+      // Abre ou recolhe os laços do coração dessa pessoa
+      const dono = botao.dataset.coracaoDe!;
+      if (!estado.abertos.delete(dono)) estado.abertos.add(dono);
+      guardarNoEndereco();
+      desenhar();
+      centralizar(dono);
+      return;
+    }
     const no = (evento.target as HTMLElement).closest<HTMLAnchorElement>('a.no');
     if (!no || no.dataset.id === estado.foco) return;
     evento.preventDefault();

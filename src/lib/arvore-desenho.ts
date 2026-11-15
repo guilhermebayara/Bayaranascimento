@@ -164,7 +164,7 @@ export function desenharArvore(
   // --- 1b. Melhora a ordem: menos cruzamentos, ligações mais curtas, cada núcleo do seu lado ---
   const ladoDe = new Map(pessoas.filter((p) => p.lado !== undefined).map((p) => [p.id, p.lado!]));
   const linhasDeBlocos = linhasDePessoas.map((linha) => blocosDaLinha.get(linha)!.map((b) => [...b]));
-  otimizarOrdem(linhasDeBlocos, [...paisDe].flatMap(([filho, pais]) => pais.map((pai) => [pai, filho] as [string, string])), coracao.map((l) => [l.dono, l.pessoa] as [string, string]), ladoDe);
+  otimizarOrdem(linhasDeBlocos, [...paisDe].flatMap(([filho, pais]) => pais.map((pai) => [pai, filho] as [string, string])), coracao.map((l) => [l.dono, l.pessoa] as [string, string]), ladoDe, raizDe);
   linhasDePessoas.length = 0;
   blocosDaLinha.clear();
   for (const blocos of linhasDeBlocos) {
@@ -337,16 +337,27 @@ function empilhar<T>(mapa: Map<string, T[]>, chave: string, valor: T): void {
 }
 
 /**
- * Procura uma ordem melhor para os blocos de cada geração. O custo junta três coisas:
- * linhas de pais e filhos que se cruzam, o comprimento das ligações, e a distância de
- * cada pessoa do lado para onde o núcleo dela puxa. A busca move um bloco por vez, ou
+ * Procura uma ordem melhor para os blocos de cada geração. O custo junta: linhas de pais
+ * e filhos que se cruzam, o comprimento das ligações, irmãos lado a lado, laços do coração
+ * perto e do lado de fora, e a distância de cada pessoa do lado para onde o núcleo dela puxa. A busca move um bloco por vez, ou
  * inverte um casal, reorganiza as gerações de baixo de acordo, e fica com a mudança
  * sempre que o custo cai.
  */
-function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], coracao: [string, string][], lado: Map<string, number>): void {
+function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], coracao: [string, string][], lado: Map<string, number>, familiaDe: (id: string) => string = (id) => id): void {
   const maiorLinha = Math.max(...linhas.map((l) => l.flat().length), 1);
   const paisDe = new Map<string, string[]>();
-  for (const [pai, filho] of filiacoes) empilhar(paisDe, filho, pai);
+  const filhosDe = new Map<string, string[]>();
+  for (const [pai, filho] of filiacoes) {
+    empilhar(paisDe, filho, pai);
+    empilhar(filhosDe, pai, filho);
+  }
+
+  // Irmãos de pai e mãe: mesmos responsáveis
+  const porPais = new Map<string, string[]>();
+  for (const [filho, pais] of paisDe) empilhar(porPais, [...pais].sort().join('+'), filho);
+  const gruposDeIrmaos = [...porPais.values()].filter((g) => g.length > 1);
+  const irmaosDe = new Map<string, string[]>();
+  for (const grupo of gruposDeIrmaos) for (const id of grupo) irmaosDe.set(id, grupo.filter((i) => i !== id));
 
   const posicoes = (estado: string[][][]) => {
     const pos = new Map<string, number>();
@@ -373,7 +384,27 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
     }
     let total = 0;
     for (const l of ligacoes) total += Math.abs(l.de - l.para);
-    for (const [a, b] of coracao) if (pos.has(a) && pos.has(b)) total += 0.6 * Math.abs(pos.get(a)! - pos.get(b)!);
+    // Laços do coração: quem foi escolhido fica perto de quem escolheu, e do lado de fora,
+    // isto é, do lado oposto ao dos irmãos. Assim irmãos continuam lado a lado.
+    for (const [a, b] of coracao) {
+      if (!pos.has(a) || !pos.has(b)) continue;
+      const distancia = pos.get(b)! - pos.get(a)!;
+      total += 2.5 * Math.abs(distancia);
+      const irmaos = (irmaosDe.get(a) ?? []).filter((i) => pos.has(i) && nivel.get(i) === nivel.get(a));
+      if (irmaos.length && distancia * (media(irmaos.map((i) => pos.get(i)!)) - pos.get(a)!) > 0) total += 6;
+    }
+    // Irmãos de pai e mãe ficam lado a lado: cada pessoa de fora entre dois deles pesa
+    for (const grupo of gruposDeIrmaos) {
+      const presentes = grupo.filter((i) => pos.has(i)).sort((x, y) => pos.get(x)! - pos.get(y)!);
+      for (let i = 1; i < presentes.length; i++) {
+        if (nivel.get(presentes[i]) !== nivel.get(presentes[i - 1])) continue;
+        const entre = estado[nivel.get(presentes[i])!].filter((bloco) => {
+          const p0 = pos.get(bloco[0])!;
+          return p0 > pos.get(presentes[i - 1])! && p0 < pos.get(presentes[i])! && !bloco.some((id) => grupo.includes(id));
+        });
+        total += 3 * entre.reduce((soma, bloco) => soma + bloco.length, 0);
+      }
+    }
     for (let i = 0; i < ligacoes.length; i++) {
       for (let j = i + 1; j < ligacoes.length; j++) {
         const [a, b] = [ligacoes[i], ligacoes[j]];
@@ -401,6 +432,31 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
     }
   };
 
+  // Quando um bloco muda de lugar, os pais que só têm filhos nele vão junto: cada bloco de pais
+  // é recolocado onde o custo fica menor. É o que deixa a família de um amigo andar inteira.
+  const puxarPais = (estado: string[][][], n: number, ids: string[]) => {
+    if (n === 0) return;
+    const pais = new Set(ids.flatMap((id) => paisDe.get(id) ?? []));
+    const blocosDePais = estado[n - 1].filter((bloco) => bloco.some((id) => pais.has(id)));
+    for (const bloco of blocosDePais) {
+      // Só quem não tem filhos em outro bloco: pais com mais filhos seguram o lugar
+      const outrosFilhos = bloco.flatMap((id) => filhosDe.get(id) ?? []).some((f) => !ids.includes(f));
+      if (outrosFilhos) continue;
+      const linha = estado[n - 1];
+      linha.splice(linha.indexOf(bloco), 1);
+      let melhorLugar = 0;
+      let menor = Infinity;
+      for (let j = 0; j <= linha.length; j++) {
+        linha.splice(j, 0, bloco);
+        const c = custo(estado);
+        if (c < menor) [menor, melhorLugar] = [c, j];
+        linha.splice(j, 1);
+      }
+      linha.splice(melhorLugar, 0, bloco);
+      puxarPais(estado, n - 1, bloco);
+    }
+  };
+
   const copiar = (estado: string[][][]) => estado.map((l) => l.map((b) => [...b]));
   let melhor = copiar(linhas);
   let melhorCusto = custo(melhor);
@@ -415,6 +471,14 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
             const estado = copiar(melhor);
             mudar(estado);
             if (reorganiza) reorganizarAbaixo(estado, n);
+            candidatos.push(estado);
+          }
+          // Terceira tentativa: os pais acompanham
+          const ids = melhor[n][i];
+          if (n > 0 && ids.some((id) => paisDe.has(id))) {
+            const estado = copiar(melhor);
+            mudar(estado);
+            puxarPais(estado, n, ids);
             candidatos.push(estado);
           }
         };
@@ -437,6 +501,43 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
       }
     }
     if (!melhorou) break;
+  }
+
+  // Por fim, quem veio de outra família por um laço do coração fica encostado em quem o escolheu,
+  // do lado de fora: o lado oposto ao dos irmãos. Vários laços da mesma pessoa se enfileiram.
+  const { nivel } = posicoes(melhor);
+  // Duas passadas: na segunda, cada um já saiu do caminho dos outros
+  for (const [dono, escolhido] of [...coracao, ...coracao]) {
+    const n = nivel.get(dono);
+    if (n === undefined || nivel.get(escolhido) !== n || familiaDe(dono) === familiaDe(escolhido)) continue;
+    const linha = melhor[n];
+    const blocoDe = (id: string) => linha.find((b) => b.includes(id))!;
+    const doDono = blocoDe(dono);
+    const doEscolhido = blocoDe(escolhido);
+    if (doDono === doEscolhido) continue;
+    const ordem = linha.flat();
+    const irmaos = (irmaosDe.get(dono) ?? []).filter((i) => nivel.get(i) === n);
+    const pares = doDono.filter((id) => id !== dono);
+    const referencia = irmaos.length ? irmaos : pares;
+    // Sem irmãos nem par na linha, fica do lado em que já está
+    const paraADireita = referencia.length
+      ? media(referencia.map((i) => ordem.indexOf(i))) < ordem.indexOf(dono)
+      : ordem.indexOf(escolhido) > ordem.indexOf(dono);
+    linha.splice(linha.indexOf(doEscolhido), 1);
+    // Pula os blocos de outros escolhidos da mesma pessoa que já estão encostados
+    // Pula também os meios-irmãos: passar entre eles e os pais cruzaria as linhas da família
+    const paisDoDono = paisDe.get(dono) ?? [];
+    const jaEncostado = (bloco: string[] | undefined) =>
+      Boolean(bloco) &&
+      (coracao.some(([d, e]) => d === dono && e !== escolhido && bloco!.includes(e)) ||
+        bloco!.some((id) => (paisDe.get(id) ?? []).some((pai) => paisDoDono.includes(pai))));
+    let lugar = linha.indexOf(doDono) + (paraADireita ? 1 : 0);
+    while (jaEncostado(linha[paraADireita ? lugar : lugar - 1])) lugar += paraADireita ? 1 : -1;
+    // Dentro do bloco, o escolhido fica na ponta mais próxima de quem o escolheu
+    if (doEscolhido.length > 1 && (paraADireita ? doEscolhido.indexOf(escolhido) > 0 : doEscolhido.indexOf(escolhido) < doEscolhido.length - 1)) doEscolhido.reverse();
+    linha.splice(lugar, 0, doEscolhido);
+    puxarPais(melhor, n, doEscolhido);
+    if (doEscolhido.some((id) => filhosDe.has(id))) reorganizarAbaixo(melhor, n);
   }
   linhas.splice(0, linhas.length, ...melhor);
 }

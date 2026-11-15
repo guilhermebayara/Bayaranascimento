@@ -1746,6 +1746,56 @@ p {
   opacity: 0.8;
 }
 
+/* Botão no canto de quem tem laços do coração: abre e recolhe esses laços */
+.no__coracao {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  min-width: 2.75rem;
+  height: 1.75rem;
+  padding: 0 0.55rem;
+  font-family: var(--titulo);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tinta);
+  background: var(--branco);
+  border: 1.5px dashed var(--tinta);
+  border-radius: 999px;
+  cursor: pointer;
+  animation: surgir 0.4s ease-out;
+}
+
+/* área de toque maior que o desenho */
+.no__coracao::after {
+  content: '';
+  position: absolute;
+  inset: -0.5rem;
+}
+
+.no__coracao[aria-pressed='true'] {
+  color: var(--branco);
+  background: var(--tinta);
+  border-style: solid;
+}
+
+.no__coracao:hover {
+  background: var(--papel-fundo);
+}
+
+.no__coracao[aria-pressed='true']:hover {
+  background: var(--tinta-suave);
+}
+
+.no__coracao--apagado {
+  opacity: 0.35;
+}
+
+.mapa__camada--viva .no__coracao {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 /* O que fica por cima do mapa: painel de ajustes, ficha do foco, zoom e legenda */
 
 .mapa__painel,
@@ -1926,6 +1976,18 @@ p {
   border-top: 1.5px dashed var(--tinta-suave);
 }
 
+.amostra-botao {
+  display: inline-block;
+  margin-right: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  font-family: var(--titulo);
+  font-size: 0.75rem;
+  color: var(--tinta);
+  background: var(--branco);
+  border: 1.5px dashed var(--tinta);
+  border-radius: 999px;
+}
+
 .arvore__rodape {
   margin: 0.75rem 0 0;
   display: flex;
@@ -1961,12 +2023,14 @@ p {
 
 @media (prefers-reduced-motion: reduce) {
   .mapa__camada--animada,
-  .mapa__camada--viva .no {
+  .mapa__camada--viva .no,
+  .mapa__camada--viva .no__coracao {
     transition: none;
   }
 
   .mapa__linhas,
-  .no {
+  .no,
+  .no__coracao {
     animation: none;
   }
 }
