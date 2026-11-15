@@ -5,7 +5,7 @@
 // na tabela _migracoes. Para mudar a estrutura, acrescente um item no fim da
 // lista: nunca edite uma migração que já foi publicada.
 import { env } from 'cloudflare:workers';
-import { semearExemplos } from './semente';
+import { semearExemplos, semearParentesDeExemplo } from './semente';
 
 interface Migracao {
   id: string;
@@ -346,5 +346,8 @@ async function migrar(): Promise<void> {
   }
 
   // Memórias de exemplo só existem fora da produção
-  if (env.AMBIENTE !== 'producao') await semearExemplos(db);
+  if (env.AMBIENTE !== 'producao') {
+    await semearExemplos(db);
+    await semearParentesDeExemplo(db);
+  }
 }

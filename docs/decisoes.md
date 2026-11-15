@@ -65,10 +65,13 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 - Quem mexe em laços de árvore: os envolvidos, quem divide um núcleo com algum deles e os admins.
 - Os laços entram por um formulário só, "Adicionar laço": um seletor escolhe o tipo (filho de, pai de, casal, do coração) e mostra os campos daquele tipo. A outra pessoa pode ser da lista ou um nome novo, cadastrado na hora.
 - **Laços do coração** (primeira versão): nome livre, "como se fosse" opcional (dá lugar na árvore de quem escolheu), proximidade que só o dono vê e a opção "só eu vejo". O laço é sempre de quem está logado. Ainda faltam o período do laço, o círculo e esconder do acervo a pessoa que só aparece em laços privados.
-- A árvore (`/arvore`) tem duas visões. **Centrada:** uma pessoa no meio, com avós, pais, irmãos (e os casais deles), casal, filhos e netos; abre em quem está logado. **Geral:** todo mundo que tem laço, em linhas por geração, com casais lado a lado e recorte pela família inteira ou por um núcleo.
-- Na visão geral, o casamento alinha as duas famílias na mesma geração, e as gerações são nomeadas a partir de quem olha ("Avós", "Sua geração").
-- Laços do coração com "como se fosse" aparecem ligados a quem escolheu: na árvore centrada nessa pessoa e, na visão geral, na geração que o papel indica. Para o dono, "seu amigo-irmão"; para os demais, "amigo-irmão de Gui".
-- Camadas que ligam e desligam nas duas visões: consideração e coração, ex-casais e bichos.
+- A árvore (`/arvore`) é uma só: a família inteira, com todas as ligações desenhadas. Linha grossa liga o casal (pontilhada quando não está mais junto), uma linha desce dos pais e se abre para os irmãos, e tracejado marca consideração e coração.
+- Os controles não trocam de tela: mudam o destaque e o que aparece, na hora. **Partir de** põe uma pessoa em foco e centraliza a árvore nela. **Destacar** um núcleo deixa os outros mais apagados, ainda ligados; desligar "Outros núcleos" esconde quem é de fora. As camadas ligam e desligam consideração e coração, ex-casais e bichos.
+- Tocar em alguém põe a pessoa em foco. Tocar de novo abre a página dela. O estado fica no endereço, então dá para mandar o link de uma visão.
+- O desenho é calculado no navegador (`src/lib/arvore-desenho.ts`): gerações em linhas, casais lado a lado como um bloco, filhos sob os pais. O casamento alinha as duas famílias na mesma geração.
+- Laços do coração com "como se fosse" entram na geração que o papel indica, e a família de uma amiga fica perto de quem a escolheu. Para o dono, "seu amigo-irmão"; para os demais, "amigo-irmão de Gui".
+- Só chega ao navegador o que a pessoa pode ver: casais e laços privados de outras pessoas ficam no servidor.
+- Fora da produção, o banco de teste ganha parentes inventados (ids começando com `ex-`) para a árvore ter mais cenários.
 - Sem "como se referir" informado, o parentesco sai nas duas formas: "seu tio ou sua tia".
 
 ## Lixeira e histórico

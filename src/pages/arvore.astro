@@ -1,403 +1,117 @@
 ---
-// Árvore centrada em uma pessoa: avós e pais acima, irmãos e casal ao lado,
-// filhos abaixo. Tocar em alguém recentra a árvore nessa pessoa.
+// A árvore da família inteira, com todas as ligações. Os controles mudam o que
+// está em destaque e o que aparece, na hora, sem recarregar:
+// - foco: a pessoa de quem se parte (a árvore se centraliza nela);
+// - núcleo: destaca um núcleo e deixa os outros mais apagados, ou escondidos;
+// - camadas: consideração e coração, ex-casais, bichos.
 import Base from '../layouts/Base.astro';
 import { anosDeVida } from '../lib/datas';
-import {
-  DESLOCAMENTO_DO_PAPEL,
-  FASES,
-  Familia,
-  LINHA_DO_PAPEL,
-  alinharPeloCoracao,
-  calcularGeracoes,
-  estaoJuntos,
-  lacoParaODono,
-  nomeDaGeracao,
-  possessivo,
-  type LacoDoCoracao,
-  type Tratamento,
-} from '../lib/parentesco';
+import { Familia, estaoJuntos, lacoParaODono, possessivo, type Tratamento } from '../lib/parentesco';
+import type { DadosDaArvore } from '../lib/cliente/arvore';
 import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarNucleos } from '../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
 const achar = (id: string) => integrantes.find((i) => i.id === id);
-const centro = achar(Astro.url.searchParams.get('centro') ?? '') ?? achar(usuario.pessoa);
-if (!centro) return new Response('Pessoa não encontrada', { status: 404 });
-
 const chamar = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
-
-// Camadas: todas ligadas, a não ser que o formulário de camadas tenha sido usado
-const escolheu = Astro.url.searchParams.has('camadas');
-const ligadas = new Set(Astro.url.searchParams.getAll('mostrar'));
-const camadas = {
-  consideracao: !escolheu || ligadas.has('consideracao'),
-  ex: !escolheu || ligadas.has('ex'),
-  bichos: !escolheu || ligadas.has('bichos'),
-};
-// Duas visões: centrada em uma pessoa, ou a família inteira em gerações (com recorte por núcleo)
-const geral = Astro.url.searchParams.get('visao') === 'geral';
 const nucleos = await listarNucleos();
-const nucleo = nucleos.find((n) => n.id === Astro.url.searchParams.get('nucleo'));
-const parametros = new URLSearchParams();
-if (escolheu) {
-  parametros.set('camadas', '1');
-  for (const [nome, ligada] of Object.entries(camadas)) if (ligada) parametros.append('mostrar', nome);
-}
-const link = (id: string) => {
-  const p = new URLSearchParams(parametros);
-  p.set('centro', id);
-  return `/arvore?${p}`;
-};
-
 const filiacoes = await listarFiliacoes();
+// Só chega ao navegador o que a pessoa pode ver: casais e laços privados de outros ficam no servidor
 const casais = await listarCasais(usuario);
+const lacos = await listarLacosDoCoracao(usuario);
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
-// A árvore desenhada respeita as camadas. Os nomes de parentesco usam a família inteira.
-const familia = new Familia(filiacoes, casais, tratamentos, camadas);
-const completa = new Familia(filiacoes, casais, tratamentos);
+const familia = new Familia(filiacoes, casais, tratamentos);
+const minuscula = (texto: string) => texto.charAt(0).toLowerCase() + texto.slice(1);
 
-const aparece = (id: string) => Boolean(achar(id)) && (camadas.bichos || achar(id)!.tipo !== 'bicho' || id === centro.id);
-const unicos = (ids: string[]) => [...new Set(ids)].filter(aparece);
-const pais = unicos(familia.pais(centro.id).map((p) => p.responsavel));
-const avos = unicos(pais.flatMap((p) => familia.pais(p).map((a) => a.responsavel)));
-const irmaos = unicos(familia.irmaos(centro.id).map((i) => i.id));
-const pares = familia.casais(centro.id).filter((c) => aparece(c.outro));
-const filhos = unicos(familia.filhos(centro.id).map((f) => f.filho));
-const netos = unicos(filhos.flatMap((f) => familia.filhos(f).map((n) => n.filho)));
-
-// Laços do coração do centro com um lugar na árvore ("como se fosse"). Ficam ligados só a quem escolheu.
-const lacosDoCoracao = camadas.consideracao ? await listarLacosDoCoracao(usuario) : [];
-const escolhidos = lacosDoCoracao.filter((l) => l.dono === centro.id && l.papel && aparece(l.pessoa));
-const jaNaArvore = new Set([...pais, ...avos, ...irmaos, ...filhos, ...netos, ...pares.map((c) => c.outro)]);
-const doCoracao = (linha: 'avos' | 'pais' | 'centro' | 'filhos') => escolhidos.filter((l) => LINHA_DO_PAPEL[l.papel!] === linha && !jaNaArvore.has(l.pessoa));
-
-// Para o dono do laço, "seu amigo-irmão". Para os outros, "amigo-irmão de Gui".
-const rotuloDoCoracao = (l: LacoDoCoracao) =>
-  l.dono === usuario.pessoa
-    ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null)
-    : `${l.nome.charAt(0).toLowerCase()}${l.nome.slice(1)} de ${chamar(l.dono)}`;
-
-const paraVoce = (id: string) => {
+// O que cada pessoa é de quem está olhando: parentesco, ou o laço do coração dela
+const rotulo = (id: string) => {
   if (id === usuario.pessoa) return 'você';
-  const relacao = completa.relacao(usuario.pessoa, id);
+  const relacao = familia.relacao(usuario.pessoa, id);
   if (relacao) return possessivo(relacao, achar(id)!.tratamento);
-  // Sem parentesco, vale o laço do coração: o de quem olha primeiro, depois o de outra pessoa
-  const laco = lacosDoCoracao.find((l) => l.pessoa === id && l.dono === usuario.pessoa) ?? lacosDoCoracao.find((l) => l.pessoa === id);
-  return laco ? rotuloDoCoracao(laco) : '';
+  const meu = lacos.find((l) => l.pessoa === id && l.dono === usuario.pessoa);
+  return meu ? lacoParaODono(meu.nome, achar(id)!.tratamento) : '';
 };
-const consideracao = (ids: Set<string>) => (id: string) => ids.has(id);
-const paisDeConsideracao = consideracao(new Set(familia.pais(centro.id).filter((p) => p.qualidade === 'consideracao').map((p) => p.responsavel)));
-const filhosDeConsideracao = consideracao(new Set(familia.filhos(centro.id).filter((f) => f.qualidade === 'consideracao').map((f) => f.filho)));
 
-// Se os pais formam ou formaram um casal, a árvore conta
-const casalDosPais = pais.length === 2 ? familia.casais(pais[0]).find((c) => c.outro === pais[1]) : undefined;
+const dados: DadosDaArvore = {
+  eu: usuario.pessoa,
+  pessoas: integrantes.map((i) => ({ id: i.id, nome: i.apelido ?? i.nome, rotulo: rotulo(i.id), nucleos: i.nucleos, bicho: i.tipo === 'bicho', anos: anosDeVida(i) })),
+  filiacoes: filiacoes.map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })),
+  casais: casais.filter((c) => c.fases.length > 0).map((c) => ({ a: c.a, b: c.b, ex: !estaoJuntos(c) })),
+  coracao: lacos.map((l) => ({
+    dono: l.dono,
+    pessoa: l.pessoa,
+    papel: l.papel,
+    rotulo: l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : `${minuscula(l.nome)} de ${chamar(l.dono)}`,
+  })),
+};
 const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-
-const linhas = [
-  { titulo: 'Avós', ids: avos, marca: () => false, coracao: doCoracao('avos') },
-  { titulo: 'Pais', ids: pais, marca: paisDeConsideracao, coracao: doCoracao('pais') },
-];
-const abaixo = [
-  { titulo: 'Filhos', ids: filhos, marca: filhosDeConsideracao, coracao: doCoracao('filhos') },
-  { titulo: 'Netos', ids: netos, marca: () => false, coracao: [] },
-];
-const aoLado = doCoracao('centro');
-// --- Visão geral ---
-// Todo mundo que tem laço, em linhas por geração. Casais ficam lado a lado.
-const noRecorte = integrantes.filter((i) => aparece(i.id) && (!nucleo || i.nucleos.includes(nucleo.id))).map((i) => i.id);
-const filiacoesVisiveis = filiacoes.filter((f) => camadas.consideracao || f.qualidade !== 'consideracao');
-const casaisVisiveis = casais.filter((c) => camadas.ex || estaoJuntos(c));
-// Famílias de amigos são encaixadas na geração certa pelos laços do coração
-const geracoes = geral
-  ? alinharPeloCoracao(calcularGeracoes(noRecorte, filiacoesVisiveis, casaisVisiveis), filiacoesVisiveis, casaisVisiveis, lacosDoCoracao, usuario.pessoa)
-  : new Map<string, number>();
-// Laços do coração com papel entram ao lado de quem escolheu, na geração que o papel indica
-const agregados = geral
-  ? lacosDoCoracao.filter((l) => l.papel && geracoes.has(l.dono) && !geracoes.has(l.pessoa) && aparece(l.pessoa))
-  : [];
-const geracaoDoAgregado = new Map(agregados.map((l) => [l.pessoa, geracoes.get(l.dono)! + DESLOCAMENTO_DO_PAPEL[l.papel!]]));
-const niveis = [...new Set([...geracoes.values(), ...geracaoDoAgregado.values()])].sort((a, b) => a - b);
-const minhaGeracao = geracoes.get(usuario.pessoa);
-const linhasGerais = niveis.map((nivel) => {
-  const pessoasDoNivel = integrantes.filter((i) => geracoes.get(i.id) === nivel).map((i) => i.id);
-  // Casais lado a lado: cada pessoa puxa para perto quem forma ou formou casal com ela
-  const ordem: string[] = [];
-  for (const id of pessoasDoNivel) {
-    if (ordem.includes(id)) continue;
-    ordem.push(id);
-    for (const c of familia.casais(id)) if (pessoasDoNivel.includes(c.outro) && !ordem.includes(c.outro)) ordem.push(c.outro);
-  }
-  return {
-    nivel,
-    titulo: minhaGeracao === undefined ? `Geração ${nivel - niveis[0] + 1}` : nomeDaGeracao(nivel - minhaGeracao),
-    // Cada grupo é uma pessoa, ou um casal que fica junto na mesma linha mesmo quando a tela aperta
-    grupos: ordem
-      .map((id, i) => {
-        // "colado": forma casal com a pessoa imediatamente antes, e o traço liga os dois
-        const par = i > 0 ? familia.casais(id).find((c) => c.outro === ordem[i - 1]) : undefined;
-        return { id, colado: Boolean(par), ex: Boolean(par) && !par!.juntos, pais: familia.pais(id).map((p) => chamar(p.responsavel)) };
-      })
-      .reduce<{ id: string; colado: boolean; ex: boolean; pais: string[] }[][]>((grupos, pessoa) => {
-        if (pessoa.colado && grupos.length) grupos[grupos.length - 1].push(pessoa);
-        else grupos.push([pessoa]);
-        return grupos;
-      }, []),
-    coracao: agregados.filter((l) => geracaoDoAgregado.get(l.pessoa) === nivel),
-  };
-});
-const semLacos = geral ? noRecorte.filter((id) => !geracoes.has(id) && !geracaoDoAgregado.has(id)) : [];
-// "A, B e C"
-const listar = (nomes: string[]) => (nomes.length <= 1 ? nomes.join('') : `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`);
-const linkDaVisao = (visao: 'centrada' | 'geral') => {
-  const q = new URLSearchParams(parametros);
-  if (visao === 'geral') q.set('visao', 'geral');
-  else q.set('centro', centro.id);
-  return `/arvore?${q}`;
-};
-
-const sozinha = pais.length + irmaos.length + pares.length + filhos.length + escolhidos.length === 0;
 ---
 
-<Base titulo={`Árvore de ${chamar(centro.id)}`}>
+<Base titulo="Árvore">
   <div class="abertura abertura--curta">
     <h1>Árvore</h1>
-    <p>
-      {
-        geral
-          ? `${nucleo ? `O núcleo ${nucleo.nome}` : 'A família inteira'}, geração por geração. Toque em alguém para ver a árvore a partir dessa pessoa.`
-          : `Centrada em ${chamar(centro.id)}. Toque em alguém para ver a família a partir dessa pessoa.`
-      }
-    </p>
+    <p>A família inteira e como ela se liga. Toque em alguém para partir dessa pessoa. Toque de novo para abrir a página dela.</p>
   </div>
 
-  <nav class="abas abas--visao" aria-label="Visão da árvore">
-    <a class="aba" href={linkDaVisao('centrada')} aria-current={!geral ? 'page' : undefined}>
-      <span>
-        <strong>Centrada</strong>
-        <small>uma pessoa no meio, com pais, irmãos, casal e filhos</small>
-      </span>
-    </a>
-    <a class="aba" href={linkDaVisao('geral')} aria-current={geral ? 'page' : undefined}>
-      <span>
-        <strong>Geral</strong>
-        <small>todo mundo em gerações, inteira ou por núcleo</small>
-      </span>
-    </a>
-  </nav>
+  <div data-arvore>
+    <form class="arvore__controles" data-controles>
+      <label class="arvore__campo">
+        <span>Partir de</span>
+        <select name="foco">
+          {ordenados.map((i) => <option value={i.id}>{i.nome}</option>)}
+        </select>
+      </label>
+      <label class="arvore__campo">
+        <span>Destacar</span>
+        <select name="nucleo">
+          <option value="">Família inteira</option>
+          {nucleos.map((n) => <option value={n.id}>Núcleo {n.nome}</option>)}
+        </select>
+      </label>
+      <fieldset class="arvore__camadas">
+        <legend>Mostrar</legend>
+        <label class="marcar"><input type="checkbox" name="outros" checked /><span>Outros núcleos</span></label>
+        <label class="marcar"><input type="checkbox" name="consideracao" checked /><span>Consideração e coração</span></label>
+        <label class="marcar"><input type="checkbox" name="ex" checked /><span>Ex-casais</span></label>
+        <label class="marcar"><input type="checkbox" name="bichos" checked /><span>Bichos</span></label>
+      </fieldset>
+    </form>
 
-  <form class="em-linha arvore__controles" method="get" action="/arvore">
-    {
-      geral ? (
-        <>
-          <input type="hidden" name="visao" value="geral" />
-          <label>
-            <span>Recorte</span>
-            <select name="nucleo">
-              <option value="">Família inteira</option>
-              {nucleos.map((n) => <option value={n.id} selected={n.id === nucleo?.id}>{n.nome}</option>)}
-            </select>
-          </label>
-        </>
-      ) : (
-        <label>
-          <span>Ir para</span>
-          <select name="centro">
-            {ordenados.map((i) => <option value={i.id} selected={i.id === centro.id}>{i.nome}</option>)}
-          </select>
-        </label>
-      )
-    }
-    <input type="hidden" name="camadas" value="1" />
-    <fieldset class="arvore__camadas">
-      <legend>Mostrar</legend>
-      <label class="marcar"><input type="checkbox" name="mostrar" value="consideracao" checked={camadas.consideracao} /><span>Laços de consideração e do coração</span></label>
-      <label class="marcar"><input type="checkbox" name="mostrar" value="ex" checked={camadas.ex} /><span>Ex-casais</span></label>
-      <label class="marcar"><input type="checkbox" name="mostrar" value="bichos" checked={camadas.bichos} /><span>Bichos</span></label>
-    </fieldset>
-    <button class="botao botao--leve" type="submit">Atualizar</button>
-  </form>
-
-  {
-    geral && (
-      <div class="arvore arvore--geral">
-        {linhasGerais.map((l) => (
-          <section class="arvore__linha">
-            <h2>{l.titulo}</h2>
-            <ul>
-              {l.grupos.map((grupo) => (
-                <li class="grupo-de-casal">
-                  {grupo.map((p) => (
-                    <span class:list={['membro', p.colado && 'colado', p.ex && 'colado--ex']}>
-                      <a class:list={['no', p.id === usuario.pessoa && 'no--centro']} href={link(p.id)}>
-                        <strong>{chamar(p.id)}</strong>
-                        <span>{paraVoce(p.id)}</span>
-                        {p.pais.length > 0 && <small>{achar(p.id)?.tratamento === 'ela' ? 'filha' : 'filho'} de {listar(p.pais)}</small>}
-                      </a>
-                    </span>
-                  ))}
-                </li>
-              ))}
-              {l.coracao.map((c) => (
-                <li>
-                  <a class="no no--consideracao" href={link(c.pessoa)}>
-                    <strong>{chamar(c.pessoa)}</strong>
-                    <span>{rotuloDoCoracao(c)}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-        {linhasGerais.length === 0 && <p class="vazio">Ninguém deste recorte tem laços cadastrados ainda.</p>}
-        {semLacos.length > 0 && (
-          <p class="dica">
-            Ainda sem laços na árvore:{' '}
-            {semLacos.map((id, i) => (
-              <>
-                {i > 0 && ', '}
-                <a href={`/pessoas/${id}/editar#lacos`}>{chamar(id)}</a>
-              </>
-            ))}
-          </p>
-        )}
+    <div class="mapa__barra">
+      <p class="mapa__foco" data-ficha-do-foco aria-live="polite"></p>
+      <div class="mapa__zoom">
+        <button type="button" class="botao botao--leve" data-ir-ao-foco>Ir ao foco</button>
+        <button type="button" class="botao botao--leve" data-ver-tudo>Ver tudo</button>
+        <button type="button" class="botao botao--leve" data-zoom-menos aria-label="Diminuir">−</button>
+        <span data-zoom-atual>100%</span>
+        <button type="button" class="botao botao--leve" data-zoom-mais aria-label="Aumentar">+</button>
       </div>
-    )
-  }
+    </div>
 
-  <div class="arvore" hidden={geral}>
-    {
-      linhas
-        .filter((l) => l.ids.length + l.coracao.length > 0)
-        .map((l) => (
-          <section class="arvore__linha">
-            <h2>{l.titulo}</h2>
-            <ul>
-              {l.ids.map((id) => (
-                <li>
-                  <a class:list={['no', l.marca(id) && 'no--consideracao']} href={link(id)}>
-                    <strong>{chamar(id)}</strong>
-                    <span>{paraVoce(id)}</span>
-                    <small>{anosDeVida(achar(id)!)}</small>
-                  </a>
-                </li>
-              ))}
-              {l.coracao.map((c) => (
-                <li>
-                  <a class="no no--consideracao" href={link(c.pessoa)}>
-                    <strong>{chamar(c.pessoa)}</strong>
-                    <span>{rotuloDoCoracao(c)}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-            {l.titulo === 'Pais' && casalDosPais && (
-              <p class="arvore__nota">
-                {chamar(pais[0])} e {chamar(pais[1])}: {casalDosPais.casal.fases.map((fase) => FASES[fase.tipo].toLowerCase()).join(', depois ')}
-              </p>
-            )}
-          </section>
-        ))
-    }
+    <div class="mapa" data-mapa tabindex="0" aria-label="Árvore da família. Use as setas ou arraste para andar por ela.">
+      <div class="mapa__tela" data-tela>
+        <div class="mapa__camada" data-camada></div>
+      </div>
+    </div>
+    <noscript><p class="vazio">A árvore precisa de JavaScript para ser desenhada. As ligações de cada pessoa também aparecem na página dela, em Pessoas.</p></noscript>
 
-    <section class="arvore__linha arvore__linha--centro">
-      <h2>{irmaos.length > 0 ? 'Irmãos, ' : ''}{chamar(centro.id)}{pares.length > 0 ? ' e casal' : ''}</h2>
-      <ul>
-        {irmaos.map((id) => (
-          <>
-            <li>
-              <a class="no" href={link(id)}>
-                <strong>{chamar(id)}</strong>
-                <span>{paraVoce(id)}</span>
-                <small>{anosDeVida(achar(id)!)}</small>
-              </a>
-            </li>
-            {familia
-              .casais(id)
-              .filter((c) => c.juntos && aparece(c.outro) && c.outro !== centro.id)
-              .map((c) => (
-                <li class="colado">
-                  <a class="no" href={link(c.outro)}>
-                    <strong>{chamar(c.outro)}</strong>
-                    <span>{paraVoce(c.outro)}</span>
-                    <small>
-                      {completa.relacao(id, c.outro)?.texto} de {chamar(id)}
-                    </small>
-                  </a>
-                </li>
-              ))}
-          </>
-        ))}
-        {aoLado.map((c) => (
-          <li>
-            <a class="no no--consideracao" href={link(c.pessoa)}>
-              <strong>{chamar(c.pessoa)}</strong>
-              <span>{rotuloDoCoracao(c)}</span>
-            </a>
-          </li>
-        ))}
-        <li>
-          <a class="no no--centro" href={`/pessoas/${centro.id}`} aria-current="true">
-            <strong>{chamar(centro.id)}</strong>
-            <span>{paraVoce(centro.id)}</span>
-            <small>{anosDeVida(centro) || 'ver a página'}</small>
-          </a>
-        </li>
-        {pares.map((c) => (
-          <li>
-            <a class:list={['no', 'no--par', !estaoJuntos(c.casal) && 'no--ex']} href={link(c.outro)}>
-              <strong>{chamar(c.outro)}</strong>
-              <span>{paraVoce(c.outro)}</span>
-              {centro.id !== usuario.pessoa && (
-                <small>
-                  {completa.relacao(centro.id, c.outro)?.texto} de {chamar(centro.id)}
-                </small>
-              )}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
-
-    {
-      abaixo
-        .filter((l) => l.ids.length + l.coracao.length > 0)
-        .map((l) => (
-          <section class="arvore__linha">
-            <h2>{l.titulo}</h2>
-            <ul>
-              {l.ids.map((id) => (
-                <li>
-                  <a class:list={['no', l.marca(id) && 'no--consideracao']} href={link(id)}>
-                    <strong>{chamar(id)}</strong>
-                    <span>{paraVoce(id)}</span>
-                    <small>{anosDeVida(achar(id)!)}</small>
-                  </a>
-                </li>
-              ))}
-              {l.coracao.map((c) => (
-                <li>
-                  <a class="no no--consideracao" href={link(c.pessoa)}>
-                    <strong>{chamar(c.pessoa)}</strong>
-                    <span>{rotuloDoCoracao(c)}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))
-    }
+    <ul class="mapa__legenda">
+      <li><i class="amostra amostra--casal"></i> casal</li>
+      <li><i class="amostra amostra--ex"></i> casal que não está mais junto</li>
+      <li><i class="amostra amostra--filhos"></i> pais e filhos</li>
+      <li><i class="amostra amostra--coracao"></i> consideração ou coração</li>
+    </ul>
+    <p class="dica" data-sem-lacos hidden></p>
+    <p class="dica"><a href="/pessoas/nova">Cadastrar uma pessoa</a></p>
   </div>
 
-  {
-    sozinha && !geral && (
-      <p class="vazio">
-        {chamar(centro.id)} ainda não tem laços cadastrados. <a href={`/pessoas/${centro.id}/editar#lacos`}>Dizer de quem é filho ou com quem formou casal</a>.
-      </p>
-    )
-  }
-  <p class="dica">
-    Contorno tracejado: laço de consideração ou do coração. {geral ? 'Casais aparecem lado a lado, unidos por um traço; pontilhado quando não estão mais juntos.' : 'Contorno pontilhado: casal que não está mais junto.'}{" "}
-    <a href="/pessoas/nova">Cadastrar uma pessoa</a>
-  </p>
+  <script type="application/json" id="dados-da-arvore" set:html={JSON.stringify(dados).replace(/</g, '\\u003c')} />
 </Base>
+
+<script>
+  import { montarArvore, type DadosDaArvore } from '../lib/cliente/arvore';
+
+  const raiz = document.querySelector<HTMLElement>('[data-arvore]');
+  const bruto = document.getElementById('dados-da-arvore')?.textContent;
+  if (raiz && bruto) montarArvore(raiz, JSON.parse(bruto) as DadosDaArvore);
+</script>

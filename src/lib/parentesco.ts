@@ -388,10 +388,14 @@ export function lacoParaODono(nomeDoLaco: string, tratamento: Tratamento): strin
  * Filho fica uma geração abaixo do pai mais novo, e casais ficam na mesma linha,
  * o que alinha as duas famílias de um casamento. Quem não tem laço nenhum fica de fora.
  */
-export function calcularGeracoes(pessoas: string[], filiacoes: Filiacao[], casais: Casal[]): Map<string, number> {
+export function calcularGeracoes(
+  pessoas: string[],
+  filiacoes: Pick<Filiacao, 'filho' | 'responsavel'>[],
+  casais: Pick<Casal, 'a' | 'b'>[],
+): Map<string, number> {
   const dentro = new Set(pessoas);
   const pais = filiacoes.filter((f) => dentro.has(f.filho) && dentro.has(f.responsavel));
-  const pares = casais.filter((c) => c.fases.length > 0 && dentro.has(c.a) && dentro.has(c.b));
+  const pares = casais.filter((c) => dentro.has(c.a) && dentro.has(c.b));
   const geracao = new Map<string, number>();
   for (const f of pais) {
     geracao.set(f.filho, 0);
@@ -455,8 +459,8 @@ export function nomeDaGeracao(diferenca: number): string {
  */
 export function alinharPeloCoracao(
   geracoes: Map<string, number>,
-  filiacoes: Filiacao[],
-  casais: Casal[],
+  filiacoes: Pick<Filiacao, 'filho' | 'responsavel'>[],
+  casais: Pick<Casal, 'a' | 'b'>[],
   lacos: Pick<LacoDoCoracao, 'dono' | 'pessoa' | 'papel'>[],
   ancora: string | undefined,
 ): Map<string, number> {

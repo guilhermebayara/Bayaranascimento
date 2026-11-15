@@ -1,0 +1,88 @@
+import { describe, expect, it } from 'vitest';
+import { MEDIDAS, desenharArvore, type CasalNoDesenho, type FiliacaoNoDesenho, type PessoaNoDesenho } from '../src/lib/arvore-desenho';
+
+const p = (id: string, geracao: number): PessoaNoDesenho => ({ id, geracao });
+const filho = (f: string, ...pais: string[]): FiliacaoNoDesenho[] => pais.map((responsavel) => ({ filho: f, responsavel, consideracao: false }));
+const casal = (a: string, b: string, ex = false): CasalNoDesenho => ({ a, b, ex });
+
+// Duas famílias que se encontram num casamento, com tios, primos, ex-casal e meio-irmão
+const pessoas = [
+  p('vo-vivica', 0), p('vo-bela', 0), p('regina', 0),
+  p('elizete', 1), p('aguilar', 1), p('marta', 1), p('tia-ana', 1), p('tio-beto', 1), p('lucio', 1), p('ana-candida', 1),
+  p('gui', 2), p('giovanna', 2), p('lucas-magno', 2), p('caio', 2), p('primo-leo', 2), p('prima-bia', 2), p('irma-do-magno', 2),
+  p('chico', 3),
+];
+const casais = [casal('elizete', 'aguilar', true), casal('aguilar', 'marta'), casal('tia-ana', 'tio-beto'), casal('lucio', 'ana-candida'), casal('giovanna', 'lucas-magno')];
+const filiacoes = [
+  ...filho('elizete', 'vo-vivica'), ...filho('tia-ana', 'vo-vivica'), ...filho('aguilar', 'vo-bela'), ...filho('ana-candida', 'regina'),
+  ...filho('gui', 'elizete', 'aguilar'), ...filho('giovanna', 'elizete', 'aguilar'), ...filho('caio', 'aguilar', 'marta'),
+  ...filho('primo-leo', 'tia-ana', 'tio-beto'), ...filho('prima-bia', 'tia-ana', 'tio-beto'),
+  ...filho('lucas-magno', 'lucio', 'ana-candida'), ...filho('irma-do-magno', 'lucio', 'ana-candida'),
+  ...filho('chico', 'giovanna', 'lucas-magno'),
+  { filho: 'chico', responsavel: 'gui', consideracao: true },
+];
+const desenho = desenharArvore(pessoas, casais, filiacoes, [{ dono: 'gui', pessoa: 'ed' }]);
+const em = new Map(desenho.pessoas.map((x) => [x.id, x]));
+const passo = MEDIDAS.largura + MEDIDAS.vaoX;
+const vizinhos = (a: string, b: string) => em.get(a)!.y === em.get(b)!.y && Math.abs(em.get(a)!.x - em.get(b)!.x) <= passo + 1;
+
+describe('desenho da árvore', () => {
+  it('ninguém fica em cima de ninguém', () => {
+    for (const a of desenho.pessoas) {
+      for (const b of desenho.pessoas) {
+        if (a.id >= b.id || a.y !== b.y) continue;
+        expect(Math.abs(a.x - b.x), `${a.id} e ${b.id}`).toBeGreaterThanOrEqual(passo - 1);
+      }
+    }
+  });
+  it('cada geração fica numa linha, de cima para baixo', () => {
+    expect(em.get('vo-vivica')!.y).toBeLessThan(em.get('elizete')!.y);
+    expect(em.get('elizete')!.y).toBeLessThan(em.get('gui')!.y);
+    expect(em.get('gui')!.y).toBeLessThan(em.get('chico')!.y);
+    expect(em.get('gui')!.y).toBe(em.get('lucas-magno')!.y);
+  });
+  it('casais ficam lado a lado, inclusive o ex e o atual da mesma pessoa', () => {
+    expect(vizinhos('giovanna', 'lucas-magno')).toBe(true);
+    expect(vizinhos('tia-ana', 'tio-beto')).toBe(true);
+    expect(vizinhos('lucio', 'ana-candida')).toBe(true);
+    expect(vizinhos('elizete', 'aguilar')).toBe(true);
+    expect(vizinhos('aguilar', 'marta')).toBe(true);
+  });
+  it('o casal que une as duas famílias fica entre elas', () => {
+    expect(em.get('gui')!.x).toBeLessThan(em.get('giovanna')!.x);
+    expect(em.get('giovanna')!.x).toBeLessThan(em.get('lucas-magno')!.x);
+    expect(em.get('lucas-magno')!.x).toBeLessThan(em.get('irma-do-magno')!.x);
+  });
+  it('filhos ficam perto dos pais', () => {
+    const meio = (...ids: string[]) => ids.reduce((s, id) => s + em.get(id)!.x, 0) / ids.length;
+    expect(Math.abs(em.get('chico')!.x - meio('giovanna', 'lucas-magno'))).toBeLessThanOrEqual(passo);
+    expect(Math.abs(meio('primo-leo', 'prima-bia') - meio('tia-ana', 'tio-beto'))).toBeLessThanOrEqual(passo * 1.5);
+  });
+  it('cada tipo de laço tem a sua linha', () => {
+    const tipos = desenho.linhas.map((l) => l.tipo);
+    expect(tipos.filter((t) => t === 'casal')).toHaveLength(4);
+    expect(tipos.filter((t) => t === 'ex')).toHaveLength(1);
+    expect(tipos.filter((t) => t === 'consideracao')).toHaveLength(1);
+    // um grupo de filhos por conjunto de pais
+    expect(tipos.filter((t) => t === 'filhos')).toHaveLength(8);
+  });
+  it('irmãos dividem a mesma linha de filhos', () => {
+    const dosPais = desenho.linhas.find((l) => l.tipo === 'filhos' && l.de.includes('gui'))!;
+    expect(dosPais.de.sort()).toEqual(['aguilar', 'elizete', 'giovanna', 'gui']);
+  });
+  it('ignora laços com quem não está no desenho, e aguenta árvore vazia', () => {
+    expect(desenho.linhas.some((l) => l.de.includes('ed'))).toBe(false);
+    expect(desenharArvore([], [], [])).toEqual({ pessoas: [], linhas: [], largura: 0, altura: 0 });
+  });
+  it('tudo cabe dentro da área informada', () => {
+    for (const x of desenho.pessoas) {
+      expect(x.x).toBeGreaterThanOrEqual(0);
+      expect(x.x + MEDIDAS.largura).toBeLessThanOrEqual(desenho.largura);
+    }
+  });
+});
+it('mostra', () => {
+  const linhas = new Map<number, string[]>();
+  for (const x of [...desenho.pessoas].sort((a, b) => a.x - b.x)) linhas.set(x.y, [...(linhas.get(x.y) ?? []), `${x.id}@${x.x}`]);
+  console.log([...linhas].sort((a, b) => a[0] - b[0]).map(([, l]) => l.join('  ')).join('\n'));
+});

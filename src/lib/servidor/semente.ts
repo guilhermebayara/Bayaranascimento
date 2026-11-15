@@ -163,3 +163,85 @@ export async function semearExemplos(db: D1Database): Promise<void> {
   }
   await db.batch(comandos);
 }
+
+// Parentes inventados, só fora da produção, para testar a árvore com mais cenários:
+// tios, primos, um casal desfeito com filhos de dois casamentos, cunhados, sobrinhos e uma gata.
+const PARENTES: { id: string; nome: string; tratamento: 'ela' | 'ele'; nucleo: string; bicho?: string }[] = [
+  { id: 'ex-vo-tonho', nome: 'Vô Tonho', tratamento: 'ele', nucleo: 'bayara-nascimento' },
+  { id: 'ex-tia-lourdes', nome: 'Tia Lourdes', tratamento: 'ela', nucleo: 'bayara-nascimento' },
+  { id: 'ex-tio-jorge', nome: 'Tio Jorge', tratamento: 'ele', nucleo: 'bayara-nascimento' },
+  { id: 'ex-prima-carol', nome: 'Prima Carol', tratamento: 'ela', nucleo: 'bayara-nascimento' },
+  { id: 'ex-davi', nome: 'Davi', tratamento: 'ele', nucleo: 'bayara-nascimento' },
+  { id: 'ex-igor', nome: 'Igor', tratamento: 'ele', nucleo: 'bayara-nascimento' },
+  { id: 'ex-lia', nome: 'Lia', tratamento: 'ela', nucleo: 'bayara-nascimento' },
+  { id: 'ex-ben', nome: 'Ben', tratamento: 'ele', nucleo: 'bayara-nascimento' },
+  { id: 'ex-primo-rafa', nome: 'Primo Rafa', tratamento: 'ele', nucleo: 'bayara-nascimento' },
+  { id: 'ex-tio-paulo', nome: 'Tio Paulo', tratamento: 'ele', nucleo: 'bayara-nascimento' },
+  { id: 'ex-mel', nome: 'Mel', tratamento: 'ela', nucleo: 'bayara-nascimento', bicho: 'gata' },
+  { id: 'ex-vo-zeca', nome: 'Vô Zeca', tratamento: 'ele', nucleo: 'bracarense' },
+  { id: 'ex-luisa', nome: 'Luísa', tratamento: 'ela', nucleo: 'bracarense' },
+  { id: 'ex-bruno', nome: 'Bruno', tratamento: 'ele', nucleo: 'bracarense' },
+  { id: 'ex-dudu', nome: 'Dudu', tratamento: 'ele', nucleo: 'bracarense' },
+];
+// [filho, responsável, qualidade]
+const FILIACOES_DE_EXEMPLO: [string, string, string][] = [
+  ['elizete', 'ex-vo-tonho', 'biologica'],
+  ['ex-tia-lourdes', 'vo-vivica', 'biologica'],
+  ['ex-tia-lourdes', 'ex-vo-tonho', 'biologica'],
+  ['ex-prima-carol', 'ex-tia-lourdes', 'biologica'],
+  ['ex-prima-carol', 'ex-tio-jorge', 'biologica'],
+  ['ex-primo-rafa', 'ex-tia-lourdes', 'biologica'],
+  ['ex-primo-rafa', 'ex-tio-jorge', 'biologica'],
+  ['ex-lia', 'ex-prima-carol', 'biologica'],
+  ['ex-lia', 'ex-davi', 'biologica'],
+  ['ex-ben', 'ex-prima-carol', 'biologica'],
+  ['ex-ben', 'ex-igor', 'biologica'],
+  ['ex-tio-paulo', 'vo-bela', 'biologica'],
+  ['ex-mel', 'elizete', 'adotiva'],
+  ['ana-candida', 'ex-vo-zeca', 'biologica'],
+  ['ex-luisa', 'lucio', 'biologica'],
+  ['ex-luisa', 'ana-candida', 'biologica'],
+  ['ex-dudu', 'ex-luisa', 'biologica'],
+  ['ex-dudu', 'ex-bruno', 'biologica'],
+];
+// [a, b, fases em ordem]
+const CASAIS_DE_EXEMPLO: [string, string, string[]][] = [
+  ['ex-vo-tonho', 'vo-vivica', ['casamento']],
+  ['ex-tia-lourdes', 'ex-tio-jorge', ['casamento']],
+  ['ex-davi', 'ex-prima-carol', ['casamento', 'separacao']],
+  ['ex-igor', 'ex-prima-carol', ['namoro', 'uniao']],
+  ['ex-bruno', 'ex-luisa', ['namoro', 'casamento']],
+  ['ex-vo-zeca', 'regina', ['casamento']],
+];
+
+export async function semearParentesDeExemplo(db: D1Database): Promise<void> {
+  const ja = await db.prepare(`SELECT 1 AS ok FROM integrantes WHERE id = 'ex-tia-lourdes'`).first();
+  if (ja) return;
+  const comandos: D1PreparedStatement[] = [];
+  PARENTES.forEach((p, i) => {
+    comandos.push(
+      db
+        .prepare(`INSERT OR IGNORE INTO integrantes (id, nome, tipo, especie, tratamento, ordem, sobre) VALUES (?, ?, ?, ?, ?, ?, 'Parente de exemplo, só existe na versão de teste.')`)
+        .bind(p.id, p.nome, p.bicho ? 'bicho' : 'pessoa', p.bicho ?? null, p.tratamento, 60 + i),
+      db.prepare('INSERT OR IGNORE INTO nucleo_membros (nucleo_id, integrante_id) VALUES (?, ?)').bind(p.nucleo, p.id),
+    );
+  });
+  for (const [filho, responsavel, qualidade] of FILIACOES_DE_EXEMPLO) {
+    comandos.push(db.prepare('INSERT OR IGNORE INTO filiacoes (filho_id, responsavel_id, qualidade) VALUES (?, ?, ?)').bind(filho, responsavel, qualidade));
+  }
+  for (const [x, y, fases] of CASAIS_DE_EXEMPLO) {
+    const [a, b] = x < y ? [x, y] : [y, x];
+    comandos.push(db.prepare('INSERT OR IGNORE INTO casais (a_id, b_id) VALUES (?, ?)').bind(a, b));
+    fases.forEach((tipo, ordem) => {
+      comandos.push(
+        db
+          .prepare(
+            `INSERT INTO casal_fases (casal_id, tipo, ordem) SELECT c.id, ?, ? FROM casais c WHERE c.a_id = ? AND c.b_id = ?
+               AND NOT EXISTS (SELECT 1 FROM casal_fases f WHERE f.casal_id = c.id AND f.ordem = ?)`,
+          )
+          .bind(tipo, ordem, a, b, ordem),
+      );
+    });
+  }
+  await db.batch(comandos);
+}
