@@ -258,6 +258,11 @@ const MIGRACOES: Migracao[] = [
         WHERE c.a_id = 'ana-candida' AND c.b_id = 'lucio' AND NOT EXISTS (SELECT 1 FROM casal_fases f WHERE f.casal_id = c.id)`,
     ],
   },
+  {
+    // Lixeira: a memória excluída some do site, mas continua guardada e pode voltar
+    id: '007-lixeira',
+    sql: [`ALTER TABLE memorias ADD COLUMN excluida_em TEXT`, `ALTER TABLE memorias ADD COLUMN excluida_por TEXT`],
+  },
 ];
 
 let pronto: Promise<void> | undefined;

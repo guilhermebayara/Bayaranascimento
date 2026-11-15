@@ -1,0 +1,53 @@
+---
+import Base from '../layouts/Base.astro';
+import { formatarData, formatarMomento } from '../lib/datas';
+import { podeExcluirMemoria } from '../lib/servidor/permissoes';
+import { listarExcluidas, listarIntegrantes } from '../lib/servidor/repositorio';
+
+// Cada pessoa vê na lixeira só o que poderia recuperar: admins, as memórias que
+// enxergavam; os demais, os próprios rascunhos descartados.
+const { usuario } = Astro.locals;
+const excluidas = (await listarExcluidas(usuario)).filter((m) => podeExcluirMemoria(usuario, m).ok);
+const integrantes = await listarIntegrantes();
+const nome = (id: string | null) => {
+  const i = integrantes.find((x) => x.id === id);
+  return i?.apelido ?? i?.nome ?? 'alguém';
+};
+---
+
+<Base titulo="Lixeira">
+  <div class="abertura abertura--curta">
+    <h1>Lixeira</h1>
+    <p>
+      {usuario.admin ? 'Memórias excluídas e rascunhos descartados.' : 'Seus rascunhos descartados.'} Nada aqui aparece no site, e tudo pode ser recuperado como estava.
+    </p>
+  </div>
+  {
+    excluidas.length === 0 ? (
+      <p class="vazio">A lixeira está vazia.</p>
+    ) : (
+      <ul class="linhas">
+        {excluidas.map((m) => (
+          <li>
+            <div>
+              <strong>{m.titulo}</strong>
+              <span>
+                {formatarData(m)}
+                {m.situacao === 'rascunho' && ', rascunho'}
+              </span>
+            </div>
+            <p class="dica">
+              {m.situacao === 'rascunho' ? 'Descartado' : 'Excluída'} por {nome(m.excluidaPor)} em {formatarMomento(m.excluidaEm)}.
+              {m.situacao === 'publicada' && ` ${m.fotos.length} ${m.fotos.length === 1 ? 'foto' : 'fotos'}, ${m.relatos} ${m.relatos === 1 ? 'relato' : 'relatos'}.`}
+            </p>
+            <form method="post" action="/api/lixeira" class="em-linha">
+              <input type="hidden" name="acao" value="restaurar-excluida" />
+              <input type="hidden" name="memoria" value={m.id} />
+              <button class="botao botao--leve" type="submit">Recuperar</button>
+            </form>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Base>

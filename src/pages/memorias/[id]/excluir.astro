@@ -1,0 +1,48 @@
+---
+// Excluir é uma ação séria: esta página existe para a pessoa confirmar antes.
+import Base from '../../../layouts/Base.astro';
+import { formatarData } from '../../../lib/datas';
+import { podeExcluirMemoria } from '../../../lib/servidor/permissoes';
+import { listarRelatos, obterMemoria } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
+if (!memoria) return new Response('Memória não encontrada', { status: 404 });
+const rascunho = memoria.situacao === 'rascunho';
+const voltarPara = rascunho ? `/nova?id=${memoria.id}` : `/memorias/${memoria.id}`;
+if (!podeExcluirMemoria(usuario, memoria).ok) return Astro.redirect(voltarPara);
+
+const relatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situacao === 'publicada').length;
+const titulo = rascunho ? 'Descartar rascunho' : 'Excluir memória';
+---
+
+<Base titulo={titulo}>
+  <div class="abertura abertura--curta">
+    <h1>{titulo}</h1>
+  </div>
+  <section class="alerta">
+    <h2>{memoria.titulo}</h2>
+    <p>{formatarData(memoria)}</p>
+    {
+      rascunho ? (
+        <p>O rascunho sai da sua lista. Ele fica guardado na lixeira e você pode recuperar depois.</p>
+      ) : (
+        <>
+          <p>
+            Esta memória vai sair do site para toda a família, junto com
+            {memoria.fotos.length === 1 ? ' 1 foto' : ` ${memoria.fotos.length} fotos`} e
+            {relatos === 1 ? ' 1 relato' : ` ${relatos} relatos`}, inclusive os que outras pessoas escreveram.
+          </p>
+          <p>Nada é apagado de vez: a memória vai para a lixeira, e você ou a Giovanna podem recuperar tudo como estava.</p>
+          <p>Se a ideia é só corrigir alguma coisa, prefira <a href={`/nova?id=${memoria.id}`}>corrigir a memória</a>.</p>
+        </>
+      )
+    }
+    <form method="post" action="/api/lixeira" class="acoes">
+      <input type="hidden" name="acao" value="excluir" />
+      <input type="hidden" name="memoria" value={memoria.id} />
+      <button class="botao botao--perigo" type="submit">{rascunho ? 'Descartar rascunho' : 'Excluir e mandar para a lixeira'}</button>
+      <a class="botao botao--leve" href={voltarPara}>Cancelar</a>
+    </form>
+  </section>
+</Base>

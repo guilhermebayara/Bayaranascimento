@@ -67,10 +67,20 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 - **Laços do coração** (primeira versão): nome livre, "como se fosse" opcional (dá lugar na árvore de quem escolheu), proximidade que só o dono vê e a opção "só eu vejo". O laço é sempre de quem está logado. Ainda faltam o período do laço, o círculo e esconder do acervo a pessoa que só aparece em laços privados.
 - A árvore (`/arvore`) é centrada em uma pessoa e abre em quem está logado. Camadas que ligam e desligam: consideração, ex-casais e bichos.
 
+## Lixeira e histórico
+
+- Excluir uma memória publicada é com os admins, passa por uma página de confirmação e manda para a lixeira (`/lixeira`). A memória some do site com fotos e relatos, mas nada é apagado.
+- Rascunho é de quem escreve: a própria pessoa descarta, e ele também vai para a lixeira.
+- Cada pessoa vê na lixeira só o que pode recuperar: admins, as memórias que enxergavam; os demais, os próprios rascunhos.
+- O histórico de uma memória (`/memorias/<id>/historico`) mostra cada alteração da ficha, com o que mudou e como era antes. Quem pode corrigir a memória pode voltar a ficha para uma versão anterior.
+- Restaurar uma versão traz título, data, tipo, lugar e pessoas. Quem pode ver, núcleos e fotos ficam como estão, para uma restauração nunca abrir a memória a mais gente.
+- Do relato, cada pessoa vê só os textos anteriores do que ela mesma escreveu ou registrou, e pode voltar a um deles.
+- Fotos removidas aparecem no histórico para quem enviou, que pode devolvê-las à memória.
+- Ainda não existe apagar de vez: o que vai para a lixeira fica lá.
+
 ## Em aberto
 
-- Histórico de mudanças visível no site, com restaurar (as versões anteriores já são guardadas)
-- Excluir memória, com lixeira
+- Histórico de integrantes e laços no site (as versões já são guardadas) e apagar de vez o que está na lixeira
 - Foto de retrato do integrante, juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
 - Árvore: visão geral com zoom, recorte por núcleo e página do laço com linha do tempo
 - Laços do coração, capítulos, temas, círculo e avisos

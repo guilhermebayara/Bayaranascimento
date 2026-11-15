@@ -1,0 +1,147 @@
+---
+// O que já mudou numa memória, com a opção de voltar atrás.
+import Base from '../../../layouts/Base.astro';
+import { formatarData, formatarMomento } from '../../../lib/datas';
+import { podeEditarMemoria } from '../../../lib/servidor/permissoes';
+import { listarFotosRemovidas, listarIntegrantes, listarRelatos, listarVersoes, obterMemoria, type Memoria, type Relato } from '../../../lib/servidor/repositorio';
+import { tipoDaMemoria } from '../../../lib/tipos';
+
+const { usuario, tipos } = Astro.locals;
+const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
+if (!memoria) return new Response('Memória não encontrada', { status: 404 });
+if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.id}`);
+
+const integrantes = await listarIntegrantes();
+const nome = (id: string) => {
+  const i = integrantes.find((x) => x.id === id);
+  return i?.apelido ?? i?.nome ?? id;
+};
+const podeRestaurar = podeEditarMemoria(usuario, memoria).ok;
+
+const ficha = (m: Memoria) => ({
+  título: m.titulo,
+  data: formatarData({ ano: m.ano, mes: m.mes ?? null, dia: m.dia ?? null, aproximada: Boolean(m.aproximada) }),
+  tipo: tipoDaMemoria(tipos, m).rotulo,
+  lugar: m.lugar ?? '',
+  pessoas: (m.integrantes ?? []).map(nome).sort().join(', '),
+});
+// Cada versão guarda como a ficha estava ANTES de uma alteração. Comparando com
+// o estado seguinte, dá para dizer o que aquela alteração mudou.
+const versoes = await listarVersoes<Memoria>('memoria', memoria.id);
+const linhas = versoes.map((v, i) => {
+  const antes = ficha(v.dados);
+  const depois = ficha(i === 0 ? memoria : versoes[i - 1].dados);
+  const mudou = (Object.keys(antes) as (keyof typeof antes)[]).filter((campo) => antes[campo] !== depois[campo]);
+  return { ...v, antes, mudou };
+});
+
+// Do relato, cada pessoa vê só o histórico do que ela mesma escreveu ou registrou
+const meusRelatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.registradoPor === usuario.pessoa);
+const relatos = await Promise.all(meusRelatos.map(async (r) => ({ relato: r, versoes: await listarVersoes<Relato>('relato', String(r.id)) })));
+const minhasFotos = (await listarFotosRemovidas(memoria.id)).filter((f) => f.enviadaPor === usuario.pessoa);
+const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0) && minhasFotos.length === 0;
+---
+
+<Base titulo={`Histórico de ${memoria.titulo}`}>
+  <div class="abertura abertura--curta">
+    <h1>Histórico</h1>
+    <p><a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a></p>
+  </div>
+
+  {vazio && <p class="vazio">Esta memória nunca foi alterada desde que foi registrada.</p>}
+
+  {
+    linhas.length > 0 && (
+      <section class="painel">
+        <h2>Alterações na ficha</h2>
+        <p class="dica">Restaurar traz de volta título, data, tipo, lugar e pessoas. Quem pode ver e as fotos ficam como estão hoje.</p>
+        <ul class="linhas">
+          {linhas.map((v) => (
+            <li>
+              <div>
+                <strong>{nome(v.autor)} alterou</strong>
+                <span>{formatarMomento(v.criadaEm)}</span>
+              </div>
+              <p class="dica">{v.mudou.length > 0 ? `Mudou: ${v.mudou.join(', ')}.` : 'Mudou fotos, núcleos ou quem pode ver.'}</p>
+              {v.mudou.length > 0 && (
+                <dl class="antes">
+                  {v.mudou.map((campo) => (
+                    <div>
+                      <dt>{campo}, antes</dt>
+                      <dd>{v.antes[campo] || 'vazio'}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {podeRestaurar && v.mudou.length > 0 && (
+                <form method="post" action="/api/lixeira" class="em-linha">
+                  <input type="hidden" name="acao" value="restaurar-versao" />
+                  <input type="hidden" name="memoria" value={memoria.id} />
+                  <input type="hidden" name="versao" value={v.id} />
+                  <button class="botao botao--leve" type="submit">Voltar a ficha para como era antes</button>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    relatos
+      .filter((r) => r.versoes.length > 0)
+      .map(({ relato, versoes: anteriores }) => (
+        <section class="painel">
+          <h2>{relato.por === usuario.pessoa ? 'Seu relato' : `Relato de ${nome(relato.por)}, registrado por você`}</h2>
+          <p class="dica">Textos anteriores. Só você vê esta parte.</p>
+          <ul class="linhas">
+            {anteriores.map((v) => (
+              <li>
+                <div>
+                  <strong>Texto até {formatarMomento(v.criadaEm)}</strong>
+                </div>
+                <div class="relato__texto antes">
+                  {v.dados.texto.split(/\n{2,}/).map((p) => (
+                    <p>{p}</p>
+                  ))}
+                </div>
+                <form method="post" action="/api/lixeira" class="em-linha">
+                  <input type="hidden" name="acao" value="restaurar-relato" />
+                  <input type="hidden" name="memoria" value={memoria.id} />
+                  <input type="hidden" name="por" value={relato.por} />
+                  <input type="hidden" name="versao" value={v.id} />
+                  <button class="botao botao--leve" type="submit">Voltar para este texto</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+  }
+
+  {
+    minhasFotos.length > 0 && (
+      <section class="painel">
+        <h2>Fotos que você tirou desta memória</h2>
+        <ul class="linhas linhas--fotos">
+          {minhasFotos.map((f) => (
+            <li>
+              <img src={`/fotos/${f.chave}`} alt={f.legenda ?? ''} loading="lazy" />
+              <div>
+                <strong>{f.legenda ?? 'Sem legenda'}</strong>
+                <span>removida em {formatarMomento(f.removidaEm)}</span>
+              </div>
+              <form method="post" action="/api/lixeira" class="em-linha">
+                <input type="hidden" name="acao" value="restaurar-foto" />
+                <input type="hidden" name="memoria" value={memoria.id} />
+                <input type="hidden" name="foto" value={f.id} />
+                <button class="botao botao--leve" type="submit">Devolver à memória</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+</Base>
