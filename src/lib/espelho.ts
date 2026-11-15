@@ -52,7 +52,8 @@ export const TABELAS_APAGADAS = [
   'integrantes',
 ];
 
-const NOMES_DELA = ['Ana', 'Beatriz', 'Carla', 'Daniela', 'Elisa', 'Fernanda', 'Gabriela', 'Helena', 'Isabel', 'Júlia', 'Laura', 'Marina', 'Natália', 'Olívia', 'Paula', 'Raquel', 'Sofia', 'Tereza', 'Vera', 'Yara', 'Alice', 'Bruna', 'Cecília', 'Débora', 'Estela', 'Flávia', 'Glória', 'Irene', 'Joana', 'Lívia', 'Mônica', 'Nina', 'Rosa', 'Sílvia', 'Tânia', 'Vânia', 'Aurora', 'Clara', 'Diana', 'Eva', 'Iara', 'Lúcia', 'Marta', 'Noêmia', 'Regina', 'Selma', 'Telma', 'Zélia'];
+// Nomes de pessoas reais da família ficam fora destas listas, para o espelho não confundir
+const NOMES_DELA = ['Ana', 'Beatriz', 'Carla', 'Daniela', 'Elisa', 'Fernanda', 'Gabriela', 'Helena', 'Isabel', 'Júlia', 'Laura', 'Marina', 'Natália', 'Olívia', 'Paula', 'Raquel', 'Sofia', 'Tereza', 'Vera', 'Yara', 'Alice', 'Bruna', 'Cecília', 'Débora', 'Estela', 'Flávia', 'Glória', 'Irene', 'Joana', 'Lívia', 'Mônica', 'Nina', 'Rosa', 'Sílvia', 'Tânia', 'Vânia', 'Aurora', 'Clara', 'Diana', 'Eva', 'Iara', 'Lúcia', 'Marta', 'Noêmia', 'Selma', 'Telma', 'Zélia'];
 const NOMES_DELE = ['André', 'Bernardo', 'Caio', 'Davi', 'Eduardo', 'Fábio', 'Gustavo', 'Heitor', 'Igor', 'João', 'Leonardo', 'Marcos', 'Nicolas', 'Otávio', 'Pedro', 'Rafael', 'Samuel', 'Tiago', 'Vítor', 'Wagner', 'Alberto', 'Bruno', 'César', 'Diego', 'Emílio', 'Felipe', 'Gilberto', 'Henrique', 'Ivan', 'Júlio', 'Luís', 'Mário', 'Nelson', 'Paulo', 'Ricardo', 'Sérgio', 'Antônio', 'Benedito', 'Cláudio', 'Dênis', 'Ernesto', 'Hugo', 'Jorge', 'Lauro', 'Moacir', 'Osvaldo', 'Renato', 'Saulo'];
 const NOMES_DE_BICHO = ['Pipoca', 'Biscoito', 'Farofa', 'Paçoca', 'Tapioca', 'Bolinha', 'Pingo', 'Nescau', 'Fubá', 'Canela', 'Cacau', 'Amendoim', 'Jujuba', 'Quindim', 'Pudim', 'Pirulito'];
 const SEGUNDOS_NOMES = ['Maria', 'Luiza', 'Cristina', 'Helena', 'José', 'Carlos', 'Augusto', 'Henrique'];
