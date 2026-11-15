@@ -491,6 +491,8 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
     }
   };
 
+  // Blocos já posicionados pelas regras de acabamento (irmãos, laços do coração, meio-irmãos)
+  const posicionados = new Set<string[]>();
   // Quando um bloco muda de lugar, os pais que só têm filhos nele vão junto: cada bloco de pais
   // é recolocado onde o custo fica menor. É o que deixa a família de um amigo andar inteira.
   const puxarPais = (estado: string[][][], n: number, ids: string[]) => {
@@ -498,6 +500,8 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
     const pais = new Set(ids.flatMap((id) => paisDe.get(id) ?? []));
     const blocosDePais = estado[n - 1].filter((bloco) => bloco.some((id) => pais.has(id)));
     for (const bloco of blocosDePais) {
+      // Quem já foi posicionado por uma das regras de acabamento fica onde está
+      if (posicionados.has(bloco)) continue;
       // Só quem não tem filhos em outro bloco: pais com mais filhos seguram o lugar
       const outrosFilhos = bloco.flatMap((id) => filhosDe.get(id) ?? []).some((f) => !ids.includes(f));
       if (outrosFilhos) continue;
@@ -605,7 +609,10 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
           const ps = paisAcima(conjuge);
           if (ps.length === 0) continue;
           const irmaos = linha.filter((b) => b !== bloco && !firmes.has(b) && b.some((id) => paisAcima(id).some((p) => ps.includes(p))));
-          for (const b of irmaos) firmes.add(b);
+          for (const b of irmaos) {
+            firmes.add(b);
+            posicionados.add(b);
+          }
           if (irmaos.length === 0) continue;
           for (const b of irmaos) {
             linha.splice(linha.indexOf(b), 1);
@@ -652,6 +659,7 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
       }
     }
     const retirados = [...donoDoBloco.keys()];
+    for (const b of retirados) posicionados.add(b);
     melhor[n] = melhor[n].filter((b) => !donoDoBloco.has(b));
 
     // 1. Laços do coração, em rodadas: primeiro os de quem já está na linha, depois os escolhidos por eles
