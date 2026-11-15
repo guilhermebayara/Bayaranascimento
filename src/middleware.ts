@@ -1,8 +1,9 @@
 // Roda antes de toda página e de toda rota: prepara o banco e descobre quem está pedindo.
 // Sem pessoa identificada, nada do acervo é entregue.
 import { defineMiddleware } from 'astro:middleware';
-import { usuarioDoPedido } from './lib/servidor/acesso';
+import { ehServicoDeCopia, usuarioDoPedido } from './lib/servidor/acesso';
 import { prepararBanco } from './lib/servidor/banco';
+import { respostaDaCopia } from './lib/servidor/copia';
 
 const RECADO = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bayara Nascimento</title><body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 15vh auto; padding: 0 1.5rem; line-height: 1.5">
@@ -15,6 +16,12 @@ export const onRequest = defineMiddleware(async (contexto, proximo) => {
   if (contexto.isPrerendered) return proximo();
 
   await prepararBanco();
+
+  // A cópia mensal no Google Drive entra com um token de serviço, sem pessoa
+  if (contexto.url.pathname === '/api/copia' && contexto.request.method === 'GET' && (await ehServicoDeCopia(contexto.request))) {
+    return respostaDaCopia();
+  }
+
   const usuario = await usuarioDoPedido(contexto.request);
   if (!usuario) {
     const querJson = contexto.url.pathname.startsWith('/api/');

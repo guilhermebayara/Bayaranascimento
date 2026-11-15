@@ -31,8 +31,8 @@ function lerJson(parte: string): Record<string, unknown> {
   return JSON.parse(new TextDecoder().decode(decodificar(parte)));
 }
 
-/** Confere o token do Access e devolve o e-mail, ou undefined se o token não valer. */
-export async function emailDoToken(token: string | null | undefined): Promise<string | undefined> {
+/** Confere o token do Access e devolve o que ele diz, ou undefined se o token não valer. */
+async function dadosDoToken(token: string | null | undefined): Promise<Record<string, unknown> | undefined> {
   if (!token) return undefined;
   const partes = token.split('.');
   if (partes.length !== 3) return undefined;
@@ -60,10 +60,27 @@ export async function emailDoToken(token: string | null | undefined): Promise<st
       new TextEncoder().encode(`${partes[0]}.${partes[1]}`),
     );
     if (!valido) return undefined;
-    return typeof dados.email === 'string' ? dados.email.toLowerCase() : undefined;
+    return dados;
   } catch {
     return undefined;
   }
+}
+
+/** Confere o token do Access e devolve o e-mail, ou undefined se o token não valer. */
+export async function emailDoToken(token: string | null | undefined): Promise<string | undefined> {
+  const dados = await dadosDoToken(token);
+  return typeof dados?.email === 'string' ? dados.email.toLowerCase() : undefined;
+}
+
+/**
+ * Pedido feito pela cópia automática, e não por uma pessoa. A cópia entra no
+ * Access com um token de serviço; o token assinado traz o Client ID dele em
+ * common_name, que precisa ser o mesmo cadastrado em COPIA_CLIENT_ID.
+ */
+export async function ehServicoDeCopia(request: Request): Promise<boolean> {
+  if (!env.COPIA_CLIENT_ID) return false;
+  const dados = await dadosDoToken(tokenDoPedido(request));
+  return dados?.common_name === env.COPIA_CLIENT_ID;
 }
 
 /** Mapa e-mail → integrante, vindo do segredo ACESSOS. */
