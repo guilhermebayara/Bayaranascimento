@@ -57,6 +57,8 @@ export interface Linha {
 export interface Desenho {
   pessoas: { id: string; x: number; y: number }[];
   linhas: Linha[];
+  /** de onde desce a linha dos filhos de cada grupo de pais, e a altura em que ela se abre */
+  descidas: { pais: string[]; x: number; y: number; barra: number }[];
   largura: number;
   altura: number;
 }
@@ -86,7 +88,7 @@ export function desenharArvore(
   casais = casais.filter((c) => existe.has(c.a) && existe.has(c.b));
   filiacoes = filiacoes.filter((f) => existe.has(f.filho) && existe.has(f.responsavel));
   coracao = coracao.filter((l) => existe.has(l.dono) && existe.has(l.pessoa));
-  if (pessoas.length === 0) return { pessoas: [], linhas: [], largura: 0, altura: 0 };
+  if (pessoas.length === 0) return { pessoas: [], linhas: [], descidas: [], largura: 0, altura: 0 };
 
   const passo = m.largura + m.vaoX;
   const paisDe = new Map<string, string[]>();
@@ -296,6 +298,7 @@ export function desenharArvore(
     if (!(grupos.get(chave) ?? []).includes(f.filho)) empilhar(grupos, chave, f.filho);
   }
   let degrau = 0;
+  const descidas: Desenho['descidas'] = [];
   for (const [chave, filhos] of grupos) {
     const pais = chave.split('+');
     const baixo = Math.max(...pais.map((p) => em.get(p)!.y)) + m.altura;
@@ -303,6 +306,7 @@ export function desenharArvore(
     // Cada família usa uma altura um pouco diferente, para as linhas não se confundirem
     const barra = baixo + m.vaoY * 0.4 + ((degrau++ % 3) - 1) * 7;
     const origens = ponto ? [{ x: ponto.x, y: ponto.y }] : pais.map((p) => ({ x: meioX(p), y: baixo }));
+    descidas.push({ pais, x: origens[0].x, y: origens[0].y, barra });
     let d = '';
     for (const filho of filhos) {
       for (const o of origens) d += ' ' + arredondado([[o.x, o.y], [o.x, barra], [meioX(filho), barra], [meioX(filho), em.get(filho)!.y]]);
@@ -343,14 +347,43 @@ export function desenharArvore(
   // O filho de um amigo já se liga a quem escolheu pelo pai ou mãe: não precisa de linha própria
   const escolhidosPor = new Map<string, Set<string>>();
   for (const l of coracao) (escolhidosPor.get(l.dono) ?? escolhidosPor.set(l.dono, new Set()).get(l.dono)!).add(l.pessoa);
+  // Os laços de uma pessoa saem juntos, como no FigJam: um tronco só, que entra pela lateral dela
+  // e se divide em curvas para cada escolhido. Cada pessoa e lado tem a sua faixa, logo acima da
+  // fileira, e o tronco desce no vão ao lado dela. Linhas que se sobrepõem parecem uma só.
+  const faixaDoTronco = new Map<string, number>();
+  const tronco = (centro: string, outro: string) => {
+    const pc = em.get(centro)!;
+    const po = em.get(outro)!;
+    const lado = meioX(outro) < meioX(centro) ? -1 : 1;
+    const chave = `${centro}|${lado}`;
+    if (!faixaDoTronco.has(chave)) faixaDoTronco.set(chave, faixa(pc.y));
+    const alto = faixaDoTronco.get(chave)!;
+    const vao = lado < 0 ? pc.x - m.vaoX / 2 : pc.x + m.largura + m.vaoX / 2;
+    const entrada = lado < 0 ? pc.x : pc.x + m.largura;
+    const saida = po.y === pc.y ? po.y : po.y + m.altura;
+    return arredondado([[meioX(outro), saida], [meioX(outro), alto], [vao, alto], [vao, pc.y + m.altura / 2], [entrada, pc.y + m.altura / 2]]);
+  };
   for (const l of diretos) {
     const viaPais = (paisDe.get(l.pessoa) ?? []).some((p) => escolhidosPor.get(l.dono)!.has(p));
-    if (!viaPais) linhas.push({ d: tracejada(l.dono, l.pessoa), tipo: 'coracao', de: [l.dono, l.pessoa] });
+    if (viaPais) continue;
+    const [pd, pp] = [em.get(l.dono)!, em.get(l.pessoa)!];
+    let d: string;
+    if (pd.y === pp.y) {
+      const [esq, dir] = pd.x < pp.x ? [pd, pp] : [pp, pd];
+      const entre = posicoes.some((o) => o.y === pd.y && o.x > esq.x && o.x < dir.x);
+      // Vizinhos: uma linha reta. Com alguém no meio: pelo tronco de quem escolheu.
+      d = entre ? tronco(l.dono, l.pessoa) : `M ${esq.x + m.largura} ${pd.y + m.altura / 2} H ${dir.x}`;
+    } else {
+      // Gerações diferentes: o tronco é de quem está embaixo, e a linha desce de quem está em cima
+      d = pd.y > pp.y ? tronco(l.dono, l.pessoa) : tronco(l.pessoa, l.dono);
+    }
+    linhas.push({ d, tipo: 'coracao', de: [l.dono, l.pessoa] });
   }
 
   return {
     pessoas: posicoes,
     linhas,
+    descidas,
     largura: Math.max(...posicoes.map((p) => p.x)) + m.largura,
     altura: Math.max(...posicoes.map((p) => p.y)) + m.altura,
   };
@@ -539,9 +572,31 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
   };
 
   const copiar = (estado: string[][][]) => estado.map((l) => l.map((b) => [...b]));
-  let melhor = copiar(linhas);
-  let melhorCusto = custo(melhor);
+  // A busca anda um bloco por vez e pode parar numa árvore espelhada (Bracarense à esquerda), que é
+  // um mínimo local quando há muitos laços do coração. Por isso ela parte de três arranjos: o que
+  // veio, o espelho dele e um com cada fileira ordenada pelo lado dos núcleos. Fica o melhor.
+  const ladoDoBloco = (bloco: string[], i: number, total: number) => {
+    const lados = bloco.map((id) => lado.get(id)).filter((v): v is number => v !== undefined);
+    return lados.length ? media(lados) : i / Math.max(total - 1, 1);
+  };
+  const partidas = [
+    copiar(linhas),
+    copiar(linhas).map((l) => l.reverse().map((b) => b.reverse())),
+    copiar(linhas).map((l) => l.map((b, i) => ({ b, k: ladoDoBloco(b, i, l.length), i })).sort((x, y) => x.k - y.k || x.i - y.i).map((x) => x.b)),
+  ];
+  let melhor = partidas[0];
+  let melhorCusto = Infinity;
+  // Só troca de partida quando a diferença é clara. Diferenças pequenas mantêm o arranjo que veio,
+  // para a árvore não pular de um lado para o outro a cada laço aberto.
+  partidas.forEach((partida, i) => {
+    const achado = buscar(partida);
+    const folga = i === 0 ? 0 : Math.max(4, melhorCusto * 0.05);
+    if (achado.custo < melhorCusto - folga) [melhor, melhorCusto] = [achado.estado, achado.custo];
+  });
 
+  function buscar(inicio: string[][][]): { estado: string[][][]; custo: number } {
+  let melhor = inicio;
+  let melhorCusto = custo(melhor);
   for (let rodada = 0; rodada < 10; rodada++) {
     let melhorou = false;
     for (let n = 0; n < melhor.length; n++) {
@@ -582,6 +637,8 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
       }
     }
     if (!melhorou) break;
+  }
+  return { estado: melhor, custo: melhorCusto };
   }
 
   // Por fim, os acabamentos que deixam cada família legível:
@@ -707,7 +764,9 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
         const perto = [...blocos].sort((a, b) => descendentes(a) - descendentes(b) || original.indexOf(a[0]) - original.indexOf(b[0]));
         for (const bloco of perto) {
           // O escolhido fica na ponta do bloco virada para quem o escolheu
-          const escolhido = bloco.find((id) => coracao.some(([d, e]) => d === dono && e === id))!;
+          // Com mais de um escolhido no bloco (um casal de amigos), vale a ordem dos laços, para o
+          // casal não trocar de lado conforme outros laços abrem
+          const escolhido = coracao.find(([d, e]) => d === dono && bloco.includes(e))![1];
           const ponta = direcao < 0 ? bloco.length - 1 : 0;
           if (bloco.length > 1 && bloco.indexOf(escolhido) !== ponta) bloco.reverse();
         }

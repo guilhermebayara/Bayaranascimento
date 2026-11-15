@@ -72,7 +72,7 @@ describe('desenho da árvore', () => {
   });
   it('ignora laços com quem não está no desenho, e aguenta árvore vazia', () => {
     expect(desenho.linhas.some((l) => l.de.includes('ed'))).toBe(false);
-    expect(desenharArvore([], [], [])).toEqual({ pessoas: [], linhas: [], largura: 0, altura: 0 });
+    expect(desenharArvore([], [], [])).toEqual({ pessoas: [], linhas: [], descidas: [], largura: 0, altura: 0 });
   });
   it('tudo cabe dentro da área informada', () => {
     for (const x of desenho.pessoas) {
