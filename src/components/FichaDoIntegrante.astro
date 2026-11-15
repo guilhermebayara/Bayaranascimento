@@ -9,6 +9,7 @@ interface Props {
 
 const { integrante: i } = Astro.props;
 const anoAtual = new Date().getFullYear();
+const temMais = Boolean(i && (i.nascimentoAno || i.falecimentoAno || i.sobre));
 const datas = [
   { prefixo: 'nascimento', rotulo: 'Nascimento', ano: i?.nascimentoAno, mes: i?.nascimentoMes, dia: i?.nascimentoDia },
   { prefixo: 'falecimento', rotulo: 'Falecimento', ano: i?.falecimentoAno, mes: i?.falecimentoMes, dia: i?.falecimentoDia },
@@ -49,46 +50,49 @@ const datas = [
     </div>
   </fieldset>
 
+  <details class="mais" open={temMais}>
+    <summary>Datas e história <small>(opcional, dá para preencher depois)</small></summary>
   <fieldset>
-    <legend>Datas</legend>
-    <p class="dica">Preencha o que souber. Só o ano já basta.</p>
-    {
-      datas.map((d) => (
-        <div class="campo">
-          <span>{d.rotulo}</span>
-          <div class="campos-data">
-            <label class="campo">
-              <span>Dia</span>
-              <input type="number" name={`${d.prefixo}Dia`} min="1" max="31" inputmode="numeric" value={d.dia ?? ''} />
-            </label>
-            <label class="campo">
-              <span>Mês</span>
-              <select name={`${d.prefixo}Mes`}>
-                <option value="">Não sei</option>
-                {MESES.map((m, n) => (
-                  <option value={n + 1} selected={d.mes === n + 1}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label class="campo">
-              <span>Ano</span>
-              <input type="number" name={`${d.prefixo}Ano`} min="1800" max={anoAtual} inputmode="numeric" value={d.ano ?? ''} />
-            </label>
+      <legend>Datas</legend>
+      <p class="dica">Preencha o que souber. Só o ano já basta.</p>
+      {
+        datas.map((d) => (
+          <div class="campo">
+            <span>{d.rotulo}</span>
+            <div class="campos-data">
+              <label class="campo">
+                <span>Dia</span>
+                <input type="number" name={`${d.prefixo}Dia`} min="1" max="31" inputmode="numeric" value={d.dia ?? ''} />
+              </label>
+              <label class="campo">
+                <span>Mês</span>
+                <select name={`${d.prefixo}Mes`}>
+                  <option value="">Não sei</option>
+                  {MESES.map((m, n) => (
+                    <option value={n + 1} selected={d.mes === n + 1}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label class="campo">
+                <span>Ano</span>
+                <input type="number" name={`${d.prefixo}Ano`} min="1800" max={anoAtual} inputmode="numeric" value={d.ano ?? ''} />
+              </label>
+            </div>
           </div>
-        </div>
-      ))
-    }
-  </fieldset>
+        ))
+      }
+    </fieldset>
 
-  <fieldset>
-    <legend>Sobre</legend>
-    <label class="campo">
-      <span>Quem é, do jeito que a família contaria <small>(opcional)</small></span>
-      <textarea name="sobre" rows="6" maxlength="5000">{i?.sobre ?? ''}</textarea>
-    </label>
-  </fieldset>
+    <fieldset>
+      <legend>Sobre</legend>
+      <label class="campo">
+        <span>Quem é, do jeito que a família contaria <small>(opcional)</small></span>
+        <textarea name="sobre" rows="6" maxlength="5000">{i?.sobre ?? ''}</textarea>
+      </label>
+    </fieldset>
+  </details>
 
   {
     !i && (
@@ -100,7 +104,7 @@ const datas = [
   }
 
   <div class="acoes">
-    <button class="botao" type="submit">{i ? 'Salvar página' : 'Cadastrar'}</button>
+    <button class="botao" type="submit">{i ? 'Salvar página' : 'Cadastrar e ir para os laços'}</button>
     <a class="botao botao--leve" href={i ? `/pessoas/${i.id}` : '/pessoas'}>Cancelar</a>
   </div>
 </form>

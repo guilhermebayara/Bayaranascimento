@@ -6,7 +6,11 @@ import FichaDoIntegrante from '../../components/FichaDoIntegrante.astro';
 <Base titulo="Nova pessoa">
   <div class="abertura abertura--curta">
     <h1>Nova pessoa</h1>
-    <p>Cadastre alguém da família, um bicho ou uma pessoa querida. Só o nome é obrigatório, e os laços vêm no passo seguinte.</p>
+    <p>Cadastre alguém da família, um bicho ou uma pessoa querida. Só o nome é obrigatório. Os laços com o resto da família vêm na etapa seguinte.</p>
   </div>
+  <ol class="etapas etapas--fluxo" aria-label="Etapas">
+    <li><span aria-current="step"><b>1</b><span>Quem é</span></span></li>
+    <li><span><b>2</b><span>Laços</span></span></li>
+  </ol>
   <FichaDoIntegrante />
 </Base>
