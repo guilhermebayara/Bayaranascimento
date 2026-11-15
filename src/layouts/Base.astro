@@ -1,0 +1,52 @@
+---
+import '../styles/global.css';
+import { listarMemorias, listarPessoas, nomeCurto } from '../lib/memorias';
+
+interface Props {
+  titulo?: string;
+}
+
+const { titulo } = Astro.props;
+const pessoas = await listarPessoas();
+const memorias = await listarMemorias();
+const temExemplos = memorias.some((m) => m.data.exemplo);
+const caminho = Astro.url.pathname.replace(/\/$/, '') || '/';
+const tituloPagina = titulo ? `${titulo} | Bayara Nascimento` : 'Bayara Nascimento, memórias da família';
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#edf2ee" />
+    <title>{tituloPagina}</title>
+  </head>
+  <body>
+    {
+      temExemplos && (
+        <div class="aviso">
+          <p class="miolo">As memórias desta versão são exemplos para testar o formato.</p>
+        </div>
+      )
+    }
+    <header class="miolo topo">
+      <a class="topo__nome" href="/">Bayara Nascimento</a>
+      <nav class="topo__nav" aria-label="Linhas do tempo">
+        <a href="/" aria-current={caminho === '/' ? 'page' : undefined}>Família toda</a>
+        {
+          pessoas.map((p) => (
+            <a href={`/pessoas/${p.id}`} aria-current={caminho === `/pessoas/${p.id}` ? 'page' : undefined}>
+              {nomeCurto(p)}
+            </a>
+          ))
+        }
+      </nav>
+    </header>
+    <main class="miolo">
+      <slot />
+    </main>
+    <footer class="miolo rodape">Acervo privado da família Bayara Nascimento.</footer>
+  </body>
+</html>

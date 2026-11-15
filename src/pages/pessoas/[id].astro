@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import LinhaDoTempo from '../../components/LinhaDoTempo.astro';
+import { listarMemorias, listarPessoas, type Pessoa } from '../../lib/memorias';
+
+export async function getStaticPaths() {
+  const pessoas = await listarPessoas();
+  return pessoas.map((pessoa) => ({ params: { id: pessoa.id }, props: { pessoa } }));
+}
+
+interface Props {
+  pessoa: Pessoa;
+}
+
+const { pessoa } = Astro.props;
+const pessoas = await listarPessoas();
+const memorias = (await listarMemorias()).filter((m) => m.data.pessoas.some((ref) => ref.id === pessoa.id));
+---
+
+<Base titulo={pessoa.data.nome}>
+  <div class="abertura">
+    <h1>{pessoa.data.nome}</h1>
+    <p>
+      {
+        memorias.length === 0
+          ? 'Nenhuma memória registrada ainda.'
+          : `${memorias.length} ${memorias.length === 1 ? 'memória' : 'memórias'} em que ${pessoa.data.nome} aparece.`
+      }
+    </p>
+  </div>
+  <LinhaDoTempo memorias={memorias} pessoas={pessoas} />
+</Base>

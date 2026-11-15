@@ -1,0 +1,25 @@
+---
+import Base from '../layouts/Base.astro';
+import LinhaDoTempo from '../components/LinhaDoTempo.astro';
+import { listarMemorias, listarPessoas } from '../lib/memorias';
+
+const memorias = await listarMemorias();
+const pessoas = await listarPessoas();
+const primeiro = memorias[0]?.data.ano;
+const ultimo = memorias.at(-1)?.data.ano;
+const periodo = primeiro && ultimo && primeiro !== ultimo ? `de ${primeiro} a ${ultimo}` : primeiro ? `em ${primeiro}` : '';
+---
+
+<Base>
+  <div class="abertura">
+    <h1>Bayara Nascimento</h1>
+    <p>
+      {
+        memorias.length === 0
+          ? 'As memórias da nossa família.'
+          : `${memorias.length} ${memorias.length === 1 ? 'memória' : 'memórias'} da nossa família, ${periodo}.`
+      }
+    </p>
+  </div>
+  <LinhaDoTempo memorias={memorias} pessoas={pessoas} />
+</Base>

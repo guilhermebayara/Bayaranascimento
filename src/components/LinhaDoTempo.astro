@@ -1,0 +1,87 @@
+---
+import Cartao from './Cartao.astro';
+import { TIPOS, type TipoId } from '../data/tipos';
+import { agruparPorAno, type Memoria, type Pessoa } from '../lib/memorias';
+
+interface Props {
+  memorias: Memoria[];
+  pessoas: Pessoa[];
+}
+
+const { memorias, pessoas } = Astro.props;
+const anos = agruparPorAno(memorias);
+const tiposPresentes = (Object.keys(TIPOS) as TipoId[]).filter((id) => memorias.some((m) => m.data.tipo === id));
+---
+
+{
+  memorias.length === 0 ? (
+    <p class="vazio">Ainda não há memórias aqui.</p>
+  ) : (
+    <div data-linha-do-tempo>
+      {tiposPresentes.length > 1 && (
+        <ul class="filtros" aria-label="Filtrar por tipo de marco">
+          <li>
+            <button type="button" data-filtro="" aria-pressed="true">
+              Tudo
+            </button>
+          </li>
+          {tiposPresentes.map((id) => (
+            <li>
+              <button type="button" data-filtro={id} data-cor style={`--cor-tipo: ${TIPOS[id].cor}`} aria-pressed="false">
+                {TIPOS[id].rotulo}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {anos.map(({ ano, itens }) => (
+        <section class="ano" aria-labelledby={`ano-${ano}`}>
+          <h2 class="ano__numero" id={`ano-${ano}`}>
+            <span>{ano}</span>
+          </h2>
+          <div class="ano__itens">
+            {itens.map((m) => (
+              <Cartao memoria={m} pessoas={pessoas} />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+
+<script>
+  const raiz = document.querySelector<HTMLElement>('[data-linha-do-tempo]');
+  if (raiz) {
+    const botoes = [...raiz.querySelectorAll<HTMLButtonElement>('[data-filtro]')];
+    const validos = new Set(botoes.map((b) => b.dataset.filtro));
+
+    const aplicar = (tipo: string) => {
+      for (const b of botoes) b.setAttribute('aria-pressed', String(b.dataset.filtro === tipo));
+      for (const secao of raiz.querySelectorAll<HTMLElement>('.ano')) {
+        let visiveis = 0;
+        for (const cartao of secao.querySelectorAll<HTMLElement>('.cartao')) {
+          const mostra = !tipo || cartao.dataset.tipo === tipo;
+          cartao.hidden = !mostra;
+          if (mostra) visiveis++;
+        }
+        secao.hidden = visiveis === 0;
+      }
+    };
+
+    for (const b of botoes) {
+      b.addEventListener('click', () => {
+        const tipo = b.dataset.filtro ?? '';
+        aplicar(tipo);
+        const url = new URL(location.href);
+        if (tipo) url.searchParams.set('tipo', tipo);
+        else url.searchParams.delete('tipo');
+        history.replaceState(null, '', url);
+      });
+    }
+
+    const inicial = new URLSearchParams(location.search).get('tipo') ?? '';
+    if (inicial && validos.has(inicial)) aplicar(inicial);
+  }
+</script>

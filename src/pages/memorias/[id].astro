@@ -1,0 +1,128 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Foto from '../../components/Foto.astro';
+import { TIPOS } from '../../data/tipos';
+import { formatarData, listarMemorias, listarPessoas, nomeCurto, type Memoria, type Pessoa } from '../../lib/memorias';
+
+export async function getStaticPaths() {
+  const memorias = await listarMemorias();
+  return memorias.map((memoria, i) => ({
+    params: { id: memoria.id },
+    props: { memoria, antes: memorias[i - 1], depois: memorias[i + 1] },
+  }));
+}
+
+interface Props {
+  memoria: Memoria;
+  antes?: Memoria;
+  depois?: Memoria;
+}
+
+const { memoria, antes, depois } = Astro.props;
+const { data } = memoria;
+const { Content } = await render(memoria);
+const pessoas = await listarPessoas();
+const achar = (id?: string) => pessoas.find((p) => p.id === id);
+const presentes = data.pessoas.map((ref) => achar(ref.id)).filter((p): p is Pessoa => Boolean(p));
+const autor = achar(data.registradoPor?.id);
+const tipo = TIPOS[data.tipo];
+// A foto chave abre a galeria
+const fotos = [...data.fotos].sort((a, b) => Number(b.chave) - Number(a.chave));
+const temTexto = Boolean(memoria.body?.trim());
+---
+
+<Base titulo={data.titulo}>
+  <article>
+    <header class="memoria__cabeca">
+      <p class="memoria__etiquetas">
+        <span class="tipo" style={`--cor-tipo: ${tipo.cor}`}>{tipo.rotulo}</span>
+        {data.exemplo && <span class="exemplo">exemplo</span>}
+      </p>
+      <h1>{data.titulo}</h1>
+      <dl class="memoria__ficha">
+        <dt>Quando</dt>
+        <dd>{formatarData(memoria)}</dd>
+        {
+          data.lugar && (
+            <>
+              <dt>Onde</dt>
+              <dd>{data.lugar}</dd>
+            </>
+          )
+        }
+        {
+          presentes.length > 0 && (
+            <>
+              <dt>Quem</dt>
+              <dd>
+                {presentes.map((p, i) => (
+                  <>
+                    {i > 0 && ', '}
+                    <a href={`/pessoas/${p.id}`}>{nomeCurto(p)}</a>
+                  </>
+                ))}
+              </dd>
+            </>
+          )
+        }
+      </dl>
+    </header>
+
+    {
+      fotos.length > 0 && (
+        <div class="galeria">
+          {fotos.map((foto) => (
+            <Foto foto={foto} tipo={data.tipo} />
+          ))}
+        </div>
+      )
+    }
+
+    {
+      temTexto && (
+        <section class="relato">
+          <h2>{autor ? `Contado por ${nomeCurto(autor)}` : 'Relato'}</h2>
+          <div class="relato__texto">
+            <Content />
+          </div>
+        </section>
+      )
+    }
+
+    {
+      data.relatos.map((relato) => {
+        const quem = achar(relato.por.id);
+        return (
+          <section class="relato">
+            <h2>{quem ? `Contado por ${nomeCurto(quem)}` : 'Outro relato'}</h2>
+            <p class="relato__texto relato__texto--simples">{relato.texto.trim()}</p>
+          </section>
+        );
+      })
+    }
+  </article>
+
+  <nav class="vizinhas" aria-label="Outras memórias">
+    <div>
+      {
+        antes && (
+          <a href={`/memorias/${antes.id}`}>
+            <small>Antes, {formatarData(antes)}</small>
+            <strong>{antes.data.titulo}</strong>
+          </a>
+        )
+      }
+    </div>
+    <div class="vizinhas__depois">
+      {
+        depois && (
+          <a href={`/memorias/${depois.id}`}>
+            <small>Depois, {formatarData(depois)}</small>
+            <strong>{depois.data.titulo}</strong>
+          </a>
+        )
+      }
+    </div>
+  </nav>
+</Base>

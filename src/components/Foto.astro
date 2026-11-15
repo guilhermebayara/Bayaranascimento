@@ -1,0 +1,24 @@
+---
+import { TIPOS, type TipoId } from '../data/tipos';
+
+interface Props {
+  foto: { src?: string; legenda?: string };
+  tipo: TipoId;
+  mostrarLegenda?: boolean;
+}
+
+const { foto, tipo, mostrarLegenda = true } = Astro.props;
+---
+
+<figure class="foto" style={`--cor-tipo: ${TIPOS[tipo].cor}`}>
+  <div class="foto__papel">
+    {
+      foto.src ? (
+        <img src={foto.src} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
+      ) : (
+        <div class="foto__reserva">Foto a adicionar</div>
+      )
+    }
+  </div>
+  {mostrarLegenda && foto.legenda && <figcaption>{foto.legenda}</figcaption>}
+</figure>
