@@ -1,68 +1,73 @@
 ---
-import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Foto from '../../components/Foto.astro';
-import { TIPOS } from '../../data/tipos';
-import { formatarData, listarMemorias, listarRelatos, listarPessoas, nomeCurto, type Memoria, type Pessoa } from '../../lib/memorias';
+import { TIPOS, type TipoId } from '../../data/tipos';
+import { formatarData } from '../../lib/datas';
+import { podeEditarMemoria } from '../../lib/servidor/permissoes';
+import { listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, obterMemoria } from '../../lib/servidor/repositorio';
 
-export async function getStaticPaths() {
-  const memorias = await listarMemorias();
-  return memorias.map((memoria, i) => ({
-    params: { id: memoria.id },
-    props: { memoria, antes: memorias[i - 1], depois: memorias[i + 1] },
-  }));
-}
+const { usuario } = Astro.locals;
+const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
+// Rascunho se edita no formulário. Memória que a pessoa não vê é como se não existisse.
+if (!memoria) return new Response('Memória não encontrada', { status: 404 });
+if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.id}`);
 
-interface Props {
-  memoria: Memoria;
-  antes?: Memoria;
-  depois?: Memoria;
-}
+const integrantes = await listarIntegrantes();
+const nucleos = await listarNucleos();
+const relatos = await listarRelatos(usuario, memoria.id);
+const achar = (id: string) => integrantes.find((i) => i.id === id);
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+const tipo = TIPOS[memoria.tipo as TipoId] ?? { rotulo: memoria.tipo, cor: 'var(--tinta)' };
+const dosNucleos = memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean);
+const podeEditar = podeEditarMemoria(usuario, memoria).ok;
 
-const { memoria, antes, depois } = Astro.props;
-const { data } = memoria;
-const relatos = await Promise.all(
-  (await listarRelatos(memoria)).map(async (relato) => ({ relato, Content: (await render(relato)).Content })),
-);
-const pessoas = await listarPessoas();
-const achar = (id?: string) => pessoas.find((p) => p.id === id);
-const presentes = data.pessoas.map((ref) => achar(ref.id)).filter((p): p is Pessoa => Boolean(p));
-const tipo = TIPOS[data.tipo];
-// A foto chave abre a galeria
-const fotos = [...data.fotos].sort((a, b) => Number(b.chave) - Number(a.chave));
+// Vizinhas na linha do tempo, entre as que a pessoa vê
+const todas = await listarMemorias(usuario);
+const posicao = todas.findIndex((m) => m.id === memoria.id);
+const antes = todas[posicao - 1];
+const depois = todas[posicao + 1];
 ---
 
-<Base titulo={data.titulo}>
+<Base titulo={memoria.titulo}>
   <article>
     <header class="memoria__cabeca">
       <p class="memoria__etiquetas">
         <span class="tipo" style={`--cor-tipo: ${tipo.cor}`}>{tipo.rotulo}</span>
-        {data.exemplo && <span class="exemplo">exemplo</span>}
+        {memoria.visibilidade === 'nucleos' && <span class="selo">Só {dosNucleos.join(' e ')}</span>}
+        {memoria.exemplo && <span class="exemplo">exemplo</span>}
       </p>
-      <h1>{data.titulo}</h1>
+      <h1>{memoria.titulo}</h1>
       <dl class="memoria__ficha">
         <dt>Quando</dt>
         <dd>{formatarData(memoria)}</dd>
         {
-          data.lugar && (
+          memoria.lugar && (
             <>
               <dt>Onde</dt>
-              <dd>{data.lugar}</dd>
+              <dd>{memoria.lugar}</dd>
             </>
           )
         }
         {
-          presentes.length > 0 && (
+          memoria.integrantes.length > 0 && (
             <>
               <dt>Quem</dt>
               <dd>
-                {presentes.map((p, i) => (
+                {memoria.integrantes.map((id, i) => (
                   <>
                     {i > 0 && ', '}
-                    <a href={`/pessoas/${p.id}`}>{nomeCurto(p)}</a>
+                    <a href={`/pessoas/${id}`}>{nome(id)}</a>
                   </>
                 ))}
               </dd>
+            </>
+          )
+        }
+        {
+          dosNucleos.length > 0 && (
+            <>
+              <dt>Núcleos</dt>
+              <dd>{dosNucleos.join(', ')}</dd>
             </>
           )
         }
@@ -70,32 +75,36 @@ const fotos = [...data.fotos].sort((a, b) => Number(b.chave) - Number(a.chave));
     </header>
 
     {
-      fotos.length > 0 && (
+      memoria.fotos.length > 0 && (
         <div class="galeria">
-          {fotos.map((foto) => (
-            <Foto foto={foto} tipo={data.tipo} />
+          {memoria.fotos.map((foto) => (
+            <Foto foto={foto} tipo={memoria.tipo} />
           ))}
         </div>
       )
     }
 
     {
-      relatos.map(({ relato, Content }) => {
-        const quem = achar(relato.data.por.id);
-        const escreveu = achar(relato.data.registradoPor?.id);
-        return (
-          <section class="relato">
-            <h2>
-              {quem ? `Contado por ${nomeCurto(quem)}` : 'Relato'}
-              {escreveu && `, registrado por ${nomeCurto(escreveu)}`}
-            </h2>
-            <div class="relato__texto">
-              <Content />
-            </div>
-          </section>
-        );
-      })
+      relatos.map((relato) => (
+        <section class="relato">
+          <h2>
+            Contado por {nome(relato.por)}
+            {relato.registradoPor !== relato.por && `, registrado por ${nome(relato.registradoPor)}`}
+            {relato.situacao === 'rascunho' && <span class="selo">Rascunho, só você vê</span>}
+          </h2>
+          <div class="relato__texto">
+            {relato.texto.split(/\n{2,}/).map((paragrafo) => (
+              <p>{paragrafo}</p>
+            ))}
+          </div>
+        </section>
+      ))
     }
+
+    <p class="convite">
+      <a class="botao botao--leve" href={`/memorias/${memoria.id}/relato`}>Escrever ou editar o meu relato</a>
+      {podeEditar && <a class="botao botao--leve" href={`/nova?id=${memoria.id}`}>Corrigir esta memória</a>}
+    </p>
   </article>
 
   <nav class="vizinhas" aria-label="Outras memórias">
@@ -104,7 +113,7 @@ const fotos = [...data.fotos].sort((a, b) => Number(b.chave) - Number(a.chave));
         antes && (
           <a href={`/memorias/${antes.id}`}>
             <small>Antes, {formatarData(antes)}</small>
-            <strong>{antes.data.titulo}</strong>
+            <strong>{antes.titulo}</strong>
           </a>
         )
       }
@@ -114,7 +123,7 @@ const fotos = [...data.fotos].sort((a, b) => Number(b.chave) - Number(a.chave));
         depois && (
           <a href={`/memorias/${depois.id}`}>
             <small>Depois, {formatarData(depois)}</small>
-            <strong>{depois.data.titulo}</strong>
+            <strong>{depois.titulo}</strong>
           </a>
         )
       }

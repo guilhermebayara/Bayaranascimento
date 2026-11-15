@@ -1,33 +1,44 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { listarMemorias, listarPessoas } from '../../lib/memorias';
+import { listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
 
-const pessoas = await listarPessoas();
-const memorias = await listarMemorias();
-const contar = (id: string) => memorias.filter((m) => m.data.pessoas.some((ref) => ref.id === id)).length;
+const { usuario } = Astro.locals;
+const integrantes = await listarIntegrantes();
+const nucleos = await listarNucleos();
+const memorias = await listarMemorias(usuario);
+const contar = (id: string) => memorias.filter((m) => m.integrantes.includes(id)).length;
+const grupos = [
+  ...nucleos.map((n) => ({ nome: n.nome, membros: integrantes.filter((i) => i.nucleos.includes(n.id)) })),
+  { nome: 'Outras pessoas', membros: integrantes.filter((i) => i.nucleos.length === 0) },
+].filter((g) => g.membros.length > 0);
 ---
 
 <Base titulo="Pessoas">
-  <div class="abertura">
+  <div class="abertura abertura--curta">
     <h1>Pessoas</h1>
-    <p>Quem aparece nas memórias da família.</p>
+    <p>Quem aparece nas memórias da família, por núcleo.</p>
   </div>
-  <ul class="pessoas">
-    {
-      pessoas.map((p) => {
-        const n = contar(p.id);
-        return (
-          <li>
-            <a href={`/pessoas/${p.id}`}>
-              <strong>{p.data.nome}</strong>
-              <span>
-                {p.data.parentesco ? `${p.data.parentesco}, ` : ''}
-                {n} {n === 1 ? 'memória' : 'memórias'}
-              </span>
-            </a>
-          </li>
-        );
-      })
-    }
-  </ul>
+  {
+    grupos.map((grupo) => (
+      <section class="grupo">
+        <h2>{grupo.nome}</h2>
+        <ul class="pessoas">
+          {grupo.membros.map((p) => {
+            const n = contar(p.id);
+            return (
+              <li>
+                <a href={`/pessoas/${p.id}`}>
+                  <strong>{p.nome}</strong>
+                  <span>
+                    {p.tipo === 'bicho' && `${p.especie ?? 'bicho'}, `}
+                    {n} {n === 1 ? 'memória' : 'memórias'}
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ))
+  }
 </Base>

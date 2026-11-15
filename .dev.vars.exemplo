@@ -1,0 +1,4 @@
+# Copie para .dev.vars para rodar o site no computador.
+# Em desenvolvimento não há login e o banco é local, com memórias de exemplo.
+AMBIENTE=desenvolvimento
+ACESSOS={}

@@ -1,40 +1,40 @@
 ---
 import Foto from './Foto.astro';
-import { TIPOS } from '../data/tipos';
-import { fotoChave, formatarDiaMes, nomeCurto, type Memoria, type Pessoa } from '../lib/memorias';
+import { TIPOS, type TipoId } from '../data/tipos';
+import { formatarDiaMes } from '../lib/datas';
+import type { Integrante, Memoria, Nucleo } from '../lib/servidor/repositorio';
 
 interface Props {
   memoria: Memoria;
-  pessoas: Pessoa[];
-  relatos?: number;
+  integrantes: Integrante[];
+  nucleos: Nucleo[];
 }
 
-const { memoria, pessoas, relatos = 0 } = Astro.props;
-const { data } = memoria;
-const foto = fotoChave(memoria);
-const tipo = TIPOS[data.tipo];
+const { memoria, integrantes, nucleos } = Astro.props;
+const foto = memoria.fotos[0];
+const tipo = TIPOS[memoria.tipo as TipoId] ?? { rotulo: memoria.tipo, cor: 'var(--tinta)' };
 const diaMes = formatarDiaMes(memoria);
-const nomes = data.pessoas
-  .map((ref) => pessoas.find((p) => p.id === ref.id))
-  .filter((p): p is Pessoa => Boolean(p))
-  .map(nomeCurto);
-const nucleo = pessoas.filter((p) => p.data.nucleo);
-const ids = new Set(data.pessoas.map((ref) => ref.id));
-// "Todo mundo" só quando a lista é exatamente o núcleo da família
-const todos = nucleo.length > 1 && ids.size === nucleo.length && nucleo.every((p) => ids.has(p.id));
+const nomes = memoria.integrantes
+  .map((id) => integrantes.find((i) => i.id === id))
+  .filter((i): i is Integrante => Boolean(i))
+  .map((i) => i.apelido ?? i.nome);
+const restritaA = memoria.visibilidade === 'nucleos' ? memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean) : [];
+const destino = memoria.situacao === 'rascunho' ? `/nova?id=${memoria.id}` : `/memorias/${memoria.id}`;
 ---
 
-<article class:list={['cartao', foto && 'cartao--com-foto']} data-tipo={data.tipo}>
-  {foto && <Foto foto={foto} tipo={data.tipo} mostrarLegenda={false} />}
+<article class:list={['cartao', foto && 'cartao--com-foto']} data-tipo={memoria.tipo}>
+  {foto && <Foto foto={foto} tipo={memoria.tipo} mostrarLegenda={false} />}
   <div>
     {diaMes && <p class="cartao__data">{diaMes}</p>}
-    <h3><a href={`/memorias/${memoria.id}`}>{data.titulo}</a></h3>
+    <h3><a href={destino}>{memoria.titulo}</a></h3>
     <ul class="cartao__detalhes">
       <li class="tipo" style={`--cor-tipo: ${tipo.cor}`}>{tipo.rotulo}</li>
-      {nomes.length > 0 && <li>{todos ? 'Todo mundo' : nomes.join(', ')}</li>}
-      {data.lugar && <li>{data.lugar}</li>}
-      {relatos > 1 && <li>{relatos} relatos</li>}
-      {data.exemplo && <li><span class="exemplo">exemplo</span></li>}
+      {nomes.length > 0 && <li>{nomes.join(', ')}</li>}
+      {memoria.lugar && <li>{memoria.lugar}</li>}
+      {memoria.relatos > 1 && <li>{memoria.relatos} relatos</li>}
+      {restritaA.length > 0 && <li><span class="selo">Só {restritaA.join(' e ')}</span></li>}
+      {memoria.situacao === 'rascunho' && <li><span class="selo">Rascunho</span></li>}
+      {memoria.exemplo && <li><span class="exemplo">exemplo</span></li>}
     </ul>
   </div>
 </article>

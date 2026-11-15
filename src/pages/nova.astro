@@ -1,0 +1,418 @@
+---
+import Base from '../layouts/Base.astro';
+import { TIPOS, type TipoId } from '../data/tipos';
+import { MESES } from '../lib/datas';
+import { pessoasComAcesso } from '../lib/servidor/acesso';
+import { podeEditarMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
+import { listarIntegrantes, listarNucleos, obterMemoria, obterRelato } from '../lib/servidor/repositorio';
+
+// Esta página serve para três coisas: registrar uma memória nova, continuar
+// um rascunho e corrigir uma memória já publicada (?id=...).
+const { usuario } = Astro.locals;
+const id = Astro.url.searchParams.get('id');
+const memoria = id ? await obterMemoria(usuario, id) : undefined;
+if (id && !memoria) return new Response('Memória não encontrada', { status: 404 });
+if (memoria && !podeEditarMemoria(usuario, memoria).ok) return Astro.redirect(`/memorias/${memoria.id}`);
+
+const publicada = memoria?.situacao === 'publicada';
+const integrantes = await listarIntegrantes();
+const comAcesso = await pessoasComAcesso();
+const semAcesso = integrantes.filter((i) => i.tipo === 'pessoa' && !comAcesso.has(i.id));
+const nucleos = await listarNucleos();
+// A pessoa marca os próprios núcleos. Numa edição, os que já estavam aparecem também.
+const nucleosDisponiveis = nucleos.filter((n) => usuario.nucleos.includes(n.id) || memoria?.nucleos.includes(n.id));
+const nucleosMarcados = memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usuario.nucleos : []);
+// O relato só entra aqui enquanto a memória não foi publicada. Depois, cada um edita o seu na própria página.
+const meuRelato = memoria && !publicada ? await obterRelato(memoria.id, usuario.pessoa) : undefined;
+const anoAtual = new Date().getFullYear();
+const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'Continuar rascunho';
+---
+
+<Base titulo={titulo}>
+  <div class="abertura abertura--curta">
+    <h1>{titulo}</h1>
+    <p>
+      {
+        publicada
+          ? 'Ajuste a ficha, as fotos ou quem pode ver. Os relatos não mudam por aqui: cada pessoa cuida do seu.'
+          : `Olá, ${usuario.nome}. Conte o que aconteceu, do seu jeito. Só o título e o ano são obrigatórios.`
+      }
+    </p>
+  </div>
+
+  <form class="formulario" data-formulario-memoria data-id={memoria?.id ?? ''} novalidate>
+    <fieldset>
+      <legend>O que aconteceu?</legend>
+      <label class="campo">
+        <span>Título</span>
+        <input type="text" name="titulo" required maxlength="120" autocomplete="off" value={memoria?.titulo ?? ''} placeholder="Ex.: Casamento da Giovanna" />
+      </label>
+      <div class="campo">
+        <span id="rotulo-tipo">Que tipo de momento foi?</span>
+        <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-tipo">
+          {
+            (Object.keys(TIPOS) as TipoId[]).map((tipo) => (
+              <label class="opcao" style={`--cor-tipo: ${TIPOS[tipo].cor}`}>
+                <input type="radio" name="tipo" value={tipo} checked={tipo === (memoria?.tipo ?? 'cotidiano')} />
+                <span class="tipo">{TIPOS[tipo].rotulo}</span>
+              </label>
+            ))
+          }
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Quando foi?</legend>
+      <div class="campos-data">
+        <label class="campo">
+          <span>Ano</span>
+          <input type="number" name="ano" required inputmode="numeric" min="1800" max={anoAtual} value={memoria?.ano ?? ''} placeholder={String(anoAtual)} />
+        </label>
+        <label class="campo">
+          <span>Mês, se souber</span>
+          <select name="mes">
+            <option value="">Não sei</option>
+            {MESES.map((nome, i) => <option value={i + 1} selected={memoria?.mes === i + 1}>{nome}</option>)}
+          </select>
+        </label>
+        <label class="campo">
+          <span>Dia, se souber</span>
+          <input type="number" name="dia" inputmode="numeric" min="1" max="31" value={memoria?.dia ?? ''} />
+        </label>
+      </div>
+      <label class="marcar">
+        <input type="checkbox" name="aproximada" checked={memoria?.aproximada} />
+        <span>Não tenho certeza da data</span>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Onde foi?</legend>
+      <label class="campo">
+        <span>Lugar, se quiser</span>
+        <input type="text" name="lugar" maxlength="120" value={memoria?.lugar ?? ''} placeholder="Ex.: Belo Horizonte" />
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Quem estava?</legend>
+      <div class="opcoes">
+        {
+          integrantes.map((p) => (
+            <label class="opcao">
+              <input type="checkbox" name="pessoas" value={p.id} checked={memoria?.integrantes.includes(p.id)} />
+              <span>{p.apelido ?? p.nome}</span>
+            </label>
+          ))
+        }
+      </div>
+      <div data-novas-pessoas></div>
+      <button type="button" class="botao botao--leve" data-adicionar-pessoa>Adicionar alguém que não está na lista</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Fotos</legend>
+      <p class="dica">Escolha as fotos desse momento. Você pode escrever uma legenda para cada uma.</p>
+      <label class="botao botao--leve botao--arquivo">
+        Escolher fotos
+        <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
+      </label>
+      <ul class="fotos-enviadas" data-fotos>
+        {
+          (memoria?.fotos ?? []).map((foto) => (
+            <li class="foto-enviada" data-foto-id={foto.id}>
+              <div class="foto__papel">{foto.chave ? <img src={`/fotos/${foto.chave}`} alt="" /> : <div class="foto__reserva">Foto de exemplo</div>}</div>
+              <div class="foto-enviada__campos">
+                <label class="campo">
+                  <span>Legenda</span>
+                  <input type="text" data-legenda maxlength="200" value={foto.legenda ?? ''} />
+                </label>
+                <label class="marcar">
+                  <input type="radio" name="fotoPrincipal" value={foto.id} checked={foto.principal} />
+                  <span>Usar na linha do tempo</span>
+                </label>
+                {podeRemoverFoto(usuario, foto.enviadaPor).ok ? (
+                  <button type="button" class="botao botao--leve" data-remover>
+                    Remover foto
+                  </button>
+                ) : (
+                  <p class="dica">Só quem enviou pode remover.</p>
+                )}
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </fieldset>
+
+    <fieldset>
+      <legend>Quem pode ver?</legend>
+      {
+        nucleosDisponiveis.length > 0 && (
+          <div class="campo">
+            <span id="rotulo-nucleos">De quais núcleos é esta memória?</span>
+            <div class="opcoes" role="group" aria-labelledby="rotulo-nucleos">
+              {nucleosDisponiveis.map((n) => (
+                <label class="opcao">
+                  <input type="checkbox" name="nucleos" value={n.id} checked={nucleosMarcados.includes(n.id)} />
+                  <span>{n.nome}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )
+      }
+      <label class="marcar">
+        <input type="radio" name="visibilidade" value="todos" checked={(memoria?.visibilidade ?? 'todos') === 'todos'} />
+        <span>Toda a família vê</span>
+      </label>
+      <label class="marcar">
+        <input type="radio" name="visibilidade" value="nucleos" checked={memoria?.visibilidade === 'nucleos'} />
+        <span>Só quem é dos núcleos marcados acima</span>
+      </label>
+      <p class="dica">Dá para mudar depois. Quem não pode ver não fica sabendo que a memória existe.</p>
+    </fieldset>
+
+    {
+      !publicada && (
+        <fieldset>
+          <legend>Como foi?</legend>
+          <label class="campo">
+            <span>Quem está contando</span>
+            <select name="relatoPor" data-relato-por>
+              <option value={usuario.pessoa}>Eu, {usuario.nome}</option>
+              {semAcesso.map((p) => <option value={p.id}>{p.nome}, e eu estou escrevendo</option>)}
+            </select>
+          </label>
+          <label class="campo">
+            <span>O relato</span>
+            <textarea name="relato" rows="8" maxlength="20000" placeholder="Escreva como você lembra. Outras pessoas da família vão poder contar a versão delas depois.">{meuRelato?.texto ?? ''}</textarea>
+          </label>
+          <p class="dica">Só você vai poder alterar este texto.</p>
+        </fieldset>
+      )
+    }
+
+    <p class="situacao" data-situacao role="status" aria-live="polite"></p>
+    <div class="acoes">
+      <button type="submit" class="botao" data-salvar="publicada">{publicada ? 'Salvar alterações' : 'Publicar memória'}</button>
+      {!publicada && <button type="submit" class="botao botao--leve" data-salvar="rascunho">Salvar rascunho</button>}
+    </div>
+  </form>
+
+  <div class="confirmacao" data-confirmacao hidden>
+    <h2>Memória guardada</h2>
+    <p>Ela já está na linha do tempo.</p>
+    <p>
+      <a class="botao" data-confirmacao-link href="/">Ver a memória</a>
+      <a class="botao botao--leve" href="/nova">Registrar outra memória</a>
+    </p>
+  </div>
+</Base>
+
+<script>
+  import { prepararFoto } from '../lib/cliente/fotos';
+
+  const form = document.querySelector<HTMLFormElement>('[data-formulario-memoria]');
+  if (form) {
+    const situacaoEl = form.querySelector<HTMLElement>('[data-situacao]')!;
+    const listaFotos = form.querySelector<HTMLUListElement>('[data-fotos]')!;
+    const novasPessoas = form.querySelector<HTMLElement>('[data-novas-pessoas]')!;
+    const relatoPor = form.querySelector<HTMLSelectElement>('[data-relato-por]');
+    const botoes = [...form.querySelectorAll<HTMLButtonElement>('[data-salvar]')];
+    const idExistente = form.dataset.id || undefined;
+    const RASCUNHO_LOCAL = 'rascunho-nova-memoria';
+    let proximaFoto = 0;
+
+    const avisar = (texto: string, tipo: 'normal' | 'erro' = 'normal') => {
+      situacaoEl.textContent = texto;
+      situacaoEl.dataset.tipo = tipo;
+    };
+
+    // Numa memória nova, o texto digitado fica guardado no aparelho até ser salvo no site
+    const camposDeTexto = ['titulo', 'lugar', 'relato'] as const;
+    const campo = (nome: string) => form.elements.namedItem(nome) as HTMLInputElement | HTMLTextAreaElement | null;
+    if (!idExistente) {
+      try {
+        const salvo = JSON.parse(localStorage.getItem(RASCUNHO_LOCAL) ?? '{}');
+        for (const nome of camposDeTexto) {
+          const c = campo(nome);
+          if (c && typeof salvo[nome] === 'string' && !c.value) c.value = salvo[nome];
+        }
+      } catch {
+        // sem rascunho local, segue vazio
+      }
+    }
+    form.addEventListener('input', () => {
+      if (situacaoEl.dataset.tipo === 'erro') avisar('');
+      if (idExistente) return;
+      try {
+        const dados: Record<string, string> = {};
+        for (const nome of camposDeTexto) dados[nome] = campo(nome)?.value ?? '';
+        localStorage.setItem(RASCUNHO_LOCAL, JSON.stringify(dados));
+      } catch {
+        // navegador sem armazenamento: o formulário funciona do mesmo jeito
+      }
+    });
+
+    // Pessoas que ainda não estão no acervo
+    const atualizarQuemConta = () => {
+      if (!relatoPor) return;
+      for (const opcao of [...relatoPor.querySelectorAll('option[data-nova]')]) opcao.remove();
+      novasPessoas.querySelectorAll<HTMLElement>('[data-nova-pessoa]').forEach((linha, i) => {
+        const nome = linha.querySelector<HTMLInputElement>('[data-nome]')!.value.trim();
+        if (!nome) return;
+        const opcao = new Option(`${nome}, e eu estou escrevendo`, `nova:${i}`);
+        opcao.dataset.nova = '';
+        relatoPor.add(opcao);
+      });
+    };
+
+    form.querySelector('[data-adicionar-pessoa]')!.addEventListener('click', () => {
+      const linha = document.createElement('div');
+      linha.className = 'nova-pessoa';
+      linha.dataset.novaPessoa = '';
+      linha.innerHTML = `
+        <label class="campo"><span>Nome</span><input type="text" data-nome maxlength="80" placeholder="Ex.: Tia Lúcia" /></label>
+        <button type="button" class="botao botao--leve" data-remover-pessoa>Remover</button>`;
+      linha.querySelector('[data-remover-pessoa]')!.addEventListener('click', () => {
+        linha.remove();
+        atualizarQuemConta();
+      });
+      linha.querySelector('[data-nome]')!.addEventListener('input', atualizarQuemConta);
+      novasPessoas.append(linha);
+      linha.querySelector<HTMLInputElement>('[data-nome]')!.focus();
+    });
+
+    // Remover vale para fotos que já estavam e para as recém-enviadas
+    listaFotos.addEventListener('click', (evento) => {
+      const alvo = (evento.target as HTMLElement).closest('[data-remover]');
+      alvo?.closest('.foto-enviada')?.remove();
+    });
+
+    // Fotos: reduz no aparelho e envia uma a uma
+    form.querySelector<HTMLInputElement>('[data-escolher-fotos]')!.addEventListener('change', async (evento) => {
+      const entrada = evento.target as HTMLInputElement;
+      const arquivos = [...(entrada.files ?? [])];
+      entrada.value = '';
+      for (const arquivo of arquivos) {
+        const marca = `nova-${proximaFoto++}`;
+        const item = document.createElement('li');
+        item.className = 'foto-enviada';
+        item.dataset.estado = 'enviando';
+        item.innerHTML = `
+          <div class="foto__papel"><div class="foto__reserva">Enviando…</div></div>
+          <div class="foto-enviada__campos">
+            <label class="campo"><span>Legenda</span><input type="text" data-legenda maxlength="200" /></label>
+            <label class="marcar"><input type="radio" name="fotoPrincipal" value="${marca}" /><span>Usar na linha do tempo</span></label>
+            <button type="button" class="botao botao--leve" data-remover>Remover foto</button>
+          </div>`;
+        listaFotos.append(item);
+        if (!form.querySelector('input[name="fotoPrincipal"]:checked')) {
+          item.querySelector<HTMLInputElement>('input[type="radio"]')!.checked = true;
+        }
+        try {
+          const pronta = await prepararFoto(arquivo);
+          const corpo = new FormData();
+          corpo.set('foto', pronta, 'foto');
+          const resposta = await fetch('/api/fotos', { method: 'POST', body: corpo });
+          const dados = await resposta.json();
+          if (!resposta.ok) throw new Error(dados.erro ?? 'Falha no envio');
+          item.dataset.fotoId = String(dados.id);
+          item.dataset.estado = 'pronta';
+          const imagem = new Image();
+          imagem.alt = '';
+          imagem.src = URL.createObjectURL(pronta);
+          item.querySelector('.foto__reserva')!.replaceWith(imagem);
+        } catch (e) {
+          item.dataset.estado = 'erro';
+          item.querySelector('.foto__reserva')!.textContent = `Não foi possível enviar. ${e instanceof Error ? e.message : ''}`;
+        }
+      }
+    });
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const situacao = (evento.submitter as HTMLElement | null)?.dataset.salvar === 'rascunho' ? 'rascunho' : 'publicada';
+      const dados = new FormData(form);
+      const titulo = String(dados.get('titulo') ?? '').trim();
+      const ano = Number(dados.get('ano'));
+      if (!titulo) return avisar('Dê um título para a memória.', 'erro');
+      if (!dados.get('ano') || !Number.isInteger(ano)) return avisar('Informe o ano, mesmo que seja aproximado.', 'erro');
+
+      const itens = [...listaFotos.querySelectorAll<HTMLElement>('.foto-enviada')];
+      if (itens.some((i) => i.dataset.estado === 'enviando')) return avisar('Espere as fotos terminarem de enviar.', 'erro');
+      if (itens.some((i) => i.dataset.estado === 'erro')) return avisar('Uma foto não foi enviada. Remova ou escolha de novo.', 'erro');
+
+      const novas = [...novasPessoas.querySelectorAll<HTMLElement>('[data-nova-pessoa]')].map((linha) => ({
+        nome: linha.querySelector<HTMLInputElement>('[data-nome]')!.value.trim(),
+      }));
+      if (novas.some((n) => !n.nome)) return avisar('Escreva o nome da pessoa que você adicionou, ou remova a linha.', 'erro');
+
+      const relato = String(dados.get('relato') ?? '');
+      const pedido = {
+        id: idExistente,
+        titulo,
+        ano,
+        mes: dados.get('mes') ? Number(dados.get('mes')) : undefined,
+        dia: dados.get('dia') ? Number(dados.get('dia')) : undefined,
+        aproximada: dados.get('aproximada') === 'on',
+        tipo: dados.get('tipo'),
+        pessoas: [...dados.getAll('pessoas').map(String), ...novas.map((_, i) => `nova:${i}`)],
+        novasPessoas: novas,
+        lugar: String(dados.get('lugar') ?? '').trim() || undefined,
+        nucleos: dados.getAll('nucleos').map(String),
+        visibilidade: dados.get('visibilidade') ?? 'todos',
+        situacao,
+        fotos: itens.map((item) => ({
+          id: Number(item.dataset.fotoId),
+          legenda: item.querySelector<HTMLInputElement>('[data-legenda]')?.value.trim() || undefined,
+          principal: item.querySelector<HTMLInputElement>('input[type="radio"]')?.checked ?? false,
+        })),
+        relato: relatoPor && relato.trim() ? { por: relatoPor.value, texto: relato } : undefined,
+      };
+
+      for (const b of botoes) b.disabled = true;
+      avisar(situacao === 'rascunho' ? 'Salvando rascunho…' : 'Guardando…');
+      try {
+        const resposta = await fetch('/api/memorias', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pedido),
+        });
+        const resultado = await resposta.json();
+        if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');
+        try {
+          localStorage.removeItem(RASCUNHO_LOCAL);
+        } catch {
+          // sem armazenamento, nada a limpar
+        }
+        if (resultado.situacao === 'rascunho') {
+          // Recarrega já ligada ao rascunho salvo no site, com as pessoas novas na lista
+          sessionStorage.setItem('rascunho-salvo', '1');
+          return location.replace(resultado.url);
+        }
+        form.hidden = true;
+        const confirmacao = document.querySelector<HTMLElement>('[data-confirmacao]')!;
+        confirmacao.querySelector<HTMLAnchorElement>('[data-confirmacao-link]')!.href = resultado.url;
+        confirmacao.hidden = false;
+        const tituloEl = confirmacao.querySelector<HTMLElement>('h2')!;
+        tituloEl.setAttribute('tabindex', '-1');
+        tituloEl.focus();
+      } catch (e) {
+        avisar(e instanceof Error ? e.message : 'Não consegui salvar.', 'erro');
+        for (const b of botoes) b.disabled = false;
+      }
+    });
+
+    try {
+      if (sessionStorage.getItem('rascunho-salvo')) {
+        sessionStorage.removeItem('rascunho-salvo');
+        avisar('Rascunho salvo. Só você vê, e dá para continuar de qualquer aparelho.');
+      }
+    } catch {
+      // sem armazenamento, só não mostra o aviso
+    }
+  }
+</script>

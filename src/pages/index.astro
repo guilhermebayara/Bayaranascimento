@@ -1,25 +1,33 @@
 ---
 import Base from '../layouts/Base.astro';
 import LinhaDoTempo from '../components/LinhaDoTempo.astro';
-import { listarMemorias, listarPessoas } from '../lib/memorias';
+import { listarIntegrantes, listarMemorias, listarNucleos } from '../lib/servidor/repositorio';
 
-const memorias = await listarMemorias();
-const pessoas = await listarPessoas();
-const primeiro = memorias[0]?.data.ano;
-const ultimo = memorias.at(-1)?.data.ano;
-const periodo = primeiro && ultimo && primeiro !== ultimo ? `de ${primeiro} a ${ultimo}` : primeiro ? `em ${primeiro}` : '';
+const { usuario } = Astro.locals;
+const nucleos = await listarNucleos();
+const pedido = Astro.url.searchParams.get('nucleo');
+// Só dá para abrir a linha do tempo de um núcleo de que a pessoa faz parte
+const nucleo = nucleos.find((n) => n.id === pedido && usuario.nucleos.includes(n.id));
+const memorias = await listarMemorias(usuario, { nucleo: nucleo?.id });
+const integrantes = await listarIntegrantes();
+const primeiro = memorias[0]?.ano;
+const ultimo = memorias.at(-1)?.ano;
+const periodo = primeiro && ultimo && primeiro !== ultimo ? `, de ${primeiro} a ${ultimo}` : primeiro ? `, em ${primeiro}` : '';
+const quantas = `${memorias.length} ${memorias.length === 1 ? 'memória' : 'memórias'}`;
 ---
 
-<Base>
+<Base titulo={nucleo?.nome}>
   <div class="abertura">
-    <h1>Bayara Nascimento</h1>
+    <h1>{nucleo ? nucleo.nome : 'Bayara Nascimento'}</h1>
     <p>
       {
         memorias.length === 0
           ? 'As memórias da nossa família.'
-          : `${memorias.length} ${memorias.length === 1 ? 'memória' : 'memórias'} da nossa família, ${periodo}.`
+          : nucleo
+            ? `${quantas} deste núcleo${periodo}.`
+            : `${quantas} da nossa família${periodo}.`
       }
     </p>
   </div>
-  <LinhaDoTempo memorias={memorias} pessoas={pessoas} />
+  <LinhaDoTempo memorias={memorias} integrantes={integrantes} nucleos={nucleos} />
 </Base>
