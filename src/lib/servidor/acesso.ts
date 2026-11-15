@@ -3,6 +3,7 @@
 // em vez de confiar no cabeçalho, para o caso de o site ser alcançado por
 // algum caminho que não passe pelo login.
 import { env } from 'cloudflare:workers';
+import { ambiente } from './ambiente';
 import type { Usuario } from './permissoes';
 import { listarIntegrantes } from './repositorio';
 
@@ -95,7 +96,8 @@ export function lerAcessos(): Map<string, string> {
 
 /** Fora da produção não há login: dá para navegar como qualquer pessoa, para testar o que cada uma vê. */
 export function semLogin(): boolean {
-  return import.meta.env.DEV || env.AMBIENTE === 'previa';
+  // A homologação também: ela fica atrás do login do Cloudflare Access, e os dados são inventados.
+  return import.meta.env.DEV || ambiente() === 'previa' || ambiente() === 'homologa';
 }
 
 /**

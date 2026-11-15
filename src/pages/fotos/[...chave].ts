@@ -1,7 +1,7 @@
 // Entrega as fotos do bucket, que é privado. Cada pedido confere se a pessoa
 // pode ver a memória a que a foto pertence.
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { podeVerFoto } from '../../lib/servidor/repositorio';
 
 const CHAVE_VALIDA = /^\d{4}\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
   // Quem não pode ver recebe a mesma resposta de uma foto que não existe
   if (!(await podeVerFoto(locals.usuario, chave))) return naoEncontrada();
 
-  const objeto = await env.FOTOS.get(chave, { onlyIf: request.headers });
+  const objeto = await bucketDeFotos().get(chave, { onlyIf: request.headers });
   if (!objeto) return naoEncontrada();
 
   const headers = new Headers();

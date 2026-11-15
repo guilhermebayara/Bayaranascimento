@@ -1,7 +1,7 @@
 // Recebe uma foto já reduzida pelo navegador e guarda no bucket.
 // A foto nasce solta e só passa a pertencer a uma memória quando ela é salva.
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { erro, json, mesmaOrigem } from '../../lib/servidor/http';
 import { registrarFoto } from '../../lib/servidor/repositorio';
 
@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!formato) return erro(415, 'Formato não aceito. Envie JPG, PNG ou WebP.');
 
   const chave = `${new Date().getUTCFullYear()}/${crypto.randomUUID()}.${formato.extensao}`;
-  await env.FOTOS.put(chave, dados, {
+  await bucketDeFotos().put(chave, dados, {
     httpMetadata: { contentType: formato.tipo },
     customMetadata: { enviadaPor: locals.usuario.pessoa },
   });

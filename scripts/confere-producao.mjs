@@ -5,7 +5,8 @@
 // 1. A produção usa o banco e o bucket reais e se declara "producao", o que desliga as
 //    memórias de exemplo e exige login.
 // 2. As prévias de branch nunca apontam para o banco ou o bucket reais.
-// 3. As memórias de exemplo só são semeadas fora da produção.
+// 3. As memórias de exemplo só são semeadas nas prévias e no computador, nunca na produção
+//    nem na homologação. A homologação tem banco e bucket próprios.
 // 4. Nenhum e-mail de verdade entra no repositório: quem tem acesso fica só no segredo
 //    ACESSOS do Cloudflare. E-mails de exemplo (exemplo.com, example.com, b.com) passam.
 // 5. Arquivos de segredo locais (.dev.vars, .env) nunca são versionados.
@@ -41,19 +42,31 @@ else {
   if (!banco || banco === PRODUCAO.banco) falhar(`wrangler.jsonc: as prévias precisam de um banco próprio de teste, e usam ${banco ?? 'o da produção'}.`);
   if (!bucket || bucket === PRODUCAO.bucket) falhar(`wrangler.jsonc: as prévias precisam de um bucket próprio de teste, e usam ${bucket ?? 'o da produção'}.`);
   if (previas.vars?.AMBIENTE === 'producao') falhar('wrangler.jsonc: as prévias não podem se declarar "producao".');
+  // A homologação tem banco e bucket próprios, diferentes dos reais e dos de teste
+  const bancoH = previas.d1_databases?.find((b) => b.binding === 'DB_HOMOLOGA')?.database_name;
+  const bucketH = previas.r2_buckets?.find((b) => b.binding === 'FOTOS_HOMOLOGA')?.bucket_name;
+  if (bancoH && (bancoH === PRODUCAO.banco || bancoH === banco)) falhar(`wrangler.jsonc: a homologação precisa de um banco só dela, e usa ${bancoH}.`);
+  if (bucketH && (bucketH === PRODUCAO.bucket || bucketH === bucket)) falhar(`wrangler.jsonc: a homologação precisa de um bucket só dela, e usa ${bucketH}.`);
+}
+// A produção nunca enxerga o banco da homologação
+if (config.d1_databases?.some((b) => b.binding === 'DB_HOMOLOGA') || config.r2_buckets?.some((b) => b.binding === 'FOTOS_HOMOLOGA')) {
+  falhar('wrangler.jsonc: o banco e o bucket da homologação ficam só no bloco "previews".');
 }
 
-// 3. Memórias de exemplo só fora da produção
+// 3. Memórias de exemplo só nas prévias e no computador
 const banco = readFileSync('src/lib/servidor/banco.ts', 'utf8');
-const protecao = banco.indexOf("if (env.AMBIENTE !== 'producao') {");
+const protecao = banco.indexOf('if (AMBIENTES_COM_EXEMPLOS.includes(ambiente())) {');
 const chamadas = [...banco.matchAll(/await semear\w+\(/g)].map((m) => m.index);
-if (protecao < 0) falhar("src/lib/servidor/banco.ts: sumiu a proteção if (env.AMBIENTE !== 'producao') em volta das memórias de exemplo.");
+if (protecao < 0) falhar('src/lib/servidor/banco.ts: sumiu a proteção if (AMBIENTES_COM_EXEMPLOS.includes(ambiente())) em volta das memórias de exemplo.');
 else {
   const fimDaProtecao = banco.indexOf('\n  }', protecao);
   for (const posicao of chamadas) {
     if (posicao < protecao || posicao > fimDaProtecao) falhar('src/lib/servidor/banco.ts: há uma chamada a semear... fora da proteção da produção.');
   }
 }
+const ambientes = readFileSync('src/lib/servidor/ambiente.ts', 'utf8').match(/AMBIENTES_COM_EXEMPLOS: Ambiente\[\] = \[([^\]]*)\]/);
+if (!ambientes) falhar('src/lib/servidor/ambiente.ts: não achei a lista AMBIENTES_COM_EXEMPLOS.');
+else if (/producao|homologa/.test(ambientes[1])) falhar('src/lib/servidor/ambiente.ts: produção e homologação nunca recebem as memórias de exemplo.');
 
 // 4 e 5. Arquivos versionados
 const versionados = execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean);

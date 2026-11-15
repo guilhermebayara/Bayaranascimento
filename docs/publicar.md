@@ -5,10 +5,11 @@
 | Ambiente | Endereço | Dados | Login |
 | --- | --- | --- | --- |
 | Produção | memorias.bayara.com.br | Banco e bucket `bayara-memorias` | Cloudflare Access |
-| Prévia de branch | `<branch>.memorias.bayara.com.br` (ex.: `formulario.memorias.bayara.com.br`) | Banco e bucket `bayara-memorias-teste`, só exemplos | Sem login, com troca de pessoa no topo |
+| Homologação (branch `homologa`) | homologa.memorias.bayara.com.br | Banco e bucket `bayara-memorias-homologa`, com o espelho da produção | Cloudflare Access (aplicação "memorias homologa", política "Homologação"), com troca de pessoa no topo |
+| Prévia de branch | `<branch>.memorias.bayara.com.br` (ex.: `tst-arvore.memorias.bayara.com.br`) | Banco e bucket `bayara-memorias-teste`, só exemplos | Sem login, com troca de pessoa no topo |
 | Computador | localhost | Banco local, só exemplos | Sem login, com troca de pessoa no topo |
 
-O branch `main` é a produção. Qualquer outro branch vira uma prévia.
+O branch `main` é a produção. Qualquer outro branch vira uma prévia. A homologação é a prévia da branch `homologa`: o site reconhece o endereço dela e usa o banco e o bucket próprios (`DB_HOMOLOGA` e `FOTOS_HOMOLOGA`, ligados no bloco `previews` do `wrangler.jsonc`). O login dela é uma aplicação própria no Access, só com o Gui e a Giovanna.
 
 ## Configuração no Cloudflare
 

@@ -21,20 +21,35 @@ Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto) e
 
 ## Branches e publicação
 
-- `main` é a produção. Cada push publica sozinho em memorias.bayara.com.br, com o banco e as fotos reais.
-- Qualquer outra branch vira uma prévia em `<branch>.memorias.bayara.com.br`, com banco e bucket de teste, só com memórias de exemplo e com "Ver como" no topo para trocar de pessoa.
-- `formulario` anda igual à `main`. A Giovanna usa essa prévia para ver o site com os exemplos. Depois de cada merge na `main`, iguale a `formulario` por fast-forward. Vale até o Gui e a Giovanna combinarem um fluxo de homologação.
-- Trabalho novo nasce da `main` atualizada, numa branch por assunto, e chega à `main` por PR com squash.
-- Mudança que altera o site só vai para a `main` depois que o Gui vê a prévia e aprova. Mudança só de documentação ou de regras de trabalho (`CLAUDE.md`, `README.md`, `docs/`) pode ir direto, para toda sessão nova já encontrar.
-- Depois do merge, apague a branch. As sessões do Claude não conseguem apagar branch pelo git nem pela API: use a página Branches do GitHub no navegador, com a autorização que o Gui já deu.
-- Nunca force um push.
+| Branch | Endereço | Dados | Login |
+| --- | --- | --- | --- |
+| `main` | memorias.bayara.com.br | Banco e fotos reais (`bayara-memorias`) | Cloudflare Access, a família |
+| `homologa` | homologa.memorias.bayara.com.br | Banco e bucket `bayara-memorias-homologa`: a estrutura da família espelhada da produção, com nomes e memórias inventados | Cloudflare Access, só Gui e Giovanna |
+| `tst-<assunto>` e as demais | `<branch>.memorias.bayara.com.br` | Banco e bucket `bayara-memorias-teste`, com o acervo de exemplo | Sem login |
+
+- `main` é a produção. Cada push publica sozinho, com o banco e as fotos reais.
+- `homologa` é a homologação: o ensaio da publicação. Ela recebe só o que vai para a `main` em seguida, e é onde o Gui e a Giovanna aprovam. O banco dela só muda com o código dela, no mesmo caminho que a produção vai seguir.
+- `tst-<assunto>` é um teste: um experimento ou uma comparação de layout. Nasce da `homologa` (ou da `main`, enquanto a `homologa` não existir), tem a própria prévia e é apagada quando a ideia vai para a `homologa` ou é descartada. As prévias de teste dividem um banco só, com o acervo de exemplo, então podem mexer nele à vontade.
+- O caminho de uma mudança: `tst-<assunto>` → PR com squash para a `homologa` → aprovação na homologação → `main` por fast-forward da `homologa`. Nunca force um push.
+- Mudança só de documentação ou de regras de trabalho (`CLAUDE.md`, `README.md`, `docs/`) pode ir direto para a `main`, para toda sessão nova já encontrar. Depois, traga a `main` para a `homologa`.
+- Depois do merge, apague a branch de teste. As sessões do Claude não conseguem apagar branch pelo git nem pela API: use a página Branches do GitHub no navegador, com a autorização que o Gui já deu.
+- **Transição:** a `formulario` ainda existe e anda igual à `main`, porque a Giovanna recebeu esse endereço antes da homologação existir. Ela some quando a Giovanna passar a usar a homologação.
+
+### O espelho da produção
+
+A homologação usa a mesma estrutura de família da produção (filiações, casais com fases, laços do coração com papel e marca de privado, núcleos), com nomes inventados, anos deslocados e memórias de exemplo. Assim a árvore é testada com o formato real da família. Para refazer: no site de verdade, "Baixar cópia do acervo"; na homologação, rodapé → "Espelho da produção" → enviar o arquivo. Refaça depois de cargas grandes na produção e antes de testar mudanças na árvore.
+
+- A transformação está em `src/lib/espelho.ts`, testada em `testes/espelho.test.ts`: nenhum nome, texto ou memória real passa para o espelho.
+- O espelho é gravado direto no banco da homologação e nunca entra no repositório.
+- A escolha do banco é feita pelo endereço do pedido (`src/lib/servidor/ambiente.ts`): o Cloudflare aplica a mesma configuração a todas as prévias, e só `homologa.memorias.bayara.com.br` usa `DB_HOMOLOGA` e `FOTOS_HOMOLOGA`.
+- A homologação nunca recebe o acervo de exemplo. Na homologação e nas prévias, o "Ver como" do topo continua valendo.
 
 ## Antes de levar para a `main`
 
 1. Traga a `main` para a branch.
 2. `npm run build` sem erro. Ele roda antes a guarda da produção e os testes (ver "Conferências").
-3. A prévia da branch publicada, com a marca verde do Cloudflare e a do GitHub no último commit.
-4. A aprovação do Gui.
+3. A homologação publicada com a mudança, com a marca verde do Cloudflare e a do GitHub no último commit.
+4. A aprovação do Gui na homologação.
 
 ## O que nunca fazer
 
@@ -56,7 +71,7 @@ Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto) e
 
 O plano gratuito do GitHub não protege branches de repositório privado. As regras que não podem falhar ficam no próprio repositório e travam a publicação:
 
-- `npm run confere` (`scripts/confere-producao.mjs`), a guarda da produção. Falha se a produção deixar de usar o banco e o bucket reais ou de se declarar `producao`, se uma prévia apontar para o banco ou o bucket reais, se alguma chamada às memórias de exemplo sair da proteção da produção, se aparecer um e-mail de verdade em arquivo versionado ou se um arquivo de segredo local for versionado.
+- `npm run confere` (`scripts/confere-producao.mjs`), a guarda da produção. Falha se a produção deixar de usar o banco e o bucket reais ou de se declarar `producao`, se uma prévia apontar para o banco ou o bucket reais, se a homologação dividir banco ou bucket com a produção ou com as prévias de teste, se a produção enxergar o banco da homologação, se as memórias de exemplo puderem rodar na produção ou na homologação, se aparecer um e-mail de verdade em arquivo versionado ou se um arquivo de segredo local for versionado.
 - `npm test`: os testes em `testes/`, das regras de permissão, das datas, do login, do parentesco e da árvore.
 - `npm run build` roda os dois antes do build (`prebuild`). O Cloudflare publica com `npm run build`: se algo falhar, nada vai ao ar e a versão anterior continua.
 - No GitHub, `.github/workflows/confere.yml` roda o mesmo a cada push, em qualquer branch, e em todo PR para a `main`. Falha vira marca vermelha no commit e e-mail.
@@ -90,10 +105,11 @@ Vale para sessões abertas só para conferir o site. As regras acima continuam v
 
 ### Onde a sessão trabalha
 
-- Numa branch `qa-AAAA-MM-DD` nascida da branch testada (a `main`, salvo outra indicação). Cada push gera a prévia dela.
-- A sessão nunca faz push nem merge na `main`, na `formulario` ou na branch testada. No fim, abre um PR para a branch testada e não faz o merge.
+- A branch testada é a `homologa`, salvo outra indicação: é o que está para ir ao ar.
+- A sessão trabalha numa branch `qa-AAAA-MM-DD` nascida da branch testada. Cada push gera a prévia dela, com o acervo de exemplo.
+- A sessão nunca faz push nem merge na `main`, na `homologa`, na `formulario` ou na branch testada. No fim, abre um PR para a branch testada e não faz o merge.
 - Correção grande ou arriscada vai para uma branch `qa-<assunto>` separada.
-- Tudo é conferido localmente, com `npm run dev` e o "Ver como" do topo, ou na prévia. Nunca na produção.
+- Tudo é conferido localmente, com `npm run dev` e o "Ver como" do topo, ou na prévia. Nunca na produção. A homologação fica atrás de login e a sessão não entra nela: o que só dá para ver lá vai para a lista do relatório.
 
 ### Antes de começar e antes de cada push
 
@@ -120,6 +136,7 @@ As pendências conhecidas estão em "Em aberto" e nas questões de `docs/decisoe
 - Para saber se a prévia publicou: `gh api repos/guilhermebayara/Bayaranascimento/commits/<sha>/check-runs`.
 - Mudança na aba Previews do Cloudflare só vale para branches novas, a menos que seja salva com "Apply to existing Previews".
 - O servidor local (`npm run dev`) para entre uma conversa e outra: suba de novo antes de conferir.
+- No computador, a página "Espelho da produção" também aparece, para testar o espelho. Ele troca todo o banco local; para voltar ao acervo de exemplo, apague a pasta `.wrangler`.
 - As prévias leem a mesma configuração do `wrangler.jsonc`, no bloco `previews`. É ele que separa os dados de teste dos reais.
 - O clone das sessões é raso e só traz uma branch. Para comparar com outra: `git fetch --depth=50 origin +refs/heads/<branch>:refs/remotes/origin/<branch>`.
 - Merge de PR pela API: `gh api -X PUT repos/guilhermebayara/Bayaranascimento/pulls/<n>/merge -f merge_method=squash`. Abrir PR: `gh api repos/.../pulls -f head=<branch> -f base=main ...` (o `gh pr` usa GraphQL).

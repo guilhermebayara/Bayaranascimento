@@ -3,7 +3,7 @@
 // Vai para o Google Drive uma vez por mês (ver docs/copia-no-drive.md) e pode
 // ser baixada a qualquer momento pelos admins. As fotos não entram: elas ficam
 // no R2 e são grandes demais para caber aqui.
-import { env } from 'cloudflare:workers';
+import { banco } from './ambiente';
 
 export interface Copia {
   acervo: 'Bayara Nascimento';
@@ -12,14 +12,14 @@ export interface Copia {
 }
 
 export async function montarCopia(): Promise<Copia> {
-  const { results: nomes } = await env.DB.prepare(
+  const { results: nomes } = await banco().prepare(
     `SELECT name FROM sqlite_master
      WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'
      ORDER BY name`,
   ).all<{ name: string }>();
 
-  const consultas = nomes.map((t) => env.DB.prepare(`SELECT * FROM "${t.name.replace(/"/g, '""')}"`));
-  const resultados = consultas.length ? await env.DB.batch(consultas) : [];
+  const consultas = nomes.map((t) => banco().prepare(`SELECT * FROM "${t.name.replace(/"/g, '""')}"`));
+  const resultados = consultas.length ? await banco().batch(consultas) : [];
 
   const tabelas: Copia['tabelas'] = {};
   nomes.forEach((t, i) => {

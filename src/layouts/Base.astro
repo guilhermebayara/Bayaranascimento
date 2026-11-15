@@ -1,6 +1,8 @@
 ---
 import '../styles/global.css';
 import { PESSOAS_DE_TESTE, semLogin } from '../lib/servidor/acesso';
+import { ehHomologacao } from '../lib/servidor/ambiente';
+import { podeEspelhar } from '../lib/servidor/espelho';
 import { listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
 
 interface Props {
@@ -35,7 +37,7 @@ const recadoErro = Astro.url.searchParams.get('erro');
       teste && (
         <div class="aviso">
           <p class="miolo">
-            Versão de teste, só com memórias de exemplo. Ver como:
+            {ehHomologacao() ? 'Homologação: a estrutura da família da produção, com nomes e memórias inventados.' : 'Versão de teste, só com memórias de exemplo.'} Ver como:
             {pessoasDeTeste.map((p) => (
               <a href={`/como/${p.id}?volta=${encodeURIComponent(aqui)}`} aria-current={p.id === usuario.pessoa ? 'true' : undefined}>
                 {p.apelido ?? p.nome}
@@ -74,6 +76,7 @@ const recadoErro = Astro.url.searchParams.get('erro');
         <span class="rodape__admin">
           <a href="/lixeira">Lixeira</a>
           {usuario.admin && <a href="/admin/tipos">Tipos de momento</a>}
+          {usuario.admin && podeEspelhar() && <a href="/admin/espelho">Espelho da produção</a>}
           {usuario.admin && (
             <a href="/api/copia" download>
               Baixar cópia do acervo

@@ -2,6 +2,7 @@
 // Sem pessoa identificada, nada do acervo é entregue.
 import { defineMiddleware } from 'astro:middleware';
 import { ehServicoDeCopia, usuarioDoPedido } from './lib/servidor/acesso';
+import { noPedido } from './lib/servidor/ambiente';
 import { prepararBanco } from './lib/servidor/banco';
 import { respostaDaCopia } from './lib/servidor/copia';
 import { listarTipos } from './lib/servidor/repositorio';
@@ -12,7 +13,10 @@ const RECADO = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta na
 <p>O acervo é privado. Seu login foi aceito, mas seu e-mail ainda não está ligado a ninguém da família no site.</p>
 <p>Avise o Gui ou a Giovanna para liberarem seu acesso.</p></body></html>`;
 
-export const onRequest = defineMiddleware(async (contexto, proximo) => {
+// Cada pedido roda sabendo se é da homologação, que tem banco e fotos próprios
+export const onRequest = defineMiddleware((contexto, proximo) => noPedido(contexto.request, () => tratar(contexto, proximo)));
+
+const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo) => {
   // Páginas geradas na publicação (como a 404) não têm pedido de verdade
   if (contexto.isPrerendered) return proximo();
 
@@ -37,4 +41,4 @@ export const onRequest = defineMiddleware(async (contexto, proximo) => {
   // Nada do acervo deve ficar guardado em servidores intermediários
   if (!resposta.headers.has('Cache-Control')) resposta.headers.set('Cache-Control', 'private, no-store');
   return resposta;
-});
+};

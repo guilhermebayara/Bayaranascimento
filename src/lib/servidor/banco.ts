@@ -4,7 +4,7 @@
 // Cada migração roda uma única vez, dentro de uma transação, e fica anotada
 // na tabela _migracoes. Para mudar a estrutura, acrescente um item no fim da
 // lista: nunca edite uma migração que já foi publicada.
-import { env } from 'cloudflare:workers';
+import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { semearAcervoDeExemplo, semearConsideracoesDeExemplo, semearExemplos, semearParentesDeExemplo } from './semente';
 
 interface Migracao {
@@ -346,19 +346,24 @@ const MIGRACOES: Migracao[] = [
   },
 ];
 
-let pronto: Promise<void> | undefined;
+// Uma preparação por banco: a homologação tem o dela
+const prontos = new Map<string, Promise<void>>();
 
-/** Garante que o banco está na estrutura atual. Barato depois da primeira vez. */
+/** Garante que o banco do pedido está na estrutura atual. Barato depois da primeira vez. */
 export function prepararBanco(): Promise<void> {
-  pronto ??= migrar().catch((erro) => {
-    pronto = undefined;
-    throw erro;
-  });
+  const qual = ambiente();
+  let pronto = prontos.get(qual);
+  if (!pronto) {
+    pronto = migrar(banco()).catch((erro) => {
+      prontos.delete(qual);
+      throw erro;
+    });
+    prontos.set(qual, pronto);
+  }
   return pronto;
 }
 
-async function migrar(): Promise<void> {
-  const db = env.DB;
+async function migrar(db: D1Database): Promise<void> {
   await db
     .prepare(`CREATE TABLE IF NOT EXISTS _migracoes (id TEXT PRIMARY KEY, aplicada_em TEXT NOT NULL DEFAULT (datetime('now')))`)
     .run();
@@ -374,8 +379,9 @@ async function migrar(): Promise<void> {
     ]);
   }
 
-  // Memórias de exemplo só existem fora da produção
-  if (env.AMBIENTE !== 'producao') {
+  // Memórias de exemplo só existem nas prévias e no computador. Nunca na produção, e nunca na
+  // homologação, que recebe a estrutura espelhada da produção (ver espelho.ts).
+  if (AMBIENTES_COM_EXEMPLOS.includes(ambiente())) {
     await semearExemplos(db);
     await semearParentesDeExemplo(db);
     await semearAcervoDeExemplo(db);

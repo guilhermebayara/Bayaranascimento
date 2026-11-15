@@ -1,6 +1,6 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
-import { env } from 'cloudflare:workers';
+import { banco } from './ambiente';
 import type { Casal, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
 import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
@@ -70,7 +70,7 @@ export interface Relato {
   situacao: 'rascunho' | 'publicada';
 }
 
-const db = () => env.DB;
+const db = () => banco();
 
 /**
  * Regra de visibilidade em SQL. ?1 é sempre o id do usuário.

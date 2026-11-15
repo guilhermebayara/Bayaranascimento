@@ -1,0 +1,37 @@
+---
+import Base from '../../layouts/Base.astro';
+import { podeEspelhar } from '../../lib/servidor/espelho';
+
+const { usuario } = Astro.locals;
+if (!usuario.admin || !podeEspelhar()) return new Response('Página não encontrada', { status: 404 });
+---
+
+<Base titulo="Espelho da produção">
+  <div class="abertura abertura--curta">
+    <h1>Espelho da produção</h1>
+    <p>
+      A homologação usa a mesma estrutura de família da produção, com nomes e memórias inventados. Assim dá para ver se a árvore aguenta a
+      nossa família antes de publicar.
+    </p>
+  </div>
+
+  <section class="painel">
+    <h2>Refazer o espelho</h2>
+    <ol>
+      <li>No site de verdade, em memorias.bayara.com.br, use "Baixar cópia do acervo", no rodapé.</li>
+      <li>Envie o arquivo aqui.</li>
+    </ol>
+    <p class="dica">
+      Ficam os laços de árvore, os casais com as fases, os laços do coração com o papel e a marca de privado, e quem é de cada núcleo. Os nomes
+      são trocados, os anos andam alguns anos para a frente, e memórias, relatos e fotos reais ficam de fora. Tudo o que está hoje nesta
+      homologação é apagado e trocado pelo espelho novo.
+    </p>
+    <form method="post" action="/api/espelho" enctype="multipart/form-data">
+      <label class="campo">
+        <span>Cópia do acervo (arquivo .json)</span>
+        <input type="file" name="copia" accept="application/json,.json" required />
+      </label>
+      <button type="submit" class="botao">Refazer o espelho</button>
+    </form>
+  </section>
+</Base>
