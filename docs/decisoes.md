@@ -34,28 +34,26 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 
 - Site em Astro, publicado no Cloudflare em memorias.bayara.com.br
 - Login com Cloudflare Access
-- Fotos e áudios no Cloudflare R2, com o iCloud como casa dos originais
-- Textos neste repositório
+- Textos, núcleos, rascunhos e histórico no banco D1 `bayara-memorias`
+- Fotos no bucket R2 `bayara-memorias`, com o iCloud como casa dos originais
+- Este repositório guarda só o código. Nenhum conteúdo da família fica aqui.
 
-## Como o site grava
+## Como o site funciona
 
-- Formulários no próprio site: `/nova` e "Escrever ou editar o meu relato" em cada memória
-- Fotos reduzidas no aparelho antes do envio. O iCloud continua sendo a casa dos originais.
-- Textos gravados neste repositório, um commit por envio, com o nome de quem enviou
-- Passo a passo de ativação em `docs/ativar-formularios.md`
+- Toda página é montada para a pessoa logada, e é isso que esconde o que é restrito a um núcleo.
+- A regra de quem vê está em `src/lib/servidor/permissoes.ts` e, em SQL, em `src/lib/servidor/repositorio.ts`. As duas mudam juntas.
+- A estrutura do banco está em `src/lib/servidor/banco.ts`. O site aplica as mudanças sozinho na primeira visita depois de publicado.
+- Prévias de branch usam o banco e o bucket `bayara-memorias-teste`, só com exemplos, e por isso funcionam sem login.
+- A proposta completa de estrutura (laços, árvore, capítulos, temas) está no documento "Acervo da família: proposta de estrutura".
 
 ## Em aberto
 
-
-- Corrigir a ficha de uma memória e acrescentar ou remover fotos depois de criada
-- Histórico de mudanças visível no site, com reverter
+- Histórico de mudanças visível no site, com restaurar (as versões anteriores já são guardadas)
 - Excluir memória, com lixeira
-- Editar a página de uma pessoa pelo site
+- Editar a página de um integrante pelo site
+- Laços, árvore, capítulos, temas, círculo e avisos
+- Cópias de segurança automáticas do banco
 - Fotos enviadas em um formulário abandonado ficam no bucket sem uso: falta uma limpeza periódica
-
-- Reações e sugestões de correção em fotos e relatos
-- Personalização por pessoa que acessa
-- Direção visual definitiva (o visual atual é provisório)
 
 ## Ideias em discussão (ainda não decididas)
 

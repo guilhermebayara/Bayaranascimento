@@ -1,0 +1,60 @@
+---
+import Base from '../layouts/Base.astro';
+import { formatarData } from '../lib/datas';
+import { listarMemorias, listarRascunhosDeRelato } from '../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const memorias = await listarMemorias(usuario, { rascunhos: true });
+const relatos = await listarRascunhosDeRelato(usuario);
+---
+
+<Base titulo="Rascunhos">
+  <div class="abertura abertura--curta">
+    <h1>Rascunhos</h1>
+    <p>O que você começou e ainda não publicou. Só você vê esta lista.</p>
+  </div>
+
+  {
+    memorias.length === 0 && relatos.length === 0 && (
+      <p class="vazio">
+        Você não tem rascunhos. <a href="/nova">Registrar uma memória</a>
+      </p>
+    )
+  }
+
+  {
+    memorias.length > 0 && (
+      <section class="grupo">
+        <h2>Memórias</h2>
+        <ul class="pessoas">
+          {memorias.map((m) => (
+            <li>
+              <a href={`/nova?id=${m.id}`}>
+                <strong>{m.titulo}</strong>
+                <span>{formatarData(m)}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    relatos.length > 0 && (
+      <section class="grupo">
+        <h2>Relatos</h2>
+        <ul class="pessoas">
+          {relatos.map((r) => (
+            <li>
+              <a href={`/memorias/${r.memoriaId}/relato`}>
+                <strong>{r.titulo}</strong>
+                <span>relato em andamento</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+</Base>

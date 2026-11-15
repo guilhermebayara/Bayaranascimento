@@ -3,8 +3,8 @@
 // em vez de confiar no cabeçalho, para o caso de o site ser alcançado por
 // algum caminho que não passe pelo login.
 import { env } from 'cloudflare:workers';
-import { listarPessoas } from '../memorias';
 import type { Usuario } from './permissoes';
+import { listarIntegrantes } from './repositorio';
 
 interface Chave extends JsonWebKey {
   kid: string;
@@ -66,7 +66,7 @@ export async function emailDoToken(token: string | null | undefined): Promise<st
   }
 }
 
-/** Mapa e-mail → pessoa, vindo do segredo ACESSOS. */
+/** Mapa e-mail → integrante, vindo do segredo ACESSOS. */
 export function lerAcessos(): Map<string, string> {
   try {
     const bruto = JSON.parse(env.ACESSOS || '{}') as Record<string, string>;
@@ -76,43 +76,53 @@ export function lerAcessos(): Map<string, string> {
   }
 }
 
-/** Pessoas que têm login no site. */
-export function pessoasComAcesso(): Set<string> {
-  return new Set(lerAcessos().values());
+/** Fora da produção não há login: dá para navegar como qualquer pessoa, para testar o que cada uma vê. */
+export function semLogin(): boolean {
+  return import.meta.env.DEV || env.AMBIENTE === 'previa';
 }
+
+/**
+ * Integrantes que têm login no site. Fora da produção, quem tem núcleo conta
+ * como tendo acesso, para os testes se parecerem com o uso real.
+ */
+export async function pessoasComAcesso(): Promise<Set<string>> {
+  if (!semLogin()) return new Set(lerAcessos().values());
+  const integrantes = await listarIntegrantes();
+  return new Set(integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)).map((i) => i.id));
+}
+
+export const PESSOAS_DE_TESTE = ['gui', 'giovanna', 'elizete', 'lucas-magno'];
 
 function tokenDoPedido(request: Request): string | null {
   const cabecalho = request.headers.get('Cf-Access-Jwt-Assertion');
   if (cabecalho) return cabecalho;
-  const cookie = request.headers.get('Cookie') ?? '';
-  return /(?:^|;\s*)CF_Authorization=([^;]+)/.exec(cookie)?.[1] ?? null;
+  return lerCookie(request, 'CF_Authorization');
 }
 
-/** O pedido vem de alguém que passou pelo login? Não exige que o e-mail esteja ligado a uma pessoa. */
-export async function temLoginValido(request: Request): Promise<boolean> {
-  if (import.meta.env.DEV) return true;
-  return (await emailDoToken(tokenDoPedido(request))) !== undefined;
+function lerCookie(request: Request, nome: string): string | null {
+  const cookie = request.headers.get('Cookie') ?? '';
+  return new RegExp(`(?:^|;\\s*)${nome}=([^;]+)`).exec(cookie)?.[1] ?? null;
 }
 
 /** Quem está fazendo o pedido. undefined quando não há login válido ou o e-mail não está ligado a ninguém. */
 export async function usuarioDoPedido(request: Request): Promise<Usuario | undefined> {
   let pessoaId: string | undefined;
 
-  if (import.meta.env.DEV && env.DEV_PESSOA) {
-    // Em desenvolvimento não existe Access. Esta linha some do site publicado.
-    pessoaId = env.DEV_PESSOA;
+  if (semLogin()) {
+    const escolhida = lerCookie(request, 'como');
+    pessoaId = escolhida && PESSOAS_DE_TESTE.includes(escolhida) ? escolhida : 'gui';
   } else {
     const email = await emailDoToken(tokenDoPedido(request));
     if (email) pessoaId = lerAcessos().get(email);
   }
   if (!pessoaId) return undefined;
 
-  const pessoa = (await listarPessoas()).find((p) => p.id === pessoaId);
-  if (!pessoa) return undefined;
+  const integrante = (await listarIntegrantes()).find((i) => i.id === pessoaId);
+  if (!integrante) return undefined;
   return {
-    pessoa: pessoa.id,
-    nome: pessoa.data.apelido ?? pessoa.data.nome,
-    nucleo: pessoa.data.nucleo,
-    admin: pessoa.id === env.ADMIN,
+    pessoa: integrante.id,
+    nome: integrante.apelido ?? integrante.nome,
+    admin: integrante.admin,
+    nucleos: integrante.nucleos,
   };
 }

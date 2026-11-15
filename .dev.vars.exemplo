@@ -1,7 +1,4 @@
-# Copie para .dev.vars para rodar os formulários no computador.
-# Em desenvolvimento não há login: DEV_PESSOA define quem você é.
-DEV_PESSOA=gui
-ACESSOS={"gui@exemplo.com":"gui","giovanna@exemplo.com":"giovanna","elizete@exemplo.com":"elizete"}
-GITHUB_TOKEN=token-falso
-# Aponta para o GitHub de mentira (npm run github-falso), que grava os arquivos na pasta local
-GITHUB_API_URL=http://localhost:4400
+# Copie para .dev.vars para rodar o site no computador.
+# Em desenvolvimento não há login e o banco é local, com memórias de exemplo.
+AMBIENTE=desenvolvimento
+ACESSOS={}

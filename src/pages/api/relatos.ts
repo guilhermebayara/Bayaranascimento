@@ -1,34 +1,22 @@
-// Escreve ou edita um relato em uma memória que já existe.
+// Escreve ou edita um relato em uma memória que a pessoa vê.
 import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
-import { listarMemorias, listarPessoas } from '../../lib/memorias';
-import { pessoasComAcesso, usuarioDoPedido } from '../../lib/servidor/acesso';
-import { arquivoDoRelato, caminhos, lerDonoDoArquivo } from '../../lib/servidor/conteudo';
-import { configuracaoFaltando, erro, github, json, mesmaOrigem } from '../../lib/servidor/http';
+import { pessoasComAcesso } from '../../lib/servidor/acesso';
+import { arrumarTexto } from '../../lib/servidor/conteudo';
+import { erro, json, mesmaOrigem } from '../../lib/servidor/http';
 import { podeEscreverRelato } from '../../lib/servidor/permissoes';
-
-export const prerender = false;
+import { listarIntegrantes, obterMemoria, obterRelato, salvarRelato } from '../../lib/servidor/repositorio';
 
 const Pedido = z.object({
   memoria: z.string().max(120),
   por: z.string().max(80),
   texto: z.string().trim().min(1, 'Escreva o relato antes de salvar.').max(20000),
+  situacao: z.enum(['rascunho', 'publicada']).default('publicada'),
 });
 
-export const POST: APIRoute = async (contexto) => {
-  try {
-    return await tratar(contexto);
-  } catch (e) {
-    console.error('Falha inesperada ao salvar relato', e);
-    return erro(502, 'Não consegui salvar agora. Seu texto continua na tela: tente de novo em instantes.');
-  }
-};
-
-const tratar: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   if (!mesmaOrigem(request)) return erro(403, 'Pedido recusado.');
-  const usuario = await usuarioDoPedido(request);
-  if (!usuario) return erro(401, 'Não foi possível identificar quem está enviando.');
-  if (configuracaoFaltando().length > 0) return erro(503, 'O envio de relatos ainda não foi ativado.');
+  const { usuario } = locals;
 
   let bruto: unknown;
   try {
@@ -40,35 +28,20 @@ const tratar: APIRoute = async ({ request }) => {
   if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
   const { memoria: memoriaId, por, texto } = lido.data;
 
-  const gh = github();
-  const memoria = (await listarMemorias()).find((m) => m.id === memoriaId);
-  // Memória recém-criada pode ainda não estar no site publicado: confere no repositório
-  const existeNoRepo = memoria ? true : /^[a-z0-9-]+$/.test(memoriaId) && (await gh.ler(caminhos.memoria(memoriaId))) !== undefined;
-  if (!existeNoRepo) return erro(404, 'Memória não encontrada.');
+  // Quem não vê a memória recebe o mesmo que para uma memória inexistente
+  const memoria = await obterMemoria(usuario, memoriaId);
+  if (!memoria) return erro(404, 'Memória não encontrada.');
+  if (!(await listarIntegrantes()).some((i) => i.id === por)) return erro(400, 'Pessoa não encontrada.');
 
-  const quemConta = (await listarPessoas()).find((p) => p.id === por);
-  if (!quemConta) return erro(400, 'Pessoa não encontrada.');
-
-  // A fonte da verdade sobre quem é dono do relato é o repositório
-  const caminho = caminhos.relato(memoriaId, por);
-  const atual = await gh.ler(caminho);
-  const existente = atual === undefined ? undefined : (lerDonoDoArquivo(atual) ?? { por });
-
-  const decisao = podeEscreverRelato(usuario, por, existente, pessoasComAcesso());
+  const existente = await obterRelato(memoriaId, por);
+  const decisao = podeEscreverRelato(usuario, por, existente, await pessoasComAcesso());
   if (!decisao.ok) return erro(403, decisao.motivo);
 
-  const titulo = memoria?.data.titulo ?? memoriaId;
-  const acao = existente ? 'editou' : 'escreveu';
-  const deQuem = por === usuario.pessoa ? 'o próprio relato' : `o relato de ${quemConta.data.nome}`;
-  try {
-    await gh.gravar(
-      [{ caminho, conteudo: arquivoDoRelato(memoriaId, por, usuario.pessoa, texto) }],
-      `${usuario.nome} ${acao} ${deQuem} em "${titulo}"`,
-      { nome: usuario.nome, pessoa: usuario.pessoa },
-    );
-  } catch (e) {
-    console.error('Falha ao gravar relato', e);
-    return erro(502, 'Não consegui salvar agora. Seu texto continua na tela: tente de novo em instantes.');
-  }
-  return json({ url: `/memorias/${memoriaId}`, editado: Boolean(existente) }, existente ? 200 : 201);
+  // Em memória ainda em rascunho, o relato também fica em rascunho. Relato publicado não volta atrás.
+  let situacao = lido.data.situacao;
+  if (memoria.situacao === 'rascunho') situacao = 'rascunho';
+  if (existente?.situacao === 'publicada') situacao = 'publicada';
+
+  await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente);
+  return json({ url: `/memorias/${memoriaId}`, situacao, editado: Boolean(existente) }, existente ? 200 : 201);
 };

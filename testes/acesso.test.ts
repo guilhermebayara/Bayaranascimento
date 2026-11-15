@@ -6,7 +6,7 @@ const AUD = 'aud-de-teste';
 vi.mock('cloudflare:workers', () => ({
   env: { ACCESS_TEAM_DOMAIN: 'time-de-teste.cloudflareaccess.com', ACCESS_AUD: 'aud-de-teste', ACESSOS: '{}', ADMIN: 'gui' },
 }));
-vi.mock('../src/lib/memorias', () => ({ listarPessoas: async () => [] }));
+vi.mock('../src/lib/servidor/repositorio', () => ({ listarIntegrantes: async () => [] }));
 
 const b64 = (dados: ArrayBuffer | string) =>
   Buffer.from(typeof dados === 'string' ? dados : new Uint8Array(dados)).toString('base64url');

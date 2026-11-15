@@ -1,22 +1,24 @@
 ---
 import Cartao from './Cartao.astro';
 import { TIPOS, type TipoId } from '../data/tipos';
-import { agruparPorAno, contarRelatos, type Memoria, type Pessoa } from '../lib/memorias';
+import { agruparPorAno } from '../lib/datas';
+import type { Integrante, Memoria, Nucleo } from '../lib/servidor/repositorio';
 
 interface Props {
   memorias: Memoria[];
-  pessoas: Pessoa[];
+  integrantes: Integrante[];
+  nucleos: Nucleo[];
+  vazio?: string;
 }
 
-const { memorias, pessoas } = Astro.props;
+const { memorias, integrantes, nucleos, vazio = 'Ainda não há memórias aqui.' } = Astro.props;
 const anos = agruparPorAno(memorias);
-const relatos = await contarRelatos();
-const tiposPresentes = (Object.keys(TIPOS) as TipoId[]).filter((id) => memorias.some((m) => m.data.tipo === id));
+const tiposPresentes = (Object.keys(TIPOS) as TipoId[]).filter((id) => memorias.some((m) => m.tipo === id));
 ---
 
 {
   memorias.length === 0 ? (
-    <p class="vazio">Ainda não há memórias aqui.</p>
+    <p class="vazio">{vazio}</p>
   ) : (
     <div data-linha-do-tempo>
       {tiposPresentes.length > 1 && (
@@ -43,7 +45,7 @@ const tiposPresentes = (Object.keys(TIPOS) as TipoId[]).filter((id) => memorias.
           </h2>
           <div class="ano__itens">
             {itens.map((m) => (
-              <Cartao memoria={m} pessoas={pessoas} relatos={relatos.get(m.id)} />
+              <Cartao memoria={m} integrantes={integrantes} nucleos={nucleos} />
             ))}
           </div>
         </section>

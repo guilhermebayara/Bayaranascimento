@@ -6,28 +6,42 @@
 
   // O site só responde no domínio protegido pelo login.
   "workers_dev": false,
-  "preview_urls": false,
+  "preview_urls": true,
   "routes": [{ "pattern": "memorias.bayara.com.br", "custom_domain": true }],
 
   // Preserva variáveis configuradas pelo painel a cada publicação
   "keep_vars": true,
 
   "r2_buckets": [{ "binding": "FOTOS", "bucket_name": "bayara-memorias" }],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "bayara-memorias", "database_id": "9bb25f11-3a8c-4c23-b427-94cce9c23d00" }
+  ],
 
   "vars": {
     // Cloudflare Access: usados para conferir quem está logado
     "ACCESS_TEAM_DOMAIN": "misty-meadow-4f1e.cloudflareaccess.com",
     "ACCESS_AUD": "6cb7130805a6a1e18b9863e6d91d6d76e5d980ae09acba0a63e5aba2229fddda",
-    // Onde os textos são gravados
-    "GITHUB_REPO": "guilhermebayara/Bayaranascimento",
-    "GITHUB_BRANCH": "main",
-    // Quem pode excluir memórias
-    "ADMIN": "gui"
+    // "producao" exige login. Só as prévias de branch usam "previa".
+    "AMBIENTE": "producao"
+  },
+
+  // Prévias de branch (npx wrangler preview). Usam banco e bucket de teste,
+  // só com memórias de exemplo, e por isso funcionam sem login: nada do
+  // acervo real fica ao alcance de uma prévia.
+  "previews": {
+    "vars": {
+      "ACCESS_TEAM_DOMAIN": "misty-meadow-4f1e.cloudflareaccess.com",
+      "ACCESS_AUD": "6cb7130805a6a1e18b9863e6d91d6d76e5d980ae09acba0a63e5aba2229fddda",
+      "AMBIENTE": "previa"
+    },
+    "r2_buckets": [{ "binding": "FOTOS", "bucket_name": "bayara-memorias-teste" }],
+    "d1_databases": [
+      { "binding": "DB", "database_name": "bayara-memorias-teste", "database_id": "d2c94f2a-5945-4414-8772-5769febac77b" }
+    ]
   },
 
   "observability": { "enabled": true }
 
-  // Segredos, configurados pelo painel ou com `wrangler secret put`:
-  //   GITHUB_TOKEN  token com permissão de escrita só neste repositório
-  //   ACESSOS       JSON ligando e-mail a pessoa, ex.: {"a@b.com":"gui"}
+  // Segredo, configurado pelo painel ou com `wrangler secret put`:
+  //   ACESSOS       JSON ligando e-mail de login a integrante, ex.: {"a@b.com":"gui"}
 }

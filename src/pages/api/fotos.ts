@@ -1,10 +1,9 @@
 // Recebe uma foto já reduzida pelo navegador e guarda no bucket.
+// A foto nasce solta e só passa a pertencer a uma memória quando ela é salva.
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
-import { usuarioDoPedido } from '../../lib/servidor/acesso';
 import { erro, json, mesmaOrigem } from '../../lib/servidor/http';
-
-export const prerender = false;
+import { registrarFoto } from '../../lib/servidor/repositorio';
 
 const LIMITE = 15 * 1024 * 1024;
 
@@ -19,11 +18,8 @@ function tipoReal(bytes: Uint8Array): { tipo: string; extensao: string } | undef
   return undefined;
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   if (!mesmaOrigem(request)) return erro(403, 'Pedido recusado.');
-  const usuario = await usuarioDoPedido(request);
-  if (!usuario) return erro(401, 'Não foi possível identificar quem está enviando.');
-
   const tamanho = Number(request.headers.get('Content-Length') ?? 0);
   if (tamanho > LIMITE + 4096) return erro(413, 'A foto é grande demais.');
 
@@ -44,7 +40,8 @@ export const POST: APIRoute = async ({ request }) => {
   const chave = `${new Date().getUTCFullYear()}/${crypto.randomUUID()}.${formato.extensao}`;
   await env.FOTOS.put(chave, dados, {
     httpMetadata: { contentType: formato.tipo },
-    customMetadata: { enviadaPor: usuario.pessoa },
+    customMetadata: { enviadaPor: locals.usuario.pessoa },
   });
-  return json({ chave, src: `/fotos/${chave}` }, 201);
+  const id = await registrarFoto(chave, locals.usuario);
+  return json({ id, src: `/fotos/${chave}` }, 201);
 };

@@ -1,19 +1,21 @@
 ---
 import '../styles/global.css';
-import { listarMemorias, listarPessoas, nomeCurto } from '../lib/memorias';
+import { PESSOAS_DE_TESTE, semLogin } from '../lib/servidor/acesso';
+import { listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
 
 interface Props {
   titulo?: string;
 }
 
 const { titulo } = Astro.props;
-const todas = await listarPessoas();
-const pessoas = todas.filter((p) => p.data.nucleo);
-const temOutras = todas.length > pessoas.length;
-const memorias = await listarMemorias();
-const temExemplos = memorias.some((m) => m.data.exemplo);
+const { usuario } = Astro.locals;
+const nucleos = (await listarNucleos()).filter((n) => usuario.nucleos.includes(n.id));
 const caminho = Astro.url.pathname.replace(/\/$/, '') || '/';
+const nucleoAtual = Astro.url.searchParams.get('nucleo');
 const tituloPagina = titulo ? `${titulo} | Bayara Nascimento` : 'Bayara Nascimento, memórias da família';
+const teste = semLogin();
+const pessoasDeTeste = teste ? (await listarIntegrantes()).filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
+const aqui = Astro.url.pathname + Astro.url.search;
 ---
 
 <!doctype html>
@@ -27,38 +29,38 @@ const tituloPagina = titulo ? `${titulo} | Bayara Nascimento` : 'Bayara Nascimen
   </head>
   <body>
     {
-      temExemplos && (
+      teste && (
         <div class="aviso">
-          <p class="miolo">As memórias desta versão são exemplos para testar o formato.</p>
+          <p class="miolo">
+            Versão de teste, só com memórias de exemplo. Ver como:
+            {pessoasDeTeste.map((p) => (
+              <a href={`/como/${p.id}?volta=${encodeURIComponent(aqui)}`} aria-current={p.id === usuario.pessoa ? 'true' : undefined}>
+                {p.apelido ?? p.nome}
+              </a>
+            ))}
+          </p>
         </div>
       )
     }
     <header class="miolo topo">
       <a class="topo__nome" href="/">Bayara Nascimento</a>
-      <nav class="topo__nav" aria-label="Linhas do tempo">
-        <a href="/" aria-current={caminho === '/' ? 'page' : undefined}>Família toda</a>
+      <nav class="topo__nav" aria-label="Seções">
+        <a href="/" aria-current={caminho === '/' && !nucleoAtual ? 'page' : undefined}>Tudo</a>
         {
-          pessoas.map((p) => (
-            <a href={`/pessoas/${p.id}`} aria-current={caminho === `/pessoas/${p.id}` ? 'page' : undefined}>
-              {nomeCurto(p)}
+          nucleos.map((n) => (
+            <a href={`/?nucleo=${n.id}`} aria-current={caminho === '/' && nucleoAtual === n.id ? 'page' : undefined}>
+              {n.nome}
             </a>
           ))
         }
-        {
-          temOutras && (
-            <a href="/pessoas" aria-current={caminho === '/pessoas' ? 'page' : undefined}>
-              Pessoas
-            </a>
-          )
-        }
-        <a class="topo__acao" href="/nova" aria-current={caminho === '/nova' ? 'page' : undefined}>
-          Nova memória
-        </a>
+        <a href="/pessoas" aria-current={caminho.startsWith('/pessoas') ? 'page' : undefined}>Pessoas</a>
+        <a href="/rascunhos" aria-current={caminho === '/rascunhos' ? 'page' : undefined}>Rascunhos</a>
+        <a class="topo__acao" href="/nova" aria-current={caminho === '/nova' ? 'page' : undefined}>Nova memória</a>
       </nav>
     </header>
     <main class="miolo">
       <slot />
     </main>
-    <footer class="miolo rodape">Acervo privado da família Bayara Nascimento.</footer>
+    <footer class="miolo rodape">Acervo privado da família. Você entrou como {usuario.nome}.</footer>
   </body>
 </html>

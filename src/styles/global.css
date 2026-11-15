@@ -836,3 +836,58 @@ p {
 .convite {
   margin: 2rem 0 0;
 }
+
+/* Selos, grupos e ações */
+
+.selo {
+  font-family: var(--titulo);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: var(--tinta);
+  color: var(--papel);
+  border-radius: 4px;
+  padding: 0.1rem 0.5rem;
+}
+
+.relato h2 .selo {
+  margin-left: 0.5rem;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.convite {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.grupo {
+  margin-bottom: clamp(2rem, 6vw, 3.5rem);
+}
+
+.grupo h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--tinta-suave);
+  margin-bottom: 0.75rem;
+}
+
+.aviso a {
+  color: inherit;
+  margin-left: 0.6rem;
+}
+
+.aviso a[aria-current='true'] {
+  font-weight: 700;
+  text-decoration-color: var(--amarelo);
+  text-decoration-thickness: 0.2em;
+}
+
+.relato__texto p {
+  white-space: pre-line;
+}
