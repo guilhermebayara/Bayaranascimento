@@ -2,7 +2,7 @@
 import Base from '../../../layouts/Base.astro';
 import LinhaDoTempo from '../../../components/LinhaDoTempo.astro';
 import { datasDeVida } from '../../../lib/datas';
-import { FASES, Familia, estaoJuntos, periodoDaFase, possessivo, type Tratamento } from '../../../lib/parentesco';
+import { FASES, Familia, estaoJuntos, lacoParaODono, periodoDaFase, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
 import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
@@ -38,6 +38,8 @@ const casais = familia.casais(pessoa.id);
 const lacos = await listarLacosDoCoracao(usuario);
 const escolhidos = lacos.filter((l) => l.dono === pessoa.id);
 const escolhidaPor = lacos.filter((l) => l.pessoa === pessoa.id);
+// Sem parentesco calculado, vale o laço do coração de quem está olhando
+const meuLaco = paraVoce ? undefined : escolhidaPor.find((l) => l.dono === usuario.pessoa);
 const temFamilia = grupos.length > 0 || casais.length > 0 || escolhidos.length > 0 || escolhidaPor.length > 0;
 
 const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok || podeMexerEmLaco(usuario, [pessoa]).ok;
@@ -48,6 +50,7 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
     <h1>{pessoa.nome}</h1>
     {resumo && <p>{resumo}</p>}
     {paraVoce && <p class="parentesco">{chamar} é {possessivo(paraVoce, pessoa.tratamento)}.</p>}
+    {meuLaco && <p class="parentesco">{chamar} é {lacoParaODono(meuLaco.nome, pessoa.tratamento)}.</p>}
     {datasDeVida(pessoa).map((linha) => <p class="dica">{linha}</p>)}
     {pessoa.sobre && <div class="bio">{pessoa.sobre.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
     <p class="acoes">
@@ -95,7 +98,7 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
               {escolhidos.map((l) => (
                 <dd>
                   <a href={`/pessoas/${l.pessoa}`}>{nome(l.pessoa)}</a>
-                  <span>{l.nome}</span>
+                  <span>{l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : l.nome}</span>
                   {l.privado && <small>só você vê</small>}
                 </dd>
               ))}
@@ -107,7 +110,7 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
               {escolhidaPor.map((l) => (
                 <dd>
                   <a href={`/pessoas/${l.dono}`}>{nome(l.dono)}</a>
-                  <span>{l.nome}</span>
+                  <span>{l.dono === usuario.pessoa ? `${lacoParaODono(l.nome, pessoa.tratamento)} (você)` : `chama de ${l.nome}`}</span>
                   {l.privado && <small>só você vê</small>}
                 </dd>
               ))}

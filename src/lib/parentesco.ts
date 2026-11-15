@@ -353,3 +353,17 @@ export const LINHA_DO_PAPEL: Record<Papel, 'avos' | 'pais' | 'centro' | 'filhos'
 export function podeVerLacoDoCoracao(pessoa: string, laco: Pick<LacoDoCoracao, 'dono' | 'privado'>): boolean {
   return !laco.privado || laco.dono === pessoa;
 }
+
+const FEMININOS = new Set(['vó', 'avó', 'mãe', 'irmã', 'mamãe']);
+
+/**
+ * "seu amigo-irmão", "sua afilhada": o laço do coração dito para o dono dele.
+ * Usa o tratamento da pessoa quando existe. Sem ele, olha a primeira palavra
+ * do nome que o dono deu ao laço ("amiga", "vó de coração").
+ */
+export function lacoParaODono(nomeDoLaco: string, tratamento: Tratamento): string {
+  const nome = nomeDoLaco.trim();
+  const primeira = nome.split(/[\s-]/)[0].toLowerCase();
+  const feminino = tratamento ? tratamento === 'ela' : FEMININOS.has(primeira) || /[aã]$/.test(primeira);
+  return `${feminino ? 'sua' : 'seu'} ${nome}`;
+}

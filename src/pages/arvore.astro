@@ -3,7 +3,7 @@
 // filhos abaixo. Tocar em alguém recentra a árvore nessa pessoa.
 import Base from '../layouts/Base.astro';
 import { anosDeVida } from '../lib/datas';
-import { FASES, Familia, LINHA_DO_PAPEL, estaoJuntos, possessivo, type Tratamento } from '../lib/parentesco';
+import { FASES, Familia, LINHA_DO_PAPEL, estaoJuntos, lacoParaODono, possessivo, type LacoDoCoracao, type Tratamento } from '../lib/parentesco';
 import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao } from '../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -51,6 +51,10 @@ const netos = unicos(filhos.flatMap((f) => familia.filhos(f).map((n) => n.filho)
 const escolhidos = camadas.consideracao ? (await listarLacosDoCoracao(usuario)).filter((l) => l.dono === centro.id && l.papel && aparece(l.pessoa)) : [];
 const jaNaArvore = new Set([...pais, ...avos, ...irmaos, ...filhos, ...netos, ...pares.map((c) => c.outro)]);
 const doCoracao = (linha: 'avos' | 'pais' | 'centro' | 'filhos') => escolhidos.filter((l) => LINHA_DO_PAPEL[l.papel!] === linha && !jaNaArvore.has(l.pessoa));
+
+// Para o dono do laço, "seu amigo-irmão". Para os outros, "amigo-irmão de Gui".
+const rotuloDoCoracao = (l: LacoDoCoracao) =>
+  l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : `${l.nome} de ${chamar(l.dono)}`;
 
 const paraVoce = (id: string) => {
   if (id === usuario.pessoa) return 'você';
@@ -122,8 +126,7 @@ const sozinha = pais.length + irmaos.length + pares.length + filhos.length + esc
                 <li>
                   <a class="no no--consideracao" href={link(c.pessoa)}>
                     <strong>{chamar(c.pessoa)}</strong>
-                    <span>{c.nome}</span>
-                    <small>de {chamar(centro.id)}</small>
+                    <span>{rotuloDoCoracao(c)}</span>
                   </a>
                 </li>
               ))}
@@ -153,8 +156,7 @@ const sozinha = pais.length + irmaos.length + pares.length + filhos.length + esc
           <li>
             <a class="no no--consideracao" href={link(c.pessoa)}>
               <strong>{chamar(c.pessoa)}</strong>
-              <span>{c.nome}</span>
-              <small>de {chamar(centro.id)}</small>
+              <span>{rotuloDoCoracao(c)}</span>
             </a>
           </li>
         ))}
@@ -199,8 +201,7 @@ const sozinha = pais.length + irmaos.length + pares.length + filhos.length + esc
                 <li>
                   <a class="no no--consideracao" href={link(c.pessoa)}>
                     <strong>{chamar(c.pessoa)}</strong>
-                    <span>{c.nome}</span>
-                    <small>de {chamar(centro.id)}</small>
+                    <span>{rotuloDoCoracao(c)}</span>
                   </a>
                 </li>
               ))}
