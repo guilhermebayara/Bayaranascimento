@@ -36,3 +36,29 @@ export function agruparPorAno<T extends { ano: number }>(itens: T[]): { ano: num
   }
   return [...grupos.entries()].map(([ano, lista]) => ({ ano, itens: lista }));
 }
+
+interface Vida {
+  nascimentoAno: number | null;
+  nascimentoMes?: number | null;
+  nascimentoDia?: number | null;
+  falecimentoAno: number | null;
+  falecimentoMes?: number | null;
+  falecimentoDia?: number | null;
+}
+
+/** Anos de vida para listas e para a árvore: "1942 a 2019", "1994" ou vazio. */
+export function anosDeVida(v: Vida): string {
+  if (v.nascimentoAno && v.falecimentoAno) return `${v.nascimentoAno} a ${v.falecimentoAno}`;
+  if (v.nascimentoAno) return String(v.nascimentoAno);
+  if (v.falecimentoAno) return `até ${v.falecimentoAno}`;
+  return '';
+}
+
+/** Nascimento e falecimento por extenso, com o que se souber de cada data. */
+export function datasDeVida(v: Vida): string[] {
+  const linhas: string[] = [];
+  const data = (ano: number, mes?: number | null, dia?: number | null) => formatarData({ ano, mes: mes ?? null, dia: dia ?? null, aproximada: false });
+  if (v.nascimentoAno) linhas.push(`Nascimento: ${data(v.nascimentoAno, v.nascimentoMes, v.nascimentoDia)}`);
+  if (v.falecimentoAno) linhas.push(`Falecimento: ${data(v.falecimentoAno, v.falecimentoMes, v.falecimentoDia)}`);
+  return linhas;
+}

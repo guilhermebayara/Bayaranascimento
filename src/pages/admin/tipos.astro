@@ -1,0 +1,113 @@
+---
+import Base from '../../layouts/Base.astro';
+import { listarTextosDeOutro } from '../../lib/servidor/repositorio';
+import { TIPO_OUTRO } from '../../lib/tipos';
+
+const { usuario, tipos } = Astro.locals;
+if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
+
+const textos = await listarTextosDeOutro(usuario);
+const oficiais = tipos.filter((t) => t.id !== TIPO_OUTRO);
+const CORES = ['#2F7D6B', '#D6455B', '#8A5BB5', '#C98A00', '#2B74B8', '#A8572E', '#D2478F', '#4E7F1E', '#5B6B7A', '#3D4A66', '#B5532B', '#1F8A8A'];
+const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.toLowerCase())) ?? CORES[0];
+---
+
+<Base titulo="Tipos de momento">
+  <div class="abertura abertura--curta">
+    <h1>Tipos de momento</h1>
+    <p>A lista que aparece em "Que tipo de momento foi?". Só você e a Giovanna veem esta página.</p>
+  </div>
+
+  <section class="painel">
+    <h2>O que a família escreveu em "Outro"</h2>
+    {
+      textos.length === 0 ? (
+        <p class="vazio">Ninguém usou "Outro" com um nome ainda. Quando usarem, os nomes aparecem aqui com a quantidade de memórias.</p>
+      ) : (
+        <>
+          <p class="dica">Quando um nome se repete, vale virar um tipo da lista. As memórias com aquele nome mudam junto.</p>
+          <ul class="linhas">
+            {textos.map((t) => (
+              <li>
+                <div>
+                  <strong>{t.texto}</strong>
+                  <span>
+                    {t.memorias} {t.memorias === 1 ? 'memória' : 'memórias'}
+                  </span>
+                </div>
+                <form method="post" action="/api/tipos" class="em-linha">
+                  <input type="hidden" name="acao" value="promover" />
+                  <input type="hidden" name="texto" value={t.texto} />
+                  <label>
+                    <span>Nome do tipo</span>
+                    <input type="text" name="rotulo" value={t.texto} maxlength="40" required />
+                  </label>
+                  <label>
+                    <span>Cor</span>
+                    <input type="color" name="cor" value={corLivre} />
+                  </label>
+                  <button class="botao botao--leve" type="submit">Criar tipo</button>
+                </form>
+                <form method="post" action="/api/tipos" class="em-linha">
+                  <input type="hidden" name="acao" value="promover" />
+                  <input type="hidden" name="texto" value={t.texto} />
+                  <label>
+                    <span>ou juntar a um tipo que já existe</span>
+                    <select name="destino" required>
+                      <option value="">Escolha</option>
+                      {oficiais.map((o) => (
+                        <option value={o.id}>{o.rotulo}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button class="botao botao--leve" type="submit">Juntar</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </>
+      )
+    }
+  </section>
+
+  <section class="painel">
+    <h2>Tipos da lista</h2>
+    <ul class="linhas">
+      {
+        tipos.map((t) => (
+          <li>
+            <form method="post" action="/api/tipos" class="em-linha">
+              <input type="hidden" name="acao" value="editar" />
+              <input type="hidden" name="id" value={t.id} />
+              <label>
+                <span>Nome</span>
+                <input type="text" name="rotulo" value={t.rotulo} maxlength="40" required readonly={t.id === TIPO_OUTRO} />
+              </label>
+              <label>
+                <span>Cor</span>
+                <input type="color" name="cor" value={t.cor} />
+              </label>
+              <button class="botao botao--leve" type="submit">Salvar</button>
+            </form>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="painel">
+    <h2>Novo tipo</h2>
+    <form method="post" action="/api/tipos" class="em-linha">
+      <input type="hidden" name="acao" value="criar" />
+      <label>
+        <span>Nome</span>
+        <input type="text" name="rotulo" maxlength="40" required placeholder="Ex.: Formatura" />
+      </label>
+      <label>
+        <span>Cor</span>
+        <input type="color" name="cor" value={corLivre} />
+      </label>
+      <button class="botao" type="submit">Criar tipo</button>
+    </form>
+  </section>
+</Base>

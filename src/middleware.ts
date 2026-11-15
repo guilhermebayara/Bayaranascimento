@@ -4,6 +4,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { ehServicoDeCopia, usuarioDoPedido } from './lib/servidor/acesso';
 import { prepararBanco } from './lib/servidor/banco';
 import { respostaDaCopia } from './lib/servidor/copia';
+import { listarTipos } from './lib/servidor/repositorio';
 
 const RECADO = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bayara Nascimento</title><body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 15vh auto; padding: 0 1.5rem; line-height: 1.5">
@@ -31,6 +32,7 @@ export const onRequest = defineMiddleware(async (contexto, proximo) => {
     });
   }
   contexto.locals.usuario = usuario;
+  contexto.locals.tipos = await listarTipos();
   const resposta = await proximo();
   // Nada do acervo deve ficar guardado em servidores intermediários
   if (!resposta.headers.has('Cache-Control')) resposta.headers.set('Cache-Control', 'private, no-store');

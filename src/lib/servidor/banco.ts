@@ -137,6 +137,102 @@ const MIGRACOES: Migracao[] = [
         ('bracarense', 'lucas-magno'), ('bracarense', 'lucio'), ('bracarense', 'ana-candida'), ('bracarense', 'regina')`,
     ],
   },
+  {
+    // Os tipos de momento saem do código e passam a ser uma lista que os admins cuidam.
+    // "Outro" recebe um texto livre; quando um texto se repete, vira tipo oficial.
+    id: '003-tipos',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS tipos (
+        id TEXT PRIMARY KEY,
+        rotulo TEXT NOT NULL,
+        cor TEXT NOT NULL,
+        ordem INTEGER NOT NULL DEFAULT 50,
+        criado_por TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+      `INSERT OR IGNORE INTO tipos (id, rotulo, cor, ordem) VALUES
+        ('nascimento', 'Nascimento', '#2F7D6B', 1),
+        ('aniversario', 'Aniversário', '#D6455B', 2),
+        ('casamento', 'Casamento', '#8A5BB5', 3),
+        ('conquista', 'Conquista', '#C98A00', 4),
+        ('viagem', 'Viagem', '#2B74B8', 5),
+        ('casa', 'Casa', '#A8572E', 6),
+        ('festa', 'Festa', '#D2478F', 7),
+        ('causo', 'Causo', '#4E7F1E', 8),
+        ('cotidiano', 'Dia a dia', '#5B6B7A', 9),
+        ('despedida', 'Despedida', '#3D4A66', 10),
+        ('outro', 'Outro', '#7A6F66', 999)`,
+      `ALTER TABLE memorias ADD COLUMN tipo_outro TEXT`,
+    ],
+  },
+  {
+    // Árvore: o banco guarda só filiação e casal (com fases). Avós, tios, primos
+    // e cunhados são calculados em lib/parentesco.ts.
+    id: '004-arvore',
+    sql: [
+      // Como se referir à pessoa nos nomes de parentesco ("sua mãe", "seu tio")
+      `ALTER TABLE integrantes ADD COLUMN tratamento TEXT CHECK (tratamento IN ('ela', 'ele'))`,
+      `ALTER TABLE integrantes ADD COLUMN nascimento_mes INTEGER`,
+      `ALTER TABLE integrantes ADD COLUMN nascimento_dia INTEGER`,
+      `ALTER TABLE integrantes ADD COLUMN falecimento_mes INTEGER`,
+      `ALTER TABLE integrantes ADD COLUMN falecimento_dia INTEGER`,
+      `CREATE TABLE IF NOT EXISTS filiacoes (
+        filho_id TEXT NOT NULL REFERENCES integrantes(id),
+        responsavel_id TEXT NOT NULL REFERENCES integrantes(id),
+        qualidade TEXT NOT NULL DEFAULT 'biologica' CHECK (qualidade IN ('biologica', 'adotiva', 'consideracao')),
+        criado_por TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (filho_id, responsavel_id),
+        CHECK (filho_id <> responsavel_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS filiacoes_do_responsavel ON filiacoes (responsavel_id)`,
+      // Um registro por par de pessoas, com a_id < b_id para o par não se repetir invertido
+      `CREATE TABLE IF NOT EXISTS casais (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        a_id TEXT NOT NULL REFERENCES integrantes(id),
+        b_id TEXT NOT NULL REFERENCES integrantes(id),
+        visibilidade TEXT NOT NULL DEFAULT 'todos' CHECK (visibilidade IN ('todos', 'privado')),
+        criado_por TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (a_id, b_id),
+        CHECK (a_id < b_id)
+      )`,
+      // As fases contam a história do casal. A de maior ordem é a atual.
+      `CREATE TABLE IF NOT EXISTS casal_fases (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        casal_id INTEGER NOT NULL REFERENCES casais(id) ON DELETE CASCADE,
+        tipo TEXT NOT NULL CHECK (tipo IN ('namoro', 'noivado', 'casamento', 'uniao', 'separacao', 'amizade')),
+        inicio_ano INTEGER,
+        fim_ano INTEGER,
+        ordem INTEGER NOT NULL DEFAULT 0
+      )`,
+      `CREATE INDEX IF NOT EXISTS fases_do_casal ON casal_fases (casal_id, ordem)`,
+    ],
+  },
+  {
+    // O que já se sabe da família, para a árvore não nascer vazia. Tudo pode ser corrigido no site.
+    id: '005-arvore-inicial',
+    sql: [
+      `UPDATE integrantes SET tratamento = 'ela' WHERE id IN ('giovanna', 'elizete', 'vo-bela', 'vo-vivica', 'ana-candida', 'regina')`,
+      `UPDATE integrantes SET tratamento = 'ele' WHERE id IN ('gui', 'lucas-magno', 'aguilar', 'lucio', 'chico')`,
+      `INSERT OR IGNORE INTO filiacoes (filho_id, responsavel_id, qualidade) VALUES
+        ('gui', 'elizete', 'biologica'), ('gui', 'aguilar', 'biologica'),
+        ('giovanna', 'elizete', 'biologica'), ('giovanna', 'aguilar', 'biologica'),
+        ('aguilar', 'vo-bela', 'biologica'),
+        ('elizete', 'vo-vivica', 'biologica'),
+        ('lucas-magno', 'lucio', 'biologica'), ('lucas-magno', 'ana-candida', 'biologica'),
+        ('ana-candida', 'regina', 'biologica'),
+        ('chico', 'giovanna', 'adotiva'), ('chico', 'lucas-magno', 'adotiva'),
+        ('chico', 'gui', 'consideracao')`,
+      `INSERT OR IGNORE INTO casais (a_id, b_id) VALUES ('aguilar', 'elizete'), ('giovanna', 'lucas-magno')`,
+      `INSERT INTO casal_fases (casal_id, tipo, ordem)
+        SELECT id, 'casamento', 0 FROM casais WHERE a_id = 'aguilar' AND b_id = 'elizete'
+        UNION ALL SELECT id, 'separacao', 1 FROM casais WHERE a_id = 'aguilar' AND b_id = 'elizete'
+        UNION ALL SELECT id, 'namoro', 0 FROM casais WHERE a_id = 'giovanna' AND b_id = 'lucas-magno'
+        UNION ALL SELECT id, 'noivado', 1 FROM casais WHERE a_id = 'giovanna' AND b_id = 'lucas-magno'
+        UNION ALL SELECT id, 'casamento', 2 FROM casais WHERE a_id = 'giovanna' AND b_id = 'lucas-magno'`,
+    ],
+  },
 ];
 
 let pronto: Promise<void> | undefined;

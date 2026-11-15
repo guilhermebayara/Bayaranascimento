@@ -1,0 +1,93 @@
+---
+import Base from '../../../layouts/Base.astro';
+import LinhaDoTempo from '../../../components/LinhaDoTempo.astro';
+import { datasDeVida } from '../../../lib/datas';
+import { FASES, Familia, estaoJuntos, periodoDaFase, possessivo, type Tratamento } from '../../../lib/parentesco';
+import { pessoasComAcesso } from '../../../lib/servidor/acesso';
+import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
+import { listarCasais, listarFiliacoes, listarIntegrantes, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const integrantes = await listarIntegrantes();
+const pessoa = integrantes.find((i) => i.id === Astro.params.id);
+if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
+
+const nucleos = await listarNucleos();
+const memorias = await listarMemorias(usuario, { integrante: pessoa.id });
+const dosNucleos = pessoa.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean);
+const resumo = [pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bicho') : '', dosNucleos.join(' e ')].filter(Boolean).join(', ');
+
+const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
+const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
+const achar = (id: string) => integrantes.find((i) => i.id === id);
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+const chamar = pessoa.apelido ?? pessoa.nome;
+// O que cada parente é desta pessoa: "mãe", "irmão", "filho de consideração"
+const papel = (id: string) => familia.relacao(pessoa.id, id)?.texto;
+const paraVoce = pessoa.id === usuario.pessoa ? undefined : familia.relacao(usuario.pessoa, pessoa.id);
+
+const pais = familia.pais(pessoa.id).map((p) => p.responsavel);
+const grupos = [
+  { titulo: 'Pais', ids: pais },
+  { titulo: 'Irmãos', ids: familia.irmaos(pessoa.id).map((i) => i.id) },
+  { titulo: 'Filhos', ids: familia.filhos(pessoa.id).map((f) => f.filho) },
+  { titulo: 'Avós', ids: [...new Set(pais.flatMap((p) => familia.pais(p).map((a) => a.responsavel)))] },
+].filter((g) => g.ids.length > 0);
+const casais = familia.casais(pessoa.id);
+
+const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok || podeMexerEmLaco(usuario, [pessoa]).ok;
+---
+
+<Base titulo={pessoa.nome}>
+  <div class="abertura">
+    <h1>{pessoa.nome}</h1>
+    {resumo && <p>{resumo}</p>}
+    {paraVoce && <p class="parentesco">{chamar} é {possessivo(paraVoce, pessoa.tratamento)}.</p>}
+    {datasDeVida(pessoa).map((linha) => <p class="dica">{linha}</p>)}
+    {pessoa.sobre && <div class="bio">{pessoa.sobre.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
+    <p class="acoes">
+      <a class="botao botao--leve" href={`/arvore?centro=${pessoa.id}`}>Ver na árvore</a>
+      {podeEditar && <a class="botao botao--leve" href={`/pessoas/${pessoa.id}/editar`}>Editar página e laços</a>}
+    </p>
+  </div>
+
+  {
+    (grupos.length > 0 || casais.length > 0) && (
+      <section class="familia">
+        <h2>Família</h2>
+        <dl>
+          {casais.length > 0 && (
+            <div>
+              <dt>Casal</dt>
+              {casais.map((c) => (
+                <dd>
+                  <a href={`/pessoas/${c.outro}`}>{nome(c.outro)}</a>
+                  <span>{papel(c.outro) ?? (estaoJuntos(c.casal) ? '' : 'ex')}</span>
+                  <small>
+                    {c.casal.fases
+                      .map((fase) => [FASES[fase.tipo].toLowerCase(), periodoDaFase(fase)].filter(Boolean).join(' '))
+                      .join(', depois ')}
+                    {c.casal.visibilidade === 'privado' && ' (só os dois veem)'}
+                  </small>
+                </dd>
+              ))}
+            </div>
+          )}
+          {grupos.map((g) => (
+            <div>
+              <dt>{g.titulo}</dt>
+              {g.ids.map((id) => (
+                <dd>
+                  <a href={`/pessoas/${id}`}>{nome(id)}</a>
+                  <span>{papel(id)}</span>
+                </dd>
+              ))}
+            </div>
+          ))}
+        </dl>
+      </section>
+    )
+  }
+
+  <LinhaDoTempo memorias={memorias} integrantes={integrantes} nucleos={nucleos} vazio={`Nenhuma memória com ${pessoa.nome} por enquanto.`} />
+</Base>

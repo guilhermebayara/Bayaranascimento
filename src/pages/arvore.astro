@@ -1,0 +1,191 @@
+---
+// Árvore centrada em uma pessoa: avós e pais acima, irmãos e casal ao lado,
+// filhos abaixo. Tocar em alguém recentra a árvore nessa pessoa.
+import Base from '../layouts/Base.astro';
+import { anosDeVida } from '../lib/datas';
+import { FASES, Familia, estaoJuntos, possessivo, type Tratamento } from '../lib/parentesco';
+import { listarCasais, listarFiliacoes, listarIntegrantes } from '../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const integrantes = await listarIntegrantes();
+const achar = (id: string) => integrantes.find((i) => i.id === id);
+const centro = achar(Astro.url.searchParams.get('centro') ?? '') ?? achar(usuario.pessoa);
+if (!centro) return new Response('Pessoa não encontrada', { status: 404 });
+
+// Camadas: todas ligadas, a não ser que o formulário de camadas tenha sido usado
+const escolheu = Astro.url.searchParams.has('camadas');
+const ligadas = new Set(Astro.url.searchParams.getAll('mostrar'));
+const camadas = {
+  consideracao: !escolheu || ligadas.has('consideracao'),
+  ex: !escolheu || ligadas.has('ex'),
+  bichos: !escolheu || ligadas.has('bichos'),
+};
+const parametros = new URLSearchParams();
+if (escolheu) {
+  parametros.set('camadas', '1');
+  for (const [nome, ligada] of Object.entries(camadas)) if (ligada) parametros.append('mostrar', nome);
+}
+const link = (id: string) => {
+  const p = new URLSearchParams(parametros);
+  p.set('centro', id);
+  return `/arvore?${p}`;
+};
+
+const filiacoes = await listarFiliacoes();
+const casais = await listarCasais(usuario);
+const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
+// A árvore desenhada respeita as camadas. Os nomes de parentesco usam a família inteira.
+const familia = new Familia(filiacoes, casais, tratamentos, camadas);
+const completa = new Familia(filiacoes, casais, tratamentos);
+
+const aparece = (id: string) => Boolean(achar(id)) && (camadas.bichos || achar(id)!.tipo !== 'bicho' || id === centro.id);
+const unicos = (ids: string[]) => [...new Set(ids)].filter(aparece);
+const pais = unicos(familia.pais(centro.id).map((p) => p.responsavel));
+const avos = unicos(pais.flatMap((p) => familia.pais(p).map((a) => a.responsavel)));
+const irmaos = unicos(familia.irmaos(centro.id).map((i) => i.id));
+const pares = familia.casais(centro.id).filter((c) => aparece(c.outro));
+const filhos = unicos(familia.filhos(centro.id).map((f) => f.filho));
+const netos = unicos(filhos.flatMap((f) => familia.filhos(f).map((n) => n.filho)));
+
+const paraVoce = (id: string) => {
+  if (id === usuario.pessoa) return 'você';
+  const relacao = completa.relacao(usuario.pessoa, id);
+  return relacao ? possessivo(relacao, achar(id)!.tratamento) : '';
+};
+const consideracao = (ids: Set<string>) => (id: string) => ids.has(id);
+const paisDeConsideracao = consideracao(new Set(familia.pais(centro.id).filter((p) => p.qualidade === 'consideracao').map((p) => p.responsavel)));
+const filhosDeConsideracao = consideracao(new Set(familia.filhos(centro.id).filter((f) => f.qualidade === 'consideracao').map((f) => f.filho)));
+
+// Se os pais formam ou formaram um casal, a árvore conta
+const casalDosPais = pais.length === 2 ? familia.casais(pais[0]).find((c) => c.outro === pais[1]) : undefined;
+const chamar = (id: string) => achar(id)!.apelido ?? achar(id)!.nome;
+const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+const linhas = [
+  { titulo: 'Avós', ids: avos, marca: () => false },
+  { titulo: 'Pais', ids: pais, marca: paisDeConsideracao },
+];
+const abaixo = [
+  { titulo: 'Filhos', ids: filhos, marca: filhosDeConsideracao },
+  { titulo: 'Netos', ids: netos, marca: () => false },
+];
+const sozinha = pais.length + irmaos.length + pares.length + filhos.length === 0;
+---
+
+<Base titulo={`Árvore de ${chamar(centro.id)}`}>
+  <div class="abertura abertura--curta">
+    <h1>Árvore</h1>
+    <p>Centrada em {chamar(centro.id)}. Toque em alguém para ver a família a partir dessa pessoa.</p>
+  </div>
+
+  <form class="em-linha arvore__controles" method="get" action="/arvore">
+    <label>
+      <span>Ir para</span>
+      <select name="centro">
+        {ordenados.map((i) => <option value={i.id} selected={i.id === centro.id}>{i.nome}</option>)}
+      </select>
+    </label>
+    <input type="hidden" name="camadas" value="1" />
+    <fieldset class="arvore__camadas">
+      <legend>Mostrar</legend>
+      <label class="marcar"><input type="checkbox" name="mostrar" value="consideracao" checked={camadas.consideracao} /><span>Laços de consideração</span></label>
+      <label class="marcar"><input type="checkbox" name="mostrar" value="ex" checked={camadas.ex} /><span>Ex-casais</span></label>
+      <label class="marcar"><input type="checkbox" name="mostrar" value="bichos" checked={camadas.bichos} /><span>Bichos</span></label>
+    </fieldset>
+    <button class="botao botao--leve" type="submit">Atualizar</button>
+  </form>
+
+  <div class="arvore">
+    {
+      linhas
+        .filter((l) => l.ids.length > 0)
+        .map((l) => (
+          <section class="arvore__linha">
+            <h2>{l.titulo}</h2>
+            <ul>
+              {l.ids.map((id) => (
+                <li>
+                  <a class:list={['no', l.marca(id) && 'no--consideracao']} href={link(id)}>
+                    <strong>{chamar(id)}</strong>
+                    <span>{paraVoce(id)}</span>
+                    <small>{anosDeVida(achar(id)!)}</small>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {l.titulo === 'Pais' && casalDosPais && (
+              <p class="arvore__nota">
+                {chamar(pais[0])} e {chamar(pais[1])}: {casalDosPais.casal.fases.map((fase) => FASES[fase.tipo].toLowerCase()).join(', depois ')}
+              </p>
+            )}
+          </section>
+        ))
+    }
+
+    <section class="arvore__linha arvore__linha--centro">
+      <h2>{irmaos.length > 0 ? 'Irmãos, ' : ''}{chamar(centro.id)}{pares.length > 0 ? ' e casal' : ''}</h2>
+      <ul>
+        {irmaos.map((id) => (
+          <li>
+            <a class="no" href={link(id)}>
+              <strong>{chamar(id)}</strong>
+              <span>{paraVoce(id)}</span>
+              <small>{anosDeVida(achar(id)!)}</small>
+            </a>
+          </li>
+        ))}
+        <li>
+          <a class="no no--centro" href={`/pessoas/${centro.id}`} aria-current="true">
+            <strong>{chamar(centro.id)}</strong>
+            <span>{paraVoce(centro.id)}</span>
+            <small>{anosDeVida(centro) || 'ver a página'}</small>
+          </a>
+        </li>
+        {pares.map((c) => (
+          <li>
+            <a class:list={['no', 'no--par', !estaoJuntos(c.casal) && 'no--ex']} href={link(c.outro)}>
+              <strong>{chamar(c.outro)}</strong>
+              <span>{paraVoce(c.outro)}</span>
+              <small>
+                {completa.relacao(centro.id, c.outro)?.texto} de {chamar(centro.id)}
+              </small>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    {
+      abaixo
+        .filter((l) => l.ids.length > 0)
+        .map((l) => (
+          <section class="arvore__linha">
+            <h2>{l.titulo}</h2>
+            <ul>
+              {l.ids.map((id) => (
+                <li>
+                  <a class:list={['no', l.marca(id) && 'no--consideracao']} href={link(id)}>
+                    <strong>{chamar(id)}</strong>
+                    <span>{paraVoce(id)}</span>
+                    <small>{anosDeVida(achar(id)!)}</small>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+    }
+  </div>
+
+  {
+    sozinha && (
+      <p class="vazio">
+        {chamar(centro.id)} ainda não tem laços cadastrados. <a href={`/pessoas/${centro.id}/editar#lacos`}>Dizer de quem é filho ou com quem formou casal</a>.
+      </p>
+    )
+  }
+  <p class="dica">
+    Contorno tracejado: laço de consideração. Contorno pontilhado: casal que não está mais junto.{" "}
+    <a href="/pessoas/nova">Cadastrar uma pessoa</a>
+  </p>
+</Base>

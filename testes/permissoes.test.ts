@@ -107,3 +107,34 @@ describe('relatos', () => {
     expect(podeEscreverRelato(magno, 'lucas-magno', { por: 'lucas-magno', registradoPor: 'giovanna' }, comAcesso).ok).toBe(false);
   });
 });
+
+describe('cadastro de integrantes e laços', async () => {
+  const { podeEditarIntegrante, podeMexerEmLaco } = await import('../src/lib/servidor/permissoes');
+  const pessoa = (pessoa: string, nucleos: string[], admin = false) => ({ pessoa, nome: pessoa, admin, nucleos });
+  const elizete = pessoa('elizete', ['bayara-nascimento']);
+  const magno = pessoa('lucas-magno', ['bayara-bracarense', 'bracarense']);
+  const gui = pessoa('gui', ['bayara-nascimento'], true);
+  const comAcesso = new Set(['gui', 'giovanna', 'elizete', 'lucas-magno']);
+  const voBela = { id: 'vo-bela', nucleos: ['bayara-nascimento'], criadoPor: null };
+  const lucio = { id: 'lucio', nucleos: ['bracarense'], criadoPor: null };
+  const amiga = { id: 'amiga', nucleos: [], criadoPor: 'elizete' };
+
+  it('cada pessoa com acesso cuida da própria página, e só ela', () => {
+    expect(podeEditarIntegrante(elizete, { id: 'elizete', nucleos: ['bayara-nascimento'] }, comAcesso).ok).toBe(true);
+    expect(podeEditarIntegrante(gui, { id: 'elizete', nucleos: ['bayara-nascimento'] }, comAcesso).ok).toBe(false);
+  });
+  it('página de quem não acessa: núcleo em comum, quem cadastrou ou admin', () => {
+    expect(podeEditarIntegrante(elizete, voBela, comAcesso).ok).toBe(true);
+    expect(podeEditarIntegrante(magno, voBela, comAcesso).ok).toBe(false);
+    expect(podeEditarIntegrante(elizete, amiga, comAcesso).ok).toBe(true);
+    expect(podeEditarIntegrante(magno, amiga, comAcesso).ok).toBe(false);
+    expect(podeEditarIntegrante(gui, lucio, comAcesso).ok).toBe(true);
+  });
+  it('laço de árvore: envolvidos, núcleo em comum com algum deles, ou admin', () => {
+    expect(podeMexerEmLaco(magno, [lucio, { id: 'lucas-magno', nucleos: magno.nucleos }]).ok).toBe(true);
+    expect(podeMexerEmLaco(elizete, [voBela, amiga]).ok).toBe(true);
+    expect(podeMexerEmLaco(elizete, [lucio]).ok).toBe(false);
+    expect(podeMexerEmLaco(elizete, [{ id: 'elizete', nucleos: [] }, lucio]).ok).toBe(true);
+    expect(podeMexerEmLaco(gui, [lucio]).ok).toBe(true);
+  });
+});

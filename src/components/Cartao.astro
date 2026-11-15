@@ -1,6 +1,6 @@
 ---
 import Foto from './Foto.astro';
-import { TIPOS, type TipoId } from '../data/tipos';
+import { tipoDaMemoria } from '../lib/tipos';
 import { formatarDiaMes } from '../lib/datas';
 import type { Integrante, Memoria, Nucleo } from '../lib/servidor/repositorio';
 
@@ -12,7 +12,7 @@ interface Props {
 
 const { memoria, integrantes, nucleos } = Astro.props;
 const foto = memoria.fotos[0];
-const tipo = TIPOS[memoria.tipo as TipoId] ?? { rotulo: memoria.tipo, cor: 'var(--tinta)' };
+const tipo = tipoDaMemoria(Astro.locals.tipos, memoria);
 const diaMes = formatarDiaMes(memoria);
 const nomes = memoria.integrantes
   .map((id) => integrantes.find((i) => i.id === id))
@@ -23,7 +23,7 @@ const destino = memoria.situacao === 'rascunho' ? `/nova?id=${memoria.id}` : `/m
 ---
 
 <article class:list={['cartao', foto && 'cartao--com-foto']} data-tipo={memoria.tipo}>
-  {foto && <Foto foto={foto} tipo={memoria.tipo} mostrarLegenda={false} />}
+  {foto && <Foto foto={foto} cor={tipo.cor} mostrarLegenda={false} />}
   <div>
     {diaMes && <p class="cartao__data">{diaMes}</p>}
     <h3><a href={destino}>{memoria.titulo}</a></h3>

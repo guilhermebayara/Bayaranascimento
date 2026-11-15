@@ -1,0 +1,229 @@
+---
+import Base from '../../../layouts/Base.astro';
+import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
+import { FASES, Familia, QUALIDADES, estaoJuntos, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
+import { pessoasComAcesso } from '../../../lib/servidor/acesso';
+import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
+import { listarCasais, listarFiliacoes, listarIntegrantes } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const integrantes = await listarIntegrantes();
+const pessoa = integrantes.find((i) => i.id === Astro.params.id);
+if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
+
+const podeFicha = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok;
+const podeLacos = podeMexerEmLaco(usuario, [pessoa]).ok;
+if (!podeFicha && !podeLacos) return Astro.redirect(`/pessoas/${pessoa.id}`);
+
+const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario));
+const nome = (id: string) => {
+  const i = integrantes.find((x) => x.id === id);
+  return i?.apelido ?? i?.nome ?? id;
+};
+const chamar = pessoa.apelido ?? pessoa.nome;
+const pais = familia.pais(pessoa.id);
+const filhos = familia.filhos(pessoa.id);
+const casais = familia.casais(pessoa.id);
+const outros = integrantes.filter((i) => i.id !== pessoa.id).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+const livresParaPais = outros.filter((i) => !pais.some((p) => p.responsavel === i.id) && !filhos.some((f) => f.filho === i.id));
+const livresParaCasal = outros.filter((i) => !casais.some((c) => c.outro === i.id));
+const volta = `/pessoas/${pessoa.id}/editar#lacos`;
+const qualidades = Object.entries(QUALIDADES) as [Qualidade, string][];
+const fases = Object.entries(FASES) as [TipoDeFase, string][];
+const anoAtual = new Date().getFullYear();
+---
+
+<Base titulo={`Editar ${chamar}`}>
+  <div class="abertura abertura--curta">
+    <h1>{chamar}</h1>
+    <p><a href={`/pessoas/${pessoa.id}`}>Voltar para a página</a></p>
+  </div>
+
+  {
+    podeLacos && (
+      <section class="painel" id="lacos">
+        <h2>Laços de família</h2>
+        <p class="dica">
+          Basta dizer de quem a pessoa é filha e com quem formou casal. Avós, tios, primos e cunhados o site calcula sozinho.
+        </p>
+
+        <h3>Pais</h3>
+        {pais.length > 0 && (
+          <ul class="linhas">
+            {pais.map((p) => (
+              <li>
+                <div>
+                  <strong>{nome(p.responsavel)}</strong>
+                  <span>filiação {QUALIDADES[p.qualidade].toLowerCase()}</span>
+                </div>
+                <form method="post" action="/api/lacos" class="em-linha">
+                  <input type="hidden" name="volta" value={volta} />
+                  <input type="hidden" name="filho" value={pessoa.id} />
+                  <input type="hidden" name="responsavel" value={p.responsavel} />
+                  <button class="botao botao--leve" type="submit" name="acao" value="filiacao-remover">Remover laço</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form method="post" action="/api/lacos" class="em-linha">
+          <input type="hidden" name="acao" value="filiacao-salvar" />
+          <input type="hidden" name="volta" value={volta} />
+          <input type="hidden" name="filho" value={pessoa.id} />
+          <label>
+            <span>{chamar} é filho ou filha de</span>
+            <select name="responsavel" required>
+              <option value="">Escolha</option>
+              {livresParaPais.map((i) => <option value={i.id}>{i.nome}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Filiação</span>
+            <select name="qualidade">
+              {qualidades.map(([id, rotulo]) => <option value={id}>{rotulo}</option>)}
+            </select>
+          </label>
+          <button class="botao botao--leve" type="submit">Adicionar</button>
+        </form>
+
+        <h3>Filhos</h3>
+        {filhos.length > 0 && (
+          <ul class="linhas">
+            {filhos.map((f) => (
+              <li>
+                <div>
+                  <strong>{nome(f.filho)}</strong>
+                  <span>filiação {QUALIDADES[f.qualidade].toLowerCase()}</span>
+                </div>
+                <form method="post" action="/api/lacos" class="em-linha">
+                  <input type="hidden" name="volta" value={volta} />
+                  <input type="hidden" name="filho" value={f.filho} />
+                  <input type="hidden" name="responsavel" value={pessoa.id} />
+                  <button class="botao botao--leve" type="submit" name="acao" value="filiacao-remover">Remover laço</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form method="post" action="/api/lacos" class="em-linha">
+          <input type="hidden" name="acao" value="filiacao-salvar" />
+          <input type="hidden" name="volta" value={volta} />
+          <input type="hidden" name="responsavel" value={pessoa.id} />
+          <label>
+            <span>É filho ou filha de {chamar}</span>
+            <select name="filho" required>
+              <option value="">Escolha</option>
+              {livresParaPais.map((i) => <option value={i.id}>{i.nome}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Filiação</span>
+            <select name="qualidade">
+              {qualidades.map(([id, rotulo]) => <option value={id}>{rotulo}</option>)}
+            </select>
+          </label>
+          <button class="botao botao--leve" type="submit">Adicionar</button>
+        </form>
+
+        <h3>Casal</h3>
+        <p class="dica">
+          Cada casal guarda a história em fases, na ordem em que aconteceram. A última linha preenchida é a fase de hoje. Os anos são opcionais.
+        </p>
+        {casais.map((c) => (
+          <form method="post" action="/api/lacos" class="casal">
+            <input type="hidden" name="volta" value={volta} />
+            <input type="hidden" name="a" value={pessoa.id} />
+            <input type="hidden" name="b" value={c.outro} />
+            <p class="casal__titulo">
+              <strong>{chamar} e {nome(c.outro)}</strong>
+              <span>{estaoJuntos(c.casal) ? 'juntos' : 'não estão mais juntos'}</span>
+            </p>
+            {[...c.casal.fases, null].map((fase) => (
+              <div class="em-linha">
+                <label>
+                  <span>{fase ? 'Fase' : 'Nova fase'}</span>
+                  <select name="faseTipo">
+                    <option value="">{fase ? 'Remover esta fase' : 'Nenhuma'}</option>
+                    {fases.map(([id, rotulo]) => <option value={id} selected={fase?.tipo === id}>{rotulo}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span>Começou em</span>
+                  <input type="number" name="faseInicio" min="1800" max={anoAtual} inputmode="numeric" value={fase?.inicioAno ?? ''} />
+                </label>
+                <label>
+                  <span>Terminou em</span>
+                  <input type="number" name="faseFim" min="1800" max={anoAtual} inputmode="numeric" value={fase?.fimAno ?? ''} />
+                </label>
+              </div>
+            ))}
+            <label class="marcar">
+              <input type="checkbox" name="visibilidade" value="privado" checked={c.casal.visibilidade === 'privado'} />
+              <span>Só os dois veem este casal</span>
+            </label>
+            <div class="em-linha">
+              <button class="botao botao--leve" type="submit" name="acao" value="casal-salvar">Salvar fases</button>
+            </div>
+          </form>
+        ))}
+        {casais.map((c) => (
+          <form method="post" action="/api/lacos" class="em-linha">
+            <input type="hidden" name="volta" value={volta} />
+            <input type="hidden" name="id" value={c.casal.id} />
+            <button class="botao botao--leve" type="submit" name="acao" value="casal-remover">
+              Apagar o casal {chamar} e {nome(c.outro)}, se foi cadastrado por engano
+            </button>
+          </form>
+        ))}
+        <form method="post" action="/api/lacos" class="casal">
+          <input type="hidden" name="acao" value="casal-salvar" />
+          <input type="hidden" name="volta" value={volta} />
+          <input type="hidden" name="a" value={pessoa.id} />
+          <p class="casal__titulo"><strong>Novo casal</strong></p>
+          <div class="em-linha">
+            <label>
+              <span>{chamar} e</span>
+              <select name="b" required>
+                <option value="">Escolha</option>
+                {livresParaCasal.map((i) => <option value={i.id}>{i.nome}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Fase</span>
+              <select name="faseTipo" required>
+                {fases.map(([id, rotulo]) => <option value={id} selected={id === 'casamento'}>{rotulo}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Começou em</span>
+              <input type="number" name="faseInicio" min="1800" max={anoAtual} inputmode="numeric" />
+            </label>
+            <label>
+              <span>Terminou em</span>
+              <input type="number" name="faseFim" min="1800" max={anoAtual} inputmode="numeric" />
+            </label>
+          </div>
+          <label class="marcar">
+            <input type="checkbox" name="visibilidade" value="privado" />
+            <span>Só os dois veem este casal</span>
+          </label>
+          <div class="em-linha">
+            <button class="botao botao--leve" type="submit">Adicionar casal</button>
+          </div>
+        </form>
+        <p class="dica">Não achou a pessoa na lista? <a href="/pessoas/nova">Cadastre primeiro</a> e volte aqui.</p>
+      </section>
+    )
+  }
+
+  {
+    podeFicha ? (
+      <section class="painel">
+        <h2>Ficha</h2>
+        <FichaDoIntegrante integrante={pessoa} />
+      </section>
+    ) : (
+      <p class="dica">A ficha de {chamar} só pode ser alterada por {pessoa.tratamento === 'ela' ? 'ela mesma' : pessoa.tratamento === 'ele' ? 'ele mesmo' : 'quem é dono da página'}.</p>
+    )
+  }
+</Base>

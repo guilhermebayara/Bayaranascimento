@@ -902,3 +902,331 @@ p {
 .relato__texto p {
   white-space: pre-line;
 }
+
+/* Recados de formulários e páginas de cadastro */
+
+.recado {
+  margin: 0 0 1.5rem;
+  padding: 0.85rem 1.1rem;
+  border: 1.5px solid var(--tinta);
+  border-radius: 6px;
+  background: var(--amarelo);
+  font-family: var(--titulo);
+  font-weight: 600;
+}
+
+.recado--erro {
+  background: var(--branco);
+  border-color: #b3261e;
+  color: #8c1d18;
+}
+
+.rodape__admin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+}
+
+.painel {
+  display: grid;
+  gap: 1rem;
+  padding-block: 1.5rem;
+  border-top: 1.5px solid var(--linha);
+}
+
+.painel h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.linhas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.linhas > li {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  background: var(--branco);
+  border: 1.5px solid var(--linha);
+  border-radius: 8px;
+}
+
+.linhas > li > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  align-items: baseline;
+}
+
+.linhas > li > div span {
+  color: var(--tinta-suave);
+}
+
+.em-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+
+.em-linha label {
+  display: grid;
+  gap: 0.3rem;
+  font-family: var(--titulo);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.em-linha input[type='text'],
+.em-linha input[type='number'],
+.em-linha select {
+  font: inherit;
+  color: var(--tinta);
+  background: var(--branco);
+  border: 1.5px solid var(--tinta-suave);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  min-height: 2.75rem;
+  max-width: 100%;
+}
+
+.em-linha input[type='number'] {
+  width: 6.5rem;
+}
+
+.em-linha input[type='color'] {
+  width: 3.25rem;
+  height: 2.75rem;
+  padding: 0.15rem;
+  border: 1.5px solid var(--tinta-suave);
+  border-radius: 6px;
+  background: var(--branco);
+}
+
+.em-linha input[readonly] {
+  background: var(--papel-fundo);
+  color: var(--tinta-suave);
+}
+
+.em-linha .botao {
+  min-height: 2.75rem;
+}
+
+/* Página de pessoa: parentesco e família */
+
+.parentesco {
+  font-family: var(--titulo);
+  font-weight: 600;
+}
+
+.abertura .acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.familia {
+  padding-block: 1.5rem;
+  border-top: 1.5px solid var(--linha);
+}
+
+.familia h2 {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+}
+
+.familia dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1.25rem 2rem;
+}
+
+.familia dt {
+  font-family: var(--titulo);
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.familia dd {
+  margin: 0 0 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.6rem;
+  align-items: baseline;
+}
+
+.familia dd span,
+.familia dd small {
+  color: var(--tinta-suave);
+}
+
+.familia dd small {
+  flex-basis: 100%;
+  font-size: 0.9375rem;
+}
+
+.painel h3 {
+  margin: 0.75rem 0 0;
+  font-size: 1.125rem;
+}
+
+.casal {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  background: var(--branco);
+  border: 1.5px solid var(--linha);
+  border-radius: 8px;
+}
+
+.casal__titulo {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  align-items: baseline;
+}
+
+.casal__titulo span {
+  color: var(--tinta-suave);
+}
+
+/* Árvore centrada */
+
+.arvore__controles {
+  margin-bottom: 2rem;
+}
+
+.arvore__camadas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.arvore__camadas legend {
+  padding: 0;
+  font-family: var(--titulo);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.arvore {
+  display: grid;
+  justify-items: center;
+}
+
+.arvore__linha {
+  position: relative;
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding-block: 1.25rem;
+}
+
+/* O traço que liga uma geração à seguinte */
+.arvore__linha + .arvore__linha::before {
+  content: '';
+  position: absolute;
+  top: -0.25rem;
+  left: 50%;
+  height: 1.5rem;
+  border-left: 1.5px solid var(--tinta-suave);
+}
+
+.arvore__linha h2 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--tinta-suave);
+}
+
+.arvore__linha ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.arvore__nota {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--tinta-suave);
+}
+
+.no {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 9.5rem;
+  max-width: 14rem;
+  padding: 0.8rem 1rem;
+  text-align: center;
+  text-decoration: none;
+  color: var(--tinta);
+  background: var(--branco);
+  border: 1.5px solid var(--tinta);
+  border-radius: 10px;
+}
+
+.no:hover {
+  background: var(--papel-fundo);
+}
+
+.no strong {
+  font-family: var(--titulo);
+  font-size: 1.125rem;
+}
+
+.no span,
+.no small {
+  color: var(--tinta-suave);
+  font-size: 0.9375rem;
+}
+
+.no--centro {
+  background: var(--amarelo);
+  min-width: 12rem;
+  padding-block: 1.1rem;
+}
+
+.no--centro:hover {
+  background: #ffcf4a;
+}
+
+.no--centro strong {
+  font-size: 1.5rem;
+}
+
+.no--centro span,
+.no--centro small {
+  color: var(--tinta);
+}
+
+.no--consideracao {
+  border-style: dashed;
+}
+
+.no--ex {
+  border-style: dotted;
+}
+
+.arvore__camadas .marcar {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
