@@ -74,7 +74,9 @@ const doCoracao = (linha: 'avos' | 'pais' | 'centro' | 'filhos') => escolhidos.f
 
 // Para o dono do laço, "seu amigo-irmão". Para os outros, "amigo-irmão de Gui".
 const rotuloDoCoracao = (l: LacoDoCoracao) =>
-  l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : `${l.nome} de ${chamar(l.dono)}`;
+  l.dono === usuario.pessoa
+    ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null)
+    : `${l.nome.charAt(0).toLowerCase()}${l.nome.slice(1)} de ${chamar(l.dono)}`;
 
 const paraVoce = (id: string) => {
   if (id === usuario.pessoa) return 'você';

@@ -174,6 +174,7 @@ describe('laço do coração dito para o dono', async () => {
     expect(lacoParaODono('afilhada', null)).toBe('sua afilhada');
     expect(lacoParaODono('vó de coração', null)).toBe('sua vó de coração');
     expect(lacoParaODono('sobrinho', null)).toBe('seu sobrinho');
+    expect(lacoParaODono('Amiga', null)).toBe('sua amiga');
   });
 });
 

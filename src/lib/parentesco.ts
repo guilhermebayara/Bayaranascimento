@@ -377,7 +377,8 @@ export function lacoParaODono(nomeDoLaco: string, tratamento: Tratamento): strin
   const nome = nomeDoLaco.trim();
   const primeira = nome.split(/[\s-]/)[0].toLowerCase();
   const feminino = tratamento ? tratamento === 'ela' : FEMININOS.has(primeira) || /[aã]$/.test(primeira);
-  return `${feminino ? 'sua' : 'seu'} ${nome}`;
+  // No meio da frase, o nome do laço começa em minúscula mesmo que tenha sido digitado "Amiga"
+  return `${feminino ? 'sua' : 'seu'} ${nome.charAt(0).toLowerCase()}${nome.slice(1)}`;
 }
 
 // --- Visão geral: a família inteira em gerações ---
