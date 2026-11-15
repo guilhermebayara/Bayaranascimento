@@ -65,7 +65,22 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 - Quem mexe em laços de árvore: os envolvidos, quem divide um núcleo com algum deles e os admins.
 - Os laços entram por um formulário só, "Adicionar laço": um seletor escolhe o tipo (filho de, pai de, casal, do coração) e mostra os campos daquele tipo. A outra pessoa pode ser da lista ou um nome novo, cadastrado na hora.
 - **Laços do coração** (primeira versão): nome livre, "como se fosse" opcional (dá lugar na árvore de quem escolheu), proximidade que só o dono vê e a opção "só eu vejo". O laço é sempre de quem está logado. Ainda faltam o período do laço, o círculo e esconder do acervo a pessoa que só aparece em laços privados.
-- A árvore (`/arvore`) é centrada em uma pessoa e abre em quem está logado. Camadas que ligam e desligam: consideração, ex-casais e bichos.
+- A árvore (`/arvore`) é uma só: a família inteira, com todas as ligações desenhadas. Linha grossa liga o casal (pontilhada quando não está mais junto), uma linha desce dos pais e se abre para os irmãos, e tracejado marca consideração e coração.
+- Os controles não trocam de tela: mudam o destaque e o que aparece, na hora. **Partir de** põe uma pessoa em foco e centraliza a árvore nela. **Destacar** um núcleo deixa os outros mais apagados, ainda ligados; desligar "Outros núcleos" esconde quem é de fora. As camadas ligam e desligam consideração e coração, ex-casais e bichos.
+- Tocar em alguém põe a pessoa em foco. Tocar de novo abre a página dela. O estado fica no endereço, então dá para mandar o link de uma visão.
+- O desenho é calculado no navegador (`src/lib/arvore-desenho.ts`): gerações em linhas, casais lado a lado como um bloco, filhos sob os pais. O casamento alinha as duas famílias na mesma geração.
+- Laços do coração com "como se fosse" entram na geração que o papel indica, e a família de uma amiga fica perto de quem a escolheu. Para o dono, "seu amigo-irmão"; para os demais, "amigo-irmão de Gui".
+- **Escadinha dos laços do coração.** Um laço "como se fosse" se liga pelo caminho mais próximo do sangue, sem inventar laços que não existem. Se a pessoa escolhida também tem laço do coração com o pai ou a mãe de quem escolheu, o laço passa por ele: a tia de consideração do Gui é amiga-irmã da Elizete, e a Dona Lourdes é mãe de consideração da Elizete, então as duas se ligam à Elizete e não ganham linha até o Gui. Quem não passa por ninguém (a Dona Déia) se liga direto, mesmo cruzando outras linhas. O laço do meio aparece junto, mesmo com os laços da Elizete recolhidos. Tios e tias "tortos" costumam ser casados com tios de sangue ou amigas da mãe, e entram por esses laços.
+- "Como se fosse pai ou mãe" existe como papel, para casos como a mãe de consideração da Elizete.
+- **Marca do ramo recolhido** (do FigJam): ocupa o lugar de mais um filho, ao lado de quem está na linha direta e do lado de fora do casal, e a linha dos pais se divide até ela. No meio da linha entre pais e filho ela parecia algo entre os dois. Dois ramos ao lado da mesma pessoa ficam um depois do outro, o do casal mais perto.
+- **Linhas dos laços do coração em tronco**: os laços de uma pessoa para o mesmo lado saem juntos numa faixa só, descem no vão ao lado dela e entram pela lateral. O tronco e cada galho são desenhados uma vez só, sem trechos sobrepostos, para o tracejado não virar linha cheia. Curvas grandes mostram direção e bifurcação; ângulo reto fica para cruzamento. Vizinhos se ligam por uma linha reta.
+- O cartão do ramo aberto não tem título: a linha até o casal já diz de onde ele vem. Fica só o botão de fechar, no canto.
+- Casal sem ninguém da linha direta embaixo (Luísa e Bruno) ganha o ponto do casal e uma linha curta até a marca do ramo.
+- A ordem das fileiras é buscada a partir de três arranjos (o que veio, o espelho e um ordenado pelos núcleos) e fica o melhor. Sem isso, abrir os laços do Gui e da Giovanna juntos espelhava a árvore, com o lado Bracarense à esquerda. Os dados da prévia ficam em `testes/dados/arvore-previa.json` e os testes conferem os lados com várias combinações de laços abertos.
+- **Ramo aberto** (do Figma): a linha sai da marca do casal, corre por fora, logo acima do cartão, e só entra nele em cima de cada filho do ramo. O cartão nunca cobre quem liga o ramo à árvore (a Elizete, no ramo da Tia Lourdes). O resto da árvore recua, apagado e desfocado, e ficam nítidos o cartão, o casal de origem com a marca e quem é da mesma geração do ramo e vem do mesmo casal. Com vários ramos abertos, vale o último. Ao abrir, o mapa anda o mínimo para o cartão caber na tela.
+- Só chega ao navegador o que a pessoa pode ver: casais e laços privados de outras pessoas ficam no servidor.
+- Fora da produção, o banco de teste ganha parentes inventados (ids começando com `ex-`) para a árvore ter mais cenários.
+- Sem "como se referir" informado, o parentesco sai nas duas formas: "seu tio ou sua tia".
 
 ## Lixeira e histórico
 
@@ -105,7 +120,7 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 
 - Histórico de integrantes e laços no site (as versões já são guardadas) e apagar de vez o que está na lixeira
 - Foto de retrato do integrante, juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
-- Árvore: visão geral com zoom, recorte por núcleo e página do laço com linha do tempo
+- Árvore: linhas ligando pais e filhos na visão geral, zoom e página do laço com linha do tempo (dependem do visual)
 - Círculo e avisos
 - Fotos enviadas em um formulário abandonado ficam no bucket sem uso: falta uma limpeza periódica
 

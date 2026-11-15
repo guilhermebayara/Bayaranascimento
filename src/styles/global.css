@@ -10,6 +10,12 @@
   --tinta-suave: #4c635d;
   --linha: #c3d1c9;
   --amarelo: #f4b81c;
+  /* Lados da família na árvore, na ordem dos núcleos: esquerda, meio, direita.
+     Provisório, até a direção visual. O do meio mistura os dois lados. */
+  --nucleo-0: #d6e6f5;
+  --nucleo-1: #e3dcf1;
+  --nucleo-2: #f6e0cf;
+  --nucleo-3: #dcefdc;
 
   --titulo: 'Bricolage Grotesque Variable', system-ui, sans-serif;
   --texto: 'Literata Variable', Georgia, serif;
@@ -1098,139 +1104,6 @@ p {
   color: var(--tinta-suave);
 }
 
-/* Árvore centrada */
-
-.arvore__controles {
-  margin-bottom: 2rem;
-}
-
-.arvore__camadas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
-  border: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.arvore__camadas legend {
-  padding: 0;
-  font-family: var(--titulo);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  margin-bottom: 0.3rem;
-}
-
-.arvore {
-  display: grid;
-  justify-items: center;
-}
-
-.arvore__linha {
-  position: relative;
-  width: 100%;
-  display: grid;
-  justify-items: center;
-  gap: 0.6rem;
-  padding-block: 1.25rem;
-}
-
-/* O traço que liga uma geração à seguinte */
-.arvore__linha + .arvore__linha::before {
-  content: '';
-  position: absolute;
-  top: -0.25rem;
-  left: 50%;
-  height: 1.5rem;
-  border-left: 1.5px solid var(--tinta-suave);
-}
-
-.arvore__linha h2 {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--tinta-suave);
-}
-
-.arvore__linha ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.arvore__nota {
-  margin: 0;
-  font-size: 0.9375rem;
-  color: var(--tinta-suave);
-}
-
-.no {
-  display: grid;
-  gap: 0.1rem;
-  min-width: 9.5rem;
-  max-width: 14rem;
-  padding: 0.8rem 1rem;
-  text-align: center;
-  text-decoration: none;
-  color: var(--tinta);
-  background: var(--branco);
-  border: 1.5px solid var(--tinta);
-  border-radius: 10px;
-}
-
-.no:hover {
-  background: var(--papel-fundo);
-}
-
-.no strong {
-  font-family: var(--titulo);
-  font-size: 1.125rem;
-}
-
-.no span,
-.no small {
-  color: var(--tinta-suave);
-  font-size: 0.9375rem;
-}
-
-.no--centro {
-  background: var(--amarelo);
-  min-width: 12rem;
-  padding-block: 1.1rem;
-}
-
-.no--centro:hover {
-  background: #ffcf4a;
-}
-
-.no--centro strong {
-  font-size: 1.5rem;
-}
-
-.no--centro span,
-.no--centro small {
-  color: var(--tinta);
-}
-
-.no--consideracao {
-  border-style: dashed;
-}
-
-.no--ex {
-  border-style: dotted;
-}
-
-.arvore__camadas .marcar {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 /* Excluir, lixeira e histórico */
 
 .alerta {
@@ -1693,4 +1566,639 @@ p {
 [data-so-epoca] {
   display: grid;
   gap: 1.25rem;
+}
+
+/* Árvore da família: a página é o mapa. Ele ocupa a largura toda e quase toda a altura da janela. */
+
+.arvore__topo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+}
+
+.arvore__topo h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.arvore__topo p {
+  margin: 0;
+  color: var(--tinta-suave);
+  font-size: 1rem;
+}
+
+.mapa {
+  position: relative;
+  /* sai das margens do miolo para usar a janela inteira */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  height: calc(100dvh - 11rem);
+  min-height: 26rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle, var(--linha) 1px, transparent 1.5px) 0 0 / 28px 28px,
+    var(--branco);
+  border-block: 1.5px solid var(--linha);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.mapa:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: -3px;
+}
+
+.mapa--arrastando {
+  cursor: grabbing;
+}
+
+.mapa__camada {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.mapa__camada--animada {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mapa__linhas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  animation: surgir 0.5s ease-out;
+}
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+  }
+}
+
+.linha {
+  fill: none;
+  stroke: var(--tinta-suave);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.linha--casal {
+  stroke: var(--tinta);
+  stroke-width: 2.5;
+}
+
+.linha--ex {
+  stroke: var(--tinta);
+  stroke-width: 2;
+  stroke-dasharray: 2 6;
+}
+
+.linha--consideracao,
+.linha--coracao {
+  stroke-dasharray: 6 5;
+}
+
+.linha--foco {
+  stroke: var(--tinta);
+  stroke-width: 3;
+}
+
+.linha--ponto {
+  fill: var(--tinta);
+  stroke: none;
+}
+
+.linha--apagada {
+  opacity: 0.2;
+}
+
+.no {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  align-content: center;
+  gap: 0.15rem;
+  padding: 0.4rem 0.6rem;
+  text-align: center;
+  text-decoration: none;
+  line-height: 1.25;
+  color: var(--tinta);
+  background: var(--papel);
+  border: 1.5px solid var(--tinta);
+  border-radius: 12px;
+  overflow: hidden;
+  animation: surgir 0.4s ease-out;
+}
+
+/* Depois do primeiro desenho, as caixas deslizam até o novo lugar quando algo muda */
+.mapa__camada--viva .no {
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s,
+    filter 0.3s,
+    background-color 0.2s;
+}
+
+.no:hover {
+  filter: brightness(0.96);
+}
+
+.no strong {
+  font-family: var(--titulo);
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.no span {
+  color: var(--tinta-suave);
+  font-size: 0.8125rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Quem está olhando: uma faixa amarela no alto, para não esconder a cor do lado */
+.no--eu {
+  box-shadow: inset 0 7px 0 var(--amarelo);
+}
+
+.no--eu span {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
+/* Amigos e quem não é de nenhum núcleo */
+.no--de-fora {
+  background: var(--branco);
+}
+
+.no--foco {
+  box-shadow:
+    0 0 0 3px var(--branco),
+    0 0 0 6px var(--tinta);
+}
+
+.no--apagado {
+  opacity: 0.35;
+}
+
+.no--eu.no--foco {
+  box-shadow:
+    inset 0 7px 0 var(--amarelo),
+    0 0 0 3px var(--branco),
+    0 0 0 6px var(--tinta);
+}
+
+.no--apagado.no--foco {
+  opacity: 0.8;
+}
+
+/* Botão no canto de quem tem laços do coração: abre e recolhe esses laços */
+.no__coracao {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  min-width: 2.75rem;
+  height: 1.75rem;
+  padding: 0 0.55rem;
+  font-family: var(--titulo);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tinta);
+  background: var(--branco);
+  border: 1.5px dashed var(--tinta);
+  border-radius: 999px;
+  cursor: pointer;
+  animation: surgir 0.4s ease-out;
+}
+
+/* área de toque maior que o desenho */
+.no__coracao::after {
+  content: '';
+  position: absolute;
+  inset: -0.5rem;
+}
+
+.no__coracao[aria-pressed='true'] {
+  color: var(--branco);
+  background: var(--tinta);
+  border-style: solid;
+}
+
+.no__coracao:hover {
+  background: var(--papel-fundo);
+}
+
+.no__coracao[aria-pressed='true']:hover {
+  background: var(--tinta-suave);
+}
+
+.no__coracao--apagado {
+  opacity: 0.35;
+}
+
+.mapa__camada--viva .no__coracao {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Ramos laterais: a marca no ponto do casal e o cartão que abre por cima da árvore */
+.no__ramo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 44px;
+  height: 26px;
+  font-family: var(--titulo);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tinta);
+  background: var(--branco);
+  border: 1.5px solid var(--tinta);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.no__ramo::after {
+  content: '';
+  position: absolute;
+  inset: -0.5rem;
+}
+
+.no__ramo:hover {
+  background: var(--papel-fundo);
+}
+
+.no__ramo[aria-pressed='true'] {
+  color: var(--branco);
+  background: var(--tinta);
+}
+
+.ramo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  background: var(--papel);
+  border: 1.5px solid var(--tinta);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgb(30 58 47 / 0.22);
+  animation: surgir 0.25s ease-out;
+}
+
+.ramo__titulo {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  font-family: var(--titulo);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.ramo__titulo button {
+  width: 28px;
+  height: 28px;
+  font: inherit;
+  font-size: 1.125rem;
+  color: var(--tinta);
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ramo__titulo button:hover {
+  background: var(--papel-fundo);
+}
+
+.ramo__conteudo {
+  position: absolute;
+}
+
+/* A linha que liga o cartão aos pais sai do cartão e sobe até a marca */
+.ramo .mapa__linhas {
+  overflow: visible;
+}
+
+.linha--ramo {
+  stroke: var(--tinta);
+  stroke-width: 1.5;
+}
+
+/* Com um ramo aberto, o resto da árvore recua e fica só o que liga o ramo à árvore */
+.recuado {
+  opacity: 0.4;
+  filter: blur(1.5px);
+  transition:
+    opacity 0.25s ease-out,
+    filter 0.25s ease-out;
+}
+
+.no.recuado:hover,
+.no.recuado:focus-visible {
+  opacity: 0.85;
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recuado {
+    transition: none;
+  }
+}
+
+/* O que fica por cima do mapa: painel de ajustes, ficha do foco, zoom e legenda */
+
+.mapa__painel,
+.mapa__foco,
+.mapa__zoom,
+.mapa__legenda {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  background: var(--papel);
+  border: 1.5px solid var(--tinta);
+  border-radius: 12px;
+  cursor: default;
+  user-select: auto;
+}
+
+.mapa__painel {
+  top: 1rem;
+  left: var(--margem);
+  width: min(18rem, calc(100vw - 2 * var(--margem)));
+  max-height: calc(100% - 2rem);
+  overflow: auto;
+}
+
+.mapa__painel summary {
+  padding: 0.7rem 1rem;
+  font-family: var(--titulo);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mapa__painel form {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0 1rem 1rem;
+}
+
+.arvore__campo {
+  display: grid;
+  gap: 0.3rem;
+  font-family: var(--titulo);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.arvore__campo select {
+  font: inherit;
+  font-weight: 400;
+  color: var(--tinta);
+  background: var(--branco);
+  border: 1.5px solid var(--tinta-suave);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  min-height: 2.75rem;
+  width: 100%;
+}
+
+.arvore__camadas {
+  display: grid;
+  gap: 0.15rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.arvore__camadas legend {
+  padding: 0;
+  font-family: var(--titulo);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.arvore__camadas .marcar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+}
+
+.arvore__camadas .marcar span {
+  font-weight: 400;
+}
+
+.arvore__camadas .marcar[data-desligado] {
+  opacity: 0.45;
+}
+
+.mapa__foco {
+  top: 1rem;
+  right: var(--margem);
+  max-width: min(22rem, calc(100vw - 2 * var(--margem)));
+  padding: 0.7rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.9rem;
+  align-items: baseline;
+}
+
+.mapa__foco strong {
+  font-family: var(--titulo);
+  font-size: 1.125rem;
+}
+
+.mapa__foco span {
+  color: var(--tinta-suave);
+  flex-basis: 100%;
+}
+
+.mapa__foco a {
+  font-family: var(--titulo);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--tinta);
+}
+
+.mapa__foco button {
+  padding: 0;
+  font-family: var(--titulo);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--tinta);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.mapa__zoom {
+  right: var(--margem);
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  font-family: var(--titulo);
+  font-size: 0.9375rem;
+}
+
+.mapa__zoom button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0 0.8rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--tinta);
+  background: none;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.mapa__zoom button:hover {
+  background: var(--papel-fundo);
+}
+
+.mapa__zoom span {
+  min-width: 3.2rem;
+  text-align: center;
+}
+
+.mapa__legenda {
+  left: var(--margem);
+  bottom: 1rem;
+  font-size: 0.8125rem;
+  color: var(--tinta-suave);
+}
+
+.mapa__legenda summary {
+  padding: 0.5rem 0.9rem;
+  font-family: var(--titulo);
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+}
+
+.mapa__legenda ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.9rem 0.7rem;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.15rem 1.1rem;
+}
+
+.amostra {
+  display: inline-block;
+  width: 2rem;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  border-top: 2.5px solid var(--tinta);
+}
+
+.amostra--ex {
+  border-top: 2px dotted var(--tinta);
+}
+
+.amostra--filhos {
+  border-top: 1.5px solid var(--tinta-suave);
+}
+
+.amostra--coracao {
+  border-top: 1.5px dashed var(--tinta-suave);
+}
+
+.amostra-cor {
+  display: inline-block;
+  width: 2rem;
+  height: 0.9rem;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  border: 1.5px solid var(--tinta);
+  border-radius: 4px;
+}
+
+.amostra-cor--fora {
+  background: var(--branco);
+}
+
+.amostra-botao {
+  display: inline-block;
+  margin-right: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  font-family: var(--titulo);
+  font-size: 0.75rem;
+  color: var(--tinta);
+  background: var(--branco);
+  border: 1.5px dashed var(--tinta);
+  border-radius: 999px;
+}
+
+.arvore__rodape {
+  margin: 0.75rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  font-size: 0.9375rem;
+  color: var(--tinta-suave);
+}
+
+/* Em tela estreita, o painel começa fechado e a legenda sai, para sobrar árvore */
+@media (max-width: 44rem) {
+  .mapa {
+    height: calc(100dvh - 9rem);
+  }
+
+  .mapa__legenda {
+    display: none;
+  }
+
+  .mapa__foco {
+    top: auto;
+    bottom: 4.5rem;
+    left: var(--margem);
+    right: var(--margem);
+    max-width: none;
+  }
+
+  .mapa__zoom {
+    left: var(--margem);
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapa__camada--animada,
+  .mapa__camada--viva .no,
+  .mapa__camada--viva .no__coracao {
+    transition: none;
+  }
+
+  .mapa__linhas,
+  .no,
+  .no__coracao {
+    animation: none;
+  }
 }

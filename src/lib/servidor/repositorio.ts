@@ -296,6 +296,15 @@ export async function listarLacosDoCoracao(usuario: Usuario): Promise<LacoDoCora
     .filter((l) => podeVerLacoDoCoracao(usuario.pessoa, l));
 }
 
+/** Pessoas que aparecem em laços privados de outras pessoas (o laço em si fica escondido). */
+export async function pessoasEmLacosPrivadosDeOutros(usuario: Usuario): Promise<Set<string>> {
+  const { results } = await db()
+    .prepare('SELECT DISTINCT pessoa_id FROM lacos_coracao WHERE privado = 1 AND dono_id <> ?')
+    .bind(usuario.pessoa)
+    .all<{ pessoa_id: string }>();
+  return new Set(results.map((r) => r.pessoa_id));
+}
+
 export async function salvarLacoDoCoracao(
   usuario: Usuario,
   pessoa: string,

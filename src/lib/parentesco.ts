@@ -79,6 +79,8 @@ export interface Relacao {
   /** ex.: "mãe", "tio de consideração", "ex-marido" */
   texto: string;
   consideracao: boolean;
+  /** as duas formas, quando a pessoa não tem "como se referir" informado */
+  formas?: { ela: string; ele: string };
 }
 
 // [ela, ele, sem tratamento informado]
@@ -274,19 +276,29 @@ export class Familia {
 
   private nomear(passos: Passo[], tratamento: Tratamento): Relacao | undefined {
     const consideracao = passos.some((p) => (p.tipo === 'U' || p.tipo === 'D') && p.consideracao);
-    const sufixo = consideracao ? ' de consideração' : '';
+    let formas: Formas | undefined;
+    let prefixo = '';
+    let sufixo = consideracao ? ' de consideração' : '';
     if (passos.length === 1 && (passos[0].tipo === 'C' || passos[0].tipo === 'X')) {
       const { casal } = passos[0];
       const atual = faseAtual(casal)!;
-      if (passos[0].tipo === 'C') return { texto: forma(PARES[atual.tipo], tratamento), consideracao: false };
+      sufixo = '';
+      if (passos[0].tipo === 'C') formas = PARES[atual.tipo];
       // O ex que virou amigo aparece como amigo
-      if (atual.tipo === 'amizade') return { texto: forma(PARES.amizade, tratamento), consideracao: false };
-      return { texto: `ex-${forma(PARES[auge(casal)], tratamento)}`, consideracao: false };
+      else if (atual.tipo === 'amizade') formas = PARES.amizade;
+      else {
+        formas = PARES[auge(casal)];
+        prefixo = 'ex-';
+      }
+    } else {
+      formas = NOMES[passos.map((p) => p.tipo).join('')];
     }
-    const assinatura = passos.map((p) => p.tipo).join('');
-    const formas = NOMES[assinatura];
     if (!formas) return undefined;
-    return { texto: forma(formas, tratamento) + sufixo, consideracao };
+    const montar = (base: string) => prefixo + base + sufixo;
+    const ehConsideracao = consideracao && sufixo !== '';
+    if (tratamento) return { texto: montar(forma(formas, tratamento)), consideracao: ehConsideracao };
+    const [ela, ele] = formas;
+    return { texto: `${montar(ele)} ou ${montar(ela)}`, consideracao: ehConsideracao, formas: { ela: montar(ela), ele: montar(ele) } };
   }
 }
 
@@ -296,10 +308,10 @@ function empilhar<T>(mapa: Map<string, T[]>, chave: string, valor: T): void {
   else mapa.set(chave, [valor]);
 }
 
-/** "sua mãe", "seu tio de consideração". Quem não tem tratamento informado recebe "seu/sua". */
+/** "sua mãe", "seu tio de consideração". Sem tratamento informado, as duas formas: "seu tio ou sua tia". */
 export function possessivo(relacao: Relacao, tratamento: Tratamento): string {
-  const seu = tratamento === 'ela' ? 'sua' : tratamento === 'ele' ? 'seu' : 'seu ou sua';
-  return `${seu} ${relacao.texto}`;
+  if (!tratamento && relacao.formas) return `seu ${relacao.formas.ele} ou sua ${relacao.formas.ela}`;
+  return `${tratamento === 'ela' ? 'sua' : 'seu'} ${relacao.texto}`;
 }
 
 /** Período de uma fase em texto: "2015 a 2019", "desde 2020", ou vazio sem datas. */
@@ -312,7 +324,7 @@ export function periodoDaFase(fase: Fase): string {
 
 // --- Laços do coração ---
 
-export type Papel = 'avo' | 'tio' | 'irmao' | 'primo' | 'filho' | 'sobrinho';
+export type Papel = 'avo' | 'pai' | 'tio' | 'irmao' | 'primo' | 'filho' | 'sobrinho';
 
 export interface LacoDoCoracao {
   id: number;
@@ -331,6 +343,7 @@ export interface LacoDoCoracao {
 export const PAPEIS: Record<Papel, string> = {
   irmao: 'irmão ou irmã',
   tio: 'tio ou tia',
+  pai: 'pai ou mãe',
   avo: 'avô ou avó',
   primo: 'primo ou prima',
   sobrinho: 'sobrinho ou sobrinha',
@@ -342,6 +355,7 @@ export const PROXIMIDADES: Record<number, string> = { 1: 'Muito próximo', 2: 'P
 /** Em que linha da árvore centrada o papel coloca a pessoa. */
 export const LINHA_DO_PAPEL: Record<Papel, 'avos' | 'pais' | 'centro' | 'filhos'> = {
   avo: 'avos',
+  pai: 'pais',
   tio: 'pais',
   irmao: 'centro',
   primo: 'centro',
@@ -365,5 +379,136 @@ export function lacoParaODono(nomeDoLaco: string, tratamento: Tratamento): strin
   const nome = nomeDoLaco.trim();
   const primeira = nome.split(/[\s-]/)[0].toLowerCase();
   const feminino = tratamento ? tratamento === 'ela' : FEMININOS.has(primeira) || /[aã]$/.test(primeira);
-  return `${feminino ? 'sua' : 'seu'} ${nome}`;
+  // No meio da frase, o nome do laço começa em minúscula mesmo que tenha sido digitado "Amiga"
+  return `${feminino ? 'sua' : 'seu'} ${nome.charAt(0).toLowerCase()}${nome.slice(1)}`;
+}
+
+// --- Visão geral: a família inteira em gerações ---
+
+/**
+ * Em que geração cada pessoa fica, contando de cima para baixo a partir de 0.
+ * Filho fica uma geração abaixo do pai mais novo, e casais ficam na mesma linha,
+ * o que alinha as duas famílias de um casamento. Quem não tem laço nenhum fica de fora.
+ */
+export function calcularGeracoes(
+  pessoas: string[],
+  filiacoes: Pick<Filiacao, 'filho' | 'responsavel'>[],
+  casais: Pick<Casal, 'a' | 'b'>[],
+): Map<string, number> {
+  const dentro = new Set(pessoas);
+  const pais = filiacoes.filter((f) => dentro.has(f.filho) && dentro.has(f.responsavel));
+  const pares = casais.filter((c) => dentro.has(c.a) && dentro.has(c.b));
+  const geracao = new Map<string, number>();
+  for (const f of pais) {
+    geracao.set(f.filho, 0);
+    geracao.set(f.responsavel, 0);
+  }
+  for (const c of pares) {
+    geracao.set(c.a, 0);
+    geracao.set(c.b, 0);
+  }
+  // Repete até assentar. O limite protege contra dados em círculo.
+  for (let volta = 0; volta < pessoas.length + 2; volta++) {
+    let mudou = false;
+    const subir = (id: string, valor: number) => {
+      if ((geracao.get(id) ?? 0) < valor) {
+        geracao.set(id, valor);
+        mudou = true;
+      }
+    };
+    for (const f of pais) subir(f.filho, (geracao.get(f.responsavel) ?? 0) + 1);
+    for (const c of pares) {
+      const maior = Math.max(geracao.get(c.a) ?? 0, geracao.get(c.b) ?? 0);
+      subir(c.a, maior);
+      subir(c.b, maior);
+    }
+    // Um pai sem pais cadastrados sobe para ficar logo acima dos filhos, e não solto no topo
+    for (const f of pais) {
+      const temPais = pais.some((x) => x.filho === f.responsavel);
+      const temPar = pares.some((c) => c.a === f.responsavel || c.b === f.responsavel);
+      if (!temPais && !temPar) {
+        const maisVelhoDosFilhos = Math.min(...pais.filter((x) => x.responsavel === f.responsavel).map((x) => geracao.get(x.filho) ?? 0));
+        subir(f.responsavel, maisVelhoDosFilhos - 1);
+      }
+    }
+    if (!mudou) break;
+  }
+  return geracao;
+}
+
+/** Quantas gerações o papel desloca a pessoa em relação a quem a escolheu. */
+export const DESLOCAMENTO_DO_PAPEL: Record<Papel, number> = { avo: -2, pai: -1, tio: -1, irmao: 0, primo: 0, filho: 1, sobrinho: 1 };
+
+/** Nome de uma geração vista por alguém: 0 é a da própria pessoa, negativo é acima. */
+export function nomeDaGeracao(diferenca: number): string {
+  const nomes: Record<string, string> = {
+    '-3': 'Bisavós',
+    '-2': 'Avós',
+    '-1': 'Pais, tios e sogros',
+    '0': 'Sua geração',
+    '1': 'Filhos e sobrinhos',
+    '2': 'Netos',
+    '3': 'Bisnetos',
+  };
+  return nomes[String(diferenca)] ?? (diferenca < 0 ? `${-diferenca} gerações acima` : `${diferenca} gerações abaixo`);
+}
+
+/**
+ * Famílias sem ligação de sangue ou casamento com a de quem olha (a de uma amiga,
+ * por exemplo) são calculadas à parte e ficariam soltas no topo. Aqui elas são
+ * encaixadas pelos laços do coração: se o Otto é "como se fosse sobrinho" do Gui,
+ * a família inteira do Otto desce até ele ficar uma geração abaixo do Gui.
+ */
+export function alinharPeloCoracao(
+  geracoes: Map<string, number>,
+  filiacoes: Pick<Filiacao, 'filho' | 'responsavel'>[],
+  casais: Pick<Casal, 'a' | 'b'>[],
+  lacos: Pick<LacoDoCoracao, 'dono' | 'pessoa' | 'papel'>[],
+  ancora: string | undefined,
+): Map<string, number> {
+  // Grupos de pessoas ligadas entre si por filiação ou casal
+  const grupoDe = new Map<string, string>();
+  const raiz = (id: string): string => {
+    let atual = id;
+    while (grupoDe.get(atual) !== atual) atual = grupoDe.get(atual)!;
+    return atual;
+  };
+  for (const id of geracoes.keys()) grupoDe.set(id, id);
+  const unir = (a: string, b: string) => {
+    if (grupoDe.has(a) && grupoDe.has(b)) grupoDe.set(raiz(a), raiz(b));
+  };
+  for (const f of filiacoes) unir(f.filho, f.responsavel);
+  for (const c of casais) unir(c.a, c.b);
+
+  // O grupo de quem olha fica parado. Sem essa pessoa na árvore, vale o maior grupo.
+  const tamanhos = new Map<string, number>();
+  for (const id of geracoes.keys()) tamanhos.set(raiz(id), (tamanhos.get(raiz(id)) ?? 0) + 1);
+  const principal = ancora && geracoes.has(ancora) ? raiz(ancora) : [...tamanhos].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!principal) return geracoes;
+
+  const resultado = new Map(geracoes);
+  const firmes = new Set([principal]);
+  // Laços com papel dizem a geração exata; sem papel, a pessoa é tratada como da mesma geração
+  const ordenados = [...lacos].sort((a, b) => Number(Boolean(b.papel)) - Number(Boolean(a.papel)));
+  for (let volta = 0; volta < tamanhos.size; volta++) {
+    let mudou = false;
+    for (const laco of ordenados) {
+      if (!resultado.has(laco.dono) || !resultado.has(laco.pessoa)) continue;
+      const [fixo, solto, sinal] =
+        firmes.has(raiz(laco.dono)) && !firmes.has(raiz(laco.pessoa))
+          ? [laco.dono, laco.pessoa, 1]
+          : firmes.has(raiz(laco.pessoa)) && !firmes.has(raiz(laco.dono))
+            ? [laco.pessoa, laco.dono, -1]
+            : [undefined, undefined, 0];
+      if (!fixo || !solto) continue;
+      const desloca = laco.papel ? DESLOCAMENTO_DO_PAPEL[laco.papel] : 0;
+      const ajuste = resultado.get(fixo)! + sinal * desloca - resultado.get(solto)!;
+      const grupo = raiz(solto);
+      for (const id of resultado.keys()) if (raiz(id) === grupo) resultado.set(id, resultado.get(id)! + ajuste);
+      firmes.add(grupo);
+      mudou = true;
+    }
+    if (!mudou) break;
+  }
+  return resultado;
 }

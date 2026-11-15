@@ -65,7 +65,8 @@ describe('parentesco calculado', () => {
     expect(r('elizete', 'aguilar')).toBe('ex-marido');
     expect(r('aguilar', 'elizete')).toBe('ex-esposa');
     expect(r('gui', 'rafa')).toBe('amigo');
-    expect(r('gui', 'dani')).toBe('ex-namorado ou namorada');
+    expect(r('gui', 'dani')).toBe('ex-namorado ou ex-namorada');
+    expect(possessivo(familia.relacao('gui', 'dani')!, null)).toBe('seu ex-namorado ou sua ex-namorada');
   });
   it('parentes pelo casamento', () => {
     expect(r('lucas-magno', 'elizete')).toBe('sogra');
@@ -92,6 +93,8 @@ describe('parentesco calculado', () => {
   it('sem tratamento informado, mostra as duas formas', () => {
     const semTratamento = new Familia(filiacoes, casais);
     expect(semTratamento.relacao('gui', 'elizete')?.texto).toBe('pai ou mãe');
+    expect(possessivo(semTratamento.relacao('gui', 'tia-ana')!, null)).toBe('seu tio ou sua tia');
+    expect(possessivo(semTratamento.relacao('gui', 'chico')!, null)).toBe('seu filho de consideração ou sua filha de consideração');
   });
   it('quem não tem ligação não ganha parentesco inventado', () => {
     expect(r('gui', 'regina')).toBeUndefined();
@@ -171,5 +174,74 @@ describe('laço do coração dito para o dono', async () => {
     expect(lacoParaODono('afilhada', null)).toBe('sua afilhada');
     expect(lacoParaODono('vó de coração', null)).toBe('sua vó de coração');
     expect(lacoParaODono('sobrinho', null)).toBe('seu sobrinho');
+    expect(lacoParaODono('Amiga', null)).toBe('sua amiga');
+  });
+});
+
+describe('visão geral em gerações', async () => {
+  const { calcularGeracoes, nomeDaGeracao } = await import('../src/lib/parentesco');
+  const todos = ['gui', 'giovanna', 'elizete', 'aguilar', 'vo-bela', 'vo-vivica', 'lucas-magno', 'lucio', 'ana-candida', 'regina', 'chico', 'ed'];
+  const g = calcularGeracoes(todos, filiacoes, casais);
+  it('avós em cima, pais no meio, filhos embaixo', () => {
+    expect(g.get('vo-vivica')).toBe(0);
+    expect(g.get('elizete')).toBe(1);
+    expect(g.get('gui')).toBe(2);
+    expect(g.get('chico')).toBe(3);
+  });
+  it('o casamento alinha as duas famílias na mesma linha', () => {
+    expect(g.get('lucas-magno')).toBe(g.get('giovanna'));
+    expect(g.get('ana-candida')).toBe(g.get('elizete'));
+    expect(g.get('regina')).toBe(g.get('vo-vivica'));
+  });
+  it('ex-casal continua na mesma geração', () => {
+    expect(g.get('aguilar')).toBe(g.get('elizete'));
+    expect(g.get('vo-bela')).toBe(0);
+  });
+  it('pai sem pais cadastrados fica logo acima do filho', () => {
+    expect(g.get('lucio')).toBe(1);
+  });
+  it('quem não tem laço de árvore fica de fora', () => {
+    expect(g.has('ed')).toBe(false);
+  });
+  it('recorte por núcleo usa só as pessoas dele', () => {
+    const bracarense = calcularGeracoes(['lucas-magno', 'lucio', 'ana-candida', 'regina'], filiacoes, casais);
+    expect(bracarense.get('regina')).toBe(0);
+    expect(bracarense.get('lucas-magno')).toBe(2);
+    expect(bracarense.has('giovanna')).toBe(false);
+  });
+  it('gerações nomeadas a partir de quem olha', () => {
+    expect(nomeDaGeracao(0)).toBe('Sua geração');
+    expect(nomeDaGeracao(-2)).toBe('Avós');
+    expect(nomeDaGeracao(1)).toBe('Filhos e sobrinhos');
+  });
+});
+
+describe('famílias de amigos encaixadas pelos laços do coração', async () => {
+  const { alinharPeloCoracao, calcularGeracoes } = await import('../src/lib/parentesco');
+  const comAmigos: Filiacao[] = [...filiacoes, { filho: 'otto', responsavel: 'nati', qualidade: 'biologica' }, { filho: 'otto', responsavel: 'renan', qualidade: 'biologica' }];
+  const todos = ['gui', 'giovanna', 'elizete', 'aguilar', 'vo-vivica', 'vo-bela', 'nati', 'renan', 'otto'];
+  const soltas = calcularGeracoes(todos, comAmigos, []);
+  it('sem os laços, a família da amiga fica solta no topo', () => {
+    expect(soltas.get('nati')).toBe(0);
+    expect(soltas.get('otto')).toBe(1);
+  });
+  it('o sobrinho de consideração puxa a família dele para a geração certa', () => {
+    const g = alinharPeloCoracao(soltas, comAmigos, [], [{ dono: 'gui', pessoa: 'otto', papel: 'sobrinho' }], 'gui');
+    expect(g.get('otto')).toBe(g.get('gui')! + 1);
+    expect(g.get('nati')).toBe(g.get('gui'));
+    expect(g.get('renan')).toBe(g.get('gui'));
+    expect(g.get('elizete')).toBe(soltas.get('elizete'));
+  });
+  it('amiga sem papel fica na mesma geração de quem escolheu', () => {
+    const g = alinharPeloCoracao(soltas, comAmigos, [], [{ dono: 'gui', pessoa: 'nati', papel: null }], 'gui');
+    expect(g.get('nati')).toBe(g.get('gui'));
+    expect(g.get('otto')).toBe(g.get('gui')! + 1);
+  });
+  it('o laço com papel vale mais que o sem papel', () => {
+    const g = alinharPeloCoracao(soltas, comAmigos, [], [{ dono: 'gui', pessoa: 'nati', papel: null }, { dono: 'gui', pessoa: 'otto', papel: 'filho' }], 'gui');
+    expect(g.get('otto')).toBe(g.get('gui')! + 1);
+  });
+  it('sem laço nenhum, nada muda', () => {
+    expect(alinharPeloCoracao(soltas, comAmigos, [], [], 'gui')).toEqual(soltas);
   });
 });
