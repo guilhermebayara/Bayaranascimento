@@ -180,9 +180,20 @@ export function desenharArvore(
     const blocos = blocosDaLinha.get(linha) ?? [];
     if (blocos.length === 0) return;
     // O bloco se move inteiro. Ele vai para onde, em média, seus membros querem ir.
-    const alvo = blocos.map((ids) => {
+    const pedido = blocos.map((ids) => {
       const pedidos = ids.map((id, i) => (desejado.has(id) ? desejado.get(id)! - i * passo : undefined)).filter((v) => v !== undefined);
-      return pedidos.length ? media(pedidos) : x.get(ids[0])!;
+      return pedidos.length ? media(pedidos) : undefined;
+    });
+    // Quem não tem para onde ir (nem pais, nem filhos, nem par) acompanha o vizinho mais próximo
+    const alvo = blocos.map((ids, b) => {
+      if (pedido[b] !== undefined) return pedido[b]!;
+      for (let d = 1; d < blocos.length; d++) {
+        const dir = b + d;
+        if (dir < blocos.length && pedido[dir] !== undefined) return pedido[dir]! - blocos.slice(b, dir).reduce((s, x) => s + x.length, 0) * passo;
+        const esq = b - d;
+        if (esq >= 0 && pedido[esq] !== undefined) return pedido[esq]! + blocos.slice(esq, b).reduce((s, x) => s + x.length, 0) * passo;
+      }
+      return x.get(ids[0])!;
     });
     // Duas varreduras que respeitam o espaço de cada bloco, e a média das duas (que também respeita)
     const esq = [...alvo];
@@ -623,7 +634,12 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
       let ancora: string | undefined = naLinha.has(dono) ? dono : undefined;
       if (!ancora) {
         const ordem = melhor[n].flat();
-        const parentes = [...(paisDe.get(dono) ?? []), ...(filhosDe.get(dono) ?? [])].filter((id) => naLinha.has(id));
+        let parentes = [...(paisDe.get(dono) ?? []), ...(filhosDe.get(dono) ?? [])].filter((id) => naLinha.has(id));
+        // Sem pai, mãe ou filho na fileira, encosta num sobrinho (filho de um irmão de quem escolheu)
+        if (parentes.length === 0) {
+          const irmaos = (irmaosDe.get(dono) ?? []);
+          parentes = [...naLinha].filter((id) => (paisDe.get(id) ?? []).some((p) => irmaos.includes(p)));
+        }
         if (parentes.length === 0) continue;
         const l = lado.get(dono);
         const paraEsquerda = l === undefined || l <= 0.5;

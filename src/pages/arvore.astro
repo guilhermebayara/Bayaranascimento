@@ -1,17 +1,22 @@
 ---
 // A árvore da família inteira, com todas as ligações. Os controles mudam o que
 // está em destaque e o que aparece, na hora, sem recarregar:
-// - foco: a pessoa de quem se parte (a árvore se centraliza nela);
+// - partir de: de quem é a linha direta (por padrão, Gui, Giovanna e Magno). O resto da
+//   família fica em ramos recolhidos, que abrem por cima da árvore;
 // - núcleo: destaca um núcleo e deixa os outros mais apagados, ou escondidos;
 // - camadas: consideração e coração, ex-casais, bichos.
 import Base from '../layouts/Base.astro';
 import { anosDeVida } from '../lib/datas';
 import { Familia, estaoJuntos, lacoParaODono, possessivo, type Tratamento } from '../lib/parentesco';
 import type { DadosDaArvore } from '../lib/cliente/arvore';
-import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarNucleos } from '../lib/servidor/repositorio';
+import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarNucleos, pessoasEmLacosPrivadosDeOutros } from '../lib/servidor/repositorio';
+
+// De quem é a linha direta mostrada quando a árvore abre: os três que unem os núcleos.
+// Quem quiser parte de outra pessoa pelo seletor "Partir de" ou pela ficha.
+const CENTROS_PADRAO = ['gui', 'giovanna', 'lucas-magno'];
 
 const { usuario } = Astro.locals;
-const integrantes = await listarIntegrantes();
+const todos = await listarIntegrantes();
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const chamar = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 const nucleos = await listarNucleos();
@@ -19,6 +24,11 @@ const filiacoes = await listarFiliacoes();
 // Só chega ao navegador o que a pessoa pode ver: casais e laços privados de outros ficam no servidor
 const casais = await listarCasais(usuario);
 const lacos = await listarLacosDoCoracao(usuario);
+// Quem só existe num laço privado de outra pessoa não aparece: nem o laço, nem o nome
+const soEmPrivados = await pessoasEmLacosPrivadosDeOutros(usuario);
+const temLacoVisivel = new Set([...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
+const integrantes = todos.filter((i) => !soEmPrivados.has(i.id) || temLacoVisivel.has(i.id));
+const centros = CENTROS_PADRAO.filter((id) => integrantes.some((i) => i.id === id));
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const familia = new Familia(filiacoes, casais, tratamentos);
 const minuscula = (texto: string) => texto.charAt(0).toLowerCase() + texto.slice(1);
@@ -34,6 +44,7 @@ const rotulo = (id: string) => {
 
 const dados: DadosDaArvore = {
   eu: usuario.pessoa,
+  centros,
   nucleos: nucleos.map((n) => ({ id: n.id, nome: n.nome })),
   pessoas: integrantes.map((i) => ({ id: i.id, nome: i.apelido ?? i.nome, rotulo: rotulo(i.id), nucleos: i.nucleos, bicho: i.tipo === 'bicho', anos: anosDeVida(i) })),
   filiacoes: filiacoes.map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })),
@@ -45,6 +56,10 @@ const dados: DadosDaArvore = {
     rotulo: l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : `${minuscula(l.nome)} de ${chamar(l.dono)}`,
   })),
 };
+const nomesDosCentros = (() => {
+  const n = centros.map(chamar);
+  return n.length > 1 ? `${n.slice(0, -1).join(', ')} e ${n[n.length - 1]}` : (n[0] ?? 'Você');
+})();
 const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 ---
 
@@ -52,7 +67,7 @@ const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, '
   <div class="arvore" data-arvore>
     <div class="arvore__topo">
       <h1>Árvore</h1>
-      <p>Arraste para andar pela família. Toque em alguém para partir dessa pessoa, e de novo para abrir a página dela.</p>
+      <p>Arraste para andar pela família. Toque em alguém para ver quem é, e de novo para abrir a página. Os botões + abrem os outros ramos da família.</p>
     </div>
 
     <div class="mapa" data-mapa tabindex="0" aria-label="Árvore da família. Arraste ou use as setas para andar por ela.">
@@ -63,7 +78,8 @@ const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, '
         <form data-controles>
           <label class="arvore__campo">
             <span>Partir de</span>
-            <select name="foco">
+            <select name="centro">
+              <option value="">{nomesDosCentros}</option>
               {ordenados.map((i) => <option value={i.id}>{i.nome}</option>)}
             </select>
           </label>

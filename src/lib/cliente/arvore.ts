@@ -2,9 +2,12 @@
 // reorganiza com animação quando o foco ou os filtros mudam, sem recarregar a página.
 import { MEDIDAS, desenharArvore, type Desenho } from '../arvore-desenho';
 import { DESLOCAMENTO_DO_PAPEL, alinharPeloCoracao, calcularGeracoes, type Papel } from '../parentesco';
+import { linhaDireta, ramosRecolhidos, type Ramo } from '../linha-direta';
 
 export interface DadosDaArvore {
   eu: string;
+  /** de quem é a linha direta mostrada por padrão */
+  centros: string[];
   /** na ordem em que ficam na árvore, da esquerda para a direita */
   nucleos: { id: string; nome: string }[];
   pessoas: { id: string; nome: string; rotulo: string; nucleos: string[]; bicho: boolean; anos: string }[];
@@ -14,7 +17,12 @@ export interface DadosDaArvore {
 }
 
 interface Estado {
+  /** a pessoa selecionada, com a ficha aberta */
   foco: string;
+  /** de quem é a linha direta. Vazio: a dos centros padrão. */
+  centro: string;
+  /** ramos laterais abertos por cima da árvore */
+  ramos: Set<string>;
   nucleo: string;
   consideracao: boolean;
   ex: boolean;
@@ -60,6 +68,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   const ligada = (nome: string) => url.searchParams.get(nome) !== '0';
   const estado: Estado = {
     foco: pessoa.has(url.searchParams.get('foco') ?? '') ? url.searchParams.get('foco')! : dados.eu,
+    centro: pessoa.has(url.searchParams.get('centro') ?? '') ? url.searchParams.get('centro')! : '',
+    ramos: new Set((url.searchParams.get('ramos') ?? '').split(',').filter(Boolean)),
     nucleo: idsDosNucleos.includes(url.searchParams.get('nucleo') ?? '') ? url.searchParams.get('nucleo')! : '',
     consideracao: ligada('consideracao'),
     ex: ligada('ex'),
@@ -72,6 +82,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   let desenho: Desenho | undefined;
   const nos = new Map<string, HTMLAnchorElement>();
   const botoesDoCoracao = new Map<string, HTMLButtonElement>();
+  // Marcas dos ramos recolhidos e os cartões dos ramos abertos, refeitos a cada desenho
+  const extras: HTMLElement[] = [];
   const svg = document.createElementNS(SVG, 'svg');
   svg.setAttribute('class', 'mapa__linhas');
   svg.setAttribute('aria-hidden', 'true');
@@ -79,7 +91,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
 
   const campo = <T extends HTMLElement>(nome: string) => controles.elements.namedItem(nome) as unknown as T;
   const refletirNosControles = () => {
-    campo<HTMLSelectElement>('foco').value = estado.foco;
+    campo<HTMLSelectElement>('centro').value = estado.centro;
     campo<HTMLSelectElement>('nucleo').value = estado.nucleo;
     for (const nome of CHAVES) campo<HTMLInputElement>(nome).checked = estado[nome];
     // "Outros núcleos" só faz sentido com um núcleo em destaque
@@ -90,6 +102,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   const guardarNoEndereco = () => {
     const q = new URLSearchParams();
     if (estado.foco !== dados.eu) q.set('foco', estado.foco);
+    if (estado.centro) q.set('centro', estado.centro);
+    if (estado.ramos.size) q.set('ramos', [...estado.ramos].sort().join(','));
     if (estado.nucleo) q.set('nucleo', estado.nucleo);
     for (const nome of CHAVES) if (!estado[nome]) q.set(nome, '0');
     const abertos = [...estado.abertos].sort();
@@ -113,7 +127,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   };
   const centralizar = (id: string, animado = true) => {
     const no = desenho?.pessoas.find((p) => p.id === id);
-    if (!no) return;
+    if (!no) return;  // quem está num ramo aberto já está à vista
     vista.x = mapa.clientWidth / 2 - (no.x + MEDIDAS.largura / 2) * vista.zoom;
     vista.y = mapa.clientHeight / 2 - (no.y + MEDIDAS.altura / 2) * vista.zoom;
     aplicarVista(animado);
@@ -136,7 +150,31 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     quem.textContent = [p.rotulo, p.anos].filter(Boolean).join(', ');
     const pagina = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}`, textContent: 'Ver a página' });
     const lacos = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}/editar#lacos`, textContent: 'Laços' });
-    ficha.replaceChildren(nome, quem, pagina, lacos);
+    const partir = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Partir desta pessoa' });
+    partir.dataset.partir = p.id;
+    partir.hidden = estado.centro === p.id;
+    ficha.replaceChildren(nome, quem, pagina, lacos, partir);
+  };
+
+  // Uma caixa de pessoa para os ramos abertos (as da árvore principal são guardadas e reaproveitadas)
+  const criarNo = (id: string, x: number, y: number) => {
+    const p = pessoa.get(id)!;
+    const no = document.createElement('a');
+    no.href = `/pessoas/${p.id}`;
+    no.dataset.id = p.id;
+    no.className = 'no';
+    no.classList.toggle('no--foco', p.id === estado.foco);
+    no.classList.toggle('no--de-fora', p.nucleos.length === 0);
+    no.style.width = `${MEDIDAS.largura}px`;
+    no.style.height = `${MEDIDAS.altura}px`;
+    no.style.background = fundoDe(p.nucleos);
+    no.style.transform = `translate(${x}px, ${y}px)`;
+    const nome = document.createElement('strong');
+    nome.textContent = p.nome;
+    const quem = document.createElement('span');
+    quem.textContent = p.rotulo || (p.bicho ? 'bicho da família' : '');
+    no.append(nome, quem);
+    return no;
   };
 
   const desenhar = () => {
@@ -148,37 +186,49 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     const casais = dados.casais.filter((c) => dentro(c.a, c.b) && (estado.ex || !c.ex));
     const todosDoCoracao = estado.consideracao ? dados.coracao.filter((l) => dentro(l.dono, l.pessoa)) : [];
 
-    // 1b. Laços do coração: só aparecem os de quem está com eles abertos. A família de uma amiga,
-    // que só se liga à árvore por um laço fechado, fica guardada até alguém abrir.
+    // 1b. A linha direta: os centros, os ancestrais, os irmãos, os descendentes e os casais.
+    // O resto da família fica em ramos recolhidos, que abrem por cima da árvore.
+    const centros = estado.centro ? [estado.centro] : dados.centros.filter((id) => visiveis.has(id));
+    const principal = linhaDireta(centros.length ? centros : [dados.eu], [...visiveis], filiacoes, casais);
+
+    // 1c. Laços do coração: só aparecem os de quem está com eles abertos. Quem foi escolhido entra
+    // na árvore; se tem uma família que não é a nossa (a de uma amiga), ela vem junto.
     const grupoDe = new Map([...visiveis].map((id) => [id, id]));
     const raiz = (id: string): string => (grupoDe.get(id) === id ? id : raiz(grupoDe.get(id)!));
     const unir = (a: string, b: string) => grupoDe.set(raiz(a), raiz(b));
     for (const f of filiacoes) unir(f.filho, f.responsavel);
     for (const c of casais) unir(c.a, c.b);
-    const ancoras = [dados.eu, estado.foco].filter((id) => visiveis.has(id));
-    if (ancoras.length) {
-      const tocados = new Set(dados.coracao.flatMap((l) => [l.dono, l.pessoa]).filter((id) => visiveis.has(id)).map(raiz));
-      const mostrados = new Set(ancoras.map(raiz));
-      // Quem não tem laço do coração nenhum continua como antes
-      for (const id of visiveis) if (!tocados.has(raiz(id))) mostrados.add(raiz(id));
-      for (let mudou = true; mudou; ) {
-        mudou = false;
-        for (const l of todosDoCoracao) {
-          if (!estado.abertos.has(l.dono) || !mostrados.has(raiz(l.dono)) || mostrados.has(raiz(l.pessoa))) continue;
-          mostrados.add(raiz(l.pessoa));
-          mudou = true;
-        }
+    const daFamilia = new Set([...principal].map(raiz));
+    for (let mudou = true; mudou; ) {
+      mudou = false;
+      for (const l of todosDoCoracao) {
+        if (!estado.abertos.has(l.dono) || !principal.has(l.dono) || principal.has(l.pessoa)) continue;
+        if (daFamilia.has(raiz(l.pessoa))) principal.add(l.pessoa);
+        else for (const id of visiveis) if (raiz(id) === raiz(l.pessoa)) principal.add(id);
+        mudou = true;
       }
-      for (const id of [...visiveis]) if (!mostrados.has(raiz(id))) visiveis.delete(id);
     }
-    const coracao = todosDoCoracao.filter((l) => estado.abertos.has(l.dono) && dentro(l.dono, l.pessoa));
-    const filiacoesVisiveis = filiacoes.filter((f) => dentro(f.filho, f.responsavel));
-    const casaisVisiveis = casais.filter((c) => dentro(c.a, c.b));
+    const coracao = todosDoCoracao.filter((l) => estado.abertos.has(l.dono) && principal.has(l.dono) && principal.has(l.pessoa));
     const lacosDe = new Map<string, number>();
-    for (const l of todosDoCoracao) if (visiveis.has(l.dono)) lacosDe.set(l.dono, (lacosDe.get(l.dono) ?? 0) + 1);
+    for (const l of todosDoCoracao) if (principal.has(l.dono)) lacosDe.set(l.dono, (lacosDe.get(l.dono) ?? 0) + 1);
 
-    // 2. Gerações. Famílias de amigos se encaixam pelos laços do coração.
-    const geracoes = alinharPeloCoracao(calcularGeracoes([...visiveis], filiacoesVisiveis, casaisVisiveis), filiacoesVisiveis, casaisVisiveis, coracao, dados.eu);
+    // 1d. Os ramos recolhidos, e quais deles estão abertos
+    const ramos = ramosRecolhidos(principal, [...visiveis], filiacoes, casais);
+    const abertos = ramos.filter((r) => estado.ramos.has(r.chave));
+    const noRamo = new Set(abertos.flatMap((r) => r.membros));
+    const entra = (id: string) => principal.has(id) || noRamo.has(id);
+    const filiacoesVisiveis = filiacoes.filter((f) => entra(f.filho) && entra(f.responsavel));
+    const casaisVisiveis = casais.filter((c) => entra(c.a) && entra(c.b));
+    const naPrincipal = (...ids: string[]) => ids.every((id) => principal.has(id));
+
+    // 2. Gerações, calculadas para a árvore e os ramos abertos juntos, para as fileiras baterem
+    const geracoes = alinharPeloCoracao(
+      calcularGeracoes([...visiveis].filter(entra), filiacoesVisiveis, casaisVisiveis),
+      filiacoesVisiveis,
+      casaisVisiveis,
+      coracao,
+      dados.eu,
+    );
     // Quem só está na árvore por um "como se fosse" entra na geração que o papel indica
     const agregados = coracao.filter((l) => l.papel && geracoes.has(l.dono) && !geracoes.has(l.pessoa));
     for (const l of agregados) if (!geracoes.has(l.pessoa)) geracoes.set(l.pessoa, geracoes.get(l.dono)! + DESLOCAMENTO_DO_PAPEL[l.papel!]);
@@ -186,8 +236,13 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     const ligados = coracao.filter((l) => geracoes.has(l.dono) && geracoes.has(l.pessoa));
 
     // Na ordem da lista (que vem ordenada do servidor), para o desenho ser estável
-    const naArvore = dados.pessoas.filter((p) => geracoes.has(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id) }));
-    desenho = desenharArvore(naArvore, casaisVisiveis, filiacoesVisiveis, ligados);
+    const naArvore = dados.pessoas.filter((p) => principal.has(p.id) && geracoes.has(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id) }));
+    desenho = desenharArvore(
+      naArvore,
+      casaisVisiveis.filter((c) => naPrincipal(c.a, c.b)),
+      filiacoesVisiveis.filter((f) => naPrincipal(f.filho, f.responsavel)),
+      ligados,
+    );
 
     // 3. Linhas: redesenhadas a cada vez, surgindo aos poucos
     svg.setAttribute('width', String(desenho.largura));
@@ -267,8 +322,115 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       botoesDoCoracao.delete(id);
     }
 
-    // 5. Quem ficou de fora por não ter laços
-    const fora = [...visiveis].filter((id) => !geracoes.has(id));
+    // 4c. Ramos: uma marca no ponto de onde cada ramo nasce, e os abertos num cartão por cima
+    for (const e of extras.splice(0)) e.remove();
+    const lugarDe = new Map(desenho.pessoas.map((l) => [l.id, l]));
+    const passo = MEDIDAS.altura + MEDIDAS.vaoY;
+    const referencia = desenho.pessoas[0];
+    const yDaGeracao = (g: number) => (referencia ? referencia.y + (g - geracoes.get(referencia.id)!) * passo : 0);
+    const nomes = (ids: string[]) => {
+      const n = ids.map((id) => pessoa.get(id)!.nome);
+      return n.length > 1 ? `${n.slice(0, -1).join(', ')} e ${n[n.length - 1]}` : n[0];
+    };
+    const ocupados: { x: number; y: number; w: number; h: number }[] = [];
+    for (const ramo of ramos) {
+      const pais = ramo.pais.map((id) => lugarDe.get(id));
+      if (pais.some((l) => !l)) continue;
+      const [esq, dir] = [Math.min(...pais.map((l) => l!.x)), Math.max(...pais.map((l) => l!.x))];
+      // A marca fica no meio do casal, logo abaixo dele, em cima da linha que desce para os filhos
+      const ancoraX = pais.length > 1 ? (esq + MEDIDAS.largura + dir) / 2 : esq + MEDIDAS.largura / 2;
+      const baseY = Math.max(...pais.map((l) => l!.y)) + MEDIDAS.altura;
+      const aberto = abertos.includes(ramo);
+      const marca = document.createElement('button');
+      marca.type = 'button';
+      marca.className = 'no__ramo';
+      marca.dataset.ramo = ramo.chave;
+      marca.textContent = `${aberto ? '−' : '+'} ${ramo.filhos.length}`;
+      marca.setAttribute('aria-pressed', String(aberto));
+      marca.title = `${aberto ? 'Recolher' : 'Mostrar'} o ramo de ${nomes(ramo.filhos)}`;
+      marca.setAttribute('aria-label', marca.title);
+      marca.style.transform = `translate(${ancoraX - 22}px, ${baseY + 6}px)`;
+      camada.append(marca);
+      extras.push(marca);
+      if (!aberto) continue;
+
+      // O ramo aberto: uma árvore pequena, num cartão por cima, com as fileiras alinhadas às da árvore
+      const membros = ramo.membros.filter((id) => geracoes.has(id));
+      const arvoreDoRamo = desenharArvore(
+        dados.pessoas.filter((p) => membros.includes(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id) })),
+        casaisVisiveis.filter((c) => membros.includes(c.a) && membros.includes(c.b)),
+        filiacoesVisiveis.filter((f) => membros.includes(f.filho) && membros.includes(f.responsavel)),
+      );
+      if (!arvoreDoRamo.pessoas.length) continue;
+      const primeira = Math.min(...membros.map((id) => geracoes.get(id)!));
+      const folga = 18;
+      const cabecalho = 30;
+      // O cartão abre para o lado de fora do casal, como os irmãos: o ramo da irmã de quem está à
+      // esquerda no casal abre para a esquerda, o do irmão de quem está à direita, para a direita
+      const daLinha = desenho.pessoas.find((l) => ramo.pais.every((p) => dados.filiacoes.some((f) => f.filho === l.id && f.responsavel === p && !f.consideracao)));
+      const par = daLinha && casaisVisiveis.map((c) => (c.a === daLinha.id ? c.b : c.b === daLinha.id ? c.a : '')).map((id) => lugarDe.get(id)).find((l) => l && l.y === daLinha.y);
+      const lado = !daLinha || !par ? 0 : par.x > daLinha.x ? -1 : 1;
+      const largura = arvoreDoRamo.largura + folga * 2;
+      const altura = arvoreDoRamo.altura + folga * 2 + cabecalho;
+      let esquerda = lado < 0 ? ancoraX + 60 - largura : lado > 0 ? ancoraX - 60 : ancoraX - largura / 2;
+      const topo = yDaGeracao(primeira) - folga - cabecalho;
+      // Se encosta em outro cartão já aberto, é empurrado para fora
+      const sobrepoe = () => ocupados.find((o) => esquerda < o.x + o.w + 16 && esquerda + largura + 16 > o.x && topo < o.y + o.h && topo + altura > o.y);
+      for (let o = sobrepoe(); o; o = sobrepoe()) esquerda = lado < 0 ? o.x - largura - 16 : o.x + o.w + 16;
+      ocupados.push({ x: esquerda, y: topo, w: largura, h: altura });
+      const conteudoX = esquerda + folga;
+      const conteudoY = yDaGeracao(primeira);
+      const cartao = document.createElement('section');
+      cartao.className = 'ramo';
+      cartao.dataset.ramoAberto = ramo.chave;
+      cartao.setAttribute('aria-label', `Ramo de ${nomes(ramo.filhos)}`);
+      cartao.style.transform = `translate(${esquerda}px, ${topo}px)`;
+      cartao.style.width = `${largura}px`;
+      cartao.style.height = `${altura}px`;
+      const titulo = document.createElement('header');
+      titulo.className = 'ramo__titulo';
+      const texto = document.createElement('span');
+      texto.textContent = `Ramo de ${nomes(ramo.filhos)}`;
+      const fechar = Object.assign(document.createElement('button'), { type: 'button', textContent: '×' });
+      fechar.dataset.ramo = ramo.chave;
+      fechar.setAttribute('aria-label', 'Recolher este ramo');
+      titulo.append(texto, fechar);
+      const conteudo = document.createElement('div');
+      conteudo.className = 'ramo__conteudo';
+      conteudo.style.left = `${folga}px`;
+      conteudo.style.top = `${folga + cabecalho}px`;
+      const linhasDoRamo = document.createElementNS(SVG, 'svg');
+      linhasDoRamo.setAttribute('class', 'mapa__linhas');
+      linhasDoRamo.setAttribute('aria-hidden', 'true');
+      linhasDoRamo.setAttribute('width', String(arvoreDoRamo.largura));
+      linhasDoRamo.setAttribute('height', String(arvoreDoRamo.altura));
+      // Ligação com a árvore: dos pais (a marca) até os filhos do ramo, por cima do cartão
+      const doRamo = new Map(arvoreDoRamo.pessoas.map((l) => [l.id, l]));
+      const filhosNoTopo = ramo.filhos.filter((f) => doRamo.get(f)?.y === 0);
+      const xs = filhosNoTopo.map((f) => doRamo.get(f)!.x + MEDIDAS.largura / 2);
+      const ancoraNoRamo = ancoraX - conteudoX;
+      const barra = -cabecalho / 2 - 4;
+      let ligacao = `M ${ancoraNoRamo} ${baseY + 32 - conteudoY} V ${barra} M ${Math.min(ancoraNoRamo, ...xs)} ${barra} H ${Math.max(ancoraNoRamo, ...xs)}`;
+      for (const x of xs) ligacao += ` M ${x} ${barra} V 0`;
+      const caminhos = [...arvoreDoRamo.linhas.map((l) => [l.d, `linha linha--${l.tipo}`]), [ligacao, 'linha linha--filhos linha--ramo']];
+      linhasDoRamo.replaceChildren(
+        ...caminhos.map(([d, classe]) => {
+          const c = document.createElementNS(SVG, 'path');
+          c.setAttribute('d', d);
+          c.setAttribute('class', classe);
+          return c;
+        }),
+      );
+      conteudo.append(linhasDoRamo);
+      for (const lugar of arvoreDoRamo.pessoas) conteudo.append(criarNo(lugar.id, lugar.x, lugar.y));
+      cartao.append(titulo, conteudo);
+      camada.append(cartao);
+      extras.push(cartao);
+    }
+
+    // 5. Quem não tem laço nenhum com ninguém
+    const comLaco = new Set([...dados.filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...dados.casais.flatMap((c) => [c.a, c.b]), ...dados.coracao.flatMap((l) => [l.dono, l.pessoa])]);
+    const fora = [...visiveis].filter((id) => !comLaco.has(id));
     soltos.hidden = fora.length === 0;
     soltos.replaceChildren(
       'Ainda sem laços: ',
@@ -287,17 +449,21 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
 
   // --- Interações ---
   controles.addEventListener('change', (evento) => {
-    const mudouFoco = (evento.target as HTMLElement).getAttribute('name') === 'foco';
-    estado.foco = campo<HTMLSelectElement>('foco').value;
+    const mudouCentro = (evento.target as HTMLElement).getAttribute('name') === 'centro';
+    estado.centro = campo<HTMLSelectElement>('centro').value;
+    if (mudouCentro) {
+      // Trocar o centro fecha os ramos, que eram da linha anterior
+      estado.ramos.clear();
+      if (estado.centro) estado.foco = estado.centro;
+    }
     estado.nucleo = campo<HTMLSelectElement>('nucleo').value;
     for (const nome of CHAVES) estado[nome] = campo<HTMLInputElement>(nome).checked;
     if (!estado.nucleo) estado.outros = true;
     refletirNosControles();
     guardarNoEndereco();
     desenhar();
-    // Trocar o foco leva até a pessoa. Trocar um filtro mostra o resultado inteiro.
-    if (mudouFoco) centralizar(estado.foco);
-    else verTudo();
+    // Trocar o centro ou um filtro mostra o resultado inteiro
+    verTudo();
   });
   controles.addEventListener('submit', (e) => e.preventDefault());
 
@@ -383,6 +549,15 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   // Tocar em alguém põe essa pessoa em foco. O segundo toque abre a página dela.
   camada.addEventListener('click', (evento) => {
     if (Date.now() - fimDoArrasto < 300) return evento.preventDefault();
+    const doRamo = (evento.target as HTMLElement).closest<HTMLButtonElement>('button[data-ramo]');
+    if (doRamo) {
+      // Abre ou recolhe um ramo lateral, sem mexer na árvore principal
+      const chave = doRamo.dataset.ramo!;
+      if (!estado.ramos.delete(chave)) estado.ramos.add(chave);
+      guardarNoEndereco();
+      desenhar();
+      return;
+    }
     const botao = (evento.target as HTMLElement).closest<HTMLButtonElement>('button.no__coracao');
     if (botao) {
       // Abre ou recolhe os laços do coração dessa pessoa
@@ -397,6 +572,18 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     if (!no || no.dataset.id === estado.foco) return;
     evento.preventDefault();
     focar(no.dataset.id!);
+  });
+
+  // "Partir desta pessoa", na ficha: a linha direta passa a ser a dela
+  ficha.addEventListener('click', (evento) => {
+    const botao = (evento.target as HTMLElement).closest<HTMLButtonElement>('[data-partir]');
+    if (!botao) return;
+    estado.centro = botao.dataset.partir!;
+    estado.ramos.clear();
+    refletirNosControles();
+    guardarNoEndereco();
+    desenhar();
+    verTudo();
   });
 
   raiz.querySelector('[data-zoom-mais]')!.addEventListener('click', () => zoomEm(vista.zoom * 1.25, mapa.clientWidth / 2, mapa.clientHeight / 2, true));
