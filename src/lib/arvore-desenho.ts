@@ -9,6 +9,11 @@ export interface PessoaNoDesenho {
   id: string;
   /** geração, de cima para baixo. Pode ser negativa. */
   geracao: number;
+  /**
+   * Para que lado a pessoa puxa, de 0 (esquerda) a 1 (direita). Vem dos núcleos:
+   * um núcleo à esquerda, outro à direita, e quem une os dois no meio.
+   */
+  lado?: number;
 }
 
 export interface CasalNoDesenho {
@@ -156,6 +161,19 @@ export function desenharArvore(
   if (dica.size === 0) break;
   }
 
+  // --- 1b. Melhora a ordem: menos cruzamentos, ligações mais curtas, cada núcleo do seu lado ---
+  const ladoDe = new Map(pessoas.filter((p) => p.lado !== undefined).map((p) => [p.id, p.lado!]));
+  const linhasDeBlocos = linhasDePessoas.map((linha) => blocosDaLinha.get(linha)!.map((b) => [...b]));
+  otimizarOrdem(linhasDeBlocos, [...paisDe].flatMap(([filho, pais]) => pais.map((pai) => [pai, filho] as [string, string])), coracao.map((l) => [l.dono, l.pessoa] as [string, string]), ladoDe);
+  linhasDePessoas.length = 0;
+  blocosDaLinha.clear();
+  for (const blocos of linhasDeBlocos) {
+    const linha = blocos.flat();
+    linha.forEach((id, i) => x.set(id, i * passo));
+    linhasDePessoas.push(linha);
+    blocosDaLinha.set(linha, blocos);
+  }
+
   // --- 2. Posição horizontal: filhos embaixo dos pais, pais em cima dos filhos ---
   const assentar = (linha: string[], desejado: Map<string, number>) => {
     const blocos = blocosDaLinha.get(linha) ?? [];
@@ -258,15 +276,27 @@ export function desenharArvore(
     linhas.push({ d, tipo: 'filhos', de: [...pais, ...filhos] });
   }
 
-  const curva = (a: string, b: string) => {
-    const [x1, y1, x2, y2] = [meioX(a), em.get(a)!.y + m.altura, meioX(b), em.get(b)!.y];
-    if (y2 > y1) return `M ${x1} ${y1} C ${x1} ${y1 + m.vaoY / 2}, ${x2} ${y2 - m.vaoY / 2}, ${x2} ${y2}`;
-    // Mesma linha ou acima: um arco por cima das duas pessoas
-    const topo = Math.min(em.get(a)!.y, em.get(b)!.y) - m.vaoY / 3;
-    return `M ${x1} ${em.get(a)!.y} C ${x1} ${topo}, ${x2} ${topo}, ${x2} ${em.get(b)!.y}`;
+  // Consideração e coração usam o mesmo desenho reto das outras ligações, só que tracejado.
+  // Saem um pouco ao lado do centro da pessoa, para não se confundirem com a linha dos filhos.
+  let desvio = 0;
+  const tracejada = (a: string, b: string) => {
+    const pa = em.get(a)!;
+    const pb = em.get(b)!;
+    const fuga = 14 + (desvio++ % 3) * 7;
+    if (pa.y === pb.y) {
+      // Mesma geração: lado a lado, uma linha curta; longe, passa por baixo das duas pessoas
+      const [esq, dir] = pa.x <= pb.x ? [pa, pb] : [pb, pa];
+      if (dir.x - esq.x <= passo + 1) return `M ${esq.x + m.largura} ${esq.y + m.altura / 2} H ${dir.x}`;
+      const baixo = pa.y + m.altura + fuga;
+      return `M ${meioX(a) + 18} ${pa.y + m.altura} V ${baixo} H ${meioX(b) - 18} V ${pb.y + m.altura}`;
+    }
+    const [cima, embaixo] = pa.y < pb.y ? [a, b] : [b, a];
+    const barra = em.get(embaixo)!.y - fuga;
+    const saida = meioX(cima) + (meioX(embaixo) >= meioX(cima) ? 18 : -18);
+    return `M ${saida} ${em.get(cima)!.y + m.altura} V ${barra} H ${meioX(embaixo)} V ${em.get(embaixo)!.y}`;
   };
-  for (const f of filiacoes) if (f.consideracao) linhas.push({ d: curva(f.responsavel, f.filho), tipo: 'consideracao', de: [f.responsavel, f.filho] });
-  for (const l of coracao) linhas.push({ d: curva(l.dono, l.pessoa), tipo: 'coracao', de: [l.dono, l.pessoa] });
+  for (const f of filiacoes) if (f.consideracao) linhas.push({ d: tracejada(f.responsavel, f.filho), tipo: 'consideracao', de: [f.responsavel, f.filho] });
+  for (const l of coracao) linhas.push({ d: tracejada(l.dono, l.pessoa), tipo: 'coracao', de: [l.dono, l.pessoa] });
 
   return {
     pessoas: posicoes,
@@ -304,4 +334,109 @@ function empilhar<T>(mapa: Map<string, T[]>, chave: string, valor: T): void {
   const lista = mapa.get(chave);
   if (lista) lista.push(valor);
   else mapa.set(chave, [valor]);
+}
+
+/**
+ * Procura uma ordem melhor para os blocos de cada geração. O custo junta três coisas:
+ * linhas de pais e filhos que se cruzam, o comprimento das ligações, e a distância de
+ * cada pessoa do lado para onde o núcleo dela puxa. A busca move um bloco por vez, ou
+ * inverte um casal, reorganiza as gerações de baixo de acordo, e fica com a mudança
+ * sempre que o custo cai.
+ */
+function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], coracao: [string, string][], lado: Map<string, number>): void {
+  const maiorLinha = Math.max(...linhas.map((l) => l.flat().length), 1);
+  const paisDe = new Map<string, string[]>();
+  for (const [pai, filho] of filiacoes) empilhar(paisDe, filho, pai);
+
+  const posicoes = (estado: string[][][]) => {
+    const pos = new Map<string, number>();
+    const nivel = new Map<string, number>();
+    estado.forEach((blocos, n) => {
+      const ids = blocos.flat();
+      // Linhas centralizadas: a posição conta a partir do meio
+      ids.forEach((id, i) => {
+        pos.set(id, i - (ids.length - 1) / 2);
+        nivel.set(id, n);
+      });
+    });
+    return { pos, nivel };
+  };
+
+  const custo = (estado: string[][][]): number => {
+    const { pos, nivel } = posicoes(estado);
+    // Uma ligação por filho: do meio dos pais até ele, como a linha é desenhada
+    const ligacoes: { de: number; para: number; nivelDe: number; nivelPara: number }[] = [];
+    for (const [filho, pais] of paisDe) {
+      const visiveis = pais.filter((p) => pos.has(p));
+      if (!pos.has(filho) || visiveis.length === 0) continue;
+      ligacoes.push({ de: media(visiveis.map((p) => pos.get(p)!)), para: pos.get(filho)!, nivelDe: Math.max(...visiveis.map((p) => nivel.get(p)!)), nivelPara: nivel.get(filho)! });
+    }
+    let total = 0;
+    for (const l of ligacoes) total += Math.abs(l.de - l.para);
+    for (const [a, b] of coracao) if (pos.has(a) && pos.has(b)) total += 0.6 * Math.abs(pos.get(a)! - pos.get(b)!);
+    for (let i = 0; i < ligacoes.length; i++) {
+      for (let j = i + 1; j < ligacoes.length; j++) {
+        const [a, b] = [ligacoes[i], ligacoes[j]];
+        if (a.nivelDe !== b.nivelDe || a.nivelPara !== b.nivelPara) continue;
+        // Um cruzamento pesa muito mais que uma ligação comprida: árvore limpa vem primeiro
+        if ((a.de - b.de) * (a.para - b.para) < 0) total += 20;
+      }
+    }
+    for (const [id, alvo] of lado) if (pos.has(id)) total += 0.75 * Math.abs(pos.get(id)! - (alvo * 2 - 1) * (maiorLinha / 2));
+    return total;
+  };
+
+  // Depois de mexer numa geração, as de baixo se reorganizam: cada bloco vai para baixo dos pais
+  const reorganizarAbaixo = (estado: string[][][], aPartirDe: number) => {
+    for (let n = aPartirDe + 1; n < estado.length; n++) {
+      const { pos } = posicoes(estado);
+      const chave = (bloco: string[], indice: number) => {
+        const pais = bloco.flatMap((id) => (paisDe.get(id) ?? []).filter((p) => pos.has(p) && !estado[n].flat().includes(p)));
+        return pais.length ? media(pais.map((p) => pos.get(p)!)) : (pos.get(bloco[0]) ?? indice);
+      };
+      estado[n] = estado[n]
+        .map((bloco, i) => ({ bloco, chave: chave(bloco, i), i }))
+        .sort((a, b) => a.chave - b.chave || a.i - b.i)
+        .map((x) => x.bloco);
+    }
+  };
+
+  const copiar = (estado: string[][][]) => estado.map((l) => l.map((b) => [...b]));
+  let melhor = copiar(linhas);
+  let melhorCusto = custo(melhor);
+
+  for (let rodada = 0; rodada < 10; rodada++) {
+    let melhorou = false;
+    for (let n = 0; n < melhor.length; n++) {
+      for (let i = 0; i < melhor[n].length; i++) {
+        const candidatos: string[][][][] = [];
+        const tentar = (mudar: (estado: string[][][]) => void) => {
+          for (const reorganiza of [false, true]) {
+            const estado = copiar(melhor);
+            mudar(estado);
+            if (reorganiza) reorganizarAbaixo(estado, n);
+            candidatos.push(estado);
+          }
+        };
+        // Inverter o bloco (trocar o casal de lado)
+        if (melhor[n][i].length > 1) tentar((e) => e[n][i].reverse());
+        // Mover o bloco para outra posição da linha, do jeito que está e invertido
+        for (let j = 0; j < melhor[n].length; j++) {
+          if (j === i) continue;
+          tentar((e) => e[n].splice(j, 0, e[n].splice(i, 1)[0]));
+          if (melhor[n][i].length > 1) tentar((e) => e[n].splice(j, 0, e[n].splice(i, 1)[0].reverse()));
+        }
+        for (const estado of candidatos) {
+          const c = custo(estado);
+          if (c < melhorCusto - 1e-9) {
+            melhor = estado;
+            melhorCusto = c;
+            melhorou = true;
+          }
+        }
+      }
+    }
+    if (!melhorou) break;
+  }
+  linhas.splice(0, linhas.length, ...melhor);
 }

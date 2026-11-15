@@ -81,8 +81,67 @@ describe('desenho da árvore', () => {
     }
   });
 });
-it('mostra', () => {
-  const linhas = new Map<number, string[]>();
-  for (const x of [...desenho.pessoas].sort((a, b) => a.x - b.x)) linhas.set(x.y, [...(linhas.get(x.y) ?? []), `${x.id}@${x.x}`]);
-  console.log([...linhas].sort((a, b) => a[0] - b[0]).map(([, l]) => l.join('  ')).join('\n'));
+
+describe('ordem pensada para uma árvore limpa', () => {
+  // Bayara à esquerda, Bracarense à direita, e o casal que une as duas no meio
+  const lado: Record<string, number> = {
+    'vo-vivica': 0, 'vo-bela': 0, elizete: 0, aguilar: 0, marta: 0, 'tia-ana': 0, 'tio-beto': 0, gui: 0, caio: 0, 'primo-leo': 0, 'prima-bia': 0,
+    giovanna: 0.25, chico: 0.5, 'lucas-magno': 0.75,
+    regina: 1, lucio: 1, 'ana-candida': 1, 'irma-do-magno': 1,
+  };
+  const comLados = desenharArvore(pessoas.map((x) => ({ ...x, lado: lado[x.id] })), casais, filiacoes);
+  const onde = new Map(comLados.pessoas.map((x) => [x.id, x]));
+  const xDe = (id: string) => onde.get(id)!.x;
+
+  it('cada núcleo fica do seu lado, e o casal que une fica entre eles', () => {
+    for (const bayara of ['gui', 'caio', 'primo-leo', 'prima-bia']) expect(xDe(bayara), bayara).toBeLessThan(xDe('giovanna'));
+    expect(xDe('giovanna')).toBeLessThan(xDe('lucas-magno'));
+    expect(xDe('lucas-magno')).toBeLessThan(xDe('irma-do-magno'));
+    for (const bayara of ['vo-vivica', 'vo-bela']) expect(xDe(bayara)).toBeLessThan(xDe('regina'));
+    for (const bayara of ['elizete', 'aguilar', 'tia-ana']) expect(xDe(bayara)).toBeLessThan(xDe('lucio'));
+  });
+  it('quase nenhuma linha de pais e filhos se cruza', () => {
+    // Com um ex-casal entre dois grupos de irmãos e um meio-irmão, um cruzamento é inevitável
+    // Uma ligação por filho: do meio dos pais até ele, como a linha é desenhada
+    const filhos = [...new Set(filiacoes.filter((f) => !f.consideracao).map((f) => f.filho))];
+    const ligacoes = filhos.map((f) => {
+      const pais = filiacoes.filter((x) => x.filho === f && !x.consideracao).map((x) => x.responsavel);
+      return { de: pais.reduce((soma, p) => soma + xDe(p), 0) / pais.length, para: xDe(f), y: onde.get(f)!.y, f };
+    });
+    const cruzadas: string[] = [];
+    for (let i = 0; i < ligacoes.length; i++) {
+      for (let j = i + 1; j < ligacoes.length; j++) {
+        const [a, b] = [ligacoes[i], ligacoes[j]];
+        if (a.y === b.y && (a.de - b.de) * (a.para - b.para) < 0) cruzadas.push(`${a.f} x ${b.f}`);
+      }
+    }
+    expect(cruzadas.length, cruzadas.join(', ')).toBeLessThanOrEqual(1);
+  });
+  it('sem o meio-irmão, nenhuma linha se cruza', () => {
+    const semCaio = desenharArvore(
+      pessoas.filter((x) => !['caio', 'marta'].includes(x.id)).map((x) => ({ ...x, lado: lado[x.id] })),
+      casais,
+      filiacoes,
+    );
+    const lugar = new Map(semCaio.pessoas.map((x) => [x.id, x]));
+    const filhos = [...new Set(filiacoes.filter((f) => !f.consideracao && lugar.has(f.filho)).map((f) => f.filho))];
+    const ligacoes = filhos.map((f) => {
+      const pais = filiacoes.filter((x) => x.filho === f && !x.consideracao && lugar.has(x.responsavel)).map((x) => x.responsavel);
+      return { de: pais.reduce((soma, p) => soma + lugar.get(p)!.x, 0) / pais.length, para: lugar.get(f)!.x, y: lugar.get(f)!.y, f };
+    });
+    const cruzadas: string[] = [];
+    for (let i = 0; i < ligacoes.length; i++) {
+      for (let j = i + 1; j < ligacoes.length; j++) {
+        const [a, b] = [ligacoes[i], ligacoes[j]];
+        if (a.y === b.y && (a.de - b.de) * (a.para - b.para) < 0) cruzadas.push(`${a.f} x ${b.f}`);
+      }
+    }
+    expect(cruzadas).toEqual([]);
+  });
+  it('casais continuam lado a lado depois da otimização', () => {
+    const colados = (a: string, b: string) => Math.abs(xDe(a) - xDe(b)) <= passo + 1;
+    expect(colados('giovanna', 'lucas-magno')).toBe(true);
+    expect(colados('elizete', 'aguilar')).toBe(true);
+    expect(colados('aguilar', 'marta')).toBe(true);
+  });
 });

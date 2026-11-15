@@ -1,9 +1,12 @@
-// A árvore interativa: recalcula e redesenha a cada mudança de filtro, sem recarregar a página.
-import { MEDIDAS, desenharArvore } from '../arvore-desenho';
+// A árvore interativa. Funciona como um mapa: arrasta, aproxima, afasta, e se
+// reorganiza com animação quando o foco ou os filtros mudam, sem recarregar a página.
+import { MEDIDAS, desenharArvore, type Desenho } from '../arvore-desenho';
 import { DESLOCAMENTO_DO_PAPEL, alinharPeloCoracao, calcularGeracoes, type Papel } from '../parentesco';
 
 export interface DadosDaArvore {
   eu: string;
+  /** na ordem em que ficam na árvore, da esquerda para a direita */
+  nucleos: string[];
   pessoas: { id: string; nome: string; rotulo: string; nucleos: string[]; bicho: boolean; anos: string }[];
   filiacoes: { filho: string; responsavel: string; consideracao: boolean }[];
   casais: { a: string; b: string; ex: boolean }[];
@@ -17,38 +20,54 @@ interface Estado {
   ex: boolean;
   bichos: boolean;
   outros: boolean;
-  zoom: number;
 }
 
 const SVG = 'http://www.w3.org/2000/svg';
-const MARGEM = 48;
+const CHAVES = ['consideracao', 'ex', 'bichos', 'outros'] as const;
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 2;
 
 export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
-  const moldura = raiz.querySelector<HTMLElement>('[data-mapa]')!;
-  const tela = raiz.querySelector<HTMLElement>('[data-tela]')!;
+  const mapa = raiz.querySelector<HTMLElement>('[data-mapa]')!;
   const camada = raiz.querySelector<HTMLElement>('[data-camada]')!;
   const ficha = raiz.querySelector<HTMLElement>('[data-ficha-do-foco]')!;
   const soltos = raiz.querySelector<HTMLElement>('[data-sem-lacos]')!;
   const controles = raiz.querySelector<HTMLFormElement>('[data-controles]')!;
+  const zoomAtual = raiz.querySelector<HTMLElement>('[data-zoom-atual]')!;
   const pessoa = new Map(dados.pessoas.map((p) => [p.id, p]));
+
+  // Para que lado cada pessoa puxa: o primeiro núcleo à esquerda, o último à direita,
+  // e quem é de dois núcleos fica entre eles
+  const ladoDe = new Map<string, number>();
+  for (const p of dados.pessoas) {
+    const indices = p.nucleos.map((n) => dados.nucleos.indexOf(n)).filter((i) => i >= 0);
+    if (indices.length && dados.nucleos.length > 1) ladoDe.set(p.id, indices.reduce((s, i) => s + i, 0) / indices.length / (dados.nucleos.length - 1));
+  }
 
   const url = new URL(location.href);
   const ligada = (nome: string) => url.searchParams.get(nome) !== '0';
   const estado: Estado = {
     foco: pessoa.has(url.searchParams.get('foco') ?? '') ? url.searchParams.get('foco')! : dados.eu,
-    nucleo: url.searchParams.get('nucleo') ?? '',
+    nucleo: dados.nucleos.includes(url.searchParams.get('nucleo') ?? '') ? url.searchParams.get('nucleo')! : '',
     consideracao: ligada('consideracao'),
     ex: ligada('ex'),
     bichos: ligada('bichos'),
     outros: ligada('outros'),
-    zoom: 0,
   };
+  // Onde o mapa está: deslocamento e zoom
+  const vista = { x: 0, y: 0, zoom: 1 };
+  let desenho: Desenho | undefined;
+  const nos = new Map<string, HTMLAnchorElement>();
+  const svg = document.createElementNS(SVG, 'svg');
+  svg.setAttribute('class', 'mapa__linhas');
+  svg.setAttribute('aria-hidden', 'true');
+  camada.append(svg);
 
   const campo = <T extends HTMLElement>(nome: string) => controles.elements.namedItem(nome) as unknown as T;
   const refletirNosControles = () => {
     campo<HTMLSelectElement>('foco').value = estado.foco;
     campo<HTMLSelectElement>('nucleo').value = estado.nucleo;
-    for (const nome of ['consideracao', 'ex', 'bichos', 'outros'] as const) campo<HTMLInputElement>(nome).checked = estado[nome];
+    for (const nome of CHAVES) campo<HTMLInputElement>(nome).checked = estado[nome];
     // "Outros núcleos" só faz sentido com um núcleo em destaque
     const outros = campo<HTMLInputElement>('outros');
     outros.disabled = !estado.nucleo;
@@ -58,53 +77,56 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     const q = new URLSearchParams();
     if (estado.foco !== dados.eu) q.set('foco', estado.foco);
     if (estado.nucleo) q.set('nucleo', estado.nucleo);
-    for (const nome of ['consideracao', 'ex', 'bichos', 'outros'] as const) if (!estado[nome]) q.set(nome, '0');
+    for (const nome of CHAVES) if (!estado[nome]) q.set(nome, '0');
     history.replaceState(null, '', q.size ? `?${q}` : location.pathname);
   };
 
-  let desenhoAtual: ReturnType<typeof desenharArvore> | undefined;
-
-  const aplicarZoom = () => {
-    if (!desenhoAtual) return;
-    const largura = desenhoAtual.largura + MARGEM * 2;
-    const altura = desenhoAtual.altura + MARGEM * 2;
-    tela.style.width = `${largura * estado.zoom}px`;
-    tela.style.height = `${altura * estado.zoom}px`;
-    camada.style.width = `${largura}px`;
-    camada.style.height = `${altura}px`;
-    camada.style.transform = `scale(${estado.zoom})`;
-    raiz.querySelector<HTMLElement>('[data-zoom-atual]')!.textContent = `${Math.round(estado.zoom * 100)}%`;
-    // A moldura acompanha a altura da árvore, até um teto, para não sobrar um vazio embaixo
-    moldura.style.height = `${Math.min(altura * estado.zoom + 4, window.innerHeight * 0.72)}px`;
+  // --- O mapa: mover e aproximar ---
+  const aplicarVista = (animado = false) => {
+    camada.classList.toggle('mapa__camada--animada', animado);
+    camada.style.transform = `translate(${vista.x}px, ${vista.y}px) scale(${vista.zoom})`;
+    zoomAtual.textContent = `${Math.round(vista.zoom * 100)}%`;
   };
-
-  const centralizar = (id: string, suave = true) => {
-    const no = desenhoAtual?.pessoas.find((p) => p.id === id);
+  const zoomEm = (novo: number, px: number, py: number, animado = false) => {
+    const zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, novo));
+    // O ponto sob o cursor (ou entre os dedos) fica parado enquanto o resto cresce
+    vista.x = px - ((px - vista.x) / vista.zoom) * zoom;
+    vista.y = py - ((py - vista.y) / vista.zoom) * zoom;
+    vista.zoom = zoom;
+    aplicarVista(animado);
+  };
+  const centralizar = (id: string, animado = true) => {
+    const no = desenho?.pessoas.find((p) => p.id === id);
     if (!no) return;
-    const x = (no.x + MARGEM + MEDIDAS.largura / 2) * estado.zoom - moldura.clientWidth / 2;
-    const y = (no.y + MARGEM + MEDIDAS.altura / 2) * estado.zoom - moldura.clientHeight / 2;
-    moldura.scrollTo({ left: Math.max(0, x), top: Math.max(0, y), behavior: suave ? 'smooth' : 'auto' });
+    vista.x = mapa.clientWidth / 2 - (no.x + MEDIDAS.largura / 2) * vista.zoom;
+    vista.y = mapa.clientHeight / 2 - (no.y + MEDIDAS.altura / 2) * vista.zoom;
+    aplicarVista(animado);
+  };
+  const verTudo = (animado = true) => {
+    if (!desenho) return;
+    const folga = 56;
+    vista.zoom = Math.max(ZOOM_MIN, Math.min(1.1, (mapa.clientWidth - folga * 2) / desenho.largura, (mapa.clientHeight - folga * 2) / desenho.altura));
+    vista.x = (mapa.clientWidth - desenho.largura * vista.zoom) / 2;
+    vista.y = (mapa.clientHeight - desenho.altura * vista.zoom) / 2;
+    aplicarVista(animado);
   };
 
   const mostrarFicha = () => {
     const p = pessoa.get(estado.foco);
     if (!p) return;
-    ficha.replaceChildren();
     const nome = document.createElement('strong');
     nome.textContent = p.nome;
     const quem = document.createElement('span');
     quem.textContent = [p.rotulo, p.anos].filter(Boolean).join(', ');
-    const pagina = Object.assign(document.createElement('a'), { className: 'botao botao--leve', href: `/pessoas/${p.id}`, textContent: 'Ver a página' });
-    const lacos = Object.assign(document.createElement('a'), { className: 'botao botao--leve', href: `/pessoas/${p.id}/editar#lacos`, textContent: 'Laços' });
-    ficha.append(nome, quem, pagina, lacos);
+    const pagina = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}`, textContent: 'Ver a página' });
+    const lacos = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}/editar#lacos`, textContent: 'Laços' });
+    ficha.replaceChildren(nome, quem, pagina, lacos);
   };
 
-  const desenhar = (recentralizar: boolean) => {
+  const desenhar = () => {
     // 1. Quem e o que aparece, conforme os controles
     const noNucleo = (id: string) => !estado.nucleo || (pessoa.get(id)?.nucleos.includes(estado.nucleo) ?? false);
-    const visiveis = new Set(
-      dados.pessoas.filter((p) => (estado.bichos || !p.bicho) && (estado.outros || noNucleo(p.id))).map((p) => p.id),
-    );
+    const visiveis = new Set(dados.pessoas.filter((p) => (estado.bichos || !p.bicho) && (estado.outros || noNucleo(p.id))).map((p) => p.id));
     const dentro = (...ids: string[]) => ids.every((id) => visiveis.has(id));
     const filiacoes = dados.filiacoes.filter((f) => dentro(f.filho, f.responsavel) && (estado.consideracao || !f.consideracao));
     const casais = dados.casais.filter((c) => dentro(c.a, c.b) && (estado.ex || !c.ex));
@@ -118,83 +140,168 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     const ligados = coracao.filter((l) => l.papel && geracoes.has(l.dono) && geracoes.has(l.pessoa));
 
     // Na ordem da lista (que vem ordenada do servidor), para o desenho ser estável
-    const naArvore = dados.pessoas.filter((p) => geracoes.has(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)! }));
-    const desenho = desenharArvore(naArvore, casais, filiacoes, ligados);
-    desenhoAtual = desenho;
+    const naArvore = dados.pessoas.filter((p) => geracoes.has(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id) }));
+    desenho = desenharArvore(naArvore, casais, filiacoes, ligados);
 
-    // 3. Linhas
-    const svg = document.createElementNS(SVG, 'svg');
-    svg.setAttribute('class', 'mapa__linhas');
-    svg.setAttribute('width', String(desenho.largura + MARGEM * 2));
-    svg.setAttribute('height', String(desenho.altura + MARGEM * 2));
-    svg.setAttribute('aria-hidden', 'true');
-    const grupo = document.createElementNS(SVG, 'g');
-    grupo.setAttribute('transform', `translate(${MARGEM} ${MARGEM})`);
-    for (const linha of desenho.linhas) {
-      const caminho = document.createElementNS(SVG, 'path');
-      caminho.setAttribute('d', linha.d);
-      const classes = ['linha', `linha--${linha.tipo}`];
-      if (estado.nucleo && !linha.de.every(noNucleo)) classes.push('linha--apagada');
-      if (linha.de.includes(estado.foco)) classes.push('linha--foco');
-      caminho.setAttribute('class', classes.join(' '));
-      grupo.append(caminho);
-    }
-    svg.append(grupo);
+    // 3. Linhas: redesenhadas a cada vez, surgindo aos poucos
+    svg.setAttribute('width', String(desenho.largura));
+    svg.setAttribute('height', String(desenho.altura));
+    svg.replaceChildren(
+      ...desenho.linhas.map((linha) => {
+        const caminho = document.createElementNS(SVG, 'path');
+        caminho.setAttribute('d', linha.d);
+        const classes = ['linha', `linha--${linha.tipo}`];
+        if (estado.nucleo && !linha.de.every(noNucleo)) classes.push('linha--apagada');
+        if (linha.de.includes(estado.foco)) classes.push('linha--foco');
+        caminho.setAttribute('class', classes.join(' '));
+        return caminho;
+      }),
+    );
 
-    // 4. Pessoas
+    // 4. Pessoas: cada caixa continua a mesma entre um desenho e outro, e desliza até o novo lugar
     const rotuloDoCoracao = new Map(agregados.map((l) => [l.pessoa, l.rotulo]));
-    const nos = desenho.pessoas.map((no) => {
-      const p = pessoa.get(no.id)!;
-      const a = document.createElement('a');
-      a.href = `/pessoas/${p.id}`;
-      a.dataset.id = p.id;
-      a.className = 'no';
-      if (p.id === dados.eu) a.classList.add('no--eu');
-      if (p.id === estado.foco) a.classList.add('no--foco');
-      if (estado.nucleo && !noNucleo(p.id)) a.classList.add('no--apagado');
-      if (rotuloDoCoracao.has(p.id)) a.classList.add('no--consideracao');
-      a.style.left = `${no.x + MARGEM}px`;
-      a.style.top = `${no.y + MARGEM}px`;
-      a.style.width = `${MEDIDAS.largura}px`;
-      a.style.height = `${MEDIDAS.altura}px`;
-      const nome = document.createElement('strong');
-      nome.textContent = p.nome;
-      const rotulo = document.createElement('span');
-      rotulo.textContent = p.rotulo || rotuloDoCoracao.get(p.id) || (p.bicho ? 'bicho da família' : '');
-      a.append(nome, rotulo);
-      return a;
-    });
-    camada.replaceChildren(svg, ...nos);
+    const presentes = new Set<string>();
+    for (const lugar of desenho.pessoas) {
+      const p = pessoa.get(lugar.id)!;
+      presentes.add(p.id);
+      let no = nos.get(p.id);
+      if (!no) {
+        no = document.createElement('a');
+        no.href = `/pessoas/${p.id}`;
+        no.dataset.id = p.id;
+        no.style.width = `${MEDIDAS.largura}px`;
+        no.style.height = `${MEDIDAS.altura}px`;
+        no.append(document.createElement('strong'), document.createElement('span'));
+        no.firstElementChild!.textContent = p.nome;
+        nos.set(p.id, no);
+        camada.append(no);
+      }
+      no.lastElementChild!.textContent = p.rotulo || rotuloDoCoracao.get(p.id) || (p.bicho ? 'bicho da família' : '');
+      no.className = 'no';
+      no.classList.toggle('no--eu', p.id === dados.eu);
+      no.classList.toggle('no--foco', p.id === estado.foco);
+      no.classList.toggle('no--apagado', Boolean(estado.nucleo) && !noNucleo(p.id));
+      no.classList.toggle('no--consideracao', rotuloDoCoracao.has(p.id));
+      no.style.transform = `translate(${lugar.x}px, ${lugar.y}px)`;
+    }
+    for (const [id, no] of nos) {
+      if (presentes.has(id)) continue;
+      no.remove();
+      nos.delete(id);
+    }
 
     // 5. Quem ficou de fora por não ter laços
     const fora = [...visiveis].filter((id) => !geracoes.has(id));
     soltos.hidden = fora.length === 0;
     soltos.replaceChildren(
-      'Ainda sem laços na árvore: ',
+      'Ainda sem laços: ',
       ...fora.flatMap((id, i) => [i ? ', ' : '', Object.assign(document.createElement('a'), { href: `/pessoas/${id}/editar#lacos`, textContent: pessoa.get(id)!.nome })]),
     );
-
-    // Na primeira vez, o zoom tenta mostrar a árvore inteira, sem deixar o texto ilegível
-    if (!estado.zoom) estado.zoom = Math.max(0.55, Math.min(1, moldura.clientWidth / (desenho.largura + MARGEM * 2)));
-    aplicarZoom();
     mostrarFicha();
-    if (recentralizar) centralizar(desenho.pessoas.some((p) => p.id === estado.foco) ? estado.foco : dados.eu, false);
+  };
+
+  const focar = (id: string) => {
+    estado.foco = id;
+    refletirNosControles();
+    guardarNoEndereco();
+    desenhar();
+    centralizar(id);
   };
 
   // --- Interações ---
-  controles.addEventListener('change', () => {
+  controles.addEventListener('change', (evento) => {
+    const mudouFoco = (evento.target as HTMLElement).getAttribute('name') === 'foco';
     estado.foco = campo<HTMLSelectElement>('foco').value;
     estado.nucleo = campo<HTMLSelectElement>('nucleo').value;
-    for (const nome of ['consideracao', 'ex', 'bichos', 'outros'] as const) estado[nome] = campo<HTMLInputElement>(nome).checked;
+    for (const nome of CHAVES) estado[nome] = campo<HTMLInputElement>(nome).checked;
     if (!estado.nucleo) estado.outros = true;
     refletirNosControles();
     guardarNoEndereco();
-    desenhar(true);
+    desenhar();
+    // Trocar o foco leva até a pessoa. Trocar um filtro mostra o resultado inteiro.
+    if (mudouFoco) centralizar(estado.foco);
+    else verTudo();
   });
   controles.addEventListener('submit', (e) => e.preventDefault());
 
-  let arrasto: { x: number; y: number; esq: number; topo: number; andou: boolean } | undefined;
+  // Arrastar move o mapa (mouse ou dedo). Dois dedos aproximam e afastam.
+  const dedos = new Map<number, { x: number; y: number }>();
+  let arrasto: { x: number; y: number; vx: number; vy: number; andou: boolean } | undefined;
+  let pinca: { distancia: number; zoom: number } | undefined;
   let fimDoArrasto = 0;
+  const ponto = (e: { clientX: number; clientY: number }) => {
+    const caixa = mapa.getBoundingClientRect();
+    return { x: e.clientX - caixa.left, y: e.clientY - caixa.top };
+  };
+  mapa.addEventListener('pointerdown', (e) => {
+    if ((e.target as HTMLElement).closest('[data-sobre-o-mapa]')) return;
+    dedos.set(e.pointerId, ponto(e));
+    if (dedos.size === 1) arrasto = { ...ponto(e), vx: vista.x, vy: vista.y, andou: false };
+    if (dedos.size === 2) {
+      const [a, b] = [...dedos.values()];
+      pinca = { distancia: Math.hypot(a.x - b.x, a.y - b.y), zoom: vista.zoom };
+      arrasto = undefined;
+    }
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!dedos.has(e.pointerId)) return;
+    dedos.set(e.pointerId, ponto(e));
+    if (pinca && dedos.size === 2) {
+      const [a, b] = [...dedos.values()];
+      zoomEm((pinca.zoom * Math.hypot(a.x - b.x, a.y - b.y)) / pinca.distancia, (a.x + b.x) / 2, (a.y + b.y) / 2);
+      return;
+    }
+    if (!arrasto) return;
+    const p = ponto(e);
+    if (Math.abs(p.x - arrasto.x) + Math.abs(p.y - arrasto.y) > 5) arrasto.andou = true;
+    if (!arrasto.andou) return;
+    mapa.classList.add('mapa--arrastando');
+    vista.x = arrasto.vx + p.x - arrasto.x;
+    vista.y = arrasto.vy + p.y - arrasto.y;
+    aplicarVista();
+  });
+  const soltar = (e: PointerEvent) => {
+    if (!dedos.delete(e.pointerId)) return;
+    // O clique que vem logo depois de um arrasto não deve escolher ninguém
+    if (arrasto?.andou || pinca) fimDoArrasto = Date.now();
+    if (dedos.size < 2) pinca = undefined;
+    if (dedos.size === 0) arrasto = undefined;
+    mapa.classList.remove('mapa--arrastando');
+  };
+  window.addEventListener('pointerup', soltar);
+  window.addEventListener('pointercancel', soltar);
+
+  // Rolar move o mapa. Com Ctrl (ou o gesto de pinça do trackpad), aproxima e afasta.
+  mapa.addEventListener(
+    'wheel',
+    (e) => {
+      if ((e.target as HTMLElement).closest('[data-sobre-o-mapa]')) return;
+      e.preventDefault();
+      if (e.ctrlKey || e.metaKey) {
+        const p = ponto(e);
+        zoomEm(vista.zoom * Math.exp(-e.deltaY * 0.01), p.x, p.y);
+      } else {
+        vista.x -= e.deltaX;
+        vista.y -= e.deltaY;
+        aplicarVista();
+      }
+    },
+    { passive: false },
+  );
+
+  // Teclado: setas movem, + e − aproximam
+  mapa.addEventListener('keydown', (e) => {
+    if ((e.target as HTMLElement).closest('[data-sobre-o-mapa]')) return;
+    const passo = 80;
+    const movimentos: Record<string, [number, number]> = { ArrowLeft: [passo, 0], ArrowRight: [-passo, 0], ArrowUp: [0, passo], ArrowDown: [0, -passo] };
+    if (movimentos[e.key]) {
+      e.preventDefault();
+      vista.x += movimentos[e.key][0];
+      vista.y += movimentos[e.key][1];
+      aplicarVista(true);
+    } else if (e.key === '+' || e.key === '=') zoomEm(vista.zoom * 1.2, mapa.clientWidth / 2, mapa.clientHeight / 2, true);
+    else if (e.key === '-') zoomEm(vista.zoom / 1.2, mapa.clientWidth / 2, mapa.clientHeight / 2, true);
+  });
 
   // Tocar em alguém põe essa pessoa em foco. O segundo toque abre a página dela.
   camada.addEventListener('click', (evento) => {
@@ -202,54 +309,22 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     const no = (evento.target as HTMLElement).closest<HTMLAnchorElement>('a.no');
     if (!no || no.dataset.id === estado.foco) return;
     evento.preventDefault();
-    estado.foco = no.dataset.id!;
-    refletirNosControles();
-    guardarNoEndereco();
-    desenhar(false);
-    centralizar(estado.foco);
+    focar(no.dataset.id!);
   });
 
-  const mudarZoom = (fator: number) => {
-    const meioX = (moldura.scrollLeft + moldura.clientWidth / 2) / estado.zoom;
-    const meioY = (moldura.scrollTop + moldura.clientHeight / 2) / estado.zoom;
-    estado.zoom = Math.max(0.35, Math.min(1.6, estado.zoom * fator));
-    aplicarZoom();
-    moldura.scrollTo({ left: meioX * estado.zoom - moldura.clientWidth / 2, top: meioY * estado.zoom - moldura.clientHeight / 2 });
-  };
-  raiz.querySelector('[data-zoom-mais]')!.addEventListener('click', () => mudarZoom(1.2));
-  raiz.querySelector('[data-zoom-menos]')!.addEventListener('click', () => mudarZoom(1 / 1.2));
-  raiz.querySelector('[data-ver-tudo]')!.addEventListener('click', () => {
-    if (!desenhoAtual) return;
-    estado.zoom = Math.max(0.35, Math.min(1, moldura.clientWidth / (desenhoAtual.largura + MARGEM * 2), moldura.clientHeight / (desenhoAtual.altura + MARGEM * 2)));
-    aplicarZoom();
-    moldura.scrollTo({ left: 0, top: 0 });
-  });
+  raiz.querySelector('[data-zoom-mais]')!.addEventListener('click', () => zoomEm(vista.zoom * 1.25, mapa.clientWidth / 2, mapa.clientHeight / 2, true));
+  raiz.querySelector('[data-zoom-menos]')!.addEventListener('click', () => zoomEm(vista.zoom / 1.25, mapa.clientWidth / 2, mapa.clientHeight / 2, true));
+  raiz.querySelector('[data-ver-tudo]')!.addEventListener('click', () => verTudo());
   raiz.querySelector('[data-ir-ao-foco]')!.addEventListener('click', () => centralizar(estado.foco));
 
-  // Arrastar com o mouse para andar pela árvore. No celular, o dedo já rola.
-
-  moldura.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'mouse' || e.button !== 0) return;
-    arrasto = { x: e.clientX, y: e.clientY, esq: moldura.scrollLeft, topo: moldura.scrollTop, andou: false };
-  });
-  window.addEventListener('pointermove', (e) => {
-    if (!arrasto) return;
-    const dx = e.clientX - arrasto.x;
-    const dy = e.clientY - arrasto.y;
-    if (Math.abs(dx) + Math.abs(dy) > 4) arrasto.andou = true;
-    if (arrasto.andou) {
-      moldura.classList.add('mapa--arrastando');
-      moldura.scrollLeft = arrasto.esq - dx;
-      moldura.scrollTop = arrasto.topo - dy;
-    }
-  });
-  window.addEventListener('pointerup', () => {
-    // O clique que vem logo depois de um arrasto não deve escolher ninguém
-    if (arrasto?.andou) fimDoArrasto = Date.now();
-    arrasto = undefined;
-    moldura.classList.remove('mapa--arrastando');
-  });
-
   refletirNosControles();
-  desenhar(true);
+  desenhar();
+  // Abre mostrando a árvore inteira. Se ela ficar pequena demais para ler, abre no foco.
+  verTudo(false);
+  if (vista.zoom < 0.6) {
+    vista.zoom = 0.75;
+    centralizar(estado.foco, false);
+  }
+  // As caixas só passam a deslizar depois do primeiro desenho, para não "voarem" na chegada
+  requestAnimationFrame(() => camada.classList.add('mapa__camada--viva'));
 }

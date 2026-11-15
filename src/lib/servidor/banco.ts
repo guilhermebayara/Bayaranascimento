@@ -315,6 +315,11 @@ const MIGRACOES: Migracao[] = [
       )`,
     ],
   },
+  {
+    // O núcleo de origem passa a se chamar só "Bayara". O id continua o mesmo.
+    id: '009-nucleo-bayara',
+    sql: [`UPDATE nucleos SET nome = 'Bayara' WHERE id = 'bayara-nascimento'`],
+  },
 ];
 
 let pronto: Promise<void> | undefined;

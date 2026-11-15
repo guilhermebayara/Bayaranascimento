@@ -1562,135 +1562,51 @@ p {
   gap: 1.25rem;
 }
 
-/* Árvore da família: um mapa que se arrasta, com as pessoas em caixas e as ligações em linhas */
+/* Árvore da família: a página é o mapa. Ele ocupa a largura toda e quase toda a altura da janela. */
 
-.arvore__controles {
+.arvore__topo {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem 1.5rem;
-  align-items: end;
-  margin-bottom: 1.25rem;
-}
-
-.arvore__campo {
-  display: grid;
-  gap: 0.3rem;
-  font-family: var(--titulo);
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-.arvore__campo select {
-  font: inherit;
-  font-weight: 400;
-  color: var(--tinta);
-  background: var(--branco);
-  border: 1.5px solid var(--tinta-suave);
-  border-radius: 6px;
-  padding: 0.55rem 0.75rem;
-  min-height: 2.75rem;
-  max-width: 100%;
-}
-
-.arvore__camadas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
-  border: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.arvore__camadas legend {
-  padding: 0;
-  font-family: var(--titulo);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  margin-bottom: 0.3rem;
-}
-
-.arvore__camadas .marcar {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 2.75rem;
-}
-
-.arvore__camadas .marcar[data-desligado] {
-  opacity: 0.45;
-}
-
-.mapa__barra {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
-  align-items: center;
-  justify-content: space-between;
+  gap: 0.25rem 1.25rem;
+  align-items: baseline;
   margin-bottom: 0.75rem;
 }
 
-.mapa__foco {
+.arvore__topo h1 {
   margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 0.9rem;
-  align-items: center;
+  font-size: 2rem;
 }
 
-.mapa__foco strong {
-  font-family: var(--titulo);
-  font-size: 1.25rem;
-}
-
-.mapa__foco span {
+.arvore__topo p {
+  margin: 0;
   color: var(--tinta-suave);
-}
-
-.mapa__foco .botao,
-.mapa__zoom .botao {
-  min-height: 2.5rem;
-  padding: 0.35rem 1rem;
-  font-size: 0.9375rem;
-}
-
-.mapa__zoom {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  font-family: var(--titulo);
-  font-size: 0.9375rem;
-}
-
-.mapa__zoom span {
-  min-width: 3.2rem;
-  text-align: center;
+  font-size: 1rem;
 }
 
 .mapa {
   position: relative;
-  overflow: auto;
-  height: min(72vh, 46rem);
-  background: var(--branco);
-  border: 1.5px solid var(--linha);
-  border-radius: 10px;
+  /* sai das margens do miolo para usar a janela inteira */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  height: calc(100dvh - 11rem);
+  min-height: 26rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle, var(--linha) 1px, transparent 1.5px) 0 0 / 28px 28px,
+    var(--branco);
+  border-block: 1.5px solid var(--linha);
   cursor: grab;
-  overscroll-behavior: contain;
+  touch-action: none;
+  user-select: none;
 }
 
 .mapa:focus-visible {
   outline: 3px solid var(--tinta);
-  outline-offset: 3px;
+  outline-offset: -3px;
 }
 
 .mapa--arrastando {
   cursor: grabbing;
-  user-select: none;
-}
-
-.mapa__tela {
-  position: relative;
-  margin: 0 auto;
 }
 
 .mapa__camada {
@@ -1698,6 +1614,11 @@ p {
   top: 0;
   left: 0;
   transform-origin: 0 0;
+  will-change: transform;
+}
+
+.mapa__camada--animada {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .mapa__linhas {
@@ -1705,6 +1626,13 @@ p {
   top: 0;
   left: 0;
   overflow: visible;
+  animation: surgir 0.5s ease-out;
+}
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+  }
 }
 
 .linha {
@@ -1728,7 +1656,7 @@ p {
 
 .linha--consideracao,
 .linha--coracao {
-  stroke-dasharray: 7 6;
+  stroke-dasharray: 6 5;
 }
 
 .linha--foco {
@@ -1737,11 +1665,13 @@ p {
 }
 
 .linha--apagada {
-  opacity: 0.25;
+  opacity: 0.2;
 }
 
 .no {
   position: absolute;
+  top: 0;
+  left: 0;
   display: grid;
   align-content: center;
   gap: 0.15rem;
@@ -1752,8 +1682,17 @@ p {
   color: var(--tinta);
   background: var(--papel);
   border: 1.5px solid var(--tinta);
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
+  animation: surgir 0.4s ease-out;
+}
+
+/* Depois do primeiro desenho, as caixas deslizam até o novo lugar quando algo muda */
+.mapa__camada--viva .no {
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s,
+    background-color 0.2s;
 }
 
 .no:hover {
@@ -1794,32 +1733,182 @@ p {
 }
 
 .no--foco {
-  outline: 3px solid var(--tinta);
-  outline-offset: 3px;
+  box-shadow:
+    0 0 0 3px var(--branco),
+    0 0 0 6px var(--tinta);
 }
 
 .no--apagado {
-  opacity: 0.4;
+  opacity: 0.35;
 }
 
 .no--apagado.no--foco {
-  opacity: 0.75;
+  opacity: 0.8;
+}
+
+/* O que fica por cima do mapa: painel de ajustes, ficha do foco, zoom e legenda */
+
+.mapa__painel,
+.mapa__foco,
+.mapa__zoom,
+.mapa__legenda {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  background: var(--papel);
+  border: 1.5px solid var(--tinta);
+  border-radius: 12px;
+  cursor: default;
+  user-select: auto;
+}
+
+.mapa__painel {
+  top: 1rem;
+  left: var(--margem);
+  width: min(18rem, calc(100vw - 2 * var(--margem)));
+  max-height: calc(100% - 2rem);
+  overflow: auto;
+}
+
+.mapa__painel summary {
+  padding: 0.7rem 1rem;
+  font-family: var(--titulo);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mapa__painel form {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0 1rem 1rem;
+}
+
+.arvore__campo {
+  display: grid;
+  gap: 0.3rem;
+  font-family: var(--titulo);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.arvore__campo select {
+  font: inherit;
+  font-weight: 400;
+  color: var(--tinta);
+  background: var(--branco);
+  border: 1.5px solid var(--tinta-suave);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  min-height: 2.75rem;
+  width: 100%;
+}
+
+.arvore__camadas {
+  display: grid;
+  gap: 0.15rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.arvore__camadas legend {
+  padding: 0;
+  font-family: var(--titulo);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.arvore__camadas .marcar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+}
+
+.arvore__camadas .marcar span {
+  font-weight: 400;
+}
+
+.arvore__camadas .marcar[data-desligado] {
+  opacity: 0.45;
+}
+
+.mapa__foco {
+  top: 1rem;
+  right: var(--margem);
+  max-width: min(22rem, calc(100vw - 2 * var(--margem)));
+  padding: 0.7rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.9rem;
+  align-items: baseline;
+}
+
+.mapa__foco strong {
+  font-family: var(--titulo);
+  font-size: 1.125rem;
+}
+
+.mapa__foco span {
+  color: var(--tinta-suave);
+  flex-basis: 100%;
+}
+
+.mapa__foco a {
+  font-family: var(--titulo);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--tinta);
+}
+
+.mapa__zoom {
+  right: var(--margem);
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  font-family: var(--titulo);
+  font-size: 0.9375rem;
+}
+
+.mapa__zoom button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0 0.8rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--tinta);
+  background: none;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.mapa__zoom button:hover {
+  background: var(--papel-fundo);
+}
+
+.mapa__zoom span {
+  min-width: 3.2rem;
+  text-align: center;
 }
 
 .mapa__legenda {
+  left: var(--margem);
+  bottom: 1rem;
   list-style: none;
-  margin: 0.9rem 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 1.5rem;
-  font-size: 0.9375rem;
+  padding: 0.6rem 0.9rem;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.875rem;
   color: var(--tinta-suave);
 }
 
 .amostra {
   display: inline-block;
-  width: 2.2rem;
+  width: 2rem;
   margin-right: 0.4rem;
   vertical-align: middle;
   border-top: 2.5px solid var(--tinta);
@@ -1835,4 +1924,49 @@ p {
 
 .amostra--coracao {
   border-top: 1.5px dashed var(--tinta-suave);
+}
+
+.arvore__rodape {
+  margin: 0.75rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  font-size: 0.9375rem;
+  color: var(--tinta-suave);
+}
+
+/* Em tela estreita, o painel começa fechado e a legenda sai, para sobrar árvore */
+@media (max-width: 44rem) {
+  .mapa {
+    height: calc(100dvh - 9rem);
+  }
+
+  .mapa__legenda {
+    display: none;
+  }
+
+  .mapa__foco {
+    top: auto;
+    bottom: 4.5rem;
+    left: var(--margem);
+    right: var(--margem);
+    max-width: none;
+  }
+
+  .mapa__zoom {
+    left: var(--margem);
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapa__camada--animada,
+  .mapa__camada--viva .no {
+    transition: none;
+  }
+
+  .mapa__linhas,
+  .no {
+    animation: none;
+  }
 }

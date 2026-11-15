@@ -34,6 +34,7 @@ const rotulo = (id: string) => {
 
 const dados: DadosDaArvore = {
   eu: usuario.pessoa,
+  nucleos: nucleos.map((n) => n.id),
   pessoas: integrantes.map((i) => ({ id: i.id, nome: i.apelido ?? i.nome, rotulo: rotulo(i.id), nucleos: i.nucleos, bicho: i.tipo === 'bicho', anos: anosDeVida(i) })),
   filiacoes: filiacoes.map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })),
   casais: casais.filter((c) => c.fases.length > 0).map((c) => ({ a: c.a, b: c.b, ex: !estaoJuntos(c) })),
@@ -48,61 +49,64 @@ const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, '
 ---
 
 <Base titulo="Árvore">
-  <div class="abertura abertura--curta">
-    <h1>Árvore</h1>
-    <p>A família inteira e como ela se liga. Toque em alguém para partir dessa pessoa. Toque de novo para abrir a página dela.</p>
-  </div>
-
-  <div data-arvore>
-    <form class="arvore__controles" data-controles>
-      <label class="arvore__campo">
-        <span>Partir de</span>
-        <select name="foco">
-          {ordenados.map((i) => <option value={i.id}>{i.nome}</option>)}
-        </select>
-      </label>
-      <label class="arvore__campo">
-        <span>Destacar</span>
-        <select name="nucleo">
-          <option value="">Família inteira</option>
-          {nucleos.map((n) => <option value={n.id}>Núcleo {n.nome}</option>)}
-        </select>
-      </label>
-      <fieldset class="arvore__camadas">
-        <legend>Mostrar</legend>
-        <label class="marcar"><input type="checkbox" name="outros" checked /><span>Outros núcleos</span></label>
-        <label class="marcar"><input type="checkbox" name="consideracao" checked /><span>Consideração e coração</span></label>
-        <label class="marcar"><input type="checkbox" name="ex" checked /><span>Ex-casais</span></label>
-        <label class="marcar"><input type="checkbox" name="bichos" checked /><span>Bichos</span></label>
-      </fieldset>
-    </form>
-
-    <div class="mapa__barra">
-      <p class="mapa__foco" data-ficha-do-foco aria-live="polite"></p>
-      <div class="mapa__zoom">
-        <button type="button" class="botao botao--leve" data-ir-ao-foco>Ir ao foco</button>
-        <button type="button" class="botao botao--leve" data-ver-tudo>Ver tudo</button>
-        <button type="button" class="botao botao--leve" data-zoom-menos aria-label="Diminuir">−</button>
-        <span data-zoom-atual>100%</span>
-        <button type="button" class="botao botao--leve" data-zoom-mais aria-label="Aumentar">+</button>
-      </div>
+  <div class="arvore" data-arvore>
+    <div class="arvore__topo">
+      <h1>Árvore</h1>
+      <p>Arraste para andar pela família. Toque em alguém para partir dessa pessoa, e de novo para abrir a página dela.</p>
     </div>
 
-    <div class="mapa" data-mapa tabindex="0" aria-label="Árvore da família. Use as setas ou arraste para andar por ela.">
-      <div class="mapa__tela" data-tela>
-        <div class="mapa__camada" data-camada></div>
+    <div class="mapa" data-mapa tabindex="0" aria-label="Árvore da família. Arraste ou use as setas para andar por ela.">
+      <div class="mapa__camada" data-camada></div>
+
+      <details class="mapa__painel" data-sobre-o-mapa>
+        <summary>Ajustar a árvore</summary>
+        <form data-controles>
+          <label class="arvore__campo">
+            <span>Partir de</span>
+            <select name="foco">
+              {ordenados.map((i) => <option value={i.id}>{i.nome}</option>)}
+            </select>
+          </label>
+          <label class="arvore__campo">
+            <span>Destacar</span>
+            <select name="nucleo">
+              <option value="">Família inteira</option>
+              {nucleos.map((n) => <option value={n.id}>Núcleo {n.nome}</option>)}
+            </select>
+          </label>
+          <fieldset class="arvore__camadas">
+            <legend>Mostrar</legend>
+            <label class="marcar"><input type="checkbox" name="outros" checked /><span>Outros núcleos</span></label>
+            <label class="marcar"><input type="checkbox" name="consideracao" checked /><span>Consideração e coração</span></label>
+            <label class="marcar"><input type="checkbox" name="ex" checked /><span>Ex-casais</span></label>
+            <label class="marcar"><input type="checkbox" name="bichos" checked /><span>Bichos</span></label>
+          </fieldset>
+        </form>
+      </details>
+
+      <p class="mapa__foco" data-sobre-o-mapa data-ficha-do-foco aria-live="polite"></p>
+
+      <div class="mapa__zoom" data-sobre-o-mapa>
+        <button type="button" data-ir-ao-foco>Ir ao foco</button>
+        <button type="button" data-ver-tudo>Ver tudo</button>
+        <button type="button" data-zoom-menos aria-label="Afastar">−</button>
+        <span data-zoom-atual>100%</span>
+        <button type="button" data-zoom-mais aria-label="Aproximar">+</button>
       </div>
+
+      <ul class="mapa__legenda" data-sobre-o-mapa>
+        <li><i class="amostra amostra--casal"></i> casal</li>
+        <li><i class="amostra amostra--ex"></i> não estão mais juntos</li>
+        <li><i class="amostra amostra--filhos"></i> pais e filhos</li>
+        <li><i class="amostra amostra--coracao"></i> consideração ou coração</li>
+      </ul>
     </div>
     <noscript><p class="vazio">A árvore precisa de JavaScript para ser desenhada. As ligações de cada pessoa também aparecem na página dela, em Pessoas.</p></noscript>
 
-    <ul class="mapa__legenda">
-      <li><i class="amostra amostra--casal"></i> casal</li>
-      <li><i class="amostra amostra--ex"></i> casal que não está mais junto</li>
-      <li><i class="amostra amostra--filhos"></i> pais e filhos</li>
-      <li><i class="amostra amostra--coracao"></i> consideração ou coração</li>
-    </ul>
-    <p class="dica" data-sem-lacos hidden></p>
-    <p class="dica"><a href="/pessoas/nova">Cadastrar uma pessoa</a></p>
+    <p class="arvore__rodape">
+      <span data-sem-lacos hidden></span>
+      <a href="/pessoas/nova">Cadastrar uma pessoa</a>
+    </p>
   </div>
 
   <script type="application/json" id="dados-da-arvore" set:html={JSON.stringify(dados).replace(/</g, '\\u003c')} />
@@ -113,5 +117,7 @@ const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, '
 
   const raiz = document.querySelector<HTMLElement>('[data-arvore]');
   const bruto = document.getElementById('dados-da-arvore')?.textContent;
-  if (raiz && bruto) montarArvore(raiz, JSON.parse(bruto) as DadosDaArvore);
+  if (raiz && bruto) {
+    montarArvore(raiz, JSON.parse(bruto) as DadosDaArvore);
+  }
 </script>
