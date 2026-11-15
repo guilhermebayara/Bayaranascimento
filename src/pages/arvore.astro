@@ -34,7 +34,7 @@ const rotulo = (id: string) => {
 
 const dados: DadosDaArvore = {
   eu: usuario.pessoa,
-  nucleos: nucleos.map((n) => n.id),
+  nucleos: nucleos.map((n) => ({ id: n.id, nome: n.nome })),
   pessoas: integrantes.map((i) => ({ id: i.id, nome: i.apelido ?? i.nome, rotulo: rotulo(i.id), nucleos: i.nucleos, bicho: i.tipo === 'bicho', anos: anosDeVida(i) })),
   filiacoes: filiacoes.map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })),
   casais: casais.filter((c) => c.fases.length > 0).map((c) => ({ a: c.a, b: c.b, ex: !estaoJuntos(c) })),
@@ -94,13 +94,18 @@ const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, '
         <button type="button" data-zoom-mais aria-label="Aproximar">+</button>
       </div>
 
-      <ul class="mapa__legenda" data-sobre-o-mapa>
+      <details class="mapa__legenda" data-sobre-o-mapa open>
+        <summary>Legenda</summary>
+        <ul>
+        {nucleos.map((n, i) => <li><i class="amostra-cor" style={`background: var(--nucleo-${i % 4})`}></i> {n.nome}</li>)}
+        <li><i class="amostra-cor amostra-cor--fora"></i> amigos e de fora</li>
         <li><i class="amostra amostra--casal"></i> casal</li>
         <li><i class="amostra amostra--ex"></i> não estão mais juntos</li>
         <li><i class="amostra amostra--filhos"></i> pais e filhos</li>
         <li><i class="amostra amostra--coracao"></i> consideração ou coração</li>
         <li><b class="amostra-botao">♥ 2</b> abre os laços do coração de alguém</li>
-      </ul>
+        </ul>
+      </details>
     </div>
     <noscript><p class="vazio">A árvore precisa de JavaScript para ser desenhada. As ligações de cada pessoa também aparecem na página dela, em Pessoas.</p></noscript>
 

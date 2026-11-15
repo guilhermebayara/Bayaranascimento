@@ -6,7 +6,7 @@ import { DESLOCAMENTO_DO_PAPEL, alinharPeloCoracao, calcularGeracoes, type Papel
 export interface DadosDaArvore {
   eu: string;
   /** na ordem em que ficam na árvore, da esquerda para a direita */
-  nucleos: string[];
+  nucleos: { id: string; nome: string }[];
   pessoas: { id: string; nome: string; rotulo: string; nucleos: string[]; bicho: boolean; anos: string }[];
   filiacoes: { filho: string; responsavel: string; consideracao: boolean }[];
   casais: { a: string; b: string; ex: boolean }[];
@@ -40,9 +40,19 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
 
   // Para que lado cada pessoa puxa: o primeiro núcleo à esquerda, o último à direita,
   // e quem é de dois núcleos fica entre eles
+  const idsDosNucleos = dados.nucleos.map((n) => n.id);
+  const indicesDosNucleos = (nucleos: string[]) => nucleos.map((n) => idsDosNucleos.indexOf(n)).filter((i) => i >= 0).sort((a, b) => a - b);
+  // A cor de cada lado da família. Quem é de dois núcleos fica com as duas cores, dividida na diagonal.
+  const fundoDe = (nucleos: string[]) => {
+    const cores = indicesDosNucleos(nucleos).map((i) => `var(--nucleo-${i % 4})`);
+    if (cores.length === 0) return '';
+    if (cores.length === 1) return cores[0];
+    const fatia = 100 / cores.length;
+    return `linear-gradient(135deg, ${cores.map((c, i) => `${c} ${i * fatia}% ${(i + 1) * fatia}%`).join(', ')})`;
+  };
   const ladoDe = new Map<string, number>();
   for (const p of dados.pessoas) {
-    const indices = p.nucleos.map((n) => dados.nucleos.indexOf(n)).filter((i) => i >= 0);
+    const indices = indicesDosNucleos(p.nucleos);
     if (indices.length && dados.nucleos.length > 1) ladoDe.set(p.id, indices.reduce((s, i) => s + i, 0) / indices.length / (dados.nucleos.length - 1));
   }
 
@@ -50,7 +60,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   const ligada = (nome: string) => url.searchParams.get(nome) !== '0';
   const estado: Estado = {
     foco: pessoa.has(url.searchParams.get('foco') ?? '') ? url.searchParams.get('foco')! : dados.eu,
-    nucleo: dados.nucleos.includes(url.searchParams.get('nucleo') ?? '') ? url.searchParams.get('nucleo')! : '',
+    nucleo: idsDosNucleos.includes(url.searchParams.get('nucleo') ?? '') ? url.searchParams.get('nucleo')! : '',
     consideracao: ligada('consideracao'),
     ex: ligada('ex'),
     bichos: ligada('bichos'),
@@ -172,7 +182,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     // Quem só está na árvore por um "como se fosse" entra na geração que o papel indica
     const agregados = coracao.filter((l) => l.papel && geracoes.has(l.dono) && !geracoes.has(l.pessoa));
     for (const l of agregados) if (!geracoes.has(l.pessoa)) geracoes.set(l.pessoa, geracoes.get(l.dono)! + DESLOCAMENTO_DO_PAPEL[l.papel!]);
-    const ligados = coracao.filter((l) => l.papel && geracoes.has(l.dono) && geracoes.has(l.pessoa));
+    // Todo laço do coração aberto entra no desenho, com ou sem "como se fosse"
+    const ligados = coracao.filter((l) => geracoes.has(l.dono) && geracoes.has(l.pessoa));
 
     // Na ordem da lista (que vem ordenada do servidor), para o desenho ser estável
     const naArvore = dados.pessoas.filter((p) => geracoes.has(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id) }));
@@ -216,7 +227,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       no.classList.toggle('no--eu', p.id === dados.eu);
       no.classList.toggle('no--foco', p.id === estado.foco);
       no.classList.toggle('no--apagado', Boolean(estado.nucleo) && !noNucleo(p.id));
-      no.classList.toggle('no--consideracao', rotuloDoCoracao.has(p.id));
+      no.classList.toggle('no--de-fora', p.nucleos.length === 0);
+      no.style.background = fundoDe(p.nucleos);
       no.style.transform = `translate(${lugar.x}px, ${lugar.y}px)`;
     }
     for (const [id, no] of nos) {

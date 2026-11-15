@@ -10,6 +10,12 @@
   --tinta-suave: #4c635d;
   --linha: #c3d1c9;
   --amarelo: #f4b81c;
+  /* Lados da família na árvore, na ordem dos núcleos: esquerda, meio, direita.
+     Provisório, até a direção visual. O do meio mistura os dois lados. */
+  --nucleo-0: #d6e6f5;
+  --nucleo-1: #e3dcf1;
+  --nucleo-2: #f6e0cf;
+  --nucleo-3: #dcefdc;
 
   --titulo: 'Bricolage Grotesque Variable', system-ui, sans-serif;
   --texto: 'Literata Variable', Georgia, serif;
@@ -1696,7 +1702,7 @@ p {
 }
 
 .no:hover {
-  background: var(--papel-fundo);
+  filter: brightness(0.96);
 }
 
 .no strong {
@@ -1716,20 +1722,19 @@ p {
   overflow: hidden;
 }
 
+/* Quem está olhando: uma faixa amarela no alto, para não esconder a cor do lado */
 .no--eu {
-  background: var(--amarelo);
-}
-
-.no--eu:hover {
-  background: #ffcf4a;
+  box-shadow: inset 0 7px 0 var(--amarelo);
 }
 
 .no--eu span {
   color: var(--tinta);
+  font-weight: 600;
 }
 
-.no--consideracao {
-  border-style: dashed;
+/* Amigos e quem não é de nenhum núcleo */
+.no--de-fora {
+  background: var(--branco);
 }
 
 .no--foco {
@@ -1740,6 +1745,13 @@ p {
 
 .no--apagado {
   opacity: 0.35;
+}
+
+.no--eu.no--foco {
+  box-shadow:
+    inset 0 7px 0 var(--amarelo),
+    0 0 0 3px var(--branco),
+    0 0 0 6px var(--tinta);
 }
 
 .no--apagado.no--foco {
@@ -1948,12 +1960,25 @@ p {
 .mapa__legenda {
   left: var(--margem);
   bottom: 1rem;
-  list-style: none;
-  padding: 0.6rem 0.9rem;
-  display: grid;
-  gap: 0.2rem;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--tinta-suave);
+}
+
+.mapa__legenda summary {
+  padding: 0.5rem 0.9rem;
+  font-family: var(--titulo);
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+}
+
+.mapa__legenda ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.9rem 0.7rem;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.15rem 1.1rem;
 }
 
 .amostra {
@@ -1974,6 +1999,20 @@ p {
 
 .amostra--coracao {
   border-top: 1.5px dashed var(--tinta-suave);
+}
+
+.amostra-cor {
+  display: inline-block;
+  width: 2rem;
+  height: 0.9rem;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  border: 1.5px solid var(--tinta);
+  border-radius: 4px;
+}
+
+.amostra-cor--fora {
+  background: var(--branco);
 }
 
 .amostra-botao {

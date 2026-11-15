@@ -164,3 +164,55 @@ describe('ordem pensada para uma árvore limpa', () => {
     expect(colados('aguilar', 'marta')).toBe(true);
   });
 });
+
+describe('laços do coração em volta dos irmãos', () => {
+  // Gui e Giovanna são irmãos e ficam juntos. Os laços de cada um vão para o lado do núcleo de origem:
+  // os do Gui e da Giovanna para a esquerda (Bayara), os do Magno para a direita (Bracarense).
+  const geracoes: [string, number, number?][] = [
+    ['elizete', 0, 0], ['aguilar', 0, 0], ['mae-do-magno', 0, 1], ['mae-da-nati', 0],
+    ['mel', 1, 0], ['gui', 1, 0], ['giovanna', 1, 0.25], ['magno', 1, 0.75], ['irma-do-magno', 1, 1],
+    ['ed', 1], ['nati', 1], ['renan', 1], ['clara', 1], ['amigo-do-magno', 1],
+    ['otto', 2],
+  ];
+  const pessoas = geracoes.map(([id, geracao, lado]) => ({ id, geracao, lado }));
+  const casais = [
+    { a: 'elizete', b: 'aguilar', ex: false },
+    { a: 'giovanna', b: 'magno', ex: false },
+    { a: 'nati', b: 'renan', ex: false },
+  ];
+  const filiacoes = [
+    ...filho('gui', 'elizete', 'aguilar'),
+    ...filho('giovanna', 'elizete', 'aguilar'),
+    ...filho('mel', 'elizete'),
+    ...filho('magno', 'mae-do-magno'),
+    ...filho('irma-do-magno', 'mae-do-magno'),
+    ...filho('nati', 'mae-da-nati'),
+    ...filho('otto', 'nati', 'renan'),
+  ];
+  const coracao = [
+    { dono: 'gui', pessoa: 'nati' },
+    { dono: 'gui', pessoa: 'ed' },
+    { dono: 'gui', pessoa: 'otto' },
+    { dono: 'giovanna', pessoa: 'clara' },
+    { dono: 'magno', pessoa: 'amigo-do-magno' },
+  ];
+  const d = desenharArvore(pessoas, casais, filiacoes, coracao);
+  const yDoGui = d.pessoas.find((x) => x.id === 'gui')!.y;
+  const fila = d.pessoas.filter((x) => x.y === yDoGui).sort((a, b) => a.x - b.x).map((x) => x.id);
+  const em = (id: string) => fila.indexOf(id);
+
+  it('Gui e Giovanna ficam lado a lado', () => {
+    expect(em('giovanna') - em('gui'), fila.join(' ')).toBe(1);
+  });
+  it('os laços do Gui vão para a esquerda: primeiro quem não tem filhos, depois a Nati com o Renan', () => {
+    expect(em('mel'), fila.join(' ')).toBe(em('gui') - 1);
+    expect(em('ed')).toBeLessThan(em('mel'));
+    expect(em('nati')).toBeLessThan(em('ed'));
+    expect(em('renan')).toBe(em('nati') - 1);
+  });
+  it('os da Giovanna também vão para a esquerda, e os do Magno para a direita', () => {
+    expect(em('clara'), fila.join(' ')).toBeLessThan(em('gui'));
+    expect(em('amigo-do-magno')).toBeGreaterThan(em('irma-do-magno'));
+  });
+});
+

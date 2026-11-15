@@ -390,8 +390,14 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
       if (!pos.has(a) || !pos.has(b)) continue;
       const distancia = pos.get(b)! - pos.get(a)!;
       total += 2.5 * Math.abs(distancia);
-      const irmaos = (irmaosDe.get(a) ?? []).filter((i) => pos.has(i) && nivel.get(i) === nivel.get(a));
-      if (irmaos.length && distancia * (media(irmaos.map((i) => pos.get(i)!)) - pos.get(a)!) > 0) total += 6;
+      const ladoDoDono = lado.get(a);
+      if (ladoDoDono !== undefined && Math.abs(ladoDoDono - 0.5) > 1e-6) {
+        // O laço vai para o lado do núcleo de origem de quem escolheu
+        if (distancia * (ladoDoDono - 0.5) < 0) total += 6;
+      } else {
+        const irmaos = (irmaosDe.get(a) ?? []).filter((i) => pos.has(i) && nivel.get(i) === nivel.get(a));
+        if (irmaos.length && distancia * (media(irmaos.map((i) => pos.get(i)!)) - pos.get(a)!) > 0) total += 6;
+      }
     }
     // Irmãos de pai e mãe ficam lado a lado: cada pessoa de fora entre dois deles pesa
     for (const grupo of gruposDeIrmaos) {
@@ -503,41 +509,84 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
     if (!melhorou) break;
   }
 
-  // Por fim, quem veio de outra família por um laço do coração fica encostado em quem o escolheu,
-  // do lado de fora: o lado oposto ao dos irmãos. Vários laços da mesma pessoa se enfileiram.
-  const { nivel } = posicoes(melhor);
-  // Duas passadas: na segunda, cada um já saiu do caminho dos outros
-  for (const [dono, escolhido] of [...coracao, ...coracao]) {
-    const n = nivel.get(dono);
-    if (n === undefined || nivel.get(escolhido) !== n || familiaDe(dono) === familiaDe(escolhido)) continue;
-    const linha = melhor[n];
-    const blocoDe = (id: string) => linha.find((b) => b.includes(id))!;
-    const doDono = blocoDe(dono);
-    const doEscolhido = blocoDe(escolhido);
-    if (doDono === doEscolhido) continue;
-    const ordem = linha.flat();
-    const irmaos = (irmaosDe.get(dono) ?? []).filter((i) => nivel.get(i) === n);
-    const pares = doDono.filter((id) => id !== dono);
-    const referencia = irmaos.length ? irmaos : pares;
-    // Sem irmãos nem par na linha, fica do lado em que já está
-    const paraADireita = referencia.length
-      ? media(referencia.map((i) => ordem.indexOf(i))) < ordem.indexOf(dono)
-      : ordem.indexOf(escolhido) > ordem.indexOf(dono);
-    linha.splice(linha.indexOf(doEscolhido), 1);
-    // Pula os blocos de outros escolhidos da mesma pessoa que já estão encostados
-    // Pula também os meios-irmãos: passar entre eles e os pais cruzaria as linhas da família
-    const paisDoDono = paisDe.get(dono) ?? [];
-    const jaEncostado = (bloco: string[] | undefined) =>
-      Boolean(bloco) &&
-      (coracao.some(([d, e]) => d === dono && e !== escolhido && bloco!.includes(e)) ||
-        bloco!.some((id) => (paisDe.get(id) ?? []).some((pai) => paisDoDono.includes(pai))));
-    let lugar = linha.indexOf(doDono) + (paraADireita ? 1 : 0);
-    while (jaEncostado(linha[paraADireita ? lugar : lugar - 1])) lugar += paraADireita ? 1 : -1;
-    // Dentro do bloco, o escolhido fica na ponta mais próxima de quem o escolheu
-    if (doEscolhido.length > 1 && (paraADireita ? doEscolhido.indexOf(escolhido) > 0 : doEscolhido.indexOf(escolhido) < doEscolhido.length - 1)) doEscolhido.reverse();
-    linha.splice(lugar, 0, doEscolhido);
-    puxarPais(melhor, n, doEscolhido);
-    if (doEscolhido.some((id) => filhosDe.has(id))) reorganizarAbaixo(melhor, n);
+  // Por fim, quem veio de outra família por um laço do coração fica junto de quem o escolheu.
+  // A pessoa e os irmãos dela formam um grupo que não se separa. Os escolhidos ficam do lado
+  // do núcleo de origem de quem escolheu (Bayara à esquerda, Bracarense à direita), logo depois
+  // desse grupo. Quem não tem descendentes fica mais perto, para as linhas não se cruzarem.
+  const direcaoDe = (dono: string): -1 | 0 | 1 => {
+    const l = lado.get(dono);
+    if (l === undefined || Math.abs(l - 0.5) < 1e-6) return 0;
+    return l < 0.5 ? -1 : 1;
+  };
+  const descendentes = (ids: string[]) => {
+    const vistos = new Set<string>();
+    const fila = [...ids];
+    while (fila.length) for (const f of filhosDe.get(fila.shift()!) ?? []) if (!vistos.has(f)) (vistos.add(f), fila.push(f));
+    return vistos.size;
+  };
+  for (let n = 0; n < melhor.length; n++) {
+    const original = melhor[n].flat();
+    const naLinha = new Set(original);
+    const blocoDe = (id: string) => melhor[n].find((b) => b.includes(id));
+    // Cada bloco escolhido acompanha o primeiro laço que o trouxe
+    const donoDoBloco = new Map<string[], string>();
+    for (const [dono, escolhido] of coracao) {
+      if (!naLinha.has(dono) || !naLinha.has(escolhido) || familiaDe(dono) === familiaDe(escolhido)) continue;
+      const bloco = blocoDe(escolhido)!;
+      if (!bloco.includes(dono) && !donoDoBloco.has(bloco)) donoDoBloco.set(bloco, dono);
+    }
+    if (donoDoBloco.size === 0) continue;
+    const retirados = [...donoDoBloco.keys()];
+    melhor[n] = melhor[n].filter((b) => !donoDoBloco.has(b));
+
+    // Em rodadas: primeiro os escolhidos por quem já está na linha, depois os escolhidos por eles
+    let pendentes = retirados;
+    while (pendentes.length) {
+      const linha = melhor[n];
+      const prontos = pendentes.filter((b) => linha.some((x) => x.includes(donoDoBloco.get(b)!)));
+      if (prontos.length === 0) {
+        linha.push(...pendentes);
+        break;
+      }
+      const grupos = new Map<string, { indice: number; direcao: -1 | 1; itens: { bloco: string[]; distancia: number; desc: number; ordem: number }[] }>();
+      for (const bloco of prontos) {
+        const dono = donoDoBloco.get(bloco)!;
+        const doDono = linha.findIndex((b) => b.includes(dono));
+        // O grupo do dono: o bloco dele e os blocos de irmãos de quem está nesse bloco
+        // (de pai e mãe ou não). Esse grupo não se separa.
+        const irmaosDoBloco = linha
+          .map((b, k) => (b.some((id) => linha[doDono].some((m) => m !== id && (paisDe.get(id) ?? []).some((p) => (paisDe.get(m) ?? []).includes(p)))) ? k : -1))
+          .filter((k) => k >= 0);
+        const todos = [...irmaosDoBloco, doDono];
+        const inicio = Math.min(...todos);
+        const fim = Math.max(...todos);
+        let direcao = direcaoDe(dono);
+        if (direcao === 0) {
+          // Sem núcleo que diga o lado: vai para o lado de fora do grupo, ou para onde já estava
+          if (doDono === inicio && fim > inicio) direcao = -1;
+          else if (doDono === fim && fim > inicio) direcao = 1;
+          else direcao = original.indexOf(bloco[0]) < original.indexOf(dono) ? -1 : 1;
+        }
+        const indice = direcao < 0 ? inicio : fim + 1;
+        const chave = `${indice}:${direcao}`;
+        if (!grupos.has(chave)) grupos.set(chave, { indice, direcao: direcao as -1 | 1, itens: [] });
+        grupos.get(chave)!.itens.push({ bloco, distancia: direcao < 0 ? doDono - inicio : fim - doDono, desc: descendentes(bloco), ordem: original.indexOf(bloco[0]) });
+        // Dentro do bloco, o escolhido fica na ponta virada para quem o escolheu
+        const escolhido = bloco.find((id) => coracao.some(([d, e]) => d === dono && e === id))!;
+        const ponta = direcao < 0 ? bloco.length - 1 : 0;
+        if (bloco.length > 1 && bloco.indexOf(escolhido) !== ponta) bloco.reverse();
+      }
+      // Insere de trás para frente, para os índices continuarem valendo
+      const ordenados = [...grupos.values()].sort((a, b) => b.indice - a.indice || a.direcao - b.direcao);
+      for (const g of ordenados) {
+        const perto = [...g.itens].sort((a, b) => a.desc - b.desc || a.distancia - b.distancia || a.ordem - b.ordem).map((x) => x.bloco);
+        linha.splice(g.indice, 0, ...(g.direcao < 0 ? perto.reverse() : perto));
+      }
+      pendentes = pendentes.filter((b) => !prontos.includes(b));
+    }
+    // A família de quem foi escolhido acompanha: pais em cima, filhos embaixo
+    for (const bloco of retirados) puxarPais(melhor, n, bloco);
+    if (retirados.some((b) => b.some((id) => filhosDe.has(id)))) reorganizarAbaixo(melhor, n);
   }
   linhas.splice(0, linhas.length, ...melhor);
 }
