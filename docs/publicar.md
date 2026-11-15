@@ -14,7 +14,7 @@ O branch `main` é a produção. Qualquer outro branch vira uma prévia.
 
 No projeto `bayaranascimento` → Settings:
 
-- **Build command:** `npm run build`
+- **Build command:** `npm run build`. Antes do build ele roda a guarda da produção e os testes (`prebuild`); se algo falhar, nada é publicado e a versão anterior continua no ar.
 - **Deploy command:** `npx wrangler deploy`
 - **Prévias (aba Previews Base):** Build command vazio e Preview command `npm run build && npx wrangler preview`. O campo Build command das prévias não era executado, por isso o build vai junto no comando de prévia. Ao mudar algo nessa aba, salvar com "Apply to existing Previews", senão só vale para branches novos.
 - **Segredo `ACESSOS`** (Variables and Secrets, tipo Secret): um JSON em uma linha ligando cada e-mail de login ao integrante.
