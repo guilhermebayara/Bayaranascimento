@@ -1,0 +1,337 @@
+---
+import Base from '../layouts/Base.astro';
+import { TIPOS, type TipoId } from '../data/tipos';
+import { listarPessoas, nomeCurto } from '../lib/memorias';
+import { pessoasComAcesso, usuarioDoPedido } from '../lib/servidor/acesso';
+import { configuracaoFaltando } from '../lib/servidor/http';
+
+export const prerender = false;
+
+const usuario = await usuarioDoPedido(Astro.request);
+const pessoas = await listarPessoas();
+const comAcesso = pessoasComAcesso();
+const semAcesso = pessoas.filter((p) => !comAcesso.has(p.id));
+const inativo = configuracaoFaltando().length > 0;
+const anoAtual = new Date().getFullYear();
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+---
+
+<Base titulo="Nova memória">
+  <div class="abertura abertura--curta">
+    <h1>Nova memória</h1>
+    {usuario && <p>Olá, {usuario.nome}. Conte o que aconteceu, do seu jeito. Só o título e o ano são obrigatórios.</p>}
+  </div>
+
+  {
+    !usuario ? (
+      <p class="recado">
+        {inativo
+          ? 'O envio pelo site ainda não foi ativado. Falta concluir a configuração.'
+          : 'Não consegui identificar quem você é. Saia e entre de novo no site. Se continuar, avise o Gui.'}
+      </p>
+    ) : (
+      <>
+        {inativo && <p class="recado">O envio de memórias ainda não foi ativado. Você pode ver o formulário, mas ele ainda não salva.</p>}
+
+        <form class="formulario" data-formulario-memoria data-usuario={usuario.pessoa} novalidate>
+          <fieldset>
+            <legend>O que aconteceu?</legend>
+            <label class="campo">
+              <span>Título</span>
+              <input type="text" name="titulo" required maxlength="120" autocomplete="off" placeholder="Ex.: Casamento da Giovanna" />
+            </label>
+            <div class="campo">
+              <span id="rotulo-tipo">Que tipo de momento foi?</span>
+              <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-tipo">
+                {
+                  (Object.keys(TIPOS) as TipoId[]).map((id) => (
+                    <label class="opcao" style={`--cor-tipo: ${TIPOS[id].cor}`}>
+                      <input type="radio" name="tipo" value={id} checked={id === 'cotidiano'} />
+                      <span class="tipo">{TIPOS[id].rotulo}</span>
+                    </label>
+                  ))
+                }
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Quando foi?</legend>
+            <div class="campos-data">
+              <label class="campo">
+                <span>Ano</span>
+                <input type="number" name="ano" required inputmode="numeric" min="1800" max={anoAtual} placeholder={String(anoAtual)} />
+              </label>
+              <label class="campo">
+                <span>Mês, se souber</span>
+                <select name="mes">
+                  <option value="">Não sei</option>
+                  {MESES.map((nome, i) => <option value={i + 1}>{nome}</option>)}
+                </select>
+              </label>
+              <label class="campo">
+                <span>Dia, se souber</span>
+                <input type="number" name="dia" inputmode="numeric" min="1" max="31" />
+              </label>
+            </div>
+            <label class="marcar">
+              <input type="checkbox" name="aproximada" />
+              <span>Não tenho certeza da data</span>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Onde foi?</legend>
+            <label class="campo">
+              <span>Lugar, se quiser</span>
+              <input type="text" name="lugar" maxlength="120" placeholder="Ex.: Belo Horizonte" />
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Quem estava?</legend>
+            <div class="opcoes">
+              {
+                pessoas.map((p) => (
+                  <label class="opcao">
+                    <input type="checkbox" name="pessoas" value={p.id} />
+                    <span>{nomeCurto(p)}</span>
+                  </label>
+                ))
+              }
+            </div>
+            <div data-novas-pessoas></div>
+            <button type="button" class="botao botao--leve" data-adicionar-pessoa>Adicionar alguém que não está na lista</button>
+          </fieldset>
+
+          <fieldset>
+            <legend>Fotos</legend>
+            <p class="dica">Escolha as fotos desse momento. Você pode escrever uma legenda para cada uma.</p>
+            <label class="botao botao--leve botao--arquivo">
+              Escolher fotos
+              <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
+            </label>
+            <ul class="fotos-enviadas" data-fotos></ul>
+          </fieldset>
+
+          <fieldset>
+            <legend>Como foi?</legend>
+            <label class="campo">
+              <span>Quem está contando</span>
+              <select name="relatoPor" data-relato-por>
+                <option value={usuario.pessoa}>Eu, {usuario.nome}</option>
+                {semAcesso.map((p) => <option value={p.id}>{p.data.nome}, e eu estou escrevendo</option>)}
+              </select>
+            </label>
+            <label class="campo">
+              <span>O relato</span>
+              <textarea name="relato" rows="8" maxlength="20000" placeholder="Escreva como você lembra. Outras pessoas da família vão poder contar a versão delas depois."></textarea>
+            </label>
+            <p class="dica">Só você vai poder alterar este texto.</p>
+          </fieldset>
+
+          <p class="situacao" data-situacao role="status" aria-live="polite"></p>
+          <button type="submit" class="botao" disabled={inativo}>Guardar memória</button>
+        </form>
+
+        <div class="confirmacao" data-confirmacao hidden>
+          <h2>Memória guardada</h2>
+          <p>Ela aparece na linha do tempo em cerca de dois minutos.</p>
+          <p>
+            <a class="botao" href="/nova">Registrar outra memória</a>
+            <a class="botao botao--leve" href="/">Voltar para a linha do tempo</a>
+          </p>
+        </div>
+      </>
+    )
+  }
+</Base>
+
+<script>
+  import { prepararFoto } from '../lib/cliente/fotos';
+
+  const form = document.querySelector<HTMLFormElement>('[data-formulario-memoria]');
+  if (form) {
+    const situacao = form.querySelector<HTMLElement>('[data-situacao]')!;
+    const listaFotos = form.querySelector<HTMLUListElement>('[data-fotos]')!;
+    const novasPessoas = form.querySelector<HTMLElement>('[data-novas-pessoas]')!;
+    const relatoPor = form.querySelector<HTMLSelectElement>('[data-relato-por]')!;
+    const botao = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const RASCUNHO = 'rascunho-nova-memoria';
+
+    interface FotoPronta {
+      id: number;
+      chave?: string;
+      erro?: string;
+      item: HTMLLIElement;
+    }
+    const fotos: FotoPronta[] = [];
+    let proximoId = 0;
+
+    const avisar = (texto: string, tipo: 'normal' | 'erro' = 'normal') => {
+      situacao.textContent = texto;
+      situacao.dataset.tipo = tipo;
+    };
+
+    // Rascunho: o texto não se perde se a página fechar sem querer
+    const camposDeTexto = ['titulo', 'lugar', 'relato'] as const;
+    try {
+      const salvo = JSON.parse(localStorage.getItem(RASCUNHO) ?? '{}');
+      for (const nome of camposDeTexto) {
+        const campo = form.elements.namedItem(nome) as HTMLInputElement | HTMLTextAreaElement | null;
+        if (campo && typeof salvo[nome] === 'string') campo.value = salvo[nome];
+      }
+    } catch {
+      // sem rascunho, segue vazio
+    }
+    form.addEventListener('input', () => {
+      // Quem voltou a digitar já viu o aviso de erro
+      if (situacao.dataset.tipo === 'erro') avisar('');
+      try {
+        const dados: Record<string, string> = {};
+        for (const nome of camposDeTexto) {
+          dados[nome] = (form.elements.namedItem(nome) as HTMLInputElement | HTMLTextAreaElement).value;
+        }
+        localStorage.setItem(RASCUNHO, JSON.stringify(dados));
+      } catch {
+        // navegador sem armazenamento: o formulário funciona do mesmo jeito
+      }
+    });
+
+    // Pessoas que ainda não estão no acervo
+    const atualizarQuemConta = () => {
+      for (const opcao of [...relatoPor.querySelectorAll('option[data-nova]')]) opcao.remove();
+      novasPessoas.querySelectorAll<HTMLElement>('[data-nova-pessoa]').forEach((linha, i) => {
+        const nome = linha.querySelector<HTMLInputElement>('[data-nome]')!.value.trim();
+        if (!nome) return;
+        const opcao = new Option(`${nome}, e eu estou escrevendo`, `nova:${i}`);
+        opcao.dataset.nova = '';
+        relatoPor.add(opcao);
+      });
+    };
+
+    form.querySelector('[data-adicionar-pessoa]')!.addEventListener('click', () => {
+      const linha = document.createElement('div');
+      linha.className = 'nova-pessoa';
+      linha.dataset.novaPessoa = '';
+      linha.innerHTML = `
+        <label class="campo"><span>Nome</span><input type="text" data-nome maxlength="80" placeholder="Ex.: Vó Bela" /></label>
+        <label class="campo"><span>Quem é, na família</span><input type="text" data-parentesco maxlength="80" placeholder="Ex.: avó materna" /></label>
+        <button type="button" class="botao botao--leve" data-remover>Remover</button>`;
+      linha.querySelector('[data-remover]')!.addEventListener('click', () => {
+        linha.remove();
+        atualizarQuemConta();
+      });
+      linha.querySelector('[data-nome]')!.addEventListener('input', atualizarQuemConta);
+      novasPessoas.append(linha);
+      linha.querySelector<HTMLInputElement>('[data-nome]')!.focus();
+    });
+
+    // Fotos: reduz no aparelho e envia uma a uma
+    form.querySelector<HTMLInputElement>('[data-escolher-fotos]')!.addEventListener('change', async (evento) => {
+      const entrada = evento.target as HTMLInputElement;
+      const arquivos = [...(entrada.files ?? [])];
+      entrada.value = '';
+      for (const arquivo of arquivos) {
+        const id = proximoId++;
+        const item = document.createElement('li');
+        item.className = 'foto-enviada';
+        item.innerHTML = `
+          <div class="foto__papel"><div class="foto__reserva">Enviando…</div></div>
+          <div class="foto-enviada__campos">
+            <label class="campo"><span>Legenda</span><input type="text" data-legenda maxlength="200" /></label>
+            <label class="marcar"><input type="radio" name="fotoPrincipal" value="${id}" /><span>Usar na linha do tempo</span></label>
+            <button type="button" class="botao botao--leve" data-remover>Remover foto</button>
+          </div>`;
+        const foto: FotoPronta = { id, item };
+        fotos.push(foto);
+        listaFotos.append(item);
+        if (fotos.length === 1) item.querySelector<HTMLInputElement>('input[type="radio"]')!.checked = true;
+        item.querySelector('[data-remover]')!.addEventListener('click', () => {
+          fotos.splice(fotos.indexOf(foto), 1);
+          item.remove();
+        });
+
+        try {
+          const pronta = await prepararFoto(arquivo);
+          const corpo = new FormData();
+          corpo.set('foto', pronta, 'foto');
+          const resposta = await fetch('/api/fotos', { method: 'POST', body: corpo });
+          const dados = await resposta.json();
+          if (!resposta.ok) throw new Error(dados.erro ?? 'Falha no envio');
+          foto.chave = dados.chave;
+          const imagem = new Image();
+          imagem.alt = '';
+          imagem.src = URL.createObjectURL(pronta);
+          item.querySelector('.foto__reserva')!.replaceWith(imagem);
+        } catch (e) {
+          foto.erro = e instanceof Error ? e.message : 'Falha no envio';
+          item.querySelector('.foto__reserva')!.textContent = `Não foi possível enviar. ${foto.erro}`;
+        }
+      }
+    });
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const dados = new FormData(form);
+      const titulo = String(dados.get('titulo') ?? '').trim();
+      const ano = Number(dados.get('ano'));
+      if (!titulo) return avisar('Dê um título para a memória.', 'erro');
+      if (!dados.get('ano') || !Number.isInteger(ano)) return avisar('Informe o ano, mesmo que seja aproximado.', 'erro');
+      if (fotos.some((f) => !f.chave && !f.erro)) return avisar('Espere as fotos terminarem de enviar.', 'erro');
+      if (fotos.some((f) => f.erro)) return avisar('Uma foto não foi enviada. Remova ou escolha de novo.', 'erro');
+
+      const linhasNovas = [...novasPessoas.querySelectorAll<HTMLElement>('[data-nova-pessoa]')];
+      const novas = linhasNovas.map((linha) => ({
+        nome: linha.querySelector<HTMLInputElement>('[data-nome]')!.value.trim(),
+        parentesco: linha.querySelector<HTMLInputElement>('[data-parentesco]')!.value.trim() || undefined,
+      }));
+      if (novas.some((n) => !n.nome)) return avisar('Escreva o nome da pessoa que você adicionou, ou remova a linha.', 'erro');
+
+      const principal = dados.get('fotoPrincipal');
+      const relato = String(dados.get('relato') ?? '').trim();
+      const pedido = {
+        titulo,
+        ano,
+        mes: dados.get('mes') ? Number(dados.get('mes')) : undefined,
+        dia: dados.get('dia') ? Number(dados.get('dia')) : undefined,
+        aproximada: dados.get('aproximada') === 'on',
+        tipo: dados.get('tipo'),
+        pessoas: [...dados.getAll('pessoas').map(String), ...novas.map((_, i) => `nova:${i}`)],
+        novasPessoas: novas,
+        lugar: String(dados.get('lugar') ?? '').trim() || undefined,
+        fotos: fotos.map((f) => ({
+          chave: f.chave,
+          legenda: f.item.querySelector<HTMLInputElement>('[data-legenda]')!.value.trim() || undefined,
+          principal: String(f.id) === principal,
+        })),
+        relato: relato ? { por: String(dados.get('relatoPor')), texto: relato } : undefined,
+      };
+
+      botao.disabled = true;
+      avisar('Guardando…');
+      try {
+        const resposta = await fetch('/api/memorias', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pedido),
+        });
+        const resultado = await resposta.json();
+        if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');
+        try {
+          localStorage.removeItem(RASCUNHO);
+        } catch {
+          // sem armazenamento, nada a limpar
+        }
+        form.hidden = true;
+        const confirmacao = document.querySelector<HTMLElement>('[data-confirmacao]')!;
+        confirmacao.hidden = false;
+        confirmacao.querySelector('h2')!.setAttribute('tabindex', '-1');
+        confirmacao.querySelector('h2')!.focus();
+      } catch (e) {
+        avisar(e instanceof Error ? e.message : 'Não consegui salvar.', 'erro');
+        botao.disabled = false;
+      }
+    });
+  }
+</script>

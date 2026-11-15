@@ -96,6 +96,9 @@ const fotos = [...data.fotos].sort((a, b) => Number(b.chave) - Number(a.chave));
         );
       })
     }
+    <p class="convite">
+      <a class="botao botao--leve" href={`/memorias/${memoria.id}/relato`}>Escrever ou editar o meu relato</a>
+    </p>
   </article>
 
   <nav class="vizinhas" aria-label="Outras memórias">

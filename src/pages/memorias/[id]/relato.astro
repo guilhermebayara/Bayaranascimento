@@ -1,0 +1,178 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import { formatarData, listarMemorias, listarPessoas } from '../../../lib/memorias';
+import { pessoasComAcesso, usuarioDoPedido } from '../../../lib/servidor/acesso';
+import { configuracaoFaltando } from '../../../lib/servidor/http';
+import { donoDoRelato } from '../../../lib/servidor/permissoes';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const memoria = (await listarMemorias()).find((m) => m.id === id);
+if (!memoria) return new Response(null, { status: 404 });
+
+const usuario = await usuarioDoPedido(Astro.request);
+const pessoas = await listarPessoas();
+const comAcesso = pessoasComAcesso();
+const inativo = configuracaoFaltando().length > 0;
+
+const relatos = await getCollection('relatos', ({ data }) => data.memoria.id === memoria.id);
+// Para cada pessoa em nome de quem dá para escrever: o texto atual (se for seu) ou o motivo do bloqueio
+const opcoes = usuario
+  ? [
+      { id: usuario.pessoa, rotulo: `Eu, ${usuario.nome}` },
+      ...pessoas.filter((p) => !comAcesso.has(p.id)).map((p) => ({ id: p.id, rotulo: `${p.data.nome}, e eu estou escrevendo` })),
+    ].map((opcao) => {
+      const existente = relatos.find((r) => r.data.por.id === opcao.id);
+      const dono = existente && donoDoRelato({ por: existente.data.por.id, registradoPor: existente.data.registradoPor?.id });
+      const bloqueado = Boolean(existente) && dono !== usuario.pessoa;
+      const quemRegistrou = bloqueado ? pessoas.find((p) => p.id === dono)?.data.nome : undefined;
+      return { ...opcao, texto: existente && !bloqueado ? (existente.body ?? '').trim() : '', existe: Boolean(existente), bloqueado, quemRegistrou };
+    })
+  : [];
+---
+
+<Base titulo={`Relato: ${memoria.data.titulo}`}>
+  <div class="abertura abertura--curta">
+    <h1>Meu relato</h1>
+    <p>
+      <a href={`/memorias/${memoria.id}`}>{memoria.data.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento.
+    </p>
+  </div>
+
+  {
+    !usuario ? (
+      <p class="recado">
+        {inativo
+          ? 'O envio pelo site ainda não foi ativado. Falta concluir a configuração.'
+          : 'Não consegui identificar quem você é. Saia e entre de novo no site. Se continuar, avise o Gui.'}
+      </p>
+    ) : (
+      <>
+        {inativo && <p class="recado">O envio de relatos ainda não foi ativado. Você pode ver o formulário, mas ele ainda não salva.</p>}
+
+        <form class="formulario" data-formulario-relato data-memoria={memoria.id} novalidate>
+          <fieldset>
+            <legend>Como foi?</legend>
+            <label class="campo">
+              <span>Quem está contando</span>
+              <select name="por">
+                {opcoes.map((o) => <option value={o.id}>{o.rotulo}</option>)}
+              </select>
+            </label>
+            <p class="recado" data-bloqueio hidden></p>
+            <label class="campo">
+              <span>O relato</span>
+              <textarea name="texto" rows="12" maxlength="20000"></textarea>
+            </label>
+            <p class="dica">Só você vai poder alterar este texto.</p>
+          </fieldset>
+
+          <p class="situacao" data-situacao role="status" aria-live="polite"></p>
+          <button type="submit" class="botao" disabled={inativo}>Salvar relato</button>
+        </form>
+
+        <div class="confirmacao" data-confirmacao hidden>
+          <h2>Relato salvo</h2>
+          <p>Ele aparece na página da memória em cerca de dois minutos.</p>
+          <p>
+            <a class="botao" href={`/memorias/${memoria.id}`}>Voltar para a memória</a>
+          </p>
+        </div>
+
+        <script type="application/json" id="opcoes-relato" set:html={JSON.stringify(opcoes).replace(/</g, '\\u003c')} />
+      </>
+    )
+  }
+</Base>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-formulario-relato]');
+  if (form) {
+    interface Opcao {
+      id: string;
+      texto: string;
+      existe: boolean;
+      bloqueado: boolean;
+      quemRegistrou?: string;
+    }
+    const opcoes: Opcao[] = JSON.parse(document.getElementById('opcoes-relato')!.textContent ?? '[]');
+    const quem = form.elements.namedItem('por') as HTMLSelectElement;
+    const texto = form.elements.namedItem('texto') as HTMLTextAreaElement;
+    const bloqueio = form.querySelector<HTMLElement>('[data-bloqueio]')!;
+    const situacao = form.querySelector<HTMLElement>('[data-situacao]')!;
+    const botao = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const inativo = botao.disabled;
+    const memoria = form.dataset.memoria!;
+    const chaveRascunho = () => `rascunho-relato-${memoria}-${quem.value}`;
+
+    const avisar = (mensagem: string, tipo: 'normal' | 'erro' = 'normal') => {
+      situacao.textContent = mensagem;
+      situacao.dataset.tipo = tipo;
+    };
+
+    // Um unescape simples: o texto foi gravado com & e < neutralizados
+    const original = (t: string) => t.replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+
+    const carregar = () => {
+      const opcao = opcoes.find((o) => o.id === quem.value)!;
+      bloqueio.hidden = !opcao.bloqueado;
+      texto.disabled = opcao.bloqueado;
+      botao.disabled = inativo || opcao.bloqueado;
+      if (opcao.bloqueado) {
+        bloqueio.textContent = `Esse relato já foi registrado por ${opcao.quemRegistrou ?? 'outra pessoa'}, e só quem registrou pode alterar.`;
+        texto.value = '';
+        return;
+      }
+      let rascunho: string | null = null;
+      try {
+        rascunho = localStorage.getItem(chaveRascunho());
+      } catch {
+        // sem armazenamento
+      }
+      texto.value = rascunho ?? original(opcao.texto);
+      botao.textContent = opcao.existe ? 'Salvar alterações' : 'Salvar relato';
+    };
+    quem.addEventListener('change', carregar);
+    carregar();
+
+    texto.addEventListener('input', () => {
+      if (situacao.dataset.tipo === 'erro') avisar('');
+      try {
+        localStorage.setItem(chaveRascunho(), texto.value);
+      } catch {
+        // sem armazenamento
+      }
+    });
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      if (!texto.value.trim()) return avisar('Escreva o relato antes de salvar.', 'erro');
+      botao.disabled = true;
+      avisar('Salvando…');
+      try {
+        const resposta = await fetch('/api/relatos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memoria, por: quem.value, texto: texto.value }),
+        });
+        const resultado = await resposta.json();
+        if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');
+        try {
+          localStorage.removeItem(chaveRascunho());
+        } catch {
+          // sem armazenamento
+        }
+        form.hidden = true;
+        const confirmacao = document.querySelector<HTMLElement>('[data-confirmacao]')!;
+        confirmacao.hidden = false;
+        confirmacao.querySelector('h2')!.setAttribute('tabindex', '-1');
+        confirmacao.querySelector('h2')!.focus();
+      } catch (e) {
+        avisar(e instanceof Error ? e.message : 'Não consegui salvar.', 'erro');
+        botao.disabled = false;
+      }
+    });
+  }
+</script>

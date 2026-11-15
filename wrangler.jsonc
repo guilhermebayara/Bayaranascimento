@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bayaranascimento",
+  "compatibility_date": "2026-11-14",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // O site só responde no domínio protegido pelo login.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "memorias.bayara.com.br", "custom_domain": true }],
+
+  // Preserva variáveis configuradas pelo painel a cada publicação
+  "keep_vars": true,
+
+  "r2_buckets": [{ "binding": "FOTOS", "bucket_name": "bayara-memorias" }],
+
+  "vars": {
+    // Cloudflare Access: usados para conferir quem está logado
+    "ACCESS_TEAM_DOMAIN": "misty-meadow-4f1e.cloudflareaccess.com",
+    "ACCESS_AUD": "6cb7130805a6a1e18b9863e6d91d6d76e5d980ae09acba0a63e5aba2229fddda",
+    // Onde os textos são gravados
+    "GITHUB_REPO": "guilhermebayara/Bayaranascimento",
+    "GITHUB_BRANCH": "main",
+    // Quem pode excluir memórias
+    "ADMIN": "gui"
+  },
+
+  "observability": { "enabled": true }
+
+  // Segredos, configurados pelo painel ou com `wrangler secret put`:
+  //   GITHUB_TOKEN  token com permissão de escrita só neste repositório
+  //   ACESSOS       JSON ligando e-mail a pessoa, ex.: {"a@b.com":"gui"}
+}

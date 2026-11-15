@@ -37,7 +37,20 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 - Fotos e áudios no Cloudflare R2, com o iCloud como casa dos originais
 - Textos neste repositório
 
+## Como o site grava
+
+- Formulários no próprio site: `/nova` e "Escrever ou editar o meu relato" em cada memória
+- Fotos reduzidas no aparelho antes do envio. O iCloud continua sendo a casa dos originais.
+- Textos gravados neste repositório, um commit por envio, com o nome de quem enviou
+- Passo a passo de ativação em `docs/ativar-formularios.md`
+
 ## Em aberto
+
+- Corrigir a ficha de uma memória e acrescentar ou remover fotos depois de criada
+- Histórico de mudanças visível no site, com reverter
+- Excluir memória, com lixeira
+- Editar a página de uma pessoa pelo site
+- Fotos enviadas em um formulário abandonado ficam no bucket sem uso: falta uma limpeza periódica
 
 - Reações e sugestões de correção em fotos e relatos
 - Personalização por pessoa que acessa

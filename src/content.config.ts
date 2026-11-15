@@ -44,6 +44,8 @@ const memorias = defineCollection({
           legenda: z.string().optional(),
           // A foto chave é a que aparece na linha do tempo
           chave: z.boolean().default(false),
+          // Quem enviou a foto pelo site. Só essa pessoa pode removê-la.
+          enviadaPor: reference('pessoas').optional(),
         }),
       )
       .default([]),

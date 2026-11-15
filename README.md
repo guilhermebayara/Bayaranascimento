@@ -51,8 +51,6 @@ A regra da casa: qualquer pessoa pode acrescentar o seu relato a uma memória, e
 - Memórias com `exemplo: true` são só para teste. Quando todas forem apagadas, o aviso do topo some.
 - `rascunho: true` esconde a memória do site.
 
-## Próximas etapas
+## Formulários
 
-1. Publicar no Cloudflare com login por e-mail (Cloudflare Access)
-2. Bucket R2 para as fotos e carga inicial
-3. Formulário para a família adicionar memórias pelo celular
+A família adiciona memórias, relatos e fotos pelo próprio site. Veja `docs/ativar-formularios.md` para ativar e para rodar no computador, e `docs/decisoes.md` para as regras de quem pode o quê.
