@@ -34,8 +34,8 @@ const memorias = defineCollection({
     tipo: z.enum(TIPOS_IDS),
     pessoas: z.array(reference('pessoas')).default([]),
     lugar: z.string().optional(),
-    // Quem escreveu o relato principal (o texto do arquivo)
-    registradoPor: reference('pessoas').optional(),
+    // Quem criou o registro. Os relatos ficam em src/content/relatos.
+    criadaPor: reference('pessoas').optional(),
     fotos: z
       .array(
         z.object({
@@ -47,14 +47,21 @@ const memorias = defineCollection({
         }),
       )
       .default([]),
-    // Outros relatos da mesma memória, cada um por uma pessoa
-    relatos: z
-      .array(z.object({ por: reference('pessoas'), texto: z.string() }))
-      .default([]),
     // Memórias de exemplo, para apagar quando o acervo real entrar
     exemplo: z.boolean().default(false),
     rascunho: z.boolean().default(false),
   }),
 });
 
-export const collections = { pessoas, memorias };
+// Um relato é a lembrança de uma pessoa sobre uma memória.
+// Fica em src/content/relatos/<memoria>/<pessoa>.md: um arquivo por pessoa,
+// para que cada um edite só o próprio relato.
+const relatos = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/relatos' }),
+  schema: z.object({
+    memoria: reference('memorias'),
+    por: reference('pessoas'),
+  }),
+});
+
+export const collections = { pessoas, memorias, relatos };

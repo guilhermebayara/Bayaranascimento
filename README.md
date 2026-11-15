@@ -23,18 +23,28 @@ aproximada: false # true quando a data for uma estimativa
 tipo: aniversario
 pessoas: [gui, giovanna, elizete]
 lugar: Belo Horizonte
-registradoPor: gui
+criadaPor: gui
 fotos:
   - src: https://...
     legenda: A mesa do bolo
     chave: true   # a foto que aparece na linha do tempo
-relatos:          # outros relatos da mesma memória
-  - por: mae
-    texto: Eu fiz o bolo na véspera.
+---
+```
+
+## Como adicionar um relato
+
+Cada pessoa conta a memória do seu jeito, em um arquivo próprio: `src/content/relatos/<memoria>/<pessoa>.md`.
+
+```md
+---
+memoria: 1994-festa-de-aniversario
+por: elizete
 ---
 
-O relato principal vai aqui, em texto livre.
+Eu fiz o bolo na véspera e quase não dormi.
 ```
+
+A regra da casa: qualquer pessoa pode acrescentar o seu relato a uma memória, e só quem escreveu pode editar o próprio relato.
 
 - **Pessoas** ficam em `src/content/pessoas/`. O nome do arquivo é o identificador usado nas memórias.
 - **Tipos de marco** ficam em `src/data/tipos.ts`.

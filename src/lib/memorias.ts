@@ -2,6 +2,7 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 
 export type Memoria = CollectionEntry<'memorias'>;
 export type Pessoa = CollectionEntry<'pessoas'>;
+export type Relato = CollectionEntry<'relatos'>;
 
 const MESES = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -57,4 +58,20 @@ export function fotoChave(m: Memoria) {
 
 export function nomeCurto(p: Pessoa): string {
   return p.data.apelido ?? p.data.nome;
+}
+
+/** Relatos de uma memória: primeiro o de quem criou o registro, depois na ordem das pessoas. */
+export async function listarRelatos(m: Memoria): Promise<Relato[]> {
+  const pessoas = await listarPessoas();
+  const ordem = (id: string) => (id === m.data.criadaPor?.id ? -1 : pessoas.findIndex((p) => p.id === id));
+  const relatos = await getCollection('relatos', ({ data }) => data.memoria.id === m.id);
+  return relatos.sort((a, b) => ordem(a.data.por.id) - ordem(b.data.por.id));
+}
+
+export async function contarRelatos(): Promise<Map<string, number>> {
+  const contagem = new Map<string, number>();
+  for (const r of await getCollection('relatos')) {
+    contagem.set(r.data.memoria.id, (contagem.get(r.data.memoria.id) ?? 0) + 1);
+  }
+  return contagem;
 }

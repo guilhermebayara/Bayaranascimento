@@ -6,9 +6,10 @@ import { fotoChave, formatarDiaMes, nomeCurto, type Memoria, type Pessoa } from 
 interface Props {
   memoria: Memoria;
   pessoas: Pessoa[];
+  relatos?: number;
 }
 
-const { memoria, pessoas } = Astro.props;
+const { memoria, pessoas, relatos = 0 } = Astro.props;
 const { data } = memoria;
 const foto = fotoChave(memoria);
 const tipo = TIPOS[data.tipo];
@@ -32,6 +33,7 @@ const todos = nucleo.length > 1 && ids.size === nucleo.length && nucleo.every((p
       <li class="tipo" style={`--cor-tipo: ${tipo.cor}`}>{tipo.rotulo}</li>
       {nomes.length > 0 && <li>{todos ? 'Todo mundo' : nomes.join(', ')}</li>}
       {data.lugar && <li>{data.lugar}</li>}
+      {relatos > 1 && <li>{relatos} relatos</li>}
       {data.exemplo && <li><span class="exemplo">exemplo</span></li>}
     </ul>
   </div>

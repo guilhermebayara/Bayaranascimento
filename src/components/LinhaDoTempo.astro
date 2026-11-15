@@ -1,7 +1,7 @@
 ---
 import Cartao from './Cartao.astro';
 import { TIPOS, type TipoId } from '../data/tipos';
-import { agruparPorAno, type Memoria, type Pessoa } from '../lib/memorias';
+import { agruparPorAno, contarRelatos, type Memoria, type Pessoa } from '../lib/memorias';
 
 interface Props {
   memorias: Memoria[];
@@ -10,6 +10,7 @@ interface Props {
 
 const { memorias, pessoas } = Astro.props;
 const anos = agruparPorAno(memorias);
+const relatos = await contarRelatos();
 const tiposPresentes = (Object.keys(TIPOS) as TipoId[]).filter((id) => memorias.some((m) => m.data.tipo === id));
 ---
 
@@ -42,7 +43,7 @@ const tiposPresentes = (Object.keys(TIPOS) as TipoId[]).filter((id) => memorias.
           </h2>
           <div class="ano__itens">
             {itens.map((m) => (
-              <Cartao memoria={m} pessoas={pessoas} />
+              <Cartao memoria={m} pessoas={pessoas} relatos={relatos.get(m.id)} />
             ))}
           </div>
         </section>

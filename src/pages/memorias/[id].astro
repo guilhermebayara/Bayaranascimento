@@ -3,7 +3,7 @@ import { render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import Foto from '../../components/Foto.astro';
 import { TIPOS } from '../../data/tipos';
-import { formatarData, listarMemorias, listarPessoas, nomeCurto, type Memoria, type Pessoa } from '../../lib/memorias';
+import { formatarData, listarMemorias, listarRelatos, listarPessoas, nomeCurto, type Memoria, type Pessoa } from '../../lib/memorias';
 
 export async function getStaticPaths() {
   const memorias = await listarMemorias();
@@ -21,15 +21,15 @@ interface Props {
 
 const { memoria, antes, depois } = Astro.props;
 const { data } = memoria;
-const { Content } = await render(memoria);
+const relatos = await Promise.all(
+  (await listarRelatos(memoria)).map(async (relato) => ({ relato, Content: (await render(relato)).Content })),
+);
 const pessoas = await listarPessoas();
 const achar = (id?: string) => pessoas.find((p) => p.id === id);
 const presentes = data.pessoas.map((ref) => achar(ref.id)).filter((p): p is Pessoa => Boolean(p));
-const autor = achar(data.registradoPor?.id);
 const tipo = TIPOS[data.tipo];
 // A foto chave abre a galeria
 const fotos = [...data.fotos].sort((a, b) => Number(b.chave) - Number(a.chave));
-const temTexto = Boolean(memoria.body?.trim());
 ---
 
 <Base titulo={data.titulo}>
@@ -80,23 +80,14 @@ const temTexto = Boolean(memoria.body?.trim());
     }
 
     {
-      temTexto && (
-        <section class="relato">
-          <h2>{autor ? `Contado por ${nomeCurto(autor)}` : 'Relato'}</h2>
-          <div class="relato__texto">
-            <Content />
-          </div>
-        </section>
-      )
-    }
-
-    {
-      data.relatos.map((relato) => {
-        const quem = achar(relato.por.id);
+      relatos.map(({ relato, Content }) => {
+        const quem = achar(relato.data.por.id);
         return (
           <section class="relato">
-            <h2>{quem ? `Contado por ${nomeCurto(quem)}` : 'Outro relato'}</h2>
-            <p class="relato__texto relato__texto--simples">{relato.texto.trim()}</p>
+            <h2>{quem ? `Contado por ${nomeCurto(quem)}` : 'Relato'}</h2>
+            <div class="relato__texto">
+              <Content />
+            </div>
           </section>
         );
       })

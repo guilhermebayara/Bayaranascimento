@@ -6,23 +6,11 @@ dia: 14
 tipo: aniversario
 pessoas: [gui, giovanna, elizete]
 lugar: Belo Horizonte
-registradoPor: gui
+criadaPor: gui
 fotos:
   - legenda: A mesa do bolo
     chave: true
   - legenda: A turma toda reunida
   - legenda: Hora do parabéns
-relatos:
-  - por: elizete
-    texto: |
-      Este é um segundo relato da mesma memória. Cada pessoa pode contar o dia do jeito que lembra.
-
-      Eu fiz o bolo na véspera e quase não dormi.
-  - por: giovanna
-    texto: Um terceiro relato, curto. Eu só lembro dos balões.
 exemplo: true
 ---
-
-Memória de exemplo com data completa, três fotos e mais de um relato.
-
-O relato principal fica aqui. Os outros aparecem logo abaixo, cada um assinado por quem contou.

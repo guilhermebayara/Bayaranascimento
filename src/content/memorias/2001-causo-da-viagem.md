@@ -5,10 +5,6 @@ mes: 1
 tipo: causo
 pessoas: [gui, giovanna, elizete]
 lugar: BR-040
-registradoPor: giovanna
+criadaPor: giovanna
 exemplo: true
 ---
-
-Memória de exemplo sem foto. Nem toda história tem imagem, e os causos que a família repete em todo almoço também merecem registro.
-
-Aqui só se sabe o mês e o ano, então o dia fica em branco.

@@ -459,10 +459,6 @@ p {
   font-size: 1.1875rem;
 }
 
-.relato__texto--simples {
-  white-space: pre-line;
-}
-
 .relato__texto > :last-child {
   margin-bottom: 0;
 }

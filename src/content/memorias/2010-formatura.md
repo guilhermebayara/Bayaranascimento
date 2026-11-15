@@ -6,11 +6,9 @@ dia: 11
 tipo: conquista
 pessoas: [giovanna]
 lugar: Belo Horizonte
-registradoPor: elizete
+criadaPor: elizete
 fotos:
   - legenda: Com o diploma na mão
     chave: true
 exemplo: true
 ---
-
-Memória de exemplo de uma conquista. Ela aparece na linha do tempo geral e também na página da pessoa marcada.
