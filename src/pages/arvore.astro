@@ -8,6 +8,7 @@ import {
   FASES,
   Familia,
   LINHA_DO_PAPEL,
+  alinharPeloCoracao,
   calcularGeracoes,
   estaoJuntos,
   lacoParaODono,
@@ -78,7 +79,10 @@ const rotuloDoCoracao = (l: LacoDoCoracao) =>
 const paraVoce = (id: string) => {
   if (id === usuario.pessoa) return 'você';
   const relacao = completa.relacao(usuario.pessoa, id);
-  return relacao ? possessivo(relacao, achar(id)!.tratamento) : '';
+  if (relacao) return possessivo(relacao, achar(id)!.tratamento);
+  // Sem parentesco, vale o laço do coração: o de quem olha primeiro, depois o de outra pessoa
+  const laco = lacosDoCoracao.find((l) => l.pessoa === id && l.dono === usuario.pessoa) ?? lacosDoCoracao.find((l) => l.pessoa === id);
+  return laco ? rotuloDoCoracao(laco) : '';
 };
 const consideracao = (ids: Set<string>) => (id: string) => ids.has(id);
 const paisDeConsideracao = consideracao(new Set(familia.pais(centro.id).filter((p) => p.qualidade === 'consideracao').map((p) => p.responsavel)));
@@ -102,7 +106,10 @@ const aoLado = doCoracao('centro');
 const noRecorte = integrantes.filter((i) => aparece(i.id) && (!nucleo || i.nucleos.includes(nucleo.id))).map((i) => i.id);
 const filiacoesVisiveis = filiacoes.filter((f) => camadas.consideracao || f.qualidade !== 'consideracao');
 const casaisVisiveis = casais.filter((c) => camadas.ex || estaoJuntos(c));
-const geracoes = geral ? calcularGeracoes(noRecorte, filiacoesVisiveis, casaisVisiveis) : new Map<string, number>();
+// Famílias de amigos são encaixadas na geração certa pelos laços do coração
+const geracoes = geral
+  ? alinharPeloCoracao(calcularGeracoes(noRecorte, filiacoesVisiveis, casaisVisiveis), filiacoesVisiveis, casaisVisiveis, lacosDoCoracao, usuario.pessoa)
+  : new Map<string, number>();
 // Laços do coração com papel entram ao lado de quem escolheu, na geração que o papel indica
 const agregados = geral
   ? lacosDoCoracao.filter((l) => l.papel && geracoes.has(l.dono) && !geracoes.has(l.pessoa) && aparece(l.pessoa))

@@ -445,3 +445,63 @@ export function nomeDaGeracao(diferenca: number): string {
   };
   return nomes[String(diferenca)] ?? (diferenca < 0 ? `${-diferenca} gerações acima` : `${diferenca} gerações abaixo`);
 }
+
+/**
+ * Famílias sem ligação de sangue ou casamento com a de quem olha (a de uma amiga,
+ * por exemplo) são calculadas à parte e ficariam soltas no topo. Aqui elas são
+ * encaixadas pelos laços do coração: se o Otto é "como se fosse sobrinho" do Gui,
+ * a família inteira do Otto desce até ele ficar uma geração abaixo do Gui.
+ */
+export function alinharPeloCoracao(
+  geracoes: Map<string, number>,
+  filiacoes: Filiacao[],
+  casais: Casal[],
+  lacos: Pick<LacoDoCoracao, 'dono' | 'pessoa' | 'papel'>[],
+  ancora: string | undefined,
+): Map<string, number> {
+  // Grupos de pessoas ligadas entre si por filiação ou casal
+  const grupoDe = new Map<string, string>();
+  const raiz = (id: string): string => {
+    let atual = id;
+    while (grupoDe.get(atual) !== atual) atual = grupoDe.get(atual)!;
+    return atual;
+  };
+  for (const id of geracoes.keys()) grupoDe.set(id, id);
+  const unir = (a: string, b: string) => {
+    if (grupoDe.has(a) && grupoDe.has(b)) grupoDe.set(raiz(a), raiz(b));
+  };
+  for (const f of filiacoes) unir(f.filho, f.responsavel);
+  for (const c of casais) unir(c.a, c.b);
+
+  // O grupo de quem olha fica parado. Sem essa pessoa na árvore, vale o maior grupo.
+  const tamanhos = new Map<string, number>();
+  for (const id of geracoes.keys()) tamanhos.set(raiz(id), (tamanhos.get(raiz(id)) ?? 0) + 1);
+  const principal = ancora && geracoes.has(ancora) ? raiz(ancora) : [...tamanhos].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!principal) return geracoes;
+
+  const resultado = new Map(geracoes);
+  const firmes = new Set([principal]);
+  // Laços com papel dizem a geração exata; sem papel, a pessoa é tratada como da mesma geração
+  const ordenados = [...lacos].sort((a, b) => Number(Boolean(b.papel)) - Number(Boolean(a.papel)));
+  for (let volta = 0; volta < tamanhos.size; volta++) {
+    let mudou = false;
+    for (const laco of ordenados) {
+      if (!resultado.has(laco.dono) || !resultado.has(laco.pessoa)) continue;
+      const [fixo, solto, sinal] =
+        firmes.has(raiz(laco.dono)) && !firmes.has(raiz(laco.pessoa))
+          ? [laco.dono, laco.pessoa, 1]
+          : firmes.has(raiz(laco.pessoa)) && !firmes.has(raiz(laco.dono))
+            ? [laco.pessoa, laco.dono, -1]
+            : [undefined, undefined, 0];
+      if (!fixo || !solto) continue;
+      const desloca = laco.papel ? DESLOCAMENTO_DO_PAPEL[laco.papel] : 0;
+      const ajuste = resultado.get(fixo)! + sinal * desloca - resultado.get(solto)!;
+      const grupo = raiz(solto);
+      for (const id of resultado.keys()) if (raiz(id) === grupo) resultado.set(id, resultado.get(id)! + ajuste);
+      firmes.add(grupo);
+      mudou = true;
+    }
+    if (!mudou) break;
+  }
+  return resultado;
+}
