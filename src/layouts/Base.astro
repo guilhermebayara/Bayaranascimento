@@ -70,12 +70,15 @@ const recadoErro = Astro.url.searchParams.get('erro');
     <footer class="miolo rodape">
       Acervo privado da família. Você entrou como {usuario.nome}.
       {
-        usuario.admin && (
-          <span class="rodape__admin">
-            <a href="/admin/tipos">Tipos de momento</a>
-            <a href="/api/copia" download>Baixar cópia do acervo</a>
-          </span>
-        )
+        <span class="rodape__admin">
+          <a href="/lixeira">Lixeira</a>
+          {usuario.admin && <a href="/admin/tipos">Tipos de momento</a>}
+          {usuario.admin && (
+            <a href="/api/copia" download>
+              Baixar cópia do acervo
+            </a>
+          )}
+        </span>
       }
     </footer>
   </body>

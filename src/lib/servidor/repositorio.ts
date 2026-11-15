@@ -70,7 +70,7 @@ const db = () => env.DB;
  * Regra de visibilidade em SQL. ?1 é sempre o id do usuário.
  * Precisa dizer o mesmo que podeVerMemoria, em permissoes.ts.
  */
-const FILTRO_VISIVEL = `(
+const FILTRO_SEM_LIXEIRA = `(
   (m.situacao = 'rascunho' AND m.criada_por = ?1)
   OR (m.situacao = 'publicada' AND (
     m.visibilidade = 'todos'
@@ -81,6 +81,9 @@ const FILTRO_VISIVEL = `(
     )
   ))
 )`;
+
+/** O que aparece no site: o que a pessoa pode ver e não está na lixeira. */
+const FILTRO_VISIVEL = `(m.excluida_em IS NULL AND ${FILTRO_SEM_LIXEIRA})`;
 
 // --- Integrantes e núcleos ---
 
@@ -519,6 +522,72 @@ export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria,
   ]);
 }
 
+// --- Lixeira e histórico ---
+
+export interface MemoriaExcluida extends Memoria {
+  excluidaEm: string;
+  excluidaPor: string | null;
+}
+
+export async function excluirMemoria(id: string, usuario: Usuario): Promise<void> {
+  await db().prepare(`UPDATE memorias SET excluida_em = datetime('now'), excluida_por = ? WHERE id = ?`).bind(usuario.pessoa, id).run();
+}
+
+/** A lixeira de quem pede: só o que a pessoa veria se a memória não tivesse sido excluída. */
+export async function listarExcluidas(usuario: Usuario): Promise<MemoriaExcluida[]> {
+  const { results } = await db()
+    .prepare(`SELECT m.* FROM memorias m WHERE m.excluida_em IS NOT NULL AND ${FILTRO_SEM_LIXEIRA} ORDER BY m.excluida_em DESC`)
+    .bind(usuario.pessoa)
+    .all<Record<string, unknown>>();
+  const completas = await completar(results.map(lerMemoria));
+  return completas.map((m, i) => ({ ...m, excluidaEm: results[i].excluida_em as string, excluidaPor: (results[i].excluida_por as string | null) ?? null }));
+}
+
+export async function restaurarExcluida(id: string): Promise<void> {
+  await db().prepare('UPDATE memorias SET excluida_em = NULL, excluida_por = NULL WHERE id = ?').bind(id).run();
+}
+
+export interface Versao<T> {
+  id: number;
+  dados: T;
+  autor: string;
+  criadaEm: string;
+}
+
+/** Versões anteriores de um item, da mais recente para a mais antiga. */
+export async function listarVersoes<T>(tipo: 'memoria' | 'relato', itemId: string): Promise<Versao<T>[]> {
+  const { results } = await db()
+    .prepare('SELECT id, dados, autor, criada_em FROM versoes WHERE tipo = ? AND item_id = ? ORDER BY id DESC LIMIT 50')
+    .bind(tipo, itemId)
+    .all<Record<string, unknown>>();
+  return results.map((v) => ({ id: v.id as number, dados: JSON.parse(v.dados as string) as T, autor: v.autor as string, criadaEm: v.criada_em as string }));
+}
+
+/** Fotos tiradas de uma memória, que ainda podem voltar. */
+export async function listarFotosRemovidas(memoriaId: string): Promise<(Foto & { removidaEm: string })[]> {
+  const { results } = await db()
+    .prepare('SELECT * FROM fotos WHERE memoria_id = ? AND removida_em IS NOT NULL ORDER BY removida_em DESC')
+    .bind(memoriaId)
+    .all<Record<string, unknown>>();
+  return results.map((f) => ({
+    id: f.id as number,
+    chave: f.chave as string,
+    legenda: f.legenda as string | null,
+    principal: false,
+    enviadaPor: f.enviada_por as string,
+    removidaEm: f.removida_em as string,
+  }));
+}
+
+/** Devolve a foto à memória. Só quem enviou, a mesma pessoa que pode remover. */
+export async function restaurarFoto(id: number, memoriaId: string, usuario: Usuario): Promise<boolean> {
+  const resultado = await db()
+    .prepare('UPDATE fotos SET removida_em = NULL, principal = 0 WHERE id = ? AND memoria_id = ? AND enviada_por = ? AND removida_em IS NOT NULL')
+    .bind(id, memoriaId, usuario.pessoa)
+    .run();
+  return (resultado.meta.changes ?? 0) > 0;
+}
+
 // --- Fotos ---
 
 export async function registrarFoto(chave: string, usuario: Usuario): Promise<number> {
@@ -542,13 +611,17 @@ export async function obterFotos(ids: number[]): Promise<FotoNoBanco[]> {
   return results.map((f) => ({ id: f.id as number, memoriaId: f.memoria_id as string | null, chave: f.chave as string, enviadaPor: f.enviada_por as string }));
 }
 
-/** O usuário pode ver o arquivo desta chave? Foto solta: só quem enviou. Foto de memória: quem vê a memória. */
+/** O usuário pode ver o arquivo desta chave? Foto solta: só quem enviou. Foto de memória: quem vê a memória. Foto removida: só quem enviou. */
 export async function podeVerFoto(usuario: Usuario, chave: string): Promise<boolean> {
   const linha = await db()
     .prepare(
-      `SELECT 1 AS ok FROM fotos f WHERE f.chave = ?2 AND f.removida_em IS NULL AND (
-         (f.memoria_id IS NULL AND f.enviada_por = ?1)
-         OR EXISTS (SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND ${FILTRO_VISIVEL})
+      `SELECT 1 AS ok FROM fotos f WHERE f.chave = ?2 AND (
+         (f.memoria_id IS NULL AND f.enviada_por = ?1 AND f.removida_em IS NULL)
+         OR (
+           -- foto removida: só quem enviou ainda vê, para poder devolvê-la à memória
+           (f.removida_em IS NULL OR f.enviada_por = ?1)
+           AND EXISTS (SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND ${FILTRO_VISIVEL})
+         )
        ) LIMIT 1`,
     )
     .bind(usuario.pessoa, chave)

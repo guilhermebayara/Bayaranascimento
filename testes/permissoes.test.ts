@@ -138,3 +138,19 @@ describe('cadastro de integrantes e laços', async () => {
     expect(podeMexerEmLaco(gui, [lucio]).ok).toBe(true);
   });
 });
+
+describe('descartar rascunho', async () => {
+  const { podeExcluirMemoria: excluir } = await import('../src/lib/servidor/permissoes');
+  const pessoa = (pessoa: string, admin = false) => ({ pessoa, nome: pessoa, admin, nucleos: ['bayara-nascimento'] });
+  const rascunho = { situacao: 'rascunho' as const, visibilidade: 'todos' as const, criadaPor: 'elizete', nucleos: [], integrantes: [] };
+  it('quem escreve o rascunho pode descartar, mesmo sem ser admin', () => {
+    expect(excluir(pessoa('elizete'), rascunho).ok).toBe(true);
+  });
+  it('rascunho de outra pessoa nem admin exclui, porque não vê', () => {
+    expect(excluir(pessoa('gui', true), rascunho).ok).toBe(false);
+  });
+  it('memória publicada continua sendo só com admin', () => {
+    expect(excluir(pessoa('elizete'), { ...rascunho, situacao: 'publicada' }).ok).toBe(false);
+    expect(excluir(pessoa('gui', true), { ...rascunho, situacao: 'publicada' }).ok).toBe(true);
+  });
+});

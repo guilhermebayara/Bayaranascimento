@@ -204,6 +204,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       <button type="submit" class="botao" data-salvar="publicada">{publicada ? 'Salvar alterações' : 'Publicar memória'}</button>
       {!publicada && <button type="submit" class="botao botao--leve" data-salvar="rascunho">Salvar rascunho</button>}
     </div>
+    {memoria && !publicada && <p class="memoria__rodape"><a href={`/memorias/${memoria.id}/excluir`}>Descartar este rascunho</a></p>}
   </form>
 
   <div class="confirmacao" data-confirmacao hidden>

@@ -62,3 +62,10 @@ export function datasDeVida(v: Vida): string[] {
   if (v.falecimentoAno) linhas.push(`Falecimento: ${data(v.falecimentoAno, v.falecimentoMes, v.falecimentoDia)}`);
   return linhas;
 }
+
+/** Momento gravado pelo banco (UTC, "2026-11-15 14:03:22") no horário de Brasília: "15 de novembro de 2026, 11:03". */
+export function formatarMomento(texto: string): string {
+  const data = new Date(`${texto.replace(' ', 'T')}Z`);
+  if (Number.isNaN(data.getTime())) return texto;
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(data).replace(' às ', ', ');
+}

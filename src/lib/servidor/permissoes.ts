@@ -102,9 +102,14 @@ export function podeRemoverFoto(usuario: Usuario, enviadaPor: string): Decisao {
   return enviadaPor === usuario.pessoa ? sim : nao('Só quem enviou a foto pode removê-la.');
 }
 
-/** Excluir uma memória inteira: administradores, e só o que enxergam. */
+/**
+ * Excluir uma memória inteira: administradores, e só o que enxergam.
+ * Um rascunho é de quem está escrevendo, então a própria pessoa pode descartar.
+ * A memória excluída vai para a lixeira e pode ser recuperada.
+ */
 export function podeExcluirMemoria(usuario: Usuario, m: AcessoDaMemoria): Decisao {
   if (!podeVerMemoria(usuario, m)) return nao('Memória não encontrada.');
+  if (m.situacao === 'rascunho') return sim;
   return usuario.admin ? sim : nao('Só os administradores do acervo excluem memórias.');
 }
 
