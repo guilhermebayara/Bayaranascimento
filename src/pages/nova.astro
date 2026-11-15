@@ -4,7 +4,7 @@ import { TIPO_OUTRO, TIPO_PADRAO } from '../lib/tipos';
 import { MESES } from '../lib/datas';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { podeEditarMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
-import { listarCapitulos, listarIntegrantes, listarNucleos, listarTemas, obterMemoria, obterRelato } from '../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantes, listarNucleos, listarTemasVisiveis, obterMemoria, obterRelato } from '../lib/servidor/repositorio';
 
 // Esta página serve para três coisas: registrar uma memória nova, continuar
 // um rascunho e corrigir uma memória já publicada (?id=...).
@@ -25,7 +25,7 @@ const nucleosMarcados = memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usua
 // O relato só entra aqui enquanto a memória não foi publicada. Depois, cada um edita o seu na própria página.
 const meuRelato = memoria && !publicada ? await obterRelato(memoria.id, usuario.pessoa) : undefined;
 const capitulosReunidos = (await listarCapitulos(usuario)).filter((c) => c.modo === 'reunido');
-const todosOsTemas = await listarTemas();
+const todosOsTemas = await listarTemasVisiveis(usuario);
 const temasDaMemoria = (memoria?.temas ?? []).map((id) => todosOsTemas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
 const anoAtual = new Date().getFullYear();
 // "Hoje" no horário de Brasília, para o limite do calendário

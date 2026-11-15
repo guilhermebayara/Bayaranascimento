@@ -2,7 +2,7 @@
 // Formulário de capítulo, em etapas. Serve para criar e para editar.
 import { MESES } from '../lib/datas';
 import type { Capitulo } from '../lib/capitulos';
-import { listarCapitulos, listarNucleos, listarTemas } from '../lib/servidor/repositorio';
+import { listarCapitulos, listarNucleos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 
 interface Props {
   capitulo?: Capitulo;
@@ -15,7 +15,7 @@ const temFilhos = Boolean(c) && todos.some((x) => x.dentroDe === c!.id);
 // Só entra em outro quem não tem capítulos dentro, e só em capítulos que não estão dentro de ninguém
 const maiores = temFilhos ? [] : todos.filter((x) => x.id !== c?.id && !x.dentroDe);
 const nucleos = (await listarNucleos()).filter((n) => usuario.nucleos.includes(n.id) || c?.nucleos.includes(n.id));
-const temas = await listarTemas();
+const temas = await listarTemasVisiveis(usuario);
 const temasDoCapitulo = (c?.temas ?? []).map((id) => temas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
 const anoAtual = new Date().getFullYear();
 const modo = c?.modo ?? 'reunido';

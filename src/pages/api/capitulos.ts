@@ -39,9 +39,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (id && !atual) return voltar(request, '/capitulos', { erro: 'Capítulo não encontrado.' });
 
   if (acao === 'excluir') {
+    if (!atual) return voltar(request, '/capitulos', { erro: 'Capítulo não encontrado.' });
     if (!usuario.admin) return voltar(request, `/capitulos/${id}`, { erro: 'Só os administradores excluem capítulos.' });
     await excluirCapitulo(id, usuario);
-    return voltar(request, '/capitulos', { ok: `"${atual!.titulo}" foi para a lixeira. As memórias dele continuam no acervo.` });
+    return voltar(request, '/capitulos', { ok: `"${atual.titulo}" foi para a lixeira. As memórias dele continuam no acervo.` });
   }
 
   if (acao === 'memorias') {

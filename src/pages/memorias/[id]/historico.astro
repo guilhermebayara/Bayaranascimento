@@ -2,7 +2,7 @@
 // O que já mudou numa memória, com a opção de voltar atrás.
 import Base from '../../../layouts/Base.astro';
 import { formatarData, formatarMomento } from '../../../lib/datas';
-import { podeEditarMemoria } from '../../../lib/servidor/permissoes';
+import { podeEditarMemoria, podeVerVersao } from '../../../lib/servidor/permissoes';
 import { listarFotosRemovidas, listarIntegrantes, listarRelatos, listarVersoes, obterMemoria, type Memoria, type Relato } from '../../../lib/servidor/repositorio';
 import { tipoDaMemoria } from '../../../lib/tipos';
 
@@ -27,7 +27,7 @@ const ficha = (m: Memoria) => ({
 });
 // Cada versão guarda como a ficha estava ANTES de uma alteração. Comparando com
 // o estado seguinte, dá para dizer o que aquela alteração mudou.
-const versoes = await listarVersoes<Memoria>('memoria', memoria.id);
+const versoes = (await listarVersoes<Memoria>('memoria', memoria.id)).filter((v) => podeVerVersao(usuario, memoria, v.dados));
 const linhas = versoes.map((v, i) => {
   const antes = ficha(v.dados);
   const depois = ficha(i === 0 ? memoria : versoes[i - 1].dados);

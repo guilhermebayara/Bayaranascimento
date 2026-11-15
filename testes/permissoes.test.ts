@@ -4,6 +4,7 @@ import {
   podeEscreverRelato,
   podeExcluirMemoria,
   podeRemoverFoto,
+  podeVerVersao,
   podeVerMemoria,
   validarVisibilidade,
   type AcessoDaMemoria,
@@ -152,5 +153,18 @@ describe('descartar rascunho', async () => {
   it('memória publicada continua sendo só com admin', () => {
     expect(excluir(pessoa('elizete'), { ...rascunho, situacao: 'publicada' }).ok).toBe(false);
     expect(excluir(pessoa('gui', true), { ...rascunho, situacao: 'publicada' }).ok).toBe(true);
+  });
+});
+
+describe('histórico de uma memória que começou como rascunho', () => {
+  // Achado do QA de 15/11/2026: o histórico mostrava a outras pessoas o título e o lugar do rascunho
+  const publicada = memoria({ criadaPor: 'gui' });
+  it('a ficha de quando era rascunho só aparece para quem escreveu', () => {
+    expect(podeVerVersao(gui, publicada, { situacao: 'rascunho' })).toBe(true);
+    expect(podeVerVersao(elizete, publicada, { situacao: 'rascunho' })).toBe(false);
+    expect(podeVerVersao(giovanna, publicada, { situacao: 'rascunho' })).toBe(false);
+  });
+  it('as versões de depois da publicação continuam para todos que veem a memória', () => {
+    expect(podeVerVersao(elizete, publicada, { situacao: 'publicada' })).toBe(true);
   });
 });

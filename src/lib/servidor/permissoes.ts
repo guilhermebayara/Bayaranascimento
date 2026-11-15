@@ -142,3 +142,11 @@ export function podeMexerEmLaco(usuario: Usuario, envolvidos: IntegranteParaPerm
   if (envolvidos.some((e) => e.id === usuario.pessoa || divideNucleo(usuario, e))) return sim;
   return nao('Só quem é de um núcleo em comum com as pessoas envolvidas pode mudar esse laço.');
 }
+
+/**
+ * Uma versão antiga da ficha, guardada enquanto a memória ainda era rascunho, só aparece para quem
+ * escreveu o rascunho. Senão o histórico mostraria a outras pessoas o título e o lugar de antes da publicação.
+ */
+export function podeVerVersao(usuario: Usuario, memoria: Pick<AcessoDaMemoria, 'criadaPor'>, versao: { situacao?: string }): boolean {
+  return versao.situacao !== 'rascunho' || memoria.criadaPor === usuario.pessoa;
+}

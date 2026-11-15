@@ -63,7 +63,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (problema) return voltar(request, PAGINA, { erro: problema });
       destino = await criar();
     }
-    const quantas = await promoverTextoDeOutro(texto, destino);
+    const quantas = await promoverTextoDeOutro(texto, destino, usuario);
     return voltar(request, PAGINA, { ok: `${quantas} ${quantas === 1 ? 'memória passou' : 'memórias passaram'} para o tipo escolhido.` });
   }
 

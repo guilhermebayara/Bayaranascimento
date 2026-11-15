@@ -1,10 +1,10 @@
 ---
 import Base from '../../layouts/Base.astro';
 import LinhaDoTempo from '../../components/LinhaDoTempo.astro';
-import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemas } from '../../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemasVisiveis } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
-const tema = (await listarTemas()).find((t) => t.id === Astro.params.id);
+const tema = (await listarTemasVisiveis(usuario)).find((t) => t.id === Astro.params.id);
 if (!tema) return new Response('Tema não encontrado', { status: 404 });
 const capitulos = (await listarCapitulos(usuario)).filter((c) => c.temas.includes(tema.id));
 const memorias = await listarMemorias(usuario, { tema: tema.id });

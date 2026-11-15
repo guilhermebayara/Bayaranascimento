@@ -364,12 +364,17 @@ export async function listarTextosDeOutro(usuario: Usuario): Promise<{ texto: st
 }
 
 /** Passa para um tipo oficial todas as memórias marcadas como "Outro" com aquele texto. */
-export async function promoverTextoDeOutro(texto: string, tipoId: string): Promise<number> {
-  const resultado = await db()
-    .prepare(`UPDATE memorias SET tipo = ?, tipo_outro = NULL WHERE tipo = 'outro' AND LOWER(TRIM(tipo_outro)) = LOWER(TRIM(?))`)
-    .bind(tipoId, texto)
-    .run();
-  return resultado.meta.changes ?? 0;
+/**
+ * Passa para um tipo todas as memórias com esse texto em "Outro". Devolve quantas delas quem promoveu
+ * enxerga: contar as outras entregaria que existem memórias que essa pessoa não vê.
+ */
+export async function promoverTextoDeOutro(texto: string, tipoId: string, usuario: Usuario): Promise<number> {
+  const mesmoTexto = `m.tipo = 'outro' AND LOWER(TRIM(m.tipo_outro)) = LOWER(TRIM(?2))`;
+  const [visiveis] = await db().batch<{ n: number }>([
+    db().prepare(`SELECT COUNT(*) AS n FROM memorias m WHERE ${mesmoTexto} AND ${FILTRO_VISIVEL}`).bind(usuario.pessoa, texto),
+    db().prepare(`UPDATE memorias SET tipo = ?1, tipo_outro = NULL WHERE tipo = 'outro' AND LOWER(TRIM(tipo_outro)) = LOWER(TRIM(?2))`).bind(tipoId, texto),
+  ]);
+  return visiveis.results[0]?.n ?? 0;
 }
 
 // --- Memórias ---
@@ -576,6 +581,23 @@ export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria,
 export async function listarTemas(): Promise<Tema[]> {
   const { results } = await db().prepare('SELECT id, nome FROM temas ORDER BY nome').all<Tema>();
   return results;
+}
+
+/**
+ * Temas que a pessoa pode ver: os de pelo menos uma memória ou um capítulo que ela vê. O nome de um
+ * tema usado só numa memória restrita ou num rascunho de outra pessoa entregaria que ela existe.
+ */
+export async function listarTemasVisiveis(usuario: Usuario): Promise<Tema[]> {
+  const [{ results: dasMemorias }, capitulos, todos] = await Promise.all([
+    db()
+      .prepare(`SELECT DISTINCT tm.tema_id AS id FROM tema_memorias tm JOIN memorias m ON m.id = tm.memoria_id WHERE ${FILTRO_VISIVEL}`)
+      .bind(usuario.pessoa)
+      .all<{ id: string }>(),
+    listarCapitulos(usuario),
+    listarTemas(),
+  ]);
+  const visiveis = new Set<string>([...dasMemorias.map((t: { id: string }) => t.id), ...capitulos.flatMap((c: Capitulo) => c.temas)]);
+  return todos.filter((t: Tema) => visiveis.has(t.id));
 }
 
 /** Devolve os ids dos temas com esses nomes, criando os que ainda não existem. */
