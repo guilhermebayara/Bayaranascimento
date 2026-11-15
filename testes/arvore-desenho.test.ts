@@ -222,4 +222,20 @@ describe('laços do coração em volta dos irmãos', () => {
     const fileira = comTia.pessoas.filter((x) => x.y === 0).sort((a, b) => a.x - b.x).map((x) => x.id);
     expect(fileira.indexOf('elizete') - fileira.indexOf('tia-de-consideracao'), fileira.join(' ')).toBe(1);
   });
+  it('irmãos de cada cônjuge ficam do lado de fora do casal, empurrando os outros', () => {
+    // O irmão do Aguilar fica à direita dele, e a avó dos dois fica acima deles, não da Elizete
+    const comTio = desenharArvore(
+      [...pessoas, { id: 'vo-bela', geracao: -1 }, { id: 'vo-vivica', geracao: -1 }, { id: 'tio-paulo', geracao: 0, lado: 0 }, { id: 'tia-lourdes', geracao: 0, lado: 0 }],
+      casais,
+      [...filiacoes, ...filho('aguilar', 'vo-bela'), ...filho('tio-paulo', 'vo-bela'), ...filho('elizete', 'vo-vivica'), ...filho('tia-lourdes', 'vo-vivica')],
+      coracao,
+    );
+    const y = (id: string) => comTio.pessoas.find((x) => x.id === id)!.y;
+    const fileira = comTio.pessoas.filter((x) => x.y === y('aguilar')).sort((a, b) => a.x - b.x).map((x) => x.id);
+    expect(fileira.indexOf('tio-paulo') - fileira.indexOf('aguilar'), fileira.join(' ')).toBe(1);
+    expect(fileira.indexOf('elizete') - fileira.indexOf('tia-lourdes'), fileira.join(' ')).toBe(1);
+    const x = (id: string) => comTio.pessoas.find((p) => p.id === id)!.x;
+    expect(x('vo-bela')).toBeGreaterThan(x('elizete'));
+    expect(x('vo-vivica')).toBeLessThan(x('aguilar'));
+  });
 });

@@ -555,6 +555,7 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
   // 1. Quem veio de outra família por um laço do coração fica encostado em quem o escolheu, do lado
   //    do núcleo de origem dessa pessoa (Bayara à esquerda, Bracarense à direita). Quem não tem
   //    descendentes fica mais perto, para a linha dele não cruzar a dos filhos dos outros.
+  // 0. (no começo de cada fileira) Irmãos de sangue do lado de fora de cada cônjuge.
   // 2. Filhos de um só dos pais (meio-irmãos) vão para fora do grupo de irmãos, do lado desse pai
   //    ou mãe, depois também dos laços do coração do grupo.
   const direcaoDe = (dono: string, linha: string[][]): -1 | 1 => {
@@ -573,6 +574,43 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
     return vistos.size;
   };
   for (let n = 0; n < melhor.length; n++) {
+    // 0. Irmãos de sangue ficam do lado de fora de cada cônjuge: os de quem está à esquerda no
+    //    casal vão para a esquerda, os de quem está à direita, para a direita. Ninguém é pulado:
+    //    os irmãos encostam no casal e empurram os outros para fora.
+    {
+      const linha = melhor[n];
+      const acima = new Set(n > 0 ? melhor[n - 1].flat() : []);
+      const paisAcima = (id: string) => (paisDe.get(id) ?? []).filter((p) => acima.has(p));
+      let mexeu = false;
+      // Primeiro os casais que unem duas famílias (os dois têm pais acima). Quem já foi
+      // posicionado ao lado de um casal fica firme e não puxa nem é puxado de novo.
+      const une = (b: string[]) => b.length > 1 && paisAcima(b[0]).length > 0 && paisAcima(b[b.length - 1]).length > 0;
+      const casaisDaLinha = linha.filter((b) => b.length > 1).sort((a, b) => Number(une(b)) - Number(une(a)));
+      const firmes = new Set<string[]>();
+      for (const bloco of casaisDaLinha) {
+        if (firmes.has(bloco)) continue;
+        firmes.add(bloco);
+        for (const [conjuge, esquerda] of [[bloco[0], true], [bloco[bloco.length - 1], false]] as [string, boolean][]) {
+          const ps = paisAcima(conjuge);
+          if (ps.length === 0) continue;
+          const irmaos = linha.filter((b) => b !== bloco && !firmes.has(b) && b.some((id) => paisAcima(id).some((p) => ps.includes(p))));
+          for (const b of irmaos) firmes.add(b);
+          if (irmaos.length === 0) continue;
+          for (const b of irmaos) {
+            linha.splice(linha.indexOf(b), 1);
+            // O irmão fica na ponta do próprio bloco que encosta no casal
+            const irmao = b.find((id) => paisAcima(id).some((p) => ps.includes(p)))!;
+            const ponta = esquerda ? b.length - 1 : 0;
+            if (b.length > 1 && b.indexOf(irmao) !== ponta) b.reverse();
+          }
+          const i = linha.indexOf(bloco);
+          linha.splice(esquerda ? i : i + 1, 0, ...irmaos);
+          mexeu = true;
+        }
+      }
+      if (mexeu) reorganizarAbaixo(melhor, n);
+    }
+
     const original = melhor[n].flat();
     const naLinha = new Set(original);
     // Cada bloco escolhido acompanha o primeiro laço que o trouxe. Se quem escolheu está em outra
