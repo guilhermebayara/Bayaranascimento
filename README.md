@@ -21,7 +21,7 @@ mes: 8            # opcional
 dia: 14           # opcional
 aproximada: false # true quando a data for uma estimativa
 tipo: aniversario
-pessoas: [gui, irma, mae]
+pessoas: [gui, giovanna, elizete]
 lugar: Belo Horizonte
 registradoPor: gui
 fotos:

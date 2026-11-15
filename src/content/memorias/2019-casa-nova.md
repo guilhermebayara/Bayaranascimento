@@ -3,7 +3,7 @@ titulo: Mudança para a casa nova
 ano: 2019
 mes: 5
 tipo: casa
-pessoas: [mae]
+pessoas: [elizete]
 lugar: Belo Horizonte
 registradoPor: gui
 fotos:

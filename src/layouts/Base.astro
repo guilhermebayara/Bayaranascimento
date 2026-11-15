@@ -7,7 +7,9 @@ interface Props {
 }
 
 const { titulo } = Astro.props;
-const pessoas = await listarPessoas();
+const todas = await listarPessoas();
+const pessoas = todas.filter((p) => p.data.nucleo);
+const temOutras = todas.length > pessoas.length;
 const memorias = await listarMemorias();
 const temExemplos = memorias.some((m) => m.data.exemplo);
 const caminho = Astro.url.pathname.replace(/\/$/, '') || '/';
@@ -41,6 +43,13 @@ const tituloPagina = titulo ? `${titulo} | Bayara Nascimento` : 'Bayara Nascimen
               {nomeCurto(p)}
             </a>
           ))
+        }
+        {
+          temOutras && (
+            <a href="/pessoas" aria-current={caminho === '/pessoas' ? 'page' : undefined}>
+              Pessoas
+            </a>
+          )
         }
       </nav>
     </header>

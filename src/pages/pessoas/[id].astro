@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import LinhaDoTempo from '../../components/LinhaDoTempo.astro';
+import { render } from 'astro:content';
 import { listarMemorias, listarPessoas, type Pessoa } from '../../lib/memorias';
 
 export async function getStaticPaths() {
@@ -14,12 +15,25 @@ interface Props {
 
 const { pessoa } = Astro.props;
 const pessoas = await listarPessoas();
+const { Content } = await render(pessoa);
+const temBio = Boolean(pessoa.body?.trim());
+const { parentesco, nascimento, falecimento } = pessoa.data;
+const anos = nascimento && falecimento ? `${nascimento} a ${falecimento}` : nascimento ? `nasceu em ${nascimento}` : '';
+const resumo = [parentesco, anos].filter(Boolean).join(', ');
 const memorias = (await listarMemorias()).filter((m) => m.data.pessoas.some((ref) => ref.id === pessoa.id));
 ---
 
 <Base titulo={pessoa.data.nome}>
   <div class="abertura">
     <h1>{pessoa.data.nome}</h1>
+    {resumo && <p>{resumo.charAt(0).toUpperCase() + resumo.slice(1)}.</p>}
+    {
+      temBio && (
+        <div class="bio">
+          <Content />
+        </div>
+      )
+    }
     <p>
       {
         memorias.length === 0

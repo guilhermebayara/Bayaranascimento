@@ -17,7 +17,10 @@ const nomes = data.pessoas
   .map((ref) => pessoas.find((p) => p.id === ref.id))
   .filter((p): p is Pessoa => Boolean(p))
   .map(nomeCurto);
-const todos = nomes.length > 0 && nomes.length === pessoas.length;
+const nucleo = pessoas.filter((p) => p.data.nucleo);
+const ids = new Set(data.pessoas.map((ref) => ref.id));
+// "Todo mundo" só quando a lista é exatamente o núcleo da família
+const todos = nucleo.length > 1 && ids.size === nucleo.length && nucleo.every((p) => ids.has(p.id));
 ---
 
 <article class:list={['cartao', foto && 'cartao--com-foto']} data-tipo={data.tipo}>

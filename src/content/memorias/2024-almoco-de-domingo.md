@@ -4,9 +4,9 @@ ano: 2024
 mes: 10
 dia: 6
 tipo: cotidiano
-pessoas: [gui, irma, mae]
+pessoas: [gui, giovanna, elizete]
 lugar: Belo Horizonte
-registradoPor: irma
+registradoPor: giovanna
 fotos:
   - legenda: A mesa posta
     chave: true

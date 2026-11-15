@@ -3,7 +3,7 @@ titulo: A foto mais antiga da família
 ano: 1968
 aproximada: true
 tipo: cotidiano
-pessoas: [mae]
+pessoas: [elizete, vo-bela]
 lugar: Minas Gerais
 registradoPor: gui
 fotos:

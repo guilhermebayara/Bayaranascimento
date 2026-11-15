@@ -4,7 +4,7 @@ ano: 1994
 mes: 8
 dia: 14
 tipo: aniversario
-pessoas: [gui, irma, mae]
+pessoas: [gui, giovanna, elizete]
 lugar: Belo Horizonte
 registradoPor: gui
 fotos:
@@ -13,12 +13,12 @@ fotos:
   - legenda: A turma toda reunida
   - legenda: Hora do parabéns
 relatos:
-  - por: mae
+  - por: elizete
     texto: |
       Este é um segundo relato da mesma memória. Cada pessoa pode contar o dia do jeito que lembra.
 
       Eu fiz o bolo na véspera e quase não dormi.
-  - por: irma
+  - por: giovanna
     texto: Um terceiro relato, curto. Eu só lembro dos balões.
 exemplo: true
 ---

@@ -9,7 +9,14 @@ const pessoas = defineCollection({
     nome: z.string(),
     // Como a pessoa aparece nos filtros e nos cartões
     apelido: z.string().optional(),
-    // Ordem em que aparece no menu
+    // Quem é do núcleo aparece no menu do topo. Os demais ficam na página "Pessoas".
+    nucleo: z.boolean().default(false),
+    // Relação com a família, em texto livre: "avó materna", "marido da Giovanna"
+    parentesco: z.string().optional(),
+    nascimento: z.number().int().optional(),
+    falecimento: z.number().int().optional(),
+    foto: z.string().optional(),
+    // Ordem em que aparece nas listas
     ordem: z.number().default(99),
   }),
 });

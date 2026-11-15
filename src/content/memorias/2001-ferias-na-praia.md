@@ -4,9 +4,9 @@ ano: 2001
 mes: 1
 dia: 20
 tipo: viagem
-pessoas: [gui, irma, mae]
+pessoas: [gui, giovanna, elizete]
 lugar: Espírito Santo
-registradoPor: mae
+registradoPor: elizete
 fotos:
   - legenda: Primeiro dia na areia
     chave: true

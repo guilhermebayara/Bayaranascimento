@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/Base.astro';
+import { listarMemorias, listarPessoas } from '../../lib/memorias';
+
+const pessoas = await listarPessoas();
+const memorias = await listarMemorias();
+const contar = (id: string) => memorias.filter((m) => m.data.pessoas.some((ref) => ref.id === id)).length;
+---
+
+<Base titulo="Pessoas">
+  <div class="abertura">
+    <h1>Pessoas</h1>
+    <p>Quem aparece nas memórias da família.</p>
+  </div>
+  <ul class="pessoas">
+    {
+      pessoas.map((p) => {
+        const n = contar(p.id);
+        return (
+          <li>
+            <a href={`/pessoas/${p.id}`}>
+              <strong>{p.data.nome}</strong>
+              <span>
+                {p.data.parentesco ? `${p.data.parentesco}, ` : ''}
+                {n} {n === 1 ? 'memória' : 'memórias'}
+              </span>
+            </a>
+          </li>
+        );
+      })
+    }
+  </ul>
+</Base>
