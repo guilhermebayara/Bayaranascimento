@@ -27,6 +27,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const falhar = (erro: string) => voltar(request, volta, { erro });
 
   let integrantes = await listarIntegrantes();
+  let pendente: { id: string; nome: string } | undefined;
+  const cadastrarPendente = async () => {
+    if (pendente) await criarIntegrante(pendente.id, pendente.nome, usuario.pessoa);
+    pendente = undefined;
+  };
   const achar = (id: string) => integrantes.find((i) => i.id === id);
   const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 
@@ -44,8 +49,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const existente = integrantes.find((i) => criarSlug(i.nome) === base || (i.apelido && criarSlug(i.apelido) === base));
       if (existente) return falhar(`Já existe ${existente.nome} no acervo. Escolha na lista em vez de escrever o nome.`);
       outra = slugUnico(base, new Set([...integrantes.map((i) => i.id), 'nova']));
-      await criarIntegrante(outra, nomeNovo, usuario.pessoa);
-      integrantes = await listarIntegrantes();
+      // A pessoa nova só é gravada quando o laço passa nas validações e na permissão (ver cadastrarPendente).
+      // Antes, um laço recusado deixava a pessoa cadastrada, e a nova tentativa dizia que ela já existia.
+      pendente = { id: outra, nome: nomeNovo };
+      integrantes = [
+        ...integrantes,
+        { id: outra, nome: nomeNovo, apelido: null, tipo: 'pessoa', especie: null, tratamento: null, nascimentoAno: null, nascimentoMes: null, nascimentoDia: null, falecimentoAno: null, falecimentoMes: null, falecimentoDia: null, sobre: null, admin: false, criadoPor: usuario.pessoa, nucleos: [] },
+      ];
     }
     if (!outra) return falhar('Escolha a pessoa na lista ou escreva o nome de quem ainda não está no acervo.');
     if (tipoDeLaco === 'filho-de') {
@@ -80,6 +90,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (papelBruto && !(papelBruto in PAPEIS)) return falhar('Papel desconhecido.');
     const proximidade = Number(campo(dados, 'proximidade', 2)) || null;
     if (proximidade !== null && !(proximidade in PROXIMIDADES)) return falhar('Proximidade desconhecida.');
+    await cadastrarPendente();
     await salvarLacoDoCoracao(usuario, pessoa.id, {
       nome: nomeDoLaco,
       papel: (papelBruto as Papel) || null,
@@ -118,6 +129,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (qualidade === 'biologica' && outrosBiologicos.length >= 2) {
       return falhar(`${nome(filho.id)} já tem dois pais biológicos cadastrados. Para outros laços, use adotiva ou de consideração.`);
     }
+    await cadastrarPendente();
     await salvarFiliacao(filho.id, responsavel.id, qualidade, usuario);
     return voltar(request, volta, { ok: 'Laço salvo.' });
   }
@@ -156,6 +168,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (fases.length === 0) return falhar('Informe pelo menos uma fase, como namoro ou casamento.');
     if (fases.length > 12) return falhar('São fases demais para um casal só.');
     const visibilidade = campo(dados, 'visibilidade', 10) === 'privado' ? 'privado' : 'todos';
+    await cadastrarPendente();
     await salvarCasal(a.id, b.id, fases, visibilidade, usuario);
     return voltar(request, volta, { ok: 'Casal salvo.' });
   }

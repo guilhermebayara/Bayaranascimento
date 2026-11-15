@@ -4,7 +4,7 @@ import { TIPO_OUTRO, TIPO_PADRAO } from '../lib/tipos';
 import { MESES } from '../lib/datas';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { podeEditarMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
-import { listarCapitulos, listarIntegrantes, listarNucleos, listarTemasVisiveis, obterMemoria, obterRelato } from '../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantes, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
 
 // Esta página serve para três coisas: registrar uma memória nova, continuar
 // um rascunho e corrigir uma memória já publicada (?id=...).
@@ -23,7 +23,9 @@ const nucleos = await listarNucleos();
 const nucleosDisponiveis = nucleos.filter((n) => usuario.nucleos.includes(n.id) || memoria?.nucleos.includes(n.id));
 const nucleosMarcados = memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usuario.nucleos : []);
 // O relato só entra aqui enquanto a memória não foi publicada. Depois, cada um edita o seu na própria página.
-const meuRelato = memoria && !publicada ? await obterRelato(memoria.id, usuario.pessoa) : undefined;
+// Pode ser o relato da própria pessoa ou o de alguém que não acessa o site, registrado por ela.
+const doRascunho = memoria && !publicada ? (await listarRelatos(usuario, memoria.id)).filter((r) => r.registradoPor === usuario.pessoa) : [];
+const meuRelato = doRascunho.find((r) => r.por === usuario.pessoa) ?? doRascunho[0];
 const capitulosReunidos = (await listarCapitulos(usuario)).filter((c) => c.modo === 'reunido');
 const todosOsTemas = await listarTemasVisiveis(usuario);
 const temasDaMemoria = (memoria?.temas ?? []).map((id) => todosOsTemas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
@@ -224,7 +226,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
               <span>Quem está contando</span>
               <select name="relatoPor" data-relato-por>
                 <option value={usuario.pessoa}>Eu, {usuario.nome}</option>
-                {semAcesso.map((p) => <option value={p.id}>{p.nome}, e eu estou escrevendo</option>)}
+                {semAcesso.map((p) => <option value={p.id} selected={meuRelato?.por === p.id}>{p.nome}, e eu estou escrevendo</option>)}
               </select>
             </label>
             <label class="campo">
@@ -379,10 +381,12 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     // Com muita gente na lista, um campo filtra pelo nome
     const filtro = form.querySelector<HTMLInputElement>('[data-filtrar-pessoas]');
     filtro?.addEventListener('input', () => {
-      const termo = filtro.value.trim().toLowerCase();
+      // Sem acento e sem maiúscula dos dois lados: "vo" acha "Vó Bela"
+      const simples = (texto: string) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const termo = simples(filtro.value.trim());
       for (const opcao of form.querySelectorAll<HTMLElement>('[data-lista-de-pessoas] .opcao')) {
         const marcada = opcao.querySelector<HTMLInputElement>('input')?.checked;
-        opcao.hidden = Boolean(termo) && !marcada && !(opcao.dataset.nome ?? '').includes(termo);
+        opcao.hidden = Boolean(termo) && !marcada && !simples(opcao.dataset.nome ?? '').includes(termo);
       }
     });
 
