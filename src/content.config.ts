@@ -61,6 +61,8 @@ const relatos = defineCollection({
   schema: z.object({
     memoria: reference('memorias'),
     por: reference('pessoas'),
+    // Quando o relato é de alguém que não acessa o site: quem ouviu e escreveu
+    registradoPor: reference('pessoas').optional(),
   }),
 });
 

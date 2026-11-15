@@ -82,9 +82,13 @@ const fotos = [...data.fotos].sort((a, b) => Number(b.chave) - Number(a.chave));
     {
       relatos.map(({ relato, Content }) => {
         const quem = achar(relato.data.por.id);
+        const escreveu = achar(relato.data.registradoPor?.id);
         return (
           <section class="relato">
-            <h2>{quem ? `Contado por ${nomeCurto(quem)}` : 'Relato'}</h2>
+            <h2>
+              {quem ? `Contado por ${nomeCurto(quem)}` : 'Relato'}
+              {escreveu && `, registrado por ${nomeCurto(escreveu)}`}
+            </h2>
             <div class="relato__texto">
               <Content />
             </div>
