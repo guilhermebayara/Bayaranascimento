@@ -1694,3 +1694,86 @@ p {
   display: grid;
   gap: 1.25rem;
 }
+
+/* Árvore: escolha de visão e visão geral em gerações */
+
+.abas--visao {
+  max-width: 40rem;
+  margin-bottom: 1.5rem;
+}
+
+.abas--visao .aba {
+  text-decoration: none;
+  color: var(--tinta);
+}
+
+.abas--visao .aba[aria-current='page'] > span {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel);
+}
+
+.abas--visao .aba[aria-current='page'] small {
+  color: var(--papel);
+}
+
+.arvore--geral .arvore__linha ul {
+  gap: 0.75rem 0;
+}
+
+.arvore--geral .arvore__linha li {
+  margin-inline: 0.4rem;
+}
+
+/* "colado": forma casal com a pessoa imediatamente antes, e um traço liga os dois */
+.arvore .colado {
+  position: relative;
+  margin-left: 1.5rem;
+}
+
+.arvore .colado::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: 1.5rem;
+  border-top: 1.5px solid var(--tinta);
+}
+
+.arvore .colado--ex::before {
+  border-top-style: dotted;
+}
+
+/* Na visão geral, o casal é um bloco só: não se separa quando a linha quebra */
+.grupo-de-casal {
+  display: flex;
+  align-items: stretch;
+}
+
+.grupo-de-casal .membro {
+  display: flex;
+}
+
+.arvore__linha--centro li.colado {
+  margin-left: 0.75rem;
+}
+
+.arvore__linha--centro li.colado::before {
+  width: 1.5rem;
+}
+
+@media (max-width: 34rem) {
+  .grupo-de-casal {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .grupo-de-casal .colado {
+    margin-left: 0;
+  }
+
+  .grupo-de-casal .colado::before {
+    display: none;
+  }
+}

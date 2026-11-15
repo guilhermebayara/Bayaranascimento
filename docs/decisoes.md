@@ -65,7 +65,11 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 - Quem mexe em laços de árvore: os envolvidos, quem divide um núcleo com algum deles e os admins.
 - Os laços entram por um formulário só, "Adicionar laço": um seletor escolhe o tipo (filho de, pai de, casal, do coração) e mostra os campos daquele tipo. A outra pessoa pode ser da lista ou um nome novo, cadastrado na hora.
 - **Laços do coração** (primeira versão): nome livre, "como se fosse" opcional (dá lugar na árvore de quem escolheu), proximidade que só o dono vê e a opção "só eu vejo". O laço é sempre de quem está logado. Ainda faltam o período do laço, o círculo e esconder do acervo a pessoa que só aparece em laços privados.
-- A árvore (`/arvore`) é centrada em uma pessoa e abre em quem está logado. Camadas que ligam e desligam: consideração, ex-casais e bichos.
+- A árvore (`/arvore`) tem duas visões. **Centrada:** uma pessoa no meio, com avós, pais, irmãos (e os casais deles), casal, filhos e netos; abre em quem está logado. **Geral:** todo mundo que tem laço, em linhas por geração, com casais lado a lado e recorte pela família inteira ou por um núcleo.
+- Na visão geral, o casamento alinha as duas famílias na mesma geração, e as gerações são nomeadas a partir de quem olha ("Avós", "Sua geração").
+- Laços do coração com "como se fosse" aparecem ligados a quem escolheu: na árvore centrada nessa pessoa e, na visão geral, na geração que o papel indica. Para o dono, "seu amigo-irmão"; para os demais, "amigo-irmão de Gui".
+- Camadas que ligam e desligam nas duas visões: consideração e coração, ex-casais e bichos.
+- Sem "como se referir" informado, o parentesco sai nas duas formas: "seu tio ou sua tia".
 
 ## Lixeira e histórico
 
@@ -105,7 +109,7 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 
 - Histórico de integrantes e laços no site (as versões já são guardadas) e apagar de vez o que está na lixeira
 - Foto de retrato do integrante, juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
-- Árvore: visão geral com zoom, recorte por núcleo e página do laço com linha do tempo
+- Árvore: linhas ligando pais e filhos na visão geral, zoom e página do laço com linha do tempo (dependem do visual)
 - Círculo e avisos
 - Fotos enviadas em um formulário abandonado ficam no bucket sem uso: falta uma limpeza periódica
 
