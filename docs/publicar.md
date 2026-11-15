@@ -5,7 +5,7 @@
 | Ambiente | Endereço | Dados | Login |
 | --- | --- | --- | --- |
 | Produção | memorias.bayara.com.br | Banco e bucket `bayara-memorias` | Cloudflare Access |
-| Prévia de branch | endereço que o Cloudflare gera para cada branch | Banco e bucket `bayara-memorias-teste`, só exemplos | Sem login, com troca de pessoa no topo |
+| Prévia de branch | `<branch>.memorias.bayara.com.br` (ex.: `formulario.memorias.bayara.com.br`) | Banco e bucket `bayara-memorias-teste`, só exemplos | Sem login, com troca de pessoa no topo |
 | Computador | localhost | Banco local, só exemplos | Sem login, com troca de pessoa no topo |
 
 O branch `main` é a produção. Qualquer outro branch vira uma prévia.
@@ -16,7 +16,7 @@ No projeto `bayaranascimento` → Settings:
 
 - **Build command:** `npm run build`
 - **Deploy command:** `npx wrangler deploy`
-- **Comando de deploy de outros branches:** `npx wrangler preview`
+- **Prévias (aba Previews Base):** Build command vazio e Preview command `npm run build && npx wrangler preview`. O campo Build command das prévias não era executado, por isso o build vai junto no comando de prévia. Ao mudar algo nessa aba, salvar com "Apply to existing Previews", senão só vale para branches novos.
 - **Segredo `ACESSOS`** (Variables and Secrets, tipo Secret): um JSON em uma linha ligando cada e-mail de login ao integrante.
 
   ```json
