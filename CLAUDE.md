@@ -41,7 +41,7 @@ Nada desta pasta entra no repositório. A exceção são as fotos do Chico e da 
 | Branch | Endereço | Dados | Login |
 | --- | --- | --- | --- |
 | `main` | memorias.bayara.com.br | Banco e fotos reais (`bayara-memorias`) | Cloudflare Access, a família |
-| `homologa` | homologa.memorias.bayara.com.br | Banco e bucket `bayara-memorias-homologa`: a estrutura da família espelhada da produção, com nomes e memórias inventados | Cloudflare Access, só Gui e Giovanna |
+| `homologa` | homologa.memorias.bayara.com.br | Banco e bucket `bayara-memorias-homologa`: a estrutura da família espelhada da produção, com nomes e memórias inventados. As fotos e os retratos de exemplo são lidos de `exemplos/` no bucket de teste, só leitura | Cloudflare Access, só Gui e Giovanna |
 | `tst-<assunto>` e as demais | `<branch>.memorias.bayara.com.br` | Banco e bucket `bayara-memorias-teste`, com o acervo de exemplo | Sem login |
 
 - `main` é a produção. Cada push publica sozinho, com o banco e as fotos reais.
@@ -59,7 +59,7 @@ A homologação usa a mesma estrutura de família da produção (filiações, ca
 - A transformação está em `src/lib/espelho.ts`, testada em `testes/espelho.test.ts`: nenhum nome, texto ou memória real passa para o espelho.
 - O espelho é gravado direto no banco da homologação e nunca entra no repositório.
 - A escolha do banco é feita pelo endereço do pedido (`src/lib/servidor/ambiente.ts`): o Cloudflare aplica a mesma configuração a todas as prévias, e só `homologa.memorias.bayara.com.br` usa `DB_HOMOLOGA` e `FOTOS_HOMOLOGA`.
-- A homologação nunca recebe o acervo de exemplo. Na homologação e nas prévias, o "Ver como" do topo continua valendo.
+- A homologação nunca recebe o acervo de exemplo. Só as 11 fotos de exemplo são compartilhadas, lidas do bucket de teste (ver "Fotos de exemplo" em `docs/decisoes.md`). Na homologação e nas prévias, o "Ver como" do topo continua valendo.
 
 ## Antes de levar para a `main`
 
@@ -88,7 +88,7 @@ A homologação usa a mesma estrutura de família da produção (filiações, ca
 
 O plano gratuito do GitHub não protege branches de repositório privado. As regras que não podem falhar ficam no próprio repositório e travam a publicação:
 
-- `npm run confere` (`scripts/confere-producao.mjs`), a guarda da produção. Falha se a produção deixar de usar o banco e o bucket reais ou de se declarar `producao`, se uma prévia apontar para o banco ou o bucket reais, se a homologação dividir banco ou bucket com a produção ou com as prévias de teste, se a produção enxergar o banco da homologação, se as memórias de exemplo puderem rodar na produção ou na homologação, se aparecer um e-mail de verdade em arquivo versionado, se um arquivo de segredo local for versionado ou se uma migração apagar uma tabela da qual outra ainda depende com exclusão em cascata (`scripts/migracoes.mjs`: a cascata levaria as linhas da outra junto).
+- `npm run confere` (`scripts/confere-producao.mjs`), a guarda da produção. Falha se a produção deixar de usar o banco e o bucket reais ou de se declarar `producao`, se uma prévia apontar para o banco ou o bucket reais, se a homologação dividir banco ou bucket com a produção ou com as prévias de teste, se a produção enxergar o banco da homologação, se as memórias de exemplo puderem rodar na produção ou na homologação, se as fotos de exemplo puderem chegar ao pacote ou ao bucket da produção, se a homologação puder fazer no bucket de teste algo além de ler o prefixo `exemplos/`, se a limpeza de 7 dias do bucket de teste puder rodar na produção ou na homologação, se aparecer um e-mail de verdade em arquivo versionado, se um arquivo de segredo local for versionado ou se uma migração apagar uma tabela da qual outra ainda depende com exclusão em cascata (`scripts/migracoes.mjs`: a cascata levaria as linhas da outra junto).
 - `npm test`: os testes em `testes/`, das regras de permissão, das datas, do login, do parentesco e da árvore.
 - `npm run build` roda os dois antes do build (`prebuild`). O Cloudflare publica com `npm run build`: se algo falhar, nada vai ao ar e a versão anterior continua.
 - No GitHub, `.github/workflows/confere.yml` roda o mesmo a cada push, em qualquer branch, e em todo PR para a `main`. Falha vira marca vermelha no commit e e-mail.

@@ -9,11 +9,14 @@
 // O que muda: todo nome é trocado por um nome inventado do mesmo gênero, os ids viram
 // "pessoa-001" (menos os de quem tem acesso, que o site usa), os anos andam alguns anos para a
 // frente, e o nome de cada laço do coração vira um nome genérico do papel dele.
-// O que fica de fora: memórias, relatos, fotos, capítulos, temas, textos e histórico. No lugar
-// entram memórias de exemplo, inventadas a partir das pessoas espelhadas.
+// O que fica de fora: memórias, relatos, fotos, retratos, capítulos, temas, textos e histórico. No lugar
+// entram memórias de exemplo, inventadas a partir das pessoas espelhadas. As fotos dessas memórias e
+// os retratos apontam para as 11 fotos de exemplo do Chico e da Karol, com o mesmo sorteio das
+// prévias; a homologação lê os arquivos do bucket de teste, sem guardar cópia.
 //
 // Nada daqui vai para o repositório: o espelho é gravado direto no banco da homologação.
 import { NUCLEO_INICIAL } from './familias';
+import { fotoDeMemoriaDeExemplo, quantasFotosNoEspelho, retratoDeExemplo } from './fotos-de-exemplo';
 
 type Linha = Record<string, unknown>;
 
@@ -164,8 +167,8 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       falecimento_ano: ano(p.falecimento_ano),
       falecido: numero(p.falecido) ?? (p.falecimento_ano != null ? 1 : 0),
       sobre: 'Pessoa do espelho da produção: o nome é inventado, os laços seguem os de uma pessoa real.',
-      // O espelho não leva retratos, como não leva áudios: o arquivo é o rosto de uma pessoa real
-      retrato: null,
+      // O retrato real não vem (é o rosto de uma pessoa de verdade): no lugar, uma foto de exemplo
+      retrato: retratoDeExemplo(id, tratamento, bicho),
       admin: numero(p.admin) ?? 0,
       ordem: numero(p.ordem) ?? 50,
       criado_por: mapear(p.criado_por),
@@ -323,6 +326,18 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
     Object.assign(memorias.find((m) => m.id === id)!, { excluida_em: quando(2), excluida_por: 'gui' });
   }
 
+  // Fotos das memórias: de nenhuma a três, cada uma apontando para uma das 11 fotos de exemplo
+  const fotos: Linha[] = memorias.flatMap((m) =>
+    Array.from({ length: quantasFotosNoEspelho(String(m.id)) }, (_, ordem) => ({
+      memoria_id: m.id,
+      chave: fotoDeMemoriaDeExemplo(String(m.id), ordem),
+      legenda: null,
+      principal: ordem === 0 ? 1 : 0,
+      ordem,
+      enviada_por: m.criada_por,
+    })),
+  );
+
   return {
     tabelas: [
       ['integrantes', integrantes],
@@ -336,6 +351,7 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       ['memoria_nucleos', memoriaNucleos],
       ['memoria_integrantes', memoriaIntegrantes],
       ['relatos', relatos],
+      ['fotos', fotos],
     ],
     resumo: {
       pessoas: integrantes.length,

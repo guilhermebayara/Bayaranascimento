@@ -422,9 +422,11 @@ export async function pessoasQueONaoVe(usuario: Usuario): Promise<Set<string>> {
  * retrato trocado ou tirado não é entregue a ninguém: o arquivo fica no bucket, e a chave, nas versões.
  */
 export async function podeVerRetratoDaChave(usuario: Usuario, chave: string): Promise<boolean> {
-  const dono = await db().prepare('SELECT id FROM integrantes WHERE retrato = ? LIMIT 1').bind(chave).first<{ id: string }>();
-  if (!dono) return false;
-  return podeVerRetrato(dono.id, await pessoasQueONaoVe(usuario));
+  // Um retrato de exemplo é dividido por várias pessoas: basta a pessoa logada ver uma delas
+  const { results: donos } = await db().prepare('SELECT id FROM integrantes WHERE retrato = ?').bind(chave).all<{ id: string }>();
+  if (donos.length === 0) return false;
+  const naoVe = await pessoasQueONaoVe(usuario);
+  return donos.some((dono) => podeVerRetrato(dono.id, naoVe));
 }
 
 export async function salvarLacoDoCoracao(

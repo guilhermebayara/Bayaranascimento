@@ -12,8 +12,12 @@
 // 5. Arquivos de segredo locais (.dev.vars, .env) nunca são versionados.
 // 6. Nenhuma migração apaga uma tabela da qual outra ainda depende com ON DELETE CASCADE: a cascata
 //    levaria as linhas da outra junto (ver scripts/migracoes.mjs).
+// 7. As fotos de exemplo (o Chico e a Karol, em exemplos/fotos/) nunca chegam à produção: ficam fora
+//    do pacote publicado, só são gravadas e apagadas no bucket de teste, pelas prévias e pelo
+//    computador, e a homologação só lê o prefixo exemplos/ do bucket de teste. A limpeza de 7 dias
+//    roda só no ambiente de teste.
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
 
 const PRODUCAO = { banco: 'bayara-memorias', bucket: 'bayara-memorias' };
@@ -59,17 +63,49 @@ if (config.d1_databases?.some((b) => b.binding === 'DB_HOMOLOGA') || config.r2_b
 // 3. Memórias de exemplo só nas prévias e no computador
 const banco = readFileSync('src/lib/servidor/banco.ts', 'utf8');
 const protecao = banco.indexOf('if (AMBIENTES_COM_EXEMPLOS.includes(ambiente())) {');
-const chamadas = [...banco.matchAll(/await semear\w+\(/g)].map((m) => m.index);
+const chamadas = [...banco.matchAll(/await (semear|limpar)\w+\(/g)].map((m) => m.index);
 if (protecao < 0) falhar('src/lib/servidor/banco.ts: sumiu a proteção if (AMBIENTES_COM_EXEMPLOS.includes(ambiente())) em volta das memórias de exemplo.');
 else {
   const fimDaProtecao = banco.indexOf('\n  }', protecao);
   for (const posicao of chamadas) {
-    if (posicao < protecao || posicao > fimDaProtecao) falhar('src/lib/servidor/banco.ts: há uma chamada a semear... fora da proteção da produção.');
+    if (posicao < protecao || posicao > fimDaProtecao) falhar('src/lib/servidor/banco.ts: há uma chamada a semear... ou limpar... fora da proteção da produção.');
   }
 }
 const ambientes = readFileSync('src/lib/servidor/ambiente.ts', 'utf8').match(/AMBIENTES_COM_EXEMPLOS: Ambiente\[\] = \[([^\]]*)\]/);
 if (!ambientes) falhar('src/lib/servidor/ambiente.ts: não achei a lista AMBIENTES_COM_EXEMPLOS.');
 else if (/producao|homologa/.test(ambientes[1])) falhar('src/lib/servidor/ambiente.ts: produção e homologação nunca recebem as memórias de exemplo.');
+
+// 7. Fotos de exemplo
+{
+  const fonteDoAmbiente = readFileSync('src/lib/servidor/ambiente.ts', 'utf8');
+  if (!fonteDoAmbiente.includes("return ambiente() === 'producao' ? null : env.FOTOS;")) {
+    falhar('src/lib/servidor/ambiente.ts: bucketDosExemplos() precisa devolver null na produção.');
+  }
+  if (!fonteDoAmbiente.includes("if (!AMBIENTES_COM_EXEMPLOS.includes(ambiente()) || ehHomologacao()) throw")) {
+    falhar('src/lib/servidor/ambiente.ts: bucketDeTesteParaGravar() precisa recusar a produção e a homologação.');
+  }
+  // Pelas pastas, e não pelo git: arquivo novo, ainda não versionado, também é conferido
+  const fontes = ['src', 'public'].flatMap((pasta) => (existsSync(pasta) ? readdirSync(pasta, { recursive: true }).map((a) => `${pasta}/${String(a).replace(/\\/g, '/')}`) : []));
+  for (const arquivo of fontes) {
+    if (/(^|\/)(chico|karol)-\d+\.(jpe?g|png|webp)$/i.test(arquivo)) falhar(`${arquivo}: as fotos de exemplo ficam em exemplos/fotos/, fora do pacote publicado.`);
+    if (!/\.(astro|ts|mjs|js)$/.test(arquivo) || statSync(arquivo).isDirectory()) continue;
+    const texto = readFileSync(arquivo, 'utf8');
+    if (/from\s+['"][./]*exemplos\//.test(texto) || /import\(\s*['"][./]*exemplos\//.test(texto) || texto.includes('exemplos/fotos/*')) {
+      falhar(`${arquivo}: o código do site não importa nada de exemplos/: as fotos iriam para o pacote publicado.`);
+    }
+    // A leitura do bucket das fotos de exemplo é só leitura
+    for (const uso of texto.matchAll(/bucketDosExemplos\(\)\??\.(\w+)/g)) {
+      if (!['get', 'head'].includes(uso[1])) falhar(`${arquivo}: bucketDosExemplos() é só para ler (get ou head), e aqui faz ${uso[1]}.`);
+    }
+    // Gravar e apagar no bucket de teste passa por bucketDeTesteParaGravar(), que recusa a produção e a homologação
+    if (texto.includes('bucketDeTesteParaGravar()') && arquivo !== 'src/lib/servidor/ambiente.ts' && !/AMBIENTES_COM_EXEMPLOS\.includes\(ambiente\(\)\) && !ehHomologacao\(\)/.test(texto)) {
+      falhar(`${arquivo}: quem grava no bucket de teste confere antes se está numa prévia de teste (AMBIENTES_COM_EXEMPLOS e não homologação).`);
+    }
+  }
+  if (!existsSync('exemplos/fotos') || readdirSync('exemplos/fotos').filter((n) => n.endsWith('.jpg')).length !== 11) {
+    falhar('exemplos/fotos/: são 11 fotos de exemplo (chico-1 a chico-5, karol-1 a karol-6).');
+  }
+}
 
 // 4 e 5. Arquivos versionados
 const versionados = execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean);
