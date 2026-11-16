@@ -185,7 +185,7 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 - O capítulo tem visibilidade própria (título e abertura). Cada memória mantém a dela: contagem, período e lista consideram só o que quem olha pode ver.
 - Uma memória entra em um capítulo reunido pelo formulário da memória ou pela página do capítulo, onde cada pessoa marca as memórias que pode corrigir.
 - Edita o capítulo quem criou e quem tem memórias nele. Quem pode ver o capítulo, só quem criou muda. Excluir é com os admins e manda para a lixeira; as memórias continuam no acervo.
-- Ficou para depois: capítulo ligado a uma fase de casal ou a pessoas, recorte de época por núcleo ou pessoa, foto de capa escolhida e os capítulos como faixas na linha do tempo (depende do visual).
+- Ficou para depois: capítulo ligado a uma fase de casal ou a pessoas, recorte de época por núcleo ou pessoa, foto de capa escolhida (os capítulos na linha do tempo viraram item de "Decidido, a construir" em 16/11/2026) (depende do visual).
 
 ## Núcleo, parentes e laços (decisões do Gui, 15/11/2026)
 
@@ -208,6 +208,14 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     4. **Movimento e detalhes,** por último, só os de `docs/visual.md`.
     5. **QA visual** no celular de verdade antes do PR para a `homologa`.
   `npm run capturas` serve para registrar antes e depois de cada tela. A polaroid em toda foto-chave fica para o Gui confirmar vendo a linha do tempo pronta. Ao terminar, o resumo de `docs/visual.md` vira regra aqui, e `docs/ux/revisao-visual.md` e `docs/ux/padroes.md` saem de cena.
+- **Capítulos na linha do tempo** (decisões do Gui, 16/11/2026). Entra no conceito da revisão visual, na tela da linha do tempo, e é construído com ela.
+    - **Trilho lateral.** Cada capítulo é um trilho vertical à esquerda das memórias, do começo ao fim do capítulo. As memórias dele se prendem ao trilho. Como a linha do tempo vai do mais novo para o mais antigo, o trilho começa no alto com o título e o período do capítulo (que leva à página dele) e termina embaixo com uma marca pequena ("começo da Pandemia").
+    - **Memória de fora no meio do capítulo.** Fica no lugar dela na ordem do tempo, sem se prender ao trilho, e o trilho continua tracejado nesse trecho. A ordem do tempo nunca é quebrada para agrupar um capítulo.
+    - **Capítulo dentro de capítulo e capítulos ao mesmo tempo.** Trilhos lado a lado, o mais longo ou de fora mais à esquerda. No celular cabem dois trilhos; a partir do terceiro, o capítulo aparece como etiqueta na memória. Na tela grande cabem mais, e o título do capítulo ganha mais espaço.
+    - O trilho de um capítulo de época vai da data de início à de fim (ou até hoje, se não tiver fim). O de um capítulo reunido vai da primeira à última memória dele.
+    - Só aparecem capítulos que a pessoa pode ver, e o trilho só conta memórias que ela vê. Um capítulo sem nenhuma memória visível naquela linha do tempo não aparece.
+    - A cor do trilho e o desenho final saem da revisão visual. A regra: o trilho não pode competir com as fotos nem com a cor das famílias.
+    - Teste da montagem (sem tela, como a da árvore): ordem dos trilhos, trechos tracejados, o corte no terceiro trilho do celular e a visibilidade.
 - **Painel pessoal como página inicial** (ideia do Gui de 15/11/2026, decisões de 16/11/2026). A parte funcional pode ser construída antes da revisão visual, numa branch própria e com a aparência mínima, como a foto de retrato (já construída: ver "Foto de retrato" em "Integrantes e laços de árvore"). A tela final é desenhada no conceito da revisão.
     - O painel substitui a linha do tempo como página inicial (`/`). A linha do tempo continua inteira no seu endereço e no menu.
     - **Primeira visita:** abre com uma carta de Natal escrita pelo Gui e pela Giovanna, com o nome da pessoa na saudação e assinada à mão. Depois da primeira visita, a carta sai do alto e fica num link discreto no painel ("Carta de Natal"). O texto é escrito pelos administradores no próprio site e fica no banco, nunca no repositório. Uma migração nova guarda a carta e, para cada pessoa com acesso, a data da primeira e da última visita.
