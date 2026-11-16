@@ -176,11 +176,13 @@ Construído em 16/11/2026 na branch `tst-visual-sistema`, a partir do conceito a
 | Sinal do capítulo e trilhos | `SinalDoCapitulo.astro`, `Trilhos.astro` | Do conceito |
 | Ícones dos tipos e rabiscos | `IconeDoTipo.astro`, `Rabisco.astro` | Do conceito |
 | Ações | classes `botao`, `acao` e `acao--quieta` | Do conceito. Entrou o botão sem poder agir |
-| Pílula de período | `Pilula.astro` | Nova, espera o Gui |
-| Sanfona de fases | `Sanfona.astro` | Nova, espera o Gui. Sem script; com o mesmo `grupo`, só uma fica aberta |
-| Formulário em frase | classes `frase` e `frase__lacuna` | Novo, espera o Gui. A ligação com a Nova memória é da fase 3 |
-| Campo de formulário | classes `pergunta`, `campo` e `escolha` | Novo, espera o Gui |
-| Recado e estado vazio | `Recado.astro`, `Vazio.astro` | O recado já existia no CSS; o vazio é novo |
+| Pílula de período | `Pilula.astro` | Nova, aprovada pelo Gui em 16/11/2026 |
+| Sanfona de fases | `Sanfona.astro` | Nova, aprovada pelo Gui em 16/11/2026. Sem script; com o mesmo `grupo`, só uma fica aberta |
+| Formulário em frase | classes `frase` e `frase__lacuna` | Novo, aprovado pelo Gui em 16/11/2026. A ligação com a Nova memória é da fase 3. Como a lacuna da data se comporta está em aberto (abaixo) |
+| Campo de formulário | classes `pergunta`, `campo` e `escolha` | Novo, aprovado pelo Gui em 16/11/2026 |
+| Recado e estado vazio | `Recado.astro`, `Vazio.astro` | O recado já existia no CSS; o vazio é novo, aprovado pelo Gui em 16/11/2026 |
+
+**A data no formulário em frase** (pergunta do Gui, 16/11/2026: só digitação, formato forçado ou seletor de data?). Proposta, que espera a resposta dele: a lacuna da data não é campo de digitar. Ela mostra a data como o site já escreve ("24 de dezembro de 2025", "dezembro de 2025", "2025", "por volta de 1994") e, ao toque, abre logo abaixo da frase o controle de data flexível que já existe (o ano com −10, −1, +1 e +10, depois mês e dia, os dois opcionais), empurrando o conteúdo. Sem formato para acertar e sem o seletor de data do aparelho, que obriga a escolher dia, mês e ano e não aceita "só o ano". Sem script, a frase aparece com o controle já aberto embaixo. As lacunas de lugar e de pessoas seguem a mesma ideia: a de lugar é texto livre, e a de pessoas abre o "Quem estava?" de hoje.
 
 O cartão do painel (`.cartao`) continua em `telas/painel.css`: só existe ali, e como peça ele passaria por cima da cor do cartão "contar".
 
@@ -279,7 +281,7 @@ Decisão do Gui de 16/11/2026: o monograma é o M de Memórias, que não muda, e
 - **Como é feito (fase 2).** `npm run monograma` (`scripts/monograma.mjs`) lê o M direto dos arquivos das três serifas e grava o desenho em `src/visual/monograma.ts` e os ícones em `public/icones/<a, b ou c>/`. O resultado fica versionado; só se roda de novo se uma serifa mudar. São dois cortes: o normal, que é o desenho de título, e o pequeno, mais firme, para 16 px (na Fraunces, o desenho ótico de texto com um peso acima; nas outras, que não têm eixos, um contorno fino por fora).
 - **Ícone do site.** `favicon.svg` é o M sozinho, na cor do texto, e troca para a cor do papel quando o navegador está no tema escuro, para não sumir na aba. `favicon-48.png` é a reserva para navegador que não lê ícone em SVG, e `apple-touch-icon.png` (180 px) é o da tela inicial do celular: os dois levam o papel por baixo, porque o celular pede fundo cheio. O esqueleto aponta para a pasta da serifa em uso.
 - **Uso:** ícone do site (favicon e ícone de tela inicial do celular) e, no celular, no lugar da assinatura quando falta espaço.
-- **Cor:** uma cor só, no tom do texto. Pode ganhar a cor da família da tela, como opção a comparar na prévia: está lado a lado em `/conceito/sistema`, e o Gui decide.
+- **Cor:** uma cor só, no tom do texto: é o padrão, e vale para o ícone do site e para o topo. A cor da família fica para usos decorativos e momentos específicos (decisão do Gui, 16/11/2026, depois de ver os dois lado a lado em `/conceito/sistema`). Cada uso desses é mostrado a ele na tela em que aparecer.
 - **Tamanho mínimo:** conferir a 16 px (favicon). Na página do sistema ele aparece em 16, 24, 32, 64 e 112 px.
 
 ## Página da memória
