@@ -1,5 +1,6 @@
 ---
 import Base from '../../../layouts/Base.astro';
+import Abertura from '../../../components/Abertura.astro';
 import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
 import { FASES, Familia, PAPEIS, nomeDoPapel, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
@@ -72,10 +73,9 @@ const anoAtual = new Date().getFullYear();
 ---
 
 <Base titulo={`Editar ${chamar}`}>
-  <div class="abertura abertura--curta">
-    <h1>{chamar}</h1>
+  <Abertura titulo={chamar}>
     {!recemCadastrada && <p><a href={`/pessoas/${pessoa.id}`}>Voltar para a página</a></p>}
-  </div>
+  </Abertura>
   {
     recemCadastrada && (
       <ol class="etapas etapas--fluxo" aria-label="Etapas">

@@ -1,5 +1,6 @@
 ---
 import Base from '../../../layouts/Base.astro';
+import Abertura from '../../../components/Abertura.astro';
 import { formatarData } from '../../../lib/datas';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { donoDoRelato } from '../../../lib/servidor/permissoes';
@@ -34,12 +35,11 @@ const opcoes = await Promise.all(
 ---
 
 <Base titulo={`Relato: ${memoria.titulo}`}>
-  <div class="abertura abertura--curta">
-    <h1>Meu relato</h1>
+  <Abertura titulo="Meu relato">
     <p>
       <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento.
     </p>
-  </div>
+  </Abertura>
 
   <form class="formulario" method="post" action="/api/relatos" data-formulario-relato data-memoria={memoria.id} novalidate>
     <input type="hidden" name="memoria" value={memoria.id} />

@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import Abertura from '../components/Abertura.astro';
 import { formatarData, formatarMomento } from '../lib/datas';
 import { podeExcluirMemoria } from '../lib/servidor/permissoes';
 import { listarCapitulosExcluidos, listarExcluidas, listarIntegrantes } from '../lib/servidor/repositorio';
@@ -17,12 +18,11 @@ const nome = (id: string | null) => {
 ---
 
 <Base titulo="Lixeira">
-  <div class="abertura abertura--curta">
-    <h1>Lixeira</h1>
+  <Abertura titulo="Lixeira">
     <p>
       {usuario.admin ? 'Memórias excluídas e rascunhos descartados.' : 'Seus rascunhos descartados.'} Nada aqui aparece no site, e tudo pode ser recuperado como estava.
     </p>
-  </div>
+  </Abertura>
   {
     excluidas.length + capitulos.length === 0 ? (
       <p class="vazio">A lixeira está vazia.</p>

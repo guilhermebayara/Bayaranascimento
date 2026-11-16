@@ -1,0 +1,17 @@
+---
+// Abertura de página: o título e, embaixo dele, o que a página põe no slot
+// (apresentação, volta, ações). O slot "antes" fica acima do título, para selos.
+// "curta" é a abertura das páginas de trabalho; sem ela, a das páginas de leitura.
+interface Props {
+  titulo: string;
+  curta?: boolean;
+}
+
+const { titulo, curta = true } = Astro.props;
+---
+
+<div class:list={['abertura', { 'abertura--curta': curta }]}>
+  <slot name="antes" />
+  <h1>{titulo}</h1>
+  <slot />
+</div>

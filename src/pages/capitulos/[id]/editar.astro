@@ -1,5 +1,6 @@
 ---
 import Base from '../../../layouts/Base.astro';
+import Abertura from '../../../components/Abertura.astro';
 import FichaDoCapitulo from '../../../components/FichaDoCapitulo.astro';
 import { podeEditarCapitulo } from '../../../lib/capitulos';
 import { formatarData } from '../../../lib/datas';
@@ -15,10 +16,9 @@ const minhas = capitulo.modo === 'reunido' ? (await listarMemorias(usuario)).fil
 ---
 
 <Base titulo={`Editar ${capitulo.titulo}`}>
-  <div class="abertura abertura--curta">
-    <h1>{capitulo.titulo}</h1>
+  <Abertura titulo={capitulo.titulo}>
     <p><a href={`/capitulos/${capitulo.id}`}>Voltar para o capítulo</a></p>
-  </div>
+  </Abertura>
 
   {
     capitulo.modo === 'reunido' && (

@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Abertura from '../../components/Abertura.astro';
 import { dentroDoPeriodo, formatarPeriodo, periodoDasMemorias, type Capitulo } from '../../lib/capitulos';
 import { listarCapitulos, listarMemorias, listarTemasVisiveis } from '../../lib/servidor/repositorio';
 
@@ -30,11 +31,10 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
 ---
 
 <Base titulo="Capítulos">
-  <div class="abertura abertura--curta">
-    <h1>Capítulos</h1>
+  <Abertura titulo="Capítulos">
     <p>Memórias reunidas em momentos maiores: um casamento, uma viagem, uma época da vida.</p>
     <p class="acoes"><a class="botao botao--leve" href="/capitulos/novo">Novo capítulo</a></p>
-  </div>
+  </Abertura>
   {
     soltos.length === 0 ? (
       <p class="vazio">Ainda não há capítulos.</p>

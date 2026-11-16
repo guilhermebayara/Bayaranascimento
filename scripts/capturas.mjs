@@ -67,6 +67,7 @@ const PAGINAS = [
   { nome: 'capitulo-reunido', url: '/capitulos/natais' },
   { nome: 'capitulo-epoca', url: '/capitulos/os-anos-90' },
   { nome: 'capitulo-editar', url: '/capitulos/natais/editar' },
+  { nome: 'capitulo-epoca-editar', url: '/capitulos/os-anos-90/editar' },
   { nome: 'capitulo-novo', url: '/capitulos/novo' },
   { nome: 'tema', url: '/temas/natal' },
   { nome: 'rascunhos', url: '/rascunhos' },

@@ -6,7 +6,7 @@ interface Props {
   mostrarLegenda?: boolean;
 }
 
-const { foto, cor = 'var(--tinta)', mostrarLegenda = true } = Astro.props;
+const { foto, cor = 'var(--cor-texto)', mostrarLegenda = true } = Astro.props;
 ---
 
 <figure class="foto" style={`--cor-tipo: ${cor}`}>

@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Abertura from '../../components/Abertura.astro';
 import { outrosAdmins } from '../../lib/servidor/conteudo';
 import { listarIntegrantes, listarTextosDeOutro } from '../../lib/servidor/repositorio';
 import { TIPO_OUTRO } from '../../lib/tipos';
@@ -15,10 +16,9 @@ const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.
 ---
 
 <Base titulo="Tipos de momento">
-  <div class="abertura abertura--curta">
-    <h1>Tipos de momento</h1>
+  <Abertura titulo="Tipos de momento">
     <p>A lista que aparece em "Que tipo de momento foi?". {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}</p>
-  </div>
+  </Abertura>
 
   <section class="painel">
     <h2>O que a família escreveu em "Outro"</h2>
