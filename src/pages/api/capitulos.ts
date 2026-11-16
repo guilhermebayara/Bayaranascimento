@@ -1,6 +1,6 @@
 // Capítulos: criar, editar e mandar para a lixeira.
 import type { APIRoute } from 'astro';
-import { lerTemas, podeEditarCapitulo, validarAninhamento } from '../../lib/capitulos';
+import { lerDeQuem, lerTemas, podeEditarCapitulo, validarAninhamento } from '../../lib/capitulos';
 import { arrumarTexto, codigoNovo } from '../../lib/servidor/conteudo';
 import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeEditarMemoria, podeMudarQuemVe, validarVisibilidade } from '../../lib/servidor/permissoes';
@@ -13,6 +13,7 @@ import {
   idsDeCapitulos,
   listarCapitulos,
   listarCapitulosExcluidos,
+  listarIntegrantes,
   listarNucleos,
   restaurarCapitulo,
   salvarCapitulo,
@@ -66,7 +67,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!titulo) return falhar('Dê um título ao capítulo.');
   const modo = campo(dados, 'modo', 10) === 'epoca' ? 'epoca' : 'reunido';
 
-  // Época: início obrigatório, fim opcional
+  // Por período: início obrigatório, fim opcional
   const anoAtual = new Date().getUTCFullYear();
   const lerData = (prefixo: string): { ano: number; mes?: number } | undefined | 'invalida' => {
     const ano = campoNumero(dados, `${prefixo}Ano`);
@@ -80,11 +81,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const fim = lerData('fim');
   if (modo === 'epoca') {
     if (inicio === 'invalida' || fim === 'invalida') return falhar(`Confira as datas. Os anos precisam estar entre 1800 e ${anoAtual}.`);
-    if (!inicio) return falhar('Um capítulo de época precisa de um ano de início.');
+    if (!inicio) return falhar('Um capítulo por período precisa de um ano de início.');
     if (fim && (fim.ano < inicio.ano || (fim.ano === inicio.ano && fim.mes && inicio.mes && fim.mes < inicio.mes))) {
-      return falhar('A época não pode terminar antes de começar.');
+      return falhar('O período não pode terminar antes de começar.');
     }
   }
+
+  // De quem é o capítulo por período: pessoas, famílias ou os dois. Ninguém marcado quer dizer época, de todos.
+  const nucleosDoAcervo = await listarNucleos();
+  const deQuem =
+    modo === 'epoca'
+      ? lerDeQuem(
+          { pessoas: dados.getAll('pessoas').map(String), familias: dados.getAll('familias').map(String) },
+          { pessoas: new Set((await listarIntegrantes()).map((i) => i.id)), familias: new Set(nucleosDoAcervo.map((n) => n.id)) },
+        )
+      : { pessoas: [], familias: [] };
+  if ('erro' in deQuem) return falhar(deQuem.erro);
 
   // Dentro de outro capítulo: no máximo dois níveis
   const dentroDe = campo(dados, 'dentroDe', 120) || undefined;
@@ -94,7 +106,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (problema) return falhar(problema);
 
   // Visibilidade, com as mesmas regras de uma memória
-  const nucleosExistentes = new Set((await listarNucleos()).map((n) => n.id));
+  const nucleosExistentes = new Set(nucleosDoAcervo.map((n) => n.id));
   const permitidos = new Set([...usuario.nucleos, ...(atual?.nucleos ?? [])]);
   const nucleos = [...new Set(dados.getAll('nucleos').map(String))];
   if (nucleos.some((n) => !nucleosExistentes.has(n) || !permitidos.has(n))) return falhar('Você só pode marcar núcleos de que faz parte.');
@@ -116,11 +128,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     visibilidade,
     nucleos: visibilidade === 'nucleos' ? nucleos : [],
     temas: await garantirTemas(lerTemas(campo(dados, 'temas', 500)), usuario),
+    pessoas: deQuem.pessoas,
+    familias: deQuem.familias,
   };
 
   // "novo" e "editar" são endereços, então não podem ser id de capítulo
   // Um código no endereço, e não o título: ver codigoNovo
   const idFinal = atual?.id ?? codigoNovo(new Set([...(await idsDeCapitulos()), 'novo']));
   await salvarCapitulo(idFinal, ficha, usuario, !atual);
-  return voltar(request, `/capitulos/${idFinal}`, { ok: atual ? 'Capítulo atualizado.' : 'Capítulo criado. Agora é só colocar as memórias nele.' });
+  return voltar(request, `/capitulos/${idFinal}`, { ok: atual ? 'Capítulo atualizado.' : modo === 'epoca' ? 'Capítulo criado. As memórias do período entram sozinhas.' : 'Capítulo criado. Agora é só colocar as memórias nele.' });
 };

@@ -119,7 +119,7 @@ Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de out
 - **Capítulo** é a história de alguém. Pode ser montado à mão, como hoje, ou por período, de pessoas ou de uma família (um capítulo da gravidez, do casal, por exemplo): entram sozinhas as memórias do período em que alguma dessas pessoas está ou que são dessa família. As outras memórias do período ficam de fora, e o trilho segue tracejado.
 - "Capítulo de época" deixa de existir como nome: ou é uma época, de todos, ou é um capítulo, de alguém.
 
-No conceito, de quem é cada capítulo de época é fixo na página, porque o banco ainda não guarda isso: "A infância da Giovanna" é da Giovanna, e "Os anos 90" e "Os anos de casa" são épocas de todos. A montagem já entende os casos (`pessoas`, `familias` e `deTodos`), com teste. O que falta para valer no site está em `docs/decisoes.md`, "Decidido, a construir".
+O banco guarda de quem é cada capítulo por período desde a migração `019` (regra em `docs/decisoes.md`, "Capítulos e temas"), e o conceito lê de lá: no acervo de exemplo, "A infância da Giovanna" é da Giovanna, e "Os anos 90" e "Os anos de casa" são épocas de todos.
 
 **A época na linha do tempo** (terceira versão; o Gui disse que o chão funciona e pediu os ajustes desta). A época é o chão: enquanto se rola por dentro dela, o papel muda de tom de ponta a ponta da tela. Assim cada coisa tem a sua forma: a época é fundo, o capítulo é linha e a memória é figura.
 

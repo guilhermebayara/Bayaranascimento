@@ -1,10 +1,12 @@
 ---
 // Formulário de capítulo, em etapas. Serve para criar e para editar.
 import CampoAno from './CampoAno.astro';
+import QuemEstava from './QuemEstava.astro';
+import { Familia } from '../lib/parentesco';
 import { comArtigo } from '../lib/servidor/conteudo';
 import { MESES } from '../lib/datas';
 import type { Capitulo } from '../lib/capitulos';
-import { listarCapitulos, listarIntegrantes, listarNucleos, listarTemasVisiveis } from '../lib/servidor/repositorio';
+import { familiasDe, listarCapitulos, listarCasais, listarFiliacoes, listarIntegrantes, listarNucleos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 
 interface Props {
   capitulo?: Capitulo;
@@ -16,10 +18,25 @@ const todos = await listarCapitulos(usuario);
 const temFilhos = Boolean(c) && todos.some((x) => x.dentroDe === c!.id);
 // Só entra em outro quem não tem capítulos dentro, e só em capítulos que não estão dentro de ninguém
 const maiores = temFilhos ? [] : todos.filter((x) => x.id !== c?.id && !x.dentroDe);
-const nucleos = (await listarNucleos()).filter((n) => usuario.nucleos.includes(n.id) || c?.nucleos.includes(n.id));
+const todosOsNucleos = await listarNucleos();
+const nucleos = todosOsNucleos.filter((n) => usuario.nucleos.includes(n.id) || c?.nucleos.includes(n.id));
 // Só quem criou muda quem pode ver. Para os outros, as opções ficam travadas com o valor atual.
 const travaQuemVe = Boolean(c) && c!.criadoPor !== usuario.pessoa;
-const quemCriou = travaQuemVe ? (await listarIntegrantes()).find((i) => i.id === c!.criadoPor) : undefined;
+const integrantes = await listarIntegrantes();
+const quemCriou = travaQuemVe ? integrantes.find((i) => i.id === c!.criadoPor) : undefined;
+// De quem é o capítulo por período: a mesma escolha de "Quem estava?" na memória, agrupada por família
+const arvore = new Familia(await listarFiliacoes(), await listarCasais(usuario));
+const porNome = [...integrantes].sort((a, b) => (a.apelido ?? a.nome).localeCompare(b.apelido ?? b.nome, 'pt-BR'));
+const gruposDePessoas = [
+  ...todosOsNucleos.map((n) => ({ nome: n.nome, ids: porNome.filter((i) => familiasDe(i)[0] === n.id).map((i) => i.id) })),
+  { nome: 'De fora das famílias', ids: porNome.filter((i) => !familiasDe(i).some((f) => todosOsNucleos.some((n) => n.id === f))).map((i) => i.id) },
+];
+const proximos = Object.fromEntries(
+  integrantes.map((i) => [
+    i.id,
+    [...new Set([...arvore.casais(i.id).map((x) => x.outro), ...arvore.pais(i.id).map((p) => p.responsavel), ...arvore.filhos(i.id).map((f) => f.filho), ...arvore.irmaos(i.id).map((x) => x.id)])],
+  ]),
+);
 const temas = await listarTemasVisiveis(usuario);
 const temasDoCapitulo = (c?.temas ?? []).map((id) => temas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
 const modo = c?.modo ?? 'reunido';
@@ -53,8 +70,8 @@ const datas = [
           <label class="aba">
             <input type="radio" name="modo" value="epoca" checked={modo === 'epoca'} />
             <span>
-              <strong>De época</strong>
-              <small>Tem começo e fim, e tudo o que aconteceu no período entra sozinho. Ex.: a pandemia.</small>
+              <strong>Por período</strong>
+              <small>Tem começo e fim, e as memórias do período entram sozinhas. Ex.: a gravidez da Giovanna, a pandemia.</small>
             </span>
           </label>
         </div>
@@ -75,6 +92,28 @@ const datas = [
             </div>
           ))
         }
+        <fieldset class="campo">
+          <legend>De quem é este período?</legend>
+          <p class="dica">Marque as famílias ou as pessoas. Entram só as memórias do período com elas. Sem ninguém marcado, é uma época da família inteira, como a pandemia, e entra tudo o que aconteceu no período.</p>
+          <div class="opcoes" role="group" aria-label="Famílias">
+            {todosOsNucleos.map((n) => (
+              <label class="opcao">
+                <input type="checkbox" name="familias" value={n.id} checked={c?.familias.includes(n.id)} />
+                <span>Família {n.nome}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <QuemEstava
+          integrantes={integrantes}
+          marcados={c?.pessoas ?? []}
+          grupos={gruposDePessoas}
+          proximos={proximos}
+          eu={usuario.pessoa}
+          legenda="Quais pessoas?"
+          dica="Ao marcar alguém, a família dessa pessoa aparece como sugestão."
+          cadastrar={false}
+        />
       </div>
       <label class="campo">
         <span>Texto de abertura <small>(opcional)</small></span>
@@ -150,10 +189,11 @@ const datas = [
 
 <script>
   import { ligarCamposDeAno, montarEtapas } from '../lib/cliente/etapas';
+  import { ligarQuemEstava } from '../lib/cliente/quem-estava';
 
   const form = document.querySelector<HTMLFormElement>('[data-ficha-capitulo]');
   if (form) {
-    // As datas só existem para capítulos de época
+    // As datas e "De quem é" só existem para capítulos por período
     const epoca = form.querySelector<HTMLElement>('[data-so-epoca]')!;
     const aplicar = () => {
       const ehEpoca = form.querySelector<HTMLInputElement>('input[name="modo"]:checked')?.value === 'epoca';
@@ -165,6 +205,8 @@ const datas = [
     };
     form.querySelector('[data-modo]')!.addEventListener('change', aplicar);
     aplicar();
+    const quemE = form.querySelector<HTMLElement>('[data-quem-estava]');
+    if (quemE) ligarQuemEstava(quemE);
     ligarCamposDeAno(form);
     montarEtapas(form);
   }
