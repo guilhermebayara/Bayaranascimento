@@ -34,7 +34,7 @@ const recadoErro = Astro.url.searchParams.get('erro');
     <noscript>
       <!-- Sem JavaScript: some o que só funciona com ele, e aparecem os blocos que ele mostraria conforme a escolha -->
       <style>
-        [data-passo], .atalhos, [data-etapa-voltar], [data-etapa-continuar], [data-adicionar-pessoa], .botao--arquivo { display: none !important; }
+        [data-passo], .atalhos, [data-etapa-voltar], [data-etapa-continuar], [data-adicionar-pessoa], .botao--arquivo, [data-confirmar-cancelar] { display: none !important; }
         [data-para][hidden], [data-so-epoca][hidden], [data-depende][hidden] { display: block !important; }
       </style>
     </noscript>
@@ -94,6 +94,9 @@ const recadoErro = Astro.url.searchParams.get('erro');
     </footer>
     <script>
       import { guardarFormularios } from '../lib/cliente/guardar-formulario';
+      import { marcarEnvios } from '../lib/cliente/enviando';
+
+      marcarEnvios();
 
       // Depois dos scripts da página, para os campos devolvidos acertarem o que depende deles
       if (document.readyState === 'complete') guardarFormularios();

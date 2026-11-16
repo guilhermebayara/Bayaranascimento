@@ -1,0 +1,34 @@
+---
+// Remoção com confirmação no próprio lugar (decisão do Gui, 16/11/2026): o primeiro toque
+// abre a pergunta, e só o segundo envia. Fica dentro do form da remoção. Sem JavaScript,
+// "Cancelar" some e o mesmo toque no botão de cima fecha a pergunta.
+interface Props {
+  rotulo: string;
+  pergunta: string;
+  acao: string;
+  confirmar?: string;
+  semValidar?: boolean;
+}
+
+const { rotulo, pergunta, acao, confirmar = 'Remover', semValidar = false } = Astro.props;
+---
+
+<details class="confirmar" data-confirmar>
+  <summary class="botao botao--leve">{rotulo}</summary>
+  <div class="confirmar__caixa" role="group" aria-label={pergunta}>
+    <p>{pergunta}</p>
+    <div class="confirmar__acoes">
+      <button class="botao botao--perigo" type="submit" name="acao" value={acao} formnovalidate={semValidar}>{confirmar}</button>
+      <button class="botao botao--leve" type="button" data-confirmar-cancelar>Cancelar</button>
+    </div>
+  </div>
+</details>
+
+<script>
+  for (const caixa of document.querySelectorAll<HTMLDetailsElement>('[data-confirmar]')) {
+    caixa.querySelector('[data-confirmar-cancelar]')?.addEventListener('click', () => {
+      caixa.open = false;
+      caixa.querySelector('summary')?.focus();
+    });
+  }
+</script>

@@ -2,6 +2,8 @@
 import Base from '../../../layouts/Base.astro';
 import Abertura from '../../../components/Abertura.astro';
 import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
+import ConfirmarRemocao from '../../../components/ConfirmarRemocao.astro';
+import CampoAno from '../../../components/CampoAno.astro';
 import { FASES, Familia, PAPEIS, nomeDoPapel, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
@@ -55,7 +57,7 @@ const pelaArvore = (l: { a: string; b: string }) => {
 const abas = [
   ...(podeLacos
     ? [
-        { valor: 'filho-de', nome: 'Pais', frase: `${chamar} é filho ou filha de alguém` },
+        { valor: 'filho-de', nome: 'Pais', frase: `${chamar} é ${nomeDoPapel('filho', pessoa.tratamento)} de alguém` },
         { valor: 'pai-de', nome: 'Filhos', frase: `alguém é filho ou filha de ${chamar}` },
         { valor: 'casal', nome: 'Casal', frase: 'namoro, casamento ou ex' },
       ]
@@ -69,7 +71,6 @@ const volta = `/pessoas/${pessoa.id}/editar${recemCadastrada ? '?novo=1' : ''}#l
 // "De consideração" saiu daqui: agora é o laço do coração que a família toda reconhece
 const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(([id]) => id !== 'consideracao');
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
-const anoAtual = new Date().getFullYear();
 ---
 
 <Base titulo={`Editar ${chamar}`}>
@@ -146,14 +147,14 @@ const anoAtual = new Date().getFullYear();
               {fases.map(([id, rotulo]) => <option value={id} selected={id === 'casamento'}>{rotulo}</option>)}
             </select>
           </label>
-          <label>
-            <span>Começou em</span>
-            <input type="number" name="faseInicio" min="1800" max={anoAtual} inputmode="numeric" />
-          </label>
-          <label data-depende="terminou-novo" hidden>
-            <span>Terminou em</span>
-            <input type="number" name="faseFim" min="1800" max={anoAtual} inputmode="numeric" />
-          </label>
+          <div class="em-linha__campo">
+            <label for="fase-nova-inicio">Começou em</label>
+            <CampoAno id="fase-nova-inicio" nome="faseInicio" />
+          </div>
+          <div class="em-linha__campo" data-depende="terminou-novo" hidden>
+            <label for="fase-nova-fim">Terminou em</label>
+            <CampoAno id="fase-nova-fim" nome="faseFim" />
+          </div>
         </div>
         <label class="marcar">
           <input type="checkbox" name="terminou" data-revela="terminou-novo" />
@@ -238,8 +239,8 @@ const anoAtual = new Date().getFullYear();
           <h3>Pais e filhos</h3>
           <ul class="linhas">
             {[
-              ...pais.map((p) => ({ filho: pessoa.id, responsavel: p.responsavel, outro: p.responsavel, qualidade: p.qualidade, texto: `${chamar} é filho ou filha` })),
-              ...filhos.map((f) => ({ filho: f.filho, responsavel: pessoa.id, outro: f.filho, qualidade: f.qualidade, texto: `é filho ou filha de ${chamar}` })),
+              ...pais.map((p) => ({ filho: pessoa.id, responsavel: p.responsavel, outro: p.responsavel, qualidade: p.qualidade, texto: `${chamar} é ${nomeDoPapel('filho', pessoa.tratamento)}` })),
+              ...filhos.map((f) => ({ filho: f.filho, responsavel: pessoa.id, outro: f.filho, qualidade: f.qualidade, texto: `é ${nomeDoPapel('filho', integrantes.find((i) => i.id === f.filho)?.tratamento ?? null)} de ${chamar}` })),
             ].map((l) => (
               <li>
                 <div>
@@ -252,7 +253,7 @@ const anoAtual = new Date().getFullYear();
                   <input type="hidden" name="volta" value={volta} />
                   <input type="hidden" name="filho" value={l.filho} />
                   <input type="hidden" name="responsavel" value={l.responsavel} />
-                  <button class="botao botao--leve" type="submit" name="acao" value="filiacao-remover">Remover laço</button>
+                  <ConfirmarRemocao rotulo="Remover laço" pergunta={`Remover o laço entre ${chamar} e ${nome(l.outro)}?`} acao="filiacao-remover" />
                 </form>
               </li>
             ))}
@@ -284,18 +285,18 @@ const anoAtual = new Date().getFullYear();
                       {fases.map(([id, rotulo]) => <option value={id} selected={fase?.tipo === id}>{rotulo}</option>)}
                     </select>
                   </label>
-                  <label>
-                    <span>Começou em</span>
-                    <input type="number" name="faseInicio" min="1800" max={anoAtual} inputmode="numeric" value={fase?.inicioAno ?? ''} />
-                  </label>
+                  <div class="em-linha__campo">
+                    <label for={`fase-${c.casal.id}-${n}-inicio`}>Começou em</label>
+                    <CampoAno id={`fase-${c.casal.id}-${n}-inicio`} nome="faseInicio" valor={fase?.inicioAno} />
+                  </div>
                   <label class="marcar marcar--em-linha">
                     <input type="checkbox" data-revela={`fim-${c.casal.id}-${n}`} checked={Boolean(fase?.fimAno)} />
                     <span>Terminou</span>
                   </label>
-                  <label data-depende={`fim-${c.casal.id}-${n}`} hidden={!fase?.fimAno}>
-                    <span>Terminou em</span>
-                    <input type="number" name="faseFim" min="1800" max={anoAtual} inputmode="numeric" value={fase?.fimAno ?? ''} />
-                  </label>
+                  <div class="em-linha__campo" data-depende={`fim-${c.casal.id}-${n}`} hidden={!fase?.fimAno}>
+                    <label for={`fase-${c.casal.id}-${n}-fim`}>Terminou em</label>
+                    <CampoAno id={`fase-${c.casal.id}-${n}-fim`} nome="faseFim" valor={fase?.fimAno} />
+                  </div>
                 </div>
               ))}
               <label class="marcar">
@@ -304,7 +305,7 @@ const anoAtual = new Date().getFullYear();
               </label>
               <div class="em-linha">
                 <button class="botao botao--leve" type="submit" name="acao" value="casal-salvar">Salvar fases</button>
-                <button class="botao botao--leve" type="submit" name="acao" value="casal-remover" formnovalidate>Apagar, foi cadastrado por engano</button>
+                <ConfirmarRemocao rotulo="Apagar, foi cadastrado por engano" pergunta={`Apagar o casal ${chamar} e ${nome(c.outro)}? Para registrar uma separação, acrescente uma fase.`} acao="casal-remover" confirmar="Apagar" semValidar />
               </div>
               <input type="hidden" name="id" value={c.casal.id} />
             </form>
@@ -331,7 +332,11 @@ const anoAtual = new Date().getFullYear();
                   <form method="post" action="/api/lacos" class="em-linha">
                     <input type="hidden" name="volta" value={volta} />
                     <input type="hidden" name="id" value={l.id} />
-                    <button class="botao botao--leve" type="submit" name="acao" value="resumido-remover">{pelaArvore(l) ? 'Trocar pelo caminho completo' : 'Remover laço'}</button>
+                    {pelaArvore(l) ? (
+                      <button class="botao botao--leve" type="submit" name="acao" value="resumido-remover">Trocar pelo caminho completo</button>
+                    ) : (
+                      <ConfirmarRemocao rotulo="Remover laço" pergunta={`Remover o laço entre ${chamar} e ${nome(l.a === pessoa.id ? l.b : l.a)}?`} acao="resumido-remover" />
+                    )}
                   </form>
                 )}
               </li>
@@ -359,7 +364,7 @@ const anoAtual = new Date().getFullYear();
                 <form method="post" action="/api/lacos" class="em-linha">
                   <input type="hidden" name="volta" value={volta} />
                   <input type="hidden" name="id" value={l.id} />
-                  <button class="botao botao--leve" type="submit" name="acao" value="coracao-remover">Remover laço</button>
+                  <ConfirmarRemocao rotulo="Remover laço" pergunta={`Remover o seu laço do coração com ${nome(l.pessoa)}?`} acao="coracao-remover" />
                 </form>
               </li>
             ))}
@@ -396,8 +401,17 @@ const anoAtual = new Date().getFullYear();
 </Base>
 
 <script>
+  import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';
+  import { ligarCamposDeAno } from '../../../lib/cliente/etapas';
+
+  // Os anos das fases do casal têm os mesmos botões −10, −1, +1 e +10 dos outros formulários
+  ligarCamposDeAno(document);
+
   // O seletor "Que laço é?" mostra só os campos daquele tipo de laço
   const form = document.querySelector<HTMLFormElement>('[data-novo-laco]');
+  // "Com quem": busca com sugestão, e "Cadastrar" para quem ainda não está no acervo
+  const comQuem = form?.querySelector<HTMLSelectElement>('select[name="pessoa"]');
+  if (comQuem) buscaDePessoa(comQuem, { nomeNovo: form!.querySelector<HTMLInputElement>('input[name="nomeNovo"]') ?? undefined });
   const grupo = form?.querySelector<HTMLElement>('[data-tipo-de-laco]');
   if (form && grupo) {
     const seletor = {

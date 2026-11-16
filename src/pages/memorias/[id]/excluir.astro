@@ -29,7 +29,7 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
     <p>{formatarData(memoria)}</p>
     {
       rascunho ? (
-        <p>O rascunho sai da sua lista. Ele fica guardado na lixeira e você pode recuperar depois.</p>
+        <p>O rascunho sai da sua lista. Ele fica guardado na lixeira e você pode restaurar depois.</p>
       ) : (
         <>
           <p>
@@ -37,7 +37,7 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
             {memoria.fotos.length === 1 ? ' 1 foto' : ` ${memoria.fotos.length} fotos`} e
             {relatos === 1 ? ' 1 relato' : ` ${relatos} relatos`}, inclusive os que outras pessoas escreveram.
           </p>
-          <p>Nada é apagado de vez: a memória vai para a lixeira, e {outros ? `você ou ${outros} podem` : 'você pode'} recuperar tudo como estava.</p>
+          <p>Nada é apagado de vez: a memória vai para a lixeira, e {outros ? `você ou ${outros} podem` : 'você pode'} restaurar tudo como estava.</p>
           <p>Se a ideia é só corrigir alguma coisa, prefira <a href={`/nova?id=${memoria.id}`}>corrigir a memória</a>.</p>
         </>
       )

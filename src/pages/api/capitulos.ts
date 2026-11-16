@@ -27,11 +27,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const id = campo(dados, 'id', 120);
 
   if (acao === 'restaurar') {
-    if (!usuario.admin) return voltar(request, '/lixeira', { erro: 'Só os administradores recuperam capítulos.' });
+    if (!usuario.admin) return voltar(request, '/lixeira', { erro: 'Só os administradores restauram capítulos.' });
     const excluido = (await listarCapitulosExcluidos(usuario)).find((c) => c.id === id);
     if (!excluido) return voltar(request, '/lixeira', { erro: 'Capítulo não encontrado na lixeira.' });
     await restaurarCapitulo(id);
-    return voltar(request, `/capitulos/${id}`, { ok: 'Capítulo recuperado.' });
+    return voltar(request, `/capitulos/${id}`, { ok: 'Capítulo restaurado da lixeira.' });
   }
 
   const capitulos = await listarCapitulos(usuario);

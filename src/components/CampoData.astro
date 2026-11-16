@@ -1,0 +1,40 @@
+---
+// Data flexível, igual em todos os formulários (decisão do Gui, 16/11/2026): ano com
+// −10, −1, +1 e +10, depois mês e dia, nessa ordem, porque o ano é o que quase sempre
+// se sabe. Mês e dia são opcionais. src/lib/cliente/datas.ts avisa a data que não existe.
+import CampoAno from './CampoAno.astro';
+import { MESES } from '../lib/datas';
+
+interface Props {
+  /** Prefixo dos nomes: "" dá ano, mes e dia; "nascimento" dá nascimentoAno, nascimentoMes e nascimentoDia */
+  prefixo?: string;
+  ano?: number | null;
+  mes?: number | null;
+  dia?: number | null;
+  obrigatorio?: boolean;
+  /** Rótulo do ano. "Ano" por padrão */
+  rotuloAno?: string;
+}
+
+const { prefixo = '', ano, mes, dia, obrigatorio = false, rotuloAno = 'Ano' } = Astro.props;
+const nome = (parte: 'ano' | 'mes' | 'dia') => (prefixo ? `${prefixo}${parte[0].toUpperCase()}${parte.slice(1)}` : parte);
+const id = `campo-${nome('ano')}`;
+---
+
+<div class="campo">
+  <label for={id}>{rotuloAno}</label>
+  <CampoAno id={id} nome={nome('ano')} valor={ano} obrigatorio={obrigatorio} />
+</div>
+<div class="campos-data campos-data--dois">
+  <label class="campo">
+    <span>Mês, se souber</span>
+    <select name={nome('mes')}>
+      <option value="">Não sei</option>
+      {MESES.map((m, n) => <option value={n + 1} selected={mes === n + 1}>{m}</option>)}
+    </select>
+  </label>
+  <label class="campo">
+    <span>Dia, se souber</span>
+    <input type="number" name={nome('dia')} inputmode="numeric" min="1" max="31" value={dia ?? ''} />
+  </label>
+</div>

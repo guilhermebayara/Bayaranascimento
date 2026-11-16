@@ -27,6 +27,7 @@ const capitulos = (await listarCapitulos(usuario)).filter((c) =>
 );
 const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
 const podeExcluir = podeExcluirMemoria(usuario, memoria).ok;
+const temMeuRelato = relatos.some((r) => r.por === usuario.pessoa);
 
 // Vizinhas na linha do tempo, entre as que a pessoa vê
 const todas = await listarMemorias(usuario);
@@ -109,6 +110,12 @@ const depois = todas[posicao + 1];
           )
         }
       </dl>
+      {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026); excluir, por último */}
+      <p class="acoes acoes--pagina">
+        <a class="botao" href={`/memorias/${memoria.id}/relato`}>{temMeuRelato ? 'Editar meu relato' : 'Escrever meu relato'}</a>
+        {podeEditar && <a class="botao botao--leve" href={`/nova?id=${memoria.id}`}>Corrigir esta memória</a>}
+        <a class="link-acao" href={`/memorias/${memoria.id}/historico`}>Histórico de alterações</a>
+      </p>
     </header>
 
     {
@@ -138,14 +145,7 @@ const depois = todas[posicao + 1];
       ))
     }
 
-    <p class="convite">
-      <a class="botao botao--leve" href={`/memorias/${memoria.id}/relato`}>Escrever ou editar o meu relato</a>
-      {podeEditar && <a class="botao botao--leve" href={`/nova?id=${memoria.id}`}>Corrigir esta memória</a>}
-    </p>
-    <p class="memoria__rodape">
-      <a href={`/memorias/${memoria.id}/historico`}>Histórico de alterações</a>
-      {podeExcluir && <a href={`/memorias/${memoria.id}/excluir`}>Excluir memória</a>}
-    </p>
+    {podeExcluir && <p class="memoria__rodape"><a href={`/memorias/${memoria.id}/excluir`}>Excluir memória</a></p>}
   </article>
 
   <nav class="vizinhas" aria-label="Outras memórias">

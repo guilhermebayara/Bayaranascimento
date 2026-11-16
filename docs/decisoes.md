@@ -65,7 +65,7 @@ A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `tes
 
 - O banco guarda só dois laços: filiação (biológica, adotiva ou de consideração) e casal. O resto é calculado em `src/lib/parentesco.ts`: avós, tios, primos, sobrinhos, sogros, cunhados, genro e nora, madrasta e enteado.
 - Um casal é uma sequência de fases (namoro, noivado, casamento, união, separação, amizade), com anos opcionais. A última fase é a atual. Separar é acrescentar uma fase, e não apagar o casal.
-- O parentesco aparece do ponto de vista de quem está logado ("sua avó"). Laço de consideração é dito com todas as letras ("seu filho de consideração"); adoção não ganha adjetivo.
+- O parentesco aparece do ponto de vista de quem está logado ("sua avó"). Laço de consideração é dito com todas as letras ("seu filho de consideração"); adoção não ganha adjetivo. Na própria página, a família e os laços do coração usam o possessivo do mesmo jeito ("sua mãe", "sua vó de consideração"); na página de outra pessoa, o parentesco é o dela ("mãe"). Na edição dos laços, "filho ou filha" só aparece quando "como se referir" não está informado (decisão do Gui, 16/11/2026).
 - Cada integrante tem "como se referir" (ela, ele ou não informar), usado só para escrever os nomes de parentesco.
 - Um casal pode ser marcado como "só os dois veem": aparece para as duas pessoas e para quem cadastrou. Quem não vê esse casal consegue cadastrar o mesmo par normalmente, como um registro público à parte, e nada denuncia o privado; quem vê o privado continua vendo só ele. Se quem vê o privado o tornar público, ele toma o lugar do registro público. A opção "núcleos escolhidos" para casais desfeitos ainda não existe.
 - Quem edita a ficha: a própria pessoa. Para quem não acessa o site, membros do núcleo da pessoa ou do núcleo de que ela é parente, quem cadastrou e os admins.
@@ -102,9 +102,12 @@ A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `tes
 
 ## Lixeira e histórico
 
-- Excluir uma memória publicada é com os admins, passa por uma página de confirmação e manda para a lixeira (`/lixeira`). A memória some do site com fotos e relatos, mas nada é apagado.
+- Excluir uma memória publicada é com os admins, passa por uma página de confirmação e manda para a lixeira (`/lixeira`). A memória some do site com fotos e relatos, mas nada é apagado. Excluir um capítulo passa pela mesma confirmação (`/capitulos/<id>/excluir`).
+- A lixeira tem um link fixo no alto da página Rascunhos, além do rodapé (decisão do Gui, 16/11/2026).
+- Trazer algo de volta se diz sempre "Restaurar": "Restaurar esta versão", "Restaurar este texto", "Restaurar a foto" no histórico e "Restaurar" na lixeira. Os recados usam o mesmo verbo ("Versão restaurada", "Foto restaurada").
+- Remover um laço de árvore, um laço do coração ou um parente de amigo, e apagar um casal, pedem confirmação no próprio lugar (`ConfirmarRemocao.astro`): o primeiro toque abre a pergunta com o nome das duas pessoas, e só "Remover" envia. Vale até existir o histórico de laços no site.
 - Rascunho é de quem escreve: a própria pessoa descarta, e ele também vai para a lixeira.
-- Cada pessoa vê na lixeira só o que pode recuperar: admins, as memórias que enxergavam; os demais, os próprios rascunhos.
+- Cada pessoa vê na lixeira só o que pode restaurar: admins, as memórias que enxergavam; os demais, os próprios rascunhos.
 - O histórico de uma memória (`/memorias/<id>/historico`) mostra cada alteração da ficha, com o que mudou e como era antes. Quem pode corrigir a memória pode voltar a ficha para uma versão anterior.
 - Restaurar uma versão traz título, data, tipo, lugar e pessoas. Quem pode ver, núcleos e fotos ficam como estão, para uma restauração nunca abrir a memória a mais gente.
 - Do relato, cada pessoa vê só os textos anteriores do que ela mesma escreveu ou registrou, e pode voltar a um deles.
@@ -118,11 +121,18 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 - **Formulário longo vira etapas** (`src/lib/cliente/etapas.ts`): uma parte por vez, com a trilha no topo. Voltar é livre; para avançar, o obrigatório da etapa precisa estar preenchido. Sem JavaScript, as etapas aparecem todas em sequência. E os formulários funcionam: somem os botões que dependem de script (Voltar, Continuar, ±10, "Foi hoje", calendário, escolher fotos), aparecem os blocos que o script mostraria conforme a escolha, e os envios viram formulário comum. Fotos novas só se enviam com JavaScript; as que a memória já tem ficam.
 - **Quando o servidor recusa** um formulário, a página volta com o recado e com o que a pessoa tinha digitado. Fica guardado só nesta aba do navegador, até dar certo ou a aba fechar.
 - **Nova memória** tem seis etapas: o momento, pessoas e lugar, capítulo e temas, fotos, relato, quem vê. Numa memória já publicada, a etapa do relato some: cada pessoa cuida do seu na página da memória. "Salvar rascunho" fica disponível em todas; "Publicar" só na última, depois de um resumo para conferir.
-- **Data:** o ano começa vazio (preenchido com o ano atual, alguém poderia publicar uma memória antiga com o ano errado) e tem botões de −10, −1, +1 e +10. Mês e dia são opcionais. Um calendário e o botão "Foi hoje" preenchem dia, mês e ano de uma vez, para quem sabe a data exata. Uma data que não existe (31 de fevereiro, dia sem mês) é avisada ao lado dos campos assim que é escolhida, e segura o "Continuar"; vale também para nascimento e falecimento na ficha de pessoa.
+- **Data:** uma peça só em todos os formulários (`CampoData.astro`, decisão do Gui, 16/11/2026), na ordem ano, mês e dia, porque o ano é o que quase sempre se sabe. O ano começa vazio (preenchido com o ano atual, alguém poderia publicar uma memória antiga com o ano errado) e tem botões de −10, −1, +1 e +10 (`CampoAno.astro`), também no capítulo de época e nas fases do casal, que só pedem ano (e mês, no capítulo). Mês e dia são opcionais. Na memória, um calendário e o botão "Foi hoje" preenchem dia, mês e ano de uma vez, para quem sabe a data exata. Uma data que não existe (31 de fevereiro, dia sem mês) é avisada ao lado dos campos assim que é escolhida, e segura o "Continuar"; vale também para nascimento e falecimento na ficha de pessoa.
+- **Tipo de momento** começa sem nada marcado e é obrigatório para publicar, como o ano: marcado em "Dia a dia", um aniversário passava como dia a dia. Um rascunho pode ser salvo sem tipo (aparece como "Sem tipo").
+- **Quem pode ver**, na memória e no capítulo, pergunta primeiro "Toda a família vê" ou "Só quem é dos núcleos marcados", e depois quais núcleos. Na memória, os núcleos continuam visíveis com "toda a família", porque dizem de que núcleos a memória é.
+- **Publicar** tem um verbo só: "Confira antes de publicar", "Publicar memória", "Memória publicada". Na correção de uma memória publicada: "Confira antes de salvar", "Salvar alterações" e "Memória atualizada", com o lembrete de que a versão anterior ficou no histórico.
 - **Ações de etapa:** "Voltar" à esquerda; "Salvar rascunho" e a ação principal ("Continuar" ou "Publicar") à direita.
 - **Nova pessoa** pede só o essencial (nome, pessoa ou bicho, como se referir). Datas e história ficam recolhidas. O cadastro segue para uma segunda etapa só de laços.
 - **Tipo de laço** é escolhido em abas que dizem em uma frase o que cada uma é, e não em uma lista suspensa.
 - Lista de pessoas com mais de dez nomes ganha um campo para filtrar.
+- **Escolher uma pessoa entre muitas** é uma busca com sugestão (`src/lib/cliente/busca-pessoa.ts`, decisão do Gui, 16/11/2026): "Com quem" no "Adicionar laço", "Quem está contando" no relato e "Partir de" na árvore. No laço, a última sugestão é "Cadastrar Fulano", para quem ainda não está no acervo; o campo separado de nome novo some. Sem JavaScript, volta a lista suspensa de antes.
+- **Caixa de marcar em pílula** mostra uma caixa com tique antes do nome, para "várias" se distinguir de "uma" (o rádio em pílula não tem caixa).
+- **Ação principal no alto:** na memória ("Escrever meu relato" ou "Editar meu relato", depois "Corrigir esta memória" e o histórico), na pessoa ("Editar página e laços", depois "Ver na árvore") e no capítulo. Excluir fica por último, separado.
+- **Estados dos componentes:** pressionado em botões, opções, filtros e etiquetas; enviando em todo formulário comum (`src/lib/cliente/enviando.ts`), com o botão travado, o texto do que acontece ("Salvando…") e um segundo toque sem efeito; erro marcado no campo, além do balão do navegador; opção desabilitada com aparência própria. A aparência de cada estado é provisória, até o visual (`docs/ux/revisao-visual.md`).
 
 ## Capítulos e temas
 

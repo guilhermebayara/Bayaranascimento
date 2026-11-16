@@ -1,6 +1,6 @@
 ---
 // Formulário da ficha de um integrante. Serve para cadastrar e para editar.
-import { MESES } from '../lib/datas';
+import CampoData from './CampoData.astro';
 import { listarNucleos, type Integrante } from '../lib/servidor/repositorio';
 
 interface Props {
@@ -9,7 +9,6 @@ interface Props {
 
 const { integrante: i } = Astro.props;
 const nucleos = i ? await listarNucleos() : [];
-const anoAtual = new Date().getFullYear();
 const temMais = Boolean(i && (i.nascimentoAno || i.falecido || i.sobre));
 // O falecimento é uma opção: a data só aparece para quem marcou que a pessoa faleceu
 const datas = [
@@ -68,27 +67,7 @@ const datas = [
           )}
           <div class="campo" data-depende={d.depende ? 'falecimento' : undefined} hidden={d.depende && !i?.falecido}>
             <span>{d.rotulo}</span>
-            <div class="campos-data">
-              <label class="campo">
-                <span>Dia</span>
-                <input type="number" name={`${d.prefixo}Dia`} min="1" max="31" inputmode="numeric" value={d.dia ?? ''} />
-              </label>
-              <label class="campo">
-                <span>Mês</span>
-                <select name={`${d.prefixo}Mes`}>
-                  <option value="">Não sei</option>
-                  {MESES.map((m, n) => (
-                    <option value={n + 1} selected={d.mes === n + 1}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label class="campo">
-                <span>Ano</span>
-                <input type="number" name={`${d.prefixo}Ano`} min="1800" max={anoAtual} inputmode="numeric" value={d.ano ?? ''} />
-              </label>
-            </div>
+            <CampoData prefixo={d.prefixo} ano={d.ano} mes={d.mes} dia={d.dia} />
           </div>
           </>
         ))
@@ -140,8 +119,10 @@ const datas = [
 
 <script>
   import { ligarDatas } from '../lib/cliente/datas';
+  import { ligarCamposDeAno } from '../lib/cliente/etapas';
 
   const ficha = document.querySelector<HTMLFormElement>('[data-ficha]');
+  if (ficha) ligarCamposDeAno(ficha);
   if (ficha) ligarDatas(ficha, ['nascimento', 'falecimento'].map((p) => ({ ano: `${p}Ano`, mes: `${p}Mes`, dia: `${p}Dia` })));
   // "Já faleceu": a data só aparece marcada, e desmarcar apaga a data
   const falecido = ficha?.querySelector<HTMLInputElement>('[data-revela="falecimento"]');

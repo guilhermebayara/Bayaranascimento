@@ -2,9 +2,8 @@
 import { comArtigo } from '../lib/servidor/conteudo';
 import Base from '../layouts/Base.astro';
 import Abertura from '../components/Abertura.astro';
-import CampoAno from '../components/CampoAno.astro';
-import { TIPO_OUTRO, TIPO_PADRAO } from '../lib/tipos';
-import { MESES } from '../lib/datas';
+import CampoData from '../components/CampoData.astro';
+import { TIPO_OUTRO } from '../lib/tipos';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { podeEditarMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
 import { listarCapitulos, listarIntegrantes, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
@@ -53,7 +52,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     </p>
   </Abertura>
 
-  <form class="formulario" method="post" action="/api/memorias" data-formulario-memoria data-id={memoria?.id ?? ''} novalidate>
+  <form class="formulario" method="post" action="/api/memorias" data-formulario-memoria data-id={memoria?.id ?? ''} data-publicada={publicada ? '' : undefined} novalidate>
     {memoria && <input type="hidden" name="id" value={memoria.id} />}
     <section data-etapa="O momento">
     <fieldset>
@@ -64,18 +63,19 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       </label>
       <div class="campo">
         <span id="rotulo-tipo">Que tipo de momento foi?</span>
+        {/* Começa sem marcação: marcado por padrão, um aniversário passava como dia a dia (decisão do Gui, 16/11/2026) */}
         <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-tipo">
           {
             Astro.locals.tipos.map((tipo) => (
               <label class="opcao" style={`--cor-tipo: ${tipo.cor}`}>
-                <input type="radio" name="tipo" value={tipo.id} checked={tipo.id === (memoria?.tipo ?? TIPO_PADRAO)} />
+                <input type="radio" name="tipo" value={tipo.id} checked={tipo.id === memoria?.tipo} required />
                 <span class="tipo">{tipo.rotulo}</span>
               </label>
             ))
           }
         </div>
       </div>
-      <label class="campo" data-tipo-outro hidden={(memoria?.tipo ?? TIPO_PADRAO) !== TIPO_OUTRO}>
+      <label class="campo" data-tipo-outro hidden={memoria?.tipo !== TIPO_OUTRO}>
         <span>O que foi? <small>(opcional)</small></span>
         <input type="text" name="tipoOutro" maxlength="40" autocomplete="off" value={memoria?.tipoOutro ?? ''} placeholder="Ex.: Formatura" />
         <span class="dica">Uma ou duas palavras. Se outras memórias usarem o mesmo nome, ele pode virar um tipo da lista.</span>
@@ -84,23 +84,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 
     <fieldset>
       <legend>Quando foi?</legend>
-      <div class="campo">
-        <label for="campo-ano">Ano</label>
-        <CampoAno id="campo-ano" nome="ano" valor={memoria?.ano} obrigatorio />
-      </div>
-      <div class="campos-data campos-data--dois">
-        <label class="campo">
-          <span>Mês, se souber</span>
-          <select name="mes">
-            <option value="">Não sei</option>
-            {MESES.map((nome, i) => <option value={i + 1} selected={memoria?.mes === i + 1}>{nome}</option>)}
-          </select>
-        </label>
-        <label class="campo">
-          <span>Dia, se souber</span>
-          <input type="number" name="dia" inputmode="numeric" min="1" max="31" value={memoria?.dia ?? ''} />
-        </label>
-      </div>
+      <CampoData ano={memoria?.ano} mes={memoria?.mes} dia={memoria?.dia} obrigatorio />
       <div class="atalhos">
         <label class="campo">
           <span>Ou escolha no calendário</span>
@@ -243,6 +227,14 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     <section data-etapa="Quem vê">
     <fieldset>
       <legend>Quem pode ver?</legend>
+      <label class="marcar">
+        <input type="radio" name="visibilidade" value="todos" checked={(memoria?.visibilidade ?? 'todos') === 'todos'} disabled={travaQuemVe} />
+        <span>Toda a família vê</span>
+      </label>
+      <label class="marcar">
+        <input type="radio" name="visibilidade" value="nucleos" checked={memoria?.visibilidade === 'nucleos'} disabled={travaQuemVe} />
+        <span>Só quem é dos núcleos marcados abaixo</span>
+      </label>
       {
         nucleosDisponiveis.length > 0 && (
           <div class="campo">
@@ -258,20 +250,12 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           </div>
         )
       }
-      <label class="marcar">
-        <input type="radio" name="visibilidade" value="todos" checked={(memoria?.visibilidade ?? 'todos') === 'todos'} disabled={travaQuemVe} />
-        <span>Toda a família vê</span>
-      </label>
-      <label class="marcar">
-        <input type="radio" name="visibilidade" value="nucleos" checked={memoria?.visibilidade === 'nucleos'} disabled={travaQuemVe} />
-        <span>Só quem é dos núcleos marcados acima</span>
-      </label>
       {travaQuemVe && <input type="hidden" name="visibilidade" value={memoria!.visibilidade} />}
       {travaNucleos && memoria!.nucleos.map((n) => <input type="hidden" name="nucleos" value={n} />)}
       <p class="dica">{travaQuemVe ? `Só ${quemCriou}, que criou a memória, muda quem pode ver.` : 'Dá para mudar depois. Quem não pode ver não fica sabendo que a memória existe.'}</p>
     </fieldset>
       <div class="resumo" data-resumo hidden>
-        <h2>Confira antes de guardar</h2>
+        <h2>{publicada ? 'Confira antes de salvar' : 'Confira antes de publicar'}</h2>
         <dl data-resumo-lista></dl>
       </div>
     </section>
@@ -293,8 +277,8 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
   </form>
 
   <div class="confirmacao" data-confirmacao hidden>
-    <h2>Memória guardada</h2>
-    <p>Ela já está na linha do tempo.</p>
+    <h2>{publicada ? 'Memória atualizada' : 'Memória publicada'}</h2>
+    <p>{publicada ? 'A versão anterior ficou guardada no histórico da memória.' : 'Ela já está na linha do tempo.'}</p>
     <p>
       <a class="botao" data-confirmacao-link href="/">Ver a memória</a>
       <a class="botao botao--leve" href="/nova">Registrar outra memória</a>
@@ -306,6 +290,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
   import { ligarCamposDeAno, montarEtapas } from '../lib/cliente/etapas';
   import { ligarDatas } from '../lib/cliente/datas';
   import { prepararFoto } from '../lib/cliente/fotos';
+  import { buscaDePessoa } from '../lib/cliente/busca-pessoa';
 
   const form = document.querySelector<HTMLFormElement>('[data-formulario-memoria]');
   if (form) {
@@ -313,6 +298,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     const listaFotos = form.querySelector<HTMLUListElement>('[data-fotos]')!;
     const novasPessoas = form.querySelector<HTMLElement>('[data-novas-pessoas]')!;
     const relatoPor = form.querySelector<HTMLSelectElement>('[data-relato-por]');
+    if (relatoPor) buscaDePessoa(relatoPor);
     const botoes = [...form.querySelectorAll<HTMLButtonElement>('[data-salvar]')];
     const idExistente = form.dataset.id || undefined;
     const RASCUNHO_LOCAL = 'rascunho-nova-memoria';
@@ -343,6 +329,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         ['Quem', pessoas.join(', ') || 'ninguém marcado'],
         ['Onde', String(d.get('lugar') ?? '').trim() || 'não informado'],
         ['Capítulo', [...form.querySelectorAll<HTMLInputElement>('input[name="capitulos"]:checked')].map((c) => c.nextElementSibling?.textContent ?? '').join(', ') || 'nenhum'],
+        ['Temas', String(d.get('temas') ?? '').split(',').map((t) => t.trim()).filter(Boolean).join(', ') || 'nenhum'],
         ['Fotos', fotos === 0 ? 'nenhuma' : fotos === 1 ? '1 foto' : `${fotos} fotos`],
       ];
       if (form.querySelector('[name="relato"]')) linhas.push(['Relato', String(d.get('relato') ?? '').trim() ? 'escrito' : 'em branco, dá para escrever depois']);
@@ -543,7 +530,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         mes: dados.get('mes') ? Number(dados.get('mes')) : undefined,
         dia: dados.get('dia') ? Number(dados.get('dia')) : undefined,
         aproximada: dados.get('aproximada') === 'on',
-        tipo: dados.get('tipo'),
+        tipo: dados.get('tipo') ?? '',
         tipoOutro: dados.get('tipo') === 'outro' ? String(dados.get('tipoOutro') ?? '').trim() || undefined : undefined,
         pessoas: [...dados.getAll('pessoas').map(String), ...novas.map((_, i) => `nova:${i}`)],
         novasPessoas: novas,
@@ -562,7 +549,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       };
 
       for (const b of botoes) b.disabled = true;
-      avisar(situacao === 'rascunho' ? 'Salvando rascunho…' : 'Guardando…');
+      avisar(situacao === 'rascunho' ? 'Salvando rascunho…' : form.dataset.publicada !== undefined ? 'Salvando…' : 'Publicando…');
       try {
         const resposta = await fetch('/api/memorias', {
           method: 'POST',

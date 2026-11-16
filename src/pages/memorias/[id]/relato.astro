@@ -78,8 +78,11 @@ const opcoes = await Promise.all(
 </Base>
 
 <script>
+  import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';
+
   const form = document.querySelector<HTMLFormElement>('[data-formulario-relato]');
   if (form) {
+    buscaDePessoa(form.querySelector<HTMLSelectElement>('select[name="por"]')!);
     interface Opcao {
       id: string;
       texto: string;

@@ -145,10 +145,14 @@ const comLaco = comLacoDeArvore(dados);
 
 <script>
   import { montarArvore, type DadosDaArvore } from '../lib/cliente/arvore';
+  import { buscaDePessoa } from '../lib/cliente/busca-pessoa';
 
   const raiz = document.querySelector<HTMLElement>('[data-arvore]');
   const bruto = document.getElementById('dados-da-arvore')?.textContent;
   if (raiz && bruto) {
     montarArvore(raiz, JSON.parse(bruto) as DadosDaArvore);
+    // "Partir de": busca com sugestão no lugar da lista com todo mundo
+    const centro = raiz.querySelector<HTMLSelectElement>('select[name="centro"]');
+    if (centro) buscaDePessoa(centro);
   }
 </script>

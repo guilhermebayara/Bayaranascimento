@@ -53,6 +53,10 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
     </p>
     <h1>{capitulo.titulo}</h1>
     <p>{[textoDoPeriodo, contar(memorias.length)].filter(Boolean).join(', ')}</p>
+    {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026) */}
+    <p class="acoes acoes--pagina">
+      <a class="botao" href={`/capitulos/${capitulo.id}/editar`}>{capitulo.modo === 'reunido' ? 'Escolher memórias e editar' : 'Editar capítulo'}</a>
+    </p>
     {maior && <p class="dica">Parte de <a href={`/capitulos/${maior.id}`}>{maior.titulo}</a></p>}
     {capitulo.abertura && <div class="bio">{capitulo.abertura.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
     {temas.length > 0 && (
@@ -60,9 +64,6 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
         Temas: {temas.map((t, i) => <>{i > 0 && ', '}<a href={`/temas/${t.id}`}>{t.nome}</a></>)}
       </p>
     )}
-    <p class="acoes">
-      <a class="botao botao--leve" href={`/capitulos/${capitulo.id}/editar`}>{capitulo.modo === 'reunido' ? 'Escolher memórias e editar' : 'Editar capítulo'}</a>
-    </p>
   </div>
 
   {
@@ -119,6 +120,6 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
     memorias={memorias}
     integrantes={integrantes}
     nucleos={nucleos}
-    vazio={capitulo.modo === 'epoca' ? 'Nenhuma memória registrada neste período ainda.' : 'Este capítulo ainda não tem memórias. Use o botão acima para escolher.'}
+    vazio={capitulo.modo === 'epoca' ? 'Nenhuma memória registrada neste período ainda.' : 'Este capítulo ainda não tem memórias. Use "Escolher memórias e editar", no alto, para escolher.'}
   />
 </Base>

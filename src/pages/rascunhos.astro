@@ -12,6 +12,8 @@ const relatos = await listarRascunhosDeRelato(usuario);
 <Base titulo="Rascunhos">
   <Abertura titulo="Rascunhos">
     <p>O que você começou e ainda não publicou. Só você vê esta lista.</p>
+    {/* A lixeira fica junto dos rascunhos, além do rodapé (decisão do Gui, 16/11/2026) */}
+    <p class="acoes"><a class="link-acao" href="/lixeira">Ver a lixeira: o que foi descartado ou excluído</a></p>
   </Abertura>
 
   {

@@ -1,6 +1,27 @@
 # Fluxos (QA de UX, 16/11/2026)
 
-Cada fluxo tem os passos de hoje, onde a pessoa hesita ou volta, a recomendação e a alternativa descartada. Tudo aqui é proposta: muda a tela, então é decisão do Gui. As capturas citadas estão em `docs/ux/capturas/`.
+Cada fluxo tem os passos de hoje, onde a pessoa hesita ou volta, a recomendação e a alternativa descartada. As capturas citadas estão em `docs/ux/capturas/` e mostram a interface de antes das decisões abaixo.
+
+## O que o Gui decidiu (16/11/2026)
+
+Aprovado e construído na branch `qa-ux-decisoes`, com as regras em `docs/decisoes.md`:
+
+1. Tipo de momento sem marcação, obrigatório para publicar.
+2. "Quem pode ver" pergunta primeiro todos ou núcleos.
+3. Um verbo só para publicar.
+4. "Restaurar" em tudo o que traz de volta.
+5. Excluir capítulo pela mesma página de confirmação da memória.
+6. Remover laço e apagar casal com confirmação no próprio lugar.
+7. Busca com sugestão para escolher pessoa ("Com quem", "Quem está contando", "Partir de").
+8. Caixas de marcar com cara de caixa.
+9. Uma peça só para datas, na ordem ano, mês, dia.
+10. Ação principal no alto da memória, da pessoa e do capítulo.
+11. Lixeira junto dos rascunhos.
+12. Textos do parentesco: possessivo na própria página e "filho" ou "filha" conforme "como se referir".
+13. Áreas de toque: ficam para a revisão visual (`docs/ux/revisao-visual.md`).
+14. Estados pressionado, enviando, erro no campo e opção desabilitada.
+
+Ficaram como recomendação, sem decisão ainda: as outras propostas desta página, como mostrar "É outra pessoa" só com nome repetido, "Já faleceu" fora do recolhido, o salto por década na linha do tempo, o menu só com seções, "Ver na árvore" na memória, botões de opção para "Destacar", "Filiação" e "Proximidade", e o recado de primeira visita.
 
 ## Cadastrar pessoa e adicionar laços
 

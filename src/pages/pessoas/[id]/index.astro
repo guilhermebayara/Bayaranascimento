@@ -23,8 +23,14 @@ const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario)
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 const chamar = pessoa.apelido ?? pessoa.nome;
-// O que cada parente é desta pessoa: "mãe", "irmão", "filho de consideração"
-const papel = (id: string) => familia.relacao(pessoa.id, id)?.texto;
+// O que cada parente é desta pessoa: "mãe", "irmão", "filho de consideração".
+// Na própria página, com o possessivo, como os laços do coração: "sua mãe", "sua vó de consideração".
+const ehMinha = pessoa.id === usuario.pessoa;
+const papel = (id: string) => {
+  const relacao = familia.relacao(pessoa.id, id);
+  if (!relacao) return undefined;
+  return ehMinha ? possessivo(relacao, achar(id)?.tratamento ?? null) : relacao.texto;
+};
 const paraVoce = pessoa.id === usuario.pessoa ? undefined : familia.relacao(usuario.pessoa, pessoa.id);
 
 const pais = familia.pais(pessoa.id).map((p) => p.responsavel);
@@ -56,12 +62,13 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
     {resumo && <p>{resumo}</p>}
     {paraVoce && <p class="parentesco">{chamar} é {possessivo(paraVoce, pessoa.tratamento)}.</p>}
     {meuLaco && <p class="parentesco">{chamar} é {lacoParaODono(meuLaco.nome, pessoa.tratamento)}.</p>}
+    {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026) */}
+    <p class="acoes acoes--pagina">
+      <a class="botao" href={`/pessoas/${pessoa.id}/editar`}>{podeEditar ? 'Editar página e laços' : 'Adicionar laço'}</a>
+      {temLacoDeArvore && <a class="botao botao--leve" href={`/arvore?centro=${pessoa.id}`}>Ver na árvore</a>}
+    </p>
     {datasDeVida(pessoa).map((linha) => <p class="dica">{linha}</p>)}
     {pessoa.sobre && <div class="bio">{pessoa.sobre.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
-    <p class="acoes">
-      {temLacoDeArvore && <a class="botao botao--leve" href={`/arvore?centro=${pessoa.id}`}>Ver na árvore</a>}
-      <a class="botao botao--leve" href={`/pessoas/${pessoa.id}/editar`}>{podeEditar ? 'Editar página e laços' : 'Adicionar laço'}</a>
-    </p>
   </div>
 
   {

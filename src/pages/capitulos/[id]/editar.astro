@@ -63,17 +63,5 @@ const minhas = capitulo.modo === 'reunido' ? (await listarMemorias(usuario)).fil
     )
   }
 
-  {
-    usuario.admin && (
-      <section class="alerta">
-        <h2>Excluir capítulo</h2>
-        <p>O capítulo vai para a lixeira e pode ser recuperado. As memórias dele continuam no acervo, só deixam de estar reunidas.</p>
-        <form method="post" action="/api/capitulos" class="acoes">
-          <input type="hidden" name="acao" value="excluir" />
-          <input type="hidden" name="id" value={capitulo.id} />
-          <button class="botao botao--perigo" type="submit">Excluir capítulo</button>
-        </form>
-      </section>
-    )
-  }
+  {usuario.admin && <p class="memoria__rodape"><a href={`/capitulos/${capitulo.id}/excluir`}>Excluir capítulo</a></p>}
 </Base>

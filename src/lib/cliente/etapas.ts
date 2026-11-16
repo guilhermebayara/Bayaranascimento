@@ -34,6 +34,15 @@ export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, seca
   const contagem = document.createElement('p');
   contagem.className = 'etapas__contagem';
   form.prepend(trilha, contagem);
+  const limparErro = (evento: Event) => {
+    const el = evento.target as HTMLInputElement;
+    if (!el.name) return;
+    for (const irmao of form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(el.name)}"][aria-invalid]`)) {
+      if (irmao.checkValidity()) irmao.removeAttribute('aria-invalid');
+    }
+  };
+  form.addEventListener('input', limparErro);
+  form.addEventListener('change', limparErro);
   form.classList.add('com-etapas');
 
   const voltar = form.querySelector<HTMLButtonElement>('[data-etapa-voltar]');
@@ -44,6 +53,8 @@ export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, seca
   const valida = (secao: HTMLElement): boolean => {
     for (const el of secao.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea')) {
       if (!el.disabled && !el.checkValidity()) {
+        // O erro fica marcado no campo, além do balão do navegador, até ser corrigido
+        el.setAttribute('aria-invalid', 'true');
         el.reportValidity();
         return false;
       }

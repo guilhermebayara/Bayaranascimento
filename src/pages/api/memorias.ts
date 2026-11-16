@@ -60,7 +60,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const resposta = await tratar(pedidoDoFormulario(dados, anterior), locals);
     const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string };
     if (!resposta.ok) return voltar(request, id ? `/nova?id=${id}` : '/nova', { erro: corpo.erro ?? 'Não consegui salvar.' });
-    return voltar(request, corpo.url!, { ok: corpo.situacao === 'rascunho' ? 'Rascunho salvo.' : 'Memória guardada.' });
+    const recado = corpo.situacao === 'rascunho' ? 'Rascunho salvo.' : anterior?.situacao === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
+    return voltar(request, corpo.url!, { ok: recado });
   }
   let bruto: unknown;
   try {
@@ -103,7 +104,9 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
   const pedido = lido.data;
 
-  if (!locals.tipos.some((t) => t.id === pedido.tipo)) return erro(400, 'Escolha o tipo de momento.');
+  // O tipo começa sem marcação no formulário. Um rascunho pode ser salvo sem ele; para publicar, é obrigatório.
+  const rascunhoSemTipo = !pedido.tipo && pedido.situacao === 'rascunho';
+  if (!rascunhoSemTipo && !locals.tipos.some((t) => t.id === pedido.tipo)) return erro(400, 'Escolha o tipo de momento.');
 
   const erroData = validarData(pedido.ano, pedido.mes, pedido.dia);
   if (erroData) return erro(400, erroData);
@@ -117,6 +120,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   }
   // Uma memória publicada não volta a ser rascunho
   const situacao = anterior?.situacao === 'publicada' ? 'publicada' : pedido.situacao;
+  if (situacao === 'publicada' && !pedido.tipo) return erro(400, 'Escolha o tipo de momento.');
 
   // Núcleos: a pessoa marca os seus. Numa edição, os que já estavam continuam valendo.
   const nucleosExistentes = new Set((await listarNucleos()).map((n) => n.id));

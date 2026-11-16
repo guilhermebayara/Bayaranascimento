@@ -71,6 +71,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   const campo = <T extends HTMLElement>(nome: string) => controles.elements.namedItem(nome) as unknown as T;
   const refletirNosControles = () => {
     campo<HTMLSelectElement>('centro').value = estado.centro;
+    campo<HTMLSelectElement>('centro').dispatchEvent(new Event('busca:atualizar'));
     campo<HTMLSelectElement>('nucleo').value = estado.nucleo;
     for (const nome of CHAVES) campo<HTMLInputElement>(nome).checked = estado[nome];
     campo<HTMLInputElement>('amigos').checked = Boolean(estado.amigos);
