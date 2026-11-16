@@ -1,6 +1,6 @@
 # Memórias Bayara e Bracarense (memorias.bayara.com.br)
 
-Instruções para qualquer sessão de trabalho neste repositório. O site é o acervo privado de memórias da família, presente de Natal de 2026 do Gui e da Giovanna. Até o Natal é surpresa: só os dois usam e alimentam o acervo. O site é em português; o código, os comentários e as mensagens de commit também.
+Instruções para qualquer sessão de trabalho neste repositório. O site é o acervo privado de memórias da família, presente de Natal de 2026 do Gui, da Giovanna e do Magno (Lucas Magno), que também cuidam do acervo. Até o Natal é surpresa: só os três usam e alimentam o acervo. O site é em português; o código, os comentários e as mensagens de commit também.
 
 Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto) e `docs/publicar.md` (ambientes e configuração no Cloudflare).
 
@@ -11,9 +11,8 @@ Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto) e
   - O código é feito principalmente no Claude Code: tanto a construção quanto as sessões de QA, no mesmo modelo do site da @bsurda e do bayara.design.
   - A ponte entre os dois é a documentação. O que foi decidido e ainda não existe fica em `docs/decisoes.md`, na seção "Decidido, a construir", com o detalhe necessário para uma sessão do Claude Code construir sem precisar da conversa. Quando a construção termina, o item sai dali e vira regra na seção do assunto.
 - A estrutura completa (integrantes, laços, núcleos, memórias, capítulos, visibilidade, árvore, ordem de construção) está no documento "Acervo da família: proposta de estrutura", nos Claude Docs do Gui: https://claude.ai/artifact/35pDU29F4JH1edsCYZTGAD. Ele vale junto com `docs/decisoes.md`; quando os dois discordam, pergunte.
-- A Giovanna não usa o Claude. Ela opina olhando a homologação e comentando numa cópia do documento de estrutura no Google Docs do Gui ("Acervo da família: proposta de estrutura (cópia para comentários)", em `1_Documentos` da pasta do projeto). Os comentários dela voltam para o documento principal pelo Gui, numa conversa com o Claude.
-- O Lucas Magno passou a participar do projeto em 16/11/2026 (do Gui). Para os outros, continua surpresa até o Natal.
-- Prazo: Natal de 2026, quando o site é dado de presente. Até lá o Gui e a Giovanna alimentam o acervo, e os outros acessos são liberados no dia.
+- A Giovanna e o Magno não usam o Claude. Eles opinam olhando a homologação e comentando numa cópia do documento de estrutura no Google Docs do Gui ("Acervo da família: proposta de estrutura (cópia para comentários)", em `1_Documentos` da pasta do projeto). Essa cópia é a ponte dos dois com o projeto e é escrita para eles, com foco em colaborar. A parte técnica (como o trabalho acontece, os endereços, onde os dados ficam, cópias de segurança e custos) fica em outro documento na mesma pasta, "Acervo da família: parte técnica", linkado no alto da cópia. Quando algo mudar, os três documentos acompanham. Os comentários voltam para o documento principal pelo Gui, numa conversa com o Claude.
+- Prazo: Natal de 2026, quando o site é dado de presente. Até lá o Gui, a Giovanna e o Magno alimentam o acervo, e os outros acessos são liberados no dia.
 - Quando o trabalho fica em andamento e o Gui vai dormir ou sair, a última resposta diz tudo o que ele precisa ver quando voltar.
 
 ## Pasta do projeto no Drive (do Gui)
@@ -42,11 +41,11 @@ Nada desta pasta entra no repositório. A exceção são as fotos do Chico e da 
 | Branch | Endereço | Dados | Login |
 | --- | --- | --- | --- |
 | `main` | memorias.bayara.com.br | Banco e fotos reais (`bayara-memorias`) | Cloudflare Access, a família |
-| `homologa` | homologa.memorias.bayara.com.br | Banco e bucket `bayara-memorias-homologa`: a estrutura da família espelhada da produção, com nomes e memórias inventados. As fotos e os retratos de exemplo são lidos de `exemplos/` no bucket de teste, só leitura | Cloudflare Access, só Gui e Giovanna |
+| `homologa` | homologa.memorias.bayara.com.br | Banco e bucket `bayara-memorias-homologa`: a estrutura da família espelhada da produção, com nomes e memórias inventados. As fotos e os retratos de exemplo são lidos de `exemplos/` no bucket de teste, só leitura | Cloudflare Access, só Gui, Giovanna e Magno |
 | `tst-<assunto>` e as demais | `<branch>.memorias.bayara.com.br` | Banco e bucket `bayara-memorias-teste`, com o acervo de exemplo | Sem login |
 
 - `main` é a produção. Cada push publica sozinho, com o banco e as fotos reais.
-- `homologa` é a homologação: o ensaio da publicação. Ela recebe só o que vai para a `main` em seguida, e é onde o Gui e a Giovanna aprovam. O banco dela só muda com o código dela, no mesmo caminho que a produção vai seguir.
+- `homologa` é a homologação: o ensaio da publicação. Ela recebe só o que vai para a `main` em seguida, e é onde o Gui, a Giovanna e o Magno aprovam. O banco dela só muda com o código dela, no mesmo caminho que a produção vai seguir.
 - `tst-<assunto>` é um teste: um experimento ou uma comparação de layout. Nasce da `homologa` (ou da `main`, enquanto a `homologa` não existir), tem a própria prévia e é apagada quando a ideia vai para a `homologa` ou é descartada. As prévias de teste dividem um banco só, com o acervo de exemplo, então podem mexer nele à vontade.
 - O caminho de uma mudança: `tst-<assunto>` → PR com squash para a `homologa` → aprovação na homologação → `main` por fast-forward da `homologa`. Nunca force um push.
 - Mudança só de documentação ou de regras de trabalho (`CLAUDE.md`, `README.md`, `docs/`) pode ir direto para a `main`, para toda sessão nova já encontrar. Depois, traga a `main` para a `homologa`.

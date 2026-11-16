@@ -40,7 +40,7 @@ Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso 
 
 | Tela | A ideia | O que fica quieto |
 | --- | --- | --- |
-| Painel (página inicial) | Na primeira visita, a carta de Natal assinada à mão pelo Gui e pela Giovanna. Depois, o que entrou de novo, como quem abre a caixa e acha fotos que não estavam lá | Aniversários e atalhos, em segundo plano |
+| Painel (página inicial) | Na primeira visita, a carta de Natal assinada à mão pelo Gui, pela Giovanna e pelo Magno. Depois, o que entrou de novo, como quem abre a caixa e acha fotos que não estavam lá | Aniversários e atalhos, em segundo plano |
 | Tudo e famílias | A assinatura ("MEMÓRIAS" e os sobrenomes) grande, e logo o ano mais recente abrindo a lista | Menu e filtros pequenos |
 | Linha do tempo | O ano grande como divisória e as fotos-chave como polaroids | A ficha de cada memória em uma linha mono |
 | Memória | A foto e o verso: a imagem grande, a ficha como carimbo, os relatos como bilhetes assinados | Corrigir, histórico |
@@ -48,6 +48,7 @@ Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso 
 | Capítulo | Abertura de capítulo de livro: título, período, marcos numerados | Edição |
 | Árvore | As famílias em cor, cartões como etiquetas com nome e parentesco | Camadas e controles |
 | Formulários | Uma pergunta por tela, grande, em serifa, como quem conversa | A trilha das etapas |
+| Sua conta | O retrato e o nome da pessoa no alto, e as coisas dela em ordem: dados, rascunhos, o que criou, laços | A administração, no fim, só para quem administra |
 | Rascunhos, lixeira, administração | Utilitário e silencioso | Tudo |
 
 ### O nível de qualidade
