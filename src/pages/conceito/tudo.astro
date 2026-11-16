@@ -406,6 +406,46 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
       });
     }
 
+    // No celular o ano fica parado no alto, com fundo. Enquanto está parado, ele leva o tom do chão
+    // que está logo embaixo dele: assim não vira uma faixa de outro tom quando uma época começa ou
+    // acaba no meio do ano. Fora dali, vale o tom de entre um ano e outro, que veio do servidor.
+    const estreita = matchMedia('(max-width: 61.99rem)');
+    const cabecas = [...raiz.querySelectorAll<HTMLElement>('.ano > .ano__cabeca')];
+    for (const c of cabecas) c.dataset.chaoDeCima = c.dataset.naEpoca ?? '';
+    const tom = (c: HTMLElement, valor: string) => {
+      if (valor) c.dataset.naEpoca = valor;
+      else delete c.dataset.naEpoca;
+    };
+    let marcado = false;
+    const acertarOsAnos = () => {
+      marcado = false;
+      for (const c of cabecas) {
+        const caixa = c.getBoundingClientRect();
+        const secao = c.parentElement!.getBoundingClientRect();
+        // Parado: o alto da seção já passou por ele, e a seção ainda não acabou
+        const parado = estreita.matches && !raiz.hasAttribute('data-filtrando') && secao.top < caixa.top - 1 && secao.bottom > caixa.bottom;
+        if (!parado) {
+          tom(c, c.dataset.chaoDeCima!);
+          continue;
+        }
+        const linhaDeBaixo = caixa.bottom + 1;
+        const blocos = [...c.parentElement!.querySelectorAll<HTMLElement>(':scope > .ano__itens > *')];
+        const embaixo = blocos.find((bloco) => bloco.getClientRects().length > 0 && bloco.getBoundingClientRect().top <= linhaDeBaixo && bloco.getBoundingClientRect().bottom > linhaDeBaixo);
+        if (!embaixo) continue;
+        // Na aba do alto de uma época, o chão dela começa onde a aba acaba
+        const chao = embaixo.querySelector<HTMLElement>('.epoca__chao');
+        const dentro = chao && chao.getBoundingClientRect().top <= linhaDeBaixo;
+        tom(c, (dentro ? embaixo.dataset.chao : embaixo.dataset.naEpoca) ?? '');
+      }
+    };
+    const pedirOsAnos = () => {
+      if (marcado) return;
+      marcado = true;
+      requestAnimationFrame(acertarOsAnos);
+    };
+    addEventListener('scroll', pedirOsAnos, { passive: true });
+    addEventListener('resize', pedirOsAnos, { passive: true });
+
     const inicial = new URLSearchParams(location.search).get('tipo') ?? '';
     if (inicial && validos.has(inicial)) {
       aplicar(inicial);
@@ -417,13 +457,6 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
       const itensDaBarra = [...raiz.querySelectorAll<HTMLElement>('.decadas [data-decada]')];
       const marcar = (atual: HTMLElement) => {
         for (const e of entradas) e.toggleAttribute('data-em-leitura', e === atual);
-        // No celular o ano fica parado no alto, com fundo: ele acompanha o chão da memória em leitura,
-        // para não virar uma faixa de outro tom quando a época começa no meio do ano
-        const cabeca = atual.closest('.ano')?.querySelector<HTMLElement>('.ano__cabeca');
-        if (cabeca) {
-          if (atual.dataset.naEpoca) cabeca.dataset.naEpoca = atual.dataset.naEpoca;
-          else delete cabeca.dataset.naEpoca;
-        }
         const decada = atual.closest<HTMLElement>('.ano')?.dataset.decada;
         for (const item of itensDaBarra) item.toggleAttribute('data-aqui', item.dataset.decada === decada);
       };

@@ -242,8 +242,8 @@ describe('conceito', () => {
     for (const nome of ['Família', 'Tipo', 'Década']) expect(pagina).toMatch(new RegExp(`rotulo[^>]*>\\s*${nome}\\s*<`));
     // A lista de tipos abre dentro do próprio controle: nenhuma regra muda o lugar dele quando abre
     expect(css).not.toMatch(/\.filtros\[open\]\s*\{[^}]*grid-(column|row|area)/);
-    // A faixa de décadas leva a cor da família, e não o papel
-    expect(css).toMatch(/\.decadas\s*\{[^}]*background:\s*var\(--pastel\)/);
+    // A faixa de décadas leva a cor da família, diluída no papel: o pastel cheio pesou
+    expect(css).toMatch(/\.decadas\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--pastel\) \d+%, var\(--papel\)\)/);
     // Fechado, o controle do tipo diz o que está escolhido
     expect(pagina).toContain('data-filtro-atual');
   });

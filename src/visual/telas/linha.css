@@ -150,7 +150,9 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--pastel);
+  /* A cor da família bem diluída no papel: o pastel cheio ficou "amarelo demais" (do Gui, 16/11/2026) */
+  background: color-mix(in srgb, var(--pastel) 38%, var(--papel));
+  border-bottom: 1px solid color-mix(in srgb, var(--meio) 40%, var(--papel));
 }
 .decadas__dentro {
   display: flex;
