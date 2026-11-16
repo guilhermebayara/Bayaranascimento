@@ -432,6 +432,16 @@ const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS lacos_resumidos_de_b ON lacos_resumidos (b_id)`,
     ],
   },
+  {
+    // Data da adoção nos laços adotivos (pedido do Gui, 16/11/2026). Flexível como as outras datas:
+    // só o ano, mês e ano, ou completa. Fica vazia nos outros tipos de filiação.
+    id: '014-data-da-adocao',
+    sql: [
+      `ALTER TABLE filiacoes ADD COLUMN adocao_ano INTEGER`,
+      `ALTER TABLE filiacoes ADD COLUMN adocao_mes INTEGER`,
+      `ALTER TABLE filiacoes ADD COLUMN adocao_dia INTEGER`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

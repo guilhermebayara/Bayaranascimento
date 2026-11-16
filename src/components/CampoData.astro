@@ -14,11 +14,13 @@ interface Props {
   obrigatorio?: boolean;
   /** Rótulo do ano. "Ano" por padrão */
   rotuloAno?: string;
+  /** id do campo de ano, quando a mesma data se repete em vários formulários da página */
+  id?: string;
 }
 
 const { prefixo = '', ano, mes, dia, obrigatorio = false, rotuloAno = 'Ano' } = Astro.props;
 const nome = (parte: 'ano' | 'mes' | 'dia') => (prefixo ? `${prefixo}${parte[0].toUpperCase()}${parte.slice(1)}` : parte);
-const id = `campo-${nome('ano')}`;
+const id = Astro.props.id ?? `campo-${nome('ano')}`;
 ---
 
 <div class="campo">

@@ -40,8 +40,8 @@ O Gui pediu atenção aos formulários pensando em quem tem menos familiaridade 
 ### O que ainda fica recomendado
 
 - **Trocar a pessoa de um laço** dentro de "Editar". Hoje continua sendo remover e adicionar. Precisa de uma ação nova na API que remove e cria numa vez só, com a mesma validação. Recomendo quando o histórico de laços existir.
-- **Cadastro guiado de família:** depois de "Cadastrar e ir para os laços", perguntar em sequência "Quem são os pais de Fulano?", "Fulano tem casal?", "Tem filhos?", cada uma com a busca e "Pular". O formulário de laço com abas continua para quem já sabe o que quer. Descartei para esta rodada porque dobra o caminho de cadastro; vale testar numa prévia com alguém da família.
-- **Tipo de momento com 11 opções** numa tela de celular ainda é muita coisa. Quando a lista crescer, agrupar ("Celebrações", "Mudanças", "Dia a dia") ou mostrar os 6 mais usados e "Ver todos".
+- ~~Cadastro guiado de família~~ e ~~tipos mais usados à vista~~: aprovados pelo Gui e construídos (ver `docs/decisoes.md`).
+- **Como se referir de quem entra pelo nome novo:** quem é cadastrado na hora, por "Cadastrar Fulano", entra sem "como se referir", e o site escreve "pai ou mãe". Perguntar "Ela" ou "Ele" junto do nome novo resolveria.
 - **Relato por áudio:** já está em "Decidido, a construir". Para quem tem menos familiaridade com teclado, gravar é mais fácil que escrever; a etapa do relato é o lugar natural para o botão de gravar.
 - **Capítulo:** as três etapas funcionam. "Como as memórias entram?" (reunido ou de época) é a decisão mais difícil do site para quem não conhece a ideia; um exemplo visual de cada um, na revisão visual, ajuda mais que texto.
 

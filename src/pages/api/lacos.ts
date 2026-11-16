@@ -1,7 +1,7 @@
 // Laços de árvore: filiação (de quem alguém é filho) e casal, com suas fases.
 import type { APIRoute } from 'astro';
 import { FASES, FASES_JUNTOS, Familia, PAPEIS, nomeDoPapel, PROXIMIDADES, QUALIDADES, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
-import { criarSlug, slugUnico } from '../../lib/servidor/conteudo';
+import { criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeMexerEmLaco } from '../../lib/servidor/permissoes';
 import { sugerirFamilias, type LacoNovo } from '../../lib/familias';
@@ -239,8 +239,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (qualidade === 'biologica' && outrosBiologicos.length >= 2) {
       return falhar(`${nome(filho.id)} já tem dois pais biológicos cadastrados. Para outros laços, use adotiva ou de consideração.`);
     }
+    // Data da adoção: opcional, só no laço adotivo, flexível como as outras (só o ano já basta)
+    let adocao: { ano: number; mes: number | null; dia: number | null } | null = null;
+    if (qualidade === 'adotiva') {
+      const numero = (nome: string) => (campo(dados, nome, 4) ? Number(campo(dados, nome, 4)) : null);
+      const [ano, mes, dia] = [numero('adocaoAno'), numero('adocaoMes'), numero('adocaoDia')];
+      if (ano !== null) {
+        const problema = validarData(ano, mes ?? undefined, dia ?? undefined);
+        if (problema) return falhar(`Data da adoção: ${problema.charAt(0).toLowerCase()}${problema.slice(1)}`);
+        adocao = { ano, mes, dia: mes ? dia : null };
+      } else if (mes || dia) {
+        return falhar('Data da adoção: informe pelo menos o ano.');
+      }
+    }
     await cadastrarPendente();
-    await salvarFiliacao(filho.id, responsavel.id, qualidade, usuario);
+    await salvarFiliacao(filho.id, responsavel.id, qualidade, usuario, adocao);
     const aviso = (await sugerirFamilia(filho.id, { tipo: 'filho-de', com: responsavel.id })) || (await sugerirFamilia(responsavel.id, { tipo: 'pai-de', com: filho.id }));
     return voltar(request, volta, { ok: `Laço salvo.${aviso}${await atalhosQueSobraram()}` });
   }

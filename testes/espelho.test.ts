@@ -30,7 +30,7 @@ const copia: CopiaDoAcervo = {
       { filho_id: 'giovanna', responsavel_id: 'elizete', qualidade: 'biologica' },
       { filho_id: 'giovanna', responsavel_id: 'aguilar', qualidade: 'biologica' },
       { filho_id: 'aguilar', responsavel_id: 'vo-bela', qualidade: 'biologica' },
-      { filho_id: 'cachorro', responsavel_id: 'giovanna', qualidade: 'biologica' },
+      { filho_id: 'cachorro', responsavel_id: 'giovanna', qualidade: 'adotiva', adocao_ano: 2010, adocao_mes: 3, adocao_dia: 14 },
       { filho_id: 'cachorro', responsavel_id: 'gui', qualidade: 'consideracao' },
     ],
     casais: [
@@ -86,6 +86,11 @@ describe('espelho da produção para a homologação', () => {
     const gui = tabela('integrantes').find((i) => i.id === 'gui')!;
     expect(Number(gui.nascimento_ano) - 1990).toBe(e.resumo.deslocamentoDeAnos);
     expect(e.resumo.deslocamentoDeAnos).toBeGreaterThanOrEqual(1);
+    // Da data da adoção, só o ano, deslocado como os outros
+    const adocao = tabela('filiacoes').find((f) => f.qualidade === 'adotiva')!;
+    expect(Number(adocao.adocao_ano) - 2010).toBe(e.resumo.deslocamentoDeAnos);
+    expect(adocao).not.toHaveProperty('adocao_mes');
+    expect(adocao).not.toHaveProperty('adocao_dia');
     expect(tabela('casal_fases').every((f) => f.inicio_ano === null || Number(f.inicio_ano) <= 2026)).toBe(true);
   });
   it('as memórias são inventadas e trazem os casos que o QA confere', () => {

@@ -178,7 +178,14 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
     }))
     .filter((m) => existe(m.integrante_id));
   const filiacoes = t('filiacoes')
-    .map((f) => ({ filho_id: mapear(f.filho_id), responsavel_id: mapear(f.responsavel_id), qualidade: f.qualidade ?? 'biologica', criado_por: mapear(f.criado_por) }))
+    // Da data da adoção, só o ano, deslocado como os outros anos (o dia e o mês poderiam identificar alguém)
+    .map((f) => ({
+      filho_id: mapear(f.filho_id),
+      responsavel_id: mapear(f.responsavel_id),
+      qualidade: f.qualidade ?? 'biologica',
+      criado_por: mapear(f.criado_por),
+      adocao_ano: f.qualidade === 'adotiva' ? ano(f.adocao_ano) : null,
+    }))
     .filter((f) => existe(f.filho_id) && existe(f.responsavel_id));
 
   // Casais: mesmo id, para as fases continuarem ligadas

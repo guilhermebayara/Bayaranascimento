@@ -10,6 +10,14 @@ export interface Filiacao {
   filho: string;
   responsavel: string;
   qualidade: Qualidade;
+  /** Só nos laços adotivos, e só se alguém informou */
+  adocao?: DataDaAdocao | null;
+}
+
+export interface DataDaAdocao {
+  ano: number;
+  mes: number | null;
+  dia: number | null;
 }
 
 export interface Fase {

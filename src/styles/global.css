@@ -2477,6 +2477,7 @@ p {
 }
 
 .opcoes:has(input[aria-invalid='true']) .opcao > span,
+.tipos-de-momento:has(input[aria-invalid='true']) .opcao > span,
 .abas:has(input[aria-invalid='true']) .aba > span {
   border-color: var(--cor-perigo);
 }
@@ -2756,4 +2757,48 @@ p {
 
 [data-nome-repetido] p {
   margin: 0;
+}
+
+/* Tipos de momento: os mais usados à vista, o resto recolhido */
+.tipos-de-momento {
+  display: grid;
+  gap: var(--espaco-2);
+}
+
+.mais-opcoes > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque-minimo);
+  cursor: pointer;
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+  font-weight: var(--peso-medio);
+}
+
+.mais-opcoes > summary::before {
+  content: '▸';
+  margin-right: var(--espaco-2);
+}
+
+.mais-opcoes[open] > summary::before {
+  content: '▾';
+}
+
+.mais-opcoes[open] > summary {
+  margin-bottom: var(--espaco-2);
+}
+
+/* Cadastro guiado: uma pergunta por tela, e o caminho para a próxima no fim */
+.guia__form {
+  max-width: var(--largura-formulario);
+}
+
+.acoes--guia {
+  justify-content: space-between;
+  max-width: var(--largura-formulario);
+  margin-top: var(--espaco-4);
+}
+
+.acoes--guia .botao:last-child {
+  margin-left: auto;
 }

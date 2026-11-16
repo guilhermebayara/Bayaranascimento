@@ -238,3 +238,48 @@ describe('ficha de pessoa', () => {
     expect(ficha).toMatch(/repetido\.hidden = !igual/);
   });
 });
+
+// Terceira leva (pedidos do Gui, 16/11/2026): data da adoção, cadastro guiado e tipos mais usados
+describe('data da adoção', () => {
+  it('é guardada na filiação por uma migração nova, só nos laços adotivos', () => {
+    const banco = fonte('src/lib/servidor/banco.ts');
+    expect(banco).toContain("id: '014-data-da-adocao'");
+    for (const coluna of ['adocao_ano', 'adocao_mes', 'adocao_dia']) expect(banco).toContain(`ALTER TABLE filiacoes ADD COLUMN ${coluna}`);
+    expect(fonte('src/lib/servidor/repositorio.ts')).toMatch(/const data = qualidade === 'adotiva' \? adocao : null;/);
+  });
+
+  it('o formulário mostra a data só com "Adotiva" marcada, e a API confere a data', () => {
+    expect(fonte('src/pages/pessoas/[id]/editar.astro')).toContain('<CampoData prefixo="adocao"');
+    expect(fonte('src/pages/api/lacos.ts')).toMatch(/if \(qualidade === 'adotiva'\) \{/);
+    expect(fonte('src/pages/api/lacos.ts')).toContain('validarData(ano');
+  });
+});
+
+describe('cadastro guiado', () => {
+  it('depois da ficha, uma pergunta por tela: pais, casal, filhos; bicho só tem a família', () => {
+    const editar = fonte('src/pages/pessoas/[id]/editar.astro');
+    expect(editar).toContain("pessoa.tipo === 'bicho' ? (['pais'] as const) : (['pais', 'casal', 'filhos'] as const)");
+    expect(editar).toContain("'Pular esta pergunta'");
+    expect(editar).toContain('Outro tipo de laço');
+  });
+
+  it('cada pergunta volta para ela mesma depois de adicionar, para adicionar mais alguém', () => {
+    expect(fonte('src/pages/pessoas/[id]/editar.astro')).toMatch(/const volta = guiado \? `\$\{enderecoDoPasso\(passo\)\}#guia`/);
+  });
+
+  it('uma ação principal por tela', () => {
+    const editar = fonte('src/pages/pessoas/[id]/editar.astro');
+    expect(editar).toContain("class={jaNoPasso(passo).length > 0 ? 'botao botao--leve' : 'botao'} type=\"submit\">Adicionar");
+  });
+});
+
+describe('tipos de momento', () => {
+  it('com mais de oito tipos, os seis mais usados à vista e o resto em "Ver mais tipos"', () => {
+    const nova = fonte('src/pages/nova.astro');
+    expect(nova).toContain('const LIMITE_DE_TIPOS = 8;');
+    expect(nova).toContain('const A_VISTA = 6;');
+    expect(nova).toContain('Ver mais tipos');
+    // O tipo já escolhido nunca fica escondido
+    expect(nova).toContain('open={tiposRecolhidos.some((t) => t.id === memoria?.tipo)}');
+  });
+});

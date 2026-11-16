@@ -8,7 +8,7 @@ import { Familia } from '../lib/parentesco';
 import { TIPO_OUTRO } from '../lib/tipos';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { podeEditarMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
-import { familiasDe, listarCapitulos, listarCasais, listarFiliacoes, listarIntegrantes, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
+import { familiasDe, listarCapitulos, listarCasais, listarMemorias, listarFiliacoes, listarIntegrantes, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
 
 // Esta página serve para três coisas: registrar uma memória nova, continuar
 // um rascunho e corrigir uma memória já publicada (?id=...).
@@ -51,6 +51,20 @@ const nucleosMarcados = memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usua
 const doRascunho = memoria && !publicada ? (await listarRelatos(usuario, memoria.id)).filter((r) => r.registradoPor === usuario.pessoa) : [];
 const meuRelato = doRascunho.find((r) => r.por === usuario.pessoa) ?? doRascunho[0];
 const capitulosReunidos = (await listarCapitulos(usuario)).filter((c) => c.modo === 'reunido');
+// Tipos de momento: com mais de oito, ficam à vista os seis mais usados nas memórias que a pessoa vê
+// (na ordem da lista dos admins), e o resto em "Ver mais tipos". Com poucos, todos à vista.
+const LIMITE_DE_TIPOS = 8;
+const A_VISTA = 6;
+const usoDosTipos = new Map<string, number>();
+for (const m of await listarMemorias(usuario)) usoDosTipos.set(m.tipo, (usoDosTipos.get(m.tipo) ?? 0) + 1);
+const todosOsTipos = Astro.locals.tipos;
+const maisUsados = new Set(
+  todosOsTipos.length <= LIMITE_DE_TIPOS
+    ? todosOsTipos.map((t) => t.id)
+    : [...todosOsTipos].sort((a, b) => (usoDosTipos.get(b.id) ?? 0) - (usoDosTipos.get(a.id) ?? 0)).slice(0, A_VISTA).map((t) => t.id),
+);
+const tiposAVista = todosOsTipos.filter((t) => maisUsados.has(t.id));
+const tiposRecolhidos = todosOsTipos.filter((t) => !maisUsados.has(t.id));
 const todosOsTemas = await listarTemasVisiveis(usuario);
 const temasDaMemoria = (memoria?.temas ?? []).map((id) => todosOsTemas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
 // "Hoje" no horário de Brasília, para o limite do calendário
@@ -85,14 +99,32 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       <div class="campo">
         <span id="rotulo-tipo">Que tipo de momento foi?</span>
         {/* Começa sem marcação: marcado por padrão, um aniversário passava como dia a dia (decisão do Gui, 16/11/2026) */}
-        <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-tipo">
+        {/* Com muitos tipos, os mais usados ficam à vista e o resto em "Ver mais tipos" (QA de UX, 16/11/2026) */}
+        <div role="radiogroup" aria-labelledby="rotulo-tipo" class="tipos-de-momento">
+          <div class="opcoes">
+            {
+              tiposAVista.map((tipo) => (
+                <label class="opcao" style={`--cor-tipo: ${tipo.cor}`}>
+                  <input type="radio" name="tipo" value={tipo.id} checked={tipo.id === memoria?.tipo} required />
+                  <span class="tipo">{tipo.rotulo}</span>
+                </label>
+              ))
+            }
+          </div>
           {
-            Astro.locals.tipos.map((tipo) => (
-              <label class="opcao" style={`--cor-tipo: ${tipo.cor}`}>
-                <input type="radio" name="tipo" value={tipo.id} checked={tipo.id === memoria?.tipo} required />
-                <span class="tipo">{tipo.rotulo}</span>
-              </label>
-            ))
+            tiposRecolhidos.length > 0 && (
+              <details class="mais-opcoes" open={tiposRecolhidos.some((t) => t.id === memoria?.tipo)}>
+                <summary>Ver mais tipos ({tiposRecolhidos.length})</summary>
+                <div class="opcoes">
+                  {tiposRecolhidos.map((tipo) => (
+                    <label class="opcao" style={`--cor-tipo: ${tipo.cor}`}>
+                      <input type="radio" name="tipo" value={tipo.id} checked={tipo.id === memoria?.tipo} required />
+                      <span class="tipo">{tipo.rotulo}</span>
+                    </label>
+                  ))}
+                </div>
+              </details>
+            )
           }
         </div>
       </div>
