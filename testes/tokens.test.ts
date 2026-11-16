@@ -1,14 +1,21 @@
 // A troca para o visual final deve mexer só nos tokens do :root de global.css.
 // Cor e fonte escritas soltas no resto do CSS escapariam dessa troca.
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
+// O Vitest esvazia arquivos .css importados, então o CSS é lido do disco. O nome do módulo
+// fica numa variável porque o projeto não tem os tipos do Node.
+const fs = 'node:fs';
+const { readFileSync } = (await import(/* @vite-ignore */ fs)) as { readFileSync: (caminho: URL, codificacao: string) => string };
 const css = readFileSync(new URL('../src/styles/global.css', import.meta.url), 'utf8');
 const inicioRaiz = css.indexOf(':root {');
 const fimRaiz = css.indexOf('\n}', inicioRaiz);
 const foraDaRaiz = (css.slice(0, inicioRaiz) + css.slice(fimRaiz + 2)).replace(/\/\*[\s\S]*?\*\//g, '');
 
 describe('tokens do visual', () => {
+  it('o CSS foi lido', () => {
+    expect(css).toContain(':root {');
+  });
+
   it('nenhuma cor escrita solta fora do :root', () => {
     const cores = foraDaRaiz.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/g) ?? [];
     expect(cores).toEqual([]);
