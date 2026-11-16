@@ -11,7 +11,6 @@ import {
   removerLacoDoCoracao,
   salvarLacoDoCoracao,
   obterCasal,
-  obterCasalDoPar,
   removerCasal,
   removerFiliacao,
   salvarCasal,
@@ -142,11 +141,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const decisao = podeMexerEmLaco(usuario, [a, b]);
     if (!decisao.ok) return falhar(decisao.motivo);
 
-    // Um casal privado só aparece para as duas pessoas e para quem cadastrou
-    const existente = await obterCasalDoPar(a.id, b.id);
-    const podeVer = !existente || existente.visibilidade === 'todos' || [existente.a, existente.b, existente.criadoPor].includes(usuario.pessoa);
-    if (!podeVer) return falhar('Não foi possível salvar esse casal.');
-
+    // Um casal privado de outras pessoas não conta: quem não o vê cadastra o par como um registro à parte,
+    // e nada na resposta denuncia o privado (ver salvarCasal)
     // As fases chegam em linhas paralelas; linhas sem tipo são ignoradas
     const tipos = dados.getAll('faseTipo').map(String);
     const inicios = dados.getAll('faseInicio').map(String);
@@ -169,7 +165,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (fases.length > 12) return falhar('São fases demais para um casal só.');
     const visibilidade = campo(dados, 'visibilidade', 10) === 'privado' ? 'privado' : 'todos';
     await cadastrarPendente();
-    await salvarCasal(a.id, b.id, fases, visibilidade, usuario);
+    try {
+      await salvarCasal(a.id, b.id, fases, visibilidade, usuario);
+    } catch {
+      // Só acontece se uma terceira pessoa marcar como privado um par que já tem um casal privado de outros
+      return falhar('Não foi possível salvar esse casal.');
+    }
     return voltar(request, volta, { ok: 'Casal salvo.' });
   }
 

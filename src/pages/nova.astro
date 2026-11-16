@@ -1,4 +1,5 @@
 ---
+import { comArtigo } from '../lib/servidor/conteudo';
 import Base from '../layouts/Base.astro';
 import { TIPO_OUTRO, TIPO_PADRAO } from '../lib/tipos';
 import { MESES } from '../lib/datas';
@@ -16,6 +17,11 @@ if (memoria && !podeEditarMemoria(usuario, memoria).ok) return Astro.redirect(`/
 
 const publicada = memoria?.situacao === 'publicada';
 const integrantes = await listarIntegrantes();
+// Só quem criou muda quem pode ver. Para quem é citado, as opções ficam travadas com o valor atual.
+const travaQuemVe = Boolean(memoria) && memoria!.criadaPor !== usuario.pessoa;
+const travaNucleos = travaQuemVe && memoria!.visibilidade === 'nucleos';
+const criadora = travaQuemVe ? integrantes.find((i) => i.id === memoria!.criadaPor) : undefined;
+const quemCriou = criadora ? comArtigo(criadora) : 'quem criou';
 const comAcesso = await pessoasComAcesso();
 const semAcesso = integrantes.filter((i) => i.tipo === 'pessoa' && !comAcesso.has(i.id));
 const nucleos = await listarNucleos();
@@ -249,7 +255,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
             <div class="opcoes" role="group" aria-labelledby="rotulo-nucleos">
               {nucleosDisponiveis.map((n) => (
                 <label class="opcao">
-                  <input type="checkbox" name="nucleos" value={n.id} checked={nucleosMarcados.includes(n.id)} />
+                  <input type="checkbox" name="nucleos" value={n.id} checked={nucleosMarcados.includes(n.id)} disabled={travaNucleos} />
                   <span>{n.nome}</span>
                 </label>
               ))}
@@ -258,14 +264,16 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         )
       }
       <label class="marcar">
-        <input type="radio" name="visibilidade" value="todos" checked={(memoria?.visibilidade ?? 'todos') === 'todos'} />
+        <input type="radio" name="visibilidade" value="todos" checked={(memoria?.visibilidade ?? 'todos') === 'todos'} disabled={travaQuemVe} />
         <span>Toda a família vê</span>
       </label>
       <label class="marcar">
-        <input type="radio" name="visibilidade" value="nucleos" checked={memoria?.visibilidade === 'nucleos'} />
+        <input type="radio" name="visibilidade" value="nucleos" checked={memoria?.visibilidade === 'nucleos'} disabled={travaQuemVe} />
         <span>Só quem é dos núcleos marcados acima</span>
       </label>
-      <p class="dica">Dá para mudar depois. Quem não pode ver não fica sabendo que a memória existe.</p>
+      {travaQuemVe && <input type="hidden" name="visibilidade" value={memoria!.visibilidade} />}
+      {travaNucleos && memoria!.nucleos.map((n) => <input type="hidden" name="nucleos" value={n} />)}
+      <p class="dica">{travaQuemVe ? `Só ${quemCriou}, que criou a memória, muda quem pode ver.` : 'Dá para mudar depois. Quem não pode ver não fica sabendo que a memória existe.'}</p>
     </fieldset>
       <div class="resumo" data-resumo hidden>
         <h2>Confira antes de guardar</h2>

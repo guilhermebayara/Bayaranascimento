@@ -13,10 +13,11 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 | Ação | Quem |
 |---|---|
 | Criar memória, capítulo ou tema | Qualquer pessoa com acesso |
-| Corrigir a ficha da memória ou mudar a visibilidade | Quem criou e as pessoas citadas nela, desde que vejam a memória |
+| Corrigir a ficha da memória | Quem criou e as pessoas citadas nela, desde que vejam a memória |
+| Mudar quem pode ver uma memória ou um capítulo | Só quem criou. Quem é citado ainda marca núcleos numa memória aberta a todos, o que não restringe nada |
 | Acrescentar relato a uma memória | Qualquer pessoa que vê a memória, um relato por pessoa |
 | Editar um relato | Só quem escreveu (ou quem registrou, no relato de quem não acessa o site) |
-| Registrar relato de quem não acessa o site | Qualquer pessoa que vê a memória, creditada como "registrado por" |
+| Registrar relato de quem não acessa o site | Qualquer pessoa que vê a memória, creditada como "registrado por". Cada pessoa pode ter o seu rascunho, que ninguém mais vê; publicado, fica um só |
 | Acrescentar foto | Qualquer pessoa que vê a memória |
 | Remover foto | Só quem enviou |
 | Editar a própria página | A própria pessoa |
@@ -28,6 +29,8 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `testes/`.
 
 ## Princípios
+
+- Memória e capítulo novos ganham um código aleatório no endereço, e não o título: o endereço de um rascunho guardava o título de antes da publicação, e um título repetido denunciava uma memória que a pessoa não vê.
 
 - Ninguém interfere em como outra pessoa lembra de algo.
 - Toda mudança fica registrada em um histórico e pode ser revertida.
@@ -64,7 +67,7 @@ A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `tes
 - Um casal é uma sequência de fases (namoro, noivado, casamento, união, separação, amizade), com anos opcionais. A última fase é a atual. Separar é acrescentar uma fase, e não apagar o casal.
 - O parentesco aparece do ponto de vista de quem está logado ("sua avó"). Laço de consideração é dito com todas as letras ("seu filho de consideração"); adoção não ganha adjetivo.
 - Cada integrante tem "como se referir" (ela, ele ou não informar), usado só para escrever os nomes de parentesco.
-- Um casal pode ser marcado como "só os dois veem": aparece para as duas pessoas e para quem cadastrou. A opção "núcleos escolhidos" para casais desfeitos ainda não existe.
+- Um casal pode ser marcado como "só os dois veem": aparece para as duas pessoas e para quem cadastrou. Quem não vê esse casal consegue cadastrar o mesmo par normalmente, como um registro público à parte, e nada denuncia o privado; quem vê o privado continua vendo só ele. Se quem vê o privado o tornar público, ele toma o lugar do registro público. A opção "núcleos escolhidos" para casais desfeitos ainda não existe.
 - Quem edita a ficha: a própria pessoa. Para quem não acessa o site, membros de um núcleo em comum, quem cadastrou e os admins.
 - Quem mexe em laços de árvore: os envolvidos, quem divide um núcleo com algum deles e os admins.
 - Os laços entram por um formulário só, "Adicionar laço": um seletor escolhe o tipo (filho de, pai de, casal, do coração) e mostra os campos daquele tipo. A outra pessoa pode ser da lista ou um nome novo, cadastrado na hora.
@@ -123,7 +126,7 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 - **Temas** são etiquetas livres para memórias e capítulos, digitadas separadas por vírgula. Cada tema tem uma página que junta tudo o que o usa.
 - O capítulo tem visibilidade própria (título e abertura). Cada memória mantém a dela: contagem, período e lista consideram só o que quem olha pode ver.
 - Uma memória entra em um capítulo reunido pelo formulário da memória ou pela página do capítulo, onde cada pessoa marca as memórias que pode corrigir.
-- Edita o capítulo quem criou e quem tem memórias nele. Excluir é com os admins e manda para a lixeira; as memórias continuam no acervo.
+- Edita o capítulo quem criou e quem tem memórias nele. Quem pode ver o capítulo, só quem criou muda. Excluir é com os admins e manda para a lixeira; as memórias continuam no acervo.
 - Ficou para depois: capítulo ligado a uma fase de casal ou a pessoas, recorte de época por núcleo ou pessoa, foto de capa escolhida e os capítulos como faixas na linha do tempo (depende do visual).
 
 ## Decidido em 15/11, a construir depois do QA

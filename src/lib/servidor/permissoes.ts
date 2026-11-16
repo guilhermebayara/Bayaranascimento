@@ -151,3 +151,21 @@ export function podeMexerEmLaco(usuario: Usuario, envolvidos: IntegranteParaPerm
 export function podeVerVersao(usuario: Usuario, memoria: Pick<AcessoDaMemoria, 'criadaPor'>, versao: { situacao?: string }): boolean {
   return versao.situacao !== 'rascunho' || memoria.criadaPor === usuario.pessoa;
 }
+
+/**
+ * Mudar quem pode ver uma memória ou um capítulo: só quem criou. Decisão do Gui (16/11/2026): quem é citado
+ * não pode restringir, porque restringir a um núcleo de que a criadora não faz parte tirava a memória dela.
+ * Quem é citado continua marcando núcleos de uma memória aberta a todos, o que não restringe nada.
+ */
+export function podeMudarQuemVe(
+  usuario: Usuario,
+  atual: { criadaPor: string; visibilidade: 'todos' | 'nucleos'; nucleos: string[] },
+  visibilidade: 'todos' | 'nucleos',
+  nucleos: string[],
+): Decisao {
+  if (atual.criadaPor === usuario.pessoa) return sim;
+  const mesmos = (a: string[], b: string[]) => a.length === b.length && a.every((n) => b.includes(n));
+  if (visibilidade !== atual.visibilidade) return nao('Só quem criou muda quem pode ver.');
+  if (visibilidade === 'nucleos' && !mesmos(nucleos, atual.nucleos)) return nao('Só quem criou muda quem pode ver.');
+  return sim;
+}
