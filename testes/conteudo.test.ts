@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { arrumarTexto, criarSlug, slugUnico, validarData } from '../src/lib/servidor/conteudo';
-import { agruparPorAno, formatarData, formatarDiaMes } from '../src/lib/datas';
+import { arrumarTexto, criarSlug, outrosAdmins, slugUnico, validarData } from '../src/lib/servidor/conteudo';
+import { agruparPorAno, formatarData, formatarDiaMes, problemaNaData } from '../src/lib/datas';
 
 describe('slugs', () => {
   it('tira acentos e símbolos', () => {
@@ -32,5 +32,37 @@ describe('datas', () => {
 describe('texto', () => {
   it('normaliza quebras de linha', () => {
     expect(arrumarTexto('  a\r\n\r\n\r\n\r\nb  ')).toBe('a\n\nb');
+  });
+});
+
+describe('textos para quem está logado', () => {
+  // Decisão do Gui (16/11/2026): personalizar. Antes, a Giovanna lia "você ou a Giovanna podem recuperar".
+  const admins = [
+    { id: 'gui', nome: 'Gui', tratamento: 'ele' as const, admin: true },
+    { id: 'giovanna', nome: 'Giovanna', tratamento: 'ela' as const, admin: true },
+    { id: 'elizete', nome: 'Elizete', tratamento: 'ela' as const, admin: false },
+  ];
+  it('nomeia os outros administradores, e não quem está lendo', () => {
+    expect(outrosAdmins('gui', admins)).toBe('a Giovanna');
+    expect(outrosAdmins('giovanna', admins)).toBe('o Gui');
+    expect(outrosAdmins('elizete', admins)).toBe('o Gui e a Giovanna');
+  });
+});
+
+describe('data impossível avisada na hora', () => {
+  // Pedido do Gui (16/11/2026): acusar 31 de fevereiro na seleção, e não só ao salvar
+  it('acusa dia que não existe no mês', () => {
+    expect(problemaNaData(2023, 2, 29)).toBe('Fevereiro de 2023 tem 28 dias.');
+    expect(problemaNaData(2024, 2, 29)).toBeUndefined();
+    expect(problemaNaData(undefined, 2, 29)).toBeUndefined();
+    expect(problemaNaData(undefined, 4, 31)).toBe('Abril tem 30 dias.');
+    expect(problemaNaData(2001, 1, 31)).toBeUndefined();
+  });
+  it('acusa dia sem mês', () => {
+    expect(problemaNaData(2001, undefined, 3)).toBe('Para informar o dia, escolha também o mês.');
+  });
+  it('não reclama de data só com ano ou só com mês', () => {
+    expect(problemaNaData(2001)).toBeUndefined();
+    expect(problemaNaData(2001, 5)).toBeUndefined();
   });
 });

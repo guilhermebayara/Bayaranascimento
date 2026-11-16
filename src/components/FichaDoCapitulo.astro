@@ -2,7 +2,7 @@
 // Formulário de capítulo, em etapas. Serve para criar e para editar.
 import { MESES } from '../lib/datas';
 import type { Capitulo } from '../lib/capitulos';
-import { listarCapitulos, listarNucleos, listarTemas } from '../lib/servidor/repositorio';
+import { listarCapitulos, listarNucleos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 
 interface Props {
   capitulo?: Capitulo;
@@ -15,13 +15,13 @@ const temFilhos = Boolean(c) && todos.some((x) => x.dentroDe === c!.id);
 // Só entra em outro quem não tem capítulos dentro, e só em capítulos que não estão dentro de ninguém
 const maiores = temFilhos ? [] : todos.filter((x) => x.id !== c?.id && !x.dentroDe);
 const nucleos = (await listarNucleos()).filter((n) => usuario.nucleos.includes(n.id) || c?.nucleos.includes(n.id));
-const temas = await listarTemas();
+const temas = await listarTemasVisiveis(usuario);
 const temasDoCapitulo = (c?.temas ?? []).map((id) => temas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
 const anoAtual = new Date().getFullYear();
 const modo = c?.modo ?? 'reunido';
 const datas = [
-  { prefixo: 'inicio', rotulo: 'Começou em', data: c?.inicio, obrigatorio: true },
-  { prefixo: 'fim', rotulo: 'Terminou em', data: c?.fim, obrigatorio: false },
+  { prefixo: 'inicio', rotulo: 'Começou em', mes: 'Mês em que começou', data: c?.inicio, obrigatorio: true },
+  { prefixo: 'fim', rotulo: 'Terminou em', mes: 'Mês em que terminou', data: c?.fim, obrigatorio: false },
 ];
 ---
 
@@ -68,7 +68,7 @@ const datas = [
                 <input id={`campo-${d.prefixo}`} type="number" name={`${d.prefixo}Ano`} inputmode="numeric" min="1800" max={anoAtual} value={d.data?.ano ?? ''} placeholder="Ano" data-obrigatorio-na-epoca={d.obrigatorio ? '' : undefined} />
                 <button type="button" data-passo="1" aria-label="Um ano depois">+1</button>
                 <button type="button" data-passo="10" aria-label="Dez anos depois">+10</button>
-                <select name={`${d.prefixo}Mes`} aria-label={`Mês em que ${d.rotulo.toLowerCase()}`}>
+                <select name={`${d.prefixo}Mes`} aria-label={d.mes}>
                   <option value="">Mês, se souber</option>
                   {MESES.map((m, n) => <option value={n + 1} selected={d.data?.mes === n + 1}>{m}</option>)}
                 </select>

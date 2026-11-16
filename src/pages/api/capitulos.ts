@@ -39,9 +39,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (id && !atual) return voltar(request, '/capitulos', { erro: 'Capítulo não encontrado.' });
 
   if (acao === 'excluir') {
+    if (!atual) return voltar(request, '/capitulos', { erro: 'Capítulo não encontrado.' });
     if (!usuario.admin) return voltar(request, `/capitulos/${id}`, { erro: 'Só os administradores excluem capítulos.' });
     await excluirCapitulo(id, usuario);
-    return voltar(request, '/capitulos', { ok: `"${atual!.titulo}" foi para a lixeira. As memórias dele continuam no acervo.` });
+    return voltar(request, '/capitulos', { ok: `"${atual.titulo}" foi para a lixeira. As memórias dele continuam no acervo.` });
   }
 
   if (acao === 'memorias') {
@@ -98,7 +99,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const nucleos = [...new Set(dados.getAll('nucleos').map(String))];
   if (nucleos.some((n) => !nucleosExistentes.has(n) || !permitidos.has(n))) return falhar('Você só pode marcar núcleos de que faz parte.');
   const visibilidade = campo(dados, 'visibilidade', 10) === 'nucleos' ? 'nucleos' : 'todos';
-  const visivel = validarVisibilidade(usuario, visibilidade, nucleos);
+  const visivel = validarVisibilidade(usuario, visibilidade, nucleos, 'capitulo');
   if (!visivel.ok) return falhar(visivel.motivo);
 
   const ficha: DadosDoCapitulo = {

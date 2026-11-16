@@ -1,7 +1,7 @@
 // Excluir e recuperar: memórias na lixeira, versões anteriores e fotos removidas.
 import type { APIRoute } from 'astro';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeEditarMemoria, podeExcluirMemoria } from '../../lib/servidor/permissoes';
+import { podeEditarMemoria, podeExcluirMemoria, podeVerVersao } from '../../lib/servidor/permissoes';
 import {
   atualizarMemoria,
   excluirMemoria,
@@ -54,7 +54,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (acao === 'restaurar-versao') {
     const decisao = podeEditarMemoria(usuario, memoria);
     if (!decisao.ok) return voltar(request, pagina, { erro: decisao.motivo });
-    const versao = (await listarVersoes<Memoria>('memoria', memoria.id)).find((v) => v.id === Number(campo(dados, 'versao', 12)));
+    const versao = (await listarVersoes<Memoria>('memoria', memoria.id))
+      .find((v) => v.id === Number(campo(dados, 'versao', 12)) && podeVerVersao(usuario, memoria, v.dados));
     if (!versao) return voltar(request, historico, { erro: 'Versão não encontrada.' });
     const antiga = versao.dados;
     const existentes = new Set((await listarIntegrantes()).map((i) => i.id));

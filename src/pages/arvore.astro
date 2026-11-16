@@ -9,6 +9,7 @@ import Base from '../layouts/Base.astro';
 import { anosDeVida } from '../lib/datas';
 import { Familia, estaoJuntos, lacoParaODono, possessivo, type Tratamento } from '../lib/parentesco';
 import type { DadosDaArvore } from '../lib/cliente/arvore';
+import { comLacoDeArvore } from '../lib/arvore-montagem';
 import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarNucleos, pessoasEmLacosPrivadosDeOutros } from '../lib/servidor/repositorio';
 
 // De quem é a linha direta mostrada quando a árvore abre: os três que unem os núcleos.
@@ -61,6 +62,8 @@ const nomesDosCentros = (() => {
   return n.length > 1 ? `${n.slice(0, -1).join(', ')} e ${n[n.length - 1]}` : (n[0] ?? 'Você');
 })();
 const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+// "Partir de" só oferece quem tem laço de árvore (filiação ou casal): de quem não tem, a árvore seria só a pessoa
+const comLaco = comLacoDeArvore(dados);
 ---
 
 <Base titulo="Árvore">
@@ -72,6 +75,7 @@ const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, '
 
     <div class="mapa" data-mapa tabindex="0" aria-label="Árvore da família. Arraste ou use as setas para andar por ela.">
       <div class="mapa__camada" data-camada></div>
+      <div class="mapa__camada mapa__camada--ramos" data-camada-ramos></div>
 
       <details class="mapa__painel" data-sobre-o-mapa>
         <summary>Ajustar a árvore</summary>
@@ -80,7 +84,7 @@ const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, '
             <span>Partir de</span>
             <select name="centro">
               <option value="">{nomesDosCentros}</option>
-              {ordenados.map((i) => <option value={i.id}>{i.nome}</option>)}
+              {ordenados.filter((i) => comLaco.has(i.id)).map((i) => <option value={i.id}>{i.nome}</option>)}
             </select>
           </label>
           <label class="arvore__campo">
@@ -96,6 +100,7 @@ const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, '
             <label class="marcar"><input type="checkbox" name="consideracao" checked /><span>Consideração e coração</span></label>
             <label class="marcar"><input type="checkbox" name="ex" checked /><span>Ex-casais</span></label>
             <label class="marcar"><input type="checkbox" name="bichos" checked /><span>Bichos</span></label>
+            <label class="marcar"><input type="checkbox" name="amigos" /><span>Amigos sem lugar na família</span></label>
           </fieldset>
         </form>
       </details>

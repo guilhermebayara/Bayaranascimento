@@ -66,7 +66,9 @@ export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, seca
     for (const el of soNoFim) el.hidden = atual !== secoes.length - 1;
     aoEntrar?.(atual, secoes[atual]);
     if (foco) {
-      trilha.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      // Com movimento reduzido, a página vai direto para a trilha, sem rolar animada
+      const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      trilha.scrollIntoView({ block: 'start', behavior: reduzido ? 'auto' : 'smooth' });
       const titulo = secoes[atual].querySelector<HTMLElement>('legend, h2');
       titulo?.setAttribute('tabindex', '-1');
       titulo?.focus({ preventScroll: true });

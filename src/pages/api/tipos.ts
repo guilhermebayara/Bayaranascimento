@@ -63,8 +63,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (problema) return voltar(request, PAGINA, { erro: problema });
       destino = await criar();
     }
-    const quantas = await promoverTextoDeOutro(texto, destino);
-    return voltar(request, PAGINA, { ok: `${quantas} ${quantas === 1 ? 'memória passou' : 'memórias passaram'} para o tipo escolhido.` });
+    await promoverTextoDeOutro(texto, destino, usuario);
+    // Sem número: contar as memórias que o admin não vê entregaria que elas existem (decisão do Gui, 16/11/2026)
+    const nomeDoTipo = tipos.find((t) => t.id === destino)?.rotulo ?? rotulo;
+    return voltar(request, PAGINA, { ok: `As memórias com "${texto}" passaram para ${nomeDoTipo}.` });
   }
 
   return voltar(request, PAGINA, { erro: 'Ação desconhecida.' });

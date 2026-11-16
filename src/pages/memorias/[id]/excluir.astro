@@ -3,7 +3,8 @@
 import Base from '../../../layouts/Base.astro';
 import { formatarData } from '../../../lib/datas';
 import { podeExcluirMemoria } from '../../../lib/servidor/permissoes';
-import { listarRelatos, obterMemoria } from '../../../lib/servidor/repositorio';
+import { outrosAdmins } from '../../../lib/servidor/conteudo';
+import { listarIntegrantes, listarRelatos, obterMemoria } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -14,6 +15,8 @@ if (!podeExcluirMemoria(usuario, memoria).ok) return Astro.redirect(voltarPara);
 
 const relatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situacao === 'publicada').length;
 const titulo = rascunho ? 'Descartar rascunho' : 'Excluir memória';
+// Quem mais pode recuperar, do ponto de vista de quem está excluindo
+const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 ---
 
 <Base titulo={titulo}>
@@ -33,7 +36,7 @@ const titulo = rascunho ? 'Descartar rascunho' : 'Excluir memória';
             {memoria.fotos.length === 1 ? ' 1 foto' : ` ${memoria.fotos.length} fotos`} e
             {relatos === 1 ? ' 1 relato' : ` ${relatos} relatos`}, inclusive os que outras pessoas escreveram.
           </p>
-          <p>Nada é apagado de vez: a memória vai para a lixeira, e você ou a Giovanna podem recuperar tudo como estava.</p>
+          <p>Nada é apagado de vez: a memória vai para a lixeira, e {outros ? `você ou ${outros} podem` : 'você pode'} recuperar tudo como estava.</p>
           <p>Se a ideia é só corrigir alguma coisa, prefira <a href={`/nova?id=${memoria.id}`}>corrigir a memória</a>.</p>
         </>
       )

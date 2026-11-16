@@ -55,11 +55,12 @@ export function podeEditarMemoria(usuario: Usuario, m: AcessoDaMemoria): Decisao
  * Ao restringir uma memória a núcleos, pelo menos um deles precisa ser de quem
  * está salvando. Senão a pessoa esconderia a memória de si mesma.
  */
-export function validarVisibilidade(usuario: Usuario, visibilidade: 'todos' | 'nucleos', nucleos: string[]): Decisao {
+export function validarVisibilidade(usuario: Usuario, visibilidade: 'todos' | 'nucleos', nucleos: string[], doQue: 'memoria' | 'capitulo' = 'memoria'): Decisao {
   if (visibilidade === 'todos') return sim;
-  if (nucleos.length === 0) return nao('Escolha pelo menos um núcleo que pode ver a memória.');
+  const [o, um] = doQue === 'capitulo' ? ['o capítulo', 'um capítulo'] : ['a memória', 'uma memória'];
+  if (nucleos.length === 0) return nao(`Escolha pelo menos um núcleo que pode ver ${o}.`);
   if (!nucleos.some((n) => usuario.nucleos.includes(n))) {
-    return nao('Você só pode restringir uma memória a núcleos de que faz parte.');
+    return nao(`Você só pode restringir ${um} a núcleos de que faz parte.`);
   }
   return sim;
 }
@@ -141,4 +142,12 @@ export function podeMexerEmLaco(usuario: Usuario, envolvidos: IntegranteParaPerm
   if (usuario.admin) return sim;
   if (envolvidos.some((e) => e.id === usuario.pessoa || divideNucleo(usuario, e))) return sim;
   return nao('Só quem é de um núcleo em comum com as pessoas envolvidas pode mudar esse laço.');
+}
+
+/**
+ * Uma versão antiga da ficha, guardada enquanto a memória ainda era rascunho, só aparece para quem
+ * escreveu o rascunho. Senão o histórico mostraria a outras pessoas o título e o lugar de antes da publicação.
+ */
+export function podeVerVersao(usuario: Usuario, memoria: Pick<AcessoDaMemoria, 'criadaPor'>, versao: { situacao?: string }): boolean {
+  return versao.situacao !== 'rascunho' || memoria.criadaPor === usuario.pessoa;
 }

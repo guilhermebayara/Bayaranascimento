@@ -1623,6 +1623,16 @@ p {
   will-change: transform;
 }
 
+/* Os cartões dos ramos abertos: acima da legenda, abaixo do painel, da ficha e do zoom */
+.mapa__camada--ramos {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.mapa__camada--ramos > * {
+  pointer-events: auto;
+}
+
 .mapa__camada--animada {
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -2087,6 +2097,7 @@ p {
 }
 
 .mapa__legenda {
+  z-index: 1;
   left: var(--margem);
   bottom: 1rem;
   font-size: 0.8125rem;

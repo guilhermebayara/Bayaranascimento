@@ -385,6 +385,15 @@ export function desenharArvore(
     const ordem = [...outros].sort((a, b) => Math.abs(meioX(b) - vao) - Math.abs(meioX(a) - vao));
     const [maisLonge, ...resto] = ordem;
     let d = arredondado([[entrada, meio], [vao, meio], [vao, alto], [meioX(maisLonge), alto], [meioX(maisLonge), ponta(maisLonge)]], R);
+    // Se uma reta já sai dessa lateral (o par, um vizinho do coração), o tronco nasce nela, na curva,
+    // em vez de repetir o primeiro trecho: dois tracejados no mesmo lugar viram linha cheia
+    const saiReta = linhas.some((l) => {
+      const reta = /^M (-?[\d.]+) (-?[\d.]+) H (-?[\d.]+)$/.exec(l.d);
+      if (!reta || Number(reta[2]) !== meio) return false;
+      const [de, ate] = [Number(reta[1]), Number(reta[3])];
+      return lado < 0 ? ate === entrada && de < entrada : de === entrada && ate > entrada;
+    });
+    if (saiReta) d = d.replace(/^M \S+ \S+ L (\S+) (\S+)/, 'M $1 $2');
     for (const id of resto) {
       // O galho nasce na faixa, um pouco antes, e faz a curva até a pessoa
       const x = meioX(id);

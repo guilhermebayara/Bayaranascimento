@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { dentroDoPeriodo, formatarPeriodo, periodoDasMemorias, type Capitulo } from '../../lib/capitulos';
-import { listarCapitulos, listarMemorias, listarTemas } from '../../lib/servidor/repositorio';
+import { listarCapitulos, listarMemorias, listarTemasVisiveis } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const capitulos = await listarCapitulos(usuario);
@@ -25,7 +25,7 @@ const soltos = capitulos
   .filter((c) => !c.dentroDe || !capitulos.some((x) => x.id === c.dentroDe))
   .map((c) => ({ c, ...resumo(c), dentro: capitulos.filter((x) => x.dentroDe === c.id) }))
   .sort((a, b) => a.ordem - b.ordem);
-const temas = await listarTemas();
+const temas = await listarTemasVisiveis(usuario);
 const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
 ---
 

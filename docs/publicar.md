@@ -37,7 +37,7 @@ npm run dev
 npm test
 ```
 
-O banco local nasce com as memórias de exemplo. Para recomeçar do zero, apague a pasta `.wrangler`.
+O banco local nasce com as memórias de exemplo, mesmo sem o `.dev.vars`: no computador o site sempre se considera em desenvolvimento. Para recomeçar do zero, apague a pasta `.wrangler`.
 
 ## Mudar a estrutura do banco
 

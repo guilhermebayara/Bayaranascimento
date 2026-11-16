@@ -40,6 +40,8 @@ const escolhidos = lacos.filter((l) => l.dono === pessoa.id);
 const escolhidaPor = lacos.filter((l) => l.pessoa === pessoa.id);
 // Sem parentesco calculado, vale o laço do coração de quem está olhando
 const meuLaco = paraVoce ? undefined : escolhidaPor.find((l) => l.dono === usuario.pessoa);
+// Sem filiação nem casal, a árvore a partir da pessoa seria só ela: o botão não aparece
+const temLacoDeArvore = pais.length > 0 || familia.filhos(pessoa.id).length > 0 || casais.length > 0;
 const temFamilia = grupos.length > 0 || casais.length > 0 || escolhidos.length > 0 || escolhidaPor.length > 0;
 
 const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok || podeMexerEmLaco(usuario, [pessoa]).ok;
@@ -54,7 +56,7 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
     {datasDeVida(pessoa).map((linha) => <p class="dica">{linha}</p>)}
     {pessoa.sobre && <div class="bio">{pessoa.sobre.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
     <p class="acoes">
-      <a class="botao botao--leve" href={`/arvore?centro=${pessoa.id}`}>Ver na árvore</a>
+      {temLacoDeArvore && <a class="botao botao--leve" href={`/arvore?centro=${pessoa.id}`}>Ver na árvore</a>}
       <a class="botao botao--leve" href={`/pessoas/${pessoa.id}/editar`}>{podeEditar ? 'Editar página e laços' : 'Adicionar laço'}</a>
     </p>
   </div>

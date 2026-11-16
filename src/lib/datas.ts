@@ -69,3 +69,23 @@ export function formatarMomento(texto: string): string {
   if (Number.isNaN(data.getTime())) return texto;
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(data).replace(' às ', ', ');
 }
+
+/** Quantos dias o mês tem. Sem o ano, fevereiro conta 29, para não recusar um 29 que pode existir. */
+export function diasNoMes(mes: number, ano?: number): number {
+  return new Date(Date.UTC(ano ?? 2000, mes, 0)).getUTCDate();
+}
+
+/**
+ * O que está errado numa data enquanto a pessoa escolhe, para avisar na hora e não só ao salvar.
+ * O ano fora do intervalo fica com a validação do próprio campo.
+ */
+export function problemaNaData(ano?: number, mes?: number, dia?: number): string | undefined {
+  if (!dia) return undefined;
+  if (!mes) return 'Para informar o dia, escolha também o mês.';
+  const limite = diasNoMes(mes, ano);
+  if (dia < 1 || dia > limite) {
+    const nome = MESES[mes - 1];
+    return `${nome.charAt(0).toUpperCase()}${nome.slice(1)}${ano && mes === 2 ? ` de ${ano}` : ''} tem ${limite} dias.`;
+  }
+  return undefined;
+}
