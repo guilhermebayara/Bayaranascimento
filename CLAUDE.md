@@ -103,8 +103,9 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 
 ## Visual
 
-- A direção visual ainda não foi definida: o Gui está pesquisando referências. A experiência (ordem, hierarquia, interação) evolui agora; o visual vem depois e pode pedir ajustes nela.
-- As cores dos núcleos na árvore (`--nucleo-0` a `--nucleo-3` em `src/styles/global.css`) são provisórias, e o mesmo vale para o resto do estilo.
+- A direção visual foi definida em 16/11/2026 e está em `docs/visual.md`: claro, serifa macia nos títulos, pastéis com pontos saturados, foto como objeto e movimento discreto. A análise das referências está no Claude Doc linkado ali.
+- Movimento: a rolagem é sempre a do aparelho e nenhum efeito quebra um padrão de navegação conhecido. A família inclui gente com pouca familiaridade com sites.
+- Enquanto a primeira versão do visual não for aprovada, o estilo atual (`src/styles/global.css`) continua provisório.
 - Toda mudança visual é conferida em largura de celular e de desktop, por teclado, e com movimento reduzido.
 
 ## Árvore
@@ -145,7 +146,7 @@ Uma sessão de QA por chat: cada rodada começa numa sessão nova do Claude Code
 
 ### O que QA não decide
 
-QA corrige defeito: algo quebrado, erro de build, comportamento diferente do combinado em `docs/decisoes.md`. Texto, layout, cor, regras de privacidade e de permissão, o arranjo da árvore e os dados de exemplo são decisões do Gui e da Giovanna: relate e espere. Na dúvida, trate como decisão. A direção visual ainda não foi definida, então estranhezas de estilo entram como observação.
+QA corrige defeito: algo quebrado, erro de build, comportamento diferente do combinado em `docs/decisoes.md`. Texto, layout, cor, regras de privacidade e de permissão, o arranjo da árvore e os dados de exemplo são decisões do Gui e da Giovanna: relate e espere. Na dúvida, trate como decisão. A direção visual está em `docs/visual.md`: o que fugir dela entra como observação, e o que ela ainda não cobre também.
 
 As pendências conhecidas estão em "Em aberto" e nas questões de `docs/decisoes.md`. Não relate como defeito o que já está listado ali.
 

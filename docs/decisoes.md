@@ -182,7 +182,12 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
-Nada pendente por enquanto.
+- **Primeira versão do visual** (decisões do Gui, 16/11/2026). Construir a direção de `docs/visual.md` numa branch `tst-visual`, nascida da `homologa`, para o Gui ver na prévia antes de decidir. Ordem sugerida, cada passo conferido em 390 e 1280 px, por teclado e com movimento reduzido:
+    1. Tokens: fontes (serifa macia nos títulos, grotesca no texto, mono nas legendas, manuscrita só no nome de quem conta), neutros de papel e as cores das famílias em pastel com a versão saturada de cada uma. Os tokens já têm nome de papel (`docs/ux/padroes.md`); a lista de `docs/ux/revisao-visual.md` entra aqui (escala de espaços, tamanhos, raios, bordas, áreas de toque de 44 px).
+    2. Componentes de `docs/visual.md`: polaroid, monte de fotos, legenda "lugar (ano)", etiqueta-balão, ficha em mono, retrato recortado (com iniciais enquanto não houver foto de retrato), nome manuscrito, bloco de áudio, sanfona de fases.
+    3. Páginas: linha do tempo (com o trilho e o ponto), página da memória na ordem de `docs/visual.md`, capítulo, pessoa e laço. A árvore só muda de cor.
+    4. Movimento, por último, só o da lista de `docs/visual.md`, com a frase que acende palavra por palavra no modelo do bayara.design.
+  Fontes: escolher entre opções de licença livre (Fontsource), comparando duas ou três na prévia; a serifa precisa ter acentos e itálico bons em português. A polaroid em toda foto-chave fica para o Gui confirmar vendo a linha do tempo pronta. Ao terminar, o resumo de `docs/visual.md` vira regra aqui, e `docs/ux/revisao-visual.md` sai de cena.
 
 ## Em aberto
 
