@@ -3,7 +3,9 @@
 //
 // Espaço: os áudios dividem o bucket das fotos. Gravado no navegador a 32 kbps, um minuto de voz
 // ocupa cerca de 240 KB; o iPhone pode gravar em qualidade maior, até cerca de 1 MB por minuto.
-// Os limites abaixo deixam os áudios bem dentro do plano gratuito do R2, junto com as fotos.
+// O plano gratuito do R2 dá 10 GB por mês para a conta inteira (developers.cloudflare.com/r2/pricing,
+// conferido em 16/11/2026): produção, homologação e prévias dividem esse espaço com as fotos.
+// Por isso o teto da produção é 3 GB, e o da homologação e das prévias, que só servem para testar, 200 MB.
 
 /** Uma gravação no site para sozinha neste tempo */
 export const MINUTOS_POR_GRAVACAO = 15;
@@ -11,8 +13,15 @@ export const MINUTOS_POR_GRAVACAO = 15;
 export const BITS_POR_SEGUNDO = 32_000;
 /** Tamanho máximo de um arquivo de áudio, gravado ou enviado */
 export const LIMITE_POR_ARQUIVO = 25 * 1024 * 1024;
-/** Teto de todos os áudios juntos, inclusive os removidos (que continuam no bucket) */
+/** Teto de todos os áudios juntos da produção, inclusive os removidos (que continuam no bucket) */
 export const LIMITE_TOTAL = 3 * 1024 * 1024 * 1024;
+/** Teto da homologação, das prévias e do computador: só para testar */
+export const LIMITE_TOTAL_DE_TESTE = 200 * 1024 * 1024;
+
+/** O teto de cada ambiente. Só a produção tem o espaço de verdade. */
+export function limiteTotal(ambiente: string): number {
+  return ambiente === 'producao' ? LIMITE_TOTAL : LIMITE_TOTAL_DE_TESTE;
+}
 /** Quantos áudios um relato pode ter */
 export const AUDIOS_POR_RELATO = 20;
 
@@ -46,6 +55,6 @@ export function duracaoEmTexto(segundos: number | null | undefined): string {
 }
 
 /** Cabe mais este arquivo dentro do teto? */
-export function cabeNoLimite(totalAtual: number, tamanho: number): boolean {
-  return tamanho <= LIMITE_POR_ARQUIVO && totalAtual + tamanho <= LIMITE_TOTAL;
+export function cabeNoLimite(totalAtual: number, tamanho: number, limite: number = LIMITE_TOTAL): boolean {
+  return tamanho <= LIMITE_POR_ARQUIVO && totalAtual + tamanho <= limite;
 }

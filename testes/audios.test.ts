@@ -1,6 +1,6 @@
 // Áudios nos relatos: formatos aceitos, limites de espaço e regras de quem ouve
 import { describe, expect, it } from 'vitest';
-import { AUDIOS_POR_RELATO, cabeNoLimite, CHAVE_DE_AUDIO, duracaoEmTexto, formatoDoAudio, LIMITE_POR_ARQUIVO, LIMITE_TOTAL } from '../src/lib/audios';
+import { AUDIOS_POR_RELATO, cabeNoLimite, CHAVE_DE_AUDIO, duracaoEmTexto, formatoDoAudio, limiteTotal, LIMITE_POR_ARQUIVO, LIMITE_TOTAL } from '../src/lib/audios';
 
 const fontes: Record<string, string> = Object.fromEntries(
   Object.entries(import.meta.glob<string>('../src/**/*.{astro,ts}', { query: '?raw', import: 'default', eager: true })).map(([k, v]) => [k.replace('../', ''), v]),
@@ -35,6 +35,14 @@ describe('espaço', () => {
     expect(LIMITE_TOTAL).toBeLessThanOrEqual(3 * 1024 ** 3);
     expect(LIMITE_POR_ARQUIVO).toBeLessThanOrEqual(25 * 1024 ** 2);
     expect(AUDIOS_POR_RELATO).toBeLessThanOrEqual(20);
+  });
+
+  it('produção, homologação e prévias dividem os 10 GB da conta: somados, os tetos ficam abaixo disso com folga', () => {
+    // Homologação e prévias (que dividem um bucket) têm o teto de teste cada uma
+    const soma = limiteTotal('producao') + limiteTotal('homologa') + limiteTotal('previa');
+    expect(soma).toBeLessThan(4 * 1024 ** 3);
+    expect(limiteTotal('homologa')).toBeLessThan(limiteTotal('producao'));
+    expect(limiteTotal('desenvolvimento')).toBe(limiteTotal('previa'));
   });
 
   it('recusa o arquivo que passa do limite dele ou do teto total', () => {
@@ -75,7 +83,7 @@ describe('quem ouve', () => {
 
   it('só entram no relato áudios que a própria pessoa enviou para aquela memória', () => {
     const ligar = repositorio.slice(repositorio.indexOf('export async function ligarAudios'));
-    expect(ligar).toContain('enviado_por = ? AND memoria_id = ?');
+    expect(ligar).toContain('enviado_por = ? AND (memoria_id = ? OR memoria_id IS NULL)');
   });
 
   it('o espelho da produção não leva áudios e apaga os que houver', async () => {

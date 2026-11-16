@@ -93,7 +93,7 @@ export function ligarAudios(raiz: HTMLElement, memoria: string, aoMudar?: () => 
     try {
       const dados = new FormData();
       dados.append('audio', arquivo, nome);
-      dados.append('memoria', memoria);
+      if (memoria) dados.append('memoria', memoria);
       if (duracao) dados.append('duracao', String(duracao));
       const resposta = await fetch('/api/audios', { method: 'POST', body: dados });
       const resultado = await resposta.json();

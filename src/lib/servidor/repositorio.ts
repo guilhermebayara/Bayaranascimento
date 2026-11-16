@@ -1057,7 +1057,7 @@ export async function espacoDosAudios(): Promise<number> {
   return linha?.total ?? 0;
 }
 
-export async function registrarAudio(dados: { chave: string; tipo: string; tamanho: number; duracao: number | null; memoriaId: string }, usuario: Usuario): Promise<number> {
+export async function registrarAudio(dados: { chave: string; tipo: string; tamanho: number; duracao: number | null; memoriaId: string | null }, usuario: Usuario): Promise<number> {
   const resultado = await db()
     .prepare('INSERT INTO audios (chave, tipo, tamanho, duracao, memoria_id, enviado_por) VALUES (?, ?, ?, ?, ?, ?)')
     .bind(dados.chave, dados.tipo, dados.tamanho, dados.duracao, dados.memoriaId, usuario.pessoa)
@@ -1089,7 +1089,7 @@ export async function ligarAudios(relatoId: number, memoriaId: string, itens: { 
   const ids = itens.map((i) => i.id);
   const { results } = await db()
     .prepare(
-      `SELECT id FROM audios WHERE removido_em IS NULL AND enviado_por = ? AND memoria_id = ?
+      `SELECT id FROM audios WHERE removido_em IS NULL AND enviado_por = ? AND (memoria_id = ? OR memoria_id IS NULL)
        AND (relato_id IS NULL OR relato_id = ?) AND id IN (${ids.length ? ids.map(() => '?').join(', ') : 'NULL'})`,
     )
     .bind(usuario.pessoa, memoriaId, relatoId, ...ids)
@@ -1102,8 +1102,8 @@ export async function ligarAudios(relatoId: number, memoriaId: string, itens: { 
       .bind(relatoId, ...validos.map((i) => i.id)),
     ...validos.map((item, ordem) =>
       db()
-        .prepare('UPDATE audios SET relato_id = ?, ordem = ?, transcricao = ? WHERE id = ?')
-        .bind(relatoId, ordem, item.transcricao?.trim() || null, item.id),
+        .prepare('UPDATE audios SET relato_id = ?, memoria_id = ?, ordem = ?, transcricao = ? WHERE id = ?')
+        .bind(relatoId, memoriaId, ordem, item.transcricao?.trim() || null, item.id),
     ),
   ]);
   return validos.length;
