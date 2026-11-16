@@ -1,0 +1,25 @@
+---
+// O bilhete: o relato de uma pessoa, assinado à mão por quem contou (docs/visual.md). O que vai
+// dentro (áudio, texto, fotos) entra por quem usa; a assinatura fecha o bilhete. A manuscrita só
+// aparece aqui: no nome de quem conta.
+interface Props {
+  /** o nome de quem contou, escrito à mão */
+  por: string;
+  /** o nome de quem registrou, quando não foi a própria pessoa */
+  registradoPor?: string | null;
+  /** o bilhete inteiro como link, para o cartão de "relato novo" */
+  href?: string;
+}
+
+const { por, registradoPor, href } = Astro.props;
+const Caixa = href ? 'a' : 'article';
+const Linha = href ? 'span' : 'p';
+---
+
+<Caixa class="bilhete" href={href}>
+  <slot />
+  <Linha class="bilhete__assina">
+    <span class="mao">{por}</span>
+    {registradoPor && <span class="ficha suave">registrado por {registradoPor}</span>}
+  </Linha>
+</Caixa>

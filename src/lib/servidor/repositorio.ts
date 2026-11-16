@@ -40,6 +40,8 @@ export const familiasDe = (i: Pick<Integrante, 'nucleos' | 'parenteDe'>): string
 export interface Nucleo {
   id: string;
   nome: string;
+  /** As famílias de que o núcleo é feito, para a assinatura do nome (src/lib/visual.ts, "assinaturaDaTela") */
+  sobrenomes: string[];
 }
 
 export interface Foto {
@@ -135,8 +137,24 @@ export async function listarIntegrantes(): Promise<Integrante[]> {
 }
 
 export async function listarNucleos(): Promise<Nucleo[]> {
-  const { results } = await db().prepare('SELECT id, nome FROM nucleos ORDER BY ordem, nome').all<Nucleo>();
-  return results;
+  const { results } = await db().prepare('SELECT id, nome, sobrenomes FROM nucleos ORDER BY ordem, nome').all<{ id: string; nome: string; sobrenomes: string | null }>();
+  return results.map((n: { id: string; nome: string; sobrenomes: string | null }) => ({ id: n.id, nome: n.nome, sobrenomes: lerSobrenomes(n.sobrenomes) }));
+}
+
+/** Os sobrenomes de um núcleo, como estão no banco: uma lista em JSON. Qualquer outra coisa conta como lista vazia. */
+export function lerSobrenomes(valor: string | null): string[] {
+  if (!valor) return [];
+  try {
+    const lista: unknown = JSON.parse(valor);
+    return Array.isArray(lista) ? lista.filter((s): s is string => typeof s === 'string' && s.trim() !== '').map((s) => s.trim()) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Troca os sobrenomes de um núcleo. Só os administradores chegam aqui (src/pages/api/nucleos.ts). */
+export async function atualizarSobrenomesDoNucleo(id: string, sobrenomes: string[]): Promise<void> {
+  await db().prepare('UPDATE nucleos SET sobrenomes = ? WHERE id = ?').bind(JSON.stringify(sobrenomes), id).run();
 }
 
 /** Cadastro rápido, pelo nome digitado num laço ou numa memória. "Como se referir" vem junto, se a pessoa disse. */

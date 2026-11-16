@@ -1,10 +1,22 @@
 /*
- * Revisão visual do zero (docs/visual.md), fase 1: o conceito.
- * Tokens do visual novo. Nada aqui vem de src/styles/global.css.
+ * Os tokens do sistema visual (docs/visual.md, "Sistema"). Nada aqui vem de src/styles/global.css.
  *
  * A ideia central é a caixa de fotografias da família: papel claro, a foto como objeto,
  * o verso em mono como o carimbo do laboratório, e a cor de cada família como a capa do álbum dela.
+ *
+ * Em camadas, de baixo para cima:
+ *   1. Neutros e cores: os valores. Cor só é escrita neste arquivo (testes/visual.test.ts).
+ *   2. Papéis: o que cada valor faz na tela (--papel, --tinta, --pastel, --vivo, --alerta).
+ *      A família da tela troca os papéis de cor em [data-familia]; o tipo de momento e o capítulo
+ *      levam os deles por estilo (estiloDoTipo e estiloDoCapitulo, em src/lib/visual.ts).
+ *   3. Espaço e grade, escala de tipo, formas, sombras e movimento.
+ * As fontes ficam em fontes.css. As telas usam os papéis e as medidas, nunca um valor solto.
+ *
+ * Larguras de tela: tudo nasce em 390 px. A composição de computador entra em 62rem e a de tela
+ * grande, de ver juntos na TV, em 100rem (40rem serve só a ajustes de coluna). Media query não
+ * lê variável, então essas larguras são escritas por extenso e conferidas no teste do sistema.
  */
+
 
 :root {
   /* Neutros quentes: papel creme e tinta de café. Os neutros não têm versão saturada. */
@@ -20,6 +32,9 @@
   --tinta: #2b211a;
   --tinta-suave: #75665a; /* 5:1 sobre o papel */
   --fio: #e4d6c1;
+  /* O que deu errado ou pede atenção: o coral, vivo na marca e escurecido no texto */
+  --alerta: var(--coral-vivo);
+  --alerta-tinta: var(--coral-tinta);
 
   /*
    * As cores. Cada uma é uma cor só em quatro tons: o pastel (blocos sólidos), o meio (enfeites
@@ -103,6 +118,8 @@
   /* A mono é pequena, mas cresce na tela grande, que é vista de longe */
   --t-micro: clamp(0.6875rem, 0.64rem + 0.14vw, 0.8125rem);
   --t-ficha: clamp(0.75rem, 0.69rem + 0.19vw, 0.9375rem);
+  /* O menu do topo e o nome de quem está logado: um tamanho só, que não cresce com a tela */
+  --t-menu: 0.9375rem;
   --t-pequeno: clamp(0.875rem, 0.83rem + 0.16vw, 1.0625rem);
   --t-corpo: clamp(1.0625rem, 1rem + 0.2vw, 1.25rem);
   --t-leitura: clamp(1.125rem, 1.02rem + 0.42vw, 1.5rem);
@@ -119,6 +136,8 @@
   --raio-foto: 2px;
   --raio-moldura: 5px;
   --raio-bloco: clamp(1rem, 0.6rem + 1.6vw, 2rem);
+  --raio-carimbo: 3px;
+  --raio-pilula: 999px; /* cápsula, arco e botão: o canto some */
   --traco: 1.5px;
   --toque: 2.75rem; /* 44 px: nada tocável fica abaixo disso */
 

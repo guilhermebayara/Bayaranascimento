@@ -1,0 +1,16 @@
+---
+// O sinal do capítulo numa memória: a mesma parada do trilho, na cor do capítulo, com o nome.
+// É o que liga a memória ao trilho e, onde o trilho não cabe, o que diz de que capítulo ela é.
+import { estiloDoCapitulo } from '../../lib/visual';
+
+interface Props {
+  id: string;
+  titulo: string;
+  /** a posição da cor do capítulo, dada pela montagem (src/lib/linha-capitulos.ts) */
+  cor: number;
+}
+
+const { id, titulo, cor } = Astro.props;
+---
+
+<span class="sinal" data-capitulo={id} style={estiloDoCapitulo(cor)}>{titulo}</span>

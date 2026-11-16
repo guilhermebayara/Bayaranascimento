@@ -1,0 +1,13 @@
+---
+// O carimbo: a data e o lugar, como o do laboratório de revelação ("14 AGO 1994 · BELO HORIZONTE").
+// A caixa alta e o ponto entre os itens são do CSS. Item vazio não entra.
+interface Props {
+  itens: (string | null | undefined | false)[];
+}
+
+const itens = Astro.props.itens.filter((item): item is string => Boolean(item && item.trim()));
+---
+
+<span class="carimbo">
+  {itens.map((item) => <span>{item}</span>)}
+</span>

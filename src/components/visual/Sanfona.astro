@@ -1,0 +1,27 @@
+---
+// A sanfona de fases (docs/visual.md): o ano grande, o nome da fase e a data pequena. Abre
+// empurrando o conteúdo, sem script. Com o mesmo "grupo", só uma fica aberta por vez.
+interface Props {
+  /** o ano grande, à esquerda */
+  ano: string | number;
+  titulo: string;
+  /** a data ou o período, em mono */
+  quando?: string;
+  /** o nome que junta as sanfonas de uma lista: abrir uma fecha as outras */
+  grupo?: string;
+  aberta?: boolean;
+}
+
+const { ano, titulo, quando, grupo, aberta = false } = Astro.props;
+---
+
+<details class="sanfona" name={grupo} open={aberta}>
+  <summary>
+    <span class="sanfona__ano" aria-hidden="true">{ano}</span>
+    <span class="sanfona__titulo">{titulo}</span>
+    {quando && <span class="sanfona__quando">{quando}</span>}
+  </summary>
+  <div class="sanfona__miolo">
+    <slot />
+  </div>
+</details>

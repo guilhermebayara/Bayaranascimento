@@ -108,6 +108,8 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 - A direção visual foi definida em 16/11/2026 e está em `docs/visual.md`: claro, serifa macia nos títulos, pastéis com pontos saturados, foto como objeto e movimento discreto. A análise das referências está no Claude Doc linkado ali.
 - Movimento: a rolagem é sempre a do aparelho e nenhum efeito quebra um padrão de navegação conhecido. A família inclui gente com pouca familiaridade com sites.
 - A revisão visual é do zero ("Revisão do zero" em `docs/visual.md`): o CSS atual não é base, só as fundações de experiência ficam. Até ela ser aprovada, o estilo atual continua no ar como provisório.
+- O sistema visual (fase 2) está em `src/visual/` e `src/components/visual/`, descrito em "Sistema (fase 2)" de `docs/visual.md`. A fonte do site é uma linha só: `FONTES_DO_SITE`, em `src/lib/visual.ts`. Tela nova usa as peças e os tokens que existem; valor solto de cor, fonte, raio ou largura de tela não passa em `testes/sistema.test.ts` e `testes/visual.test.ts`.
+- O monograma e os ícones do site são gerados por `npm run monograma` e ficam versionados. Só rode de novo se uma serifa mudar.
 - Celular primeiro, desktop de destaque: cada tela nasce em 390 px e ganha composição própria na tela grande, pensada para ver na TV (até 1920 px).
 - Toda mudança visual é conferida em 390, 1280 e 1920 px, por teclado, e com movimento reduzido.
 

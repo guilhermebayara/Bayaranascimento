@@ -7,6 +7,7 @@ import '../../visual/telas/linha.css';
 import Visual from '../../layouts/Visual.astro';
 import Assinatura from '../../components/visual/Assinatura.astro';
 import IconeDoTipo from '../../components/visual/IconeDoTipo.astro';
+import SinalDoCapitulo from '../../components/visual/SinalDoCapitulo.astro';
 import Polaroid from '../../components/visual/Polaroid.astro';
 import Trilhos from '../../components/visual/Trilhos.astro';
 import { agruparPorAno, maisRecentesPrimeiro } from '../../lib/datas';
@@ -14,7 +15,7 @@ import { capitulosNosTrilhos, chaoDaEpoca, montarTrilhos, trilhosNaEpoca, trilho
 import { tipoDaMemoria } from '../../lib/tipos';
 import { conceitoDisponivel, naoEncontrado } from '../../lib/servidor/conceito';
 import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
-import { diaMesCurto, estiloDoCapitulo, estiloDoTipo, familiaDaTela, legendaLugarAno, listaCurta, sobrenomesDaAssinatura } from '../../lib/visual';
+import { assinaturaDaTela, diaMesCurto, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../lib/visual';
 
 if (!conceitoDisponivel()) return naoEncontrado();
 
@@ -70,12 +71,12 @@ const quantas = `${memorias.length} ${memorias.length === 1 ? 'memória' : 'mem�
 const periodo = primeiro && ultimo && primeiro !== ultimo ? `de ${primeiro} a ${ultimo}` : primeiro ? `em ${primeiro}` : '';
 
 // A assinatura acompanha o que está sendo visto: em "Tudo", todas as famílias
-const sobrenomes = sobrenomesDaAssinatura(nucleo ? [nucleo.nome] : nucleos.map((n) => n.nome));
-const familia = familiaDaTela(nucleo ? [nucleo.id] : [], nucleos.map((n) => n.id));
+const daTela = nucleo ? [nucleo.id] : [];
+const { sobrenomes } = assinaturaDaTela(daTela, nucleos);
 const primeiraMemoria = anos[0]?.itens[0]?.id;
 ---
 
-<Visual titulo={nucleo?.nome ?? 'Linha do tempo'} secao="linha" familia={familia} sobrenomes={sobrenomes}>
+<Visual titulo={nucleo?.nome ?? 'Linha do tempo'} secao="linha" nucleos={daTela}>
   <div class="linha" data-linha-do-tempo style={`--trilhos: ${montagem.quantos}`}>
     <header class="linha__capa miolo">
       <Assinatura titulo sobrenomes={sobrenomes} />
@@ -285,9 +286,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                         <p class="entrada__capitulos ficha">
                           <span class="so-leitor">Capítulos: </span>
                           {linha.capitulos.map(capituloDe).map((c) => (
-                            <span class="sinal" data-capitulo={c.id} style={estiloDoCapitulo(c.cor)}>
-                              {c.titulo}
-                            </span>
+                            <SinalDoCapitulo id={c.id} titulo={c.titulo} cor={c.cor} />
                           ))}
                         </p>
                       )}

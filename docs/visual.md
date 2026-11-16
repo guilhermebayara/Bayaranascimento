@@ -111,7 +111,7 @@ Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de out
     - **Foto que veio com um relato** (decisão do Gui, 16/11/2026: aparece nos dois). É a mesma foto: ela é da memória, entra na parede e na galeria com todas as outras, e aparece também pequena no bilhete do relato que a trouxe, abrindo a mesma galeria naquela foto. Na galeria, ela diz "Veio com o relato de …". No conceito isso é FIXO em duas memórias de exemplo (`FIXO_FOTOS_DOS_RELATOS`), porque o banco ainda não liga a foto ao relato.
 - **"Início" no menu** (pedido do Gui, 16/11/2026). "Memórias", no alto, leva ao início, e o menu também diz "Início", no computador e no celular: quem tem menos familiaridade com sites não precisa adivinhar.
 - **A carta** passa a ser assinada pelos três: Gui, Giovanna e Magno.
-- **Monograma.** No celular, o "M" do topo é a letra da serifa, provisória. O desenho em SVG é da fase 2.
+- **Monograma.** No celular, o "M" do topo era a letra da serifa, provisória. O desenho em SVG entrou na fase 2 (ver "Sistema" e "Monograma").
 
 **Época e capítulo** (aprovado pelo Gui em 16/11/2026, a partir do furo que ele achou no capítulo de época). Pela regra antiga, toda memória que cai no período de um capítulo de época é dele, mesmo num capítulo que é só da vida da Giovanna e do Magno. A separação:
 
@@ -141,6 +141,54 @@ No conceito, de quem é cada capítulo de época é fixo na página, porque o ba
 **O que ficou de fora de propósito:** os efeitos da fase 4 (a frase que acende, a foto que amplia no lugar; hoje a foto abre o arquivo), o tocador de áudio próprio (o bloco usa o do aparelho) e as outras telas, que continuam com o visual antigo. Os links do conceito para capítulos, pessoas, árvore e formulários caem nelas.
 
 **Capturas.** `CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>` tira as quatro telas nas três combinações, em 390, 1280 e 1920 px, com movimento reduzido, e um trecho da linha do tempo com os capítulos de dentro. As da quinta rodada estão em `docs/visual/conceito/` (a linha do tempo, cortada em 9000 px de altura).
+
+## Sistema (fase 2)
+
+Construído em 16/11/2026 na branch `tst-visual-sistema`, a partir do conceito aprovado. Os tokens e as peças do conceito viraram sistema: as telas do conceito passaram a ser montadas com ele e continuam iguais (conferidas pixel a pixel antes e depois; a única diferença é o monograma no topo do celular, que era a letra da fonte e agora é o desenho). A página `/conceito/sistema`, nas prévias de teste e no computador, mostra tudo lado a lado.
+
+**A fonte é uma linha.** `FONTES_DO_SITE`, em `src/lib/visual.ts`, diz de qual combinação vem a fonte de cada papel do tipo. Trocar a combinação inteira é `combinacao('b')`; misturar é `{ ...combinacao('a'), mao: 'b' }`. O esqueleto leva a escolha à página em quatro atributos (`data-serifa`, `data-grotesca`, `data-mono` e `data-mao`) e `src/visual/fontes.css` tem as três opções de cada papel, com os acertos de cada serifa. O monograma, o ícone do site e a largura da assinatura acompanham a serifa sozinhos. As três combinações continuam carregadas enquanto a escolha não sai (o navegador só baixa as que a página usa); depois da escolha, as outras duas saem de `src/visual/sistema.ts` e de `fontes.css`. Nas prévias, a faixa de teste continua trocando a combinação por um cookie, para comparar; na produção e na homologação o cookie não vale.
+
+**Onde está cada coisa.**
+
+| O quê | Onde |
+| --- | --- |
+| Entrada única do estilo | `src/visual/sistema.ts`: as fontes e, em ordem, `tokens.css`, `fontes.css`, `base.css`, `pecas.css` e `estrutura.css`. Todo esqueleto importa só este arquivo; cada tela soma o CSS dela, de `src/visual/telas/` |
+| Tokens | `src/visual/tokens.css`, em camadas: valores (neutros e as onze cores em quatro tons), papéis (`--papel`, `--tinta`, `--pastel`, `--vivo`, `--alerta`), espaço e grade, escala de tipo, formas, sombras e movimento. Cor só é escrita ali |
+| Larguras de tela | 62rem para o computador e 100rem para a tela grande (40rem só para ajuste de coluna). Media query não lê variável: o teste confere que nenhuma outra largura aparece |
+| Peças | `src/visual/pecas.css` e um componente por peça em `src/components/visual/` |
+| Esqueleto | `src/layouts/Visual.astro`. Recebe `nucleos`, os núcleos do que está sendo visto, e tira dali a assinatura e a cor da tela |
+| Funções puras | `src/lib/visual.ts`: fontes, assinatura, cor da família, da pessoa, do tipo e do capítulo, carimbo, legenda |
+| Testes | `testes/sistema.test.ts` (fonte numa linha, assinatura, monograma, tokens e peças) e `testes/visual.test.ts` (regras do CSS e das telas do conceito) |
+
+**Peças e componentes.**
+
+| Peça | Componente | Situação |
+| --- | --- | --- |
+| Assinatura | `Assinatura.astro` | Do conceito. Agora lê os sobrenomes do cadastro de cada família e encolhe a linha longa |
+| Monograma | `Monograma.astro` | Novo: o desenho em SVG |
+| Foto revelada e monte de fotos | `Polaroid.astro` | Do conceito |
+| Carimbo | `Carimbo.astro` | Do conceito |
+| Etiqueta-balão | `Etiqueta.astro` | Do conceito |
+| Ficha em mono | `Ficha.astro` e `Dado.astro` (classe `verso`) | Do conceito |
+| Retrato recortado | `Retrato.astro` | Do conceito |
+| Bilhete e nome manuscrito | `Bilhete.astro` | Do conceito |
+| Bloco de áudio | `Audio.astro` | Do conceito, com o tocador do aparelho |
+| Sinal do capítulo e trilhos | `SinalDoCapitulo.astro`, `Trilhos.astro` | Do conceito |
+| Ícones dos tipos e rabiscos | `IconeDoTipo.astro`, `Rabisco.astro` | Do conceito |
+| Ações | classes `botao`, `acao` e `acao--quieta` | Do conceito. Entrou o botão sem poder agir |
+| Pílula de período | `Pilula.astro` | Nova, espera o Gui |
+| Sanfona de fases | `Sanfona.astro` | Nova, espera o Gui. Sem script; com o mesmo `grupo`, só uma fica aberta |
+| Formulário em frase | classes `frase` e `frase__lacuna` | Novo, espera o Gui. A ligação com a Nova memória é da fase 3 |
+| Campo de formulário | classes `pergunta`, `campo` e `escolha` | Novo, espera o Gui |
+| Recado e estado vazio | `Recado.astro`, `Vazio.astro` | O recado já existia no CSS; o vazio é novo |
+
+O cartão do painel (`.cartao`) continua em `telas/painel.css`: só existe ali, e como peça ele passaria por cima da cor do cartão "contar".
+
+**Quem ajusta o quê.** A tela pode ajustar uma peça, e a ordem dos arquivos é a que o conceito já usava. Uma tentativa de pôr base e peças em camadas do CSS (`@layer`) mudou a altura de várias telas do conceito e foi desfeita: fica para ser reavaliada quando o CSS antigo sair, na fase 3.
+
+**O que a fase 2 não fez:** nenhuma tela nova. As telas do site continuam com o visual antigo, e o ícone novo só aparece nas telas do visual novo. `/admin/familias`, onde os administradores editam os sobrenomes, foi feita com a aparência mínima do visual antigo e é redesenhada na fase 3, dentro de "Sua conta".
+
+**Capturas.** `CAPTURAS_SO=sistema npm run capturas -- tirar <pasta>` tira a página do sistema nas três combinações, em 390, 1280 e 1920 px. As desta fase estão em `docs/visual/sistema/`.
 
 ## Referências
 
@@ -217,7 +265,8 @@ Decisões do Gui de 16/11/2026. Rascunho dele em `docs/visual/assinatura-hierarq
 - "MEMÓRIAS" é a palavra principal e não muda: em caixa alta, grande, na serifa dos títulos.
 - Logo abaixo vêm os sobrenomes das famílias, em caixa alta e baixa, bem menores (no rascunho, perto de metade da altura de "MEMÓRIAS"), alinhados à esquerda.
 - **Os sobrenomes acompanham o que está sendo visto.** Na linha do tempo geral ("Família completa"): "Bayara & Bracarense". Numa família só, o nome dela, como é: "Bayara", "Bracarense" e "Bayara Bracarense", sem "&" (decisão do Gui, 16/11/2026: o "&" junta famílias, então só aparece na família completa ou quando a tela é de mais de uma). Assim a assinatura cresce com o acervo: se um dia entrar outra família, por um casamento, a combinação aparece sozinha nas telas em que ela estiver.
-- Para isso cada núcleo precisa dizer de quais famílias ele é (Bayara Bracarense = Bayara e Bracarense). A linha junta os sobrenomes sem repetir, na ordem dos lados da árvore (Bayara à esquerda), com "&" antes do último e vírgula entre os outros ("Bayara, Bracarense & Silva").
+- Para isso cada núcleo diz de quais famílias ele é (Bayara Bracarense = Bayara e Bracarense): a migração `018-sobrenomes-dos-nucleos` guarda a lista, e os administradores editam em `/admin/familias`. A linha junta os sobrenomes sem repetir, na ordem dos lados da árvore (Bayara à esquerda), com "&" antes do último e vírgula entre os outros ("Bayara, Bracarense & Silva"). Quem monta é `assinaturaDaTela`, em `src/lib/visual.ts`.
+- **Linha longa.** A medida dos sobrenomes foi tirada para "Bayara & Bracarense" fechar na largura de "MEMÓRIAS". Uma linha mais longa, como a de três famílias, encolhe na proporção para caber (`encolheDaAssinatura`, com a largura das letras de cada serifa em `src/visual/medidas-das-serifas.ts`).
 - Telas que não são de um núcleo (pessoa, memória, capítulo) usam as famílias do que mostram: os núcleos da memória ou do capítulo, as famílias da pessoa. Na dúvida, a versão de "Tudo".
 - No texto corrido e na aba do navegador, o nome por extenso continua "Memórias Bayara e Bracarense".
 - O rascunho mostra três pesos e larguras (normal, condensada, negrito) da mesma família: comparar na prévia, junto com a escolha da fonte.
@@ -227,9 +276,11 @@ Decisões do Gui de 16/11/2026. Rascunho dele em `docs/visual/assinatura-hierarq
 Decisão do Gui de 16/11/2026: o monograma é o M de Memórias, que não muda, enquanto os sobrenomes mudam com a tela. Substitui os dois Bs ("uma haste"), que só valiam para duas famílias.
 
 - Sai da serifa dos títulos, desenhado em SVG para funcionar pequeno.
+- **Como é feito (fase 2).** `npm run monograma` (`scripts/monograma.mjs`) lê o M direto dos arquivos das três serifas e grava o desenho em `src/visual/monograma.ts` e os ícones em `public/icones/<a, b ou c>/`. O resultado fica versionado; só se roda de novo se uma serifa mudar. São dois cortes: o normal, que é o desenho de título, e o pequeno, mais firme, para 16 px (na Fraunces, o desenho ótico de texto com um peso acima; nas outras, que não têm eixos, um contorno fino por fora).
+- **Ícone do site.** `favicon.svg` é o M sozinho, na cor do texto, e troca para a cor do papel quando o navegador está no tema escuro, para não sumir na aba. `favicon-48.png` é a reserva para navegador que não lê ícone em SVG, e `apple-touch-icon.png` (180 px) é o da tela inicial do celular: os dois levam o papel por baixo, porque o celular pede fundo cheio. O esqueleto aponta para a pasta da serifa em uso.
 - **Uso:** ícone do site (favicon e ícone de tela inicial do celular) e, no celular, no lugar da assinatura quando falta espaço.
-- **Cor:** uma cor só, no tom do texto. Pode ganhar a cor da família da tela, como opção a comparar na prévia.
-- **Tamanho mínimo:** conferir a 16 px (favicon).
+- **Cor:** uma cor só, no tom do texto. Pode ganhar a cor da família da tela, como opção a comparar na prévia: está lado a lado em `/conceito/sistema`, e o Gui decide.
+- **Tamanho mínimo:** conferir a 16 px (favicon). Na página do sistema ele aparece em 16, 24, 32, 64 e 112 px.
 
 ## Página da memória
 

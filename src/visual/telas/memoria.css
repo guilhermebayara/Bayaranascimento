@@ -64,32 +64,6 @@
 }
 
 /* A ficha em mono: rótulo pequeno em caixa alta e valor */
-.dados__lista {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--e-5) var(--calha);
-  font-family: var(--mono);
-  font-size: var(--t-pequeno);
-  line-height: 1.45;
-}
-.dados__lista dt {
-  margin-bottom: var(--e-1);
-  font-size: var(--t-micro);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--tinta-suave);
-}
-.dados__lista dd {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.9em;
-}
-.dados__lista dd a {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--toque);
-  margin-block: calc((1.45em - var(--toque)) / 2);
-}
 
 .parte + .parte {
   margin-top: var(--e-8);
@@ -104,19 +78,6 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--e-6) var(--calha);
-}
-.pessoa {
-  display: grid;
-  gap: var(--e-1);
-  text-decoration: none;
-}
-.pessoa .retrato {
-  margin-bottom: var(--e-2);
-  transition: translate var(--tempo-medio) var(--curva);
-}
-.pessoa__nome {
-  font-weight: 550;
-  line-height: 1.25;
 }
 @media (hover: hover) {
   .pessoa:hover .retrato {
@@ -554,7 +515,7 @@ html:has(.galeria[open]) {
   .corpo > .corpo__conteudo {
     grid-column: 5 / -1;
   }
-  .dados__lista {
+  .dados .verso {
     grid-template-columns: minmax(0, 1fr);
   }
   .quem {

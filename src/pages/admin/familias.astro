@@ -1,0 +1,45 @@
+---
+// Os sobrenomes de cada família, para a assinatura do nome (docs/visual.md, "Assinatura do nome").
+// Aparência mínima, no visual provisório: a tela final entra na fase 3 da revisão visual, dentro de "Sua conta".
+import Base from '../../layouts/Base.astro';
+import Abertura from '../../components/Abertura.astro';
+import { outrosAdmins } from '../../lib/servidor/conteudo';
+import { listarIntegrantes, listarNucleos } from '../../lib/servidor/repositorio';
+import { assinaturaDaTela } from '../../lib/visual';
+
+const { usuario } = Astro.locals;
+if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
+
+const nucleos = await listarNucleos();
+const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
+---
+
+<Base titulo="Famílias">
+  <Abertura titulo="Famílias">
+    <p>
+      Os sobrenomes de que cada família é feita. É com eles que o site escreve a linha embaixo de "MEMÓRIAS" quando a tela mostra mais de uma família.
+      {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}
+    </p>
+  </Abertura>
+
+  <section class="painel">
+    <h2>Sobrenomes de cada família</h2>
+    <p class="dica">Separe por vírgula, na ordem em que devem aparecer. Com todas as famílias juntas, o site escreve hoje: {assinaturaDaTela([], nucleos).sobrenomes}.</p>
+    <ul class="linhas">
+      {
+        nucleos.map((n) => (
+          <li>
+            <form method="post" action="/api/nucleos" class="em-linha">
+              <input type="hidden" name="id" value={n.id} />
+              <label>
+                <span>{n.nome}</span>
+                <input type="text" name="sobrenomes" value={n.sobrenomes.join(', ')} maxlength="200" required />
+              </label>
+              <button class="botao botao--leve" type="submit">Salvar</button>
+            </form>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Base>

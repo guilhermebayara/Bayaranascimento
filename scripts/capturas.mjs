@@ -10,6 +10,7 @@
 //
 // As telas do conceito da revisão visual (/conceito) saem também em 1920 px, uma vez para cada
 // combinação de fontes. Para tirar só elas: CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>
+// A página do sistema (/conceito/sistema) sai com CAPTURAS_SO=sistema.
 //
 // "comparar" abre as duas capturas de cada página no navegador e compara os pixels.
 // Termina com erro se alguma página mudou, e grava a diferença em <depois>/diferencas.
@@ -99,6 +100,9 @@ const PAGINAS = [
   // de Natais) e, no computador, os capítulos de época. Começa em 2006 e vai até o fim da página.
   { nome: 'conceito-a-5-capitulos', url: '/conceito/tudo', como: 'giovanna', larguras: TODAS, desde: '#ano-2006', corte: 9000 },
   { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
+  // O sistema (fase 2): a marca, as fontes, os tokens e as peças, em cada combinação de fontes
+  ...['a', 'b', 'c'].map((fontes) => ({ nome: `sistema-${fontes}`, url: '/conceito/sistema', fontes, larguras: TODAS })),
+  { nome: 'admin-familias', url: '/admin/familias' },
 ];
 
 async function tirar(pasta) {

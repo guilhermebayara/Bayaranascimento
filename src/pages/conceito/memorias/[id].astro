@@ -4,7 +4,13 @@
 // o carimbo do laboratório, e os relatos como bilhetes assinados à mão. A ordem é a de docs/visual.md.
 import '../../../visual/telas/memoria.css';
 import Visual from '../../../layouts/Visual.astro';
-import IconeDoTipo from '../../../components/visual/IconeDoTipo.astro';
+import Audio from '../../../components/visual/Audio.astro';
+import Bilhete from '../../../components/visual/Bilhete.astro';
+import Carimbo from '../../../components/visual/Carimbo.astro';
+import Dado from '../../../components/visual/Dado.astro';
+import Etiqueta from '../../../components/visual/Etiqueta.astro';
+import Ficha from '../../../components/visual/Ficha.astro';
+import Retrato from '../../../components/visual/Retrato.astro';
 import Polaroid from '../../../components/visual/Polaroid.astro';
 import Rabisco from '../../../components/visual/Rabisco.astro';
 import { dentroDoPeriodo } from '../../../lib/capitulos';
@@ -12,7 +18,7 @@ import { tipoDaMemoria } from '../../../lib/tipos';
 import { formatarData } from '../../../lib/datas';
 import { duracaoEmTexto } from '../../../lib/audios';
 import { Familia, possessivo, type Tratamento } from '../../../lib/parentesco';
-import { enderecoDoRetrato, iniciais } from '../../../lib/retratos';
+import { enderecoDoRetrato } from '../../../lib/retratos';
 import { conceitoDisponivel, naoEncontrado } from '../../../lib/servidor/conceito';
 import { podeEditarMemoria, podeExcluirMemoria } from '../../../lib/servidor/permissoes';
 import {
@@ -29,7 +35,7 @@ import {
   obterMemoria,
   pessoasQueONaoVe,
 } from '../../../lib/servidor/repositorio';
-import { carimboDaData, estiloDoTipo, familiaDaTela, giroDoId, legendaLugarAno, sobrenomesDaAssinatura, trechoDoRelato } from '../../../lib/visual';
+import { carimboDaData, corDaPessoa, estiloDoTipo, giroDoId, legendaLugarAno, trechoDoRelato } from '../../../lib/visual';
 
 if (!conceitoDisponivel()) return naoEncontrado();
 
@@ -53,11 +59,7 @@ const retratoDe = (id: string) => {
   const pessoa = achar(id);
   return pessoa?.retrato && !naoVe.has(id) ? enderecoDoRetrato(pessoa.retrato) : null;
 };
-const familiaDe = (id: string) => {
-  const pessoa = achar(id);
-  const indice = pessoa ? ordemDosNucleos.findIndex((n) => familiasDe(pessoa).includes(n)) : -1;
-  return indice >= 0 ? String(indice % 4) : 'tudo';
-};
+const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
 // O parentesco do ponto de vista de quem olha: "sua avó"
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
@@ -90,8 +92,7 @@ const antes = todas[posicao - 1];
 const depois = todas[posicao + 1];
 
 // A cor e a assinatura acompanham os núcleos da memória; aberta a todos, as famílias juntas
-const corDaTela = familiaDaTela(memoria.visibilidade === 'nucleos' ? memoria.nucleos : [], ordemDosNucleos);
-const sobrenomes = sobrenomesDaAssinatura(dosNucleos.length ? dosNucleos : nucleos.map((n) => n.nome));
+const corDaTela = memoria.visibilidade === 'nucleos' ? undefined : 'tudo';
 const outrasFotos = memoria.fotos.length > 1;
 
 // Fotos que vieram com um relato ("Fotos pelo relato", em docs/decisoes.md, ainda a construir).
@@ -111,16 +112,13 @@ for (const [pessoa, quantas] of Object.entries(FIXO_FOTOS_DOS_RELATOS[memoria.id
 const fotosDoRelato = (pessoa: string) => memoria.fotos.map((foto, n) => ({ foto, n })).filter(({ n }) => doRelato.get(n) === pessoa);
 ---
 
-<Visual titulo={memoria.titulo} familia={corDaTela} sobrenomes={sobrenomes}>
+<Visual titulo={memoria.titulo} nucleos={memoria.nucleos} familia={corDaTela}>
   <article class="memoria">
     <div class="abre__fundo" style={estiloDoTipo(memoria.tipo)}>
     <header class:list={['abre miolo grade', memoria.fotos.length === 0 && 'abre--sem-foto']}>
       <div class="abre__texto">
         <p class="abre__sobre">
-          <span class="carimbo">
-            <span>{carimboDaData(memoria)}</span>
-            {memoria.lugar && <span>{memoria.lugar}</span>}
-          </span>
+          <Carimbo itens={[carimboDaData(memoria), memoria.lugar]} />
           {memoria.visibilidade === 'nucleos' && <span class="selo">Só {dosNucleos.join(' e ')}</span>}
           {memoria.exemplo && <span class="selo">exemplo</span>}
         </p>
@@ -155,61 +153,40 @@ const fotosDoRelato = (pessoa: string) => memoria.fotos.map((foto, n) => ({ foto
 
     <div class="corpo grade">
       <aside class="dados" aria-label="Ficha da memória">
-        <dl class="dados__lista">
-          <div>
-            <dt>Quando</dt>
-            <dd>{formatarData(memoria)}</dd>
-          </div>
+        <Ficha>
+          <Dado rotulo="Quando">{formatarData(memoria)}</Dado>
           {
             memoria.lugar && (
-              <div>
-                <dt>Onde</dt>
-                <dd>{memoria.lugar}</dd>
-              </div>
+              <Dado rotulo="Onde">{memoria.lugar}</Dado>
             )
           }
-          <div>
-            <dt>Tipo</dt>
-            <dd>
-              <span class="etiqueta" style={estiloDoTipo(memoria.tipo)}>
-                <IconeDoTipo tipo={memoria.tipo} />
-                {tipo.rotulo}
-              </span>
-            </dd>
-          </div>
+          <Dado rotulo="Tipo">
+              <Etiqueta tipo={memoria.tipo} rotulo={tipo.rotulo} />
+            </Dado>
           {
             capitulos.length > 0 && (
-              <div>
-                <dt>{capitulos.length === 1 ? 'Capítulo' : 'Capítulos'}</dt>
-                <dd>
+              <Dado rotulo={capitulos.length === 1 ? 'Capítulo' : 'Capítulos'}>
                   {capitulos.map((c) => (
                     <a href={`/capitulos/${c.id}`}>{c.titulo}</a>
                   ))}
-                </dd>
-              </div>
+                </Dado>
             )
           }
           {
             temas.length > 0 && (
-              <div>
-                <dt>Temas</dt>
-                <dd>
+              <Dado rotulo="Temas">
                   {temas.map((t) => (
                     <a href={`/temas/${t.id}`}>{t.nome}</a>
                   ))}
-                </dd>
-              </div>
+                </Dado>
             )
           }
           {
             dosNucleos.length > 0 && (
-              <div>
-                <dt>Famílias</dt>
-                <dd>{dosNucleos.join(', ')}</dd>
-              </div>
+              <Dado rotulo="Famílias">{dosNucleos.join(', ')}</Dado>
             )
           }
-        </dl>
+        </Ficha>
       </aside>
 
       <div class="corpo__conteudo">
@@ -223,9 +200,7 @@ const fotosDoRelato = (pessoa: string) => memoria.fotos.map((foto, n) => ({ foto
                 {memoria.integrantes.map((id) => (
                   <li>
                     <a class="pessoa" href={`/pessoas/${id}`}>
-                      <span class="retrato" data-familia={familiaDe(id)}>
-                        {retratoDe(id) ? <img src={retratoDe(id)!} alt="" loading="lazy" decoding="async" /> : <span aria-hidden="true">{iniciais(nome(id))}</span>}
-                      </span>
+                      <Retrato nome={nome(id)} foto={retratoDe(id)} familia={familiaDe(id)} />
                       <span class="pessoa__nome">{nome(id)}</span>
                       {paraVoce(id) && <span class="pessoa__laco ficha suave">{paraVoce(id)}</span>}
                     </a>
@@ -246,25 +221,15 @@ const fotosDoRelato = (pessoa: string) => memoria.fotos.map((foto, n) => ({ foto
                 {relatos.map((relato) => {
                   const audios = audiosDosRelatos.get(relato.id) ?? [];
                   return (
-                    <article class="bilhete">
+                    <Bilhete por={nome(relato.por)} registradoPor={relato.registradoPor !== relato.por ? nome(relato.registradoPor) : null}>
                       <h3 class="so-leitor">Contado por {nome(relato.por)}</h3>
                       {relato.situacao === 'rascunho' && <p class="selo bilhete__selo">Rascunho, só você vê</p>}
                       {audios.map((audio, n) => (
-                        <div class="audio">
-                          <p class="rotulo">
-                            {audios.length > 1 ? `Áudio ${n + 1}` : 'Áudio'}
-                            {audio.duracao ? ` · ${duracaoEmTexto(audio.duracao)}` : ''}
-                          </p>
-                          <audio controls preload="none" src={`/audios/${audio.chave}`} />
-                          {audio.transcricao && (
-                            <details>
-                              <summary>Ler a transcrição</summary>
-                              {audio.transcricao.split(/\n{2,}/).map((p) => (
-                                <p>{p}</p>
-                              ))}
-                            </details>
-                          )}
-                        </div>
+                        <Audio
+                          rotulo={`${audios.length > 1 ? `Áudio ${n + 1}` : 'Áudio'}${audio.duracao ? ` · ${duracaoEmTexto(audio.duracao)}` : ''}`}
+                          src={`/audios/${audio.chave}`}
+                          transcricao={audio.transcricao}
+                        />
                       ))}
                       {relato.texto.trim() && (
                         <div class="bilhete__texto">
@@ -290,11 +255,7 @@ const fotosDoRelato = (pessoa: string) => memoria.fotos.map((foto, n) => ({ foto
                           ))}
                         </ul>
                       )}
-                      <p class="bilhete__assina">
-                        <span class="mao">{nome(relato.por)}</span>
-                        {relato.registradoPor !== relato.por && <span class="ficha suave">registrado por {nome(relato.registradoPor)}</span>}
-                      </p>
-                    </article>
+                    </Bilhete>
                   );
                 })}
               </div>
@@ -336,9 +297,7 @@ const fotosDoRelato = (pessoa: string) => memoria.fotos.map((foto, n) => ({ foto
         <span class="convite__forma" aria-hidden="true" />
         <div class:list={['convite__bilhete bilhete', temMeuRelato && 'convite__bilhete--feito']}>
           <p class="convite__para rotulo suave">
-            <span class="retrato" data-familia={familiaDe(usuario.pessoa)}>
-              {retratoDe(usuario.pessoa) ? <img src={retratoDe(usuario.pessoa)!} alt="" loading="lazy" decoding="async" /> : <span aria-hidden="true">{iniciais(usuario.nome)}</span>}
-            </span>
+            <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={familiaDe(usuario.pessoa)} />
             Para {usuario.nome}
           </p>
           <h2 class="convite__titulo serifa" id="convite">

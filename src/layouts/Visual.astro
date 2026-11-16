@@ -1,51 +1,42 @@
 ---
-// O esqueleto do visual novo (docs/visual.md, "Revisão do zero"). Na fase 1 ele serve só as
-// telas do conceito, em /conceito. Não importa nada de src/styles/global.css.
-import '@fontsource-variable/fraunces/full.css';
-import '@fontsource-variable/fraunces/full-italic.css';
-import '@fontsource-variable/geist/wght.css';
-import '@fontsource-variable/geist-mono/wght.css';
-import '@fontsource/oooh-baby/400.css';
-import '@fontsource/instrument-serif/400.css';
-import '@fontsource/instrument-serif/400-italic.css';
-import '@fontsource-variable/instrument-sans/wght.css';
-import '@fontsource/ibm-plex-mono/400.css';
-import '@fontsource/ibm-plex-mono/500.css';
-import '@fontsource/reenie-beanie/400.css';
-import '@fontsource/dm-serif-display/400.css';
-import '@fontsource/dm-serif-display/400-italic.css';
-import '@fontsource-variable/dm-sans/wght.css';
-import '@fontsource/dm-mono/400.css';
-import '@fontsource/dm-mono/500.css';
-import '@fontsource/nothing-you-could-do/400.css';
-import '../visual/tokens.css';
-import '../visual/fontes.css';
-import '../visual/base.css';
-import '../visual/pecas.css';
-import '../visual/estrutura.css';
+// O esqueleto do visual novo (docs/visual.md, "Revisão do zero" e "Sistema"). Por enquanto ele
+// serve só as telas de /conceito; na fase 3, as telas do site passam para ele uma a uma.
+// Não importa nada de src/styles/global.css: o estilo inteiro vem de src/visual/sistema.ts.
+import '../visual/sistema';
 import Assinatura from '../components/visual/Assinatura.astro';
+import Monograma from '../components/visual/Monograma.astro';
+import Retrato from '../components/visual/Retrato.astro';
 import { PESSOAS_DE_TESTE, semLogin } from '../lib/servidor/acesso';
 import { fontesDoPedido } from '../lib/servidor/conceito';
-import { enderecoDoRetrato, iniciais } from '../lib/retratos';
-import { listarIntegrantes } from '../lib/servidor/repositorio';
-import { COMBINACOES_DE_FONTES } from '../lib/visual';
+import { enderecoDoRetrato } from '../lib/retratos';
+import { listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
+import { COMBINACOES_DE_FONTES, assinaturaDaTela, atributosDasFontes, combinacaoDe } from '../lib/visual';
 
 interface Props {
   titulo?: string;
-  /** A cor da tela: 'tudo' ou a posição do núcleo ('0', '1', '2') */
+  /**
+   * Os núcleos do que está sendo visto: o núcleo filtrado na linha do tempo, os da memória ou do
+   * capítulo, as famílias da pessoa. Decidem os sobrenomes da assinatura e a cor da tela
+   * (assinaturaDaTela, em src/lib/visual.ts). Sem nenhum, vale a família completa.
+   */
+  nucleos?: string[];
+  /** A cor da tela, quando não é a dos núcleos: 'tudo' ou a posição do núcleo ('0', '1', '2', '3') */
   familia?: string;
-  /** Os sobrenomes da assinatura para o que está sendo visto */
-  sobrenomes?: string;
   /** Qual item do menu está aberto */
   secao?: 'painel' | 'linha' | 'conceito' | 'conta';
   /** A página que só a pessoa vê: tingida na cor da família dela */
   intimo?: boolean;
 }
 
-const { titulo, familia = 'tudo', sobrenomes = 'Bayara & Bracarense', secao, intimo = false } = Astro.props;
+const { titulo, nucleos = [], secao, intimo = false } = Astro.props;
 const { usuario } = Astro.locals;
 const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
+const assinatura = assinaturaDaTela(nucleos, await listarNucleos());
+const familia = Astro.props.familia ?? assinatura.familia;
+// As fontes do site (FONTES_DO_SITE). Nas prévias, a faixa de teste pode trocar a combinação.
 const fontes = fontesDoPedido(Astro.request);
+const combinacaoEmUso = combinacaoDe(fontes);
+const icones = `/icones/${fontes.serifa}`;
 const teste = semLogin();
 const integrantes = await listarIntegrantes();
 const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
@@ -71,17 +62,22 @@ const telas = [
   { href: '/conceito', texto: 'Painel', atual: caminho === '/conceito' && !primeiraVisita },
   { href: '/conceito/tudo', texto: 'Linha do tempo', atual: caminho === '/conceito/tudo' },
   { href: '/conceito/memorias/2025-natal', texto: 'Memória', atual: caminho.startsWith('/conceito/memorias') },
-  { href: '/conceito/sobre', texto: 'Fontes e peças', atual: caminho === '/conceito/sobre' },
+  { href: '/conceito/sobre', texto: 'Fontes', atual: caminho === '/conceito/sobre' },
+  { href: '/conceito/sistema', texto: 'Sistema', atual: caminho === '/conceito/sistema' },
 ];
 ---
 
 <!doctype html>
-<html lang="pt-BR" data-fontes={fontes} data-familia={familia} data-intimo={intimo ? '' : undefined}>
+<html lang="pt-BR" {...atributosDasFontes(fontes)} data-familia={familia} data-intimo={intimo ? '' : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#faf2e6" />
+    {/* O ícone do site é o monograma, na serifa em uso (scripts/monograma.mjs) */}
+    <link rel="icon" href={`${icones}/favicon.svg`} type="image/svg+xml" />
+    <link rel="icon" href={`${icones}/favicon-48.png`} type="image/png" sizes="48x48" />
+    <link rel="apple-touch-icon" href={`${icones}/apple-touch-icon.png`} />
     <title>{tituloPagina}</title>
     <script is:inline>
       // Aparelho de toque. No iPhone com iOS 26, o Safari desenha uma banda sólida atrás das suas
@@ -102,7 +98,7 @@ const telas = [
           <summary>
             <span>Conceito do visual novo, com o acervo de exemplo.</span>
             <span>
-              Fontes {fontes.toUpperCase()}, vendo como {usuario.nome}. <u>Trocar</u>
+              Fontes {combinacaoEmUso?.toUpperCase() ?? 'misturadas'}, vendo como {usuario.nome}. <u>Trocar</u>
             </span>
           </summary>
           <div class="teste__corpo">
@@ -117,7 +113,7 @@ const telas = [
             <p>
               <span>Fontes:</span>
               {COMBINACOES_DE_FONTES.map((c) => (
-                <a href={`/conceito/fontes/${c.id}?volta=${volta}`} aria-current={c.id === fontes ? 'true' : undefined}>
+                <a href={`/conceito/fontes/${c.id}?volta=${volta}`} aria-current={c.id === combinacaoEmUso ? 'true' : undefined}>
                   {c.id.toUpperCase()} {c.nome}
                 </a>
               ))}
@@ -139,7 +135,9 @@ const telas = [
     }
     <header class="topo">
       <a class="topo__marca" href="/conceito" aria-label="Memórias Bayara e Bracarense, página inicial">
-        <span class="topo__monograma" aria-hidden="true">M</span>
+        <span class="topo__monograma" aria-hidden="true">
+          <Monograma />
+        </span>
         <span class="topo__nome" aria-hidden="true">Memórias</span>
       </a>
       <nav class="topo__nav" aria-label="Seções">
@@ -153,9 +151,7 @@ const telas = [
         <a class="topo__acao" href="/nova">Nova memória</a>
       </nav>
       <a class="topo__conta" href="/conceito/conta" aria-label={`Sua conta, ${usuario.nome}`} aria-current={secao === 'conta' ? 'page' : undefined}>
-        <span class="retrato retrato--redondo">
-          {meuRetrato ? <img src={enderecoDoRetrato(meuRetrato)} alt="" /> : <span aria-hidden="true">{iniciais(usuario.nome)}</span>}
-        </span>
+        <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
         <span class="topo__conta-nome" aria-hidden="true">{usuario.nome}</span>
       </a>
       <details class="menu">
@@ -180,7 +176,7 @@ const telas = [
       <div class="rodape__linha">
         <p>Acervo privado da família. Você entrou como {usuario.nome}.</p>
       </div>
-      <Assinatura sobrenomes={sobrenomes} />
+      <Assinatura sobrenomes={assinatura.sobrenomes} />
     </footer>
   </body>
 </html>

@@ -1,0 +1,235 @@
+/* Página de conferência do sistema: marca, fontes, tokens e peças. Não é uma tela do site. */
+
+.sis__subtitulo {
+  margin-top: var(--e-7);
+  margin-bottom: var(--e-4);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  font-weight: 400;
+  letter-spacing: 0.09em;
+  line-height: 1.45;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+/* Monograma */
+.sis__monogramas {
+  display: grid;
+  gap: var(--e-7) calc(var(--calha) * 2);
+  margin-top: var(--e-7);
+}
+.sis__monograma {
+  display: grid;
+  gap: var(--e-4);
+  align-content: start;
+}
+.sis__tamanhos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e-4) var(--e-5);
+}
+.sis__tamanhos span {
+  display: grid;
+  justify-items: center;
+  gap: var(--e-2);
+}
+.sis__tamanhos small {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  color: var(--tinta-suave);
+}
+.sis__icones {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--e-5);
+}
+.sis__icone-celular {
+  border-radius: 22%;
+  box-shadow: var(--sombra-bilhete);
+}
+.sis__familias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-6);
+  margin-bottom: var(--e-4);
+  font-size: 4rem;
+}
+.sis__na-cor {
+  color: var(--vivo-tinta);
+}
+
+/* Fontes */
+.sis__papeis {
+  display: grid;
+  gap: var(--e-5) calc(var(--calha) * 2);
+  margin-top: var(--e-7);
+}
+.sis__papel {
+  margin-top: var(--e-2);
+  font-size: var(--t-titulo-3);
+  line-height: 1.1;
+}
+.sis__papel--serifa {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+}
+.sis__papel--mono {
+  font-family: var(--mono);
+}
+.sis__papel--mao {
+  font-family: var(--mao);
+  font-size: calc(var(--t-titulo-3) * 1.3 * var(--escala-mao));
+}
+.sis__escala {
+  display: grid;
+  gap: var(--e-6);
+}
+.sis__escala li {
+  display: grid;
+  gap: var(--e-2);
+  min-width: 0;
+}
+.sis__escala .t-capa {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes-capa);
+}
+.sis__leitura {
+  max-width: var(--medida);
+  font-size: var(--t-leitura);
+  line-height: 1.5;
+}
+.sis__corpo {
+  font-size: var(--t-corpo);
+}
+.sis__pequeno {
+  font-size: var(--t-pequeno);
+}
+
+/* Cores */
+.sis__neutros,
+.sis__formas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: var(--e-5) var(--calha);
+}
+.sis__neutros li,
+.sis__formas li {
+  display: grid;
+  gap: var(--e-2);
+}
+.sis__neutros li > span:first-child {
+  height: 4.5rem;
+  border: 1px solid var(--fio);
+  border-radius: var(--raio-moldura);
+}
+.sis__formas li > span:first-child {
+  height: 4.5rem;
+  background: var(--pastel);
+}
+
+/* Medidas */
+.sis__espacos {
+  display: grid;
+  gap: var(--e-2);
+  margin-bottom: var(--e-4);
+}
+.sis__espacos li {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: center;
+}
+.sis__espacos li > span:last-child {
+  height: 0.75rem;
+  background: var(--vivo);
+}
+.sis__grade {
+  margin-bottom: var(--e-4);
+}
+.sis__grade span {
+  grid-column: auto;
+  height: 3rem;
+  background: var(--pastel);
+}
+.sis__grade span:nth-child(n + 5) {
+  display: none;
+}
+
+/* Peças */
+.sis__pecas {
+  display: grid;
+  gap: var(--e-8) calc(var(--calha) * 2);
+  margin-top: var(--e-7);
+}
+.sis__peca {
+  display: grid;
+  align-content: start;
+  gap: var(--e-5);
+  min-width: 0;
+}
+.sis__peca > .rotulo {
+  padding-bottom: var(--e-3);
+  border-bottom: 1px solid var(--fio);
+}
+.sis__linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-3) var(--e-5);
+}
+.sis__fotos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 11rem));
+  gap: var(--e-7);
+  padding: var(--e-5) var(--e-6) var(--e-4);
+}
+.sis__retratos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--e-4);
+}
+.sis__retratos > span {
+  width: 4.5rem;
+}
+.sis__retratos > .sis__retrato-redondo {
+  width: 2.25rem;
+  font-size: 0.5rem;
+}
+.sis__icones-dos-tipos .icone {
+  width: 2rem;
+  height: 2rem;
+}
+.sis__rabiscos {
+  gap: var(--e-6);
+}
+.sis__peca .recado {
+  margin: 0;
+}
+.sis__peca .vazio {
+  padding-block: var(--e-4);
+}
+
+@media (min-width: 40rem) {
+  .sis__papeis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 62rem) {
+  .sis__monogramas {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .sis__papeis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .sis__grade span:nth-child(n + 5) {
+    display: block;
+  }
+  .sis__pecas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sis__peca--larga {
+    grid-column: 1 / -1;
+  }
+}

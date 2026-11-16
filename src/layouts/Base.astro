@@ -87,6 +87,7 @@ const banco = usuario.admin ? situacaoDoBanco(await tamanhoDoBanco()) : undefine
         <span class="rodape__admin">
           <a href="/lixeira">Lixeira</a>
           {usuario.admin && <a href="/admin/tipos">Tipos de momento</a>}
+          {usuario.admin && <a href="/admin/familias">Famílias</a>}
           {usuario.admin && podeEspelhar() && <a href="/admin/espelho">Espelho da produção</a>}
           {usuario.admin && (
             <a href="/api/copia" download>

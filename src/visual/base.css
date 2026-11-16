@@ -1,5 +1,6 @@
 /* Base do visual novo: chão da página, papéis de cada família de tipo, links, foco e grade. */
 
+
 *,
 *::before,
 *::after {
@@ -137,7 +138,7 @@ a:hover {
 :focus-visible {
   outline: 2px solid var(--tinta);
   outline-offset: 3px;
-  border-radius: 2px;
+  border-radius: var(--raio-foto);
 }
 
 /* Ação tipográfica: o texto e um traço firme embaixo. A área de toque tem 44 px. */
@@ -174,7 +175,7 @@ a:hover {
   min-height: 3.5rem;
   padding: 0 1.75rem;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--raio-pilula);
   background: var(--tinta);
   color: var(--papel);
   font: 550 var(--t-corpo) / 1.2 var(--grotesca);
@@ -193,6 +194,30 @@ a:hover {
 }
 .botao:active {
   transform: scale(0.98);
+}
+/* Sem poder agir, o botão continua legível e deixa de responder */
+.botao:disabled,
+.botao[aria-disabled='true'] {
+  background: var(--tinta-suave);
+  cursor: default;
+  pointer-events: none;
+}
+.botao:disabled::after,
+.botao[aria-disabled='true']::after {
+  content: none;
+}
+/* A ação tipográfica também pode ser um botão de formulário */
+button.acao {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+}
+button.acao--quieta {
+  font-weight: 450;
 }
 
 /* Grade */

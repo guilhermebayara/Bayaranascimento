@@ -1,0 +1,447 @@
+---
+// O sistema visual (docs/visual.md, "Sistema"): a marca, as fontes, os tokens e todas as peças,
+// com os estados de cada uma. É a página de conferência do sistema; não é uma tela do site.
+import '../../visual/telas/sobre.css';
+import '../../visual/telas/sistema.css';
+import Visual from '../../layouts/Visual.astro';
+import Assinatura from '../../components/visual/Assinatura.astro';
+import Audio from '../../components/visual/Audio.astro';
+import Bilhete from '../../components/visual/Bilhete.astro';
+import Carimbo from '../../components/visual/Carimbo.astro';
+import Dado from '../../components/visual/Dado.astro';
+import Etiqueta from '../../components/visual/Etiqueta.astro';
+import Ficha from '../../components/visual/Ficha.astro';
+import IconeDoTipo from '../../components/visual/IconeDoTipo.astro';
+import Monograma from '../../components/visual/Monograma.astro';
+import Pilula from '../../components/visual/Pilula.astro';
+import Polaroid from '../../components/visual/Polaroid.astro';
+import Rabisco from '../../components/visual/Rabisco.astro';
+import Recado from '../../components/visual/Recado.astro';
+import Retrato from '../../components/visual/Retrato.astro';
+import Sanfona from '../../components/visual/Sanfona.astro';
+import SinalDoCapitulo from '../../components/visual/SinalDoCapitulo.astro';
+import Vazio from '../../components/visual/Vazio.astro';
+import { conceitoDisponivel, fontesDoPedido, naoEncontrado } from '../../lib/servidor/conceito';
+import { listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
+import { COMBINACOES_DE_FONTES, CORES, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, combinacaoDe, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../../lib/visual';
+
+if (!conceitoDisponivel()) return naoEncontrado();
+
+const { usuario, tipos } = Astro.locals;
+const fontes = fontesDoPedido(Astro.request);
+const nucleos = await listarNucleos();
+const memorias = (await listarMemorias(usuario)).filter((m) => m.situacao === 'publicada');
+const comMonte = memorias.find((m) => m.id === '2025-natal') ?? memorias.find((m) => m.fotos.length > 1);
+const semFoto = memorias.find((m) => m.fotos.length === 0);
+
+// A assinatura em cada tela, e com uma família a mais, que ainda não existe, para ver a linha longa
+const comMaisUma = [...nucleos, { id: 'exemplo', nome: 'Bracarense Silva', sobrenomes: ['Bracarense', 'Silva'] }];
+const assinaturas = [
+  { onde: 'Família completa', sobrenomes: assinaturaDaTela([], nucleos).sobrenomes },
+  ...nucleos.map((n) => ({ onde: `Só a família ${n.nome}`, sobrenomes: assinaturaDaTela([n.id], nucleos).sobrenomes })),
+  { onde: 'Se entrar outra família, por um casamento', sobrenomes: assinaturaDaTela([], comMaisUma).sobrenomes },
+];
+const familias = [{ id: 'tudo', nome: 'Família completa' }, ...nucleos.map((n) => ({ id: assinaturaDaTela([n.id], nucleos).familia, nome: n.nome })), { id: '3', nome: 'A próxima família' }];
+const papeis = { serifa: 'Serifa, nos títulos', grotesca: 'Grotesca, no texto', mono: 'Mono, nas fichas', mao: 'Manuscrita, só na assinatura' } as const;
+const escala = [
+  { token: 't-capa', classe: 'serifa t-capa', texto: '1994', uso: 'O ano da linha do tempo' },
+  { token: 't-titulo-1', classe: 't-1', texto: 'Natal de 2025', uso: 'Título da página' },
+  { token: 't-titulo-2', classe: 't-2', texto: 'Quem estava', uso: 'Título de parte, pergunta do formulário' },
+  { token: 't-titulo-3', classe: 't-3', texto: 'A receita do pão de queijo', uso: 'Título de memória na lista' },
+  { token: 't-abertura', classe: 'serifa t-abertura', texto: '“Fomos só olhar. Voltamos com ele.”', uso: 'Frase de abertura' },
+  { token: 't-leitura', classe: 'sis__leitura', texto: 'Dezoito horas de estrada, duas fitas de música e uma briga por causa do ar condicionado.', uso: 'Relato' },
+  { token: 't-corpo', classe: 'sis__corpo', texto: 'Cada pessoa conta o dia do jeito que lembra.', uso: 'Texto da interface' },
+  { token: 't-pequeno', classe: 'sis__pequeno', texto: 'Sua última visita foi em 17 dez.', uso: 'Apoio' },
+  { token: 't-ficha', classe: 'rotulo', texto: '14 ago 1994 · Belo Horizonte', uso: 'Ficha, rótulo e carimbo' },
+  { token: 't-micro', classe: 'selo', texto: 'Rascunho, só você vê', uso: 'Selo' },
+];
+const espacos = ['e-1', 'e-2', 'e-3', 'e-4', 'e-5', 'e-6', 'e-7', 'e-8', 'e-9'];
+---
+
+<Visual titulo="Sistema" secao="conceito">
+  <div class="sobre sis miolo">
+    <header class="sobre__abre">
+      <p class="rotulo suave">Revisão visual do zero · fase 2, o sistema</p>
+      <h1 class="t-1">Sistema</h1>
+      <p class="sobre__texto">
+        O que o conceito aprovado usa, arrumado para as outras telas usarem igual: a marca, as fontes, as cores, as medidas e as peças. As telas do conceito já
+        são montadas com estas peças e continuam como foram aprovadas.
+      </p>
+    </header>
+
+    <section aria-labelledby="marca">
+      <h2 class="sobre__titulo" id="marca">Monograma</h2>
+      <p class="sobre__texto">
+        O M de Memórias, tirado da serifa dos títulos e desenhado em SVG. Tem dois cortes: o de título e um mais firme, para ler pequeno. É o ícone do site e, no
+        celular, fica no lugar da assinatura. Acompanha a serifa escolhida.
+      </p>
+      <div class="sis__monogramas">
+        {
+          COMBINACOES_DE_FONTES.map((c) => (
+            <div class="sis__monograma">
+              <p class="rotulo">
+                {c.id.toUpperCase()} · {c.serifa}
+                {c.id === fontes.serifa && ' · em uso'}
+              </p>
+              <p class="sis__tamanhos" aria-hidden="true">
+                {[16, 24, 32].map((px) => (
+                  <span style={`font-size: ${px}px`}>
+                    <Monograma serifa={c.id} corte="pequeno" />
+                    <small>{px}</small>
+                  </span>
+                ))}
+                {[64, 112].map((px) => (
+                  <span style={`font-size: ${px}px`}>
+                    <Monograma serifa={c.id} />
+                    <small>{px}</small>
+                  </span>
+                ))}
+              </p>
+              <p class="sis__icones">
+                <img src={`/icones/${c.id}/favicon.svg`} width="16" height="16" alt="" />
+                <img src={`/icones/${c.id}/favicon.svg`} width="32" height="32" alt="" />
+                <img src={`/icones/${c.id}/favicon-48.png`} width="48" height="48" alt="" />
+                <img class="sis__icone-celular" src={`/icones/${c.id}/apple-touch-icon.png`} width="90" height="90" alt="" />
+              </p>
+              <p class="ficha suave">Ícone da aba em 16 e 32 px, ícone de reserva em 48 px e ícone da tela inicial do celular.</p>
+            </div>
+          ))
+        }
+      </div>
+      <h3 class="sis__subtitulo">Na cor do texto ou na cor da família</h3>
+      <p class="sis__familias" aria-hidden="true">
+        <span><Monograma /></span>
+        {
+          familias.slice(0, 4).map((f) => (
+            <span class="sis__na-cor" data-familia={f.id}>
+              <Monograma />
+            </span>
+          ))
+        }
+      </p>
+      <p class="ficha suave">A decisão é uma cor só, a do texto. A cor da família é a opção a comparar: aqui, na tinta de cada uma.</p>
+    </section>
+
+    <section aria-labelledby="assinatura">
+      <h2 class="sobre__titulo" id="assinatura">Assinatura</h2>
+      <p class="sobre__texto">
+        “MEMÓRIAS” não muda. Os sobrenomes acompanham o que está sendo visto e vêm do cadastro de cada família. O “&amp;” só aparece quando a tela é de mais de
+        uma família. Uma linha mais longa encolhe para caber.
+      </p>
+      <div class="assinaturas">
+        {
+          assinaturas.map((a) => (
+            <div>
+              <Assinatura sobrenomes={a.sobrenomes} />
+              <p class="ficha suave">{a.onde}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section aria-labelledby="fontes">
+      <h2 class="sobre__titulo" id="fontes">Fontes</h2>
+      <p class="sobre__texto">
+        Em uso: {nomesDasFontes(fontes)}.
+        {combinacaoDe(FONTES_DO_SITE) ? ` A fonte do site é a combinação ${combinacaoDe(FONTES_DO_SITE)!.toUpperCase()}.` : ' A fonte do site mistura combinações.'} A escolha
+        ainda está aberta, e trocar é mudar uma linha do código. <a href="/conceito/sobre">Ver as três combinações lado a lado</a>
+      </p>
+      <dl class="sis__papeis">
+        {
+          PAPEIS_DAS_FONTES.map((papel) => (
+            <div>
+              <dt class="rotulo suave">{papeis[papel]}</dt>
+              <dd class={`sis__papel sis__papel--${papel}`}>{COMBINACOES_DE_FONTES.find((c) => c.id === fontes[papel])![papel]}</dd>
+            </div>
+          ))
+        }
+      </dl>
+      <h3 class="sis__subtitulo">Escala de tipo</h3>
+      <ul class="sis__escala">
+        {
+          escala.map((e) => (
+            <li>
+              <p class="ficha suave">
+                --{e.token} · {e.uso}
+              </p>
+              <p class={e.classe}>{e.texto}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section aria-labelledby="cores">
+      <h2 class="sobre__titulo" id="cores">Cores</h2>
+      <h3 class="sis__subtitulo">Neutros</h3>
+      <ul class="sis__neutros">
+        {
+          ['papel', 'papel-recuo', 'branco', 'fio', 'tinta-suave', 'tinta'].map((n) => (
+            <li>
+              <span style={`background: var(--${n})`} />
+              <span class="ficha">--{n}</span>
+            </li>
+          ))
+        }
+      </ul>
+      <h3 class="sis__subtitulo">As onze cores, em quatro tons: pastel, meio, vivo e tinta</h3>
+      <ul class="cores sis__cores">
+        {
+          CORES.map((c) => (
+            <li>
+              <span style={`background: var(--${c}-pastel)`} />
+              <span style={`background: var(--${c}-meio)`} />
+              <span style={`background: var(--${c}-vivo)`} />
+              <span style={`background: var(--${c}-tinta)`} />
+              <span class="ficha">{c}</span>
+            </li>
+          ))
+        }
+      </ul>
+      <h3 class="sis__subtitulo">A cor de cada família</h3>
+      <ul class="cores">
+        {
+          familias.map((f) => (
+            <li data-familia={f.id}>
+              <span class="cores__pastel" />
+              <span class="cores__meio" />
+              <span class="cores__vivo" />
+              <span class="cores__tinta" />
+              <span class="ficha">{f.nome}</span>
+            </li>
+          ))
+        }
+      </ul>
+      <h3 class="sis__subtitulo">A cor e o ícone de cada tipo de momento</h3>
+      <p class="peca__etiquetas">
+        {tipos.map((t) => <Etiqueta tipo={t.id} rotulo={t.rotulo} />)}
+      </p>
+      <h3 class="sis__subtitulo">O chão das épocas e a página íntima</h3>
+      <ul class="sis__neutros">
+        {
+          ['chao-1', 'chao-2', 'chao-3'].map((n) => (
+            <li>
+              <span style={`background: var(--${n})`} />
+              <span class="ficha">--{n}</span>
+            </li>
+          ))
+        }
+        {
+          familias.slice(1, 4).map((f) => (
+            <li data-familia={f.id} data-intimo>
+              <span style="background: var(--papel)" />
+              <span class="ficha">Painel, {f.nome}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section aria-labelledby="medidas">
+      <h2 class="sobre__titulo" id="medidas">Medidas</h2>
+      <h3 class="sis__subtitulo">Espaços</h3>
+      <ul class="sis__espacos">
+        {
+          espacos.map((e) => (
+            <li>
+              <span class="ficha">--{e}</span>
+              <span style={`width: var(--${e})`} />
+            </li>
+          ))
+        }
+      </ul>
+      <p class="ficha suave">De 1 a 4, dentro de um grupo. De 5 a 7, entre grupos. 8 e 9, entre partes da página.</p>
+      <h3 class="sis__subtitulo">Grade</h3>
+      <div class="grade sis__grade" aria-hidden="true">
+        {Array.from({ length: 12 }, (_, n) => <span data-coluna={n + 1} />)}
+      </div>
+      <p class="ficha suave">Quatro colunas no celular e doze a partir de 62rem. A tela grande, de ver juntos na TV, começa em 100rem.</p>
+      <h3 class="sis__subtitulo">Formas e sombras</h3>
+      <ul class="sis__formas">
+        <li><span style="border-radius: var(--raio-foto)" /><span class="ficha">--raio-foto</span></li>
+        <li><span style="border-radius: var(--raio-moldura)" /><span class="ficha">--raio-moldura</span></li>
+        <li><span style="border-radius: var(--raio-bloco)" /><span class="ficha">--raio-bloco</span></li>
+        <li><span style="border-radius: var(--raio-pilula)" /><span class="ficha">--raio-pilula</span></li>
+        <li><span style="box-shadow: var(--sombra-foto); background: var(--branco)" /><span class="ficha">--sombra-foto</span></li>
+        <li><span style="box-shadow: var(--sombra-bilhete); background: var(--branco)" /><span class="ficha">--sombra-bilhete</span></li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="pecas">
+      <h2 class="sobre__titulo" id="pecas">Peças</h2>
+      <p class="sobre__texto">As do conceito, aprovadas, e as que ainda não tinham desenho, marcadas como novas: essas esperam o seu olhar.</p>
+      <div class="sis__pecas">
+        <article class="sis__peca">
+          <h3 class="rotulo">Foto revelada e monte de fotos</h3>
+          <div class="sis__fotos">
+            {
+              comMonte && (
+                <div style={estiloDoTipo(comMonte.tipo)}>
+                  <Polaroid id={comMonte.id} fotos={comMonte.fotos} legenda={legendaLugarAno(comMonte.lugar, comMonte.ano)} alt="" forma />
+                </div>
+              )
+            }
+            {
+              semFoto && (
+                <div style={estiloDoTipo(semFoto.tipo)}>
+                  <Polaroid id={semFoto.id} fotos={[]} legenda={legendaLugarAno(semFoto.lugar, semFoto.ano)} tipo={semFoto.tipo} forma />
+                </div>
+              )
+            }
+          </div>
+          <p class="ficha suave">A foto-chave, com as outras atrás e a forma de cor do tipo. Memória sem foto ganha o mesmo cartão, com o ícone do tipo.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Carimbo, etiqueta, pílula e selo</h3>
+          <p><Carimbo itens={['14 ago 1994', 'Belo Horizonte']} /></p>
+          <p class="sis__linha">
+            <Etiqueta tipo="viagem" rotulo="Viagem" />
+            <Pilula>2018–2020</Pilula>
+            <Pilula>por volta de 1994</Pilula>
+            <span class="selo">Só Bayara</span>
+          </p>
+          <p class="ficha suave">O carimbo diz data e lugar. A etiqueta diz o tipo de momento. A pílula, que é nova, diz um período ou uma data aproximada.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Ficha em mono</h3>
+          <Ficha>
+            <Dado rotulo="Quando">24 de dezembro de 2025</Dado>
+            <Dado rotulo="Onde">Belo Horizonte</Dado>
+            <Dado rotulo="Tipo"><Etiqueta tipo="festa" rotulo="Festa" /></Dado>
+            <Dado rotulo="Capítulos"><a href="/capitulos">Natais</a></Dado>
+          </Ficha>
+          <p class="ficha suave">O verso da foto: rótulo pequeno em caixa alta e valor.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Retrato recortado</h3>
+          <p class="sis__retratos">
+            {
+              familias.map((f) => (
+                <span>
+                  <Retrato nome={f.nome === 'Família completa' ? 'Vó Bela' : f.nome} familia={f.id} />
+                </span>
+              ))
+            }
+            <span class="sis__retrato-redondo"><Retrato nome={usuario.nome} redondo /></span>
+          </p>
+          <p class="ficha suave">Em arco, com a foto do cadastro. Sem foto, as iniciais sobre a cor da família. Redondo só no topo.</p>
+        </article>
+
+        <article class="sis__peca sis__peca--larga">
+          <h3 class="rotulo">Bilhete, bloco de áudio e nome manuscrito</h3>
+          <Bilhete por="Elizete" registradoPor="Gui">
+            {/* FIXO: o acervo de exemplo não tem áudio. O bloco usa o tocador do próprio aparelho. */}
+            <Audio rotulo="Áudio · 2 min 14 s" transcricao="Eu fiz o bolo na véspera e quase não dormi." />
+            <div class="bilhete__texto">
+              <p>Eu fiz o bolo na véspera e quase não dormi.</p>
+            </div>
+          </Bilhete>
+          <p class="ficha suave">O relato de uma pessoa. A manuscrita só aparece aqui, no nome de quem conta.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Ações</h3>
+          <p class="sis__linha">
+            <a class="botao" href="#pecas">Escrever meu relato</a>
+          </p>
+          <p class="sis__linha">
+            <a class="botao" href="#pecas" aria-disabled="true" tabindex="-1">Salvando</a>
+          </p>
+          <p class="sis__linha">
+            <a class="acao" href="#pecas">Ver sua página</a>
+            <a class="acao acao--quieta" href="#pecas">Corrigir esta memória</a>
+            <a href="#pecas">um link no texto</a>
+          </p>
+          <p class="ficha suave">Botão cheio só para a ação principal da tela, e a versão sem poder agir. O resto é texto sublinhado.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Sinal do capítulo, ícones e rabiscos</h3>
+          <p class="sis__linha ficha">
+            <SinalDoCapitulo id="exemplo-1" titulo="Natais" cor={0} />
+            <SinalDoCapitulo id="exemplo-2" titulo="A infância da Giovanna" cor={1} />
+          </p>
+          <p class="sis__linha sis__icones-dos-tipos">
+            {tipos.map((t) => <span style={estiloDoTipo(t.id)}><IconeDoTipo tipo={t.id} /></span>)}
+          </p>
+          <p class="sis__linha sis__rabiscos">
+            <span class="sublinhado serifa t-3">Oi, Gui.<Rabisco desenho="sublinha" /></span>
+            <Rabisco desenho="seta" />
+            <Rabisco desenho="brilhos" />
+            <Rabisco desenho="coracao" />
+          </p>
+        </article>
+
+        <article class="sis__peca sis__peca--larga">
+          <h3 class="rotulo">Sanfona de fases · nova</h3>
+          <div>
+            <Sanfona ano="2014" titulo="Namoro" quando="mar 2014 a out 2019" grupo="fases" aberta>
+              <p>Abre empurrando o conteúdo, sem tela por cima. Só uma fase fica aberta por vez.</p>
+            </Sanfona>
+            <Sanfona ano="2019" titulo="Noivado" quando="out 2019 a nov 2026" grupo="fases">
+              <p>O pedido foi no sítio, no fim da tarde.</p>
+            </Sanfona>
+            <Sanfona ano="2026" titulo="Casamento" quando="14 nov 2026" grupo="fases">
+              <p>O dia em que o site nasceu.</p>
+            </Sanfona>
+          </div>
+          <p class="ficha suave">Para a página do laço: o ano grande, o nome da fase e a data pequena.</p>
+        </article>
+
+        <article class="sis__peca sis__peca--larga">
+          <h3 class="rotulo">Formulário em frase · novo</h3>
+          <p class="frase">
+            Isso aconteceu em
+            <label class="frase__lacuna" style="--cabe: 9">
+              <span class="so-leitor">Quando</span>
+              <input type="text" placeholder="quando" autocomplete="off" />
+            </label>, em
+            <label class="frase__lacuna" style="--cabe: 12">
+              <span class="so-leitor">Onde</span>
+              <input type="text" value="Belo Horizonte" autocomplete="off" />
+            </label>, com
+            <label class="frase__lacuna" style="--cabe: 10">
+              <span class="so-leitor">Quem estava</span>
+              <input type="text" placeholder="quem" autocomplete="off" />
+            </label>.
+          </p>
+          <p class="ficha suave">Para a abertura da Nova memória, sem mudar a ordem das etapas nem o que é obrigatório.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Campo de formulário · novo</h3>
+          <p class="pergunta">Como foi esse dia?</p>
+          <label class="campo">
+            <span class="campo__rotulo">Título</span>
+            <input class="campo__entrada" type="text" value="Natal de 2025" />
+            <span class="campo__dica">Um nome curto, como você chamaria essa lembrança.</span>
+          </label>
+          <label class="campo campo--erro">
+            <span class="campo__rotulo">Ano</span>
+            <input class="campo__entrada" type="text" value="20256" aria-invalid="true" />
+            <span class="campo__erro">Confira o ano: ele tem quatro algarismos.</span>
+          </label>
+          <label class="escolha">
+            <input type="checkbox" checked />
+            <span>Não sei o dia exato</span>
+          </label>
+          <p class="ficha suave">Uma pergunta por tela, em serifa. A resposta é uma linha para escrever em cima. O texto de exemplo aqui é só para mostrar a peça.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Recado e estado vazio</h3>
+          <Recado>Memória salva.</Recado>
+          <Recado erro>Não deu para salvar. Tente de novo.</Recado>
+          <Vazio frase="Ainda não há memórias aqui.">
+            <a class="acao" href="#pecas">Nova memória</a>
+          </Vazio>
+          <p class="ficha suave">O recado do alto da página, nas duas vozes, e a tela sem nada para mostrar.</p>
+        </article>
+      </div>
+    </section>
+  </div>
+</Visual>

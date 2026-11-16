@@ -1,18 +1,26 @@
 ---
 // A assinatura do nome (docs/visual.md): "MEMÓRIAS" fixo e grande, na largura inteira, e abaixo
 // os sobrenomes das famílias do que está sendo visto. O texto por extenso vai para quem não vê.
+// Quem diz os sobrenomes de cada tela é assinaturaDaTela (src/lib/visual.ts).
+import { SOBRENOMES_DE_REFERENCIA, encolheDaAssinatura, porExtensoDaAssinatura } from '../../lib/visual';
+
 interface Props {
   sobrenomes?: string;
   /** Quando a assinatura é o título da página */
   titulo?: boolean;
 }
 
-const { sobrenomes = 'Bayara & Bracarense', titulo = false } = Astro.props;
+const { sobrenomes = SOBRENOMES_DE_REFERENCIA, titulo = false } = Astro.props;
 const Marca = titulo ? 'h1' : 'p';
-const porExtenso = `Memórias ${sobrenomes.replace(/ & /g, ' e ')}`;
+// Uma linha mais longa que "Bayara & Bracarense" encolhe para caber, na medida de cada serifa
+const encolhe = encolheDaAssinatura(sobrenomes);
+const estilo = Object.entries(encolhe)
+  .filter(([, quanto]) => quanto < 1)
+  .map(([serifa, quanto]) => `--encolhe-${serifa}: ${quanto}`)
+  .join('; ');
 ---
 
-<Marca class="assinatura" aria-label={porExtenso}>
+<Marca class="assinatura" aria-label={porExtensoDaAssinatura(sobrenomes)} style={estilo || undefined}>
   <span class="assinatura__memorias" aria-hidden="true">MEMÓRIAS</span>
   <span class="assinatura__sobrenomes" aria-hidden="true">{sobrenomes}</span>
 </Marca>
