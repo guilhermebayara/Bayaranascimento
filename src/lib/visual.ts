@@ -51,6 +51,18 @@ export function corDoTipo(tipo: string): Cor {
   return COR_DO_TIPO[tipo] ?? CORES[numeroDo(`tipo:${tipo}`) % CORES.length]!;
 }
 
+/**
+ * As cores dos capítulos na linha do tempo, na ordem em que são dadas (a montagem garante que dois
+ * capítulos que convivem nunca dividem a cor). As duas mais claras ficam por último.
+ */
+export const CORES_DOS_CAPITULOS: Cor[] = ['azul', 'coral', 'verde', 'roxo', 'turquesa', 'rosa', 'pessego', 'orquidea', 'ardosia', 'manteiga', 'areia'];
+
+/** O estilo que leva a cor de um capítulo ao trilho dele e ao sinal dele em cada memória. */
+export function estiloDoCapitulo(cor: number): string {
+  const nome = CORES_DOS_CAPITULOS[cor % CORES_DOS_CAPITULOS.length]!;
+  return `--trilho-cor: var(--${nome}-meio); --trilho-ponto: var(--${nome}-vivo)`;
+}
+
 /** O estilo que leva a cor do tipo a um trecho da página: o pastel, o vivo e a tinta dele. */
 export function estiloDoTipo(tipo: string): string {
   const cor = corDoTipo(tipo);

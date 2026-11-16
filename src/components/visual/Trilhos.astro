@@ -1,15 +1,17 @@
 ---
 // Os trilhos dos capítulos na altura de uma linha da linha do tempo (src/lib/linha-capitulos.ts).
 // Cada trilho é uma linha vertical: contínua onde a memória é do capítulo, com uma parada nela,
-// e tracejada onde a memória é de fora. São enfeite: o capítulo de cada memória está escrito
-// na marca do alto do trilho e, onde o trilho não cabe, na etiqueta da própria memória.
+// e tracejada onde a memória é de fora. Cada trilho leva a cor do capítulo dele. São enfeite: o
+// capítulo está escrito na marca do alto do trilho e no sinal de cada memória.
 interface Props {
   estados: (string | null)[];
+  /** o estilo com a cor do capítulo de cada trilho, na mesma ordem */
+  cores?: (string | null)[];
 }
 
-const { estados } = Astro.props;
+const { estados, cores = [] } = Astro.props;
 ---
 
 <span class="trilhos" aria-hidden="true">
-  {estados.map((estado, n) => estado && estado !== 'ponta' && <i class="trilho" data-n={n} data-estado={estado} style={`--n: ${n}`} />)}
+  {estados.map((estado, n) => estado && estado !== 'ponta' && <i class="trilho" data-n={n} data-estado={estado} style={`--n: ${n}; ${cores[n] ?? ''}`} />)}
 </span>

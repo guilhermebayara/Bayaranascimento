@@ -1,6 +1,6 @@
 // Capítulos na linha do tempo: a montagem dos trilhos, sem tela (docs/decisoes.md).
 import { describe, expect, it } from 'vitest';
-import { CABEM, comoAparece, montarTrilhos, trilhosNaMarca, type CapituloDaLinha, type MemoriaDaLinha } from '../src/lib/linha-capitulos';
+import { CABEM, capitulosNosTrilhos, comoAparece, montarTrilhos, trilhosNaEpoca, trilhosNaMarca, type CapituloDaLinha, type MemoriaDaLinha } from '../src/lib/linha-capitulos';
 
 // A linha do tempo, das mais recentes para as mais antigas, como na tela
 const m = (id: string, ano: number, mes: number | null, capitulos: string[] = []): MemoriaDaLinha => ({ id, ano, mes, capitulos });
@@ -101,6 +101,73 @@ describe('trilhos dos capítulos', () => {
     const noFim = trilhosNaMarca(montagem, 12, 'natais-vivica', 'fecha');
     expect(noFim[de('natais-vivica').trilho]).toBe('ponta');
     expect(noFim[de('natais').trilho]).toBe('preso');
+  });
+});
+
+describe('cor de cada capítulo', () => {
+  it('capítulos que convivem nunca dividem a cor', () => {
+    for (const a of montagem.capitulos) {
+      for (const b of montagem.capitulos) {
+        const convivem = a.primeira <= b.ultima && b.primeira <= a.ultima;
+        if (a.id !== b.id && convivem) expect(a.cor, `${a.id} e ${b.id}`).not.toBe(b.cor);
+      }
+    }
+  });
+
+  it('a cor é sempre a mesma para a mesma linha do tempo, e cada trecho de trilho sabe de que capítulo é', () => {
+    expect(montarTrilhos(memorias, capitulos).capitulos.map((c) => [c.id, c.cor])).toEqual(montagem.capitulos.map((c) => [c.id, c.cor]));
+    // Dois capítulos dividem o mesmo trilho em trechos diferentes: a cor muda com o capítulo
+    const noAlto = capitulosNosTrilhos(montagem, 0);
+    const embaixo = capitulosNosTrilhos(montagem, 12);
+    expect(noAlto[de('casal').trilho]?.id).toBe('casal');
+    expect(embaixo[de('natais-vivica').trilho]?.id).toBe('natais-vivica');
+    expect(noAlto[de('natais').trilho]).toBeNull();
+  });
+});
+
+// PROPOSTA em avaliação (16/11/2026), para o furo do capítulo de época: ver o alto de src/lib/linha-capitulos.ts
+describe('proposta: época de todos e capítulo com período e pessoas', () => {
+  const comQuem = [
+    m('casamento', 2026, 11),
+    m('formatura-da-gio', 2021, 12),
+    m('dudu', 2021, 6),
+    m('natal-20', 2020, 12),
+    m('video', 2020, 4),
+    m('almoco', 2019, 3),
+  ].map((x, i) => ({ ...x, integrantes: [['giovanna', 'magno'], ['giovanna'], ['bruno', 'luisa'], ['giovanna', 'gui'], ['gui'], ['giovanna']][i]! }));
+  const pandemia = cap('pandemia', 'Pandemia', 'epoca', { inicio: { ano: 2020, mes: 3 }, fim: { ano: 2021, mes: 12 } });
+
+  it('sem dizer de quem é, o capítulo de época continua como hoje: toda memória do período é dele', () => {
+    const r = montarTrilhos(comQuem, [pandemia]);
+    expect(r.epocas).toEqual([]);
+    expect(r.linhas.slice(1, 5).map((l) => l.trilhos[0])).toEqual(['preso', 'preso', 'preso', 'preso']);
+  });
+
+  it('a época de todos não vira trilho: vira uma marca no alto e outra no fim', () => {
+    const r = montarTrilhos(comQuem, [{ ...pandemia, deTodos: true }]);
+    expect(r.quantos).toBe(0);
+    expect(r.epocas).toEqual([{ id: 'pandemia', titulo: 'Pandemia', periodo: 'mar de 2020 a dez de 2021', primeira: 1, ultima: 4 }]);
+    expect(r.linhas[1]!.epocaAbre).toEqual(['pandemia']);
+    expect(r.linhas[4]!.epocaFecha).toEqual(['pandemia']);
+    expect(r.linhas[0]!.epocaAbre).toEqual([]);
+  });
+
+  it('no capítulo com período e pessoas, as memórias do período sem essas pessoas ficam de fora', () => {
+    const r = montarTrilhos(comQuem, [{ ...pandemia, id: 'gio-em-casa', titulo: 'A Giovanna em casa', pessoas: ['giovanna'] }]);
+    // O trilho vai do começo ao fim do período, e segue tracejado nas memórias em que ela não está
+    expect([r.capitulos[0]!.primeira, r.capitulos[0]!.ultima]).toEqual([1, 4]);
+    expect(r.linhas.map((l) => l.trilhos[0])).toEqual([null, 'preso', 'fora', 'preso', 'fora', null]);
+    expect(r.linhas[2]!.capitulos).toEqual([]);
+    expect(r.linhas[1]!.capitulos).toEqual(['gio-em-casa']);
+  });
+
+  it('os trilhos dos capítulos atravessam a marca de uma época', () => {
+    const r = montarTrilhos(comQuem.map((x) => ({ ...x, capitulos: x.integrantes.includes('giovanna') ? ['gio'] : [] })), [{ ...pandemia, deTodos: true }, cap('gio', 'Giovanna', 'reunido')]);
+    // O capítulo da Giovanna vem de cima (o casamento) e continua depois da época (o almoço)
+    expect(trilhosNaEpoca(r, 1, 'abre')).toEqual(['preso']);
+    expect(trilhosNaEpoca(r, 4, 'fecha')).toEqual(['preso']);
+    // Antes de qualquer capítulo começar, nada passa
+    expect(trilhosNaEpoca(r, 0, 'abre')).toEqual([null]);
   });
 });
 

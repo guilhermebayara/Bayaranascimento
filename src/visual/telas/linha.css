@@ -103,8 +103,10 @@
   --cabem: 2;
   --na-tela: min(var(--trilhos, 0), var(--cabem));
   --calha-dos-trilhos: calc(var(--na-tela) * var(--passo));
-  /* O trilho não compete com as fotos nem com a cor das famílias: é da cor da tinta, bem clara */
+  /* Cada capítulo tem a sua cor, no tom do meio, para o trilho não competir com as fotos. A parada
+     e o sinal na memória usam o tom vivo. Sem capítulo, vale a tinta, bem clara. */
   --trilho-cor: color-mix(in srgb, var(--tinta) 32%, var(--papel));
+  --trilho-ponto: var(--trilho-cor);
   --altura-do-ponto: 0.3rem;
 }
 .decadas {
@@ -200,7 +202,8 @@
   display: flex;
   flex-direction: column;
   margin-left: 0.375rem;
-  padding: var(--e-2) 0 0 calc(var(--calha-dos-trilhos) + var(--e-5));
+  /* Sem espaço em cima: os trilhos de um ano emendam com os do ano anterior, sem vão */
+  padding: 0 0 0 calc(var(--calha-dos-trilhos) + var(--e-5));
 }
 /* O fio do tempo: fino, à direita dos trilhos, com o ponto da memória em leitura */
 .ano__itens::before {
@@ -273,12 +276,12 @@
   height: 0.625rem;
   translate: -50% 0;
   box-sizing: border-box;
-  border: 3px solid var(--trilho-cor);
+  border: 3px solid var(--trilho-ponto);
   border-radius: 50%;
   background: var(--papel);
 }
 
-/* A marca do capítulo: o título no alto do trilho e o "começo de" embaixo. O trilho faz a curva
+/* A marca do capítulo: o título no alto do trilho e o "começo do capítulo" embaixo. O trilho faz a curva
    até o texto, para ficar claro de qual trilho é cada título. */
 .marca {
   position: relative;
@@ -342,26 +345,73 @@
   grid-row: 1;
 }
 
-/* O capítulo escrito na própria memória, onde o trilho dele não cabe */
-.entrada__capitulo {
-  color: var(--tinta);
+/* O sinal de cada capítulo na memória: a mesma parada do trilho, na cor dele, com o nome. É o que
+   liga a memória ao trilho e, onde o trilho não cabe, o que diz de que capítulo ela é. */
+.entrada__capitulos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-4);
+  margin-top: var(--e-3);
+}
+.sinal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.sinal::before {
+  content: '';
+  flex: none;
+  box-sizing: border-box;
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 3px solid var(--trilho-ponto);
+  border-radius: 50%;
 }
 
-/* No celular cabem dois trilhos: a partir do terceiro, o capítulo vira etiqueta na memória */
+/* A época de todos: não tem trilho, porque todo mundo está dentro. Uma linha atravessa a linha do
+   tempo onde ela termina e outra onde ela começa, com o nome. */
+.epoca {
+  position: relative;
+  padding: var(--e-4) 0 var(--e-6);
+}
+.epoca::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * (var(--calha-dos-trilhos) + var(--e-5)) - 0.375rem);
+  right: 0;
+  border-top: 1px solid var(--tinta);
+}
+.epoca--abre::before {
+  top: 0;
+}
+.epoca--fecha {
+  padding: 0 0 var(--e-7);
+}
+.epoca--fecha .epoca__texto {
+  padding-bottom: var(--e-3);
+}
+.epoca--fecha::before {
+  top: calc(1.45em + var(--e-3));
+}
+.epoca__texto {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.8em;
+}
+
+/* No celular cabem dois trilhos: a partir do terceiro, o capítulo aparece só pelo sinal na memória */
 @media (max-width: 61.99rem) {
   .linha :is(.trilho, .marca):is([data-n='2'], [data-n='3'], [data-n='4'], [data-n='5'], [data-n='6'], [data-n='7'], [data-n='8'], [data-n='9']) {
     display: none;
   }
-  .entrada__capitulo:is([data-n='0'], [data-n='1']) {
-    display: none;
-  }
 }
-/* Com o filtro por tipo, as memórias não estão todas na tela: os trilhos saem e o capítulo vem escrito */
-.linha[data-filtrando] :is(.trilhos, .marca, .ano__passa) {
+/* Com o filtro por tipo, as memórias não estão todas na tela: os trilhos e as marcas saem, e fica o
+   sinal do capítulo em cada memória */
+.linha[data-filtrando] :is(.trilhos, .marca, .epoca, .ano__passa) {
   display: none;
-}
-.linha[data-filtrando] .entrada__capitulo {
-  display: inline;
 }
 
 .entrada__quando {
@@ -514,9 +564,7 @@
   .linha :is(.trilho, .marca):is([data-n='4'], [data-n='5'], [data-n='6'], [data-n='7'], [data-n='8'], [data-n='9']) {
     display: none;
   }
-  .entrada__capitulo:is([data-n='0'], [data-n='1'], [data-n='2'], [data-n='3']) {
-    display: none;
-  }
+
   .entrada--com-foto {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
@@ -564,8 +612,5 @@
   }
   .linha .trilho:is([data-n='4'], [data-n='5']) {
     display: block;
-  }
-  .entrada__capitulo:is([data-n='4'], [data-n='5']) {
-    display: none;
   }
 }

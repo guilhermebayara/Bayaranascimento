@@ -10,11 +10,11 @@ import IconeDoTipo from '../../components/visual/IconeDoTipo.astro';
 import Polaroid from '../../components/visual/Polaroid.astro';
 import Trilhos from '../../components/visual/Trilhos.astro';
 import { agruparPorAno, maisRecentesPrimeiro } from '../../lib/datas';
-import { montarTrilhos, trilhosNaMarca } from '../../lib/linha-capitulos';
+import { capitulosNosTrilhos, montarTrilhos, trilhosNaEpoca, trilhosNaMarca } from '../../lib/linha-capitulos';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { conceitoDisponivel, naoEncontrado } from '../../lib/servidor/conceito';
 import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
-import { diaMesCurto, estiloDoTipo, familiaDaTela, legendaLugarAno, listaCurta, sobrenomesDaAssinatura } from '../../lib/visual';
+import { diaMesCurto, estiloDoCapitulo, estiloDoTipo, familiaDaTela, legendaLugarAno, listaCurta, sobrenomesDaAssinatura } from '../../lib/visual';
 
 if (!conceitoDisponivel()) return naoEncontrado();
 
@@ -33,9 +33,19 @@ const nomeDe = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? 
 const naOrdemDaTela = maisRecentesPrimeiro(memorias);
 const anos = agruparPorAno(naOrdemDaTela);
 // Os capítulos como trilhos: só os que a pessoa pode ver, contando só as memórias que ela vê aqui
-const montagem = montarTrilhos(naOrdemDaTela, await listarCapitulos(usuario));
+//
+// PROPOSTA em avaliação, para o furo que o Gui achou no capítulo de época (ver src/lib/linha-capitulos.ts).
+// O banco ainda não diz de quem é um capítulo de época, então aqui isso é FIXO, só para mostrar a ideia:
+// "A infância da Giovanna" é da Giovanna, e as memórias do período em que ela não está ficam de fora,
+// com o trilho tracejado. Os outros capítulos de época são épocas de todos e viram marca, sem trilho.
+const DE_QUEM: Record<string, string[]> = { 'infancia-da-giovanna': ['giovanna'] };
+const capitulos = (await listarCapitulos(usuario)).map((c) => (c.modo !== 'epoca' ? c : DE_QUEM[c.id] ? { ...c, pessoas: DE_QUEM[c.id] } : { ...c, deTodos: true }));
+const montagem = montarTrilhos(naOrdemDaTela, capitulos);
 const posicaoDe = new Map(naOrdemDaTela.map((m, i) => [m.id, i]));
 const capituloDe = (id: string) => montagem.capitulos.find((c) => c.id === id)!;
+const epocaDe = (id: string) => montagem.epocas.find((e) => e.id === id)!;
+// A cor de cada trilho na altura de uma memória: a do capítulo que passa por ele ali
+const coresEm = (posicao: number) => capitulosNosTrilhos(montagem, Math.min(posicao, naOrdemDaTela.length - 1)).map((c) => (c ? estiloDoCapitulo(c.cor) : null));
 const decadaDe = (ano: number) => Math.floor(ano / 10) * 10;
 const decadas = [...new Set(anos.map((a) => decadaDe(a.ano)))];
 const primeiroDaDecada = new Set(decadas.map((d) => anos.find((a) => decadaDe(a.ano) === d)!.ano));
@@ -123,7 +133,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
             {/* Entre um ano e outro, os trilhos que vêm de cima continuam */}
             {montagem.linhas[posicaoDe.get(itens[0]!.id)!]!.chega.some(Boolean) && (
               <div class="ano__passa">
-                <Trilhos estados={montagem.linhas[posicaoDe.get(itens[0]!.id)!]!.chega} />
+                <Trilhos estados={montagem.linhas[posicaoDe.get(itens[0]!.id)!]!.chega} cores={coresEm(posicaoDe.get(itens[0]!.id)!)} />
               </div>
             )}
             <header class="ano__cabeca">
@@ -146,9 +156,22 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                 const linha = montagem.linhas[posicao]!;
                 return (
                   <>
+                  {/* A época de todos: uma marca no alto (o fim dela, que vem primeiro na tela) e outra no começo */}
+                  {linha.epocaAbre.map(epocaDe).map((e) => (
+                    <div class="epoca epoca--abre">
+                      <Trilhos estados={trilhosNaEpoca(montagem, posicao, 'abre')} cores={coresEm(posicao)} />
+                      <p class="epoca__texto">
+                        <span class="rotulo suave">Época</span>
+                        <a class="marca__titulo serifa" href={`/capitulos/${e.id}`}>
+                          {e.titulo}
+                        </a>
+                        <span class="ficha suave">{e.periodo}</span>
+                      </p>
+                    </div>
+                  ))}
                   {linha.abre.map(capituloDe).map((c) => (
-                    <div class="marca marca--abre" data-n={c.trilho} style={`--n: ${c.trilho}`}>
-                      <Trilhos estados={trilhosNaMarca(montagem, posicao, c.id, 'abre')} />
+                    <div class="marca marca--abre" data-n={c.trilho} style={`--n: ${c.trilho}; ${estiloDoCapitulo(c.cor)}`}>
+                      <Trilhos estados={trilhosNaMarca(montagem, posicao, c.id, 'abre')} cores={coresEm(posicao)} />
                       <p class="marca__texto">
                         <span class="rotulo suave">Capítulo</span>
                         <a class="marca__titulo serifa" href={`/capitulos/${c.id}`}>
@@ -164,7 +187,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                     data-em-leitura={m.id === primeiraMemoria ? '' : undefined}
                     style={estiloDoTipo(m.tipo)}
                   >
-                    <Trilhos estados={linha.trilhos} />
+                    <Trilhos estados={linha.trilhos} cores={coresEm(posicao)} />
                     <span class="entrada__ponto" aria-hidden="true" />
                     <p class="entrada__quando rotulo">
                       <IconeDoTipo tipo={m.tipo} />
@@ -182,12 +205,6 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                         <a href={destino}>{m.titulo}</a>
                       </h3>
                       <p class="entrada__ficha ficha suave">
-                        {/* Onde o trilho do capítulo não cabe, o capítulo vem escrito na memória */}
-                        {linha.capitulos.map(capituloDe).map((c) => (
-                          <span class="entrada__capitulo" data-n={c.trilho}>
-                            em {c.titulo}
-                          </span>
-                        ))}
                         {!comFoto && m.lugar && <span>{m.lugar}</span>}
                         {nomes.length > 0 && <span>{listaCurta(nomes)}</span>}
                         {m.relatos > 0 && (
@@ -200,12 +217,29 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                         {m.situacao === 'rascunho' && <span>rascunho</span>}
                         {m.exemplo && <span>exemplo</span>}
                       </p>
+                      {/* O sinal de cada capítulo da memória: a mesma parada do trilho, na cor dele, com o nome */}
+                      {linha.capitulos.length > 0 && (
+                        <p class="entrada__capitulos ficha">
+                          <span class="so-leitor">Capítulos: </span>
+                          {linha.capitulos.map(capituloDe).map((c) => (
+                            <span class="sinal" style={estiloDoCapitulo(c.cor)}>
+                              {c.titulo}
+                            </span>
+                          ))}
+                        </p>
+                      )}
                     </div>
                   </article>
                   {linha.fecha.map(capituloDe).map((c) => (
-                    <div class="marca marca--fecha" data-n={c.trilho} style={`--n: ${c.trilho}`}>
-                      <Trilhos estados={trilhosNaMarca(montagem, posicao, c.id, 'fecha')} />
-                      <p class="marca__texto ficha suave">começo de “{c.titulo}”</p>
+                    <div class="marca marca--fecha" data-n={c.trilho} style={`--n: ${c.trilho}; ${estiloDoCapitulo(c.cor)}`}>
+                      <Trilhos estados={trilhosNaMarca(montagem, posicao, c.id, 'fecha')} cores={coresEm(posicao)} />
+                      <p class="marca__texto ficha suave">Começo do capítulo “{c.titulo}”</p>
+                    </div>
+                  ))}
+                  {linha.epocaFecha.map(epocaDe).map((e) => (
+                    <div class="epoca epoca--fecha">
+                      <Trilhos estados={trilhosNaEpoca(montagem, posicao, 'fecha')} cores={coresEm(posicao + 1)} />
+                      <p class="epoca__texto ficha suave">Começo da época “{e.titulo}”</p>
                     </div>
                   ))}
                   </>
@@ -229,7 +263,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
 
     const aplicar = (tipo: string) => {
       for (const b of botoes) b.setAttribute('aria-pressed', String(b.dataset.filtro === tipo));
-      // Com o filtro, as memórias deixam de estar todas na tela: os trilhos saem e o capítulo vem escrito
+      // Com o filtro, as memórias deixam de estar todas na tela: os trilhos e as marcas saem, e fica o sinal em cada memória
       raiz.toggleAttribute('data-filtrando', Boolean(tipo));
       for (const secao of raiz.querySelectorAll<HTMLElement>('.ano')) {
         let visiveis = 0;
