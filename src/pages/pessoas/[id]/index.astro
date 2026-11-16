@@ -5,7 +5,8 @@ import { datasDeVida, formatarData } from '../../../lib/datas';
 import { FASES, Familia, estaoJuntos, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarAudiosDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
+import { corDaFamilia, enderecoDoRetrato, iniciais } from '../../../lib/retratos';
+import { pessoasQueONaoVe, familiasDe, listarAudiosDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
 import { nomeDoPapel } from '../../../lib/parentesco';
 import { duracaoEmTexto } from '../../../lib/audios';
 
@@ -62,11 +63,17 @@ const temFamilia = grupos.length > 0 || casais.length > 0 || escolhidos.length >
 
 // Os áudios em que a pessoa fala (os dos relatos dela), nas memórias que quem olha vê
 const audiosDaPessoa = await listarAudiosDe(usuario, pessoa.id);
+// O retrato, para quem vê a pessoa. Sem retrato, as iniciais sobre a cor da família.
+const retrato = pessoa.retrato && !(await pessoasQueONaoVe(usuario)).has(pessoa.id) ? enderecoDoRetrato(pessoa.retrato) : null;
+const corDoRetrato = corDaFamilia(familiasDe(pessoa), nucleos.map((n) => n.id));
 const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok || podeMexerEmLaco(usuario, [pessoa]).ok;
 ---
 
 <Base titulo={pessoa.nome}>
   <div class="abertura">
+    <span class="retrato retrato--grande" style={`--retrato-cor: ${corDoRetrato}`}>
+      {retrato ? <img src={retrato} alt="" aria-hidden="true" /> : <span aria-hidden="true">{iniciais(chamar)}</span>}
+    </span>
     <h1>{pessoa.nome}</h1>
     {resumo && <p>{resumo}</p>}
     {paraVoce && <p class="parentesco">{chamar} é {possessivo(paraVoce, pessoa.tratamento)}.</p>}

@@ -11,7 +11,18 @@ export interface DadosDaArvore {
   /** na ordem em que ficam na árvore, da esquerda para a direita */
   nucleos: { id: string; nome: string }[];
   /** nucleos: as famílias da pessoa, como membro ou parente (na árvore as duas aparecem iguais) */
-  pessoas: { id: string; nome: string; rotulo: string; nucleos: string[]; bicho: boolean; especie?: string | null; anos: string }[];
+  pessoas: {
+    id: string;
+    nome: string;
+    rotulo: string;
+    nucleos: string[];
+    bicho: boolean;
+    especie?: string | null;
+    anos: string;
+    /** endereço da foto de retrato, só para a ficha que abre ao tocar (os cartões continuam sem foto) */
+    retrato?: string | null;
+    iniciais?: string;
+  }[];
   filiacoes: { filho: string; responsavel: string; consideracao: boolean }[];
   casais: { a: string; b: string; ex: boolean }[];
   coracao: { dono: string; pessoa: string; papel: Papel | null; rotulo: string }[];

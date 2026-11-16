@@ -5,7 +5,8 @@ import { dentroDoPeriodo } from '../../lib/capitulos';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { formatarData } from '../../lib/datas';
 import { podeEditarMemoria, podeExcluirMemoria } from '../../lib/servidor/permissoes';
-import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemas, obterMemoria, listarAudiosDosRelatos } from '../../lib/servidor/repositorio';
+import { familiasDe, listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemas, obterMemoria, listarAudiosDosRelatos, pessoasQueONaoVe } from '../../lib/servidor/repositorio';
+import { corDaFamilia, enderecoDoRetrato, iniciais } from '../../lib/retratos';
 import { duracaoEmTexto } from '../../lib/audios';
 
 const { usuario } = Astro.locals;
@@ -20,6 +21,13 @@ const relatos = await listarRelatos(usuario, memoria.id);
 const audiosDosRelatos = await listarAudiosDosRelatos(relatos.map((r) => r.id));
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+// Retratos em "Quem": só de quem a pessoa vê. Sem retrato, as iniciais sobre a cor da família.
+const naoVe = memoria.integrantes.length ? await pessoasQueONaoVe(usuario) : new Set<string>();
+const retratoDe = (id: string) => {
+  const pessoa = achar(id);
+  return pessoa?.retrato && !naoVe.has(id) ? enderecoDoRetrato(pessoa.retrato) : null;
+};
+const corDe = (id: string) => corDaFamilia(achar(id) ? familiasDe(achar(id)!) : [], nucleos.map((n) => n.id));
 const tipo = tipoDaMemoria(Astro.locals.tipos, memoria);
 const dosNucleos = memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean);
 const podeEditar = podeEditarMemoria(usuario, memoria).ok;
@@ -66,7 +74,12 @@ const depois = todas[posicao + 1];
                 {memoria.integrantes.map((id, i) => (
                   <>
                     {i > 0 && ', '}
-                    <a href={`/pessoas/${id}`}>{nome(id)}</a>
+                    <a class="com-retrato" href={`/pessoas/${id}`}>
+                      <span class="retrato" style={`--retrato-cor: ${corDe(id)}`}>
+                        {retratoDe(id) ? <img src={retratoDe(id)!} alt="" aria-hidden="true" loading="lazy" /> : <span aria-hidden="true">{iniciais(nome(id))}</span>}
+                      </span>
+                      {nome(id)}
+                    </a>
                   </>
                 ))}
               </dd>

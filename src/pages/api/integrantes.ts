@@ -3,7 +3,9 @@ import type { APIRoute } from 'astro';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeEditarIntegrante } from '../../lib/servidor/permissoes';
+import { bucketDeFotos } from '../../lib/servidor/ambiente';
+import { podeEditarIntegrante, podeMudarRetrato, type Usuario } from '../../lib/servidor/permissoes';
+import { LIMITE_DO_RETRATO, PASTA_DOS_RETRATOS, formatoDoRetrato } from '../../lib/retratos';
 import { atualizarIntegrante, criarIntegranteCompleto, definirParentes, listarIntegrantes, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
 
 function lerData(dados: FormData, prefixo: string, rotulo: string): { ano?: number; mes?: number; dia?: number; erro?: string } {
@@ -15,6 +17,30 @@ function lerData(dados: FormData, prefixo: string, rotulo: string): { ano?: numb
   if (mes !== undefined && (mes < 1 || mes > 12)) return { erro: `Confira o mês de ${rotulo}.` };
   const problema = validarData(ano, mes, dia);
   return problema ? { erro: `Data de ${rotulo}: ${problema}` } : { ano, mes, dia: mes ? dia : undefined };
+}
+
+/**
+ * A foto de retrato que veio com a ficha, já recortada e reduzida pelo navegador. Devolve o arquivo
+ * conferido pelo conteúdo, ou o recado do problema. Sem arquivo, nada muda.
+ */
+async function lerRetrato(dados: FormData): Promise<{ bytes?: Uint8Array; tipo?: string; extensao?: string; erro?: string }> {
+  const valor = dados.get('retrato');
+  if (!(valor instanceof File) || valor.size === 0) return {};
+  if (valor.size > LIMITE_DO_RETRATO) return { erro: 'A foto de retrato é grande demais. Escolha de novo, que o site reduz.' };
+  const bytes = new Uint8Array(await valor.arrayBuffer());
+  const formato = formatoDoRetrato(bytes);
+  if (!formato) return { erro: 'Formato de foto não aceito. Envie JPG, PNG ou WebP.' };
+  return { bytes, ...formato };
+}
+
+/** Guarda o retrato no bucket das fotos, debaixo de "retratos/", com uma chave nova. Nada é sobrescrito. */
+async function guardarRetrato(retrato: { bytes: Uint8Array; tipo: string; extensao: string }, integrante: string, usuario: Usuario): Promise<string> {
+  const chave = `${crypto.randomUUID()}.${retrato.extensao}`;
+  await bucketDeFotos().put(`${PASTA_DOS_RETRATOS}${chave}`, retrato.bytes, {
+    httpMetadata: { contentType: retrato.tipo },
+    customMetadata: { enviadoPor: usuario.pessoa, integrante },
+  });
+  return chave;
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -54,13 +80,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
     sobre: arrumarTexto(campo(dados, 'sobre', 5000)) || undefined,
   };
 
+  // Foto de retrato: "Trocar foto" manda o arquivo recortado; "Tirar foto" manda tirarRetrato
+  const retrato = await lerRetrato(dados);
+  if (retrato.erro) return voltar(request, origem, { erro: retrato.erro });
+  const tirarRetrato = dados.get('tirarRetrato') === '1';
+
   const integrantes = await listarIntegrantes();
 
   if (id) {
     const anterior = integrantes.find((i) => i.id === id);
     if (!anterior) return voltar(request, '/pessoas', { erro: 'Pessoa não encontrada.' });
-    const decisao = podeEditarIntegrante(usuario, anterior, await pessoasComAcesso());
+    const comAcesso = await pessoasComAcesso();
+    const decisao = podeEditarIntegrante(usuario, anterior, comAcesso);
     if (!decisao.ok) return voltar(request, `/pessoas/${id}`, { erro: decisao.motivo });
+    if (retrato.bytes || tirarRetrato) {
+      const pode = podeMudarRetrato(usuario, anterior, comAcesso);
+      if (!pode.ok) return voltar(request, `/pessoas/${id}`, { erro: pode.motivo });
+      // Trocar ou tirar não apaga o arquivo antigo: a chave anterior fica na versão guardada do cadastro
+      ficha.retrato = retrato.bytes ? await guardarRetrato(retrato as Required<typeof retrato>, id, usuario) : null;
+    }
     await atualizarIntegrante(anterior, ficha, usuario);
     // Família: só as de parente. Quem é membro (acessa o site) continua como está.
     if (dados.has('parenteDe') || anterior.parenteDe.length) {
@@ -81,6 +119,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
   // "nova" é o endereço deste formulário, então não pode ser id de ninguém
   const novoId = slugUnico(base, new Set([...integrantes.map((i) => i.id), 'nova']));
+  // Quem cadastra pode editar a página, então pode pôr o retrato
+  if (retrato.bytes) ficha.retrato = await guardarRetrato(retrato as Required<typeof retrato>, novoId, usuario);
   await criarIntegranteCompleto(novoId, ficha, usuario);
   return voltar(request, `/pessoas/${novoId}/editar?novo=1`, { ok: `${nome} entrou no acervo. Agora, os laços.` });
 };

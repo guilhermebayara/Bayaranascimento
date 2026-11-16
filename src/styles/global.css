@@ -2969,3 +2969,79 @@ p {
   flex-basis: 100%;
   margin: 0;
 }
+
+/* Foto de retrato: aparência mínima e provisória. A revisão visual redesenha o retrato recortado. */
+.retrato {
+  display: inline-block;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  line-height: 2rem;
+  text-align: center;
+  overflow: hidden;
+  vertical-align: middle;
+  border-radius: var(--raio-3);
+  background: var(--retrato-cor, var(--cor-superficie));
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-1);
+  font-weight: var(--peso-medio);
+  color: var(--cor-texto);
+}
+
+/* Inline-block: o sublinhado do link não chega às iniciais */
+.retrato > span {
+  display: inline-block;
+}
+
+.retrato img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.retrato--grande {
+  width: 7.5rem;
+  height: 7.5rem;
+  line-height: 7.5rem;
+  font-size: var(--tamanho-9);
+}
+
+.abertura > .retrato {
+  margin-bottom: var(--espaco-4);
+}
+
+.com-retrato {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  gap: var(--espaco-2);
+}
+
+.mapa__foco .retrato,
+.mapa__foco .retrato span {
+  flex-basis: auto;
+  color: var(--cor-texto);
+}
+
+.retrato-campo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-4);
+}
+
+.recorte__quadro {
+  display: block;
+  width: min(100%, 18rem);
+  aspect-ratio: 1;
+  touch-action: none;
+  cursor: grab;
+  border: var(--borda) solid var(--cor-texto);
+  background: var(--cor-fundo-recuo);
+}
+
+.recorte__quadro:focus-visible {
+  outline: var(--foco);
+  outline-offset: var(--foco-afastamento);
+}
