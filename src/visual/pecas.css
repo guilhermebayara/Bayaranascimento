@@ -40,6 +40,21 @@
   object-fit: cover;
   object-position: 50% 35%;
 }
+/* Memória sem foto: no lugar da imagem, a cor do tipo de momento com o ícone dele, grande */
+.polaroid--sem-foto .polaroid__foto {
+  display: grid;
+  place-items: center;
+  background: var(--tipo-pastel, var(--pastel));
+}
+.polaroid--sem-foto .icone {
+  width: 42%;
+  height: auto;
+  stroke-width: 1.1;
+}
+/* Atrás de um cartão sem foto, a forma usa o tom do meio, para não sumir no pastel dele */
+.monte:has(.polaroid--sem-foto) .monte__forma {
+  background: var(--tipo-meio, var(--meio));
+}
 /* A margem de baixo, larga, é onde se escreve: lugar e ano */
 .polaroid__legenda {
   display: flex;

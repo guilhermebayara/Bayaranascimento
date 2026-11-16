@@ -204,17 +204,6 @@
   gap: var(--e-5);
   text-decoration: none;
 }
-.outro-ano__foto--sem {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 54 / 86;
-  border-radius: var(--raio-moldura);
-  background: var(--tipo-pastel);
-}
-.outro-ano__foto--sem .icone {
-  width: 2rem;
-  height: 2rem;
-}
 .outro-ano__texto {
   display: grid;
   gap: var(--e-1);
@@ -300,14 +289,16 @@
 
 .voce__conta {
   display: grid;
-  grid-template-columns: clamp(5rem, 28%, 8rem) minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: clamp(5.5rem, 34%, 9rem) minmax(0, 1fr);
+  /* O retrato e o texto terminam na mesma linha: a base do arco fica na linha de base da última palavra */
+  align-items: end;
   gap: var(--e-5);
-  margin-block: var(--e-2) auto;
+  margin-block: var(--e-3) auto;
 }
 .voce__conta p {
   display: grid;
-  gap: var(--e-2);
+  gap: var(--e-3);
+  padding-bottom: 0.15em;
 }
 .voce__numero {
   font-size: calc(clamp(4.5rem, 3rem + 6vw, 8rem) * var(--escala-serifa));

@@ -45,6 +45,10 @@ const posicaoDe = new Map(naOrdemDaTela.map((m, i) => [m.id, i]));
 const capituloDe = (id: string) => montagem.capitulos.find((c) => c.id === id)!;
 const epocaDe = (id: string) => montagem.epocas.find((e) => e.id === id)!;
 // A cor de cada trilho na altura de uma memória: a do capítulo que passa por ele ali
+// A época de todos é o chão da linha do tempo: as memórias de dentro dela ficam sobre um papel de outro tom
+const naEpoca = (posicao: number) => montagem.epocas.some((e) => e.primeira <= posicao && posicao <= e.ultima);
+// Entre um ano e outro, o chão continua se a memória de cima e a de baixo estão na mesma época
+const epocaContinua = (posicao: number) => montagem.epocas.some((e) => e.primeira < posicao && posicao <= e.ultima);
 const coresEm = (posicao: number) => capitulosNosTrilhos(montagem, Math.min(posicao, naOrdemDaTela.length - 1)).map((c) => (c ? estiloDoCapitulo(c.cor) : null));
 const decadaDe = (ano: number) => Math.floor(ano / 10) * 10;
 const decadas = [...new Set(anos.map((a) => decadaDe(a.ano)))];
@@ -130,13 +134,13 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
         <>
           {primeiroDaDecada.has(ano) && <div class="decada__ancora" id={`decada-${decadaDe(ano)}`} />}
           <section class="ano miolo grade" aria-labelledby={`ano-${ano}`} data-decada={decadaDe(ano)}>
-            {/* Entre um ano e outro, os trilhos que vêm de cima continuam */}
-            {montagem.linhas[posicaoDe.get(itens[0]!.id)!]!.chega.some(Boolean) && (
-              <div class="ano__passa">
+            {/* Entre um ano e outro, o fio do tempo e os trilhos que vêm de cima continuam */}
+            {posicaoDe.get(itens[0]!.id)! > 0 && (
+              <div class="ano__passa" data-na-epoca={epocaContinua(posicaoDe.get(itens[0]!.id)!) ? '' : undefined}>
                 <Trilhos estados={montagem.linhas[posicaoDe.get(itens[0]!.id)!]!.chega} cores={coresEm(posicaoDe.get(itens[0]!.id)!)} />
               </div>
             )}
-            <header class="ano__cabeca">
+            <header class="ano__cabeca" data-na-epoca={epocaContinua(posicaoDe.get(itens[0]!.id)!) ? '' : undefined}>
               <h2 class="ano__numero" id={`ano-${ano}`}>
                 {ano}
               </h2>
@@ -150,13 +154,12 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                 const nomes = m.integrantes.map(nomeDe).filter((n): n is string => Boolean(n));
                 const restritaA = m.visibilidade === 'nucleos' ? m.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean) : [];
                 const destino = m.situacao === 'rascunho' ? `/nova?id=${m.id}` : `/conceito/memorias/${m.id}`;
-                const comFoto = m.fotos.length > 0;
                 const quando = diaMesCurto(m);
                 const posicao = posicaoDe.get(m.id)!;
                 const linha = montagem.linhas[posicao]!;
                 return (
                   <>
-                  {/* A época de todos: uma marca no alto (o fim dela, que vem primeiro na tela) e outra no começo */}
+                  {/* A época de todos: o papel muda de tom do alto dela (o fim, que vem primeiro na tela) até o começo */}
                   {linha.epocaAbre.map(epocaDe).map((e) => (
                     <div class="epoca epoca--abre">
                       <Trilhos estados={trilhosNaEpoca(montagem, posicao, 'abre')} cores={coresEm(posicao)} />
@@ -170,7 +173,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                     </div>
                   ))}
                   {linha.abre.map(capituloDe).map((c) => (
-                    <div class="marca marca--abre" data-n={c.trilho} style={`--n: ${c.trilho}; ${estiloDoCapitulo(c.cor)}`}>
+                    <div class="marca marca--abre" data-n={c.trilho} data-na-epoca={naEpoca(posicao) ? '' : undefined} style={`--n: ${c.trilho}; ${estiloDoCapitulo(c.cor)}`}>
                       <Trilhos estados={trilhosNaMarca(montagem, posicao, c.id, 'abre')} cores={coresEm(posicao)} />
                       <p class="marca__texto">
                         <span class="rotulo suave">Capítulo</span>
@@ -182,8 +185,9 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                     </div>
                   ))}
                   <article
-                    class:list={['entrada', comFoto ? 'entrada--com-foto' : 'entrada--so-texto']}
+                    class="entrada entrada--com-foto"
                     data-tipo={m.tipo}
+                    data-na-epoca={naEpoca(posicao) ? '' : undefined}
                     data-em-leitura={m.id === primeiraMemoria ? '' : undefined}
                     style={estiloDoTipo(m.tipo)}
                   >
@@ -195,17 +199,15 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                       <span>{tipo.rotulo}</span>
                       {m.aproximada && <span>data aproximada</span>}
                     </p>
-                    {comFoto && (
-                      <div class="entrada__foto">
-                        <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo={m.id === primeiraMemoria} forma />
-                      </div>
-                    )}
+                    {/* Toda memória tem o seu cartão: sem foto, ele leva a cor e o ícone do tipo de momento */}
+                    <div class="entrada__foto">
+                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo={m.id === primeiraMemoria} forma tipo={m.tipo} />
+                    </div>
                     <div class="entrada__texto">
                       <h3 class="entrada__titulo">
                         <a href={destino}>{m.titulo}</a>
                       </h3>
                       <p class="entrada__ficha ficha suave">
-                        {!comFoto && m.lugar && <span>{m.lugar}</span>}
                         {nomes.length > 0 && <span>{listaCurta(nomes)}</span>}
                         {m.relatos > 0 && (
                           <span>
@@ -231,7 +233,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                     </div>
                   </article>
                   {linha.fecha.map(capituloDe).map((c) => (
-                    <div class="marca marca--fecha" data-n={c.trilho} style={`--n: ${c.trilho}; ${estiloDoCapitulo(c.cor)}`}>
+                    <div class="marca marca--fecha" data-n={c.trilho} data-na-epoca={naEpoca(posicao) ? '' : undefined} style={`--n: ${c.trilho}; ${estiloDoCapitulo(c.cor)}`}>
                       <Trilhos estados={trilhosNaMarca(montagem, posicao, c.id, 'fecha')} cores={coresEm(posicao)} />
                       <p class="marca__texto ficha suave">Começo do capítulo “{c.titulo}”</p>
                     </div>

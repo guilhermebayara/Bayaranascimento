@@ -3,6 +3,8 @@
 // margem de baixo mais larga com a legenda "lugar (ano)" em mono, e uma inclinação escolhida
 // pelo id, sempre a mesma. Com mais de uma foto, as outras aparecem atrás: o monte já diz que
 // há mais. A forma de cor atrás leva a cor do tipo de momento (--tipo-cor, posta por quem usa).
+// Memória sem foto ganha o mesmo cartão, com a cor e o ícone do tipo no lugar da imagem.
+import IconeDoTipo from './IconeDoTipo.astro';
 import { formaDoId, giroDoId } from '../../lib/visual';
 
 interface Props {
@@ -20,14 +22,31 @@ interface Props {
   reta?: boolean;
   /** a forma de cor atrás da foto */
   forma?: boolean;
+  /** o tipo de momento: memória sem foto ganha um cartão do mesmo formato, com o ícone do tipo */
+  tipo?: string;
 }
 
-const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false, forma = false } = Astro.props;
+const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false, forma = false, tipo = 'outro' } = Astro.props;
 const [principal, ...outras] = fotos;
 const atras = monte ? outras.slice(0, 2) : [];
 const giro = reta ? 0 : giroDoId(id);
 ---
 
+{
+  // Memória sem foto: o mesmo cartão, com a cor e o ícone do tipo de momento no lugar da imagem.
+  // Assim nenhuma memória fica com um buraco onde as outras têm foto.
+  !principal && (
+    <div class="monte">
+      {forma && <span class="monte__forma" data-forma={formaDoId(id)} aria-hidden="true" />}
+      <figure class="polaroid polaroid--sem-foto" style={`--giro: ${giro}deg`}>
+        <span class="polaroid__foto" aria-hidden="true">
+          <IconeDoTipo tipo={tipo} />
+        </span>
+        <figcaption class="polaroid__legenda">{legenda}</figcaption>
+      </figure>
+    </div>
+  )
+}
 {
   principal && (
     <div class="monte">

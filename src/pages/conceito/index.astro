@@ -265,15 +265,9 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
             {outrosAnos.itens.map((m) => (
               <li style={estiloDoTipo(m.tipo)}>
                 <a class="outro-ano" href={`/conceito/memorias/${m.id}`}>
-                  {m.fotos.length > 0 ? (
-                    <span class="outro-ano__foto">
-                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} />
-                    </span>
-                  ) : (
-                    <span class="outro-ano__foto outro-ano__foto--sem" aria-hidden="true">
-                      <IconeDoTipo tipo={m.tipo} />
-                    </span>
-                  )}
+                  <span class="outro-ano__foto">
+                    <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} tipo={m.tipo} />
+                  </span>
                   <span class="outro-ano__texto">
                     <span class="outro-ano__ano serifa">em {m.ano}</span>
                     <strong class="outro-ano__titulo">{m.titulo}</strong>

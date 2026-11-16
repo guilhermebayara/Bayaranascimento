@@ -64,7 +64,7 @@ O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
 
 ## Conceito (fase 1), em aprovação
 
-Construído em 16/11/2026 na branch `tst-visual`, em quatro rodadas: a primeira versão e três de ajustes que o Gui pediu ao ver cada uma. Espera a aprovação dele na prévia. A escolha das fontes continua em aberto: ele quer avaliar com as mudanças aplicadas. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
+Construído em 16/11/2026 na branch `tst-visual`, em cinco rodadas: a primeira versão e quatro de ajustes que o Gui pediu ao ver cada uma. Espera a aprovação dele na prévia. A escolha das fontes continua em aberto: ele quer avaliar com as mudanças aplicadas. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
 
 **Onde está.** As telas do conceito ficam em `/conceito`, ao lado do site atual, que continua inteiro:
 
@@ -90,7 +90,7 @@ A faixa do alto (só nas prévias e no computador) troca de tela, de combinaçã
 
 Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de outra.
 
-**O que o Gui já aprovou:** o menu (sanfona no celular, "Início", as famílias no alto da linha do tempo), os textos novos ("Oi, Gui.", "Entraram duas memórias e um relato desde a sua última visita.", "Você estava lá e ainda não contou", "Ver a linha do tempo inteira", "Abrir o acervo", "Cada pessoa conta o dia do jeito que lembra."), a foto revelada em toda foto-chave, as cores das famílias e as dos tipos de momento, a abertura da memória em bloco de cor, o trilho tracejado dos capítulos e, conferidos no iPhone, a barra de décadas e o ano parados no alto.
+**O que o Gui já aprovou:** o menu (sanfona no celular, "Início", as famílias no alto da linha do tempo), os textos novos ("Oi, Gui.", "Entraram duas memórias e um relato desde a sua última visita.", "Você estava lá e ainda não contou", "Ver a linha do tempo inteira", "Abrir o acervo", "Cada pessoa conta o dia do jeito que lembra."), a foto revelada em toda foto-chave, as cores das famílias e as dos tipos de momento, a abertura da memória em bloco de cor, a lógica dos trilhos dos capítulos, com o tracejado, a separação entre época e capítulo e, conferidos no iPhone, a barra de décadas e o ano parados no alto.
 
 **O que as últimas rodadas propõem e espera decisão:**
 
@@ -101,19 +101,25 @@ Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de out
 - **Cor de cada capítulo e sinal na memória** (ideia do Gui, 16/11/2026). Cada capítulo ganha uma cor: o trilho usa o tom do meio, para não disputar com as fotos, e a parada usa o tom vivo. Cada memória mostra, embaixo da ficha, o sinal dos capítulos dela: a mesma parada, na cor do capítulo, com o nome. É o que liga a memória ao trilho e, onde o trilho não cabe, o que diz de que capítulo ela é. A montagem garante que dois capítulos que convivem nunca dividem a cor (`CORES_DOS_CAPITULOS`, em `src/lib/visual.ts`).
 - **Monograma.** No celular, o "M" do topo é a letra da serifa, provisória. O desenho em SVG é da fase 2.
 
-**O furo do capítulo de época, e a proposta.** Pela regra de hoje, toda memória que cai no período de um capítulo de época é dele. O Gui viu o furo: num capítulo de época que é só da vida da Giovanna e do Magno, as memórias que não envolvem os dois entrariam do mesmo jeito. A prévia mostra uma proposta, que espera a decisão dele:
+**Época e capítulo** (aprovado pelo Gui em 16/11/2026, a partir do furo que ele achou no capítulo de época). Pela regra antiga, toda memória que cai no período de um capítulo de época é dele, mesmo num capítulo que é só da vida da Giovanna e do Magno. A separação:
 
-- **Época** é só o que vale para a família inteira, como a pandemia ou os anos 90. Não precisa de trilho, porque todo mundo está dentro: vira uma linha que atravessa a linha do tempo onde a época termina e outra onde ela começa, com o nome.
+- **Época** é só o que vale para a família inteira, como a pandemia ou os anos 90.
 - **Capítulo** é a história de alguém. Pode ser montado à mão, como hoje, ou por período e pessoas: entram sozinhas as memórias do período em que alguma dessas pessoas está. As outras memórias do período ficam de fora, e o trilho segue tracejado.
-- Com isso, "capítulo de época" deixa de existir como nome: ou é uma época, de todos, ou é um capítulo, de alguém.
+- "Capítulo de época" deixa de existir como nome: ou é uma época, de todos, ou é um capítulo, de alguém.
 
-No conceito, de quem é cada capítulo de época é fixo na página, porque o banco ainda não guarda isso: "A infância da Giovanna" é da Giovanna, e "Os anos 90" e "Os anos de casa" são épocas de todos. A montagem já entende os dois casos (`pessoas` e `deTodos`), com teste. Se a proposta for aceita, falta uma migração para o capítulo de época dizer de quem é, o campo no formulário do capítulo e levar a mesma regra para a página do capítulo.
+No conceito, de quem é cada capítulo de época é fixo na página, porque o banco ainda não guarda isso: "A infância da Giovanna" é da Giovanna, e "Os anos 90" e "Os anos de casa" são épocas de todos. A montagem já entende os dois casos (`pessoas` e `deTodos`), com teste. O que falta para valer no site está em `docs/decisoes.md`, "Decidido, a construir".
+
+**A época na linha do tempo** (proposta, na segunda tentativa). A primeira era uma linha atravessando a página no começo e no fim da época, e o Gui não gostou. Agora a época é o chão: enquanto se rola por dentro dela, o papel muda de tom de ponta a ponta da tela, com o nome e o período no alto e "Começo da época “Os anos de casa”" embaixo. Assim cada coisa tem a sua forma: a época é fundo, o capítulo é linha e a memória é figura.
+
+**A hierarquia das linhas** (pedido do Gui, 16/11/2026: os trilhos dos capítulos apareciam mais que a linha do tempo). O fio do tempo é a linha principal: mais firme, contínuo do primeiro ao último ano, com um ponto em cada memória. Os trilhos dos capítulos ficam à esquerda dele, mais finos e mais claros, com a parada menor.
+
+**Memória sem foto** (pedido do Gui, 16/11/2026). Ganha o mesmo cartão da foto revelada, com a cor e o ícone do tipo de momento no lugar da imagem. Vale na linha do tempo e em "Neste dia, em outros anos", para nenhuma memória ficar com um buraco nem parecer erro.
 
 **O que é fixo de exemplo no painel**, porque a parte funcional ainda não existe: o texto da carta, o dia de hoje (a véspera de Natal de 2026) e o da última visita, quais memórias e qual relato contam como novos e as datas e idades dos aniversários. Memórias, fotos, relatos, retratos, parentesco e a contagem de "Você no acervo" são lidos do acervo de exemplo, com a visibilidade de quem olha.
 
 **O que ficou de fora de propósito:** os efeitos da fase 4 (a frase que acende, a foto que amplia no lugar; hoje a foto abre o arquivo), o tocador de áudio próprio (o bloco usa o do aparelho) e as outras telas, que continuam com o visual antigo. Os links do conceito para capítulos, pessoas, árvore e formulários caem nelas.
 
-**Capturas.** `CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>` tira as quatro telas nas três combinações, em 390, 1280 e 1920 px, com movimento reduzido, e um trecho da linha do tempo com os capítulos de dentro. As da quarta rodada estão em `docs/visual/conceito/` (a linha do tempo, cortada em 9000 px de altura).
+**Capturas.** `CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>` tira as quatro telas nas três combinações, em 390, 1280 e 1920 px, com movimento reduzido, e um trecho da linha do tempo com os capítulos de dentro. As da quinta rodada estão em `docs/visual/conceito/` (a linha do tempo, cortada em 9000 px de altura).
 
 ## Referências
 

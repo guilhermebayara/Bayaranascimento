@@ -98,8 +98,8 @@ describe('cor do tipo de momento', () => {
     expect(corDoTipo('tipo-criado-depois')).toBe(corDoTipo('tipo-criado-depois'));
   });
 
-  it('o estilo leva o pastel, o vivo e a tinta da cor', () => {
-    expect(estiloDoTipo('viagem')).toBe('--tipo-pastel: var(--azul-pastel); --tipo-cor: var(--azul-vivo); --tipo-tinta: var(--azul-tinta)');
+  it('o estilo leva os quatro tons da cor: pastel, meio, vivo e tinta', () => {
+    expect(estiloDoTipo('viagem')).toBe('--tipo-pastel: var(--azul-pastel); --tipo-meio: var(--azul-meio); --tipo-cor: var(--azul-vivo); --tipo-tinta: var(--azul-tinta)');
   });
 });
 
@@ -189,6 +189,18 @@ describe('conceito', () => {
     expect(linha).toContain('const nucleo = nucleos.find((n) => n.id === pedido);');
     expect(linha).toContain('await listarMemorias(usuario, { nucleo: nucleo?.id })');
     expect(linha).not.toMatch(/usuario\.nucleos\.includes/);
+  });
+
+  it('memória sem foto ganha o cartão com o ícone do tipo, na linha do tempo e no painel', () => {
+    // Pedido do Gui, 16/11/2026: nenhuma memória fica com um buraco onde as outras têm foto
+    const componentes = import.meta.glob<string>('../src/components/visual/Polaroid.astro', { query: '?raw', import: 'default', eager: true });
+    const foto = Object.values(componentes)[0]!;
+    expect(foto).toContain('polaroid--sem-foto');
+    expect(foto).toContain('<IconeDoTipo tipo={tipo} />');
+    const pagina = (fim: string) => Object.entries(paginas).find(([caminho]) => caminho.endsWith(fim))![1];
+    expect(pagina('conceito/tudo.astro')).toMatch(/<Polaroid id=\{m\.id\}[^>]*tipo=\{m\.tipo\}/);
+    expect(pagina('conceito/tudo.astro')).not.toContain('entrada--so-texto');
+    expect(pagina('conceito/index.astro')).toMatch(/outro-ano__foto">\s*<Polaroid[^>]*tipo=\{m\.tipo\}/);
   });
 
   it('as telas novas não levam o CSS antigo', () => {

@@ -66,7 +66,7 @@ export function estiloDoCapitulo(cor: number): string {
 /** O estilo que leva a cor do tipo a um trecho da página: o pastel, o vivo e a tinta dele. */
 export function estiloDoTipo(tipo: string): string {
   const cor = corDoTipo(tipo);
-  return `--tipo-pastel: var(--${cor}-pastel); --tipo-cor: var(--${cor}-vivo); --tipo-tinta: var(--${cor}-tinta)`;
+  return `--tipo-pastel: var(--${cor}-pastel); --tipo-meio: var(--${cor}-meio); --tipo-cor: var(--${cor}-vivo); --tipo-tinta: var(--${cor}-tinta)`;
 }
 
 const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
