@@ -389,6 +389,7 @@ export function desenharArvore(
     for (const p of pais) if (sozinhos.has(p)) origens.push({ chave: `pe:${p}`, x: meioX(p), y: baixo });
     return { pais, filhos, origens, conjunto: 0, barra: 0 };
   });
+<<<<<<< HEAD
   // Linhas que saem da mesma origem (o pé do Gui, o ponto do casal) correm na mesma altura e se sobrepõem.
   // Em alturas diferentes, as curvas de uma e de outra ficavam a poucos pixels e viravam um emaranhado (a
   // Karol, filha do Gui e da Giovanna, e o Chico). Cada conjunto de linhas que divide uma origem tem a sua
@@ -422,14 +423,33 @@ export function desenharArvore(
     const meio = meioX(filho);
     const perto = f.origens
       .map((q) => q.x)
+=======
+  // Todas as curvas têm o mesmo raio, bem visível: curva é bifurcação ou junção, ângulo reto é cruzamento.
+  // Por isso a descida até um filho nunca fica a menos de dois raios de um pé ou de um ponto de casal que
+  // corre na mesma barra: perto assim, ela entra reta, alinhada com ele, ainda dentro da caixa do filho
+  // (a Karol, um pouco ao lado do Gui, recebe a linha reta do pé dele)
+  const R_LINHA = 20;
+  const origensDaBarra = (f: (typeof familias)[number]) =>
+    f.ponto ? f.origens : familias.filter((o) => !o.ponto && o.barra === f.barra).flatMap((o) => o.origens);
+  const descidaAte = (f: (typeof familias)[number], filho: string) => {
+    const meio = meioX(filho);
+    const perto = origensDaBarra(f)
+      .map((o) => o.x)
+>>>>>>> origin/claude/eager-darwin-vjnje4
       .filter((ox) => Math.abs(ox - meio) < 2 * R_LINHA && Math.abs(ox - meio) < m.largura / 2 - R_LINHA)
       .sort((a, b) => Math.abs(a - meio) - Math.abs(b - meio));
     return perto[0] ?? meio;
   };
+<<<<<<< HEAD
   const pontosDesenhados = new Set<string>();
   for (const f of familias) {
     const { pais, filhos, barra, origens } = f;
     const caminho = (o: Origem, filho: string) => {
+=======
+  for (const f of familias) {
+    const { pais, filhos, ponto, barra, origens } = f;
+    const caminho = (o: { x: number; y: number }, filho: string) => {
+>>>>>>> origin/claude/eager-darwin-vjnje4
       const xf = descidaAte(f, filho);
       return arredondado(limpar([[o.x, o.y], [o.x, barra], [xf, barra], [xf, em.get(filho)!.y]]), R_LINHA);
     };
