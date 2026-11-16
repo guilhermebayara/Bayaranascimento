@@ -1259,6 +1259,7 @@ export const NOMES_INVENTADOS: [real: string, inventado: string][] = [
   ['Tia Lourdes', 'Tia Lena'],
   ['Dona Déia', 'Dona Dora'],
   ['Vó Bela', 'Vó Benta'],
+  ['Natália Boaventura', 'Nara Bastos'],
   ['Ed Luiz', 'Elias Lino'],
   ['Nati B.', 'Nara B.'],
   ['Giovanna', 'Glória'],
