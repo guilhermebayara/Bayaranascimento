@@ -203,6 +203,15 @@ describe('conceito', () => {
     expect(pagina('conceito/index.astro')).toMatch(/outro-ano__foto">\s*<Polaroid[^>]*tipo=\{m\.tipo\}/);
   });
 
+  it('o topo leva à conta pelo retrato de quem está logado, e "Rascunhos" não está no menu', () => {
+    // Decisão do Gui, 16/11/2026 ("Sua conta", em docs/decisoes.md)
+    const topo = Object.values(import.meta.glob<string>('../src/layouts/Visual.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
+    expect(topo).toMatch(/<a class="topo__conta" href="\/conceito\/conta"/);
+    expect(topo.slice(topo.indexOf('const menu = ['), topo.indexOf('const telas = ['))).not.toContain('rascunhos');
+    // A administração e a lixeira saem do rodapé: passam a morar na conta
+    expect(topo.slice(topo.indexOf('<footer'))).not.toMatch(/lixeira|admin\/tipos|api\/copia/);
+  });
+
   it('as telas novas não levam o CSS antigo', () => {
     const fontes = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro'], {
       query: '?raw',

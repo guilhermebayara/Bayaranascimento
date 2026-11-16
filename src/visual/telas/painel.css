@@ -52,6 +52,10 @@
   rotate: -1deg;
   translate: 0 0.15em;
 }
+.carta__assina .mao + .mao + .mao {
+  rotate: -5deg;
+  translate: 0 -0.05em;
+}
 .carta__assina .rabisco {
   align-self: center;
   rotate: 8deg;

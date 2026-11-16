@@ -150,3 +150,11 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* A página de passagem de "Sua conta": só os caminhos, sem desenho próprio */
+.conta__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+  margin-top: var(--e-5);
+}

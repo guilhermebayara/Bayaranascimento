@@ -26,6 +26,7 @@ import '../visual/estrutura.css';
 import Assinatura from '../components/visual/Assinatura.astro';
 import { PESSOAS_DE_TESTE, semLogin } from '../lib/servidor/acesso';
 import { fontesDoPedido } from '../lib/servidor/conceito';
+import { enderecoDoRetrato, iniciais } from '../lib/retratos';
 import { listarIntegrantes } from '../lib/servidor/repositorio';
 import { COMBINACOES_DE_FONTES } from '../lib/visual';
 
@@ -36,7 +37,7 @@ interface Props {
   /** Os sobrenomes da assinatura para o que está sendo visto */
   sobrenomes?: string;
   /** Qual item do menu está aberto */
-  secao?: 'painel' | 'linha' | 'conceito';
+  secao?: 'painel' | 'linha' | 'conceito' | 'conta';
   /** A página que só a pessoa vê: tingida na cor da família dela */
   intimo?: boolean;
 }
@@ -46,7 +47,11 @@ const { usuario } = Astro.locals;
 const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
 const fontes = fontesDoPedido(Astro.request);
 const teste = semLogin();
-const pessoasDeTeste = teste ? (await listarIntegrantes()).filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
+const integrantes = await listarIntegrantes();
+const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
+// "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo. A tela é
+// da fase 3; no conceito, o endereço leva a uma página de passagem, com o que já existe hoje.
+const meuRetrato = integrantes.find((i) => i.id === usuario.pessoa)?.retrato;
 const aqui = Astro.url.pathname + Astro.url.search;
 const volta = encodeURIComponent(aqui);
 const caminho = Astro.url.pathname.replace(/\/$/, '');
@@ -57,7 +62,6 @@ const menu = [
   { href: '/capitulos', texto: 'Capítulos', atual: false },
   { href: '/arvore', texto: 'Árvore', atual: false },
   { href: '/pessoas', texto: 'Pessoas', atual: false },
-  { href: '/rascunhos', texto: 'Rascunhos', atual: false },
 ];
 const telas = [
   { href: '/conceito?visita=primeira', texto: 'Carta', atual: caminho === '/conceito' && primeiraVisita },
@@ -134,6 +138,12 @@ const telas = [
         }
         <a class="topo__acao" href="/nova">Nova memória</a>
       </nav>
+      <a class="topo__conta" href="/conceito/conta" aria-label={`Sua conta, ${usuario.nome}`} aria-current={secao === 'conta' ? 'page' : undefined}>
+        <span class="retrato retrato--redondo">
+          {meuRetrato ? <img src={enderecoDoRetrato(meuRetrato)} alt="" /> : <span aria-hidden="true">{iniciais(usuario.nome)}</span>}
+        </span>
+        <span class="topo__conta-nome" aria-hidden="true">{usuario.nome}</span>
+      </a>
       <details class="menu">
         <summary><span>Menu</span></summary>
         <nav class="menu__lista" aria-label="Seções">
@@ -145,6 +155,7 @@ const telas = [
               </a>
             ))
           }
+          <a href="/conceito/conta" aria-current={secao === 'conta' ? 'page' : undefined}>Sua conta</a>
           <a class="menu__acao acao" href="/nova">Nova memória</a>
         </nav>
       </details>
@@ -155,17 +166,6 @@ const telas = [
     <footer class="rodape">
       <div class="rodape__linha">
         <p>Acervo privado da família. Você entrou como {usuario.nome}.</p>
-        <p class="rodape__links">
-          <a href="/lixeira">Lixeira</a>
-          {usuario.admin && <a href="/admin/tipos">Tipos de momento</a>}
-          {
-            usuario.admin && (
-              <a href="/api/copia" download>
-                Baixar cópia do acervo
-              </a>
-            )
-          }
-        </p>
       </div>
       <Assinatura sobrenomes={sobrenomes} />
     </footer>
