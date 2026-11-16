@@ -1211,3 +1211,17 @@ export async function tamanhoDoBanco(): Promise<number | null> {
     return null;
   }
 }
+
+// --- Sua conta ---
+
+/** Os relatos que a pessoa registrou (os dela e os que escreveu por outra pessoa), em memórias que ela vê. */
+export async function listarRelatosRegistradosPor(usuario: Usuario): Promise<(Relato & { titulo: string })[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id
+       WHERE r.registrado_por = ?1 AND ${FILTRO_VISIVEL} ORDER BY r.atualizado_em DESC`,
+    )
+    .bind(usuario.pessoa)
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({ ...lerRelato(r), titulo: r.titulo as string }));
+}
