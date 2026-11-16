@@ -168,7 +168,7 @@ export async function semearExemplos(db: D1Database): Promise<void> {
 // tios, primos, um casal desfeito com filhos de dois casamentos, cunhados, sobrinhos e uma gata.
 const PARENTES: { id: string; nome: string; tratamento: 'ela' | 'ele'; nucleo: string; bicho?: string }[] = [
   { id: 'ex-vo-tonho', nome: 'Vô Tonho', tratamento: 'ele', nucleo: 'bayara-nascimento' },
-  { id: 'ex-tia-lourdes', nome: 'Tia Lourdes', tratamento: 'ela', nucleo: 'bayara-nascimento' },
+  { id: 'ex-tia-lourdes', nome: 'Tia Lena', tratamento: 'ela', nucleo: 'bayara-nascimento' },
   { id: 'ex-tio-jorge', nome: 'Tio Jorge', tratamento: 'ele', nucleo: 'bayara-nascimento' },
   { id: 'ex-prima-carol', nome: 'Prima Carol', tratamento: 'ela', nucleo: 'bayara-nascimento' },
   { id: 'ex-davi', nome: 'Davi', tratamento: 'ele', nucleo: 'bayara-nascimento' },
@@ -280,7 +280,7 @@ const NOVOS_PARENTES: {
   { id: 'ex-primo-teo', nome: 'Primo Téo', tratamento: 'ele', nucleo: 'bayara-nascimento', nasceu: 2002 },
   { id: 'ex-toto', nome: 'Totó', tratamento: 'ele', nucleo: 'bayara-nascimento', bicho: 'cachorro', nasceu: 1995, morreu: 2009 },
   { id: 'ex-dona-fatima', nome: 'Dona Fátima', tratamento: 'ela', nasceu: 1958 },
-  { id: 'ex-caio-amigo', nome: 'Caio', tratamento: 'ele', nasceu: 1990 },
+  { id: 'ex-caio-amigo', nome: 'Cauã', tratamento: 'ele', nasceu: 1990 },
   { id: 'ex-marina', nome: 'Marina', tratamento: 'ela', nasceu: 1999 },
 ];
 
@@ -339,7 +339,7 @@ const NOVOS_LACOS: [string, string, string, string | null, number, boolean][] = 
 const MAIS_EXEMPLOS: ExemploCompleto[] = [
   {
     id: '1958-casamento-vivica-tonho',
-    titulo: 'Casamento da Vó Vivica e do Vô Tonho',
+    titulo: 'Casamento da Vó Valda e do Vô Tonho',
     ano: 1958,
     aproximada: true,
     tipo: 'casamento',
@@ -354,17 +354,17 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '1992-chegada-do-gui',
-    titulo: 'A chegada do Gui',
+    titulo: 'A chegada do Gustavo',
     ano: 1992,
     tipo: 'nascimento',
     lugar: 'Belo Horizonte',
     criadaPor: 'elizete',
     nucleos: ['bayara-nascimento'],
     integrantes: ['gui', 'elizete', 'aguilar', 'vo-bela', 'vo-vivica'],
-    fotos: ['No colo da Vó Bela', 'O primeiro banho', 'A plaquinha da maternidade'],
+    fotos: ['No colo da Vó Benta', 'O primeiro banho', 'A plaquinha da maternidade'],
     relatos: [
       { por: 'elizete', texto: 'Ele chegou de madrugada e não chorou. A enfermeira achou estranho, eu achei que era calma de família.' },
-      { por: 'vo-bela', registradoPor: 'gui', texto: 'A Vó Bela fez canja para o hospital inteiro. Pelo menos é assim que ela lembra.' },
+      { por: 'vo-bela', registradoPor: 'gui', texto: 'A Vó Benta fez canja para o hospital inteiro. Pelo menos é assim que ela lembra.' },
     ],
     haDias: 30,
   },
@@ -383,7 +383,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '1994-natal-na-vo-vivica',
-    titulo: 'Primeiro Natal na casa da Vó Vivica',
+    titulo: 'Primeiro Natal na casa da Vó Valda',
     ano: 1994,
     mes: 12,
     dia: 24,
@@ -433,7 +433,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '1997-escolinha',
-    titulo: 'O Gui entra na escolinha',
+    titulo: 'O Gustavo entra na escolinha',
     ano: 1997,
     mes: 2,
     tipo: 'conquista',
@@ -463,24 +463,24 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '1999-chegada-da-giovanna',
-    titulo: 'A chegada da Giovanna',
+    titulo: 'A chegada da Glória',
     ano: 1999,
     tipo: 'nascimento',
     lugar: 'Belo Horizonte',
     criadaPor: 'gui',
     nucleos: ['bayara-nascimento'],
     integrantes: ['giovanna', 'gui', 'elizete', 'aguilar', 'vo-bela', 'vo-vivica'],
-    fotos: ['O Gui segurando a irmã pela primeira vez', 'Visita da Vó Vivica', 'O berço montado na sala'],
+    fotos: ['O Gustavo segurando a irmã pela primeira vez', 'Visita da Vó Valda', 'O berço montado na sala'],
     relatos: [
       { por: 'gui', texto: 'Eu tinha sete anos e achei que ela ia ser grande no dia seguinte. Fiquei esperando.' },
-      { por: 'elizete', texto: 'O Gui não saiu do lado do berço na primeira semana. Dormia no tapete.' },
+      { por: 'elizete', texto: 'O Gustavo não saiu do lado do berço na primeira semana. Dormia no tapete.' },
       { por: 'giovanna', texto: 'Não lembro, obviamente, mas gosto de ouvir esse.' },
     ],
     haDias: 22,
   },
   {
     id: '1999-virada-do-milenio',
-    titulo: 'A virada do milênio na casa da Vó Bela',
+    titulo: 'A virada do milênio na casa da Vó Benta',
     ano: 1999,
     mes: 12,
     dia: 31,
@@ -495,7 +495,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '2000-um-ano-da-giovanna',
-    titulo: 'Primeiro aniversário da Giovanna',
+    titulo: 'Primeiro aniversário da Glória',
     ano: 2000,
     tipo: 'aniversario',
     lugar: 'Belo Horizonte',
@@ -551,7 +551,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '2005-primeiro-dia-de-aula-giovanna',
-    titulo: 'Primeiro dia de aula da Giovanna',
+    titulo: 'Primeiro dia de aula da Glória',
     ano: 2005,
     mes: 2,
     dia: 7,
@@ -562,7 +562,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     integrantes: ['giovanna', 'gui', 'elizete'],
     fotos: ['A mochila maior que ela'],
     relatos: [
-      { por: 'elizete', texto: 'Ela entrou sem olhar para trás. Dessa vez quem ficou na porta foi o Gui.' },
+      { por: 'elizete', texto: 'Ela entrou sem olhar para trás. Dessa vez quem ficou na porta foi o Gustavo.' },
       { por: 'giovanna', texto: 'Lembro do cheiro de massinha e de uma menina chamada Bia que virou minha dupla.' },
     ],
     temas: ['Escola'],
@@ -654,7 +654,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     criadaPor: 'elizete',
     nucleos: ['bayara-nascimento'],
     integrantes: ['gui', 'elizete', 'aguilar', 'giovanna', 'vo-bela'],
-    fotos: ['Beca emprestada', 'Com a Giovanna de vestido de festa', 'O canudo'],
+    fotos: ['Beca emprestada', 'Com a Glória de vestido de festa', 'O canudo'],
     temas: ['Escola'],
     haDias: 12,
   },
@@ -669,7 +669,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     criadaPor: 'gui',
     nucleos: ['bayara-nascimento'],
     integrantes: ['ex-prima-carol', 'ex-davi', 'ex-tia-lourdes', 'ex-tio-jorge', 'gui', 'giovanna'],
-    fotos: ['Pista de dança', 'A Giovanna pegando o buquê'],
+    fotos: ['Pista de dança', 'A Glória pegando o buquê'],
     relatos: [{ por: 'giovanna', texto: 'Peguei o buquê com treze anos e virei piada da família por uma década.' }],
     temas: ['Casamentos'],
     haDias: 11,
@@ -707,7 +707,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '2014-primeiro-emprego',
-    titulo: 'Primeiro emprego do Gui',
+    titulo: 'Primeiro emprego do Gustavo',
     ano: 2014,
     mes: 8,
     tipo: 'conquista',
@@ -720,7 +720,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '2015-quinze-da-giovanna',
-    titulo: 'Os quinze anos da Giovanna',
+    titulo: 'Os quinze anos da Glória',
     ano: 2015,
     mes: 9,
     tipo: 'aniversario',
@@ -728,7 +728,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     criadaPor: 'giovanna',
     nucleos: ['bayara-nascimento'],
     integrantes: ['giovanna', 'gui', 'elizete', 'aguilar', 'vo-bela', 'vo-vivica', 'ex-prima-julia'],
-    fotos: ['Bolo de três andares', 'Valsa com o Gui', 'Mesa dos primos'],
+    fotos: ['Bolo de três andares', 'Valsa com o Gustavo', 'Mesa dos primos'],
     relatos: [{ por: 'giovanna', texto: 'Não quis festa grande, ganhei festa grande. Hoje agradeço.' }],
     temas: ['Aniversários'],
     haDias: 8,
@@ -763,7 +763,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '2017-giovanna-no-vestibular',
-    titulo: 'A Giovanna passa no vestibular',
+    titulo: 'A Glória passa no vestibular',
     ano: 2017,
     mes: 1,
     dia: 27,
@@ -779,7 +779,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '2019-almoco-com-o-magno',
-    titulo: 'O primeiro almoço do Magno com a família',
+    titulo: 'O primeiro almoço do Mateus com a família',
     ano: 2019,
     mes: 3,
     aproximada: true,
@@ -817,7 +817,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     nucleos: ['bayara-nascimento'],
     integrantes: ['gui', 'giovanna', 'elizete', 'vo-bela', 'ex-prima-julia'],
     fotos: ['Doze quadradinhos na tela'],
-    relatos: [{ por: 'gui', texto: 'A Vó Bela ficou o tempo todo com a câmera no queixo e cantou parabéns atrasada.' }],
+    relatos: [{ por: 'gui', texto: 'A Vó Benta ficou o tempo todo com a câmera no queixo e cantou parabéns atrasada.' }],
     temas: ['Aniversários'],
     haDias: 5,
   },
@@ -846,12 +846,12 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     criadaPor: 'lucas-magno',
     nucleos: ['bracarense'],
     integrantes: ['ex-dudu', 'ex-luisa', 'ex-bruno', 'ana-candida', 'lucio', 'lucas-magno'],
-    fotos: ['O tio Magno com o sobrinho'],
+    fotos: ['O tio Mateus com o sobrinho'],
     haDias: 4,
   },
   {
     id: '2021-formatura-da-giovanna',
-    titulo: 'Formatura da Giovanna',
+    titulo: 'Formatura da Glória',
     ano: 2021,
     mes: 12,
     dia: 17,
@@ -879,13 +879,13 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     criadaPor: 'lucas-magno',
     nucleos: ['bracarense'],
     integrantes: ['lucas-magno', 'ana-candida', 'lucio', 'ex-luisa', 'ex-bruno', 'ex-dudu', 'regina'],
-    fotos: ['Cachoeira gelada', 'Fogueira', 'O Dudu dormindo no colo da Regina'],
+    fotos: ['Cachoeira gelada', 'Fogueira', 'O Dudu dormindo no colo da Rosa'],
     relatos: [{ por: 'lucas-magno', texto: 'Memória só do núcleo Bracarense. Quem é de fora não vê.' }],
     haDias: 3,
   },
   {
     id: '2023-chico-chega',
-    titulo: 'O Chico chega',
+    titulo: 'O Cacau chega',
     ano: 2023,
     mes: 3,
     dia: 12,
@@ -895,7 +895,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     criadaPor: 'giovanna',
     nucleos: ['bayara-bracarense'],
     integrantes: ['chico', 'giovanna', 'lucas-magno'],
-    fotos: ['Chico no banco de trás', 'Primeira noite na caminha', 'O chinelo destruído'],
+    fotos: ['Cacau no banco de trás', 'Primeira noite na caminha', 'O chinelo destruído'],
     relatos: [
       { por: 'giovanna', texto: 'Fomos só olhar. Voltamos com ele.' },
       { por: 'lucas-magno', texto: 'O chinelo foi o primeiro de muitos.' },
@@ -905,7 +905,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '2024-noivado',
-    titulo: 'O noivado da Giovanna e do Magno',
+    titulo: 'O noivado da Glória e do Mateus',
     ano: 2024,
     mes: 6,
     tipo: 'casamento',
@@ -914,13 +914,13 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     nucleos: ['bayara-nascimento', 'bayara-bracarense', 'bracarense'],
     integrantes: ['giovanna', 'lucas-magno', 'chico'],
     fotos: ['O anel', 'Os dois na rua de pedra'],
-    relatos: [{ por: 'giovanna', texto: 'Ele escondeu o anel dentro da coleira do Chico. O Chico quase engoliu.' }],
+    relatos: [{ por: 'giovanna', texto: 'Ele escondeu o anel dentro da coleira do Cacau. O Cacau quase engoliu.' }],
     temas: ['Casamentos'],
     haDias: 2,
   },
   {
     id: '2024-aniversario-vo-bela',
-    titulo: 'Almoço de aniversário da Vó Bela',
+    titulo: 'Almoço de aniversário da Vó Benta',
     ano: 2024,
     mes: 8,
     dia: 4,
@@ -929,13 +929,13 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     criadaPor: 'gui',
     nucleos: ['bayara-nascimento'],
     integrantes: ['vo-bela', 'aguilar', 'ex-tio-paulo', 'ex-tia-cida', 'gui', 'giovanna', 'ex-prima-julia', 'ex-primo-teo'],
-    fotos: ['A Vó Bela soprando as velas', 'Os netos em volta', 'O doce de leite dela'],
+    fotos: ['A Vó Benta soprando as velas', 'Os netos em volta', 'O doce de leite dela'],
     temas: ['Aniversários', 'Comida de vó'],
     haDias: 2,
   },
   {
     id: '2025-festa-junina',
-    titulo: 'Festa junina no quintal da Vó Vivica',
+    titulo: 'Festa junina no quintal da Vó Valda',
     ano: 2025,
     mes: 6,
     tipo: 'festa',
@@ -943,7 +943,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     criadaPor: 'giovanna',
     nucleos: ['bayara-nascimento', 'bayara-bracarense'],
     integrantes: ['vo-vivica', 'giovanna', 'lucas-magno', 'gui', 'elizete', 'ex-lia', 'ex-ben', 'chico'],
-    fotos: ['Quadrilha desajeitada', 'Canjica da Vó Vivica'],
+    fotos: ['Quadrilha desajeitada', 'Canjica da Vó Valda'],
     temas: ['Comida de vó'],
     haDias: 1,
   },
@@ -958,9 +958,9 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     criadaPor: 'gui',
     nucleos: ['bayara-nascimento', 'bayara-bracarense'],
     integrantes: ['gui', 'giovanna', 'lucas-magno', 'elizete', 'aguilar', 'vo-bela', 'vo-vivica', 'chico', 'ex-mel'],
-    fotos: ['A mesa posta', 'Chico de gorro', 'Amigo oculto', 'As duas avós juntas', 'O pavê', 'Todo mundo no sofá'],
+    fotos: ['A mesa posta', 'Cacau de gorro', 'Amigo oculto', 'As duas avós juntas', 'O pavê', 'Todo mundo no sofá'],
     relatos: [
-      { por: 'gui', texto: 'Primeiro Natal com o Magno oficialmente da família. Ele ganhou o pior presente do amigo oculto e adorou.' },
+      { por: 'gui', texto: 'Primeiro Natal com o Mateus oficialmente da família. Ele ganhou o pior presente do amigo oculto e adorou.' },
       { por: 'elizete', texto: 'Rascunho de exemplo dentro de uma memória publicada: só eu vejo até publicar.', rascunho: true },
     ],
     temas: ['Natal'],
@@ -968,7 +968,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
   },
   {
     id: '2026-pao-de-queijo-da-vo-bela',
-    titulo: 'A receita do pão de queijo da Vó Bela',
+    titulo: 'A receita do pão de queijo da Vó Benta',
     ano: 2026,
     mes: 3,
     tipo: 'cotidiano',
@@ -991,7 +991,7 @@ const MAIS_EXEMPLOS: ExemploCompleto[] = [
     criadaPor: 'giovanna',
     nucleos: ['bayara-bracarense'],
     integrantes: ['giovanna', 'lucas-magno'],
-    relatos: [{ por: 'giovanna', texto: 'Rascunho da Giovanna. Só ela vê até publicar.' }],
+    relatos: [{ por: 'giovanna', texto: 'Rascunho da Glória. Só ela vê até publicar.' }],
     haDias: 0,
   },
 ];
@@ -1015,7 +1015,7 @@ const CAPITULOS_DE_EXEMPLO: {
   {
     id: 'os-anos-90',
     titulo: 'Os anos 90',
-    abertura: 'Do Gui de colo à Giovanna recém-chegada. Fitas, quintal e a casa cheia de primos.',
+    abertura: 'Do Gustavo de colo à Glória recém-chegada. Fitas, quintal e a casa cheia de primos.',
     modo: 'epoca',
     inicio: [1992, 1],
     fim: [1999, 12],
@@ -1024,7 +1024,7 @@ const CAPITULOS_DE_EXEMPLO: {
   },
   {
     id: 'infancia-da-giovanna',
-    titulo: 'A infância da Giovanna',
+    titulo: 'A infância da Glória',
     abertura: 'Dos primeiros passos ao primeiro buquê pego por engano.',
     modo: 'epoca',
     inicio: [1999],
@@ -1054,7 +1054,7 @@ const CAPITULOS_DE_EXEMPLO: {
   },
   {
     id: 'natais-na-vo-vivica',
-    titulo: 'Natais na Vó Vivica',
+    titulo: 'Natais na Vó Valda',
     abertura: 'Os que foram em Sabará.',
     modo: 'reunido',
     pai: 'natais',
@@ -1074,7 +1074,7 @@ const CAPITULOS_DE_EXEMPLO: {
   },
   {
     id: 'giovanna-e-magno',
-    titulo: 'Giovanna e Magno',
+    titulo: 'Glória e Mateus',
     abertura: 'Do primeiro feijão repetido ao casamento.',
     modo: 'reunido',
     nucleos: ['bayara-bracarense'],
@@ -1085,7 +1085,7 @@ const CAPITULOS_DE_EXEMPLO: {
   {
     id: 'so-nos-tres',
     titulo: 'Só nós três',
-    abertura: 'Giovanna, Magno e Chico. Restrito ao núcleo.',
+    abertura: 'Glória, Mateus e Cacau. Restrito ao núcleo.',
     modo: 'reunido',
     pai: 'giovanna-e-magno',
     visibilidade: 'nucleos',
@@ -1216,8 +1216,8 @@ export async function semearAcervoDeExemplo(db: D1Database): Promise<void> {
 // Dona Déia não passa por ninguém e se liga direto ao Gui. Dona Lourdes é mãe de consideração
 // da Elizete, então chega ao Gui pela mãe dele, sem linha própria até ele.
 const AVOS_DE_CONSIDERACAO: { id: string; nome: string; nasceu: number }[] = [
-  { id: 'ex-dona-deia', nome: 'Dona Déia', nasceu: 1940 },
-  { id: 'ex-dona-lourdes', nome: 'Dona Lourdes', nasceu: 1936 },
+  { id: 'ex-dona-deia', nome: 'Dona Dora', nasceu: 1940 },
+  { id: 'ex-dona-lourdes', nome: 'Dona Laís', nasceu: 1936 },
 ];
 const LACOS_DAS_AVOS: [string, string, string, string, number][] = [
   ['gui', 'ex-dona-deia', 'Vó de consideração', 'avo', 1],
@@ -1244,4 +1244,73 @@ export async function semearConsideracoesDeExemplo(db: D1Database): Promise<void
     );
   }
   await db.batch(comandos);
+}
+
+// --- Nomes inventados no lugar dos nomes reais ---
+// O banco de teste começou com os nomes de verdade da família (a migração 002 é a mesma da
+// produção) e ganhou, nas prévias, pessoas cadastradas com nomes reais. Aqui eles viram nomes
+// inventados com a mesma primeira letra, para quem testa reconhecer quem é quem. Os ids ficam
+// como estão: o código e os testes dependem deles. Roda a cada preparo do banco, só nas
+// prévias e no computador, e não muda nada depois da primeira vez.
+export const NOMES_INVENTADOS: [real: string, inventado: string][] = [
+  ['Lucas Magno', 'Lauro Mateus'],
+  ['Ana Candida', 'Alba Cecília'],
+  ['Dona Lourdes', 'Dona Laís'],
+  ['Tia Lourdes', 'Tia Lena'],
+  ['Dona Déia', 'Dona Dora'],
+  ['Vó Bela', 'Vó Benta'],
+  ['Ed Luiz', 'Elias Lino'],
+  ['Nati B.', 'Nara B.'],
+  ['Giovanna', 'Glória'],
+  ['Elizete', 'Estela'],
+  ['Aguilar', 'Afonso'],
+  ['Vivica', 'Valda'],
+  ['Lúcio', 'Laércio'],
+  ['Regina', 'Rosa'],
+  ['Gisele', 'Gilda'],
+  ['Magno', 'Mateus'],
+  ['Renan', 'Rui'],
+  ['Chico', 'Cacau'],
+  ['Otto', 'Omar'],
+  ['Caio', 'Cauã'],
+  ['Gui', 'Gustavo'],
+];
+
+const trocas = NOMES_INVENTADOS.map(([real, inventado]) => {
+  const escapado = real.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return [new RegExp(`(?<![\\p{L}\\p{N}])${escapado}(?![\\p{L}\\p{N}])`, 'gu'), inventado] as const;
+});
+
+/** Troca os nomes reais de um texto pelos inventados. Só palavras inteiras: "Guia" fica. */
+export function comNomesInventados(texto: string): string {
+  return trocas.reduce((t, [real, inventado]) => t.replace(real, inventado), texto);
+}
+
+// Colunas de texto em que um nome pode aparecer
+const COLUNAS_COM_NOMES: [tabela: string, chave: string, colunas: string[]][] = [
+  ['integrantes', 'id', ['nome', 'apelido', 'sobre']],
+  ['memorias', 'id', ['titulo', 'lugar']],
+  ['relatos', 'id', ['texto']],
+  ['fotos', 'id', ['legenda']],
+  ['capitulos', 'id', ['titulo', 'abertura']],
+  ['temas', 'id', ['nome']],
+  ['lacos_coracao', 'id', ['nome']],
+  ['versoes', 'id', ['dados']],
+];
+
+export async function semearNomesInventados(db: Parameters<typeof semearExemplos>[0]): Promise<void> {
+  const mudancas: ReturnType<typeof db.prepare>[] = [];
+  for (const [tabela, chave, colunas] of COLUNAS_COM_NOMES) {
+    const { results } = await db.prepare(`SELECT ${chave}, ${colunas.join(', ')} FROM ${tabela}`).all<Record<string, unknown>>();
+    for (const linha of results) {
+      const novos = colunas.filter((c) => typeof linha[c] === 'string' && comNomesInventados(linha[c] as string) !== linha[c]);
+      if (novos.length === 0) continue;
+      mudancas.push(
+        db
+          .prepare(`UPDATE ${tabela} SET ${novos.map((c) => `${c} = ?`).join(', ')} WHERE ${chave} = ?`)
+          .bind(...novos.map((c) => comNomesInventados(linha[c] as string)), linha[chave]),
+      );
+    }
+  }
+  if (mudancas.length > 0) await db.batch(mudancas);
 }

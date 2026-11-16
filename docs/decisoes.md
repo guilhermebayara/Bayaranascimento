@@ -51,6 +51,7 @@ A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `tes
 - A regra de quem vê está em `src/lib/servidor/permissoes.ts` e, em SQL, em `src/lib/servidor/repositorio.ts`. As duas mudam juntas.
 - A estrutura do banco está em `src/lib/servidor/banco.ts`. O site aplica as mudanças sozinho na primeira visita depois de publicado.
 - Prévias de branch usam o banco e o bucket `bayara-memorias-teste`, só com exemplos, e por isso funcionam sem login.
+- **Nenhum nome real no banco de teste** (decisão do Gui, 16/11/2026). Quem existe de verdade aparece com um nome inventado de mesma primeira letra, para quem testa reconhecer quem é: Gui vira Gustavo, Giovanna vira Glória, Elizete vira Estela. A lista fica em `NOMES_INVENTADOS` (`src/lib/servidor/semente.ts`) e a troca roda a cada preparo do banco nas prévias e no computador, então também pega quem for cadastrado na prévia com um nome da lista. Os ids continuam os de sempre, porque o código depende deles. O teste `testes/nomes-inventados.test.ts` falha se um exemplo ou a cópia da prévia voltar a ter um nome da lista. Nome real novo cadastrado numa prévia entra na lista.
 - A proposta completa de estrutura (laços, árvore, capítulos, temas) está no documento "Acervo da família: proposta de estrutura".
 
 ## Tipos de momento

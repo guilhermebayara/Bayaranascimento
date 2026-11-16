@@ -7,12 +7,11 @@ const dados = previa as DadosDaArvore;
 const estado = (abertos: string[]): Estado => ({
   foco: 'gui', centro: '', ramos: new Set(), nucleo: '', consideracao: true, ex: true, bichos: true, outros: true, abertos: new Set(abertos),
 });
-const nome = new Map(dados.pessoas.map((p) => [p.id, p.nome]));
 const fileiras = (abertos: string[]) => {
   const { desenho } = montarDesenho(dados, estado(abertos));
   const porY = new Map<number, typeof desenho.pessoas>();
   for (const p of desenho.pessoas) porY.set(p.y, [...(porY.get(p.y) ?? []), p]);
-  return [...porY].sort((a, b) => a[0] - b[0]).map(([, ps]) => ps.sort((a, b) => a.x - b.x).map((p) => nome.get(p.id)!));
+  return [...porY].sort((a, b) => a[0] - b[0]).map(([, ps]) => ps.sort((a, b) => a.x - b.x).map((p) => p.id));
 };
 
 describe('árvore com os dados da prévia', () => {
@@ -20,11 +19,11 @@ describe('árvore com os dados da prévia', () => {
     it(`Bayara fica à esquerda e Bracarense à direita, com os laços de ${abertos.join(' e ')} abertos`, () => {
       const f = fileiras(abertos);
       const texto = f.map((l) => l.join(' | ')).join('\n');
-      const linhaDoGui = f.find((l) => l.includes('Gui'))!;
-      expect(linhaDoGui.indexOf('Gui'), texto).toBeLessThan(linhaDoGui.indexOf('Giovanna'));
-      expect(linhaDoGui.indexOf('Giovanna'), texto).toBeLessThan(linhaDoGui.indexOf('Lucas Magno'));
-      const avos = f.find((l) => l.includes('Vó Vivica'))!;
-      expect(avos.indexOf('Vó Vivica'), texto).toBeLessThan(avos.indexOf('Regina'));
+      const linhaDoGui = f.find((l) => l.includes('gui'))!;
+      expect(linhaDoGui.indexOf('gui'), texto).toBeLessThan(linhaDoGui.indexOf('giovanna'));
+      expect(linhaDoGui.indexOf('giovanna'), texto).toBeLessThan(linhaDoGui.indexOf('lucas-magno'));
+      const avos = f.find((l) => l.includes('vo-vivica'))!;
+      expect(avos.indexOf('vo-vivica'), texto).toBeLessThan(avos.indexOf('regina'));
     });
   }
 });
