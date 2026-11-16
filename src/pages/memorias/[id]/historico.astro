@@ -78,7 +78,7 @@ const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0
                   <input type="hidden" name="acao" value="restaurar-versao" />
                   <input type="hidden" name="memoria" value={memoria.id} />
                   <input type="hidden" name="versao" value={v.id} />
-                  <button class="botao botao--leve" type="submit">Voltar a ficha para como era antes</button>
+                  <button class="botao botao--leve" type="submit">Restaurar esta versão</button>
                 </form>
               )}
             </li>
@@ -111,7 +111,7 @@ const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0
                   <input type="hidden" name="memoria" value={memoria.id} />
                   <input type="hidden" name="por" value={relato.por} />
                   <input type="hidden" name="versao" value={v.id} />
-                  <button class="botao botao--leve" type="submit">Voltar para este texto</button>
+                  <button class="botao botao--leve" type="submit">Restaurar este texto</button>
                 </form>
               </li>
             ))}
@@ -136,7 +136,7 @@ const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0
                 <input type="hidden" name="acao" value="restaurar-foto" />
                 <input type="hidden" name="memoria" value={memoria.id} />
                 <input type="hidden" name="foto" value={f.id} />
-                <button class="botao botao--leve" type="submit">Devolver à memória</button>
+                <button class="botao botao--leve" type="submit">Restaurar a foto</button>
               </form>
             </li>
           ))}

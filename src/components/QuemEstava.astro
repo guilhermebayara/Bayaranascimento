@@ -1,0 +1,79 @@
+---
+// "Quem estava?" na memória (QA de UX, 16/11/2026). A lista vai crescer, então os nomes não
+// aparecem todos de cara: quem já foi marcado fica no alto, a busca acha pelo nome, e as
+// sugestões vêm dos laços (sem ninguém marcado, você e sua família; depois, a família de quem
+// foi marcado). A lista inteira fica recolhida, agrupada por família.
+//
+// Sem JavaScript, a lista inteira aparece aberta, com as caixas de sempre.
+// As caixas de verdade (name="pessoas") são só as da lista inteira; o resto é atalho para elas.
+import type { Integrante } from '../lib/servidor/repositorio';
+
+interface Props {
+  integrantes: Integrante[];
+  marcados: string[];
+  grupos: { nome: string; ids: string[] }[];
+  /** Para cada pessoa, quem está perto dela pelos laços: casal, pais, filhos e irmãos */
+  proximos: Record<string, string[]>;
+  /** Quem está escrevendo */
+  eu: string;
+}
+
+const { integrantes, marcados, grupos, proximos, eu } = Astro.props;
+const achar = (id: string) => integrantes.find((i) => i.id === id);
+const total = grupos.reduce((n, g) => n + g.ids.length, 0);
+const dados = {
+  eu,
+  proximos,
+  nomes: Object.fromEntries(integrantes.map((i) => [i.id, i.apelido ?? i.nome])),
+  busca: Object.fromEntries(integrantes.map((i) => [i.id, `${i.nome} ${i.apelido ?? ''}`])),
+};
+---
+
+<fieldset class="quem-estava" data-quem-estava>
+  <legend>Quem estava?</legend>
+  <p class="dica">Marque quem aparece nesta memória. Ao marcar alguém, a família dessa pessoa aparece como sugestão.</p>
+
+  <div class="quem-estava__marcados" data-marcados hidden>
+    <p class="quem-estava__titulo">Marcados</p>
+    <div class="opcoes" data-lista-marcados></div>
+  </div>
+
+  <label class="campo" data-so-com-script hidden>
+    <span>Procurar pelo nome</span>
+    <input type="search" data-buscar-pessoas autocomplete="off" placeholder="Escreva um nome" />
+  </label>
+  <div class="opcoes" data-resultados hidden></div>
+
+  <div class="quem-estava__sugestoes" data-sugestoes hidden>
+    <p class="quem-estava__titulo" data-titulo-sugestoes>Sugestões</p>
+    <div class="opcoes" data-lista-sugestoes></div>
+  </div>
+
+  <details class="quem-estava__todos" data-todos open>
+    <summary>Ver todos os nomes ({total})</summary>
+    {
+      grupos
+        .filter((g) => g.ids.length > 0)
+        .map((g) => (
+          <div class="quem-estava__grupo">
+            <p class="quem-estava__titulo">{g.nome}</p>
+            <div class="opcoes">
+              {g.ids.map((id) => {
+                const p = achar(id)!;
+                return (
+                  <label class="opcao">
+                    <input type="checkbox" name="pessoas" value={p.id} checked={marcados.includes(p.id)} />
+                    <span>{p.apelido ?? p.nome}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))
+    }
+  </details>
+
+  <div data-novas-pessoas></div>
+  <button type="button" class="botao botao--leve" data-adicionar-pessoa>Adicionar alguém que não está no acervo</button>
+  <script type="application/json" data-dados-pessoas set:html={JSON.stringify(dados).replace(/</g, '\\u003c')} />
+</fieldset>

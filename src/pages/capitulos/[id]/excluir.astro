@@ -1,0 +1,30 @@
+---
+// Excluir um capítulo passa pela mesma confirmação de excluir uma memória (decisão do Gui, 16/11/2026).
+import Base from '../../../layouts/Base.astro';
+import Abertura from '../../../components/Abertura.astro';
+import { outrosAdmins } from '../../../lib/servidor/conteudo';
+import { listarCapitulos, listarIntegrantes } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const capitulo = (await listarCapitulos(usuario)).find((c) => c.id === Astro.params.id);
+if (!capitulo) return new Response('Capítulo não encontrado', { status: 404 });
+const voltarPara = `/capitulos/${capitulo.id}/editar`;
+if (!usuario.admin) return Astro.redirect(voltarPara);
+// Quem mais pode restaurar, do ponto de vista de quem está excluindo
+const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
+---
+
+<Base titulo="Excluir capítulo">
+  <Abertura titulo="Excluir capítulo" />
+  <section class="alerta">
+    <h2>{capitulo.titulo}</h2>
+    <p>O capítulo sai do site para toda a família. As memórias dele continuam no acervo, só deixam de estar reunidas.</p>
+    <p>Nada é apagado de vez: o capítulo vai para a lixeira, e {outros ? `você ou ${outros} podem` : 'você pode'} restaurar como estava.</p>
+    <form method="post" action="/api/capitulos" class="acoes">
+      <input type="hidden" name="acao" value="excluir" />
+      <input type="hidden" name="id" value={capitulo.id} />
+      <button class="botao botao--perigo" type="submit">Excluir e mandar para a lixeira</button>
+      <a class="botao botao--leve" href={voltarPara}>Cancelar</a>
+    </form>
+  </section>
+</Base>

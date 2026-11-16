@@ -32,8 +32,10 @@ describe('formulários', () => {
     }
   });
 
-  it('o filtro de pessoas ignora acentos', () => {
-    expect(fonte('src/pages/nova.astro')).toMatch(/normalize\('NFD'\)/);
+  it('a busca de pessoas ignora acentos', () => {
+    // O filtro da memória virou a busca de "Quem estava?" (QA de UX, 16/11/2026)
+    expect(fonte('src/lib/cliente/quem-estava.ts')).toMatch(/normalize\('NFD'\)/);
+    expect(fonte('src/lib/cliente/busca-pessoa.ts')).toMatch(/normalize\('NFD'\)/);
   });
 });
 

@@ -87,7 +87,7 @@ Para cada um: papel, variações, estados e onde é usado. "Componente Astro" in
 
 - **Papel:** a ação que acontece ao tocar.
 - **Variações:** `principal` (uma por tela), `leve` (secundária), `perigo` (excluir). Mais `arquivo`, que é um rótulo com cara de botão para escolher fotos.
-- **Estados:** normal, sob o cursor, foco, desabilitado. **Faltam:** pressionado e enviando (com o botão travado e o texto do que está acontecendo, como "Publicando…").
+- **Estados:** normal, sob o cursor, foco, desabilitado, pressionado e enviando (`src/lib/cliente/enviando.ts`: o botão fica travado com `aria-disabled` e diz "Salvando…", "Publicando…"). Os dois últimos existem desde 16/11/2026.
 - **Onde:** todo formulário e página com ação.
 - **Proposta de componente:** `Botao.astro` com `variacao`, `href` (vira `a`) ou `tipo` (vira `button`). Hoje são 51 botões escritos à mão.
 
@@ -107,21 +107,20 @@ Para cada um: papel, variações, estados e onde é usado. "Componente Astro" in
 ### Data
 
 - **Papel:** data flexível (só ano, mês e ano, completa, aproximada).
-- **Hoje:** quatro montagens (ver `docs/ux/fluxos.md`, "Datas"). `CampoAno.astro` (componente Astro) é o ano com passos, usado na memória e no capítulo.
-- **Proposta:** `CampoData.astro`, ano, mês e dia nessa ordem, com partes ligáveis.
+- **Já existe (16/11/2026):** `CampoData.astro` (ano com passos, mês e dia, nessa ordem) na memória e na ficha de pessoa; `CampoAno.astro` sozinho no capítulo de época (com o mês no slot) e nas fases do casal.
 
 ### Opção
 
 - **Papel:** escolher entre opções visíveis.
 - **Variações:** pílula (`.opcao`), pílula com explicação (`.abas`), nativa (`.marcar`).
-- **Estados:** normal, marcada, foco. **Faltam:** desabilitada (núcleos travados) e pressionada.
-- **Proposta:** a pílula para escolha única e a caixa visível para várias, para que "uma" e "várias" se distingam; `.marcar` fica para liga e desliga (uma caixa só). Componente `Opcoes.astro` com `tipo` (`unica` ou `varias`), `legenda` e a lista.
+- **Estados:** normal, marcada, foco, desabilitada, pressionada, com erro (desde 16/11/2026).
+- **Já existe:** a pílula de caixa de marcar mostra uma caixa com tique, e a de rádio não.
+- **Proposta:** `.marcar` fica para liga e desliga (uma caixa só). Componente `Opcoes.astro` com `tipo` (`unica` ou `varias`), `legenda` e a lista.
 
 ### Busca de pessoa
 
 - **Papel:** escolher uma pessoa entre muitas, ou cadastrar um nome novo.
-- **Hoje:** não existe. Lista suspensa mais campo de texto (laço), lista suspensa (relato, árvore), pílulas com filtro (memória).
-- **Proposta:** `BuscaDePessoa.astro`, campo com sugestões e "Cadastrar Fulano" no fim. Sem JavaScript, vira a lista suspensa de hoje.
+- **Já existe (16/11/2026):** `src/lib/cliente/busca-pessoa.ts` transforma a lista suspensa em campo com sugestões, com "Cadastrar Fulano" no fim quando há campo de nome novo. Usada em "Com quem" (laço), "Quem está contando" (relato e memória) e "Partir de" (árvore). Sem JavaScript, fica a lista suspensa. "Quem estava?", na memória, continua com pílulas e filtro, porque ali se marcam várias pessoas.
 
 ### Recado
 
@@ -140,6 +139,11 @@ Para cada um: papel, variações, estados e onde é usado. "Componente Astro" in
 
 - **Papel:** pares de rótulo e valor.
 - **Variações:** `.memoria__ficha` e `.resumo`, os dois em `dl`.
+
+### Confirmação no lugar
+
+- **Papel:** pedir confirmação de uma remoção sem sair da página.
+- **Já existe (16/11/2026):** `ConfirmarRemocao.astro`, um `details` com a pergunta, "Remover" (perigo) e "Cancelar". Usado em remover laço, remover laço do coração, remover parente de amigo e apagar casal. Sem JavaScript, "Cancelar" some e o botão de cima fecha a pergunta.
 - **Proposta:** uma classe só, `.ficha`.
 
 ### Selo e etiqueta

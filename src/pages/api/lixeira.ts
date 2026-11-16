@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!decisao.ok) return voltar(request, '/', { erro: decisao.motivo });
     await restaurarExcluida(id);
     const destino = excluida.situacao === 'rascunho' ? `/nova?id=${id}` : `/memorias/${id}`;
-    return voltar(request, destino, { ok: 'Memória recuperada da lixeira.' });
+    return voltar(request, destino, { ok: 'Memória restaurada da lixeira.' });
   }
 
   const memoria = await obterMemoria(usuario, id);
@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await excluirMemoria(memoria.id, usuario);
     const rascunho = memoria.situacao === 'rascunho';
     return voltar(request, rascunho ? '/rascunhos' : '/', {
-      ok: rascunho ? 'Rascunho descartado. Ele fica na lixeira e pode ser recuperado.' : `"${memoria.titulo}" foi para a lixeira. Dá para recuperar pelo link no rodapé.`,
+      ok: rascunho ? 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' : `"${memoria.titulo}" foi para a lixeira. Dá para restaurar pela lixeira, em Rascunhos.`,
     });
   }
 
@@ -77,7 +77,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       fotos: memoria.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
     };
     await atualizarMemoria(memoria, restaurada, usuario, []);
-    return voltar(request, pagina, { ok: 'Versão anterior restaurada. A versão que estava no ar foi para o histórico.' });
+    return voltar(request, pagina, { ok: 'Versão restaurada. A versão que estava no ar foi para o histórico.' });
   }
 
   if (acao === 'restaurar-relato') {
@@ -88,12 +88,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const versao = (await listarVersoes<Relato>('relato', String(relato.id))).find((v) => v.id === Number(campo(dados, 'versao', 12)));
     if (!versao) return voltar(request, historico, { erro: 'Versão não encontrada.' });
     await salvarRelato(memoria.id, por, versao.dados.texto, relato.situacao, usuario, relato);
-    return voltar(request, pagina, { ok: 'Texto anterior do relato restaurado.' });
+    return voltar(request, pagina, { ok: 'Texto do relato restaurado.' });
   }
 
   if (acao === 'restaurar-foto') {
     const devolvida = await restaurarFoto(Number(campo(dados, 'foto', 12)), memoria.id, usuario);
-    return devolvida ? voltar(request, pagina, { ok: 'A foto voltou para a memória.' }) : voltar(request, historico, { erro: 'Só quem enviou a foto pode devolvê-la.' });
+    return devolvida ? voltar(request, pagina, { ok: 'Foto restaurada.' }) : voltar(request, historico, { erro: 'Só quem enviou a foto pode restaurá-la.' });
   }
 
   return voltar(request, pagina, { erro: 'Ação desconhecida.' });

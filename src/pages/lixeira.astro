@@ -20,7 +20,7 @@ const nome = (id: string | null) => {
 <Base titulo="Lixeira">
   <Abertura titulo="Lixeira">
     <p>
-      {usuario.admin ? 'Memórias excluídas e rascunhos descartados.' : 'Seus rascunhos descartados.'} Nada aqui aparece no site, e tudo pode ser recuperado como estava.
+      {usuario.admin ? 'Memórias excluídas e rascunhos descartados.' : 'Seus rascunhos descartados.'} Nada aqui aparece no site, e tudo pode ser restaurado como estava.
     </p>
   </Abertura>
   {
@@ -44,7 +44,7 @@ const nome = (id: string | null) => {
             <form method="post" action="/api/lixeira" class="em-linha">
               <input type="hidden" name="acao" value="restaurar-excluida" />
               <input type="hidden" name="memoria" value={m.id} />
-              <button class="botao botao--leve" type="submit">Recuperar</button>
+              <button class="botao botao--leve" type="submit">Restaurar</button>
             </form>
           </li>
         ))}
@@ -58,7 +58,7 @@ const nome = (id: string | null) => {
             <form method="post" action="/api/capitulos" class="em-linha">
               <input type="hidden" name="acao" value="restaurar" />
               <input type="hidden" name="id" value={c.id} />
-              <button class="botao botao--leve" type="submit">Recuperar</button>
+              <button class="botao botao--leve" type="submit">Restaurar</button>
             </form>
           </li>
         ))}

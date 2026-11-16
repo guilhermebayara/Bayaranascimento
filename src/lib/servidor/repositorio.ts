@@ -1,7 +1,7 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
 import { banco } from './ambiente';
-import type { Casal, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
+import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
 import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
 import { criarSlug, slugUnico } from './conteudo';
@@ -248,17 +248,25 @@ export async function removerLacoResumido(id: number, usuario: Usuario): Promise
 // --- Laços de árvore ---
 
 export async function listarFiliacoes(): Promise<Filiacao[]> {
-  const { results } = await db().prepare('SELECT filho_id, responsavel_id, qualidade FROM filiacoes').all<Record<string, unknown>>();
-  return results.map((r) => ({ filho: r.filho_id as string, responsavel: r.responsavel_id as string, qualidade: r.qualidade as Qualidade }));
+  const { results } = await db().prepare('SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes').all<Record<string, unknown>>();
+  return results.map((r) => ({
+    filho: r.filho_id as string,
+    responsavel: r.responsavel_id as string,
+    qualidade: r.qualidade as Qualidade,
+    adocao: r.adocao_ano ? { ano: r.adocao_ano as number, mes: (r.adocao_mes as number | null) ?? null, dia: (r.adocao_dia as number | null) ?? null } : null,
+  }));
 }
 
-export async function salvarFiliacao(filho: string, responsavel: string, qualidade: Qualidade, usuario: Usuario): Promise<void> {
+/** Salva ou atualiza a filiação. A data da adoção só fica num laço adotivo; nos outros, é apagada. */
+export async function salvarFiliacao(filho: string, responsavel: string, qualidade: Qualidade, usuario: Usuario, adocao: DataDaAdocao | null = null): Promise<void> {
+  const data = qualidade === 'adotiva' ? adocao : null;
   await db()
     .prepare(
-      `INSERT INTO filiacoes (filho_id, responsavel_id, qualidade, criado_por) VALUES (?, ?, ?, ?)
-       ON CONFLICT (filho_id, responsavel_id) DO UPDATE SET qualidade = excluded.qualidade`,
+      `INSERT INTO filiacoes (filho_id, responsavel_id, qualidade, criado_por, adocao_ano, adocao_mes, adocao_dia) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (filho_id, responsavel_id) DO UPDATE SET qualidade = excluded.qualidade,
+         adocao_ano = excluded.adocao_ano, adocao_mes = excluded.adocao_mes, adocao_dia = excluded.adocao_dia`,
     )
-    .bind(filho, responsavel, qualidade, usuario.pessoa)
+    .bind(filho, responsavel, qualidade, usuario.pessoa, data?.ano ?? null, data?.mes ?? null, data?.dia ?? null)
     .run();
 }
 
@@ -267,7 +275,7 @@ export async function removerFiliacao(filho: string, responsavel: string, usuari
     db()
       .prepare(
         `INSERT INTO versoes (tipo, item_id, dados, autor)
-         SELECT 'filiacao', filho_id || '>' || responsavel_id, json_object('filho', filho_id, 'responsavel', responsavel_id, 'qualidade', qualidade), ?
+         SELECT 'filiacao', filho_id || '>' || responsavel_id, json_object('filho', filho_id, 'responsavel', responsavel_id, 'qualidade', qualidade, 'adocao_ano', adocao_ano, 'adocao_mes', adocao_mes, 'adocao_dia', adocao_dia), ?
          FROM filiacoes WHERE filho_id = ? AND responsavel_id = ?`,
       )
       .bind(usuario.pessoa, filho, responsavel),

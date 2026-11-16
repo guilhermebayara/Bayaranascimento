@@ -2302,3 +2302,503 @@ p {
     animation: none;
   }
 }
+
+/* Estados dos componentes (QA de UX, 16/11/2026). Provisórios na aparência, até a direção visual;
+   o que vale é cada estado existir. */
+
+/* Caixa de marcar em pílula: mostra uma caixa, para "várias" se distinguir de "uma" */
+.opcao input[type='checkbox'] + span::before {
+  content: '';
+  flex: none;
+  width: 1em;
+  height: 1em;
+  margin-right: var(--espaco-2);
+  border: var(--borda) solid currentColor;
+  border-radius: var(--raio-1);
+}
+
+.opcao input[type='checkbox']:checked + span::before {
+  background: currentColor;
+  /* o tique, recortado da caixa cheia */
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 0, 20% 52%, 42% 74%, 82% 30%, 74% 22%, 42% 58%, 28% 44%, 20% 52%);
+}
+
+/* Desabilitada: a opção travada (núcleos de quem é membro, quem vê de quem não criou) */
+.opcao input:disabled,
+.opcao input:disabled + span,
+.marcar:has(input:disabled) {
+  cursor: not-allowed;
+}
+
+.opcao input:disabled + span {
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.marcar:has(input:disabled) span {
+  color: var(--cor-texto-suave);
+}
+
+/* Pressionado */
+.botao:not(:disabled, [aria-disabled='true']):active,
+.filtros button:active,
+.etiqueta:active,
+.opcao input:active + span,
+.passo-ano button:active,
+.confirmar > summary:active {
+  transform: translateY(1px);
+  filter: brightness(0.94);
+}
+
+/* Enviando: o botão fica travado e diz o que está acontecendo (src/lib/cliente/enviando.ts) */
+.botao[aria-disabled='true'] {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+/* Erro no campo: depois que a pessoa mexeu nele, ou quando o script marca aria-invalid */
+.campo :is(input, select, textarea):user-invalid,
+.em-linha :is(input, select):user-invalid,
+.passo-ano input:user-invalid,
+[aria-invalid='true'] {
+  border-color: var(--cor-perigo);
+  box-shadow: 0 0 0 1px var(--cor-perigo);
+}
+
+/* Remover com confirmação no próprio lugar */
+.confirmar > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.confirmar > summary::-webkit-details-marker {
+  display: none;
+}
+
+.confirmar[open] > summary {
+  background: var(--cor-fundo-recuo);
+}
+
+.confirmar__caixa {
+  margin-top: var(--espaco-2);
+  padding: var(--espaco-3) var(--espaco-4);
+  background: var(--cor-superficie);
+  border: var(--borda) solid var(--cor-perigo);
+  border-radius: var(--raio-3);
+}
+
+.confirmar__caixa p {
+  margin: 0 0 var(--espaco-3);
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+}
+
+.confirmar__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.confirmar__acoes .botao {
+  min-height: var(--toque-minimo);
+  padding: 0.45rem 1.1rem;
+  font-size: var(--tamanho-4);
+}
+
+/* Busca de pessoa (src/lib/cliente/busca-pessoa.ts) */
+.busca {
+  position: relative;
+  width: 100%;
+}
+
+.busca__campo {
+  font: inherit;
+  font-weight: var(--peso-normal);
+  color: var(--cor-texto);
+  background: var(--cor-superficie);
+  border: var(--borda) solid var(--cor-texto-suave);
+  border-radius: var(--raio-2);
+  padding: 0.55rem var(--espaco-3);
+  min-height: var(--toque-minimo);
+  width: 100%;
+}
+
+.campo .busca__campo {
+  padding: 0.7rem 0.85rem;
+  min-height: 3rem;
+}
+
+.busca__campo::placeholder {
+  color: var(--cor-texto-exemplo);
+}
+
+.busca__lista {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--espaco-1));
+  left: 0;
+  right: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--espaco-1) 0;
+  list-style: none;
+  background: var(--cor-superficie);
+  border: var(--borda) solid var(--cor-texto);
+  border-radius: var(--raio-2);
+  box-shadow: var(--sombra-flutuante);
+  font-family: var(--fonte-texto);
+  font-size: var(--tamanho-4);
+  font-weight: var(--peso-normal);
+}
+
+.busca__lista li {
+  display: flex;
+  align-items: center;
+  min-height: var(--toque-minimo);
+  padding: var(--espaco-1) var(--espaco-3);
+  cursor: pointer;
+}
+
+.busca__lista li[aria-selected='true'],
+.busca__lista li:hover {
+  background: var(--cor-fundo-recuo);
+}
+
+.busca__novo {
+  font-family: var(--fonte-titulo);
+  font-weight: var(--peso-medio);
+  border-top: var(--borda) solid var(--cor-linha);
+}
+
+.busca__vazio {
+  color: var(--cor-texto-suave);
+  cursor: default;
+}
+
+.opcoes:has(input[aria-invalid='true']) .opcao > span,
+.tipos-de-momento:has(input[aria-invalid='true']) .opcao > span,
+.abas:has(input[aria-invalid='true']) .aba > span {
+  border-color: var(--cor-perigo);
+}
+
+/* Campo com botões dentro de uma linha de campos (ano das fases do casal) */
+.em-linha__campo {
+  display: grid;
+  gap: 0.3rem;
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-3);
+  font-weight: var(--peso-medio);
+}
+
+.em-linha__campo .passo-ano input[type='number'] {
+  width: 5.5rem;
+}
+
+/* Ações da página, logo abaixo do título (memória, pessoa, capítulo) */
+.acoes--pagina {
+  margin: var(--espaco-6) 0 0;
+}
+
+.abertura .acoes--pagina {
+  margin-top: var(--espaco-5);
+}
+
+/* Link de ação: discreto, mas com área de toque */
+.link-acao {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque-minimo);
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-3);
+  color: var(--cor-texto-suave);
+}
+
+.em-linha .busca {
+  min-width: min(20rem, 100%);
+}
+
+/* Caixa de marcar numa linha de campos ("Terminou" nas fases do casal): caixa e texto lado a lado */
+.em-linha label.marcar {
+  display: flex;
+  min-height: var(--toque-minimo);
+}
+
+/* Índice de uma página longa de edição: leva direto à seção */
+.indice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2) var(--espaco-6);
+  margin-bottom: var(--espaco-4);
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+}
+
+.indice a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque-minimo);
+}
+
+/* Laços já cadastrados, agrupados por tipo. Cada um: quem, o que é, e "Editar" */
+.grupo-de-lacos {
+  display: grid;
+  gap: var(--espaco-3);
+}
+
+.lacos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espaco-3);
+}
+
+.laco {
+  display: grid;
+  gap: var(--espaco-3);
+  padding: var(--espaco-4) 1.1rem;
+  background: var(--cor-superficie);
+  border: var(--borda) solid var(--cor-linha);
+  border-radius: var(--raio-3);
+}
+
+.laco__linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1) var(--espaco-4);
+  align-items: baseline;
+  margin: 0;
+}
+
+.laco__linha span {
+  color: var(--cor-texto-suave);
+}
+
+/* As fases do casal como uma linha do tempo */
+.fases {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--espaco-4);
+  border-left: var(--borda) solid var(--cor-linha);
+  display: grid;
+  gap: var(--espaco-2);
+}
+
+.fases li {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--espaco-3);
+  align-items: baseline;
+}
+
+.fases li::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--espaco-4) - 0.35rem);
+  top: 0.55em;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--cor-texto);
+}
+
+.fases strong {
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+}
+
+.fases span {
+  color: var(--cor-texto-suave);
+}
+
+/* Editar no próprio lugar: o botão abre os campos, e remover fica no fim, separado */
+.editar > summary {
+  list-style: none;
+  cursor: pointer;
+  justify-self: start;
+}
+
+.editar > summary::-webkit-details-marker {
+  display: none;
+}
+
+.editar {
+  display: grid;
+}
+
+.editar[open] > summary {
+  background: var(--cor-fundo-recuo);
+}
+
+.editar__caixa {
+  display: grid;
+  gap: var(--espaco-4);
+  margin-top: var(--espaco-3);
+  padding-top: var(--espaco-4);
+  border-top: var(--borda) solid var(--cor-linha);
+}
+
+.editar__caixa form {
+  display: grid;
+  gap: var(--espaco-4);
+}
+
+.editar__remover {
+  padding-top: var(--espaco-4);
+  border-top: var(--borda) dashed var(--cor-linha);
+}
+
+.fase {
+  border-top: var(--borda) solid var(--cor-linha);
+}
+
+.fase > summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--espaco-2) var(--espaco-4);
+  min-height: var(--toque-minimo);
+  padding-block: var(--espaco-2);
+  list-style: none;
+  cursor: pointer;
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+  font-weight: var(--peso-medio);
+}
+
+.fase > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fase__mudar {
+  color: var(--cor-texto-suave);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.fase[open] .fase__mudar {
+  visibility: hidden;
+}
+
+.fase > fieldset,
+.fase--nova {
+  display: grid;
+  gap: var(--espaco-3);
+  margin: 0;
+  padding: 0 0 var(--espaco-3);
+  border: 0;
+}
+
+.fase--nova {
+  padding-top: var(--espaco-3);
+  border-top: var(--borda) solid var(--cor-linha);
+}
+
+.fase--nova legend {
+  font-family: var(--fonte-titulo);
+  font-weight: var(--peso-forte);
+  font-size: var(--tamanho-4);
+  padding: 0;
+  margin-bottom: var(--espaco-3);
+}
+
+.novo-laco {
+  margin-top: var(--espaco-4);
+}
+
+/* "Quem estava?": marcados, busca, sugestões e a lista inteira recolhida */
+.quem-estava {
+  display: grid;
+  gap: var(--espaco-4);
+}
+
+.quem-estava__titulo {
+  margin: 0 0 var(--espaco-2);
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-3);
+  font-weight: var(--peso-medio);
+  color: var(--cor-texto-suave);
+}
+
+.quem-estava__todos > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque-minimo);
+  cursor: pointer;
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+  font-weight: var(--peso-medio);
+}
+
+.quem-estava__todos[open] > summary {
+  margin-bottom: var(--espaco-3);
+}
+
+.quem-estava__grupo + .quem-estava__grupo {
+  margin-top: var(--espaco-4);
+}
+
+.quem-estava__todos > summary::before {
+  content: '▸';
+  margin-right: var(--espaco-2);
+}
+
+.quem-estava__todos[open] > summary::before {
+  content: '▾';
+}
+
+[data-nome-repetido] {
+  display: grid;
+  gap: var(--espaco-2);
+}
+
+[data-nome-repetido] p {
+  margin: 0;
+}
+
+/* Tipos de momento: os mais usados à vista, o resto recolhido */
+.tipos-de-momento {
+  display: grid;
+  gap: var(--espaco-2);
+}
+
+.mais-opcoes > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque-minimo);
+  cursor: pointer;
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+  font-weight: var(--peso-medio);
+}
+
+.mais-opcoes > summary::before {
+  content: '▸';
+  margin-right: var(--espaco-2);
+}
+
+.mais-opcoes[open] > summary::before {
+  content: '▾';
+}
+
+.mais-opcoes[open] > summary {
+  margin-bottom: var(--espaco-2);
+}
+
+/* Cadastro guiado: uma pergunta por tela, e o caminho para a próxima no fim */
+.guia__form {
+  max-width: var(--largura-formulario);
+}
+
+.acoes--guia {
+  justify-content: space-between;
+  max-width: var(--largura-formulario);
+  margin-top: var(--espaco-4);
+}
+
+.acoes--guia .botao:last-child {
+  margin-left: auto;
+}

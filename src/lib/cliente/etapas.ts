@@ -34,16 +34,46 @@ export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, seca
   const contagem = document.createElement('p');
   contagem.className = 'etapas__contagem';
   form.prepend(trilha, contagem);
+  const limparErro = (evento: Event) => {
+    const el = evento.target as HTMLInputElement;
+    if (!el.name) return;
+    for (const irmao of form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(el.name)}"][aria-invalid]`)) {
+      if (irmao.checkValidity()) irmao.removeAttribute('aria-invalid');
+    }
+  };
+  form.addEventListener('input', limparErro);
+  form.addEventListener('change', limparErro);
   form.classList.add('com-etapas');
 
   const voltar = form.querySelector<HTMLButtonElement>('[data-etapa-voltar]');
   const continuar = form.querySelector<HTMLButtonElement>('[data-etapa-continuar]');
   const soNoFim = [...form.querySelectorAll<HTMLElement>('[data-so-no-fim]')];
+  const textoContinuar = continuar?.textContent ?? 'Continuar';
+
+  // Etapa opcional ([data-opcional]) ainda vazia: o botão diz "Pular esta etapa", para ficar
+  // claro que dá para seguir sem preencher (QA de UX, 16/11/2026)
+  const vazia = (secao: HTMLElement): boolean => {
+    if (secao.querySelector('.foto-enviada, [data-nova-pessoa]')) return false;
+    return ![...secao.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea')].some((el) => {
+      if (!el.name || el.disabled || el.type === 'hidden' || el.type === 'search' || el.type === 'file') return false;
+      if (el.type === 'checkbox' || el.type === 'radio') return (el as HTMLInputElement).checked;
+      return el.value.trim() !== '';
+    });
+  };
+  const atualizarContinuar = () => {
+    if (!continuar) return;
+    const secao = secoes[atual];
+    continuar.textContent = secao.dataset.opcional !== undefined && vazia(secao) ? 'Pular esta etapa' : textoContinuar;
+  };
+  form.addEventListener('input', atualizarContinuar);
+  form.addEventListener('change', atualizarContinuar);
 
   // Para avançar, o que é obrigatório na etapa atual precisa estar preenchido
   const valida = (secao: HTMLElement): boolean => {
     for (const el of secao.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea')) {
       if (!el.disabled && !el.checkValidity()) {
+        // O erro fica marcado no campo, além do balão do navegador, até ser corrigido
+        el.setAttribute('aria-invalid', 'true');
         el.reportValidity();
         return false;
       }
@@ -64,6 +94,7 @@ export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, seca
     if (voltar) voltar.hidden = atual === 0;
     if (continuar) continuar.hidden = atual === secoes.length - 1;
     for (const el of soNoFim) el.hidden = atual !== secoes.length - 1;
+    atualizarContinuar();
     aoEntrar?.(atual, secoes[atual]);
     if (foco) {
       // Com movimento reduzido, a página vai direto para a trilha, sem rolar animada

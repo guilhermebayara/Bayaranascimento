@@ -1,8 +1,8 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import LinhaDoTempo from '../../../components/LinhaDoTempo.astro';
-import { datasDeVida } from '../../../lib/datas';
-import { FASES, Familia, estaoJuntos, lacoParaODono, periodoDaFase, possessivo, type Tratamento } from '../../../lib/parentesco';
+import { datasDeVida, formatarData } from '../../../lib/datas';
+import { FASES, Familia, estaoJuntos, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
 import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
@@ -19,12 +19,24 @@ const dosNucleos = familiasDe(pessoa).map((id) => nucleos.find((n) => n.id === i
 const resumo = [pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bicho') : '', dosNucleos.join(' e ')].filter(Boolean).join(', ');
 
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
-const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
+const filiacoes = await listarFiliacoes();
+const familia = new Familia(filiacoes, await listarCasais(usuario), tratamentos);
+// Data da adoção, quando a filiação entre esta pessoa e o parente é adotiva e alguém informou
+const adocaoCom = (id: string) => {
+  const f = filiacoes.find((x) => x.qualidade === 'adotiva' && ((x.filho === pessoa.id && x.responsavel === id) || (x.responsavel === pessoa.id && x.filho === id)));
+  return f?.adocao ? formatarData({ ano: f.adocao.ano, mes: f.adocao.mes, dia: f.adocao.dia, aproximada: false }) : undefined;
+};
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 const chamar = pessoa.apelido ?? pessoa.nome;
-// O que cada parente é desta pessoa: "mãe", "irmão", "filho de consideração"
-const papel = (id: string) => familia.relacao(pessoa.id, id)?.texto;
+// O que cada parente é desta pessoa: "mãe", "irmão", "filho de consideração".
+// Na própria página, com o possessivo, como os laços do coração: "sua mãe", "sua vó de consideração".
+const ehMinha = pessoa.id === usuario.pessoa;
+const papel = (id: string) => {
+  const relacao = familia.relacao(pessoa.id, id);
+  if (!relacao) return undefined;
+  return ehMinha ? possessivo(relacao, achar(id)?.tratamento ?? null) : relacao.texto;
+};
 const paraVoce = pessoa.id === usuario.pessoa ? undefined : familia.relacao(usuario.pessoa, pessoa.id);
 
 const pais = familia.pais(pessoa.id).map((p) => p.responsavel);
@@ -56,12 +68,14 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
     {resumo && <p>{resumo}</p>}
     {paraVoce && <p class="parentesco">{chamar} é {possessivo(paraVoce, pessoa.tratamento)}.</p>}
     {meuLaco && <p class="parentesco">{chamar} é {lacoParaODono(meuLaco.nome, pessoa.tratamento)}.</p>}
+    {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026) */}
+    <p class="acoes acoes--pagina">
+      <a class="botao" href={`/pessoas/${pessoa.id}/editar`}>{podeEditar ? 'Editar página e laços' : 'Adicionar laço'}</a>
+      {temLacoDeArvore && <a class="botao botao--leve" href={`/arvore?centro=${pessoa.id}`}>Ver na árvore</a>}
+      <a class="botao botao--leve" href={`/nova?com=${pessoa.id}`}>Nova memória com {chamar}</a>
+    </p>
     {datasDeVida(pessoa).map((linha) => <p class="dica">{linha}</p>)}
     {pessoa.sobre && <div class="bio">{pessoa.sobre.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
-    <p class="acoes">
-      {temLacoDeArvore && <a class="botao botao--leve" href={`/arvore?centro=${pessoa.id}`}>Ver na árvore</a>}
-      <a class="botao botao--leve" href={`/pessoas/${pessoa.id}/editar`}>{podeEditar ? 'Editar página e laços' : 'Adicionar laço'}</a>
-    </p>
   </div>
 
   {
@@ -78,7 +92,7 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
                   <span>{papel(c.outro) ?? (estaoJuntos(c.casal) ? '' : 'ex')}</span>
                   <small>
                     {c.casal.fases
-                      .map((fase) => [FASES[fase.tipo].toLowerCase(), periodoDaFase(fase)].filter(Boolean).join(' '))
+                      .map((fase, n) => [FASES[fase.tipo].toLowerCase(), periodosDasFases(c.casal.fases)[n]].filter(Boolean).join(' '))
                       .join(', depois ')}
                     {c.casal.visibilidade === 'privado' && ' (só os dois veem)'}
                   </small>
@@ -93,6 +107,7 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
                 <dd>
                   <a href={`/pessoas/${id}`}>{nome(id)}</a>
                   <span>{papel(id)}</span>
+                  {adocaoCom(id) && <small>adoção em {adocaoCom(id)}</small>}
                 </dd>
               ))}
             </div>

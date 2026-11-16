@@ -2,7 +2,12 @@
 import Base from '../../../layouts/Base.astro';
 import Abertura from '../../../components/Abertura.astro';
 import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
-import { FASES, Familia, PAPEIS, nomeDoPapel, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
+import ConfirmarRemocao from '../../../components/ConfirmarRemocao.astro';
+import CampoAno from '../../../components/CampoAno.astro';
+import Opcoes from '../../../components/Opcoes.astro';
+import CampoData from '../../../components/CampoData.astro';
+import { formatarData } from '../../../lib/datas';
+import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
 import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos } from '../../../lib/servidor/repositorio';
@@ -55,7 +60,7 @@ const pelaArvore = (l: { a: string; b: string }) => {
 const abas = [
   ...(podeLacos
     ? [
-        { valor: 'filho-de', nome: 'Pais', frase: `${chamar} é filho ou filha de alguém` },
+        { valor: 'filho-de', nome: 'Pais', frase: `${chamar} é ${nomeDoPapel('filho', pessoa.tratamento)} de alguém` },
         { valor: 'pai-de', nome: 'Filhos', frase: `alguém é filho ou filha de ${chamar}` },
         { valor: 'casal', nome: 'Casal', frase: 'namoro, casamento ou ex' },
       ]
@@ -64,12 +69,43 @@ const abas = [
   ...(deFora ? [{ valor: 'resumido', nome: 'Parente de amigo', frase: `alguém da família de ${chamar}, sem cadastrar quem fica no meio` }] : []),
 ];
 const papeis = Object.entries(PAPEIS) as [Papel, string][];
-const proximidades = Object.entries(PROXIMIDADES);
-const volta = `/pessoas/${pessoa.id}/editar${recemCadastrada ? '?novo=1' : ''}#lacos`;
+const proximidades: [string, string][] = [['', 'Não dizer'], ...Object.entries(PROXIMIDADES)];
+const tratamentoDe = (id: string) => integrantes.find((i) => i.id === id)?.tratamento ?? null;
+const temLacos = pais.length + filhos.length + casais.length + resumidos.length + meusLacos.length > 0;
+// Cadastro guiado (pedido do Gui, 16/11/2026): depois da ficha, perguntas em sequência, uma por tela.
+// Bicho só tem a pergunta da família dele. "outro" abre o formulário completo, com todos os tipos de laço.
+const PASSOS = pessoa.tipo === 'bicho' ? (['pais'] as const) : (['pais', 'casal', 'filhos'] as const);
+type Passo = (typeof PASSOS)[number] | 'fim' | 'outro';
+const passoPedido = Astro.url.searchParams.get('passo') as Passo | null;
+const passo: Passo = passoPedido && ([...PASSOS, 'fim', 'outro'] as string[]).includes(passoPedido) ? passoPedido : PASSOS[0];
+const guiado = recemCadastrada && podeLacos && passo !== 'outro';
+const enderecoDoPasso = (p: Passo) => `/pessoas/${pessoa.id}/editar?novo=1&passo=${p}`;
+const proximoPasso = (p: Passo): Passo => (PASSOS as readonly string[]).indexOf(p) + 1 < PASSOS.length ? PASSOS[(PASSOS as readonly string[]).indexOf(p) + 1] : 'fim';
+const NOMES_DOS_PASSOS: Record<string, string> = { pais: pessoa.tipo === 'bicho' ? 'Família' : 'Pais', casal: 'Casal', filhos: 'Filhos', fim: 'Pronto' };
+const PERGUNTAS: Record<string, { titulo: string; dica: string; laco: string; rotulo: string }> = {
+  pais: {
+    titulo: pessoa.tipo === 'bicho' ? `Quem é a família de ${chamar}?` : `Quem são os pais de ${chamar}?`,
+    dica: pessoa.tipo === 'bicho' ? 'As famílias tratam os bichos como filhos: escolha de quem ele é.' : 'Um de cada vez. Depois de adicionar o primeiro, dá para adicionar o outro.',
+    laco: 'filho-de',
+    rotulo: pessoa.tipo === 'bicho' ? 'De quem é' : 'Pai ou mãe',
+  },
+  casal: { titulo: `${chamar} tem ou teve um casal?`, dica: 'Namoro, casamento, união, e também quem já se separou.', laco: 'casal', rotulo: 'Com quem' },
+  filhos: { titulo: `${chamar} tem filhos?`, dica: 'Bichos da família também entram aqui.', laco: 'pai-de', rotulo: 'Filho ou filha' },
+};
+const jaNoPasso = (p: Passo): { nome: string; texto: string }[] =>
+  p === 'pais'
+    ? pais.map((x) => ({ nome: nome(x.responsavel), texto: nomeDoPapel('pai', tratamentoDe(x.responsavel)) }))
+    : p === 'casal'
+      ? casais.map((c) => ({ nome: nome(c.outro), texto: FASES[c.casal.fases[c.casal.fases.length - 1]?.tipo ?? 'namoro'].toLowerCase() }))
+      : p === 'filhos'
+        ? filhos.map((f) => ({ nome: nome(f.filho), texto: nomeDoPapel('filho', tratamentoDe(f.filho)) }))
+        : [];
+const volta = guiado ? `${enderecoDoPasso(passo)}#guia` : `/pessoas/${pessoa.id}/editar${recemCadastrada ? '?novo=1&passo=outro' : ''}#lacos`;
 // "De consideração" saiu daqui: agora é o laço do coração que a família toda reconhece
 const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(([id]) => id !== 'consideracao');
+// Na edição de uma filiação antiga de consideração, a opção continua lá para não trocar sem querer
+const opcoesDeFiliacao = (atual?: Qualidade): [string, string][] => (atual === 'consideracao' ? (Object.entries(QUALIDADES) as [string, string][]) : qualidades);
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
-const anoAtual = new Date().getFullYear();
 ---
 
 <Base titulo={`Editar ${chamar}`}>
@@ -80,19 +116,453 @@ const anoAtual = new Date().getFullYear();
     recemCadastrada && (
       <ol class="etapas etapas--fluxo" aria-label="Etapas">
         <li><span data-feita="true"><b>1</b><span>Quem é</span></span></li>
-        <li><span aria-current="step"><b>2</b><span>Laços</span></span></li>
+        {guiado ? (
+          [...PASSOS, 'fim' as const].map((p, n) => {
+            const ordem = [...PASSOS, 'fim'].indexOf(passo);
+            return (
+              <li>
+                <span aria-current={p === passo ? 'step' : undefined} data-feita={String(n < ordem)}>
+                  <b>{n + 2}</b>
+                  <span>{NOMES_DOS_PASSOS[p]}</span>
+                </span>
+              </li>
+            );
+          })
+        ) : (
+          <li><span aria-current="step"><b>2</b><span>Laços</span></span></li>
+        )}
       </ol>
     )
   }
+  {
+    !recemCadastrada && (
+      <nav class="indice" aria-label="Nesta página">
+        <a href="#ficha">Ficha</a>
+        <a href="#lacos">Laços</a>
+      </nav>
+    )
+  }
 
+  {/* A ficha vem antes dos laços: primeiro quem a pessoa é, depois com quem ela se liga (QA de UX, 16/11/2026) */}
+  {
+    recemCadastrada ? null : podeFicha ? (
+      <section class="painel" id="ficha">
+        <h2>Ficha</h2>
+        <FichaDoIntegrante integrante={pessoa} />
+      </section>
+    ) : (
+      <section class="painel" id="ficha">
+        <h2>Ficha</h2>
+        {comAcesso.has(pessoa.id) ? (
+          <p class="dica">A ficha de {chamar} só pode ser alterada por {pessoa.tratamento === 'ela' ? 'ela mesma' : pessoa.tratamento === 'ele' ? 'ele mesmo' : 'quem é dono da página'}.</p>
+        ) : (
+          <p class="dica">{quemCuida}</p>
+        )}
+      </section>
+    )
+  }
+
+  {
+    guiado && passo !== 'fim' && (
+      <section class="painel guia" id="guia">
+        <h2>{PERGUNTAS[passo].titulo}</h2>
+        <p class="dica">{PERGUNTAS[passo].dica}</p>
+        {jaNoPasso(passo).length > 0 && (
+          <ul class="lacos">
+            {jaNoPasso(passo).map((x) => (
+              <li class="laco">
+                <p class="laco__linha">
+                  <strong>{x.nome}</strong>
+                  <span>{x.texto}</span>
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form method="post" action="/api/lacos" class="casal guia__form">
+          <input type="hidden" name="acao" value="adicionar" />
+          <input type="hidden" name="volta" value={volta} />
+          <input type="hidden" name="sujeito" value={pessoa.id} />
+          <input type="hidden" name="laco" value={PERGUNTAS[passo].laco} />
+          <h3 class="casal__titulo">{jaNoPasso(passo).length > 0 ? 'Adicionar mais alguém' : 'Adicionar'}</h3>
+          <label class="campo">
+            <span>{PERGUNTAS[passo].rotulo}</span>
+            <select name="pessoa">
+              <option value="">Escolha</option>
+              {outros.map((i) => <option value={i.id}>{i.nome}</option>)}
+            </select>
+          </label>
+          <label class="campo">
+            <span>ou alguém que ainda não está no acervo</span>
+            <input type="text" name="nomeNovo" maxlength="80" autocomplete="off" placeholder="Escreva o nome" />
+          </label>
+          {passo === 'casal' ? (
+            <>
+              <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fases} valor="casamento" />
+              <div class="em-linha__campo">
+                <label for="guia-fase-inicio">Começou em <small>(se souber)</small></label>
+                <CampoAno id="guia-fase-inicio" nome="faseInicio" />
+              </div>
+              <label class="marcar">
+                <input type="checkbox" name="terminou" data-revela="terminou-guia" />
+                <span>Já terminou</span>
+              </label>
+              <div class="em-linha__campo" data-depende="terminou-guia" hidden>
+                <label for="guia-fase-fim">Terminou em</label>
+                <CampoAno id="guia-fase-fim" nome="faseFim" />
+              </div>
+            </>
+          ) : (
+            <>
+              <Opcoes nome="qualidade" rotulo="Filiação" opcoes={opcoesDeFiliacao()} valor="biologica" id="rotulo-qualidade-guia" />
+              <div class="campo" data-adocao data-depende="adocao" hidden>
+                <span>Data da adoção <small>(se souber)</small></span>
+                <CampoData prefixo="adocao" id="adocao-guia" />
+              </div>
+            </>
+          )}
+          {/* Uma ação principal por tela: antes de adicionar alguém, é "Adicionar"; depois, "Próxima pergunta" */}
+          <div class="acoes"><button class={jaNoPasso(passo).length > 0 ? 'botao botao--leve' : 'botao'} type="submit">Adicionar</button></div>
+        </form>
+        <p class="acoes acoes--guia">
+          {(PASSOS as readonly string[]).indexOf(passo) > 0 && (
+            <a class="botao botao--leve" href={enderecoDoPasso(PASSOS[(PASSOS as readonly string[]).indexOf(passo) - 1])}>Voltar</a>
+          )}
+          <a class={jaNoPasso(passo).length > 0 ? 'botao' : 'botao botao--leve'} href={enderecoDoPasso(proximoPasso(passo))}>{jaNoPasso(passo).length > 0 ? 'Próxima pergunta' : 'Pular esta pergunta'}</a>
+        </p>
+      </section>
+    )
+  }
+
+  {
+    guiado && passo === 'fim' && (
+      <section class="painel guia" id="guia">
+        <h2>{chamar} está no acervo</h2>
+        {temLacos ? (
+          <ul class="lacos">
+            {[...PASSOS].flatMap((p) => jaNoPasso(p)).map((x) => (
+              <li class="laco">
+                <p class="laco__linha">
+                  <strong>{x.nome}</strong>
+                  <span>{x.texto}</span>
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="dica">Nenhum laço por enquanto. Dá para adicionar depois, na página de {chamar}.</p>
+        )}
+        <p class="dica">Amigos, padrinhos e laços do coração entram em "Outro tipo de laço".</p>
+        <p class="acoes">
+          <a class="botao" href={`/pessoas/${pessoa.id}`}>Ver a página de {chamar}</a>
+          <a class="botao botao--leve" href={enderecoDoPasso('outro')}>Outro tipo de laço</a>
+          <a class="botao botao--leve" href="/pessoas/nova">Cadastrar outra pessoa</a>
+        </p>
+      </section>
+    )
+  }
+
+  {!guiado && (
   <section class="painel" id="lacos">
     <h2>Laços</h2>
+    {!temLacos && !recemCadastrada && <p class="dica">{chamar} ainda não tem laços cadastrados.</p>}
 
-    <form method="post" action="/api/lacos" class="casal" data-novo-laco data-minha={ehMinha ? 'sim' : 'nao'}>
+    {/* Os laços que já existem, por tipo. Cada um tem "Editar", e remover fica dentro da edição */}
+    {
+      podeLacos && pais.length > 0 && (
+        <section class="grupo-de-lacos">
+          <h3>Pais</h3>
+          <ul class="lacos">
+            {pais.map((p) => (
+              <li class="laco">
+                <p class="laco__linha">
+                  <strong>{nome(p.responsavel)}</strong>
+                  <span>{nomeDoPapel('pai', tratamentoDe(p.responsavel))} de {chamar}{p.qualidade === 'adotiva' && (`, adoção${p.adocao ? ` em ${formatarData({ ano: p.adocao.ano, mes: p.adocao.mes, dia: p.adocao.dia, aproximada: false })}` : ''}`)}{p.qualidade === 'consideracao' && ', de consideração'}</span>
+                </p>
+                <details class="editar" data-editar>
+                  <summary class="botao botao--leve">Editar</summary>
+                  <div class="editar__caixa">
+                    <form method="post" action="/api/lacos">
+                      <input type="hidden" name="volta" value={volta} />
+                      <input type="hidden" name="acao" value="filiacao-salvar" />
+                      <input type="hidden" name="filho" value={pessoa.id} />
+                      <input type="hidden" name="responsavel" value={p.responsavel} />
+                      <Opcoes nome="qualidade" rotulo="Filiação" opcoes={opcoesDeFiliacao(p.qualidade)} valor={p.qualidade} id={`rotulo-qualidade-${p.responsavel}`} />
+                      <div class="campo" data-adocao data-depende="adocao" hidden={p?.qualidade !== 'adotiva'}>
+                        <span>Data da adoção <small>(se souber)</small></span>
+                        <CampoData prefixo="adocao" id={`adocao-${p.responsavel}`} ano={p?.adocao?.ano} mes={p?.adocao?.mes} dia={p?.adocao?.dia} />
+                      </div>
+                      <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
+                    </form>
+                    <form method="post" action="/api/lacos" class="editar__remover">
+                      <input type="hidden" name="volta" value={volta} />
+                      <input type="hidden" name="filho" value={pessoa.id} />
+                      <input type="hidden" name="responsavel" value={p.responsavel} />
+                      <ConfirmarRemocao rotulo="Remover este laço" pergunta={`Remover o laço entre ${chamar} e ${nome(p.responsavel)}?`} acao="filiacao-remover" />
+                    </form>
+                  </div>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      podeLacos && filhos.length > 0 && (
+        <section class="grupo-de-lacos">
+          <h3>Filhos</h3>
+          <ul class="lacos">
+            {filhos.map((f) => (
+              <li class="laco">
+                <p class="laco__linha">
+                  <strong>{nome(f.filho)}</strong>
+                  <span>{nomeDoPapel('filho', tratamentoDe(f.filho))} de {chamar}{f.qualidade === 'adotiva' && (`, adoção${f.adocao ? ` em ${formatarData({ ano: f.adocao.ano, mes: f.adocao.mes, dia: f.adocao.dia, aproximada: false })}` : ''}`)}{f.qualidade === 'consideracao' && ', de consideração'}</span>
+                </p>
+                <details class="editar" data-editar>
+                  <summary class="botao botao--leve">Editar</summary>
+                  <div class="editar__caixa">
+                    <form method="post" action="/api/lacos">
+                      <input type="hidden" name="volta" value={volta} />
+                      <input type="hidden" name="acao" value="filiacao-salvar" />
+                      <input type="hidden" name="filho" value={f.filho} />
+                      <input type="hidden" name="responsavel" value={pessoa.id} />
+                      <Opcoes nome="qualidade" rotulo="Filiação" opcoes={opcoesDeFiliacao(f.qualidade)} valor={f.qualidade} id={`rotulo-qualidade-${f.filho}`} />
+                      <div class="campo" data-adocao data-depende="adocao" hidden={f?.qualidade !== 'adotiva'}>
+                        <span>Data da adoção <small>(se souber)</small></span>
+                        <CampoData prefixo="adocao" id={`adocao-${f.filho}`} ano={f?.adocao?.ano} mes={f?.adocao?.mes} dia={f?.adocao?.dia} />
+                      </div>
+                      <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
+                    </form>
+                    <form method="post" action="/api/lacos" class="editar__remover">
+                      <input type="hidden" name="volta" value={volta} />
+                      <input type="hidden" name="filho" value={f.filho} />
+                      <input type="hidden" name="responsavel" value={pessoa.id} />
+                      <ConfirmarRemocao rotulo="Remover este laço" pergunta={`Remover o laço entre ${chamar} e ${nome(f.filho)}?`} acao="filiacao-remover" />
+                    </form>
+                  </div>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      podeLacos && casais.length > 0 && (
+        <section class="grupo-de-lacos">
+          <h3>{casais.length === 1 ? 'Casal' : 'Casais'}</h3>
+          <ul class="lacos">
+            {casais.map((c) => {
+              const periodos = periodosDasFases(c.casal.fases);
+              return (
+                <li class="laco laco--casal">
+                  <p class="laco__linha">
+                    <strong>{chamar} e {nome(c.outro)}</strong>
+                    <span>{estaoJuntos(c.casal) ? 'juntos' : 'não estão mais juntos'}{c.casal.visibilidade === 'privado' && ', só os dois veem'}</span>
+                  </p>
+                  {/* As fases como uma linha do tempo: o que aconteceu e quando */}
+                  <ol class="fases">
+                    {c.casal.fases.map((fase, n) => (
+                      <li>
+                        <strong>{FASES[fase.tipo]}</strong>
+                        {periodos[n] && <span>{periodos[n]}</span>}
+                      </li>
+                    ))}
+                  </ol>
+                  <details class="editar" data-editar>
+                    <summary class="botao botao--leve">Editar o casal</summary>
+                    <div class="editar__caixa">
+                      <form method="post" action="/api/lacos">
+                        <input type="hidden" name="volta" value={volta} />
+                        <input type="hidden" name="acao" value="casal-salvar" />
+                        <input type="hidden" name="a" value={pessoa.id} />
+                        <input type="hidden" name="b" value={c.outro} />
+                        <p class="dica">As fases ficam na ordem em que aconteceram, e cada uma termina quando a seguinte começa. Toque numa fase para mudar.</p>
+                        {c.casal.fases.map((fase, n) => (
+                          <details class="fase">
+                            <summary>
+                              <span>{n + 1}. {FASES[fase.tipo]}{periodos[n] && `, ${periodos[n]}`}</span>
+                              <span class="fase__mudar">Mudar</span>
+                            </summary>
+                            <fieldset>
+                              <legend class="oculto-visualmente">{n + 1}ª fase</legend>
+                              <Opcoes nome={`fase-${n}-tipo`} rotulo="O que foi" opcoes={fases} valor={fase.tipo} id={`rotulo-fase-${c.casal.id}-${n}`} />
+                              <div class="em-linha">
+                                <div class="em-linha__campo">
+                                  <label for={`fase-${c.casal.id}-${n}-inicio`}>Começou em</label>
+                                  <CampoAno id={`fase-${c.casal.id}-${n}-inicio`} nome={`fase-${n}-inicio`} valor={fase.inicioAno} />
+                                </div>
+                                {/* Uma fase acaba quando a seguinte começa: o fim só é pedido na última, ou onde já foi preenchido */}
+                                {n === c.casal.fases.length - 1 || fase.fimAno ? (
+                                  <div class="em-linha__campo">
+                                    <label for={`fase-${c.casal.id}-${n}-fim`}>Terminou em <small>(se já acabou)</small></label>
+                                    <CampoAno id={`fase-${c.casal.id}-${n}-fim`} nome={`fase-${n}-fim`} valor={fase.fimAno} />
+                                  </div>
+                                ) : (
+                                  <input type="hidden" name={`fase-${n}-fim`} value="" />
+                                )}
+                              </div>
+                              {c.casal.fases.length > 1 && (
+                                <label class="marcar">
+                                  <input type="checkbox" name={`fase-${n}-remover`} />
+                                  <span>Remover esta fase</span>
+                                </label>
+                              )}
+                            </fieldset>
+                          </details>
+                        ))}
+                        <fieldset class="fase--nova">
+                          <legend>O que aconteceu depois? <small>(opcional)</small></legend>
+                          <Opcoes nome={`fase-${c.casal.fases.length}-tipo`} rotulo="O que foi" opcoes={fases} id={`rotulo-fase-${c.casal.id}-nova`} />
+                          <div class="em-linha__campo">
+                            <label for={`fase-${c.casal.id}-nova-inicio`}>Em que ano?</label>
+                            <CampoAno id={`fase-${c.casal.id}-nova-inicio`} nome={`fase-${c.casal.fases.length}-inicio`} />
+                          </div>
+                        </fieldset>
+                        <label class="marcar">
+                          <input type="checkbox" name="visibilidade" value="privado" checked={c.casal.visibilidade === 'privado'} />
+                          <span>Só os dois veem este casal</span>
+                        </label>
+                        <div class="acoes"><button class="botao" type="submit">Salvar o casal</button></div>
+                      </form>
+                      <form method="post" action="/api/lacos" class="editar__remover">
+                        <input type="hidden" name="volta" value={volta} />
+                        <input type="hidden" name="id" value={c.casal.id} />
+                        <ConfirmarRemocao
+                          rotulo="Apagar, foi cadastrado por engano"
+                          pergunta={`Apagar o casal ${chamar} e ${nome(c.outro)}? Para registrar uma separação, acrescente a fase Separação em vez de apagar.`}
+                          acao="casal-remover"
+                          confirmar="Apagar"
+                          semValidar
+                        />
+                      </form>
+                    </div>
+                  </details>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      resumidos.length > 0 && (
+        <section class="grupo-de-lacos">
+          <h3>Parentes de fora das famílias</h3>
+          <ul class="lacos">
+            {resumidos.map((l) => (
+              <li class="laco">
+                <p class="laco__linha">
+                  <strong>{nome(l.a === pessoa.id ? l.b : l.a)}</strong>
+                  <span>{l.a === pessoa.id ? `${nomeDoPapel(l.papel, tratamentoDe(l.b))} de ${chamar}` : `${chamar} é ${nomeDoPapel(l.papel, pessoa.tratamento)} de ${nome(l.a)}`}</span>
+                </p>
+                {pelaArvore(l) && (
+                  <p class="dica">O caminho completo já está cadastrado: pela árvore, {nome(l.b)} é {pelaArvore(l)} de {nome(l.a)}. Este atalho não é mais preciso.</p>
+                )}
+                {pelaArvore(l) && podeLacos ? (
+                  <form method="post" action="/api/lacos" class="acoes">
+                    <input type="hidden" name="volta" value={volta} />
+                    <input type="hidden" name="id" value={l.id} />
+                    <button class="botao botao--leve" type="submit" name="acao" value="resumido-remover">Trocar pelo caminho completo</button>
+                  </form>
+                ) : (
+                  podeRemoverResumido(l) && (
+                    <details class="editar" data-editar>
+                      <summary class="botao botao--leve">Editar</summary>
+                      <div class="editar__caixa">
+                        <form method="post" action="/api/lacos">
+                          <input type="hidden" name="volta" value={volta} />
+                          <input type="hidden" name="acao" value="resumido-salvar" />
+                          <input type="hidden" name="sujeito" value={l.a} />
+                          <input type="hidden" name="pessoa" value={l.b} />
+                          <label class="campo">
+                            <span>{nome(l.b)} é o quê de {nome(l.a)}?</span>
+                            <select name="papelResumido">
+                              {papeis.map(([id, rotulo]) => <option value={id} selected={id === l.papel}>{rotulo[0].toUpperCase() + rotulo.slice(1)} de {nome(l.a)}</option>)}
+                            </select>
+                          </label>
+                          <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
+                        </form>
+                        <form method="post" action="/api/lacos" class="editar__remover">
+                          <input type="hidden" name="volta" value={volta} />
+                          <input type="hidden" name="id" value={l.id} />
+                          <ConfirmarRemocao rotulo="Remover este laço" pergunta={`Remover o laço entre ${chamar} e ${nome(l.a === pessoa.id ? l.b : l.a)}?`} acao="resumido-remover" />
+                        </form>
+                      </div>
+                    </details>
+                  )
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      meusLacos.length > 0 && (
+        <section class="grupo-de-lacos">
+          <h3>{ehMinha ? 'Seus laços do coração' : `Seu laço do coração com ${chamar}`}</h3>
+          <ul class="lacos">
+            {meusLacos.map((l) => (
+              <li class="laco">
+                <p class="laco__linha">
+                  <strong>{nome(l.pessoa)}</strong>
+                  <span>
+                    {[l.nome, l.papel && `como se fosse ${PAPEIS[l.papel]}`, l.proximidade && PROXIMIDADES[l.proximidade].toLowerCase(), l.privado && 'só você vê']
+                      .filter(Boolean)
+                      .join(', ')}
+                  </span>
+                </p>
+                <details class="editar" data-editar>
+                  <summary class="botao botao--leve">Editar</summary>
+                  <div class="editar__caixa">
+                    <form method="post" action="/api/lacos">
+                      <input type="hidden" name="volta" value={volta} />
+                      <input type="hidden" name="acao" value="coracao-salvar" />
+                      <input type="hidden" name="pessoa" value={l.pessoa} />
+                      <label class="campo">
+                        <span>Nome do laço</span>
+                        <input type="text" name="nomeDoLaco" maxlength="40" autocomplete="off" required value={l.nome} />
+                      </label>
+                      <label class="campo">
+                        <span>Lugar na árvore</span>
+                        <select name="papel">
+                          <option value="">Não aparece na árvore</option>
+                          {papeis.map(([id, rotulo]) => <option value={id} selected={id === l.papel}>Como se fosse {rotulo}</option>)}
+                        </select>
+                      </label>
+                      <Opcoes nome="proximidade" rotulo="Proximidade" opcoes={proximidades} valor={l.proximidade} id={`rotulo-proximidade-${l.id}`} dica="Só você vê." />
+                      <label class="marcar">
+                        <input type="checkbox" name="privado" checked={l.privado} />
+                        <span>Só eu vejo este laço</span>
+                      </label>
+                      <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
+                    </form>
+                    <form method="post" action="/api/lacos" class="editar__remover">
+                      <input type="hidden" name="volta" value={volta} />
+                      <input type="hidden" name="id" value={l.id} />
+                      <ConfirmarRemocao rotulo="Remover este laço" pergunta={`Remover o seu laço do coração com ${nome(l.pessoa)}?`} acao="coracao-remover" />
+                    </form>
+                  </div>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {/* Adicionar fica depois do que já existe: a pessoa vê os laços antes de criar um repetido */}
+    <form method="post" action="/api/lacos" class="casal novo-laco" data-novo-laco data-minha={ehMinha ? 'sim' : 'nao'}>
       <input type="hidden" name="acao" value="adicionar" />
       <input type="hidden" name="volta" value={volta} />
       <input type="hidden" name="sujeito" value={pessoa.id} />
-      <p class="casal__titulo"><strong>Adicionar laço</strong></p>
+      <h3 class="casal__titulo">{temLacos ? 'Adicionar outro laço' : 'Adicionar laço'}</h3>
       <div class="campo">
         <span id="rotulo-laco">Que laço é?</span>
         <div class="abas" role="radiogroup" aria-labelledby="rotulo-laco" data-tipo-de-laco>
@@ -127,33 +597,25 @@ const anoAtual = new Date().getFullYear();
       </div>
 
       <div data-para="filho-de pai-de" hidden>
-        <div class="em-linha">
-          <label>
-            <span>Filiação</span>
-            <select name="qualidade">
-              {qualidades.map(([id, rotulo]) => <option value={id}>{rotulo}</option>)}
-            </select>
-          </label>
+        <Opcoes nome="qualidade" rotulo="Filiação" opcoes={opcoesDeFiliacao()} valor="biologica" />
+        <div class="campo" data-adocao data-depende="adocao" hidden>
+          <span>Data da adoção <small>(se souber)</small></span>
+          <CampoData prefixo="adocao" id="adocao-novo" />
         </div>
         <p class="dica">Para quem criou ou é tratado como filho sem ser de sangue nem adotado, use "Do coração" e escolha "A família toda".</p>
       </div>
 
       <div data-para="casal" hidden>
+        <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fases} valor="casamento" />
         <div class="em-linha">
-          <label>
-            <span>Fase de hoje</span>
-            <select name="faseTipo">
-              {fases.map(([id, rotulo]) => <option value={id} selected={id === 'casamento'}>{rotulo}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>Começou em</span>
-            <input type="number" name="faseInicio" min="1800" max={anoAtual} inputmode="numeric" />
-          </label>
-          <label data-depende="terminou-novo" hidden>
-            <span>Terminou em</span>
-            <input type="number" name="faseFim" min="1800" max={anoAtual} inputmode="numeric" />
-          </label>
+          <div class="em-linha__campo">
+            <label for="fase-nova-inicio">Começou em</label>
+            <CampoAno id="fase-nova-inicio" nome="faseInicio" />
+          </div>
+          <div class="em-linha__campo" data-depende="terminou-novo" hidden>
+            <label for="fase-nova-fim">Terminou em</label>
+            <CampoAno id="fase-nova-fim" nome="faseFim" />
+          </div>
         </div>
         <label class="marcar">
           <input type="checkbox" name="terminou" data-revela="terminou-novo" />
@@ -201,15 +663,7 @@ const anoAtual = new Date().getFullYear();
           <input type="text" name="nomeDoLaco" maxlength="40" autocomplete="off" placeholder="Ex.: amigo-irmão, afilhada, vó de coração" />
           <span class="dica">Do jeito que você chama. É o que a família vê.</span>
         </label>
-        <div class="em-linha">
-          <label>
-            <span>Proximidade</span>
-            <select name="proximidade">
-              <option value="">Não dizer</option>
-              {proximidades.map(([n, rotulo]) => <option value={n}>{rotulo}</option>)}
-            </select>
-          </label>
-        </div>
+        <Opcoes nome="proximidade" rotulo="Proximidade" opcoes={proximidades} />
         <p class="dica">O laço é seu: vale para você, e não para o resto da família. A proximidade só você vê.</p>
         <label class="marcar">
           <input type="checkbox" name="privado" />
@@ -231,147 +685,11 @@ const anoAtual = new Date().getFullYear();
         <button class="botao" type="submit">Adicionar laço</button>
       </div>
     </form>
-
-    {
-      podeLacos && (pais.length > 0 || filhos.length > 0) && (
-        <>
-          <h3>Pais e filhos</h3>
-          <ul class="linhas">
-            {[
-              ...pais.map((p) => ({ filho: pessoa.id, responsavel: p.responsavel, outro: p.responsavel, qualidade: p.qualidade, texto: `${chamar} é filho ou filha` })),
-              ...filhos.map((f) => ({ filho: f.filho, responsavel: pessoa.id, outro: f.filho, qualidade: f.qualidade, texto: `é filho ou filha de ${chamar}` })),
-            ].map((l) => (
-              <li>
-                <div>
-                  <strong>{nome(l.outro)}</strong>
-                  <span>
-                    {l.texto}, filiação {QUALIDADES[l.qualidade].toLowerCase()}
-                  </span>
-                </div>
-                <form method="post" action="/api/lacos" class="em-linha">
-                  <input type="hidden" name="volta" value={volta} />
-                  <input type="hidden" name="filho" value={l.filho} />
-                  <input type="hidden" name="responsavel" value={l.responsavel} />
-                  <button class="botao botao--leve" type="submit" name="acao" value="filiacao-remover">Remover laço</button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        </>
-      )
-    }
-
-    {
-      podeLacos && casais.length > 0 && (
-        <>
-          <h3>Casal</h3>
-          <p class="dica">As fases ficam na ordem em que aconteceram. A última linha preenchida é a fase de hoje.</p>
-          {casais.map((c) => (
-            <form method="post" action="/api/lacos" class="casal">
-              <input type="hidden" name="volta" value={volta} />
-              <input type="hidden" name="a" value={pessoa.id} />
-              <input type="hidden" name="b" value={c.outro} />
-              <p class="casal__titulo">
-                <strong>{chamar} e {nome(c.outro)}</strong>
-                <span>{estaoJuntos(c.casal) ? 'juntos' : 'não estão mais juntos'}</span>
-              </p>
-              {[...c.casal.fases, null].map((fase, n) => (
-                <div class="em-linha">
-                  <label>
-                    <span>{fase ? 'Fase' : 'Nova fase'}</span>
-                    <select name="faseTipo">
-                      <option value="">{fase ? 'Remover esta fase' : 'Nenhuma'}</option>
-                      {fases.map(([id, rotulo]) => <option value={id} selected={fase?.tipo === id}>{rotulo}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    <span>Começou em</span>
-                    <input type="number" name="faseInicio" min="1800" max={anoAtual} inputmode="numeric" value={fase?.inicioAno ?? ''} />
-                  </label>
-                  <label class="marcar marcar--em-linha">
-                    <input type="checkbox" data-revela={`fim-${c.casal.id}-${n}`} checked={Boolean(fase?.fimAno)} />
-                    <span>Terminou</span>
-                  </label>
-                  <label data-depende={`fim-${c.casal.id}-${n}`} hidden={!fase?.fimAno}>
-                    <span>Terminou em</span>
-                    <input type="number" name="faseFim" min="1800" max={anoAtual} inputmode="numeric" value={fase?.fimAno ?? ''} />
-                  </label>
-                </div>
-              ))}
-              <label class="marcar">
-                <input type="checkbox" name="visibilidade" value="privado" checked={c.casal.visibilidade === 'privado'} />
-                <span>Só os dois veem este casal</span>
-              </label>
-              <div class="em-linha">
-                <button class="botao botao--leve" type="submit" name="acao" value="casal-salvar">Salvar fases</button>
-                <button class="botao botao--leve" type="submit" name="acao" value="casal-remover" formnovalidate>Apagar, foi cadastrado por engano</button>
-              </div>
-              <input type="hidden" name="id" value={c.casal.id} />
-            </form>
-          ))}
-        </>
-      )
-    }
-
-    {
-      resumidos.length > 0 && (
-        <>
-          <h3>Parentes de fora das famílias</h3>
-          <ul class="linhas">
-            {resumidos.map((l) => (
-              <li>
-                <div>
-                  <strong>{nome(l.a === pessoa.id ? l.b : l.a)}</strong>
-                  <span>{l.a === pessoa.id ? `é ${nomeDoPapel(l.papel, integrantes.find((i) => i.id === l.b)?.tratamento ?? null)} de ${chamar}` : `${chamar} é ${nomeDoPapel(l.papel, pessoa.tratamento)} de ${nome(l.a)}`}</span>
-                  {pelaArvore(l) && (
-                    <span class="dica">O caminho completo já está cadastrado: pela árvore, {nome(l.b)} é {pelaArvore(l)} de {nome(l.a)}. Este atalho não é mais preciso.</span>
-                  )}
-                </div>
-                {(podeRemoverResumido(l) || (pelaArvore(l) && podeLacos)) && (
-                  <form method="post" action="/api/lacos" class="em-linha">
-                    <input type="hidden" name="volta" value={volta} />
-                    <input type="hidden" name="id" value={l.id} />
-                    <button class="botao botao--leve" type="submit" name="acao" value="resumido-remover">{pelaArvore(l) ? 'Trocar pelo caminho completo' : 'Remover laço'}</button>
-                  </form>
-                )}
-              </li>
-            ))}
-          </ul>
-        </>
-      )
-    }
-
-    {
-      meusLacos.length > 0 && (
-        <>
-          <h3>{ehMinha ? 'Seus laços do coração' : `Seu laço do coração com ${chamar}`}</h3>
-          <ul class="linhas">
-            {meusLacos.map((l) => (
-              <li>
-                <div>
-                  <strong>{nome(l.pessoa)}</strong>
-                  <span>
-                    {[l.nome, l.papel && `como se fosse ${PAPEIS[l.papel]}`, l.proximidade && PROXIMIDADES[l.proximidade].toLowerCase(), l.privado && 'só você vê']
-                      .filter(Boolean)
-                      .join(', ')}
-                  </span>
-                </div>
-                <form method="post" action="/api/lacos" class="em-linha">
-                  <input type="hidden" name="volta" value={volta} />
-                  <input type="hidden" name="id" value={l.id} />
-                  <button class="botao botao--leve" type="submit" name="acao" value="coracao-remover">Remover laço</button>
-                </form>
-              </li>
-            ))}
-          </ul>
-          <p class="dica">Para mudar um laço do coração, adicione de novo com a mesma pessoa: o novo substitui o anterior.</p>
-        </>
-      )
-    }
   </section>
+  )}
 
   {
-    recemCadastrada && (
+    recemCadastrada && !guiado && (
       <p class="acoes">
         <a class="botao" href={`/pessoas/${pessoa.id}`}>Concluir</a>
         <a class="botao botao--leve" href="/pessoas/nova">Cadastrar outra pessoa</a>
@@ -379,25 +697,33 @@ const anoAtual = new Date().getFullYear();
     )
   }
 
-  {
-    recemCadastrada ? null : podeFicha ? (
-      <section class="painel">
-        <h2>Ficha</h2>
-        <FichaDoIntegrante integrante={pessoa} />
-      </section>
-    ) : (
-      comAcesso.has(pessoa.id) ? (
-        <p class="dica">A ficha de {chamar} só pode ser alterada por {pessoa.tratamento === 'ela' ? 'ela mesma' : pessoa.tratamento === 'ele' ? 'ele mesmo' : 'quem é dono da página'}.</p>
-      ) : (
-        <p class="dica">{quemCuida}</p>
-      )
-    )
-  }
 </Base>
 
 <script>
+  import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';
+  import { ligarCamposDeAno } from '../../../lib/cliente/etapas';
+  import { ligarDatas } from '../../../lib/cliente/datas';
+
+  // Os anos das fases do casal têm os mesmos botões −10, −1, +1 e +10 dos outros formulários
+  ligarCamposDeAno(document);
+
+  // Data da adoção: aparece quando "Adotiva" está marcada, em cada formulário de filiação
+  for (const formulario of document.querySelectorAll<HTMLFormElement>('form:has([data-adocao])')) {
+    const bloco = formulario.querySelector<HTMLElement>('[data-adocao]')!;
+    const aplicarAdocao = () => {
+      bloco.hidden = formulario.querySelector<HTMLInputElement>('input[name="qualidade"]:checked')?.value !== 'adotiva';
+    };
+    for (const r of formulario.querySelectorAll('input[name="qualidade"]')) r.addEventListener('change', aplicarAdocao);
+    aplicarAdocao();
+    ligarDatas(formulario, [{ ano: 'adocaoAno', mes: 'adocaoMes', dia: 'adocaoDia' }]);
+  }
+
   // O seletor "Que laço é?" mostra só os campos daquele tipo de laço
   const form = document.querySelector<HTMLFormElement>('[data-novo-laco]');
+  // "Com quem": busca com sugestão, e "Cadastrar" para quem ainda não está no acervo
+  for (const comQuem of document.querySelectorAll<HTMLSelectElement>('form select[name="pessoa"]')) {
+    buscaDePessoa(comQuem, { nomeNovo: comQuem.form!.querySelector<HTMLInputElement>('input[name="nomeNovo"]') ?? undefined });
+  }
   const grupo = form?.querySelector<HTMLElement>('[data-tipo-de-laco]');
   if (form && grupo) {
     const seletor = {
@@ -425,7 +751,15 @@ const anoAtual = new Date().getFullYear();
     aplicar();
   }
 
-  // "Já terminou" e "Terminou": a data de fim só aparece quando a fase acabou. Desmarcar apaga a data.
+  // Um laço em edição por vez: abrir um fecha os outros, para a página não virar um formulário enorme
+  const edicoes = [...document.querySelectorAll<HTMLDetailsElement>('[data-editar]')];
+  for (const edicao of edicoes) {
+    edicao.addEventListener('toggle', () => {
+      if (edicao.open) for (const outra of edicoes) if (outra !== edicao) outra.open = false;
+    });
+  }
+
+  // "Já terminou": a data de fim só aparece quando o casal já acabou. Desmarcar apaga a data.
   for (const caixa of document.querySelectorAll<HTMLInputElement>('[data-revela]')) {
     const alvo = document.querySelector<HTMLElement>(`[data-depende="${caixa.dataset.revela}"]`);
     if (!alvo) continue;
