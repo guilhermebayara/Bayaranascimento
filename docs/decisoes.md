@@ -24,7 +24,7 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 | Editar a página de quem não acessa o site | Quem divide um núcleo com a pessoa, quem a cadastrou e os admins |
 | Criar ou mudar laços de árvore | Os envolvidos, quem divide um núcleo com algum deles e os admins |
 | Criar ou mudar um laço do coração | Só o dono do laço |
-| Excluir memória inteira | Os admins (Gui e Giovanna), com alerta, e só o que enxergam. Quem escreve um rascunho pode descartá-lo |
+| Excluir memória inteira | Os admins (Gui, Giovanna e Magno), com alerta, e só o que enxergam. Quem escreve um rascunho pode descartá-lo |
 
 A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `testes/`.
 
@@ -218,7 +218,7 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - Teste da montagem (sem tela, como a da árvore): ordem dos trilhos, trechos tracejados, o corte no terceiro trilho do celular e a visibilidade.
 - **Painel pessoal como página inicial** (ideia do Gui de 15/11/2026, decisões de 16/11/2026). A parte funcional pode ser construída antes da revisão visual, numa branch própria e com a aparência mínima, como a foto de retrato (já construída: ver "Foto de retrato" em "Integrantes e laços de árvore"). A tela final é desenhada no conceito da revisão.
     - O painel substitui a linha do tempo como página inicial (`/`). A linha do tempo continua inteira no seu endereço e no menu.
-    - **Primeira visita:** abre com uma carta de Natal escrita pelo Gui e pela Giovanna, com o nome da pessoa na saudação e assinada à mão. Depois da primeira visita, a carta sai do alto e fica num link discreto no painel ("Carta de Natal"). O texto é escrito pelos administradores no próprio site e fica no banco, nunca no repositório. Uma migração nova guarda a carta e, para cada pessoa com acesso, a data da primeira e da última visita.
+    - **Primeira visita:** abre com uma carta de Natal escrita pelo Gui, pela Giovanna e pelo Magno, com o nome da pessoa na saudação e assinada à mão. Depois da primeira visita, a carta sai do alto e fica num link discreto no painel ("Carta de Natal"). O texto é escrito pelos administradores no próprio site e fica no banco, nunca no repositório. Uma migração nova guarda a carta e, para cada pessoa com acesso, a data da primeira e da última visita.
     - **Visitas seguintes, nesta ordem:** o que entrou de novo desde a última visita (memórias e relatos que a pessoa pode ver); os aniversários dos próximos 30 dias; a pessoa no acervo ("Você aparece em N memórias", levando à página dela, e a árvore partindo dela); uma memória em que ela aparece e ainda não contou nada, para escrever o primeiro relato; e o caminho para a linha do tempo inteira.
     - **Aniversários:** só de quem está vivo e de quem a pessoa vê no acervo, com o parentesco do ponto de vista dela ("sua avó") e a idade que vai fazer quando o ano de nascimento é conhecido. Quem tem só ano, sem mês e dia, não entra.
     - Quem entra com acesso mas não tem página no acervo vê o painel sem a parte "Você aparece".
@@ -228,6 +228,8 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - "MEMÓRIAS" grande e fixo; abaixo, os sobrenomes das famílias do que está sendo visto ("Bayara & Bracarense" em "Tudo" e no núcleo Bayara Bracarense, "Bayara" no núcleo Bayara, "Bracarense" no núcleo Bracarense).
     - Uma migração nova dá a cada núcleo as famílias de que ele é feito (sobrenomes), editáveis pelos administradores. A linha junta os sobrenomes sem repetir, na ordem dos lados da árvore, com "&" antes do último. Teste em `testes/` para as combinações, incluindo uma terceira família.
     - Mostrar na prévia as variações de peso e largura do rascunho.
+
+- **O Magno entra como quem presenteia e cuida do acervo** (decisão do Gui e da Giovanna, 16/11/2026). Ele é administrador como os dois (migração `017-magno-administrador`, PR para a `homologa`), usa a homologação, alimenta o acervo antes do Natal e assina a carta de Natal com eles. O acesso dele depende do e-mail no segredo `ACESSOS` e nas políticas do Cloudflare Access da produção e da homologação, que o Gui ajusta. Também responde à pergunta de quem administra a família Bracarense: o Magno é membro dela.
 
 ## Em aberto
 
