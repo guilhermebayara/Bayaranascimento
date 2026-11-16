@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { arrumarTexto, codigoNovo, criarSlug, outrosAdmins, slugUnico, validarData } from '../src/lib/servidor/conteudo';
-import { agruparPorAno, formatarData, formatarDiaMes, problemaNaData } from '../src/lib/datas';
+import { agruparPorAno, formatarData, maisRecentesPrimeiro, formatarDiaMes, problemaNaData } from '../src/lib/datas';
 
 describe('slugs', () => {
   it('tira acentos e símbolos', () => {
@@ -26,6 +26,9 @@ describe('datas', () => {
   });
   it('agrupa por ano mantendo a ordem', () => {
     expect(agruparPorAno([{ ano: 1990 }, { ano: 1990 }, { ano: 2001 }]).map((g) => [g.ano, g.itens.length])).toEqual([[1990, 2], [2001, 1]]);
+    // A linha do tempo começa pelo mais recente (decisão do Gui, 16/11/2026)
+    const lista = [{ ano: 1990, t: 'a' }, { ano: 1990, t: 'b' }, { ano: 2001, t: 'c' }];
+    expect(agruparPorAno(maisRecentesPrimeiro(lista)).map((g) => [g.ano, g.itens.map((i) => i.t).join('')])).toEqual([[2001, 'c'], [1990, 'ba']]);
   });
 });
 

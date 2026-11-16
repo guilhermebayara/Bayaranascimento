@@ -34,9 +34,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const falhar = (erro: string) => voltar(request, volta, { erro });
 
   let integrantes = await listarIntegrantes();
-  let pendente: { id: string; nome: string } | undefined;
+  let pendente: { id: string; nome: string; tratamento: 'ela' | 'ele' | null } | undefined;
   const cadastrarPendente = async () => {
-    if (pendente) await criarIntegrante(pendente.id, pendente.nome, usuario.pessoa);
+    if (pendente) await criarIntegrante(pendente.id, pendente.nome, usuario.pessoa, pendente.tratamento);
     pendente = undefined;
   };
   const achar = (id: string) => integrantes.find((i) => i.id === id);
@@ -87,10 +87,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       outra = slugUnico(base, new Set([...integrantes.map((i) => i.id), 'nova']));
       // A pessoa nova só é gravada quando o laço passa nas validações e na permissão (ver cadastrarPendente).
       // Antes, um laço recusado deixava a pessoa cadastrada, e a nova tentativa dizia que ela já existia.
-      pendente = { id: outra, nome: nomeNovo };
+      // "Como se referir" de quem entra pelo nome novo: Ela, Ele ou Não informar (pedido do Gui, 16/11/2026)
+      const tratamentoNovo = campo(dados, 'tratamentoNovo', 3);
+      const tratamento = tratamentoNovo === 'ela' || tratamentoNovo === 'ele' ? tratamentoNovo : null;
+      pendente = { id: outra, nome: nomeNovo, tratamento };
       integrantes = [
         ...integrantes,
-        { id: outra, nome: nomeNovo, apelido: null, tipo: 'pessoa', especie: null, tratamento: null, nascimentoAno: null, nascimentoMes: null, nascimentoDia: null, falecimentoAno: null, falecimentoMes: null, falecimentoDia: null, falecido: false, sobre: null, admin: false, criadoPor: usuario.pessoa, nucleos: [], parenteDe: [] },
+        { id: outra, nome: nomeNovo, apelido: null, tipo: 'pessoa', especie: null, tratamento, nascimentoAno: null, nascimentoMes: null, nascimentoDia: null, falecimentoAno: null, falecimentoMes: null, falecimentoDia: null, falecido: false, sobre: null, admin: false, criadoPor: usuario.pessoa, nucleos: [], parenteDe: [] },
       ];
     }
     if (!outra) return falhar('Escolha a pessoa na lista ou escreva o nome de quem ainda não está no acervo.');

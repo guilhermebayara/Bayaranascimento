@@ -2863,3 +2863,64 @@ p {
   border-color: var(--cor-perigo-forte);
   color: var(--cor-sobre-perigo);
 }
+
+/* Primeira pergunta do cadastro guiado: dois caminhos grandes, cada um dizendo o que vem depois */
+.escolhas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espaco-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  max-width: var(--largura-formulario);
+}
+
+.escolha {
+  display: grid;
+  gap: var(--espaco-1);
+  min-height: 100%;
+  padding: var(--espaco-4) var(--espaco-5);
+  background: var(--cor-superficie);
+  border: var(--borda) solid var(--cor-texto);
+  border-radius: var(--raio-3);
+  text-decoration: none;
+}
+
+.escolha strong {
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-8);
+}
+
+.escolha span {
+  color: var(--cor-texto-suave);
+}
+
+.escolha:hover {
+  background: var(--cor-fundo-recuo);
+}
+
+.escolha:active {
+  transform: translateY(1px);
+}
+
+.guia__completo {
+  margin: var(--espaco-2) 0 0;
+  font-size: var(--tamanho-4);
+  color: var(--cor-texto-suave);
+}
+
+/* Trilha fixa com muitos passos, no celular: só o nome do passo atual, os outros ficam nos números */
+@media (max-width: 34rem) {
+  .etapas--fluxo li > span:not([aria-current]) > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .etapas--fluxo li > span[aria-current] > span {
+    white-space: nowrap;
+  }
+}

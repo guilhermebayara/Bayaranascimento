@@ -1,6 +1,6 @@
 ---
 import Cartao from './Cartao.astro';
-import { agruparPorAno } from '../lib/datas';
+import { agruparPorAno, maisRecentesPrimeiro } from '../lib/datas';
 import type { Integrante, Memoria, Nucleo } from '../lib/servidor/repositorio';
 
 interface Props {
@@ -11,7 +11,8 @@ interface Props {
 }
 
 const { memorias, integrantes, nucleos, vazio = 'Ainda não há memórias aqui.' } = Astro.props;
-const anos = agruparPorAno(memorias);
+// Mais recentes primeiro: rolar a página leva ao passado
+const anos = agruparPorAno(maisRecentesPrimeiro(memorias));
 const tiposPresentes = Astro.locals.tipos.filter((t) => memorias.some((m) => m.tipo === t.id));
 ---
 

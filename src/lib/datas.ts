@@ -27,6 +27,14 @@ export function formatarDiaMes(d: DataFlexivel): string {
   return d.aproximada ? `por volta de ${texto}` : texto;
 }
 
+/**
+ * A linha do tempo mostra as memórias mais recentes primeiro, e rolar leva ao passado (decisão do Gui,
+ * 16/11/2026). Recebe a lista em ordem de data, da mais antiga para a mais nova, e devolve ao contrário.
+ */
+export function maisRecentesPrimeiro<T>(itens: T[]): T[] {
+  return [...itens].reverse();
+}
+
 export function agruparPorAno<T extends { ano: number }>(itens: T[]): { ano: number; itens: T[] }[] {
   const grupos = new Map<number, T[]>();
   for (const item of itens) {

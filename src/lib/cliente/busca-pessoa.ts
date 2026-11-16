@@ -143,6 +143,8 @@ export function buscaDePessoa(lista: HTMLSelectElement, opcoes: { nomeNovo?: HTM
     campo.value = s.texto;
     fechar();
     avisar();
+    // Quem depende do nome novo (o "Como se referir") fica sabendo
+    nomeNovo?.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
   // Ao sair do campo sem escolher: o nome igual a alguém da lista vale como escolha;
