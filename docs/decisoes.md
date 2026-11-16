@@ -205,6 +205,12 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - Quem entra com acesso mas não tem página no acervo vê o painel sem a parte "Você aparece".
     - Na homologação e nas prévias, o "Ver como" mostra o painel daquela pessoa, e um botão volta a pessoa à primeira visita, para conferir a carta.
     - Testes em `testes/`: o que entrou de novo e os aniversários respeitam a visibilidade; quem faleceu não aparece nos aniversários; a carta aparece só na primeira visita.
+- **Fotos de exemplo: o Chico e a Karol** (decisão do Gui, 16/11/2026). O banco de teste deixa de ter fotos vazias: tudo o que pede foto usa fotos dos dois cachorros, o Chico e a Karol, para conferir o visual com fotos de verdade. As cópias reduzidas (1600 px, JPEG) estão em `exemplos/fotos/` (`chico-1.jpg` a `chico-5.jpg`, `karol-1.jpg` a `karol-6.jpg`); os originais ficam na pasta do Drive.
+    - Retrato de quem é tratado como "ela": uma foto da Karol. De quem é tratado como "ele": uma foto do Chico. Bichos e "Não informar": de um dos dois. O retrato é um recorte quadrado da foto.
+    - Fotos das memórias: de um dos dois, sorteado.
+    - O sorteio é fixo, tirado do id do registro, para a mesma pessoa e a mesma memória sempre mostrarem a mesma foto e as capturas de antes e depois serem comparáveis.
+    - Só no banco e no bucket de teste e no computador. Nunca na produção nem na homologação (a homologação usa o espelho, sem fotos). A guarda da produção passa a falhar se as fotos de exemplo puderem chegar ao bucket ou ao pacote da produção, do mesmo jeito que já falha com as memórias de exemplo. A sessão escolhe como levar as fotos ao bucket de teste sem pesar no pacote publicado.
+    - Constrói depois da foto de retrato, que cria o lugar do retrato no cadastro.
 - **Assinatura do nome** (decisões do Gui, 16/11/2026), construída dentro da revisão visual, na fase 2. Detalhe em `docs/visual.md` ("Assinatura do nome") e no rascunho `docs/visual/assinatura-hierarquia.png`.
     - "MEMÓRIAS" grande e fixo; abaixo, os sobrenomes das famílias do que está sendo visto ("Bayara & Bracarense" em "Tudo" e no núcleo Bayara Bracarense, "Bayara" no núcleo Bayara, "Bracarense" no núcleo Bracarense).
     - Uma migração nova dá a cada núcleo as famílias de que ele é feito (sobrenomes), editáveis pelos administradores. A linha junta os sobrenomes sem repetir, na ordem dos lados da árvore, com "&" antes do último. Teste em `testes/` para as combinações, incluindo uma terceira família.

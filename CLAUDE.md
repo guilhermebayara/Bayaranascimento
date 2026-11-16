@@ -27,7 +27,7 @@ Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto) e
 - `9_Substituídos`: o que saiu de uso. Nada se apaga.
 - `Acervo Bayara Nascimento, cópias`: a cópia mensal do banco, feita pelo script de `scripts/copia-no-drive.gs`. Tem tudo do acervo, inclusive o que é restrito a núcleos. Não mude o nome: o script encontra a pasta pelo nome.
 
-Nada desta pasta entra no repositório.
+Nada desta pasta entra no repositório. A exceção são as fotos do Chico e da Karol, os cachorros, que o Gui escolheu para os exemplos: cópias reduzidas ficam em `exemplos/fotos/` (ver "Fotos de exemplo" em `docs/decisoes.md`).
 
 ## O que o Gui já autorizou
 
