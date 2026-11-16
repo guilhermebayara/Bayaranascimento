@@ -4,6 +4,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import { lerTemas } from '../../lib/capitulos';
 import { TIPO_OUTRO } from '../../lib/tipos';
+import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
@@ -23,6 +24,8 @@ import {
   salvarRelato,
   type DadosDaMemoria,
   type Memoria,
+  ligarAudios,
+  obterRelatoRegistradoPor,
 } from '../../lib/servidor/repositorio';
 
 const opcional = (maximo: number) => z.string().trim().max(maximo).optional();
@@ -47,7 +50,14 @@ const Pedido = z.object({
   // capítulos reunidos em que a memória entra, e temas como texto livre separado por vírgulas
   capitulos: z.array(z.string().max(120)).max(20).optional(),
   temas: z.string().max(500).optional(),
-  relato: z.object({ por: z.string().max(80), texto: z.string().max(20000) }).optional(),
+  relato: z
+    .object({
+      por: z.string().max(80),
+      texto: z.string().max(20000),
+      // Áudios gravados ou enviados na etapa do relato, ainda soltos (ver api/audios.ts)
+      audios: z.array(z.object({ id: z.number().int().positive(), transcricao: z.string().max(20000).optional() })).max(AUDIOS_POR_RELATO).optional(),
+    })
+    .optional(),
 });
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -215,7 +225,8 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // Relato de quem está registrando (ou de alguém sem acesso, registrado por ela)
   const textoDoRelato = pedido.relato ? arrumarTexto(pedido.relato.texto) : '';
   let relatoPor: string | undefined;
-  if (pedido.relato && textoDoRelato) {
+  const audiosDoRelato = pedido.relato?.audios;
+  if (pedido.relato && (textoDoRelato || audiosDoRelato?.length)) {
     relatoPor = resolver(pedido.relato.por);
     if (!relatoPor) return erro(400, 'Não encontrei a pessoa que contou o relato.');
   }
@@ -237,6 +248,10 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     // Relato já publicado continua publicado. Os demais acompanham a situação da memória.
     const situacaoDoRelato = existente?.situacao === 'publicada' ? 'publicada' : situacao;
     await salvarRelato(id, relatoPor, textoDoRelato, situacaoDoRelato, usuario, existente);
+    if (audiosDoRelato) {
+      const meu = await obterRelatoRegistradoPor(id, relatoPor, usuario);
+      if (meu) await ligarAudios(meu.id, id, audiosDoRelato, usuario);
+    }
   }
 
   return json({ id, situacao, url: situacao === 'rascunho' ? `/nova?id=${id}` : `/memorias/${id}` }, anterior ? 200 : 201);

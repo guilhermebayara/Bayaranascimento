@@ -8,7 +8,7 @@ import { Familia } from '../lib/parentesco';
 import { TIPO_OUTRO } from '../lib/tipos';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { podeEditarMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
-import { familiasDe, listarCapitulos, listarCasais, listarMemorias, listarFiliacoes, listarIntegrantes, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
+import { familiasDe, listarAudiosDosRelatos, listarCapitulos, listarCasais, listarMemorias, listarFiliacoes, listarIntegrantes, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
 
 // Esta página serve para três coisas: registrar uma memória nova, continuar
 // um rascunho e corrigir uma memória já publicada (?id=...).
@@ -50,6 +50,10 @@ const nucleosMarcados = memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usua
 // Pode ser o relato da própria pessoa ou o de alguém que não acessa o site, registrado por ela.
 const doRascunho = memoria && !publicada ? (await listarRelatos(usuario, memoria.id)).filter((r) => r.registradoPor === usuario.pessoa) : [];
 const meuRelato = doRascunho.find((r) => r.por === usuario.pessoa) ?? doRascunho[0];
+// Os áudios do relato do rascunho, para continuar de onde parou
+const audiosDoRascunho = meuRelato
+  ? ((await listarAudiosDosRelatos([meuRelato.id])).get(meuRelato.id) ?? []).map((a) => ({ id: a.id, src: `/audios/${a.chave}`, duracao: a.duracao, transcricao: a.transcricao }))
+  : [];
 const capitulosReunidos = (await listarCapitulos(usuario)).filter((c) => c.modo === 'reunido');
 // Tipos de momento: com mais de oito, ficam à vista os seis mais usados nas memórias que a pessoa vê
 // (na ordem da lista dos admins), e o resto em "Ver mais tipos". Com poucos, todos à vista.
@@ -215,11 +219,26 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
                 {semAcesso.map((p) => <option value={p.id} selected={meuRelato?.por === p.id}>{p.nome}, e eu estou escrevendo</option>)}
               </select>
             </label>
+            {/* Áudios já na memória nova: ficam soltos até a memória ser salva (ver api/audios.ts) */}
+            <div class="campo audios" data-audios hidden>
+              <span>Prefere falar? <small>(opcional)</small></span>
+              <p class="dica">Grave contando como foi, ou envie um áudio que já está no celular, como os do WhatsApp.</p>
+              <ol class="audios__lista" data-lista-audios></ol>
+              <p class="acoes">
+                <button type="button" class="botao botao--leve" data-gravar>Gravar áudio</button>
+                <label class="botao botao--leve botao--arquivo">
+                  Enviar arquivo de áudio
+                  <input type="file" accept="audio/*,.opus,.ogg,.m4a,.mp3,.wav,.webm" multiple data-enviar-audio class="oculto-visualmente" />
+                </label>
+              </p>
+              <p class="situacao" data-situacao-audio role="status" aria-live="polite"></p>
+              <script type="application/json" data-audios-do-rascunho set:html={JSON.stringify(audiosDoRascunho).replace(/</g, '\\u003c')} />
+            </div>
             <label class="campo">
-              <span>O relato</span>
+              <span>O relato escrito</span>
               <textarea name="relato" rows="8" maxlength="20000" placeholder="Escreva como você lembra. Outras pessoas da família vão poder contar a versão delas depois.">{meuRelato?.texto ?? ''}</textarea>
             </label>
-            <p class="dica">Só você vai poder alterar este texto.</p>
+            <p class="dica">Só você vai poder alterar este relato.</p>
           </fieldset>
         </section>
       )
@@ -329,6 +348,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
   import { prepararFoto } from '../lib/cliente/fotos';
   import { buscaDePessoa } from '../lib/cliente/busca-pessoa';
   import { ligarQuemEstava } from '../lib/cliente/quem-estava';
+  import { ligarAudios } from '../lib/cliente/audios';
 
   const form = document.querySelector<HTMLFormElement>('[data-formulario-memoria]');
   if (form) {
@@ -339,6 +359,10 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     if (relatoPor) buscaDePessoa(relatoPor);
     const botoes = [...form.querySelectorAll<HTMLButtonElement>('[data-salvar]')];
     const idExistente = form.dataset.id || undefined;
+    // Áudios do relato: a memória pode ainda não existir; o áudio fica solto até ela ser salva
+    const blocoDeAudios = form.querySelector<HTMLElement>('[data-audios]');
+    const audios = blocoDeAudios ? ligarAudios(blocoDeAudios, idExistente ?? '', () => form.dispatchEvent(new Event('change'))) : undefined;
+    audios?.carregar(JSON.parse(blocoDeAudios?.querySelector('[data-audios-do-rascunho]')?.textContent ?? '[]'));
     const RASCUNHO_LOCAL = 'rascunho-nova-memoria';
     let proximaFoto = 0;
 
@@ -571,6 +595,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 
       const itens = [...listaFotos.querySelectorAll<HTMLElement>('.foto-enviada')];
       if (itens.some((i) => i.dataset.estado === 'enviando')) return avisar('Espere as fotos terminarem de enviar.', 'erro');
+      if (audios?.ocupado()) return avisar('Espere o áudio terminar de gravar e de enviar.', 'erro');
       if (itens.some((i) => i.dataset.estado === 'erro')) return avisar('Uma foto não foi enviada. Remova ou escolha de novo.', 'erro');
 
       const novas = [...novasPessoas.querySelectorAll<HTMLElement>('[data-nova-pessoa]')].map((linha) => ({
@@ -601,7 +626,10 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           legenda: item.querySelector<HTMLInputElement>('[data-legenda]')?.value.trim() || undefined,
           principal: item.querySelector<HTMLInputElement>('input[type="radio"]')?.checked ?? false,
         })),
-        relato: relatoPor && relato.trim() ? { por: relatoPor.value, texto: relato } : undefined,
+        relato:
+          relatoPor && (relato.trim() || audios?.lista().length)
+            ? { por: relatoPor.value, texto: relato, ...(audios ? { audios: audios.lista() } : {}) }
+            : undefined,
       };
 
       for (const b of botoes) b.disabled = true;

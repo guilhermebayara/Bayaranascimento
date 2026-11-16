@@ -53,7 +53,7 @@ export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, seca
   // Etapa opcional ([data-opcional]) ainda vazia: o botão diz "Pular esta etapa", para ficar
   // claro que dá para seguir sem preencher (QA de UX, 16/11/2026)
   const vazia = (secao: HTMLElement): boolean => {
-    if (secao.querySelector('.foto-enviada, [data-nova-pessoa]')) return false;
+    if (secao.querySelector('.foto-enviada, [data-nova-pessoa], .audio')) return false;
     return ![...secao.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea')].some((el) => {
       if (!el.name || el.disabled || el.type === 'hidden' || el.type === 'search' || el.type === 'file') return false;
       if (el.type === 'checkbox' || el.type === 'radio') return (el as HTMLInputElement).checked;

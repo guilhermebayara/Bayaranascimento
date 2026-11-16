@@ -141,6 +141,18 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 - **Ação principal no alto:** na memória ("Escrever meu relato" ou "Editar meu relato", depois "Corrigir esta memória" e o histórico), na pessoa ("Editar página e laços", depois "Ver na árvore") e no capítulo. Excluir fica por último, separado.
 - **Estados dos componentes:** pressionado em botões, opções, filtros e etiquetas; enviando em todo formulário comum (`src/lib/cliente/enviando.ts`), com o botão travado, o texto do que acontece ("Salvando…") e um segundo toque sem efeito; erro marcado no campo, além do balão do navegador; opção desabilitada com aparência própria. A aparência de cada estado é provisória, até o visual (`docs/ux/revisao-visual.md`).
 
+## Áudios nos relatos (liberado pelo Gui em 16/11/2026, migração `015`)
+
+- Um relato pode ter vários áudios, em ordem, cada um com a transcrição opcional. Com áudio, o texto escrito é opcional: o relato pode ser só a voz de quem contou.
+- Em "Escrever meu relato" e na etapa do relato de uma memória nova, "Gravar áudio" grava no navegador e "Enviar arquivo de áudio" aceita o que já está no celular (os do WhatsApp, gravações do iPhone): M4A, MP3, OGG, OPUS, WEBM ou WAV, conferidos pelo conteúdo do arquivo. Cada áudio sobe na hora e entra no relato quando ele é salvo. Numa memória nova, ele fica solto (só quem enviou ouve) até a memória ser salva. A gravação funciona no Safari do iPhone (conferido pelo Gui, 16/11/2026). "Subir", "Descer" e "Remover" arrumam a lista.
+- Para os áudios de quem não acessa o site (os 12 da Vó Bela, em `2_Material para o acervo/Áudios Vó`), escolha a pessoa em "Quem está contando" e envie os arquivos: o relato fica "registrado por" quem enviou.
+- Os áudios aparecem dentro do relato, na página da memória, com "Ler a transcrição". A página da pessoa reúne os áudios em que ela fala ("A voz de Fulano"), os dos relatos dela.
+- Quem ouve: o áudio de um relato, quem vê o relato numa memória que vê; o áudio ainda não salvo num relato, só quem enviou. Para os outros, um áudio que não pode ouvir é igual a um que não existe.
+- Remover não apaga: o áudio sai do relato, e o arquivo continua no bucket (ainda não há como devolver pela tela).
+- **Espaço** (`src/lib/audios.ts`): os áudios ficam no bucket das fotos, debaixo de `audios/`. Gravado no site, a 32 kbps, um minuto de voz ocupa cerca de 240 KB (o iPhone pode gravar em qualidade maior, até cerca de 1 MB por minuto). A gravação para sozinha em 15 minutos, cada arquivo tem no máximo 25 MB, e todos os áudios juntos, contando os removidos, no máximo 3 GB na produção: de 50 a 200 horas de voz, conforme o aparelho. O plano gratuito do R2 dá 10 GB por mês para a conta inteira (conferido na documentação da Cloudflare em 16/11/2026), e produção, homologação e prévias dividem esse espaço com as fotos; por isso a homologação e as prévias, que só servem para testar, têm teto de 200 MB cada. Passando do teto, o site recusa e pede para avisar o Gui ou a Giovanna.
+- Ainda não existe: transcrição automática (precisa rodar fora deste ambiente, que não baixa os modelos), e devolver um áudio removido.
+- No espelho da produção, nenhum áudio: a tabela é esvaziada.
+
 ## Capítulos e temas
 
 - Um capítulo reúne memórias em um momento maior e tem dois modos. **Reunido:** alguém escolhe as memórias, e o período vai da primeira à última. **De época:** tem início e fim (o fim pode ficar em aberto), e as memórias entram sozinhas pela data.
@@ -166,7 +178,6 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
-- **Áudios nos relatos.** Um relato pode ter vários áudios, em ordem, e uma transcrição opcional. A página da pessoa reúne os áudios em que ela fala. Os primeiros são os 12 áudios da Vó Bela, em `2_Material para o acervo/Áudios Vó` no Drive do Gui. A transcrição automática precisa rodar fora deste ambiente, que não baixa os modelos.
 - **Aviso de tamanho do banco** (decisão do Gui, 16/11/2026). No plano gratuito, cada banco D1 vai até 500 MB. O site avisa quando o banco da produção passar de 300 MB, para sobrar tempo de decidir. O tamanho só se sabe com o site rodando (o `meta.size_after` que o D1 devolve em cada consulta), então o aviso não cabe na guarda do build. Ele aparece para os administradores no site (no rodapé, junto da cópia do acervo) e vai junto na cópia mensal: `/api/copia` informa o tamanho e `scripts/copia-no-drive.gs` falha quando ele passa do limite, o que faz o Google mandar o e-mail de aviso, sem deixar de salvar a cópia. Se o limite chegar, a saída combinada é o plano Workers Paid (10 GB por banco), não dividir o acervo em dois bancos. A conta está na seção "Custo" do documento de estrutura.
 
 ## Em aberto

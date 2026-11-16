@@ -5,8 +5,9 @@ import { datasDeVida, formatarData } from '../../../lib/datas';
 import { FASES, Familia, estaoJuntos, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
+import { familiasDe, listarAudiosDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
 import { nomeDoPapel } from '../../../lib/parentesco';
+import { duracaoEmTexto } from '../../../lib/audios';
 
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
@@ -59,6 +60,8 @@ const temLacoDeArvore = pais.length > 0 || familia.filhos(pessoa.id).length > 0 
 const resumidos = (await listarLacosResumidos()).filter((l) => l.a === pessoa.id || l.b === pessoa.id);
 const temFamilia = grupos.length > 0 || casais.length > 0 || escolhidos.length > 0 || escolhidaPor.length > 0 || resumidos.length > 0;
 
+// Os áudios em que a pessoa fala (os dos relatos dela), nas memórias que quem olha vê
+const audiosDaPessoa = await listarAudiosDe(usuario, pessoa.id);
 const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok || podeMexerEmLaco(usuario, [pessoa]).ok;
 ---
 
@@ -151,6 +154,30 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
             </div>
           )}
         </dl>
+      </section>
+    )
+  }
+
+  {
+    audiosDaPessoa.length > 0 && (
+      <section class="familia" id="audios">
+        <h2>{audiosDaPessoa.length === 1 ? `A voz de ${chamar}` : `A voz de ${chamar}: ${audiosDaPessoa.length} áudios`}</h2>
+        <ol class="audios__lista audios__lista--leitura">
+          {audiosDaPessoa.map((audio) => (
+            <li class="audio">
+              <p class="audio__titulo">
+                <a href={`/memorias/${audio.memoriaId}`}>{audio.memoriaTitulo}</a> <span>{duracaoEmTexto(audio.duracao)}</span>
+              </p>
+              <audio controls preload="none" src={`/audios/${audio.chave}`}></audio>
+              {audio.transcricao && (
+                <details class="audio__transcricao">
+                  <summary>Ler a transcrição</summary>
+                  {audio.transcricao.split(/\n{2,}/).map((p) => <p>{p}</p>)}
+                </details>
+              )}
+            </li>
+          ))}
+        </ol>
       </section>
     )
   }

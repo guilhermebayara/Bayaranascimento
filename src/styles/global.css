@@ -2802,3 +2802,64 @@ p {
 .acoes--guia .botao:last-child {
   margin-left: auto;
 }
+
+/* Áudios dos relatos */
+.audios__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espaco-3);
+}
+
+.audios__lista:empty {
+  display: none;
+}
+
+.audio {
+  display: grid;
+  gap: var(--espaco-2);
+  padding: var(--espaco-3) var(--espaco-4);
+  background: var(--cor-superficie);
+  border: var(--borda) solid var(--cor-linha);
+  border-radius: var(--raio-3);
+}
+
+.audio audio {
+  width: 100%;
+}
+
+.audio__titulo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--espaco-3);
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+}
+
+.audio__titulo span {
+  color: var(--cor-texto-suave);
+}
+
+.audio__transcricao > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: var(--toque-minimo);
+  cursor: pointer;
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-3);
+  font-weight: var(--peso-medio);
+}
+
+.audios__lista--leitura {
+  margin-bottom: var(--espaco-4);
+}
+
+/* Gravando: o botão avisa, com o tempo correndo */
+.botao.gravando {
+  background: var(--cor-perigo);
+  border-color: var(--cor-perigo-forte);
+  color: var(--cor-sobre-perigo);
+}

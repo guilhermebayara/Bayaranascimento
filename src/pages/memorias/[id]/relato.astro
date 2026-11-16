@@ -4,7 +4,7 @@ import Abertura from '../../../components/Abertura.astro';
 import { formatarData } from '../../../lib/datas';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { donoDoRelato } from '../../../lib/servidor/permissoes';
-import { listarIntegrantes, obterMemoria, obterRelato } from '../../../lib/servidor/repositorio';
+import { listarAudiosDosRelatos, listarIntegrantes, obterMemoria, obterRelato } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -22,8 +22,11 @@ const opcoes = await Promise.all(
       const existente = await obterRelato(memoria.id, opcao.id, usuario);
       const dono = existente && donoDoRelato(existente);
       const bloqueado = Boolean(existente) && dono !== usuario.pessoa;
+      // Os áudios do relato que a pessoa pode editar, na ordem
+      const audios = existente && !bloqueado ? ((await listarAudiosDosRelatos([existente.id])).get(existente.id) ?? []) : [];
       return {
         ...opcao,
+        audios: audios.map((a) => ({ id: a.id, src: `/audios/${a.chave}`, duracao: a.duracao, transcricao: a.transcricao })),
         texto: existente && !bloqueado ? existente.texto : '',
         publicado: existente?.situacao === 'publicada' && !bloqueado,
         bloqueado,
@@ -52,11 +55,25 @@ const opcoes = await Promise.all(
         </select>
       </label>
       <p class="recado" data-bloqueio hidden></p>
+      {/* Áudios (Decidido, a construir; liberado em 16/11/2026). Só com script: gravar e enviar dependem dele */}
+      <div class="campo audios" data-audios hidden>
+        <span>Prefere falar? <small>(opcional)</small></span>
+        <p class="dica">Grave contando como foi, ou envie um áudio que já está no celular, como os do WhatsApp. Dá para ter vários, em ordem.</p>
+        <ol class="audios__lista" data-lista-audios></ol>
+        <p class="acoes">
+          <button type="button" class="botao botao--leve" data-gravar>Gravar áudio</button>
+          <label class="botao botao--leve botao--arquivo">
+            Enviar arquivo de áudio
+            <input type="file" accept="audio/*,.opus,.ogg,.m4a,.mp3,.wav,.webm" multiple data-enviar-audio class="oculto-visualmente" />
+          </label>
+        </p>
+        <p class="situacao" data-situacao-audio role="status" aria-live="polite"></p>
+      </div>
       <label class="campo">
-        <span>O relato</span>
+        <span>O relato escrito <small data-texto-opcional hidden>(opcional quando há áudio)</small></span>
         <textarea name="texto" rows="12" maxlength="20000"></textarea>
       </label>
-      <p class="dica">Só você vai poder alterar este texto.</p>
+      <p class="dica">Só você vai poder alterar este relato.</p>
     </fieldset>
 
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
@@ -79,6 +96,7 @@ const opcoes = await Promise.all(
 
 <script>
   import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';
+  import { ligarAudios, type AudioNoFormulario } from '../../../lib/cliente/audios';
 
   const form = document.querySelector<HTMLFormElement>('[data-formulario-relato]');
   if (form) {
@@ -89,6 +107,7 @@ const opcoes = await Promise.all(
       publicado: boolean;
       bloqueado: boolean;
       quemRegistrou?: string;
+      audios: AudioNoFormulario[];
     }
     const opcoes: Opcao[] = JSON.parse(document.getElementById('opcoes-relato')!.textContent ?? '[]');
     const quem = form.elements.namedItem('por') as HTMLSelectElement;
@@ -98,6 +117,10 @@ const opcoes = await Promise.all(
     const publicar = form.querySelector<HTMLButtonElement>('[data-salvar="publicada"]')!;
     const rascunho = form.querySelector<HTMLButtonElement>('[data-salvar="rascunho"]')!;
     const memoria = form.dataset.memoria!;
+    const textoOpcional = form.querySelector<HTMLElement>('[data-texto-opcional]')!;
+    const audios = ligarAudios(form.querySelector<HTMLElement>('[data-audios]')!, memoria, () => {
+      textoOpcional.hidden = !audios?.lista().length;
+    });
 
     const avisar = (mensagem: string, tipo: 'normal' | 'erro' = 'normal') => {
       situacaoEl.textContent = mensagem;
@@ -114,6 +137,8 @@ const opcoes = await Promise.all(
       rascunho.hidden = opcao.publicado;
       publicar.textContent = opcao.publicado ? 'Salvar alterações' : 'Publicar relato';
       texto.value = opcao.bloqueado ? '' : opcao.texto;
+      audios?.carregar(opcao.bloqueado ? [] : opcao.audios);
+      form.querySelector<HTMLElement>('[data-audios]')!.hidden = opcao.bloqueado || !audios;
       if (opcao.bloqueado) {
         bloqueio.textContent = `Esse relato já foi registrado por ${opcao.quemRegistrou ?? 'outra pessoa'}, e só quem registrou pode alterar.`;
       }
@@ -128,7 +153,9 @@ const opcoes = await Promise.all(
     form.addEventListener('submit', async (evento) => {
       evento.preventDefault();
       const situacao = (evento.submitter as HTMLElement | null)?.dataset.salvar === 'rascunho' ? 'rascunho' : 'publicada';
-      if (!texto.value.trim()) return avisar('Escreva o relato antes de salvar.', 'erro');
+      const listaDeAudios = audios?.lista() ?? [];
+      if (audios?.ocupado()) return avisar('Espere o áudio terminar de gravar e de enviar.', 'erro');
+      if (!texto.value.trim() && !listaDeAudios.length) return avisar('Escreva o relato ou grave um áudio antes de salvar.', 'erro');
       publicar.disabled = true;
       rascunho.disabled = true;
       avisar('Salvando…');
@@ -136,13 +163,17 @@ const opcoes = await Promise.all(
         const resposta = await fetch('/api/relatos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memoria, por: quem.value, texto: texto.value, situacao }),
+          body: JSON.stringify({ memoria, por: quem.value, texto: texto.value, situacao, ...(audios ? { audios: listaDeAudios } : {}) }),
         });
         const resultado = await resposta.json();
         if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');
         if (resultado.situacao === 'rascunho') {
           const opcao = opcoes.find((o) => o.id === quem.value)!;
           opcao.texto = texto.value;
+          opcao.audios = listaDeAudios.map((a) => {
+            const item = form.querySelector<HTMLElement>(`[data-audio-id="${a.id}"]`);
+            return { id: a.id, src: item?.querySelector('audio')?.getAttribute('src') ?? '', duracao: null, transcricao: a.transcricao ?? null };
+          });
           avisar('Rascunho salvo. Só você vê, e dá para continuar de qualquer aparelho.');
           publicar.disabled = false;
           rascunho.disabled = false;
