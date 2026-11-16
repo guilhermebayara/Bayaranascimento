@@ -5,7 +5,8 @@ import { dentroDoPeriodo } from '../../lib/capitulos';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { formatarData } from '../../lib/datas';
 import { podeEditarMemoria, podeExcluirMemoria } from '../../lib/servidor/permissoes';
-import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemas, obterMemoria } from '../../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemas, obterMemoria, listarAudiosDosRelatos } from '../../lib/servidor/repositorio';
+import { duracaoEmTexto } from '../../lib/audios';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -16,6 +17,7 @@ if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.i
 const integrantes = await listarIntegrantes();
 const nucleos = await listarNucleos();
 const relatos = await listarRelatos(usuario, memoria.id);
+const audiosDosRelatos = await listarAudiosDosRelatos(relatos.map((r) => r.id));
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 const tipo = tipoDaMemoria(Astro.locals.tipos, memoria);
@@ -136,11 +138,29 @@ const depois = todas[posicao + 1];
             {relato.registradoPor !== relato.por && `, registrado por ${nome(relato.registradoPor)}`}
             {relato.situacao === 'rascunho' && <span class="selo">Rascunho, só você vê</span>}
           </h2>
-          <div class="relato__texto">
-            {relato.texto.split(/\n{2,}/).map((paragrafo) => (
-              <p>{paragrafo}</p>
-            ))}
-          </div>
+          {(audiosDosRelatos.get(relato.id) ?? []).length > 0 && (
+            <ol class="audios__lista audios__lista--leitura">
+              {(audiosDosRelatos.get(relato.id) ?? []).map((audio, n, todos) => (
+                <li class="audio">
+                  {todos.length > 1 && <p class="audio__titulo"><strong>Áudio {n + 1}</strong> <span>{duracaoEmTexto(audio.duracao)}</span></p>}
+                  <audio controls preload="none" src={`/audios/${audio.chave}`}></audio>
+                  {audio.transcricao && (
+                    <details class="audio__transcricao">
+                      <summary>Ler a transcrição</summary>
+                      {audio.transcricao.split(/\n{2,}/).map((p) => <p>{p}</p>)}
+                    </details>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+          {relato.texto.trim() && (
+            <div class="relato__texto">
+              {relato.texto.split(/\n{2,}/).map((paragrafo) => (
+                <p>{paragrafo}</p>
+              ))}
+            </div>
+          )}
         </section>
       ))
     }

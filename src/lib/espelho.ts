@@ -40,6 +40,8 @@ export const TABELAS_APAGADAS = [
   'capitulo_nucleos',
   'capitulos',
   'versoes',
+  // Áudios apontam para relatos reais: o espelho não leva nenhum, e apaga os que houver
+  'audios',
   'relatos',
   'fotos',
   'memoria_integrantes',

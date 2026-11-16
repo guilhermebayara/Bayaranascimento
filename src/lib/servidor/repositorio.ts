@@ -1013,3 +1013,136 @@ export async function salvarRelato(
     db().prepare(`UPDATE relatos SET texto = ?, situacao = ?, atualizado_em = datetime('now') WHERE id = ?`).bind(texto, situacao, anterior.id),
   ]);
 }
+
+/** O relato que esta pessoa registrou em nome de "por" nesta memória: é nele que entram os áudios dela. */
+export async function obterRelatoRegistradoPor(memoriaId: string, por: string, usuario: Usuario): Promise<Relato | undefined> {
+  const linha = await db()
+    .prepare('SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND registrado_por = ? LIMIT 1')
+    .bind(memoriaId, por, usuario.pessoa)
+    .first<Record<string, unknown>>();
+  return linha ? lerRelato(linha) : undefined;
+}
+
+// --- Áudios dos relatos (migração 015) ---
+
+export interface Audio {
+  id: number;
+  relatoId: number | null;
+  memoriaId: string | null;
+  chave: string;
+  tipo: string;
+  duracao: number | null;
+  transcricao: string | null;
+  ordem: number;
+  enviadoPor: string;
+}
+
+function lerAudio(r: Record<string, unknown>): Audio {
+  return {
+    id: r.id as number,
+    relatoId: (r.relato_id as number | null) ?? null,
+    memoriaId: (r.memoria_id as string | null) ?? null,
+    chave: r.chave as string,
+    tipo: r.tipo as string,
+    duracao: (r.duracao as number | null) ?? null,
+    transcricao: (r.transcricao as string | null) ?? null,
+    ordem: r.ordem as number,
+    enviadoPor: r.enviado_por as string,
+  };
+}
+
+/** Quanto os áudios ocupam no bucket, contando os removidos, que continuam lá. */
+export async function espacoDosAudios(): Promise<number> {
+  const linha = await db().prepare('SELECT COALESCE(SUM(tamanho), 0) AS total FROM audios').first<{ total: number }>();
+  return linha?.total ?? 0;
+}
+
+export async function registrarAudio(dados: { chave: string; tipo: string; tamanho: number; duracao: number | null; memoriaId: string }, usuario: Usuario): Promise<number> {
+  const resultado = await db()
+    .prepare('INSERT INTO audios (chave, tipo, tamanho, duracao, memoria_id, enviado_por) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(dados.chave, dados.tipo, dados.tamanho, dados.duracao, dados.memoriaId, usuario.pessoa)
+    .run();
+  return resultado.meta.last_row_id;
+}
+
+/** Os áudios ainda em uso de vários relatos de uma vez, na ordem. */
+export async function listarAudiosDosRelatos(relatoIds: number[]): Promise<Map<number, Audio[]>> {
+  const mapa = new Map<number, Audio[]>();
+  if (!relatoIds.length) return mapa;
+  const { results } = await db()
+    .prepare(`SELECT * FROM audios WHERE removido_em IS NULL AND relato_id IN (${relatoIds.map(() => '?').join(', ')}) ORDER BY ordem, id`)
+    .bind(...relatoIds)
+    .all<Record<string, unknown>>();
+  for (const r of results) {
+    const a = lerAudio(r);
+    mapa.set(a.relatoId!, [...(mapa.get(a.relatoId!) ?? []), a]);
+  }
+  return mapa;
+}
+
+/**
+ * Liga ao relato os áudios da lista, na ordem dela e com a transcrição de cada um, e marca como removidos
+ * os que eram do relato e saíram da lista. Só entram áudios que a própria pessoa enviou para esta memória.
+ * Devolve quantos da lista foram aceitos.
+ */
+export async function ligarAudios(relatoId: number, memoriaId: string, itens: { id: number; transcricao?: string }[], usuario: Usuario): Promise<number> {
+  const ids = itens.map((i) => i.id);
+  const { results } = await db()
+    .prepare(
+      `SELECT id FROM audios WHERE removido_em IS NULL AND enviado_por = ? AND memoria_id = ?
+       AND (relato_id IS NULL OR relato_id = ?) AND id IN (${ids.length ? ids.map(() => '?').join(', ') : 'NULL'})`,
+    )
+    .bind(usuario.pessoa, memoriaId, relatoId, ...ids)
+    .all<{ id: number }>();
+  const aceitos = new Set(results.map((r: { id: number }) => r.id));
+  const validos = itens.filter((i) => aceitos.has(i.id));
+  await db().batch([
+    db()
+      .prepare(`UPDATE audios SET removido_em = datetime('now') WHERE relato_id = ? AND removido_em IS NULL AND id NOT IN (${validos.length ? validos.map(() => '?').join(', ') : 'NULL'})`)
+      .bind(relatoId, ...validos.map((i) => i.id)),
+    ...validos.map((item, ordem) =>
+      db()
+        .prepare('UPDATE audios SET relato_id = ?, ordem = ?, transcricao = ? WHERE id = ?')
+        .bind(relatoId, ordem, item.transcricao?.trim() || null, item.id),
+    ),
+  ]);
+  return validos.length;
+}
+
+/**
+ * Quem pode ouvir: o áudio solto, só quem enviou; o áudio de um relato, quem vê o relato (publicado, ou o
+ * rascunho de quem registrou) numa memória que vê; o removido, só quem enviou.
+ */
+export async function podeOuvirAudio(usuario: Usuario, chave: string): Promise<boolean> {
+  const linha = await db()
+    .prepare(
+      `SELECT 1 AS ok FROM audios a WHERE a.chave = ?2 AND (
+         (a.relato_id IS NULL AND a.enviado_por = ?1)
+         OR (
+           (a.removido_em IS NULL OR a.enviado_por = ?1)
+           AND EXISTS (
+             SELECT 1 FROM relatos r JOIN memorias m ON m.id = r.memoria_id
+             WHERE r.id = a.relato_id AND (r.situacao = 'publicada' OR r.registrado_por = ?1) AND ${FILTRO_VISIVEL}
+           )
+         )
+       ) LIMIT 1`,
+    )
+    .bind(usuario.pessoa, chave)
+    .first();
+  return Boolean(linha);
+}
+
+/** Os áudios em que uma pessoa fala (os dos relatos dela), entre as memórias que quem pede vê. */
+export async function listarAudiosDe(usuario: Usuario, pessoaId: string): Promise<(Audio & { memoriaTitulo: string; memoriaId: string })[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT a.*, m.id AS memoria, m.titulo AS memoria_titulo FROM audios a
+       JOIN relatos r ON r.id = a.relato_id
+       JOIN memorias m ON m.id = r.memoria_id
+       WHERE a.removido_em IS NULL AND r.por = ?2 AND r.situacao = 'publicada' AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       ORDER BY m.ano, m.mes, m.dia, a.ordem, a.id`,
+    )
+    .bind(usuario.pessoa, pessoaId)
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({ ...lerAudio(r), memoriaId: r.memoria as string, memoriaTitulo: r.memoria_titulo as string }));
+}

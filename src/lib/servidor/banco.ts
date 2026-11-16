@@ -442,6 +442,31 @@ const MIGRACOES: Migracao[] = [
       `ALTER TABLE filiacoes ADD COLUMN adocao_dia INTEGER`,
     ],
   },
+  {
+    // Áudios nos relatos (Decidido, a construir; liberado pelo Gui em 16/11/2026). Vários por relato, em
+    // ordem, cada um com a transcrição opcional. O áudio nasce solto (relato_id vazio) quando é gravado ou
+    // enviado, e passa a pertencer ao relato quando ele é salvo. Remover não apaga: marca removido_em, e o
+    // arquivo continua no bucket. Os arquivos ficam no bucket das fotos, debaixo de "audios/".
+    id: '015-audios-nos-relatos',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS audios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        relato_id INTEGER REFERENCES relatos(id) ON DELETE SET NULL,
+        memoria_id TEXT REFERENCES memorias(id) ON DELETE SET NULL,
+        chave TEXT NOT NULL,
+        tipo TEXT NOT NULL,
+        tamanho INTEGER NOT NULL,
+        duracao REAL,
+        transcricao TEXT,
+        ordem INTEGER NOT NULL DEFAULT 0,
+        enviado_por TEXT NOT NULL REFERENCES integrantes(id),
+        enviado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        removido_em TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS audios_do_relato ON audios (relato_id, ordem)`,
+      `CREATE INDEX IF NOT EXISTS audios_por_chave ON audios (chave)`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
