@@ -1,9 +1,9 @@
 // Capítulos: criar, editar e mandar para a lixeira.
 import type { APIRoute } from 'astro';
 import { lerTemas, podeEditarCapitulo, validarAninhamento } from '../../lib/capitulos';
-import { arrumarTexto, criarSlug, slugUnico } from '../../lib/servidor/conteudo';
+import { arrumarTexto, codigoNovo } from '../../lib/servidor/conteudo';
 import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeEditarMemoria, validarVisibilidade } from '../../lib/servidor/permissoes';
+import { podeEditarMemoria, podeMudarQuemVe, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
   autoresDasMemoriasDoCapitulo,
   excluirCapitulo,
@@ -99,6 +99,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const nucleos = [...new Set(dados.getAll('nucleos').map(String))];
   if (nucleos.some((n) => !nucleosExistentes.has(n) || !permitidos.has(n))) return falhar('Você só pode marcar núcleos de que faz parte.');
   const visibilidade = campo(dados, 'visibilidade', 10) === 'nucleos' ? 'nucleos' : 'todos';
+  if (atual) {
+    const quemVe = podeMudarQuemVe(usuario, { ...atual, criadaPor: atual.criadoPor }, visibilidade, visibilidade === 'nucleos' ? nucleos : []);
+    if (!quemVe.ok) return falhar(quemVe.motivo);
+  }
   const visivel = validarVisibilidade(usuario, visibilidade, nucleos);
   if (!visivel.ok) return falhar(visivel.motivo);
 
@@ -115,7 +119,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   };
 
   // "novo" e "editar" são endereços, então não podem ser id de capítulo
-  const idFinal = atual?.id ?? slugUnico(criarSlug(titulo) || 'capitulo', new Set([...(await idsDeCapitulos()), 'novo']));
+  // Um código no endereço, e não o título: ver codigoNovo
+  const idFinal = atual?.id ?? codigoNovo(new Set([...(await idsDeCapitulos()), 'novo']));
   await salvarCapitulo(idFinal, ficha, usuario, !atual);
   return voltar(request, `/capitulos/${idFinal}`, { ok: atual ? 'Capítulo atualizado.' : 'Capítulo criado. Agora é só colocar as memórias nele.' });
 };

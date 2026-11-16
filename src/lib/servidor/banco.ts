@@ -344,6 +344,67 @@ const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS lacos_coracao_da_pessoa ON lacos_coracao (pessoa_id)`,
     ],
   },
+  {
+    // Rascunhos paralelos do relato de quem não acessa o site (decisão do Gui, 16/11/2026): cada pessoa pode
+    // ter o seu rascunho do relato da Vó Vivica, sem os outros saberem, e só um é publicado. Antes, um
+    // rascunho guardado ocupava o lugar e denunciava a existência e quem estava escrevendo.
+    id: '011-relatos-paralelos',
+    sql: [
+      `CREATE TABLE relatos_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memoria_id TEXT NOT NULL REFERENCES memorias(id) ON DELETE CASCADE,
+        por TEXT NOT NULL REFERENCES integrantes(id),
+        registrado_por TEXT NOT NULL REFERENCES integrantes(id),
+        texto TEXT NOT NULL,
+        situacao TEXT NOT NULL DEFAULT 'publicada' CHECK (situacao IN ('rascunho', 'publicada')),
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        atualizado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (memoria_id, por, registrado_por)
+      )`,
+      `INSERT INTO relatos_novo (id, memoria_id, por, registrado_por, texto, situacao, criado_em, atualizado_em)
+        SELECT id, memoria_id, por, registrado_por, texto, situacao, criado_em, atualizado_em FROM relatos`,
+      `DROP TABLE relatos`,
+      `ALTER TABLE relatos_novo RENAME TO relatos`,
+      // Publicado, continua um por pessoa em cada memória
+      `CREATE UNIQUE INDEX IF NOT EXISTS relatos_um_publicado ON relatos (memoria_id, por) WHERE situacao = 'publicada'`,
+    ],
+  },
+  {
+    // Casal privado sem denúncia (decisão do Gui, 16/11/2026): quem não vê o casal privado consegue cadastrar o
+    // mesmo par como um registro público à parte. Antes, a recusa mostrava que existia um casal escondido.
+    // As fases são refeitas antes de apagar a tabela antiga: apagar casais com as fases apontando para ela
+    // levaria as fases junto, pela exclusão em cascata.
+    id: '012-casal-publico-a-parte',
+    sql: [
+      `CREATE TABLE casais_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        a_id TEXT NOT NULL REFERENCES integrantes(id),
+        b_id TEXT NOT NULL REFERENCES integrantes(id),
+        visibilidade TEXT NOT NULL DEFAULT 'todos' CHECK (visibilidade IN ('todos', 'privado')),
+        criado_por TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (a_id, b_id, visibilidade),
+        CHECK (a_id < b_id)
+      )`,
+      `INSERT INTO casais_novo (id, a_id, b_id, visibilidade, criado_por, criado_em)
+        SELECT id, a_id, b_id, visibilidade, criado_por, criado_em FROM casais`,
+      `CREATE TABLE casal_fases_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        casal_id INTEGER NOT NULL REFERENCES casais_novo(id) ON DELETE CASCADE,
+        tipo TEXT NOT NULL CHECK (tipo IN ('namoro', 'noivado', 'casamento', 'uniao', 'separacao', 'amizade')),
+        inicio_ano INTEGER,
+        fim_ano INTEGER,
+        ordem INTEGER NOT NULL DEFAULT 0
+      )`,
+      `INSERT INTO casal_fases_novo (id, casal_id, tipo, inicio_ano, fim_ano, ordem)
+        SELECT id, casal_id, tipo, inicio_ano, fim_ano, ordem FROM casal_fases`,
+      `DROP TABLE casal_fases`,
+      `DROP TABLE casais`,
+      `ALTER TABLE casais_novo RENAME TO casais`,
+      `ALTER TABLE casal_fases_novo RENAME TO casal_fases`,
+      `CREATE INDEX IF NOT EXISTS fases_do_casal ON casal_fases (casal_id, ordem)`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

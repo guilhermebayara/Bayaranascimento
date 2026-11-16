@@ -230,13 +230,25 @@ async function lerCasais(): Promise<Casal[]> {
 }
 
 /** Casais que o usuário pode ver: os abertos a todos e os privados de que ele faz parte ou que cadastrou. */
+/**
+ * Os casais que a pessoa vê, um por par. Um par pode ter um registro privado (que só os dois e quem
+ * cadastrou veem) e um público, cadastrado por quem não via o privado. Quem vê o privado fica com ele.
+ */
 export async function listarCasais(usuario: Usuario): Promise<Casal[]> {
-  return (await lerCasais()).filter((c) => podeVerCasal(usuario.pessoa, c));
+  const visiveis = (await lerCasais()).filter((c) => podeVerCasal(usuario.pessoa, c));
+  const porPar = new Map<string, Casal>();
+  for (const c of visiveis) {
+    const chave = `${c.a}|${c.b}`;
+    const ja = porPar.get(chave);
+    if (!ja || (ja.visibilidade === 'todos' && c.visibilidade === 'privado')) porPar.set(chave, c);
+  }
+  return visiveis.filter((c) => porPar.get(`${c.a}|${c.b}`) === c);
 }
 
-export async function obterCasalDoPar(x: string, y: string): Promise<Casal | undefined> {
+/** O casal desse par que a pessoa vê (o privado, se ela vê um), ou nenhum. Um casal privado de outros não conta. */
+export async function obterCasalDoPar(x: string, y: string, usuario: Usuario): Promise<Casal | undefined> {
   const [a, b] = x < y ? [x, y] : [y, x];
-  return (await lerCasais()).find((c) => c.a === a && c.b === b);
+  return (await listarCasais(usuario)).find((c) => c.a === a && c.b === b);
 }
 
 export async function obterCasal(id: number): Promise<Casal | undefined> {
@@ -246,8 +258,17 @@ export async function obterCasal(id: number): Promise<Casal | undefined> {
 /** Cria o casal ou troca as fases dele, guardando no histórico o que havia antes. */
 export async function salvarCasal(x: string, y: string, fases: Fase[], visibilidade: 'todos' | 'privado', usuario: Usuario): Promise<void> {
   const [a, b] = x < y ? [x, y] : [y, x];
-  const anterior = await obterCasalDoPar(a, b);
+  const anterior = await obterCasalDoPar(a, b, usuario);
   const comandos: D1PreparedStatement[] = [];
+  // Quem vê o casal privado e o torna público assume o lugar do registro público que outra pessoa tinha feito
+  const publico = (await lerCasais()).find((c) => c.a === a && c.b === b && c.visibilidade === 'todos');
+  if (anterior && anterior.visibilidade === 'privado' && visibilidade === 'todos' && publico && publico.id !== anterior.id) {
+    comandos.push(
+      db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('casal', ?, ?, ?)`).bind(String(publico.id), JSON.stringify(publico), usuario.pessoa),
+      db().prepare('DELETE FROM casal_fases WHERE casal_id = ?').bind(publico.id),
+      db().prepare('DELETE FROM casais WHERE id = ?').bind(publico.id),
+    );
+  }
   if (anterior) {
     comandos.push(
       db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('casal', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(anterior), usuario.pessoa),
@@ -262,9 +283,9 @@ export async function salvarCasal(x: string, y: string, fases: Fase[], visibilid
       db()
         .prepare(
           `INSERT INTO casal_fases (casal_id, tipo, inicio_ano, fim_ano, ordem)
-           VALUES ((SELECT id FROM casais WHERE a_id = ? AND b_id = ?), ?, ?, ?, ?)`,
+           VALUES ((SELECT id FROM casais WHERE a_id = ? AND b_id = ? AND visibilidade = ?), ?, ?, ?, ?)`,
         )
-        .bind(a, b, fase.tipo, fase.inicioAno, fase.fimAno, ordem),
+        .bind(a, b, visibilidade, fase.tipo, fase.inicioAno, fase.fimAno, ordem),
     );
   });
   await db().batch(comandos);
@@ -874,8 +895,18 @@ export async function listarRelatos(usuario: Usuario, memoriaId: string): Promis
   return results.map(lerRelato);
 }
 
-export async function obterRelato(memoriaId: string, por: string): Promise<Relato | undefined> {
-  const linha = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ? AND por = ?').bind(memoriaId, por).first<Record<string, unknown>>();
+/**
+ * O relato de uma pessoa que vale para quem está escrevendo: o publicado, se houver, ou o rascunho que
+ * a própria pessoa logada guardou. Rascunhos de outras pessoas não contam: ninguém fica sabendo deles.
+ */
+export async function obterRelato(memoriaId: string, por: string, usuario: Usuario): Promise<Relato | undefined> {
+  const linha = await db()
+    .prepare(
+      `SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND (situacao = 'publicada' OR registrado_por = ?)
+       ORDER BY situacao = 'publicada' DESC LIMIT 1`,
+    )
+    .bind(memoriaId, por, usuario.pessoa)
+    .first<Record<string, unknown>>();
   return linha ? lerRelato(linha) : undefined;
 }
 

@@ -18,7 +18,7 @@ const semAcesso = integrantes.filter((i) => i.tipo === 'pessoa' && !comAcesso.ha
 const opcoes = await Promise.all(
   [{ id: usuario.pessoa, rotulo: `Eu, ${usuario.nome}` }, ...semAcesso.map((p) => ({ id: p.id, rotulo: `${p.nome}, e eu estou escrevendo` }))].map(
     async (opcao) => {
-      const existente = await obterRelato(memoria.id, opcao.id);
+      const existente = await obterRelato(memoria.id, opcao.id, usuario);
       const dono = existente && donoDoRelato(existente);
       const bloqueado = Boolean(existente) && dono !== usuario.pessoa;
       return {

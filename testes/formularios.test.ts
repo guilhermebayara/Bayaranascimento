@@ -14,7 +14,7 @@ describe('formulários', () => {
     expect(lacos.match(/criarIntegrante\(/g)).toHaveLength(1);
     expect(lacos).toMatch(/const cadastrarPendente = async \(\) => \{\s*if \(pendente\) await criarIntegrante\(/);
     for (const salvar of ['salvarLacoDoCoracao(', 'salvarFiliacao(', 'salvarCasal(']) {
-      expect(lacos, salvar).toMatch(new RegExp(`await cadastrarPendente\\(\\);\\s*await ${salvar.replace('(', '\\(')}`));
+      expect(lacos, salvar).toMatch(new RegExp(`await cadastrarPendente\\(\\);\\s*(try \\{\\s*)?await ${salvar.replace('(', '\\(')}`));
     }
   });
 

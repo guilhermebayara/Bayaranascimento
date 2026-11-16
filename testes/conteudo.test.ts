@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { arrumarTexto, criarSlug, outrosAdmins, slugUnico, validarData } from '../src/lib/servidor/conteudo';
+import { arrumarTexto, codigoNovo, criarSlug, outrosAdmins, slugUnico, validarData } from '../src/lib/servidor/conteudo';
 import { agruparPorAno, formatarData, formatarDiaMes, problemaNaData } from '../src/lib/datas';
 
 describe('slugs', () => {
@@ -64,5 +64,19 @@ describe('data impossível avisada na hora', () => {
   it('não reclama de data só com ano ou só com mês', () => {
     expect(problemaNaData(2001)).toBeUndefined();
     expect(problemaNaData(2001, 5)).toBeUndefined();
+  });
+});
+
+describe('endereço de memória e capítulo novos', () => {
+  // Achado do QA de 15/11/2026 e decisão do Gui (16/11): o endereço não leva o título do rascunho,
+  // e um título repetido não ganha "-2", o que denunciava uma memória que a pessoa não vê
+  it('é um código aleatório, sem relação com o título', () => {
+    const codigo = codigoNovo(new Set());
+    expect(codigo).toMatch(/^[a-z2-9]{8}$/);
+    expect(codigoNovo(new Set())).not.toBe(codigo);
+  });
+  it('não repete um código que já existe', () => {
+    const existentes = new Set(Array.from({ length: 200 }, () => codigoNovo(new Set())));
+    for (let i = 0; i < 50; i++) expect(existentes.has(codigoNovo(existentes))).toBe(false);
   });
 });
