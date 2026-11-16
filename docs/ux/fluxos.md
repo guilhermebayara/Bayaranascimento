@@ -21,7 +21,31 @@ Aprovado e construído na branch `qa-ux-decisoes`, com as regras em `docs/deciso
 13. Áreas de toque: ficam para a revisão visual (`docs/ux/revisao-visual.md`).
 14. Estados pressionado, enviando, erro no campo e opção desabilitada.
 
-Ficaram como recomendação, sem decisão ainda: as outras propostas desta página, como mostrar "É outra pessoa" só com nome repetido, "Já faleceu" fora do recolhido, o salto por década na linha do tempo, o menu só com seções, "Ver na árvore" na memória, botões de opção para "Destacar", "Filiação" e "Proximidade", e o recado de primeira visita.
+## Segunda rodada: estrutura dos formulários (16/11/2026)
+
+O Gui pediu atenção aos formulários pensando em quem tem menos familiaridade digital: a ordem faz sentido, a separação das etapas é boa, está fácil adicionar, que decisão pode ser facilitada ou automatizada. O princípio usado em todos: **uma pergunta principal por tela, o que já existe antes do que se cria, e o site adianta o que dá para deduzir, sempre deixando a pessoa conferir.** O que foi construído (regras em `docs/decisoes.md`):
+
+| Onde | Antes | Agora | Por quê |
+| --- | --- | --- | --- |
+| Etapas da memória | 6, com a primeira juntando título, onze tipos e seis controles de data | 7: o que aconteceu, quando e onde, quem estava, fotos, relato, capítulo e temas, quem vê | Cada tela responde uma pergunta. As opcionais de organização (capítulo, temas) vão para o fim |
+| Etapa opcional vazia | "Continuar", igual às obrigatórias | "Pular esta etapa" | Diz que dá para seguir sem preencher, sem a pessoa achar que esqueceu algo |
+| "Quem estava?" | todos os nomes abertos, com filtro | marcados no alto, busca, sugestões pelos laços, lista inteira recolhida por família | A lista vai crescer. A família de quem foi marcado é quase sempre quem mais estava |
+| Núcleos da memória | a pessoa marca | vêm marcados pelos núcleos de quem estava, com aviso | Decisão que o site consegue deduzir; a pessoa só confere |
+| Memória a partir da pessoa ou do capítulo | começar do zero | "Nova memória com Fulano", "Nova memória neste capítulo" | Quem está olhando a página de alguém já disse de quem é a memória |
+| Ficha de pessoa | "Já faleceu" dentro do recolhido; "É outra pessoa" sempre visível | "Já faleceu" no essencial; "É outra pessoa" só com nome repetido, embaixo do nome, com link | Falecimento muda como o site fala da pessoa. A pergunta do nome repetido só faz sentido quando ele se repete |
+| Edição da pessoa | laços antes da ficha, cada laço só com "Remover" | índice no alto (Ficha, Laços), ficha primeiro, laços por tipo com "Editar" | Primeiro quem a pessoa é. Corrigir não exige apagar e recriar |
+| Casal | todas as fases abertas, cada uma com "Terminou" | linha do tempo das fases, cada uma abre com "Mudar"; o fim de uma fase sai do começo da seguinte | O casal é uma história em sequência; a pessoa só informa quando cada fase começou |
+| Listas curtas | lista suspensa em filiação, fase e proximidade | botões de opção | Tudo à vista, um toque só |
+
+### O que ainda fica recomendado
+
+- **Trocar a pessoa de um laço** dentro de "Editar". Hoje continua sendo remover e adicionar. Precisa de uma ação nova na API que remove e cria numa vez só, com a mesma validação. Recomendo quando o histórico de laços existir.
+- **Cadastro guiado de família:** depois de "Cadastrar e ir para os laços", perguntar em sequência "Quem são os pais de Fulano?", "Fulano tem casal?", "Tem filhos?", cada uma com a busca e "Pular". O formulário de laço com abas continua para quem já sabe o que quer. Descartei para esta rodada porque dobra o caminho de cadastro; vale testar numa prévia com alguém da família.
+- **Tipo de momento com 11 opções** numa tela de celular ainda é muita coisa. Quando a lista crescer, agrupar ("Celebrações", "Mudanças", "Dia a dia") ou mostrar os 6 mais usados e "Ver todos".
+- **Relato por áudio:** já está em "Decidido, a construir". Para quem tem menos familiaridade com teclado, gravar é mais fácil que escrever; a etapa do relato é o lugar natural para o botão de gravar.
+- **Capítulo:** as três etapas funcionam. "Como as memórias entram?" (reunido ou de época) é a decisão mais difícil do site para quem não conhece a ideia; um exemplo visual de cada um, na revisão visual, ajuda mais que texto.
+
+Ficaram como recomendação, sem decisão ainda: as outras propostas desta página, como o salto por década na linha do tempo, o menu só com seções, "Ver na árvore" na memória, botões de opção para "Destacar" na árvore, e o recado de primeira visita.
 
 ## Cadastrar pessoa e adicionar laços
 

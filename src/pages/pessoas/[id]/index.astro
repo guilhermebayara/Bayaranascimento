@@ -2,7 +2,7 @@
 import Base from '../../../layouts/Base.astro';
 import LinhaDoTempo from '../../../components/LinhaDoTempo.astro';
 import { datasDeVida } from '../../../lib/datas';
-import { FASES, Familia, estaoJuntos, lacoParaODono, periodoDaFase, possessivo, type Tratamento } from '../../../lib/parentesco';
+import { FASES, Familia, estaoJuntos, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
 import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
@@ -66,6 +66,7 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
     <p class="acoes acoes--pagina">
       <a class="botao" href={`/pessoas/${pessoa.id}/editar`}>{podeEditar ? 'Editar página e laços' : 'Adicionar laço'}</a>
       {temLacoDeArvore && <a class="botao botao--leve" href={`/arvore?centro=${pessoa.id}`}>Ver na árvore</a>}
+      <a class="botao botao--leve" href={`/nova?com=${pessoa.id}`}>Nova memória com {chamar}</a>
     </p>
     {datasDeVida(pessoa).map((linha) => <p class="dica">{linha}</p>)}
     {pessoa.sobre && <div class="bio">{pessoa.sobre.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
@@ -85,7 +86,7 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
                   <span>{papel(c.outro) ?? (estaoJuntos(c.casal) ? '' : 'ex')}</span>
                   <small>
                     {c.casal.fases
-                      .map((fase) => [FASES[fase.tipo].toLowerCase(), periodoDaFase(fase)].filter(Boolean).join(' '))
+                      .map((fase, n) => [FASES[fase.tipo].toLowerCase(), periodosDasFases(c.casal.fases)[n]].filter(Boolean).join(' '))
                       .join(', depois ')}
                     {c.casal.visibilidade === 'privado' && ' (só os dois veem)'}
                   </small>

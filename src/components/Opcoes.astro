@@ -1,0 +1,32 @@
+---
+// Escolha única entre poucas opções, todas visíveis (botões de opção em pílula).
+// Para listas curtas e fixas, no lugar da lista suspensa (QA de UX, 16/11/2026).
+interface Props {
+  nome: string;
+  rotulo: string;
+  opcoes: [string, string][];
+  valor?: string | number | null;
+  dica?: string;
+  obrigatorio?: boolean;
+  /** id do rótulo; precisa ser único na página quando o mesmo nome se repete em formulários diferentes */
+  id?: string;
+}
+
+const { nome, rotulo, opcoes, valor, dica, obrigatorio = false, id = `rotulo-${nome}` } = Astro.props;
+const marcado = valor === undefined || valor === null ? '' : String(valor);
+---
+
+<div class="campo">
+  <span id={id}>{rotulo}</span>
+  <div class="opcoes" role="radiogroup" aria-labelledby={id}>
+    {
+      opcoes.map(([v, r]) => (
+        <label class="opcao">
+          <input type="radio" name={nome} value={v} checked={marcado === v} required={obrigatorio} />
+          <span>{r}</span>
+        </label>
+      ))
+    }
+  </div>
+  {dica && <p class="dica">{dica}</p>}
+</div>

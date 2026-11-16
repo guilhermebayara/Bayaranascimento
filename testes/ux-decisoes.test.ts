@@ -122,3 +122,119 @@ describe('enviando', () => {
     expect(fonte('src/layouts/Base.astro')).toContain('marcarEnvios()');
   });
 });
+
+// Segunda rodada (pedido do Gui, 16/11/2026): estrutura dos formulários e dos laços
+import { sugerir } from '../src/lib/cliente/quem-estava';
+import { periodosDasFases } from '../src/lib/parentesco';
+
+describe('"Quem estava?" usa os laços para sugerir nomes', () => {
+  const dados = {
+    eu: 'gui',
+    nomes: { gui: 'Gui', giovanna: 'Giovanna', elizete: 'Elizete', aguilar: 'Aguilar', magno: 'Lucas Magno', bela: 'Vó Bela', ed: 'Ed' },
+    proximos: {
+      gui: ['elizete', 'aguilar', 'giovanna'],
+      giovanna: ['elizete', 'aguilar', 'gui', 'magno'],
+      magno: ['giovanna'],
+      elizete: ['gui', 'giovanna', 'aguilar', 'bela'],
+    } as Record<string, string[]>,
+  };
+
+  it('sem ninguém marcado, sugere quem escreve e a família dela', () => {
+    const s = sugerir(dados, []);
+    expect(s.titulo).toBe('Você e sua família');
+    expect(s.ids).toEqual(['gui', 'elizete', 'aguilar', 'giovanna']);
+  });
+
+  it('com alguém marcado, sugere a família dessa pessoa, quem tem mais laços com os marcados primeiro', () => {
+    const s = sugerir(dados, ['giovanna', 'elizete']);
+    expect(s.titulo).toBe('Família de quem você marcou');
+    expect(s.ids[0]).toBe('aguilar');
+    expect(s.ids).not.toContain('giovanna');
+    expect(s.ids).toContain('magno');
+    expect(s.ids).toContain('bela');
+    expect(s.ids).not.toContain('ed');
+  });
+
+  it('a lista inteira fica recolhida e agrupada por família, com a busca e "Cadastrar"', () => {
+    const componente = fonte('src/components/QuemEstava.astro');
+    expect(componente).toContain('Ver todos os nomes');
+    expect(fonte('src/lib/cliente/quem-estava.ts')).toContain('todos.open = false');
+    expect(fonte('src/lib/cliente/quem-estava.ts')).toContain('Cadastrar ');
+  });
+});
+
+describe('etapas da memória', () => {
+  it('uma pergunta por etapa, e as opcionais marcadas para mostrar "Pular esta etapa"', () => {
+    const nova = fonte('src/pages/nova.astro');
+    const etapas = [...nova.matchAll(/data-etapa="([^"]+)"/g)].map((m) => m[1]);
+    expect(etapas).toEqual(['O que aconteceu', 'Quando e onde', 'Quem estava', 'Fotos', 'Relato', 'Capítulo e temas', 'Quem vê']);
+    for (const opcional of ['Quem estava', 'Fotos', 'Relato', 'Capítulo e temas']) expect(nova).toContain(`data-etapa="${opcional}" data-opcional`);
+    expect(fonte('src/lib/cliente/etapas.ts')).toContain("'Pular esta etapa'");
+  });
+
+  it('numa memória nova, os núcleos vêm sugeridos a partir de quem estava, até a pessoa mexer neles', () => {
+    const nova = fonte('src/pages/nova.astro');
+    expect(nova).toMatch(/if \(idExistente \|\| mexeuNosNucleos\) return;/);
+    expect(nova).toContain('data-nucleos-sugeridos');
+  });
+
+  it('pessoa e capítulo têm atalho para uma memória nova já preenchida', () => {
+    expect(fonte('src/pages/pessoas/[id]/index.astro')).toContain('/nova?com=');
+    expect(fonte('src/pages/capitulos/[id]/index.astro')).toContain('/nova?capitulo=');
+  });
+});
+
+describe('laços', () => {
+  it('cada laço tem "Editar", e remover fica dentro da edição', () => {
+    const editar = fonte('src/pages/pessoas/[id]/editar.astro');
+    for (const acao of ['filiacao-salvar', 'coracao-salvar', 'resumido-salvar', 'casal-salvar']) expect(editar).toContain(`value="${acao}"`);
+    expect(editar.match(/<summary class="botao botao--leve">Editar<\/summary>/g)?.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('listas curtas viram botões de opção: filiação, fase do casal e proximidade', () => {
+    const editar = fonte('src/pages/pessoas/[id]/editar.astro');
+    expect(editar).not.toMatch(/<select name="(qualidade|faseTipo|proximidade)"/);
+    expect(editar).toMatch(/<Opcoes nome="qualidade"/);
+    expect(editar).toMatch(/<Opcoes nome="faseTipo"/);
+    expect(editar).toMatch(/<Opcoes nome="proximidade"/);
+  });
+
+  it('a ficha vem antes dos laços na edição', () => {
+    const editar = fonte('src/pages/pessoas/[id]/editar.astro');
+    expect(editar.indexOf('id="ficha"')).toBeLessThan(editar.indexOf('id="lacos"'));
+  });
+
+  it('a API do casal aceita as fases numeradas da edição', () => {
+    expect(fonte('src/pages/api/lacos.ts')).toMatch(/fase-\$\{n\}-remover/);
+  });
+});
+
+describe('fases do casal', () => {
+  it('uma fase sem fim acaba quando a seguinte começa; só a última fica "desde"', () => {
+    expect(
+      periodosDasFases([
+        { tipo: 'namoro', inicioAno: 2015, fimAno: null },
+        { tipo: 'noivado', inicioAno: 2018, fimAno: null },
+        { tipo: 'casamento', inicioAno: 2020, fimAno: null },
+      ]),
+    ).toEqual(['2015 a 2018', '2018 a 2020', 'desde 2020']);
+  });
+
+  it('a separação é um momento, e fase sem ano fica sem texto', () => {
+    expect(
+      periodosDasFases([
+        { tipo: 'casamento', inicioAno: null, fimAno: null },
+        { tipo: 'separacao', inicioAno: 2019, fimAno: null },
+      ]),
+    ).toEqual(['até 2019', 'em 2019']);
+  });
+});
+
+describe('ficha de pessoa', () => {
+  it('"Já faleceu" fica fora do recolhido, e "É outra pessoa?" só aparece com nome repetido', () => {
+    const ficha = fonte('src/components/FichaDoIntegrante.astro');
+    expect(ficha.indexOf('name="falecido"')).toBeLessThan(ficha.indexOf('<details class="mais"'));
+    expect(ficha).toContain('data-nome-repetido');
+    expect(ficha).toMatch(/repetido\.hidden = !igual/);
+  });
+});

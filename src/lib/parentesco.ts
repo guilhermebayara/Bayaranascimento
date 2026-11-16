@@ -322,6 +322,23 @@ export function periodoDaFase(fase: Fase): string {
   return '';
 }
 
+/**
+ * O período de cada fase de um casal, lido na sequência: uma fase sem fim informado acaba quando a
+ * seguinte começa (o namoro acaba quando o noivado começa). Só a última, a de hoje, fica "desde".
+ * A separação é um momento: "em 2019". Nada disso é gravado; o banco guarda o que foi informado.
+ */
+export function periodosDasFases(fases: Fase[]): string[] {
+  return fases.map((fase, i) => {
+    const ultima = i === fases.length - 1;
+    const fim = fase.fimAno ?? (ultima ? null : (fases.slice(i + 1).find((f) => f.inicioAno)?.inicioAno ?? null));
+    if (fase.tipo === 'separacao' && !fase.fimAno) return fase.inicioAno ? `em ${fase.inicioAno}` : '';
+    if (fase.inicioAno && fim) return fase.inicioAno === fim ? String(fase.inicioAno) : `${fase.inicioAno} a ${fim}`;
+    if (fase.inicioAno) return ultima ? `desde ${fase.inicioAno}` : `a partir de ${fase.inicioAno}`;
+    if (fim) return `até ${fim}`;
+    return '';
+  });
+}
+
 // --- Laços do coração ---
 
 export type Papel = 'avo' | 'pai' | 'tio' | 'irmao' | 'primo' | 'filho' | 'sobrinho';

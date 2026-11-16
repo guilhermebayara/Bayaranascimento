@@ -255,10 +255,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Um casal privado de outras pessoas não conta: quem não o vê cadastra o par como um registro à parte,
     // e nada na resposta denuncia o privado (ver salvarCasal)
-    // As fases chegam em linhas paralelas; linhas sem tipo são ignoradas
-    const tipos = dados.getAll('faseTipo').map(String);
-    const inicios = dados.getAll('faseInicio').map(String);
-    const fins = dados.getAll('faseFim').map(String);
+    // As fases chegam numeradas (fase-0-tipo, fase-0-inicio, fase-0-fim, fase-0-remover), da edição do casal,
+    // ou em linhas paralelas (faseTipo, faseInicio, faseFim), do cadastro. Linhas sem tipo são ignoradas.
+    const numeradas = [...new Set([...dados.keys()].map((k) => /^fase-(\d+)-tipo$/.exec(k)?.[1]).filter((n) => n !== undefined))].map(Number).sort((x, y) => x - y);
+    const tipos = numeradas.length ? numeradas.map((n) => (dados.get(`fase-${n}-remover`) === 'on' ? '' : String(dados.get(`fase-${n}-tipo`) ?? ''))) : dados.getAll('faseTipo').map(String);
+    const inicios = numeradas.length ? numeradas.map((n) => String(dados.get(`fase-${n}-inicio`) ?? '')) : dados.getAll('faseInicio').map(String);
+    const fins = numeradas.length ? numeradas.map((n) => String(dados.get(`fase-${n}-fim`) ?? '')) : dados.getAll('faseFim').map(String);
     const anoAtual = new Date().getUTCFullYear();
     const fases: Fase[] = [];
     for (let i = 0; i < tipos.length; i++) {

@@ -3,10 +3,12 @@ import { comArtigo } from '../lib/servidor/conteudo';
 import Base from '../layouts/Base.astro';
 import Abertura from '../components/Abertura.astro';
 import CampoData from '../components/CampoData.astro';
+import QuemEstava from '../components/QuemEstava.astro';
+import { Familia } from '../lib/parentesco';
 import { TIPO_OUTRO } from '../lib/tipos';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { podeEditarMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
-import { listarCapitulos, listarIntegrantes, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
+import { familiasDe, listarCapitulos, listarCasais, listarFiliacoes, listarIntegrantes, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
 
 // Esta página serve para três coisas: registrar uma memória nova, continuar
 // um rascunho e corrigir uma memória já publicada (?id=...).
@@ -26,6 +28,21 @@ const quemCriou = criadora ? comArtigo(criadora) : 'quem criou';
 const comAcesso = await pessoasComAcesso();
 const semAcesso = integrantes.filter((i) => i.tipo === 'pessoa' && !comAcesso.has(i.id));
 const nucleos = await listarNucleos();
+// "Quem estava?": a lista inteira agrupada pela família de cada um, e quem está perto de quem pelos laços
+const arvore = new Familia(await listarFiliacoes(), await listarCasais(usuario));
+const porNome = [...integrantes].sort((a, b) => (a.apelido ?? a.nome).localeCompare(b.apelido ?? b.nome, 'pt-BR'));
+const gruposDePessoas = [
+  ...nucleos.map((n) => ({ nome: n.nome, ids: porNome.filter((i) => familiasDe(i)[0] === n.id).map((i) => i.id) })),
+  { nome: 'De fora das famílias', ids: porNome.filter((i) => !familiasDe(i).some((f) => nucleos.some((n) => n.id === f))).map((i) => i.id) },
+];
+const proximos = Object.fromEntries(
+  integrantes.map((i) => [
+    i.id,
+    [...new Set([...arvore.casais(i.id).map((c) => c.outro), ...arvore.pais(i.id).map((p) => p.responsavel), ...arvore.filhos(i.id).map((f) => f.filho), ...arvore.irmaos(i.id).map((x) => x.id)])],
+  ]),
+);
+// Os núcleos de cada pessoa, para sugerir os núcleos da memória a partir de quem estava
+const familiasPorPessoa = Object.fromEntries(integrantes.map((i) => [i.id, familiasDe(i)]));
 // A pessoa marca os próprios núcleos. Numa edição, os que já estavam aparecem também.
 const nucleosDisponiveis = nucleos.filter((n) => usuario.nucleos.includes(n.id) || memoria?.nucleos.includes(n.id));
 const nucleosMarcados = memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usuario.nucleos : []);
@@ -38,6 +55,9 @@ const todosOsTemas = await listarTemasVisiveis(usuario);
 const temasDaMemoria = (memoria?.temas ?? []).map((id) => todosOsTemas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
 // "Hoje" no horário de Brasília, para o limite do calendário
 const hojeIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+// Atalhos de outras páginas: "Nova memória com Fulano" (?com=) e "Nova memória neste capítulo" (?capitulo=)
+const comPessoa = !memoria ? integrantes.find((i) => i.id === Astro.url.searchParams.get('com'))?.id : undefined;
+const noCapitulo = !memoria ? capitulosReunidos.find((c) => c.id === Astro.url.searchParams.get('capitulo'))?.id : undefined;
 const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'Continuar rascunho';
 ---
 
@@ -54,7 +74,8 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 
   <form class="formulario" method="post" action="/api/memorias" data-formulario-memoria data-id={memoria?.id ?? ''} data-publicada={publicada ? '' : undefined} novalidate>
     {memoria && <input type="hidden" name="id" value={memoria.id} />}
-    <section data-etapa="O momento">
+    {/* Uma pergunta principal por etapa, e as opcionais depois das que contam a memória (QA de UX, 16/11/2026) */}
+    <section data-etapa="O que aconteceu">
     <fieldset>
       <legend>O que aconteceu?</legend>
       <label class="campo">
@@ -81,7 +102,9 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         <span class="dica">Uma ou duas palavras. Se outras memórias usarem o mesmo nome, ele pode virar um tipo da lista.</span>
       </label>
     </fieldset>
+    </section>
 
+    <section data-etapa="Quando e onde">
     <fieldset>
       <legend>Quando foi?</legend>
       <CampoData ano={memoria?.ano} mes={memoria?.mes} dia={memoria?.dia} obrigatorio />
@@ -97,30 +120,6 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         <span>Não tenho certeza da data</span>
       </label>
     </fieldset>
-    </section>
-
-    <section data-etapa="Pessoas e lugar">
-    <fieldset>
-      <legend>Quem estava?</legend>
-      {integrantes.length > 10 && (
-        <label class="campo">
-          <span>Procurar pelo nome</span>
-          <input type="search" data-filtrar-pessoas autocomplete="off" placeholder="Digite para filtrar a lista" />
-        </label>
-      )}
-      <div class="opcoes" data-lista-de-pessoas>
-        {
-          integrantes.map((p) => (
-            <label class="opcao" data-nome={`${p.nome} ${p.apelido ?? ''}`.toLowerCase()}>
-              <input type="checkbox" name="pessoas" value={p.id} checked={memoria?.integrantes.includes(p.id)} />
-              <span>{p.apelido ?? p.nome}</span>
-            </label>
-          ))
-        }
-      </div>
-      <div data-novas-pessoas></div>
-      <button type="button" class="botao botao--leve" data-adicionar-pessoa>Adicionar alguém que não está na lista</button>
-    </fieldset>
 
     <fieldset>
       <legend>Onde foi?</legend>
@@ -131,41 +130,11 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     </fieldset>
     </section>
 
-    <section data-etapa="Capítulo e temas">
-      <fieldset>
-        <legend>Faz parte de algo maior?</legend>
-        <p class="dica">Opcional. Um capítulo junta memórias de um mesmo momento, como as várias festas de um casamento.</p>
-        {
-          capitulosReunidos.length > 0 && (
-            <div class="campo">
-              <span id="rotulo-capitulos">Capítulos</span>
-              <div class="opcoes" role="group" aria-labelledby="rotulo-capitulos">
-                {capitulosReunidos.map((c) => (
-                  <label class="opcao">
-                    <input type="checkbox" name="capitulos" value={c.id} checked={memoria?.capitulos.includes(c.id)} />
-                    <span>{c.titulo}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )
-        }
-        <p class="dica">
-          {capitulosReunidos.length === 0 ? 'Ainda não há capítulos. ' : 'Não achou? '}
-          Dá para <a href="/capitulos/novo" target="_blank" rel="noopener">criar um capítulo</a> e colocar esta memória nele depois.
-        </p>
-        <label class="campo">
-          <span>Temas</span>
-          <input type="text" name="temas" maxlength="500" autocomplete="off" list="lista-de-temas" value={temasDaMemoria} placeholder="Ex.: viagens, casas onde moramos" />
-          <span class="dica">Etiquetas livres, separadas por vírgula. Cada tema tem uma página que junta tudo o que o usa.</span>
-        </label>
-        <datalist id="lista-de-temas">
-          {todosOsTemas.map((t) => <option value={t.nome} />)}
-        </datalist>
-      </fieldset>
+    <section data-etapa="Quem estava" data-opcional>
+      <QuemEstava integrantes={integrantes} marcados={memoria?.integrantes ?? (comPessoa ? [comPessoa] : [])} grupos={gruposDePessoas} proximos={proximos} eu={usuario.pessoa} />
     </section>
 
-    <section data-etapa="Fotos">
+    <section data-etapa="Fotos" data-opcional>
     <fieldset>
       <legend>Fotos</legend>
       <p class="dica">Escolha as fotos desse momento. Você pode escrever uma legenda para cada uma.</p>
@@ -204,7 +173,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 
     {
       !publicada && (
-        <section data-etapa="Relato">
+        <section data-etapa="Relato" data-opcional>
         <fieldset>
             <legend>Como foi?</legend>
             <label class="campo">
@@ -223,6 +192,40 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         </section>
       )
     }
+
+    <section data-etapa="Capítulo e temas" data-opcional>
+      <fieldset>
+        <legend>Faz parte de algo maior?</legend>
+        <p class="dica">Opcional. Um capítulo junta memórias de um mesmo momento, como as várias festas de um casamento.</p>
+        {
+          capitulosReunidos.length > 0 && (
+            <div class="campo">
+              <span id="rotulo-capitulos">Capítulos</span>
+              <div class="opcoes" role="group" aria-labelledby="rotulo-capitulos">
+                {capitulosReunidos.map((c) => (
+                  <label class="opcao">
+                    <input type="checkbox" name="capitulos" value={c.id} checked={memoria ? memoria.capitulos.includes(c.id) : c.id === noCapitulo} />
+                    <span>{c.titulo}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )
+        }
+        <p class="dica">
+          {capitulosReunidos.length === 0 ? 'Ainda não há capítulos. ' : 'Não achou? '}
+          Dá para <a href="/capitulos/novo" target="_blank" rel="noopener">criar um capítulo</a> e colocar esta memória nele depois.
+        </p>
+        <label class="campo">
+          <span>Temas</span>
+          <input type="text" name="temas" maxlength="500" autocomplete="off" list="lista-de-temas" value={temasDaMemoria} placeholder="Ex.: viagens, casas onde moramos" />
+          <span class="dica">Etiquetas livres, separadas por vírgula. Cada tema tem uma página que junta tudo o que o usa.</span>
+        </label>
+        <datalist id="lista-de-temas">
+          {todosOsTemas.map((t) => <option value={t.nome} />)}
+        </datalist>
+      </fieldset>
+    </section>
 
     <section data-etapa="Quem vê">
     <fieldset>
@@ -250,6 +253,8 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           </div>
         )
       }
+      <p class="dica" data-nucleos-sugeridos hidden>Marcamos os núcleos de quem estava na memória. Confira e mude se precisar.</p>
+      <script type="application/json" data-familias-pessoas set:html={JSON.stringify(familiasPorPessoa).replace(/</g, '\\u003c')} />
       {travaQuemVe && <input type="hidden" name="visibilidade" value={memoria!.visibilidade} />}
       {travaNucleos && memoria!.nucleos.map((n) => <input type="hidden" name="nucleos" value={n} />)}
       <p class="dica">{travaQuemVe ? `Só ${quemCriou}, que criou a memória, muda quem pode ver.` : 'Dá para mudar depois. Quem não pode ver não fica sabendo que a memória existe.'}</p>
@@ -291,6 +296,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
   import { ligarDatas } from '../lib/cliente/datas';
   import { prepararFoto } from '../lib/cliente/fotos';
   import { buscaDePessoa } from '../lib/cliente/busca-pessoa';
+  import { ligarQuemEstava } from '../lib/cliente/quem-estava';
 
   const form = document.querySelector<HTMLFormElement>('[data-formulario-memoria]');
   if (form) {
@@ -345,7 +351,22 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       );
       caixa.hidden = false;
     };
+    // Núcleos da memória: numa memória nova, enquanto a pessoa não mexeu neles, vêm marcados os
+    // núcleos de quem estava (entre os que ela pode marcar). Ela confere e muda se quiser.
+    const familiasPorPessoa = JSON.parse(form.querySelector('[data-familias-pessoas]')?.textContent ?? '{}') as Record<string, string[]>;
+    let mexeuNosNucleos = false;
+    for (const c of form.querySelectorAll<HTMLInputElement>('input[name="nucleos"]')) c.addEventListener('change', () => (mexeuNosNucleos = true));
+    const sugerirNucleos = () => {
+      if (idExistente || mexeuNosNucleos) return;
+      const daMemoria = new Set([...form.querySelectorAll<HTMLInputElement>('input[name="pessoas"]:checked')].flatMap((c) => familiasPorPessoa[c.value] ?? []));
+      const caixas = [...form.querySelectorAll<HTMLInputElement>('input[name="nucleos"]:not(:disabled)')];
+      if (!daMemoria.size || !caixas.some((c) => daMemoria.has(c.value))) return;
+      for (const c of caixas) c.checked = daMemoria.has(c.value);
+      const aviso = form.querySelector<HTMLElement>('[data-nucleos-sugeridos]');
+      if (aviso) aviso.hidden = false;
+    };
     const etapas = montarEtapas(form, (_indice, secao) => {
+      if (secao.querySelector('input[name="nucleos"]')) sugerirNucleos();
       if (secao.querySelector('[data-resumo]')) montarResumo();
     });
     form.addEventListener('change', () => {
@@ -370,17 +391,6 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       const hoje = new Date();
       preencherData(hoje.getFullYear(), hoje.getMonth() + 1, hoje.getDate());
       if (calendario) calendario.value = '';
-    });
-    // Com muita gente na lista, um campo filtra pelo nome
-    const filtro = form.querySelector<HTMLInputElement>('[data-filtrar-pessoas]');
-    filtro?.addEventListener('input', () => {
-      // Sem acento e sem maiúscula dos dois lados: "vo" acha "Vó Bela"
-      const simples = (texto: string) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-      const termo = simples(filtro.value.trim());
-      for (const opcao of form.querySelectorAll<HTMLElement>('[data-lista-de-pessoas] .opcao')) {
-        const marcada = opcao.querySelector<HTMLInputElement>('input')?.checked;
-        opcao.hidden = Boolean(termo) && !marcada && !simples(opcao.dataset.nome ?? '').includes(termo);
-      }
     });
 
     // "Outro" abre um campo para dizer o que foi
@@ -444,17 +454,30 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         <button type="button" class="botao botao--leve" data-remover-pessoa>Remover</button>`;
       linha.querySelector('[data-remover-pessoa]')!.addEventListener('click', () => {
         linha.remove();
+        form.dispatchEvent(new Event('change'));
         atualizarQuemConta();
       });
       linha.querySelector('[data-nome]')!.addEventListener('input', atualizarQuemConta);
       novasPessoas.append(linha);
+      form.dispatchEvent(new Event('change'));
       linha.querySelector<HTMLInputElement>('[data-nome]')!.focus();
     });
+    // "Quem estava?": sugestões pelos laços, busca e "Cadastrar" para quem não está no acervo
+    const quemEstava = form.querySelector<HTMLElement>('[data-quem-estava]');
+    if (quemEstava) {
+      ligarQuemEstava(quemEstava, (nome) => {
+        form.querySelector<HTMLButtonElement>('[data-adicionar-pessoa]')!.click();
+        const campoNome = [...novasPessoas.querySelectorAll<HTMLInputElement>('[data-nome]')].pop()!;
+        campoNome.value = nome;
+        campoNome.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
 
     // Remover vale para fotos que já estavam e para as recém-enviadas
     listaFotos.addEventListener('click', (evento) => {
       const alvo = (evento.target as HTMLElement).closest('[data-remover]');
       alvo?.closest('.foto-enviada')?.remove();
+      form.dispatchEvent(new Event('change'));
     });
 
     // Fotos: reduz no aparelho e envia uma a uma
@@ -475,6 +498,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
             <button type="button" class="botao botao--leve" data-remover>Remover foto</button>
           </div>`;
         listaFotos.append(item);
+        form.dispatchEvent(new Event('change'));
         if (!form.querySelector('input[name="fotoPrincipal"]:checked')) {
           item.querySelector<HTMLInputElement>('input[type="radio"]')!.checked = true;
         }

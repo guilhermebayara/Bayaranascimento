@@ -2522,3 +2522,238 @@ p {
   display: flex;
   min-height: var(--toque-minimo);
 }
+
+/* Índice de uma página longa de edição: leva direto à seção */
+.indice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2) var(--espaco-6);
+  margin-bottom: var(--espaco-4);
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+}
+
+.indice a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque-minimo);
+}
+
+/* Laços já cadastrados, agrupados por tipo. Cada um: quem, o que é, e "Editar" */
+.grupo-de-lacos {
+  display: grid;
+  gap: var(--espaco-3);
+}
+
+.lacos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--espaco-3);
+}
+
+.laco {
+  display: grid;
+  gap: var(--espaco-3);
+  padding: var(--espaco-4) 1.1rem;
+  background: var(--cor-superficie);
+  border: var(--borda) solid var(--cor-linha);
+  border-radius: var(--raio-3);
+}
+
+.laco__linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1) var(--espaco-4);
+  align-items: baseline;
+  margin: 0;
+}
+
+.laco__linha span {
+  color: var(--cor-texto-suave);
+}
+
+/* As fases do casal como uma linha do tempo */
+.fases {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--espaco-4);
+  border-left: var(--borda) solid var(--cor-linha);
+  display: grid;
+  gap: var(--espaco-2);
+}
+
+.fases li {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--espaco-3);
+  align-items: baseline;
+}
+
+.fases li::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--espaco-4) - 0.35rem);
+  top: 0.55em;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--cor-texto);
+}
+
+.fases strong {
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+}
+
+.fases span {
+  color: var(--cor-texto-suave);
+}
+
+/* Editar no próprio lugar: o botão abre os campos, e remover fica no fim, separado */
+.editar > summary {
+  list-style: none;
+  cursor: pointer;
+  justify-self: start;
+}
+
+.editar > summary::-webkit-details-marker {
+  display: none;
+}
+
+.editar {
+  display: grid;
+}
+
+.editar[open] > summary {
+  background: var(--cor-fundo-recuo);
+}
+
+.editar__caixa {
+  display: grid;
+  gap: var(--espaco-4);
+  margin-top: var(--espaco-3);
+  padding-top: var(--espaco-4);
+  border-top: var(--borda) solid var(--cor-linha);
+}
+
+.editar__caixa form {
+  display: grid;
+  gap: var(--espaco-4);
+}
+
+.editar__remover {
+  padding-top: var(--espaco-4);
+  border-top: var(--borda) dashed var(--cor-linha);
+}
+
+.fase {
+  border-top: var(--borda) solid var(--cor-linha);
+}
+
+.fase > summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--espaco-2) var(--espaco-4);
+  min-height: var(--toque-minimo);
+  padding-block: var(--espaco-2);
+  list-style: none;
+  cursor: pointer;
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+  font-weight: var(--peso-medio);
+}
+
+.fase > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fase__mudar {
+  color: var(--cor-texto-suave);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.fase[open] .fase__mudar {
+  visibility: hidden;
+}
+
+.fase > fieldset,
+.fase--nova {
+  display: grid;
+  gap: var(--espaco-3);
+  margin: 0;
+  padding: 0 0 var(--espaco-3);
+  border: 0;
+}
+
+.fase--nova {
+  padding-top: var(--espaco-3);
+  border-top: var(--borda) solid var(--cor-linha);
+}
+
+.fase--nova legend {
+  font-family: var(--fonte-titulo);
+  font-weight: var(--peso-forte);
+  font-size: var(--tamanho-4);
+  padding: 0;
+  margin-bottom: var(--espaco-3);
+}
+
+.novo-laco {
+  margin-top: var(--espaco-4);
+}
+
+/* "Quem estava?": marcados, busca, sugestões e a lista inteira recolhida */
+.quem-estava {
+  display: grid;
+  gap: var(--espaco-4);
+}
+
+.quem-estava__titulo {
+  margin: 0 0 var(--espaco-2);
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-3);
+  font-weight: var(--peso-medio);
+  color: var(--cor-texto-suave);
+}
+
+.quem-estava__todos > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque-minimo);
+  cursor: pointer;
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+  font-weight: var(--peso-medio);
+}
+
+.quem-estava__todos[open] > summary {
+  margin-bottom: var(--espaco-3);
+}
+
+.quem-estava__grupo + .quem-estava__grupo {
+  margin-top: var(--espaco-4);
+}
+
+.quem-estava__todos > summary::before {
+  content: '▸';
+  margin-right: var(--espaco-2);
+}
+
+.quem-estava__todos[open] > summary::before {
+  content: '▾';
+}
+
+[data-nome-repetido] {
+  display: grid;
+  gap: var(--espaco-2);
+}
+
+[data-nome-repetido] p {
+  margin: 0;
+}

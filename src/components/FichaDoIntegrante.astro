@@ -1,7 +1,7 @@
 ---
 // Formulário da ficha de um integrante. Serve para cadastrar e para editar.
 import CampoData from './CampoData.astro';
-import { listarNucleos, type Integrante } from '../lib/servidor/repositorio';
+import { listarIntegrantes, listarNucleos, type Integrante } from '../lib/servidor/repositorio';
 
 interface Props {
   integrante?: Integrante;
@@ -9,12 +9,9 @@ interface Props {
 
 const { integrante: i } = Astro.props;
 const nucleos = i ? await listarNucleos() : [];
-const temMais = Boolean(i && (i.nascimentoAno || i.falecido || i.sobre));
-// O falecimento é uma opção: a data só aparece para quem marcou que a pessoa faleceu
-const datas = [
-  { prefixo: 'nascimento', rotulo: 'Nascimento', ano: i?.nascimentoAno, mes: i?.nascimentoMes, dia: i?.nascimentoDia, depende: false },
-  { prefixo: 'falecimento', rotulo: 'Falecimento', ano: i?.falecimentoAno, mes: i?.falecimentoMes, dia: i?.falecimentoDia, depende: true },
-];
+const temMais = Boolean(i && (i.nascimentoAno || i.sobre));
+// No cadastro, os nomes que já existem: "É outra pessoa?" só aparece quando o nome se repete
+const existentes = i ? [] : (await listarIntegrantes()).map((x) => ({ id: x.id, nome: x.nome, apelido: x.apelido }));
 ---
 
 <form class="formulario" method="post" action="/api/integrantes" data-ficha>
@@ -25,6 +22,19 @@ const datas = [
       <span>Nome</span>
       <input type="text" name="nome" required maxlength="80" autocomplete="off" value={i?.nome ?? ''} placeholder="Ex.: Maria Bayara" />
     </label>
+    {/* Logo abaixo do nome: o aviso aparece onde a pessoa está digitando */}
+    {
+      !i && (
+        <div class="recado" data-nome-repetido>
+          <p data-nome-repetido-texto>Se já existir alguém com esse nome no acervo, confira antes de cadastrar.</p>
+          <label class="marcar">
+            <input type="checkbox" name="outra" />
+            <span>É outra pessoa, mesmo com o mesmo nome</span>
+          </label>
+        </div>
+        <script type="application/json" data-nomes-existentes set:html={JSON.stringify(existentes).replace(/</g, '\\u003c')} />
+      )
+    }
     <label class="campo">
       <span>Como é chamado na família <small>(opcional)</small></span>
       <input type="text" name="apelido" maxlength="40" autocomplete="off" value={i?.apelido ?? ''} placeholder="Ex.: Vó Bela" />
@@ -49,29 +59,23 @@ const datas = [
       </div>
       <p class="dica">Serve para o site escrever "sua tia" ou "seu tio" na árvore.</p>
     </div>
+    {/* Fora do recolhido: muda como o site fala da pessoa (QA de UX, 16/11/2026). A data só aparece marcada. */}
+    <label class="marcar">
+      <input type="checkbox" name="falecido" data-revela="falecimento" checked={i?.falecido} />
+      <span>Já faleceu</span>
+    </label>
+    <div class="campo" data-depende="falecimento" hidden={!i?.falecido}>
+      <span>Falecimento <small>(se souber)</small></span>
+      <CampoData prefixo="falecimento" ano={i?.falecimentoAno} mes={i?.falecimentoMes} dia={i?.falecimentoDia} />
+    </div>
   </fieldset>
 
   <details class="mais" open={temMais}>
-    <summary>Datas e história <small>(opcional, dá para preencher depois)</small></summary>
+    <summary>Nascimento e história <small>(opcional, dá para preencher depois)</small></summary>
   <fieldset>
-      <legend>Datas</legend>
+      <legend>Nascimento</legend>
       <p class="dica">Preencha o que souber. Só o ano já basta.</p>
-      {
-        datas.map((d) => (
-          <>
-          {d.depende && (
-            <label class="marcar">
-              <input type="checkbox" name="falecido" data-revela="falecimento" checked={i?.falecido} />
-              <span>Já faleceu</span>
-            </label>
-          )}
-          <div class="campo" data-depende={d.depende ? 'falecimento' : undefined} hidden={d.depende && !i?.falecido}>
-            <span>{d.rotulo}</span>
-            <CampoData prefixo={d.prefixo} ano={d.ano} mes={d.mes} dia={d.dia} />
-          </div>
-          </>
-        ))
-      }
+      <CampoData prefixo="nascimento" ano={i?.nascimentoAno} mes={i?.nascimentoMes} dia={i?.nascimentoDia} />
     </fieldset>
 
 
@@ -102,14 +106,6 @@ const datas = [
     }
 
 
-  {
-    !i && (
-      <label class="marcar">
-        <input type="checkbox" name="outra" />
-        <span>É outra pessoa, mesmo que já exista alguém com esse nome</span>
-      </label>
-    )
-  }
 
   <div class="acoes">
     <button class="botao" type="submit">{i ? 'Salvar página' : 'Cadastrar e ir para os laços'}</button>
@@ -134,6 +130,24 @@ const datas = [
     };
     falecido.addEventListener('change', aplicar);
     aplicar();
+  }
+  // Cadastro: "É outra pessoa?" só aparece quando o nome digitado já existe no acervo, com o link para quem já está lá
+  const repetido = ficha?.querySelector<HTMLElement>('[data-nome-repetido]');
+  const campoNome = ficha?.querySelector<HTMLInputElement>('input[name="nome"]');
+  if (ficha && repetido && campoNome) {
+    const simples = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const existentes = JSON.parse(ficha.querySelector('[data-nomes-existentes]')?.textContent ?? '[]') as { id: string; nome: string; apelido: string | null }[];
+    const texto = repetido.querySelector<HTMLElement>('[data-nome-repetido-texto]')!;
+    const conferir = () => {
+      const nome = simples(campoNome.value);
+      const igual = nome ? existentes.find((x) => simples(x.nome) === nome || (x.apelido && simples(x.apelido) === nome)) : undefined;
+      repetido.hidden = !igual;
+      if (igual) {
+        texto.replaceChildren('Já existe ', Object.assign(document.createElement('a'), { href: `/pessoas/${igual.id}`, textContent: igual.nome, target: '_blank' }), ' no acervo. Se for a mesma pessoa, não precisa cadastrar de novo.');
+      } else repetido.querySelector<HTMLInputElement>('input[name="outra"]')!.checked = false;
+    };
+    campoNome.addEventListener('input', conferir);
+    conferir();
   }
   const especie = ficha?.querySelector<HTMLElement>('[data-especie]');
   for (const radio of ficha?.querySelectorAll<HTMLInputElement>('input[name="tipo"]') ?? []) {
