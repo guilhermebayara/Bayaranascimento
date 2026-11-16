@@ -103,7 +103,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const quemVe = podeMudarQuemVe(usuario, { ...atual, criadaPor: atual.criadoPor }, visibilidade, visibilidade === 'nucleos' ? nucleos : []);
     if (!quemVe.ok) return falhar(quemVe.motivo);
   }
-  const visivel = validarVisibilidade(usuario, visibilidade, nucleos);
+  const visivel = validarVisibilidade(usuario, visibilidade, nucleos, 'capitulo');
   if (!visivel.ok) return falhar(visivel.motivo);
 
   const ficha: DadosDoCapitulo = {

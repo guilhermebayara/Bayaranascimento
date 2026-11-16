@@ -11,7 +11,17 @@ const integrantes = await listarIntegrantes();
 const pessoa = integrantes.find((i) => i.id === Astro.params.id);
 if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
 
-const podeFicha = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok;
+const comAcesso = await pessoasComAcesso();
+// Quem não acessa o site não cuida da própria ficha (regra em podeEditarIntegrante): o texto diz quem cuida
+const quemCuida = (() => {
+  const nome = pessoa.apelido ?? pessoa.nome;
+  const t = pessoa.tratamento;
+  const da = t === 'ela' ? `da ${nome}` : t === 'ele' ? `do ${nome}` : `de ${nome}`;
+  const queEla = t === 'ela' ? 'ela' : t === 'ele' ? 'ele' : nome;
+  const cadastrou = t === 'ela' ? 'quem a cadastrou' : t === 'ele' ? 'quem o cadastrou' : 'quem fez o cadastro';
+  return `A ficha ${da} é cuidada por quem é do mesmo núcleo que ${queEla}, por ${cadastrou} e pelos administradores.`;
+})();
+const podeFicha = podeEditarIntegrante(usuario, pessoa, comAcesso).ok;
 const podeLacos = podeMexerEmLaco(usuario, [pessoa]).ok;
 // Laço do coração qualquer pessoa cria, entre ela e quem quiser. Por isso a página abre para todos.
 const ehMinha = pessoa.id === usuario.pessoa;
@@ -296,7 +306,11 @@ const anoAtual = new Date().getFullYear();
         <FichaDoIntegrante integrante={pessoa} />
       </section>
     ) : (
-      <p class="dica">A ficha de {chamar} só pode ser alterada por {pessoa.tratamento === 'ela' ? 'ela mesma' : pessoa.tratamento === 'ele' ? 'ele mesmo' : 'quem é dono da página'}.</p>
+      comAcesso.has(pessoa.id) ? (
+        <p class="dica">A ficha de {chamar} só pode ser alterada por {pessoa.tratamento === 'ela' ? 'ela mesma' : pessoa.tratamento === 'ele' ? 'ele mesmo' : 'quem é dono da página'}.</p>
+      ) : (
+        <p class="dica">{quemCuida}</p>
+      )
     )
   }
 </Base>
