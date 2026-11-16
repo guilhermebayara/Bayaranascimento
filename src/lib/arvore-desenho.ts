@@ -2,6 +2,8 @@
 // linhas. Função pura, usada no navegador (para a árvore reagir aos filtros na
 // hora) e nos testes.
 //
+import { DESLOCAMENTO_DO_PAPEL, type Papel } from './parentesco';
+
 // A árvore é desenhada em linhas por geração. Em cada linha, casais ficam lado
 // a lado e os filhos ficam, na medida do possível, embaixo dos pais.
 
@@ -39,6 +41,8 @@ export interface CoracaoNoDesenho {
    * sobrinho do Ed"). Entra na árvore como um laço do coração, com traço de sangue e sem escadinha própria.
    */
   sangue?: boolean;
+  /** "como se fosse": decide, na escadinha, quem fica no meio */
+  papel?: Papel | null;
 }
 
 export interface Medidas {
@@ -77,8 +81,8 @@ export interface Desenho {
  * o laço se liga direto ao dono. Um laço resumido nunca passa por ninguém.
  */
 export function passaPor(
-  laco: Pick<CoracaoNoDesenho, 'dono' | 'pessoa' | 'sangue'>,
-  coracao: Pick<CoracaoNoDesenho, 'dono' | 'pessoa' | 'sangue'>[],
+  laco: Pick<CoracaoNoDesenho, 'dono' | 'pessoa' | 'sangue' | 'papel'>,
+  coracao: Pick<CoracaoNoDesenho, 'dono' | 'pessoa' | 'sangue' | 'papel'>[],
   filiacoes: Pick<FiliacaoNoDesenho, 'filho' | 'responsavel'>[],
 ): string | undefined {
   if (laco.sangue) return undefined;
@@ -86,10 +90,22 @@ export function passaPor(
   const pais = filiacoes.filter((f) => f.filho === laco.dono).map((f) => f.responsavel);
   const pelosPais = pais.find((pai) => coracao.some((l) => liga(pai, laco.pessoa, l)));
   if (pelosPais) return pelosPais;
-  const escolhidos = coracao.filter((l) => !l.sangue && l.dono === laco.dono && l.pessoa !== laco.pessoa).map((l) => l.pessoa);
-  // Só no sentido em que o laço resumido foi dito: o Caio é sobrinho do Ed, então o laço com o Caio passa
-  // pelo Ed, e o laço com o Ed não passa pelo Caio
-  return escolhidos.find((x) => coracao.some((l) => l.sangue && l.dono === x && l.pessoa === laco.pessoa));
+  // Quem fica no meio é quem está mais perto de quem escolheu: o amigo-irmão (mesma geração) fica entre o Gui
+  // e o sobrinho dele, não importa em que sentido o laço resumido foi dito ("Caio é sobrinho do Ed" ou "Ed é
+  // tio do Caio"). Sem papel para comparar, vale o sentido em que o laço resumido foi dito.
+  const distancia = (l: Pick<CoracaoNoDesenho, 'papel'>) => (l.papel ? Math.abs(DESLOCAMENTO_DO_PAPEL[l.papel]) : undefined);
+  for (const viaX of coracao.filter((l) => !l.sangue && l.dono === laco.dono && l.pessoa !== laco.pessoa)) {
+    const x = viaX.pessoa;
+    const resumido = coracao.find((l) => l.sangue && liga(x, laco.pessoa, l));
+    if (!resumido) continue;
+    const [ateX, ateP] = [distancia(viaX), distancia(laco)];
+    if (ateX !== undefined && ateP !== undefined && ateX !== ateP) {
+      if (ateX < ateP) return x;
+      continue;
+    }
+    if (resumido.dono === x) return x;
+  }
+  return undefined;
 }
 
 export function desenharArvore(
