@@ -78,14 +78,14 @@ A homologação usa a mesma estrutura de família da produção (filiações, ca
 
 - A estrutura do banco muda pela lista `MIGRACOES` em `src/lib/servidor/banco.ts`. O próprio site aplica as migrações novas no primeiro acesso, na produção e nas prévias.
 - Uma migração já publicada nunca é editada. Mudança nova é uma migração nova, com o número seguinte.
-- O SQLite não altera um `CHECK` no lugar: a tabela é refeita com os mesmos dados (ver `010-papel-pai`).
+- O SQLite não altera um `CHECK` no lugar: a tabela é refeita com os mesmos dados (ver `010-papel-pai`). Se outra tabela depende dela com `ON DELETE CASCADE`, refaça a dependente antes de apagar a antiga (ver `012-casal-publico-a-parte`); a guarda da produção recusa a ordem errada.
 - Os exemplos ficam em `src/lib/servidor/semente.ts`. O banco de teste já foi semeado, então exemplo novo entra numa função própria, protegida pela existência de um dos registros novos, chamada dentro da proteção da produção em `banco.ts`.
 
 ## Conferências
 
 O plano gratuito do GitHub não protege branches de repositório privado. As regras que não podem falhar ficam no próprio repositório e travam a publicação:
 
-- `npm run confere` (`scripts/confere-producao.mjs`), a guarda da produção. Falha se a produção deixar de usar o banco e o bucket reais ou de se declarar `producao`, se uma prévia apontar para o banco ou o bucket reais, se a homologação dividir banco ou bucket com a produção ou com as prévias de teste, se a produção enxergar o banco da homologação, se as memórias de exemplo puderem rodar na produção ou na homologação, se aparecer um e-mail de verdade em arquivo versionado ou se um arquivo de segredo local for versionado.
+- `npm run confere` (`scripts/confere-producao.mjs`), a guarda da produção. Falha se a produção deixar de usar o banco e o bucket reais ou de se declarar `producao`, se uma prévia apontar para o banco ou o bucket reais, se a homologação dividir banco ou bucket com a produção ou com as prévias de teste, se a produção enxergar o banco da homologação, se as memórias de exemplo puderem rodar na produção ou na homologação, se aparecer um e-mail de verdade em arquivo versionado, se um arquivo de segredo local for versionado ou se uma migração apagar uma tabela da qual outra ainda depende com exclusão em cascata (`scripts/migracoes.mjs`: a cascata levaria as linhas da outra junto).
 - `npm test`: os testes em `testes/`, das regras de permissão, das datas, do login, do parentesco e da árvore.
 - `npm run build` roda os dois antes do build (`prebuild`). O Cloudflare publica com `npm run build`: se algo falhar, nada vai ao ar e a versão anterior continua.
 - No GitHub, `.github/workflows/confere.yml` roda o mesmo a cada push, em qualquer branch, e em todo PR para a `main`. Falha vira marca vermelha no commit e e-mail.

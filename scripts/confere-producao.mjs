@@ -10,8 +10,11 @@
 // 4. Nenhum e-mail de verdade entra no repositório: quem tem acesso fica só no segredo
 //    ACESSOS do Cloudflare. E-mails de exemplo (exemplo.com, example.com, b.com) passam.
 // 5. Arquivos de segredo locais (.dev.vars, .env) nunca são versionados.
+// 6. Nenhuma migração apaga uma tabela da qual outra ainda depende com ON DELETE CASCADE: a cascata
+//    levaria as linhas da outra junto (ver scripts/migracoes.mjs).
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { cascatasPerigosas } from './migracoes.mjs';
 
 const PRODUCAO = { banco: 'bayara-memorias', bucket: 'bayara-memorias' };
 const DOMINIOS_DE_EXEMPLO = new Set(['exemplo.com', 'example.com', 'example.org', 'b.com']);
@@ -84,6 +87,9 @@ for (const arquivo of versionados) {
     falhar(`${arquivo}: parece um e-mail de verdade (${email.replace(/^(.).*@/, '$1…@')}). E-mails de acesso ficam só no segredo ACESSOS.`);
   }
 }
+
+// 6. Migrações que apagariam dados por cascata
+for (const problema of cascatasPerigosas(readFileSync('src/lib/servidor/banco.ts', 'utf8'))) falhar(`src/lib/servidor/banco.ts, migração ${problema}`);
 
 if (falhas.length) {
   console.error('Guarda da produção: algo que protege o acervo real foi quebrado.\n');
