@@ -162,7 +162,7 @@ Quando um achado merece virar regra permanente, o relatório propõe o teste ou 
 
 ## Sessão de QA de UX
 
-Aberta só quando o Gui pedir, não é recorrente. Arruma a interface atual em padrões (tokens, componentes, estados, estrutura de página, textos de interface) para que a troca para o visual final seja feita em poucos lugares, sem julgar a aparência de hoje. O procedimento, o relatório e o prompt estão em `docs/qa-ux.md`.
+Aberta só quando o Gui pedir, não é recorrente. Avalia os fluxos (ordem dos formulários, tipo de controle de cada escolha, onde mora cada informação, ordem da linha do tempo) e arruma a interface atual em padrões (tokens, componentes, estados, estrutura de página, textos de interface) para que a troca para o visual final seja feita em poucos lugares, sem julgar a aparência de hoje. O procedimento, o relatório e o prompt estão em `docs/qa-ux.md`.
 
 ## Cuidados que já custaram tempo
 
