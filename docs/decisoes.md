@@ -44,6 +44,7 @@ A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `tes
 - Textos, núcleos, rascunhos e histórico no banco D1 `bayara-memorias`
 - Fotos no bucket R2 `bayara-memorias`, com o iCloud como casa dos originais
 - Este repositório guarda só o código. Nenhum conteúdo da família fica aqui.
+- **Aviso de tamanho do banco** (decisão do Gui, 16/11/2026, `src/lib/tamanho-do-banco.ts`). No plano gratuito, cada banco D1 vai até 500 MB, e o aviso começa em 300 MB, para sobrar tempo de decidir. O tamanho só se sabe com o site rodando (o `meta.size_after` que o D1 devolve em cada consulta), então o aviso não cabe na guarda do build. Os administradores veem no rodapé, junto de "Baixar cópia do acervo", o tamanho do banco ("Banco: 12 MB de 500 MB"); passando de 300 MB, vira um recado com o tamanho e a saída combinada. A cópia mensal leva o tamanho (`banco` em `/api/copia`), e `scripts/copia-no-drive.gs` falha quando ele passa do aviso, o que faz o Google mandar o e-mail, sem deixar de salvar a cópia (ver `docs/copia-no-drive.md`). Se o limite chegar, a saída combinada é o plano Workers Paid (10 GB por banco), e não dividir o acervo em dois bancos. A conta está na seção "Custo" do documento de estrutura.
 
 ## Como o site funciona
 
@@ -181,7 +182,7 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
-- **Aviso de tamanho do banco** (decisão do Gui, 16/11/2026). No plano gratuito, cada banco D1 vai até 500 MB. O site avisa quando o banco da produção passar de 300 MB, para sobrar tempo de decidir. O tamanho só se sabe com o site rodando (o `meta.size_after` que o D1 devolve em cada consulta), então o aviso não cabe na guarda do build. Ele aparece para os administradores no site (no rodapé, junto da cópia do acervo) e vai junto na cópia mensal: `/api/copia` informa o tamanho e `scripts/copia-no-drive.gs` falha quando ele passa do limite, o que faz o Google mandar o e-mail de aviso, sem deixar de salvar a cópia. Se o limite chegar, a saída combinada é o plano Workers Paid (10 GB por banco), não dividir o acervo em dois bancos. A conta está na seção "Custo" do documento de estrutura.
+Nada pendente por enquanto.
 
 ## Em aberto
 

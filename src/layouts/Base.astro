@@ -3,7 +3,8 @@ import '../styles/global.css';
 import { PESSOAS_DE_TESTE, semLogin } from '../lib/servidor/acesso';
 import { ehHomologacao } from '../lib/servidor/ambiente';
 import { podeEspelhar } from '../lib/servidor/espelho';
-import { listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
+import { listarIntegrantes, listarNucleos, tamanhoDoBanco } from '../lib/servidor/repositorio';
+import { emMegabytes, LIMITE_DO_PLANO, situacaoDoBanco } from '../lib/tamanho-do-banco';
 
 interface Props {
   titulo?: string;
@@ -21,6 +22,8 @@ const aqui = Astro.url.pathname + Astro.url.search;
 // Recados deixados por formulários comuns, que voltam para a página com ?ok= ou ?erro=
 const recadoOk = Astro.url.searchParams.get('ok');
 const recadoErro = Astro.url.searchParams.get('erro');
+// Aviso de tamanho do banco: só para os admins, junto da cópia do acervo (decisão do Gui, 16/11/2026)
+const banco = usuario.admin ? situacaoDoBanco(await tamanhoDoBanco()) : undefined;
 ---
 
 <!doctype html>
@@ -89,7 +92,16 @@ const recadoErro = Astro.url.searchParams.get('erro');
               Baixar cópia do acervo
             </a>
           )}
+          {banco && !banco.passouDoAviso && <span class="rodape__banco">Banco: {banco.texto} de {emMegabytes(LIMITE_DO_PLANO)}</span>}
         </span>
+        {
+          banco?.passouDoAviso && (
+            <p class="recado recado--erro rodape__aviso" role="status">
+              O banco do acervo está com {banco.texto}, perto do limite de {emMegabytes(LIMITE_DO_PLANO)} do plano gratuito. A saída combinada é o plano Workers Paid (10 GB por banco).
+              Veja "Custo" no documento de estrutura.
+            </p>
+          )
+        }
       }
     </footer>
     <script>

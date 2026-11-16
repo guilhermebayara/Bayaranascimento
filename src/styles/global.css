@@ -2963,3 +2963,9 @@ p {
   text-decoration-color: var(--cor-destaque);
   text-decoration-thickness: 0.2em;
 }
+
+/* Tamanho do banco, para os admins, junto da cópia do acervo */
+.rodape__aviso {
+  flex-basis: 100%;
+  margin: 0;
+}
