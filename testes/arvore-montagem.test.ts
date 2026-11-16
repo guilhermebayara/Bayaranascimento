@@ -172,3 +172,37 @@ describe('laço resumido na montagem', () => {
     expect(geracoes.get('ed')).toBe(geracoes.get('caio-do-ed')! - 1);
   });
 });
+
+describe('laço resumido dito ao contrário (achado do Gui na homologação, 15/11/2026)', () => {
+  // "Ed é tio do Caio", cadastrado na página do Caio: o laço do Gui com o Caio passa pelo Ed do mesmo jeito,
+  // e o Ed continua do lado dos outros amigos-irmãos
+  const base: DadosDaArvore = {
+    eu: 'eu', centros: ['eu'], nucleos: [{ id: 'n', nome: 'N' }],
+    pessoas: ['eu', 'mae', 'pai', 'irma', 'cunhado', 'ivan', 'joao', 'ed', 'caio'].map((id) => ({ id, nome: id, rotulo: '', nucleos: ['eu', 'mae', 'pai', 'irma'].includes(id) ? ['n'] : [], bicho: false, anos: '' })),
+    filiacoes: [
+      { filho: 'eu', responsavel: 'mae', consideracao: false }, { filho: 'eu', responsavel: 'pai', consideracao: false },
+      { filho: 'irma', responsavel: 'mae', consideracao: false }, { filho: 'irma', responsavel: 'pai', consideracao: false },
+    ],
+    casais: [{ a: 'mae', b: 'pai', ex: true }, { a: 'irma', b: 'cunhado', ex: false }, { a: 'ivan', b: 'joao', ex: false }],
+    coracao: [
+      { dono: 'eu', pessoa: 'ed', papel: 'irmao', rotulo: '' },
+      { dono: 'eu', pessoa: 'ivan', papel: 'irmao', rotulo: '' },
+      { dono: 'eu', pessoa: 'joao', papel: 'irmao', rotulo: '' },
+      { dono: 'eu', pessoa: 'caio', papel: 'sobrinho', rotulo: '' },
+    ],
+    resumidos: [{ a: 'caio', b: 'ed', papel: 'tio', rotulo: 'tio de Caio' }],
+  };
+  const e: Estado = { foco: 'eu', centro: '', ramos: new Set(), nucleo: '', consideracao: true, ex: true, bichos: true, outros: true, abertos: new Set(['eu']) };
+
+  it('não há linha direta do Gui até o Caio: ela passa pelo Ed', () => {
+    const { desenho } = montarDesenho(base, e);
+    const ligam = (a: string, b: string) => desenho.linhas.filter((l) => l.de.includes(a) && l.de.includes(b) && l.tipo !== 'ponto').map((l) => l.tipo);
+    expect(ligam('eu', 'caio')).toEqual([]);
+    expect(ligam('ed', 'caio')).toEqual(['resumido']);
+  });
+
+  it('o laço com o Ed não passa pelo Caio', () => {
+    const { desenho } = montarDesenho(base, e);
+    expect(desenho.linhas.some((l) => l.tipo === 'coracao' && l.de.includes('eu') && l.de.includes('ed'))).toBe(true);
+  });
+});
