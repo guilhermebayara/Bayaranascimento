@@ -61,7 +61,7 @@ O Safari do iPhone já deu trabalho com efeitos presos à rolagem no site da @bs
 | Legenda "lugar (ano)" | Polaroid, cartão de memória, fotos | Em mono, pequena |
 | Etiqueta-balão | Tipo de momento | Pílula com um canto reto, na cor do tipo |
 | Ficha em mono | Topo da memória, do capítulo e da pessoa | Rótulo pequeno em caixa alta e valor: quando, onde, tipo, capítulos, temas, núcleos |
-| Retrato recortado | "Quem estava", página da pessoa | Foto em arco ou cápsula. Depende da foto de retrato no cadastro, que ainda não existe (ver "Em aberto" em `docs/decisoes.md`); até lá, iniciais sobre a cor da família |
+| Retrato recortado | "Quem estava", página da pessoa | Foto de retrato do cadastro em arco ou cápsula (o envio da foto entra junto com esta versão, ver "Decidido, a construir" em `docs/decisoes.md`). Quem não tem foto aparece com as iniciais sobre a cor da família |
 | Nome manuscrito | Relato | O nome de quem conta, escrito à mão, junto de "registrado por" quando for o caso |
 | Bloco de áudio | Relato | Botão de tocar, título, onde e quando foi gravado, duração, "Ler a transcrição" |
 | Sanfona de fases | Página do laço | Ano grande, nome da fase, data pequena; abre uma de cada vez |

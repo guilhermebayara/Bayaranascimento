@@ -184,15 +184,24 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
 
 - **Primeira versão do visual** (decisões do Gui, 16/11/2026). Construir a direção de `docs/visual.md` numa branch `tst-visual`, nascida da `homologa`, para o Gui ver na prévia antes de decidir. Ordem sugerida, cada passo conferido em 390 e 1280 px, por teclado e com movimento reduzido:
     1. Tokens: fontes (serifa macia nos títulos, grotesca no texto, mono nas legendas, manuscrita só no nome de quem conta), neutros de papel e as cores das famílias em pastel com a versão saturada de cada uma. Os tokens já têm nome de papel (`docs/ux/padroes.md`); a lista de `docs/ux/revisao-visual.md` entra aqui (escala de espaços, tamanhos, raios, bordas, áreas de toque de 44 px).
-    2. Componentes de `docs/visual.md`: polaroid, monte de fotos, legenda "lugar (ano)", etiqueta-balão, ficha em mono, retrato recortado (com iniciais enquanto não houver foto de retrato), nome manuscrito, bloco de áudio, sanfona de fases.
-    3. Páginas: linha do tempo (com o trilho e o ponto), página da memória na ordem de `docs/visual.md`, capítulo, pessoa e laço. A árvore só muda de cor.
-    4. Movimento, por último, só o da lista de `docs/visual.md`, com a frase que acende palavra por palavra no modelo do bayara.design.
+    2. Foto de retrato no cadastro da pessoa (abaixo), antes dos componentes, porque o retrato recortado depende dela.
+    3. Componentes de `docs/visual.md`: polaroid, monte de fotos, legenda "lugar (ano)", etiqueta-balão, ficha em mono, retrato recortado (com iniciais de quem ainda não tem foto), nome manuscrito, bloco de áudio, sanfona de fases.
+    4. Páginas: linha do tempo (com o trilho e o ponto), página da memória na ordem de `docs/visual.md`, capítulo, pessoa e laço. A árvore só muda de cor.
+    5. Movimento, por último, só o da lista de `docs/visual.md`, com a frase que acende palavra por palavra no modelo do bayara.design.
+  **Foto de retrato** (decisão do Gui, 16/11/2026): só por envio de foto nova, sem recortar de fotos de memórias.
+    - Opcional, para pessoas e bichos. Em "Nova pessoa" fica com o nascimento e a história, no que vem recolhido; em "Editar página e laços", à vista, com "Trocar foto" e "Tirar foto".
+    - Depois de escolher, a pessoa enquadra o rosto num recorte quadrado (arrastar e aproximar) e confere como vai ficar. O navegador reduz e recorta antes de enviar, como já faz com as fotos de memória, num tamanho de retrato (uns 800 px).
+    - Quem pode pôr ou trocar: quem pode editar a página da pessoa. Quem vê a pessoa vê o retrato, como vê o nome.
+    - Uma migração nova guarda a chave do retrato em `integrantes`. O arquivo fica no bucket das fotos, debaixo de `retratos/`. Trocar ou tirar não apaga o arquivo antigo, e a mudança entra nas versões guardadas do cadastro, como as outras.
+    - Aparece na página da pessoa, em "Quem estava" na memória e na ficha que abre ao tocar na pessoa na árvore. Os cartões da árvore continuam sem foto. Sem retrato, as iniciais sobre a cor da família.
+    - O espelho da produção não leva retratos, como não leva áudios. Os exemplos podem ganhar retratos de exemplo, se ajudar a conferir o visual.
+    - Teste em `testes/`: quem pode pôr e trocar o retrato, e que o retrato de quem a pessoa não vê não é entregue.
   Fontes: escolher entre opções de licença livre (Fontsource), comparando duas ou três na prévia; a serifa precisa ter acentos e itálico bons em português. A polaroid em toda foto-chave fica para o Gui confirmar vendo a linha do tempo pronta. Ao terminar, o resumo de `docs/visual.md` vira regra aqui, e `docs/ux/revisao-visual.md` sai de cena.
 
 ## Em aberto
 
 - Histórico de integrantes e laços no site (as versões já são guardadas) e apagar de vez o que está na lixeira
-- Foto de retrato do integrante, juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
+- Juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
 - Árvore: regras de ocultar e de exigir parentes de sangue, centros padrão escolhidos na administração e página do laço com linha do tempo
 - Quem só existe em laço privado de outra pessoa já some da árvore, mas ainda aparece na lista de Pessoas
 - Painel pessoal como página inicial, com as boas-vindas de Natal na primeira visita. Aniversários entram no painel, a partir das datas de nascimento (ideia do Gui, 15/11/2026)
