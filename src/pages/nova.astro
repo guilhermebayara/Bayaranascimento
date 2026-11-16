@@ -47,7 +47,8 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     </p>
   </div>
 
-  <form class="formulario" data-formulario-memoria data-id={memoria?.id ?? ''} novalidate>
+  <form class="formulario" method="post" action="/api/memorias" data-formulario-memoria data-id={memoria?.id ?? ''} novalidate>
+    {memoria && <input type="hidden" name="id" value={memoria.id} />}
     <section data-etapa="O momento">
     <fieldset>
       <legend>O que aconteceu?</legend>
@@ -276,13 +277,13 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
     <div class="acoes acoes--etapas">
       <button type="button" class="botao botao--leve" data-etapa-voltar>Voltar</button>
-      {!publicada && <button type="submit" class="botao botao--leve acoes__rascunho" data-salvar="rascunho">Salvar rascunho</button>}
+      {!publicada && <button type="submit" class="botao botao--leve acoes__rascunho" name="situacao" value="rascunho" data-salvar="rascunho">Salvar rascunho</button>}
       <button type="button" class="botao" data-etapa-continuar>Continuar</button>
       {
         publicada ? (
-          <button type="submit" class="botao" data-salvar="publicada">Salvar alterações</button>
+          <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada">Salvar alterações</button>
         ) : (
-          <button type="submit" class="botao" data-salvar="publicada" data-so-no-fim>Publicar memória</button>
+          <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada" data-so-no-fim>Publicar memória</button>
         )
       }
     </div>

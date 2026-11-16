@@ -61,3 +61,29 @@ describe('árvore na tela', () => {
     expect(pagina.indexOf('data-camada-ramos')).toBeLessThan(pagina.indexOf('mapa__painel'));
   });
 });
+
+describe('formulários sem JavaScript e depois de um erro', () => {
+  // Achados do QA de 15/11/2026, corrigidos a pedido do Gui (16/11)
+  it('o que foi digitado volta quando o servidor recusa', () => {
+    const base = fonte('src/layouts/Base.astro');
+    expect(base).toContain("import { guardarFormularios } from '../lib/cliente/guardar-formulario';");
+    const guardar = fonte('src/lib/cliente/guardar-formulario.ts');
+    expect(guardar).toContain("searchParams.has('erro')");
+    expect(guardar).toContain('sessionStorage');
+  });
+
+  it('sem JavaScript, somem os botões que dependem dele e aparecem os blocos que ele mostraria', () => {
+    const base = fonte('src/layouts/Base.astro');
+    expect(base).toMatch(/<noscript>[\s\S]*\[data-etapa-continuar\][\s\S]*display: none[\s\S]*\[data-para\]\[hidden\], \[data-so-epoca\]\[hidden\] \{ display: block/);
+  });
+
+  it('nova memória e relato enviam como formulário comum, e as APIs aceitam', () => {
+    expect(fonte('src/pages/nova.astro')).toMatch(/<form class="formulario" method="post" action="\/api\/memorias"/);
+    expect(fonte('src/pages/memorias/[id]/relato.astro')).toMatch(/<form class="formulario" method="post" action="\/api\/relatos"/);
+    for (const api of ['src/pages/api/memorias.ts', 'src/pages/api/relatos.ts']) {
+      expect(fonte(api), api).toMatch(/if \(!\(request\.headers\.get\('Content-Type'\) \?\? ''\)\.includes\('application\/json'\)\) \{\s*const dados = await request\.formData\(\);/);
+    }
+    // Sem JavaScript não há envio de fotos: as que a memória já tem ficam
+    expect(fonte('src/pages/api/memorias.ts')).toContain('fotos: (anterior?.fotos ?? []).map(');
+  });
+});

@@ -31,6 +31,13 @@ const recadoErro = Astro.url.searchParams.get('erro');
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#edf2ee" />
     <title>{tituloPagina}</title>
+    <noscript>
+      <!-- Sem JavaScript: some o que só funciona com ele, e aparecem os blocos que ele mostraria conforme a escolha -->
+      <style>
+        [data-passo], .atalhos, [data-etapa-voltar], [data-etapa-continuar], [data-adicionar-pessoa], .botao--arquivo { display: none !important; }
+        [data-para][hidden], [data-so-epoca][hidden] { display: block !important; }
+      </style>
+    </noscript>
   </head>
   <body>
     {
@@ -85,5 +92,12 @@ const recadoErro = Astro.url.searchParams.get('erro');
         </span>
       }
     </footer>
+    <script>
+      import { guardarFormularios } from '../lib/cliente/guardar-formulario';
+
+      // Depois dos scripts da página, para os campos devolvidos acertarem o que depende deles
+      if (document.readyState === 'complete') guardarFormularios();
+      else addEventListener('load', guardarFormularios, { once: true });
+    </script>
   </body>
 </html>
