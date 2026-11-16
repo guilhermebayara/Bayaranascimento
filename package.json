@@ -10,7 +10,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "test": "vitest run testes",
-    "capturas": "node scripts/capturas.mjs"
+    "capturas": "node scripts/capturas.mjs",
+    "fotos-de-exemplo": "node scripts/enviar-fotos-de-exemplo.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.8",

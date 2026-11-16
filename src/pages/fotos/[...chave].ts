@@ -1,7 +1,8 @@
 // Entrega as fotos do bucket, que é privado. Cada pedido confere se a pessoa
 // pode ver a memória a que a foto pertence.
 import type { APIRoute } from 'astro';
-import { bucketDeFotos } from '../../lib/servidor/ambiente';
+import { bucketDeFotos, bucketDosExemplos } from '../../lib/servidor/ambiente';
+import { ehChaveDeExemplo } from '../../lib/fotos-de-exemplo';
 import { podeVerFoto } from '../../lib/servidor/repositorio';
 
 const CHAVE_VALIDA = /^\d{4}\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
@@ -9,11 +10,13 @@ const naoEncontrada = () => new Response('Foto não encontrada', { status: 404 }
 
 export const GET: APIRoute = async ({ params, request, locals }) => {
   const chave = params.chave ?? '';
-  if (!CHAVE_VALIDA.test(chave)) return naoEncontrada();
+  const exemplo = ehChaveDeExemplo(chave);
+  if (!CHAVE_VALIDA.test(chave) && !exemplo) return naoEncontrada();
   // Quem não pode ver recebe a mesma resposta de uma foto que não existe
   if (!(await podeVerFoto(locals.usuario, chave))) return naoEncontrada();
 
-  const objeto = await bucketDeFotos().get(chave, { onlyIf: request.headers });
+  // As fotos de exemplo (o Chico e a Karol) são lidas do bucket de teste, também na homologação
+  const objeto = exemplo ? await bucketDosExemplos()?.get(chave, { onlyIf: request.headers }) : await bucketDeFotos().get(chave, { onlyIf: request.headers });
   if (!objeto) return naoEncontrada();
 
   const headers = new Headers();

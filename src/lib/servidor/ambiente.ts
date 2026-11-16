@@ -42,3 +42,21 @@ export function bucketDeFotos(): R2Bucket {
 
 /** Os únicos ambientes que recebem o acervo de exemplo. Produção e homologação nunca. */
 export const AMBIENTES_COM_EXEMPLOS: Ambiente[] = ['previa', 'desenvolvimento'];
+
+/**
+ * Onde as 11 fotos de exemplo (o Chico e a Karol) são lidas: debaixo de "exemplos/" no bucket de teste.
+ * Nas prévias e na homologação, FOTOS é o bucket de teste (bloco "previews" do wrangler.jsonc); a
+ * homologação só lê dele, e o bucket dela continua sendo FOTOS_HOMOLOGA. Na produção não existe.
+ */
+export function bucketDosExemplos(): R2Bucket | null {
+  return ambiente() === 'producao' ? null : env.FOTOS;
+}
+
+/**
+ * O bucket de teste, para gravar ou apagar: o envio das fotos de exemplo e a limpeza de 7 dias. Só nas
+ * prévias e no computador. Na produção e na homologação, recusa.
+ */
+export function bucketDeTesteParaGravar(): R2Bucket {
+  if (!AMBIENTES_COM_EXEMPLOS.includes(ambiente()) || ehHomologacao()) throw new Error('Só as prévias de teste gravam no bucket de teste.');
+  return env.FOTOS;
+}

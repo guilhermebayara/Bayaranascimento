@@ -56,9 +56,22 @@ describe('espelho da produção para a homologação', () => {
     const tudo = JSON.stringify(e);
     for (const segredo of ['Real', 'secreto', 'Texto secreto', 'colégio Tal', 'vo-bela', 'aguilar', 'real-1']) expect(tudo).not.toContain(segredo);
   });
-  it('não leva retratos: a chave do retrato real não passa, e ninguém fica com retrato', () => {
+  it('não leva retratos reais: no lugar, uma das fotos de exemplo, pelo tratamento', () => {
     expect(JSON.stringify(e)).not.toContain('retratoreal');
-    expect(tabela('integrantes').every((i) => i.retrato === null)).toBe(true);
+    for (const i of tabela('integrantes')) {
+      expect(i.retrato).toMatch(/^exemplos\/(chico-[1-5]|karol-[1-6])\.jpg$/);
+      if (i.tipo === 'pessoa' && i.tratamento === 'ela') expect(i.retrato).toMatch(/karol/);
+      if (i.tipo === 'pessoa' && i.tratamento === 'ele') expect(i.retrato).toMatch(/chico/);
+    }
+  });
+  it('as fotos das memórias apontam para as 11 fotos de exemplo, sem nenhuma vazia', () => {
+    const fotos = tabela('fotos');
+    expect(fotos.length).toBeGreaterThan(0);
+    const memorias = new Set(tabela('memorias').map((m) => m.id));
+    for (const f of fotos) {
+      expect(f.chave).toMatch(/^exemplos\/(chico-[1-5]|karol-[1-6])\.jpg$/);
+      expect(memorias.has(f.memoria_id)).toBe(true);
+    }
   });
   it('mantém os ids de quem tem acesso e troca os outros', () => {
     const ids = tabela('integrantes').map((i) => i.id);

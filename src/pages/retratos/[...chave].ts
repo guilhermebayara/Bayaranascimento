@@ -1,7 +1,8 @@
 // Entrega as fotos de retrato do bucket, que é privado. Só o retrato atual de alguém que a pessoa
 // logada vê. Quem não vê recebe a mesma resposta de um retrato que não existe.
 import type { APIRoute } from 'astro';
-import { bucketDeFotos } from '../../lib/servidor/ambiente';
+import { bucketDeFotos, bucketDosExemplos } from '../../lib/servidor/ambiente';
+import { ehChaveDeExemplo } from '../../lib/fotos-de-exemplo';
 import { podeVerRetratoDaChave } from '../../lib/servidor/repositorio';
 import { CHAVE_DE_RETRATO, PASTA_DOS_RETRATOS } from '../../lib/retratos';
 
@@ -9,10 +10,14 @@ const naoEncontrado = () => new Response('Retrato não encontrado', { status: 40
 
 export const GET: APIRoute = async ({ params, request, locals }) => {
   const chave = params.chave ?? '';
-  if (!CHAVE_DE_RETRATO.test(chave)) return naoEncontrado();
+  const exemplo = ehChaveDeExemplo(chave);
+  if (!CHAVE_DE_RETRATO.test(chave) && !exemplo) return naoEncontrado();
   if (!(await podeVerRetratoDaChave(locals.usuario, chave))) return naoEncontrado();
 
-  const objeto = await bucketDeFotos().get(`${PASTA_DOS_RETRATOS}${chave}`, { onlyIf: request.headers });
+  // O retrato de exemplo é uma das 11 fotos do bucket de teste, recortada em quadrado na tela
+  const objeto = exemplo
+    ? await bucketDosExemplos()?.get(chave, { onlyIf: request.headers })
+    : await bucketDeFotos().get(`${PASTA_DOS_RETRATOS}${chave}`, { onlyIf: request.headers });
   if (!objeto) return naoEncontrado();
 
   const headers = new Headers();
