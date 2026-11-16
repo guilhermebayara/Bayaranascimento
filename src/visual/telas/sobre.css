@@ -1,0 +1,160 @@
+/* Página de apoio do conceito: fontes, assinatura, cores e peças. Não é uma tela do site. */
+
+.sobre {
+  padding-top: var(--e-6);
+}
+.sobre section {
+  margin-top: var(--e-9);
+}
+.sobre__abre h1 {
+  margin-top: var(--e-4);
+  margin-left: -0.035em;
+}
+.sobre__texto {
+  max-width: var(--medida);
+  margin-top: var(--e-5);
+  font-size: var(--t-leitura);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.sobre__titulo {
+  padding-bottom: var(--e-4);
+  border-bottom: 1px solid var(--tinta);
+  font-size: var(--t-titulo-2);
+}
+
+.especimes,
+.assinaturas,
+.pecas {
+  display: grid;
+  gap: var(--e-8) calc(var(--calha) * 2);
+  margin-top: var(--e-7);
+}
+.especime {
+  display: grid;
+  align-content: start;
+  gap: var(--e-4);
+  min-width: 0;
+  font-family: var(--grotesca);
+}
+.especime .rotulo,
+.especime__ficha {
+  font-family: var(--mono);
+}
+.especime .assinatura {
+  margin-top: var(--e-3);
+}
+.especime__ano,
+.especime__titulo,
+.especime__trecho {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+}
+.especime__ano {
+  font-size: calc(6.5rem * var(--escala-serifa));
+  font-variation-settings: var(--serifa-ajustes-capa);
+  font-weight: var(--serifa-peso-capa);
+  letter-spacing: var(--aperto-capa);
+  line-height: 0.85;
+}
+.especime__titulo {
+  font-size: calc(2.25rem * var(--escala-serifa));
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.04;
+}
+.especime__trecho {
+  font-size: calc(1.5rem * var(--escala-serifa));
+  font-style: italic;
+  line-height: 1.2;
+}
+.especime__mao {
+  font-family: var(--mao);
+  font-size: calc(2.5rem * var(--escala-mao));
+  line-height: 1;
+  rotate: -3deg;
+  transform-origin: left;
+}
+.especime__texto {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+.especime__ficha {
+  font-size: 0.75rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.especime__fontes {
+  font-size: var(--t-pequeno);
+}
+
+.assinaturas .ficha {
+  margin-top: var(--e-3);
+}
+
+.cores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: var(--e-6) var(--calha);
+  margin-top: var(--e-7);
+}
+.cores li {
+  display: grid;
+  grid-template-columns: 3fr 2fr 1fr 1fr;
+  gap: 0;
+}
+.cores span:not(.ficha) {
+  height: 7rem;
+}
+.cores__pastel {
+  background: var(--pastel);
+  border-radius: var(--raio-moldura) 0 0 var(--raio-moldura);
+}
+.cores__meio {
+  background: var(--meio);
+}
+.cores__vivo {
+  background: var(--vivo);
+}
+.cores__tinta {
+  background: var(--vivo-tinta);
+  border-radius: 0 var(--raio-moldura) var(--raio-moldura) 0;
+}
+.cores .ficha {
+  grid-column: 1 / -1;
+  margin-top: var(--e-3);
+}
+
+.peca {
+  display: grid;
+  align-content: start;
+  gap: var(--e-4);
+  min-width: 0;
+}
+.peca--foto .monte {
+  width: 62%;
+  margin-left: 12%;
+  margin-bottom: var(--e-4);
+}
+.peca__etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+  margin-top: var(--e-5);
+}
+
+@media (min-width: 62rem) {
+  .especimes,
+  .assinaturas,
+  .pecas {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* A página de passagem de "Sua conta": só os caminhos, sem desenho próprio */
+.conta__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+  margin-top: var(--e-5);
+}

@@ -1,0 +1,181 @@
+/*
+ * Revisão visual do zero (docs/visual.md), fase 1: o conceito.
+ * Tokens do visual novo. Nada aqui vem de src/styles/global.css.
+ *
+ * A ideia central é a caixa de fotografias da família: papel claro, a foto como objeto,
+ * o verso em mono como o carimbo do laboratório, e a cor de cada família como a capa do álbum dela.
+ */
+
+:root {
+  /* Neutros quentes: papel creme e tinta de café. Os neutros não têm versão saturada. */
+  --creme: #faf2e6;
+  --creme-recuo: #f2e6d3;
+  --papel: var(--creme);
+  --papel-recuo: var(--creme-recuo);
+  /* O chão das épocas na linha do tempo: um tom por época que vale naquele trecho, até três */
+  --chao-1: var(--papel-recuo);
+  --chao-2: color-mix(in srgb, var(--papel-recuo) 93%, var(--tinta));
+  --chao-3: color-mix(in srgb, var(--papel-recuo) 87%, var(--tinta));
+  --branco: #fffcf6; /* a moldura da foto e o bilhete */
+  --tinta: #2b211a;
+  --tinta-suave: #75665a; /* 5:1 sobre o papel */
+  --fio: #e4d6c1;
+
+  /*
+   * As cores. Cada uma é uma cor só em quatro tons: o pastel (blocos sólidos), o meio (enfeites
+   * sobre o pastel), o vivo (pontos de destaque) e a tinta (o vivo escurecido até dar leitura
+   * sobre o papel, para carimbo e rabisco). São onze, para os tipos de momento não repetirem.
+   */
+  --manteiga-pastel: #f8dc98;
+  --manteiga-meio: #f1c964;
+  --manteiga-vivo: #eda800;
+  --manteiga-tinta: #8c5a00;
+  --verde-pastel: #cfe6c0;
+  --verde-meio: #a9d190;
+  --verde-vivo: #3f9d52;
+  --verde-tinta: #2a6f3b;
+  --rosa-pastel: #f9c8d6;
+  --rosa-meio: #f29db8;
+  --rosa-vivo: #e7477f;
+  --rosa-tinta: #b3275c;
+  --roxo-pastel: #ddd0f6;
+  --roxo-meio: #c0aaee;
+  --roxo-vivo: #7b52e0;
+  --roxo-tinta: #5a38c2;
+  --azul-pastel: #c5dcf5;
+  --azul-meio: #9cc3ee;
+  --azul-vivo: #2f76d9;
+  --azul-tinta: #1c58b2;
+  --pessego-pastel: #fbd3b8;
+  --pessego-meio: #f6b48a;
+  --pessego-vivo: #ec6a2c;
+  --pessego-tinta: #b04a16;
+  --coral-pastel: #fbc4bb;
+  --coral-meio: #f59a8c;
+  --coral-vivo: #e8483a;
+  --coral-tinta: #b22a20;
+  --turquesa-pastel: #bfe6e0;
+  --turquesa-meio: #8fd3c9;
+  --turquesa-vivo: #1f9d8f;
+  --turquesa-tinta: #136e64;
+  --orquidea-pastel: #ecc9ee;
+  --orquidea-meio: #dba3df;
+  --orquidea-vivo: #b84cc4;
+  --orquidea-tinta: #8a2f96;
+  --ardosia-pastel: #cfd6e6;
+  --ardosia-meio: #aab6d0;
+  --ardosia-vivo: #5b6f9c;
+  --ardosia-tinta: #40507a;
+  --areia-pastel: #ecdcc2;
+  --areia-meio: #dcc39b;
+  --areia-vivo: #b98a4a;
+  --areia-tinta: #7d5a26;
+
+  /*
+   * A cor de cada família, escolhida em data-familia: uma cor só, com variação de tons
+   * (decisão do Gui, 16/11/2026). Sem família, vale "tudo", as famílias juntas.
+   */
+  --pastel: var(--manteiga-pastel);
+  --meio: var(--manteiga-meio);
+  --vivo: var(--manteiga-vivo);
+  --vivo-tinta: var(--manteiga-tinta);
+
+  /* Espaços: 1 a 4 dentro de um grupo, 5 a 7 entre grupos, 8 e 9 entre partes da página */
+  --e-1: 0.25rem;
+  --e-2: 0.5rem;
+  --e-3: 0.75rem;
+  --e-4: 1rem;
+  --e-5: 1.5rem;
+  --e-6: 2rem;
+  --e-7: clamp(2.5rem, 1.9rem + 2.4vw, 4rem);
+  --e-8: clamp(3.5rem, 2.2rem + 5.4vw, 7rem);
+  --e-9: clamp(5rem, 3rem + 8.5vw, 11rem);
+
+  /* Grade: 4 colunas no celular, 12 a partir de 62rem. Tudo começa na mesma linha, à esquerda. */
+  --margem: clamp(1.25rem, 0.5rem + 3.2vw, 4.5rem);
+  --calha: clamp(1rem, 0.6rem + 1.2vw, 2rem);
+
+  /*
+   * Escala de tipo. Três famílias com papéis fixos: serifa nos títulos, grotesca no texto,
+   * mono nas fichas. A manuscrita só assina. Quanto maior o título, mais justo o espaçamento.
+   * --escala-serifa acerta o tamanho aparente de cada serifa (ver fontes.css).
+   */
+  /* A mono é pequena, mas cresce na tela grande, que é vista de longe */
+  --t-micro: clamp(0.6875rem, 0.64rem + 0.14vw, 0.8125rem);
+  --t-ficha: clamp(0.75rem, 0.69rem + 0.19vw, 0.9375rem);
+  --t-pequeno: clamp(0.875rem, 0.83rem + 0.16vw, 1.0625rem);
+  --t-corpo: clamp(1.0625rem, 1rem + 0.2vw, 1.25rem);
+  --t-leitura: clamp(1.125rem, 1.02rem + 0.42vw, 1.5rem);
+  --t-abertura: calc(clamp(1.375rem, 1.1rem + 1.15vw, 2.375rem) * var(--escala-serifa));
+  --t-titulo-3: calc(clamp(1.5rem, 1.24rem + 1.1vw, 2.5rem) * var(--escala-serifa));
+  --t-titulo-2: calc(clamp(2rem, 1.45rem + 2.4vw, 4.25rem) * var(--escala-serifa));
+  --t-titulo-1: calc(clamp(2.75rem, 1.55rem + 5.2vw, 7.75rem) * var(--escala-serifa));
+  --t-capa: calc(clamp(5rem, 2.2rem + 12vw, 16rem) * var(--escala-serifa));
+
+  --linha-corpo: 1.55;
+  --medida: 34em; /* largura de leitura */
+
+  /* Formas */
+  --raio-foto: 2px;
+  --raio-moldura: 5px;
+  --raio-bloco: clamp(1rem, 0.6rem + 1.6vw, 2rem);
+  --traco: 1.5px;
+  --toque: 2.75rem; /* 44 px: nada tocável fica abaixo disso */
+
+  /* Sombra da foto pousada no papel: curta e quente, sem halo cinza */
+  --sombra-foto: 0 1px 1px rgb(70 44 16 / 0.07), 0 6px 14px -4px rgb(70 44 16 / 0.16), 0 22px 44px -18px rgb(70 44 16 / 0.3);
+  --sombra-bilhete: 0 1px 1px rgb(70 44 16 / 0.06), 0 10px 24px -14px rgb(70 44 16 / 0.24);
+
+  /* Movimento: uma curva só, tempos curtos. Com movimento reduzido, nada se mexe (base.css). */
+  --curva: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --tempo-curto: 0.2s;
+  --tempo-medio: 0.45s;
+}
+
+/* A cor da família da tela ou de um trecho dela */
+/* Tudo, as famílias juntas: manteiga */
+[data-familia='tudo'] {
+  --pastel: var(--manteiga-pastel);
+  --meio: var(--manteiga-meio);
+  --vivo: var(--manteiga-vivo);
+  --vivo-tinta: var(--manteiga-tinta);
+}
+/* Bayara: verde, a cor da Elizete */
+[data-familia='0'] {
+  --pastel: var(--verde-pastel);
+  --meio: var(--verde-meio);
+  --vivo: var(--verde-vivo);
+  --vivo-tinta: var(--verde-tinta);
+}
+/* Bayara Bracarense: orquídea, o meio-termo entre o rosa da Giovanna e o roxo do Magno */
+[data-familia='1'] {
+  --pastel: var(--orquidea-pastel);
+  --meio: var(--orquidea-meio);
+  --vivo: var(--orquidea-vivo);
+  --vivo-tinta: var(--orquidea-tinta);
+}
+/* Bracarense: azul */
+[data-familia='2'] {
+  --pastel: var(--azul-pastel);
+  --meio: var(--azul-meio);
+  --vivo: var(--azul-vivo);
+  --vivo-tinta: var(--azul-tinta);
+}
+/* A próxima família que entrar */
+[data-familia='3'] {
+  --pastel: var(--pessego-pastel);
+  --meio: var(--pessego-meio);
+  --vivo: var(--pessego-vivo);
+  --vivo-tinta: var(--pessego-tinta);
+}
+
+/*
+ * A página íntima, que só a pessoa vê (o painel): o papel é tingido com as duas cores da família
+ * dela, e o que fica sobre ele vira cartão branco.
+ */
+[data-intimo] {
+  --papel: color-mix(in srgb, var(--pastel) 52%, var(--creme));
+  --papel-recuo: color-mix(in srgb, var(--pastel) 78%, var(--creme-recuo));
+  --tinta-suave: color-mix(in srgb, var(--tinta) 72%, var(--papel));
+  --fio: color-mix(in srgb, var(--tinta) 16%, var(--papel));
+}

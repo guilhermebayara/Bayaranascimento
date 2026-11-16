@@ -1,0 +1,980 @@
+/*
+ * Linha do tempo. A ideia forte: a assinatura na largura inteira e o ano como divisória de
+ * fichário; as fotos-chave como polaroids. Menu, famílias e filtros ficam pequenos.
+ */
+
+.linha__capa {
+  padding-top: var(--e-4);
+}
+.linha__conta {
+  margin-top: var(--e-6);
+  padding-top: var(--e-4);
+  border-top: 1px solid var(--tinta);
+}
+
+/* Os controles: família e tipo, um embaixo do outro, cada um com o nome. No celular o nome fica em
+   cima; no computador, numa coluna à esquerda, a mesma do nome da faixa de décadas. */
+.controles {
+  display: grid;
+  gap: var(--e-2);
+  margin-top: var(--e-5);
+  padding-bottom: var(--e-5);
+}
+.controle {
+  display: grid;
+}
+.controle__nome {
+  margin-bottom: calc(-1 * var(--e-2));
+}
+/* No celular, o nome da faixa de décadas fica em cima dela, como os outros; a faixa leva só os números */
+.controle__nome--decadas {
+  margin: var(--e-3) 0 0;
+}
+.controles:has(.controle__nome--decadas) {
+  padding-bottom: var(--e-3);
+}
+
+/* As famílias: a linha do tempo de cada uma. No celular elas não cabem numa linha: ficam em duas
+   colunas, de propósito, em vez de uma quebra de linha solta. */
+.linha__familias {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 0 var(--e-6);
+  font-size: var(--t-pequeno);
+}
+.linha__familias a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  color: var(--tinta-suave);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.linha__familias a:hover {
+  color: var(--tinta);
+}
+.linha__familias a[aria-current] {
+  color: var(--tinta);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.4em;
+}
+
+/* O tipo: fechado, o controle diz o tipo escolhido; aberto, a lista aparece logo abaixo dele, no
+   mesmo lugar, empurrando a linha do tempo. O controle não muda de lugar ao abrir. */
+.filtros summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: var(--toque);
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--t-pequeno);
+  font-weight: 600;
+}
+.filtros summary::-webkit-details-marker {
+  display: none;
+}
+.filtros summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+}
+/* O sinal de mais vira xis quando a lista abre, como no menu */
+.filtros summary::after {
+  content: '';
+  width: 0.7em;
+  height: 0.7em;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  transition: rotate var(--tempo-medio) var(--curva);
+}
+.filtros[open] summary::after {
+  rotate: 45deg;
+}
+.filtros :is(summary, button) .icone {
+  width: 1.5em;
+  height: 1.5em;
+  color: var(--tipo-cor);
+}
+.filtros ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
+  padding-bottom: var(--e-3);
+}
+.filtros button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta-suave);
+  font: inherit;
+  font-size: var(--t-pequeno);
+  cursor: pointer;
+}
+.filtros button:hover {
+  color: var(--tinta);
+}
+.filtros button[aria-pressed='true'] {
+  color: var(--tinta);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.4em;
+}
+
+/* A barra de décadas fica parada no alto, como na linha do tempo de hoje */
+.linha {
+  --barra: 2.75rem;
+  /* Os trilhos dos capítulos: a distância entre eles e quantos cabem nesta largura */
+  --passo: 0.75rem;
+  --cabem: 2;
+  --na-tela: min(var(--trilhos, 0), var(--cabem));
+  --calha-dos-trilhos: calc(var(--na-tela) * var(--passo));
+  /* Cada capítulo tem a sua cor, no tom do meio, para o trilho não competir com as fotos. A parada
+     e o sinal na memória usam o tom vivo. Sem capítulo, vale a tinta, bem clara. */
+  --trilho-cor: color-mix(in srgb, var(--tinta) 32%, var(--papel));
+  --trilho-ponto: var(--trilho-cor);
+  /* O fio do tempo é a linha principal: mais firme que os trilhos dos capítulos */
+  --fio-do-tempo: color-mix(in srgb, var(--tinta) 62%, var(--papel));
+  --altura-do-ponto: 0.3rem;
+  /* A linha em que o ano para: logo abaixo da faixa de décadas */
+  --ano-para-em: var(--barra);
+}
+/* O que fica parado no alto é uma peça só: a faixa de décadas e, no toque, o ano em que se está */
+.parada {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+/* A gaveta do ano parado só existe no toque (ver "No toque, nada de sticky", mais abaixo) */
+.parada__ano {
+  display: none;
+}
+/* A faixa de décadas: na cor da família, de ponta a ponta, com o nome do que ela faz. Antes era uma
+   linha de números pequenos sobre o papel e passava batida (achado do Gui, 16/11/2026). */
+.decadas {
+  /* A cor da família bem diluída no papel: o pastel cheio ficou "amarelo demais" (do Gui, 16/11/2026) */
+  background: color-mix(in srgb, var(--pastel) 38%, var(--papel));
+  border-bottom: 1px solid color-mix(in srgb, var(--meio) 40%, var(--papel));
+}
+.decadas__dentro {
+  display: flex;
+  align-items: center;
+  gap: var(--e-4);
+  height: var(--barra);
+}
+.decadas__nome {
+  display: none;
+  flex: none;
+}
+.decadas ul {
+  /* Uma linha só, de altura fixa: é sobre ela que o ano fica parado. Com muitas décadas, a
+     linha rola para o lado dentro da faixa. */
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 0 var(--e-1);
+  height: var(--barra);
+  /* O primeiro número fica alinhado à margem, com a ficha dele saindo um pouco para fora */
+  margin-left: -0.7em;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.decadas ul::-webkit-scrollbar {
+  display: none;
+}
+.decadas li {
+  flex: none;
+}
+.decadas a {
+  position: relative;
+  z-index: 0;
+  display: inline-flex;
+  align-items: center;
+  height: var(--barra);
+  padding-inline: 0.7em;
+  font-family: var(--mono);
+  font-size: var(--t-pequeno);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+/* A década em leitura fica numa ficha de papel; as outras ganham a ficha ao passar o mouse */
+.decadas a::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0.4rem 0;
+  border-radius: 999px;
+  background: var(--papel);
+  opacity: 0;
+  transition: opacity var(--tempo-curto);
+}
+.decadas a:hover::before {
+  opacity: 0.55;
+}
+.decadas [data-aqui] a::before {
+  opacity: 1;
+}
+
+/* --- No toque, nada de sticky ---------------------------------------------------------------
+   No iPhone (iOS 26), um elemento preso encostado na borda da tela faz o Safari desenhar uma
+   banda sólida atrás das barras dele, e ela não some mais. A saída é a do site da @bsurda
+   ("Barras presas"): a peça parada desce na mesma medida em que o trecho (data-trilho) sobe, por
+   uma animação ligada à rolagem. A linha do tempo da animação fica numa regra separada da
+   animação de propósito: juntas, o compactador de CSS funde as duas e o navegador descarta a
+   declaração. As medidas (--alt e --barra-alt) vêm do script da página. */
+html.pino-novo [data-trilho] {
+  view-timeline: --trilho block;
+  /* Sem isto, a linha do tempo da animação desconta o scroll-padding da página e a faixa para mais abaixo */
+  view-timeline-inset: 0px;
+}
+html.pino-novo .parada {
+  position: relative;
+  top: auto;
+  animation: barra-presa linear both;
+}
+html.pino-novo [data-trilho] > .parada {
+  animation-timeline: --trilho;
+  animation-range: contain 0% exit calc(100% - var(--barra-alt, 0px));
+}
+/* Enquanto a faixa está presa, uma cobertura na cor do papel sobe dela até acima da tela: no
+   iPhone a página continua visível atrás do relógio, e sem isso as memórias apareceriam ali. */
+html.pino-novo .parada::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 8rem;
+  background: var(--papel);
+  pointer-events: none;
+  animation: barra-cobre linear both;
+}
+html.pino-novo [data-trilho] > .parada::before {
+  animation-timeline: --trilho;
+  animation-range: contain 0% contain calc(0% + 3rem);
+}
+@keyframes barra-presa {
+  to {
+    transform: translateY(calc(var(--alt, 0px) - var(--barra-alt, 0px)));
+  }
+}
+@keyframes barra-cobre {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* O ano. No toque o cabeçalho de cada ano rola com a página, e o ano parado é a gaveta presa à
+   faixa: uma cópia do cabeçalho do ano em que se está, do mesmo tamanho e no mesmo lugar em que
+   ele chega ao alto. Só a peça parada anda com a rolagem: nada liga nem desliga animação no meio
+   do caminho (com uma animação por ano, a faixa e o ano davam um pulinho na troca de ano). */
+html.pino-novo .ano > .ano__cabeca {
+  position: relative;
+  top: auto;
+}
+html.pino-novo .parada__ano {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  container-type: inline-size;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-4);
+  padding: var(--e-4) var(--margem) var(--e-3);
+  background: var(--papel);
+  pointer-events: none;
+}
+html.pino-novo .parada__ano[data-vazia] {
+  visibility: hidden;
+}
+
+.decada__ancora {
+  scroll-margin-top: 3rem;
+}
+
+.linha__vazio {
+  padding-block: var(--e-8);
+}
+
+/* --- O ano: a divisória ---------------------------------------------------------------------- */
+
+.ano {
+  padding-top: var(--e-7);
+}
+.ano[hidden] {
+  display: none;
+}
+/* O ano grande fica parado no alto, logo abaixo da barra de décadas, enquanto as memórias dele
+   passam: quem rola sempre sabe em que ano está (pedido do Gui, pensando nos mais velhos). */
+.ano > .ano__cabeca {
+  position: sticky;
+  top: var(--ano-para-em);
+  z-index: 4;
+  container-type: inline-size;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-4);
+  margin-inline: calc(-1 * var(--margem));
+  margin-bottom: var(--e-6);
+  padding: var(--e-4) var(--margem) var(--e-3);
+  background: var(--papel);
+}
+.ano__numero {
+  /* No celular o número ocupa dois terços da largura; no computador, a coluna dele inteira */
+  font-size: calc(50cqi / var(--ano-em));
+  font-variation-settings: var(--serifa-ajustes-capa);
+  font-weight: var(--serifa-peso-capa);
+  letter-spacing: var(--aperto-capa);
+  line-height: 0.8;
+  font-variant-numeric: lining-nums;
+  margin-left: -0.03em;
+}
+
+/* --- O fio do tempo, os trilhos dos capítulos e as memórias --------------------------------
+   A hierarquia: o fio do tempo é a linha principal, mais firme, com um ponto em cada memória.
+   Os trilhos dos capítulos ficam à esquerda dele, mais finos e mais claros. */
+
+.ano > .ano__itens {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-left: 0.375rem;
+  /* Sem espaço em cima: o fio e os trilhos de um ano emendam com os do ano anterior, sem vão */
+  padding: 0 0 0 calc(var(--calha-dos-trilhos) + var(--e-5));
+}
+/* O fio do tempo: contínuo do primeiro ao último ano */
+.ano__itens::before,
+.ano__passa::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--calha-dos-trilhos) - 1px);
+  border-left: 2px solid var(--fio-do-tempo);
+}
+
+.entrada {
+  position: relative;
+  display: grid;
+  gap: var(--e-4);
+  padding-bottom: var(--e-8);
+}
+.entrada[hidden] {
+  display: none;
+}
+/* O ponto do fio em cada memória: cheio, na cor viva, na memória em leitura */
+.entrada__ponto {
+  position: absolute;
+  top: calc(var(--altura-do-ponto) - 0.0625rem);
+  left: calc(-1 * var(--e-5) - 0.375rem);
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--tinta);
+  border-radius: 50%;
+  background: var(--papel);
+  transition:
+    background var(--tempo-curto),
+    scale var(--tempo-curto);
+}
+.entrada[data-em-leitura] .entrada__ponto {
+  border-color: var(--vivo);
+  background: var(--vivo);
+  scale: 1.25;
+}
+
+/* Os trilhos na altura de cada linha: do alto da linha até o começo da seguinte, sem emenda */
+.trilhos {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * (var(--calha-dos-trilhos) + var(--e-5)));
+  width: var(--calha-dos-trilhos);
+  pointer-events: none;
+}
+.trilho {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--n) * var(--passo));
+  width: 2px;
+  margin-left: -1px;
+  background: var(--trilho-cor);
+}
+/* A memória de fora, no meio do capítulo: o trilho segue, tracejado */
+.trilho[data-estado='fora'] {
+  background: repeating-linear-gradient(to bottom, var(--trilho-cor) 0 4px, transparent 4px 10px);
+}
+/* A parada: a memória presa ao trilho do capítulo dela. Menor que o ponto do fio do tempo.
+   Só na altura da memória: nas marcas e entre um ano e outro, o trilho passa sem parada. */
+.entrada > .trilhos .trilho[data-estado='preso']::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--altura-do-ponto) + 0.0625rem);
+  left: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  translate: -50% 0;
+  box-sizing: border-box;
+  border: 2px solid var(--trilho-ponto);
+  border-radius: 50%;
+  background: var(--papel);
+}
+
+/* A marca do capítulo: o título no alto do trilho e o "começo do capítulo" embaixo. O trilho faz a curva
+   até o texto, para ficar claro de qual trilho é cada título. */
+.marca {
+  position: relative;
+  min-height: 2.25rem;
+  padding-bottom: var(--e-5);
+}
+.marca::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * (var(--calha-dos-trilhos) + var(--e-5)) + var(--n) * var(--passo) - 1px);
+  width: calc((var(--na-tela) - var(--n)) * var(--passo) + var(--e-5) - 0.5rem);
+  border: 0 solid var(--trilho-cor);
+  border-left-width: 2px;
+}
+.marca--abre::before {
+  top: 0.7rem;
+  bottom: 0;
+  border-top-width: 2px;
+  border-top-left-radius: 0.625rem;
+}
+.marca--fecha::before {
+  top: 0;
+  height: 0.7rem;
+  border-bottom-width: 2px;
+  border-bottom-left-radius: 0.625rem;
+}
+.marca__texto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.8em;
+}
+.marca--abre .marca__texto {
+  position: relative;
+  z-index: 2;
+}
+.marca__titulo {
+  font-size: calc(1.25rem * var(--escala-serifa));
+  line-height: 1.2;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+.marca--fecha .marca__texto {
+  padding-top: 0.2rem;
+}
+
+/* Entre um ano e outro, o fio do tempo e os trilhos continuam, por trás do número do ano */
+.ano > .ano__passa {
+  grid-row: 1;
+  position: relative;
+  align-self: stretch;
+  width: var(--calha-dos-trilhos);
+  margin-top: calc(-1 * var(--e-7));
+  margin-left: 0.375rem;
+  pointer-events: none;
+}
+.ano__passa .trilhos {
+  left: 0;
+}
+.ano > .ano__cabeca {
+  grid-row: 1;
+}
+
+/* O sinal de cada capítulo na memória: a mesma parada do trilho, na cor dele, com o nome. É o que
+   liga a memória ao trilho e, onde o trilho não cabe, o que diz de que capítulo ela é. */
+.entrada__capitulos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-4);
+  margin-top: var(--e-3);
+}
+.sinal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.sinal::before {
+  content: '';
+  flex: none;
+  box-sizing: border-box;
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 2px solid var(--trilho-ponto);
+  border-radius: 50%;
+}
+
+/* A época de todos: não tem trilho, porque todo mundo está dentro. É o chão: enquanto se rola por
+   dentro dela, o papel muda de tom, de ponta a ponta da tela. Capítulo é linha, memória é figura,
+   época é fundo. Onde duas épocas valem ao mesmo tempo, o chão fica um tom mais fundo. */
+.linha [data-na-epoca='1'] {
+  --papel: var(--chao-1);
+}
+.linha [data-na-epoca='2'] {
+  --papel: var(--chao-2);
+}
+.linha [data-na-epoca='3'] {
+  --papel: var(--chao-3);
+}
+.linha [data-chao='1'] {
+  --chao: var(--chao-1);
+}
+.linha [data-chao='2'] {
+  --chao: var(--chao-2);
+}
+.linha [data-chao='3'] {
+  --chao: var(--chao-3);
+}
+.entrada[data-na-epoca]::before,
+.marca[data-na-epoca]::after,
+.epoca[data-na-epoca]::before,
+.epoca__chao::before,
+.ano__passa[data-na-epoca]::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: 0;
+  left: -100vw;
+  right: -100vw;
+  background: var(--papel);
+}
+.ano > .ano__cabeca[data-na-epoca] {
+  background: var(--papel);
+}
+/* Sobre o chão de uma época, o texto suave escurece junto: continua com contraste de leitura (4,5:1) */
+.linha :is([data-na-epoca], .epoca__aba, .epoca__chao) {
+  --tinta-suave: color-mix(in srgb, var(--tinta) 72%, var(--papel));
+}
+
+/* O nome da época fica numa aba que sai do próprio chão, como a de uma divisória de fichário: no
+   alto ela sobe para fora do chão da época, e no fim desce. Assim o nome é do chão, e não da
+   memória que vem logo depois (pedido do Gui, 16/11/2026). A linha da aba não tem margem, só
+   espaço por dentro: o chão, o fio e os trilhos passam por ela sem vão. */
+.epoca {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.epoca__aba {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.8em;
+  max-width: 100%;
+  margin-left: calc(-1 * var(--e-4));
+  padding: var(--e-3) var(--e-5) var(--e-3) var(--e-4);
+  --papel: var(--chao);
+  background: var(--papel);
+}
+.epoca--abre {
+  padding-top: var(--e-3);
+}
+.epoca--abre .epoca__aba {
+  border-radius: 0.875rem 0.875rem 0 0;
+}
+.epoca--fecha {
+  padding-bottom: var(--e-8);
+}
+.epoca--fecha .epoca__aba {
+  border-radius: 0 0 0.875rem 0.875rem;
+  padding-block: var(--e-2) var(--e-3);
+}
+/* Entre duas abas seguidas, de épocas que acabam juntas, basta um respiro */
+.epoca--fecha:has(+ .epoca--fecha) {
+  padding-bottom: var(--e-4);
+}
+.epoca__titulo {
+  font-size: calc(1.25rem * var(--escala-serifa));
+  line-height: 1.2;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+/* Logo abaixo da aba do alto começa o chão da época, com um respiro antes da primeira memória */
+.epoca__chao {
+  position: relative;
+  align-self: stretch;
+  height: var(--e-7);
+  --papel: var(--chao);
+}
+/* As épocas que passam pelo ano, embaixo do número: só no computador, onde o ano tem a coluna dele */
+.ano__epocas {
+  display: none;
+}
+
+/* No celular cabem dois trilhos: a partir do terceiro, o capítulo aparece só pelo sinal na memória */
+@media (max-width: 61.99rem) {
+  .linha :is(.trilho, .marca):is([data-n='2'], [data-n='3'], [data-n='4'], [data-n='5'], [data-n='6'], [data-n='7'], [data-n='8'], [data-n='9']) {
+    display: none;
+  }
+}
+/* Com o filtro por tipo, as memórias não estão todas na tela: os trilhos e as marcas saem, e fica o
+   sinal do capítulo em cada memória */
+.linha[data-filtrando] :is(.trilhos, .marca, .epoca) {
+  display: none;
+}
+.linha[data-filtrando] [data-na-epoca]::before {
+  display: none;
+}
+
+/* O nome do capítulo ao lado do cursor, quando o mouse passa pelo trilho dele */
+.linha {
+  position: relative;
+}
+.trilho-nome {
+  position: absolute;
+  z-index: 6;
+  translate: 0 -50%;
+  max-width: 22rem;
+  padding: 0.35rem 0.7rem;
+  border: 2px solid var(--trilho-ponto);
+  border-radius: 999px;
+  background: var(--creme);
+  color: var(--tinta);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.trilho-nome[hidden] {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  /* O trilho tem 2 px: a área que responde ao mouse é a faixa inteira dele */
+  .trilho {
+    pointer-events: auto;
+  }
+  .trilho::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(-0.5 * var(--passo) + 1px);
+    width: var(--passo);
+  }
+  .trilho,
+  .marca::before {
+    transition:
+      opacity var(--tempo-curto),
+      width var(--tempo-curto);
+  }
+  /* O capítulo aceso: o trilho inteiro engrossa e ganha a cor viva; os outros recuam */
+  .trilho[data-vivo] {
+    width: 4px;
+    margin-left: -2px;
+    background: var(--trilho-ponto);
+  }
+  .trilho[data-vivo][data-estado='fora'] {
+    background: repeating-linear-gradient(to bottom, var(--trilho-ponto) 0 4px, transparent 4px 10px);
+  }
+  .marca[data-vivo]::before {
+    border-color: var(--trilho-ponto);
+  }
+  .marca[data-vivo] .marca__titulo {
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--trilho-ponto);
+  }
+  .sinal[data-vivo] {
+    color: var(--tinta);
+    text-decoration: underline;
+    text-decoration-color: var(--trilho-ponto);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.3em;
+  }
+  .linha[data-com-capitulo-vivo] .trilho:not([data-vivo]),
+  .linha[data-com-capitulo-vivo] .marca:not([data-vivo])::before {
+    opacity: 0.35;
+  }
+}
+
+.entrada__quando {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.7em;
+}
+.entrada__quando .icone {
+  width: 1.75em;
+  height: 1.75em;
+  margin-right: -0.1em;
+}
+/* O ponto fica no fim de cada item: quando a linha quebra, ela não começa por ele */
+.entrada__quando span:not(:last-child)::after,
+.entrada__ficha span:not(:last-child)::after {
+  content: '·';
+  margin-left: 0.7em;
+}
+.entrada__foto {
+  width: 70%;
+  margin-block: var(--e-4) var(--e-5);
+  margin-left: 6%;
+}
+/* As fotos não ficam em fila: uma encosta à esquerda, a outra à direita */
+.entrada:nth-child(even) .entrada__foto {
+  margin-left: auto;
+  margin-right: 4%;
+}
+.entrada__titulo {
+  font-size: var(--t-titulo-3);
+  line-height: 1.06;
+}
+.entrada--so-texto .entrada__titulo {
+  font-size: var(--t-titulo-2);
+  line-height: 1.02;
+}
+.entrada__titulo a {
+  text-decoration: none;
+}
+/* A memória inteira leva à página dela */
+.entrada__titulo a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.entrada__titulo a:focus-visible {
+  outline: none;
+}
+.entrada:has(.entrada__titulo a:focus-visible) {
+  outline: 2px solid var(--tinta);
+  outline-offset: 0.75rem;
+  border-radius: 2px;
+}
+.entrada__ficha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.7em;
+  margin-top: var(--e-3);
+}
+@media (hover: hover) {
+  /* O trilho fica dentro da memória, mas passar o mouse por ele fala do capítulo, e não dela */
+  .entrada:hover:not(:has(.trilho:hover)) .polaroid {
+    rotate: 0deg;
+    translate: 0 -0.25rem;
+  }
+  .entrada:hover:not(:has(.trilho:hover)) .entrada__titulo a {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.14em;
+  }
+}
+
+/* --- Computador: o ano fica na coluna da esquerda e cada memória vira uma página dupla -------- */
+
+@media (min-width: 62rem) {
+  /* A assinatura ocupa dois terços da largura e a conta das memórias fecha a linha à direita, embaixo.
+     Os controles vêm depois, na largura inteira, com o nome de cada um numa coluna à esquerda. */
+  .linha {
+    --coluna-do-nome: 7.5rem;
+  }
+  .linha__capa {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--calha);
+    align-items: end;
+    padding-top: var(--e-4);
+  }
+  .linha__capa .assinatura {
+    grid-column: 1 / span 8;
+    grid-row: 1;
+  }
+  .linha__conta {
+    grid-column: 10 / -1;
+    grid-row: 1;
+    margin: 0 0 var(--e-3);
+  }
+  .controles {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    gap: 0;
+    margin-top: var(--e-6);
+    padding-block: var(--e-3) var(--e-4);
+    border-top: 1px solid var(--fio);
+  }
+  .controle {
+    grid-template-columns: var(--coluna-do-nome) minmax(0, 1fr);
+    align-items: start;
+  }
+  .controle__nome {
+    display: flex;
+    align-items: center;
+    min-height: var(--toque);
+    margin: 0;
+  }
+  .linha__familias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--e-6);
+  }
+  .decadas__dentro {
+    gap: 0;
+  }
+  .decadas__nome {
+    display: block;
+    width: var(--coluna-do-nome);
+  }
+  .controle__nome--decadas {
+    display: none;
+  }
+  .controles:has(.controle__nome--decadas) {
+    padding-bottom: var(--e-4);
+  }
+  .ano {
+    padding-top: var(--e-9);
+    align-items: start;
+  }
+  .ano > .ano__cabeca {
+    grid-column: 1 / span 4;
+    display: block;
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+  .ano__numero {
+    font-size: calc(98cqi / var(--ano-em));
+    margin-bottom: var(--e-5);
+  }
+  /* No tablet deitado, a gaveta do ano parado ocupa a coluna do ano, como o cabeçalho */
+  html.pino-novo .parada__ano {
+    top: calc(100% + var(--e-5));
+    left: var(--margem);
+    right: auto;
+    width: calc((100% - 2 * var(--margem) - 11 * var(--calha)) / 12 * 4 + 3 * var(--calha));
+    display: block;
+    padding: 0;
+  }
+  .linha {
+    --passo: 1rem;
+    --cabem: 4;
+    --ano-para-em: calc(var(--barra) + var(--e-5));
+  }
+  .ano > .ano__itens {
+    grid-column: 5 / -1;
+    grid-row: 1;
+  }
+  .entrada {
+    padding-bottom: var(--e-9);
+  }
+  .ano > .ano__passa {
+    grid-column: 5 / -1;
+    align-self: start;
+    height: var(--e-9);
+    margin-top: calc(-1 * var(--e-9));
+  }
+  .marca__titulo {
+    font-size: var(--t-titulo-3);
+  }
+  .marca {
+    min-height: 3.5rem;
+    padding-bottom: var(--e-6);
+  }
+  .marca--abre::before {
+    top: 1.25rem;
+  }
+  /* No computador o ano não tem fundo: o chão da época passa por trás dele */
+  .ano > .ano__cabeca[data-na-epoca] {
+    background: none;
+  }
+  .ano__epocas {
+    display: grid;
+    gap: var(--e-1);
+    margin-top: var(--e-3);
+  }
+  .ano__epocas span::before {
+    content: '';
+    display: inline-block;
+    width: 0.75em;
+    height: 0.75em;
+    margin-right: 0.6em;
+    border-radius: 0.2em 0.2em 0 0;
+    background: currentColor;
+    opacity: 0.4;
+  }
+  .epoca__titulo {
+    font-size: var(--t-titulo-3);
+  }
+  .epoca__aba {
+    padding-inline: var(--e-5) var(--e-6);
+    margin-left: calc(-1 * var(--e-5) + 1px);
+  }
+  .epoca--fecha {
+    padding-bottom: var(--e-9);
+  }
+  .epoca--fecha:has(+ .epoca--fecha) {
+    padding-bottom: var(--e-5);
+  }
+  .marca--fecha::before {
+    height: 0.9rem;
+  }
+  /* No computador cabem quatro trilhos */
+  .linha :is(.trilho, .marca):is([data-n='4'], [data-n='5'], [data-n='6'], [data-n='7'], [data-n='8'], [data-n='9']) {
+    display: none;
+  }
+
+  .entrada--com-foto {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'foto quando'
+      'foto texto';
+    grid-template-rows: auto 1fr;
+    column-gap: calc(var(--calha) * 2);
+    row-gap: var(--e-4);
+  }
+  .entrada--com-foto .entrada__foto {
+    grid-area: foto;
+    width: 70%;
+    margin: 0 0 0 12%;
+  }
+  .entrada--com-foto:nth-child(even) .entrada__foto {
+    margin-left: 24%;
+    margin-right: 0;
+  }
+  .entrada--com-foto .entrada__quando {
+    grid-area: quando;
+    margin-top: var(--e-7);
+  }
+  .entrada--com-foto .entrada__texto {
+    grid-area: texto;
+  }
+  .entrada--com-foto .entrada__titulo {
+    font-size: calc(var(--t-titulo-3) * 1.2);
+  }
+  .entrada--com-foto {
+    --altura-do-ponto: calc(var(--e-7) + 0.3rem);
+  }
+  .entrada--so-texto {
+    max-width: 75%;
+  }
+}
+
+/* Na tela grande cabem seis trilhos, e o título do capítulo ganha mais espaço */
+@media (min-width: 100rem) {
+  .linha {
+    --passo: 1.25rem;
+    --cabem: 6;
+  }
+  .linha .marca:is([data-n='4'], [data-n='5']) {
+    display: block;
+  }
+  .linha .trilho:is([data-n='4'], [data-n='5']) {
+    display: block;
+  }
+}

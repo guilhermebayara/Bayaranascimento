@@ -1,0 +1,42 @@
+---
+// Os ícones dos tipos de momento: rabiscos de traço redondo, como desenhados a caneta no verso
+// da foto. Um por tipo conhecido; tipo criado depois pelos administradores ganha o brilho.
+// O ícone é enfeite: o nome do tipo está sempre escrito ao lado.
+interface Props {
+  tipo: string;
+}
+
+const DESENHOS: Record<string, string> = {
+  // um broto
+  nascimento: '<path d="M12 21c0-4 .2-6.5.1-9.5"/><path d="M12 13c-3.6.4-6-1.4-6.6-4.6 3.4-.5 6 .9 6.6 4.6z"/><path d="M12.2 10.6c.2-3.4 2.2-5.6 5.6-5.8.3 3.3-1.9 5.6-5.6 5.8z"/>',
+  // um bolo com vela
+  aniversario:
+    '<path d="M5 20.5h14.2v-7.3c0-1-.8-1.7-1.8-1.7H6.7c-1 0-1.7.8-1.7 1.8z"/><path d="M5.2 15.2c1.2 1.3 2.4 1.3 3.5 0 1.1 1.3 2.3 1.3 3.4 0 1.1 1.3 2.3 1.3 3.4 0 1.1 1.3 2.3 1.2 3.5 0"/><path d="M12 11.4V8.2"/><path d="M12 6.4c-.9-.9-.7-1.9 0-2.9.8 1 .9 2 0 2.9z"/>',
+  // duas alianças
+  casamento: '<circle cx="9" cy="14.2" r="5"/><circle cx="15.2" cy="14.2" r="5"/><path d="M7.5 6.6l1.5-2.1 1.5 2.1L9 8.3z"/>',
+  // uma estrela
+  conquista: '<path d="M12 3.6l2.5 5.3 5.7.7-4.2 4 1.1 5.7-5.1-2.8-5.1 2.8 1.1-5.7-4.2-4 5.7-.7z"/>',
+  // um aviãozinho de papel
+  viagem: '<path d="M3.5 11.2l16.8-7-4.4 15.6-4.3-6.1z"/><path d="M11.6 13.7l8.7-9.5"/><path d="M11.6 13.7v5.2l2.3-2.9"/>',
+  // uma casinha
+  casa: '<path d="M3.8 11.6L12 4.4l8.2 7.2"/><path d="M6 10v9.6h12V10"/><path d="M10.4 19.6v-5.2h3.2v5.2"/>',
+  // dois balões
+  festa:
+    '<ellipse cx="9" cy="8.6" rx="3.8" ry="4.6"/><path d="M9 13.2c-.6 2.6 1.6 4.2.4 7.3"/><ellipse cx="16.2" cy="7" rx="3.2" ry="3.9"/><path d="M16.2 10.9c.5 2.4-1.4 3.9-.6 6.6"/>',
+  // um balão de fala: alguém contando
+  causo:
+    '<path d="M4.5 6.5c0-1 .8-1.8 1.8-1.8h11.4c1 0 1.8.8 1.8 1.8v7.4c0 1-.8 1.8-1.8 1.8h-6.2l-4.3 3.6v-3.6h-.9c-1 0-1.8-.8-1.8-1.8z"/><path d="M8.6 10.2h.01M12 10.2h.01M15.4 10.2h.01" stroke-width="2.2"/>',
+  // uma xícara de café
+  cotidiano:
+    '<path d="M5 10h11.5v4.8c0 2.7-2.2 4.9-4.9 4.9h-1.7C7.2 19.7 5 17.5 5 14.8z"/><path d="M16.5 11.6h1.3c1.3 0 2.3 1 2.3 2.3s-1 2.3-2.3 2.3h-1.5"/><path d="M8.6 7.3c-.8-1.1.8-1.8 0-3M12 7.3c-.8-1.1.8-1.8 0-3"/>',
+  // uma flor
+  despedida: '<path d="M12 21v-8.5"/><path d="M12 17.6c2.2-.2 3.8-1.6 4.2-3.8-2.2.1-3.8 1.4-4.2 3.8z"/><path d="M8 5.2c0 4.3 1.5 7 4 7s4-2.7 4-7l-2 1.8-2-2.6-2 2.6z"/>',
+  // um brilho
+  outro: '<path d="M12 3.5c.5 4.6 2.4 7 8 8.5-5.6 1.5-7.5 3.9-8 8.5-.5-4.6-2.4-7-8-8.5 5.6-1.5 7.5-3.9 8-8.5z"/>',
+};
+
+const { tipo } = Astro.props;
+const desenho = DESENHOS[tipo] ?? DESENHOS.outro!;
+---
+
+<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={desenho} />

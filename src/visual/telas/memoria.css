@@ -1,0 +1,604 @@
+/*
+ * Página da memória. A ideia forte: a foto e o verso. A imagem grande, a ficha como carimbo,
+ * os relatos como bilhetes assinados. Corrigir e histórico ficam quietos, no fim.
+ */
+
+/* --- Abertura: título grande, trecho de um relato e a foto-chave ---------------------------
+   A abertura é um bloco na cor do tipo de momento: cada memória abre com a cor dela. */
+
+.abre__fundo {
+  background: var(--tipo-pastel, var(--pastel));
+  --tinta-suave: color-mix(in srgb, var(--tinta) 76%, var(--tipo-pastel, var(--pastel)));
+}
+.abre__fundo .carimbo {
+  color: color-mix(in srgb, var(--tipo-tinta, var(--vivo-tinta)) 70%, var(--tinta));
+}
+
+.abre {
+  row-gap: var(--e-7);
+  padding-top: var(--e-6);
+  padding-bottom: var(--e-8);
+}
+.abre__sobre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-3) var(--e-5);
+  margin-bottom: var(--e-5);
+}
+.abre h1 {
+  /* alinhamento óptico: a serifa grande começa na mesma linha do texto pequeno */
+  margin-left: -0.035em;
+}
+.abre__trecho {
+  margin-top: var(--e-6);
+  max-width: 26em;
+}
+.abre__trecho p {
+  /* a aspa de abertura fica pendurada na margem */
+  text-indent: -0.42em;
+  font-style: italic;
+}
+.abre__trecho footer {
+  margin-top: var(--e-3);
+}
+.abre__trecho .mao {
+  display: inline-block;
+  rotate: -3deg;
+}
+.abre__atalho {
+  margin-top: var(--e-5);
+}
+.abre__foto {
+  width: 74%;
+  margin-inline: auto;
+}
+
+/* --- Corpo: a ficha de um lado, o conteúdo do outro ---------------------------------------- */
+
+.corpo {
+  row-gap: var(--e-7);
+  padding-top: var(--e-7);
+  margin-inline: var(--margem);
+  padding-inline: 0;
+}
+
+/* A ficha em mono: rótulo pequeno em caixa alta e valor */
+.dados__lista {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-5) var(--calha);
+  font-family: var(--mono);
+  font-size: var(--t-pequeno);
+  line-height: 1.45;
+}
+.dados__lista dt {
+  margin-bottom: var(--e-1);
+  font-size: var(--t-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.dados__lista dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.9em;
+}
+.dados__lista dd a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  margin-block: calc((1.45em - var(--toque)) / 2);
+}
+
+.parte + .parte {
+  margin-top: var(--e-8);
+}
+.parte__titulo {
+  margin-bottom: var(--e-6);
+  font-size: var(--t-titulo-3);
+}
+
+/* Quem estava: retratos em arco, com o parentesco de quem olha */
+.quem {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-6) var(--calha);
+}
+.pessoa {
+  display: grid;
+  gap: var(--e-1);
+  text-decoration: none;
+}
+.pessoa .retrato {
+  margin-bottom: var(--e-2);
+  transition: translate var(--tempo-medio) var(--curva);
+}
+.pessoa__nome {
+  font-weight: 550;
+  line-height: 1.25;
+}
+@media (hover: hover) {
+  .pessoa:hover .retrato {
+    translate: 0 -0.25rem;
+  }
+  .pessoa:hover .pessoa__nome {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
+}
+
+/* Relatos: um bilhete por pessoa */
+.relatos {
+  display: grid;
+  gap: var(--e-6);
+  align-items: start;
+}
+.relatos .bilhete {
+  max-width: 40rem;
+}
+.bilhete__selo {
+  margin-bottom: var(--e-4);
+}
+.bilhete:nth-child(even) {
+  rotate: 0.6deg;
+}
+.bilhete:nth-child(odd) {
+  rotate: -0.4deg;
+}
+
+/* As fotos que vieram com um relato: pequenas, no próprio bilhete */
+.bilhete__fotos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-4);
+  margin-top: var(--e-5);
+}
+.bilhete__fotos li {
+  width: 5.5rem;
+}
+.bilhete__fotos .monte {
+  display: block;
+  cursor: zoom-in;
+}
+.bilhete__fotos .polaroid {
+  box-shadow: 0 1px 1px color-mix(in srgb, var(--tinta) 10%, transparent), 0 4px 10px -4px color-mix(in srgb, var(--tinta) 30%, transparent);
+}
+
+/* A parede de fotos: todas as fotos da memória como fotos reveladas, cada uma com a sua legenda,
+   um pouco fora de fila. Tocar numa abre a galeria, com a foto inteira. */
+.parede {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-6) var(--e-5);
+  padding-block: var(--e-3) var(--e-5);
+}
+.parede li:nth-child(even) {
+  margin-top: var(--e-6);
+}
+.parede .monte {
+  display: block;
+  text-decoration: none;
+  cursor: zoom-in;
+}
+.parede .polaroid__legenda {
+  /* A legenda da foto é frase, e não lugar e ano: sem caixa alta, em até duas linhas */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 23cqi;
+  padding-top: 4cqi;
+  font-size: clamp(0.6875rem, 5.2cqi, 0.9375rem);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.parede a:focus-visible .polaroid,
+.bilhete__fotos a:focus-visible .polaroid,
+a.polaroid__foto:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 3px;
+}
+
+/* --- A galeria: a foto inteira, uma de cada vez ---------------------------------------------
+   Ocupa a tela, no papel da página, com a foto pousada como uma ampliação: inteira, sem corte.
+   As fotos ficam numa fila que rola para o lado com a rolagem do aparelho e para em cada foto:
+   no toque a foto acompanha o dedo, como no álbum do celular. Os controles têm nome escrito.
+   É um <dialog>: o navegador cuida do foco e do Esc. */
+.galeria {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  overscroll-behavior: contain;
+}
+.galeria[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Abre subindo um pouco, como uma foto que se pega para ver de perto */
+  animation: galeria-abre var(--tempo-medio) var(--curva) both;
+}
+@keyframes galeria-abre {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem) scale(0.98);
+  }
+}
+.galeria::backdrop {
+  background: var(--papel);
+}
+/* Com a galeria aberta, a página por trás não rola */
+html:has(.galeria[open]) {
+  overflow: hidden;
+}
+.galeria__topo,
+.galeria__passos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-5);
+  padding: var(--e-2) var(--margem);
+}
+.galeria__topo p {
+  color: var(--tinta-suave);
+}
+.galeria button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: 550 var(--t-corpo) / 1.2 var(--grotesca);
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.32em;
+  cursor: pointer;
+  transition: opacity var(--tempo-curto);
+}
+.galeria button:hover {
+  text-decoration-color: var(--vivo);
+}
+.galeria button[hidden] {
+  display: none;
+}
+/* Na primeira foto não há anterior, e na última não há próxima */
+.galeria button[aria-disabled='true'] {
+  opacity: 0.3;
+  text-decoration: none;
+  cursor: default;
+}
+/* O xis do fechar, desenhado como o do menu */
+.galeria__fechar::after {
+  content: '';
+  width: 0.75em;
+  height: 0.75em;
+  rotate: 45deg;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+}
+.galeria__passo--antes::before {
+  content: '←';
+}
+.galeria__passo--depois::after {
+  content: '→';
+}
+.galeria__passos {
+  padding-bottom: max(var(--e-3), env(safe-area-inset-bottom));
+}
+/* A fila: uma foto por vez, lado a lado. A rolagem é a do aparelho, com encaixe em cada foto. */
+.galeria__fila {
+  display: flex;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.galeria__fila::-webkit-scrollbar {
+  display: none;
+}
+.galeria__quadro {
+  flex: 0 0 100%;
+  min-width: 0;
+  display: grid;
+  scroll-snap-align: center;
+  /* Um gesto, uma foto: o embalo não pula fotos */
+  scroll-snap-stop: always;
+}
+.galeria__quadro figure {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  min-height: 0;
+  padding: var(--e-2) var(--margem) 0;
+}
+.galeria__quadro img {
+  align-self: center;
+  box-sizing: border-box;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 100%;
+  /* A margem branca da ampliação */
+  padding: clamp(0.375rem, 0.9vw, 0.875rem);
+  border-radius: var(--raio-foto);
+  background: var(--branco);
+  box-shadow: var(--sombra-foto);
+}
+.galeria__quadro figcaption {
+  display: grid;
+  justify-items: center;
+  gap: var(--e-1);
+  max-width: 44rem;
+  min-height: 3.5rem;
+  padding-top: var(--e-4);
+  text-align: center;
+}
+.galeria__legenda {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-size: calc(1.125rem * var(--escala-serifa));
+  line-height: 1.3;
+}
+
+/* --- Fim: o convite para contar ------------------------------------------------------------
+   Um bilhete em branco com o nome de quem está vendo: as linhas vazias e a assinatura dela,
+   ainda apagada, à espera do relato. Fica pousado sobre uma forma na cor do tipo de momento. */
+
+.convite {
+  margin-top: var(--e-9);
+}
+.convite__mesa {
+  position: relative;
+  max-width: 44rem;
+  padding: var(--e-6) 0 var(--e-7);
+}
+.convite__forma {
+  position: absolute;
+  top: 0;
+  right: -6%;
+  width: min(72%, 24rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--tipo-pastel, var(--pastel));
+}
+.convite__bilhete {
+  position: relative;
+  width: 92%;
+  rotate: -1.2deg;
+}
+.convite__para {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+}
+.convite__para .retrato {
+  width: 2.75rem;
+  font-size: 0.55rem;
+}
+.convite__titulo {
+  margin-top: var(--e-4);
+  font-size: var(--t-titulo-2);
+  line-height: 1.04;
+  max-width: 11em;
+}
+/* As linhas em branco, onde o relato vai entrar */
+.convite__linhas {
+  display: grid;
+  gap: 1.9rem;
+  margin-top: var(--e-7);
+}
+.convite__linhas span {
+  border-top: 1px solid var(--fio);
+}
+.convite__linhas span:last-child {
+  width: 55%;
+}
+.convite__pe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-5);
+  margin-top: var(--e-6);
+}
+/* A assinatura de quem ainda não contou: apagada, como a lápis */
+.convite__assina {
+  position: relative;
+  display: inline-block;
+  rotate: -3deg;
+  opacity: 0.55;
+}
+.convite__assina .mao {
+  font-size: calc(2.5rem * var(--escala-mao));
+}
+.convite__assina .rabisco--sublinha {
+  bottom: -0.5em;
+  color: var(--tipo-cor, var(--vivo));
+}
+.convite__bilhete--feito .convite__assina {
+  opacity: 1;
+}
+
+/* Antes e depois */
+.vizinhas {
+  display: grid;
+  gap: 0;
+}
+.vizinha {
+  border-bottom: 1px solid var(--fio);
+}
+.vizinha:empty {
+  display: none;
+}
+.vizinha a {
+  display: grid;
+  gap: var(--e-2);
+  padding-block: var(--e-6);
+  text-decoration: none;
+}
+.vizinha strong {
+  font-weight: var(--serifa-peso);
+}
+@media (hover: hover) {
+  .vizinha a:hover strong {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.14em;
+  }
+}
+
+/* Corrigir, histórico, excluir: quietos */
+.servico {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+  margin-top: var(--e-6);
+  font-size: var(--t-pequeno);
+}
+
+/* --- Tablet ------------------------------------------------------------------------------------ */
+
+@media (min-width: 40rem) {
+  .quem {
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  }
+  .relatos {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  }
+  .parede {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--e-7) var(--e-6);
+  }
+  .parede li:nth-child(even) {
+    margin-top: 0;
+  }
+  .parede li:nth-child(3n + 2) {
+    margin-top: var(--e-7);
+  }
+  .vizinhas {
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--calha);
+  }
+  .vizinha:empty {
+    display: block;
+    border: 0;
+  }
+  .vizinha--depois a {
+    text-align: right;
+    justify-items: end;
+  }
+}
+
+/* --- Computador: página dupla. A foto é a página da direita. -------------------------------- */
+
+@media (min-width: 62rem) {
+  .abre {
+    align-items: center;
+    padding-top: var(--e-7);
+    padding-bottom: var(--e-9);
+  }
+  .abre > .abre__texto {
+    grid-column: 1 / span 6;
+  }
+  /* Sem foto, a abertura é só tipo: o título ganha a página */
+  .abre--sem-foto > .abre__texto {
+    grid-column: 1 / span 10;
+  }
+  .abre > .abre__foto {
+    grid-column: 8 / -1;
+    width: 72%;
+    margin: 0;
+    justify-self: center;
+  }
+  /* Com mais de uma foto, o monte se abre em leque: a foto principal na frente e as de trás
+     espalhadas para os lados, até onde o espaço deixa (pedido do Gui, 16/11/2026) */
+  .abre > .abre__foto--leque {
+    grid-column: 7 / -1;
+    width: 52%;
+  }
+  .abre > .abre__foto--2 {
+    justify-self: end;
+    margin-right: 8%;
+  }
+  .abre__foto--leque .monte__atras {
+    transition:
+      translate var(--tempo-medio) var(--curva),
+      rotate var(--tempo-medio) var(--curva);
+  }
+  .abre__foto--leque .monte__atras[data-atras='1'] {
+    rotate: -9deg;
+    translate: -54% 3%;
+  }
+  .abre__foto--leque .monte__atras[data-atras='2'] {
+    rotate: 8deg;
+    translate: 46% 9%;
+  }
+  .corpo {
+    padding-top: var(--e-7);
+  }
+  .corpo > .dados {
+    grid-column: 1 / span 3;
+  }
+  .corpo > .corpo__conteudo {
+    grid-column: 5 / -1;
+  }
+  .dados__lista {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .quem {
+    grid-template-columns: repeat(auto-fill, minmax(clamp(8rem, 9.5vw, 12rem), 1fr));
+  }
+  .convite__mesa {
+    margin-left: calc((100% + var(--calha)) / 12 * 4);
+  }
+}
+
+/* A ficha fica parada à esquerda só com cursor: no toque, nada preso à rolagem */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .corpo {
+    align-items: start;
+  }
+  .corpo > .dados {
+    position: sticky;
+    top: var(--e-6);
+  }
+}
+
+/* Na tela grande, a parede ganha uma coluna e o leque abre mais */
+@media (min-width: 100rem) {
+  .parede {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .parede li:nth-child(3n + 2) {
+    margin-top: 0;
+  }
+  .parede li:nth-child(even) {
+    margin-top: var(--e-7);
+  }
+  .abre__foto--leque .monte__atras[data-atras='1'] {
+    translate: -62% 2%;
+  }
+}
+/* Com mouse, a foto de trás se adianta um pouco quando o cursor passa por ela */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .abre__foto--leque .monte__atras[data-atras='1']:hover {
+    rotate: -6deg;
+    translate: -58% 1%;
+  }
+  .abre__foto--leque .monte__atras[data-atras='2']:hover {
+    rotate: 5deg;
+    translate: 50% 7%;
+  }
+}

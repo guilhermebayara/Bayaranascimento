@@ -1,0 +1,69 @@
+/*
+ * As três combinações de fontes do conceito, para o Gui escolher (todas de licença livre, pelo Fontsource).
+ * Cada uma define as quatro famílias e os acertos que a serifa pede: tamanho aparente, peso e
+ * espaçamento. O resto do CSS só conhece --serifa, --grotesca, --mono e --mao.
+ *
+ * --assinatura-em é a largura de "MEMÓRIAS" em em, medida em cada serifa: é com ela que a
+ * assinatura ocupa a largura inteira da página. --sobrenomes é quanto os sobrenomes medem em
+ * relação a "MEMÓRIAS" para "Bayara & Bracarense" fechar na mesma largura, como no rascunho
+ * do Gui (docs/visual/assinatura-hierarquia.png).
+ */
+
+/* A · Macia: Fraunces, Geist, Geist Mono e Oooh Baby */
+:root,
+[data-fontes='a'] {
+  --serifa: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
+  --serifa-ajustes: 'SOFT' 100, 'WONK' 0;
+  /* No tamanho de capa o desenho é sempre o de título: sem isso, a largura muda com o tamanho */
+  --serifa-ajustes-capa: 'SOFT' 100, 'WONK' 0, 'opsz' 144;
+  --serifa-peso: 400;
+  --serifa-peso-capa: 380;
+  --escala-serifa: 1;
+  --aperto-titulo: -0.022em;
+  --aperto-capa: -0.035em;
+  --grotesca: 'Geist Variable', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+  --mao: 'Oooh Baby', 'Bradley Hand', cursive;
+  --escala-mao: 1;
+  --assinatura-em: 5.03;
+  --sobrenomes: 0.613;
+  --ano-em: 2.2;
+}
+
+/* B · Editorial: Instrument Serif, Instrument Sans, IBM Plex Mono e Reenie Beanie */
+[data-fontes='b'] {
+  --serifa: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --serifa-ajustes: normal;
+  --serifa-ajustes-capa: normal;
+  --serifa-peso: 400;
+  --serifa-peso-capa: 400;
+  --escala-serifa: 1.14;
+  --aperto-titulo: -0.012em;
+  --aperto-capa: -0.02em;
+  --grotesca: 'Instrument Sans Variable', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --mao: 'Reenie Beanie', 'Bradley Hand', cursive;
+  --escala-mao: 1.3;
+  --assinatura-em: 3.88;
+  --sobrenomes: 0.555;
+  --ano-em: 1.67;
+}
+
+/* C · De cartaz: DM Serif Display, DM Sans, DM Mono e Nothing You Could Do */
+[data-fontes='c'] {
+  --serifa: 'DM Serif Display', 'Iowan Old Style', Georgia, serif;
+  --serifa-ajustes: normal;
+  --serifa-ajustes-capa: normal;
+  --serifa-peso: 400;
+  --serifa-peso-capa: 400;
+  --escala-serifa: 0.95;
+  --aperto-titulo: -0.012em;
+  --aperto-capa: -0.02em;
+  --grotesca: 'DM Sans Variable', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --mao: 'Nothing You Could Do', 'Bradley Hand', cursive;
+  --escala-mao: 0.9;
+  --assinatura-em: 4.87;
+  --sobrenomes: 0.529;
+  --ano-em: 2.1;
+}

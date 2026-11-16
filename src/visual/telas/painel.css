@@ -1,0 +1,494 @@
+/*
+ * Painel pessoal, a página inicial. A ideia forte: na primeira visita, a carta de Natal
+ * assinada à mão; depois, o que entrou de novo, como o envelope do laboratório que chega com
+ * fotos que a pessoa ainda não viu. Aniversários e atalhos ficam em segundo plano.
+ *
+ * É a única página que só a pessoa vê. Por isso o papel é tingido na cor da família dela
+ * (data-intimo, em tokens.css) e o conteúdo fica em cartões: é o canto dela, e não a revista.
+ */
+
+/* --- Primeira visita: a carta ------------------------------------------------------------------ */
+
+.carta {
+  padding-block: var(--e-7) var(--e-8);
+}
+.carta .grade {
+  row-gap: var(--e-6);
+}
+.carta__saudacao {
+  margin-top: var(--e-5);
+  margin-left: -0.04em;
+  font-size: calc(clamp(3.75rem, 1.5rem + 11vw, 5.5rem) * var(--escala-serifa));
+  font-variation-settings: var(--serifa-ajustes-capa);
+  font-weight: var(--serifa-peso-capa);
+  letter-spacing: var(--aperto-capa);
+  line-height: 0.92;
+}
+.carta__verso {
+  max-width: var(--medida);
+}
+.carta__texto {
+  margin-top: var(--e-5);
+  font-size: var(--t-leitura);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+.carta__texto p + p {
+  margin-top: 1em;
+}
+/* As duas assinaturas, cada uma com a sua mão */
+.carta__assina {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-2) var(--e-6);
+  margin-top: var(--e-6);
+}
+.carta__assina .mao {
+  font-size: calc(2.75rem * var(--escala-mao));
+  rotate: -4deg;
+}
+.carta__assina .mao + .mao {
+  rotate: -1deg;
+  translate: 0 0.15em;
+}
+.carta__assina .mao + .mao + .mao {
+  rotate: -5deg;
+  translate: 0 -0.05em;
+}
+.carta__assina .rabisco {
+  align-self: center;
+  rotate: 8deg;
+}
+.carta__acao {
+  margin-top: var(--e-7);
+}
+.carta .selo {
+  display: block;
+  margin-top: var(--e-4);
+}
+/* As fotos que vêm com a carta: três, sobrepostas, como tiradas do envelope */
+.carta__fotos {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-top: var(--e-5);
+  padding-inline: 4%;
+}
+.carta__foto {
+  grid-row: 1;
+}
+.carta__foto:nth-child(1) {
+  grid-column: 1 / span 3;
+  rotate: -4deg;
+}
+.carta__foto:nth-child(2) {
+  grid-column: 3 / span 3;
+  margin-top: 22%;
+  z-index: 1;
+}
+.carta__foto:nth-child(3) {
+  grid-column: 4 / span 3;
+  margin-top: -6%;
+  rotate: 5deg;
+}
+
+/* --- Visitas seguintes: o que entrou de novo ----------------------------------------------- */
+
+.novo {
+  row-gap: var(--e-7);
+  padding-top: var(--e-5);
+}
+.novo__abre {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'sobre envelope'
+    'ola ola'
+    'resumo resumo'
+    'carta carta';
+  align-items: end;
+}
+.novo__abre > .rotulo {
+  grid-area: sobre;
+  max-width: 14em;
+  padding-bottom: var(--e-2);
+}
+.novo__abre h1 {
+  grid-area: ola;
+  margin-top: var(--e-3);
+  margin-left: -0.04em;
+}
+.novo__resumo {
+  grid-area: resumo;
+  margin-top: var(--e-5);
+  max-width: 15em;
+}
+.novo__carta {
+  grid-area: carta;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-5);
+  margin-top: var(--e-3);
+  font-size: var(--t-pequeno);
+}
+/* O envelope do laboratório, de onde saíram as fotos novas */
+.novo__envelope {
+  grid-area: envelope;
+  width: 6.25rem;
+  rotate: 6deg;
+}
+.novo__mesa {
+  display: grid;
+  gap: var(--e-8);
+}
+.novidade a {
+  display: grid;
+  text-decoration: none;
+}
+.novidade--memoria a {
+  gap: var(--e-2);
+}
+.novidade--memoria .monte {
+  width: 68%;
+  margin: 0 0 var(--e-6) 7%;
+}
+.novidade--memoria:nth-child(even) .monte {
+  margin-left: auto;
+  margin-right: 6%;
+}
+.novidade__sobre {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}
+.novidade__titulo {
+  font-weight: var(--serifa-peso);
+}
+.novidade--relato .bilhete {
+  gap: var(--e-4);
+  rotate: 1.2deg;
+}
+.novidade--relato .bilhete__assina {
+  margin-top: 0;
+}
+@media (hover: hover) {
+  .novidade a:hover .novidade__titulo {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.14em;
+  }
+  .novidade--relato .bilhete {
+    transition:
+      rotate var(--tempo-medio) var(--curva),
+      translate var(--tempo-medio) var(--curva);
+  }
+  .novidade--relato .bilhete:hover {
+    rotate: 0deg;
+    translate: 0 -0.25rem;
+  }
+}
+
+/* --- Neste dia, em outros anos -------------------------------------------------------------- */
+
+.outros-anos {
+  margin-top: var(--e-9);
+}
+.outros-anos + .cartoes {
+  margin-top: var(--calha);
+}
+.outros-anos__lista {
+  display: grid;
+  gap: var(--e-5);
+}
+.outro-ano {
+  display: grid;
+  grid-template-columns: clamp(4.5rem, 24%, 6.5rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-5);
+  text-decoration: none;
+}
+.outro-ano__texto {
+  display: grid;
+  gap: var(--e-1);
+}
+.outro-ano__ano {
+  font-size: var(--t-titulo-3);
+  line-height: 1;
+}
+.outro-ano__titulo {
+  font-weight: 450;
+  line-height: 1.3;
+  color: var(--tinta-suave);
+}
+@media (hover: hover) {
+  .outro-ano:hover .outro-ano__titulo {
+    color: var(--tinta);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+}
+
+/* --- Os cartões: aniversários, a pessoa no acervo e uma memória para contar ------------------ */
+
+.cartoes {
+  display: grid;
+  gap: var(--calha);
+  margin-top: var(--e-9);
+}
+.cartao {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.25rem, 0.9rem + 1.4vw, 2.25rem);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+.cartao__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  margin-bottom: var(--e-4);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  font-weight: 400;
+  letter-spacing: 0.09em;
+  line-height: 1.45;
+  color: var(--tinta-suave);
+}
+.cartao__titulo .icone {
+  width: 1.75em;
+  height: 1.75em;
+}
+
+.aniversario {
+  display: grid;
+  grid-template-columns: clamp(3rem, 2.6rem + 1vw, 4rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--e-4);
+  padding-block: var(--e-3);
+  border-top: 1px solid var(--fio);
+  text-decoration: none;
+}
+.aniversarios li:first-child .aniversario {
+  border-top: 0;
+}
+.aniversario__dia {
+  font-size: var(--t-titulo-3);
+  line-height: 1;
+  white-space: nowrap;
+}
+.aniversario .retrato {
+  font-size: 0.6em;
+}
+.aniversario__quem {
+  display: grid;
+  line-height: 1.3;
+}
+.aniversario__quem strong {
+  font-weight: 550;
+}
+.aniversario__quem .suave {
+  font-size: var(--t-pequeno);
+}
+
+.voce__conta {
+  display: grid;
+  grid-template-columns: clamp(5.5rem, 34%, 9rem) minmax(0, 1fr);
+  /* O retrato e o texto terminam na mesma linha: a base do arco fica na linha de base da última palavra */
+  align-items: end;
+  gap: var(--e-5);
+  margin-block: var(--e-3) auto;
+}
+.voce__conta p {
+  display: grid;
+  gap: var(--e-3);
+  padding-bottom: 0.15em;
+}
+.voce__numero {
+  font-size: calc(clamp(4.5rem, 3rem + 6vw, 8rem) * var(--escala-serifa));
+  font-variation-settings: var(--serifa-ajustes-capa);
+  font-weight: var(--serifa-peso-capa);
+  letter-spacing: var(--aperto-capa);
+  line-height: 0.8;
+  font-variant-numeric: lining-nums;
+}
+.voce__texto {
+  font-size: var(--t-abertura);
+  line-height: 1.12;
+}
+.voce__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
+  margin-top: var(--e-5);
+}
+
+/* Uma memória para contar: o cartão de cor, com o botão da tela */
+.contar {
+  background: var(--tipo-pastel, var(--pastel));
+  --tinta-suave: color-mix(in srgb, var(--tinta) 78%, var(--tipo-pastel, var(--pastel)));
+}
+.contar .cartao__titulo {
+  color: var(--tinta);
+}
+.contar__miolo {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: center;
+  gap: var(--e-5);
+  margin-top: var(--e-3);
+}
+.contar__titulo {
+  margin-bottom: var(--e-2);
+}
+.contar__acao {
+  margin-top: var(--e-5);
+}
+.contar .botao {
+  min-height: 3.25rem;
+  padding-inline: 1.25rem;
+}
+
+/* --- O caminho para a linha do tempo inteira ------------------------------------------------- */
+
+.caminho {
+  margin-top: var(--e-9);
+}
+.caminho__titulo {
+  margin-top: var(--e-4);
+  margin-left: -0.035em;
+  max-width: 9em;
+}
+.caminho__titulo a {
+  text-decoration-thickness: 0.045em;
+  text-underline-offset: 0.12em;
+  text-decoration-color: var(--vivo);
+}
+.caminho__titulo a:hover {
+  text-decoration-color: currentColor;
+}
+.caminho__titulo .rabisco {
+  display: inline-block;
+  width: 1em;
+  margin-left: 0.1em;
+  vertical-align: -0.05em;
+}
+.caminho__decadas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+  margin-top: var(--e-6);
+}
+.caminho__decadas a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  color: var(--tinta-suave);
+  text-decoration: none;
+}
+.caminho__decadas a:hover {
+  color: var(--tinta);
+}
+
+/* --- Computador ---------------------------------------------------------------------------------- */
+
+@media (min-width: 62rem) {
+  /* A carta é uma página dupla: a saudação e as fotos à esquerda, o texto à direita */
+  .carta {
+    padding-block: var(--e-8) var(--e-9);
+  }
+  .carta .grade {
+    grid-template-rows: auto 1fr;
+    align-items: start;
+  }
+  .carta .carta__frente {
+    grid-column: 1 / span 6;
+    grid-row: 1;
+  }
+  .carta__saudacao {
+    font-size: calc(clamp(6rem, 0.6rem + 8.4vw, 12rem) * var(--escala-serifa));
+  }
+  .carta .carta__verso {
+    grid-column: 8 / -1;
+    grid-row: 1 / span 2;
+    padding-top: var(--e-7);
+  }
+  .carta .carta__fotos {
+    grid-column: 1 / span 6;
+    grid-row: 2;
+    margin-top: var(--e-6);
+    padding-inline: 0 14%;
+  }
+
+  /* As novidades ficam espalhadas, como fotos que acabaram de sair do envelope */
+  .novo {
+    align-items: start;
+    padding-top: var(--e-7);
+  }
+  .novo > .novo__abre {
+    grid-column: 1 / span 5;
+  }
+  .novo__abre {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'sobre' 'ola' 'resumo' 'carta' 'envelope';
+    align-items: start;
+  }
+  .novo__abre > .rotulo {
+    max-width: none;
+  }
+  .novo__envelope {
+    width: clamp(11rem, 16vw, 19rem);
+    margin-top: var(--e-7);
+    rotate: -4deg;
+  }
+  .novo > .novo__mesa {
+    grid-column: 7 / -1;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0;
+  }
+  .novidade--memoria .monte,
+  .novidade--memoria:nth-child(even) .monte {
+    width: 100%;
+    margin: 0 0 var(--e-6);
+  }
+  .novidade:nth-child(1) {
+    grid-column: 1 / span 5;
+    grid-row: 1;
+  }
+  .novidade:nth-child(2) {
+    grid-column: 8 / span 5;
+    grid-row: 1;
+    margin-top: 30%;
+  }
+  .novidade--relato {
+    grid-column: 2 / span 7;
+    grid-row: 2;
+    margin-top: var(--e-7);
+  }
+  /* Com uma novidade só, ela ocupa o meio da mesa */
+  .novidade:only-child {
+    grid-column: 4 / span 6;
+    margin-top: 0;
+  }
+
+  .cartoes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  /* Na tela grande, os outros anos ficam lado a lado, cada um com a sua foto em cima */
+  .outros-anos__lista {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--calha);
+    align-items: start;
+  }
+  .outro-ano {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--e-4);
+  }
+  .outro-ano__foto {
+    width: 62%;
+  }
+  .contar__miolo {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+}

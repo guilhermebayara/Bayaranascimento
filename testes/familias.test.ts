@@ -1,7 +1,7 @@
 // Núcleo e parentes (decisão do Gui, 15/11/2026): a sugestão de família no cadastro, quem cuida de um
 // parente, e a regra de que parente nunca vê o que é restrito ao núcleo.
 import { describe, expect, it } from 'vitest';
-import { NUCLEO_INICIAL, familiaDeOrigem, sugerirFamilias, type DadosDasFamilias } from '../src/lib/familias';
+import { NUCLEO_INICIAL, familiaDeOrigem, familiaMaisRecente, sugerirFamilias, type DadosDasFamilias } from '../src/lib/familias';
 import { podeEditarIntegrante, podeMexerEmLaco, type Usuario } from '../src/lib/servidor/permissoes';
 import repositorio from '../src/lib/servidor/repositorio.ts?raw';
 import banco from '../src/lib/servidor/banco.ts?raw';
@@ -25,6 +25,17 @@ const dados: DadosDasFamilias = {
     { filho: 'elizete', responsavel: 'vo-vivica' },
   ],
 };
+
+describe('família mais recente', () => {
+  it('quem formou uma família com quem casou fica com ela; os outros, com a de origem', () => {
+    // É a cor do painel de cada pessoa (decisão do Gui, 16/11/2026)
+    expect(familiaMaisRecente(dados, 'giovanna')).toBe('bayara-bracarense');
+    expect(familiaMaisRecente(dados, 'lucas-magno')).toBe('bayara-bracarense');
+    expect(familiaMaisRecente(dados, 'gui')).toBe('bayara');
+    expect(familiaMaisRecente(dados, 'elizete')).toBe('bayara');
+    expect(familiaMaisRecente(dados, 'ed')).toBeUndefined();
+  });
+});
 
 describe('família de origem', () => {
   it('é a família de quem a pessoa veio, sem a que formou com quem casou', () => {

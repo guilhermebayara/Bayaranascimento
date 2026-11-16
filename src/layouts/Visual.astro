@@ -1,0 +1,186 @@
+---
+// O esqueleto do visual novo (docs/visual.md, "Revisão do zero"). Na fase 1 ele serve só as
+// telas do conceito, em /conceito. Não importa nada de src/styles/global.css.
+import '@fontsource-variable/fraunces/full.css';
+import '@fontsource-variable/fraunces/full-italic.css';
+import '@fontsource-variable/geist/wght.css';
+import '@fontsource-variable/geist-mono/wght.css';
+import '@fontsource/oooh-baby/400.css';
+import '@fontsource/instrument-serif/400.css';
+import '@fontsource/instrument-serif/400-italic.css';
+import '@fontsource-variable/instrument-sans/wght.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/reenie-beanie/400.css';
+import '@fontsource/dm-serif-display/400.css';
+import '@fontsource/dm-serif-display/400-italic.css';
+import '@fontsource-variable/dm-sans/wght.css';
+import '@fontsource/dm-mono/400.css';
+import '@fontsource/dm-mono/500.css';
+import '@fontsource/nothing-you-could-do/400.css';
+import '../visual/tokens.css';
+import '../visual/fontes.css';
+import '../visual/base.css';
+import '../visual/pecas.css';
+import '../visual/estrutura.css';
+import Assinatura from '../components/visual/Assinatura.astro';
+import { PESSOAS_DE_TESTE, semLogin } from '../lib/servidor/acesso';
+import { fontesDoPedido } from '../lib/servidor/conceito';
+import { enderecoDoRetrato, iniciais } from '../lib/retratos';
+import { listarIntegrantes } from '../lib/servidor/repositorio';
+import { COMBINACOES_DE_FONTES } from '../lib/visual';
+
+interface Props {
+  titulo?: string;
+  /** A cor da tela: 'tudo' ou a posição do núcleo ('0', '1', '2') */
+  familia?: string;
+  /** Os sobrenomes da assinatura para o que está sendo visto */
+  sobrenomes?: string;
+  /** Qual item do menu está aberto */
+  secao?: 'painel' | 'linha' | 'conceito' | 'conta';
+  /** A página que só a pessoa vê: tingida na cor da família dela */
+  intimo?: boolean;
+}
+
+const { titulo, familia = 'tudo', sobrenomes = 'Bayara & Bracarense', secao, intimo = false } = Astro.props;
+const { usuario } = Astro.locals;
+const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
+const fontes = fontesDoPedido(Astro.request);
+const teste = semLogin();
+const integrantes = await listarIntegrantes();
+const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
+// "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo. A tela é
+// da fase 3; no conceito, o endereço leva a uma página de passagem, com o que já existe hoje.
+const meuRetrato = integrantes.find((i) => i.id === usuario.pessoa)?.retrato;
+const aqui = Astro.url.pathname + Astro.url.search;
+const volta = encodeURIComponent(aqui);
+const caminho = Astro.url.pathname.replace(/\/$/, '');
+const primeiraVisita = Astro.url.searchParams.get('visita') === 'primeira';
+
+// "Memórias", no alto, leva ao início, mas o menu também diz "Início": quem tem menos familiaridade
+// com sites não precisa adivinhar (pedido do Gui, 16/11/2026)
+const menu = [
+  { href: '/conceito', texto: 'Início', atual: secao === 'painel' },
+  { href: '/conceito/tudo', texto: 'Linha do tempo', atual: secao === 'linha' },
+  { href: '/capitulos', texto: 'Capítulos', atual: false },
+  { href: '/arvore', texto: 'Árvore', atual: false },
+  { href: '/pessoas', texto: 'Pessoas', atual: false },
+];
+const telas = [
+  { href: '/conceito?visita=primeira', texto: 'Carta', atual: caminho === '/conceito' && primeiraVisita },
+  { href: '/conceito', texto: 'Painel', atual: caminho === '/conceito' && !primeiraVisita },
+  { href: '/conceito/tudo', texto: 'Linha do tempo', atual: caminho === '/conceito/tudo' },
+  { href: '/conceito/memorias/2025-natal', texto: 'Memória', atual: caminho.startsWith('/conceito/memorias') },
+  { href: '/conceito/sobre', texto: 'Fontes e peças', atual: caminho === '/conceito/sobre' },
+];
+---
+
+<!doctype html>
+<html lang="pt-BR" data-fontes={fontes} data-familia={familia} data-intimo={intimo ? '' : undefined}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#faf2e6" />
+    <title>{tituloPagina}</title>
+    <script is:inline>
+      // Aparelho de toque. No iPhone com iOS 26, o Safari desenha uma banda sólida atrás das suas
+      // barras quando existe um elemento preso (sticky ou fixed) encostado na borda da tela: com a
+      // faixa de décadas presa no alto, a banda aparecia atrás do relógio. A saída é a do site da
+      // @bsurda: no toque, o que fica parado no alto anda por uma animação ligada à rolagem
+      // ("pino-novo"), sem sticky. Navegador de toque sem essa animação continua com o sticky.
+      (function () {
+        var raiz = document.documentElement;
+        if (window.matchMedia('(hover: none) and (pointer: coarse)').matches && window.CSS && CSS.supports('animation-timeline: view()')) raiz.classList.add('pino-novo');
+      })();
+    </script>
+  </head>
+  <body>
+    {
+      teste && (
+        <details class="teste">
+          <summary>
+            <span>Conceito do visual novo, com o acervo de exemplo.</span>
+            <span>
+              Fontes {fontes.toUpperCase()}, vendo como {usuario.nome}. <u>Trocar</u>
+            </span>
+          </summary>
+          <div class="teste__corpo">
+            <p>
+              <span>Telas:</span>
+              {telas.map((t) => (
+                <a href={t.href} aria-current={t.atual ? 'page' : undefined}>
+                  {t.texto}
+                </a>
+              ))}
+            </p>
+            <p>
+              <span>Fontes:</span>
+              {COMBINACOES_DE_FONTES.map((c) => (
+                <a href={`/conceito/fontes/${c.id}?volta=${volta}`} aria-current={c.id === fontes ? 'true' : undefined}>
+                  {c.id.toUpperCase()} {c.nome}
+                </a>
+              ))}
+            </p>
+            <p>
+              <span>Ver como:</span>
+              {pessoasDeTeste.map((p) => (
+                <a href={`/como/${p.id}?volta=${volta}`} aria-current={p.id === usuario.pessoa ? 'true' : undefined}>
+                  {p.apelido ?? p.nome}
+                </a>
+              ))}
+            </p>
+            <p>
+              <a href="/">Site atual</a>
+            </p>
+          </div>
+        </details>
+      )
+    }
+    <header class="topo">
+      <a class="topo__marca" href="/conceito" aria-label="Memórias Bayara e Bracarense, página inicial">
+        <span class="topo__monograma" aria-hidden="true">M</span>
+        <span class="topo__nome" aria-hidden="true">Memórias</span>
+      </a>
+      <nav class="topo__nav" aria-label="Seções">
+        {
+          menu.map((item) => (
+            <a href={item.href} aria-current={item.atual ? 'page' : undefined}>
+              {item.texto}
+            </a>
+          ))
+        }
+        <a class="topo__acao" href="/nova">Nova memória</a>
+      </nav>
+      <a class="topo__conta" href="/conceito/conta" aria-label={`Sua conta, ${usuario.nome}`} aria-current={secao === 'conta' ? 'page' : undefined}>
+        <span class="retrato retrato--redondo">
+          {meuRetrato ? <img src={enderecoDoRetrato(meuRetrato)} alt="" /> : <span aria-hidden="true">{iniciais(usuario.nome)}</span>}
+        </span>
+        <span class="topo__conta-nome" aria-hidden="true">{usuario.nome}</span>
+      </a>
+      <details class="menu">
+        <summary><span>Menu</span></summary>
+        <nav class="menu__lista" aria-label="Seções">
+          {
+            menu.map((item) => (
+              <a href={item.href} aria-current={item.atual ? 'page' : undefined}>
+                {item.texto}
+              </a>
+            ))
+          }
+          <a href="/conceito/conta" aria-current={secao === 'conta' ? 'page' : undefined}>Sua conta</a>
+          <a class="menu__acao acao" href="/nova">Nova memória</a>
+        </nav>
+      </details>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="rodape">
+      <div class="rodape__linha">
+        <p>Acervo privado da família. Você entrou como {usuario.nome}.</p>
+      </div>
+      <Assinatura sobrenomes={sobrenomes} />
+    </footer>
+  </body>
+</html>

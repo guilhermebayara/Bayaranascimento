@@ -16,6 +16,8 @@
 //    do pacote publicado, só são gravadas e apagadas no bucket de teste, pelas prévias e pelo
 //    computador, e a homologação só lê o prefixo exemplos/ do bucket de teste. A limpeza de 7 dias
 //    roda só no ambiente de teste.
+// 8. As telas do conceito da revisão visual (/conceito) trazem dados fixos de exemplo, como a carta.
+//    Só respondem onde há acervo de exemplo: na produção e na homologação, 404.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
@@ -121,6 +123,19 @@ for (const arquivo of versionados) {
   for (const [email, dominio] of texto.matchAll(/[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)/g)) {
     if (DOMINIOS_DE_EXEMPLO.has(dominio.toLowerCase()) || /^noreply@/i.test(email)) continue;
     falhar(`${arquivo}: parece um e-mail de verdade (${email.replace(/^(.).*@/, '$1…@')}). E-mails de acesso ficam só no segredo ACESSOS.`);
+  }
+}
+
+// 8. O conceito da revisão visual só existe onde há acervo de exemplo
+if (existsSync('src/pages/conceito')) {
+  const trava = existsSync('src/lib/servidor/conceito.ts') ? readFileSync('src/lib/servidor/conceito.ts', 'utf8') : '';
+  if (!trava.includes('return AMBIENTES_COM_EXEMPLOS.includes(ambiente()) && !ehHomologacao();')) {
+    falhar('src/lib/servidor/conceito.ts: conceitoDisponivel() só vale nas prévias de teste e no computador (AMBIENTES_COM_EXEMPLOS e não homologação).');
+  }
+  for (const arquivo of versionados.filter((a) => a.startsWith('src/pages/conceito/'))) {
+    if (!/if \(!conceitoDisponivel\(\)[^\n]*return naoEncontrado\(\);/.test(readFileSync(arquivo, 'utf8'))) {
+      falhar(`${arquivo}: toda rota do conceito começa com "if (!conceitoDisponivel()) return naoEncontrado();": ela usa dados fixos de exemplo.`);
+    }
   }
 }
 
