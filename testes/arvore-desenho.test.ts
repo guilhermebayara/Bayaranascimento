@@ -334,3 +334,39 @@ describe('bichos', () => {
     expect(d.linhas.find((l) => l.tipo === 'filhos')?.de).not.toContain('chico');
   });
 });
+
+describe('o parente do amigo fica embaixo dele (achado do Gui, 16/11/2026)', () => {
+  // Na árvore de verdade, o Caio aparecia ao lado da Karol, longe do Ed, e a linha entrava pela lateral
+  const d = desenharArvore(
+    [p('elizete', 0), p('aguilar', 0), p('ed', 1), p('robert', 1), p('lugh', 1), p('gui', 1), p('giovanna', 1), p('lucas-magno', 1), p('caio', 2), { id: 'karol', geracao: 2, bicho: true }, { id: 'chico', geracao: 2, bicho: true }],
+    [casal('robert', 'lugh'), casal('giovanna', 'lucas-magno'), casal('elizete', 'aguilar')],
+    [...filho('gui', 'elizete', 'aguilar'), ...filho('giovanna', 'elizete', 'aguilar'), ...filho('karol', 'gui', 'giovanna'), ...filho('chico', 'gui', 'giovanna', 'lucas-magno')],
+    [
+      { dono: 'gui', pessoa: 'ed', papel: 'irmao' },
+      { dono: 'gui', pessoa: 'robert', papel: 'irmao' },
+      { dono: 'gui', pessoa: 'lugh', papel: 'irmao' },
+      { dono: 'caio', pessoa: 'ed', sangue: true, papel: 'tio' },
+      { dono: 'gui', pessoa: 'caio', papel: 'sobrinho' },
+    ],
+  );
+  const em = new Map(d.pessoas.map((x) => [x.id, x]));
+
+  it('o Caio fica logo abaixo do Ed', () => {
+    expect(em.get('caio')!.x).toBe(em.get('ed')!.x);
+  });
+
+  it('a linha desce reta do pé do Ed até o alto do Caio', () => {
+    const meio = em.get('ed')!.x + MEDIDAS.largura / 2;
+    const linha = d.linhas.find((l) => l.tipo === 'resumido')!;
+    expect(linha.d).toBe(`M ${meio} ${em.get('ed')!.y + MEDIDAS.altura} L ${meio} ${em.get('caio')!.y}`);
+  });
+
+  it('as linhas que saem do pé da mesma pessoa correm na mesma altura e com o mesmo raio', () => {
+    // A Karol é do Gui e da Giovanna; o Chico, dos dois e do Magno. Em alturas diferentes, as curvas ficavam
+    // a poucos pixels umas das outras e viravam um emaranhado
+    const barras = d.descidas.filter((x) => x.pais.includes('gui')).map((x) => x.barra);
+    expect(new Set(barras).size).toBe(1);
+    const curvas = (id: string) => d.linhas.filter((l) => l.tipo === 'bicho' && l.de.includes(id)).flatMap((l) => [...l.d.matchAll(/Q (\S+) (\S+) (\S+) (\S+)/g)].map((q) => Math.max(Math.abs(Number(q[3]) - Number(q[1])), Math.abs(Number(q[4]) - Number(q[2])))));
+    expect(new Set([...curvas('karol'), ...curvas('chico')]).size).toBe(1);
+  });
+});

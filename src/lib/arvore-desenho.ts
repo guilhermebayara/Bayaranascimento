@@ -141,6 +141,16 @@ export function desenharArvore(
   }
 
   const niveis = [...new Set(pessoas.map((p) => p.geracao))].sort((a, b) => a - b);
+  /** O parente de laço resumido na geração logo acima, que não tem filhos de fato desenhados (o Ed, para o Caio) */
+  const parenteResumidoAcima = (id: string): string | undefined => {
+    const g = geracaoDe.get(id)!;
+    const acima = niveis[niveis.indexOf(g) - 1];
+    if (acima === undefined) return undefined;
+    return coracao
+      .filter((l) => l.sangue && (l.dono === id || l.pessoa === id))
+      .map((l) => (l.dono === id ? l.pessoa : l.dono))
+      .find((o) => geracaoDe.get(o) === acima && !(filhosDe.get(o) ?? []).length);
+  };
   const x = new Map<string, number>();
   const linhasDePessoas: string[][] = [];
   // Em cada linha, os blocos: uma pessoa, ou um grupo de casais que anda junto sem se separar
@@ -275,6 +285,13 @@ export function desenharArvore(
         const vizinho = (paresDe.get(id) ?? []).find((p) => desejado.has(p));
         if (vizinho) desejado.set(id, desejado.get(vizinho)! + (linha.indexOf(vizinho) < i ? passo : -passo));
       }
+      // O parente de um amigo (laço resumido) sem pais na árvore fica embaixo dele: o Caio, sobrinho do Ed,
+      // fica logo abaixo do Ed, e a linha desce reta de um para o outro
+      for (const id of linha) {
+        if (desejado.has(id) || (paisDe.get(id) ?? []).length) continue;
+        const acima = parenteResumidoAcima(id);
+        if (acima) desejado.set(id, x.get(acima)!);
+      }
       assentar(linha, desejado);
     }
     // Subindo: os pais se centralizam sobre os filhos
@@ -293,6 +310,17 @@ export function desenharArvore(
       }
       assentar(linha, desejado);
     }
+  }
+
+  // Acerto final: o parente de laço resumido vai para baixo do amigo, e o resto da fileira fica onde está
+  for (const linha of linhasDePessoas) {
+    const desejado = new Map(linha.map((id) => [id, x.get(id)!]));
+    let mexe = false;
+    for (const id of linha) {
+      const acima = (paisDe.get(id) ?? []).length ? undefined : parenteResumidoAcima(id);
+      if (acima) (desejado.set(id, x.get(acima)!), (mexe = true));
+    }
+    if (mexe) assentar(linha, desejado);
   }
 
   const menorX = Math.min(...x.values());
@@ -332,24 +360,44 @@ export function desenharArvore(
   }
   let degrau = 0;
   const descidas: Desenho['descidas'] = [];
-  for (const [chave, filhos] of grupos) {
+  // Linhas que saem do pé da mesma pessoa correm na mesma altura e se sobrepõem. Em alturas diferentes,
+  // as curvas de uma e de outra ficavam a poucos pixels e viravam um emaranhado (a Karol, filha do Gui e
+  // da Giovanna, e o Chico, filho dos dois e do Magno)
+  const barraDoPe = new Map<string, number>();
+  const familias = [...grupos].map(([chave, filhos]) => {
     const pais = chave.split('+');
     const baixo = Math.max(...pais.map((p) => em.get(p)!.y)) + m.altura;
     const ponto = pais.length === 2 && ehCasal(pais[0], pais[1]) ? pontoDoCasal.get(chave) : undefined;
     // Cada família usa uma altura um pouco diferente, para as linhas não se confundirem
-    const barra = baixo + m.vaoY * 0.36 + ((degrau++ % 3) - 1) * 7;
+    const peJaUsado = ponto ? undefined : pais.map((p) => barraDoPe.get(p)).find((b) => b !== undefined);
+    const barra = peJaUsado ?? baixo + m.vaoY * 0.36 + ((degrau++ % 3) - 1) * 7;
+    if (!ponto) for (const p of pais) if (!barraDoPe.has(p)) barraDoPe.set(p, barra);
     const origens = ponto ? [{ x: ponto.x, y: ponto.y }] : pais.map((p) => ({ x: meioX(p), y: baixo }));
+    return { pais, filhos, ponto, barra, origens };
+  });
+  // Quando várias linhas saem de pés diferentes e correm na mesma altura, todas as curvas usam o mesmo
+  // raio, o que cabe no menor vão entre duas delas: com raios diferentes, as curvas que deveriam
+  // coincidir apareciam dobradas
+  const raioDaBarra = new Map<number, number>();
+  for (const barra of new Set(familias.filter((f) => !f.ponto).map((f) => f.barra))) {
+    const daBarra = familias.filter((f) => !f.ponto && f.barra === barra);
+    const xs = [...new Set(daBarra.flatMap((f) => [...f.origens.map((o) => o.x), ...f.filhos.map(meioX)]))].sort((a, b) => a - b);
+    const vaos = xs.slice(1).map((v, k) => v - xs[k]);
+    raioDaBarra.set(barra, Math.min(20, ...vaos.map((v) => v / 2)));
+  }
+  for (const { pais, filhos, ponto, barra, origens } of familias) {
+    const raio = ponto ? 20 : (raioDaBarra.get(barra) ?? 20);
+    const caminho = (o: { x: number; y: number }, filho: string) => arredondado([[o.x, o.y], [o.x, barra], [meioX(filho), barra], [meioX(filho), em.get(filho)!.y]], raio);
     descidas.push({ pais, x: origens[0].x, y: origens[0].y, barra });
     let d = '';
     for (const filho of filhos) {
       if (ehBicho.has(filho)) continue;
-      for (const o of origens) d += ' ' + arredondado([[o.x, o.y], [o.x, barra], [meioX(filho), barra], [meioX(filho), em.get(filho)!.y]]);
+      for (const o of origens) d += ' ' + caminho(o, filho);
     }
     if (d) linhas.push({ d: d.trim(), tipo: 'filhos', de: [...pais, ...filhos.filter((f) => !ehBicho.has(f))] });
     // Bichos são filhos e netos como as famílias os tratam, mas a linha até eles tem traço próprio
     for (const filho of filhos.filter((f) => ehBicho.has(f))) {
-      const db = origens.map((o) => arredondado([[o.x, o.y], [o.x, barra], [meioX(filho), barra], [meioX(filho), em.get(filho)!.y]])).join(' ');
-      linhas.push({ d: db, tipo: 'bicho', de: [...pais, filho] });
+      linhas.push({ d: origens.map((o) => caminho(o, filho)).join(' '), tipo: 'bicho', de: [...pais, filho] });
     }
     if (ponto) linhas.push({ d: circulo(ponto.x, ponto.y, 5), tipo: 'ponto', de: pais });
   }
@@ -396,6 +444,17 @@ export function desenharArvore(
     const viaPais = (paisDe.get(l.pessoa) ?? []).some((p) => escolhidosPor.get(l.dono)!.has(p));
     if (viaPais) continue;
     const [pd, pp] = [em.get(l.dono)!, em.get(l.pessoa)!];
+    // Laço resumido com quem está logo acima e não tem filhos embaixo: desce do pé dele até o alto do
+    // parente, como a linha de pai para filho (o Ed e o Caio)
+    if (l.sangue) {
+      const [cima, baixo] = pd.y < pp.y ? [l.dono, l.pessoa] : [l.pessoa, l.dono];
+      if (pd.y !== pp.y && parenteResumidoAcima(baixo) === cima && !(paisDe.get(baixo) ?? []).length) {
+        const pe = em.get(cima)!.y + m.altura;
+        const meio = pe + m.vaoY * 0.36;
+        linhas.push({ d: arredondado(limpar([[meioX(cima), pe], [meioX(cima), meio], [meioX(baixo), meio], [meioX(baixo), em.get(baixo)!.y]])), tipo: 'resumido', de: [l.dono, l.pessoa] });
+        continue;
+      }
+    }
     if (pd.y === pp.y) {
       const [esq, dir] = pd.x < pp.x ? [pd, pp] : [pp, pd];
       const entre = posicoes.some((o) => o.y === pd.y && o.x > esq.x && o.x < dir.x);
