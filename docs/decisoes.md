@@ -182,13 +182,14 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
-- **Primeira versão do visual** (decisões do Gui, 16/11/2026). Construir a direção de `docs/visual.md` numa branch `tst-visual`, nascida da `homologa`, para o Gui ver na prévia antes de decidir. Ordem sugerida, cada passo conferido em 390 e 1280 px, por teclado e com movimento reduzido:
-    1. Tokens: fontes (serifa macia nos títulos, grotesca no texto, mono nas legendas, manuscrita só no nome de quem conta), neutros de papel e as cores das famílias em pastel com a versão saturada de cada uma. Os tokens já têm nome de papel (`docs/ux/padroes.md`); a lista de `docs/ux/revisao-visual.md` entra aqui (escala de espaços, tamanhos, raios, bordas, áreas de toque de 44 px).
-    2. Foto de retrato no cadastro da pessoa (abaixo), antes dos componentes, porque o retrato recortado depende dela.
-    3. Componentes de `docs/visual.md`: o monograma com o M de Memórias (também como favicon), polaroid, monte de fotos, legenda "lugar (ano)", etiqueta-balão, ficha em mono, retrato recortado (com iniciais de quem ainda não tem foto), nome manuscrito, bloco de áudio, sanfona de fases.
-    4. Páginas: linha do tempo (com o trilho e o ponto), página da memória na ordem de `docs/visual.md`, capítulo, pessoa e laço. A árvore só muda de cor.
-    5. Movimento, por último, só o da lista de `docs/visual.md`, com a frase que acende palavra por palavra no modelo do bayara.design.
-  **Foto de retrato** (decisão do Gui, 16/11/2026): só por envio de foto nova, sem recortar de fotos de memórias.
+- **Revisão visual do zero** (decisões do Gui, 16/11/2026). Refazer toda a aparência do site seguindo `docs/visual.md`, sem adaptar o CSS atual. Ficam as fundações listadas lá ("O que fica"). A régua é o bayara.design e o site da @bsurda. Branch `tst-visual`, nascida da `homologa`. Em fases, cada uma conferida em 390, 1280 e 1920 px, por teclado e com movimento reduzido:
+    1. **Conceito.** Três telas de ponta a ponta com o acervo de exemplo: a linha do tempo (Tudo), uma memória e uma tela do cadastro guiado. CSS novo, escrito do zero numa pasta própria. Para as fontes, duas ou três combinações de licença livre (Fontsource) para o Gui escolher; a serifa precisa ter acentos e itálico bons em português. Parar aqui e esperar a aprovação do Gui na prévia.
+    2. **Sistema.** Com a direção aprovada, tokens e componentes viram sistema (os de `docs/visual.md`, incluindo o monograma com o M de Memórias e a assinatura com os sobrenomes).
+    3. **Todas as telas,** uma a uma, sem levar nada do CSS antigo, até `src/styles/global.css` poder ser apagado. A árvore muda só de aparência; os testes dela continuam passando sem mudança.
+    4. **Movimento e detalhes,** por último, só os de `docs/visual.md`.
+    5. **QA visual** no celular de verdade antes do PR para a `homologa`.
+  `npm run capturas` serve para registrar antes e depois de cada tela. A polaroid em toda foto-chave fica para o Gui confirmar vendo a linha do tempo pronta. Ao terminar, o resumo de `docs/visual.md` vira regra aqui, e `docs/ux/revisao-visual.md` e `docs/ux/padroes.md` saem de cena.
+- **Foto de retrato no cadastro da pessoa** (decisão do Gui, 16/11/2026). É função, não visual: pode ser construída antes da revisão visual, numa branch própria, com a aparência mínima, e ganha o desenho final na revisão. Só por envio de foto nova, sem recortar de fotos de memórias.
     - Opcional, para pessoas e bichos. Em "Nova pessoa" fica com o nascimento e a história, no que vem recolhido; em "Editar página e laços", à vista, com "Trocar foto" e "Tirar foto".
     - Depois de escolher, a pessoa enquadra o rosto num recorte quadrado (arrastar e aproximar) e confere como vai ficar. O navegador reduz e recorta antes de enviar, como já faz com as fotos de memória, num tamanho de retrato (uns 800 px).
     - Quem pode pôr ou trocar: quem pode editar a página da pessoa. Quem vê a pessoa vê o retrato, como vê o nome.
@@ -196,8 +197,7 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - Aparece na página da pessoa, em "Quem estava" na memória e na ficha que abre ao tocar na pessoa na árvore. Os cartões da árvore continuam sem foto. Sem retrato, as iniciais sobre a cor da família.
     - O espelho da produção não leva retratos, como não leva áudios. Os exemplos podem ganhar retratos de exemplo, se ajudar a conferir o visual.
     - Teste em `testes/`: quem pode pôr e trocar o retrato, e que o retrato de quem a pessoa não vê não é entregue.
-  Fontes: escolher entre opções de licença livre (Fontsource), comparando duas ou três na prévia; a serifa precisa ter acentos e itálico bons em português. A polaroid em toda foto-chave fica para o Gui confirmar vendo a linha do tempo pronta. Ao terminar, o resumo de `docs/visual.md` vira regra aqui, e `docs/ux/revisao-visual.md` sai de cena.
-- **Assinatura do nome** (decisões do Gui, 16/11/2026), para depois da primeira versão do visual. Detalhe em `docs/visual.md` ("Assinatura do nome") e no rascunho `docs/visual/assinatura-hierarquia.png`.
+- **Assinatura do nome** (decisões do Gui, 16/11/2026), construída dentro da revisão visual, na fase 2. Detalhe em `docs/visual.md` ("Assinatura do nome") e no rascunho `docs/visual/assinatura-hierarquia.png`.
     - "MEMÓRIAS" grande e fixo; abaixo, os sobrenomes das famílias do que está sendo visto ("Bayara & Bracarense" em "Tudo" e no núcleo Bayara Bracarense, "Bayara" no núcleo Bayara, "Bracarense" no núcleo Bracarense).
     - Uma migração nova dá a cada núcleo as famílias de que ele é feito (sobrenomes), editáveis pelos administradores. A linha junta os sobrenomes sem repetir, na ordem dos lados da árvore, com "&" antes do último. Teste em `testes/` para as combinações, incluindo uma terceira família.
     - Mostrar na prévia as variações de peso e largura do rascunho.

@@ -105,8 +105,9 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 
 - A direção visual foi definida em 16/11/2026 e está em `docs/visual.md`: claro, serifa macia nos títulos, pastéis com pontos saturados, foto como objeto e movimento discreto. A análise das referências está no Claude Doc linkado ali.
 - Movimento: a rolagem é sempre a do aparelho e nenhum efeito quebra um padrão de navegação conhecido. A família inclui gente com pouca familiaridade com sites.
-- Enquanto a primeira versão do visual não for aprovada, o estilo atual (`src/styles/global.css`) continua provisório.
-- Toda mudança visual é conferida em largura de celular e de desktop, por teclado, e com movimento reduzido.
+- A revisão visual é do zero ("Revisão do zero" em `docs/visual.md`): o CSS atual não é base, só as fundações de experiência ficam. Até ela ser aprovada, o estilo atual continua no ar como provisório.
+- Celular primeiro, desktop de destaque: cada tela nasce em 390 px e ganha composição própria na tela grande, pensada para ver na TV (até 1920 px).
+- Toda mudança visual é conferida em 390, 1280 e 1920 px, por teclado, e com movimento reduzido.
 
 ## Árvore
 

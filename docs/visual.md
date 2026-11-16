@@ -8,6 +8,59 @@ A ideia em uma frase: um álbum de família editado. Papel claro, títulos em se
 
 A família inclui gente com pouca familiaridade com sites, usando sobretudo o celular. A Elizete teve dificuldade com a rolagem diferente da página Sobre da @bsurda. Toda escolha visual passa por essa pergunta: a pessoa entende sem pensar?
 
+## Revisão do zero (decisão do Gui, 16/11/2026)
+
+O visual é refeito do zero, e não adaptado sobre o que existe. Ficam as fundações e as paredes estruturais, que são a experiência combinada até aqui. Todo o resto vai abaixo: esqueleto de página, CSS, componentes, navegação visual, composição de cada tela. A régua de qualidade é o bayara.design e o site da @bsurda (repositórios `guilhermebayara/bayara` e `guilhermebayara/absurda`): alto nível, sem concessão.
+
+### O que fica (fundações)
+
+| Fundação | O que não muda |
+| --- | --- |
+| Dados e regras | Banco, migrações, permissões, visibilidade, rascunho, lixeira, histórico, núcleos e parentes, espelho |
+| Árvore | O comportamento inteiro: arranjo, lados das famílias, linha direta, ramos recolhidos em cartão, laços do coração, regras das linhas (`testes/arvore-*.test.ts`), arrastar e aproximar. Muda só a aparência |
+| Fluxos | Cadastro guiado por caminho, as sete etapas da Nova memória e o que é obrigatório, "Quem estava?" com sugestões, busca de pessoa, data flexível, relato com áudio, corrigir e restaurar (seção "Interação dos formulários" de `docs/decisoes.md`) |
+| Organização | As páginas e o que cada uma contém, a ordem da linha do tempo e a ordem da página da memória (abaixo) |
+| Textos de interface | O jeito de falar ("sua avó", o botão diz o que acontece) e os nomes das ações |
+| Acessibilidade | Funciona sem JavaScript, por teclado, com movimento reduzido, toque mínimo de 44 px |
+| Decisões visuais | As da tabela "Decisões", abaixo |
+
+### O que se refaz
+
+Tudo o que é aparência e composição: o grid, a escala de tipo, os espaços, cada componente, a barra do topo e o menu, a abertura de cada página, como a foto entra na tela, o cartão da árvore, os formulários por fora, os estados vazios. O CSS atual (`src/styles/global.css`) não é ponto de partida, nem os valores de `docs/ux/padroes.md`, que servem só como inventário do que existe. A marcação das páginas pode mudar à vontade, desde que os scripts de `src/lib/cliente/` e os testes continuem achando o que precisam.
+
+### A ideia central: a caixa de fotografias da família
+
+Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso de cada foto, alguém escreveu à mão quem estava e quando. O site usa esse vocabulário na composição e na tipografia, nunca em textura. Nada de papel envelhecido, fita adesiva ou moldura de álbum: o resultado parece revista, não scrapbook.
+
+- **A foto e o verso.** A memória é uma foto com o seu verso. A frente é a imagem; o verso é a ficha em mono, como o carimbo do laboratório de revelação ("14 AGO 1994 · BELO HORIZONTE"), e os relatos, assinados à mão.
+- **O ano como divisória.** Na linha do tempo, cada ano ou década abre com o número grande em serifa, como as abas de um fichário.
+- **A cor de cada família.** Cada família tem sua cor pastel, como a capa do álbum de cada casa. A versão saturada marca o que importa naquela tela.
+
+### Uma ideia forte por tela
+
+| Tela | A ideia | O que fica quieto |
+| --- | --- | --- |
+| Tudo e famílias | Capa: a assinatura ("MEMÓRIAS" e os sobrenomes) grande, e logo o ano mais recente abrindo a lista | Menu e filtros pequenos |
+| Linha do tempo | O ano grande como divisória e as fotos-chave como polaroids | A ficha de cada memória em uma linha mono |
+| Memória | A foto e o verso: a imagem grande, a ficha como carimbo, os relatos como bilhetes assinados | Corrigir, histórico |
+| Pessoa | O retrato e a voz: retrato recortado, parentesco grande ("sua avó"), os áudios dela | A lista de laços |
+| Capítulo | Abertura de capítulo de livro: título, período, marcos numerados | Edição |
+| Árvore | As famílias em cor, cartões como etiquetas com nome e parentesco | Camadas e controles |
+| Formulários | Uma pergunta por tela, grande, em serifa, como quem conversa | A trilha das etapas |
+| Rascunhos, lixeira, administração | Utilitário e silencioso | Tudo |
+
+### O nível de qualidade
+
+O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
+
+- **Disciplina de tipo.** O bayara usa uma família só e tira a hierarquia de tamanho e espaço, com títulos grandes de espaçamento justo. Aqui são três famílias com papéis fixos (serifa nos títulos, grotesca no texto, mono nas fichas), e nenhuma aparece fora do seu papel.
+- **Grid rígido e alinhado à esquerda.** Colunas fixas, tudo começa na mesma linha. Alinhamento óptico no tipo grande.
+- **Cor com função.** No bayara, o azul marca o resultado e o terracota marca um custo. Aqui, o pastel marca a família e o saturado marca o que importa. Cor sem função não entra.
+- **Objeto com sentido.** O crachá da @bsurda imita uma coisa real do mundo da festa. Aqui, a polaroid e o carimbo do verso imitam o mundo da família.
+- **Ações tipográficas.** Links e ações secundárias são texto sublinhado, sem pílula. Botão cheio só para a ação principal da tela.
+- **Detalhe pequeno que se nota.** Como o nome do topo do bayara, que se preenche quando o nome grande sai da tela. Um ou dois no site, nunca em toda parte.
+- **Celular primeiro, desktop de destaque.** A família vai usar quase só no celular, então cada tela nasce em 390 px. O desktop é o momento especial, a versão de ver juntos na TV: cada tela ganha composição própria em tela grande (de 1280 a 1920 px), com fotos grandes e tipo de capa, e nunca é o celular esticado.
+
 ## Referências
 
 | Ref | O que levar |
@@ -54,6 +107,9 @@ Ficam de fora: cartão que deita ao rolar, foto que cresce enquanto se rola, car
 O Safari do iPhone já deu trabalho com efeitos presos à rolagem no site da @bsurda (ver o `CLAUDE.md` daquele repositório, "Banda do Safari no iPhone"): nada de `sticky` ou `fixed` novo sem conferir no aparelho.
 
 ## Componentes novos
+
+As medidas abaixo vêm das referências e são ponto de partida: o desenho final sai da revisão.
+
 
 | Componente | Onde | Detalhe |
 | --- | --- | --- |
@@ -105,7 +161,3 @@ Hoje a ação principal fica no alto (decisão do QA de UX). Mantenha um atalho 
 - **Linha do tempo:** lista vertical, a barra de décadas parada no alto como já está, um trilho fino com um ponto marcando a memória em leitura (Folira). Cada memória com a polaroid da foto-chave e a legenda "lugar (ano)".
 - **Capítulo e laço:** título, período e pessoas parados à esquerda no computador; à direita, os marcos numerados, com data e lugar em mono (Union, "Our story"). As fases do casal em sanfona (Union, "The journey").
 - **Data aproximada e período:** em pílula, como no Folira ("2018-2020", "por volta de 1994").
-
-## O que não muda
-
-A ordem das etapas, os textos, as regras de permissão, o arranjo da árvore e o comportamento dos formulários continuam como estão em `docs/decisoes.md`. Esta é uma troca de aparência: muda token, componente e o desenho de algumas páginas, não o que o site faz. Na árvore, os cartões continuam retos e alinhados (sem polaroid), e só as cores mudam.
