@@ -370,3 +370,33 @@ describe('o parente do amigo fica embaixo dele (achado do Gui, 16/11/2026)', () 
     expect(new Set([...curvas('karol'), ...curvas('chico')]).size).toBe(1);
   });
 });
+
+describe('o parente do amigo não cruza a linha dos filhos de outro amigo (achado do Gui, 16/11/2026)', () => {
+  // O Otto é filho da Nati e do Renan e sobrinho de coração do Gui; o Caio é sobrinho do Ed. O Caio ficava
+  // do lado da Nati e o Otto do lado do Ed, e as duas linhas se cruzavam
+  const d = desenharArvore(
+    [p('elizete', 0), p('aguilar', 0), p('renan', 1), p('nati', 1), p('ed', 1), p('robert', 1), p('lugh', 1), p('gui', 1), p('giovanna', 1), p('lucas-magno', 1), p('otto', 2), p('caio', 2), { id: 'karol', geracao: 2, bicho: true }, { id: 'chico', geracao: 2, bicho: true }],
+    [casal('renan', 'nati'), casal('robert', 'lugh'), casal('giovanna', 'lucas-magno'), casal('elizete', 'aguilar')],
+    [...filho('gui', 'elizete', 'aguilar'), ...filho('giovanna', 'elizete', 'aguilar'), ...filho('otto', 'renan', 'nati'), ...filho('karol', 'gui', 'giovanna'), ...filho('chico', 'gui', 'giovanna', 'lucas-magno')],
+    [
+      { dono: 'gui', pessoa: 'nati', papel: 'irmao' },
+      { dono: 'gui', pessoa: 'renan', papel: null },
+      { dono: 'gui', pessoa: 'otto', papel: 'sobrinho' },
+      { dono: 'gui', pessoa: 'ed', papel: 'irmao' },
+      { dono: 'gui', pessoa: 'robert', papel: 'irmao' },
+      { dono: 'gui', pessoa: 'lugh', papel: 'irmao' },
+      { dono: 'caio', pessoa: 'ed', sangue: true, papel: 'tio' },
+      { dono: 'gui', pessoa: 'caio', papel: 'sobrinho' },
+    ],
+  );
+  const x = (id: string) => d.pessoas.find((q) => q.id === id)!.x;
+
+  it('o Otto e o Caio ficam na mesma ordem dos pais e do tio', () => {
+    expect(Math.sign(x('otto') - x('caio'))).toBe(Math.sign((x('renan') + x('nati')) / 2 - x('ed')));
+  });
+
+  it('o Caio continua embaixo do Ed, e o Otto não sai de baixo dos pais para perto da Karol', () => {
+    expect(x('caio')).toBe(x('ed'));
+    expect(Math.abs(x('otto') - (x('renan') + x('nati')) / 2)).toBeLessThan(MEDIDAS.largura + MEDIDAS.vaoX);
+  });
+});

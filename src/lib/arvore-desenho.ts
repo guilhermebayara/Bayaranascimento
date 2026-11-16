@@ -227,7 +227,15 @@ export function desenharArvore(
   // --- 1b. Melhora a ordem: menos cruzamentos, ligações mais curtas, cada núcleo do seu lado ---
   const ladoDe = new Map(pessoas.filter((p) => p.lado !== undefined).map((p) => [p.id, p.lado!]));
   const linhasDeBlocos = linhasDePessoas.map((linha) => blocosDaLinha.get(linha)!.map((b) => [...b]));
-  otimizarOrdem(linhasDeBlocos, [...paisDe].flatMap(([filho, pais]) => pais.map((pai) => [pai, filho] as [string, string])), diretos.map((l) => [l.dono, l.pessoa] as [string, string]), ladoDe, raizDe);
+  // Para a ordem, o parente de laço resumido que fica embaixo do amigo conta como filho dele: a linha
+  // dos dois desce como a de pai para filho e não pode cruzar a dos filhos dos outros (o Caio e o Otto)
+  const resumidosAbaixo = pessoas
+    .filter((p) => !(paisDe.get(p.id) ?? []).length)
+    .flatMap((p) => {
+      const acima = parenteResumidoAcima(p.id);
+      return acima ? [[acima, p.id] as [string, string]] : [];
+    });
+  otimizarOrdem(linhasDeBlocos, [...[...paisDe].flatMap(([filho, pais]) => pais.map((pai) => [pai, filho] as [string, string])), ...resumidosAbaixo], diretos.map((l) => [l.dono, l.pessoa] as [string, string]), ladoDe, raizDe);
   linhasDePessoas.length = 0;
   blocosDaLinha.clear();
   for (const blocos of linhasDeBlocos) {
@@ -1028,6 +1036,10 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
     for (const [dono, escolhido] of coracao) {
       if (!naLinha.has(escolhido) || familiaDe(dono) === familiaDe(escolhido)) continue;
       let ancora: string | undefined = naLinha.has(dono) ? dono : undefined;
+      // Quem tem pais na fileira de cima fica embaixo deles: o laço com alguém de outra geração não o tira
+      // de lá (o Otto, filho da Nati e do Renan e sobrinho de coração do Gui, não vai para perto da Karol)
+      const comPaisAcima = n > 0 && (paisDe.get(escolhido) ?? []).some((p) => melhor[n - 1].some((b) => b.includes(p)));
+      if (!ancora && comPaisAcima) continue;
       if (!ancora) {
         const ordem = melhor[n].flat();
         let parentes = [...(paisDe.get(dono) ?? []), ...(filhosDe.get(dono) ?? [])].filter((id) => naLinha.has(id));
