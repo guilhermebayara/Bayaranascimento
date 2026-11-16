@@ -227,7 +227,15 @@ export function desenharArvore(
   // --- 1b. Melhora a ordem: menos cruzamentos, ligações mais curtas, cada núcleo do seu lado ---
   const ladoDe = new Map(pessoas.filter((p) => p.lado !== undefined).map((p) => [p.id, p.lado!]));
   const linhasDeBlocos = linhasDePessoas.map((linha) => blocosDaLinha.get(linha)!.map((b) => [...b]));
-  otimizarOrdem(linhasDeBlocos, [...paisDe].flatMap(([filho, pais]) => pais.map((pai) => [pai, filho] as [string, string])), diretos.map((l) => [l.dono, l.pessoa] as [string, string]), ladoDe, raizDe);
+  // Para a ordem, o parente de laço resumido que fica embaixo do amigo conta como filho dele: a linha
+  // dos dois desce como a de pai para filho e não pode cruzar a dos filhos dos outros (o Caio e o Otto)
+  const resumidosAbaixo = pessoas
+    .filter((p) => !(paisDe.get(p.id) ?? []).length)
+    .flatMap((p) => {
+      const acima = parenteResumidoAcima(p.id);
+      return acima ? [[acima, p.id] as [string, string]] : [];
+    });
+  otimizarOrdem(linhasDeBlocos, [...[...paisDe].flatMap(([filho, pais]) => pais.map((pai) => [pai, filho] as [string, string])), ...resumidosAbaixo], diretos.map((l) => [l.dono, l.pessoa] as [string, string]), ladoDe, raizDe);
   linhasDePessoas.length = 0;
   blocosDaLinha.clear();
   for (const blocos of linhasDeBlocos) {
@@ -375,19 +383,27 @@ export function desenharArvore(
     const origens = ponto ? [{ x: ponto.x, y: ponto.y }] : pais.map((p) => ({ x: meioX(p), y: baixo }));
     return { pais, filhos, ponto, barra, origens };
   });
-  // Quando várias linhas saem de pés diferentes e correm na mesma altura, todas as curvas usam o mesmo
-  // raio, o que cabe no menor vão entre duas delas: com raios diferentes, as curvas que deveriam
-  // coincidir apareciam dobradas
-  const raioDaBarra = new Map<number, number>();
-  for (const barra of new Set(familias.filter((f) => !f.ponto).map((f) => f.barra))) {
-    const daBarra = familias.filter((f) => !f.ponto && f.barra === barra);
-    const xs = [...new Set(daBarra.flatMap((f) => [...f.origens.map((o) => o.x), ...f.filhos.map(meioX)]))].sort((a, b) => a - b);
-    const vaos = xs.slice(1).map((v, k) => v - xs[k]);
-    raioDaBarra.set(barra, Math.min(20, ...vaos.map((v) => v / 2)));
-  }
-  for (const { pais, filhos, ponto, barra, origens } of familias) {
-    const raio = ponto ? 20 : (raioDaBarra.get(barra) ?? 20);
-    const caminho = (o: { x: number; y: number }, filho: string) => arredondado([[o.x, o.y], [o.x, barra], [meioX(filho), barra], [meioX(filho), em.get(filho)!.y]], raio);
+  // Todas as curvas têm o mesmo raio, bem visível: curva é bifurcação ou junção, ângulo reto é cruzamento.
+  // Por isso a descida até um filho nunca fica a menos de dois raios de um pé ou de um ponto de casal que
+  // corre na mesma barra: perto assim, ela entra reta, alinhada com ele, ainda dentro da caixa do filho
+  // (a Karol, um pouco ao lado do Gui, recebe a linha reta do pé dele)
+  const R_LINHA = 20;
+  const origensDaBarra = (f: (typeof familias)[number]) =>
+    f.ponto ? f.origens : familias.filter((o) => !o.ponto && o.barra === f.barra).flatMap((o) => o.origens);
+  const descidaAte = (f: (typeof familias)[number], filho: string) => {
+    const meio = meioX(filho);
+    const perto = origensDaBarra(f)
+      .map((o) => o.x)
+      .filter((ox) => Math.abs(ox - meio) < 2 * R_LINHA && Math.abs(ox - meio) < m.largura / 2 - R_LINHA)
+      .sort((a, b) => Math.abs(a - meio) - Math.abs(b - meio));
+    return perto[0] ?? meio;
+  };
+  for (const f of familias) {
+    const { pais, filhos, ponto, barra, origens } = f;
+    const caminho = (o: { x: number; y: number }, filho: string) => {
+      const xf = descidaAte(f, filho);
+      return arredondado(limpar([[o.x, o.y], [o.x, barra], [xf, barra], [xf, em.get(filho)!.y]]), R_LINHA);
+    };
     descidas.push({ pais, x: origens[0].x, y: origens[0].y, barra });
     let d = '';
     for (const filho of filhos) {
@@ -485,8 +501,9 @@ export function desenharArvore(
   const faixaDeBaixo = (fundo: number) => {
     const k = faixasDeBaixo.get(fundo) ?? 0;
     faixasDeBaixo.set(fundo, k + 1);
-    // Entre 18 e 34px abaixo das caixas: mais para baixo fica a barra dos filhos
-    return fundo + 18 + (k % 3) * 8;
+    // Entre 20 e 36px abaixo das caixas, para a curva que entra no pé ter o raio de todas: mais para baixo
+    // fica a barra dos filhos
+    return fundo + 20 + (k % 3) * 8;
   };
   // Colunas verticais já usadas por galhos, para dois troncos não subirem pelo mesmo x
   const colunas: { x: number; de: number; ate: number; tronco: string }[] = [];
@@ -593,6 +610,9 @@ export function desenharArvore(
       const desejado = porCima ? (ladoDoTronco < 0 ? p.x - m.vaoX / 2 : p.x + m.largura + m.vaoX / 2) : x;
       const yv = porCima ? faixaAcima(p.y) : faixaAbaixo(p.y);
       const xv = desviar(chave, vaosLivres(passagens, vao, x, desejado), alto, yv, passagens);
+      // Um desvio menor que dois raios pediria curvas menores que as outras: a linha entra reta, um pouco
+      // fora do meio da caixa
+      if (Math.abs(xv - x) < 2 * R && Math.abs(xv - x) < m.largura / 2 - R) return [...inicio, [xv, alto], [xv, porCima ? p.y : p.y + m.altura]];
       return [...inicio, [xv, alto], [xv, yv], [x, yv], [x, porCima ? p.y : p.y + m.altura]];
     };
     // O mais longe primeiro, desenhado inteiro; os outros nascem onde se separam dele
@@ -647,7 +667,8 @@ export function arredondado(pontos: [number, number][], raio = 20): string {
     const [a, b, c] = [p[i - 1], p[i], p[i + 1]];
     const l1 = Math.hypot(b[0] - a[0], b[1] - a[1]);
     const l2 = Math.hypot(c[0] - b[0], c[1] - b[1]);
-    const r = Math.min(raio, l1 / 2, l2 / 2);
+    // Um trecho entre duas curvas é dividido entre elas; o da ponta é todo da única curva que tem
+    const r = Math.min(raio, i === 1 ? l1 : l1 / 2, i === p.length - 2 ? l2 : l2 / 2);
     const antes = [b[0] - ((b[0] - a[0]) / l1) * r, b[1] - ((b[1] - a[1]) / l1) * r];
     const depois = [b[0] + ((c[0] - b[0]) / l2) * r, b[1] + ((c[1] - b[1]) / l2) * r];
     d += ` L ${antes[0]} ${antes[1]} Q ${b[0]} ${b[1]} ${depois[0]} ${depois[1]}`;
@@ -727,12 +748,12 @@ export function desenharRotas(rotas: Ponto[][], raio = 20): string {
       // Segue reto de onde a outra virou: começa onde a curva dela começa, com o raio que ela usou ali
       const j = outra.findIndex((q) => q[0] === s[0] && q[1] === s[1]);
       const lado = (a: Ponto, b: Ponto) => Math.hypot(b[0] - a[0], b[1] - a[1]);
-      const r = j > 0 && j + 1 < outra.length ? Math.min(raio, lado(outra[j - 1], outra[j]) / 2, lado(outra[j], outra[j + 1]) / 2) : Math.min(raio, la / 2);
+      const r = j > 0 && j + 1 < outra.length ? Math.min(raio, lado(outra[j - 1], outra[j]) / (j === 1 ? 1 : 2), lado(outra[j], outra[j + 1]) / (j + 2 === outra.length ? 1 : 2)) : Math.min(raio, la / 2);
       d += ' ' + arredondado([[s[0] - ux * r, s[1] - uy * r], ...resto.slice(1)], raio);
       continue;
     }
     // Vira no ponto de separação: nasce um pouco antes, na linha comum, e faz a curva
-    const r = Math.min(raio, la / 2, comprimento / 2);
+    const r = Math.min(raio, la / 2, resto.length === 2 ? comprimento : comprimento / 2);
     const fim: Ponto = [s[0] + vx * r, s[1] + vy * r];
     const depois = arredondado([fim, ...resto.slice(1)], raio).replace(/^M \S+ \S+/, '');
     d += ` M ${s[0] - ux * r} ${s[1] - uy * r} Q ${s[0]} ${s[1]} ${fim[0]} ${fim[1]}${depois}`;
@@ -1028,6 +1049,10 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
     for (const [dono, escolhido] of coracao) {
       if (!naLinha.has(escolhido) || familiaDe(dono) === familiaDe(escolhido)) continue;
       let ancora: string | undefined = naLinha.has(dono) ? dono : undefined;
+      // Quem tem pais na fileira de cima fica embaixo deles: o laço com alguém de outra geração não o tira
+      // de lá (o Otto, filho da Nati e do Renan e sobrinho de coração do Gui, não vai para perto da Karol)
+      const comPaisAcima = n > 0 && (paisDe.get(escolhido) ?? []).some((p) => melhor[n - 1].some((b) => b.includes(p)));
+      if (!ancora && comPaisAcima) continue;
       if (!ancora) {
         const ordem = melhor[n].flat();
         let parentes = [...(paisDe.get(dono) ?? []), ...(filhosDe.get(dono) ?? [])].filter((id) => naLinha.has(id));
