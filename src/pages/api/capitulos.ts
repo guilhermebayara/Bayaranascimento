@@ -99,7 +99,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const nucleos = [...new Set(dados.getAll('nucleos').map(String))];
   if (nucleos.some((n) => !nucleosExistentes.has(n) || !permitidos.has(n))) return falhar('Você só pode marcar núcleos de que faz parte.');
   const visibilidade = campo(dados, 'visibilidade', 10) === 'nucleos' ? 'nucleos' : 'todos';
-  const visivel = validarVisibilidade(usuario, visibilidade, nucleos);
+  const visivel = validarVisibilidade(usuario, visibilidade, nucleos, 'capitulo');
   if (!visivel.ok) return falhar(visivel.motivo);
 
   const ficha: DadosDoCapitulo = {

@@ -168,3 +168,13 @@ describe('histórico de uma memória que começou como rascunho', () => {
     expect(podeVerVersao(elizete, publicada, { situacao: 'publicada' })).toBe(true);
   });
 });
+
+describe('avisos de quem pode ver, no capítulo', () => {
+  // Texto aprovado pelo Gui (16/11/2026): no capítulo, o aviso fala do capítulo
+  it('fala do capítulo, e não da memória', () => {
+    const r = validarVisibilidade(gui, 'nucleos', [], 'capitulo');
+    expect(r.ok ? '' : r.motivo).toBe('Escolha pelo menos um núcleo que pode ver o capítulo.');
+    const s = validarVisibilidade(gui, 'nucleos', []);
+    expect(s.ok ? '' : s.motivo).toBe('Escolha pelo menos um núcleo que pode ver a memória.');
+  });
+});

@@ -20,8 +20,8 @@ const temasDoCapitulo = (c?.temas ?? []).map((id) => temas.find((t) => t.id === 
 const anoAtual = new Date().getFullYear();
 const modo = c?.modo ?? 'reunido';
 const datas = [
-  { prefixo: 'inicio', rotulo: 'Começou em', data: c?.inicio, obrigatorio: true },
-  { prefixo: 'fim', rotulo: 'Terminou em', data: c?.fim, obrigatorio: false },
+  { prefixo: 'inicio', rotulo: 'Começou em', mes: 'Mês em que começou', data: c?.inicio, obrigatorio: true },
+  { prefixo: 'fim', rotulo: 'Terminou em', mes: 'Mês em que terminou', data: c?.fim, obrigatorio: false },
 ];
 ---
 
@@ -68,7 +68,7 @@ const datas = [
                 <input id={`campo-${d.prefixo}`} type="number" name={`${d.prefixo}Ano`} inputmode="numeric" min="1800" max={anoAtual} value={d.data?.ano ?? ''} placeholder="Ano" data-obrigatorio-na-epoca={d.obrigatorio ? '' : undefined} />
                 <button type="button" data-passo="1" aria-label="Um ano depois">+1</button>
                 <button type="button" data-passo="10" aria-label="Dez anos depois">+10</button>
-                <select name={`${d.prefixo}Mes`} aria-label={`Mês em que ${d.rotulo.toLowerCase()}`}>
+                <select name={`${d.prefixo}Mes`} aria-label={d.mes}>
                   <option value="">Mês, se souber</option>
                   {MESES.map((m, n) => <option value={n + 1} selected={d.data?.mes === n + 1}>{m}</option>)}
                 </select>
