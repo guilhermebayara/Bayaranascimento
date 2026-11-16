@@ -283,6 +283,12 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - Os trilhos de capítulo e a barra de décadas só aparecem na linha do tempo ordenada por data e sem filtro que quebre a continuidade (tipo, áudio, foto, relatos). Nos outros casos, o capítulo vem escrito na memória, como já acontece com o filtro de tipo.
     - Tudo respeita a visibilidade: o sorteio, o mural, o modo TV e as contagens só usam memórias que a pessoa vê.
     - Testes em `testes/`: cada filtro e cada ordem, as combinações, o sorteio só entre as visíveis e a regra de quando os trilhos aparecem.
+    - **Andamento** (16/11/2026): os filtros e as ordens estão construídos, sem tela, em `src/lib/explorar.ts` (regras, com teste em `testes/explorar.test.ts`) e `src/lib/servidor/explorar.ts` (`explorarMemorias`, a partir do endereço). Falta a tela, na revisão visual; aí o item sai desta lista.
+        - No endereço: `tipo`, `pessoa`, `nucleo` (o mesmo dos atalhos das famílias), `capitulo` e `tema` podem se repetir; `de` e `ate` (anos), `decada` (1990), `audio=1`, `foto=1`, `contou` e `falta` (o id da pessoa) e `ordem` (`antigas`, `entraram`, `contadas`; sem `ordem`, mais recentes primeiro). O que não faz sentido é ignorado.
+        - Entre filtros diferentes vale o "e"; dentro de um mesmo filtro, o "ou", menos nas pessoas, que são "pessoas juntas".
+        - "Com áudio" conta só áudio de relato publicado. "Contou" e "falta" contam só relato publicado.
+        - O filtro de capítulo usa a regra da página do capítulo. Quando "Época e capítulo" entrar, a regra do capítulo por período passa a ser `memoriaDoCapitulo`, em `contextoDoExplorar`.
+        - O filtro de pessoas não estava na lista dos que quebram a continuidade, então os trilhos continuam com ele.
 
 - **O Magno entra como quem presenteia e cuida do acervo** (decisão do Gui e da Giovanna, 16/11/2026). Ele é administrador como os dois (migração `017-magno-administrador`, no ar desde 16/11/2026), usa a homologação, alimenta o acervo antes do Natal e assina a carta de Natal com eles. O acesso dele depende do e-mail no segredo `ACESSOS` e nas políticas do Cloudflare Access da produção e da homologação, que o Gui ajusta. Também responde à pergunta de quem administra a família Bracarense: o Magno é membro dela.
 
