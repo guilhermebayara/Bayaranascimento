@@ -71,7 +71,8 @@ describe('assinatura do nome', () => {
     expect(sobrenomesDaAssinatura(['Bayara', 'Bayara Bracarense', 'Bracarense'])).toBe('Bayara & Bracarense');
     expect(sobrenomesDaAssinatura(['Bayara'])).toBe('Bayara');
     expect(sobrenomesDaAssinatura(['Bracarense'])).toBe('Bracarense');
-    expect(sobrenomesDaAssinatura(['Bayara Bracarense'])).toBe('Bayara & Bracarense');
+    // Uma família só leva o nome dela, sem "&": o "&" só aparece na família completa
+    expect(sobrenomesDaAssinatura(['Bayara Bracarense'])).toBe('Bayara Bracarense');
     // Uma terceira família, por um casamento
     expect(sobrenomesDaAssinatura(['Bayara', 'Bayara Bracarense', 'Bracarense', 'Bracarense Silva'])).toBe('Bayara, Bracarense & Silva');
   });
@@ -240,12 +241,46 @@ describe('conceito', () => {
     const pagina = Object.entries(paginas).find(([caminho]) => caminho.endsWith('conceito/tudo.astro'))![1];
     const css = ler('telas/linha.css');
     for (const nome of ['Família', 'Tipo', 'Década']) expect(pagina).toMatch(new RegExp(`rotulo[^>]*>\\s*${nome}\\s*<`));
+    // "Tudo" passou a se chamar "Família completa" (do Gui, 16/11/2026)
+    expect(pagina).toMatch(/aria-current=\{!nucleo \? 'page' : undefined\}>\s*Família completa\s*</);
     // A lista de tipos abre dentro do próprio controle: nenhuma regra muda o lugar dele quando abre
     expect(css).not.toMatch(/\.filtros\[open\]\s*\{[^}]*grid-(column|row|area)/);
     // A faixa de décadas leva a cor da família, diluída no papel: o pastel cheio pesou
     expect(css).toMatch(/\.decadas\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--pastel\) \d+%, var\(--papel\)\)/);
     // Fechado, o controle do tipo diz o que está escolhido
     expect(pagina).toContain('data-filtro-atual');
+  });
+
+  it('no toque, o que fica parado no alto não usa sticky: anda por animação ligada à rolagem', () => {
+    // Achado do Gui no iPhone, 16/11/2026: com a faixa de décadas presa por sticky, o Safari (iOS 26)
+    // desenhava uma banda atrás do relógio. A saída é a do site da @bsurda ("pino-novo").
+    const topo = Object.values(import.meta.glob<string>('../src/layouts/Visual.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
+    expect(topo).toMatch(/\(hover: none\) and \(pointer: coarse\)[\s\S]*animation-timeline: view\(\)[\s\S]*classList\.add\('pino-novo'\)/);
+    const css = ler('telas/linha.css');
+    for (const peca of ['.decadas', '.ano > .ano__cabeca']) {
+      const regra = css.match(new RegExp(`html\\.pino-novo ${peca.replace(/[.>]/g, '\\$&')}\\s*\\{([^}]*)\\}`));
+      expect(regra?.[1], peca).toMatch(/position:\s*relative/);
+    }
+    // A linha do tempo da animação fica numa regra à parte da animação, depois dela: juntas, o
+    // compactador funde as duas e o navegador descarta a declaração
+    for (const regra of css.matchAll(/\{([^}]*)\}/g)) {
+      if (/animation-timeline/.test(regra[1]!)) expect(regra[1]).not.toMatch(/animation:\s/);
+    }
+    // E a regra de movimento reduzido não desliga o que está parado por animação
+    expect(ler('base.css')).toMatch(/:not\(\[data-preso\]\)[\s\S]*animation: none !important/);
+    const pagina = Object.entries(paginas).find(([caminho]) => caminho.endsWith('conceito/tudo.astro'))![1];
+    expect(pagina.match(/data-preso/g)?.length).toBe(2);
+  });
+
+  it('cada foto da memória abre a galeria, e sem script continua levando à imagem', () => {
+    // Pedido do Gui, 16/11/2026: tocar na foto abria a imagem solta, fora da página
+    const pagina = Object.entries(paginas).find(([caminho]) => caminho.endsWith('memorias/[id].astro'))![1];
+    expect(pagina).toContain('<dialog class="galeria"');
+    for (const link of pagina.matchAll(/<a class="monte"[^>]*>/g)) expect(link[0]).toMatch(/href=\{`\/fotos\/\$\{foto\.chave\}`\} data-galeria=\{n\}/);
+    // O voltar do aparelho fecha a galeria em vez de sair da página
+    expect(pagina).toMatch(/history\.pushState[\s\S]*popstate/);
+    // Os controles têm nome escrito
+    for (const nome of ['Fechar', 'Anterior', 'Próxima']) expect(pagina).toContain(nome);
   });
 
   it('as telas novas não levam o CSS antigo', () => {

@@ -234,8 +234,14 @@ a:hover {
   *,
   *::before,
   *::after {
-    animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+  /* O que fica parado no alto por animação ligada à rolagem (data-preso, no toque) não é enfeite:
+     é o lugar do elemento, e continua valendo com movimento reduzido. */
+  :not([data-preso]),
+  :not([data-preso])::before,
+  :not([data-preso])::after {
+    animation: none !important;
   }
 }

@@ -29,7 +29,7 @@ import {
   obterMemoria,
   pessoasQueONaoVe,
 } from '../../../lib/servidor/repositorio';
-import { carimboDaData, estiloDoTipo, familiaDaTela, legendaLugarAno, sobrenomesDaAssinatura, trechoDoRelato } from '../../../lib/visual';
+import { carimboDaData, estiloDoTipo, familiaDaTela, giroDoId, legendaLugarAno, sobrenomesDaAssinatura, trechoDoRelato } from '../../../lib/visual';
 
 if (!conceitoDisponivel()) return naoEncontrado();
 
@@ -93,6 +93,28 @@ const depois = todas[posicao + 1];
 const corDaTela = familiaDaTela(memoria.visibilidade === 'nucleos' ? memoria.nucleos : [], ordemDosNucleos);
 const sobrenomes = sobrenomesDaAssinatura(dosNucleos.length ? dosNucleos : nucleos.map((n) => n.nome));
 const outrasFotos = memoria.fotos.length > 1;
+
+// Fotos que vieram com um relato ("Fotos pelo relato", em docs/decisoes.md, ainda a construir).
+// A proposta: a foto é uma só e é da memória. Ela aparece com todas as outras, na parede e na
+// galeria, e também no bilhete do relato que a trouxe, pequena, abrindo a mesma galeria.
+// FIXO: o banco ainda não liga a foto ao relato. Para mostrar a ideia, nestas memórias de exemplo
+// as últimas fotos fazem de conta que vieram com o relato de uma pessoa.
+const FIXO_FOTOS_DOS_RELATOS: Record<string, Record<string, number>> = {
+  '2025-natal': { gui: 2 },
+  '1992-chegada-do-gui': { 'vo-bela': 1 },
+};
+const doRelato = new Map<number, string>();
+for (const [pessoa, quantas] of Object.entries(FIXO_FOTOS_DOS_RELATOS[memoria.id] ?? {})) {
+  if (!relatos.some((r) => r.por === pessoa && r.situacao === 'publicada')) continue;
+  for (let n = Math.max(1, memoria.fotos.length - quantas); n < memoria.fotos.length; n++) doRelato.set(n, pessoa);
+}
+const fotosDoRelato = (pessoa: string) => memoria.fotos.map((foto, n) => ({ foto, n })).filter(({ n }) => doRelato.get(n) === pessoa);
+// O que a galeria mostra de cada foto: a imagem inteira, a legenda e de onde veio
+const daGaleria = memoria.fotos.map((foto, n) => ({
+  src: `/fotos/${foto.chave}`,
+  legenda: foto.legenda ?? '',
+  origem: doRelato.has(n) ? `Veio com o relato de ${nome(doRelato.get(n)!)}` : '',
+}));
 ---
 
 <Visual titulo={memoria.titulo} familia={corDaTela} sobrenomes={sobrenomes}>
@@ -128,8 +150,9 @@ const outrasFotos = memoria.fotos.length > 1;
       </div>
       {
         memoria.fotos.length > 0 && (
-          <div class="abre__foto">
-            <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} cedo />
+          // Com mais de uma foto e espaço, as de trás se abrem em leque. Cada foto abre a galeria nela.
+          <div class:list={['abre__foto', outrasFotos && `abre__foto--leque abre__foto--${Math.min(memoria.fotos.length, 3)}`]}>
+            <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} cedo galeria />
           </div>
         )
       }
@@ -256,6 +279,23 @@ const outrasFotos = memoria.fotos.length > 1;
                           ))}
                         </div>
                       )}
+                      {/* As fotos que vieram com este relato: as mesmas da memória, pequenas, abrindo a mesma galeria */}
+                      {fotosDoRelato(relato.por).length > 0 && (
+                        <ul class="bilhete__fotos" aria-label={`Fotos que vieram com o relato de ${nome(relato.por)}`}>
+                          {fotosDoRelato(relato.por).map(({ foto, n }) => (
+                            <li>
+                              <a class="monte" href={`/fotos/${foto.chave}`} data-galeria={n} aria-label={`Ver a foto${foto.legenda ? `: ${foto.legenda}` : ''}`}>
+                                <span class="polaroid" style={`--giro: ${giroDoId(`${memoria.id}-${n}`)}deg`}>
+                                  <span class="polaroid__foto">
+                                    <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
+                                  </span>
+                                  <span class="polaroid__legenda" />
+                                </span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       <p class="bilhete__assina">
                         <span class="mao">{nome(relato.por)}</span>
                         {relato.registradoPor !== relato.por && <span class="ficha suave">registrado por {nome(relato.registradoPor)}</span>}
@@ -269,21 +309,27 @@ const outrasFotos = memoria.fotos.length > 1;
         }
 
         {
+          // A parede de fotos: todas as fotos da memória como fotos reveladas, com a legenda de cada uma.
+          // Tocar numa abre a galeria, com a foto inteira.
           outrasFotos && (
             <section class="parte" aria-labelledby="fotos">
               <h2 class="parte__titulo" id="fotos">
                 Fotos
               </h2>
-              <div class="fotos">
-                {memoria.fotos.map((foto) => (
-                  <figure class="fotos__item">
-                    <a href={`/fotos/${foto.chave}`} aria-label={`Ampliar a foto${foto.legenda ? `: ${foto.legenda}` : ''}`}>
-                      <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
+              <ul class="parede">
+                {memoria.fotos.map((foto, n) => (
+                  <li>
+                    <a class="monte" href={`/fotos/${foto.chave}`} data-galeria={n} aria-label={`Ver a foto inteira${foto.legenda ? `: ${foto.legenda}` : ''}`}>
+                      <figure class="polaroid" style={`--giro: ${giroDoId(`${memoria.id}-${n}`)}deg`}>
+                        <span class="polaroid__foto">
+                          <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
+                        </span>
+                        <figcaption class="polaroid__legenda">{foto.legenda ?? ''}</figcaption>
+                      </figure>
                     </a>
-                    {foto.legenda && <figcaption class="ficha suave">{foto.legenda}</figcaption>}
-                  </figure>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </section>
           )
         }
@@ -327,6 +373,37 @@ const outrasFotos = memoria.fotos.length > 1;
     </section>
   </article>
 
+  {/* A galeria: a foto inteira, uma de cada vez, sem sair da página. Sem script, cada foto continua
+      sendo um link para a imagem. */}
+  {
+    memoria.fotos.length > 0 && (
+      <dialog class="galeria" data-galeria-caixa aria-label="Fotos desta memória">
+        <div class="galeria__topo">
+          <p class="rotulo" data-galeria-conta aria-live="polite" />
+          <button type="button" class="galeria__fechar" data-galeria-fechar>
+            Fechar
+          </button>
+        </div>
+        <figure class="galeria__palco" data-galeria-palco>
+          <img data-galeria-foto alt="" />
+          <figcaption>
+            <span class="galeria__legenda" data-galeria-legenda />
+            <span class="ficha suave" data-galeria-origem />
+          </figcaption>
+        </figure>
+        <div class="galeria__passos">
+          <button type="button" class="galeria__passo galeria__passo--antes" data-galeria-passo="-1">
+            Anterior
+          </button>
+          <button type="button" class="galeria__passo galeria__passo--depois" data-galeria-passo="1">
+            Próxima
+          </button>
+        </div>
+        <script type="application/json" data-galeria-fotos set:html={JSON.stringify(daGaleria)} />
+      </dialog>
+    )
+  }
+
   <nav class="vizinhas miolo" aria-label="Outras memórias">
     {
       [
@@ -367,3 +444,81 @@ const outrasFotos = memoria.fotos.length > 1;
     }
   </p>
 </Visual>
+
+<script>
+  // A galeria de fotos da memória. Abre na foto tocada, mostra a imagem inteira e anda pelas
+  // outras pelos botões, pelas setas do teclado ou arrastando para o lado. O botão de voltar do
+  // aparelho fecha a galeria, como as pessoas esperam, em vez de sair da página.
+  const caixa = document.querySelector<HTMLDialogElement>('[data-galeria-caixa]');
+  if (caixa && typeof caixa.showModal === 'function') {
+    const fotos = JSON.parse(caixa.querySelector('[data-galeria-fotos]')?.textContent || '[]') as { src: string; legenda: string; origem: string }[];
+    const imagem = caixa.querySelector<HTMLImageElement>('[data-galeria-foto]')!;
+    const conta = caixa.querySelector<HTMLElement>('[data-galeria-conta]')!;
+    const legenda = caixa.querySelector<HTMLElement>('[data-galeria-legenda]')!;
+    const origem = caixa.querySelector<HTMLElement>('[data-galeria-origem]')!;
+    const passos = [...caixa.querySelectorAll<HTMLButtonElement>('[data-galeria-passo]')];
+    let atual = 0;
+    let noHistorico = false;
+
+    const mostrar = (n: number) => {
+      atual = (n + fotos.length) % fotos.length;
+      const foto = fotos[atual]!;
+      imagem.src = foto.src;
+      imagem.alt = foto.legenda;
+      conta.textContent = fotos.length > 1 ? `Foto ${atual + 1} de ${fotos.length}` : 'Foto';
+      legenda.textContent = foto.legenda;
+      origem.textContent = foto.origem;
+      for (const b of passos) b.hidden = fotos.length < 2;
+      // A foto seguinte já fica a caminho
+      if (fotos.length > 1) new Image().src = fotos[(atual + 1) % fotos.length]!.src;
+    };
+    const abrir = (n: number) => {
+      mostrar(n);
+      if (caixa.open) return;
+      caixa.showModal();
+      history.pushState({ galeria: true }, '');
+      noHistorico = true;
+    };
+
+    document.addEventListener('click', (evento) => {
+      const link = evento.target instanceof Element ? evento.target.closest<HTMLAnchorElement>('a[data-galeria]') : null;
+      // Abrir em outra aba continua funcionando: o link leva à imagem
+      if (!link || evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
+      evento.preventDefault();
+      abrir(Number(link.dataset.galeria));
+    });
+    caixa.querySelector('[data-galeria-fechar]')?.addEventListener('click', () => caixa.close());
+    for (const b of passos) b.addEventListener('click', () => mostrar(atual + Number(b.dataset.galeriaPasso)));
+    caixa.addEventListener('keydown', (evento) => {
+      if (fotos.length < 2) return;
+      if (evento.key === 'ArrowRight') mostrar(atual + 1);
+      if (evento.key === 'ArrowLeft') mostrar(atual - 1);
+    });
+    // Fechada pelo botão ou pelo Esc: desfaz a entrada que a galeria pôs no histórico
+    caixa.addEventListener('close', () => {
+      if (!noHistorico) return;
+      noHistorico = false;
+      history.back();
+    });
+    // O voltar do aparelho, com a galeria aberta, fecha a galeria
+    addEventListener('popstate', () => {
+      if (!caixa.open) return;
+      noHistorico = false;
+      caixa.close();
+    });
+    // Arrastar para o lado, no toque
+    const palco = caixa.querySelector<HTMLElement>('[data-galeria-palco]')!;
+    let inicio: { x: number; y: number } | null = null;
+    palco.addEventListener('touchstart', (evento) => {
+      const toque = evento.touches.length === 1 ? evento.touches[0]! : null;
+      inicio = toque ? { x: toque.clientX, y: toque.clientY } : null;
+    }, { passive: true });
+    palco.addEventListener('touchend', (evento) => {
+      const toque = evento.changedTouches[0];
+      if (!inicio || !toque || fotos.length < 2) return;
+      const [dx, dy] = [toque.clientX - inicio.x, toque.clientY - inicio.y];
+      inicio = null;
+      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) mostrar(atual + (dx < 0 ? 1 : -1));
+    }, { passive: true });
+  }
+</script>

@@ -110,6 +110,9 @@ function juntar(itens: string[], ligacao: string): string {
  * (docs/decisoes.md, "Assinatura do nome"), e esta função recebe essa lista.
  */
 export function sobrenomesDaAssinatura(nomesDosNucleos: string[]): string {
+  // Uma família só leva o nome dela, como é: "Bayara Bracarense". O "&" junta famílias, então só
+  // aparece na família completa ou quando há mais de uma (decisão do Gui, 16/11/2026).
+  if (nomesDosNucleos.length === 1) return nomesDosNucleos[0]!.trim();
   const sobrenomes: string[] = [];
   for (const nome of nomesDosNucleos) {
     for (const parte of nome.trim().split(/\s+/)) {

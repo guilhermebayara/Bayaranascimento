@@ -34,11 +34,12 @@
   padding-bottom: var(--e-3);
 }
 
-/* As famílias: a linha do tempo de cada uma */
+/* As famílias: a linha do tempo de cada uma. No celular elas não cabem numa linha: ficam em duas
+   colunas, de propósito, em vez de uma quebra de linha solta. */
 .linha__familias {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--e-4);
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 0 var(--e-6);
   font-size: var(--t-pequeno);
 }
 .linha__familias a {
@@ -143,6 +144,8 @@
   /* O fio do tempo é a linha principal: mais firme que os trilhos dos capítulos */
   --fio-do-tempo: color-mix(in srgb, var(--tinta) 62%, var(--papel));
   --altura-do-ponto: 0.3rem;
+  /* A linha em que o ano para: logo abaixo da faixa de décadas */
+  --ano-para-em: var(--barra);
 }
 /* A faixa de décadas: na cor da família, de ponta a ponta, com o nome do que ela faz. Antes era uma
    linha de números pequenos sobre o papel e passava batida (achado do Gui, 16/11/2026). */
@@ -213,6 +216,83 @@
 .decadas [data-aqui] a::before {
   opacity: 1;
 }
+
+/* --- No toque, nada de sticky ---------------------------------------------------------------
+   No iPhone (iOS 26), um elemento preso encostado na borda da tela faz o Safari desenhar uma
+   banda sólida atrás das barras dele, e ela não some mais. A saída é a do site da @bsurda
+   ("Barras presas"): a faixa de décadas desce na mesma medida em que o trecho (data-trilho) sobe,
+   por uma animação ligada à rolagem. A linha do tempo da animação fica numa regra separada da
+   animação de propósito: juntas, o compactador de CSS funde as duas e o navegador descarta a
+   declaração. As medidas (--alt, --barra-alt, --resto, --anda) vêm do script da página. */
+html.pino-novo [data-trilho] {
+  view-timeline: --trilho block;
+  /* Sem isto, a linha do tempo da animação desconta o scroll-padding da página e a faixa para mais abaixo */
+  view-timeline-inset: 0px;
+}
+html.pino-novo .decadas {
+  position: relative;
+  top: auto;
+  animation: barra-presa linear both;
+}
+html.pino-novo [data-trilho] > .decadas {
+  animation-timeline: --trilho;
+  animation-range: contain 0% exit calc(100% - var(--barra-alt, 0px));
+}
+/* Enquanto a faixa está presa, uma cobertura na cor do papel sobe dela até acima da tela: no
+   iPhone a página continua visível atrás do relógio, e sem isso as memórias apareceriam ali. */
+html.pino-novo .decadas::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 8rem;
+  background: var(--papel);
+  pointer-events: none;
+  animation: barra-cobre linear both;
+}
+html.pino-novo [data-trilho] > .decadas::before {
+  animation-timeline: --trilho;
+  animation-range: contain 0% contain calc(0% + 3rem);
+}
+@keyframes barra-presa {
+  to {
+    transform: translateY(calc(var(--alt, 0px) - var(--barra-alt, 0px)));
+  }
+}
+@keyframes barra-cobre {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* O ano: cada seção é o trecho do cabeçalho dela. Ele para na mesma linha do sticky
+   (--ano-para-em) e anda até o fim da seção. Só anima perto da tela (data-perto). */
+html.pino-novo .ano {
+  view-timeline: --ano block;
+  view-timeline-inset: var(--ano-para-em) 0px;
+}
+html.pino-novo .ano > .ano__cabeca {
+  position: relative;
+  top: auto;
+}
+html.pino-novo .ano[data-perto] > .ano__cabeca {
+  animation: ano-preso linear both;
+}
+html.pino-novo .ano[data-perto] > header.ano__cabeca {
+  animation-timeline: --ano;
+  /* Contado a partir do fim ("cover 100%" é o fim da seção na linha em que o ano para): vale tanto
+     para o ano comprido quanto para o que é mais curto que a tela */
+  animation-range: cover calc(100% - var(--anda, 0px) - var(--resto, 0px)) cover calc(100% - var(--resto, 0px));
+}
+@keyframes ano-preso {
+  to {
+    transform: translateY(var(--anda, 0px));
+  }
+}
+
 .decada__ancora {
   scroll-margin-top: 3rem;
 }
@@ -233,7 +313,7 @@
    passam: quem rola sempre sabe em que ano está (pedido do Gui, pensando nos mais velhos). */
 .ano > .ano__cabeca {
   position: sticky;
-  top: var(--barra);
+  top: var(--ano-para-em);
   z-index: 4;
   container-type: inline-size;
   display: flex;
@@ -732,6 +812,8 @@
     margin: 0;
   }
   .linha__familias {
+    display: flex;
+    flex-wrap: wrap;
     gap: 0 var(--e-6);
   }
   .decadas__dentro {
@@ -753,7 +835,6 @@
   }
   .ano > .ano__cabeca {
     grid-column: 1 / span 4;
-    top: calc(var(--barra) + var(--e-5));
     display: block;
     margin: 0;
     padding: 0;
@@ -766,6 +847,7 @@
   .linha {
     --passo: 1rem;
     --cabem: 4;
+    --ano-para-em: calc(var(--barra) + var(--e-5));
   }
   .ano > .ano__itens {
     grid-column: 5 / -1;

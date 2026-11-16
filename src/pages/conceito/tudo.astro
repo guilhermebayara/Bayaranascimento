@@ -91,7 +91,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
               </p>
               <nav class="linha__familias" aria-labelledby="controle-familia">
                 <a href="/conceito/tudo" aria-current={!nucleo ? 'page' : undefined}>
-                  Tudo
+                  Família completa
                 </a>
                 {nucleos.map((n) => (
                   <a href={`/conceito/tudo?nucleo=${n.id}`} aria-current={nucleo?.id === n.id ? 'page' : undefined}>
@@ -143,10 +143,12 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
       </div>
     </header>
 
-    {/* A década é uma faixa na cor da família, parada no alto, com o nome do que ela faz */}
+    {/* A década é uma faixa na cor da família, parada no alto, com o nome do que ela faz.
+        O bloco em volta (data-trilho) marca até onde a faixa acompanha a rolagem no toque. */}
+    <div class="linha__trilho" data-trilho>
     {
       decadas.length > 1 && (
-        <nav class="decadas" aria-label="Ir para a década">
+        <nav class="decadas" aria-label="Ir para a década" data-barra data-preso>
           <div class="decadas__dentro miolo">
             <p class="decadas__nome rotulo" aria-hidden="true">
               Década
@@ -180,7 +182,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                 <Trilhos estados={montagem.linhas[posicaoDe.get(itens[0]!.id)!]!.chega} capitulos={noTrilho(posicaoDe.get(itens[0]!.id)!)} />
               </div>
             )}
-            <header class="ano__cabeca" data-na-epoca={chaoDeCima(posicaoDe.get(itens[0]!.id)!)}>
+            <header class="ano__cabeca" data-preso data-na-epoca={chaoDeCima(posicaoDe.get(itens[0]!.id)!)}>
               <h2 class="ano__numero" id={`ano-${ano}`}>
                 {ano}
               </h2>
@@ -308,6 +310,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
         </>
       ))
     }
+    </div>
   </div>
 </Visual>
 
@@ -445,6 +448,47 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
     };
     addEventListener('scroll', pedirOsAnos, { passive: true });
     addEventListener('resize', pedirOsAnos, { passive: true });
+
+    // No toque, a faixa de décadas e o ano ficam parados por uma animação ligada à rolagem, e não
+    // por sticky (ver "pino-novo" em Visual.astro e em linha.css). A animação precisa das medidas:
+    // a altura do trecho e a da faixa; e, de cada ano, quanto o cabeçalho anda e o que sobra depois dele.
+    if (document.documentElement.classList.contains('pino-novo') && 'ResizeObserver' in window) {
+      const trilho = raiz.querySelector<HTMLElement>('[data-trilho]');
+      const barra = trilho?.querySelector<HTMLElement>(':scope > [data-barra]');
+      const secoes = [...raiz.querySelectorAll<HTMLElement>('.ano')];
+      const medir = () => {
+        if (trilho && barra) {
+          trilho.style.setProperty('--alt', `${trilho.offsetHeight}px`);
+          trilho.style.setProperty('--barra-alt', `${barra.offsetHeight}px`);
+        }
+        for (const secao of secoes) {
+          const cabeca = secao.querySelector<HTMLElement>(':scope > .ano__cabeca');
+          if (!cabeca || secao.hidden) continue;
+          const antes = cabeca.offsetTop - secao.offsetTop;
+          const resto = cabeca.offsetHeight + parseFloat(getComputedStyle(cabeca).marginBottom || '0');
+          secao.style.setProperty('--resto', `${resto}px`);
+          secao.style.setProperty('--anda', `${Math.max(0, secao.offsetHeight - antes - resto)}px`);
+        }
+      };
+      const olho = new ResizeObserver(medir);
+      if (trilho) olho.observe(trilho);
+      for (const secao of secoes) olho.observe(secao);
+      medir();
+      // Só os anos perto da tela animam: camada animada fora da tela também gasta a memória do Safari
+      if ('IntersectionObserver' in window) {
+        const perto = new IntersectionObserver(
+          (vistas) => {
+            for (const v of vistas) v.target.toggleAttribute('data-perto', v.isIntersecting);
+            // O ano que acabou de entrar passa a parar no alto: o tom dele é acertado de novo
+            pedirOsAnos();
+          },
+          { rootMargin: '60% 0px' },
+        );
+        for (const secao of secoes) perto.observe(secao);
+      } else {
+        for (const secao of secoes) secao.setAttribute('data-perto', '');
+      }
+    }
 
     const inicial = new URLSearchParams(location.search).get('tipo') ?? '';
     if (inicial && validos.has(inicial)) {

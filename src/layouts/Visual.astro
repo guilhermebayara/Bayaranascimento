@@ -83,6 +83,17 @@ const telas = [
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#faf2e6" />
     <title>{tituloPagina}</title>
+    <script is:inline>
+      // Aparelho de toque. No iPhone com iOS 26, o Safari desenha uma banda sólida atrás das suas
+      // barras quando existe um elemento preso (sticky ou fixed) encostado na borda da tela: com a
+      // faixa de décadas presa no alto, a banda aparecia atrás do relógio. A saída é a do site da
+      // @bsurda: no toque, o que fica parado no alto anda por uma animação ligada à rolagem
+      // ("pino-novo"), sem sticky. Navegador de toque sem essa animação continua com o sticky.
+      (function () {
+        var raiz = document.documentElement;
+        if (window.matchMedia('(hover: none) and (pointer: coarse)').matches && window.CSS && CSS.supports('animation-timeline: view()')) raiz.classList.add('pino-novo');
+      })();
+    </script>
   </head>
   <body>
     {

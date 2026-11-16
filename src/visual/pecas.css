@@ -107,13 +107,17 @@ a.polaroid,
   height: 100%;
   object-fit: cover;
 }
-.monte__atras:nth-of-type(1) {
+.monte__atras[data-atras='1'] {
   rotate: 5deg;
   translate: 5% 1.5%;
 }
-.monte__atras:nth-of-type(2) {
+.monte__atras[data-atras='2'] {
   rotate: -6deg;
   translate: -4.5% 2.5%;
+}
+a.monte__atras,
+a.polaroid__foto {
+  cursor: zoom-in;
 }
 
 /* A forma de cor atrás da foto, na cor do tipo de momento: círculo, arco ou cápsula, pelo id */

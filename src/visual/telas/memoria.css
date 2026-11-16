@@ -148,33 +148,171 @@
   rotate: -0.4deg;
 }
 
-/* Fotos em grade: cada uma na proporção dela, sem moldura */
-.fotos {
-  columns: 2;
-  column-gap: var(--calha);
+/* As fotos que vieram com um relato: pequenas, no próprio bilhete */
+.bilhete__fotos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-4);
+  margin-top: var(--e-5);
 }
-.fotos__item {
-  break-inside: avoid;
-  margin-bottom: var(--e-5);
+.bilhete__fotos li {
+  width: 5.5rem;
 }
-.fotos__item a {
+.bilhete__fotos .monte {
   display: block;
-  overflow: hidden;
-  border-radius: var(--raio-foto);
-  background: var(--papel-recuo);
   cursor: zoom-in;
 }
-.fotos__item img {
-  width: 100%;
-  transition: scale var(--tempo-medio) var(--curva);
+.bilhete__fotos .polaroid {
+  box-shadow: 0 1px 1px color-mix(in srgb, var(--tinta) 10%, transparent), 0 4px 10px -4px color-mix(in srgb, var(--tinta) 30%, transparent);
 }
-@media (hover: hover) {
-  .fotos__item a:hover img {
-    scale: 1.03;
-  }
+
+/* A parede de fotos: todas as fotos da memória como fotos reveladas, cada uma com a sua legenda,
+   um pouco fora de fila. Tocar numa abre a galeria, com a foto inteira. */
+.parede {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-6) var(--e-5);
+  padding-block: var(--e-3) var(--e-5);
 }
-.fotos__item figcaption {
-  margin-top: var(--e-2);
+.parede li:nth-child(even) {
+  margin-top: var(--e-6);
+}
+.parede .monte {
+  display: block;
+  text-decoration: none;
+  cursor: zoom-in;
+}
+.parede .polaroid__legenda {
+  /* A legenda da foto é frase, e não lugar e ano: sem caixa alta, em até duas linhas */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 23cqi;
+  padding-top: 4cqi;
+  font-size: clamp(0.6875rem, 5.2cqi, 0.9375rem);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.parede a:focus-visible .polaroid,
+.bilhete__fotos a:focus-visible .polaroid,
+a.polaroid__foto:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 3px;
+}
+
+/* --- A galeria: a foto inteira, uma de cada vez ---------------------------------------------
+   Ocupa a tela, no papel da página, com a foto pousada como uma ampliação: inteira, sem corte.
+   Os controles têm nome escrito. É um <dialog>: o navegador cuida do foco e do Esc. */
+.galeria {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  overscroll-behavior: contain;
+}
+.galeria[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.galeria::backdrop {
+  background: var(--papel);
+}
+/* Com a galeria aberta, a página por trás não rola */
+html:has(.galeria[open]) {
+  overflow: hidden;
+}
+.galeria__topo,
+.galeria__passos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-5);
+  padding: var(--e-2) var(--margem);
+}
+.galeria__topo p {
+  color: var(--tinta-suave);
+}
+.galeria button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: 550 var(--t-corpo) / 1.2 var(--grotesca);
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.32em;
+  cursor: pointer;
+}
+.galeria button:hover {
+  text-decoration-color: var(--vivo);
+}
+.galeria button[hidden] {
+  display: none;
+}
+/* O xis do fechar, desenhado como o do menu */
+.galeria__fechar::after {
+  content: '';
+  width: 0.75em;
+  height: 0.75em;
+  rotate: 45deg;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+}
+.galeria__passo--antes::before {
+  content: '←';
+}
+.galeria__passo--depois::after {
+  content: '→';
+}
+.galeria__passos {
+  padding-bottom: max(var(--e-3), env(safe-area-inset-bottom));
+}
+.galeria__palco {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  min-height: 0;
+  padding: var(--e-2) var(--margem) 0;
+  touch-action: pan-y;
+}
+.galeria__palco img {
+  align-self: center;
+  box-sizing: border-box;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 100%;
+  /* A margem branca da ampliação */
+  padding: clamp(0.375rem, 0.9vw, 0.875rem);
+  border-radius: var(--raio-foto);
+  background: var(--branco);
+  box-shadow: var(--sombra-foto);
+}
+.galeria__palco figcaption {
+  display: grid;
+  justify-items: center;
+  gap: var(--e-1);
+  max-width: 44rem;
+  min-height: 3.5rem;
+  padding-top: var(--e-4);
+  text-align: center;
+}
+.galeria__legenda {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-size: calc(1.125rem * var(--escala-serifa));
+  line-height: 1.3;
 }
 
 /* --- Fim: o convite para contar ------------------------------------------------------------
@@ -302,8 +440,15 @@
   .relatos {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
   }
-  .fotos {
-    columns: 3;
+  .parede {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--e-7) var(--e-6);
+  }
+  .parede li:nth-child(even) {
+    margin-top: 0;
+  }
+  .parede li:nth-child(3n + 2) {
+    margin-top: var(--e-7);
   }
   .vizinhas {
     grid-template-columns: 1fr 1fr;
@@ -340,6 +485,29 @@
     margin: 0;
     justify-self: center;
   }
+  /* Com mais de uma foto, o monte se abre em leque: a foto principal na frente e as de trás
+     espalhadas para os lados, até onde o espaço deixa (pedido do Gui, 16/11/2026) */
+  .abre > .abre__foto--leque {
+    grid-column: 7 / -1;
+    width: 52%;
+  }
+  .abre > .abre__foto--2 {
+    justify-self: end;
+    margin-right: 8%;
+  }
+  .abre__foto--leque .monte__atras {
+    transition:
+      translate var(--tempo-medio) var(--curva),
+      rotate var(--tempo-medio) var(--curva);
+  }
+  .abre__foto--leque .monte__atras[data-atras='1'] {
+    rotate: -9deg;
+    translate: -54% 3%;
+  }
+  .abre__foto--leque .monte__atras[data-atras='2'] {
+    rotate: 8deg;
+    translate: 46% 9%;
+  }
   .corpo {
     padding-top: var(--e-7);
   }
@@ -368,5 +536,32 @@
   .corpo > .dados {
     position: sticky;
     top: var(--e-6);
+  }
+}
+
+/* Na tela grande, a parede ganha uma coluna e o leque abre mais */
+@media (min-width: 100rem) {
+  .parede {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .parede li:nth-child(3n + 2) {
+    margin-top: 0;
+  }
+  .parede li:nth-child(even) {
+    margin-top: var(--e-7);
+  }
+  .abre__foto--leque .monte__atras[data-atras='1'] {
+    translate: -62% 2%;
+  }
+}
+/* Com mouse, a foto de trás se adianta um pouco quando o cursor passa por ela */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .abre__foto--leque .monte__atras[data-atras='1']:hover {
+    rotate: -6deg;
+    translate: -58% 1%;
+  }
+  .abre__foto--leque .monte__atras[data-atras='2']:hover {
+    rotate: 5deg;
+    translate: 50% 7%;
   }
 }
