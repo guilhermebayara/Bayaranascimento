@@ -50,6 +50,8 @@ Nada desta pasta entra no repositório. A exceção são as fotos do Chico e da 
 - O caminho de uma mudança: `tst-<assunto>` → PR com squash para a `homologa` → aprovação na homologação → `main` por fast-forward da `homologa`. Nunca force um push.
 - Mudança só de documentação ou de regras de trabalho (`CLAUDE.md`, `README.md`, `docs/`) pode ir direto para a `main`, para toda sessão nova já encontrar. Depois, traga a `main` para a `homologa`.
 - Depois do merge, apague a branch de teste. As sessões do Claude não conseguem apagar branch pelo git nem pela API: use a página Branches do GitHub no navegador, com a autorização que o Gui já deu.
+- **Até a revisão visual ficar completa na `homologa` (decisão do Gui, 16/11/2026), nada de código vai para a `main`.** Os PRs entram na `homologa` e se acumulam ali, e o Gui leva tudo para a `main` de uma vez, depois de ver a homologação inteira. Documentação continua indo direto para a `main`, e depois a `main` é trazida para a `homologa`.
+- A `tst-visual` fica no ar mesmo depois do merge (#29), porque o Gui mandou para a Giovanna o link de `/conceito` dessa prévia. Ninguém faz push nela, e ela só é apagada quando o Gui disser.
 - A antiga prévia `formulario`, que a Giovanna usava antes de a homologação existir, foi aposentada em 16/11/2026. A Giovanna usa a homologação.
 
 ### O espelho da produção
