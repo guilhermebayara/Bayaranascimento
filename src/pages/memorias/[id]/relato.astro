@@ -41,7 +41,8 @@ const opcoes = await Promise.all(
     </p>
   </div>
 
-  <form class="formulario" data-formulario-relato data-memoria={memoria.id} novalidate>
+  <form class="formulario" method="post" action="/api/relatos" data-formulario-relato data-memoria={memoria.id} novalidate>
+    <input type="hidden" name="memoria" value={memoria.id} />
     <fieldset>
       <legend>Como foi?</legend>
       <label class="campo">
@@ -60,8 +61,8 @@ const opcoes = await Promise.all(
 
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
     <div class="acoes">
-      <button type="submit" class="botao" data-salvar="publicada">Publicar relato</button>
-      <button type="submit" class="botao botao--leve" data-salvar="rascunho">Salvar rascunho</button>
+      <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada">Publicar relato</button>
+      <button type="submit" class="botao botao--leve" name="situacao" value="rascunho" data-salvar="rascunho">Salvar rascunho</button>
     </div>
   </form>
 

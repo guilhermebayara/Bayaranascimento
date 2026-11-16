@@ -6,7 +6,7 @@ import { lerTemas } from '../../lib/capitulos';
 import { TIPO_OUTRO } from '../../lib/tipos';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
-import { erro, json, mesmaOrigem } from '../../lib/servidor/http';
+import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
   atualizarMemoria,
@@ -22,6 +22,7 @@ import {
   obterRelato,
   salvarRelato,
   type DadosDaMemoria,
+  type Memoria,
 } from '../../lib/servidor/repositorio';
 
 const opcional = (maximo: number) => z.string().trim().max(maximo).optional();
@@ -51,14 +52,53 @@ const Pedido = z.object({
 
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!mesmaOrigem(request)) return erro(403, 'Pedido recusado.');
-  const { usuario } = locals;
-
+  // Sem JavaScript, o formulário chega como formulário comum: vira o mesmo pedido, e a resposta vira página
+  if (!(request.headers.get('Content-Type') ?? '').includes('application/json')) {
+    const dados = await request.formData();
+    const id = String(dados.get('id') ?? '') || undefined;
+    const anterior = id ? await obterMemoria(locals.usuario, id) : undefined;
+    const resposta = await tratar(pedidoDoFormulario(dados, anterior), locals);
+    const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string };
+    if (!resposta.ok) return voltar(request, id ? `/nova?id=${id}` : '/nova', { erro: corpo.erro ?? 'Não consegui salvar.' });
+    return voltar(request, corpo.url!, { ok: corpo.situacao === 'rascunho' ? 'Rascunho salvo.' : 'Memória guardada.' });
+  }
   let bruto: unknown;
   try {
     bruto = await request.json();
   } catch {
     return erro(400, 'Envio inválido.');
   }
+  return tratar(bruto, locals);
+};
+
+/** O formulário comum, no formato do pedido em JSON. Fotos só se enviam com JavaScript: as que já estão ficam. */
+function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unknown {
+  const texto = (nome: string) => String(dados.get(nome) ?? '').trim();
+  const numero = (nome: string) => (texto(nome) ? Number(texto(nome)) : undefined);
+  const relato = texto('relato');
+  return {
+    id: anterior?.id,
+    titulo: texto('titulo'),
+    ano: texto('ano') ? Number(texto('ano')) : Number.NaN,
+    mes: numero('mes'),
+    dia: numero('dia'),
+    aproximada: dados.get('aproximada') === 'on',
+    tipo: texto('tipo'),
+    tipoOutro: texto('tipo') === 'outro' ? texto('tipoOutro') || undefined : undefined,
+    pessoas: dados.getAll('pessoas').map(String),
+    lugar: texto('lugar') || undefined,
+    capitulos: dados.getAll('capitulos').map(String),
+    temas: texto('temas'),
+    nucleos: dados.getAll('nucleos').map(String),
+    visibilidade: texto('visibilidade') || 'todos',
+    situacao: texto('situacao') === 'rascunho' ? 'rascunho' : 'publicada',
+    fotos: (anterior?.fotos ?? []).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
+    relato: relato ? { por: texto('relatoPor'), texto: relato } : undefined,
+  };
+}
+
+async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
+  const { usuario } = locals;
   const lido = Pedido.safeParse(bruto);
   if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
   const pedido = lido.data;
@@ -196,4 +236,4 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   return json({ id, situacao, url: situacao === 'rascunho' ? `/nova?id=${id}` : `/memorias/${id}` }, anterior ? 200 : 201);
-};
+}
