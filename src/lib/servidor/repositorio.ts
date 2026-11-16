@@ -1147,3 +1147,19 @@ export async function listarAudiosDe(usuario: Usuario, pessoaId: string): Promis
     .all<Record<string, unknown>>();
   return results.map((r: Record<string, unknown>) => ({ ...lerAudio(r), memoriaId: r.memoria as string, memoriaTitulo: r.memoria_titulo as string }));
 }
+
+// --- Tamanho do banco (aviso de 300 MB, ver src/lib/tamanho-do-banco.ts) ---
+
+/**
+ * O tamanho do banco em bytes. O D1 informa em cada consulta (meta.size_after); por isso o aviso só
+ * existe com o site rodando, e não no build. Devolve null se o banco não informar.
+ */
+export async function tamanhoDoBanco(): Promise<number | null> {
+  try {
+    const resultado = await db().prepare('SELECT 1').run();
+    const tamanho = (resultado.meta as { size_after?: number } | undefined)?.size_after;
+    return typeof tamanho === 'number' ? tamanho : null;
+  } catch {
+    return null;
+  }
+}

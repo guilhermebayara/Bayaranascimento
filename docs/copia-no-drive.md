@@ -38,6 +38,12 @@ O token pode ser revogado a qualquer momento no Zero Trust, e a cópia para na h
 
 Se uma cópia falhar, o Google manda um e-mail avisando.
 
+### Aviso de tamanho do banco
+
+A cópia traz o tamanho do banco (`banco.tamanho_em_bytes`). Quando ele passa de 300 MB, o script salva a cópia normalmente e depois falha de propósito, com a mensagem do tamanho: é assim que o Google manda o e-mail de aviso. O limite do plano gratuito é 500 MB por banco; a saída combinada é o plano Workers Paid (10 GB por banco).
+
+**Ao atualizar o script:** o arquivo `scripts/copia-no-drive.gs` do repositório não chega sozinho ao Google. Sempre que ele mudar, abra o projeto `Cópia do acervo` no script.google.com, troque o conteúdo de `Código.gs` pelo novo e salve. As propriedades e o agendamento continuam como estavam.
+
 ## Restaurar
 
 O arquivo é um JSON com `tabelas`, cada uma com suas linhas. Para restaurar, gere os comandos `INSERT` a partir dele e aplique num banco D1 vazio com `wrangler d1 execute`. Quando precisar, peça ajuda ao Claude com o arquivo em mãos.

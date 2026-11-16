@@ -32,6 +32,17 @@ function fazerCopia() {
   const pasta = pastas.hasNext() ? pastas.next() : DriveApp.createFolder(PASTA);
   const dia = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd');
   pasta.createFile('acervo-' + dia + '.json', texto, 'application/json');
+
+  // Aviso de tamanho do banco: a cópia já foi salva; o erro aqui só serve para o Google mandar o e-mail.
+  // O limite do plano gratuito é 500 MB por banco, e o aviso começa em 300 MB (docs/decisoes.md).
+  const situacao = texto.match(/"passou_do_aviso":\s*true/) ? texto.match(/"tamanho_em_bytes":\s*(\d+)/) : null;
+  if (situacao) {
+    const mb = Math.round(Number(situacao[1]) / 1000000);
+    throw new Error(
+      'Cópia salva, mas o banco do acervo está com ' + mb + ' MB, perto do limite de 500 MB do plano gratuito. ' +
+      'A saída combinada é o plano Workers Paid (10 GB por banco). Veja "Custo" no documento de estrutura.'
+    );
+  }
 }
 
 // Rode uma vez para agendar: todo dia 1º, de madrugada
