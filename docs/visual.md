@@ -66,7 +66,7 @@ O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
 
 ## Conceito (fase 1), em aprovação
 
-Construído em 16/11/2026 na branch `tst-visual`, em oito rodadas: a primeira versão e sete de ajustes que o Gui pediu ao ver cada uma. Espera a aprovação dele na prévia. A escolha das fontes continua em aberto: espera a opinião da Giovanna e do Magno, que vão ver as combinações em `/conceito/sobre`. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
+Construído em 16/11/2026 na branch `tst-visual`, em oito rodadas: a primeira versão e sete de ajustes que o Gui pediu ao ver cada uma. Aprovado pelo Gui em 16/11/2026, com exceção das fontes. A escolha das fontes continua em aberto: espera a opinião da Giovanna e do Magno, que vão ver as combinações em `/conceito/sobre`. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
 
 **Onde está.** As telas do conceito ficam em `/conceito`, ao lado do site atual, que continua inteiro:
 
