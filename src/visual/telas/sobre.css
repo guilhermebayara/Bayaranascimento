@@ -110,8 +110,8 @@
   background: var(--pastel);
   border-radius: var(--raio-moldura) 0 0 var(--raio-moldura);
 }
-.cores__par {
-  background: var(--par-pastel);
+.cores__meio {
+  background: var(--meio);
 }
 .cores__vivo {
   background: var(--vivo);

@@ -185,6 +185,57 @@
   }
 }
 
+/* --- Neste dia, em outros anos -------------------------------------------------------------- */
+
+.outros-anos {
+  margin-top: var(--e-9);
+}
+.outros-anos + .cartoes {
+  margin-top: var(--calha);
+}
+.outros-anos__lista {
+  display: grid;
+  gap: var(--e-5);
+}
+.outro-ano {
+  display: grid;
+  grid-template-columns: clamp(4.5rem, 24%, 6.5rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-5);
+  text-decoration: none;
+}
+.outro-ano__foto--sem {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 54 / 86;
+  border-radius: var(--raio-moldura);
+  background: var(--tipo-pastel);
+}
+.outro-ano__foto--sem .icone {
+  width: 2rem;
+  height: 2rem;
+}
+.outro-ano__texto {
+  display: grid;
+  gap: var(--e-1);
+}
+.outro-ano__ano {
+  font-size: var(--t-titulo-3);
+  line-height: 1;
+}
+.outro-ano__titulo {
+  font-weight: 450;
+  line-height: 1.3;
+  color: var(--tinta-suave);
+}
+@media (hover: hover) {
+  .outro-ano:hover .outro-ano__titulo {
+    color: var(--tinta);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+}
+
 /* --- Os cartões: aniversários, a pessoa no acervo e uma memória para contar ------------------ */
 
 .cartoes {
@@ -427,6 +478,20 @@
 
   .cartoes {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  /* Na tela grande, os outros anos ficam lado a lado, cada um com a sua foto em cima */
+  .outros-anos__lista {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--calha);
+    align-items: start;
+  }
+  .outro-ano {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--e-4);
+  }
+  .outro-ano__foto {
+    width: 62%;
   }
   .contar__miolo {
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);

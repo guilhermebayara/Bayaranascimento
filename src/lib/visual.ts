@@ -25,11 +25,12 @@ export function formaDoId(id: string): number {
 }
 
 /**
- * A cor de cada tipo de momento no visual novo: uma das seis cores do site. As cores gravadas no
- * banco (tabela tipos) continuam as de hoje; na fase 2, esta paleta é aplicada em /admin/tipos.
- * Tipo criado depois pelos administradores ganha uma das seis, pelo id.
+ * A cor de cada tipo de momento no visual novo: uma das onze cores do site, uma para cada tipo
+ * de hoje (aprovado pelo Gui, 16/11/2026). As cores gravadas no banco (tabela tipos) continuam
+ * as de hoje; na fase 2, esta paleta é aplicada em /admin/tipos. Tipo criado depois pelos
+ * administradores ganha uma das onze, pelo id.
  */
-export const CORES = ['manteiga', 'verde', 'rosa', 'roxo', 'azul', 'pessego'] as const;
+export const CORES = ['manteiga', 'verde', 'rosa', 'roxo', 'azul', 'pessego', 'coral', 'turquesa', 'orquidea', 'ardosia', 'areia'] as const;
 export type Cor = (typeof CORES)[number];
 
 const COR_DO_TIPO: Record<string, Cor> = {
@@ -39,11 +40,11 @@ const COR_DO_TIPO: Record<string, Cor> = {
   conquista: 'manteiga',
   viagem: 'azul',
   casa: 'pessego',
-  festa: 'rosa',
-  causo: 'verde',
-  cotidiano: 'manteiga',
-  despedida: 'azul',
-  outro: 'pessego',
+  festa: 'coral',
+  causo: 'turquesa',
+  cotidiano: 'areia',
+  despedida: 'ardosia',
+  outro: 'orquidea',
 };
 
 export function corDoTipo(tipo: string): Cor {

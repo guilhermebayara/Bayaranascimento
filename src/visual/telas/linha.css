@@ -98,6 +98,14 @@
 /* A barra de décadas fica parada no alto, como na linha do tempo de hoje */
 .linha {
   --barra: 2.75rem;
+  /* Os trilhos dos capítulos: a distância entre eles e quantos cabem nesta largura */
+  --passo: 0.75rem;
+  --cabem: 2;
+  --na-tela: min(var(--trilhos, 0), var(--cabem));
+  --calha-dos-trilhos: calc(var(--na-tela) * var(--passo));
+  /* O trilho não compete com as fotos nem com a cor das famílias: é da cor da tinta, bem clara */
+  --trilho-cor: color-mix(in srgb, var(--tinta) 32%, var(--papel));
+  --altura-do-ponto: 0.3rem;
 }
 .decadas {
   position: sticky;
@@ -185,13 +193,22 @@
   margin-left: -0.03em;
 }
 
-/* --- O trilho e as memórias ------------------------------------------------------------------- */
+/* --- O fio do tempo, os trilhos dos capítulos e as memórias -------------------------------- */
 
-.ano__itens {
-  display: grid;
-  gap: var(--e-8);
-  margin-left: 0.25rem;
-  padding: var(--e-2) 0 var(--e-4) var(--e-5);
+.ano > .ano__itens {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-left: 0.375rem;
+  padding: var(--e-2) 0 0 calc(var(--calha-dos-trilhos) + var(--e-5));
+}
+/* O fio do tempo: fino, à direita dos trilhos, com o ponto da memória em leitura */
+.ano__itens::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--calha-dos-trilhos);
   border-left: 1px solid var(--fio);
 }
 
@@ -199,15 +216,16 @@
   position: relative;
   display: grid;
   gap: var(--e-4);
+  padding-bottom: var(--e-8);
 }
 .entrada[hidden] {
   display: none;
 }
-/* O ponto do trilho: cheio, na cor viva, na memória em leitura */
+/* O ponto do fio: cheio, na cor viva, na memória em leitura */
 .entrada__ponto {
   position: absolute;
-  top: 0.3rem;
-  left: calc(-1 * var(--e-5) - 0.3125rem - 0.5px);
+  top: var(--altura-do-ponto);
+  left: calc(-1 * var(--e-5) - 0.3125rem + 0.5px);
   width: 0.625rem;
   height: 0.625rem;
   border: 1px solid var(--tinta-suave);
@@ -222,6 +240,130 @@
   background: var(--vivo);
   scale: 1.3;
 }
+
+/* Os trilhos na altura de cada linha: do alto da linha até o começo da seguinte, sem emenda */
+.trilhos {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * (var(--calha-dos-trilhos) + var(--e-5)));
+  width: var(--calha-dos-trilhos);
+  pointer-events: none;
+}
+.trilho {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--n) * var(--passo));
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--trilho-cor);
+}
+/* A memória de fora, no meio do capítulo: o trilho segue, tracejado */
+.trilho[data-estado='fora'] {
+  background: repeating-linear-gradient(to bottom, var(--trilho-cor) 0 5px, transparent 5px 11px);
+}
+/* A parada: a memória presa ao trilho do capítulo dela */
+.trilho[data-estado='preso']::after {
+  content: '';
+  position: absolute;
+  top: var(--altura-do-ponto);
+  left: 50%;
+  width: 0.625rem;
+  height: 0.625rem;
+  translate: -50% 0;
+  box-sizing: border-box;
+  border: 3px solid var(--trilho-cor);
+  border-radius: 50%;
+  background: var(--papel);
+}
+
+/* A marca do capítulo: o título no alto do trilho e o "começo de" embaixo. O trilho faz a curva
+   até o texto, para ficar claro de qual trilho é cada título. */
+.marca {
+  position: relative;
+  min-height: 2.25rem;
+  padding-bottom: var(--e-5);
+}
+.marca::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * (var(--calha-dos-trilhos) + var(--e-5)) + var(--n) * var(--passo) - 1.5px);
+  width: calc((var(--na-tela) - var(--n)) * var(--passo) + var(--e-5) - 0.5rem);
+  border: 0 solid var(--trilho-cor);
+  border-left-width: 3px;
+}
+.marca--abre::before {
+  top: 0.7rem;
+  bottom: 0;
+  border-top-width: 3px;
+  border-top-left-radius: 0.625rem;
+}
+.marca--fecha::before {
+  top: 0;
+  height: 0.7rem;
+  border-bottom-width: 3px;
+  border-bottom-left-radius: 0.625rem;
+}
+.marca__texto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.8em;
+}
+.marca--abre .marca__texto {
+  position: relative;
+  z-index: 2;
+}
+.marca__titulo {
+  font-size: calc(1.25rem * var(--escala-serifa));
+  line-height: 1.2;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+.marca--fecha .marca__texto {
+  padding-top: 0.2rem;
+}
+
+/* Entre um ano e outro, os trilhos passam por trás do número do ano */
+.ano > .ano__passa {
+  grid-row: 1;
+  position: relative;
+  align-self: stretch;
+  width: var(--calha-dos-trilhos);
+  margin-top: calc(-1 * var(--e-7));
+  margin-left: 0.375rem;
+  pointer-events: none;
+}
+.ano__passa .trilhos {
+  left: 0;
+}
+.ano > .ano__cabeca {
+  grid-row: 1;
+}
+
+/* O capítulo escrito na própria memória, onde o trilho dele não cabe */
+.entrada__capitulo {
+  color: var(--tinta);
+}
+
+/* No celular cabem dois trilhos: a partir do terceiro, o capítulo vira etiqueta na memória */
+@media (max-width: 61.99rem) {
+  .linha :is(.trilho, .marca):is([data-n='2'], [data-n='3'], [data-n='4'], [data-n='5'], [data-n='6'], [data-n='7'], [data-n='8'], [data-n='9']) {
+    display: none;
+  }
+  .entrada__capitulo:is([data-n='0'], [data-n='1']) {
+    display: none;
+  }
+}
+/* Com o filtro por tipo, as memórias não estão todas na tela: os trilhos saem e o capítulo vem escrito */
+.linha[data-filtrando] :is(.trilhos, .marca, .ano__passa) {
+  display: none;
+}
+.linha[data-filtrando] .entrada__capitulo {
+  display: inline;
+}
+
 .entrada__quando {
   display: flex;
   flex-wrap: wrap;
@@ -338,14 +480,42 @@
     font-size: calc(98cqi / var(--ano-em));
     margin-bottom: var(--e-5);
   }
+  .linha {
+    --passo: 1rem;
+    --cabem: 4;
+  }
   .ano > .ano__itens {
     grid-column: 5 / -1;
-    gap: var(--e-9);
-    margin-left: 0;
-    padding-left: var(--calha);
+    grid-row: 1;
   }
-  .entrada__ponto {
-    left: calc(-1 * var(--calha) - 0.3125rem - 0.5px);
+  .entrada {
+    padding-bottom: var(--e-9);
+  }
+  .ano > .ano__passa {
+    grid-column: 5 / -1;
+    align-self: start;
+    height: var(--e-9);
+    margin-top: calc(-1 * var(--e-9));
+  }
+  .marca__titulo {
+    font-size: var(--t-titulo-3);
+  }
+  .marca {
+    min-height: 3.5rem;
+    padding-bottom: var(--e-6);
+  }
+  .marca--abre::before {
+    top: 1.25rem;
+  }
+  .marca--fecha::before {
+    height: 0.9rem;
+  }
+  /* No computador cabem quatro trilhos */
+  .linha :is(.trilho, .marca):is([data-n='4'], [data-n='5'], [data-n='6'], [data-n='7'], [data-n='8'], [data-n='9']) {
+    display: none;
+  }
+  .entrada__capitulo:is([data-n='0'], [data-n='1'], [data-n='2'], [data-n='3']) {
+    display: none;
   }
   .entrada--com-foto {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -375,10 +545,27 @@
   .entrada--com-foto .entrada__titulo {
     font-size: calc(var(--t-titulo-3) * 1.2);
   }
-  .entrada--com-foto .entrada__ponto {
-    top: calc(var(--e-7) + 0.3rem);
+  .entrada--com-foto {
+    --altura-do-ponto: calc(var(--e-7) + 0.3rem);
   }
   .entrada--so-texto {
     max-width: 75%;
+  }
+}
+
+/* Na tela grande cabem seis trilhos, e o título do capítulo ganha mais espaço */
+@media (min-width: 100rem) {
+  .linha {
+    --passo: 1.25rem;
+    --cabem: 6;
+  }
+  .linha .marca:is([data-n='4'], [data-n='5']) {
+    display: block;
+  }
+  .linha .trilho:is([data-n='4'], [data-n='5']) {
+    display: block;
+  }
+  .entrada__capitulo:is([data-n='4'], [data-n='5']) {
+    display: none;
   }
 }

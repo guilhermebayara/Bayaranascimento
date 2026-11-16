@@ -33,6 +33,17 @@ export function familiaDeOrigem(dados: DadosDasFamilias, id: string): string[] {
   return origem.length ? origem : de(dados, id);
 }
 
+/**
+ * A família que vale como a da pessoa hoje: a mais recente, que ela formou com quem casou. A Giovanna e o
+ * Magno veem a cor do Bayara Bracarense, que criaram juntos (decisão do Gui, 16/11/2026). Quem não formou
+ * outra fica com a de origem: o Gui e a Elizete, com o Bayara.
+ */
+export function familiaMaisRecente(dados: DadosDasFamilias, id: string): string | undefined {
+  const origem = new Set(familiaDeOrigem(dados, id));
+  const formadas = de(dados, id).filter((n) => !origem.has(n));
+  return formadas.at(-1) ?? de(dados, id)[0];
+}
+
 /** O que dois pais dividem: o filho da Giovanna com o Magno é do Bayara Bracarense, o núcleo que os dois criaram. */
 function emComum(dados: DadosDasFamilias, a: string, b: string): string[] {
   const deB = new Set(de(dados, b));

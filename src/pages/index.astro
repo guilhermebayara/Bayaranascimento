@@ -6,8 +6,10 @@ import { listarIntegrantes, listarMemorias, listarNucleos } from '../lib/servido
 const { usuario } = Astro.locals;
 const nucleos = await listarNucleos();
 const pedido = Astro.url.searchParams.get('nucleo');
-// Só dá para abrir a linha do tempo de um núcleo de que a pessoa faz parte
-const nucleo = nucleos.find((n) => n.id === pedido && usuario.nucleos.includes(n.id));
+// Todo mundo pode filtrar por qualquer família (decisão do Gui, 16/11/2026). O filtro não muda quem vê o quê:
+// listarMemorias só devolve o que a pessoa pode ver, e de uma família de que ela não é membro isso é o que
+// foi aberto a todos.
+const nucleo = nucleos.find((n) => n.id === pedido);
 const memorias = await listarMemorias(usuario, { nucleo: nucleo?.id });
 const integrantes = await listarIntegrantes();
 const primeiro = memorias[0]?.ano;
@@ -24,7 +26,7 @@ const quantas = `${memorias.length} ${memorias.length === 1 ? 'memória' : 'mem�
         memorias.length === 0
           ? 'As memórias da nossa família.'
           : nucleo
-            ? `${quantas} deste núcleo${periodo}.`
+            ? `${quantas} desta família${periodo}.`
             : `${quantas} da nossa família${periodo}.`
       }
     </p>

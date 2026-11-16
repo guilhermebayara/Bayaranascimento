@@ -177,17 +177,83 @@
   margin-top: var(--e-2);
 }
 
-/* --- Fim: o convite para contar, em destaque ------------------------------------------------- */
+/* --- Fim: o convite para contar ------------------------------------------------------------
+   Um bilhete em branco com o nome de quem está vendo: as linhas vazias e a assinatura dela,
+   ainda apagada, à espera do relato. Fica pousado sobre uma forma na cor do tipo de momento. */
 
-.fim {
+.convite {
   margin-top: var(--e-9);
-  padding-block: var(--e-8);
 }
-.fim .grade {
-  row-gap: var(--e-6);
+.convite__mesa {
+  position: relative;
+  max-width: 44rem;
+  padding: var(--e-6) 0 var(--e-7);
 }
-.fim__titulo {
-  max-width: 14em;
+.convite__forma {
+  position: absolute;
+  top: 0;
+  right: -6%;
+  width: min(72%, 24rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--tipo-pastel, var(--pastel));
+}
+.convite__bilhete {
+  position: relative;
+  width: 92%;
+  rotate: -1.2deg;
+}
+.convite__para {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+}
+.convite__para .retrato {
+  width: 2.75rem;
+  font-size: 0.55rem;
+}
+.convite__titulo {
+  margin-top: var(--e-4);
+  font-size: var(--t-titulo-2);
+  line-height: 1.04;
+  max-width: 11em;
+}
+/* As linhas em branco, onde o relato vai entrar */
+.convite__linhas {
+  display: grid;
+  gap: 1.9rem;
+  margin-top: var(--e-7);
+}
+.convite__linhas span {
+  border-top: 1px solid var(--fio);
+}
+.convite__linhas span:last-child {
+  width: 55%;
+}
+.convite__pe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-5);
+  margin-top: var(--e-6);
+}
+/* A assinatura de quem ainda não contou: apagada, como a lápis */
+.convite__assina {
+  position: relative;
+  display: inline-block;
+  rotate: -3deg;
+  opacity: 0.55;
+}
+.convite__assina .mao {
+  font-size: calc(2.5rem * var(--escala-mao));
+}
+.convite__assina .rabisco--sublinha {
+  bottom: -0.5em;
+  color: var(--tipo-cor, var(--vivo));
+}
+.convite__bilhete--feito .convite__assina {
+  opacity: 1;
 }
 
 /* Antes e depois */
@@ -289,15 +355,8 @@
   .quem {
     grid-template-columns: repeat(auto-fill, minmax(clamp(8rem, 9.5vw, 12rem), 1fr));
   }
-  .fim .grade {
-    align-items: end;
-  }
-  .fim .fim__titulo {
-    grid-column: 1 / span 8;
-  }
-  .fim .fim__acao {
-    grid-column: 9 / -1;
-    justify-self: end;
+  .convite__mesa {
+    margin-left: calc((100% + var(--calha)) / 12 * 4);
   }
 }
 

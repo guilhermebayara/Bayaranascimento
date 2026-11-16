@@ -12,7 +12,8 @@ interface Props {
 
 const { titulo } = Astro.props;
 const { usuario } = Astro.locals;
-const nucleos = (await listarNucleos()).filter((n) => usuario.nucleos.includes(n.id));
+// O menu oferece a linha do tempo de todas as famílias (decisão do Gui, 16/11/2026): cada uma mostra só o que a pessoa pode ver
+const nucleos = await listarNucleos();
 const caminho = Astro.url.pathname.replace(/\/$/, '') || '/';
 const nucleoAtual = Astro.url.searchParams.get('nucleo');
 const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';

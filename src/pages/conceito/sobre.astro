@@ -82,7 +82,7 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
                 <span class="assinatura__memorias">MEMÓRIAS</span>
                 <span class="assinatura__sobrenomes">{sobrenomesDaAssinatura(nomes)}</span>
               </p>
-              <p class="ficha suave">{nomes.length > 1 ? 'Em “Tudo”' : `No núcleo ${nomes[0]}`}</p>
+              <p class="ficha suave">{nomes.length > 1 ? 'Em “Tudo”' : `Na família ${nomes[0]}`}</p>
             </div>
           ))
         }
@@ -92,15 +92,15 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
     <section aria-labelledby="cores">
       <h2 class="sobre__titulo" id="cores">A cor de cada família</h2>
       <p class="sobre__texto">
-        O pastel marca a família, em blocos sólidos, e cada família tem uma segunda cor para os enfeites. No núcleo Bayara Bracarense as duas têm o mesmo peso:
-        rosa, da Giovanna, e roxo, do Magno. O vivo marca o que importa na tela. A tinta é o vivo escurecido, para o carimbo.
+        Cada família tem uma cor só, em quatro tons: o pastel dos blocos, o meio dos enfeites, o vivo do que importa na tela e a tinta do carimbo. Bayara é verde.
+        Bayara Bracarense é orquídea, o meio-termo entre o rosa e o roxo. Bracarense é azul. “Tudo”, as famílias juntas, é manteiga.
       </p>
       <ul class="cores">
         {
           cores.map((c) => (
             <li data-familia={c.id}>
               <span class="cores__pastel" />
-              <span class="cores__par" />
+              <span class="cores__meio" />
               <span class="cores__vivo" />
               <span class="cores__tinta" />
               <span class="ficha">{c.nome}</span>

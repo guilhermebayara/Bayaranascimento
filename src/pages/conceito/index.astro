@@ -17,6 +17,8 @@ import Visual from '../../layouts/Visual.astro';
 import IconeDoTipo from '../../components/visual/IconeDoTipo.astro';
 import Polaroid from '../../components/visual/Polaroid.astro';
 import Rabisco from '../../components/visual/Rabisco.astro';
+import { familiaMaisRecente } from '../../lib/familias';
+import { TITULO_DA_PROXIMIDADE, emOutrosAnos } from '../../lib/painel';
 import { Familia, possessivo, type Tratamento } from '../../lib/parentesco';
 import { enderecoDoRetrato, iniciais } from '../../lib/retratos';
 import { conceitoDisponivel, naoEncontrado } from '../../lib/servidor/conceito';
@@ -56,7 +58,13 @@ const familiaDe = (id: string) => {
   return indice >= 0 ? String(indice % 4) : 'tudo';
 };
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
-const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
+const filiacoes = await listarFiliacoes();
+const casais = await listarCasais(usuario);
+const familia = new Familia(filiacoes, casais, tratamentos);
+// A cor do painel é a da família mais recente de quem vê: a que a pessoa formou com quem casou.
+// A Giovanna e o Magno veem a cor da família que criaram juntos (decisão do Gui, 16/11/2026).
+const minhaFamilia = familiaMaisRecente({ familias: new Map(integrantes.map((i) => [i.id, familiasDe(i)])), casais, filiacoes }, usuario.pessoa);
+const corDoPainel = minhaFamilia && ordemDosNucleos.includes(minhaFamilia) ? String(ordemDosNucleos.indexOf(minhaFamilia) % 4) : 'tudo';
 const paraVoce = (id: string) => {
   const relacao = familia.relacao(usuario.pessoa, id);
   return relacao ? possessivo(relacao, achar(id)?.tratamento ?? null) : undefined;
@@ -70,8 +78,11 @@ const minhas = recentes.filter((m) => m.integrantes.includes(usuario.pessoa));
 // --- O que entrou de novo -------------------------------------------------------------------
 // FIXO: quais memórias e qual relato são "novos" e as datas das visitas. As memórias e o relato
 // em si são lidos do acervo, então quem não pode ver uma delas não a vê aqui.
-const HOJE = '16 nov 2026';
-const ULTIMA_VISITA = '9 nov';
+// O dia fixo é a véspera de Natal, quando o site é dado de presente: é também o dia em que
+// "Neste dia, em outros anos" mais tem o que mostrar no acervo de exemplo.
+const HOJE = { ano: 2026, mes: 12, dia: 24 };
+const HOJE_POR_EXTENSO = '24 dez 2026';
+const ULTIMA_VISITA = '17 dez';
 const MEMORIAS_NOVAS = ['2026-jantar-de-casamento', '2026-pao-de-queijo-da-vo-bela', '2025-festa-junina', '2026-primeira-noite-em-casa'];
 const RELATO_NOVO = { memoria: '2023-chico-chega', por: 'lucas-magno' };
 
@@ -94,10 +105,10 @@ const verbo = novas.length + (relatoNovo ? 1 : 0) > 1 ? 'Entraram' : 'Entrou';
 // FIXO: dia, mês e idade. O acervo de exemplo ainda não tem mês e dia de nascimento. Quem
 // aparece, o retrato e o parentesco são lidos do acervo: só gente viva que a pessoa vê.
 const ANIVERSARIOS = [
-  { id: 'vo-bela', dia: '22 nov', faz: 84 },
-  { id: 'lucas-magno', dia: '3 dez', faz: 0 },
-  { id: 'elizete', dia: '8 dez', faz: 0 },
-  { id: 'chico', dia: '12 dez', faz: 4 },
+  { id: 'vo-bela', dia: '28 dez', faz: 84 },
+  { id: 'lucas-magno', dia: '6 jan', faz: 0 },
+  { id: 'elizete', dia: '12 jan', faz: 0 },
+  { id: 'chico', dia: '19 jan', faz: 4 },
 ];
 const aniversarios = ANIVERSARIOS.filter((a) => a.id !== usuario.pessoa && achar(a.id) && !achar(a.id)!.falecido && !naoVe.has(a.id)).slice(0, 3);
 
@@ -113,6 +124,11 @@ for (const m of minhas.filter((x) => x.fotos.length > 0 && !novas.includes(x)).s
   }
 }
 
+// --- Neste dia, em outros anos ------------------------------------------------------------------
+// Lido do acervo: as memórias que a pessoa vê e que aconteceram neste dia, nesta semana ou neste
+// mês em outros anos (src/lib/painel.ts). Só o dia de hoje é FIXO.
+const outrosAnos = emOutrosAnos(memorias, HOJE);
+
 const primeiroAno = memorias[0]?.ano;
 const ultimoAno = memorias.at(-1)?.ano;
 const decadas = [...new Set(recentes.map((m) => Math.floor(m.ano / 10) * 10))];
@@ -121,7 +137,7 @@ const decadas = [...new Set(recentes.map((m) => Math.floor(m.ano / 10) * 10))];
 const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
 ---
 
-<Visual titulo="Início" secao="painel" familia={familiaDe(usuario.pessoa)} intimo>
+<Visual titulo="Início" secao="painel" familia={corDoPainel} intimo>
   {
     primeiraVisita ? (
       <section class="carta bloco" data-familia="tudo" aria-labelledby="saudacao">
@@ -180,7 +196,7 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
           <p class="rotulo suave">
             Só você vê esta página
             <br />
-            {HOJE}
+            {HOJE_POR_EXTENSO}
           </p>
           <h1 class="t-1" id="ola">
             Oi,{' '}
@@ -237,6 +253,40 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
     )
   }
 
+  {
+    outrosAnos && (
+      <section class="outros-anos miolo" aria-labelledby="outros-anos">
+        <div class="cartao">
+          <h2 class="cartao__titulo rotulo" id="outros-anos">
+            <IconeDoTipo tipo="outro" />
+            {TITULO_DA_PROXIMIDADE[outrosAnos.proximidade]}
+          </h2>
+          <ol class="outros-anos__lista">
+            {outrosAnos.itens.map((m) => (
+              <li style={estiloDoTipo(m.tipo)}>
+                <a class="outro-ano" href={`/conceito/memorias/${m.id}`}>
+                  {m.fotos.length > 0 ? (
+                    <span class="outro-ano__foto">
+                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} />
+                    </span>
+                  ) : (
+                    <span class="outro-ano__foto outro-ano__foto--sem" aria-hidden="true">
+                      <IconeDoTipo tipo={m.tipo} />
+                    </span>
+                  )}
+                  <span class="outro-ano__texto">
+                    <span class="outro-ano__ano serifa">em {m.ano}</span>
+                    <strong class="outro-ano__titulo">{m.titulo}</strong>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+    )
+  }
+
   <div class="cartoes miolo">
     {
       aniversarios.length > 0 && (
@@ -272,7 +322,7 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
             Você no acervo
           </h2>
           <div class="voce__conta">
-            <span class="retrato" data-familia={familiaDe(usuario.pessoa)}>
+            <span class="retrato" data-familia={corDoPainel}>
               {retratoDe(usuario.pessoa) ? <img src={retratoDe(usuario.pessoa)!} alt="" loading="lazy" decoding="async" /> : <span aria-hidden="true">{iniciais(usuario.nome)}</span>}
             </span>
             <p>

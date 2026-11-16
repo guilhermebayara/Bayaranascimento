@@ -53,6 +53,12 @@
   text-transform: uppercase;
   color: var(--tinta-suave);
 }
+/* Na foto pequena, de miniatura, a legenda não cabe: fica só a margem em branco */
+@container (max-width: 7.5rem) {
+  .polaroid__legenda {
+    font-size: 0;
+  }
+}
 a.polaroid,
 .polaroid a {
   text-decoration: none;
@@ -190,7 +196,7 @@ a.polaroid,
   aspect-ratio: 4 / 5;
   overflow: hidden;
   border-radius: 999px 999px var(--raio-foto) var(--raio-foto);
-  background: var(--bloco-fundo);
+  background: var(--pastel);
   font-family: var(--serifa);
   font-variation-settings: var(--serifa-ajustes);
   font-size: 1.75em;
@@ -263,7 +269,7 @@ a.polaroid,
 /* --- Bloco de cor: quando um trecho precisa se destacar, o fundo é a cor da família -------- */
 
 .bloco {
-  background: var(--bloco-fundo);
+  background: var(--pastel);
   /* Sobre o pastel, o texto de apoio e o carimbo escurecem para manter a leitura */
   --tinta-suave: color-mix(in srgb, var(--tinta) 76%, var(--pastel));
   --fio: color-mix(in srgb, var(--tinta) 22%, var(--pastel));
@@ -303,7 +309,7 @@ a.polaroid,
 }
 .rabisco--coracao {
   width: 1.5em;
-  color: var(--par-vivo);
+  color: var(--vivo);
 }
 /* Quem leva o rabisco de sublinhado */
 .sublinhado {

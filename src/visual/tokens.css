@@ -18,40 +18,63 @@
   --fio: #e4d6c1;
 
   /*
-   * As cores. Cada uma tem o pastel (blocos sólidos), o vivo (pontos de destaque) e a tinta
-   * (o vivo escurecido até dar leitura sobre o papel, para carimbo e rabisco).
+   * As cores. Cada uma é uma cor só em quatro tons: o pastel (blocos sólidos), o meio (enfeites
+   * sobre o pastel), o vivo (pontos de destaque) e a tinta (o vivo escurecido até dar leitura
+   * sobre o papel, para carimbo e rabisco). São onze, para os tipos de momento não repetirem.
    */
   --manteiga-pastel: #f8dc98;
+  --manteiga-meio: #f1c964;
   --manteiga-vivo: #eda800;
   --manteiga-tinta: #8c5a00;
   --verde-pastel: #cfe6c0;
+  --verde-meio: #a9d190;
   --verde-vivo: #3f9d52;
   --verde-tinta: #2a6f3b;
   --rosa-pastel: #f9c8d6;
+  --rosa-meio: #f29db8;
   --rosa-vivo: #e7477f;
   --rosa-tinta: #b3275c;
   --roxo-pastel: #ddd0f6;
+  --roxo-meio: #c0aaee;
   --roxo-vivo: #7b52e0;
   --roxo-tinta: #5a38c2;
   --azul-pastel: #c5dcf5;
+  --azul-meio: #9cc3ee;
   --azul-vivo: #2f76d9;
   --azul-tinta: #1c58b2;
   --pessego-pastel: #fbd3b8;
+  --pessego-meio: #f6b48a;
   --pessego-vivo: #ec6a2c;
   --pessego-tinta: #b04a16;
+  --coral-pastel: #fbc4bb;
+  --coral-meio: #f59a8c;
+  --coral-vivo: #e8483a;
+  --coral-tinta: #b22a20;
+  --turquesa-pastel: #bfe6e0;
+  --turquesa-meio: #8fd3c9;
+  --turquesa-vivo: #1f9d8f;
+  --turquesa-tinta: #136e64;
+  --orquidea-pastel: #ecc9ee;
+  --orquidea-meio: #dba3df;
+  --orquidea-vivo: #b84cc4;
+  --orquidea-tinta: #8a2f96;
+  --ardosia-pastel: #cfd6e6;
+  --ardosia-meio: #aab6d0;
+  --ardosia-vivo: #5b6f9c;
+  --ardosia-tinta: #40507a;
+  --areia-pastel: #ecdcc2;
+  --areia-meio: #dcc39b;
+  --areia-vivo: #b98a4a;
+  --areia-tinta: #7d5a26;
 
   /*
-   * A cor de cada família, escolhida em data-familia. Sem família, vale "tudo", as famílias juntas.
-   * Toda família tem um par: a segunda cor entra nos enfeites. No núcleo Bayara Bracarense as duas
-   * têm o mesmo peso, rosa (Giovanna) e roxo (Magno), e o bloco se divide entre elas.
+   * A cor de cada família, escolhida em data-familia: uma cor só, com variação de tons
+   * (decisão do Gui, 16/11/2026). Sem família, vale "tudo", as famílias juntas.
    */
   --pastel: var(--manteiga-pastel);
+  --meio: var(--manteiga-meio);
   --vivo: var(--manteiga-vivo);
   --vivo-tinta: var(--manteiga-tinta);
-  --par-pastel: var(--pessego-pastel);
-  --par-vivo: var(--pessego-vivo);
-  --bloco-fundo: var(--pastel);
-  --intimo: var(--pastel);
 
   /* Espaços: 1 a 4 dentro de um grupo, 5 a 7 entre grupos, 8 e 9 entre partes da página */
   --e-1: 0.25rem;
@@ -106,59 +129,49 @@
 }
 
 /* A cor da família da tela ou de um trecho dela */
-[data-familia] {
-  --bloco-fundo: var(--pastel);
-  --intimo: var(--pastel);
-}
+/* Tudo, as famílias juntas: manteiga */
 [data-familia='tudo'] {
   --pastel: var(--manteiga-pastel);
+  --meio: var(--manteiga-meio);
   --vivo: var(--manteiga-vivo);
   --vivo-tinta: var(--manteiga-tinta);
-  --par-pastel: var(--pessego-pastel);
-  --par-vivo: var(--pessego-vivo);
 }
 /* Bayara: verde, a cor da Elizete */
 [data-familia='0'] {
   --pastel: var(--verde-pastel);
+  --meio: var(--verde-meio);
   --vivo: var(--verde-vivo);
   --vivo-tinta: var(--verde-tinta);
-  --par-pastel: var(--manteiga-pastel);
-  --par-vivo: var(--manteiga-vivo);
 }
-/* Bayara Bracarense: rosa e roxo juntos, a Giovanna e o Magno, sem uma cor mandar na outra */
+/* Bayara Bracarense: orquídea, o meio-termo entre o rosa da Giovanna e o roxo do Magno */
 [data-familia='1'] {
-  --pastel: var(--rosa-pastel);
-  --vivo: var(--rosa-vivo);
-  --vivo-tinta: var(--roxo-tinta);
-  --par-pastel: var(--roxo-pastel);
-  --par-vivo: var(--roxo-vivo);
-  --bloco-fundo: linear-gradient(100deg, var(--rosa-pastel) 0 50%, var(--roxo-pastel) 50% 100%);
-  --intimo: color-mix(in srgb, var(--rosa-pastel) 50%, var(--roxo-pastel));
+  --pastel: var(--orquidea-pastel);
+  --meio: var(--orquidea-meio);
+  --vivo: var(--orquidea-vivo);
+  --vivo-tinta: var(--orquidea-tinta);
 }
 /* Bracarense: azul */
 [data-familia='2'] {
   --pastel: var(--azul-pastel);
+  --meio: var(--azul-meio);
   --vivo: var(--azul-vivo);
   --vivo-tinta: var(--azul-tinta);
-  --par-pastel: var(--verde-pastel);
-  --par-vivo: var(--verde-vivo);
 }
 /* A próxima família que entrar */
 [data-familia='3'] {
   --pastel: var(--pessego-pastel);
+  --meio: var(--pessego-meio);
   --vivo: var(--pessego-vivo);
   --vivo-tinta: var(--pessego-tinta);
-  --par-pastel: var(--manteiga-pastel);
-  --par-vivo: var(--manteiga-vivo);
 }
 
 /*
  * A página íntima, que só a pessoa vê (o painel): o papel é tingido com as duas cores da família
- * dela, e o que fica sobre ele vira cartão branco. No núcleo de duas cores, o tom é a mistura delas.
+ * dela, e o que fica sobre ele vira cartão branco.
  */
 [data-intimo] {
-  --papel: color-mix(in srgb, var(--intimo) 52%, var(--creme));
-  --papel-recuo: color-mix(in srgb, var(--intimo) 78%, var(--creme-recuo));
+  --papel: color-mix(in srgb, var(--pastel) 52%, var(--creme));
+  --papel-recuo: color-mix(in srgb, var(--pastel) 78%, var(--creme-recuo));
   --tinta-suave: color-mix(in srgb, var(--tinta) 72%, var(--papel));
   --fio: color-mix(in srgb, var(--tinta) 16%, var(--papel));
 }

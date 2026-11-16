@@ -85,14 +85,19 @@ const PAGINAS = [
   { nome: 'inicio-como-elizete', url: '/', como: 'elizete' },
   { nome: 'pessoa-nova-como-magno', url: '/pessoas/nova', como: 'lucas-magno' },
   // Conceito da revisão visual: as mesmas telas em cada combinação de fontes, nas três larguras.
-  // A carta é vista como Elizete, que a recebe; a memória, como Giovanna, que ainda não contou.
-  // "corte" limita a altura da captura da linha do tempo, que é muito longa.
+  // A carta é vista como Elizete, que a recebe. O painel, a linha do tempo e a memória, como Giovanna,
+  // que está em duas famílias, vê todos os capítulos e ainda não contou o Natal de 2025.
+  // "corte" limita a altura da captura da linha do tempo, que é muito longa, e "desde" começa a
+  // captura num ponto da página.
   ...['a', 'b', 'c'].flatMap((fontes) => [
     { nome: `conceito-${fontes}-1-carta`, url: '/conceito?visita=primeira', como: 'elizete', fontes, larguras: TODAS },
-    { nome: `conceito-${fontes}-2-painel`, url: '/conceito', fontes, larguras: TODAS },
-    { nome: `conceito-${fontes}-3-linha-do-tempo`, url: '/conceito/tudo', fontes, larguras: TODAS, corte: 9000 },
+    { nome: `conceito-${fontes}-2-painel`, url: '/conceito', como: 'giovanna', fontes, larguras: TODAS },
+    { nome: `conceito-${fontes}-3-linha-do-tempo`, url: '/conceito/tudo', como: 'giovanna', fontes, larguras: TODAS, corte: 9000 },
     { nome: `conceito-${fontes}-4-memoria`, url: '/conceito/memorias/2025-natal', como: 'giovanna', fontes, larguras: TODAS },
   ]),
+  // Capítulos na linha do tempo: o trecho com um capítulo dentro de outro (Natais na Vó Vivica, dentro
+  // de Natais) e, no computador, os capítulos de época. Começa em 2006 e vai até o fim da página.
+  { nome: 'conceito-a-5-capitulos', url: '/conceito/tudo', como: 'giovanna', larguras: TODAS, desde: '#ano-2006', corte: 9000 },
   { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
 ];
 
@@ -137,7 +142,10 @@ async function tirar(pasta) {
       await pagina.waitForTimeout(300);
       const arquivo = join(pasta, `${p.nome}--${largura.nome}.png`);
       const altura = await pagina.evaluate(() => document.documentElement.scrollHeight);
-      const corte = p.corte && altura > p.corte ? { clip: { x: 0, y: 0, width: largura.width, height: p.corte } } : {};
+      // "desde" é um ponto da página (um seletor): a captura começa um pouco acima dele
+      const desde = p.desde ? await pagina.evaluate((seletor) => Math.max(0, Math.round((document.querySelector(seletor)?.getBoundingClientRect().top ?? 0) + scrollY - 160)), p.desde) : 0;
+      const ate = Math.min(altura - desde, p.corte ?? altura);
+      const corte = desde > 0 || ate < altura ? { clip: { x: 0, y: desde, width: largura.width, height: ate } } : {};
       await pagina.screenshot({ path: arquivo, fullPage: true, animations: 'disabled', caret: 'hide', ...corte });
       console.log(arquivo);
     }

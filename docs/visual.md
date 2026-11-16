@@ -64,7 +64,7 @@ O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
 
 ## Conceito (fase 1), em aprovação
 
-Construído em 16/11/2026 na branch `tst-visual`, em duas rodadas: a primeira versão e a segunda, com os ajustes que o Gui pediu ao vê-la. Espera a aprovação dele na prévia e a escolha das fontes. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
+Construído em 16/11/2026 na branch `tst-visual`, em três rodadas: a primeira versão e duas de ajustes que o Gui pediu ao ver cada uma. Espera a aprovação dele na prévia. A escolha das fontes continua em aberto: ele quer avaliar com as mudanças aplicadas. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
 
 **Onde está.** As telas do conceito ficam em `/conceito`, ao lado do site atual, que continua inteiro:
 
@@ -90,23 +90,24 @@ A faixa do alto (só nas prévias e no computador) troca de tela, de combinaçã
 
 Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de outra.
 
-**O que o Gui aprovou na primeira rodada:** o menu (sanfona no celular, "Início", as famílias no alto da linha do tempo), os textos novos ("Oi, Gui.", "Entraram duas memórias e um relato desde a sua última visita.", "Você estava lá e ainda não contou", "Ver a linha do tempo inteira", "Abrir o acervo", "Cada pessoa conta o dia do jeito que lembra.") e a foto revelada em toda foto-chave.
+**O que o Gui já aprovou:** o menu (sanfona no celular, "Início", as famílias no alto da linha do tempo), os textos novos ("Oi, Gui.", "Entraram duas memórias e um relato desde a sua última visita.", "Você estava lá e ainda não contou", "Ver a linha do tempo inteira", "Abrir o acervo", "Cada pessoa conta o dia do jeito que lembra."), a foto revelada em toda foto-chave, as cores dos tipos de momento, a abertura da memória em bloco de cor e, conferidos no iPhone, a barra de décadas e o ano parados no alto.
 
-**O que a segunda rodada propõe e espera decisão:**
+**O que a terceira rodada propõe e espera decisão:**
 
-- **As seis cores do site.** Manteiga, verde, rosa, roxo, azul e pêssego, cada uma com pastel, vivo e tinta (`src/visual/tokens.css`). "Tudo" é manteiga; Bayara é verde, a cor da Elizete; Bayara Bracarense é rosa e roxo juntos, e o bloco de cor se divide entre os dois; Bracarense é azul, até o Gui dizer a cor deles.
-- **Cor do tipo de momento.** Cada tipo ganha uma das seis cores (`corDoTipo`, em `src/lib/visual.ts`), usada no ícone, na etiqueta, na forma atrás da foto e na abertura da memória. As cores gravadas no banco continuam as de hoje: se a proposta for aceita, a paleta é aplicada em `/admin/tipos` na fase 2.
+- **As cores das famílias.** Onze cores, cada uma em quatro tons: pastel, meio, vivo e tinta (`src/visual/tokens.css`). Bayara é verde. Bayara Bracarense é orquídea, o meio-termo entre o rosa e o roxo. Bracarense é azul. "Tudo" é manteiga. As quatro estão lado a lado em `/conceito/sobre`.
 - **Ícones dos tipos.** Um rabisco de traço para cada um: broto (nascimento), bolo (aniversário), alianças (casamento), estrela (conquista), aviãozinho de papel (viagem), casinha (casa), balões (festa), balão de fala (causo), xícara (dia a dia), flor (despedida) e brilho (outro e tipos novos). Estão em `src/components/visual/IconeDoTipo.astro`.
-- **Abertura da memória** num bloco inteiro na cor do tipo.
-- **Painel íntimo.** O papel tingido na cor da família de quem vê (no núcleo de duas cores, a mistura delas), os aniversários, "Você no acervo" e a memória para contar em três cartões, o nome sublinhado a caneta e o envelope do laboratório com as fotos novas.
-- **Linha do tempo no celular.** O ano fica parado logo abaixo da barra de décadas, num tamanho menor que o da primeira rodada, para caber com a barra.
+- **Painel.** O papel tingido na cor da família de quem vê, os cartões, o nome sublinhado a caneta e o envelope do laboratório. Entrou o cartão "Neste dia, em outros anos" (`src/lib/painel.ts`): as memórias que a pessoa vê e que aconteceram no mesmo dia; sem nenhuma, as da mesma semana; sem nenhuma, as do mesmo mês. Ele fica logo depois das novidades.
+- **O convite do fim da memória.** No lugar da faixa, um bilhete em branco com o retrato e o nome de quem está vendo, as linhas vazias e a assinatura dela ainda apagada. A frase continua "Cada pessoa conta o dia do jeito que lembra.".
+- **Capítulos na linha do tempo**, pelo item de `docs/decisoes.md`. A montagem dos trilhos está em `src/lib/linha-capitulos.ts`, sem tela, com teste em `testes/linha-capitulos.test.ts`. Os trilhos são da cor da tinta, bem clara, para não competir com as fotos nem com a cor das famílias. A memória presa ao capítulo tem uma parada no trilho; a de fora deixa o trilho tracejado. No alto, o trilho faz a curva até o título e o período do capítulo, que levam à página dele; embaixo, até a marca "começo de". Cabem dois trilhos no celular, quatro a partir de 62rem e seis a partir de 100rem; onde não cabe, o capítulo vem escrito na memória ("em Viagens de família"). Com o filtro por tipo ligado, os trilhos saem e o capítulo vem escrito. O texto da marca do fim, "começo de “Natais”", é proposta.
 - **Monograma.** No celular, o "M" do topo é a letra da serifa, provisória. O desenho em SVG é da fase 2.
 
-**O que é fixo de exemplo no painel**, porque a parte funcional ainda não existe: o texto da carta, as datas das visitas, quais memórias e qual relato contam como novos e as datas e idades dos aniversários. Memórias, fotos, relatos, retratos, parentesco e a contagem de "Você no acervo" são lidos do acervo de exemplo, com a visibilidade de quem olha.
+**O que os capítulos mostraram.** Pela regra de hoje, toda memória que cai no período de um capítulo de época é dele. Por isso um capítulo de época nunca tem memória de fora no meio, e o trilho dele é sempre contínuo: o trecho tracejado só aparece nos capítulos reunidos. No acervo de exemplo, "Os anos de casa" é o de época (contínuo), "Natais" e "Giovanna e Magno" têm trechos tracejados, e "Natais na Vó Vivica" e "Só nós três" são os capítulos de dentro. Se a ideia era um capítulo de época poder deixar memórias de fora, falta a regra que diz quais (o recorte de época por família ou pessoa, que ficou para depois em "Capítulos e temas").
+
+**O que é fixo de exemplo no painel**, porque a parte funcional ainda não existe: o texto da carta, o dia de hoje (a véspera de Natal de 2026) e o da última visita, quais memórias e qual relato contam como novos e as datas e idades dos aniversários. Memórias, fotos, relatos, retratos, parentesco e a contagem de "Você no acervo" são lidos do acervo de exemplo, com a visibilidade de quem olha.
 
 **O que ficou de fora de propósito:** os efeitos da fase 4 (a frase que acende, a foto que amplia no lugar; hoje a foto abre o arquivo), o tocador de áudio próprio (o bloco usa o do aparelho) e as outras telas, que continuam com o visual antigo. Os links do conceito para capítulos, pessoas, árvore e formulários caem nelas.
 
-**Capturas.** `CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>` tira as quatro telas nas três combinações, em 390, 1280 e 1920 px, com movimento reduzido. As da segunda rodada estão em `docs/visual/conceito/` (a linha do tempo, cortada em 9000 px de altura).
+**Capturas.** `CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>` tira as quatro telas nas três combinações, em 390, 1280 e 1920 px, com movimento reduzido, e um trecho da linha do tempo com os capítulos de dentro. As da terceira rodada estão em `docs/visual/conceito/` (a linha do tempo, cortada em 9000 px de altura).
 
 ## Referências
 
@@ -136,9 +137,11 @@ Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de out
 | Linha do tempo | Lista vertical com a rolagem normal, das mais recentes para as mais antigas, sem efeito de folhear nem carrossel |
 | Página da memória | Ordem abaixo, com o convite para escrever o relato no fim |
 | Marca | "MEMÓRIAS" é a palavra principal e fixa. Abaixo dela vêm os sobrenomes das famílias do que está sendo visto, que mudam conforme a tela (ver "Assinatura do nome"). O símbolo é um monograma com o M de Memórias |
-| Cores das pessoas | A cor favorita da Giovanna é rosa, a do Magno é roxo e a da Elizete é verde (do Gui, 16/11/2026). No núcleo Bayara Bracarense nenhuma das duas pessoas do casal é favorecida: o conceito usa rosa e roxo juntos, com o mesmo peso. Faltam a cor do Gui e a dos Bracarense |
+| Cores das famílias | Cada família tem uma cor só, com variação de tons (decisão do Gui, 16/11/2026, depois de ver a proposta de duas cores para o casal). Bayara é verde, a cor da Elizete. Para o Bayara Bracarense, um meio-termo entre o rosa da Giovanna e o roxo do Magno, sem favorecer um dos dois: o conceito propõe orquídea. Bracarense e "Tudo" ficam para combinar com as outras: o conceito propõe azul e manteiga, e a de "Tudo" pode ser revista conforme as paletas ficarem |
 | Ícones e ilustrações | Cabem, com limpeza e elegância, para trazer leveza e alegria (do Gui, 16/11/2026). O site continua tipográfico. No conceito: um ícone de traço para cada tipo de momento, rabiscos de caneta (sublinhado, seta, coração) e o envelope do laboratório no painel |
-| Painel | É a parte que só a pessoa vê, e precisa ter cara própria, de espaço íntimo (do Gui, 16/11/2026). No conceito: a página inteira tingida na cor da família da pessoa, o conteúdo em cartões e o aviso "Só você vê esta página" |
+| Painel | É a parte que só a pessoa vê, e precisa ter cara própria, de espaço íntimo (do Gui, 16/11/2026). No conceito: a página inteira tingida na cor da família da pessoa, o conteúdo em cartões e o aviso "Só você vê esta página". Quem está em mais de uma família vê a cor da mais recente: a Giovanna e o Magno, a da família que criaram juntos (`familiaMaisRecente`, em `src/lib/familias.ts`) |
+| Cores dos tipos de momento | Aprovadas pelo Gui em 16/11/2026, com espaço para mais cores: o conceito tem onze, uma para cada tipo de hoje (`corDoTipo`, em `src/lib/visual.ts`). A abertura da memória num bloco inteiro na cor do tipo também foi aprovada |
+| "Família", e não "núcleo" | O site deixa de mostrar o termo "núcleo", que fica só para a lógica (decisão do Gui, 16/11/2026). Na tela, é "família" |
 
 ## Movimento
 

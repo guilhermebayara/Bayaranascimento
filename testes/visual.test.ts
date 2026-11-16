@@ -89,7 +89,9 @@ describe('cor da tela', () => {
 });
 
 describe('cor do tipo de momento', () => {
-  it('cada tipo conhecido tem uma das seis cores do site, e tipo novo ganha uma pelo id', () => {
+  it('cada tipo de hoje tem a sua cor, sem repetir, e tipo novo ganha uma pelo id', () => {
+    const deHoje = ['nascimento', 'aniversario', 'casamento', 'conquista', 'viagem', 'casa', 'festa', 'causo', 'cotidiano', 'despedida', 'outro'];
+    expect(new Set(deHoje.map(corDoTipo)).size).toBe(deHoje.length);
     expect(corDoTipo('casamento')).toBe('roxo');
     expect(corDoTipo('aniversario')).toBe('rosa');
     expect(CORES).toContain(corDoTipo('tipo-criado-depois'));
