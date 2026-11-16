@@ -117,15 +117,18 @@ export function podeExcluirMemoria(usuario: Usuario, m: AcessoDaMemoria): Decisa
 export interface IntegranteParaPermissao {
   id: string;
   nucleos: string[];
+  /** núcleos de que é parente: quem é do núcleo cuida dos parentes dele */
+  parenteDe?: string[];
   criadoPor?: string | null;
 }
 
-const divideNucleo = (usuario: Usuario, integrante: IntegranteParaPermissao) => integrante.nucleos.some((n) => usuario.nucleos.includes(n));
+const divideNucleo = (usuario: Usuario, integrante: IntegranteParaPermissao) =>
+  [...integrante.nucleos, ...(integrante.parenteDe ?? [])].some((n) => usuario.nucleos.includes(n));
 
 /**
  * Editar o cadastro de um integrante.
  * - Quem acessa o site cuida da própria página, e só ela.
- * - Quem não acessa: membros de um núcleo em comum, quem cadastrou e os admins.
+ * - Quem não acessa: membros do núcleo da pessoa ou do núcleo de que ela é parente, quem cadastrou e os admins.
  */
 export function podeEditarIntegrante(usuario: Usuario, integrante: IntegranteParaPermissao, comAcesso: ReadonlySet<string>): Decisao {
   if (integrante.id === usuario.pessoa) return sim;

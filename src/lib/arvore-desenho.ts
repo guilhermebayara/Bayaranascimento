@@ -14,6 +14,8 @@ export interface PessoaNoDesenho {
    * um núcleo à esquerda, outro à direita, e quem une os dois no meio.
    */
   lado?: number;
+  /** bicho da família: a linha até ele tem traço próprio, para não se confundir com a de uma criança */
+  bicho?: boolean;
 }
 
 export interface CasalNoDesenho {
@@ -32,6 +34,11 @@ export interface FiliacaoNoDesenho {
 export interface CoracaoNoDesenho {
   dono: string;
   pessoa: string;
+  /**
+   * Laço resumido: parentesco de sangue de alguém de fora das famílias, sem o caminho inteiro ("Caio é
+   * sobrinho do Ed"). Entra na árvore como um laço do coração, com traço de sangue e sem escadinha própria.
+   */
+  sangue?: boolean;
 }
 
 export interface Medidas {
@@ -49,7 +56,7 @@ export interface Linha {
   /** caminho SVG */
   d: string;
   /** ponto: a bolinha no meio do casal, de onde saem as linhas dos filhos */
-  tipo: 'casal' | 'ex' | 'filhos' | 'consideracao' | 'coracao' | 'ponto';
+  tipo: 'casal' | 'ex' | 'filhos' | 'bicho' | 'consideracao' | 'coracao' | 'resumido' | 'ponto';
   /** pessoas que a linha liga, para destacar ou apagar junto com elas */
   de: string[];
 }
@@ -65,15 +72,24 @@ export interface Desenho {
 
 /**
  * Por quem um laço do coração passa antes de chegar ao dono: um pai ou mãe do dono que também tem
- * laço do coração com a pessoa escolhida. Sem ninguém no meio, o laço se liga direto ao dono.
+ * laço do coração com a pessoa escolhida. Ou, para o parente de um amigo, o próprio amigo: o sobrinho
+ * de sangue do amigo-irmão do Gui é sobrinho de coração do Gui passando pelo amigo. Sem ninguém no meio,
+ * o laço se liga direto ao dono. Um laço resumido nunca passa por ninguém.
  */
 export function passaPor(
-  laco: Pick<CoracaoNoDesenho, 'dono' | 'pessoa'>,
-  coracao: Pick<CoracaoNoDesenho, 'dono' | 'pessoa'>[],
+  laco: Pick<CoracaoNoDesenho, 'dono' | 'pessoa' | 'sangue'>,
+  coracao: Pick<CoracaoNoDesenho, 'dono' | 'pessoa' | 'sangue'>[],
   filiacoes: Pick<FiliacaoNoDesenho, 'filho' | 'responsavel'>[],
 ): string | undefined {
+  if (laco.sangue) return undefined;
+  const liga = (x: string, y: string, l: Pick<CoracaoNoDesenho, 'dono' | 'pessoa'>) => (l.dono === x && l.pessoa === y) || (l.dono === y && l.pessoa === x);
   const pais = filiacoes.filter((f) => f.filho === laco.dono).map((f) => f.responsavel);
-  return pais.find((pai) => coracao.some((l) => (l.dono === pai && l.pessoa === laco.pessoa) || (l.dono === laco.pessoa && l.pessoa === pai)));
+  const pelosPais = pais.find((pai) => coracao.some((l) => liga(pai, laco.pessoa, l)));
+  if (pelosPais) return pelosPais;
+  const escolhidos = coracao.filter((l) => !l.sangue && l.dono === laco.dono && l.pessoa !== laco.pessoa).map((l) => l.pessoa);
+  // Só no sentido em que o laço resumido foi dito: o Caio é sobrinho do Ed, então o laço com o Caio passa
+  // pelo Ed, e o laço com o Ed não passa pelo Caio
+  return escolhidos.find((x) => coracao.some((l) => l.sangue && l.dono === x && l.pessoa === laco.pessoa));
 }
 
 export function desenharArvore(
@@ -291,6 +307,7 @@ export function desenharArvore(
   // Filhos de sangue ou adotivos: cada filho tem a sua linha, saindo do ponto do casal (ou de baixo
   // de quem cria sozinho) e descendo até ele. Linhas de irmãos se sobrepõem e parecem uma só.
   const grupos = new Map<string, string[]>();
+  const ehBicho = new Set(pessoas.filter((p) => p.bicho).map((p) => p.id));
   for (const f of filiacoes) {
     if (f.consideracao) continue;
     const pais = filiacoes.filter((o) => o.filho === f.filho && !o.consideracao).map((o) => o.responsavel).sort();
@@ -309,9 +326,15 @@ export function desenharArvore(
     descidas.push({ pais, x: origens[0].x, y: origens[0].y, barra });
     let d = '';
     for (const filho of filhos) {
+      if (ehBicho.has(filho)) continue;
       for (const o of origens) d += ' ' + arredondado([[o.x, o.y], [o.x, barra], [meioX(filho), barra], [meioX(filho), em.get(filho)!.y]]);
     }
-    linhas.push({ d: d.trim(), tipo: 'filhos', de: [...pais, ...filhos] });
+    if (d) linhas.push({ d: d.trim(), tipo: 'filhos', de: [...pais, ...filhos.filter((f) => !ehBicho.has(f))] });
+    // Bichos são filhos e netos como as famílias os tratam, mas a linha até eles tem traço próprio
+    for (const filho of filhos.filter((f) => ehBicho.has(f))) {
+      const db = origens.map((o) => arredondado([[o.x, o.y], [o.x, barra], [meioX(filho), barra], [meioX(filho), em.get(filho)!.y]])).join(' ');
+      linhas.push({ d: db, tipo: 'bicho', de: [...pais, filho] });
+    }
     if (ponto) linhas.push({ d: circulo(ponto.x, ponto.y, 5), tipo: 'ponto', de: pais });
   }
 
@@ -352,7 +375,7 @@ export function desenharArvore(
   // fileira, e o tronco desce no vão ao lado dela. O tronco e cada galho são desenhados uma vez só,
   // sem sobreposição, para o tracejado continuar visível.
   const R = 20;
-  const troncos = new Map<string, { centro: string; lado: -1 | 1; outros: string[]; de: Set<string> }>();
+  const troncos = new Map<string, { chave: string; centro: string; lado: -1 | 1; sangue: boolean; outros: string[]; de: Set<string> }>();
   for (const l of diretos) {
     const viaPais = (paisDe.get(l.pessoa) ?? []).some((p) => escolhidosPor.get(l.dono)!.has(p));
     if (viaPais) continue;
@@ -362,15 +385,17 @@ export function desenharArvore(
       const entre = posicoes.some((o) => o.y === pd.y && o.x > esq.x && o.x < dir.x);
       // Vizinhos: uma linha reta
       if (!entre) {
-        linhas.push({ d: `M ${esq.x + m.largura} ${pd.y + m.altura / 2} H ${dir.x}`, tipo: 'coracao', de: [l.dono, l.pessoa] });
+        linhas.push({ d: `M ${esq.x + m.largura} ${pd.y + m.altura / 2} H ${dir.x}`, tipo: l.sangue ? 'resumido' : 'coracao', de: [l.dono, l.pessoa] });
         continue;
       }
     }
     // O tronco é de quem escolheu, ou de quem está embaixo quando são de gerações diferentes
     const [centro, outro] = pd.y === pp.y || pd.y > pp.y ? [l.dono, l.pessoa] : [l.pessoa, l.dono];
     const lado: -1 | 1 = meioX(outro) < meioX(centro) ? -1 : 1;
-    const chave = `${centro}|${lado}`;
-    const t = troncos.get(chave) ?? troncos.set(chave, { centro, lado, outros: [], de: new Set([centro]) }).get(chave)!;
+    // Laços resumidos têm o próprio tronco: o traço deles é o de sangue
+    const sangue = Boolean(l.sangue);
+    const chave = `${centro}|${lado}${sangue ? '|sangue' : ''}`;
+    const t = troncos.get(chave) ?? troncos.set(chave, { chave, centro, lado, sangue, outros: [], de: new Set([centro]) }).get(chave)!;
     t.outros.push(outro);
     t.de.add(outro);
   }
@@ -449,13 +474,13 @@ export function desenharArvore(
   };
 
   // A subida de cada tronco, no vão ao lado de quem escolheu, também ocupa uma coluna
-  for (const { centro, lado } of troncos.values()) {
+  for (const { chave, centro, lado } of troncos.values()) {
     const pc = em.get(centro)!;
     const x = lado < 0 ? pc.x - m.vaoX / 2 : pc.x + m.largura + m.vaoX / 2;
-    colunas.push({ x, de: pc.y - 60, ate: pc.y + m.altura / 2, tronco: `${centro}|${lado}` });
+    colunas.push({ x, de: pc.y - 60, ate: pc.y + m.altura / 2, tronco: chave });
   }
 
-  for (const { centro, lado, outros, de } of troncos.values()) {
+  for (const { chave, centro, lado, sangue, outros, de } of troncos.values()) {
     const pc = em.get(centro)!;
     const alto = faixa(pc.y);
     const meio = pc.y + m.altura / 2;
@@ -492,7 +517,7 @@ export function desenharArvore(
       const ladoDoTronco = vao < x ? -1 : 1;
       const desejado = porCima ? (ladoDoTronco < 0 ? p.x - m.vaoX / 2 : p.x + m.largura + m.vaoX / 2) : x;
       const yv = porCima ? faixaAcima(p.y) : faixaAbaixo(p.y);
-      const xv = desviar(`${centro}|${lado}`, vaosLivres(passagens, vao, x, desejado), alto, yv, passagens);
+      const xv = desviar(chave, vaosLivres(passagens, vao, x, desejado), alto, yv, passagens);
       return [...inicio, [xv, alto], [xv, yv], [x, yv], [x, porCima ? p.y : p.y + m.altura]];
     };
     // O mais longe primeiro, desenhado inteiro; os outros nascem onde se separam dele
@@ -507,7 +532,7 @@ export function desenharArvore(
       return lado < 0 ? ate === entrada && de < entrada : de === entrada && ate > entrada;
     });
     if (saiReta) d = d.replace(/^M \S+ \S+ L (\S+) (\S+)/, 'M $1 $2');
-    linhas.push({ d, tipo: 'coracao', de: [...de] });
+    linhas.push({ d, tipo: sangue ? 'resumido' : 'coracao', de: [...de] });
   }
 
   return {

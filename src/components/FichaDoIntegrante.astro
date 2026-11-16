@@ -1,18 +1,20 @@
 ---
 // Formulário da ficha de um integrante. Serve para cadastrar e para editar.
 import { MESES } from '../lib/datas';
-import type { Integrante } from '../lib/servidor/repositorio';
+import { listarNucleos, type Integrante } from '../lib/servidor/repositorio';
 
 interface Props {
   integrante?: Integrante;
 }
 
 const { integrante: i } = Astro.props;
+const nucleos = i ? await listarNucleos() : [];
 const anoAtual = new Date().getFullYear();
-const temMais = Boolean(i && (i.nascimentoAno || i.falecimentoAno || i.sobre));
+const temMais = Boolean(i && (i.nascimentoAno || i.falecido || i.sobre));
+// O falecimento é uma opção: a data só aparece para quem marcou que a pessoa faleceu
 const datas = [
-  { prefixo: 'nascimento', rotulo: 'Nascimento', ano: i?.nascimentoAno, mes: i?.nascimentoMes, dia: i?.nascimentoDia },
-  { prefixo: 'falecimento', rotulo: 'Falecimento', ano: i?.falecimentoAno, mes: i?.falecimentoMes, dia: i?.falecimentoDia },
+  { prefixo: 'nascimento', rotulo: 'Nascimento', ano: i?.nascimentoAno, mes: i?.nascimentoMes, dia: i?.nascimentoDia, depende: false },
+  { prefixo: 'falecimento', rotulo: 'Falecimento', ano: i?.falecimentoAno, mes: i?.falecimentoMes, dia: i?.falecimentoDia, depende: true },
 ];
 ---
 
@@ -57,7 +59,14 @@ const datas = [
       <p class="dica">Preencha o que souber. Só o ano já basta.</p>
       {
         datas.map((d) => (
-          <div class="campo">
+          <>
+          {d.depende && (
+            <label class="marcar">
+              <input type="checkbox" name="falecido" data-revela="falecimento" checked={i?.falecido} />
+              <span>Já faleceu</span>
+            </label>
+          )}
+          <div class="campo" data-depende={d.depende ? 'falecimento' : undefined} hidden={d.depende && !i?.falecido}>
             <span>{d.rotulo}</span>
             <div class="campos-data">
               <label class="campo">
@@ -81,9 +90,11 @@ const datas = [
               </label>
             </div>
           </div>
+          </>
         ))
       }
     </fieldset>
+
 
     <fieldset>
       <legend>Sobre</legend>
@@ -93,6 +104,24 @@ const datas = [
       </label>
     </fieldset>
   </details>
+
+    {
+      i && (
+        <fieldset>
+          <legend>Família</legend>
+          <p class="dica">De que família {i.apelido ?? i.nome} é. Define a cor e o lado na árvore e quem cuida desta página. Quem acessa o site é marcado pelos administradores.</p>
+          <div class="opcoes">
+            {nucleos.map((n) => (
+              <label class="opcao">
+                <input type="checkbox" name="parenteDe" value={n.id} checked={i.nucleos.includes(n.id) || i.parenteDe.includes(n.id)} disabled={i.nucleos.includes(n.id)} />
+                <span>{n.nome}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )
+    }
+
 
   {
     !i && (
@@ -114,6 +143,17 @@ const datas = [
 
   const ficha = document.querySelector<HTMLFormElement>('[data-ficha]');
   if (ficha) ligarDatas(ficha, ['nascimento', 'falecimento'].map((p) => ({ ano: `${p}Ano`, mes: `${p}Mes`, dia: `${p}Dia` })));
+  // "Já faleceu": a data só aparece marcada, e desmarcar apaga a data
+  const falecido = ficha?.querySelector<HTMLInputElement>('[data-revela="falecimento"]');
+  const datasDoFalecimento = ficha?.querySelector<HTMLElement>('[data-depende="falecimento"]');
+  if (falecido && datasDoFalecimento) {
+    const aplicar = () => {
+      datasDoFalecimento.hidden = !falecido.checked;
+      if (!falecido.checked) for (const c of datasDoFalecimento.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) c.value = '';
+    };
+    falecido.addEventListener('change', aplicar);
+    aplicar();
+  }
   const especie = ficha?.querySelector<HTMLElement>('[data-especie]');
   for (const radio of ficha?.querySelectorAll<HTMLInputElement>('input[name="tipo"]') ?? []) {
     radio.addEventListener('change', () => {

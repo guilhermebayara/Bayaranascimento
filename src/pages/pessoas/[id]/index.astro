@@ -5,7 +5,8 @@ import { datasDeVida } from '../../../lib/datas';
 import { FASES, Familia, estaoJuntos, lacoParaODono, periodoDaFase, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
-import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
+import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
+import { nomeDoPapel } from '../../../lib/parentesco';
 
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
@@ -14,7 +15,7 @@ if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
 
 const nucleos = await listarNucleos();
 const memorias = await listarMemorias(usuario, { integrante: pessoa.id });
-const dosNucleos = pessoa.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean);
+const dosNucleos = familiasDe(pessoa).map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean);
 const resumo = [pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bicho') : '', dosNucleos.join(' e ')].filter(Boolean).join(', ');
 
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
@@ -42,7 +43,9 @@ const escolhidaPor = lacos.filter((l) => l.pessoa === pessoa.id);
 const meuLaco = paraVoce ? undefined : escolhidaPor.find((l) => l.dono === usuario.pessoa);
 // Sem filiação nem casal, a árvore a partir da pessoa seria só ela: o botão não aparece
 const temLacoDeArvore = pais.length > 0 || familia.filhos(pessoa.id).length > 0 || casais.length > 0;
-const temFamilia = grupos.length > 0 || casais.length > 0 || escolhidos.length > 0 || escolhidaPor.length > 0;
+// Parentes de fora das famílias, sem o caminho inteiro ("Caio é sobrinho do Ed")
+const resumidos = (await listarLacosResumidos()).filter((l) => l.a === pessoa.id || l.b === pessoa.id);
+const temFamilia = grupos.length > 0 || casais.length > 0 || escolhidos.length > 0 || escolhidaPor.length > 0 || resumidos.length > 0;
 
 const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok || podeMexerEmLaco(usuario, [pessoa]).ok;
 ---
@@ -94,6 +97,20 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
               ))}
             </div>
           ))}
+          {resumidos.length > 0 && (
+            <div>
+              <dt>Parentes</dt>
+              {resumidos.map((l) => {
+                const outro = l.a === pessoa.id ? l.b : l.a;
+                return (
+                  <dd>
+                    <a href={`/pessoas/${outro}`}>{nome(outro)}</a>
+                    <span>{l.a === pessoa.id ? nomeDoPapel(l.papel, achar(outro)?.tratamento ?? null) : `${chamar} é ${nomeDoPapel(l.papel, pessoa.tratamento)}`}</span>
+                  </dd>
+                );
+              })}
+            </div>
+          )}
           {escolhidos.length > 0 && (
             <div>
               <dt>Laços do coração</dt>

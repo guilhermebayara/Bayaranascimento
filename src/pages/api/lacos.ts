@@ -1,12 +1,19 @@
 // Laços de árvore: filiação (de quem alguém é filho) e casal, com suas fases.
 import type { APIRoute } from 'astro';
-import { FASES, Familia, PAPEIS, PROXIMIDADES, QUALIDADES, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
+import { FASES, FASES_JUNTOS, Familia, PAPEIS, nomeDoPapel, PROXIMIDADES, QUALIDADES, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
 import { criarSlug, slugUnico } from '../../lib/servidor/conteudo';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeMexerEmLaco } from '../../lib/servidor/permissoes';
+import { sugerirFamilias, type LacoNovo } from '../../lib/familias';
 import {
   criarIntegrante,
+  definirParentes,
+  familiasDe,
+  listarCasais,
   listarFiliacoes,
+  listarLacosResumidos,
+  removerLacoResumido,
+  salvarLacoResumido,
   listarIntegrantes,
   removerLacoDoCoracao,
   salvarLacoDoCoracao,
@@ -15,6 +22,7 @@ import {
   removerFiliacao,
   salvarCasal,
   salvarFiliacao,
+  listarNucleos,
 } from '../../lib/servidor/repositorio';
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -34,13 +42,32 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const achar = (id: string) => integrantes.find((i) => i.id === id);
   const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 
+  /**
+   * Quem entrou por um laço de árvore e ainda não tem família sai marcado como parente da família de quem
+   * está do outro lado (ver lib/familias.ts). Devolve a frase que conta isso, para quem cadastrou conferir.
+   */
+  const sugerirFamilia = async (novo: string, laco: LacoNovo): Promise<string> => {
+    const pessoa = achar(novo);
+    if (!pessoa || familiasDe(pessoa).length) return '';
+    const [filiacoes, casais] = [await listarFiliacoes(), await listarCasais(usuario)];
+    const familias = new Map(integrantes.map((i) => [i.id, familiasDe(i)]));
+    const sugeridas = sugerirFamilias({ familias, casais, filiacoes }, novo, laco);
+    if (!sugeridas.length) return '';
+    await definirParentes(novo, sugeridas);
+    const nomes = (await listarNucleos()).filter((n) => sugeridas.includes(n.id)).map((n) => n.nome);
+    const lista = nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}` : nomes[0];
+    return ` ${nome(novo)} entrou na família ${lista}. Para trocar, edite a página ${pessoa.tratamento === 'ela' ? 'dela' : pessoa.tratamento === 'ele' ? 'dele' : 'da pessoa'}.`;
+  };
+
   // Formulário "Adicionar laço": um seletor escolhe o tipo, e a outra pessoa pode
   // ser alguém da lista ou um nome novo, cadastrado na hora.
   if (acao === 'adicionar') {
     const tipoDeLaco = campo(dados, 'laco', 20);
     const sujeito = campo(dados, 'sujeito', 80);
     // Na página de outra pessoa, o laço do coração é com ela: não há "com quem" a escolher
-    const comASujeita = tipoDeLaco === 'coracao' && sujeito !== usuario.pessoa;
+    // "A família toda reconhece" é um laço da família, entre a pessoa da página e outra
+    const daFamilia = tipoDeLaco === 'coracao' && campo(dados, 'reconhece', 10) === 'familia';
+    const comASujeita = tipoDeLaco === 'coracao' && !daFamilia && sujeito !== usuario.pessoa;
     let outra = comASujeita ? sujeito : campo(dados, 'pessoa', 80);
     const nomeNovo = campo(dados, 'nomeNovo', 80);
     if (!outra && nomeNovo) {
@@ -53,7 +80,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       pendente = { id: outra, nome: nomeNovo };
       integrantes = [
         ...integrantes,
-        { id: outra, nome: nomeNovo, apelido: null, tipo: 'pessoa', especie: null, tratamento: null, nascimentoAno: null, nascimentoMes: null, nascimentoDia: null, falecimentoAno: null, falecimentoMes: null, falecimentoDia: null, sobre: null, admin: false, criadoPor: usuario.pessoa, nucleos: [] },
+        { id: outra, nome: nomeNovo, apelido: null, tipo: 'pessoa', especie: null, tratamento: null, nascimentoAno: null, nascimentoMes: null, nascimentoDia: null, falecimentoAno: null, falecimentoMes: null, falecimentoDia: null, falecido: false, sobre: null, admin: false, criadoPor: usuario.pessoa, nucleos: [], parenteDe: [] },
       ];
     }
     if (!outra) return falhar('Escolha a pessoa na lista ou escreva o nome de quem ainda não está no acervo.');
@@ -69,6 +96,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       dados.set('acao', 'casal-salvar');
       dados.set('a', sujeito);
       dados.set('b', outra);
+    } else if (tipoDeLaco === 'coracao' && daFamilia) {
+      dados.set('acao', 'coracao-familia');
+      dados.set('pessoa', outra);
+    } else if (tipoDeLaco === 'resumido') {
+      dados.set('acao', 'resumido-salvar');
+      dados.set('pessoa', outra);
     } else if (tipoDeLaco === 'coracao') {
       dados.set('acao', 'coracao-salvar');
       // O laço do coração é sempre de quem está logado
@@ -97,6 +130,68 @@ export const POST: APIRoute = async ({ request, locals }) => {
       privado: dados.get('privado') === 'on',
     });
     return voltar(request, volta, { ok: `Laço com ${nome(pessoa.id)} salvo.` });
+  }
+
+  // Laço do coração que a família toda reconhece: vira filiação de consideração e vale para os parentes também.
+  // Filho e pai são uma filiação só; irmão é filho de consideração dos pais de quem escolheu. Tio, avô, primo
+  // e sobrinho passam pela pessoa do meio, então são cadastrados na página dela (a escadinha).
+  if (acao === 'coracao-familia') {
+    const sujeito = achar(campo(dados, 'sujeito', 80));
+    const outra = achar(campo(dados, 'pessoa', 80));
+    if (!sujeito || !outra) return falhar('Escolha a pessoa.');
+    if (sujeito.id === outra.id) return falhar('O laço é entre duas pessoas diferentes.');
+    const papel = campo(dados, 'papel', 12);
+    const filiacoes = await listarFiliacoes();
+    let pares: [string, string][];
+    if (papel === 'filho') pares = [[outra.id, sujeito.id]];
+    else if (papel === 'pai') pares = [[sujeito.id, outra.id]];
+    else if (papel === 'irmao') {
+      const pais = filiacoes.filter((f) => f.filho === sujeito.id && f.qualidade !== 'consideracao').map((f) => f.responsavel);
+      if (!pais.length) return falhar(`Para ${nome(outra.id)} ser irmão de consideração de ${nome(sujeito.id)}, cadastre antes o pai ou a mãe de ${nome(sujeito.id)}. Ou escolha "Só eu".`);
+      pares = pais.map((p) => [outra.id, p]);
+    } else if (papel) {
+      return falhar('Para a família toda reconhecer um tio, avô, primo ou sobrinho, cadastre o laço pela pessoa do meio. Um tio de consideração é irmão de consideração do seu pai ou da sua mãe: abra a página dele ou dela e adicione o laço lá.');
+    } else {
+      return falhar('Escolha o lugar na árvore: filho, pai ou mãe, ou irmão.');
+    }
+    const envolvidos = [...new Set(pares.flat())].map(achar).filter((i) => i !== undefined);
+    const decisao = podeMexerEmLaco(usuario, envolvidos);
+    if (!decisao.ok) return falhar(decisao.motivo);
+    const familia = new Familia(filiacoes, []);
+    for (const [filho, responsavel] of pares) {
+      if (familia.ehAntepassado(filho, responsavel)) return falhar(`${nome(filho)} já está acima de ${nome(responsavel)} na árvore.`);
+    }
+    await cadastrarPendente();
+    for (const [filho, responsavel] of pares) await salvarFiliacao(filho, responsavel, 'consideracao', usuario);
+    const [filho, responsavel] = pares[0];
+    const aviso = filho === outra.id ? await sugerirFamilia(filho, { tipo: 'filho-de', com: responsavel }) : await sugerirFamilia(responsavel, { tipo: 'pai-de', com: filho });
+    return voltar(request, volta, { ok: `Laço salvo. A família toda vê ${nome(outra.id)} como ${nomeDoPapel(papel as Papel, outra.tratamento)} de consideração de ${nome(sujeito.id)}.${aviso}` });
+  }
+
+  // Laço resumido: o parente de alguém de fora das famílias, sem cadastrar quem fica no meio ("Caio é sobrinho
+  // do Ed"). Dentro das famílias o caminho é obrigatório, para a árvore de sangue não ficar com buracos.
+  if (acao === 'resumido-salvar') {
+    const a = achar(campo(dados, 'sujeito', 80));
+    const b = achar(campo(dados, 'pessoa', 80));
+    if (!a || !b) return falhar('Escolha a pessoa.');
+    if (a.id === b.id) return falhar('O laço é entre duas pessoas diferentes.');
+    const papel = campo(dados, 'papelResumido', 12);
+    if (!(papel in PAPEIS)) return falhar('Escolha o parentesco.');
+    const naFamilia = [a, b].find((i) => familiasDe(i).length);
+    if (naFamilia) {
+      return falhar(`${nome(naFamilia.id)} é da família, e dentro das famílias o caminho é cadastrado inteiro: o pai ou a mãe, e depois o filho. Este atalho é só para parentes de quem é de fora.`);
+    }
+    await cadastrarPendente();
+    await salvarLacoResumido(a.id, b.id, papel as Papel, usuario);
+    return voltar(request, volta, { ok: `Laço salvo: ${nome(b.id)} é ${nomeDoPapel(papel as Papel, b.tratamento)} de ${nome(a.id)}.` });
+  }
+
+  if (acao === 'resumido-remover') {
+    const laco = (await listarLacosResumidos()).find((l) => l.id === Number(campo(dados, 'id', 12)));
+    if (!laco) return falhar('Laço não encontrado.');
+    if (!usuario.admin && laco.criadoPor !== usuario.pessoa) return falhar('Só quem cadastrou este laço ou os administradores podem removê-lo.');
+    await removerLacoResumido(laco.id, usuario);
+    return voltar(request, volta, { ok: 'Laço removido.' });
   }
 
   if (acao === 'coracao-remover') {
@@ -130,7 +225,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     await cadastrarPendente();
     await salvarFiliacao(filho.id, responsavel.id, qualidade, usuario);
-    return voltar(request, volta, { ok: 'Laço salvo.' });
+    const aviso = (await sugerirFamilia(filho.id, { tipo: 'filho-de', com: responsavel.id })) || (await sugerirFamilia(responsavel.id, { tipo: 'pai-de', com: filho.id }));
+    return voltar(request, volta, { ok: `Laço salvo.${aviso}` });
   }
 
   if (acao === 'casal-salvar') {
@@ -162,6 +258,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       fases.push({ tipo: tipos[i] as TipoDeFase, inicioAno, fimAno });
     }
     if (fases.length === 0) return falhar('Informe pelo menos uma fase, como namoro ou casamento.');
+    // "Já terminou", no cadastro do casal: a relação acabou, então entra a separação depois da fase de hoje
+    if (dados.get('terminou') === 'on') {
+      const ultima = fases[fases.length - 1];
+      if (FASES_JUNTOS.includes(ultima.tipo)) fases.push({ tipo: 'separacao', inicioAno: ultima.fimAno, fimAno: null });
+    }
     if (fases.length > 12) return falhar('São fases demais para um casal só.');
     const visibilidade = campo(dados, 'visibilidade', 10) === 'privado' ? 'privado' : 'todos';
     await cadastrarPendente();
@@ -171,7 +272,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // Só acontece se uma terceira pessoa marcar como privado um par que já tem um casal privado de outros
       return falhar('Não foi possível salvar esse casal.');
     }
-    return voltar(request, volta, { ok: 'Casal salvo.' });
+    const aviso = (await sugerirFamilia(b.id, { tipo: 'casal', com: a.id })) || (await sugerirFamilia(a.id, { tipo: 'casal', com: b.id }));
+    return voltar(request, volta, { ok: `Casal salvo.${aviso}` });
   }
 
   if (acao === 'casal-remover') {

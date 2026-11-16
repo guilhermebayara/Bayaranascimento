@@ -4,7 +4,7 @@ import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeEditarIntegrante } from '../../lib/servidor/permissoes';
-import { atualizarIntegrante, criarIntegranteCompleto, listarIntegrantes, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
+import { atualizarIntegrante, criarIntegranteCompleto, definirParentes, listarIntegrantes, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
 
 function lerData(dados: FormData, prefixo: string, rotulo: string): { ano?: number; mes?: number; dia?: number; erro?: string } {
   const ano = campoNumero(dados, `${prefixo}Ano`);
@@ -30,7 +30,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const tratamentoBruto = campo(dados, 'tratamento', 5);
   const nascimento = lerData(dados, 'nascimento', 'nascimento');
   if (nascimento.erro) return voltar(request, origem, { erro: nascimento.erro });
-  const falecimento = lerData(dados, 'falecimento', 'falecimento');
+  // Sem "Já faleceu" marcado, a data de falecimento não vale (o campo some da tela)
+  const falecido = dados.get('falecido') === 'on';
+  const falecimento = falecido ? lerData(dados, 'falecimento', 'falecimento') : {};
   if (falecimento.erro) return voltar(request, origem, { erro: falecimento.erro });
   if (nascimento.ano && falecimento.ano && falecimento.ano < nascimento.ano) {
     return voltar(request, origem, { erro: 'O falecimento não pode ser antes do nascimento.' });
@@ -48,6 +50,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     falecimentoAno: falecimento.ano,
     falecimentoMes: falecimento.mes,
     falecimentoDia: falecimento.dia,
+    falecido,
     sobre: arrumarTexto(campo(dados, 'sobre', 5000)) || undefined,
   };
 
@@ -59,6 +62,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const decisao = podeEditarIntegrante(usuario, anterior, await pessoasComAcesso());
     if (!decisao.ok) return voltar(request, `/pessoas/${id}`, { erro: decisao.motivo });
     await atualizarIntegrante(anterior, ficha, usuario);
+    // Família: só as de parente. Quem é membro (acessa o site) continua como está.
+    if (dados.has('parenteDe') || anterior.parenteDe.length) {
+      const nucleos = new Set((await listarNucleos()).map((n) => n.id));
+      const escolhidas = dados.getAll('parenteDe').map(String).filter((n) => nucleos.has(n) && !anterior.nucleos.includes(n));
+      await definirParentes(id, escolhidas);
+    }
     return voltar(request, `/pessoas/${id}`, { ok: 'Página atualizada.' });
   }
 

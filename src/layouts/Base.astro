@@ -14,7 +14,7 @@ const { usuario } = Astro.locals;
 const nucleos = (await listarNucleos()).filter((n) => usuario.nucleos.includes(n.id));
 const caminho = Astro.url.pathname.replace(/\/$/, '') || '/';
 const nucleoAtual = Astro.url.searchParams.get('nucleo');
-const tituloPagina = titulo ? `${titulo} | Bayara Nascimento` : 'Bayara Nascimento, memórias da família';
+const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
 const teste = semLogin();
 const pessoasDeTeste = teste ? (await listarIntegrantes()).filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
 const aqui = Astro.url.pathname + Astro.url.search;
@@ -35,7 +35,7 @@ const recadoErro = Astro.url.searchParams.get('erro');
       <!-- Sem JavaScript: some o que só funciona com ele, e aparecem os blocos que ele mostraria conforme a escolha -->
       <style>
         [data-passo], .atalhos, [data-etapa-voltar], [data-etapa-continuar], [data-adicionar-pessoa], .botao--arquivo { display: none !important; }
-        [data-para][hidden], [data-so-epoca][hidden] { display: block !important; }
+        [data-para][hidden], [data-so-epoca][hidden], [data-depende][hidden] { display: block !important; }
       </style>
     </noscript>
   </head>
@@ -55,7 +55,7 @@ const recadoErro = Astro.url.searchParams.get('erro');
       )
     }
     <header class="miolo topo">
-      <a class="topo__nome" href="/">Bayara Nascimento</a>
+      <a class="topo__nome" href="/">Memórias Bayara e Bracarense</a>
       <nav class="topo__nav" aria-label="Seções">
         <a href="/" aria-current={caminho === '/' && !nucleoAtual ? 'page' : undefined}>Tudo</a>
         {

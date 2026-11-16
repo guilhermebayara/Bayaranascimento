@@ -1,4 +1,4 @@
-# Acervo da família Bayara Nascimento (memorias.bayara.com.br)
+# Memórias Bayara e Bracarense (memorias.bayara.com.br)
 
 Instruções para qualquer sessão de trabalho neste repositório. O site é o acervo privado de memórias da família, presente de Natal de 2026 do Gui e da Giovanna. Até o Natal é surpresa: só os dois usam e alimentam o acervo. O site é em português; o código, os comentários e as mensagens de commit também.
 

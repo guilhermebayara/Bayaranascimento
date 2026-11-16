@@ -1,0 +1,95 @@
+// Núcleo e parentes (decisão do Gui, 15/11/2026): a sugestão de família no cadastro, quem cuida de um
+// parente, e a regra de que parente nunca vê o que é restrito ao núcleo.
+import { describe, expect, it } from 'vitest';
+import { NUCLEO_INICIAL, familiaDeOrigem, sugerirFamilias, type DadosDasFamilias } from '../src/lib/familias';
+import { podeEditarIntegrante, podeMexerEmLaco, type Usuario } from '../src/lib/servidor/permissoes';
+import repositorio from '../src/lib/servidor/repositorio.ts?raw';
+import banco from '../src/lib/servidor/banco.ts?raw';
+
+const dados: DadosDasFamilias = {
+  familias: new Map([
+    ['gui', ['bayara']],
+    ['giovanna', ['bayara', 'bayara-bracarense']],
+    ['lucas-magno', ['bayara-bracarense', 'bracarense']],
+    ['elizete', ['bayara']],
+    ['aguilar', ['bayara']],
+    ['vo-vivica', ['bayara']],
+    ['ed', []],
+  ]),
+  casais: [
+    { a: 'giovanna', b: 'lucas-magno' },
+    { a: 'aguilar', b: 'elizete' },
+  ],
+  filiacoes: [
+    { filho: 'gui', responsavel: 'elizete' },
+    { filho: 'elizete', responsavel: 'vo-vivica' },
+  ],
+};
+
+describe('família de origem', () => {
+  it('é a família de quem a pessoa veio, sem a que formou com quem casou', () => {
+    expect(familiaDeOrigem(dados, 'giovanna')).toEqual(['bayara']);
+    expect(familiaDeOrigem(dados, 'lucas-magno')).toEqual(['bracarense']);
+  });
+
+  it('quando o casal é da mesma família, vale ela', () => {
+    expect(familiaDeOrigem(dados, 'elizete')).toEqual(['bayara']);
+  });
+});
+
+describe('sugestão de família no cadastro', () => {
+  it('o filho da Giovanna com o Magno é do Bayara Bracarense, o núcleo que os dois criaram', () => {
+    const comMae = { ...dados, filiacoes: [...dados.filiacoes, { filho: 'bebe', responsavel: 'giovanna' }] };
+    expect(sugerirFamilias(comMae, 'bebe', { tipo: 'filho-de', com: 'lucas-magno' })).toEqual(['bayara-bracarense']);
+  });
+
+  it('com um pai só cadastrado, vale o que ele divide com quem está casado', () => {
+    expect(sugerirFamilias(dados, 'bebe', { tipo: 'filho-de', com: 'giovanna' })).toEqual(['bayara-bracarense']);
+  });
+
+  it('quem não tem com quem dividir passa a família de origem', () => {
+    expect(sugerirFamilias(dados, 'sobrinho', { tipo: 'filho-de', com: 'gui' })).toEqual(['bayara']);
+  });
+
+  it('o avô materno, cadastrado como marido da Vó Vivica, é parente do Bayara', () => {
+    expect(sugerirFamilias(dados, 'vo-materno', { tipo: 'casal', com: 'vo-vivica' })).toEqual(['bayara']);
+  });
+
+  it('pai ou mãe do Magno é do Bracarense, e não do núcleo do casal', () => {
+    expect(sugerirFamilias(dados, 'pai-do-magno', { tipo: 'pai-de', com: 'lucas-magno' })).toEqual(['bracarense']);
+  });
+
+  it('quem se liga a alguém de fora das famílias não ganha família', () => {
+    expect(sugerirFamilias(dados, 'irmao-do-ed', { tipo: 'pai-de', com: 'ed' })).toEqual([]);
+  });
+});
+
+describe('quem cuida de um parente', () => {
+  const gui: Usuario = { pessoa: 'gui', nome: 'Gui', admin: false, nucleos: ['bayara'] };
+  const magno: Usuario = { pessoa: 'lucas-magno', nome: 'Lucas Magno', admin: false, nucleos: ['bayara-bracarense', 'bracarense'] };
+  const voMaterno = { id: 'vo-materno', nucleos: [], parenteDe: ['bayara'], criadoPor: 'giovanna' };
+
+  it('quem é do núcleo edita a página e mexe nos laços do parente', () => {
+    expect(podeEditarIntegrante(gui, voMaterno, new Set()).ok).toBe(true);
+    expect(podeMexerEmLaco(gui, [voMaterno]).ok).toBe(true);
+  });
+
+  it('quem é de outro núcleo não edita', () => {
+    expect(podeEditarIntegrante(magno, voMaterno, new Set()).ok).toBe(false);
+  });
+});
+
+describe('parente não vê o que é restrito ao núcleo', () => {
+  it('a regra de visibilidade em SQL só conta quem é membro', () => {
+    expect(repositorio).toMatch(/JOIN nucleo_membros nm ON nm\.nucleo_id = mn\.nucleo_id\s+WHERE mn\.memoria_id = m\.id AND nm\.integrante_id = \?1 AND nm\.papel = 'membro'/);
+  });
+
+  it('quem entra na sessão leva só os núcleos de que é membro', () => {
+    expect(repositorio).toContain("nucleos: daPessoa(i.id as string, 'membro')");
+  });
+
+  it('a migração deixa como membros só quem acessa o site', () => {
+    expect(NUCLEO_INICIAL).toEqual(['gui', 'giovanna', 'lucas-magno', 'elizete', 'ana-candida', 'lucio', 'regina']);
+    expect(banco).toContain("UPDATE nucleo_membros SET papel = 'parente' WHERE integrante_id NOT IN");
+  });
+});

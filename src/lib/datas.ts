@@ -44,11 +44,14 @@ interface Vida {
   falecimentoAno: number | null;
   falecimentoMes?: number | null;
   falecimentoDia?: number | null;
+  /** já faleceu, mesmo sem data conhecida */
+  falecido?: boolean;
 }
 
-/** Anos de vida para listas e para a árvore: "1942 a 2019", "1994" ou vazio. */
+/** Anos de vida para listas e para a árvore: "1942 a 2019", "1942 a ?" (faleceu, sem data), "1994" ou vazio. */
 export function anosDeVida(v: Vida): string {
   if (v.nascimentoAno && v.falecimentoAno) return `${v.nascimentoAno} a ${v.falecimentoAno}`;
+  if (v.nascimentoAno && v.falecido) return `${v.nascimentoAno} a ?`;
   if (v.nascimentoAno) return String(v.nascimentoAno);
   if (v.falecimentoAno) return `até ${v.falecimentoAno}`;
   return '';
@@ -60,6 +63,7 @@ export function datasDeVida(v: Vida): string[] {
   const data = (ano: number, mes?: number | null, dia?: number | null) => formatarData({ ano, mes: mes ?? null, dia: dia ?? null, aproximada: false });
   if (v.nascimentoAno) linhas.push(`Nascimento: ${data(v.nascimentoAno, v.nascimentoMes, v.nascimentoDia)}`);
   if (v.falecimentoAno) linhas.push(`Falecimento: ${data(v.falecimentoAno, v.falecimentoMes, v.falecimentoDia)}`);
+  else if (v.falecido) linhas.push('Falecimento: data desconhecida');
   return linhas;
 }
 

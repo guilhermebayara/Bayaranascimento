@@ -20,7 +20,10 @@ const copia: CopiaDoAcervo = {
       { nucleo_id: 'bayara-nascimento', integrante_id: 'giovanna' },
       { nucleo_id: 'bayara-bracarense', integrante_id: 'giovanna' },
       { nucleo_id: 'bayara-bracarense', integrante_id: 'lucas-magno' },
+      { nucleo_id: 'bayara-nascimento', integrante_id: 'aguilar', papel: 'parente' },
+      { nucleo_id: 'bayara-nascimento', integrante_id: 'vo-bela' },
     ],
+    lacos_resumidos: [{ a_id: 'amiga', b_id: 'cachorro', papel: 'sobrinho', criado_por: 'gui' }],
     filiacoes: [
       { filho_id: 'gui', responsavel_id: 'elizete', qualidade: 'biologica' },
       { filho_id: 'gui', responsavel_id: 'aguilar', qualidade: 'biologica' },
@@ -62,7 +65,14 @@ describe('espelho da produção para a homologação', () => {
     expect(tabela('filiacoes')).toHaveLength(7);
     expect(tabela('casais')).toHaveLength(2);
     expect(tabela('casal_fases').map((f) => f.tipo)).toEqual(['casamento', 'separacao', 'casamento']);
-    expect(tabela('nucleo_membros')).toHaveLength(4);
+    expect(tabela('nucleo_membros')).toHaveLength(6);
+    // Membro e parente continuam como na produção
+    // A Vó Bela veio de uma cópia sem papel: vira parente, como na migração 013
+    expect(tabela('nucleo_membros').filter((m) => m.papel === 'parente')).toHaveLength(2);
+    expect(tabela('nucleo_membros').filter((m) => m.papel === 'parente').every((m) => String(m.integrante_id).startsWith('pessoa-'))).toBe(true);
+    const [resumido] = tabela('lacos_resumidos');
+    expect(resumido).toMatchObject({ papel: 'sobrinho', criado_por: 'gui' });
+    expect(String(resumido.a_id)).toMatch(/^pessoa-/);
     const [laco] = tabela('lacos_coracao');
     expect(laco).toMatchObject({ dono_id: 'gui', papel: 'irmao', privado: 1, nome: 'Amiga-irmã' });
     // Gui e Giovanna continuam irmãos: os mesmos dois pais

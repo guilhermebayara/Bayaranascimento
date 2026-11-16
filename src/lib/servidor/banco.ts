@@ -5,6 +5,7 @@
 // na tabela _migracoes. Para mudar a estrutura, acrescente um item no fim da
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
+import { NUCLEO_INICIAL } from '../familias';
 import { semearAcervoDeExemplo, semearConsideracoesDeExemplo, semearExemplos, semearParentesDeExemplo } from './semente';
 
 interface Migracao {
@@ -405,6 +406,32 @@ const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS fases_do_casal ON casal_fases (casal_id, ordem)`,
     ],
   },
+  {
+    // Núcleo e parentes (decisão do Gui, 15/11/2026). O núcleo são só as pessoas que acessam o site; o resto
+    // da família é parente de um núcleo: leva a cor e o lado dele na árvore e é cuidado por quem é do núcleo,
+    // mas não vê o que é restrito ao núcleo. Na tela os dois aparecem iguais.
+    // Também: falecimento como opção (dá para saber que alguém faleceu sem saber quando) e o laço resumido,
+    // o parente de alguém de fora das famílias sem o caminho inteiro ("Caio é sobrinho do Ed").
+    id: '013-nucleo-e-parentes',
+    sql: [
+      `ALTER TABLE nucleo_membros ADD COLUMN papel TEXT NOT NULL DEFAULT 'membro' CHECK (papel IN ('membro', 'parente'))`,
+      `UPDATE nucleo_membros SET papel = 'parente' WHERE integrante_id NOT IN (${NUCLEO_INICIAL.map((id) => `'${id}'`).join(', ')})`,
+      `ALTER TABLE integrantes ADD COLUMN falecido INTEGER NOT NULL DEFAULT 0`,
+      `UPDATE integrantes SET falecido = 1 WHERE falecimento_ano IS NOT NULL`,
+      // b é <papel> de a: "Caio (b) é sobrinho do Ed (a)"
+      `CREATE TABLE IF NOT EXISTS lacos_resumidos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        a_id TEXT NOT NULL REFERENCES integrantes(id),
+        b_id TEXT NOT NULL REFERENCES integrantes(id),
+        papel TEXT NOT NULL CHECK (papel IN ('avo', 'pai', 'tio', 'irmao', 'primo', 'filho', 'sobrinho')),
+        criado_por TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (a_id, b_id),
+        CHECK (a_id <> b_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS lacos_resumidos_de_b ON lacos_resumidos (b_id)`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
@@ -447,5 +474,7 @@ async function migrar(db: D1Database): Promise<void> {
     await semearParentesDeExemplo(db);
     await semearAcervoDeExemplo(db);
     await semearConsideracoesDeExemplo(db);
+    // Os exemplos entram como membros (é o padrão da tabela), mas ninguém deles acessa o site: são parentes
+    await db.prepare(`UPDATE nucleo_membros SET papel = 'parente' WHERE papel = 'membro' AND integrante_id LIKE 'ex-%'`).run();
   }
 }

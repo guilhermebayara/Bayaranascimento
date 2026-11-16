@@ -24,8 +24,16 @@ export interface Integrante {
   sobre: string | null;
   admin: boolean;
   criadoPor: string | null;
+  /** Já faleceu, mesmo sem data conhecida */
+  falecido: boolean;
+  /** Núcleos de que é membro: quem acessa o site. Decide o que a pessoa vê. */
   nucleos: string[];
+  /** Núcleos de que é parente: a família dela no acervo, sem acesso ao que é restrito. */
+  parenteDe: string[];
 }
+
+/** Todas as famílias de uma pessoa, como membro ou parente. Na tela as duas aparecem iguais. */
+export const familiasDe = (i: Pick<Integrante, 'nucleos' | 'parenteDe'>): string[] => [...i.nucleos, ...i.parenteDe];
 
 export interface Nucleo {
   id: string;
@@ -83,7 +91,7 @@ const FILTRO_SEM_LIXEIRA = `(
     OR EXISTS (
       SELECT 1 FROM memoria_nucleos mn
       JOIN nucleo_membros nm ON nm.nucleo_id = mn.nucleo_id
-      WHERE mn.memoria_id = m.id AND nm.integrante_id = ?1
+      WHERE mn.memoria_id = m.id AND nm.integrante_id = ?1 AND nm.papel = 'membro'
     )
   ))
 )`;
@@ -96,8 +104,11 @@ const FILTRO_VISIVEL = `(m.excluida_em IS NULL AND ${FILTRO_SEM_LIXEIRA})`;
 export async function listarIntegrantes(): Promise<Integrante[]> {
   const [integrantes, membros] = await db().batch<Record<string, unknown>>([
     db().prepare('SELECT * FROM integrantes ORDER BY ordem, nome'),
-    db().prepare('SELECT nucleo_id, integrante_id FROM nucleo_membros'),
+    db().prepare('SELECT nucleo_id, integrante_id, papel FROM nucleo_membros'),
   ]);
+  const linhas = membros.results as Record<string, unknown>[];
+  const daPessoa = (id: string, papel: 'membro' | 'parente') =>
+    linhas.filter((m) => m.integrante_id === id && (m.papel ?? 'membro') === papel).map((m) => m.nucleo_id as string);
   return integrantes.results.map((i) => ({
     id: i.id as string,
     nome: i.nome as string,
@@ -114,7 +125,9 @@ export async function listarIntegrantes(): Promise<Integrante[]> {
     sobre: i.sobre as string | null,
     admin: Boolean(i.admin),
     criadoPor: (i.criado_por as string | null) ?? null,
-    nucleos: membros.results.filter((m) => m.integrante_id === i.id).map((m) => m.nucleo_id as string),
+    falecido: Boolean(i.falecido) || i.falecimento_ano != null,
+    nucleos: daPessoa(i.id as string, 'membro'),
+    parenteDe: daPessoa(i.id as string, 'parente'),
   }));
 }
 
@@ -139,6 +152,7 @@ export interface DadosDoIntegrante {
   falecimentoAno?: number;
   falecimentoMes?: number;
   falecimentoDia?: number;
+  falecido?: boolean;
   sobre?: string;
 }
 
@@ -154,6 +168,7 @@ const valoresDoIntegrante = (d: DadosDoIntegrante) => [
   d.falecimentoAno ?? null,
   d.falecimentoMes ?? null,
   d.falecimentoDia ?? null,
+  d.falecido || d.falecimentoAno ? 1 : 0,
   d.sobre ?? null,
 ];
 
@@ -161,8 +176,8 @@ export async function criarIntegranteCompleto(id: string, dados: DadosDoIntegran
   await db()
     .prepare(
       `INSERT INTO integrantes (nome, apelido, tipo, especie, tratamento, nascimento_ano, nascimento_mes, nascimento_dia,
-         falecimento_ano, falecimento_mes, falecimento_dia, sobre, id, criado_por)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         falecimento_ano, falecimento_mes, falecimento_dia, falecido, sobre, id, criado_por)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(...valoresDoIntegrante(dados), id, usuario.pessoa)
     .run();
@@ -175,9 +190,58 @@ export async function atualizarIntegrante(anterior: Integrante, dados: DadosDoIn
     db()
       .prepare(
         `UPDATE integrantes SET nome = ?, apelido = ?, tipo = ?, especie = ?, tratamento = ?, nascimento_ano = ?, nascimento_mes = ?,
-           nascimento_dia = ?, falecimento_ano = ?, falecimento_mes = ?, falecimento_dia = ?, sobre = ? WHERE id = ?`,
+           nascimento_dia = ?, falecimento_ano = ?, falecimento_mes = ?, falecimento_dia = ?, falecido = ?, sobre = ? WHERE id = ?`,
       )
       .bind(...valoresDoIntegrante(dados), anterior.id),
+  ]);
+}
+
+/**
+ * As famílias de que a pessoa é parente. Nunca mexe em quem é membro (acesso ao site é com os admins):
+ * um núcleo de que a pessoa já é membro fica de fora da lista de parente.
+ */
+export async function definirParentes(id: string, nucleos: string[]): Promise<void> {
+  await db().batch([
+    db().prepare(`DELETE FROM nucleo_membros WHERE integrante_id = ? AND papel = 'parente'`).bind(id),
+    ...[...new Set(nucleos)].map((n) =>
+      db().prepare(`INSERT OR IGNORE INTO nucleo_membros (nucleo_id, integrante_id, papel) VALUES (?, ?, 'parente')`).bind(n, id),
+    ),
+  ]);
+}
+
+// --- Laços resumidos: o parente de alguém de fora das famílias, sem o caminho inteiro ---
+
+export interface LacoResumido {
+  id: number;
+  /** b é <papel> de a */
+  a: string;
+  b: string;
+  papel: Papel;
+  criadoPor: string | null;
+}
+
+export async function listarLacosResumidos(): Promise<LacoResumido[]> {
+  const { results } = await db().prepare('SELECT id, a_id, b_id, papel, criado_por FROM lacos_resumidos ORDER BY id').all<Record<string, unknown>>();
+  return results.map((r) => ({ id: r.id as number, a: r.a_id as string, b: r.b_id as string, papel: r.papel as Papel, criadoPor: (r.criado_por as string | null) ?? null }));
+}
+
+export async function salvarLacoResumido(a: string, b: string, papel: Papel, usuario: Usuario): Promise<void> {
+  // Um par só tem um laço resumido, num sentido só: o novo substitui o anterior
+  await db().batch([
+    db().prepare('DELETE FROM lacos_resumidos WHERE (a_id = ? AND b_id = ?) OR (a_id = ? AND b_id = ?)').bind(a, b, b, a),
+    db().prepare('INSERT INTO lacos_resumidos (a_id, b_id, papel, criado_por) VALUES (?, ?, ?, ?)').bind(a, b, papel, usuario.pessoa),
+  ]);
+}
+
+export async function removerLacoResumido(id: number, usuario: Usuario): Promise<void> {
+  await db().batch([
+    db()
+      .prepare(
+        `INSERT INTO versoes (tipo, item_id, dados, autor)
+         SELECT 'laco-resumido', id, json_object('a', a_id, 'b', b_id, 'papel', papel), ? FROM lacos_resumidos WHERE id = ?`,
+      )
+      .bind(usuario.pessoa, id),
+    db().prepare('DELETE FROM lacos_resumidos WHERE id = ?').bind(id),
   ]);
 }
 

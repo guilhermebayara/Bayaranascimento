@@ -13,6 +13,7 @@
 // entram memórias de exemplo, inventadas a partir das pessoas espelhadas.
 //
 // Nada daqui vai para o repositório: o espelho é gravado direto no banco da homologação.
+import { NUCLEO_INICIAL } from './familias';
 
 type Linha = Record<string, unknown>;
 
@@ -44,6 +45,7 @@ export const TABELAS_APAGADAS = [
   'memoria_integrantes',
   'memoria_nucleos',
   'memorias',
+  'lacos_resumidos',
   'lacos_coracao',
   'casal_fases',
   'casais',
@@ -158,6 +160,7 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       tratamento,
       nascimento_ano: ano(p.nascimento_ano),
       falecimento_ano: ano(p.falecimento_ano),
+      falecido: numero(p.falecido) ?? (p.falecimento_ano != null ? 1 : 0),
       sobre: 'Pessoa do espelho da produção: o nome é inventado, os laços seguem os de uma pessoa real.',
       admin: numero(p.admin) ?? 0,
       ordem: numero(p.ordem) ?? 50,
@@ -167,7 +170,12 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
 
   const existe = (id: unknown) => typeof id === 'string' && integrantes.some((i) => i.id === id);
   const nucleoMembros = t('nucleo_membros')
-    .map((m) => ({ nucleo_id: m.nucleo_id, integrante_id: mapear(m.integrante_id) }))
+    // Cópia de antes da migração 013, sem papel: vale a mesma regra da migração (só quem acessa é membro)
+    .map((m) => ({
+      nucleo_id: m.nucleo_id,
+      integrante_id: mapear(m.integrante_id),
+      papel: m.papel === 'parente' || (m.papel === undefined && !NUCLEO_INICIAL.includes(String(m.integrante_id))) ? 'parente' : 'membro',
+    }))
     .filter((m) => existe(m.integrante_id));
   const filiacoes = t('filiacoes')
     .map((f) => ({ filho_id: mapear(f.filho_id), responsavel_id: mapear(f.responsavel_id), qualidade: f.qualidade ?? 'biologica', criado_por: mapear(f.criado_por) }))
@@ -204,6 +212,10 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
     })
     .filter((l): l is NonNullable<typeof l> => l !== null);
 
+  const resumidos = t('lacos_resumidos')
+    .map((r) => ({ a_id: mapear(r.a_id), b_id: mapear(r.b_id), papel: r.papel, criado_por: mapear(r.criado_por) }))
+    .filter((r) => existe(r.a_id) && existe(r.b_id));
+
   // --- Memórias de exemplo, inventadas a partir das pessoas espelhadas ---
   const memorias: Linha[] = [];
   const memoriaIntegrantes: Linha[] = [];
@@ -212,7 +224,7 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
   const nomeDe = new Map(integrantes.map((i) => [String(i.id), String(i.nome)]));
   const nascimentoDe = new Map(integrantes.map((i) => [String(i.id), numero(i.nascimento_ano)]));
   const comAcesso = IDS_MANTIDOS.filter((id) => existe(id));
-  const nucleosDe = (id: string) => nucleoMembros.filter((m) => m.integrante_id === id).map((m) => String(m.nucleo_id));
+  const nucleosDe = (id: string) => nucleoMembros.filter((m) => m.integrante_id === id && m.papel === 'membro').map((m) => String(m.nucleo_id));
   const filhosDe = (ids: unknown[]) => filiacoes.filter((f) => ids.includes(f.responsavel_id) && f.qualidade !== 'consideracao').map((f) => String(f.filho_id));
   const pessoas = integrantes.filter((i) => i.tipo === 'pessoa').map((i) => String(i.id));
   const quando = (dias: number) => new Date(agora.getTime() - dias * 86_400_000).toISOString().replace('T', ' ').slice(0, 19);
@@ -308,6 +320,7 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       ['casais', casais],
       ['casal_fases', casalFases],
       ['lacos_coracao', lacos],
+      ['lacos_resumidos', resumidos],
       ['memorias', memorias],
       ['memoria_nucleos', memoriaNucleos],
       ['memoria_integrantes', memoriaIntegrantes],

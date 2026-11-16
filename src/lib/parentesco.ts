@@ -43,7 +43,7 @@ export const FASES: Record<TipoDeFase, string> = {
   amizade: 'Amizade',
 };
 
-const FASES_JUNTOS: TipoDeFase[] = ['namoro', 'noivado', 'casamento', 'uniao'];
+export const FASES_JUNTOS: TipoDeFase[] = ['namoro', 'noivado', 'casamento', 'uniao'];
 
 export function faseAtual(casal: Casal): Fase | undefined {
   return casal.fases[casal.fases.length - 1];
@@ -349,6 +349,12 @@ export const PAPEIS: Record<Papel, string> = {
   sobrinho: 'sobrinho ou sobrinha',
   filho: 'filho ou filha',
 };
+
+/** O papel no masculino ou no feminino: "sobrinho" ou "sobrinha". Sem tratamento, os dois ("sobrinho ou sobrinha"). */
+export function nomeDoPapel(papel: Papel, tratamento: Tratamento): string {
+  const [dele, dela] = PAPEIS[papel].split(' ou ');
+  return tratamento === 'ela' ? dela : tratamento === 'ele' ? dele : PAPEIS[papel];
+}
 
 export const PROXIMIDADES: Record<number, string> = { 1: 'Muito próximo', 2: 'Próximo', 3: 'Conhecido' };
 

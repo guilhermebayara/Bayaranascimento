@@ -90,7 +90,7 @@ for (const [nomeDosDados, dados] of [['prévia', base], ['prévia com o tio do e
 describe('linhas que contornam as caixas', () => {
   it.each(casos)('nenhuma linha de coração ou de consideração passa por cima de alguém (%s)', (_, dados, e) => {
     const { desenho } = montarDesenho(dados, e);
-    for (const l of desenho.linhas.filter((x) => x.tipo === 'coracao' || x.tipo === 'consideracao')) {
+    for (const l of desenho.linhas.filter((x) => x.tipo === 'coracao' || x.tipo === 'consideracao' || x.tipo === 'resumido')) {
       for (const t of trechos(l.d).todos) for (const p of desenho.pessoas) expect(atravessa(t, p), `${l.de.join('/')} por cima de ${p.id}`).toBe(false);
     }
   });
@@ -102,7 +102,8 @@ describe('linhas que contornam as caixas', () => {
       if (!tracejada(a.l)) continue;
       for (const [j, b] of todas.entries()) {
         // A consideração pode se unir à linha dos filhos antes de chegar (o Gui e o Chico): é a regra das linhas que se unem
-        if (a.l.tipo === 'consideracao' && b.l.tipo === 'filhos') continue;
+        // A linha até um bicho é a dos filhos com traço próprio, e vale a mesma regra
+        if (a.l.tipo === 'consideracao' && (b.l.tipo === 'filhos' || b.l.tipo === 'bicho')) continue;
         for (const [p, ta] of a.retos.entries()) {
           for (const [q, tb] of b.retos.entries()) {
             if (i === j && q <= p) continue;
