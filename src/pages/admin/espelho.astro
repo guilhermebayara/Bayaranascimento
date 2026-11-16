@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Abertura from '../../components/Abertura.astro';
 import { podeEspelhar } from '../../lib/servidor/espelho';
 
 const { usuario } = Astro.locals;
@@ -7,13 +8,12 @@ if (!usuario.admin || !podeEspelhar()) return new Response('Página não encontr
 ---
 
 <Base titulo="Espelho da produção">
-  <div class="abertura abertura--curta">
-    <h1>Espelho da produção</h1>
+  <Abertura titulo="Espelho da produção">
     <p>
       A homologação usa a mesma estrutura de família da produção, com nomes e memórias inventados. Assim dá para ver se a árvore aguenta a
       nossa família antes de publicar.
     </p>
-  </div>
+  </Abertura>
 
   <section class="painel">
     <h2>Refazer o espelho</h2>

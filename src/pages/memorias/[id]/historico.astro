@@ -1,6 +1,7 @@
 ---
 // O que já mudou numa memória, com a opção de voltar atrás.
 import Base from '../../../layouts/Base.astro';
+import Abertura from '../../../components/Abertura.astro';
 import { formatarData, formatarMomento } from '../../../lib/datas';
 import { podeEditarMemoria, podeVerVersao } from '../../../lib/servidor/permissoes';
 import { listarFotosRemovidas, listarIntegrantes, listarRelatos, listarVersoes, obterMemoria, type Memoria, type Relato } from '../../../lib/servidor/repositorio';
@@ -43,10 +44,9 @@ const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0
 ---
 
 <Base titulo={`Histórico de ${memoria.titulo}`}>
-  <div class="abertura abertura--curta">
-    <h1>Histórico</h1>
+  <Abertura titulo="Histórico">
     <p><a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a></p>
-  </div>
+  </Abertura>
 
   {vazio && <p class="vazio">Esta memória nunca foi alterada desde que foi registrada.</p>}
 

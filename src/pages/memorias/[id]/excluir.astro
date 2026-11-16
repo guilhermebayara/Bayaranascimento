@@ -1,6 +1,7 @@
 ---
 // Excluir é uma ação séria: esta página existe para a pessoa confirmar antes.
 import Base from '../../../layouts/Base.astro';
+import Abertura from '../../../components/Abertura.astro';
 import { formatarData } from '../../../lib/datas';
 import { podeExcluirMemoria } from '../../../lib/servidor/permissoes';
 import { outrosAdmins } from '../../../lib/servidor/conteudo';
@@ -20,9 +21,9 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 ---
 
 <Base titulo={titulo}>
-  <div class="abertura abertura--curta">
-    <h1>{titulo}</h1>
-  </div>
+  <Abertura titulo={titulo}>
+
+  </Abertura>
   <section class="alerta">
     <h2>{memoria.titulo}</h2>
     <p>{formatarData(memoria)}</p>

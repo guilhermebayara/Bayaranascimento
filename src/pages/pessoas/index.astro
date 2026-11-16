@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Abertura from '../../components/Abertura.astro';
 import { familiasDe, listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -15,11 +16,10 @@ const grupos = [
 ---
 
 <Base titulo="Pessoas">
-  <div class="abertura abertura--curta">
-    <h1>Pessoas</h1>
+  <Abertura titulo="Pessoas">
     <p>Quem aparece nas memórias da família, por núcleo.</p>
     <p class="acoes"><a class="botao botao--leve" href="/pessoas/nova">Cadastrar pessoa</a> <a class="botao botao--leve" href="/arvore">Ver a árvore</a></p>
-  </div>
+  </Abertura>
   {
     grupos.map((grupo) => (
       <section class="grupo">

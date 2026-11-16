@@ -1,6 +1,8 @@
 ---
 import { comArtigo } from '../lib/servidor/conteudo';
 import Base from '../layouts/Base.astro';
+import Abertura from '../components/Abertura.astro';
+import CampoAno from '../components/CampoAno.astro';
 import { TIPO_OUTRO, TIPO_PADRAO } from '../lib/tipos';
 import { MESES } from '../lib/datas';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
@@ -35,15 +37,13 @@ const meuRelato = doRascunho.find((r) => r.por === usuario.pessoa) ?? doRascunho
 const capitulosReunidos = (await listarCapitulos(usuario)).filter((c) => c.modo === 'reunido');
 const todosOsTemas = await listarTemasVisiveis(usuario);
 const temasDaMemoria = (memoria?.temas ?? []).map((id) => todosOsTemas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
-const anoAtual = new Date().getFullYear();
 // "Hoje" no horário de Brasília, para o limite do calendário
 const hojeIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'Continuar rascunho';
 ---
 
 <Base titulo={titulo}>
-  <div class="abertura abertura--curta">
-    <h1>{titulo}</h1>
+  <Abertura titulo={titulo}>
     <p>
       {
         publicada
@@ -51,7 +51,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           : `Olá, ${usuario.nome}. Conte o que aconteceu, do seu jeito. Só o título e o ano são obrigatórios, e dá para salvar como rascunho a qualquer momento.`
       }
     </p>
-  </div>
+  </Abertura>
 
   <form class="formulario" method="post" action="/api/memorias" data-formulario-memoria data-id={memoria?.id ?? ''} novalidate>
     {memoria && <input type="hidden" name="id" value={memoria.id} />}
@@ -86,13 +86,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       <legend>Quando foi?</legend>
       <div class="campo">
         <label for="campo-ano">Ano</label>
-        <div class="passo-ano" data-ano>
-          <button type="button" data-passo="-10" aria-label="Dez anos antes">−10</button>
-          <button type="button" data-passo="-1" aria-label="Um ano antes">−1</button>
-          <input id="campo-ano" type="number" name="ano" required inputmode="numeric" min="1800" max={anoAtual} value={memoria?.ano ?? ''} placeholder="Ano" />
-          <button type="button" data-passo="1" aria-label="Um ano depois">+1</button>
-          <button type="button" data-passo="10" aria-label="Dez anos depois">+10</button>
-        </div>
+        <CampoAno id="campo-ano" nome="ano" valor={memoria?.ano} obrigatorio />
       </div>
       <div class="campos-data campos-data--dois">
         <label class="campo">

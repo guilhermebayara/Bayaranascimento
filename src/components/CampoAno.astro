@@ -1,0 +1,24 @@
+---
+// Campo de ano com os botões −10, −1, +1 e +10 (src/lib/cliente/datas.ts e a página
+// de cada formulário dão vida a eles). Sem JavaScript, os botões somem e fica o campo.
+// O que vier no slot entra na mesma linha, depois do +10 (o mês do capítulo, por exemplo).
+interface Props {
+  id: string;
+  nome: string;
+  valor?: number | null;
+  obrigatorio?: boolean;
+  obrigatorioNaEpoca?: boolean;
+}
+
+const { id, nome, valor, obrigatorio = false, obrigatorioNaEpoca = false } = Astro.props;
+const anoAtual = new Date().getFullYear();
+---
+
+<div class="passo-ano" data-ano>
+  <button type="button" data-passo="-10" aria-label="Dez anos antes">−10</button>
+  <button type="button" data-passo="-1" aria-label="Um ano antes">−1</button>
+  <input id={id} type="number" name={nome} required={obrigatorio} inputmode="numeric" min="1800" max={anoAtual} value={valor ?? ''} placeholder="Ano" data-obrigatorio-na-epoca={obrigatorioNaEpoca ? '' : undefined} />
+  <button type="button" data-passo="1" aria-label="Um ano depois">+1</button>
+  <button type="button" data-passo="10" aria-label="Dez anos depois">+10</button>
+  <slot />
+</div>

@@ -1,5 +1,6 @@
 ---
 // Formulário de capítulo, em etapas. Serve para criar e para editar.
+import CampoAno from './CampoAno.astro';
 import { comArtigo } from '../lib/servidor/conteudo';
 import { MESES } from '../lib/datas';
 import type { Capitulo } from '../lib/capitulos';
@@ -21,7 +22,6 @@ const travaQuemVe = Boolean(c) && c!.criadoPor !== usuario.pessoa;
 const quemCriou = travaQuemVe ? (await listarIntegrantes()).find((i) => i.id === c!.criadoPor) : undefined;
 const temas = await listarTemasVisiveis(usuario);
 const temasDoCapitulo = (c?.temas ?? []).map((id) => temas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
-const anoAtual = new Date().getFullYear();
 const modo = c?.modo ?? 'reunido';
 const datas = [
   { prefixo: 'inicio', rotulo: 'Começou em', mes: 'Mês em que começou', data: c?.inicio, obrigatorio: true },
@@ -66,17 +66,12 @@ const datas = [
               <label for={`campo-${d.prefixo}`}>
                 {d.rotulo} {!d.obrigatorio && <small>(deixe vazio se ainda não acabou)</small>}
               </label>
-              <div class="passo-ano" data-ano>
-                <button type="button" data-passo="-10" aria-label="Dez anos antes">−10</button>
-                <button type="button" data-passo="-1" aria-label="Um ano antes">−1</button>
-                <input id={`campo-${d.prefixo}`} type="number" name={`${d.prefixo}Ano`} inputmode="numeric" min="1800" max={anoAtual} value={d.data?.ano ?? ''} placeholder="Ano" data-obrigatorio-na-epoca={d.obrigatorio ? '' : undefined} />
-                <button type="button" data-passo="1" aria-label="Um ano depois">+1</button>
-                <button type="button" data-passo="10" aria-label="Dez anos depois">+10</button>
+              <CampoAno id={`campo-${d.prefixo}`} nome={`${d.prefixo}Ano`} valor={d.data?.ano} obrigatorioNaEpoca={d.obrigatorio}>
                 <select name={`${d.prefixo}Mes`} aria-label={d.mes}>
                   <option value="">Mês, se souber</option>
                   {MESES.map((m, n) => <option value={n + 1} selected={d.data?.mes === n + 1}>{m}</option>)}
                 </select>
-              </div>
+              </CampoAno>
             </div>
           ))
         }

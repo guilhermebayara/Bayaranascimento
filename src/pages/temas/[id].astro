@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Abertura from '../../components/Abertura.astro';
 import LinhaDoTempo from '../../components/LinhaDoTempo.astro';
 import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemasVisiveis } from '../../lib/servidor/repositorio';
 
@@ -11,11 +12,10 @@ const memorias = await listarMemorias(usuario, { tema: tema.id });
 ---
 
 <Base titulo={tema.nome}>
-  <div class="abertura abertura--curta">
-    <p class="memoria__etiquetas"><span class="selo">Tema</span></p>
-    <h1>{tema.nome}</h1>
+  <Abertura titulo={tema.nome}>
+    <p class="memoria__etiquetas" slot="antes"><span class="selo">Tema</span></p>
     <p><a href="/capitulos">Todos os capítulos e temas</a></p>
-  </div>
+  </Abertura>
   {
     capitulos.length > 0 && (
       <section class="familia">
