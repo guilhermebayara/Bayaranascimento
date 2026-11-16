@@ -55,11 +55,12 @@ export function podeEditarMemoria(usuario: Usuario, m: AcessoDaMemoria): Decisao
  * Ao restringir uma memória a núcleos, pelo menos um deles precisa ser de quem
  * está salvando. Senão a pessoa esconderia a memória de si mesma.
  */
-export function validarVisibilidade(usuario: Usuario, visibilidade: 'todos' | 'nucleos', nucleos: string[]): Decisao {
+export function validarVisibilidade(usuario: Usuario, visibilidade: 'todos' | 'nucleos', nucleos: string[], doQue: 'memoria' | 'capitulo' = 'memoria'): Decisao {
   if (visibilidade === 'todos') return sim;
-  if (nucleos.length === 0) return nao('Escolha pelo menos um núcleo que pode ver a memória.');
+  const [o, um] = doQue === 'capitulo' ? ['o capítulo', 'um capítulo'] : ['a memória', 'uma memória'];
+  if (nucleos.length === 0) return nao(`Escolha pelo menos um núcleo que pode ver ${o}.`);
   if (!nucleos.some((n) => usuario.nucleos.includes(n))) {
-    return nao('Você só pode restringir uma memória a núcleos de que faz parte.');
+    return nao(`Você só pode restringir ${um} a núcleos de que faz parte.`);
   }
   return sim;
 }

@@ -126,6 +126,17 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 - Edita o capítulo quem criou e quem tem memórias nele. Excluir é com os admins e manda para a lixeira; as memórias continuam no acervo.
 - Ficou para depois: capítulo ligado a uma fase de casal ou a pessoas, recorte de época por núcleo ou pessoa, foto de capa escolhida e os capítulos como faixas na linha do tempo (depende do visual).
 
+## Decidido em 15/11, a construir depois do QA
+
+Decisões do Gui que ainda não estão no código. Não são defeitos: o site ainda funciona do jeito antigo nesses pontos.
+
+- **Núcleo e parentes.** O núcleo são só as pessoas que acessam o site: Gui, Giovanna, Lucas Magno, Elizete, Ana Candida, Lúcio e Regina. O resto da família são parentes de um núcleo: levam a cor e o lado dele na árvore, e quem é do núcleo edita a página deles e mexe nos laços deles. Na tela os dois aparecem iguais; a diferença fica no banco. Aguilar, Vó Bela, Vó Vivica e o Chico passam de membros para parentes. Hoje ninguém cadastrado pelo site entra em núcleo nenhum, e por isso aparece com a cor de quem é de fora (o avô materno do Gui foi o primeiro caso real).
+- **Sugestão de família no cadastro.** Ao cadastrar alguém como marido, filho ou pai de uma pessoa, o site já marca a família dela, e quem cadastra confirma ou troca. Se o pai e a mãe dividem um núcleo, o filho vai para ele (filho da Giovanna com o Lucas Magno é Bayara Bracarense); se não dividem, vêm as famílias de cada um. Vale para bichos. Ninguém vira membro de núcleo por esse caminho: acesso continua com os admins.
+- **Laço do coração com "quem reconhece".** A filiação de consideração e o laço do coração viram um formulário só, com a pergunta "só eu" ou "a família toda reconhece". O segundo grava uma filiação de consideração e segue as permissões dos laços de árvore. "De consideração" fica para o que a família reconhece; o laço pessoal é dito pelo papel ("amigo-irmão", "como uma mãe").
+- **Laço resumido.** Fora das famílias, entre pessoas do coração e os parentes delas, vale um laço de sangue sem o caminho completo ("Caio é sobrinho do Ed"), com os papéis do "como se fosse". É recusado quando uma das pessoas é de um núcleo ou parente de um. Pela escadinha, o Caio passa pelo Ed e aparece no ramo dele. Se o caminho completo for cadastrado depois, o site oferece a troca.
+- **Bichos.** Continuam como filhos e netos, porque é assim que as duas famílias os tratam. A diferença vem do tipo: o rótulo segue "filho", e o cartão e a linha na árvore ganham uma marca própria, provisória até o visual.
+- **Áudios nos relatos.** Um relato pode ter vários áudios, em ordem, e uma transcrição opcional. A página da pessoa reúne os áudios em que ela fala. Os primeiros são os 12 áudios da Vó Bela, em `2_Material para o acervo/Áudios Vó` no Drive do Gui. A transcrição automática precisa rodar fora deste ambiente, que não baixa os modelos.
+
 ## Em aberto
 
 - Histórico de integrantes e laços no site (as versões já são guardadas) e apagar de vez o que está na lixeira
