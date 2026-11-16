@@ -48,6 +48,7 @@ Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso 
 | Capítulo | Abertura de capítulo de livro: título, período, marcos numerados | Edição |
 | Árvore | As famílias em cor, cartões como etiquetas com nome e parentesco | Camadas e controles |
 | Formulários | Uma pergunta por tela, grande, em serifa, como quem conversa | A trilha das etapas |
+| Sua conta | O retrato e o nome da pessoa no alto, e as coisas dela em ordem: dados, rascunhos, o que criou, laços | A administração, no fim, só para quem administra |
 | Rascunhos, lixeira, administração | Utilitário e silencioso | Tudo |
 
 ### O nível de qualidade
