@@ -41,7 +41,7 @@ const Pedido = z.object({
   tipoOutro: opcional(40),
   // ids de integrantes que já existem, ou "nova:0", "nova:1"... apontando para novasPessoas
   pessoas: z.array(z.string().max(80)).max(60).default([]),
-  novasPessoas: z.array(z.object({ nome: z.string().trim().min(1).max(80) })).max(20).default([]),
+  novasPessoas: z.array(z.object({ nome: z.string().trim().min(1).max(80), tratamento: z.enum(['ela', 'ele']).nullable().optional() })).max(20).default([]),
   lugar: opcional(120),
   nucleos: z.array(z.string().max(80)).max(20).default([]),
   visibilidade: z.enum(['todos', 'nucleos']).default('todos'),
@@ -159,7 +159,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
       continue;
     }
     const id = slugUnico(base, idsIntegrantes);
-    await criarIntegrante(id, nova.nome, usuario.pessoa);
+    await criarIntegrante(id, nova.nome, usuario.pessoa, nova.tratamento ?? null);
     idsIntegrantes.add(id);
     idsNovas.push(id);
   }

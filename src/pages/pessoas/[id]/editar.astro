@@ -5,6 +5,7 @@ import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
 import ConfirmarRemocao from '../../../components/ConfirmarRemocao.astro';
 import CampoAno from '../../../components/CampoAno.astro';
 import Opcoes from '../../../components/Opcoes.astro';
+import ComoSeReferir from '../../../components/ComoSeReferir.astro';
 import CampoData from '../../../components/CampoData.astro';
 import { formatarData } from '../../../lib/datas';
 import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
@@ -72,16 +73,49 @@ const papeis = Object.entries(PAPEIS) as [Papel, string][];
 const proximidades: [string, string][] = [['', 'Não dizer'], ...Object.entries(PROXIMIDADES)];
 const tratamentoDe = (id: string) => integrantes.find((i) => i.id === id)?.tratamento ?? null;
 const temLacos = pais.length + filhos.length + casais.length + resumidos.length + meusLacos.length > 0;
-// Cadastro guiado (pedido do Gui, 16/11/2026): depois da ficha, perguntas em sequência, uma por tela.
-// Bicho só tem a pergunta da família dele. "outro" abre o formulário completo, com todos os tipos de laço.
-const PASSOS = pessoa.tipo === 'bicho' ? (['pais'] as const) : (['pais', 'casal', 'filhos'] as const);
-type Passo = (typeof PASSOS)[number] | 'fim' | 'outro';
-const passoPedido = Astro.url.searchParams.get('passo') as Passo | null;
-const passo: Passo = passoPedido && ([...PASSOS, 'fim', 'outro'] as string[]).includes(passoPedido) ? passoPedido : PASSOS[0];
+// Cadastro guiado (pedidos do Gui, 16/11/2026): depois da ficha, a primeira pergunta é se a pessoa é
+// da família ou do coração, e cada caminho tem as perguntas que fazem sentido para ele, uma por tela.
+// Da família: pais, casal, filhos. Do coração: o laço com quem está cadastrando, o casal, parentes que
+// estão no acervo (amigos quase nunca têm os pais cadastrados). Bicho vai direto para a família dele.
+// "outro" é o modo completo, com todos os tipos de laço; quem prefere pode deixar sempre assim (cookie).
+const COOKIE_COMPLETO = 'lacos-completos';
+const modoPedido = Astro.url.searchParams.get('modo');
+if (modoPedido === 'sempre') Astro.cookies.set(COOKIE_COMPLETO, '1', { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: true });
+if (modoPedido === 'guiado') Astro.cookies.delete(COOKIE_COMPLETO, { path: '/' });
+const sempreCompleto = modoPedido === 'sempre' || (modoPedido !== 'guiado' && Astro.cookies.get(COOKIE_COMPLETO)?.value === '1');
+type Ramo = 'familia' | 'coracao';
+const RAMOS: Record<Ramo, readonly string[]> = {
+  familia: pessoa.tipo === 'bicho' ? ['pais'] : ['pais', 'casal', 'filhos'],
+  coracao: ['coracao', 'casal', 'parentes'],
+};
+const passoPedido = Astro.url.searchParams.get('passo');
+const ramoPedido = Astro.url.searchParams.get('ramo');
+const passo: string =
+  passoPedido && ['inicio', 'pais', 'casal', 'filhos', 'coracao', 'parentes', 'fim', 'outro'].includes(passoPedido)
+    ? passoPedido
+    : sempreCompleto
+      ? 'outro'
+      : pessoa.tipo === 'bicho'
+        ? 'pais'
+        : 'inicio';
+const ramo: Ramo = passo === 'coracao' || passo === 'parentes' ? 'coracao' : passo === 'pais' || passo === 'filhos' ? 'familia' : ramoPedido === 'coracao' ? 'coracao' : 'familia';
+const PASSOS = RAMOS[ramo];
 const guiado = recemCadastrada && podeLacos && passo !== 'outro';
-const enderecoDoPasso = (p: Passo) => `/pessoas/${pessoa.id}/editar?novo=1&passo=${p}`;
-const proximoPasso = (p: Passo): Passo => (PASSOS as readonly string[]).indexOf(p) + 1 < PASSOS.length ? PASSOS[(PASSOS as readonly string[]).indexOf(p) + 1] : 'fim';
-const NOMES_DOS_PASSOS: Record<string, string> = { pais: pessoa.tipo === 'bicho' ? 'Família' : 'Pais', casal: 'Casal', filhos: 'Filhos', fim: 'Pronto' };
+const enderecoDoPasso = (p: string, r: Ramo = ramo) => `/pessoas/${pessoa.id}/editar?novo=1&passo=${p}&ramo=${r}`;
+const proximoPasso = (p: string): string => (PASSOS.indexOf(p) + 1 < PASSOS.length ? PASSOS[PASSOS.indexOf(p) + 1] : 'fim');
+const passoAnterior = (p: string): string | undefined => (PASSOS.indexOf(p) > 0 ? PASSOS[PASSOS.indexOf(p) - 1] : pessoa.tipo === 'bicho' ? undefined : 'inicio');
+const NOMES_DOS_PASSOS: Record<string, string> = {
+  inicio: 'Ligação',
+  perguntas: 'Perguntas',
+  pais: pessoa.tipo === 'bicho' ? 'Família' : 'Pais',
+  casal: 'Casal',
+  filhos: 'Filhos',
+  coracao: 'Laço',
+  parentes: 'Parentes',
+  fim: 'Pronto',
+};
+// Antes de escolher o caminho, a trilha não promete perguntas que talvez nem venham
+const TRILHA = pessoa.tipo === 'bicho' ? [...PASSOS, 'fim'] : passo === 'inicio' ? ['inicio', 'perguntas', 'fim'] : ['inicio', ...PASSOS, 'fim'];
 const PERGUNTAS: Record<string, { titulo: string; dica: string; laco: string; rotulo: string }> = {
   pais: {
     titulo: pessoa.tipo === 'bicho' ? `Quem é a família de ${chamar}?` : `Quem são os pais de ${chamar}?`,
@@ -91,15 +125,26 @@ const PERGUNTAS: Record<string, { titulo: string; dica: string; laco: string; ro
   },
   casal: { titulo: `${chamar} tem ou teve um casal?`, dica: 'Namoro, casamento, união, e também quem já se separou.', laco: 'casal', rotulo: 'Com quem' },
   filhos: { titulo: `${chamar} tem filhos?`, dica: 'Bichos da família também entram aqui.', laco: 'pai-de', rotulo: 'Filho ou filha' },
+  coracao: { titulo: `O que ${chamar} é para você?`, dica: 'Do jeito que você chama: amiga, padrinho, vó de coração.', laco: 'coracao', rotulo: '' },
+  parentes: {
+    titulo: `Alguém da família de ${chamar} está no acervo?`,
+    dica: `Um filho, um sobrinho, a mãe. Dá para dizer o parentesco sem cadastrar quem fica no meio.`,
+    laco: 'resumido',
+    rotulo: 'Quem',
+  },
 };
-const jaNoPasso = (p: Passo): { nome: string; texto: string }[] =>
+const jaNoPasso = (p: string): { nome: string; texto: string }[] =>
   p === 'pais'
     ? pais.map((x) => ({ nome: nome(x.responsavel), texto: nomeDoPapel('pai', tratamentoDe(x.responsavel)) }))
     : p === 'casal'
       ? casais.map((c) => ({ nome: nome(c.outro), texto: FASES[c.casal.fases[c.casal.fases.length - 1]?.tipo ?? 'namoro'].toLowerCase() }))
       : p === 'filhos'
         ? filhos.map((f) => ({ nome: nome(f.filho), texto: nomeDoPapel('filho', tratamentoDe(f.filho)) }))
-        : [];
+        : p === 'coracao'
+          ? meusLacos.filter((l) => l.pessoa === pessoa.id).map((l) => ({ nome: 'Você', texto: l.nome }))
+          : p === 'parentes'
+            ? resumidos.map((l) => ({ nome: nome(l.a === pessoa.id ? l.b : l.a), texto: l.a === pessoa.id ? `${nomeDoPapel(l.papel, tratamentoDe(l.b))} de ${chamar}` : `${chamar} é ${nomeDoPapel(l.papel, pessoa.tratamento)}` }))
+            : [];
 const volta = guiado ? `${enderecoDoPasso(passo)}#guia` : `/pessoas/${pessoa.id}/editar${recemCadastrada ? '?novo=1&passo=outro' : ''}#lacos`;
 // "De consideração" saiu daqui: agora é o laço do coração que a família toda reconhece
 const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(([id]) => id !== 'consideracao');
@@ -117,17 +162,14 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
       <ol class="etapas etapas--fluxo" aria-label="Etapas">
         <li><span data-feita="true"><b>1</b><span>Quem é</span></span></li>
         {guiado ? (
-          [...PASSOS, 'fim' as const].map((p, n) => {
-            const ordem = [...PASSOS, 'fim'].indexOf(passo);
-            return (
-              <li>
-                <span aria-current={p === passo ? 'step' : undefined} data-feita={String(n < ordem)}>
-                  <b>{n + 2}</b>
-                  <span>{NOMES_DOS_PASSOS[p]}</span>
-                </span>
-              </li>
-            );
-          })
+          TRILHA.map((p, n) => (
+            <li>
+              <span aria-current={p === passo ? 'step' : undefined} data-feita={String(n < TRILHA.indexOf(passo))}>
+                <b>{n + 2}</b>
+                <span>{NOMES_DOS_PASSOS[p]}</span>
+              </span>
+            </li>
+          ))
         ) : (
           <li><span aria-current="step"><b>2</b><span>Laços</span></span></li>
         )}
@@ -163,7 +205,33 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
   }
 
   {
-    guiado && passo !== 'fim' && (
+    guiado && passo === 'inicio' && (
+      <section class="painel guia" id="guia">
+        <h2>Como {chamar} se liga a vocês?</h2>
+        <p class="dica">Escolha o caminho, e as perguntas seguintes são só as que fazem sentido para ele.</p>
+        <ul class="escolhas">
+          <li>
+            <a class="escolha" href={enderecoDoPasso('pais', 'familia')}>
+              <strong>Da família</strong>
+              <span>Parente de sangue, por adoção ou por casamento. Vamos perguntar pais, casal e filhos.</span>
+            </a>
+          </li>
+          <li>
+            <a class="escolha" href={enderecoDoPasso('coracao', 'coracao')}>
+              <strong>Do coração</strong>
+              <span>Amigo, padrinho, alguém que é como da família. Vamos perguntar o que {chamar} é para você.</span>
+            </a>
+          </li>
+        </ul>
+        <p class="guia__completo">
+          Prefere ver todos os tipos de laço de uma vez? <a href={`/pessoas/${pessoa.id}/editar?novo=1&passo=outro`}>Ver todos os tipos de laço</a>
+        </p>
+      </section>
+    )
+  }
+
+  {
+    guiado && passo !== 'fim' && passo !== 'inicio' && (
       <section class="painel guia" id="guia">
         <h2>{PERGUNTAS[passo].titulo}</h2>
         <p class="dica">{PERGUNTAS[passo].dica}</p>
@@ -179,12 +247,17 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
             ))}
           </ul>
         )}
+        {passo === 'parentes' && !deFora ? (
+          <p class="dica">{chamar} já é de uma das famílias, e dentro delas o caminho é cadastrado inteiro, pelos pais e filhos. Siga para a próxima pergunta.</p>
+        ) : (
         <form method="post" action="/api/lacos" class="casal guia__form">
           <input type="hidden" name="acao" value="adicionar" />
           <input type="hidden" name="volta" value={volta} />
           <input type="hidden" name="sujeito" value={pessoa.id} />
           <input type="hidden" name="laco" value={PERGUNTAS[passo].laco} />
           <h3 class="casal__titulo">{jaNoPasso(passo).length > 0 ? 'Adicionar mais alguém' : 'Adicionar'}</h3>
+          {passo === 'coracao' && <input type="hidden" name="reconhece" value="eu" />}
+          {passo !== 'coracao' && (<>
           <label class="campo">
             <span>{PERGUNTAS[passo].rotulo}</span>
             <select name="pessoa">
@@ -196,7 +269,38 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
             <span>ou alguém que ainda não está no acervo</span>
             <input type="text" name="nomeNovo" maxlength="80" autocomplete="off" placeholder="Escreva o nome" />
           </label>
-          {passo === 'casal' ? (
+          <ComoSeReferir id="rotulo-tratamento-novo-guia" />
+          </>)}
+          {passo === 'coracao' ? (
+            <>
+              <label class="campo">
+                <span>Nome do laço</span>
+                <input type="text" name="nomeDoLaco" maxlength="40" autocomplete="off" required placeholder="Ex.: amiga, padrinho, vó de coração" />
+              </label>
+              <label class="campo">
+                <span>Lugar na árvore <small>(opcional)</small></span>
+                <select name="papel">
+                  <option value="">Não aparece na árvore</option>
+                  {papeis.map(([id, rotulo]) => <option value={id}>Como se fosse {rotulo}</option>)}
+                </select>
+              </label>
+              <Opcoes nome="proximidade" rotulo="Proximidade" opcoes={proximidades} id="rotulo-proximidade-guia" dica="Só você vê." />
+              <label class="marcar">
+                <input type="checkbox" name="privado" />
+                <span>Só eu vejo este laço</span>
+              </label>
+              <p class="dica">O laço é seu. Para a família toda reconhecer {chamar} como filho, irmão ou pai de consideração, use "Ver todos os tipos de laço".</p>
+            </>
+          ) : passo === 'parentes' ? (
+            <>
+              <label class="campo">
+                <span>É o quê de {chamar}?</span>
+                <select name="papelResumido">
+                  {papeis.map(([id, rotulo]) => <option value={id}>{rotulo[0].toUpperCase() + rotulo.slice(1)} de {chamar}</option>)}
+                </select>
+              </label>
+            </>
+          ) : passo === 'casal' ? (
             <>
               <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fases} valor="casamento" />
               <div class="em-linha__campo">
@@ -224,12 +328,13 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
           {/* Uma ação principal por tela: antes de adicionar alguém, é "Adicionar"; depois, "Próxima pergunta" */}
           <div class="acoes"><button class={jaNoPasso(passo).length > 0 ? 'botao botao--leve' : 'botao'} type="submit">Adicionar</button></div>
         </form>
+        )}
         <p class="acoes acoes--guia">
-          {(PASSOS as readonly string[]).indexOf(passo) > 0 && (
-            <a class="botao botao--leve" href={enderecoDoPasso(PASSOS[(PASSOS as readonly string[]).indexOf(passo) - 1])}>Voltar</a>
-          )}
-          <a class={jaNoPasso(passo).length > 0 ? 'botao' : 'botao botao--leve'} href={enderecoDoPasso(proximoPasso(passo))}>{jaNoPasso(passo).length > 0 ? 'Próxima pergunta' : 'Pular esta pergunta'}</a>
+          {passoAnterior(passo) && <a class="botao botao--leve" href={enderecoDoPasso(passoAnterior(passo)!)}>Voltar</a>}
+          {/* Sem nada a adicionar nesta pergunta, seguir é a ação principal */}
+          <a class={jaNoPasso(passo).length > 0 || (passo === 'parentes' && !deFora) ? 'botao' : 'botao botao--leve'} href={enderecoDoPasso(proximoPasso(passo))}>{jaNoPasso(passo).length > 0 ? 'Próxima pergunta' : 'Pular esta pergunta'}</a>
         </p>
+        <p class="guia__completo"><a href={`/pessoas/${pessoa.id}/editar?novo=1&passo=outro`}>Ver todos os tipos de laço</a></p>
       </section>
     )
   }
@@ -240,7 +345,7 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
         <h2>{chamar} está no acervo</h2>
         {temLacos ? (
           <ul class="lacos">
-            {[...PASSOS].flatMap((p) => jaNoPasso(p)).map((x) => (
+            {[...new Set([...RAMOS.familia, ...RAMOS.coracao])].flatMap((p) => jaNoPasso(p)).map((x) => (
               <li class="laco">
                 <p class="laco__linha">
                   <strong>{x.nome}</strong>
@@ -252,10 +357,14 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
         ) : (
           <p class="dica">Nenhum laço por enquanto. Dá para adicionar depois, na página de {chamar}.</p>
         )}
-        <p class="dica">Amigos, padrinhos e laços do coração entram em "Outro tipo de laço".</p>
+        {ramo === 'familia' ? (
+          <p class="dica">{chamar} também é do seu coração? <a href={enderecoDoPasso('coracao', 'coracao')}>Adicionar um laço do coração</a></p>
+        ) : (
+          pessoa.tipo !== 'bicho' && <p class="dica">{chamar} tem pais ou filhos no acervo? <a href={enderecoDoPasso('pais', 'familia')}>Perguntar pela família</a></p>
+        )}
         <p class="acoes">
           <a class="botao" href={`/pessoas/${pessoa.id}`}>Ver a página de {chamar}</a>
-          <a class="botao botao--leve" href={enderecoDoPasso('outro')}>Outro tipo de laço</a>
+          <a class="botao botao--leve" href={`/pessoas/${pessoa.id}/editar?novo=1&passo=outro`}>Ver todos os tipos de laço</a>
           <a class="botao botao--leve" href="/pessoas/nova">Cadastrar outra pessoa</a>
         </p>
       </section>
@@ -265,6 +374,18 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
   {!guiado && (
   <section class="painel" id="lacos">
     <h2>Laços</h2>
+    {recemCadastrada && podeLacos && (
+      <p class="dica guia__completo">
+        Você está vendo todos os tipos de laço.{' '}
+        {sempreCompleto ? (
+          <>Esta etapa sempre abre assim para você. <a href={`/pessoas/${pessoa.id}/editar?novo=1&passo=inicio&modo=guiado`}>Voltar para as perguntas guiadas</a></>
+        ) : (
+          <>
+            <a href={`/pessoas/${pessoa.id}/editar?novo=1&passo=inicio`}>Voltar para as perguntas guiadas</a> ou <a href={`/pessoas/${pessoa.id}/editar?novo=1&passo=outro&modo=sempre`}>abrir sempre assim</a>
+          </>
+        )}
+      </p>
+    )}
     {!temLacos && !recemCadastrada && <p class="dica">{chamar} ainda não tem laços cadastrados.</p>}
 
     {/* Os laços que já existem, por tipo. Cada um tem "Editar", e remover fica dentro da edição */}
@@ -594,6 +715,7 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
             <input type="text" name="nomeNovo" maxlength="80" autocomplete="off" placeholder="Escreva o nome" />
           </label>
         </div>
+        <ComoSeReferir id="rotulo-tratamento-novo-laco" />
       </div>
 
       <div data-para="filho-de pai-de" hidden>
@@ -723,6 +845,19 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
   // "Com quem": busca com sugestão, e "Cadastrar" para quem ainda não está no acervo
   for (const comQuem of document.querySelectorAll<HTMLSelectElement>('form select[name="pessoa"]')) {
     buscaDePessoa(comQuem, { nomeNovo: comQuem.form!.querySelector<HTMLInputElement>('input[name="nomeNovo"]') ?? undefined });
+  }
+  // "Como se referir" aparece quando há um nome novo, com o nome no rótulo
+  for (const bloco of document.querySelectorAll<HTMLElement>('[data-como-se-referir]')) {
+    const nomeNovo = bloco.closest('form')?.querySelector<HTMLInputElement>('input[name="nomeNovo"]');
+    const rotulo = bloco.querySelector<HTMLElement>('[id^="rotulo-"]');
+    if (!nomeNovo) continue;
+    const aplicarNome = () => {
+      const nome = nomeNovo.value.trim();
+      bloco.hidden = !nome;
+      if (rotulo) rotulo.textContent = nome ? `Como se referir a ${nome}?` : 'Como se referir a quem você está cadastrando?';
+    };
+    nomeNovo.addEventListener('input', aplicarNome);
+    aplicarNome();
   }
   const grupo = form?.querySelector<HTMLElement>('[data-tipo-de-laco]');
   if (form && grupo) {

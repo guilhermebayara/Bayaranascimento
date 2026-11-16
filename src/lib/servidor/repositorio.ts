@@ -136,8 +136,9 @@ export async function listarNucleos(): Promise<Nucleo[]> {
   return results;
 }
 
-export async function criarIntegrante(id: string, nome: string, criadoPor: string): Promise<void> {
-  await db().prepare(`INSERT INTO integrantes (id, nome, criado_por) VALUES (?, ?, ?)`).bind(id, nome, criadoPor).run();
+/** Cadastro rápido, pelo nome digitado num laço ou numa memória. "Como se referir" vem junto, se a pessoa disse. */
+export async function criarIntegrante(id: string, nome: string, criadoPor: string, tratamento: Tratamento = null): Promise<void> {
+  await db().prepare(`INSERT INTO integrantes (id, nome, criado_por, tratamento) VALUES (?, ?, ?, ?)`).bind(id, nome, criadoPor, tratamento).run();
 }
 
 export interface DadosDoIntegrante {

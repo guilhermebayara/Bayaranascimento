@@ -1,0 +1,27 @@
+---
+// "Como se referir" de quem está sendo cadastrado pelo nome novo, num laço (pedido do Gui, 16/11/2026).
+// Aparece quando há um nome novo; o rótulo leva o nome digitado. Sem JavaScript, fica sempre à vista.
+import Opcoes from './Opcoes.astro';
+
+interface Props {
+  /** id único do rótulo na página */
+  id: string;
+}
+
+const { id } = Astro.props;
+---
+
+<div class="como-se-referir" data-como-se-referir data-depende="como-se-referir" hidden>
+  <Opcoes
+    nome="tratamentoNovo"
+    rotulo="Como se referir a quem você está cadastrando?"
+    opcoes={[
+      ['ela', 'Ela'],
+      ['ele', 'Ele'],
+      ['', 'Não informar'],
+    ]}
+    valor=""
+    id={id}
+    dica={'Serve para o site escrever "sua tia" ou "seu tio".'}
+  />
+</div>

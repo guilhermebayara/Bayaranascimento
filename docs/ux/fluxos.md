@@ -41,7 +41,7 @@ O Gui pediu atenção aos formulários pensando em quem tem menos familiaridade 
 
 - **Trocar a pessoa de um laço** dentro de "Editar". Hoje continua sendo remover e adicionar. Precisa de uma ação nova na API que remove e cria numa vez só, com a mesma validação. Recomendo quando o histórico de laços existir.
 - ~~Cadastro guiado de família~~ e ~~tipos mais usados à vista~~: aprovados pelo Gui e construídos (ver `docs/decisoes.md`).
-- **Como se referir de quem entra pelo nome novo:** quem é cadastrado na hora, por "Cadastrar Fulano", entra sem "como se referir", e o site escreve "pai ou mãe". Perguntar "Ela" ou "Ele" junto do nome novo resolveria.
+- ~~Como se referir de quem entra pelo nome novo~~ e ~~o caminho do coração no cadastro guiado~~: aprovados pelo Gui e construídos (ver `docs/decisoes.md`).
 - **Relato por áudio:** já está em "Decidido, a construir". Para quem tem menos familiaridade com teclado, gravar é mais fácil que escrever; a etapa do relato é o lugar natural para o botão de gravar.
 - **Capítulo:** as três etapas funcionam. "Como as memórias entram?" (reunido ou de época) é a decisão mais difícil do site para quem não conhece a ideia; um exemplo visual de cada um, na revisão visual, ajuda mais que texto.
 
@@ -166,7 +166,7 @@ Capturas: `inicio`, `inicio-nucleo`, `memoria`, `pessoa-quem-acessa`, `capitulos
 
 **Recomendação**
 
-1. Manter a ordem do antigo para o novo, que é a de uma história contada, e acrescentar no alto um salto por década (1950, 1960... 2020), fixo ao rolar, junto do filtro por tipo. O "Depois" no fim de cada memória continua levando adiante.
+1. ~~Manter a ordem do antigo para o novo~~. **Decisão do Gui (16/11/2026): o contrário, mais recentes primeiro**, e rolar leva ao passado; já construído. O salto por década no alto, fixo ao rolar, também foi aprovado e construído.
 2. Núcleo como mais um filtro da linha do tempo, ao lado do tipo, e o menu fica com as seções: Linha do tempo, Capítulos, Árvore, Pessoas, e "Nova memória" como ação. Rascunhos e lixeira vão para um item "Meus rascunhos" (ver "Corrigir e desfazer").
 3. Na memória, "Ver na árvore" junto das pessoas, quando houver mais de uma pessoa da família.
 

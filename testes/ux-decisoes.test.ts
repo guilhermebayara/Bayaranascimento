@@ -256,11 +256,23 @@ describe('data da adoção', () => {
 });
 
 describe('cadastro guiado', () => {
-  it('depois da ficha, uma pergunta por tela: pais, casal, filhos; bicho só tem a família', () => {
+  it('primeiro "da família ou do coração"; depois, as perguntas de cada caminho; bicho vai direto para a família', () => {
     const editar = fonte('src/pages/pessoas/[id]/editar.astro');
-    expect(editar).toContain("pessoa.tipo === 'bicho' ? (['pais'] as const) : (['pais', 'casal', 'filhos'] as const)");
+    expect(editar).toContain("familia: pessoa.tipo === 'bicho' ? ['pais'] : ['pais', 'casal', 'filhos'],");
+    expect(editar).toContain("coracao: ['coracao', 'casal', 'parentes'],");
+    expect(editar).toContain('Como {chamar} se liga a vocês?');
     expect(editar).toContain("'Pular esta pergunta'");
-    expect(editar).toContain('Outro tipo de laço');
+  });
+
+  it('parentes de amigo só para quem é de fora das famílias, como na regra do laço resumido', () => {
+    expect(fonte('src/pages/pessoas/[id]/editar.astro')).toContain("passo === 'parentes' && !deFora");
+  });
+
+  it('modo completo, com todos os tipos de laço, a partir de qualquer pergunta, e pode ficar como padrão', () => {
+    const editar = fonte('src/pages/pessoas/[id]/editar.astro');
+    expect(editar.match(/Ver todos os tipos de laço/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(editar).toContain("if (modoPedido === 'sempre') Astro.cookies.set(COOKIE_COMPLETO");
+    expect(editar).toContain("if (modoPedido === 'guiado') Astro.cookies.delete(COOKIE_COMPLETO");
   });
 
   it('cada pergunta volta para ela mesma depois de adicionar, para adicionar mais alguém', () => {
@@ -281,5 +293,34 @@ describe('tipos de momento', () => {
     expect(nova).toContain('Ver mais tipos');
     // O tipo já escolhido nunca fica escondido
     expect(nova).toContain('open={tiposRecolhidos.some((t) => t.id === memoria?.tipo)}');
+  });
+});
+
+// Quarta leva (pedidos do Gui, 16/11/2026)
+describe('como se referir de quem entra pelo nome novo', () => {
+  it('o cadastro rápido guarda Ela, Ele ou nada', () => {
+    expect(fonte('src/lib/servidor/repositorio.ts')).toContain('export async function criarIntegrante(id: string, nome: string, criadoPor: string, tratamento: Tratamento = null)');
+    expect(fonte('src/pages/api/lacos.ts')).toContain("campo(dados, 'tratamentoNovo', 3)");
+    expect(fonte('src/pages/api/memorias.ts')).toContain("tratamento: z.enum(['ela', 'ele']).nullable().optional()");
+  });
+
+  it('a pergunta aparece junto do nome novo, nos laços e na memória', () => {
+    expect(fonte('src/pages/pessoas/[id]/editar.astro').match(/<ComoSeReferir /g)?.length).toBe(2);
+    expect(fonte('src/pages/nova.astro')).toContain('data-tratamento-novo');
+  });
+});
+
+describe('linha do tempo', () => {
+  it('mais recentes primeiro, em todas as páginas que mostram a linha do tempo', () => {
+    expect(fonte('src/components/LinhaDoTempo.astro')).toContain('agruparPorAno(maisRecentesPrimeiro(memorias))');
+  });
+});
+
+describe('salto por década', () => {
+  it('barra fixa com as décadas, só com mais de uma, e o filtro tira as que ficam vazias', () => {
+    const linha = fonte('src/components/LinhaDoTempo.astro');
+    expect(linha).toContain('decadas.length > 1 &&');
+    expect(linha).toContain('id={`decada-${decadaDe(ano)}`}');
+    expect(linha).toContain("item.hidden = !raiz.querySelector(`.ano[data-decada=\"${item.dataset.decada}\"]:not([hidden])`)");
   });
 });

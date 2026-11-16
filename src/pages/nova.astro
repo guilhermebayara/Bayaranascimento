@@ -501,12 +501,23 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       });
     };
 
+    let contadorDeNovas = 0;
     form.querySelector('[data-adicionar-pessoa]')!.addEventListener('click', () => {
       const linha = document.createElement('div');
       linha.className = 'nova-pessoa';
       linha.dataset.novaPessoa = '';
+      // "Como se referir" junto do nome: o site escreve "sua tia" ou "seu tio" (pedido do Gui, 16/11/2026)
+      const grupo = `tratamento-nova-${++contadorDeNovas}`;
       linha.innerHTML = `
         <label class="campo"><span>Nome</span><input type="text" data-nome maxlength="80" placeholder="Ex.: Tia Lúcia" /></label>
+        <div class="campo">
+          <span id="${grupo}">Como se referir</span>
+          <div class="opcoes" role="radiogroup" aria-labelledby="${grupo}">
+            <label class="opcao"><input type="radio" name="${grupo}" value="ela" data-tratamento-novo /><span>Ela</span></label>
+            <label class="opcao"><input type="radio" name="${grupo}" value="ele" data-tratamento-novo /><span>Ele</span></label>
+            <label class="opcao"><input type="radio" name="${grupo}" value="" data-tratamento-novo checked /><span>Não informar</span></label>
+          </div>
+        </div>
         <button type="button" class="botao botao--leve" data-remover-pessoa>Remover</button>`;
       linha.querySelector('[data-remover-pessoa]')!.addEventListener('click', () => {
         linha.remove();
@@ -600,6 +611,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 
       const novas = [...novasPessoas.querySelectorAll<HTMLElement>('[data-nova-pessoa]')].map((linha) => ({
         nome: linha.querySelector<HTMLInputElement>('[data-nome]')!.value.trim(),
+        tratamento: (linha.querySelector<HTMLInputElement>('[data-tratamento-novo]:checked')?.value || null) as 'ela' | 'ele' | null,
       }));
       if (novas.some((n) => !n.nome)) return avisar('Escreva o nome da pessoa que você adicionou, ou remova a linha.', 'erro');
 
