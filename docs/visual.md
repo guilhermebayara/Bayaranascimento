@@ -58,11 +58,89 @@ O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
 
 - **Disciplina de tipo.** O bayara usa uma família só e tira a hierarquia de tamanho e espaço, com títulos grandes de espaçamento justo. Aqui são três famílias com papéis fixos (serifa nos títulos, grotesca no texto, mono nas fichas), e nenhuma aparece fora do seu papel.
 - **Grid rígido e alinhado à esquerda.** Colunas fixas, tudo começa na mesma linha. Alinhamento óptico no tipo grande.
-- **Cor com função.** No bayara, o azul marca o resultado e o terracota marca um custo. Aqui, o pastel marca a família e o saturado marca o que importa. Cor sem função não entra.
+- **Cor com função.** No bayara, o azul marca o resultado e o terracota marca um custo. Aqui, o pastel marca a família e o saturado marca o que importa. Cor sem função não entra. Deleite visual também é função (decisão do Gui, 16/11/2026): a cor pode entrar para dar alegria e aconchego, como a forma colorida atrás de cada foto. O limite fica entre os dois sites de régua: mais cor que o bayara.design, que é quase mono, e sem chegar ao extremo da @bsurda.
 - **Objeto com sentido.** O crachá da @bsurda imita uma coisa real do mundo da festa. Aqui, a polaroid e o carimbo do verso imitam o mundo da família.
 - **Ações tipográficas.** Links e ações secundárias são texto sublinhado, sem pílula. Botão cheio só para a ação principal da tela.
 - **Detalhe pequeno que se nota.** Como o nome do topo do bayara, que se preenche quando o nome grande sai da tela. Um ou dois no site, nunca em toda parte.
 - **Celular primeiro, desktop de destaque.** A família vai usar quase só no celular, então cada tela nasce em 390 px. O desktop é o momento especial, a versão de ver juntos na TV: cada tela ganha composição própria em tela grande (de 1280 a 1920 px), com fotos grandes e tipo de capa, e nunca é o celular esticado.
+
+## Conceito (fase 1), em aprovação
+
+Construído em 16/11/2026 na branch `tst-visual`, em oito rodadas: a primeira versão e sete de ajustes que o Gui pediu ao ver cada uma. Espera a aprovação dele na prévia. A escolha das fontes continua em aberto: espera a opinião da Giovanna e do Magno, que vão ver as combinações em `/conceito/sobre`. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
+
+**Onde está.** As telas do conceito ficam em `/conceito`, ao lado do site atual, que continua inteiro:
+
+| Tela | Endereço |
+| --- | --- |
+| Carta da primeira visita | `/conceito?visita=primeira` |
+| Painel, numa visita seguinte | `/conceito` |
+| Linha do tempo (Tudo e cada família) | `/conceito/tudo` |
+| Memória | `/conceito/memorias/<id>` |
+| Fontes, assinatura, cores e peças lado a lado | `/conceito/sobre` |
+
+A faixa do alto (só nas prévias e no computador) troca de tela, de combinação de fontes e de pessoa. As rotas respondem 404 na produção e na homologação, porque o painel usa dados fixos de exemplo (`src/lib/servidor/conceito.ts`, conferido pela guarda da produção).
+
+**Código.** O CSS novo está em `src/visual/` e não importa nada de `src/styles/global.css`: `tokens.css`, `fontes.css`, `base.css`, `pecas.css`, `estrutura.css` e um arquivo por tela em `telas/`. O esqueleto é `src/layouts/Visual.astro`, as peças com marcação própria ficam em `src/components/visual/` (a foto revelada, a assinatura, os ícones dos tipos e os rabiscos) e as funções puras em `src/lib/visual.ts`. Os testes estão em `testes/visual.test.ts`: cor só em `tokens.css`, fonte só em `fontes.css`, nenhum token antigo, toque de 44 px, e nada preso à rolagem além da barra de décadas e do ano.
+
+**Combinações de fontes para escolher** (todas de licença livre, pelo Fontsource, com acentos e itálico conferidos em português). Ainda sem escolha:
+
+| | Serifa | Grotesca | Mono | Manuscrita | Caráter |
+| --- | --- | --- | --- | --- | --- |
+| A, Macia | Fraunces | Geist | Geist Mono | Oooh Baby | A mais próxima de Recoleta. Corresponde ao desenho normal do rascunho da assinatura |
+| B, Editorial | Instrument Serif | Instrument Sans | IBM Plex Mono | Reenie Beanie | Condensada, de revista. A grotesca é a mesma do bayara.design. Corresponde ao desenho condensado |
+| C, De cartaz | DM Serif Display | DM Sans | DM Mono | Nothing You Could Do | Pesada, de cartaz. Corresponde ao desenho em negrito |
+
+Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de outra.
+
+**O que o Gui já aprovou:** o menu (sanfona no celular, "Início", as famílias no alto da linha do tempo), os textos novos ("Oi, Gui.", "Entraram duas memórias e um relato desde a sua última visita.", "Você estava lá e ainda não contou", "Ver a linha do tempo inteira", "Abrir o acervo", "Cada pessoa conta o dia do jeito que lembra."), a foto revelada em toda foto-chave, as cores das famílias e as dos tipos de momento, a abertura da memória em bloco de cor, a lógica dos trilhos dos capítulos, com o tracejado, a separação entre época e capítulo e, conferidos no iPhone, a barra de décadas e o ano parados no alto.
+
+**O que as últimas rodadas propõem e espera decisão:**
+
+- **Ícones dos tipos.** Um rabisco de traço para cada um: broto (nascimento), bolo (aniversário), alianças (casamento), estrela (conquista), aviãozinho de papel (viagem), casinha (casa), balões (festa), balão de fala (causo), xícara (dia a dia), flor (despedida) e brilho (outro e tipos novos). Estão em `src/components/visual/IconeDoTipo.astro`.
+- **Painel.** O papel tingido na cor da família de quem vê, os cartões, o nome sublinhado a caneta e o envelope do laboratório. Entrou o cartão "Neste dia, em outros anos" (`src/lib/painel.ts`): as memórias que a pessoa vê e que aconteceram no mesmo dia; sem nenhuma, as da mesma semana; sem nenhuma, as do mesmo mês. Ele fica logo depois das novidades.
+- **O convite do fim da memória.** No lugar da faixa, um bilhete em branco com o retrato e o nome de quem está vendo, as linhas vazias e a assinatura dela ainda apagada. A frase continua "Cada pessoa conta o dia do jeito que lembra.".
+- **Capítulos na linha do tempo**, pelo item de `docs/decisoes.md`. A montagem dos trilhos está em `src/lib/linha-capitulos.ts`, sem tela, com teste em `testes/linha-capitulos.test.ts`. A memória presa ao capítulo tem uma parada no trilho; a de fora deixa o trilho tracejado, solução que o Gui aprovou. No alto, o trilho faz a curva até o título e o período do capítulo, que levam à página dele; embaixo, até a marca "Começo do capítulo “Natais”" (texto do Gui). Cabem dois trilhos no celular, quatro a partir de 62rem e seis a partir de 100rem. Com o filtro por tipo ligado, os trilhos saem.
+- **Cor de cada capítulo e sinal na memória** (ideia do Gui, 16/11/2026). Cada capítulo ganha uma cor: o trilho usa o tom do meio, para não disputar com as fotos, e a parada usa o tom vivo. Cada memória mostra, embaixo da ficha, o sinal dos capítulos dela: a mesma parada, na cor do capítulo, com o nome. É o que liga a memória ao trilho e, onde o trilho não cabe, o que diz de que capítulo ela é. A montagem garante que dois capítulos que convivem nunca dividem a cor (`CORES_DOS_CAPITULOS`, em `src/lib/visual.ts`).
+- **Sua conta no topo** (pelo item de `docs/decisoes.md`). O retrato e o nome de quem está logado levam à conta; no celular, só o retrato, ao lado de "Menu". "Rascunhos" saiu do menu, e a lixeira e a administração saíram do rodapé. A tela da conta é da fase 3: no conceito, `/conceito/conta` é só uma página de passagem.
+- **Controles da linha do tempo** (achado do Gui, 16/11/2026: a década passava batida, o filtro por tipo mudava de lugar ao abrir e as famílias quebravam a linha). Abaixo da assinatura, cada controle tem nome e lugar fixo, um embaixo do outro: **Família**, numa linha só no computador e em duas colunas no celular, onde não cabe (a primeira opção se chama "Família completa", e não mais "Tudo"); **Tipo**, que fechado diz o tipo escolhido ("Todos os tipos", "Viagem") e aberto mostra a lista logo abaixo, sem sair do lugar; e **Década**, uma faixa na cor da família bem diluída no papel (o pastel cheio ficou "amarelo demais", do Gui), de ponta a ponta, parada no alto, com a década em leitura numa ficha de papel. No computador os nomes ficam numa coluna à esquerda; no celular, em cima de cada controle. A conta das memórias fica sozinha, ao lado da assinatura.
+- **No toque, nada preso por sticky** (achados do Gui no iPhone, 16/11/2026). Com a faixa de décadas presa no alto, o Safari do iOS 26 desenhava uma banda atrás do relógio. A saída é a do site da @bsurda: em aparelho de toque, o que fica parado no alto anda por uma animação ligada à rolagem (`pino-novo`, em `Visual.astro` e `telas/linha.css`), sem `sticky` nem `fixed`, com uma cobertura na cor do papel acima da faixa. Com mouse, o `sticky` continua. **Uma peça só anda com a rolagem:** a que leva a faixa de décadas e a gaveta do ano (`.parada`). O cabeçalho de cada ano rola com a página, e o ano parado é uma cópia dele dentro da gaveta, do mesmo tamanho e no mesmo lugar em que ele chega ao alto; a troca acontece quando o cabeçalho seguinte chega ali. A primeira versão tinha uma animação por ano, ligada só perto da tela, e a faixa e o ano davam um pulinho na troca de ano: nada mais liga nem desliga animação no meio do caminho. O Gui conferiu no iPhone em 16/11/2026: a banda sumiu e a troca de ano não pula mais.
+- **Fotos na página da memória** (pedido do Gui, 16/11/2026).
+    - **Leque na abertura.** Com mais de uma foto e espaço (computador e tela grande), as fotos de trás se abrem para os lados da principal. No celular continuam em monte.
+    - **Parede de fotos.** A seção "Fotos" mostra todas como fotos reveladas, um pouco fora de fila, cada uma com a legenda dela.
+    - **Galeria.** Tocar em qualquer foto (da abertura, da parede ou de um relato) abre a galeria na própria página: a foto inteira, sem corte, com margem branca de ampliação, a legenda, "Foto 2 de 6" e os controles com nome escrito ("Anterior", "Próxima", "Fechar"). As fotos ficam numa fila que rola para o lado com a rolagem do próprio aparelho e encaixa em cada foto: no celular a foto acompanha o dedo e a seguinte entra, como no álbum de fotos do celular (pedido do Gui, 16/11/2026: o padrão que quem não é nativo digital associa a passar fotos). Os botões e as setas do teclado fazem a mesma passagem, deslizando, e a galeria abre subindo um pouco; com movimento reduzido, tudo troca sem deslizar. Fecha pelo Esc e pelo voltar do aparelho, sem sair da página. Sem script, cada foto continua sendo um link para a imagem. É um `<dialog>` no papel da página. O Gui conferiu no iPhone em 16/11/2026: o gesto funciona.
+    - **Foto que veio com um relato** (decisão do Gui, 16/11/2026: aparece nos dois). É a mesma foto: ela é da memória, entra na parede e na galeria com todas as outras, e aparece também pequena no bilhete do relato que a trouxe, abrindo a mesma galeria naquela foto. Na galeria, ela diz "Veio com o relato de …". No conceito isso é FIXO em duas memórias de exemplo (`FIXO_FOTOS_DOS_RELATOS`), porque o banco ainda não liga a foto ao relato.
+- **"Início" no menu** (pedido do Gui, 16/11/2026). "Memórias", no alto, leva ao início, e o menu também diz "Início", no computador e no celular: quem tem menos familiaridade com sites não precisa adivinhar.
+- **A carta** passa a ser assinada pelos três: Gui, Giovanna e Magno.
+- **Monograma.** No celular, o "M" do topo é a letra da serifa, provisória. O desenho em SVG é da fase 2.
+
+**Época e capítulo** (aprovado pelo Gui em 16/11/2026, a partir do furo que ele achou no capítulo de época). Pela regra antiga, toda memória que cai no período de um capítulo de época é dele, mesmo num capítulo que é só da vida da Giovanna e do Magno. A separação:
+
+- **Época** é só o que vale para a família inteira, como a pandemia ou os anos 90.
+- **Capítulo** é a história de alguém. Pode ser montado à mão, como hoje, ou por período, de pessoas ou de uma família (um capítulo da gravidez, do casal, por exemplo): entram sozinhas as memórias do período em que alguma dessas pessoas está ou que são dessa família. As outras memórias do período ficam de fora, e o trilho segue tracejado.
+- "Capítulo de época" deixa de existir como nome: ou é uma época, de todos, ou é um capítulo, de alguém.
+
+No conceito, de quem é cada capítulo de época é fixo na página, porque o banco ainda não guarda isso: "A infância da Giovanna" é da Giovanna, e "Os anos 90" e "Os anos de casa" são épocas de todos. A montagem já entende os casos (`pessoas`, `familias` e `deTodos`), com teste. O que falta para valer no site está em `docs/decisoes.md`, "Decidido, a construir".
+
+**A época na linha do tempo** (terceira versão; o Gui disse que o chão funciona e pediu os ajustes desta). A época é o chão: enquanto se rola por dentro dela, o papel muda de tom de ponta a ponta da tela. Assim cada coisa tem a sua forma: a época é fundo, o capítulo é linha e a memória é figura.
+
+- **O nome fica numa aba que sai do próprio chão**, como a de uma divisória de fichário: no alto, a aba sobe para fora do chão da época, com "Época", o nome e o período; no fim, desce, com "Começo da época “Os anos de casa”". Antes o nome ficava logo acima da primeira memória e parecia título dela.
+- **Sem vão.** A linha da aba não tem margem, só espaço por dentro: o chão, o fio do tempo e os trilhos passam por ela inteiros (teste em `testes/visual.test.ts`).
+- **Épocas que se sobrepõem.** Onde duas valem ao mesmo tempo, o chão fica um tom mais fundo (até três tons, `--chao-1` a `--chao-3`), e cada época tem a sua aba, na cor do chão dela: a de dentro abre sobre o chão da de fora. Quando acabam juntas, fecha primeiro a de dentro. A conta é da montagem (`epocas`, `epocasDeCima` e `chaoDaEpoca`), com teste para épocas uma dentro da outra, que abrem juntas e que se cruzam. O texto suave escurece junto com o chão, para continuar em 4,5:1.
+- **No computador, o ano diz as épocas que passam por ele**, embaixo do número: no meio de uma época longa, a aba com o nome já ficou para trás. No celular, o ano parado no alto leva o tom do chão que está logo embaixo dele, para não virar uma faixa de outro tom quando uma época começa ou acaba no meio do ano.
+- **Uma época que começa antes e acaba no meio da outra** (pergunta do Gui, 16/11/2026) cai na mesma regra, sem caso especial: entra a primeira (um tom), entra a segunda por cima (dois tons), a primeira acaba com a aba "Começo da época" dela descendo do chão de dois tons, e o chão volta a um tom, que agora é o da segunda, até o começo dela. O tom diz quantas épocas valem ali; quem diz quais são as abas e, no computador, a lista embaixo do ano.
+- O acervo de exemplo só tem épocas que não se cruzam. Para ver a sobreposição, o Gui criou "Pandemia de COVID-19" no banco das prévias; no banco local, a mesma época foi criada à mão para as capturas.
+
+**Destaque do capítulo com o mouse** (pedido do Gui, 16/11/2026: no computador, capítulo longo precisa ser fácil de identificar). Passar o mouse por um trilho acende o capítulo inteiro, do começo ao fim, na cor viva dele, recua os outros trilhos e mostra ao lado do cursor o nome e o período. O sinal desse capítulo em cada memória fica sublinhado. O foco do teclado no título do capítulo faz o mesmo. Só existe onde há mouse (`(hover: hover) and (pointer: fine)`); no celular, o sinal em cada memória já diz o capítulo.
+
+**A hierarquia das linhas** (pedido do Gui, 16/11/2026: os trilhos dos capítulos apareciam mais que a linha do tempo). O fio do tempo é a linha principal: mais firme, contínuo do primeiro ao último ano, com um ponto em cada memória. Os trilhos dos capítulos ficam à esquerda dele, mais finos e mais claros, com a parada menor.
+
+**Memória sem foto** (pedido do Gui, 16/11/2026). Ganha o mesmo cartão da foto revelada, com a cor e o ícone do tipo de momento no lugar da imagem. Vale na linha do tempo e em "Neste dia, em outros anos", para nenhuma memória ficar com um buraco nem parecer erro.
+
+**O que é fixo de exemplo no painel**, porque a parte funcional ainda não existe: o texto da carta, o dia de hoje (a véspera de Natal de 2026) e o da última visita, quais memórias e qual relato contam como novos e as datas e idades dos aniversários. Memórias, fotos, relatos, retratos, parentesco e a contagem de "Você no acervo" são lidos do acervo de exemplo, com a visibilidade de quem olha.
+
+**O que ficou de fora de propósito:** os efeitos da fase 4 (a frase que acende, a foto que amplia no lugar; hoje a foto abre o arquivo), o tocador de áudio próprio (o bloco usa o do aparelho) e as outras telas, que continuam com o visual antigo. Os links do conceito para capítulos, pessoas, árvore e formulários caem nelas.
+
+**Capturas.** `CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>` tira as quatro telas nas três combinações, em 390, 1280 e 1920 px, com movimento reduzido, e um trecho da linha do tempo com os capítulos de dentro. As da quinta rodada estão em `docs/visual/conceito/` (a linha do tempo, cortada em 9000 px de altura).
 
 ## Referências
 
@@ -87,11 +165,16 @@ O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
 | Legendas e fichas | Mono pequena, na linha de Geist Mono |
 | Manuscrita | Só no nome de quem conta cada relato |
 | Cor | Pastéis como cores principais, em blocos sólidos, como no Feminist. Cada cor tem uma versão saturada para pontos de contraste e destaques, que também pode ser usada inteira como opção. Vale para as cores, não para os neutros |
-| Neutros | Fundo de papel quente (perto de `#F4F2F0` ou `#FFFAEB`); texto quase preto, sem chegar ao preto puro |
-| Polaroid | Preferência: polaroid em toda foto-chave da linha do tempo. Confirmar na implementação vendo como fica na linha do tempo |
+| Neutros | Neutro quente e aconchegante (decisão do Gui, 16/11/2026, depois de ver o primeiro conceito, que estava frio): papel creme e tinta de café, sem chegar ao preto puro. No conceito, `#faf2e6` e `#2b211a` |
+| Foto revelada | Confirmado pelo Gui em 16/11/2026: toda foto-chave da linha do tempo é uma foto revelada. O formato lembra a Fujifilm Instax, que a Giovanna e o Magno usam muito, sem ser literal: retrato, cantos arredondados, margem de baixo larga |
 | Linha do tempo | Lista vertical com a rolagem normal, das mais recentes para as mais antigas, sem efeito de folhear nem carrossel |
 | Página da memória | Ordem abaixo, com o convite para escrever o relato no fim |
 | Marca | "MEMÓRIAS" é a palavra principal e fixa. Abaixo dela vêm os sobrenomes das famílias do que está sendo visto, que mudam conforme a tela (ver "Assinatura do nome"). O símbolo é um monograma com o M de Memórias |
+| Cores das famílias | Aprovadas pelo Gui em 16/11/2026. Cada família tem uma cor só, com variação de tons: Bayara é verde, a cor da Elizete; Bayara Bracarense é orquídea, o meio-termo entre o rosa da Giovanna e o roxo do Magno, sem favorecer um dos dois; Bracarense é azul; "Tudo", as famílias juntas, é manteiga. Os valores estão em `src/visual/tokens.css` |
+| Ícones e ilustrações | Cabem, com limpeza e elegância, para trazer leveza e alegria (do Gui, 16/11/2026). O site continua tipográfico. No conceito: um ícone de traço para cada tipo de momento, rabiscos de caneta (sublinhado, seta, coração) e o envelope do laboratório no painel |
+| Painel | É a parte que só a pessoa vê, e precisa ter cara própria, de espaço íntimo (do Gui, 16/11/2026). No conceito: a página inteira tingida na cor da família da pessoa, o conteúdo em cartões e o aviso "Só você vê esta página". Quem está em mais de uma família vê a cor da mais recente: a Giovanna e o Magno, a da família que criaram juntos (`familiaMaisRecente`, em `src/lib/familias.ts`) |
+| Cores dos tipos de momento | Aprovadas pelo Gui em 16/11/2026, com espaço para mais cores: o conceito tem onze, uma para cada tipo de hoje (`corDoTipo`, em `src/lib/visual.ts`). A abertura da memória num bloco inteiro na cor do tipo também foi aprovada |
+| "Família", e não "núcleo" | O site deixa de mostrar o termo "núcleo", que fica só para a lógica (decisão do Gui, 16/11/2026). Na tela, é "família" |
 
 ## Movimento
 
@@ -107,7 +190,7 @@ Entram:
 
 Ficam de fora: cartão que deita ao rolar, foto que cresce enquanto se rola, carrossel lateral, anel 3D, imagem distorcida, tela de carregamento com porcentagem, faixa que corre sozinha e qualquer trecho que segura a página. Com movimento reduzido, nem o esmaecer.
 
-O Safari do iPhone já deu trabalho com efeitos presos à rolagem no site da @bsurda (ver o `CLAUDE.md` daquele repositório, "Banda do Safari no iPhone"): nada de `sticky` ou `fixed` novo sem conferir no aparelho.
+O Safari do iPhone já deu trabalho com efeitos presos à rolagem no site da @bsurda (ver o `CLAUDE.md` daquele repositório, "Banda do Safari no iPhone"): nada de `sticky` ou `fixed` novo sem conferir no aparelho. Decisão do Gui de 16/11/2026: na linha do tempo, a barra de décadas continua parada no alto e o ano grande também fica, em qualquer aparelho, para quem rola saber sempre em que ano está (pensando nas pessoas mais velhas). Os dois precisam ser conferidos no iPhone.
 
 ## Componentes novos
 
@@ -116,7 +199,7 @@ As medidas abaixo vêm das referências e são ponto de partida: o desenho final
 
 | Componente | Onde | Detalhe |
 | --- | --- | --- |
-| Polaroid | Foto-chave na linha do tempo e na abertura da memória | Moldura branca, margem de baixo mais larga com a legenda, cantos de uns 12 px, sombra suave (no Folira: 5 px, 20 px, 40 px de desfoque, preto a 12%). Inclinação entre poucos valores (por exemplo −3°, −1°, 2°), escolhida pelo id da memória para ficar sempre igual |
+| Foto revelada | Foto-chave na linha do tempo e na abertura da memória | Moldura branca no formato da Instax mini: foto em retrato de 46 por 62, cantos arredondados e margem de baixo bem mais larga, com a legenda. Sombra suave e quente. Inclinação entre poucos valores (−3°, −1,5°, 1°, 2,5°), escolhida pelo id da memória para ficar sempre igual. Atrás, uma forma de cor (círculo, arco ou cápsula, também pelo id) na cor do tipo de momento. O banco não guarda a orientação da foto: enquanto não guardar, toda foto-chave é recortada em retrato |
 | Monte de fotos | Memória com mais de uma foto | As outras fotos aparecem atrás da principal, levemente giradas. O monte já diz que há mais fotos |
 | Legenda "lugar (ano)" | Polaroid, cartão de memória, fotos | Em mono, pequena |
 | Etiqueta-balão | Tipo de momento | Pílula com um canto reto, na cor do tipo |
@@ -133,7 +216,7 @@ Decisões do Gui de 16/11/2026. Rascunho dele em `docs/visual/assinatura-hierarq
 
 - "MEMÓRIAS" é a palavra principal e não muda: em caixa alta, grande, na serifa dos títulos.
 - Logo abaixo vêm os sobrenomes das famílias, em caixa alta e baixa, bem menores (no rascunho, perto de metade da altura de "MEMÓRIAS"), alinhados à esquerda.
-- **Os sobrenomes acompanham o que está sendo visto.** Na linha do tempo geral ("Tudo") e no núcleo Bayara Bracarense: "Bayara & Bracarense". No núcleo Bayara (Gui, Giovanna e Elizete): "Bayara". No núcleo Bracarense: "Bracarense". Assim a assinatura cresce com o acervo: se um dia entrar outra família, por um casamento, a combinação aparece sozinha nas telas em que ela estiver.
+- **Os sobrenomes acompanham o que está sendo visto.** Na linha do tempo geral ("Família completa"): "Bayara & Bracarense". Numa família só, o nome dela, como é: "Bayara", "Bracarense" e "Bayara Bracarense", sem "&" (decisão do Gui, 16/11/2026: o "&" junta famílias, então só aparece na família completa ou quando a tela é de mais de uma). Assim a assinatura cresce com o acervo: se um dia entrar outra família, por um casamento, a combinação aparece sozinha nas telas em que ela estiver.
 - Para isso cada núcleo precisa dizer de quais famílias ele é (Bayara Bracarense = Bayara e Bracarense). A linha junta os sobrenomes sem repetir, na ordem dos lados da árvore (Bayara à esquerda), com "&" antes do último e vírgula entre os outros ("Bayara, Bracarense & Silva").
 - Telas que não são de um núcleo (pessoa, memória, capítulo) usam as famílias do que mostram: os núcleos da memória ou do capítulo, as famílias da pessoa. Na dúvida, a versão de "Tudo".
 - No texto corrido e na aba do navegador, o nome por extenso continua "Memórias Bayara e Bracarense".
