@@ -8,9 +8,23 @@ Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto) e
 
 - O Gui cria e explora o site com o Claude no chat (claude.ai, projeto "Pessoal e família"). O Claude Code roda as sessões de QA, no mesmo modelo do site da @bsurda e do bayara.design.
 - A estrutura completa (integrantes, laços, núcleos, memórias, capítulos, visibilidade, árvore, ordem de construção) está no documento "Acervo da família: proposta de estrutura", nos Claude Docs do Gui: https://claude.ai/artifact/35pDU29F4JH1edsCYZTGAD. Ele vale junto com `docs/decisoes.md`; quando os dois discordam, pergunte.
-- A Giovanna não usa o Claude. Ela opina olhando a prévia da `formulario` e comentando numa cópia do documento de estrutura no Google Docs do Gui ("Acervo da família: proposta de estrutura (cópia para comentários)"). Os comentários dela voltam para o documento principal pelo Gui, numa conversa com o Claude.
+- A Giovanna não usa o Claude. Ela opina olhando a prévia da `formulario` e comentando numa cópia do documento de estrutura no Google Docs do Gui ("Acervo da família: proposta de estrutura (cópia para comentários)", em `1_Documentos` da pasta do projeto). Os comentários dela voltam para o documento principal pelo Gui, numa conversa com o Claude.
 - Prazo: Natal de 2026, quando o site é dado de presente. Até lá o Gui e a Giovanna alimentam o acervo, e os outros acessos são liberados no dia.
 - Quando o trabalho fica em andamento e o Gui vai dormir ou sair, a última resposta diz tudo o que ele precisa ver quando voltar.
+
+## Pasta do projeto no Drive (do Gui)
+
+`My Drive/Pessoal/0_site_memorias` é o ponto de apoio do projeto, fora do código. O documento "00 Leia-me", na raiz, explica cada pasta e precisa acompanhar qualquer mudança de estrutura.
+
+- `0_Caixa de entrada`: o que ainda não tem lugar.
+- `1_Documentos`: documentos de trabalho, como a cópia do documento de estrutura para os comentários da Giovanna.
+- `2_Material para o acervo`: fotos, áudios, textos e documentos que ainda vão virar memórias, por assunto ou pessoa (por exemplo, `Áudios Vó`, com os áudios da Vó Bela). Os originais continuam no iCloud e nos celulares.
+- `3_Referências visuais`: referências para a direção visual.
+- `4_Natal 2026`: o plano do presente.
+- `9_Substituídos`: o que saiu de uso. Nada se apaga.
+- `Acervo Bayara Nascimento, cópias`: a cópia mensal do banco, feita pelo script de `scripts/copia-no-drive.gs`. Tem tudo do acervo, inclusive o que é restrito a núcleos. Não mude o nome: o script encontra a pasta pelo nome.
+
+Nada desta pasta entra no repositório.
 
 ## O que o Gui já autorizou
 
