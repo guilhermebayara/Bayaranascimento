@@ -1,6 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
+import { familiasDe, listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
@@ -8,8 +8,9 @@ const nucleos = await listarNucleos();
 const memorias = await listarMemorias(usuario);
 const contar = (id: string) => memorias.filter((m) => m.integrantes.includes(id)).length;
 const grupos = [
-  ...nucleos.map((n) => ({ nome: n.nome, membros: integrantes.filter((i) => i.nucleos.includes(n.id)) })),
-  { nome: 'Outras pessoas', membros: integrantes.filter((i) => i.nucleos.length === 0) },
+  // Membros e parentes de cada família juntos, sem diferença na tela
+  ...nucleos.map((n) => ({ nome: n.nome, membros: integrantes.filter((i) => familiasDe(i).includes(n.id)) })),
+  { nome: 'Outras pessoas', membros: integrantes.filter((i) => familiasDe(i).length === 0) },
 ].filter((g) => g.membros.length > 0);
 ---
 

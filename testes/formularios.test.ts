@@ -74,7 +74,7 @@ describe('formulários sem JavaScript e depois de um erro', () => {
 
   it('sem JavaScript, somem os botões que dependem dele e aparecem os blocos que ele mostraria', () => {
     const base = fonte('src/layouts/Base.astro');
-    expect(base).toMatch(/<noscript>[\s\S]*\[data-etapa-continuar\][\s\S]*display: none[\s\S]*\[data-para\]\[hidden\], \[data-so-epoca\]\[hidden\] \{ display: block/);
+    expect(base).toMatch(/<noscript>[\s\S]*\[data-etapa-continuar\][\s\S]*display: none[\s\S]*\[data-para\]\[hidden\], \[data-so-epoca\]\[hidden\], \[data-depende\]\[hidden\] \{ display: block/);
   });
 
   it('nova memória e relato enviam como formulário comum, e as APIs aceitam', () => {

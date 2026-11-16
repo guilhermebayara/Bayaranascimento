@@ -10,11 +10,16 @@ export interface DadosDaArvore {
   centros: string[];
   /** na ordem em que ficam na árvore, da esquerda para a direita */
   nucleos: { id: string; nome: string }[];
-  pessoas: { id: string; nome: string; rotulo: string; nucleos: string[]; bicho: boolean; anos: string }[];
+  /** nucleos: as famílias da pessoa, como membro ou parente (na árvore as duas aparecem iguais) */
+  pessoas: { id: string; nome: string; rotulo: string; nucleos: string[]; bicho: boolean; especie?: string | null; anos: string }[];
   filiacoes: { filho: string; responsavel: string; consideracao: boolean }[];
   casais: { a: string; b: string; ex: boolean }[];
   coracao: { dono: string; pessoa: string; papel: Papel | null; rotulo: string }[];
+  /** laços resumidos: b é <papel> de a, para parentes de quem é de fora das famílias */
+  resumidos?: { a: string; b: string; papel: Papel; rotulo: string }[];
 }
+
+type LacoNaMontagem = { dono: string; pessoa: string; papel: Papel | null; rotulo: string; sangue?: boolean };
 
 export interface Estado {
   /** a pessoa selecionada, com a ficha aberta */
@@ -59,7 +64,11 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     const filiacoes = dados.filiacoes.filter((f) => dentro(f.filho, f.responsavel) && (estado.consideracao || !f.consideracao));
     const casais = dados.casais.filter((c) => dentro(c.a, c.b) && (estado.ex || !c.ex));
     // Amigos sem "como se fosse" não entram por padrão: haverá muito mais amigos cadastrados do que gente como da família
-    const todosDoCoracao = estado.consideracao ? dados.coracao.filter((l) => dentro(l.dono, l.pessoa) && (l.papel || estado.amigos)) : [];
+    const todosDoCoracao: LacoNaMontagem[] = estado.consideracao ? dados.coracao.filter((l) => dentro(l.dono, l.pessoa) && (l.papel || estado.amigos)) : [];
+    // Laços resumidos são parentesco de sangue: não dependem da camada de consideração nem de quem os abriu
+    const resumidos: LacoNaMontagem[] = (dados.resumidos ?? [])
+      .filter((r) => dentro(r.a, r.b))
+      .map((r) => ({ dono: r.a, pessoa: r.b, papel: r.papel, rotulo: r.rotulo, sangue: true }));
 
     // 1b. A linha direta: os centros, os ancestrais, os irmãos, os descendentes e os casais.
     // O resto da família fica em ramos recolhidos, que abrem por cima da árvore.
@@ -84,22 +93,34 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     for (const f of filiacoes) unir(f.filho, f.responsavel);
     for (const c of casais) unir(c.a, c.b);
     const daFamilia = new Set([...principal].map(raiz));
+    const trazer = (id: string) => {
+      if (daFamilia.has(raiz(id))) principal.add(id);
+      else for (const x of visiveis) if (raiz(x) === raiz(id)) principal.add(x);
+    };
     for (let mudou = true; mudou; ) {
       mudou = false;
       for (const l of todosDoCoracao) {
         if (!estado.abertos.has(l.dono) || !principal.has(l.dono) || principal.has(l.pessoa)) continue;
-        if (daFamilia.has(raiz(l.pessoa))) principal.add(l.pessoa);
-        else for (const id of visiveis) if (raiz(id) === raiz(l.pessoa)) principal.add(id);
+        trazer(l.pessoa);
+        mudou = true;
+      }
+      // O parente de quem está na árvore vem junto, de um lado ou do outro do laço resumido
+      for (const r of resumidos) {
+        if (principal.has(r.dono) === principal.has(r.pessoa)) continue;
+        trazer(principal.has(r.dono) ? r.pessoa : r.dono);
         mudou = true;
       }
     }
-    const coracao = todosDoCoracao.filter((l) => estado.abertos.has(l.dono) && principal.has(l.dono) && principal.has(l.pessoa));
+    const coracao: LacoNaMontagem[] = [
+      ...todosDoCoracao.filter((l) => estado.abertos.has(l.dono) && principal.has(l.dono) && principal.has(l.pessoa)),
+      ...resumidos.filter((r) => principal.has(r.dono) && principal.has(r.pessoa)),
+    ];
     // Escadinha: um laço que passa pela mãe de quem olha traz junto o laço dela, mesmo recolhido,
     // porque é por ele que a pessoa se liga à árvore
     for (const l of [...coracao]) {
-      const meio = passaPor(l, todosDoCoracao, filiacoes);
+      const meio = passaPor(l, [...todosDoCoracao, ...resumidos], filiacoes);
       if (!meio || !principal.has(meio)) continue;
-      const doMeio = todosDoCoracao.find((x) => (x.dono === meio && x.pessoa === l.pessoa) || (x.dono === l.pessoa && x.pessoa === meio));
+      const doMeio = [...todosDoCoracao, ...resumidos].find((x) => (x.dono === meio && x.pessoa === l.pessoa) || (x.dono === l.pessoa && x.pessoa === meio));
       if (doMeio && !coracao.includes(doMeio)) coracao.push(doMeio);
     }
     const lacosDe = new Map<string, number>();
@@ -126,11 +147,23 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     // Sem "como se fosse" (com "Amigos" ligado), fica na geração de quem escolheu.
     const agregados = coracao.filter((l) => geracoes.has(l.dono) && !geracoes.has(l.pessoa));
     for (const l of agregados) if (!geracoes.has(l.pessoa)) geracoes.set(l.pessoa, geracoes.get(l.dono)! + (l.papel ? DESLOCAMENTO_DO_PAPEL[l.papel] : 0));
+    // Laço resumido de trás para a frente: o tio entra pela geração do sobrinho que já está na árvore
+    for (let mudou = true; mudou; ) {
+      mudou = false;
+      for (const r of coracao) {
+        if (!r.sangue || !r.papel) continue;
+        const [temA, temB] = [geracoes.has(r.dono), geracoes.has(r.pessoa)];
+        if (temA && !temB) geracoes.set(r.pessoa, geracoes.get(r.dono)! + DESLOCAMENTO_DO_PAPEL[r.papel]);
+        else if (temB && !temA) geracoes.set(r.dono, geracoes.get(r.pessoa)! - DESLOCAMENTO_DO_PAPEL[r.papel]);
+        else continue;
+        mudou = true;
+      }
+    }
     // Todo laço do coração aberto entra no desenho, com ou sem "como se fosse"
     const ligados = coracao.filter((l) => geracoes.has(l.dono) && geracoes.has(l.pessoa));
 
     // Na ordem da lista (que vem ordenada do servidor), para o desenho ser estável
-    const naArvore = dados.pessoas.filter((p) => principal.has(p.id) && geracoes.has(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id) }));
+    const naArvore = dados.pessoas.filter((p) => principal.has(p.id) && geracoes.has(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id), bicho: p.bicho }));
     const desenho: Desenho = desenharArvore(
       naArvore,
       casaisVisiveis.filter((c) => naPrincipal(c.a, c.b)),

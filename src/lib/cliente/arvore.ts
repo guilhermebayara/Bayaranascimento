@@ -177,6 +177,9 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     ficha.replaceChildren(nome, quem, pagina, lacos, partir);
   };
 
+  // Bichos: a espécie aparece no cartão, para um bicho não se confundir com uma criança (marca provisória)
+  const marcaDeBicho = (especie?: string | null) => Object.assign(document.createElement('small'), { className: 'no__bicho', textContent: especie || 'bicho' });
+
   // Uma caixa de pessoa para os ramos abertos (as da árvore principal são guardadas e reaproveitadas)
   const criarNo = (id: string, x: number, y: number) => {
     const p = pessoa.get(id)!;
@@ -195,6 +198,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     const quem = document.createElement('span');
     quem.textContent = p.rotulo || (p.bicho ? 'bicho da família' : '');
     no.append(nome, quem);
+    if (p.bicho) no.append(marcaDeBicho(p.especie));
+    no.classList.toggle('no--bicho', p.bicho);
     return no;
   };
 
@@ -235,11 +240,13 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
         no.style.height = `${MEDIDAS.altura}px`;
         no.append(document.createElement('strong'), document.createElement('span'));
         no.firstElementChild!.textContent = p.nome;
+        if (p.bicho) no.append(marcaDeBicho(p.especie));
         nos.set(p.id, no);
         camada.append(no);
       }
-      no.lastElementChild!.textContent = p.rotulo || rotuloDoCoracao.get(p.id) || (p.bicho ? 'bicho da família' : '');
+      no.querySelector('span')!.textContent = p.rotulo || rotuloDoCoracao.get(p.id) || (p.bicho ? 'bicho da família' : '');
       no.className = 'no';
+      no.classList.toggle('no--bicho', p.bicho);
       no.classList.toggle('no--eu', p.id === dados.eu);
       no.classList.toggle('no--foco', p.id === estado.foco);
       no.classList.toggle('no--apagado', Boolean(estado.nucleo) && !noNucleo(p.id));

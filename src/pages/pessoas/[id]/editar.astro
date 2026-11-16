@@ -1,10 +1,10 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
-import { FASES, Familia, PAPEIS, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
+import { FASES, Familia, PAPEIS, nomeDoPapel, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
-import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao } from '../../../lib/servidor/repositorio';
+import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
@@ -41,6 +41,16 @@ const outros = integrantes.filter((i) => i.id !== pessoa.id).sort((a, b) => a.no
 const lacosDoCoracao = await listarLacosDoCoracao(usuario);
 // Na própria página, todos os laços da pessoa. Na página de outra, só o laço com ela.
 const meusLacos = lacosDoCoracao.filter((l) => l.dono === usuario.pessoa && (ehMinha || l.pessoa === pessoa.id));
+// Laço resumido: só entre pessoas de fora das famílias (ver api/lacos.ts)
+const deFora = familiasDe(pessoa).length === 0;
+const resumidos = (await listarLacosResumidos()).filter((l) => l.a === pessoa.id || l.b === pessoa.id);
+const podeRemoverResumido = (l: { criadoPor: string | null }) => usuario.admin || l.criadoPor === usuario.pessoa;
+// Quando o caminho completo já existe pela árvore (o irmão do Ed cadastrado como pai do Caio, com os pais
+// dos dois), o atalho sobra: a página oferece a troca
+const pelaArvore = (l: { a: string; b: string }) => {
+  const r = familia.relacao(l.a, l.b);
+  return r && !r.consideracao ? r.texto : undefined;
+};
 const abas = [
   ...(podeLacos
     ? [
@@ -49,12 +59,14 @@ const abas = [
         { valor: 'casal', nome: 'Casal', frase: 'namoro, casamento ou ex' },
       ]
     : []),
-  { valor: 'coracao', nome: 'Do coração', frase: ehMinha ? 'amigo, afilhado, alguém que é como da família' : `entre você e ${chamar}` },
+  { valor: 'coracao', nome: 'Do coração', frase: ehMinha ? 'amigo, afilhado, alguém que é como da família' : `com ${chamar}, de você ou da família toda` },
+  ...(deFora ? [{ valor: 'resumido', nome: 'Parente de amigo', frase: `alguém da família de ${chamar}, sem cadastrar quem fica no meio` }] : []),
 ];
 const papeis = Object.entries(PAPEIS) as [Papel, string][];
 const proximidades = Object.entries(PROXIMIDADES);
 const volta = `/pessoas/${pessoa.id}/editar${recemCadastrada ? '?novo=1' : ''}#lacos`;
-const qualidades = Object.entries(QUALIDADES) as [Qualidade, string][];
+// "De consideração" saiu daqui: agora é o laço do coração que a família toda reconhece
+const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(([id]) => id !== 'consideracao');
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
 const anoAtual = new Date().getFullYear();
 ---
@@ -98,7 +110,7 @@ const anoAtual = new Date().getFullYear();
         </div>
       </div>
 
-      <div data-para="filho-de pai-de casal coracao-meu" hidden>
+      <div data-para="filho-de pai-de casal coracao-meu coracao-familia resumido" hidden>
         <div class="em-linha">
           <label>
             <span>Com quem</span>
@@ -123,7 +135,7 @@ const anoAtual = new Date().getFullYear();
             </select>
           </label>
         </div>
-        <p class="dica">"De consideração" é para quem criou ou é tratado como filho sem ser de sangue nem adotado.</p>
+        <p class="dica">Para quem criou ou é tratado como filho sem ser de sangue nem adotado, use "Do coração" e escolha "A família toda".</p>
       </div>
 
       <div data-para="casal" hidden>
@@ -138,11 +150,15 @@ const anoAtual = new Date().getFullYear();
             <span>Começou em</span>
             <input type="number" name="faseInicio" min="1800" max={anoAtual} inputmode="numeric" />
           </label>
-          <label>
+          <label data-depende="terminou-novo" hidden>
             <span>Terminou em</span>
             <input type="number" name="faseFim" min="1800" max={anoAtual} inputmode="numeric" />
           </label>
         </div>
+        <label class="marcar">
+          <input type="checkbox" name="terminou" data-revela="terminou-novo" />
+          <span>Já terminou</span>
+        </label>
         <p class="dica">Os anos são opcionais. Depois de salvar, dá para contar a história inteira em fases: namoro, noivado, casamento.</p>
         <label class="marcar">
           <input type="checkbox" name="visibilidade" value="privado" />
@@ -150,20 +166,42 @@ const anoAtual = new Date().getFullYear();
         </label>
       </div>
 
-      <div data-para="coracao coracao-meu" hidden>
+      {
+        podeLacos && (
+          <div class="campo" data-para="coracao" hidden>
+            <span id="rotulo-reconhece">Quem reconhece este laço?</span>
+            <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-reconhece">
+              <label class="opcao"><input type="radio" name="reconhece" value="eu" checked /><span>Só eu</span></label>
+              <label class="opcao"><input type="radio" name="reconhece" value="familia" /><span>A família toda</span></label>
+            </div>
+            <p class="dica">
+              {ehMinha ? 'Só eu: o laço é seu, como um amigo-irmão.' : `Só eu: o laço é entre você e ${chamar}.`} A família toda: vira um laço de consideração de {chamar} que vale para os parentes também, como o filho de consideração da sua mãe, que passa a ser seu irmão de consideração.
+            </p>
+          </div>
+        )
+      }
+
+      <div data-para="coracao-familia" hidden>
+        <p class="dica">Para a família toda, o lugar na árvore pode ser filho, pai ou mãe, ou irmão de {chamar}. Tio, avô, primo e sobrinho passam pela pessoa do meio: um tio de consideração é irmão de consideração do pai ou da mãe, e é cadastrado na página dele ou dela.</p>
+      </div>
+
+      <div data-para="coracao" hidden>
+        <label>
+          <span>Lugar na árvore</span>
+          <select name="papel">
+            <option value="">Não aparece na árvore</option>
+            {papeis.map(([id, rotulo]) => <option value={id}>Como se fosse {rotulo}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div data-para="coracao-so-eu" hidden>
         <label class="campo">
           <span>Nome do laço</span>
           <input type="text" name="nomeDoLaco" maxlength="40" autocomplete="off" placeholder="Ex.: amigo-irmão, afilhada, vó de coração" />
           <span class="dica">Do jeito que você chama. É o que a família vê.</span>
         </label>
         <div class="em-linha">
-          <label>
-            <span>Lugar na sua árvore</span>
-            <select name="papel">
-              <option value="">Não aparece na árvore</option>
-              {papeis.map(([id, rotulo]) => <option value={id}>Como se fosse {rotulo}</option>)}
-            </select>
-          </label>
           <label>
             <span>Proximidade</span>
             <select name="proximidade">
@@ -179,7 +217,17 @@ const anoAtual = new Date().getFullYear();
         </label>
       </div>
 
-      <div class="em-linha" data-para="filho-de pai-de casal coracao coracao-meu" hidden>
+      <div data-para="resumido" hidden>
+        <label>
+          <span>É o quê de {chamar}?</span>
+          <select name="papelResumido">
+            {papeis.map(([id, rotulo]) => <option value={id}>{rotulo[0].toUpperCase() + rotulo.slice(1)} de {chamar}</option>)}
+          </select>
+        </label>
+        <p class="dica">Para a família de quem é de fora, como o sobrinho de um amigo: dá para dizer o parentesco sem cadastrar quem fica no meio. Dentro das famílias, o caminho é cadastrado inteiro.</p>
+      </div>
+
+      <div class="em-linha" data-para="filho-de pai-de casal coracao coracao-meu resumido" hidden>
         <button class="botao" type="submit">Adicionar laço</button>
       </div>
     </form>
@@ -227,7 +275,7 @@ const anoAtual = new Date().getFullYear();
                 <strong>{chamar} e {nome(c.outro)}</strong>
                 <span>{estaoJuntos(c.casal) ? 'juntos' : 'não estão mais juntos'}</span>
               </p>
-              {[...c.casal.fases, null].map((fase) => (
+              {[...c.casal.fases, null].map((fase, n) => (
                 <div class="em-linha">
                   <label>
                     <span>{fase ? 'Fase' : 'Nova fase'}</span>
@@ -240,7 +288,11 @@ const anoAtual = new Date().getFullYear();
                     <span>Começou em</span>
                     <input type="number" name="faseInicio" min="1800" max={anoAtual} inputmode="numeric" value={fase?.inicioAno ?? ''} />
                   </label>
-                  <label>
+                  <label class="marcar marcar--em-linha">
+                    <input type="checkbox" data-revela={`fim-${c.casal.id}-${n}`} checked={Boolean(fase?.fimAno)} />
+                    <span>Terminou</span>
+                  </label>
+                  <label data-depende={`fim-${c.casal.id}-${n}`} hidden={!fase?.fimAno}>
                     <span>Terminou em</span>
                     <input type="number" name="faseFim" min="1800" max={anoAtual} inputmode="numeric" value={fase?.fimAno ?? ''} />
                   </label>
@@ -257,6 +309,34 @@ const anoAtual = new Date().getFullYear();
               <input type="hidden" name="id" value={c.casal.id} />
             </form>
           ))}
+        </>
+      )
+    }
+
+    {
+      resumidos.length > 0 && (
+        <>
+          <h3>Parentes de fora das famílias</h3>
+          <ul class="linhas">
+            {resumidos.map((l) => (
+              <li>
+                <div>
+                  <strong>{nome(l.a === pessoa.id ? l.b : l.a)}</strong>
+                  <span>{l.a === pessoa.id ? `é ${nomeDoPapel(l.papel, integrantes.find((i) => i.id === l.b)?.tratamento ?? null)} de ${chamar}` : `${chamar} é ${nomeDoPapel(l.papel, pessoa.tratamento)} de ${nome(l.a)}`}</span>
+                  {pelaArvore(l) && (
+                    <span class="dica">O caminho completo já está cadastrado: pela árvore, {nome(l.b)} é {pelaArvore(l)} de {nome(l.a)}. Este atalho não é mais preciso.</span>
+                  )}
+                </div>
+                {(podeRemoverResumido(l) || (pelaArvore(l) && podeLacos)) && (
+                  <form method="post" action="/api/lacos" class="em-linha">
+                    <input type="hidden" name="volta" value={volta} />
+                    <input type="hidden" name="id" value={l.id} />
+                    <button class="botao botao--leve" type="submit" name="acao" value="resumido-remover">{pelaArvore(l) ? 'Trocar pelo caminho completo' : 'Remover laço'}</button>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>
         </>
       )
     }
@@ -327,8 +407,13 @@ const anoAtual = new Date().getFullYear();
     };
     const minha = form.dataset.minha === 'sim';
     const aplicar = () => {
-      // Na própria página, o laço do coração também pede "com quem"
-      const chaves = seletor.value === 'coracao' && minha ? ['coracao', 'coracao-meu'] : [seletor.value];
+      // Na própria página, o laço do coração também pede "com quem". Quando a família toda reconhece,
+      // o laço é entre a pessoa da página e outra, então "com quem" aparece em qualquer página.
+      const daFamilia = form.querySelector<HTMLInputElement>('input[name="reconhece"]:checked')?.value === 'familia';
+      const chaves =
+        seletor.value === 'coracao'
+          ? ['coracao', daFamilia ? 'coracao-familia' : 'coracao-so-eu', ...(minha && !daFamilia ? ['coracao-meu'] : [])]
+          : [seletor.value];
       for (const bloco of form.querySelectorAll<HTMLElement>('[data-para]')) {
         const mostra = Boolean(seletor.value) && bloco.dataset.para!.split(' ').some((c) => chaves.includes(c));
         bloco.hidden = !mostra;
@@ -336,6 +421,20 @@ const anoAtual = new Date().getFullYear();
       }
     };
     grupo.addEventListener('change', aplicar);
+    for (const r of form.querySelectorAll('input[name="reconhece"]')) r.addEventListener('change', aplicar);
     aplicar();
+  }
+
+  // "Já terminou" e "Terminou": a data de fim só aparece quando a fase acabou. Desmarcar apaga a data.
+  for (const caixa of document.querySelectorAll<HTMLInputElement>('[data-revela]')) {
+    const alvo = document.querySelector<HTMLElement>(`[data-depende="${caixa.dataset.revela}"]`);
+    if (!alvo) continue;
+    const campo = alvo.querySelector<HTMLInputElement>('input');
+    const aplicarFim = () => {
+      alvo.hidden = !caixa.checked;
+      if (!caixa.checked && campo) campo.value = '';
+    };
+    caixa.addEventListener('change', aplicarFim);
+    aplicarFim();
   }
 </script>

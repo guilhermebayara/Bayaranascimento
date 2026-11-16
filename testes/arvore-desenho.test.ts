@@ -291,3 +291,46 @@ describe('escadinha: o laço do coração passa pelo parente mais próximo', () 
   });
 });
 
+
+describe('laço resumido: o parente de quem é de fora das famílias', () => {
+  // O Ed é amigo-irmão do Gui; o Caio é sobrinho de sangue do Ed, sem o irmão do Ed cadastrado,
+  // e o Gui considera o Caio sobrinho também
+  const coracao = [
+    { dono: 'gui', pessoa: 'ed' },
+    { dono: 'gui', pessoa: 'caio-do-ed' },
+    { dono: 'ed', pessoa: 'caio-do-ed', sangue: true },
+  ];
+
+  it('o laço do Gui com o Caio passa pelo Ed', () => {
+    expect(passaPor(coracao[1], coracao, [])).toBe('ed');
+  });
+
+  it('o laço resumido nunca passa por ninguém', () => {
+    expect(passaPor(coracao[2], coracao, [])).toBeUndefined();
+  });
+
+  it('a linha do Caio sai do Ed, com traço de sangue, e não há linha do Gui até ele', () => {
+    const d = desenharArvore(
+      [p('elizete', 0), p('gui', 1), p('ed', 1), p('caio-do-ed', 2)],
+      [],
+      filho('gui', 'elizete'),
+      coracao,
+    );
+    const ligam = (a: string, b: string) => d.linhas.filter((l) => l.de.includes(a) && l.de.includes(b)).map((l) => l.tipo);
+    expect(ligam('ed', 'caio-do-ed')).toEqual(['resumido']);
+    expect(ligam('gui', 'caio-do-ed')).toEqual([]);
+    expect(ligam('gui', 'ed')).toEqual(['coracao']);
+  });
+});
+
+describe('bichos', () => {
+  it('a linha dos pais até um bicho tem traço próprio, e a dos filhos não muda', () => {
+    const d = desenharArvore(
+      [p('giovanna', 0), p('lucas-magno', 0), p('bebe', 1), { id: 'chico', geracao: 1, bicho: true }],
+      [casal('giovanna', 'lucas-magno')],
+      [...filho('bebe', 'giovanna', 'lucas-magno'), ...filho('chico', 'giovanna', 'lucas-magno')],
+    );
+    expect(d.linhas.find((l) => l.de.includes('chico') && l.tipo !== 'ponto')?.tipo).toBe('bicho');
+    expect(d.linhas.find((l) => l.tipo === 'filhos')?.de).not.toContain('chico');
+  });
+});

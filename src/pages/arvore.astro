@@ -7,10 +7,10 @@
 // - camadas: consideração e coração, ex-casais, bichos.
 import Base from '../layouts/Base.astro';
 import { anosDeVida } from '../lib/datas';
-import { Familia, estaoJuntos, lacoParaODono, possessivo, type Tratamento } from '../lib/parentesco';
+import { Familia, estaoJuntos, lacoParaODono, nomeDoPapel, possessivo, type Tratamento } from '../lib/parentesco';
 import type { DadosDaArvore } from '../lib/cliente/arvore';
 import { comLacoDeArvore } from '../lib/arvore-montagem';
-import { listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarNucleos, pessoasEmLacosPrivadosDeOutros } from '../lib/servidor/repositorio';
+import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarNucleos, pessoasEmLacosPrivadosDeOutros } from '../lib/servidor/repositorio';
 
 // De quem é a linha direta mostrada quando a árvore abre: os três que unem os núcleos.
 // Quem quiser parte de outra pessoa pelo seletor "Partir de" ou pela ficha.
@@ -29,6 +29,7 @@ const lacos = await listarLacosDoCoracao(usuario);
 const soEmPrivados = await pessoasEmLacosPrivadosDeOutros(usuario);
 const temLacoVisivel = new Set([...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
 const integrantes = todos.filter((i) => !soEmPrivados.has(i.id) || temLacoVisivel.has(i.id));
+const resumidos = (await listarLacosResumidos()).filter((r) => integrantes.some((i) => i.id === r.a) && integrantes.some((i) => i.id === r.b));
 const centros = CENTROS_PADRAO.filter((id) => integrantes.some((i) => i.id === id));
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const familia = new Familia(filiacoes, casais, tratamentos);
@@ -47,9 +48,11 @@ const dados: DadosDaArvore = {
   eu: usuario.pessoa,
   centros,
   nucleos: nucleos.map((n) => ({ id: n.id, nome: n.nome })),
-  pessoas: integrantes.map((i) => ({ id: i.id, nome: i.apelido ?? i.nome, rotulo: rotulo(i.id), nucleos: i.nucleos, bicho: i.tipo === 'bicho', anos: anosDeVida(i) })),
+  // Na árvore, membro e parente de uma família aparecem iguais: a cor e o lado vêm das duas coisas
+  pessoas: integrantes.map((i) => ({ id: i.id, nome: i.apelido ?? i.nome, rotulo: rotulo(i.id), nucleos: familiasDe(i), bicho: i.tipo === 'bicho', especie: i.especie, anos: anosDeVida(i) })),
   filiacoes: filiacoes.map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })),
   casais: casais.filter((c) => c.fases.length > 0).map((c) => ({ a: c.a, b: c.b, ex: !estaoJuntos(c) })),
+  resumidos: resumidos.map((r) => ({ a: r.a, b: r.b, papel: r.papel, rotulo: `${nomeDoPapel(r.papel, achar(r.b)?.tratamento ?? null)} de ${chamar(r.a)}` })),
   coracao: lacos.map((l) => ({
     dono: l.dono,
     pessoa: l.pessoa,
@@ -124,6 +127,7 @@ const comLaco = comLacoDeArvore(dados);
         <li><i class="amostra amostra--ex"></i> não estão mais juntos</li>
         <li><i class="amostra amostra--filhos"></i> pais e filhos</li>
         <li><i class="amostra amostra--coracao"></i> consideração ou coração</li>
+        <li><i class="amostra amostra--bicho"></i> bichos da família</li>
         <li><b class="amostra-botao">♥ 2</b> abre os laços do coração de alguém</li>
         </ul>
       </details>

@@ -139,3 +139,36 @@ describe('laço do coração sem "como se fosse"', () => {
     expect(desenho.linhas.some((l) => l.tipo === 'coracao' && l.de.includes('x-amigo'))).toBe(true);
   });
 });
+
+describe('laço resumido na montagem', () => {
+  const comEd: DadosDaArvore = {
+    ...dados,
+    pessoas: [
+      ...dados.pessoas,
+      { id: 'ed', nome: 'Ed', rotulo: '', nucleos: [], bicho: false, anos: '' },
+      { id: 'caio-do-ed', nome: 'Caio', rotulo: '', nucleos: [], bicho: false, anos: '' },
+    ],
+    coracao: [...dados.coracao, { dono: 'gui', pessoa: 'ed', papel: 'irmao', rotulo: 'seu amigo-irmão' }],
+    resumidos: [{ a: 'ed', b: 'caio-do-ed', papel: 'sobrinho', rotulo: 'sobrinho de Ed' }],
+  };
+
+  it('o sobrinho do Ed entra na árvore junto com o Ed, uma geração abaixo', () => {
+    const { geracoes, principal } = montarDesenho(comEd, estado(['gui']));
+    expect(principal.has('caio-do-ed')).toBe(true);
+    expect(geracoes.get('caio-do-ed')).toBe(geracoes.get('ed')! + 1);
+  });
+
+  it('sem o laço do Gui aberto, nem o Ed nem o sobrinho aparecem', () => {
+    const { principal } = montarDesenho(comEd, estado([]));
+    expect(principal.has('ed')).toBe(false);
+    expect(principal.has('caio-do-ed')).toBe(false);
+  });
+
+  it('o laço resumido não depende da camada de consideração do sobrinho para o tio', () => {
+    // O tio entra pela geração do sobrinho, quando é o sobrinho que já está na árvore
+    const inverso: DadosDaArvore = { ...comEd, coracao: [...dados.coracao, { dono: 'gui', pessoa: 'caio-do-ed', papel: 'sobrinho', rotulo: 'seu sobrinho' }] };
+    const { geracoes, principal } = montarDesenho(inverso, estado(['gui']));
+    expect(principal.has('ed')).toBe(true);
+    expect(geracoes.get('ed')).toBe(geracoes.get('caio-do-ed')! - 1);
+  });
+});
