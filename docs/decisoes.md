@@ -207,6 +207,7 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     3. **Todas as telas,** uma a uma, sem levar nada do CSS antigo, até `src/styles/global.css` poder ser apagado. A árvore muda só de aparência; os testes dela continuam passando sem mudança.
     4. **Movimento e detalhes,** por último, só os de `docs/visual.md`.
     5. **QA visual** no celular de verdade antes do PR para a `homologa`.
+  **Andamento:** a fase 1 foi construída em 16/11/2026 na `tst-visual`, em `/conceito`, e espera a aprovação do Gui e a escolha das fontes (`docs/visual.md`, "Conceito (fase 1), em aprovação").
   `npm run capturas` serve para registrar antes e depois de cada tela. A polaroid em toda foto-chave fica para o Gui confirmar vendo a linha do tempo pronta. Ao terminar, o resumo de `docs/visual.md` vira regra aqui, e `docs/ux/revisao-visual.md` e `docs/ux/padroes.md` saem de cena.
 - **Painel pessoal como página inicial** (ideia do Gui de 15/11/2026, decisões de 16/11/2026). A parte funcional pode ser construída antes da revisão visual, numa branch própria e com a aparência mínima, como a foto de retrato (já construída: ver "Foto de retrato" em "Integrantes e laços de árvore"). A tela final é desenhada no conceito da revisão.
     - O painel substitui a linha do tempo como página inicial (`/`). A linha do tempo continua inteira no seu endereço e no menu.

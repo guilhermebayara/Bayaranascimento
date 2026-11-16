@@ -62,6 +62,49 @@ O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
 - **Detalhe pequeno que se nota.** Como o nome do topo do bayara, que se preenche quando o nome grande sai da tela. Um ou dois no site, nunca em toda parte.
 - **Celular primeiro, desktop de destaque.** A família vai usar quase só no celular, então cada tela nasce em 390 px. O desktop é o momento especial, a versão de ver juntos na TV: cada tela ganha composição própria em tela grande (de 1280 a 1920 px), com fotos grandes e tipo de capa, e nunca é o celular esticado.
 
+## Conceito (fase 1), em aprovação
+
+Construído em 16/11/2026 na branch `tst-visual`. Espera a aprovação do Gui na prévia. Até lá, nada daqui é regra: é proposta.
+
+**Onde está.** As telas do conceito ficam em `/conceito`, ao lado do site atual, que continua inteiro:
+
+| Tela | Endereço |
+| --- | --- |
+| Carta da primeira visita | `/conceito?visita=primeira` |
+| Painel, numa visita seguinte | `/conceito` |
+| Linha do tempo (Tudo e cada família) | `/conceito/tudo` |
+| Memória | `/conceito/memorias/<id>` |
+| Fontes, assinatura, cores e peças lado a lado | `/conceito/sobre` |
+
+A faixa do alto (só nas prévias e no computador) troca de tela, de combinação de fontes e de pessoa. As rotas respondem 404 na produção e na homologação, porque o painel usa dados fixos de exemplo (`src/lib/servidor/conceito.ts`, conferido pela guarda da produção).
+
+**Código.** O CSS novo está em `src/visual/` e não importa nada de `src/styles/global.css`: `tokens.css`, `fontes.css`, `base.css`, `pecas.css`, `estrutura.css` e um arquivo por tela em `telas/`. O esqueleto é `src/layouts/Visual.astro`, as peças com marcação própria ficam em `src/components/visual/` e as funções puras em `src/lib/visual.ts`. Os testes estão em `testes/visual.test.ts`: cor só em `tokens.css`, fonte só em `fontes.css`, nenhum token antigo, toque de 44 px, e `sticky` novo só com cursor.
+
+**Combinações de fontes para escolher** (todas de licença livre, pelo Fontsource, com acentos e itálico conferidos em português):
+
+| | Serifa | Grotesca | Mono | Manuscrita | Caráter |
+| --- | --- | --- | --- | --- | --- |
+| A, Macia | Fraunces | Geist | Geist Mono | Oooh Baby | A mais próxima de Recoleta. Corresponde ao desenho normal do rascunho da assinatura |
+| B, Editorial | Instrument Serif | Instrument Sans | IBM Plex Mono | Reenie Beanie | Condensada, de revista. A grotesca é a mesma do bayara.design. Corresponde ao desenho condensado |
+| C, De cartaz | DM Serif Display | DM Sans | DM Mono | Nothing You Could Do | Pesada, de cartaz. Corresponde ao desenho em negrito |
+
+Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de outra.
+
+**O que o conceito propõe e espera decisão:**
+
+- **Cores.** Papel `#f4f1ec` e tinta `#1d1a16`. "Tudo" em manteiga, Bayara em pêssego, Bayara Bracarense em lilás, Bracarense em azul, cada uma com pastel, vivo e tinta (o vivo escurecido, para o carimbo). Os valores estão em `src/visual/tokens.css`.
+- **Polaroid.** Foto quadrada, moldura de 5 px de raio em vez dos 12 px das referências, para parecer foto revelada e não cartão de aplicativo. Aparece em toda foto-chave da linha do tempo: é a confirmação que faltava ("Decisões", linha "Polaroid").
+- **Linha do tempo no computador.** O ano fica parado na coluna da esquerda enquanto as memórias dele passam, e cada memória é uma página dupla, foto de um lado e texto do outro. A assinatura ocupa dois terços da largura, para o ano mais recente aparecer na primeira tela.
+- **Menu.** No celular, "Menu" abre uma sanfona que empurra a página, sem tela por cima e sem script. A linha do tempo de cada família saiu do menu e foi para o alto da linha do tempo ("Tudo", "Bayara"). O menu ganhou "Início".
+- **Textos novos**, que ainda não existiam: "Oi, Gui.", "Entraram duas memórias e um relato desde a sua última visita.", "Você estava lá e ainda não contou", "Ver a linha do tempo inteira", "Abrir o acervo" (o botão da carta) e, no convite do fim da memória, "Cada pessoa conta o dia do jeito que lembra.".
+- **Monograma.** No celular, o "M" do topo é a letra da serifa, provisória. O desenho em SVG é da fase 2.
+
+**O que é fixo de exemplo no painel**, porque a parte funcional ainda não existe: o texto da carta, as datas das visitas, quais memórias e qual relato contam como novos e as datas e idades dos aniversários. Memórias, fotos, relatos, retratos, parentesco e a contagem de "Você no acervo" são lidos do acervo de exemplo, com a visibilidade de quem olha.
+
+**O que ficou de fora de propósito:** os efeitos da fase 4 (a frase que acende, a foto que amplia no lugar; hoje a foto abre o arquivo), o tocador de áudio próprio (o bloco usa o do aparelho) e as outras telas, que continuam com o visual antigo. Os links do conceito para capítulos, pessoas, árvore e formulários caem nelas.
+
+**Capturas.** `CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>` tira as quatro telas nas três combinações, em 390, 1280 e 1920 px, com movimento reduzido. As de 16/11/2026 estão em `docs/visual/conceito/` (a linha do tempo, cortada em 9000 px de altura).
+
 ## Referências
 
 | Ref | O que levar |

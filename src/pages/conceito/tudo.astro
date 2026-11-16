@@ -1,0 +1,247 @@
+---
+// Conceito da revisão visual: a linha do tempo ("Tudo" e cada família).
+// A ideia da tela: a assinatura grande e logo o ano mais recente abrindo a lista; o ano como
+// divisória de fichário e as fotos-chave como polaroids. A ficha de cada memória fica numa linha mono.
+import '../../visual/telas/linha.css';
+import Visual from '../../layouts/Visual.astro';
+import Assinatura from '../../components/visual/Assinatura.astro';
+import Polaroid from '../../components/visual/Polaroid.astro';
+import { agruparPorAno, maisRecentesPrimeiro } from '../../lib/datas';
+import { tipoDaMemoria } from '../../lib/tipos';
+import { conceitoDisponivel, naoEncontrado } from '../../lib/servidor/conceito';
+import { listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
+import { diaMesCurto, familiaDaTela, legendaLugarAno, listaCurta, sobrenomesDaAssinatura } from '../../lib/visual';
+
+if (!conceitoDisponivel()) return naoEncontrado();
+
+const { usuario, tipos } = Astro.locals;
+const nucleos = await listarNucleos();
+const pedido = Astro.url.searchParams.get('nucleo');
+// Só dá para abrir a linha do tempo de um núcleo de que a pessoa faz parte
+const nucleo = nucleos.find((n) => n.id === pedido && usuario.nucleos.includes(n.id));
+const meusNucleos = nucleos.filter((n) => usuario.nucleos.includes(n.id));
+const memorias = await listarMemorias(usuario, { nucleo: nucleo?.id });
+const integrantes = await listarIntegrantes();
+const nomeDe = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome;
+
+// Mais recentes primeiro: rolar a página leva ao passado
+const anos = agruparPorAno(maisRecentesPrimeiro(memorias));
+const decadaDe = (ano: number) => Math.floor(ano / 10) * 10;
+const decadas = [...new Set(anos.map((a) => decadaDe(a.ano)))];
+const primeiroDaDecada = new Set(decadas.map((d) => anos.find((a) => decadaDe(a.ano) === d)!.ano));
+const tiposPresentes = tipos.filter((t) => memorias.some((m) => m.tipo === t.id));
+
+const primeiro = memorias[0]?.ano;
+const ultimo = memorias.at(-1)?.ano;
+const quantas = `${memorias.length} ${memorias.length === 1 ? 'memória' : 'memórias'}`;
+const periodo = primeiro && ultimo && primeiro !== ultimo ? `de ${primeiro} a ${ultimo}` : primeiro ? `em ${primeiro}` : '';
+
+// A assinatura acompanha o que está sendo visto: em "Tudo", todas as famílias
+const sobrenomes = sobrenomesDaAssinatura(nucleo ? [nucleo.nome] : nucleos.map((n) => n.nome));
+const familia = familiaDaTela(nucleo ? [nucleo.id] : [], nucleos.map((n) => n.id));
+const primeiraMemoria = anos[0]?.itens[0]?.id;
+---
+
+<Visual titulo={nucleo?.nome ?? 'Linha do tempo'} secao="linha" familia={familia} sobrenomes={sobrenomes}>
+  <div class="linha" data-linha-do-tempo>
+    <header class="linha__capa miolo">
+      <Assinatura titulo sobrenomes={sobrenomes} />
+      <div class="linha__resumo">
+        <p class="rotulo">{memorias.length === 0 ? 'As memórias da nossa família' : [quantas, periodo].filter(Boolean).join(' · ')}</p>
+        {
+          meusNucleos.length > 0 && (
+            <nav class="linha__familias" aria-label="Famílias">
+              <a href="/conceito/tudo" aria-current={!nucleo ? 'page' : undefined}>
+                Tudo
+              </a>
+              {meusNucleos.map((n) => (
+                <a href={`/conceito/tudo?nucleo=${n.id}`} aria-current={nucleo?.id === n.id ? 'page' : undefined}>
+                  {n.nome}
+                </a>
+              ))}
+            </nav>
+          )
+        }
+      </div>
+      {
+        tiposPresentes.length > 1 && (
+          <details class="filtros">
+            <summary>
+              <span>Filtrar por tipo</span>
+            </summary>
+            <ul aria-label="Filtrar por tipo de momento">
+              <li>
+                <button type="button" data-filtro="" aria-pressed="true">
+                  Tudo
+                </button>
+              </li>
+              {tiposPresentes.map((t) => (
+                <li>
+                  <button type="button" data-filtro={t.id} aria-pressed="false" style={`--tipo-cor: ${t.cor}`}>
+                    <span class="ponto" />
+                    {t.rotulo}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )
+      }
+    </header>
+
+    {
+      decadas.length > 1 && (
+        <nav class="decadas" aria-label="Ir para a década">
+          <ul class="miolo">
+            {decadas.map((d) => (
+              <li data-decada={d}>
+                <a href={`#decada-${d}`}>{d}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
+
+    {memorias.length === 0 && <p class="linha__vazio miolo t-abertura serifa">Ainda não há memórias aqui.</p>}
+
+    {
+      anos.map(({ ano, itens }) => (
+        <>
+          {primeiroDaDecada.has(ano) && <div class="decada__ancora" id={`decada-${decadaDe(ano)}`} />}
+          <section class="ano miolo grade" aria-labelledby={`ano-${ano}`} data-decada={decadaDe(ano)}>
+            <header class="ano__cabeca">
+              <h2 class="ano__numero" id={`ano-${ano}`}>
+                {ano}
+              </h2>
+              <p class="rotulo suave" data-contagem>
+                {itens.length} {itens.length === 1 ? 'memória' : 'memórias'}
+              </p>
+            </header>
+            <div class="ano__itens">
+              {itens.map((m) => {
+                const tipo = tipoDaMemoria(tipos, m);
+                const nomes = m.integrantes.map(nomeDe).filter((n): n is string => Boolean(n));
+                const restritaA = m.visibilidade === 'nucleos' ? m.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean) : [];
+                const destino = m.situacao === 'rascunho' ? `/nova?id=${m.id}` : `/conceito/memorias/${m.id}`;
+                const comFoto = m.fotos.length > 0;
+                const quando = diaMesCurto(m);
+                return (
+                  <article
+                    class:list={['entrada', comFoto ? 'entrada--com-foto' : 'entrada--so-texto']}
+                    data-tipo={m.tipo}
+                    data-em-leitura={m.id === primeiraMemoria ? '' : undefined}
+                    style={`--tipo-cor: ${tipo.cor}`}
+                  >
+                    <span class="entrada__ponto" aria-hidden="true" />
+                    <p class="entrada__quando rotulo">
+                      {quando && <span>{quando}</span>}
+                      <span>{tipo.rotulo}</span>
+                      {m.aproximada && <span>data aproximada</span>}
+                    </p>
+                    {comFoto && (
+                      <div class="entrada__foto">
+                        <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo={m.id === primeiraMemoria} />
+                      </div>
+                    )}
+                    <div class="entrada__texto">
+                      <h3 class="entrada__titulo">
+                        <a href={destino}>{m.titulo}</a>
+                      </h3>
+                      <p class="entrada__ficha ficha suave">
+                        {!comFoto && m.lugar && <span>{m.lugar}</span>}
+                        {nomes.length > 0 && <span>{listaCurta(nomes)}</span>}
+                        {m.relatos > 0 && (
+                          <span>
+                            {m.relatos} {m.relatos === 1 ? 'relato' : 'relatos'}
+                          </span>
+                        )}
+                        {m.fotos.length > 1 && <span>{m.fotos.length} fotos</span>}
+                        {restritaA.length > 0 && <span>só {restritaA.join(' e ')}</span>}
+                        {m.situacao === 'rascunho' && <span>rascunho</span>}
+                        {m.exemplo && <span>exemplo</span>}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </>
+      ))
+    }
+  </div>
+</Visual>
+
+<script>
+  // O filtro por tipo e a década da barra, como na linha do tempo de hoje. O ponto do trilho
+  // acompanha a memória em leitura. Sem script, a lista inteira aparece e nada disso faz falta.
+  const raiz = document.querySelector<HTMLElement>('[data-linha-do-tempo]');
+  if (raiz) {
+    const botoes = [...raiz.querySelectorAll<HTMLButtonElement>('[data-filtro]')];
+    const validos = new Set(botoes.map((b) => b.dataset.filtro));
+
+    const aplicar = (tipo: string) => {
+      for (const b of botoes) b.setAttribute('aria-pressed', String(b.dataset.filtro === tipo));
+      for (const secao of raiz.querySelectorAll<HTMLElement>('.ano')) {
+        let visiveis = 0;
+        for (const entrada of secao.querySelectorAll<HTMLElement>('.entrada')) {
+          const mostra = !tipo || entrada.dataset.tipo === tipo;
+          entrada.hidden = !mostra;
+          if (mostra) visiveis++;
+        }
+        secao.hidden = visiveis === 0;
+        const contagem = secao.querySelector('[data-contagem]');
+        if (contagem) contagem.textContent = `${visiveis} ${visiveis === 1 ? 'memória' : 'memórias'}`;
+      }
+      // Década sem nenhuma memória do tipo escolhido sai da barra de salto
+      for (const item of raiz.querySelectorAll<HTMLElement>('.decadas [data-decada]')) {
+        item.hidden = !raiz.querySelector(`.ano[data-decada="${item.dataset.decada}"]:not([hidden])`);
+      }
+    };
+
+    for (const b of botoes) {
+      b.addEventListener('click', () => {
+        const tipo = b.dataset.filtro ?? '';
+        aplicar(tipo);
+        const url = new URL(location.href);
+        if (tipo) url.searchParams.set('tipo', tipo);
+        else url.searchParams.delete('tipo');
+        history.replaceState(null, '', url);
+      });
+    }
+
+    const inicial = new URLSearchParams(location.search).get('tipo') ?? '';
+    if (inicial && validos.has(inicial)) {
+      aplicar(inicial);
+      raiz.querySelector<HTMLDetailsElement>('details.filtros')?.setAttribute('open', '');
+    }
+
+    // A memória em leitura e a década dela: a que cruza o meio da tela
+    if ('IntersectionObserver' in window) {
+      const entradas = [...raiz.querySelectorAll<HTMLElement>('.entrada')];
+      const itensDaBarra = [...raiz.querySelectorAll<HTMLElement>('.decadas [data-decada]')];
+      const marcar = (atual: HTMLElement) => {
+        for (const e of entradas) e.toggleAttribute('data-em-leitura', e === atual);
+        const decada = atual.closest<HTMLElement>('.ano')?.dataset.decada;
+        for (const item of itensDaBarra) item.toggleAttribute('data-aqui', item.dataset.decada === decada);
+      };
+      const observador = new IntersectionObserver(
+        (vistas) => {
+          const noMeio = vistas.filter((v) => v.isIntersecting).at(-1);
+          if (noMeio) marcar(noMeio.target as HTMLElement);
+        },
+        { rootMargin: '-45% 0px -45% 0px' },
+      );
+      for (const e of entradas) observador.observe(e);
+      // De volta ao alto da página, a memória em leitura é a primeira
+      addEventListener(
+        'scroll',
+        () => {
+          if (scrollY < innerHeight / 2 && entradas[0] && !entradas[0].hasAttribute('data-em-leitura')) marcar(entradas[0]);
+        },
+        { passive: true },
+      );
+    }
+  }
+</script>

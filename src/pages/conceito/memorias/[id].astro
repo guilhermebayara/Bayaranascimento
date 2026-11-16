@@ -1,0 +1,341 @@
+---
+// Conceito da revisão visual: a página da memória.
+// A ideia da tela: a foto e o verso. A frente é a imagem grande; o verso é a ficha em mono, como
+// o carimbo do laboratório, e os relatos como bilhetes assinados à mão. A ordem é a de docs/visual.md.
+import '../../../visual/telas/memoria.css';
+import Visual from '../../../layouts/Visual.astro';
+import Polaroid from '../../../components/visual/Polaroid.astro';
+import { dentroDoPeriodo } from '../../../lib/capitulos';
+import { tipoDaMemoria } from '../../../lib/tipos';
+import { formatarData } from '../../../lib/datas';
+import { duracaoEmTexto } from '../../../lib/audios';
+import { Familia, possessivo, type Tratamento } from '../../../lib/parentesco';
+import { enderecoDoRetrato, iniciais } from '../../../lib/retratos';
+import { conceitoDisponivel, naoEncontrado } from '../../../lib/servidor/conceito';
+import { podeEditarMemoria, podeExcluirMemoria } from '../../../lib/servidor/permissoes';
+import {
+  familiasDe,
+  listarAudiosDosRelatos,
+  listarCapitulos,
+  listarCasais,
+  listarFiliacoes,
+  listarIntegrantes,
+  listarMemorias,
+  listarNucleos,
+  listarRelatos,
+  listarTemas,
+  obterMemoria,
+  pessoasQueONaoVe,
+} from '../../../lib/servidor/repositorio';
+import { carimboDaData, familiaDaTela, legendaLugarAno, sobrenomesDaAssinatura, trechoDoRelato } from '../../../lib/visual';
+
+if (!conceitoDisponivel()) return naoEncontrado();
+
+const { usuario, tipos } = Astro.locals;
+const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
+// Rascunho se edita no formulário. Memória que a pessoa não vê é como se não existisse.
+if (!memoria) return new Response('Memória não encontrada', { status: 404 });
+if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.id}`);
+
+const integrantes = await listarIntegrantes();
+const nucleos = await listarNucleos();
+const ordemDosNucleos = nucleos.map((n) => n.id);
+const relatos = await listarRelatos(usuario, memoria.id);
+const audiosDosRelatos = await listarAudiosDosRelatos(relatos.map((r) => r.id));
+const achar = (id: string) => integrantes.find((i) => i.id === id);
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+
+// Retratos em "Quem estava": só de quem a pessoa vê. Sem retrato, as iniciais sobre a cor da família.
+const naoVe = memoria.integrantes.length ? await pessoasQueONaoVe(usuario) : new Set<string>();
+const retratoDe = (id: string) => {
+  const pessoa = achar(id);
+  return pessoa?.retrato && !naoVe.has(id) ? enderecoDoRetrato(pessoa.retrato) : null;
+};
+const familiaDe = (id: string) => {
+  const pessoa = achar(id);
+  const indice = pessoa ? ordemDosNucleos.findIndex((n) => familiasDe(pessoa).includes(n)) : -1;
+  return indice >= 0 ? String(indice % 4) : 'tudo';
+};
+// O parentesco do ponto de vista de quem olha: "sua avó"
+const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
+const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
+const paraVoce = (id: string) => {
+  if (id === usuario.pessoa) return 'você';
+  const relacao = familia.relacao(usuario.pessoa, id);
+  return relacao ? possessivo(relacao, achar(id)?.tratamento ?? null) : undefined;
+};
+
+const tipo = tipoDaMemoria(tipos, memoria);
+const dosNucleos = memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n));
+const podeEditar = podeEditarMemoria(usuario, memoria).ok;
+const podeExcluir = podeExcluirMemoria(usuario, memoria).ok;
+// Capítulos: os reunidos em que foi colocada e os de época em que a data cai
+const capitulos = (await listarCapitulos(usuario)).filter((c) =>
+  c.modo === 'reunido' ? memoria.capitulos.includes(c.id) : Boolean(c.inicio) && dentroDoPeriodo(memoria, c.inicio!, c.fim),
+);
+const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
+const temMeuRelato = relatos.some((r) => r.por === usuario.pessoa);
+const textoDaAcao = temMeuRelato ? 'Editar meu relato' : 'Escrever meu relato';
+
+// O trecho da abertura vem do primeiro relato publicado que tem texto
+const relatoDaAbertura = relatos.find((r) => r.situacao === 'publicada' && r.texto.trim());
+const trecho = relatoDaAbertura ? trechoDoRelato(relatoDaAbertura.texto) : undefined;
+
+// Vizinhas na linha do tempo, entre as que a pessoa vê
+const todas = await listarMemorias(usuario);
+const posicao = todas.findIndex((m) => m.id === memoria.id);
+const antes = todas[posicao - 1];
+const depois = todas[posicao + 1];
+
+// A cor e a assinatura acompanham os núcleos da memória; aberta a todos, as famílias juntas
+const corDaTela = familiaDaTela(memoria.visibilidade === 'nucleos' ? memoria.nucleos : [], ordemDosNucleos);
+const sobrenomes = sobrenomesDaAssinatura(dosNucleos.length ? dosNucleos : nucleos.map((n) => n.nome));
+const outrasFotos = memoria.fotos.length > 1;
+---
+
+<Visual titulo={memoria.titulo} familia={corDaTela} sobrenomes={sobrenomes}>
+  <article class="memoria">
+    <header class:list={['abre miolo grade', memoria.fotos.length === 0 && 'abre--sem-foto']}>
+      <div class="abre__texto">
+        <p class="abre__sobre">
+          <span class="carimbo">
+            <span>{carimboDaData(memoria)}</span>
+            {memoria.lugar && <span>{memoria.lugar}</span>}
+          </span>
+          {memoria.visibilidade === 'nucleos' && <span class="selo">Só {dosNucleos.join(' e ')}</span>}
+          {memoria.exemplo && <span class="selo">exemplo</span>}
+        </p>
+        <h1 class="t-1">{memoria.titulo}</h1>
+        {
+          trecho && relatoDaAbertura && (
+            <blockquote class="abre__trecho">
+              <p class="serifa t-abertura">“{trecho}”</p>
+              <footer>
+                <span class="mao">{nome(relatoDaAbertura.por)}</span>
+              </footer>
+            </blockquote>
+          )
+        }
+        {/* Atalho pequeno no alto para quem chega querendo contar; o convite grande fica no fim */}
+        <p class="abre__atalho">
+          <a class="acao" href={`/memorias/${memoria.id}/relato`}>
+            {textoDaAcao}
+          </a>
+        </p>
+      </div>
+      {
+        memoria.fotos.length > 0 && (
+          <div class="abre__foto">
+            <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} cedo />
+          </div>
+        )
+      }
+    </header>
+
+    <div class="corpo grade">
+      <aside class="dados" aria-label="Ficha da memória">
+        <dl class="dados__lista">
+          <div>
+            <dt>Quando</dt>
+            <dd>{formatarData(memoria)}</dd>
+          </div>
+          {
+            memoria.lugar && (
+              <div>
+                <dt>Onde</dt>
+                <dd>{memoria.lugar}</dd>
+              </div>
+            )
+          }
+          <div>
+            <dt>Tipo</dt>
+            <dd>
+              <span class="etiqueta" style={`--tipo-cor: ${tipo.cor}`}>
+                {tipo.rotulo}
+              </span>
+            </dd>
+          </div>
+          {
+            capitulos.length > 0 && (
+              <div>
+                <dt>{capitulos.length === 1 ? 'Capítulo' : 'Capítulos'}</dt>
+                <dd>
+                  {capitulos.map((c) => (
+                    <a href={`/capitulos/${c.id}`}>{c.titulo}</a>
+                  ))}
+                </dd>
+              </div>
+            )
+          }
+          {
+            temas.length > 0 && (
+              <div>
+                <dt>Temas</dt>
+                <dd>
+                  {temas.map((t) => (
+                    <a href={`/temas/${t.id}`}>{t.nome}</a>
+                  ))}
+                </dd>
+              </div>
+            )
+          }
+          {
+            dosNucleos.length > 0 && (
+              <div>
+                <dt>Núcleos</dt>
+                <dd>{dosNucleos.join(', ')}</dd>
+              </div>
+            )
+          }
+        </dl>
+      </aside>
+
+      <div class="corpo__conteudo">
+        {
+          memoria.integrantes.length > 0 && (
+            <section class="parte" aria-labelledby="quem-estava">
+              <h2 class="parte__titulo" id="quem-estava">
+                Quem estava
+              </h2>
+              <ul class="quem">
+                {memoria.integrantes.map((id) => (
+                  <li>
+                    <a class="pessoa" href={`/pessoas/${id}`}>
+                      <span class="retrato" data-familia={familiaDe(id)}>
+                        {retratoDe(id) ? <img src={retratoDe(id)!} alt="" loading="lazy" decoding="async" /> : <span aria-hidden="true">{iniciais(nome(id))}</span>}
+                      </span>
+                      <span class="pessoa__nome">{nome(id)}</span>
+                      {paraVoce(id) && <span class="pessoa__laco ficha suave">{paraVoce(id)}</span>}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+
+        {
+          relatos.length > 0 && (
+            <section class="parte" aria-labelledby="relatos">
+              <h2 class="parte__titulo" id="relatos">
+                {relatos.length === 1 ? 'Relato' : 'Relatos'}
+              </h2>
+              <div class="relatos">
+                {relatos.map((relato) => {
+                  const audios = audiosDosRelatos.get(relato.id) ?? [];
+                  return (
+                    <article class="bilhete">
+                      <h3 class="so-leitor">Contado por {nome(relato.por)}</h3>
+                      {relato.situacao === 'rascunho' && <p class="selo bilhete__selo">Rascunho, só você vê</p>}
+                      {audios.map((audio, n) => (
+                        <div class="audio">
+                          <p class="rotulo">
+                            {audios.length > 1 ? `Áudio ${n + 1}` : 'Áudio'}
+                            {audio.duracao ? ` · ${duracaoEmTexto(audio.duracao)}` : ''}
+                          </p>
+                          <audio controls preload="none" src={`/audios/${audio.chave}`} />
+                          {audio.transcricao && (
+                            <details>
+                              <summary>Ler a transcrição</summary>
+                              {audio.transcricao.split(/\n{2,}/).map((p) => (
+                                <p>{p}</p>
+                              ))}
+                            </details>
+                          )}
+                        </div>
+                      ))}
+                      {relato.texto.trim() && (
+                        <div class="bilhete__texto">
+                          {relato.texto.split(/\n{2,}/).map((paragrafo) => (
+                            <p>{paragrafo}</p>
+                          ))}
+                        </div>
+                      )}
+                      <p class="bilhete__assina">
+                        <span class="mao">{nome(relato.por)}</span>
+                        {relato.registradoPor !== relato.por && <span class="ficha suave">registrado por {nome(relato.registradoPor)}</span>}
+                      </p>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )
+        }
+
+        {
+          outrasFotos && (
+            <section class="parte" aria-labelledby="fotos">
+              <h2 class="parte__titulo" id="fotos">
+                Fotos
+              </h2>
+              <div class="fotos">
+                {memoria.fotos.map((foto) => (
+                  <figure class="fotos__item">
+                    <a href={`/fotos/${foto.chave}`} aria-label={`Ampliar a foto${foto.legenda ? `: ${foto.legenda}` : ''}`}>
+                      <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
+                    </a>
+                    {foto.legenda && <figcaption class="ficha suave">{foto.legenda}</figcaption>}
+                  </figure>
+                ))}
+              </div>
+            </section>
+          )
+        }
+      </div>
+    </div>
+
+    <section class="fim bloco" aria-labelledby="convite">
+      <div class="miolo grade">
+        <h2 class="fim__titulo t-2" id="convite">
+          {temMeuRelato ? 'Você já contou esse dia.' : 'Cada pessoa conta o dia do jeito que lembra.'}
+        </h2>
+        <p class="fim__acao">
+          <a class="botao" href={`/memorias/${memoria.id}/relato`}>
+            {textoDaAcao}
+          </a>
+        </p>
+      </div>
+    </section>
+  </article>
+
+  <nav class="vizinhas miolo" aria-label="Outras memórias">
+    {
+      [
+        { rotulo: 'Antes', m: antes },
+        { rotulo: 'Depois', m: depois },
+      ].map(({ rotulo, m }) => (
+        <div class:list={['vizinha', rotulo === 'Depois' && 'vizinha--depois']}>
+          {m && (
+            <a href={`/conceito/memorias/${m.id}`}>
+              <span class="rotulo suave">
+                {rotulo} · {carimboDaData(m)}
+              </span>
+              <strong class="serifa t-3">{m.titulo}</strong>
+            </a>
+          )}
+        </div>
+      ))
+    }
+  </nav>
+
+  <p class="servico miolo">
+    {
+      podeEditar && (
+        <a class="acao acao--quieta" href={`/nova?id=${memoria.id}`}>
+          Corrigir esta memória
+        </a>
+      )
+    }
+    <a class="acao acao--quieta" href={`/memorias/${memoria.id}/historico`}>
+      Histórico de alterações
+    </a>
+    {
+      podeExcluir && (
+        <a class="acao acao--quieta" href={`/memorias/${memoria.id}/excluir`}>
+          Excluir memória
+        </a>
+      )
+    }
+  </p>
+</Visual>

@@ -1,0 +1,120 @@
+/*
+ * Revisão visual do zero (docs/visual.md), fase 1: o conceito.
+ * Tokens do visual novo. Nada aqui vem de src/styles/global.css.
+ *
+ * A ideia central é a caixa de fotografias da família: papel claro, a foto como objeto,
+ * o verso em mono como o carimbo do laboratório, e a cor de cada família como a capa do álbum dela.
+ */
+
+:root {
+  /* Neutros: papel quente e tinta quase preta. Os neutros não têm versão saturada. */
+  --papel: #f4f1ec;
+  --papel-recuo: #ebe6de;
+  --branco: #fffdf9; /* a moldura da polaroid e o bilhete */
+  --tinta: #1d1a16;
+  --tinta-suave: #6a6359; /* 5,2:1 sobre o papel */
+  --fio: #d8d1c5;
+
+  /*
+   * Cor com função: o pastel marca a família, o vivo marca o que importa na tela.
+   * "tinta" é o vivo escurecido até dar leitura (4,5:1) sobre o papel, para o carimbo.
+   * A tela escolhe a família em data-familia; sem família, vale "tudo", as duas juntas.
+   */
+  --tudo-pastel: #f6dfa2;
+  --tudo-vivo: #e6a800;
+  --tudo-tinta: #8a5c00;
+  --familia-0-pastel: #f9d0c1; /* Bayara */
+  --familia-0-vivo: #e8502a;
+  --familia-0-tinta: #b53a17;
+  --familia-1-pastel: #ddd3f5; /* Bayara Bracarense */
+  --familia-1-vivo: #6d4ce0;
+  --familia-1-tinta: #5637c4;
+  --familia-2-pastel: #c9def4; /* Bracarense */
+  --familia-2-vivo: #2a72d8;
+  --familia-2-tinta: #1a56b0;
+  --familia-3-pastel: #cfe6c9; /* a próxima família que entrar */
+  --familia-3-vivo: #2f9150;
+  --familia-3-tinta: #1f6e3a;
+
+  --pastel: var(--tudo-pastel);
+  --vivo: var(--tudo-vivo);
+  --vivo-tinta: var(--tudo-tinta);
+
+  /* Espaços: 1 a 4 dentro de um grupo, 5 a 7 entre grupos, 8 e 9 entre partes da página */
+  --e-1: 0.25rem;
+  --e-2: 0.5rem;
+  --e-3: 0.75rem;
+  --e-4: 1rem;
+  --e-5: 1.5rem;
+  --e-6: 2rem;
+  --e-7: clamp(2.5rem, 1.9rem + 2.4vw, 4rem);
+  --e-8: clamp(3.5rem, 2.2rem + 5.4vw, 7rem);
+  --e-9: clamp(5rem, 3rem + 8.5vw, 11rem);
+
+  /* Grade: 4 colunas no celular, 12 a partir de 62rem. Tudo começa na mesma linha, à esquerda. */
+  --margem: clamp(1.25rem, 0.5rem + 3.2vw, 4.5rem);
+  --calha: clamp(1rem, 0.6rem + 1.2vw, 2rem);
+
+  /*
+   * Escala de tipo. Três famílias com papéis fixos: serifa nos títulos, grotesca no texto,
+   * mono nas fichas. A manuscrita só assina. Quanto maior o título, mais justo o espaçamento.
+   * --escala-serifa acerta o tamanho aparente de cada serifa (ver fontes.css).
+   */
+  /* A mono é pequena, mas cresce na tela grande, que é vista de longe */
+  --t-micro: clamp(0.6875rem, 0.64rem + 0.14vw, 0.8125rem);
+  --t-ficha: clamp(0.75rem, 0.69rem + 0.19vw, 0.9375rem);
+  --t-pequeno: clamp(0.875rem, 0.83rem + 0.16vw, 1.0625rem);
+  --t-corpo: clamp(1.0625rem, 1rem + 0.2vw, 1.25rem);
+  --t-leitura: clamp(1.125rem, 1.02rem + 0.42vw, 1.5rem);
+  --t-abertura: calc(clamp(1.375rem, 1.1rem + 1.15vw, 2.375rem) * var(--escala-serifa));
+  --t-titulo-3: calc(clamp(1.5rem, 1.24rem + 1.1vw, 2.5rem) * var(--escala-serifa));
+  --t-titulo-2: calc(clamp(2rem, 1.45rem + 2.4vw, 4.25rem) * var(--escala-serifa));
+  --t-titulo-1: calc(clamp(2.75rem, 1.55rem + 5.2vw, 7.75rem) * var(--escala-serifa));
+  --t-capa: calc(clamp(5rem, 2.2rem + 12vw, 16rem) * var(--escala-serifa));
+
+  --linha-corpo: 1.55;
+  --medida: 34em; /* largura de leitura */
+
+  /* Formas */
+  --raio-foto: 2px;
+  --raio-moldura: 5px;
+  --raio-bloco: clamp(1rem, 0.6rem + 1.6vw, 2rem);
+  --traco: 1.5px;
+  --toque: 2.75rem; /* 44 px: nada tocável fica abaixo disso */
+
+  /* Sombra da foto pousada no papel: curta e quente, sem halo cinza */
+  --sombra-foto: 0 1px 1px rgb(60 42 20 / 0.06), 0 6px 14px -4px rgb(60 42 20 / 0.14), 0 22px 44px -18px rgb(60 42 20 / 0.28);
+  --sombra-bilhete: 0 1px 1px rgb(60 42 20 / 0.05), 0 10px 24px -14px rgb(60 42 20 / 0.22);
+
+  /* Movimento: uma curva só, tempos curtos. Com movimento reduzido, nada se mexe (base.css). */
+  --curva: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --tempo-curto: 0.2s;
+  --tempo-medio: 0.45s;
+}
+
+/* A cor da família da tela ou de um trecho dela */
+[data-familia='0'] {
+  --pastel: var(--familia-0-pastel);
+  --vivo: var(--familia-0-vivo);
+  --vivo-tinta: var(--familia-0-tinta);
+}
+[data-familia='1'] {
+  --pastel: var(--familia-1-pastel);
+  --vivo: var(--familia-1-vivo);
+  --vivo-tinta: var(--familia-1-tinta);
+}
+[data-familia='2'] {
+  --pastel: var(--familia-2-pastel);
+  --vivo: var(--familia-2-vivo);
+  --vivo-tinta: var(--familia-2-tinta);
+}
+[data-familia='3'] {
+  --pastel: var(--familia-3-pastel);
+  --vivo: var(--familia-3-vivo);
+  --vivo-tinta: var(--familia-3-tinta);
+}
+[data-familia='tudo'] {
+  --pastel: var(--tudo-pastel);
+  --vivo: var(--tudo-vivo);
+  --vivo-tinta: var(--tudo-tinta);
+}

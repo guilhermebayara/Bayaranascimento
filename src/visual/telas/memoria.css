@@ -1,0 +1,304 @@
+/*
+ * Página da memória. A ideia forte: a foto e o verso. A imagem grande, a ficha como carimbo,
+ * os relatos como bilhetes assinados. Corrigir e histórico ficam quietos, no fim.
+ */
+
+/* --- Abertura: título grande, trecho de um relato e a foto-chave --------------------------- */
+
+.abre {
+  row-gap: var(--e-7);
+  padding-top: var(--e-6);
+  padding-bottom: var(--e-8);
+}
+.abre__sobre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-3) var(--e-5);
+  margin-bottom: var(--e-5);
+}
+.abre h1 {
+  /* alinhamento óptico: a serifa grande começa na mesma linha do texto pequeno */
+  margin-left: -0.035em;
+}
+.abre__trecho {
+  margin-top: var(--e-6);
+  max-width: 26em;
+}
+.abre__trecho p {
+  /* a aspa de abertura fica pendurada na margem */
+  text-indent: -0.42em;
+  font-style: italic;
+}
+.abre__trecho footer {
+  margin-top: var(--e-3);
+}
+.abre__trecho .mao {
+  display: inline-block;
+  rotate: -3deg;
+}
+.abre__atalho {
+  margin-top: var(--e-5);
+}
+.abre__foto {
+  width: 88%;
+  margin-inline: auto;
+}
+
+/* --- Corpo: a ficha de um lado, o conteúdo do outro ---------------------------------------- */
+
+.corpo {
+  row-gap: var(--e-7);
+  padding-top: var(--e-6);
+  border-top: 1px solid var(--tinta);
+  margin-inline: var(--margem);
+  padding-inline: 0;
+}
+
+/* A ficha em mono: rótulo pequeno em caixa alta e valor */
+.dados__lista {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-5) var(--calha);
+  font-family: var(--mono);
+  font-size: var(--t-pequeno);
+  line-height: 1.45;
+}
+.dados__lista dt {
+  margin-bottom: var(--e-1);
+  font-size: var(--t-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.dados__lista dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.9em;
+}
+.dados__lista dd a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  margin-block: calc((1.45em - var(--toque)) / 2);
+}
+
+.parte + .parte {
+  margin-top: var(--e-8);
+}
+.parte__titulo {
+  margin-bottom: var(--e-6);
+  font-size: var(--t-titulo-3);
+}
+
+/* Quem estava: retratos em arco, com o parentesco de quem olha */
+.quem {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-6) var(--calha);
+}
+.pessoa {
+  display: grid;
+  gap: var(--e-1);
+  text-decoration: none;
+}
+.pessoa .retrato {
+  margin-bottom: var(--e-2);
+  transition: translate var(--tempo-medio) var(--curva);
+}
+.pessoa__nome {
+  font-weight: 550;
+  line-height: 1.25;
+}
+@media (hover: hover) {
+  .pessoa:hover .retrato {
+    translate: 0 -0.25rem;
+  }
+  .pessoa:hover .pessoa__nome {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
+}
+
+/* Relatos: um bilhete por pessoa */
+.relatos {
+  display: grid;
+  gap: var(--e-6);
+  align-items: start;
+}
+.relatos .bilhete {
+  max-width: 40rem;
+}
+.bilhete__selo {
+  margin-bottom: var(--e-4);
+}
+.bilhete:nth-child(even) {
+  rotate: 0.6deg;
+}
+.bilhete:nth-child(odd) {
+  rotate: -0.4deg;
+}
+
+/* Fotos em grade: cada uma na proporção dela, sem moldura */
+.fotos {
+  columns: 2;
+  column-gap: var(--calha);
+}
+.fotos__item {
+  break-inside: avoid;
+  margin-bottom: var(--e-5);
+}
+.fotos__item a {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--raio-foto);
+  background: var(--papel-recuo);
+  cursor: zoom-in;
+}
+.fotos__item img {
+  width: 100%;
+  transition: scale var(--tempo-medio) var(--curva);
+}
+@media (hover: hover) {
+  .fotos__item a:hover img {
+    scale: 1.03;
+  }
+}
+.fotos__item figcaption {
+  margin-top: var(--e-2);
+}
+
+/* --- Fim: o convite para contar, em destaque ------------------------------------------------- */
+
+.fim {
+  margin-top: var(--e-9);
+  padding-block: var(--e-8);
+}
+.fim .grade {
+  row-gap: var(--e-6);
+}
+.fim__titulo {
+  max-width: 14em;
+}
+
+/* Antes e depois */
+.vizinhas {
+  display: grid;
+  gap: 0;
+}
+.vizinha {
+  border-bottom: 1px solid var(--fio);
+}
+.vizinha:empty {
+  display: none;
+}
+.vizinha a {
+  display: grid;
+  gap: var(--e-2);
+  padding-block: var(--e-6);
+  text-decoration: none;
+}
+.vizinha strong {
+  font-weight: var(--serifa-peso);
+}
+@media (hover: hover) {
+  .vizinha a:hover strong {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.14em;
+  }
+}
+
+/* Corrigir, histórico, excluir: quietos */
+.servico {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+  margin-top: var(--e-6);
+  font-size: var(--t-pequeno);
+}
+
+/* --- Tablet ------------------------------------------------------------------------------------ */
+
+@media (min-width: 40rem) {
+  .quem {
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  }
+  .relatos {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  }
+  .fotos {
+    columns: 3;
+  }
+  .vizinhas {
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--calha);
+  }
+  .vizinha:empty {
+    display: block;
+    border: 0;
+  }
+  .vizinha--depois a {
+    text-align: right;
+    justify-items: end;
+  }
+}
+
+/* --- Computador: página dupla. A foto é a página da direita. -------------------------------- */
+
+@media (min-width: 62rem) {
+  .abre {
+    align-items: center;
+    padding-top: var(--e-7);
+    padding-bottom: var(--e-9);
+  }
+  .abre > .abre__texto {
+    grid-column: 1 / span 6;
+  }
+  /* Sem foto, a abertura é só tipo: o título ganha a página */
+  .abre--sem-foto > .abre__texto {
+    grid-column: 1 / span 10;
+  }
+  .abre > .abre__foto {
+    grid-column: 8 / -1;
+    width: 100%;
+    margin: 0;
+  }
+  .corpo {
+    padding-top: var(--e-7);
+  }
+  .corpo > .dados {
+    grid-column: 1 / span 3;
+  }
+  .corpo > .corpo__conteudo {
+    grid-column: 5 / -1;
+  }
+  .dados__lista {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .quem {
+    grid-template-columns: repeat(auto-fill, minmax(clamp(8rem, 9.5vw, 12rem), 1fr));
+  }
+  .fim .grade {
+    align-items: end;
+  }
+  .fim .fim__titulo {
+    grid-column: 1 / span 8;
+  }
+  .fim .fim__acao {
+    grid-column: 9 / -1;
+    justify-self: end;
+  }
+}
+
+/* A ficha fica parada à esquerda só com cursor: no toque, nada preso à rolagem */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .corpo {
+    align-items: start;
+  }
+  .corpo > .dados {
+    position: sticky;
+    top: var(--e-6);
+  }
+}

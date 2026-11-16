@@ -1,0 +1,171 @@
+---
+// O esqueleto do visual novo (docs/visual.md, "Revisão do zero"). Na fase 1 ele serve só as
+// telas do conceito, em /conceito. Não importa nada de src/styles/global.css.
+import '@fontsource-variable/fraunces/full.css';
+import '@fontsource-variable/fraunces/full-italic.css';
+import '@fontsource-variable/geist/wght.css';
+import '@fontsource-variable/geist-mono/wght.css';
+import '@fontsource/oooh-baby/400.css';
+import '@fontsource/instrument-serif/400.css';
+import '@fontsource/instrument-serif/400-italic.css';
+import '@fontsource-variable/instrument-sans/wght.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/reenie-beanie/400.css';
+import '@fontsource/dm-serif-display/400.css';
+import '@fontsource/dm-serif-display/400-italic.css';
+import '@fontsource-variable/dm-sans/wght.css';
+import '@fontsource/dm-mono/400.css';
+import '@fontsource/dm-mono/500.css';
+import '@fontsource/nothing-you-could-do/400.css';
+import '../visual/tokens.css';
+import '../visual/fontes.css';
+import '../visual/base.css';
+import '../visual/pecas.css';
+import '../visual/estrutura.css';
+import Assinatura from '../components/visual/Assinatura.astro';
+import { PESSOAS_DE_TESTE, semLogin } from '../lib/servidor/acesso';
+import { fontesDoPedido } from '../lib/servidor/conceito';
+import { listarIntegrantes } from '../lib/servidor/repositorio';
+import { COMBINACOES_DE_FONTES } from '../lib/visual';
+
+interface Props {
+  titulo?: string;
+  /** A cor da tela: 'tudo' ou a posição do núcleo ('0', '1', '2') */
+  familia?: string;
+  /** Os sobrenomes da assinatura para o que está sendo visto */
+  sobrenomes?: string;
+  /** Qual item do menu está aberto */
+  secao?: 'painel' | 'linha' | 'conceito';
+}
+
+const { titulo, familia = 'tudo', sobrenomes = 'Bayara & Bracarense', secao } = Astro.props;
+const { usuario } = Astro.locals;
+const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
+const fontes = fontesDoPedido(Astro.request);
+const teste = semLogin();
+const pessoasDeTeste = teste ? (await listarIntegrantes()).filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
+const aqui = Astro.url.pathname + Astro.url.search;
+const volta = encodeURIComponent(aqui);
+const caminho = Astro.url.pathname.replace(/\/$/, '');
+const primeiraVisita = Astro.url.searchParams.get('visita') === 'primeira';
+
+const menu = [
+  { href: '/conceito/tudo', texto: 'Linha do tempo', atual: secao === 'linha' },
+  { href: '/capitulos', texto: 'Capítulos', atual: false },
+  { href: '/arvore', texto: 'Árvore', atual: false },
+  { href: '/pessoas', texto: 'Pessoas', atual: false },
+  { href: '/rascunhos', texto: 'Rascunhos', atual: false },
+];
+const telas = [
+  { href: '/conceito?visita=primeira', texto: 'Carta', atual: caminho === '/conceito' && primeiraVisita },
+  { href: '/conceito', texto: 'Painel', atual: caminho === '/conceito' && !primeiraVisita },
+  { href: '/conceito/tudo', texto: 'Linha do tempo', atual: caminho === '/conceito/tudo' },
+  { href: '/conceito/memorias/2025-natal', texto: 'Memória', atual: caminho.startsWith('/conceito/memorias') },
+  { href: '/conceito/sobre', texto: 'Fontes e peças', atual: caminho === '/conceito/sobre' },
+];
+---
+
+<!doctype html>
+<html lang="pt-BR" data-fontes={fontes}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f4f1ec" />
+    <title>{tituloPagina}</title>
+  </head>
+  <body data-familia={familia}>
+    {
+      teste && (
+        <details class="teste">
+          <summary>
+            <span>Conceito do visual novo, com o acervo de exemplo.</span>
+            <span>
+              Fontes {fontes.toUpperCase()}, vendo como {usuario.nome}. <u>Trocar</u>
+            </span>
+          </summary>
+          <div class="teste__corpo">
+            <p>
+              <span>Telas:</span>
+              {telas.map((t) => (
+                <a href={t.href} aria-current={t.atual ? 'page' : undefined}>
+                  {t.texto}
+                </a>
+              ))}
+            </p>
+            <p>
+              <span>Fontes:</span>
+              {COMBINACOES_DE_FONTES.map((c) => (
+                <a href={`/conceito/fontes/${c.id}?volta=${volta}`} aria-current={c.id === fontes ? 'true' : undefined}>
+                  {c.id.toUpperCase()} {c.nome}
+                </a>
+              ))}
+            </p>
+            <p>
+              <span>Ver como:</span>
+              {pessoasDeTeste.map((p) => (
+                <a href={`/como/${p.id}?volta=${volta}`} aria-current={p.id === usuario.pessoa ? 'true' : undefined}>
+                  {p.apelido ?? p.nome}
+                </a>
+              ))}
+            </p>
+            <p>
+              <a href="/">Site atual</a>
+            </p>
+          </div>
+        </details>
+      )
+    }
+    <header class="topo">
+      <a class="topo__marca" href="/conceito" aria-label="Memórias Bayara e Bracarense, página inicial">
+        <span class="topo__monograma" aria-hidden="true">M</span>
+        <span class="topo__nome" aria-hidden="true">Memórias</span>
+      </a>
+      <nav class="topo__nav" aria-label="Seções">
+        {
+          menu.map((item) => (
+            <a href={item.href} aria-current={item.atual ? 'page' : undefined}>
+              {item.texto}
+            </a>
+          ))
+        }
+        <a class="topo__acao" href="/nova">Nova memória</a>
+      </nav>
+      <details class="menu">
+        <summary><span>Menu</span></summary>
+        <nav class="menu__lista" aria-label="Seções">
+          <a href="/conceito" aria-current={secao === 'painel' ? 'page' : undefined}>Início</a>
+          {
+            menu.map((item) => (
+              <a href={item.href} aria-current={item.atual ? 'page' : undefined}>
+                {item.texto}
+              </a>
+            ))
+          }
+          <a class="menu__acao acao" href="/nova">Nova memória</a>
+        </nav>
+      </details>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="rodape">
+      <div class="rodape__linha">
+        <p>Acervo privado da família. Você entrou como {usuario.nome}.</p>
+        <p class="rodape__links">
+          <a href="/lixeira">Lixeira</a>
+          {usuario.admin && <a href="/admin/tipos">Tipos de momento</a>}
+          {
+            usuario.admin && (
+              <a href="/api/copia" download>
+                Baixar cópia do acervo
+              </a>
+            )
+          }
+        </p>
+      </div>
+      <Assinatura sobrenomes={sobrenomes} />
+    </footer>
+  </body>
+</html>

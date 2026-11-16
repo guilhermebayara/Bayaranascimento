@@ -1,0 +1,359 @@
+/*
+ * Linha do tempo. A ideia forte: a assinatura na largura inteira e o ano como divisória de
+ * fichário; as fotos-chave como polaroids. Menu, famílias e filtros ficam pequenos.
+ */
+
+.linha__capa {
+  padding-top: var(--e-4);
+}
+.linha__resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--e-6);
+  margin-top: var(--e-6);
+  padding-top: var(--e-3);
+  border-top: 1px solid var(--tinta);
+}
+.linha__resumo > p {
+  display: flex;
+  align-items: center;
+  min-height: var(--toque);
+}
+
+/* As famílias: a linha do tempo de cada núcleo */
+.linha__familias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
+  font-size: var(--t-pequeno);
+}
+.linha__familias a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  color: var(--tinta-suave);
+  text-decoration: none;
+}
+.linha__familias a:hover {
+  color: var(--tinta);
+}
+.linha__familias a[aria-current] {
+  color: var(--tinta);
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.4em;
+}
+
+/* Filtro por tipo: recolhido, abre empurrando a lista */
+.filtros summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--t-pequeno);
+  color: var(--tinta-suave);
+}
+.filtros summary::-webkit-details-marker {
+  display: none;
+}
+.filtros summary span {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+  text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
+}
+.filtros ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
+  padding-bottom: var(--e-3);
+}
+.filtros button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta-suave);
+  font: inherit;
+  font-size: var(--t-pequeno);
+  cursor: pointer;
+}
+.filtros button:hover {
+  color: var(--tinta);
+}
+.filtros button[aria-pressed='true'] {
+  color: var(--tinta);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.4em;
+}
+
+/* A barra de décadas fica parada no alto, como na linha do tempo de hoje */
+.decadas {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--papel);
+  border-bottom: 1px solid var(--fio);
+}
+.decadas ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
+}
+.decadas a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+  text-decoration: none;
+}
+.decadas a:hover,
+.decadas [data-aqui] a {
+  color: var(--tinta);
+}
+/* O item da década em leitura acende */
+.decadas [data-aqui] a {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.5em;
+  text-decoration-color: var(--vivo);
+}
+.decada__ancora {
+  scroll-margin-top: 3rem;
+}
+
+.linha__vazio {
+  padding-block: var(--e-8);
+}
+
+/* --- O ano: a divisória ---------------------------------------------------------------------- */
+
+.ano {
+  padding-top: var(--e-8);
+}
+.ano[hidden] {
+  display: none;
+}
+.ano__cabeca {
+  container-type: inline-size;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-4);
+  margin-bottom: var(--e-6);
+}
+.ano__numero {
+  /* No celular o número ocupa dois terços da largura; no computador, a coluna dele inteira */
+  font-size: calc(66cqi / var(--ano-em));
+  font-variation-settings: var(--serifa-ajustes-capa);
+  font-weight: var(--serifa-peso-capa);
+  letter-spacing: var(--aperto-capa);
+  line-height: 0.8;
+  font-variant-numeric: lining-nums;
+  margin-left: -0.03em;
+}
+
+/* --- O trilho e as memórias ------------------------------------------------------------------- */
+
+.ano__itens {
+  display: grid;
+  gap: var(--e-8);
+  margin-left: 0.25rem;
+  padding: var(--e-2) 0 var(--e-4) var(--e-5);
+  border-left: 1px solid var(--fio);
+}
+
+.entrada {
+  position: relative;
+  display: grid;
+  gap: var(--e-4);
+}
+.entrada[hidden] {
+  display: none;
+}
+/* O ponto do trilho: cheio, na cor viva, na memória em leitura */
+.entrada__ponto {
+  position: absolute;
+  top: 0.3rem;
+  left: calc(-1 * var(--e-5) - 0.3125rem - 0.5px);
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 1px solid var(--tinta-suave);
+  border-radius: 50%;
+  background: var(--papel);
+  transition:
+    background var(--tempo-curto),
+    scale var(--tempo-curto);
+}
+.entrada[data-em-leitura] .entrada__ponto {
+  border-color: var(--vivo);
+  background: var(--vivo);
+  scale: 1.3;
+}
+.entrada__quando {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.7em;
+}
+/* O ponto fica no fim de cada item: quando a linha quebra, ela não começa por ele */
+.entrada__quando span:not(:last-child)::after,
+.entrada__ficha span:not(:last-child)::after {
+  content: '·';
+  margin-left: 0.7em;
+}
+.entrada__foto {
+  width: 84%;
+  margin-block: var(--e-2);
+}
+/* As fotos não ficam em fila: uma encosta à esquerda, a outra à direita */
+.entrada:nth-child(even) .entrada__foto {
+  margin-left: auto;
+}
+.entrada__titulo {
+  font-size: var(--t-titulo-3);
+  line-height: 1.06;
+}
+.entrada--so-texto .entrada__titulo {
+  font-size: var(--t-titulo-2);
+  line-height: 1.02;
+}
+.entrada__titulo a {
+  text-decoration: none;
+}
+/* A memória inteira leva à página dela */
+.entrada__titulo a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.entrada__titulo a:focus-visible {
+  outline: none;
+}
+.entrada:has(.entrada__titulo a:focus-visible) {
+  outline: 2px solid var(--tinta);
+  outline-offset: 0.75rem;
+  border-radius: 2px;
+}
+.entrada__ficha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.7em;
+  margin-top: var(--e-3);
+}
+@media (hover: hover) {
+  .entrada:hover .polaroid {
+    rotate: 0deg;
+    translate: 0 -0.25rem;
+  }
+  .entrada:hover .entrada__titulo a {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.14em;
+  }
+}
+
+/* --- Computador: o ano fica na coluna da esquerda e cada memória vira uma página dupla -------- */
+
+@media (min-width: 62rem) {
+  /* A assinatura ocupa dois terços da largura e o resumo fecha a linha à direita, embaixo */
+  .linha__capa {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: 1fr auto;
+    column-gap: var(--calha);
+    align-items: end;
+    padding-top: var(--e-4);
+    padding-bottom: var(--e-5);
+  }
+  .linha__capa .assinatura {
+    grid-column: 1 / span 8;
+    grid-row: 1 / span 2;
+  }
+  .linha__resumo {
+    grid-column: 10 / -1;
+    display: block;
+    margin: 0;
+  }
+  .linha__capa .filtros {
+    grid-column: 10 / -1;
+  }
+  .linha__capa .filtros[open] {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .ano {
+    padding-top: var(--e-9);
+    align-items: start;
+  }
+  .ano > .ano__cabeca {
+    grid-column: 1 / span 4;
+    display: block;
+    margin-bottom: 0;
+  }
+  .ano__numero {
+    font-size: calc(98cqi / var(--ano-em));
+    margin-bottom: var(--e-5);
+  }
+  .ano > .ano__itens {
+    grid-column: 5 / -1;
+    gap: var(--e-9);
+    margin-left: 0;
+    padding-left: var(--calha);
+  }
+  .entrada__ponto {
+    left: calc(-1 * var(--calha) - 0.3125rem - 0.5px);
+  }
+  .entrada--com-foto {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'foto quando'
+      'foto texto';
+    grid-template-rows: auto 1fr;
+    column-gap: calc(var(--calha) * 2);
+    row-gap: var(--e-4);
+  }
+  .entrada--com-foto .entrada__foto {
+    grid-area: foto;
+    width: 92%;
+    margin: 0;
+  }
+  .entrada--com-foto:nth-child(even) .entrada__foto {
+    margin-left: 8%;
+  }
+  .entrada--com-foto .entrada__quando {
+    grid-area: quando;
+    margin-top: var(--e-7);
+  }
+  .entrada--com-foto .entrada__texto {
+    grid-area: texto;
+  }
+  .entrada--com-foto .entrada__titulo {
+    font-size: calc(var(--t-titulo-3) * 1.2);
+  }
+  .entrada--com-foto .entrada__ponto {
+    top: calc(var(--e-7) + 0.3rem);
+  }
+  .entrada--so-texto {
+    max-width: 75%;
+  }
+}
+
+/* O ano só fica parado ao lado das memórias dele com cursor: no toque, nada preso à rolagem */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .ano__cabeca {
+    position: sticky;
+    top: 4.5rem;
+  }
+}

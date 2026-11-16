@@ -8,6 +8,9 @@
 // e o script recusa outro. As capturas saem em largura de celular (390 px) e de
 // desktop (1280 px), com movimento reduzido, como "Gui" no "Ver como".
 //
+// As telas do conceito da revisão visual (/conceito) saem também em 1920 px, uma vez para cada
+// combinação de fontes. Para tirar só elas: CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>
+//
 // "comparar" abre as duas capturas de cada página no navegador e compara os pixels.
 // Termina com erro se alguma página mudou, e grava a diferença em <depois>/diferencas.
 
@@ -36,7 +39,11 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(BASE)) {
 const LARGURAS = [
   { nome: 'celular', width: 390, height: 844 },
   { nome: 'desktop', width: 1280, height: 900 },
+  // A tela grande, de ver juntos na TV: só as páginas que pedem (larguras: TODAS)
+  { nome: 'tv', width: 1920, height: 1080 },
 ];
+const TODAS = LARGURAS.map((l) => l.nome);
+const PADRAO = ['celular', 'desktop'];
 
 // Cada página: nome do arquivo, endereço, quem está vendo e, se preciso, o que fazer antes da captura
 const etapa = (n) => async (pagina) => {
@@ -77,6 +84,16 @@ const PAGINAS = [
   { nome: 'admin-espelho', url: '/admin/espelho' },
   { nome: 'inicio-como-elizete', url: '/', como: 'elizete' },
   { nome: 'pessoa-nova-como-magno', url: '/pessoas/nova', como: 'lucas-magno' },
+  // Conceito da revisão visual: as mesmas telas em cada combinação de fontes, nas três larguras.
+  // A carta é vista como Elizete, que a recebe; a memória, como Giovanna, que ainda não contou.
+  // "corte" limita a altura da captura da linha do tempo, que é muito longa.
+  ...['a', 'b', 'c'].flatMap((fontes) => [
+    { nome: `conceito-${fontes}-1-carta`, url: '/conceito?visita=primeira', como: 'elizete', fontes, larguras: TODAS },
+    { nome: `conceito-${fontes}-2-painel`, url: '/conceito', fontes, larguras: TODAS },
+    { nome: `conceito-${fontes}-3-linha-do-tempo`, url: '/conceito/tudo', fontes, larguras: TODAS, corte: 9000 },
+    { nome: `conceito-${fontes}-4-memoria`, url: '/conceito/memorias/2025-natal', como: 'giovanna', fontes, larguras: TODAS },
+  ]),
+  { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
 ];
 
 async function tirar(pasta) {
@@ -95,6 +112,8 @@ async function tirar(pasta) {
     const pagina = await contexto.newPage();
     for (const p of PAGINAS) {
       if (filtro && !filtro.test(p.nome)) continue;
+      if (!(p.larguras ?? PADRAO).includes(largura.nome)) continue;
+      await contexto.addCookies([{ name: 'fontes', value: p.fontes ?? 'a', url: BASE }]);
       const endereco = `${BASE}/como/${p.como ?? 'gui'}?volta=${encodeURIComponent(p.url)}`;
       // A primeira visita a uma página no servidor local pode demorar enquanto ele compila
       await pagina.goto(endereco, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => pagina.goto(endereco, { waitUntil: 'networkidle', timeout: 60000 }));
@@ -104,9 +123,22 @@ async function tirar(pasta) {
       await pagina.evaluate(() => document.querySelector('astro-dev-toolbar')?.remove());
       // Sem cursor piscando nem foco deixado pelo script
       await pagina.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : null));
+      // Passa pela página inteira, para as fotos de carregamento tardio entrarem na captura
+      await pagina.evaluate(async () => {
+        const altura = document.documentElement.scrollHeight;
+        for (let y = 0; y < altura; y += 600) {
+          scrollTo(0, y);
+          await new Promise((ok) => setTimeout(ok, 40));
+        }
+        scrollTo(0, 0);
+      });
+      await pagina.waitForLoadState('networkidle');
+      await pagina.evaluate(() => Promise.all([...document.images].map((i) => i.decode().catch(() => {}))));
       await pagina.waitForTimeout(300);
       const arquivo = join(pasta, `${p.nome}--${largura.nome}.png`);
-      await pagina.screenshot({ path: arquivo, fullPage: true, animations: 'disabled', caret: 'hide' });
+      const altura = await pagina.evaluate(() => document.documentElement.scrollHeight);
+      const corte = p.corte && altura > p.corte ? { clip: { x: 0, y: 0, width: largura.width, height: p.corte } } : {};
+      await pagina.screenshot({ path: arquivo, fullPage: true, animations: 'disabled', caret: 'hide', ...corte });
       console.log(arquivo);
     }
     await contexto.close();
