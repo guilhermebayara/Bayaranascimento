@@ -110,7 +110,10 @@ const datas = [
 </form>
 
 <script>
+  import { ligarDatas } from '../lib/cliente/datas';
+
   const ficha = document.querySelector<HTMLFormElement>('[data-ficha]');
+  if (ficha) ligarDatas(ficha, ['nascimento', 'falecimento'].map((p) => ({ ano: `${p}Ano`, mes: `${p}Mes`, dia: `${p}Dia` })));
   const especie = ficha?.querySelector<HTMLElement>('[data-especie]');
   for (const radio of ficha?.querySelectorAll<HTMLInputElement>('input[name="tipo"]') ?? []) {
     radio.addEventListener('change', () => {

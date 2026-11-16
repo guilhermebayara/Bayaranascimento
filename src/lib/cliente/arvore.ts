@@ -1,7 +1,7 @@
 // A árvore interativa. Funciona como um mapa: arrasta, aproxima, afasta, e se
 // reorganiza com animação quando o foco ou os filtros mudam, sem recarregar a página.
 import { MEDIDAS, arredondado, desenharArvore, type Desenho } from '../arvore-desenho';
-import { montarDesenho, type DadosDaArvore, type Estado } from '../arvore-montagem';
+import { comLacoDeArvore, montarDesenho, type DadosDaArvore, type Estado } from '../arvore-montagem';
 
 export type { DadosDaArvore };
 
@@ -13,11 +13,16 @@ const ZOOM_MAX = 2;
 export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   const mapa = raiz.querySelector<HTMLElement>('[data-mapa]')!;
   const camada = raiz.querySelector<HTMLElement>('[data-camada]')!;
+  // Os cartões dos ramos abertos ficam numa camada à parte, que anda junto com a árvore e fica acima da legenda
+  const camadaDosRamos = raiz.querySelector<HTMLElement>('[data-camada-ramos]')!;
+  const camadas = [camada, camadaDosRamos];
   const ficha = raiz.querySelector<HTMLElement>('[data-ficha-do-foco]')!;
   const soltos = raiz.querySelector<HTMLElement>('[data-sem-lacos]')!;
   const controles = raiz.querySelector<HTMLFormElement>('[data-controles]')!;
   const zoomAtual = raiz.querySelector<HTMLElement>('[data-zoom-atual]')!;
   const pessoa = new Map(dados.pessoas.map((p) => [p.id, p]));
+  // Só dá para partir de quem tem laço de árvore: de quem não tem, a árvore seria só a pessoa
+  const partivel = comLacoDeArvore(dados);
 
   // Para que lado cada pessoa puxa: o primeiro núcleo à esquerda, o último à direita,
   // e quem é de dois núcleos fica entre eles
@@ -41,13 +46,14 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   const ligada = (nome: string) => url.searchParams.get(nome) !== '0';
   const estado: Estado = {
     foco: pessoa.has(url.searchParams.get('foco') ?? '') ? url.searchParams.get('foco')! : dados.eu,
-    centro: pessoa.has(url.searchParams.get('centro') ?? '') ? url.searchParams.get('centro')! : '',
+    centro: partivel.has(url.searchParams.get('centro') ?? '') ? url.searchParams.get('centro')! : '',
     ramos: new Set((url.searchParams.get('ramos') ?? '').split(',').filter(Boolean)),
     nucleo: idsDosNucleos.includes(url.searchParams.get('nucleo') ?? '') ? url.searchParams.get('nucleo')! : '',
     consideracao: ligada('consideracao'),
     ex: ligada('ex'),
     bichos: ligada('bichos'),
     outros: ligada('outros'),
+    amigos: url.searchParams.get('amigos') === '1',
     abertos: new Set(url.searchParams.has('coracao') ? url.searchParams.get('coracao')!.split(',').filter((id) => pessoa.has(id)) : [dados.eu]),
   };
   // Onde o mapa está: deslocamento e zoom
@@ -67,10 +73,25 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     campo<HTMLSelectElement>('centro').value = estado.centro;
     campo<HTMLSelectElement>('nucleo').value = estado.nucleo;
     for (const nome of CHAVES) campo<HTMLInputElement>(nome).checked = estado[nome];
-    // "Outros núcleos" só faz sentido com um núcleo em destaque
-    const outros = campo<HTMLInputElement>('outros');
-    outros.disabled = !estado.nucleo;
-    outros.closest('label')?.toggleAttribute('data-desligado', !estado.nucleo);
+    campo<HTMLInputElement>('amigos').checked = Boolean(estado.amigos);
+    // "Outros núcleos" só faz sentido com um núcleo em destaque. E nenhum filtro pode esconder de quem
+    // a árvore parte: com um centro de fora do núcleo, "Outros núcleos" fica ligado; com um bicho, "Bichos".
+    const doCentro = pessoa.get(estado.centro);
+    const prender = (nome: 'outros' | 'bichos', desligado: boolean, motivo: string) => {
+      const caixa = campo<HTMLInputElement>(nome);
+      caixa.disabled = desligado;
+      caixa.closest('label')?.toggleAttribute('data-desligado', desligado);
+      caixa.closest('label')!.title = motivo;
+    };
+    const foraDoNucleo = Boolean(doCentro && estado.nucleo && !doCentro.nucleos.includes(estado.nucleo));
+    prender('outros', !estado.nucleo || foraDoNucleo, foraDoNucleo ? `A árvore parte de ${doCentro!.nome}, que é de outro núcleo` : '');
+    prender('bichos', Boolean(doCentro?.bicho), doCentro?.bicho ? `A árvore parte de ${doCentro.nome}` : '');
+  };
+  // Nenhum filtro esconde de quem a árvore parte: um bicho liga "Bichos", alguém de fora do núcleo liga "Outros núcleos"
+  const protegerCentro = () => {
+    const doCentro = pessoa.get(estado.centro);
+    if (doCentro?.bicho) estado.bichos = true;
+    if (doCentro && estado.nucleo && !doCentro.nucleos.includes(estado.nucleo)) estado.outros = true;
   };
   const guardarNoEndereco = () => {
     const q = new URLSearchParams();
@@ -79,6 +100,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     if (estado.ramos.size) q.set('ramos', [...estado.ramos].sort().join(','));
     if (estado.nucleo) q.set('nucleo', estado.nucleo);
     for (const nome of CHAVES) if (!estado[nome]) q.set(nome, '0');
+    if (estado.amigos) q.set('amigos', '1');
     const abertos = [...estado.abertos].sort();
     if (abertos.join() !== dados.eu) q.set('coracao', abertos.join(','));
     history.replaceState(null, '', q.size ? `?${q}` : location.pathname);
@@ -86,8 +108,10 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
 
   // --- O mapa: mover e aproximar ---
   const aplicarVista = (animado = false) => {
-    camada.classList.toggle('mapa__camada--animada', animado);
-    camada.style.transform = `translate(${vista.x}px, ${vista.y}px) scale(${vista.zoom})`;
+    for (const c of camadas) {
+      c.classList.toggle('mapa__camada--animada', animado);
+      c.style.transform = `translate(${vista.x}px, ${vista.y}px) scale(${vista.zoom})`;
+    }
     zoomAtual.textContent = `${Math.round(vista.zoom * 100)}%`;
   };
   const zoomEm = (novo: number, px: number, py: number, animado = false) => {
@@ -107,7 +131,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   };
   // Depois de abrir um ramo, o mapa anda o mínimo para o cartão e a origem dele caberem na tela
   const mostrarCartao = (chave: string) => {
-    const cartao = camada.querySelector<HTMLElement>(`[data-ramo-aberto="${CSS.escape(chave)}"]`);
+    const cartao = camadaDosRamos.querySelector<HTMLElement>(`[data-ramo-aberto="${CSS.escape(chave)}"]`);
     const marca = camada.querySelector<HTMLElement>(`button.no__ramo[data-ramo="${CSS.escape(chave)}"]`);
     if (!cartao || !marca) return;
     const posicao = (el: HTMLElement) => el.style.transform.match(/-?[\d.]+/g)!.map(Number);
@@ -149,7 +173,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     const lacos = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}/editar#lacos`, textContent: 'Laços' });
     const partir = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Partir desta pessoa' });
     partir.dataset.partir = p.id;
-    partir.hidden = estado.centro === p.id;
+    partir.hidden = estado.centro === p.id || !partivel.has(p.id);
     ficha.replaceChildren(nome, quem, pagina, lacos, partir);
   };
 
@@ -407,7 +431,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       conteudo.append(linhasDoRamo);
       for (const lugar of arvoreDoRamo.pessoas) conteudo.append(criarNo(lugar.id, lugar.x, lugar.y));
       cartao.append(titulo, conteudo);
-      camada.append(cartao);
+      camadaDosRamos.append(cartao);
       extras.push(cartao);
     }
 
@@ -459,7 +483,9 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     }
     estado.nucleo = campo<HTMLSelectElement>('nucleo').value;
     for (const nome of CHAVES) estado[nome] = campo<HTMLInputElement>(nome).checked;
+    estado.amigos = campo<HTMLInputElement>('amigos').checked;
     if (!estado.nucleo) estado.outros = true;
+    protegerCentro();
     refletirNosControles();
     guardarNoEndereco();
     desenhar();
@@ -548,7 +574,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   });
 
   // Tocar em alguém põe essa pessoa em foco. O segundo toque abre a página dela.
-  camada.addEventListener('click', (evento) => {
+  const aoTocar = (evento: MouseEvent) => {
     if (Date.now() - fimDoArrasto < 300) return evento.preventDefault();
     const doRamo = (evento.target as HTMLElement).closest<HTMLButtonElement>('button[data-ramo]');
     if (doRamo) {
@@ -575,7 +601,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     if (!no || no.dataset.id === estado.foco) return;
     evento.preventDefault();
     focar(no.dataset.id!);
-  });
+  };
+  for (const c of camadas) c.addEventListener('click', aoTocar);
 
   // "Partir desta pessoa", na ficha: a linha direta passa a ser a dela
   ficha.addEventListener('click', (evento) => {
@@ -583,6 +610,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     if (!botao) return;
     estado.centro = botao.dataset.partir!;
     estado.ramos.clear();
+    protegerCentro();
     refletirNosControles();
     guardarNoEndereco();
     desenhar();
@@ -594,7 +622,10 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   raiz.querySelector('[data-ver-tudo]')!.addEventListener('click', () => verTudo());
   raiz.querySelector('[data-ir-ao-foco]')!.addEventListener('click', () => centralizar(estado.foco));
 
+  protegerCentro();
   refletirNosControles();
+  // O endereço passa a dizer o que está na tela (um centro inválido some dele)
+  guardarNoEndereco();
   desenhar();
   // Abre mostrando a árvore inteira. Se ela ficar pequena demais para ler, abre no foco.
   verTudo(false);

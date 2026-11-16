@@ -28,8 +28,15 @@ export interface Estado {
   ex: boolean;
   bichos: boolean;
   outros: boolean;
+  /** laços do coração sem "como se fosse" (amigos sem lugar na família). Desligado por padrão. */
+  amigos?: boolean;
   /** de quem são os laços do coração abertos na árvore. Por padrão, só os de quem está olhando. */
   abertos: Set<string>;
+}
+
+/** Quem tem laço de árvore (filiação ou casal) com alguém. Só dá para partir dessas pessoas. */
+export function comLacoDeArvore(dados: Pick<DadosDaArvore, 'filiacoes' | 'casais'>): Set<string> {
+  return new Set([...dados.filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...dados.casais.flatMap((c) => [c.a, c.b])]);
 }
 
 /** Para que lado cada pessoa puxa: o primeiro núcleo à esquerda, o último à direita, e quem é de dois fica entre eles. */
@@ -51,15 +58,22 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     const dentro = (...ids: string[]) => ids.every((id) => visiveis.has(id));
     const filiacoes = dados.filiacoes.filter((f) => dentro(f.filho, f.responsavel) && (estado.consideracao || !f.consideracao));
     const casais = dados.casais.filter((c) => dentro(c.a, c.b) && (estado.ex || !c.ex));
-    const todosDoCoracao = estado.consideracao ? dados.coracao.filter((l) => dentro(l.dono, l.pessoa)) : [];
+    // Amigos sem "como se fosse" não entram por padrão: haverá muito mais amigos cadastrados do que gente como da família
+    const todosDoCoracao = estado.consideracao ? dados.coracao.filter((l) => dentro(l.dono, l.pessoa) && (l.papel || estado.amigos)) : [];
 
     // 1b. A linha direta: os centros, os ancestrais, os irmãos, os descendentes e os casais.
     // O resto da família fica em ramos recolhidos, que abrem por cima da árvore.
     // O centro escolhido pode estar escondido pelos filtros (um bicho com "Bichos" desligado, alguém de
     // fora do núcleo destacado com "Outros núcleos" desligado). Aí vale o padrão, depois quem está
     // olhando, depois quem sobrou, para o mapa nunca ficar vazio.
+    // Só dá para partir de quem tem laço de árvore (filiação ou casal) à vista. O centro escolhido também
+    // pode estar escondido pelos filtros (a tela impede, mas o endereço pode vir assim): aí vale o padrão,
+    // depois quem está olhando, depois quem sobrou, para o mapa nunca ficar vazio.
+    const temLacoDeArvore = (id: string) => filiacoes.some((f) => f.filho === id || f.responsavel === id) || casais.some((c) => c.a === id || c.b === id);
     const centros =
-      [estado.centro ? [estado.centro] : [], dados.centros, [dados.eu], [...visiveis]].map((ids) => ids.filter((id) => visiveis.has(id))).find((ids) => ids.length) ?? [];
+      [estado.centro ? [estado.centro] : [], dados.centros, [dados.eu], [...visiveis]]
+        .map((ids) => ids.filter((id) => visiveis.has(id) && temLacoDeArvore(id)))
+        .find((ids) => ids.length) ?? [];
     const principal = linhaDireta(centros, [...visiveis], filiacoes, casais);
 
     // 1c. Laços do coração: só aparecem os de quem está com eles abertos. Quem foi escolhido entra
@@ -108,10 +122,8 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
       coracao,
       dados.eu,
     );
-    // Quem parte de alguém sem filiação nem casal (uma amiga, uma vó de consideração) vê a pessoa, e não um mapa vazio
-    for (const id of centros) if (principal.has(id) && !geracoes.has(id)) geracoes.set(id, 0);
     // Quem só está na árvore por um laço do coração entra na geração que o "como se fosse" indica.
-    // Sem "como se fosse", fica na geração de quem escolheu.
+    // Sem "como se fosse" (com "Amigos" ligado), fica na geração de quem escolheu.
     const agregados = coracao.filter((l) => geracoes.has(l.dono) && !geracoes.has(l.pessoa));
     for (const l of agregados) if (!geracoes.has(l.pessoa)) geracoes.set(l.pessoa, geracoes.get(l.dono)! + (l.papel ? DESLOCAMENTO_DO_PAPEL[l.papel] : 0));
     // Todo laço do coração aberto entra no desenho, com ou sem "como se fosse"

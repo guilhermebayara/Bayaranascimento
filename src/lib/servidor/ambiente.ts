@@ -25,7 +25,11 @@ export function ehHomologacao(): boolean {
 export type Ambiente = 'producao' | 'homologa' | 'previa' | 'desenvolvimento';
 
 export function ambiente(): Ambiente {
-  return ehHomologacao() ? 'homologa' : env.AMBIENTE;
+  if (ehHomologacao()) return 'homologa';
+  // No computador (npm run dev) é sempre desenvolvimento, com o acervo de exemplo, mesmo sem o .dev.vars.
+  // Sem isso, o wrangler.jsonc dizia "producao" e o site abria vazio. No build, DEV é sempre falso.
+  if (import.meta.env.DEV) return 'desenvolvimento';
+  return env.AMBIENTE;
 }
 
 export function banco(): D1Database {

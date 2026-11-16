@@ -1,12 +1,14 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { listarTextosDeOutro } from '../../lib/servidor/repositorio';
+import { outrosAdmins } from '../../lib/servidor/conteudo';
+import { listarIntegrantes, listarTextosDeOutro } from '../../lib/servidor/repositorio';
 import { TIPO_OUTRO } from '../../lib/tipos';
 
 const { usuario, tipos } = Astro.locals;
 if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
 
 const textos = await listarTextosDeOutro(usuario);
+const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 const oficiais = tipos.filter((t) => t.id !== TIPO_OUTRO);
 const CORES = ['#2F7D6B', '#D6455B', '#8A5BB5', '#C98A00', '#2B74B8', '#A8572E', '#D2478F', '#4E7F1E', '#5B6B7A', '#3D4A66', '#B5532B', '#1F8A8A'];
 const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.toLowerCase())) ?? CORES[0];
@@ -15,7 +17,7 @@ const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.
 <Base titulo="Tipos de momento">
   <div class="abertura abertura--curta">
     <h1>Tipos de momento</h1>
-    <p>A lista que aparece em "Que tipo de momento foi?". Só você e a Giovanna veem esta página.</p>
+    <p>A lista que aparece em "Que tipo de momento foi?". {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}</p>
   </div>
 
   <section class="painel">

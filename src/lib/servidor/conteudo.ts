@@ -40,3 +40,19 @@ export function validarData(ano: number, mes?: number, dia?: number): string | u
 export function arrumarTexto(bruto: string): string {
   return bruto.replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
+
+/** "a Giovanna", "o Gui"; sem "como se referir", só o nome. */
+export function comArtigo(pessoa: { nome: string; apelido?: string | null; tratamento: 'ela' | 'ele' | null }): string {
+  const nome = pessoa.apelido ?? pessoa.nome;
+  return pessoa.tratamento === 'ela' ? `a ${nome}` : pessoa.tratamento === 'ele' ? `o ${nome}` : nome;
+}
+
+/** "a Giovanna", "a Giovanna e o Gui", "a Ana, o Bia e a Cora" */
+export function juntarNomes(nomes: string[]): string {
+  return nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}` : (nomes[0] ?? '');
+}
+
+/** Os outros administradores, do ponto de vista de quem está logado: "a Giovanna" para o Gui, "o Gui" para a Giovanna. */
+export function outrosAdmins(eu: string, integrantes: { id: string; nome: string; apelido?: string | null; tratamento: 'ela' | 'ele' | null; admin: boolean }[]): string {
+  return juntarNomes(integrantes.filter((i) => i.admin && i.id !== eu).map(comArtigo));
+}

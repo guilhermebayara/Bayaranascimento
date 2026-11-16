@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { montarDesenho, type DadosDaArvore, type Estado } from '../src/lib/arvore-montagem';
+import { comLacoDeArvore, montarDesenho, type DadosDaArvore, type Estado } from '../src/lib/arvore-montagem';
 import previa from './dados/arvore-previa.json';
 
 // Os dados da prévia, como chegam ao navegador do Gui
@@ -31,7 +31,8 @@ describe('árvore com os dados da prévia', () => {
 
 describe('laços do coração em tronco', () => {
   it('os laços do Gui do lado esquerdo saem num tronco só, que entra pela lateral dele', () => {
-    const { desenho } = montarDesenho(dados, estado(['gui']));
+    // O Renan é amigo sem "como se fosse": só entra com "Amigos" ligado
+    const { desenho } = montarDesenho(dados, { ...estado(['gui']), amigos: true });
     const gui = desenho.pessoas.find((p) => p.id === 'gui')!;
     const troncos = desenho.linhas.filter((l) => l.tipo === 'coracao' && ['renan', 'natalia-boaventura', 'ex-dona-deia'].some((id) => l.de.includes(id)));
     expect(troncos).toHaveLength(1);
@@ -95,8 +96,15 @@ describe('tracejado nunca vira linha cheia', () => {
 describe('o mapa nunca fica vazio', () => {
   const nomes = (centro: string, mudar: Partial<Estado> = {}) => montarDesenho(dados, { ...estado(['gui']), centro, ...mudar }).desenho.pessoas.map((p) => p.id);
 
-  it('partir de quem só tem laço do coração mostra a pessoa', () => {
-    for (const id of ['ex-caio-amigo', 'ex-dona-deia', 'ex-dona-fatima', 'ex-dona-lourdes', 'gisele', 'ed-luiz']) expect(nomes(id)).toContain(id);
+  it('só dá para partir de quem tem filiação ou casal', () => {
+    // Decisão do Gui (16/11/2026): de quem só tem laço do coração, a árvore seria só a pessoa
+    const partiveis = comLacoDeArvore(dados);
+    for (const id of ['ex-caio-amigo', 'ex-dona-deia', 'ex-dona-fatima', 'ex-dona-lourdes']) expect(partiveis.has(id), id).toBe(false);
+    for (const id of ['gui', 'vo-vivica', 'chico', 'ex-toto']) expect(partiveis.has(id), id).toBe(true);
+  });
+
+  it('um endereço que parte de quem não tem laço de árvore abre a árvore padrão', () => {
+    for (const id of ['ex-caio-amigo', 'ex-dona-deia']) expect(nomes(id)).toEqual(expect.arrayContaining(['gui', 'giovanna', 'lucas-magno']));
   });
 
   it('com o centro escondido por um filtro, volta para os centros padrão', () => {
@@ -106,13 +114,25 @@ describe('o mapa nunca fica vazio', () => {
 });
 
 describe('laço do coração sem "como se fosse"', () => {
-  it('quem não tem família no acervo aparece na geração de quem escolheu', () => {
-    const comAmigo: DadosDaArvore = {
-      ...dados,
-      pessoas: [...dados.pessoas, { id: 'x-amigo', nome: 'Amigo', rotulo: '', nucleos: [], bicho: false, anos: '' }],
-      coracao: [...dados.coracao, { dono: 'gui', pessoa: 'x-amigo', papel: null, rotulo: 'seu amigo' }],
-    };
-    const { desenho } = montarDesenho(comAmigo, estado(['gui']));
+  // Decisão do Gui (16/11/2026): amigos sem lugar na família não aparecem por padrão. Haverá muito mais
+  // amigos cadastrados do que gente como da família. A opção "Amigos sem lugar na família" mostra.
+  const comAmigo: DadosDaArvore = {
+    ...dados,
+    pessoas: [...dados.pessoas, { id: 'x-amigo', nome: 'Amigo', rotulo: '', nucleos: [], bicho: false, anos: '' }],
+    coracao: [...dados.coracao, { dono: 'gui', pessoa: 'x-amigo', papel: null, rotulo: 'seu amigo' }],
+  };
+
+  it('não aparece por padrão, nem conta no botão ♥', () => {
+    const m = montarDesenho(comAmigo, estado(['gui']));
+    expect(m.desenho.pessoas.some((p) => p.id === 'x-amigo')).toBe(false);
+    // O Renan continua na árvore como pai do Otto ("como se fosse sobrinho"), mas sem linha própria até o Gui
+    expect(m.desenho.pessoas.some((p) => p.id === 'renan')).toBe(true);
+    expect(m.coracao.some((l) => l.pessoa === 'renan')).toBe(false);
+    expect(m.lacosDe.get('gui')).toBe(dados.coracao.filter((l) => l.dono === 'gui' && l.papel).length);
+  });
+
+  it('com "Amigos" ligado, quem não tem família no acervo aparece na geração de quem escolheu', () => {
+    const { desenho } = montarDesenho(comAmigo, { ...estado(['gui']), amigos: true });
     const amigo = desenho.pessoas.find((p) => p.id === 'x-amigo');
     expect(amigo).toBeDefined();
     expect(amigo!.y).toBe(desenho.pessoas.find((p) => p.id === 'gui')!.y);

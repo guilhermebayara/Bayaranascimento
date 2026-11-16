@@ -301,6 +301,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 
 <script>
   import { ligarCamposDeAno, montarEtapas } from '../lib/cliente/etapas';
+  import { ligarDatas } from '../lib/cliente/datas';
   import { prepararFoto } from '../lib/cliente/fotos';
 
   const form = document.querySelector<HTMLFormElement>('[data-formulario-memoria]');
@@ -361,6 +362,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       if (!form.querySelector<HTMLElement>('[data-resumo]')?.closest<HTMLElement>('[data-etapa]')?.hidden) montarResumo();
     });
     ligarCamposDeAno(form);
+    ligarDatas(form, [{ ano: 'ano', mes: 'mes', dia: 'dia' }]);
     // Calendário e "Foi hoje" preenchem dia, mês e ano de uma vez
     const calendario = form.querySelector<HTMLInputElement>('[data-calendario]');
     const preencherData = (ano: number, mes: number, dia: number) => {
@@ -368,6 +370,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       (form.elements.namedItem('mes') as HTMLSelectElement).value = String(mes);
       (form.elements.namedItem('dia') as HTMLInputElement).value = String(dia);
       (form.elements.namedItem('aproximada') as HTMLInputElement).checked = false;
+      form.elements.namedItem('dia')!.dispatchEvent(new Event('input'));
     };
     calendario?.addEventListener('change', () => {
       const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(calendario.value);
