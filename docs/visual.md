@@ -35,7 +35,7 @@ A família inclui gente com pouca familiaridade com sites, usando sobretudo o ce
 | Polaroid | Preferência: polaroid em toda foto-chave da linha do tempo. Confirmar na implementação vendo como fica na linha do tempo |
 | Linha do tempo | Lista vertical com a rolagem normal, das mais recentes para as mais antigas, sem efeito de folhear nem carrossel |
 | Página da memória | Ordem abaixo, com o convite para escrever o relato no fim |
-| Marca | O nome continua "Memórias Bayara e Bracarense". O símbolo é o monograma "uma haste": um B espelhado e um B normal dividindo o mesmo traço vertical, as duas famílias no mesmo eixo |
+| Marca | O nome continua "Memórias Bayara e Bracarense", com "MEMÓRIAS" como palavra principal na assinatura (ver abaixo). O símbolo é o monograma "uma haste": um B espelhado e um B normal dividindo o mesmo traço vertical, as duas famílias no mesmo eixo |
 
 ## Movimento
 
@@ -67,6 +67,16 @@ O Safari do iPhone já deu trabalho com efeitos presos à rolagem no site da @bs
 | Bloco de áudio | Relato | Botão de tocar, título, onde e quando foi gravado, duração, "Ler a transcrição" |
 | Sanfona de fases | Página do laço | Ano grande, nome da fase, data pequena; abre uma de cada vez |
 | Formulário em frase | Abertura da Nova memória | "Isso aconteceu em ___, em ___, com ___", sem mudar a ordem das etapas nem o que é obrigatório |
+
+## Assinatura do nome
+
+Decisão do Gui de 16/11/2026, para a rodada seguinte à primeira versão do visual. Rascunho dele em `docs/visual/assinatura-hierarquia.png`.
+
+- "MEMÓRIAS" é a palavra principal: em caixa alta, grande, na serifa dos títulos.
+- "Bayara & Bracarense" vem logo abaixo, em caixa alta e baixa, bem menor (no rascunho, perto de metade da altura de "MEMÓRIAS"), alinhado à esquerda e com largura parecida com a de "MEMÓRIAS".
+- No rascunho, a assinatura usa "&" entre os nomes. No texto corrido, o nome continua "Memórias Bayara e Bracarense".
+- O rascunho mostra três pesos e larguras (normal, condensada, negrito) da mesma família: comparar na prévia, junto com a escolha da fonte.
+- A assinatura vai no topo do site, na tela de entrada e no convite de Natal. O monograma acompanha a assinatura ou aparece sozinho onde falta espaço (ícone, topo no celular).
 
 ## Monograma
 

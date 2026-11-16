@@ -197,6 +197,7 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - O espelho da produção não leva retratos, como não leva áudios. Os exemplos podem ganhar retratos de exemplo, se ajudar a conferir o visual.
     - Teste em `testes/`: quem pode pôr e trocar o retrato, e que o retrato de quem a pessoa não vê não é entregue.
   Fontes: escolher entre opções de licença livre (Fontsource), comparando duas ou três na prévia; a serifa precisa ter acentos e itálico bons em português. A polaroid em toda foto-chave fica para o Gui confirmar vendo a linha do tempo pronta. Ao terminar, o resumo de `docs/visual.md` vira regra aqui, e `docs/ux/revisao-visual.md` sai de cena.
+- **Assinatura do nome** (decisão do Gui, 16/11/2026), para depois da primeira versão do visual: "MEMÓRIAS" grande em caixa alta como palavra principal e "Bayara & Bracarense" menor logo abaixo, na serifa dos títulos, como em `docs/visual.md` ("Assinatura do nome") e no rascunho `docs/visual/assinatura-hierarquia.png`. Trocar o nome do topo do site pela assinatura e mostrar na prévia as variações de peso e largura do rascunho.
 
 ## Em aberto
 
