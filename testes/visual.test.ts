@@ -234,6 +234,20 @@ describe('conceito', () => {
     expect(css.slice(0, css.indexOf('@media (hover: hover) and (pointer: fine)'))).not.toContain('[data-vivo]');
   });
 
+  it('os controles da linha do tempo têm nome e lugar fixo: família, tipo e década', () => {
+    // Achado do Gui, 16/11/2026: a década passava batida, o filtro por tipo mudava de lugar ao abrir
+    // e as famílias quebravam a linha
+    const pagina = Object.entries(paginas).find(([caminho]) => caminho.endsWith('conceito/tudo.astro'))![1];
+    const css = ler('telas/linha.css');
+    for (const nome of ['Família', 'Tipo', 'Década']) expect(pagina).toMatch(new RegExp(`rotulo[^>]*>\\s*${nome}\\s*<`));
+    // A lista de tipos abre dentro do próprio controle: nenhuma regra muda o lugar dele quando abre
+    expect(css).not.toMatch(/\.filtros\[open\]\s*\{[^}]*grid-(column|row|area)/);
+    // A faixa de décadas leva a cor da família, e não o papel
+    expect(css).toMatch(/\.decadas\s*\{[^}]*background:\s*var\(--pastel\)/);
+    // Fechado, o controle do tipo diz o que está escolhido
+    expect(pagina).toContain('data-filtro-atual');
+  });
+
   it('as telas novas não levam o CSS antigo', () => {
     const fontes = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro'], {
       query: '?raw',

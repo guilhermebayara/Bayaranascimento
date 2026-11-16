@@ -6,27 +6,39 @@
 .linha__capa {
   padding-top: var(--e-4);
 }
-.linha__resumo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0 var(--e-6);
+.linha__conta {
   margin-top: var(--e-6);
-  padding-top: var(--e-3);
+  padding-top: var(--e-4);
   border-top: 1px solid var(--tinta);
 }
-.linha__resumo > p {
-  display: flex;
-  align-items: center;
-  min-height: var(--toque);
+
+/* Os controles: família e tipo, um embaixo do outro, cada um com o nome. No celular o nome fica em
+   cima; no computador, numa coluna à esquerda, a mesma do nome da faixa de décadas. */
+.controles {
+  display: grid;
+  gap: var(--e-2);
+  margin-top: var(--e-5);
+  padding-bottom: var(--e-5);
+}
+.controle {
+  display: grid;
+}
+.controle__nome {
+  margin-bottom: calc(-1 * var(--e-2));
+}
+/* No celular, o nome da faixa de décadas fica em cima dela, como os outros; a faixa leva só os números */
+.controle__nome--decadas {
+  margin: var(--e-3) 0 0;
+}
+.controles:has(.controle__nome--decadas) {
+  padding-bottom: var(--e-3);
 }
 
-/* As famílias: a linha do tempo de cada núcleo */
+/* As famílias: a linha do tempo de cada uma */
 .linha__familias {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 var(--e-5);
+  gap: 0 var(--e-4);
   font-size: var(--t-pequeno);
 }
 .linha__familias a {
@@ -35,35 +47,56 @@
   min-height: var(--toque);
   color: var(--tinta-suave);
   text-decoration: none;
+  white-space: nowrap;
 }
 .linha__familias a:hover {
   color: var(--tinta);
 }
 .linha__familias a[aria-current] {
   color: var(--tinta);
+  font-weight: 600;
   text-decoration: underline;
   text-decoration-thickness: var(--traco);
   text-underline-offset: 0.4em;
 }
 
-/* Filtro por tipo: recolhido, abre empurrando a lista */
+/* O tipo: fechado, o controle diz o tipo escolhido; aberto, a lista aparece logo abaixo dele, no
+   mesmo lugar, empurrando a linha do tempo. O controle não muda de lugar ao abrir. */
 .filtros summary {
   display: inline-flex;
   align-items: center;
+  gap: 0.6em;
   min-height: var(--toque);
   list-style: none;
   cursor: pointer;
   font-size: var(--t-pequeno);
-  color: var(--tinta-suave);
+  font-weight: 600;
 }
 .filtros summary::-webkit-details-marker {
   display: none;
 }
 .filtros summary span {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.3em;
-  text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+}
+/* O sinal de mais vira xis quando a lista abre, como no menu */
+.filtros summary::after {
+  content: '';
+  width: 0.7em;
+  height: 0.7em;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  transition: rotate var(--tempo-medio) var(--curva);
+}
+.filtros[open] summary::after {
+  rotate: 45deg;
+}
+.filtros :is(summary, button) .icone {
+  width: 1.5em;
+  height: 1.5em;
+  color: var(--tipo-cor);
 }
 .filtros ul {
   display: flex;
@@ -111,19 +144,34 @@
   --fio-do-tempo: color-mix(in srgb, var(--tinta) 62%, var(--papel));
   --altura-do-ponto: 0.3rem;
 }
+/* A faixa de décadas: na cor da família, de ponta a ponta, com o nome do que ela faz. Antes era uma
+   linha de números pequenos sobre o papel e passava batida (achado do Gui, 16/11/2026). */
 .decadas {
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--papel);
-  border-bottom: 1px solid var(--fio);
+  background: var(--pastel);
+}
+.decadas__dentro {
+  display: flex;
+  align-items: center;
+  gap: var(--e-4);
+  height: var(--barra);
+}
+.decadas__nome {
+  display: none;
+  flex: none;
 }
 .decadas ul {
   /* Uma linha só, de altura fixa: é sobre ela que o ano fica parado. Com muitas décadas, a
-     linha rola para o lado dentro da barra. */
+     linha rola para o lado dentro da faixa. */
   display: flex;
-  gap: 0 var(--e-5);
+  flex: 1;
+  min-width: 0;
+  gap: 0 var(--e-1);
   height: var(--barra);
+  /* O primeiro número fica alinhado à margem, com a ficha dele saindo um pouco para fora */
+  margin-left: -0.7em;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -134,25 +182,34 @@
   flex: none;
 }
 .decadas a {
+  position: relative;
+  z-index: 0;
   display: inline-flex;
   align-items: center;
   height: var(--barra);
+  padding-inline: 0.7em;
   font-family: var(--mono);
-  font-size: var(--t-ficha);
-  letter-spacing: 0.08em;
-  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-decoration: none;
 }
-.decadas a:hover,
-.decadas [data-aqui] a {
-  color: var(--tinta);
+/* A década em leitura fica numa ficha de papel; as outras ganham a ficha ao passar o mouse */
+.decadas a::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0.4rem 0;
+  border-radius: 999px;
+  background: var(--papel);
+  opacity: 0;
+  transition: opacity var(--tempo-curto);
 }
-/* O item da década em leitura acende */
-.decadas [data-aqui] a {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 0.5em;
-  text-decoration-color: var(--vivo);
+.decadas a:hover::before {
+  opacity: 0.55;
+}
+.decadas [data-aqui] a::before {
+  opacity: 1;
 }
 .decada__ancora {
   scroll-margin-top: 3rem;
@@ -633,31 +690,60 @@
 /* --- Computador: o ano fica na coluna da esquerda e cada memória vira uma página dupla -------- */
 
 @media (min-width: 62rem) {
-  /* A assinatura ocupa dois terços da largura e o resumo fecha a linha à direita, embaixo */
+  /* A assinatura ocupa dois terços da largura e a conta das memórias fecha a linha à direita, embaixo.
+     Os controles vêm depois, na largura inteira, com o nome de cada um numa coluna à esquerda. */
+  .linha {
+    --coluna-do-nome: 7.5rem;
+  }
   .linha__capa {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    grid-template-rows: 1fr auto;
     column-gap: var(--calha);
     align-items: end;
     padding-top: var(--e-4);
-    padding-bottom: var(--e-5);
   }
   .linha__capa .assinatura {
     grid-column: 1 / span 8;
-    grid-row: 1 / span 2;
+    grid-row: 1;
   }
-  .linha__resumo {
+  .linha__conta {
     grid-column: 10 / -1;
-    display: block;
+    grid-row: 1;
+    margin: 0 0 var(--e-3);
+  }
+  .controles {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    gap: 0;
+    margin-top: var(--e-6);
+    padding-block: var(--e-3) var(--e-4);
+    border-top: 1px solid var(--fio);
+  }
+  .controle {
+    grid-template-columns: var(--coluna-do-nome) minmax(0, 1fr);
+    align-items: start;
+  }
+  .controle__nome {
+    display: flex;
+    align-items: center;
+    min-height: var(--toque);
     margin: 0;
   }
-  .linha__capa .filtros {
-    grid-column: 10 / -1;
+  .linha__familias {
+    gap: 0 var(--e-6);
   }
-  .linha__capa .filtros[open] {
-    grid-column: 1 / -1;
-    grid-row: 3;
+  .decadas__dentro {
+    gap: 0;
+  }
+  .decadas__nome {
+    display: block;
+    width: var(--coluna-do-nome);
+  }
+  .controle__nome--decadas {
+    display: none;
+  }
+  .controles:has(.controle__nome--decadas) {
+    padding-bottom: var(--e-4);
   }
   .ano {
     padding-top: var(--e-9);

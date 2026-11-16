@@ -79,59 +79,86 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
   <div class="linha" data-linha-do-tempo style={`--trilhos: ${montagem.quantos}`}>
     <header class="linha__capa miolo">
       <Assinatura titulo sobrenomes={sobrenomes} />
-      <div class="linha__resumo">
-        <p class="rotulo">{memorias.length === 0 ? 'As memórias da nossa família' : [quantas, periodo].filter(Boolean).join(' · ')}</p>
+      <p class="linha__conta rotulo">{memorias.length === 0 ? 'As memórias da nossa família' : [quantas, periodo].filter(Boolean).join(' · ')}</p>
+      {/* Os controles ficam um embaixo do outro, cada um com o nome: família, tipo e, na barra, década.
+          Cada um tem o seu lugar e não sai dele ao abrir (pedido do Gui, 16/11/2026). */}
+      <div class="controles">
         {
           nucleos.length > 0 && (
-            <nav class="linha__familias" aria-label="Famílias">
-              <a href="/conceito/tudo" aria-current={!nucleo ? 'page' : undefined}>
-                Tudo
-              </a>
-              {nucleos.map((n) => (
-                <a href={`/conceito/tudo?nucleo=${n.id}`} aria-current={nucleo?.id === n.id ? 'page' : undefined}>
-                  {n.nome}
+            <div class="controle">
+              <p class="controle__nome rotulo suave" id="controle-familia">
+                Família
+              </p>
+              <nav class="linha__familias" aria-labelledby="controle-familia">
+                <a href="/conceito/tudo" aria-current={!nucleo ? 'page' : undefined}>
+                  Tudo
                 </a>
-              ))}
-            </nav>
+                {nucleos.map((n) => (
+                  <a href={`/conceito/tudo?nucleo=${n.id}`} aria-current={nucleo?.id === n.id ? 'page' : undefined}>
+                    {n.nome}
+                  </a>
+                ))}
+              </nav>
+            </div>
           )
         }
+        {
+          tiposPresentes.length > 1 && (
+            <div class="controle">
+              <p class="controle__nome rotulo suave" id="controle-tipo">
+                Tipo
+              </p>
+              {/* Fechado, o controle diz o tipo escolhido; aberto, a lista aparece logo abaixo dele */}
+              <details class="filtros">
+                <summary aria-labelledby="controle-tipo filtro-atual">
+                  <span id="filtro-atual" data-filtro-atual>
+                    Todos os tipos
+                  </span>
+                </summary>
+                <ul aria-label="Filtrar por tipo de momento">
+                  <li>
+                    <button type="button" data-filtro="" aria-pressed="true">
+                      Todos os tipos
+                    </button>
+                  </li>
+                  {tiposPresentes.map((t) => (
+                    <li>
+                      <button type="button" data-filtro={t.id} aria-pressed="false" style={estiloDoTipo(t.id)}>
+                        <IconeDoTipo tipo={t.id} />
+                        {t.rotulo}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          )
+        }
+        {/* No celular o nome de cada controle fica em cima dele: o da faixa de décadas também */}
+        {decadas.length > 1 && (
+          <p class="controle__nome controle__nome--decadas rotulo suave" aria-hidden="true">
+            Ir para a década
+          </p>
+        )}
       </div>
-      {
-        tiposPresentes.length > 1 && (
-          <details class="filtros">
-            <summary>
-              <span>Filtrar por tipo</span>
-            </summary>
-            <ul aria-label="Filtrar por tipo de momento">
-              <li>
-                <button type="button" data-filtro="" aria-pressed="true">
-                  Tudo
-                </button>
-              </li>
-              {tiposPresentes.map((t) => (
-                <li>
-                  <button type="button" data-filtro={t.id} aria-pressed="false" style={estiloDoTipo(t.id)}>
-                    <IconeDoTipo tipo={t.id} />
-                    {t.rotulo}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )
-      }
     </header>
 
+    {/* A década é uma faixa na cor da família, parada no alto, com o nome do que ela faz */}
     {
       decadas.length > 1 && (
         <nav class="decadas" aria-label="Ir para a década">
-          <ul class="miolo">
-            {decadas.map((d) => (
-              <li data-decada={d}>
-                <a href={`#decada-${d}`}>{d}</a>
-              </li>
-            ))}
-          </ul>
+          <div class="decadas__dentro miolo">
+            <p class="decadas__nome rotulo" aria-hidden="true">
+              Década
+            </p>
+            <ul>
+              {decadas.map((d, i) => (
+                <li data-decada={d} data-aqui={i === 0 ? '' : undefined}>
+                  <a href={`#decada-${d}`}>{d}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
         </nav>
       )
     }
@@ -292,8 +319,15 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
     const botoes = [...raiz.querySelectorAll<HTMLButtonElement>('[data-filtro]')];
     const validos = new Set(botoes.map((b) => b.dataset.filtro));
 
+    const atual = raiz.querySelector<HTMLElement>('[data-filtro-atual]');
     const aplicar = (tipo: string) => {
       for (const b of botoes) b.setAttribute('aria-pressed', String(b.dataset.filtro === tipo));
+      // Fechado, o controle continua dizendo o que está escolhido
+      const escolhido = botoes.find((b) => b.dataset.filtro === tipo);
+      if (atual && escolhido) {
+        atual.replaceChildren(...[...escolhido.childNodes].map((no) => no.cloneNode(true)));
+        atual.setAttribute('style', escolhido.getAttribute('style') ?? '');
+      }
       // Com o filtro, as memórias deixam de estar todas na tela: os trilhos e as marcas saem, e fica o sinal em cada memória
       raiz.toggleAttribute('data-filtrando', Boolean(tipo));
       for (const secao of raiz.querySelectorAll<HTMLElement>('.ano')) {
@@ -375,7 +409,6 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
     const inicial = new URLSearchParams(location.search).get('tipo') ?? '';
     if (inicial && validos.has(inicial)) {
       aplicar(inicial);
-      raiz.querySelector<HTMLDetailsElement>('details.filtros')?.setAttribute('open', '');
     }
 
     // A memória em leitura e a década dela: a que cruza o meio da tela
