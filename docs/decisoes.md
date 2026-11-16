@@ -47,7 +47,7 @@ A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `tes
 
 ## Como o site funciona
 
-- **Linha do tempo** (decisão do Gui, 16/11/2026): as memórias mais recentes primeiro, e rolar leva ao passado (`maisRecentesPrimeiro`, em `src/lib/datas.ts`), em todas as páginas que mostram a linha do tempo. "Antes" e "Depois", no fim da memória, continuam pela data.
+- **Linha do tempo** (decisão do Gui, 16/11/2026): as memórias mais recentes primeiro, e rolar leva ao passado (`maisRecentesPrimeiro`, em `src/lib/datas.ts`), em todas as páginas que mostram a linha do tempo. "Antes" e "Depois", no fim da memória, continuam pela data. Uma barra fixa no alto da linha do tempo leva direto a cada década (2020, 2010... 1950), só quando há mais de uma; com um filtro de tipo ligado, as décadas sem memória daquele tipo saem da barra.
 - Toda página é montada para a pessoa logada, e é isso que esconde o que é restrito a um núcleo.
 - A regra de quem vê está em `src/lib/servidor/permissoes.ts` e, em SQL, em `src/lib/servidor/repositorio.ts`. As duas mudam juntas.
 - A estrutura do banco está em `src/lib/servidor/banco.ts`. O site aplica as mudanças sozinho na primeira visita depois de publicado.

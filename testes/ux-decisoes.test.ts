@@ -315,3 +315,12 @@ describe('linha do tempo', () => {
     expect(fonte('src/components/LinhaDoTempo.astro')).toContain('agruparPorAno(maisRecentesPrimeiro(memorias))');
   });
 });
+
+describe('salto por década', () => {
+  it('barra fixa com as décadas, só com mais de uma, e o filtro tira as que ficam vazias', () => {
+    const linha = fonte('src/components/LinhaDoTempo.astro');
+    expect(linha).toContain('decadas.length > 1 &&');
+    expect(linha).toContain('id={`decada-${decadaDe(ano)}`}');
+    expect(linha).toContain("item.hidden = !raiz.querySelector(`.ano[data-decada=\"${item.dataset.decada}\"]:not([hidden])`)");
+  });
+});

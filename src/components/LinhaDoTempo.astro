@@ -13,6 +13,11 @@ interface Props {
 const { memorias, integrantes, nucleos, vazio = 'Ainda não há memórias aqui.' } = Astro.props;
 // Mais recentes primeiro: rolar a página leva ao passado
 const anos = agruparPorAno(maisRecentesPrimeiro(memorias));
+// Salto por década (decisão do Gui, 16/11/2026): com a linha do tempo começando pelo mais recente,
+// uma barra fixa no alto leva direto às décadas mais antigas. Só aparece com mais de uma década.
+const decadaDe = (ano: number) => Math.floor(ano / 10) * 10;
+const decadas = [...new Set(anos.map((a) => decadaDe(a.ano)))];
+const primeiroDaDecada = new Set(decadas.map((d) => anos.find((a) => decadaDe(a.ano) === d)!.ano));
 const tiposPresentes = Astro.locals.tipos.filter((t) => memorias.some((m) => m.tipo === t.id));
 ---
 
@@ -38,8 +43,22 @@ const tiposPresentes = Astro.locals.tipos.filter((t) => memorias.some((m) => m.t
         </ul>
       )}
 
+      {decadas.length > 1 && (
+        <nav class="decadas" aria-label="Ir para a década">
+          <ul>
+            {decadas.map((d) => (
+              <li data-decada={d}>
+                <a href={`#decada-${d}`}>{d}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+
       {anos.map(({ ano, itens }) => (
-        <section class="ano" aria-labelledby={`ano-${ano}`}>
+        <>
+        {primeiroDaDecada.has(ano) && <div class="decada__ancora" id={`decada-${decadaDe(ano)}`}></div>}
+        <section class="ano" aria-labelledby={`ano-${ano}`} data-decada={decadaDe(ano)}>
           <h2 class="ano__numero" id={`ano-${ano}`}>
             <span>{ano}</span>
           </h2>
@@ -49,6 +68,7 @@ const tiposPresentes = Astro.locals.tipos.filter((t) => memorias.some((m) => m.t
             ))}
           </div>
         </section>
+        </>
       ))}
     </div>
   )
@@ -70,6 +90,10 @@ const tiposPresentes = Astro.locals.tipos.filter((t) => memorias.some((m) => m.t
           if (mostra) visiveis++;
         }
         secao.hidden = visiveis === 0;
+      }
+      // Década sem nenhuma memória do tipo escolhido sai da barra de salto
+      for (const item of raiz.querySelectorAll<HTMLElement>('.decadas [data-decada]')) {
+        item.hidden = !raiz.querySelector(`.ano[data-decada="${item.dataset.decada}"]:not([hidden])`);
       }
     };
 

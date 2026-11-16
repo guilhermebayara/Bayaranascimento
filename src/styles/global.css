@@ -2924,3 +2924,42 @@ p {
     white-space: nowrap;
   }
 }
+
+/* Salto por década: barra fixa no alto da linha do tempo, que rola de lado no celular */
+.decadas {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 calc(-1 * var(--margem)) var(--espaco-6);
+  padding: var(--espaco-1) var(--margem);
+  background: var(--cor-fundo);
+  border-bottom: var(--borda) solid var(--cor-linha);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.decadas ul {
+  display: flex;
+  gap: var(--espaco-1) var(--espaco-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.decadas a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque-minimo);
+  padding-inline: var(--espaco-1);
+  font-family: var(--fonte-titulo);
+  font-size: var(--tamanho-4);
+  font-weight: var(--peso-medio);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.decadas a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--cor-destaque);
+  text-decoration-thickness: 0.2em;
+}

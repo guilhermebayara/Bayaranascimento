@@ -166,7 +166,7 @@ Capturas: `inicio`, `inicio-nucleo`, `memoria`, `pessoa-quem-acessa`, `capitulos
 
 **Recomendação**
 
-1. ~~Manter a ordem do antigo para o novo~~. **Decisão do Gui (16/11/2026): o contrário, mais recentes primeiro**, e rolar leva ao passado; já construído. O salto por década no alto, fixo ao rolar, continua recomendado, agora ainda mais útil para chegar às memórias antigas.
+1. ~~Manter a ordem do antigo para o novo~~. **Decisão do Gui (16/11/2026): o contrário, mais recentes primeiro**, e rolar leva ao passado; já construído. O salto por década no alto, fixo ao rolar, também foi aprovado e construído.
 2. Núcleo como mais um filtro da linha do tempo, ao lado do tipo, e o menu fica com as seções: Linha do tempo, Capítulos, Árvore, Pessoas, e "Nova memória" como ação. Rascunhos e lixeira vão para um item "Meus rascunhos" (ver "Corrigir e desfazer").
 3. Na memória, "Ver na árvore" junto das pessoas, quando houver mais de uma pessoa da família.
 
