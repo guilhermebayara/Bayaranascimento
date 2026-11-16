@@ -61,10 +61,11 @@ const banco = usuario.admin ? situacaoDoBanco(await tamanhoDoBanco()) : undefine
     <header class="miolo topo">
       <a class="topo__nome" href="/">Memórias Bayara e Bracarense</a>
       <nav class="topo__nav" aria-label="Seções">
-        <a href="/" aria-current={caminho === '/' && !nucleoAtual ? 'page' : undefined}>Tudo</a>
+        <a href="/" aria-current={caminho === '/' ? 'page' : undefined}>Início</a>
+        <a href="/tudo" aria-current={caminho === '/tudo' && !nucleoAtual ? 'page' : undefined}>Tudo</a>
         {
           nucleos.map((n) => (
-            <a href={`/?nucleo=${n.id}`} aria-current={caminho === '/' && nucleoAtual === n.id ? 'page' : undefined}>
+            <a href={`/tudo?nucleo=${n.id}`} aria-current={caminho === '/tudo' && nucleoAtual === n.id ? 'page' : undefined}>
               {n.nome}
             </a>
           ))
@@ -88,6 +89,7 @@ const banco = usuario.admin ? situacaoDoBanco(await tamanhoDoBanco()) : undefine
           <a href="/lixeira">Lixeira</a>
           {usuario.admin && <a href="/admin/tipos">Tipos de momento</a>}
           {usuario.admin && <a href="/admin/familias">Famílias</a>}
+          {usuario.admin && <a href="/admin/carta">Carta de Natal</a>}
           {usuario.admin && podeEspelhar() && <a href="/admin/espelho">Espelho da produção</a>}
           {usuario.admin && (
             <a href="/api/copia" download>

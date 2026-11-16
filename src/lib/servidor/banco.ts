@@ -6,7 +6,7 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearConsideracoesDeExemplo, semearExemplos, semearParentesDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearConsideracoesDeExemplo, semearExemplos, semearParentesDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 
 interface Migracao {
@@ -497,6 +497,39 @@ const MIGRACOES: Migracao[] = [
       `UPDATE nucleos SET sobrenomes = '["Bracarense"]' WHERE id = 'bracarense'`,
     ],
   },
+  {
+    // Painel pessoal como página inicial (decisões do Gui, 16/11/2026).
+    // - cartas: a carta de Natal, escrita pelos administradores no próprio site. Cada versão salva é
+    //   uma linha nova, e vale a mais recente: nada se apaga. O texto nunca vai para o repositório.
+    // - visitas: para cada pessoa que abre o painel, a primeira e a última visita (ver chegarAoPainel,
+    //   em src/lib/painel.ts). Sem chave para integrantes: o registro é de quem entra no site.
+    // - publicada_em: quando a memória e o relato foram publicados, para "o que entrou de novo". Um
+    //   rascunho publicado depois entra como novo no dia em que foi publicado. As que já existem
+    //   ficam com a data de criação.
+    // Numerada 020 porque a 019 é a de "Época e capítulo", em outro PR para a homologa.
+    id: '020-painel',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS cartas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        texto TEXT NOT NULL,
+        assinatura TEXT NOT NULL,
+        escrita_por TEXT NOT NULL,
+        escrita_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+      `CREATE TABLE IF NOT EXISTS visitas (
+        pessoa TEXT PRIMARY KEY,
+        primeira_em TEXT NOT NULL,
+        visita_em TEXT NOT NULL,
+        ultima_em TEXT NOT NULL,
+        anterior_em TEXT,
+        carta_em TEXT
+      )`,
+      `ALTER TABLE memorias ADD COLUMN publicada_em TEXT`,
+      `UPDATE memorias SET publicada_em = criada_em WHERE situacao = 'publicada'`,
+      `ALTER TABLE relatos ADD COLUMN publicado_em TEXT`,
+      `UPDATE relatos SET publicado_em = criado_em WHERE situacao = 'publicada'`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
@@ -539,6 +572,7 @@ async function migrar(db: D1Database): Promise<void> {
     await semearParentesDeExemplo(db);
     await semearAcervoDeExemplo(db);
     await semearConsideracoesDeExemplo(db);
+    await semearAniversariosDeExemplo(db);
     // Os exemplos entram como membros (é o padrão da tabela), mas ninguém deles acessa o site: são parentes
     await db.prepare(`UPDATE nucleo_membros SET papel = 'parente' WHERE papel = 'membro' AND integrante_id LIKE 'ex-%'`).run();
     // Fotos e retratos de exemplo: o Chico e a Karol. E a limpeza do que as prévias enviaram há mais de 7 dias.

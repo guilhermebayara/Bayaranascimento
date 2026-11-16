@@ -1,35 +1,164 @@
 ---
+// Painel pessoal, a página inicial (docs/decisoes.md, "Painel pessoal como página inicial").
+// Esta é a parte funcional, com a aparência mínima do site atual. A tela final é a do conceito da
+// revisão visual (/conceito), que passa a ler daqui o que hoje é fixo lá.
+//
+// Primeira visita: a carta de Natal no alto. Visitas seguintes, nesta ordem: o que entrou de novo
+// desde a última visita, os aniversários dos próximos 30 dias, a pessoa no acervo, uma memória
+// para contar e o caminho para a linha do tempo inteira. As regras ficam em src/lib/painel.ts.
 import Base from '../layouts/Base.astro';
-import LinhaDoTempo from '../components/LinhaDoTempo.astro';
-import { listarIntegrantes, listarMemorias, listarNucleos } from '../lib/servidor/repositorio';
+import { formatarData, MESES } from '../lib/datas';
+import { aniversarios, chegarAoPainel, comParentesco, hojeNoBrasil, memoriaParaContar, novidades, saudacao } from '../lib/painel';
+import { Familia, possessivo, type Tratamento } from '../lib/parentesco';
+import { semLogin } from '../lib/servidor/acesso';
+import {
+  listarCasais,
+  listarFiliacoes,
+  listarIntegrantes,
+  listarMemorias,
+  listarRelatosPublicadosDesde,
+  memoriasComRelatoDe,
+  obterCarta,
+  obterVisitas,
+  pessoasQueONaoVe,
+  salvarVisitas,
+} from '../lib/servidor/repositorio';
+
+// Os endereços antigos da linha do tempo ("/?nucleo=...") continuam funcionando. Os recados de uma
+// ação ("?ok=", "?erro=") são do painel e ficam aqui.
+if ([...Astro.url.searchParams.keys()].some((k) => k !== 'ok' && k !== 'erro')) return Astro.redirect(`/tudo${Astro.url.search}`, 301);
 
 const { usuario } = Astro.locals;
-const nucleos = await listarNucleos();
-const pedido = Astro.url.searchParams.get('nucleo');
-// Todo mundo pode filtrar por qualquer família (decisão do Gui, 16/11/2026). O filtro não muda quem vê o quê:
-// listarMemorias só devolve o que a pessoa pode ver, e de uma família de que ela não é membro isso é o que
-// foi aberto a todos.
-const nucleo = nucleos.find((n) => n.id === pedido);
-const memorias = await listarMemorias(usuario, { nucleo: nucleo?.id });
+const agora = new Date();
+const carta = await obterCarta();
+const chegada = chegarAoPainel(await obterVisitas(usuario.pessoa), agora, Boolean(carta));
+await salvarVisitas(usuario.pessoa, chegada.registro);
+
 const integrantes = await listarIntegrantes();
-const primeiro = memorias[0]?.ano;
-const ultimo = memorias.at(-1)?.ano;
-const periodo = primeiro && ultimo && primeiro !== ultimo ? `, de ${primeiro} a ${ultimo}` : primeiro ? `, em ${primeiro}` : '';
-const quantas = `${memorias.length} ${memorias.length === 1 ? 'memória' : 'memórias'}`;
+const achar = (id: string) => integrantes.find((i) => i.id === id);
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+const eu = achar(usuario.pessoa);
+const naoVe = await pessoasQueONaoVe(usuario);
+const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
+const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
+/** "sua avó Bela", ou só o nome, sem parentesco conhecido */
+const paraVoce = (id: string) => {
+  const relacao = familia.relacao(usuario.pessoa, id);
+  return comParentesco(relacao ? possessivo(relacao, achar(id)?.tratamento ?? null) : undefined, nome(id));
+};
+
+// Só o que a pessoa pode ver, da mais antiga para a mais nova
+const memorias = await listarMemorias(usuario);
+const porId = new Map(memorias.map((m) => [m.id, m]));
+
+const novo = chegada.novidadesDesde
+  ? novidades(memorias, await listarRelatosPublicadosDesde(usuario, chegada.novidadesDesde), chegada.novidadesDesde, usuario.pessoa)
+  : { memorias: [], relatos: [] };
+
+const hoje = hojeNoBrasil(agora);
+const proximos = aniversarios(integrantes, hoje, naoVe, usuario.pessoa);
+const quando = (emDias: number, dia: number, mes: number) => (emDias === 0 ? 'Hoje' : emDias === 1 ? 'Amanhã' : `${dia} de ${MESES[mes - 1]!.toLowerCase()}`);
+
+const minhas = memorias.filter((m) => m.integrantes.includes(usuario.pessoa));
+// Nunca a mesma memória que já está entre as novidades
+const paraContar = memoriaParaContar(memorias, await memoriasComRelatoDe(usuario.pessoa), usuario.pessoa, new Set(novo.memorias.map((m) => m.id)));
+const paragrafos = (texto: string) => texto.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
 ---
 
-<Base titulo={nucleo?.nome}>
-  <div class="abertura">
-    <h1>{nucleo ? nucleo.nome : 'Memórias Bayara e Bracarense'}</h1>
-    <p>
-      {
-        memorias.length === 0
-          ? 'As memórias da nossa família.'
-          : nucleo
-            ? `${quantas} desta família${periodo}.`
-            : `${quantas} da nossa família${periodo}.`
-      }
-    </p>
-  </div>
-  <LinhaDoTempo memorias={memorias} integrantes={integrantes} nucleos={nucleos} />
+<Base titulo="Início">
+  {
+    chegada.cartaNoAlto && carta && eu && (
+      <section class="painel" aria-labelledby="saudacao">
+        <h1 id="saudacao">{saudacao(eu.apelido ?? eu.nome, eu.tratamento)}</h1>
+        {paragrafos(carta.texto).map((p) => <p>{p}</p>)}
+        <p>{carta.assinatura}</p>
+      </section>
+    )
+  }
+
+  {!chegada.cartaNoAlto && (
+    <div class="abertura">
+      <h1>Olá, {usuario.nome}</h1>
+    </div>
+  )}
+
+  {
+    (novo.memorias.length > 0 || novo.relatos.length > 0) && (
+      <section class="painel" aria-labelledby="novidades">
+        <h2 id="novidades">Desde a sua última visita</h2>
+        <ul>
+          {novo.memorias.map((m) => (
+            <li>
+              <a href={`/memorias/${m.id}`}>{m.titulo}</a> <small>{formatarData(m)}, registrada por {nome(m.criadaPor)}</small>
+            </li>
+          ))}
+          {novo.relatos.map((r) => (
+            <li>
+              {nome(r.por)} contou sobre <a href={`/memorias/${r.memoriaId}`}>{porId.get(r.memoriaId)?.titulo}</a>
+              {r.registradoPor !== r.por && <small> (registrado por {nome(r.registradoPor)})</small>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    proximos.length > 0 && (
+      <section class="painel" aria-labelledby="aniversarios">
+        <h2 id="aniversarios">Aniversários</h2>
+        <ul>
+          {proximos.map((a) => (
+            <li>
+              {quando(a.emDias, a.dia, a.mes)}: <a href={`/pessoas/${a.pessoa.id}`}>{paraVoce(a.pessoa.id)}</a>
+              {a.faz !== null && <small>, faz {a.faz} {a.faz === 1 ? 'ano' : 'anos'}</small>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    minhas.length > 0 && (
+      <section class="painel" aria-labelledby="no-acervo">
+        <h2 id="no-acervo">Você no acervo</h2>
+        <p>
+          <a href={`/pessoas/${usuario.pessoa}`}>Você aparece em {minhas.length} {minhas.length === 1 ? 'memória' : 'memórias'}</a>
+        </p>
+        <p>
+          <a href={`/arvore?centro=${usuario.pessoa}`}>Ver a árvore a partir de você</a>
+        </p>
+      </section>
+    )
+  }
+
+  {
+    paraContar && (
+      <section class="painel" aria-labelledby="para-contar">
+        <h2 id="para-contar">Você estava nesta memória</h2>
+        <p>
+          <a href={`/memorias/${paraContar.id}`}>{paraContar.titulo}</a> <small>{formatarData(paraContar)}</small>
+        </p>
+        <p>
+          <a class="botao" href={`/memorias/${paraContar.id}/relato`}>Escrever meu relato</a>
+        </p>
+      </section>
+    )
+  }
+
+  <p class="acoes">
+    <a class="botao botao--leve" href="/tudo">Ver todas as memórias</a>
+    {carta && !chegada.cartaNoAlto && <a href="/carta">Carta de Natal</a>}
+  </p>
+
+  {
+    semLogin() && (
+      <form method="post" action="/api/painel" class="acoes">
+        <input type="hidden" name="acao" value="primeira-visita" />
+        <button type="submit" class="botao botao--leve">Voltar {usuario.nome} à primeira visita</button>
+        <span class="dica">Só na homologação e nas prévias, para conferir a carta.</span>
+      </form>
+    )
+  }
 </Base>

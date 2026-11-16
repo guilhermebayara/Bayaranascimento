@@ -4,6 +4,7 @@ import { banco } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
 import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
+import type { RegistroDeVisitas } from '../painel';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
 import { pessoasQueNaoVe, podeVerRetrato, type AcessoDaMemoria, type Usuario } from './permissoes';
@@ -71,6 +72,8 @@ export interface Memoria extends AcessoDaMemoria {
   temas: string[];
   /** quantidade de relatos publicados */
   relatos: number;
+  /** quando foi publicada (as de antes da migração 020, quando foram criadas); vazio no rascunho */
+  publicadaEm: string;
 }
 
 export interface Relato {
@@ -552,6 +555,7 @@ function lerMemoria(linha: Record<string, unknown>): Memoria {
     capitulos: [],
     temas: [],
     relatos: 0,
+    publicadaEm: ((linha.publicada_em ?? (linha.situacao === 'publicada' ? linha.criada_em : '')) as string) ?? '',
   };
 }
 
@@ -697,9 +701,14 @@ export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: U
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(id, dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.tipoOutro ?? null, dados.lugar ?? null, dados.visibilidade, dados.situacao, usuario.pessoa),
+    marcarPublicacao(id),
     ...comandosDeLigacao(id, dados),
   ]);
 }
+
+/** A data de publicação é a da primeira vez que a memória sai do rascunho, e não muda depois. */
+const marcarPublicacao = (id: string) =>
+  db().prepare(`UPDATE memorias SET publicada_em = datetime('now') WHERE id = ? AND situacao = 'publicada' AND publicada_em IS NULL`).bind(id);
 
 /** Atualiza a ficha, guardando a versão anterior no histórico. Fotos que saíram da lista vão para a lixeira. */
 export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria, usuario: Usuario, fotosRemovidas: number[]): Promise<void> {
@@ -713,6 +722,7 @@ export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria,
            visibilidade = ?, situacao = ?, atualizada_em = datetime('now') WHERE id = ?`,
       )
       .bind(dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.tipoOutro ?? null, dados.lugar ?? null, dados.visibilidade, dados.situacao, anterior.id),
+    marcarPublicacao(anterior.id),
     ...fotosRemovidas.map((id) => db().prepare(`UPDATE fotos SET removida_em = datetime('now') WHERE id = ?`).bind(id)),
     ...comandosDeLigacao(anterior.id, dados),
   ]);
@@ -1050,16 +1060,21 @@ export async function salvarRelato(
   usuario: Usuario,
   anterior: Relato | undefined,
 ): Promise<void> {
+  // A data de publicação é a da primeira vez que o relato sai do rascunho, e não muda depois
+  const marcar = `UPDATE relatos SET publicado_em = datetime('now') WHERE situacao = 'publicada' AND publicado_em IS NULL`;
   if (!anterior) {
-    await db()
-      .prepare('INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, ?, ?)')
-      .bind(memoriaId, por, usuario.pessoa, texto, situacao)
-      .run();
+    await db().batch([
+      db()
+        .prepare('INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, ?, ?)')
+        .bind(memoriaId, por, usuario.pessoa, texto, situacao),
+      db().prepare(`${marcar} AND memoria_id = ? AND por = ? AND registrado_por = ?`).bind(memoriaId, por, usuario.pessoa),
+    ]);
     return;
   }
   await db().batch([
     db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(anterior), usuario.pessoa),
     db().prepare(`UPDATE relatos SET texto = ?, situacao = ?, atualizado_em = datetime('now') WHERE id = ?`).bind(texto, situacao, anterior.id),
+    db().prepare(`${marcar} AND id = ?`).bind(anterior.id),
   ]);
 }
 
@@ -1210,4 +1225,64 @@ export async function tamanhoDoBanco(): Promise<number | null> {
   } catch {
     return null;
   }
+}
+
+// --- Painel pessoal (migração 020) ---
+
+/** Relatos publicados depois de `desde`, em memórias que a pessoa vê. */
+export async function listarRelatosPublicadosDesde(usuario: Usuario, desde: string): Promise<(Relato & { publicadoEm: string })[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT r.*, COALESCE(r.publicado_em, r.criado_em) AS publicado FROM relatos r JOIN memorias m ON m.id = r.memoria_id
+       WHERE r.situacao = 'publicada' AND COALESCE(r.publicado_em, r.criado_em) > ?2 AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       ORDER BY publicado DESC LIMIT 50`,
+    )
+    .bind(usuario.pessoa, desde)
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({ ...lerRelato(r), publicadoEm: r.publicado as string }));
+}
+
+/** As memórias em que a pessoa já contou algo, publicado ou em rascunho. */
+export async function memoriasComRelatoDe(pessoa: string): Promise<Set<string>> {
+  const { results } = await db().prepare('SELECT DISTINCT memoria_id FROM relatos WHERE por = ?').bind(pessoa).all<{ memoria_id: string }>();
+  return new Set(results.map((r: { memoria_id: string }) => r.memoria_id));
+}
+
+export async function obterVisitas(pessoa: string): Promise<RegistroDeVisitas | undefined> {
+  const r = await db().prepare('SELECT * FROM visitas WHERE pessoa = ?').bind(pessoa).first<Record<string, string | null>>();
+  if (!r) return undefined;
+  return { primeira: r.primeira_em!, visita: r.visita_em!, ultima: r.ultima_em!, anterior: r.anterior_em, carta: r.carta_em };
+}
+
+export async function salvarVisitas(pessoa: string, v: RegistroDeVisitas): Promise<void> {
+  await db()
+    .prepare(
+      `INSERT INTO visitas (pessoa, primeira_em, visita_em, ultima_em, anterior_em, carta_em) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+       ON CONFLICT (pessoa) DO UPDATE SET primeira_em = ?2, visita_em = ?3, ultima_em = ?4, anterior_em = ?5, carta_em = ?6`,
+    )
+    .bind(pessoa, v.primeira, v.visita, v.ultima, v.anterior, v.carta)
+    .run();
+}
+
+/** Volta a pessoa à primeira visita. Só para conferir a carta na homologação e nas prévias. */
+export async function esquecerVisitas(pessoa: string): Promise<void> {
+  await db().prepare('DELETE FROM visitas WHERE pessoa = ?').bind(pessoa).run();
+}
+
+export interface Carta {
+  texto: string;
+  assinatura: string;
+  escritaPor: string;
+  escritaEm: string;
+}
+
+/** A carta de Natal: a versão mais recente. */
+export async function obterCarta(): Promise<Carta | undefined> {
+  const r = await db().prepare('SELECT * FROM cartas ORDER BY id DESC LIMIT 1').first<Record<string, string>>();
+  return r ? { texto: r.texto!, assinatura: r.assinatura!, escritaPor: r.escrita_por!, escritaEm: r.escrita_em! } : undefined;
+}
+
+/** Cada versão salva da carta é uma linha nova: a anterior fica guardada. */
+export async function salvarCarta(texto: string, assinatura: string, usuario: Usuario): Promise<void> {
+  await db().prepare('INSERT INTO cartas (texto, assinatura, escrita_por) VALUES (?, ?, ?)').bind(texto, assinatura, usuario.pessoa).run();
 }

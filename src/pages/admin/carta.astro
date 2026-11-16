@@ -1,0 +1,45 @@
+---
+// A carta de Natal, escrita pelos administradores no próprio site (docs/decisoes.md, "Painel pessoal").
+// Fica no banco, nunca no repositório. Cada versão salva é uma linha nova, e vale a mais recente.
+import Base from '../../layouts/Base.astro';
+import Abertura from '../../components/Abertura.astro';
+import { saudacao } from '../../lib/painel';
+import { outrosAdmins } from '../../lib/servidor/conteudo';
+import { listarIntegrantes, obterCarta } from '../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
+
+const integrantes = await listarIntegrantes();
+const outros = outrosAdmins(usuario.pessoa, integrantes);
+const carta = await obterCarta();
+const quem = carta ? integrantes.find((i) => i.id === carta.escritaPor) : undefined;
+---
+
+<Base titulo="Carta de Natal">
+  <Abertura titulo="Carta de Natal">
+    <p>
+      A carta abre o site na primeira visita de cada pessoa. Depois, fica num link no início. {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}
+    </p>
+  </Abertura>
+
+  <form class="formulario" method="post" action="/api/painel">
+    <input type="hidden" name="acao" value="carta" />
+    <p class="dica">
+      A saudação entra sozinha, com o nome de quem abre: "{saudacao('Elizete', 'ela')}", "{saudacao('Aguilar', 'ele')}". Deixe uma linha em branco entre os parágrafos.
+    </p>
+    <label class="campo">
+      <span>Texto da carta</span>
+      <textarea name="texto" rows="14" maxlength="10000" required>{carta?.texto ?? ''}</textarea>
+    </label>
+    <label class="campo">
+      <span>Quem assina</span>
+      <input type="text" name="assinatura" maxlength="200" required value={carta?.assinatura ?? 'Gui, Giovanna e Magno'} />
+    </label>
+    {carta && <p class="dica">Última versão salva por {quem ? (quem.apelido ?? quem.nome) : carta.escritaPor} em {carta.escritaEm.slice(0, 10).split('-').reverse().join('/')}.</p>}
+    <div class="acoes">
+      <button type="submit" class="botao">Salvar carta</button>
+      {carta && <a href="/carta">Ver como fica</a>}
+    </div>
+  </form>
+</Base>
