@@ -175,7 +175,14 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     const partir = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Partir desta pessoa' });
     partir.dataset.partir = p.id;
     partir.hidden = estado.centro === p.id || !partivel.has(p.id);
-    ficha.replaceChildren(nome, quem, pagina, lacos, partir);
+    // O retrato aparece só aqui, na ficha. Sem retrato, as iniciais sobre a cor da família.
+    const retrato = document.createElement('span');
+    retrato.className = 'retrato';
+    retrato.style.setProperty('--retrato-cor', fundoDe(p.nucleos) || 'var(--cor-superficie)');
+    if (p.retrato) retrato.append(Object.assign(new Image(), { src: p.retrato, alt: '' }));
+    else retrato.append(Object.assign(document.createElement('span'), { textContent: p.iniciais ?? '' }));
+    retrato.firstElementChild!.setAttribute('aria-hidden', 'true');
+    ficha.replaceChildren(retrato, nome, quem, pagina, lacos, partir);
   };
 
   // Bichos: a espécie aparece no cartão, para um bicho não se confundir com uma criança (marca provisória)

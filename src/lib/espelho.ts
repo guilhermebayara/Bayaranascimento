@@ -164,6 +164,8 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       falecimento_ano: ano(p.falecimento_ano),
       falecido: numero(p.falecido) ?? (p.falecimento_ano != null ? 1 : 0),
       sobre: 'Pessoa do espelho da produção: o nome é inventado, os laços seguem os de uma pessoa real.',
+      // O espelho não leva retratos, como não leva áudios: o arquivo é o rosto de uma pessoa real
+      retrato: null,
       admin: numero(p.admin) ?? 0,
       ordem: numero(p.ordem) ?? 50,
       criado_por: mapear(p.criado_por),

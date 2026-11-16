@@ -172,3 +172,23 @@ export function podeMudarQuemVe(
   if (visibilidade === 'nucleos' && !mesmos(nucleos, atual.nucleos)) return nao('Só quem criou muda quem pode ver.');
   return sim;
 }
+
+/**
+ * Quem a pessoa logada não vê: quem só existe num laço do coração privado de outra pessoa, sem nenhum
+ * laço que ela veja (filiação, casal que ela vê ou laço do coração dela ou aberto). Nem o nome aparece,
+ * na árvore, e nem o retrato é entregue.
+ */
+export function pessoasQueNaoVe(emPrivadosDeOutros: ReadonlySet<string>, comLacoVisivel: ReadonlySet<string>): Set<string> {
+  return new Set([...emPrivadosDeOutros].filter((id) => !comLacoVisivel.has(id)));
+}
+
+/** Pôr, trocar ou tirar a foto de retrato: quem pode editar a página da pessoa (decisão do Gui, 16/11/2026). */
+export function podeMudarRetrato(usuario: Usuario, integrante: IntegranteParaPermissao, comAcesso: ReadonlySet<string>): Decisao {
+  const decisao = podeEditarIntegrante(usuario, integrante, comAcesso);
+  return decisao.ok ? sim : nao('Só quem pode editar a página da pessoa troca a foto dela.');
+}
+
+/** Ver o retrato: quem vê a pessoa, como vê o nome. Quem não vê recebe o mesmo que um retrato que não existe. */
+export function podeVerRetrato(integranteId: string, naoVe: ReadonlySet<string>): boolean {
+  return !naoVe.has(integranteId);
+}

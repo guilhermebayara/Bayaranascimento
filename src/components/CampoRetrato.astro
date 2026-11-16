@@ -1,0 +1,57 @@
+---
+// Foto de retrato da ficha da pessoa (decisão do Gui, 16/11/2026). Na edição fica à vista, com "Trocar
+// foto" e "Tirar foto"; em "Nova pessoa", no que vem recolhido. O enquadramento, o recorte e a redução
+// são feitos no navegador (src/lib/cliente/retrato.ts), e o arquivo vai junto com a ficha, que por isso
+// é enviada como multipart. Sem JavaScript, os botões somem e o retrato fica como está.
+// A aparência é a mínima do estilo atual: a revisão visual redesenha o retrato.
+import { corDaFamilia, enderecoDoRetrato, iniciais } from '../lib/retratos';
+import { familiasDe, listarNucleos, type Integrante } from '../lib/servidor/repositorio';
+
+interface Props {
+  integrante?: Integrante;
+}
+
+const { integrante: i } = Astro.props;
+const nucleos = i ? await listarNucleos() : [];
+const corDoRetrato = i ? corDaFamilia(familiasDe(i), nucleos.map((n) => n.id)) : 'var(--cor-superficie)';
+const iniciaisDoRetrato = i ? iniciais(i.apelido ?? i.nome) : '?';
+---
+
+<fieldset data-retrato>
+  <legend>Foto de retrato <small>(opcional)</small></legend>
+  <div class="retrato-campo">
+    <span class="retrato retrato--grande" style={`--retrato-cor: ${corDoRetrato}`} data-retrato-atual data-iniciais={iniciaisDoRetrato}>
+      {i?.retrato ? <img src={enderecoDoRetrato(i.retrato)} alt="" aria-hidden="true" /> : <span aria-hidden="true">{iniciaisDoRetrato}</span>}
+    </span>
+    <div>
+      <p class="dica" data-retrato-recado aria-live="polite">Uma foto do rosto, de qualquer época. Você enquadra antes de salvar.</p>
+      <p class="acoes">
+        <label class="botao botao--leve botao--arquivo">
+          <span data-escolher-retrato-texto>{i?.retrato ? 'Trocar foto' : 'Escolher foto'}</span>
+          <input type="file" accept="image/*" data-escolher-retrato class="oculto-visualmente" />
+        </label>
+        <button type="button" class="botao botao--leve" data-tirar-retrato hidden={!i?.retrato}>Tirar foto</button>
+      </p>
+    </div>
+  </div>
+  <div class="recorte" data-recorte hidden>
+    <p class="dica" id="dica-do-recorte">Arraste para enquadrar o rosto e use "Aproximar". Pelo teclado, as setas movem a foto.</p>
+    <canvas class="recorte__quadro" data-recorte-quadro tabindex="0" role="img" aria-label="Enquadramento da foto" aria-describedby="dica-do-recorte"></canvas>
+    <label class="campo">
+      <span>Aproximar</span>
+      <input type="range" min="1" max="4" step="0.01" value="1" data-recorte-zoom />
+    </label>
+    <p class="acoes">
+      <button type="button" class="botao" data-recorte-usar>Usar esta foto</button>
+      <button type="button" class="botao botao--leve" data-recorte-cancelar>Cancelar</button>
+    </p>
+  </div>
+  <input type="file" name="retrato" accept="image/jpeg" hidden data-retrato-arquivo />
+  <input type="hidden" name="tirarRetrato" value="" data-tirar-retrato-campo />
+</fieldset>
+
+<script>
+  import { ligarRetrato } from '../lib/cliente/retrato';
+
+  for (const campo of document.querySelectorAll<HTMLElement>('[data-retrato]')) ligarRetrato(campo);
+</script>

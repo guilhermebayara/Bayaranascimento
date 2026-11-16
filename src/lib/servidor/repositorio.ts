@@ -6,7 +6,7 @@ import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
 import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
-import type { AcessoDaMemoria, Usuario } from './permissoes';
+import { pessoasQueNaoVe, podeVerRetrato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
 export interface Integrante {
   id: string;
@@ -22,6 +22,8 @@ export interface Integrante {
   falecimentoMes: number | null;
   falecimentoDia: number | null;
   sobre: string | null;
+  /** Chave da foto de retrato no bucket, debaixo de "retratos/". Vazio: as iniciais sobre a cor da família. */
+  retrato: string | null;
   admin: boolean;
   criadoPor: string | null;
   /** Já faleceu, mesmo sem data conhecida */
@@ -123,6 +125,7 @@ export async function listarIntegrantes(): Promise<Integrante[]> {
     falecimentoMes: (i.falecimento_mes as number | null) ?? null,
     falecimentoDia: (i.falecimento_dia as number | null) ?? null,
     sobre: i.sobre as string | null,
+    retrato: (i.retrato as string | null) ?? null,
     admin: Boolean(i.admin),
     criadoPor: (i.criado_por as string | null) ?? null,
     falecido: Boolean(i.falecido) || i.falecimento_ano != null,
@@ -155,6 +158,8 @@ export interface DadosDoIntegrante {
   falecimentoDia?: number;
   falecido?: boolean;
   sobre?: string;
+  /** A chave do retrato. undefined: fica o que já está. null: tira o retrato. */
+  retrato?: string | null;
 }
 
 const valoresDoIntegrante = (d: DadosDoIntegrante) => [
@@ -177,23 +182,27 @@ export async function criarIntegranteCompleto(id: string, dados: DadosDoIntegran
   await db()
     .prepare(
       `INSERT INTO integrantes (nome, apelido, tipo, especie, tratamento, nascimento_ano, nascimento_mes, nascimento_dia,
-         falecimento_ano, falecimento_mes, falecimento_dia, falecido, sobre, id, criado_por)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         falecimento_ano, falecimento_mes, falecimento_dia, falecido, sobre, retrato, id, criado_por)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(...valoresDoIntegrante(dados), id, usuario.pessoa)
+    .bind(...valoresDoIntegrante(dados), dados.retrato ?? null, id, usuario.pessoa)
     .run();
 }
 
-/** Atualiza o cadastro, guardando a versão anterior no histórico. */
+/**
+ * Atualiza o cadastro, guardando a versão anterior no histórico. O retrato entra na versão como os
+ * outros campos: a chave anterior fica guardada, e o arquivo continua no bucket.
+ */
 export async function atualizarIntegrante(anterior: Integrante, dados: DadosDoIntegrante, usuario: Usuario): Promise<void> {
+  const retrato = dados.retrato === undefined ? anterior.retrato : dados.retrato;
   await db().batch([
     db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('integrante', ?, ?, ?)`).bind(anterior.id, JSON.stringify(anterior), usuario.pessoa),
     db()
       .prepare(
         `UPDATE integrantes SET nome = ?, apelido = ?, tipo = ?, especie = ?, tratamento = ?, nascimento_ano = ?, nascimento_mes = ?,
-           nascimento_dia = ?, falecimento_ano = ?, falecimento_mes = ?, falecimento_dia = ?, falecido = ?, sobre = ? WHERE id = ?`,
+           nascimento_dia = ?, falecimento_ano = ?, falecimento_mes = ?, falecimento_dia = ?, falecido = ?, sobre = ?, retrato = ? WHERE id = ?`,
       )
-      .bind(...valoresDoIntegrante(dados), anterior.id),
+      .bind(...valoresDoIntegrante(dados), retrato, anterior.id),
   ]);
 }
 
@@ -397,6 +406,25 @@ export async function pessoasEmLacosPrivadosDeOutros(usuario: Usuario): Promise<
     .bind(usuario.pessoa)
     .all<{ pessoa_id: string }>();
   return new Set(results.map((r) => r.pessoa_id));
+}
+
+/** Quem a pessoa logada não vê (ver pessoasQueNaoVe). Barato quando ninguém tem laço privado. */
+export async function pessoasQueONaoVe(usuario: Usuario): Promise<Set<string>> {
+  const emPrivados = await pessoasEmLacosPrivadosDeOutros(usuario);
+  if (emPrivados.size === 0) return emPrivados;
+  const [filiacoes, casais, lacos] = await Promise.all([listarFiliacoes(), listarCasais(usuario), listarLacosDoCoracao(usuario)]);
+  const comLaco = new Set([...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
+  return pessoasQueNaoVe(emPrivados, comLaco);
+}
+
+/**
+ * O retrato desta chave pode ser entregue? Só o retrato atual de alguém que a pessoa logada vê. O
+ * retrato trocado ou tirado não é entregue a ninguém: o arquivo fica no bucket, e a chave, nas versões.
+ */
+export async function podeVerRetratoDaChave(usuario: Usuario, chave: string): Promise<boolean> {
+  const dono = await db().prepare('SELECT id FROM integrantes WHERE retrato = ? LIMIT 1').bind(chave).first<{ id: string }>();
+  if (!dono) return false;
+  return podeVerRetrato(dono.id, await pessoasQueONaoVe(usuario));
 }
 
 export async function salvarLacoDoCoracao(

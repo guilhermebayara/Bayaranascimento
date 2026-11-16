@@ -1,6 +1,7 @@
 ---
 // Formulário da ficha de um integrante. Serve para cadastrar e para editar.
 import CampoData from './CampoData.astro';
+import CampoRetrato from './CampoRetrato.astro';
 import { listarIntegrantes, listarNucleos, type Integrante } from '../lib/servidor/repositorio';
 
 interface Props {
@@ -14,7 +15,7 @@ const temMais = Boolean(i && (i.nascimentoAno || i.sobre));
 const existentes = i ? [] : (await listarIntegrantes()).map((x) => ({ id: x.id, nome: x.nome, apelido: x.apelido }));
 ---
 
-<form class="formulario" method="post" action="/api/integrantes" data-ficha>
+<form class="formulario" method="post" action="/api/integrantes" enctype="multipart/form-data" data-ficha>
   {i && <input type="hidden" name="id" value={i.id} />}
   <fieldset>
     <legend>Quem é</legend>
@@ -70,8 +71,11 @@ const existentes = i ? [] : (await listarIntegrantes()).map((x) => ({ id: x.id, 
     </div>
   </fieldset>
 
+  {i && <CampoRetrato integrante={i} />}
+
   <details class="mais" open={temMais}>
-    <summary>Nascimento e história <small>(opcional, dá para preencher depois)</small></summary>
+    <summary>{i ? 'Nascimento e história' : 'Foto, nascimento e história'} <small>(opcional, dá para preencher depois)</small></summary>
+    {!i && <CampoRetrato />}
   <fieldset>
       <legend>Nascimento</legend>
       <p class="dica">Preencha o que souber. Só o ano já basta.</p>

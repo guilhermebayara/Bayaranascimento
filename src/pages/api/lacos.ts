@@ -93,7 +93,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       pendente = { id: outra, nome: nomeNovo, tratamento };
       integrantes = [
         ...integrantes,
-        { id: outra, nome: nomeNovo, apelido: null, tipo: 'pessoa', especie: null, tratamento, nascimentoAno: null, nascimentoMes: null, nascimentoDia: null, falecimentoAno: null, falecimentoMes: null, falecimentoDia: null, falecido: false, sobre: null, admin: false, criadoPor: usuario.pessoa, nucleos: [], parenteDe: [] },
+        { id: outra, nome: nomeNovo, apelido: null, tipo: 'pessoa', especie: null, tratamento, nascimentoAno: null, nascimentoMes: null, nascimentoDia: null, falecimentoAno: null, falecimentoMes: null, falecimentoDia: null, falecido: false, sobre: null, retrato: null, admin: false, criadoPor: usuario.pessoa, nucleos: [], parenteDe: [] },
       ];
     }
     if (!outra) return falhar('Escolha a pessoa na lista ou escreva o nome de quem ainda não está no acervo.');

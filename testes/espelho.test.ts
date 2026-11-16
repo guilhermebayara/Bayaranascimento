@@ -6,7 +6,7 @@ const copia: CopiaDoAcervo = {
   acervo: 'Bayara Nascimento',
   tabelas: {
     integrantes: [
-      { id: 'gui', nome: 'Guilherme Real', tipo: 'pessoa', tratamento: 'ele', nascimento_ano: 1990, admin: 1, ordem: 1, sobre: 'Texto secreto do Gui' },
+      { id: 'gui', nome: 'Guilherme Real', tipo: 'pessoa', tratamento: 'ele', nascimento_ano: 1990, admin: 1, ordem: 1, sobre: 'Texto secreto do Gui', retrato: '0f3c2a1e-0000-4000-8000-retratoreal1.jpg' },
       { id: 'giovanna', nome: 'Giovanna Real', tipo: 'pessoa', tratamento: 'ela', nascimento_ano: 1997, admin: 1, ordem: 2 },
       { id: 'elizete', nome: 'Elizete Real', tipo: 'pessoa', tratamento: 'ela', nascimento_ano: 1960, ordem: 3 },
       { id: 'lucas-magno', nome: 'Magno Real', tipo: 'pessoa', tratamento: 'ele', ordem: 4 },
@@ -55,6 +55,10 @@ describe('espelho da produção para a homologação', () => {
   it('nenhum nome, texto ou memória real passa para o espelho', () => {
     const tudo = JSON.stringify(e);
     for (const segredo of ['Real', 'secreto', 'Texto secreto', 'colégio Tal', 'vo-bela', 'aguilar', 'real-1']) expect(tudo).not.toContain(segredo);
+  });
+  it('não leva retratos: a chave do retrato real não passa, e ninguém fica com retrato', () => {
+    expect(JSON.stringify(e)).not.toContain('retratoreal');
+    expect(tabela('integrantes').every((i) => i.retrato === null)).toBe(true);
   });
   it('mantém os ids de quem tem acesso e troca os outros', () => {
     const ids = tabela('integrantes').map((i) => i.id);

@@ -10,6 +10,8 @@ import { anosDeVida } from '../lib/datas';
 import { Familia, estaoJuntos, lacoParaODono, nomeDoPapel, possessivo, type Tratamento } from '../lib/parentesco';
 import type { DadosDaArvore } from '../lib/cliente/arvore';
 import { comLacoDeArvore } from '../lib/arvore-montagem';
+import { pessoasQueNaoVe } from '../lib/servidor/permissoes';
+import { enderecoDoRetrato, iniciais } from '../lib/retratos';
 import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarNucleos, pessoasEmLacosPrivadosDeOutros } from '../lib/servidor/repositorio';
 
 // De quem é a linha direta mostrada quando a árvore abre: os três que unem os núcleos.
@@ -27,8 +29,9 @@ const casais = await listarCasais(usuario);
 const lacos = await listarLacosDoCoracao(usuario);
 // Quem só existe num laço privado de outra pessoa não aparece: nem o laço, nem o nome
 const soEmPrivados = await pessoasEmLacosPrivadosDeOutros(usuario);
-const temLacoVisivel = new Set([...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
-const integrantes = todos.filter((i) => !soEmPrivados.has(i.id) || temLacoVisivel.has(i.id));
+const temLacoVisivel = new Set<string>([...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
+const naoVe = pessoasQueNaoVe(soEmPrivados, temLacoVisivel);
+const integrantes = todos.filter((i) => !naoVe.has(i.id));
 const resumidos = (await listarLacosResumidos()).filter((r) => integrantes.some((i) => i.id === r.a) && integrantes.some((i) => i.id === r.b));
 const centros = CENTROS_PADRAO.filter((id) => integrantes.some((i) => i.id === id));
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
@@ -49,7 +52,18 @@ const dados: DadosDaArvore = {
   centros,
   nucleos: nucleos.map((n) => ({ id: n.id, nome: n.nome })),
   // Na árvore, membro e parente de uma família aparecem iguais: a cor e o lado vêm das duas coisas
-  pessoas: integrantes.map((i) => ({ id: i.id, nome: i.apelido ?? i.nome, rotulo: rotulo(i.id), nucleos: familiasDe(i), bicho: i.tipo === 'bicho', especie: i.especie, anos: anosDeVida(i) })),
+  pessoas: integrantes.map((i) => ({
+    id: i.id,
+    nome: i.apelido ?? i.nome,
+    rotulo: rotulo(i.id),
+    nucleos: familiasDe(i),
+    bicho: i.tipo === 'bicho',
+    especie: i.especie,
+    anos: anosDeVida(i),
+    // Só para a ficha que abre ao tocar: os cartões da árvore continuam sem foto
+    retrato: i.retrato ? enderecoDoRetrato(i.retrato) : null,
+    iniciais: iniciais(i.apelido ?? i.nome),
+  })),
   filiacoes: filiacoes.map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })),
   casais: casais.filter((c) => c.fases.length > 0).map((c) => ({ a: c.a, b: c.b, ex: !estaoJuntos(c) })),
   resumidos: resumidos.map((r) => ({ a: r.a, b: r.b, papel: r.papel, rotulo: `${nomeDoPapel(r.papel, achar(r.b)?.tratamento ?? null)} de ${chamar(r.a)}` })),

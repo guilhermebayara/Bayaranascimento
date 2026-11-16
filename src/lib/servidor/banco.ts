@@ -467,6 +467,16 @@ const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS audios_por_chave ON audios (chave)`,
     ],
   },
+  {
+    // Foto de retrato no cadastro da pessoa (decisão do Gui, 16/11/2026). Guarda só a chave do arquivo,
+    // que fica no bucket das fotos, debaixo de "retratos/". Trocar ou tirar não apaga o arquivo antigo:
+    // a chave anterior fica nas versões do cadastro. A coluna "foto" da 001 nunca foi usada e fica como está.
+    id: '016-retrato',
+    sql: [
+      `ALTER TABLE integrantes ADD COLUMN retrato TEXT`,
+      `CREATE INDEX IF NOT EXISTS integrantes_por_retrato ON integrantes (retrato)`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
