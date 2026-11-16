@@ -37,9 +37,11 @@ interface Props {
   sobrenomes?: string;
   /** Qual item do menu está aberto */
   secao?: 'painel' | 'linha' | 'conceito';
+  /** A página que só a pessoa vê: tingida na cor da família dela */
+  intimo?: boolean;
 }
 
-const { titulo, familia = 'tudo', sobrenomes = 'Bayara & Bracarense', secao } = Astro.props;
+const { titulo, familia = 'tudo', sobrenomes = 'Bayara & Bracarense', secao, intimo = false } = Astro.props;
 const { usuario } = Astro.locals;
 const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
 const fontes = fontesDoPedido(Astro.request);
@@ -67,15 +69,15 @@ const telas = [
 ---
 
 <!doctype html>
-<html lang="pt-BR" data-fontes={fontes}>
+<html lang="pt-BR" data-fontes={fontes} data-familia={familia} data-intimo={intimo ? '' : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="theme-color" content="#f4f1ec" />
+    <meta name="theme-color" content="#faf2e6" />
     <title>{tituloPagina}</title>
   </head>
-  <body data-familia={familia}>
+  <body>
     {
       teste && (
         <details class="teste">

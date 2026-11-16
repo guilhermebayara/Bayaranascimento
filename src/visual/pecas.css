@@ -4,15 +4,22 @@
  * Nada de textura: o objeto aparece na proporção, na margem e na sombra.
  */
 
-/* --- Polaroid: a foto-chave -------------------------------------------------------------- */
+/* --- A foto revelada: a foto-chave ----------------------------------------------------------
+   O formato lembra a Instax mini, que a Giovanna e o Magno usam: retrato de 3 por 4, cantos
+   arredondados e a margem de baixo bem mais larga, onde vai a legenda. As medidas saem da
+   largura do cartão (cqi), para ele encolher e crescer inteiro. */
 
+.monte {
+  position: relative;
+  container-type: inline-size;
+}
 .polaroid {
   --giro: 0deg;
   position: relative;
   display: block;
   width: 100%;
-  padding: 5% 5% 0;
-  border-radius: var(--raio-moldura);
+  padding: 8cqi 7.5cqi 0;
+  border-radius: 4.6cqi;
   background: var(--branco);
   box-shadow: var(--sombra-foto);
   rotate: var(--giro);
@@ -22,63 +29,56 @@
 }
 .polaroid__foto {
   display: block;
-  aspect-ratio: 1;
+  aspect-ratio: 46 / 62;
   overflow: hidden;
-  border-radius: var(--raio-foto);
+  border-radius: 1cqi;
   background: var(--papel-recuo);
 }
 .polaroid__foto img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 32%;
+  object-position: 50% 35%;
 }
-/* A margem de baixo, mais larga, é onde se escreve: lugar e ano */
+/* A margem de baixo, larga, é onde se escreve: lugar e ano */
 .polaroid__legenda {
   display: flex;
   align-items: center;
-  min-height: 3.1em;
-  padding: 0.7em 0 0.8em;
+  min-height: 23cqi;
+  padding: 2cqi 0 3cqi;
   font-family: var(--mono);
-  font-size: clamp(0.625rem, 0.56rem + 0.3vw, 0.875rem);
+  font-size: clamp(0.5625rem, 4.1cqi, 1rem);
   line-height: 1.3;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--tinta-suave);
-}
-.polaroid--alta .polaroid__foto {
-  aspect-ratio: 4 / 5;
 }
 a.polaroid,
 .polaroid a {
   text-decoration: none;
 }
 @media (hover: hover) {
-  a:hover > .polaroid,
-  a.polaroid:hover {
+  a:hover > .monte .polaroid,
+  a:hover > .polaroid {
     rotate: 0deg;
     translate: 0 -0.25rem;
   }
 }
 
-/* --- Monte de fotos: as outras aparecem atrás da principal ------------------------------- */
-
-.monte {
-  position: relative;
-}
+/* Monte de fotos: as outras aparecem atrás da principal */
 .monte__atras {
   position: absolute;
   inset: 0;
-  padding: 5% 5% 0;
-  border-radius: var(--raio-moldura);
+  padding: 8cqi 7.5cqi 0;
+  border-radius: 4.6cqi;
   background: var(--branco);
   box-shadow: var(--sombra-foto);
 }
 .monte__atras span {
   display: block;
-  aspect-ratio: 1;
+  aspect-ratio: 46 / 62;
   overflow: hidden;
-  border-radius: var(--raio-foto);
+  border-radius: 1cqi;
   background: var(--papel-recuo);
 }
 .monte__atras img {
@@ -86,16 +86,41 @@ a.polaroid,
   height: 100%;
   object-fit: cover;
 }
-.monte__atras:nth-child(1) {
+.monte__atras:nth-of-type(1) {
   rotate: 5deg;
   translate: 5% 1.5%;
 }
-.monte__atras:nth-child(2) {
+.monte__atras:nth-of-type(2) {
   rotate: -6deg;
   translate: -4.5% 2.5%;
 }
-.monte > .polaroid {
-  position: relative;
+
+/* A forma de cor atrás da foto, na cor do tipo de momento: círculo, arco ou cápsula, pelo id */
+.monte__forma {
+  position: absolute;
+  background: var(--tipo-pastel, var(--pastel));
+}
+.monte__forma[data-forma='0'] {
+  width: 96%;
+  aspect-ratio: 1;
+  top: 24%;
+  left: -20%;
+  border-radius: 50%;
+}
+.monte__forma[data-forma='1'] {
+  width: 92%;
+  height: 74%;
+  top: -9%;
+  left: -15%;
+  border-radius: 999px 999px 0 0;
+}
+.monte__forma[data-forma='2'] {
+  width: 66%;
+  height: 112%;
+  top: -6%;
+  left: 36%;
+  border-radius: 999px;
+  rotate: 14deg;
 }
 
 /* --- Carimbo: data e lugar, como o do laboratório de revelação --------------------------- */
@@ -132,7 +157,7 @@ a.polaroid,
   gap: 0.5em;
   padding: 0.3em 0.8em 0.32em 0.7em;
   border-radius: 999px 999px 999px 0;
-  background: color-mix(in srgb, var(--tipo-cor, var(--tinta)) 20%, var(--branco));
+  background: var(--tipo-pastel, var(--papel-recuo));
   font-family: var(--mono);
   font-size: var(--t-ficha);
   letter-spacing: 0.06em;
@@ -165,7 +190,7 @@ a.polaroid,
   aspect-ratio: 4 / 5;
   overflow: hidden;
   border-radius: 999px 999px var(--raio-foto) var(--raio-foto);
-  background: var(--pastel);
+  background: var(--bloco-fundo);
   font-family: var(--serifa);
   font-variation-settings: var(--serifa-ajustes);
   font-size: 1.75em;
@@ -238,8 +263,50 @@ a.polaroid,
 /* --- Bloco de cor: quando um trecho precisa se destacar, o fundo é a cor da família -------- */
 
 .bloco {
-  background: var(--pastel);
-  /* Sobre o pastel, o texto de apoio escurece para manter a leitura */
-  --tinta-suave: color-mix(in srgb, var(--tinta) 74%, var(--pastel));
+  background: var(--bloco-fundo);
+  /* Sobre o pastel, o texto de apoio e o carimbo escurecem para manter a leitura */
+  --tinta-suave: color-mix(in srgb, var(--tinta) 76%, var(--pastel));
   --fio: color-mix(in srgb, var(--tinta) 22%, var(--pastel));
+}
+.bloco .carimbo {
+  color: color-mix(in srgb, var(--vivo-tinta) 72%, var(--tinta));
+}
+
+/* --- Ícones e rabiscos: o traço de caneta ------------------------------------------------------ */
+
+.icone {
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  /* a tinta da cor do tipo */
+  color: var(--tipo-tinta, var(--tinta));
+}
+.rabisco {
+  display: block;
+  pointer-events: none;
+}
+.rabisco--sublinha {
+  position: absolute;
+  left: 0;
+  bottom: -0.16em;
+  width: 100%;
+  height: 0.2em;
+  color: var(--vivo);
+}
+.rabisco--seta {
+  width: 2.75em;
+  color: var(--vivo-tinta);
+}
+.rabisco--brilhos {
+  width: 2.5em;
+  color: var(--vivo-tinta);
+}
+.rabisco--coracao {
+  width: 1.5em;
+  color: var(--par-vivo);
+}
+/* Quem leva o rabisco de sublinhado */
+.sublinhado {
+  position: relative;
+  display: inline-block;
 }

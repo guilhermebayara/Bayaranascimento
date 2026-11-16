@@ -5,21 +5,23 @@
 import '../../visual/telas/linha.css';
 import Visual from '../../layouts/Visual.astro';
 import Assinatura from '../../components/visual/Assinatura.astro';
+import IconeDoTipo from '../../components/visual/IconeDoTipo.astro';
 import Polaroid from '../../components/visual/Polaroid.astro';
 import { agruparPorAno, maisRecentesPrimeiro } from '../../lib/datas';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { conceitoDisponivel, naoEncontrado } from '../../lib/servidor/conceito';
 import { listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
-import { diaMesCurto, familiaDaTela, legendaLugarAno, listaCurta, sobrenomesDaAssinatura } from '../../lib/visual';
+import { diaMesCurto, estiloDoTipo, familiaDaTela, legendaLugarAno, listaCurta, sobrenomesDaAssinatura } from '../../lib/visual';
 
 if (!conceitoDisponivel()) return naoEncontrado();
 
 const { usuario, tipos } = Astro.locals;
 const nucleos = await listarNucleos();
 const pedido = Astro.url.searchParams.get('nucleo');
-// Só dá para abrir a linha do tempo de um núcleo de que a pessoa faz parte
-const nucleo = nucleos.find((n) => n.id === pedido && usuario.nucleos.includes(n.id));
-const meusNucleos = nucleos.filter((n) => usuario.nucleos.includes(n.id));
+// Todo mundo pode filtrar por qualquer família (decisão do Gui, 16/11/2026). O filtro não muda
+// quem vê o quê: listarMemorias só devolve o que a pessoa pode ver, e de uma família de que ela
+// não é membro isso é o que foi aberto a todos.
+const nucleo = nucleos.find((n) => n.id === pedido);
 const memorias = await listarMemorias(usuario, { nucleo: nucleo?.id });
 const integrantes = await listarIntegrantes();
 const nomeDe = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome;
@@ -49,12 +51,12 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
       <div class="linha__resumo">
         <p class="rotulo">{memorias.length === 0 ? 'As memórias da nossa família' : [quantas, periodo].filter(Boolean).join(' · ')}</p>
         {
-          meusNucleos.length > 0 && (
+          nucleos.length > 0 && (
             <nav class="linha__familias" aria-label="Famílias">
               <a href="/conceito/tudo" aria-current={!nucleo ? 'page' : undefined}>
                 Tudo
               </a>
-              {meusNucleos.map((n) => (
+              {nucleos.map((n) => (
                 <a href={`/conceito/tudo?nucleo=${n.id}`} aria-current={nucleo?.id === n.id ? 'page' : undefined}>
                   {n.nome}
                 </a>
@@ -77,8 +79,8 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
               </li>
               {tiposPresentes.map((t) => (
                 <li>
-                  <button type="button" data-filtro={t.id} aria-pressed="false" style={`--tipo-cor: ${t.cor}`}>
-                    <span class="ponto" />
+                  <button type="button" data-filtro={t.id} aria-pressed="false" style={estiloDoTipo(t.id)}>
+                    <IconeDoTipo tipo={t.id} />
                     {t.rotulo}
                   </button>
                 </li>
@@ -131,17 +133,18 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                     class:list={['entrada', comFoto ? 'entrada--com-foto' : 'entrada--so-texto']}
                     data-tipo={m.tipo}
                     data-em-leitura={m.id === primeiraMemoria ? '' : undefined}
-                    style={`--tipo-cor: ${tipo.cor}`}
+                    style={estiloDoTipo(m.tipo)}
                   >
                     <span class="entrada__ponto" aria-hidden="true" />
                     <p class="entrada__quando rotulo">
+                      <IconeDoTipo tipo={m.tipo} />
                       {quando && <span>{quando}</span>}
                       <span>{tipo.rotulo}</span>
                       {m.aproximada && <span>data aproximada</span>}
                     </p>
                     {comFoto && (
                       <div class="entrada__foto">
-                        <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo={m.id === primeiraMemoria} />
+                        <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo={m.id === primeiraMemoria} forma />
                       </div>
                     )}
                     <div class="entrada__texto">

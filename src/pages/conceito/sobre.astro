@@ -3,10 +3,11 @@
 // e as peças. É a página de apoio para o Gui escolher; não é uma tela do site.
 import '../../visual/telas/sobre.css';
 import Visual from '../../layouts/Visual.astro';
+import IconeDoTipo from '../../components/visual/IconeDoTipo.astro';
 import Polaroid from '../../components/visual/Polaroid.astro';
 import { conceitoDisponivel, fontesDoPedido, naoEncontrado } from '../../lib/servidor/conceito';
 import { listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
-import { COMBINACOES_DE_FONTES, legendaLugarAno, sobrenomesDaAssinatura } from '../../lib/visual';
+import { COMBINACOES_DE_FONTES, estiloDoTipo, legendaLugarAno, sobrenomesDaAssinatura } from '../../lib/visual';
 
 if (!conceitoDisponivel()) return naoEncontrado();
 
@@ -90,12 +91,16 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
 
     <section aria-labelledby="cores">
       <h2 class="sobre__titulo" id="cores">A cor de cada família</h2>
-      <p class="sobre__texto">O pastel marca a família, em blocos sólidos. O vivo marca o que importa na tela. A tinta é o vivo escurecido, para o carimbo.</p>
+      <p class="sobre__texto">
+        O pastel marca a família, em blocos sólidos, e cada família tem uma segunda cor para os enfeites. No núcleo Bayara Bracarense as duas têm o mesmo peso:
+        rosa, da Giovanna, e roxo, do Magno. O vivo marca o que importa na tela. A tinta é o vivo escurecido, para o carimbo.
+      </p>
       <ul class="cores">
         {
           cores.map((c) => (
             <li data-familia={c.id}>
               <span class="cores__pastel" />
+              <span class="cores__par" />
               <span class="cores__vivo" />
               <span class="cores__tinta" />
               <span class="ficha">{c.nome}</span>
@@ -111,8 +116,10 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
         {
           comMonte && (
             <div class="peca peca--foto">
-              <Polaroid id={comMonte.id} fotos={comMonte.fotos} legenda={legendaLugarAno(comMonte.lugar, comMonte.ano)} alt="" />
-              <p class="ficha suave">Polaroid e monte de fotos: a foto-chave, com as outras atrás. A legenda diz lugar e ano.</p>
+              <div style={estiloDoTipo(comMonte.tipo)}>
+                <Polaroid id={comMonte.id} fotos={comMonte.fotos} legenda={legendaLugarAno(comMonte.lugar, comMonte.ano)} alt="" forma />
+              </div>
+              <p class="ficha suave">Foto revelada e monte de fotos: a foto-chave no formato da Instax, com as outras atrás. A legenda diz lugar e ano.</p>
             </div>
           )
         }
@@ -125,13 +132,14 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
           </p>
           <p class="ficha suave">Carimbo: a data e o lugar, como o do laboratório de revelação.</p>
           <p class="peca__etiquetas">
-            {tipos.slice(0, 6).map((t) => (
-              <span class="etiqueta" style={`--tipo-cor: ${t.cor}`}>
+            {tipos.map((t) => (
+              <span class="etiqueta" style={estiloDoTipo(t.id)}>
+                <IconeDoTipo tipo={t.id} />
                 {t.rotulo}
               </span>
             ))}
           </p>
-          <p class="ficha suave">Etiqueta-balão: o tipo de momento, na cor do tipo.</p>
+          <p class="ficha suave">Etiqueta-balão: o tipo de momento, com o ícone e a cor dele.</p>
         </div>
         <div class="peca">
           <article class="bilhete">

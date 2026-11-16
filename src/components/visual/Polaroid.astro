@@ -1,8 +1,9 @@
 ---
-// A foto-chave como polaroid (docs/visual.md): moldura branca, margem de baixo mais larga com a
-// legenda "lugar (ano)" em mono, e uma inclinação escolhida pelo id, sempre a mesma.
-// Com mais de uma foto, as outras aparecem atrás: o monte já diz que há mais.
-import { giroDoId } from '../../lib/visual';
+// A foto-chave como foto revelada (docs/visual.md): moldura branca no formato da Instax mini,
+// margem de baixo mais larga com a legenda "lugar (ano)" em mono, e uma inclinação escolhida
+// pelo id, sempre a mesma. Com mais de uma foto, as outras aparecem atrás: o monte já diz que
+// há mais. A forma de cor atrás leva a cor do tipo de momento (--tipo-cor, posta por quem usa).
+import { formaDoId, giroDoId } from '../../lib/visual';
 
 interface Props {
   /** id da memória: decide a inclinação */
@@ -17,9 +18,11 @@ interface Props {
   cedo?: boolean;
   /** sem inclinação */
   reta?: boolean;
+  /** a forma de cor atrás da foto */
+  forma?: boolean;
 }
 
-const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false } = Astro.props;
+const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false, forma = false } = Astro.props;
 const [principal, ...outras] = fotos;
 const atras = monte ? outras.slice(0, 2) : [];
 const giro = reta ? 0 : giroDoId(id);
@@ -28,6 +31,7 @@ const giro = reta ? 0 : giroDoId(id);
 {
   principal && (
     <div class="monte">
+      {forma && <span class="monte__forma" data-forma={formaDoId(id)} aria-hidden="true" />}
       {atras.map((foto) => (
         <div class="monte__atras" aria-hidden="true">
           <span>

@@ -19,6 +19,43 @@ export function giroDoId(id: string): number {
   return GIROS[numeroDo(`giro:${id}`) % GIROS.length]!;
 }
 
+/** A forma de cor atrás da foto: 0 círculo, 1 arco, 2 cápsula. Também pelo id. */
+export function formaDoId(id: string): number {
+  return numeroDo(`forma:${id}`) % 3;
+}
+
+/**
+ * A cor de cada tipo de momento no visual novo: uma das seis cores do site. As cores gravadas no
+ * banco (tabela tipos) continuam as de hoje; na fase 2, esta paleta é aplicada em /admin/tipos.
+ * Tipo criado depois pelos administradores ganha uma das seis, pelo id.
+ */
+export const CORES = ['manteiga', 'verde', 'rosa', 'roxo', 'azul', 'pessego'] as const;
+export type Cor = (typeof CORES)[number];
+
+const COR_DO_TIPO: Record<string, Cor> = {
+  nascimento: 'verde',
+  aniversario: 'rosa',
+  casamento: 'roxo',
+  conquista: 'manteiga',
+  viagem: 'azul',
+  casa: 'pessego',
+  festa: 'rosa',
+  causo: 'verde',
+  cotidiano: 'manteiga',
+  despedida: 'azul',
+  outro: 'pessego',
+};
+
+export function corDoTipo(tipo: string): Cor {
+  return COR_DO_TIPO[tipo] ?? CORES[numeroDo(`tipo:${tipo}`) % CORES.length]!;
+}
+
+/** O estilo que leva a cor do tipo a um trecho da página: o pastel, o vivo e a tinta dele. */
+export function estiloDoTipo(tipo: string): string {
+  const cor = corDoTipo(tipo);
+  return `--tipo-pastel: var(--${cor}-pastel); --tipo-cor: var(--${cor}-vivo); --tipo-tinta: var(--${cor}-tinta)`;
+}
+
 const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 /** O dia e o mês como no carimbo do laboratório: "24 dez", "dez" ou vazio. A caixa alta é do CSS. */

@@ -7,38 +7,51 @@
  */
 
 :root {
-  /* Neutros: papel quente e tinta quase preta. Os neutros não têm versão saturada. */
-  --papel: #f4f1ec;
-  --papel-recuo: #ebe6de;
-  --branco: #fffdf9; /* a moldura da polaroid e o bilhete */
-  --tinta: #1d1a16;
-  --tinta-suave: #6a6359; /* 5,2:1 sobre o papel */
-  --fio: #d8d1c5;
+  /* Neutros quentes: papel creme e tinta de café. Os neutros não têm versão saturada. */
+  --creme: #faf2e6;
+  --creme-recuo: #f2e6d3;
+  --papel: var(--creme);
+  --papel-recuo: var(--creme-recuo);
+  --branco: #fffcf6; /* a moldura da foto e o bilhete */
+  --tinta: #2b211a;
+  --tinta-suave: #75665a; /* 5:1 sobre o papel */
+  --fio: #e4d6c1;
 
   /*
-   * Cor com função: o pastel marca a família, o vivo marca o que importa na tela.
-   * "tinta" é o vivo escurecido até dar leitura (4,5:1) sobre o papel, para o carimbo.
-   * A tela escolhe a família em data-familia; sem família, vale "tudo", as duas juntas.
+   * As cores. Cada uma tem o pastel (blocos sólidos), o vivo (pontos de destaque) e a tinta
+   * (o vivo escurecido até dar leitura sobre o papel, para carimbo e rabisco).
    */
-  --tudo-pastel: #f6dfa2;
-  --tudo-vivo: #e6a800;
-  --tudo-tinta: #8a5c00;
-  --familia-0-pastel: #f9d0c1; /* Bayara */
-  --familia-0-vivo: #e8502a;
-  --familia-0-tinta: #b53a17;
-  --familia-1-pastel: #ddd3f5; /* Bayara Bracarense */
-  --familia-1-vivo: #6d4ce0;
-  --familia-1-tinta: #5637c4;
-  --familia-2-pastel: #c9def4; /* Bracarense */
-  --familia-2-vivo: #2a72d8;
-  --familia-2-tinta: #1a56b0;
-  --familia-3-pastel: #cfe6c9; /* a próxima família que entrar */
-  --familia-3-vivo: #2f9150;
-  --familia-3-tinta: #1f6e3a;
+  --manteiga-pastel: #f8dc98;
+  --manteiga-vivo: #eda800;
+  --manteiga-tinta: #8c5a00;
+  --verde-pastel: #cfe6c0;
+  --verde-vivo: #3f9d52;
+  --verde-tinta: #2a6f3b;
+  --rosa-pastel: #f9c8d6;
+  --rosa-vivo: #e7477f;
+  --rosa-tinta: #b3275c;
+  --roxo-pastel: #ddd0f6;
+  --roxo-vivo: #7b52e0;
+  --roxo-tinta: #5a38c2;
+  --azul-pastel: #c5dcf5;
+  --azul-vivo: #2f76d9;
+  --azul-tinta: #1c58b2;
+  --pessego-pastel: #fbd3b8;
+  --pessego-vivo: #ec6a2c;
+  --pessego-tinta: #b04a16;
 
-  --pastel: var(--tudo-pastel);
-  --vivo: var(--tudo-vivo);
-  --vivo-tinta: var(--tudo-tinta);
+  /*
+   * A cor de cada família, escolhida em data-familia. Sem família, vale "tudo", as famílias juntas.
+   * Toda família tem um par: a segunda cor entra nos enfeites. No núcleo Bayara Bracarense as duas
+   * têm o mesmo peso, rosa (Giovanna) e roxo (Magno), e o bloco se divide entre elas.
+   */
+  --pastel: var(--manteiga-pastel);
+  --vivo: var(--manteiga-vivo);
+  --vivo-tinta: var(--manteiga-tinta);
+  --par-pastel: var(--pessego-pastel);
+  --par-vivo: var(--pessego-vivo);
+  --bloco-fundo: var(--pastel);
+  --intimo: var(--pastel);
 
   /* Espaços: 1 a 4 dentro de um grupo, 5 a 7 entre grupos, 8 e 9 entre partes da página */
   --e-1: 0.25rem;
@@ -83,8 +96,8 @@
   --toque: 2.75rem; /* 44 px: nada tocável fica abaixo disso */
 
   /* Sombra da foto pousada no papel: curta e quente, sem halo cinza */
-  --sombra-foto: 0 1px 1px rgb(60 42 20 / 0.06), 0 6px 14px -4px rgb(60 42 20 / 0.14), 0 22px 44px -18px rgb(60 42 20 / 0.28);
-  --sombra-bilhete: 0 1px 1px rgb(60 42 20 / 0.05), 0 10px 24px -14px rgb(60 42 20 / 0.22);
+  --sombra-foto: 0 1px 1px rgb(70 44 16 / 0.07), 0 6px 14px -4px rgb(70 44 16 / 0.16), 0 22px 44px -18px rgb(70 44 16 / 0.3);
+  --sombra-bilhete: 0 1px 1px rgb(70 44 16 / 0.06), 0 10px 24px -14px rgb(70 44 16 / 0.24);
 
   /* Movimento: uma curva só, tempos curtos. Com movimento reduzido, nada se mexe (base.css). */
   --curva: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -93,28 +106,59 @@
 }
 
 /* A cor da família da tela ou de um trecho dela */
-[data-familia='0'] {
-  --pastel: var(--familia-0-pastel);
-  --vivo: var(--familia-0-vivo);
-  --vivo-tinta: var(--familia-0-tinta);
-}
-[data-familia='1'] {
-  --pastel: var(--familia-1-pastel);
-  --vivo: var(--familia-1-vivo);
-  --vivo-tinta: var(--familia-1-tinta);
-}
-[data-familia='2'] {
-  --pastel: var(--familia-2-pastel);
-  --vivo: var(--familia-2-vivo);
-  --vivo-tinta: var(--familia-2-tinta);
-}
-[data-familia='3'] {
-  --pastel: var(--familia-3-pastel);
-  --vivo: var(--familia-3-vivo);
-  --vivo-tinta: var(--familia-3-tinta);
+[data-familia] {
+  --bloco-fundo: var(--pastel);
+  --intimo: var(--pastel);
 }
 [data-familia='tudo'] {
-  --pastel: var(--tudo-pastel);
-  --vivo: var(--tudo-vivo);
-  --vivo-tinta: var(--tudo-tinta);
+  --pastel: var(--manteiga-pastel);
+  --vivo: var(--manteiga-vivo);
+  --vivo-tinta: var(--manteiga-tinta);
+  --par-pastel: var(--pessego-pastel);
+  --par-vivo: var(--pessego-vivo);
+}
+/* Bayara: verde, a cor da Elizete */
+[data-familia='0'] {
+  --pastel: var(--verde-pastel);
+  --vivo: var(--verde-vivo);
+  --vivo-tinta: var(--verde-tinta);
+  --par-pastel: var(--manteiga-pastel);
+  --par-vivo: var(--manteiga-vivo);
+}
+/* Bayara Bracarense: rosa e roxo juntos, a Giovanna e o Magno, sem uma cor mandar na outra */
+[data-familia='1'] {
+  --pastel: var(--rosa-pastel);
+  --vivo: var(--rosa-vivo);
+  --vivo-tinta: var(--roxo-tinta);
+  --par-pastel: var(--roxo-pastel);
+  --par-vivo: var(--roxo-vivo);
+  --bloco-fundo: linear-gradient(100deg, var(--rosa-pastel) 0 50%, var(--roxo-pastel) 50% 100%);
+  --intimo: color-mix(in srgb, var(--rosa-pastel) 50%, var(--roxo-pastel));
+}
+/* Bracarense: azul */
+[data-familia='2'] {
+  --pastel: var(--azul-pastel);
+  --vivo: var(--azul-vivo);
+  --vivo-tinta: var(--azul-tinta);
+  --par-pastel: var(--verde-pastel);
+  --par-vivo: var(--verde-vivo);
+}
+/* A próxima família que entrar */
+[data-familia='3'] {
+  --pastel: var(--pessego-pastel);
+  --vivo: var(--pessego-vivo);
+  --vivo-tinta: var(--pessego-tinta);
+  --par-pastel: var(--manteiga-pastel);
+  --par-vivo: var(--manteiga-vivo);
+}
+
+/*
+ * A página íntima, que só a pessoa vê (o painel): o papel é tingido com as duas cores da família
+ * dela, e o que fica sobre ele vira cartão branco. No núcleo de duas cores, o tom é a mistura delas.
+ */
+[data-intimo] {
+  --papel: color-mix(in srgb, var(--intimo) 52%, var(--creme));
+  --papel-recuo: color-mix(in srgb, var(--intimo) 78%, var(--creme-recuo));
+  --tinta-suave: color-mix(in srgb, var(--tinta) 72%, var(--papel));
+  --fio: color-mix(in srgb, var(--tinta) 16%, var(--papel));
 }

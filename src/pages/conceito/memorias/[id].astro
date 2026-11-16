@@ -4,6 +4,7 @@
 // o carimbo do laboratório, e os relatos como bilhetes assinados à mão. A ordem é a de docs/visual.md.
 import '../../../visual/telas/memoria.css';
 import Visual from '../../../layouts/Visual.astro';
+import IconeDoTipo from '../../../components/visual/IconeDoTipo.astro';
 import Polaroid from '../../../components/visual/Polaroid.astro';
 import { dentroDoPeriodo } from '../../../lib/capitulos';
 import { tipoDaMemoria } from '../../../lib/tipos';
@@ -27,7 +28,7 @@ import {
   obterMemoria,
   pessoasQueONaoVe,
 } from '../../../lib/servidor/repositorio';
-import { carimboDaData, familiaDaTela, legendaLugarAno, sobrenomesDaAssinatura, trechoDoRelato } from '../../../lib/visual';
+import { carimboDaData, estiloDoTipo, familiaDaTela, legendaLugarAno, sobrenomesDaAssinatura, trechoDoRelato } from '../../../lib/visual';
 
 if (!conceitoDisponivel()) return naoEncontrado();
 
@@ -95,6 +96,7 @@ const outrasFotos = memoria.fotos.length > 1;
 
 <Visual titulo={memoria.titulo} familia={corDaTela} sobrenomes={sobrenomes}>
   <article class="memoria">
+    <div class="abre__fundo" style={estiloDoTipo(memoria.tipo)}>
     <header class:list={['abre miolo grade', memoria.fotos.length === 0 && 'abre--sem-foto']}>
       <div class="abre__texto">
         <p class="abre__sobre">
@@ -131,6 +133,7 @@ const outrasFotos = memoria.fotos.length > 1;
         )
       }
     </header>
+    </div>
 
     <div class="corpo grade">
       <aside class="dados" aria-label="Ficha da memória">
@@ -150,7 +153,8 @@ const outrasFotos = memoria.fotos.length > 1;
           <div>
             <dt>Tipo</dt>
             <dd>
-              <span class="etiqueta" style={`--tipo-cor: ${tipo.cor}`}>
+              <span class="etiqueta" style={estiloDoTipo(memoria.tipo)}>
+                <IconeDoTipo tipo={memoria.tipo} />
                 {tipo.rotulo}
               </span>
             </dd>

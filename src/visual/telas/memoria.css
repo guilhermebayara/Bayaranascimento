@@ -3,7 +3,16 @@
  * os relatos como bilhetes assinados. Corrigir e histórico ficam quietos, no fim.
  */
 
-/* --- Abertura: título grande, trecho de um relato e a foto-chave --------------------------- */
+/* --- Abertura: título grande, trecho de um relato e a foto-chave ---------------------------
+   A abertura é um bloco na cor do tipo de momento: cada memória abre com a cor dela. */
+
+.abre__fundo {
+  background: var(--tipo-pastel, var(--pastel));
+  --tinta-suave: color-mix(in srgb, var(--tinta) 76%, var(--tipo-pastel, var(--pastel)));
+}
+.abre__fundo .carimbo {
+  color: color-mix(in srgb, var(--tipo-tinta, var(--vivo-tinta)) 70%, var(--tinta));
+}
 
 .abre {
   row-gap: var(--e-7);
@@ -41,7 +50,7 @@
   margin-top: var(--e-5);
 }
 .abre__foto {
-  width: 88%;
+  width: 74%;
   margin-inline: auto;
 }
 
@@ -49,8 +58,7 @@
 
 .corpo {
   row-gap: var(--e-7);
-  padding-top: var(--e-6);
-  border-top: 1px solid var(--tinta);
+  padding-top: var(--e-7);
   margin-inline: var(--margem);
   padding-inline: 0;
 }
@@ -262,8 +270,9 @@
   }
   .abre > .abre__foto {
     grid-column: 8 / -1;
-    width: 100%;
+    width: 72%;
     margin: 0;
+    justify-self: center;
   }
   .corpo {
     padding-top: var(--e-7);

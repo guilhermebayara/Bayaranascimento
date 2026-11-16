@@ -1,12 +1,32 @@
 // O visual novo (docs/visual.md): as funções puras das telas do conceito e as regras do CSS novo.
 import { describe, expect, it } from 'vitest';
-import { GIROS, carimboDaData, diaMesCurto, familiaDaTela, fontesValidas, giroDoId, legendaLugarAno, listaCurta, sobrenomesDaAssinatura, trechoDoRelato } from '../src/lib/visual';
+import {
+  CORES,
+  GIROS,
+  carimboDaData,
+  corDoTipo,
+  diaMesCurto,
+  estiloDoTipo,
+  familiaDaTela,
+  fontesValidas,
+  formaDoId,
+  giroDoId,
+  legendaLugarAno,
+  listaCurta,
+  sobrenomesDaAssinatura,
+  trechoDoRelato,
+} from '../src/lib/visual';
 
-describe('polaroid', () => {
+describe('foto revelada', () => {
   it('a inclinação sai do id e é sempre a mesma, entre poucos valores', () => {
     expect(giroDoId('2025-natal')).toBe(giroDoId('2025-natal'));
     for (const id of ['2025-natal', '1994-festa-de-aniversario', 'a', 'b', 'c', 'd', 'e', 'f']) expect(GIROS).toContain(giroDoId(id));
     expect(new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'].map(giroDoId)).size).toBeGreaterThan(1);
+  });
+
+  it('a forma de cor atrás da foto também sai do id: círculo, arco ou cápsula', () => {
+    expect(formaDoId('2025-natal')).toBe(formaDoId('2025-natal'));
+    for (const id of ['a', 'b', 'c', 'd', 'e', 'f', 'g']) expect([0, 1, 2]).toContain(formaDoId(id));
   });
 
   it('a legenda diz lugar e ano; sem lugar, só o ano', () => {
@@ -68,6 +88,19 @@ describe('cor da tela', () => {
   });
 });
 
+describe('cor do tipo de momento', () => {
+  it('cada tipo conhecido tem uma das seis cores do site, e tipo novo ganha uma pelo id', () => {
+    expect(corDoTipo('casamento')).toBe('roxo');
+    expect(corDoTipo('aniversario')).toBe('rosa');
+    expect(CORES).toContain(corDoTipo('tipo-criado-depois'));
+    expect(corDoTipo('tipo-criado-depois')).toBe(corDoTipo('tipo-criado-depois'));
+  });
+
+  it('o estilo leva o pastel, o vivo e a tinta da cor', () => {
+    expect(estiloDoTipo('viagem')).toBe('--tipo-pastel: var(--azul-pastel); --tipo-cor: var(--azul-vivo); --tipo-tinta: var(--azul-tinta)');
+  });
+});
+
 describe('combinações de fontes', () => {
   it('só aceita as três do conceito', () => {
     expect(fontesValidas('b')).toBe('b');
@@ -117,8 +150,9 @@ describe('CSS do visual novo', () => {
     expect(ler('tokens.css')).toMatch(/--toque:\s*2\.75rem;/);
   });
 
-  it('nada fica preso à rolagem no toque: sticky novo só com cursor', () => {
-    // A barra de décadas já é parada no alto na linha do tempo de hoje. Todo outro sticky
+  it('nada fica preso à rolagem no toque além do combinado', () => {
+    // Ficam parados no alto, em qualquer aparelho, a barra de décadas (já era assim) e o ano da
+    // linha do tempo (decisão do Gui, 16/11/2026, pensando nos mais velhos). Todo outro sticky
     // precisa estar dentro de (hover: hover) and (pointer: fine), e fixed não entra.
     for (const arquivo of arquivos) {
       const css = ler(arquivo);
@@ -131,7 +165,8 @@ describe('CSS do visual novo', () => {
         const comCursor = /\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)/.test(midia.slice(0, midia.indexOf('{')));
         // dentro da media, o bloco ainda não fechou: mais aberturas do que fechamentos
         const dentroDaMidia = (midia.match(/\{/g) ?? []).length > (midia.match(/\}/g) ?? []).length;
-        expect(regra.includes('.decadas') || (comCursor && dentroDaMidia), `${arquivo}: ${regra.trim().slice(0, 60)}`).toBe(true);
+        const combinado = regra.includes('.decadas') || regra.includes('.ano__cabeca');
+        expect(combinado || (comCursor && dentroDaMidia), `${arquivo}: ${regra.trim().slice(0, 60)}`).toBe(true);
       }
     }
   });
@@ -144,6 +179,14 @@ describe('conceito', () => {
     const rotas = Object.entries(paginas);
     expect(rotas.length).toBeGreaterThanOrEqual(5);
     for (const [caminho, fonte] of rotas) expect(fonte, caminho).toMatch(/if \(!conceitoDisponivel\(\)[^\n]*return naoEncontrado\(\);/);
+  });
+
+  it('a linha do tempo deixa filtrar por qualquer família, sem mudar quem vê o quê', () => {
+    // Decisão do Gui, 16/11/2026. O filtro passa pelo listarMemorias, que só devolve o que a pessoa pode ver.
+    const linha = Object.entries(paginas).find(([caminho]) => caminho.endsWith('conceito/tudo.astro'))![1];
+    expect(linha).toContain('const nucleo = nucleos.find((n) => n.id === pedido);');
+    expect(linha).toContain('await listarMemorias(usuario, { nucleo: nucleo?.id })');
+    expect(linha).not.toMatch(/usuario\.nucleos\.includes/);
   });
 
   it('as telas novas não levam o CSS antigo', () => {

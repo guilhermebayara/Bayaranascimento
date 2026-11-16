@@ -96,6 +96,9 @@
 }
 
 /* A barra de décadas fica parada no alto, como na linha do tempo de hoje */
+.linha {
+  --barra: 2.75rem;
+}
 .decadas {
   position: sticky;
   top: 0;
@@ -104,14 +107,24 @@
   border-bottom: 1px solid var(--fio);
 }
 .decadas ul {
+  /* Uma linha só, de altura fixa: é sobre ela que o ano fica parado. Com muitas décadas, a
+     linha rola para o lado dentro da barra. */
   display: flex;
-  flex-wrap: wrap;
   gap: 0 var(--e-5);
+  height: var(--barra);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.decadas ul::-webkit-scrollbar {
+  display: none;
+}
+.decadas li {
+  flex: none;
 }
 .decadas a {
   display: inline-flex;
   align-items: center;
-  min-height: var(--toque);
+  height: var(--barra);
   font-family: var(--mono);
   font-size: var(--t-ficha);
   letter-spacing: 0.08em;
@@ -140,22 +153,30 @@
 /* --- O ano: a divisória ---------------------------------------------------------------------- */
 
 .ano {
-  padding-top: var(--e-8);
+  padding-top: var(--e-7);
 }
 .ano[hidden] {
   display: none;
 }
-.ano__cabeca {
+/* O ano grande fica parado no alto, logo abaixo da barra de décadas, enquanto as memórias dele
+   passam: quem rola sempre sabe em que ano está (pedido do Gui, pensando nos mais velhos). */
+.ano > .ano__cabeca {
+  position: sticky;
+  top: var(--barra);
+  z-index: 4;
   container-type: inline-size;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--e-4);
+  margin-inline: calc(-1 * var(--margem));
   margin-bottom: var(--e-6);
+  padding: var(--e-4) var(--margem) var(--e-3);
+  background: var(--papel);
 }
 .ano__numero {
   /* No celular o número ocupa dois terços da largura; no computador, a coluna dele inteira */
-  font-size: calc(66cqi / var(--ano-em));
+  font-size: calc(50cqi / var(--ano-em));
   font-variation-settings: var(--serifa-ajustes-capa);
   font-weight: var(--serifa-peso-capa);
   letter-spacing: var(--aperto-capa);
@@ -204,7 +225,13 @@
 .entrada__quando {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0 0.7em;
+}
+.entrada__quando .icone {
+  width: 1.75em;
+  height: 1.75em;
+  margin-right: -0.1em;
 }
 /* O ponto fica no fim de cada item: quando a linha quebra, ela não começa por ele */
 .entrada__quando span:not(:last-child)::after,
@@ -213,12 +240,14 @@
   margin-left: 0.7em;
 }
 .entrada__foto {
-  width: 84%;
-  margin-block: var(--e-2);
+  width: 70%;
+  margin-block: var(--e-4) var(--e-5);
+  margin-left: 6%;
 }
 /* As fotos não ficam em fila: uma encosta à esquerda, a outra à direita */
 .entrada:nth-child(even) .entrada__foto {
   margin-left: auto;
+  margin-right: 4%;
 }
 .entrada__titulo {
   font-size: var(--t-titulo-3);
@@ -299,8 +328,11 @@
   }
   .ano > .ano__cabeca {
     grid-column: 1 / span 4;
+    top: calc(var(--barra) + var(--e-5));
     display: block;
-    margin-bottom: 0;
+    margin: 0;
+    padding: 0;
+    background: none;
   }
   .ano__numero {
     font-size: calc(98cqi / var(--ano-em));
@@ -326,11 +358,12 @@
   }
   .entrada--com-foto .entrada__foto {
     grid-area: foto;
-    width: 92%;
-    margin: 0;
+    width: 70%;
+    margin: 0 0 0 12%;
   }
   .entrada--com-foto:nth-child(even) .entrada__foto {
-    margin-left: 8%;
+    margin-left: 24%;
+    margin-right: 0;
   }
   .entrada--com-foto .entrada__quando {
     grid-area: quando;
@@ -347,13 +380,5 @@
   }
   .entrada--so-texto {
     max-width: 75%;
-  }
-}
-
-/* O ano só fica parado ao lado das memórias dele com cursor: no toque, nada preso à rolagem */
-@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
-  .ano__cabeca {
-    position: sticky;
-    top: 4.5rem;
   }
 }

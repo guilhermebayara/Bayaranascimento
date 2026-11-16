@@ -56,7 +56,7 @@ O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
 
 - **Disciplina de tipo.** O bayara usa uma família só e tira a hierarquia de tamanho e espaço, com títulos grandes de espaçamento justo. Aqui são três famílias com papéis fixos (serifa nos títulos, grotesca no texto, mono nas fichas), e nenhuma aparece fora do seu papel.
 - **Grid rígido e alinhado à esquerda.** Colunas fixas, tudo começa na mesma linha. Alinhamento óptico no tipo grande.
-- **Cor com função.** No bayara, o azul marca o resultado e o terracota marca um custo. Aqui, o pastel marca a família e o saturado marca o que importa. Cor sem função não entra.
+- **Cor com função.** No bayara, o azul marca o resultado e o terracota marca um custo. Aqui, o pastel marca a família e o saturado marca o que importa. Cor sem função não entra. Deleite visual também é função (decisão do Gui, 16/11/2026): a cor pode entrar para dar alegria e aconchego, como a forma colorida atrás de cada foto. O limite fica entre os dois sites de régua: mais cor que o bayara.design, que é quase mono, e sem chegar ao extremo da @bsurda.
 - **Objeto com sentido.** O crachá da @bsurda imita uma coisa real do mundo da festa. Aqui, a polaroid e o carimbo do verso imitam o mundo da família.
 - **Ações tipográficas.** Links e ações secundárias são texto sublinhado, sem pílula. Botão cheio só para a ação principal da tela.
 - **Detalhe pequeno que se nota.** Como o nome do topo do bayara, que se preenche quando o nome grande sai da tela. Um ou dois no site, nunca em toda parte.
@@ -64,7 +64,7 @@ O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
 
 ## Conceito (fase 1), em aprovação
 
-Construído em 16/11/2026 na branch `tst-visual`. Espera a aprovação do Gui na prévia. Até lá, nada daqui é regra: é proposta.
+Construído em 16/11/2026 na branch `tst-visual`, em duas rodadas: a primeira versão e a segunda, com os ajustes que o Gui pediu ao vê-la. Espera a aprovação dele na prévia e a escolha das fontes. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
 
 **Onde está.** As telas do conceito ficam em `/conceito`, ao lado do site atual, que continua inteiro:
 
@@ -78,9 +78,9 @@ Construído em 16/11/2026 na branch `tst-visual`. Espera a aprovação do Gui na
 
 A faixa do alto (só nas prévias e no computador) troca de tela, de combinação de fontes e de pessoa. As rotas respondem 404 na produção e na homologação, porque o painel usa dados fixos de exemplo (`src/lib/servidor/conceito.ts`, conferido pela guarda da produção).
 
-**Código.** O CSS novo está em `src/visual/` e não importa nada de `src/styles/global.css`: `tokens.css`, `fontes.css`, `base.css`, `pecas.css`, `estrutura.css` e um arquivo por tela em `telas/`. O esqueleto é `src/layouts/Visual.astro`, as peças com marcação própria ficam em `src/components/visual/` e as funções puras em `src/lib/visual.ts`. Os testes estão em `testes/visual.test.ts`: cor só em `tokens.css`, fonte só em `fontes.css`, nenhum token antigo, toque de 44 px, e `sticky` novo só com cursor.
+**Código.** O CSS novo está em `src/visual/` e não importa nada de `src/styles/global.css`: `tokens.css`, `fontes.css`, `base.css`, `pecas.css`, `estrutura.css` e um arquivo por tela em `telas/`. O esqueleto é `src/layouts/Visual.astro`, as peças com marcação própria ficam em `src/components/visual/` (a foto revelada, a assinatura, os ícones dos tipos e os rabiscos) e as funções puras em `src/lib/visual.ts`. Os testes estão em `testes/visual.test.ts`: cor só em `tokens.css`, fonte só em `fontes.css`, nenhum token antigo, toque de 44 px, e nada preso à rolagem além da barra de décadas e do ano.
 
-**Combinações de fontes para escolher** (todas de licença livre, pelo Fontsource, com acentos e itálico conferidos em português):
+**Combinações de fontes para escolher** (todas de licença livre, pelo Fontsource, com acentos e itálico conferidos em português). Ainda sem escolha:
 
 | | Serifa | Grotesca | Mono | Manuscrita | Caráter |
 | --- | --- | --- | --- | --- | --- |
@@ -90,20 +90,23 @@ A faixa do alto (só nas prévias e no computador) troca de tela, de combinaçã
 
 Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de outra.
 
-**O que o conceito propõe e espera decisão:**
+**O que o Gui aprovou na primeira rodada:** o menu (sanfona no celular, "Início", as famílias no alto da linha do tempo), os textos novos ("Oi, Gui.", "Entraram duas memórias e um relato desde a sua última visita.", "Você estava lá e ainda não contou", "Ver a linha do tempo inteira", "Abrir o acervo", "Cada pessoa conta o dia do jeito que lembra.") e a foto revelada em toda foto-chave.
 
-- **Cores.** Papel `#f4f1ec` e tinta `#1d1a16`. "Tudo" em manteiga, Bayara em pêssego, Bayara Bracarense em lilás, Bracarense em azul, cada uma com pastel, vivo e tinta (o vivo escurecido, para o carimbo). Os valores estão em `src/visual/tokens.css`.
-- **Polaroid.** Foto quadrada, moldura de 5 px de raio em vez dos 12 px das referências, para parecer foto revelada e não cartão de aplicativo. Aparece em toda foto-chave da linha do tempo: é a confirmação que faltava ("Decisões", linha "Polaroid").
-- **Linha do tempo no computador.** O ano fica parado na coluna da esquerda enquanto as memórias dele passam, e cada memória é uma página dupla, foto de um lado e texto do outro. A assinatura ocupa dois terços da largura, para o ano mais recente aparecer na primeira tela.
-- **Menu.** No celular, "Menu" abre uma sanfona que empurra a página, sem tela por cima e sem script. A linha do tempo de cada família saiu do menu e foi para o alto da linha do tempo ("Tudo", "Bayara"). O menu ganhou "Início".
-- **Textos novos**, que ainda não existiam: "Oi, Gui.", "Entraram duas memórias e um relato desde a sua última visita.", "Você estava lá e ainda não contou", "Ver a linha do tempo inteira", "Abrir o acervo" (o botão da carta) e, no convite do fim da memória, "Cada pessoa conta o dia do jeito que lembra.".
+**O que a segunda rodada propõe e espera decisão:**
+
+- **As seis cores do site.** Manteiga, verde, rosa, roxo, azul e pêssego, cada uma com pastel, vivo e tinta (`src/visual/tokens.css`). "Tudo" é manteiga; Bayara é verde, a cor da Elizete; Bayara Bracarense é rosa e roxo juntos, e o bloco de cor se divide entre os dois; Bracarense é azul, até o Gui dizer a cor deles.
+- **Cor do tipo de momento.** Cada tipo ganha uma das seis cores (`corDoTipo`, em `src/lib/visual.ts`), usada no ícone, na etiqueta, na forma atrás da foto e na abertura da memória. As cores gravadas no banco continuam as de hoje: se a proposta for aceita, a paleta é aplicada em `/admin/tipos` na fase 2.
+- **Ícones dos tipos.** Um rabisco de traço para cada um: broto (nascimento), bolo (aniversário), alianças (casamento), estrela (conquista), aviãozinho de papel (viagem), casinha (casa), balões (festa), balão de fala (causo), xícara (dia a dia), flor (despedida) e brilho (outro e tipos novos). Estão em `src/components/visual/IconeDoTipo.astro`.
+- **Abertura da memória** num bloco inteiro na cor do tipo.
+- **Painel íntimo.** O papel tingido na cor da família de quem vê (no núcleo de duas cores, a mistura delas), os aniversários, "Você no acervo" e a memória para contar em três cartões, o nome sublinhado a caneta e o envelope do laboratório com as fotos novas.
+- **Linha do tempo no celular.** O ano fica parado logo abaixo da barra de décadas, num tamanho menor que o da primeira rodada, para caber com a barra.
 - **Monograma.** No celular, o "M" do topo é a letra da serifa, provisória. O desenho em SVG é da fase 2.
 
 **O que é fixo de exemplo no painel**, porque a parte funcional ainda não existe: o texto da carta, as datas das visitas, quais memórias e qual relato contam como novos e as datas e idades dos aniversários. Memórias, fotos, relatos, retratos, parentesco e a contagem de "Você no acervo" são lidos do acervo de exemplo, com a visibilidade de quem olha.
 
 **O que ficou de fora de propósito:** os efeitos da fase 4 (a frase que acende, a foto que amplia no lugar; hoje a foto abre o arquivo), o tocador de áudio próprio (o bloco usa o do aparelho) e as outras telas, que continuam com o visual antigo. Os links do conceito para capítulos, pessoas, árvore e formulários caem nelas.
 
-**Capturas.** `CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>` tira as quatro telas nas três combinações, em 390, 1280 e 1920 px, com movimento reduzido. As de 16/11/2026 estão em `docs/visual/conceito/` (a linha do tempo, cortada em 9000 px de altura).
+**Capturas.** `CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>` tira as quatro telas nas três combinações, em 390, 1280 e 1920 px, com movimento reduzido. As da segunda rodada estão em `docs/visual/conceito/` (a linha do tempo, cortada em 9000 px de altura).
 
 ## Referências
 
@@ -128,11 +131,14 @@ Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de out
 | Legendas e fichas | Mono pequena, na linha de Geist Mono |
 | Manuscrita | Só no nome de quem conta cada relato |
 | Cor | Pastéis como cores principais, em blocos sólidos, como no Feminist. Cada cor tem uma versão saturada para pontos de contraste e destaques, que também pode ser usada inteira como opção. Vale para as cores, não para os neutros |
-| Neutros | Fundo de papel quente (perto de `#F4F2F0` ou `#FFFAEB`); texto quase preto, sem chegar ao preto puro |
-| Polaroid | Preferência: polaroid em toda foto-chave da linha do tempo. Confirmar na implementação vendo como fica na linha do tempo |
+| Neutros | Neutro quente e aconchegante (decisão do Gui, 16/11/2026, depois de ver o primeiro conceito, que estava frio): papel creme e tinta de café, sem chegar ao preto puro. No conceito, `#faf2e6` e `#2b211a` |
+| Foto revelada | Confirmado pelo Gui em 16/11/2026: toda foto-chave da linha do tempo é uma foto revelada. O formato lembra a Fujifilm Instax, que a Giovanna e o Magno usam muito, sem ser literal: retrato, cantos arredondados, margem de baixo larga |
 | Linha do tempo | Lista vertical com a rolagem normal, das mais recentes para as mais antigas, sem efeito de folhear nem carrossel |
 | Página da memória | Ordem abaixo, com o convite para escrever o relato no fim |
 | Marca | "MEMÓRIAS" é a palavra principal e fixa. Abaixo dela vêm os sobrenomes das famílias do que está sendo visto, que mudam conforme a tela (ver "Assinatura do nome"). O símbolo é um monograma com o M de Memórias |
+| Cores das pessoas | A cor favorita da Giovanna é rosa, a do Magno é roxo e a da Elizete é verde (do Gui, 16/11/2026). No núcleo Bayara Bracarense nenhuma das duas pessoas do casal é favorecida: o conceito usa rosa e roxo juntos, com o mesmo peso. Faltam a cor do Gui e a dos Bracarense |
+| Ícones e ilustrações | Cabem, com limpeza e elegância, para trazer leveza e alegria (do Gui, 16/11/2026). O site continua tipográfico. No conceito: um ícone de traço para cada tipo de momento, rabiscos de caneta (sublinhado, seta, coração) e o envelope do laboratório no painel |
+| Painel | É a parte que só a pessoa vê, e precisa ter cara própria, de espaço íntimo (do Gui, 16/11/2026). No conceito: a página inteira tingida na cor da família da pessoa, o conteúdo em cartões e o aviso "Só você vê esta página" |
 
 ## Movimento
 
@@ -148,7 +154,7 @@ Entram:
 
 Ficam de fora: cartão que deita ao rolar, foto que cresce enquanto se rola, carrossel lateral, anel 3D, imagem distorcida, tela de carregamento com porcentagem, faixa que corre sozinha e qualquer trecho que segura a página. Com movimento reduzido, nem o esmaecer.
 
-O Safari do iPhone já deu trabalho com efeitos presos à rolagem no site da @bsurda (ver o `CLAUDE.md` daquele repositório, "Banda do Safari no iPhone"): nada de `sticky` ou `fixed` novo sem conferir no aparelho.
+O Safari do iPhone já deu trabalho com efeitos presos à rolagem no site da @bsurda (ver o `CLAUDE.md` daquele repositório, "Banda do Safari no iPhone"): nada de `sticky` ou `fixed` novo sem conferir no aparelho. Decisão do Gui de 16/11/2026: na linha do tempo, a barra de décadas continua parada no alto e o ano grande também fica, em qualquer aparelho, para quem rola saber sempre em que ano está (pensando nas pessoas mais velhas). Os dois precisam ser conferidos no iPhone.
 
 ## Componentes novos
 
@@ -157,7 +163,7 @@ As medidas abaixo vêm das referências e são ponto de partida: o desenho final
 
 | Componente | Onde | Detalhe |
 | --- | --- | --- |
-| Polaroid | Foto-chave na linha do tempo e na abertura da memória | Moldura branca, margem de baixo mais larga com a legenda, cantos de uns 12 px, sombra suave (no Folira: 5 px, 20 px, 40 px de desfoque, preto a 12%). Inclinação entre poucos valores (por exemplo −3°, −1°, 2°), escolhida pelo id da memória para ficar sempre igual |
+| Foto revelada | Foto-chave na linha do tempo e na abertura da memória | Moldura branca no formato da Instax mini: foto em retrato de 46 por 62, cantos arredondados e margem de baixo bem mais larga, com a legenda. Sombra suave e quente. Inclinação entre poucos valores (−3°, −1,5°, 1°, 2,5°), escolhida pelo id da memória para ficar sempre igual. Atrás, uma forma de cor (círculo, arco ou cápsula, também pelo id) na cor do tipo de momento. O banco não guarda a orientação da foto: enquanto não guardar, toda foto-chave é recortada em retrato |
 | Monte de fotos | Memória com mais de uma foto | As outras fotos aparecem atrás da principal, levemente giradas. O monte já diz que há mais fotos |
 | Legenda "lugar (ano)" | Polaroid, cartão de memória, fotos | Em mono, pequena |
 | Etiqueta-balão | Tipo de momento | Pílula com um canto reto, na cor do tipo |

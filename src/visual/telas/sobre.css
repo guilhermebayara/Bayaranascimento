@@ -100,7 +100,7 @@
 }
 .cores li {
   display: grid;
-  grid-template-columns: 3fr 1fr 1fr;
+  grid-template-columns: 3fr 2fr 1fr 1fr;
   gap: 0;
 }
 .cores span:not(.ficha) {
@@ -109,6 +109,9 @@
 .cores__pastel {
   background: var(--pastel);
   border-radius: var(--raio-moldura) 0 0 var(--raio-moldura);
+}
+.cores__par {
+  background: var(--par-pastel);
 }
 .cores__vivo {
   background: var(--vivo);
@@ -129,7 +132,8 @@
   min-width: 0;
 }
 .peca--foto .monte {
-  width: 86%;
+  width: 62%;
+  margin-left: 12%;
   margin-bottom: var(--e-4);
 }
 .peca__etiquetas {
