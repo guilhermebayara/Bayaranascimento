@@ -3,6 +3,7 @@ import {
   podeEditarMemoria,
   podeEscreverRelato,
   podeExcluirMemoria,
+  podeMudarQuemVe,
   podeRemoverFoto,
   podeVerVersao,
   podeVerMemoria,
@@ -166,5 +167,24 @@ describe('histórico de uma memória que começou como rascunho', () => {
   });
   it('as versões de depois da publicação continuam para todos que veem a memória', () => {
     expect(podeVerVersao(elizete, publicada, { situacao: 'publicada' })).toBe(true);
+  });
+});
+
+describe('quem muda quem pode ver', () => {
+  // Decisão do Gui (16/11/2026): quem é citado não pode restringir. Antes, o Lucas Magno, citado no noivado
+  // da Giovanna, restringiu a memória a um núcleo dele e ela deixou de ver a própria memória.
+  const aberta = { criadaPor: 'giovanna', visibilidade: 'todos' as const, nucleos: ['bayara-nascimento'] };
+  const restrita = { criadaPor: 'giovanna', visibilidade: 'nucleos' as const, nucleos: ['bayara-bracarense'] };
+  it('quem criou muda à vontade', () => {
+    expect(podeMudarQuemVe(giovanna, aberta, 'nucleos', ['bayara-bracarense']).ok).toBe(true);
+  });
+  it('quem é citado não restringe, nem troca os núcleos de uma memória restrita', () => {
+    expect(podeMudarQuemVe(magno, aberta, 'nucleos', ['bracarense']).ok).toBe(false);
+    expect(podeMudarQuemVe(magno, restrita, 'nucleos', ['bracarense']).ok).toBe(false);
+    expect(podeMudarQuemVe(magno, restrita, 'todos', []).ok).toBe(false);
+  });
+  it('quem é citado ainda marca núcleos numa memória aberta a todos, o que não restringe nada', () => {
+    expect(podeMudarQuemVe(magno, aberta, 'todos', ['bayara-nascimento', 'bracarense']).ok).toBe(true);
+    expect(podeMudarQuemVe(magno, restrita, 'nucleos', ['bayara-bracarense']).ok).toBe(true);
   });
 });

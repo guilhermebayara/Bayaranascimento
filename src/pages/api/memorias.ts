@@ -5,9 +5,9 @@ import { z } from 'astro/zod';
 import { lerTemas } from '../../lib/capitulos';
 import { TIPO_OUTRO } from '../../lib/tipos';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
-import { arrumarTexto, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
+import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeEditarMemoria, podeEscreverRelato, podeRemoverFoto, validarVisibilidade } from '../../lib/servidor/permissoes';
+import { podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
   atualizarMemoria,
   criarIntegrante,
@@ -125,6 +125,10 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   if (nucleos.some((n) => !nucleosExistentes.has(n) || !permitidos.has(n))) {
     return erro(400, 'Você só pode marcar núcleos de que faz parte.');
   }
+  if (anterior) {
+    const quemVe = podeMudarQuemVe(usuario, anterior, pedido.visibilidade, nucleos);
+    if (!quemVe.ok) return erro(403, quemVe.motivo);
+  }
   const visivel = validarVisibilidade(usuario, pedido.visibilidade, nucleos);
   if (!visivel.ok) return erro(400, visivel.motivo);
 
@@ -217,12 +221,13 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     id = anterior.id;
     await atualizarMemoria(anterior, dados, usuario, removidas.map((f) => f.id));
   } else {
-    id = slugUnico(`${pedido.ano}-${criarSlug(pedido.titulo)}`, await idsDeMemorias());
+    // Um código no endereço, e não o título: ver codigoNovo
+    id = codigoNovo(await idsDeMemorias());
     await criarMemoria(id, dados, usuario);
   }
 
   if (relatoPor) {
-    const existente = await obterRelato(id, relatoPor);
+    const existente = await obterRelato(id, relatoPor, usuario);
     const decisao = podeEscreverRelato(usuario, relatoPor, existente, await pessoasComAcesso());
     if (!decisao.ok) return erro(403, `A memória foi salva, mas o relato não: ${decisao.motivo}`);
     // Relato já publicado continua publicado. Os demais acompanham a situação da memória.

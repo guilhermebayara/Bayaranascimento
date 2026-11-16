@@ -56,3 +56,18 @@ export function juntarNomes(nomes: string[]): string {
 export function outrosAdmins(eu: string, integrantes: { id: string; nome: string; apelido?: string | null; tratamento: 'ela' | 'ele' | null; admin: boolean }[]): string {
   return juntarNomes(integrantes.filter((i) => i.admin && i.id !== eu).map(comArtigo));
 }
+
+const LETRAS_DO_CODIGO = 'abcdefghjkmnpqrstuvwxyz23456789';
+
+/**
+ * Código aleatório para o endereço de uma memória ou de um capítulo novo. O endereço não leva o título:
+ * um rascunho guardava no endereço o título de antes da publicação, e um título repetido ganhava "-2",
+ * o que denunciava uma memória que a pessoa não vê.
+ */
+export function codigoNovo(existentes: ReadonlySet<string>, tamanho = 8): string {
+  for (;;) {
+    const bytes = crypto.getRandomValues(new Uint8Array(tamanho));
+    const codigo = [...bytes].map((b) => LETRAS_DO_CODIGO[b % LETRAS_DO_CODIGO.length]).join('');
+    if (!existentes.has(codigo)) return codigo;
+  }
+}

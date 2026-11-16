@@ -45,7 +45,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   if (!memoria) return erro(404, 'Memória não encontrada.');
   if (!(await listarIntegrantes()).some((i) => i.id === por)) return erro(400, 'Pessoa não encontrada.');
 
-  const existente = await obterRelato(memoriaId, por);
+  const existente = await obterRelato(memoriaId, por, usuario);
   const decisao = podeEscreverRelato(usuario, por, existente, await pessoasComAcesso());
   if (!decisao.ok) return erro(403, decisao.motivo);
 

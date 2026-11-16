@@ -83,7 +83,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (acao === 'restaurar-relato') {
     // Cada pessoa só mexe no relato que escreveu ou registrou
     const por = campo(dados, 'por', 80);
-    const relato = await obterRelato(memoria.id, por);
+    const relato = await obterRelato(memoria.id, por, usuario);
     if (!relato || relato.registradoPor !== usuario.pessoa) return voltar(request, historico, { erro: 'Só quem escreveu o relato pode restaurar uma versão dele.' });
     const versao = (await listarVersoes<Relato>('relato', String(relato.id))).find((v) => v.id === Number(campo(dados, 'versao', 12)));
     if (!versao) return voltar(request, historico, { erro: 'Versão não encontrada.' });

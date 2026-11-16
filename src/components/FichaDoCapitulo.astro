@@ -1,8 +1,9 @@
 ---
 // Formulário de capítulo, em etapas. Serve para criar e para editar.
+import { comArtigo } from '../lib/servidor/conteudo';
 import { MESES } from '../lib/datas';
 import type { Capitulo } from '../lib/capitulos';
-import { listarCapitulos, listarNucleos, listarTemasVisiveis } from '../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantes, listarNucleos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 
 interface Props {
   capitulo?: Capitulo;
@@ -15,6 +16,9 @@ const temFilhos = Boolean(c) && todos.some((x) => x.dentroDe === c!.id);
 // Só entra em outro quem não tem capítulos dentro, e só em capítulos que não estão dentro de ninguém
 const maiores = temFilhos ? [] : todos.filter((x) => x.id !== c?.id && !x.dentroDe);
 const nucleos = (await listarNucleos()).filter((n) => usuario.nucleos.includes(n.id) || c?.nucleos.includes(n.id));
+// Só quem criou muda quem pode ver. Para os outros, as opções ficam travadas com o valor atual.
+const travaQuemVe = Boolean(c) && c!.criadoPor !== usuario.pessoa;
+const quemCriou = travaQuemVe ? (await listarIntegrantes()).find((i) => i.id === c!.criadoPor) : undefined;
 const temas = await listarTemasVisiveis(usuario);
 const temasDoCapitulo = (c?.temas ?? []).map((id) => temas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
 const anoAtual = new Date().getFullYear();
@@ -116,12 +120,15 @@ const datas = [
     <fieldset>
       <legend>Quem pode ver?</legend>
       <p class="dica">Vale para o título e o texto de abertura. Cada memória dentro do capítulo continua com a visibilidade dela.</p>
+      {travaQuemVe && <p class="dica">Só {quemCriou ? comArtigo(quemCriou) : 'quem criou'}, que criou o capítulo, muda quem pode ver.</p>}
+      {travaQuemVe && <input type="hidden" name="visibilidade" value={c!.visibilidade} />}
+      {travaQuemVe && c!.nucleos.map((n) => <input type="hidden" name="nucleos" value={n} />)}
       <label class="marcar">
-        <input type="radio" name="visibilidade" value="todos" checked={(c?.visibilidade ?? 'todos') === 'todos'} />
+        <input type="radio" name="visibilidade" value="todos" checked={(c?.visibilidade ?? 'todos') === 'todos'} disabled={travaQuemVe} />
         <span>Toda a família vê</span>
       </label>
       <label class="marcar">
-        <input type="radio" name="visibilidade" value="nucleos" checked={c?.visibilidade === 'nucleos'} />
+        <input type="radio" name="visibilidade" value="nucleos" checked={c?.visibilidade === 'nucleos'} disabled={travaQuemVe} />
         <span>Só quem é dos núcleos marcados abaixo</span>
       </label>
       {
@@ -129,7 +136,7 @@ const datas = [
           <div class="opcoes" role="group" aria-label="Núcleos">
             {nucleos.map((n) => (
               <label class="opcao">
-                <input type="checkbox" name="nucleos" value={n.id} checked={c?.nucleos.includes(n.id)} />
+                <input type="checkbox" name="nucleos" value={n.id} checked={c?.nucleos.includes(n.id)} disabled={travaQuemVe} />
                 <span>{n.nome}</span>
               </label>
             ))}
