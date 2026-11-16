@@ -168,7 +168,7 @@ describe('CSS do visual novo', () => {
         const comCursor = /\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)/.test(midia.slice(0, midia.indexOf('{')));
         // dentro da media, o bloco ainda não fechou: mais aberturas do que fechamentos
         const dentroDaMidia = (midia.match(/\{/g) ?? []).length > (midia.match(/\}/g) ?? []).length;
-        const combinado = regra.includes('.decadas') || regra.includes('.ano__cabeca');
+        const combinado = regra.includes('.parada') || regra.includes('.ano__cabeca');
         expect(combinado || (comCursor && dentroDaMidia), `${arquivo}: ${regra.trim().slice(0, 60)}`).toBe(true);
       }
     }
@@ -257,7 +257,7 @@ describe('conceito', () => {
     const topo = Object.values(import.meta.glob<string>('../src/layouts/Visual.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
     expect(topo).toMatch(/\(hover: none\) and \(pointer: coarse\)[\s\S]*animation-timeline: view\(\)[\s\S]*classList\.add\('pino-novo'\)/);
     const css = ler('telas/linha.css');
-    for (const peca of ['.decadas', '.ano > .ano__cabeca']) {
+    for (const peca of ['.parada', '.ano > .ano__cabeca']) {
       const regra = css.match(new RegExp(`html\\.pino-novo ${peca.replace(/[.>]/g, '\\$&')}\\s*\\{([^}]*)\\}`));
       expect(regra?.[1], peca).toMatch(/position:\s*relative/);
     }
@@ -268,8 +268,13 @@ describe('conceito', () => {
     }
     // E a regra de movimento reduzido não desliga o que está parado por animação
     expect(ler('base.css')).toMatch(/:not\(\[data-preso\]\)[\s\S]*animation: none !important/);
+    // Só uma peça anda com a rolagem: a que leva a faixa de décadas e a gaveta do ano. Uma animação
+    // por ano fazia a faixa e o ano darem um pulinho na troca de ano, no iPhone.
     const pagina = Object.entries(paginas).find(([caminho]) => caminho.endsWith('conceito/tudo.astro'))![1];
-    expect(pagina.match(/data-preso/g)?.length).toBe(2);
+    expect(pagina.match(/ data-preso/g)?.length).toBe(1);
+    expect(pagina).toMatch(/<div class="parada" data-barra data-preso>/);
+    expect(css.match(/animation:\s*[a-z-]+ linear both/g)?.length).toBe(2);
+    expect(css).not.toContain('data-perto');
   });
 
   it('cada foto da memória abre a galeria, e sem script continua levando à imagem', () => {
@@ -279,6 +284,12 @@ describe('conceito', () => {
     for (const link of pagina.matchAll(/<a class="monte"[^>]*>/g)) expect(link[0]).toMatch(/href=\{`\/fotos\/\$\{foto\.chave\}`\} data-galeria=\{n\}/);
     // O voltar do aparelho fecha a galeria em vez de sair da página
     expect(pagina).toMatch(/history\.pushState[\s\S]*popstate/);
+    // Passar de foto é a rolagem do próprio aparelho, com encaixe: a foto acompanha o dedo (pedido do
+    // Gui, 16/11/2026: o padrão que quem não é nativo digital associa a passar fotos)
+    const css = ler('telas/memoria.css');
+    expect(css).toMatch(/\.galeria__fila\s*\{[^}]*overflow-x:\s*auto[^}]*scroll-snap-type:\s*x mandatory/);
+    expect(css).toMatch(/\.galeria__quadro\s*\{[^}]*scroll-snap-stop:\s*always/);
+    expect(pagina).not.toMatch(/touchstart|touchmove|touchend/);
     // Os controles têm nome escrito
     for (const nome of ['Fechar', 'Anterior', 'Próxima']) expect(pagina).toContain(nome);
   });

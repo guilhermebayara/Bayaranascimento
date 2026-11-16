@@ -203,7 +203,9 @@ a.polaroid__foto:focus-visible {
 
 /* --- A galeria: a foto inteira, uma de cada vez ---------------------------------------------
    Ocupa a tela, no papel da página, com a foto pousada como uma ampliação: inteira, sem corte.
-   Os controles têm nome escrito. É um <dialog>: o navegador cuida do foco e do Esc. */
+   As fotos ficam numa fila que rola para o lado com a rolagem do aparelho e para em cada foto:
+   no toque a foto acompanha o dedo, como no álbum do celular. Os controles têm nome escrito.
+   É um <dialog>: o navegador cuida do foco e do Esc. */
 .galeria {
   width: 100vw;
   max-width: none;
@@ -219,6 +221,14 @@ a.polaroid__foto:focus-visible {
 .galeria[open] {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Abre subindo um pouco, como uma foto que se pega para ver de perto */
+  animation: galeria-abre var(--tempo-medio) var(--curva) both;
+}
+@keyframes galeria-abre {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem) scale(0.98);
+  }
 }
 .galeria::backdrop {
   background: var(--papel);
@@ -252,12 +262,19 @@ html:has(.galeria[open]) {
   text-decoration-thickness: var(--traco);
   text-underline-offset: 0.32em;
   cursor: pointer;
+  transition: opacity var(--tempo-curto);
 }
 .galeria button:hover {
   text-decoration-color: var(--vivo);
 }
 .galeria button[hidden] {
   display: none;
+}
+/* Na primeira foto não há anterior, e na última não há próxima */
+.galeria button[aria-disabled='true'] {
+  opacity: 0.3;
+  text-decoration: none;
+  cursor: default;
 }
 /* O xis do fechar, desenhado como o do menu */
 .galeria__fechar::after {
@@ -278,15 +295,35 @@ html:has(.galeria[open]) {
 .galeria__passos {
   padding-bottom: max(var(--e-3), env(safe-area-inset-bottom));
 }
-.galeria__palco {
+/* A fila: uma foto por vez, lado a lado. A rolagem é a do aparelho, com encaixe em cada foto. */
+.galeria__fila {
+  display: flex;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.galeria__fila::-webkit-scrollbar {
+  display: none;
+}
+.galeria__quadro {
+  flex: 0 0 100%;
+  min-width: 0;
+  display: grid;
+  scroll-snap-align: center;
+  /* Um gesto, uma foto: o embalo não pula fotos */
+  scroll-snap-stop: always;
+}
+.galeria__quadro figure {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   justify-items: center;
   min-height: 0;
   padding: var(--e-2) var(--margem) 0;
-  touch-action: pan-y;
 }
-.galeria__palco img {
+.galeria__quadro img {
   align-self: center;
   box-sizing: border-box;
   width: auto;
@@ -299,7 +336,7 @@ html:has(.galeria[open]) {
   background: var(--branco);
   box-shadow: var(--sombra-foto);
 }
-.galeria__palco figcaption {
+.galeria__quadro figcaption {
   display: grid;
   justify-items: center;
   gap: var(--e-1);

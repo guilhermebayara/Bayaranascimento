@@ -109,12 +109,6 @@ for (const [pessoa, quantas] of Object.entries(FIXO_FOTOS_DOS_RELATOS[memoria.id
   for (let n = Math.max(1, memoria.fotos.length - quantas); n < memoria.fotos.length; n++) doRelato.set(n, pessoa);
 }
 const fotosDoRelato = (pessoa: string) => memoria.fotos.map((foto, n) => ({ foto, n })).filter(({ n }) => doRelato.get(n) === pessoa);
-// O que a galeria mostra de cada foto: a imagem inteira, a legenda e de onde veio
-const daGaleria = memoria.fotos.map((foto, n) => ({
-  src: `/fotos/${foto.chave}`,
-  legenda: foto.legenda ?? '',
-  origem: doRelato.has(n) ? `Veio com o relato de ${nome(doRelato.get(n)!)}` : '',
-}));
 ---
 
 <Visual titulo={memoria.titulo} familia={corDaTela} sobrenomes={sobrenomes}>
@@ -373,8 +367,9 @@ const daGaleria = memoria.fotos.map((foto, n) => ({
     </section>
   </article>
 
-  {/* A galeria: a foto inteira, uma de cada vez, sem sair da página. Sem script, cada foto continua
-      sendo um link para a imagem. */}
+  {/* A galeria: a foto inteira, uma de cada vez, sem sair da página. As fotos ficam numa fila que
+      rola para o lado com a rolagem do próprio aparelho: a foto acompanha o dedo e a seguinte entra,
+      como no álbum de fotos do celular. Sem script, cada foto continua sendo um link para a imagem. */}
   {
     memoria.fotos.length > 0 && (
       <dialog class="galeria" data-galeria-caixa aria-label="Fotos desta memória">
@@ -384,13 +379,19 @@ const daGaleria = memoria.fotos.map((foto, n) => ({
             Fechar
           </button>
         </div>
-        <figure class="galeria__palco" data-galeria-palco>
-          <img data-galeria-foto alt="" />
-          <figcaption>
-            <span class="galeria__legenda" data-galeria-legenda />
-            <span class="ficha suave" data-galeria-origem />
-          </figcaption>
-        </figure>
+        <ul class="galeria__fila" data-galeria-fila>
+          {memoria.fotos.map((foto, n) => (
+            <li class="galeria__quadro">
+              <figure>
+                <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
+                <figcaption>
+                  <span class="galeria__legenda">{foto.legenda ?? ''}</span>
+                  {doRelato.has(n) && <span class="ficha suave">Veio com o relato de {nome(doRelato.get(n)!)}</span>}
+                </figcaption>
+              </figure>
+            </li>
+          ))}
+        </ul>
         <div class="galeria__passos">
           <button type="button" class="galeria__passo galeria__passo--antes" data-galeria-passo="-1">
             Anterior
@@ -399,7 +400,6 @@ const daGaleria = memoria.fotos.map((foto, n) => ({
             Próxima
           </button>
         </div>
-        <script type="application/json" data-galeria-fotos set:html={JSON.stringify(daGaleria)} />
       </dialog>
     )
   }
@@ -446,38 +446,63 @@ const daGaleria = memoria.fotos.map((foto, n) => ({
 </Visual>
 
 <script>
-  // A galeria de fotos da memória. Abre na foto tocada, mostra a imagem inteira e anda pelas
-  // outras pelos botões, pelas setas do teclado ou arrastando para o lado. O botão de voltar do
-  // aparelho fecha a galeria, como as pessoas esperam, em vez de sair da página.
+  // A galeria de fotos da memória. Abre na foto tocada e mostra a imagem inteira. As fotos ficam
+  // numa fila que rola para o lado: no toque, a foto acompanha o dedo e para na seguinte (é a
+  // rolagem do próprio aparelho, com encaixe); os botões e as setas do teclado fazem a mesma
+  // passagem, deslizando. O botão de voltar do aparelho fecha a galeria em vez de sair da página.
   const caixa = document.querySelector<HTMLDialogElement>('[data-galeria-caixa]');
-  if (caixa && typeof caixa.showModal === 'function') {
-    const fotos = JSON.parse(caixa.querySelector('[data-galeria-fotos]')?.textContent || '[]') as { src: string; legenda: string; origem: string }[];
-    const imagem = caixa.querySelector<HTMLImageElement>('[data-galeria-foto]')!;
+  const fila = caixa?.querySelector<HTMLElement>('[data-galeria-fila]');
+  if (caixa && fila && typeof caixa.showModal === 'function') {
+    const total = fila.children.length;
     const conta = caixa.querySelector<HTMLElement>('[data-galeria-conta]')!;
-    const legenda = caixa.querySelector<HTMLElement>('[data-galeria-legenda]')!;
-    const origem = caixa.querySelector<HTMLElement>('[data-galeria-origem]')!;
     const passos = [...caixa.querySelectorAll<HTMLButtonElement>('[data-galeria-passo]')];
+    const calmo = matchMedia('(prefers-reduced-motion: reduce)');
     let atual = 0;
+    // Para onde a fila está indo, enquanto desliza por um botão ou pelo teclado
+    let destino = 0;
+    let deslizando = 0;
     let noHistorico = false;
 
-    const mostrar = (n: number) => {
-      atual = (n + fotos.length) % fotos.length;
-      const foto = fotos[atual]!;
-      imagem.src = foto.src;
-      imagem.alt = foto.legenda;
-      conta.textContent = fotos.length > 1 ? `Foto ${atual + 1} de ${fotos.length}` : 'Foto';
-      legenda.textContent = foto.legenda;
-      origem.textContent = foto.origem;
-      for (const b of passos) b.hidden = fotos.length < 2;
-      // A foto seguinte já fica a caminho
-      if (fotos.length > 1) new Image().src = fotos[(atual + 1) % fotos.length]!.src;
+    const anotar = () => {
+      conta.textContent = total > 1 ? `Foto ${atual + 1} de ${total}` : 'Foto';
+      for (const b of passos) {
+        b.hidden = total < 2;
+        // Na ponta, o botão só fica apagado (aria-disabled): desligado de verdade, ele engoliria as
+        // setas do teclado de quem está com o foco nele
+        b.setAttribute('aria-disabled', String(Number(b.dataset.galeriaPasso) < 0 ? destino === 0 : destino === total - 1));
+      }
     };
+    const ir = (n: number, deslizar = true) => {
+      destino = Math.max(0, Math.min(total - 1, n));
+      const suave = deslizar && !calmo.matches;
+      clearTimeout(deslizando);
+      if (suave) deslizando = window.setTimeout(() => (deslizando = 0), 700);
+      else {
+        deslizando = 0;
+        atual = destino;
+      }
+      fila.scrollTo({ left: destino * fila.clientWidth, behavior: suave ? 'smooth' : 'instant' });
+      anotar();
+    };
+    // A foto da vez é a que está no meio da fila: vale para o dedo, para o botão e para o teclado
+    fila.addEventListener(
+      'scroll',
+      () => {
+        const n = Math.round(fila.scrollLeft / Math.max(1, fila.clientWidth));
+        if (n === atual) return;
+        atual = n;
+        if (!deslizando) destino = n;
+        anotar();
+      },
+      { passive: true },
+    );
     const abrir = (n: number) => {
-      mostrar(n);
-      if (caixa.open) return;
-      caixa.showModal();
-      history.pushState({ galeria: true }, '');
-      noHistorico = true;
+      if (!caixa.open) {
+        caixa.showModal();
+        history.pushState({ galeria: true }, '');
+        noHistorico = true;
+      }
+      ir(n, false);
     };
 
     document.addEventListener('click', (evento) => {
@@ -488,12 +513,14 @@ const daGaleria = memoria.fotos.map((foto, n) => ({
       abrir(Number(link.dataset.galeria));
     });
     caixa.querySelector('[data-galeria-fechar]')?.addEventListener('click', () => caixa.close());
-    for (const b of passos) b.addEventListener('click', () => mostrar(atual + Number(b.dataset.galeriaPasso)));
+    for (const b of passos) b.addEventListener('click', () => ir(destino + Number(b.dataset.galeriaPasso)));
     caixa.addEventListener('keydown', (evento) => {
-      if (fotos.length < 2) return;
-      if (evento.key === 'ArrowRight') mostrar(atual + 1);
-      if (evento.key === 'ArrowLeft') mostrar(atual - 1);
+      if (evento.key !== 'ArrowRight' && evento.key !== 'ArrowLeft') return;
+      evento.preventDefault();
+      ir(destino + (evento.key === 'ArrowRight' ? 1 : -1));
     });
+    // Se a tela muda de tamanho ou vira, a foto da vez continua no lugar
+    addEventListener('resize', () => caixa.open && ir(atual, false));
     // Fechada pelo botão ou pelo Esc: desfaz a entrada que a galeria pôs no histórico
     caixa.addEventListener('close', () => {
       if (!noHistorico) return;
@@ -506,19 +533,5 @@ const daGaleria = memoria.fotos.map((foto, n) => ({
       noHistorico = false;
       caixa.close();
     });
-    // Arrastar para o lado, no toque
-    const palco = caixa.querySelector<HTMLElement>('[data-galeria-palco]')!;
-    let inicio: { x: number; y: number } | null = null;
-    palco.addEventListener('touchstart', (evento) => {
-      const toque = evento.touches.length === 1 ? evento.touches[0]! : null;
-      inicio = toque ? { x: toque.clientX, y: toque.clientY } : null;
-    }, { passive: true });
-    palco.addEventListener('touchend', (evento) => {
-      const toque = evento.changedTouches[0];
-      if (!inicio || !toque || fotos.length < 2) return;
-      const [dx, dy] = [toque.clientX - inicio.x, toque.clientY - inicio.y];
-      inicio = null;
-      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) mostrar(atual + (dx < 0 ? 1 : -1));
-    }, { passive: true });
   }
 </script>

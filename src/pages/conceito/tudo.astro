@@ -146,24 +146,30 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
     {/* A década é uma faixa na cor da família, parada no alto, com o nome do que ela faz.
         O bloco em volta (data-trilho) marca até onde a faixa acompanha a rolagem no toque. */}
     <div class="linha__trilho" data-trilho>
-    {
-      decadas.length > 1 && (
-        <nav class="decadas" aria-label="Ir para a década" data-barra data-preso>
-          <div class="decadas__dentro miolo">
-            <p class="decadas__nome rotulo" aria-hidden="true">
-              Década
-            </p>
-            <ul>
-              {decadas.map((d, i) => (
-                <li data-decada={d} data-aqui={i === 0 ? '' : undefined}>
-                  <a href={`#decada-${d}`}>{d}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </nav>
-      )
-    }
+    {/* O que fica parado no alto é uma peça só: a faixa de décadas e, no toque, o ano em que se está */}
+    <div class="parada" data-barra data-preso>
+      {
+        decadas.length > 1 && (
+          <nav class="decadas" aria-label="Ir para a década">
+            <div class="decadas__dentro miolo">
+              <p class="decadas__nome rotulo" aria-hidden="true">
+                Década
+              </p>
+              <ul>
+                {decadas.map((d, i) => (
+                  <li data-decada={d} data-aqui={i === 0 ? '' : undefined}>
+                    <a href={`#decada-${d}`}>{d}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </nav>
+        )
+      }
+      {/* No toque, o ano parado é esta gaveta, presa à faixa: o script copia para ela o cabeçalho do
+          ano em que se está. Com mouse ela não aparece: o próprio cabeçalho fica parado. */}
+      <div class="parada__ano" data-ano-parado data-vazia aria-hidden="true" />
+    </div>
 
     {/* O nome do capítulo, ao passar o mouse pelo trilho dele (só no computador) */}
     <p class="trilho-nome ficha" data-trilho-nome hidden aria-hidden="true" />
@@ -182,7 +188,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                 <Trilhos estados={montagem.linhas[posicaoDe.get(itens[0]!.id)!]!.chega} capitulos={noTrilho(posicaoDe.get(itens[0]!.id)!)} />
               </div>
             )}
-            <header class="ano__cabeca" data-preso data-na-epoca={chaoDeCima(posicaoDe.get(itens[0]!.id)!)}>
+            <header class="ano__cabeca" data-na-epoca={chaoDeCima(posicaoDe.get(itens[0]!.id)!)}>
               <h2 class="ano__numero" id={`ano-${ano}`}>
                 {ano}
               </h2>
@@ -409,86 +415,100 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
       });
     }
 
-    // No celular o ano fica parado no alto, com fundo. Enquanto está parado, ele leva o tom do chão
-    // que está logo embaixo dele: assim não vira uma faixa de outro tom quando uma época começa ou
-    // acaba no meio do ano. Fora dali, vale o tom de entre um ano e outro, que veio do servidor.
-    const estreita = matchMedia('(max-width: 61.99rem)');
+    // O ano parado no alto leva o tom do chão que está logo embaixo dele: assim não vira uma faixa
+    // de outro tom quando uma época começa ou acaba no meio do ano.
     const cabecas = [...raiz.querySelectorAll<HTMLElement>('.ano > .ano__cabeca')];
-    for (const c of cabecas) c.dataset.chaoDeCima = c.dataset.naEpoca ?? '';
-    const tom = (c: HTMLElement, valor: string) => {
-      if (valor) c.dataset.naEpoca = valor;
-      else delete c.dataset.naEpoca;
+    const tom = (peca: HTMLElement, valor: string) => {
+      if (valor === (peca.dataset.naEpoca ?? '')) return;
+      if (valor) peca.dataset.naEpoca = valor;
+      else delete peca.dataset.naEpoca;
     };
-    let marcado = false;
-    const acertarOsAnos = () => {
-      marcado = false;
-      for (const c of cabecas) {
-        const caixa = c.getBoundingClientRect();
-        const secao = c.parentElement!.getBoundingClientRect();
-        // Parado: o alto da seção já passou por ele, e a seção ainda não acabou
-        const parado = estreita.matches && !raiz.hasAttribute('data-filtrando') && secao.top < caixa.top - 1 && secao.bottom > caixa.bottom;
-        if (!parado) {
-          tom(c, c.dataset.chaoDeCima!);
-          continue;
-        }
-        const linhaDeBaixo = caixa.bottom + 1;
-        const blocos = [...c.parentElement!.querySelectorAll<HTMLElement>(':scope > .ano__itens > *')];
-        const embaixo = blocos.find((bloco) => bloco.getClientRects().length > 0 && bloco.getBoundingClientRect().top <= linhaDeBaixo && bloco.getBoundingClientRect().bottom > linhaDeBaixo);
-        if (!embaixo) continue;
+    // O tom do chão numa linha da tela, dentro de um ano: o do bloco que está ali
+    const tomNaLinha = (secao: HTMLElement, linha: number): string | undefined => {
+      for (const bloco of secao.querySelectorAll<HTMLElement>(':scope > .ano__itens > *')) {
+        if (!bloco.getClientRects().length) continue;
+        const caixa = bloco.getBoundingClientRect();
+        if (caixa.top > linha || caixa.bottom <= linha) continue;
         // Na aba do alto de uma época, o chão dela começa onde a aba acaba
-        const chao = embaixo.querySelector<HTMLElement>('.epoca__chao');
-        const dentro = chao && chao.getBoundingClientRect().top <= linhaDeBaixo;
-        tom(c, (dentro ? embaixo.dataset.chao : embaixo.dataset.naEpoca) ?? '');
+        const chao = bloco.querySelector<HTMLElement>('.epoca__chao');
+        return (chao && chao.getBoundingClientRect().top <= linha ? bloco.dataset.chao : bloco.dataset.naEpoca) ?? '';
       }
+      return undefined;
     };
+    let acertarOsAnos = () => {};
+    let marcado = false;
     const pedirOsAnos = () => {
       if (marcado) return;
       marcado = true;
-      requestAnimationFrame(acertarOsAnos);
+      requestAnimationFrame(() => {
+        marcado = false;
+        acertarOsAnos();
+      });
     };
-    addEventListener('scroll', pedirOsAnos, { passive: true });
-    addEventListener('resize', pedirOsAnos, { passive: true });
 
-    // No toque, a faixa de décadas e o ano ficam parados por uma animação ligada à rolagem, e não
-    // por sticky (ver "pino-novo" em Visual.astro e em linha.css). A animação precisa das medidas:
-    // a altura do trecho e a da faixa; e, de cada ano, quanto o cabeçalho anda e o que sobra depois dele.
-    if (document.documentElement.classList.contains('pino-novo') && 'ResizeObserver' in window) {
+    if (!document.documentElement.classList.contains('pino-novo')) {
+      // Com sticky (mouse, e toque sem a animação ligada à rolagem): no celular o cabeçalho tem
+      // fundo; enquanto está parado, acompanha o chão. Fora dali, vale o tom que veio do servidor.
+      const estreita = matchMedia('(max-width: 61.99rem)');
+      for (const c of cabecas) c.dataset.chaoDeCima = c.dataset.naEpoca ?? '';
+      acertarOsAnos = () => {
+        for (const c of cabecas) {
+          const caixa = c.getBoundingClientRect();
+          const secao = c.parentElement!.getBoundingClientRect();
+          // Parado: o alto da seção já passou por ele, e a seção ainda não acabou
+          const parado = estreita.matches && !raiz.hasAttribute('data-filtrando') && secao.top < caixa.top - 1 && secao.bottom > caixa.bottom;
+          const embaixo = parado ? tomNaLinha(c.parentElement!, caixa.bottom + 1) : c.dataset.chaoDeCima!;
+          if (embaixo !== undefined) tom(c, embaixo);
+        }
+      };
+    } else if ('ResizeObserver' in window) {
+      // No toque não há sticky (ver "pino-novo" em Visual.astro e em linha.css). A faixa de décadas
+      // fica parada por uma animação ligada à rolagem, que precisa da altura do trecho e da faixa.
+      // O ano parado é a gaveta presa à faixa: uma cópia do cabeçalho do ano em que se está, posta
+      // no lugar exato dele quando ele chega ao alto. Assim só uma peça anda com a rolagem, e nada
+      // liga nem desliga animação no meio do caminho (era o que fazia a faixa e o ano darem um
+      // pulinho na troca de ano, no iPhone).
       const trilho = raiz.querySelector<HTMLElement>('[data-trilho]');
       const barra = trilho?.querySelector<HTMLElement>(':scope > [data-barra]');
-      const secoes = [...raiz.querySelectorAll<HTMLElement>('.ano')];
+      const gaveta = raiz.querySelector<HTMLElement>('[data-ano-parado]');
+      // Onde começa o cabeçalho de cada ano, na página
+      let altos: number[] = [];
+      let mostrado: HTMLElement | null = null;
       const medir = () => {
-        if (trilho && barra) {
-          trilho.style.setProperty('--alt', `${trilho.offsetHeight}px`);
-          trilho.style.setProperty('--barra-alt', `${barra.offsetHeight}px`);
+        if (!trilho || !barra) return;
+        trilho.style.setProperty('--alt', `${trilho.offsetHeight}px`);
+        trilho.style.setProperty('--barra-alt', `${barra.offsetHeight}px`);
+        altos = cabecas.map((c) => (c.getClientRects().length ? c.getBoundingClientRect().top + scrollY : Infinity));
+        // A contagem do ano pode ter mudado com o filtro: a gaveta é copiada de novo
+        mostrado = null;
+        pedirOsAnos();
+      };
+      acertarOsAnos = () => {
+        if (!gaveta) return;
+        const caixa = gaveta.getBoundingClientRect();
+        const linha = caixa.top + scrollY + 0.5;
+        // O ano em que se está: o último cabeçalho que já chegou à linha em que o ano para
+        let atual: HTMLElement | null = null;
+        for (let n = 0; n < altos.length; n++) if (altos[n]! <= linha) atual = cabecas[n]!;
+        if (atual !== mostrado) {
+          mostrado = atual;
+          if (atual) {
+            const copia = atual.cloneNode(true) as HTMLElement;
+            for (const e of copia.querySelectorAll('[id]')) e.removeAttribute('id');
+            gaveta.replaceChildren(...copia.childNodes);
+          }
+          gaveta.toggleAttribute('data-vazia', !atual);
         }
-        for (const secao of secoes) {
-          const cabeca = secao.querySelector<HTMLElement>(':scope > .ano__cabeca');
-          if (!cabeca || secao.hidden) continue;
-          const antes = cabeca.offsetTop - secao.offsetTop;
-          const resto = cabeca.offsetHeight + parseFloat(getComputedStyle(cabeca).marginBottom || '0');
-          secao.style.setProperty('--resto', `${resto}px`);
-          secao.style.setProperty('--anda', `${Math.max(0, secao.offsetHeight - antes - resto)}px`);
-        }
+        if (!atual) return;
+        const embaixo = tomNaLinha(atual.parentElement!, caixa.bottom + 1);
+        if (embaixo !== undefined) tom(gaveta, embaixo);
       };
       const olho = new ResizeObserver(medir);
       if (trilho) olho.observe(trilho);
-      for (const secao of secoes) olho.observe(secao);
       medir();
-      // Só os anos perto da tela animam: camada animada fora da tela também gasta a memória do Safari
-      if ('IntersectionObserver' in window) {
-        const perto = new IntersectionObserver(
-          (vistas) => {
-            for (const v of vistas) v.target.toggleAttribute('data-perto', v.isIntersecting);
-            // O ano que acabou de entrar passa a parar no alto: o tom dele é acertado de novo
-            pedirOsAnos();
-          },
-          { rootMargin: '60% 0px' },
-        );
-        for (const secao of secoes) perto.observe(secao);
-      } else {
-        for (const secao of secoes) secao.setAttribute('data-perto', '');
-      }
     }
+    addEventListener('scroll', pedirOsAnos, { passive: true });
+    addEventListener('resize', pedirOsAnos, { passive: true });
 
     const inicial = new URLSearchParams(location.search).get('tipo') ?? '';
     if (inicial && validos.has(inicial)) {
@@ -499,9 +519,18 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
     if ('IntersectionObserver' in window) {
       const entradas = [...raiz.querySelectorAll<HTMLElement>('.entrada')];
       const itensDaBarra = [...raiz.querySelectorAll<HTMLElement>('.decadas [data-decada]')];
+      // Só mexe no que muda: a memória que deixou de ser a em leitura, a que passou a ser e a década
+      let emLeitura = raiz.querySelector<HTMLElement>('.entrada[data-em-leitura]');
+      let decadaAqui = raiz.querySelector<HTMLElement>('.decadas [data-aqui]')?.dataset.decada;
       const marcar = (atual: HTMLElement) => {
-        for (const e of entradas) e.toggleAttribute('data-em-leitura', e === atual);
+        if (atual !== emLeitura) {
+          emLeitura?.removeAttribute('data-em-leitura');
+          atual.setAttribute('data-em-leitura', '');
+          emLeitura = atual;
+        }
         const decada = atual.closest<HTMLElement>('.ano')?.dataset.decada;
+        if (decada === decadaAqui) return;
+        decadaAqui = decada;
         for (const item of itensDaBarra) item.toggleAttribute('data-aqui', item.dataset.decada === decada);
       };
       const observador = new IntersectionObserver(

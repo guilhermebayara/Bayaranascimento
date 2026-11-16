@@ -147,12 +147,19 @@
   /* A linha em que o ano para: logo abaixo da faixa de décadas */
   --ano-para-em: var(--barra);
 }
-/* A faixa de décadas: na cor da família, de ponta a ponta, com o nome do que ela faz. Antes era uma
-   linha de números pequenos sobre o papel e passava batida (achado do Gui, 16/11/2026). */
-.decadas {
+/* O que fica parado no alto é uma peça só: a faixa de décadas e, no toque, o ano em que se está */
+.parada {
   position: sticky;
   top: 0;
   z-index: 5;
+}
+/* A gaveta do ano parado só existe no toque (ver "No toque, nada de sticky", mais abaixo) */
+.parada__ano {
+  display: none;
+}
+/* A faixa de décadas: na cor da família, de ponta a ponta, com o nome do que ela faz. Antes era uma
+   linha de números pequenos sobre o papel e passava batida (achado do Gui, 16/11/2026). */
+.decadas {
   /* A cor da família bem diluída no papel: o pastel cheio ficou "amarelo demais" (do Gui, 16/11/2026) */
   background: color-mix(in srgb, var(--pastel) 38%, var(--papel));
   border-bottom: 1px solid color-mix(in srgb, var(--meio) 40%, var(--papel));
@@ -220,27 +227,27 @@
 /* --- No toque, nada de sticky ---------------------------------------------------------------
    No iPhone (iOS 26), um elemento preso encostado na borda da tela faz o Safari desenhar uma
    banda sólida atrás das barras dele, e ela não some mais. A saída é a do site da @bsurda
-   ("Barras presas"): a faixa de décadas desce na mesma medida em que o trecho (data-trilho) sobe,
-   por uma animação ligada à rolagem. A linha do tempo da animação fica numa regra separada da
+   ("Barras presas"): a peça parada desce na mesma medida em que o trecho (data-trilho) sobe, por
+   uma animação ligada à rolagem. A linha do tempo da animação fica numa regra separada da
    animação de propósito: juntas, o compactador de CSS funde as duas e o navegador descarta a
-   declaração. As medidas (--alt, --barra-alt, --resto, --anda) vêm do script da página. */
+   declaração. As medidas (--alt e --barra-alt) vêm do script da página. */
 html.pino-novo [data-trilho] {
   view-timeline: --trilho block;
   /* Sem isto, a linha do tempo da animação desconta o scroll-padding da página e a faixa para mais abaixo */
   view-timeline-inset: 0px;
 }
-html.pino-novo .decadas {
+html.pino-novo .parada {
   position: relative;
   top: auto;
   animation: barra-presa linear both;
 }
-html.pino-novo [data-trilho] > .decadas {
+html.pino-novo [data-trilho] > .parada {
   animation-timeline: --trilho;
   animation-range: contain 0% exit calc(100% - var(--barra-alt, 0px));
 }
 /* Enquanto a faixa está presa, uma cobertura na cor do papel sobe dela até acima da tela: no
    iPhone a página continua visível atrás do relógio, e sem isso as memórias apareceriam ali. */
-html.pino-novo .decadas::before {
+html.pino-novo .parada::before {
   content: '';
   position: absolute;
   left: 0;
@@ -251,7 +258,7 @@ html.pino-novo .decadas::before {
   pointer-events: none;
   animation: barra-cobre linear both;
 }
-html.pino-novo [data-trilho] > .decadas::before {
+html.pino-novo [data-trilho] > .parada::before {
   animation-timeline: --trilho;
   animation-range: contain 0% contain calc(0% + 3rem);
 }
@@ -268,29 +275,30 @@ html.pino-novo [data-trilho] > .decadas::before {
     opacity: 1;
   }
 }
-/* O ano: cada seção é o trecho do cabeçalho dela. Ele para na mesma linha do sticky
-   (--ano-para-em) e anda até o fim da seção. Só anima perto da tela (data-perto). */
-html.pino-novo .ano {
-  view-timeline: --ano block;
-  view-timeline-inset: var(--ano-para-em) 0px;
-}
+/* O ano. No toque o cabeçalho de cada ano rola com a página, e o ano parado é a gaveta presa à
+   faixa: uma cópia do cabeçalho do ano em que se está, do mesmo tamanho e no mesmo lugar em que
+   ele chega ao alto. Só a peça parada anda com a rolagem: nada liga nem desliga animação no meio
+   do caminho (com uma animação por ano, a faixa e o ano davam um pulinho na troca de ano). */
 html.pino-novo .ano > .ano__cabeca {
   position: relative;
   top: auto;
 }
-html.pino-novo .ano[data-perto] > .ano__cabeca {
-  animation: ano-preso linear both;
+html.pino-novo .parada__ano {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  container-type: inline-size;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-4);
+  padding: var(--e-4) var(--margem) var(--e-3);
+  background: var(--papel);
+  pointer-events: none;
 }
-html.pino-novo .ano[data-perto] > header.ano__cabeca {
-  animation-timeline: --ano;
-  /* Contado a partir do fim ("cover 100%" é o fim da seção na linha em que o ano para): vale tanto
-     para o ano comprido quanto para o que é mais curto que a tela */
-  animation-range: cover calc(100% - var(--anda, 0px) - var(--resto, 0px)) cover calc(100% - var(--resto, 0px));
-}
-@keyframes ano-preso {
-  to {
-    transform: translateY(var(--anda, 0px));
-  }
+html.pino-novo .parada__ano[data-vazia] {
+  visibility: hidden;
 }
 
 .decada__ancora {
@@ -843,6 +851,15 @@ html.pino-novo .ano[data-perto] > header.ano__cabeca {
   .ano__numero {
     font-size: calc(98cqi / var(--ano-em));
     margin-bottom: var(--e-5);
+  }
+  /* No tablet deitado, a gaveta do ano parado ocupa a coluna do ano, como o cabeçalho */
+  html.pino-novo .parada__ano {
+    top: calc(100% + var(--e-5));
+    left: var(--margem);
+    right: auto;
+    width: calc((100% - 2 * var(--margem) - 11 * var(--calha)) / 12 * 4 + 3 * var(--calha));
+    display: block;
+    padding: 0;
   }
   .linha {
     --passo: 1rem;
