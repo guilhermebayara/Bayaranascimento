@@ -1,0 +1,12 @@
+---
+// O estado vazio: uma frase em serifa dizendo o que ainda não há e, se couber, o que fazer.
+// A ação entra por quem usa.
+interface Props {
+  frase: string;
+}
+---
+
+<div class="vazio">
+  <p class="vazio__frase">{Astro.props.frase}</p>
+  <slot />
+</div>

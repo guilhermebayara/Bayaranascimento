@@ -212,7 +212,7 @@
   position: absolute;
   z-index: -1;
   inset: 0.4rem 0;
-  border-radius: 999px;
+  border-radius: var(--raio-pilula);
   background: var(--papel);
   opacity: 0;
   transition: opacity var(--tempo-curto);
@@ -506,20 +506,6 @@ html.pino-novo .parada__ano[data-vazia] {
   gap: var(--e-1) var(--e-4);
   margin-top: var(--e-3);
 }
-.sinal {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-}
-.sinal::before {
-  content: '';
-  flex: none;
-  box-sizing: border-box;
-  width: 0.5rem;
-  height: 0.5rem;
-  border: 2px solid var(--trilho-ponto);
-  border-radius: 50%;
-}
 
 /* A época de todos: não tem trilho, porque todo mundo está dentro. É o chão: enquanto se rola por
    dentro dela, o papel muda de tom, de ponta a ponta da tela. Capítulo é linha, memória é figura,
@@ -648,7 +634,7 @@ html.pino-novo .parada__ano[data-vazia] {
   max-width: 22rem;
   padding: 0.35rem 0.7rem;
   border: 2px solid var(--trilho-ponto);
-  border-radius: 999px;
+  border-radius: var(--raio-pilula);
   background: var(--creme);
   color: var(--tinta);
   white-space: nowrap;
@@ -756,7 +742,7 @@ html.pino-novo .parada__ano[data-vazia] {
 .entrada:has(.entrada__titulo a:focus-visible) {
   outline: 2px solid var(--tinta);
   outline-offset: 0.75rem;
-  border-radius: 2px;
+  border-radius: var(--raio-foto);
 }
 .entrada__ficha {
   display: flex;

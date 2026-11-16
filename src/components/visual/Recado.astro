@@ -1,0 +1,12 @@
+---
+// O recado do alto da página: o que acabou de acontecer ("Memória salva.") ou o que deu errado.
+interface Props {
+  erro?: boolean;
+}
+
+const { erro = false } = Astro.props;
+---
+
+<p class:list={['recado', { 'recado--erro': erro }]} role={erro ? 'alert' : 'status'}>
+  <slot />
+</p>

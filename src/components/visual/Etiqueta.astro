@@ -1,0 +1,19 @@
+---
+// A etiqueta-balão: o tipo de momento, com o ícone e a cor dele (docs/visual.md).
+import IconeDoTipo from './IconeDoTipo.astro';
+import { estiloDoTipo } from '../../lib/visual';
+
+interface Props {
+  /** o id do tipo de momento: decide o ícone e a cor */
+  tipo: string;
+  /** o nome do tipo, como a pessoa lê */
+  rotulo: string;
+}
+
+const { tipo, rotulo } = Astro.props;
+---
+
+<span class="etiqueta" style={estiloDoTipo(tipo)}>
+  <IconeDoTipo tipo={tipo} />
+  {rotulo}
+</span>

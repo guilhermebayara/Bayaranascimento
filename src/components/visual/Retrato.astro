@@ -1,0 +1,23 @@
+---
+// O retrato recortado em arco (docs/visual.md). Quem não tem foto aparece com as iniciais sobre
+// a cor da família. É enfeite: o nome da pessoa está sempre escrito ao lado.
+import { iniciais } from '../../lib/retratos';
+
+interface Props {
+  nome: string;
+  /** o endereço da foto de retrato, se a pessoa tem uma */
+  foto?: string | null;
+  /** a cor da família da pessoa: 'tudo', '0', '1', '2' ou '3'. Sem ela, vale a cor da tela */
+  familia?: string;
+  /** em círculo, para o tamanho pequeno do topo */
+  redondo?: boolean;
+  /** carrega logo, para o que está no alto da página */
+  cedo?: boolean;
+}
+
+const { nome, foto, familia, redondo = false, cedo = false } = Astro.props;
+---
+
+<span class:list={['retrato', { 'retrato--redondo': redondo }]} data-familia={familia}>
+  {foto ? <img src={foto} alt="" loading={cedo ? undefined : 'lazy'} decoding={cedo ? undefined : 'async'} /> : <span aria-hidden="true">{iniciais(nome)}</span>}
+</span>

@@ -1,0 +1,11 @@
+---
+// A ficha em mono: o verso da foto, em pares de rótulo pequeno em caixa alta e valor
+// (docs/visual.md). Cada par é um <Dado>.
+interface Props {
+  class?: string;
+}
+---
+
+<dl class:list={["verso", Astro.props.class]}>
+  <slot />
+</dl>

@@ -7,13 +7,10 @@ import {
   corDoTipo,
   diaMesCurto,
   estiloDoTipo,
-  familiaDaTela,
-  fontesValidas,
   formaDoId,
   giroDoId,
   legendaLugarAno,
   listaCurta,
-  sobrenomesDaAssinatura,
   trechoDoRelato,
 } from '../src/lib/visual';
 
@@ -66,28 +63,8 @@ describe('ficha em uma linha', () => {
   });
 });
 
-describe('assinatura do nome', () => {
-  it('junta os sobrenomes sem repetir, na ordem dos núcleos, com & antes do último', () => {
-    expect(sobrenomesDaAssinatura(['Bayara', 'Bayara Bracarense', 'Bracarense'])).toBe('Bayara & Bracarense');
-    expect(sobrenomesDaAssinatura(['Bayara'])).toBe('Bayara');
-    expect(sobrenomesDaAssinatura(['Bracarense'])).toBe('Bracarense');
-    // Uma família só leva o nome dela, sem "&": o "&" só aparece na família completa
-    expect(sobrenomesDaAssinatura(['Bayara Bracarense'])).toBe('Bayara Bracarense');
-    // Uma terceira família, por um casamento
-    expect(sobrenomesDaAssinatura(['Bayara', 'Bayara Bracarense', 'Bracarense', 'Bracarense Silva'])).toBe('Bayara, Bracarense & Silva');
-  });
-});
-
-describe('cor da tela', () => {
-  const ordem = ['bayara-nascimento', 'bayara-bracarense', 'bracarense'];
-  it('um núcleo só dá a cor dele; nenhum ou vários, as famílias juntas', () => {
-    expect(familiaDaTela(['bayara-nascimento'], ordem)).toBe('0');
-    expect(familiaDaTela(['bracarense'], ordem)).toBe('2');
-    expect(familiaDaTela([], ordem)).toBe('tudo');
-    expect(familiaDaTela(['bayara-nascimento', 'bracarense'], ordem)).toBe('tudo');
-    expect(familiaDaTela(['outro'], ordem)).toBe('tudo');
-  });
-});
+// A assinatura do nome, a cor da tela e as fontes viraram sistema na fase 2: os testes delas estão
+// em testes/sistema.test.ts.
 
 describe('cor do tipo de momento', () => {
   it('cada tipo de hoje tem a sua cor, sem repetir, e tipo novo ganha uma pelo id', () => {
@@ -101,14 +78,6 @@ describe('cor do tipo de momento', () => {
 
   it('o estilo leva os quatro tons da cor: pastel, meio, vivo e tinta', () => {
     expect(estiloDoTipo('viagem')).toBe('--tipo-pastel: var(--azul-pastel); --tipo-meio: var(--azul-meio); --tipo-cor: var(--azul-vivo); --tipo-tinta: var(--azul-tinta)');
-  });
-});
-
-describe('combinações de fontes', () => {
-  it('só aceita as três do conceito', () => {
-    expect(fontesValidas('b')).toBe('b');
-    expect(fontesValidas('z')).toBe('a');
-    expect(fontesValidas(undefined)).toBe('a');
   });
 });
 
@@ -295,7 +264,7 @@ describe('conceito', () => {
   });
 
   it('as telas novas não levam o CSS antigo', () => {
-    const fontes = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro'], {
+    const fontes = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro', '../src/visual/*.ts'], {
       query: '?raw',
       import: 'default',
       eager: true,

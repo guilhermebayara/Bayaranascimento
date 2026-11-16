@@ -14,13 +14,16 @@
 // (memórias, fotos, relatos, retratos, parentesco) é lido de verdade, com a visibilidade de quem olha.
 import '../../visual/telas/painel.css';
 import Visual from '../../layouts/Visual.astro';
+import Bilhete from '../../components/visual/Bilhete.astro';
+import Carimbo from '../../components/visual/Carimbo.astro';
 import IconeDoTipo from '../../components/visual/IconeDoTipo.astro';
+import Retrato from '../../components/visual/Retrato.astro';
 import Polaroid from '../../components/visual/Polaroid.astro';
 import Rabisco from '../../components/visual/Rabisco.astro';
 import { familiaMaisRecente } from '../../lib/familias';
 import { TITULO_DA_PROXIMIDADE, emOutrosAnos } from '../../lib/painel';
 import { Familia, possessivo, type Tratamento } from '../../lib/parentesco';
-import { enderecoDoRetrato, iniciais } from '../../lib/retratos';
+import { enderecoDoRetrato } from '../../lib/retratos';
 import { conceitoDisponivel, naoEncontrado } from '../../lib/servidor/conceito';
 import {
   familiasDe,
@@ -33,7 +36,7 @@ import {
   pessoasQueONaoVe,
   type Memoria,
 } from '../../lib/servidor/repositorio';
-import { carimboDaData, estiloDoTipo, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
+import { carimboDaData, corDaPessoa, corDoNucleo, estiloDoTipo, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
 
 if (!conceitoDisponivel()) return naoEncontrado();
 
@@ -52,11 +55,7 @@ const retratoDe = (id: string) => {
   const pessoa = achar(id);
   return pessoa?.retrato && !naoVe.has(id) ? enderecoDoRetrato(pessoa.retrato) : null;
 };
-const familiaDe = (id: string) => {
-  const pessoa = achar(id);
-  const indice = pessoa ? ordemDosNucleos.findIndex((n) => familiasDe(pessoa).includes(n)) : -1;
-  return indice >= 0 ? String(indice % 4) : 'tudo';
-};
+const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const filiacoes = await listarFiliacoes();
 const casais = await listarCasais(usuario);
@@ -64,7 +63,7 @@ const familia = new Familia(filiacoes, casais, tratamentos);
 // A cor do painel é a da família mais recente de quem vê: a que a pessoa formou com quem casou.
 // A Giovanna e o Magno veem a cor da família que criaram juntos (decisão do Gui, 16/11/2026).
 const minhaFamilia = familiaMaisRecente({ familias: new Map(integrantes.map((i) => [i.id, familiasDe(i)])), casais, filiacoes }, usuario.pessoa);
-const corDoPainel = minhaFamilia && ordemDosNucleos.includes(minhaFamilia) ? String(ordemDosNucleos.indexOf(minhaFamilia) % 4) : 'tudo';
+const corDoPainel = corDoNucleo(minhaFamilia, ordemDosNucleos);
 const paraVoce = (id: string) => {
   const relacao = familia.relacao(usuario.pessoa, id);
   return relacao ? possessivo(relacao, achar(id)?.tratamento ?? null) : undefined;
@@ -144,10 +143,7 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
         <div class="miolo grade">
           <header class="carta__frente">
             <p>
-              <span class="carimbo">
-                <span>Natal de 2026</span>
-                <span>Belo Horizonte</span>
-              </span>
+              <Carimbo itens={['Natal de 2026', 'Belo Horizonte']} />
             </p>
             <h1 class="carta__saudacao" id="saudacao">
               {usuario.nome},
@@ -236,16 +232,13 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
             ))}
             {relatoNovo && memoriaDoRelato && (
               <li class="novidade novidade--relato" style={estiloDoTipo('causo')}>
-                <a class="bilhete" href={`/conceito/memorias/${memoriaDoRelato.id}`}>
+                <Bilhete por={nome(relatoNovo.por)} href={`/conceito/memorias/${memoriaDoRelato.id}`}>
                   <span class="novidade__sobre rotulo">
                     <IconeDoTipo tipo="causo" />
                     Relato novo · em {memoriaDoRelato.titulo}
                   </span>
                   <span class="bilhete__texto">“{trechoDoRelato(relatoNovo.texto, 120)}”</span>
-                  <span class="bilhete__assina">
-                    <span class="mao">{nome(relatoNovo.por)}</span>
-                  </span>
-                </a>
+                </Bilhete>
               </li>
             )}
           </ol>
@@ -294,9 +287,7 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
             {aniversarios.map((a) => (
               <li>
                 <a class="aniversario" href={`/pessoas/${a.id}`}>
-                  <span class="retrato" data-familia={familiaDe(a.id)}>
-                    {retratoDe(a.id) ? <img src={retratoDe(a.id)!} alt="" loading="lazy" decoding="async" /> : <span aria-hidden="true">{iniciais(nome(a.id))}</span>}
-                  </span>
+                  <Retrato nome={nome(a.id)} foto={retratoDe(a.id)} familia={familiaDe(a.id)} />
                   <span class="aniversario__quem">
                     <strong>{nome(a.id)}</strong>
                     <span class="suave">{[paraVoce(a.id), a.faz ? `faz ${a.faz} anos` : ''].filter(Boolean).join(', ')}</span>
@@ -317,9 +308,7 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
             Você no acervo
           </h2>
           <div class="voce__conta">
-            <span class="retrato" data-familia={corDoPainel}>
-              {retratoDe(usuario.pessoa) ? <img src={retratoDe(usuario.pessoa)!} alt="" loading="lazy" decoding="async" /> : <span aria-hidden="true">{iniciais(usuario.nome)}</span>}
-            </span>
+            <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={corDoPainel} />
             <p>
               <span class="voce__numero serifa">{minhas.length}</span>
               <span class="voce__texto serifa">{minhas.length === 1 ? 'memória em que você aparece' : 'memórias em que você aparece'}</span>

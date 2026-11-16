@@ -1,0 +1,11 @@
+---
+// Um par da ficha em mono: o rótulo ("Quando", "Onde") e o valor.
+interface Props {
+  rotulo: string;
+}
+---
+
+<div>
+  <dt>{Astro.props.rotulo}</dt>
+  <dd><slot /></dd>
+</div>

@@ -1,25 +1,30 @@
 ---
-// Conceito da revisão visual: as três combinações de fontes lado a lado, a assinatura, as cores
-// e as peças. É a página de apoio para o Gui escolher; não é uma tela do site.
+// As três combinações de fontes lado a lado, com a assinatura, as cores e as peças. É a página de
+// apoio para escolher a fonte (a escolha espera a Giovanna e o Magno); não é uma tela do site.
+// O sistema inteiro, com os tokens e todas as peças, está em /conceito/sistema.
 import '../../visual/telas/sobre.css';
 import Visual from '../../layouts/Visual.astro';
-import IconeDoTipo from '../../components/visual/IconeDoTipo.astro';
+import Assinatura from '../../components/visual/Assinatura.astro';
+import Audio from '../../components/visual/Audio.astro';
+import Bilhete from '../../components/visual/Bilhete.astro';
+import Carimbo from '../../components/visual/Carimbo.astro';
+import Etiqueta from '../../components/visual/Etiqueta.astro';
 import Polaroid from '../../components/visual/Polaroid.astro';
 import { conceitoDisponivel, fontesDoPedido, naoEncontrado } from '../../lib/servidor/conceito';
 import { listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
-import { COMBINACOES_DE_FONTES, estiloDoTipo, legendaLugarAno, sobrenomesDaAssinatura } from '../../lib/visual';
+import { COMBINACOES_DE_FONTES, assinaturaDaTela, atributosDasFontes, combinacao, combinacaoDe, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../../lib/visual';
 
 if (!conceitoDisponivel()) return naoEncontrado();
 
 const { usuario, tipos } = Astro.locals;
-const atual = fontesDoPedido(Astro.request);
+const atual = combinacaoDe(fontesDoPedido(Astro.request));
 const nucleos = await listarNucleos();
 const memorias = (await listarMemorias(usuario)).filter((m) => m.situacao === 'publicada');
 const comMonte = memorias.find((m) => m.id === '2025-natal') ?? memorias.find((m) => m.fotos.length > 1);
 const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map((n, i) => ({ id: String(i % 4), nome: n.nome }))];
 ---
 
-<Visual titulo="Fontes e peças" secao="conceito">
+<Visual titulo="Fontes" secao="conceito">
   <div class="sobre miolo">
     <header class="sobre__abre">
       <p class="rotulo suave">Revisão visual do zero · fase 1, o conceito</p>
@@ -35,15 +40,12 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
       <div class="especimes">
         {
           COMBINACOES_DE_FONTES.map((c) => (
-            <article class="especime" data-fontes={c.id}>
+            <article class="especime" {...atributosDasFontes(combinacao(c.id))}>
               <p class="rotulo">
                 {c.id.toUpperCase()} · {c.nome}
                 {c.id === atual && ' · em uso'}
               </p>
-              <p class="assinatura" aria-hidden="true">
-                <span class="assinatura__memorias">MEMÓRIAS</span>
-                <span class="assinatura__sobrenomes">Bayara &amp; Bracarense</span>
-              </p>
+              <Assinatura />
               <p class="especime__ano" aria-hidden="true">
                 1994
               </p>
@@ -56,7 +58,7 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
                 Dezoito horas de estrada, duas fitas de música e uma briga por causa do ar condicionado. Ação, coração, avó e três irmãos.
               </p>
               <p class="especime__ficha">14 ago 1994 · Belo Horizonte · 3 relatos</p>
-              <p class="especime__fontes suave">{c.fontes}</p>
+              <p class="especime__fontes suave">{nomesDasFontes(combinacao(c.id))}</p>
               <p>
                 <a class="acao" href={`/conceito/fontes/${c.id}?volta=${encodeURIComponent('/conceito/tudo')}`}>
                   Ver as telas com a {c.id.toUpperCase()}
@@ -76,13 +78,10 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
       <h2 class="sobre__titulo" id="assinatura">A assinatura acompanha o que está sendo visto</h2>
       <div class="assinaturas">
         {
-          [nucleos.map((n) => n.nome), ...nucleos.map((n) => [n.nome])].map((nomes) => (
+          [[], ...nucleos.map((n) => [n.id])].map((daTela) => (
             <div>
-              <p class="assinatura" aria-hidden="true">
-                <span class="assinatura__memorias">MEMÓRIAS</span>
-                <span class="assinatura__sobrenomes">{sobrenomesDaAssinatura(nomes)}</span>
-              </p>
-              <p class="ficha suave">{nomes.length > 1 ? 'Em “Tudo”' : `Na família ${nomes[0]}`}</p>
+              <Assinatura sobrenomes={assinaturaDaTela(daTela, nucleos).sobrenomes} />
+              <p class="ficha suave">{daTela.length ? `Na família ${nucleos.find((n) => n.id === daTela[0])!.nome}` : 'Em “Tudo”'}</p>
             </div>
           ))
         }
@@ -125,41 +124,24 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
         }
         <div class="peca">
           <p>
-            <span class="carimbo">
-              <span>14 ago 1994</span>
-              <span>Belo Horizonte</span>
-            </span>
+            <Carimbo itens={['14 ago 1994', 'Belo Horizonte']} />
           </p>
           <p class="ficha suave">Carimbo: a data e o lugar, como o do laboratório de revelação.</p>
           <p class="peca__etiquetas">
             {tipos.map((t) => (
-              <span class="etiqueta" style={estiloDoTipo(t.id)}>
-                <IconeDoTipo tipo={t.id} />
-                {t.rotulo}
-              </span>
+              <Etiqueta tipo={t.id} rotulo={t.rotulo} />
             ))}
           </p>
           <p class="ficha suave">Etiqueta-balão: o tipo de momento, com o ícone e a cor dele.</p>
         </div>
         <div class="peca">
-          <article class="bilhete">
+          <Bilhete por="Elizete" registradoPor="Gui">
             {/* FIXO: o acervo de exemplo não tem áudio. O bloco usa o tocador do próprio aparelho. */}
-            <div class="audio">
-              <p class="rotulo">Áudio · 2 min 14 s</p>
-              <audio controls preload="none" />
-              <details>
-                <summary>Ler a transcrição</summary>
-                <p>Eu fiz o bolo na véspera e quase não dormi.</p>
-              </details>
-            </div>
+            <Audio rotulo="Áudio · 2 min 14 s" transcricao="Eu fiz o bolo na véspera e quase não dormi." />
             <div class="bilhete__texto">
               <p>Eu fiz o bolo na véspera e quase não dormi.</p>
             </div>
-            <p class="bilhete__assina">
-              <span class="mao">Elizete</span>
-              <span class="ficha suave">registrado por Gui</span>
-            </p>
-          </article>
+          </Bilhete>
           <p class="ficha suave">Bilhete: o relato, com o áudio, a transcrição e o nome de quem contou, escrito à mão.</p>
         </div>
       </div>

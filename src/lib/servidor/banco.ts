@@ -484,6 +484,19 @@ const MIGRACOES: Migracao[] = [
     id: '017-magno-administrador',
     sql: [`UPDATE integrantes SET admin = 1 WHERE id = 'lucas-magno'`],
   },
+  {
+    // Assinatura do nome (decisão do Gui, 16/11/2026): cada núcleo diz de quais famílias é feito, para a
+    // linha de sobrenomes embaixo de "MEMÓRIAS" acompanhar o que está sendo visto. Os sobrenomes ficam
+    // numa lista em JSON, na ordem em que aparecem, e os administradores editam em /admin/familias.
+    // Núcleo sem lista usa as palavras do próprio nome.
+    id: '018-sobrenomes-dos-nucleos',
+    sql: [
+      `ALTER TABLE nucleos ADD COLUMN sobrenomes TEXT`,
+      `UPDATE nucleos SET sobrenomes = '["Bayara"]' WHERE id = 'bayara-nascimento'`,
+      `UPDATE nucleos SET sobrenomes = '["Bayara","Bracarense"]' WHERE id = 'bayara-bracarense'`,
+      `UPDATE nucleos SET sobrenomes = '["Bracarense"]' WHERE id = 'bracarense'`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

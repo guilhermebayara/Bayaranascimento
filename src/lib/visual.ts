@@ -1,5 +1,6 @@
-// Funções puras do visual novo (docs/visual.md), usadas pelas telas do conceito e pelos testes.
+// Funções puras do sistema visual (docs/visual.md, "Sistema"), usadas pelas telas e pelos testes.
 import type { DataFlexivel } from './datas';
+import { LARGURAS_DAS_LETRAS } from '../visual/medidas-das-serifas';
 
 /** Um número fixo tirado de um texto (FNV-1a, 32 bits): o mesmo id sempre dá o mesmo resultado. */
 function numeroDo(texto: string): number {
@@ -101,35 +102,81 @@ function juntar(itens: string[], ligacao: string): string {
   return `${itens.slice(0, -1).join(', ')} ${ligacao} ${itens[itens.length - 1]}`;
 }
 
+/** O que a assinatura precisa saber de cada núcleo: o nome e os sobrenomes de que ele é feito. */
+export interface NucleoDaAssinatura {
+  id: string;
+  nome: string;
+  /** As famílias de que o núcleo é feito ("Bayara Bracarense" são Bayara e Bracarense). Vazio: as palavras do nome. */
+  sobrenomes?: string[];
+}
+
+export interface AssinaturaDaTela {
+  /** A linha de baixo da assinatura: "Bayara & Bracarense", "Bayara", "Bayara, Bracarense & Silva" */
+  sobrenomes: string;
+  /** O nome por extenso, para o texto corrido e para quem não vê: "Memórias Bayara e Bracarense" */
+  porExtenso: string;
+  /** A cor da tela: 'tudo' ou a posição do núcleo na ordem das famílias ('0', '1', '2', '3') */
+  familia: string;
+}
+
+/** Quantas famílias têm cor própria em tokens.css ([data-familia='0'] a [data-familia='3']). A quinta volta à primeira. */
+export const CORES_DAS_FAMILIAS = 4;
+
+const sobrenomesDoNucleo = (n: NucleoDaAssinatura): string[] =>
+  (n.sobrenomes?.length ? n.sobrenomes : n.nome.trim().split(/\s+/)).map((s) => s.trim()).filter(Boolean);
+
 /**
- * Os sobrenomes da assinatura para o que está sendo visto: sem repetir, na ordem dos núcleos
- * (a dos lados da árvore), com "&" antes do último ("Bayara, Bracarense & Silva").
+ * A assinatura e a cor da tela para o que está sendo visto (docs/visual.md, "Assinatura do nome").
  *
- * No conceito, os sobrenomes saem do nome de cada núcleo ("Bayara Bracarense" são dois).
- * Na fase 2, cada núcleo passa a dizer de quais famílias é feito, numa migração própria
- * (docs/decisoes.md, "Assinatura do nome"), e esta função recebe essa lista.
+ * - Nenhum núcleo, ou nenhum conhecido: a família completa, com os sobrenomes de todos os núcleos.
+ * - Um núcleo só: o nome dele, como é ("Bayara Bracarense"), e a cor dele. O "&" junta famílias,
+ *   então só aparece quando a tela é de mais de uma (decisão do Gui, 16/11/2026).
+ * - Vários núcleos: os sobrenomes deles sem repetir, na ordem dos núcleos (a dos lados da árvore),
+ *   com vírgula entre eles e "&" antes do último ("Bayara, Bracarense & Silva").
+ *
+ * `nucleos` é a lista inteira, na ordem do banco. `doQueSeVe` são os ids dos núcleos da tela:
+ * o núcleo filtrado na linha do tempo, os núcleos da memória ou do capítulo, as famílias da pessoa.
  */
-export function sobrenomesDaAssinatura(nomesDosNucleos: string[]): string {
-  // Uma família só leva o nome dela, como é: "Bayara Bracarense". O "&" junta famílias, então só
-  // aparece na família completa ou quando há mais de uma (decisão do Gui, 16/11/2026).
-  if (nomesDosNucleos.length === 1) return nomesDosNucleos[0]!.trim();
-  const sobrenomes: string[] = [];
-  for (const nome of nomesDosNucleos) {
-    for (const parte of nome.trim().split(/\s+/)) {
-      if (parte && !sobrenomes.includes(parte)) sobrenomes.push(parte);
+export function assinaturaDaTela(doQueSeVe: string[], nucleos: NucleoDaAssinatura[]): AssinaturaDaTela {
+  const vistos = nucleos.filter((n) => doQueSeVe.includes(n.id));
+  let sobrenomes: string;
+  let familia = 'tudo';
+  if (vistos.length === 1) {
+    sobrenomes = vistos[0]!.nome.trim();
+    familia = String(nucleos.indexOf(vistos[0]!) % CORES_DAS_FAMILIAS);
+  } else {
+    const unicos: string[] = [];
+    for (const nucleo of vistos.length ? vistos : nucleos) {
+      for (const sobrenome of sobrenomesDoNucleo(nucleo)) if (!unicos.includes(sobrenome)) unicos.push(sobrenome);
     }
+    sobrenomes = juntar(unicos, '&');
   }
-  return juntar(sobrenomes, '&');
+  return { sobrenomes, porExtenso: porExtensoDaAssinatura(sobrenomes), familia };
+}
+
+/** No texto corrido e na aba do navegador, o nome vai por extenso: "Memórias Bayara e Bracarense". */
+export function porExtensoDaAssinatura(sobrenomes: string): string {
+  return `Memórias ${sobrenomes.replace(/ & /g, ' e ')}`;
+}
+
+/** A linha de sobrenomes que fecha na largura de "MEMÓRIAS": a medida de cada serifa foi tirada com ela. */
+export const SOBRENOMES_DE_REFERENCIA = 'Bayara & Bracarense';
+
+/** A largura de um texto em em, numa serifa do sistema, somando a largura de cada letra. */
+export function larguraNaSerifa(texto: string, serifa: Fontes): number {
+  const letras = LARGURAS_DAS_LETRAS[serifa];
+  // Letra que a tabela não tem conta como um "n"
+  return [...texto].reduce((soma, letra) => soma + (letras[letra] ?? letras.n!), 0);
 }
 
 /**
- * A cor da tela: a da família do que está sendo visto. Com um núcleo só, a cor dele (pela
- * posição na ordem dos núcleos); com nenhum ou com vários, "tudo", as famílias juntas.
+ * Quanto a linha de sobrenomes precisa encolher para caber na largura da página, em cada serifa.
+ * Até a largura de "Bayara & Bracarense", nada (1). Uma linha mais longa, como a de três famílias,
+ * encolhe na proporção, para nunca passar da largura de "MEMÓRIAS".
  */
-export function familiaDaTela(nucleosDoQueSeVe: string[], ordemDosNucleos: string[]): string {
-  if (nucleosDoQueSeVe.length !== 1) return 'tudo';
-  const indice = ordemDosNucleos.indexOf(nucleosDoQueSeVe[0]!);
-  return indice >= 0 ? String(indice % 4) : 'tudo';
+export function encolheDaAssinatura(sobrenomes: string): Record<Fontes, number> {
+  const de = (serifa: Fontes) => Math.min(1, Math.round((larguraNaSerifa(SOBRENOMES_DE_REFERENCIA, serifa) / larguraNaSerifa(sobrenomes, serifa)) * 1000) / 1000);
+  return { a: de('a'), b: de('b'), c: de('c') };
 }
 
 /** O primeiro trecho de um relato, para a abertura da memória: até o fim da primeira ou da segunda frase. */
@@ -146,14 +193,70 @@ export function trechoDoRelato(texto: string, maximo = 150): string {
   return trecho.trim();
 }
 
+/**
+ * As fontes do sistema. São três combinações de licença livre (docs/visual.md), e cada uma tem as
+ * quatro famílias de tipo do site, uma por papel: serifa nos títulos, grotesca no texto, mono nas
+ * fichas e manuscrita na assinatura dos relatos. Os acertos de cada uma estão em src/visual/fontes.css.
+ */
 export const COMBINACOES_DE_FONTES = [
-  { id: 'a', nome: 'Macia', fontes: 'Fraunces, Geist, Geist Mono e Oooh Baby' },
-  { id: 'b', nome: 'Editorial', fontes: 'Instrument Serif, Instrument Sans, IBM Plex Mono e Reenie Beanie' },
-  { id: 'c', nome: 'De cartaz', fontes: 'DM Serif Display, DM Sans, DM Mono e Nothing You Could Do' },
+  { id: 'a', nome: 'Macia', serifa: 'Fraunces', grotesca: 'Geist', mono: 'Geist Mono', mao: 'Oooh Baby' },
+  { id: 'b', nome: 'Editorial', serifa: 'Instrument Serif', grotesca: 'Instrument Sans', mono: 'IBM Plex Mono', mao: 'Reenie Beanie' },
+  { id: 'c', nome: 'De cartaz', serifa: 'DM Serif Display', grotesca: 'DM Sans', mono: 'DM Mono', mao: 'Nothing You Could Do' },
 ] as const;
 
 export type Fontes = (typeof COMBINACOES_DE_FONTES)[number]['id'];
 
-export function fontesValidas(valor: string | null | undefined): Fontes {
-  return COMBINACOES_DE_FONTES.find((c) => c.id === valor)?.id ?? 'a';
+/** Os quatro papéis do tipo. Nenhuma família aparece fora do seu papel. */
+export const PAPEIS_DAS_FONTES = ['serifa', 'grotesca', 'mono', 'mao'] as const;
+export type PapelDaFonte = (typeof PAPEIS_DAS_FONTES)[number];
+
+/** De qual combinação vem a fonte de cada papel. */
+export type FontesDoSite = Record<PapelDaFonte, Fontes>;
+
+/** Uma combinação inteira: os quatro papéis com as fontes dela. */
+export function combinacao(id: Fontes): FontesDoSite {
+  return { serifa: id, grotesca: id, mono: id, mao: id };
+}
+
+/**
+ * A FONTE DO SITE. Trocar é mudar esta linha, e mais nada.
+ *
+ * Uma combinação inteira: combinacao('a'), combinacao('b') ou combinacao('c').
+ * Misturando: { ...combinacao('a'), mao: 'b' } usa a manuscrita da B com o resto da A.
+ *
+ * A escolha espera a Giovanna e o Magno (docs/visual.md). O monograma, o ícone do site e a largura
+ * da assinatura acompanham a serifa escolhida sozinhos.
+ */
+export const FONTES_DO_SITE: FontesDoSite = combinacao('a');
+
+/** A combinação pedida na faixa de teste, se for uma das três. */
+export function combinacaoValida(valor: string | null | undefined): Fontes | null {
+  return COMBINACOES_DE_FONTES.find((c) => c.id === valor)?.id ?? null;
+}
+
+/** A combinação a que estas fontes correspondem, quando os quatro papéis vêm da mesma. */
+export function combinacaoDe(fontes: FontesDoSite): Fontes | null {
+  return PAPEIS_DAS_FONTES.every((papel) => fontes[papel] === fontes.serifa) ? fontes.serifa : null;
+}
+
+/** Os atributos que levam as fontes a um trecho da página: data-serifa, data-grotesca, data-mono e data-mao. */
+export function atributosDasFontes(fontes: FontesDoSite): Record<`data-${PapelDaFonte}`, Fontes> {
+  return { 'data-serifa': fontes.serifa, 'data-grotesca': fontes.grotesca, 'data-mono': fontes.mono, 'data-mao': fontes.mao };
+}
+
+/** Como as fontes se chamam, para mostrar: "Fraunces, Geist, Geist Mono e Oooh Baby". */
+export function nomesDasFontes(fontes: FontesDoSite): string {
+  const de = (papel: PapelDaFonte) => COMBINACOES_DE_FONTES.find((c) => c.id === fontes[papel])![papel];
+  return `${de('serifa')}, ${de('grotesca')}, ${de('mono')} e ${de('mao')}`;
+}
+
+/** A cor de um núcleo: a posição dele na ordem das famílias. Núcleo desconhecido: as famílias juntas. */
+export function corDoNucleo(id: string | null | undefined, ordemDosNucleos: string[]): string {
+  const indice = id ? ordemDosNucleos.indexOf(id) : -1;
+  return indice >= 0 ? String(indice % CORES_DAS_FAMILIAS) : 'tudo';
+}
+
+/** A cor de uma pessoa, para o retrato sem foto: a do primeiro núcleo dela, na ordem das famílias. */
+export function corDaPessoa(familiasDaPessoa: string[], ordemDosNucleos: string[]): string {
+  return corDoNucleo(ordemDosNucleos.find((n) => familiasDaPessoa.includes(n)), ordemDosNucleos);
 }
