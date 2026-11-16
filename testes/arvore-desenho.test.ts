@@ -361,13 +361,13 @@ describe('o parente do amigo fica embaixo dele (achado do Gui, 16/11/2026)', () 
     expect(linha.d).toBe(`M ${meio} ${em.get('ed')!.y + MEDIDAS.altura} L ${meio} ${em.get('caio')!.y}`);
   });
 
-  it('as linhas que saem do pé da mesma pessoa correm na mesma altura e com o mesmo raio', () => {
+  it('as linhas que saem do pé da mesma pessoa correm na mesma altura, e todas as curvas têm o mesmo raio', () => {
     // A Karol é do Gui e da Giovanna; o Chico, dos dois e do Magno. Em alturas diferentes, as curvas ficavam
     // a poucos pixels umas das outras e viravam um emaranhado
     const barras = d.descidas.filter((x) => x.pais.includes('gui')).map((x) => x.barra);
     expect(new Set(barras).size).toBe(1);
     const curvas = (id: string) => d.linhas.filter((l) => l.tipo === 'bicho' && l.de.includes(id)).flatMap((l) => [...l.d.matchAll(/Q (\S+) (\S+) (\S+) (\S+)/g)].map((q) => Math.max(Math.abs(Number(q[3]) - Number(q[1])), Math.abs(Number(q[4]) - Number(q[2])))));
-    expect(new Set([...curvas('karol'), ...curvas('chico')]).size).toBe(1);
+    expect(new Set([...curvas('karol'), ...curvas('chico')])).toEqual(new Set([20]));
   });
 });
 

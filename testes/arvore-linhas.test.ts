@@ -115,6 +115,19 @@ describe('linhas que contornam as caixas', () => {
   });
 });
 
+describe('um raio só para todas as curvas (achado do Gui, 16/11/2026)', () => {
+  // Curva é bifurcação ou junção, ângulo reto é cruzamento: com raios diferentes, a diferença some
+  it.each(casos)('toda curva tem o mesmo raio, bem visível (%s)', (_, dados, e) => {
+    const { desenho } = montarDesenho(dados, e);
+    for (const l of desenho.linhas.filter((x) => x.tipo !== 'ponto')) {
+      for (const q of l.d.matchAll(/Q (\S+) (\S+) (\S+) (\S+)/g)) {
+        const raio = Math.max(Math.abs(Number(q[1]) - Number(q[3])), Math.abs(Number(q[2]) - Number(q[4])));
+        expect(raio, `${l.tipo} ${l.de.join('/')}: ${q[0]}`).toBeCloseTo(20, 6);
+      }
+    }
+  });
+});
+
 describe('quem tem filhos embaixo recebe o laço por cima', () => {
   it('o tio de consideração com filha: o galho chega pelo alto dele, e o pé fica com a linha da filha', () => {
     const { desenho } = montarDesenho(comTio, estado('', ['gui']));
