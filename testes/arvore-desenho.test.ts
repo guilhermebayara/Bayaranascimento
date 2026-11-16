@@ -361,6 +361,17 @@ describe('o parente do amigo fica embaixo dele (achado do Gui, 16/11/2026)', () 
     expect(linha.d).toBe(`M ${meio} ${em.get('ed')!.y + MEDIDAS.altura} L ${meio} ${em.get('caio')!.y}`);
   });
 
+  it('a linha do Chico sai do ponto do casal da Giovanna e do Magno, e outra sai do Gui (decisão do Gui, 16/11/2026)', () => {
+    const pe = (id: string) => [em.get(id)!.x + MEDIDAS.largura / 2, em.get(id)!.y + MEDIDAS.altura];
+    const [gi, ma] = [em.get('giovanna')!, em.get('lucas-magno')!];
+    const ponto = [(Math.min(gi.x, ma.x) + MEDIDAS.largura + Math.max(gi.x, ma.x)) / 2, gi.y + MEDIDAS.altura / 2];
+    const inicios = d.linhas
+      .filter((l) => l.tipo === 'bicho' && l.de.includes('chico'))
+      .flatMap((l) => [...l.d.matchAll(/M (\S+) (\S+)/g)].map((q) => `${Number(q[1])},${Number(q[2])}`));
+    expect(new Set(inicios)).toEqual(new Set([ponto.join(','), pe('gui').join(',')]));
+    expect(d.linhas.some((l) => l.tipo === 'ponto' && l.de.includes('giovanna') && l.de.includes('lucas-magno'))).toBe(true);
+  });
+
   it('as linhas que saem do pé da mesma pessoa correm na mesma altura, e todas as curvas têm o mesmo raio', () => {
     // A Karol é do Gui e da Giovanna; o Chico, dos dois e do Magno. Em alturas diferentes, as curvas ficavam
     // a poucos pixels umas das outras e viravam um emaranhado

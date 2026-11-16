@@ -368,39 +368,68 @@ export function desenharArvore(
   }
   let degrau = 0;
   const descidas: Desenho['descidas'] = [];
-  // Linhas que saem do pé da mesma pessoa correm na mesma altura e se sobrepõem. Em alturas diferentes,
-  // as curvas de uma e de outra ficavam a poucos pixels e viravam um emaranhado (a Karol, filha do Gui e
-  // da Giovanna, e o Chico, filho dos dois e do Magno)
-  const barraDoPe = new Map<string, number>();
+  // Cada linha sai do ponto de um casal ou do pé de quem não está em casal com outro responsável: o Chico,
+  // do Gui, da Giovanna e do Magno, recebe uma linha do casal e outra do Gui (decisão do Gui, 16/11/2026)
+  type Origem = { chave: string; x: number; y: number; casal?: string[] };
   const familias = [...grupos].map(([chave, filhos]) => {
     const pais = chave.split('+');
     const baixo = Math.max(...pais.map((p) => em.get(p)!.y)) + m.altura;
-    const ponto = pais.length === 2 && ehCasal(pais[0], pais[1]) ? pontoDoCasal.get(chave) : undefined;
-    // Cada família usa uma altura um pouco diferente, para as linhas não se confundirem
-    const peJaUsado = ponto ? undefined : pais.map((p) => barraDoPe.get(p)).find((b) => b !== undefined);
-    const barra = peJaUsado ?? baixo + m.vaoY * 0.36 + ((degrau++ % 3) - 1) * 7;
-    if (!ponto) for (const p of pais) if (!barraDoPe.has(p)) barraDoPe.set(p, barra);
-    const origens = ponto ? [{ x: ponto.x, y: ponto.y }] : pais.map((p) => ({ x: meioX(p), y: baixo }));
-    return { pais, filhos, ponto, barra, origens };
+    const origens: Origem[] = [];
+    const sozinhos = new Set(pais);
+    for (const a of pais) {
+      for (const b of pais) {
+        if (a >= b || !sozinhos.has(a) || !sozinhos.has(b) || !ehCasal(a, b)) continue;
+        const ponto = pontoDoCasal.get([a, b].sort().join('+'));
+        if (!ponto) continue;
+        origens.push({ chave: `casal:${[a, b].sort().join('+')}`, x: ponto.x, y: ponto.y, casal: [a, b] });
+        sozinhos.delete(a);
+        sozinhos.delete(b);
+      }
+    }
+    for (const p of pais) if (sozinhos.has(p)) origens.push({ chave: `pe:${p}`, x: meioX(p), y: baixo });
+    return { pais, filhos, origens, conjunto: 0, barra: 0 };
   });
+  // Linhas que saem da mesma origem (o pé do Gui, o ponto do casal) correm na mesma altura e se sobrepõem.
+  // Em alturas diferentes, as curvas de uma e de outra ficavam a poucos pixels e viravam um emaranhado (a
+  // Karol, filha do Gui e da Giovanna, e o Chico). Cada conjunto de linhas que divide uma origem tem a sua
+  // altura, um pouco diferente da dos outros, para as famílias não se confundirem.
+  const conjuntoDa = new Map<string, number>();
+  const raiz = familias.map((_, n) => n);
+  const achar = (n: number): number => (raiz[n] === n ? n : (raiz[n] = achar(raiz[n])));
+  familias.forEach((f, n) => {
+    for (const o of f.origens) {
+      const outro = conjuntoDa.get(o.chave);
+      if (outro === undefined) conjuntoDa.set(o.chave, n);
+      else raiz[achar(n)] = achar(outro);
+    }
+  });
+  const barraDoConjunto = new Map<number, number>();
+  for (const [n, f] of familias.entries()) {
+    f.conjunto = achar(n);
+    if (!barraDoConjunto.has(f.conjunto)) {
+      const baixo = Math.max(...f.pais.map((p) => em.get(p)!.y)) + m.altura;
+      barraDoConjunto.set(f.conjunto, baixo + m.vaoY * 0.36 + ((degrau++ % 3) - 1) * 7);
+    }
+    f.barra = barraDoConjunto.get(f.conjunto)!;
+  }
   // Todas as curvas têm o mesmo raio, bem visível: curva é bifurcação ou junção, ângulo reto é cruzamento.
-  // Por isso a descida até um filho nunca fica a menos de dois raios de um pé ou de um ponto de casal que
-  // corre na mesma barra: perto assim, ela entra reta, alinhada com ele, ainda dentro da caixa do filho
-  // (a Karol, um pouco ao lado do Gui, recebe a linha reta do pé dele)
+  // Por isso a descida até um filho nunca fica a menos de dois raios do pé ou do ponto de casal de onde
+  // vem a linha dele: perto assim, ela entra reta, alinhada com ele, ainda dentro da caixa do filho (a
+  // Karol, um pouco ao lado do Gui, recebe a linha reta do pé dele). Só valem as origens da própria
+  // família: alinhada com o pé de outra, a descida pareceria vir só dali
   const R_LINHA = 20;
-  const origensDaBarra = (f: (typeof familias)[number]) =>
-    f.ponto ? f.origens : familias.filter((o) => !o.ponto && o.barra === f.barra).flatMap((o) => o.origens);
   const descidaAte = (f: (typeof familias)[number], filho: string) => {
     const meio = meioX(filho);
-    const perto = origensDaBarra(f)
-      .map((o) => o.x)
+    const perto = f.origens
+      .map((q) => q.x)
       .filter((ox) => Math.abs(ox - meio) < 2 * R_LINHA && Math.abs(ox - meio) < m.largura / 2 - R_LINHA)
       .sort((a, b) => Math.abs(a - meio) - Math.abs(b - meio));
     return perto[0] ?? meio;
   };
+  const pontosDesenhados = new Set<string>();
   for (const f of familias) {
-    const { pais, filhos, ponto, barra, origens } = f;
-    const caminho = (o: { x: number; y: number }, filho: string) => {
+    const { pais, filhos, barra, origens } = f;
+    const caminho = (o: Origem, filho: string) => {
       const xf = descidaAte(f, filho);
       return arredondado(limpar([[o.x, o.y], [o.x, barra], [xf, barra], [xf, em.get(filho)!.y]]), R_LINHA);
     };
@@ -415,7 +444,11 @@ export function desenharArvore(
     for (const filho of filhos.filter((f) => ehBicho.has(f))) {
       linhas.push({ d: origens.map((o) => caminho(o, filho)).join(' '), tipo: 'bicho', de: [...pais, filho] });
     }
-    if (ponto) linhas.push({ d: circulo(ponto.x, ponto.y, 5), tipo: 'ponto', de: pais });
+    for (const o of origens) {
+      if (!o.casal || pontosDesenhados.has(o.chave)) continue;
+      pontosDesenhados.add(o.chave);
+      linhas.push({ d: circulo(o.x, o.y, 5), tipo: 'ponto', de: o.casal });
+    }
   }
 
   // Consideração e coração: tracejadas, com o mesmo desenho das outras.
