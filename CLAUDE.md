@@ -11,7 +11,7 @@ Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto) e
   - O código é feito principalmente no Claude Code: tanto a construção quanto as sessões de QA, no mesmo modelo do site da @bsurda e do bayara.design.
   - A ponte entre os dois é a documentação. O que foi decidido e ainda não existe fica em `docs/decisoes.md`, na seção "Decidido, a construir", com o detalhe necessário para uma sessão do Claude Code construir sem precisar da conversa. Quando a construção termina, o item sai dali e vira regra na seção do assunto.
 - A estrutura completa (integrantes, laços, núcleos, memórias, capítulos, visibilidade, árvore, ordem de construção) está no documento "Acervo da família: proposta de estrutura", nos Claude Docs do Gui: https://claude.ai/artifact/35pDU29F4JH1edsCYZTGAD. Ele vale junto com `docs/decisoes.md`; quando os dois discordam, pergunte.
-- A Giovanna não usa o Claude. Ela opina olhando a prévia da `formulario` e comentando numa cópia do documento de estrutura no Google Docs do Gui ("Acervo da família: proposta de estrutura (cópia para comentários)", em `1_Documentos` da pasta do projeto). Os comentários dela voltam para o documento principal pelo Gui, numa conversa com o Claude.
+- A Giovanna não usa o Claude. Ela opina olhando a homologação e comentando numa cópia do documento de estrutura no Google Docs do Gui ("Acervo da família: proposta de estrutura (cópia para comentários)", em `1_Documentos` da pasta do projeto). Os comentários dela voltam para o documento principal pelo Gui, numa conversa com o Claude.
 - Prazo: Natal de 2026, quando o site é dado de presente. Até lá o Gui e a Giovanna alimentam o acervo, e os outros acessos são liberados no dia.
 - Quando o trabalho fica em andamento e o Gui vai dormir ou sair, a última resposta diz tudo o que ele precisa ver quando voltar.
 
@@ -50,7 +50,7 @@ Nada desta pasta entra no repositório.
 - O caminho de uma mudança: `tst-<assunto>` → PR com squash para a `homologa` → aprovação na homologação → `main` por fast-forward da `homologa`. Nunca force um push.
 - Mudança só de documentação ou de regras de trabalho (`CLAUDE.md`, `README.md`, `docs/`) pode ir direto para a `main`, para toda sessão nova já encontrar. Depois, traga a `main` para a `homologa`.
 - Depois do merge, apague a branch de teste. As sessões do Claude não conseguem apagar branch pelo git nem pela API: use a página Branches do GitHub no navegador, com a autorização que o Gui já deu.
-- **Transição:** a `formulario` ainda existe e anda igual à `main`, porque a Giovanna recebeu esse endereço antes da homologação existir. Ela some quando a Giovanna passar a usar a homologação.
+- A antiga prévia `formulario`, que a Giovanna usava antes de a homologação existir, foi aposentada em 16/11/2026. A Giovanna usa a homologação.
 
 ### O espelho da produção
 
@@ -132,7 +132,7 @@ Uma sessão de QA por chat: cada rodada começa numa sessão nova do Claude Code
 
 - A branch testada é a `homologa`, salvo outra indicação: é o que está para ir ao ar.
 - A sessão trabalha numa branch `qa-AAAA-MM-DD` nascida da branch testada. Cada push gera a prévia dela, com o acervo de exemplo.
-- A sessão nunca faz push nem merge na `main`, na `homologa`, na `formulario` ou na branch testada. No fim, abre um PR para a branch testada e não faz o merge.
+- A sessão nunca faz push nem merge na `main`, na `homologa` ou na branch testada. No fim, abre um PR para a branch testada e não faz o merge.
 - Correção grande ou arriscada vai para uma branch `qa-<assunto>` separada.
 - Tudo é conferido com o acervo de exemplo: localmente, com `npm run dev` e o "Ver como" do topo, ou na prévia da branch de QA. Nunca na produção. A homologação fica atrás de login e a sessão não entra nela: o que só dá para ver lá vai para a lista do relatório.
 - O espelho troca todo o banco local pelo espelho. Se a rodada conferir o espelho, faça isso por último e, depois, apague a pasta `.wrangler` para o banco local voltar ao acervo de exemplo.
@@ -159,6 +159,10 @@ Toda sessão de QA termina com um relatório curto, nesta ordem:
 4. O que não deu para conferir e por quê, com a lista do que o Gui precisa conferir na homologação, no Safari do iPhone e na produção.
 
 Quando um achado merece virar regra permanente, o relatório propõe o teste ou a verificação na guarda (ver "Conferências"). Criá-la segue as mesmas regras de branch desta seção.
+
+## Sessão de QA de UX
+
+Aberta só quando o Gui pedir, não é recorrente. Arruma a interface atual em padrões (tokens, componentes, estados, estrutura de página, textos de interface) para que a troca para o visual final seja feita em poucos lugares, sem julgar a aparência de hoje. O procedimento, o relatório e o prompt estão em `docs/qa-ux.md`.
 
 ## Cuidados que já custaram tempo
 
