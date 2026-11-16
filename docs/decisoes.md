@@ -185,7 +185,7 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
 - **Primeira versão do visual** (decisões do Gui, 16/11/2026). Construir a direção de `docs/visual.md` numa branch `tst-visual`, nascida da `homologa`, para o Gui ver na prévia antes de decidir. Ordem sugerida, cada passo conferido em 390 e 1280 px, por teclado e com movimento reduzido:
     1. Tokens: fontes (serifa macia nos títulos, grotesca no texto, mono nas legendas, manuscrita só no nome de quem conta), neutros de papel e as cores das famílias em pastel com a versão saturada de cada uma. Os tokens já têm nome de papel (`docs/ux/padroes.md`); a lista de `docs/ux/revisao-visual.md` entra aqui (escala de espaços, tamanhos, raios, bordas, áreas de toque de 44 px).
     2. Foto de retrato no cadastro da pessoa (abaixo), antes dos componentes, porque o retrato recortado depende dela.
-    3. Componentes de `docs/visual.md`: o monograma "uma haste" (também como favicon), polaroid, monte de fotos, legenda "lugar (ano)", etiqueta-balão, ficha em mono, retrato recortado (com iniciais de quem ainda não tem foto), nome manuscrito, bloco de áudio, sanfona de fases.
+    3. Componentes de `docs/visual.md`: o monograma com o M de Memórias (também como favicon), polaroid, monte de fotos, legenda "lugar (ano)", etiqueta-balão, ficha em mono, retrato recortado (com iniciais de quem ainda não tem foto), nome manuscrito, bloco de áudio, sanfona de fases.
     4. Páginas: linha do tempo (com o trilho e o ponto), página da memória na ordem de `docs/visual.md`, capítulo, pessoa e laço. A árvore só muda de cor.
     5. Movimento, por último, só o da lista de `docs/visual.md`, com a frase que acende palavra por palavra no modelo do bayara.design.
   **Foto de retrato** (decisão do Gui, 16/11/2026): só por envio de foto nova, sem recortar de fotos de memórias.
@@ -197,7 +197,10 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - O espelho da produção não leva retratos, como não leva áudios. Os exemplos podem ganhar retratos de exemplo, se ajudar a conferir o visual.
     - Teste em `testes/`: quem pode pôr e trocar o retrato, e que o retrato de quem a pessoa não vê não é entregue.
   Fontes: escolher entre opções de licença livre (Fontsource), comparando duas ou três na prévia; a serifa precisa ter acentos e itálico bons em português. A polaroid em toda foto-chave fica para o Gui confirmar vendo a linha do tempo pronta. Ao terminar, o resumo de `docs/visual.md` vira regra aqui, e `docs/ux/revisao-visual.md` sai de cena.
-- **Assinatura do nome** (decisão do Gui, 16/11/2026), para depois da primeira versão do visual: "MEMÓRIAS" grande em caixa alta como palavra principal e "Bayara & Bracarense" menor logo abaixo, na serifa dos títulos, como em `docs/visual.md` ("Assinatura do nome") e no rascunho `docs/visual/assinatura-hierarquia.png`. Trocar o nome do topo do site pela assinatura e mostrar na prévia as variações de peso e largura do rascunho.
+- **Assinatura do nome** (decisões do Gui, 16/11/2026), para depois da primeira versão do visual. Detalhe em `docs/visual.md` ("Assinatura do nome") e no rascunho `docs/visual/assinatura-hierarquia.png`.
+    - "MEMÓRIAS" grande e fixo; abaixo, os sobrenomes das famílias do que está sendo visto ("Bayara & Bracarense" em "Tudo" e no núcleo Bayara Bracarense, "Bayara" no núcleo Bayara, "Bracarense" no núcleo Bracarense).
+    - Uma migração nova dá a cada núcleo as famílias de que ele é feito (sobrenomes), editáveis pelos administradores. A linha junta os sobrenomes sem repetir, na ordem dos lados da árvore, com "&" antes do último. Teste em `testes/` para as combinações, incluindo uma terceira família.
+    - Mostrar na prévia as variações de peso e largura do rascunho.
 
 ## Em aberto
 

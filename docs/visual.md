@@ -35,7 +35,7 @@ A família inclui gente com pouca familiaridade com sites, usando sobretudo o ce
 | Polaroid | Preferência: polaroid em toda foto-chave da linha do tempo. Confirmar na implementação vendo como fica na linha do tempo |
 | Linha do tempo | Lista vertical com a rolagem normal, das mais recentes para as mais antigas, sem efeito de folhear nem carrossel |
 | Página da memória | Ordem abaixo, com o convite para escrever o relato no fim |
-| Marca | O nome continua "Memórias Bayara e Bracarense", com "MEMÓRIAS" como palavra principal na assinatura (ver abaixo). O símbolo é o monograma "uma haste": um B espelhado e um B normal dividindo o mesmo traço vertical, as duas famílias no mesmo eixo |
+| Marca | "MEMÓRIAS" é a palavra principal e fixa. Abaixo dela vêm os sobrenomes das famílias do que está sendo visto, que mudam conforme a tela (ver "Assinatura do nome"). O símbolo é um monograma com o M de Memórias |
 
 ## Movimento
 
@@ -70,21 +70,24 @@ O Safari do iPhone já deu trabalho com efeitos presos à rolagem no site da @bs
 
 ## Assinatura do nome
 
-Decisão do Gui de 16/11/2026, para a rodada seguinte à primeira versão do visual. Rascunho dele em `docs/visual/assinatura-hierarquia.png`.
+Decisões do Gui de 16/11/2026. Rascunho dele em `docs/visual/assinatura-hierarquia.png`.
 
-- "MEMÓRIAS" é a palavra principal: em caixa alta, grande, na serifa dos títulos.
-- "Bayara & Bracarense" vem logo abaixo, em caixa alta e baixa, bem menor (no rascunho, perto de metade da altura de "MEMÓRIAS"), alinhado à esquerda e com largura parecida com a de "MEMÓRIAS".
-- No rascunho, a assinatura usa "&" entre os nomes. No texto corrido, o nome continua "Memórias Bayara e Bracarense".
+- "MEMÓRIAS" é a palavra principal e não muda: em caixa alta, grande, na serifa dos títulos.
+- Logo abaixo vêm os sobrenomes das famílias, em caixa alta e baixa, bem menores (no rascunho, perto de metade da altura de "MEMÓRIAS"), alinhados à esquerda.
+- **Os sobrenomes acompanham o que está sendo visto.** Na linha do tempo geral ("Tudo") e no núcleo Bayara Bracarense: "Bayara & Bracarense". No núcleo Bayara (Gui, Giovanna e Elizete): "Bayara". No núcleo Bracarense: "Bracarense". Assim a assinatura cresce com o acervo: se um dia entrar outra família, por um casamento, a combinação aparece sozinha nas telas em que ela estiver.
+- Para isso cada núcleo precisa dizer de quais famílias ele é (Bayara Bracarense = Bayara e Bracarense). A linha junta os sobrenomes sem repetir, na ordem dos lados da árvore (Bayara à esquerda), com "&" antes do último e vírgula entre os outros ("Bayara, Bracarense & Silva").
+- Telas que não são de um núcleo (pessoa, memória, capítulo) usam as famílias do que mostram: os núcleos da memória ou do capítulo, as famílias da pessoa. Na dúvida, a versão de "Tudo".
+- No texto corrido e na aba do navegador, o nome por extenso continua "Memórias Bayara e Bracarense".
 - O rascunho mostra três pesos e larguras (normal, condensada, negrito) da mesma família: comparar na prévia, junto com a escolha da fonte.
-- A assinatura vai no topo do site, na tela de entrada e no convite de Natal. O monograma acompanha a assinatura ou aparece sozinho onde falta espaço (ícone, topo no celular).
 
 ## Monograma
 
-Escolhido pelo Gui em 16/11/2026 entre quatro esboços: um B espelhado encostado num B normal, dividindo a haste. Sai da serifa dos títulos, mas a junção das hastes é desenhada à mão em SVG (a fonte sozinha deixa as duas hastes lado a lado em vez de uma só).
+Decisão do Gui de 16/11/2026: o monograma é o M de Memórias, que não muda, enquanto os sobrenomes mudam com a tela. Substitui os dois Bs ("uma haste"), que só valiam para duas famílias.
 
-- **Uso:** ícone do site (favicon e ícone de tela inicial do celular), selo no topo ao lado do nome e no rodapé.
-- **Cor:** a versão principal é de uma cor só, no tom do texto. Na prévia, mostrar também a variação com cada metade na versão saturada da cor de uma família (Bayara à esquerda, Bracarense à direita, como na árvore), para o Gui comparar.
-- **Tamanho mínimo:** conferir a 16 px (favicon); se a junção sumir, usar uma versão com a haste mais grossa só nos tamanhos pequenos.
+- Sai da serifa dos títulos, desenhado em SVG para funcionar pequeno.
+- **Uso:** ícone do site (favicon e ícone de tela inicial do celular) e, no celular, no lugar da assinatura quando falta espaço.
+- **Cor:** uma cor só, no tom do texto. Pode ganhar a cor da família da tela, como opção a comparar na prévia.
+- **Tamanho mínimo:** conferir a 16 px (favicon).
 
 ## Página da memória
 
