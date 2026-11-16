@@ -478,6 +478,12 @@ const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS integrantes_por_retrato ON integrantes (retrato)`,
     ],
   },
+  {
+    // O Magno entra com o Gui e a Giovanna como quem dá o presente e cuida do acervo
+    // (decisão do Gui e da Giovanna, 16/11/2026): passa a ser administrador.
+    id: '017-magno-administrador',
+    sql: [`UPDATE integrantes SET admin = 1 WHERE id = 'lucas-magno'`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

@@ -43,6 +43,7 @@ Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso 
 | Painel (página inicial) | Na primeira visita, a carta de Natal assinada à mão pelo Gui, pela Giovanna e pelo Magno. Depois, o que entrou de novo, como quem abre a caixa e acha fotos que não estavam lá | Aniversários e atalhos, em segundo plano |
 | Tudo e famílias | A assinatura ("MEMÓRIAS" e os sobrenomes) grande, e logo o ano mais recente abrindo a lista | Menu e filtros pequenos |
 | Linha do tempo | O ano grande como divisória e as fotos-chave como polaroids | A ficha de cada memória em uma linha mono |
+| Explorar, mural e modo TV | No mural, só as fotos, como a caixa aberta na mesa. No modo TV, uma memória por vez, grande, para ver junto | Filtros e ordem recolhidos numa linha |
 | Memória | A foto e o verso: a imagem grande, a ficha como carimbo, os relatos como bilhetes assinados | Corrigir, histórico |
 | Pessoa | O retrato e a voz: retrato recortado, parentesco grande ("sua avó"), os áudios dela | A lista de laços |
 | Capítulo | Abertura de capítulo de livro: título, período, marcos numerados | Edição |
@@ -65,7 +66,7 @@ O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
 
 ## Conceito (fase 1), em aprovação
 
-Construído em 16/11/2026 na branch `tst-visual`, em oito rodadas: a primeira versão e sete de ajustes que o Gui pediu ao ver cada uma. Espera a aprovação dele na prévia. A escolha das fontes continua em aberto: ele quer avaliar com as mudanças aplicadas. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
+Construído em 16/11/2026 na branch `tst-visual`, em oito rodadas: a primeira versão e sete de ajustes que o Gui pediu ao ver cada uma. Aprovado pelo Gui em 16/11/2026, com exceção das fontes. A escolha das fontes continua em aberto: espera a opinião da Giovanna e do Magno, que vão ver as combinações em `/conceito/sobre`. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
 
 **Onde está.** As telas do conceito ficam em `/conceito`, ao lado do site atual, que continua inteiro:
 
