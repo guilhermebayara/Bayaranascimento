@@ -42,6 +42,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const achar = (id: string) => integrantes.find((i) => i.id === id);
   const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 
+  /** Depois de um laço de árvore novo: algum laço resumido ficou com o caminho completo? Então avisa onde trocar. */
+  const atalhosQueSobraram = async (): Promise<string> => {
+    const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario));
+    const sobra = (await listarLacosResumidos()).find((l) => {
+      const r = familia.relacao(l.a, l.b);
+      return r && !r.consideracao;
+    });
+    return sobra ? ` Agora ${nome(sobra.b)} se liga a ${nome(sobra.a)} pelo caminho completo: na página de ${nome(sobra.a)}, dá para trocar o laço resumido por ele.` : '';
+  };
+
   /**
    * Quem entrou por um laço de árvore e ainda não tem família sai marcado como parente da família de quem
    * está do outro lado (ver lib/familias.ts). Devolve a frase que conta isso, para quem cadastrou conferir.
@@ -189,9 +199,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (acao === 'resumido-remover') {
     const laco = (await listarLacosResumidos()).find((l) => l.id === Number(campo(dados, 'id', 12)));
     if (!laco) return falhar('Laço não encontrado.');
-    if (!usuario.admin && laco.criadoPor !== usuario.pessoa) return falhar('Só quem cadastrou este laço ou os administradores podem removê-lo.');
+    // Com o caminho completo cadastrado, o atalho sobra: quem mexe nos laços de árvore dos dois pode trocá-lo
+    const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario));
+    const relacao = familia.relacao(laco.a, laco.b);
+    const completo = Boolean(relacao && !relacao.consideracao);
+    const envolvidos = [achar(laco.a), achar(laco.b)].filter((i) => i !== undefined);
+    const pode = usuario.admin || laco.criadoPor === usuario.pessoa || (completo && podeMexerEmLaco(usuario, envolvidos).ok);
+    if (!pode) return falhar('Só quem cadastrou este laço ou os administradores podem removê-lo.');
     await removerLacoResumido(laco.id, usuario);
-    return voltar(request, volta, { ok: 'Laço removido.' });
+    return voltar(request, volta, { ok: completo ? `Pronto: ${nome(laco.b)} e ${nome(laco.a)} agora se ligam pelo caminho completo.` : 'Laço removido.' });
   }
 
   if (acao === 'coracao-remover') {
@@ -226,7 +242,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await cadastrarPendente();
     await salvarFiliacao(filho.id, responsavel.id, qualidade, usuario);
     const aviso = (await sugerirFamilia(filho.id, { tipo: 'filho-de', com: responsavel.id })) || (await sugerirFamilia(responsavel.id, { tipo: 'pai-de', com: filho.id }));
-    return voltar(request, volta, { ok: `Laço salvo.${aviso}` });
+    return voltar(request, volta, { ok: `Laço salvo.${aviso}${await atalhosQueSobraram()}` });
   }
 
   if (acao === 'casal-salvar') {

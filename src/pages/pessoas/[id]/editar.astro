@@ -45,6 +45,12 @@ const meusLacos = lacosDoCoracao.filter((l) => l.dono === usuario.pessoa && (ehM
 const deFora = familiasDe(pessoa).length === 0;
 const resumidos = (await listarLacosResumidos()).filter((l) => l.a === pessoa.id || l.b === pessoa.id);
 const podeRemoverResumido = (l: { criadoPor: string | null }) => usuario.admin || l.criadoPor === usuario.pessoa;
+// Quando o caminho completo já existe pela árvore (o irmão do Ed cadastrado como pai do Caio, com os pais
+// dos dois), o atalho sobra: a página oferece a troca
+const pelaArvore = (l: { a: string; b: string }) => {
+  const r = familia.relacao(l.a, l.b);
+  return r && !r.consideracao ? r.texto : undefined;
+};
 const abas = [
   ...(podeLacos
     ? [
@@ -317,12 +323,15 @@ const anoAtual = new Date().getFullYear();
                 <div>
                   <strong>{nome(l.a === pessoa.id ? l.b : l.a)}</strong>
                   <span>{l.a === pessoa.id ? `é ${nomeDoPapel(l.papel, integrantes.find((i) => i.id === l.b)?.tratamento ?? null)} de ${chamar}` : `${chamar} é ${nomeDoPapel(l.papel, pessoa.tratamento)} de ${nome(l.a)}`}</span>
+                  {pelaArvore(l) && (
+                    <span class="dica">O caminho completo já está cadastrado: pela árvore, {nome(l.b)} é {pelaArvore(l)} de {nome(l.a)}. Este atalho não é mais preciso.</span>
+                  )}
                 </div>
-                {podeRemoverResumido(l) && (
+                {(podeRemoverResumido(l) || (pelaArvore(l) && podeLacos)) && (
                   <form method="post" action="/api/lacos" class="em-linha">
                     <input type="hidden" name="volta" value={volta} />
                     <input type="hidden" name="id" value={l.id} />
-                    <button class="botao botao--leve" type="submit" name="acao" value="resumido-remover">Remover laço</button>
+                    <button class="botao botao--leve" type="submit" name="acao" value="resumido-remover">{pelaArvore(l) ? 'Trocar pelo caminho completo' : 'Remover laço'}</button>
                   </form>
                 )}
               </li>

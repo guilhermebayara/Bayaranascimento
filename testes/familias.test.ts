@@ -93,3 +93,14 @@ describe('parente não vê o que é restrito ao núcleo', () => {
     expect(banco).toContain("UPDATE nucleo_membros SET papel = 'parente' WHERE integrante_id NOT IN");
   });
 });
+
+describe('laço resumido com o caminho completo', () => {
+  it('quando o irmão do Ed vira pai do Caio, com os pais dos dois, a árvore já diz que o Caio é sobrinho do Ed', async () => {
+    const { Familia } = await import('../src/lib/parentesco');
+    const f = (filho: string, responsavel: string) => ({ filho, responsavel, qualidade: 'biologica' as const });
+    const sem = new Familia([f('ed', 'pai-do-ed')], []);
+    expect(sem.relacao('ed', 'caio')).toBeUndefined();
+    const com = new Familia([f('ed', 'pai-do-ed'), f('irmao-do-ed', 'pai-do-ed'), f('caio', 'irmao-do-ed')], []);
+    expect(com.relacao('ed', 'caio')?.texto).toMatch(/sobrinh/);
+  });
+});
