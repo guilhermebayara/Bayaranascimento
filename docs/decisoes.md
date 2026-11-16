@@ -167,6 +167,7 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
 - **Áudios nos relatos.** Um relato pode ter vários áudios, em ordem, e uma transcrição opcional. A página da pessoa reúne os áudios em que ela fala. Os primeiros são os 12 áudios da Vó Bela, em `2_Material para o acervo/Áudios Vó` no Drive do Gui. A transcrição automática precisa rodar fora deste ambiente, que não baixa os modelos.
+- **Aviso de tamanho do banco** (decisão do Gui, 16/11/2026). No plano gratuito, cada banco D1 vai até 500 MB. O site avisa quando o banco da produção passar de 300 MB, para sobrar tempo de decidir. O tamanho só se sabe com o site rodando (o `meta.size_after` que o D1 devolve em cada consulta), então o aviso não cabe na guarda do build. Ele aparece para os administradores no site (no rodapé, junto da cópia do acervo) e vai junto na cópia mensal: `/api/copia` informa o tamanho e `scripts/copia-no-drive.gs` falha quando ele passa do limite, o que faz o Google mandar o e-mail de aviso, sem deixar de salvar a cópia. Se o limite chegar, a saída combinada é o plano Workers Paid (10 GB por banco), não dividir o acervo em dois bancos. A conta está na seção "Custo" do documento de estrutura.
 
 ## Em aberto
 
