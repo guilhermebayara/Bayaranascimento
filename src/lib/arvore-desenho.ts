@@ -374,17 +374,130 @@ export function desenharArvore(
     t.outros.push(outro);
     t.de.add(outro);
   }
+  // Fileiras e caixas, para os galhos acharem por onde passar sem cruzar ninguém
+  const fileiras = [...new Set(posicoes.map((p) => p.y))].sort((a, b) => a - b);
+  const caixasDa = new Map(fileiras.map((y) => [y, posicoes.filter((p) => p.y === y).sort((a, b) => a.x - b.x)]));
+  const casalLadoALado = (a: string, b: string) => Boolean(ehCasal(a, b)) && em.get(a)!.y === em.get(b)!.y;
+  // Quem tem filhos desenhados embaixo: o pé dessa pessoa é de onde sai a linha deles
+  const temFilhosEmbaixo = (id: string) => filiacoes.some((f) => f.responsavel === id && em.get(f.filho)!.y > em.get(id)!.y);
+  // Uma faixa logo abaixo de cada fileira, para os galhos que chegam pelo pé de alguém
+  const faixasDeBaixo = new Map<number, number>();
+  const faixaDeBaixo = (fundo: number) => {
+    const k = faixasDeBaixo.get(fundo) ?? 0;
+    faixasDeBaixo.set(fundo, k + 1);
+    // Entre 18 e 34px abaixo das caixas: mais para baixo fica a barra dos filhos
+    return fundo + 18 + (k % 3) * 8;
+  };
+  // Colunas verticais já usadas por galhos, para dois troncos não subirem pelo mesmo x
+  const colunas: { x: number; de: number; ate: number; tronco: string }[] = [];
+  /**
+   * Por onde um galho vertical pode passar em cada fileira:
+   * - atravessa: cruza a fileira, então não pode passar por cima de ninguém nem pelo vão de um casal;
+   * - acima: só corre na faixa logo acima da fileira, onde chegam as linhas dos pais pelo meio de cada caixa;
+   * - abaixo: só corre na faixa logo abaixo, de onde descem as linhas dos filhos, do meio de cada caixa e de cada casal.
+   */
+  type Passagem = { y: number; modo: 'atravessa' | 'acima' | 'abaixo' };
+  const livreEm = (x: number, passagens: Passagem[], margem: number) =>
+    passagens.every(({ y, modo }) => {
+      const cx = caixasDa.get(y)!;
+      const meios = cx.map((c) => c.x + m.largura / 2);
+      const casais = cx.flatMap((c, i) => (i + 1 < cx.length && casalLadoALado(c.id, cx[i + 1].id) ? [[c.x + m.largura, cx[i + 1].x]] : []));
+      if (modo === 'atravessa') {
+        if (cx.some((c) => x > c.x - margem && x < c.x + m.largura + margem)) return false;
+        return !casais.some(([a, b]) => x > a && x < b);
+      }
+      if (meios.some((meio) => Math.abs(x - meio) < margem)) return false;
+      return modo === 'acima' || !casais.some(([a, b]) => Math.abs(x - (a + b) / 2) < margem);
+    });
+  const desviar = (tronco: string, opcoes: number[], de: number, ate: number, passagens: Passagem[]): number => {
+    const [lo, hi] = [Math.min(de, ate), Math.max(de, ate)];
+    const cabe = (c: number) => livreEm(c, passagens, 8);
+    const ocupada = (c: number) => colunas.some((o) => o.tronco !== tronco && Math.abs(o.x - c) < 4 && o.de < hi && o.ate > lo);
+    // Galhos do mesmo tronco podem (e devem) dividir a coluna: é assim que as linhas se unem
+    const mesma = colunas.find((o) => o.tronco === tronco && Math.abs(o.x - opcoes[0]) <= 14 && cabe(o.x) && !ocupada(o.x));
+    if (mesma) return mesma.x;
+    for (const x of opcoes) {
+      for (const passo of [0, 6, -6, 10, -10, 14, -14]) {
+        if (!ocupada(x + passo) && cabe(x + passo)) {
+          colunas.push({ x: x + passo, de: lo, ate: hi, tronco });
+          return x + passo;
+        }
+      }
+    }
+    return opcoes[0];
+  };
+  const MARGEM = 14;
+  /**
+   * Os x por onde o galho pode subir, do melhor para o pior. Fica com o que não alonga o caminho entre
+   * os dois lados e, entre esses, com o mais perto do desejado.
+   */
+  const vaosLivres = (passagens: Passagem[], de: number, ate: number, desejado: number): number[] => {
+    const candidatos = [desejado, desejado - 40, desejado + 40];
+    for (const { y } of passagens) {
+      const cx = caixasDa.get(y)!;
+      candidatos.push(cx[0].x - m.vaoX / 2, cx[cx.length - 1].x + m.largura + m.vaoX / 2);
+      cx.forEach((c, i) => {
+        if (i + 1 >= cx.length) return;
+        const [a, b] = [c.x + m.largura, cx[i + 1].x];
+        candidatos.push((a + b) / 2, a + m.vaoX / 2, b - m.vaoX / 2);
+      });
+    }
+    const custo = (x: number) => Math.abs(de - x) + Math.abs(x - ate) + 0.5 * Math.abs(x - desejado);
+    const validos = candidatos.filter((x) => livreEm(x, passagens, MARGEM)).sort((a, b) => custo(a) - custo(b));
+    // As pontas das fileiras estão sempre livres; o último caso é só garantia
+    return validos.length ? validos : [Math.min(...passagens.flatMap(({ y }) => caixasDa.get(y)!.map((c) => c.x))) - m.vaoX / 2];
+  };
+
+  // A subida de cada tronco, no vão ao lado de quem escolheu, também ocupa uma coluna
+  for (const { centro, lado } of troncos.values()) {
+    const pc = em.get(centro)!;
+    const x = lado < 0 ? pc.x - m.vaoX / 2 : pc.x + m.largura + m.vaoX / 2;
+    colunas.push({ x, de: pc.y - 60, ate: pc.y + m.altura / 2, tronco: `${centro}|${lado}` });
+  }
+
   for (const { centro, lado, outros, de } of troncos.values()) {
     const pc = em.get(centro)!;
     const alto = faixa(pc.y);
     const meio = pc.y + m.altura / 2;
     const vao = lado < 0 ? pc.x - m.vaoX / 2 : pc.x + m.largura + m.vaoX / 2;
     const entrada = lado < 0 ? pc.x : pc.x + m.largura;
-    // Ponta de cada galho: o pé de quem está em cima, ou o topo de quem está na mesma fileira
-    const ponta = (id: string) => (em.get(id)!.y === pc.y ? em.get(id)!.y : em.get(id)!.y + m.altura);
-    const ordem = [...outros].sort((a, b) => Math.abs(meioX(b) - vao) - Math.abs(meioX(a) - vao));
-    const [maisLonge, ...resto] = ordem;
-    let d = arredondado([[entrada, meio], [vao, meio], [vao, alto], [meioX(maisLonge), alto], [meioX(maisLonge), ponta(maisLonge)]], R);
+    // Faixas deste tronco, uma por fileira, para os galhos que vão juntos usarem a mesma
+    const acima = new Map<number, number>();
+    const abaixo = new Map<number, number>();
+    const faixaAcima = (y: number) => acima.get(y) ?? acima.set(y, faixa(y)).get(y)!;
+    const faixaAbaixo = (y: number) => abaixo.get(y) ?? abaixo.set(y, faixaDeBaixo(y + m.altura)).get(y)!;
+    const inicio: Ponto[] = [[entrada, meio], [vao, meio], [vao, alto]];
+    /**
+     * O caminho até cada escolhido. Na mesma fileira, entra por cima. Numa fileira acima, entra pelo pé;
+     * se o pé já tem a linha dos filhos dele, contorna e entra por cima (do FigJam). Quando há fileiras no
+     * meio, sobe pelo vão livre mais próximo, sem passar por cima de ninguém.
+     */
+    const rota = (id: string): Ponto[] => {
+      const p = em.get(id)!;
+      const x = meioX(id);
+      if (p.y === pc.y) return [...inicio, [x, alto], [x, p.y]];
+      const porCima = temFilhosEmbaixo(id);
+      const noMeio = fileiras.filter((y) => y > p.y && y < pc.y);
+      // Subir reto até o pé só serve se ninguém na fileira de quem escolheu estiver bem embaixo: a linha dos
+      // pais dessa pessoa desce pela mesma coluna, e as duas correriam juntas
+      const alguemEmbaixo = caixasDa.get(pc.y)!.some((c) => Math.abs(c.x + m.largura / 2 - x) < MARGEM);
+      if (!porCima && noMeio.length === 0 && !alguemEmbaixo) return [...inicio, [x, alto], [x, p.y + m.altura]];
+      // A coluna atravessa as fileiras do meio, sai da faixa logo acima de quem escolheu e, chegando pelo pé,
+      // termina na faixa logo abaixo de quem foi escolhido: em cada uma, não pode correr junto com outra linha
+      const passagens: Passagem[] = [
+        { y: p.y, modo: porCima ? 'atravessa' : 'abaixo' },
+        ...noMeio.map((y) => ({ y, modo: 'atravessa' as const })),
+        { y: pc.y, modo: 'acima' },
+      ];
+      const ladoDoTronco = vao < x ? -1 : 1;
+      const desejado = porCima ? (ladoDoTronco < 0 ? p.x - m.vaoX / 2 : p.x + m.largura + m.vaoX / 2) : x;
+      const yv = porCima ? faixaAcima(p.y) : faixaAbaixo(p.y);
+      const xv = desviar(`${centro}|${lado}`, vaosLivres(passagens, vao, x, desejado), alto, yv, passagens);
+      return [...inicio, [xv, alto], [xv, yv], [x, yv], [x, porCima ? p.y : p.y + m.altura]];
+    };
+    // O mais longe primeiro, desenhado inteiro; os outros nascem onde se separam dele
+    const rotas = [...outros].sort((a, b) => Math.abs(meioX(b) - vao) - Math.abs(meioX(a) - vao)).map(rota);
+    let d = desenharRotas(rotas, R);
     // Se uma reta já sai dessa lateral (o par, um vizinho do coração), o tronco nasce nela, na curva,
     // em vez de repetir o primeiro trecho: dois tracejados no mesmo lugar viram linha cheia
     const saiReta = linhas.some((l) => {
@@ -394,14 +507,6 @@ export function desenharArvore(
       return lado < 0 ? ate === entrada && de < entrada : de === entrada && ate > entrada;
     });
     if (saiReta) d = d.replace(/^M \S+ \S+ L (\S+) (\S+)/, 'M $1 $2');
-    for (const id of resto) {
-      // O galho nasce na faixa, um pouco antes, e faz a curva até a pessoa
-      const x = meioX(id);
-      const y = ponta(id);
-      const r = Math.min(R, Math.abs(y - alto) / 2);
-      const sentido = y > alto ? 1 : -1;
-      d += ` M ${x - lado * r} ${alto} Q ${x} ${alto} ${x} ${alto + sentido * r} L ${x} ${y}`;
-    }
     linhas.push({ d, tipo: 'coracao', de: [...de] });
   }
 
@@ -449,6 +554,90 @@ export function arredondado(pontos: [number, number][], raio = 20): string {
   }
   const fim = p[p.length - 1];
   return p.length > 1 ? `${d} L ${fim[0]} ${fim[1]}` : d;
+}
+
+type Ponto = [number, number];
+
+/** Tira pontos repetidos e os do meio de trechos retos, para cada canto ser um canto de verdade. */
+function limpar(pontos: Ponto[]): Ponto[] {
+  const p = pontos.filter((q, i) => i === 0 || q[0] !== pontos[i - 1][0] || q[1] !== pontos[i - 1][1]);
+  return p.filter((q, i) => {
+    if (i === 0 || i === p.length - 1) return true;
+    const [a, c] = [p[i - 1], p[i + 1]];
+    return (b(a[0], q[0], c[0]) && a[1] === q[1] && q[1] === c[1]) || (b(a[1], q[1], c[1]) && a[0] === q[0] && q[0] === c[0]) ? false : true;
+  });
+  function b(x: number, y: number, z: number) {
+    return (x <= y && y <= z) || (x >= y && y >= z);
+  }
+}
+
+/**
+ * Desenha caminhos que saem do mesmo lugar como uma árvore: o primeiro inteiro, e cada outro só a partir
+ * de onde se separa de um já desenhado, com uma curva. Nenhum trecho é desenhado duas vezes, para o
+ * tracejado não virar linha cheia.
+ */
+export function desenharRotas(rotas: Ponto[][], raio = 20): string {
+  const feitas: Ponto[][] = [];
+  let d = '';
+  for (const bruta of rotas) {
+    const rota = limpar(bruta);
+    // Onde esta rota se separa da que ela mais acompanha
+    let melhor: { trecho: number; ponto: Ponto; outra: Ponto[] } | undefined;
+    for (const outra of feitas) {
+      let i = 0;
+      while (i + 1 < rota.length && i + 1 < outra.length && rota[i + 1][0] === outra[i + 1][0] && rota[i + 1][1] === outra[i + 1][1] && rota[i][0] === outra[i][0] && rota[i][1] === outra[i][1]) i++;
+      if (rota[i][0] !== outra[i][0] || rota[i][1] !== outra[i][1]) continue;
+      // Até o ponto i as duas são iguais. Se seguem na mesma direção depois dele, o trecho comum vai até o menor dos dois
+      let ponto: Ponto = rota[i];
+      let trecho = i;
+      if (i + 1 < rota.length && i + 1 < outra.length) {
+        const [a, b, c] = [rota[i], rota[i + 1], outra[i + 1]];
+        const dir = (p: Ponto, q: Ponto) => [Math.sign(q[0] - p[0]), Math.sign(q[1] - p[1])].join();
+        if (dir(a, b) === dir(a, c)) {
+          const la = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          const lc = Math.hypot(c[0] - a[0], c[1] - a[1]);
+          ponto = la <= lc ? b : c;
+          trecho = la <= lc ? i + 1 : i;
+        }
+      }
+      const andou = trecho + Math.hypot(ponto[0] - rota[trecho][0], ponto[1] - rota[trecho][1]) / 1e6;
+      if (!melhor || andou > melhor.trecho + Math.hypot(melhor.ponto[0] - rota[melhor.trecho][0], melhor.ponto[1] - rota[melhor.trecho][1]) / 1e6) melhor = { trecho, ponto, outra };
+    }
+    feitas.push(rota);
+    if (!melhor) {
+      d += ' ' + arredondado(rota, raio);
+      continue;
+    }
+    // O resto da rota depois do ponto de separação
+    const { trecho, ponto, outra } = melhor;
+    const resto = limpar([ponto, ...rota.slice(trecho + 1)]);
+    if (resto.length < 2) continue;
+    // Direção de quem chega ao ponto (o trecho comum) e de quem sai dele (o galho)
+    const antes = trecho > 0 || ponto[0] !== rota[0][0] || ponto[1] !== rota[0][1] ? (ponto === rota[trecho] && trecho > 0 ? rota[trecho - 1] : rota[trecho]) : undefined;
+    const [s, n] = [resto[0], resto[1]];
+    const comprimento = Math.hypot(n[0] - s[0], n[1] - s[1]);
+    if (!antes || (antes[0] === s[0] && antes[1] === s[1])) {
+      d += ' ' + arredondado(resto, raio);
+      continue;
+    }
+    const la = Math.hypot(s[0] - antes[0], s[1] - antes[1]);
+    const [ux, uy] = [(s[0] - antes[0]) / la, (s[1] - antes[1]) / la];
+    const [vx, vy] = [(n[0] - s[0]) / comprimento, (n[1] - s[1]) / comprimento];
+    if (Math.abs(ux - vx) < 1e-9 && Math.abs(uy - vy) < 1e-9) {
+      // Segue reto de onde a outra virou: começa onde a curva dela começa, com o raio que ela usou ali
+      const j = outra.findIndex((q) => q[0] === s[0] && q[1] === s[1]);
+      const lado = (a: Ponto, b: Ponto) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const r = j > 0 && j + 1 < outra.length ? Math.min(raio, lado(outra[j - 1], outra[j]) / 2, lado(outra[j], outra[j + 1]) / 2) : Math.min(raio, la / 2);
+      d += ' ' + arredondado([[s[0] - ux * r, s[1] - uy * r], ...resto.slice(1)], raio);
+      continue;
+    }
+    // Vira no ponto de separação: nasce um pouco antes, na linha comum, e faz a curva
+    const r = Math.min(raio, la / 2, comprimento / 2);
+    const fim: Ponto = [s[0] + vx * r, s[1] + vy * r];
+    const depois = arredondado([fim, ...resto.slice(1)], raio).replace(/^M \S+ \S+/, '');
+    d += ` M ${s[0] - ux * r} ${s[1] - uy * r} Q ${s[0]} ${s[1]} ${fim[0]} ${fim[1]}${depois}`;
+  }
+  return d.trim();
 }
 
 function circulo(x: number, y: number, r: number): string {
