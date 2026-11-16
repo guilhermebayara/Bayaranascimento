@@ -35,6 +35,7 @@ A família inclui gente com pouca familiaridade com sites, usando sobretudo o ce
 | Polaroid | Preferência: polaroid em toda foto-chave da linha do tempo. Confirmar na implementação vendo como fica na linha do tempo |
 | Linha do tempo | Lista vertical com a rolagem normal, das mais recentes para as mais antigas, sem efeito de folhear nem carrossel |
 | Página da memória | Ordem abaixo, com o convite para escrever o relato no fim |
+| Marca | O nome continua "Memórias Bayara e Bracarense". O símbolo é o monograma "uma haste": um B espelhado e um B normal dividindo o mesmo traço vertical, as duas famílias no mesmo eixo |
 
 ## Movimento
 
@@ -66,6 +67,14 @@ O Safari do iPhone já deu trabalho com efeitos presos à rolagem no site da @bs
 | Bloco de áudio | Relato | Botão de tocar, título, onde e quando foi gravado, duração, "Ler a transcrição" |
 | Sanfona de fases | Página do laço | Ano grande, nome da fase, data pequena; abre uma de cada vez |
 | Formulário em frase | Abertura da Nova memória | "Isso aconteceu em ___, em ___, com ___", sem mudar a ordem das etapas nem o que é obrigatório |
+
+## Monograma
+
+Escolhido pelo Gui em 16/11/2026 entre quatro esboços: um B espelhado encostado num B normal, dividindo a haste. Sai da serifa dos títulos, mas a junção das hastes é desenhada à mão em SVG (a fonte sozinha deixa as duas hastes lado a lado em vez de uma só).
+
+- **Uso:** ícone do site (favicon e ícone de tela inicial do celular), selo no topo ao lado do nome e no rodapé.
+- **Cor:** a versão principal é de uma cor só, no tom do texto. Na prévia, mostrar também a variação com cada metade na versão saturada da cor de uma família (Bayara à esquerda, Bracarense à direita, como na árvore), para o Gui comparar.
+- **Tamanho mínimo:** conferir a 16 px (favicon); se a junção sumir, usar uma versão com a haste mais grossa só nos tamanhos pequenos.
 
 ## Página da memória
 
