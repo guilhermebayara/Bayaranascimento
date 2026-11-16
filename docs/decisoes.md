@@ -143,6 +143,8 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 
 ## Decidido, a construir
 
+O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
+
 - **Áudios nos relatos.** Um relato pode ter vários áudios, em ordem, e uma transcrição opcional. A página da pessoa reúne os áudios em que ela fala. Os primeiros são os 12 áudios da Vó Bela, em `2_Material para o acervo/Áudios Vó` no Drive do Gui. A transcrição automática precisa rodar fora deste ambiente, que não baixa os modelos.
 
 ## Em aberto

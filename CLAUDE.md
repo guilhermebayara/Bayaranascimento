@@ -6,7 +6,10 @@ Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto) e
 
 ## Como o trabalho acontece
 
-- O Gui cria e explora o site com o Claude no chat (claude.ai, projeto "Pessoal e família"). O Claude Code roda as sessões de QA, no mesmo modelo do site da @bsurda e do bayara.design.
+- **Divisão do trabalho (decisão do Gui, 15/11/2026):**
+  - No chat (claude.ai, projeto "Pessoal e família"), o Gui discute, decide, estrutura a documentação e explora ideias. Um conceito pode virar uma branch `tst-<assunto>` de exploração, para ver numa prévia antes de decidir.
+  - O código é feito principalmente no Claude Code: tanto a construção quanto as sessões de QA, no mesmo modelo do site da @bsurda e do bayara.design.
+  - A ponte entre os dois é a documentação. O que foi decidido e ainda não existe fica em `docs/decisoes.md`, na seção "Decidido, a construir", com o detalhe necessário para uma sessão do Claude Code construir sem precisar da conversa. Quando a construção termina, o item sai dali e vira regra na seção do assunto.
 - A estrutura completa (integrantes, laços, núcleos, memórias, capítulos, visibilidade, árvore, ordem de construção) está no documento "Acervo da família: proposta de estrutura", nos Claude Docs do Gui: https://claude.ai/artifact/35pDU29F4JH1edsCYZTGAD. Ele vale junto com `docs/decisoes.md`; quando os dois discordam, pergunte.
 - A Giovanna não usa o Claude. Ela opina olhando a prévia da `formulario` e comentando numa cópia do documento de estrutura no Google Docs do Gui ("Acervo da família: proposta de estrutura (cópia para comentários)", em `1_Documentos` da pasta do projeto). Os comentários dela voltam para o documento principal pelo Gui, numa conversa com o Claude.
 - Prazo: Natal de 2026, quando o site é dado de presente. Até lá o Gui e a Giovanna alimentam o acervo, e os outros acessos são liberados no dia.
