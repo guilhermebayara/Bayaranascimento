@@ -6,14 +6,16 @@
 // Quem chama entrega só o que a pessoa pode ver: as memórias da linha do tempo dela, na ordem da
 // tela (das mais recentes para as mais antigas), e os capítulos visíveis para ela.
 //
-// PROPOSTA em avaliação (16/11/2026), para o furo que o Gui achou: pela regra de hoje, toda
-// memória que cai no período de um capítulo de época é dele, mesmo quando o capítulo é da vida de
-// uma pessoa só. A proposta separa duas coisas, e a montagem já entende as duas:
+// Época e capítulo (decisão do Gui, 16/11/2026, a partir do furo que ele achou: pela regra antiga,
+// toda memória que cai no período de um capítulo de época é dele, mesmo quando o capítulo é da vida
+// de uma pessoa só). São duas coisas, e a montagem entende as duas:
 // - a época de todos (`deTodos`), que vale para a família inteira, como a pandemia: não vira
-//   trilho, porque todo mundo está dentro; vira uma marca no começo e outra no fim;
-// - o capítulo com período e pessoas (`pessoas`): entram as memórias do período em que alguma
-//   dessas pessoas está. As outras memórias do período ficam de fora, e o trilho segue tracejado.
-// Sem `deTodos` nem `pessoas`, o capítulo de época continua valendo como hoje.
+//   trilho, porque todo mundo está dentro. É o chão da linha do tempo, com uma aba no alto e outra
+//   no fim. Duas épocas podem se sobrepor: o chão fica um tom mais fundo onde as duas valem;
+// - o capítulo com período, de pessoas (`pessoas`) ou de uma família (`familias`): entram as
+//   memórias do período em que alguma dessas pessoas está ou que são de uma dessas famílias. As
+//   outras memórias do período ficam de fora, e o trilho segue tracejado.
+// Sem `deTodos`, `pessoas` nem `familias`, o capítulo de época continua valendo como hoje.
 import { dentroDoPeriodo, formatarPeriodo, periodoDasMemorias, type Capitulo, type DataSolta } from './capitulos';
 
 export interface MemoriaDaLinha extends DataSolta {
@@ -22,11 +24,15 @@ export interface MemoriaDaLinha extends DataSolta {
   capitulos: string[];
   /** quem estava na memória: só é preciso para capítulo com período e pessoas */
   integrantes?: string[];
+  /** as famílias da memória: só é preciso para capítulo com período de uma família */
+  nucleos?: string[];
 }
 
 export type CapituloDaLinha = Pick<Capitulo, 'id' | 'titulo' | 'modo' | 'inicio' | 'fim' | 'dentroDe'> & {
   /** de quem é o capítulo de época: entram as memórias do período em que alguma dessas pessoas está */
   pessoas?: string[];
+  /** de que famílias é o capítulo de época: entram as memórias do período que são de alguma delas */
+  familias?: string[];
   /** época que vale para a família inteira: vira marca, e não trilho */
   deTodos?: boolean;
 };
@@ -72,9 +78,16 @@ export interface LinhaDaMemoria {
   fecha: string[];
   /** todos os capítulos da memória que aparecem nesta linha do tempo: o sinal de cada um nela */
   capitulos: string[];
-  /** épocas de todos cuja marca do alto vem antes desta memória, e cuja marca do fim vem depois */
+  /**
+   * épocas de todos cuja aba do alto vem antes desta memória, da de fora para a de dentro (a que
+   * vai mais longe abre primeiro), e cuja aba do fim vem depois, da de dentro para a de fora
+   */
   epocaAbre: string[];
   epocaFecha: string[];
+  /** em quantas épocas de todos a memória está: o tom do chão na altura dela */
+  epocas: number;
+  /** quantas dessas épocas já vinham da memória de cima: o tom do chão entre um ano e outro */
+  epocasDeCima: number;
 }
 
 export interface Trilhos {
@@ -109,8 +122,13 @@ export function montarTrilhos(memorias: MemoriaDaLinha[], todos: CapituloDaLinha
   for (const c of capitulos) {
     const dele = new Set<number>();
     if (c.modo === 'epoca') {
-      const dePessoas = c.pessoas?.length ? new Set(c.pessoas) : null;
-      for (const i of noPeriodo(c)) if (!dePessoas || memorias[i]!.integrantes?.some((p) => dePessoas.has(p))) dele.add(i);
+      const dePessoas = new Set(c.pessoas ?? []);
+      const deFamilias = new Set(c.familias ?? []);
+      const deTodoMundo = dePessoas.size + deFamilias.size === 0;
+      for (const i of noPeriodo(c)) {
+        const m = memorias[i]!;
+        if (deTodoMundo || m.integrantes?.some((p) => dePessoas.has(p)) || m.nucleos?.some((n) => deFamilias.has(n))) dele.add(i);
+      }
     } else {
       memorias.forEach((m, i) => m.capitulos.includes(c.id) && dele.add(i));
     }
@@ -188,8 +206,10 @@ export function montarTrilhos(memorias: MemoriaDaLinha[], todos: CapituloDaLinha
       abre: aqui.filter((p) => p.primeira === i).sort((a, b) => a.trilho - b.trilho).map((p) => p.id),
       fecha: aqui.filter((p) => p.ultima === i).sort((a, b) => b.trilho - a.trilho).map((p) => p.id),
       capitulos: aqui.filter((p) => membros.get(p.id)!.has(i)).sort((a, b) => a.trilho - b.trilho).map((p) => p.id),
-      epocaAbre: epocas.filter((e) => e.primeira === i).map((e) => e.id),
-      epocaFecha: epocas.filter((e) => e.ultima === i).map((e) => e.id),
+      epocaAbre: epocas.filter((e) => e.primeira === i).sort((a, b) => b.ultima - a.ultima || a.titulo.localeCompare(b.titulo, 'pt-BR')).map((e) => e.id),
+      epocaFecha: epocas.filter((e) => e.ultima === i).sort((a, b) => b.primeira - a.primeira || b.titulo.localeCompare(a.titulo, 'pt-BR')).map((e) => e.id),
+      epocas: epocas.filter((e) => e.primeira <= i && i <= e.ultima).length,
+      epocasDeCima: epocas.filter((e) => e.primeira < i && i <= e.ultima).length,
     };
   });
 
@@ -239,4 +259,19 @@ export function trilhosNaMarca(montagem: Trilhos, posicao: number, capitulo: str
 export function trilhosNaEpoca(montagem: Trilhos, posicao: number, marca: 'abre' | 'fecha'): (Estado | null)[] {
   if (marca === 'abre') return montagem.linhas[posicao]!.chega;
   return montagem.linhas[posicao + 1]?.chega ?? Array(montagem.quantos).fill(null);
+}
+
+/**
+ * O chão dos dois lados da aba de uma época, contado em épocas: `fora` é o lado de onde a aba
+ * aparece (antes da época, no alto; depois dela, embaixo) e `dentro` é o chão da própria época.
+ * Com duas épocas sobrepostas, o lado de dentro de uma é o de fora da outra.
+ */
+export function chaoDaEpoca(montagem: Trilhos, posicao: number, epoca: string, aba: 'abre' | 'fecha'): { fora: number; dentro: number } {
+  const linha = montagem.linhas[posicao]!;
+  if (aba === 'abre') {
+    const fora = linha.epocasDeCima + linha.epocaAbre.indexOf(epoca);
+    return { fora, dentro: fora + 1 };
+  }
+  const dentro = linha.epocas - linha.epocaFecha.indexOf(epoca);
+  return { fora: dentro - 1, dentro };
 }

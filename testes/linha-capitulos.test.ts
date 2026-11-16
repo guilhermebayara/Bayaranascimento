@@ -1,6 +1,6 @@
 // Capítulos na linha do tempo: a montagem dos trilhos, sem tela (docs/decisoes.md).
 import { describe, expect, it } from 'vitest';
-import { CABEM, capitulosNosTrilhos, comoAparece, montarTrilhos, trilhosNaEpoca, trilhosNaMarca, type CapituloDaLinha, type MemoriaDaLinha } from '../src/lib/linha-capitulos';
+import { CABEM, capitulosNosTrilhos, chaoDaEpoca, comoAparece, montarTrilhos, trilhosNaEpoca, trilhosNaMarca, type CapituloDaLinha, type MemoriaDaLinha } from '../src/lib/linha-capitulos';
 
 // A linha do tempo, das mais recentes para as mais antigas, como na tela
 const m = (id: string, ano: number, mes: number | null, capitulos: string[] = []): MemoriaDaLinha => ({ id, ano, mes, capitulos });
@@ -126,7 +126,7 @@ describe('cor de cada capítulo', () => {
 });
 
 // PROPOSTA em avaliação (16/11/2026), para o furo do capítulo de época: ver o alto de src/lib/linha-capitulos.ts
-describe('proposta: época de todos e capítulo com período e pessoas', () => {
+describe('época de todos e capítulo com período e pessoas', () => {
   const comQuem = [
     m('casamento', 2026, 11),
     m('formatura-da-gio', 2021, 12),
@@ -168,6 +168,84 @@ describe('proposta: época de todos e capítulo com período e pessoas', () => {
     expect(trilhosNaEpoca(r, 4, 'fecha')).toEqual(['preso']);
     // Antes de qualquer capítulo começar, nada passa
     expect(trilhosNaEpoca(r, 0, 'abre')).toEqual([null]);
+  });
+});
+
+describe('épocas que se sobrepõem', () => {
+  // Pedido do Gui, 16/11/2026: como fica se parte de uma época coincidir com outra? O chão fica um
+  // tom mais fundo onde as duas valem, e cada uma tem a sua aba no alto e no fim.
+  const epoca = (id: string, titulo: string, inicio: [number, number], fim: [number, number]) =>
+    cap(id, titulo, 'epoca', { inicio: { ano: inicio[0], mes: inicio[1] }, fim: { ano: fim[0], mes: fim[1] }, deTodos: true });
+  const covid = epoca('covid', 'Pandemia de COVID-19', [2020, 3], [2023, 5]);
+  const casa = epoca('casa', 'Os anos de casa', [2020, 3], [2021, 12]);
+  const r = montarTrilhos(memorias, [covid, casa]);
+  const l = (id: string) => r.linhas.find((x) => x.id === id)!;
+  const posicao = (id: string) => r.linhas.findIndex((x) => x.id === id);
+
+  it('cada memória sabe em quantas épocas está', () => {
+    expect(l('noivado').epocas).toBe(0);
+    expect(l('chico').epocas).toBe(1);
+    expect(l('formatura').epocas).toBe(2);
+    expect(l('video').epocas).toBe(2);
+    expect(l('almoco').epocas).toBe(0);
+  });
+
+  it('entre um ano e outro, o chão é o das épocas que vêm de cima e continuam', () => {
+    expect(l('chico').epocasDeCima).toBe(0);
+    // Em 2021 a pandemia já vinha de 2023; os anos de casa começam ali
+    expect(l('formatura').epocasDeCima).toBe(1);
+    expect(l('natal-20').epocasDeCima).toBe(2);
+    expect(l('almoco').epocasDeCima).toBe(0);
+  });
+
+  it('a aba do alto sai do chão de fora, e a de dentro abre sobre a de fora', () => {
+    expect(l('chico').epocaAbre).toEqual(['covid']);
+    expect(chaoDaEpoca(r, posicao('chico'), 'covid', 'abre')).toEqual({ fora: 0, dentro: 1 });
+    expect(chaoDaEpoca(r, posicao('formatura'), 'casa', 'abre')).toEqual({ fora: 1, dentro: 2 });
+  });
+
+  it('duas épocas que acabam juntas fecham da de dentro para a de fora', () => {
+    expect(l('video').epocaFecha).toEqual(['casa', 'covid']);
+    expect(chaoDaEpoca(r, posicao('video'), 'casa', 'fecha')).toEqual({ fora: 1, dentro: 2 });
+    expect(chaoDaEpoca(r, posicao('video'), 'covid', 'fecha')).toEqual({ fora: 0, dentro: 1 });
+  });
+
+  it('duas épocas que abrem juntas: a que vai mais longe abre primeiro', () => {
+    const juntas = montarTrilhos(memorias, [epoca('curta', 'Curta', [2021, 1], [2023, 5]), epoca('longa', 'Longa', [2019, 1], [2023, 5])]);
+    const chico = juntas.linhas.findIndex((x) => x.id === 'chico');
+    expect(juntas.linhas[chico]!.epocaAbre).toEqual(['longa', 'curta']);
+    expect(chaoDaEpoca(juntas, chico, 'longa', 'abre')).toEqual({ fora: 0, dentro: 1 });
+    expect(chaoDaEpoca(juntas, chico, 'curta', 'abre')).toEqual({ fora: 1, dentro: 2 });
+  });
+
+  it('uma época que acaba no meio da outra: o chão volta um tom, e não a zero', () => {
+    // Na tela, de cima para baixo: entra a de 2021 a 2026, depois a de 2019 a 2023; a primeira acaba em 2021
+    const cruzadas = montarTrilhos(memorias, [epoca('nova', 'Nova', [2021, 1], [2026, 12]), epoca('velha', 'Velha', [2019, 1], [2023, 5])]);
+    const em = (id: string) => cruzadas.linhas.find((x) => x.id === id)!;
+    expect([em('noivado').epocas, em('chico').epocas, em('dudu').epocas, em('natal-20').epocas, em('almoco').epocas]).toEqual([1, 2, 2, 1, 1]);
+    const dudu = cruzadas.linhas.findIndex((x) => x.id === 'dudu');
+    expect(chaoDaEpoca(cruzadas, dudu, 'nova', 'fecha')).toEqual({ fora: 1, dentro: 2 });
+  });
+});
+
+describe('capítulo com período, de uma família', () => {
+  // Decisão do Gui, 16/11/2026: o capítulo por período pode ser de pessoas ou de uma família
+  const comFamilia: MemoriaDaLinha[] = [
+    { ...m('a', 2022, 5), integrantes: ['x'], nucleos: ['bayara'] },
+    { ...m('b', 2021, 5), integrantes: ['y'], nucleos: ['bracarense'] },
+    { ...m('c', 2020, 5), integrantes: ['giovanna'], nucleos: [] },
+    { ...m('d', 2019, 5), integrantes: ['x'], nucleos: ['bayara', 'bracarense'] },
+  ];
+  const periodo = { inicio: { ano: 2019, mes: 1 }, fim: { ano: 2022, mes: 12 } };
+
+  it('entram as memórias do período que são da família; as outras ficam de fora, com o trilho tracejado', () => {
+    const r = montarTrilhos(comFamilia, [cap('obra', 'A obra da casa', 'epoca', { ...periodo, familias: ['bayara'] })]);
+    expect(r.linhas.map((x) => x.trilhos[0])).toEqual(['preso', 'fora', 'fora', 'preso']);
+  });
+
+  it('pode ser de pessoas e de uma família ao mesmo tempo', () => {
+    const r = montarTrilhos(comFamilia, [cap('obra', 'A obra da casa', 'epoca', { ...periodo, familias: ['bayara'], pessoas: ['giovanna'] })]);
+    expect(r.linhas.map((x) => x.trilhos[0])).toEqual(['preso', 'fora', 'preso', 'preso']);
   });
 });
 

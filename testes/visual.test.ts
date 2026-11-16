@@ -212,6 +212,28 @@ describe('conceito', () => {
     expect(topo.slice(topo.indexOf('<footer'))).not.toMatch(/lixeira|admin\/tipos|api\/copia/);
   });
 
+  it('o menu declara "Início", no computador e no celular', () => {
+    // Pedido do Gui, 16/11/2026: "Memórias" leva ao início, mas quem tem menos familiaridade não precisa adivinhar
+    const topo = Object.values(import.meta.glob<string>('../src/layouts/Visual.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
+    const menu = topo.slice(topo.indexOf('const menu = ['), topo.indexOf('const telas = ['));
+    expect(menu).toMatch(/\{ href: '\/conceito', texto: 'Início'/);
+    // As duas navegações, a do topo e a da sanfona do celular, saem da mesma lista
+    expect(topo.match(/menu\.map\(/g)).toHaveLength(2);
+  });
+
+  it('a aba da época e o chão não deixam vão: a linha da aba não tem margem', () => {
+    // Achado do Gui, 16/11/2026: com margem, o chão e os trilhos paravam entre uma aba e a seguinte
+    const css = ler('telas/linha.css');
+    for (const regra of css.matchAll(/\.epoca(?:--abre|--fecha)?(?::has\([^)]*\))?\s*\{([^}]*)\}/g)) expect(regra[1], regra[0].slice(0, 40)).not.toMatch(/margin/);
+  });
+
+  it('o destaque do capítulo ao passar o mouse só existe onde há mouse', () => {
+    const css = ler('telas/linha.css');
+    const comMouse = css.slice(css.indexOf('@media (hover: hover) and (pointer: fine)'));
+    expect(comMouse).toContain('.trilho[data-vivo]');
+    expect(css.slice(0, css.indexOf('@media (hover: hover) and (pointer: fine)'))).not.toContain('[data-vivo]');
+  });
+
   it('as telas novas não levam o CSS antigo', () => {
     const fontes = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro'], {
       query: '?raw',

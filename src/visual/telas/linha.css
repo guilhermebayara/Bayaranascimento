@@ -375,14 +375,30 @@
 }
 
 /* A época de todos: não tem trilho, porque todo mundo está dentro. É o chão: enquanto se rola por
-   dentro dela, o papel muda de tom, de ponta a ponta da tela, com o nome no alto e o começo embaixo.
-   Capítulo é linha, memória é figura, época é fundo. */
-.linha [data-na-epoca] {
-  --papel: var(--papel-recuo);
+   dentro dela, o papel muda de tom, de ponta a ponta da tela. Capítulo é linha, memória é figura,
+   época é fundo. Onde duas épocas valem ao mesmo tempo, o chão fica um tom mais fundo. */
+.linha [data-na-epoca='1'] {
+  --papel: var(--chao-1);
+}
+.linha [data-na-epoca='2'] {
+  --papel: var(--chao-2);
+}
+.linha [data-na-epoca='3'] {
+  --papel: var(--chao-3);
+}
+.linha [data-chao='1'] {
+  --chao: var(--chao-1);
+}
+.linha [data-chao='2'] {
+  --chao: var(--chao-2);
+}
+.linha [data-chao='3'] {
+  --chao: var(--chao-3);
 }
 .entrada[data-na-epoca]::before,
 .marca[data-na-epoca]::after,
-.epoca::before,
+.epoca[data-na-epoca]::before,
+.epoca__chao::before,
 .ano__passa[data-na-epoca]::before {
   content: '';
   position: absolute;
@@ -396,27 +412,67 @@
 .ano > .ano__cabeca[data-na-epoca] {
   background: var(--papel);
 }
+/* Sobre o chão de uma época, o texto suave escurece junto: continua com contraste de leitura (4,5:1) */
+.linha :is([data-na-epoca], .epoca__aba, .epoca__chao) {
+  --tinta-suave: color-mix(in srgb, var(--tinta) 72%, var(--papel));
+}
+
+/* O nome da época fica numa aba que sai do próprio chão, como a de uma divisória de fichário: no
+   alto ela sobe para fora do chão da época, e no fim desce. Assim o nome é do chão, e não da
+   memória que vem logo depois (pedido do Gui, 16/11/2026). A linha da aba não tem margem, só
+   espaço por dentro: o chão, o fio e os trilhos passam por ela sem vão. */
 .epoca {
   position: relative;
-  --papel: var(--papel-recuo);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
-.epoca--abre {
-  padding: var(--e-6) 0 var(--e-6);
-}
-.epoca--fecha {
-  padding: 0 0 var(--e-6);
-  margin-bottom: var(--e-7);
-}
-.epoca__texto {
+.epoca__aba {
   position: relative;
   z-index: 2;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 0.8em;
+  max-width: 100%;
+  margin-left: calc(-1 * var(--e-4));
+  padding: var(--e-3) var(--e-5) var(--e-3) var(--e-4);
+  --papel: var(--chao);
+  background: var(--papel);
 }
-.epoca--abre .marca__titulo {
-  font-size: var(--t-titulo-3);
+.epoca--abre {
+  padding-top: var(--e-3);
+}
+.epoca--abre .epoca__aba {
+  border-radius: 0.875rem 0.875rem 0 0;
+}
+.epoca--fecha {
+  padding-bottom: var(--e-8);
+}
+.epoca--fecha .epoca__aba {
+  border-radius: 0 0 0.875rem 0.875rem;
+  padding-block: var(--e-2) var(--e-3);
+}
+/* Entre duas abas seguidas, de épocas que acabam juntas, basta um respiro */
+.epoca--fecha:has(+ .epoca--fecha) {
+  padding-bottom: var(--e-4);
+}
+.epoca__titulo {
+  font-size: calc(1.25rem * var(--escala-serifa));
+  line-height: 1.2;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+/* Logo abaixo da aba do alto começa o chão da época, com um respiro antes da primeira memória */
+.epoca__chao {
+  position: relative;
+  align-self: stretch;
+  height: var(--e-7);
+  --papel: var(--chao);
+}
+/* As épocas que passam pelo ano, embaixo do número: só no computador, onde o ano tem a coluna dele */
+.ano__epocas {
+  display: none;
 }
 
 /* No celular cabem dois trilhos: a partir do terceiro, o capítulo aparece só pelo sinal na memória */
@@ -432,6 +488,74 @@
 }
 .linha[data-filtrando] [data-na-epoca]::before {
   display: none;
+}
+
+/* O nome do capítulo ao lado do cursor, quando o mouse passa pelo trilho dele */
+.linha {
+  position: relative;
+}
+.trilho-nome {
+  position: absolute;
+  z-index: 6;
+  translate: 0 -50%;
+  max-width: 22rem;
+  padding: 0.35rem 0.7rem;
+  border: 2px solid var(--trilho-ponto);
+  border-radius: 999px;
+  background: var(--creme);
+  color: var(--tinta);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.trilho-nome[hidden] {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  /* O trilho tem 2 px: a área que responde ao mouse é a faixa inteira dele */
+  .trilho {
+    pointer-events: auto;
+  }
+  .trilho::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(-0.5 * var(--passo) + 1px);
+    width: var(--passo);
+  }
+  .trilho,
+  .marca::before {
+    transition:
+      opacity var(--tempo-curto),
+      width var(--tempo-curto);
+  }
+  /* O capítulo aceso: o trilho inteiro engrossa e ganha a cor viva; os outros recuam */
+  .trilho[data-vivo] {
+    width: 4px;
+    margin-left: -2px;
+    background: var(--trilho-ponto);
+  }
+  .trilho[data-vivo][data-estado='fora'] {
+    background: repeating-linear-gradient(to bottom, var(--trilho-ponto) 0 4px, transparent 4px 10px);
+  }
+  .marca[data-vivo]::before {
+    border-color: var(--trilho-ponto);
+  }
+  .marca[data-vivo] .marca__titulo {
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--trilho-ponto);
+  }
+  .sinal[data-vivo] {
+    color: var(--tinta);
+    text-decoration: underline;
+    text-decoration-color: var(--trilho-ponto);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.3em;
+  }
+  .linha[data-com-capitulo-vivo] .trilho:not([data-vivo]),
+  .linha[data-com-capitulo-vivo] .marca:not([data-vivo])::before {
+    opacity: 0.35;
+  }
 }
 
 .entrada__quando {
@@ -494,11 +618,12 @@
   margin-top: var(--e-3);
 }
 @media (hover: hover) {
-  .entrada:hover .polaroid {
+  /* O trilho fica dentro da memória, mas passar o mouse por ele fala do capítulo, e não dela */
+  .entrada:hover:not(:has(.trilho:hover)) .polaroid {
     rotate: 0deg;
     translate: 0 -0.25rem;
   }
-  .entrada:hover .entrada__titulo a {
+  .entrada:hover:not(:has(.trilho:hover)) .entrada__titulo a {
     text-decoration: underline;
     text-decoration-thickness: var(--traco);
     text-underline-offset: 0.14em;
@@ -577,8 +702,37 @@
   .marca--abre::before {
     top: 1.25rem;
   }
-  .epoca--abre {
-    padding-top: var(--e-7);
+  /* No computador o ano não tem fundo: o chão da época passa por trás dele */
+  .ano > .ano__cabeca[data-na-epoca] {
+    background: none;
+  }
+  .ano__epocas {
+    display: grid;
+    gap: var(--e-1);
+    margin-top: var(--e-3);
+  }
+  .ano__epocas span::before {
+    content: '';
+    display: inline-block;
+    width: 0.75em;
+    height: 0.75em;
+    margin-right: 0.6em;
+    border-radius: 0.2em 0.2em 0 0;
+    background: currentColor;
+    opacity: 0.4;
+  }
+  .epoca__titulo {
+    font-size: var(--t-titulo-3);
+  }
+  .epoca__aba {
+    padding-inline: var(--e-5) var(--e-6);
+    margin-left: calc(-1 * var(--e-5) + 1px);
+  }
+  .epoca--fecha {
+    padding-bottom: var(--e-9);
+  }
+  .epoca--fecha:has(+ .epoca--fecha) {
+    padding-bottom: var(--e-5);
   }
   .marca--fecha::before {
     height: 0.9rem;

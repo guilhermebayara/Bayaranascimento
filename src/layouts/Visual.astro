@@ -57,7 +57,10 @@ const volta = encodeURIComponent(aqui);
 const caminho = Astro.url.pathname.replace(/\/$/, '');
 const primeiraVisita = Astro.url.searchParams.get('visita') === 'primeira';
 
+// "Memórias", no alto, leva ao início, mas o menu também diz "Início": quem tem menos familiaridade
+// com sites não precisa adivinhar (pedido do Gui, 16/11/2026)
 const menu = [
+  { href: '/conceito', texto: 'Início', atual: secao === 'painel' },
   { href: '/conceito/tudo', texto: 'Linha do tempo', atual: secao === 'linha' },
   { href: '/capitulos', texto: 'Capítulos', atual: false },
   { href: '/arvore', texto: 'Árvore', atual: false },
@@ -147,7 +150,6 @@ const telas = [
       <details class="menu">
         <summary><span>Menu</span></summary>
         <nav class="menu__lista" aria-label="Seções">
-          <a href="/conceito" aria-current={secao === 'painel' ? 'page' : undefined}>Início</a>
           {
             menu.map((item) => (
               <a href={item.href} aria-current={item.atual ? 'page' : undefined}>

@@ -12,6 +12,10 @@
   --creme-recuo: #f2e6d3;
   --papel: var(--creme);
   --papel-recuo: var(--creme-recuo);
+  /* O chão das épocas na linha do tempo: um tom por época que vale naquele trecho, até três */
+  --chao-1: var(--papel-recuo);
+  --chao-2: color-mix(in srgb, var(--papel-recuo) 93%, var(--tinta));
+  --chao-3: color-mix(in srgb, var(--papel-recuo) 87%, var(--tinta));
   --branco: #fffcf6; /* a moldura da foto e o bilhete */
   --tinta: #2b211a;
   --tinta-suave: #75665a; /* 5:1 sobre o papel */

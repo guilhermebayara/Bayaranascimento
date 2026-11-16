@@ -65,7 +65,7 @@ O que o bayara.design e a @bsurda fazem e esta revisão precisa fazer:
 
 ## Conceito (fase 1), em aprovação
 
-Construído em 16/11/2026 na branch `tst-visual`, em cinco rodadas: a primeira versão e quatro de ajustes que o Gui pediu ao ver cada uma. Espera a aprovação dele na prévia. A escolha das fontes continua em aberto: ele quer avaliar com as mudanças aplicadas. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
+Construído em 16/11/2026 na branch `tst-visual`, em seis rodadas: a primeira versão e cinco de ajustes que o Gui pediu ao ver cada uma. Espera a aprovação dele na prévia. A escolha das fontes continua em aberto: ele quer avaliar com as mudanças aplicadas. O que ele já decidiu está na tabela "Decisões"; o resto daqui é proposta.
 
 **Onde está.** As telas do conceito ficam em `/conceito`, ao lado do site atual, que continua inteiro:
 
@@ -101,18 +101,27 @@ Dá para misturar: a manuscrita e a mono de uma combinação com a serifa de out
 - **Capítulos na linha do tempo**, pelo item de `docs/decisoes.md`. A montagem dos trilhos está em `src/lib/linha-capitulos.ts`, sem tela, com teste em `testes/linha-capitulos.test.ts`. A memória presa ao capítulo tem uma parada no trilho; a de fora deixa o trilho tracejado, solução que o Gui aprovou. No alto, o trilho faz a curva até o título e o período do capítulo, que levam à página dele; embaixo, até a marca "Começo do capítulo “Natais”" (texto do Gui). Cabem dois trilhos no celular, quatro a partir de 62rem e seis a partir de 100rem. Com o filtro por tipo ligado, os trilhos saem.
 - **Cor de cada capítulo e sinal na memória** (ideia do Gui, 16/11/2026). Cada capítulo ganha uma cor: o trilho usa o tom do meio, para não disputar com as fotos, e a parada usa o tom vivo. Cada memória mostra, embaixo da ficha, o sinal dos capítulos dela: a mesma parada, na cor do capítulo, com o nome. É o que liga a memória ao trilho e, onde o trilho não cabe, o que diz de que capítulo ela é. A montagem garante que dois capítulos que convivem nunca dividem a cor (`CORES_DOS_CAPITULOS`, em `src/lib/visual.ts`).
 - **Sua conta no topo** (pelo item de `docs/decisoes.md`). O retrato e o nome de quem está logado levam à conta; no celular, só o retrato, ao lado de "Menu". "Rascunhos" saiu do menu, e a lixeira e a administração saíram do rodapé. A tela da conta é da fase 3: no conceito, `/conceito/conta` é só uma página de passagem.
+- **"Início" no menu** (pedido do Gui, 16/11/2026). "Memórias", no alto, leva ao início, e o menu também diz "Início", no computador e no celular: quem tem menos familiaridade com sites não precisa adivinhar.
 - **A carta** passa a ser assinada pelos três: Gui, Giovanna e Magno.
 - **Monograma.** No celular, o "M" do topo é a letra da serifa, provisória. O desenho em SVG é da fase 2.
 
 **Época e capítulo** (aprovado pelo Gui em 16/11/2026, a partir do furo que ele achou no capítulo de época). Pela regra antiga, toda memória que cai no período de um capítulo de época é dele, mesmo num capítulo que é só da vida da Giovanna e do Magno. A separação:
 
 - **Época** é só o que vale para a família inteira, como a pandemia ou os anos 90.
-- **Capítulo** é a história de alguém. Pode ser montado à mão, como hoje, ou por período e pessoas: entram sozinhas as memórias do período em que alguma dessas pessoas está. As outras memórias do período ficam de fora, e o trilho segue tracejado.
+- **Capítulo** é a história de alguém. Pode ser montado à mão, como hoje, ou por período, de pessoas ou de uma família (um capítulo da gravidez, do casal, por exemplo): entram sozinhas as memórias do período em que alguma dessas pessoas está ou que são dessa família. As outras memórias do período ficam de fora, e o trilho segue tracejado.
 - "Capítulo de época" deixa de existir como nome: ou é uma época, de todos, ou é um capítulo, de alguém.
 
-No conceito, de quem é cada capítulo de época é fixo na página, porque o banco ainda não guarda isso: "A infância da Giovanna" é da Giovanna, e "Os anos 90" e "Os anos de casa" são épocas de todos. A montagem já entende os dois casos (`pessoas` e `deTodos`), com teste. O que falta para valer no site está em `docs/decisoes.md`, "Decidido, a construir".
+No conceito, de quem é cada capítulo de época é fixo na página, porque o banco ainda não guarda isso: "A infância da Giovanna" é da Giovanna, e "Os anos 90" e "Os anos de casa" são épocas de todos. A montagem já entende os casos (`pessoas`, `familias` e `deTodos`), com teste. O que falta para valer no site está em `docs/decisoes.md`, "Decidido, a construir".
 
-**A época na linha do tempo** (proposta, na segunda tentativa). A primeira era uma linha atravessando a página no começo e no fim da época, e o Gui não gostou. Agora a época é o chão: enquanto se rola por dentro dela, o papel muda de tom de ponta a ponta da tela, com o nome e o período no alto e "Começo da época “Os anos de casa”" embaixo. Assim cada coisa tem a sua forma: a época é fundo, o capítulo é linha e a memória é figura.
+**A época na linha do tempo** (terceira versão; o Gui disse que o chão funciona e pediu os ajustes desta). A época é o chão: enquanto se rola por dentro dela, o papel muda de tom de ponta a ponta da tela. Assim cada coisa tem a sua forma: a época é fundo, o capítulo é linha e a memória é figura.
+
+- **O nome fica numa aba que sai do próprio chão**, como a de uma divisória de fichário: no alto, a aba sobe para fora do chão da época, com "Época", o nome e o período; no fim, desce, com "Começo da época “Os anos de casa”". Antes o nome ficava logo acima da primeira memória e parecia título dela.
+- **Sem vão.** A linha da aba não tem margem, só espaço por dentro: o chão, o fio do tempo e os trilhos passam por ela inteiros (teste em `testes/visual.test.ts`).
+- **Épocas que se sobrepõem.** Onde duas valem ao mesmo tempo, o chão fica um tom mais fundo (até três tons, `--chao-1` a `--chao-3`), e cada época tem a sua aba, na cor do chão dela: a de dentro abre sobre o chão da de fora. Quando acabam juntas, fecha primeiro a de dentro. A conta é da montagem (`epocas`, `epocasDeCima` e `chaoDaEpoca`), com teste para épocas uma dentro da outra, que abrem juntas e que se cruzam. O texto suave escurece junto com o chão, para continuar em 4,5:1.
+- **No computador, o ano diz as épocas que passam por ele**, embaixo do número: no meio de uma época longa, a aba com o nome já ficou para trás. No celular o ano parado no alto acompanha o tom do chão da memória em leitura.
+- O acervo de exemplo só tem épocas que não se cruzam. Para ver a sobreposição, o Gui criou "Pandemia de COVID-19" no banco das prévias; no banco local, a mesma época foi criada à mão para as capturas.
+
+**Destaque do capítulo com o mouse** (pedido do Gui, 16/11/2026: no computador, capítulo longo precisa ser fácil de identificar). Passar o mouse por um trilho acende o capítulo inteiro, do começo ao fim, na cor viva dele, recua os outros trilhos e mostra ao lado do cursor o nome e o período. O sinal desse capítulo em cada memória fica sublinhado. O foco do teclado no título do capítulo faz o mesmo. Só existe onde há mouse (`(hover: hover) and (pointer: fine)`); no celular, o sinal em cada memória já diz o capítulo.
 
 **A hierarquia das linhas** (pedido do Gui, 16/11/2026: os trilhos dos capítulos apareciam mais que a linha do tempo). O fio do tempo é a linha principal: mais firme, contínuo do primeiro ao último ano, com um ponto em cada memória. Os trilhos dos capítulos ficam à esquerda dele, mais finos e mais claros, com a parada menor.
 

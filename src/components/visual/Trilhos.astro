@@ -5,13 +5,19 @@
 // capítulo está escrito na marca do alto do trilho e no sinal de cada memória.
 interface Props {
   estados: (string | null)[];
-  /** o estilo com a cor do capítulo de cada trilho, na mesma ordem */
-  cores?: (string | null)[];
+  /** o capítulo que passa por cada trilho aqui, na mesma ordem: a cor dele e o id, para o destaque */
+  capitulos?: ({ id: string; estilo: string } | null)[];
 }
 
-const { estados, cores = [] } = Astro.props;
+const { estados, capitulos = [] } = Astro.props;
 ---
 
 <span class="trilhos" aria-hidden="true">
-  {estados.map((estado, n) => estado && estado !== 'ponta' && <i class="trilho" data-n={n} data-estado={estado} style={`--n: ${n}; ${cores[n] ?? ''}`} />)}
+  {
+    estados.map(
+      (estado, n) =>
+        estado &&
+        estado !== 'ponta' && <i class="trilho" data-n={n} data-estado={estado} data-capitulo={capitulos[n]?.id} style={`--n: ${n}; ${capitulos[n]?.estilo ?? ''}`} />,
+    )
+  }
 </span>
