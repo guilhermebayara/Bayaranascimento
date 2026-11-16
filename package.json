@@ -9,7 +9,8 @@
     "prebuild": "npm run confere && npm test",
     "build": "astro build",
     "preview": "astro preview",
-    "test": "vitest run testes"
+    "test": "vitest run testes",
+    "capturas": "node scripts/capturas.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.8",
