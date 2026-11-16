@@ -183,7 +183,7 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
 - **Revisão visual do zero** (decisões do Gui, 16/11/2026). Refazer toda a aparência do site seguindo `docs/visual.md`, sem adaptar o CSS atual. Ficam as fundações listadas lá ("O que fica"). A régua é o bayara.design e o site da @bsurda. Branch `tst-visual`, nascida da `homologa`. Em fases, cada uma conferida em 390, 1280 e 1920 px, por teclado e com movimento reduzido:
-    1. **Conceito.** Três telas de ponta a ponta com o acervo de exemplo: a linha do tempo (Tudo), uma memória e uma tela do cadastro guiado. CSS novo, escrito do zero numa pasta própria. Para as fontes, duas ou três combinações de licença livre (Fontsource) para o Gui escolher; a serifa precisa ter acentos e itálico bons em português. Parar aqui e esperar a aprovação do Gui na prévia.
+    1. **Conceito.** Três telas de ponta a ponta com o acervo de exemplo: o painel pessoal (primeira visita com a carta e uma visita seguinte), a linha do tempo (Tudo) e uma memória. O cadastro guiado fica para a fase 3. CSS novo, escrito do zero numa pasta própria. Para as fontes, duas ou três combinações de licença livre (Fontsource) para o Gui escolher; a serifa precisa ter acentos e itálico bons em português. Parar aqui e esperar a aprovação do Gui na prévia.
     2. **Sistema.** Com a direção aprovada, tokens e componentes viram sistema (os de `docs/visual.md`, incluindo o monograma com o M de Memórias e a assinatura com os sobrenomes).
     3. **Todas as telas,** uma a uma, sem levar nada do CSS antigo, até `src/styles/global.css` poder ser apagado. A árvore muda só de aparência; os testes dela continuam passando sem mudança.
     4. **Movimento e detalhes,** por último, só os de `docs/visual.md`.
@@ -197,6 +197,14 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - Aparece na página da pessoa, em "Quem estava" na memória e na ficha que abre ao tocar na pessoa na árvore. Os cartões da árvore continuam sem foto. Sem retrato, as iniciais sobre a cor da família.
     - O espelho da produção não leva retratos, como não leva áudios. Os exemplos podem ganhar retratos de exemplo, se ajudar a conferir o visual.
     - Teste em `testes/`: quem pode pôr e trocar o retrato, e que o retrato de quem a pessoa não vê não é entregue.
+- **Painel pessoal como página inicial** (ideia do Gui de 15/11/2026, decisões de 16/11/2026). A parte funcional pode ser construída antes da revisão visual, numa branch própria e com a aparência mínima, como a foto de retrato. A tela final é desenhada no conceito da revisão.
+    - O painel substitui a linha do tempo como página inicial (`/`). A linha do tempo continua inteira no seu endereço e no menu.
+    - **Primeira visita:** abre com uma carta de Natal escrita pelo Gui e pela Giovanna, com o nome da pessoa na saudação e assinada à mão. Depois da primeira visita, a carta sai do alto e fica num link discreto no painel ("Carta de Natal"). O texto é escrito pelos administradores no próprio site e fica no banco, nunca no repositório. Uma migração nova guarda a carta e, para cada pessoa com acesso, a data da primeira e da última visita.
+    - **Visitas seguintes, nesta ordem:** o que entrou de novo desde a última visita (memórias e relatos que a pessoa pode ver); os aniversários dos próximos 30 dias; a pessoa no acervo ("Você aparece em N memórias", levando à página dela, e a árvore partindo dela); uma memória em que ela aparece e ainda não contou nada, para escrever o primeiro relato; e o caminho para a linha do tempo inteira.
+    - **Aniversários:** só de quem está vivo e de quem a pessoa vê no acervo, com o parentesco do ponto de vista dela ("sua avó") e a idade que vai fazer quando o ano de nascimento é conhecido. Quem tem só ano, sem mês e dia, não entra.
+    - Quem entra com acesso mas não tem página no acervo vê o painel sem a parte "Você aparece".
+    - Na homologação e nas prévias, o "Ver como" mostra o painel daquela pessoa, e um botão volta a pessoa à primeira visita, para conferir a carta.
+    - Testes em `testes/`: o que entrou de novo e os aniversários respeitam a visibilidade; quem faleceu não aparece nos aniversários; a carta aparece só na primeira visita.
 - **Assinatura do nome** (decisões do Gui, 16/11/2026), construída dentro da revisão visual, na fase 2. Detalhe em `docs/visual.md` ("Assinatura do nome") e no rascunho `docs/visual/assinatura-hierarquia.png`.
     - "MEMÓRIAS" grande e fixo; abaixo, os sobrenomes das famílias do que está sendo visto ("Bayara & Bracarense" em "Tudo" e no núcleo Bayara Bracarense, "Bayara" no núcleo Bayara, "Bracarense" no núcleo Bracarense).
     - Uma migração nova dá a cada núcleo as famílias de que ele é feito (sobrenomes), editáveis pelos administradores. A linha junta os sobrenomes sem repetir, na ordem dos lados da árvore, com "&" antes do último. Teste em `testes/` para as combinações, incluindo uma terceira família.
@@ -208,7 +216,6 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
 - Juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
 - Árvore: regras de ocultar e de exigir parentes de sangue, centros padrão escolhidos na administração e página do laço com linha do tempo
 - Quem só existe em laço privado de outra pessoa já some da árvore, mas ainda aparece na lista de Pessoas
-- Painel pessoal como página inicial, com as boas-vindas de Natal na primeira visita. Aniversários entram no painel, a partir das datas de nascimento (ideia do Gui, 15/11/2026)
 - Círculo e avisos
 - Fotos enviadas em um formulário abandonado ficam no bucket sem uso: falta uma limpeza periódica
 
