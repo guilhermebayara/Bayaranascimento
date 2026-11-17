@@ -452,7 +452,7 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 - O modo TV também passa sem recarregar, com a troca dele (abaixo). Entrar e sair do modo TV e o "ao acaso" continuam sendo navegação comum.
 - **Um limite para o Gui saber:** no meio da página os controles ficam lá em cima, fora da tela, porque nada fica preso no alto além da faixa de décadas e do ano. Ali, a troca que acontece na prática é a do voltar e do avançar. Trazer os controles para perto (um botão "Filtros" parado no alto, por exemplo) é uma peça presa nova, que pede decisão e conferência no iPhone.
 
-**Família com mais de uma escolha** (decisão do Gui, 16/11/2026). No controle "Família", cada toque liga ou desliga só aquela família (`alternarFamilia`), e "Família completa" desliga todas. Com duas marcadas entram as memórias de qualquer uma delas, sempre só o que a pessoa vê, e a assinatura do topo e do rodapé junta os sobrenomes ("Bayara & Bracarense").
+**Família com mais de uma escolha** (decisão do Gui, 16/11/2026). No controle "Família", cada opção tem a caixa de marcar dela, como num formulário, para ficar claro que dá para marcar várias (17/11/2026: com a escolha múltipla, o formato de links sublinhados deixou de servir). Cada toque liga ou desliga só aquela família (`alternarFamilia`), "Família completa" desliga todas, e marcar todas volta sozinho à família completa. Com duas marcadas entram as memórias de qualquer uma delas, sempre só o que a pessoa vê, e a assinatura do topo e do rodapé junta os sobrenomes ("Bayara & Bracarense").
 
 **Linha do tempo.** A do conceito, sem mudança de desenho. Os trilhos, as épocas e a faixa de décadas só aparecem quando `mostraTrilhos` deixa. Em "Mais antigas primeiro", a página leva ao presente e o trilho acaba, embaixo, em "Fim do capítulo “Natais”" e "Fim da época “…”" (texto novo, para o Gui confirmar). Em "Entraram por último" e "Mais contadas", a lista é corrida, sem a divisória dos anos, e cada memória traz a data inteira.
 
@@ -468,21 +468,25 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 
 **Modo TV.** Uma memória por página, na tela inteira, sem o topo e o rodapé do site: a cor do tipo de momento no fundo, a foto inteira com margem de ampliação, o carimbo, o título, um trecho do relato assinado à mão e quem estava. "Anterior" e "Próxima" são links, com o foco já em "Próxima" (no controle da TV, o botão do meio passa); as setas do teclado passam, o Esc sai e tocar na foto passa para a seguinte. A troca esmaece pela transição entre páginas do navegador, só para quem não pediu menos movimento: com movimento reduzido, a troca é sem animação. A memória da vez vai no endereço (`m`).
 
-**O movimento do modo TV, três versões para o Gui escolher** (regra em "O modo TV é o lugar de experimentar", acima). Nas prévias de teste e no computador, uma faixa no alto do modo TV troca a versão; em qualquer ambiente, `mov=a`, `mov=b` ou `mov=c` no endereço faz o mesmo. Enquanto não houver escolha, vale a A. As regras estão em `telas/explorar.css` e a lista em `MOVIMENTOS`, em `src/lib/explorar.ts`.
+**O palco do modo TV** (decisões do Gui, 17/11/2026, depois de ver a primeira versão, com uma foto só e sem corte: a TV é superfície grande).
 
-| | Passagem | A foto na tela | Título e trecho |
+- **A foto é uma foto revelada**, como no resto do site, grande, com o lugar e o ano na margem.
+- **As outras fotos da memória** ficam em volta da principal, até quatro, menores e um pouco tortas, cada uma com a legenda dela. No celular elas ficam atrás, aparecendo pelas bordas. A primeira versão mostrava só a foto-chave por escolha de desenho, uma memória e uma foto por tela, e não por desempenho.
+- **Os controles numa linha só:** "Anterior", "Próxima" e "Passar sozinho", que depois de ligado vira "Pausar" e "Retomar" no mesmo lugar. O tempo (8, 10 ou 15 segundos), "Parar de passar sozinho" e a animação moram em "Ajustes", que abre no lugar. A versão anterior punha tudo isso escrito na tela.
+
+**A animação do modo TV, três para quem está vendo escolher** (regra em "O modo TV é o lugar de experimentar", acima; decisão do Gui, 17/11/2026: a escolha fica com as pessoas, em "Ajustes", sem fechar numa só). No endereço, `mov=a`, `mov=b` ou `mov=c`; sem ele, vale a primeira. As regras estão em `telas/explorar.css` e a lista em `MOVIMENTOS`, em `src/lib/explorar.ts`.
+
+| | Passagem | As outras fotos | Título e trecho |
 | --- | --- | --- | --- |
-| A, Álbum | A foto chega de lado, como quem passa a página; ao voltar, chega pelo outro lado | Aproxima devagar | Sobem linha a linha: carimbo, título, trecho e o resto |
-| B, Revelação | A foto aparece clara e sem cor e vai se revelando, em dois segundos e meio | Aproxima devagar | Surgem depois da foto, um de cada vez, sem deslocamento |
-| C, Mesa | A foto cai na mesa, um pouco torta, e assenta | Aproxima devagar | Entram juntos, de uma vez, logo depois da foto |
+| Álbum | A foto atravessa a tela de lado, girando um pouco, como quem passa a página; ao voltar, vem pelo outro lado | Aparecem em volta, uma depois da outra | Sobem linha a linha |
+| Revelação | A foto aparece clara e sem cor e vai se revelando, em três segundos e meio | Revelam-se depois, uma a uma | Surgem depois das fotos, sem deslocamento |
+| Mesa | A foto é jogada na mesa, de perto e torta, e assenta | Caem em volta, uma a uma | Entram juntos, logo depois |
 
-Nas três, o fundo passa de uma cor à outra.
-
-**O modo TV passa sem recarregar** (correção do Gui, 17/11/2026: com a página recarregando a cada memória, as animações acabavam antes de a foto chegar e quase não se viam). A página da memória de antes e a de depois são buscadas enquanto a atual está na tela, com as fotos; ao passar, o palco é trocado com a foto pronta, e é aí que o movimento começa. Nada espera uma animação acabar: a seta no meio de uma chegada troca na hora (medido: de 40 a 120 ms). Passar de memória não enche o histórico: o voltar do navegador sai do modo TV de uma vez. Escolher o tempo, pausar e parar o "Passar sozinho" também não recarregam. Sem script, "Anterior" e "Próxima" continuam sendo links. Com movimento reduzido, nada disso roda. Depois da escolha, as outras duas versões e a faixa saem.
+Nas três, o fundo passa de uma cor à outra e as fotos se aproximam devagar enquanto a memória está na tela. **A animação só começa com as fotos prontas** (`data-pronta`): na primeira versão ela começava ao carregar a página e acabava antes de a foto chegar, e a foto aparecia como um quadrado pequeno que crescia. Agora cada foto do palco que chega é trocada pela foto já aberta, do tamanho certo desde o primeiro desenho. Trocar de animação em "Ajustes" mostra a chegada de novo, para a pessoa ver o que escolheu. Com movimento reduzido, nada disso roda.
 
 **Passar sozinho** (decisão do Gui, 17/11/2026). Quem está vendo escolhe o tempo de cada memória, entre 8, 10 e 15 segundos (`TEMPOS_DE_PASSAR`, em `src/lib/explorar.ts`), e pode pausar e retomar a qualquer momento.
 
-- O grupo "Passar sozinho" fica abaixo de "Anterior" e "Próxima", com os três tempos. Escolher um liga; o tempo em uso fica marcado. Ligado, aparecem "Pausar" (que vira "Retomar") e "Parar de passar sozinho".
+- "Passar sozinho" fica na linha de "Anterior" e "Próxima": um toque liga em 10 segundos, e no mesmo lugar ficam "Pausar" e "Retomar". Os três tempos e "Parar de passar sozinho" estão em "Ajustes".
 - A escolha fica no endereço, como os filtros: `passar` leva os segundos e `pausa=1`, a pausa. Tempo fora da lista vale 10, o padrão. O estado segue de uma memória para a outra: quem pausou e passa à mão continua pausado.
 - Pausar não recarrega a página; retomar conta o tempo de novo, inteiro. Com a aba escondida, espera. Ligado, a última memória volta à primeira.
 - Só existe com script: sem ele, o grupo nem aparece, e "Anterior" e "Próxima" continuam funcionando.

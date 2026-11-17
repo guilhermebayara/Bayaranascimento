@@ -358,8 +358,18 @@ describe('conceito', () => {
     // Toda animação do palco fica dentro de "sem pedido de menos movimento"; fora, só as definições
     const antes = css.slice(0, css.indexOf('@media (prefers-reduced-motion: no-preference)'));
     expect(antes).not.toMatch(/animation(-delay)?:/);
-    // A faixa de escolher só aparece nas prévias
-    expect(tela('pages/explorar.astro')).toMatch(/movimentos=\{forma === 'tv' && daVez && semLogin\(\) \?/);
+    // A escolha da animação fica com quem está vendo, em "Ajustes", em qualquer ambiente (decisão
+    // do Gui, 17/11/2026), e trocar a animação mostra de novo a chegada
+    expect(tela('pages/explorar.astro')).toMatch(/movimentos=\{forma === 'tv' && daVez \? MOVIMENTOS\.map/);
+    expect(palco).toMatch(/<details class="palco__ajustes" data-palco-ajustes>/);
+    expect(palco).toMatch(/aria-current=\{m\.id === movimento \? 'true' : undefined\} data-palco-movimento/);
+    // A animação só começa com as fotos prontas, na chegada pela página e em cada passagem
+    expect(css).toMatch(/\.palco\[data-espera\] \.palco__fotos\s*\{\s*visibility:\s*hidden/);
+    for (const regra of css.matchAll(/([^{}]*)\{[^{}]*animation:\s*palco-[^{}]*\}/g)) expect(regra[1], regra[1]).toContain('[data-pronta]');
+    expect(palco).toMatch(/primeiro\.setAttribute\('data-pronta', ''\);\s*primeiro\.removeAttribute\('data-espera'\);/);
+    // A foto é uma foto revelada, e as outras fotos da memória ficam em volta dela
+    expect(palco).toMatch(/<a class="palco__principal"[^>]*>\s*<Polaroid id=\{memoria\.id\}/);
+    expect(palco).toMatch(/emVolta\.map\(\(foto, n\) => \(\s*<div class="palco__extra"/);
   });
 
   it('no mural, quem está vendo escolhe o tamanho das fotos, e a escolha fica no endereço', () => {

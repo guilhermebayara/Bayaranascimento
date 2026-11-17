@@ -81,7 +81,9 @@ const grupos = [
         <p class="controle__nome rotulo suave" id="controle-familia">
           Família
         </p>
-        <nav class="linha__opcoes" aria-labelledby="controle-familia">
+        {/* A família aceita mais de uma: cada opção tem a caixa de marcar dela, e "Família completa"
+            é todas. Marcar as três volta sozinho à família completa. */}
+        <nav class="linha__opcoes linha__opcoes--marcar" aria-labelledby="controle-familia">
           <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma, doMural)} data-opcao="" aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
             Família completa
           </a>

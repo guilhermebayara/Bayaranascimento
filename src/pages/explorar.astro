@@ -15,7 +15,6 @@ import Linha from '../components/explorar/Linha.astro';
 import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
 import { SEM_FILTRO, TEMPOS_DE_PASSAR, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, movimentoNoEndereco, passarNoEndereco, resumoDosFiltros, sortear, temFiltro, vizinhasNaLista, type Passar } from '../lib/explorar';
-import { semLogin } from '../lib/servidor/acesso';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
@@ -105,7 +104,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
         nomes={daVez?.integrantes.map(nomeDe).filter((n): n is string => Boolean(n))}
         posicao={forma === 'tv' && vizinhas ? `${vizinhas.posicao + 1} de ${publicadas.length}` : undefined}
         movimento={movimento}
-        movimentos={forma === 'tv' && daVez && semLogin() ? MOVIMENTOS.map((m) => ({ ...m, href: naTv(daVez.id, passar, m.id)! })) : undefined}
+        movimentos={forma === 'tv' && daVez ? MOVIMENTOS.map((m) => ({ ...m, href: naTv(daVez.id, passar, m.id)! })) : undefined}
         antes={naTv(vizinhas?.antes?.id)}
         depois={forma === 'tv' ? naTv(seguinte?.id) : publicadas.length > 1 && daVez ? enderecoDoExplorar(filtros, 'acaso', { outra: daVez.id }) : undefined}
         sair={voltar}
@@ -118,7 +117,6 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
               }
             : undefined
         }
-        fotoSeguinte={seguinte?.fotos[0] ? `/fotos/${seguinte.fotos[0].chave}` : undefined}
         limpar={limpar ?? voltar}
       />
     )

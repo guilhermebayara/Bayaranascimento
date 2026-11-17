@@ -233,6 +233,9 @@ describe('formas de ver e endereço', async () => {
     expect(alternarFamilia(['bayara', 'bracarense'], 'bayara', todas)).toEqual(['bracarense']);
     expect(alternarFamilia(['bracarense'], 'bracarense', todas)).toEqual([]);
     expect(alternarFamilia([], 'desconhecida', todas)).toEqual([]);
+    // Marcar todas é a família completa: o filtro desliga sozinho (decisão do Gui, 17/11/2026)
+    expect(alternarFamilia(['bayara', 'bracarense'], 'bayara-bracarense', todas)).toEqual([]);
+    expect(alternarFamilia(['bayara'], 'bracarense', ['bayara', 'bracarense'])).toEqual([]);
     // No endereço, as duas
     expect(enderecoDoExplorar({ ...SEM_FILTRO, familias: ['bayara', 'bracarense'] })).toBe('/explorar?nucleo=bayara&nucleo=bracarense');
   });

@@ -253,12 +253,15 @@ export function anoMaisProximo(anos: number[], alvo: number): number | undefined
  */
 export function alternarFamilia(marcadas: string[], id: string, todas: string[]): string[] {
   const novas = marcadas.includes(id) ? marcadas.filter((f) => f !== id) : [...marcadas, id];
-  return todas.filter((f) => novas.includes(f));
+  const naOrdem = todas.filter((f) => novas.includes(f));
+  // Marcar todas é a família completa: o filtro desliga sozinho (decisão do Gui, 17/11/2026)
+  return naOrdem.length === todas.length ? [] : naOrdem;
 }
 
 /**
- * O movimento do modo TV (docs/visual.md, "O modo TV é o lugar de experimentar"): três versões para
- * o Gui escolher, trocáveis pela faixa do alto da prévia. No endereço, `mov`; sem ele, a primeira.
+ * A animação do modo TV (docs/visual.md, "O modo TV é o lugar de experimentar"): três, para quem
+ * está vendo escolher em "Ajustes" (decisão do Gui, 17/11/2026: a escolha fica com as pessoas, sem
+ * fechar numa só). No endereço, `mov`; sem ele, a primeira.
  */
 export const MOVIMENTOS = [
   { id: 'a', nome: 'Álbum' },

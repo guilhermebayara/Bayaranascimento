@@ -61,6 +61,32 @@
   text-underline-offset: 0.4em;
 }
 
+/* A família aceita mais de uma escolha: cada opção leva a caixa de marcar dela, como num formulário,
+   para ficar claro que dá para marcar várias. "Família completa" é todas. */
+.linha__opcoes--marcar a {
+  gap: 0.6em;
+}
+.linha__opcoes--marcar a::before {
+  content: '';
+  flex: none;
+  box-sizing: border-box;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: var(--traco) solid currentColor;
+  border-radius: 0.2rem;
+}
+.linha__opcoes--marcar a[aria-current] {
+  text-decoration: none;
+}
+.linha__opcoes--marcar a[aria-current]::before {
+  border-color: var(--tinta);
+  background:
+    linear-gradient(var(--papel), var(--papel)) center / 0.5rem 0.5rem no-repeat,
+    var(--tinta);
+  background: var(--tinta);
+  box-shadow: inset 0 0 0 0.2rem var(--papel);
+}
+
 /* Os filtros e a ordem: fechado, o controle diz o que está ligado; aberto, o formulário aparece logo
    abaixo dele, no mesmo lugar, empurrando a página. O controle não muda de lugar ao abrir. */
 .filtros summary {
