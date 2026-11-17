@@ -2,9 +2,10 @@
 // importa este arquivo e mais nada de estilo; cada tela soma o CSS dela, de src/visual/telas/.
 // Nada aqui vem de src/styles/global.css.
 //
-// As três combinações de fontes entram juntas enquanto a escolha não sai: o navegador só baixa
-// os arquivos das fontes que a página usa. Depois da escolha, as outras duas saem daqui e de
-// fontes.css. Qual está em uso é uma linha: FONTES_DO_SITE, em src/lib/visual.ts.
+// As três combinações de fontes entram juntas: o site usa a C (decisão do Gui, 17/11/2026), e a
+// página do sistema troca as fontes dos exemplos dela entre as três, para comparar. O navegador só
+// baixa os arquivos das fontes que a página usa. Qual está em uso é uma linha: FONTES_DO_SITE, em
+// src/lib/visual.ts.
 
 // A · Macia
 import '@fontsource-variable/fraunces/full.css';

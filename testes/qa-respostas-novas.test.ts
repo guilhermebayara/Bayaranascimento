@@ -64,9 +64,14 @@ describe('laços', () => {
     expect(editar).not.toContain('rotulo="Como estão hoje?" opcoes={fases}');
     expect(editar.match(/rotulo="Como estão hoje\?" opcoes=\{fasesDeHoje\}/g)?.length).toBe(2);
   });
-  it('47-N11: "Adicionar outro laço" desce um degrau abaixo de "Laços"', () => {
+  it('47-N11 e a decisão seguinte: "Adicionar outro laço" fica no tamanho das ações do formulário, sem parecer título', () => {
     expect(editar).toContain('<h3 class="casal__titulo">{temLacos ? \'Adicionar outro laço\' : \'Adicionar laço\'}</h3>');
-    expect(css).toMatch(/\.pagina-de-formulario \.novo-laco > \.casal__titulo \{\s*font-size: var\(--t-abertura\);/);
+    const regra = /\.pagina-de-formulario \.novo-laco > \.casal__titulo \{([^}]*)\}/.exec(css)?.[1] ?? '';
+    // O mesmo corpo, peso e família do botão (.botao, em base.css)
+    expect(regra).toMatch(/font-family: var\(--grotesca\);/);
+    expect(regra).toMatch(/font-weight: 550;/);
+    expect(regra).toMatch(/font-size: var\(--t-corpo\);/);
+    expect(ler('src/visual/base.css')).toMatch(/\.botao \{[^}]*font: 550 var\(--t-corpo\) \/ 1\.2 var\(--grotesca\);/);
     // "Laços" continua no degrau de cima
     expect(css).toMatch(/\.pagina-de-formulario \.painel > h2 \{[^}]*font-size: var\(--t-titulo-3\);/);
   });

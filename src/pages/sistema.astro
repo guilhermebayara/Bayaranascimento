@@ -30,18 +30,25 @@ import SinalDoCapitulo from '../components/visual/SinalDoCapitulo.astro';
 import Vazio from '../components/visual/Vazio.astro';
 import ZonaDePerigo from '../components/visual/ZonaDePerigo.astro';
 import { temAcervoDeExemplo } from '../lib/servidor/ambiente';
-import { fontesDoPedido, naoEncontrado } from '../lib/servidor/conceito';
+import { conceitoDisponivel, fontesDoPedido, naoEncontrado } from '../lib/servidor/conceito';
 import { listarMemorias, listarNucleos } from '../lib/servidor/repositorio';
 import tokens from '../visual/tokens.css?raw';
 import { contraste, coresDosTokens, neutroDosTokens } from '../lib/contraste';
 import { RABISCOS } from '../visual/rabiscos';
-import { COMBINACOES_DE_FONTES, CORES, CORES_NOVAS, NOMES_DAS_CORES, PALETA, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, combinacaoDe, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../lib/visual';
+import { COMBINACOES_DE_FONTES, CORES, CORES_NOVAS, NOMES_DAS_CORES, PALETA, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, atributosDasFontes, combinacao, combinacaoDe, combinacaoValida, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../lib/visual';
 
 const { usuario, tipos } = Astro.locals;
 const comExemplos = temAcervoDeExemplo();
 if (!comExemplos && !usuario.admin) return naoEncontrado();
 
 const fontes = fontesDoPedido(Astro.request);
+// O seletor do alto troca as fontes só nos exemplos desta página (decisão do Gui, 17/11/2026): o
+// topo, o menu e o rodapé continuam na fonte do site. Vem pelo endereço (?fontes=b), sem script.
+const fontesPedidas = combinacaoValida(Astro.url.searchParams.get('fontes'));
+const fontesDosExemplos = fontesPedidas ? combinacao(fontesPedidas) : fontes;
+const exemplosEm = combinacaoDe(fontesDosExemplos);
+const doSite = combinacaoDe(FONTES_DO_SITE);
+const nomeDa = (id: string | null) => COMBINACOES_DE_FONTES.find((c) => c.id === id);
 const nucleos = await listarNucleos();
 // Só onde há acervo de exemplo a página lê uma memória, para mostrar a foto revelada com foto
 const memorias = comExemplos ? (await listarMemorias(usuario)).filter((m) => m.situacao === 'publicada') : [];
@@ -86,7 +93,20 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
         O que o conceito aprovado usa, arrumado para as outras telas usarem igual: a marca, as fontes, as cores, as medidas e as peças. As telas do conceito já
         são montadas com estas peças e continuam como foram aprovadas.
       </p>
+      <nav class="sis__fontes" aria-label="Fontes dos exemplos">
+        <span class="rotulo suave">Fontes dos exemplos</span>
+        {
+          COMBINACOES_DE_FONTES.map((c) => (
+            <a class="acao acao--quieta" href={`/sistema?fontes=${c.id}`} aria-current={c.id === exemplosEm ? 'true' : undefined}>
+              {c.id.toUpperCase()}, {c.nome}
+              {c.id === doSite && <span class="suave">{' (a do site)'}</span>}
+            </a>
+          ))
+        }
+      </nav>
     </header>
+
+    <div class="sis__exemplos" {...atributosDasFontes(fontesDosExemplos)}>
 
     <section aria-labelledby="marca">
       <h2 class="sobre__titulo" id="marca">Monograma</h2>
@@ -100,7 +120,7 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
             <div class="sis__monograma">
               <p class="rotulo">
                 {c.id.toUpperCase()} · {c.serifa}
-                {c.id === fontes.serifa && ' · em uso'}
+                {c.id === doSite && ' · a do site'}
               </p>
               <p class="sis__tamanhos" aria-hidden="true">
                 {[16, 24, 32].map((px) => (
@@ -162,16 +182,16 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
     <section aria-labelledby="fontes">
       <h2 class="sobre__titulo" id="fontes">Fontes</h2>
       <p class="sobre__texto">
-        Em uso: {nomesDasFontes(fontes)}.
-        {combinacaoDe(FONTES_DO_SITE) ? ` A fonte do site é a combinação ${combinacaoDe(FONTES_DO_SITE)!.toUpperCase()}.` : ' A fonte do site mistura combinações.'} A escolha
-        ainda está aberta, e trocar é mudar uma linha do código. <a href="/conceito/sobre">Ver as três combinações lado a lado</a>
+        {doSite ? `A fonte do site é a combinação ${doSite.toUpperCase()}, ${nomeDa(doSite)!.nome}` : 'A fonte do site mistura combinações'}: {nomesDasFontes(FONTES_DO_SITE)}.
+        {exemplosEm !== doSite && ` Os exemplos desta página estão ${exemplosEm ? `na ${exemplosEm.toUpperCase()}, ${nomeDa(exemplosEm)!.nome}` : 'em fontes misturadas'}: ${nomesDasFontes(fontesDosExemplos)}.`} Trocar a
+        fonte do site é mudar uma linha do código. {conceitoDisponivel() && <a href="/conceito/sobre">Ver as três combinações lado a lado</a>}
       </p>
       <dl class="sis__papeis">
         {
           PAPEIS_DAS_FONTES.map((papel) => (
             <div>
               <dt class="rotulo suave">{papeis[papel]}</dt>
-              <dd class={`sis__papel sis__papel--${papel}`}>{COMBINACOES_DE_FONTES.find((c) => c.id === fontes[papel])![papel]}</dd>
+              <dd class={`sis__papel sis__papel--${papel}`}>{COMBINACOES_DE_FONTES.find((c) => c.id === fontesDosExemplos[papel])![papel]}</dd>
             </div>
           ))
         }
@@ -556,5 +576,6 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
         </article>
       </div>
     </section>
+    </div>
   </div>
 </Visual>

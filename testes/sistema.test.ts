@@ -43,6 +43,28 @@ describe('a fonte do site', () => {
     for (const papel of PAPEIS_DAS_FONTES) expect(COMBINACOES_DE_FONTES.map((c) => c.id)).toContain(FONTES_DO_SITE[papel]);
   });
 
+  it('é a combinação C, De cartaz (decisão do Gui, 17/11/2026), e as três continuam no sistema', () => {
+    expect(FONTES_DO_SITE).toEqual(combinacao('c'));
+    expect(nomesDasFontes(FONTES_DO_SITE)).toBe('DM Serif Display, DM Sans, DM Mono e Nothing You Could Do');
+    expect(COMBINACOES_DE_FONTES.map((c) => c.id)).toEqual(['a', 'b', 'c']);
+    for (const id of SERIFAS) expect(existsSync(new URL(`public/icones/${id}/favicon.svg`, raiz)), id).toBe(true);
+  });
+
+  it('o seletor da página do sistema troca as fontes só nos exemplos dela, pelo endereço', () => {
+    const pagina = texto('src/pages/sistema.astro');
+    expect(pagina).toMatch(/const fontesPedidas = combinacaoValida\(Astro\.url\.searchParams\.get\('fontes'\)\);/);
+    // O seletor fica no alto, antes dos exemplos; o topo, o menu e o rodapé seguem a fonte do site
+    const seletor = pagina.indexOf('<nav class="sis__fontes"');
+    const exemplos = pagina.indexOf('<div class="sis__exemplos" {...atributosDasFontes(fontesDosExemplos)}>');
+    expect(seletor).toBeGreaterThan(0);
+    expect(exemplos).toBeGreaterThan(seletor);
+    expect(pagina).toMatch(/COMBINACOES_DE_FONTES\.map\(\(c\) => \(\n\s*<a class="acao acao--quieta" href=\{`\/sistema\?fontes=\$\{c\.id\}`\}/);
+    // O texto corrido dos exemplos também troca, e não só os títulos
+    expect(css('telas/sistema.css')).toMatch(/\.sis__exemplos\s*\{\s*font-family:\s*var\(--grotesca\);/);
+    // O seletor não mexe na fonte do resto do site
+    expect(texto('src/layouts/Visual.astro')).not.toMatch(/searchParams\.get\('fontes'\)/);
+  });
+
   it('uma combinação inteira leva os quatro papéis, e dá para misturar', () => {
     expect(combinacao('b')).toEqual({ serifa: 'b', grotesca: 'b', mono: 'b', mao: 'b' });
     expect(combinacaoDe(combinacao('c'))).toBe('c');
