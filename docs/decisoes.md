@@ -290,7 +290,7 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
         - Entre filtros diferentes vale o "e"; dentro de um mesmo filtro, o "ou", menos nas pessoas, que são "pessoas juntas".
         - "Com áudio" conta só áudio de relato publicado. "Contou" e "falta" contam só relato publicado.
         - "Onde contou" e "onde estava e ainda não contou" valem só para quem está olhando (decisão do Gui, 16/11/2026). O endereço não aceita outra pessoa: `contou=giovanna` vira o filtro da própria pessoa.
-        - O filtro de capítulo usa a regra da página do capítulo. Quando "Época e capítulo" entrar, a regra do capítulo por período passa a ser `memoriaDoCapitulo`, em `contextoDoExplorar`.
+        - O filtro de capítulo usa a regra da página do capítulo: no reunido, as memórias colocadas nele e nos de dentro; no por período e na época, `memoriaDoCapitulo` (o período e de quem é).
         - O filtro de pessoas juntas mantém os trilhos, como o de família (decisão do Gui, 16/11/2026).
 
 - **O Magno entra como quem presenteia e cuida do acervo** (decisão do Gui e da Giovanna, 16/11/2026). Ele é administrador como os dois (migração `017-magno-administrador`, no ar desde 16/11/2026), usa a homologação, alimenta o acervo antes do Natal e assina a carta de Natal com eles. O acesso dele depende do e-mail no segredo `ACESSOS` e nas políticas do Cloudflare Access da produção e da homologação, que o Gui ajusta. Também responde à pergunta de quem administra a família Bracarense: o Magno é membro dela.
