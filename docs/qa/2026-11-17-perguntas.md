@@ -1473,6 +1473,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P102. "A voz de Fulano" nunca aparece no acervo de exemplo. Pôr áudios de exemplo?
 
+**Feito (opção A, só a tela):** o atalho "Ouvir a voz de Fulano · N áudios" no alto da página, que desce até os áudios e só conta os que quem olha pode ouvir. Os áudios de exemplo são de outra sessão. Conferido com áudios postos só no banco local. Capturas: `pessoas/p102-atalho-da-voz--390.jpg`, `--1280.jpg`, `--1920.jpg`, `pessoas/p102-a-voz-depois-do-atalho--390.jpg`.
+
 **muda a experiência**
 
 - Contexto: a ideia da tela é "o retrato e a voz". O bloco "A voz de Fulano" só aparece quando a pessoa tem relato com áudio.
@@ -1483,6 +1485,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está, e conferir na homologação com um áudio enviado à mão.
 
 ### P103. No celular, "Família e laços" empurra as memórias para longe. Recolher?
+
+**Feito (opção A):** no celular os laços ficam fechados numa linha, "Família e laços · 11 pessoas", que abre no lugar. Na página da Giovanna, "Memórias com Giovanna" passou de 2.108 px para cerca de 940 px do alto. Sem script a lista fica aberta. Capturas: `pessoas/p103-lacos-fechados--390.jpg`, `pessoas/p103-lacos-abertos--390.jpg`.
 
 **muda a experiência**
 
@@ -1497,6 +1501,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P104. O botão cheio da página da pessoa deve ser "Editar página e laços"?
 
+**Feito (opção A):** o botão cheio é "Nova memória com Fulano"; "Editar página e laços" (ou "Adicionar laço") e "Ver na árvore" são texto. Capturas: as da P102.
+
 **ajuste**
 
 - Contexto: "a ação principal fica no alto" (16/11). O botão cheio é "Editar página e laços" e, para quem não pode editar, "Adicionar laço".
@@ -1507,6 +1513,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P105. No celular, o retrato é pequeno para uma tela que tem o retrato como ideia. Aumentar?
+
+**Feito (opção A):** o retrato ocupa três das quatro colunas no celular (258 por 322 px). Captura: `pessoas/p107-a-propria-pagina--390.jpg`.
 
 **ajuste**
 
@@ -1520,6 +1528,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P106. Em 1920 px o retrato sai da margem da página. É de propósito?
 
+**Feito (opção A):** em 1920 px o retrato fica nas colunas 1 a 4, na margem da página (x = 69, 572 por 715 px). Captura: `pessoas/p102-atalho-da-voz--1920.jpg`.
+
 **ajuste**
 
 - Contexto: em 1920 px o retrato vai para as colunas 2 a 4; em 1280 px fica nas colunas 1 a 4.
@@ -1531,6 +1541,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P107. Na própria página, nada diz que é você. Marcar?
 
+**Feito (opção A):** na própria página o carimbo começa com "VOCÊ", o botão é "Nova memória com você" e há o link quieto "Sua conta". Capturas: `pessoas/p107-a-propria-pagina--390.jpg`, `--1280.jpg`, `--1920.jpg`.
+
 **ajuste**
 
 - Contexto: na própria página, o nome é a linha grande, e os laços usam "sua mãe", "seu irmão".
@@ -1541,6 +1553,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P108. "Nascimento: 1999" deve ser um carimbo, sem rótulo?
+
+**Feito (opção A):** o nascimento entra no carimbo das famílias, sem rótulo ("BAYARA · 1999", "1942 A 2019"). Quando o dia e o mês são conhecidos, eles continuam aparecendo ("4 DE MAIO DE 1942"). Capturas: as da P107.
 
 **detalhe**
 

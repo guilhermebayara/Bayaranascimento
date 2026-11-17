@@ -2,6 +2,10 @@
 // A página da pessoa. A ideia da tela (docs/visual.md): o retrato e a voz. O retrato recortado, o
 // parentesco grande, do ponto de vista de quem olha ("sua avó"), e os áudios em que ela fala. A
 // lista de laços fica quieta, e as memórias com ela vêm no fim, na linha do tempo.
+// Respostas do Gui ao QA de design (17/11/2026, P102 a P108): o atalho "Ouvir a voz de Fulano" no
+// alto, quando há áudio que quem olha pode ouvir; no celular, os laços recolhidos numa linha; o
+// botão cheio é "Nova memória com Fulano"; a própria página diz "você"; e o nascimento entra no
+// carimbo, sem rótulo.
 import '../../../visual/telas/linha.css';
 import '../../../visual/telas/explorar.css';
 import '../../../visual/telas/lista.css';
@@ -16,7 +20,7 @@ import Gente from '../../../components/visual/Gente.astro';
 import Retrato from '../../../components/visual/Retrato.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { duracaoEmTexto } from '../../../lib/audios';
-import { datasDeVida, formatarData } from '../../../lib/datas';
+import { formatarData, vidaSemRotulo } from '../../../lib/datas';
 import { FORMAS_DA_PESSOA, NOMES_DAS_FORMAS, TAMANHO_PADRAO, enderecoDaPessoa, lerFormaDaPessoa, mostraRascunho } from '../../../lib/explorar';
 import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { enderecoDoRetrato } from '../../../lib/retratos';
@@ -107,8 +111,11 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
 // O parentesco grande: "sua avó" ou "seu amigo-irmão". Na própria página e na de quem não tem laço
 // com quem olha, o nome é a linha grande.
 const parentesco = paraVoce ? possessivo(paraVoce, pessoa.tratamento) : meuLaco ? lacoParaODono(meuLaco.nome, pessoa.tratamento) : null;
-// "Nascimento: 4 de maio de 1942" vira dois itens de carimbo, sem o rótulo quando é só o nascimento
-const vida = datasDeVida(pessoa);
+// O nascimento e o falecimento entram no carimbo, sem rótulo: "1999", "4 de maio de 1942 a 2019"
+const vida = vidaSemRotulo(pessoa);
+// Na própria página, o carimbo diz "você" e a memória nova é "com você" (P107)
+const comQuem = ehMinha ? 'você' : chamar;
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
 // Os grupos de laços, cada um com as suas linhas
 type Linha = { id: string; laco?: string | null; detalhe?: string | null };
@@ -148,6 +155,8 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
     })),
   },
 ].filter((p) => p.linhas.length > 0);
+// Quantas pessoas há nos laços, sem contar duas vezes quem aparece em dois grupos
+const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => l.id))).size;
 ---
 
 <Visual titulo={pessoa.nome} secao="pessoas" nucleos={familiasDe(pessoa)}>
@@ -158,18 +167,30 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
           <Retrato nome={chamar} foto={retratoDe(pessoa.id)} familia={familiaDe(pessoa.id)} cedo />
         </div>
         <div class="quem-e__texto">
-          {(especie || dosNucleos.length > 0) && (
+          {(ehMinha || especie || dosNucleos.length > 0 || vida) && (
             <p class="quem-e__sobre">
-              <Carimbo itens={[especie, dosNucleos.join(' e ')]} />
+              <Carimbo itens={[ehMinha && 'Você', especie, dosNucleos.join(' e '), vida]} />
             </p>
           )}
           {/* Aprovado pelo Gui em 17/11/2026 (pergunta 6 do PR do grupo "pessoal"): o parentesco é a linha grande, e o nome vem logo abaixo */}
           {parentesco && <p class="quem-e__laco">{parentesco}</p>}
           <h1 class:list={['quem-e__nome', parentesco ? 't-2' : 't-1']}>{pessoa.nome}</h1>
-          {vida.length > 0 && <p class="quem-e__vida ficha">{vida.join(' · ')}</p>}
-          {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026) */}
+          {/* O atalho para a voz (P102): só conta e só leva aos áudios que quem olha pode ouvir, os
+              mesmos da lista de baixo (listarAudiosDe) */}
+          {audiosDaPessoa.length > 0 && (
+            <p class="quem-e__voz">
+              <a class="acao" href="#audios">
+                Ouvir a voz de {chamar} · {plural(audiosDaPessoa.length, 'áudio', 'áudios')}
+              </a>
+            </p>
+          )}
+          {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026). É a que
+              alimenta o acervo: a memória nova (P104). Editar e a árvore vêm como texto. */}
           <p class="quem-e__acoes">
-            <a class="botao" href={`/pessoas/${pessoa.id}/editar`}>
+            <a class="botao" href={`/nova?com=${pessoa.id}`}>
+              Nova memória com {comQuem}
+            </a>
+            <a class="acao" href={`/pessoas/${pessoa.id}/editar`}>
               {podeEditar ? 'Editar página e laços' : 'Adicionar laço'}
             </a>
             {temLacoDeArvore && (
@@ -177,9 +198,11 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
                 Ver na árvore
               </a>
             )}
-            <a class="acao" href={`/nova?com=${pessoa.id}`}>
-              Nova memória com {chamar}
-            </a>
+            {ehMinha && (
+              <a class="acao acao--quieta" href="/conta">
+                Sua conta
+              </a>
+            )}
           </p>
         </div>
       </div>
@@ -226,11 +249,25 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
 
     {
       partes.length > 0 && (
-        <section class="lacos miolo" aria-labelledby="lacos">
+        <section class="lacos miolo" aria-labelledby="lacos" data-lacos>
+          {/* No celular os laços ficam fechados numa linha, que abre no lugar (P103). O botão só
+              aparece com script; sem ele, a lista fica aberta, como no computador. */}
           <h2 class="rotulo suave" id="lacos">
-            Família e laços
+            <span class="lacos__titulo">Família e laços</span>
+            <button class="lacos__abre" type="button" aria-expanded="false" aria-controls="lista-de-lacos" hidden>
+              Família e laços · {plural(genteNosLacos, 'pessoa', 'pessoas')}
+            </button>
           </h2>
-          <div class="lacos__grupos">
+          <script is:inline>
+            {
+              const lacos = document.currentScript.closest('[data-lacos]');
+              const botao = lacos.querySelector('button');
+              botao.hidden = false;
+              lacos.setAttribute('data-recolhe', '');
+              botao.addEventListener('click', () => botao.setAttribute('aria-expanded', String(lacos.toggleAttribute('data-aberta'))));
+            }
+          </script>
+          <div class="lacos__grupos" id="lista-de-lacos">
             {partes.map((parte) => (
               <div class="lacos__grupo">
                 <h3 class="ficha">{parte.titulo}</h3>
@@ -283,7 +320,7 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
           <div class="miolo">
             <Vazio frase={`Nenhuma memória com ${pessoa.nome} por enquanto.`}>
               <a class="acao" href={`/nova?com=${pessoa.id}`}>
-                Nova memória com {chamar}
+                Nova memória com {comQuem}
               </a>
             </Vazio>
           </div>

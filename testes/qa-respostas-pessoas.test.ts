@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { ordemPedida, ordenarPessoas, type PessoaDaLista } from '../src/lib/ordem-das-pessoas';
 import { calcularGeracoes } from '../src/lib/parentesco';
+import { vidaSemRotulo } from '../src/lib/datas';
 
 // A leitura de arquivos segue o jeito de testes/visual.test.ts, que não pede os tipos do Node
 const fs = 'node:fs';
@@ -85,5 +86,62 @@ describe('a lista de Pessoas', () => {
   });
   it('sem memória nenhuma, a linha da conta não aparece (P101)', () => {
     expect(pagina).toMatch(/n > 0 \? plural\(n, 'memória', 'memórias'\) : null/);
+  });
+});
+
+describe('a página da pessoa', () => {
+  const pagina = ler('src/pages/pessoas/[id]/index.astro');
+  const css = semComentario(ler('src/visual/telas/pessoa.css'));
+  const celular = css.slice(0, css.indexOf('@media (min-width: 40rem)'));
+  const alto = pagina.slice(pagina.indexOf('<header class="quem-e bloco">'), pagina.indexOf('</header>', pagina.indexOf('<header class="quem-e bloco">')));
+
+  it('o atalho da voz só aparece, e só conta, com os áudios que quem olha pode ouvir (P102)', () => {
+    // A conta e a lista de baixo saem da mesma consulta, que já filtra pelo que a pessoa vê
+    expect(pagina).toMatch(/const audiosDaPessoa = await listarAudiosDe\(usuario, pessoa\.id\);/);
+    expect(alto).toMatch(/\{audiosDaPessoa\.length > 0 && \(\s*<p class="quem-e__voz">\s*<a class="acao" href="#audios">\s*Ouvir a voz de \{chamar\} · \{plural\(audiosDaPessoa\.length, 'áudio', 'áudios'\)\}/);
+    expect(pagina).toMatch(/<section class="voz__audios" id="audios"/);
+    const consulta = ler('src/lib/servidor/repositorio.ts');
+    const audios = consulta.slice(consulta.indexOf('export async function listarAudiosDe'), consulta.indexOf('// --- Tamanho do banco'));
+    expect(audios).toMatch(/a\.removido_em IS NULL AND r\.por = \?2 AND r\.situacao = 'publicada' AND m\.situacao = 'publicada' AND \$\{FILTRO_VISIVEL\}/);
+  });
+  it('no celular os laços ficam fechados numa linha, que abre no lugar; sem script, ficam abertos (P103)', () => {
+    expect(pagina).toMatch(/<button class="lacos__abre" type="button" aria-expanded="false" aria-controls="lista-de-lacos" hidden>\s*Família e laços · \{plural\(genteNosLacos, 'pessoa', 'pessoas'\)\}/);
+    expect(pagina).toMatch(/lacos\.setAttribute\('data-recolhe', ''\);/);
+    expect(celular).toMatch(/\.lacos\[data-recolhe\]:not\(\[data-aberta\]\) \.lacos__grupos \{\s*display: none;/);
+    // Sem o atributo que o script põe, nada some
+    expect(celular).not.toMatch(/\n\.lacos__grupos \{[^}]*display: none/);
+    // Fora do celular, a lista fica sempre à vista e o botão não aparece
+    const computador = css.slice(css.indexOf('@media (min-width: 40rem)'), css.indexOf('@media (min-width: 62rem)'));
+    expect(computador).toMatch(/\.lacos\[data-recolhe\]:not\(\[data-aberta\]\) \.lacos__grupos \{\s*display: grid;/);
+    expect(computador).toMatch(/\.lacos \.lacos__abre \{\s*display: none;/);
+  });
+  it('o botão cheio é a memória nova; editar e a árvore são texto (P104)', () => {
+    const acoes = alto.slice(alto.indexOf('<p class="quem-e__acoes">'));
+    expect(acoes.match(/class="botao"/g)).toHaveLength(1);
+    expect(acoes).toMatch(/<a class="botao" href=\{`\/nova\?com=\$\{pessoa\.id\}`\}>\s*Nova memória com \{comQuem\}/);
+    expect(acoes).toMatch(/<a class="acao" href=\{`\/pessoas\/\$\{pessoa\.id\}\/editar`\}>/);
+    expect(acoes.indexOf('class="botao"')).toBeLessThan(acoes.indexOf('/editar'));
+  });
+  it('o retrato ocupa três colunas no celular e fica na margem da página em toda largura (P105 e P106)', () => {
+    expect(celular).toMatch(/\.quem-e \.quem-e__retrato \{\s*grid-column: 1 \/ span 3;/);
+    const colunas = [...css.matchAll(/\.quem-e \.quem-e__retrato \{\s*grid-column: (\d+) \//g)].map((m) => m[1]);
+    expect(colunas.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(colunas)).toEqual(new Set(['1']));
+  });
+  it('a própria página diz "você", tem "Nova memória com você" e leva a "Sua conta" (P107)', () => {
+    expect(alto).toMatch(/<Carimbo itens=\{\[ehMinha && 'Você', especie, dosNucleos\.join\(' e '\), vida\]\} \/>/);
+    expect(pagina).toMatch(/const comQuem = ehMinha \? 'você' : chamar;/);
+    expect(alto).toMatch(/\{ehMinha && \(\s*<a class="acao acao--quieta" href="\/conta">\s*Sua conta/);
+  });
+  it('o nascimento entra no carimbo, sem rótulo (P108)', () => {
+    expect(pagina).not.toMatch(/datasDeVida|quem-e__vida/);
+    const vida = (v: Partial<Parameters<typeof vidaSemRotulo>[0]>) => vidaSemRotulo({ nascimentoAno: null, falecimentoAno: null, ...v });
+    expect(vida({ nascimentoAno: 1999 })).toBe('1999');
+    expect(vida({ nascimentoAno: 1942, falecimentoAno: 2019 })).toBe('1942 a 2019');
+    expect(vida({ nascimentoAno: 1942, nascimentoMes: 5, nascimentoDia: 4 })).toBe('4 de maio de 1942');
+    expect(vida({ nascimentoAno: 1930, falecido: true })).toBe('1930 a ?');
+    expect(vida({ falecimentoAno: 2010 })).toBe('até 2010');
+    expect(vida({})).toBe('');
+    expect(vida({ nascimentoAno: 1942 })).not.toMatch(/Nascimento|:/);
   });
 });

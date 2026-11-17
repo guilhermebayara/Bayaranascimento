@@ -15,8 +15,9 @@
   row-gap: var(--e-5);
   align-items: end;
 }
+/* No celular o retrato ocupa três das quatro colunas (resposta do Gui, 17/11/2026, P105) */
 .quem-e .quem-e__retrato {
-  grid-column: 1 / span 2;
+  grid-column: 1 / span 3;
 }
 .quem-e__retrato .retrato {
   background: var(--meio);
@@ -46,7 +47,8 @@
   margin-top: var(--e-4);
   margin-left: -0.04em;
 }
-.quem-e__vida {
+/* O atalho para os áudios: "Ouvir a voz de Fulano · 3 áudios" */
+.quem-e__voz {
   margin-top: var(--e-3);
 }
 .quem-e__acoes {
@@ -114,6 +116,55 @@
   gap: var(--e-5) var(--calha);
   margin-top: var(--e-4);
 }
+/* No celular os laços ficam fechados numa linha, "Família e laços · 11 pessoas", que abre no lugar
+   (P103). O botão toma o lugar do título e mantém a aparência dele. */
+.lacos__abre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4);
+  width: 100%;
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.lacos__abre[hidden] {
+  display: none;
+}
+/* O sinal de abrir e fechar: um mais que vira xis, como no menu */
+.lacos__abre::after {
+  content: '';
+  flex: none;
+  width: 0.8em;
+  height: 0.8em;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  transition: rotate var(--tempo-medio) var(--curva);
+}
+.lacos__abre[aria-expanded='true']::after {
+  rotate: 45deg;
+}
+.lacos__abre:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+.lacos[data-recolhe] .lacos__titulo {
+  display: none;
+}
+.lacos[data-recolhe]:not([data-aberta]) .lacos__grupos {
+  display: none;
+}
+.lacos[data-recolhe]:not([data-aberta]) {
+  padding-block: var(--e-3);
+}
 .lacos__grupo h3 {
   padding-bottom: var(--e-2);
   border-bottom: 1px solid var(--fio);
@@ -142,6 +193,19 @@
 @media (min-width: 40rem) {
   .lacos__grupos {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* Fora do celular os laços ficam sempre à vista, com o título de antes */
+  .lacos[data-recolhe] .lacos__titulo {
+    display: inline;
+  }
+  .lacos .lacos__abre {
+    display: none;
+  }
+  .lacos[data-recolhe]:not([data-aberta]) .lacos__grupos {
+    display: grid;
+  }
+  .lacos[data-recolhe]:not([data-aberta]) {
+    padding-block: var(--e-6) var(--e-7);
   }
 }
 
@@ -178,10 +242,8 @@
   }
 }
 
+/* Em 1920 px o retrato continua nas colunas 1 a 4, na margem da página, como tudo o mais (P106) */
 @media (min-width: 100rem) {
-  .quem-e .quem-e__retrato {
-    grid-column: 2 / span 3;
-  }
   .lacos__grupos {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }

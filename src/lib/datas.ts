@@ -86,6 +86,20 @@ export function datasDeVida(v: Vida): string[] {
   return linhas;
 }
 
+/**
+ * Nascimento e falecimento sem rótulo, para o carimbo da página da pessoa (resposta do Gui ao QA de
+ * design, 17/11/2026, P108): "1999", "4 de maio de 1942", "1942 a 2019", "1930 a ?" ou vazio.
+ * Cada data entra com o que se souber dela.
+ */
+export function vidaSemRotulo(v: Vida): string {
+  const data = (ano: number, mes?: number | null, dia?: number | null) => formatarData({ ano, mes: mes ?? null, dia: dia ?? null, aproximada: false });
+  const nascimento = v.nascimentoAno ? data(v.nascimentoAno, v.nascimentoMes, v.nascimentoDia) : '';
+  const falecimento = v.falecimentoAno ? data(v.falecimentoAno, v.falecimentoMes, v.falecimentoDia) : v.falecido ? '?' : '';
+  if (nascimento && falecimento) return `${nascimento} a ${falecimento}`;
+  if (falecimento && falecimento !== '?') return `até ${falecimento}`;
+  return nascimento;
+}
+
 /** Momento gravado pelo banco (UTC, "2026-11-15 14:03:22") no horário de Brasília: "15 de novembro de 2026, 11:03". */
 export function formatarMomento(texto: string): string {
   const data = new Date(`${texto.replace(' ', 'T')}Z`);
