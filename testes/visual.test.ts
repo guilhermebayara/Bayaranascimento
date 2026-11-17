@@ -153,7 +153,7 @@ describe('conceito', () => {
   const paginas = import.meta.glob<string>('../src/pages/conceito/**/*.{astro,ts}', { query: '?raw', import: 'default', eager: true });
 
   // As telas que já passaram para o visual novo (fase 3), com os componentes de cada uma
-  const telas = import.meta.glob<string>(['../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/conta.astro', '../src/components/explorar/*.astro'], {
+  const telas = import.meta.glob<string>(['../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro'], {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -162,7 +162,8 @@ describe('conceito', () => {
 
   it('toda rota do conceito responde 404 onde não há acervo de exemplo', () => {
     const rotas = Object.entries(paginas);
-    expect(rotas.length).toBeGreaterThanOrEqual(4);
+    // Do conceito ficou a página das fontes, com a rota que troca a combinação, até a escolha
+    expect(rotas.length).toBeGreaterThanOrEqual(2);
     for (const [caminho, fonte] of rotas) expect(fonte, caminho).toMatch(/if \(!conceitoDisponivel\(\)[^\n]*return naoEncontrado\(\);/);
   });
 
@@ -184,10 +185,9 @@ describe('conceito', () => {
     const foto = Object.values(componentes)[0]!;
     expect(foto).toContain('polaroid--sem-foto');
     expect(foto).toContain('<IconeDoTipo tipo={tipo} />');
-    const pagina = (fim: string) => Object.entries(paginas).find(([caminho]) => caminho.endsWith(fim))![1];
     for (const forma of ['explorar/Linha.astro', 'explorar/Mural.astro']) expect(tela(forma)).toMatch(/<Polaroid id=\{m\.id\}[^>]*tipo=\{m\.tipo\}/);
     expect(tela('explorar/Linha.astro')).not.toContain('entrada--so-texto');
-    expect(pagina('conceito/index.astro')).toMatch(/outro-ano__foto">\s*<Polaroid[^>]*tipo=\{m\.tipo\}/);
+    expect(tela('pages/index.astro')).toMatch(/outro-ano__foto">\s*<Polaroid[^>]*tipo=\{m\.tipo\}/);
   });
 
   it('o topo leva à conta pelo retrato de quem está logado, e "Rascunhos" não está no menu', () => {
@@ -197,6 +197,35 @@ describe('conceito', () => {
     expect(topo.slice(topo.indexOf('const menu = ['), topo.indexOf('const telas = ['))).not.toContain('rascunhos');
     // A administração e a lixeira saem do rodapé: passam a morar na conta
     expect(topo.slice(topo.indexOf('<footer'))).not.toMatch(/lixeira|admin\/tipos|api\/copia/);
+  });
+
+  it('o painel é só de quem olha: lê as regras de src/lib/painel.ts e só memória publicada', () => {
+    // docs/decisoes.md, "Painel pessoal como página inicial". A tela não refaz as regras.
+    const painel = tela('pages/index.astro');
+    for (const regra of ['chegarAoPainel', 'novidades', 'aniversarios', 'memoriaParaContar', 'emOutrosAnos']) expect(painel).toContain(`${regra}(`);
+    expect(painel).toContain('listarMemorias(usuario)');
+    expect(painel).toMatch(/todas\.filter\(\(m\) => m\.situacao === 'publicada'\)/);
+    expect(painel).toMatch(/<Visual titulo="Início" secao="painel" familia=\{corDoPainel\} intimo>/);
+    // O dia trocado pelo endereço só vale fora da produção
+    expect(painel).toMatch(/const m = semLogin\(\) \? /);
+    // A carta no alto e a de /carta são a mesma peça, com o texto do banco
+    expect(painel).toContain('<Carta para=');
+    expect(tela('pages/carta.astro')).toContain('<Carta para=');
+    expect(tela('components/Carta.astro')).toContain('saudacao(para)');
+  });
+
+  it('a conta é montada por montarConta, e a administração só aparece com itens', () => {
+    const conta = tela('pages/conta.astro');
+    expect(conta).toContain('await montarConta(usuario)');
+    expect(conta).toMatch(/conta\.administracao\.length > 0 && \(/);
+    expect(conta).not.toMatch(/usuario\.admin/);
+    expect(conta).toMatch(/<Visual titulo="Sua conta" secao="conta" familia=\{cor\} intimo>/);
+  });
+
+  it('a página da pessoa só mostra retrato de quem a pessoa vê', () => {
+    const pessoa = tela('pessoas/[id]/index.astro');
+    expect(pessoa).toMatch(/retratoDe = \(id: string\) => \(achar\(id\)\?\.retrato && !naoVe\.has\(id\)/);
+    expect(pessoa).toContain('listarMemorias(usuario, { integrante: pessoa.id })');
   });
 
   it('o menu declara "Início", no computador e no celular', () => {

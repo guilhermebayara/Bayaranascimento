@@ -225,7 +225,7 @@ describe('monograma', () => {
 });
 
 describe('tokens e peças', () => {
-  const fontesDasTelas = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro', '../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/conta.astro', '../src/components/explorar/*.astro', '../src/lib/visual.ts'], {
+  const fontesDasTelas = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro', '../src/pages/sistema.astro', '../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro', '../src/lib/visual.ts'], {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -256,9 +256,26 @@ describe('tokens e peças', () => {
 
   it('cada peça de docs/visual.md tem o seu componente', () => {
     const componentes = readdirSync(new URL('src/components/visual/', raiz));
-    for (const peca of ['Assinatura', 'Monograma', 'Polaroid', 'Carimbo', 'Etiqueta', 'Pilula', 'Ficha', 'Dado', 'Retrato', 'Bilhete', 'Audio', 'Sanfona', 'SinalDoCapitulo', 'Recado', 'Vazio', 'IconeDoTipo', 'Rabisco', 'Trilhos']) {
+    for (const peca of ['Assinatura', 'Monograma', 'Polaroid', 'Carimbo', 'Etiqueta', 'Pilula', 'Ficha', 'Dado', 'Retrato', 'Gente', 'Bilhete', 'Audio', 'Sanfona', 'SinalDoCapitulo', 'Recado', 'Vazio', 'IconeDoTipo', 'Rabisco', 'Trilhos']) {
       expect(componentes, peca).toContain(`${peca}.astro`);
     }
+  });
+
+  it('toda peça do sistema aparece na página do sistema', () => {
+    // docs/visual.md, "A página do sistema fica": ela acompanha o sistema. Os trilhos são da linha do tempo.
+    const pagina = texto('src/pages/sistema.astro');
+    const componentes = readdirSync(new URL('src/components/visual/', raiz)).map((a) => a.replace('.astro', ''));
+    for (const peca of componentes.filter((c) => c !== 'Trilhos')) expect(pagina, peca).toContain(`<${peca}`);
+  });
+
+  it('a página do sistema: fora das prévias, só os administradores, e nada do acervo', () => {
+    const pagina = texto('src/pages/sistema.astro');
+    expect(pagina).toMatch(/const comExemplos = temAcervoDeExemplo\(\);\nif \(!comExemplos && !usuario\.admin\) return naoEncontrado\(\);/);
+    // A única leitura do acervo é a memória de exemplo da foto revelada, e só onde há acervo de exemplo
+    expect(pagina.match(/listar[A-Z]\w+\(/g)).toEqual(['listarNucleos(', 'listarMemorias(']);
+    expect(pagina).toMatch(/const memorias = comExemplos \? \(await listarMemorias\(usuario\)\)/);
+    expect(pagina).not.toMatch(/\/fotos\/|\/retratos\/|exemplos\//);
+    expect(texto('src/lib/servidor/ambiente.ts')).toMatch(/export function temAcervoDeExemplo\(\): boolean \{\n  return AMBIENTES_COM_EXEMPLOS\.includes\(ambiente\(\)\) && !ehHomologacao\(\);/);
   });
 
   it('as telas usam as peças, sem reescrever a marcação delas', () => {

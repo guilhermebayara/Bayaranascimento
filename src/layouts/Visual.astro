@@ -23,7 +23,7 @@ interface Props {
   /** A cor da tela, quando não é a dos núcleos: 'tudo' ou a posição do núcleo ('0', '1', '2', '3') */
   familia?: string;
   /** Qual item do menu está aberto */
-  secao?: 'painel' | 'explorar' | 'conceito' | 'conta';
+  secao?: 'painel' | 'explorar' | 'conceito' | 'conta' | 'pessoas';
   /** A página que só a pessoa vê: tingida na cor da família dela */
   intimo?: boolean;
   /** O modo TV: a tela inteira é da memória, sem o topo, o menu e o rodapé */
@@ -42,13 +42,11 @@ const icones = `/icones/${fontes.serifa}`;
 const teste = semLogin();
 const integrantes = await listarIntegrantes();
 const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
-// "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo. A tela é
-// do grupo "pessoal" da fase 3; até lá, o endereço leva a uma página de passagem, com o que já existe.
+// "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo.
 const meuRetrato = integrantes.find((i) => i.id === usuario.pessoa)?.retrato;
 const aqui = Astro.url.pathname + Astro.url.search;
 const volta = encodeURIComponent(aqui);
 const caminho = Astro.url.pathname.replace(/\/$/, '');
-const primeiraVisita = Astro.url.searchParams.get('visita') === 'primeira';
 
 // "Memórias", no alto, leva ao início, mas o menu também diz "Início": quem tem menos familiaridade
 // com sites não precisa adivinhar (pedido do Gui, 16/11/2026)
@@ -57,15 +55,17 @@ const menu = [
   { href: '/explorar', texto: 'Explorar', atual: secao === 'explorar' },
   { href: '/capitulos', texto: 'Capítulos', atual: false },
   { href: '/arvore', texto: 'Árvore', atual: false },
-  { href: '/pessoas', texto: 'Pessoas', atual: false },
+  { href: '/pessoas', texto: 'Pessoas', atual: secao === 'pessoas' },
 ];
 const telas = [
-  { href: '/conceito?visita=primeira', texto: 'Carta', atual: caminho === '/conceito' && primeiraVisita },
-  { href: '/conceito', texto: 'Painel', atual: caminho === '/conceito' && !primeiraVisita },
+  { href: '/', texto: 'Painel', atual: caminho === '' },
+  { href: '/carta', texto: 'Carta', atual: caminho === '/carta' },
   { href: '/explorar', texto: 'Explorar', atual: caminho === '/explorar' },
   { href: '/memorias/2025-natal', texto: 'Memória', atual: caminho.startsWith('/memorias') },
+  { href: '/pessoas/vo-bela', texto: 'Pessoa', atual: caminho.startsWith('/pessoas/') },
+  { href: '/conta', texto: 'Conta', atual: caminho === '/conta' },
   { href: '/conceito/sobre', texto: 'Fontes', atual: caminho === '/conceito/sobre' },
-  { href: '/conceito/sistema', texto: 'Sistema', atual: caminho === '/conceito/sistema' },
+  { href: '/sistema', texto: 'Sistema', atual: caminho === '/sistema' },
 ];
 ---
 

@@ -137,7 +137,7 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
 ].filter((p) => p.linhas.length > 0);
 ---
 
-<Visual titulo={pessoa.nome} nucleos={familiasDe(pessoa)}>
+<Visual titulo={pessoa.nome} secao="pessoas" nucleos={familiasDe(pessoa)}>
   <article class="pessoa-pagina">
     <header class="quem-e bloco">
       <div class="miolo grade">

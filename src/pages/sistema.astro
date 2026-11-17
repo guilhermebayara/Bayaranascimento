@@ -1,38 +1,47 @@
 ---
 // O sistema visual (docs/visual.md, "Sistema"): a marca, as fontes, os tokens e todas as peças,
 // com os estados de cada uma. É a página de conferência do sistema; não é uma tela do site.
-import '../../visual/telas/sobre.css';
-import '../../visual/telas/sistema.css';
-import Visual from '../../layouts/Visual.astro';
-import Assinatura from '../../components/visual/Assinatura.astro';
-import Audio from '../../components/visual/Audio.astro';
-import Bilhete from '../../components/visual/Bilhete.astro';
-import Carimbo from '../../components/visual/Carimbo.astro';
-import Dado from '../../components/visual/Dado.astro';
-import Etiqueta from '../../components/visual/Etiqueta.astro';
-import Ficha from '../../components/visual/Ficha.astro';
-import IconeDoTipo from '../../components/visual/IconeDoTipo.astro';
-import Monograma from '../../components/visual/Monograma.astro';
-import Pilula from '../../components/visual/Pilula.astro';
-import Polaroid from '../../components/visual/Polaroid.astro';
-import Rabisco from '../../components/visual/Rabisco.astro';
-import Recado from '../../components/visual/Recado.astro';
-import Retrato from '../../components/visual/Retrato.astro';
-import Sanfona from '../../components/visual/Sanfona.astro';
-import SinalDoCapitulo from '../../components/visual/SinalDoCapitulo.astro';
-import Vazio from '../../components/visual/Vazio.astro';
-import { conceitoDisponivel, fontesDoPedido, naoEncontrado } from '../../lib/servidor/conceito';
-import { listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
-import { COMBINACOES_DE_FONTES, CORES, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, combinacaoDe, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../../lib/visual';
-
-if (!conceitoDisponivel()) return naoEncontrado();
+//
+// Ela fica (decisão do Gui, 16/11/2026, "A página do sistema fica"): existe em todos os ambientes.
+// Na produção e na homologação, só os administradores abrem, pelo link da conta; para os outros,
+// 404. Nas prévias de teste e no computador, abre para todos. O conteúdo é fixo, da própria página:
+// nada vem do acervo. Só onde há acervo de exemplo a foto revelada usa uma memória de exemplo (o
+// Chico e a Karol); fora dali, o cartão é desenhado. A guarda da produção confere as duas travas.
+import '../visual/telas/sobre.css';
+import '../visual/telas/sistema.css';
+import Visual from '../layouts/Visual.astro';
+import Assinatura from '../components/visual/Assinatura.astro';
+import Audio from '../components/visual/Audio.astro';
+import Bilhete from '../components/visual/Bilhete.astro';
+import Carimbo from '../components/visual/Carimbo.astro';
+import Dado from '../components/visual/Dado.astro';
+import Gente from '../components/visual/Gente.astro';
+import Etiqueta from '../components/visual/Etiqueta.astro';
+import Ficha from '../components/visual/Ficha.astro';
+import IconeDoTipo from '../components/visual/IconeDoTipo.astro';
+import Monograma from '../components/visual/Monograma.astro';
+import Pilula from '../components/visual/Pilula.astro';
+import Polaroid from '../components/visual/Polaroid.astro';
+import Rabisco from '../components/visual/Rabisco.astro';
+import Recado from '../components/visual/Recado.astro';
+import Retrato from '../components/visual/Retrato.astro';
+import Sanfona from '../components/visual/Sanfona.astro';
+import SinalDoCapitulo from '../components/visual/SinalDoCapitulo.astro';
+import Vazio from '../components/visual/Vazio.astro';
+import { temAcervoDeExemplo } from '../lib/servidor/ambiente';
+import { fontesDoPedido, naoEncontrado } from '../lib/servidor/conceito';
+import { listarMemorias, listarNucleos } from '../lib/servidor/repositorio';
+import { COMBINACOES_DE_FONTES, CORES, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, combinacaoDe, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../lib/visual';
 
 const { usuario, tipos } = Astro.locals;
+const comExemplos = temAcervoDeExemplo();
+if (!comExemplos && !usuario.admin) return naoEncontrado();
+
 const fontes = fontesDoPedido(Astro.request);
 const nucleos = await listarNucleos();
-const memorias = (await listarMemorias(usuario)).filter((m) => m.situacao === 'publicada');
+// Só onde há acervo de exemplo a página lê uma memória, para mostrar a foto revelada com foto
+const memorias = comExemplos ? (await listarMemorias(usuario)).filter((m) => m.situacao === 'publicada') : [];
 const comMonte = memorias.find((m) => m.id === '2025-natal') ?? memorias.find((m) => m.fotos.length > 1);
-const semFoto = memorias.find((m) => m.fotos.length === 0);
 
 // A assinatura em cada tela, e com uma família a mais, que ainda não existe, para ver a linha longa
 const comMaisUma = [...nucleos, { id: 'exemplo', nome: 'Bracarense Silva', sobrenomes: ['Bracarense', 'Silva'] }];
@@ -282,13 +291,15 @@ const espacos = ['e-1', 'e-2', 'e-3', 'e-4', 'e-5', 'e-6', 'e-7', 'e-8', 'e-9'];
                 </div>
               )
             }
-            {
-              semFoto && (
-                <div style={estiloDoTipo(semFoto.tipo)}>
-                  <Polaroid id={semFoto.id} fotos={[]} legenda={legendaLugarAno(semFoto.lugar, semFoto.ano)} tipo={semFoto.tipo} forma />
-                </div>
-              )
-            }
+            {/* Conteúdo fixo da página: o cartão sem foto, que não precisa de nenhum arquivo */}
+            <div style={estiloDoTipo('festa')}>
+              <Polaroid id="sistema-festa" fotos={[]} legenda={legendaLugarAno('Belo Horizonte', 2025)} tipo="festa" forma />
+            </div>
+            {!comMonte && (
+              <div style={estiloDoTipo('viagem')}>
+                <Polaroid id="sistema-viagem" fotos={[]} legenda={legendaLugarAno('Porto Seguro', 1998)} tipo="viagem" forma />
+              </div>
+            )}
           </div>
           <p class="ficha suave">A foto-chave, com as outras atrás e a forma de cor do tipo. Memória sem foto ganha o mesmo cartão, com o ícone do tipo.</p>
         </article>
@@ -329,6 +340,19 @@ const espacos = ['e-1', 'e-2', 'e-3', 'e-4', 'e-5', 'e-6', 'e-7', 'e-8', 'e-9'];
             <span class="sis__retrato-redondo"><Retrato nome={usuario.nome} redondo /></span>
           </p>
           <p class="ficha suave">Em arco, com a foto do cadastro. Sem foto, as iniciais sobre a cor da família. Redondo só no topo.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Gente: uma pessoa numa linha de lista · nova</h3>
+          <ul class="sis__gente">
+            <li>
+              <Gente href="#pecas" nome="Vó Bela" familia="0" laco="sua avó" />
+            </li>
+            <li>
+              <Gente href="#pecas" nome="Marina" familia="tudo" laco="sua melhor amiga" detalhe="muito próximo · só você vê" />
+            </li>
+          </ul>
+          <p class="ficha suave">O retrato pequeno, o nome, o laço e um detalhe em mono. A linha inteira leva à página da pessoa. Nas listas de laços, na página da pessoa e na conta.</p>
         </article>
 
         <article class="sis__peca sis__peca--larga">

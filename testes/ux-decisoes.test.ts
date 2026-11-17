@@ -91,8 +91,13 @@ describe('ação principal', () => {
 
   it('fica no alto da pessoa e do capítulo', () => {
     // Antes da família e dos capítulos de dentro
+    // Na pessoa (visual novo): depois do nome, dentro da abertura, antes da voz e dos laços
+    const pessoa = fonte('src/pages/pessoas/[id]/index.astro');
+    const acoesDaPessoa = pessoa.indexOf('quem-e__acoes');
+    expect(acoesDaPessoa).toBeGreaterThan(pessoa.indexOf('<h1'));
+    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="lacos miolo"'));
+    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="voz miolo grade"'));
     const conteudo: Record<string, string> = {
-      'src/pages/pessoas/[id]/index.astro': '<section class="familia">',
       'src/pages/capitulos/[id]/index.astro': '<section class="familia">',
     };
     for (const [arquivo, marco] of Object.entries(conteudo)) {

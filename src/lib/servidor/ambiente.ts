@@ -43,6 +43,11 @@ export function bucketDeFotos(): R2Bucket {
 /** Os únicos ambientes que recebem o acervo de exemplo. Produção e homologação nunca. */
 export const AMBIENTES_COM_EXEMPLOS: Ambiente[] = ['previa', 'desenvolvimento'];
 
+/** As prévias de teste e o computador: onde o acervo de exemplo existe. */
+export function temAcervoDeExemplo(): boolean {
+  return AMBIENTES_COM_EXEMPLOS.includes(ambiente()) && !ehHomologacao();
+}
+
 /**
  * Onde as 11 fotos de exemplo (o Chico e a Karol) são lidas: debaixo de "exemplos/" no bucket de teste.
  * Nas prévias e na homologação, FOTOS é o bucket de teste (bloco "previews" do wrangler.jsonc); a
