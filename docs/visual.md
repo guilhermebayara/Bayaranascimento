@@ -941,7 +941,7 @@ Branch `tst-visual-ajustes`, nascida da `homologa` em 17/11/2026, com o que o Gu
 - A prévia publicada e a contagem de erros do `tsc`.
 - Na pinça, o ponto entre os dedos desvia alguns pixels quando os dois dedos não se movem juntos. Já era assim antes desta mudança: o zoom é feito em torno do meio dos dedos a cada movimento, sem acompanhar o deslocamento do meio.
 
-**PR dos ajustes:** a preencher com o número.
+**PR dos ajustes:** #39, para a `homologa`, aberto em 17/11/2026, sem merge. As dez perguntas para o Gui estão no fim dele (as nove das partes 1 e 2 e a do zoom máximo da árvore).
 
 **O que falta depois dos ajustes**
 
