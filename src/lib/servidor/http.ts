@@ -38,3 +38,10 @@ export function campoNumero(dados: FormData, nome: string): number | undefined {
   if (!texto) return undefined;
   return /^\d+$/.test(texto) ? Number(texto) : Number.NaN;
 }
+
+/** A resposta 404 em texto puro de uma página (e não de uma rota de dados, de foto ou de áudio). */
+export function ehNaoEncontradaSemPagina(caminho: string, resposta: { status: number; headers: { get(nome: string): string | null } }): boolean {
+  if (resposta.status !== 404 || caminho === '/404') return false;
+  if (/^\/(api|fotos|audios|retratos)\//.test(caminho)) return false;
+  return (resposta.headers.get('Content-Type') ?? '').startsWith('text/plain');
+}

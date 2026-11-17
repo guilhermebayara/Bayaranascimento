@@ -401,6 +401,7 @@
 .novidade--resto .acao {
   display: inline-flex;
   width: auto;
+  text-decoration-line: underline;
 }
 
 /* O recado de uma ação e, fora da produção, a volta à primeira visita */

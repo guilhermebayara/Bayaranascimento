@@ -1,0 +1,65 @@
+// Regras que nasceram dos defeitos do QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md).
+import { describe, expect, it } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { ehNaoEncontradaSemPagina } from '../src/lib/servidor/http';
+
+const raiz = join(__dirname, '..');
+const ler = (caminho: string) => readFileSync(join(raiz, caminho), 'utf8');
+/** O corpo da primeira regra do CSS com exatamente este seletor. */
+const regra = (css: string, seletor: string) => {
+  const inicio = css.indexOf(`\n${seletor} {`);
+  expect(inicio, seletor).toBeGreaterThan(-1);
+  return css.slice(inicio, css.indexOf('}', inicio));
+};
+
+describe('página não encontrada', () => {
+  const resposta = (status: number, tipo: string | null) => ({ status, headers: { get: () => tipo } });
+  it('existe, com o esqueleto do site e a volta ao início', () => {
+    expect(existsSync(join(raiz, 'src/pages/404.astro'))).toBe(true);
+    const pagina = ler('src/pages/404.astro');
+    expect(pagina).toMatch(/layouts\/Visual\.astro/);
+    expect(pagina).toMatch(/href="\/"/);
+    expect(pagina).toMatch(/status = 404/);
+  });
+  it('toma o lugar do "não encontrada" em texto puro das páginas', () => {
+    expect(ehNaoEncontradaSemPagina('/memorias/nao-existe', resposta(404, 'text/plain;charset=UTF-8'))).toBe(true);
+    expect(ehNaoEncontradaSemPagina('/pessoas/x/editar', resposta(404, 'text/plain'))).toBe(true);
+  });
+  it('não mexe em rota de dados, foto, áudio ou retrato, nem em outra resposta', () => {
+    for (const caminho of ['/api/memorias', '/fotos/a.jpg', '/audios/a.m4a', '/retratos/a.jpg']) {
+      expect(ehNaoEncontradaSemPagina(caminho, resposta(404, 'text/plain'))).toBe(false);
+    }
+    expect(ehNaoEncontradaSemPagina('/memorias/x', resposta(200, 'text/plain'))).toBe(false);
+    expect(ehNaoEncontradaSemPagina('/memorias/x', resposta(404, 'text/html'))).toBe(false);
+    expect(ehNaoEncontradaSemPagina('/404', resposta(404, 'text/plain'))).toBe(false);
+  });
+});
+
+describe('o topo no celular', () => {
+  const css = ler('src/visual/estrutura.css');
+  it('a marca e o retrato têm a largura mínima de toque', () => {
+    expect(regra(css, '.topo__marca')).toMatch(/min-width: var\(--toque\)/);
+    expect(regra(css, '.topo__conta')).toMatch(/min-width: var\(--toque\)/);
+  });
+  it('só a palavra "Menu" abre o menu, e não a barra inteira', () => {
+    expect(regra(css, '.menu summary')).toMatch(/width: max-content/);
+  });
+  it('"Nova memória" continua sublinhada dentro do menu', () => {
+    expect(regra(css, '.menu__lista .menu__acao')).toMatch(/text-decoration-line: underline/);
+  });
+});
+
+describe('pular para o conteúdo', () => {
+  it('é o primeiro link da página e leva ao conteúdo', () => {
+    const esqueleto = ler('src/layouts/Visual.astro');
+    expect(esqueleto).toMatch(/<body>\s*<a class="pular" href="#conteudo">/);
+    expect(esqueleto).toMatch(/<main id="conteudo"/);
+  });
+});
+
+describe('ação dentro de um bloco que tira o sublinhado dos links', () => {
+  it('"E mais N", no Início, continua com cara de link', () => {
+    expect(regra(ler('src/visual/telas/painel.css'), '.novidade--resto .acao')).toMatch(/text-decoration-line: underline/);
+  });
+});
