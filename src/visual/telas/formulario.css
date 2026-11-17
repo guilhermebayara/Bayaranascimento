@@ -494,10 +494,6 @@
 .pagina-de-formulario .perigo .botao.botao--leve:hover {
   text-decoration-color: currentColor;
 }
-/* O botão que confirma o apagar não leva a seta de avançar (P131) */
-.pagina-de-formulario .botao.botao--perigo::after {
-  content: none;
-}
 
 /* --- A trilha das etapas, quieta ----------------------------------------------------------------
    No celular, uma fila de números pequenos e, embaixo, "Etapa 2 de 7: Quando e onde". No
