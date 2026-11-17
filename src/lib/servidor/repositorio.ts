@@ -1238,4 +1238,3 @@ export async function tamanhoDoBanco(): Promise<number | null> {
     return null;
   }
 }
-
