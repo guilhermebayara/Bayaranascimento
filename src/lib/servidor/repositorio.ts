@@ -64,6 +64,8 @@ export interface Memoria extends AcessoDaMemoria {
   tipoOutro: string | null;
   lugar: string | null;
   exemplo: boolean;
+  /** quando entrou no acervo (data de cadastro) */
+  criadaEm: string;
   fotos: Foto[];
   /** capítulos reunidos em que foi colocada (os de época são calculados pela data) */
   capitulos: string[];
@@ -71,8 +73,6 @@ export interface Memoria extends AcessoDaMemoria {
   temas: string[];
   /** quantidade de relatos publicados */
   relatos: number;
-  /** quando entrou no acervo (data de cadastro) */
-  criadaEm: string;
 }
 
 export interface Relato {
@@ -548,13 +548,13 @@ function lerMemoria(linha: Record<string, unknown>): Memoria {
     situacao: linha.situacao as 'rascunho' | 'publicada',
     exemplo: Boolean(linha.exemplo),
     criadaPor: linha.criada_por as string,
+    criadaEm: (linha.criada_em as string) ?? '',
     nucleos: [],
     integrantes: [],
     fotos: [],
     capitulos: [],
     temas: [],
     relatos: 0,
-    criadaEm: (linha.criada_em as string) ?? '',
   };
 }
 
@@ -598,6 +598,30 @@ async function completar(memorias: Memoria[]): Promise<Memoria[]> {
     if (memoria) memoria.relatos = r.n as number;
   }
   return memorias;
+}
+
+// --- Explorar ---
+
+/** Memórias com áudio em algum relato publicado. Quem chama cruza com as memórias que a pessoa vê. */
+export async function memoriasComAudio(): Promise<Set<string>> {
+  const { results } = await db()
+    .prepare(
+      `SELECT DISTINCT r.memoria_id FROM audios a JOIN relatos r ON r.id = a.relato_id
+       WHERE a.removido_em IS NULL AND r.situacao = 'publicada'`,
+    )
+    .all<{ memoria_id: string }>();
+  return new Set(results.map((r: { memoria_id: string }) => r.memoria_id));
+}
+
+/** Quem já contou algo (relato publicado) em cada memória. Quem chama cruza com as memórias que a pessoa vê. */
+export async function quemContouEmCadaMemoria(): Promise<Map<string, Set<string>>> {
+  const { results } = await db().prepare(`SELECT memoria_id, por FROM relatos WHERE situacao = 'publicada'`).all<{ memoria_id: string; por: string }>();
+  const mapa = new Map<string, Set<string>>();
+  for (const r of results as { memoria_id: string; por: string }[]) {
+    if (!mapa.has(r.memoria_id)) mapa.set(r.memoria_id, new Set());
+    mapa.get(r.memoria_id)!.add(r.por);
+  }
+  return mapa;
 }
 
 /** Memórias que o usuário pode ver, da mais antiga para a mais recente. Rascunhos ficam de fora, salvo pedido. */
@@ -1215,26 +1239,3 @@ export async function tamanhoDoBanco(): Promise<number | null> {
   }
 }
 
-// --- Explorar ---
-
-/** Memórias com áudio em algum relato publicado. Quem chama cruza com as memórias que a pessoa vê. */
-export async function memoriasComAudio(): Promise<Set<string>> {
-  const { results } = await db()
-    .prepare(
-      `SELECT DISTINCT r.memoria_id FROM audios a JOIN relatos r ON r.id = a.relato_id
-       WHERE a.removido_em IS NULL AND r.situacao = 'publicada'`,
-    )
-    .all<{ memoria_id: string }>();
-  return new Set(results.map((r: { memoria_id: string }) => r.memoria_id));
-}
-
-/** Quem já contou algo (relato publicado) em cada memória. Quem chama cruza com as memórias que a pessoa vê. */
-export async function quemContouEmCadaMemoria(): Promise<Map<string, Set<string>>> {
-  const { results } = await db().prepare(`SELECT memoria_id, por FROM relatos WHERE situacao = 'publicada'`).all<{ memoria_id: string; por: string }>();
-  const mapa = new Map<string, Set<string>>();
-  for (const r of results as { memoria_id: string; por: string }[]) {
-    if (!mapa.has(r.memoria_id)) mapa.set(r.memoria_id, new Set());
-    mapa.get(r.memoria_id)!.add(r.por);
-  }
-  return mapa;
-}
