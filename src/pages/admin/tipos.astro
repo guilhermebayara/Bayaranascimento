@@ -13,6 +13,8 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 const oficiais = tipos.filter((t) => t.id !== TIPO_OUTRO);
 const CORES = ['#2F7D6B', '#D6455B', '#8A5BB5', '#C98A00', '#2B74B8', '#A8572E', '#D2478F', '#4E7F1E', '#5B6B7A', '#3D4A66', '#B5532B', '#1F8A8A'];
 const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.toLowerCase())) ?? CORES[0];
+// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura.
+// PROVISÓRIO (pergunta 11): o campo "Cor" continua aqui, mas o visual novo pinta cada tipo com a cor fixa de corDoTipo.
 ---
 
 <Pagina titulo="Tipos de momento" rotulo="Administração" secao="conta" larga>

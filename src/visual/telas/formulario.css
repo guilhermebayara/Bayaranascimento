@@ -1038,7 +1038,8 @@
   --coluna: 56rem;
 }
 
-/* --- A trilha de um fluxo que passa por mais de uma página (nova pessoa e os laços) -------------- */
+/* --- A trilha de um fluxo que passa por mais de uma página (nova pessoa e os laços) --------------
+   PROVISÓRIO (pergunta 9 do PR do grupo "formularios"). */
 
 .pagina-de-formulario .etapas--fluxo {
   flex-wrap: wrap;
@@ -1193,7 +1194,8 @@
   padding-top: 0;
   border-top: 0;
 }
-/* Os dois caminhos: cada um num cartão inteiro para tocar */
+/* Os dois caminhos: cada um num cartão inteiro para tocar.
+   PROVISÓRIO (pergunta 9 do PR do grupo "formularios"). */
 .pagina-de-formulario .escolhas {
   display: grid;
   gap: var(--e-3);
@@ -1339,7 +1341,9 @@
   color: var(--tinta-suave);
 }
 
-/* --- Os laços que já existem: cada um numa linha, com "Editar" abrindo no lugar ------------------- */
+/* --- Os laços que já existem: cada um numa linha, com "Editar" abrindo no lugar -------------------
+   PROVISÓRIO (pergunta 10 do PR do grupo "formularios"): a edição num cartão branco e as fases
+   do casal com um fio ao lado. */
 
 .pagina-de-formulario .grupo-de-lacos {
   display: grid;
@@ -1544,7 +1548,8 @@
   border-left: var(--traco) solid var(--fio);
   color: var(--tinta-suave);
 }
-/* A confirmação de excluir: um cartão com a marca do alerta */
+/* A confirmação de excluir: um cartão com a marca do alerta.
+   PROVISÓRIO (pergunta 12 do PR do grupo "formularios"). */
 .pagina-de-formulario .alerta {
   display: grid;
   gap: var(--e-4);

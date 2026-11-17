@@ -11,6 +11,7 @@ const voltarPara = `/capitulos/${capitulo.id}/editar`;
 if (!usuario.admin) return Astro.redirect(voltarPara);
 // Quem mais pode restaurar, do ponto de vista de quem está excluindo
 const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
+// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
 <Pagina titulo="Excluir capítulo" rotulo="Capítulo" secao="capitulos">

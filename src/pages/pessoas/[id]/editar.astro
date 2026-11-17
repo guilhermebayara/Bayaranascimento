@@ -150,6 +150,7 @@ const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(
 // Na edição de uma filiação antiga de consideração, a opção continua lá para não trocar sem querer
 const opcoesDeFiliacao = (atual?: Qualidade): [string, string][] => (atual === 'consideracao' ? (Object.entries(QUALIDADES) as [string, string][]) : qualidades);
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
+// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
 <Pagina titulo={chamar} aba={`Editar ${chamar}`} rotulo={recemCadastrada ? 'Nova pessoa' : 'Editar página e laços'} nucleos={familiasDe(pessoa)} secao="pessoas">

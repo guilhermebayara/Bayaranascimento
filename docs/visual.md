@@ -430,7 +430,7 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 | 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar` (PR #35, aberto). O Gui viu várias rodadas e ainda quer ajustar: ver "Estado do grupo 1", logo abaixo |
 | 2. `pessoal` | Painel, carta de Natal, sua conta, a página da pessoa e `/sistema` | Construído em 17/11/2026, na `tst-visual-pessoal`, em cima do grupo 1. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 2: pessoal" |
 | 3. `familia` | Capítulos, capítulo, tema, pessoas e árvore (a árvore muda só de aparência) | Construído em 17/11/2026, na `tst-visual-familia`, em cima do grupo 2. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 3: familia" |
-| 4. `formularios` | Nova memória, relato, cadastro guiado, laços, capítulo, administração, rascunhos e lixeira. Por fim, apagar `src/styles/global.css` | Primeira metade construída em 17/11/2026, na `tst-visual-formularios` (a base, a Nova memória, o relato e o capítulo). Falta a segunda metade: ver "Grupo 4", abaixo |
+| 4. `formularios` | Nova memória, relato, capítulo, nova pessoa, cadastro guiado, laços, histórico, excluir, rascunhos, lixeira e administração. Por fim, a saída de `src/styles/global.css` | Construído em 17/11/2026, na `tst-visual-formularios`, em cima do grupo 3, em duas metades. PR __G4__ aberto, sem merge, com perguntas para o Gui. O estilo antigo saiu: ver "Grupo 4", abaixo |
 
 ### Estado do grupo 1, para a próxima sessão seguir sem a conversa
 
@@ -686,9 +686,9 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **O que não foi conferido:** nada no iPhone de verdade (o gesto de dois dedos na árvore, em especial), nem na prévia publicada. A capa parada do capítulo só existe com mouse, então não pede conferência no iPhone. Das 33 capturas, foram olhadas 20, pelo menos uma de cada tela; as de 1920 px olhadas foram a do capítulo reunido, a das pessoas e a da árvore com foco.
 
-### Grupo 4: formularios (primeira metade)
+### Grupo 4: formularios
 
-Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era decisão dele seguiu com a opção recomendada, está marcado no código com `PROVISÓRIO (pergunta N do PR do grupo "formularios")` e as perguntas esperam o PR em `docs/visual/fase-3/formularios/perguntas-parte-1.md`. As fundações não mudaram: as etapas, o que é obrigatório, os nomes dos campos, o que os scripts de `src/lib/cliente/` procuram e o funcionamento sem JavaScript.
+Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era decisão dele seguiu com a opção recomendada, está marcado no código com `PROVISÓRIO (pergunta N do PR do grupo "formularios")` e as perguntas estão no fim do PR do grupo. As fundações não mudaram: as etapas, o que é obrigatório, os nomes dos campos, o que os scripts de `src/lib/cliente/` procuram e o funcionamento sem JavaScript.
 
 **A base, para todas as telas de formulário.**
 
@@ -713,7 +713,7 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **Capítulo (`/capitulos/novo` e `/capitulos/<id>/editar`).** A ficha em três etapas, com "Como as memórias entram?" em cartões que se explicam (Reunido, Por período, Época). Na edição, "Memórias do capítulo" e "Sobre o capítulo" são partes separadas por um fio.
 
-**"Família" no lugar de "núcleo"** nestas telas: a tabela das trocas está em `perguntas-parte-1.md`, e tem teste (nenhuma destas telas escreve "núcleo" no que aparece).
+**"Família" no lugar de "núcleo"** nestas telas: a tabela das trocas está no PR do grupo, e tem teste (nenhuma destas telas escreve "núcleo" no que aparece).
 
 **Testes.** `describe('grupo formularios')`, em `testes/visual.test.ts`; a data na frase, em `testes/datas.test.ts`. As quatro telas, a página de formulário e a ficha do capítulo entraram nas listas de telas de `testes/visual.test.ts` e `testes/sistema.test.ts`. Nenhum teste antigo precisou mudar.
 
@@ -723,24 +723,47 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **O que não foi conferido:** nada no iPhone de verdade nem na prévia publicada. O envio de fotos e a gravação de áudio não foram exercitados (o estilo das fotos foi visto com as que a memória já tem; o do áudio gravado, não). A edição de um capítulo por período com pessoas marcadas foi vista só no capítulo novo.
 
-**O que falta, para a segunda metade do grupo 4**
+**Segunda metade** (17/11/2026, na mesma branch). As telas que ainda estavam no esqueleto antigo passaram para `formularios/Pagina.astro`, com os mesmos nomes de classe, ids e atributos que os scripts e os testes procuram, e `formulario.css` ganhou o desenho novo desses nomes.
 
-- **Telas ainda no `Base.astro`:** `memorias/[id]/historico.astro` e `excluir.astro`, `pessoas/nova.astro` e `pessoas/[id]/editar.astro` (cadastro guiado e laços, com `FichaDoIntegrante.astro`), `capitulos/[id]/excluir.astro`, `rascunhos.astro`, `lixeira.astro` e as quatro de `admin/`. Cada uma passa a usar `formularios/Pagina.astro`.
-- **Estilo que ainda não existe em `formulario.css`:** o recorte do retrato (`CampoRetrato.astro`: `retrato-campo`, `recorte`, `recorte__quadro`, `--retrato-cor`), `como-se-referir`, as abas de tipo de laço e o cadastro guiado de `pessoas/[id]/editar.astro`, as tabelas da administração, o histórico e a lixeira. `confirmar…` e `botao--perigo` têm um desenho mínimo, sem conferência.
-- **Depois da última tela:** apagar `Base.astro`, `Abertura.astro` e `src/styles/global.css`; levar para `Pagina.astro` os testes que leem o `Base.astro` (`testes/formularios.test.ts`, as duas conferências de "sem JavaScript e depois de um erro"; `testes/ux-decisoes.test.ts`, `marcarEnvios()`; `testes/tamanho-do-banco.test.ts`, o aviso do tamanho, que foi para a conta); apagar `testes/tokens.test.ts`, que lê o `global.css`; e reavaliar as camadas do CSS (`@layer`).
-- **Abrir o PR** do grupo, com as perguntas de `perguntas-parte-1.md`, e apagar esse arquivo.
+- **Nova pessoa (`/pessoas/nova`) e a ficha (`FichaDoIntegrante.astro`).** A trilha de duas etapas ("Quem é", "Laços") é a mesma trilha quieta, em versão de fluxo entre páginas (`etapas--fluxo`): no celular só a etapa em que a pessoa está leva o nome. "Foto, nascimento e história" continua recolhido.
+- **O retrato no formulário (`CampoRetrato.astro`).** O retrato de agora aparece recortado em arco, como no resto do site, sobre a cor da família (`data-familia`, de `corDaPessoa`). Saiu `corDaFamilia`, que devolvia uma variável do estilo antigo. O quadro de enquadrar fica num cartão branco, com "Aproximar", "Usar esta foto" e "Cancelar".
+- **O cadastro guiado (`/pessoas/<id>/editar?novo=1`).** Uma pergunta por tela, grande, em serifa. Os dois caminhos ("Da família", "Do coração") são dois cartões inteiros para tocar, lado a lado a partir de 40rem. Em cada pergunta, "Adicionar" é o botão cheio até alguém ser adicionado; "Voltar" fica à esquerda e "Pular esta pergunta" ou "Próxima pergunta" à direita, como nas etapas da Nova memória.
+- **Editar página e laços (`/pessoas/<id>/editar`).** A ficha, depois os laços por tipo, cada um numa linha com "Editar", que abre no lugar num cartão branco. O casal mostra as fases como uma linha do tempo com um fio ao lado; em edição, cada fase é uma linha que abre com "Mudar". Remover continua com a confirmação no próprio lugar (`ConfirmarRemocao.astro`), com o botão na cor do alerta. "Adicionar laço" usa as abas que já tinham desenho.
+- **Utilitárias, silenciosas:** o histórico da memória, as duas confirmações de excluir (um cartão com a marca do alerta), os rascunhos e a lixeira. As listas usam `linhas`: um fio entre os itens, o nome em destaque, a data em mono e a ação em texto sublinhado. O estado vazio é a peça Vazio.
+- **Administração:** tipos de momento, famílias, carta de Natal e espelho da produção, com "Administração" acima do título e "Voltar para a sua conta". O tamanho do banco e "Baixar cópia do acervo" já estavam na conta desde o grupo 2; o teste do aviso passou a conferir a conta.
+- **Página larga:** `<Pagina larga>` alarga a coluna (`pagina-de-formulario--larga`) para listas e tabelas.
+- **Defeitos corrigidos no caminho:** o texto do espelho mandava procurar "Baixar cópia do acervo" no rodapé, que não existe mais (agora diz "abra a sua conta e, em Administração"); faltava um espaço entre duas frases em `/admin/familias`; "Ver como fica", na carta, não tinha a aparência de ação.
+- **"Família" no lugar de "núcleo"** nestas telas e em dois recados do servidor ("Você só pode marcar famílias de que faz parte."). A tabela das trocas está no PR.
 
-### O que falta, para a sessão seguinte
+**O estilo antigo saiu.** Foram apagados `src/styles/global.css`, `src/layouts/Base.astro`, `src/components/Abertura.astro` e `testes/tokens.test.ts`, que só conferia os tokens do arquivo apagado. Toda página usa `Visual.astro`, direto ou por `formularios/Pagina.astro`. As conferências que liam o esqueleto antigo mudaram de lugar sem perder regra: o digitado que volta e o `<noscript>` (`testes/formularios.test.ts`) e o `marcarEnvios()` (`testes/ux-decisoes.test.ts`) agora leem `Pagina.astro`; o aviso do tamanho do banco (`testes/tamanho-do-banco.test.ts`) lê a conta. Um teste novo, no `describe('grupo formularios')`, recusa a volta do esqueleto, da abertura, da pasta `src/styles` e das variáveis antigas (`--cor-`, `--tamanho-`, `--espaco-`, `--nucleo-`), e confere que toda página usa o esqueleto novo.
 
-- **Grupo 4**, em branch empilhada (`tst-visual-formularios`, nascida da `tst-visual-familia`).
-- **As páginas que ainda usam `Base.astro` e o `global.css`:** `nova.astro`, `memorias/[id]/relato.astro`, `historico.astro` e `excluir.astro`, `pessoas/nova.astro` e `pessoas/[id]/editar.astro`, `capitulos/novo.astro`, `[id]/editar.astro` e `[id]/excluir.astro`, `rascunhos.astro`, `lixeira.astro` e as quatro de `admin/`. Com elas saem `Base.astro`, `Abertura.astro` e o `global.css`.
-- **O que os scripts de `src/lib/cliente/` criam com classe própria** e precisa de estilo novo no grupo 4: a busca de pessoa (`busca`, `busca__campo`, `busca__lista`, `busca__novo`, `busca__vazio`; hoje só tem estilo novo dentro do mapa da árvore), o recorte do retrato e o `CampoRetrato.astro`, que ainda usa `--retrato-cor` com `corDaFamilia` (`var(--nucleo-N)`, com teste em `testes/retratos.test.ts`).
-- **`testes/tokens.test.ts`** lê o `global.css`: sai junto com ele. `testes/tamanho-do-banco.test.ts` e `testes/formularios.test.ts` leem o `Base.astro`.
-- **O que ainda está em `/conceito`:** só as fontes (`/conceito/sobre`), até a escolha.
-- **"Família" no lugar de "núcleo":** falta nas telas do grupo 4 ("Quem pode ver?" e "De quais núcleos é esta memória?" na Nova memória, o histórico, a ficha do capítulo, a página de editar pessoa e o texto do espelho).
-- **Camadas do CSS (`@layer`):** reavaliar no grupo 4, quando o `global.css` sair.
-- **`testes/visual.test.ts`** ainda guarda os testes das telas dos grupos 1 e 2 dentro do `describe('conceito')`. Os do grupo 3 já estão num `describe` próprio. Vale separar no grupo 4.
-- **No iPhone:** o modo TV e o mural não têm nada parado no alto. A linha do tempo continua com o modelo já conferido, agora também na página da pessoa e na do tema.
+**Camadas do CSS (`@layer`), reavaliadas e não adotadas.** Com o `global.css` fora, a razão que sobra para as camadas é a tela sempre vencer a peça. Elas mudariam quem vence em todas as telas dos quatro grupos de uma vez, e a fase 2 já viu alturas mudarem por isso. Não foi tentado nesta sessão, porque pedia comparar todas as capturas dos quatro grupos com o Gui ausente e os grupos 1 a 3 ainda em aprovação. A regra continua a de "Cuidados que custaram tempo": para a tela ajustar uma peça, um seletor mais específico. Vale tentar depois dos quatro PRs entrarem, numa branch só para isso, com `npm run capturas -- comparar`.
+
+**Conferido na segunda metade.** 390, 1280 e 1920 px, com movimento reduzido. Com o Playwright, no celular e no computador, só pelo teclado: cadastrar uma pessoa, percorrer o cadastro guiado até o fim adicionando a mãe pela busca, editar o laço (a filiação adotiva mostra a data da adoção), remover com a confirmação e restaurar um item da lixeira; em cada tela, todo alvo com 44 px, o foco visível e nenhuma rolagem lateral. Sem JavaScript: nova pessoa cadastra por formulário comum, o botão de escolher foto some, a pergunta do guiado mostra a lista suspensa no lugar da busca e, em "Adicionar laço", os campos de todos os tipos aparecem. Depois de apagar o estilo antigo, uma tela de cada grupo anterior foi capturada antes e depois: a conta, o capítulo e o capítulo novo saíram iguais pixel a pixel; a memória difere só dentro das fotos, de uma rodada para outra (instabilidade já conhecida do grupo 2); a árvore mudou porque a conferência cadastrou pessoas de teste no banco local.
+
+**O que não foi conferido na segunda metade:** nada no iPhone de verdade nem na prévia publicada. O recorte do retrato não foi exercitado com uma foto (o quadro de enquadrar não foi visto aberto). O histórico só foi visto vazio: a memória de exemplo das capturas nunca foi alterada, então as listas de alterações, de textos anteriores e de fotos removidas não foram vistas na tela. O espelho não foi enviado. Das capturas em 1920 px, foram olhadas só a pergunta dos pais e o espelho.
+
+**Capturas.** `CAPTURAS_SO=^formularios npm run capturas -- tirar <pasta>`. As da segunda metade são `formularios-4` (nova pessoa e o guiado), `formularios-5` (editar, um laço e um casal em edição), `formularios-6` (utilitárias) e `formularios-7` (administração). As entradas antigas sem prefixo saíram da lista.
+
+### O que falta
+
+**Da fase 3**
+
+- **A aprovação do Gui**, grupo a grupo, e o merge na ordem: #35, #36, #37 e __G4__. As perguntas de cada grupo estão no fim do PR dele.
+- **As fontes:** `/conceito/sobre` fica até a escolha, que espera a Giovanna e o Magno. Depois dela, saem as duas combinações que sobrarem ("Como a fonte é trocada").
+- **Limpeza que ficou para depois dos merges:** tirar de "Decidido, a construir" os itens que os grupos fecharam (Explorar, capítulos na linha do tempo, painel, sua conta, "família" no lugar de "núcleo", revisão visual) e levar o resumo para as seções de regra; `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena, como `docs/decisoes.md` já previa; separar os testes dos grupos 1 e 2 do `describe('conceito')`, em `testes/visual.test.ts`; tentar as camadas do CSS.
+- **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Espera a resposta do Gui (pergunta 11 do PR do grupo 4).
+- **O que nenhum grupo viu na tela:** o envio de foto nova, a gravação de áudio, o recorte do retrato com uma foto e o histórico com alterações.
+
+**Da fase 4 (movimento e detalhes)**
+
+- A frase que acende palavra por palavra, a foto que amplia no lugar e o tocador de áudio próprio ("O que ficou de fora do sistema, de propósito").
+
+**Da fase 5 (QA visual no aparelho)**
+
+- **No iPhone de verdade**, nada dos quatro grupos foi conferido: a troca com movimento do Explorar, o modo TV com "Só as fotos", a galeria da memória, a linha do tempo na página da pessoa e do tema, o gesto de dois dedos na árvore, os formulários (teclado do aparelho, a lacuna da data, a gravação de áudio) e o recorte do retrato.
+- **Numa TV de verdade, com controle:** o modo TV.
+- **Na homologação, com o espelho da produção:** a árvore, as páginas de pessoa e a lista de pessoas com o formato real da família.
 
 ## A página do sistema fica (decisão do Gui, 16/11/2026)
 
