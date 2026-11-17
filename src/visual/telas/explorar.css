@@ -174,53 +174,52 @@
   rotate: -2deg;
 }
 
-/* O verso: um cartão do tamanho da foto, que sai de trás dela para o lado, um pouco virado para o
-   outro lado, como uma dupla. Só onde há mouse, ou com o foco do teclado. No toque ele não aparece:
+/* O verso: um cartão do tamanho da foto, exatamente atrás dela. Com o mouse, abre em leque, girando
+   pelo canto de baixo, como duas fotos seguradas por ali: aparece a quina de cima, onde estão
+   está escrita a data. Só onde há mouse, ou com o foco do teclado. No toque ele não aparece:
    o título na margem basta. O leitor de tela lê sempre. */
 .mural__verso {
+  --leque: 17deg;
   position: absolute;
   z-index: 0;
-  top: 0;
-  left: 90%;
+  inset: 0;
   box-sizing: border-box;
   display: grid;
   align-content: start;
-  justify-items: start;
-  gap: var(--e-3);
-  width: max(100%, 10.5rem);
-  min-height: 100%;
-  padding: var(--e-5) var(--e-4) var(--e-4) calc(var(--e-4) + 6%);
+  justify-items: end;
+  gap: 0.2em;
+  padding: 6% 6% 0 50%;
   border-radius: var(--raio-moldura);
   background: var(--branco);
   box-shadow: var(--sombra-foto);
+  font-family: var(--mono);
+  font-size: clamp(0.5625rem, 0.34rem + 0.42vw, 0.8125rem);
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-align: right;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
   opacity: 0;
-  translate: -45% 0;
+  transform-origin: 12% 100%;
   rotate: 0deg;
   pointer-events: none;
   transition:
     opacity var(--tempo-curto) var(--curva),
-    translate var(--tempo-medio) var(--curva),
     rotate var(--tempo-medio) var(--curva);
 }
-.mural__verso .carimbo {
-  white-space: normal;
-}
 .mural__foto[data-para-a-esquerda] .mural__verso {
-  left: auto;
-  right: 90%;
-  padding: var(--e-5) calc(var(--e-4) + 6%) var(--e-4) var(--e-4);
-  translate: 45% 0;
+  --leque: -17deg;
+  justify-items: start;
+  padding: 6% 50% 0 6%;
+  text-align: left;
+  transform-origin: 88% 100%;
 }
 .mural__foto:has(a:focus-visible) {
   z-index: 3;
 }
 .mural a:focus-visible .mural__verso {
   opacity: 1;
-  translate: 0 0;
-  rotate: 2.5deg;
-}
-.mural__foto[data-para-a-esquerda] a:focus-visible .mural__verso {
-  rotate: -2.5deg;
+  rotate: var(--leque);
 }
 @media (hover: hover) and (pointer: fine) {
   .mural__foto:hover {
@@ -228,11 +227,7 @@
   }
   .mural a:hover .mural__verso {
     opacity: 1;
-    translate: 0 0;
-    rotate: 2.5deg;
-  }
-  .mural__foto[data-para-a-esquerda] a:hover .mural__verso {
-    rotate: -2.5deg;
+    rotate: var(--leque);
   }
 }
 

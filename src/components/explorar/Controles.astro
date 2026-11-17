@@ -253,19 +253,3 @@ const grupos = [
     )
   }
 </div>
-
-<script>
-  // O endereço fica só com o que foi escolhido: campo vazio não vai junto
-  const formulario = document.querySelector<HTMLFormElement>('[data-filtros]');
-  formulario?.addEventListener('submit', () => {
-    for (const campo of formulario.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[name], select[name]')) {
-      const marcavel = campo instanceof HTMLInputElement && (campo.type === 'checkbox' || campo.type === 'radio');
-      if (!marcavel && !campo.value.trim()) campo.disabled = true;
-      if (marcavel && campo.checked && !campo.value) campo.disabled = true;
-    }
-  });
-  // Voltar para a página pelo histórico: os campos voltam a valer
-  addEventListener('pageshow', () => {
-    for (const campo of formulario?.querySelectorAll<HTMLInputElement | HTMLSelectElement>(':disabled') ?? []) campo.disabled = false;
-  });
-</script>

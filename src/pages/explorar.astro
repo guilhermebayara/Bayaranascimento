@@ -117,12 +117,15 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
       />
     )
   }
+  {/* A linha do tempo e o mural ficam numa região que troca de conteúdo sem recarregar a página */}
+  {!noPalco && (
+  <div data-explorar>
   {
     forma === 'linha' && (
       <Linha memorias={memorias} capitulos={capitulos} integrantes={integrantes} nucleos={nucleos} ordem={filtros.ordem} trilhos={resultado.trilhos} limpar={limpar}>
         <header class="linha__capa miolo" slot="capa">
           <Assinatura titulo sobrenomes={sobrenomes} />
-          <p class="linha__conta rotulo">{conta}</p>
+          <p class="linha__conta rotulo" aria-live="polite">{conta}</p>
           <Controles
             filtros={filtros}
             forma={forma}
@@ -144,7 +147,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
       <div class="linha linha--mural">
         <header class="linha__capa miolo">
           <Assinatura titulo sobrenomes={sobrenomes} />
-          <p class="linha__conta rotulo">{conta}</p>
+          <p class="linha__conta rotulo" aria-live="polite">{conta}</p>
           <Controles
             filtros={filtros}
             forma={forma}
@@ -159,7 +162,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
           />
         </header>
         {memorias.length > 0 ? (
-          <Mural memorias={memorias} ordem={filtros.ordem} tamanho={tamanho} nomeDe={nomeDe} />
+          <Mural memorias={memorias} ordem={filtros.ordem} tamanho={tamanho} />
         ) : (
           <div class="miolo">
             <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
@@ -178,4 +181,82 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
       </div>
     )
   }
+  </div>
+  )}
 </Visual>
+
+<script>
+  // Fluidez (decisão do Gui, 17/11/2026: somos poucos, e a página recarregar a cada escolha
+  // atrapalhava mais do que o endereço ajudava). Trocar de forma de ver, de família, de tamanho das
+  // fotos, de filtros ou de ordem busca a página nova e troca só a região do Explorar, sem
+  // recarregar. O endereço continua acompanhando, o voltar do aparelho funciona, e sem script cada
+  // escolha continua sendo um link ou um formulário comum. O modo TV e o "ao acaso" têm o palco
+  // deles: para lá, a navegação é a de sempre.
+  const daRegiao = (endereco: URL) => endereco.origin === location.origin && endereco.pathname === '/explorar' && ['linha', 'mural', null].includes(endereco.searchParams.get('ver'));
+  let pedido = 0;
+
+  async function trocar(endereco: URL, empurrar: boolean, foco?: string) {
+    const regiao = document.querySelector<HTMLElement>('[data-explorar]');
+    if (!regiao) return location.assign(endereco);
+    const meu = ++pedido;
+    regiao.setAttribute('aria-busy', 'true');
+    try {
+      const resposta = await fetch(endereco, { headers: { Accept: 'text/html' } });
+      if (!resposta.ok) throw new Error(String(resposta.status));
+      const pagina = new DOMParser().parseFromString(await resposta.text(), 'text/html');
+      const nova = pagina.querySelector<HTMLElement>('[data-explorar]');
+      if (!nova) throw new Error('sem a região');
+      // Uma escolha mais nova já saiu: esta resposta chegou atrasada
+      if (meu !== pedido) return;
+      const por = () => {
+        regiao.replaceWith(nova);
+        // A cor da tela e a assinatura do rodapé acompanham a família
+        const familia = pagina.documentElement.dataset.familia;
+        if (familia) document.documentElement.dataset.familia = familia;
+        const rodape = pagina.querySelector('footer.rodape');
+        if (rodape) document.querySelector('footer.rodape')?.replaceWith(rodape);
+        document.title = pagina.title;
+        if (empurrar) history.pushState({ explorar: true }, '', endereco);
+        document.dispatchEvent(new CustomEvent('explorar:trocou'));
+        // O foco continua onde a pessoa estava: na opção que ela escolheu, ou no controle dos filtros
+        const alvo = foco ? nova.querySelector<HTMLElement>(foco) : null;
+        alvo?.focus({ preventScroll: true });
+      };
+      const comTransicao = 'startViewTransition' in document && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (comTransicao) (document as Document & { startViewTransition: (f: () => void) => unknown }).startViewTransition(por);
+      else por();
+    } catch {
+      // Qualquer problema: a navegação comum resolve
+      location.assign(endereco);
+    }
+  }
+
+  document.addEventListener('click', (evento) => {
+    const link = evento.target instanceof Element ? evento.target.closest<HTMLAnchorElement>('[data-explorar] .controles a[href]') : null;
+    if (!link || evento.defaultPrevented || evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
+    const endereco = new URL(link.href);
+    if (!daRegiao(endereco)) return;
+    evento.preventDefault();
+    // A mesma opção, no mesmo controle: o endereço sozinho pode se repetir em dois controles
+    const controle = link.closest('nav')?.getAttribute('aria-labelledby') ?? '';
+    trocar(endereco, true, `.controles nav[aria-labelledby="${CSS.escape(controle)}"] a[href="${CSS.escape(link.getAttribute('href') ?? '')}"]`);
+  });
+
+  document.addEventListener('submit', (evento) => {
+    const formulario = evento.target instanceof HTMLFormElement && evento.target.matches('[data-explorar] [data-filtros]') ? evento.target : null;
+    if (!formulario) return;
+    // O endereço fica só com o que foi escolhido: campo vazio não vai junto
+    const endereco = new URL(formulario.action);
+    for (const [nome, valor] of new FormData(formulario)) if (typeof valor === 'string' && valor.trim()) endereco.searchParams.append(nome, valor.trim());
+    evento.preventDefault();
+    if (!daRegiao(endereco)) return location.assign(endereco);
+    trocar(endereco, true, '.filtros > summary');
+  });
+
+  // O voltar e o avançar do aparelho, entre as escolhas feitas aqui
+  addEventListener('popstate', () => {
+    const endereco = new URL(location.href);
+    if (document.querySelector('[data-explorar]') && daRegiao(endereco)) trocar(endereco, false);
+    else location.reload();
+  });
+</script>

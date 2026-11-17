@@ -282,8 +282,18 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
 <script>
   // A década da barra, o ano parado no alto e o destaque do capítulo. O ponto do trilho acompanha
   // a memória em leitura. Sem script, a lista inteira aparece e nada disso faz falta.
-  const raiz = document.querySelector<HTMLElement>('[data-linha-do-tempo]');
-  if (raiz) {
+  //
+  // O Explorar troca o conteúdo sem recarregar a página (ver o script de src/pages/explorar.astro):
+  // a cada troca, o que escutava a janela e observava a linha anterior é desligado, e tudo começa
+  // de novo na linha que chegou.
+  let desligar = new AbortController();
+  const iniciar = () => {
+    desligar.abort();
+    desligar = new AbortController();
+    const { signal } = desligar;
+    const raiz = document.querySelector<HTMLElement>('[data-linha-do-tempo]');
+    if (!raiz) return;
+    {
     // No computador, passar o mouse por um trilho acende o capítulo inteiro e diz o nome dele ao
     // lado do cursor (pedido do Gui, 16/11/2026: capítulo longo fica fácil de identificar). O foco
     // no título do capítulo faz o mesmo. No celular, o sinal em cada memória já diz o capítulo.
@@ -421,11 +431,12 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
         if (embaixo !== undefined) tom(gaveta, embaixo);
       };
       const olho = new ResizeObserver(medir);
+      signal.addEventListener('abort', () => olho.disconnect());
       if (trilho) olho.observe(trilho);
       medir();
     }
-    addEventListener('scroll', pedirOsAnos, { passive: true });
-    addEventListener('resize', pedirOsAnos, { passive: true });
+    addEventListener('scroll', pedirOsAnos, { passive: true, signal });
+    addEventListener('resize', pedirOsAnos, { passive: true, signal });
 
     // A memória em leitura e a década dela: a que cruza o meio da tela
     if ('IntersectionObserver' in window) {
@@ -445,6 +456,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
         decadaAqui = decada;
         for (const item of itensDaBarra) item.toggleAttribute('data-aqui', item.dataset.decada === decada);
       };
+      signal.addEventListener('abort', () => observador.disconnect());
       const observador = new IntersectionObserver(
         (vistas) => {
           const noMeio = vistas.filter((v) => v.isIntersecting).at(-1);
@@ -459,8 +471,11 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
         () => {
           if (scrollY < innerHeight / 2 && entradas[0] && !entradas[0].hasAttribute('data-em-leitura')) marcar(entradas[0]);
         },
-        { passive: true },
+        { passive: true, signal },
       );
     }
-  }
+    }
+  };
+  iniciar();
+  document.addEventListener('explorar:trocou', iniciar);
 </script>

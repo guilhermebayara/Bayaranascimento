@@ -274,17 +274,39 @@ describe('conceito', () => {
     expect(css).not.toMatch(/position\s*:\s*(sticky|fixed)/);
   });
 
-  it('no mural, o verso aparece ao lado da foto, como uma dupla, só com o mouse ou com o foco, e a foto não vira', () => {
-    // Decisão do Gui, 17/11/2026: o verso é um cartão do tamanho da foto, que sai de trás dela
+  it('no mural, o verso abre em leque por trás da foto, só com o mouse ou com o foco, e a foto não vira', () => {
+    // Decisões do Gui, 17/11/2026: como duas fotos seguradas pelo canto de baixo, sem carimbo. É um
+    // agrado: no canto que aparece vai só a data
     const mural = tela('explorar/Mural.astro');
-    expect(mural).toMatch(/<span class="mural__verso">\s*<Carimbo itens=\{\[carimboDaData\(m\), m\.lugar\]\} \/>/);
+    expect(mural).toContain('<span class="mural__verso">');
+    expect(mural).not.toContain('Carimbo');
     const css = ler('telas/explorar.css');
-    expect(css).toMatch(/\.mural__verso\s*\{[^}]*width:\s*max\(100%, [^}]*min-height:\s*100%;[^}]*opacity:\s*0;[^}]*pointer-events:\s*none/);
+    expect(css).toMatch(/\.mural__verso\s*\{[^}]*inset:\s*0;[^}]*opacity:\s*0;[^}]*transform-origin:\s*\d+% 100%;[^}]*pointer-events:\s*none/);
     const comMouse = css.slice(css.indexOf('@media (hover: hover) and (pointer: fine)'));
-    expect(comMouse).toMatch(/\.mural a:hover \.mural__verso\s*\{[^}]*opacity:\s*1/);
+    expect(comMouse).toMatch(/\.mural a:hover \.mural__verso\s*\{[^}]*opacity:\s*1;[^}]*rotate:\s*var\(--leque\)/);
     expect(css.slice(0, css.indexOf('@media (hover: hover) and (pointer: fine)'))).not.toMatch(/:hover \.mural__verso/);
     expect(css).toMatch(/\.mural a:focus-visible \.mural__verso\s*\{[^}]*opacity:\s*1/);
     expect(css).not.toMatch(/rotate[XY]|backface-visibility|perspective/);
+  });
+
+  it('as escolhas do Explorar trocam o conteúdo sem recarregar a página, e sem script continuam funcionando', () => {
+    // Decisão do Gui, 17/11/2026: a fluidez vem antes; o endereço continua acompanhando
+    const pagina = tela('pages/explorar.astro');
+    expect(pagina).toMatch(/<div data-explorar>/);
+    expect(pagina).toMatch(/history\.pushState\(\{ explorar: true \}, '', endereco\)/);
+    expect(pagina).toMatch(/addEventListener\('popstate'/);
+    // Qualquer problema na busca cai na navegação comum
+    expect(pagina).toMatch(/catch \{[\s\S]*?location\.assign\(endereco\)/);
+    // A transição só para quem não pediu menos movimento
+    expect(pagina).toMatch(/'startViewTransition' in document && !matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches/);
+    // A linha do tempo começa de novo a cada troca, desligando o que escutava a janela
+    const linha = tela('explorar/Linha.astro');
+    expect(linha).toMatch(/document\.addEventListener\('explorar:trocou', iniciar\)/);
+    expect(linha).toMatch(/desligar\.abort\(\);/);
+    expect(linha).not.toMatch(/\{ passive: true \}/);
+    expect(linha.match(/\{ passive: true, signal \}/g)?.length).toBe(3);
+    // Sem script: links e formulário comuns
+    expect(tela('explorar/Controles.astro')).not.toContain('<script');
   });
 
   it('no mural, quem está vendo escolhe o tamanho das fotos, e a escolha fica no endereço', () => {
