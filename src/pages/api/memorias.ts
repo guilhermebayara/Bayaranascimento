@@ -8,6 +8,7 @@ import { TIPO_OUTRO } from '../../lib/tipos';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
+import { avisarQuemEstava } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
@@ -258,6 +259,9 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     id = codigoNovo(await idsDeMemorias());
     await criarMemoria(id, dados, usuario);
   }
+  // Avisos: quem entrou agora em "Quem estava" de uma memória publicada (src/lib/avisos.ts)
+  const antes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];
+  await avisarQuemEstava({ id, situacao, visibilidade: dados.visibilidade, nucleos, integrantes, criadaPor: anterior?.criadaPor ?? usuario.pessoa }, antes, usuario);
 
   if (relatoPor) {
     const existente = await obterRelato(id, relatoPor, usuario);

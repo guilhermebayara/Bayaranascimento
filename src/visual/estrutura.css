@@ -132,6 +132,29 @@
 .topo__conta-nome {
   display: none;
 }
+/* O número de avisos (src/lib/avisos.ts): discreto, no canto do retrato, em qualquer tela */
+.topo__retrato {
+  position: relative;
+  display: inline-flex;
+}
+.topo__avisos {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.45rem;
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border: 2px solid var(--papel);
+  border-radius: var(--raio-pilula);
+  background: var(--tinta);
+  color: var(--papel);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
 .topo__conta[aria-current] .retrato {
   outline: 2px solid var(--vivo);
   outline-offset: 2px;

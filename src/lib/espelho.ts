@@ -36,6 +36,8 @@ export const IDS_MANTIDOS = ['gui', 'giovanna', 'elizete', 'lucas-magno'];
 
 /** Tabelas apagadas antes de gravar o espelho, das que dependem para as de que se depende. */
 export const TABELAS_APAGADAS = [
+  // Os avisos apontam para memórias e relatos da produção: o espelho não leva nenhum
+  'avisos',
   'tema_capitulos',
   'tema_memorias',
   'temas',

@@ -310,7 +310,7 @@ Ideia do Gui de 15/11/2026, decisões de 16/11/2026 e respostas ao QA de design 
 - **Aniversários:** só de quem está vivo e de quem a pessoa vê, com o parentesco do ponto de vista dela e a idade que vai fazer quando o ano de nascimento é conhecido. Quem tem só o ano não entra.
 - O relato de uma memória que também é nova não aparece à parte, e a memória para contar nunca repete uma das novidades. Quem não aparece em nenhuma memória, ou entra sem página no acervo, fica sem "Você no acervo".
 - Na homologação e nas prévias, o "Ver como" mostra o painel daquela pessoa, e "Voltar Fulano à primeira visita" volta a mostrar a carta. As prévias têm aniversários de exemplo (um parente por mês) e uma carta de exemplo, só onde não há carta nenhuma.
-- Os avisos (pedido para liberar relato, sugestão de correção, relato novo onde a pessoa aparece) vão ficar no alto do painel, junto das novidades, quando existirem ("Círculo e avisos", em "Em aberto").
+- Os avisos ficam no alto do painel, logo abaixo da frase das novidades (ver "Avisos").
 
 ## Sua conta
 
@@ -318,12 +318,26 @@ Decisões do Gui de 16/11/2026, tela construída na fase 3 da revisão visual (`
 
 - Abre pelo retrato de quem está logado, no topo, e pelo item "Sua conta" do menu.
 - **Seus dados:** retrato, nome, apelido e nascimento numa linha abaixo do nome, sem cartão próprio, e só o que existe (P149). "Editar seus dados" leva à tela de editar a página da pessoa, e há o link para a página dela como os outros veem. O e-mail vem do segredo `ACESSOS`, só onde há login, e só os administradores mudam.
+- **Avisos:** o primeiro cartão, na largura toda, com a lista e o histórico (ver "Avisos").
 - **Rascunhos e lixeira:** os rascunhos da pessoa e o que ela mandou para a lixeira, para recuperar. Sem mudar quem restaura o quê.
 - **O que você criou:** memórias, relatos (inclusive os registrados em nome de outra pessoa, marcados assim), fotos enviadas (mesmo na memória de outra pessoa) e capítulos, cada um com acesso direto. Só o que já foi publicado e que a pessoa ainda vê; o rascunho fica em "Rascunhos".
 - **Seus laços do coração:** os que ela definiu, inclusive os "só eu", com a proximidade, que só ela vê, e o caminho para editar cada um.
 - **Administração**, só para os administradores, numa seção à parte no fim: tipos de momento, famílias e membros, a carta de Natal, o sistema visual, o tamanho do banco, "Baixar cópia do acervo" e, na homologação, o espelho da produção.
 - A conta mostra a carta de Natal e, no fim, "Sair", onde há login.
 - Na homologação e nas prévias, o "Ver como" mostra a conta da pessoa escolhida.
+
+## Avisos
+
+Decisões do Gui de 17/11/2026 (Onda 1), construídas em 17/11/2026 (migração `024-avisos`). As regras estão em `src/lib/avisos.ts`, a geração em `src/lib/servidor/avisos.ts` e as consultas em `src/lib/servidor/repositorio.ts` ("Avisos"), com teste em `testes/avisos.test.ts`.
+
+- **Dentro do site**, sem e-mail nem notificação no celular. Ficam no alto do Início, logo abaixo da frase das novidades ("2 avisos para você"), num número discreto no retrato do topo, em qualquer tela ("9+" a partir de dez, e o nome do retrato diz "Sua conta, Gui, 2 avisos"), e em "Sua conta", no cartão "Avisos", com o histórico em "Avisos que já saíram da lista".
+- **Tipos:** o pedido para liberar um relato (ver "Ampliar quem vê uma memória com relatos"), relato novo numa memória que a pessoa criou ou em que aparece, e a pessoa marcada em "Quem estava". A sugestão de correção entra com ela, na onda 2.
+- **Quando nasce:** relato novo, quando um relato é publicado numa memória publicada (editar um relato publicado não avisa de novo); "Quem estava", quando a memória sai do rascunho com a pessoa marcada ou quando uma correção a marca. Rascunho não avisa ninguém. Na memória nova, quem estava recebe só o "Quem estava", e não também o relato de quem criou.
+- **Quem recebe:** só quem tem login, e só a partir do primeiro acesso (tabela `acessos`, anotada no primeiro pedido de cada pessoa; quem já tinha aberto o painel entrou com a primeira visita). O que já existia chega como acervo, não como aviso. O pedido para liberar vale sempre. Ninguém recebe aviso do que ela mesma fez.
+- **Quem não vê o item não recebe aviso dele:** a pessoa precisa ver a memória ao nascer o aviso, e a lista confere de novo ao ler. Memória que passou a ser restrita, foi para a lixeira ou voltou a ser só de quem vê, relato que some para ela (o de quem só existe num laço privado de outra pessoa) e aviso feito por alguém que ela não vê saem da lista, do histórico e do número do retrato.
+- **Sai da lista** ao abrir a memória. O pedido para liberar só sai quando a pessoa responde. Sem lembrete.
+- Cada aviso leva à memória e, quando é de um relato, ao bilhete dele.
+- O espelho da produção apaga os avisos, como apaga os relatos. As prévias têm dois avisos de exemplo para cada pessoa do "Ver como" (`semearAvisosDeExemplo`).
 
 ## Explorar
 
@@ -379,7 +393,6 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - **Histórico de pessoas e laços:** quem pode editar vê as versões, com quem mudou e quando, e restaura uma, como na memória.
     - **Fotos soltas na produção:** nada se apaga sozinho. Em Administração, "Fotos sem memória há mais de 30 dias", com quem enviou; o administrador confere e apaga. A guarda da produção abre só essa rota, com teste.
 - **Onda 1 até 23/11: avisos, as duas regras de privacidade que faltam e o círculo** (decisões do Gui, 17/11/2026). Prazo geral: tudo resolvido até 10/12; de lá ao Natal, só alimentar o acervo.
-    - **Avisos.** Dentro do site, sem e-mail nem notificação. Ficam no alto do Início, junto das novidades, e um número discreto no retrato do topo, em qualquer tela; a lista completa e o histórico ficam em Sua conta. Tipos: pedido para liberar um relato (obrigatório, ver abaixo), relato novo numa memória que a pessoa criou ou em que aparece, a pessoa foi marcada em "Quem estava", e sugestão de correção (entra quando a sugestão existir, na onda 2). Cada pessoa só recebe avisos a partir do primeiro acesso dela: o que já existia chega como acervo, não como aviso (o pedido para liberar relato vale sempre). Um aviso sai da lista ao abrir o que ele aponta; o pedido para liberar só sai quando a pessoa responde. Sem lembrete: o pedido fica no alto até ser respondido. Quem não vê o item não recebe aviso dele.
     - **Ampliar quem vê uma memória com relatos.** Ao ampliar, cada relato já existente continua só para o público antigo até o autor concordar. Quem ampliou vê, ao salvar, quais relatos esperam ("Os relatos da Elizete e do Lucas aparecem para quem passou a ver quando eles concordarem"), e a memória mostra isso a ele. O autor recebe o pedido e responde "Liberar para quem passou a ver" ou "Manter como estava"; pode mudar de ideia depois, por uma linha discreta no próprio relato ("Visível só para quem via antes. Liberar"). Relato de quem não acessa o site: quem registrou responde. Restringir não pede nada. Regra em `permissoes.ts`, com teste de que o relato não vaza antes do sim.
     - **Publicar memória com alguém que só você vê** (já no documento de estrutura, conferir o que existe): enquanto a pessoa for privada a memória fica em rascunho; ao publicar, o site avisa e oferece abrir a pessoa para todos, publicar sem citá-la ou continuar em rascunho. Nunca publica revelando por tabela uma pessoa privada.
     - **Círculo.** Uma forma de ver em Pessoas ("Por família | Seu círculo"), só da pessoa logada, que só ela vê. A pessoa no centro e três faixas, Muito próximo, Próximo e Conhecido; na tela grande e na TV são anéis concêntricos, no celular são faixas empilhadas com os retratos lado a lado.
@@ -405,7 +418,7 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
 - Histórico de integrantes e laços no site (as versões já são guardadas, inclusive a chave do retrato anterior) e apagar de vez o que está na lixeira
 - Juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
 - Árvore: regras de ocultar e de exigir parentes de sangue, centros padrão escolhidos na administração e página do laço com linha do tempo
-- Círculo e avisos
+- Círculo
 - Fotos enviadas em um formulário abandonado ficam no bucket sem uso: falta uma limpeza periódica na produção (nas prévias, a limpeza de 7 dias já cuida)
 
 ## Origem

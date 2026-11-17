@@ -34,6 +34,7 @@ import {
   listarTemas,
   obterMemoria,
   pessoasQueONaoVe,
+  abrirAvisosDaMemoria,
 } from '../../lib/servidor/repositorio';
 import { carimboDaData, corDaPessoa, estiloDoTipo, giroDoId, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
 
@@ -42,6 +43,8 @@ const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
 // Rascunho se edita no formulário. Memória que a pessoa não vê é como se não existisse.
 if (!memoria) return new Response('Memória não encontrada', { status: 404 });
 if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.id}`);
+// Abrir a memória tira da lista os avisos que apontam para ela (menos o pedido para liberar um relato)
+await abrirAvisosDaMemoria(usuario, memoria.id);
 
 const integrantes = await listarIntegrantes();
 const nucleos = await listarNucleos();
@@ -236,7 +239,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                 {relatos.map((relato) => {
                   const audios = audiosDosRelatos.get(relato.id) ?? [];
                   return (
-                    <Bilhete por={nome(relato.por)} registradoPor={relato.registradoPor !== relato.por ? nome(relato.registradoPor) : null}>
+                    <Bilhete id={`relato-${relato.id}`} por={nome(relato.por)} registradoPor={relato.registradoPor !== relato.por ? nome(relato.registradoPor) : null}>
                       <h3 class="so-leitor">Contado por {nome(relato.por)}</h3>
                       {relato.situacao === 'rascunho' && <p class="selo bilhete__selo">Rascunho, só você vê</p>}
                       {audios.map((audio, n) => (

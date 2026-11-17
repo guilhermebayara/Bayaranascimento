@@ -9,7 +9,8 @@ import Retrato from '../components/visual/Retrato.astro';
 import { ENDERECO_DE_SAIDA, PESSOAS_DE_TESTE, semLogin, temLogin } from '../lib/servidor/acesso';
 import { fontesDoPedido } from '../lib/servidor/conceito';
 import { enderecoDoRetrato } from '../lib/retratos';
-import { listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
+import { numeroDoRetrato, rotuloDoRetrato } from '../lib/avisos';
+import { contarAvisosPendentes, listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
 import { COMBINACOES_DE_FONTES, assinaturaDaTela, atributosDasFontes, combinacaoDe } from '../lib/visual';
 
 interface Props {
@@ -53,6 +54,9 @@ const integrantes = await listarIntegrantes();
 const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
 // "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo.
 const meuRetrato = integrantes.find((i) => i.id === usuario.pessoa)?.retrato;
+// O número discreto de avisos no retrato, em qualquer tela (docs/decisoes.md, "Avisos")
+const avisosPendentes = palco ? 0 : await contarAvisosPendentes(usuario);
+const numeroDeAvisos = numeroDoRetrato(avisosPendentes);
 const aqui = Astro.url.pathname + Astro.url.search;
 const volta = encodeURIComponent(aqui);
 const caminho = Astro.url.pathname.replace(/\/$/, '');
@@ -170,8 +174,15 @@ const telas = [
       <a class="topo__nova" href="/nova" aria-current={secao === 'nova' ? 'page' : undefined}>
         Nova memória
       </a>
-      <a class="topo__conta" href="/conta" aria-label={`Sua conta, ${usuario.nome}`} aria-current={secao === 'conta' ? 'page' : undefined}>
-        <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
+      <a class="topo__conta" href="/conta" aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes)} aria-current={secao === 'conta' ? 'page' : undefined}>
+        <span class="topo__retrato">
+          <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
+          {numeroDeAvisos && (
+            <span class="topo__avisos" aria-hidden="true">
+              {numeroDeAvisos}
+            </span>
+          )}
+        </span>
         <span class="topo__conta-nome" aria-hidden="true">{usuario.nome}</span>
       </a>
       <details class="menu">

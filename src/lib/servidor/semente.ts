@@ -1371,3 +1371,38 @@ export async function semearAudiosDeExemplo(db: D1Database): Promise<void> {
   }
   if (comandos.length) await db.batch(comandos);
 }
+
+// Avisos de exemplo (docs/decisoes.md, "Avisos"): para o "Ver como" das prévias mostrar a lista do Início,
+// o número no retrato e "Sua conta" sem precisar de duas pessoas. Um relato novo e uma marcação em
+// "Quem estava" para cada pessoa do "Ver como", tirados de memórias abertas a todos. Abrir a memória
+// tira o aviso da lista, como de verdade. Marcados em "dados" para não se confundirem com os reais.
+export async function semearAvisosDeExemplo(db: D1Database): Promise<void> {
+  const ja = await db.prepare(`SELECT 1 AS ok FROM avisos WHERE dados = '{"exemplo":true}' LIMIT 1`).first();
+  if (ja) return;
+  const comandos: D1PreparedStatement[] = [];
+  for (const para of ['gui', 'giovanna', 'elizete', 'lucas-magno']) {
+    comandos.push(
+      db
+        .prepare(
+          `INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados)
+           SELECT ?1, 'relato-novo', r.memoria_id, r.id, r.registrado_por, '{"exemplo":true}' FROM relatos r
+           JOIN memorias m ON m.id = r.memoria_id
+           WHERE r.situacao = 'publicada' AND r.registrado_por <> ?1 AND r.por <> ?1 AND m.situacao = 'publicada'
+             AND m.visibilidade = 'todos' AND m.excluida_em IS NULL
+             AND (m.criada_por = ?1 OR EXISTS (SELECT 1 FROM memoria_integrantes mi WHERE mi.memoria_id = m.id AND mi.integrante_id = ?1))
+           ORDER BY m.ano DESC LIMIT 1`,
+        )
+        .bind(para),
+      db
+        .prepare(
+          `INSERT INTO avisos (para, tipo, memoria_id, de, dados)
+           SELECT ?1, 'quem-estava', m.id, m.criada_por, '{"exemplo":true}' FROM memorias m
+           JOIN memoria_integrantes mi ON mi.memoria_id = m.id AND mi.integrante_id = ?1
+           WHERE m.situacao = 'publicada' AND m.visibilidade = 'todos' AND m.excluida_em IS NULL AND m.criada_por <> ?1
+           ORDER BY m.ano DESC LIMIT 1`,
+        )
+        .bind(para),
+    );
+  }
+  await db.batch(comandos);
+}

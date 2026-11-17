@@ -7,6 +7,7 @@ import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
 import type { RegistroDeVisitas } from '../painel';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
+import type { TipoDeAviso } from '../avisos';
 import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
 export interface Integrante {
@@ -1487,4 +1488,111 @@ export async function obterCarta(): Promise<Carta | undefined> {
 /** Cada versão salva da carta é uma linha nova: a anterior fica guardada. */
 export async function salvarCarta(texto: string, assinatura: string, usuario: Usuario): Promise<void> {
   await db().prepare('INSERT INTO cartas (texto, assinatura, escrita_por) VALUES (?, ?, ?)').bind(texto, assinatura, usuario.pessoa).run();
+}
+
+// --- Avisos (migração 024; regras em src/lib/avisos.ts) ---
+
+/** Anota o primeiro acesso da pessoa: os avisos dela só contam a partir dele. */
+export async function registrarAcesso(pessoa: string): Promise<void> {
+  await db().prepare('INSERT OR IGNORE INTO acessos (pessoa) VALUES (?)').bind(pessoa).run();
+}
+
+export async function quemJaEntrou(): Promise<Set<string>> {
+  const { results } = await db().prepare('SELECT pessoa FROM acessos').all<{ pessoa: string }>();
+  return new Set(results.map((r: { pessoa: string }) => r.pessoa));
+}
+
+export interface Aviso {
+  id: number;
+  tipo: TipoDeAviso;
+  memoriaId: string;
+  titulo: string;
+  relato: { id: number; por: string; registradoPor: string; situacao: 'rascunho' | 'publicada' } | null;
+  de: string;
+  dados: Record<string, unknown>;
+  criadoEm: string;
+  resolvidoEm: string | null;
+  resposta: string | null;
+}
+
+export interface AvisoNovo {
+  para: string;
+  tipo: TipoDeAviso;
+  memoriaId: string;
+  relatoId?: number | null;
+  de: string;
+  dados?: Record<string, unknown>;
+}
+
+export async function criarAvisos(avisos: AvisoNovo[]): Promise<void> {
+  if (avisos.length === 0) return;
+  await db().batch(
+    avisos.map((a) =>
+      db()
+        .prepare('INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, ?, ?, ?, ?, ?)')
+        .bind(a.para, a.tipo, a.memoriaId, a.relatoId ?? null, a.de, a.dados ? JSON.stringify(a.dados) : null),
+    ),
+  );
+}
+
+/**
+ * Os avisos da pessoa, do mais novo para o mais antigo: os que estão na lista (pendentes) e, com
+ * `historico`, também os que já saíram. Só entra o que ela vê agora: a memória publicada, fora da
+ * lixeira, e o relato, quando o aviso é de um (ver veORelato). O que ela deixou de ver some daqui.
+ */
+export async function listarAvisos(usuario: Usuario, { historico = false }: { historico?: boolean } = {}): Promise<Aviso[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT a.*, m.titulo, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.situacao AS relato_situacao
+       FROM avisos a JOIN memorias m ON m.id = a.memoria_id
+       LEFT JOIN relatos r ON r.id = a.relato_id
+       WHERE a.para = ?1 AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL} ${historico ? '' : 'AND a.resolvido_em IS NULL'}
+       ORDER BY a.id DESC LIMIT 60`,
+    )
+    .bind(usuario.pessoa)
+    .all<Record<string, unknown>>();
+  if (results.length === 0) return [];
+  const naoVe = await pessoasQueONaoVe(usuario);
+  const avisos: Aviso[] = [];
+  for (const a of results as Record<string, unknown>[]) {
+    let relato: Aviso['relato'] = null;
+    if (a.relato_id !== null && a.relato_id !== undefined) {
+      // O relato saiu (ou nunca chegou a quem recebe): o aviso some com ele
+      if (!a.relato_por) continue;
+      relato = { id: a.relato_id as number, por: a.relato_por as string, registradoPor: a.relato_registrado_por as string, situacao: a.relato_situacao as 'rascunho' | 'publicada' };
+      const meu = relato.registradoPor === usuario.pessoa;
+      if (!meu && relato.situacao !== 'publicada') continue;
+      if (!veORelato(relato, usuario, naoVe)) continue;
+    }
+    // Quem fez a ação também precisa ser alguém que a pessoa vê
+    if (naoVe.has(a.de as string)) continue;
+    avisos.push({
+      id: a.id as number,
+      tipo: a.tipo as TipoDeAviso,
+      memoriaId: a.memoria_id as string,
+      titulo: a.titulo as string,
+      relato,
+      de: a.de as string,
+      dados: a.dados ? (JSON.parse(a.dados as string) as Record<string, unknown>) : {},
+      criadoEm: a.criado_em as string,
+      resolvidoEm: (a.resolvido_em as string | null) ?? null,
+      resposta: (a.resposta as string | null) ?? null,
+    });
+  }
+  return avisos;
+}
+
+/** Quantos avisos estão na lista: o número do retrato. Barato quando não há nenhum. */
+export async function contarAvisosPendentes(usuario: Usuario): Promise<number> {
+  const algum = await db().prepare('SELECT 1 AS ok FROM avisos WHERE para = ? AND resolvido_em IS NULL LIMIT 1').bind(usuario.pessoa).first();
+  if (!algum) return 0;
+  return (await listarAvisos(usuario)).length;
+}
+
+/** A pessoa abriu a memória: saem da lista os avisos dela que apontam para ali, menos o pedido para liberar. */
+export async function abrirAvisosDaMemoria(usuario: Usuario, memoriaId: string): Promise<void> {
+  await db()
+    .prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE para = ? AND memoria_id = ? AND resolvido_em IS NULL AND tipo <> 'liberar-relato'`)
+    .bind(usuario.pessoa, memoriaId)
+    .run();
 }

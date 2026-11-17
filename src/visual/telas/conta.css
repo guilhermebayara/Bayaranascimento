@@ -260,7 +260,8 @@
   .conta__lacos {
     grid-column: 8 / -1;
   }
-  .conta__criou {
+  .conta__criou,
+  .avisos--conta {
     grid-column: 1 / -1;
   }
   /* As contas numa linha só, em colunas iguais. A lista aberta sai da coluna dela e toma a largura
