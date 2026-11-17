@@ -116,6 +116,7 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 ## Árvore
 
 - As regras de arranjo e de linhas estão em `docs/decisoes.md` e nos testes `testes/arvore-*.test.ts`. Elas vieram de ajustes do Gui no FigJam e no Figma: o arranjo é decisão dele.
+- **O que é travado e o que não é (decisão do Gui, 17/11/2026).** Travado é como a árvore se desenha e se comporta: o arranjo, as linhas, quem aparece, os ramos recolhidos, a abertura dos cartões de ramo e os gestos do mapa. Tudo em volta pode mudar como qualquer tela: o título e a descrição da página, a legenda, os controles de camadas e de centro, a ficha da pessoa (o cartão com nome e "Ver página") e onde cada uma dessas peças fica. Na dúvida, se a mudança não altera a montagem (`arvore-montagem.ts`) nem o desenho (`arvore-desenho.ts`), ela é livre.
 - `testes/dados/arvore-previa.json` é uma cópia dos dados da prévia como chegam ao navegador do Gui. Ao mudar o desenho, confira os lados da família e o tronco das linhas com várias combinações de laços abertos.
 - A montagem fica em `src/lib/arvore-montagem.ts` (sem tela, testável) e o desenho em `src/lib/arvore-desenho.ts`. O código do navegador, em `src/lib/cliente/arvore.ts`, só desenha o resultado.
 - A árvore abre na linha direta de Gui, Giovanna e Lucas Magno (`CENTROS_PADRAO` em `src/pages/arvore.astro`). Tios, primos e sobrinhos ficam em ramos recolhidos, que abrem num cartão por cima.
