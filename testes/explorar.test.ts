@@ -26,6 +26,7 @@ const memorias = [
   m('casamento', 2026, { mes: 5, tipo: 'casamento', integrantes: ['giovanna', 'lucas-magno'], nucleos: ['bayara-bracarense', 'bracarense'], fotos: 4, relatos: 2, criadaEm: '2026-11-01 10:00:00' }),
 ];
 const ctx: Contexto = {
+  eu: 'giovanna',
   doCapitulo: (memoria, capitulo) => capitulo === 'natais' && memoria.startsWith('natal'),
   comAudio: new Set(['natal-94', 'casamento']),
   contaram: new Map([
@@ -62,9 +63,17 @@ describe('cada filtro', () => {
     expect(ids({ comAudio: true })).toEqual(['casamento', 'natal-94']);
     expect(ids({ comFoto: true })).toEqual(['casamento', 'natal-20', 'praia-98', 'natal-94']);
   });
-  it('os relatos da pessoa: onde já contou, e onde estava e ainda não contou', () => {
-    expect(ids({ contou: 'giovanna' })).toEqual(['casamento', 'praia-98']);
-    expect(ids({ falta: 'giovanna' })).toEqual(['natal-20', 'casa-nova']);
+  it('os relatos de quem está olhando: onde já contou, e onde estava e ainda não contou', () => {
+    expect(ids({ contou: true })).toEqual(['casamento', 'praia-98']);
+    expect(ids({ falta: true })).toEqual(['natal-20', 'casa-nova']);
+  });
+  it('valem só para quem está olhando: o endereço com outra pessoa dá o da própria', () => {
+    const f = lerFiltros(new URLSearchParams('contou=gui&falta=elizete'));
+    expect([f.contou, f.falta]).toEqual([true, true]);
+    expect(paraEndereco(f).toString()).toBe('contou=1&falta=1');
+    // Giovanna olhando com "contou=gui" vê onde ela contou, e não onde o Gui contou
+    expect(explorar(memorias, lerFiltros(new URLSearchParams('contou=gui')), ctx).memorias.map((x) => x.id)).toEqual(['casamento', 'praia-98']);
+    expect(explorar(memorias, lerFiltros(new URLSearchParams('contou=gui')), { ...ctx, eu: 'gui' }).memorias.map((x) => x.id)).toEqual(['natal-94']);
   });
 });
 
@@ -72,8 +81,8 @@ describe('combinações', () => {
   it('filtros diferentes se somam', () => {
     expect(ids({ tipos: ['natal'], pessoas: ['giovanna'] })).toEqual(['natal-20']);
     expect(ids({ familias: ['bayara-bracarense'], comAudio: true })).toEqual(['casamento']);
-    expect(ids({ decada: 1990, falta: 'gui' })).toEqual(['praia-98']);
-    expect(ids({ comFoto: true, contou: 'gui', capitulos: ['natais'] })).toEqual(['natal-94']);
+    expect(ids({ de: 2020, falta: true })).toEqual(['natal-20']);
+    expect(ids({ comFoto: true, contou: true, pessoas: ['giovanna'] })).toEqual(['casamento', 'praia-98']);
   });
 });
 
@@ -92,7 +101,7 @@ describe('cada ordem', () => {
 
 describe('o endereço', () => {
   it('guarda os filtros e a ordem, para mandar o link', () => {
-    const f: Filtros = { ...SEM_FILTRO, tipos: ['natal'], pessoas: ['gui', 'elizete'], familias: ['bayara-nascimento'], capitulos: ['natais'], temas: ['natal'], de: 1990, ate: 2000, decada: null, comAudio: true, comFoto: true, contou: 'gui', falta: null, ordem: 'contadas' };
+    const f: Filtros = { ...SEM_FILTRO, tipos: ['natal'], pessoas: ['gui', 'elizete'], familias: ['bayara-nascimento'], capitulos: ['natais'], temas: ['natal'], de: 1990, ate: 2000, decada: null, comAudio: true, comFoto: true, contou: true, falta: false, ordem: 'contadas' };
     expect(lerFiltros(paraEndereco(f))).toEqual(f);
     expect(paraEndereco(SEM_FILTRO).toString()).toBe('');
   });
@@ -133,7 +142,9 @@ describe('quando os trilhos aparecem', () => {
     expect(mostraTrilhos({ ...SEM_FILTRO, familias: ['bracarense'], capitulos: ['natais'], temas: ['natal'], decada: 1990 })).toBe(true);
     expect(mostraTrilhos({ ...SEM_FILTRO, ordem: 'entraram' })).toBe(false);
     expect(mostraTrilhos({ ...SEM_FILTRO, ordem: 'contadas' })).toBe(false);
-    for (const quebra of [{ tipos: ['natal'] }, { comAudio: true }, { comFoto: true }, { contou: 'gui' }, { falta: 'gui' }]) {
+    // Pessoas juntas mantém os trilhos, como família (decisão do Gui, 16/11/2026)
+    expect(mostraTrilhos({ ...SEM_FILTRO, pessoas: ['gui', 'giovanna'] })).toBe(true);
+    for (const quebra of [{ tipos: ['natal'] }, { comAudio: true }, { comFoto: true }, { contou: true }, { falta: true }]) {
       expect(mostraTrilhos({ ...SEM_FILTRO, ...quebra })).toBe(false);
     }
   });

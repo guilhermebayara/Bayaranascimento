@@ -21,6 +21,7 @@ export async function contextoDoExplorar(usuario: Usuario, memorias: Memoria[]):
     return m.capitulos.some((x) => ids.has(x));
   };
   return {
+    eu: usuario.pessoa,
     doCapitulo,
     comAudio: new Set([...audio].filter((id) => vistas.has(id))),
     contaram: new Map([...contaram].filter(([id]) => vistas.has(id))),

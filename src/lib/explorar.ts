@@ -34,10 +34,10 @@ export interface Filtros {
   decada: number | null;
   comAudio: boolean;
   comFoto: boolean;
-  /** as memórias em que esta pessoa já contou algo */
-  contou: string | null;
-  /** as memórias em que esta pessoa estava e ainda não contou */
-  falta: string | null;
+  /** as memórias em que quem está olhando já contou algo */
+  contou: boolean;
+  /** as memórias em que quem está olhando estava e ainda não contou */
+  falta: boolean;
   ordem: Ordem;
 }
 
@@ -52,8 +52,8 @@ export const SEM_FILTRO: Filtros = {
   decada: null,
   comAudio: false,
   comFoto: false,
-  contou: null,
-  falta: null,
+  contou: false,
+  falta: false,
   ordem: ORDEM_PADRAO,
 };
 
@@ -67,7 +67,6 @@ function ano(texto: string | null): number | null {
 }
 
 const lista = (p: URLSearchParams, nome: string) => [...new Set(p.getAll(nome).flatMap((v) => v.split(',')).map((v) => v.trim()).filter((v) => v && v.length <= 80))].slice(0, 20);
-const id = (texto: string | null) => (texto && texto.length <= 80 ? texto.trim() || null : null);
 
 /** Lê os filtros do endereço. O que não faz sentido é ignorado, sem erro. */
 export function lerFiltros(p: URLSearchParams): Filtros {
@@ -84,8 +83,9 @@ export function lerFiltros(p: URLSearchParams): Filtros {
     decada: decada !== null && decada % 10 === 0 ? decada : null,
     comAudio: p.get('audio') === '1',
     comFoto: p.get('foto') === '1',
-    contou: id(p.get('contou')),
-    falta: id(p.get('falta')),
+    // Valem só para quem está olhando (decisão do Gui, 16/11/2026): "contou=giovanna" vira o próprio
+    contou: p.has('contou'),
+    falta: p.has('falta'),
     ordem: ORDENS.includes(ordem as Ordem) ? (ordem as Ordem) : ORDEM_PADRAO,
   };
 }
@@ -103,8 +103,8 @@ export function paraEndereco(f: Filtros): URLSearchParams {
   if (f.decada !== null) p.set('decada', String(f.decada));
   if (f.comAudio) p.set('audio', '1');
   if (f.comFoto) p.set('foto', '1');
-  if (f.contou) p.set('contou', f.contou);
-  if (f.falta) p.set('falta', f.falta);
+  if (f.contou) p.set('contou', '1');
+  if (f.falta) p.set('falta', '1');
   if (f.ordem !== ORDEM_PADRAO) p.set('ordem', f.ordem);
   return p;
 }
@@ -127,6 +127,8 @@ export interface MemoriaDoExplorar {
 
 /** O que os filtros precisam saber além da memória. Só sobre as memórias que a pessoa vê. */
 export interface Contexto {
+  /** quem está olhando: "contou" e "falta" valem só para essa pessoa */
+  eu: string;
   /** a memória é deste capítulo? (a regra é a da página do capítulo) */
   doCapitulo: (memoriaId: string, capituloId: string) => boolean;
   /** memórias com áudio em algum relato publicado */
@@ -146,8 +148,8 @@ export function passa(m: MemoriaDoExplorar, f: Filtros, ctx: Contexto): boolean 
   if (f.decada !== null && (m.ano < f.decada || m.ano > f.decada + 9)) return false;
   if (f.comAudio && !ctx.comAudio.has(m.id)) return false;
   if (f.comFoto && m.fotos.length === 0) return false;
-  if (f.contou && !ctx.contaram.get(m.id)?.has(f.contou)) return false;
-  if (f.falta && (!m.integrantes.includes(f.falta) || ctx.contaram.get(m.id)?.has(f.falta))) return false;
+  if (f.contou && !ctx.contaram.get(m.id)?.has(ctx.eu)) return false;
+  if (f.falta && (!m.integrantes.includes(ctx.eu) || ctx.contaram.get(m.id)?.has(ctx.eu))) return false;
   return true;
 }
 
@@ -174,7 +176,8 @@ export function ordenar<M extends MemoriaDoExplorar>(memorias: M[], ordem: Ordem
  */
 export function mostraTrilhos(f: Filtros): boolean {
   const pelaDataDaMemoria = f.ordem === 'recentes' || f.ordem === 'antigas';
-  const quebra = f.tipos.length > 0 || f.comAudio || f.comFoto || Boolean(f.contou) || Boolean(f.falta);
+  // Pessoas juntas, como família, capítulo e tema, não quebra (decisão do Gui, 16/11/2026)
+  const quebra = f.tipos.length > 0 || f.comAudio || f.comFoto || f.contou || f.falta;
   return pelaDataDaMemoria && !quebra;
 }
 
