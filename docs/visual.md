@@ -192,6 +192,120 @@ O cartão do painel (`.cartao`) continua em `telas/painel.css`: só existe ali, 
 
 **Capturas.** `CAPTURAS_SO=sistema npm run capturas -- tirar <pasta>` tira a página do sistema nas três combinações, em 390, 1280 e 1920 px. As desta fase estão em `docs/visual/sistema/`.
 
+## Sistema (fase 2): como usar
+
+Para a sessão da fase 3 começar sem a conversa da fase 2. A seção acima diz o que o sistema é; esta diz como trabalhar com ele. O código do sistema está na `homologa` (a `main` só recebe o código quando a revisão visual ficar completa), então a branch da fase 3 nasce da `homologa`. Para ver tudo montado: `npm run dev` e `/conceito/sistema`.
+
+### Onde fica cada peça
+
+O CSS das peças está em `src/visual/pecas.css` (as ações estão em `base.css`, e o recado e a assinatura em `estrutura.css`). Os componentes estão em `src/components/visual/`.
+
+| Preciso de | Uso | Como |
+| --- | --- | --- |
+| A marca no alto ou no fim da página | `Assinatura.astro` | `<Assinatura sobrenomes={...} />`; com `titulo`, vira o `h1` da página. O rodapé do esqueleto já traz uma |
+| O M sozinho | `Monograma.astro` | `<Monograma />` mostra o da serifa em uso; `corte="pequeno"` abaixo de uns 32 px. O tamanho vem do `font-size` de quem envolve (a altura é `1em`) e a cor, do `color` |
+| A foto-chave de uma memória | `Polaroid.astro` | `id`, `fotos`, `legenda` (de `legendaLugarAno`), `tipo`. `forma` põe a forma de cor atrás, `monte={false}` tira as fotos de trás, `cedo` para a foto do alto da página, `galeria` na página da memória. Em volta, um elemento com `style={estiloDoTipo(tipo)}`, que dá a cor |
+| Data e lugar | `Carimbo.astro` | `<Carimbo itens={[carimboDaData(memoria), memoria.lugar]} />`. Item vazio não entra |
+| O tipo de momento | `Etiqueta.astro` | `<Etiqueta tipo={id} rotulo={nome} />` |
+| Um período ou uma data aproximada | `Pilula.astro` | `<Pilula>2018–2020</Pilula>` |
+| A ficha (quando, onde, tipo, capítulos) | `Ficha.astro` e `Dado.astro` | `<Ficha><Dado rotulo="Quando">…</Dado></Ficha>` |
+| A foto de uma pessoa | `Retrato.astro` | `nome`, `foto` (o endereço, de `enderecoDoRetrato`, ou nada), `familia` (de `corDaPessoa`). `redondo` só no topo |
+| Uma pessoa com nome e parentesco | classes `pessoa` e `pessoa__nome` | Um link com o `Retrato`, o nome e o parentesco em `ficha suave` (ver "Quem estava" em `src/pages/conceito/memorias/[id].astro`) |
+| Um relato | `Bilhete.astro` | `por`, `registradoPor` (só quando não foi a própria pessoa) e o conteúdo dentro: `Audio`, depois `<div class="bilhete__texto">`. Com `href`, o bilhete inteiro vira link |
+| Um áudio | `Audio.astro` | `rotulo`, `src`, `transcricao` |
+| O capítulo de uma memória | `SinalDoCapitulo.astro` | `id`, `titulo` e `cor` (a posição dada pela montagem, `src/lib/linha-capitulos.ts`) |
+| Fases de um casal ou marcos que abrem | `Sanfona.astro` | `ano`, `titulo`, `quando`, o conteúdo dentro. O mesmo `grupo` em todas faz só uma ficar aberta |
+| Recado de "salvou" ou de erro | `Recado.astro` | `<Recado>` ou `<Recado erro>` |
+| Tela sem nada para mostrar | `Vazio.astro` | `<Vazio frase="…">` com a ação dentro |
+| Ícone de tipo, rabisco de caneta | `IconeDoTipo.astro`, `Rabisco.astro` | São enfeite: o texto está sempre escrito ao lado |
+| A ação principal da tela | classe `botao` | Uma por tela. `aria-disabled="true"` ou `disabled` para o estado sem poder agir |
+| As outras ações | classes `acao` e `acao--quieta` | Texto sublinhado, em link ou em `<button>` |
+| Pergunta e campo de formulário | classes `pergunta`, `campo`, `campo__rotulo`, `campo__entrada`, `campo__dica`, `campo__erro`, `campo--erro`, `escolha` | Só CSS, sem componente: na fase 3, os componentes de formulário que existem (`CampoData`, `CampoAno`, `QuemEstava`) ganham estas classes sem mudar os nomes e os atributos que os scripts de `src/lib/cliente/` procuram |
+| A frase com lacunas | classes `frase` e `frase__lacuna` | Só CSS. `--cabe` na lacuna diz quantas letras cabem. O comportamento da data está em "A data no formulário em frase" |
+
+Classes de texto, em `base.css`: `t-capa`, `t-1`, `t-2`, `t-3` e `t-abertura` para a serifa; `ficha` e `rotulo` para a mono; `mao` para a manuscrita; `suave` para o texto de apoio; `so-leitor` para o que só o leitor de tela lê; `miolo` para a margem da página e `grade` para as colunas.
+
+### Como montar uma tela nova
+
+1. **A página usa o esqueleto novo.** `import Visual from '../layouts/Visual.astro'` no lugar do `Base.astro`. O esqueleto já traz o sistema inteiro (`src/visual/sistema.ts`), o topo, o menu, o rodapé com a assinatura, as fontes e o ícone. A página nunca importa `src/styles/global.css` nem o `Base.astro`: tem teste para isso.
+2. **Diga o que a tela mostra.** `<Visual titulo="…" nucleos={ids}>`: os núcleos da memória, do capítulo ou da pessoa, ou o núcleo filtrado. Dali saem os sobrenomes da assinatura e a cor da tela. Sem `nucleos`, vale a família completa. `familia` só quando a cor não é a dos núcleos (a memória aberta a todos passa `'tudo'`). `intimo` é para a página que só a pessoa vê, tingida na cor da família dela. `secao` acende o item do menu.
+3. **O CSS da tela vai em `src/visual/telas/<tela>.css`**, importado pela própria página, antes do esqueleto. Ali fica só a composição: a grade, os espaços entre as partes, o que é próprio daquela tela. Use os tokens; cor, família de fonte, raio de cápsula e largura de tela escritos soltos não passam nos testes.
+4. **A marcação usa os componentes.** Uma tela não escreve `class="carimbo"` ou `class="retrato"` na mão: `testes/sistema.test.ts` recusa. Se a peça que você precisa não existe, ela nasce em `pecas.css` com um componente, entra na página `/conceito/sistema` e na tabela acima, e é mostrada ao Gui.
+5. **Celular primeiro.** A tela nasce em 390 px. A composição de computador entra em `@media (min-width: 62rem)` e a de tela grande em `@media (min-width: 100rem)`, cada uma pensada de novo, sem esticar o celular.
+6. **Confira antes do push.** `npm run build`; a tela em 390, 1280 e 1920 px, por teclado e com movimento reduzido; e `npm run capturas`, com a tela nova acrescentada à lista de `scripts/capturas.mjs`. Para garantir que mexer numa peça não mudou as telas já aprovadas, tire as capturas antes e depois e rode `npm run capturas -- comparar <antes> <depois>`.
+
+O que a fase 3 precisa trocar no esqueleto: o menu e a marca do topo de `Visual.astro` ainda apontam para `/conceito`, e os testes de `testes/visual.test.ts` conferem esses endereços. Quando a primeira tela de verdade passar para o visual novo, os endereços e os testes mudam juntos. A faixa de teste do alto (telas, fontes, "Ver como") só existe fora da produção.
+
+### Os tokens e quando usar cada um
+
+Todos em `src/visual/tokens.css`. A tabela diz a intenção; os valores estão no arquivo e na página do sistema.
+
+| Token | Quando |
+| --- | --- |
+| `--papel`, `--papel-recuo` | O fundo da página e o fundo recuado (faixa de teste, campo em foco, pílula). Na página íntima eles já vêm tingidos |
+| `--branco` | A moldura da foto, o bilhete, o cartão e o recado: o que é objeto pousado no papel |
+| `--tinta`, `--tinta-suave` | O texto e o texto de apoio. A suave tem contraste de leitura sobre o papel; sobre um bloco de cor, use a classe `bloco`, que a escurece |
+| `--fio` | Linha fina entre partes |
+| `--pastel`, `--meio`, `--vivo`, `--vivo-tinta` | A cor da família da tela, posta por `data-familia`. Pastel em bloco sólido, meio em enfeite sobre o pastel, vivo em ponto de destaque, tinta quando a cor precisa ser lida (carimbo, rabisco, texto) |
+| `--tipo-pastel`, `--tipo-meio`, `--tipo-cor`, `--tipo-tinta` | A cor do tipo de momento, posta por `estiloDoTipo(tipo)` no elemento em volta. Fora dele, as peças caem na cor da família |
+| `--trilho-cor`, `--trilho-ponto` | A cor do capítulo, posta por `estiloDoCapitulo(cor)` |
+| `--alerta`, `--alerta-tinta` | O que deu errado: a marca e o texto |
+| `--chao-1` a `--chao-3` | O chão das épocas na linha do tempo. Não é fundo de uso geral |
+| As onze cores (`--verde-pastel`, `--azul-vivo`…) | Só para definir papéis. Numa tela, use o papel (`--pastel`, `--tipo-cor`), e não o nome da cor |
+| `--e-1` a `--e-4` | Espaço dentro de um grupo |
+| `--e-5` a `--e-7` | Espaço entre grupos |
+| `--e-8`, `--e-9` | Espaço entre partes da página |
+| `--margem`, `--calha` | A margem lateral da página (classe `miolo`) e o vão entre colunas (classe `grade`: 4 colunas, 12 a partir de 62rem) |
+| `--t-capa` | O ano da linha do tempo e número de capa |
+| `--t-titulo-1`, `--t-titulo-2`, `--t-titulo-3` | Título da página, título de parte ou pergunta, título de item numa lista |
+| `--t-abertura` | A frase de abertura em serifa |
+| `--t-leitura` | O relato e o texto que se lê com calma |
+| `--t-corpo`, `--t-pequeno` | O texto da interface e o apoio |
+| `--t-ficha`, `--t-micro` | A mono: ficha, rótulo e carimbo; selo |
+| `--t-menu` | Só o menu do topo e o nome de quem está logado |
+| `--medida` | A largura máxima de um texto corrido |
+| `--raio-foto`, `--raio-moldura`, `--raio-bloco`, `--raio-carimbo`, `--raio-pilula` | A foto, o bilhete e o recado, o cartão e o bloco de cor, o carimbo, e tudo o que é cápsula ou arco |
+| `--traco` | A espessura do traço: sublinhado de ação, borda do carimbo, linha do campo |
+| `--toque` | 44 px: a altura mínima de tudo o que se toca |
+| `--sombra-foto`, `--sombra-bilhete` | A foto revelada; o bilhete e o recado. Não há outra sombra |
+| `--curva`, `--tempo-curto`, `--tempo-medio` | Toda transição: uma curva e dois tempos |
+
+As serifas trazem os próprios acertos (`--escala-serifa`, `--aperto-titulo`, `--serifa-ajustes`, `--serifa-peso`), já aplicados nas classes de título. Texto em serifa fora dessas classes precisa levar `font-family`, `font-variation-settings` e `font-weight` juntos, como em `.pergunta`.
+
+### Como a fonte é trocada
+
+- A fonte do site é `FONTES_DO_SITE`, em `src/lib/visual.ts`. A combinação inteira: `combinacao('a')`, `combinacao('b')` ou `combinacao('c')`. Misturada: `{ ...combinacao('a'), mao: 'b' }`. Os quatro papéis são `serifa`, `grotesca`, `mono` e `mao`.
+- Nada mais muda junto: o esqueleto põe `data-serifa`, `data-grotesca`, `data-mono` e `data-mao` na página, `fontes.css` responde com as variáveis, o monograma certo acende e o ícone vem de `public/icones/<serifa>/`.
+- Nas prévias de teste e no computador, a faixa do alto troca a combinação por um cookie, para comparar. Na produção e na homologação o cookie não vale.
+- A escolha espera a Giovanna e o Magno. Quando sair: muda a linha, e as duas combinações que sobraram podem sair de `src/visual/sistema.ts` (os arquivos das fontes), de `fontes.css`, de `COMBINACOES_DE_FONTES`, de `scripts/monograma.mjs` e de `public/icones/`, com os testes de `testes/sistema.test.ts` que contam três.
+- Fonte nova, fora das três: instalar pelo Fontsource, acrescentar a opção em cada papel de `fontes.css` (a serifa pede `--assinatura-em`, `--sobrenomes` e `--ano-em`, medidos na tela até "MEMÓRIAS" e "Bayara & Bracarense" fecharem na mesma largura), acrescentar em `scripts/monograma.mjs` e rodar `npm run monograma`.
+
+### O que ficou de fora do sistema, de propósito
+
+- **O cartão do painel** (`.cartao`) mora em `telas/painel.css`. Como peça, ele passava por cima da cor do cartão "contar", porque o CSS da tela é carregado antes do CSS das peças.
+- **A galeria de fotos** (o `<dialog>` da página da memória) está em `telas/memoria.css` e no script da própria página. Vira peça quando uma segunda tela precisar ampliar foto.
+- **A linha do tempo** (trilhos, épocas, faixa de décadas, o ano parado) é da tela, em `telas/linha.css`. Só o sinal do capítulo virou peça.
+- **Camadas do CSS** (`@layer`). Foi tentado pôr base e peças em camadas, para a tela sempre vencer a peça. Mudou a altura de várias telas do conceito, porque elas dependem da ordem dos arquivos, e foi desfeito. Vale reavaliar quando o `global.css` sair.
+- **Tocador de áudio próprio.** O bloco usa o do aparelho.
+- **Os efeitos da fase 4:** a frase que acende e a foto que amplia no lugar.
+- **O comportamento dos formulários.** O sistema tem a aparência do campo e da frase; a ligação com as etapas, com a data flexível e com o "Quem estava?" é da fase 3.
+- **Modo escuro.** A decisão é claro, sem fundo escuro.
+- **O ícone no site atual.** O `Base.astro` não aponta para o ícone novo: ele chega com cada tela que passa para o esqueleto novo.
+- **`/admin/familias`** foi feita no visual antigo, com aparência mínima. É redesenhada dentro de "Sua conta".
+
+### Cuidados que custaram tempo
+
+- **A ordem do CSS.** O CSS da tela entra antes do sistema (a página importa o dela e depois o esqueleto). Entre duas regras de mesmo peso, vence a do sistema. Para a tela ajustar uma peça, a regra da tela precisa de um seletor mais específico (`.dados .verso`, `.contar .botao`). Mover uma regra de uma tela para `pecas.css` pode mudar quem vence: compare as capturas antes e depois.
+- **Safari do iPhone e peças paradas.** No iOS 26, um elemento preso (`sticky` ou `fixed`) encostado na borda da tela faz o Safari desenhar uma banda sólida atrás das barras dele. No toque, o que fica parado no alto anda por animação ligada à rolagem: o esqueleto põe a classe `pino-novo` no `html` quando o aparelho é de toque e o navegador tem `animation-timeline`, e as regras estão em `telas/linha.css`. Com mouse, o `sticky` continua. Uma peça só anda (`.parada`), e nenhuma animação liga ou desliga durante a rolagem: com uma animação por ano, a faixa e o ano davam um pulinho na troca de ano. `position: fixed` não entra, e `sticky` novo só dentro de `(hover: hover) and (pointer: fine)`: o teste recusa o resto. Peça parada nova segue esse modelo e é conferida pelo Gui no iPhone.
+- **`animation` e `animation-timeline` em regras separadas**, a segunda depois da primeira. Juntas, o compactador funde as duas e o navegador descarta a linha do tempo.
+- **Movimento reduzido.** `base.css` desliga toda transição e toda animação, menos a de quem tem `data-preso`: o que está parado por animação ligada à rolagem é o lugar do elemento, e não enfeite. Peça parada nova leva `data-preso`. Efeito novo precisa aparecer pronto com movimento reduzido, e as capturas já rodam assim.
+- **Campo sem contorno de foco.** O campo e a lacuna tiram o contorno padrão e põem uma linha grossa com fundo no lugar. Quem tirar um contorno põe outro sinal: tem teste.
+- **A foto inclinada e a rolagem lateral.** O recorte fica em `main` e no rodapé, com `overflow-x: clip`. No `body`, o recorte passa para a janela e deixa de valer.
+- **A assinatura depende de medidas.** A largura de "MEMÓRIAS" em cada serifa é um número medido (`--assinatura-em`). Mudar o peso, o espaçamento ou os ajustes da serifa de capa pede medir de novo.
+- **Fotos de exemplo no computador.** No servidor local as fotos e os retratos de exemplo aparecem quebrados, porque os arquivos estão no bucket de teste. Não é defeito da tela: confira as fotos na prévia da branch.
+- **O monograma e a biblioteca de fontes.** `scripts/monograma.mjs` usa o `fontkitten` e o `sharp`, que vêm com o Astro e não estão no `package.json`. O `fontkitten` não aplica os eixos de uma fonte variável lida de um arquivo woff2, e o script contorna isso para a Fraunces. Se uma atualização do Astro tirar uma das duas, o script para de rodar; o desenho e os ícones estão versionados, então o site não depende dele.
+- **Variável definida por código.** O teste que procura variável usada e nunca definida tem uma lista do que é posto por script ou por estilo (`--alt`, `--barra-alt`, `--encolhe-a`…). Variável nova desse tipo entra na lista.
+
 ## Referências
 
 | Ref | O que levar |
