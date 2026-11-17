@@ -3,9 +3,16 @@
 // só, os filtros e a ordem. Cada controle tem nome e lugar fixo, um embaixo do outro, e não sai do
 // lugar ao abrir (pedido do Gui, 16/11/2026). Tudo é link ou formulário comum: funciona sem script,
 // e o que foi escolhido fica no endereço, para guardar ou mandar.
+//
+// Respostas do Gui ao QA de design de 17/11/2026: "Forma de ver" tem só as três formas que trocam no
+// lugar, e "Modo TV" e "Me mostre uma memória" são saídas, ao lado, com seta (P34). No celular, as
+// opções de cada controle ficam numa linha só, que rola para o lado (P32). Toda opção reserva a
+// largura do negrito, para nenhuma mudar de lugar ao ser marcada (P37). O período é só "Do ano" e
+// "Até o ano" (P35), e o fim do formulário leva ao resultado (P33).
 import IconeDoTipo from '../visual/IconeDoTipo.astro';
 import {
-  FORMAS,
+  FORMAS_NO_LUGAR,
+  FORMAS_QUE_SAEM,
   NOMES_DAS_FORMAS,
   NOMES_DAS_ORDENS,
   NOMES_DOS_TAMANHOS,
@@ -14,6 +21,7 @@ import {
   SEM_FILTRO,
   TAMANHOS,
   TAMANHO_PADRAO,
+  acaoDeVerOResultado,
   alternarFamilia,
   enderecoDoExplorar,
   tamanhoNoEndereco,
@@ -37,8 +45,8 @@ interface Props {
   pessoas: Opcao[];
   capitulos: Opcao[];
   temas: Opcao[];
-  /** as décadas em que há memória, da mais recente para a mais antiga */
-  decadas: number[];
+  /** quantas memórias passam nos filtros, na forma de ver em uso */
+  quantas: number;
   /** os filtros ligados, já escritos (resumoDosFiltros) */
   resumo: string[];
   /** a faixa de décadas vem logo abaixo: o nome dela, no celular, fica aqui */
@@ -47,7 +55,12 @@ interface Props {
   tamanho?: Tamanho;
 }
 
-const { filtros, forma, nucleos, tipos, pessoas, capitulos, temas, decadas, resumo, comDecadas = false, tamanho = TAMANHO_PADRAO } = Astro.props;
+const { filtros, forma, nucleos, tipos, pessoas, capitulos, temas, quantas, resumo, comDecadas = false, tamanho = TAMANHO_PADRAO } = Astro.props;
+const verOResultado = acaoDeVerOResultado(quantas);
+// O período tem um jeito só de ser dito: de um ano a outro. O endereço que chega com uma década
+// (um link antigo) aparece nos dois campos, e a escolha seguinte já sai como intervalo.
+const doAno = filtros.de ?? filtros.decada;
+const ateOAno = filtros.ate ?? (filtros.decada === null ? null : filtros.decada + 9);
 // O tamanho das fotos é do mural: acompanha os links e o formulário enquanto se está nele
 const doMural = forma === 'mural' ? tamanhoNoEndereco(tamanho) : {};
 // A família aceita mais de uma escolha: cada toque liga ou desliga só aquela
@@ -65,15 +78,27 @@ const grupos = [
 <div class="controles">
   <div class="controle">
     <p class="controle__nome rotulo suave" id="controle-forma">Forma de ver</p>
-    <nav class="linha__opcoes" aria-labelledby="controle-forma">
-      {
-        FORMAS.map((f) => (
-          <a href={enderecoDoExplorar(filtros, f, f === 'mural' ? tamanhoNoEndereco(tamanho) : {})} data-opcao={f} aria-current={f === forma ? 'page' : undefined}>
-            {NOMES_DAS_FORMAS[f]}
-          </a>
-        ))
-      }
-    </nav>
+    <div class="controle__linha">
+      <nav class="linha__opcoes" aria-labelledby="controle-forma">
+        {
+          FORMAS_NO_LUGAR.map((f) => (
+            <a href={enderecoDoExplorar(filtros, f, f === 'mural' ? tamanhoNoEndereco(tamanho) : {})} data-opcao={f} aria-current={f === forma ? 'page' : undefined}>
+              <span class="opcao__texto" data-texto={NOMES_DAS_FORMAS[f]}>{NOMES_DAS_FORMAS[f]}</span>
+            </a>
+          ))
+        }
+      </nav>
+      {/* As duas saídas: levam a outra tela, e por isso nunca ficam marcadas como a forma em uso */}
+      <p class="controle__saidas">
+        {
+          FORMAS_QUE_SAEM.map((f) => (
+            <a class="acao acao--quieta saida" href={enderecoDoExplorar(filtros, f)}>
+              {NOMES_DAS_FORMAS[f]}
+            </a>
+          ))
+        }
+      </p>
+    </div>
   </div>
   {
     nucleos.length > 0 && (
@@ -84,9 +109,10 @@ const grupos = [
         {/* A família aceita mais de uma: cada opção é uma etiqueta, que acende na cor da família quando
             está marcada (decisão do Gui, 17/11/2026). "Família completa" é todas, e marcar as três
             volta sozinho a ela. */}
+        <div class="controle__linha">
         <nav class="linha__opcoes linha__opcoes--etiquetas" aria-labelledby="controle-familia">
           <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma, doMural)} data-opcao="" data-familia="tudo" aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
-            Família completa
+            <span class="opcao__texto" data-texto="Família completa">Família completa</span>
           </a>
           {nucleos.map((n) => (
             <a
@@ -95,10 +121,11 @@ const grupos = [
               data-familia={corDoNucleo(n.id, ordemDasFamilias)}
               aria-current={filtros.familias.includes(n.id) ? 'true' : undefined}
             >
-              {n.nome}
+              <span class="opcao__texto" data-texto={n.nome}>{n.nome}</span>
             </a>
           ))}
         </nav>
+        </div>
       </div>
     )
   }
@@ -183,23 +210,12 @@ const grupos = [
         <fieldset class="filtros__grupo filtros__grupo--periodo">
           <legend class="rotulo suave">Período</legend>
           <label class="campo">
-            <span class="campo__rotulo">Década</span>
-            <select class="campo__entrada" name="decada">
-              <option value="">Qualquer uma</option>
-              {decadas.map((d) => (
-                <option value={d} selected={filtros.decada === d}>
-                  Anos {d}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label class="campo">
             <span class="campo__rotulo">Do ano</span>
-            <input class="campo__entrada" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="de" value={filtros.de ?? ''} />
+            <input class="campo__entrada" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="de" value={doAno ?? ''} />
           </label>
           <label class="campo">
             <span class="campo__rotulo">Até o ano</span>
-            <input class="campo__entrada" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="ate" value={filtros.ate ?? ''} />
+            <input class="campo__entrada" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="ate" value={ateOAno ?? ''} />
           </label>
         </fieldset>
         {
@@ -226,7 +242,16 @@ const grupos = [
           ))
         }
         <p class="filtros__acoes">
-          <button class="botao" type="submit">Mostrar memórias</button>
+          <button class="botao sem-troca" type="submit">Mostrar memórias</button>
+          {/* Com script cada escolha já valeu: o fim do formulário diz quantas memórias passam e leva
+              a elas, fechando o painel. O texto muda a cada escolha, com a região. */}
+          {verOResultado ? (
+            <button class="botao so-com-troca" type="button" data-ver-resultado>
+              {verOResultado}
+            </button>
+          ) : (
+            <span class="so-com-troca">Nenhuma memória passa nesses filtros.</span>
+          )}
           {
             filtrando && (
               <a class="acao acao--quieta" href={enderecoDoExplorar(semFiltros, forma, doMural)}>
@@ -247,7 +272,7 @@ const grupos = [
         <nav class="linha__opcoes linha__opcoes--curtas" aria-labelledby="controle-tamanho">
           {TAMANHOS.map((t) => (
             <a href={enderecoDoExplorar(filtros, forma, tamanhoNoEndereco(t))} data-opcao={t} data-tamanho-das-fotos={t} aria-current={t === tamanho ? 'page' : undefined}>
-              {NOMES_DOS_TAMANHOS[t]}
+              <span class="opcao__texto" data-texto={NOMES_DOS_TAMANHOS[t]}>{NOMES_DOS_TAMANHOS[t]}</span>
             </a>
           ))}
         </nav>

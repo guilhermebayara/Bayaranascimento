@@ -220,7 +220,7 @@ O CSS das peças está em `src/visual/pecas.css` (as ações estão em `base.css
 | Fases de um casal ou marcos que abrem | `Sanfona.astro` | `ano`, `titulo`, `quando`, o conteúdo dentro. O mesmo `grupo` em todas faz só uma ficar aberta |
 | Recado de "salvou" ou de erro | `Recado.astro` | `<Recado>` ou `<Recado erro>` |
 | Tela sem nada para mostrar | `Vazio.astro` | `<Vazio frase="…">` com a ação dentro |
-| As ações de apagar de uma tela de editar | `ZonaDePerigo.astro` | `<ZonaDePerigo>` no fim da página, fora do formulário que salva, com uma frase e o link para a confirmação. `menor nivel={4}` dentro de um cartão, como o editor de um laço. Quem usa decide se ela aparece, pela permissão de sempre |
+| As ações de apagar de uma tela de editar | `ZonaDePerigo.astro` | `<ZonaDePerigo>` no fim da página, fora do formulário que salva, com uma frase e o link para a confirmação. É quieta: um fio na cor de alerta em cima, sem fundo. `menor nivel={4}` dentro de um cartão, como o editor de um laço. Quem usa decide se ela aparece, pela permissão de sempre |
 | Ícone de tipo, rabisco de caneta | `IconeDoTipo.astro`, `Rabisco.astro` | São enfeite: o texto está sempre escrito ao lado |
 | A ação principal da tela | classe `botao` | Uma por tela. `aria-disabled="true"` ou `disabled` para o estado sem poder agir |
 | As outras ações | classes `acao` e `acao--quieta` | Texto sublinhado, em link ou em `<button>` |
@@ -416,6 +416,14 @@ Decisão do Gui de 16/11/2026: o monograma é o M de Memórias, que não muda, e
 6. Fim: "Escrever meu relato" em destaque, depois "Antes" e "Depois".
 
 Hoje a ação principal fica no alto (decisão do QA de UX). Mantenha um atalho pequeno no alto para quem chega querendo contar, e o convite grande no fim.
+
+Respostas do Gui ao QA de design de 17/11/2026 (regras em `src/lib/memoria.ts`, com teste em `testes/qa-respostas-memoria.test.ts`):
+
+- **Quem estava, no celular:** até seis retratos e "Ver todos os 9", que abre o resto no lugar. A partir de 40rem, todos à vista. Sem script, a lista vem inteira.
+- **Relato que já está inteiro na abertura:** com um só relato, sem áudio, contado pela própria pessoa e que coube inteiro no trecho, a seção "Relato" não repete o bilhete.
+- **Memória sem foto:** a partir de 62rem, o cartão do tipo de momento fica à direita, no lugar da foto. No celular a abertura continua só com o texto.
+- **Quem já contou:** no lugar do convite, uma linha quieta, "Você já contou esse dia." e "Editar meu relato" como ação de texto. O convite com o botão cheio é só de quem ainda não contou.
+- **Galeria:** tocar ou clicar no fundo também fecha.
 
 ## Linha do tempo, capítulo e laço
 
@@ -618,15 +626,27 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **Painel (`/`).** O desenho do conceito com os dados de verdade (`src/pages/index.astro`, `telas/painel.css`). Na primeira visita, a carta no alto; depois, "Oi, Fulano.", o resumo do que entrou, a mesa com as novidades, "Neste dia, em outros anos", os cartões (aniversários, você no acervo, a memória para contar) e o caminho para a linha do tempo. O painel só mostra memória publicada.
 
+**Composição depois do QA de design de 17/11/2026** (respostas do Gui, P1, P6 e P13 a P28). Vale no lugar do parágrafo acima onde os dois discordam. Quem decide onde cada parte fica é `composicaoDoInicio()`, em `src/lib/painel.ts`; os cartões de contar e do relato novo são `src/components/painel/Contar.astro` e `Fila.astro`.
+
+- **Primeira visita:** só a carta na tela. "Abrir o acervo" leva ao Início normal, e a carta não volta ao alto.
+- **A abertura** tem "Só você vê esta página" (sem a data de hoje), a saudação, o resumo, a linha do rascunho quando há um, a última visita (com o ano, quando não é o corrente) e o link da carta. O envelope só aparece quando chegou algo.
+- **A mesa, no computador,** fica à direita da abertura. Com novidade: até duas fotos novas e, embaixo delas, o relato, sempre na fileira dele. Quando há "E mais N", o relato e essa linha descem para uma fileira de largura inteira, embaixo da abertura e das fotos. Sem novidade: "Neste dia, em outros anos", com até duas fotos grandes e as outras numa linha menor; sem ele, a memória para contar.
+- **Os cartões,** nesta ordem: contar, "Neste dia", aniversários ("Próximos aniversários"), você no acervo. No computador eles dividem a linha por quantos são: um ou dois, metade cada; três, um terço; quatro, dois a dois (lado a lado a partir de 100rem). "Neste dia" com três ou quatro memórias é uma faixa de oito colunas ao lado de contar, e os outros ficam na linha de baixo.
+- **O cartão de contar** muda de arranjo pela largura que ele mesmo tem (`@container`): estreito, o botão ocupa a largura do cartão, embaixo da foto e do título. A foto leva à memória.
+- **O relato novo** diz "Relato novo" no rótulo e traz o título da memória numa linha própria, em serifa.
+- **O convite do fim** é "Explorar todas as memórias", em `t-2`, e as décadas se dizem como no filtro do Explorar ("Anos 2020", "Anos 90"). O botão de teste vem depois de um fio, com o rótulo "Teste".
+
 - **A mesa das novidades** mostra duas memórias e um relato, como no conceito. O que passa disso vira uma linha, "E mais N: ver o que entrou por último", que leva a `/explorar?ordem=entraram`. Aprovado pelo Gui em 17/11/2026.
 - **Sem visita anterior e sem carta**, a frase é "Que bom que você chegou.". Aprovado pelo Gui em 17/11/2026.
-- **O parentesco nos aniversários** não se repete quando o apelido já traz ("Tia Cida" fica sem "sua tia" embaixo).
+- **O parentesco nos aniversários** não se repete quando o apelido já traz ("Tia Cida" fica sem "sua tia" embaixo). Quando o apelido traz o parentesco de outra pessoa, aparece o nome com o parentesco de quem olha (`nomeParaQuemOlha`).
 - **`?hoje=AAAA-MM-DD`** mostra o painel como num outro dia. Só vale onde não há login (prévias, homologação e computador), para conferir os aniversários e o "Neste dia" e para as capturas saírem iguais.
 - "Voltar Fulano à primeira visita" continua no fim da página, só fora da produção.
 
-**Carta de Natal.** A peça é `src/components/Carta.astro`, usada no alto do painel e em `/carta`: a saudação "Oi, Elizete," grande, o primeiro parágrafo como abertura em serifa, o resto como texto de leitura, e a linha de quem assina partida em nomes, cada um à mão ("Gui, Giovanna e Magno" vira três assinaturas). O carimbo diz "Natal de <ano em que a carta foi escrita>" (aprovado pelo Gui em 17/11/2026, sem o lugar; o conceito dizia também "Belo Horizonte"). No painel a ação é "Abrir o acervo", que leva ao Explorar; em `/carta`, "Voltar ao início". As fotos ao lado são as três memórias mais recentes em que a pessoa aparece. O banco de teste ganhou a carta de exemplo do conceito (`semearCartaDeExemplo`), só onde não há carta nenhuma.
+**Carta de Natal.** A peça é `src/components/Carta.astro`, usada no alto do painel e em `/carta`: a saudação "Oi, Elizete," grande, o primeiro parágrafo como abertura em serifa, o resto como texto de leitura, e a linha de quem assina partida em nomes, cada um à mão ("Gui, Giovanna e Magno" vira três assinaturas). O carimbo diz "Natal de <ano em que a carta foi escrita>" (aprovado pelo Gui em 17/11/2026, sem o lugar; o conceito dizia também "Belo Horizonte"). No painel a ação é o botão "Abrir o acervo", que leva ao Início normal; em `/carta`, "Voltar ao início" é uma ação sublinhada, sem seta, e os administradores têm ao lado "Editar a carta" (respostas do Gui às perguntas P14, P30 e P31 do QA de design de 17/11/2026). As fotos ao lado são as três memórias mais recentes em que a pessoa aparece; cada uma leva à memória dela, e a da frente é a primeira na ordem do teclado (P29). O banco de teste ganhou a carta de exemplo do conceito (`semearCartaDeExemplo`), só onde não há carta nenhuma.
 
 **Sua conta (`/conta`).** Página íntima, na cor da família da pessoa, com o cartão do painel (`telas/conta.css`, mais `telas/painel.css` pelo cartão). No alto, o retrato em arco, o nome, "Editar seus dados" e "Ver sua página". Depois, quatro cartões: **Seus dados** (ficha em mono; o e-mail de acesso só aparece na produção), **Rascunhos e lixeira** (os rascunhos de memória e de relato, a conta do que é seu na lixeira e "Abrir a lixeira"), **O que você criou** (o número grande de memórias, relatos, fotos e capítulos; cada lista abre no lugar, uma por vez, sem script) e **Seus laços do coração** (com a proximidade, que só a pessoa vê). No fim, **Administração**, só para quem administra: os itens de `administracao()`, que ganhou "Carta de Natal" e "Sistema visual", e o tamanho do banco, que vira recado quando passa do aviso.
+
+Depois das respostas do Gui ao QA de design (17/11/2026, P148 a P153): o cartão **Seus dados** saiu, e o nascimento, o apelido e o e-mail de acesso ficam numa linha em mono abaixo do nome, só com o que existe. Os cartões são três, nesta ordem: **Rascunhos e lixeira**, **Seus laços do coração** e **O que você criou**, que na tela grande ocupa a largura toda, com as contas em tamanho de título de parte numa linha só ("24 memórias", "19 relatos"). A lista aberta mostra as dez mais recentes (`oComeco`, em `src/lib/conta.ts`) e o caminho para o resto. Para quem administra, a frase da lixeira conta o que a lixeira mostra (`fraseDaLixeira`). Na administração, "Baixar cópia do acervo" fica numa linha própria, junto do tamanho do banco. A página Rascunhos saiu.
 
 - **Editar os dados no lugar não foi feito**: "Editar seus dados" leva a `/pessoas/<id>/editar`, que é do grupo 4. Pergunta no PR.
 - As telas de rascunhos, lixeira e administração continuam no visual antigo, até o grupo 4.
@@ -664,7 +684,18 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **Tema (`/temas/<id>`).** "Tema", o nome grande, "Todos os capítulos e temas", os capítulos que usam o tema (a mesma linha do sumário) e as memórias, na linha do tempo do Explorar (`explorar/Linha.astro`, sem trilhos), como na página da pessoa.
 
-**Pessoas (`/pessoas`).** Cada família é uma parte da página com a cor dela (`telas/pessoas.css`): o nome da família num bloco pastel, com a conta, e as pessoas embaixo com a peça Gente, em uma, duas, três ou quatro colunas. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho. No alto, a conta de pessoas e bichos, "Cadastrar pessoa", "Ver a árvore" e os atalhos para cada família. O parentesco na lista foi aprovado pelo Gui em 17/11/2026.
+**Capítulos e temas depois das respostas do Gui ao QA de design (17/11/2026, P60 a P83).** Vale por cima do que está escrito acima; os testes estão em `testes/qa-respostas-capitulos.test.ts`.
+
+- **Sumário:** continua do mais antigo para o mais recente. O título de cada linha tem o tamanho de item de lista (`--t-titulo-3`). Toda linha tem o ponto antes do selo, e o da época é vazado em cinza, para os selos alinharem. Com mouse, o alto ("Capítulos", a frase e "Novo capítulo") fica parado. "Ver os temas", no alto, desce até os temas, que continuam no fim (`#temas`).
+- **Capa do capítulo:** no celular a ordem é selo, título, período, frase de abertura e só então as ações. No computador com mouse ficam parados só o selo, o título, o período e as ações; a abertura, as notas e "Quem aparece" rolam e passam por trás desse bloco. O botão cheio é "Nova memória neste capítulo" (só no reunido); editar é ação de texto. O capítulo de dentro diz, acima do título, "Capítulo de “Natais”", com o link.
+- **Forma de ver, no capítulo:** os marcos (o padrão), o mural e a lista do Explorar, na própria página, com a escolha no endereço (`ver`), e "Passar no modo TV", que abre o Explorar com o capítulo. "Ver no Explorar" saiu. No mural e na lista as memórias usam a largura inteira, embaixo da capa.
+- **Marcos:** a foto vai sem legenda, e o carimbo quebra antes do ponto. Na época, o título é "Memórias da época". "Aconteceu neste período" só marca o que coube inteiro ("inteiro neste período"). A partir de 100rem o corpo vai até a margem e a foto do marco cresce.
+- **Formulário do capítulo:** as etapas são "Que capítulo é esse?", "Onde ele se encaixa?" e "Quem vê". O mês tem o rótulo "Mês, se souber" e a opção "Não sei", como na memória. Na edição, "Sobre o capítulo" vem primeiro, com a trilha na coluna da esquerda no computador; "Memórias do capítulo" mostra as que já estão marcadas, e as outras entram por uma busca (sem script, a lista vem inteira).
+- **Tema:** a partir de 62rem, o nome e os capítulos à esquerda e as memórias à direita, com a "Forma de ver" da página da pessoa. A lista usa a largura inteira. A linha de cada capítulo é a do sumário, com o período e a conta.
+
+**Página da pessoa, depois das respostas ao QA de design (17/11/2026).** O atalho "Ouvir a voz de Fulano" no alto, o botão cheio "Nova memória com Fulano", os laços recolhidos numa linha no celular, o retrato em três colunas no celular e na margem em 1920 px, "você" na própria página e o nascimento no carimbo. As regras estão em `docs/decisoes.md`, em "A página da pessoa".
+
+**Pessoas (`/pessoas`).** Cada família é uma parte da página com a cor dela (`telas/pessoas.css`): o nome da família num bloco pastel, com a conta, e as pessoas embaixo com a peça Gente, em uma, duas, três ou quatro colunas. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho. No alto, a conta de pessoas e bichos, "Cadastrar pessoa", "Ver a árvore" e os atalhos para cada família. O parentesco na lista foi aprovado pelo Gui em 17/11/2026. Depois das respostas ao QA de design (17/11/2026): "Procurar pelo nome" e a troca de ordem ("Por geração", "De A a Z") no alto, a conta de cada bloco por extenso, e os retratos na margem do nome da família.
 
 **Árvore (`/arvore`).** Mudou só a aparência (`telas/arvore.css`); `arvore-montagem.ts` e `arvore-desenho.ts` não foram tocados, e os testes `testes/arvore-*.test.ts` passam sem mudança. Conferido com o Playwright, antes e depois, com a árvore como abre, alguém em foco, os laços do coração abertos, um ramo aberto, cada camada desligada e uma família em destaque: a posição de todos os cartões, o caminho de todas as linhas, os cartões dos ramos e a ficha saíram idênticos.
 
@@ -673,6 +704,7 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 - **Camadas e controles quietos:** "Ajustar a árvore", a ficha, o zoom e a legenda são cartões brancos pousados no mapa, sem contorno. A ficha traz o retrato em arco, o nome em serifa e as três ações numa linha. No celular, com os ajustes abertos, a ficha sai da frente.
 - **A busca de "Partir de"** (`busca-pessoa.ts`) ganhou o estilo novo só dentro do mapa (`.mapa .busca…`). O estilo da busca nos formulários é do grupo 4.
 - A marca do ramo recolhido ganhou área de toque de 44 px (tinha 42).
+- **Depois das respostas do Gui ao QA de design (17/11/2026):** a ficha só aparece ao tocar em alguém e fica embaixo, no centro; a barra de baixo diz "Voltar para Fulano" e "Ver a árvore inteira"; a legenda tem três grupos, abre pelo botão "Legenda" no celular e lembra se foi fechada no computador; no celular os ajustes abrem no pé do mapa. As regras estão em `docs/decisoes.md`, em "O que fica em volta do mapa", e as capturas em `docs/visual/qa-respostas/arvore/`.
 
 **"Família" no lugar de "núcleo"** nestas telas: "Quem aparece nas memórias da família, por família." (era "por núcleo"), na lista de pessoas; na árvore, "Família Bayara" em "Destacar" (era "Núcleo Bayara"), "Outras famílias" em "Mostrar" (era "Outros núcleos") e a dica "A árvore parte de Fulano, que é de outra família" (era "de outro núcleo"). Tem teste: nenhuma destas telas escreve "núcleo".
 
@@ -902,6 +934,14 @@ Branch `tst-visual-ajustes`, nascida da `homologa` em 17/11/2026, com o que o Gu
 - **As permissões não mudaram:** o bloco só aparece para quem já podia apagar (`podeExcluirMemoria`, administradores no capítulo, quem mexe nos laços) e some quando não há nada.
 - **O que ficou onde estava:** "Remover foto", em cada foto da memória, e "Tirar foto", no retrato. Só valem quando a pessoa salva, e as páginas de leitura continuam com "Excluir" por último.
 
+**Respostas do Gui ao QA de design (17/11/2026, P126 a P147).** O que mudou nestas peças, com teste em `testes/qa-respostas-nova-memoria.test.ts` e capturas em `docs/visual/qa-respostas/nova-memoria/`:
+
+- **A frase da abertura:** no computador vai até a largura do miolo, e a lacuna vazia não quebra no meio. No celular ela desce para baixo da pergunta da etapa, antes das ações, menor e com um fio em cima (o script de `nova.astro` a muda de lugar), e a frase de boas-vindas fica só na primeira etapa.
+- **A frase da etapa "Quando e onde"** é a pergunta: a legenda fica só para o leitor de tela. A lacuna do lugar tem a largura do que foi escrito, e "em", o lugar e o ponto final andam juntos.
+- **O resumo ao lado:** sem tipo escolhido, o cartão é neutro (papel, sem ícone). Na última etapa ficam só a foto e o título, e "Confira antes de publicar" usa a ordem da frase (quando, onde, quem).
+- **A grade:** todo formulário com etapas que é a página inteira tem a trilha em três colunas e a pergunta começando na quarta, com ou sem resumo ao lado. As ações param na largura dos campos. O vão entre as colunas do formulário é o da página (`--calha`).
+- **A zona de perigo** ficou quieta: da largura do texto, sem fundo, só o fio em cima e o título na cor de alerta. O sublinhado da ação continua na cor de alerta ao passar o mouse, e o botão que confirma não leva a seta. Na memória, com script, ela só aparece na última etapa.
+
 **Testes:** `describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo')`, em `testes/visual.test.ts`: as três lacunas e a etapa de cada uma, as sete etapas na ordem, o que some sem script, os 44 px, o resumo fora do celular e sem `aria-live`, e a zona fora do formulário, só para quem pode, em toda remoção de laço.
 
 **Conferido:** com o Playwright, em 1280 e 390 px, com e sem movimento reduzido, só pelo teclado: da abertura vazia até salvar um rascunho, passando pelas três lacunas, com o resumo acompanhando título, tipo, data, lugar e pessoas; a zona de perigo levando à confirmação e o rascunho de teste descartado por ela; sem JavaScript, a correção sem a frase e sem o resumo, com a zona e as etapas em sequência. As capturas (`ajustes-4-…`, `ajustes-5-…` e `ajustes-6-…`) foram olhadas nas três larguras.
@@ -962,11 +1002,11 @@ Construído em 17/11/2026 na branch `tst-visual-tipos`, nascida da `tst-visual-a
 | --- | --- |
 | A tinta da cor sobre o papel e sobre a moldura branca: 4,5 para um | As 23 |
 | O texto do site sobre o pastel da cor: 4,5 para um | As 23 |
-| A tinta da cor sobre o pastel dela: 4,5 para um | As doze novas e sete das onze |
+| A tinta da cor sobre o pastel dela: 4,5 para um | As 23 |
 | O vivo longe do pastel da mesma cor, pelo menos como na manteiga | As doze novas |
 | Nenhuma cor mais perto de outra do que as duas mais próximas entre as onze (ardósia e azul no pastel, coral e pêssego no vivo) | Todos os pares |
 
-**Quatro das onze aprovadas ficam abaixo de 4,5 com a tinta sobre o próprio pastel:** pêssego (3,9), coral (4,2), rosa (4,2) e manteiga (4,4). Não foram mexidas, porque são cores que o Gui aprovou; o teste guarda o valor de hoje como piso e a página do sistema marca as quatro. É a pergunta 4 do PR.
+**Quatro das onze aprovadas ficam abaixo de 4,5 com a tinta sobre o próprio pastel:** pêssego (3,9), coral (4,2), rosa (4,2) e manteiga (4,4). Não foram mexidas, porque são cores que o Gui aprovou; o teste guardava o valor como piso e a página do sistema marcava as quatro. **Resolvido em 17/11/2026 (P160 do QA de design):** o Gui mandou escurecer só a tinta das quatro até 4,5 (pêssego `#a04314`, coral `#a8281e`, rosa `#aa2557`, manteiga `#885700`). O pastel, o meio e o vivo não mudaram, e a regra vale para as 23, sem piso no teste. O alerta do site usa a tinta do coral e escureceu junto.
 
 **O vivo sobre o pastel não chega a 3 para um em quase nenhuma cor**, nem nas onze aprovadas (a manteiga tem 1,5): o vivo é ponto de destaque, nunca texto. Por isso a regra do vivo é de distância entre as duas cores, e não de contraste de leitura.
 
@@ -988,4 +1028,4 @@ Construído em 17/11/2026 na branch `tst-visual-tipos`, nascida da `tst-visual-a
 
 **Capturas.** `CAPTURAS_SO='^tipos' npm run capturas -- tirar <pasta>`. Estão em `docs/visual/fase-3/tipos/`; as duas com o tipo trocado (`tipos-3-…`) foram tiradas à parte, com "Viagem" em cereja e com a montanha, e o tipo voltou ao azul depois.
 
-**O que falta:** a resposta do Gui às perguntas do PR (as cores novas, os rabiscos, os textos e as quatro cores abaixo de 4,5); conferir no iPhone; e, se ele quiser, exemplos de tipos novos no acervo de exemplo.
+**Respostas do Gui (17/11/2026, P157 a P168 do QA de design):** as doze cores, os dezenove rabiscos e os textos ficam; repetir cor continua podendo; o tipo criado a partir de "Outro" continua escolhendo a cor pelo nome. Mudou: onde há mouse a prévia fica parada ao lado, e no toque uma etiqueta pequena junto do "Salvar" e a etiqueta do resumo acompanham a escolha; salvar volta para a linha do tipo, com o recado ali ("Viagem atualizado."); a ordem da página é "Tipos da lista", "Novo tipo" e, por último, o que foi escrito em "Outro", com a conta no alto; "Cor" e "Desenho" são rótulos em mono; o nome do desenho marcado fica escrito embaixo da grade; e o acervo de exemplo ganhou três tipos (Formatura, Praia e Bichos, em `semearTiposDeExemplo`), com uma memória em cada. **O que falta:** conferir no iPhone.

@@ -194,7 +194,12 @@ export async function trocar(endereco: URL, { foco, empurrar }: Troca) {
     nova.querySelectorAll<HTMLDetailsElement>('.controles details').forEach((d, i) => {
       if (abertos[i] !== undefined) d.open = abertos[i]!;
     });
+    // No celular as opções de um controle rolam para o lado: a linha continua onde a pessoa deixou
+    const rolagens = [...regiao.querySelectorAll<HTMLElement>('.controle__linha')].map((l) => l.scrollLeft);
     regiao.replaceWith(nova);
+    nova.querySelectorAll<HTMLElement>('.controle__linha').forEach((l, i) => {
+      if (rolagens[i]) l.scrollLeft = rolagens[i]!;
+    });
     // A cor da tela e a assinatura do rodapé acompanham as famílias escolhidas
     const familia = pagina.documentElement.dataset.familia;
     if (familia) document.documentElement.dataset.familia = familia;
@@ -265,12 +270,47 @@ function trocarTamanho(opcao: HTMLElement) {
   if (!calmo()) animar(antes, regiao);
 }
 
+/**
+ * No celular as opções de um controle ficam numa linha que rola para o lado. Ao abrir a página, a
+ * opção marcada que ficou fora da vista é trazida para dentro da linha, sem mexer na página.
+ */
+function mostrarMarcadas() {
+  for (const linha of document.querySelectorAll<HTMLElement>(`${REGIAO} .controle__linha`)) {
+    const marcada = linha.querySelector<HTMLElement>('[aria-current]');
+    if (!marcada || linha.scrollWidth <= linha.clientWidth) continue;
+    const caixa = linha.getBoundingClientRect();
+    const dela = marcada.getBoundingClientRect();
+    if (dela.right > caixa.right) linha.scrollLeft += dela.right - caixa.right + 16;
+    else if (dela.left < caixa.left) linha.scrollLeft -= caixa.left - dela.left + 16;
+  }
+}
+
+/**
+ * "Ver as N memórias", no fim dos filtros (resposta do Gui à P33 do QA de design de 17/11/2026):
+ * fecha o painel e leva ao começo do resultado. O foco do teclado vai para a primeira memória.
+ */
+function verOResultado(botao: HTMLElement) {
+  const regiao = botao.closest<HTMLElement>(REGIAO);
+  const resultado = regiao?.querySelector<HTMLElement>('[data-resultado]');
+  if (!regiao || !resultado) return;
+  const painel = botao.closest<HTMLDetailsElement>('details.filtros');
+  if (painel) painel.open = false;
+  resultado.scrollIntoView({ block: 'start' });
+  const primeira = resultado.querySelector<HTMLElement>('.entrada__titulo a, .lista__linha, .mural__foto a');
+  (primeira ?? painel?.querySelector<HTMLElement>('summary'))?.focus({ preventScroll: true });
+}
+
 /** Liga a troca sem recarregar: os links dos controles, o formulário dos filtros e o histórico. */
 export function ligarTroca() {
   // A região troca dentro da mesma página: o Explorar e, com as mesmas formas de ver, a página da pessoa
   const daRegiao = (endereco: URL) => endereco.origin === location.origin && endereco.pathname === location.pathname && ['linha', 'mural', 'lista', null].includes(endereco.searchParams.get('ver'));
 
   document.addEventListener('click', (evento) => {
+    const ver = evento.target instanceof Element ? evento.target.closest<HTMLElement>(`${REGIAO} [data-ver-resultado]`) : null;
+    if (ver) {
+      evento.preventDefault();
+      return verOResultado(ver);
+    }
     const link = evento.target instanceof Element ? evento.target.closest<HTMLAnchorElement>(`${REGIAO} .controles a[href]`) : null;
     if (!link || evento.defaultPrevented || evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
     // O tamanho das fotos troca no lugar e não mexe no endereço
@@ -294,6 +334,17 @@ export function ligarTroca() {
   // "Mostrar memórias" é de quem está sem script: aqui ele some (classe "com-troca", no CSS).
   document.documentElement.classList.add('com-troca');
   aplicarTamanho();
+  mostrarMarcadas();
+  // Pelo teclado, a opção em foco que está cortada na borda da linha entra inteira na tela
+  document.addEventListener('focusin', (evento) => {
+    const opcao = evento.target instanceof HTMLElement && evento.target.matches(':focus-visible') ? evento.target : null;
+    const linha = opcao?.closest<HTMLElement>(`${REGIAO} .controle__linha`);
+    if (!opcao || !linha || linha.scrollWidth <= linha.clientWidth) return;
+    const caixa = linha.getBoundingClientRect();
+    const dela = opcao.getBoundingClientRect();
+    if (dela.right > caixa.right) linha.scrollLeft += dela.right - caixa.right + 16;
+    else if (dela.left < caixa.left) linha.scrollLeft -= caixa.left - dela.left + 16;
+  });
   const enderecoDoFormulario = (formulario: HTMLFormElement) => {
     // O endereço fica só com o que foi escolhido: campo vazio não vai junto
     const endereco = new URL(formulario.action);

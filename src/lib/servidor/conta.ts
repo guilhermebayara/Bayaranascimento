@@ -1,11 +1,12 @@
 // "Sua conta": junta, para quem está logado, as listas de src/lib/conta.ts. A tela é src/pages/conta.astro.
-import { administracao, oQueVoceCriou, seusLacos, seusRascunhos, suaLixeira } from '../conta';
+import { administracao, fraseDaLixeira, oQueVoceCriou, seusLacos, seusRascunhos, suaLixeira } from '../conta';
 import { emMegabytes, LIMITE_DO_PLANO, situacaoDoBanco } from '../tamanho-do-banco';
 import { lerAcessos, semLogin } from './acesso';
 import { podeEspelhar } from './espelho';
-import type { Usuario } from './permissoes';
+import { podeExcluirMemoria, type Usuario } from './permissoes';
 import {
   listarCapitulos,
+  listarCapitulosExcluidos,
   listarExcluidas,
   listarIntegrantes,
   listarLacosDoCoracao,
@@ -32,13 +33,16 @@ export async function montarConta(usuario: Usuario) {
     listarExcluidas(usuario),
     listarIntegrantes(),
   ]);
+  const minhaLixeira = suaLixeira(eu, excluidas);
   const banco = usuario.admin ? situacaoDoBanco(await tamanhoDoBanco()) : undefined;
   return {
     /** "Seus dados e sua página": editáveis em /pessoas/<id>/editar; a página como os outros veem, em /pessoas/<id> */
     dados: integrantes.find((i) => i.id === eu),
     email: emailDe(eu),
     rascunhos: seusRascunhos(eu, rascunhos, relatos),
-    lixeira: suaLixeira(eu, excluidas),
+    lixeira: minhaLixeira,
+    /** a frase da lixeira: quem administra lê a conta do que a página da lixeira mostra (src/pages/lixeira.astro); os demais, a do que é deles */
+    fraseDaLixeira: fraseDaLixeira(usuario.admin, usuario.admin ? excluidas.filter((m) => podeExcluirMemoria(usuario, m).ok).length + (await listarCapitulosExcluidos(usuario)).length : minhaLixeira.length),
     criou: oQueVoceCriou(eu, { memorias: publicadas, relatos, capitulos }),
     lacos: seusLacos(eu, lacos),
     administracao: administracao(usuario, { podeEspelhar: podeEspelhar() }),

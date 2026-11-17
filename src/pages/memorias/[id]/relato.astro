@@ -46,14 +46,15 @@ const opcoes = await Promise.all(
 );
 ---
 
-<Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos}>
+<Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar">
   <p slot="abertura">
     <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento.
   </p>
 
   {/* Ao lado, no computador (resposta do Gui à pergunta 7 do PR do grupo "formularios", 17/11/2026):
       a foto-chave e a ficha da memória de que o relato fala. No celular não existe, e a foto não é
-      baixada. PROVISÓRIO (pergunta 8 do PR de ajustes): nos outros formulários não há resumo ao lado. */}
+      baixada. Nos outros formulários não há resumo ao lado (resposta do Gui à P130 do QA de design,
+      17/11/2026). */}
   <aside class="ao-lado ao-lado--fixo" aria-labelledby="ao-lado-titulo">
     <h2 class="rotulo suave" id="ao-lado-titulo">A memória</h2>
     <div class="ao-lado__foto" style={estiloDoTipo(memoria.tipo)}>
@@ -72,12 +73,6 @@ const opcoes = await Promise.all(
     <input type="hidden" name="memoria" value={memoria.id} />
     <fieldset>
       <legend>Como foi?</legend>
-      <label class="campo">
-        <span>Quem está contando</span>
-        <select name="por">
-          {opcoes.map((o) => <option value={o.id}>{o.rotulo}</option>)}
-        </select>
-      </label>
       <p class="recado" data-bloqueio hidden></p>
       {/* Áudios (Decidido, a construir; liberado em 16/11/2026). Só com script: gravar e enviar dependem dele */}
       <div class="campo audios" data-audios hidden>
@@ -98,12 +93,26 @@ const opcoes = await Promise.all(
         <textarea name="texto" rows="12" maxlength="20000" disabled={opcoes[0].bloqueado}>{opcoes[0].texto}</textarea>
       </label>
       <p class="dica">Só você vai poder alterar este relato.</p>
+      {/* Quase sempre quem conta é quem escreve: "Quem está contando" deixou de ser o primeiro campo e
+          fica numa linha recolhida, depois do texto, que abre a busca (resposta do Gui à P137 do QA de
+          design, 17/11/2026). Fechar a linha volta para "Eu". */}
+      <details class="mais-opcoes" data-outra-pessoa>
+        <summary>Estou escrevendo por outra pessoa</summary>
+        <label class="campo">
+          <span>Quem está contando</span>
+          <select name="por">
+            {opcoes.map((o) => <option value={o.id}>{o.rotulo}</option>)}
+          </select>
+        </label>
+      </details>
     </fieldset>
 
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
     <div class="acoes">
       <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada">{opcoes[0].publicado ? 'Salvar alterações' : 'Publicar relato'}</button>
       <button type="submit" class="botao botao--leve" name="situacao" value="rascunho" data-salvar="rascunho" hidden={opcoes[0].publicado}>Salvar rascunho</button>
+      {/* O caminho de volta sem salvar (resposta do Gui à P147 do QA de design, 17/11/2026) */}
+      <a class="botao botao--leve" href={`/memorias/${memoria.id}`}>Voltar para a memória</a>
     </div>
   </form>
 
@@ -135,6 +144,17 @@ const opcoes = await Promise.all(
     }
     const opcoes: Opcao[] = JSON.parse(document.getElementById('opcoes-relato')!.textContent ?? '[]');
     const quem = form.elements.namedItem('por') as HTMLSelectElement;
+    // "Estou escrevendo por outra pessoa": abrir a linha põe o foco na busca, e fechar volta para "Eu"
+    const outraPessoa = form.querySelector<HTMLDetailsElement>('[data-outra-pessoa]');
+    outraPessoa?.querySelector('summary')?.addEventListener('click', () =>
+      setTimeout(() => {
+        // O nome que está no campo fica selecionado: o que a pessoa digitar toma o lugar dele
+        if (outraPessoa.open) return outraPessoa.querySelector<HTMLInputElement>('.busca__campo')?.select();
+        if (quem.selectedIndex === 0) return;
+        quem.selectedIndex = 0;
+        quem.dispatchEvent(new Event('change', { bubbles: true }));
+      }),
+    );
     const texto = form.elements.namedItem('texto') as HTMLTextAreaElement;
     const bloqueio = form.querySelector<HTMLElement>('[data-bloqueio]')!;
     const situacaoEl = form.querySelector<HTMLElement>('[data-situacao]')!;

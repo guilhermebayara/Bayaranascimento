@@ -67,7 +67,8 @@
   min-height: 23cqi;
   padding: 2cqi 0 3cqi;
   font-family: var(--mono);
-  font-size: clamp(0.5625rem, 4.1cqi, 1rem);
+  /* O piso é de 11 px: com 9 px era o menor texto do site (resposta do Gui à P40, 17/11/2026) */
+  font-size: clamp(0.6875rem, 4.1cqi, 1rem);
   line-height: 1.3;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -697,16 +698,19 @@ textarea.campo__entrada {
 
 /* --- Zona de perigo: as ações de apagar, juntas no fim, marcadas na cor de alerta ----------------
    Um bloco separado, longe do salvar. Dentro vai o caminho para a confirmação, nunca o apagar
-   direto. O botão que confirma continua cheio, na cor de alerta. */
+   direto. O botão que confirma continua cheio, na cor de alerta.
+   Quieta (resposta do Gui à P131 do QA de design, 17/11/2026): da largura do texto, sem fundo, só o
+   fio em cima e o título na cor de alerta, para não chamar mais atenção que a ação principal. */
 
 .perigo {
   display: grid;
   justify-items: start;
+  justify-self: start;
   gap: var(--e-2);
-  padding: var(--e-5);
-  border: var(--traco) solid var(--alerta);
-  border-radius: var(--raio-bloco);
-  background: color-mix(in srgb, var(--alerta) 7%, transparent);
+  width: fit-content;
+  max-width: 100%;
+  padding-top: var(--e-4);
+  border-top: var(--traco) solid var(--alerta);
 }
 .perigo > * {
   min-width: 0;
@@ -723,8 +727,12 @@ textarea.campo__entrada {
 .perigo .acao {
   color: var(--alerta-tinta);
 }
+/* O sublinhado continua na cor de alerta ao passar o mouse (resposta do Gui à P145, 17/11/2026) */
+.perigo .acao:hover {
+  text-decoration-color: currentColor;
+}
 .perigo--menor {
-  padding: var(--e-4);
+  padding-top: var(--e-3);
 }
 
 /* --- Estado vazio: uma frase em serifa e, se couber, o que fazer --------------------------------- */

@@ -32,8 +32,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const decisao = podeExcluirMemoria(usuario, excluida);
     if (!decisao.ok) return voltar(request, '/', { erro: decisao.motivo });
     await restaurarExcluida(id);
-    const destino = excluida.situacao === 'rascunho' ? `/nova?id=${id}` : `/memorias/${id}`;
-    return voltar(request, destino, { ok: 'Memória restaurada da lixeira.' });
+    // Restaurar não tira ninguém da lixeira (resposta do Gui à P154, 17/11/2026): a página mostra o
+    // recado e o caminho para o que voltou, e quem veio restaurar duas coisas continua ali
+    return voltar(request, `/lixeira?restaurada=${encodeURIComponent(id)}`, { ok: excluida.situacao === 'rascunho' ? 'Rascunho restaurado.' : 'Memória restaurada.' });
   }
 
   const memoria = await obterMemoria(usuario, id);
@@ -46,8 +47,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!decisao.ok) return voltar(request, pagina, { erro: decisao.motivo });
     await excluirMemoria(memoria.id, usuario);
     const rascunho = memoria.situacao === 'rascunho';
-    return voltar(request, rascunho ? '/rascunhos' : '/', {
-      ok: rascunho ? 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' : `"${memoria.titulo}" foi para a lixeira. Dá para restaurar pela lixeira, em Rascunhos.`,
+    // A página Rascunhos saiu (resposta do Gui à P150, 17/11/2026): os rascunhos e a lixeira moram em "Sua conta"
+    return voltar(request, rascunho ? '/conta' : '/', {
+      ok: rascunho ? 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' : `"${memoria.titulo}" foi para a lixeira. Dá para restaurar pela lixeira, em Sua conta.`,
     });
   }
 

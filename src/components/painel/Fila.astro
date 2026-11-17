@@ -1,0 +1,44 @@
+---
+// O que vem depois das fotos novas, no Início: o relato novo, num bilhete, e a linha "E mais N".
+// No computador fica embaixo das fotos, à direita; quando há "E mais N", desce para uma fileira de
+// largura inteira, embaixo da abertura e das fotos (src/lib/painel.ts, composicaoDoInicio).
+import Bilhete from '../visual/Bilhete.astro';
+import IconeDoTipo from '../visual/IconeDoTipo.astro';
+import { estiloDoTipo, trechoDoRelato } from '../../lib/visual';
+
+interface Props {
+  relato?: { memoriaId: string; titulo: string; texto: string; por: string; registradoPor: string | null };
+  /** quantas novidades não couberam na mesa */
+  resto: number;
+  /** a fileira de largura inteira */
+  inteira?: boolean;
+}
+
+const { relato, resto, inteira = false } = Astro.props;
+---
+
+{
+  (relato || resto > 0) && (
+    <ul class:list={['novo__fila', { 'novo__fila--inteira': inteira }]}>
+      {relato && (
+        <li class="novidade novidade--relato" style={estiloDoTipo('causo')}>
+          <Bilhete por={relato.por} registradoPor={relato.registradoPor} href={`/memorias/${relato.memoriaId}`}>
+            <span class="novidade__sobre rotulo">
+              <IconeDoTipo tipo="causo" />
+              Relato novo
+            </span>
+            <strong class="novidade__titulo serifa t-3">{relato.titulo}</strong>
+            {relato.texto && <span class="bilhete__texto">“{trechoDoRelato(relato.texto, 120)}”</span>}
+          </Bilhete>
+        </li>
+      )}
+      {resto > 0 && (
+        <li class="novidade novidade--resto">
+          <a class="acao" href="/explorar?ordem=entraram">
+            E mais {resto}: ver o que entrou por último
+          </a>
+        </li>
+      )}
+    </ul>
+  )
+}

@@ -16,7 +16,7 @@ import Linha from '../components/explorar/Linha.astro';
 import Lista from '../components/explorar/Lista.astro';
 import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
-import { SEM_FILTRO, TEMPOS_DE_PASSAR, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, mostraRascunho, movimentoNoEndereco, passarNoEndereco, resumoDosFiltros, soFiltrosConhecidos, sortear, temFiltro, vizinhasNaLista, type Passar } from '../lib/explorar';
+import { SEM_FILTRO, TEMPOS_DE_PASSAR, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, mostraRascunho, movimentoNoEndereco, passarNoEndereco, resumoDosFiltros, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo, vizinhasNaLista, type Passar } from '../lib/explorar';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
@@ -78,7 +78,6 @@ const relatoDaVez = daVez && noPalco ? (await listarRelatos(usuario, daVez.id)).
 
 // As opções dos filtros: só o que existe no que a pessoa vê
 const decadaDe = (ano: number) => Math.floor(ano / 10) * 10;
-const decadas = [...new Set(todas.map((m) => decadaDe(m.ano)))].sort((a, b) => b - a);
 const tiposPresentes = tipos.filter((t) => todas.some((m) => m.tipo === t.id)).map((t) => ({ id: t.id, nome: t.rotulo }));
 const presentes = new Set(todas.flatMap((m) => m.integrantes));
 const pessoas = integrantes
@@ -95,12 +94,7 @@ const resumo = resumoDosFiltros(filtros, {
 // A assinatura e a cor acompanham a família filtrada; sem filtro de família, a família completa
 const { sobrenomes } = assinaturaDaTela(filtros.familias, nucleos);
 const umaFamilia = filtros.familias.length === 1 ? nucleos.find((n) => n.id === filtros.familias[0]) : undefined;
-const anosDoResultado = memorias.map((m) => m.ano);
-const primeiro = anosDoResultado.length ? Math.min(...anosDoResultado) : undefined;
-const ultimo = anosDoResultado.length ? Math.max(...anosDoResultado) : undefined;
-const quantas = `${memorias.length} ${memorias.length === 1 ? 'memória' : 'memórias'}`;
-const periodo = primeiro && ultimo && primeiro !== ultimo ? `de ${primeiro} a ${ultimo}` : primeiro ? `em ${primeiro}` : '';
-const conta = memorias.length === 0 ? 'As memórias da nossa família' : [quantas, periodo].filter(Boolean).join(' · ');
+const conta = contaDoExplorar(memorias.map((m) => m.ano));
 const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
 ---
 
@@ -117,7 +111,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
         movimentos={forma === 'tv' && daVez ? MOVIMENTOS.map((m) => ({ ...m, href: naTv(daVez.id, passar, m.id)! })) : undefined}
         antes={naTv(vizinhas?.antes?.id)}
         depois={forma === 'tv' ? naTv(seguinte?.id) : publicadas.length > 1 && daVez ? enderecoDoExplorar(filtros, 'acaso', { outra: daVez.id }) : undefined}
-        sair={voltar}
+        sair={daVez ? `${voltar}#${ancoraDaMemoria(daVez.id)}` : voltar}
         passar={
           forma === 'tv' && daVez && publicadas.length > 1
             ? {
@@ -136,8 +130,17 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
   <div data-explorar>
   {
     forma === 'linha' && (
-      <Linha memorias={memorias} capitulos={capitulos} integrantes={integrantes} nucleos={nucleos} ordem={filtros.ordem} trilhos={resultado.trilhos} limpar={limpar}>
-        <header class="linha__capa miolo" slot="capa">
+      <Linha
+        memorias={memorias}
+        capitulos={capitulos}
+        integrantes={integrantes}
+        nucleos={nucleos}
+        ordem={filtros.ordem}
+        trilhos={resultado.trilhos}
+        limpar={limpar}
+        fecho={memorias.length > 0 ? { comecoDoAcervo: terminaNoComecoDoAcervo(memorias, todas, filtros.ordem) } : undefined}
+      >
+        <header class="linha__capa linha__capa--explorar miolo" slot="capa">
           <Assinatura titulo sobrenomes={sobrenomes} />
           <p class="linha__conta rotulo" aria-live="polite">{conta}</p>
           <Controles
@@ -148,7 +151,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
             pessoas={pessoas}
             capitulos={capitulos.map((c) => ({ id: c.id, nome: c.titulo }))}
             temas={temas}
-            decadas={decadas}
+            quantas={memorias.length}
             resumo={resumo}
             comDecadas={resultado.trilhos && new Set(memorias.map((m) => decadaDe(m.ano))).size > 1}
           />
@@ -159,7 +162,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
   {
     forma === 'mural' && (
       <div class="linha linha--mural">
-        <header class="linha__capa miolo">
+        <header class="linha__capa linha__capa--explorar miolo">
           <Assinatura titulo sobrenomes={sobrenomes} />
           <p class="linha__conta rotulo" aria-live="polite">{conta}</p>
           <Controles
@@ -170,7 +173,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
             pessoas={pessoas}
             capitulos={capitulos.map((c) => ({ id: c.id, nome: c.titulo }))}
             temas={temas}
-            decadas={decadas}
+            quantas={memorias.length}
             resumo={resumo}
             tamanho={tamanho}
           />
@@ -198,7 +201,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
   {
     forma === 'lista' && (
       <div class="linha linha--lista">
-        <header class="linha__capa miolo">
+        <header class="linha__capa linha__capa--explorar miolo">
           <Assinatura titulo sobrenomes={sobrenomes} />
           <p class="linha__conta rotulo" aria-live="polite">{conta}</p>
           <Controles
@@ -209,7 +212,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
             pessoas={pessoas}
             capitulos={capitulos.map((c) => ({ id: c.id, nome: c.titulo }))}
             temas={temas}
-            decadas={decadas}
+            quantas={memorias.length}
             resumo={resumo}
           />
         </header>

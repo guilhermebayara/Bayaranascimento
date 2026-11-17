@@ -258,6 +258,14 @@ export const NOMES_DAS_FORMAS: Record<Forma, string> = {
   acaso: 'Me mostre uma memória',
 };
 
+/**
+ * "Forma de ver" tem só as formas que trocam o conteúdo no lugar e mantêm os controles. "Modo TV" e
+ * "Me mostre uma memória" levam a outra tela: são saídas, e aparecem ao lado, com seta (resposta do
+ * Gui à P34 do QA de design de 17/11/2026).
+ */
+export const FORMAS_NO_LUGAR = ['linha', 'mural', 'lista'] as const satisfies readonly Forma[];
+export const FORMAS_QUE_SAEM = ['tv', 'acaso'] as const satisfies readonly Forma[];
+
 export function lerForma(p: URLSearchParams): Forma {
   const ver = p.get('ver');
   return FORMAS.includes(ver as Forma) ? (ver as Forma) : FORMA_PADRAO;
@@ -366,6 +374,57 @@ export function passarNoEndereco(passar: Passar): Record<string, string | undefi
   return { passar: String(passar.tempo), pausa: passar.pausado ? '1' : undefined };
 }
 
+/**
+ * O modo TV sem rede (resposta do Gui ao C3 do QA de código de 17/11/2026): a memória da tela fica,
+ * a passagem espera com este aviso e volta sozinha quando a rede volta.
+ */
+export const AVISO_SEM_REDE = 'Sem conexão. Tentando de novo…';
+/** De quanto em quanto tempo a passagem é tentada de novo enquanto a rede não volta. */
+export const SEGUNDOS_ATE_TENTAR_DE_NOVO = 5;
+
+/**
+ * A passagem falhou por falta de rede? Sem rede, o `fetch` rejeita com um TypeError, e o navegador
+ * pode já saber que está fora do ar (`online`). Uma resposta com erro do servidor (500, 404) não é
+ * falta de rede: essa continua caindo na navegação comum.
+ */
+export function falhaDeRede(erro: unknown, online: boolean): boolean {
+  return !online || erro instanceof TypeError;
+}
+
+/**
+ * A linha da conta, abaixo da assinatura, que o leitor de tela anuncia a cada troca: "46 memórias ·
+ * de 1958 a 2026". Sem resultado, diz "Nenhuma memória" (resposta do Gui à P38, 17/11/2026).
+ */
+export function contaDoExplorar(anos: number[]): string {
+  if (anos.length === 0) return 'Nenhuma memória';
+  const primeiro = Math.min(...anos);
+  const ultimo = Math.max(...anos);
+  const quantas = `${anos.length} ${anos.length === 1 ? 'memória' : 'memórias'}`;
+  return `${quantas} · ${primeiro === ultimo ? `em ${primeiro}` : `de ${primeiro} a ${ultimo}`}`;
+}
+
+/**
+ * A ação do fim dos filtros, que fecha o painel e leva ao resultado: "Ver as 3 memórias" (resposta
+ * do Gui à P33, 17/11/2026). Sem resultado não há para onde levar.
+ */
+export function acaoDeVerOResultado(quantas: number): string | null {
+  if (quantas <= 0) return null;
+  return quantas === 1 ? 'Ver a memória' : `Ver as ${quantas} memórias`;
+}
+
+/** A âncora de cada memória na linha do tempo: é para ela que o modo TV e o "ao acaso" voltam (P39). */
+export const ancoraDaMemoria = (id: string) => `memoria-${id}`;
+
+/**
+ * A linha do tempo termina onde o acervo começa? Só na ordem de sempre, e quando a última memória da
+ * tela é a mais antiga de tudo o que a pessoa vê: com um filtro que tira as mais antigas, a frase
+ * "Aqui começa o acervo." não seria verdade.
+ */
+export function terminaNoComecoDoAcervo<M extends MemoriaDoExplorar>(naTela: M[], todas: M[], ordem: Ordem): boolean {
+  if (ordem !== 'recentes' || naTela.length === 0) return false;
+  return ordenar(todas, 'antigas')[0]?.id === naTela.at(-1)!.id;
+}
+
 /** Os nomes de que o resumo precisa: de cada id, o nome que aparece na tela. */
 export interface NomesDosFiltros {
   tipo: (id: string) => string | undefined;
@@ -447,8 +506,7 @@ export function enderecoDaPessoa(id: string, forma: FormaDaPessoa = FORMA_PADRAO
 }
 
 /**
- * PROVISÓRIO (pergunta 2 do PR de ajustes): o que a linha mostra quando a data não tem dia e mês.
- * A data na linha da lista. Dentro do bloco do ano, só o dia e o mês ("24 dez", "dez"); a data
+ * A data na linha da lista (resposta do Gui à P45, 17/11/2026: quem só tem o ano fica em branco). Dentro do bloco do ano, só o dia e o mês ("24 dez", "dez"); a data
  * aproximada diz "por volta de", com o mês quando ele é conhecido; quem só tem o ano fica sem nada,
  * porque o ano já está no alto do bloco. Fora da ordem do tempo não há bloco: a data vai inteira.
  */
@@ -461,10 +519,20 @@ export function dataNaLista(d: DataFlexivel, noBlocoDoAno: boolean): string {
 // Com a data aproximada, o dia não entra: "por volta de dez"
 const MES_SO = (d: DataFlexivel) => diaMesCurto({ mes: d.mes, dia: null });
 
-/** PROVISÓRIO (pergunta 4 do PR de ajustes): qual nome entra na linha. */
-/** O nome de alguém numa linha curta: como é chamado na família ou, sem apelido, o primeiro nome. */
+// O nome que começa pelo parentesco ou pelo tratamento só diz quem é com a palavra seguinte
+const TRATAMENTOS = new Set(['vó', 'vô', 'vovó', 'vovô', 'bisa', 'bisavó', 'bisavô', 'tia', 'tio', 'prima', 'primo', 'madrinha', 'padrinho', 'dinda', 'dindo', 'dona', 'seu']);
+
+/**
+ * O nome de alguém numa linha curta: como é chamado na família ou, sem apelido, o primeiro nome
+ * (resposta do Gui à P46, 17/11/2026). O nome de família com duas palavras entra inteiro: "Vó Bela"
+ * e "Prima Carol", e não "Vó" e "Prima".
+ */
 export function nomeCurto(pessoa: { nome: string; apelido?: string | null }): string {
-  return pessoa.apelido?.trim() || pessoa.nome.trim().split(/\s+/)[0] || pessoa.nome;
+  const apelido = pessoa.apelido?.trim();
+  if (apelido) return apelido;
+  const [primeira, segunda] = pessoa.nome.trim().split(/\s+/);
+  if (!primeira) return pessoa.nome;
+  return segunda && TRATAMENTOS.has(primeira.toLowerCase()) ? `${primeira} ${segunda}` : primeira;
 }
 
 /** Quem estava, na linha da lista: até três nomes, na ordem da memória, e "+N" para o resto. */

@@ -3,14 +3,15 @@
 // e volta para os campos se a página chegar com erro. Com sucesso, é apagado.
 // Fica só neste navegador e nesta aba (sessionStorage), e some quando a aba fecha.
 
-type Guardado = { quando: number; campos: { nome: string; valor?: string; marcado?: boolean; valores?: string[] }[] };
+export type Guardado = { quando: number; campos: { nome: string; valor?: string; marcado?: boolean; valores?: string[] }[] };
 
 const PREFIXO = 'formulario:';
 const VALIDADE = 30 * 60 * 1000;
 
 const chaveDo = (form: HTMLFormElement, indice: number) => `${PREFIXO}${location.pathname}:${form.getAttribute('action') ?? ''}:${indice}`;
 
-function guardar(form: HTMLFormElement, chave: string): void {
+/** O que está nos campos de um formulário agora, no formato em que é guardado. */
+export function camposDo(form: HTMLFormElement): Guardado['campos'] {
   const campos: Guardado['campos'] = [];
   for (const el of form.elements) {
     if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) continue;
@@ -23,6 +24,11 @@ function guardar(form: HTMLFormElement, chave: string): void {
       campos.push({ nome: el.name, valores: [...el.selectedOptions].map((o) => o.value) });
     } else campos.push({ nome: el.name, valor: el.value });
   }
+  return campos;
+}
+
+function guardar(form: HTMLFormElement, chave: string): void {
+  const campos = camposDo(form);
   try {
     sessionStorage.setItem(chave, JSON.stringify({ quando: Date.now(), campos } satisfies Guardado));
   } catch {
@@ -30,7 +36,7 @@ function guardar(form: HTMLFormElement, chave: string): void {
   }
 }
 
-function devolver(form: HTMLFormElement, guardado: Guardado): void {
+export function devolver(form: HTMLFormElement, guardado: Guardado): void {
   const mudados = new Set<Element>();
   for (const campo of guardado.campos) {
     if (campo.marcado !== undefined) {

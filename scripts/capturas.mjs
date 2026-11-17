@@ -233,7 +233,6 @@ const PAGINAS = [
   { nome: 'formularios-6-historico', url: '/memorias/2025-natal/historico', larguras: TODAS },
   { nome: 'formularios-6-memoria-excluir', url: '/memorias/2025-natal/excluir', larguras: TODAS },
   { nome: 'formularios-6-capitulo-excluir', url: '/capitulos/natais/excluir', larguras: TODAS },
-  { nome: 'formularios-6-rascunhos', url: '/rascunhos', larguras: TODAS },
   { nome: 'formularios-6-lixeira', url: '/lixeira', larguras: TODAS, corte: 2400 },
   { nome: 'formularios-7-admin-tipos', url: '/admin/tipos', larguras: TODAS },
   // Tipos de momento: a cor numa paleta ampliada e o desenho à escolha (tst-visual-tipos).

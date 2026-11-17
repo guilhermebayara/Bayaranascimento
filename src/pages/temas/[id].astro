@@ -1,15 +1,21 @@
 ---
-// A página de um tema: tudo o que o usa. Os capítulos, como no sumário, e as memórias, na mesma
-// linha do tempo do Explorar.
+// A página de um tema: tudo o que o usa. À esquerda, o nome e os capítulos, como no sumário; à
+// direita, as memórias, com a mesma "Forma de ver" da página da pessoa: a linha do tempo, o mural e
+// a lista do Explorar (respostas do Gui às P81 a P83 do QA de design de 17/11/2026).
 import '../../visual/telas/linha.css';
+import '../../visual/telas/explorar.css';
+import '../../visual/telas/lista.css';
 import '../../visual/telas/capitulo.css';
 import Visual from '../../layouts/Visual.astro';
 import Entrada from '../../components/capitulos/Entrada.astro';
 import Linha from '../../components/explorar/Linha.astro';
+import Lista from '../../components/explorar/Lista.astro';
+import Mural from '../../components/explorar/Mural.astro';
 import Vazio from '../../components/visual/Vazio.astro';
-import { ehEpoca, nomeDoModo } from '../../lib/capitulos';
+import { ehEpoca, nomeDoModo, resumoDoCapitulo } from '../../lib/capitulos';
+import { FORMAS_DA_PESSOA, NOMES_DAS_FORMAS, TAMANHO_PADRAO, lerFormaDaPessoa, mostraRascunho } from '../../lib/explorar';
 import { coresDosCapitulos } from '../../lib/linha-capitulos';
-import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemasVisiveis } from '../../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemasVisiveis, memoriasComAudio } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const tema = (await listarTemasVisiveis(usuario)).find((t) => t.id === Astro.params.id);
@@ -17,58 +23,99 @@ if (!tema) return new Response('Tema não encontrado', { status: 404 });
 const todos = await listarCapitulos(usuario);
 const capitulos = todos.filter((c) => c.temas.includes(tema.id));
 // Da mais recente para a mais antiga, como em toda linha do tempo do site
-const memorias = (await listarMemorias(usuario, { tema: tema.id })).reverse();
+const todasDoTema = (await listarMemorias(usuario, { tema: tema.id })).reverse();
+// As formas de ver são as da página da pessoa, e a escolha fica no endereço ("ver"). Como lá, o
+// rascunho só aparece na linha do tempo e na lista de quem escreveu.
+const forma = lerFormaDaPessoa(Astro.url.searchParams);
+const memorias = mostraRascunho(forma) ? todasDoTema : todasDoTema.filter((m) => m.situacao !== 'rascunho');
+const enderecoDoTema = (f: (typeof FORMAS_DA_PESSOA)[number]) => `/temas/${tema.id}${f === 'linha' ? '' : `?ver=${f}`}`;
+const acervo = await listarMemorias(usuario);
 const cores = coresDosCapitulos(
-  (await listarMemorias(usuario)).reverse(),
+  [...acervo].reverse(),
   todos.map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c)),
 );
+const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
 ---
 
 <Visual titulo={tema.nome} secao="capitulos">
   <article class="tema">
-    <header class="tema__abre miolo">
-      <p class="rotulo suave">Tema</p>
-      <h1 class="serifa t-1">{tema.nome}</h1>
-      <p>
-        <a class="acao acao--quieta" href="/capitulos">Todos os capítulos e temas</a>
-      </p>
-    </header>
-    {
-      capitulos.length > 0 && (
-        <section class="tema__capitulos miolo" aria-labelledby="capitulos-do-tema">
-          <h2 class="rotulo suave" id="capitulos-do-tema">
-            Capítulos
-          </h2>
-          <ol class="indice">
-            {capitulos.map((c) => (
-              <li>
-                <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} selo={nomeDoModo(c)} cor={cores.get(c.id)} dentro />
-              </li>
-            ))}
-          </ol>
-        </section>
-      )
-    }
+    <div class="tema__capa">
+      <header class="tema__abre miolo">
+        <p class="rotulo suave">Tema</p>
+        <h1 class="serifa t-1">{tema.nome}</h1>
+        <p>
+          <a class="acao acao--quieta" href="/capitulos">Todos os capítulos e temas</a>
+        </p>
+      </header>
+      {
+        capitulos.length > 0 && (
+          <section class="tema__capitulos miolo" aria-labelledby="capitulos-do-tema">
+            <h2 class="rotulo suave" id="capitulos-do-tema">
+              Capítulos
+            </h2>
+            <ol class="indice">
+              {capitulos.map((c) => {
+                // A linha igual à do sumário: o que é, o período e a conta
+                const r = resumoDoCapitulo(c, todos, acervo);
+                return (
+                  <li>
+                    <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} selo={nomeDoModo(c)} periodo={r.periodo} detalhe={contar(r.memorias)} cor={cores.get(c.id)} dentro />
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )
+      }
+    </div>
     <section class="tema__memorias" aria-labelledby="memorias-do-tema">
       <header class="miolo">
-        {memorias.length > 0 && (
-          <p class="rotulo suave">
-            {memorias.length} {memorias.length === 1 ? 'memória' : 'memórias'}
-          </p>
-        )}
+        {memorias.length > 0 && <p class="rotulo suave">{contar(memorias.length)}</p>}
         <h2 class="serifa t-2" id="memorias-do-tema">
           Memórias
         </h2>
       </header>
-      {
-        memorias.length === 0 ? (
+      {/* A região troca de conteúdo sem recarregar a página, como no Explorar (explorar-troca.ts) */}
+      <div data-explorar>
+        {todasDoTema.length > 1 && (
+          <div class="controles tema__controles miolo">
+            <div class="controle">
+              <p class="controle__nome rotulo suave" id="controle-forma">
+                Forma de ver
+              </p>
+              <nav class="linha__opcoes" aria-labelledby="controle-forma">
+                {FORMAS_DA_PESSOA.map((f) => (
+                  <a href={`${enderecoDoTema(f)}#memorias-do-tema`} data-opcao={f} aria-current={f === forma ? 'page' : undefined}>
+                    {NOMES_DAS_FORMAS[f]}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </div>
+        )}
+        {memorias.length === 0 ? (
           <div class="miolo">
             <Vazio frase="Nenhuma memória com este tema por enquanto." />
           </div>
+        ) : forma === 'mural' ? (
+          <div class="linha linha--mural tema__larga">
+            <Mural memorias={memorias} ordem="recentes" tamanho={TAMANHO_PADRAO} />
+          </div>
+        ) : forma === 'lista' ? (
+          <div class="linha linha--lista tema__larga">
+            <Lista memorias={memorias} capitulos={todos} integrantes={await listarIntegrantesQueVe(usuario)} ordem="recentes" comAudio={await memoriasComAudio()} />
+          </div>
         ) : (
           <Linha memorias={memorias} capitulos={todos} integrantes={await listarIntegrantesQueVe(usuario)} nucleos={await listarNucleos()} ordem="recentes" trilhos={false} />
-        )
-      }
+        )}
+      </div>
     </section>
   </article>
 </Visual>
+
+<script>
+  // Trocar a forma de ver não recarrega a página nem tira a pessoa do lugar, como no Explorar.
+  // Sem script, cada opção é um link comum, que volta a esta parte da página.
+  import { ligarTroca } from '../../lib/cliente/explorar-troca';
+  ligarTroca();
+</script>

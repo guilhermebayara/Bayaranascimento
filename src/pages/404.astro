@@ -2,16 +2,18 @@
 // Página não encontrada: o endereço que não existe e a memória, a pessoa, o capítulo ou o tema que
 // não existem (ou que quem pede não pode ver: a frase é a mesma, para não denunciar o que é restrito).
 // Antes a resposta era texto puro, sem menu e sem volta (QA de design, 17/11/2026).
-// O texto é provisório: é a pergunta da "Página não encontrada" em docs/qa/2026-11-17-perguntas.md.
+// O texto foi aprovado pelo Gui em 17/11/2026 (P174 do QA de design): uma frase só para tudo, que
+// não revela se a coisa existe, com a volta ao início e o menu do site, que vem do esqueleto.
 import Visual from '../layouts/Visual.astro';
 import Vazio from '../components/visual/Vazio.astro';
 
 Astro.response.status = 404;
 ---
 
-<Visual titulo="Página não encontrada">
+<Visual titulo="Página não encontrada" rodape="metade">
   <div class="miolo">
     <Vazio frase="Não encontramos esta página.">
+      <p class="suave">Ela pode ter mudado de lugar ou não estar aberta para você.</p>
       <a class="botao" href="/">Voltar ao início</a>
     </Vazio>
   </div>

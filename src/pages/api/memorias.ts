@@ -3,6 +3,7 @@
 import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import { lerTemas } from '../../lib/capitulos';
+import { SEM_ANO } from '../../lib/datas';
 import { TIPO_OUTRO } from '../../lib/tipos';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
@@ -34,7 +35,8 @@ const opcional = (maximo: number) => z.string().trim().max(maximo).optional();
 const Pedido = z.object({
   id: z.string().max(120).optional(),
   titulo: z.string().trim().min(1, 'Dê um título para a memória.').max(120),
-  ano: z.number().int(),
+  // Sem ano, só o rascunho (ver SEM_ANO, em src/lib/datas.ts)
+  ano: z.number().int().nullable().optional(),
   mes: z.number().int().min(1).max(12).optional(),
   dia: z.number().int().min(1).max(31).optional(),
   aproximada: z.boolean().default(false),
@@ -91,7 +93,7 @@ function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unk
   return {
     id: anterior?.id,
     titulo: texto('titulo'),
-    ano: texto('ano') ? Number(texto('ano')) : Number.NaN,
+    ano: numero('ano'),
     mes: numero('mes'),
     dia: numero('dia'),
     aproximada: dados.get('aproximada') === 'on',
@@ -119,9 +121,6 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const rascunhoSemTipo = !pedido.tipo && pedido.situacao === 'rascunho';
   if (!rascunhoSemTipo && !locals.tipos.some((t) => t.id === pedido.tipo)) return erro(400, 'Escolha o tipo de momento.');
 
-  const erroData = validarData(pedido.ano, pedido.mes, pedido.dia);
-  if (erroData) return erro(400, erroData);
-
   // Edição: a memória precisa existir, ser visível para a pessoa e poder ser alterada por ela
   const anterior = pedido.id ? await obterMemoria(usuario, pedido.id) : undefined;
   if (pedido.id && !anterior) return erro(404, 'Memória não encontrada.');
@@ -132,6 +131,12 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // Uma memória publicada não volta a ser rascunho
   const situacao = anterior?.situacao === 'publicada' ? 'publicada' : pedido.situacao;
   if (situacao === 'publicada' && !pedido.tipo) return erro(400, 'Escolha o tipo de momento.');
+  // O ano também: o rascunho pode ser salvo só com o título, e para publicar o ano é obrigatório
+  // (resposta do Gui à P132 do QA de design, 17/11/2026). Ano informado é conferido sempre.
+  const ano = pedido.ano || undefined;
+  if (ano === undefined && situacao === 'publicada') return erro(400, 'Informe o ano, mesmo que seja aproximado.');
+  const erroData = ano === undefined ? undefined : validarData(ano, pedido.mes, pedido.dia);
+  if (erroData) return erro(400, erroData);
 
   // Núcleos: a pessoa marca os seus. Numa edição, os que já estavam continuam valendo.
   const nucleosExistentes = new Set((await listarNucleos()).map((n) => n.id));
@@ -212,7 +217,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
 
   const dados: DadosDaMemoria = {
     titulo: pedido.titulo,
-    ano: pedido.ano,
+    ano: ano ?? SEM_ANO,
     mes: pedido.mes,
     dia: pedido.mes ? pedido.dia : undefined,
     aproximada: pedido.aproximada,

@@ -89,23 +89,30 @@ const comLaco = comLacoDeArvore(dados);
   <div class="arvore" data-arvore>
     <div class="arvore__topo miolo">
       <h1 class="serifa t-2">Árvore</h1>
-      <p>Arraste para andar pela família. Toque em alguém para ver quem é, e de novo para abrir a página. Os botões + abrem os outros ramos da família.</p>
+      {/* Resposta do Gui (17/11/2026, P93): uma frase só. O resto está na legenda. */}
+      <p>Toque em alguém para ver quem é.</p>
     </div>
 
     <div class="mapa" data-mapa tabindex="0" aria-label="Árvore da família. Arraste ou use as setas para andar por ela.">
       <div class="mapa__camada" data-camada></div>
       <div class="mapa__camada mapa__camada--ramos" data-camada-ramos></div>
 
-      <details class="mapa__painel" data-sobre-o-mapa>
+      {/* Respostas do Gui (17/11/2026, P92): o valor de agora de "Partir de" aparece como valor, com
+          "Voltar ao começo" quando o centro foi trocado; "Outras famílias" só aparece com uma família
+          em destaque; no celular o painel abre no pé do mapa; Esc fecha. */}
+      <details class="mapa__painel" data-sobre-o-mapa data-painel>
         <summary>Ajustar a árvore</summary>
         <form data-controles>
-          <label class="arvore__campo">
-            <span>Partir de</span>
-            <select name="centro">
-              <option value="">{nomesDosCentros}</option>
-              {ordenados.filter((i) => comLaco.has(i.id)).map((i) => <option value={i.id}>{i.nome}</option>)}
-            </select>
-          </label>
+          <div class="arvore__partir">
+            <label class="arvore__campo">
+              <span>Partir de</span>
+              <select name="centro">
+                <option value="">{nomesDosCentros}</option>
+                {ordenados.filter((i) => comLaco.has(i.id)).map((i) => <option value={i.id}>{i.nome}</option>)}
+              </select>
+            </label>
+            <button type="button" class="arvore__voltar" data-voltar-ao-comeco hidden>Voltar ao começo</button>
+          </div>
           <label class="arvore__campo">
             <span>Destacar</span>
             <select name="nucleo">
@@ -124,28 +131,57 @@ const comLaco = comLacoDeArvore(dados);
         </form>
       </details>
 
-      <p class="mapa__foco" data-sobre-o-mapa data-ficha-do-foco aria-live="polite"></p>
+      {/* A ficha de quem foi tocado (P84): vazia até alguém ser tocado, e fecha no "×", no Esc ou no
+          toque no vazio. Quem a preenche é src/lib/cliente/arvore.ts. */}
+      <div class="mapa__foco" data-sobre-o-mapa data-ficha-do-foco aria-live="polite"></div>
 
       <div class="mapa__zoom" data-sobre-o-mapa>
-        <button type="button" data-ir-ao-foco>Ir ao foco</button>
-        <button type="button" data-ver-tudo>Ver tudo</button>
-        <button type="button" data-zoom-menos aria-label="Afastar">−</button>
-        <span data-zoom-atual>100%</span>
-        <button type="button" data-zoom-mais aria-label="Aproximar">+</button>
+        <span class="mapa__vista">
+          <button type="button" data-ir-ao-foco>Voltar para {chamar(usuario.pessoa)}</button>
+          <button type="button" data-ver-tudo>Ver a árvore inteira</button>
+        </span>
+        {/* No celular a legenda abre por este botão, por cima do mapa (P87) */}
+        <button type="button" class="mapa__abre-legenda" data-abrir-legenda aria-controls="legenda-da-arvore">Legenda</button>
+        <span class="mapa__escala">
+          <button type="button" data-zoom-menos aria-label="Afastar">−</button>
+          <span data-zoom-atual>100%</span>
+          <button type="button" data-zoom-mais aria-label="Aproximar">+</button>
+        </span>
       </div>
 
-      <details class="mapa__legenda" data-sobre-o-mapa open>
+      {/* A legenda (P89 e P90): nasce fechada no HTML. No computador, o script abre na primeira visita e
+          lembra, no aparelho, se a pessoa fechou. Três grupos, com tudo o que a árvore mostra. */}
+      <details class="mapa__legenda" id="legenda-da-arvore" data-sobre-o-mapa data-legenda>
         <summary>Legenda</summary>
-        <ul>
-        {nucleos.map((n, i) => <li><i class="amostra-cor" style={`background: var(--arvore-familia-${i % 4})`}></i> {n.nome}</li>)}
-        <li><i class="amostra-cor amostra-cor--fora"></i> amigos e de fora</li>
-        <li><i class="amostra amostra--casal"></i> casal</li>
-        <li><i class="amostra amostra--ex"></i> não estão mais juntos</li>
-        <li><i class="amostra amostra--filhos"></i> pais e filhos</li>
-        <li><i class="amostra amostra--coracao"></i> consideração ou coração</li>
-        <li><i class="amostra amostra--bicho"></i> bichos da família</li>
-        <li><b class="amostra-botao">♥ 2</b> abre os laços do coração de alguém</li>
-        </ul>
+        <div class="legenda">
+          <section>
+            <h2>Famílias</h2>
+            <ul>
+              {nucleos.map((n, i) => <li><i class="amostra-cor" style={`background: var(--arvore-familia-${i % 4})`}></i> {n.nome}</li>)}
+              {nucleos.length > 1 && <li><i class="amostra-cor amostra-cor--duas"></i> de duas famílias</li>}
+              <li><i class="amostra-cor amostra-cor--fora"></i> amigos e de fora</li>
+            </ul>
+          </section>
+          <section>
+            <h2>Linhas</h2>
+            <ul>
+              <li><i class="amostra amostra--casal"></i> casal</li>
+              <li><i class="amostra amostra--ex"></i> não estão mais juntos</li>
+              <li><i class="amostra amostra--filhos"></i> pais e filhos</li>
+              <li><i class="amostra amostra--coracao"></i> consideração ou coração</li>
+            </ul>
+          </section>
+          <section>
+            <h2>Botões e marcas</h2>
+            <ul>
+              <li><b class="amostra-botao amostra-botao--ramo">+ 1</b> abre outro ramo da família</li>
+              <li><b class="amostra-botao">♥ 2</b> abre os laços do coração de alguém</li>
+              <li><i class="amostra-cor amostra-cor--eu"></i> você</li>
+              <li><i class="amostra-cor amostra-cor--foco"></i> quem você tocou</li>
+              <li><i class="amostra-cor amostra-cor--bicho"></i> bicho da família</li>
+            </ul>
+          </section>
+        </div>
       </details>
     </div>
     <noscript>
@@ -162,7 +198,7 @@ const comLaco = comLacoDeArvore(dados);
 
     <p class="arvore__rodape miolo">
       <span data-sem-lacos hidden></span>
-      <a class="acao acao--quieta" href="/pessoas/nova">Cadastrar uma pessoa</a>
+      <a class="acao acao--quieta" href="/pessoas/nova">Cadastrar pessoa</a>
     </p>
   </div>
 
@@ -180,5 +216,66 @@ const comLaco = comLacoDeArvore(dados);
     // "Partir de": busca com sugestão no lugar da lista com todo mundo
     const centro = raiz.querySelector<HTMLSelectElement>('select[name="centro"]');
     if (centro) buscaDePessoa(centro);
+
+    // "Voltar ao começo" (P92): aparece quando a árvore parte de outra pessoa, e devolve a linha
+    // direta de sempre pelo mesmo caminho de quem apaga o campo
+    const voltar = raiz.querySelector<HTMLButtonElement>('[data-voltar-ao-comeco]');
+    if (centro && voltar) {
+      const refletir = () => (voltar.hidden = !centro.value);
+      centro.addEventListener('busca:atualizar', refletir);
+      centro.addEventListener('change', refletir);
+      voltar.addEventListener('click', () => {
+        centro.value = '';
+        centro.dispatchEvent(new Event('change', { bubbles: true }));
+        raiz.querySelector<HTMLElement>('.busca__campo')?.focus();
+      });
+      refletir();
+    }
+
+    // Esc fecha os ajustes e a legenda, e o foco volta para o botão que abriu. A lista de sugestões
+    // da busca fecha antes, com o próprio Esc dela.
+    const painel = raiz.querySelector<HTMLDetailsElement>('[data-painel]');
+    const legenda = raiz.querySelector<HTMLDetailsElement>('[data-legenda]');
+    const abreLegenda = raiz.querySelector<HTMLButtonElement>('[data-abrir-legenda]');
+    const visivel = (el: HTMLElement | null | undefined) => Boolean(el && el.offsetParent);
+    for (const caixa of [painel, legenda]) {
+      caixa?.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape' || e.defaultPrevented || !caixa.open) return;
+        e.preventDefault();
+        caixa.open = false;
+        const resumo = caixa.querySelector<HTMLElement>('summary');
+        (visivel(resumo) ? resumo : abreLegenda)?.focus();
+      });
+    }
+
+    // A legenda (P87 e P89). No computador abre na primeira visita e lembra, no aparelho, se a pessoa
+    // fechou. No celular fica fechada, e o botão "Legenda" da barra de baixo abre por cima do mapa.
+    if (legenda) {
+      const CHAVE = 'arvore-legenda';
+      const guardado = () => {
+        try {
+          return localStorage.getItem(CHAVE);
+        } catch {
+          return null;
+        }
+      };
+      const largo = matchMedia('(min-width: 62rem)');
+      if (largo.matches && guardado() !== 'fechada') legenda.open = true;
+      legenda.addEventListener('toggle', () => {
+        abreLegenda?.setAttribute('aria-expanded', String(legenda.open));
+        if (!legenda.open && abreLegenda && visivel(abreLegenda) && legenda.contains(document.activeElement)) abreLegenda.focus();
+        if (!largo.matches) return;
+        try {
+          localStorage.setItem(CHAVE, legenda.open ? 'aberta' : 'fechada');
+        } catch {
+          // Sem lugar para guardar, a legenda só volta a abrir na próxima visita
+        }
+      });
+      abreLegenda?.setAttribute('aria-expanded', String(legenda.open));
+      abreLegenda?.addEventListener('click', () => {
+        legenda.open = true;
+        legenda.querySelector<HTMLElement>('summary')?.focus();
+      });
+    }
   }
 </script>

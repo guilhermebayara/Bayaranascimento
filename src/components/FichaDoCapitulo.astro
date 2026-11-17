@@ -51,12 +51,13 @@ const datas = [
   <input type="hidden" name="acao" value="salvar" />
   {c && <input type="hidden" name="id" value={c.id} />}
 
-  <section data-etapa="O capítulo">
+  {/* As etapas são perguntas, como nos outros formulários (P75 do QA de design de 17/11/2026) */}
+  <section data-etapa="Que capítulo é esse?">
     <fieldset>
-      <legend>O capítulo</legend>
+      <legend>Que capítulo é esse?</legend>
       <label class="campo">
         <span>Título</span>
-        <input type="text" name="titulo" required maxlength="120" autocomplete="off" value={c?.titulo ?? ''} placeholder="Ex.: Casamento da Giovanna e do Lucas Magno" />
+        <input type="text" name="titulo" required maxlength="120" autocomplete="off" value={c?.titulo ?? ''} placeholder="Ex.: Natais na casa da vó" />
       </label>
       <div class="campo">
         <span id="rotulo-modo">Como as memórias entram?</span>
@@ -95,10 +96,14 @@ const datas = [
                 {d.rotulo} {!d.obrigatorio && <small>(deixe vazio se ainda não acabou)</small>}
               </label>
               <CampoAno id={`campo-${d.prefixo}`} nome={`${d.prefixo}Ano`} valor={d.data?.ano} obrigatorioNaEpoca={d.obrigatorio}>
-                <select name={`${d.prefixo}Mes`} aria-label={d.mes}>
-                  <option value="">Mês, se souber</option>
-                  {MESES.map((m, n) => <option value={n + 1} selected={d.data?.mes === n + 1}>{m}</option>)}
-                </select>
+                {/* O mês com o mesmo rótulo e o mesmo "Não sei" da data da memória (P77) */}
+                <label class="campo passo-ano__mes">
+                  <span>Mês, se souber</span>
+                  <select name={`${d.prefixo}Mes`} aria-label={d.mes}>
+                    <option value="">Não sei</option>
+                    {MESES.map((m, n) => <option value={n + 1} selected={d.data?.mes === n + 1}>{m}</option>)}
+                  </select>
+                </label>
               </CampoAno>
             </div>
           ))
@@ -135,9 +140,9 @@ const datas = [
     </fieldset>
   </section>
 
-  <section data-etapa="Onde se encaixa">
+  <section data-etapa="Onde ele se encaixa?">
     <fieldset>
-      <legend>Onde se encaixa</legend>
+      <legend>Onde ele se encaixa?</legend>
       <p class="dica">Tudo aqui é opcional.</p>
       {
         maiores.length > 0 && (

@@ -44,8 +44,8 @@ describe('o topo no celular', () => {
   it('só a palavra "Menu" abre o menu, e não a barra inteira', () => {
     expect(regra(css, '.menu summary')).toMatch(/width: max-content/);
   });
-  it('"Nova memória" continua sublinhada dentro do menu', () => {
-    expect(regra(css, '.menu__lista .menu__acao')).toMatch(/text-decoration-line: underline/);
+  it('"Nova memória" continua sublinhada, agora na barra (resposta do Gui à P2: saiu do fim do menu)', () => {
+    expect(regra(css, '.topo__nova')).toMatch(/text-decoration-line: underline/);
   });
 });
 

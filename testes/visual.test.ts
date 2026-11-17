@@ -153,7 +153,7 @@ describe('conceito', () => {
   const paginas = import.meta.glob<string>('../src/pages/conceito/**/*.{astro,ts}', { query: '?raw', import: 'default', eager: true });
 
   // As telas que já passaram para o visual novo (fase 3), com os componentes de cada uma
-  const telas = import.meta.glob<string>(['../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/pages/capitulos/index.astro', '../src/pages/capitulos/[[]id]/index.astro', '../src/pages/temas/[[]id].astro', '../src/pages/pessoas/index.astro', '../src/pages/arvore.astro', '../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/pages/pessoas/nova.astro', '../src/pages/pessoas/[[]id]/editar.astro', '../src/pages/memorias/[[]id]/historico.astro', '../src/pages/memorias/[[]id]/excluir.astro', '../src/pages/capitulos/[[]id]/excluir.astro', '../src/pages/rascunhos.astro', '../src/pages/lixeira.astro', '../src/pages/admin/*.astro', '../src/components/FichaDoIntegrante.astro', '../src/components/CampoRetrato.astro', '../src/components/ConfirmarRemocao.astro', '../src/components/ComoSeReferir.astro', '../src/components/formularios/*.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/capitulos/*.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro'], {
+  const telas = import.meta.glob<string>(['../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/pages/capitulos/index.astro', '../src/pages/capitulos/[[]id]/index.astro', '../src/pages/temas/[[]id].astro', '../src/pages/pessoas/index.astro', '../src/pages/arvore.astro', '../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/pages/pessoas/nova.astro', '../src/pages/pessoas/[[]id]/editar.astro', '../src/pages/memorias/[[]id]/historico.astro', '../src/pages/memorias/[[]id]/excluir.astro', '../src/pages/capitulos/[[]id]/excluir.astro', '../src/pages/lixeira.astro', '../src/pages/admin/*.astro', '../src/components/FichaDoIntegrante.astro', '../src/components/CampoRetrato.astro', '../src/components/ConfirmarRemocao.astro', '../src/components/ComoSeReferir.astro', '../src/components/formularios/*.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/capitulos/*.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro'], {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -236,8 +236,8 @@ describe('conceito', () => {
     // "Tudo" virou "Explorar" (decisão do Gui, 16/11/2026), e o menu já não aponta para o conceito
     expect(menu).toMatch(/\{ href: '\/explorar', texto: 'Explorar'/);
     expect(menu).not.toContain('/conceito');
-    // As duas navegações, a do topo e a da sanfona do celular, saem da mesma lista
-    expect(topo.match(/menu\.map\(/g)).toHaveLength(2);
+    // As três navegações, a do topo, a da sanfona do celular e a do rodapé (resposta do Gui à P3 do QA de design, 17/11/2026), saem da mesma lista
+    expect(topo.match(/menu\.map\(/g)).toHaveLength(3);
   });
 
   it('a aba da época e o chão não deixam vão: a linha da aba não tem margem', () => {
@@ -259,9 +259,10 @@ describe('conceito', () => {
     const controles = tela('explorar/Controles.astro');
     const css = ler('telas/linha.css');
     for (const nome of ['Forma de ver', 'Família', 'Filtros']) expect(controles).toMatch(new RegExp(`rotulo[^>]*>\\s*${nome}\\s*<`));
-    expect(tela('explorar/Linha.astro')).toMatch(/rotulo[^>]*>\s*Década\s*</);
+    expect(tela('explorar/Linha.astro')).toMatch(/rotulo[^>]*>\s*Ir para a década\s*</);
     // "Tudo" passou a se chamar "Família completa" (do Gui, 16/11/2026)
-    expect(controles).toMatch(/aria-current=\{filtros\.familias\.length === 0 \? 'page' : undefined\}>\s*Família completa\s*</);
+    // O texto fica dentro da peça que reserva a largura do negrito (P37, resposta do Gui de 17/11/2026)
+    expect(controles).toMatch(/aria-current=\{filtros\.familias\.length === 0 \? 'page' : undefined\}>\s*<span[^>]*>Família completa<\/span>\s*</);
     // O formulário abre dentro do próprio controle: nenhuma regra muda o lugar dele quando abre
     expect(css).not.toMatch(/\.filtros\[open\]\s*\{[^}]*grid-(column|row|area)/);
     // A faixa de décadas leva a cor da família, diluída no papel: o pastel cheio pesou
@@ -418,7 +419,8 @@ describe('conceito', () => {
     // No Álbum, as fotos que saem não repetem a chegada (achado do Gui: pareciam fotos que nunca paravam)
     expect(ler('telas/explorar.css')).toMatch(/\.palco \.palco__fotos--saindo :is\(\.palco__principal, \.palco__extra\)\s*\{\s*animation:\s*none !important/);
     // Erro cai na navegação comum, menos quando uma passagem mais nova já saiu (QA de código de 17/11/2026)
-    expect(palco).toMatch(/catch \{\s*(?:\/\/[^\n]*\n\s*)*if \(meu !== pedido\) return;\s*location\.assign\(href\);/);
+    // Sem rede a passagem espera (C3, resposta do Gui de 17/11/2026: testes/qa-respostas-explorar.test.ts)
+    expect(palco).toMatch(/catch \(erro\) \{\s*(?:\/\/[^\n]*\n\s*)*if \(meu !== pedido\) return;\s*(?:\/\/[^\n]*\n\s*)*if \(falhaDeRede\(erro, navigator\.onLine\)\) return esperarARede\(a, deTras\);\s*location\.assign\(href\);/);
     const css = ler('telas/explorar.css');
     for (const v of ['a', 'b', 'c']) expect(css).toContain(`.palco[data-movimento='${v}']`);
     // Toda animação do palco fica dentro de "sem pedido de menos movimento"; fora, só as definições
@@ -556,7 +558,8 @@ describe('grupo familia', () => {
     expect(pagina).toMatch(/style=\{cor === undefined \? undefined : estiloDoCapitulo\(cor\)\}/);
     const css = ler('telas/capitulo.css');
     expect(css).toMatch(/@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.capitulo__parado \{\s*position: sticky;/);
-    expect(css.match(/position:\s*sticky/g)).toHaveLength(1);
+    // A capa do capítulo e, desde a resposta do Gui à P62 do QA de design de 17/11/2026, o alto do sumário
+    expect(css.match(/position:\s*sticky/g)).toHaveLength(2);
   });
 
   it('na tela é "família", e não "núcleo"', () => {
@@ -590,7 +593,7 @@ describe('grupo familia', () => {
 
 // Fase 3, grupo "formularios", primeira metade: a base, a Nova memória, o relato e o capítulo
 describe('grupo formularios', () => {
-  const fontes = import.meta.glob<string>(['../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/pages/pessoas/nova.astro', '../src/pages/pessoas/[[]id]/editar.astro', '../src/pages/memorias/[[]id]/historico.astro', '../src/pages/memorias/[[]id]/excluir.astro', '../src/pages/capitulos/[[]id]/excluir.astro', '../src/pages/rascunhos.astro', '../src/pages/lixeira.astro', '../src/pages/admin/*.astro', '../src/components/FichaDoIntegrante.astro', '../src/components/CampoRetrato.astro', '../src/components/ConfirmarRemocao.astro', '../src/components/ComoSeReferir.astro', '../src/components/formularios/Pagina.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/QuemEstava.astro'], {
+  const fontes = import.meta.glob<string>(['../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/pages/pessoas/nova.astro', '../src/pages/pessoas/[[]id]/editar.astro', '../src/pages/memorias/[[]id]/historico.astro', '../src/pages/memorias/[[]id]/excluir.astro', '../src/pages/capitulos/[[]id]/excluir.astro', '../src/pages/lixeira.astro', '../src/pages/admin/*.astro', '../src/components/FichaDoIntegrante.astro', '../src/components/CampoRetrato.astro', '../src/components/ConfirmarRemocao.astro', '../src/components/ComoSeReferir.astro', '../src/components/formularios/Pagina.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/QuemEstava.astro'], {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -600,7 +603,7 @@ describe('grupo formularios', () => {
     if (!achado) throw new Error(`não achei ${fim}`);
     return achado[1];
   };
-  const telas = ['pages/nova.astro', 'relato.astro', 'capitulos/novo.astro', 'capitulos/[id]/editar.astro', 'pessoas/nova.astro', 'pessoas/[id]/editar.astro', 'historico.astro', 'memorias/[id]/excluir.astro', 'capitulos/[id]/excluir.astro', 'rascunhos.astro', 'lixeira.astro', 'admin/tipos.astro', 'admin/familias.astro', 'admin/carta.astro', 'admin/espelho.astro'];
+  const telas = ['pages/nova.astro', 'relato.astro', 'capitulos/novo.astro', 'capitulos/[id]/editar.astro', 'pessoas/nova.astro', 'pessoas/[id]/editar.astro', 'historico.astro', 'memorias/[id]/excluir.astro', 'capitulos/[id]/excluir.astro', 'lixeira.astro', 'admin/tipos.astro', 'admin/familias.astro', 'admin/carta.astro', 'admin/espelho.astro'];
 
   it('as telas usam a página de formulário do visual novo, e não o esqueleto antigo', () => {
     for (const fim of telas) {
@@ -687,7 +690,7 @@ describe('grupo formularios', () => {
   });
 
   it('as telas utilitárias e de pessoa usam as peças do sistema para o estado vazio', () => {
-    for (const fim of ['rascunhos.astro', 'lixeira.astro', 'historico.astro', 'admin/tipos.astro']) {
+    for (const fim of ['lixeira.astro', 'historico.astro', 'admin/tipos.astro']) {
       expect(fonte(fim), fim).toContain("components/visual/Vazio.astro'");
       expect(fonte(fim), fim).not.toMatch(/class="vazio"/);
     }
@@ -822,7 +825,8 @@ describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo', ()
 
   it('a zona de perigo é marcada na cor de alerta, e o botão que confirma continua cheio nessa cor', () => {
     const pecas = ler('pecas.css');
-    expect(pecas).toMatch(/\.perigo\s*\{[^}]*border:\s*var\(--traco\) solid var\(--alerta\);/);
+    // Quieta: só o fio em cima, sem fundo (resposta do Gui à P131 do QA de design, 17/11/2026)
+    expect(pecas).toMatch(/\.perigo\s*\{[^}]*border-top:\s*var\(--traco\) solid var\(--alerta\);/);
     expect(pecas).toMatch(/\.perigo__titulo\s*\{\s*color:\s*var\(--alerta-tinta\);/);
     expect(css).toMatch(/\.botao\.botao--perigo\s*\{\s*background:\s*var\(--alerta-tinta\);/);
     expect(fonte('components/ConfirmarRemocao.astro')).toMatch(/class="botao botao--perigo" type="submit"/);

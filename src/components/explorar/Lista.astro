@@ -47,7 +47,7 @@ const montagem = montarTrilhos(
 const capitulosDe = new Map(montagem.linhas.map((l) => [l.id, l.capitulos.map((id) => montagem.capitulos.find((c) => c.id === id)!)]));
 ---
 
-<div class="lista miolo" data-lista data-sem-anos={peloTempo ? undefined : ''}>
+<div class="lista miolo" data-lista data-resultado data-sem-anos={peloTempo ? undefined : ''}>
   {
     blocos.map(({ ano, itens }) => (
       <section class="lista__bloco" aria-labelledby={peloTempo ? `lista-ano-${ano}` : undefined} aria-label={peloTempo ? undefined : 'Memórias'}>

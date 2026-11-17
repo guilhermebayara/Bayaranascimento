@@ -31,7 +31,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const excluido = (await listarCapitulosExcluidos(usuario)).find((c) => c.id === id);
     if (!excluido) return voltar(request, '/lixeira', { erro: 'Capítulo não encontrado na lixeira.' });
     await restaurarCapitulo(id);
-    return voltar(request, `/capitulos/${id}`, { ok: 'Capítulo restaurado da lixeira.' });
+    // Como na memória: restaurar fica na lixeira, com o caminho para o capítulo (resposta do Gui à P154, 17/11/2026)
+    return voltar(request, `/lixeira?restaurado=${encodeURIComponent(id)}`, { ok: 'Capítulo restaurado.' });
   }
 
   const capitulos = await listarCapitulos(usuario);

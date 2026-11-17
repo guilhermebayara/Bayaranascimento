@@ -12,13 +12,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const { usuario } = locals;
   if (!usuario.admin) return voltar(request, '/', { erro: 'Só os administradores cuidam das famílias.' });
 
+  // A tela envia todas as famílias de uma vez (resposta do Gui à P171, 17/11/2026). Confere tudo
+  // antes de gravar: com um erro numa família, nenhuma muda.
   const dados = await request.formData();
-  const id = campo(dados, 'id', 60);
-  const nucleo = (await listarNucleos()).find((n) => n.id === id);
-  if (!nucleo) return voltar(request, PAGINA, { erro: 'Família não encontrada.' });
-
-  const lido = lerListaDeSobrenomes(campo(dados, 'sobrenomes', 200));
-  if ('erro' in lido) return voltar(request, PAGINA, { erro: lido.erro });
-  await atualizarSobrenomesDoNucleo(id, lido.sobrenomes);
-  return voltar(request, PAGINA, { ok: `Sobrenomes da família ${nucleo.nome} atualizados.` });
+  const novos: { id: string; sobrenomes: string[] }[] = [];
+  for (const nucleo of await listarNucleos()) {
+    if (!dados.has(`sobrenomes-${nucleo.id}`)) continue;
+    const lido = lerListaDeSobrenomes(campo(dados, `sobrenomes-${nucleo.id}`, 200));
+    if ('erro' in lido) return voltar(request, PAGINA, { erro: `${nucleo.nome}: ${lido.erro}` });
+    novos.push({ id: nucleo.id, sobrenomes: lido.sobrenomes });
+  }
+  if (novos.length === 0) return voltar(request, PAGINA, { erro: 'Família não encontrada.' });
+  for (const { id, sobrenomes } of novos) await atualizarSobrenomesDoNucleo(id, sobrenomes);
+  return voltar(request, PAGINA, { ok: 'Sobrenomes das famílias atualizados.' });
 };

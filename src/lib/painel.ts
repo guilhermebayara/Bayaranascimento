@@ -52,9 +52,11 @@ export function emOutrosAnos<T extends DataFlexivel>(memorias: T[], hoje: Dia, m
 // "O que entrou de novo" conta a partir do fim da visita anterior, e por isso não some ao recarregar
 // a página nem ao voltar para o painel no meio da mesma visita.
 //
-// A carta de Natal aparece no alto durante a primeira visita em que ela existe. Depois, fica num
-// link discreto. Se a pessoa entrar antes de a carta ser escrita (os administradores, antes do
-// Natal), a carta aparece no alto na primeira visita depois de escrita.
+// A carta de Natal aparece no alto uma vez só: na primeira ida ao Início em que ela existe, e aí a
+// tela é só a carta (resposta do Gui às perguntas P14 e P15 do QA de design de 17/11/2026). Na ida
+// seguinte, mesmo que seja um minuto depois, vem o Início normal, com a carta num link discreto.
+// Se a pessoa entrar antes de a carta ser escrita (os administradores, antes do Natal), a carta
+// aparece no alto na primeira ida ao Início depois de escrita.
 
 /** Duas horas sem abrir o painel encerram uma visita. */
 export const PAUSA_ENTRE_VISITAS = 2 * 60 * 60 * 1000;
@@ -72,13 +74,13 @@ export interface RegistroDeVisitas {
   ultima: string;
   /** a última vez que abriu o painel na visita anterior: "o que entrou de novo" conta daí */
   anterior: string | null;
-  /** quando a carta apareceu no alto pela primeira vez; vazio se ainda não apareceu */
+  /** quando a carta apareceu no alto, a única vez; vazio se ainda não apareceu */
   carta: string | null;
 }
 
 export interface Chegada {
   registro: RegistroDeVisitas;
-  /** a carta no alto do painel */
+  /** a carta sozinha na tela, no lugar do painel: só na ida em que ela aparece pela primeira vez */
   cartaNoAlto: boolean;
   /** de quando conta o que entrou de novo. Vazio na primeira visita, que abre com a carta. */
   novidadesDesde: string | null;
@@ -95,9 +97,9 @@ export function chegarAoPainel(anterior: RegistroDeVisitas | undefined, agora: D
   } else {
     registro = { ...anterior, visita: ja, ultima: ja, anterior: anterior.ultima };
   }
-  // A carta fica no alto durante toda a visita em que apareceu pela primeira vez
-  if (haCarta && !registro.carta) registro = { ...registro, carta: ja };
-  const cartaNoAlto = haCarta && registro.carta !== null && registro.carta >= registro.visita;
+  // A carta aparece no alto uma vez: nesta ida, se ainda não tinha aparecido
+  const cartaNoAlto = haCarta && !registro.carta;
+  if (cartaNoAlto) registro = { ...registro, carta: ja };
   return { registro, cartaNoAlto, novidadesDesde: registro.anterior };
 }
 
@@ -219,4 +221,102 @@ export function comParentesco(parentesco: string | undefined, nome: string): str
   const [artigo, ...resto] = parentesco.split(' ');
   const relacao = resto.join(' ');
   return nome.toLowerCase().startsWith(`${relacao.toLowerCase()} `) ? `${artigo} ${nome}` : `${parentesco} ${nome}`;
+}
+
+// --- O nome para quem olha ------------------------------------------------------------------
+
+// O parentesco que um apelido pode trazer na frente, e a palavra com que possessivo() diz o mesmo
+const PARENTESCO_NO_APELIDO: Record<string, string> = {
+  vó: 'avó',
+  vovó: 'avó',
+  avó: 'avó',
+  vô: 'avô',
+  vovô: 'avô',
+  avô: 'avô',
+  bisa: 'bisavó',
+  bisavó: 'bisavó',
+  bisavô: 'bisavô',
+  tia: 'tia',
+  tio: 'tio',
+  'tia-avó': 'tia-avó',
+  'tio-avô': 'tio-avô',
+  prima: 'prima',
+  primo: 'primo',
+  mãe: 'mãe',
+  mamãe: 'mãe',
+  pai: 'pai',
+  papai: 'pai',
+  madrinha: 'madrinha',
+  dinda: 'madrinha',
+  padrinho: 'padrinho',
+  dindo: 'padrinho',
+};
+
+/**
+ * O apelido é um só por pessoa, e costuma ser o do ponto de vista de quem cadastrou: "Tia Lourdes".
+ * Para a irmã dela, o Início mostra "Lourdes", com "sua irmã" embaixo (resposta do Gui à pergunta
+ * P22 do QA de design de 17/11/2026). Quando o parentesco do apelido é o de quem olha, o apelido
+ * fica e o parentesco não se repete. Sem parentesco conhecido com quem olha, o apelido fica como
+ * está: é o nome que a família usa. `parentesco` é o que possessivo() devolve ("sua tia").
+ */
+export function nomeParaQuemOlha(nome: string, parentesco: string | undefined): { nome: string; parentesco: string | undefined } {
+  const [primeira = '', ...resto] = nome.trim().split(/\s+/);
+  const doApelido = PARENTESCO_NO_APELIDO[primeira.toLowerCase()];
+  if (!doApelido || resto.length === 0 || !parentesco) return { nome, parentesco };
+  const meu = parentesco.split(' ').slice(1).join(' ').toLowerCase();
+  // "Vó Bela" serve também para a bisneta, e "Tio Zeca" para o sobrinho de consideração
+  const eOMesmo = meu === doApelido || meu.startsWith(`${doApelido} `) || (['avó', 'avô'].includes(doApelido) && meu.endsWith(doApelido) && !meu.includes('-'));
+  // Aprovado antes: o parentesco só some quando o apelido traz a mesma palavra ("Tia Cida", "sua tia")
+  if (eOMesmo) return { nome, parentesco: nome.toLowerCase().startsWith(`${meu} `) ? undefined : parentesco };
+  return { nome: resto.join(' '), parentesco };
+}
+
+// --- A composição do Início -----------------------------------------------------------------
+
+export type CartaoDoInicio = 'contar' | 'outros-anos' | 'aniversarios' | 'voce';
+
+export interface ComposicaoDoInicio {
+  /**
+   * O que fica à direita da abertura, no computador (resposta do Gui à pergunta P13): as novidades;
+   * sem novidade, "Neste dia, em outros anos"; sem ele, a memória para contar.
+   */
+  mesa: 'novidades' | 'outros-anos' | 'contar' | 'vazia';
+  /** o envelope só aparece quando chegou algo */
+  envelope: boolean;
+  /** o relato e "E mais N" numa fileira de largura inteira, embaixo da abertura e das fotos (P18) */
+  filaInteira: boolean;
+  /** os cartões, na ordem da página: contar vem antes de "Neste dia" (P16) */
+  cartoes: CartaoDoInicio[];
+  /** "Neste dia" com três ou quatro memórias ocupa uma faixa; com uma ou duas, é um cartão da fileira (P19) */
+  outrosAnosEmFaixa: boolean;
+  /** quantos cartões dividem a fileira no computador, fora a faixa e o que foi para a mesa */
+  naFileira: number;
+}
+
+/** Decide onde cada parte do Início fica, a partir do que há para mostrar. */
+export function composicaoDoInicio(ha: { memoriasNovas: number; relatosNovos: number; outrosAnos: number; contar: boolean; aniversarios: boolean; voce: boolean }): ComposicaoDoInicio {
+  const novidade = ha.memoriasNovas + ha.relatosNovos > 0;
+  const mesa = novidade ? 'novidades' : ha.outrosAnos > 0 ? 'outros-anos' : ha.contar ? 'contar' : 'vazia';
+  const naMesa = Math.min(ha.memoriasNovas, 2);
+  const foraDaMesa = ha.memoriasNovas - naMesa + Math.max(ha.relatosNovos - 1, 0);
+  const cartoes: CartaoDoInicio[] = [];
+  if (ha.contar) cartoes.push('contar');
+  if (ha.outrosAnos > 0) cartoes.push('outros-anos');
+  if (ha.aniversarios) cartoes.push('aniversarios');
+  if (ha.voce) cartoes.push('voce');
+  const outrosAnosEmFaixa = mesa !== 'outros-anos' && ha.outrosAnos > 2;
+  const foraDaFileira = (c: CartaoDoInicio) => c === mesa || (c === 'outros-anos' && outrosAnosEmFaixa) || (c === 'contar' && outrosAnosEmFaixa);
+  return {
+    mesa,
+    envelope: novidade,
+    filaInteira: naMesa > 0 && foraDaMesa > 0,
+    cartoes,
+    outrosAnosEmFaixa,
+    naFileira: cartoes.filter((c) => !foraDaFileira(c)).length,
+  };
+}
+
+/** "Sua última visita foi em 17 nov.": o ano só entra quando não é o ano corrente (P25). */
+export function anoDaUltimaVisita(ultima: Dia, hoje: Dia): string {
+  return ultima.ano === hoje.ano ? '' : ` de ${ultima.ano}`;
 }

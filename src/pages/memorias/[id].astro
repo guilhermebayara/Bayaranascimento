@@ -14,6 +14,7 @@ import Retrato from '../../components/visual/Retrato.astro';
 import Polaroid from '../../components/visual/Polaroid.astro';
 import Rabisco from '../../components/visual/Rabisco.astro';
 import { memoriaDoCapitulo } from '../../lib/capitulos';
+import { recolheQuemEstava, relatoJaEstaNaAbertura } from '../../lib/memoria';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { formatarData } from '../../lib/datas';
 import { duracaoEmTexto } from '../../lib/audios';
@@ -81,6 +82,10 @@ const textoDaAcao = temMeuRelato ? 'Editar meu relato' : 'Escrever meu relato';
 // O trecho da abertura vem do primeiro relato publicado que tem texto
 const relatoDaAbertura = relatos.find((r) => r.situacao === 'publicada' && r.texto.trim());
 const trecho = relatoDaAbertura ? trechoDoRelato(relatoDaAbertura.texto) : undefined;
+// Um só relato, que coube inteiro na abertura: a seção "Relato" não repete o bilhete (P52 do QA de design de 17/11/2026)
+const relatoSoNaAbertura = relatoJaEstaNaAbertura(relatos, trecho, (id) => audiosDosRelatos.get(id)?.length ?? 0);
+// No celular, até seis retratos em "Quem estava"; o resto abre no lugar (P51)
+const recolheQuem = recolheQuemEstava(quemEstava.length);
 
 // Vizinhas na linha do tempo, entre as que a pessoa vê
 const todas = await listarMemorias(usuario);
@@ -100,7 +105,7 @@ const outrasFotos = memoria.fotos.length > 1;
 <Visual titulo={memoria.titulo} secao="explorar" nucleos={memoria.nucleos} familia={corDaTela}>
   <article class="memoria">
     <div class="abre__fundo" style={estiloDoTipo(memoria.tipo)}>
-    <header class:list={['abre miolo grade', memoria.fotos.length === 0 && 'abre--sem-foto']}>
+    <header class="abre miolo grade">
       <div class="abre__texto">
         <p class="abre__sobre">
           <Carimbo itens={[carimboDaData(memoria), memoria.lugar]} />
@@ -130,6 +135,15 @@ const outrasFotos = memoria.fotos.length > 1;
           // Com mais de uma foto e espaço, as de trás se abrem em leque. Cada foto abre a galeria nela.
           <div class:list={['abre__foto', outrasFotos && `abre__foto--leque abre__foto--${Math.min(memoria.fotos.length, 3)}`]}>
             <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} cedo galeria />
+          </div>
+        )
+      }
+      {
+        // Sem foto, o lado direito leva o cartão do tipo de momento, o mesmo da linha do tempo (P53).
+        // Só onde a abertura tem dois lados: no celular ela é só tipo.
+        memoria.fotos.length === 0 && (
+          <div class="abre__foto abre__foto--tipo">
+            <Polaroid id={memoria.id} fotos={[]} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} tipo={memoria.tipo} />
           </div>
         )
       }
@@ -181,7 +195,7 @@ const outrasFotos = memoria.fotos.length > 1;
               <h2 class="parte__titulo" id="quem-estava">
                 Quem estava
               </h2>
-              <ul class="quem">
+              <ul class:list={['quem', recolheQuem && 'quem--recolhe']} data-quem>
                 {quemEstava.map((id) => (
                   <li>
                     <a class="pessoa" href={`/pessoas/${id}`}>
@@ -192,12 +206,22 @@ const outrasFotos = memoria.fotos.length > 1;
                   </li>
                 ))}
               </ul>
+              {
+                // "Ver todos" só existe no celular e com script: sem script, a lista vem inteira
+                recolheQuem && (
+                  <p class="quem__todos">
+                    <button type="button" class="acao" data-quem-todos hidden>
+                      Ver todos os {memoria.integrantes.length}
+                    </button>
+                  </p>
+                )
+              }
             </section>
           )
         }
 
         {
-          relatos.length > 0 && (
+          relatos.length > 0 && !relatoSoNaAbertura && (
             <section class="parte" aria-labelledby="relatos">
               <h2 class="parte__titulo" id="relatos">
                 {relatos.length === 1 ? 'Relato' : 'Relatos'}
@@ -259,39 +283,50 @@ const outrasFotos = memoria.fotos.length > 1;
       </div>
     </div>
 
+    {/* Quem já contou não precisa do convite: uma linha quieta, e a página termina em "Antes" e "Depois" (P54) */}
+    {
+      temMeuRelato && (
+        <p class="contou miolo">
+          <span class="contou__frase">Você já contou esse dia.</span>
+          <a class="acao" href={`/memorias/${memoria.id}/relato`}>
+            Editar meu relato
+          </a>
+        </p>
+      )
+    }
     {/* O convite para contar: um bilhete em branco com o nome de quem está vendo, à espera do relato dela */}
-    <section class="convite miolo" aria-labelledby="convite" style={estiloDoTipo(memoria.tipo)}>
-      <div class="convite__mesa">
-        <span class="convite__forma" aria-hidden="true" />
-        <div class:list={['convite__bilhete bilhete', temMeuRelato && 'convite__bilhete--feito']}>
-          <p class="convite__para rotulo suave">
-            <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={familiaDe(usuario.pessoa)} />
-            Para {usuario.nome}
-          </p>
-          <h2 class="convite__titulo serifa" id="convite">
-            {temMeuRelato ? 'Você já contou esse dia.' : 'Cada pessoa conta o dia do jeito que lembra.'}
-          </h2>
-          {
-            !temMeuRelato && (
+    {
+      !temMeuRelato && (
+        <section class="convite miolo" aria-labelledby="convite" style={estiloDoTipo(memoria.tipo)}>
+          <div class="convite__mesa">
+            <span class="convite__forma" aria-hidden="true" />
+            <div class="convite__bilhete bilhete">
+              <p class="convite__para rotulo suave">
+                <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={familiaDe(usuario.pessoa)} />
+                Para {usuario.nome}
+              </p>
+              <h2 class="convite__titulo serifa" id="convite">
+                Cada pessoa conta o dia do jeito que lembra.
+              </h2>
               <div class="convite__linhas" aria-hidden="true">
                 <span />
                 <span />
                 <span />
               </div>
-            )
-          }
-          <p class="convite__pe">
-            <span class="convite__assina">
-              <span class="mao">{usuario.nome}</span>
-              <Rabisco desenho="sublinha" />
-            </span>
-            <a class="botao" href={`/memorias/${memoria.id}/relato`}>
-              {textoDaAcao}
-            </a>
-          </p>
-        </div>
-      </div>
-    </section>
+              <p class="convite__pe">
+                <span class="convite__assina">
+                  <span class="mao">{usuario.nome}</span>
+                  <Rabisco desenho="sublinha" />
+                </span>
+                <a class="botao" href={`/memorias/${memoria.id}/relato`}>
+                  Escrever meu relato
+                </a>
+              </p>
+            </div>
+          </div>
+        </section>
+      )
+    }
   </article>
 
   {/* A galeria: a foto inteira, uma de cada vez, sem sair da página. As fotos ficam numa fila que
@@ -372,6 +407,22 @@ const outrasFotos = memoria.fotos.length > 1;
 </Visual>
 
 <script>
+  // "Quem estava" no celular: até seis retratos, e "Ver todos os N" abre o resto no lugar. A lista só
+  // é recolhida aqui, pelo script: sem ele, ela vem inteira. O CSS só esconde abaixo de 40rem.
+  const quem = document.querySelector<HTMLElement>('[data-quem].quem--recolhe');
+  const verTodos = document.querySelector<HTMLButtonElement>('[data-quem-todos]');
+  if (quem && verTodos) {
+    const aVista = quem.querySelectorAll('li').length - quem.querySelectorAll('li:nth-child(n + 7)').length;
+    quem.classList.add('quem--recolhida');
+    verTodos.hidden = false;
+    verTodos.addEventListener('click', () => {
+      quem.classList.remove('quem--recolhida');
+      verTodos.parentElement?.remove();
+      // O foco segue para a primeira pessoa que acabou de aparecer
+      quem.children[aVista]?.querySelector('a')?.focus();
+    });
+  }
+
   // A galeria de fotos da memória. Abre na foto tocada e mostra a imagem inteira. As fotos ficam
   // numa fila que rola para o lado: no toque, a foto acompanha o dedo e para na seguinte (é a
   // rolagem do próprio aparelho, com encaixe); os botões e as setas do teclado fazem a mesma
@@ -439,6 +490,11 @@ const outrasFotos = memoria.fotos.length > 1;
       abrir(Number(link.dataset.galeria));
     });
     caixa.querySelector('[data-galeria-fechar]')?.addEventListener('click', () => caixa.close());
+    // Tocar ou clicar no fundo, fora da foto, da legenda e dos controles, fecha a galeria (P55 do
+    // QA de design de 17/11/2026). Arrastar para passar de foto não é clique, e não fecha.
+    caixa.addEventListener('click', (evento) => {
+      if (evento.target instanceof Element && !evento.target.closest('img, figcaption, button, [data-galeria-conta]')) caixa.close();
+    });
     for (const b of passos) b.addEventListener('click', () => ir(destino + Number(b.dataset.galeriaPasso)));
     caixa.addEventListener('keydown', (evento) => {
       if (evento.key !== 'ArrowRight' && evento.key !== 'ArrowLeft') return;

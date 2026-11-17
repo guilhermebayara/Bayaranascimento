@@ -101,6 +101,17 @@ export function semLogin(): boolean {
 }
 
 /**
+ * Onde existe o login do Cloudflare Access, e portanto de onde dá para sair: a produção e a
+ * homologação. Nas prévias de teste e no computador não há login.
+ */
+export function temLogin(): boolean {
+  return ambiente() === 'producao' || ambiente() === 'homologa';
+}
+
+/** A saída do Cloudflare Access: encerra a sessão da pessoa neste aparelho. */
+export const ENDERECO_DE_SAIDA = '/cdn-cgi/access/logout';
+
+/**
  * Integrantes que têm login no site. Fora da produção, quem tem núcleo conta
  * como tendo acesso, para os testes se parecerem com o uso real.
  */

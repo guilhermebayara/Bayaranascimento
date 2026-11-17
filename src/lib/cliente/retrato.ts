@@ -8,6 +8,7 @@ import {
   ZOOM_MAXIMO,
   ajustarEnquadramento,
   aproximar,
+  arcoDoRetrato,
   enquadramentoInicial,
   escalaDoEnquadramento,
   recorteDaFoto,
@@ -56,6 +57,26 @@ export function ligarRetrato(raiz: HTMLElement): void {
     contexto.clearRect(0, 0, lado, lado);
     const escala = escalaDoEnquadramento(foto.width, foto.height, lado, enquadramento.zoom);
     contexto.drawImage(foto, enquadramento.x, enquadramento.y, foto.width * escala, foto.height * escala);
+    // Por cima, o arco em que o retrato aparece no site: o que fica de fora sai mais apagado
+    const arco = arcoDoRetrato(lado);
+    const estilo = getComputedStyle(quadro);
+    const contorno = new Path2D();
+    contorno.moveTo(arco.x, arco.y + arco.altura);
+    contorno.lineTo(arco.x, arco.y + arco.raio);
+    contorno.arc(arco.x + arco.raio, arco.y + arco.raio, arco.raio, Math.PI, 0);
+    contorno.lineTo(arco.x + arco.largura, arco.y + arco.altura);
+    contorno.closePath();
+    const fora = new Path2D();
+    fora.rect(0, 0, lado, lado);
+    fora.addPath(contorno);
+    contexto.save();
+    contexto.globalAlpha = 0.72;
+    contexto.fillStyle = estilo.getPropertyValue('--papel').trim() || estilo.backgroundColor;
+    contexto.fill(fora, 'evenodd');
+    contexto.restore();
+    contexto.lineWidth = 1.5;
+    contexto.strokeStyle = estilo.getPropertyValue('--branco').trim() || estilo.backgroundColor;
+    contexto.stroke(contorno);
   };
 
   const mover = (dx: number, dy: number) => {
@@ -174,7 +195,7 @@ export function ligarRetrato(raiz: HTMLElement): void {
     escolher.focus();
   });
 
-  // "Tirar foto" deixa a pessoa sem foto ao salvar: a que já estava sai (o arquivo continua guardado),
+  // "Remover foto" deixa a pessoa sem foto ao salvar: a que já estava sai (o arquivo continua guardado),
   // e a que ainda não foi salva é esquecida
   tirar.addEventListener('click', () => {
     arquivo.value = '';

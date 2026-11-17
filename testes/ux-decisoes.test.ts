@@ -64,8 +64,9 @@ describe('corrigir e desfazer', () => {
     }
   });
 
-  it('a lixeira tem um caminho a partir dos rascunhos', () => {
-    expect(fonte('src/pages/rascunhos.astro')).toContain('href="/lixeira"');
+  // A página Rascunhos saiu (resposta do Gui à P150, 17/11/2026): os rascunhos e a lixeira moram em "Sua conta"
+  it('a lixeira tem um caminho a partir dos rascunhos, em "Sua conta"', () => {
+    expect(fonte('src/pages/conta.astro')).toContain('href="/lixeira"');
   });
 });
 
@@ -86,7 +87,9 @@ describe('ação principal', () => {
     expect(atalho).toBeGreaterThan(pagina.indexOf('<h1'));
     expect(atalho).toBeLessThan(pagina.indexOf('class="corpo grade"'));
     expect(pagina.indexOf('class="convite miolo"')).toBeGreaterThan(pagina.indexOf('class="parede"'));
-    expect(pagina.match(/href=\{`\/memorias\/\$\{memoria\.id\}\/relato`\}/g)).toHaveLength(2);
+    // Três no código, dois na tela: o atalho do alto e, no fim, o convite ou a linha quieta de quem já
+    // contou (resposta do Gui à P54 do QA de design de 17/11/2026)
+    expect(pagina.match(/href=\{`\/memorias\/\$\{memoria\.id\}\/relato`\}/g)).toHaveLength(3);
   });
 
   it('fica no alto da pessoa e do capítulo', () => {

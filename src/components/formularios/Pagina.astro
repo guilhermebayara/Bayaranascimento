@@ -19,7 +19,7 @@ interface Props {
   rotulo?: string;
   /** Os núcleos do que está sendo editado: dão a cor da tela e a assinatura */
   nucleos?: string[];
-  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'pessoas' | 'conta';
+  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'pessoas' | 'conta' | 'nova';
   /** Página de trabalho estreita (o padrão) ou larga, para listas e tabelas */
   larga?: boolean;
 }
@@ -30,7 +30,7 @@ const recadoOk = Astro.url.searchParams.get('ok');
 const recadoErro = Astro.url.searchParams.get('erro');
 ---
 
-<Visual titulo={aba ?? titulo} nucleos={nucleos} secao={secao}>
+<Visual titulo={aba ?? titulo} nucleos={nucleos} secao={secao} rodape="metade">
   <noscript>
     {/* Sem JavaScript: some o que só funciona com ele, e aparecem os blocos que ele mostraria conforme a escolha */}
     <style is:inline>

@@ -2,21 +2,41 @@
 // A página do capítulo. A ideia da tela (docs/visual.md): abertura de capítulo de livro. O título,
 // o período e as pessoas ficam à esquerda (parados, no computador com mouse) e, à direita, os
 // marcos numerados: cada memória do capítulo com o número dela, a data e o lugar em mono.
+import '../../../visual/telas/linha.css';
+import '../../../visual/telas/explorar.css';
+import '../../../visual/telas/lista.css';
 import '../../../visual/telas/capitulo.css';
 import Visual from '../../../layouts/Visual.astro';
 import Entrada from '../../../components/capitulos/Entrada.astro';
+import Lista from '../../../components/explorar/Lista.astro';
+import Mural from '../../../components/explorar/Mural.astro';
 import Carimbo from '../../../components/visual/Carimbo.astro';
 import Gente from '../../../components/visual/Gente.astro';
 import Pilula from '../../../components/visual/Pilula.astro';
 import Polaroid from '../../../components/visual/Polaroid.astro';
 import SinalDoCapitulo from '../../../components/visual/SinalDoCapitulo.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
-import { ehEpoca, formatarPeriodo, memoriaDoCapitulo, nomeDoModo, periodoDasMemorias, sobreposicao, type Capitulo } from '../../../lib/capitulos';
+import {
+  FORMAS_DO_CAPITULO,
+  NOMES_DAS_FORMAS_DO_CAPITULO,
+  detalheDoCruzamento,
+  ehEpoca,
+  enderecoDoCapitulo,
+  formatarPeriodo,
+  lerFormaDoCapitulo,
+  memoriaDoCapitulo,
+  nomeDoModo,
+  periodoDasMemorias,
+  sobreposicao,
+  tituloDasMemorias,
+  type Capitulo,
+} from '../../../lib/capitulos';
+import { TAMANHO_PADRAO } from '../../../lib/explorar';
 import { maisRecentesPrimeiro } from '../../../lib/datas';
 import { coresDosCapitulos } from '../../../lib/linha-capitulos';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { podeEditarCapitulo } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemas, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
+import { familiasDe, listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
 import { carimboDaData, corDaPessoa, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
 
 const { usuario } = Astro.locals;
@@ -88,6 +108,14 @@ const cor = cores.get(capitulo.id);
 const marcos = maisRecentesPrimeiro(memorias).map((m, i, lista) => ({ m, numero: lista.length - i }));
 const digitos = Math.max(2, String(marcos.length).length);
 
+// A forma de ver (P69 do QA de design de 17/11/2026): os marcos, que são o padrão, o mural e a lista
+// do Explorar, na própria página. No mural e na lista, como lá, o rascunho não entra.
+const forma = lerFormaDoCapitulo(Astro.url.searchParams);
+const publicadas = maisRecentesPrimeiro(memorias).filter((m) => m.situacao !== 'rascunho');
+const nomeDoEditar = capitulo.modo === 'reunido' ? (podeEditar ? 'Escolher memórias e editar' : 'Escolher memórias') : podeEditar ? (ehEpoca(capitulo) ? 'Editar época' : 'Editar capítulo') : null;
+// O selo: o que o capítulo é e a quem ele é restrito. O capítulo de dentro diz de qual faz parte (P70)
+const selo = [maior ? null : nomeDoModo(capitulo), restritoA.length > 0 ? `Só ${restritoA.join(' e ')}` : null];
+
 // Quem aparece: as pessoas que mais estão nas memórias do capítulo, com a conta de cada uma
 // Decidido pelo Gui em 17/11/2026 (pergunta 2 do PR do grupo "familia"): "Quem aparece" fica, com até seis
 // pessoas. Na tela grande, com retrato e conta; no celular, uma linha de nomes corrida, sem fotos.
@@ -106,9 +134,17 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
 <Visual titulo={capitulo.titulo} secao="capitulos" nucleos={familiasDaTela}>
   <article class="capitulo miolo grade" style={cor === undefined ? undefined : estiloDoCapitulo(cor)}>
     <header class="capitulo__capa">
+      {/* O que fica parado no computador com mouse: o selo, o título, o período e as ações (P68 do QA
+          de design de 17/11/2026). A abertura, as notas e "Quem aparece" rolam com a página. No
+          celular este bloco se desfaz (display: contents) e a abertura sobe para antes das ações (P65). */}
       <div class="capitulo__parado">
         <p class="capitulo__selo">
-          <Carimbo itens={[nomeDoModo(capitulo), restritoA.length > 0 ? `Só ${restritoA.join(' e ')}` : null]} />
+          {maior && (
+            <a class="capitulo__maior rotulo" href={`/capitulos/${maior.id}`}>
+              Capítulo de “{maior.titulo}”
+            </a>
+          )}
+          {selo.some(Boolean) && <Carimbo itens={selo} />}
         </p>
         <h1 class="capitulo__titulo serifa t-1">{capitulo.titulo}</h1>
         <p class="capitulo__periodo">
@@ -116,76 +152,59 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
           <span class="ficha suave">{contar(memorias.length)}</span>
         </p>
         {deQuem.length > 0 && <p class="capitulo__de-quem suave">Entram as memórias do período com {juntar(deQuem)}.</p>}
-        {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026) */}
-        <p class="capitulo__acoes">
-          {/* No reunido, qualquer um coloca as memórias que pode corrigir; a ficha, só quem pode editar o capítulo */}
-          {capitulo.modo === 'reunido' ? (
-            <a class="botao" href={`/capitulos/${capitulo.id}/editar`}>
-              {podeEditar ? 'Escolher memórias e editar' : 'Escolher memórias'}
-            </a>
-          ) : (
-            podeEditar && (
-              <a class="botao" href={`/capitulos/${capitulo.id}/editar`}>
-                {ehEpoca(capitulo) ? 'Editar época' : 'Editar capítulo'}
+        {/* A página é de leitura: o botão cheio é o de contar, e editar fica como texto (P67). No
+            reunido, qualquer um coloca as memórias que pode corrigir; a ficha, só quem pode editar. */}
+        {(capitulo.modo === 'reunido' || nomeDoEditar) && (
+          <p class="capitulo__acoes">
+            {capitulo.modo === 'reunido' && (
+              <a class="botao" href={`/nova?capitulo=${capitulo.id}`}>
+                Nova memória neste capítulo
               </a>
-            )
-          )}
-          {capitulo.modo === 'reunido' && (
-            <a class="acao" href={`/nova?capitulo=${capitulo.id}`}>
-              Nova memória neste capítulo
-            </a>
-          )}
-          {/* Aprovado pelo Gui em 17/11/2026 (pergunta 5 do PR do grupo "familia"): os textos novos desta tela */}
-          <a class="acao acao--quieta" href={`/explorar?capitulo=${capitulo.id}`}>
-            Ver no Explorar
-          </a>
-        </p>
-        {capitulo.abertura && (
-          <div class="capitulo__abertura serifa t-abertura">
-            {capitulo.abertura.split(/\n{2,}/).map((p) => (
-              <p>{p}</p>
-            ))}
+            )}
+            {nomeDoEditar && (
+              <a class="acao" href={`/capitulos/${capitulo.id}/editar`}>
+                {nomeDoEditar}
+              </a>
+            )}
+          </p>
+        )}
+      </div>
+      {capitulo.abertura && (
+        <div class="capitulo__abertura serifa t-abertura">
+          {capitulo.abertura.split(/\n{2,}/).map((p) => (
+            <p>{p}</p>
+          ))}
+        </div>
+      )}
+      <dl class="capitulo__notas">
+        {epocas.length > 0 && (
+          <div>
+            <dt class="rotulo suave">Aconteceu durante</dt>
+            <dd>
+              {epocas.map(({ c, como }) => (
+                <span>
+                  <a class="acao acao--quieta" href={`/capitulos/${c.id}`}>
+                    {c.titulo}
+                  </a>
+                  {como === 'parte' && <span class="suave"> (em parte)</span>}
+                </span>
+              ))}
+            </dd>
           </div>
         )}
-        <dl class="capitulo__notas">
-          {maior && (
-            <div>
-              <dt class="rotulo suave">Parte de</dt>
-              <dd>
-                <a class="acao acao--quieta" href={`/capitulos/${maior.id}`}>
-                  {maior.titulo}
+        {temas.length > 0 && (
+          <div>
+            <dt class="rotulo suave">Temas</dt>
+            <dd>
+              {temas.map((t) => (
+                <a class="acao acao--quieta" href={`/temas/${t.id}`}>
+                  {t.nome}
                 </a>
-              </dd>
-            </div>
-          )}
-          {epocas.length > 0 && (
-            <div>
-              <dt class="rotulo suave">Aconteceu durante</dt>
-              <dd>
-                {epocas.map(({ c, como }) => (
-                  <span>
-                    <a class="acao acao--quieta" href={`/capitulos/${c.id}`}>
-                      {c.titulo}
-                    </a>
-                    {como === 'parte' && <span class="suave"> (em parte)</span>}
-                  </span>
-                ))}
-              </dd>
-            </div>
-          )}
-          {temas.length > 0 && (
-            <div>
-              <dt class="rotulo suave">Temas</dt>
-              <dd>
-                {temas.map((t) => (
-                  <a class="acao acao--quieta" href={`/temas/${t.id}`}>
-                    {t.nome}
-                  </a>
-                ))}
-              </dd>
-            </div>
-          )}
-        </dl>
+              ))}
+            </dd>
+          </div>
+        )}
+      </dl>
         {/* Decidido pelo Gui em 17/11/2026 (pergunta 4 do PR do grupo "familia"): no celular, a capa fica no alto, e
             "Quem aparece" é só uma linha de nomes, para não empurrar as memórias */}
         {aparecem.length > 0 && (
@@ -193,7 +212,8 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
             <h2 class="rotulo suave" id="quem-aparece">
               Quem aparece
             </h2>
-            {/* PROVISÓRIO (pergunta 1 do PR de ajustes): cada nome da linha leva à página da pessoa */}
+            {/* Cada nome da linha leva à página da pessoa, com a linha alta para o toque (resposta do
+                Gui à P66 do QA de design de 17/11/2026: fica como está) */}
             {/* No celular, uma linha de nomes corrida, sem fotos, com a conta de cada pessoa (pedido do
                 Gui, 17/11/2026). A partir de 62rem, a lista com os retratos, logo abaixo. */}
             <p class="capitulo__nomes ficha">
@@ -226,7 +246,6 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
             )}
           </section>
         )}
-      </div>
     </header>
 
     <div class="capitulo__corpo">
@@ -263,7 +282,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
                     href={`/capitulos/${c.id}`}
                     titulo={c.titulo}
                     periodo={formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca')}
-                    detalhe={como === 'parte' ? 'em parte neste período' : undefined}
+                    detalhe={detalheDoCruzamento(como)}
                     cor={cores.get(c.id)}
                     dentro
                   />
@@ -274,13 +293,43 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
         )
       }
 
-      <section class="capitulo__parte" aria-labelledby="marcos">
+      {/* A região troca de conteúdo sem recarregar a página, como no Explorar (explorar-troca.ts) */}
+      <section class="capitulo__parte capitulo__memorias" aria-labelledby="marcos" data-explorar>
         <h2 class="rotulo suave" id="marcos">
-          {memorias.length > 0 ? 'Memórias do capítulo' : 'Memórias'}
+          {tituloDasMemorias(capitulo, memorias.length)}
         </h2>
+        {marcos.length > 1 && (
+          <div class="controles capitulo__controles">
+            <div class="controle">
+              <p class="controle__nome rotulo suave" id="controle-forma">
+                Forma de ver
+              </p>
+              <nav class="linha__opcoes" aria-labelledby="controle-forma">
+                {FORMAS_DO_CAPITULO.map((f) => (
+                  <a href={`${enderecoDoCapitulo(capitulo.id, f)}#marcos`} data-opcao={f} aria-current={f === forma ? 'page' : undefined}>
+                    {NOMES_DAS_FORMAS_DO_CAPITULO[f]}
+                  </a>
+                ))}
+              </nav>
+            </div>
+            <p class="capitulo__tv">
+              <a class="acao acao--quieta" href={`/explorar?capitulo=${capitulo.id}&ver=tv`}>
+                Passar no modo TV
+              </a>
+            </p>
+          </div>
+        )}
         {
           marcos.length === 0 ? (
             <Vazio frase={capitulo.modo === 'epoca' ? 'Nenhuma memória registrada neste período ainda.' : `Este capítulo ainda não tem memórias. Use "${podeEditar ? 'Escolher memórias e editar' : 'Escolher memórias'}", no alto, para escolher.`} />
+          ) : forma === 'mural' ? (
+            <div class="linha linha--mural capitulo__larga">
+              <Mural memorias={publicadas} ordem="recentes" tamanho={TAMANHO_PADRAO} />
+            </div>
+          ) : forma === 'lista' ? (
+            <div class="linha linha--lista capitulo__larga">
+              <Lista memorias={publicadas} capitulos={capitulos} integrantes={integrantes} ordem="recentes" comAudio={await memoriasComAudio()} />
+            </div>
           ) : (
             <ol class="marcos" reversed>
               {marcos.map(({ m, numero }) => {
@@ -307,8 +356,9 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
                         </p>
                       )}
                     </div>
+                    {/* A foto vai sem legenda: o lugar e o ano já estão no carimbo ao lado (P72) */}
                     <a class="marco__foto" href={`/memorias/${m.id}`} tabindex="-1" aria-hidden="true">
-                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} tipo={m.tipo} monte={false} alt="" />
+                      <Polaroid id={m.id} fotos={m.fotos} legenda="" tipo={m.tipo} monte={false} alt="" />
                     </a>
                   </li>
                 );
@@ -322,6 +372,11 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
 </Visual>
 
 <script>
+  // Trocar a forma de ver não recarrega a página nem tira a pessoa do lugar, como no Explorar.
+  // Sem script, cada opção é um link comum, que volta a esta parte da página.
+  import { ligarTroca } from '../../../lib/cliente/explorar-troca';
+  ligarTroca();
+
   // A capa só fica parada quando cabe inteira na janela (QA de design, 17/11/2026)
   const capa = document.querySelector<HTMLElement>('.capitulo__parado');
   if (capa) {

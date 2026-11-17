@@ -54,7 +54,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     // "Outro" é a saída de quem não achou o tipo: muda de cor, mas não de nome
     await atualizarTipo(id, id === TIPO_OUTRO ? atual.rotulo : rotulo, cor, icone);
-    return voltar(request, PAGINA, { ok: 'Tipo atualizado.' });
+    // A página volta para a linha do tipo, e o recado ("Viagem atualizado.") aparece ali (resposta do Gui à P161, 17/11/2026)
+    return voltar(request, `${PAGINA}?salvo=${encodeURIComponent(id)}#tipo-${encodeURIComponent(id)}`);
   }
 
   if (acao === 'promover') {

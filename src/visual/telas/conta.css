@@ -1,6 +1,6 @@
 /*
- * Sua conta: o retrato e o nome da pessoa no alto, e as coisas dela em ordem (dados, rascunhos,
- * o que criou, laços do coração). A administração fica no fim, quieta, só para quem administra.
+ * Sua conta: o retrato, o nome e os dados da pessoa no alto, e as coisas dela em ordem (rascunhos,
+ * laços do coração, o que criou). A administração fica no fim, quieta, só para quem administra.
  * É página que só a pessoa vê: papel tingido na cor da família dela e conteúdo em cartões, como
  * o painel (o cartão vem de painel.css).
  */
@@ -25,6 +25,14 @@
   margin-left: -0.04em;
   overflow-wrap: anywhere;
 }
+/* Os dados da pessoa, numa linha em mono abaixo do nome (resposta do Gui à P149, 17/11/2026) */
+.conta__dados {
+  margin-top: var(--e-3);
+  overflow-wrap: anywhere;
+}
+.conta__dados + .conta__dados {
+  margin-top: var(--e-1);
+}
 .conta__acoes {
   display: flex;
   flex-wrap: wrap;
@@ -37,7 +45,10 @@
   .conta__abre {
     grid-template-areas:
       'retrato quem'
+      'dados dados'
+      'dica dica'
       'acoes acoes';
+    row-gap: 0;
   }
   .conta__retrato {
     grid-area: retrato;
@@ -53,9 +64,15 @@
     grid-area: quem;
     align-self: end;
   }
+  .conta__dados {
+    grid-area: dados;
+    margin-top: var(--e-4);
+  }
+  .conta__dados + .conta__dados {
+    grid-area: dica;
+  }
   .conta__acoes {
     grid-area: acoes;
-    margin-top: 0;
   }
 }
 
@@ -70,17 +87,7 @@
   min-width: 0;
 }
 .conta__dica {
-  margin-top: var(--e-4);
   font-size: var(--t-pequeno);
-}
-.conta__sobre {
-  max-width: var(--medida);
-  margin-top: var(--e-5);
-  padding-top: var(--e-4);
-  border-top: 1px solid var(--fio);
-}
-.conta__sobre p + p {
-  margin-top: var(--e-2);
 }
 .conta__nada {
   font-size: var(--t-titulo-3);
@@ -123,7 +130,9 @@
   font-size: var(--t-pequeno);
 }
 
-/* --- O que você criou: o número grande, e a lista que abre no lugar ---------------------------- */
+/* --- O que você criou: a conta de cada coisa, e a lista que abre no lugar ------------------------
+   Resposta do Gui à P148 (17/11/2026): os números têm o tamanho de título de parte, e na tela
+   grande ficam numa linha só. */
 
 .criado + .criado {
   border-top: 1px solid var(--fio);
@@ -132,7 +141,7 @@
   display: grid;
   grid-template-columns: minmax(2ch, auto) minmax(0, 1fr) auto;
   align-items: baseline;
-  gap: var(--e-4);
+  gap: var(--e-3);
   min-height: var(--toque);
   padding-block: var(--e-3);
   list-style: none;
@@ -142,7 +151,7 @@
   display: none;
 }
 .criado__numero {
-  font-size: var(--t-titulo-1);
+  font-size: var(--t-titulo-2);
   font-variation-settings: var(--serifa-ajustes);
   font-weight: var(--serifa-peso);
   letter-spacing: var(--aperto-titulo);
@@ -153,6 +162,9 @@
   font-variation-settings: var(--serifa-ajustes);
   font-weight: var(--serifa-peso);
   line-height: 1.2;
+}
+.criado__nome--curto {
+  display: none;
 }
 .criado__abre {
   width: auto;
@@ -165,8 +177,11 @@
 .criado[open] .criado__abre::before {
   content: 'Fechar';
 }
-.criado > ul {
+.criado__lista {
   padding-bottom: var(--e-4);
+}
+.criado__lista .conta__pe {
+  padding-top: var(--e-3);
 }
 .conta__fotos {
   display: grid;
@@ -190,6 +205,18 @@
 }
 /* --- Administração: no fim, quieta ------------------------------------------------------------- */
 
+/* A carta de Natal, para reler, e a saída da conta (P5 e P4 do QA de design, 17/11/2026) */
+.conta__carta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-5);
+  margin-top: var(--e-7);
+}
+.conta__sair {
+  margin-top: var(--e-7);
+}
+
 .conta__admin {
   margin-top: var(--e-8);
   padding-top: var(--e-5);
@@ -202,7 +229,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--e-6);
-  margin-block: var(--e-3);
+  margin-top: var(--e-3);
+}
+/* A cópia do acervo baixa um arquivo: linha própria, junto do tamanho do banco (resposta do Gui à P153) */
+.conta__copia {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-5);
+  margin-bottom: var(--e-3);
 }
 
 @media (min-width: 62rem) {
@@ -213,26 +248,79 @@
     grid-template-columns: clamp(9rem, 14vw, 15rem) minmax(0, 1fr);
     gap: var(--calha);
   }
-  /* Dados e rascunhos lado a lado; o que você criou, maior, ao lado dos laços */
+  /* Rascunhos e laços lado a lado; o que você criou embaixo, na largura toda */
   .conta__partes {
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: var(--calha);
     align-items: start;
   }
-  .conta__dados {
-    grid-column: 1 / span 7;
-  }
   .conta__rascunhos {
-    grid-column: 8 / -1;
-  }
-  .conta__criou {
     grid-column: 1 / span 7;
   }
   .conta__lacos {
     grid-column: 8 / -1;
   }
-  .conta__dados,
-  .conta__rascunhos {
-    align-self: stretch;
+  .conta__criou {
+    grid-column: 1 / -1;
+  }
+  /* As contas numa linha só, em colunas iguais. A lista aberta sai da coluna dela e toma a largura
+     do cartão: recua as colunas que vêm antes (--i) e soma as que existem (--n). */
+  .conta__criados {
+    --n: 1;
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    column-gap: var(--calha);
+    align-items: start;
+  }
+  .conta__criados[data-quantos='2'] {
+    --n: 2;
+  }
+  .conta__criados[data-quantos='3'] {
+    --n: 3;
+  }
+  .conta__criados[data-quantos='4'] {
+    --n: 4;
+  }
+  .criado {
+    --i: 0;
+    min-width: 0;
+  }
+  .criado:nth-child(2) {
+    --i: 1;
+  }
+  .criado:nth-child(3) {
+    --i: 2;
+  }
+  .criado:nth-child(4) {
+    --i: 3;
+  }
+  .criado + .criado {
+    border-top: 0;
+  }
+  .criado summary {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .criado__nome--longo {
+    display: none;
+  }
+  .criado__nome--curto {
+    display: inline;
+  }
+  .criado__lista {
+    width: calc(var(--n) * 100% + (var(--n) - 1) * var(--calha));
+    margin-left: calc(var(--i) * -1 * (100% + var(--calha)));
+    border-top: 1px solid var(--fio);
+  }
+  .criado__lista .conta__lista {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--calha);
+  }
+  .criado__lista .conta__lista li:nth-child(2) {
+    border-top: 0;
+  }
+  .criado__lista .conta__lista li:nth-child(n + 3) {
+    border-top: 1px solid var(--fio);
   }
 }

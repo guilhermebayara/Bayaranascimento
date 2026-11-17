@@ -147,8 +147,15 @@
   .lista[data-sem-anos] {
     --coluna-da-data: 8.5rem;
   }
+  /* No computador e na tela grande, o ano tem tamanho de título de página, com a conta ao lado: o
+     ano de capa fica como marca da linha do tempo (resposta do Gui à P44, 17/11/2026) */
   .lista__cabeca {
+    justify-content: flex-start;
+    gap: var(--e-5);
     padding-bottom: var(--e-4);
+  }
+  .lista__ano {
+    font-size: var(--t-titulo-1);
   }
   .lista__linha {
     grid-template-columns:
@@ -182,8 +189,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* PROVISÓRIO (pergunta 3 do PR de ajustes): em 1280 px o lugar fica embaixo do título; na tela
-     grande ele ganha a coluna dele (abaixo) */
+  /* Em 1280 px o lugar fica embaixo do título; na tela grande ele ganha a coluna dele, abaixo
+     (resposta do Gui à P43, 17/11/2026) */
   .lista__lugar {
     grid-area: 2 / 3;
   }

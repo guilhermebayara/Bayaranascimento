@@ -15,7 +15,8 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 ---
 
 <Pagina titulo="Excluir capítulo" rotulo="Capítulo" secao="capitulos">
-  <p slot="abertura">Confira antes de confirmar. Nada é apagado de vez.</p>
+  {/* "Nada é apagado de vez" já abre a explicação do cartão, e a ação tem um nome só: "Excluir capítulo" (P80 do QA de design de 17/11/2026) */}
+  <p slot="abertura">Confira antes de confirmar.</p>
   <section class="alerta">
     <h2>{capitulo.titulo}</h2>
     <p>O capítulo sai do site para toda a família. As memórias dele continuam no acervo, só deixam de estar reunidas.</p>
@@ -23,7 +24,7 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
     <form method="post" action="/api/capitulos" class="acoes">
       <input type="hidden" name="acao" value="excluir" />
       <input type="hidden" name="id" value={capitulo.id} />
-      <button class="botao botao--perigo" type="submit">Excluir e mandar para a lixeira</button>
+      <button class="botao botao--perigo" type="submit">Excluir capítulo</button>
       <a class="botao botao--leve" href={voltarPara}>Cancelar</a>
     </form>
   </section>

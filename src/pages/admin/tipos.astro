@@ -3,6 +3,7 @@ import '../../visual/telas/tipos.css';
 import EscolhaDoTipo from '../../components/formularios/EscolhaDoTipo.astro';
 import Pagina from '../../components/formularios/Pagina.astro';
 import Etiqueta from '../../components/visual/Etiqueta.astro';
+import Recado from '../../components/visual/Recado.astro';
 import Vazio from '../../components/visual/Vazio.astro';
 import { outrosAdmins } from '../../lib/servidor/conteudo';
 import { listarIntegrantes, listarTextosDeOutro } from '../../lib/servidor/repositorio';
@@ -23,7 +24,10 @@ for (const t of tipos) emUso.set(corDoTipo(t.id), [...(emUso.get(corDoTipo(t.id)
 // Tipo novo já vem com uma cor que ninguém usa. Repetir pode, como sempre pôde: a amostra avisa quem já usa.
 const corLivre = PALETA.find((c) => !emUso.has(c)) ?? PALETA[0];
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura.
-// PROVISÓRIO (pergunta 3 do PR dos tipos): os textos novos desta tela ("Cor", "Desenho", "Como fica", "Mudar a cor e o desenho", "em Viagem").
+// Aprovados pelo Gui em 17/11/2026 (P163 do QA de design): os textos desta tela ("Cor", "Desenho", "Como fica", "Mudar a cor e o desenho", "em Viagem").
+// Depois de salvar, a página volta para a linha do tipo, com o recado ali (P161)
+const salvo = Astro.url.searchParams.get('salvo');
+const nomesEmOutro = textos.length === 1 ? 'Um nome escrito em "Outro"' : `${textos.length} nomes escritos em "Outro"`;
 ---
 
 <Pagina titulo="Tipos de momento" rotulo="Administração" secao="conta" larga>
@@ -34,7 +38,73 @@ const corLivre = PALETA.find((c) => !emUso.has(c)) ?? PALETA[0];
     </p>
   </Fragment>
 
+  {/* Os tipos primeiro, que dão nome à página; o que foi escrito em "Outro" fica no fim, com a conta aqui no alto (resposta do Gui à P162, 17/11/2026) */}
   <section class="painel">
+    <h2>Tipos da lista</h2>
+    <p class="dica">Cada tipo tem uma cor e um desenho, que aparecem na etiqueta e no cartão da memória sem foto.</p>
+    {
+      textos.length > 0 && (
+        <p class="acoes">
+          <a class="acao" href="#outro">
+            {nomesEmOutro}
+          </a>
+        </p>
+      )
+    }
+    <ul class="tipos-da-lista">
+      {
+        tipos.map((t) => (
+          <li id={`tipo-${t.id}`}>
+            {salvo === t.id && <Recado>{t.rotulo} atualizado.</Recado>}
+            {/* Um tipo aberto por vez: o mesmo "name" fecha os outros, sem script */}
+            <details class="tipo-da-lista" name="tipo-em-edicao">
+              <summary>
+                <Etiqueta tipo={t.id} rotulo={t.rotulo} />
+                <span class="tipo-da-lista__mudar acao acao--quieta">Mudar a cor e o desenho</span>
+              </summary>
+              <form method="post" action="/api/tipos" class="tipo-da-lista__form">
+                <input type="hidden" name="acao" value="editar" />
+                <input type="hidden" name="id" value={t.id} />
+                <label class="campo">
+                  <span>Nome</span>
+                  <input type="text" name="rotulo" value={t.rotulo} maxlength="40" required readonly={t.id === TIPO_OUTRO} data-escolha-nome />
+                  {t.id === TIPO_OUTRO && <small class="dica">"Outro" é a saída de quem não achou o tipo: muda de cor e de desenho, mas não de nome.</small>}
+                </label>
+                <EscolhaDoTipo chave={t.id} cor={corDoTipo(t.id)} icone={rabisco(iconeDoTipo(t.id)).id} rotulo={t.rotulo} emUso={emUso} />
+                <p class="acoes">
+                  <button class="botao" type="submit">Salvar</button>
+                  {/* No celular a prévia fica longe das grades: uma etiqueta pequena acompanha a escolha junto do "Salvar" (resposta do Gui à P157, 17/11/2026) */}
+                  <span class="tipo-da-lista__amostra" aria-hidden="true" data-escolha-amostra>
+                    <Etiqueta tipo={t.id} rotulo={t.rotulo} />
+                  </span>
+                </p>
+              </form>
+            </details>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="painel">
+    <h2>Novo tipo</h2>
+    <form method="post" action="/api/tipos" class="tipo-da-lista__form">
+      <input type="hidden" name="acao" value="criar" />
+      <label class="campo">
+        <span>Nome</span>
+        <input type="text" name="rotulo" maxlength="40" required placeholder="Ex.: Formatura" data-escolha-nome />
+      </label>
+      <EscolhaDoTipo chave="novo" cor={corLivre} icone={RABISCO_PADRAO} rotulo="" emUso={emUso} />
+      <p class="acoes">
+        <button class="botao" type="submit">Criar tipo</button>
+        <span class="tipo-da-lista__amostra" aria-hidden="true" data-escolha-amostra>
+          <Etiqueta tipo="novo" rotulo="Nome do tipo" cor={corLivre} rabisco={RABISCO_PADRAO} />
+        </span>
+      </p>
+    </form>
+  </section>
+
+  <section class="painel" id="outro">
     <h2>O que a família escreveu em "Outro"</h2>
     {
       textos.length === 0 ? (
@@ -93,74 +163,34 @@ const corLivre = PALETA.find((c) => !emUso.has(c)) ?? PALETA[0];
       )
     }
   </section>
-
-  <section class="painel">
-    <h2>Tipos da lista</h2>
-    <p class="dica">Cada tipo tem uma cor e um desenho, que aparecem na etiqueta e no cartão da memória sem foto.</p>
-    <ul class="tipos-da-lista">
-      {
-        tipos.map((t) => (
-          <li>
-            {/* Um tipo aberto por vez: o mesmo "name" fecha os outros, sem script */}
-            <details class="tipo-da-lista" name="tipo-em-edicao">
-              <summary>
-                <Etiqueta tipo={t.id} rotulo={t.rotulo} />
-                <span class="tipo-da-lista__mudar acao acao--quieta">Mudar a cor e o desenho</span>
-              </summary>
-              <form method="post" action="/api/tipos" class="tipo-da-lista__form">
-                <input type="hidden" name="acao" value="editar" />
-                <input type="hidden" name="id" value={t.id} />
-                <label class="campo">
-                  <span>Nome</span>
-                  <input type="text" name="rotulo" value={t.rotulo} maxlength="40" required readonly={t.id === TIPO_OUTRO} data-escolha-nome />
-                  {t.id === TIPO_OUTRO && <small class="dica">"Outro" é a saída de quem não achou o tipo: muda de cor e de desenho, mas não de nome.</small>}
-                </label>
-                <EscolhaDoTipo chave={t.id} cor={corDoTipo(t.id)} icone={rabisco(iconeDoTipo(t.id)).id} rotulo={t.rotulo} emUso={emUso} />
-                <p class="acoes">
-                  <button class="botao" type="submit">Salvar</button>
-                </p>
-              </form>
-            </details>
-          </li>
-        ))
-      }
-    </ul>
-  </section>
-
-  <section class="painel">
-    <h2>Novo tipo</h2>
-    <form method="post" action="/api/tipos" class="tipo-da-lista__form">
-      <input type="hidden" name="acao" value="criar" />
-      <label class="campo">
-        <span>Nome</span>
-        <input type="text" name="rotulo" maxlength="40" required placeholder="Ex.: Formatura" data-escolha-nome />
-      </label>
-      <EscolhaDoTipo chave="novo" cor={corLivre} icone={RABISCO_PADRAO} rotulo="" emUso={emUso} />
-      <p class="acoes">
-        <button class="botao" type="submit">Criar tipo</button>
-      </p>
-    </form>
-  </section>
 </Pagina>
 
 <script>
-  // A prévia acompanha a escolha: a cor troca os papéis de cor do bloco, o desenho copia o rabisco
-  // marcado e o nome segue o que está sendo digitado. Sem script, a prévia mostra o que está salvo.
+  // A escolha aparece na hora em três lugares: na prévia "Como fica", na etiqueta pequena junto do
+  // "Salvar" e na etiqueta do resumo do tipo. A cor troca os papéis de cor, o desenho copia o rabisco
+  // marcado e o nome segue o que está sendo digitado. Sem script, tudo mostra o que está salvo.
   for (const form of document.querySelectorAll<HTMLFormElement>('.tipo-da-lista__form')) {
     const previa = form.querySelector<HTMLElement>('[data-escolha-previa]');
     if (!previa) continue;
+    const etiquetas = [
+      ...previa.querySelectorAll<HTMLElement>('.etiqueta'),
+      ...form.querySelectorAll<HTMLElement>('[data-escolha-amostra] .etiqueta'),
+      ...(form.closest('details')?.querySelectorAll<HTMLElement>('summary .etiqueta') ?? []),
+    ];
+    const nomeDoDesenho = form.querySelector('[data-escolha-nome-do-desenho]');
     const atualizar = () => {
       const cor = form.querySelector<HTMLInputElement>('[data-escolha-cor]:checked')?.value;
       if (cor) {
         const estilo = `--tipo-pastel: var(--${cor}-pastel); --tipo-meio: var(--${cor}-meio); --tipo-cor: var(--${cor}-vivo); --tipo-tinta: var(--${cor}-tinta)`;
         previa.setAttribute('style', estilo);
-        previa.querySelector('.etiqueta')?.setAttribute('style', estilo);
+        for (const etiqueta of etiquetas) etiqueta.setAttribute('style', estilo);
       }
-      const desenho = form.querySelector<HTMLInputElement>('[data-escolha-icone]:checked')?.closest('label')?.querySelector('svg');
-      if (desenho) for (const svg of previa.querySelectorAll('svg.icone')) svg.innerHTML = desenho.innerHTML;
+      const marcado = form.querySelector<HTMLInputElement>('[data-escolha-icone]:checked');
+      const desenho = marcado?.closest('label')?.querySelector('svg');
+      if (desenho) for (const svg of [previa, ...etiquetas].flatMap((e) => [...e.querySelectorAll('svg.icone')])) svg.innerHTML = desenho.innerHTML;
+      if (marcado && nomeDoDesenho) nomeDoDesenho.textContent = marcado.dataset.nome ?? '';
       const nome = form.querySelector<HTMLInputElement>('[data-escolha-nome]')?.value.trim();
-      const rotulo = previa.querySelector('[data-etiqueta-rotulo]');
-      if (rotulo) rotulo.textContent = nome || 'Nome do tipo';
+      for (const rotulo of [previa, ...etiquetas].flatMap((e) => [...e.querySelectorAll('[data-etiqueta-rotulo]')])) rotulo.textContent = nome || 'Nome do tipo';
     };
     form.addEventListener('change', atualizar);
     form.addEventListener('input', atualizar);

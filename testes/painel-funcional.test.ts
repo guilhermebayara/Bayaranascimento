@@ -9,12 +9,18 @@ const depois = (d: Date, ms: number) => new Date(d.getTime() + ms);
 describe('a carta e as visitas', () => {
   const natal = em('2026-12-24T21:00:00');
 
-  it('a carta aparece no alto só na primeira visita, e continua lá enquanto a visita dura', () => {
+  // Resposta do Gui às perguntas P14 e P15 do QA de design de 17/11/2026: a carta aparece uma vez.
+  // Antes, ela ficava no alto enquanto a primeira visita durava.
+  it('a carta aparece no alto uma vez só: na volta ao Início, mesmo na mesma visita, vem o painel', () => {
     const primeira = chegarAoPainel(undefined, natal, true);
     expect(primeira.cartaNoAlto).toBe(true);
     expect(primeira.novidadesDesde).toBeNull();
+    expect(primeira.registro.carta).toBe('2026-12-24 21:00:00');
     const recarregou = chegarAoPainel(primeira.registro, depois(natal, 10 * 60 * 1000), true);
-    expect(recarregou.cartaNoAlto).toBe(true);
+    expect(recarregou.cartaNoAlto).toBe(false);
+    // Ainda é a primeira visita: sem visita anterior, não há "o que entrou de novo"
+    expect(recarregou.novidadesDesde).toBeNull();
+    expect(recarregou.registro.carta).toBe('2026-12-24 21:00:00');
     const outroDia = chegarAoPainel(recarregou.registro, depois(natal, 24 * 60 * 60 * 1000), true);
     expect(outroDia.cartaNoAlto).toBe(false);
     expect(chegarAoPainel(outroDia.registro, depois(natal, 3 * 24 * 60 * 60 * 1000), true).cartaNoAlto).toBe(false);
@@ -25,6 +31,7 @@ describe('a carta e as visitas', () => {
     expect(antes.cartaNoAlto).toBe(false);
     const escrita = chegarAoPainel(antes.registro, em('2026-12-01T10:00:00'), true);
     expect(escrita.cartaNoAlto).toBe(true);
+    expect(chegarAoPainel(escrita.registro, em('2026-12-01T10:05:00'), true).cartaNoAlto).toBe(false);
     expect(chegarAoPainel(escrita.registro, em('2026-12-05T10:00:00'), true).cartaNoAlto).toBe(false);
   });
 

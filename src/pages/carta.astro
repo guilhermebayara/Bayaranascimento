@@ -18,13 +18,11 @@ const fotos = carta
 <Visual titulo="Carta de Natal" secao="painel" familia="tudo">
   {
     carta && eu ? (
-      <Carta para={eu.apelido ?? eu.nome} carta={carta} fotos={fotos} acao={{ href: '/', texto: 'Voltar ao início' }}>
+      <Carta para={eu.apelido ?? eu.nome} carta={carta} fotos={fotos} acao={{ href: '/', texto: 'Voltar ao início', quieta: true }}>
         {usuario.admin && (
-          <p class="carta__admin">
-            <a class="acao acao--quieta" href="/admin/carta">
-              Escrever a carta
-            </a>
-          </p>
+          <a class="acao acao--quieta" href="/admin/carta">
+            Editar a carta
+          </a>
         )}
       </Carta>
     ) : (

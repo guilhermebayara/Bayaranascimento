@@ -118,6 +118,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P1. O mesmo lugar tem três nomes. Qual fica?
 
+**Feito (opção A):** o menu segue "Explorar" e a carta segue "Abrir o acervo"; o convite do fim do Início passou a dizer "Explorar todas as memórias". Capturas: p20-convite-decadas-e-teste--390.jpg, p20-convite-decadas-e-teste--1280.jpg.
+
 **muda a experiência**
 
 - Contexto: o Gui aprovou "Explorar" como nome do item do menu e do endereço, "Ver a linha do tempo inteira" no Início e "Abrir o acervo" na carta.
@@ -128,6 +130,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P2. No celular, "Nova memória" deve ficar à vista na barra?
+
+**Feito (opção A):** "Nova memória" entrou na barra do celular, sublinhada, entre a marca e o retrato, e saiu do fim do menu. Capturas: p02-barra--390.jpg, p02-barra--320.jpg, p09-menu-aberto--390.jpg.
 
 **muda a experiência**
 
@@ -140,6 +144,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P3. O rodapé deve repetir o menu e ter "Voltar ao alto"?
 
+**Feito (opção A):** o rodapé ganhou os cinco itens do menu como ações quietas e, no celular, "Voltar ao alto". Capturas: p03-rodape-inicio--390.jpg, p03-rodape-inicio--1280.jpg.
+
 **ajuste**
 
 - Contexto: o topo não fica parado ao rolar (o cuidado com o Safari do iPhone pede isso), e o rodapé tem só a frase "Acervo privado da família. Você entrou como Fulano." e a assinatura.
@@ -150,6 +156,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P4. Como alguém sai da conta num aparelho dividido?
+
+**Feito (opção A):** "Sair" no fim de "Sua conta" e ao lado da frase do rodapé, levando à saída do Access, só na produção e na homologação (as capturas foram tiradas com o login forçado no computador). Capturas: p04-sair-na-conta-e-no-rodape--390.jpg, p04-sair-na-conta-e-no-rodape--1280.jpg.
 
 **ajuste**
 
@@ -162,6 +170,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P5. Onde mora a carta depois da primeira visita?
 
+**Feito (opção A):** o link do Início ficou e "Sua conta" ganhou, para todos, o carimbo "Natal de 2026" com "Ler a carta de Natal". Capturas: p05-carta-na-conta--390.jpg, p05-carta-na-conta--1280.jpg.
+
 **ajuste**
 
 - Contexto: depois da primeira visita, a carta fica num "link discreto" do Início (`docs/decisoes.md`).
@@ -173,6 +183,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P6. O Início deve avisar dos rascunhos da pessoa?
 
+**Feito (opção A):** com rascunho, a abertura do Início mostra "Você tem um rascunho." e "Continuar o rascunho", que leva direto a ele; com mais de um, "Ver seus rascunhos" leva à lista. Capturas: p25-abertura-rascunho-e-ultima-visita--390.jpg.
+
 **ajuste**
 
 - Contexto: em 16/11/2026 o Gui decidiu que "Rascunhos" sai do menu e mora em "Sua conta". A lixeira também.
@@ -183,6 +195,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está, só na conta.
 
 ### P7. A assinatura do rodapé precisa desse tamanho em todas as telas?
+
+**Feito (opção A):** a assinatura do rodapé tem metade da largura nos formulários e nas telas utilitárias (rascunhos, lixeira, administração, "Sua conta", página não encontrada, sistema) e segue inteira nas outras. Capturas: p07-rodape-metade-rascunhos--390.jpg, p07-rodape-metade-rascunhos--1280.jpg, p07-rodape-metade-rascunhos--1920.jpg, p07-rodape-inteiro-memoria--1920.jpg.
 
 **ajuste**
 
@@ -196,6 +210,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P8. Quem a pessoa deve avisar quando o acesso ou o espaço falha?
 
+**Feito (opção A):** os dois recados dizem "Avise o Gui, a Giovanna ou o Magno", e `docs/decisoes.md` acompanha. Capturas: nenhuma, é só texto.
+
 **detalhe**
 
 - Contexto: o Magno é administrador desde 16/11/2026. Nesta rodada, os recados de permissão passaram a dizer "os administradores" (era o defeito conhecido da API de tipos, e havia mais dois iguais, no espelho e na cópia).
@@ -205,6 +221,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está, com os dois nomes que a família procura primeiro.
 
 ### P9. O menu do celular deve fechar com Esc e com o toque fora?
+
+**Feito (opção A):** um script pequeno fecha o menu com Esc (o foco volta ao "Menu") e com o toque fora; sem script, continua como era. Capturas: p09-menu-aberto--390.jpg.
 
 **detalhe**
 
@@ -216,6 +234,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P10. Que item acende em "Nova memória", no relato e na carta?
 
+**Feito (opção A):** `/nova` acende "Nova memória" (no topo do computador e na barra do celular) e o relato acende "Explorar"; a carta segue em "Início". Capturas: p10-nova-acesa--390.jpg, p10-nova-acesa--1280.jpg.
+
 **detalhe**
 
 - Contexto: o sinal de onde a pessoa está é o ponto de 6 px na cor viva e o texto mais escuro, no item do menu.
@@ -225,6 +245,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P11. `/temas` deve levar aos capítulos?
+
+**Feito (opção A):** `/temas` leva a `/capitulos#temas`. Capturas: nenhuma, é só o caminho.
 
 **detalhe**
 
@@ -236,6 +258,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P12. No celular, "Sua conta" precisa estar na barra e no menu?
+
+**Feito (opção A):** mantido como está. Capturas: p02-barra--390.jpg.
 
 **detalhe**
 
@@ -249,6 +273,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P13. Num dia sem novidade, o que a primeira tela mostra no computador?
 
+**Feito (opção A):** sem novidade, no computador, a mesa da direita recebe "Neste dia, em outros anos" como fotos ou, sem ele, a memória para contar, e o envelope só aparece quando chegou algo. Capturas: p13-sem-novidade-neste-dia-na-mesa--390.jpg, p13-sem-novidade-neste-dia-na-mesa--1280.jpg, p13-sem-novidade-neste-dia-na-mesa--1920.jpg, p13-sem-novidade-contar-na-mesa--1280.jpg.
+
 **muda a experiência**
 
 - Contexto: a ideia forte do Início é "o que entrou de novo". A composição do computador põe a abertura em cinco colunas à esquerda e a mesa das novidades nas sete da direita. "Que bom que você chegou." foi aprovado como frase.
@@ -260,6 +286,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: inicio-painel-sem-novidade--1280.jpg, inicio-painel-sem-novidade--1920.jpg, inicio-painel-chegou--1280.jpg
 
 ### P14. Na primeira visita, a carta fica sozinha na tela ou com o painel embaixo?
+
+**Feito (opção A):** na primeira visita a tela é só a carta, e "Abrir o acervo" leva ao Início normal, com a carta no link discreto. Capturas: p14-primeira-visita-so-a-carta--390.jpg, p14-primeira-visita-so-a-carta--1280.jpg.
 
 **muda a experiência**
 
@@ -273,6 +301,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P15. A carta deve voltar ao alto toda vez que a pessoa toca em "Início" na primeira visita?
 
+**Feito (opção A):** a carta aparece no alto uma vez; na volta ao Início vem o painel, com o link "Carta de Natal" (regra em `chegarAoPainel`, teste ajustado). Capturas: p15-volta-ao-inicio-depois-da-carta--390.jpg, p15-volta-ao-inicio-depois-da-carta--1280.jpg.
+
 **muda a experiência**
 
 - Contexto: regra de `src/lib/painel.ts`: a carta fica no alto durante toda a visita em que apareceu, e a visita só termina depois de duas horas sem abrir o Início.
@@ -283,6 +313,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P16. "Você estava lá e ainda não contou" deve subir na página?
+
+**Feito (opção A):** o cartão de contar vem logo depois das novidades (ou da abertura), antes de "Neste dia", e é a primeira coluna no computador. Capturas: p16-contar-antes-de-neste-dia--390.jpg, p19-cartoes-tres--1280.jpg.
 
 **muda a experiência**
 
@@ -296,6 +328,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P17. Com uma memória e um relato novos, onde fica o relato no computador?
 
+**Feito (opção A):** o relato tem sempre a fileira dele, embaixo das fotos, com sete colunas da mesa. Capturas: p17-uma-memoria-e-um-relato--1280.jpg.
+
 **ajuste**
 
 - Contexto: `painel.css` tem uma regra para o relato ocupar a segunda fileira da mesa, em sete colunas (`.novidade--relato`, linhas 493-497). A captura aprovada do painel mostra o caso de uma memória e um relato.
@@ -307,6 +341,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: inicio-painel-mesa-relato-estreito--1280.jpg
 
 ### P18. Com muitas novidades, o que ocupa a esquerda da mesa no computador?
+
+**Feito (opção A):** quando há "E mais N", o relato e essa linha descem para uma fileira de largura inteira, embaixo da abertura e das duas fotos. Capturas: p18-muitas-novidades--1280.jpg, p18-muitas-novidades--1920.jpg.
 
 **ajuste**
 
@@ -320,6 +356,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P19. Os cartões devem se ajustar ao que têm dentro?
 
+**Feito (opção A):** com dois cartões, duas colunas; "Neste dia" com uma ou duas memórias é um cartão da fileira, e com três ou quatro é uma faixa ao lado do cartão de contar. Capturas: p19-cartoes-dois--1280.jpg, p19-cartoes-tres--1280.jpg, p19-cartoes-faixa-ao-lado-de-contar--1280.jpg, p19-cartoes-faixa-ao-lado-de-contar--1920.jpg.
+
 **ajuste**
 
 - Contexto: no computador, os cartões ficam em três colunas da mesma altura, e "Neste dia" numa faixa de quatro colunas.
@@ -332,6 +370,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P20. "Ver a linha do tempo inteira" precisa ser do tamanho do título da página?
 
+**Feito (opção A):** o convite desceu para `t-2`, e a saudação é o único título grande. Capturas: p20-convite-decadas-e-teste--390.jpg, p20-convite-decadas-e-teste--1280.jpg.
+
 **ajuste**
 
 - Contexto: o convite do fim da página usa `t-1`, o mesmo tamanho de "Oi, Gui.".
@@ -341,6 +381,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está, como fecho da página.
 
 ### P21. O botão "Escrever meu relato" pode quebrar em duas linhas?
+
+**Feito (opção A):** no cartão estreito (390 e 1280 px), o botão ocupa a largura do cartão, embaixo da foto e do título, numa linha só. Capturas: p16-contar-antes-de-neste-dia--390.jpg, p19-cartoes-tres--1280.jpg.
 
 **ajuste**
 
@@ -354,6 +396,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P22. Apelido com parentesco aparece igual para todo mundo?
 
+**Feito (opção A):** apelido com parentesco que não é o de quem olha vira o nome, com o parentesco de quem olha embaixo (para a Elizete, "Lourdes", "sua irmã"); sem parentesco conhecido com quem olha, o apelido fica. Capturas: p22-aniversarios-nome-de-quem-olha--390.jpg.
+
 **ajuste**
 
 - Contexto: nos aniversários, o parentesco não se repete quando o apelido já traz ("Tia Cida" fica sem "sua tia"). O apelido é um só por pessoa.
@@ -364,6 +408,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: inicio-painel-aniversarios--390.jpg
 
 ### P23. As décadas do fim da página parecem anos?
+
+**Feito (opção A):** as décadas dizem "Anos 2020", "Anos 90", como no filtro do Explorar. Capturas: p20-convite-decadas-e-teste--390.jpg.
 
 **detalhe**
 
@@ -377,6 +423,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P24. "Relato novo · em O Chico chega" se lê bem?
 
+**Feito (opção A):** o rótulo diz só "Relato novo", e o título da memória vem numa linha própria, em serifa. Capturas: p24-relato-novo-e-mais-n--390.jpg.
+
 **detalhe**
 
 - Contexto: o rótulo da novidade vai em mono, caixa alta.
@@ -389,6 +437,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P25. A data de hoje precisa estar no alto do Início?
 
+**Feito (opção A):** a data de hoje saiu do alto, e a última visita leva o ano quando não é o corrente ("em 1 jan de 2020"). Capturas: p25-abertura-rascunho-e-ultima-visita--390.jpg.
+
 **detalhe**
 
 - Contexto: acima da saudação vêm duas linhas em mono: "Só você vê esta página" (pedido do Gui) e a data de hoje.
@@ -400,6 +450,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P26. A foto do cartão de contar deve ser link?
 
+**Feito (opção A):** a foto do cartão de contar leva à memória, como o título. Capturas: p16-contar-antes-de-neste-dia--390.jpg.
+
 **detalhe**
 
 - Contexto: nas novidades e em "Neste dia", a foto leva à memória. No cartão de contar, só o título leva.
@@ -410,6 +462,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P27. "Aniversários dos próximos 30 dias" pode ser mais curto?
 
+**Feito (opção A):** o título do cartão é "Próximos aniversários". Capturas: p22-aniversarios-nome-de-quem-olha--390.jpg.
+
 **detalhe**
 
 - Contexto: é o título em mono do cartão.
@@ -419,6 +473,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P28. O botão de teste "Voltar Fulano à primeira visita" deve ficar separado?
+
+**Feito (opção A):** o botão de teste fica depois de um espaço e de um fio, com o rótulo "Teste" em mono. Capturas: p20-convite-decadas-e-teste--390.jpg, p20-convite-decadas-e-teste--1280.jpg.
 
 **detalhe**
 
@@ -433,6 +489,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P29. As fotos da carta devem levar às memórias?
 
+**Feito (opção A):** cada foto da carta leva à memória dela, com nome para o leitor de tela, e a da frente é a primeira na ordem do teclado. Capturas: p29-carta-fotos-e-acoes--390.jpg, p29-carta-fotos-e-acoes--1280.jpg.
+
 **ajuste**
 
 - Contexto: as três fotos que vêm com a carta são as memórias mais recentes em que a pessoa aparece. Hoje são enfeite, escondidas do leitor de tela.
@@ -445,6 +503,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P30. Em `/carta`, o administrador lê "Escrever a carta" com a carta já escrita?
 
+**Feito (opção A):** com a carta escrita, o link dos administradores diz "Editar a carta"; sem carta, "Escrever a carta". Capturas: p29-carta-fotos-e-acoes--390.jpg.
+
 **detalhe**
 
 - Contexto: abaixo do botão, os administradores têm um link para `/admin/carta`.
@@ -454,6 +514,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P31. "Voltar ao início" deve ser botão cheio com seta para a frente?
+
+**Feito (opção A):** em `/carta`, "Voltar ao início" é uma ação sublinhada, sem seta. Capturas: p29-carta-fotos-e-acoes--390.jpg, p29-carta-fotos-e-acoes--1280.jpg.
 
 **detalhe**
 
@@ -468,6 +530,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P32. A primeira tela do Explorar pode mostrar uma foto?
 
+**Feito (opções A e B):** no celular, as opções de "Forma de ver" e de "Família" ficam numa linha só que rola para o lado e os respiros do alto encolheram; em 1280 e 1920 px a assinatura do Explorar tem dois terços do tamanho, e o primeiro ano vem logo abaixo da faixa de décadas. A primeira foto começa em y = 732 em 1280 × 900 e em y = 834 em 1920 × 1080. No celular (390 × 844) ela começa em y = 810 com a faixa de teste, e só a borda de cima aparece. Capturas: p32-primeira-tela--390.jpg, p32-primeira-tela--1280.jpg, p32-primeira-tela--1920.jpg.
+
 **muda a experiência**
 
 - Contexto: a ideia da tela é "a assinatura grande, e logo o ano mais recente abrindo a lista", com menu e filtros pequenos.
@@ -479,6 +543,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `explorar-linha-primeira-tela--390.jpg`, `explorar-linha-primeira-tela--1280.jpg`, `explorar-linha-primeira-tela--1920.jpg`
 
 ### P33. No celular, quem marca um filtro fica sabendo que ele valeu?
+
+**Feito (opção A):** com script, o fim do formulário tem o botão "Ver as 3 memórias" ("Ver a memória" com uma), que fecha o painel, leva ao começo do resultado e muda a cada escolha; sem resultado, diz "Nenhuma memória passa nesses filtros.". Capturas: p33-ver-as-memorias--390.jpg, p33-ver-as-memorias--1280.jpg, p33-depois-de-ver--390.jpg.
 
 **muda a experiência**
 
@@ -492,6 +558,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P34. "Modo TV" e "Me mostre uma memória" são formas de ver como as outras três?
 
+**Feito (opção A):** "Forma de ver" ficou com as três formas que trocam no lugar, e "Modo TV" e "Me mostre uma memória" são duas ações ao lado, com seta. Capturas: p32-primeira-tela--1280.jpg, p32-primeira-tela--390.jpg.
+
 **ajuste**
 
 - Contexto: "Forma de ver" tem cinco opções com o mesmo desenho. O nome do controle foi aprovado.
@@ -503,6 +571,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P35. "Década" aparece duas vezes, com dois efeitos: fica assim?
 
+**Feito (opção A):** a faixa se chama "Ir para a década" nas três larguras, e o filtro ficou só com "Do ano" e "Até o ano". O endereço antigo com a década continua valendo e aparece nos dois campos. Capturas: p32-primeira-tela--1280.jpg, p36-filtros-em-colunas--390.jpg.
+
 **ajuste**
 
 - Contexto: a faixa de décadas pula para a década na página. Em "Filtros", "Período" tem "Década", que tira as outras décadas, e ainda "Do ano" e "Até o ano".
@@ -513,6 +583,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P36. No celular, as caixas de "Tipo de momento" podem ficar em colunas?
+
+**Feito (opção A):** no celular, as caixas de marcar ficam em duas colunas fixas. Capturas: p36-filtros-em-colunas--390.jpg.
 
 **ajuste**
 
@@ -526,6 +598,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P37. A etiqueta da família pode parar de mexer de lugar quando é marcada?
 
+**Feito (opção A):** toda opção reserva a largura do negrito, e nenhuma muda de lugar ao ser marcada (medido em 390, 1280 e 1920 px). Capturas: p37-familia-marcada--1280.jpg.
+
 **detalhe**
 
 - Contexto: a etiqueta marcada fica em negrito, e a que perde a marca volta ao peso normal.
@@ -537,6 +611,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P38. Sem resultado, a linha da conta deve dizer "Nenhuma memória"?
 
+**Feito (opção A):** sem resultado, a conta diz "Nenhuma memória". Capturas: p38-nenhuma-memoria--390.jpg.
+
 **detalhe**
 
 - Contexto: abaixo da assinatura fica a conta ("46 memórias · de 1958 a 2026"), que também é lida pelo leitor de tela a cada troca.
@@ -546,6 +622,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P39. Ao sair do modo TV, a pessoa volta para onde estava?
+
+**Feito (opção A):** "Sair do modo TV", o Esc e "Voltar ao Explorar" levam à linha do tempo, na memória que estava na tela. Capturas: p39-volta-do-modo-tv--390.jpg, p39-volta-do-modo-tv--1280.jpg.
 
 **detalhe**
 
@@ -560,6 +638,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P40. A legenda da foto na linha do tempo pode ser maior que 9 px?
 
+**Feito (opção A):** a legenda da foto tem piso de 11 px. Na linha do tempo, "lugar (ano)" continua numa linha; na foto pequena da lista, em 1280 px, a legenda mais longa ocupa duas linhas, como já ocupava com 9 px. Capturas: p39-volta-do-modo-tv--390.jpg, p41-fecho--1280.jpg.
+
 **ajuste**
 
 - Contexto: toda foto revelada leva "lugar (ano)" na margem, em mono maiúscula. O tamanho acompanha a largura da foto, com piso de 9 px.
@@ -571,6 +651,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P41. No fim da linha do tempo, a página pode ter um fecho?
 
+**Feito (opção A):** depois da última memória, o fecho "Aqui começa o acervo." com "Nova memória" e "Voltar ao começo". A frase só aparece quando a última memória da tela é a mais antiga do acervo; com filtro ou em outra ordem ficam só as duas ações. Capturas: p41-fecho--390.jpg, p41-fecho--1280.jpg, p41-fecho--1920.jpg.
+
 **detalhe**
 
 - Contexto: a linha vai da memória mais recente à mais antiga.
@@ -581,6 +663,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `explorar-linha-fim--390.jpg`
 
 ### P42. Na tela grande e no toque, dá para saber de qual capítulo é cada trilho?
+
+**Feito (opção A):** mantido como está.
 
 **detalhe**
 
@@ -595,6 +679,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P43. Lista em 1280 px: o lugar fica embaixo do título? (PR #39, pergunta 3)
 
+**Feito (opção A):** mantido como está.
+
 **ajuste**
 
 - Contexto: com a margem da foto à direita, as sete colunas não cabem em 1280 px sem cortar "Belo Horizonte" e o nome do capítulo.
@@ -605,6 +691,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: sem a margem da foto: a foto acompanha o cursor, como na agenda da @bsurda (pede script).
 
 ### P44. Na lista, o ano precisa ser do tamanho de capa?
+
+**Feito (opção A):** na lista, em 1280 e 1920 px, o ano tem tamanho de título de página (91 e 124 px), com a conta ao lado. A lista inteira passou de 14.760 para 12.064 px em 1280 e de 16.976 para 13.250 px em 1920. Capturas: p44-lista--1280.jpg, p44-lista--1920.jpg.
 
 **ajuste**
 
@@ -618,6 +706,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P45. Lista: o que mostrar no lugar da data quando a memória só tem o ano? (PR #39, pergunta 2)
 
+**Feito (opção A):** mantido como está.
+
 **detalhe**
 
 - Contexto: dentro do bloco do ano, a linha mostra o dia e o mês. Memória só com o ano não tem o que mostrar ali.
@@ -628,6 +718,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: escrever "sem dia".
 
 ### P46. Lista: qual nome entra em "quem estava" e quantos capítulos? (PR #39, pergunta 4)
+
+**Feito (opção A):** mantido como é chamada ou o primeiro nome, e o nome que começa pelo parentesco ou pelo tratamento entra com a palavra seguinte ("Vó Bela", "Prima Júlia", "Dona Fátima"). Capturas: p44-lista--390.jpg.
 
 **detalhe**
 
@@ -642,6 +734,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P47. Em 1920 px, o mural é para ver do sofá ou de perto?
 
+**Feito (opção A):** mantido como está.
+
 **detalhe**
 
 - Contexto: no tamanho médio a tela grande mostra oito colunas. Para ver junto existe o modo TV.
@@ -655,6 +749,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P48. No modo TV em 1920 px, os textos pequenos dão para ler do sofá?
 
+**Feito (opção A):** no modo TV a partir de 100rem, o carimbo, quem estava e a legenda da foto principal têm 24 px, e os controles e os ajustes, 22 px. Capturas: p48-modo-tv--1920.jpg, p50-ajustes-abertos--1920.jpg.
+
 **muda a experiência**
 
 - Contexto: o modo TV é a tela de ver junto, parado, na sala.
@@ -667,6 +763,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P49. No celular, o modo TV pode dizer qual é a memória antes dos controles?
 
+**Feito (opção A):** no celular, o carimbo e o título vêm antes das fotos, e o trecho depois dos controles. Vale também no "ao acaso", que usa a mesma tela. Capturas: p48-modo-tv--390.jpg, p49-ao-acaso--390.jpg.
+
 **ajuste**
 
 - Contexto: no celular as outras fotos ficam atrás da principal e os controles vêm logo abaixo.
@@ -678,6 +776,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `explorar-tv-celular--390.jpg`
 
 ### P50. "Ajustes" aberto pode caber na tela também em 1280 × 900?
+
+**Feito (opção A):** no computador, as três partes de "Ajustes" abrem lado a lado, numa faixa abaixo da cena. Com "Ajustes" aberto a página cabe em 1280 × 900 e em 1920 × 1080; em 1280 × 720 ela tem 818 px. Capturas: p50-ajustes-abertos--1280.jpg, p50-ajustes-abertos--1920.jpg.
 
 **detalhe**
 
@@ -693,6 +793,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P51. No celular, "Quem estava" pode ocupar menos, para o relato chegar antes?
 
+**Feito (opção A):** no celular, "Quem estava" mostra seis retratos e "Ver todos os 9" abre o resto no lugar, com o foco na primeira pessoa que aparece; sem script e a partir de 40rem, todos à vista. Capturas: `p51-quem-estava--390.jpg`, `p51-quem-estava-aberto--390.jpg`, `p51-quem-estava--1280.jpg`, `p51-quem-estava--1920.jpg`.
+
 **ajuste**
 
 - Contexto: a ordem combinada é abertura, ficha, quem estava, relatos, fotos. Os retratos são grandes, três por linha no celular.
@@ -705,6 +807,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P52. Quando o relato inteiro já está na abertura, ele precisa aparecer de novo logo abaixo?
 
+**Feito (opção A):** com um só relato, sem áudio, contado pela própria pessoa e que coube inteiro no trecho da abertura, a seção "Relato" não aparece e a página segue para as fotos. Capturas: `p51-quem-estava--390.jpg` (de "Quem estava" a página vai direto para "Fotos").
+
 **ajuste**
 
 - Contexto: a abertura traz um trecho do primeiro relato, assinado à mão. Mais abaixo, a seção "Relato" mostra os bilhetes.
@@ -715,6 +819,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P53. Memória sem foto: o que ocupa o lado direito da abertura em 1280 e 1920 px?
+
+**Feito (opção A):** a partir de 62rem, a memória sem foto leva à direita o cartão do tipo de momento, o mesmo da linha do tempo; no celular nada muda. Capturas: `p53-sem-foto--390.jpg`, `p53-sem-foto--1280.jpg`, `p53-sem-foto--1920.jpg`.
 
 **ajuste**
 
@@ -728,6 +834,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P54. Quem já contou precisa do convite grande com o botão cheio?
 
+**Feito (opção A):** quem já contou vê uma linha quieta, "Você já contou esse dia." e "Editar meu relato" como ação de texto, sem cartão e sem botão cheio; a página termina em "Antes" e "Depois". Capturas: `p54-ja-contou--390.jpg`, `p54-ja-contou--1280.jpg`, `p54-ja-contou--1920.jpg`.
+
 **ajuste**
 
 - Contexto: no fim da página fica o convite, com o botão principal. Para quem já escreveu, o bilhete diz "Você já contou esse dia." e o botão vira "Editar meu relato".
@@ -740,6 +848,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P55. Tocar fora da foto deve fechar a galeria?
 
+**Feito (opção A):** clicar ou tocar no fundo fecha a galeria; a foto, a legenda e os controles não fecham, e o Esc e o voltar continuam valendo. Capturas: `p55-galeria--1280.jpg`, `p55-galeria--1920.jpg`.
+
 **detalhe**
 
 - Contexto: a regra de movimento diz "a foto que amplia ao toque e fecha ao tocar fora". A galeria fecha por "Fechar", pelo Esc e pelo voltar do aparelho.
@@ -750,6 +860,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `explorar-memoria-galeria--1920.jpg`
 
 ### P56. "Antes" e "Depois" devem seguir de onde a pessoa veio?
+
+**Feito (opção A):** mantido como está.
 
 **detalhe**
 
@@ -763,6 +875,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P57. "Nada é apagado de vez" precisa aparecer duas vezes?
 
+**Feito (opção A):** na memória publicada o subtítulo fica só "Confira antes de confirmar."; no rascunho, onde o cartão não repete a frase, continua inteiro. Capturas: `p57-p58-p59-excluir--390.jpg`, `p57-p58-p59-excluir--1280.jpg`.
+
 **detalhe**
 
 - Contexto: o subtítulo "Confira antes de confirmar. Nada é apagado de vez." foi aprovado para as telas de confirmação.
@@ -774,6 +888,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P58. O botão vermelho de excluir leva seta?
 
+**Feito (opção A):** o botão de perigo não leva mais a seta, aqui e nas outras confirmações (a regra é do botão). Capturas: `p57-p58-p59-excluir--390.jpg`, `p57-p58-p59-excluir--1280.jpg`.
+
 **detalhe**
 
 - Contexto: o botão que confirma é cheio, na cor de alerta (aprovado). O botão cheio do sistema traz uma seta.
@@ -784,6 +900,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `explorar-excluir-confirmacao--390.jpg`
 
 ### P59. A frase de quem pode restaurar pode ficar mais simples?
+
+**Feito (opção A):** "você, a Giovanna ou o Lucas Magno podem restaurar tudo como estava"; com um só outro administrador, "você ou a Giovanna". Capturas: `p57-p58-p59-excluir--390.jpg`.
 
 **detalhe**
 
@@ -798,6 +916,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P60. A lista de capítulos vai do mais antigo ao mais recente. Deve seguir o resto do site?
 
+**Feito (opção A):** mantido como está.
+
 **ajuste**
 
 - Contexto: toda linha do tempo do site vai do mais recente ao mais antigo, e os marcos do capítulo também (aprovado em 17/11). A lista de capítulos ordena pelo começo do período, do mais antigo para o mais novo.
@@ -808,6 +928,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: épocas num bloco à parte, no alto, e os capítulos embaixo.
 
 ### P61. O título de cada capítulo precisa ser tão grande?
+
+**Feito (opção A):** o título de cada linha do sumário passou para o tamanho de item de lista (`--t-titulo-3`); a lista de sete capítulos caiu para 806 px em 390 px e 718 px em 1280 px. Capturas: `p61-p63-p64-lista-alto--390.jpg`, `p61-p63-p64-lista-alto--1280.jpg`, `p61-p63-p64-lista-alto--1920.jpg`.
 
 **ajuste**
 
@@ -820,6 +942,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P62. No computador, a coluna do título fica vazia quando a lista rola. Ela deve ficar parada?
 
+**Feito (opção A):** com mouse, o alto do sumário fica parado enquanto a lista rola. Capturas: `p62-lista-rolada--1280.jpg`.
+
 **ajuste**
 
 - Contexto: o comentário do CSS diz "a capa e o alto do sumário ficam parados", mas só a capa do capítulo tem a regra; o alto do sumário não.
@@ -831,6 +955,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P63. "Época" começa em outra margem que "Capítulo", por não ter o ponto de cor. Alinhar?
 
+**Feito (opção A):** toda linha tem o ponto, e o da época é vazado em cinza; os selos começam na mesma margem (46 px em 390 px, 678 px em 1280 px). Capturas: `p61-p63-p64-lista-alto--390.jpg`, `p61-p63-p64-lista-alto--1280.jpg`.
+
 **detalhe**
 
 - Contexto: a época é o chão da linha do tempo e fica sem ponto de cor; os capítulos têm o ponto antes do selo.
@@ -841,6 +967,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P64. Os temas moram no fim da lista de capítulos. É onde a pessoa procura?
+
+**Feito (opção A):** os temas continuam no fim, e o alto ganhou o atalho quieto "Ver os temas", que desce até eles (âncora `#temas`). Capturas: `p61-p63-p64-lista-alto--390.jpg`, `p64-temas--390.jpg`.
 
 **detalhe**
 
@@ -855,6 +983,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P65. No celular, a primeira memória aparece depois de uma tela e meia de capa. A abertura deve vir antes dos botões?
 
+**Feito (opção A):** no celular a ordem é título, período, frase de abertura e depois as ações (a abertura subiu de 476 px para 291 px do alto em "Natais"); o botão e a ação de texto ficam numa linha quando cabem. Capturas: `p65-p67-p70-capitulo-reunido--390.jpg`, `p65-p67-p70-capitulo-epoca--390.jpg`.
+
 **muda a experiência**
 
 - Contexto: a ideia da tela é "abertura de capítulo de livro". A capa fica no alto no celular (decidido em 17/11), com "Quem aparece" numa linha.
@@ -867,6 +997,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P66. No celular, os nomes de "Quem aparece" são links? (PR #39, pergunta 1)
 
+**Feito (opção A):** mantido como está (links, com a linha alta).
+
 **ajuste**
 
 - Contexto: no celular, a linha corrida "Gui (6), Elizete (5)" tomou o lugar da lista com retratos, que levava à página de cada pessoa.
@@ -878,6 +1010,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P67. O botão cheio da página do capítulo deve ser o de editar?
 
+**Feito (opção A):** no reunido o botão cheio é "Nova memória neste capítulo" e editar virou texto; nos outros não há botão cheio, só "Editar capítulo" ou "Editar época" como texto. Capturas: `p65-p67-p70-capitulo-reunido--390.jpg`, `p65-p67-p70-capitulo-reunido--1280.jpg`, `p65-p67-p70-capitulo-reunido--1920.jpg`.
+
 **ajuste**
 
 - Contexto: "a ação principal fica no alto, junto do título" (decisão de 16/11). Hoje o botão cheio é "Escolher memórias e editar" (reunido), "Editar capítulo" ou "Editar época".
@@ -888,6 +1022,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P68. Com a capa parada, o que fica à vista?
+
+**Feito (opção A):** ficam parados só o selo, o título, o período e as ações; a abertura, as notas e "Quem aparece" rolam e passam por trás desse bloco. Capturas: `p68-capa-parada--1280.jpg`, `p68-capa-parada--1920.jpg`.
 
 **ajuste**
 
@@ -901,6 +1037,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P69. "Ver no Explorar" leva para fora do capítulo, sem volta. O nome e o destino estão certos?
 
+**Feito (opção A):** "Ver no Explorar" saiu; a página ganhou "Forma de ver" (Marcos, Mural de fotos, Lista), que troca no lugar, e "Passar no modo TV". Capturas: `p69-p72-marcos--390.jpg`, `p69-p72-marcos--1280.jpg`, `p69-mural--390.jpg`, `p69-mural--1280.jpg`, `p69-mural--1920.jpg`, `p69-lista--390.jpg`, `p69-lista--1280.jpg`.
+
 **ajuste**
 
 - Contexto: abre `/explorar?capitulo=<id>`, com o capítulo como filtro.
@@ -912,6 +1050,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P70. No capítulo de dentro, "Parte de" deve subir para cima do título?
 
+**Feito (opção A):** o capítulo de dentro diz "Capítulo de “Natais”", com o link, acima do título, no lugar do selo; "Parte de" saiu das notas. Capturas: `p65-p67-p70-capitulo-de-dentro--390.jpg`, `p65-p67-p70-capitulo-de-dentro--1280.jpg`.
+
 **ajuste**
 
 - Contexto: "Parte de Natais" fica nas notas, depois das ações e da abertura.
@@ -921,6 +1061,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P71. Numa época, o título dos marcos diz "Memórias do capítulo". Trocar?
+
+**Feito (opção A):** "Memórias da época" na época e "Memórias do capítulo" nos outros. Capturas: `p71-p73-epoca--390.jpg`, `p71-p73-epoca--1280.jpg`.
 
 **detalhe**
 
@@ -933,6 +1075,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P72. A legenda da foto do marco repete o carimbo ao lado. Tirar?
 
+**Feito (opção A):** a foto do marco vai sem legenda, e o carimbo quebra antes do ponto (o ponto abre a segunda linha). Capturas: `p69-p72-marcos--390.jpg`, `p69-p72-marcos--1280.jpg`.
+
 **detalhe**
 
 - Contexto: o marco tem o carimbo ("24 DEZ 2025 · BELO HORIZONTE") e a foto revelada com a legenda de sempre ("BELO HORIZONTE (2025)").
@@ -943,6 +1087,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P73. "em parte neste período" em todas as linhas de "Aconteceu neste período". Dizer só a exceção?
 
+**Feito (opção A):** "em parte neste período" saiu; só o que coube inteiro é marcado, com "inteiro neste período". Capturas: `p71-p73-epoca--390.jpg`, `p71-p73-epoca--1280.jpg`.
+
 **detalhe**
 
 - O que vi: em "Os anos 90", as quatro linhas dizem "em parte neste período". O texto vira ruído.
@@ -951,6 +1097,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P74. Em 1920 px, a coluna da direita acaba antes da margem. É de propósito?
+
+**Feito (opção A):** a partir de 100rem o corpo vai da coluna 6 até a margem (termina em x = 1.851, como o menu), no capítulo e na lista, e a foto do marco cresceu de 11 para 14rem. Capturas: `p65-p67-p70-capitulo-reunido--1920.jpg`, `p61-p63-p64-lista-alto--1920.jpg`.
 
 **detalhe**
 
@@ -964,6 +1112,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P75. As etapas do capítulo viram perguntas?
 
+**Feito (opção A):** as etapas são "Que capítulo é esse?" e "Onde ele se encaixa?", na trilha e na pergunta. Capturas: `p75-p76-novo--390.jpg`, `p75-p76-novo--1280.jpg`.
+
 **ajuste**
 
 - Contexto: uma pergunta por tela, como quem conversa.
@@ -973,6 +1123,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P76. O exemplo do título pode ser mais curto?
+
+**Feito (opção A):** o exemplo é "Ex.: Natais na casa da vó" (204 px num campo de 349 px). Capturas: `p75-p76-novo--390.jpg`.
 
 **detalhe**
 
@@ -986,6 +1138,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P77. O mês do capítulo tem o mesmo desenho do mês da memória?
 
+**Feito (opção A):** o mês do capítulo tem o rótulo "Mês, se souber" e o valor "Não sei", como na memória. Capturas: `p77-mes-do-capitulo--390.jpg`, `p77-mes-do-capitulo--1280.jpg`.
+
 **detalhe**
 
 - Contexto: `CampoData` na memória e `CampoAno` com o mês no capítulo por período.
@@ -997,6 +1151,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 ## Editar capítulo
 
 ### P78. "Sobre o capítulo" vem antes de "Memórias do capítulo"?
+
+**Feito (opção A):** "Sobre o capítulo" vem primeiro (o título do capítulo subiu de y = 2966 para 554 em 390 px); "Memórias do capítulo" mostra as marcadas e uma busca traz as outras para marcar. Sem script, a lista vem inteira. Capturas: `p78-p79-editar-alto--390.jpg`, `p78-memorias-do-capitulo--1280.jpg`, `p78-memorias-busca--390.jpg`.
 
 **muda a experiência**
 
@@ -1010,6 +1166,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `form-capitulo-editar-comeco--390.jpg`
 
 ### P79. Na edição, a trilha vai para a coluna da esquerda, como no capítulo novo?
+
+**Feito (opção A):** no computador, a trilha de "Sobre o capítulo" fica na coluna da esquerda, na altura dessa parte. Capturas: `p78-p79-editar-alto--1280.jpg`, `p78-p79-editar-alto--1920.jpg`.
 
 **ajuste**
 
@@ -1025,6 +1183,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P80. A confirmação repete "Nada é apagado de vez" e muda o nome da ação?
 
+**Feito (opção A):** a abertura ficou só "Confira antes de confirmar." e o botão diz "Excluir capítulo". Capturas: `p80-excluir--390.jpg`, `p80-excluir--1280.jpg`.
+
 **detalhe**
 
 - Contexto: os textos das telas utilitárias foram aprovados.
@@ -1037,6 +1197,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P81. No computador, a primeira tela do tema não mostra nenhuma memória. Recompor?
 
+**Feito (opção A):** a partir de 62rem, o nome do tema e os capítulos ficam à esquerda e as memórias à direita, desde o alto (a primeira memória aparece em y = 604 em 1280 px). Capturas: `p81-p83-tema--390.jpg`, `p81-p83-tema--1280.jpg`, `p81-p83-tema--1920.jpg`.
+
 **ajuste**
 
 - Contexto: a página empilha "Tema", o nome, o link de volta, os capítulos e depois as memórias, igual ao celular.
@@ -1047,6 +1209,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `familia-tema-alto--1280.jpg`
 
 ### P82. O tema deve ter "Forma de ver", como a pessoa?
+
+**Feito (opção A):** o tema ganhou a "Forma de ver" da pessoa (Linha do tempo, Mural de fotos, Lista), que troca no lugar. Capturas: `p82-tema-mural--390.jpg`, `p82-tema-mural--1280.jpg`, `p82-tema-lista--1280.jpg`.
 
 **ajuste**
 
@@ -1059,6 +1223,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P83. Na lista de capítulos do tema, a linha vem sem período e sem conta. Completar?
 
+**Feito (opção A):** a linha do capítulo no tema traz o período e a conta, como no sumário. Capturas: `p81-p83-tema--390.jpg`, `p81-p83-tema--1280.jpg`.
+
 **detalhe**
 
 - O que vi: "Natais / CAPÍTULO", sem "DEZ DE 1994 A DEZ DE 2025" nem "6 memórias", que a mesma linha mostra em `/capitulos`.
@@ -1069,6 +1235,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 ## Árvore
 
 ### P84. A ficha deve aparecer só depois de tocar em alguém, e ter como fechar?
+
+**Feito (opção A):** a árvore abre sem ficha; tocar em alguém mostra a ficha, e o "×", o Esc e o toque no vazio fecham. Com a ficha fechada, o toque em quem já está em foco mostra a ficha em vez de abrir a página. Capturas: `arvore/p84-abre-sem-ficha--390.jpg`, `--1280.jpg`, `--1920.jpg`.
 
 **muda a experiência**
 
@@ -1081,6 +1249,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `familia-arvore-abre--390.jpg`
 
 ### P85. No computador, a ficha fica no canto de cima, longe de quem foi tocado. Onde ela deve ficar?
+
+**Feito (opção A):** a ficha fica embaixo, no centro, com 22rem de largura. Em 1920 px ela fica na linha da barra, entre a legenda e o zoom; até lá, uma linha acima da barra, porque a barra com os nomes novos não deixa lugar ao lado. Capturas: `arvore/p85-ficha-da-elizete--1280.jpg`, `--1920.jpg`.
 
 **muda a experiência**
 
@@ -1095,6 +1265,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P86. No celular, a ficha, o zoom e os ajustes tomam 28% do mapa, e a ficha cobre o ramo aberto. Encolher?
 
+**Feito (opção A):** no celular a ficha é uma linha de 53 px (era de 125), com "Mais" para a segunda ação, e sai enquanto um ramo está aberto. Capturas: `arvore/p85-ficha-da-elizete--390.jpg`, `arvore/p86-ficha-com-mais--390.jpg`, `arvore/p86-ramo-aberto-sem-ficha--390.jpg`.
+
 **muda a experiência**
 
 - Contexto: no celular a ficha fica embaixo, acima do zoom. Com os ajustes abertos ela sai.
@@ -1107,6 +1279,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P87. No celular a legenda não existe. Como a pessoa descobre o que é tracejado, o que é "♥ 2" e o que são as cores?
 
+**Feito (opção A):** botão "Legenda" na barra de baixo do celular, que abre a legenda por cima do mapa; fecha no "×" e no Esc. A barra passou a ter duas linhas no celular. Captura: `arvore/p90-legenda--390.jpg`.
+
 **muda a experiência**
 
 - Contexto: abaixo de 640 px a legenda é escondida ("para sobrar árvore"). O texto do alto explica o arrasto, o toque e o "+".
@@ -1117,6 +1291,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P88. Pelo teclado, o mapa pode andar sozinho até o cartão em foco?
+
+**Feito (opção A):** a caixa do mapa não rola mais, o mapa anda o mínimo até o cartão que recebeu o foco do teclado, e o foco volta para a marca do ramo depois de abrir ou recolher. Conferido com o Tab pelos 51 alvos do mapa em 390, 1280 e 1920 px: nenhum fora da vista. Capturas: `arvore/p88-teclado-cartao-em-foco--390.jpg`, `--1280.jpg`.
 
 **ajuste**
 
@@ -1129,6 +1305,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P89. No computador, a legenda deve abrir fechada e lembrar a escolha?
 
+**Feito (opção A):** no computador a legenda abre na primeira visita e o aparelho lembra se a pessoa fechou. Capturas: `arvore/p89-legenda-na-primeira-visita--1280.jpg`, `--1920.jpg`.
+
 **ajuste**
 
 - Contexto: a legenda nasce aberta, embaixo à esquerda, e reabre a cada visita.
@@ -1139,6 +1317,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P90. A legenda explica tudo o que a árvore mostra?
+
+**Feito (opção A):** três grupos com título, os itens que faltavam ("+ 1", você, quem você tocou, de duas famílias) e o bicho mostrado pela forma do cartão. Os textos dos itens novos são meus e estão no relatório. Capturas: `arvore/p90-legenda--390.jpg`, `--1280.jpg`, `--1920.jpg`.
 
 **ajuste**
 
@@ -1151,6 +1331,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P91. As ações da ficha dizem o que acontece? ("Laços", "Partir desta pessoa")
 
+**Feito (opção A):** a ficha tem "Ver a página" e "Ver a árvore de Fulano"; "Laços" saiu. Capturas: as da P85.
+
 **ajuste**
 
 - Contexto: a ficha tem "Ver a página", "Laços" e "Partir desta pessoa". Tocar de novo no cartão também abre a página.
@@ -1161,6 +1343,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P92. "Ajustar a árvore": o nome, o campo "Partir de" e a opção travada estão claros?
+
+**Feito (opção A):** o valor de agora de "Partir de" aparece em tinta, com "Voltar ao começo" quando o centro foi trocado; "Outras famílias" só aparece com uma família em destaque; no celular o painel abre no pé do mapa, com as caixas em duas colunas e a árvore enquadrada acima; Esc fecha. O sinal de abrir continua o mesmo. Capturas: `arvore/p92-ajustes--390.jpg`, `arvore/p92-ajustes-com-centro--390.jpg`, `--1280.jpg`, `--1920.jpg`.
 
 **ajuste**
 
@@ -1174,6 +1358,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P93. O texto do alto pode encolher?
 
+**Feito (opção A):** o texto do alto é "Toque em alguém para ver quem é.". Capturas: as da P84.
+
 **ajuste**
 
 - Contexto: "Arraste para andar pela família. Toque em alguém para ver quem é, e de novo para abrir a página. Os botões + abrem os outros ramos da família."
@@ -1184,6 +1370,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P94. Até onde o zoom vai? (PR #39, pergunta 10)
+
+**Feito (opção A):** mantido em 400%; saiu a marca de provisório do código.
 
 **detalhe**
 
@@ -1196,6 +1384,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P95. "Ir ao foco" e "Ver tudo": os nomes servem?
 
+**Feito (opção A):** "Voltar para Fulano", com o nome de quem está em foco, e "Ver a árvore inteira". Capturas: as da P85.
+
 **detalhe**
 
 - Contexto: a barra de baixo tem "Ir ao foco", "Ver tudo", "−", a porcentagem e "+".
@@ -1206,6 +1396,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P96. "Cadastrar uma pessoa" aqui e "Cadastrar pessoa" em Pessoas. Unificar?
 
+**Feito (opção A):** "Cadastrar pessoa" nos dois.
+
 **detalhe**
 
 - O que vi: o link abaixo do mapa diz "Cadastrar uma pessoa"; o botão de `/pessoas` diz "Cadastrar pessoa". É a mesma ação.
@@ -1214,6 +1406,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P97. Na ficha, "você, 1999" e "seu irmão, 1995 a 2009". Dizer de outro jeito?
+
+**Feito (opção A):** o parentesco e os anos em caixa alta, separados pelo ponto do carimbo. Capturas: as da P85.
 
 **detalhe**
 
@@ -1225,6 +1419,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 ## Pessoas
 
 ### P98. Com 35 nomes, a lista precisa de busca e de uma ordem que se entenda?
+
+**Feito (opção A, com a troca de ordem):** "Procurar pelo nome" no alto, com a busca de pessoa do site, que abre a página de quem foi escolhido; dentro de cada família, ordem por geração, dos mais velhos aos mais novos, com os bichos no fim; e a troca "Por geração" ou "De A a Z", por link (`?ordem=nome`), sem script. Capturas: `pessoas/p98-busca-e-ordem-por-geracao--390.jpg`, `--1280.jpg`, `--1920.jpg`, `pessoas/p98-procurar-pelo-nome--390.jpg`, `pessoas/p98-ordem-de-a-a-z--1280.jpg`.
 
 **muda a experiência**
 
@@ -1238,6 +1434,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P99. Quem é de duas famílias aparece duas vezes. É o que se quer?
 
+**Feito (opção A):** a repetição continua, e a conta de cada bloco vem por extenso ("19 pessoas · 2 bichos"). Capturas: as da P98.
+
 **ajuste**
 
 - Contexto: membros e parentes de cada família aparecem juntos no bloco dela.
@@ -1248,6 +1446,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P100. A lista tem três margens à esquerda. Alinhar?
+
+**Feito (opção A):** os retratos nascem na margem do nome da família (73 px em 1280 e 93 px em 1920). Capturas: as da P98.
 
 **detalhe**
 
@@ -1260,6 +1460,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P101. "0 memórias" precisa aparecer?
 
+**Feito (opção A):** a linha das memórias some quando a conta é zero. Capturas: as da P98.
+
 **detalhe**
 
 - O que vi: Regina, Vô Zeca e outros três trazem "0 memórias" em mono.
@@ -1271,6 +1473,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P102. "A voz de Fulano" nunca aparece no acervo de exemplo. Pôr áudios de exemplo?
 
+**Feito (opção A, só a tela):** o atalho "Ouvir a voz de Fulano · N áudios" no alto da página, que desce até os áudios e só conta os que quem olha pode ouvir. Os áudios de exemplo são de outra sessão. Conferido com áudios postos só no banco local. Capturas: `pessoas/p102-atalho-da-voz--390.jpg`, `--1280.jpg`, `--1920.jpg`, `pessoas/p102-a-voz-depois-do-atalho--390.jpg`.
+
 **muda a experiência**
 
 - Contexto: a ideia da tela é "o retrato e a voz". O bloco "A voz de Fulano" só aparece quando a pessoa tem relato com áudio.
@@ -1281,6 +1485,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está, e conferir na homologação com um áudio enviado à mão.
 
 ### P103. No celular, "Família e laços" empurra as memórias para longe. Recolher?
+
+**Feito (opção A):** no celular os laços ficam fechados numa linha, "Família e laços · 11 pessoas", que abre no lugar. Na página da Giovanna, "Memórias com Giovanna" passou de 2.108 px para cerca de 940 px do alto. Sem script a lista fica aberta. Capturas: `pessoas/p103-lacos-fechados--390.jpg`, `pessoas/p103-lacos-abertos--390.jpg`.
 
 **muda a experiência**
 
@@ -1295,6 +1501,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P104. O botão cheio da página da pessoa deve ser "Editar página e laços"?
 
+**Feito (opção A):** o botão cheio é "Nova memória com Fulano"; "Editar página e laços" (ou "Adicionar laço") e "Ver na árvore" são texto. Capturas: as da P102.
+
 **ajuste**
 
 - Contexto: "a ação principal fica no alto" (16/11). O botão cheio é "Editar página e laços" e, para quem não pode editar, "Adicionar laço".
@@ -1305,6 +1513,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P105. No celular, o retrato é pequeno para uma tela que tem o retrato como ideia. Aumentar?
+
+**Feito (opção A):** o retrato ocupa três das quatro colunas no celular (258 por 322 px). Captura: `pessoas/p107-a-propria-pagina--390.jpg`.
 
 **ajuste**
 
@@ -1318,6 +1528,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P106. Em 1920 px o retrato sai da margem da página. É de propósito?
 
+**Feito (opção A):** em 1920 px o retrato fica nas colunas 1 a 4, na margem da página (x = 69, 572 por 715 px). Captura: `pessoas/p102-atalho-da-voz--1920.jpg`.
+
 **ajuste**
 
 - Contexto: em 1920 px o retrato vai para as colunas 2 a 4; em 1280 px fica nas colunas 1 a 4.
@@ -1329,6 +1541,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P107. Na própria página, nada diz que é você. Marcar?
 
+**Feito (opção A):** na própria página o carimbo começa com "VOCÊ", o botão é "Nova memória com você" e há o link quieto "Sua conta". Capturas: `pessoas/p107-a-propria-pagina--390.jpg`, `--1280.jpg`, `--1920.jpg`.
+
 **ajuste**
 
 - Contexto: na própria página, o nome é a linha grande, e os laços usam "sua mãe", "seu irmão".
@@ -1339,6 +1553,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P108. "Nascimento: 1999" deve ser um carimbo, sem rótulo?
+
+**Feito (opção A):** o nascimento entra no carimbo das famílias, sem rótulo ("BAYARA · 1999", "1942 A 2019"). Quando o dia e o mês são conhecidos, eles continuam aparecendo ("4 DE MAIO DE 1942"). Capturas: as da P107.
 
 **detalhe**
 
@@ -1352,6 +1568,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P109. Na pergunta do casal, "Separação" e "Já terminou" dizem a mesma coisa de dois jeitos?
 
+**Feito (opção A):** no cadastro guiado, "Como estão hoje?" oferece só Namoro, Noivado, Casamento e União, e "Já terminou" é o único caminho para o fim. Capturas: `p109-guiado-casal--390.jpg`, `p109-guiado-casal--1280.jpg`, `p109-guiado-casal--1920.jpg`.
+
 **muda a experiência**
 
 - Contexto: a pergunta "Fulano tem ou teve um casal?" pede "Como estão hoje?" (Namoro, Noivado, Casamento, União, Separação, Amizade), com "Casamento" já marcado, e logo abaixo a caixa "Já terminou". Está decidido que "Já terminou" acrescenta a separação depois da fase de hoje.
@@ -1364,6 +1582,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P110. O título "Adicionar" acima do formulário de cada pergunta é preciso?
 
+**Feito (opção A):** o título acima do formulário só aparece depois de alguém ser adicionado, como "Adicionar mais alguém". Capturas: `p110-sem-titulo--390.jpg`, `p110-sem-titulo--1280.jpg`, `p110-adicionar-mais-alguem--390.jpg`, `p110-adicionar-mais-alguem--1280.jpg`.
+
 **detalhe**
 
 - Contexto: cada pergunta do guiado é grande, em serifa. Abaixo dela vem um título "Adicionar", também em serifa, e no fim o botão "Adicionar".
@@ -1373,6 +1593,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P111. A trilha do cadastro deve mostrar quantas perguntas vêm?
+
+**Feito (opção A):** mantido como está.
 
 **detalhe**
 
@@ -1384,6 +1606,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P112. Na tela final, "Ver todos os tipos de laço" é o melhor nome para "adicionar mais um laço"?
 
+**Feito (opção A):** na tela final, o link diz "Adicionar outro laço", ou "Adicionar um laço" quando não há nenhum. Capturas: `p112-fim-com-lacos--390.jpg`.
+
 **detalhe**
 
 - Contexto: a tela "Fulano está no acervo" tem o botão "Ver a página de Fulano" e dois links: "Ver todos os tipos de laço" e "Cadastrar outra pessoa".
@@ -1393,6 +1617,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P113. "Foto, nascimento e história" e a frase ao lado parecem dois links?
+
+**Feito (opção A):** só o nome do recolhido é sublinhado, a frase ao lado fica sem sublinhado, e na edição a frase sai. Capturas: `p113-nova-pessoa-recolhido--390.jpg`, `p113-nova-pessoa-recolhido--1280.jpg`, `p113-nova-pessoa-recolhido--1920.jpg`.
 
 **detalhe**
 
@@ -1406,6 +1632,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P114. A ficha e os laços devem continuar na mesma página, cada um com o seu "Salvar"?
 
+**Feito (opção A):** a página continua única. Conferido antes: salvar um laço recarregava a página e o que estava escrito na ficha se perdia. Agora a ficha mexida fica guardada nesta aba ao salvar um laço, volta para os campos e um aviso em "Laços" leva de volta a ela. A foto escolhida não fica guardada, e o aviso diz. Capturas: `p114-aviso-da-ficha--390.jpg`, `p114-aviso-da-ficha--1280.jpg`, `p114-aviso-da-ficha--1920.jpg`.
+
 **muda a experiência**
 
 - Contexto: a página tem a ficha, com "Salvar página", e depois os laços, cada um com o próprio "Salvar". Foi decidido que a ficha vem antes dos laços.
@@ -1416,6 +1644,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P115. Como se sai do editor de um laço sem salvar?
+
+**Feito (opção A):** "Cancelar" em texto sublinhado ao lado de "Salvar", em todo editor de laço: fecha o cartão, desfaz o que foi mexido nele e devolve o foco ao "Editar". Capturas: `p117-zona-quieta--390.jpg`, `p121-quem-ve--1280.jpg`.
 
 **ajuste**
 
@@ -1429,6 +1659,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P116. Os títulos dentro da tela de editar devem ter degraus?
 
+**Feito (opção A):** "O que aconteceu depois?" passou a um título menor, sem serifa, e o título "Ficha" ficou só para o leitor de tela, com "Quem é" abrindo a parte. Capturas: `p116-ficha-sem-titulo--390.jpg`, `p116-ficha-sem-titulo--1280.jpg`, `p116-ficha-sem-titulo--1920.jpg`, `p120-fase-sera-removida--390.jpg`.
+
 **ajuste**
 
 - Contexto: a pergunta grande em serifa é a ideia dos formulários. Dentro de uma parte, ela desce um degrau.
@@ -1440,6 +1672,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `conta-editar-casal-fases--390.jpg`.
 
 ### P117. A zona de perigo dentro do cartão de um laço deve ser mais quieta?
+
+**Feito (opção A):** dentro do cartão, a zona é uma linha fina na cor de alerta com o rótulo e o link, sem fundo, a 40 px do "Salvar", e só vira bloco com a pergunta aberta. Capturas: `p117-zona-quieta--390.jpg`, `p117-zona-quieta--1280.jpg`, `p117-zona-quieta--1920.jpg`, `p117-zona-pergunta-aberta--390.jpg`, `p117-zona-pergunta-aberta--1280.jpg`, `p117-zona-pergunta-aberta--1920.jpg`.
 
 **ajuste**
 
@@ -1453,6 +1687,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P118. "Tirar foto" pode ser lido como "fotografar"?
 
+**Feito (opção A):** a ação do retrato se chama "Remover foto". Capturas: `p118-remover-foto--390.jpg`.
+
 **ajuste**
 
 - Contexto: no retrato, as ações são "Trocar foto" e "Tirar foto", nomes combinados em 16/11/2026.
@@ -1463,6 +1699,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P119. O quadro de enquadrar deve mostrar o arco em que o retrato aparece?
+
+**Feito (opção A):** o quadro desenha por cima o arco em que o retrato aparece, com o que fica de fora mais apagado. Capturas: `p119-quadro-com-arco--390.jpg`, `p119-quadro-com-arco--1280.jpg`, `p119-quadro-com-arco--1920.jpg`.
 
 **ajuste**
 
@@ -1476,6 +1714,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P120. "Remover esta fase" deve continuar como uma caixa de marcar dentro da fase?
 
+**Feito (opção A):** a caixa continua, e a linha da fase marcada aparece riscada, com "será removida ao salvar", mesmo com a fase fechada. Capturas: `p120-fase-sera-removida--390.jpg`, `p120-fase-sera-removida--1280.jpg`, `p120-fase-sera-removida--1920.jpg`.
+
 **ajuste**
 
 - Contexto: no casal, cada fase abre com "Mudar". Dentro dela, quando há mais de uma fase, existe a caixa "Remover esta fase", que vale quando o casal é salvo.
@@ -1486,6 +1726,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P121. "Só os dois veem este casal" está no lugar certo?
+
+**Feito (opção A):** a caixa vem depois de um fio, com o rótulo "Quem vê", antes de "Salvar o casal". Capturas: `p121-quem-ve--390.jpg`, `p121-quem-ve--1280.jpg`, `p121-quem-ve--1920.jpg`.
 
 **ajuste**
 
@@ -1499,6 +1741,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P122. O "Editar" de cada laço pode ficar na mesma linha do nome?
 
+**Feito (opção A):** a partir de 1280 px, "Editar" fica à direita, na linha do nome. No celular, como estava. Capturas: `p122-lacos-lista--390.jpg`, `p122-lacos-lista--1280.jpg`, `p122-lacos-lista--1920.jpg`.
+
 **ajuste**
 
 - Contexto: cada laço é uma linha com o nome e o parentesco, e "Editar" abaixo.
@@ -1510,6 +1754,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P123. Os campos devem terminar na mesma linha que o resto da página?
 
+**Feito (opção A):** mantido como está.
+
 **detalhe**
 
 - Contexto: grid rígido, tudo começa na mesma linha à esquerda.
@@ -1519,6 +1765,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: os campos de uma linha vão até a borda da coluna.
 
 ### P124. O quadro de enquadrar pode crescer na tela grande?
+
+**Feito (opção A):** a partir de 1280 px o quadro tem 416 px, com "Aproximar" e os botões ao lado. Capturas: `p119-quadro-com-arco--1280.jpg`, `p119-quadro-com-arco--1920.jpg`.
 
 **detalhe**
 
@@ -1530,6 +1778,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `conta-editar-retrato-enquadrar--1920.jpg`.
 
 ### P125. As famílias que a pessoa não pode mudar devem aparecer como caixas travadas?
+
+**Feito (opção A):** as famílias que a pessoa não pode mudar viram texto ("Gui é da família Bayara."), e só aparecem caixas para o que dá para mexer. Capturas: `p125-familias--390.jpg`, `p125-familias--1280.jpg`, `p125-familias--1920.jpg`.
 
 **detalhe**
 
@@ -1544,6 +1794,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P126. No celular, a pergunta da etapa pode subir para o alto da tela?
 
+**Feito (opção A):** no celular, a frase de boas-vindas fica só na etapa 1 e a frase com lacunas desce para baixo da pergunta, antes das ações; a pergunta da etapa 1 começa em y = 410 (era 526) e a das outras, perto de 200 depois da rolagem. Capturas: p126-etapa-1--390.jpg, p126-etapa-3--390.jpg.
+
 **muda a experiência**
 
 - Contexto: a ideia forte dos formulários é uma pergunta por tela, grande. A frase da abertura entrou por decisão do Gui.
@@ -1556,6 +1808,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P127. Depois de salvar o rascunho, a pessoa volta para a etapa em que estava?
 
+**Feito (opção A):** depois de "Salvar rascunho" a página volta na etapa em que a pessoa estava, sem rolar, com o aviso no alto. Capturas: p127-volta-na-etapa--390.jpg, p127-volta-na-etapa--1280.jpg.
+
 **muda a experiência**
 
 - Contexto: "Salvar rascunho" está em todas as etapas. Hoje a página recarrega na etapa 1 (o aviso de rascunho salvo passou a aparecer no alto, nesta rodada).
@@ -1567,6 +1821,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P128. Frase da abertura: o que as lacunas vazias dizem? (PR #39, pergunta 5)
 
+**Feito (opção A):** mantido como está. Capturas: p139-acoes-na-largura-dos-campos--1920.jpg (a frase vazia).
+
 **ajuste**
 
 - Contexto: vazia, cada lacuna precisa dizer o que falta.
@@ -1577,6 +1833,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: só aparece o que já foi preenchido, e a frase cresce aos poucos.
 
 ### P129. Resumo ao lado: o que entra e como se chama? (PR #39, pergunta 7)
+
+**Feito (opção A):** o que entra e os rótulos ficam, e sem tipo escolhido o cartão é neutro, em papel e sem ícone. Capturas: p129-cartao-neutro--1280.jpg.
 
 **ajuste**
 
@@ -1590,6 +1848,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P130. Resumo ao lado nos outros formulários? (PR #39, pergunta 8)
 
+**Feito (opção A):** resumo ao lado só na memória e no relato, e todo formulário com etapas ganhou a mesma grade: no capítulo novo a pergunta começa em x = 523 em 1920 px e em 351 em 1280 px, como na Nova memória. Capturas: p130-capitulo-na-mesma-grade--1280.jpg, p130-capitulo-na-mesma-grade--1920.jpg.
+
 **ajuste**
 
 - Contexto: o pedido vale para os formulários em 1280 e 1920 px. Na Nova memória ele acompanha o preenchimento.
@@ -1600,6 +1860,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P131. Zona de perigo: o nome, os textos e o que entra? (PR #39, pergunta 9)
+
+**Feito (opção A):** o nome e os textos ficam, e o bloco ficou quieto: da largura do texto, sem fundo, só o fio em cima e o título na cor de alerta. Em 1280 px ele fecha com a coluna da pergunta (x = 351 nos dois). No laço, o link passou para a cor de alerta e o botão que confirma perdeu a seta; a frase do que acontece no laço ficou como pergunta nova, porque é texto. Capturas: p131-zona-quieta--1280.jpg, p131-zona-quieta--1920.jpg, p136-zona-so-no-fim--390.jpg.
 
 **ajuste**
 
@@ -1615,6 +1877,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P132. "Salvar rascunho" só com o título pede o ano. É o que se quer?
 
+**Feito (opção A):** o rascunho pode ser salvo só com o título, com e sem JavaScript; o ano só é obrigatório para publicar. O rascunho sem ano aparece como "sem data" em Rascunhos, na conta, na lixeira e na confirmação de descartar. Capturas: p132-rascunho-so-com-titulo--390.jpg.
+
 **ajuste**
 
 - Contexto: a abertura diz que dá para salvar como rascunho a qualquer momento, mas o ano é obrigatório também no rascunho. O tipo de momento, não.
@@ -1625,6 +1889,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter, e a frase da abertura deixa de prometer "a qualquer momento".
 
 ### P133. Na etapa "Quando e onde", a pergunta e a frase precisam ser as duas grandes?
+
+**Feito (opção A):** na etapa "Quando e onde" a legenda fica só para o leitor de tela e a frase é a pergunta. Capturas: p133-frase-e-a-pergunta--390.jpg, p133-frase-e-a-pergunta--1280.jpg, p133-frase-e-a-pergunta--1920.jpg.
 
 **ajuste**
 
@@ -1638,6 +1904,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P134. Na última etapa, os dois resumos ficam lado a lado?
 
+**Feito (opção A):** na última etapa o resumo ao lado mostra só a foto e o título, e "Confira antes de publicar" usa a ordem da frase (quando, onde, quem). Capturas: p134-ultima-etapa--1280.jpg.
+
 **ajuste**
 
 - Contexto: "A memória até aqui" acompanha todas as etapas no computador, e "Confira antes de publicar" aparece na última.
@@ -1649,6 +1917,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `form-correcao-dois-resumos--1920.jpg`
 
 ### P135. Na correção, o botão cheio muda de lugar em relação à memória nova?
+
+**Feito (opção A):** na correção, "Salvar alterações" em contorno vem antes e "Continuar" cheio fica na ponta, também na ordem do Tab. Capturas: p135-correcao-botao-cheio-na-ponta--390.jpg, p135-correcao-botao-cheio-na-ponta--1280.jpg.
 
 **ajuste**
 
@@ -1662,6 +1932,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P136. A zona de perigo aparece em todas as etapas?
 
+**Feito (opção A):** com script, a zona de perigo só aparece na última etapa, depois do resumo e das ações; sem script, as etapas vêm em sequência e ela fica no fim. Capturas: p136-zona-so-no-fim--390.jpg, p131-zona-quieta--1280.jpg.
+
 **ajuste**
 
 - Contexto: pedido do Gui, para o apagar ficar longe do salvar.
@@ -1673,6 +1945,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `form-rascunho-zona-em-toda-etapa--390.jpg`
 
 ### P137. "Quem está contando" precisa ser o primeiro campo do relato?
+
+**Feito (opção A):** "Quem está contando" foi para depois do texto, na linha "Estou escrevendo por outra pessoa", que abre a busca com o nome selecionado; fechar a linha volta para "Eu". Vale na memória nova e em "Meu relato". Capturas: p137-escrevendo-por-outra-pessoa--390.jpg.
 
 **ajuste**
 
@@ -1686,6 +1960,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P138. A frase da abertura pode usar a largura que sobra no computador?
 
+**Feito (opção A):** a frase da abertura vai até a largura do miolo e a lacuna vazia não quebra no meio. Capturas: p138-frase-na-largura-do-miolo--1280.jpg, p138-frase-na-largura-do-miolo--1920.jpg.
+
 **ajuste**
 
 - Contexto: a frase fica no alto, acima das três colunas.
@@ -1697,6 +1973,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `form-nova-frase-quebra--1280.jpg`
 
 ### P139. Em 1920 px, os campos acompanham a largura da coluna?
+
+**Feito (opção A):** as ações e o fio param na largura dos campos (x = 523 a 1197 em 1920 px). Capturas: p139-acoes-na-largura-dos-campos--1920.jpg.
 
 **ajuste**
 
@@ -1710,6 +1988,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P140. Frase da abertura: ela sai na etapa "Quando e onde"? (PR #39, pergunta 6)
 
+**Feito (opção A):** mantido como está.
+
 **detalhe**
 
 - Contexto: nessa etapa a frase com a data e o lugar já é a própria pergunta, logo abaixo.
@@ -1720,6 +2000,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: fica só na primeira etapa.
 
 ### P141. "Fotos" vira pergunta, como as outras etapas?
+
+**Feito (opção A):** a legenda passou a ser "Tem fotos desse dia?"; na trilha a etapa continua "Fotos".
 
 **detalhe**
 
@@ -1732,6 +2014,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P142. "criar um capítulo" abre outra aba no meio da memória?
 
+**Feito (opção A):** saiu o link, e a frase é "Dá para criar o capítulo depois e colocar esta memória nele."
+
 **detalhe**
 
 - Contexto: etapa "Capítulo e temas".
@@ -1743,6 +2027,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P143. O ano fora do intervalo ganha aviso ao lado, como o 31 de fevereiro?
 
+**Feito (opção A):** o ano fora do intervalo ganha o aviso "O ano vai de 1800 a 2026." ao lado dos campos, o balão do navegador diz o mesmo e a frase não escreve o ano inválido. Vale em toda data flexível (memória, nascimento, falecimento e adoção). Capturas: p143-aviso-do-ano--390.jpg.
+
 **detalhe**
 
 - Contexto: a data que não existe é avisada ao lado dos campos. Para o ano antes de 1800 ou depois do ano atual só há o balão do navegador.
@@ -1752,6 +2038,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter só o balão.
 
 ### P144. A lacuna do lugar acompanha o tamanho do que foi escrito?
+
+**Feito (opção A):** a lacuna do lugar tem a largura do que foi escrito, e "em", o lugar e o ponto final andam juntos. Sem script, a largura fixa continua. Capturas: p144-lugar-do-tamanho-do-texto--1920.jpg.
 
 **detalhe**
 
@@ -1764,6 +2052,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P145. O sublinhado da ação de perigo muda de cor ao passar o mouse?
 
+**Feito (opção A):** dentro da zona de perigo, o sublinhado continua na cor de alerta ao passar o mouse.
+
 **detalhe**
 
 - Contexto: toda ação em texto ganha o sublinhado na cor viva da família ao passar o mouse.
@@ -1773,6 +2063,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P146. No teclado, o ano vem antes dos botões de −10 e −1?
+
+**Feito (opção A):** mantido como está.
 
 **detalhe**
 
@@ -1786,6 +2078,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P147. O relato tem um caminho de volta sem salvar?
 
+**Feito (opção A):** "Voltar para a memória", em texto sublinhado, ao lado do botão. Capturas: p147-relato-voltar-para-a-memoria--390.jpg, p147-relato-voltar-para-a-memoria--1280.jpg, p147-relato-voltar-para-a-memoria--1920.jpg.
+
 **ajuste**
 
 - Contexto: a tela tem só "Salvar alterações" (ou "Publicar relato" e "Salvar rascunho").
@@ -1797,6 +2091,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 ## Sua conta
 
 ### P148. Os números de "O que você criou" devem ter o tamanho do nome da pessoa?
+
+**Feito (opção A):** os números desceram para o tamanho de título de parte e, a partir de 1280 px, ficam numa linha só com o nome curto ("24 memórias", "19 relatos"), cada um abrindo a sua lista na largura do cartão; o cartão passou para depois dos laços, na largura toda. Capturas: `p148-contas-numa-linha--390.jpg`, `p148-contas-numa-linha--1280.jpg`, `p148-contas-numa-linha--1920.jpg`.
 
 **muda a experiência**
 
@@ -1810,6 +2106,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P149. O cartão "Seus dados" precisa existir na tela grande?
 
+**Feito (opção A):** o cartão "Seus dados" saiu; o nascimento, o apelido (quando é diferente do nome) e, na produção, o e-mail de acesso ficam numa linha em mono abaixo do nome, só com o que existe, e os rascunhos são o primeiro cartão. O texto "Sobre você" deixou de aparecer na conta (continua na página da pessoa). Capturas: `p149-alto-e-cartoes--390.jpg`, `p149-alto-e-cartoes--1280.jpg`, `p149-alto-e-cartoes--1920.jpg`, `p149-alto-elizete--1280.jpg`.
+
 **ajuste**
 
 - Contexto: o cartão mostra nome, como é chamado na família e nascimento, e na produção o e-mail de acesso. "Editar seus dados" é o botão do alto.
@@ -1822,6 +2120,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P150. A página Rascunhos ainda é precisa?
 
+**Feito (opção A):** a página `/rascunhos` saiu; na lixeira o link é "Voltar para a sua conta", e descartar um rascunho volta para a conta, com o recado.
+
 **ajuste**
 
 - Contexto: está decidido que a lixeira tem um link fixo no alto da página Rascunhos e que, no visual novo, ela mora também na conta. A conta lista os rascunhos no próprio cartão.
@@ -1833,6 +2133,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P151. A lista aberta de "O que você criou" deve mostrar tudo de uma vez?
 
+**Feito (opção A):** a lista aberta mostra as dez mais recentes, com "As 10 mais recentes de 24." e "Ver todas no Explorar" (capítulos: "Ver todos em Capítulos"). O Explorar não tem filtro de quem criou, então o link abre o Explorar inteiro. Capturas: `p151-lista-aberta--390.jpg`, `p151-lista-aberta--1280.jpg`, `p151-lista-aberta--1920.jpg`, `p151-fotos-abertas--1280.jpg`.
+
 **detalhe**
 
 - Contexto: cada conta abre no lugar a lista inteira, uma por vez.
@@ -1843,6 +2145,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P152. "Nada seu na lixeira." serve para quem administra?
 
+**Feito (opção A):** para quem administra, a frase conta o que a lixeira mostra ("Nada na lixeira.", "Uma coisa na lixeira.", "3 coisas na lixeira."); para os demais, continua a conta do que é deles. Captura: `p149-alto-e-cartoes--1280.jpg`.
+
 **detalhe**
 
 - Contexto: a conta conta só o que a própria pessoa mandou para a lixeira. A lixeira dos administradores mostra tudo o que eles enxergavam.
@@ -1852,6 +2156,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P153. Na administração, "Baixar cópia do acervo" e "Famílias e membros" dizem o que acontece?
+
+**Feito (opção A):** o link passou a "Famílias", e "Baixar cópia do acervo" foi para uma linha própria, junto de "Banco: 0,4 MB de 500 MB". Capturas: `p153-administracao--390.jpg`, `p153-administracao--1280.jpg`, `p153-administracao--1920.jpg`.
 
 **detalhe**
 
@@ -1865,6 +2171,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P154. "Restaurar" deve tirar a pessoa da lixeira?
 
+**Feito (opção A):** restaurar deixa a pessoa na lixeira, com o recado "Rascunho restaurado." (ou "Memória restaurada.", "Capítulo restaurado.") e o link "Continuar o rascunho" (ou "Ver a memória", "Ver o capítulo"). Capturas: `p154-restaurar-fica-na-lixeira--390.jpg`, `p154-restaurar-fica-na-lixeira--1280.jpg`, `p154-restaurar-fica-na-lixeira--1920.jpg`.
+
 **ajuste**
 
 - Contexto: "Restaurar" traz de volta o que foi descartado ou excluído.
@@ -1877,6 +2185,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P155. Rascunhos e lixeira devem ter "Voltar para a sua conta"?
 
+**Feito (opção A):** a lixeira tem "Voltar para a sua conta" no alto, inclusive vazia; a página Rascunhos saiu pela P150. Captura: `p156-restaurar-na-linha-do-titulo--390.jpg`.
+
 **ajuste**
 
 - Contexto: as telas de administração têm "Administração" acima do título e "Voltar para a sua conta". Rascunhos e lixeira têm "Sua conta" acima do título.
@@ -1887,6 +2197,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P156. "Restaurar" pode ficar na linha do título?
+
+**Feito (opção A):** a partir de 1280 px, "Restaurar" fica à direita, na linha do título; no celular continua embaixo. Capturas: `p156-restaurar-na-linha-do-titulo--390.jpg`, `p156-restaurar-na-linha-do-titulo--1280.jpg`, `p156-restaurar-na-linha-do-titulo--1920.jpg`.
 
 **detalhe**
 
@@ -1900,6 +2212,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P157. A prévia deve ficar à vista enquanto se escolhe a cor e o desenho?
 
+**Feito (opção A):** onde há mouse (1280 e 1920 px) a prévia fica parada ao lado enquanto as grades rolam; no celular, uma etiqueta pequena junto do "Salvar" e a etiqueta do resumo do tipo acompanham a escolha. Capturas: `p157-previa-com-os-desenhos--390.jpg`, `p157-previa-com-os-desenhos--1280.jpg`, `p157-previa-com-os-desenhos--1920.jpg`, `p168-nome-do-desenho-e-etiqueta-no-salvar--390.jpg`.
+
 **muda a experiência**
 
 - Contexto: cada tipo abre com o nome, a prévia "Como fica", a grade de 23 cores e a de 30 desenhos. A prévia acompanha a escolha na hora.
@@ -1912,6 +2226,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P158. As doze cores novas e os nomes ficam? (PR #40, pergunta 1)
 
+**Feito (opção A):** mantido como está.
+
 **ajuste**
 
 - Contexto: a paleta precisava de bem mais que onze cores, na mesma temperatura. Foram feitas doze (limão, oliva, menta, musgo, céu, petróleo, anil, uva, ameixa, cereja, terracota e cacau), medidas para não ficarem mais perto umas das outras do que as onze já ficam entre si.
@@ -1922,6 +2238,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: acrescentar mais. Cabe pouco: mostarda e jade foram tentadas e ficaram perto demais de cores que já existem.
 
 ### P159. Os dezenove rabiscos novos e os nomes de todos ficam? (PR #40, pergunta 2)
+
+**Feito (opção A):** mantido como está.
 
 **ajuste**
 
@@ -1934,6 +2252,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P160. Quatro das onze cores aprovadas não chegam a 4,5 com a tinta sobre o próprio pastel. Escurecer? (PR #40, pergunta 4)
 
+**Feito (opção A):** só a tinta das quatro escureceu até 4,5 sobre o próprio pastel (pêssego `#a04314`, coral `#a8281e`, rosa `#aa2557`, manteiga `#885700`); o pastel e o vivo não mudaram, o piso saiu do teste e a página do sistema não marca mais nenhuma. Captura: `p160-contraste-das-quatro--1280.jpg`.
+
 **ajuste**
 
 - Contexto: pêssego (3,9), coral (4,2), rosa (4,2) e manteiga (4,4). Aparece no carimbo e no ícone sobre o bloco de cor. O texto corrido não é afetado, porque usa a cor do texto do site.
@@ -1943,6 +2263,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: deixar como está, com o piso no teste.
 
 ### P161. Depois de salvar um tipo, a página deve voltar para ele?
+
+**Feito (opção A):** salvar volta para a linha do tipo (âncora no endereço), com o recado ali, dizendo o nome ("Viagem atualizado."). Capturas: `p161-volta-para-o-tipo--390.jpg`, `p161-volta-para-o-tipo--1280.jpg`, `p161-volta-para-o-tipo--1920.jpg`.
 
 **ajuste**
 
@@ -1955,6 +2277,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P162. "Tipos da lista" deve vir antes de "O que a família escreveu em 'Outro'"?
 
+**Feito (opção A):** a ordem passou a "Tipos da lista", "Novo tipo" e, por último, o que foi escrito em "Outro", com a conta no alto ("3 nomes escritos em \"Outro\"") levando até lá. Capturas: `p162-tipos-primeiro--390.jpg`, `p162-tipos-primeiro--1280.jpg`, `p162-tipos-primeiro--1920.jpg`.
+
 **ajuste**
 
 - Contexto: a página tem três partes, nesta ordem: o que foi escrito em "Outro", os tipos da lista e "Novo tipo".
@@ -1965,6 +2289,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P163. Os textos novos de `/admin/tipos` ficam? (PR #40, pergunta 3)
+
+**Feito (opção A):** mantido como está. O recado de salvar passou a dizer o nome do tipo por causa da P161.
 
 **detalhe**
 
@@ -1977,6 +2303,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P164. Dois tipos podem ter a mesma cor? (PR #40, pergunta 5)
 
+**Feito (opção A):** mantido como está.
+
 **detalhe**
 
 - Contexto: hoje pode. A amostra avisa quem já usa, e o tipo novo vem com uma cor livre.
@@ -1986,6 +2314,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: proibir. Com 23 cores, a lista de tipos teria esse teto.
 
 ### P165. O tipo criado a partir de um texto de "Outro" escolhe a cor numa lista de nomes? (PR #40, pergunta 6)
+
+**Feito (opção A):** mantido como está.
 
 **detalhe**
 
@@ -1997,6 +2327,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P166. O acervo de exemplo ganha tipos novos? (PR #40, pergunta 7)
 
+**Feito (opção A):** o acervo de exemplo ganhou três tipos com cores e rabiscos novos (Formatura em anil com o capelo, Praia em céu com o sol e mar, Bichos em terracota com a patinha) e uma memória em cada, só onde os exemplos já rodam. Capturas: `p166-memoria-com-tipo-novo--390.jpg`, `p166-memoria-com-tipo-novo--1280.jpg`.
+
 **detalhe**
 
 - Contexto: nas prévias, os tipos são os onze de sempre. Para ver uma cor nova numa memória é preciso trocar um tipo na mão.
@@ -2007,6 +2339,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P167. "Cor" e "Desenho" devem ser títulos grandes dentro do tipo?
 
+**Feito (opção A):** "Cor" e "Desenho" viraram rótulos em mono, iguais a "Nome". Capturas: `p167-cor-e-desenho-em-mono--390.jpg`, `p167-cor-e-desenho-em-mono--1280.jpg`, `p167-cor-e-desenho-em-mono--1920.jpg`.
+
 **detalhe**
 
 - Contexto: dentro do tipo aberto, "Nome" é um rótulo pequeno em mono, e "Cor" e "Desenho" são legendas em serifa.
@@ -2016,6 +2350,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P168. O desenho escolhido deve dizer o nome?
+
+**Feito (opção A):** uma linha abaixo da grade diz o nome do desenho marcado ("Desenho: Aviãozinho de papel") e acompanha a escolha. Capturas: `p168-nome-do-desenho-e-etiqueta-no-salvar--390.jpg`, `p168-nome-do-desenho-e-etiqueta-no-salvar--1280.jpg`, `p168-nome-do-desenho-e-etiqueta-no-salvar--1920.jpg`.
 
 **detalhe**
 
@@ -2029,6 +2365,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P169. "Refazer o espelho" deve pedir confirmação e ter cara de ação que apaga?
 
+**Feito (opção A):** o botão continua o mesmo, e o primeiro toque abre a pergunta "Trocar tudo o que está na homologação?", com "Trocar tudo" na cor de alerta e "Cancelar"; só o segundo toque envia. O campo de arquivo continua o do navegador. Capturas: `p169-espelho-pede-confirmacao--390.jpg`, `p169-espelho-pede-confirmacao--1280.jpg`, `p169-espelho-pede-confirmacao--1920.jpg`.
+
 **ajuste**
 
 - Contexto: o espelho troca o banco inteiro da homologação. A tela só existe na homologação e no computador, para administradores.
@@ -2040,6 +2378,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P170. "Ver como fica" deve avisar que mostra a carta salva?
 
+**Feito (opção A):** o link passou a dizer "Ver a carta salva". Captura: `p170-ver-a-carta-salva--390.jpg`.
+
 **detalhe**
 
 - Contexto: na Carta de Natal, "Salvar carta" é o botão cheio e "Ver como fica" é o link ao lado, que abre `/carta`.
@@ -2050,6 +2390,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P171. Um "Salvar" por família, ou um só para a tela?
+
+**Feito (opção A):** as três famílias ficaram num formulário só, com um "Salvar famílias" cheio no fim; se uma tiver erro, nenhuma é gravada, e o recado diz qual. Capturas: `p171-salvar-familias--390.jpg`, `p171-salvar-familias--1280.jpg`, `p171-salvar-familias--1920.jpg`.
 
 **detalhe**
 
@@ -2063,6 +2405,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P172. No celular, a paleta ampliada pode ser mais compacta?
 
+**Feito (opção A):** no celular a paleta ampliada tem duas cores por linha (656 px no lugar de 2049), e o nome embaixo junta o de gente e o do código ("Limão · limao") em todas as larguras. Capturas: `p172-paleta-ampliada--390.jpg`, `p172-paleta-ampliada--1280.jpg`, `p172-paleta-ampliada--1920.jpg`.
+
 **detalhe**
 
 - Contexto: a página do sistema é a referência do Gui. Em `#paleta-ampliada`, cada cor é uma faixa com os quatro tons e o nome embaixo.
@@ -2072,6 +2416,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P173. A tabela do contraste deve caber no celular?
+
+**Feito (opção A):** no celular a tabela não rola mais de lado: os três números de cada cor ficam numa linha abaixo do nome, cada um com o nome da coluna em cima. Capturas: `p173-contraste-cabe--390.jpg`, `p173-contraste-cabe--1280.jpg`, `p173-contraste-cabe--1920.jpg`.
 
 **detalhe**
 
@@ -2084,6 +2430,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 ## Página não encontrada
 
 ### P174. O que a página de erro diz e oferece?
+
+**Feito (opção A):** a página diz "Não encontramos esta página. Ela pode ter mudado de lugar ou não estar aberta para você.", com "Voltar ao início" e o menu do site, e é a mesma para o que não existe e para o que a pessoa não pode ver. Capturas: `p174-pagina-nao-encontrada--390.jpg`, `p174-pagina-nao-encontrada--1280.jpg`, `p174-pagina-nao-encontrada--1920.jpg`.
 
 **ajuste**
 

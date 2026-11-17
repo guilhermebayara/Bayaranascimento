@@ -4,6 +4,7 @@
 // vários relatos, relato registrado em nome de outra pessoa, memória restrita
 // a um núcleo e rascunho.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, ehHomologacao } from './ambiente';
+import { TIPOS_DE_EXEMPLO } from '../tipos-de-exemplo';
 import { AUDIOS_DE_EXEMPLO, TIPO_DOS_AUDIOS_DE_EXEMPLO, chaveDeAudioDeExemplo } from '../audios-de-exemplo';
 
 interface Exemplo {
@@ -1302,6 +1303,47 @@ export async function semearCartaDeExemplo(db: D1Database): Promise<void> {
   const ja = await db.prepare('SELECT 1 AS ok FROM cartas LIMIT 1').first();
   if (ja) return;
   await db.prepare('INSERT INTO cartas (texto, assinatura, escrita_por) VALUES (?, ?, ?)').bind(CARTA_DE_EXEMPLO, 'Gui, Giovanna e Magno', 'gui').run();
+}
+
+// Três tipos de momento de exemplo, com cores e rabiscos da paleta ampliada, e uma memória em cada:
+// para o QA e a Giovanna verem as cores novas em uso sem trocar nada na mão (resposta do Gui à P166
+// do QA de design, 17/11/2026). As memórias nascem com data de cadastro antiga, para não entrarem
+// como novidade no início de ninguém.
+export { TIPOS_DE_EXEMPLO };
+const MEMORIAS_DOS_TIPOS_DE_EXEMPLO: { id: string; titulo: string; ano: number; mes?: number; dia?: number; tipo: string; lugar: string; nucleo: string; integrantes: string[] }[] = [
+  { id: '2023-formatura-da-luisa', titulo: 'Formatura da Luísa', ano: 2023, mes: 12, dia: 15, tipo: 'formatura', lugar: 'Belo Horizonte', nucleo: 'bracarense', integrantes: ['ex-luisa', 'giovanna'] },
+  { id: '2022-uma-semana-na-praia', titulo: 'Uma semana na praia', ano: 2022, mes: 1, tipo: 'praia', lugar: 'Guarapari', nucleo: 'bayara-nascimento', integrantes: ['gui', 'ex-prima-julia', 'ex-primo-teo'] },
+  { id: '2021-a-mel-descobre-a-varanda', titulo: 'A Mel descobre a varanda', ano: 2021, tipo: 'bichos', lugar: 'Belo Horizonte', nucleo: 'bayara-nascimento', integrantes: ['ex-mel', 'elizete'] },
+];
+
+export async function semearTiposDeExemplo(db: D1Database): Promise<void> {
+  const ja = await db.prepare(`SELECT 1 AS ok FROM memorias WHERE id = '2023-formatura-da-luisa'`).first();
+  if (ja) return;
+  const comandos: D1PreparedStatement[] = [];
+  // Se alguém já criou um tipo com o mesmo nome ao testar, vale o dele
+  TIPOS_DE_EXEMPLO.forEach((t, i) => {
+    comandos.push(
+      db
+        .prepare(
+          `INSERT OR IGNORE INTO tipos (id, rotulo, cor, cor_da_paleta, icone, ordem, criado_por)
+           VALUES (?, ?, ?, ?, ?, (SELECT COALESCE(MAX(ordem), 0) + 1 + ? FROM tipos WHERE id <> 'outro'), 'gui')`,
+        )
+        .bind(t.id, t.rotulo, t.cor, t.cor, t.icone, i),
+    );
+  });
+  for (const m of MEMORIAS_DOS_TIPOS_DE_EXEMPLO) {
+    comandos.push(
+      db
+        .prepare(
+          `INSERT OR IGNORE INTO memorias (id, titulo, ano, mes, dia, aproximada, tipo, lugar, visibilidade, situacao, exemplo, criada_por, criada_em, atualizada_em)
+           VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'todos', 'publicada', 1, 'gui', datetime('now', '-90 days'), datetime('now', '-90 days'))`,
+        )
+        .bind(m.id, m.titulo, m.ano, m.mes ?? null, m.dia ?? null, m.tipo, m.lugar),
+    );
+    comandos.push(db.prepare('INSERT OR IGNORE INTO memoria_nucleos (memoria_id, nucleo_id) VALUES (?, ?)').bind(m.id, m.nucleo));
+    for (const i of m.integrantes) comandos.push(db.prepare('INSERT OR IGNORE INTO memoria_integrantes (memoria_id, integrante_id) VALUES (?, ?)').bind(m.id, i));
+  }
+  await db.batch(comandos);
 }
 
 /**

@@ -19,6 +19,14 @@
 .pagina-de-formulario .tipos-da-lista > li:last-child {
   border-bottom: var(--traco) solid var(--fio);
 }
+/* Depois de salvar, a página volta para a linha do tipo: fica um respiro acima, e o recado vem junto */
+.pagina-de-formulario .tipos-da-lista > li,
+.pagina-de-formulario .painel[id] {
+  scroll-margin-top: var(--e-6);
+}
+.pagina-de-formulario .tipos-da-lista > li > .recado {
+  margin-block: var(--e-3) var(--e-1);
+}
 .pagina-de-formulario .tipo-da-lista > summary {
   display: flex;
   flex-wrap: wrap;
@@ -70,6 +78,39 @@
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+/* "Cor" e "Desenho" são campos do mesmo formulário que "Nome": o mesmo rótulo em mono (resposta do Gui à P167, 17/11/2026) */
+.pagina-de-formulario .painel .escolha-do-tipo fieldset legend {
+  margin-bottom: 0;
+  font-family: var(--mono);
+  font-variation-settings: normal;
+  font-weight: 400;
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  line-height: 1.45;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+/* O nome do desenho marcado, escrito embaixo da grade */
+.pagina-de-formulario .rabiscos__marcado {
+  margin: 0;
+  font-size: var(--t-pequeno);
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .rabiscos__marcado span {
+  color: var(--tinta);
+  font-weight: 550;
+}
+/* A etiqueta pequena junto do "Salvar", para a escolha ser vista onde a prévia está longe */
+.pagina-de-formulario .tipo-da-lista__amostra {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+}
+.pagina-de-formulario .tipo-da-lista__amostra .etiqueta {
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* A amostra de cor: o pastel com o ponto do vivo, e o nome ao lado */
@@ -244,5 +285,16 @@
     grid-column: 1;
     grid-row: auto;
     width: 8.5rem;
+  }
+}
+/* Onde há mouse, a prévia fica parada ao lado enquanto as grades rolam, e a etiqueta pequena não é
+   precisa (resposta do Gui à P157, 17/11/2026). No toque nada fica preso: vale a etiqueta pequena. */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .pagina-de-formulario .escolha-do-tipo__previa {
+    position: sticky;
+    top: var(--e-5);
+  }
+  .pagina-de-formulario .tipo-da-lista__amostra {
+    display: none;
   }
 }

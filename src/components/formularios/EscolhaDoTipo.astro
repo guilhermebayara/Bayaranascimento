@@ -8,7 +8,7 @@ import Etiqueta from '../visual/Etiqueta.astro';
 import IconeDoTipo from '../visual/IconeDoTipo.astro';
 import Polaroid from '../visual/Polaroid.astro';
 import { NOMES_DAS_CORES, PALETA, estiloDaCor } from '../../lib/visual';
-import { RABISCOS } from '../../visual/rabiscos';
+import { RABISCOS, rabisco } from '../../visual/rabiscos';
 
 interface Props {
   /** o que distingue este formulário dos outros da página (o id do tipo, ou "novo") */
@@ -52,7 +52,7 @@ const { chave, cor, icone, rotulo, emUso } = Astro.props;
         {
           RABISCOS.map((r) => (
             <label class="rabisco-a-escolher" title={r.nome}>
-              <input type="radio" name="icone" value={r.id} checked={r.id === icone} required data-escolha-icone />
+              <input type="radio" name="icone" value={r.id} checked={r.id === icone} required data-escolha-icone data-nome={r.nome} />
               <span class="rabisco-a-escolher__desenho" aria-hidden="true">
                 <IconeDoTipo rabisco={r.id} />
               </span>
@@ -61,6 +61,10 @@ const { chave, cor, icone, rotulo, emUso } = Astro.props;
           ))
         }
       </div>
+      {/* O nome do desenho marcado, escrito: no celular o "title" não aparece (resposta do Gui à P168, 17/11/2026) */}
+      <p class="rabiscos__marcado">
+        Desenho: <span data-escolha-nome-do-desenho>{rabisco(icone).nome}</span>
+      </p>
     </fieldset>
   </div>
   <aside class="escolha-do-tipo__previa" aria-label="Como fica" data-escolha-previa style={estiloDaCor(cor)}>

@@ -5,27 +5,15 @@ import '../../visual/telas/capitulo.css';
 import Visual from '../../layouts/Visual.astro';
 import Entrada from '../../components/capitulos/Entrada.astro';
 import Vazio from '../../components/visual/Vazio.astro';
-import { ehEpoca, formatarPeriodo, memoriaDoCapitulo, nomeDoModo, periodoDasMemorias, type Capitulo } from '../../lib/capitulos';
+import { ehEpoca, nomeDoModo, resumoDoCapitulo, type Capitulo } from '../../lib/capitulos';
 import { coresDosCapitulos } from '../../lib/linha-capitulos';
 import { listarCapitulos, listarMemorias, listarTemasVisiveis } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const capitulos = await listarCapitulos(usuario);
 const todas = await listarMemorias(usuario);
-const memoriasDe = (c: Capitulo) => {
-  if (c.modo === 'epoca') return todas.filter((m) => memoriaDoCapitulo(m, c));
-  const ids = new Set([c.id, ...capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id)]);
-  return todas.filter((m) => m.capitulos.some((id) => ids.has(id)));
-};
-const resumo = (c: Capitulo) => {
-  const memorias = memoriasDe(c);
-  const p = c.modo === 'epoca' ? (c.inicio ? { inicio: c.inicio, fim: c.fim } : null) : periodoDasMemorias(memorias);
-  return {
-    periodo: p ? formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca') : '',
-    ordem: p ? p.inicio.ano * 100 + (p.inicio.mes ?? 0) : 999999,
-    memorias: memorias.length,
-  };
-};
+// O período e a conta de cada linha: a mesma regra da página do tema
+const resumo = (c: Capitulo) => resumoDoCapitulo(c, capitulos, todas);
 // Capítulos de dentro aparecem sob o maior. Os demais, do mais antigo para o mais recente.
 const soltos = capitulos
   .filter((c) => !c.dentroDe || !capitulos.some((x) => x.id === c.dentroDe))
@@ -48,6 +36,12 @@ const cores = coresDosCapitulos(
       <p class="sumario__frase serifa t-abertura">Memórias reunidas em momentos maiores: um casamento, uma viagem, uma época da vida.</p>
       <p class="sumario__acoes">
         <a class="botao" href="/capitulos/novo">Novo capítulo</a>
+        {/* Os temas moram no fim da lista: o atalho desce até eles (P64 do QA de design de 17/11/2026) */}
+        {temas.length > 0 && (
+          <a class="acao acao--quieta" href="#temas">
+            Ver os temas
+          </a>
+        )}
       </p>
     </header>
     <div class="sumario__lista">
@@ -79,8 +73,8 @@ const cores = coresDosCapitulos(
       }
       {
         temas.length > 0 && (
-          <section class="temas" aria-labelledby="temas">
-            <h2 class="rotulo suave" id="temas">
+          <section class="temas" id="temas" aria-labelledby="titulo-dos-temas" tabindex="-1">
+            <h2 class="rotulo suave" id="titulo-dos-temas">
               Temas
             </h2>
             <p class="temas__lista">

@@ -11,6 +11,20 @@
   padding-top: var(--e-4);
   border-top: 1px solid var(--tinta);
 }
+/* No Explorar, o alto da página é mais baixo, para a primeira tela mostrar uma foto (resposta do
+   Gui à P32 do QA de design de 17/11/2026). No celular encolhem os respiros e os controles; no
+   computador e na tela grande, a assinatura (mais abaixo). */
+.linha__capa--explorar .linha__conta {
+  margin-top: var(--e-4);
+  padding-top: var(--e-3);
+}
+.linha__capa--explorar .controles {
+  gap: var(--e-1);
+  margin-top: var(--e-3);
+}
+.linha__capa--explorar .controle__nome--decadas {
+  margin-top: var(--e-1);
+}
 
 /* Os controles: família e tipo, um embaixo do outro, cada um com o nome. No celular o nome fica em
    cima; no computador, numa coluna à esquerda, a mesma do nome da faixa de décadas. */
@@ -32,6 +46,66 @@
 }
 .controles:has(.controle__nome--decadas) {
   padding-bottom: var(--e-3);
+}
+
+/* No Explorar, as opções de um controle ficam numa linha só. No celular, quando não cabem, a linha
+   rola para o lado, de ponta a ponta da tela, e a opção cortada na borda mostra que há mais (P32).
+   O respiro em cima e embaixo é do contorno do foco, que a rolagem lateral cortaria. */
+.controle__linha {
+  display: flex;
+  align-items: center;
+  gap: 0 var(--e-6);
+  margin: calc(-1 * var(--e-1)) calc(-1 * var(--margem));
+  padding: var(--e-1) var(--margem);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.controle__linha::-webkit-scrollbar {
+  display: none;
+}
+.controle__linha > * {
+  flex: none;
+}
+.controle__linha .linha__opcoes {
+  display: flex;
+  flex-wrap: nowrap;
+}
+.controle__linha .linha__opcoes--etiquetas {
+  padding-block: 0;
+}
+/* As etiquetas são mais altas que o texto das outras opções: o nome do controle não encosta nelas */
+.controle__linha:has(.linha__opcoes--etiquetas) {
+  margin-top: var(--e-1);
+}
+/* As saídas ("Modo TV", "Me mostre uma memória"): levam a outra tela, e a seta diz isso (P34) */
+.controle__saidas {
+  display: flex;
+  gap: 0 var(--e-5);
+  font-size: var(--t-pequeno);
+}
+.saida {
+  gap: 0.45em;
+  white-space: nowrap;
+}
+.saida::after {
+  content: '→';
+  content: '→' / '';
+}
+/* Marcada, a opção fica em negrito. O texto reserva essa largura desde antes, para nenhuma opção
+   mudar de lugar quando outra é marcada (P37): a cópia em negrito não aparece nem é lida. */
+.opcao__texto {
+  display: inline-flex;
+  flex-direction: column;
+}
+.opcao__texto::after {
+  content: attr(data-texto);
+  content: attr(data-texto) / '';
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: 600;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* As formas de ver e as famílias: uma opção por link. No celular elas não cabem numa linha: ficam em
@@ -319,6 +393,11 @@ html.pino-novo .parada__ano[data-vazia] {
 .ano[hidden] {
   display: none;
 }
+/* O primeiro ano vem logo abaixo da faixa de décadas, com menos respiro que os outros: é o que
+   deixa a primeira foto entrar na primeira tela (P32) */
+.linha__capa--explorar ~ .linha__trilho > .ano:first-of-type {
+  padding-top: var(--e-5);
+}
 /* O ano grande fica parado no alto, logo abaixo da barra de décadas, enquanto as memórias dele
    passam: quem rola sempre sabe em que ano está (pedido do Gui, pensando nos mais velhos). */
 .ano > .ano__cabeca {
@@ -377,6 +456,11 @@ html.pino-novo .parada__ano[data-vazia] {
 }
 .entrada[hidden] {
   display: none;
+}
+/* Quem volta do modo TV ou do "ao acaso" cai na memória que estava na tela (P39): ela para abaixo
+   da faixa de décadas e do ano parado */
+.entrada[id] {
+  scroll-margin-top: calc(var(--barra) + 8.5rem);
 }
 /* O ponto do fio em cada memória: cheio, na cor viva, na memória em leitura */
 .entrada__ponto {
@@ -781,6 +865,26 @@ html.pino-novo .parada__ano[data-vazia] {
   }
 }
 
+/* --- O fecho: depois da última memória (P41) -------------------------------------------------- */
+
+.linha__fecho {
+  padding-block: var(--e-5) var(--e-8);
+}
+.linha__fecho-dentro {
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--tinta);
+}
+.linha__fecho-frase {
+  font-size: var(--t-titulo-3);
+  line-height: 1.06;
+}
+.linha__fecho-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+  margin-top: var(--e-2);
+}
+
 /* --- Computador: o ano fica na coluna da esquerda e cada memória vira uma página dupla -------- */
 
 @media (min-width: 62rem) {
@@ -788,6 +892,10 @@ html.pino-novo .parada__ano[data-vazia] {
      Os controles vêm depois, na largura inteira, com o nome de cada um numa coluna à esquerda. */
   .linha {
     --coluna-do-nome: 9rem;
+  }
+  /* No Explorar, a coluna do nome cabe "Ir para a década" numa linha só (P35) */
+  .linha:has(> .linha__capa--explorar) {
+    --coluna-do-nome: 11rem;
   }
   .linha__capa {
     display: grid;
@@ -799,6 +907,41 @@ html.pino-novo .parada__ano[data-vazia] {
   .linha__capa .assinatura {
     grid-column: 1 / span 8;
     grid-row: 1;
+  }
+  /* No Explorar, a assinatura tem dois terços do tamanho (P32, opção B): o ano e a primeira foto
+     cabem na primeira tela. Nas outras telas ela continua inteira. */
+  .linha__capa--explorar .assinatura {
+    width: 66.667%;
+  }
+  .linha__capa--explorar ~ .linha__trilho > .ano:first-of-type {
+    padding-top: var(--e-7);
+  }
+  .linha__capa--explorar .linha__conta {
+    margin: 0 0 var(--e-3);
+    padding-top: var(--e-4);
+  }
+  .linha__capa--explorar .controles {
+    gap: 0;
+    margin-top: var(--e-5);
+  }
+  /* No computador as opções cabem: nada rola, e as saídas ficam ao lado das formas de ver */
+  .controle__linha {
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+  .controle__linha .linha__opcoes {
+    flex-wrap: wrap;
+  }
+  .controle__linha .linha__opcoes--etiquetas {
+    padding-block: var(--e-1);
+  }
+  .controle__linha:has(.linha__opcoes--etiquetas) {
+    margin-top: 0;
+  }
+  .entrada[id] {
+    scroll-margin-top: calc(var(--barra) + var(--e-7));
   }
   .linha__conta {
     grid-column: 10 / -1;
@@ -834,6 +977,7 @@ html.pino-novo .parada__ano[data-vazia] {
   .decadas__nome {
     display: block;
     width: var(--coluna-do-nome);
+    white-space: nowrap;
   }
   .controle__nome--decadas {
     display: none;

@@ -14,12 +14,9 @@ const branco = neutroDosTokens(tokens, 'branco');
 const tinta = neutroDosTokens(tokens, 'tinta');
 const pares = (nomes: readonly string[]) => nomes.flatMap((a, i) => nomes.slice(i + 1).map((b) => [a, b] as const));
 
-/**
- * Quatro das onze cores aprovadas têm a tinta abaixo de 4,5 para um sobre o próprio pastel. Elas não
- * mudam sem o Gui decidir (pergunta 4 do PR dos tipos): ficam listadas aqui, com o valor de hoje como
- * piso, para não piorarem. Cor nova nunca entra nesta lista.
- */
-const TINTA_NO_PASTEL_ABAIXO: Record<string, number> = { pessego: 3.9, coral: 4.2, rosa: 4.2, manteiga: 4.3 };
+// Quatro das onze cores aprovadas tinham a tinta abaixo de 4,5 para um sobre o próprio pastel
+// (pêssego, coral, rosa e manteiga). O Gui mandou escurecer só a tinta delas até 4,5 (P160 do QA de
+// design, 17/11/2026): o pastel e o vivo não mudaram, e hoje a regra vale para as 23, sem exceção.
 
 describe('a paleta do sistema', () => {
   it('é bem maior que as onze cores: as onze aprovadas e mais doze', () => {
@@ -41,7 +38,11 @@ describe('a paleta do sistema', () => {
   it('as onze cores aprovadas não mudaram de valor', () => {
     expect(cores.verde).toEqual({ pastel: '#cfe6c0', meio: '#a9d190', vivo: '#3f9d52', tinta: '#2a6f3b' });
     expect(cores.orquidea).toEqual({ pastel: '#ecc9ee', meio: '#dba3df', vivo: '#b84cc4', tinta: '#8a2f96' });
-    expect(cores.manteiga).toEqual({ pastel: '#f8dc98', meio: '#f1c964', vivo: '#eda800', tinta: '#8c5a00' });
+    expect(cores.manteiga).toEqual({ pastel: '#f8dc98', meio: '#f1c964', vivo: '#eda800', tinta: '#885700' });
+    // Nas quatro que tiveram a tinta escurecida (P160), o pastel, o meio e o vivo são os de antes
+    expect(cores.pessego).toEqual({ pastel: '#fbd3b8', meio: '#f6b48a', vivo: '#ec6a2c', tinta: '#a04314' });
+    expect(cores.coral).toEqual({ pastel: '#fbc4bb', meio: '#f59a8c', vivo: '#e8483a', tinta: '#a8281e' });
+    expect(cores.rosa).toEqual({ pastel: '#f9c8d6', meio: '#f29db8', vivo: '#e7477f', tinta: '#aa2557' });
   });
 
   it('a tinta de cada cor se lê sobre o papel e sobre a moldura branca (4,5 para um)', () => {
@@ -55,15 +56,8 @@ describe('a paleta do sistema', () => {
     for (const cor of PALETA) expect(contraste(tinta, cores[cor]!.pastel), cor).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('a tinta de cada cor se lê sobre o pastel dela: 4,5 para um em toda cor nova', () => {
-    for (const cor of CORES_NOVAS) expect(contraste(cores[cor]!.tinta, cores[cor]!.pastel), cor).toBeGreaterThanOrEqual(4.5);
-    // Das onze aprovadas, só as quatro listadas ficam abaixo, e nenhuma piora
-    for (const cor of CORES) {
-      const razao = contraste(cores[cor]!.tinta, cores[cor]!.pastel);
-      const piso = TINTA_NO_PASTEL_ABAIXO[cor];
-      if (piso === undefined) expect(razao, cor).toBeGreaterThanOrEqual(4.5);
-      else expect(razao, cor).toBeGreaterThanOrEqual(piso);
-    }
+  it('a tinta de cada cor se lê sobre o pastel dela: 4,5 para um nas 23', () => {
+    for (const cor of PALETA) expect(contraste(cores[cor]!.tinta, cores[cor]!.pastel), cor).toBeGreaterThanOrEqual(4.5);
   });
 
   it('o vivo se distingue do pastel da mesma cor', () => {

@@ -2,6 +2,7 @@
 import Pagina from '../../../components/formularios/Pagina.astro';
 import FichaDoCapitulo from '../../../components/FichaDoCapitulo.astro';
 import ZonaDePerigo from '../../../components/visual/ZonaDePerigo.astro';
+import { ordemDeMarcar } from '../../../lib/capitulos';
 import { formatarData } from '../../../lib/datas';
 import { podeEditarCapitulo, podeEditarMemoria } from '../../../lib/servidor/permissoes';
 import { listarCapitulos, listarMemorias } from '../../../lib/servidor/repositorio';
@@ -12,11 +13,27 @@ if (!capitulo) return new Response('Capítulo não encontrado', { status: 404 })
 const podeFicha = podeEditarCapitulo(usuario, capitulo);
 // As memórias que a pessoa pode corrigir são as que ela pode colocar ou tirar do capítulo
 const minhas = capitulo.modo === 'reunido' ? (await listarMemorias(usuario)).filter((m) => podeEditarMemoria(usuario, m).ok) : [];
+// As que já estão no capítulo vêm primeiro; dentro de cada grupo, a ordem do tempo de sempre
+const ordenadas = ordemDeMarcar(minhas, capitulo.id);
 ---
 
 <Pagina titulo={capitulo.titulo} aba={`Editar ${capitulo.titulo}`} rotulo="Editar capítulo" secao="capitulos" nucleos={capitulo.nucleos}>
   <p slot="abertura"><a href={`/capitulos/${capitulo.id}`}>Voltar para o capítulo</a></p>
 
+  {
+    podeFicha.ok ? (
+      <section class="painel painel--com-trilha">
+        <h2>Sobre o capítulo</h2>
+        <FichaDoCapitulo capitulo={capitulo} />
+      </section>
+    ) : (
+      <p class="dica">{podeFicha.ok ? '' : podeFicha.motivo}</p>
+    )
+  }
+
+  {/* As memórias vêm depois de "Sobre o capítulo", e a lista mostra só as que já estão no capítulo:
+      as outras entram pela busca, como em "Quem estava?" (P78 do QA de design de 17/11/2026). Sem
+      script, a lista vem inteira, para marcar. */}
   {
     capitulo.modo === 'reunido' && (
       <section class="painel" id="memorias">
@@ -26,12 +43,17 @@ const minhas = capitulo.modo === 'reunido' ? (await listarMemorias(usuario)).fil
             Você ainda não tem memórias para colocar aqui. <a href="/nova">Registrar uma memória</a>.
           </p>
         ) : (
-          <form method="post" action="/api/capitulos" class="formulario">
+          <form method="post" action="/api/capitulos" class="formulario" data-memorias-do-capitulo>
             <input type="hidden" name="acao" value="memorias" />
             <input type="hidden" name="id" value={capitulo.id} />
             <p class="dica">Marque as que fazem parte. Aparecem aqui as memórias que você criou ou em que foi citado.</p>
-            <div class="lista-de-marcar">
-              {minhas.map((m) => (
+            <label class="campo" data-busca-de-memoria hidden>
+              <span>Buscar uma memória para colocar no capítulo</span>
+              <input type="search" autocomplete="off" placeholder="Título ou ano" aria-controls="lista-de-memorias" />
+            </label>
+            <p class="dica" data-busca-situacao role="status" hidden />
+            <div class="lista-de-marcar" id="lista-de-memorias">
+              {ordenadas.map((m) => (
                 <label class="marcar">
                   <input type="checkbox" name="memorias" value={m.id} checked={m.capitulos.includes(capitulo.id)} />
                   <span>
@@ -49,17 +71,6 @@ const minhas = capitulo.modo === 'reunido' ? (await listarMemorias(usuario)).fil
     )
   }
 
-  {
-    podeFicha.ok ? (
-      <section class="painel">
-        <h2>Sobre o capítulo</h2>
-        <FichaDoCapitulo capitulo={capitulo} />
-      </section>
-    ) : (
-      <p class="dica">{podeFicha.ok ? '' : podeFicha.motivo}</p>
-    )
-  }
-
   {/* A zona de perigo (pedido do Gui, 17/11/2026): o que apaga fica junto, no fim, longe do salvar.
       Excluir um capítulo é com os administradores, e passa pela página de confirmação. */}
   {
@@ -73,3 +84,46 @@ const minhas = capitulo.modo === 'reunido' ? (await listarMemorias(usuario)).fil
     )
   }
 </Pagina>
+
+<script>
+  // "Memórias do capítulo": a lista mostra as que já estão marcadas, e a busca traz as outras para
+  // marcar. O que a pessoa marcou ou desmarcou nesta visita continua à vista até salvar.
+  import { achaNaBusca } from '../../../lib/capitulos';
+
+  const form = document.querySelector<HTMLFormElement>('[data-memorias-do-capitulo]');
+  const campo = form?.querySelector<HTMLElement>('[data-busca-de-memoria]');
+  const busca = campo?.querySelector<HTMLInputElement>('input');
+  const situacao = form?.querySelector<HTMLElement>('[data-busca-situacao]');
+  if (form && campo && busca && situacao) {
+    const lista = form.querySelector<HTMLElement>('.lista-de-marcar')!;
+    const linhas = [...lista.querySelectorAll<HTMLLabelElement>('.marcar')];
+    const caixa = (linha: HTMLElement) => linha.querySelector<HTMLInputElement>('input')!;
+    const mexidas = new Set<HTMLElement>();
+    const aplicar = () => {
+      const termo = busca.value;
+      const achadas: HTMLElement[] = [];
+      for (const linha of linhas) {
+        const fica = caixa(linha).checked || mexidas.has(linha);
+        const acha = !fica && termo.trim() !== '' && achaNaBusca(linha.textContent ?? '', termo);
+        if (acha) achadas.push(linha);
+        linha.hidden = !fica && !acha;
+      }
+      // O que a busca achou sobe para logo abaixo dela, antes das que já estão no capítulo
+      lista.prepend(...achadas);
+      situacao.hidden = termo.trim() === '';
+      situacao.textContent = achadas.length === 0 ? 'Nenhuma outra memória com esse nome.' : achadas.length === 1 ? '1 memória encontrada. Marque para colocar no capítulo.' : `${achadas.length} memórias encontradas. Marque as que fazem parte.`;
+    };
+    campo.hidden = false;
+    form.addEventListener('change', (evento) => {
+      const linha = evento.target instanceof Element ? evento.target.closest<HTMLElement>('.marcar') : null;
+      if (linha) mexidas.add(linha);
+      aplicar();
+    });
+    busca.addEventListener('input', aplicar);
+    // Enter na busca não envia o formulário
+    busca.addEventListener('keydown', (evento) => {
+      if (evento.key === 'Enter') evento.preventDefault();
+    });
+    aplicar();
+  }
+</script>

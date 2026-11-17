@@ -85,6 +85,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
         <a class="acao acao--quieta" href={sair} data-palco-sair>
           {modo === 'tv' ? 'Sair do modo TV' : 'Voltar ao Explorar'}
         </a>
+        {/* Sem rede, a memória da tela fica e o aviso aparece aqui (o script escreve o texto) */}
+        {modo === 'tv' && <p class="palco__aviso ficha" role="status" data-palco-aviso />}
       </header>
       <div class="palco__cena miolo">
         <div class:list={['palco__fotos', `palco__fotos--${emVolta.length}`]}>
@@ -163,6 +165,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
             <summary>
               <span>Ajustes</span>
             </summary>
+            {/* As partes ficam lado a lado quando há largura (resposta do Gui à P50, 17/11/2026) */}
+            <div class="palco__partes">
             {passar && (
               <div class="palco__ajuste" role="group" aria-labelledby="ajuste-tempo" data-palco-passar hidden>
                 <p class="rotulo suave" id="ajuste-tempo">
@@ -206,6 +210,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
                 </p>
               </div>
             )}
+            </div>
           </details>
         )}
         </div>
@@ -221,7 +226,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   // prontas, e é aí que a animação começa. As setas do teclado e do controle da TV passam, e o Esc
   // sai. Nada espera uma animação acabar: passar no meio de uma chegada troca na hora.
   // Sem script, "Anterior" e "Próxima" continuam sendo links, e "Passar sozinho" nem aparece.
-  import { SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos } from '../../lib/explorar';
+  import { AVISO_SEM_REDE, SEGUNDOS_ATE_TENTAR_DE_NOVO, SEGUNDOS_DOS_CONTROLES, falhaDeRede, reacaoEmSoFotos } from '../../lib/explorar';
 
   const calmo = matchMedia('(prefers-reduced-motion: reduce)');
   const palco = () => document.querySelector<HTMLElement>('[data-palco]');
@@ -241,12 +246,15 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     }
     return paginas.get(href)!;
   };
-  // Uma foto pronta: já baixada e aberta, do tamanho certo desde o primeiro desenho
+  // Uma foto pronta: já baixada e aberta, do tamanho certo desde o primeiro desenho. Sem rede, a
+  // foto que não chegou segura a passagem: a memória seguinte não entra pela metade.
   const fotoPronta = async (endereco: string) => {
     const foto = new Image();
     foto.decoding = 'sync';
     foto.src = endereco;
-    await foto.decode().catch(() => undefined);
+    await foto.decode().catch(() => {
+      if (endereco && !navigator.onLine) throw new TypeError('sem rede');
+    });
     return foto;
   };
   const fotosDe = (raiz: ParentNode) => [...raiz.querySelectorAll<HTMLImageElement>('.palco__fotos img')];
@@ -288,6 +296,37 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   let pedido = 0;
   let relogio = 0;
   let pausado = false;
+  // Sem rede (C3 do QA de código de 17/11/2026): a passagem que não saiu espera aqui. A memória da
+  // tela fica, o aviso aparece, e a mesma passagem é tentada de novo de tempos em tempos e assim
+  // que o navegador avisa que a rede voltou.
+  let aEspera: { a: HTMLAnchorElement; deTras: boolean } | null = null;
+  let relogioDaRede = 0;
+  function esperarARede(a: HTMLAnchorElement, deTras: boolean) {
+    const atual = palco();
+    if (!atual) return;
+    aEspera = { a, deTras };
+    atual.setAttribute('data-sem-rede', '');
+    const aviso = atual.querySelector<HTMLElement>('[data-palco-aviso]');
+    if (aviso && aviso.textContent !== AVISO_SEM_REDE) aviso.textContent = AVISO_SEM_REDE;
+    clearTimeout(relogio);
+    clearTimeout(relogioDaRede);
+    relogioDaRede = window.setTimeout(tentarDeNovo, SEGUNDOS_ATE_TENTAR_DE_NOVO * 1000);
+  }
+  function tentarDeNovo() {
+    clearTimeout(relogioDaRede);
+    if (!aEspera) return;
+    // O link de quem espera é o do palco que ficou na tela
+    if (!aEspera.a.isConnected) return desistirDeEsperar();
+    passar(aEspera.a, aEspera.deTras);
+  }
+  function desistirDeEsperar() {
+    clearTimeout(relogioDaRede);
+    aEspera = null;
+    const atual = palco();
+    atual?.removeAttribute('data-sem-rede');
+    const aviso = atual?.querySelector<HTMLElement>('[data-palco-aviso]');
+    if (aviso) aviso.textContent = '';
+  }
   // "Só as fotos": os controles à vista e o relógio que os esconde de novo
   let controles = false;
   let relogioDosControles = 0;
@@ -300,6 +339,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     const href = a.href;
     const meu = ++pedido;
     clearTimeout(relogio);
+    clearTimeout(relogioDaRede);
     try {
       const pagina = await buscar(href);
       const chegou = pagina.querySelector<HTMLElement>('[data-palco]');
@@ -324,6 +364,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       // No Álbum, as fotos que estavam na tela saem pela lateral, empurradas pelas que chegam
       const saem = !mesma && !calmo.matches && novo.dataset.movimento === 'a' ? atual.querySelector<HTMLElement>('.palco__fotos') : null;
       const saemDe = saem?.getBoundingClientRect();
+      // A passagem saiu: quem esperava a rede não espera mais (o palco novo chega sem o aviso)
+      aEspera = null;
       atual.replaceWith(novo);
       const cena = novo.querySelector<HTMLElement>('.palco__cena');
       if (saem && saemDe && cena) {
@@ -347,10 +389,12 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       const noMesmoAjuste = noAjuste ? [...novo.querySelectorAll<HTMLElement>('[data-palco-ajustes] :is(a, button)')].find((e) => e.textContent?.trim() === noAjuste) : undefined;
       // Em "Só as fotos", com os controles escondidos, o foco não vai para nenhum deles
       if (!escondidos()) (noMesmoAjuste ?? (focado ? novo.querySelector<HTMLElement>(`[data-palco-${focado}]`) : null) ?? link('depois'))?.focus({ preventScroll: true });
-    } catch {
+    } catch (erro) {
       // Uma passagem mais nova já saiu: o erro desta não leva de volta à memória antiga
       // (achado do QA de código de 17/11/2026, como na troca do Explorar)
       if (meu !== pedido) return;
+      // Sem rede, ir para o endereço trocaria a memória pela página de erro do navegador
+      if (falhaDeRede(erro, navigator.onLine)) return esperarARede(a, deTras);
       location.assign(href);
     }
   }
@@ -456,6 +500,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     botao.textContent = pausado ? 'Retomar' : 'Pausar';
     botao.setAttribute('aria-pressed', String(pausado));
     atual.toggleAttribute('data-pausado', pausado);
+    // Pausar enquanto se espera a rede desiste da passagem; retomar arma o relógio de novo
+    if (pausado && aEspera) desistirDeEsperar();
     const levar = (endereco: string) => {
       const url = new URL(endereco, location.href);
       if (pausado) url.searchParams.set('pausa', '1');
@@ -538,7 +584,11 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       if (tempo) guardar('tv-tempo', tempo);
       passar(a, a.hasAttribute('data-palco-antes'));
     });
-    document.addEventListener('visibilitychange', armar);
+    document.addEventListener('visibilitychange', () => {
+      if (!aEspera) armar();
+    });
+    // A rede voltou: a passagem que esperava sai na hora
+    addEventListener('online', tentarDeNovo);
     // Sair da tela cheia pelo Esc do navegador não chega à página como tecla: os controles voltam aqui
     document.addEventListener('fullscreenchange', () => {
       marcarTela(soFotos());
