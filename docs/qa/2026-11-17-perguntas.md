@@ -2361,6 +2361,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P172. No celular, a paleta ampliada pode ser mais compacta?
 
+**Feito (opção A):** no celular a paleta ampliada tem duas cores por linha (656 px no lugar de 2049), e o nome embaixo junta o de gente e o do código ("Limão · limao") em todas as larguras. Capturas: `p172-paleta-ampliada--390.jpg`, `p172-paleta-ampliada--1280.jpg`, `p172-paleta-ampliada--1920.jpg`.
+
 **detalhe**
 
 - Contexto: a página do sistema é a referência do Gui. Em `#paleta-ampliada`, cada cor é uma faixa com os quatro tons e o nome embaixo.
@@ -2370,6 +2372,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P173. A tabela do contraste deve caber no celular?
+
+**Feito (opção A):** no celular a tabela não rola mais de lado: os três números de cada cor ficam numa linha abaixo do nome, cada um com o nome da coluna em cima. Capturas: `p173-contraste-cabe--390.jpg`, `p173-contraste-cabe--1280.jpg`, `p173-contraste-cabe--1920.jpg`.
 
 **detalhe**
 

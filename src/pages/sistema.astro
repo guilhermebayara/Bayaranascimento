@@ -219,7 +219,8 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
         }
       </ul>
       <h3 class="sis__subtitulo" id="paleta-ampliada">A paleta ampliada: mais doze cores, para a cor de cada tipo de momento</h3>
-      <ul class="cores sis__cores">
+      {/* No celular, duas cores por linha, e o nome de gente junto do nome do código (resposta do Gui à P172, 17/11/2026) */}
+      <ul class="cores sis__cores sis__cores--novas">
         {
           CORES_NOVAS.map((c) => (
             <li>
@@ -227,7 +228,9 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
               <span style={`background: var(--${c}-meio)`} />
               <span style={`background: var(--${c}-vivo)`} />
               <span style={`background: var(--${c}-tinta)`} />
-              <span class="ficha">{c}</span>
+              <span class="ficha">
+                {NOMES_DAS_CORES[c]} · {c}
+              </span>
             </li>
           ))
         }
@@ -260,12 +263,13 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
                       </span>
                       {NOMES_DAS_CORES[c]} <span class="ficha suave">{c}</span>
                     </th>
-                    <td data-abaixo={noPastel < 4.5 ? '' : undefined}>
+                    {/* No celular cada número leva o nome da coluna em cima, e os três cabem numa linha (resposta do Gui à P173, 17/11/2026) */}
+                    <td data-coluna="Tinta no pastel" data-abaixo={noPastel < 4.5 ? '' : undefined}>
                       {razao(v.tinta, v.pastel)}
                       {noPastel < 4.5 && <span> (abaixo de 4,5)</span>}
                     </td>
-                    <td>{razao(v.tinta, corDoPapel)}</td>
-                    <td>{razao(corDaTinta, v.pastel)}</td>
+                    <td data-coluna="Tinta no papel">{razao(v.tinta, corDoPapel)}</td>
+                    <td data-coluna="Texto no pastel">{razao(corDaTinta, v.pastel)}</td>
                   </tr>
                 );
               })

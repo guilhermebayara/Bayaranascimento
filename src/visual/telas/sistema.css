@@ -302,3 +302,57 @@
   height: 2.5rem;
   color: var(--tinta);
 }
+
+/* No celular (respostas do Gui às P172 e P173, 17/11/2026): a paleta ampliada em duas cores por
+   linha, e a tabela do contraste sem rolar de lado, com os três números de cada cor numa linha só
+   abaixo do nome. O cabeçalho continua lá para o leitor de tela; quem vê lê o nome da coluna em
+   cima de cada número. */
+@media (max-width: 39.99rem) {
+  .sis__cores--novas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--e-5) var(--e-4);
+  }
+  .sis__cores--novas span:not(.ficha) {
+    height: 4rem;
+  }
+  .sis__cores--novas .ficha {
+    margin-top: var(--e-2);
+    overflow-wrap: anywhere;
+  }
+  .sis__contraste,
+  .sis__contraste tbody {
+    display: block;
+  }
+  .sis__contraste thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .sis__contraste tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--e-1) var(--e-3);
+    padding-block: var(--e-3);
+    border-bottom: var(--traco) solid var(--fio);
+  }
+  .sis__contraste tbody :is(th, td) {
+    padding: 0;
+    border-bottom: 0;
+    white-space: normal;
+  }
+  .sis__contraste tbody th {
+    grid-column: 1 / -1;
+  }
+  .sis__contraste td::before {
+    content: attr(data-coluna);
+    display: block;
+    color: var(--tinta-suave);
+    font-size: var(--t-micro);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
