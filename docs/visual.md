@@ -478,7 +478,7 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 
 | | Passagem | As outras fotos | Título e trecho |
 | --- | --- | --- | --- |
-| Álbum | A foto atravessa a tela de lado, girando um pouco, como quem passa a página; ao voltar, vem pelo outro lado | Aparecem em volta, uma depois da outra | Sobem linha a linha |
+| Álbum | A foto vem da lateral, girando um pouco, e as que estavam na tela saem pelo outro lado, como fotos sendo empurradas; ao voltar, o sentido inverte | Fazem o mesmo movimento da principal, logo atrás dela (decisão do Gui, 17/11/2026) | Sobem linha a linha |
 | Revelação | A foto aparece clara e sem cor e vai se revelando, em três segundos e meio | Revelam-se depois, uma a uma | Surgem depois das fotos, sem deslocamento |
 | Mesa | A foto é jogada na mesa, de perto e torta, e assenta | Caem em volta, uma a uma | Entram juntos, logo depois |
 

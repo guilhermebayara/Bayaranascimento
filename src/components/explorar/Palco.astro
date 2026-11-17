@@ -272,7 +272,23 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       const focado = ['antes', 'depois', 'pausa'].find((nome) => ativo?.hasAttribute(`data-palco-${nome}`));
       const noAjuste = ativo?.closest('[data-palco-ajustes]') ? ativo.textContent?.trim() : undefined;
       const cor = getComputedStyle(atual).backgroundColor;
+      // No Álbum, as fotos que estavam na tela saem pela lateral, empurradas pelas que chegam
+      const saem = !mesma && !calmo.matches && novo.dataset.movimento === 'a' ? atual.querySelector<HTMLElement>('.palco__fotos') : null;
+      const saemDe = saem?.getBoundingClientRect();
       atual.replaceWith(novo);
+      const cena = novo.querySelector<HTMLElement>('.palco__cena');
+      if (saem && saemDe && cena) {
+        const base = cena.getBoundingClientRect();
+        saem.setAttribute('aria-hidden', 'true');
+        saem.inert = true;
+        saem.classList.add('palco__fotos--saindo');
+        Object.assign(saem.style, { left: `${saemDe.left - base.left}px`, top: `${saemDe.top - base.top}px`, width: `${saemDe.width}px`, height: `${saemDe.height}px` });
+        cena.append(saem);
+        // Quem passou para a frente empurra para a esquerda; quem voltou, para a direita
+        const lado = deTras ? 1 : -1;
+        const fim = () => saem.remove();
+        saem.animate([{ translate: '0 0', rotate: '0deg' }, { translate: `${lado * 110}vw 0`, rotate: `${lado * 8}deg` }], { duration: 800, easing: 'cubic-bezier(0.5, 0, 0.8, 0.4)', fill: 'forwards' }).finished.then(fim, fim);
+      }
       // O fundo passa de uma cor à outra, em vez de trocar de uma vez
       if (!calmo.matches) novo.animate([{ backgroundColor: cor }, {}], { duration: 900, easing: 'ease-out' });
       // Passar de memória não enche o histórico: o voltar do aparelho sai do modo TV de uma vez

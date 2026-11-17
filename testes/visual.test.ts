@@ -344,7 +344,12 @@ describe('conceito', () => {
     const palco = tela('explorar/Palco.astro');
     expect(palco).toMatch(/data-movimento=\{modo === 'tv' \? movimento : undefined\}/);
     // Passar é sair para a página da outra memória: nada espera o fim de um movimento
-    expect(palco).not.toMatch(/animationend|transitionend|\.finished/);
+    // Nenhuma espera por animação antes de trocar: as fotos que saem no Álbum saem depois da troca,
+    // por cima, sem segurar a memória que chega (decisão do Gui, 17/11/2026: todas vêm da lateral e
+    // saem pela lateral, como fotos sendo empurradas)
+    expect(palco).not.toMatch(/animationend|transitionend|await [^;\n]*\.finished/);
+    expect(palco.indexOf('atual.replaceWith(novo);')).toBeLessThan(palco.indexOf("saem.classList.add('palco__fotos--saindo');"));
+    expect(ler('telas/explorar.css')).toMatch(/\.palco\[data-movimento='a'\]\[data-pronta\] \.palco__extra\s*\{\s*animation:\s*palco-chega/);
     expect(palco).toMatch(/if \(evento\.key === 'ArrowRight'\) passar\(link\('depois'\)\);/);
     // O modo TV passa sem recarregar (correção do Gui, 17/11/2026): a página seguinte é buscada de
     // antemão e o palco só troca com a foto pronta, que é quando o movimento começa
