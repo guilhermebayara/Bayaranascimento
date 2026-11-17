@@ -530,6 +530,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P32. A primeira tela do Explorar pode mostrar uma foto?
 
+**Feito (opções A e B):** no celular, as opções de "Forma de ver" e de "Família" ficam numa linha só que rola para o lado e os respiros do alto encolheram; em 1280 e 1920 px a assinatura do Explorar tem dois terços do tamanho, e o primeiro ano vem logo abaixo da faixa de décadas. A primeira foto começa em y = 732 em 1280 × 900 e em y = 834 em 1920 × 1080. No celular (390 × 844) ela começa em y = 810 com a faixa de teste, e só a borda de cima aparece. Capturas: p32-primeira-tela--390.jpg, p32-primeira-tela--1280.jpg, p32-primeira-tela--1920.jpg.
+
 **muda a experiência**
 
 - Contexto: a ideia da tela é "a assinatura grande, e logo o ano mais recente abrindo a lista", com menu e filtros pequenos.
@@ -541,6 +543,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `explorar-linha-primeira-tela--390.jpg`, `explorar-linha-primeira-tela--1280.jpg`, `explorar-linha-primeira-tela--1920.jpg`
 
 ### P33. No celular, quem marca um filtro fica sabendo que ele valeu?
+
+**Feito (opção A):** com script, o fim do formulário tem o botão "Ver as 3 memórias" ("Ver a memória" com uma), que fecha o painel, leva ao começo do resultado e muda a cada escolha; sem resultado, diz "Nenhuma memória passa nesses filtros.". Capturas: p33-ver-as-memorias--390.jpg, p33-ver-as-memorias--1280.jpg, p33-depois-de-ver--390.jpg.
 
 **muda a experiência**
 
@@ -554,6 +558,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P34. "Modo TV" e "Me mostre uma memória" são formas de ver como as outras três?
 
+**Feito (opção A):** "Forma de ver" ficou com as três formas que trocam no lugar, e "Modo TV" e "Me mostre uma memória" são duas ações ao lado, com seta. Capturas: p32-primeira-tela--1280.jpg, p32-primeira-tela--390.jpg.
+
 **ajuste**
 
 - Contexto: "Forma de ver" tem cinco opções com o mesmo desenho. O nome do controle foi aprovado.
@@ -565,6 +571,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P35. "Década" aparece duas vezes, com dois efeitos: fica assim?
 
+**Feito (opção A):** a faixa se chama "Ir para a década" nas três larguras, e o filtro ficou só com "Do ano" e "Até o ano". O endereço antigo com a década continua valendo e aparece nos dois campos. Capturas: p32-primeira-tela--1280.jpg, p36-filtros-em-colunas--390.jpg.
+
 **ajuste**
 
 - Contexto: a faixa de décadas pula para a década na página. Em "Filtros", "Período" tem "Década", que tira as outras décadas, e ainda "Do ano" e "Até o ano".
@@ -575,6 +583,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P36. No celular, as caixas de "Tipo de momento" podem ficar em colunas?
+
+**Feito (opção A):** no celular, as caixas de marcar ficam em duas colunas fixas. Capturas: p36-filtros-em-colunas--390.jpg.
 
 **ajuste**
 
@@ -588,6 +598,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P37. A etiqueta da família pode parar de mexer de lugar quando é marcada?
 
+**Feito (opção A):** toda opção reserva a largura do negrito, e nenhuma muda de lugar ao ser marcada (medido em 390, 1280 e 1920 px). Capturas: p37-familia-marcada--1280.jpg.
+
 **detalhe**
 
 - Contexto: a etiqueta marcada fica em negrito, e a que perde a marca volta ao peso normal.
@@ -599,6 +611,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P38. Sem resultado, a linha da conta deve dizer "Nenhuma memória"?
 
+**Feito (opção A):** sem resultado, a conta diz "Nenhuma memória". Capturas: p38-nenhuma-memoria--390.jpg.
+
 **detalhe**
 
 - Contexto: abaixo da assinatura fica a conta ("46 memórias · de 1958 a 2026"), que também é lida pelo leitor de tela a cada troca.
@@ -608,6 +622,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P39. Ao sair do modo TV, a pessoa volta para onde estava?
+
+**Feito (opção A):** "Sair do modo TV", o Esc e "Voltar ao Explorar" levam à linha do tempo, na memória que estava na tela. Capturas: p39-volta-do-modo-tv--390.jpg, p39-volta-do-modo-tv--1280.jpg.
 
 **detalhe**
 
@@ -622,6 +638,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P40. A legenda da foto na linha do tempo pode ser maior que 9 px?
 
+**Feito (opção A):** a legenda da foto tem piso de 11 px. Na linha do tempo, "lugar (ano)" continua numa linha; na foto pequena da lista, em 1280 px, a legenda mais longa ocupa duas linhas, como já ocupava com 9 px. Capturas: p39-volta-do-modo-tv--390.jpg, p41-fecho--1280.jpg.
+
 **ajuste**
 
 - Contexto: toda foto revelada leva "lugar (ano)" na margem, em mono maiúscula. O tamanho acompanha a largura da foto, com piso de 9 px.
@@ -633,6 +651,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P41. No fim da linha do tempo, a página pode ter um fecho?
 
+**Feito (opção A):** depois da última memória, o fecho "Aqui começa o acervo." com "Nova memória" e "Voltar ao começo". A frase só aparece quando a última memória da tela é a mais antiga do acervo; com filtro ou em outra ordem ficam só as duas ações. Capturas: p41-fecho--390.jpg, p41-fecho--1280.jpg, p41-fecho--1920.jpg.
+
 **detalhe**
 
 - Contexto: a linha vai da memória mais recente à mais antiga.
@@ -643,6 +663,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `explorar-linha-fim--390.jpg`
 
 ### P42. Na tela grande e no toque, dá para saber de qual capítulo é cada trilho?
+
+**Feito (opção A):** mantido como está.
 
 **detalhe**
 
@@ -657,6 +679,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P43. Lista em 1280 px: o lugar fica embaixo do título? (PR #39, pergunta 3)
 
+**Feito (opção A):** mantido como está.
+
 **ajuste**
 
 - Contexto: com a margem da foto à direita, as sete colunas não cabem em 1280 px sem cortar "Belo Horizonte" e o nome do capítulo.
@@ -667,6 +691,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: sem a margem da foto: a foto acompanha o cursor, como na agenda da @bsurda (pede script).
 
 ### P44. Na lista, o ano precisa ser do tamanho de capa?
+
+**Feito (opção A):** na lista, em 1280 e 1920 px, o ano tem tamanho de título de página (91 e 124 px), com a conta ao lado. A lista inteira passou de 14.760 para 12.064 px em 1280 e de 16.976 para 13.250 px em 1920. Capturas: p44-lista--1280.jpg, p44-lista--1920.jpg.
 
 **ajuste**
 
@@ -680,6 +706,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P45. Lista: o que mostrar no lugar da data quando a memória só tem o ano? (PR #39, pergunta 2)
 
+**Feito (opção A):** mantido como está.
+
 **detalhe**
 
 - Contexto: dentro do bloco do ano, a linha mostra o dia e o mês. Memória só com o ano não tem o que mostrar ali.
@@ -690,6 +718,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: escrever "sem dia".
 
 ### P46. Lista: qual nome entra em "quem estava" e quantos capítulos? (PR #39, pergunta 4)
+
+**Feito (opção A):** mantido como é chamada ou o primeiro nome, e o nome que começa pelo parentesco ou pelo tratamento entra com a palavra seguinte ("Vó Bela", "Prima Júlia", "Dona Fátima"). Capturas: p44-lista--390.jpg.
 
 **detalhe**
 
@@ -704,6 +734,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P47. Em 1920 px, o mural é para ver do sofá ou de perto?
 
+**Feito (opção A):** mantido como está.
+
 **detalhe**
 
 - Contexto: no tamanho médio a tela grande mostra oito colunas. Para ver junto existe o modo TV.
@@ -717,6 +749,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P48. No modo TV em 1920 px, os textos pequenos dão para ler do sofá?
 
+**Feito (opção A):** no modo TV a partir de 100rem, o carimbo, quem estava e a legenda da foto principal têm 24 px, e os controles e os ajustes, 22 px. Capturas: p48-modo-tv--1920.jpg, p50-ajustes-abertos--1920.jpg.
+
 **muda a experiência**
 
 - Contexto: o modo TV é a tela de ver junto, parado, na sala.
@@ -729,6 +763,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P49. No celular, o modo TV pode dizer qual é a memória antes dos controles?
 
+**Feito (opção A):** no celular, o carimbo e o título vêm antes das fotos, e o trecho depois dos controles. Vale também no "ao acaso", que usa a mesma tela. Capturas: p48-modo-tv--390.jpg, p49-ao-acaso--390.jpg.
+
 **ajuste**
 
 - Contexto: no celular as outras fotos ficam atrás da principal e os controles vêm logo abaixo.
@@ -740,6 +776,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `explorar-tv-celular--390.jpg`
 
 ### P50. "Ajustes" aberto pode caber na tela também em 1280 × 900?
+
+**Feito (opção A):** no computador, as três partes de "Ajustes" abrem lado a lado, numa faixa abaixo da cena. Com "Ajustes" aberto a página cabe em 1280 × 900 e em 1920 × 1080; em 1280 × 720 ela tem 818 px. Capturas: p50-ajustes-abertos--1280.jpg, p50-ajustes-abertos--1920.jpg.
 
 **detalhe**
 
