@@ -133,6 +133,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
               Nova memória neste capítulo
             </a>
           )}
+          {/* PROVISÓRIO (pergunta 5 do PR do grupo "familia"): os textos novos desta tela */}
           <a class="acao acao--quieta" href={`/explorar?capitulo=${capitulo.id}`}>
             Ver no Explorar
           </a>
@@ -183,6 +184,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
             </div>
           )}
         </dl>
+        {/* PROVISÓRIO (pergunta 4 do PR do grupo "familia"): no celular, a capa inteira vem antes dos marcos */}
         {aparecem.length > 0 && (
           <section class="capitulo__gente" aria-labelledby="quem-aparece">
             <h2 class="rotulo suave" id="quem-aparece">

@@ -122,6 +122,8 @@
 }
 
 /* --- O cartão de cada pessoa: uma etiqueta na cor da família, com o nome e o parentesco --------- */
+/* PROVISÓRIO (pergunta 6 do PR do grupo "familia"): o canto reto da etiqueta e a faixa de tinta de
+   quem olha */
 
 .no {
   position: absolute;
