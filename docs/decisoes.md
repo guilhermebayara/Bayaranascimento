@@ -171,6 +171,13 @@ Decisão do Gui, 17/11/2026 (P102 do QA de design, `src/lib/audios-de-exemplo.ts
 - Fora da produção, o banco de teste ganha parentes inventados (ids começando com `ex-`) para a árvore ter mais cenários.
 - Sem "como se referir" informado, o parentesco sai nas duas formas: "seu tio ou sua tia".
 
+## Quem já faleceu (decisão do Gui, 17/11/2026)
+
+- **A marca** é um anel fino em volta do retrato, com um respiro, sem nenhum sinal religioso. A foto continua em cor. É a mesma em todo lugar em que o retrato aparece: Pessoas, os laços na página da pessoa, o alto da página dela, "Quem estava" na memória, "Quem aparece" no capítulo, os laços do coração na conta e a ficha da árvore. No cartão da árvore, que não tem foto, um anel pequeno vem antes do parentesco, e a legenda explica ("já faleceu"). No círculo, a marca entra junto com ele. Quem usa leitor de tela ouve "já faleceu" ao lado do nome.
+- **A data do falecimento fica oculta em todo lugar, e o ano também.** Listas e árvore mostram só o ano de nascimento (`anosDeVida`). Na página da pessoa, o carimbo mostra só o nascimento, e "Mostrar datas" (que só existe quando há uma data guardada) recarrega a página com `?datas=1` e mostra o falecimento; "Esconder datas" volta. O formulário de editar a pessoa continua mostrando a data a quem pode editar.
+- **O painel não lembra** aniversário nem data de falecimento de quem já faleceu (o Gui e a Elizete preferem não lembrar).
+- Já faleceu quem está marcado assim ou tem data de falecimento (`jaFaleceu`, em `src/lib/datas.ts`). Testes em `testes/falecidos.test.ts`.
+
 ## Lixeira e histórico
 
 - Excluir uma memória publicada é com os admins, passa por uma página de confirmação e manda para a lixeira (`/lixeira`). A memória some do site com fotos e relatos, mas nada é apagado. Excluir um capítulo passa pela mesma confirmação (`/capitulos/<id>/excluir`).
@@ -387,7 +394,6 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
         - **Proximidade contínua** (o Gui pediu): a posição é livre dentro das faixas, e a mãe pode estar mais perto que o pai. Vale também para a família, numa tabela nova de proximidade por dono (a do laço do coração passa a usar a mesma escala; migrar os três níveis antigos para o meio de cada faixa). Sem valor declarado, a família vem pela distância na árvore: pais, irmãos, filhos e casal em Muito próximo; avós, netos, tios, sobrinhos e cunhados em Próximo; o resto em Conhecido. Laço do coração sem proximidade entra em Próximo.
         - **Ajuste:** tocar numa pessoa abre a ficha (nome, laço, "Ver página") com um slider de proximidade; arrastar a pessoa no círculo muda o mesmo valor, na tela grande e no celular. O slider é o caminho pelo teclado. A ponta de fora do slider é "Fora do círculo": a pessoa some do desenho e vai para uma lista no fim, de onde volta.
         - A proximidade continua privada: ninguém mais vê o círculo nem o valor.
-    - **Quem já faleceu, no site todo** (árvore, Pessoas, retratos nas memórias, círculo). Uma marca discreta no retrato, sem nenhum sinal religioso, adequada a cada contexto. A data do falecimento fica oculta por padrão em todo lugar e só aparece para quem pedir para ver, na página da pessoa ("Mostrar datas"); vale também para o ano, salvo se o Gui disser outra coisa. O painel não lembra aniversário nem data de falecimento de quem já faleceu (o Gui e a Elizete preferem não lembrar).
 - **Respostas do Gui ao PR #51 e ao #52** (17/11/2026).
     - **Foto tirada por um administrador:** quem a removeu também pode restaurar, além de quem enviou. Teste em `testes/` junto com os de administradores.
     - **"Acrescentar fotos" na página da memória:** um atalho para quem vê a memória mandar fotos sem escrever relato, pela mesma peça do passo de fotos do relato. A foto entra no fim da ordem, sem trocar a principal, e só prende fotos que a própria pessoa enviou.

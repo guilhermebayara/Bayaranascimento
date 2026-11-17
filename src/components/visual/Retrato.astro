@@ -13,11 +13,16 @@ interface Props {
   redondo?: boolean;
   /** carrega logo, para o que está no alto da página */
   cedo?: boolean;
+  /**
+   * Quem já faleceu (decisão do Gui, 17/11/2026): um anel fino em volta do retrato, discreto e sem
+   * sinal religioso. Quem usa o retrato escreve "já faleceu" para o leitor de tela, ao lado do nome.
+   */
+  falecido?: boolean;
 }
 
-const { nome, foto, familia, redondo = false, cedo = false } = Astro.props;
+const { nome, foto, familia, redondo = false, cedo = false, falecido = false } = Astro.props;
 ---
 
-<span class:list={['retrato', { 'retrato--redondo': redondo }]} data-familia={familia}>
+<span class:list={['retrato', { 'retrato--redondo': redondo, 'retrato--falecido': falecido }]} data-familia={familia}>
   {foto ? <img src={foto} alt="" loading={cedo ? undefined : 'lazy'} decoding={cedo ? undefined : 'async'} /> : <span aria-hidden="true">{iniciais(nome)}</span>}
 </span>

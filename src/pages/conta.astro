@@ -12,7 +12,7 @@ import Gente from '../components/visual/Gente.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
 import { oComeco } from '../lib/conta';
-import { formatarData } from '../lib/datas';
+import { formatarData, jaFaleceu } from '../lib/datas';
 import { familiaMaisRecente } from '../lib/familias';
 import { PROXIMIDADES, lacoParaODono } from '../lib/parentesco';
 import { enderecoDoRetrato } from '../lib/retratos';
@@ -149,6 +149,7 @@ const erro = Astro.url.searchParams.get('erro');
                     familia={familiaDe(l.pessoa)}
                     laco={lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null)}
                     detalhe={[l.proximidade ? PROXIMIDADES[l.proximidade]!.toLowerCase() : '', l.privado ? 'só você vê' : ''].filter(Boolean).join(' · ')}
+                    falecido={Boolean(achar(l.pessoa) && jaFaleceu(achar(l.pessoa)!))}
                   />
                 </li>
               ))}

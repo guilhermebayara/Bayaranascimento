@@ -20,7 +20,7 @@ import Gente from '../../../components/visual/Gente.astro';
 import Retrato from '../../../components/visual/Retrato.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { duracaoEmTexto } from '../../../lib/audios';
-import { formatarData, vidaSemRotulo } from '../../../lib/datas';
+import { formatarData, jaFaleceu, vidaSemRotulo } from '../../../lib/datas';
 import { FORMAS_DA_PESSOA, NOMES_DAS_FORMAS, TAMANHO_PADRAO, enderecoDaPessoa, lerFormaDaPessoa, mostraRascunho } from '../../../lib/explorar';
 import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { enderecoDoRetrato } from '../../../lib/retratos';
@@ -113,7 +113,12 @@ const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso(
 // com quem olha, o nome é a linha grande.
 const parentesco = paraVoce ? possessivo(paraVoce, pessoa.tratamento) : meuLaco ? lacoParaODono(meuLaco.nome, pessoa.tratamento) : null;
 // O nascimento e o falecimento entram no carimbo, sem rótulo: "1999", "4 de maio de 1942 a 2019"
-const vida = vidaSemRotulo(pessoa);
+// O falecimento fica oculto (decisão do Gui, 17/11/2026): só entra para quem pedir em "Mostrar
+// datas", que recarrega a página com `?datas=1`. Sem script.
+const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
+const mostrarDatas = Astro.url.searchParams.get('datas') === '1';
+const temDataOculta = Boolean(pessoa.falecimentoAno);
+const vida = vidaSemRotulo(pessoa, mostrarDatas);
 // Na própria página, o carimbo diz "você" e a memória nova é "com você" (P107)
 const comQuem = ehMinha ? 'você' : chamar;
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -165,7 +170,7 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
     <header class="quem-e bloco">
       <div class="miolo grade">
         <div class="quem-e__retrato">
-          <Retrato nome={chamar} foto={retratoDe(pessoa.id)} familia={familiaDe(pessoa.id)} cedo />
+          <Retrato nome={chamar} foto={retratoDe(pessoa.id)} familia={familiaDe(pessoa.id)} falecido={jaFaleceu(pessoa)} cedo />
         </div>
         <div class="quem-e__texto">
           {(ehMinha || especie || dosNucleos.length > 0 || vida) && (
@@ -176,6 +181,14 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
           {/* Aprovado pelo Gui em 17/11/2026 (pergunta 6 do PR do grupo "pessoal"): o parentesco é a linha grande, e o nome vem logo abaixo */}
           {parentesco && <p class="quem-e__laco">{parentesco}</p>}
           <h1 class:list={['quem-e__nome', parentesco ? 't-2' : 't-1']}>{pessoa.nome}</h1>
+          {jaFaleceu(pessoa) && <p class="so-leitor">Já faleceu.</p>}
+          {temDataOculta && (
+            <p class="quem-e__datas">
+              <a class="acao acao--quieta" href={mostrarDatas ? `/pessoas/${pessoa.id}` : `/pessoas/${pessoa.id}?datas=1`}>
+                {mostrarDatas ? 'Esconder datas' : 'Mostrar datas'}
+              </a>
+            </p>
+          )}
           {/* O atalho para a voz (P102): só conta e só leva aos áudios que quem olha pode ouvir, os
               mesmos da lista de baixo (listarAudiosDe) */}
           {audiosDaPessoa.length > 0 && (
@@ -275,7 +288,7 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
                 <ul>
                   {parte.linhas.map((l) => (
                     <li>
-                      <Gente href={`/pessoas/${l.id}`} nome={nome(l.id)} foto={retratoDe(l.id)} familia={familiaDe(l.id)} laco={l.laco} detalhe={l.detalhe} />
+                      <Gente href={`/pessoas/${l.id}`} nome={nome(l.id)} foto={retratoDe(l.id)} familia={familiaDe(l.id)} laco={l.laco} detalhe={l.detalhe} falecido={faleceu(l.id)} />
                     </li>
                   ))}
                 </ul>

@@ -16,15 +16,18 @@ interface Props {
   laco?: string | null;
   /** um detalhe, em mono */
   detalhe?: string | null;
+  /** quem já faleceu: o retrato leva o anel, e o leitor de tela ouve "já faleceu" */
+  falecido?: boolean;
 }
 
-const { href, nome, foto, familia, laco, detalhe } = Astro.props;
+const { href, nome, foto, familia, laco, detalhe, falecido = false } = Astro.props;
 ---
 
 <a class="gente" href={href}>
-  <Retrato nome={nome} foto={foto} familia={familia} />
+  <Retrato nome={nome} foto={foto} familia={familia} falecido={falecido} />
   <span class="gente__quem">
     <strong>{nome}</strong>
+    {falecido && <span class="so-leitor">já faleceu</span>}
     {laco && <span class="gente__laco suave">{laco}</span>}
     {detalhe && <span class="ficha suave">{detalhe}</span>}
   </span>

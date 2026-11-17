@@ -10,6 +10,7 @@ import '../../visual/telas/pessoas.css';
 import Visual from '../../layouts/Visual.astro';
 import Gente from '../../components/visual/Gente.astro';
 import { Familia, calcularGeracoes, possessivo, type Tratamento } from '../../lib/parentesco';
+import { jaFaleceu } from '../../lib/datas';
 import { ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
 import { enderecoDoRetrato } from '../../lib/retratos';
 import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
@@ -129,6 +130,7 @@ const ORDENS = [
                   familia={corDaPessoa(familiasDe(p), ordemDosNucleos)}
                   laco={paraVoce(p)}
                   detalhe={detalhe(p)}
+                  falecido={jaFaleceu(p)}
                 />
               </li>
             ))}
