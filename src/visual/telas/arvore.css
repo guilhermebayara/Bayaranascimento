@@ -887,6 +887,22 @@
   padding-block: var(--e-6);
 }
 
+/* Tela de mapa (decisão do Gui, 17/11/2026): sem rodapé, a árvore ocupa a janela inteira abaixo do
+   menu. O título fica no alto, o mapa pega toda a altura que sobra e a linha de "Cadastrar pessoa"
+   fica no pé. A altura vem do esqueleto (estrutura.css), e não mais de uma conta com a janela. */
+[data-tela-de-mapa] .arvore {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+}
+[data-tela-de-mapa] .mapa {
+  height: auto;
+  min-height: 0;
+}
+[data-tela-de-mapa] .arvore__rodape {
+  padding-block: 0;
+}
+
 @media (min-width: 40rem) {
   /* No computador o painel fica no alto, à esquerda, aberto ou fechado */
   .mapa__painel[open] {
