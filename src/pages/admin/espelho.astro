@@ -4,7 +4,7 @@ import { podeEspelhar } from '../../lib/servidor/espelho';
 
 const { usuario } = Astro.locals;
 if (!usuario.admin || !podeEspelhar()) return new Response('Página não encontrada', { status: 404 });
-// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
+// Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
 <Pagina titulo="Espelho da produção" rotulo="Administração" secao="conta" larga>

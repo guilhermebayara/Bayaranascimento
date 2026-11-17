@@ -23,7 +23,7 @@ const grupos = [
 ].filter((g) => g.membros.length > 0);
 
 // O que cada pessoa é para quem olha: "sua avó", "seu primo". Sem laço calculado, a linha fica sem.
-// PROVISÓRIO (pergunta 3 do PR do grupo "familia"): o parentesco de quem olha na lista de pessoas
+// Aprovado pelo Gui em 17/11/2026 (pergunta 3 do PR do grupo "familia"): o parentesco de quem olha na lista de pessoas
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
 const paraVoce = (p: Integrante) => {

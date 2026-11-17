@@ -616,13 +616,13 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **Painel (`/`).** O desenho do conceito com os dados de verdade (`src/pages/index.astro`, `telas/painel.css`). Na primeira visita, a carta no alto; depois, "Oi, Fulano.", o resumo do que entrou, a mesa com as novidades, "Neste dia, em outros anos", os cartões (aniversários, você no acervo, a memória para contar) e o caminho para a linha do tempo. O painel só mostra memória publicada.
 
-- **A mesa das novidades** mostra duas memórias e um relato, como no conceito. O que passa disso vira uma linha, "E mais N: ver o que entrou por último", que leva a `/explorar?ordem=entraram`. Provisório.
-- **Sem visita anterior e sem carta**, a frase é "Que bom que você chegou.". Provisório.
+- **A mesa das novidades** mostra duas memórias e um relato, como no conceito. O que passa disso vira uma linha, "E mais N: ver o que entrou por último", que leva a `/explorar?ordem=entraram`. Aprovado pelo Gui em 17/11/2026.
+- **Sem visita anterior e sem carta**, a frase é "Que bom que você chegou.". Aprovado pelo Gui em 17/11/2026.
 - **O parentesco nos aniversários** não se repete quando o apelido já traz ("Tia Cida" fica sem "sua tia" embaixo).
 - **`?hoje=AAAA-MM-DD`** mostra o painel como num outro dia. Só vale onde não há login (prévias, homologação e computador), para conferir os aniversários e o "Neste dia" e para as capturas saírem iguais.
 - "Voltar Fulano à primeira visita" continua no fim da página, só fora da produção.
 
-**Carta de Natal.** A peça é `src/components/Carta.astro`, usada no alto do painel e em `/carta`: a saudação "Oi, Elizete," grande, o primeiro parágrafo como abertura em serifa, o resto como texto de leitura, e a linha de quem assina partida em nomes, cada um à mão ("Gui, Giovanna e Magno" vira três assinaturas). O carimbo diz "Natal de <ano em que a carta foi escrita>" (provisório: o conceito dizia também "Belo Horizonte"). No painel a ação é "Abrir o acervo", que leva ao Explorar; em `/carta`, "Voltar ao início". As fotos ao lado são as três memórias mais recentes em que a pessoa aparece. O banco de teste ganhou a carta de exemplo do conceito (`semearCartaDeExemplo`), só onde não há carta nenhuma.
+**Carta de Natal.** A peça é `src/components/Carta.astro`, usada no alto do painel e em `/carta`: a saudação "Oi, Elizete," grande, o primeiro parágrafo como abertura em serifa, o resto como texto de leitura, e a linha de quem assina partida em nomes, cada um à mão ("Gui, Giovanna e Magno" vira três assinaturas). O carimbo diz "Natal de <ano em que a carta foi escrita>" (aprovado pelo Gui em 17/11/2026, sem o lugar; o conceito dizia também "Belo Horizonte"). No painel a ação é "Abrir o acervo", que leva ao Explorar; em `/carta`, "Voltar ao início". As fotos ao lado são as três memórias mais recentes em que a pessoa aparece. O banco de teste ganhou a carta de exemplo do conceito (`semearCartaDeExemplo`), só onde não há carta nenhuma.
 
 **Sua conta (`/conta`).** Página íntima, na cor da família da pessoa, com o cartão do painel (`telas/conta.css`, mais `telas/painel.css` pelo cartão). No alto, o retrato em arco, o nome, "Editar seus dados" e "Ver sua página". Depois, quatro cartões: **Seus dados** (ficha em mono; o e-mail de acesso só aparece na produção), **Rascunhos e lixeira** (os rascunhos de memória e de relato, a conta do que é seu na lixeira e "Abrir a lixeira"), **O que você criou** (o número grande de memórias, relatos, fotos e capítulos; cada lista abre no lugar, uma por vez, sem script) e **Seus laços do coração** (com a proximidade, que só a pessoa vê). No fim, **Administração**, só para quem administra: os itens de `administracao()`, que ganhou "Carta de Natal" e "Sistema visual", e o tamanho do banco, que vira recado quando passa do aviso.
 
@@ -655,14 +655,14 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **Página do capítulo (`/capitulos/<id>`).** Abertura de capítulo de livro. À esquerda, a capa: o carimbo com o que ele é (e "Só Bayara", quando é restrito), o título grande, o período em pílula com a conta, "Entram as memórias do período com…", as ações de sempre mais "Ver no Explorar", a abertura em serifa, as ligações ("Parte de", "Aconteceu durante", "Temas") e "Quem aparece". No computador com mouse a capa fica parada enquanto os marcos rolam (`sticky` só dentro de `(hover: hover) and (pointer: fine)`); no toque, nada fica preso. À direita, "Capítulos dentro deste", "Aconteceu neste período" e os marcos.
 
-- **Os marcos numerados.** Cada memória do capítulo é um marco: o número grande em serifa, com um traço na cor do capítulo, o carimbo com a data e o lugar, o título, quem estava e a foto revelada pequena. A ordem é a de toda linha do tempo do site, das mais recentes para as mais antigas, e o número é a posição do marco na história contada do começo (o mais recente leva o número mais alto). Provisório: a outra opção é a ordem do livro, do 01 em diante.
-- **Quem aparece.** As seis pessoas que mais estão nas memórias do capítulo, com a conta de cada uma (a peça Gente), e "e mais N pessoas". Provisório.
+- **Os marcos numerados.** Cada memória do capítulo é um marco: o número grande em serifa, com um traço na cor do capítulo, o carimbo com a data e o lugar, o título, quem estava e a foto revelada pequena. A ordem é a de toda linha do tempo do site, das mais recentes para as mais antigas, e o número é a posição do marco na história contada do começo (o mais recente leva o número mais alto). Aprovado pelo Gui em 17/11/2026; a outra opção era a ordem do livro, do 01 em diante.
+- **Quem aparece.** As seis pessoas que mais estão nas memórias do capítulo, com a conta de cada uma (a peça Gente), e "e mais N pessoas". Fica na tela grande (resposta do Gui, 17/11/2026); no celular vira uma linha de nomes corrida, sem fotos, feita na `tst-visual-ajustes`.
 - **A cor da tela** vem das famílias do capítulo (as de "quem vê" e as de "de quem é"); sem nenhuma, a da família completa.
 - A marcação da memória de um capítulo de dentro leva o sinal desse capítulo.
 
 **Tema (`/temas/<id>`).** "Tema", o nome grande, "Todos os capítulos e temas", os capítulos que usam o tema (a mesma linha do sumário) e as memórias, na linha do tempo do Explorar (`explorar/Linha.astro`, sem trilhos), como na página da pessoa.
 
-**Pessoas (`/pessoas`).** Cada família é uma parte da página com a cor dela (`telas/pessoas.css`): o nome da família num bloco pastel, com a conta, e as pessoas embaixo com a peça Gente, em uma, duas, três ou quatro colunas. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho. No alto, a conta de pessoas e bichos, "Cadastrar pessoa", "Ver a árvore" e os atalhos para cada família. O parentesco na lista é provisório.
+**Pessoas (`/pessoas`).** Cada família é uma parte da página com a cor dela (`telas/pessoas.css`): o nome da família num bloco pastel, com a conta, e as pessoas embaixo com a peça Gente, em uma, duas, três ou quatro colunas. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho. No alto, a conta de pessoas e bichos, "Cadastrar pessoa", "Ver a árvore" e os atalhos para cada família. O parentesco na lista foi aprovado pelo Gui em 17/11/2026.
 
 **Árvore (`/arvore`).** Mudou só a aparência (`telas/arvore.css`); `arvore-montagem.ts` e `arvore-desenho.ts` não foram tocados, e os testes `testes/arvore-*.test.ts` passam sem mudança. Conferido com o Playwright, antes e depois, com a árvore como abre, alguém em foco, os laços do coração abertos, um ramo aberto, cada camada desligada e uma família em destaque: a posição de todos os cartões, o caminho de todas as linhas, os cartões dos ramos e a ficha saíram idênticos.
 
@@ -752,7 +752,7 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 - **A aprovação do Gui**, grupo a grupo, e o merge na ordem: #35, #36, #37 e #38. As perguntas de cada grupo estão no fim do PR dele.
 - **As fontes:** `/conceito/sobre` fica até a escolha, que espera a Giovanna e o Magno. Depois dela, saem as duas combinações que sobrarem ("Como a fonte é trocada").
 - **Limpeza que ficou para depois dos merges:** tirar de "Decidido, a construir" os itens que os grupos fecharam (Explorar, capítulos na linha do tempo, painel, sua conta, "família" no lugar de "núcleo", revisão visual) e levar o resumo para as seções de regra; `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena, como `docs/decisoes.md` já previa; separar os testes dos grupos 1 e 2 do `describe('conceito')`, em `testes/visual.test.ts`; tentar as camadas do CSS.
-- **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Espera a resposta do Gui (pergunta 11 do PR do grupo 4).
+- **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Resposta do Gui (17/11/2026): muda na `tst-visual-tipos`, com a cor escolhida numa paleta ampliada do sistema e um seletor de ícone.
 - **O que nenhum grupo viu na tela:** o envio de foto nova, a gravação de áudio, o recorte do retrato com uma foto e o histórico com alterações.
 
 **Da fase 4 (movimento e detalhes)**
@@ -773,3 +773,71 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 - Na produção e na homologação, só os administradores abrem (para os outros, 404), com um link na seção "Administração" da conta. Nas prévias e no computador, abre para todos, como hoje.
 - Ela mostra o sistema com conteúdo fixo da própria página, nunca com dados do acervo. Na produção, nada de fotos de exemplo: a guarda já recusa que elas cheguem ao pacote ou ao bucket da produção. Onde a peça pede foto, a página usa um quadro desenhado (cor e textura da própria página) e, nas prévias, pode continuar usando o Chico e a Karol.
 - Ela acompanha o sistema: toda peça, token ou regra nova entra nela no mesmo PR, e `testes/sistema.test.ts` falha se uma peça do sistema não aparecer na página.
+
+## Respostas do Gui às perguntas da fase 3 (17/11/2026)
+
+As perguntas estão no fim dos PRs #35 a #38. "Aprovada" quer dizer a opção recomendada, como a sessão fez: a marca PROVISÓRIO sai e a decisão vira regra. O que muda está descrito na resposta e é feito na `tst-visual-ajustes` (ou na `tst-visual-tipos`, quando dito).
+
+**O que virou regra** (as opções aprovadas, sem marca PROVISÓRIO no código desde 17/11/2026; o detalhe de cada uma está na seção do grupo):
+
+| Onde | Regra |
+| --- | --- |
+| Explorar | O endereço é `/explorar`, o controle se chama "Forma de ver", e os textos do formulário, do palco e do pé do trilho ficam como estão |
+| Modo TV | "Álbum" é a animação de quem nunca escolheu. Os nomes "Álbum", "Revelação" e "Mesa" ficam |
+| Carta | O carimbo diz "Natal de" e o ano em que a carta foi escrita, sem lugar |
+| Prévias | O banco de teste tem uma carta de exemplo, a do conceito, só onde não há carta nenhuma |
+| Painel | Na mesa das novidades ficam as duas memórias e o relato mais novos; o resto vira "E mais N", que leva ao Explorar em "Entraram por último" |
+| Painel | Quem chega sem visita anterior e sem carta lê "Que bom que você chegou." |
+| Conta | "Editar seus dados" leva à tela de editar a página da pessoa. Os textos novos da conta, da pessoa e da administração ficam |
+| Página da pessoa | O parentesco de quem olha é a linha maior, e o nome vem logo abaixo |
+| Peça Gente | Faz parte do sistema: retrato, nome e uma linha de apoio, para listas de pessoas e de laços |
+| Capítulo | Os marcos vão dos mais recentes aos mais antigos, com a numeração decrescente: o número é a posição na história, contada do começo |
+| Capítulo | "Quem aparece" fica. Na tela grande, as seis pessoas com retrato e conta; no celular, uma linha de nomes corrida |
+| Pessoas | A lista mostra o parentesco de quem olha ("sua avó") |
+| Árvore | O cartão é uma etiqueta com um canto reto, e quem olha leva a faixa de tinta |
+| Formulários | Quando "Continuar" e o envio convivem, "Continuar" é o botão cheio e o envio fica em contorno; na última etapa, o envio volta a ser cheio |
+| Formulários | A trilha das etapas é quieta: numerada, numa coluna à esquerda no computador |
+| Formulários | Toda ação que não é a principal é texto sublinhado, inclusive "Escolher fotos" e "Gravar áudio" |
+| Formulários | A opção marcada fica no pastel da tela (o do tipo de momento, quando há), com a borda na cor do texto |
+| Formulários | A página de formulário pode levar uma linha pequena acima do título ("Rascunho", "Memória publicada") |
+| Formulários | Os rótulos e os textos das telas utilitárias e da administração ficam ("Sua conta", "Administração", "Voltar para a sua conta", "Ver os rascunhos", "Confira antes de confirmar. Nada é apagado de vez.") |
+| Cadastro guiado | Os dois caminhos são cartões inteiros para tocar, e o fluxo de nova pessoa e laços tem a trilha numerada |
+| Laços | O laço em edição abre num cartão branco, no lugar, e as fases do casal levam um fio ao lado |
+| Excluir | O botão que confirma é cheio, na cor de alerta |
+
+O que mudou em vez de ser aprovado (a página da pessoa com "Forma de ver", "Quem aparece" no celular, a frase na abertura da Nova memória, o resumo à direita nos formulários, a zona de perigo e a cor e o ícone dos tipos) está nas respostas abaixo e é registrado na seção dos ajustes quando for construído.
+
+**#35 (Explorar e memória):** `/explorar`, "Forma de ver" e os textos do formulário, do palco e do pé do trilho, aprovados. Modo TV: "Álbum" é a animação de quem nunca escolheu, e os nomes "Álbum", "Revelação" e "Mesa" ficam.
+
+**#36 (pessoal):**
+1. Carimbo da carta: aprovada ("Natal de" e o ano em que a carta foi escrita, sem lugar).
+2. Carta de exemplo nas prévias: aprovada.
+3. Novidades na mesa: aprovada (as duas memórias e o relato mais novos, e "E mais N").
+4. "Que bom que você chegou.": aprovada.
+5. Editar os dados na conta: aprovada (o link para a tela de editar a página).
+6. Parentesco como linha maior da página da pessoa: aprovada.
+7. Textos novos da conta, da pessoa e da administração: aprovada.
+8. Memórias na página da pessoa: **muda**. A página ganha "Forma de ver", como o Explorar: linha do tempo (o padrão), mural e lista.
+9. A peça Gente: aprovada.
+
+**#37 (família):**
+1. Marcos do capítulo, mais recentes primeiro e numeração decrescente: aprovada.
+2. "Quem aparece": fica. **Muda no celular**: vira uma linha de nomes corrida, sem fotos, no formato "Gui (10), Giovanna (8)", no alto, sem empurrar as memórias. Na tela grande, como está.
+4. A ordem da página do capítulo no celular: resolvida pela 2 (a capa fica no alto, com a linha corrida).
+3, 5 e 6. Parentesco na lista de pessoas, textos novos e o cartão da árvore: aprovadas. Além disso, dois defeitos na árvore: a nitidez no zoom e o respiro do cartão de bicho (itens 8 e 9 do prompt).
+
+**#38 (formulários):**
+1. A frase de lacunas: **muda**. A frase entra também na abertura da Nova memória, com "com ___" levando ao "Quem estava?".
+2. Os dois botões na correção e na edição do capítulo: aprovada.
+3. A trilha das etapas: aprovada.
+4. Ações secundárias como texto sublinhado: aprovada, inclusive "Escolher fotos" e "Gravar áudio".
+5. A cor da opção marcada: aprovada.
+6. A linha pequena acima do título: aprovada.
+7. Formulários na tela grande: **muda**. À direita, a foto-chave e um resumo da memória que acompanha o preenchimento, em 1280 e 1920 px.
+8. Rótulos e textos da segunda metade: aprovada.
+9. O cadastro guiado: aprovada.
+10. O laço em edição: aprovada.
+11. O campo "Cor" dos tipos: **muda**, na `tst-visual-tipos`. Escolha numa paleta ampliada do sistema (bem mais que onze cores, todas com contraste garantido) e seletor de ícone entre os rabiscos de `IconeDoTipo.astro`, com rabiscos novos no mesmo traço.
+12. O botão de excluir: aprovada (cheio na cor de alerta) e **mais**: a zona de perigo, com as ações de apagar juntas no fim das telas de editar, num bloco separado e marcado na cor de alerta, longe do salvar.
+
+Novidade que vale para o Explorar e a página da pessoa: a forma de ver "Lista", no modelo do "Já rolou" da agenda da @bsurda (descrita no prompt da `tst-visual-ajustes`).

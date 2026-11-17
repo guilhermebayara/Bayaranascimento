@@ -13,7 +13,7 @@ const integrantes = await listarIntegrantes();
 const outros = outrosAdmins(usuario.pessoa, integrantes);
 const carta = await obterCarta();
 const quem = carta ? integrantes.find((i) => i.id === carta.escritaPor) : undefined;
-// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
+// Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
 <Pagina titulo="Carta de Natal" rotulo="Administração" secao="conta" larga>

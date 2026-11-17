@@ -1288,7 +1288,7 @@ export async function semearAniversariosDeExemplo(db: D1Database): Promise<void>
 
 // A carta de Natal de exemplo, a mesma que o conceito da revisão visual mostrava fixa na tela. Só
 // entra onde ainda não há carta nenhuma: a que alguém escrever ao testar nunca é trocada.
-// PROVISÓRIO (pergunta 2 do PR do grupo "pessoal"): o texto de exemplo é o do conceito.
+// Aprovado pelo Gui em 17/11/2026 (pergunta 2 do PR do grupo "pessoal"): o texto de exemplo é o do conceito.
 const CARTA_DE_EXEMPLO = [
   'Este acervo é o nosso presente de Natal para você.',
   'Juntamos aqui as fotos que estavam espalhadas pelos celulares e pelas gavetas, e as histórias que a gente só ouve quando a família se senta à mesa. Cada memória diz quando foi e quem estava lá.',
