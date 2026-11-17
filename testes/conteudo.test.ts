@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { arrumarTexto, codigoNovo, criarSlug, outrosAdmins, slugUnico, validarData } from '../src/lib/servidor/conteudo';
 import { agruparPorAno, formatarData, maisRecentesPrimeiro, formatarDiaMes, problemaNaData } from '../src/lib/datas';
 
@@ -49,6 +51,18 @@ describe('textos para quem está logado', () => {
     expect(outrosAdmins('gui', admins)).toBe('a Giovanna');
     expect(outrosAdmins('giovanna', admins)).toBe('o Gui');
     expect(outrosAdmins('elizete', admins)).toBe('o Gui e a Giovanna');
+  });
+});
+
+describe('recado de quem não é administrador', () => {
+  // QA de design (17/11/2026): o recado de /api/tipos dizia "Só o Gui e a Giovanna", sem o Magno, que é
+  // administrador desde a migração 017. Recado de permissão diz "os administradores", sem lista de nomes.
+  it('nenhuma rota recusa em nome de só duas pessoas', () => {
+    const pasta = join(__dirname, '../src/pages/api');
+    for (const arquivo of readdirSync(pasta)) {
+      const codigo = readFileSync(join(pasta, arquivo), 'utf8');
+      expect(codigo, arquivo).not.toMatch(/Só o Gui e a Giovanna/);
+    }
   });
 });
 
