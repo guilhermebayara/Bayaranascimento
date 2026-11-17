@@ -119,7 +119,7 @@ const PAGINAS = [
   { nome: 'explorar-1-linha-do-tempo', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 9000 },
   // O trecho com um capítulo dentro de outro (Natais na Vó Vivica, dentro de Natais) e as épocas
   { nome: 'explorar-1-linha-capitulos', url: '/explorar', como: 'giovanna', larguras: TODAS, desde: '#ano-2006', corte: 9000 },
-  { nome: 'explorar-1-linha-familia', url: '/explorar?nucleo=bayara', como: 'giovanna', larguras: TODAS, corte: 4000 },
+  { nome: 'explorar-1-linha-familia', url: '/explorar?nucleo=bayara-nascimento', como: 'giovanna', larguras: TODAS, corte: 4000 },
   { nome: 'explorar-2-filtros-abertos', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 3200, antes: abrirFiltros },
   { nome: 'explorar-2-filtrado', url: '/explorar?tipo=viagem&foto=1&ordem=contadas', como: 'giovanna', larguras: TODAS },
   { nome: 'explorar-2-antigas', url: '/explorar?ordem=antigas&capitulo=natais', como: 'giovanna', larguras: TODAS, corte: 5000 },
@@ -132,11 +132,11 @@ const PAGINAS = [
   { nome: 'explorar-4-modo-tv', url: '/explorar?ver=tv&m=2025-natal', como: 'giovanna', larguras: TODAS },
   // "Passar sozinho" ligado em 15 segundos e pausado, para a captura não trocar de memória
   { nome: 'explorar-4-modo-tv-passando', url: '/explorar?ver=tv&m=2025-natal&passar=15&pausa=1', como: 'giovanna', larguras: TODAS },
-  { nome: 'explorar-4-modo-tv-sem-foto', url: '/explorar?ver=tv&m=2026-primeira-noite', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-4-modo-tv-sem-foto', url: '/explorar?ver=tv&m=2026-primeira-noite-em-casa', como: 'giovanna', larguras: TODAS },
   { nome: 'explorar-5-ao-acaso', url: '/explorar?ver=acaso&m=1994-festa-de-aniversario', como: 'giovanna', larguras: TODAS },
   { nome: 'explorar-6-memoria', url: '/memorias/2025-natal', como: 'giovanna', larguras: TODAS },
   { nome: 'explorar-6-memoria-com-fotos', url: '/memorias/1994-festa-de-aniversario', como: 'giovanna', larguras: TODAS },
-  { nome: 'explorar-6-memoria-sem-foto', url: '/memorias/2026-primeira-noite', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-6-memoria-sem-foto', url: '/memorias/2026-primeira-noite-em-casa', como: 'giovanna', larguras: TODAS },
   // Fase 3, grupo "pessoal": o painel (a carta na primeira visita e uma visita seguinte, na véspera de
   // Natal), a carta, a conta, a página da pessoa e o sistema. CAPTURAS_SO=^pessoal npm run capturas -- tirar <pasta>
   { nome: 'pessoal-1-carta-no-painel', url: '/?hoje=2026-12-24', como: 'elizete', larguras: TODAS, visita: 'primeira' },

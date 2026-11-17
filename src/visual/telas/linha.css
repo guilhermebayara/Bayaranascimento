@@ -255,6 +255,11 @@ html.pino-novo .parada::before {
   pointer-events: none;
   animation: barra-cobre linear both;
 }
+/* Sem memória nenhuma não há faixa nem ano para prender: a cobertura acendia no meio da tela e
+   escondia o resumo dos filtros e a frase do estado vazio (QA de design, 17/11/2026) */
+html.pino-novo [data-sem-memorias] > .parada::before {
+  content: none;
+}
 html.pino-novo [data-trilho] > .parada::before {
   animation-timeline: --trilho;
   animation-range: contain 0% contain calc(0% + 3rem);
@@ -467,6 +472,18 @@ html.pino-novo .parada__ano[data-vazia] {
 .marca--abre .marca__texto {
   position: relative;
   z-index: 2;
+}
+/* O título do capítulo e o da época são links de uma linha: a área de toque chega a 44 px sem
+   mudar o desenho (QA de design, 17/11/2026) */
+:is(.marca__titulo, .epoca__titulo) {
+  position: relative;
+}
+:is(.marca__titulo, .epoca__titulo)::after {
+  content: '';
+  position: absolute;
+  inset: 50% 0 auto;
+  height: var(--toque);
+  translate: 0 -50%;
 }
 .marca__titulo {
   font-size: calc(1.25rem * var(--escala-serifa));

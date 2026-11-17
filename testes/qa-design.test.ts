@@ -135,3 +135,20 @@ describe('pessoa, laços e administração', () => {
     expect(regra(ler('src/visual/telas/tipos.css'), '.pagina-de-formulario .amostra__uso')).not.toMatch(/nowrap|ellipsis/);
   });
 });
+
+describe('Explorar', () => {
+  const linha = ler('src/visual/telas/linha.css');
+  it('o título do capítulo e o da época na linha do tempo têm 44 px de toque', () => {
+    expect(regra(linha, ':is(.marca__titulo, .epoca__titulo)::after')).toMatch(/height: var\(--toque\)/);
+  });
+  it('sem memória nenhuma, a cobertura da faixa parada não acende', () => {
+    expect(regra(linha, 'html.pino-novo [data-sem-memorias] > .parada::before')).toMatch(/content: none/);
+    expect(ler('src/components/explorar/Linha.astro')).toMatch(/data-sem-memorias=\{anos\.length === 0/);
+  });
+  it('no modo TV, as fotos de volta da direita não passam de 30% para fora, para não cobrir o texto', () => {
+    const css = ler('src/visual/telas/explorar.css');
+    const saidas = [...css.matchAll(/\.palco__extra\[data-n='[24]'\] \{[^}]*right: -(\d+)%/g)].map((m) => Number(m[1]));
+    expect(saidas.length).toBeGreaterThanOrEqual(2);
+    for (const saida of saidas.slice(-2)) expect(saida).toBeLessThanOrEqual(30);
+  });
+});

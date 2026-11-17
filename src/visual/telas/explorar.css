@@ -807,7 +807,8 @@
   }
   .palco__extra[data-n='2'] {
     top: 8%;
-    right: -46%;
+    /* As duas da direita saíam por cima do começo do título e do trecho (QA de design, 17/11/2026) */
+    right: -30%;
   }
   .palco__extra[data-n='3'] {
     bottom: -3%;
@@ -815,7 +816,7 @@
   }
   .palco__extra[data-n='4'] {
     bottom: 2%;
-    right: -40%;
+    right: -26%;
   }
   .palco__texto {
     grid-area: 1 / 8 / 2 / -1;
