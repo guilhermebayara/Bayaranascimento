@@ -19,7 +19,7 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 | Acrescentar relato a uma memória | Qualquer pessoa que vê a memória, um relato por pessoa |
 | Editar um relato | Só quem escreveu (ou quem registrou, no relato de quem não acessa o site) |
 | Registrar relato de quem não acessa o site | Qualquer pessoa que vê a memória, creditada como "registrado por". Cada pessoa pode ter o seu rascunho, que ninguém mais vê; publicado, fica um só |
-| Acrescentar foto | Qualquer pessoa que vê a memória |
+| Acrescentar foto | Qualquer pessoa que vê a memória, pelo formulário da memória (quem pode corrigi-la) ou pelo próprio relato |
 | Remover foto | Só quem enviou |
 | Editar a própria página | A própria pessoa |
 | Editar a página de quem não acessa o site | Quem divide um núcleo com a pessoa, quem a cadastrou e os admins |
@@ -207,6 +207,17 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 - **Quem já contou** vê, no fim da memória, uma linha quieta no lugar do convite: "Você já contou esse dia." e "Editar meu relato". Com o relato ainda em rascunho, a linha é "Seu relato está em rascunho." e "Continuar meu relato" (resposta do Gui à 45-N8, 17/11/2026).
 - **Estados dos componentes:** pressionado em botões, opções, filtros e etiquetas; enviando em todo formulário comum (`src/lib/cliente/enviando.ts`), com o botão travado, o texto do que acontece ("Salvando…") e um segundo toque sem efeito; erro marcado no campo, além do balão do navegador; opção desabilitada com aparência própria. A aparência de cada estado é provisória, até o visual (`docs/ux/revisao-visual.md`).
 
+## Fotos pelo relato (decisão do Gui, 16/11/2026, migração `022`)
+
+- Quem escreve um relato pode acrescentar fotos à memória no mesmo formulário (`src/pages/memorias/[id]/relato.astro`), no passo "Tem fotos desse dia?": escolher, ver cada uma, escrever a legenda e remover antes de salvar. Era o caminho que faltava: o formulário da memória só abre para quem criou e para quem é citado, e a regra sempre foi que qualquer pessoa que vê a memória acrescenta foto.
+- A foto sobe por `/api/fotos`, solta, como na memória. Ao salvar, `/api/relatos` prende ao relato só as fotos soltas que a própria pessoa enviou e as que já eram daquele relato (`ligarFotosDoRelato`, em `src/lib/servidor/repositorio.ts`). Ninguém prende foto de outra pessoa, nem foto que já é de outra memória ou de outro relato, e quem não vê a memória recebe a mesma resposta de uma memória que não existe.
+- A foto é da memória: vai para o fim da ordem, entra na parede e na galeria com as outras, sem mexer na foto principal. Se a memória não tiver nenhuma, a primeira vira a principal. Ela guarda o relato com que veio (`fotos.relato_id`) e aparece também pequena no bilhete dele; tocar nela abre a galeria. Um relato com fotos não some na abertura da memória, para as fotos aparecerem no bilhete.
+- **Relato em rascunho segura as fotos:** elas ficam presas a ele, sem memória, e só quem enviou vê. Ao publicar, entram na memória, mesmo pelo formulário sem script. O formulário da memória não pega uma foto que espera o relato.
+- Uma foto que sai da lista do relato vai para a lixeira da memória, como as que saem pelo formulário da memória. Remover continua sendo de quem enviou, por um formulário ou pelo outro. Se o relato deixar de existir, a foto fica na memória (`ON DELETE SET NULL`).
+- As fotos só se enviam com script, como na memória. Sem a lista, as fotos do relato ficam como estão.
+- Uma foto que chega pelo relato não cria versão no histórico da memória: o histórico guarda a ficha, e as fotos ficam de fora da restauração.
+- Testes em `testes/fotos-pelo-relato.test.ts`, com a rota e o banco de verdade.
+
 ## Áudios nos relatos (liberado pelo Gui em 16/11/2026, migração `015`)
 
 - Um relato pode ter vários áudios, em ordem, cada um com a transcrição opcional. Com áudio, o texto escrito é opcional: o relato pode ser só a voz de quem contou.
@@ -345,13 +356,6 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
   A polaroid em toda foto-chave fica para o Gui confirmar vendo a linha do tempo. Quando a revisão terminar, `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena.
 - **"Adicionar outro laço" como ação** (decisão do Gui, 17/11/2026, depois do PR #48). Um degrau abaixo de "Laços" ficou quase igual (22 contra 24 px no celular). Ele desce até o tamanho dos outros botões e links de ação do formulário, sem parecer título. Na mesma decisão, o botão do alto da memória com relato em rascunho continua "Continuar meu relato".
 
-- **Fotos pelo relato** (decisão do Gui, 16/11/2026). Quem escreve um relato pode acrescentar fotos à memória no mesmo formulário. Fica para depois do conceito da revisão visual (do Gui, 16/11/2026), numa branch própria.
-    - **Como é hoje.** A regra diz que qualquer pessoa que vê a memória acrescenta foto ("Quem pode o quê"), mas o único lugar para enviar foto é o formulário da memória ("Corrigir esta memória"), que só abre para quem criou e para as pessoas citadas. Quem é citado consegue, por um caminho que não se chama "foto"; quem vê a memória e não é citado não consegue.
-    - **O que construir.** No formulário do relato (`src/pages/memorias/[id]/relato.astro`), um passo "Fotos" igual ao da memória: escolher, ver cada uma, escrever a legenda, remover antes de salvar. A foto sobe por `/api/fotos`, como hoje, e nasce solta. Ao salvar o relato, `/api/relatos` recebe a lista e prende à memória só as fotos soltas enviadas pela própria pessoa, no fim da ordem, sem mexer na foto principal (se a memória não tiver nenhuma, a primeira vira a principal). Vale para quem vê a memória, como diz a regra. Remover continua sendo só de quem enviou, pelo formulário da memória ou pelo do relato.
-    - **Onde a foto aparece** (decisão do Gui, 16/11/2026): nos dois lugares, e é a mesma foto. Ela é da memória, entra na parede de fotos e na galeria com as outras, e aparece também pequena no relato que a trouxe (já desenhado no conceito, com dado fixo). Para isso a foto precisa guardar o relato com que veio (uma coluna nova em `fotos`, numa migração).
-    - **Se o relato for apagado** (decisão do Gui, 16/11/2026): a foto continua na memória. Remover continua sendo de quem enviou; os administradores também devem poder, o que entra com o item "Administradores podem mais", logo abaixo.
-    - **Para decidir ao construir:** se as fotos entram no histórico da memória como alteração; se relato em rascunho segura as fotos até ser publicado; e se a página da memória ganha também um atalho "Acrescentar fotos" que não passa pelo relato.
-    - Testes: quem não vê a memória não prende foto nela; ninguém prende foto enviada por outra pessoa nem foto que já é de outra memória; a foto principal não muda.
 - **Administradores podem mais** (pedido do Gui, 16/11/2026, registrado para depois da revisão visual; não foi construído). Vai haver administradores em todas as famílias (hoje Gui, Giovanna e Magno), e eles precisam poder arrumar o acervo sem depender de cada pessoa: pedir à mãe do Gui para editar alguém viraria uma tarefa para ela.
     - **O que os administradores já podem hoje** ("Quem pode o quê"): editar a página de quem não acessa o site, criar e mudar laços de árvore, excluir memória e restaurar da lixeira.
     - **O que passam a poder** (decisões do Gui, 16/11/2026):
