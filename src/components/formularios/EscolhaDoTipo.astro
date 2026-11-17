@@ -38,7 +38,7 @@ const { chave, cor, icone, rotulo, emUso } = Astro.props;
                 <input type="radio" name="cor" value={c} checked={c === cor} required data-escolha-cor />
                 <span class="amostra__cor" aria-hidden="true" />
                 <span class="amostra__nome">{NOMES_DAS_CORES[c]}</span>
-                {/* Repetir cor pode, como sempre pôde: a amostra só avisa quem já usa */}
+                {/* Repetir cor pode, como sempre pôde: a amostra só avisa quem já usa. PROVISÓRIO (pergunta 5 do PR dos tipos). */}
                 {usam.length > 0 && <span class="amostra__uso">em {usam.join(', ')}</span>}
               </label>
             );

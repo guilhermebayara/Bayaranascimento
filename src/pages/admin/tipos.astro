@@ -51,7 +51,7 @@ const corLivre = PALETA.find((c) => !emUso.has(c)) ?? PALETA[0];
                     {t.memorias} {t.memorias === 1 ? 'memória' : 'memórias'}
                   </span>
                 </div>
-                {/* O tipo nasce com uma cor da lista e o brilho; o desenho se escolhe depois, em "Tipos da lista" */}
+                {/* O tipo nasce com uma cor da lista e o brilho; o desenho se escolhe depois, em "Tipos da lista". PROVISÓRIO (pergunta 6 do PR dos tipos). */}
                 <form method="post" action="/api/tipos" class="em-linha">
                   <input type="hidden" name="acao" value="promover" />
                   <input type="hidden" name="texto" value={t.texto} />

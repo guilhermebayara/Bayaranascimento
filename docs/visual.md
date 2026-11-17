@@ -945,14 +945,14 @@ Branch `tst-visual-ajustes`, nascida da `homologa` em 17/11/2026, com o que o Gu
 
 **O que falta depois dos ajustes**
 
-- **`tst-visual-tipos`**: construída em 17/11/2026, com PR próprio, que depende do #39 (ver "Tipos: paleta e ícones", no fim deste arquivo). A marca "A MUDAR" da pergunta 11 do #38 saiu ali.
+- **`tst-visual-tipos`**: construída em 17/11/2026, no PR #40, que depende do #39 (ver "Tipos: paleta e ícones", no fim deste arquivo). A marca "A MUDAR" da pergunta 11 do #38 saiu ali.
 - **No iPhone e no Safari do computador:** a nitidez da árvore no zoom, a lista, a frase da abertura e a zona de perigo.
 - **Numa TV de verdade:** o modo TV com o controle, e os formulários em 1920 px com o resumo ao lado.
 - **Refazer as capturas da árvore** em `docs/visual/fase-3/familia/`.
 
 ## Tipos: paleta e ícones
 
-Construído em 17/11/2026 na branch `tst-visual-tipos`, nascida da `tst-visual-ajustes` (o PR dela depende do #39). É a resposta do Gui à pergunta 11 do PR #38: em `/admin/tipos`, a cor vira uma escolha numa paleta ampliada do sistema e entra um seletor de ícone entre os rabiscos.
+Construído em 17/11/2026 na branch `tst-visual-tipos`, nascida da `tst-visual-ajustes`. O PR é o #40, para a `homologa`, aberto e sem merge; depende do #39. As sete perguntas para o Gui estão no fim dele. É a resposta do Gui à pergunta 11 do PR #38: em `/admin/tipos`, a cor vira uma escolha numa paleta ampliada do sistema e entra um seletor de ícone entre os rabiscos.
 
 **A paleta.** São 23 cores: as onze aprovadas em 16/11/2026, que não mudaram de valor, e doze novas (limão, oliva, menta, musgo, céu, petróleo, anil, uva, ameixa, cereja, terracota e cacau), cada uma nos quatro tons de sempre (pastel, meio, vivo e tinta), em `src/visual/tokens.css`. A lista e os nomes estão em `src/lib/visual.ts` (`CORES`, `CORES_NOVAS`, `PALETA`, `NOMES_DAS_CORES`). As onze continuam sendo as das famílias e dos capítulos; as doze novas só entram pela escolha do tipo.
 
