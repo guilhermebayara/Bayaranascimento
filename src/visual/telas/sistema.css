@@ -307,7 +307,7 @@
    linha, e a tabela do contraste sem rolar de lado, com os três números de cada cor numa linha só
    abaixo do nome. O cabeçalho continua lá para o leitor de tela; quem vê lê o nome da coluna em
    cima de cada número. */
-@media (max-width: 39.99rem) {
+@media (max-width: 40rem) {
   .sis__cores--novas {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--e-5) var(--e-4);

@@ -2387,6 +2387,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P174. O que a página de erro diz e oferece?
 
+**Feito (opção A):** a página diz "Não encontramos esta página. Ela pode ter mudado de lugar ou não estar aberta para você.", com "Voltar ao início" e o menu do site, e é a mesma para o que não existe e para o que a pessoa não pode ver. Capturas: `p174-pagina-nao-encontrada--390.jpg`, `p174-pagina-nao-encontrada--1280.jpg`, `p174-pagina-nao-encontrada--1920.jpg`.
+
 **ajuste**
 
 - Contexto: a página não existia e foi criada nesta rodada, com a frase "Não encontramos esta página." e "Voltar ao início". O texto é provisório, e texto é decisão do Gui.

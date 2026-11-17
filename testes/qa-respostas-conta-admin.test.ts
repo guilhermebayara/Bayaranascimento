@@ -174,3 +174,39 @@ describe('famílias, carta de Natal e espelho da produção', () => {
     expect(rota.match(/await atualizarSobrenomesDoNucleo\(/g)).toHaveLength(1);
   });
 });
+
+describe('sistema visual', () => {
+  const pagina = ler('src/pages/sistema.astro');
+  const css = ler('src/visual/telas/sistema.css');
+  const celular = css.slice(css.indexOf('@media (max-width: 40rem) {'));
+
+  it('P172: no celular a paleta ampliada tem duas cores por linha, com o nome de gente junto do nome do código', () => {
+    expect(css).toContain('@media (max-width: 40rem) {');
+    expect(celular).toMatch(/\.sis__cores--novas \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+    expect(pagina).toContain('<ul class="cores sis__cores sis__cores--novas">');
+    expect(pagina).toContain('{NOMES_DAS_CORES[c]} · {c}');
+  });
+
+  it('P173: no celular a tabela do contraste não rola de lado, e cada número leva o nome da coluna', () => {
+    expect(celular).toMatch(/\.sis__contraste tr \{\s*display: grid;\s*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+    expect(celular).toContain('content: attr(data-coluna);');
+    for (const coluna of ['Tinta no pastel', 'Tinta no papel', 'Texto no pastel']) expect(pagina).toContain(`<td data-coluna="${coluna}"`);
+    // O cabeçalho continua na página, para o leitor de tela
+    expect(celular).not.toMatch(/\.sis__contraste thead \{[^}]*display: none/);
+  });
+});
+
+describe('página não encontrada', () => {
+  it('P174: uma frase só para tudo, que não revela se a coisa existe, com a volta ao início', () => {
+    const pagina = ler('src/pages/404.astro');
+    expect(pagina).toContain('frase="Não encontramos esta página."');
+    expect(pagina).toContain('Ela pode ter mudado de lugar ou não estar aberta para você.');
+    expect(pagina).toMatch(/<a class="botao" href="\/">Voltar ao início<\/a>/);
+    expect(pagina).not.toContain('provisório');
+    // As páginas que não acham a memória, a pessoa ou o capítulo não escrevem a própria frase na tela:
+    // respondem 404 em texto puro, e o site troca pela página acima (src/lib/servidor/http.ts)
+    for (const arquivo of ['src/pages/admin/tipos.astro', 'src/pages/admin/familias.astro', 'src/pages/admin/carta.astro', 'src/pages/admin/espelho.astro']) {
+      expect(ler(arquivo), arquivo).toContain("return new Response('Página não encontrada', { status: 404 });");
+    }
+  });
+});
