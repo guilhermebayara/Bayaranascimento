@@ -289,24 +289,65 @@ describe('conceito', () => {
     expect(css).not.toMatch(/rotate[XY]|backface-visibility|perspective/);
   });
 
-  it('as escolhas do Explorar trocam o conteúdo sem recarregar a página, e sem script continuam funcionando', () => {
-    // Decisão do Gui, 17/11/2026: a fluidez vem antes; o endereço continua acompanhando
+  it('as escolhas do Explorar trocam o conteúdo sem recarregar, com cada item indo ao lugar novo', () => {
+    // docs/visual.md, "Movimento que mostra o que mudou" (decisão do Gui, 16/11/2026): um esmaecer
+    // da tela inteira não serve, e a rolagem fica presa ao que a pessoa estava olhando
     const pagina = tela('pages/explorar.astro');
     expect(pagina).toMatch(/<div data-explorar>/);
-    expect(pagina).toMatch(/history\.pushState\(\{ explorar: true \}, '', endereco\)/);
-    expect(pagina).toMatch(/addEventListener\('popstate'/);
-    // Qualquer problema na busca cai na navegação comum
-    expect(pagina).toMatch(/catch \{[\s\S]*?location\.assign\(endereco\)/);
-    // A transição só para quem não pediu menos movimento
-    expect(pagina).toMatch(/'startViewTransition' in document && !matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches/);
-    // A linha do tempo começa de novo a cada troca, desligando o que escutava a janela
+    expect(pagina).toMatch(/import \{ ligarTroca \} from '\.\.\/lib\/cliente\/explorar-troca';\s*ligarTroca\(\);/);
+    const troca = Object.values(import.meta.glob<string>('../src/lib/cliente/explorar-troca.ts', { query: '?raw', import: 'default', eager: true }))[0]!;
+    // Cada item tem identidade própria, no mural e na linha do tempo
+    expect(tela('explorar/Mural.astro')).toMatch(/class="mural__foto"[^>]*data-chave=\{`m:\$\{m\.id\}`\} data-ano=\{m\.ano\}/);
+    expect(tela('explorar/Mural.astro')).toMatch(/class="mural__decada"[^>]*data-chave=\{`d:\$\{abreDecada\}`\}/);
     const linha = tela('explorar/Linha.astro');
+    expect(linha).toMatch(/data-chave=\{`m:\$\{m\.id\}`\}\s*data-ano=\{m\.ano\}/);
+    expect(linha).toMatch(/class="ano__cabeca" data-chave=\{`a:\$\{ano\}`\}/);
+    // Sem esmaecer a tela inteira: quem move é a animação de cada item
+    expect(troca).not.toContain('startViewTransition');
+    expect(troca).toMatch(/no\.animate\(/);
+    // A rolagem é medida antes e devolvida depois, e ao voltar no navegador a troca é a mesma
+    expect(troca).toMatch(/const ancora = acharAncora\(regiao\);[\s\S]*regiao\.replaceWith\(nova\);[\s\S]*devolverRolagem\(nova, ancora\);/);
+    expect(troca).toMatch(/history\.scrollRestoration = 'manual';\s*if \(empurrar\) history\.pushState/);
+    expect(troca).toMatch(/addEventListener\('popstate', \(\) => \{[\s\S]*?trocar\(endereco, \{ empurrar: false \}\)/);
+    // Com movimento reduzido, a troca é direta: nada é medido para animar
+    expect(troca).toMatch(/const antes = calmo\(\) \? new Map<string, Medida>\(\) : medir\(regiao\);/);
+    expect(troca).toMatch(/if \(!calmo\(\)\) animar\(antes, nova\);/);
+    // Qualquer problema na busca cai na navegação comum
+    expect(troca).toMatch(/catch \{\s*location\.assign\(endereco\);/);
+    // A linha do tempo começa de novo a cada troca, desligando o que escutava a janela
     expect(linha).toMatch(/document\.addEventListener\('explorar:trocou', iniciar\)/);
     expect(linha).toMatch(/desligar\.abort\(\);/);
     expect(linha).not.toMatch(/\{ passive: true \}/);
     expect(linha.match(/\{ passive: true, signal \}/g)?.length).toBe(3);
     // Sem script: links e formulário comuns
     expect(tela('explorar/Controles.astro')).not.toContain('<script');
+  });
+
+  it('o filtro de família aceita mais de uma: cada toque liga ou desliga só aquela', () => {
+    // Decisão do Gui, 16/11/2026. A regra está em src/lib/explorar.ts (alternarFamilia e passa)
+    const controles = tela('explorar/Controles.astro');
+    expect(controles).toMatch(/familias: alternarFamilia\(filtros\.familias, n\.id, ordemDasFamilias\)/);
+    expect(controles).toMatch(/aria-current=\{filtros\.familias\.includes\(n\.id\) \? 'true' : undefined\}/);
+    // A assinatura do topo e a cor saem das famílias marcadas
+    const pagina = tela('pages/explorar.astro');
+    expect(pagina).toMatch(/assinaturaDaTela\(filtros\.familias, nucleos\)/);
+    expect(pagina).toMatch(/<Visual[^>]*nucleos=\{filtros\.familias\}/);
+  });
+
+  it('o movimento do modo TV tem três versões, e as setas nunca esperam uma animação', () => {
+    // docs/visual.md, "O modo TV é o lugar de experimentar"
+    const palco = tela('explorar/Palco.astro');
+    expect(palco).toMatch(/data-movimento=\{modo === 'tv' \? movimento : undefined\}/);
+    // Passar é sair para a página da outra memória: nada espera o fim de um movimento
+    expect(palco).not.toMatch(/animationend|transitionend|\.finished/);
+    expect(palco).toMatch(/if \(evento\.key === 'ArrowRight'\) ir\(link\('depois'\)\);/);
+    const css = ler('telas/explorar.css');
+    for (const v of ['a', 'b', 'c']) expect(css).toContain(`.palco[data-movimento='${v}']`);
+    // Toda animação do palco fica dentro de "sem pedido de menos movimento"; fora, só as definições
+    const antes = css.slice(0, css.indexOf('@media (prefers-reduced-motion: no-preference)'));
+    expect(antes).not.toMatch(/animation(-delay)?:/);
+    // A faixa de escolher só aparece nas prévias
+    expect(tela('pages/explorar.astro')).toMatch(/movimentos=\{forma === 'tv' && daVez && semLogin\(\) \?/);
   });
 
   it('no mural, quem está vendo escolhe o tamanho das fotos, e a escolha fica no endereço', () => {
@@ -335,7 +376,8 @@ describe('conceito', () => {
     // Com movimento reduzido, a troca é sem animação
     const css = ler('telas/explorar.css');
     expect(css).toMatch(/@media \(prefers-reduced-motion: no-preference\) \{\s*@view-transition/);
-    expect(css.replace(/@media \(prefers-reduced-motion: no-preference\) \{\s*@view-transition[^}]*\}\s*\}/, '')).not.toContain('@view-transition');
+    expect(css.match(/@view-transition/g)).toHaveLength(1);
+    expect(css.indexOf('@view-transition')).toBeGreaterThan(css.indexOf('@media (prefers-reduced-motion: no-preference)'));
   });
 
   it('no toque, o que fica parado no alto não usa sticky: anda por animação ligada à rolagem', () => {

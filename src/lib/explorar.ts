@@ -234,6 +234,48 @@ export function enderecoDoExplorar(f: Filtros, forma: Forma = FORMA_PADRAO, mais
 }
 
 /**
+ * Depois de uma troca sem recarregar, a rolagem volta para o que a pessoa estava olhando. Se a
+ * memória dela saiu, vale a do ano mais próximo; no empate, o ano mais antigo, que na ordem de
+ * sempre é o que vem logo abaixo. Sem nenhum ano, não há para onde voltar.
+ */
+export function anoMaisProximo(anos: number[], alvo: number): number | undefined {
+  let melhor: number | undefined;
+  for (const ano of anos) {
+    if (melhor === undefined || Math.abs(ano - alvo) < Math.abs(melhor - alvo) || (Math.abs(ano - alvo) === Math.abs(melhor - alvo) && ano < melhor)) melhor = ano;
+  }
+  return melhor;
+}
+
+/**
+ * O filtro de família aceita mais de uma (decisão do Gui, 16/11/2026): tocar numa família liga ou
+ * desliga só ela, e as memórias de qualquer uma das marcadas entram. A ordem é a das famílias no
+ * site, para o endereço não depender da ordem dos toques.
+ */
+export function alternarFamilia(marcadas: string[], id: string, todas: string[]): string[] {
+  const novas = marcadas.includes(id) ? marcadas.filter((f) => f !== id) : [...marcadas, id];
+  return todas.filter((f) => novas.includes(f));
+}
+
+/**
+ * O movimento do modo TV (docs/visual.md, "O modo TV é o lugar de experimentar"): três versões para
+ * o Gui escolher, trocáveis pela faixa do alto da prévia. No endereço, `mov`; sem ele, a primeira.
+ */
+export const MOVIMENTOS = [
+  { id: 'a', nome: 'Álbum' },
+  { id: 'b', nome: 'Revelação' },
+  { id: 'c', nome: 'Mesa' },
+] as const;
+export type Movimento = (typeof MOVIMENTOS)[number]['id'];
+export const MOVIMENTO_PADRAO: Movimento = 'a';
+
+export function lerMovimento(p: URLSearchParams): Movimento {
+  const pedido = p.get('mov');
+  return MOVIMENTOS.find((m) => m.id === pedido)?.id ?? MOVIMENTO_PADRAO;
+}
+
+export const movimentoNoEndereco = (movimento: Movimento): Record<string, string | undefined> => ({ mov: movimento === MOVIMENTO_PADRAO ? undefined : movimento });
+
+/**
  * O tamanho das fotos no mural (decisão do Gui, 17/11/2026): quem está vendo escolhe a densidade,
  * com fotos menores ou maiores. Fica no endereço, em `tamanho`; sem ele, o tamanho médio.
  */

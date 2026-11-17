@@ -147,7 +147,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
               </div>
             )}
             {peloTempo && (
-            <header class="ano__cabeca" data-na-epoca={chaoDeCima(posicaoDe.get(itens[0]!.id)!)}>
+            <header class="ano__cabeca" data-chave={`a:${ano}`} data-ano={ano} data-na-epoca={chaoDeCima(posicaoDe.get(itens[0]!.id)!)}>
               <h2 class="ano__numero" id={`ano-${ano}`}>
                 {ano}
               </h2>
@@ -208,6 +208,8 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                   ))}
                   <article
                     class="entrada entrada--com-foto"
+                    data-chave={`m:${m.id}`}
+                    data-ano={m.ano}
                     data-tipo={m.tipo}
                     data-na-epoca={chaoEm(posicao)}
                     data-em-leitura={m.id === primeiraMemoria ? '' : undefined}

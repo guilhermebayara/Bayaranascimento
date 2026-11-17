@@ -14,6 +14,7 @@ import {
   SEM_FILTRO,
   TAMANHOS,
   TAMANHO_PADRAO,
+  alternarFamilia,
   enderecoDoExplorar,
   tamanhoNoEndereco,
   temFiltro,
@@ -49,7 +50,8 @@ interface Props {
 const { filtros, forma, nucleos, tipos, pessoas, capitulos, temas, decadas, resumo, comDecadas = false, tamanho = TAMANHO_PADRAO } = Astro.props;
 // O tamanho das fotos é do mural: acompanha os links e o formulário enquanto se está nele
 const doMural = forma === 'mural' ? tamanhoNoEndereco(tamanho) : {};
-const umaFamilia = filtros.familias.length === 1 ? filtros.familias[0] : null;
+// A família aceita mais de uma escolha: cada toque liga ou desliga só aquela
+const ordemDasFamilias = nucleos.map((n) => n.id);
 const filtrando = temFiltro({ ...filtros, familias: [] });
 const semFiltros: Filtros = { ...SEM_FILTRO, familias: filtros.familias };
 // Os grupos longos ficam recolhidos, e abrem sozinhos quando têm algo marcado
@@ -66,7 +68,7 @@ const grupos = [
     <nav class="linha__opcoes" aria-labelledby="controle-forma">
       {
         FORMAS.map((f) => (
-          <a href={enderecoDoExplorar(filtros, f, f === 'mural' ? tamanhoNoEndereco(tamanho) : {})} aria-current={f === forma ? 'page' : undefined}>
+          <a href={enderecoDoExplorar(filtros, f, f === 'mural' ? tamanhoNoEndereco(tamanho) : {})} data-opcao={f} aria-current={f === forma ? 'page' : undefined}>
             {NOMES_DAS_FORMAS[f]}
           </a>
         ))
@@ -80,11 +82,15 @@ const grupos = [
           Família
         </p>
         <nav class="linha__opcoes" aria-labelledby="controle-familia">
-          <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma, doMural)} aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
+          <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma, doMural)} data-opcao="" aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
             Família completa
           </a>
           {nucleos.map((n) => (
-            <a href={enderecoDoExplorar({ ...filtros, familias: [n.id] }, forma, doMural)} aria-current={umaFamilia === n.id ? 'page' : undefined}>
+            <a
+              href={enderecoDoExplorar({ ...filtros, familias: alternarFamilia(filtros.familias, n.id, ordemDasFamilias) }, forma, doMural)}
+              data-opcao={n.id}
+              aria-current={filtros.familias.includes(n.id) ? 'true' : undefined}
+            >
               {n.nome}
             </a>
           ))}
@@ -236,7 +242,7 @@ const grupos = [
         </p>
         <nav class="linha__opcoes linha__opcoes--curtas" aria-labelledby="controle-tamanho">
           {TAMANHOS.map((t) => (
-            <a href={enderecoDoExplorar(filtros, forma, tamanhoNoEndereco(t))} aria-current={t === tamanho ? 'page' : undefined}>
+            <a href={enderecoDoExplorar(filtros, forma, tamanhoNoEndereco(t))} data-opcao={t} aria-current={t === tamanho ? 'page' : undefined}>
               {NOMES_DOS_TAMANHOS[t]}
             </a>
           ))}

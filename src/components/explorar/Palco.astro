@@ -30,9 +30,13 @@ interface Props {
   fotoSeguinte?: string;
   /** para limpar os filtros, quando nada passa neles */
   limpar: string;
+  /** a versão do movimento do modo TV em uso (src/lib/explorar.ts, MOVIMENTOS) */
+  movimento?: string;
+  /** só nas prévias: as versões, para trocar pela faixa do alto */
+  movimentos?: { id: string; nome: string; href: string }[];
 }
 
-const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, fotoSeguinte, limpar } = Astro.props;
+const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, fotoSeguinte, limpar, movimento, movimentos } = Astro.props;
 const foto = memoria?.fotos[0];
 const abrir = memoria ? `/memorias/${memoria.id}` : '';
 ---
@@ -53,7 +57,27 @@ const abrir = memoria ? `/memorias/${memoria.id}` : '';
 }
 {
   memoria && (
-    <article class:list={['palco', `palco--${modo}`]} style={estiloDoTipo(memoria.tipo)} data-palco data-passar={passar?.tempo ?? undefined} data-pausado={passar?.pausado ? '' : undefined}>
+    <article class:list={['palco', `palco--${modo}`]} style={estiloDoTipo(memoria.tipo)} data-palco data-movimento={modo === 'tv' ? movimento : undefined} data-passar={passar?.tempo ?? undefined} data-pausado={passar?.pausado ? '' : undefined}>
+      {/* De que lado a memória chega: quem passou para trás vê a foto entrar pelo outro lado. Fica
+          antes de tudo, para valer já no primeiro desenho da página. */}
+      <script is:inline>
+        (function () {
+          try {
+            if (sessionStorage.getItem('palco-direcao') === 'antes') document.currentScript.parentElement.setAttribute('data-de-tras', '');
+            sessionStorage.removeItem('palco-direcao');
+          } catch (e) {}
+        })();
+      </script>
+      {movimentos && (
+        <p class="teste palco__faixa">
+          <span>Movimento do modo TV, para escolher:</span>
+          {movimentos.map((m) => (
+            <a href={m.href} aria-current={m.id === movimento ? 'true' : undefined}>
+              {m.id.toUpperCase()} {m.nome}
+            </a>
+          ))}
+        </p>
+      )}
       <header class="palco__topo miolo">
         <p class="rotulo">
           {modo === 'tv' ? 'Modo TV' : 'Uma memória ao acaso'}
@@ -150,13 +174,27 @@ const abrir = memoria ? `/memorias/${memoria.id}` : '';
   const palco = document.querySelector<HTMLElement>('[data-palco]');
   if (palco) {
     const link = (nome: string) => palco.querySelector<HTMLAnchorElement>(`[data-palco-${nome}]`);
+    // As setas e o controle respondem na hora, mesmo no meio de uma animação: passar é sair para a
+    // página da outra memória, e nada aqui espera um movimento acabar
     const ir = (a: HTMLAnchorElement | null) => {
       if (a && a.getAttribute('href') && a.getAttribute('aria-disabled') !== 'true') location.assign(a.href);
     };
+    // Quem passa para trás vê a memória chegar pelo outro lado
+    const lembrar = (direcao: string) => {
+      try {
+        sessionStorage.setItem('palco-direcao', direcao);
+      } catch {
+        // sem armazenamento, a memória chega sempre pelo mesmo lado
+      }
+    };
+    link('antes')?.addEventListener('click', () => lembrar('antes'));
     addEventListener('keydown', (evento) => {
       if (evento.metaKey || evento.ctrlKey || evento.altKey) return;
       if (evento.key === 'ArrowRight') ir(link('depois'));
-      else if (evento.key === 'ArrowLeft') ir(link('antes'));
+      else if (evento.key === 'ArrowLeft') {
+        lembrar('antes');
+        ir(link('antes'));
+      }
       else if (evento.key === 'Escape') ir(link('sair'));
     });
     const grupo = palco.querySelector<HTMLElement>('[data-palco-passar]');

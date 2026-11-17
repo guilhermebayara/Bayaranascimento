@@ -14,7 +14,8 @@ import Controles from '../components/explorar/Controles.astro';
 import Linha from '../components/explorar/Linha.astro';
 import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
-import { SEM_FILTRO, TEMPOS_DE_PASSAR, enderecoDoExplorar, explorar, lerFiltros, lerForma, lerPassar, lerTamanho, passarNoEndereco, resumoDosFiltros, sortear, temFiltro, vizinhasNaLista, type Passar } from '../lib/explorar';
+import { SEM_FILTRO, TEMPOS_DE_PASSAR, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, movimentoNoEndereco, passarNoEndereco, resumoDosFiltros, sortear, temFiltro, vizinhasNaLista, type Passar } from '../lib/explorar';
+import { semLogin } from '../lib/servidor/acesso';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
@@ -58,7 +59,10 @@ const noPalco = forma === 'tv' || forma === 'acaso';
 // "Passar sozinho": o tempo escolhido e a pausa ficam no endereço e seguem de uma memória para a outra
 const passar = lerPassar(parametros);
 const vizinhas = daVez ? vizinhasNaLista(publicadas, daVez.id) : undefined;
-const naTv = (id: string | undefined, estado: Passar = passar) => (id ? enderecoDoExplorar(filtros, 'tv', { m: id, ...passarNoEndereco(estado) }) : undefined);
+// O movimento do modo TV: três versões para o Gui escolher, pela faixa do alto das prévias
+const movimento = lerMovimento(parametros);
+const naTv = (id: string | undefined, estado: Passar = passar, mov = movimento) =>
+  id ? enderecoDoExplorar(filtros, 'tv', { m: id, ...passarNoEndereco(estado), ...movimentoNoEndereco(mov) }) : undefined;
 // Com "Passar sozinho" ligado, a última leva de volta à primeira
 const seguinte = forma === 'tv' ? (vizinhas?.depois ?? (passar.tempo !== null && publicadas.length > 1 ? publicadas[0] : undefined)) : undefined;
 const relatoDaVez = daVez && noPalco ? (await listarRelatos(usuario, daVez.id)).find((r) => r.situacao === 'publicada' && r.texto.trim()) : undefined;
@@ -100,6 +104,8 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
         trecho={relatoDaVez && { texto: trechoDoRelato(relatoDaVez.texto, forma === 'tv' ? 220 : 150), por: nomeDe(relatoDaVez.por) ?? '' }}
         nomes={daVez?.integrantes.map(nomeDe).filter((n): n is string => Boolean(n))}
         posicao={forma === 'tv' && vizinhas ? `${vizinhas.posicao + 1} de ${publicadas.length}` : undefined}
+        movimento={movimento}
+        movimentos={forma === 'tv' && daVez && semLogin() ? MOVIMENTOS.map((m) => ({ ...m, href: naTv(daVez.id, passar, m.id)! })) : undefined}
         antes={naTv(vizinhas?.antes?.id)}
         depois={forma === 'tv' ? naTv(seguinte?.id) : publicadas.length > 1 && daVez ? enderecoDoExplorar(filtros, 'acaso', { outra: daVez.id }) : undefined}
         sair={voltar}
@@ -186,77 +192,10 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
 </Visual>
 
 <script>
-  // Fluidez (decisão do Gui, 17/11/2026: somos poucos, e a página recarregar a cada escolha
-  // atrapalhava mais do que o endereço ajudava). Trocar de forma de ver, de família, de tamanho das
-  // fotos, de filtros ou de ordem busca a página nova e troca só a região do Explorar, sem
-  // recarregar. O endereço continua acompanhando, o voltar do aparelho funciona, e sem script cada
-  // escolha continua sendo um link ou um formulário comum. O modo TV e o "ao acaso" têm o palco
-  // deles: para lá, a navegação é a de sempre.
-  const daRegiao = (endereco: URL) => endereco.origin === location.origin && endereco.pathname === '/explorar' && ['linha', 'mural', null].includes(endereco.searchParams.get('ver'));
-  let pedido = 0;
-
-  async function trocar(endereco: URL, empurrar: boolean, foco?: string) {
-    const regiao = document.querySelector<HTMLElement>('[data-explorar]');
-    if (!regiao) return location.assign(endereco);
-    const meu = ++pedido;
-    regiao.setAttribute('aria-busy', 'true');
-    try {
-      const resposta = await fetch(endereco, { headers: { Accept: 'text/html' } });
-      if (!resposta.ok) throw new Error(String(resposta.status));
-      const pagina = new DOMParser().parseFromString(await resposta.text(), 'text/html');
-      const nova = pagina.querySelector<HTMLElement>('[data-explorar]');
-      if (!nova) throw new Error('sem a região');
-      // Uma escolha mais nova já saiu: esta resposta chegou atrasada
-      if (meu !== pedido) return;
-      const por = () => {
-        regiao.replaceWith(nova);
-        // A cor da tela e a assinatura do rodapé acompanham a família
-        const familia = pagina.documentElement.dataset.familia;
-        if (familia) document.documentElement.dataset.familia = familia;
-        const rodape = pagina.querySelector('footer.rodape');
-        if (rodape) document.querySelector('footer.rodape')?.replaceWith(rodape);
-        document.title = pagina.title;
-        if (empurrar) history.pushState({ explorar: true }, '', endereco);
-        document.dispatchEvent(new CustomEvent('explorar:trocou'));
-        // O foco continua onde a pessoa estava: na opção que ela escolheu, ou no controle dos filtros
-        const alvo = foco ? nova.querySelector<HTMLElement>(foco) : null;
-        alvo?.focus({ preventScroll: true });
-      };
-      const comTransicao = 'startViewTransition' in document && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (comTransicao) (document as Document & { startViewTransition: (f: () => void) => unknown }).startViewTransition(por);
-      else por();
-    } catch {
-      // Qualquer problema: a navegação comum resolve
-      location.assign(endereco);
-    }
-  }
-
-  document.addEventListener('click', (evento) => {
-    const link = evento.target instanceof Element ? evento.target.closest<HTMLAnchorElement>('[data-explorar] .controles a[href]') : null;
-    if (!link || evento.defaultPrevented || evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
-    const endereco = new URL(link.href);
-    if (!daRegiao(endereco)) return;
-    evento.preventDefault();
-    // A mesma opção, no mesmo controle: o endereço sozinho pode se repetir em dois controles
-    const controle = link.closest('nav')?.getAttribute('aria-labelledby') ?? '';
-    trocar(endereco, true, `.controles nav[aria-labelledby="${CSS.escape(controle)}"] a[href="${CSS.escape(link.getAttribute('href') ?? '')}"]`);
-  });
-
-  document.addEventListener('submit', (evento) => {
-    const formulario = evento.target instanceof HTMLFormElement && evento.target.matches('[data-explorar] [data-filtros]') ? evento.target : null;
-    if (!formulario) return;
-    // O endereço fica só com o que foi escolhido: campo vazio não vai junto
-    const endereco = new URL(formulario.action);
-    for (const [nome, valor] of new FormData(formulario)) if (typeof valor === 'string' && valor.trim()) endereco.searchParams.append(nome, valor.trim());
-    evento.preventDefault();
-    if (!daRegiao(endereco)) return location.assign(endereco);
-    trocar(endereco, true, '.filtros > summary');
-  });
-
-  // O voltar e o avançar do aparelho, entre as escolhas feitas aqui
-  addEventListener('popstate', () => {
-    const endereco = new URL(location.href);
-    if (document.querySelector('[data-explorar]') && daRegiao(endereco)) trocar(endereco, false);
-    else location.reload();
-  });
+  // Trocar de forma de ver, de família, de tamanho das fotos, de filtros ou de ordem não recarrega
+  // a página nem tira a pessoa do lugar: os itens que continuam se movem até o lugar novo
+  // (src/lib/cliente/explorar-troca.ts). Sem script, cada escolha continua sendo um link ou um
+  // formulário comum. O modo TV e o "ao acaso" têm o palco deles: para lá, a navegação é a de sempre.
+  import { ligarTroca } from '../lib/cliente/explorar-troca';
+  ligarTroca();
 </script>

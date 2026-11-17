@@ -438,14 +438,21 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 
 **Os controles**, um embaixo do outro, cada um com nome e lugar fixo: **Forma de ver** (Linha do tempo, Mural de fotos, Modo TV, Me mostre uma memória), **Família** (como no conceito) e **Filtros**, que fechado diz o que está ligado e a ordem ("Viagem · com foto · Mais contadas") e aberto mostra, no mesmo lugar, um formulário só: ordem, tipo de momento, o que a memória tem (foto, áudio), seus relatos, período (década, ou de um ano a outro) e, recolhidos, quem estava junto, capítulo e tema. O botão é "Mostrar memórias". Tudo é link ou formulário comum: funciona sem script e fica no endereço. O filtro por tipo do conceito, que trocava a lista no navegador, saiu: o tipo agora é um dos filtros do formulário.
 
-**Sem recarregar** (decisão do Gui, 17/11/2026: seremos só sete pessoas, e a fluidez na página vale mais do que o endereço para compartilhar; cada escolha recarregava tudo). Trocar de forma de ver entre a linha do tempo e o mural, de família, de tamanho das fotos, de filtros ou de ordem busca a página nova e troca só a região do Explorar (`data-explorar`), sem recarregar. O script está em `src/pages/explorar.astro`.
+**Sem recarregar, com o movimento que mostra o que mudou** (regra em "Movimento que mostra o que mudou", acima). A primeira versão trocava a região inteira com um esmaecer, e a rolagem mudava de lugar; o Gui pediu para refazer. Como ficou, em `src/lib/cliente/explorar-troca.ts`:
 
-- O endereço continua acompanhando cada escolha, e o voltar e o avançar do aparelho andam entre elas.
-- A cor da tela e a assinatura do rodapé trocam junto com a família. O foco fica na opção escolhida ou, depois de "Mostrar memórias", no controle dos filtros, e a conta das memórias é anunciada ao leitor de tela.
-- A troca esmaece pela transição do navegador, só para quem não pediu menos movimento.
-- A linha do tempo começa de novo a cada troca (`explorar:trocou`): o que escutava a janela e observava a linha anterior é desligado antes.
-- Sem script, ou se a busca falhar, cada escolha continua sendo um link ou um formulário comum.
-- O modo TV e o "ao acaso" têm o palco deles e continuam navegando de página em página, com a transição entre páginas do navegador.
+- **Cada item tem identidade** (`data-chave`): `m:<id>` para a memória, no mural e na linha do tempo; `a:<ano>` para o ano da linha do tempo; `d:<década>` para o cartão do mural.
+- **A técnica é FLIP**, com a Web Animations API: mede antes, troca, mede depois e anima a diferença. Foi a escolha no lugar das View Transitions com um nome por memória porque funciona em todo Safari do iPhone, anima só o que está perto da tela e deixa cada item seguir o próprio caminho.
+- **Quem continua** vai do lugar antigo ao novo (460 ms). Quando o tamanho das fotos muda, vai também ao tamanho novo. Quando a forma de ver muda entre mural e linha do tempo, quem viaja é a foto de cada memória, e o resto do item aparece em volta dela.
+- **Quem entra** aparece no lugar dele (260 ms). **Quem sai** some onde estava (200 ms): o item antigo é posto de volta por um instante, por cima, no mesmo ponto da tela.
+- **A foto já carregada continua a mesma** na página nova, para não piscar durante o movimento.
+- **A rolagem** fica presa à primeira memória abaixo do que está parado no alto: depois da troca, ela volta ao mesmo ponto da tela. Se saiu, vale a do ano mais próximo (`anoMaisProximo`, em `src/lib/explorar.ts`; no empate, o ano mais antigo). Com os controles ainda na tela, a rolagem fica como está.
+- **O endereço** muda com `history`, e voltar e avançar no navegador desfazem e refazem a troca com o mesmo movimento e a mesma rolagem. Para isso a rolagem dessas entradas do histórico é do site (`scrollRestoration`), e volta a ser do navegador ao sair para outra página.
+- **Com movimento reduzido**, a troca é direta: nada se desloca, e só a rolagem é devolvida. **Sem script**, ou se a busca falhar, cada escolha continua sendo um link ou um formulário comum, com o recarregamento de sempre.
+- A cor da tela e a assinatura do rodapé trocam junto com a família. O foco fica na opção escolhida ou, depois de "Mostrar memórias", no controle dos filtros, e a conta das memórias é anunciada ao leitor de tela. A linha do tempo começa de novo a cada troca (`explorar:trocou`), desligando antes o que escutava a janela.
+- O modo TV e o "ao acaso" têm o palco deles e continuam navegando de página em página.
+- **Um limite para o Gui saber:** no meio da página os controles ficam lá em cima, fora da tela, porque nada fica preso no alto além da faixa de décadas e do ano. Ali, a troca que acontece na prática é a do voltar e do avançar. Trazer os controles para perto (um botão "Filtros" parado no alto, por exemplo) é uma peça presa nova, que pede decisão e conferência no iPhone.
+
+**Família com mais de uma escolha** (decisão do Gui, 16/11/2026). No controle "Família", cada toque liga ou desliga só aquela família (`alternarFamilia`), e "Família completa" desliga todas. Com duas marcadas entram as memórias de qualquer uma delas, sempre só o que a pessoa vê, e a assinatura do topo e do rodapé junta os sobrenomes ("Bayara & Bracarense").
 
 **Linha do tempo.** A do conceito, sem mudança de desenho. Os trilhos, as épocas e a faixa de décadas só aparecem quando `mostraTrilhos` deixa. Em "Mais antigas primeiro", a página leva ao presente e o trilho acaba, embaixo, em "Fim do capítulo “Natais”" e "Fim da época “…”" (texto novo, para o Gui confirmar). Em "Entraram por último" e "Mais contadas", a lista é corrida, sem a divisória dos anos, e cada memória traz a data inteira.
 
@@ -460,6 +467,16 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 - **Fora da ordem do tempo** ("Entraram por último" e "Mais contadas"), saem os cartões de década e as abas de ano, como os trilhos na linha do tempo, e a data fica só no verso.
 
 **Modo TV.** Uma memória por página, na tela inteira, sem o topo e o rodapé do site: a cor do tipo de momento no fundo, a foto inteira com margem de ampliação, o carimbo, o título, um trecho do relato assinado à mão e quem estava. "Anterior" e "Próxima" são links, com o foco já em "Próxima" (no controle da TV, o botão do meio passa); as setas do teclado passam, o Esc sai e tocar na foto passa para a seguinte. A troca esmaece pela transição entre páginas do navegador, só para quem não pediu menos movimento: com movimento reduzido, a troca é sem animação. A memória da vez vai no endereço (`m`).
+
+**O movimento do modo TV, três versões para o Gui escolher** (regra em "O modo TV é o lugar de experimentar", acima). Nas prévias de teste e no computador, uma faixa no alto do modo TV troca a versão; em qualquer ambiente, `mov=a`, `mov=b` ou `mov=c` no endereço faz o mesmo. Enquanto não houver escolha, vale a A. As regras estão em `telas/explorar.css` e a lista em `MOVIMENTOS`, em `src/lib/explorar.ts`.
+
+| | Passagem | A foto na tela | Título e trecho |
+| --- | --- | --- | --- |
+| A, Álbum | A foto chega de lado, como quem passa a página; ao voltar, chega pelo outro lado | Aproxima devagar | Sobem linha a linha: carimbo, título, trecho e o resto |
+| B, Revelação | A foto aparece clara e sem cor e vai se revelando, em dois segundos e meio | Aproxima devagar | Surgem depois da foto, um de cada vez, sem deslocamento |
+| C, Mesa | A foto cai na mesa, um pouco torta, e assenta | Aproxima devagar | Entram juntos, de uma vez, logo depois da foto |
+
+Nas três, o fundo passa de uma cor à outra esmaecendo. Cada memória é uma página: passar é sair para a seguinte, então as setas e o controle respondem na hora, no meio de qualquer animação (medido: a página seguinte começa a chegar em cerca de 100 ms). Com movimento reduzido, nada disso roda. Depois da escolha, as outras duas versões e a faixa saem.
 
 **Passar sozinho** (decisão do Gui, 17/11/2026). Quem está vendo escolhe o tempo de cada memória, entre 8, 10 e 15 segundos (`TEMPOS_DE_PASSAR`, em `src/lib/explorar.ts`), e pode pausar e retomar a qualquer momento.
 

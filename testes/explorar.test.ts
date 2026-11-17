@@ -210,6 +210,54 @@ describe('formas de ver e endereço', async () => {
     expect(enderecoDoExplorar(SEM_FILTRO, 'tv', { m: 'a', ...passarNoEndereco({ tempo: 15, pausado: true }) })).toBe('/explorar?ver=tv&m=a&passar=15&pausa=1');
   });
 
+  it('com mais de uma família marcada, entram as memórias de qualquer uma delas, só entre as que a pessoa vê', async () => {
+    // Decisão do Gui, 16/11/2026. Quem chama entrega só o que a pessoa vê: o filtro nunca acrescenta
+    const { alternarFamilia, explorar, passa } = await import('../src/lib/explorar');
+    const m = (id: string, nucleos: string[]) => ({ id, ano: 2000, mes: null, dia: null, tipo: 'festa', integrantes: [], nucleos, temas: [], fotos: [], relatos: 0, criadaEm: id });
+    const ctx = { eu: 'gui', doCapitulo: () => false, comAudio: new Set<string>(), contaram: new Map<string, Set<string>>() };
+    const vistas = [m('a', ['bayara']), m('b', ['bracarense']), m('c', ['bayara-bracarense']), m('d', ['bayara', 'bracarense']), m('e', [])];
+    const ids = (familias: string[]) => explorar(vistas, { ...SEM_FILTRO, familias }, ctx).memorias.map((x) => x.id).sort();
+    expect(ids(['bayara'])).toEqual(['a', 'd']);
+    expect(ids(['bayara', 'bracarense'])).toEqual(['a', 'b', 'd']);
+    expect(ids(['bayara', 'bracarense', 'bayara-bracarense'])).toEqual(['a', 'b', 'c', 'd']);
+    // Nada além do que foi entregue: a memória que a pessoa não vê não está na lista e não aparece
+    expect(passa(m('z', ['bracarense']), { ...SEM_FILTRO, familias: ['bayara', 'bracarense'] }, ctx)).toBe(true);
+    expect(ids(['bayara', 'bracarense'])).not.toContain('z');
+    // E os outros filtros continuam valendo com "e"
+    expect(explorar(vistas, { ...SEM_FILTRO, familias: ['bayara', 'bracarense'], tipos: ['viagem'] }, ctx).memorias).toEqual([]);
+
+    // Cada toque liga ou desliga só aquela família, na ordem das famílias do site
+    const todas = ['bayara', 'bayara-bracarense', 'bracarense'];
+    expect(alternarFamilia([], 'bracarense', todas)).toEqual(['bracarense']);
+    expect(alternarFamilia(['bracarense'], 'bayara', todas)).toEqual(['bayara', 'bracarense']);
+    expect(alternarFamilia(['bayara', 'bracarense'], 'bayara', todas)).toEqual(['bracarense']);
+    expect(alternarFamilia(['bracarense'], 'bracarense', todas)).toEqual([]);
+    expect(alternarFamilia([], 'desconhecida', todas)).toEqual([]);
+    // No endereço, as duas
+    expect(enderecoDoExplorar({ ...SEM_FILTRO, familias: ['bayara', 'bracarense'] })).toBe('/explorar?nucleo=bayara&nucleo=bracarense');
+  });
+
+  it('depois de uma troca, a rolagem volta ao ano mais próximo quando o da pessoa saiu', async () => {
+    const { anoMaisProximo } = await import('../src/lib/explorar');
+    expect(anoMaisProximo([2026, 2019, 1994], 2019)).toBe(2019);
+    expect(anoMaisProximo([2026, 2021, 1994], 2019)).toBe(2021);
+    expect(anoMaisProximo([2026, 1994], 2000)).toBe(1994);
+    // No empate, o mais antigo: na ordem de sempre, é o que vem logo abaixo
+    expect(anoMaisProximo([2021, 2017], 2019)).toBe(2017);
+    expect(anoMaisProximo([2017, 2021], 2019)).toBe(2017);
+    expect(anoMaisProximo([], 2019)).toBeUndefined();
+  });
+
+  it('o movimento do modo TV tem três versões, e fora delas vale a primeira', async () => {
+    const { MOVIMENTOS, lerMovimento, movimentoNoEndereco } = await import('../src/lib/explorar');
+    expect(MOVIMENTOS.map((x) => x.id)).toEqual(['a', 'b', 'c']);
+    expect(lerMovimento(new URLSearchParams(''))).toBe('a');
+    expect(lerMovimento(new URLSearchParams('mov=c'))).toBe('c');
+    expect(lerMovimento(new URLSearchParams('mov=z'))).toBe('a');
+    expect(enderecoDoExplorar(SEM_FILTRO, 'tv', movimentoNoEndereco('a'))).toBe('/explorar?ver=tv');
+    expect(enderecoDoExplorar(SEM_FILTRO, 'tv', movimentoNoEndereco('b'))).toBe('/explorar?ver=tv&mov=b');
+  });
+
   it('o tamanho das fotos do mural fica no endereço, e o médio é o padrão', async () => {
     // Decisão do Gui, 17/11/2026
     const { TAMANHOS, lerTamanho, tamanhoNoEndereco } = await import('../src/lib/explorar');

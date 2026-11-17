@@ -82,6 +82,8 @@
 }
 /* No celular, duas colunas: com três, o título escrito à mão ficava pequeno demais para ler */
 .mural {
+  /* quem sai numa troca some por cima, no mesmo ponto: é posto aqui dentro, solto da grade */
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--e-7) var(--e-5);
@@ -402,10 +404,141 @@
   rotate: -3deg;
 }
 
-/* A troca de uma memória para a outra esmaece, só para quem não pediu menos movimento */
+/* --- O movimento do modo TV ----------------------------------------------------------------------
+   É a tela em que o movimento pode ousar mais (docs/visual.md, "O modo TV é o lugar de
+   experimentar"). São três versões para o Gui escolher, trocáveis pela faixa do alto da prévia:
+   A, Álbum: a foto chega de lado, como quem passa a página, e o texto sobe linha a linha.
+   B, Revelação: a foto aparece clara e sem cor e vai se revelando; o texto surge depois, devagar.
+   C, Mesa: a foto cai na mesa, um pouco torta, e assenta; o texto entra junto, de uma vez.
+   Nas três, a foto se aproxima devagar enquanto a memória está na tela. Cada memória é uma página:
+   passar é sair para a seguinte, então as setas e o controle respondem na hora, no meio de qualquer
+   animação. Com movimento reduzido, base.css desliga tudo isto e a troca é direta. */
+
+.palco__faixa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1.2em;
+  padding: 0 var(--margem);
+}
+.palco__foto img,
+.palco__cartao {
+  transform-origin: 50% 60%;
+}
 @media (prefers-reduced-motion: no-preference) {
+  /* O fundo passa de uma cor à outra esmaecendo, entre uma página e a seguinte */
   @view-transition {
     navigation: auto;
+  }
+  .palco[data-movimento] :is(.palco__foto img, .palco__cartao) {
+    animation:
+      palco-chega 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+      palco-aproxima 16s 600ms ease-out both;
+  }
+  .palco[data-movimento] .palco__texto > * {
+    animation: palco-sobe 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  /* A, Álbum */
+  .palco[data-movimento='a'] {
+    --chega-x: 9vw;
+  }
+  .palco[data-movimento='a'][data-de-tras] {
+    --chega-x: -9vw;
+  }
+  .palco[data-movimento='a'] .palco__texto > :nth-child(1) {
+    animation-delay: 260ms;
+  }
+  .palco[data-movimento='a'] .palco__texto > :nth-child(2) {
+    animation-delay: 380ms;
+  }
+  .palco[data-movimento='a'] .palco__texto > :nth-child(3) {
+    animation-delay: 560ms;
+  }
+  .palco[data-movimento='a'] .palco__texto > :nth-child(n + 4) {
+    animation-delay: 760ms;
+  }
+
+  /* B, Revelação */
+  .palco[data-movimento='b'] :is(.palco__foto img, .palco__cartao) {
+    animation:
+      palco-revela 2600ms ease-out both,
+      palco-aproxima 18s 400ms ease-out both;
+  }
+  .palco[data-movimento='b'] .palco__texto > * {
+    animation: palco-surge 1400ms ease-out both;
+  }
+  .palco[data-movimento='b'] .palco__texto > :nth-child(1) {
+    animation-delay: 900ms;
+  }
+  .palco[data-movimento='b'] .palco__texto > :nth-child(2) {
+    animation-delay: 1200ms;
+  }
+  .palco[data-movimento='b'] .palco__texto > :nth-child(3) {
+    animation-delay: 1900ms;
+  }
+  .palco[data-movimento='b'] .palco__texto > :nth-child(n + 4) {
+    animation-delay: 2600ms;
+  }
+
+  /* C, Mesa */
+  .palco[data-movimento='c'] {
+    --cai-de: -5deg;
+  }
+  .palco[data-movimento='c'][data-de-tras] {
+    --cai-de: 5deg;
+  }
+  .palco[data-movimento='c'] :is(.palco__foto img, .palco__cartao) {
+    animation:
+      palco-cai 620ms cubic-bezier(0.3, 1.3, 0.5, 1) both,
+      palco-aproxima 16s 700ms ease-out both;
+  }
+  .palco[data-movimento='c'] .palco__texto > * {
+    animation-delay: 420ms;
+  }
+}
+@keyframes palco-chega {
+  from {
+    opacity: 0;
+    translate: var(--chega-x, 0) 0;
+  }
+}
+@keyframes palco-sobe {
+  from {
+    opacity: 0;
+    translate: 0 1.25rem;
+  }
+}
+@keyframes palco-surge {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes palco-revela {
+  from {
+    opacity: 0.25;
+    filter: brightness(1.7) saturate(0) contrast(0.6);
+  }
+  45% {
+    opacity: 1;
+    filter: brightness(1.25) saturate(0.35) contrast(0.85);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+@keyframes palco-cai {
+  from {
+    opacity: 0;
+    rotate: var(--cai-de, -5deg);
+    translate: 0 -2.5rem;
+  }
+}
+/* A foto se aproxima devagar: usa a escala, que nenhuma das chegadas usa */
+@keyframes palco-aproxima {
+  to {
+    scale: 1.045;
   }
 }
 

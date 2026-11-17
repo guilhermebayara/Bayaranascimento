@@ -57,7 +57,7 @@ const itens = memorias.map((m, n) => {
     itens.map(({ m, abreAno, abreDecada }) => (
       <>
         {abreDecada !== null && (
-          <li class="mural__decada" id={`decada-${abreDecada}`}>
+          <li class="mural__decada" id={`decada-${abreDecada}`} data-chave={`d:${abreDecada}`} data-ano={m.ano}>
             <p>
               <span class="rotulo">{nomeDaDecada(abreDecada).rotulo}</span>
               <strong data-letras={nomeDaDecada(abreDecada).numero.length}>{nomeDaDecada(abreDecada).numero}</strong>
@@ -67,7 +67,7 @@ const itens = memorias.map((m, n) => {
             </p>
           </li>
         )}
-        <li class="mural__foto" style={estiloDoTipo(m.tipo)}>
+        <li class="mural__foto" style={estiloDoTipo(m.tipo)} data-chave={`m:${m.id}`} data-ano={m.ano}>
           {abreAno && (
             <span class="mural__aba" aria-hidden="true">
               {m.ano}
