@@ -916,6 +916,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P60. A lista de capítulos vai do mais antigo ao mais recente. Deve seguir o resto do site?
 
+**Feito (opção A):** mantido como está.
+
 **ajuste**
 
 - Contexto: toda linha do tempo do site vai do mais recente ao mais antigo, e os marcos do capítulo também (aprovado em 17/11). A lista de capítulos ordena pelo começo do período, do mais antigo para o mais novo.
@@ -926,6 +928,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: épocas num bloco à parte, no alto, e os capítulos embaixo.
 
 ### P61. O título de cada capítulo precisa ser tão grande?
+
+**Feito (opção A):** o título de cada linha do sumário passou para o tamanho de item de lista (`--t-titulo-3`); a lista de sete capítulos caiu para 806 px em 390 px e 718 px em 1280 px. Capturas: `p61-p63-p64-lista-alto--390.jpg`, `p61-p63-p64-lista-alto--1280.jpg`, `p61-p63-p64-lista-alto--1920.jpg`.
 
 **ajuste**
 
@@ -938,6 +942,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P62. No computador, a coluna do título fica vazia quando a lista rola. Ela deve ficar parada?
 
+**Feito (opção A):** com mouse, o alto do sumário fica parado enquanto a lista rola. Capturas: `p62-lista-rolada--1280.jpg`.
+
 **ajuste**
 
 - Contexto: o comentário do CSS diz "a capa e o alto do sumário ficam parados", mas só a capa do capítulo tem a regra; o alto do sumário não.
@@ -949,6 +955,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P63. "Época" começa em outra margem que "Capítulo", por não ter o ponto de cor. Alinhar?
 
+**Feito (opção A):** toda linha tem o ponto, e o da época é vazado em cinza; os selos começam na mesma margem (46 px em 390 px, 678 px em 1280 px). Capturas: `p61-p63-p64-lista-alto--390.jpg`, `p61-p63-p64-lista-alto--1280.jpg`.
+
 **detalhe**
 
 - Contexto: a época é o chão da linha do tempo e fica sem ponto de cor; os capítulos têm o ponto antes do selo.
@@ -959,6 +967,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P64. Os temas moram no fim da lista de capítulos. É onde a pessoa procura?
+
+**Feito (opção A):** os temas continuam no fim, e o alto ganhou o atalho quieto "Ver os temas", que desce até eles (âncora `#temas`). Capturas: `p61-p63-p64-lista-alto--390.jpg`, `p64-temas--390.jpg`.
 
 **detalhe**
 
@@ -973,6 +983,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P65. No celular, a primeira memória aparece depois de uma tela e meia de capa. A abertura deve vir antes dos botões?
 
+**Feito (opção A):** no celular a ordem é título, período, frase de abertura e depois as ações (a abertura subiu de 476 px para 291 px do alto em "Natais"); o botão e a ação de texto ficam numa linha quando cabem. Capturas: `p65-p67-p70-capitulo-reunido--390.jpg`, `p65-p67-p70-capitulo-epoca--390.jpg`.
+
 **muda a experiência**
 
 - Contexto: a ideia da tela é "abertura de capítulo de livro". A capa fica no alto no celular (decidido em 17/11), com "Quem aparece" numa linha.
@@ -985,6 +997,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P66. No celular, os nomes de "Quem aparece" são links? (PR #39, pergunta 1)
 
+**Feito (opção A):** mantido como está (links, com a linha alta).
+
 **ajuste**
 
 - Contexto: no celular, a linha corrida "Gui (6), Elizete (5)" tomou o lugar da lista com retratos, que levava à página de cada pessoa.
@@ -996,6 +1010,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P67. O botão cheio da página do capítulo deve ser o de editar?
 
+**Feito (opção A):** no reunido o botão cheio é "Nova memória neste capítulo" e editar virou texto; nos outros não há botão cheio, só "Editar capítulo" ou "Editar época" como texto. Capturas: `p65-p67-p70-capitulo-reunido--390.jpg`, `p65-p67-p70-capitulo-reunido--1280.jpg`, `p65-p67-p70-capitulo-reunido--1920.jpg`.
+
 **ajuste**
 
 - Contexto: "a ação principal fica no alto, junto do título" (decisão de 16/11). Hoje o botão cheio é "Escolher memórias e editar" (reunido), "Editar capítulo" ou "Editar época".
@@ -1006,6 +1022,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P68. Com a capa parada, o que fica à vista?
+
+**Feito (opção A):** ficam parados só o selo, o título, o período e as ações; a abertura, as notas e "Quem aparece" rolam e passam por trás desse bloco. Capturas: `p68-capa-parada--1280.jpg`, `p68-capa-parada--1920.jpg`.
 
 **ajuste**
 
@@ -1019,6 +1037,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P69. "Ver no Explorar" leva para fora do capítulo, sem volta. O nome e o destino estão certos?
 
+**Feito (opção A):** "Ver no Explorar" saiu; a página ganhou "Forma de ver" (Marcos, Mural de fotos, Lista), que troca no lugar, e "Passar no modo TV". Capturas: `p69-p72-marcos--390.jpg`, `p69-p72-marcos--1280.jpg`, `p69-mural--390.jpg`, `p69-mural--1280.jpg`, `p69-mural--1920.jpg`, `p69-lista--390.jpg`, `p69-lista--1280.jpg`.
+
 **ajuste**
 
 - Contexto: abre `/explorar?capitulo=<id>`, com o capítulo como filtro.
@@ -1030,6 +1050,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P70. No capítulo de dentro, "Parte de" deve subir para cima do título?
 
+**Feito (opção A):** o capítulo de dentro diz "Capítulo de “Natais”", com o link, acima do título, no lugar do selo; "Parte de" saiu das notas. Capturas: `p65-p67-p70-capitulo-de-dentro--390.jpg`, `p65-p67-p70-capitulo-de-dentro--1280.jpg`.
+
 **ajuste**
 
 - Contexto: "Parte de Natais" fica nas notas, depois das ações e da abertura.
@@ -1039,6 +1061,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P71. Numa época, o título dos marcos diz "Memórias do capítulo". Trocar?
+
+**Feito (opção A):** "Memórias da época" na época e "Memórias do capítulo" nos outros. Capturas: `p71-p73-epoca--390.jpg`, `p71-p73-epoca--1280.jpg`.
 
 **detalhe**
 
@@ -1051,6 +1075,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P72. A legenda da foto do marco repete o carimbo ao lado. Tirar?
 
+**Feito (opção A):** a foto do marco vai sem legenda, e o carimbo quebra antes do ponto (o ponto abre a segunda linha). Capturas: `p69-p72-marcos--390.jpg`, `p69-p72-marcos--1280.jpg`.
+
 **detalhe**
 
 - Contexto: o marco tem o carimbo ("24 DEZ 2025 · BELO HORIZONTE") e a foto revelada com a legenda de sempre ("BELO HORIZONTE (2025)").
@@ -1061,6 +1087,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P73. "em parte neste período" em todas as linhas de "Aconteceu neste período". Dizer só a exceção?
 
+**Feito (opção A):** "em parte neste período" saiu; só o que coube inteiro é marcado, com "inteiro neste período". Capturas: `p71-p73-epoca--390.jpg`, `p71-p73-epoca--1280.jpg`.
+
 **detalhe**
 
 - O que vi: em "Os anos 90", as quatro linhas dizem "em parte neste período". O texto vira ruído.
@@ -1069,6 +1097,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P74. Em 1920 px, a coluna da direita acaba antes da margem. É de propósito?
+
+**Feito (opção A):** a partir de 100rem o corpo vai da coluna 6 até a margem (termina em x = 1.851, como o menu), no capítulo e na lista, e a foto do marco cresceu de 11 para 14rem. Capturas: `p65-p67-p70-capitulo-reunido--1920.jpg`, `p61-p63-p64-lista-alto--1920.jpg`.
 
 **detalhe**
 
@@ -1082,6 +1112,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P75. As etapas do capítulo viram perguntas?
 
+**Feito (opção A):** as etapas são "Que capítulo é esse?" e "Onde ele se encaixa?", na trilha e na pergunta. Capturas: `p75-p76-novo--390.jpg`, `p75-p76-novo--1280.jpg`.
+
 **ajuste**
 
 - Contexto: uma pergunta por tela, como quem conversa.
@@ -1091,6 +1123,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P76. O exemplo do título pode ser mais curto?
+
+**Feito (opção A):** o exemplo é "Ex.: Natais na casa da vó" (204 px num campo de 349 px). Capturas: `p75-p76-novo--390.jpg`.
 
 **detalhe**
 
@@ -1104,6 +1138,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P77. O mês do capítulo tem o mesmo desenho do mês da memória?
 
+**Feito (opção A):** o mês do capítulo tem o rótulo "Mês, se souber" e o valor "Não sei", como na memória. Capturas: `p77-mes-do-capitulo--390.jpg`, `p77-mes-do-capitulo--1280.jpg`.
+
 **detalhe**
 
 - Contexto: `CampoData` na memória e `CampoAno` com o mês no capítulo por período.
@@ -1115,6 +1151,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 ## Editar capítulo
 
 ### P78. "Sobre o capítulo" vem antes de "Memórias do capítulo"?
+
+**Feito (opção A):** "Sobre o capítulo" vem primeiro (o título do capítulo subiu de y = 2966 para 554 em 390 px); "Memórias do capítulo" mostra as marcadas e uma busca traz as outras para marcar. Sem script, a lista vem inteira. Capturas: `p78-p79-editar-alto--390.jpg`, `p78-memorias-do-capitulo--1280.jpg`, `p78-memorias-busca--390.jpg`.
 
 **muda a experiência**
 
@@ -1128,6 +1166,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `form-capitulo-editar-comeco--390.jpg`
 
 ### P79. Na edição, a trilha vai para a coluna da esquerda, como no capítulo novo?
+
+**Feito (opção A):** no computador, a trilha de "Sobre o capítulo" fica na coluna da esquerda, na altura dessa parte. Capturas: `p78-p79-editar-alto--1280.jpg`, `p78-p79-editar-alto--1920.jpg`.
 
 **ajuste**
 
@@ -1143,6 +1183,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P80. A confirmação repete "Nada é apagado de vez" e muda o nome da ação?
 
+**Feito (opção A):** a abertura ficou só "Confira antes de confirmar." e o botão diz "Excluir capítulo". Capturas: `p80-excluir--390.jpg`, `p80-excluir--1280.jpg`.
+
 **detalhe**
 
 - Contexto: os textos das telas utilitárias foram aprovados.
@@ -1155,6 +1197,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P81. No computador, a primeira tela do tema não mostra nenhuma memória. Recompor?
 
+**Feito (opção A):** a partir de 62rem, o nome do tema e os capítulos ficam à esquerda e as memórias à direita, desde o alto (a primeira memória aparece em y = 604 em 1280 px). Capturas: `p81-p83-tema--390.jpg`, `p81-p83-tema--1280.jpg`, `p81-p83-tema--1920.jpg`.
+
 **ajuste**
 
 - Contexto: a página empilha "Tema", o nome, o link de volta, os capítulos e depois as memórias, igual ao celular.
@@ -1166,6 +1210,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P82. O tema deve ter "Forma de ver", como a pessoa?
 
+**Feito (opção A):** o tema ganhou a "Forma de ver" da pessoa (Linha do tempo, Mural de fotos, Lista), que troca no lugar. Capturas: `p82-tema-mural--390.jpg`, `p82-tema-mural--1280.jpg`, `p82-tema-lista--1280.jpg`.
+
 **ajuste**
 
 - Contexto: a página da pessoa ganhou linha do tempo, mural e lista (17/11). O tema mostra só a linha do tempo, sem caminho para o Explorar nem "Nova memória".
@@ -1176,6 +1222,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P83. Na lista de capítulos do tema, a linha vem sem período e sem conta. Completar?
+
+**Feito (opção A):** a linha do capítulo no tema traz o período e a conta, como no sumário. Capturas: `p81-p83-tema--390.jpg`, `p81-p83-tema--1280.jpg`.
 
 **detalhe**
 

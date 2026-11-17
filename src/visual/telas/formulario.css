@@ -636,6 +636,10 @@
 .pagina-de-formulario .passo-ano select {
   flex: 1 1 100%;
 }
+/* O mês ao lado do ano, com o rótulo dele (o capítulo por período) */
+.pagina-de-formulario .passo-ano .passo-ano__mes {
+  flex: 1 1 100%;
+}
 .pagina-de-formulario [data-passo] {
   flex: none;
   min-width: var(--toque);
@@ -980,7 +984,8 @@
   .pagina-de-formulario .foto-enviada {
     grid-template-columns: 9rem minmax(0, 1fr);
   }
-  .pagina-de-formulario .passo-ano select {
+  .pagina-de-formulario .passo-ano select,
+  .pagina-de-formulario .passo-ano .passo-ano__mes {
     flex: 1 1 10rem;
   }
 }
@@ -1027,10 +1032,27 @@
     align-self: start;
     margin: 0;
   }
-  /* Dentro de uma parte da página (a edição do capítulo), a trilha não vai para a coluna da esquerda
-     e precisa de respiro antes da pergunta */
+  /* Dentro de uma parte da página, a trilha fica em cima da pergunta e precisa de respiro */
   .pagina-de-formulario .painel .formulario.com-etapas > .etapas {
     margin-bottom: var(--e-6);
+  }
+  /* Na edição do capítulo, a parte "Sobre o capítulo" usa a largura inteira e a trilha dela vai para
+     a coluna da esquerda, na altura dessa parte, como no capítulo novo */
+  .pagina-de-formulario > .painel--com-trilha {
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    max-width: none;
+    border-top: 0;
+    padding-top: 0;
+  }
+  .pagina-de-formulario > .painel--com-trilha > * {
+    grid-column: 5 / -1;
+  }
+  .pagina-de-formulario > .painel--com-trilha > .formulario.com-etapas {
+    grid-column: 1 / -1;
+  }
+  .pagina-de-formulario > .painel--com-trilha > .formulario.com-etapas > .etapas {
+    margin-bottom: 0;
   }
   .pagina-de-formulario .etapas button {
     justify-content: start;

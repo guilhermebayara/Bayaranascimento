@@ -53,9 +53,10 @@
   padding-block: var(--e-4);
   text-decoration: none;
 }
+/* O título no tamanho de item de lista: o respiro entre as linhas faz a hierarquia */
 .entrada-de-capitulo__titulo {
-  font-size: var(--t-titulo-2);
-  line-height: 1.02;
+  font-size: var(--t-titulo-3);
+  line-height: 1.1;
   overflow-wrap: anywhere;
 }
 .entrada-de-capitulo__dados {
@@ -64,22 +65,22 @@
   align-items: center;
   gap: var(--e-2) var(--e-4);
 }
-/* O ponto na cor do capítulo, antes do que ele é */
-.entrada-de-capitulo[data-com-cor] .entrada-de-capitulo__dados::before {
+/* O ponto antes do que ele é: na cor do capítulo ou, na época, que não tem cor, vazado em cinza.
+   Todas as linhas têm o ponto, para os selos começarem na mesma margem. */
+.entrada-de-capitulo__dados::before {
   content: '';
   flex: none;
   box-sizing: border-box;
   width: 0.625rem;
   height: 0.625rem;
-  border: 2px solid var(--trilho-ponto, var(--vivo));
+  border: 2px solid color-mix(in srgb, var(--tinta-suave) 45%, transparent);
   border-radius: 50%;
+}
+.entrada-de-capitulo[data-com-cor] .entrada-de-capitulo__dados::before {
+  border-color: var(--trilho-ponto, var(--vivo));
 }
 .entrada-de-capitulo--dentro {
   padding-block: var(--e-3);
-}
-.entrada-de-capitulo--dentro .entrada-de-capitulo__titulo {
-  font-size: var(--t-titulo-3);
-  line-height: 1.1;
 }
 @media (hover: hover) {
   .entrada-de-capitulo:hover .entrada-de-capitulo__titulo {
@@ -93,6 +94,11 @@
 /* Os temas: uma fila de ações quietas */
 .temas {
   margin-top: var(--e-7);
+  /* Quem chega pelo atalho "Ver os temas" não cai colado no alto da janela */
+  scroll-margin-top: var(--e-6);
+}
+.temas:focus {
+  outline: none;
 }
 .temas__lista {
   display: flex;
@@ -106,6 +112,43 @@
 .capitulo {
   row-gap: var(--e-7);
   padding-block: var(--e-7) var(--e-9);
+}
+/* No celular, a capa é uma coluna só e a frase de abertura vem antes das ações: é ela que faz a
+   tela parecer livro. O bloco que fica parado no computador se desfaz aqui, e a ordem é dada
+   peça a peça. Só muda o lugar de um texto: a ordem do teclado continua a da marcação. */
+.capitulo__capa {
+  display: flex;
+  flex-direction: column;
+}
+.capitulo__parado {
+  display: contents;
+}
+.capitulo__abertura {
+  order: 1;
+}
+.capitulo__acoes {
+  order: 2;
+}
+.capitulo__notas {
+  order: 3;
+}
+.capitulo__gente {
+  order: 4;
+}
+/* O selo: o que o capítulo é ou, no capítulo de dentro, de qual ele faz parte */
+.capitulo__selo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-4);
+}
+.capitulo__maior {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
 }
 .capitulo__titulo {
   margin-top: var(--e-3);
@@ -187,6 +230,28 @@
 .capitulo__parte > .vazio {
   margin-top: var(--e-3);
 }
+/* A forma de ver: os marcos, o mural ou a lista, e o atalho para o modo TV na mesma linha */
+.capitulo__memorias .capitulo__controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0 var(--e-6);
+  margin-top: var(--e-2);
+  padding-block: 0 var(--e-3);
+  border-top: 0;
+}
+.capitulo__tv {
+  margin: 0;
+}
+/* O mural e a lista são do Explorar e trazem a própria margem: aqui eles vão de ponta a ponta */
+.capitulo__larga {
+  margin-inline: calc(-1 * var(--margem));
+}
+.capitulo .capitulo__larga .mural,
+.capitulo .capitulo__larga .lista {
+  padding-top: var(--e-5);
+}
 
 /* --- Os marcos numerados ----------------------------------------------------------------------- */
 
@@ -244,6 +309,15 @@
   margin-top: var(--e-1);
   text-decoration: none;
 }
+/* Quando o carimbo não cabe numa linha, ele quebra antes do ponto: o ponto abre a segunda linha
+   em vez de sobrar no fim da primeira */
+.marco .carimbo > :not(:last-child)::after {
+  content: none;
+}
+.marco .carimbo > :not(:first-child)::before {
+  content: '·';
+  margin-right: 0.7em;
+}
 
 /* --- A página do tema -------------------------------------------------------------------------- */
 
@@ -273,6 +347,9 @@
 }
 .tema__memorias .vazio {
   margin-block: var(--e-6) var(--e-8);
+}
+.tema__memorias {
+  scroll-margin-top: var(--e-5);
 }
 
 @media (min-width: 40rem) {
@@ -307,21 +384,63 @@
     padding-block: var(--e-8) var(--e-9);
   }
   .capitulo .capitulo__capa {
+    display: block;
     grid-column: 1 / span 5;
+  }
+  .capitulo .capitulo__parado {
+    display: block;
   }
   .capitulo .capitulo__corpo {
     grid-column: 7 / -1;
+  }
+  /* No mural e na lista, as memórias usam a largura inteira, embaixo da capa */
+  .capitulo:has(.capitulo__larga) .capitulo__capa {
+    grid-column: 1 / span 7;
+  }
+  .capitulo:has(.capitulo__larga) .capitulo__corpo {
+    grid-column: 1 / -1;
   }
   .marco {
     grid-template-columns: 6.5rem minmax(0, 1fr) 9rem;
     column-gap: var(--calha);
     padding-block: var(--e-6) var(--e-7);
   }
-  .tema__abre {
-    padding-block: var(--e-8) var(--e-7);
+  /* Duas colunas, como o capítulo: o nome do tema e os capítulos à esquerda, as memórias à
+     direita, desde o alto. A coluna das memórias traz a margem dela zerada, porque a linha do
+     tempo, o mural e a lista são do Explorar e contam com a margem da página. */
+  .tema {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--calha);
+    align-items: start;
+    padding-inline: var(--margem);
   }
-  .tema .tema__capitulos {
-    max-width: 50%;
+  .tema > .tema__capa {
+    grid-column: 1 / span 4;
+    --margem: 0px;
+  }
+  .tema > .tema__memorias {
+    grid-column: 6 / -1;
+    min-width: 0;
+    padding-top: var(--e-8);
+    border-top: 0;
+    --margem: 0px;
+  }
+  .tema__abre {
+    padding-block: var(--e-8) var(--e-6);
+  }
+  /* Na coluna, o mural tem menos fotos por linha */
+  .tema__memorias .mural,
+  .tema__memorias .mural[data-tamanho] {
+    --colunas: 3;
+  }
+  /* A lista precisa da largura inteira: a capa fica em cima, e as memórias embaixo */
+  .tema:has(.linha--lista) > .tema__capa {
+    grid-column: 1 / span 7;
+  }
+  .tema:has(.linha--lista) > .tema__memorias {
+    grid-column: 1 / -1;
+    padding-top: var(--e-6);
   }
 }
 
@@ -330,25 +449,67 @@
 @media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
   .capitulo__parado {
     position: sticky;
+    /* Só o selo, o título, o período e as ações ficam parados. O resto da capa rola e passa por
+       trás deste bloco, que por isso tem o fundo do papel e cobre até o alto da janela. */
+    top: 0;
+    z-index: 1;
+    margin-top: calc(-1 * var(--e-6));
+    padding-block: var(--e-6) var(--e-4);
+    background: var(--papel);
+  }
+  /* O que passa por trás some aos poucos, e não num corte seco */
+  .capitulo__parado::after {
+    content: '';
+    position: absolute;
+    inset: 100% 0 auto;
+    height: var(--e-5);
+    background: linear-gradient(var(--papel), transparent);
+    pointer-events: none;
+  }
+  /* No mural e na lista a capa fica em cima das memórias: nada parado */
+  .capitulo:has(.capitulo__larga) .capitulo__parado {
+    position: static;
+  }
+  .capitulo:has(.capitulo__larga) .capitulo__parado::after {
+    content: none;
+  }
+  /* O alto do sumário ("Capítulos", a frase e "Novo capítulo") cabe na janela e acompanha a lista */
+  .sumario .sumario__abre {
+    position: sticky;
     top: var(--e-6);
+    align-self: start;
   }
   /* Capa mais alta que a janela não fica parada: o fim dela ("Quem aparece") nunca chegava à vista.
      Quem mede é o script da página do capítulo. */
   .capitulo__parado--solta {
     position: static;
   }
+  .capitulo__parado--solta::after {
+    content: none;
+  }
 }
 
 @media (min-width: 100rem) {
+  .tema__memorias .mural,
+  .tema__memorias .mural[data-tamanho] {
+    --colunas: 4;
+  }
   .capitulo .capitulo__capa,
   .sumario .sumario__abre {
     grid-column: 1 / span 4;
   }
+  /* O corpo vai até a margem da página, como o menu do alto, e a foto do marco cresce */
   .capitulo .capitulo__corpo,
   .sumario .sumario__lista {
-    grid-column: 6 / span 6;
+    grid-column: 6 / -1;
+  }
+  .capitulo:has(.capitulo__larga) .capitulo__capa {
+    grid-column: 1 / span 6;
+  }
+  .capitulo:has(.capitulo__larga) .capitulo__corpo {
+    grid-column: 1 / -1;
   }
   .marco {
-    grid-template-columns: 8rem minmax(0, 1fr) 11rem;
+    grid-template-columns: 8rem minmax(0, 1fr) 14rem;
   }
 }

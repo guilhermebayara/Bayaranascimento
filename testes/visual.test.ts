@@ -558,7 +558,8 @@ describe('grupo familia', () => {
     expect(pagina).toMatch(/style=\{cor === undefined \? undefined : estiloDoCapitulo\(cor\)\}/);
     const css = ler('telas/capitulo.css');
     expect(css).toMatch(/@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.capitulo__parado \{\s*position: sticky;/);
-    expect(css.match(/position:\s*sticky/g)).toHaveLength(1);
+    // A capa do capítulo e, desde a resposta do Gui à P62 do QA de design de 17/11/2026, o alto do sumário
+    expect(css.match(/position:\s*sticky/g)).toHaveLength(2);
   });
 
   it('na tela é "família", e não "núcleo"', () => {

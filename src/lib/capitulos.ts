@@ -198,3 +198,70 @@ export function lerTemas(texto: string): string[] {
   }
   return nomes.slice(0, 12);
 }
+
+// --- A página do capítulo (respostas do Gui ao QA de design de 17/11/2026) ----------------------
+
+/**
+ * As formas de ver as memórias na página do capítulo (P69): os marcos numerados, que são o padrão,
+ * e o mural e a lista do Explorar. A escolha fica no endereço, em `ver`, como na página da pessoa.
+ */
+export const FORMAS_DO_CAPITULO = ['marcos', 'mural', 'lista'] as const;
+export type FormaDoCapitulo = (typeof FORMAS_DO_CAPITULO)[number];
+export const NOMES_DAS_FORMAS_DO_CAPITULO: Record<FormaDoCapitulo, string> = { marcos: 'Marcos', mural: 'Mural de fotos', lista: 'Lista' };
+
+export function lerFormaDoCapitulo(p: URLSearchParams): FormaDoCapitulo {
+  const ver = p.get('ver');
+  return FORMAS_DO_CAPITULO.find((f) => f === ver) ?? 'marcos';
+}
+
+/** O endereço da página do capítulo em cada forma de ver. Os marcos, que são o padrão, não vão no endereço. */
+export function enderecoDoCapitulo(id: string, forma: FormaDoCapitulo = 'marcos'): string {
+  return `/capitulos/${id}${forma === 'marcos' ? '' : `?ver=${forma}`}`;
+}
+
+/** O título da parte das memórias (P71): a época não é capítulo. */
+export function tituloDasMemorias(c: Pick<Capitulo, 'modo'> & Partial<Pick<Capitulo, 'pessoas' | 'familias'>>, quantas: number): string {
+  if (quantas === 0) return 'Memórias';
+  return ehEpoca(c) ? 'Memórias da época' : 'Memórias do capítulo';
+}
+
+/**
+ * O que a linha de "Aconteceu neste período" diz de cada capítulo (P73): só a exceção. O que
+ * aconteceu em parte fica sem nada; o que coube inteiro no período é marcado.
+ */
+export function detalheDoCruzamento(como: 'inteiro' | 'parte'): string | undefined {
+  return como === 'inteiro' ? 'inteiro neste período' : undefined;
+}
+
+// --- Editar capítulo: as memórias (P78 do QA de design de 17/11/2026) ---------------------------
+
+/** As memórias para marcar: as que já estão no capítulo primeiro, sem mexer na ordem dentro de cada grupo. */
+export function ordemDeMarcar<M extends { capitulos: string[] }>(memorias: M[], capitulo: string): M[] {
+  return [...memorias.filter((m) => m.capitulos.includes(capitulo)), ...memorias.filter((m) => !m.capitulos.includes(capitulo))];
+}
+
+const semAcento = (texto: string) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** A busca de memória acha por qualquer pedaço do título ou da data, sem ligar para acento nem maiúscula. Cada palavra do termo precisa aparecer. */
+export function achaNaBusca(texto: string, termo: string): boolean {
+  const onde = semAcento(texto);
+  const palavras = semAcento(termo).split(/\s+/).filter(Boolean);
+  return palavras.length > 0 && palavras.every((p) => onde.includes(p));
+}
+
+// --- A linha de um capítulo no sumário e na página do tema (P83) --------------------------------
+
+/**
+ * O período e a conta das memórias de um capítulo, entre as que quem olha pode ver: o que a linha
+ * do sumário mostra. No reunido contam as memórias dele e as dos capítulos de dentro.
+ */
+export function resumoDoCapitulo<M extends MemoriaParaCapitulo>(c: Capitulo, capitulos: Capitulo[], memorias: M[]): { periodo: string; ordem: number; memorias: number } {
+  const ids = new Set([c.id, ...capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id)]);
+  const dele = c.modo === 'epoca' ? memorias.filter((m) => memoriaDoCapitulo(m, c)) : memorias.filter((m) => m.capitulos.some((id) => ids.has(id)));
+  const p = c.modo === 'epoca' ? (c.inicio ? { inicio: c.inicio, fim: c.fim } : null) : periodoDasMemorias(dele);
+  return {
+    periodo: p ? formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca') : '',
+    ordem: p ? p.inicio.ano * 100 + (p.inicio.mes ?? 0) : 999999,
+    memorias: dele.length,
+  };
+}
