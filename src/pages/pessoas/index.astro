@@ -2,43 +2,71 @@
 // A lista de pessoas: quem aparece nas memórias, por família, cada família com a sua cor. Cada
 // pessoa é uma linha com o retrato, o nome, o que ela é para quem olha ("sua avó") e a conta das
 // memórias em que aparece.
+// Respostas do Gui ao QA de design (17/11/2026, P98 a P101): "Procurar pelo nome" no alto; dentro de
+// cada família, a ordem é por geração, dos mais velhos aos mais novos, com os bichos no fim, e quem
+// preferir troca para a ordem alfabética (`?ordem=nome`, sem script); a conta do bloco vem por
+// extenso; e a linha das memórias some quando a conta é zero.
 import '../../visual/telas/pessoas.css';
 import Visual from '../../layouts/Visual.astro';
 import Gente from '../../components/visual/Gente.astro';
-import { Familia, possessivo, type Tratamento } from '../../lib/parentesco';
+import { Familia, calcularGeracoes, possessivo, type Tratamento } from '../../lib/parentesco';
+import { ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
 import { enderecoDoRetrato } from '../../lib/retratos';
 import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
 import { corDaPessoa, corDoNucleo } from '../../lib/visual';
 
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
+// "Procurar pelo nome" sem script: a lista suspensa manda `?ir=<pessoa>`, e a página leva até ela
+const ir = Astro.url.searchParams.get('ir');
+if (ir && integrantes.some((i) => i.id === ir)) return Astro.redirect(`/pessoas/${ir}`);
+const ordem = ordemPedida(Astro.url.searchParams.get('ordem'));
+const filiacoes = await listarFiliacoes();
+const casais = await listarCasais(usuario);
+const geracoes = calcularGeracoes(
+  integrantes.map((i) => i.id),
+  filiacoes,
+  casais,
+);
+const naOrdem = (membros: Integrante[]) => ordenarPessoas(membros, geracoes, ordem);
 const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
 const memorias = await listarMemorias(usuario);
 const contar = (id: string) => memorias.filter((m) => m.integrantes.includes(id)).length;
 const grupos = [
   // Membros e parentes de cada família juntos, sem diferença na tela
-  ...nucleos.map((n) => ({ id: n.id, nome: n.nome, cor: corDoNucleo(n.id, ordemDosNucleos), membros: integrantes.filter((i) => familiasDe(i).includes(n.id)) })),
-  { id: 'outras', nome: 'Outras pessoas', cor: 'tudo', membros: integrantes.filter((i) => familiasDe(i).length === 0) },
+  ...nucleos.map((n) => ({ id: n.id, nome: n.nome, cor: corDoNucleo(n.id, ordemDosNucleos), membros: naOrdem(integrantes.filter((i) => familiasDe(i).includes(n.id))) })),
+  { id: 'outras', nome: 'Outras pessoas', cor: 'tudo', membros: naOrdem(integrantes.filter((i) => familiasDe(i).length === 0)) },
 ].filter((g) => g.membros.length > 0);
 
 // O que cada pessoa é para quem olha: "sua avó", "seu primo". Sem laço calculado, a linha fica sem.
 // Aprovado pelo Gui em 17/11/2026 (pergunta 3 do PR do grupo "familia"): o parentesco de quem olha na lista de pessoas
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
-const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
+const familia = new Familia(filiacoes, casais, tratamentos);
 const paraVoce = (p: Integrante) => {
   if (p.id === usuario.pessoa) return 'você';
   const relacao = familia.relacao(usuario.pessoa, p.id);
   return relacao ? possessivo(relacao, p.tratamento) : null;
 };
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
-const bichos = integrantes.filter((i) => i.tipo === 'bicho').length;
-const conta = [plural(integrantes.length - bichos, 'pessoa', 'pessoas'), bichos > 0 ? plural(bichos, 'bicho', 'bichos') : null].filter(Boolean).join(' · ');
+// A conta por extenso, no alto e em cada bloco. Quem é de duas famílias aparece nas duas (resposta
+// do Gui, P99), então a soma dos blocos passa da conta do alto, e os números soltos convidavam a somar.
+const contaDe = (lista: Integrante[]) => {
+  const bichos = lista.filter((i) => i.tipo === 'bicho').length;
+  return [lista.length > bichos ? plural(lista.length - bichos, 'pessoa', 'pessoas') : null, bichos > 0 ? plural(bichos, 'bicho', 'bichos') : null].filter(Boolean).join(' · ');
+};
+const conta = contaDe(integrantes);
 const naoVe = await pessoasQueONaoVe(usuario);
 const detalhe = (p: Integrante) => {
   const n = contar(p.id);
-  return [p.tipo === 'bicho' ? (p.especie ?? 'bicho') : null, `${n} ${n === 1 ? 'memória' : 'memórias'}`].filter(Boolean).join(' · ');
+  // Sem memória nenhuma, a linha da conta não aparece (P101)
+  return [p.tipo === 'bicho' ? (p.especie ?? 'bicho') : null, n > 0 ? plural(n, 'memória', 'memórias') : null].filter(Boolean).join(' · ') || null;
 };
+const porNome = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+const ORDENS = [
+  { id: 'geracao', texto: 'Por geração', href: '/pessoas' },
+  { id: 'nome', texto: 'De A a Z', href: '/pessoas?ordem=nome' },
+];
 ---
 
 <Visual titulo="Pessoas" secao="pessoas">
@@ -51,6 +79,24 @@ const detalhe = (p: Integrante) => {
         <a class="botao" href="/pessoas/nova">Cadastrar pessoa</a>
         <a class="acao" href="/arvore">Ver a árvore</a>
       </p>
+      <form class="pessoas-pagina__busca" method="get" action="/pessoas" data-procurar>
+        <label class="pessoas-pagina__rotulo rotulo suave" for="procurar-pessoa">Procurar pelo nome</label>
+        <div class="pessoas-pagina__campo">
+          <select id="procurar-pessoa" name="ir" required>
+            <option value="">Escreva o nome</option>
+            {porNome.map((p) => <option value={p.id}>{p.nome}</option>)}
+          </select>
+          <button class="acao" type="submit">Abrir a página</button>
+        </div>
+      </form>
+      <nav class="pessoas-pagina__ordem" aria-label="Ordem da lista">
+        <span class="rotulo suave">Ordem</span>
+        {ORDENS.map((o) => (
+          <a class="acao acao--quieta" href={o.href} aria-current={o.id === ordem ? 'true' : undefined}>
+            {o.texto}
+          </a>
+        ))}
+      </nav>
       {
         grupos.length > 1 && (
           <nav class="pessoas-pagina__atalhos" aria-label="Ir para a família">
@@ -70,7 +116,7 @@ const detalhe = (p: Integrante) => {
             <h2 class="serifa t-2" id={`familia-${grupo.id}`}>
               {grupo.nome}
             </h2>
-            <p class="rotulo suave">{grupo.membros.length}</p>
+            <p class="rotulo suave">{contaDe(grupo.membros)}</p>
           </header>
           <ul class="familia-de-gente__lista">
             {grupo.membros.map((p) => (
@@ -91,3 +137,27 @@ const detalhe = (p: Integrante) => {
     }
   </div>
 </Visual>
+
+<script>
+  import { buscaDePessoa } from '../../lib/cliente/busca-pessoa';
+
+  // "Procurar pelo nome": a busca de pessoa que o site já tem. Escolher alguém abre a página dela.
+  const formulario = document.querySelector<HTMLFormElement>('[data-procurar]');
+  const lista = formulario?.querySelector<HTMLSelectElement>('select');
+  if (formulario && lista) {
+    buscaDePessoa(lista);
+    formulario.querySelector<HTMLButtonElement>('button')!.hidden = true;
+    lista.addEventListener('change', () => {
+      if (lista.value) location.href = `/pessoas/${encodeURIComponent(lista.value)}`;
+    });
+    formulario.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (lista.value) location.href = `/pessoas/${encodeURIComponent(lista.value)}`;
+    });
+    // Ao voltar para a lista, o campo começa vazio de novo
+    addEventListener('pageshow', () => {
+      lista.value = '';
+      lista.dispatchEvent(new Event('busca:atualizar'));
+    });
+  }
+</script>

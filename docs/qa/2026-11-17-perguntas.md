@@ -1420,6 +1420,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P98. Com 35 nomes, a lista precisa de busca e de uma ordem que se entenda?
 
+**Feito (opção A, com a troca de ordem):** "Procurar pelo nome" no alto, com a busca de pessoa do site, que abre a página de quem foi escolhido; dentro de cada família, ordem por geração, dos mais velhos aos mais novos, com os bichos no fim; e a troca "Por geração" ou "De A a Z", por link (`?ordem=nome`), sem script. Capturas: `pessoas/p98-busca-e-ordem-por-geracao--390.jpg`, `--1280.jpg`, `--1920.jpg`, `pessoas/p98-procurar-pelo-nome--390.jpg`, `pessoas/p98-ordem-de-a-a-z--1280.jpg`.
+
 **muda a experiência**
 
 - Contexto: cada família é um bloco, e dentro dele as pessoas seguem a ordem do cadastro. Há atalhos para cada família no alto.
@@ -1432,6 +1434,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P99. Quem é de duas famílias aparece duas vezes. É o que se quer?
 
+**Feito (opção A):** a repetição continua, e a conta de cada bloco vem por extenso ("19 pessoas · 2 bichos"). Capturas: as da P98.
+
 **ajuste**
 
 - Contexto: membros e parentes de cada família aparecem juntos no bloco dela.
@@ -1443,6 +1447,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P100. A lista tem três margens à esquerda. Alinhar?
 
+**Feito (opção A):** os retratos nascem na margem do nome da família (73 px em 1280 e 93 px em 1920). Capturas: as da P98.
+
 **detalhe**
 
 - Contexto: "grid rígido e alinhado à esquerda" (`docs/visual.md`).
@@ -1453,6 +1459,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P101. "0 memórias" precisa aparecer?
+
+**Feito (opção A):** a linha das memórias some quando a conta é zero. Capturas: as da P98.
 
 **detalhe**
 
