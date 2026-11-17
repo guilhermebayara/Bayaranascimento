@@ -1,6 +1,6 @@
 // Capítulos na linha do tempo: a montagem dos trilhos, sem tela (docs/decisoes.md).
 import { describe, expect, it } from 'vitest';
-import { CABEM, capitulosNosTrilhos, chaoDaEpoca, comoAparece, montarTrilhos, trilhosNaEpoca, trilhosNaMarca, type CapituloDaLinha, type MemoriaDaLinha } from '../src/lib/linha-capitulos';
+import { CABEM, capitulosNosTrilhos, chaoDaEpoca, comoAparece, montarTrilhos, trilhosNaEpoca, trilhosNaMarca, type CapituloDaLinha, type MemoriaDaLinha, coresDosCapitulos } from '../src/lib/linha-capitulos';
 
 // A linha do tempo, das mais recentes para as mais antigas, como na tela
 const m = (id: string, ano: number, mes: number | null, capitulos: string[] = []): MemoriaDaLinha => ({ id, ano, mes, capitulos });
@@ -284,5 +284,25 @@ describe('visibilidade', () => {
     const vazio = montarTrilhos(memorias, []);
     expect(vazio.quantos).toBe(0);
     expect(vazio.linhas).toHaveLength(memorias.length);
+  });
+});
+
+describe('a cor do capítulo fora da linha do tempo', () => {
+  const m = (id: string, ano: number, capitulos: string[] = []) => ({ id, ano, mes: null, dia: null, capitulos });
+  const c = (id: string, extra: object = {}) => ({ id, titulo: id, modo: 'reunido' as const, inicio: null, fim: null, dentroDe: null, ...extra });
+
+  it('é a mesma do trilho dele na linha do tempo', () => {
+    const memorias = [m('c', 2020, ['natais']), m('b', 2010, ['natais', 'viagens']), m('a', 2000, ['viagens'])];
+    const capitulos = [c('natais'), c('viagens')];
+    const cores = coresDosCapitulos(memorias, capitulos);
+    for (const trilho of montarTrilhos(memorias, capitulos).capitulos) expect(cores.get(trilho.id)).toBe(trilho.cor);
+    // Dois capítulos que convivem nunca dividem a cor
+    expect(cores.get('natais')).not.toBe(cores.get('viagens'));
+  });
+
+  it('capítulo sem memória visível também tem cor, e a época fica sem', () => {
+    const cores = coresDosCapitulos([m('a', 2000, ['natais'])], [c('natais'), c('vazio'), c('anos-90', { modo: 'epoca' as const, inicio: { ano: 1990, mes: null, dia: null }, fim: { ano: 1999, mes: null, dia: null }, deTodos: true })]);
+    expect(cores.get('vazio')).toBeTypeOf('number');
+    expect(cores.has('anos-90')).toBe(false);
   });
 });

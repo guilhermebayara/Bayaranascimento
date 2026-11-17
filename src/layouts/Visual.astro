@@ -23,7 +23,7 @@ interface Props {
   /** A cor da tela, quando não é a dos núcleos: 'tudo' ou a posição do núcleo ('0', '1', '2', '3') */
   familia?: string;
   /** Qual item do menu está aberto */
-  secao?: 'painel' | 'explorar' | 'conceito' | 'conta' | 'pessoas';
+  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'conceito' | 'conta' | 'pessoas';
   /** A página que só a pessoa vê: tingida na cor da família dela */
   intimo?: boolean;
   /** O modo TV: a tela inteira é da memória, sem o topo, o menu e o rodapé */
@@ -53,8 +53,8 @@ const caminho = Astro.url.pathname.replace(/\/$/, '');
 const menu = [
   { href: '/', texto: 'Início', atual: secao === 'painel' },
   { href: '/explorar', texto: 'Explorar', atual: secao === 'explorar' },
-  { href: '/capitulos', texto: 'Capítulos', atual: false },
-  { href: '/arvore', texto: 'Árvore', atual: false },
+  { href: '/capitulos', texto: 'Capítulos', atual: secao === 'capitulos' },
+  { href: '/arvore', texto: 'Árvore', atual: secao === 'arvore' },
   { href: '/pessoas', texto: 'Pessoas', atual: secao === 'pessoas' },
 ];
 const telas = [

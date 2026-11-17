@@ -58,7 +58,7 @@ describe('árvore na tela', () => {
   it('o cartão do ramo aberto fica por cima da legenda', () => {
     expect(cliente).toContain('camadaDosRamos.append(cartao)');
     // A camada dos ramos vem logo depois da árvore e antes dos painéis. O z-index (2, contra 1 da legenda)
-    // está em src/styles/global.css; o vitest não lê CSS, então ele não é conferido aqui.
+    // está em src/visual/telas/arvore.css, conferido em testes/visual.test.ts.
     expect(pagina.indexOf('data-camada-ramos')).toBeGreaterThan(pagina.indexOf('data-camada>'));
     expect(pagina.indexOf('data-camada-ramos')).toBeLessThan(pagina.indexOf('mapa__painel'));
   });

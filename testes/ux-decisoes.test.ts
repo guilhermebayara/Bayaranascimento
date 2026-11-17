@@ -97,15 +97,12 @@ describe('ação principal', () => {
     expect(acoesDaPessoa).toBeGreaterThan(pessoa.indexOf('<h1'));
     expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="lacos miolo"'));
     expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="voz miolo grade"'));
-    const conteudo: Record<string, string> = {
-      'src/pages/capitulos/[id]/index.astro': '<section class="familia">',
-    };
-    for (const [arquivo, marco] of Object.entries(conteudo)) {
-      const pagina = fonte(arquivo);
-      const acoes = pagina.indexOf('acoes--pagina');
-      expect(acoes).toBeGreaterThan(pagina.indexOf('<h1>'));
-      expect(acoes).toBeLessThan(pagina.indexOf(marco));
-    }
+    // No capítulo (visual novo): depois do título, dentro da capa, antes dos capítulos de dentro e dos marcos
+    const capitulo = fonte('src/pages/capitulos/[id]/index.astro');
+    const acoesDoCapitulo = capitulo.indexOf('capitulo__acoes');
+    expect(acoesDoCapitulo).toBeGreaterThan(capitulo.indexOf('<h1'));
+    expect(acoesDoCapitulo).toBeLessThan(capitulo.indexOf('class="capitulo__corpo"'));
+    expect(acoesDoCapitulo).toBeLessThan(capitulo.indexOf('class="marcos"'));
   });
 });
 
@@ -326,15 +323,19 @@ describe('como se referir de quem entra pelo nome novo', () => {
 
 describe('linha do tempo', () => {
   it('mais recentes primeiro, em todas as páginas que mostram a linha do tempo', () => {
-    expect(fonte('src/components/LinhaDoTempo.astro')).toContain('agruparPorAno(maisRecentesPrimeiro(memorias))');
+    // No visual novo, a linha do tempo é a do Explorar (explorar/Linha.astro), que recebe as memórias
+    // já na ordem: a pessoa e o tema entregam das mais recentes para as mais antigas, e os marcos do
+    // capítulo seguem a mesma ordem
+    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/listarMemorias\(usuario, \{ integrante: pessoa\.id \}\)\)\.reverse\(\)/);
+    expect(fonte('src/pages/temas/[id].astro')).toMatch(/listarMemorias\(usuario, \{ tema: tema\.id \}\)\)\.reverse\(\)/);
+    expect(fonte('src/pages/capitulos/[id]/index.astro')).toContain('maisRecentesPrimeiro(memorias)');
   });
 });
 
 describe('salto por década', () => {
-  it('barra fixa com as décadas, só com mais de uma, e o filtro tira as que ficam vazias', () => {
-    const linha = fonte('src/components/LinhaDoTempo.astro');
+  it('faixa com as décadas, só com mais de uma', () => {
+    const linha = fonte('src/components/explorar/Linha.astro');
     expect(linha).toContain('decadas.length > 1 &&');
-    expect(linha).toContain('id={`decada-${decadaDe(ano)}`}');
-    expect(linha).toContain("item.hidden = !raiz.querySelector(`.ano[data-decada=\"${item.dataset.decada}\"]:not([hidden])`)");
+    expect(linha).toContain('href={`#decada-${d}`}');
   });
 });

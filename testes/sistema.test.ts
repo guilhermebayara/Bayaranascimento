@@ -225,7 +225,7 @@ describe('monograma', () => {
 });
 
 describe('tokens e peças', () => {
-  const fontesDasTelas = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro', '../src/pages/sistema.astro', '../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro', '../src/lib/visual.ts'], {
+  const fontesDasTelas = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro', '../src/pages/sistema.astro', '../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/pages/capitulos/index.astro', '../src/pages/capitulos/[[]id]/index.astro', '../src/pages/temas/[[]id].astro', '../src/pages/pessoas/index.astro', '../src/pages/arvore.astro', '../src/components/capitulos/*.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro', '../src/lib/visual.ts'], {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -235,7 +235,7 @@ describe('tokens e peças', () => {
   it('toda variável usada no visual novo é definida em algum lugar', () => {
     const definidas = new Set([...tudo.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
     // As que o script da linha do tempo põe na página e as que a assinatura põe em si mesma
-    const postasPorScript = ['--alt', '--barra-alt', '--encolhe-a', '--encolhe-b', '--encolhe-c'];
+    const postasPorScript = ['--alt', '--barra-alt', '--encolhe-a', '--encolhe-b', '--encolhe-c', '--retrato-cor'];
     const usadas = new Set([...tudo.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]!).filter((v) => !v.endsWith('-')));
     const soltas = [...usadas].filter((v) => !definidas.has(v) && !postasPorScript.includes(v));
     expect(soltas).toEqual([]);

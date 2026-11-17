@@ -30,7 +30,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   const indicesDosNucleos = (nucleos: string[]) => nucleos.map((n) => idsDosNucleos.indexOf(n)).filter((i) => i >= 0).sort((a, b) => a - b);
   // A cor de cada lado da família. Quem é de dois núcleos fica com as duas cores, dividida na diagonal.
   const fundoDe = (nucleos: string[]) => {
-    const cores = indicesDosNucleos(nucleos).map((i) => `var(--nucleo-${i % 4})`);
+    const cores = indicesDosNucleos(nucleos).map((i) => `var(--arvore-familia-${i % 4})`);
     if (cores.length === 0) return '';
     if (cores.length === 1) return cores[0];
     const fatia = 100 / cores.length;
@@ -85,7 +85,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       caixa.closest('label')!.title = motivo;
     };
     const foraDoNucleo = Boolean(doCentro && estado.nucleo && !doCentro.nucleos.includes(estado.nucleo));
-    prender('outros', !estado.nucleo || foraDoNucleo, foraDoNucleo ? `A árvore parte de ${doCentro!.nome}, que é de outro núcleo` : '');
+    prender('outros', !estado.nucleo || foraDoNucleo, foraDoNucleo ? `A árvore parte de ${doCentro!.nome}, que é de outra família` : '');
     prender('bichos', Boolean(doCentro?.bicho), doCentro?.bicho ? `A árvore parte de ${doCentro.nome}` : '');
   };
   // Nenhum filtro esconde de quem a árvore parte: um bicho liga "Bichos", alguém de fora do núcleo liga "Outros núcleos"
@@ -178,7 +178,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     // O retrato aparece só aqui, na ficha. Sem retrato, as iniciais sobre a cor da família.
     const retrato = document.createElement('span');
     retrato.className = 'retrato';
-    retrato.style.setProperty('--retrato-cor', fundoDe(p.nucleos) || 'var(--cor-superficie)');
+    retrato.style.setProperty('--retrato-cor', fundoDe(p.nucleos) || 'var(--arvore-de-fora)');
     if (p.retrato) retrato.append(Object.assign(new Image(), { src: p.retrato, alt: '' }));
     else retrato.append(Object.assign(document.createElement('span'), { textContent: p.iniciais ?? '' }));
     retrato.firstElementChild!.setAttribute('aria-hidden', 'true');

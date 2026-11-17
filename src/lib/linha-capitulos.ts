@@ -267,3 +267,18 @@ export function chaoDaEpoca(montagem: Trilhos, posicao: number, epoca: string, a
   const dentro = linha.epocas - linha.epocaFecha.indexOf(epoca);
   return { fora: dentro - 1, dentro };
 }
+
+/**
+ * A cor de cada capítulo fora da linha do tempo (a lista de capítulos e a página de cada um): a
+ * mesma que ele tem na linha do tempo inteira, das mais recentes para as mais antigas, para o
+ * capítulo ser reconhecido pela cor nos dois lugares. Capítulo sem memória visível, que não tem
+ * trilho, ganha uma cor fixa tirada da posição dele na lista. Época não tem cor: ela é o chão.
+ */
+export function coresDosCapitulos(memoriasDasRecentes: MemoriaDaLinha[], todos: CapituloDaLinha[]): Map<string, number> {
+  const montagem = montarTrilhos(memoriasDasRecentes, todos);
+  const cores = new Map(montagem.capitulos.map((c) => [c.id, c.cor]));
+  todos.forEach((c, n) => {
+    if (!cores.has(c.id) && !c.deTodos) cores.set(c.id, n);
+  });
+  return cores;
+}

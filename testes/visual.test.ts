@@ -153,7 +153,7 @@ describe('conceito', () => {
   const paginas = import.meta.glob<string>('../src/pages/conceito/**/*.{astro,ts}', { query: '?raw', import: 'default', eager: true });
 
   // As telas que já passaram para o visual novo (fase 3), com os componentes de cada uma
-  const telas = import.meta.glob<string>(['../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro'], {
+  const telas = import.meta.glob<string>(['../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/pages/capitulos/index.astro', '../src/pages/capitulos/[[]id]/index.astro', '../src/pages/temas/[[]id].astro', '../src/pages/pessoas/index.astro', '../src/pages/arvore.astro', '../src/components/capitulos/*.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro'], {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -524,5 +524,65 @@ describe('conceito', () => {
     for (const [caminho, fonte] of [...Object.entries(fontes), ...Object.entries(telas)]) expect(fonte, caminho).not.toMatch(/^import[^;\n]*(styles\/global\.css|layouts\/Base\.astro)/m);
     // E nenhuma tela de verdade leva dado fixo de exemplo nem depende do conceito
     for (const [caminho, fonte] of Object.entries(telas)) expect(fonte, caminho).not.toMatch(/FIXO|servidor\/conceito/);
+  });
+});
+
+// Fase 3, grupo "familia": capítulo, tema, pessoas e árvore
+describe('grupo familia', () => {
+  const fontes = import.meta.glob<string>(['../src/pages/capitulos/index.astro', '../src/pages/capitulos/[[]id]/index.astro', '../src/pages/temas/[[]id].astro', '../src/pages/pessoas/index.astro', '../src/pages/arvore.astro', '../src/lib/cliente/arvore.ts', '../src/layouts/Visual.astro'], {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  });
+  const fonte = (fim: string) => Object.entries(fontes).find(([caminho]) => caminho.endsWith(fim))![1];
+
+  it('cada tela acende a sua seção no menu', () => {
+    expect(fonte('capitulos/index.astro')).toContain('secao="capitulos"');
+    expect(fonte('capitulos/[id]/index.astro')).toContain('secao="capitulos"');
+    expect(fonte('temas/[id].astro')).toContain('secao="capitulos"');
+    expect(fonte('pessoas/index.astro')).toContain('secao="pessoas"');
+    expect(fonte('arvore.astro')).toContain('secao="arvore"');
+    const topo = fonte('Visual.astro');
+    expect(topo).toMatch(/href: '\/capitulos', texto: 'Capítulos', atual: secao === 'capitulos'/);
+    expect(topo).toMatch(/href: '\/arvore', texto: 'Árvore', atual: secao === 'arvore'/);
+  });
+
+  it('o capítulo: marcos numerados na ordem de toda linha do tempo, e a capa só fica parada com mouse', () => {
+    const pagina = fonte('capitulos/[id]/index.astro');
+    expect(pagina).toMatch(/const marcos = maisRecentesPrimeiro\(memorias\)\.map\(\(m, i, lista\) => \(\{ m, numero: lista\.length - i \}\)\);/);
+    expect(pagina).toContain('nomeDoModo(capitulo)');
+    // A cor do capítulo é a do trilho dele na linha do tempo
+    expect(pagina).toMatch(/style=\{cor === undefined \? undefined : estiloDoCapitulo\(cor\)\}/);
+    const css = ler('telas/capitulo.css');
+    expect(css).toMatch(/@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.capitulo__parado \{\s*position: sticky;/);
+    expect(css.match(/position:\s*sticky/g)).toHaveLength(1);
+  });
+
+  it('na tela é "família", e não "núcleo"', () => {
+    for (const fim of ['capitulos/index.astro', 'capitulos/[id]/index.astro', 'temas/[id].astro', 'pessoas/index.astro', 'arvore.astro']) {
+      // Só o que aparece na tela: sem o cabeçalho de código nem os comentários
+      const marcacao = fonte(fim).split('\n---\n').slice(1).join('').replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/<script[\s\S]*?<\/script>/g, '');
+      expect(marcacao, fim).not.toMatch(/[Nn]úcleo/);
+    }
+    expect(fonte('arvore.astro')).toContain('<span>Outras famílias</span>');
+    expect(fonte('arvore.astro')).toContain('Família {n.nome}');
+    expect(fonte('cliente/arvore.ts')).toContain('que é de outra família');
+    expect(fonte('pessoas/index.astro')).toContain('Quem aparece nas memórias da família, por família.');
+  });
+
+  it('a árvore muda só de aparência: o estilo é do visual novo e as cores são as das famílias', () => {
+    const pagina = fonte('arvore.astro');
+    expect(pagina).toMatch(/^import '\.\.\/visual\/telas\/arvore\.css';/m);
+    const cliente = fonte('cliente/arvore.ts');
+    expect(cliente).not.toMatch(/--nucleo-|--cor-/);
+    expect(cliente).toContain('`var(--arvore-familia-${i % 4})`');
+    const css = ler('telas/arvore.css');
+    // As quatro cores das famílias, na ordem dos tokens ([data-familia] em tokens.css)
+    expect(css).toMatch(/--arvore-familia-0: var\(--verde-pastel\);\s*--arvore-familia-1: var\(--orquidea-pastel\);\s*--arvore-familia-2: var\(--azul-pastel\);\s*--arvore-familia-3: var\(--pessego-pastel\);/);
+    // O cartão do ramo aberto fica por cima da legenda e abaixo do painel, da ficha e do zoom
+    expect(css).toMatch(/\.mapa__camada--ramos \{\s*z-index: 2;/);
+    expect(css).toMatch(/\.mapa__legenda \{\s*display: none;\s*z-index: 1;/);
+    // Toque mínimo: o botão do coração e a marca do ramo têm a área de toque maior que o desenho
+    expect(css).toMatch(/\.no__coracao::after,\s*\.no__ramo::after \{\s*content: '';\s*position: absolute;\s*inset: -0\.5rem;/);
   });
 });

@@ -1,9 +1,23 @@
 ---
-import Base from '../../../layouts/Base.astro';
-import LinhaDoTempo from '../../../components/LinhaDoTempo.astro';
+// A página do capítulo. A ideia da tela (docs/visual.md): abertura de capítulo de livro. O título,
+// o período e as pessoas ficam à esquerda (parados, no computador com mouse) e, à direita, os
+// marcos numerados: cada memória do capítulo com o número dela, a data e o lugar em mono.
+import '../../../visual/telas/capitulo.css';
+import Visual from '../../../layouts/Visual.astro';
+import Entrada from '../../../components/capitulos/Entrada.astro';
+import Carimbo from '../../../components/visual/Carimbo.astro';
+import Gente from '../../../components/visual/Gente.astro';
+import Pilula from '../../../components/visual/Pilula.astro';
+import Polaroid from '../../../components/visual/Polaroid.astro';
+import SinalDoCapitulo from '../../../components/visual/SinalDoCapitulo.astro';
+import Vazio from '../../../components/visual/Vazio.astro';
 import { ehEpoca, formatarPeriodo, memoriaDoCapitulo, nomeDoModo, periodoDasMemorias, sobreposicao, type Capitulo } from '../../../lib/capitulos';
+import { maisRecentesPrimeiro } from '../../../lib/datas';
+import { coresDosCapitulos } from '../../../lib/linha-capitulos';
+import { enderecoDoRetrato } from '../../../lib/retratos';
 import { podeEditarCapitulo } from '../../../lib/servidor/permissoes';
-import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemas, type Memoria } from '../../../lib/servidor/repositorio';
+import { familiasDe, listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemas, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
+import { carimboDaData, corDaPessoa, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
 
 const { usuario } = Astro.locals;
 const capitulos = await listarCapitulos(usuario);
@@ -44,10 +58,12 @@ const epocas = cruzamentos.filter((x) => ehEpoca(x.c)).map((x) => ({ ...x, como:
 const temas = (await listarTemas()).filter((t) => capitulo.temas.includes(t.id));
 const integrantes = await listarIntegrantes();
 const nucleos = await listarNucleos();
+const ordemDosNucleos = nucleos.map((n) => n.id);
 const restritoA = capitulo.visibilidade === 'nucleos' ? capitulo.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean) : [];
 // De quem é o capítulo por período, para quem chega entender por que só algumas memórias do período entram
+const achar = (id: string) => integrantes.find((x) => x.id === id);
 const nomeDe = (id: string) => {
-  const i = integrantes.find((x) => x.id === id);
+  const i = achar(id);
   return i ? (i.apelido ?? i.nome) : undefined;
 };
 const deQuem = [
@@ -57,90 +73,232 @@ const deQuem = [
 const juntar = (nomes: string[]) => (nomes.length <= 1 ? nomes.join('') : `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`);
 const podeEditar = podeEditarCapitulo(usuario, capitulo).ok;
 const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
+
+// A cor do capítulo é a do trilho dele na linha do tempo; a época é o chão e fica na cor da tela
+const cores = coresDosCapitulos(
+  [...todas].reverse(),
+  capitulos.map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c)),
+);
+const cor = cores.get(capitulo.id);
+
+// Os marcos: as memórias do capítulo, das mais recentes para as mais antigas, como em toda linha do
+// tempo do site. O número de cada uma é a posição dela na história, contada do começo.
+// PROVISÓRIO (pergunta 1 do PR do grupo "familia"): a ordem dos marcos e o sentido dos números
+const marcos = maisRecentesPrimeiro(memorias).map((m, i, lista) => ({ m, numero: lista.length - i }));
+const digitos = Math.max(2, String(marcos.length).length);
+
+// Quem aparece: as pessoas que mais estão nas memórias do capítulo, com a conta de cada uma
+// PROVISÓRIO (pergunta 2 do PR do grupo "familia"): quem aparece, até seis pessoas
+const naoVe = await pessoasQueONaoVe(usuario);
+const contagem = new Map<string, number>();
+for (const m of memorias) for (const id of m.integrantes) contagem.set(id, (contagem.get(id) ?? 0) + 1);
+const aparecem = [...contagem.entries()]
+  .filter(([id]) => achar(id))
+  .sort((a, b) => b[1] - a[1] || nomeDe(a[0])!.localeCompare(nomeDe(b[0])!, 'pt-BR'));
+const QUANTOS = 6;
+const sobram = Math.max(0, aparecem.length - QUANTOS);
+// As famílias do capítulo dão a assinatura e a cor da tela: as marcadas em "quem vê" ou em "de quem é"
+const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? capitulo.nucleos : []), ...capitulo.familias])];
 ---
 
-<Base titulo={capitulo.titulo}>
-  <div class="abertura">
-    <p class="memoria__etiquetas">
-      <span class="selo">{nomeDoModo(capitulo)}</span>
-      {restritoA.length > 0 && <span class="selo">Só {restritoA.join(' e ')}</span>}
-    </p>
-    <h1>{capitulo.titulo}</h1>
-    <p>{[textoDoPeriodo, contar(memorias.length)].filter(Boolean).join(', ')}</p>
-    {deQuem.length > 0 && <p class="dica">Entram as memórias do período com {juntar(deQuem)}.</p>}
-    {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026) */}
-    <p class="acoes acoes--pagina">
-      {/* No reunido, qualquer um coloca as memórias que pode corrigir; a ficha, só quem pode editar o capítulo */}
-      {capitulo.modo === 'reunido' ? (
-        <a class="botao" href={`/capitulos/${capitulo.id}/editar`}>{podeEditar ? 'Escolher memórias e editar' : 'Escolher memórias'}</a>
-      ) : (
-        podeEditar && <a class="botao" href={`/capitulos/${capitulo.id}/editar`}>{ehEpoca(capitulo) ? 'Editar época' : 'Editar capítulo'}</a>
-      )}
-      {capitulo.modo === 'reunido' && <a class="botao botao--leve" href={`/nova?capitulo=${capitulo.id}`}>Nova memória neste capítulo</a>}
-    </p>
-    {maior && <p class="dica">Parte de <a href={`/capitulos/${maior.id}`}>{maior.titulo}</a></p>}
-    {capitulo.abertura && <div class="bio">{capitulo.abertura.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
-    {temas.length > 0 && (
-      <p class="dica">
-        Temas: {temas.map((t, i) => <>{i > 0 && ', '}<a href={`/temas/${t.id}`}>{t.nome}</a></>)}
-      </p>
-    )}
-  </div>
-
-  {
-    dentro.length > 0 && (
-      <section class="familia">
-        <h2>Capítulos dentro deste</h2>
-        <ul class="lista-de-capitulos">
-          {dentro.map((c) => {
-            const p = periodoDe(c);
-            return (
-              <li>
-                <a href={`/capitulos/${c.id}`}>
-                  <strong>{c.titulo}</strong>
-                  <span>{[p && formatarPeriodo(p.inicio, p.fim), contar(memoriasDe(c).length)].filter(Boolean).join(', ')}</span>
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    )
-  }
-
-  {
-    aconteceramAqui.length > 0 && (
-      <section class="familia">
-        <h2>Aconteceu neste período</h2>
-        <ul class="lista-de-capitulos">
-          {aconteceramAqui.map(({ c, p, como }) => (
-            <li>
-              <a href={`/capitulos/${c.id}`}>
-                <strong>{c.titulo}</strong>
-                <span>
-                  {formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca')}
-                  {como === 'parte' && ', em parte neste período'}
-                </span>
+<Visual titulo={capitulo.titulo} secao="capitulos" nucleos={familiasDaTela}>
+  <article class="capitulo miolo grade" style={cor === undefined ? undefined : estiloDoCapitulo(cor)}>
+    <header class="capitulo__capa">
+      <div class="capitulo__parado">
+        <p class="capitulo__selo">
+          <Carimbo itens={[nomeDoModo(capitulo), restritoA.length > 0 ? `Só ${restritoA.join(' e ')}` : null]} />
+        </p>
+        <h1 class="capitulo__titulo serifa t-1">{capitulo.titulo}</h1>
+        <p class="capitulo__periodo">
+          {textoDoPeriodo && <Pilula>{textoDoPeriodo}</Pilula>}
+          <span class="ficha suave">{contar(memorias.length)}</span>
+        </p>
+        {deQuem.length > 0 && <p class="capitulo__de-quem suave">Entram as memórias do período com {juntar(deQuem)}.</p>}
+        {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026) */}
+        <p class="capitulo__acoes">
+          {/* No reunido, qualquer um coloca as memórias que pode corrigir; a ficha, só quem pode editar o capítulo */}
+          {capitulo.modo === 'reunido' ? (
+            <a class="botao" href={`/capitulos/${capitulo.id}/editar`}>
+              {podeEditar ? 'Escolher memórias e editar' : 'Escolher memórias'}
+            </a>
+          ) : (
+            podeEditar && (
+              <a class="botao" href={`/capitulos/${capitulo.id}/editar`}>
+                {ehEpoca(capitulo) ? 'Editar época' : 'Editar capítulo'}
               </a>
-            </li>
-          ))}
-        </ul>
+            )
+          )}
+          {capitulo.modo === 'reunido' && (
+            <a class="acao" href={`/nova?capitulo=${capitulo.id}`}>
+              Nova memória neste capítulo
+            </a>
+          )}
+          <a class="acao acao--quieta" href={`/explorar?capitulo=${capitulo.id}`}>
+            Ver no Explorar
+          </a>
+        </p>
+        {capitulo.abertura && (
+          <div class="capitulo__abertura serifa t-abertura">
+            {capitulo.abertura.split(/\n{2,}/).map((p) => (
+              <p>{p}</p>
+            ))}
+          </div>
+        )}
+        <dl class="capitulo__notas">
+          {maior && (
+            <div>
+              <dt class="rotulo suave">Parte de</dt>
+              <dd>
+                <a class="acao acao--quieta" href={`/capitulos/${maior.id}`}>
+                  {maior.titulo}
+                </a>
+              </dd>
+            </div>
+          )}
+          {epocas.length > 0 && (
+            <div>
+              <dt class="rotulo suave">Aconteceu durante</dt>
+              <dd>
+                {epocas.map(({ c, como }) => (
+                  <span>
+                    <a class="acao acao--quieta" href={`/capitulos/${c.id}`}>
+                      {c.titulo}
+                    </a>
+                    {como === 'parte' && <span class="suave"> (em parte)</span>}
+                  </span>
+                ))}
+              </dd>
+            </div>
+          )}
+          {temas.length > 0 && (
+            <div>
+              <dt class="rotulo suave">Temas</dt>
+              <dd>
+                {temas.map((t) => (
+                  <a class="acao acao--quieta" href={`/temas/${t.id}`}>
+                    {t.nome}
+                  </a>
+                ))}
+              </dd>
+            </div>
+          )}
+        </dl>
+        {aparecem.length > 0 && (
+          <section class="capitulo__gente" aria-labelledby="quem-aparece">
+            <h2 class="rotulo suave" id="quem-aparece">
+              Quem aparece
+            </h2>
+            <ul>
+              {aparecem.slice(0, QUANTOS).map(([id, n]) => (
+                <li>
+                  <Gente
+                    href={`/pessoas/${id}`}
+                    nome={nomeDe(id)!}
+                    foto={achar(id)?.retrato && !naoVe.has(id) ? enderecoDoRetrato(achar(id)!.retrato!) : null}
+                    familia={corDaPessoa(familiasDe(achar(id)!), ordemDosNucleos)}
+                    detalhe={contar(n)}
+                  />
+                </li>
+              ))}
+            </ul>
+            {sobram > 0 && (
+              <p class="ficha suave">
+                e mais {sobram} {sobram === 1 ? 'pessoa' : 'pessoas'}
+              </p>
+            )}
+          </section>
+        )}
+      </div>
+    </header>
+
+    <div class="capitulo__corpo">
+      {
+        dentro.length > 0 && (
+          <section class="capitulo__parte" aria-labelledby="de-dentro">
+            <h2 class="rotulo suave" id="de-dentro">
+              Capítulos dentro deste
+            </h2>
+            <ol class="indice">
+              {dentro.map((c) => {
+                const p = periodoDe(c);
+                return (
+                  <li>
+                    <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} periodo={p ? formatarPeriodo(p.inicio, p.fim) : undefined} detalhe={contar(memoriasDe(c).length)} cor={cores.get(c.id)} dentro />
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )
+      }
+
+      {
+        aconteceramAqui.length > 0 && (
+          <section class="capitulo__parte" aria-labelledby="neste-periodo">
+            <h2 class="rotulo suave" id="neste-periodo">
+              Aconteceu neste período
+            </h2>
+            <ol class="indice">
+              {aconteceramAqui.map(({ c, p, como }) => (
+                <li>
+                  <Entrada
+                    href={`/capitulos/${c.id}`}
+                    titulo={c.titulo}
+                    periodo={formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca')}
+                    detalhe={como === 'parte' ? 'em parte neste período' : undefined}
+                    cor={cores.get(c.id)}
+                    dentro
+                  />
+                </li>
+              ))}
+            </ol>
+          </section>
+        )
+      }
+
+      <section class="capitulo__parte" aria-labelledby="marcos">
+        <h2 class="rotulo suave" id="marcos">
+          {memorias.length > 0 ? 'Memórias do capítulo' : 'Memórias'}
+        </h2>
+        {
+          marcos.length === 0 ? (
+            <Vazio frase={capitulo.modo === 'epoca' ? 'Nenhuma memória registrada neste período ainda.' : 'Este capítulo ainda não tem memórias. Use "Escolher memórias e editar", no alto, para escolher.'} />
+          ) : (
+            <ol class="marcos" reversed>
+              {marcos.map(({ m, numero }) => {
+                const nomes = m.integrantes.map(nomeDe).filter((n): n is string => Boolean(n));
+                const deDentro = dentro.filter((c) => m.capitulos.includes(c.id));
+                return (
+                  <li class="marco" style={estiloDoTipo(m.tipo)}>
+                    <span class="marco__numero serifa" aria-hidden="true">
+                      {String(numero).padStart(digitos, '0')}
+                    </span>
+                    <div class="marco__texto">
+                      <p>
+                        <Carimbo itens={[carimboDaData(m), m.lugar]} />
+                      </p>
+                      <h3 class="marco__titulo serifa t-3">
+                        <a href={`/memorias/${m.id}`}>{m.titulo}</a>
+                      </h3>
+                      {nomes.length > 0 && <p class="ficha suave">Com {listaCurta(nomes, 4)}</p>}
+                      {deDentro.length > 0 && (
+                        <p class="marco__sinais ficha suave">
+                          {deDentro.map((c) => (
+                            <SinalDoCapitulo id={c.id} titulo={c.titulo} cor={cores.get(c.id) ?? 0} />
+                          ))}
+                        </p>
+                      )}
+                    </div>
+                    <a class="marco__foto" href={`/memorias/${m.id}`} tabindex="-1" aria-hidden="true">
+                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} tipo={m.tipo} monte={false} alt="" />
+                    </a>
+                  </li>
+                );
+              })}
+            </ol>
+          )
+        }
       </section>
-    )
-  }
-
-  {
-    epocas.length > 0 && (
-      <p class="dica">
-        Aconteceu durante: {epocas.map(({ c, como }, i) => <>{i > 0 && ', '}<a href={`/capitulos/${c.id}`}>{c.titulo}</a>{como === 'parte' && ' (em parte)'}</>)}
-      </p>
-    )
-  }
-
-  <LinhaDoTempo
-    memorias={memorias}
-    integrantes={integrantes}
-    nucleos={nucleos}
-    vazio={capitulo.modo === 'epoca' ? 'Nenhuma memória registrada neste período ainda.' : 'Este capítulo ainda não tem memórias. Use "Escolher memórias e editar", no alto, para escolher.'}
-  />
-</Base>
+    </div>
+  </article>
+</Visual>

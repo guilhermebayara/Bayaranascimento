@@ -429,7 +429,7 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 | --- | --- | --- |
 | 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar` (PR #35, aberto). O Gui viu várias rodadas e ainda quer ajustar: ver "Estado do grupo 1", logo abaixo |
 | 2. `pessoal` | Painel, carta de Natal, sua conta, a página da pessoa e `/sistema` | Construído em 17/11/2026, na `tst-visual-pessoal`, em cima do grupo 1. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 2: pessoal" |
-| 3. `familia` | Capítulo, tema, pessoas e árvore (a árvore muda só de aparência) | A fazer |
+| 3. `familia` | Capítulos, capítulo, tema, pessoas e árvore (a árvore muda só de aparência) | Construído em 17/11/2026, na `tst-visual-familia`, em cima do grupo 2. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 3: familia" |
 | 4. `formularios` | Nova memória, relato, cadastro guiado, laços, capítulo, administração, rascunhos e lixeira. Por fim, apagar `src/styles/global.css` | A fazer |
 
 ### Estado do grupo 1, para a próxima sessão seguir sem a conversa
@@ -645,15 +645,58 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **Achado do grupo 1, sem correção aqui:** na linha do tempo, o link do título de cada memória tem 30 px de altura e o foco do teclado nele não mostra contorno na conferência automática. Vale olhar no PR #35.
 
+### Grupo 3: familia
+
+Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era decisão dele seguiu com a opção recomendada, está marcado no código com `PROVISÓRIO (pergunta N do PR do grupo "familia")` e virou pergunta no fim do PR. As fundações não mudaram: as regras dos capítulos continuam em `src/lib/capitulos.ts`, e a árvore mudou só de aparência.
+
+**Lista de capítulos (`/capitulos`).** Um sumário de livro (`telas/capitulo.css`): à esquerda, "Capítulos", a frase de sempre e "Novo capítulo"; à direita, cada capítulo numa linha, com o título em serifa e, em mono, o que ele é ("Época", "Capítulo por período", "Capítulo"), o período em pílula e a conta das memórias. Os capítulos de dentro ficam recuados sob o maior, presos por um fio. Os temas vêm no fim, como ações quietas. A linha é a peça de tela `src/components/capitulos/Entrada.astro`, usada também na página do capítulo e na do tema.
+
+**A cor do capítulo fora da linha do tempo.** `coresDosCapitulos`, em `src/lib/linha-capitulos.ts`, dá a cada capítulo a mesma cor do trilho dele na linha do tempo inteira, para ele ser reconhecido pela cor nos dois lugares. Capítulo sem memória visível ganha uma cor fixa pela posição. Época não tem cor: ela é o chão. Teste em `testes/linha-capitulos.test.ts`.
+
+**Página do capítulo (`/capitulos/<id>`).** Abertura de capítulo de livro. À esquerda, a capa: o carimbo com o que ele é (e "Só Bayara", quando é restrito), o título grande, o período em pílula com a conta, "Entram as memórias do período com…", as ações de sempre mais "Ver no Explorar", a abertura em serifa, as ligações ("Parte de", "Aconteceu durante", "Temas") e "Quem aparece". No computador com mouse a capa fica parada enquanto os marcos rolam (`sticky` só dentro de `(hover: hover) and (pointer: fine)`); no toque, nada fica preso. À direita, "Capítulos dentro deste", "Aconteceu neste período" e os marcos.
+
+- **Os marcos numerados.** Cada memória do capítulo é um marco: o número grande em serifa, com um traço na cor do capítulo, o carimbo com a data e o lugar, o título, quem estava e a foto revelada pequena. A ordem é a de toda linha do tempo do site, das mais recentes para as mais antigas, e o número é a posição do marco na história contada do começo (o mais recente leva o número mais alto). Provisório: a outra opção é a ordem do livro, do 01 em diante.
+- **Quem aparece.** As seis pessoas que mais estão nas memórias do capítulo, com a conta de cada uma (a peça Gente), e "e mais N pessoas". Provisório.
+- **A cor da tela** vem das famílias do capítulo (as de "quem vê" e as de "de quem é"); sem nenhuma, a da família completa.
+- A marcação da memória de um capítulo de dentro leva o sinal desse capítulo.
+
+**Tema (`/temas/<id>`).** "Tema", o nome grande, "Todos os capítulos e temas", os capítulos que usam o tema (a mesma linha do sumário) e as memórias, na linha do tempo do Explorar (`explorar/Linha.astro`, sem trilhos), como na página da pessoa.
+
+**Pessoas (`/pessoas`).** Cada família é uma parte da página com a cor dela (`telas/pessoas.css`): o nome da família num bloco pastel, com a conta, e as pessoas embaixo com a peça Gente, em uma, duas, três ou quatro colunas. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho. No alto, a conta de pessoas e bichos, "Cadastrar pessoa", "Ver a árvore" e os atalhos para cada família. O parentesco na lista é provisório.
+
+**Árvore (`/arvore`).** Mudou só a aparência (`telas/arvore.css`); `arvore-montagem.ts` e `arvore-desenho.ts` não foram tocados, e os testes `testes/arvore-*.test.ts` passam sem mudança. Conferido com o Playwright, antes e depois, com a árvore como abre, alguém em foco, os laços do coração abertos, um ramo aberto, cada camada desligada e uma família em destaque: a posição de todos os cartões, o caminho de todas as linhas, os cartões dos ramos e a ficha saíram idênticos.
+
+- **O cartão é uma etiqueta:** a cor da família no fundo (quem é de duas leva as duas, na diagonal, como antes), um canto reto como a etiqueta-balão, o nome em serifa e o parentesco em mono. As medidas continuam 150 por 76, as do desenho. Quem olha tem uma faixa de tinta no alto; quem está em foco, um anel de tinta; bicho é cápsula com a espécie em mono; quem é de fora das famílias fica em branco, com um fio.
+- **As cores das famílias** são as dos tokens, na ordem delas (`--arvore-familia-0` a `-3`, definidas em `.mapa`). No código do navegador mudaram só os nomes das variáveis de cor (`fundoDe`, em `src/lib/cliente/arvore.ts`).
+- **Camadas e controles quietos:** "Ajustar a árvore", a ficha, o zoom e a legenda são cartões brancos pousados no mapa, sem contorno. A ficha traz o retrato em arco, o nome em serifa e as três ações numa linha. No celular, com os ajustes abertos, a ficha sai da frente.
+- **A busca de "Partir de"** (`busca-pessoa.ts`) ganhou o estilo novo só dentro do mapa (`.mapa .busca…`). O estilo da busca nos formulários é do grupo 4.
+- A marca do ramo recolhido ganhou área de toque de 44 px (tinha 42).
+
+**"Família" no lugar de "núcleo"** nestas telas: "Quem aparece nas memórias da família, por família." (era "por núcleo"), na lista de pessoas; na árvore, "Família Bayara" em "Destacar" (era "Núcleo Bayara"), "Outras famílias" em "Mostrar" (era "Outros núcleos") e a dica "A árvore parte de Fulano, que é de outra família" (era "de outro núcleo"). Tem teste: nenhuma destas telas escreve "núcleo".
+
+**O menu** acende "Capítulos" na lista, no capítulo e no tema, "Pessoas" na lista e "Árvore" na árvore (`secao`, em `Visual.astro`).
+
+**O que saiu.** `LinhaDoTempo.astro`, `Cartao.astro` e `Foto.astro`, que só serviam às telas antigas de capítulo e tema.
+
+**O achado do grupo 1 sobre o título na linha do tempo não é defeito.** O link do título tem 30 px de altura, mas a área de toque dele é a memória inteira (`.entrada__titulo a::after`), e o foco do teclado aparece como contorno em volta da memória inteira (`.entrada:has(…:focus-visible)`). A conferência automática media só o link.
+
+**Capturas.** `CAPTURAS_SO=^familia npm run capturas -- tirar <pasta>`. As deste grupo estão em `docs/visual/fase-3/familia/`, em JPEG: a lista, o capítulo reunido, o por período, a época e o de dentro, o tema, as pessoas e a árvore (como abre, com foco, com um ramo aberto e com os ajustes).
+
+**Conferido.** 390, 1280 e 1920 px, com movimento reduzido (as capturas rodam assim). Por teclado, em 390 e 1280: a ordem do foco segue a da tela, todo foco é visível e todo alvo tem 44 px. Na árvore, com mouse e com toque: arrastar, aproximar, "Ver tudo", tocar numa pessoa, a ficha, os laços do coração, abrir e fechar um ramo, as cinco camadas e o destaque de uma família.
+
+**O que não foi conferido:** nada no iPhone de verdade (o gesto de dois dedos na árvore, em especial), nem na prévia publicada. A capa parada do capítulo só existe com mouse, então não pede conferência no iPhone. Das 33 capturas, foram olhadas 20, pelo menos uma de cada tela; as de 1920 px olhadas foram a do capítulo reunido, a das pessoas e a da árvore com foco.
+
 ### O que falta, para a sessão seguinte
 
-- **Grupos 3 e 4**, na ordem da tabela, em branches empilhadas.
+- **Grupo 4**, em branch empilhada (`tst-visual-formularios`, nascida da `tst-visual-familia`).
+- **As páginas que ainda usam `Base.astro` e o `global.css`:** `nova.astro`, `memorias/[id]/relato.astro`, `historico.astro` e `excluir.astro`, `pessoas/nova.astro` e `pessoas/[id]/editar.astro`, `capitulos/novo.astro`, `[id]/editar.astro` e `[id]/excluir.astro`, `rascunhos.astro`, `lixeira.astro` e as quatro de `admin/`. Com elas saem `Base.astro`, `Abertura.astro` e o `global.css`.
+- **O que os scripts de `src/lib/cliente/` criam com classe própria** e precisa de estilo novo no grupo 4: a busca de pessoa (`busca`, `busca__campo`, `busca__lista`, `busca__novo`, `busca__vazio`; hoje só tem estilo novo dentro do mapa da árvore), o recorte do retrato e o `CampoRetrato.astro`, que ainda usa `--retrato-cor` com `corDaFamilia` (`var(--nucleo-N)`, com teste em `testes/retratos.test.ts`).
+- **`testes/tokens.test.ts`** lê o `global.css`: sai junto com ele. `testes/tamanho-do-banco.test.ts` e `testes/formularios.test.ts` leem o `Base.astro`.
 - **O que ainda está em `/conceito`:** só as fontes (`/conceito/sobre`), até a escolha.
-- **"Família" no lugar de "núcleo":** feito na página da memória e na da pessoa (o carimbo). Falta nas telas dos grupos 3 e 4.
-- **A lista de Pessoas (`/pessoas`)** é do grupo 3 e pode usar a peça Gente.
+- **"Família" no lugar de "núcleo":** falta nas telas do grupo 4 ("Quem pode ver?" e "De quais núcleos é esta memória?" na Nova memória, o histórico, a ficha do capítulo, a página de editar pessoa e o texto do espelho).
 - **Camadas do CSS (`@layer`):** reavaliar no grupo 4, quando o `global.css` sair.
-- **`testes/visual.test.ts`** ainda guarda os testes das telas novas dentro do `describe('conceito')`. Vale separar no grupo 4.
-- **No iPhone:** o modo TV e o mural não têm nada parado no alto. A linha do tempo continua com o modelo já conferido, agora também na página da pessoa.
+- **`testes/visual.test.ts`** ainda guarda os testes das telas dos grupos 1 e 2 dentro do `describe('conceito')`. Os do grupo 3 já estão num `describe` próprio. Vale separar no grupo 4.
+- **No iPhone:** o modo TV e o mural não têm nada parado no alto. A linha do tempo continua com o modelo já conferido, agora também na página da pessoa e na do tema.
 
 ## A página do sistema fica (decisão do Gui, 16/11/2026)
 
