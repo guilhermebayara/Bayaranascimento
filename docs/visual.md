@@ -182,6 +182,7 @@ Construído em 16/11/2026 na branch `tst-visual-sistema`, a partir do conceito a
 | Formulário em frase | classes `frase` e `frase__lacuna` | Novo, aprovado pelo Gui em 16/11/2026. A ligação com a Nova memória é da fase 3, com a lacuna da data como descrito abaixo |
 | Campo de formulário | classes `pergunta`, `campo` e `escolha` | Novo, aprovado pelo Gui em 16/11/2026 |
 | Recado e estado vazio | `Recado.astro`, `Vazio.astro` | O recado já existia no CSS; o vazio é novo, aprovado pelo Gui em 16/11/2026 |
+| Zona de perigo | `ZonaDePerigo.astro` (classe `perigo`) | Nova, pedida pelo Gui em 17/11/2026: as ações de apagar juntas no fim das telas de editar, marcadas na cor de alerta |
 
 **A data no formulário em frase** (pergunta do Gui, 16/11/2026: só digitação, formato forçado ou seletor de data?). Aprovado pelo Gui em 16/11/2026, a construir na fase 3: a lacuna da data não é campo de digitar. Ela mostra a data como o site já escreve ("24 de dezembro de 2025", "dezembro de 2025", "2025", "por volta de 1994") e, ao toque, abre logo abaixo da frase o controle de data flexível que já existe (o ano com −10, −1, +1 e +10, depois mês e dia, os dois opcionais), empurrando o conteúdo. Sem formato para acertar e sem o seletor de data do aparelho, que obriga a escolher dia, mês e ano e não aceita "só o ano". Sem script, a frase aparece com o controle já aberto embaixo. As lacunas de lugar e de pessoas seguem a mesma ideia: a de lugar é texto livre, e a de pessoas abre o "Quem estava?" de hoje.
 
@@ -219,6 +220,7 @@ O CSS das peças está em `src/visual/pecas.css` (as ações estão em `base.css
 | Fases de um casal ou marcos que abrem | `Sanfona.astro` | `ano`, `titulo`, `quando`, o conteúdo dentro. O mesmo `grupo` em todas faz só uma ficar aberta |
 | Recado de "salvou" ou de erro | `Recado.astro` | `<Recado>` ou `<Recado erro>` |
 | Tela sem nada para mostrar | `Vazio.astro` | `<Vazio frase="…">` com a ação dentro |
+| As ações de apagar de uma tela de editar | `ZonaDePerigo.astro` | `<ZonaDePerigo>` no fim da página, fora do formulário que salva, com uma frase e o link para a confirmação. `menor nivel={4}` dentro de um cartão, como o editor de um laço. Quem usa decide se ela aparece, pela permissão de sempre |
 | Ícone de tipo, rabisco de caneta | `IconeDoTipo.astro`, `Rabisco.astro` | São enfeite: o texto está sempre escrito ao lado |
 | A ação principal da tela | classe `botao` | Uma por tela. `aria-disabled="true"` ou `disabled` para o estado sem poder agir |
 | As outras ações | classes `acao` e `acao--quieta` | Texto sublinhado, em link ou em `<button>` |
@@ -339,7 +341,7 @@ As serifas trazem os próprios acertos (`--escala-serifa`, `--aperto-titulo`, `-
 | Cores das famílias | Aprovadas pelo Gui em 16/11/2026. Cada família tem uma cor só, com variação de tons: Bayara é verde, a cor da Elizete; Bayara Bracarense é orquídea, o meio-termo entre o rosa da Giovanna e o roxo do Magno, sem favorecer um dos dois; Bracarense é azul; "Tudo", as famílias juntas, é manteiga. Os valores estão em `src/visual/tokens.css` |
 | Ícones e ilustrações | Cabem, com limpeza e elegância, para trazer leveza e alegria (do Gui, 16/11/2026). O site continua tipográfico. No conceito: um ícone de traço para cada tipo de momento, rabiscos de caneta (sublinhado, seta, coração) e o envelope do laboratório no painel |
 | Painel | É a parte que só a pessoa vê, e precisa ter cara própria, de espaço íntimo (do Gui, 16/11/2026). No conceito: a página inteira tingida na cor da família da pessoa, o conteúdo em cartões e o aviso "Só você vê esta página". Quem está em mais de uma família vê a cor da mais recente: a Giovanna e o Magno, a da família que criaram juntos (`familiaMaisRecente`, em `src/lib/familias.ts`) |
-| Cores dos tipos de momento | Aprovadas pelo Gui em 16/11/2026, com espaço para mais cores: o conceito tem onze, uma para cada tipo de hoje (`corDoTipo`, em `src/lib/visual.ts`). A abertura da memória num bloco inteiro na cor do tipo também foi aprovada |
+| Cores dos tipos de momento | Aprovadas pelo Gui em 16/11/2026, com espaço para mais cores: o conceito tem onze, uma para cada tipo de hoje (`corDoTipo`, em `src/lib/visual.ts`). A abertura da memória num bloco inteiro na cor do tipo também foi aprovada Desde 17/11/2026, a cor de cada tipo é escolhida pelos administradores numa paleta de 23 cores, as onze e mais doze, e o ícone, entre 30 rabiscos (ver "Tipos: paleta e ícones") |
 | "Família", e não "núcleo" | O site deixa de mostrar o termo "núcleo", que fica só para a lógica (decisão do Gui, 16/11/2026). Na tela, é "família" |
 
 ## Movimento
@@ -616,13 +618,13 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **Painel (`/`).** O desenho do conceito com os dados de verdade (`src/pages/index.astro`, `telas/painel.css`). Na primeira visita, a carta no alto; depois, "Oi, Fulano.", o resumo do que entrou, a mesa com as novidades, "Neste dia, em outros anos", os cartões (aniversários, você no acervo, a memória para contar) e o caminho para a linha do tempo. O painel só mostra memória publicada.
 
-- **A mesa das novidades** mostra duas memórias e um relato, como no conceito. O que passa disso vira uma linha, "E mais N: ver o que entrou por último", que leva a `/explorar?ordem=entraram`. Provisório.
-- **Sem visita anterior e sem carta**, a frase é "Que bom que você chegou.". Provisório.
+- **A mesa das novidades** mostra duas memórias e um relato, como no conceito. O que passa disso vira uma linha, "E mais N: ver o que entrou por último", que leva a `/explorar?ordem=entraram`. Aprovado pelo Gui em 17/11/2026.
+- **Sem visita anterior e sem carta**, a frase é "Que bom que você chegou.". Aprovado pelo Gui em 17/11/2026.
 - **O parentesco nos aniversários** não se repete quando o apelido já traz ("Tia Cida" fica sem "sua tia" embaixo).
 - **`?hoje=AAAA-MM-DD`** mostra o painel como num outro dia. Só vale onde não há login (prévias, homologação e computador), para conferir os aniversários e o "Neste dia" e para as capturas saírem iguais.
 - "Voltar Fulano à primeira visita" continua no fim da página, só fora da produção.
 
-**Carta de Natal.** A peça é `src/components/Carta.astro`, usada no alto do painel e em `/carta`: a saudação "Oi, Elizete," grande, o primeiro parágrafo como abertura em serifa, o resto como texto de leitura, e a linha de quem assina partida em nomes, cada um à mão ("Gui, Giovanna e Magno" vira três assinaturas). O carimbo diz "Natal de <ano em que a carta foi escrita>" (provisório: o conceito dizia também "Belo Horizonte"). No painel a ação é "Abrir o acervo", que leva ao Explorar; em `/carta`, "Voltar ao início". As fotos ao lado são as três memórias mais recentes em que a pessoa aparece. O banco de teste ganhou a carta de exemplo do conceito (`semearCartaDeExemplo`), só onde não há carta nenhuma.
+**Carta de Natal.** A peça é `src/components/Carta.astro`, usada no alto do painel e em `/carta`: a saudação "Oi, Elizete," grande, o primeiro parágrafo como abertura em serifa, o resto como texto de leitura, e a linha de quem assina partida em nomes, cada um à mão ("Gui, Giovanna e Magno" vira três assinaturas). O carimbo diz "Natal de <ano em que a carta foi escrita>" (aprovado pelo Gui em 17/11/2026, sem o lugar; o conceito dizia também "Belo Horizonte"). No painel a ação é "Abrir o acervo", que leva ao Explorar; em `/carta`, "Voltar ao início". As fotos ao lado são as três memórias mais recentes em que a pessoa aparece. O banco de teste ganhou a carta de exemplo do conceito (`semearCartaDeExemplo`), só onde não há carta nenhuma.
 
 **Sua conta (`/conta`).** Página íntima, na cor da família da pessoa, com o cartão do painel (`telas/conta.css`, mais `telas/painel.css` pelo cartão). No alto, o retrato em arco, o nome, "Editar seus dados" e "Ver sua página". Depois, quatro cartões: **Seus dados** (ficha em mono; o e-mail de acesso só aparece na produção), **Rascunhos e lixeira** (os rascunhos de memória e de relato, a conta do que é seu na lixeira e "Abrir a lixeira"), **O que você criou** (o número grande de memórias, relatos, fotos e capítulos; cada lista abre no lugar, uma por vez, sem script) e **Seus laços do coração** (com a proximidade, que só a pessoa vê). No fim, **Administração**, só para quem administra: os itens de `administracao()`, que ganhou "Carta de Natal" e "Sistema visual", e o tamanho do banco, que vira recado quando passa do aviso.
 
@@ -655,14 +657,14 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **Página do capítulo (`/capitulos/<id>`).** Abertura de capítulo de livro. À esquerda, a capa: o carimbo com o que ele é (e "Só Bayara", quando é restrito), o título grande, o período em pílula com a conta, "Entram as memórias do período com…", as ações de sempre mais "Ver no Explorar", a abertura em serifa, as ligações ("Parte de", "Aconteceu durante", "Temas") e "Quem aparece". No computador com mouse a capa fica parada enquanto os marcos rolam (`sticky` só dentro de `(hover: hover) and (pointer: fine)`); no toque, nada fica preso. À direita, "Capítulos dentro deste", "Aconteceu neste período" e os marcos.
 
-- **Os marcos numerados.** Cada memória do capítulo é um marco: o número grande em serifa, com um traço na cor do capítulo, o carimbo com a data e o lugar, o título, quem estava e a foto revelada pequena. A ordem é a de toda linha do tempo do site, das mais recentes para as mais antigas, e o número é a posição do marco na história contada do começo (o mais recente leva o número mais alto). Provisório: a outra opção é a ordem do livro, do 01 em diante.
-- **Quem aparece.** As seis pessoas que mais estão nas memórias do capítulo, com a conta de cada uma (a peça Gente), e "e mais N pessoas". Provisório.
+- **Os marcos numerados.** Cada memória do capítulo é um marco: o número grande em serifa, com um traço na cor do capítulo, o carimbo com a data e o lugar, o título, quem estava e a foto revelada pequena. A ordem é a de toda linha do tempo do site, das mais recentes para as mais antigas, e o número é a posição do marco na história contada do começo (o mais recente leva o número mais alto). Aprovado pelo Gui em 17/11/2026; a outra opção era a ordem do livro, do 01 em diante.
+- **Quem aparece.** As seis pessoas que mais estão nas memórias do capítulo, com a conta de cada uma (a peça Gente), e "e mais N pessoas". Fica na tela grande (resposta do Gui, 17/11/2026); no celular vira uma linha de nomes corrida, sem fotos, feita na `tst-visual-ajustes`.
 - **A cor da tela** vem das famílias do capítulo (as de "quem vê" e as de "de quem é"); sem nenhuma, a da família completa.
 - A marcação da memória de um capítulo de dentro leva o sinal desse capítulo.
 
 **Tema (`/temas/<id>`).** "Tema", o nome grande, "Todos os capítulos e temas", os capítulos que usam o tema (a mesma linha do sumário) e as memórias, na linha do tempo do Explorar (`explorar/Linha.astro`, sem trilhos), como na página da pessoa.
 
-**Pessoas (`/pessoas`).** Cada família é uma parte da página com a cor dela (`telas/pessoas.css`): o nome da família num bloco pastel, com a conta, e as pessoas embaixo com a peça Gente, em uma, duas, três ou quatro colunas. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho. No alto, a conta de pessoas e bichos, "Cadastrar pessoa", "Ver a árvore" e os atalhos para cada família. O parentesco na lista é provisório.
+**Pessoas (`/pessoas`).** Cada família é uma parte da página com a cor dela (`telas/pessoas.css`): o nome da família num bloco pastel, com a conta, e as pessoas embaixo com a peça Gente, em uma, duas, três ou quatro colunas. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho. No alto, a conta de pessoas e bichos, "Cadastrar pessoa", "Ver a árvore" e os atalhos para cada família. O parentesco na lista foi aprovado pelo Gui em 17/11/2026.
 
 **Árvore (`/arvore`).** Mudou só a aparência (`telas/arvore.css`); `arvore-montagem.ts` e `arvore-desenho.ts` não foram tocados, e os testes `testes/arvore-*.test.ts` passam sem mudança. Conferido com o Playwright, antes e depois, com a árvore como abre, alguém em foco, os laços do coração abertos, um ramo aberto, cada camada desligada e uma família em destaque: a posição de todos os cartões, o caminho de todas as linhas, os cartões dos ramos e a ficha saíram idênticos.
 
@@ -752,7 +754,7 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 - **A aprovação do Gui**, grupo a grupo, e o merge na ordem: #35, #36, #37 e #38. As perguntas de cada grupo estão no fim do PR dele.
 - **As fontes:** `/conceito/sobre` fica até a escolha, que espera a Giovanna e o Magno. Depois dela, saem as duas combinações que sobrarem ("Como a fonte é trocada").
 - **Limpeza que ficou para depois dos merges:** tirar de "Decidido, a construir" os itens que os grupos fecharam (Explorar, capítulos na linha do tempo, painel, sua conta, "família" no lugar de "núcleo", revisão visual) e levar o resumo para as seções de regra; `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena, como `docs/decisoes.md` já previa; separar os testes dos grupos 1 e 2 do `describe('conceito')`, em `testes/visual.test.ts`; tentar as camadas do CSS.
-- **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Espera a resposta do Gui (pergunta 11 do PR do grupo 4).
+- **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Resposta do Gui (17/11/2026): mudou na `tst-visual-tipos`, e a cor escolhida em `/admin/tipos` voltou a valer na tela (ver "Tipos: paleta e ícones").
 - **O que nenhum grupo viu na tela:** o envio de foto nova, a gravação de áudio, o recorte do retrato com uma foto e o histórico com alterações.
 
 **Da fase 4 (movimento e detalhes)**
@@ -777,6 +779,35 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 ## Respostas do Gui às perguntas da fase 3 (17/11/2026)
 
 As perguntas estão no fim dos PRs #35 a #38. "Aprovada" quer dizer a opção recomendada, como a sessão fez: a marca PROVISÓRIO sai e a decisão vira regra. O que muda está descrito na resposta e é feito na `tst-visual-ajustes` (ou na `tst-visual-tipos`, quando dito).
+
+**O que virou regra** (as opções aprovadas, sem marca PROVISÓRIO no código desde 17/11/2026; o detalhe de cada uma está na seção do grupo):
+
+| Onde | Regra |
+| --- | --- |
+| Explorar | O endereço é `/explorar`, o controle se chama "Forma de ver", e os textos do formulário, do palco e do pé do trilho ficam como estão |
+| Modo TV | "Álbum" é a animação de quem nunca escolheu. Os nomes "Álbum", "Revelação" e "Mesa" ficam |
+| Carta | O carimbo diz "Natal de" e o ano em que a carta foi escrita, sem lugar |
+| Prévias | O banco de teste tem uma carta de exemplo, a do conceito, só onde não há carta nenhuma |
+| Painel | Na mesa das novidades ficam as duas memórias e o relato mais novos; o resto vira "E mais N", que leva ao Explorar em "Entraram por último" |
+| Painel | Quem chega sem visita anterior e sem carta lê "Que bom que você chegou." |
+| Conta | "Editar seus dados" leva à tela de editar a página da pessoa. Os textos novos da conta, da pessoa e da administração ficam |
+| Página da pessoa | O parentesco de quem olha é a linha maior, e o nome vem logo abaixo |
+| Peça Gente | Faz parte do sistema: retrato, nome e uma linha de apoio, para listas de pessoas e de laços |
+| Capítulo | Os marcos vão dos mais recentes aos mais antigos, com a numeração decrescente: o número é a posição na história, contada do começo |
+| Capítulo | "Quem aparece" fica. Na tela grande, as seis pessoas com retrato e conta; no celular, uma linha de nomes corrida |
+| Pessoas | A lista mostra o parentesco de quem olha ("sua avó") |
+| Árvore | O cartão é uma etiqueta com um canto reto, e quem olha leva a faixa de tinta |
+| Formulários | Quando "Continuar" e o envio convivem, "Continuar" é o botão cheio e o envio fica em contorno; na última etapa, o envio volta a ser cheio |
+| Formulários | A trilha das etapas é quieta: numerada, numa coluna à esquerda no computador |
+| Formulários | Toda ação que não é a principal é texto sublinhado, inclusive "Escolher fotos" e "Gravar áudio" |
+| Formulários | A opção marcada fica no pastel da tela (o do tipo de momento, quando há), com a borda na cor do texto |
+| Formulários | A página de formulário pode levar uma linha pequena acima do título ("Rascunho", "Memória publicada") |
+| Formulários | Os rótulos e os textos das telas utilitárias e da administração ficam ("Sua conta", "Administração", "Voltar para a sua conta", "Ver os rascunhos", "Confira antes de confirmar. Nada é apagado de vez.") |
+| Cadastro guiado | Os dois caminhos são cartões inteiros para tocar, e o fluxo de nova pessoa e laços tem a trilha numerada |
+| Laços | O laço em edição abre num cartão branco, no lugar, e as fases do casal levam um fio ao lado |
+| Excluir | O botão que confirma é cheio, na cor de alerta |
+
+O que mudou em vez de ser aprovado (a página da pessoa com "Forma de ver", "Quem aparece" no celular, a frase na abertura da Nova memória, o resumo à direita nos formulários, a zona de perigo e a cor e o ícone dos tipos) está nas respostas abaixo e é registrado na seção dos ajustes quando for construído.
 
 **#35 (Explorar e memória):** `/explorar`, "Forma de ver" e os textos do formulário, do palco e do pé do trilho, aprovados. Modo TV: "Álbum" é a animação de quem nunca escolheu, e os nomes "Álbum", "Revelação" e "Mesa" ficam.
 
@@ -812,3 +843,149 @@ As perguntas estão no fim dos PRs #35 a #38. "Aprovada" quer dizer a opção re
 12. O botão de excluir: aprovada (cheio na cor de alerta) e **mais**: a zona de perigo, com as ações de apagar juntas no fim das telas de editar, num bloco separado e marcado na cor de alerta, longe do salvar.
 
 Novidade que vale para o Explorar e a página da pessoa: a forma de ver "Lista", no modelo do "Já rolou" da agenda da @bsurda (descrita no prompt da `tst-visual-ajustes`).
+
+## Ajustes depois da fase 3
+
+Branch `tst-visual-ajustes`, nascida da `homologa` em 17/11/2026, com o que o Gui pediu ao responder as perguntas dos PRs #35 a #38. Um PR só para a `homologa`. Esta seção registra o que cada parte fez; as perguntas novas vão no fim do PR.
+
+### Parte 1: a lista, as formas de ver da pessoa, "Quem aparece" e o link do título
+
+**A forma de ver "Lista"** (pedido do Gui, 17/11/2026, no modelo do "Já rolou" da agenda da @bsurda). Vale no Explorar (`/explorar?ver=lista`) e na página da pessoa.
+
+- **Onde está:** `src/components/explorar/Lista.astro` e `src/visual/telas/lista.css`. As partes da linha que têm regra estão em `src/lib/explorar.ts` (`dataNaLista`, `quemNaLista`, `nomeCurto`, `mostraRascunho`), com teste em `testes/explorar.test.ts`.
+- **O ano grande abre cada bloco**, com a conta das memórias do ano. Fora da ordem do tempo ("Entraram por último", "Mais contadas") não há blocos, e a data vai inteira na linha.
+- **Cada memória é uma linha**, e a linha inteira é o link: o sinal na cor do tipo de momento (o rabisco do tipo), o título, a data, o lugar, quem estava (até três nomes e "+N"), o sinal de áudio, a conta dos relatos e o capítulo, com a parada na cor dele. O rascunho aparece para quem escreveu, levando ao formulário, como na linha do tempo.
+- **A data:** dentro do bloco, o dia e o mês ("24 dez", "dez"); a aproximada diz "por volta de", com o mês quando é conhecido; quem só tem o ano fica em branco.
+- **No celular**, dois andares: o título e a data em cima, o resto embaixo, menor.
+- **No computador**, uma linha em colunas. Em 1280 px o lugar fica embaixo do título; em 1920 px ganha a coluna dele.
+- **A foto-chave** aparece numa margem à direita quando o mouse ou o foco do teclado passa pela linha, só em `(min-width: 62rem) and (hover: hover) and (pointer: fine)`. No celular ela não é desenhada nem baixada: a foto revelada ganhou `soOnde`, que põe o arquivo num `<source>` com essa mesma regra. Só `display: none` não bastava, porque o navegador baixava as fotos do mesmo jeito.
+- **Segue os filtros, a ordem e a troca sem recarregar.** Os itens levam `data-chave` (`m:<id>` e `a:<ano>`) e `data-ano`, e a troca conhece dois tipos novos de item (`lista` e `ano-da-lista`). Da lista para o mural ou para a linha do tempo, os itens aparecem no lugar: a foto não viaja, porque na lista ela está escondida.
+
+**A página da pessoa com "Forma de ver"** (resposta do Gui à pergunta 8 do PR #36): linha do tempo, que é o padrão, mural e lista. A escolha fica no endereço (`/pessoas/<id>?ver=mural`), funciona sem script (o link volta a `#memorias-com`) e, com script, troca sem recarregar, com o controle parado no mesmo ponto da tela. Para isso a troca passou a valer na página em que se está, e não só em `/explorar`, e o voltar do navegador deixou de buscar a página quando só a âncora muda. O mural da pessoa usa o tamanho de fotos guardado no aparelho e não tem o controle "Fotos". O controle só aparece para quem tem mais de uma memória.
+
+**"Quem aparece", no capítulo** (resposta do Gui às perguntas 2 e 4 do PR #37). No celular é uma linha de nomes corrida, sem fotos, "Gui (6), Elizete (5)", na capa, sem empurrar as memórias. A partir de 62rem, a lista com retratos, como estava.
+
+**O link do título na linha do tempo** (defeito apontado pelo Gui). Medido com o Playwright: o link tinha 30 px de altura quando o título cabia numa linha, e o contorno do foco ficava em volta da memória inteira, mais alta que a tela do celular, de modo que só as laterais apareciam. Agora o link tem 44 px nele mesmo e o contorno fica no próprio título. A memória inteira continua levando à página dela. O título de uma linha ficou 14 px mais alto, e as capturas da linha do tempo mudam nessa medida. Teste em `testes/visual.test.ts` (`describe('ajustes…')`).
+
+**Conferido:** no navegador, em 1280 px com mouse e com movimento reduzido, e em 390 px com toque: a foto no mouse e no foco, sem cobrir o texto da linha; nenhuma foto pedida no celular; a troca entrando e saindo da lista, com a família, e o voltar; a página da pessoa nas três formas; sem script; alvos de 44 px; a linha de nomes do capítulo.
+
+**Capturas:** `CAPTURAS_SO=^ajustes npm run capturas -- tirar <pasta>`, em `docs/visual/fase-3/ajustes/`. O script ganhou `depois`, para o que precisa valer na hora da captura (o mouse em cima de uma linha, o foco do teclado).
+
+### Parte 2: a frase na abertura, o resumo ao lado e a zona de perigo
+
+**A frase também na abertura da Nova memória** (resposta do Gui à pergunta 1 do PR #38). "Isso aconteceu *em 24 de dezembro de 2025*, *em Belo Horizonte*, *com Aguilar, Elizete, Giovanna e mais 6*." fica no alto da página, abaixo da frase de boas-vindas, na memória nova, no rascunho e na correção.
+
+- **Cada lacuna diz o que já foi preenchido e leva à etapa em que aquilo se preenche:** a data e o lugar, a "Quando e onde" (a da data abre o controle e põe o foco no ano; a do lugar, no campo do lugar); "com ___", a "Quem estava?". Vazias, perguntam: "em que data?", "em que lugar?", "com quem?".
+- **As sete etapas, a ordem e o obrigatório não mudam.** A lacuna usa o mesmo caminho da trilha: para ir adiante, o obrigatório das etapas do caminho precisa estar preenchido, e quem ainda não deu o título fica na primeira, com o aviso.
+- **Na etapa "Quando e onde" a frase da abertura sai**, porque a frase com a data e o lugar já é a própria pergunta. Volta nas outras.
+- **As lacunas são trechos da frase com papel de botão** (`role="button"`, como a da data na etapa), com 44 px de toque, foco visível, Enter e barra de espaço.
+- **Sem script, a frase não aparece:** as etapas já vêm todas em sequência, e a frase não teria o que fazer.
+- **Onde está:** a marcação em `src/pages/nova.astro` (`data-frase-abertura`, no `slot="frase"` que `formularios/Pagina.astro` ganhou), o script na mesma página (`escreverAbertura`), o estilo em `formulario.css` (`.frase--abertura`).
+
+**O resumo ao lado, no computador** (resposta do Gui à pergunta 7 do PR #38). A partir de 62rem, o formulário da memória tem três colunas: a trilha, a pergunta e, à direita, "A memória até aqui".
+
+- **O que mostra:** a foto-chave como foto revelada (a marcada em "Usar na linha do tempo" ou, sem marca, a primeira; a foto recém-enviada entra na hora) ou, sem foto ainda, o cartão do tipo de momento escolhido, como a memória sem foto; o título em serifa; e a ficha com Tipo, Quando, Onde, Quem estava, Fotos, Capítulo e Quem vê. O que ainda não foi preenchido aparece em itálico suave ("a informar", "ninguém marcado").
+- **Acompanha o preenchimento:** cada tecla e cada escolha. O mesmo leitor do formulário (`lerPreenchido`) serve ao resumo da última etapa, à frase da abertura e a este resumo.
+- **No celular não existe**, e a foto não é pedida: a regra geral esconde, o script só o preenche em 62rem ou mais, e a foto revelada usa `soOnde`.
+- **Parado à vista só onde há mouse** (`(hover: hover) and (pointer: fine)`), com `sticky`; sem `fixed`.
+- **É apoio para quem vê a tela:** não recebe foco e não tem `aria-live`, para o leitor de tela não ouvir cada tecla duas vezes. O resumo da última etapa ("Confira antes de publicar") continua sendo o que se confere.
+- **Sem script, não aparece.**
+- **A grade:** o resumo ocupa sessenta linhas da grade do formulário (`grid-row: 1 / span 60`), de propósito: assim a altura dele se espalha por linhas vazias no fim, e não abre vão entre a pergunta e as ações. No esqueleto da página, que tem espaço entre as linhas, a mesma conta abria três mil pixels de vazio: ali o resumo do relato ocupa três linhas.
+- **No relato**, à direita, a foto-chave e a ficha da memória de que o relato fala (`ao-lado--fixo`), sem mudar enquanto se escreve. **No capítulo, na pessoa e nas telas utilitárias, nada à direita** (pergunta para o Gui).
+
+**A zona de perigo** (pedido do Gui, 17/11/2026, junto da resposta à pergunta 12 do PR #38). Peça nova do sistema: `ZonaDePerigo.astro`, classe `perigo`, mostrada em `/sistema`.
+
+- **O que é:** um bloco no fim da tela de editar, fora do formulário que salva, com a borda e o título na cor de alerta, uma frase dizendo o que acontece e o caminho para a confirmação. Nada é apagado ao primeiro toque, e o botão que confirma continua cheio na cor de alerta.
+- **Memória (`/nova?id=`):** "Excluir esta memória", para os administradores, ou "Descartar este rascunho", para quem escreveu. Tomou o lugar do link pequeno "Descartar este rascunho" de baixo do formulário, e a correção de memória publicada ganhou o caminho de excluir, que antes só existia na página da memória.
+- **Capítulo (`/capitulos/<id>/editar`):** "Excluir capítulo", para os administradores.
+- **Laço e casal (`/pessoas/<id>/editar`):** dentro do editor de cada laço, "Remover este laço" e "Apagar, foi cadastrado por engano" ficam numa zona menor, depois do "Salvar", com a confirmação no lugar de sempre (`ConfirmarRemocao`).
+- **As permissões não mudaram:** o bloco só aparece para quem já podia apagar (`podeExcluirMemoria`, administradores no capítulo, quem mexe nos laços) e some quando não há nada.
+- **O que ficou onde estava:** "Remover foto", em cada foto da memória, e "Tirar foto", no retrato. Só valem quando a pessoa salva, e as páginas de leitura continuam com "Excluir" por último.
+
+**Testes:** `describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo')`, em `testes/visual.test.ts`: as três lacunas e a etapa de cada uma, as sete etapas na ordem, o que some sem script, os 44 px, o resumo fora do celular e sem `aria-live`, e a zona fora do formulário, só para quem pode, em toda remoção de laço.
+
+**Conferido:** com o Playwright, em 1280 e 390 px, com e sem movimento reduzido, só pelo teclado: da abertura vazia até salvar um rascunho, passando pelas três lacunas, com o resumo acompanhando título, tipo, data, lugar e pessoas; a zona de perigo levando à confirmação e o rascunho de teste descartado por ela; sem JavaScript, a correção sem a frase e sem o resumo, com a zona e as etapas em sequência. As capturas (`ajustes-4-…`, `ajustes-5-…` e `ajustes-6-…`) foram olhadas nas três larguras.
+
+**O que não foi conferido:** o envio de uma foto nova chegando ao resumo ao lado (a troca da foto-chave foi vista só com as fotos que a memória já tem), o iPhone de verdade e a prévia publicada.
+
+### Parte 3: a árvore nítida no zoom, o cartão de bicho e a conferência final
+
+**A árvore nítida em qualquer zoom** (defeito apontado pelo Gui, 17/11/2026: ao aproximar, texto, cartões e linhas perdiam nitidez, como imagem ampliada).
+
+- **A causa provável.** As duas camadas do mapa (`.mapa__camada`) tinham `will-change: transform` sempre ligado, e o zoom é um `transform: scale`. Com a camada promovida o tempo todo, o navegador pode desenhá-la uma vez, a 100%, e só esticar esse desenho ao aproximar.
+- **Não foi reproduzido nesta sessão.** O único navegador disponível aqui é o Chromium, que redesenha a camada na escala nova mesmo com `will-change`: as capturas de antes e depois saíram iguais, nítidas nas duas. O comportamento descrito pelo Gui é o conhecido do Safari (iPhone e Mac), que não pôde ser aberto aqui. **A correção precisa ser conferida pelo Gui no iPhone e no Safari do computador.**
+- **A correção.** A camada só é promovida enquanto o gesto dura: `aplicarVista`, em `src/lib/cliente/arvore.ts`, põe a classe `mapa__camada--em-gesto` (a única regra com `will-change`, em `telas/arvore.css`) e a tira 180 ms depois do último movimento, ou depois da transição quando o zoom é pelos botões. Sem a promoção, o navegador desenha de novo na escala nova. O gesto continua solto, porque durante ele a camada segue promovida.
+- **O que não mudou:** `arvore-montagem.ts`, `arvore-desenho.ts` e os testes `testes/arvore-*.test.ts`; arrastar, a pinça com dois dedos, a rolagem com Ctrl e o ponto sob o cursor parado durante o zoom (conferido: desvio menor que 1 px).
+- **O zoom vai até 400%** (era 200%). Provisório, pergunta 10 do PR: é até onde o Gui pediu para conferir.
+- **Se o Safari continuar borrado depois disto**, a saída seguinte é ampliar pelo tamanho real (a propriedade `zoom` do CSS na camada, no lugar do `scale`), que pede conferência no aparelho porque muda como as medidas da camada são lidas.
+- **Defeito achado no caminho e corrigido:** com o mouse, arrastar o mapa começando em cima de um cartão virava o arrasto de link do navegador, e o mapa parava no primeiro passo. O mapa agora recusa esse arrasto (`dragstart`).
+- **Teste:** `describe('ajustes: a árvore nítida no zoom, o cartão de bicho e a foto da lista')`, em `testes/visual.test.ts`: nenhuma regra de `arvore.css` liga `will-change` além da classe do gesto, sem `translate3d`, e toda mudança da vista passa por `aplicarVista`.
+
+**O cartão de bicho** (achado do Gui, 17/11/2026: a espécie, o nome e o parentesco encostavam na curva das pontas). A cápsula tinha o raio de meia altura (38 px), e a espécie começava a 17,6 px da borda, onde a curva ainda estava a 19,5 px: o texto ficava em cima dela. Agora o raio é 28 px (`1.75rem`), a margem de dentro é 21,6 px (`1.35rem`) e a espécie desce para 8 px do alto. A folga entre o texto e a curva fica em 13 px, perto dos 11 px do cartão de pessoa. A caixa continua 150 por 76, então o desenho e as linhas não mudam, e a forma segue reconhecível: o cartão de pessoa tem um canto reto, e o de bicho é todo arredondado. Nome longo corta com reticências antes do selo "♥ N". O teste confere a conta da folga.
+
+**A foto da lista e a conta do ano** (defeito da parte 1). Na primeira e na última linha de um bloco, a foto do mouse passava por cima da conta "N memórias" do cabeçalho do ano. A conta saiu da margem da foto: o cabeçalho tem o mesmo recuo à direita das linhas, e a conta fica alinhada com o fim do texto delas. Medido em 1280 e 1920 px, no Explorar e na página da pessoa: nenhuma foto encosta em cabeçalho.
+
+**Conferido nesta parte**
+
+- A árvore em 100%, 200% e 400%, num monitor de alta densidade (1280 px, densidade 2) e num celular emulado (390 px, densidade 3, com toque), com capturas do mesmo cartão e da linha tracejada: `ajustes-8-arvore-zoom-<zoom>--<monitor ou celular>.jpg`. Só Chromium.
+- Os gestos, com e sem movimento reduzido: rolagem com Ctrl com o ponto parado, botões, o máximo de 400%, arrastar a partir do vazio e a partir de um cartão, e a pinça com dois dedos (pelos eventos de ponteiro).
+- O cartão de bicho com nome longo e o selo "♥ 12": `ajustes-9-arvore-bicho-nome-longo-e-selo.jpg`.
+- A "Forma de ver" da página da pessoa só pelo teclado, em 390 e 1280 px: cada opção alcançada pelo Tab, com 44 px e contorno, a troca sem recarregar, o foco na opção e ela parada no lugar.
+- As capturas que as partes 1 e 2 não tinham olhado: a lista em 1920 px (por tempo, filtrada e mais contadas), a lista mais contadas e a pessoa em lista no celular, a pessoa na linha do tempo no celular e em 1280 px, o mural da pessoa em 1280 e 1920 px, a pessoa em lista em 1920 px, o capítulo em 1280 e 1920 px, e três telas de formulário em 1280 px depois do último acerto. E, para garantir que a mudança na foto revelada e no título da linha do tempo não quebrou nada, a linha do tempo, o painel e o capítulo em 390 px, e a linha do tempo, a memória e a árvore em 1280 px.
+
+**O que não foi conferido**
+
+- **Safari, no iPhone e no computador:** a nitidez da árvore, que é o motivo do item. E a pinça com dois dedos de verdade.
+- A árvore em 1920 px depois da mudança do cartão de bicho, e as capturas de `docs/visual/fase-3/familia/`, que ainda mostram o cartão de bicho antigo.
+- As telas de formulário em 390 e 1920 px depois do último acerto da parte 2, o capítulo e a pessoa em edição com a zona de perigo, e a lista filtrada em 1280 px.
+- A prévia publicada e a contagem de erros do `tsc`.
+- Na pinça, o ponto entre os dedos desvia alguns pixels quando os dois dedos não se movem juntos. Já era assim antes desta mudança: o zoom é feito em torno do meio dos dedos a cada movimento, sem acompanhar o deslocamento do meio.
+
+**PR dos ajustes:** #39, para a `homologa`, aberto em 17/11/2026, sem merge. As dez perguntas para o Gui estão no fim dele (as nove das partes 1 e 2 e a do zoom máximo da árvore).
+
+**O que falta depois dos ajustes**
+
+- **`tst-visual-tipos`**: construída em 17/11/2026, no PR #40, que depende do #39 (ver "Tipos: paleta e ícones", no fim deste arquivo). A marca "A MUDAR" da pergunta 11 do #38 saiu ali.
+- **No iPhone e no Safari do computador:** a nitidez da árvore no zoom, a lista, a frase da abertura e a zona de perigo.
+- **Numa TV de verdade:** o modo TV com o controle, e os formulários em 1920 px com o resumo ao lado.
+- **Refazer as capturas da árvore** em `docs/visual/fase-3/familia/`.
+
+## Tipos: paleta e ícones
+
+Construído em 17/11/2026 na branch `tst-visual-tipos`, nascida da `tst-visual-ajustes`. O PR é o #40, para a `homologa`, aberto e sem merge; depende do #39. As sete perguntas para o Gui estão no fim dele. É a resposta do Gui à pergunta 11 do PR #38: em `/admin/tipos`, a cor vira uma escolha numa paleta ampliada do sistema e entra um seletor de ícone entre os rabiscos.
+
+**A paleta.** São 23 cores: as onze aprovadas em 16/11/2026, que não mudaram de valor, e doze novas (limão, oliva, menta, musgo, céu, petróleo, anil, uva, ameixa, cereja, terracota e cacau), cada uma nos quatro tons de sempre (pastel, meio, vivo e tinta), em `src/visual/tokens.css`. A lista e os nomes estão em `src/lib/visual.ts` (`CORES`, `CORES_NOVAS`, `PALETA`, `NOMES_DAS_CORES`). As onze continuam sendo as das famílias e dos capítulos; as doze novas só entram pela escolha do tipo.
+
+**O contraste é conferido por teste** (`testes/paleta.test.ts`), com a conta da WCAG feita sobre os valores de `tokens.css` (`src/lib/contraste.ts`):
+
+| Regra | Vale para |
+| --- | --- |
+| A tinta da cor sobre o papel e sobre a moldura branca: 4,5 para um | As 23 |
+| O texto do site sobre o pastel da cor: 4,5 para um | As 23 |
+| A tinta da cor sobre o pastel dela: 4,5 para um | As doze novas e sete das onze |
+| O vivo longe do pastel da mesma cor, pelo menos como na manteiga | As doze novas |
+| Nenhuma cor mais perto de outra do que as duas mais próximas entre as onze (ardósia e azul no pastel, coral e pêssego no vivo) | Todos os pares |
+
+**Quatro das onze aprovadas ficam abaixo de 4,5 com a tinta sobre o próprio pastel:** pêssego (3,9), coral (4,2), rosa (4,2) e manteiga (4,4). Não foram mexidas, porque são cores que o Gui aprovou; o teste guarda o valor de hoje como piso e a página do sistema marca as quatro. É a pergunta 4 do PR.
+
+**O vivo sobre o pastel não chega a 3 para um em quase nenhuma cor**, nem nas onze aprovadas (a manteiga tem 1,5): o vivo é ponto de destaque, nunca texto. Por isso a regra do vivo é de distância entre as duas cores, e não de contraste de leitura.
+
+**Os rabiscos.** São 30: os onze de sempre e dezenove novos, no mesmo traço (caixa de 24 por 24, traço de 1,6 com pontas redondas, sem preenchimento): capelo, mamadeira, sol e mar, pinheiro, garfo e faca, nota musical, bola, patinha, livro aberto, carro, presente, câmera, coração, sol, caixa de mudança, taça, barraca, montanha e peixe. Os desenhos e os nomes estão em `src/visual/rabiscos.ts`; `IconeDoTipo.astro` só desenha. Um chocalho foi desenhado e trocado pela mamadeira: parecia uma lupa.
+
+**Como a escolha chega à tela.**
+
+- A tabela `tipos` ganhou `cor_da_paleta` e `icone` (migração `021-cor-e-icone-dos-tipos`). Os onze tipos de sempre receberam a cor e o rabisco que já mostravam, então nada muda de aparência; tipo criado antes pelos administradores fica sem escolha e continua com a cor de reserva e o brilho. A coluna antiga `cor` fica como está e não é mais lida.
+- `corDoTipo`, `estiloDoTipo` e `iconeDoTipo` (`src/lib/visual.ts`) leem a escolha; sem escolha, ou com um nome que não existe, vale a reserva (`corDeReserva` e o rabisco com o id do tipo). Nenhuma tela precisou mudar: todas já pintavam por `estiloDoTipo` e pelo `IconeDoTipo`.
+- A lista de tipos do pedido fica guardada junto do pedido (`guardarTiposDoPedido`, em `src/lib/servidor/ambiente.ts`), e não numa variável do módulo, porque o mesmo servidor atende a homologação e as prévias, cada uma com o banco dela.
+- `/api/tipos` só aceita nome de cor da paleta e nome de rabisco da lista, e só de administrador.
+- O espelho da produção não mexe na tabela `tipos`, e a cópia do acervo leva as colunas novas sozinha.
+
+**A tela (`/admin/tipos`).** Cada tipo é uma linha com a etiqueta dele, que abre no lugar (um por vez): o nome, a grade de cores, a grade de desenhos e, ao lado, a prévia com a etiqueta e o cartão da memória sem foto. As duas grades são rádios de formulário comum: funcionam sem script e pelo teclado, e a escolhida leva o tique e o negrito, além da cor. A amostra de cor diz quem já usa ("em Viagem"); repetir cor continua podendo, como sempre pôde, e o tipo novo já vem com uma cor que ninguém usa. Com script, a prévia acompanha a cor, o desenho e o nome na hora. No "Outro", o tipo criado a partir de um texto escolhe a cor numa lista e nasce com o brilho; o desenho se escolhe depois. O estilo está em `src/visual/telas/tipos.css` e a peça da escolha, em `src/components/formularios/EscolhaDoTipo.astro`.
+
+**A página do sistema** mostra as doze cores novas, a tabela do contraste das 23 e todos os rabiscos com o nome.
+
+**Conferido:** trocar a cor e o desenho de um tipo só pelo teclado, em 390 e 1280 px, e ver a troca chegar à memória e à linha do tempo; criar um tipo; sem JavaScript; alvos de 44 px e foco visível; a API recusando cor e desenho fora das listas e quem não é administrador; a migração num banco local novo. As telas do Explorar, da memória e do painel foram capturadas com a escolha valendo e sem ela, e saíram iguais pixel a pixel (a única diferença foi um retrato que não tinha carregado numa das rodadas).
+
+**Capturas.** `CAPTURAS_SO='^tipos' npm run capturas -- tirar <pasta>`. Estão em `docs/visual/fase-3/tipos/`; as duas com o tipo trocado (`tipos-3-…`) foram tiradas à parte, com "Viagem" em cereja e com a montanha, e o tipo voltou ao azul depois.
+
+**O que falta:** a resposta do Gui às perguntas do PR (as cores novas, os rabiscos, os textos e as quatro cores abaixo de 4,5); conferir no iPhone; e, se ele quiser, exemplos de tipos novos no acervo de exemplo.

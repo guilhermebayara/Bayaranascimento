@@ -8,7 +8,9 @@ export type { DadosDaArvore };
 const SVG = 'http://www.w3.org/2000/svg';
 const CHAVES = ['consideracao', 'ex', 'bichos', 'outros'] as const;
 const ZOOM_MIN = 0.25;
-const ZOOM_MAX = 2;
+// PROVISÓRIO (pergunta 10 do PR de ajustes): o zoom ia até 200%. Subiu para 400%, que é até onde o
+// Gui pediu para conferir a nitidez; com o desenho refeito na escala nova, o texto continua nítido.
+const ZOOM_MAX = 4;
 
 export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   const mapa = raiz.querySelector<HTMLElement>('[data-mapa]')!;
@@ -108,7 +110,22 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   };
 
   // --- O mapa: mover e aproximar ---
+  // A nitidez no zoom (defeito achado pelo Gui, 17/11/2026). A camada só fica promovida
+  // (will-change, na classe mapa__camada--em-gesto) enquanto o gesto dura, para ele correr solto.
+  // Quando o gesto acaba, a classe sai e o navegador desenha tudo de novo na escala nova: texto,
+  // cartões e linhas ficam nítidos em qualquer zoom, em vez de um desenho a 100% esticado.
+  let fimDoGesto = 0;
+  const TEMPO_DO_GESTO = 180;
+  const emGesto = (animado: boolean) => {
+    for (const c of camadas) c.classList.add('mapa__camada--em-gesto');
+    clearTimeout(fimDoGesto);
+    // Com a transição ligada, espera ela acabar (tempo-medio é bem menor que isto)
+    fimDoGesto = window.setTimeout(() => {
+      for (const c of camadas) c.classList.remove('mapa__camada--em-gesto');
+    }, animado ? 600 : TEMPO_DO_GESTO);
+  };
   const aplicarVista = (animado = false) => {
+    emGesto(animado);
     for (const c of camadas) {
       c.classList.toggle('mapa__camada--animada', animado);
       c.style.transform = `translate(${vista.x}px, ${vista.y}px) scale(${vista.zoom})`;
@@ -553,6 +570,9 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     if (dedos.size === 0) arrasto = undefined;
     mapa.classList.remove('mapa--arrastando');
   };
+  // Com o mouse, arrastar começando em cima de um cartão virava o arrasto de link do navegador, e
+  // o mapa parava no primeiro passo. O mapa não tem nada para arrastar para fora.
+  mapa.addEventListener('dragstart', (e) => e.preventDefault());
   window.addEventListener('pointerup', soltar);
   window.addEventListener('pointercancel', soltar);
 

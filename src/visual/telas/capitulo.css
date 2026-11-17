@@ -155,7 +155,18 @@
 .capitulo__gente {
   margin-top: var(--e-6);
 }
+/* No celular, quem aparece é uma linha de nomes corrida, sem fotos: "Gui (10), Giovanna (8)".
+   Cada nome leva à pessoa, com a altura de toque na própria linha. */
+.capitulo__gente .capitulo__nomes {
+  margin-top: var(--e-1);
+  line-height: var(--toque);
+}
+.capitulo__nomes a {
+  display: inline-block;
+  text-decoration: none;
+}
 .capitulo__gente ul {
+  display: none;
   margin-top: var(--e-2);
   border-top: 1px solid var(--fio);
 }
@@ -276,6 +287,13 @@
 }
 
 @media (min-width: 62rem) {
+  /* Na tela grande, quem aparece volta a ser a lista com os retratos */
+  .capitulo__nomes {
+    display: none;
+  }
+  .capitulo__gente ul {
+    display: block;
+  }
   .sumario {
     padding-block: var(--e-8) var(--e-9);
   }

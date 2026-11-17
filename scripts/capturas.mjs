@@ -51,6 +51,15 @@ const PADRAO = ['celular', 'desktop'];
 const etapa = (n) => async (pagina) => {
   await pagina.locator('ol.etapas button').nth(n).click();
 };
+// Abre o editor do primeiro laço e a pergunta de remover, para a zona de perigo aparecer
+const abrirLaco = async (pagina) => {
+  await pagina.locator('details.editar > summary').first().click();
+  await pagina.locator('details.editar[open] details.confirmar > summary').first().click();
+};
+// /admin/tipos: abre a cor e o desenho de um tipo, com as duas grades à vista
+const abrirTipo = async (pagina) => {
+  await pagina.locator('details.tipo-da-lista:has(input[name="id"][value="viagem"]) > summary').click();
+};
 const abrirFiltros = async (pagina) => {
   await pagina.locator('.filtros > summary').click();
 };
@@ -87,6 +96,17 @@ const ateAFrase = async (pagina) => {
   await pagina.locator('[name="titulo"]').fill('Almoço de aniversário da Vó Bela');
   await pagina.locator('input[name="tipo"]').first().check({ force: true });
   await pagina.locator('[data-etapa-continuar]').click();
+};
+// Ajustes depois da fase 3: a foto-chave da lista ao passar o mouse (só onde há mouse) e o foco no título
+const mouseNaLinha = async (pagina) => {
+  if (!(await pagina.evaluate(() => matchMedia('(min-width: 62rem)').matches))) return;
+  await pagina.locator('.lista__bloco:nth-child(2) .lista__item:nth-child(1) .lista__linha').hover();
+  await pagina.waitForTimeout(300);
+};
+const focoNoTitulo = async (pagina) => {
+  await pagina.locator('.entrada__titulo a').first().focus();
+  await pagina.keyboard.press('Shift+Tab');
+  await pagina.keyboard.press('Tab');
 };
 const PAGINAS = [
   // Conceito da revisão visual: as mesmas telas em cada combinação de fontes, nas três larguras.
@@ -144,6 +164,25 @@ const PAGINAS = [
   { nome: 'familia-5-arvore-foco', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.mapa a.no[data-id="elizete"]').dispatchEvent('click') },
   { nome: 'familia-5-arvore-ramo', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.no__ramo').first().dispatchEvent('click') },
   { nome: 'familia-5-arvore-ajustes', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.mapa__painel > summary').click() },
+  // Ajustes depois da fase 3 (docs/visual.md, "Ajustes depois da fase 3"): a lista no Explorar e na
+  // página da pessoa, as formas de ver da pessoa, "Quem aparece" no capítulo e o foco no título.
+  // Para tirar só elas: CAPTURAS_SO=^ajustes npm run capturas -- tirar <pasta>
+  { nome: 'ajustes-1-lista', url: '/explorar?ver=lista', como: 'giovanna', larguras: TODAS, corte: 4000 },
+  { nome: 'ajustes-1-lista-com-a-foto', url: '/explorar?ver=lista', como: 'giovanna', larguras: TODAS, corte: 1700, depois: mouseNaLinha },
+  { nome: 'ajustes-1-lista-filtrada', url: '/explorar?ver=lista&tipo=viagem&foto=1', como: 'giovanna', larguras: TODAS },
+  { nome: 'ajustes-1-lista-mais-contadas', url: '/explorar?ver=lista&ordem=contadas', como: 'giovanna', larguras: TODAS, corte: 2400 },
+  { nome: 'ajustes-2-pessoa-linha-do-tempo', url: '/pessoas/gui', como: 'giovanna', larguras: TODAS, desde: '#memorias-com', corte: 2400 },
+  { nome: 'ajustes-2-pessoa-mural', url: '/pessoas/gui?ver=mural', como: 'giovanna', larguras: TODAS, desde: '#memorias-com', corte: 2400 },
+  { nome: 'ajustes-2-pessoa-lista', url: '/pessoas/gui?ver=lista', como: 'giovanna', larguras: TODAS, desde: '#memorias-com', corte: 2400 },
+  { nome: 'ajustes-3-capitulo-quem-aparece', url: '/capitulos/natais', como: 'giovanna', larguras: TODAS, corte: 1700 },
+  // Parte 2: a frase na abertura da Nova memória, o resumo ao lado e a zona de perigo
+  { nome: 'ajustes-4-nova-abertura-vazia', url: '/nova', larguras: TODAS },
+  { nome: 'ajustes-4-correcao-abertura-e-zona', url: '/nova?id=2025-natal', larguras: TODAS },
+  { nome: 'ajustes-5-rascunho-quem-estava', url: '/nova?id=2024-almoco-de-domingo', larguras: TODAS, antes: etapa(2) },
+  { nome: 'ajustes-5-relato', url: '/memorias/2025-natal/relato', larguras: TODAS },
+  { nome: 'ajustes-6-capitulo-editar-zona', url: '/capitulos/natais/editar', larguras: TODAS },
+  { nome: 'ajustes-6-pessoa-editar-laco', url: '/pessoas/vo-bela/editar', larguras: TODAS, antes: abrirLaco },
+  { nome: 'ajustes-7-titulo-em-foco', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 1300, depois: focoNoTitulo },
   { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
   // O sistema (fase 2): a marca, as fontes, os tokens e as peças, em cada combinação de fontes
   ...['a', 'b', 'c'].map((fontes) => ({ nome: `sistema-${fontes}`, url: '/sistema', fontes, larguras: TODAS })),
@@ -197,6 +236,12 @@ const PAGINAS = [
   { nome: 'formularios-6-rascunhos', url: '/rascunhos', larguras: TODAS },
   { nome: 'formularios-6-lixeira', url: '/lixeira', larguras: TODAS, corte: 2400 },
   { nome: 'formularios-7-admin-tipos', url: '/admin/tipos', larguras: TODAS },
+  // Tipos de momento: a cor numa paleta ampliada e o desenho à escolha (tst-visual-tipos).
+  // Para tirar só elas: CAPTURAS_SO=^tipos npm run capturas -- tirar <pasta>
+  { nome: 'tipos-1-admin', url: '/admin/tipos', larguras: TODAS },
+  { nome: 'tipos-1-admin-editando', url: '/admin/tipos', larguras: TODAS, antes: abrirTipo, desde: 'details.tipo-da-lista[open]', corte: 1900 },
+  { nome: 'tipos-2-sistema-paleta', url: '/sistema', larguras: TODAS, desde: '#paleta-ampliada', corte: 1900 },
+  { nome: 'tipos-2-sistema-rabiscos', url: '/sistema', larguras: TODAS, desde: '#todos-os-rabiscos', corte: 900 },
   { nome: 'formularios-7-admin-familias', url: '/admin/familias', larguras: TODAS },
   { nome: 'formularios-7-admin-carta', url: '/admin/carta', larguras: TODAS },
   { nome: 'formularios-7-admin-espelho', url: '/admin/espelho', larguras: TODAS },
@@ -247,6 +292,8 @@ async function tirar(pasta) {
         Promise.all([...document.images].filter((i) => i.getClientRects().length > 0).map((i) => Promise.race([i.decode().catch(() => {}), new Promise((ok) => setTimeout(ok, 3000))]))),
       );
       await pagina.waitForTimeout(300);
+      // "depois": o que precisa valer na hora da captura (o mouse em cima de algo, o foco do teclado)
+      if (p.depois) await p.depois(pagina);
       const arquivo = join(pasta, `${p.nome}--${largura.nome}.png`);
       const altura = await pagina.evaluate(() => document.documentElement.scrollHeight);
       // "desde" é um ponto da página (um seletor): a captura começa um pouco acima dele

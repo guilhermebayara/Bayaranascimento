@@ -1,9 +1,14 @@
 ---
+import '../../visual/telas/tipos.css';
+import EscolhaDoTipo from '../../components/formularios/EscolhaDoTipo.astro';
 import Pagina from '../../components/formularios/Pagina.astro';
+import Etiqueta from '../../components/visual/Etiqueta.astro';
 import Vazio from '../../components/visual/Vazio.astro';
 import { outrosAdmins } from '../../lib/servidor/conteudo';
 import { listarIntegrantes, listarTextosDeOutro } from '../../lib/servidor/repositorio';
 import { TIPO_OUTRO } from '../../lib/tipos';
+import { NOMES_DAS_CORES, PALETA, corDoTipo, iconeDoTipo } from '../../lib/visual';
+import { RABISCO_PADRAO, rabisco } from '../../visual/rabiscos';
 
 const { usuario, tipos } = Astro.locals;
 if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
@@ -11,10 +16,14 @@ if (!usuario.admin) return new Response('Página não encontrada', { status: 404
 const textos = await listarTextosDeOutro(usuario);
 const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 const oficiais = tipos.filter((t) => t.id !== TIPO_OUTRO);
-const CORES = ['#2F7D6B', '#D6455B', '#8A5BB5', '#C98A00', '#2B74B8', '#A8572E', '#D2478F', '#4E7F1E', '#5B6B7A', '#3D4A66', '#B5532B', '#1F8A8A'];
-const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.toLowerCase())) ?? CORES[0];
-// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura.
-// PROVISÓRIO (pergunta 11): o campo "Cor" continua aqui, mas o visual novo pinta cada tipo com a cor fixa de corDoTipo.
+// A cor de cada tipo é uma cor da paleta do sistema, e o desenho, um dos rabiscos (resposta do Gui
+// à pergunta 11 do PR #38, 17/11/2026). Quem ainda não escolheu aparece com a cor e o rabisco de reserva.
+const emUso = new Map<string, string[]>();
+for (const t of tipos) emUso.set(corDoTipo(t.id), [...(emUso.get(corDoTipo(t.id)) ?? []), t.rotulo]);
+// Tipo novo já vem com uma cor que ninguém usa. Repetir pode, como sempre pôde: a amostra avisa quem já usa.
+const corLivre = PALETA.find((c) => !emUso.has(c)) ?? PALETA[0];
+// Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura.
+// PROVISÓRIO (pergunta 3 do PR dos tipos): os textos novos desta tela ("Cor", "Desenho", "Como fica", "Mudar a cor e o desenho", "em Viagem").
 ---
 
 <Pagina titulo="Tipos de momento" rotulo="Administração" secao="conta" larga>
@@ -42,16 +51,24 @@ const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.
                     {t.memorias} {t.memorias === 1 ? 'memória' : 'memórias'}
                   </span>
                 </div>
+                {/* O tipo nasce com uma cor da lista e o brilho; o desenho se escolhe depois, em "Tipos da lista". PROVISÓRIO (pergunta 6 do PR dos tipos). */}
                 <form method="post" action="/api/tipos" class="em-linha">
                   <input type="hidden" name="acao" value="promover" />
                   <input type="hidden" name="texto" value={t.texto} />
+                  <input type="hidden" name="icone" value={RABISCO_PADRAO} />
                   <label>
                     <span>Nome do tipo</span>
                     <input type="text" name="rotulo" value={t.texto} maxlength="40" required />
                   </label>
                   <label>
                     <span>Cor</span>
-                    <input type="color" name="cor" value={corLivre} />
+                    <select name="cor" required>
+                      {PALETA.map((c) => (
+                        <option value={c} selected={c === corLivre}>
+                          {NOMES_DAS_CORES[c]}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <button class="botao botao--leve" type="submit">Criar tipo</button>
                 </form>
@@ -79,23 +96,31 @@ const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.
 
   <section class="painel">
     <h2>Tipos da lista</h2>
-    <ul class="linhas">
+    <p class="dica">Cada tipo tem uma cor e um desenho, que aparecem na etiqueta e no cartão da memória sem foto.</p>
+    <ul class="tipos-da-lista">
       {
         tipos.map((t) => (
           <li>
-            <form method="post" action="/api/tipos" class="em-linha">
-              <input type="hidden" name="acao" value="editar" />
-              <input type="hidden" name="id" value={t.id} />
-              <label>
-                <span>Nome</span>
-                <input type="text" name="rotulo" value={t.rotulo} maxlength="40" required readonly={t.id === TIPO_OUTRO} />
-              </label>
-              <label>
-                <span>Cor</span>
-                <input type="color" name="cor" value={t.cor} />
-              </label>
-              <button class="botao botao--leve" type="submit">Salvar</button>
-            </form>
+            {/* Um tipo aberto por vez: o mesmo "name" fecha os outros, sem script */}
+            <details class="tipo-da-lista" name="tipo-em-edicao">
+              <summary>
+                <Etiqueta tipo={t.id} rotulo={t.rotulo} />
+                <span class="tipo-da-lista__mudar acao acao--quieta">Mudar a cor e o desenho</span>
+              </summary>
+              <form method="post" action="/api/tipos" class="tipo-da-lista__form">
+                <input type="hidden" name="acao" value="editar" />
+                <input type="hidden" name="id" value={t.id} />
+                <label class="campo">
+                  <span>Nome</span>
+                  <input type="text" name="rotulo" value={t.rotulo} maxlength="40" required readonly={t.id === TIPO_OUTRO} data-escolha-nome />
+                  {t.id === TIPO_OUTRO && <small class="dica">"Outro" é a saída de quem não achou o tipo: muda de cor e de desenho, mas não de nome.</small>}
+                </label>
+                <EscolhaDoTipo chave={t.id} cor={corDoTipo(t.id)} icone={rabisco(iconeDoTipo(t.id)).id} rotulo={t.rotulo} emUso={emUso} />
+                <p class="acoes">
+                  <button class="botao" type="submit">Salvar</button>
+                </p>
+              </form>
+            </details>
           </li>
         ))
       }
@@ -104,17 +129,40 @@ const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.
 
   <section class="painel">
     <h2>Novo tipo</h2>
-    <form method="post" action="/api/tipos" class="em-linha">
+    <form method="post" action="/api/tipos" class="tipo-da-lista__form">
       <input type="hidden" name="acao" value="criar" />
-      <label>
+      <label class="campo">
         <span>Nome</span>
-        <input type="text" name="rotulo" maxlength="40" required placeholder="Ex.: Formatura" />
+        <input type="text" name="rotulo" maxlength="40" required placeholder="Ex.: Formatura" data-escolha-nome />
       </label>
-      <label>
-        <span>Cor</span>
-        <input type="color" name="cor" value={corLivre} />
-      </label>
-      <button class="botao" type="submit">Criar tipo</button>
+      <EscolhaDoTipo chave="novo" cor={corLivre} icone={RABISCO_PADRAO} rotulo="" emUso={emUso} />
+      <p class="acoes">
+        <button class="botao" type="submit">Criar tipo</button>
+      </p>
     </form>
   </section>
 </Pagina>
+
+<script>
+  // A prévia acompanha a escolha: a cor troca os papéis de cor do bloco, o desenho copia o rabisco
+  // marcado e o nome segue o que está sendo digitado. Sem script, a prévia mostra o que está salvo.
+  for (const form of document.querySelectorAll<HTMLFormElement>('.tipo-da-lista__form')) {
+    const previa = form.querySelector<HTMLElement>('[data-escolha-previa]');
+    if (!previa) continue;
+    const atualizar = () => {
+      const cor = form.querySelector<HTMLInputElement>('[data-escolha-cor]:checked')?.value;
+      if (cor) {
+        const estilo = `--tipo-pastel: var(--${cor}-pastel); --tipo-meio: var(--${cor}-meio); --tipo-cor: var(--${cor}-vivo); --tipo-tinta: var(--${cor}-tinta)`;
+        previa.setAttribute('style', estilo);
+        previa.querySelector('.etiqueta')?.setAttribute('style', estilo);
+      }
+      const desenho = form.querySelector<HTMLInputElement>('[data-escolha-icone]:checked')?.closest('label')?.querySelector('svg');
+      if (desenho) for (const svg of previa.querySelectorAll('svg.icone')) svg.innerHTML = desenho.innerHTML;
+      const nome = form.querySelector<HTMLInputElement>('[data-escolha-nome]')?.value.trim();
+      const rotulo = previa.querySelector('[data-etiqueta-rotulo]');
+      if (rotulo) rotulo.textContent = nome || 'Nome do tipo';
+    };
+    form.addEventListener('change', atualizar);
+    form.addEventListener('input', atualizar);
+  }
+</script>

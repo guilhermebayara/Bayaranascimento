@@ -1,0 +1,91 @@
+// A paleta do sistema (src/visual/tokens.css): as onze cores aprovadas pelo Gui em 16/11/2026 e as
+// doze da paleta ampliada (resposta dele à pergunta 11 do PR #38, 17/11/2026), entre as quais os
+// administradores escolhem a cor de cada tipo de momento. O contraste é calculado de verdade, pela
+// conta da WCAG, sobre os valores escritos em tokens.css.
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { TONS, contraste, coresDosTokens, distancia, neutroDosTokens } from '../src/lib/contraste';
+import { CORES, CORES_NOVAS, NOMES_DAS_CORES, PALETA } from '../src/lib/visual';
+
+const tokens = readFileSync(new URL('../src/visual/tokens.css', import.meta.url), 'utf8');
+const cores = coresDosTokens(tokens);
+const papel = neutroDosTokens(tokens, 'creme');
+const branco = neutroDosTokens(tokens, 'branco');
+const tinta = neutroDosTokens(tokens, 'tinta');
+const pares = (nomes: readonly string[]) => nomes.flatMap((a, i) => nomes.slice(i + 1).map((b) => [a, b] as const));
+
+/**
+ * Quatro das onze cores aprovadas têm a tinta abaixo de 4,5 para um sobre o próprio pastel. Elas não
+ * mudam sem o Gui decidir (pergunta 4 do PR dos tipos): ficam listadas aqui, com o valor de hoje como
+ * piso, para não piorarem. Cor nova nunca entra nesta lista.
+ */
+const TINTA_NO_PASTEL_ABAIXO: Record<string, number> = { pessego: 3.9, coral: 4.2, rosa: 4.2, manteiga: 4.3 };
+
+describe('a paleta do sistema', () => {
+  it('é bem maior que as onze cores: as onze aprovadas e mais doze', () => {
+    expect(CORES).toHaveLength(11);
+    expect(CORES_NOVAS).toHaveLength(12);
+    expect(PALETA).toHaveLength(23);
+    expect(new Set(PALETA).size).toBe(PALETA.length);
+  });
+
+  it('toda cor da paleta existe em tokens.css, nos quatro tons, e tem nome para a pessoa ler', () => {
+    for (const cor of PALETA) {
+      for (const tom of TONS) expect(cores[cor]?.[tom], `--${cor}-${tom}`).toMatch(/^#[0-9a-f]{6}$/);
+      expect(NOMES_DAS_CORES[cor], cor).toBeTruthy();
+    }
+    // E tokens.css não tem cor em quatro tons que a paleta não conheça
+    expect(Object.keys(cores).sort()).toEqual([...PALETA].sort());
+  });
+
+  it('as onze cores aprovadas não mudaram de valor', () => {
+    expect(cores.verde).toEqual({ pastel: '#cfe6c0', meio: '#a9d190', vivo: '#3f9d52', tinta: '#2a6f3b' });
+    expect(cores.orquidea).toEqual({ pastel: '#ecc9ee', meio: '#dba3df', vivo: '#b84cc4', tinta: '#8a2f96' });
+    expect(cores.manteiga).toEqual({ pastel: '#f8dc98', meio: '#f1c964', vivo: '#eda800', tinta: '#8c5a00' });
+  });
+
+  it('a tinta de cada cor se lê sobre o papel e sobre a moldura branca (4,5 para um)', () => {
+    for (const cor of PALETA) {
+      expect(contraste(cores[cor]!.tinta, papel), `${cor} no papel`).toBeGreaterThanOrEqual(4.5);
+      expect(contraste(cores[cor]!.tinta, branco), `${cor} no branco`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('o texto do site se lê sobre o pastel de cada cor (4,5 para um)', () => {
+    for (const cor of PALETA) expect(contraste(tinta, cores[cor]!.pastel), cor).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('a tinta de cada cor se lê sobre o pastel dela: 4,5 para um em toda cor nova', () => {
+    for (const cor of CORES_NOVAS) expect(contraste(cores[cor]!.tinta, cores[cor]!.pastel), cor).toBeGreaterThanOrEqual(4.5);
+    // Das onze aprovadas, só as quatro listadas ficam abaixo, e nenhuma piora
+    for (const cor of CORES) {
+      const razao = contraste(cores[cor]!.tinta, cores[cor]!.pastel);
+      const piso = TINTA_NO_PASTEL_ABAIXO[cor];
+      if (piso === undefined) expect(razao, cor).toBeGreaterThanOrEqual(4.5);
+      else expect(razao, cor).toBeGreaterThanOrEqual(piso);
+    }
+  });
+
+  it('o vivo se distingue do pastel da mesma cor', () => {
+    // O ponto de destaque sobre o bloco. A menor distância entre as onze aprovadas é a da manteiga
+    // (0,145 no OKLab); nenhuma cor nova fica abaixo disso.
+    const menorDasAprovadas = Math.min(...CORES.map((c) => distancia(cores[c]!.vivo, cores[c]!.pastel)));
+    expect(menorDasAprovadas).toBeGreaterThan(0.14);
+    for (const cor of CORES_NOVAS) expect(distancia(cores[cor]!.vivo, cores[cor]!.pastel), cor).toBeGreaterThanOrEqual(menorDasAprovadas);
+  });
+
+  it('nenhuma cor fica mais perto de outra do que as duas mais próximas entre as onze aprovadas', () => {
+    // Entre as aprovadas, os pastéis mais próximos são ardósia e azul, e os vivos, coral e pêssego.
+    // A paleta ampliada não aperta mais do que isso: dá para dizer qual é qual na grade e na tela.
+    for (const tom of ['pastel', 'vivo'] as const) {
+      const menorDasAprovadas = Math.min(...pares(CORES).map(([a, b]) => distancia(cores[a]![tom], cores[b]![tom])));
+      for (const [a, b] of pares(PALETA)) expect(distancia(cores[a]![tom], cores[b]![tom]), `${a} e ${b}, ${tom}`).toBeGreaterThanOrEqual(menorDasAprovadas);
+    }
+  });
+
+  it('a conta do contraste é a da WCAG', () => {
+    expect(contraste('#000000', '#ffffff')).toBeCloseTo(21, 5);
+    expect(contraste('#777777', '#ffffff')).toBeCloseTo(4.48, 2);
+    expect(contraste('#abcdef', '#abcdef')).toBe(1);
+  });
+});

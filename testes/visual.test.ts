@@ -172,7 +172,7 @@ describe('conceito', () => {
     // a página não busca memória por outro caminho nem confere a família de quem olha.
     const pagina = tela('pages/explorar.astro');
     expect(pagina).toContain('listarMemorias(usuario)');
-    expect(pagina).toMatch(/explorar\(todas, filtros, await contextoDoExplorar\(usuario, todas\)\)/);
+    expect(pagina).toMatch(/const contexto = await contextoDoExplorar\(usuario, todas\);\s*const resultado = explorar\(todas, filtros, contexto\);/);
     expect(pagina).not.toMatch(/usuario\.nucleos\.includes|obterMemoria/);
     // O mural, o modo TV e o sorteio usam o mesmo resultado, sem os rascunhos
     expect(pagina).toMatch(/const publicadas = resultado\.memorias\.filter/);
@@ -184,7 +184,7 @@ describe('conceito', () => {
     const componentes = import.meta.glob<string>('../src/components/visual/Polaroid.astro', { query: '?raw', import: 'default', eager: true });
     const foto = Object.values(componentes)[0]!;
     expect(foto).toContain('polaroid--sem-foto');
-    expect(foto).toContain('<IconeDoTipo tipo={tipo} />');
+    expect(foto).toContain('<IconeDoTipo tipo={tipo} rabisco={rabisco} />');
     for (const forma of ['explorar/Linha.astro', 'explorar/Mural.astro']) expect(tela(forma)).toMatch(/<Polaroid id=\{m\.id\}[^>]*tipo=\{m\.tipo\}/);
     expect(tela('explorar/Linha.astro')).not.toContain('entrada--so-texto');
     expect(tela('pages/index.astro')).toMatch(/outro-ano__foto">\s*<Polaroid[^>]*tipo=\{m\.tipo\}/);
@@ -694,5 +694,193 @@ describe('grupo formularios', () => {
     expect(fonte('ConfirmarRemocao.astro')).toMatch(/<button class="botao botao--perigo" type="submit" name="acao"/);
     const css = readFileSync(new URL('../src/visual/telas/formulario.css', import.meta.url), 'utf8');
     for (const nome of ['etapas--fluxo', 'escolhas', 'lacos', 'editar__caixa', 'fases', 'linhas', 'alerta', 'retrato-campo', 'recorte__quadro', 'pagina-de-formulario--larga']) expect(css, nome).toContain(`.${nome}`);
+  });
+});
+
+// Ajustes depois da fase 3 (pedidos do Gui, 17/11/2026)
+describe('ajustes: lista, formas de ver da pessoa, quem aparece e o link do título', () => {
+  const fonte = (caminho: string) => readFileSync(new URL(`../src/${caminho}`, import.meta.url), 'utf8');
+
+  it('o link do título de cada memória tem 44 px de toque e o contorno do foco nele mesmo', () => {
+    // Defeito apontado pelo Gui: o link media 30 px quando o título cabia numa linha, e o contorno
+    // ficava em volta da memória inteira, mais alta que a tela do celular
+    const css = ler('telas/linha.css');
+    expect(css).toMatch(/\.entrada__titulo a\s*\{[^}]*display:\s*inline-flex;[^}]*min-height:\s*var\(--toque\);/);
+    expect(css).toMatch(/\.entrada__titulo a:focus-visible\s*\{\s*outline:\s*2px solid var\(--tinta\);/);
+    expect(css).not.toMatch(/\.entrada__titulo a:focus-visible\s*\{\s*outline:\s*none/);
+  });
+
+  it('na lista, a linha inteira é o link, com 44 px de toque e foco visível', () => {
+    const css = ler('telas/lista.css');
+    const lista = fonte('components/explorar/Lista.astro');
+    expect(lista).toMatch(/<li class="lista__item" data-chave=\{`m:\$\{m\.id\}`\} data-ano=\{m\.ano\}/);
+    expect(lista).toMatch(/<header class="lista__cabeca" data-chave=\{`a:\$\{ano\}`\} data-ano=\{ano\}>/);
+    expect(lista).toMatch(/<a class="lista__linha" href=/);
+    expect(css).toMatch(/\.lista__linha\s*\{[^}]*min-height:\s*var\(--toque\);/);
+    expect(css).toMatch(/\.lista__linha:focus-visible\s*\{\s*outline:\s*2px solid var\(--tinta\);/);
+  });
+
+  it('na lista, a foto-chave só existe onde há mouse: no celular ela não é desenhada', () => {
+    const css = ler('telas/lista.css');
+    // Fora da regra de mouse, a foto não existe
+    expect(css).toMatch(/\.lista__foto\s*\{\s*display:\s*none;\s*\}/);
+    const comMouse = css.slice(css.indexOf('@media (min-width: 62rem) and (hover: hover) and (pointer: fine)'));
+    expect(comMouse).toMatch(/\.lista__foto\s*\{[^}]*display:\s*block;/);
+    expect(comMouse).toMatch(/\.lista__linha:hover \.lista__foto,\s*\.lista__linha:focus-visible \.lista__foto\s*\{/);
+    // O arquivo da foto só é pedido onde a mesma regra vale: no celular o navegador nem o baixa
+    const lista = fonte('components/explorar/Lista.astro');
+    expect(lista).toContain("const COM_MOUSE = '(min-width: 62rem) and (hover: hover) and (pointer: fine)';");
+    expect(lista).toMatch(/<Polaroid [^>]*soOnde=\{COM_MOUSE\} \/>/);
+    expect(fonte('components/visual/Polaroid.astro')).toMatch(/<source media=\{soOnde\} srcset=/);
+    // Só essa regra a mostra, e nada na lista fica preso à tela
+    expect([...css.matchAll(/\.lista__foto\s*\{[^}]*display:\s*block/g)]).toHaveLength(1);
+    expect(css).not.toMatch(/position\s*:\s*(fixed|sticky)/);
+  });
+
+  it('a lista entra na troca sem recarregar, no Explorar e na página da pessoa', () => {
+    const troca = fonte('lib/cliente/explorar-troca.ts');
+    expect(troca).toMatch(/\['linha', 'mural', 'lista', null\]\.includes\(endereco\.searchParams\.get\('ver'\)\)/);
+    expect(troca).toMatch(/endereco\.pathname === location\.pathname/);
+    expect(troca).toMatch(/no\.classList\.contains\('lista__item'\) \? 'lista'/);
+    // Um link de âncora na mesma página não é uma troca
+    expect(troca).toMatch(/if \(endereco\.pathname \+ endereco\.search === ondeEstava\) return;/);
+    const pessoa = fonte('pages/pessoas/[id]/index.astro');
+    expect(pessoa).toMatch(/<div data-explorar>/);
+    expect(pessoa).toMatch(/FORMAS_DA_PESSOA\.map\(\(f\) => \(\s*<a href=\{`\$\{enderecoDaPessoa\(pessoa\.id, f\)\}#memorias-com`\} data-opcao=\{f\}/);
+    expect(pessoa).toMatch(/import \{ ligarTroca \} from '\.\.\/\.\.\/\.\.\/lib\/cliente\/explorar-troca';\s*ligarTroca\(\);/);
+  });
+
+  it('no capítulo, quem aparece é uma linha de nomes no celular e a lista com retratos na tela grande', () => {
+    const pagina = fonte('pages/capitulos/[id]/index.astro');
+    expect(pagina).toMatch(/<p class="capitulo__nomes ficha">/);
+    expect(pagina).toMatch(/\{nomeDe\(id\)\} \(\{n\}\)/);
+    const css = ler('telas/capitulo.css');
+    expect(css).toMatch(/\.capitulo__gente ul\s*\{\s*display:\s*none;/);
+    const grande = css.slice(css.indexOf('@media (min-width: 62rem)'));
+    expect(grande).toMatch(/\.capitulo__nomes\s*\{\s*display:\s*none;/);
+    expect(grande).toMatch(/\.capitulo__gente ul\s*\{\s*display:\s*block;/);
+  });
+});
+
+describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo', () => {
+  const fonte = (caminho: string) => readFileSync(new URL(`../src/${caminho}`, import.meta.url), 'utf8');
+  const nova = fonte('pages/nova.astro');
+  const css = ler('telas/formulario.css');
+
+  it('a frase da abertura tem as três lacunas, e cada uma leva à etapa certa', () => {
+    // Resposta do Gui à pergunta 1 do PR do grupo "formularios": "com ___" leva ao "Quem estava?"
+    for (const lacuna of ['data', 'lugar', 'pessoas']) expect(nova).toMatch(new RegExp(`role="button" tabindex="0" data-abertura="${lacuna}"`));
+    expect(nova).toMatch(/indiceDaEtapa\(pessoas \? '\[data-quem-estava\]' : '\[data-frase\]'\)/);
+    // As sete etapas e a ordem não mudam
+    const etapas = [...nova.matchAll(/data-etapa="([^"]+)"/g)].map((m) => m[1]);
+    expect(etapas).toEqual(['O que aconteceu', 'Quando e onde', 'Quem estava', 'Fotos', 'Relato', 'Capítulo e temas', 'Quem vê']);
+  });
+
+  it('sem script, a frase da abertura e o resumo ao lado não aparecem: não prometem o que não fazem', () => {
+    expect(nova).toMatch(/data-frase-abertura hidden>/);
+    expect(nova).toMatch(/<aside class="ao-lado" data-ao-lado aria-labelledby="ao-lado-titulo" hidden>/);
+    expect(fonte('components/formularios/Pagina.astro')).toMatch(/\[data-frase-abertura\], \[data-ao-lado\] \{ display: none !important; \}/);
+  });
+
+  it('cada lacuna da abertura tem 44 px de toque e foco visível', () => {
+    expect(css).toMatch(/\.frase--abertura \.frase__data\s*\{\s*padding-block:\s*calc\(\(var\(--toque\) - 1\.2em\) \/ 2\);/);
+    expect(css).toMatch(/\.frase--abertura \.frase__data:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--tinta\);/);
+  });
+
+  it('o resumo ao lado só existe no computador, não anuncia cada tecla e não baixa a foto no celular', () => {
+    // Fora de 62rem, nada: a regra geral esconde, e só a media query de 62rem mostra
+    expect(css).toMatch(/\.pagina-de-formulario \.ao-lado\s*\{\s*display:\s*none;\s*\}/);
+    const aside = nova.slice(nova.indexOf('<aside class="ao-lado"'), nova.indexOf('</aside>'));
+    expect(aside).not.toMatch(/aria-live|role="status"|aria-hidden/);
+    expect(aside).toMatch(/soOnde=\{ONDE_HA_LADO\}/);
+    expect(nova).toMatch(/const ONDE_HA_LADO = '\(min-width: 62rem\)';/);
+    expect(nova).toMatch(/aoLado\.hidden = !haLado\.matches;\s*if \(!haLado\.matches\) return;/);
+    // Parado à vista só onde há mouse, e nunca com position: fixed
+    expect(css).toMatch(/@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.pagina-de-formulario \.formulario\.com-etapas > \.ao-lado:not\(\[hidden\]\),\s*\.pagina-de-formulario > \.ao-lado--fixo \{\s*position: sticky;/);
+    expect(css).not.toMatch(/position\s*:\s*fixed/);
+  });
+
+  it('a zona de perigo fica no fim das telas de editar, fora do formulário que salva, e só para quem pode', () => {
+    // Memória: depois do fim do formulário, e só com a permissão de excluir de sempre
+    expect(nova.indexOf('<ZonaDePerigo>')).toBeGreaterThan(nova.indexOf('</form>'));
+    expect(nova).toMatch(/const podeExcluir = Boolean\(memoria\) && podeExcluirMemoria\(usuario, memoria!\)\.ok;/);
+    expect(nova).toMatch(/memoria && podeExcluir && \(/);
+    // Capítulo: no fim da página, só para os administradores, como antes
+    const capitulo = fonte('pages/capitulos/[id]/editar.astro');
+    expect(capitulo).toMatch(/usuario\.admin && \(\s*<ZonaDePerigo>/);
+    expect(capitulo.indexOf('<ZonaDePerigo>')).toBeGreaterThan(capitulo.lastIndexOf('<FichaDoCapitulo'));
+    // Laço e casal: toda remoção com confirmação está dentro de uma zona, depois do formulário que salva
+    const pessoa = fonte('pages/pessoas/[id]/editar.astro');
+    const remocoes = pessoa.match(/<ConfirmarRemocao/g) ?? [];
+    const zonas = pessoa.match(/<ZonaDePerigo menor nivel=\{4\}>\s*<form method="post" action="\/api\/lacos" class="editar__remover">/g) ?? [];
+    expect(remocoes.length).toBeGreaterThan(0);
+    expect(zonas.length).toBe(remocoes.length);
+    // Nenhuma tela de editar leva direto ao apagar: a zona tem o caminho da confirmação
+    for (const tela of [nova, capitulo]) expect(tela.slice(tela.indexOf('<ZonaDePerigo>'), tela.indexOf('</ZonaDePerigo>'))).toMatch(/href=\{`\/(memorias|capitulos)\/\$\{\w+\.id\}\/excluir`\}/);
+  });
+
+  it('a zona de perigo é marcada na cor de alerta, e o botão que confirma continua cheio nessa cor', () => {
+    const pecas = ler('pecas.css');
+    expect(pecas).toMatch(/\.perigo\s*\{[^}]*border:\s*var\(--traco\) solid var\(--alerta\);/);
+    expect(pecas).toMatch(/\.perigo__titulo\s*\{\s*color:\s*var\(--alerta-tinta\);/);
+    expect(css).toMatch(/\.botao\.botao--perigo\s*\{\s*background:\s*var\(--alerta-tinta\);/);
+    expect(fonte('components/ConfirmarRemocao.astro')).toMatch(/class="botao botao--perigo" type="submit"/);
+  });
+});
+
+describe('ajustes: a árvore nítida no zoom, o cartão de bicho e a foto da lista', () => {
+  const fonte = (caminho: string) => readFileSync(new URL(`../src/${caminho}`, import.meta.url), 'utf8');
+  const semComentario = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const regra = (css: string, seletor: string) => {
+    const inicio = css.indexOf(`${seletor} {`);
+    return inicio < 0 ? '' : css.slice(inicio, css.indexOf('}', inicio));
+  };
+
+  it('a camada do mapa só é promovida enquanto o gesto dura (defeito achado pelo Gui, 17/11/2026)', () => {
+    // Com will-change sempre ligado, o navegador desenhava a árvore a 100% e esticava o desenho ao
+    // aproximar: texto, cartões e linhas ficavam borrados. A promoção fica numa classe só, que o
+    // script põe no gesto e tira quando ele acaba, para o desenho ser refeito na escala nova.
+    const css = semComentario(fonte('visual/telas/arvore.css'));
+    const comPromocao = [...css.matchAll(/([^{}]+)\{[^{}]*will-change[^{}]*\}/g)].map((m) => m[1].trim());
+    expect(comPromocao).toEqual(['.mapa__camada--em-gesto']);
+    expect(css).not.toMatch(/translate3d|translateZ|backface-visibility/);
+    const cliente = fonte('lib/cliente/arvore.ts');
+    expect(cliente).toMatch(/classList\.add\('mapa__camada--em-gesto'\)/);
+    expect(cliente).toMatch(/setTimeout\(\(\) => \{\s*for \(const c of camadas\) c\.classList\.remove\('mapa__camada--em-gesto'\);/);
+    // Toda mudança da vista passa por aplicarVista, que é quem marca o gesto
+    expect(cliente).toMatch(/const aplicarVista = \(animado = false\) => \{\s*emGesto\(animado\);/);
+    expect(cliente.match(/c\.style\.transform = `translate\(\$\{vista\.x\}px/g)).toHaveLength(1);
+    expect(cliente).not.toMatch(/willChange|translate3d/);
+  });
+
+  it('arrastar o mapa começando num cartão não vira o arrasto de link do navegador', () => {
+    expect(fonte('lib/cliente/arvore.ts')).toMatch(/mapa\.addEventListener\('dragstart', \(e\) => e\.preventDefault\(\)\);/);
+  });
+
+  it('no cartão de bicho, o respiro acompanha o arredondado (achado do Gui, 17/11/2026)', () => {
+    const css = semComentario(fonte('visual/telas/arvore.css'));
+    const rem = (bloco: string, propriedade: string) => Number(new RegExp(`${propriedade}:\\s*([\\d.]+)rem`).exec(bloco)?.[1]);
+    const bicho = regra(css, '.no--bicho');
+    const especie = regra(css, '.no__bicho');
+    const raio = rem(bicho, 'border-radius') * 16;
+    const margem = rem(bicho, 'padding-inline') * 16;
+    const alto = rem(especie, 'top') * 16;
+    // A caixa tem 76 px de altura: abaixo de meia altura, a forma continua de cápsula sem a curva
+    // tomar o canto do texto
+    expect(raio).toBeGreaterThanOrEqual(24);
+    expect(raio).toBeLessThan(38);
+    // Onde a curva está na altura da primeira linha (a espécie): a folga até o texto não fica menor
+    // que a margem do cartão de pessoa (0.7rem)
+    const curva = raio - Math.sqrt(raio ** 2 - (raio - alto) ** 2);
+    expect(margem - curva).toBeGreaterThanOrEqual(0.7 * 16);
+    // A espécie começa na mesma margem do nome
+    expect(rem(especie, 'left')).toBe(rem(bicho, 'padding-inline'));
+    expect(rem(especie, 'right')).toBe(rem(bicho, 'padding-inline'));
+  });
+
+  it('na lista, a conta do cabeçalho do ano fica fora da margem da foto', () => {
+    const css = semComentario(fonte('visual/telas/lista.css'));
+    expect(css).toMatch(/\.lista__cabeca \{\s*padding-right: 11\.5rem;/);
+    expect(css).toMatch(/\.lista__linha,\s*\.lista__cabeca \{\s*padding-right: 15rem;/);
   });
 });

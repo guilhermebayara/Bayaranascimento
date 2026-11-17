@@ -476,22 +476,27 @@ export async function removerLacoDoCoracao(usuario: Usuario, id: number): Promis
 // --- Tipos de momento ---
 
 export async function listarTipos(): Promise<Tipo[]> {
-  const { results } = await db().prepare('SELECT id, rotulo, cor FROM tipos ORDER BY ordem, rotulo').all<Tipo>();
+  const { results } = await db().prepare('SELECT id, rotulo, cor, cor_da_paleta AS corDaPaleta, icone FROM tipos ORDER BY ordem, rotulo').all<Tipo>();
   return results;
 }
 
-export async function criarTipo(id: string, rotulo: string, cor: string, usuario: Usuario): Promise<void> {
+/**
+ * A cor é o nome de uma cor da paleta e o ícone, o de um rabisco: quem chama já conferiu os dois
+ * contra as listas (src/pages/api/tipos.ts). A coluna antiga "cor" guarda o mesmo nome, porque não
+ * aceita ficar vazia; o site não lê mais dela.
+ */
+export async function criarTipo(id: string, rotulo: string, cor: string, icone: string, usuario: Usuario): Promise<void> {
   await db()
     .prepare(
-      `INSERT INTO tipos (id, rotulo, cor, ordem, criado_por)
-       VALUES (?, ?, ?, (SELECT COALESCE(MAX(ordem), 0) + 1 FROM tipos WHERE id <> 'outro'), ?)`,
+      `INSERT INTO tipos (id, rotulo, cor, cor_da_paleta, icone, ordem, criado_por)
+       VALUES (?, ?, ?, ?, ?, (SELECT COALESCE(MAX(ordem), 0) + 1 FROM tipos WHERE id <> 'outro'), ?)`,
     )
-    .bind(id, rotulo, cor, usuario.pessoa)
+    .bind(id, rotulo, cor, cor, icone, usuario.pessoa)
     .run();
 }
 
-export async function atualizarTipo(id: string, rotulo: string, cor: string): Promise<void> {
-  await db().prepare('UPDATE tipos SET rotulo = ?, cor = ? WHERE id = ?').bind(rotulo, cor, id).run();
+export async function atualizarTipo(id: string, rotulo: string, cor: string, icone: string): Promise<void> {
+  await db().prepare('UPDATE tipos SET rotulo = ?, cor_da_paleta = ?, icone = ? WHERE id = ?').bind(rotulo, cor, icone, id).run();
 }
 
 /**

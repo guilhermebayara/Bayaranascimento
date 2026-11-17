@@ -3,9 +3,13 @@
 // parentesco grande, do ponto de vista de quem olha ("sua avó"), e os áudios em que ela fala. A
 // lista de laços fica quieta, e as memórias com ela vêm no fim, na linha do tempo.
 import '../../../visual/telas/linha.css';
+import '../../../visual/telas/explorar.css';
+import '../../../visual/telas/lista.css';
 import '../../../visual/telas/pessoa.css';
 import Visual from '../../../layouts/Visual.astro';
 import Linha from '../../../components/explorar/Linha.astro';
+import Lista from '../../../components/explorar/Lista.astro';
+import Mural from '../../../components/explorar/Mural.astro';
 import Audio from '../../../components/visual/Audio.astro';
 import Carimbo from '../../../components/visual/Carimbo.astro';
 import Gente from '../../../components/visual/Gente.astro';
@@ -13,6 +17,7 @@ import Retrato from '../../../components/visual/Retrato.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { duracaoEmTexto } from '../../../lib/audios';
 import { datasDeVida, formatarData } from '../../../lib/datas';
+import { FORMAS_DA_PESSOA, NOMES_DAS_FORMAS, TAMANHO_PADRAO, enderecoDaPessoa, lerFormaDaPessoa, mostraRascunho } from '../../../lib/explorar';
 import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
@@ -27,6 +32,7 @@ import {
   listarLacosDoCoracao,
   listarLacosResumidos,
   listarMemorias,
+  memoriasComAudio,
   listarNucleos,
   pessoasQueONaoVe,
 } from '../../../lib/servidor/repositorio';
@@ -40,7 +46,12 @@ if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
 const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
 // Da mais recente para a mais antiga, como em toda linha do tempo do site
-const memorias = (await listarMemorias(usuario, { integrante: pessoa.id })).reverse();
+const todasComEla = (await listarMemorias(usuario, { integrante: pessoa.id })).reverse();
+// A forma de ver as memórias com a pessoa (pedido do Gui, 17/11/2026): a linha do tempo, que é o
+// padrão, o mural e a lista, as mesmas do Explorar. A escolha fica no endereço ("ver"). Como lá,
+// o rascunho só aparece na linha do tempo e na lista de quem escreveu.
+const forma = lerFormaDaPessoa(Astro.url.searchParams);
+const memorias = mostraRascunho(forma) ? todasComEla : todasComEla.filter((m) => m.situacao !== 'rascunho');
 const dosNucleos = familiasDe(pessoa).map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n));
 const especie = pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bicho') : null;
 
@@ -150,7 +161,7 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
               <Carimbo itens={[especie, dosNucleos.join(' e ')]} />
             </p>
           )}
-          {/* PROVISÓRIO (pergunta 6 do PR do grupo "pessoal"): o parentesco é a linha grande, e o nome vem logo abaixo */}
+          {/* Aprovado pelo Gui em 17/11/2026 (pergunta 6 do PR do grupo "pessoal"): o parentesco é a linha grande, e o nome vem logo abaixo */}
           {parentesco && <p class="quem-e__laco">{parentesco}</p>}
           <h1 class:list={['quem-e__nome', parentesco ? 't-2' : 't-1']}>{pessoa.nome}</h1>
           {vida.length > 0 && <p class="quem-e__vida ficha">{vida.join(' · ')}</p>}
@@ -235,7 +246,8 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
       )
     }
 
-    {/* PROVISÓRIO (pergunta 8 do PR do grupo "pessoal"): todas as memórias, na linha do tempo do Explorar */}
+    {/* Decidido pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "pessoal"): todas as memórias com a pessoa, com a
+        "Forma de ver" do Explorar: linha do tempo (o padrão), mural e lista */}
     <section class="com" aria-labelledby="memorias-com">
       <header class="com__abre miolo">
         {memorias.length > 0 && (
@@ -247,8 +259,25 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
           Memórias com {chamar}
         </h2>
       </header>
-      {
-        memorias.length === 0 ? (
+      {/* A região troca de conteúdo sem recarregar a página, como no Explorar (explorar-troca.ts) */}
+      <div data-explorar>
+        {todasComEla.length > 1 && (
+          <div class="controles com__controles miolo">
+            <div class="controle">
+              <p class="controle__nome rotulo suave" id="controle-forma">
+                Forma de ver
+              </p>
+              <nav class="linha__opcoes" aria-labelledby="controle-forma">
+                {FORMAS_DA_PESSOA.map((f) => (
+                  <a href={`${enderecoDaPessoa(pessoa.id, f)}#memorias-com`} data-opcao={f} aria-current={f === forma ? 'page' : undefined}>
+                    {NOMES_DAS_FORMAS[f]}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </div>
+        )}
+        {memorias.length === 0 ? (
           <div class="miolo">
             <Vazio frase={`Nenhuma memória com ${pessoa.nome} por enquanto.`}>
               <a class="acao" href={`/nova?com=${pessoa.id}`}>
@@ -256,10 +285,25 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
               </a>
             </Vazio>
           </div>
+        ) : forma === 'mural' ? (
+          <div class="linha linha--mural">
+            <Mural memorias={memorias} ordem="recentes" tamanho={TAMANHO_PADRAO} />
+          </div>
+        ) : forma === 'lista' ? (
+          <div class="linha linha--lista">
+            <Lista memorias={memorias} capitulos={await listarCapitulos(usuario)} integrantes={integrantes} ordem="recentes" comAudio={await memoriasComAudio()} />
+          </div>
         ) : (
           <Linha memorias={memorias} capitulos={await listarCapitulos(usuario)} integrantes={integrantes} nucleos={nucleos} ordem="recentes" trilhos={false} />
-        )
-      }
+        )}
+      </div>
     </section>
   </article>
 </Visual>
+
+<script>
+  // Trocar a forma de ver não recarrega a página nem tira a pessoa do lugar, como no Explorar.
+  // Sem script, cada opção é um link comum, que volta a esta parte da página.
+  import { ligarTroca } from '../../../lib/cliente/explorar-troca';
+  ligarTroca();
+</script>

@@ -83,12 +83,13 @@ const cor = cores.get(capitulo.id);
 
 // Os marcos: as memórias do capítulo, das mais recentes para as mais antigas, como em toda linha do
 // tempo do site. O número de cada uma é a posição dela na história, contada do começo.
-// PROVISÓRIO (pergunta 1 do PR do grupo "familia"): a ordem dos marcos e o sentido dos números
+// Aprovado pelo Gui em 17/11/2026 (pergunta 1 do PR do grupo "familia"): a ordem dos marcos e o sentido dos números
 const marcos = maisRecentesPrimeiro(memorias).map((m, i, lista) => ({ m, numero: lista.length - i }));
 const digitos = Math.max(2, String(marcos.length).length);
 
 // Quem aparece: as pessoas que mais estão nas memórias do capítulo, com a conta de cada uma
-// PROVISÓRIO (pergunta 2 do PR do grupo "familia"): quem aparece, até seis pessoas
+// Decidido pelo Gui em 17/11/2026 (pergunta 2 do PR do grupo "familia"): "Quem aparece" fica, com até seis
+// pessoas. Na tela grande, com retrato e conta; no celular, uma linha de nomes corrida, sem fotos.
 const naoVe = await pessoasQueONaoVe(usuario);
 const contagem = new Map<string, number>();
 for (const m of memorias) for (const id of m.integrantes) contagem.set(id, (contagem.get(id) ?? 0) + 1);
@@ -133,7 +134,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
               Nova memória neste capítulo
             </a>
           )}
-          {/* PROVISÓRIO (pergunta 5 do PR do grupo "familia"): os textos novos desta tela */}
+          {/* Aprovado pelo Gui em 17/11/2026 (pergunta 5 do PR do grupo "familia"): os textos novos desta tela */}
           <a class="acao acao--quieta" href={`/explorar?capitulo=${capitulo.id}`}>
             Ver no Explorar
           </a>
@@ -184,12 +185,26 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
             </div>
           )}
         </dl>
-        {/* PROVISÓRIO (pergunta 4 do PR do grupo "familia"): no celular, a capa inteira vem antes dos marcos */}
+        {/* Decidido pelo Gui em 17/11/2026 (pergunta 4 do PR do grupo "familia"): no celular, a capa fica no alto, e
+            "Quem aparece" é só uma linha de nomes, para não empurrar as memórias */}
         {aparecem.length > 0 && (
           <section class="capitulo__gente" aria-labelledby="quem-aparece">
             <h2 class="rotulo suave" id="quem-aparece">
               Quem aparece
             </h2>
+            {/* PROVISÓRIO (pergunta 1 do PR de ajustes): cada nome da linha leva à página da pessoa */}
+            {/* No celular, uma linha de nomes corrida, sem fotos, com a conta de cada pessoa (pedido do
+                Gui, 17/11/2026). A partir de 62rem, a lista com os retratos, logo abaixo. */}
+            <p class="capitulo__nomes ficha">
+              {aparecem.slice(0, QUANTOS).map(([id, n], i) => (
+                <>
+                  {i > 0 && ', '}
+                  <a href={`/pessoas/${id}`}>
+                    {nomeDe(id)} ({n})
+                  </a>
+                </>
+              ))}
+            </p>
             <ul>
               {aparecem.slice(0, QUANTOS).map(([id, n]) => (
                 <li>

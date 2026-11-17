@@ -1,0 +1,134 @@
+---
+// A lista (pedido do Gui, 17/11/2026): uma memória por linha, no modelo do "Já rolou" da agenda da
+// @bsurda. O ano grande abre cada bloco, e a linha traz a data, o título, o lugar, o sinal na cor
+// do tipo de momento, quem estava, o sinal de áudio, a conta dos relatos e o capítulo. É a forma de
+// ver para quem quer achar uma memória pelo nome, sem passar pelas fotos.
+//
+// No celular a linha quebra em duas: o título e a data em cima, o resto embaixo, menor. No
+// computador, a foto-chave aparece ao lado da linha quando o mouse ou o foco do teclado passa por
+// ela; no celular ela não aparece nem é baixada.
+//
+// As memórias chegam já filtradas e na ordem pedida (src/lib/explorar.ts). Fora da ordem do tempo
+// ("Entraram por último", "Mais contadas") não há blocos de ano, e a data vai inteira na linha.
+import IconeDoTipo from '../visual/IconeDoTipo.astro';
+import Polaroid from '../visual/Polaroid.astro';
+import { agruparPorAno } from '../../lib/datas';
+import { ehEpoca, type Capitulo } from '../../lib/capitulos';
+import { dataNaLista, nomeCurto, quemNaLista, type Ordem } from '../../lib/explorar';
+import { montarTrilhos } from '../../lib/linha-capitulos';
+import { tipoDaMemoria } from '../../lib/tipos';
+import type { Integrante, Memoria } from '../../lib/servidor/repositorio';
+import { estiloDoCapitulo, estiloDoTipo, legendaLugarAno } from '../../lib/visual';
+
+interface Props {
+  /** as memórias que a pessoa vê, já filtradas e na ordem pedida */
+  memorias: Memoria[];
+  /** os capítulos que a pessoa pode ver */
+  capitulos: Capitulo[];
+  integrantes: Integrante[];
+  ordem: Ordem;
+  /** as memórias com áudio em algum relato publicado (memoriasComAudio) */
+  comAudio: Set<string>;
+}
+
+const { memorias, integrantes, ordem, comAudio } = Astro.props;
+const { tipos } = Astro.locals;
+const pessoaDe = new Map(integrantes.map((i) => [i.id, i]));
+const peloTempo = ordem === 'recentes' || ordem === 'antigas';
+// Onde a foto-chave existe: a mesma regra do CSS (telas/lista.css). Fora dela, o arquivo nem é baixado.
+const COM_MOUSE = '(min-width: 62rem) and (hover: hover) and (pointer: fine)';
+const blocos = peloTempo ? agruparPorAno(memorias) : memorias.length ? [{ ano: 0, itens: memorias }] : [];
+// O capítulo de cada memória sai da mesma montagem da linha do tempo, com a cor de cada um. As
+// épocas, que valem para todos, não entram na linha.
+const montagem = montarTrilhos(
+  memorias,
+  Astro.props.capitulos.filter((c) => !ehEpoca(c)),
+);
+const capitulosDe = new Map(montagem.linhas.map((l) => [l.id, l.capitulos.map((id) => montagem.capitulos.find((c) => c.id === id)!)]));
+---
+
+<div class="lista miolo" data-lista data-sem-anos={peloTempo ? undefined : ''}>
+  {
+    blocos.map(({ ano, itens }) => (
+      <section class="lista__bloco" aria-labelledby={peloTempo ? `lista-ano-${ano}` : undefined} aria-label={peloTempo ? undefined : 'Memórias'}>
+        {peloTempo && (
+          <header class="lista__cabeca" data-chave={`a:${ano}`} data-ano={ano}>
+            <h2 class="lista__ano" id={`lista-ano-${ano}`}>
+              {ano}
+            </h2>
+            <p class="rotulo suave">
+              {itens.length} {itens.length === 1 ? 'memória' : 'memórias'}
+            </p>
+          </header>
+        )}
+        <ul class="lista__linhas">
+          {itens.map((m) => {
+            const tipo = tipoDaMemoria(tipos, m);
+            const quem = quemNaLista(m.integrantes.flatMap((id) => (pessoaDe.has(id) ? [nomeCurto(pessoaDe.get(id)!)] : [])));
+            const data = dataNaLista(m, peloTempo);
+            const dele = capitulosDe.get(m.id) ?? [];
+            const rascunho = m.situacao === 'rascunho';
+            return (
+              <li class="lista__item" data-chave={`m:${m.id}`} data-ano={m.ano} style={estiloDoTipo(m.tipo)}>
+                <a class="lista__linha" href={rascunho ? `/nova?id=${m.id}` : `/memorias/${m.id}`}>
+                  <span class="lista__tipo">
+                    <IconeDoTipo tipo={m.tipo} />
+                    <span class="so-leitor">{tipo.rotulo}: </span>
+                  </span>
+                  <span class="lista__titulo">{m.titulo}</span>
+                  <span class="lista__data ficha">
+                    <span class="so-leitor">, </span>
+                    {data}
+                  </span>
+                  <span class="lista__resto ficha">
+                    <span class="lista__lugar">{m.lugar}</span>
+                    <span class="lista__quem">
+                      {quem.nomes.length > 0 && (
+                        <>
+                          <span class="so-leitor">com </span>
+                          <span class="lista__nomes">{quem.nomes.join(', ')}</span>
+                          {quem.mais > 0 && <span class="lista__mais"> +{quem.mais}</span>}
+                        </>
+                      )}
+                    </span>
+                    <span class="lista__sinais">
+                      {comAudio.has(m.id) && (
+                        <span class="lista__audio">
+                          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+                            <path d="M4 10v4M8 6.5v11M12 9v6M16 4.5v15M20 10v4" />
+                          </svg>
+                          <span class="so-leitor">com áudio</span>
+                        </span>
+                      )}
+                      {m.relatos > 0 && (
+                        <span class="lista__relatos">
+                          {m.relatos} {m.relatos === 1 ? 'relato' : 'relatos'}
+                        </span>
+                      )}
+                      {rascunho && <span>rascunho</span>}
+                    </span>
+                    <span class="lista__capitulo" style={dele[0] ? estiloDoCapitulo(dele[0].cor) : undefined}>
+                      {dele[0] && (
+                        <>
+                          <span class="so-leitor">capítulo </span>
+                          <span class="lista__capitulo-nome">{dele[0].titulo}</span>
+                          {dele.length > 1 && <span> +{dele.length - 1}</span>}
+                        </>
+                      )}
+                    </span>
+                  </span>
+                  {/* A foto-chave, só onde há mouse: no toque ela não é desenhada nem baixada */}
+                  {m.fotos.length > 0 && (
+                    <div class="lista__foto" aria-hidden="true">
+                      <Polaroid id={m.id} fotos={m.fotos.slice(0, 1)} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} tipo={m.tipo} soOnde={COM_MOUSE} />
+                    </div>
+                  )}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    ))
+  }
+</div>

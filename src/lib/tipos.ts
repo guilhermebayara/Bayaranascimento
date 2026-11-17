@@ -4,7 +4,12 @@
 export interface Tipo {
   id: string;
   rotulo: string;
+  /** A cor de antes do visual novo, guardada como estava. O site não pinta mais por ela. */
   cor: string;
+  /** A cor escolhida em /admin/tipos: o nome de uma cor da paleta (PALETA, em src/lib/visual.ts). Sem escolha, vale a de reserva. */
+  corDaPaleta?: string | null;
+  /** O rabisco escolhido em /admin/tipos (RABISCOS, em src/visual/rabiscos.ts). Sem escolha, vale o de sempre. */
+  icone?: string | null;
 }
 
 export const TIPO_OUTRO = 'outro';

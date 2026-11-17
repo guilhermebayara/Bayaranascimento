@@ -33,7 +33,8 @@ interface Ancora {
 }
 
 const itens = (regiao: ParentNode) => [...regiao.querySelectorAll<HTMLElement>('[data-chave]')];
-const tipoDe = (no: HTMLElement) => (no.classList.contains('entrada') ? 'entrada' : no.classList.contains('ano__cabeca') ? 'ano' : 'mural');
+const tipoDe = (no: HTMLElement) =>
+  no.classList.contains('entrada') ? 'entrada' : no.classList.contains('ano__cabeca') ? 'ano' : no.classList.contains('lista__item') ? 'lista' : no.classList.contains('lista__cabeca') ? 'ano-da-lista' : 'mural';
 const pertoDaTela = (c: DOMRect) => c.width > 0 && c.bottom > -innerHeight * 0.6 && c.top < innerHeight * 1.6;
 const calmo = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -67,7 +68,9 @@ function medir(regiao: HTMLElement): Map<string, Medida> {
   for (const no of itens(regiao)) {
     const caixa = no.getBoundingClientRect();
     if (!pertoDaTela(caixa)) continue;
-    medidas.set(no.dataset.chave!, { no, caixa, foto: no.querySelector('.monte')?.getBoundingClientRect() ?? null, tipo: tipoDe(no) });
+    // Na lista, a foto fica escondida: sem tamanho, não há de onde ela viajar
+    const foto = no.querySelector('.monte')?.getBoundingClientRect();
+    medidas.set(no.dataset.chave!, { no, caixa, foto: foto && foto.width > 0 ? foto : null, tipo: tipoDe(no) });
   }
   return medidas;
 }
@@ -121,9 +124,10 @@ function animar(antes: Map<string, Medida>, nova: HTMLElement) {
   // ponto da tela, e some. Só quando a forma de ver é a mesma: fora dela ele não teria o estilo dele.
   const mural = nova.querySelector<HTMLElement>('.mural');
   const linha = nova.querySelector<HTMLElement>('.linha');
+  const lista = nova.querySelector<HTMLElement>('.lista');
   for (const [chave, de] of antes) {
     if (ficaram.has(chave) || de.caixa.bottom < 0 || de.caixa.top > innerHeight) continue;
-    const mesa = de.tipo === 'mural' ? mural : mural ? null : linha;
+    const mesa = de.tipo === 'mural' ? mural : de.tipo === 'lista' || de.tipo === 'ano-da-lista' ? lista : mural || lista ? null : linha;
     if (!mesa) continue;
     const base = mesa.getBoundingClientRect();
     const no = de.no;
@@ -260,7 +264,8 @@ function trocarTamanho(opcao: HTMLElement) {
 
 /** Liga a troca sem recarregar: os links dos controles, o formulário dos filtros e o histórico. */
 export function ligarTroca() {
-  const daRegiao = (endereco: URL) => endereco.origin === location.origin && endereco.pathname === '/explorar' && ['linha', 'mural', null].includes(endereco.searchParams.get('ver'));
+  // A região troca dentro da mesma página: o Explorar e, com as mesmas formas de ver, a página da pessoa
+  const daRegiao = (endereco: URL) => endereco.origin === location.origin && endereco.pathname === location.pathname && ['linha', 'mural', 'lista', null].includes(endereco.searchParams.get('ver'));
 
   document.addEventListener('click', (evento) => {
     const link = evento.target instanceof Element ? evento.target.closest<HTMLAnchorElement>(`${REGIAO} .controles a[href]`) : null;
@@ -272,6 +277,8 @@ export function ligarTroca() {
     }
     const endereco = new URL(link.href);
     endereco.searchParams.delete('tamanho');
+    // A âncora do link é de quem está sem script: aqui a rolagem já fica no lugar
+    endereco.hash = '';
     if (!daRegiao(endereco)) return;
     evento.preventDefault();
     // A mesma opção, no mesmo controle: é o nome dela que não muda de uma página para a outra
@@ -315,8 +322,15 @@ export function ligarTroca() {
   });
 
   // O voltar e o avançar do aparelho desfazem e refazem a troca, com o mesmo movimento
+  let ondeEstava = location.pathname + location.search;
+  document.addEventListener('explorar:trocou', () => {
+    ondeEstava = location.pathname + location.search;
+  });
   addEventListener('popstate', () => {
     const endereco = new URL(location.href);
+    // Só a âncora mudou (um link para outra parte da mesma página): não há o que trocar
+    if (endereco.pathname + endereco.search === ondeEstava) return;
+    ondeEstava = endereco.pathname + endereco.search;
     if (document.querySelector(REGIAO) && daRegiao(endereco)) trocar(endereco, { empurrar: false });
     else location.reload();
   });

@@ -7,10 +7,25 @@
 // mesma configuração a todas as prévias.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { env } from 'cloudflare:workers';
+import type { Tipo } from '../tipos';
 
 export const ENDERECO_DA_HOMOLOGACAO = 'homologa.memorias.bayara.com.br';
 
-const doPedido = new AsyncLocalStorage<{ homologa: boolean }>();
+const doPedido = new AsyncLocalStorage<{ homologa: boolean; tipos?: readonly Tipo[] }>();
+
+/**
+ * Os tipos de momento do pedido em curso, com a cor e o rabisco que os administradores escolheram.
+ * O middleware guarda a lista aqui, e é daqui que estiloDoTipo e IconeDoTipo leem a escolha
+ * (lerEscolhasDe, em src/lib/visual.ts). Fica junto do pedido, e não numa variável do módulo,
+ * porque o mesmo servidor atende a homologação e as prévias, cada uma com o banco dela.
+ */
+export function guardarTiposDoPedido(tipos: readonly Tipo[]): void {
+  const pedido = doPedido.getStore();
+  if (pedido) pedido.tipos = tipos;
+}
+export function tiposDoPedido(): readonly Tipo[] | undefined {
+  return doPedido.getStore()?.tipos;
+}
 
 /** Roda o tratamento de um pedido sabendo se ele é da homologação. */
 export function noPedido<T>(request: Request, tratar: () => T): T {

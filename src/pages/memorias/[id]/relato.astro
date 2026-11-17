@@ -1,6 +1,10 @@
 ---
 import Pagina from '../../../components/formularios/Pagina.astro';
+import Dado from '../../../components/visual/Dado.astro';
+import Ficha from '../../../components/visual/Ficha.astro';
+import Polaroid from '../../../components/visual/Polaroid.astro';
 import { formatarData } from '../../../lib/datas';
+import { estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { donoDoRelato } from '../../../lib/servidor/permissoes';
 import { listarAudiosDosRelatos, listarIntegrantes, obterMemoria, obterRelato } from '../../../lib/servidor/repositorio';
@@ -11,6 +15,10 @@ if (!memoria) return new Response('Memória não encontrada', { status: 404 });
 if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.id}`);
 
 const integrantes = await listarIntegrantes();
+// Ao lado, no computador: a foto-chave e a ficha da memória, para contar olhando para ela
+const fotoChave = memoria.fotos.find((f) => f.principal) ?? memoria.fotos[0];
+const quemEstava = memoria.integrantes.map((id) => integrantes.find((i) => i.id === id)).filter((i) => i !== undefined).map((i) => i.apelido ?? i.nome);
+const nomeDoTipo = memoria.tipo === 'outro' && memoria.tipoOutro ? memoria.tipoOutro : (Astro.locals.tipos.find((t) => t.id === memoria.tipo)?.rotulo ?? '');
 const comAcesso = await pessoasComAcesso();
 const semAcesso = integrantes.filter((i) => i.tipo === 'pessoa' && !comAcesso.has(i.id));
 
@@ -40,6 +48,23 @@ const opcoes = await Promise.all(
   <p slot="abertura">
     <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento.
   </p>
+
+  {/* Ao lado, no computador (resposta do Gui à pergunta 7 do PR do grupo "formularios", 17/11/2026):
+      a foto-chave e a ficha da memória de que o relato fala. No celular não existe, e a foto não é
+      baixada. PROVISÓRIO (pergunta 8 do PR de ajustes): nos outros formulários não há resumo ao lado. */}
+  <aside class="ao-lado ao-lado--fixo" aria-labelledby="ao-lado-titulo">
+    <h2 class="rotulo suave" id="ao-lado-titulo">A memória</h2>
+    <div class="ao-lado__foto" style={estiloDoTipo(memoria.tipo)}>
+      <Polaroid id={memoria.id} fotos={fotoChave ? [fotoChave] : []} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} alt="" tipo={memoria.tipo} monte={false} soOnde="(min-width: 62rem)" />
+    </div>
+    <p class="ao-lado__nome">{memoria.titulo}</p>
+    <Ficha>
+      {nomeDoTipo && <Dado rotulo="Tipo">{nomeDoTipo}</Dado>}
+      <Dado rotulo="Quando">{formatarData(memoria)}</Dado>
+      {memoria.lugar && <Dado rotulo="Onde">{memoria.lugar}</Dado>}
+      {quemEstava.length > 0 && <Dado rotulo="Quem estava">{listaCurta(quemEstava, 4)}</Dado>}
+    </Ficha>
+  </aside>
 
   <form class="formulario" method="post" action="/api/relatos" data-formulario-relato data-memoria={memoria.id} novalidate>
     <input type="hidden" name="memoria" value={memoria.id} />

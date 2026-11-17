@@ -1,0 +1,279 @@
+/*
+ * A lista: uma memória por linha, no modelo do "Já rolou" da agenda da @bsurda. O ano grande abre
+ * cada bloco. No celular, a linha tem dois andares: o título e a data em cima, o resto embaixo,
+ * menor. No computador, uma linha só, em colunas, e a foto-chave aparece ao lado quando o mouse ou
+ * o foco passa por ela. Vale no Explorar e na página da pessoa.
+ */
+
+.linha--lista {
+  padding-bottom: var(--e-9);
+}
+.lista {
+  /* quem sai numa troca some por cima, no mesmo ponto: é posto aqui dentro, solto da lista */
+  position: relative;
+  padding-top: var(--e-6);
+}
+.lista__bloco + .lista__bloco {
+  margin-top: var(--e-8);
+}
+.lista__cabeca {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-4);
+  padding-bottom: var(--e-3);
+  border-bottom: 1px solid var(--tinta);
+}
+.lista__ano {
+  font-size: var(--t-capa);
+  font-variation-settings: var(--serifa-ajustes-capa);
+  font-weight: var(--serifa-peso-capa);
+  letter-spacing: var(--aperto-capa);
+  line-height: 0.8;
+  font-variant-numeric: lining-nums;
+  margin-left: -0.03em;
+}
+.lista__linhas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lista__item {
+  position: relative;
+  border-bottom: 1px solid var(--fio);
+}
+/* A linha inteira é o link */
+.lista__linha {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  grid-template-areas:
+    'tipo titulo data'
+    '. resto resto';
+  align-items: baseline;
+  gap: var(--e-1) var(--e-3);
+  min-height: var(--toque);
+  padding-block: var(--e-3);
+  color: inherit;
+  text-decoration: none;
+}
+.lista__linha:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 2px;
+  border-radius: var(--raio-carimbo);
+}
+.lista__tipo {
+  grid-area: tipo;
+  align-self: start;
+  color: var(--tipo-tinta, var(--vivo-tinta));
+}
+.lista__tipo .icone {
+  display: block;
+  width: 1.375rem;
+  height: 1.375rem;
+}
+.lista__titulo {
+  grid-area: titulo;
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-leitura);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.lista__data {
+  grid-area: data;
+  color: var(--tinta-suave);
+  text-align: right;
+  white-space: nowrap;
+}
+.lista__resto {
+  grid-area: resto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-4);
+  color: var(--tinta-suave);
+  font-size: var(--t-micro);
+}
+/* O que a memória não tem não ocupa lugar */
+.lista__resto > :empty {
+  display: none;
+}
+.lista__sinais {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-3);
+}
+.lista__audio svg {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+/* O capítulo leva a mesma parada do trilho, na cor dele */
+.lista__capitulo-nome::before {
+  content: '';
+  display: inline-block;
+  box-sizing: border-box;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.5em;
+  border: 2px solid var(--trilho-ponto, var(--vivo));
+  border-radius: 50%;
+}
+/* A foto-chave só existe onde há mouse (abaixo). No toque ela não é desenhada nem baixada. */
+.lista__foto {
+  display: none;
+}
+
+@media (hover: hover) {
+  .lista__linha:hover .lista__titulo {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.16em;
+  }
+}
+
+/* --- Computador: uma linha só, em colunas ------------------------------------------------------ */
+
+@media (min-width: 62rem) {
+  .lista {
+    --coluna-da-data: 5.5rem;
+  }
+  /* Fora da ordem do tempo, a data vai inteira, com o ano */
+  .lista[data-sem-anos] {
+    --coluna-da-data: 8.5rem;
+  }
+  .lista__cabeca {
+    padding-bottom: var(--e-4);
+  }
+  .lista__linha {
+    grid-template-columns:
+      var(--coluna-da-data) 1.5rem minmax(0, 2.2fr) minmax(0, 1.5fr) 5.5rem
+      minmax(0, 1.3fr);
+    grid-template-areas: none;
+    gap: var(--e-1) var(--e-5);
+    padding-block: var(--e-4);
+  }
+  .lista__data {
+    /* a data que quebra em duas linhas não empurra o lugar para longe do título */
+    grid-area: 1 / 1 / 3 / 2;
+    text-align: left;
+    white-space: normal;
+  }
+  .lista__tipo {
+    grid-area: 1 / 2;
+  }
+  .lista__titulo {
+    grid-area: 1 / 3;
+    text-wrap: pretty;
+  }
+  /* O resto deixa de ser um andar: cada parte vai para a coluna dela */
+  .lista__resto {
+    display: contents;
+  }
+  .lista__resto > * {
+    font-size: var(--t-ficha);
+    color: var(--tinta-suave);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* PROVISÓRIO (pergunta 3 do PR de ajustes): em 1280 px o lugar fica embaixo do título; na tela
+     grande ele ganha a coluna dele (abaixo) */
+  .lista__lugar {
+    grid-area: 2 / 3;
+  }
+  /* Os nomes encolhem com reticências; o "+N" nunca some */
+  .lista__quem {
+    grid-area: 1 / 4;
+    display: flex;
+    gap: 0.5em;
+  }
+  .lista__nomes {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lista__mais {
+    flex: none;
+  }
+  .lista__sinais {
+    grid-area: 1 / 5;
+  }
+  .lista__capitulo {
+    grid-area: 1 / 6;
+  }
+}
+
+/* A foto-chave ao lado da linha, quando o mouse ou o foco do teclado passa por ela. Fica numa
+   margem reservada à direita, para não cobrir o texto da linha. */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .lista__linha {
+    padding-right: 11.5rem;
+  }
+  .lista__foto {
+    position: absolute;
+    top: 50%;
+    right: var(--e-5);
+    z-index: 2;
+    display: block;
+    width: 8.5rem;
+    translate: 0 -50%;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity var(--tempo-curto) var(--curva),
+      visibility 0s linear var(--tempo-curto);
+  }
+  /* A conta "N memórias" do cabeçalho do ano fica fora da margem da foto: alinhada com o fim do
+     texto das linhas, a foto de uma linha vizinha nunca passa por cima dela. */
+  .lista__cabeca {
+    padding-right: 11.5rem;
+  }
+  .lista__linha:hover .lista__foto,
+  .lista__linha:focus-visible .lista__foto {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity var(--tempo-curto) var(--curva),
+      visibility 0s;
+  }
+}
+
+@media (min-width: 100rem) {
+  /* Na tela grande cabe uma coluna para o lugar */
+  .lista__linha {
+    grid-template-columns:
+      var(--coluna-da-data) 1.5rem minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.5fr)
+      6.5rem minmax(0, 1.3fr);
+  }
+  .lista__lugar {
+    grid-area: 1 / 4;
+  }
+  .lista__quem {
+    grid-area: 1 / 5;
+  }
+  .lista__sinais {
+    grid-area: 1 / 6;
+  }
+  .lista__capitulo {
+    grid-area: 1 / 7;
+  }
+  .lista__foto {
+    width: 12rem;
+  }
+  .lista__linha {
+    padding-block: var(--e-5);
+  }
+}
+@media (min-width: 100rem) and (hover: hover) and (pointer: fine) {
+  .lista__linha,
+  .lista__cabeca {
+    padding-right: 15rem;
+  }
+}

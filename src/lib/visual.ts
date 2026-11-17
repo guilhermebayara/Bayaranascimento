@@ -26,15 +26,53 @@ export function formaDoId(id: string): number {
 }
 
 /**
- * A cor de cada tipo de momento no visual novo: uma das onze cores do site, uma para cada tipo
- * de hoje (aprovado pelo Gui, 16/11/2026). As cores gravadas no banco (tabela tipos) continuam
- * as de hoje; na fase 2, esta paleta é aplicada em /admin/tipos. Tipo criado depois pelos
- * administradores ganha uma das onze, pelo id.
+ * As onze cores aprovadas pelo Gui em 16/11/2026: servem às famílias, aos capítulos e aos tipos de
+ * momento de sempre. Tipo sem cor escolhida ganha uma delas, pelo id.
  */
 export const CORES = ['manteiga', 'verde', 'rosa', 'roxo', 'azul', 'pessego', 'coral', 'turquesa', 'orquidea', 'ardosia', 'areia'] as const;
 export type Cor = (typeof CORES)[number];
 
-const COR_DO_TIPO: Record<string, Cor> = {
+/**
+ * A paleta ampliada (resposta do Gui à pergunta 11 do PR #38, 17/11/2026): as onze e mais doze, para
+ * os administradores escolherem a cor de cada tipo de momento em /admin/tipos. Os valores estão em
+ * src/visual/tokens.css, nos quatro tons de sempre, com o contraste conferido em testes/paleta.test.ts.
+ * PROVISÓRIO (pergunta 1 do PR dos tipos): as doze cores novas e os nomes delas.
+ */
+export const CORES_NOVAS = ['limao', 'oliva', 'menta', 'musgo', 'ceu', 'petroleo', 'anil', 'uva', 'ameixa', 'cereja', 'terracota', 'cacau'] as const;
+export const PALETA = [...CORES, ...CORES_NOVAS] as const;
+export type CorDaPaleta = (typeof PALETA)[number];
+
+/** O nome de cada cor, como a pessoa lê na grade de /admin/tipos e em /sistema. */
+export const NOMES_DAS_CORES: Record<CorDaPaleta, string> = {
+  manteiga: 'Manteiga',
+  verde: 'Verde',
+  rosa: 'Rosa',
+  roxo: 'Roxo',
+  azul: 'Azul',
+  pessego: 'Pêssego',
+  coral: 'Coral',
+  turquesa: 'Turquesa',
+  orquidea: 'Orquídea',
+  ardosia: 'Ardósia',
+  areia: 'Areia',
+  limao: 'Limão',
+  oliva: 'Oliva',
+  menta: 'Menta',
+  musgo: 'Musgo',
+  ceu: 'Céu',
+  petroleo: 'Petróleo',
+  anil: 'Anil',
+  uva: 'Uva',
+  ameixa: 'Ameixa',
+  cereja: 'Cereja',
+  terracota: 'Terracota',
+  cacau: 'Cacau',
+};
+
+export const ehCorDaPaleta = (nome: string | null | undefined): nome is CorDaPaleta => (PALETA as readonly string[]).includes(nome ?? '');
+
+/** A cor de cada tipo de momento de sempre (aprovado pelo Gui, 16/11/2026). */
+export const COR_DO_TIPO: Record<string, Cor> = {
   nascimento: 'verde',
   aniversario: 'rosa',
   casamento: 'roxo',
@@ -48,8 +86,46 @@ const COR_DO_TIPO: Record<string, Cor> = {
   outro: 'orquidea',
 };
 
-export function corDoTipo(tipo: string): Cor {
+/** A cor de um tipo que ninguém escolheu: a de sempre, ou uma das onze, pelo id. */
+export function corDeReserva(tipo: string): Cor {
   return COR_DO_TIPO[tipo] ?? CORES[numeroDo(`tipo:${tipo}`) % CORES.length]!;
+}
+
+/**
+ * O que os administradores escolheram para cada tipo em /admin/tipos: a cor da paleta e o rabisco.
+ * A lista vive no banco; quem a entrega é o servidor, a cada pedido (src/middleware.ts chama
+ * lerEscolhasDe uma vez, apontando para os tipos do pedido em curso). Sem lista (nos testes, no
+ * navegador), vale a reserva: a cor e o rabisco de sempre.
+ */
+export interface EscolhaDoTipo {
+  id: string;
+  corDaPaleta?: string | null;
+  icone?: string | null;
+}
+let escolhas: () => readonly EscolhaDoTipo[] | undefined = () => undefined;
+export function lerEscolhasDe(fonte: () => readonly EscolhaDoTipo[] | undefined): void {
+  escolhas = fonte;
+}
+const escolhaDo = (tipo: string) => escolhas()?.find((t) => t.id === tipo);
+
+/** A cor de um tipo de momento: a que os administradores escolheram ou, sem escolha, a de reserva. */
+export function corDoTipo(tipo: string): CorDaPaleta {
+  const escolhida = escolhaDo(tipo)?.corDaPaleta;
+  return ehCorDaPaleta(escolhida) ? escolhida : corDeReserva(tipo);
+}
+
+/**
+ * O rabisco de um tipo de momento (src/visual/rabiscos.ts): o que os administradores escolheram ou,
+ * sem escolha, o de sempre (o tipo de hoje tem o rabisco com o nome dele; o criado depois, o brilho).
+ * Quem confere se o nome existe é o IconeDoTipo, que cai no brilho.
+ */
+export function iconeDoTipo(tipo: string): string {
+  return escolhaDo(tipo)?.icone || tipo;
+}
+
+/** O estilo que leva uma cor da paleta a um trecho da página, nos papéis do tipo de momento. */
+export function estiloDaCor(cor: string): string {
+  return `--tipo-pastel: var(--${cor}-pastel); --tipo-meio: var(--${cor}-meio); --tipo-cor: var(--${cor}-vivo); --tipo-tinta: var(--${cor}-tinta)`;
 }
 
 /**
@@ -66,8 +142,7 @@ export function estiloDoCapitulo(cor: number): string {
 
 /** O estilo que leva a cor do tipo a um trecho da página: o pastel, o vivo e a tinta dele. */
 export function estiloDoTipo(tipo: string): string {
-  const cor = corDoTipo(tipo);
-  return `--tipo-pastel: var(--${cor}-pastel); --tipo-meio: var(--${cor}-meio); --tipo-cor: var(--${cor}-vivo); --tipo-tinta: var(--${cor}-tinta)`;
+  return estiloDaCor(corDoTipo(tipo));
 }
 
 const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
