@@ -24,7 +24,7 @@ const paragrafos = carta.texto.split(/\n\s*\n/).map((p) => p.trim()).filter(Bool
 const [abertura, ...resto] = paragrafos;
 // "Gui, Giovanna e Magno" vira três nomes, cada um com a sua mão
 const assinam = carta.assinatura.split(/\s*,\s*|\s+e\s+|\s*&\s*/).map((n) => n.trim()).filter(Boolean);
-// PROVISÓRIO (pergunta 1 do PR do grupo "pessoal"): o carimbo diz só "Natal de <ano>", do ano em que a carta foi escrita
+// Aprovado pelo Gui em 17/11/2026 (pergunta 1 do PR do grupo "pessoal"): o carimbo diz só "Natal de <ano>", do ano em que a carta foi escrita
 const ano = carta.escritaEm.slice(0, 4);
 ---
 

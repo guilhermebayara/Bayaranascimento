@@ -17,7 +17,7 @@ const relatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situa
 const titulo = rascunho ? 'Descartar rascunho' : 'Excluir memória';
 // Quem mais pode recuperar, do ponto de vista de quem está excluindo
 const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
-// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
+// Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
 <Pagina titulo={titulo} rotulo={rascunho ? 'Rascunho' : 'Memória publicada'} nucleos={memoria.nucleos} secao="explorar">

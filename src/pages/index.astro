@@ -89,7 +89,7 @@ const minhas = recentes.filter((m) => m.integrantes.includes(usuario.pessoa));
 const novo = chegada.novidadesDesde
   ? novidades(memorias, await listarRelatosPublicadosDesde(usuario, chegada.novidadesDesde), chegada.novidadesDesde, usuario.pessoa)
   : { memorias: [], relatos: [] };
-// PROVISÓRIO (pergunta 3 do PR do grupo "pessoal"): na mesa cabem duas memórias e um relato, como
+// Aprovado pelo Gui em 17/11/2026 (pergunta 3 do PR do grupo "pessoal"): na mesa cabem duas memórias e um relato, como
 // no conceito. O resto fica numa linha, com o caminho para "Entraram por último", no Explorar.
 const naMesa = novo.memorias.slice(0, 2);
 const relatoNaMesa = novo.relatos[0];
@@ -163,7 +163,7 @@ const erro = Astro.url.searchParams.get('erro');
             </span>
             .
           </h1>
-          {/* PROVISÓRIO (pergunta 4 do PR do grupo "pessoal"): a frase de quem chega sem visita anterior */}
+          {/* Aprovado pelo Gui em 17/11/2026 (pergunta 4 do PR do grupo "pessoal"): a frase de quem chega sem visita anterior */}
           <p class="serifa t-abertura novo__resumo">
             {partesDoResumo.length > 0
               ? `${verbo} ${partesDoResumo.join(' e ')} desde a sua última visita.`

@@ -79,7 +79,7 @@ const noCapitulo = !memoria ? capitulosReunidos.find((c) => c.id === Astro.url.s
 const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'Continuar rascunho';
 ---
 
-{/* PROVISÓRIO (pergunta 6 do PR do grupo "formularios"): a linha pequena acima do título */}
+{/* Aprovado pelo Gui em 17/11/2026 (pergunta 6 do PR do grupo "formularios"): a linha pequena acima do título */}
 <Pagina titulo={titulo} rotulo={publicada ? 'Memória publicada' : memoria ? 'Rascunho' : undefined} nucleos={memoria?.nucleos}>
   <p slot="abertura">
     {
@@ -143,7 +143,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     {/* O formulário em frase (docs/visual.md, "A data no formulário em frase"): a lacuna da data mostra
         a data como o site escreve e, ao toque, abre logo abaixo o controle de data flexível. A do
         lugar é texto livre. Sem script, a lacuna da data não aparece e o controle fica aberto.
-        PROVISÓRIO (pergunta 1 do PR do grupo "formularios"): o texto da frase e o da lacuna vazia. */}
+        A MUDAR na tst-visual-ajustes (resposta do Gui, 17/11/2026, à pergunta 1 do PR do grupo "formularios"): o texto da frase e o da lacuna vazia. */}
     <fieldset>
       <legend>Quando e onde foi?</legend>
       <p class="frase" data-frase>

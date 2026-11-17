@@ -20,7 +20,7 @@ import { montarConta } from '../lib/servidor/conta';
 import { familiasDe, listarCasais, listarFiliacoes, listarNucleos } from '../lib/servidor/repositorio';
 import { carimboDaData, corDaPessoa, corDoNucleo } from '../lib/visual';
 
-// PROVISÓRIO (pergunta 7 do PR do grupo "pessoal"): os textos novos desta tela esperam o Gui.
+// Os textos novos desta tela foram aprovados pelo Gui em 17/11/2026 (pergunta 7 do PR do grupo "pessoal").
 const { usuario } = Astro.locals;
 const conta = await montarConta(usuario);
 const { dados: eu, integrantes } = conta;
@@ -58,7 +58,7 @@ const erro = Astro.url.searchParams.get('erro');
       <div class="conta__quem">
         <p class="rotulo suave">Sua conta · só você vê esta página</p>
         <h1 class="t-1">{eu?.nome ?? usuario.nome}</h1>
-        {/* PROVISÓRIO (pergunta 5 do PR do grupo "pessoal"): os dados são editados na tela de editar a página, que é do grupo 4 */}
+        {/* Aprovado pelo Gui em 17/11/2026 (pergunta 5 do PR do grupo "pessoal"): os dados são editados na tela de editar a página, que é do grupo 4 */}
         <p class="conta__acoes">
           <a class="botao" href={`/pessoas/${usuario.pessoa}/editar`}>
             Editar seus dados

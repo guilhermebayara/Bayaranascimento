@@ -194,7 +194,7 @@
 /* --- Escolhas ---------------------------------------------------------------------------------- */
 
 /* Opção em pílula: uma entre poucas (rádio) ou várias (caixa, com o tique antes do nome).
-   PROVISÓRIO (pergunta 5 do PR do grupo "formularios"). */
+   Aprovado pelo Gui em 17/11/2026 (pergunta 5 do PR do grupo "formularios"). */
 .pagina-de-formulario .opcoes {
   display: flex;
   flex-wrap: wrap;
@@ -377,7 +377,7 @@
   gap: var(--e-2) var(--e-6);
 }
 /* A ação que não é a principal é texto sublinhado: o botão cheio fica para a principal da tela.
-   PROVISÓRIO (pergunta 4 do PR do grupo "formularios"). */
+   Aprovado pelo Gui em 17/11/2026 (pergunta 4 do PR do grupo "formularios"). */
 .pagina-de-formulario .botao.botao--leve {
   min-height: var(--toque);
   padding: 0;
@@ -457,7 +457,7 @@
 /* --- A trilha das etapas, quieta ----------------------------------------------------------------
    No celular, uma fila de números pequenos e, embaixo, "Etapa 2 de 7: Quando e onde". No
    computador, uma coluna à esquerda com o nome de cada etapa, e a pergunta à direita.
-   PROVISÓRIO (pergunta 3 do PR do grupo "formularios"). */
+   Aprovado pelo Gui em 17/11/2026 (pergunta 3 do PR do grupo "formularios"). */
 
 .pagina-de-formulario .etapas {
   display: flex;
@@ -921,7 +921,7 @@
 
 /* Com "Continuar" na tela, ele é a ação principal: o envio que está sempre à mão ("Salvar
    alterações", "Salvar capítulo") fica em contorno. Na última etapa, volta a ser o botão cheio.
-   PROVISÓRIO (pergunta 2 do PR do grupo "formularios"). */
+   Aprovado pelo Gui em 17/11/2026 (pergunta 2 do PR do grupo "formularios"). */
 .pagina-de-formulario .acoes--etapas [data-etapa-continuar]:not([hidden]) ~ .botao[type='submit']:not(.botao--leve) {
   background: transparent;
   box-shadow: inset 0 0 0 var(--traco) var(--tinta);
@@ -1021,7 +1021,7 @@
   }
 }
 
-/* PROVISÓRIO (pergunta 7 do PR do grupo "formularios"): na tela grande a coluna cresce pouco */
+/* A MUDAR na tst-visual-ajustes (resposta do Gui, 17/11/2026, à pergunta 7 do PR do grupo "formularios"): na tela grande a coluna cresce pouco */
 @media (min-width: 100rem) {
   .pagina-de-formulario {
     --coluna: 52rem;
@@ -1039,7 +1039,7 @@
 }
 
 /* --- A trilha de um fluxo que passa por mais de uma página (nova pessoa e os laços) --------------
-   PROVISÓRIO (pergunta 9 do PR do grupo "formularios"). */
+   Aprovado pelo Gui em 17/11/2026 (pergunta 9 do PR do grupo "formularios"). */
 
 .pagina-de-formulario .etapas--fluxo {
   flex-wrap: wrap;
@@ -1195,7 +1195,7 @@
   border-top: 0;
 }
 /* Os dois caminhos: cada um num cartão inteiro para tocar.
-   PROVISÓRIO (pergunta 9 do PR do grupo "formularios"). */
+   Aprovado pelo Gui em 17/11/2026 (pergunta 9 do PR do grupo "formularios"). */
 .pagina-de-formulario .escolhas {
   display: grid;
   gap: var(--e-3);
@@ -1342,7 +1342,7 @@
 }
 
 /* --- Os laços que já existem: cada um numa linha, com "Editar" abrindo no lugar -------------------
-   PROVISÓRIO (pergunta 10 do PR do grupo "formularios"): a edição num cartão branco e as fases
+   Aprovado pelo Gui em 17/11/2026 (pergunta 10 do PR do grupo "formularios"): a edição num cartão branco e as fases
    do casal com um fio ao lado. */
 
 .pagina-de-formulario .grupo-de-lacos {
@@ -1549,7 +1549,7 @@
   color: var(--tinta-suave);
 }
 /* A confirmação de excluir: um cartão com a marca do alerta.
-   PROVISÓRIO (pergunta 12 do PR do grupo "formularios"). */
+   Aprovado pelo Gui em 17/11/2026 (pergunta 12 do PR do grupo "formularios"). */
 .pagina-de-formulario .alerta {
   display: grid;
   gap: var(--e-4);

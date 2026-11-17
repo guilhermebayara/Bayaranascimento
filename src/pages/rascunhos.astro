@@ -7,7 +7,7 @@ import { listarMemorias, listarRascunhosDeRelato } from '../lib/servidor/reposit
 const { usuario } = Astro.locals;
 const memorias = await listarMemorias(usuario, { rascunhos: true });
 const relatos = await listarRascunhosDeRelato(usuario);
-// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
+// Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
 <Pagina titulo="Rascunhos" rotulo="Sua conta" secao="conta" larga>

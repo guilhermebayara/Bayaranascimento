@@ -41,7 +41,7 @@ const meusRelatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.r
 const relatos = await Promise.all(meusRelatos.map(async (r) => ({ relato: r, versoes: await listarVersoes<Relato>('relato', String(r.id)) })));
 const minhasFotos = (await listarFotosRemovidas(memoria.id)).filter((f) => f.enviadaPor === usuario.pessoa);
 const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0) && minhasFotos.length === 0;
-// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
+// Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
 <Pagina titulo="Histórico" aba={`Histórico de ${memoria.titulo}`} rotulo="Memória" nucleos={memoria.nucleos} secao="explorar" larga>
