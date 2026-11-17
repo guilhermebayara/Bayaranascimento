@@ -550,6 +550,31 @@ const MIGRACOES: Migracao[] = [
       `UPDATE relatos SET publicado_em = criado_em WHERE situacao = 'publicada'`,
     ],
   },
+  {
+    // Tipos de momento: a cor vira o nome de uma cor da paleta do sistema, e cada tipo ganha um
+    // rabisco à escolha (resposta do Gui à pergunta 11 do PR #38, 17/11/2026). A coluna "cor", com
+    // o valor de antes do visual novo, fica como está: o site não pinta mais por ela.
+    // Os onze tipos de sempre recebem a cor e o rabisco que já mostram hoje (COR_DO_TIPO, em
+    // src/lib/visual.ts, e o rabisco com o id do tipo), para nada mudar de aparência. Tipo criado
+    // pelos administradores antes desta migração fica sem escolha e continua com a cor de reserva
+    // e o brilho, como hoje. testes/tipos.test.ts confere que esta lista e COR_DO_TIPO dizem o mesmo.
+    id: '021-cor-e-icone-dos-tipos',
+    sql: [
+      `ALTER TABLE tipos ADD COLUMN cor_da_paleta TEXT`,
+      `ALTER TABLE tipos ADD COLUMN icone TEXT`,
+      `UPDATE tipos SET cor_da_paleta = 'verde', icone = 'nascimento' WHERE id = 'nascimento'`,
+      `UPDATE tipos SET cor_da_paleta = 'rosa', icone = 'aniversario' WHERE id = 'aniversario'`,
+      `UPDATE tipos SET cor_da_paleta = 'roxo', icone = 'casamento' WHERE id = 'casamento'`,
+      `UPDATE tipos SET cor_da_paleta = 'manteiga', icone = 'conquista' WHERE id = 'conquista'`,
+      `UPDATE tipos SET cor_da_paleta = 'azul', icone = 'viagem' WHERE id = 'viagem'`,
+      `UPDATE tipos SET cor_da_paleta = 'pessego', icone = 'casa' WHERE id = 'casa'`,
+      `UPDATE tipos SET cor_da_paleta = 'coral', icone = 'festa' WHERE id = 'festa'`,
+      `UPDATE tipos SET cor_da_paleta = 'turquesa', icone = 'causo' WHERE id = 'causo'`,
+      `UPDATE tipos SET cor_da_paleta = 'areia', icone = 'cotidiano' WHERE id = 'cotidiano'`,
+      `UPDATE tipos SET cor_da_paleta = 'ardosia', icone = 'despedida' WHERE id = 'despedida'`,
+      `UPDATE tipos SET cor_da_paleta = 'orquidea', icone = 'outro' WHERE id = 'outro'`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

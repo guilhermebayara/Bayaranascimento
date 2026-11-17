@@ -1,0 +1,73 @@
+---
+// A cor e o desenho de um tipo de momento, em /admin/tipos (resposta do Gui à pergunta 11 do PR #38,
+// 17/11/2026). A cor é escolhida numa grade de amostras da paleta do sistema, e o desenho, numa grade
+// dos rabiscos. Tudo é rádio de formulário comum: funciona sem script e pelo teclado (as setas andam
+// pela grade). A escolhida leva o tique e o nome em negrito, além da cor. Ao lado, a prévia mostra a
+// etiqueta e o cartão de memória sem foto; com script, ela acompanha a escolha na hora.
+import Etiqueta from '../visual/Etiqueta.astro';
+import IconeDoTipo from '../visual/IconeDoTipo.astro';
+import Polaroid from '../visual/Polaroid.astro';
+import { NOMES_DAS_CORES, PALETA, estiloDaCor } from '../../lib/visual';
+import { RABISCOS } from '../../visual/rabiscos';
+
+interface Props {
+  /** o que distingue este formulário dos outros da página (o id do tipo, ou "novo") */
+  chave: string;
+  /** a cor e o rabisco marcados ao abrir */
+  cor: string;
+  icone: string;
+  /** o nome do tipo, para a prévia */
+  rotulo: string;
+  /** quais tipos já usam cada cor: o nome da cor leva aos nomes dos tipos */
+  emUso: Map<string, string[]>;
+}
+
+const { chave, cor, icone, rotulo, emUso } = Astro.props;
+---
+
+<div class="escolha-do-tipo" data-escolha-do-tipo>
+  <div class="escolha-do-tipo__grades">
+    <fieldset class="paleta">
+      <legend>Cor</legend>
+      <div class="paleta__grade">
+        {
+          PALETA.map((c) => {
+            const usam = (emUso.get(c) ?? []).filter((nome) => nome !== rotulo);
+            return (
+              <label class="amostra" style={estiloDaCor(c)}>
+                <input type="radio" name="cor" value={c} checked={c === cor} required data-escolha-cor />
+                <span class="amostra__cor" aria-hidden="true" />
+                <span class="amostra__nome">{NOMES_DAS_CORES[c]}</span>
+                {/* Repetir cor pode, como sempre pôde: a amostra só avisa quem já usa */}
+                {usam.length > 0 && <span class="amostra__uso">em {usam.join(', ')}</span>}
+              </label>
+            );
+          })
+        }
+      </div>
+    </fieldset>
+    <fieldset class="rabiscos">
+      <legend>Desenho</legend>
+      <div class="rabiscos__grade">
+        {
+          RABISCOS.map((r) => (
+            <label class="rabisco-a-escolher" title={r.nome}>
+              <input type="radio" name="icone" value={r.id} checked={r.id === icone} required data-escolha-icone />
+              <span class="rabisco-a-escolher__desenho" aria-hidden="true">
+                <IconeDoTipo rabisco={r.id} />
+              </span>
+              <span class="so-leitor">{r.nome}</span>
+            </label>
+          ))
+        }
+      </div>
+    </fieldset>
+  </div>
+  <aside class="escolha-do-tipo__previa" aria-label="Como fica" data-escolha-previa style={estiloDaCor(cor)}>
+    <p class="rotulo suave">Como fica</p>
+    <p>
+      <Etiqueta tipo={chave} rotulo={rotulo || 'Nome do tipo'} cor={cor} rabisco={icone} />
+    </p>
+    <Polaroid id={`previa-${chave}`} fotos={[]} legenda="Lugar (ano)" tipo={chave} rabisco={icone} monte={false} reta />
+  </aside>
+</div>

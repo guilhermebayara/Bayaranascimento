@@ -56,6 +56,10 @@ const abrirLaco = async (pagina) => {
   await pagina.locator('details.editar > summary').first().click();
   await pagina.locator('details.editar[open] details.confirmar > summary').first().click();
 };
+// /admin/tipos: abre a cor e o desenho de um tipo, com as duas grades à vista
+const abrirTipo = async (pagina) => {
+  await pagina.locator('details.tipo-da-lista:has(input[name="id"][value="viagem"]) > summary').click();
+};
 const abrirFiltros = async (pagina) => {
   await pagina.locator('.filtros > summary').click();
 };
@@ -232,6 +236,12 @@ const PAGINAS = [
   { nome: 'formularios-6-rascunhos', url: '/rascunhos', larguras: TODAS },
   { nome: 'formularios-6-lixeira', url: '/lixeira', larguras: TODAS, corte: 2400 },
   { nome: 'formularios-7-admin-tipos', url: '/admin/tipos', larguras: TODAS },
+  // Tipos de momento: a cor numa paleta ampliada e o desenho à escolha (tst-visual-tipos).
+  // Para tirar só elas: CAPTURAS_SO=^tipos npm run capturas -- tirar <pasta>
+  { nome: 'tipos-1-admin', url: '/admin/tipos', larguras: TODAS },
+  { nome: 'tipos-1-admin-editando', url: '/admin/tipos', larguras: TODAS, antes: abrirTipo, desde: 'details.tipo-da-lista[open]', corte: 1900 },
+  { nome: 'tipos-2-sistema-paleta', url: '/sistema', larguras: TODAS, desde: '#paleta-ampliada', corte: 1900 },
+  { nome: 'tipos-2-sistema-rabiscos', url: '/sistema', larguras: TODAS, desde: '#todos-os-rabiscos', corte: 900 },
   { nome: 'formularios-7-admin-familias', url: '/admin/familias', larguras: TODAS },
   { nome: 'formularios-7-admin-carta', url: '/admin/carta', larguras: TODAS },
   { nome: 'formularios-7-admin-espelho', url: '/admin/espelho', larguras: TODAS },

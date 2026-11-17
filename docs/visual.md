@@ -341,7 +341,7 @@ As serifas trazem os próprios acertos (`--escala-serifa`, `--aperto-titulo`, `-
 | Cores das famílias | Aprovadas pelo Gui em 16/11/2026. Cada família tem uma cor só, com variação de tons: Bayara é verde, a cor da Elizete; Bayara Bracarense é orquídea, o meio-termo entre o rosa da Giovanna e o roxo do Magno, sem favorecer um dos dois; Bracarense é azul; "Tudo", as famílias juntas, é manteiga. Os valores estão em `src/visual/tokens.css` |
 | Ícones e ilustrações | Cabem, com limpeza e elegância, para trazer leveza e alegria (do Gui, 16/11/2026). O site continua tipográfico. No conceito: um ícone de traço para cada tipo de momento, rabiscos de caneta (sublinhado, seta, coração) e o envelope do laboratório no painel |
 | Painel | É a parte que só a pessoa vê, e precisa ter cara própria, de espaço íntimo (do Gui, 16/11/2026). No conceito: a página inteira tingida na cor da família da pessoa, o conteúdo em cartões e o aviso "Só você vê esta página". Quem está em mais de uma família vê a cor da mais recente: a Giovanna e o Magno, a da família que criaram juntos (`familiaMaisRecente`, em `src/lib/familias.ts`) |
-| Cores dos tipos de momento | Aprovadas pelo Gui em 16/11/2026, com espaço para mais cores: o conceito tem onze, uma para cada tipo de hoje (`corDoTipo`, em `src/lib/visual.ts`). A abertura da memória num bloco inteiro na cor do tipo também foi aprovada |
+| Cores dos tipos de momento | Aprovadas pelo Gui em 16/11/2026, com espaço para mais cores: o conceito tem onze, uma para cada tipo de hoje (`corDoTipo`, em `src/lib/visual.ts`). A abertura da memória num bloco inteiro na cor do tipo também foi aprovada Desde 17/11/2026, a cor de cada tipo é escolhida pelos administradores numa paleta de 23 cores, as onze e mais doze, e o ícone, entre 30 rabiscos (ver "Tipos: paleta e ícones") |
 | "Família", e não "núcleo" | O site deixa de mostrar o termo "núcleo", que fica só para a lógica (decisão do Gui, 16/11/2026). Na tela, é "família" |
 
 ## Movimento
@@ -754,7 +754,7 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 - **A aprovação do Gui**, grupo a grupo, e o merge na ordem: #35, #36, #37 e #38. As perguntas de cada grupo estão no fim do PR dele.
 - **As fontes:** `/conceito/sobre` fica até a escolha, que espera a Giovanna e o Magno. Depois dela, saem as duas combinações que sobrarem ("Como a fonte é trocada").
 - **Limpeza que ficou para depois dos merges:** tirar de "Decidido, a construir" os itens que os grupos fecharam (Explorar, capítulos na linha do tempo, painel, sua conta, "família" no lugar de "núcleo", revisão visual) e levar o resumo para as seções de regra; `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena, como `docs/decisoes.md` já previa; separar os testes dos grupos 1 e 2 do `describe('conceito')`, em `testes/visual.test.ts`; tentar as camadas do CSS.
-- **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Resposta do Gui (17/11/2026): muda na `tst-visual-tipos`, com a cor escolhida numa paleta ampliada do sistema e um seletor de ícone.
+- **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Resposta do Gui (17/11/2026): mudou na `tst-visual-tipos`, e a cor escolhida em `/admin/tipos` voltou a valer na tela (ver "Tipos: paleta e ícones").
 - **O que nenhum grupo viu na tela:** o envio de foto nova, a gravação de áudio, o recorte do retrato com uma foto e o histórico com alterações.
 
 **Da fase 4 (movimento e detalhes)**
@@ -945,7 +945,47 @@ Branch `tst-visual-ajustes`, nascida da `homologa` em 17/11/2026, com o que o Gu
 
 **O que falta depois dos ajustes**
 
-- **`tst-visual-tipos`**, nascida da `tst-visual-ajustes`: em `/admin/tipos`, a cor vira escolha numa paleta ampliada do sistema e entra o seletor de ícone, com rabiscos novos em `IconeDoTipo.astro` e tudo mostrado em `/sistema`. A marca "A MUDAR" da pergunta 11 do #38 sai ali.
+- **`tst-visual-tipos`**: construída em 17/11/2026, com PR próprio, que depende do #39 (ver "Tipos: paleta e ícones", no fim deste arquivo). A marca "A MUDAR" da pergunta 11 do #38 saiu ali.
 - **No iPhone e no Safari do computador:** a nitidez da árvore no zoom, a lista, a frase da abertura e a zona de perigo.
 - **Numa TV de verdade:** o modo TV com o controle, e os formulários em 1920 px com o resumo ao lado.
 - **Refazer as capturas da árvore** em `docs/visual/fase-3/familia/`.
+
+## Tipos: paleta e ícones
+
+Construído em 17/11/2026 na branch `tst-visual-tipos`, nascida da `tst-visual-ajustes` (o PR dela depende do #39). É a resposta do Gui à pergunta 11 do PR #38: em `/admin/tipos`, a cor vira uma escolha numa paleta ampliada do sistema e entra um seletor de ícone entre os rabiscos.
+
+**A paleta.** São 23 cores: as onze aprovadas em 16/11/2026, que não mudaram de valor, e doze novas (limão, oliva, menta, musgo, céu, petróleo, anil, uva, ameixa, cereja, terracota e cacau), cada uma nos quatro tons de sempre (pastel, meio, vivo e tinta), em `src/visual/tokens.css`. A lista e os nomes estão em `src/lib/visual.ts` (`CORES`, `CORES_NOVAS`, `PALETA`, `NOMES_DAS_CORES`). As onze continuam sendo as das famílias e dos capítulos; as doze novas só entram pela escolha do tipo.
+
+**O contraste é conferido por teste** (`testes/paleta.test.ts`), com a conta da WCAG feita sobre os valores de `tokens.css` (`src/lib/contraste.ts`):
+
+| Regra | Vale para |
+| --- | --- |
+| A tinta da cor sobre o papel e sobre a moldura branca: 4,5 para um | As 23 |
+| O texto do site sobre o pastel da cor: 4,5 para um | As 23 |
+| A tinta da cor sobre o pastel dela: 4,5 para um | As doze novas e sete das onze |
+| O vivo longe do pastel da mesma cor, pelo menos como na manteiga | As doze novas |
+| Nenhuma cor mais perto de outra do que as duas mais próximas entre as onze (ardósia e azul no pastel, coral e pêssego no vivo) | Todos os pares |
+
+**Quatro das onze aprovadas ficam abaixo de 4,5 com a tinta sobre o próprio pastel:** pêssego (3,9), coral (4,2), rosa (4,2) e manteiga (4,4). Não foram mexidas, porque são cores que o Gui aprovou; o teste guarda o valor de hoje como piso e a página do sistema marca as quatro. É a pergunta 4 do PR.
+
+**O vivo sobre o pastel não chega a 3 para um em quase nenhuma cor**, nem nas onze aprovadas (a manteiga tem 1,5): o vivo é ponto de destaque, nunca texto. Por isso a regra do vivo é de distância entre as duas cores, e não de contraste de leitura.
+
+**Os rabiscos.** São 30: os onze de sempre e dezenove novos, no mesmo traço (caixa de 24 por 24, traço de 1,6 com pontas redondas, sem preenchimento): capelo, mamadeira, sol e mar, pinheiro, garfo e faca, nota musical, bola, patinha, livro aberto, carro, presente, câmera, coração, sol, caixa de mudança, taça, barraca, montanha e peixe. Os desenhos e os nomes estão em `src/visual/rabiscos.ts`; `IconeDoTipo.astro` só desenha. Um chocalho foi desenhado e trocado pela mamadeira: parecia uma lupa.
+
+**Como a escolha chega à tela.**
+
+- A tabela `tipos` ganhou `cor_da_paleta` e `icone` (migração `021-cor-e-icone-dos-tipos`). Os onze tipos de sempre receberam a cor e o rabisco que já mostravam, então nada muda de aparência; tipo criado antes pelos administradores fica sem escolha e continua com a cor de reserva e o brilho. A coluna antiga `cor` fica como está e não é mais lida.
+- `corDoTipo`, `estiloDoTipo` e `iconeDoTipo` (`src/lib/visual.ts`) leem a escolha; sem escolha, ou com um nome que não existe, vale a reserva (`corDeReserva` e o rabisco com o id do tipo). Nenhuma tela precisou mudar: todas já pintavam por `estiloDoTipo` e pelo `IconeDoTipo`.
+- A lista de tipos do pedido fica guardada junto do pedido (`guardarTiposDoPedido`, em `src/lib/servidor/ambiente.ts`), e não numa variável do módulo, porque o mesmo servidor atende a homologação e as prévias, cada uma com o banco dela.
+- `/api/tipos` só aceita nome de cor da paleta e nome de rabisco da lista, e só de administrador.
+- O espelho da produção não mexe na tabela `tipos`, e a cópia do acervo leva as colunas novas sozinha.
+
+**A tela (`/admin/tipos`).** Cada tipo é uma linha com a etiqueta dele, que abre no lugar (um por vez): o nome, a grade de cores, a grade de desenhos e, ao lado, a prévia com a etiqueta e o cartão da memória sem foto. As duas grades são rádios de formulário comum: funcionam sem script e pelo teclado, e a escolhida leva o tique e o negrito, além da cor. A amostra de cor diz quem já usa ("em Viagem"); repetir cor continua podendo, como sempre pôde, e o tipo novo já vem com uma cor que ninguém usa. Com script, a prévia acompanha a cor, o desenho e o nome na hora. No "Outro", o tipo criado a partir de um texto escolhe a cor numa lista e nasce com o brilho; o desenho se escolhe depois. O estilo está em `src/visual/telas/tipos.css` e a peça da escolha, em `src/components/formularios/EscolhaDoTipo.astro`.
+
+**A página do sistema** mostra as doze cores novas, a tabela do contraste das 23 e todos os rabiscos com o nome.
+
+**Conferido:** trocar a cor e o desenho de um tipo só pelo teclado, em 390 e 1280 px, e ver a troca chegar à memória e à linha do tempo; criar um tipo; sem JavaScript; alvos de 44 px e foco visível; a API recusando cor e desenho fora das listas e quem não é administrador; a migração num banco local novo. As telas do Explorar, da memória e do painel foram capturadas com a escolha valendo e sem ela, e saíram iguais pixel a pixel (a única diferença foi um retrato que não tinha carregado numa das rodadas).
+
+**Capturas.** `CAPTURAS_SO='^tipos' npm run capturas -- tirar <pasta>`. Estão em `docs/visual/fase-3/tipos/`; as duas com o tipo trocado (`tipos-3-…`) foram tiradas à parte, com "Viagem" em cereja e com a montanha, e o tipo voltou ao azul depois.
+
+**O que falta:** a resposta do Gui às perguntas do PR (as cores novas, os rabiscos, os textos e as quatro cores abaixo de 4,5); conferir no iPhone; e, se ele quiser, exemplos de tipos novos no acervo de exemplo.

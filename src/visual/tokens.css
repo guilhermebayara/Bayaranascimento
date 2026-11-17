@@ -39,7 +39,8 @@
   /*
    * As cores. Cada uma é uma cor só em quatro tons: o pastel (blocos sólidos), o meio (enfeites
    * sobre o pastel), o vivo (pontos de destaque) e a tinta (o vivo escurecido até dar leitura
-   * sobre o papel, para carimbo e rabisco). São onze, para os tipos de momento não repetirem.
+   * sobre o papel, para carimbo e rabisco). As onze primeiras são as aprovadas pelo Gui em
+   * 16/11/2026: servem às famílias, aos capítulos e aos tipos de momento de sempre.
    */
   --manteiga-pastel: #f8dc98;
   --manteiga-meio: #f1c964;
@@ -85,6 +86,62 @@
   --areia-meio: #dcc39b;
   --areia-vivo: #b98a4a;
   --areia-tinta: #7d5a26;
+
+  /*
+   * A paleta ampliada (tst-visual-tipos, 17/11/2026): mais doze cores, para os administradores
+   * escolherem a cor de cada tipo de momento em /admin/tipos sem repetir. Os mesmos quatro tons,
+   * na mesma temperatura. O contraste e a distância entre as cores são conferidos em
+   * testes/paleta.test.ts: a tinta de cada uma se lê sobre o pastel dela e sobre o papel (4,5:1),
+   * e nenhuma fica mais perto de outra do que as duas mais próximas entre as onze aprovadas.
+   */
+  --limao-pastel: #e7eda3;
+  --limao-meio: #d4db71;
+  --limao-vivo: #a6b614;
+  --limao-tinta: #5e6b1e;
+  --oliva-pastel: #d5d6ad;
+  --oliva-meio: #bdbc74;
+  --oliva-vivo: #868531;
+  --oliva-tinta: #5d5b1a;
+  --menta-pastel: #c7f2db;
+  --menta-meio: #93e2bb;
+  --menta-vivo: #3eb881;
+  --menta-tinta: #1d734e;
+  --musgo-pastel: #bbd9bc;
+  --musgo-meio: #91c394;
+  --musgo-vivo: #397243;
+  --musgo-tinta: #2b5933;
+  --ceu-pastel: #c0ebfb;
+  --ceu-meio: #87d7f2;
+  --ceu-vivo: #22a6d5;
+  --ceu-tinta: #1c6a8c;
+  --petroleo-pastel: #b0d8de;
+  --petroleo-meio: #7cc1cc;
+  --petroleo-vivo: #146c7b;
+  --petroleo-tinta: #045460;
+  --anil-pastel: #c8cef6;
+  --anil-meio: #a7b0f1;
+  --anil-vivo: #414bb8;
+  --anil-tinta: #303793;
+  --uva-pastel: #dbc1eb;
+  --uva-meio: #c99ce4;
+  --uva-vivo: #763399;
+  --uva-tinta: #5b2477;
+  --ameixa-pastel: #e9c3d7;
+  --ameixa-meio: #dc9fc1;
+  --ameixa-vivo: #893562;
+  --ameixa-tinta: #6b244a;
+  --cereja-pastel: #fbb2bc;
+  --cereja-meio: #fa8499;
+  --cereja-vivo: #c12440;
+  --cereja-tinta: #9a1c32;
+  --terracota-pastel: #f2bda5;
+  --terracota-meio: #ee976d;
+  --terracota-vivo: #b25630;
+  --terracota-tinta: #843b1c;
+  --cacau-pastel: #e5cebb;
+  --cacau-meio: #d5af90;
+  --cacau-vivo: #7c5335;
+  --cacau-tinta: #603f26;
 
   /*
    * A cor de cada família, escolhida em data-familia: uma cor só, com variação de tons

@@ -73,7 +73,8 @@ Decisão do Gui, 16/11/2026 (`src/lib/fotos-de-exemplo.ts`, `src/lib/servidor/fo
 
 ## Tipos de momento
 
-- A lista de tipos vive no banco (tabela `tipos`), não no código. Só os admins criam, renomeiam e mudam a cor, em `/admin/tipos`.
+- A lista de tipos vive no banco (tabela `tipos`), não no código. Só os admins criam, renomeiam e mudam a cor e o desenho, em `/admin/tipos`.
+- **Cor e desenho de cada tipo** (resposta do Gui à pergunta 11 do PR #38, 17/11/2026, migração `021`). A cor é escolhida numa paleta de 23 cores do sistema, e o desenho, entre 30 rabiscos. O banco guarda o nome da cor e o do rabisco (`cor_da_paleta` e `icone`), nunca um valor solto, e `/api/tipos` recusa nome fora das listas. Os tipos de sempre ficaram com a cor e o desenho que já tinham. Tipo sem escolha usa a cor de reserva e o brilho. Dois tipos podem ter a mesma cor; a tela avisa quem já usa cada uma e sugere uma livre ao criar. O detalhe está em `docs/visual.md`, "Tipos: paleta e ícones".
 - "Outro" é a saída de quem não achou o tipo: a pessoa pode escrever em uma ou duas palavras o que foi, e a memória é salva assim.
 - A tela de admin mostra o que foi escrito em "Outro" e quantas memórias usam cada nome. Um nome que se repete pode virar tipo novo ou ser juntado a um tipo que já existe, e as memórias mudam junto.
 - A contagem só considera memórias que o admin pode ver. A promoção vale para todas as memórias com aquele nome.

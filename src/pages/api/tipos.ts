@@ -4,9 +4,10 @@ import { criarSlug, slugUnico } from '../../lib/servidor/conteudo';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { atualizarTipo, criarTipo, promoverTextoDeOutro } from '../../lib/servidor/repositorio';
 import { TIPO_OUTRO } from '../../lib/tipos';
+import { ehCorDaPaleta } from '../../lib/visual';
+import { RABISCO_PADRAO, ehRabisco } from '../../visual/rabiscos';
 
 const PAGINA = '/admin/tipos';
-const COR = /^#[0-9a-fA-F]{6}$/;
 
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!mesmaOrigem(request)) return new Response('Pedido recusado.', { status: 403 });
@@ -16,17 +17,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const dados = await request.formData();
   const acao = campo(dados, 'acao', 20);
   const rotulo = campo(dados, 'rotulo', 40);
-  const cor = campo(dados, 'cor', 7);
+  // A cor é o nome de uma cor da paleta e o ícone, o de um rabisco: fora das listas, o pedido é recusado.
+  // Sem ícone no pedido (juntar um texto de "Outro" a um tipo novo, por exemplo), vale o brilho.
+  const cor = campo(dados, 'cor', 20);
+  const icone = campo(dados, 'icone', 20) || RABISCO_PADRAO;
 
   const validarNovo = (): string | undefined => {
     if (!rotulo) return 'Dê um nome ao tipo.';
-    if (!COR.test(cor)) return 'Escolha uma cor.';
+    if (!ehCorDaPaleta(cor)) return 'Escolha uma cor da lista.';
+    if (!ehRabisco(icone)) return 'Escolha um desenho da lista.';
     if (tipos.some((t) => t.rotulo.toLowerCase() === rotulo.toLowerCase())) return `Já existe um tipo chamado "${rotulo}".`;
     return undefined;
   };
   const criar = async (): Promise<string> => {
     const id = slugUnico(criarSlug(rotulo), new Set(tipos.map((t) => t.id)));
-    await criarTipo(id, rotulo, cor, usuario);
+    await criarTipo(id, rotulo, cor, icone, usuario);
     return id;
   };
 
@@ -42,12 +47,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const atual = tipos.find((t) => t.id === id);
     if (!atual) return voltar(request, PAGINA, { erro: 'Tipo não encontrado.' });
     if (!rotulo) return voltar(request, PAGINA, { erro: 'Dê um nome ao tipo.' });
-    if (!COR.test(cor)) return voltar(request, PAGINA, { erro: 'Escolha uma cor.' });
+    if (!ehCorDaPaleta(cor)) return voltar(request, PAGINA, { erro: 'Escolha uma cor da lista.' });
+    if (!ehRabisco(icone)) return voltar(request, PAGINA, { erro: 'Escolha um desenho da lista.' });
     if (tipos.some((t) => t.id !== id && t.rotulo.toLowerCase() === rotulo.toLowerCase())) {
       return voltar(request, PAGINA, { erro: `Já existe um tipo chamado "${rotulo}".` });
     }
     // "Outro" é a saída de quem não achou o tipo: muda de cor, mas não de nome
-    await atualizarTipo(id, id === TIPO_OUTRO ? atual.rotulo : rotulo, cor);
+    await atualizarTipo(id, id === TIPO_OUTRO ? atual.rotulo : rotulo, cor, icone);
     return voltar(request, PAGINA, { ok: 'Tipo atualizado.' });
   }
 

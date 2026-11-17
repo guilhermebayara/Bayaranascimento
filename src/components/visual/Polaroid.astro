@@ -24,6 +24,8 @@ interface Props {
   forma?: boolean;
   /** o tipo de momento: memória sem foto ganha um cartão do mesmo formato, com o ícone do tipo */
   tipo?: string;
+  /** um rabisco pelo nome, no lugar do rabisco do tipo (a prévia de /admin/tipos) */
+  rabisco?: string;
   /** na página da memória: cada foto do monte é um link que abre a galeria naquela foto */
   galeria?: boolean;
   /**
@@ -33,7 +35,7 @@ interface Props {
   soOnde?: string;
 }
 
-const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false, forma = false, tipo = 'outro', galeria = false, soOnde } = Astro.props;
+const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false, forma = false, tipo = 'outro', galeria = false, soOnde, rabisco } = Astro.props;
 // Um ponto transparente: o que o navegador mostra onde a foto não é para ser baixada
 const VAZIA = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const [principal, ...outras] = fotos;
@@ -49,7 +51,7 @@ const giro = reta ? 0 : giroDoId(id);
       {forma && <span class="monte__forma" data-forma={formaDoId(id)} aria-hidden="true" />}
       <figure class="polaroid polaroid--sem-foto" style={`--giro: ${giro}deg`}>
         <span class="polaroid__foto" aria-hidden="true">
-          <IconeDoTipo tipo={tipo} />
+          <IconeDoTipo tipo={tipo} rabisco={rabisco} />
         </span>
         <figcaption class="polaroid__legenda">{legenda}</figcaption>
       </figure>

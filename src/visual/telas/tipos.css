@@ -1,0 +1,248 @@
+/*
+ * Tipos de momento, em /admin/tipos: a cor escolhida numa grade de amostras da paleta e o desenho,
+ * numa grade dos rabiscos (resposta do Gui à pergunta 11 do PR #38, 17/11/2026). O resto da página é
+ * do formulário (formulario.css). Tudo é rádio comum, com o campo por cima da amostra inteira:
+ * funciona sem script, pelo teclado, e a escolhida leva o tique e o negrito, além da cor.
+ */
+
+/* --- A lista: cada tipo numa linha, que abre no lugar ------------------------------------------- */
+
+.pagina-de-formulario .tipos-da-lista {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pagina-de-formulario .tipos-da-lista > li {
+  border-top: var(--traco) solid var(--fio);
+}
+.pagina-de-formulario .tipos-da-lista > li:last-child {
+  border-bottom: var(--traco) solid var(--fio);
+}
+.pagina-de-formulario .tipo-da-lista > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-1) var(--e-4);
+  min-height: 3.5rem;
+  padding-block: var(--e-2);
+  list-style: none;
+  cursor: pointer;
+}
+.pagina-de-formulario .tipo-da-lista > summary::-webkit-details-marker {
+  display: none;
+}
+.pagina-de-formulario .tipo-da-lista > summary .etiqueta {
+  font-size: var(--t-corpo);
+}
+.pagina-de-formulario .tipo-da-lista__mudar {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .tipo-da-lista[open] > summary .tipo-da-lista__mudar {
+  color: var(--tinta);
+  font-weight: 550;
+}
+.pagina-de-formulario .tipo-da-lista__form {
+  display: grid;
+  gap: var(--e-5);
+  padding-block: var(--e-3) var(--e-6);
+}
+
+/* --- A escolha: as duas grades e, ao lado, a prévia ---------------------------------------------- */
+
+.pagina-de-formulario .escolha-do-tipo {
+  display: grid;
+  gap: var(--e-5);
+}
+.pagina-de-formulario .escolha-do-tipo__grades {
+  display: grid;
+  gap: var(--e-5);
+  min-width: 0;
+}
+.pagina-de-formulario .escolha-do-tipo fieldset {
+  display: grid;
+  gap: var(--e-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* A amostra de cor: o pastel com o ponto do vivo, e o nome ao lado */
+.pagina-de-formulario .paleta__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.75rem, 1fr));
+  gap: var(--e-2);
+}
+.pagina-de-formulario .amostra {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--e-3);
+  min-height: 3.25rem;
+  padding: var(--e-2) var(--e-3);
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  cursor: pointer;
+  transition: border-color var(--tempo-curto);
+}
+.pagina-de-formulario :is(.amostra, .rabisco-a-escolher) input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.pagina-de-formulario .amostra__cor {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--raio-pilula);
+  background: var(--tipo-pastel);
+  color: var(--tipo-tinta);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1;
+}
+/* O ponto do vivo. Na escolhida, o tique toma o lugar dele. */
+.pagina-de-formulario .amostra__cor::before {
+  content: '';
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--raio-pilula);
+  background: var(--tipo-cor);
+}
+.pagina-de-formulario .amostra:has(input:checked) .amostra__cor::before {
+  content: '✓';
+  width: auto;
+  height: auto;
+  background: none;
+}
+.pagina-de-formulario .amostra__nome {
+  font-size: var(--t-pequeno);
+  line-height: 1.2;
+}
+.pagina-de-formulario .amostra:not(:has(.amostra__uso)) .amostra__nome {
+  grid-row: 1 / span 2;
+}
+.pagina-de-formulario .amostra__uso {
+  overflow: hidden;
+  color: var(--tinta-suave);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pagina-de-formulario :is(.amostra, .rabisco-a-escolher):hover {
+  border-color: var(--tinta-suave);
+}
+.pagina-de-formulario :is(.amostra, .rabisco-a-escolher):has(input:checked) {
+  border-color: var(--tinta);
+  box-shadow: inset 0 0 0 var(--traco) var(--tinta);
+}
+.pagina-de-formulario .amostra:has(input:checked) .amostra__nome {
+  font-weight: 650;
+}
+.pagina-de-formulario :is(.amostra, .rabisco-a-escolher):has(input:focus-visible) {
+  outline: 0.1875rem solid var(--tinta);
+  outline-offset: 0.125rem;
+}
+
+/* O rabisco a escolher: um quadrado de toque, com o desenho no meio */
+.pagina-de-formulario .rabiscos__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.25rem, 1fr));
+  gap: var(--e-2);
+}
+.pagina-de-formulario .rabisco-a-escolher {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-height: var(--toque);
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  cursor: pointer;
+  transition: border-color var(--tempo-curto);
+}
+.pagina-de-formulario .rabisco-a-escolher__desenho {
+  display: grid;
+  font-size: 1.125rem;
+}
+.pagina-de-formulario .rabisco-a-escolher .icone {
+  color: var(--tinta);
+}
+.pagina-de-formulario .rabisco-a-escolher:has(input:checked) {
+  background: var(--papel-recuo);
+}
+/* A escolhida não depende só do fundo: leva o tique no canto */
+.pagina-de-formulario .rabisco-a-escolher:has(input:checked)::after {
+  content: '✓';
+  position: absolute;
+  top: 0.125rem;
+  right: 0.3125rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* A prévia: a etiqueta e o cartão da memória sem foto, na cor e com o desenho escolhidos */
+.pagina-de-formulario .escolha-do-tipo__previa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6.5rem;
+  align-items: center;
+  gap: var(--e-2) var(--e-4);
+  order: -1;
+  padding: var(--e-4);
+  border-radius: var(--raio-bloco);
+  background: var(--papel-recuo);
+}
+.pagina-de-formulario .escolha-do-tipo__previa > .rotulo {
+  grid-column: 1;
+  margin: 0;
+}
+.pagina-de-formulario .escolha-do-tipo__previa > p {
+  grid-column: 1;
+  min-width: 0;
+  margin: 0;
+}
+.pagina-de-formulario .escolha-do-tipo__previa .etiqueta {
+  max-width: 100%;
+  overflow: hidden;
+}
+.pagina-de-formulario .escolha-do-tipo__previa > .monte {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+@media (min-width: 62rem) {
+  .pagina-de-formulario .escolha-do-tipo {
+    grid-template-columns: minmax(0, 1fr) 13rem;
+    align-items: start;
+    gap: var(--e-6);
+  }
+  .pagina-de-formulario .escolha-do-tipo__previa {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    order: 0;
+    gap: var(--e-3);
+    padding: var(--e-5);
+  }
+  .pagina-de-formulario .escolha-do-tipo__previa > .monte {
+    grid-column: 1;
+    grid-row: auto;
+    width: 8.5rem;
+  }
+}

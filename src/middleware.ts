@@ -2,10 +2,14 @@
 // Sem pessoa identificada, nada do acervo é entregue.
 import { defineMiddleware } from 'astro:middleware';
 import { ehServicoDeCopia, usuarioDoPedido } from './lib/servidor/acesso';
-import { noPedido } from './lib/servidor/ambiente';
+import { guardarTiposDoPedido, noPedido, tiposDoPedido } from './lib/servidor/ambiente';
 import { prepararBanco } from './lib/servidor/banco';
 import { respostaDaCopia } from './lib/servidor/copia';
 import { listarTipos } from './lib/servidor/repositorio';
+import { lerEscolhasDe } from './lib/visual';
+
+// A cor e o rabisco de cada tipo, escolhidos em /admin/tipos, valem em toda tela do pedido
+lerEscolhasDe(tiposDoPedido);
 
 const RECADO = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Memórias Bayara e Bracarense</title><body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 15vh auto; padding: 0 1.5rem; line-height: 1.5">
@@ -37,6 +41,7 @@ const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo)
   }
   contexto.locals.usuario = usuario;
   contexto.locals.tipos = await listarTipos();
+  guardarTiposDoPedido(contexto.locals.tipos);
   const resposta = await proximo();
   // Nada do acervo deve ficar guardado em servidores intermediários
   if (!resposta.headers.has('Cache-Control')) resposta.headers.set('Cache-Control', 'private, no-store');

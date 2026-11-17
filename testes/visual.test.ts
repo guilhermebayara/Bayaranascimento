@@ -184,7 +184,7 @@ describe('conceito', () => {
     const componentes = import.meta.glob<string>('../src/components/visual/Polaroid.astro', { query: '?raw', import: 'default', eager: true });
     const foto = Object.values(componentes)[0]!;
     expect(foto).toContain('polaroid--sem-foto');
-    expect(foto).toContain('<IconeDoTipo tipo={tipo} />');
+    expect(foto).toContain('<IconeDoTipo tipo={tipo} rabisco={rabisco} />');
     for (const forma of ['explorar/Linha.astro', 'explorar/Mural.astro']) expect(tela(forma)).toMatch(/<Polaroid id=\{m\.id\}[^>]*tipo=\{m\.tipo\}/);
     expect(tela('explorar/Linha.astro')).not.toContain('entrada--so-texto');
     expect(tela('pages/index.astro')).toMatch(/outro-ano__foto">\s*<Polaroid[^>]*tipo=\{m\.tipo\}/);

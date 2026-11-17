@@ -237,3 +237,68 @@
 .sis__gente li + li {
   border-top: 1px solid var(--fio);
 }
+
+/* A paleta com a conta do contraste, e todos os rabiscos dos tipos de momento */
+.sis__nota {
+  max-width: var(--medida);
+  margin: 0 0 var(--e-4);
+  font-size: var(--t-pequeno);
+}
+.sis__rola {
+  overflow-x: auto;
+}
+.sis__contraste {
+  width: 100%;
+  max-width: 48rem;
+  border-collapse: collapse;
+  font-size: var(--t-pequeno);
+}
+.sis__contraste :is(th, td) {
+  padding: var(--e-2) var(--e-3) var(--e-2) 0;
+  border-bottom: var(--traco) solid var(--fio);
+  text-align: left;
+  font-weight: 450;
+  white-space: nowrap;
+}
+.sis__contraste thead th {
+  color: var(--tinta-suave);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sis__contraste td {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.sis__contraste td[data-abaixo] {
+  color: var(--alerta-tinta);
+  font-weight: 600;
+}
+.sis__gota {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 1.75rem;
+  margin-right: var(--e-2);
+  border-radius: var(--raio-carimbo);
+  font-weight: 650;
+}
+.sis__todos-os-rabiscos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: var(--e-4) var(--e-3);
+  margin: var(--e-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sis__todos-os-rabiscos li {
+  display: grid;
+  justify-items: start;
+  gap: var(--e-2);
+}
+.sis__todos-os-rabiscos .icone {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--tinta);
+}
