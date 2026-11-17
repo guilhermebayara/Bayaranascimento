@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { comandosDoEspelho, espelhar, IDS_MANTIDOS, type CopiaDoAcervo } from '../src/lib/espelho';
+import { comandosDoEspelho, espelhar, IDS_MANTIDOS, TABELAS_APAGADAS, type CopiaDoAcervo } from '../src/lib/espelho';
 
 // Uma cópia pequena, no formato da cópia do acervo, com nomes e textos "reais" para conferir que nada vaza
 const copia: CopiaDoAcervo = {
@@ -129,5 +129,25 @@ describe('espelho da produção para a homologação', () => {
     expect(sqls[0]).toBe('PRAGMA defer_foreign_keys = true');
     expect(sqls.indexOf('DELETE FROM integrantes')).toBeLessThan(sqls.findIndex((q) => q.startsWith('INSERT INTO integrantes')));
     expect(sqls.some((q) => /^(INSERT INTO|DELETE FROM) (nucleos|tipos)\b/.test(q))).toBe(false);
+  });
+});
+
+// Achado ao construir "Época e capítulo" (migração 019): uma tabela nova que aponta para pessoas ou
+// capítulos precisa ser apagada pelo espelho antes delas, senão o espelho falha ou guarda dado real.
+describe('tabelas que o espelho apaga', () => {
+  const banco = Object.values(import.meta.glob<string>('../src/lib/servidor/banco.ts', { query: '?raw', import: 'default', eager: true }))[0]!;
+  const tabelas = [...banco.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?(\w+) \(([\s\S]*?)\)`/g)]
+    .map(([, nome, corpo]) => ({ nome: nome!.replace(/_novo$/, ''), corpo: corpo! }))
+    .filter((t) => /REFERENCES (integrantes|capitulos|memorias|relatos)\(/.test(t.corpo));
+
+  it('toda tabela que aponta para pessoas, memórias, relatos ou capítulos é apagada, antes daquela para a qual aponta', () => {
+    expect(tabelas.length).toBeGreaterThan(5);
+    for (const t of tabelas) {
+      expect(TABELAS_APAGADAS, t.nome).toContain(t.nome);
+      for (const [, alvo] of t.corpo.matchAll(/REFERENCES (\w+)\(/g)) {
+        if (alvo === t.nome || !TABELAS_APAGADAS.includes(alvo!)) continue;
+        expect(TABELAS_APAGADAS.indexOf(t.nome), `${t.nome} antes de ${alvo}`).toBeLessThan(TABELAS_APAGADAS.indexOf(alvo!));
+      }
+    }
   });
 });

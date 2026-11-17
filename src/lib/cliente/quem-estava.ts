@@ -38,7 +38,8 @@ export function sugerir(dados: Pick<Dados, 'eu' | 'proximos' | 'nomes'>, marcado
   return { titulo: 'Família de quem você marcou', ids: ordenar([...peso.keys()], peso).slice(0, MAXIMO_SUGESTOES) };
 }
 
-export function ligarQuemEstava(raiz: HTMLElement, cadastrar: (nome: string) => void): void {
+/** Sem `cadastrar`, a busca não oferece "Cadastrar Fulano" (é o caso do capítulo). */
+export function ligarQuemEstava(raiz: HTMLElement, cadastrar?: (nome: string) => void): void {
   const bruto = raiz.querySelector('[data-dados-pessoas]')?.textContent;
   if (!bruto) return;
   const dados = JSON.parse(bruto) as Dados;
@@ -88,7 +89,7 @@ export function ligarQuemEstava(raiz: HTMLElement, cadastrar: (nome: string) => 
     const achados = [...caixas.keys()].filter((id) => simples(dados.busca[id] ?? '').includes(termo)).slice(0, MAXIMO_RESULTADOS);
     const itens: HTMLElement[] = achados.map(atalho);
     const exato = achados.some((id) => simples(dados.nomes[id] ?? '') === termo);
-    if (!exato && busca.value.trim().length >= 2) {
+    if (cadastrar && !exato && busca.value.trim().length >= 2) {
       const novo = document.createElement('button');
       novo.type = 'button';
       novo.className = 'botao botao--leve';

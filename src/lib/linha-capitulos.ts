@@ -7,7 +7,7 @@
 // tela (das mais recentes para as mais antigas), e os capítulos visíveis para ela.
 //
 // Época e capítulo (decisão do Gui, 16/11/2026, a partir do furo que ele achou: pela regra antiga,
-// toda memória que cai no período de um capítulo de época é dele, mesmo quando o capítulo é da vida
+// toda memória que cai no período de um capítulo por período era dele, mesmo quando o capítulo é da vida
 // de uma pessoa só). São duas coisas, e a montagem entende as duas:
 // - a época de todos (`deTodos`), que vale para a família inteira, como a pandemia: não vira
 //   trilho, porque todo mundo está dentro. É o chão da linha do tempo, com uma aba no alto e outra
@@ -15,8 +15,9 @@
 // - o capítulo com período, de pessoas (`pessoas`) ou de uma família (`familias`): entram as
 //   memórias do período em que alguma dessas pessoas está ou que são de uma dessas famílias. As
 //   outras memórias do período ficam de fora, e o trilho segue tracejado.
-// Sem `deTodos`, `pessoas` nem `familias`, o capítulo de época continua valendo como hoje.
-import { dentroDoPeriodo, formatarPeriodo, periodoDasMemorias, type Capitulo, type DataSolta } from './capitulos';
+// Sem `deTodos`, `pessoas` nem `familias`, o capítulo por período vira trilho com tudo o que cai no período.
+// No site, quem chama marca `deTodos` nas épocas (`ehEpoca`, em capitulos.ts), como o conceito faz.
+import { dentroDoPeriodo, formatarPeriodo, memoriaDoCapitulo, periodoDasMemorias, type Capitulo, type DataSolta } from './capitulos';
 
 export interface MemoriaDaLinha extends DataSolta {
   id: string;
@@ -29,9 +30,9 @@ export interface MemoriaDaLinha extends DataSolta {
 }
 
 export type CapituloDaLinha = Pick<Capitulo, 'id' | 'titulo' | 'modo' | 'inicio' | 'fim' | 'dentroDe'> & {
-  /** de quem é o capítulo de época: entram as memórias do período em que alguma dessas pessoas está */
+  /** de quem é o capítulo por período: entram as memórias do período em que alguma dessas pessoas está */
   pessoas?: string[];
-  /** de que famílias é o capítulo de época: entram as memórias do período que são de alguma delas */
+  /** de que famílias é o capítulo por período: entram as memórias do período que são de alguma delas */
   familias?: string[];
   /** época que vale para a família inteira: vira marca, e não trilho */
   deTodos?: boolean;
@@ -115,23 +116,14 @@ export function montarTrilhos(memorias: MemoriaDaLinha[], todos: CapituloDaLinha
   }
   const capitulos = todos.filter((x) => !(x.modo === 'epoca' && x.deTodos));
 
-  // Quem é de cada capítulo: no reunido, quem foi colocado; no de época, quem cai no período e,
+  // Quem é de cada capítulo: no reunido, quem foi colocado; no por período, quem cai no período e,
   // se o capítulo for de algumas pessoas, só as memórias em que alguma delas está.
   // O capítulo maior leva também as memórias dos capítulos de dentro.
   const proprias = new Map<string, Set<number>>();
   for (const c of capitulos) {
     const dele = new Set<number>();
-    if (c.modo === 'epoca') {
-      const dePessoas = new Set(c.pessoas ?? []);
-      const deFamilias = new Set(c.familias ?? []);
-      const deTodoMundo = dePessoas.size + deFamilias.size === 0;
-      for (const i of noPeriodo(c)) {
-        const m = memorias[i]!;
-        if (deTodoMundo || m.integrantes?.some((p) => dePessoas.has(p)) || m.nucleos?.some((n) => deFamilias.has(n))) dele.add(i);
-      }
-    } else {
-      memorias.forEach((m, i) => m.capitulos.includes(c.id) && dele.add(i));
-    }
+    // A mesma regra da página do capítulo (memoriaDoCapitulo, em capitulos.ts)
+    memorias.forEach((m, i) => memoriaDoCapitulo(m, c) && dele.add(i));
     proprias.set(c.id, dele);
   }
   const membros = new Map<string, Set<number>>();
@@ -145,7 +137,7 @@ export function montarTrilhos(memorias: MemoriaDaLinha[], todos: CapituloDaLinha
   const ativos = capitulos.filter((c) => membros.get(c.id)!.size > 0);
   const ativo = new Set(ativos.map((c) => c.id));
   const paiDe = (c: CapituloDaLinha) => (c.dentroDe && ativo.has(c.dentroDe) ? c.dentroDe : null);
-  // O trilho do capítulo reunido vai da primeira à última memória dele. O do capítulo de época vai
+  // O trilho do capítulo reunido vai da primeira à última memória dele. O do capítulo por período vai
   // do começo ao fim do período, mesmo que as memórias das pontas sejam de fora.
   const trecho = (c: CapituloDaLinha) => {
     const posicoes = [...membros.get(c.id)!, ...(c.modo === 'epoca' ? noPeriodo(c) : [])];
@@ -216,7 +208,7 @@ export function montarTrilhos(memorias: MemoriaDaLinha[], todos: CapituloDaLinha
   return { capitulos: postos.sort((a, b) => a.trilho - b.trilho || a.primeira - b.primeira), epocas, linhas, quantos };
 }
 
-/** O período escrito no alto do trilho: o do capítulo de época; no reunido, da primeira à última memória. */
+/** O período escrito no alto do trilho: o do capítulo por período; no reunido, da primeira à última memória. */
 function periodoDoCapitulo(c: CapituloDaLinha, dele: DataSolta[]): string {
   if (c.modo === 'epoca') return formatarPeriodo(c.inicio, c.fim, true);
   const periodo = periodoDasMemorias(dele);

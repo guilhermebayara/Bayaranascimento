@@ -2,15 +2,14 @@
 import Base from '../../../layouts/Base.astro';
 import Abertura from '../../../components/Abertura.astro';
 import FichaDoCapitulo from '../../../components/FichaDoCapitulo.astro';
-import { podeEditarCapitulo } from '../../../lib/capitulos';
 import { formatarData } from '../../../lib/datas';
-import { podeEditarMemoria } from '../../../lib/servidor/permissoes';
-import { autoresDasMemoriasDoCapitulo, listarCapitulos, listarMemorias } from '../../../lib/servidor/repositorio';
+import { podeEditarCapitulo, podeEditarMemoria } from '../../../lib/servidor/permissoes';
+import { listarCapitulos, listarMemorias } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const capitulo = (await listarCapitulos(usuario)).find((c) => c.id === Astro.params.id);
 if (!capitulo) return new Response('Capítulo não encontrado', { status: 404 });
-const podeFicha = podeEditarCapitulo(usuario, capitulo, await autoresDasMemoriasDoCapitulo(capitulo.id));
+const podeFicha = podeEditarCapitulo(usuario, capitulo);
 // As memórias que a pessoa pode corrigir são as que ela pode colocar ou tirar do capítulo
 const minhas = capitulo.modo === 'reunido' ? (await listarMemorias(usuario)).filter((m) => podeEditarMemoria(usuario, m).ok) : [];
 ---
@@ -53,13 +52,13 @@ const minhas = capitulo.modo === 'reunido' ? (await listarMemorias(usuario)).fil
   }
 
   {
-    podeFicha ? (
+    podeFicha.ok ? (
       <section class="painel">
         <h2>Sobre o capítulo</h2>
         <FichaDoCapitulo capitulo={capitulo} />
       </section>
     ) : (
-      <p class="dica">O título e a abertura só podem ser alterados por quem criou o capítulo ou tem memórias nele.</p>
+      <p class="dica">{podeFicha.ok ? '' : podeFicha.motivo}</p>
     )
   }
 

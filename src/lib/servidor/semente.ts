@@ -1246,6 +1246,17 @@ export async function semearConsideracoesDeExemplo(db: D1Database): Promise<void
   await db.batch(comandos);
 }
 
+// Época e capítulo (decisão do Gui, 16/11/2026, migração 019): "A infância da Giovanna" é o caso do
+// furo que o Gui achou, um capítulo por período que é da vida de uma pessoa só. No acervo de exemplo
+// ele passa a ser da Giovanna; os outros capítulos por período continuam épocas de todos.
+export async function semearDeQuemDeExemplo(db: D1Database): Promise<void> {
+  const ja = await db.prepare('SELECT 1 AS ok FROM capitulo_pessoas LIMIT 1').first();
+  if (ja) return;
+  const existe = await db.prepare(`SELECT 1 AS ok FROM capitulos WHERE id = 'infancia-da-giovanna'`).first();
+  if (!existe) return;
+  await db.prepare(`INSERT OR IGNORE INTO capitulo_pessoas (capitulo_id, integrante_id) VALUES ('infancia-da-giovanna', 'giovanna')`).run();
+}
+
 // Painel pessoal (migração 020): aniversários de exemplo, um parente por mês, para sempre haver algum
 // nos próximos 30 dias nas prévias. Só preenche quem ainda não tem mês de nascimento.
 const ANIVERSARIOS_DE_EXEMPLO: [string, number, number][] = [

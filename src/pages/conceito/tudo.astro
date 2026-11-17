@@ -12,6 +12,7 @@ import Polaroid from '../../components/visual/Polaroid.astro';
 import Trilhos from '../../components/visual/Trilhos.astro';
 import { agruparPorAno, maisRecentesPrimeiro } from '../../lib/datas';
 import { capitulosNosTrilhos, chaoDaEpoca, montarTrilhos, trilhosNaEpoca, trilhosNaMarca } from '../../lib/linha-capitulos';
+import { ehEpoca } from '../../lib/capitulos';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { conceitoDisponivel, naoEncontrado } from '../../lib/servidor/conceito';
 import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
@@ -35,12 +36,11 @@ const naOrdemDaTela = maisRecentesPrimeiro(memorias);
 const anos = agruparPorAno(naOrdemDaTela);
 // Os capítulos como trilhos: só os que a pessoa pode ver, contando só as memórias que ela vê aqui
 //
-// Época e capítulo (decisão do Gui, 16/11/2026; ver src/lib/linha-capitulos.ts). O banco ainda não
-// diz de quem é um capítulo de época, então aqui isso é FIXO, só para mostrar a ideia: "A infância
-// da Giovanna" é da Giovanna, e as memórias do período em que ela não está ficam de fora, com o
-// trilho tracejado. Os outros capítulos de época são épocas de todos e viram o chão, sem trilho.
-const DE_QUEM: Record<string, string[]> = { 'infancia-da-giovanna': ['giovanna'] };
-const capitulos = (await listarCapitulos(usuario)).map((c) => (c.modo !== 'epoca' ? c : DE_QUEM[c.id] ? { ...c, pessoas: DE_QUEM[c.id] } : { ...c, deTodos: true }));
+// Época e capítulo (decisão do Gui, 16/11/2026; ver src/lib/linha-capitulos.ts). O capítulo por
+// período diz de quem é (migração 019): "A infância da Giovanna", no acervo de exemplo, é da
+// Giovanna, e as memórias do período em que ela não está ficam de fora, com o trilho tracejado. Os
+// capítulos por período sem ninguém são épocas de todos e viram o chão, sem trilho.
+const capitulos = (await listarCapitulos(usuario)).map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c));
 const montagem = montarTrilhos(naOrdemDaTela, capitulos);
 const posicaoDe = new Map(naOrdemDaTela.map((m, i) => [m.id, i]));
 const capituloDe = (id: string) => montagem.capitulos.find((c) => c.id === id)!;

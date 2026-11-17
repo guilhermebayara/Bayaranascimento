@@ -2,7 +2,12 @@
 //
 // Um capítulo reúne memórias que formam um momento maior. Tem dois modos:
 // - reunido: alguém adiciona cada memória, e o período é calculado por elas;
-// - de época: tem início e fim, e as memórias entram sozinhas pela data.
+// - por período (modo 'epoca' no banco): tem início e fim, e as memórias entram sozinhas pela data.
+//
+// Época e capítulo (decisão do Gui, 16/11/2026): o capítulo por período diz de quem é, com pessoas,
+// famílias ou os dois. Entram só as memórias do período em que alguma dessas pessoas está ou que são
+// de uma dessas famílias. Sem ninguém marcado, ele é uma época, que vale para a família inteira, como
+// a pandemia: entra tudo o que aconteceu no período.
 
 export interface DataSolta {
   ano: number;
@@ -14,6 +19,7 @@ export interface Capitulo {
   id: string;
   titulo: string;
   abertura: string | null;
+  /** 'epoca' é o capítulo por período; o nome ficou no banco */
   modo: 'reunido' | 'epoca';
   inicio: DataSolta | null;
   fim: DataSolta | null;
@@ -23,6 +29,10 @@ export interface Capitulo {
   nucleos: string[];
   criadoPor: string;
   temas: string[];
+  /** de quem é o capítulo por período: as pessoas. Vazio junto com `familias` quer dizer época, de todos. */
+  pessoas: string[];
+  /** de quem é o capítulo por período: as famílias (ids de núcleo) */
+  familias: string[];
 }
 
 export interface Tema {
@@ -47,6 +57,60 @@ export function dentroDoPeriodo(data: DataSolta, inicio: DataSolta, fim: DataSol
   if (termina < ordem(inicio, false)) return false;
   if (fim && comeca > ordem(fim, true)) return false;
   return true;
+}
+
+/** O capítulo por período sem pessoas nem famílias é uma época: vale para a família inteira. */
+export function ehEpoca(c: Pick<Capitulo, 'modo'> & Partial<Pick<Capitulo, 'pessoas' | 'familias'>>): boolean {
+  return c.modo === 'epoca' && (c.pessoas?.length ?? 0) + (c.familias?.length ?? 0) === 0;
+}
+
+/** O que a regra precisa saber de uma memória para dizer se ela é de um capítulo. */
+export interface MemoriaParaCapitulo extends DataSolta {
+  /** capítulos reunidos em que a memória foi colocada */
+  capitulos: string[];
+  /** quem estava */
+  integrantes?: string[];
+  /** as famílias da memória */
+  nucleos?: string[];
+}
+
+/**
+ * A memória é deste capítulo? No reunido, se foi colocada nele. No por período, se a data cai
+ * dentro do período e, quando o capítulo é de alguém, se alguma dessas pessoas está nela ou se ela
+ * é de uma dessas famílias. Vale para a página do capítulo, a lista de capítulos, a ficha da memória
+ * e a linha do tempo.
+ */
+export function memoriaDoCapitulo(
+  m: MemoriaParaCapitulo,
+  c: Pick<Capitulo, 'id' | 'modo' | 'inicio' | 'fim'> & Partial<Pick<Capitulo, 'pessoas' | 'familias'>>,
+): boolean {
+  if (c.modo === 'reunido') return m.capitulos.includes(c.id);
+  if (!c.inicio || !dentroDoPeriodo(m, c.inicio, c.fim)) return false;
+  if (ehEpoca(c)) return true;
+  const pessoas = c.pessoas ?? [];
+  const familias = c.familias ?? [];
+  return (m.integrantes ?? []).some((p) => pessoas.includes(p)) || (m.nucleos ?? []).some((n) => familias.includes(n));
+}
+
+/**
+ * A escolha "Como as memórias entram?" do formulário. No banco, época e capítulo por período são o
+ * mesmo modo ('epoca'): a época é o que não tem ninguém marcado.
+ */
+export type ModoDoFormulario = 'reunido' | 'periodo' | 'epoca';
+
+export function modoNoFormulario(c: (Pick<Capitulo, 'modo'> & Partial<Pick<Capitulo, 'pessoas' | 'familias'>>) | undefined): ModoDoFormulario {
+  if (!c || c.modo === 'reunido') return 'reunido';
+  return ehEpoca(c) ? 'epoca' : 'periodo';
+}
+
+export function lerModoDoFormulario(valor: string): ModoDoFormulario {
+  return valor === 'periodo' || valor === 'epoca' ? valor : 'reunido';
+}
+
+/** "Época", "Capítulo por período" ou "Capítulo", para o selo da página. */
+export function nomeDoModo(c: Pick<Capitulo, 'modo'> & Partial<Pick<Capitulo, 'pessoas' | 'familias'>>): string {
+  if (ehEpoca(c)) return 'Época';
+  return c.modo === 'epoca' ? 'Capítulo por período' : 'Capítulo';
 }
 
 /** Período de um capítulo reunido: da primeira à última memória que quem olha pode ver. */
@@ -92,12 +156,6 @@ export function podeVerCapitulo(usuario: QuemOlha, c: Pick<Capitulo, 'visibilida
   return c.visibilidade === 'todos' || c.nucleos.some((n) => usuario.nucleos.includes(n));
 }
 
-/** Editar um capítulo: quem criou e quem tem memórias nele. */
-export function podeEditarCapitulo(usuario: QuemOlha, c: Pick<Capitulo, 'visibilidade' | 'nucleos' | 'criadoPor'>, autoresDasMemorias: string[]): boolean {
-  if (!podeVerCapitulo(usuario, c)) return false;
-  return c.criadoPor === usuario.pessoa || autoresDasMemorias.includes(usuario.pessoa);
-}
-
 /**
  * Um capítulo pode ficar dentro de outro, com no máximo dois níveis: o de fora
  * não pode estar dentro de ninguém, e o de dentro não pode ter capítulos próprios.
@@ -108,6 +166,22 @@ export function validarAninhamento(capitulo: { id?: string; temFilhos: boolean }
   if (pai.dentroDe) return 'Esse capítulo já está dentro de outro. São no máximo dois níveis.';
   if (capitulo.temFilhos) return 'Este capítulo já tem capítulos dentro dele, então não pode entrar em outro.';
   return undefined;
+}
+
+/**
+ * De quem é o capítulo por período, como chegou do formulário: sem repetição, e só pessoas e
+ * famílias que existem no acervo. Devolve o erro, se houver.
+ */
+export function lerDeQuem(
+  pedido: { pessoas: string[]; familias: string[] },
+  existentes: { pessoas: Set<string>; familias: Set<string> },
+): { pessoas: string[]; familias: string[] } | { erro: string } {
+  const pessoas = [...new Set(pedido.pessoas.map((p) => p.trim()).filter(Boolean))];
+  const familias = [...new Set(pedido.familias.map((f) => f.trim()).filter(Boolean))];
+  if (pessoas.length > 60 || familias.length > 20) return { erro: 'São pessoas ou famílias demais para um capítulo.' };
+  if (pessoas.some((p) => !existentes.pessoas.has(p))) return { erro: 'Uma das pessoas marcadas não está no acervo.' };
+  if (familias.some((f) => !existentes.familias.has(f))) return { erro: 'Uma das famílias marcadas não existe.' };
+  return { pessoas, familias };
 }
 
 /** "Viagens, casas onde moramos" → nomes limpos, sem repetição. */

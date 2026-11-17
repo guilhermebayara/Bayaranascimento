@@ -6,7 +6,7 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearConsideracoesDeExemplo, semearExemplos, semearParentesDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 
 interface Migracao {
@@ -498,6 +498,26 @@ const MIGRACOES: Migracao[] = [
     ],
   },
   {
+    // Época e capítulo (decisão do Gui, 16/11/2026): o capítulo por período (modo 'epoca') diz de quem
+    // é, com pessoas, famílias ou os dois, e entram só as memórias do período em que alguma dessas
+    // pessoas está ou que são de uma dessas famílias. Sem ninguém, é uma época, de todos, como sempre
+    // foi: os capítulos que já existem continuam iguais.
+    id: '019-de-quem-e-o-capitulo',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS capitulo_pessoas (
+        capitulo_id TEXT NOT NULL REFERENCES capitulos(id) ON DELETE CASCADE,
+        integrante_id TEXT NOT NULL REFERENCES integrantes(id),
+        PRIMARY KEY (capitulo_id, integrante_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS capitulos_da_pessoa ON capitulo_pessoas (integrante_id)`,
+      `CREATE TABLE IF NOT EXISTS capitulo_familias (
+        capitulo_id TEXT NOT NULL REFERENCES capitulos(id) ON DELETE CASCADE,
+        nucleo_id TEXT NOT NULL REFERENCES nucleos(id),
+        PRIMARY KEY (capitulo_id, nucleo_id)
+      )`,
+    ],
+  },
+  {
     // Painel pessoal como página inicial (decisões do Gui, 16/11/2026).
     // - cartas: a carta de Natal, escrita pelos administradores no próprio site. Cada versão salva é
     //   uma linha nova, e vale a mais recente: nada se apaga. O texto nunca vai para o repositório.
@@ -572,6 +592,7 @@ async function migrar(db: D1Database): Promise<void> {
     await semearParentesDeExemplo(db);
     await semearAcervoDeExemplo(db);
     await semearConsideracoesDeExemplo(db);
+    await semearDeQuemDeExemplo(db);
     await semearAniversariosDeExemplo(db);
     // Os exemplos entram como membros (é o padrão da tabela), mas ninguém deles acessa o site: são parentes
     await db.prepare(`UPDATE nucleo_membros SET papel = 'parente' WHERE papel = 'membro' AND integrante_id LIKE 'ex-%'`).run();

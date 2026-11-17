@@ -41,6 +41,8 @@ export const TABELAS_APAGADAS = [
   'temas',
   'capitulo_memorias',
   'capitulo_nucleos',
+  'capitulo_pessoas',
+  'capitulo_familias',
   'capitulos',
   'versoes',
   // Áudios apontam para relatos reais: o espelho não leva nenhum, e apaga os que houver
