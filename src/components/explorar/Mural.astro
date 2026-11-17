@@ -1,25 +1,51 @@
 ---
-// O mural de fotos (docs/decisoes.md, "Explorar"): a caixa de fotografias aberta na mesa. Só as
-// fotos-chave, sem texto; um toque abre a memória. Memória sem foto entra como cartão com o título,
-// na cor do tipo de momento. O nome de cada memória continua valendo para o leitor de tela.
+// O mural de fotos (docs/decisoes.md, "Explorar"): a caixa de fotografias aberta na mesa. As
+// fotos-chave como fotos reveladas, e um toque abre a memória. Memória sem foto entra como cartão,
+// na cor do tipo de momento.
+//
+// Decisões do Gui (17/11/2026): as fotos ficam agrupadas por ano, e cada grupo abre com o ano
+// grande como divisória, como na linha do tempo. Na margem de cada foto vai só o título da memória,
+// pequeno, na letra manuscrita. Nas ordens que não seguem a data ("Entraram por último" e "Mais
+// contadas"), o mural fica sem os grupos de ano, como os trilhos na linha do tempo.
 import Polaroid from '../visual/Polaroid.astro';
+import { agruparPorAno } from '../../lib/datas';
+import type { Ordem } from '../../lib/explorar';
 import { estiloDoTipo } from '../../lib/visual';
 
 interface Props {
-  memorias: { id: string; titulo: string; tipo: string; fotos: { chave: string; legenda: string | null }[] }[];
+  /** as memórias, já filtradas e na ordem pedida */
+  memorias: { id: string; titulo: string; ano: number; tipo: string; fotos: { chave: string; legenda: string | null }[] }[];
+  ordem: Ordem;
 }
 
-const { memorias } = Astro.props;
+const { memorias, ordem } = Astro.props;
+const peloTempo = ordem === 'recentes' || ordem === 'antigas';
+const grupos = peloTempo ? agruparPorAno(memorias) : [{ ano: 0, itens: memorias }];
+const cedo = new Set(memorias.slice(0, 6).map((m) => m.id));
 ---
 
-<ul class="mural miolo" aria-label="Fotos das memórias">
-  {
-    memorias.map((m, n) => (
-      <li style={estiloDoTipo(m.tipo)}>
-        <a href={`/memorias/${m.id}`} aria-label={m.titulo}>
-          <Polaroid id={m.id} fotos={m.fotos} legenda={m.fotos.length ? '' : m.titulo} alt="" monte={false} cedo={n < 6} tipo={m.tipo} />
-        </a>
-      </li>
-    ))
-  }
-</ul>
+{
+  grupos.map(({ ano, itens }) => (
+    <section class:list={['mural__ano miolo', !peloTempo && 'mural__ano--corrido']} aria-labelledby={peloTempo ? `mural-${ano}` : undefined} aria-label={peloTempo ? undefined : 'Fotos das memórias'}>
+      {peloTempo && (
+        <header class="mural__cabeca">
+          <h2 class="ano__numero" id={`mural-${ano}`}>
+            {ano}
+          </h2>
+          <p class="rotulo suave">
+            {itens.length} {itens.length === 1 ? 'memória' : 'memórias'}
+          </p>
+        </header>
+      )}
+      <ul class="mural">
+        {itens.map((m) => (
+          <li style={estiloDoTipo(m.tipo)}>
+            <a href={`/memorias/${m.id}`}>
+              <Polaroid id={m.id} fotos={m.fotos} legenda={m.titulo} alt="" monte={false} cedo={cedo.has(m.id)} tipo={m.tipo} />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))
+}

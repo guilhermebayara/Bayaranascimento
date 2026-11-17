@@ -74,45 +74,63 @@
 
 /* --- Mural de fotos ------------------------------------------------------------------------------
    As fotos-chave lado a lado, cada uma com a inclinação dela e um pouco fora de fila, como fotos
-   espalhadas na mesa. Sem texto: o cartão sem foto leva o título. */
+   espalhadas na mesa. Cada ano abre com o número grande, a mesma divisória da linha do tempo, e na
+   margem de cada foto vai o título da memória, escrito à mão (decisões do Gui, 17/11/2026). */
 
 .linha--mural {
   padding-bottom: var(--e-8);
 }
+.mural__ano {
+  padding-top: var(--e-7);
+}
+.mural__ano--corrido {
+  padding-top: var(--e-5);
+}
+.mural__cabeca {
+  container-type: inline-size;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-4);
+  margin-bottom: var(--e-6);
+}
+/* No celular, duas colunas: com três, o título escrito à mão ficava pequeno demais para ler */
 .mural {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--e-5) var(--e-3);
-  padding-top: var(--e-6);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-6) var(--e-5);
 }
 .mural li {
   min-width: 0;
 }
-.mural li:nth-child(3n + 2) {
+.mural li:nth-child(even) {
   translate: 0 var(--e-4);
 }
 .mural a {
   display: block;
-  text-decoration: none;
   border-radius: var(--raio-moldura);
+  color: inherit;
+  text-decoration: none;
 }
 .mural a:focus-visible {
   outline-offset: 0.35rem;
 }
-/* No cartão sem foto, o título cabe em até duas linhas na margem de baixo */
-.mural .polaroid--sem-foto .polaroid__legenda {
-  align-items: start;
-  overflow: hidden;
+/* O título na margem da foto: manuscrito, pequeno, em até duas linhas */
+.mural .polaroid .polaroid__legenda {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+  overflow: hidden;
   height: 23cqi;
   min-height: 0;
-  padding-block: 2.5cqi 0;
-  font-size: clamp(0.5rem, 5.4cqi, 0.875rem);
-  line-height: 1.25;
-  letter-spacing: 0.02em;
+  padding: 2.5cqi 0 0;
+  font-family: var(--mao);
+  font-size: calc(clamp(0.9375rem, 9.6cqi, 1.5rem) * var(--escala-mao));
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--tinta);
 }
 
@@ -150,6 +168,7 @@
   grid-template-areas:
     'foto'
     'passos'
+    'passar'
     'texto';
   align-content: start;
   gap: var(--e-5);
@@ -183,12 +202,52 @@
   justify-content: center;
   gap: var(--e-2) var(--e-6);
 }
-.palco__passos [hidden] {
-  display: none;
-}
 .palco__passos .acao[aria-disabled='true'] {
   opacity: 0.4;
   pointer-events: none;
+}
+.palco__passar {
+  grid-area: passar;
+  display: grid;
+  justify-items: center;
+}
+.palco__passar[hidden] {
+  display: none;
+}
+.palco__tempos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 var(--e-5);
+}
+.palco__tempos a:not(.acao) {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.palco__tempos a:not(.acao):hover {
+  color: var(--tinta);
+}
+.palco__tempos a[aria-current] {
+  color: var(--tinta);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.4em;
+}
+.palco__tempos button {
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 .palco__texto {
   grid-area: texto;
@@ -240,19 +299,38 @@
   .filtros__acoes {
     grid-column: 1 / -1;
   }
-  .mural {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: var(--e-7) var(--calha);
-    padding-top: var(--e-8);
+  /* O ano numa coluna à esquerda, como na linha do tempo, e as fotos ao lado */
+  .mural__ano {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--calha);
+    align-items: start;
+    padding-top: var(--e-9);
   }
-  .mural li:nth-child(3n + 2) {
+  .mural__cabeca {
+    grid-column: 1 / span 3;
+    display: block;
+    margin: 0;
+  }
+  .mural__cabeca .ano__numero {
+    margin-bottom: var(--e-4);
+  }
+  .mural {
+    grid-column: 4 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--e-7) var(--calha);
+  }
+  .mural__ano--corrido .mural {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .mural li:nth-child(even) {
     translate: none;
   }
-  .mural li:nth-child(6n + 2),
-  .mural li:nth-child(6n + 5) {
-    translate: 0 var(--e-6);
+  .mural li:nth-child(4n + 2) {
+    translate: 0 var(--e-5);
   }
-  .mural li:nth-child(6n + 4) {
+  .mural li:nth-child(4n + 3) {
     translate: 0 calc(-1 * var(--e-3));
   }
 
@@ -260,7 +338,7 @@
   .palco__cena {
     grid-template-columns: repeat(12, minmax(0, 1fr));
     grid-template-areas: none;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
     align-content: center;
     align-items: center;
     column-gap: var(--calha);
@@ -268,7 +346,14 @@
     padding-block: var(--e-4) 0;
   }
   .palco__foto {
-    grid-area: 1 / 1 / 3 / 8;
+    grid-area: 1 / 1 / 4 / 8;
+  }
+  .palco__passar {
+    grid-area: 3 / 8 / 4 / -1;
+    justify-items: start;
+  }
+  .palco__tempos {
+    justify-content: start;
   }
   .palco__foto img {
     max-height: calc(100svh - 9rem);
@@ -297,19 +382,19 @@
 
 @media (min-width: 100rem) {
   .mural {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .mural__ano--corrido .mural {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
   .mural li:nth-child(n) {
     translate: none;
   }
-  .mural li:nth-child(8n + 2),
-  .mural li:nth-child(8n + 7) {
-    translate: 0 var(--e-7);
+  .mural li:nth-child(6n + 2),
+  .mural li:nth-child(6n + 5) {
+    translate: 0 var(--e-6);
   }
-  .mural li:nth-child(8n + 4) {
-    translate: 0 var(--e-5);
-  }
-  .mural li:nth-child(8n + 5) {
-    translate: 0 calc(-1 * var(--e-4));
+  .mural li:nth-child(6n + 4) {
+    translate: 0 calc(-1 * var(--e-3));
   }
 }

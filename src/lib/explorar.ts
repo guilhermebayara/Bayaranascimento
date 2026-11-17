@@ -223,7 +223,7 @@ export function lerForma(p: URLSearchParams): Forma {
 
 /**
  * O endereço do Explorar com os filtros, a ordem e a forma de ver. `mais` leva o que é só de uma
- * forma: a memória da vez no modo TV e no "ao acaso" (`m`), "passar sozinho" (`passar`).
+ * forma: a memória da vez no modo TV e no "ao acaso" (`m`) e o "Passar sozinho" (passarNoEndereco).
  */
 export function enderecoDoExplorar(f: Filtros, forma: Forma = FORMA_PADRAO, mais: Record<string, string | undefined> = {}): string {
   const p = paraEndereco(f);
@@ -231,6 +231,35 @@ export function enderecoDoExplorar(f: Filtros, forma: Forma = FORMA_PADRAO, mais
   for (const [nome, valor] of Object.entries(mais)) if (valor) p.set(nome, valor);
   const busca = p.toString();
   return busca ? `/explorar?${busca}` : '/explorar';
+}
+
+/**
+ * "Passar sozinho", no modo TV (decisão do Gui, 17/11/2026): quem está vendo escolhe o tempo de
+ * cada memória, entre 8, 10 e 15 segundos, e pode pausar e retomar. Fica no endereço, como os
+ * filtros: `passar` leva os segundos e `pausa`, a pausa. Sem `passar`, nada passa sozinho.
+ */
+export const TEMPOS_DE_PASSAR = [8, 10, 15] as const;
+export const TEMPO_DE_PASSAR_PADRAO = 10;
+
+export interface Passar {
+  /** os segundos de cada memória; null quando "Passar sozinho" está desligado */
+  tempo: number | null;
+  pausado: boolean;
+}
+
+export function lerPassar(p: URLSearchParams): Passar {
+  const pedido = p.get('passar');
+  if (pedido === null) return { tempo: null, pausado: false };
+  const segundos = Number(pedido);
+  // Um valor fora da lista (como o "1" dos primeiros endereços) vale o padrão
+  const tempo = (TEMPOS_DE_PASSAR as readonly number[]).includes(segundos) ? segundos : TEMPO_DE_PASSAR_PADRAO;
+  return { tempo, pausado: p.get('pausa') === '1' };
+}
+
+/** O que vai no endereço para um estado do "Passar sozinho" (para `mais`, em enderecoDoExplorar). */
+export function passarNoEndereco(passar: Passar): Record<string, string | undefined> {
+  if (passar.tempo === null) return {};
+  return { passar: String(passar.tempo), pausa: passar.pausado ? '1' : undefined };
 }
 
 /** Os nomes de que o resumo precisa: de cada id, o nome que aparece na tela. */

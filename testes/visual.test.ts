@@ -250,12 +250,31 @@ describe('conceito', () => {
     expect(linha).toMatch(/pontaDeBaixo = paraOPresente \? 'Fim' : 'Começo'/);
   });
 
+  it('o mural agrupa as fotos por ano, com o ano grande, e leva o título de cada memória à mão', () => {
+    // Decisões do Gui, 17/11/2026. Fora da ordem do tempo, o mural fica sem os grupos de ano
+    const mural = tela('explorar/Mural.astro');
+    expect(mural).toMatch(/const peloTempo = ordem === 'recentes' \|\| ordem === 'antigas';/);
+    expect(mural).toMatch(/peloTempo \? agruparPorAno\(memorias\) : \[\{ ano: 0, itens: memorias \}\]/);
+    expect(mural).toMatch(/\{peloTempo && \(\s*<header class="mural__cabeca">\s*<h2 class="ano__numero"/);
+    expect(mural).toMatch(/<Polaroid id=\{m\.id\}[^>]*legenda=\{m\.titulo\}/);
+    expect(tela('pages/explorar.astro')).toContain('<Mural memorias={memorias} ordem={filtros.ordem} />');
+    const css = ler('telas/explorar.css');
+    expect(css).toMatch(/\.mural \.polaroid \.polaroid__legenda\s*\{[^}]*font-family:\s*var\(--mao\)[^}]*text-transform:\s*none/);
+    // O ano do mural rola com a página: nada preso novo
+    expect(css).not.toMatch(/position\s*:\s*(sticky|fixed)/);
+  });
+
   it('o modo TV passa as memórias por links, e só passa sozinho quando a pessoa liga', () => {
     // docs/decisoes.md, "Explorar". Sem script, "Anterior" e "Próxima" continuam funcionando
     const palco = tela('explorar/Palco.astro');
-    for (const nome of ['Anterior', 'Próxima', 'Passar sozinho', 'Sair do modo TV', 'Me mostre outra']) expect(palco).toContain(nome);
+    for (const nome of ['Anterior', 'Próxima', 'Passar sozinho', 'Parar de passar sozinho', 'Pausar', 'Retomar', 'Sair do modo TV', 'Me mostre outra']) expect(palco).toContain(nome);
     expect(palco).toMatch(/<a class="botao" href=\{depois\}[^>]*rel="next"/);
-    expect(palco).toMatch(/if \(palco\.hasAttribute\('data-passar'\)\)/);
+    // Decisão do Gui, 17/11/2026: quem está vendo escolhe o tempo e pode pausar e retomar. O grupo só
+    // aparece com script, o relógio só arma com um tempo escolhido e sem pausa, e a pausa vai no endereço
+    expect(palco).toMatch(/data-palco-passar hidden>/);
+    expect(palco).toMatch(/passar\.tempos\.map\(\(t\) => \(\s*<a href=\{t\.href\}/);
+    expect(palco).toMatch(/if \(!pausado && !document\.hidden\) relogio = window\.setTimeout\(\(\) => ir\(link\('depois'\)\), segundos \* 1000\)/);
+    expect(palco).toMatch(/url\.searchParams\.set\('pausa', '1'\)/);
     // Com movimento reduzido, a troca é sem animação
     const css = ler('telas/explorar.css');
     expect(css).toMatch(/@media \(prefers-reduced-motion: no-preference\) \{\s*@view-transition/);

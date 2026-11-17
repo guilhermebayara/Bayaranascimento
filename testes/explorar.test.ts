@@ -189,6 +189,27 @@ describe('formas de ver e endereço', async () => {
     expect(resumoDosFiltros({ ...SEM_FILTRO, ate: 1994 }, nomes)).toEqual(['até 1994']);
   });
 
+  it('"Passar sozinho" guarda no endereço o tempo escolhido, entre 8, 10 e 15 segundos, e a pausa', async () => {
+    // Decisão do Gui, 17/11/2026
+    const { TEMPOS_DE_PASSAR, TEMPO_DE_PASSAR_PADRAO, lerPassar, passarNoEndereco } = await import('../src/lib/explorar');
+    expect([...TEMPOS_DE_PASSAR]).toEqual([8, 10, 15]);
+    expect(TEMPO_DE_PASSAR_PADRAO).toBe(10);
+    const ler = (busca: string) => lerPassar(new URLSearchParams(busca));
+    // Sem "passar", nada passa sozinho, e a pausa sozinha não liga nada
+    expect(ler('')).toEqual({ tempo: null, pausado: false });
+    expect(ler('pausa=1')).toEqual({ tempo: null, pausado: false });
+    expect(ler('passar=8')).toEqual({ tempo: 8, pausado: false });
+    expect(ler('passar=15&pausa=1')).toEqual({ tempo: 15, pausado: true });
+    // Tempo fora da lista vale o padrão: ninguém põe 1 segundo pelo endereço
+    for (const fora of ['1', '0', '3600', 'abc', '']) expect(ler(`passar=${fora}`).tempo).toBe(10);
+    // Ida e volta pelo endereço
+    for (const estado of [{ tempo: null, pausado: false }, { tempo: 8, pausado: false }, { tempo: 15, pausado: true }]) {
+      const endereco = enderecoDoExplorar(SEM_FILTRO, 'tv', { m: 'a', ...passarNoEndereco(estado) });
+      expect(lerPassar(new URLSearchParams(endereco.split('?')[1]))).toEqual(estado);
+    }
+    expect(enderecoDoExplorar(SEM_FILTRO, 'tv', { m: 'a', ...passarNoEndereco({ tempo: 15, pausado: true }) })).toBe('/explorar?ver=tv&m=a&passar=15&pausa=1');
+  });
+
   it('no modo TV, a de antes e a de depois saem da lista filtrada, na ordem dela', () => {
     const lista = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
     expect(vizinhasNaLista(lista, 'b')).toEqual({ posicao: 1, antes: { id: 'a' }, depois: { id: 'c' } });

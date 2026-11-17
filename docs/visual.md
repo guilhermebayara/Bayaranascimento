@@ -421,7 +421,7 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 
 | Grupo | Telas | Situação |
 | --- | --- | --- |
-| 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar`. Espera a conferência do Gui |
+| 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar` (PR #35). O Gui viu e pediu dois ajustes, no mural e no "Passar sozinho", que já entraram |
 | 2. `pessoal` | Painel, carta de Natal, sua conta e a página da pessoa | A fazer |
 | 3. `familia` | Capítulo, tema, pessoas e árvore (a árvore muda só de aparência) | A fazer |
 | 4. `formularios` | Nova memória, relato, cadastro guiado, laços, capítulo, administração, rascunhos e lixeira. Por fim, apagar `src/styles/global.css` | A fazer |
@@ -436,9 +436,21 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 
 **Linha do tempo.** A do conceito, sem mudança de desenho. Os trilhos, as épocas e a faixa de décadas só aparecem quando `mostraTrilhos` deixa. Em "Mais antigas primeiro", a página leva ao presente e o trilho acaba, embaixo, em "Fim do capítulo “Natais”" e "Fim da época “…”" (texto novo, para o Gui confirmar). Em "Entraram por último" e "Mais contadas", a lista é corrida, sem a divisória dos anos, e cada memória traz a data inteira.
 
-**Mural.** Só as fotos-chave como fotos reveladas, cada uma com a inclinação dela e um pouco fora de fila: três colunas no celular, seis no computador, oito na tela grande. Sem texto; a memória sem foto leva o título na margem do cartão, na cor do tipo.
+**Mural** (decisões do Gui, 17/11/2026, depois de ver a primeira versão, que era só as fotos, sem texto). As fotos-chave como fotos reveladas, cada uma com a inclinação dela e um pouco fora de fila.
 
-**Modo TV.** Uma memória por página, na tela inteira, sem o topo e o rodapé do site: a cor do tipo de momento no fundo, a foto inteira com margem de ampliação, o carimbo, o título, um trecho do relato assinado à mão e quem estava. "Anterior" e "Próxima" são links, com o foco já em "Próxima" (no controle da TV, o botão do meio passa); as setas do teclado passam, o Esc sai e tocar na foto passa para a seguinte. "Passar sozinho" só existe com script e troca a cada 10 segundos; ligado, a última volta à primeira. A troca esmaece pela transição entre páginas do navegador, só para quem não pediu menos movimento. A memória da vez vai no endereço (`m`).
+- **Agrupadas por ano.** Cada grupo abre com o ano grande como divisória, como na linha do tempo, e a conta das memórias do ano. No celular o ano fica em cima das fotos; no computador, numa coluna à esquerda. O ano rola com a página: nada preso novo.
+- **O título na margem.** Na margem de cada foto vai só o título da memória, pequeno, na letra manuscrita, em até duas linhas. Vale também para a memória sem foto, que entra como cartão na cor do tipo. É o segundo uso da manuscrita, que até aqui só assinava os relatos.
+- **Fora da ordem do tempo** ("Entraram por último" e "Mais contadas"), o mural fica sem os grupos de ano, como os trilhos na linha do tempo.
+- Colunas: duas no celular, quatro no computador ao lado do ano e seis na tela grande; sem os grupos de ano, seis e oito. No celular eram três: com o título escrito à mão, a letra ficava pequena demais para ler.
+
+**Modo TV.** Uma memória por página, na tela inteira, sem o topo e o rodapé do site: a cor do tipo de momento no fundo, a foto inteira com margem de ampliação, o carimbo, o título, um trecho do relato assinado à mão e quem estava. "Anterior" e "Próxima" são links, com o foco já em "Próxima" (no controle da TV, o botão do meio passa); as setas do teclado passam, o Esc sai e tocar na foto passa para a seguinte. A troca esmaece pela transição entre páginas do navegador, só para quem não pediu menos movimento: com movimento reduzido, a troca é sem animação. A memória da vez vai no endereço (`m`).
+
+**Passar sozinho** (decisão do Gui, 17/11/2026). Quem está vendo escolhe o tempo de cada memória, entre 8, 10 e 15 segundos (`TEMPOS_DE_PASSAR`, em `src/lib/explorar.ts`), e pode pausar e retomar a qualquer momento.
+
+- O grupo "Passar sozinho" fica abaixo de "Anterior" e "Próxima", com os três tempos. Escolher um liga; o tempo em uso fica marcado. Ligado, aparecem "Pausar" (que vira "Retomar") e "Parar de passar sozinho".
+- A escolha fica no endereço, como os filtros: `passar` leva os segundos e `pausa=1`, a pausa. Tempo fora da lista vale 10, o padrão. O estado segue de uma memória para a outra: quem pausou e passa à mão continua pausado.
+- Pausar não recarrega a página; retomar conta o tempo de novo, inteiro. Com a aba escondida, espera. Ligado, a última memória volta à primeira.
+- Só existe com script: sem ele, o grupo nem aparece, e "Anterior" e "Próxima" continuam funcionando.
 
 **Ao acaso.** "Me mostre uma memória" sorteia entre as que passam nos filtros e leva ao endereço da sorteada, no mesmo palco, com o topo do site. "Me mostre outra" sorteia de novo, sem repetir a que estava na tela.
 
@@ -448,7 +460,9 @@ O mural, o modo TV e o sorteio não mostram rascunho: o rascunho só aparece na 
 
 **Sua conta, de passagem.** `/conta` é a página de passagem que estava em `/conceito/conta`, agora em todos os ambientes, para o retrato do topo ter aonde levar: sua página, editar seus dados, rascunhos, lixeira e, para os administradores, tipos de momento, famílias, carta de Natal, a cópia do acervo e, na homologação, o espelho. A tela de verdade é do grupo 2.
 
-**Para o Gui decidir neste grupo:** o endereço `/explorar`; os nomes dos controles ("Forma de ver", "Filtros") e os textos do formulário ("O que a memória tem", "Seus relatos", "Você já contou", "Você estava e ainda não contou", "Quem estava junto", "Mostrar memórias", "Limpar filtros", "Nenhuma memória passa nesses filtros."); "Fim do capítulo" e "Fim da época" na ordem das mais antigas; os textos do palco ("Sair do modo TV", "Passar sozinho", "Parar de passar sozinho", "Abrir esta memória", "Uma memória ao acaso", "Me mostre outra", "Voltar ao Explorar"); os 10 segundos do "Passar sozinho"; e o mural sem ano nem lugar na margem das fotos.
+**Decidido pelo Gui em 17/11/2026, ao ver o PR #35:** ficam o endereço `/explorar`, o nome "Forma de ver" e os textos do formulário ("O que a memória tem", "Seus relatos", "Você já contou", "Você estava e ainda não contou", "Quem estava junto", "Mostrar memórias", "Limpar filtros", "Nenhuma memória passa nesses filtros."), do palco ("Sair do modo TV", "Passar sozinho", "Parar de passar sozinho", "Abrir esta memória", "Uma memória ao acaso", "Me mostre outra", "Voltar ao Explorar") e do pé do trilho ("Fim do capítulo" e "Fim da época", na ordem das mais antigas). Mudaram o mural e o "Passar sozinho", como descrito acima.
+
+**Textos novos desta rodada, para o Gui ver:** "8 segundos", "10 segundos" e "15 segundos", "Pausar" e "Retomar"; e as duas colunas do mural no celular.
 
 **Capturas.** `CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>`. As deste grupo estão em `docs/visual/fase-3/explorar/`.
 

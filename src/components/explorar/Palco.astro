@@ -17,11 +17,15 @@ interface Props {
   nomes?: string[];
   /** "3 de 41", no modo TV */
   posicao?: string;
-  /** endereços: a de antes, a de depois (ou outra sorteada), a volta ao Explorar e o liga e desliga do "Passar sozinho" */
+  /** endereços: a de antes, a de depois (ou outra sorteada) e a volta ao Explorar */
   antes?: string;
   depois?: string;
   sair: string;
-  passar?: { ligado: boolean; href: string };
+  /**
+   * "Passar sozinho": o tempo em uso (null, desligado), a pausa, o endereço que liga cada tempo e o
+   * que desliga
+   */
+  passar?: { tempo: number | null; pausado: boolean; tempos: { segundos: number; href: string }[]; parar: string };
   /** a foto da memória seguinte, para já estar carregada quando ela entrar */
   fotoSeguinte?: string;
   /** para limpar os filtros, quando nada passa neles */
@@ -49,7 +53,7 @@ const abrir = memoria ? `/memorias/${memoria.id}` : '';
 }
 {
   memoria && (
-    <article class:list={['palco', `palco--${modo}`]} style={estiloDoTipo(memoria.tipo)} data-palco data-passar={passar?.ligado ? '' : undefined}>
+    <article class:list={['palco', `palco--${modo}`]} style={estiloDoTipo(memoria.tipo)} data-palco data-passar={passar?.tempo ?? undefined} data-pausado={passar?.pausado ? '' : undefined}>
       <header class="palco__topo miolo">
         <p class="rotulo">
           {modo === 'tv' ? 'Modo TV' : 'Uma memória ao acaso'}
@@ -61,7 +65,7 @@ const abrir = memoria ? `/memorias/${memoria.id}` : '';
       </header>
       <div class="palco__cena miolo">
         {/* No modo TV, tocar na foto passa para a próxima; no "ao acaso", abre a memória */}
-        <a class="palco__foto" href={modo === 'tv' && depois ? depois : abrir} aria-label={modo === 'tv' && depois ? 'Próxima memória' : `Abrir a memória ${memoria.titulo}`} tabindex="-1">
+        <a class="palco__foto" href={modo === 'tv' && depois ? depois : abrir} data-palco-leva={modo === 'tv' && depois ? '' : undefined} aria-label={modo === 'tv' && depois ? 'Próxima memória' : `Abrir a memória ${memoria.titulo}`} tabindex="-1">
           {foto ? (
             <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} decoding="async" />
           ) : (
@@ -93,17 +97,12 @@ const abrir = memoria ? `/memorias/${memoria.id}` : '';
         <nav class="palco__passos" aria-label={modo === 'tv' ? 'Passar as memórias' : 'Outra memória'}>
           {modo === 'tv' && (
             <>
-              <a class="acao" href={antes} aria-disabled={antes ? undefined : 'true'} rel="prev" data-palco-antes>
+              <a class="acao" href={antes} aria-disabled={antes ? undefined : 'true'} rel="prev" data-palco-antes data-palco-leva>
                 Anterior
               </a>
-              <a class="botao" href={depois} aria-disabled={depois ? undefined : 'true'} rel="next" data-palco-depois>
+              <a class="botao" href={depois} aria-disabled={depois ? undefined : 'true'} rel="next" data-palco-depois data-palco-leva>
                 Próxima
               </a>
-              {passar && (
-                <a class="acao acao--quieta" href={passar.href} data-palco-passar hidden>
-                  {passar.ligado ? 'Parar de passar sozinho' : 'Passar sozinho'}
-                </a>
-              )}
             </>
           )}
           {modo === 'acaso' && depois && (
@@ -112,6 +111,32 @@ const abrir = memoria ? `/memorias/${memoria.id}` : '';
             </a>
           )}
         </nav>
+        {/* "Passar sozinho": quem está vendo escolhe o tempo de cada memória e pode pausar e retomar.
+            Só existe com script: sem ele, o grupo nem aparece. */}
+        {passar && (
+          <div class="palco__passar" role="group" aria-labelledby="passar-sozinho" data-palco-passar hidden>
+            <p class="rotulo suave" id="passar-sozinho">
+              Passar sozinho
+            </p>
+            <p class="palco__tempos">
+              {passar.tempos.map((t) => (
+                <a href={t.href} aria-current={t.segundos === passar.tempo ? 'true' : undefined} data-palco-leva>
+                  {t.segundos} segundos
+                </a>
+              ))}
+            </p>
+            {passar.tempo !== null && (
+              <p class="palco__tempos">
+                <button type="button" class="acao" data-palco-pausa aria-pressed={passar.pausado ? 'true' : 'false'}>
+                  {passar.pausado ? 'Retomar' : 'Pausar'}
+                </button>
+                <a class="acao acao--quieta" href={passar.parar}>
+                  Parar de passar sozinho
+                </a>
+              </p>
+            )}
+          </div>
+        )}
       </div>
       {fotoSeguinte && <link rel="preload" as="image" href={fotoSeguinte} />}
     </article>
@@ -120,7 +145,7 @@ const abrir = memoria ? `/memorias/${memoria.id}` : '';
 
 <script>
   // As setas do teclado e do controle da TV passam as memórias, e o Esc sai. "Passar sozinho" só
-  // existe com script: sem ele, o botão nem aparece. Com movimento reduzido, a troca é sem animação
+  // existe com script: sem ele, o grupo nem aparece. Com movimento reduzido, a troca é sem animação
   // (a transição entre páginas, no CSS, só vale para quem não pediu menos movimento).
   const palco = document.querySelector<HTMLElement>('[data-palco]');
   if (palco) {
@@ -134,17 +159,38 @@ const abrir = memoria ? `/memorias/${memoria.id}` : '';
       else if (evento.key === 'ArrowLeft') ir(link('antes'));
       else if (evento.key === 'Escape') ir(link('sair'));
     });
-    const passar = link('passar');
-    if (passar) {
-      passar.hidden = false;
-      // Ligado: a próxima entra sozinha depois de um tempo de leitura. Com a aba escondida, espera.
-      if (palco.hasAttribute('data-passar')) {
-        const TEMPO = 10000;
+    const grupo = palco.querySelector<HTMLElement>('[data-palco-passar]');
+    if (grupo) {
+      grupo.hidden = false;
+      const segundos = Number(palco.dataset.passar);
+      const pausa = grupo.querySelector<HTMLButtonElement>('[data-palco-pausa]');
+      if (segundos > 0 && pausa) {
+        // Ligado: a próxima entra sozinha depois do tempo escolhido. Com a aba escondida, espera.
+        let pausado = palco.hasAttribute('data-pausado');
         let relogio = 0;
         const armar = () => {
           clearTimeout(relogio);
-          if (!document.hidden) relogio = window.setTimeout(() => ir(link('depois')), TEMPO);
+          if (!pausado && !document.hidden) relogio = window.setTimeout(() => ir(link('depois')), segundos * 1000);
         };
+        // A pausa fica no endereço e segue para a memória seguinte: quem pausou e passa à mão continua pausado
+        const levar = (endereco: string) => {
+          const url = new URL(endereco, location.href);
+          if (pausado) url.searchParams.set('pausa', '1');
+          else url.searchParams.delete('pausa');
+          return url.pathname + url.search;
+        };
+        pausa.addEventListener('click', () => {
+          pausado = !pausado;
+          pausa.textContent = pausado ? 'Retomar' : 'Pausar';
+          pausa.setAttribute('aria-pressed', String(pausado));
+          palco.toggleAttribute('data-pausado', pausado);
+          history.replaceState(history.state, '', levar(location.href));
+          for (const a of palco.querySelectorAll<HTMLAnchorElement>('a[data-palco-leva][href]')) {
+            // Escolher um tempo retoma: esses links não levam a pausa
+            if (!a.closest('.palco__tempos')) a.setAttribute('href', levar(a.href));
+          }
+          armar();
+        });
         document.addEventListener('visibilitychange', armar);
         armar();
       }
