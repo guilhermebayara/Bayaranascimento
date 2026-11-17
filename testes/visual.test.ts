@@ -827,3 +827,60 @@ describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo', ()
     expect(fonte('components/ConfirmarRemocao.astro')).toMatch(/class="botao botao--perigo" type="submit"/);
   });
 });
+
+describe('ajustes: a árvore nítida no zoom, o cartão de bicho e a foto da lista', () => {
+  const fonte = (caminho: string) => readFileSync(new URL(`../src/${caminho}`, import.meta.url), 'utf8');
+  const semComentario = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const regra = (css: string, seletor: string) => {
+    const inicio = css.indexOf(`${seletor} {`);
+    return inicio < 0 ? '' : css.slice(inicio, css.indexOf('}', inicio));
+  };
+
+  it('a camada do mapa só é promovida enquanto o gesto dura (defeito achado pelo Gui, 17/11/2026)', () => {
+    // Com will-change sempre ligado, o navegador desenhava a árvore a 100% e esticava o desenho ao
+    // aproximar: texto, cartões e linhas ficavam borrados. A promoção fica numa classe só, que o
+    // script põe no gesto e tira quando ele acaba, para o desenho ser refeito na escala nova.
+    const css = semComentario(fonte('visual/telas/arvore.css'));
+    const comPromocao = [...css.matchAll(/([^{}]+)\{[^{}]*will-change[^{}]*\}/g)].map((m) => m[1].trim());
+    expect(comPromocao).toEqual(['.mapa__camada--em-gesto']);
+    expect(css).not.toMatch(/translate3d|translateZ|backface-visibility/);
+    const cliente = fonte('lib/cliente/arvore.ts');
+    expect(cliente).toMatch(/classList\.add\('mapa__camada--em-gesto'\)/);
+    expect(cliente).toMatch(/setTimeout\(\(\) => \{\s*for \(const c of camadas\) c\.classList\.remove\('mapa__camada--em-gesto'\);/);
+    // Toda mudança da vista passa por aplicarVista, que é quem marca o gesto
+    expect(cliente).toMatch(/const aplicarVista = \(animado = false\) => \{\s*emGesto\(animado\);/);
+    expect(cliente.match(/c\.style\.transform = `translate\(\$\{vista\.x\}px/g)).toHaveLength(1);
+    expect(cliente).not.toMatch(/willChange|translate3d/);
+  });
+
+  it('arrastar o mapa começando num cartão não vira o arrasto de link do navegador', () => {
+    expect(fonte('lib/cliente/arvore.ts')).toMatch(/mapa\.addEventListener\('dragstart', \(e\) => e\.preventDefault\(\)\);/);
+  });
+
+  it('no cartão de bicho, o respiro acompanha o arredondado (achado do Gui, 17/11/2026)', () => {
+    const css = semComentario(fonte('visual/telas/arvore.css'));
+    const rem = (bloco: string, propriedade: string) => Number(new RegExp(`${propriedade}:\\s*([\\d.]+)rem`).exec(bloco)?.[1]);
+    const bicho = regra(css, '.no--bicho');
+    const especie = regra(css, '.no__bicho');
+    const raio = rem(bicho, 'border-radius') * 16;
+    const margem = rem(bicho, 'padding-inline') * 16;
+    const alto = rem(especie, 'top') * 16;
+    // A caixa tem 76 px de altura: abaixo de meia altura, a forma continua de cápsula sem a curva
+    // tomar o canto do texto
+    expect(raio).toBeGreaterThanOrEqual(24);
+    expect(raio).toBeLessThan(38);
+    // Onde a curva está na altura da primeira linha (a espécie): a folga até o texto não fica menor
+    // que a margem do cartão de pessoa (0.7rem)
+    const curva = raio - Math.sqrt(raio ** 2 - (raio - alto) ** 2);
+    expect(margem - curva).toBeGreaterThanOrEqual(0.7 * 16);
+    // A espécie começa na mesma margem do nome
+    expect(rem(especie, 'left')).toBe(rem(bicho, 'padding-inline'));
+    expect(rem(especie, 'right')).toBe(rem(bicho, 'padding-inline'));
+  });
+
+  it('na lista, a conta do cabeçalho do ano fica fora da margem da foto', () => {
+    const css = semComentario(fonte('visual/telas/lista.css'));
+    expect(css).toMatch(/\.lista__cabeca \{\s*padding-right: 11\.5rem;/);
+    expect(css).toMatch(/\.lista__linha,\s*\.lista__cabeca \{\s*padding-right: 15rem;/);
+  });
+});

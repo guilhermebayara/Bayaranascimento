@@ -230,6 +230,11 @@
       opacity var(--tempo-curto) var(--curva),
       visibility 0s linear var(--tempo-curto);
   }
+  /* A conta "N memórias" do cabeçalho do ano fica fora da margem da foto: alinhada com o fim do
+     texto das linhas, a foto de uma linha vizinha nunca passa por cima dela. */
+  .lista__cabeca {
+    padding-right: 11.5rem;
+  }
   .lista__linha:hover .lista__foto,
   .lista__linha:focus-visible .lista__foto {
     opacity: 1;
@@ -267,7 +272,8 @@
   }
 }
 @media (min-width: 100rem) and (hover: hover) and (pointer: fine) {
-  .lista__linha {
+  .lista__linha,
+  .lista__cabeca {
     padding-right: 15rem;
   }
 }

@@ -908,4 +908,44 @@ Branch `tst-visual-ajustes`, nascida da `homologa` em 17/11/2026, com o que o Gu
 
 **O que não foi conferido:** o envio de uma foto nova chegando ao resumo ao lado (a troca da foto-chave foi vista só com as fotos que a memória já tem), o iPhone de verdade e a prévia publicada.
 
-**O que falta nos ajustes** (parte 3, na mesma branch): a nitidez da árvore no zoom e o respiro do cartão de bicho (itens 8 e 9 do pedido), e o PR, com as perguntas de `docs/visual/fase-3/ajustes/perguntas.md` no fim. Depois, a `tst-visual-tipos`.
+### Parte 3: a árvore nítida no zoom, o cartão de bicho e a conferência final
+
+**A árvore nítida em qualquer zoom** (defeito apontado pelo Gui, 17/11/2026: ao aproximar, texto, cartões e linhas perdiam nitidez, como imagem ampliada).
+
+- **A causa provável.** As duas camadas do mapa (`.mapa__camada`) tinham `will-change: transform` sempre ligado, e o zoom é um `transform: scale`. Com a camada promovida o tempo todo, o navegador pode desenhá-la uma vez, a 100%, e só esticar esse desenho ao aproximar.
+- **Não foi reproduzido nesta sessão.** O único navegador disponível aqui é o Chromium, que redesenha a camada na escala nova mesmo com `will-change`: as capturas de antes e depois saíram iguais, nítidas nas duas. O comportamento descrito pelo Gui é o conhecido do Safari (iPhone e Mac), que não pôde ser aberto aqui. **A correção precisa ser conferida pelo Gui no iPhone e no Safari do computador.**
+- **A correção.** A camada só é promovida enquanto o gesto dura: `aplicarVista`, em `src/lib/cliente/arvore.ts`, põe a classe `mapa__camada--em-gesto` (a única regra com `will-change`, em `telas/arvore.css`) e a tira 180 ms depois do último movimento, ou depois da transição quando o zoom é pelos botões. Sem a promoção, o navegador desenha de novo na escala nova. O gesto continua solto, porque durante ele a camada segue promovida.
+- **O que não mudou:** `arvore-montagem.ts`, `arvore-desenho.ts` e os testes `testes/arvore-*.test.ts`; arrastar, a pinça com dois dedos, a rolagem com Ctrl e o ponto sob o cursor parado durante o zoom (conferido: desvio menor que 1 px).
+- **O zoom vai até 400%** (era 200%). Provisório, pergunta 10 do PR: é até onde o Gui pediu para conferir.
+- **Se o Safari continuar borrado depois disto**, a saída seguinte é ampliar pelo tamanho real (a propriedade `zoom` do CSS na camada, no lugar do `scale`), que pede conferência no aparelho porque muda como as medidas da camada são lidas.
+- **Defeito achado no caminho e corrigido:** com o mouse, arrastar o mapa começando em cima de um cartão virava o arrasto de link do navegador, e o mapa parava no primeiro passo. O mapa agora recusa esse arrasto (`dragstart`).
+- **Teste:** `describe('ajustes: a árvore nítida no zoom, o cartão de bicho e a foto da lista')`, em `testes/visual.test.ts`: nenhuma regra de `arvore.css` liga `will-change` além da classe do gesto, sem `translate3d`, e toda mudança da vista passa por `aplicarVista`.
+
+**O cartão de bicho** (achado do Gui, 17/11/2026: a espécie, o nome e o parentesco encostavam na curva das pontas). A cápsula tinha o raio de meia altura (38 px), e a espécie começava a 17,6 px da borda, onde a curva ainda estava a 19,5 px: o texto ficava em cima dela. Agora o raio é 28 px (`1.75rem`), a margem de dentro é 21,6 px (`1.35rem`) e a espécie desce para 8 px do alto. A folga entre o texto e a curva fica em 13 px, perto dos 11 px do cartão de pessoa. A caixa continua 150 por 76, então o desenho e as linhas não mudam, e a forma segue reconhecível: o cartão de pessoa tem um canto reto, e o de bicho é todo arredondado. Nome longo corta com reticências antes do selo "♥ N". O teste confere a conta da folga.
+
+**A foto da lista e a conta do ano** (defeito da parte 1). Na primeira e na última linha de um bloco, a foto do mouse passava por cima da conta "N memórias" do cabeçalho do ano. A conta saiu da margem da foto: o cabeçalho tem o mesmo recuo à direita das linhas, e a conta fica alinhada com o fim do texto delas. Medido em 1280 e 1920 px, no Explorar e na página da pessoa: nenhuma foto encosta em cabeçalho.
+
+**Conferido nesta parte**
+
+- A árvore em 100%, 200% e 400%, num monitor de alta densidade (1280 px, densidade 2) e num celular emulado (390 px, densidade 3, com toque), com capturas do mesmo cartão e da linha tracejada: `ajustes-8-arvore-zoom-<zoom>--<monitor ou celular>.jpg`. Só Chromium.
+- Os gestos, com e sem movimento reduzido: rolagem com Ctrl com o ponto parado, botões, o máximo de 400%, arrastar a partir do vazio e a partir de um cartão, e a pinça com dois dedos (pelos eventos de ponteiro).
+- O cartão de bicho com nome longo e o selo "♥ 12": `ajustes-9-arvore-bicho-nome-longo-e-selo.jpg`.
+- A "Forma de ver" da página da pessoa só pelo teclado, em 390 e 1280 px: cada opção alcançada pelo Tab, com 44 px e contorno, a troca sem recarregar, o foco na opção e ela parada no lugar.
+- As capturas que as partes 1 e 2 não tinham olhado: a lista em 1920 px (por tempo, filtrada e mais contadas), a lista mais contadas e a pessoa em lista no celular, a pessoa na linha do tempo no celular e em 1280 px, o mural da pessoa em 1280 e 1920 px, a pessoa em lista em 1920 px, o capítulo em 1280 e 1920 px, e três telas de formulário em 1280 px depois do último acerto. E, para garantir que a mudança na foto revelada e no título da linha do tempo não quebrou nada, a linha do tempo, o painel e o capítulo em 390 px, e a linha do tempo, a memória e a árvore em 1280 px.
+
+**O que não foi conferido**
+
+- **Safari, no iPhone e no computador:** a nitidez da árvore, que é o motivo do item. E a pinça com dois dedos de verdade.
+- A árvore em 1920 px depois da mudança do cartão de bicho, e as capturas de `docs/visual/fase-3/familia/`, que ainda mostram o cartão de bicho antigo.
+- As telas de formulário em 390 e 1920 px depois do último acerto da parte 2, o capítulo e a pessoa em edição com a zona de perigo, e a lista filtrada em 1280 px.
+- A prévia publicada e a contagem de erros do `tsc`.
+- Na pinça, o ponto entre os dedos desvia alguns pixels quando os dois dedos não se movem juntos. Já era assim antes desta mudança: o zoom é feito em torno do meio dos dedos a cada movimento, sem acompanhar o deslocamento do meio.
+
+**PR dos ajustes:** a preencher com o número.
+
+**O que falta depois dos ajustes**
+
+- **`tst-visual-tipos`**, nascida da `tst-visual-ajustes`: em `/admin/tipos`, a cor vira escolha numa paleta ampliada do sistema e entra o seletor de ícone, com rabiscos novos em `IconeDoTipo.astro` e tudo mostrado em `/sistema`. A marca "A MUDAR" da pergunta 11 do #38 sai ali.
+- **No iPhone e no Safari do computador:** a nitidez da árvore no zoom, a lista, a frase da abertura e a zona de perigo.
+- **Numa TV de verdade:** o modo TV com o controle, e os formulários em 1920 px com o resumo ao lado.
+- **Refazer as capturas da árvore** em `docs/visual/fase-3/familia/`.

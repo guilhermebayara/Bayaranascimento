@@ -52,6 +52,14 @@
   top: 0;
   left: 0;
   transform-origin: 0 0;
+}
+/* A nitidez no zoom (defeito achado pelo Gui, 17/11/2026: ao aproximar, texto, cartões e linhas
+   ficavam borrados, como imagem ampliada). Com will-change sempre ligado, o navegador desenhava a
+   camada uma vez, a 100%, e esticava esse desenho. A camada só é promovida enquanto o gesto dura
+   (a classe é posta e tirada por src/lib/cliente/arvore.ts); quando ele acaba, o navegador
+   desenha de novo, já na escala nova. Nenhuma regra daqui pode ligar will-change fora do gesto:
+   tem teste. */
+.mapa__camada--em-gesto {
   will-change: transform;
 }
 /* Os cartões dos ramos abertos: acima da legenda, abaixo do painel, da ficha e do zoom */
@@ -190,16 +198,20 @@
   font-weight: 500;
 }
 /* Bicho da família: a etiqueta em cápsula, com a espécie escrita */
+/* O respiro acompanha o arredondado (achado do Gui, 17/11/2026: a espécie, o nome e o parentesco
+   encostavam na curva das pontas). O raio é menor que meia altura, para a curva não comer o canto
+   do texto, e a margem de dentro é maior que a do cartão de pessoa na medida em que a curva avança:
+   a folga entre o texto e a borda fica a mesma dos dois. A caixa (150 por 76) não muda. */
 .no--bicho {
-  padding-top: 0.95rem;
-  padding-inline: 1.1rem;
-  border-radius: 2.375rem;
+  padding-top: 1.1rem;
+  padding-inline: 1.35rem;
+  border-radius: 1.75rem;
 }
 .no__bicho {
   position: absolute;
-  top: 0.3rem;
-  left: 1.1rem;
-  right: 1.1rem;
+  top: 0.5rem;
+  left: 1.35rem;
+  right: 1.35rem;
   color: color-mix(in srgb, var(--tinta) 78%, transparent);
   font-family: var(--mono);
   font-size: 0.625rem;
