@@ -3,7 +3,7 @@ import Pagina from '../components/formularios/Pagina.astro';
 import Vazio from '../components/visual/Vazio.astro';
 import { formatarData, formatarMomento } from '../lib/datas';
 import { podeExcluirMemoria } from '../lib/servidor/permissoes';
-import { listarCapitulosExcluidos, listarExcluidas, listarIntegrantes } from '../lib/servidor/repositorio';
+import { listarCapitulos, listarCapitulosExcluidos, listarExcluidas, listarIntegrantes, obterMemoria } from '../lib/servidor/repositorio';
 
 // Cada pessoa vê na lixeira só o que poderia recuperar: admins, as memórias que
 // enxergavam; os demais, os próprios rascunhos descartados.
@@ -15,6 +15,12 @@ const nome = (id: string | null) => {
   const i = integrantes.find((x) => x.id === id);
   return i?.apelido ?? i?.nome ?? 'alguém';
 };
+// Depois de restaurar, a pessoa continua na lixeira, com o caminho para o que voltou (resposta do Gui
+// à P154, 17/11/2026). Só entra o que ela pode ver: a busca é a de sempre.
+const restaurada = Astro.url.searchParams.get('restaurada');
+const memoriaDeVolta = restaurada ? await obterMemoria(usuario, restaurada) : undefined;
+const restaurado = Astro.url.searchParams.get('restaurado');
+const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) => c.id === restaurado) : undefined;
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
@@ -28,10 +34,26 @@ const nome = (id: string | null) => {
     </p>
   </Fragment>
   {
+    memoriaDeVolta && (
+      <p class="acoes">
+        <a class="acao" href={memoriaDeVolta.situacao === 'rascunho' ? `/nova?id=${memoriaDeVolta.id}` : `/memorias/${memoriaDeVolta.id}`}>
+          {memoriaDeVolta.situacao === 'rascunho' ? 'Continuar o rascunho' : 'Ver a memória'}
+        </a>
+      </p>
+    )
+  }
+  {
+    capituloDeVolta && (
+      <p class="acoes">
+        <a class="acao" href={`/capitulos/${capituloDeVolta.id}`}>Ver o capítulo</a>
+      </p>
+    )
+  }
+  {
     excluidas.length + capitulos.length === 0 ? (
       <Vazio frase="A lixeira está vazia." />
     ) : (
-      <ul class="linhas">
+      <ul class="linhas linhas--com-acao">
         {excluidas.map((m) => (
           <li>
             <div>

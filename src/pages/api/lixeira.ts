@@ -32,8 +32,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const decisao = podeExcluirMemoria(usuario, excluida);
     if (!decisao.ok) return voltar(request, '/', { erro: decisao.motivo });
     await restaurarExcluida(id);
-    const destino = excluida.situacao === 'rascunho' ? `/nova?id=${id}` : `/memorias/${id}`;
-    return voltar(request, destino, { ok: 'Memória restaurada da lixeira.' });
+    // Restaurar não tira ninguém da lixeira (resposta do Gui à P154, 17/11/2026): a página mostra o
+    // recado e o caminho para o que voltou, e quem veio restaurar duas coisas continua ali
+    return voltar(request, `/lixeira?restaurada=${encodeURIComponent(id)}`, { ok: excluida.situacao === 'rascunho' ? 'Rascunho restaurado.' : 'Memória restaurada.' });
   }
 
   const memoria = await obterMemoria(usuario, id);

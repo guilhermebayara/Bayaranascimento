@@ -2127,6 +2127,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P154. "Restaurar" deve tirar a pessoa da lixeira?
 
+**Feito (opção A):** restaurar deixa a pessoa na lixeira, com o recado "Rascunho restaurado." (ou "Memória restaurada.", "Capítulo restaurado.") e o link "Continuar o rascunho" (ou "Ver a memória", "Ver o capítulo"). Capturas: `p154-restaurar-fica-na-lixeira--390.jpg`, `p154-restaurar-fica-na-lixeira--1280.jpg`, `p154-restaurar-fica-na-lixeira--1920.jpg`.
+
 **ajuste**
 
 - Contexto: "Restaurar" traz de volta o que foi descartado ou excluído.
@@ -2139,6 +2141,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P155. Rascunhos e lixeira devem ter "Voltar para a sua conta"?
 
+**Feito (opção A):** a lixeira tem "Voltar para a sua conta" no alto, inclusive vazia; a página Rascunhos saiu pela P150. Captura: `p156-restaurar-na-linha-do-titulo--390.jpg`.
+
 **ajuste**
 
 - Contexto: as telas de administração têm "Administração" acima do título e "Voltar para a sua conta". Rascunhos e lixeira têm "Sua conta" acima do título.
@@ -2149,6 +2153,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P156. "Restaurar" pode ficar na linha do título?
+
+**Feito (opção A):** a partir de 1280 px, "Restaurar" fica à direita, na linha do título; no celular continua embaixo. Capturas: `p156-restaurar-na-linha-do-titulo--390.jpg`, `p156-restaurar-na-linha-do-titulo--1280.jpg`, `p156-restaurar-na-linha-do-titulo--1920.jpg`.
 
 **detalhe**
 

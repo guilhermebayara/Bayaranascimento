@@ -57,3 +57,33 @@ describe('sua conta', () => {
     expect(conta).toMatch(/class="conta__copia"[\s\S]*?download[\s\S]*?Banco: \{conta\.banco\}/);
   });
 });
+
+describe('lixeira', () => {
+  const pagina = ler('src/pages/lixeira.astro');
+
+  it('P154: restaurar fica na lixeira, com o recado certo e o caminho para o que voltou', () => {
+    const memorias = ler('src/pages/api/lixeira.ts');
+    expect(memorias).toMatch(/voltar\(request, `\/lixeira\?restaurada=\$\{encodeURIComponent\(id\)\}`/);
+    expect(memorias).toContain("'Rascunho restaurado.'");
+    expect(memorias).toContain("'Memória restaurada.'");
+    expect(ler('src/pages/api/capitulos.ts')).toMatch(/voltar\(request, `\/lixeira\?restaurado=\$\{encodeURIComponent\(id\)\}`, \{ ok: 'Capítulo restaurado.' \}/);
+    expect(pagina).toContain('Continuar o rascunho');
+    expect(pagina).toContain('Ver a memória');
+    // O caminho só aparece para o que a pessoa pode ver: a busca passa pelas regras de sempre
+    expect(pagina).toContain('await obterMemoria(usuario, restaurada)');
+    expect(pagina).toContain('(await listarCapitulos(usuario)).find(');
+  });
+
+  it('P155: a lixeira tem "Voltar para a sua conta"', () => {
+    expect(pagina).toMatch(/<a class="acao" href="\/conta">Voltar para a sua conta<\/a>/);
+  });
+
+  it('P156: na tela grande, "Restaurar" fica à direita, na linha do título', () => {
+    expect(pagina).toContain('class="linhas linhas--com-acao"');
+    const css = ler('src/visual/telas/formulario.css');
+    const inicio = css.indexOf('.pagina-de-formulario .linhas--com-acao > li {');
+    expect(inicio).toBeGreaterThan(-1);
+    expect(css.lastIndexOf('@media (min-width: 62rem)', inicio)).toBeGreaterThan(css.lastIndexOf('\n}\n', inicio) - 1);
+    expect(css.slice(inicio, css.indexOf('}', inicio))).toContain('grid-template-columns: minmax(0, 1fr) auto');
+  });
+});

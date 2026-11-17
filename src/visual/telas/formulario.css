@@ -1759,6 +1759,26 @@
 .pagina-de-formulario .linhas__leva:hover strong {
   text-decoration-color: var(--vivo);
 }
+/* O caminho para o que acabou de ser restaurado fica junto do recado */
+.pagina-de-formulario > .recado + .acoes {
+  margin-top: calc(var(--e-4) - var(--e-7));
+}
+/* A lixeira: na tela grande, "Restaurar" fica à direita, na linha do título (resposta do Gui à P156, 17/11/2026) */
+@media (min-width: 62rem) {
+  .pagina-de-formulario .linhas--com-acao > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--e-6);
+    align-items: start;
+  }
+  .pagina-de-formulario .linhas--com-acao > li > .dica {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .pagina-de-formulario .linhas--com-acao > li > form {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
 .pagina-de-formulario .linhas--fotos > li {
   grid-template-columns: 4.5rem minmax(0, 1fr);
   align-items: center;
