@@ -2048,6 +2048,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P148. Os números de "O que você criou" devem ter o tamanho do nome da pessoa?
 
+**Feito (opção A):** os números desceram para o tamanho de título de parte e, a partir de 1280 px, ficam numa linha só com o nome curto ("24 memórias", "19 relatos"), cada um abrindo a sua lista na largura do cartão; o cartão passou para depois dos laços, na largura toda. Capturas: `p148-contas-numa-linha--390.jpg`, `p148-contas-numa-linha--1280.jpg`, `p148-contas-numa-linha--1920.jpg`.
+
 **muda a experiência**
 
 - Contexto: a ideia da conta é o retrato e o nome no alto, e as coisas da pessoa em ordem. O número grande foi construído no grupo 2.
@@ -2059,6 +2061,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `conta-conta-criou--1280.jpg`, `conta-conta-criou--1920.jpg`.
 
 ### P149. O cartão "Seus dados" precisa existir na tela grande?
+
+**Feito (opção A):** o cartão "Seus dados" saiu; o nascimento, o apelido (quando é diferente do nome) e, na produção, o e-mail de acesso ficam numa linha em mono abaixo do nome, só com o que existe, e os rascunhos são o primeiro cartão. O texto "Sobre você" deixou de aparecer na conta (continua na página da pessoa). Capturas: `p149-alto-e-cartoes--390.jpg`, `p149-alto-e-cartoes--1280.jpg`, `p149-alto-e-cartoes--1920.jpg`, `p149-alto-elizete--1280.jpg`.
 
 **ajuste**
 
@@ -2072,6 +2076,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P150. A página Rascunhos ainda é precisa?
 
+**Feito (opção A):** a página `/rascunhos` saiu; na lixeira o link é "Voltar para a sua conta", e descartar um rascunho volta para a conta, com o recado.
+
 **ajuste**
 
 - Contexto: está decidido que a lixeira tem um link fixo no alto da página Rascunhos e que, no visual novo, ela mora também na conta. A conta lista os rascunhos no próprio cartão.
@@ -2083,6 +2089,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P151. A lista aberta de "O que você criou" deve mostrar tudo de uma vez?
 
+**Feito (opção A):** a lista aberta mostra as dez mais recentes, com "As 10 mais recentes de 24." e "Ver todas no Explorar" (capítulos: "Ver todos em Capítulos"). O Explorar não tem filtro de quem criou, então o link abre o Explorar inteiro. Capturas: `p151-lista-aberta--390.jpg`, `p151-lista-aberta--1280.jpg`, `p151-lista-aberta--1920.jpg`, `p151-fotos-abertas--1280.jpg`.
+
 **detalhe**
 
 - Contexto: cada conta abre no lugar a lista inteira, uma por vez.
@@ -2093,6 +2101,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P152. "Nada seu na lixeira." serve para quem administra?
 
+**Feito (opção A):** para quem administra, a frase conta o que a lixeira mostra ("Nada na lixeira.", "Uma coisa na lixeira.", "3 coisas na lixeira."); para os demais, continua a conta do que é deles. Captura: `p149-alto-e-cartoes--1280.jpg`.
+
 **detalhe**
 
 - Contexto: a conta conta só o que a própria pessoa mandou para a lixeira. A lixeira dos administradores mostra tudo o que eles enxergavam.
@@ -2102,6 +2112,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P153. Na administração, "Baixar cópia do acervo" e "Famílias e membros" dizem o que acontece?
+
+**Feito (opção A):** o link passou a "Famílias", e "Baixar cópia do acervo" foi para uma linha própria, junto de "Banco: 0,4 MB de 500 MB". Capturas: `p153-administracao--390.jpg`, `p153-administracao--1280.jpg`, `p153-administracao--1920.jpg`.
 
 **detalhe**
 

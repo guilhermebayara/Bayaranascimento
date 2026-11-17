@@ -46,8 +46,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!decisao.ok) return voltar(request, pagina, { erro: decisao.motivo });
     await excluirMemoria(memoria.id, usuario);
     const rascunho = memoria.situacao === 'rascunho';
-    return voltar(request, rascunho ? '/rascunhos' : '/', {
-      ok: rascunho ? 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' : `"${memoria.titulo}" foi para a lixeira. Dá para restaurar pela lixeira, em Rascunhos.`,
+    // A página Rascunhos saiu (resposta do Gui à P150, 17/11/2026): os rascunhos e a lixeira moram em "Sua conta"
+    return voltar(request, rascunho ? '/conta' : '/', {
+      ok: rascunho ? 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' : `"${memoria.titulo}" foi para a lixeira. Dá para restaurar pela lixeira, em Sua conta.`,
     });
   }
 

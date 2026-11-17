@@ -83,6 +83,26 @@ export function suaLixeira<E extends { excluidaPor: string | null }>(eu: string,
   return excluidas.filter((m) => m.excluidaPor === eu);
 }
 
+/** Quantos itens a lista aberta de "O que você criou" mostra (resposta do Gui à P151, 17/11/2026). */
+export const LIMITE_DA_LISTA = 10;
+
+/**
+ * A lista aberta de "O que você criou" mostra só o começo, que quem chama entrega já com o mais
+ * recente primeiro. `total` diz quantos existem, para a tela avisar que há mais.
+ */
+export function oComeco<T>(lista: T[], limite = LIMITE_DA_LISTA): { mostra: T[]; total: number; haMais: boolean } {
+  return { mostra: lista.slice(0, limite), total: lista.length, haMais: lista.length > limite };
+}
+
+/**
+ * A frase da lixeira na conta (resposta do Gui à P152, 17/11/2026). Quem administra lê a conta do
+ * que a lixeira mostra; os demais, a do que mandaram para lá, que é o que a lixeira deles mostra.
+ */
+export function fraseDaLixeira(admin: boolean, quantas: number): string {
+  if (admin) return quantas === 0 ? 'Nada na lixeira.' : quantas === 1 ? 'Uma coisa na lixeira.' : `${quantas} coisas na lixeira.`;
+  return quantas === 0 ? 'Nada seu na lixeira.' : quantas === 1 ? 'Uma coisa sua na lixeira.' : `${quantas} coisas suas na lixeira.`;
+}
+
 export interface ItemDeAdministracao {
   rotulo: string;
   href: string;
@@ -92,7 +112,7 @@ export interface ItemDeAdministracao {
 
 /**
  * "Administração", só para os administradores, numa seção à parte no fim: tipos de momento,
- * famílias e membros, a carta de Natal, a página do sistema visual, "Baixar cópia do acervo" e, onde o espelho existe (na homologação e no
+ * famílias, a carta de Natal, a página do sistema visual, "Baixar cópia do acervo" e, onde o espelho existe (na homologação e no
  * computador), o espelho da produção. O tamanho do banco entra como texto, à parte. Para quem não é
  * administrador, nada.
  */
@@ -100,7 +120,7 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
   if (!usuario.admin) return [];
   return [
     { rotulo: 'Tipos de momento', href: '/admin/tipos' },
-    { rotulo: 'Famílias e membros', href: '/admin/familias' },
+    { rotulo: 'Famílias', href: '/admin/familias' },
     { rotulo: 'Carta de Natal', href: '/admin/carta' },
     { rotulo: 'Sistema visual', href: '/sistema' },
     { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },

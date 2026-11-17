@@ -64,8 +64,9 @@ describe('corrigir e desfazer', () => {
     }
   });
 
-  it('a lixeira tem um caminho a partir dos rascunhos', () => {
-    expect(fonte('src/pages/rascunhos.astro')).toContain('href="/lixeira"');
+  // A página Rascunhos saiu (resposta do Gui à P150, 17/11/2026): os rascunhos e a lixeira moram em "Sua conta"
+  it('a lixeira tem um caminho a partir dos rascunhos, em "Sua conta"', () => {
+    expect(fonte('src/pages/conta.astro')).toContain('href="/lixeira"');
   });
 });
 
