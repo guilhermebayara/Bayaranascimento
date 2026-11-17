@@ -2321,6 +2321,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P169. "Refazer o espelho" deve pedir confirmação e ter cara de ação que apaga?
 
+**Feito (opção A):** o botão continua o mesmo, e o primeiro toque abre a pergunta "Trocar tudo o que está na homologação?", com "Trocar tudo" na cor de alerta e "Cancelar"; só o segundo toque envia. O campo de arquivo continua o do navegador. Capturas: `p169-espelho-pede-confirmacao--390.jpg`, `p169-espelho-pede-confirmacao--1280.jpg`, `p169-espelho-pede-confirmacao--1920.jpg`.
+
 **ajuste**
 
 - Contexto: o espelho troca o banco inteiro da homologação. A tela só existe na homologação e no computador, para administradores.
@@ -2332,6 +2334,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P170. "Ver como fica" deve avisar que mostra a carta salva?
 
+**Feito (opção A):** o link passou a dizer "Ver a carta salva". Captura: `p170-ver-a-carta-salva--390.jpg`.
+
 **detalhe**
 
 - Contexto: na Carta de Natal, "Salvar carta" é o botão cheio e "Ver como fica" é o link ao lado, que abre `/carta`.
@@ -2342,6 +2346,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P171. Um "Salvar" por família, ou um só para a tela?
+
+**Feito (opção A):** as três famílias ficaram num formulário só, com um "Salvar famílias" cheio no fim; se uma tiver erro, nenhuma é gravada, e o recado diz qual. Capturas: `p171-salvar-familias--390.jpg`, `p171-salvar-familias--1280.jpg`, `p171-salvar-familias--1920.jpg`.
 
 **detalhe**
 

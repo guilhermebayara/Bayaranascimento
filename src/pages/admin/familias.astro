@@ -28,21 +28,17 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
   <section class="painel">
     <h2>Sobrenomes de cada família</h2>
     <p class="dica">Separe por vírgula, na ordem em que devem aparecer. Com todas as famílias juntas, o site escreve hoje: {assinaturaDaTela([], nucleos).sobrenomes}.</p>
-    <ul class="linhas">
-      {
-        nucleos.map((n) => (
-          <li>
-            <form method="post" action="/api/nucleos" class="em-linha">
-              <input type="hidden" name="id" value={n.id} />
-              <label>
-                <span>{n.nome}</span>
-                <input type="text" name="sobrenomes" value={n.sobrenomes.join(', ')} maxlength="200" required />
-              </label>
-              <button class="botao botao--leve" type="submit">Salvar</button>
-            </form>
-          </li>
-        ))
-      }
-    </ul>
+    {/* Um formulário só, com um "Salvar famílias" no fim: mudar duas famílias é um envio (resposta do Gui à P171, 17/11/2026) */}
+    <form class="formulario" method="post" action="/api/nucleos">
+      {nucleos.map((n) => (
+        <label class="campo">
+          <span>{n.nome}</span>
+          <input type="text" name={`sobrenomes-${n.id}`} value={n.sobrenomes.join(', ')} maxlength="200" required />
+        </label>
+      ))}
+      <div class="acoes">
+        <button class="botao" type="submit">Salvar famílias</button>
+      </div>
+    </form>
   </section>
 </Pagina>

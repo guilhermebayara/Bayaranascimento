@@ -8,13 +8,15 @@ interface Props {
   acao: string;
   confirmar?: string;
   semValidar?: boolean;
+  /** o primeiro toque é o botão cheio da tela, e não o texto sublinhado (o espelho da produção) */
+  cheio?: boolean;
 }
 
-const { rotulo, pergunta, acao, confirmar = 'Remover', semValidar = false } = Astro.props;
+const { rotulo, pergunta, acao, confirmar = 'Remover', semValidar = false, cheio = false } = Astro.props;
 ---
 
 <details class="confirmar" data-confirmar>
-  <summary class="botao botao--leve">{rotulo}</summary>
+  <summary class:list={['botao', { 'botao--leve': !cheio }]}>{rotulo}</summary>
   <div class="confirmar__caixa" role="group" aria-label={pergunta}>
     <p>{pergunta}</p>
     <div class="confirmar__acoes">

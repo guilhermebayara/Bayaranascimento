@@ -146,3 +146,31 @@ describe('tipos de momento', () => {
     expect(pagina).toContain("nomeDoDesenho.textContent = marcado.dataset.nome ?? ''");
   });
 });
+
+describe('famílias, carta de Natal e espelho da produção', () => {
+  it('P169: refazer o espelho pede confirmação no lugar, antes de enviar', () => {
+    const espelho = ler('src/pages/admin/espelho.astro');
+    expect(espelho).toMatch(/<ConfirmarRemocao rotulo="Refazer o espelho" pergunta="Trocar tudo o que está na homologação\?"[^>]*cheio \/>/);
+    // O único botão que envia é o da confirmação
+    expect(espelho).not.toMatch(/<button[^>]*type="submit"/);
+    expect(ler('src/components/ConfirmarRemocao.astro')).toMatch(/<button class="botao botao--perigo" type="submit" name="acao"/);
+  });
+
+  it('P170: o link da carta diz que mostra a carta salva', () => {
+    const carta = ler('src/pages/admin/carta.astro');
+    expect(carta).toContain('Ver a carta salva');
+    expect(carta).not.toContain('Ver como fica');
+  });
+
+  it('P171: as famílias são um formulário só, com um "Salvar famílias", e um erro não grava nenhuma', () => {
+    const familias = ler('src/pages/admin/familias.astro');
+    expect(familias.match(/<form /g)).toHaveLength(1);
+    expect(familias).toMatch(/<button class="botao" type="submit">Salvar famílias<\/button>/);
+    expect(familias).toContain('name={`sobrenomes-${n.id}`}');
+    const rota = ler('src/pages/api/nucleos.ts');
+    // Primeiro confere todas, depois grava
+    expect(rota.indexOf("if ('erro' in lido) return")).toBeGreaterThan(-1);
+    expect(rota.indexOf("if ('erro' in lido) return")).toBeLessThan(rota.indexOf('await atualizarSobrenomesDoNucleo('));
+    expect(rota.match(/await atualizarSobrenomesDoNucleo\(/g)).toHaveLength(1);
+  });
+});

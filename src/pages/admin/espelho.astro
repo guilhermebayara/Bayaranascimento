@@ -1,4 +1,5 @@
 ---
+import ConfirmarRemocao from '../../components/ConfirmarRemocao.astro';
 import Pagina from '../../components/formularios/Pagina.astro';
 import { podeEspelhar } from '../../lib/servidor/espelho';
 
@@ -34,8 +35,9 @@ if (!usuario.admin || !podeEspelhar()) return new Response('Página não encontr
         <span>Cópia do acervo (arquivo .json)</span>
         <input type="file" name="copia" accept="application/json,.json" required />
       </label>
+      {/* O espelho apaga tudo o que está na homologação: o primeiro toque abre a pergunta, e só o segundo envia, como nos laços (resposta do Gui à P169, 17/11/2026) */}
       <div class="acoes">
-        <button type="submit" class="botao">Refazer o espelho</button>
+        <ConfirmarRemocao rotulo="Refazer o espelho" pergunta="Trocar tudo o que está na homologação?" acao="refazer" confirmar="Trocar tudo" cheio />
       </div>
     </form>
   </section>
