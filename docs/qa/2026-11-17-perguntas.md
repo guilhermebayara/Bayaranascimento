@@ -118,7 +118,7 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P1. O mesmo lugar tem três nomes. Qual fica?
 
-**Feito (opção A), a parte do Início:** o convite do fim do Início passou a dizer "Explorar todas as memórias". Capturas: p20-convite-decadas-e-teste--390.jpg, p20-convite-decadas-e-teste--1280.jpg.
+**Feito (opção A):** o menu segue "Explorar" e a carta segue "Abrir o acervo"; o convite do fim do Início passou a dizer "Explorar todas as memórias". Capturas: p20-convite-decadas-e-teste--390.jpg, p20-convite-decadas-e-teste--1280.jpg.
 
 **muda a experiência**
 
