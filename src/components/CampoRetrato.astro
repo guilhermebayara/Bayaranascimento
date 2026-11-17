@@ -1,6 +1,6 @@
 ---
 // Foto de retrato da ficha da pessoa (decisão do Gui, 16/11/2026). Na edição fica à vista, com "Trocar
-// foto" e "Tirar foto"; em "Nova pessoa", no que vem recolhido. O enquadramento, o recorte e a redução
+// foto" e "Remover foto"; em "Nova pessoa", no que vem recolhido. O enquadramento, o recorte e a redução
 // são feitos no navegador (src/lib/cliente/retrato.ts), e o arquivo vai junto com a ficha, que por isso
 // é enviada como multipart. Sem JavaScript, os botões somem e o retrato fica como está.
 // O retrato de agora aparece como no resto do site, recortado em arco, sobre a cor da família.
@@ -31,7 +31,7 @@ const iniciaisDoRetrato = i ? iniciais(i.apelido ?? i.nome) : '?';
           <span data-escolher-retrato-texto>{i?.retrato ? 'Trocar foto' : 'Escolher foto'}</span>
           <input type="file" accept="image/*" data-escolher-retrato class="oculto-visualmente" />
         </label>
-        <button type="button" class="botao botao--leve" data-tirar-retrato hidden={!i?.retrato}>Tirar foto</button>
+        <button type="button" class="botao botao--leve" data-tirar-retrato hidden={!i?.retrato}>Remover foto</button>
       </p>
     </div>
   </div>

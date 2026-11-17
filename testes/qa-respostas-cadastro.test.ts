@@ -1,6 +1,7 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md),
 // nas telas "Nova pessoa e cadastro guiado" (P109 a P113) e "Editar página e laços" (P114 a P125).
 import { describe, expect, it } from 'vitest';
+import { PROPORCAO_DO_RETRATO, arcoDoRetrato } from '../src/lib/retratos';
 
 // A leitura de arquivos segue o jeito de testes/visual.test.ts, que não pede os tipos do Node
 const fs = 'node:fs';
@@ -35,5 +36,80 @@ describe('nova pessoa', () => {
     const resumo = css.slice(css.indexOf('\n.pagina-de-formulario .mais > summary {'), css.indexOf('\n.pagina-de-formulario .mais__nome {'));
     expect(resumo).not.toContain('text-decoration');
     expect(css).toMatch(/\.pagina-de-formulario \.mais__nome \{\s*text-decoration: underline;/);
+  });
+});
+
+describe('editar página e laços', () => {
+  const regra = (seletor: string) => {
+    const inicio = css.indexOf(`\n${seletor} {`);
+    expect(inicio, seletor).toBeGreaterThan(-1);
+    return css.slice(inicio, css.indexOf('}', inicio));
+  };
+  const retrato = ler('src/components/CampoRetrato.astro');
+  const cliente = ler('src/lib/cliente/retrato.ts');
+
+  it('P114: a ficha mexida e não salva é guardada ao salvar um laço e volta com um aviso', () => {
+    expect(editar).toContain('<div data-ficha-pendente hidden>');
+    expect(editar).toContain('<a href="#ficha">Voltar à ficha para salvar</a>');
+    expect(editar).toContain("import { camposDo, devolver, type Guardado } from '../../../lib/cliente/guardar-formulario';");
+    expect(editar).toContain('if (JSON.stringify(campos) === comoVeio && !foto) return;');
+    // Salvar a ficha apaga o que estava guardado
+    expect(editar).toMatch(/ficha\.addEventListener\('submit', \(\) => \{\s*try \{\s*sessionStorage\.removeItem\(CHAVE\);/);
+  });
+  it('P115: todo editor de laço tem "Cancelar" ao lado de "Salvar", que só aparece com script', () => {
+    const editores = editar.match(/<div class="editar__caixa">/g)?.length ?? 0;
+    expect(editores).toBe(5);
+    expect(editar.match(/data-editar-cancelar hidden>Cancelar<\/button>/g)?.length).toBe(editores);
+    expect(editar).toContain('formulario.reset();');
+    expect(editar).toContain("edicao.querySelector('summary')?.focus();");
+  });
+  it('P116: a pergunta de dentro do cartão do casal é um título menor, e "Ficha" fica só para o leitor de tela', () => {
+    expect(regra('.pagina-de-formulario .painel fieldset.fase--nova legend')).toContain('font-size: var(--t-corpo);');
+    expect(regra('.pagina-de-formulario .painel fieldset.fase--nova legend')).toContain('font-family: var(--grotesca);');
+    expect(editar).toMatch(/<h2 class="so-leitor">Ficha<\/h2>\s*<FichaDoIntegrante integrante=\{pessoa\} \/>/);
+  });
+  it('P117: dentro do cartão, a zona de perigo é uma linha, e só vira bloco com a pergunta aberta', () => {
+    const quieta = regra('.pagina-de-formulario .perigo--menor');
+    expect(quieta).toContain('border-top: var(--traco) solid var(--alerta);');
+    expect(quieta).toContain('background: none;');
+    expect(regra('.pagina-de-formulario .perigo--menor:has(.confirmar[open])')).toContain('border: var(--traco) solid var(--alerta);');
+    expect(editar.match(/<ZonaDePerigo menor nivel=\{4\}>/g)?.length).toBe(5);
+  });
+  it('P118: no retrato, a ação se chama "Remover foto"', () => {
+    expect(retrato).toContain('data-tirar-retrato hidden={!i?.retrato}>Remover foto</button>');
+    expect(retrato).not.toContain('>Tirar foto<');
+  });
+  it('P119: o quadro de enquadrar mostra o arco do retrato, na proporção em que ele aparece no site', () => {
+    expect(PROPORCAO_DO_RETRATO).toBe(4 / 5);
+    expect(ler('src/visual/pecas.css')).toMatch(/\.retrato \{[^}]*aspect-ratio: 4 \/ 5;/);
+    expect(arcoDoRetrato(300)).toEqual({ x: 30, y: 0, largura: 240, altura: 300, raio: 120 });
+    expect(cliente).toContain('const arco = arcoDoRetrato(lado);');
+    expect(cliente).toContain("contexto.fill(fora, 'evenodd');");
+  });
+  it('P120: a fase marcada para sair aparece riscada, com "será removida ao salvar"', () => {
+    expect(editar).toContain('<small class="fase__sai">será removida ao salvar</small>');
+    expect(editar).toContain('name={`fase-${n}-remover`} data-remover-fase />');
+    expect(regra('.pagina-de-formulario .fase:has([data-remover-fase]:checked) .fase__texto')).toContain('text-decoration: line-through;');
+    expect(regra('.pagina-de-formulario .fase__sai')).toContain('display: none;');
+  });
+  it('P121: "Só os dois veem este casal" vem separada das fases, com o rótulo "Quem vê", antes do salvar', () => {
+    const cartao = editar.slice(editar.indexOf('<fieldset class="fase--nova">'), editar.indexOf('Salvar o casal'));
+    expect(cartao).toContain('<div class="quem-ve" role="group"');
+    expect(cartao).toContain('>Quem vê</p>');
+    expect(cartao).toContain('<span>Só os dois veem este casal</span>');
+    expect(regra('.pagina-de-formulario .quem-ve')).toContain('border-top: 1px solid var(--fio);');
+  });
+  it('P122: "Editar" só vai para a linha do nome no computador', () => {
+    const noComputador = css.slice(css.indexOf('/* No computador, "Editar" fica na linha do nome'));
+    expect(noComputador).toMatch(/^[^@]*@media \(min-width: 62rem\) \{\s*\.pagina-de-formulario \.laco:has\(> \.editar\) \{\s*position: relative;/);
+  });
+  it('P124: na tela grande o quadro de enquadrar cresce, com os controles ao lado', () => {
+    const grande = css.slice(css.indexOf('/* Na tela grande, o quadro cresce'));
+    expect(grande).toMatch(/^[^@]*@media \(min-width: 62rem\) \{\s*\.pagina-de-formulario \.recorte \{\s*grid-template-columns: minmax\(0, 26rem\)/);
+  });
+  it('P125: as famílias que não mudam viram texto, e só há caixa para o que dá para mexer', () => {
+    expect(ficha).toContain('const familiasParaMarcar = i ? nucleos.filter((n) => !i.nucleos.includes(n.id)) : [];');
+    expect(ficha).toContain('<p data-familias-fixas>');
+    expect(ficha).not.toContain('disabled={i.nucleos.includes(n.id)}');
   });
 });

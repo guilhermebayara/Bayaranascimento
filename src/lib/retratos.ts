@@ -90,3 +90,17 @@ export function recorteDaFoto(largura: number, altura: number, quadrado: number,
   const y = Math.min(altura - lado, Math.max(0, -certo.y / escala));
   return { x, y, lado };
 }
+
+/** A proporção do retrato no site, largura por altura (`.retrato`, em src/visual/pecas.css: 4 por 5). */
+export const PROPORCAO_DO_RETRATO = 4 / 5;
+
+/**
+ * O arco em que o retrato aparece no site, dentro do quadro de enquadrar (resposta do Gui à P119,
+ * 17/11/2026). O arquivo guardado é o quadrado inteiro; o site mostra a altura toda e a faixa do meio
+ * da largura, com o alto arredondado. O quadro desenha este arco por cima, e o que fica de fora, mais
+ * apagado: o que a pessoa enquadra é o que ela vê depois.
+ */
+export function arcoDoRetrato(quadrado: number): { x: number; y: number; largura: number; altura: number; raio: number } {
+  const largura = quadrado * PROPORCAO_DO_RETRATO;
+  return { x: (quadrado - largura) / 2, y: 0, largura, altura: quadrado, raio: largura / 2 };
+}

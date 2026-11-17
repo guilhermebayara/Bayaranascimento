@@ -1632,6 +1632,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P114. A ficha e os laços devem continuar na mesma página, cada um com o seu "Salvar"?
 
+**Feito (opção A):** a página continua única. Conferido antes: salvar um laço recarregava a página e o que estava escrito na ficha se perdia. Agora a ficha mexida fica guardada nesta aba ao salvar um laço, volta para os campos e um aviso em "Laços" leva de volta a ela. A foto escolhida não fica guardada, e o aviso diz. Capturas: `p114-aviso-da-ficha--390.jpg`, `p114-aviso-da-ficha--1280.jpg`, `p114-aviso-da-ficha--1920.jpg`.
+
 **muda a experiência**
 
 - Contexto: a página tem a ficha, com "Salvar página", e depois os laços, cada um com o próprio "Salvar". Foi decidido que a ficha vem antes dos laços.
@@ -1642,6 +1644,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P115. Como se sai do editor de um laço sem salvar?
+
+**Feito (opção A):** "Cancelar" em texto sublinhado ao lado de "Salvar", em todo editor de laço: fecha o cartão, desfaz o que foi mexido nele e devolve o foco ao "Editar". Capturas: `p117-zona-quieta--390.jpg`, `p121-quem-ve--1280.jpg`.
 
 **ajuste**
 
@@ -1655,6 +1659,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P116. Os títulos dentro da tela de editar devem ter degraus?
 
+**Feito (opção A):** "O que aconteceu depois?" passou a um título menor, sem serifa, e o título "Ficha" ficou só para o leitor de tela, com "Quem é" abrindo a parte. Capturas: `p116-ficha-sem-titulo--390.jpg`, `p116-ficha-sem-titulo--1280.jpg`, `p116-ficha-sem-titulo--1920.jpg`, `p120-fase-sera-removida--390.jpg`.
+
 **ajuste**
 
 - Contexto: a pergunta grande em serifa é a ideia dos formulários. Dentro de uma parte, ela desce um degrau.
@@ -1666,6 +1672,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `conta-editar-casal-fases--390.jpg`.
 
 ### P117. A zona de perigo dentro do cartão de um laço deve ser mais quieta?
+
+**Feito (opção A):** dentro do cartão, a zona é uma linha fina na cor de alerta com o rótulo e o link, sem fundo, a 40 px do "Salvar", e só vira bloco com a pergunta aberta. Capturas: `p117-zona-quieta--390.jpg`, `p117-zona-quieta--1280.jpg`, `p117-zona-quieta--1920.jpg`, `p117-zona-pergunta-aberta--390.jpg`, `p117-zona-pergunta-aberta--1280.jpg`, `p117-zona-pergunta-aberta--1920.jpg`.
 
 **ajuste**
 
@@ -1679,6 +1687,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P118. "Tirar foto" pode ser lido como "fotografar"?
 
+**Feito (opção A):** a ação do retrato se chama "Remover foto". Capturas: `p118-remover-foto--390.jpg`.
+
 **ajuste**
 
 - Contexto: no retrato, as ações são "Trocar foto" e "Tirar foto", nomes combinados em 16/11/2026.
@@ -1689,6 +1699,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P119. O quadro de enquadrar deve mostrar o arco em que o retrato aparece?
+
+**Feito (opção A):** o quadro desenha por cima o arco em que o retrato aparece, com o que fica de fora mais apagado. Capturas: `p119-quadro-com-arco--390.jpg`, `p119-quadro-com-arco--1280.jpg`, `p119-quadro-com-arco--1920.jpg`.
 
 **ajuste**
 
@@ -1702,6 +1714,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P120. "Remover esta fase" deve continuar como uma caixa de marcar dentro da fase?
 
+**Feito (opção A):** a caixa continua, e a linha da fase marcada aparece riscada, com "será removida ao salvar", mesmo com a fase fechada. Capturas: `p120-fase-sera-removida--390.jpg`, `p120-fase-sera-removida--1280.jpg`, `p120-fase-sera-removida--1920.jpg`.
+
 **ajuste**
 
 - Contexto: no casal, cada fase abre com "Mudar". Dentro dela, quando há mais de uma fase, existe a caixa "Remover esta fase", que vale quando o casal é salvo.
@@ -1712,6 +1726,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P121. "Só os dois veem este casal" está no lugar certo?
+
+**Feito (opção A):** a caixa vem depois de um fio, com o rótulo "Quem vê", antes de "Salvar o casal". Capturas: `p121-quem-ve--390.jpg`, `p121-quem-ve--1280.jpg`, `p121-quem-ve--1920.jpg`.
 
 **ajuste**
 
@@ -1725,6 +1741,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P122. O "Editar" de cada laço pode ficar na mesma linha do nome?
 
+**Feito (opção A):** a partir de 1280 px, "Editar" fica à direita, na linha do nome. No celular, como estava. Capturas: `p122-lacos-lista--390.jpg`, `p122-lacos-lista--1280.jpg`, `p122-lacos-lista--1920.jpg`.
+
 **ajuste**
 
 - Contexto: cada laço é uma linha com o nome e o parentesco, e "Editar" abaixo.
@@ -1736,6 +1754,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P123. Os campos devem terminar na mesma linha que o resto da página?
 
+**Feito (opção A):** mantido como está.
+
 **detalhe**
 
 - Contexto: grid rígido, tudo começa na mesma linha à esquerda.
@@ -1745,6 +1765,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: os campos de uma linha vão até a borda da coluna.
 
 ### P124. O quadro de enquadrar pode crescer na tela grande?
+
+**Feito (opção A):** a partir de 1280 px o quadro tem 416 px, com "Aproximar" e os botões ao lado. Capturas: `p119-quadro-com-arco--1280.jpg`, `p119-quadro-com-arco--1920.jpg`.
 
 **detalhe**
 
@@ -1756,6 +1778,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `conta-editar-retrato-enquadrar--1920.jpg`.
 
 ### P125. As famílias que a pessoa não pode mudar devem aparecer como caixas travadas?
+
+**Feito (opção A):** as famílias que a pessoa não pode mudar viram texto ("Gui é da família Bayara."), e só aparecem caixas para o que dá para mexer. Capturas: `p125-familias--390.jpg`, `p125-familias--1280.jpg`, `p125-familias--1920.jpg`.
 
 **detalhe**
 

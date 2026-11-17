@@ -3,6 +3,7 @@ import Pagina from '../../../components/formularios/Pagina.astro';
 import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
 import ConfirmarRemocao from '../../../components/ConfirmarRemocao.astro';
 import ZonaDePerigo from '../../../components/visual/ZonaDePerigo.astro';
+import Recado from '../../../components/visual/Recado.astro';
 import CampoAno from '../../../components/CampoAno.astro';
 import Opcoes from '../../../components/Opcoes.astro';
 import ComoSeReferir from '../../../components/ComoSeReferir.astro';
@@ -199,7 +200,8 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
   {
     recemCadastrada ? null : podeFicha ? (
       <section class="painel" id="ficha">
-        <h2>Ficha</h2>
+        {/* "Quem é" já abre a ficha: o título da parte fica só para o leitor de tela (P116) */}
+        <h2 class="so-leitor">Ficha</h2>
         <FichaDoIntegrante integrante={pessoa} />
       </section>
     ) : (
@@ -398,6 +400,17 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
         )}
       </p>
     )}
+    {/* A ficha e os laços são salvos em separado. Se a ficha foi mexida e um laço foi salvo antes dela,
+        o que estava escrito volta para os campos e este aviso aparece (P114) */}
+    {!recemCadastrada && podeFicha && (
+      <div data-ficha-pendente hidden>
+        <Recado>
+          A ficha tem mudanças que ainda não foram salvas. O que você escreveu continua lá.
+          <span data-ficha-pendente-foto hidden> A mudança na foto não ficou guardada: faça de novo antes de salvar.</span>{' '}
+          <a href="#ficha">Voltar à ficha para salvar</a>
+        </Recado>
+      </div>
+    )}
     {!temLacos && !recemCadastrada && <p class="dica">{chamar} ainda não tem laços cadastrados.</p>}
 
     {/* Os laços que já existem, por tipo. Cada um tem "Editar", e remover fica dentro da edição */}
@@ -425,7 +438,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                         <span>Data da adoção <small>(se souber)</small></span>
                         <CampoData prefixo="adocao" id={`adocao-${p.responsavel}`} ano={p?.adocao?.ano} mes={p?.adocao?.mes} dia={p?.adocao?.dia} />
                       </div>
-                      <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
+                      <div class="acoes"><button class="botao" type="submit">Salvar</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                     </form>
                     <ZonaDePerigo menor nivel={4}>
                     <form method="post" action="/api/lacos" class="editar__remover">
@@ -468,7 +481,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                         <span>Data da adoção <small>(se souber)</small></span>
                         <CampoData prefixo="adocao" id={`adocao-${f.filho}`} ano={f?.adocao?.ano} mes={f?.adocao?.mes} dia={f?.adocao?.dia} />
                       </div>
-                      <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
+                      <div class="acoes"><button class="botao" type="submit">Salvar</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                     </form>
                     <ZonaDePerigo menor nivel={4}>
                     <form method="post" action="/api/lacos" class="editar__remover">
@@ -521,7 +534,11 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                         {c.casal.fases.map((fase, n) => (
                           <details class="fase">
                             <summary>
-                              <span>{n + 1}. {FASES[fase.tipo]}{periodos[n] && `, ${periodos[n]}`}</span>
+                              <span class="fase__nome">
+                                <span class="fase__texto">{n + 1}. {FASES[fase.tipo]}{periodos[n] && `, ${periodos[n]}`}</span>
+                                {/* Só aparece com "Remover esta fase" marcada, para a marca não sumir da vista (P120) */}
+                                {c.casal.fases.length > 1 && <small class="fase__sai">será removida ao salvar</small>}
+                              </span>
                               <span class="fase__mudar">Mudar</span>
                             </summary>
                             <fieldset>
@@ -544,7 +561,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                               </div>
                               {c.casal.fases.length > 1 && (
                                 <label class="marcar">
-                                  <input type="checkbox" name={`fase-${n}-remover`} />
+                                  <input type="checkbox" name={`fase-${n}-remover`} data-remover-fase />
                                   <span>Remover esta fase</span>
                                 </label>
                               )}
@@ -559,11 +576,15 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                             <CampoAno id={`fase-${c.casal.id}-nova-inicio`} nome={`fase-${c.casal.fases.length}-inicio`} />
                           </div>
                         </fieldset>
-                        <label class="marcar">
-                          <input type="checkbox" name="visibilidade" value="privado" checked={c.casal.visibilidade === 'privado'} />
-                          <span>Só os dois veem este casal</span>
-                        </label>
-                        <div class="acoes"><button class="botao" type="submit">Salvar o casal</button></div>
+                        {/* A escolha vale para o casal inteiro: separada das fases, com o nome do que é (P121) */}
+                        <div class="quem-ve" role="group" aria-labelledby={`rotulo-quem-ve-${c.casal.id}`}>
+                          <p class="rotulo suave" id={`rotulo-quem-ve-${c.casal.id}`}>Quem vê</p>
+                          <label class="marcar">
+                            <input type="checkbox" name="visibilidade" value="privado" checked={c.casal.visibilidade === 'privado'} />
+                            <span>Só os dois veem este casal</span>
+                          </label>
+                        </div>
+                        <div class="acoes"><button class="botao" type="submit">Salvar o casal</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                       </form>
                       <ZonaDePerigo menor nivel={4}>
                       <form method="post" action="/api/lacos" class="editar__remover">
@@ -624,7 +645,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                               {papeis.map(([id, rotulo]) => <option value={id} selected={id === l.papel}>{rotulo[0].toUpperCase() + rotulo.slice(1)} de {nome(l.a)}</option>)}
                             </select>
                           </label>
-                          <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
+                          <div class="acoes"><button class="botao" type="submit">Salvar</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                         </form>
                         <ZonaDePerigo menor nivel={4}>
                         <form method="post" action="/api/lacos" class="editar__remover">
@@ -682,7 +703,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                         <input type="checkbox" name="privado" checked={l.privado} />
                         <span>Só eu vejo este laço</span>
                       </label>
-                      <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
+                      <div class="acoes"><button class="botao" type="submit">Salvar</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                     </form>
                     <ZonaDePerigo menor nivel={4}>
                     <form method="post" action="/api/lacos" class="editar__remover">
@@ -847,6 +868,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
   import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';
   import { ligarCamposDeAno } from '../../../lib/cliente/etapas';
   import { ligarDatas } from '../../../lib/cliente/datas';
+  import { camposDo, devolver, type Guardado } from '../../../lib/cliente/guardar-formulario';
 
   // Os anos das fases do casal têm os mesmos botões −10, −1, +1 e +10 dos outros formulários
   ligarCamposDeAno(document);
@@ -918,6 +940,77 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
       for (const outra of edicoes) if (outra !== edicao) outra.open = false;
       const salto = edicao.getBoundingClientRect().top - antes;
       if (salto) window.scrollBy({ top: salto, behavior: 'instant' });
+    });
+  }
+
+  // "Cancelar" no editor de um laço: desfaz o que foi mexido nele, fecha o cartão e devolve o foco ao
+  // "Editar". Sem JavaScript o botão não aparece, e o "Editar" continua fechando o cartão.
+  for (const cancelar of document.querySelectorAll<HTMLButtonElement>('[data-editar-cancelar]')) {
+    const edicao = cancelar.closest<HTMLDetailsElement>('[data-editar]');
+    const formulario = cancelar.form;
+    if (!edicao || !formulario) continue;
+    cancelar.hidden = false;
+    cancelar.addEventListener('click', () => {
+      formulario.reset();
+      // O que depende dos campos (a data da adoção, o aviso de data) se acerta com os eventos de sempre
+      for (const el of formulario.elements) {
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      for (const aberta of edicao.querySelectorAll<HTMLDetailsElement>('details[open]')) aberta.open = false;
+      edicao.open = false;
+      edicao.querySelector('summary')?.focus();
+    });
+  }
+
+  // A ficha e os laços são salvos em separado, e salvar um laço recarrega a página. Para o que foi
+  // escrito na ficha não se perder, ele é guardado nesta aba ao salvar um laço e volta para os campos
+  // na página seguinte, com um aviso. Salvar a ficha apaga o que estava guardado.
+  const ficha = document.querySelector<HTMLFormElement>('[data-ficha]');
+  const aviso = document.querySelector<HTMLElement>('[data-ficha-pendente]');
+  if (ficha && aviso) {
+    const CHAVE = `ficha-pendente:${location.pathname}`;
+    const VALIDADE = 30 * 60 * 1000;
+    // Como a ficha veio do servidor, antes de qualquer devolução
+    const comoVeio = JSON.stringify(camposDo(ficha));
+    const fotoMexida = () => Boolean(ficha.querySelector<HTMLInputElement>('[data-retrato-arquivo]')?.files?.length || ficha.querySelector<HTMLInputElement>('[data-tirar-retrato-campo]')?.value);
+    const devolverPendente = () => {
+      let pendente: (Guardado & { foto?: boolean }) | undefined;
+      try {
+        const bruto = sessionStorage.getItem(CHAVE);
+        pendente = bruto ? JSON.parse(bruto) : undefined;
+        sessionStorage.removeItem(CHAVE);
+      } catch {
+        pendente = undefined;
+      }
+      if (!pendente || Date.now() - pendente.quando > VALIDADE) return;
+      devolver(ficha, pendente);
+      aviso.hidden = false;
+      const daFoto = aviso.querySelector<HTMLElement>('[data-ficha-pendente-foto]');
+      if (daFoto) daFoto.hidden = !pendente.foto;
+    };
+    // Depois dos scripts da página, para o que depende dos campos se acertar com a devolução
+    if (document.readyState === 'complete') devolverPendente();
+    else addEventListener('load', devolverPendente, { once: true });
+    for (const outro of document.querySelectorAll<HTMLFormElement>('form')) {
+      if (outro === ficha) continue;
+      outro.addEventListener('submit', () => {
+        const campos = camposDo(ficha);
+        const foto = fotoMexida();
+        if (JSON.stringify(campos) === comoVeio && !foto) return;
+        try {
+          sessionStorage.setItem(CHAVE, JSON.stringify({ quando: Date.now(), campos, foto }));
+        } catch {
+          // Sem sessionStorage, a ficha só não é refeita
+        }
+      });
+    }
+    ficha.addEventListener('submit', () => {
+      try {
+        sessionStorage.removeItem(CHAVE);
+      } catch {
+        // nada a apagar
+      }
     });
   }
 

@@ -11,6 +11,11 @@ interface Props {
 const { integrante: i } = Astro.props;
 const nucleos = i ? await listarNucleos() : [];
 const temMais = Boolean(i && (i.nascimentoAno || i.sobre));
+// As famílias de quem acessa o site são marcadas pelos administradores: aqui elas viram texto, e só
+// aparecem caixas para o que dá para mexer (resposta do Gui à P125, 17/11/2026)
+const familiasFixas = i ? nucleos.filter((n) => i.nucleos.includes(n.id)) : [];
+const familiasParaMarcar = i ? nucleos.filter((n) => !i.nucleos.includes(n.id)) : [];
+const emLista = (nomes: string[]) => (nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}` : (nomes[0] ?? ''));
 // No cadastro, os nomes que já existem: "É outra pessoa?" só aparece quando o nome se repete
 const existentes = i ? [] : (await listarIntegrantes()).map((x) => ({ id: x.id, nome: x.nome, apelido: x.apelido }));
 ---
@@ -98,14 +103,21 @@ const existentes = i ? [] : (await listarIntegrantes()).map((x) => ({ id: x.id, 
         <fieldset>
           <legend>Família</legend>
           <p class="dica">De que família {i.apelido ?? i.nome} é. Define a cor e o lado na árvore e quem cuida desta página. Quem acessa o site é marcado pelos administradores.</p>
-          <div class="opcoes">
-            {nucleos.map((n) => (
-              <label class="opcao">
-                <input type="checkbox" name="parenteDe" value={n.id} checked={i.nucleos.includes(n.id) || i.parenteDe.includes(n.id)} disabled={i.nucleos.includes(n.id)} />
-                <span>{n.nome}</span>
-              </label>
-            ))}
-          </div>
+          {familiasFixas.length > 0 && (
+            <p data-familias-fixas>
+              {i.apelido ?? i.nome} é {familiasFixas.length > 1 ? 'das famílias' : 'da família'} {emLista(familiasFixas.map((n) => n.nome))}.
+            </p>
+          )}
+          {familiasParaMarcar.length > 0 && (
+            <div class="opcoes">
+              {familiasParaMarcar.map((n) => (
+                <label class="opcao">
+                  <input type="checkbox" name="parenteDe" value={n.id} checked={i.parenteDe.includes(n.id)} />
+                  <span>{n.nome}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </fieldset>
       )
     }

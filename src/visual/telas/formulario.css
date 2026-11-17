@@ -458,6 +458,28 @@
   padding-top: 0;
   border-top: 0;
 }
+/* Dentro do cartão de um laço, a zona é quieta: uma linha fina na cor de alerta, com o rótulo e o
+   link, sem fundo, mais longe do "Salvar". O bloco só aparece quando a pergunta abre. */
+.pagina-de-formulario .perigo--menor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-5);
+  margin-top: var(--e-4);
+  padding: var(--e-2) 0 0;
+  border: 0;
+  border-top: var(--traco) solid var(--alerta);
+  border-radius: 0;
+  background: none;
+}
+.pagina-de-formulario .perigo--menor:has(.confirmar[open]) {
+  display: grid;
+  gap: var(--e-2);
+  padding: var(--e-4);
+  border: var(--traco) solid var(--alerta);
+  border-radius: var(--raio-bloco);
+  background: color-mix(in srgb, var(--alerta) 7%, transparent);
+}
 
 /* --- A trilha das etapas, quieta ----------------------------------------------------------------
    No celular, uma fila de números pequenos e, embaixo, "Etapa 2 de 7: Quando e onde". No
@@ -1305,6 +1327,25 @@
   touch-action: none;
   cursor: grab;
 }
+/* Na tela grande, o quadro cresce, e "Aproximar" e os botões ficam ao lado */
+@media (min-width: 62rem) {
+  .pagina-de-formulario .recorte {
+    grid-template-columns: minmax(0, 26rem) minmax(11rem, 1fr);
+    grid-template-rows: auto auto 1fr;
+    column-gap: var(--e-5);
+    align-items: start;
+  }
+  .pagina-de-formulario .recorte > .dica {
+    grid-column: 1 / -1;
+  }
+  .pagina-de-formulario .recorte__quadro {
+    grid-row: span 2;
+    width: 100%;
+  }
+  .pagina-de-formulario .recorte .campo {
+    width: 100%;
+  }
+}
 .pagina-de-formulario .recorte__quadro:focus-visible {
   outline: 3px solid var(--tinta);
   outline-offset: 3px;
@@ -1416,14 +1457,29 @@
 .pagina-de-formulario :is(.casal, .editar__caixa form) > * {
   min-width: 0;
 }
-.pagina-de-formulario .casal__titulo,
-.pagina-de-formulario .painel fieldset.fase--nova legend {
+.pagina-de-formulario .casal__titulo {
   font-family: var(--serifa);
   font-variation-settings: var(--serifa-ajustes);
   font-weight: var(--serifa-peso);
   font-size: var(--t-titulo-3);
   letter-spacing: var(--aperto-titulo);
   line-height: 1.15;
+}
+/* Dentro do cartão de um laço, a pergunta desce a um título menor, sem serifa: o que está mais fundo
+   na página não fala mais alto que a parte que o contém ("Laços") */
+.pagina-de-formulario .painel fieldset.fase--nova legend {
+  margin-bottom: var(--e-3);
+  font-family: var(--grotesca);
+  font-variation-settings: normal;
+  font-weight: 550;
+  font-size: var(--t-corpo);
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.pagina-de-formulario .painel fieldset.fase--nova legend small {
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+  font-weight: 400;
 }
 .pagina-de-formulario .novo-laco {
   padding-top: var(--e-6);
@@ -1606,6 +1662,52 @@
 .pagina-de-formulario .fase--nova {
   padding-top: var(--e-5);
   border-top: 1px solid var(--fio);
+}
+/* "Remover esta fase" marcada: a linha da fase diz que ela vai sair, mesmo com a fase fechada */
+.pagina-de-formulario .fase__nome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--e-3);
+  min-width: 0;
+}
+.pagina-de-formulario .fase__sai {
+  display: none;
+  color: var(--alerta-tinta);
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .fase:has([data-remover-fase]:checked) .fase__texto {
+  color: var(--tinta-suave);
+  text-decoration: line-through;
+}
+.pagina-de-formulario .fase:has([data-remover-fase]:checked) .fase__sai {
+  display: inline;
+}
+/* Quem vê o casal: a escolha vale para o casal inteiro, e por isso vem separada das fases */
+.pagina-de-formulario .quem-ve {
+  display: grid;
+  gap: var(--e-2);
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--fio);
+}
+/* No computador, "Editar" fica na linha do nome, à direita. O cartão continua abrindo embaixo. */
+@media (min-width: 62rem) {
+  .pagina-de-formulario .laco:has(> .editar) {
+    position: relative;
+  }
+  .pagina-de-formulario .laco:has(> .editar) > .laco__linha {
+    align-content: center;
+    min-height: var(--toque);
+    padding-right: 10rem;
+  }
+  /* Fechado, o "Editar" sai inteiro da fila, para não deixar um vão embaixo do nome. Aberto, só o
+     "Editar" fica no canto, e o cartão ocupa a largura toda */
+  .pagina-de-formulario .laco > .editar:not([open]),
+  .pagina-de-formulario .laco > .editar[open] > summary {
+    position: absolute;
+    top: var(--e-3);
+    right: 0;
+  }
 }
 
 /* --- Listas utilitárias: histórico, lixeira, rascunhos e administração ---------------------------- */
