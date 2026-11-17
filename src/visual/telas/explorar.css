@@ -44,9 +44,6 @@
 .filtros__grupo--periodo legend {
   margin-bottom: var(--e-2);
 }
-.filtros__grupo--periodo .campo:first-of-type {
-  grid-column: 1 / -1;
-}
 /* Os grupos longos (pessoas, capítulos, temas) ficam recolhidos: abrem no lugar, como o controle */
 .filtros__grupo--longo summary {
   font-weight: 400;
@@ -67,9 +64,24 @@
   padding-top: var(--e-2);
 }
 
-/* Com script, cada escolha vale na hora: o botão de enviar é de quem está sem script */
-.com-troca .filtros__acoes .botao {
+/* Com script, cada escolha vale na hora: o botão de enviar é de quem está sem script. No lugar
+   dele fica a conta do resultado, com a ação que fecha o painel e leva às memórias (P33). */
+.com-troca .filtros__acoes .sem-troca,
+html:not(.com-troca) .filtros__acoes .so-com-troca {
   display: none;
+}
+.filtros__acoes span.so-com-troca {
+  font-size: var(--t-pequeno);
+}
+
+/* No celular, as caixas de marcar ficam em duas colunas fixas: a segunda começa sempre no mesmo
+   lugar (P36) */
+@media (max-width: 61.99rem) {
+  .filtros__grupo ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 var(--e-4);
+  }
 }
 
 /* A lista corrida, fora da ordem do tempo: sem a divisória dos anos */
@@ -290,16 +302,58 @@
   min-height: var(--toque);
   padding-block: var(--e-2);
 }
+/* Sem rede, no modo TV: o aviso ocupa uma linha do topo, e aparece mesmo em "Só as fotos" */
+.palco__aviso {
+  flex-basis: 100%;
+  font-weight: 600;
+}
+.palco__aviso:empty {
+  display: none;
+}
+/* No celular, a ordem diz qual é a memória antes dos controles: o carimbo e o título, as fotos, os
+   controles e só então o trecho (resposta do Gui à P49 do QA de design de 17/11/2026). As partes do
+   texto entram na grade da cena, cada uma no seu lugar. */
 .palco__cena {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
+    'carimbo'
+    'titulo'
     'fotos'
     'passos'
     'ajustes'
-    'texto';
+    'trecho'
+    'nomes'
+    'abrir';
   align-content: start;
   gap: var(--e-5);
+}
+@media (max-width: 61.99rem) {
+  .palco__cena > .palco__texto {
+    display: contents;
+  }
+  .palco__texto > :first-child {
+    grid-area: carimbo;
+    margin-top: var(--e-2);
+  }
+  .palco__texto > .palco__titulo {
+    grid-area: titulo;
+    margin-top: calc(-1 * var(--e-3));
+  }
+  .palco__texto > .palco__trecho {
+    grid-area: trecho;
+  }
+  .palco__texto > .ficha {
+    grid-area: nomes;
+    margin-top: calc(-1 * var(--e-2));
+  }
+  .palco__texto > :last-child {
+    grid-area: abrir;
+    margin-top: calc(-1 * var(--e-3));
+  }
+  .palco__cena .palco__fotos {
+    margin-block: var(--e-2);
+  }
 }
 /* A principal tem a largura que cabe na altura da tela; as outras se medem por ela */
 .palco__fotos {
@@ -408,6 +462,9 @@
 }
 .palco__ajustes[open] summary::after {
   rotate: 45deg;
+}
+.palco__partes {
+  justify-self: stretch;
 }
 .palco__ajuste {
   display: grid;
@@ -532,6 +589,10 @@
 .palco[data-so-fotos]:not([data-controles]),
 .palco[data-so-fotos]:not([data-controles]) .palco__principal {
   cursor: none;
+}
+.palco[data-so-fotos][data-sem-rede] .palco__topo {
+  visibility: visible;
+  opacity: 1;
 }
 .palco__opcoes a:hover {
   color: var(--tinta);
@@ -841,6 +902,22 @@
   .palco__opcoes {
     justify-content: start;
   }
+  /* "Ajustes" aberto: as partes ficam lado a lado, numa faixa abaixo da cena, encostada à direita,
+     para a tela não precisar de rolagem (resposta do Gui à P50). A faixa sai do fluxo, e a cena
+     guarda o lugar dela embaixo. */
+  .palco:not([data-so-fotos]) .palco__cena:has(.palco__ajustes[open]) {
+    padding-bottom: var(--tv-faixa, 5.5rem);
+  }
+  .palco:not([data-so-fotos]) .palco__ajustes[open] .palco__partes {
+    position: absolute;
+    right: var(--margem);
+    bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0 var(--e-7);
+    max-width: calc(100% - 2 * var(--margem));
+  }
   .palco__titulo {
     font-size: calc(var(--t-titulo-1) * 0.62);
   }
@@ -852,6 +929,28 @@
 }
 
 @media (min-width: 100rem) {
+  /* Na TV, a três metros: o que se lê tem pelo menos 24 px, e os controles e os ajustes, 22 px.
+     O título e o trecho já são grandes (resposta do Gui à P48 do QA de design de 17/11/2026). */
+  .palco--tv {
+    --tv-leitura: 1.5rem;
+    --tv-controle: 1.375rem;
+    --tv-faixa: 6rem;
+  }
+  .palco--tv .palco__texto .carimbo,
+  .palco--tv .palco__texto > .ficha,
+  .palco--tv .palco__principal .polaroid__legenda,
+  .palco--tv .palco__aviso {
+    font-size: var(--tv-leitura);
+  }
+  .palco--tv .palco__topo :is(.rotulo, .acao),
+  .palco--tv .palco__texto .acao,
+  .palco--tv .palco__passos :is(.acao, .botao),
+  .palco--tv .palco__sozinho button,
+  .palco--tv .palco__ajustes summary,
+  .palco--tv .palco__ajuste .rotulo,
+  .palco--tv .palco__opcoes :is(a, button) {
+    font-size: var(--tv-controle);
+  }
   .mural,
   .mural[data-tamanho] {
     --colunas: 8;

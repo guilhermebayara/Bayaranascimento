@@ -15,7 +15,7 @@ import Vazio from '../visual/Vazio.astro';
 import { agruparPorAno } from '../../lib/datas';
 import { capitulosNosTrilhos, chaoDaEpoca, montarTrilhos, trilhosNaEpoca, trilhosNaMarca } from '../../lib/linha-capitulos';
 import { ehEpoca, type Capitulo } from '../../lib/capitulos';
-import type { Ordem } from '../../lib/explorar';
+import { ancoraDaMemoria, type Ordem } from '../../lib/explorar';
 import { tipoDaMemoria } from '../../lib/tipos';
 import type { Integrante, Memoria, Nucleo } from '../../lib/servidor/repositorio';
 import { carimboDaData, diaMesCurto, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../lib/visual';
@@ -32,10 +32,16 @@ interface Props {
   trilhos: boolean;
   /** para limpar os filtros, quando nada passa neles */
   limpar?: string;
+  /**
+   * O fecho, depois da última memória (resposta do Gui à P41 do QA de design de 17/11/2026). A frase
+   * "Aqui começa o acervo." só aparece quando é verdade (terminaNoComecoDoAcervo, em src/lib/explorar.ts).
+   */
+  fecho?: { comecoDoAcervo: boolean };
 }
 
 const { memorias, integrantes, nucleos, ordem, trilhos, limpar } = Astro.props;
 const { tipos } = Astro.locals;
+const { fecho } = Astro.props;
 const nomeDe = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome;
 
 // Na ordem do tempo, o ano é a divisória. Rolar a página leva ao passado ou, em "Mais antigas
@@ -87,7 +93,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
 
     {/* A década é uma faixa na cor da família, parada no alto, com o nome do que ela faz.
         O bloco em volta (data-trilho) marca até onde a faixa acompanha a rolagem no toque. */}
-    <div class="linha__trilho" data-trilho data-sem-memorias={anos.length === 0 ? '' : undefined}>
+    <div class="linha__trilho" data-trilho data-resultado data-sem-memorias={anos.length === 0 ? '' : undefined}>
     {/* O que fica parado no alto é uma peça só: a faixa de décadas e, no toque, o ano em que se está */}
     <div class="parada" data-barra data-preso>
       {
@@ -95,7 +101,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
           <nav class="decadas" aria-label="Ir para a década">
             <div class="decadas__dentro miolo">
               <p class="decadas__nome rotulo" aria-hidden="true">
-                Década
+                Ir para a década
               </p>
               <ul>
                 {decadas.map((d, i) => (
@@ -208,6 +214,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                   ))}
                   <article
                     class="entrada entrada--com-foto"
+                    id={ancoraDaMemoria(m.id)}
                     data-chave={`m:${m.id}`}
                     data-ano={m.ano}
                     data-tipo={m.tipo}
@@ -278,6 +285,24 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
       ))
     }
     </div>
+    {/* O fecho: depois da última memória, a página diz que acabou e oferece o que fazer */}
+    {
+      fecho && (
+        <footer class="linha__fecho miolo">
+          <div class="linha__fecho-dentro">
+            {fecho.comecoDoAcervo && <p class="linha__fecho-frase serifa">Aqui começa o acervo.</p>}
+            <p class="linha__fecho-acoes">
+              <a class="acao" href="/nova">
+                Nova memória
+              </a>
+              <a class="acao acao--quieta" href="#conteudo">
+                Voltar ao começo
+              </a>
+            </p>
+          </div>
+        </footer>
+      )
+    }
   </div>
 
 

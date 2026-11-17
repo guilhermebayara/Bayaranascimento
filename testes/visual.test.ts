@@ -259,9 +259,10 @@ describe('conceito', () => {
     const controles = tela('explorar/Controles.astro');
     const css = ler('telas/linha.css');
     for (const nome of ['Forma de ver', 'Família', 'Filtros']) expect(controles).toMatch(new RegExp(`rotulo[^>]*>\\s*${nome}\\s*<`));
-    expect(tela('explorar/Linha.astro')).toMatch(/rotulo[^>]*>\s*Década\s*</);
+    expect(tela('explorar/Linha.astro')).toMatch(/rotulo[^>]*>\s*Ir para a década\s*</);
     // "Tudo" passou a se chamar "Família completa" (do Gui, 16/11/2026)
-    expect(controles).toMatch(/aria-current=\{filtros\.familias\.length === 0 \? 'page' : undefined\}>\s*Família completa\s*</);
+    // O texto fica dentro da peça que reserva a largura do negrito (P37, resposta do Gui de 17/11/2026)
+    expect(controles).toMatch(/aria-current=\{filtros\.familias\.length === 0 \? 'page' : undefined\}>\s*<span[^>]*>Família completa<\/span>\s*</);
     // O formulário abre dentro do próprio controle: nenhuma regra muda o lugar dele quando abre
     expect(css).not.toMatch(/\.filtros\[open\]\s*\{[^}]*grid-(column|row|area)/);
     // A faixa de décadas leva a cor da família, diluída no papel: o pastel cheio pesou
@@ -418,7 +419,8 @@ describe('conceito', () => {
     // No Álbum, as fotos que saem não repetem a chegada (achado do Gui: pareciam fotos que nunca paravam)
     expect(ler('telas/explorar.css')).toMatch(/\.palco \.palco__fotos--saindo :is\(\.palco__principal, \.palco__extra\)\s*\{\s*animation:\s*none !important/);
     // Erro cai na navegação comum, menos quando uma passagem mais nova já saiu (QA de código de 17/11/2026)
-    expect(palco).toMatch(/catch \{\s*(?:\/\/[^\n]*\n\s*)*if \(meu !== pedido\) return;\s*location\.assign\(href\);/);
+    // Sem rede a passagem espera (C3, resposta do Gui de 17/11/2026: testes/qa-respostas-explorar.test.ts)
+    expect(palco).toMatch(/catch \(erro\) \{\s*(?:\/\/[^\n]*\n\s*)*if \(meu !== pedido\) return;\s*(?:\/\/[^\n]*\n\s*)*if \(falhaDeRede\(erro, navigator\.onLine\)\) return esperarARede\(a, deTras\);\s*location\.assign\(href\);/);
     const css = ler('telas/explorar.css');
     for (const v of ['a', 'b', 'c']) expect(css).toContain(`.palco[data-movimento='${v}']`);
     // Toda animação do palco fica dentro de "sem pedido de menos movimento"; fora, só as definições
