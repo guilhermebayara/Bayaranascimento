@@ -414,3 +414,8 @@ Hoje a ação principal fica no alto (decisão do QA de UX). Mantenha um atalho 
 - **Linha do tempo:** lista vertical, a barra de décadas parada no alto como já está, um trilho fino com um ponto marcando a memória em leitura (Folira). Cada memória com a polaroid da foto-chave e a legenda "lugar (ano)".
 - **Capítulo e laço:** título, período e pessoas parados à esquerda no computador; à direita, os marcos numerados, com data e lugar em mono (Union, "Our story"). As fases do casal em sanfona (Union, "The journey").
 - **Data aproximada e período:** em pílula, como no Folira ("2018-2020", "por volta de 1994").
+
+## A página do sistema fica (decisão do Gui, 16/11/2026)
+
+`/conceito/sistema` é a referência do projeto para o Gui e continua existindo depois da revisão visual. Quando a fase 3 apagar as telas do conceito, essa página fica: ela muda de endereço para `/sistema`, segue respondendo 404 na produção e na homologação, e acompanha o sistema. Toda peça, token ou regra nova entra nela no mesmo PR, e `testes/sistema.test.ts` falha se uma peça do sistema não aparecer na página.
+
