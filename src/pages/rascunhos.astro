@@ -1,6 +1,6 @@
 ---
-import Base from '../layouts/Base.astro';
-import Abertura from '../components/Abertura.astro';
+import Pagina from '../components/formularios/Pagina.astro';
+import Vazio from '../components/visual/Vazio.astro';
 import { formatarData } from '../lib/datas';
 import { listarMemorias, listarRascunhosDeRelato } from '../lib/servidor/repositorio';
 
@@ -9,29 +9,31 @@ const memorias = await listarMemorias(usuario, { rascunhos: true });
 const relatos = await listarRascunhosDeRelato(usuario);
 ---
 
-<Base titulo="Rascunhos">
-  <Abertura titulo="Rascunhos">
+<Pagina titulo="Rascunhos" rotulo="Sua conta" secao="conta" larga>
+  <Fragment slot="abertura">
     <p>O que você começou e ainda não publicou. Só você vê esta lista.</p>
-    {/* A lixeira fica junto dos rascunhos, além do rodapé (decisão do Gui, 16/11/2026) */}
-    <p class="acoes"><a class="link-acao" href="/lixeira">Ver a lixeira: o que foi descartado ou excluído</a></p>
-  </Abertura>
+    {/* A lixeira fica junto dos rascunhos (decisão do Gui, 16/11/2026) */}
+    <p class="acoes">
+      <a class="acao" href="/lixeira">Ver a lixeira: o que foi descartado ou excluído</a>
+    </p>
+  </Fragment>
 
   {
     memorias.length === 0 && relatos.length === 0 && (
-      <p class="vazio">
-        Você não tem rascunhos. <a href="/nova">Registrar uma memória</a>
-      </p>
+      <Vazio frase="Você não tem rascunhos.">
+        <a class="acao" href="/nova">Registrar uma memória</a>
+      </Vazio>
     )
   }
 
   {
     memorias.length > 0 && (
-      <section class="grupo">
+      <section class="painel">
         <h2>Memórias</h2>
-        <ul class="pessoas">
+        <ul class="linhas">
           {memorias.map((m) => (
             <li>
-              <a href={`/nova?id=${m.id}`}>
+              <a class="linhas__leva" href={`/nova?id=${m.id}`}>
                 <strong>{m.titulo}</strong>
                 <span>{formatarData(m)}</span>
               </a>
@@ -44,12 +46,12 @@ const relatos = await listarRascunhosDeRelato(usuario);
 
   {
     relatos.length > 0 && (
-      <section class="grupo">
+      <section class="painel">
         <h2>Relatos</h2>
-        <ul class="pessoas">
+        <ul class="linhas">
           {relatos.map((r) => (
             <li>
-              <a href={`/memorias/${r.memoriaId}/relato`}>
+              <a class="linhas__leva" href={`/memorias/${r.memoriaId}/relato`}>
                 <strong>{r.titulo}</strong>
                 <span>relato em andamento</span>
               </a>
@@ -59,4 +61,4 @@ const relatos = await listarRascunhosDeRelato(usuario);
       </section>
     )
   }
-</Base>
+</Pagina>

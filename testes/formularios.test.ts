@@ -67,15 +67,16 @@ describe('árvore na tela', () => {
 describe('formulários sem JavaScript e depois de um erro', () => {
   // Achados do QA de 15/11/2026, corrigidos a pedido do Gui (16/11)
   it('o que foi digitado volta quando o servidor recusa', () => {
-    const base = fonte('src/layouts/Base.astro');
-    expect(base).toContain("import { guardarFormularios } from '../lib/cliente/guardar-formulario';");
+    // Mora na página de formulário do visual novo, que todas as telas de formulário usam
+    const base = fonte('src/components/formularios/Pagina.astro');
+    expect(base).toContain("import { guardarFormularios } from '../../lib/cliente/guardar-formulario';");
     const guardar = fonte('src/lib/cliente/guardar-formulario.ts');
     expect(guardar).toContain("searchParams.has('erro')");
     expect(guardar).toContain('sessionStorage');
   });
 
   it('sem JavaScript, somem os botões que dependem dele e aparecem os blocos que ele mostraria', () => {
-    const base = fonte('src/layouts/Base.astro');
+    const base = fonte('src/components/formularios/Pagina.astro');
     expect(base).toMatch(/<noscript>[\s\S]*\[data-etapa-continuar\][\s\S]*display: none[\s\S]*\[data-para\]\[hidden\], \[data-so-epoca\]\[hidden\], \[data-so-periodo\]\[hidden\], \[data-depende\]\[hidden\] \{ display: block/);
   });
 

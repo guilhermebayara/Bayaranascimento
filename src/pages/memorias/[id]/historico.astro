@@ -1,7 +1,7 @@
 ---
 // O que já mudou numa memória, com a opção de voltar atrás.
-import Base from '../../../layouts/Base.astro';
-import Abertura from '../../../components/Abertura.astro';
+import Pagina from '../../../components/formularios/Pagina.astro';
+import Vazio from '../../../components/visual/Vazio.astro';
 import { formatarData, formatarMomento } from '../../../lib/datas';
 import { podeEditarMemoria, podeVerVersao } from '../../../lib/servidor/permissoes';
 import { listarFotosRemovidas, listarIntegrantes, listarRelatos, listarVersoes, obterMemoria, type Memoria, type Relato } from '../../../lib/servidor/repositorio';
@@ -43,12 +43,12 @@ const minhasFotos = (await listarFotosRemovidas(memoria.id)).filter((f) => f.env
 const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0) && minhasFotos.length === 0;
 ---
 
-<Base titulo={`Histórico de ${memoria.titulo}`}>
-  <Abertura titulo="Histórico">
-    <p><a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a></p>
-  </Abertura>
+<Pagina titulo="Histórico" aba={`Histórico de ${memoria.titulo}`} rotulo="Memória" nucleos={memoria.nucleos} secao="explorar" larga>
+  <p slot="abertura">
+    <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>
+  </p>
 
-  {vazio && <p class="vazio">Esta memória nunca foi alterada desde que foi registrada.</p>}
+  {vazio && <Vazio frase="Esta memória nunca foi alterada desde que foi registrada." />}
 
   {
     linhas.length > 0 && (
@@ -62,7 +62,7 @@ const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0
                 <strong>{nome(v.autor)} alterou</strong>
                 <span>{formatarMomento(v.criadaEm)}</span>
               </div>
-              <p class="dica">{v.mudou.length > 0 ? `Mudou: ${v.mudou.join(', ')}.` : 'Mudou fotos, núcleos ou quem pode ver.'}</p>
+              <p class="dica">{v.mudou.length > 0 ? `Mudou: ${v.mudou.join(', ')}.` : 'Mudou fotos, famílias ou quem pode ver.'}</p>
               {v.mudou.length > 0 && (
                 <dl class="antes">
                   {v.mudou.map((campo) => (
@@ -101,7 +101,7 @@ const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0
                 <div>
                   <strong>Texto até {formatarMomento(v.criadaEm)}</strong>
                 </div>
-                <div class="relato__texto antes">
+                <div class="antes antes--texto">
                   {v.dados.texto.split(/\n{2,}/).map((p) => (
                     <p>{p}</p>
                   ))}
@@ -144,4 +144,4 @@ const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0
       </section>
     )
   }
-</Base>
+</Pagina>

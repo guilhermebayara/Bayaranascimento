@@ -42,15 +42,6 @@ export function iniciais(nome: string): string {
   return palavras.length === 1 ? primeira(palavras[0]!) : primeira(palavras[0]!) + primeira(palavras[palavras.length - 1]!);
 }
 
-/**
- * A cor da família por trás das iniciais: a do primeiro núcleo da pessoa, na ordem dos núcleos, a mesma
- * cor da árvore. Quem não é de nenhuma família fica com a cor de superfície, como na árvore.
- */
-export function corDaFamilia(familias: string[], ordemDosNucleos: string[]): string {
-  const indice = ordemDosNucleos.findIndex((n) => familias.includes(n));
-  return indice >= 0 ? `var(--nucleo-${indice % 4})` : 'var(--cor-superficie)';
-}
-
 export interface Enquadramento {
   /** 1 é a foto inteira cobrindo o quadrado pelo lado menor */
   zoom: number;

@@ -1,7 +1,6 @@
 ---
 // Excluir é uma ação séria: esta página existe para a pessoa confirmar antes.
-import Base from '../../../layouts/Base.astro';
-import Abertura from '../../../components/Abertura.astro';
+import Pagina from '../../../components/formularios/Pagina.astro';
 import { formatarData } from '../../../lib/datas';
 import { podeExcluirMemoria } from '../../../lib/servidor/permissoes';
 import { outrosAdmins } from '../../../lib/servidor/conteudo';
@@ -20,10 +19,8 @@ const titulo = rascunho ? 'Descartar rascunho' : 'Excluir memória';
 const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 ---
 
-<Base titulo={titulo}>
-  <Abertura titulo={titulo}>
-
-  </Abertura>
+<Pagina titulo={titulo} rotulo={rascunho ? 'Rascunho' : 'Memória publicada'} nucleos={memoria.nucleos} secao="explorar">
+  <p slot="abertura">Confira antes de confirmar. Nada é apagado de vez.</p>
   <section class="alerta">
     <h2>{memoria.titulo}</h2>
     <p>{formatarData(memoria)}</p>
@@ -49,4 +46,4 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
       <a class="botao botao--leve" href={voltarPara}>Cancelar</a>
     </form>
   </section>
-</Base>
+</Pagina>

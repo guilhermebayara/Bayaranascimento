@@ -117,7 +117,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const nucleosExistentes = new Set(nucleosDoAcervo.map((n) => n.id));
   const permitidos = new Set([...usuario.nucleos, ...(atual?.nucleos ?? [])]);
   const nucleos = [...new Set(dados.getAll('nucleos').map(String))];
-  if (nucleos.some((n) => !nucleosExistentes.has(n) || !permitidos.has(n))) return falhar('Você só pode marcar núcleos de que faz parte.');
+  if (nucleos.some((n) => !nucleosExistentes.has(n) || !permitidos.has(n))) return falhar('Você só pode marcar famílias de que faz parte.');
   const visibilidade = campo(dados, 'visibilidade', 10) === 'nucleos' ? 'nucleos' : 'todos';
   if (atual) {
     const quemVe = podeMudarQuemVe(usuario, { ...atual, criadaPor: atual.criadoPor }, visibilidade, visibilidade === 'nucleos' ? nucleos : []);

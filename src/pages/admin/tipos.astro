@@ -1,6 +1,6 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Abertura from '../../components/Abertura.astro';
+import Pagina from '../../components/formularios/Pagina.astro';
+import Vazio from '../../components/visual/Vazio.astro';
 import { outrosAdmins } from '../../lib/servidor/conteudo';
 import { listarIntegrantes, listarTextosDeOutro } from '../../lib/servidor/repositorio';
 import { TIPO_OUTRO } from '../../lib/tipos';
@@ -15,16 +15,19 @@ const CORES = ['#2F7D6B', '#D6455B', '#8A5BB5', '#C98A00', '#2B74B8', '#A8572E',
 const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.toLowerCase())) ?? CORES[0];
 ---
 
-<Base titulo="Tipos de momento">
-  <Abertura titulo="Tipos de momento">
+<Pagina titulo="Tipos de momento" rotulo="Administração" secao="conta" larga>
+  <Fragment slot="abertura">
     <p>A lista que aparece em "Que tipo de momento foi?". {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}</p>
-  </Abertura>
+    <p class="acoes">
+      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+    </p>
+  </Fragment>
 
   <section class="painel">
     <h2>O que a família escreveu em "Outro"</h2>
     {
       textos.length === 0 ? (
-        <p class="vazio">Ninguém usou "Outro" com um nome ainda. Quando usarem, os nomes aparecem aqui com a quantidade de memórias.</p>
+        <Vazio frase={'Ninguém usou "Outro" com um nome ainda. Quando usarem, os nomes aparecem aqui com a quantidade de memórias.'} />
       ) : (
         <>
           <p class="dica">Quando um nome se repete, vale virar um tipo da lista. As memórias com aquele nome mudam junto.</p>
@@ -112,4 +115,4 @@ const corLivre = CORES.find((c) => !tipos.some((t) => t.cor.toLowerCase() === c.
       <button class="botao" type="submit">Criar tipo</button>
     </form>
   </section>
-</Base>
+</Pagina>

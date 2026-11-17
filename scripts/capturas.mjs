@@ -89,15 +89,6 @@ const ateAFrase = async (pagina) => {
   await pagina.locator('[data-etapa-continuar]').click();
 };
 const PAGINAS = [
-  { nome: 'memoria-historico', url: '/memorias/2025-natal/historico' },
-  { nome: 'memoria-excluir', url: '/memorias/2025-natal/excluir' },
-  { nome: 'pessoa-editar', url: '/pessoas/vo-bela/editar' },
-  { nome: 'pessoa-nova', url: '/pessoas/nova' },
-  { nome: 'rascunhos', url: '/rascunhos' },
-  { nome: 'lixeira', url: '/lixeira' },
-  { nome: 'admin-tipos', url: '/admin/tipos' },
-  { nome: 'admin-espelho', url: '/admin/espelho' },
-  { nome: 'pessoa-nova-como-magno', url: '/pessoas/nova', como: 'lucas-magno' },
   // Conceito da revisão visual: as mesmas telas em cada combinação de fontes, nas três larguras.
   // A carta é vista como Elizete, que a recebe. O painel, a linha do tempo e a memória, como Giovanna,
   // que está em duas famílias, vê todos os capítulos e ainda não contou o Natal de 2025.
@@ -174,7 +165,41 @@ const PAGINAS = [
   { nome: 'formularios-3-capitulo-novo-por-periodo', url: '/capitulos/novo', larguras: TODAS, antes: (pagina) => pagina.locator('input[name="modo"][value="periodo"]').check({ force: true }) },
   { nome: 'formularios-3-capitulo-editar', url: '/capitulos/natais/editar', larguras: TODAS, corte: 2600 },
   { nome: 'formularios-3-capitulo-epoca-editar', url: '/capitulos/os-anos-90/editar', larguras: TODAS },
-  { nome: 'admin-familias', url: '/admin/familias' },
+  // Fase 3, grupo "formularios", segunda metade: a pessoa e os laços, as utilitárias e a administração
+  { nome: 'formularios-4-pessoa-nova', url: '/pessoas/nova', larguras: TODAS },
+  { nome: 'formularios-4-pessoa-nova-como-magno', url: '/pessoas/nova', como: 'lucas-magno', larguras: TODAS },
+  { nome: 'formularios-4-guiado-1-inicio', url: '/pessoas/ex-caio-amigo/editar?novo=1', larguras: TODAS },
+  { nome: 'formularios-4-guiado-2-pais', url: '/pessoas/ex-caio-amigo/editar?novo=1&passo=pais&ramo=familia', larguras: TODAS },
+  { nome: 'formularios-4-guiado-3-casal', url: '/pessoas/ex-caio-amigo/editar?novo=1&passo=casal&ramo=familia', larguras: TODAS },
+  { nome: 'formularios-4-guiado-4-coracao', url: '/pessoas/ex-caio-amigo/editar?novo=1&passo=coracao&ramo=coracao', larguras: TODAS },
+  { nome: 'formularios-4-guiado-5-fim', url: '/pessoas/ex-caio-amigo/editar?novo=1&passo=fim&ramo=coracao', larguras: TODAS },
+  { nome: 'formularios-4-todos-os-lacos', url: '/pessoas/ex-caio-amigo/editar?novo=1&passo=outro', larguras: TODAS },
+  { nome: 'formularios-5-pessoa-editar', url: '/pessoas/vo-bela/editar', larguras: TODAS },
+  // Um laço em edição com a confirmação de remover aberta, e o casal com uma fase aberta
+  {
+    nome: 'formularios-5-laco-em-edicao',
+    url: '/pessoas/vo-bela/editar',
+    larguras: TODAS,
+    desde: '#lacos',
+    antes: (pagina) => pagina.evaluate(() => { for (const d of document.querySelectorAll('#lacos .laco:first-child :is([data-editar], [data-confirmar])')) d.open = true; }),
+  },
+  {
+    nome: 'formularios-5-casal-em-edicao',
+    url: '/pessoas/giovanna/editar',
+    como: 'giovanna',
+    larguras: TODAS,
+    desde: '#lacos',
+    antes: (pagina) => pagina.evaluate(() => { for (const d of document.querySelectorAll('.laco--casal [data-editar], .laco--casal .fase:first-of-type')) d.open = true; }),
+  },
+  { nome: 'formularios-6-historico', url: '/memorias/2025-natal/historico', larguras: TODAS },
+  { nome: 'formularios-6-memoria-excluir', url: '/memorias/2025-natal/excluir', larguras: TODAS },
+  { nome: 'formularios-6-capitulo-excluir', url: '/capitulos/natais/excluir', larguras: TODAS },
+  { nome: 'formularios-6-rascunhos', url: '/rascunhos', larguras: TODAS },
+  { nome: 'formularios-6-lixeira', url: '/lixeira', larguras: TODAS, corte: 2400 },
+  { nome: 'formularios-7-admin-tipos', url: '/admin/tipos', larguras: TODAS },
+  { nome: 'formularios-7-admin-familias', url: '/admin/familias', larguras: TODAS },
+  { nome: 'formularios-7-admin-carta', url: '/admin/carta', larguras: TODAS },
+  { nome: 'formularios-7-admin-espelho', url: '/admin/espelho', larguras: TODAS },
 ];
 
 async function tirar(pasta) {

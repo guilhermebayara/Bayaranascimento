@@ -1,7 +1,6 @@
 ---
 // Excluir um capítulo passa pela mesma confirmação de excluir uma memória (decisão do Gui, 16/11/2026).
-import Base from '../../../layouts/Base.astro';
-import Abertura from '../../../components/Abertura.astro';
+import Pagina from '../../../components/formularios/Pagina.astro';
 import { outrosAdmins } from '../../../lib/servidor/conteudo';
 import { listarCapitulos, listarIntegrantes } from '../../../lib/servidor/repositorio';
 
@@ -14,8 +13,8 @@ if (!usuario.admin) return Astro.redirect(voltarPara);
 const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 ---
 
-<Base titulo="Excluir capítulo">
-  <Abertura titulo="Excluir capítulo" />
+<Pagina titulo="Excluir capítulo" rotulo="Capítulo" secao="capitulos">
+  <p slot="abertura">Confira antes de confirmar. Nada é apagado de vez.</p>
   <section class="alerta">
     <h2>{capitulo.titulo}</h2>
     <p>O capítulo sai do site para toda a família. As memórias dele continuam no acervo, só deixam de estar reunidas.</p>
@@ -27,4 +26,4 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
       <a class="botao botao--leve" href={voltarPara}>Cancelar</a>
     </form>
   </section>
-</Base>
+</Pagina>

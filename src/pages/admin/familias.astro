@@ -1,8 +1,7 @@
 ---
 // Os sobrenomes de cada família, para a assinatura do nome (docs/visual.md, "Assinatura do nome").
 // Aparência mínima, no visual provisório: a tela final entra na fase 3 da revisão visual, dentro de "Sua conta".
-import Base from '../../layouts/Base.astro';
-import Abertura from '../../components/Abertura.astro';
+import Pagina from '../../components/formularios/Pagina.astro';
 import { outrosAdmins } from '../../lib/servidor/conteudo';
 import { listarIntegrantes, listarNucleos } from '../../lib/servidor/repositorio';
 import { assinaturaDaTela } from '../../lib/visual';
@@ -14,13 +13,16 @@ const nucleos = await listarNucleos();
 const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 ---
 
-<Base titulo="Famílias">
-  <Abertura titulo="Famílias">
+<Pagina titulo="Famílias" rotulo="Administração" secao="conta" larga>
+  <Fragment slot="abertura">
     <p>
-      Os sobrenomes de que cada família é feita. É com eles que o site escreve a linha embaixo de "MEMÓRIAS" quando a tela mostra mais de uma família.
+      Os sobrenomes de que cada família é feita. É com eles que o site escreve a linha embaixo de "MEMÓRIAS" quando a tela mostra mais de uma família.{' '}
       {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}
     </p>
-  </Abertura>
+    <p class="acoes">
+      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+    </p>
+  </Fragment>
 
   <section class="painel">
     <h2>Sobrenomes de cada família</h2>
@@ -42,4 +44,4 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
       }
     </ul>
   </section>
-</Base>
+</Pagina>

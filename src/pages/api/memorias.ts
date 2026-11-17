@@ -137,7 +137,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const permitidos = new Set([...usuario.nucleos, ...(anterior?.nucleos ?? [])]);
   const nucleos = [...new Set(pedido.nucleos)];
   if (nucleos.some((n) => !nucleosExistentes.has(n) || !permitidos.has(n))) {
-    return erro(400, 'Você só pode marcar núcleos de que faz parte.');
+    return erro(400, 'Você só pode marcar famílias de que faz parte.');
   }
   if (anterior) {
     const quemVe = podeMudarQuemVe(usuario, anterior, pedido.visibilidade, nucleos);

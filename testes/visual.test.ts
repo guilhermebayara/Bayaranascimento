@@ -153,7 +153,7 @@ describe('conceito', () => {
   const paginas = import.meta.glob<string>('../src/pages/conceito/**/*.{astro,ts}', { query: '?raw', import: 'default', eager: true });
 
   // As telas que já passaram para o visual novo (fase 3), com os componentes de cada uma
-  const telas = import.meta.glob<string>(['../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/pages/capitulos/index.astro', '../src/pages/capitulos/[[]id]/index.astro', '../src/pages/temas/[[]id].astro', '../src/pages/pessoas/index.astro', '../src/pages/arvore.astro', '../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/components/formularios/*.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/capitulos/*.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro'], {
+  const telas = import.meta.glob<string>(['../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/pages/capitulos/index.astro', '../src/pages/capitulos/[[]id]/index.astro', '../src/pages/temas/[[]id].astro', '../src/pages/pessoas/index.astro', '../src/pages/arvore.astro', '../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/pages/pessoas/nova.astro', '../src/pages/pessoas/[[]id]/editar.astro', '../src/pages/memorias/[[]id]/historico.astro', '../src/pages/memorias/[[]id]/excluir.astro', '../src/pages/capitulos/[[]id]/excluir.astro', '../src/pages/rascunhos.astro', '../src/pages/lixeira.astro', '../src/pages/admin/*.astro', '../src/components/FichaDoIntegrante.astro', '../src/components/CampoRetrato.astro', '../src/components/ConfirmarRemocao.astro', '../src/components/ComoSeReferir.astro', '../src/components/formularios/*.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/capitulos/*.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro'], {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -589,7 +589,7 @@ describe('grupo familia', () => {
 
 // Fase 3, grupo "formularios", primeira metade: a base, a Nova memória, o relato e o capítulo
 describe('grupo formularios', () => {
-  const fontes = import.meta.glob<string>(['../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/components/formularios/Pagina.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/QuemEstava.astro'], {
+  const fontes = import.meta.glob<string>(['../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/pages/pessoas/nova.astro', '../src/pages/pessoas/[[]id]/editar.astro', '../src/pages/memorias/[[]id]/historico.astro', '../src/pages/memorias/[[]id]/excluir.astro', '../src/pages/capitulos/[[]id]/excluir.astro', '../src/pages/rascunhos.astro', '../src/pages/lixeira.astro', '../src/pages/admin/*.astro', '../src/components/FichaDoIntegrante.astro', '../src/components/CampoRetrato.astro', '../src/components/ConfirmarRemocao.astro', '../src/components/ComoSeReferir.astro', '../src/components/formularios/Pagina.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/QuemEstava.astro'], {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -599,7 +599,7 @@ describe('grupo formularios', () => {
     if (!achado) throw new Error(`não achei ${fim}`);
     return achado[1];
   };
-  const telas = ['pages/nova.astro', 'relato.astro', 'capitulos/novo.astro', 'capitulos/[id]/editar.astro'];
+  const telas = ['pages/nova.astro', 'relato.astro', 'capitulos/novo.astro', 'capitulos/[id]/editar.astro', 'pessoas/nova.astro', 'pessoas/[id]/editar.astro', 'historico.astro', 'memorias/[id]/excluir.astro', 'capitulos/[id]/excluir.astro', 'rascunhos.astro', 'lixeira.astro', 'admin/tipos.astro', 'admin/familias.astro', 'admin/carta.astro', 'admin/espelho.astro'];
 
   it('as telas usam a página de formulário do visual novo, e não o esqueleto antigo', () => {
     for (const fim of telas) {
@@ -659,5 +659,40 @@ describe('grupo formularios', () => {
     expect(fonte('pages/nova.astro')).toContain('Só quem é das famílias marcadas abaixo');
     expect(fonte('pages/nova.astro')).toContain('De quais famílias é esta memória?');
     expect(fonte('FichaDoCapitulo.astro')).toContain('Só quem é das famílias marcadas abaixo');
+    // A segunda metade do grupo: a ficha da pessoa, o histórico e o espelho
+    for (const fim of ['FichaDoIntegrante.astro', 'CampoRetrato.astro']) expect(fonte(fim).replace(/^---[\s\S]*?^---/m, '').replace(/<script[\s\S]*?<\/script>/g, ''), fim).not.toMatch(/n[úu]cleo/i);
+    expect(fonte('pessoas/[id]/editar.astro')).toContain('por quem é da mesma família que');
+    expect(fonte('historico.astro')).toContain('Mudou fotos, famílias ou quem pode ver.');
+    expect(fonte('admin/espelho.astro')).toContain('e quem é de cada família.');
+  });
+
+  it('o estilo antigo saiu: nada usa o esqueleto, a abertura, o arquivo nem as variáveis dele', () => {
+    const tudo = import.meta.glob<string>(['../src/**/*.{astro,ts,css}'], { query: '?raw', import: 'default', eager: true });
+    const caminhos = Object.keys(tudo);
+    expect(caminhos.some((c) => c.includes('/styles/') || c.endsWith('layouts/Base.astro') || c.endsWith('components/Abertura.astro'))).toBe(false);
+    // O CSS chega vazio por este caminho: os arquivos de estilo são lidos do disco
+    const css = readdirSync(new URL('../src/visual', import.meta.url), { recursive: true })
+      .map(String)
+      .filter((a) => a.endsWith('.css'))
+      .map((a) => readFileSync(new URL(`../src/visual/${a}`, import.meta.url), 'utf8'));
+    for (const texto of [...Object.entries(tudo).filter(([c]) => !c.endsWith('.css')).map(([, t]) => t), ...css]) {
+      expect(texto).not.toMatch(/import [^;]*(layouts\/Base\.astro|components\/Abertura\.astro|styles\/global\.css)/);
+      expect(texto).not.toMatch(/var\(--(cor|tamanho|espaco|nucleo)-/);
+    }
+    // Toda página do site usa o esqueleto novo, direto ou pela página de formulário
+    const paginas = Object.entries(import.meta.glob<string>('../src/pages/**/*.astro', { query: '?raw', import: 'default', eager: true }));
+    expect(paginas.length).toBeGreaterThan(20);
+    for (const [caminho, texto] of paginas) expect(texto, caminho).toMatch(/layouts\/Visual\.astro'|components\/formularios\/Pagina\.astro'|Astro\.redirect\(/);
+  });
+
+  it('as telas utilitárias e de pessoa usam as peças do sistema para o estado vazio', () => {
+    for (const fim of ['rascunhos.astro', 'lixeira.astro', 'historico.astro', 'admin/tipos.astro']) {
+      expect(fonte(fim), fim).toContain("components/visual/Vazio.astro'");
+      expect(fonte(fim), fim).not.toMatch(/class="vazio"/);
+    }
+    // A confirmação de remover continua no próprio lugar, com o botão do alerta
+    expect(fonte('ConfirmarRemocao.astro')).toMatch(/<button class="botao botao--perigo" type="submit" name="acao"/);
+    const css = readFileSync(new URL('../src/visual/telas/formulario.css', import.meta.url), 'utf8');
+    for (const nome of ['etapas--fluxo', 'escolhas', 'lacos', 'editar__caixa', 'fases', 'linhas', 'alerta', 'retrato-campo', 'recorte__quadro', 'pagina-de-formulario--larga']) expect(css, nome).toContain(`.${nome}`);
   });
 });

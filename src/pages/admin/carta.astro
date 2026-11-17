@@ -1,8 +1,7 @@
 ---
 // A carta de Natal, escrita pelos administradores no próprio site (docs/decisoes.md, "Painel pessoal").
 // Fica no banco, nunca no repositório. Cada versão salva é uma linha nova, e vale a mais recente.
-import Base from '../../layouts/Base.astro';
-import Abertura from '../../components/Abertura.astro';
+import Pagina from '../../components/formularios/Pagina.astro';
 import { saudacao } from '../../lib/painel';
 import { outrosAdmins } from '../../lib/servidor/conteudo';
 import { listarIntegrantes, obterCarta } from '../../lib/servidor/repositorio';
@@ -16,12 +15,15 @@ const carta = await obterCarta();
 const quem = carta ? integrantes.find((i) => i.id === carta.escritaPor) : undefined;
 ---
 
-<Base titulo="Carta de Natal">
-  <Abertura titulo="Carta de Natal">
+<Pagina titulo="Carta de Natal" rotulo="Administração" secao="conta" larga>
+  <Fragment slot="abertura">
     <p>
       A carta abre o site na primeira visita de cada pessoa. Depois, fica num link no início. {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}
     </p>
-  </Abertura>
+    <p class="acoes">
+      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+    </p>
+  </Fragment>
 
   <form class="formulario" method="post" action="/api/painel">
     <input type="hidden" name="acao" value="carta" />
@@ -39,7 +41,11 @@ const quem = carta ? integrantes.find((i) => i.id === carta.escritaPor) : undefi
     {carta && <p class="dica">Última versão salva por {quem ? (quem.apelido ?? quem.nome) : carta.escritaPor} em {carta.escritaEm.slice(0, 10).split('-').reverse().join('/')}.</p>}
     <div class="acoes">
       <button type="submit" class="botao">Salvar carta</button>
-      {carta && <a href="/carta">Ver como fica</a>}
+      {carta && (
+        <a class="botao botao--leve" href="/carta">
+          Ver como fica
+        </a>
+      )}
     </div>
   </form>
-</Base>
+</Pagina>

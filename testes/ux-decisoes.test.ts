@@ -130,7 +130,7 @@ describe('enviando', () => {
   it('não desabilita o botão, que precisa ir com o formulário', () => {
     const enviando = fonte('src/lib/cliente/enviando.ts');
     expect(enviando).not.toMatch(/\.disabled = true/);
-    expect(fonte('src/layouts/Base.astro')).toContain('marcarEnvios()');
+    expect(fonte('src/components/formularios/Pagina.astro')).toContain('marcarEnvios()');
   });
 });
 
