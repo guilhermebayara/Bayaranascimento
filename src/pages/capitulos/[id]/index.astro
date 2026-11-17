@@ -36,8 +36,8 @@ import { maisRecentesPrimeiro } from '../../../lib/datas';
 import { coresDosCapitulos } from '../../../lib/linha-capitulos';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { podeEditarCapitulo } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
-import { carimboDaData, corDaPessoa, estiloDoCapitulo, estiloDoTipo, listaCurta } from '../../../lib/visual';
+import { familiasDe, listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
+import { carimboDaData, corDaPessoa, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
 
 const { usuario } = Astro.locals;
 const capitulos = await listarCapitulos(usuario);
@@ -76,7 +76,8 @@ const aconteceramAqui =
 const epocas = cruzamentos.filter((x) => ehEpoca(x.c)).map((x) => ({ ...x, como: sobreposicao(periodo!, x.p) })).filter((x) => x.como !== 'nada');
 
 const temas = (await listarTemas()).filter((t) => capitulo.temas.includes(t.id));
-const integrantes = await listarIntegrantes();
+// Quem só existe num laço privado de outra pessoa não aparece em "de quem é" nem em "Quem aparece" (C1)
+const integrantes = await listarIntegrantesQueVe(usuario);
 const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
 const restritoA = capitulo.visibilidade === 'nucleos' ? capitulo.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean) : [];

@@ -6,7 +6,7 @@ import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http
 import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { podeEditarIntegrante, podeMudarRetrato, type Usuario } from '../../lib/servidor/permissoes';
 import { LIMITE_DO_RETRATO, PASTA_DOS_RETRATOS, formatoDoRetrato } from '../../lib/retratos';
-import { atualizarIntegrante, criarIntegranteCompleto, definirParentes, listarIntegrantes, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
+import { atualizarIntegrante, criarIntegranteCompleto, definirParentes, listarIntegrantes, listarIntegrantesQueVe, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
 
 function lerData(dados: FormData, prefixo: string, rotulo: string): { ano?: number; mes?: number; dia?: number; erro?: string } {
   const ano = campoNumero(dados, `${prefixo}Ano`);
@@ -85,7 +85,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (retrato.erro) return voltar(request, origem, { erro: retrato.erro });
   const tirarRetrato = dados.get('tirarRetrato') === '1';
 
-  const integrantes = await listarIntegrantes();
+  // Quem só existe num laço privado de outra pessoa responde como quem não existe (C1, 17/11/2026).
+  // Os ids de todos só servem para o endereço novo não repetir o de ninguém.
+  const integrantes = await listarIntegrantesQueVe(usuario);
+  const todosOsIds = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
 
   if (id) {
     const anterior = integrantes.find((i) => i.id === id);
@@ -118,7 +121,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   }
   // "nova" é o endereço deste formulário, então não pode ser id de ninguém
-  const novoId = slugUnico(base, new Set([...integrantes.map((i) => i.id), 'nova']));
+  const novoId = slugUnico(base, todosOsIds);
   // Quem cadastra pode editar a página, então pode pôr o retrato
   if (retrato.bytes) ficha.retrato = await guardarRetrato(retrato as Required<typeof retrato>, novoId, usuario);
   await criarIntegranteCompleto(novoId, ficha, usuario);

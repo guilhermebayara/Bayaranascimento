@@ -2,7 +2,7 @@
 // nas telas da conta, da lixeira, da administração, do sistema visual e da página não encontrada.
 import { describe, expect, it } from 'vitest';
 import { LIMITE_DA_LISTA, administracao, fraseDaLixeira, oComeco } from '../src/lib/conta';
-import { TIPOS_DE_EXEMPLO } from '../src/lib/servidor/semente';
+import { TIPOS_DE_EXEMPLO } from '../src/lib/tipos-de-exemplo';
 import { CORES_NOVAS, ehCorDaPaleta } from '../src/lib/visual';
 import { ehRabisco } from '../src/visual/rabiscos';
 

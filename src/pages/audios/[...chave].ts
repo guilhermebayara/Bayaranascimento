@@ -2,14 +2,17 @@
 // Atende pedidos de trecho (Range): o Safari só toca áudio assim.
 import type { APIRoute } from 'astro';
 import { CHAVE_DE_AUDIO } from '../../lib/audios';
-import { bucketDeFotos } from '../../lib/servidor/ambiente';
+import { ehChaveDeAudioDeExemplo } from '../../lib/audios-de-exemplo';
+import { bucketDeFotos, temAcervoDeExemplo } from '../../lib/servidor/ambiente';
 import { podeOuvirAudio } from '../../lib/servidor/repositorio';
 
 const naoEncontrado = () => new Response('Áudio não encontrado', { status: 404 });
 
 export const GET: APIRoute = async ({ params, request, locals }) => {
   const chave = params.chave ?? '';
-  if (!CHAVE_DE_AUDIO.test(chave)) return naoEncontrado();
+  // Os áudios de exemplo (voz sintetizada) só existem nas prévias de teste e no computador
+  const deExemplo = temAcervoDeExemplo() && ehChaveDeAudioDeExemplo(chave);
+  if (!CHAVE_DE_AUDIO.test(chave) && !deExemplo) return naoEncontrado();
   // Quem não pode ouvir recebe a mesma resposta de um áudio que não existe
   if (!(await podeOuvirAudio(locals.usuario, chave))) return naoEncontrado();
 

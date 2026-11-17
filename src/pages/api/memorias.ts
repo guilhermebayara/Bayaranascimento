@@ -18,6 +18,7 @@ import {
   listarCapitulos,
   idsDeMemorias,
   listarIntegrantes,
+  listarIntegrantesQueVe,
   listarNucleos,
   obterFotos,
   obterMemoria,
@@ -152,9 +153,12 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   if (!visivel.ok) return erro(400, visivel.motivo);
 
   // Pessoas novas: cadastro mínimo, reaproveitando quem já existe com o mesmo nome
-  const integrantesAtuais = await listarIntegrantes();
+  // Só se marca quem a pessoa vê: quem só existe num laço privado de outra pessoa não pode ser marcado
+  // nem reaproveitado pelo nome (C1, 17/11/2026). Os ids de todos só servem para o id novo não repetir.
+  const integrantesAtuais = await listarIntegrantesQueVe(usuario);
+  const marcaveis = new Set(integrantesAtuais.map((i) => i.id));
   // "nova" é o endereço do formulário de cadastro, então não pode ser id de ninguém
-  const idsIntegrantes = new Set([...integrantesAtuais.map((i) => i.id), 'nova']);
+  const idsIntegrantes = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
   const idsNovas: string[] = [];
   for (const nova of pedido.novasPessoas) {
     const base = criarSlug(nova.nome);
@@ -171,7 +175,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const resolver = (ref: string): string | undefined => {
     const nova = /^nova:(\d+)$/.exec(ref);
     if (nova) return idsNovas[Number(nova[1])];
-    return ref !== 'nova' && idsIntegrantes.has(ref) ? ref : undefined;
+    return marcaveis.has(ref) ? ref : undefined;
   };
   const integrantes: string[] = [];
   for (const ref of pedido.pessoas) {
@@ -179,6 +183,8 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     if (!id) return erro(400, 'Uma das pessoas marcadas não existe no acervo.');
     if (!integrantes.includes(id)) integrantes.push(id);
   }
+  // Numa edição, quem já estava marcado e a pessoa não vê continua: o formulário nem mostrou essa marca
+  for (const id of anterior?.integrantes ?? []) if (!marcaveis.has(id) && !integrantes.includes(id)) integrantes.push(id);
 
   // Fotos: entram as que a pessoa acabou de enviar e as que já eram desta memória
   const fotosNoBanco = await obterFotos(pedido.fotos.map((f) => f.id));

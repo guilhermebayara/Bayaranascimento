@@ -3,6 +3,9 @@
 // Os exemplos cobrem os casos que precisam ser vistos: data aproximada,
 // vários relatos, relato registrado em nome de outra pessoa, memória restrita
 // a um núcleo e rascunho.
+import { AMBIENTES_COM_EXEMPLOS, ambiente, ehHomologacao } from './ambiente';
+import { TIPOS_DE_EXEMPLO } from '../tipos-de-exemplo';
+import { AUDIOS_DE_EXEMPLO, TIPO_DOS_AUDIOS_DE_EXEMPLO, chaveDeAudioDeExemplo } from '../audios-de-exemplo';
 
 interface Exemplo {
   id: string;
@@ -1306,11 +1309,7 @@ export async function semearCartaDeExemplo(db: D1Database): Promise<void> {
 // para o QA e a Giovanna verem as cores novas em uso sem trocar nada na mão (resposta do Gui à P166
 // do QA de design, 17/11/2026). As memórias nascem com data de cadastro antiga, para não entrarem
 // como novidade no início de ninguém.
-export const TIPOS_DE_EXEMPLO: { id: string; rotulo: string; cor: string; icone: string }[] = [
-  { id: 'formatura', rotulo: 'Formatura', cor: 'anil', icone: 'formatura' },
-  { id: 'praia', rotulo: 'Praia', cor: 'ceu', icone: 'praia' },
-  { id: 'bichos', rotulo: 'Bichos', cor: 'terracota', icone: 'patinha' },
-];
+export { TIPOS_DE_EXEMPLO };
 const MEMORIAS_DOS_TIPOS_DE_EXEMPLO: { id: string; titulo: string; ano: number; mes?: number; dia?: number; tipo: string; lugar: string; nucleo: string; integrantes: string[] }[] = [
   { id: '2023-formatura-da-luisa', titulo: 'Formatura da Luísa', ano: 2023, mes: 12, dia: 15, tipo: 'formatura', lugar: 'Belo Horizonte', nucleo: 'bracarense', integrantes: ['ex-luisa', 'giovanna'] },
   { id: '2022-uma-semana-na-praia', titulo: 'Uma semana na praia', ano: 2022, mes: 1, tipo: 'praia', lugar: 'Guarapari', nucleo: 'bayara-nascimento', integrantes: ['gui', 'ex-prima-julia', 'ex-primo-teo'] },
@@ -1345,4 +1344,30 @@ export async function semearTiposDeExemplo(db: D1Database): Promise<void> {
     for (const i of m.integrantes) comandos.push(db.prepare('INSERT OR IGNORE INTO memoria_integrantes (memoria_id, integrante_id) VALUES (?, ?)').bind(m.id, i));
   }
   await db.batch(comandos);
+}
+
+/**
+ * Os áudios de exemplo (decisão do Gui, 17/11/2026, P102): voz sintetizada nos relatos da Vó Bela e da
+ * Vó Vivica, para o bloco "A voz de Fulano" aparecer. Entram uma vez só, protegidos pela existência de
+ * um deles: quem remover um ao testar não o vê voltar. Os arquivos chegam ao bucket de teste pelo envio
+ * das fotos de exemplo. Confere o ambiente de novo aqui, além da proteção de banco.ts.
+ */
+export async function semearAudiosDeExemplo(db: D1Database): Promise<void> {
+  if (!AMBIENTES_COM_EXEMPLOS.includes(ambiente()) || ehHomologacao()) return;
+  const ja = await db.prepare(`SELECT 1 AS ok FROM audios WHERE chave LIKE 'exemplos/%' LIMIT 1`).first();
+  if (ja) return;
+  const comandos: D1PreparedStatement[] = [];
+  for (const a of AUDIOS_DE_EXEMPLO) {
+    const relato = await db
+      .prepare(`SELECT id, registrado_por FROM relatos WHERE memoria_id = ? AND por = ? AND situacao = 'publicada'`)
+      .bind(a.memoria, a.por)
+      .first<{ id: number; registrado_por: string }>();
+    if (!relato) continue;
+    comandos.push(
+      db
+        .prepare(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, duracao, transcricao, ordem, enviado_por) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`)
+        .bind(relato.id, a.memoria, chaveDeAudioDeExemplo(a.nome), TIPO_DOS_AUDIOS_DE_EXEMPLO, a.tamanho, a.duracao, a.transcricao, relato.registrado_por),
+    );
+  }
+  if (comandos.length) await db.batch(comandos);
 }

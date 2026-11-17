@@ -6,7 +6,7 @@ import { Familia } from '../lib/parentesco';
 import { comArtigo } from '../lib/servidor/conteudo';
 import { MESES } from '../lib/datas';
 import { modoNoFormulario, type Capitulo } from '../lib/capitulos';
-import { familiasDe, listarCapitulos, listarCasais, listarFiliacoes, listarIntegrantes, listarNucleos, listarTemasVisiveis } from '../lib/servidor/repositorio';
+import { familiasDe, listarCapitulos, listarCasais, listarFiliacoes, listarIntegrantes, listarIntegrantesQueVe, listarNucleos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 
 interface Props {
   capitulo?: Capitulo;
@@ -22,8 +22,9 @@ const todosOsNucleos = await listarNucleos();
 const nucleos = todosOsNucleos.filter((n) => usuario.nucleos.includes(n.id) || c?.nucleos.includes(n.id));
 // Só quem criou muda quem pode ver. Para os outros, as opções ficam travadas com o valor atual.
 const travaQuemVe = Boolean(c) && c!.criadoPor !== usuario.pessoa;
-const integrantes = await listarIntegrantes();
-const quemCriou = travaQuemVe ? integrantes.find((i) => i.id === c!.criadoPor) : undefined;
+// Quem só existe num laço privado de outra pessoa não é oferecido em "de quem é" (C1, 17/11/2026)
+const integrantes = await listarIntegrantesQueVe(usuario);
+const quemCriou = travaQuemVe ? (await listarIntegrantes()).find((i) => i.id === c!.criadoPor) : undefined;
 // De quem é o capítulo por período: a mesma escolha de "Quem estava?" na memória, agrupada por família
 const arvore = new Familia(await listarFiliacoes(), await listarCasais(usuario));
 const porNome = [...integrantes].sort((a, b) => (a.apelido ?? a.nome).localeCompare(b.apelido ?? b.nome, 'pt-BR'));
@@ -122,7 +123,7 @@ const datas = [
         </fieldset>
         <QuemEstava
           integrantes={integrantes}
-          marcados={c?.pessoas ?? []}
+          marcados={(c?.pessoas ?? []).filter((p) => integrantes.some((i) => i.id === p))}
           grupos={gruposDePessoas}
           proximos={proximos}
           eu={usuario.pessoa}

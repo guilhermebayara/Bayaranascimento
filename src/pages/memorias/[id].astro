@@ -58,6 +58,8 @@ const retratoDe = (id: string) => {
   return pessoa?.retrato && !naoVe.has(id) ? enderecoDoRetrato(pessoa.retrato) : null;
 };
 const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
+// Quem só existe num laço privado de outra pessoa não aparece em "Quem estava" (C1, 17/11/2026)
+const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id));
 // O parentesco do ponto de vista de quem olha: "sua avó"
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
@@ -83,7 +85,7 @@ const trecho = relatoDaAbertura ? trechoDoRelato(relatoDaAbertura.texto) : undef
 // Um só relato, que coube inteiro na abertura: a seção "Relato" não repete o bilhete (P52 do QA de design de 17/11/2026)
 const relatoSoNaAbertura = relatoJaEstaNaAbertura(relatos, trecho, (id) => audiosDosRelatos.get(id)?.length ?? 0);
 // No celular, até seis retratos em "Quem estava"; o resto abre no lugar (P51)
-const recolheQuem = recolheQuemEstava(memoria.integrantes.length);
+const recolheQuem = recolheQuemEstava(quemEstava.length);
 
 // Vizinhas na linha do tempo, entre as que a pessoa vê
 const todas = await listarMemorias(usuario);
@@ -188,13 +190,13 @@ const outrasFotos = memoria.fotos.length > 1;
 
       <div class="corpo__conteudo">
         {
-          memoria.integrantes.length > 0 && (
+          quemEstava.length > 0 && (
             <section class="parte" aria-labelledby="quem-estava">
               <h2 class="parte__titulo" id="quem-estava">
                 Quem estava
               </h2>
               <ul class:list={['quem', recolheQuem && 'quem--recolhe']} data-quem>
-                {memoria.integrantes.map((id) => (
+                {quemEstava.map((id) => (
                   <li>
                     <a class="pessoa" href={`/pessoas/${id}`}>
                       <Retrato nome={nome(id)} foto={retratoDe(id)} familia={familiaDe(id)} />

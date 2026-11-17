@@ -12,7 +12,7 @@ import {
   idsDeCapitulos,
   listarCapitulos,
   listarCapitulosExcluidos,
-  listarIntegrantes,
+  listarIntegrantesQueVe,
   listarNucleos,
   restaurarCapitulo,
   salvarCapitulo,
@@ -95,15 +95,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // De quem é o capítulo por período: pessoas, famílias ou os dois. Ninguém marcado quer dizer época, de todos.
   const nucleosDoAcervo = await listarNucleos();
-  const deQuem =
+  // Só se marca quem a pessoa vê (C1, 17/11/2026). Numa edição, quem já estava e ela não vê continua.
+  const marcaveis = new Set((await listarIntegrantesQueVe(usuario)).map((i) => i.id));
+  const lido =
     escolha === 'periodo'
       ? lerDeQuem(
           { pessoas: dados.getAll('pessoas').map(String), familias: dados.getAll('familias').map(String) },
-          { pessoas: new Set((await listarIntegrantes()).map((i) => i.id)), familias: new Set(nucleosDoAcervo.map((n) => n.id)) },
+          { pessoas: marcaveis, familias: new Set(nucleosDoAcervo.map((n) => n.id)) },
         )
       : { pessoas: [], familias: [] };
-  if ('erro' in deQuem) return falhar(deQuem.erro);
-  if (escolha === 'periodo' && deQuem.pessoas.length + deQuem.familias.length === 0) {
+  if ('erro' in lido) return falhar(lido.erro);
+  const escondidos = escolha === 'periodo' ? (atual?.pessoas ?? []).filter((p) => !marcaveis.has(p) && !lido.pessoas.includes(p)) : [];
+  const deQuem = { ...lido, pessoas: [...lido.pessoas, ...escondidos] };
+  if (escolha === 'periodo' && lido.pessoas.length + lido.familias.length === 0) {
     return falhar('Marque de quem é este período. Se ele vale para a família inteira, escolha "Época".');
   }
 

@@ -16,6 +16,10 @@
 //    do pacote publicado, só são gravadas e apagadas no bucket de teste, pelas prévias e pelo
 //    computador, e a homologação só lê o prefixo exemplos/ do bucket de teste. A limpeza de 7 dias
 //    roda só no ambiente de teste.
+// 7b. Os áudios de exemplo (voz sintetizada, em exemplos/audios/) seguem as mesmas regras: ficam fora do
+//    pacote publicado, são os arquivos listados em src/lib/audios-de-exemplo.ts, a semente confere o
+//    ambiente e a rota /audios/ só serve a chave de um deles onde há acervo de exemplo. O espelho da
+//    homologação nunca os usa.
 // 8. As telas do conceito da revisão visual (/conceito) trazem dados fixos de exemplo.
 //    Só respondem onde há acervo de exemplo: na produção e na homologação, 404.
 // 9. A página do sistema: fora das prévias de teste, só os administradores, sem ler o acervo.
@@ -109,6 +113,32 @@ else if (/producao|homologa/.test(ambientes[1])) falhar('src/lib/servidor/ambien
   }
   if (!existsSync('exemplos/fotos') || readdirSync('exemplos/fotos').filter((n) => n.endsWith('.jpg')).length !== 11) {
     falhar('exemplos/fotos/: são 11 fotos de exemplo (chico-1 a chico-5, karol-1 a karol-6).');
+  }
+}
+
+// 7b. Áudios de exemplo
+{
+  const lista = readFileSync('src/lib/audios-de-exemplo.ts', 'utf8');
+  const nomes = [...lista.matchAll(/nome: '([^']+\.m4a)'/g)].map((m) => m[1]).sort();
+  const arquivos = existsSync('exemplos/audios') ? readdirSync('exemplos/audios').filter((n) => !n.startsWith('.')).sort() : [];
+  if (nomes.length === 0 || JSON.stringify(nomes) !== JSON.stringify(arquivos)) {
+    falhar('exemplos/audios/: os arquivos precisam ser exatamente os de AUDIOS_DE_EXEMPLO, em src/lib/audios-de-exemplo.ts.');
+  }
+  const fontes = ['src', 'public'].flatMap((pasta) => (existsSync(pasta) ? readdirSync(pasta, { recursive: true }).map((a) => `${pasta}/${String(a).replace(/\\/g, '/')}`) : []));
+  for (const arquivo of fontes) {
+    if (/\.(m4a|mp3|ogg|opus|wav|webm)$/i.test(arquivo)) falhar(`${arquivo}: os áudios de exemplo ficam em exemplos/audios/, fora do pacote publicado.`);
+  }
+  const semente = readFileSync('src/lib/servidor/semente.ts', 'utf8');
+  const funcao = semente.slice(semente.indexOf('export async function semearAudiosDeExemplo'));
+  if (!funcao.startsWith('export async function semearAudiosDeExemplo(db: D1Database): Promise<void> {\n  if (!AMBIENTES_COM_EXEMPLOS.includes(ambiente()) || ehHomologacao()) return;')) {
+    falhar('src/lib/servidor/semente.ts: semearAudiosDeExemplo() começa conferindo que está numa prévia de teste (AMBIENTES_COM_EXEMPLOS e não homologação).');
+  }
+  const rota = readFileSync('src/pages/audios/[...chave].ts', 'utf8');
+  if (!rota.includes('const deExemplo = temAcervoDeExemplo() && ehChaveDeAudioDeExemplo(chave);')) {
+    falhar('src/pages/audios/[...chave].ts: a chave de um áudio de exemplo só é servida onde há acervo de exemplo (temAcervoDeExemplo).');
+  }
+  if (/audios-de-exemplo|AUDIOS_DE_EXEMPLO/.test(readFileSync('src/lib/espelho.ts', 'utf8'))) {
+    falhar('src/lib/espelho.ts: o espelho da homologação não leva os áudios de exemplo.');
   }
 }
 

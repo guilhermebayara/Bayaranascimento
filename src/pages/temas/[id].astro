@@ -15,7 +15,7 @@ import Vazio from '../../components/visual/Vazio.astro';
 import { ehEpoca, nomeDoModo, resumoDoCapitulo } from '../../lib/capitulos';
 import { FORMAS_DA_PESSOA, NOMES_DAS_FORMAS, TAMANHO_PADRAO, lerFormaDaPessoa, mostraRascunho } from '../../lib/explorar';
 import { coresDosCapitulos } from '../../lib/linha-capitulos';
-import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemasVisiveis, memoriasComAudio } from '../../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemasVisiveis, memoriasComAudio } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const tema = (await listarTemasVisiveis(usuario)).find((t) => t.id === Astro.params.id);
@@ -103,10 +103,10 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
           </div>
         ) : forma === 'lista' ? (
           <div class="linha linha--lista tema__larga">
-            <Lista memorias={memorias} capitulos={todos} integrantes={await listarIntegrantes()} ordem="recentes" comAudio={await memoriasComAudio()} />
+            <Lista memorias={memorias} capitulos={todos} integrantes={await listarIntegrantesQueVe(usuario)} ordem="recentes" comAudio={await memoriasComAudio()} />
           </div>
         ) : (
-          <Linha memorias={memorias} capitulos={todos} integrantes={await listarIntegrantes()} nucleos={await listarNucleos()} ordem="recentes" trilhos={false} />
+          <Linha memorias={memorias} capitulos={todos} integrantes={await listarIntegrantesQueVe(usuario)} nucleos={await listarNucleos()} ordem="recentes" trilhos={false} />
         )}
       </div>
     </section>

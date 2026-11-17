@@ -2,7 +2,7 @@
 // Formulário da ficha de um integrante. Serve para cadastrar e para editar.
 import CampoData from './CampoData.astro';
 import CampoRetrato from './CampoRetrato.astro';
-import { listarIntegrantes, listarNucleos, type Integrante } from '../lib/servidor/repositorio';
+import { listarIntegrantesQueVe, listarNucleos, type Integrante } from '../lib/servidor/repositorio';
 
 interface Props {
   integrante?: Integrante;
@@ -17,7 +17,8 @@ const familiasFixas = i ? nucleos.filter((n) => i.nucleos.includes(n.id)) : [];
 const familiasParaMarcar = i ? nucleos.filter((n) => !i.nucleos.includes(n.id)) : [];
 const emLista = (nomes: string[]) => (nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}` : (nomes[0] ?? ''));
 // No cadastro, os nomes que já existem: "É outra pessoa?" só aparece quando o nome se repete
-const existentes = i ? [] : (await listarIntegrantes()).map((x) => ({ id: x.id, nome: x.nome, apelido: x.apelido }));
+// Sem quem só existe num laço privado de outra pessoa: o aviso de nome repetido denunciaria o nome (C1)
+const existentes = i ? [] : (await listarIntegrantesQueVe(Astro.locals.usuario)).map((x) => ({ id: x.id, nome: x.nome, apelido: x.apelido }));
 ---
 
 <form class="formulario" method="post" action="/api/integrantes" enctype="multipart/form-data" data-ficha>

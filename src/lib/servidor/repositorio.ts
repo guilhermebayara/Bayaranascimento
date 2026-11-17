@@ -436,8 +436,19 @@ export async function pessoasQueONaoVe(usuario: Usuario): Promise<Set<string>> {
   const emPrivados = await pessoasEmLacosPrivadosDeOutros(usuario);
   if (emPrivados.size === 0) return emPrivados;
   const [filiacoes, casais, lacos] = await Promise.all([listarFiliacoes(), listarCasais(usuario), listarLacosDoCoracao(usuario)]);
-  const comLaco = new Set([...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
+  // A pessoa logada sempre se vê, mesmo sem laço nenhum além do privado de outra pessoa
+  const comLaco = new Set([usuario.pessoa, ...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
   return pessoasQueNaoVe(emPrivados, comLaco);
+}
+
+/**
+ * Os integrantes que a pessoa logada vê: todos, menos quem só existe num laço do coração privado de
+ * outra pessoa (decisão do Gui, 17/11/2026, C1). Vale para a lista de Pessoas, a página da pessoa, os
+ * seletores de pessoa e as APIs que marcam alguém numa memória, num relato ou num capítulo.
+ */
+export async function listarIntegrantesQueVe(usuario: Usuario): Promise<Integrante[]> {
+  const [todos, naoVe] = await Promise.all([listarIntegrantes(), pessoasQueONaoVe(usuario)]);
+  return naoVe.size === 0 ? todos : todos.filter((i) => !naoVe.has(i.id));
 }
 
 /**

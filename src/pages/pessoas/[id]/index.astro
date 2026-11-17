@@ -32,7 +32,7 @@ import {
   listarCapitulos,
   listarCasais,
   listarFiliacoes,
-  listarIntegrantes,
+  listarIntegrantesQueVe,
   listarLacosDoCoracao,
   listarLacosResumidos,
   listarMemorias,
@@ -45,7 +45,8 @@ import { corDaPessoa } from '../../../lib/visual';
 // O nome de um laço do coração entra no meio da frase em minúscula, como na árvore
 const minuscula = (texto: string) => texto.charAt(0).toLowerCase() + texto.slice(1);
 const { usuario } = Astro.locals;
-const integrantes = await listarIntegrantes();
+// Quem só existe num laço privado de outra pessoa responde como quem não existe (C1, 17/11/2026)
+const integrantes = await listarIntegrantesQueVe(usuario);
 const pessoa = integrantes.find((i) => i.id === Astro.params.id);
 if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
 

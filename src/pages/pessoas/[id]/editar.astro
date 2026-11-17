@@ -12,10 +12,11 @@ import { formatarData } from '../../../lib/datas';
 import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos } from '../../../lib/servidor/repositorio';
+import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
-const integrantes = await listarIntegrantes();
+// Quem só existe num laço privado de outra pessoa não é editado nem oferecido nos laços (C1)
+const integrantes = await listarIntegrantesQueVe(usuario);
 const pessoa = integrantes.find((i) => i.id === Astro.params.id);
 if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
 
