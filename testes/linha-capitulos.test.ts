@@ -125,7 +125,7 @@ describe('cor de cada capítulo', () => {
   });
 });
 
-// PROPOSTA em avaliação (16/11/2026), para o furo do capítulo de época: ver o alto de src/lib/linha-capitulos.ts
+// Época e capítulo (decisão do Gui, 16/11/2026, migração 019): ver o alto de src/lib/linha-capitulos.ts
 describe('época de todos e capítulo com período e pessoas', () => {
   const comQuem = [
     m('casamento', 2026, 11),

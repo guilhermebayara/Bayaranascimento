@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Foto from '../../components/Foto.astro';
-import { dentroDoPeriodo } from '../../lib/capitulos';
+import { memoriaDoCapitulo } from '../../lib/capitulos';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { formatarData } from '../../lib/datas';
 import { podeEditarMemoria, podeExcluirMemoria } from '../../lib/servidor/permissoes';
@@ -31,10 +31,8 @@ const corDe = (id: string) => corDaFamilia(achar(id) ? familiasDe(achar(id)!) : 
 const tipo = tipoDaMemoria(Astro.locals.tipos, memoria);
 const dosNucleos = memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean);
 const podeEditar = podeEditarMemoria(usuario, memoria).ok;
-// Capítulos: os reunidos em que foi colocada e os de época em que a data cai
-const capitulos = (await listarCapitulos(usuario)).filter((c) =>
-  c.modo === 'reunido' ? memoria.capitulos.includes(c.id) : Boolean(c.inicio) && dentroDoPeriodo(memoria, c.inicio!, c.fim),
-);
+// Capítulos: os reunidos em que foi colocada e os por período em que a data cai, se forem de quem está nela
+const capitulos = (await listarCapitulos(usuario)).filter((c) => memoriaDoCapitulo(memoria, c));
 const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
 const podeExcluir = podeExcluirMemoria(usuario, memoria).ok;
 const temMeuRelato = relatos.some((r) => r.por === usuario.pessoa);
