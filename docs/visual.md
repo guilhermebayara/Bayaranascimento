@@ -700,6 +700,7 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 - **Camadas e controles quietos:** "Ajustar a árvore", a ficha, o zoom e a legenda são cartões brancos pousados no mapa, sem contorno. A ficha traz o retrato em arco, o nome em serifa e as três ações numa linha. No celular, com os ajustes abertos, a ficha sai da frente.
 - **A busca de "Partir de"** (`busca-pessoa.ts`) ganhou o estilo novo só dentro do mapa (`.mapa .busca…`). O estilo da busca nos formulários é do grupo 4.
 - A marca do ramo recolhido ganhou área de toque de 44 px (tinha 42).
+- **Depois das respostas do Gui ao QA de design (17/11/2026):** a ficha só aparece ao tocar em alguém e fica embaixo, no centro; a barra de baixo diz "Voltar para Fulano" e "Ver a árvore inteira"; a legenda tem três grupos, abre pelo botão "Legenda" no celular e lembra se foi fechada no computador; no celular os ajustes abrem no pé do mapa. As regras estão em `docs/decisoes.md`, em "O que fica em volta do mapa", e as capturas em `docs/visual/qa-respostas/arvore/`.
 
 **"Família" no lugar de "núcleo"** nestas telas: "Quem aparece nas memórias da família, por família." (era "por núcleo"), na lista de pessoas; na árvore, "Família Bayara" em "Destacar" (era "Núcleo Bayara"), "Outras famílias" em "Mostrar" (era "Outros núcleos") e a dica "A árvore parte de Fulano, que é de outra família" (era "de outro núcleo"). Tem teste: nenhuma destas telas escreve "núcleo".
 

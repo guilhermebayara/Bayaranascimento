@@ -1236,6 +1236,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P84. A ficha deve aparecer só depois de tocar em alguém, e ter como fechar?
 
+**Feito (opção A):** a árvore abre sem ficha; tocar em alguém mostra a ficha, e o "×", o Esc e o toque no vazio fecham. Com a ficha fechada, o toque em quem já está em foco mostra a ficha em vez de abrir a página. Capturas: `arvore/p84-abre-sem-ficha--390.jpg`, `--1280.jpg`, `--1920.jpg`.
+
 **muda a experiência**
 
 - Contexto: a ficha é o cartão com o retrato, o nome, o parentesco e três ações. Hoje ela está sempre na tela, inclusive ao abrir, mostrando quem olha ("Giovanna / você, 1999"), e não fecha: não há "×", Esc não faz nada, tocar no vazio não tira.
@@ -1247,6 +1249,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `familia-arvore-abre--390.jpg`
 
 ### P85. No computador, a ficha fica no canto de cima, longe de quem foi tocado. Onde ela deve ficar?
+
+**Feito (opção A):** a ficha fica embaixo, no centro, com 22rem de largura. Em 1920 px ela fica na linha da barra, entre a legenda e o zoom; até lá, uma linha acima da barra, porque a barra com os nomes novos não deixa lugar ao lado. Capturas: `arvore/p85-ficha-da-elizete--1280.jpg`, `--1920.jpg`.
 
 **muda a experiência**
 
@@ -1261,6 +1265,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P86. No celular, a ficha, o zoom e os ajustes tomam 28% do mapa, e a ficha cobre o ramo aberto. Encolher?
 
+**Feito (opção A):** no celular a ficha é uma linha de 53 px (era de 125), com "Mais" para a segunda ação, e sai enquanto um ramo está aberto. Capturas: `arvore/p85-ficha-da-elizete--390.jpg`, `arvore/p86-ficha-com-mais--390.jpg`, `arvore/p86-ramo-aberto-sem-ficha--390.jpg`.
+
 **muda a experiência**
 
 - Contexto: no celular a ficha fica embaixo, acima do zoom. Com os ajustes abertos ela sai.
@@ -1272,6 +1278,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `familia-arvore-ramo-e-ficha--390.jpg`
 
 ### P87. No celular a legenda não existe. Como a pessoa descobre o que é tracejado, o que é "♥ 2" e o que são as cores?
+
+**Feito (opção A):** botão "Legenda" na barra de baixo do celular, que abre a legenda por cima do mapa; fecha no "×" e no Esc. A barra passou a ter duas linhas no celular. Captura: `arvore/p90-legenda--390.jpg`.
 
 **muda a experiência**
 
@@ -1295,6 +1303,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P89. No computador, a legenda deve abrir fechada e lembrar a escolha?
 
+**Feito (opção A):** no computador a legenda abre na primeira visita e o aparelho lembra se a pessoa fechou. Capturas: `arvore/p89-legenda-na-primeira-visita--1280.jpg`, `--1920.jpg`.
+
 **ajuste**
 
 - Contexto: a legenda nasce aberta, embaixo à esquerda, e reabre a cada visita.
@@ -1305,6 +1315,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P90. A legenda explica tudo o que a árvore mostra?
+
+**Feito (opção A):** três grupos com título, os itens que faltavam ("+ 1", você, quem você tocou, de duas famílias) e o bicho mostrado pela forma do cartão. Os textos dos itens novos são meus e estão no relatório. Capturas: `arvore/p90-legenda--390.jpg`, `--1280.jpg`, `--1920.jpg`.
 
 **ajuste**
 
@@ -1317,6 +1329,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P91. As ações da ficha dizem o que acontece? ("Laços", "Partir desta pessoa")
 
+**Feito (opção A):** a ficha tem "Ver a página" e "Ver a árvore de Fulano"; "Laços" saiu. Capturas: as da P85.
+
 **ajuste**
 
 - Contexto: a ficha tem "Ver a página", "Laços" e "Partir desta pessoa". Tocar de novo no cartão também abre a página.
@@ -1327,6 +1341,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P92. "Ajustar a árvore": o nome, o campo "Partir de" e a opção travada estão claros?
+
+**Feito (opção A):** o valor de agora de "Partir de" aparece em tinta, com "Voltar ao começo" quando o centro foi trocado; "Outras famílias" só aparece com uma família em destaque; no celular o painel abre no pé do mapa, com as caixas em duas colunas e a árvore enquadrada acima; Esc fecha. O sinal de abrir continua o mesmo. Capturas: `arvore/p92-ajustes--390.jpg`, `arvore/p92-ajustes-com-centro--390.jpg`, `--1280.jpg`, `--1920.jpg`.
 
 **ajuste**
 
@@ -1340,6 +1356,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P93. O texto do alto pode encolher?
 
+**Feito (opção A):** o texto do alto é "Toque em alguém para ver quem é.". Capturas: as da P84.
+
 **ajuste**
 
 - Contexto: "Arraste para andar pela família. Toque em alguém para ver quem é, e de novo para abrir a página. Os botões + abrem os outros ramos da família."
@@ -1350,6 +1368,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P94. Até onde o zoom vai? (PR #39, pergunta 10)
+
+**Feito (opção A):** mantido em 400%; saiu a marca de provisório do código.
 
 **detalhe**
 
@@ -1362,6 +1382,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P95. "Ir ao foco" e "Ver tudo": os nomes servem?
 
+**Feito (opção A):** "Voltar para Fulano", com o nome de quem está em foco, e "Ver a árvore inteira". Capturas: as da P85.
+
 **detalhe**
 
 - Contexto: a barra de baixo tem "Ir ao foco", "Ver tudo", "−", a porcentagem e "+".
@@ -1372,6 +1394,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P96. "Cadastrar uma pessoa" aqui e "Cadastrar pessoa" em Pessoas. Unificar?
 
+**Feito (opção A):** "Cadastrar pessoa" nos dois.
+
 **detalhe**
 
 - O que vi: o link abaixo do mapa diz "Cadastrar uma pessoa"; o botão de `/pessoas` diz "Cadastrar pessoa". É a mesma ação.
@@ -1380,6 +1404,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P97. Na ficha, "você, 1999" e "seu irmão, 1995 a 2009". Dizer de outro jeito?
+
+**Feito (opção A):** o parentesco e os anos em caixa alta, separados pelo ponto do carimbo. Capturas: as da P85.
 
 **detalhe**
 

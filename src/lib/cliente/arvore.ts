@@ -8,8 +8,8 @@ export type { DadosDaArvore };
 const SVG = 'http://www.w3.org/2000/svg';
 const CHAVES = ['consideracao', 'ex', 'bichos', 'outros'] as const;
 const ZOOM_MIN = 0.25;
-// PROVISÓRIO (pergunta 10 do PR de ajustes): o zoom ia até 200%. Subiu para 400%, que é até onde o
-// Gui pediu para conferir a nitidez; com o desenho refeito na escala nova, o texto continua nítido.
+// O zoom vai até 400% (resposta do Gui, 17/11/2026, P94): ajuda quem enxerga pouco, e com o desenho
+// refeito na escala nova o texto continua nítido.
 const ZOOM_MAX = 4;
 
 export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
@@ -22,6 +22,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   const soltos = raiz.querySelector<HTMLElement>('[data-sem-lacos]')!;
   const controles = raiz.querySelector<HTMLFormElement>('[data-controles]')!;
   const zoomAtual = raiz.querySelector<HTMLElement>('[data-zoom-atual]')!;
+  const irAoFoco = raiz.querySelector<HTMLElement>('[data-ir-ao-foco]')!;
   const pessoa = new Map(dados.pessoas.map((p) => [p.id, p]));
   // Só dá para partir de quem tem laço de árvore: de quem não tem, a árvore seria só a pessoa
   const partivel = comLacoDeArvore(dados);
@@ -171,27 +172,53 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     vista.y = ajuste(caixa.y, caixa.h, mapa.clientHeight, vista.y);
     aplicarVista(true);
   };
+  // No celular, os ajustes abertos ficam no pé do mapa (resposta do Gui, 17/11/2026, P92): a árvore
+  // inteira é enquadrada no que sobra acima deles, para a pessoa ver o efeito de cada caixa
+  const painel = raiz.querySelector<HTMLDetailsElement>('[data-painel]');
+  const alturaLivre = () => {
+    if (!painel?.open) return mapa.clientHeight;
+    const topo = painel.getBoundingClientRect().top - mapa.getBoundingClientRect().top;
+    // No computador o painel fica no alto, à esquerda, e a árvore continua com o mapa todo
+    return topo > mapa.clientHeight / 4 ? topo : mapa.clientHeight;
+  };
   const verTudo = (animado = true) => {
     if (!desenho) return;
-    const folga = 56;
-    vista.zoom = Math.max(ZOOM_MIN, Math.min(1.1, (mapa.clientWidth - folga * 2) / desenho.largura, (mapa.clientHeight - folga * 2) / desenho.altura));
+    const altura = alturaLivre();
+    const folga = altura < mapa.clientHeight ? 24 : 56;
+    vista.zoom = Math.max(ZOOM_MIN, Math.min(1.1, (mapa.clientWidth - folga * 2) / desenho.largura, (altura - folga * 2) / desenho.altura));
     vista.x = (mapa.clientWidth - desenho.largura * vista.zoom) / 2;
-    vista.y = (mapa.clientHeight - desenho.altura * vista.zoom) / 2;
+    vista.y = (altura - desenho.altura * vista.zoom) / 2;
     aplicarVista(animado);
   };
 
+  // A ficha (respostas do Gui, 17/11/2026, P84, P86, P91, P95 e P97). A árvore abre sem ela: aparece
+  // ao tocar em alguém e fecha no "×", no Esc ou no toque no vazio. O anel de quem está em foco fica.
+  let fichaAberta = false;
   const mostrarFicha = () => {
     const p = pessoa.get(estado.foco);
     if (!p) return;
+    // O botão da barra de baixo diz para quem a árvore volta
+    irAoFoco.textContent = `Voltar para ${p.nome}`;
+    if (!fichaAberta) return ficha.replaceChildren();
     const nome = document.createElement('strong');
     nome.textContent = p.nome;
+    // O parentesco e os anos são duas informações, separadas pelo ponto do carimbo
     const quem = document.createElement('span');
-    quem.textContent = [p.rotulo, p.anos].filter(Boolean).join(', ');
+    quem.className = 'mapa__foco-quem';
+    quem.append(...[p.rotulo, p.anos].filter(Boolean).map((texto) => Object.assign(document.createElement('span'), { textContent: texto })));
     const pagina = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}`, textContent: 'Ver a página' });
-    const lacos = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}/editar#lacos`, textContent: 'Laços' });
-    const partir = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Partir desta pessoa' });
+    const partir = Object.assign(document.createElement('button'), { type: 'button', textContent: `Ver a árvore de ${p.nome}` });
     partir.dataset.partir = p.id;
     partir.hidden = estado.centro === p.id || !partivel.has(p.id);
+    // No celular a ficha tem uma linha, e "Mais" mostra a outra ação
+    const mais = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Mais', className: 'mapa__foco-mais' });
+    mais.dataset.maisDaFicha = '';
+    mais.setAttribute('aria-expanded', 'false');
+    mais.hidden = partir.hidden;
+    const fechar = Object.assign(document.createElement('button'), { type: 'button', textContent: '×', className: 'mapa__foco-fechar' });
+    fechar.dataset.fecharFicha = '';
+    fechar.setAttribute('aria-label', 'Fechar');
+    ficha.removeAttribute('data-mais');
     // O retrato aparece só aqui, na ficha. Sem retrato, as iniciais sobre a cor da família.
     const retrato = document.createElement('span');
     retrato.className = 'retrato';
@@ -199,7 +226,15 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     if (p.retrato) retrato.append(Object.assign(new Image(), { src: p.retrato, alt: '' }));
     else retrato.append(Object.assign(document.createElement('span'), { textContent: p.iniciais ?? '' }));
     retrato.firstElementChild!.setAttribute('aria-hidden', 'true');
-    ficha.replaceChildren(retrato, nome, quem, pagina, lacos, partir);
+    ficha.replaceChildren(retrato, nome, quem, pagina, mais, partir, fechar);
+  };
+  const fecharFicha = () => {
+    if (!fichaAberta) return;
+    // Se o foco do teclado estava na ficha, ele volta para o cartão da pessoa
+    const estavaNaFicha = ficha.contains(document.activeElement);
+    fichaAberta = false;
+    mostrarFicha();
+    if (estavaNaFicha) (raiz.querySelector<HTMLElement>(`a.no[data-id="${CSS.escape(estado.foco)}"]`) ?? mapa).focus({ preventScroll: true });
   };
 
   // Bichos: a espécie aparece no cartão, para um bicho não se confundir com uma criança (marca provisória)
@@ -498,6 +533,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
 
   const focar = (id: string) => {
     estado.foco = id;
+    fichaAberta = true;
     refletirNosControles();
     guardarNoEndereco();
     desenhar();
@@ -633,15 +669,43 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       return;
     }
     const no = (evento.target as HTMLElement).closest<HTMLAnchorElement>('a.no');
-    if (!no || no.dataset.id === estado.foco) return;
+    if (!no) return;
+    if (no.dataset.id === estado.foco) {
+      // Com a ficha à vista, o segundo toque abre a página. Sem ela, o toque mostra a ficha.
+      if (fichaAberta) return;
+      evento.preventDefault();
+      fichaAberta = true;
+      mostrarFicha();
+      return;
+    }
     evento.preventDefault();
     focar(no.dataset.id!);
   };
   for (const c of camadas) c.addEventListener('click', aoTocar);
+  // Tocar no vazio do mapa fecha a ficha. O clique que encerra um arrasto não conta.
+  mapa.addEventListener('click', (evento) => {
+    if (Date.now() - fimDoArrasto < 300) return;
+    if ((evento.target as HTMLElement).closest('a.no, button, .ramo, [data-sobre-o-mapa]')) return;
+    fecharFicha();
+  });
+  mapa.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !fichaAberta) return;
+    e.preventDefault();
+    fecharFicha();
+  });
 
-  // "Partir desta pessoa", na ficha: a linha direta passa a ser a dela
+  // Na ficha: "×" fecha, "Mais" mostra a outra ação no celular, e "Ver a árvore de Fulano" faz a
+  // linha direta passar a ser a dela
   ficha.addEventListener('click', (evento) => {
-    const botao = (evento.target as HTMLElement).closest<HTMLButtonElement>('[data-partir]');
+    const alvo = evento.target as HTMLElement;
+    if (alvo.closest('[data-fechar-ficha]')) return fecharFicha();
+    const mais = alvo.closest<HTMLButtonElement>('[data-mais-da-ficha]');
+    if (mais) {
+      const aberto = ficha.toggleAttribute('data-mais');
+      mais.setAttribute('aria-expanded', String(aberto));
+      return;
+    }
+    const botao = alvo.closest<HTMLButtonElement>('[data-partir]');
     if (!botao) return;
     estado.centro = botao.dataset.partir!;
     estado.ramos.clear();
@@ -650,6 +714,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     guardarNoEndereco();
     desenhar();
     verTudo();
+    // A ficha foi refeita sem o botão: o foco do teclado fica em "Ver a página"
+    ficha.querySelector<HTMLElement>('a')?.focus({ preventScroll: true });
   });
 
   raiz.querySelector('[data-zoom-mais]')!.addEventListener('click', () => zoomEm(vista.zoom * 1.25, mapa.clientWidth / 2, mapa.clientHeight / 2, true));

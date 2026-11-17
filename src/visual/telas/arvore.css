@@ -473,7 +473,13 @@
   border-bottom-width: 3px;
   background: var(--papel);
 }
+/* Com o campo vazio, a dica é o valor de agora (de quem a árvore parte): aparece como valor, em
+   tinta, e não como exemplo em cinza (resposta do Gui, 17/11/2026, P92) */
 .mapa .busca__campo::placeholder {
+  color: var(--tinta);
+  opacity: 1;
+}
+.mapa .busca__campo:focus::placeholder {
   color: var(--tinta-suave);
 }
 .arvore__camadas {
@@ -536,53 +542,69 @@
   cursor: default;
 }
 
-/* A ficha de quem está em foco: o retrato, o nome, o que a pessoa é e, embaixo, as ações numa
-   linha. No celular, fica embaixo, acima do zoom. */
+/* A ficha de quem foi tocado (respostas do Gui, 17/11/2026, P84 a P86, P91 e P97). Vazia até alguém
+   ser tocado. No celular é uma linha só: o retrato pequeno, o nome, o parentesco, "Ver a página",
+   "Mais" (que mostra a outra ação) e o "×". Fica acima da barra de baixo. */
 .mapa__foco {
   left: var(--margem);
   right: var(--margem);
-  bottom: calc(var(--e-4) + var(--toque) + var(--e-4));
+  bottom: calc(var(--e-4) + 2 * var(--toque) + var(--e-2));
   display: grid;
-  grid-template-columns: auto auto auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
   align-items: center;
-  gap: 0 var(--e-4);
-  padding: var(--e-3) var(--e-4) var(--e-1);
+  gap: 0 var(--e-2);
+  padding: var(--e-1) var(--e-1) var(--e-1) var(--e-3);
 }
 .mapa__foco:empty {
   display: none;
 }
-/* No celular, com os ajustes abertos, a ficha sai da frente: os dois não cabem juntos */
-.mapa:has(.mapa__painel[open]) .mapa__foco {
+/* No celular a ficha sai da frente com os ajustes ou a legenda abertos, e enquanto um ramo está
+   aberto: ela cobria a última fileira do cartão do ramo */
+.mapa:has(.mapa__painel[open]) .mapa__foco,
+.mapa:has(.mapa__legenda[open]) .mapa__foco,
+.mapa:has(.ramo) .mapa__foco {
   display: none;
 }
 .mapa__foco .retrato {
   grid-area: 1 / 1 / 3 / 2;
-  width: 3.25rem;
+  width: 2.25rem;
   background: var(--retrato-cor, var(--papel-recuo));
-  font-size: 1.25rem;
+  font-size: 0.875rem;
 }
 .mapa__foco strong {
-  grid-column: 2 / -1;
+  grid-area: 1 / 2;
   align-self: end;
+  overflow: hidden;
   font-family: var(--serifa);
-  font-size: var(--t-titulo-3);
+  font-size: 1rem;
   font-variation-settings: var(--serifa-ajustes);
   font-weight: var(--serifa-peso);
-  line-height: 1.1;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.mapa__foco > span:not(.retrato) {
-  grid-column: 2 / -1;
+/* O parentesco e os anos, como no carimbo: em mono, caixa alta, com o ponto entre os dois */
+.mapa__foco-quem {
+  grid-area: 2 / 2;
   align-self: start;
+  overflow: hidden;
   color: var(--tinta-suave);
   font-family: var(--mono);
-  font-size: var(--t-ficha);
+  font-size: var(--t-micro);
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+.mapa__foco-quem span + span::before {
+  content: ' · ';
 }
 .mapa__foco a,
 .mapa__foco button {
-  grid-row: 3;
+  grid-row: 1 / 3;
   display: inline-flex;
   align-items: center;
-  justify-self: start;
+  justify-content: center;
+  min-width: var(--toque);
   min-height: var(--toque);
   padding: 0;
   border: 0;
@@ -596,74 +618,203 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.mapa__foco a:first-of-type {
-  grid-column: 1 / span 2;
+.mapa__foco a {
+  grid-column: 3;
+}
+.mapa__foco .mapa__foco-mais {
+  grid-column: 4;
+  color: var(--tinta-suave);
+  font-weight: 400;
+}
+.mapa__foco .mapa__foco-fechar {
+  grid-column: 5;
+  border-radius: var(--raio-moldura);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+  text-decoration: none;
+}
+/* "Ver a árvore de Fulano" vem numa segunda linha, depois de tocar em "Mais" */
+.mapa__foco [data-partir] {
+  grid-area: 3 / 1 / 4 / -1;
+  display: none;
+  justify-content: flex-start;
+}
+.mapa__foco[data-mais] [data-partir] {
+  display: inline-flex;
 }
 .mapa__foco button[hidden] {
   display: none;
 }
+@media (hover: hover) {
+  .mapa__foco .mapa__foco-fechar:hover {
+    background: var(--papel-recuo);
+  }
+}
 .mapa__foco a:focus-visible,
 .mapa__foco button:focus-visible,
-.mapa__zoom button:focus-visible {
+.mapa__zoom button:focus-visible,
+.arvore__voltar:focus-visible {
   outline: var(--traco) solid var(--tinta);
   outline-offset: 2px;
 }
 
+/* A barra de baixo. No celular são duas linhas: para onde a vista volta, e depois a legenda e o
+   zoom. No computador, uma linha só, à direita. */
 .mapa__zoom {
   left: var(--margem);
   right: var(--margem);
   bottom: var(--e-4);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   padding-inline: var(--e-1);
+}
+.mapa__vista {
+  display: flex;
+  flex: 1 0 100%;
+  justify-content: space-between;
+  min-width: 0;
+}
+.mapa__escala {
+  display: flex;
+  align-items: center;
 }
 .mapa__zoom button {
   min-width: var(--toque);
   min-height: var(--toque);
   padding: 0 var(--e-3);
+  overflow: hidden;
   border: 0;
   border-radius: var(--raio-moldura);
   background: none;
   color: var(--tinta);
   font: inherit;
   font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: pointer;
 }
 .mapa__zoom button:hover {
   background: var(--papel-recuo);
 }
-.mapa__zoom span {
+.mapa__escala span {
   min-width: 3.2rem;
   color: var(--tinta-suave);
   font-family: var(--mono);
   font-size: var(--t-ficha);
   text-align: center;
 }
+/* No celular, com os ajustes ou a legenda abertos, a barra sai: os dois abrem no pé do mapa */
+.mapa:has(.mapa__painel[open]) .mapa__zoom,
+.mapa:has(.mapa__legenda[open]) .mapa__zoom {
+  display: none;
+}
 
-/* A legenda: em tela estreita ela sai, para sobrar árvore */
+/* Os ajustes no celular (P92): o painel aberto desce para o pé do mapa, baixo, com as caixas em
+   duas colunas, para a árvore continuar à vista enquanto a pessoa liga e desliga cada uma */
+.mapa__painel[open] {
+  z-index: 3;
+  top: auto;
+  bottom: var(--e-4);
+  width: auto;
+  right: var(--margem);
+  max-height: none;
+  overflow: visible;
+}
+.mapa__painel[open] .arvore__camadas {
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--e-4);
+}
+.mapa__painel[open] .arvore__camadas legend {
+  grid-column: 1 / -1;
+}
+/* No pé do mapa, as sugestões da busca abrem para cima */
+.mapa__painel[open] .busca__lista {
+  top: auto;
+  bottom: calc(100% + var(--e-1));
+  max-height: 13rem;
+}
+/* "Outras famílias" só faz sentido com uma família em destaque: sem nenhuma, a caixa não aparece */
+.mapa__painel form:has(select[name='nucleo'] option[value='']:checked) .marcar:has(input[name='outros']) {
+  display: none;
+}
+.arvore__partir {
+  display: grid;
+  justify-items: start;
+}
+.arvore__partir .arvore__campo {
+  width: 100%;
+}
+.arvore__voltar {
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.3em;
+  cursor: pointer;
+}
+.arvore__voltar[hidden] {
+  display: none;
+}
+
+/* A legenda (P87, P89 e P90). No celular fica fechada e sem botão próprio: abre pelo "Legenda" da
+   barra de baixo, por cima do mapa, e fecha no "×". */
 .mapa__legenda {
   display: none;
   z-index: 1;
   left: var(--margem);
+  right: var(--margem);
   bottom: var(--e-4);
+  max-height: calc(100% - 2 * var(--e-4));
+  overflow: auto;
   color: var(--tinta-suave);
+}
+/* Aberta no celular, ela é o que a pessoa pediu para ver: fica por cima de tudo */
+.mapa__legenda[open] {
+  display: block;
+  z-index: 3;
 }
 .mapa__legenda summary {
   color: var(--tinta);
 }
-.mapa__legenda ul {
+.legenda {
   display: grid;
-  grid-template-columns: auto auto;
-  gap: var(--e-1) var(--e-5);
-  padding: 0 var(--e-4) var(--e-3);
-  font-family: var(--mono);
-  font-size: var(--t-micro);
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e-4) var(--e-5);
+  padding: 0 var(--e-4) var(--e-4);
 }
-.mapa__legenda li {
+.legenda section:last-child {
+  grid-column: 1 / -1;
+}
+.legenda h2 {
+  margin: 0 0 var(--e-2);
+  color: var(--tinta-suave);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  font-weight: 400;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.legenda ul {
+  display: grid;
+  gap: var(--e-2);
+  margin: 0;
+  padding: 0;
+  color: var(--tinta);
+  list-style: none;
+}
+.legenda li {
   display: flex;
   align-items: center;
   gap: var(--e-2);
+  line-height: 1.25;
 }
 .amostra {
   flex: none;
@@ -679,28 +830,48 @@
 .amostra--coracao {
   border-top: var(--traco) dashed var(--tinta-suave);
 }
-.amostra--bicho {
-  border-top: 1px solid var(--tinta-suave);
-  opacity: 0.55;
-}
+/* As amostras de cartão repetem, pequenas, a forma do cartão da árvore */
 .amostra-cor {
   flex: none;
   width: 2rem;
-  height: 0.9rem;
+  height: 1rem;
   border-radius: 0.3rem 0.3rem 0.3rem var(--raio-foto);
+  background: var(--arvore-familia-0);
 }
 .amostra-cor--fora {
   background: var(--branco);
   box-shadow: inset 0 0 0 1px var(--fio);
 }
+.amostra-cor--duas {
+  background: linear-gradient(135deg, var(--arvore-familia-0) 50%, var(--arvore-familia-1) 50%);
+}
+.amostra-cor--eu {
+  box-shadow: inset 0 0.25rem 0 var(--tinta);
+}
+.amostra-cor--foco {
+  scale: 0.8;
+  box-shadow:
+    0 0 0 2px var(--branco),
+    0 0 0 4px var(--tinta);
+}
+.amostra-cor--bicho {
+  border-radius: var(--raio-pilula);
+}
 .amostra-botao {
   flex: none;
-  padding: 0.1rem 0.4rem;
+  min-width: 2rem;
+  padding: 0.1rem 0.3rem;
   border: var(--traco) dashed var(--tinta);
   border-radius: var(--raio-pilula);
   background: var(--branco);
   color: var(--tinta);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
   font-weight: 500;
+  text-align: center;
+}
+.amostra-botao--ramo {
+  border-style: solid;
 }
 
 .arvore__rodape {
@@ -717,29 +888,162 @@
 }
 
 @media (min-width: 40rem) {
-  .mapa__legenda {
-    display: block;
-  }
-  .mapa:has(.mapa__painel[open]) .mapa__foco:not(:empty) {
-    display: grid;
-  }
-  .mapa__painel {
-    max-height: calc(100% - 2 * var(--e-4));
-  }
-  .mapa__foco {
+  /* No computador o painel fica no alto, à esquerda, aberto ou fechado */
+  .mapa__painel[open] {
+    z-index: 2;
     top: var(--e-4);
     bottom: auto;
-    left: auto;
-    width: max-content;
+    right: auto;
+    width: min(19rem, calc(100% - 2 * var(--margem)));
+    max-height: calc(100% - 2 * var(--e-4));
+    overflow: auto;
+  }
+  .mapa__painel[open] .arvore__camadas {
+    grid-template-columns: 1fr;
+  }
+  .mapa__painel[open] .busca__lista {
+    top: calc(100% + var(--e-1));
+    bottom: auto;
+    max-height: 18rem;
+  }
+  .mapa:has(.mapa__painel[open]) .mapa__zoom,
+  .mapa:has(.mapa__legenda[open]) .mapa__zoom {
+    display: flex;
+  }
+  .mapa:has(.mapa__painel[open]) .mapa__foco:not(:empty),
+  .mapa:has(.mapa__legenda[open]) .mapa__foco:not(:empty),
+  .mapa:has(.ramo) .mapa__foco:not(:empty) {
+    display: grid;
+  }
+  /* A ficha (P85): embaixo, no centro, com largura fixa, entre a legenda e o zoom. Até a tela
+     grande ela fica uma linha acima da barra, que ocupa a direita. */
+  .mapa__foco {
+    left: 50%;
+    right: auto;
+    bottom: calc(var(--e-4) + var(--toque) + var(--e-3));
+    width: 22rem;
     max-width: calc(100% - 2 * var(--margem));
+    translate: -50% 0;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    gap: 0 var(--e-4);
+    padding: var(--e-3) var(--e-1) var(--e-1) var(--e-4);
+  }
+  .mapa__foco strong,
+  .mapa__foco-quem {
+    grid-column: 2 / 4;
+  }
+  .mapa__foco .retrato {
+    width: 3.25rem;
+    font-size: 1.25rem;
+  }
+  .mapa__foco strong {
+    font-size: var(--t-titulo-3);
+    line-height: 1.1;
+  }
+  .mapa__foco-quem {
+    font-size: var(--t-ficha);
+  }
+  .mapa__foco .mapa__foco-fechar {
+    grid-area: 1 / 4 / 3 / 5;
+    align-self: start;
+    margin-top: calc(-1 * var(--e-2));
+  }
+  /* As duas ações numa linha, embaixo; "Mais" é só do celular */
+  .mapa__foco a,
+  .mapa__foco [data-partir] {
+    grid-row: 3;
+    justify-self: start;
+    justify-content: flex-start;
+  }
+  .mapa__foco a {
+    grid-column: 1 / 3;
+  }
+  .mapa__foco [data-partir] {
+    grid-column: 3 / -1;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--tinta-suave);
+    font-weight: 400;
+    text-overflow: ellipsis;
+  }
+  .mapa__foco .mapa__foco-mais {
+    display: none;
   }
   .mapa__zoom {
     left: auto;
+    flex-wrap: nowrap;
+  }
+  .mapa__vista {
+    flex: none;
+  }
+  .mapa__vista button {
+    max-width: 16rem;
+  }
+  .mapa__zoom .mapa__abre-legenda {
+    display: none;
+  }
+  /* A legenda tem o próprio botão, embaixo, à esquerda, e abre no lugar */
+  .mapa__legenda {
+    display: block;
+    right: auto;
+    max-width: 16rem;
+  }
+  .mapa__legenda[open] {
+    z-index: 1;
+  }
+  .legenda {
+    grid-template-columns: 1fr;
   }
 }
+
 
 @media (min-width: 62rem) {
   .mapa {
     height: calc(100svh - 12.5rem);
+  }
+  /* A legenda aberta vai até onde a ficha começa (a ficha tem 22rem, no centro). Quando cabem,
+     os grupos se dividem em duas colunas, e ela fica mais baixa. */
+  .mapa__legenda[open] {
+    width: min(25rem, calc(50% - 11rem - var(--margem) - var(--e-4)));
+    max-width: none;
+  }
+  .legenda {
+    display: block;
+    columns: 10.5rem 2;
+    column-gap: var(--e-5);
+  }
+  .legenda section {
+    break-inside: avoid;
+  }
+  .legenda section + section {
+    margin-top: var(--e-4);
+  }
+  .legenda section:last-child {
+    break-before: column;
+    margin-top: 0;
+  }
+}
+
+@media (min-width: 100rem) {
+  /* Na tela grande a ficha desce para a linha da barra, entre a legenda e o zoom, e a legenda
+     aberta tem os três grupos lado a lado */
+  .mapa__foco {
+    bottom: var(--e-4);
+  }
+  .mapa__legenda[open] {
+    width: auto;
+    max-width: 44rem;
+  }
+  .legenda {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+  }
+  .legenda section + section {
+    margin-top: 0;
+  }
+  .legenda section:last-child {
+    grid-column: auto;
   }
 }
