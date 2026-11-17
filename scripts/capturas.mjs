@@ -263,7 +263,7 @@ async function tirar(pasta) {
     for (const p of PAGINAS) {
       if (filtro && !filtro.test(p.nome)) continue;
       if (!(p.larguras ?? PADRAO).includes(largura.nome)) continue;
-      await contexto.addCookies([{ name: 'fontes', value: p.fontes ?? 'a', url: BASE }]);
+      await contexto.addCookies([{ name: 'fontes', value: p.fontes ?? 'c', url: BASE }]);
       if (p.visita) await prepararVisita(p.como ?? 'gui', p.visita === 'primeira' ? 'primeira' : 'seguinte', p.visita === 'seguinte');
       const endereco = `${BASE}/como/${p.como ?? 'gui'}?volta=${encodeURIComponent(p.url)}`;
       // A primeira visita a uma página no servidor local pode demorar enquanto ele compila
