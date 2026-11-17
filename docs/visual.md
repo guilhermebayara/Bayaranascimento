@@ -430,7 +430,7 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 | 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar` (PR #35, aberto). O Gui viu várias rodadas e ainda quer ajustar: ver "Estado do grupo 1", logo abaixo |
 | 2. `pessoal` | Painel, carta de Natal, sua conta, a página da pessoa e `/sistema` | Construído em 17/11/2026, na `tst-visual-pessoal`, em cima do grupo 1. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 2: pessoal" |
 | 3. `familia` | Capítulos, capítulo, tema, pessoas e árvore (a árvore muda só de aparência) | Construído em 17/11/2026, na `tst-visual-familia`, em cima do grupo 2. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 3: familia" |
-| 4. `formularios` | Nova memória, relato, capítulo, nova pessoa, cadastro guiado, laços, histórico, excluir, rascunhos, lixeira e administração. Por fim, a saída de `src/styles/global.css` | Construído em 17/11/2026, na `tst-visual-formularios`, em cima do grupo 3, em duas metades. PR __G4__ aberto, sem merge, com perguntas para o Gui. O estilo antigo saiu: ver "Grupo 4", abaixo |
+| 4. `formularios` | Nova memória, relato, capítulo, nova pessoa, cadastro guiado, laços, histórico, excluir, rascunhos, lixeira e administração. Por fim, a saída de `src/styles/global.css` | Construído em 17/11/2026, na `tst-visual-formularios`, em cima do grupo 3, em duas metades. PR #38 aberto, sem merge, com perguntas para o Gui. O estilo antigo saiu: ver "Grupo 4", abaixo |
 
 ### Estado do grupo 1, para a próxima sessão seguir sem a conversa
 
@@ -749,7 +749,7 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **Da fase 3**
 
-- **A aprovação do Gui**, grupo a grupo, e o merge na ordem: #35, #36, #37 e __G4__. As perguntas de cada grupo estão no fim do PR dele.
+- **A aprovação do Gui**, grupo a grupo, e o merge na ordem: #35, #36, #37 e #38. As perguntas de cada grupo estão no fim do PR dele.
 - **As fontes:** `/conceito/sobre` fica até a escolha, que espera a Giovanna e o Magno. Depois dela, saem as duas combinações que sobrarem ("Como a fonte é trocada").
 - **Limpeza que ficou para depois dos merges:** tirar de "Decidido, a construir" os itens que os grupos fecharam (Explorar, capítulos na linha do tempo, painel, sua conta, "família" no lugar de "núcleo", revisão visual) e levar o resumo para as seções de regra; `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena, como `docs/decisoes.md` já previa; separar os testes dos grupos 1 e 2 do `describe('conceito')`, em `testes/visual.test.ts`; tentar as camadas do CSS.
 - **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Espera a resposta do Gui (pergunta 11 do PR do grupo 4).
