@@ -1,0 +1,267 @@
+---
+// "Sua conta" (docs/decisoes.md): a página de cada pessoa para cuidar do que é dela. O painel é o
+// lugar de chegar e ver o que é novo; a conta, o de cuidar das próprias coisas. A ideia da tela
+// (docs/visual.md): o retrato e o nome no alto e as coisas dela em ordem (dados, rascunhos, o que
+// criou, laços do coração). A administração fica no fim, só para quem administra.
+// As listas vêm de montarConta (src/lib/servidor/conta.ts), com as regras em src/lib/conta.ts.
+import '../visual/telas/painel.css';
+import '../visual/telas/conta.css';
+import Visual from '../layouts/Visual.astro';
+import Dado from '../components/visual/Dado.astro';
+import Gente from '../components/visual/Gente.astro';
+import Ficha from '../components/visual/Ficha.astro';
+import Recado from '../components/visual/Recado.astro';
+import Retrato from '../components/visual/Retrato.astro';
+import { formatarData } from '../lib/datas';
+import { familiaMaisRecente } from '../lib/familias';
+import { PROXIMIDADES, lacoParaODono } from '../lib/parentesco';
+import { enderecoDoRetrato } from '../lib/retratos';
+import { montarConta } from '../lib/servidor/conta';
+import { familiasDe, listarCasais, listarFiliacoes, listarNucleos } from '../lib/servidor/repositorio';
+import { carimboDaData, corDaPessoa, corDoNucleo } from '../lib/visual';
+
+// PROVISÓRIO (pergunta 7 do PR do grupo "pessoal"): os textos novos desta tela esperam o Gui.
+const { usuario } = Astro.locals;
+const conta = await montarConta(usuario);
+const { dados: eu, integrantes } = conta;
+const achar = (id: string) => integrantes.find((i) => i.id === id);
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+const ordemDosNucleos = (await listarNucleos()).map((n) => n.id);
+// A mesma cor do painel: a da família mais recente de quem vê
+const minhaFamilia = familiaMaisRecente({ familias: new Map(integrantes.map((i) => [i.id, familiasDe(i)])), casais: await listarCasais(usuario), filiacoes: await listarFiliacoes() }, usuario.pessoa);
+const cor = corDoNucleo(minhaFamilia, ordemDosNucleos);
+const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
+const retratoDe = (id: string) => (achar(id)?.retrato ? enderecoDoRetrato(achar(id)!.retrato!) : null);
+
+const nascimento = eu?.nascimentoAno ? formatarData({ ano: eu.nascimentoAno, mes: eu.nascimentoMes, dia: eu.nascimentoDia, aproximada: false }) : undefined;
+const { rascunhos, lixeira, criou, lacos } = conta;
+const quantosRascunhos = rascunhos.memorias.length + rascunhos.relatos.length;
+const titulo = (id: string) => conta.titulos.get(id) ?? 'uma memória';
+// O que você criou: cada lista abre no lugar, e só aparece a que tem alguma coisa
+const criados = [
+  { id: 'memorias', quantas: criou.memorias.length, um: 'memória que você criou', varios: 'memórias que você criou' },
+  { id: 'relatos', quantas: criou.relatos.length, um: 'relato que você escreveu', varios: 'relatos que você escreveu' },
+  { id: 'fotos', quantas: criou.fotos.length, um: 'foto que você enviou', varios: 'fotos que você enviou' },
+  { id: 'capitulos', quantas: criou.capitulos.length, um: 'capítulo que você criou', varios: 'capítulos que você criou' },
+].filter((c) => c.quantas > 0);
+const ok = Astro.url.searchParams.get('ok');
+const erro = Astro.url.searchParams.get('erro');
+---
+
+<Visual titulo="Sua conta" secao="conta" familia={cor} intimo>
+  <div class="conta miolo">
+    {(ok || erro) && <Recado erro={Boolean(erro)}>{erro ?? ok}</Recado>}
+    <header class="conta__abre">
+      <div class="conta__retrato">
+        <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={cor} cedo />
+      </div>
+      <div class="conta__quem">
+        <p class="rotulo suave">Sua conta · só você vê esta página</p>
+        <h1 class="t-1">{eu?.nome ?? usuario.nome}</h1>
+        {/* PROVISÓRIO (pergunta 5 do PR do grupo "pessoal"): os dados são editados na tela de editar a página, que é do grupo 4 */}
+        <p class="conta__acoes">
+          <a class="botao" href={`/pessoas/${usuario.pessoa}/editar`}>
+            Editar seus dados
+          </a>
+          <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
+            Ver sua página
+          </a>
+        </p>
+      </div>
+    </header>
+
+    <div class="conta__partes">
+      <section class="cartao conta__dados" aria-labelledby="dados">
+        <h2 class="cartao__titulo rotulo" id="dados">
+          Seus dados
+        </h2>
+        {
+          eu ? (
+            <Ficha>
+              <Dado rotulo="Nome">{eu.nome}</Dado>
+              <Dado rotulo="Como é chamado na família">{eu.apelido ?? 'Não informado'}</Dado>
+              <Dado rotulo="Nascimento">{nascimento ?? 'Não informado'}</Dado>
+              {conta.email && <Dado rotulo="E-mail de acesso">{conta.email}</Dado>}
+            </Ficha>
+          ) : (
+            <p>Você entra no acervo, mas ainda não tem uma página de pessoa.</p>
+          )
+        }
+        {conta.email && <p class="conta__dica suave">Só os administradores mudam o e-mail de acesso.</p>}
+        {eu?.sobre && (
+          <div class="conta__sobre">
+            <p class="rotulo suave">Sobre você</p>
+            {eu.sobre.split(/\n{2,}/).map((p) => (
+              <p>{p}</p>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section class="cartao conta__rascunhos" aria-labelledby="rascunhos">
+        <h2 class="cartao__titulo rotulo" id="rascunhos">
+          Rascunhos e lixeira
+        </h2>
+        {
+          quantosRascunhos === 0 ? (
+            <p class="conta__nada serifa">Você não tem rascunhos.</p>
+          ) : (
+            <ul class="conta__lista">
+              {rascunhos.memorias.map((m) => (
+                <li>
+                  <a class="conta__item" href={`/nova?id=${m.id}`}>
+                    <strong>{m.titulo}</strong>
+                    <span class="ficha suave">Memória · {carimboDaData(m)}</span>
+                  </a>
+                </li>
+              ))}
+              {rascunhos.relatos.map((r) => (
+                <li>
+                  <a class="conta__item" href={`/memorias/${r.memoriaId}/relato`}>
+                    <strong>{titulo(r.memoriaId)}</strong>
+                    <span class="ficha suave">{r.por === usuario.pessoa ? 'Relato em andamento' : `Relato de ${nome(r.por)}, em andamento`}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+        <p class="conta__pe">
+          <span class="suave">
+            {lixeira.length === 0 ? 'Nada seu na lixeira.' : lixeira.length === 1 ? 'Uma coisa sua na lixeira.' : `${lixeira.length} coisas suas na lixeira.`}
+          </span>
+          <a class="acao" href="/lixeira">
+            Abrir a lixeira
+          </a>
+        </p>
+      </section>
+
+      <section class="cartao conta__criou" aria-labelledby="criou">
+        <h2 class="cartao__titulo rotulo" id="criou">
+          O que você criou
+        </h2>
+        {
+          criados.length === 0 && (
+            <p class="conta__nada serifa">
+              Ainda nada. <a href="/nova">Registrar uma memória</a>
+            </p>
+          )
+        }
+        {
+          criados.map((c) => (
+            <details class="criado" name="criou">
+              <summary>
+                <span class="criado__numero serifa">{c.quantas}</span>
+                <span class="criado__nome serifa">{c.quantas === 1 ? c.um : c.varios}</span>
+                <span class="criado__abre acao acao--quieta" aria-hidden="true" />
+              </summary>
+              {c.id === 'memorias' && (
+                <ul class="conta__lista">
+                  {[...criou.memorias].reverse().map((m) => (
+                    <li>
+                      <a class="conta__item" href={`/memorias/${m.id}`}>
+                        <strong>{m.titulo}</strong>
+                        <span class="ficha suave">{carimboDaData(m)}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {c.id === 'relatos' && (
+                <ul class="conta__lista">
+                  {criou.relatos.map((r) => (
+                    <li>
+                      <a class="conta__item" href={`/memorias/${r.memoriaId}`}>
+                        <strong>{titulo(r.memoriaId)}</strong>
+                        {r.emNomeDe && <span class="ficha suave">Registrado em nome de {nome(r.emNomeDe)}</span>}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {c.id === 'fotos' && (
+                <ul class="conta__fotos">
+                  {criou.fotos.map(({ memoria, foto }) => (
+                    <li>
+                      <a href={`/memorias/${memoria.id}`} aria-label={`Foto em ${memoria.titulo}`}>
+                        <img src={`/fotos/${foto.chave}`} alt="" loading="lazy" decoding="async" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {c.id === 'capitulos' && (
+                <ul class="conta__lista">
+                  {criou.capitulos.map((cap) => (
+                    <li>
+                      <a class="conta__item" href={`/capitulos/${cap.id}`}>
+                        <strong>{cap.titulo}</strong>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </details>
+          ))
+        }
+      </section>
+
+      <section class="cartao conta__lacos" aria-labelledby="lacos">
+        <h2 class="cartao__titulo rotulo" id="lacos">
+          Seus laços do coração
+        </h2>
+        {
+          lacos.length === 0 ? (
+            <p class="conta__nada serifa">Você ainda não tem laços do coração.</p>
+          ) : (
+            <ul class="conta__gente">
+              {lacos.map((l) => (
+                <li>
+                  <Gente
+                    href={`/pessoas/${l.pessoa}`}
+                    nome={nome(l.pessoa)}
+                    foto={retratoDe(l.pessoa)}
+                    familia={familiaDe(l.pessoa)}
+                    laco={lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null)}
+                    detalhe={[l.proximidade ? PROXIMIDADES[l.proximidade]!.toLowerCase() : '', l.privado ? 'só você vê' : ''].filter(Boolean).join(' · ')}
+                  />
+                </li>
+              ))}
+            </ul>
+          )
+        }
+        <p class="conta__pe">
+          {lacos.length > 0 && <span class="suave">A proximidade só você vê.</span>}
+          <a class="acao" href={`/pessoas/${usuario.pessoa}/editar#lacos`}>
+            {lacos.length > 0 ? 'Editar seus laços' : 'Adicionar laço'}
+          </a>
+        </p>
+      </section>
+    </div>
+
+    {
+      conta.administracao.length > 0 && (
+        <section class="conta__admin" aria-labelledby="administracao">
+          <h2 class="rotulo suave" id="administracao">
+            Administração
+          </h2>
+          {conta.bancoEmAviso && (
+            <Recado erro>
+              O banco do acervo está com {conta.banco}, perto do limite do plano gratuito. A saída combinada é o plano Workers Paid (10 GB por banco). Veja "Custo" no documento de estrutura.
+            </Recado>
+          )}
+          <ul class="conta__admin-lista">
+            {conta.administracao.map((item) => (
+              <li>
+                <a class="acao" href={item.href} download={item.baixar}>
+                  {item.rotulo}
+                </a>
+              </li>
+            ))}
+          </ul>
+          {conta.banco && <p class="ficha suave">Banco: {conta.banco}</p>}
+        </section>
+      )
+    }
+  </div>
+</Visual>

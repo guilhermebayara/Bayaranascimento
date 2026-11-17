@@ -6,12 +6,13 @@ import {
   LADO_DO_RETRATO,
   ajustarEnquadramento,
   aproximar,
-  corDaFamilia,
   enquadramentoInicial,
   formatoDoRetrato,
   iniciais,
   recorteDaFoto,
 } from '../src/lib/retratos';
+import { corDaPessoa } from '../src/lib/visual';
+import { readFileSync } from 'node:fs';
 import { pessoasQueNaoVe, podeMudarRetrato, podeVerRetrato, type Usuario } from '../src/lib/servidor/permissoes';
 
 const fontes: Record<string, string> = Object.fromEntries(
@@ -95,7 +96,7 @@ describe('quem vê o retrato', () => {
   });
 
   it('as páginas só mostram o retrato de quem a pessoa vê', () => {
-    expect(fontes['src/pages/pessoas/[id]/index.astro']).toMatch(/pessoa\.retrato && !\(await pessoasQueONaoVe\(usuario\)\)\.has\(pessoa\.id\)/);
+    expect(fontes['src/pages/pessoas/[id]/index.astro']).toMatch(/achar\(id\)\?\.retrato && !naoVe\.has\(id\)/);
     expect(fontes['src/pages/memorias/[id].astro']).toMatch(/pessoa\?\.retrato && !naoVe\.has\(id\)/);
     // Na árvore, quem a pessoa não vê nem chega ao navegador
     const arvore = fontes['src/pages/arvore.astro'];
@@ -186,8 +187,14 @@ describe('sem retrato', () => {
 
   it('sobre a cor da família, a mesma da árvore', () => {
     const ordem = ['bayara-nascimento', 'bayara-bracarense', 'bracarense'];
-    expect(corDaFamilia(['bracarense'], ordem)).toBe('var(--nucleo-2)');
-    expect(corDaFamilia(['bracarense', 'bayara-nascimento'], ordem)).toBe('var(--nucleo-0)');
-    expect(corDaFamilia([], ordem)).toBe('var(--cor-superficie)');
+    // A cor é a do sistema visual (corDaPessoa): a da primeira família da pessoa, na ordem das famílias
+    expect(corDaPessoa(['bracarense'], ordem)).toBe(corDaPessoa(['bracarense', 'nenhuma'], ordem));
+    expect(corDaPessoa(['bracarense', 'bayara-nascimento'], ordem)).toBe(corDaPessoa(['bayara-nascimento'], ordem));
+    expect(corDaPessoa(['bracarense'], ordem)).not.toBe(corDaPessoa(['bayara-nascimento'], ordem));
+    expect(corDaPessoa([], ordem)).toBe('tudo');
+    // E o campo do retrato, no formulário, usa a mesma cor, sem variável do estilo antigo
+    const campo = readFileSync(new URL('../src/components/CampoRetrato.astro', import.meta.url), 'utf8');
+    expect(campo).toMatch(/data-familia=\{familiaDoRetrato\}/);
+    expect(campo).not.toMatch(/--nucleo-|--cor-|--retrato-cor/);
   });
 });

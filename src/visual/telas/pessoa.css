@@ -1,0 +1,188 @@
+/*
+ * A página da pessoa. A ideia forte: o retrato e a voz. O retrato recortado em arco, grande, num
+ * bloco na cor da família dela; o parentesco de quem olha ("sua avó") como a linha maior da tela;
+ * e os áudios em que ela fala. A lista de laços fica quieta, e as memórias com ela vêm no fim, na
+ * mesma linha do tempo do Explorar.
+ */
+
+/* --- O alto: o retrato e quem ela é para você -------------------------------------------------- */
+
+.quem-e {
+  padding-block: var(--e-6) var(--e-7);
+  background: var(--pastel);
+}
+.quem-e .grade {
+  row-gap: var(--e-5);
+  align-items: end;
+}
+.quem-e .quem-e__retrato {
+  grid-column: 1 / span 2;
+}
+.quem-e__retrato .retrato {
+  background: var(--meio);
+  font-size: clamp(2.5rem, 12vw, 6rem);
+}
+.quem-e .quem-e__texto {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+/* "sua avó": a linha maior da tela, em serifa */
+.quem-e__laco {
+  margin-top: var(--e-4);
+  margin-left: -0.04em;
+  font-family: var(--serifa);
+  font-size: var(--t-titulo-1);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 0.95;
+  text-wrap: balance;
+}
+.quem-e__nome {
+  margin-top: var(--e-3);
+  overflow-wrap: anywhere;
+}
+.quem-e__nome.t-1 {
+  margin-top: var(--e-4);
+  margin-left: -0.04em;
+}
+.quem-e__vida {
+  margin-top: var(--e-3);
+}
+.quem-e__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-5);
+  margin-top: var(--e-5);
+}
+
+/* --- Sobre ela e a voz dela -------------------------------------------------------------------- */
+
+.voz {
+  row-gap: var(--e-7);
+  padding-block: var(--e-7);
+}
+.voz > * {
+  grid-column: 1 / -1;
+}
+.voz__texto {
+  max-width: var(--medida);
+  margin-top: var(--e-3);
+  font-size: var(--t-leitura);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+.voz__texto p + p {
+  margin-top: 1em;
+}
+.voz__audios > .rotulo {
+  margin-top: var(--e-2);
+}
+.voz__lista {
+  display: grid;
+  gap: var(--e-5);
+  margin-top: var(--e-5);
+}
+.voz__memoria {
+  margin-bottom: var(--e-2);
+}
+.voz__memoria a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  font-size: var(--t-titulo-3);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  line-height: 1.2;
+  text-decoration: none;
+}
+.voz__memoria a:hover {
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.2em;
+}
+
+/* --- Família e laços: quieta, em colunas ------------------------------------------------------- */
+
+.lacos {
+  padding-block: var(--e-6) var(--e-7);
+  border-top: 1px solid var(--fio);
+}
+.lacos__grupos {
+  display: grid;
+  gap: var(--e-5) var(--calha);
+  margin-top: var(--e-4);
+}
+.lacos__grupo h3 {
+  padding-bottom: var(--e-2);
+  border-bottom: 1px solid var(--fio);
+  font-weight: 400;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.lacos__grupo li + li {
+  border-top: 1px solid var(--fio);
+}
+
+/* --- As memórias com ela ----------------------------------------------------------------------- */
+
+.com {
+  padding-top: var(--e-7);
+  border-top: 1px solid var(--fio);
+}
+.com__abre h2 {
+  margin-top: var(--e-2);
+}
+.com .vazio {
+  margin-block: var(--e-6) var(--e-8);
+}
+
+@media (min-width: 40rem) {
+  .lacos__grupos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 62rem) {
+  .quem-e {
+    padding-block: var(--e-8);
+  }
+  .quem-e .quem-e__retrato {
+    grid-column: 1 / span 4;
+  }
+  .quem-e__retrato .retrato {
+    font-size: clamp(5rem, 10vw, 11rem);
+  }
+  .quem-e .quem-e__texto {
+    grid-column: 6 / -1;
+    padding-bottom: var(--e-4);
+  }
+  .voz {
+    padding-block: var(--e-8);
+    align-items: start;
+  }
+  .voz > .voz__sobre {
+    grid-column: 1 / span 5;
+  }
+  .voz > .voz__audios {
+    grid-column: 7 / -1;
+  }
+  /* Só uma das duas: ela fica na coluna de leitura */
+  .voz > :only-child {
+    grid-column: 1 / span 8;
+  }
+  .lacos__grupos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 100rem) {
+  .quem-e .quem-e__retrato {
+    grid-column: 2 / span 3;
+  }
+  .lacos__grupos {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

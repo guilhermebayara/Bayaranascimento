@@ -86,6 +86,11 @@ export function carimboDaData(d: DataFlexivel): string {
 }
 
 /** A legenda da foto: "Belo Horizonte (2025)". Sem lugar, só o ano. */
+/** A década como se fala: "Anos 90"; de 2000 em diante, com o ano inteiro ("Anos 2010"). */
+export function nomeDaDecada(decada: number): { rotulo: string; numero: string } {
+  return { rotulo: 'Anos', numero: decada >= 1900 && decada < 2000 ? String(decada % 100).padStart(2, '0') : String(decada) };
+}
+
 export function legendaLugarAno(lugar: string | null | undefined, ano: number): string {
   return lugar?.trim() ? `${lugar.trim()} (${ano})` : String(ano);
 }

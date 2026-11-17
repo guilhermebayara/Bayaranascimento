@@ -1,46 +1,93 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Abertura from '../../components/Abertura.astro';
-import { familiasDe, listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
+// A lista de pessoas: quem aparece nas memórias, por família, cada família com a sua cor. Cada
+// pessoa é uma linha com o retrato, o nome, o que ela é para quem olha ("sua avó") e a conta das
+// memórias em que aparece.
+import '../../visual/telas/pessoas.css';
+import Visual from '../../layouts/Visual.astro';
+import Gente from '../../components/visual/Gente.astro';
+import { Familia, possessivo, type Tratamento } from '../../lib/parentesco';
+import { enderecoDoRetrato } from '../../lib/retratos';
+import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
+import { corDaPessoa, corDoNucleo } from '../../lib/visual';
 
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
 const nucleos = await listarNucleos();
+const ordemDosNucleos = nucleos.map((n) => n.id);
 const memorias = await listarMemorias(usuario);
 const contar = (id: string) => memorias.filter((m) => m.integrantes.includes(id)).length;
 const grupos = [
   // Membros e parentes de cada família juntos, sem diferença na tela
-  ...nucleos.map((n) => ({ nome: n.nome, membros: integrantes.filter((i) => familiasDe(i).includes(n.id)) })),
-  { nome: 'Outras pessoas', membros: integrantes.filter((i) => familiasDe(i).length === 0) },
+  ...nucleos.map((n) => ({ id: n.id, nome: n.nome, cor: corDoNucleo(n.id, ordemDosNucleos), membros: integrantes.filter((i) => familiasDe(i).includes(n.id)) })),
+  { id: 'outras', nome: 'Outras pessoas', cor: 'tudo', membros: integrantes.filter((i) => familiasDe(i).length === 0) },
 ].filter((g) => g.membros.length > 0);
+
+// O que cada pessoa é para quem olha: "sua avó", "seu primo". Sem laço calculado, a linha fica sem.
+// PROVISÓRIO (pergunta 3 do PR do grupo "familia"): o parentesco de quem olha na lista de pessoas
+const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
+const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
+const paraVoce = (p: Integrante) => {
+  if (p.id === usuario.pessoa) return 'você';
+  const relacao = familia.relacao(usuario.pessoa, p.id);
+  return relacao ? possessivo(relacao, p.tratamento) : null;
+};
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+const bichos = integrantes.filter((i) => i.tipo === 'bicho').length;
+const conta = [plural(integrantes.length - bichos, 'pessoa', 'pessoas'), bichos > 0 ? plural(bichos, 'bicho', 'bichos') : null].filter(Boolean).join(' · ');
+const naoVe = await pessoasQueONaoVe(usuario);
+const detalhe = (p: Integrante) => {
+  const n = contar(p.id);
+  return [p.tipo === 'bicho' ? (p.especie ?? 'bicho') : null, `${n} ${n === 1 ? 'memória' : 'memórias'}`].filter(Boolean).join(' · ');
+};
 ---
 
-<Base titulo="Pessoas">
-  <Abertura titulo="Pessoas">
-    <p>Quem aparece nas memórias da família, por núcleo.</p>
-    <p class="acoes"><a class="botao botao--leve" href="/pessoas/nova">Cadastrar pessoa</a> <a class="botao botao--leve" href="/arvore">Ver a árvore</a></p>
-  </Abertura>
-  {
-    grupos.map((grupo) => (
-      <section class="grupo">
-        <h2>{grupo.nome}</h2>
-        <ul class="pessoas">
-          {grupo.membros.map((p) => {
-            const n = contar(p.id);
-            return (
+<Visual titulo="Pessoas" secao="pessoas">
+  <div class="pessoas-pagina miolo">
+    <header class="pessoas-pagina__abre">
+      <p class="rotulo suave">{conta}</p>
+      <h1 class="serifa t-1">Pessoas</h1>
+      <p class="pessoas-pagina__frase serifa t-abertura">Quem aparece nas memórias da família, por família.</p>
+      <p class="pessoas-pagina__acoes">
+        <a class="botao" href="/pessoas/nova">Cadastrar pessoa</a>
+        <a class="acao" href="/arvore">Ver a árvore</a>
+      </p>
+      {
+        grupos.length > 1 && (
+          <nav class="pessoas-pagina__atalhos" aria-label="Ir para a família">
+            {grupos.map((g) => (
+              <a class="acao acao--quieta" href={`#familia-${g.id}`}>
+                {g.nome}
+              </a>
+            ))}
+          </nav>
+        )
+      }
+    </header>
+    {
+      grupos.map((grupo) => (
+        <section class="familia-de-gente" data-familia={grupo.cor} aria-labelledby={`familia-${grupo.id}`}>
+          <header class="familia-de-gente__nome">
+            <h2 class="serifa t-2" id={`familia-${grupo.id}`}>
+              {grupo.nome}
+            </h2>
+            <p class="rotulo suave">{grupo.membros.length}</p>
+          </header>
+          <ul class="familia-de-gente__lista">
+            {grupo.membros.map((p) => (
               <li>
-                <a href={`/pessoas/${p.id}`}>
-                  <strong>{p.nome}</strong>
-                  <span>
-                    {p.tipo === 'bicho' && `${p.especie ?? 'bicho'}, `}
-                    {n} {n === 1 ? 'memória' : 'memórias'}
-                  </span>
-                </a>
+                <Gente
+                  href={`/pessoas/${p.id}`}
+                  nome={p.nome}
+                  foto={p.retrato && !naoVe.has(p.id) ? enderecoDoRetrato(p.retrato) : null}
+                  familia={corDaPessoa(familiasDe(p), ordemDosNucleos)}
+                  laco={paraVoce(p)}
+                  detalhe={detalhe(p)}
+                />
               </li>
-            );
-          })}
-        </ul>
-      </section>
-    ))
-  }
-</Base>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+</Visual>

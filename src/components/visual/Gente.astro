@@ -1,0 +1,31 @@
+---
+// Uma pessoa numa linha de lista: o retrato pequeno, o nome e, embaixo, o que ela é ("sua avó",
+// "amigo-irmão") e um detalhe em mono ("adoção em maio de 2001", "só você vê"). A linha inteira é
+// o link para a página da pessoa. Serve às listas de laços, na página da pessoa e na conta.
+// PROVISÓRIO (pergunta 9 do PR do grupo "pessoal"): peça nova, que o Gui ainda não viu.
+import Retrato from './Retrato.astro';
+
+interface Props {
+  href: string;
+  nome: string;
+  /** o endereço do retrato, se a pessoa tem um e quem olha pode ver */
+  foto?: string | null;
+  /** a cor da família da pessoa */
+  familia?: string;
+  /** o parentesco ou o nome do laço */
+  laco?: string | null;
+  /** um detalhe, em mono */
+  detalhe?: string | null;
+}
+
+const { href, nome, foto, familia, laco, detalhe } = Astro.props;
+---
+
+<a class="gente" href={href}>
+  <Retrato nome={nome} foto={foto} familia={familia} />
+  <span class="gente__quem">
+    <strong>{nome}</strong>
+    {laco && <span class="gente__laco suave">{laco}</span>}
+    {detalhe && <span class="ficha suave">{detalhe}</span>}
+  </span>
+</a>

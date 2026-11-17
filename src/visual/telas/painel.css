@@ -63,9 +63,14 @@
 .carta__acao {
   margin-top: var(--e-7);
 }
-.carta .selo {
-  display: block;
+.carta__admin {
   margin-top: var(--e-4);
+}
+.carta__vazia {
+  padding-block: var(--e-8);
+}
+.carta__vazia .acao + .acao {
+  margin-left: var(--e-5);
 }
 /* As fotos que vêm com a carta: três, sobrepostas, como tiradas do envelope */
 .carta__fotos {
@@ -392,6 +397,31 @@
 
 /* --- Computador ---------------------------------------------------------------------------------- */
 
+/* O que não coube na mesa: uma linha, com o caminho para ver tudo */
+.novidade--resto .acao {
+  display: inline-flex;
+  width: auto;
+}
+
+/* O recado de uma ação e, fora da produção, a volta à primeira visita */
+.painel__recado {
+  padding-top: var(--e-5);
+}
+.painel__teste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-4);
+  padding-bottom: var(--e-7);
+  font-size: var(--t-pequeno);
+}
+.contar__titulo a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  text-decoration: none;
+}
+
 @media (min-width: 62rem) {
   /* A carta é uma página dupla: a saudação e as fotos à esquerda, o texto à direita */
   .carta {
@@ -463,6 +493,11 @@
   .novidade--relato {
     grid-column: 2 / span 7;
     grid-row: 2;
+    margin-top: var(--e-7);
+  }
+  .novidade--resto {
+    grid-column: 1 / -1;
+    grid-row: 3;
     margin-top: var(--e-7);
   }
   /* Com uma novidade só, ela ocupa o meio da mesa */

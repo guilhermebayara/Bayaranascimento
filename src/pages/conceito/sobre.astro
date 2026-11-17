@@ -1,7 +1,7 @@
 ---
 // As três combinações de fontes lado a lado, com a assinatura, as cores e as peças. É a página de
 // apoio para escolher a fonte (a escolha espera a Giovanna e o Magno); não é uma tela do site.
-// O sistema inteiro, com os tokens e todas as peças, está em /conceito/sistema.
+// O sistema inteiro, com os tokens e todas as peças, está em /sistema.
 import '../../visual/telas/sobre.css';
 import Visual from '../../layouts/Visual.astro';
 import Assinatura from '../../components/visual/Assinatura.astro';
@@ -30,8 +30,8 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
       <p class="rotulo suave">Revisão visual do zero · fase 1, o conceito</p>
       <h1 class="t-1">Fontes e peças</h1>
       <p class="sobre__texto">
-        As telas do conceito são a carta da primeira visita, o painel, a linha do tempo e uma memória. A faixa do alto troca a combinação de fontes e a pessoa que
-        está vendo. Esta página põe as três combinações lado a lado, com a assinatura, as cores das famílias e as peças.
+        As telas do conceito já viraram telas do site. Esta página fica até a escolha das fontes: põe as três combinações lado a lado, com a assinatura, as cores
+        das famílias e as peças. A faixa do alto troca a combinação de fontes e a pessoa que está vendo.
       </p>
     </header>
 
@@ -60,7 +60,7 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
               <p class="especime__ficha">14 ago 1994 · Belo Horizonte · 3 relatos</p>
               <p class="especime__fontes suave">{nomesDasFontes(combinacao(c.id))}</p>
               <p>
-                <a class="acao" href={`/conceito/fontes/${c.id}?volta=${encodeURIComponent('/conceito/tudo')}`}>
+                <a class="acao" href={`/conceito/fontes/${c.id}?volta=${encodeURIComponent('/explorar')}`}>
                   Ver as telas com a {c.id.toUpperCase()}
                 </a>
               </p>
@@ -145,15 +145,6 @@ const cores = [{ id: 'tudo', nome: 'Tudo, as famílias juntas' }, ...nucleos.map
           <p class="ficha suave">Bilhete: o relato, com o áudio, a transcrição e o nome de quem contou, escrito à mão.</p>
         </div>
       </div>
-    </section>
-
-    <section aria-labelledby="exemplo">
-      <h2 class="sobre__titulo" id="exemplo">O que é de exemplo no painel</h2>
-      <p class="sobre__texto">
-        A parte funcional do painel ainda não existe. No conceito, o texto da carta, as datas das visitas, quais memórias contam como novas e as datas dos
-        aniversários são fixos na própria página. As memórias, as fotos, os relatos, os retratos, o parentesco e a contagem de “Você no acervo” são lidos do acervo
-        de exemplo, com a visibilidade de quem está vendo.
-      </p>
     </section>
   </div>
 </Visual>

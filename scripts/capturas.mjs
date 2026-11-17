@@ -8,9 +8,10 @@
 // e o script recusa outro. As capturas saem em largura de celular (390 px) e de
 // desktop (1280 px), com movimento reduzido, como "Gui" no "Ver como".
 //
-// As telas do conceito da revisão visual (/conceito) saem também em 1920 px, uma vez para cada
-// combinação de fontes. Para tirar só elas: CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>
-// A página do sistema (/conceito/sistema) sai com CAPTURAS_SO=sistema.
+// As telas do visual novo saem também em 1920 px.
+// As da fase 3 saem por grupo: CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>
+// As da fase 3 saem por grupo também: CAPTURAS_SO=^pessoal
+// A página do sistema (/sistema) sai com CAPTURAS_SO=sistema.
 //
 // "comparar" abre as duas capturas de cada página no navegador e compara os pixels.
 // Termina com erro se alguma página mudou, e grava a diferença em <depois>/diferencas.
@@ -50,59 +51,155 @@ const PADRAO = ['celular', 'desktop'];
 const etapa = (n) => async (pagina) => {
   await pagina.locator('ol.etapas button').nth(n).click();
 };
+const abrirFiltros = async (pagina) => {
+  await pagina.locator('.filtros > summary').click();
+};
+
+// O painel depende das visitas de cada pessoa. Para a captura sair sempre igual, o banco local é
+// arrumado antes: "primeira" apaga as visitas da pessoa (a carta aparece no alto) e "seguinte" põe a
+// visita anterior um minuto atrás e publica agora duas memórias e um relato de exemplo, para o
+// painel ter o que mostrar em "o que entrou de novo". Só mexe no banco local (.wrangler).
+const NOVAS_DE_EXEMPLO = ['2026-pao-de-queijo-da-vo-bela', '2025-festa-junina'];
+const RELATO_NOVO_DE_EXEMPLO = { memoria: '2023-chico-chega', por: 'lucas-magno' };
+async function prepararVisita(pessoa, qual, comNovidades = false) {
+  const { DatabaseSync } = await import('node:sqlite');
+  const pasta = '.wrangler/state/v3/d1/miniflare-D1DatabaseObject';
+  const arquivo = readdirSync(pasta).find((a) => a.endsWith('.sqlite') && a !== 'metadata.sqlite');
+  const banco = new DatabaseSync(join(pasta, arquivo));
+  const texto = (d) => d.toISOString().slice(0, 19).replace('T', ' ');
+  const agora = new Date();
+  banco.prepare('DELETE FROM visitas WHERE pessoa = ?').run(pessoa);
+  if (qual === 'seguinte') {
+    const antes = texto(new Date(agora.getTime() - 60000));
+    banco
+      .prepare('INSERT INTO visitas (pessoa, primeira_em, visita_em, ultima_em, anterior_em, carta_em) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(pessoa, '2026-01-01 12:00:00', texto(agora), texto(agora), antes, '2026-01-01 12:00:00');
+    banco.prepare(`UPDATE memorias SET publicada_em = criada_em WHERE situacao = 'publicada'`).run();
+    banco.prepare(`UPDATE relatos SET publicado_em = criado_em WHERE situacao = 'publicada'`).run();
+    if (comNovidades) for (const id of NOVAS_DE_EXEMPLO) banco.prepare('UPDATE memorias SET publicada_em = ? WHERE id = ?').run(texto(agora), id);
+    if (comNovidades) banco.prepare('UPDATE relatos SET publicado_em = ? WHERE memoria_id = ? AND por = ?').run(texto(agora), RELATO_NOVO_DE_EXEMPLO.memoria, RELATO_NOVO_DE_EXEMPLO.por);
+  }
+  banco.close();
+}
+
+// Na Nova memória, o título e o tipo são obrigatórios para chegar à frase da etapa "Quando e onde"
+const ateAFrase = async (pagina) => {
+  await pagina.locator('[name="titulo"]').fill('Almoço de aniversário da Vó Bela');
+  await pagina.locator('input[name="tipo"]').first().check({ force: true });
+  await pagina.locator('[data-etapa-continuar]').click();
+};
 const PAGINAS = [
-  { nome: 'inicio', url: '/' },
-  { nome: 'inicio-nucleo', url: '/?nucleo=bayara-nascimento' },
-  { nome: 'memoria', url: '/memorias/2025-natal' },
-  { nome: 'memoria-com-fotos', url: '/memorias/2024-aniversario-vo-bela' },
-  { nome: 'memoria-historico', url: '/memorias/2025-natal/historico' },
-  { nome: 'memoria-relato', url: '/memorias/2025-natal/relato' },
-  { nome: 'memoria-excluir', url: '/memorias/2025-natal/excluir' },
-  { nome: 'nova-1', url: '/nova' },
-  { nome: 'editar-memoria-2', url: '/nova?id=2025-natal', antes: etapa(1) },
-  { nome: 'editar-memoria-3', url: '/nova?id=2025-natal', antes: etapa(2) },
-  { nome: 'editar-memoria-4', url: '/nova?id=2025-natal', antes: etapa(3) },
-  { nome: 'editar-memoria-5', url: '/nova?id=2025-natal', antes: etapa(4) },
-  { nome: 'rascunho-6-resumo', url: '/nova?id=2024-almoco-de-domingo', antes: etapa(5) },
-  { nome: 'pessoas', url: '/pessoas' },
-  { nome: 'pessoa-quem-acessa', url: '/pessoas/gui' },
-  { nome: 'pessoa-parente', url: '/pessoas/vo-bela' },
-  { nome: 'pessoa-bicho', url: '/pessoas/chico' },
-  { nome: 'pessoa-de-fora', url: '/pessoas/ex-caio-amigo' },
-  { nome: 'pessoa-editar', url: '/pessoas/vo-bela/editar' },
-  { nome: 'pessoa-nova', url: '/pessoas/nova' },
-  { nome: 'capitulos', url: '/capitulos' },
-  { nome: 'capitulo-reunido', url: '/capitulos/natais' },
-  { nome: 'capitulo-epoca', url: '/capitulos/os-anos-90' },
-  { nome: 'capitulo-editar', url: '/capitulos/natais/editar' },
-  { nome: 'capitulo-epoca-editar', url: '/capitulos/os-anos-90/editar' },
-  { nome: 'capitulo-novo', url: '/capitulos/novo' },
-  { nome: 'tema', url: '/temas/natal' },
-  { nome: 'rascunhos', url: '/rascunhos' },
-  { nome: 'lixeira', url: '/lixeira' },
-  { nome: 'arvore', url: '/arvore' },
-  { nome: 'admin-tipos', url: '/admin/tipos' },
-  { nome: 'admin-espelho', url: '/admin/espelho' },
-  { nome: 'inicio-como-elizete', url: '/', como: 'elizete' },
-  { nome: 'pessoa-nova-como-magno', url: '/pessoas/nova', como: 'lucas-magno' },
   // Conceito da revisão visual: as mesmas telas em cada combinação de fontes, nas três larguras.
   // A carta é vista como Elizete, que a recebe. O painel, a linha do tempo e a memória, como Giovanna,
   // que está em duas famílias, vê todos os capítulos e ainda não contou o Natal de 2025.
   // "corte" limita a altura da captura da linha do tempo, que é muito longa, e "desde" começa a
   // captura num ponto da página.
-  ...['a', 'b', 'c'].flatMap((fontes) => [
-    { nome: `conceito-${fontes}-1-carta`, url: '/conceito?visita=primeira', como: 'elizete', fontes, larguras: TODAS },
-    { nome: `conceito-${fontes}-2-painel`, url: '/conceito', como: 'giovanna', fontes, larguras: TODAS },
-    { nome: `conceito-${fontes}-3-linha-do-tempo`, url: '/conceito/tudo', como: 'giovanna', fontes, larguras: TODAS, corte: 9000 },
-    { nome: `conceito-${fontes}-4-memoria`, url: '/conceito/memorias/2025-natal', como: 'giovanna', fontes, larguras: TODAS },
-  ]),
-  // Capítulos na linha do tempo: o trecho com um capítulo dentro de outro (Natais na Vó Vivica, dentro
-  // de Natais) e, no computador, os capítulos de época. Começa em 2006 e vai até o fim da página.
-  { nome: 'conceito-a-5-capitulos', url: '/conceito/tudo', como: 'giovanna', larguras: TODAS, desde: '#ano-2006', corte: 9000 },
+  // Fase 3, grupo "explorar": o Explorar nas quatro formas de ver e a página da memória, nas três
+  // larguras, como Giovanna. Para tirar só elas: CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>
+  { nome: 'explorar-1-linha-do-tempo', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 9000 },
+  // O trecho com um capítulo dentro de outro (Natais na Vó Vivica, dentro de Natais) e as épocas
+  { nome: 'explorar-1-linha-capitulos', url: '/explorar', como: 'giovanna', larguras: TODAS, desde: '#ano-2006', corte: 9000 },
+  { nome: 'explorar-1-linha-familia', url: '/explorar?nucleo=bayara', como: 'giovanna', larguras: TODAS, corte: 4000 },
+  { nome: 'explorar-2-filtros-abertos', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 3200, antes: abrirFiltros },
+  { nome: 'explorar-2-filtrado', url: '/explorar?tipo=viagem&foto=1&ordem=contadas', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-2-antigas', url: '/explorar?ordem=antigas&capitulo=natais', como: 'giovanna', larguras: TODAS, corte: 5000 },
+  { nome: 'explorar-2-sem-resultado', url: '/explorar?tipo=viagem&decada=1950', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-3-mural', url: '/explorar?ver=mural', como: 'giovanna', larguras: TODAS, corte: 5000 },
+  { nome: 'explorar-3-mural-pequenas', url: '/explorar?ver=mural&tamanho=pequenas', como: 'giovanna', larguras: TODAS, corte: 3000 },
+  { nome: 'explorar-3-mural-grandes', url: '/explorar?ver=mural&tamanho=grandes', como: 'giovanna', larguras: TODAS, corte: 3000 },
+  // Fora da ordem do tempo, o mural fica sem os cartões de década e as abas de ano
+  { nome: 'explorar-3-mural-mais-contadas', url: '/explorar?ver=mural&ordem=contadas', como: 'giovanna', larguras: TODAS, corte: 3000 },
+  { nome: 'explorar-4-modo-tv', url: '/explorar?ver=tv&m=2025-natal', como: 'giovanna', larguras: TODAS },
+  // "Passar sozinho" ligado em 15 segundos e pausado, para a captura não trocar de memória
+  { nome: 'explorar-4-modo-tv-passando', url: '/explorar?ver=tv&m=2025-natal&passar=15&pausa=1', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-4-modo-tv-sem-foto', url: '/explorar?ver=tv&m=2026-primeira-noite', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-5-ao-acaso', url: '/explorar?ver=acaso&m=1994-festa-de-aniversario', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-6-memoria', url: '/memorias/2025-natal', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-6-memoria-com-fotos', url: '/memorias/1994-festa-de-aniversario', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-6-memoria-sem-foto', url: '/memorias/2026-primeira-noite', como: 'giovanna', larguras: TODAS },
+  // Fase 3, grupo "pessoal": o painel (a carta na primeira visita e uma visita seguinte, na véspera de
+  // Natal), a carta, a conta, a página da pessoa e o sistema. CAPTURAS_SO=^pessoal npm run capturas -- tirar <pasta>
+  { nome: 'pessoal-1-carta-no-painel', url: '/?hoje=2026-12-24', como: 'elizete', larguras: TODAS, visita: 'primeira' },
+  { nome: 'pessoal-1-painel', url: '/?hoje=2026-12-24', como: 'giovanna', larguras: TODAS, visita: 'seguinte' },
+  { nome: 'pessoal-1-painel-sem-novidade', url: '/?hoje=2026-08-14', como: 'gui', larguras: TODAS, visita: 'seguinte-sem-novidade' },
+  { nome: 'pessoal-2-carta', url: '/carta', como: 'giovanna', larguras: TODAS },
+  { nome: 'pessoal-3-conta', url: '/conta', como: 'giovanna', larguras: TODAS },
+  { nome: 'pessoal-3-conta-admin', url: '/conta', como: 'gui', larguras: TODAS },
+  { nome: 'pessoal-3-conta-elizete', url: '/conta', como: 'elizete', larguras: TODAS },
+  { nome: 'pessoal-4-pessoa-voce', url: '/pessoas/giovanna', como: 'giovanna', larguras: TODAS },
+  { nome: 'pessoal-4-pessoa-parente', url: '/pessoas/vo-bela', como: 'giovanna', larguras: TODAS },
+  { nome: 'pessoal-4-pessoa-bicho', url: '/pessoas/chico', como: 'giovanna', larguras: TODAS },
+  { nome: 'pessoal-4-pessoa-de-fora', url: '/pessoas/ex-caio-amigo', como: 'gui', larguras: TODAS },
+  // Fase 3, grupo "familia": capítulos, tema, pessoas e árvore, nas três larguras.
+  // Para tirar só elas: CAPTURAS_SO=^familia npm run capturas -- tirar <pasta>
+  { nome: 'familia-1-capitulos', url: '/capitulos', como: 'giovanna', larguras: TODAS },
+  { nome: 'familia-2-capitulo-reunido', url: '/capitulos/natais', como: 'giovanna', larguras: TODAS },
+  { nome: 'familia-2-capitulo-por-periodo', url: '/capitulos/infancia-da-giovanna', como: 'giovanna', larguras: TODAS, corte: 5000 },
+  { nome: 'familia-2-capitulo-epoca', url: '/capitulos/os-anos-90', como: 'giovanna', larguras: TODAS, corte: 5000 },
+  { nome: 'familia-2-capitulo-de-dentro', url: '/capitulos/natais-na-vo-vivica', como: 'giovanna', larguras: TODAS },
+  { nome: 'familia-3-tema', url: '/temas/natal', como: 'giovanna', larguras: TODAS, corte: 5000 },
+  { nome: 'familia-4-pessoas', url: '/pessoas', como: 'giovanna', larguras: TODAS },
+  // A árvore: como abre, com alguém em foco (a ficha), com um ramo aberto e com os ajustes abertos
+  { nome: 'familia-5-arvore', url: '/arvore', larguras: TODAS },
+  { nome: 'familia-5-arvore-foco', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.mapa a.no[data-id="elizete"]').dispatchEvent('click') },
+  { nome: 'familia-5-arvore-ramo', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.no__ramo').first().dispatchEvent('click') },
+  { nome: 'familia-5-arvore-ajustes', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.mapa__painel > summary').click() },
   { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
   // O sistema (fase 2): a marca, as fontes, os tokens e as peças, em cada combinação de fontes
-  ...['a', 'b', 'c'].map((fontes) => ({ nome: `sistema-${fontes}`, url: '/conceito/sistema', fontes, larguras: TODAS })),
-  { nome: 'admin-familias', url: '/admin/familias' },
+  ...['a', 'b', 'c'].map((fontes) => ({ nome: `sistema-${fontes}`, url: '/sistema', fontes, larguras: TODAS })),
+  // Fase 3, grupo "formularios", primeira metade: a Nova memória etapa a etapa, o relato e o capítulo.
+  // Para tirar só elas: CAPTURAS_SO=^formularios npm run capturas -- tirar <pasta>
+  { nome: 'formularios-1-nova-1-o-que-aconteceu', url: '/nova', larguras: TODAS },
+  { nome: 'formularios-1-nova-1-erro', url: '/nova', larguras: TODAS, antes: (pagina) => pagina.locator('[data-etapa-continuar]').click() },
+  { nome: 'formularios-1-nova-2-frase-vazia', url: '/nova', larguras: TODAS, antes: ateAFrase },
+  { nome: 'formularios-1-correcao-2-frase', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(1) },
+  { nome: 'formularios-1-correcao-2-data-aberta', url: '/nova?id=2025-natal', larguras: TODAS, antes: async (pagina) => (await etapa(1)(pagina), pagina.locator('[data-frase-data]').click()) },
+  { nome: 'formularios-1-correcao-3-quem-estava', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(2) },
+  { nome: 'formularios-1-correcao-4-fotos', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(3) },
+  { nome: 'formularios-1-correcao-5-capitulo-e-temas', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(4) },
+  { nome: 'formularios-1-correcao-6-quem-ve', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(5) },
+  { nome: 'formularios-1-rascunho-5-relato', url: '/nova?id=2024-almoco-de-domingo', larguras: TODAS, antes: etapa(4) },
+  { nome: 'formularios-1-rascunho-7-resumo', url: '/nova?id=2024-almoco-de-domingo', larguras: TODAS, antes: etapa(6) },
+  { nome: 'formularios-2-relato', url: '/memorias/2025-natal/relato', larguras: TODAS },
+  { nome: 'formularios-3-capitulo-novo', url: '/capitulos/novo', larguras: TODAS },
+  { nome: 'formularios-3-capitulo-novo-por-periodo', url: '/capitulos/novo', larguras: TODAS, antes: (pagina) => pagina.locator('input[name="modo"][value="periodo"]').check({ force: true }) },
+  { nome: 'formularios-3-capitulo-editar', url: '/capitulos/natais/editar', larguras: TODAS, corte: 2600 },
+  { nome: 'formularios-3-capitulo-epoca-editar', url: '/capitulos/os-anos-90/editar', larguras: TODAS },
+  // Fase 3, grupo "formularios", segunda metade: a pessoa e os laços, as utilitárias e a administração
+  { nome: 'formularios-4-pessoa-nova', url: '/pessoas/nova', larguras: TODAS },
+  { nome: 'formularios-4-pessoa-nova-como-magno', url: '/pessoas/nova', como: 'lucas-magno', larguras: TODAS },
+  { nome: 'formularios-4-guiado-1-inicio', url: '/pessoas/ex-caio-amigo/editar?novo=1', larguras: TODAS },
+  { nome: 'formularios-4-guiado-2-pais', url: '/pessoas/ex-caio-amigo/editar?novo=1&passo=pais&ramo=familia', larguras: TODAS },
+  { nome: 'formularios-4-guiado-3-casal', url: '/pessoas/ex-caio-amigo/editar?novo=1&passo=casal&ramo=familia', larguras: TODAS },
+  { nome: 'formularios-4-guiado-4-coracao', url: '/pessoas/ex-caio-amigo/editar?novo=1&passo=coracao&ramo=coracao', larguras: TODAS },
+  { nome: 'formularios-4-guiado-5-fim', url: '/pessoas/ex-caio-amigo/editar?novo=1&passo=fim&ramo=coracao', larguras: TODAS },
+  { nome: 'formularios-4-todos-os-lacos', url: '/pessoas/ex-caio-amigo/editar?novo=1&passo=outro', larguras: TODAS },
+  { nome: 'formularios-5-pessoa-editar', url: '/pessoas/vo-bela/editar', larguras: TODAS },
+  // Um laço em edição com a confirmação de remover aberta, e o casal com uma fase aberta
+  {
+    nome: 'formularios-5-laco-em-edicao',
+    url: '/pessoas/vo-bela/editar',
+    larguras: TODAS,
+    desde: '#lacos',
+    antes: (pagina) => pagina.evaluate(() => { for (const d of document.querySelectorAll('#lacos .laco:first-child :is([data-editar], [data-confirmar])')) d.open = true; }),
+  },
+  {
+    nome: 'formularios-5-casal-em-edicao',
+    url: '/pessoas/giovanna/editar',
+    como: 'giovanna',
+    larguras: TODAS,
+    desde: '#lacos',
+    antes: (pagina) => pagina.evaluate(() => { for (const d of document.querySelectorAll('.laco--casal [data-editar], .laco--casal .fase:first-of-type')) d.open = true; }),
+  },
+  { nome: 'formularios-6-historico', url: '/memorias/2025-natal/historico', larguras: TODAS },
+  { nome: 'formularios-6-memoria-excluir', url: '/memorias/2025-natal/excluir', larguras: TODAS },
+  { nome: 'formularios-6-capitulo-excluir', url: '/capitulos/natais/excluir', larguras: TODAS },
+  { nome: 'formularios-6-rascunhos', url: '/rascunhos', larguras: TODAS },
+  { nome: 'formularios-6-lixeira', url: '/lixeira', larguras: TODAS, corte: 2400 },
+  { nome: 'formularios-7-admin-tipos', url: '/admin/tipos', larguras: TODAS },
+  { nome: 'formularios-7-admin-familias', url: '/admin/familias', larguras: TODAS },
+  { nome: 'formularios-7-admin-carta', url: '/admin/carta', larguras: TODAS },
+  { nome: 'formularios-7-admin-espelho', url: '/admin/espelho', larguras: TODAS },
 ];
 
 async function tirar(pasta) {
@@ -123,6 +220,7 @@ async function tirar(pasta) {
       if (filtro && !filtro.test(p.nome)) continue;
       if (!(p.larguras ?? PADRAO).includes(largura.nome)) continue;
       await contexto.addCookies([{ name: 'fontes', value: p.fontes ?? 'a', url: BASE }]);
+      if (p.visita) await prepararVisita(p.como ?? 'gui', p.visita === 'primeira' ? 'primeira' : 'seguinte', p.visita === 'seguinte');
       const endereco = `${BASE}/como/${p.como ?? 'gui'}?volta=${encodeURIComponent(p.url)}`;
       // A primeira visita a uma página no servidor local pode demorar enquanto ele compila
       await pagina.goto(endereco, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => pagina.goto(endereco, { waitUntil: 'networkidle', timeout: 60000 }));
@@ -144,7 +242,10 @@ async function tirar(pasta) {
       await pagina.waitForLoadState('networkidle');
       // Só as imagens que estão na página: as de dentro de uma caixa fechada (a galeria da memória)
       // só carregam quando ela abre, e esperar por elas não termina nunca
-      await pagina.evaluate(() => Promise.all([...document.images].filter((i) => i.getClientRects().length > 0).map((i) => i.decode().catch(() => {}))));
+      // Vale também para as de uma lista recolhida (<details>): cada espera tem um limite
+      await pagina.evaluate(() =>
+        Promise.all([...document.images].filter((i) => i.getClientRects().length > 0).map((i) => Promise.race([i.decode().catch(() => {}), new Promise((ok) => setTimeout(ok, 3000))]))),
+      );
       await pagina.waitForTimeout(300);
       const arquivo = join(pasta, `${p.nome}--${largura.nome}.png`);
       const altura = await pagina.evaluate(() => document.documentElement.scrollHeight);

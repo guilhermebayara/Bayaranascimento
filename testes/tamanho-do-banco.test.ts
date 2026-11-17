@@ -26,9 +26,12 @@ describe('limites', () => {
 });
 
 describe('onde o aviso aparece', () => {
-  it('no rodapé, só para os admins', () => {
-    const base = fontes['src/layouts/Base.astro'];
-    expect(base).toContain('const banco = usuario.admin ? situacaoDoBanco(await tamanhoDoBanco()) : undefined;');
+  it('na seção "Administração" da conta, só para os admins', () => {
+    // Saiu do rodapé com o esqueleto antigo (fase 3 da revisão visual, grupo 4)
+    expect(fontes['src/lib/servidor/conta.ts']).toContain('const banco = usuario.admin ? situacaoDoBanco(await tamanhoDoBanco()) : undefined;');
+    const conta = fontes['src/pages/conta.astro'];
+    expect(conta).toMatch(/\{conta\.bancoEmAviso && \(/);
+    expect(conta).toContain('Banco: {conta.banco}');
   });
 
   it('na cópia, com o tamanho, e o script do Drive falha depois de salvar o arquivo', () => {

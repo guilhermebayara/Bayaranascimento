@@ -3,9 +3,10 @@
 // foto" e "Tirar foto"; em "Nova pessoa", no que vem recolhido. O enquadramento, o recorte e a redução
 // são feitos no navegador (src/lib/cliente/retrato.ts), e o arquivo vai junto com a ficha, que por isso
 // é enviada como multipart. Sem JavaScript, os botões somem e o retrato fica como está.
-// A aparência é a mínima do estilo atual: a revisão visual redesenha o retrato.
-import { corDaFamilia, enderecoDoRetrato, iniciais } from '../lib/retratos';
+// O retrato de agora aparece como no resto do site, recortado em arco, sobre a cor da família.
+import { enderecoDoRetrato, iniciais } from '../lib/retratos';
 import { familiasDe, listarNucleos, type Integrante } from '../lib/servidor/repositorio';
+import { corDaPessoa } from '../lib/visual';
 
 interface Props {
   integrante?: Integrante;
@@ -13,14 +14,14 @@ interface Props {
 
 const { integrante: i } = Astro.props;
 const nucleos = i ? await listarNucleos() : [];
-const corDoRetrato = i ? corDaFamilia(familiasDe(i), nucleos.map((n) => n.id)) : 'var(--cor-superficie)';
+const familiaDoRetrato = i ? corDaPessoa(familiasDe(i), nucleos.map((n) => n.id)) : undefined;
 const iniciaisDoRetrato = i ? iniciais(i.apelido ?? i.nome) : '?';
 ---
 
 <fieldset data-retrato>
   <legend>Foto de retrato <small>(opcional)</small></legend>
   <div class="retrato-campo">
-    <span class="retrato retrato--grande" style={`--retrato-cor: ${corDoRetrato}`} data-retrato-atual data-iniciais={iniciaisDoRetrato}>
+    <span class="retrato" data-familia={familiaDoRetrato} data-retrato-atual data-iniciais={iniciaisDoRetrato}>
       {i?.retrato ? <img src={enderecoDoRetrato(i.retrato)} alt="" aria-hidden="true" /> : <span aria-hidden="true">{iniciaisDoRetrato}</span>}
     </span>
     <div>

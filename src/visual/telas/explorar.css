@@ -1,0 +1,864 @@
+/*
+ * Explorar: o que é das formas de ver além da linha do tempo (telas/linha.css) e o formulário dos
+ * filtros. No mural, só as fotos, como a caixa aberta na mesa. No palco (modo TV e "Me mostre uma
+ * memória"), uma memória por vez, grande, para ver junto.
+ */
+
+/* --- Os filtros e a ordem: o formulário que abre dentro do controle ---------------------------- */
+
+.filtros__form {
+  display: grid;
+  gap: var(--e-5);
+  padding-block: var(--e-3) var(--e-5);
+}
+.filtros__grupo {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.filtros__grupo legend {
+  padding: 0;
+}
+.filtros__grupo ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+}
+.filtros__grupo .escolha {
+  font-size: var(--t-pequeno);
+}
+.filtros__grupo .escolha .icone {
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  margin-right: -0.25em;
+  color: var(--tipo-cor);
+}
+.filtros__grupo--periodo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-3) var(--e-5);
+  max-width: 28rem;
+}
+.filtros__grupo--periodo legend {
+  margin-bottom: var(--e-2);
+}
+.filtros__grupo--periodo .campo:first-of-type {
+  grid-column: 1 / -1;
+}
+/* Os grupos longos (pessoas, capítulos, temas) ficam recolhidos: abrem no lugar, como o controle */
+.filtros__grupo--longo summary {
+  font-weight: 400;
+  color: var(--tinta-suave);
+}
+.filtros__grupo--longo[open] summary,
+.filtros__grupo--longo summary:hover {
+  color: var(--tinta);
+}
+.filtros__grupo--longo ul {
+  padding-bottom: var(--e-2);
+}
+.filtros__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-3) var(--e-6);
+  padding-top: var(--e-2);
+}
+
+/* Com script, cada escolha vale na hora: o botão de enviar é de quem está sem script */
+.com-troca .filtros__acoes .botao {
+  display: none;
+}
+
+/* A lista corrida, fora da ordem do tempo: sem a divisória dos anos */
+.ano--corrida {
+  padding-top: var(--e-6);
+}
+
+/* --- Mural de fotos ------------------------------------------------------------------------------
+   Uma superfície só de fotos, cada uma com a inclinação dela e um pouco fora de fila, como fotos
+   espalhadas na mesa. Quem orienta são objetos entre as fotos: o cartão da década, no lugar de uma
+   foto, e a aba do ano na primeira foto de cada ano. Na margem, o título, escrito à mão. */
+
+.linha--mural {
+  padding-bottom: var(--e-9);
+}
+/* No celular, duas colunas: com três, o título escrito à mão ficava pequeno demais para ler */
+.mural {
+  /* quem sai numa troca some por cima, no mesmo ponto: é posto aqui dentro, solto da grade */
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-7) var(--e-5);
+  padding-top: var(--e-7);
+}
+.mural li {
+  position: relative;
+  min-width: 0;
+}
+.mural li:nth-child(even) {
+  translate: 0 var(--e-4);
+}
+.mural a {
+  position: relative;
+  display: block;
+  border-radius: var(--raio-moldura);
+  color: inherit;
+  text-decoration: none;
+}
+.mural a:focus-visible {
+  outline-offset: 0.35rem;
+}
+.mural .monte {
+  z-index: 1;
+}
+/* O título na margem da foto: manuscrito, pequeno, em até duas linhas */
+.mural .polaroid .polaroid__legenda {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  height: 23cqi;
+  min-height: 0;
+  padding: 2.5cqi 0 0;
+  font-family: var(--mao);
+  font-size: calc(clamp(0.9375rem, 9.6cqi, 1.5rem) * var(--escala-mao));
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tinta);
+}
+
+/* A década: um cartão do tamanho de uma foto, na cor da família, deitado entre elas */
+.mural__decada {
+  container-type: inline-size;
+  aspect-ratio: 100 / 146;
+  scroll-margin-top: var(--e-6);
+}
+.mural__decada p {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  padding: 9cqi 8cqi;
+  border-radius: var(--raio-bloco);
+  background: var(--pastel);
+  color: var(--tinta);
+  rotate: -1.5deg;
+}
+.mural__decada strong {
+  align-self: center;
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes-capa);
+  font-weight: var(--serifa-peso-capa);
+  font-size: calc(66cqi * var(--escala-serifa));
+  font-variant-numeric: lining-nums;
+  letter-spacing: var(--aperto-capa);
+  line-height: 0.8;
+}
+.mural__decada strong[data-letras='4'] {
+  font-size: calc(36cqi * var(--escala-serifa));
+}
+
+/* O ano: uma aba de fichário saindo do alto da primeira foto de cada ano */
+.mural__aba {
+  position: absolute;
+  z-index: 0;
+  bottom: calc(100% - 0.5rem);
+  left: 10%;
+  padding: 0.3rem 0.7rem 0.8rem;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: var(--meio);
+  color: var(--tinta);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  rotate: -2deg;
+}
+
+/* O verso: um cartão do tamanho da foto, exatamente atrás dela. Com o mouse, abre em leque, girando
+   pelo canto de baixo, como duas fotos seguradas por ali: aparece a quina de cima, onde estão
+   está escrita a data. Só onde há mouse, ou com o foco do teclado. No toque ele não aparece:
+   o título na margem basta. O leitor de tela lê sempre. */
+.mural__verso {
+  --leque: 17deg;
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  box-sizing: border-box;
+  display: grid;
+  align-content: start;
+  justify-items: end;
+  gap: 0.2em;
+  padding: 6% 6% 0 50%;
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-foto);
+  font-family: var(--mono);
+  font-size: clamp(0.5625rem, 0.34rem + 0.42vw, 0.8125rem);
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-align: right;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+  opacity: 0;
+  transform-origin: 12% 100%;
+  rotate: 0deg;
+  pointer-events: none;
+  transition:
+    opacity var(--tempo-curto) var(--curva),
+    rotate var(--tempo-medio) var(--curva);
+}
+.mural__foto[data-para-a-esquerda] .mural__verso {
+  --leque: -17deg;
+  justify-items: start;
+  padding: 6% 50% 0 6%;
+  text-align: left;
+  transform-origin: 88% 100%;
+}
+.mural__foto:has(a:focus-visible) {
+  z-index: 3;
+}
+.mural a:focus-visible .mural__verso {
+  opacity: 1;
+  rotate: var(--leque);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mural__foto:hover {
+    z-index: 3;
+  }
+  .mural a:hover .mural__verso {
+    opacity: 1;
+    rotate: var(--leque);
+  }
+}
+
+/* O tamanho das fotos: quem está vendo escolhe. Nas pequenas do celular, o título não cabe na
+   margem e fica só a foto. */
+.mural[data-tamanho='pequenas'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-6) var(--e-3);
+}
+.mural[data-tamanho='grandes'] {
+  grid-template-columns: minmax(0, 1fr);
+  padding-inline: 12%;
+}
+.mural[data-tamanho='grandes'] li:nth-child(n) {
+  translate: none;
+}
+@container (max-width: 7.5rem) {
+  .mural .polaroid .polaroid__legenda {
+    font-size: 0;
+  }
+}
+/* As três opções de tamanho cabem numa linha, mesmo no celular */
+.linha__opcoes--curtas {
+  grid-template-columns: repeat(3, max-content);
+}
+
+/* --- O palco: uma memória por vez ----------------------------------------------------------------
+   A tela inteira na cor do tipo de momento, como a abertura da página da memória. A foto é uma foto
+   revelada, grande, e as outras fotos da memória ficam espalhadas em volta dela. */
+
+.palco {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100svh;
+  padding-bottom: var(--e-7);
+  background: var(--tipo-pastel, var(--pastel));
+  --tinta-suave: color-mix(in srgb, var(--tinta) 76%, var(--tipo-pastel, var(--pastel)));
+  overflow-x: clip;
+}
+/* Com o topo do site por cima, o palco ocupa o que sobra da tela, sem exigir a altura inteira */
+.palco--acaso {
+  min-height: 70svh;
+}
+.palco .carimbo {
+  color: color-mix(in srgb, var(--tipo-tinta, var(--vivo-tinta)) 70%, var(--tinta));
+}
+.palco__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--e-5);
+  min-height: var(--toque);
+  padding-block: var(--e-2);
+}
+.palco__cena {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'fotos'
+    'passos'
+    'ajustes'
+    'texto';
+  align-content: start;
+  gap: var(--e-5);
+}
+/* A principal tem a largura que cabe na altura da tela; as outras se medem por ela */
+.palco__fotos {
+  --foto: min(64vw, 36svh);
+  grid-area: fotos;
+  position: relative;
+  justify-self: center;
+  width: var(--foto);
+  margin-block: var(--e-4) var(--e-3);
+}
+.palco__principal {
+  position: relative;
+  z-index: 1;
+  display: block;
+  text-decoration: none;
+}
+.palco__extra {
+  position: absolute;
+  z-index: 0;
+  width: 62%;
+}
+/* As fotos que saem, no Álbum: soltas da grade, no mesmo ponto da tela, a caminho da lateral */
+.palco__fotos--saindo {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  pointer-events: none;
+}
+.palco__cena {
+  position: relative;
+}
+/* No celular, as outras ficam atrás, aparecendo pelas bordas, como um monte */
+.palco__extra[data-n='1'] {
+  top: -3%;
+  left: -24%;
+  rotate: -7deg;
+}
+.palco__extra[data-n='2'] {
+  top: 6%;
+  right: -26%;
+  rotate: 6deg;
+}
+.palco__extra[data-n='3'] {
+  bottom: -2%;
+  left: -20%;
+  rotate: 4deg;
+}
+.palco__extra[data-n='4'] {
+  bottom: 4%;
+  right: -22%;
+  rotate: -5deg;
+}
+.palco__passos {
+  grid-area: passos;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-2) var(--e-6);
+}
+.palco__passos .acao[aria-disabled='true'] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.palco [data-palco-passar][hidden] {
+  display: none;
+}
+.palco__sozinho button {
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+/* "Ajustes": o tempo e a animação ficam guardados aqui, para a tela não virar um painel de texto */
+.palco__ajustes {
+  grid-area: ajustes;
+  justify-self: center;
+  display: grid;
+  justify-items: center;
+}
+.palco__ajustes summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: var(--toque);
+  list-style: none;
+  cursor: pointer;
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+}
+.palco__ajustes summary::-webkit-details-marker {
+  display: none;
+}
+.palco__ajustes summary::after {
+  content: '';
+  flex: none;
+  width: 0.7em;
+  height: 0.7em;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  transition: rotate var(--tempo-medio) var(--curva);
+}
+.palco__ajustes[open] summary::after {
+  rotate: 45deg;
+}
+.palco__ajuste {
+  display: grid;
+  justify-items: center;
+  padding-top: var(--e-2);
+}
+.palco__opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 var(--e-5);
+}
+.palco__opcoes a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.palco__opcoes button {
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta-suave);
+  font: inherit;
+  font-size: var(--t-pequeno);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.palco__opcoes button[hidden],
+.palco__ajuste[hidden] {
+  display: none;
+}
+.palco__opcoes button:hover,
+.palco__opcoes button[aria-pressed='true'] {
+  color: var(--tinta);
+}
+/* Os controles são um grupo só. Fora de "Só as fotos", o grupo não existe para a grade: os passos
+   e os ajustes continuam cada um no seu lugar. */
+.palco__controles {
+  display: contents;
+}
+.palco__volta[hidden] {
+  display: none;
+}
+/* "Só as fotos": somem o título, o trecho e os dados, e as fotos ficam com a tela. A tela é uma
+   só, sem rolagem: os controles viram uma barra no pé, que some e volta. */
+.palco[data-so-fotos] {
+  height: 100svh;
+  min-height: 0;
+  padding-bottom: 0;
+  overflow: clip;
+}
+.palco[data-so-fotos] .palco__texto {
+  display: none;
+}
+.palco[data-so-fotos] .palco__cena {
+  align-content: center;
+}
+.palco[data-so-fotos] .palco__fotos {
+  --foto: min(70vw, 52svh);
+}
+.palco[data-so-fotos] .palco__controles {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  gap: var(--e-2);
+  max-height: 100%;
+  padding: var(--e-4) var(--margem) var(--e-5);
+  background: color-mix(in srgb, var(--tipo-pastel, var(--pastel)) 94%, transparent);
+  overflow-y: auto;
+}
+.palco[data-so-fotos] :is(.palco__passos, .palco__ajustes) {
+  grid-area: auto;
+  align-self: auto;
+  justify-self: center;
+  justify-content: center;
+  justify-items: center;
+  padding-top: 0;
+}
+.palco[data-so-fotos] :is(.palco__ajuste, .palco__opcoes) {
+  justify-items: center;
+  justify-content: center;
+}
+/* "Mostrar o texto" é o destaque da barra: "Próxima" vira ação de texto enquanto ele está ali */
+.palco[data-so-fotos] .palco__passos a.botao {
+  min-height: var(--toque);
+  transition: none;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.3em;
+}
+.palco[data-so-fotos] .palco__passos a.botao::after {
+  content: none;
+}
+/* Escondidos, os controles saem da tela e da ordem do teclado (visibility), e o cursor some com
+   eles. Qualquer toque, clique, movimento do mouse ou tecla os traz de volta por alguns segundos
+   (data-controles, posto pelo script do palco). Com movimento reduzido, base.css tira a transição
+   e eles aparecem de uma vez. */
+.palco[data-so-fotos] :is(.palco__topo, .palco__controles) {
+  transition:
+    opacity var(--tempo-medio) var(--curva),
+    visibility 0s;
+}
+.palco[data-so-fotos]:not([data-controles]) :is(.palco__topo, .palco__controles) {
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--tempo-medio) var(--curva),
+    visibility 0s linear var(--tempo-medio);
+}
+.palco[data-so-fotos]:not([data-controles]),
+.palco[data-so-fotos]:not([data-controles]) .palco__principal {
+  cursor: none;
+}
+.palco__opcoes a:hover {
+  color: var(--tinta);
+}
+.palco__opcoes a[aria-current] {
+  color: var(--tinta);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.4em;
+}
+.palco__texto {
+  grid-area: texto;
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: var(--e-4);
+}
+.palco__titulo {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: calc(var(--t-titulo-1) * 0.8);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 0.98;
+  text-wrap: balance;
+}
+.palco__trecho {
+  max-width: 26em;
+}
+.palco__trecho p {
+  /* a aspa de abertura fica pendurada na margem */
+  text-indent: -0.42em;
+  font-style: italic;
+  line-height: 1.18;
+}
+.palco__trecho footer {
+  margin-top: var(--e-3);
+}
+.palco__trecho .mao {
+  display: inline-block;
+  rotate: -3deg;
+}
+
+/* --- A animação do modo TV -----------------------------------------------------------------------
+   É a tela em que o movimento pode ousar mais (docs/visual.md, "O modo TV é o lugar de
+   experimentar"). São três, e quem está vendo escolhe em "Ajustes":
+   Álbum: as fotos atravessam a tela de lado, as novas empurrando as antigas, e o texto sobe linha a linha.
+   Revelação: a foto aparece clara e sem cor e vai se revelando; o texto surge depois, devagar.
+   Mesa: a foto é jogada na mesa, de perto e torta, e assenta; as outras caem em volta.
+   Nas três, as fotos se aproximam devagar enquanto a memória está na tela. A animação só começa com
+   as fotos prontas (data-pronta): antes disso, com script, elas esperam fora da vista. Passar no
+   meio de uma chegada troca na hora. Com movimento reduzido, base.css desliga tudo isto. */
+
+.palco[data-espera] .palco__fotos {
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* Ao entrar e sair do modo TV, a página esmaece */
+  @view-transition {
+    navigation: auto;
+  }
+  .palco[data-movimento][data-pronta] .palco__fotos {
+    animation: palco-aproxima 18s 1200ms ease-out both;
+  }
+  .palco[data-movimento][data-pronta] .palco__principal {
+    animation: palco-chega 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .palco[data-movimento][data-pronta] .palco__extra {
+    animation: palco-espalha 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(500ms + var(--vez, 1) * 160ms);
+  }
+  .palco[data-movimento][data-pronta] .palco__texto > * {
+    animation: palco-sobe 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .palco__extra[data-n='2'] {
+    --vez: 2;
+  }
+  .palco__extra[data-n='3'] {
+    --vez: 3;
+  }
+  .palco__extra[data-n='4'] {
+    --vez: 4;
+  }
+
+  /* As fotos que saem não chegam de novo: só vão embora */
+  .palco .palco__fotos--saindo,
+  .palco .palco__fotos--saindo :is(.palco__principal, .palco__extra) {
+    animation: none !important;
+  }
+  /* Álbum: todas as fotos chegam pela lateral, como a principal, uma empurrando a outra, e as que
+     estavam na tela saem pelo outro lado (o script as põe de volta por um instante, por cima) */
+  .palco[data-movimento='a'][data-pronta] .palco__extra {
+    animation: palco-chega 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--vez, 1) * 90ms);
+  }
+  .palco[data-movimento='a'] {
+    --chega-x: 70vw;
+    --chega-giro: 9deg;
+  }
+  .palco[data-movimento='a'][data-de-tras] {
+    --chega-x: -70vw;
+    --chega-giro: -9deg;
+  }
+  .palco[data-movimento='a'] .palco__texto > :nth-child(1) {
+    animation-delay: 500ms;
+  }
+  .palco[data-movimento='a'] .palco__texto > :nth-child(2) {
+    animation-delay: 650ms;
+  }
+  .palco[data-movimento='a'] .palco__texto > :nth-child(3) {
+    animation-delay: 850ms;
+  }
+  .palco[data-movimento='a'] .palco__texto > :nth-child(n + 4) {
+    animation-delay: 1050ms;
+  }
+
+  /* Revelação */
+  .palco[data-movimento='b'][data-pronta] :is(.palco__principal, .palco__extra) {
+    animation: palco-revela 3600ms ease-out both;
+  }
+  .palco[data-movimento='b'][data-pronta] .palco__extra {
+    animation-delay: calc(900ms + var(--vez, 1) * 350ms);
+  }
+  .palco[data-movimento='b'][data-pronta] .palco__texto > * {
+    animation: palco-surge 1600ms ease-out both;
+  }
+  .palco[data-movimento='b'] .palco__texto > :nth-child(1) {
+    animation-delay: 1400ms;
+  }
+  .palco[data-movimento='b'] .palco__texto > :nth-child(2) {
+    animation-delay: 1900ms;
+  }
+  .palco[data-movimento='b'] .palco__texto > :nth-child(3) {
+    animation-delay: 2700ms;
+  }
+  .palco[data-movimento='b'] .palco__texto > :nth-child(n + 4) {
+    animation-delay: 3400ms;
+  }
+
+  /* Mesa */
+  .palco[data-movimento='c'] {
+    --cai-de: -16deg;
+  }
+  .palco[data-movimento='c'][data-de-tras] {
+    --cai-de: 16deg;
+  }
+  .palco[data-movimento='c'][data-pronta] .palco__principal {
+    animation: palco-cai 900ms cubic-bezier(0.3, 1.35, 0.5, 1) both;
+  }
+  .palco[data-movimento='c'][data-pronta] .palco__extra {
+    animation: palco-cai 800ms cubic-bezier(0.3, 1.35, 0.5, 1) both;
+    animation-delay: calc(350ms + var(--vez, 1) * 220ms);
+  }
+  .palco[data-movimento='c'] .palco__texto > * {
+    animation-delay: 700ms;
+  }
+}
+@keyframes palco-chega {
+  from {
+    opacity: 0;
+    translate: var(--chega-x, 0) 0;
+    rotate: var(--chega-giro, 0deg);
+  }
+}
+@keyframes palco-espalha {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+@keyframes palco-sobe {
+  from {
+    opacity: 0;
+    translate: 0 2rem;
+  }
+}
+@keyframes palco-surge {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes palco-revela {
+  from {
+    opacity: 0;
+    filter: brightness(1.9) saturate(0) contrast(0.5);
+  }
+  35% {
+    opacity: 1;
+    filter: brightness(1.5) saturate(0.1) contrast(0.7);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+@keyframes palco-cai {
+  from {
+    opacity: 0;
+    scale: 1.7;
+    rotate: var(--cai-de, -16deg);
+    translate: 0 -18vh;
+  }
+}
+/* As fotos se aproximam devagar, juntas, enquanto a memória está na tela */
+@keyframes palco-aproxima {
+  to {
+    scale: 1.05;
+  }
+}
+
+@media (min-width: 62rem) {
+  .filtros__form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--e-5) var(--calha);
+    max-width: 60rem;
+  }
+  .filtros__grupo--longo,
+  .filtros__acoes {
+    grid-column: 1 / -1;
+  }
+  .mural,
+  .mural[data-tamanho] {
+    --colunas: 6;
+    grid-template-columns: repeat(var(--colunas), minmax(0, 1fr));
+    gap: var(--e-8) var(--calha);
+    padding-top: var(--e-8);
+    padding-inline: var(--margem);
+  }
+  .mural[data-tamanho='pequenas'] {
+    --colunas: 8;
+    row-gap: var(--e-7);
+  }
+  .mural[data-tamanho='grandes'] {
+    --colunas: 4;
+  }
+  .mural li:nth-child(n) {
+    translate: none;
+  }
+  .mural li:nth-child(4n + 2) {
+    translate: 0 var(--e-6);
+  }
+  .mural li:nth-child(4n) {
+    translate: 0 calc(-1 * var(--e-3));
+  }
+
+  /* No computador e na TV, as fotos ficam à esquerda, grandes, e o texto à direita. As outras fotos
+     da memória saem de trás da principal e se espalham em volta dela. */
+  .palco__cena {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-areas: none;
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    align-items: center;
+    column-gap: var(--calha);
+    row-gap: var(--e-4);
+    padding-block: var(--e-4) 0;
+  }
+  .palco__fotos {
+    --foto: min(30vw, (100svh - 11rem) / 1.5);
+    grid-area: 1 / 1 / 4 / 8;
+    margin: 0;
+  }
+  .palco--acaso .palco__fotos {
+    --foto: min(28vw, 44svh);
+  }
+  .palco__extra {
+    width: 56%;
+  }
+  .palco__extra[data-n='1'] {
+    top: -4%;
+    left: -42%;
+  }
+  .palco__extra[data-n='2'] {
+    top: 8%;
+    right: -46%;
+  }
+  .palco__extra[data-n='3'] {
+    bottom: -3%;
+    left: -38%;
+  }
+  .palco__extra[data-n='4'] {
+    bottom: 2%;
+    right: -40%;
+  }
+  .palco__texto {
+    grid-area: 1 / 8 / 2 / -1;
+    align-self: end;
+    gap: var(--e-5);
+  }
+  .palco__passos {
+    grid-area: 2 / 8 / 3 / -1;
+    align-self: start;
+    justify-content: start;
+    padding-top: var(--e-4);
+  }
+  .palco__ajustes {
+    grid-area: 3 / 8 / 4 / -1;
+    align-self: start;
+    justify-self: start;
+    justify-items: start;
+  }
+  .palco__ajuste {
+    justify-items: start;
+  }
+  .palco__opcoes {
+    justify-content: start;
+  }
+  .palco__titulo {
+    font-size: calc(var(--t-titulo-1) * 0.62);
+  }
+  /* "Só as fotos": as fotos no meio da tela, grandes */
+  .palco[data-so-fotos] .palco__fotos {
+    --foto: min(34vw, (100svh - 8rem) / 1.5);
+    grid-area: 1 / 1 / 4 / -1;
+  }
+}
+
+@media (min-width: 100rem) {
+  .mural,
+  .mural[data-tamanho] {
+    --colunas: 8;
+  }
+  .mural[data-tamanho='pequenas'] {
+    --colunas: 10;
+  }
+  .mural[data-tamanho='grandes'] {
+    --colunas: 5;
+  }
+}

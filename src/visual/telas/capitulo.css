@@ -1,0 +1,331 @@
+/*
+ * Capítulos. A ideia forte: abertura de capítulo de livro. A lista é um sumário; a página de cada
+ * capítulo tem o título, o período e as pessoas à esquerda (parados, no computador com mouse) e,
+ * à direita, os marcos numerados, com a data e o lugar em mono. A cor do capítulo, a mesma do
+ * trilho dele na linha do tempo, marca o ponto de cada linha do sumário e o número de cada marco.
+ * A página do tema usa o mesmo sumário.
+ */
+
+/* --- O sumário: a lista de capítulos ----------------------------------------------------------- */
+
+.sumario {
+  row-gap: var(--e-7);
+  padding-block: var(--e-7) var(--e-9);
+}
+.sumario__abre h1 {
+  margin-top: var(--e-2);
+  margin-left: -0.04em;
+}
+.sumario__frase {
+  max-width: 22em;
+  margin-top: var(--e-4);
+}
+.sumario__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-5);
+  margin-top: var(--e-5);
+}
+.indice {
+  border-top: 1px solid var(--fio);
+}
+.indice > li {
+  border-bottom: 1px solid var(--fio);
+}
+/* Os capítulos de dentro ficam recuados sob o maior, presos a ele por um fio */
+.indice--dentro {
+  margin: 0 0 var(--e-4) var(--e-3);
+  padding-left: var(--e-4);
+  border-top: 0;
+  border-left: var(--traco) solid var(--trilho-cor, var(--fio));
+}
+.indice--dentro > li {
+  border-bottom: 0;
+}
+
+/* Uma linha do sumário: o título em serifa e, embaixo, o que é, o período e a conta */
+.entrada-de-capitulo {
+  position: relative;
+  display: grid;
+  gap: var(--e-2);
+  min-height: var(--toque);
+  padding-block: var(--e-4);
+  text-decoration: none;
+}
+.entrada-de-capitulo__titulo {
+  font-size: var(--t-titulo-2);
+  line-height: 1.02;
+  overflow-wrap: anywhere;
+}
+.entrada-de-capitulo__dados {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-4);
+}
+/* O ponto na cor do capítulo, antes do que ele é */
+.entrada-de-capitulo[data-com-cor] .entrada-de-capitulo__dados::before {
+  content: '';
+  flex: none;
+  box-sizing: border-box;
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 2px solid var(--trilho-ponto, var(--vivo));
+  border-radius: 50%;
+}
+.entrada-de-capitulo--dentro {
+  padding-block: var(--e-3);
+}
+.entrada-de-capitulo--dentro .entrada-de-capitulo__titulo {
+  font-size: var(--t-titulo-3);
+  line-height: 1.1;
+}
+@media (hover: hover) {
+  .entrada-de-capitulo:hover .entrada-de-capitulo__titulo {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.14em;
+    text-decoration-color: var(--trilho-ponto, var(--vivo));
+  }
+}
+
+/* Os temas: uma fila de ações quietas */
+.temas {
+  margin-top: var(--e-7);
+}
+.temas__lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
+  margin-top: var(--e-2);
+}
+
+/* --- A página do capítulo ---------------------------------------------------------------------- */
+
+.capitulo {
+  row-gap: var(--e-7);
+  padding-block: var(--e-7) var(--e-9);
+}
+.capitulo__titulo {
+  margin-top: var(--e-3);
+  margin-left: -0.04em;
+  overflow-wrap: anywhere;
+}
+.capitulo__periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-4);
+  margin-top: var(--e-4);
+}
+.capitulo__de-quem {
+  max-width: var(--medida);
+  margin-top: var(--e-3);
+  font-size: var(--t-pequeno);
+}
+.capitulo__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-5);
+  margin-top: var(--e-5);
+}
+.capitulo__abertura {
+  max-width: 24em;
+  margin-top: var(--e-6);
+}
+.capitulo__abertura p + p {
+  margin-top: 0.6em;
+}
+/* O que liga o capítulo aos outros: quieto, em linhas de rótulo e valor */
+.capitulo__notas {
+  display: grid;
+  gap: var(--e-3);
+  margin-top: var(--e-6);
+}
+.capitulo__notas:empty {
+  display: none;
+}
+.capitulo__notas dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
+}
+.capitulo__gente {
+  margin-top: var(--e-6);
+}
+.capitulo__gente ul {
+  margin-top: var(--e-2);
+  border-top: 1px solid var(--fio);
+}
+.capitulo__gente li {
+  border-bottom: 1px solid var(--fio);
+}
+.capitulo__gente > .ficha {
+  margin-top: var(--e-3);
+}
+.capitulo__corpo {
+  display: grid;
+  gap: var(--e-7);
+  align-content: start;
+  min-width: 0;
+}
+.capitulo__parte > .indice,
+.capitulo__parte > .marcos,
+.capitulo__parte > .vazio {
+  margin-top: var(--e-3);
+}
+
+/* --- Os marcos numerados ----------------------------------------------------------------------- */
+
+.marcos {
+  border-top: 1px solid var(--fio);
+}
+.marco {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.5rem;
+  grid-template-areas:
+    'numero foto'
+    'texto foto';
+  align-items: start;
+  gap: var(--e-2) var(--e-5);
+  padding-block: var(--e-5) var(--e-6);
+  border-bottom: 1px solid var(--fio);
+}
+/* O número do marco: grande, em serifa, com um traço na cor do capítulo por baixo */
+.marco__numero {
+  grid-area: numero;
+  justify-self: start;
+  padding-bottom: 0.08em;
+  border-bottom: 0.1875rem solid var(--trilho-ponto, var(--vivo));
+  font-size: var(--t-titulo-1);
+  font-variant-numeric: lining-nums;
+  line-height: 0.9;
+}
+.marco__texto {
+  grid-area: texto;
+  display: grid;
+  gap: var(--e-2);
+  min-width: 0;
+  margin-top: var(--e-2);
+}
+.marco__titulo a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.marco__titulo a:hover {
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.14em;
+}
+.marco__sinais {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-4);
+}
+.marco__foto {
+  grid-area: foto;
+  display: block;
+  margin-top: var(--e-1);
+  text-decoration: none;
+}
+
+/* --- A página do tema -------------------------------------------------------------------------- */
+
+.tema__abre {
+  padding-block: var(--e-7) var(--e-6);
+}
+.tema__abre h1 {
+  margin-top: var(--e-2);
+  margin-left: -0.04em;
+  overflow-wrap: anywhere;
+}
+.tema__abre .acao {
+  margin-top: var(--e-3);
+}
+.tema__capitulos {
+  padding-bottom: var(--e-7);
+}
+.tema__capitulos .indice {
+  margin-top: var(--e-3);
+}
+.tema__memorias {
+  padding-top: var(--e-7);
+  border-top: 1px solid var(--fio);
+}
+.tema__memorias h2 {
+  margin-top: var(--e-2);
+}
+.tema__memorias .vazio {
+  margin-block: var(--e-6) var(--e-8);
+}
+
+@media (min-width: 40rem) {
+  .marco {
+    grid-template-columns: 5rem minmax(0, 1fr) 7.5rem;
+    grid-template-areas: 'numero texto foto';
+    column-gap: var(--e-5);
+  }
+  .marco__texto {
+    margin-top: 0;
+  }
+}
+
+@media (min-width: 62rem) {
+  .sumario {
+    padding-block: var(--e-8) var(--e-9);
+  }
+  .sumario .sumario__abre {
+    grid-column: 1 / span 5;
+  }
+  .sumario .sumario__lista {
+    grid-column: 7 / -1;
+  }
+  .capitulo {
+    padding-block: var(--e-8) var(--e-9);
+  }
+  .capitulo .capitulo__capa {
+    grid-column: 1 / span 5;
+  }
+  .capitulo .capitulo__corpo {
+    grid-column: 7 / -1;
+  }
+  .marco {
+    grid-template-columns: 6.5rem minmax(0, 1fr) 9rem;
+    column-gap: var(--calha);
+    padding-block: var(--e-6) var(--e-7);
+  }
+  .tema__abre {
+    padding-block: var(--e-8) var(--e-7);
+  }
+  .tema .tema__capitulos {
+    max-width: 50%;
+  }
+}
+
+/* No computador com mouse, a capa e o alto do sumário ficam parados enquanto a lista rola. No
+   toque, nada novo fica preso (docs/visual.md, "Safari do iPhone e peças paradas"). */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .capitulo__parado {
+    position: sticky;
+    top: var(--e-6);
+  }
+}
+
+@media (min-width: 100rem) {
+  .capitulo .capitulo__capa,
+  .sumario .sumario__abre {
+    grid-column: 1 / span 4;
+  }
+  .capitulo .capitulo__corpo,
+  .sumario .sumario__lista {
+    grid-column: 6 / span 6;
+  }
+  .marco {
+    grid-template-columns: 8rem minmax(0, 1fr) 11rem;
+  }
+}

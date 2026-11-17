@@ -16,7 +16,7 @@
 //    do pacote publicado, só são gravadas e apagadas no bucket de teste, pelas prévias e pelo
 //    computador, e a homologação só lê o prefixo exemplos/ do bucket de teste. A limpeza de 7 dias
 //    roda só no ambiente de teste.
-// 8. As telas do conceito da revisão visual (/conceito) trazem dados fixos de exemplo, como a carta.
+// 8. As telas do conceito da revisão visual (/conceito) trazem dados fixos de exemplo.
 //    Só respondem onde há acervo de exemplo: na produção e na homologação, 404.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -136,6 +136,23 @@ if (existsSync('src/pages/conceito')) {
     if (!/if \(!conceitoDisponivel\(\)[^\n]*return naoEncontrado\(\);/.test(readFileSync(arquivo, 'utf8'))) {
       falhar(`${arquivo}: toda rota do conceito começa com "if (!conceitoDisponivel()) return naoEncontrado();": ela usa dados fixos de exemplo.`);
     }
+  }
+}
+
+// 9. A página do sistema existe em todos os ambientes. Fora das prévias de teste, só os
+// administradores abrem, e ela nunca lê o acervo nem usa fotos de exemplo.
+if (existsSync('src/pages/sistema.astro')) {
+  const sistema = readFileSync('src/pages/sistema.astro', 'utf8');
+  if (!/const comExemplos = temAcervoDeExemplo\(\);\nif \(!comExemplos && !usuario\.admin\) return naoEncontrado\(\);/.test(sistema)) {
+    falhar('src/pages/sistema.astro: fora das prévias de teste, só os administradores abrem a página do sistema.');
+  }
+  if (/listarMemorias\(/.test(sistema) && !/const memorias = comExemplos \? \(await listarMemorias\(usuario\)\)/.test(sistema)) {
+    falhar('src/pages/sistema.astro: a memória de exemplo da foto revelada só é lida onde há acervo de exemplo (comExemplos).');
+  }
+  if (/exemplos\/|\/fotos\/|\/retratos\//.test(sistema)) falhar('src/pages/sistema.astro: a página do sistema não aponta para foto nem retrato.');
+  const ambiente = readFileSync('src/lib/servidor/ambiente.ts', 'utf8');
+  if (!ambiente.includes('export function temAcervoDeExemplo(): boolean {\n  return AMBIENTES_COM_EXEMPLOS.includes(ambiente()) && !ehHomologacao();')) {
+    falhar('src/lib/servidor/ambiente.ts: temAcervoDeExemplo() só vale nas prévias de teste e no computador.');
   }
 }
 

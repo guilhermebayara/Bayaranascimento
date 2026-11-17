@@ -1,7 +1,7 @@
 // Explorar (docs/decisoes.md): cada filtro e cada ordem, as combinações, o sorteio só entre as
 // visíveis e a regra de quando os trilhos aparecem. Regras em src/lib/explorar.ts.
 import { describe, expect, it } from 'vitest';
-import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, SEM_FILTRO, sortear, temFiltro, type Contexto, type Filtros } from '../src/lib/explorar';
+import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, SEM_FILTRO, sortear, temFiltro, type Contexto, type Filtros, SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos } from '../src/lib/explorar';
 
 const m = (id: string, ano: number, o: Partial<{ mes: number; tipo: string; integrantes: string[]; nucleos: string[]; temas: string[]; fotos: number; relatos: number; criadaEm: string }> = {}) => ({
   id,
@@ -147,5 +147,182 @@ describe('quando os trilhos aparecem', () => {
     for (const quebra of [{ tipos: ['natal'] }, { comAudio: true }, { comFoto: true }, { contou: true }, { falta: true }]) {
       expect(mostraTrilhos({ ...SEM_FILTRO, ...quebra })).toBe(false);
     }
+  });
+});
+
+// A tela do Explorar: as formas de ver, o endereço de cada uma e o resumo dos filtros
+describe('formas de ver e endereço', async () => {
+  const { FORMAS, SEM_FILTRO, enderecoDoExplorar, lerFiltros, lerForma, resumoDosFiltros, vizinhasNaLista } = await import('../src/lib/explorar');
+
+  it('sem "ver", ou com um valor que não existe, vale a linha do tempo', () => {
+    expect(FORMAS).toEqual(['linha', 'mural', 'tv', 'acaso']);
+    expect(lerForma(new URLSearchParams(''))).toBe('linha');
+    expect(lerForma(new URLSearchParams('ver=mural'))).toBe('mural');
+    expect(lerForma(new URLSearchParams('ver=carrossel'))).toBe('linha');
+  });
+
+  it('o endereço guarda os filtros, a ordem e a forma de ver, sem o que está no padrão', () => {
+    expect(enderecoDoExplorar(SEM_FILTRO)).toBe('/explorar');
+    const f = { ...SEM_FILTRO, tipos: ['viagem'], familias: ['bayara'], comFoto: true, ordem: 'antigas' as const };
+    const endereco = enderecoDoExplorar(f, 'tv', { m: '2025-natal', passar: undefined });
+    expect(endereco).toBe('/explorar?tipo=viagem&nucleo=bayara&foto=1&ordem=antigas&ver=tv&m=2025-natal');
+    // Trocar de forma de ver não perde nenhum filtro
+    const p = new URLSearchParams(endereco.split('?')[1]);
+    expect(lerFiltros(p)).toEqual(f);
+    expect(lerForma(p)).toBe('tv');
+  });
+
+  it('o resumo escreve o que está ligado, e cala o que o endereço pede e não existe', () => {
+    const nomes = {
+      tipo: (id: string) => ({ viagem: 'Viagem' })[id],
+      pessoa: (id: string) => ({ gui: 'Gui', giovanna: 'Giovanna' })[id],
+      capitulo: (id: string) => ({ natais: 'Natais' })[id],
+      tema: () => undefined,
+    };
+    expect(resumoDosFiltros(SEM_FILTRO, nomes)).toEqual([]);
+    // A família tem o controle dela: não entra no resumo
+    expect(resumoDosFiltros({ ...SEM_FILTRO, familias: ['bayara'] }, nomes)).toEqual([]);
+    const f = { ...SEM_FILTRO, tipos: ['viagem', 'apagado'], pessoas: ['gui', 'giovanna'], capitulos: ['natais', 'secreto'], temas: ['x'], decada: 1990, comFoto: true, falta: true };
+    expect(resumoDosFiltros(f, nomes)).toEqual(['Viagem', 'com Gui e Giovanna juntos', 'Natais', 'anos 1990', 'com foto', 'você estava e ainda não contou']);
+    expect(resumoDosFiltros({ ...SEM_FILTRO, de: 1990, ate: 1994 }, nomes)).toEqual(['de 1990 a 1994']);
+    expect(resumoDosFiltros({ ...SEM_FILTRO, de: 1990 }, nomes)).toEqual(['de 1990 em diante']);
+    expect(resumoDosFiltros({ ...SEM_FILTRO, ate: 1994 }, nomes)).toEqual(['até 1994']);
+  });
+
+  it('"Passar sozinho" guarda no endereço o tempo escolhido, entre 8, 10 e 15 segundos, e a pausa', async () => {
+    // Decisão do Gui, 17/11/2026
+    const { TEMPOS_DE_PASSAR, TEMPO_DE_PASSAR_PADRAO, lerPassar, passarNoEndereco } = await import('../src/lib/explorar');
+    expect([...TEMPOS_DE_PASSAR]).toEqual([8, 10, 15]);
+    expect(TEMPO_DE_PASSAR_PADRAO).toBe(10);
+    const ler = (busca: string) => lerPassar(new URLSearchParams(busca));
+    // Sem "passar", nada passa sozinho, e a pausa sozinha não liga nada
+    expect(ler('')).toEqual({ tempo: null, pausado: false });
+    expect(ler('pausa=1')).toEqual({ tempo: null, pausado: false });
+    expect(ler('passar=8')).toEqual({ tempo: 8, pausado: false });
+    expect(ler('passar=15&pausa=1')).toEqual({ tempo: 15, pausado: true });
+    // Tempo fora da lista vale o padrão: ninguém põe 1 segundo pelo endereço
+    for (const fora of ['1', '0', '3600', 'abc', '']) expect(ler(`passar=${fora}`).tempo).toBe(10);
+    // Ida e volta pelo endereço
+    for (const estado of [{ tempo: null, pausado: false }, { tempo: 8, pausado: false }, { tempo: 15, pausado: true }]) {
+      const endereco = enderecoDoExplorar(SEM_FILTRO, 'tv', { m: 'a', ...passarNoEndereco(estado) });
+      expect(lerPassar(new URLSearchParams(endereco.split('?')[1]))).toEqual(estado);
+    }
+    expect(enderecoDoExplorar(SEM_FILTRO, 'tv', { m: 'a', ...passarNoEndereco({ tempo: 15, pausado: true }) })).toBe('/explorar?ver=tv&m=a&passar=15&pausa=1');
+  });
+
+  it('com mais de uma família marcada, entram as memórias de qualquer uma delas, só entre as que a pessoa vê', async () => {
+    // Decisão do Gui, 16/11/2026. Quem chama entrega só o que a pessoa vê: o filtro nunca acrescenta
+    const { alternarFamilia, explorar, passa } = await import('../src/lib/explorar');
+    const m = (id: string, nucleos: string[]) => ({ id, ano: 2000, mes: null, dia: null, tipo: 'festa', integrantes: [], nucleos, temas: [], fotos: [], relatos: 0, criadaEm: id });
+    const ctx = { eu: 'gui', doCapitulo: () => false, comAudio: new Set<string>(), contaram: new Map<string, Set<string>>() };
+    const vistas = [m('a', ['bayara']), m('b', ['bracarense']), m('c', ['bayara-bracarense']), m('d', ['bayara', 'bracarense']), m('e', [])];
+    const ids = (familias: string[]) => explorar(vistas, { ...SEM_FILTRO, familias }, ctx).memorias.map((x) => x.id).sort();
+    expect(ids(['bayara'])).toEqual(['a', 'd']);
+    expect(ids(['bayara', 'bracarense'])).toEqual(['a', 'b', 'd']);
+    expect(ids(['bayara', 'bracarense', 'bayara-bracarense'])).toEqual(['a', 'b', 'c', 'd']);
+    // Nada além do que foi entregue: a memória que a pessoa não vê não está na lista e não aparece
+    expect(passa(m('z', ['bracarense']), { ...SEM_FILTRO, familias: ['bayara', 'bracarense'] }, ctx)).toBe(true);
+    expect(ids(['bayara', 'bracarense'])).not.toContain('z');
+    // E os outros filtros continuam valendo com "e"
+    expect(explorar(vistas, { ...SEM_FILTRO, familias: ['bayara', 'bracarense'], tipos: ['viagem'] }, ctx).memorias).toEqual([]);
+
+    // Cada toque liga ou desliga só aquela família, na ordem das famílias do site
+    const todas = ['bayara', 'bayara-bracarense', 'bracarense'];
+    expect(alternarFamilia([], 'bracarense', todas)).toEqual(['bracarense']);
+    expect(alternarFamilia(['bracarense'], 'bayara', todas)).toEqual(['bayara', 'bracarense']);
+    expect(alternarFamilia(['bayara', 'bracarense'], 'bayara', todas)).toEqual(['bracarense']);
+    expect(alternarFamilia(['bracarense'], 'bracarense', todas)).toEqual([]);
+    expect(alternarFamilia([], 'desconhecida', todas)).toEqual([]);
+    // Marcar todas é a família completa: o filtro desliga sozinho (decisão do Gui, 17/11/2026)
+    expect(alternarFamilia(['bayara', 'bracarense'], 'bayara-bracarense', todas)).toEqual([]);
+    expect(alternarFamilia(['bayara'], 'bracarense', ['bayara', 'bracarense'])).toEqual([]);
+    // No endereço, as duas
+    expect(enderecoDoExplorar({ ...SEM_FILTRO, familias: ['bayara', 'bracarense'] })).toBe('/explorar?nucleo=bayara&nucleo=bracarense');
+  });
+
+  it('depois de uma troca, a rolagem volta ao ano mais próximo quando o da pessoa saiu', async () => {
+    const { anoMaisProximo } = await import('../src/lib/explorar');
+    expect(anoMaisProximo([2026, 2019, 1994], 2019)).toBe(2019);
+    expect(anoMaisProximo([2026, 2021, 1994], 2019)).toBe(2021);
+    expect(anoMaisProximo([2026, 1994], 2000)).toBe(1994);
+    // No empate, o mais antigo: na ordem de sempre, é o que vem logo abaixo
+    expect(anoMaisProximo([2021, 2017], 2019)).toBe(2017);
+    expect(anoMaisProximo([2017, 2021], 2019)).toBe(2017);
+    expect(anoMaisProximo([], 2019)).toBeUndefined();
+  });
+
+  it('o movimento do modo TV tem três versões, e fora delas vale a primeira', async () => {
+    const { MOVIMENTOS, lerMovimento, movimentoNoEndereco } = await import('../src/lib/explorar');
+    expect(MOVIMENTOS.map((x) => x.id)).toEqual(['a', 'b', 'c']);
+    expect(lerMovimento(new URLSearchParams(''))).toBe('a');
+    expect(lerMovimento(new URLSearchParams('mov=c'))).toBe('c');
+    expect(lerMovimento(new URLSearchParams('mov=z'))).toBe('a');
+    expect(enderecoDoExplorar(SEM_FILTRO, 'tv', movimentoNoEndereco('a'))).toBe('/explorar?ver=tv');
+    expect(enderecoDoExplorar(SEM_FILTRO, 'tv', movimentoNoEndereco('b'))).toBe('/explorar?ver=tv&mov=b');
+  });
+
+  it('o tamanho das fotos do mural fica no endereço, e o médio é o padrão', async () => {
+    // Decisão do Gui, 17/11/2026
+    const { TAMANHOS, lerTamanho, tamanhoNoEndereco } = await import('../src/lib/explorar');
+    expect(TAMANHOS).toEqual(['pequenas', 'medias', 'grandes']);
+    expect(lerTamanho(new URLSearchParams(''))).toBe('medias');
+    expect(lerTamanho(new URLSearchParams('tamanho=enormes'))).toBe('medias');
+    expect(enderecoDoExplorar(SEM_FILTRO, 'mural', tamanhoNoEndereco('medias'))).toBe('/explorar?ver=mural');
+    for (const t of TAMANHOS) {
+      const endereco = enderecoDoExplorar(SEM_FILTRO, 'mural', tamanhoNoEndereco(t));
+      expect(lerTamanho(new URLSearchParams(endereco.split('?')[1]))).toBe(t);
+    }
+  });
+
+  it('no modo TV, a de antes e a de depois saem da lista filtrada, na ordem dela', () => {
+    const lista = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    expect(vizinhasNaLista(lista, 'b')).toEqual({ posicao: 1, antes: { id: 'a' }, depois: { id: 'c' } });
+    expect(vizinhasNaLista(lista, 'a').antes).toBeUndefined();
+    expect(vizinhasNaLista(lista, 'c').depois).toBeUndefined();
+    expect(vizinhasNaLista(lista, 'fora').posicao).toBe(-1);
+  });
+});
+
+// Defeito achado pelo Gui em 17/11/2026: depois de "Só as fotos", no modo TV, não dava para voltar
+// ao texto nem chegar aos ajustes. A regra do que cada gesto faz está em reacaoEmSoFotos, e o
+// script do palco só obedece (testes/visual.test.ts confere a ligação).
+describe('"Só as fotos", no modo TV: sempre existe caminho de volta', () => {
+  const tecla = (t: string) => ({ tipo: 'tecla', tecla: t }) as const;
+
+  it('pelo teclado: o Esc volta ao modo com texto, com os controles à vista ou escondidos', () => {
+    expect(reacaoEmSoFotos(tecla('Escape'), false)).toBe('voltar-ao-texto');
+    expect(reacaoEmSoFotos(tecla('Escape'), true)).toBe('voltar-ao-texto');
+  });
+
+  it('pelo teclado e pelo controle da TV: qualquer outra tecla traz os controles de volta', () => {
+    for (const t of ['Enter', 'ArrowUp', 'ArrowDown', ' ', 'Tab', 'MediaPlayPause', 'ContextMenu', 'a']) expect(reacaoEmSoFotos(tecla(t), false), t).toBe('mostrar-controles');
+  });
+
+  it('pelo toque, pelo clique e pelo mouse: os controles voltam', () => {
+    expect(reacaoEmSoFotos({ tipo: 'toque' }, false)).toBe('mostrar-controles');
+    expect(reacaoEmSoFotos({ tipo: 'mouse' }, false)).toBe('mostrar-controles');
+  });
+
+  it('as setas para os lados continuam trocando de memória, sem mostrar os controles', () => {
+    for (const visiveis of [false, true]) {
+      expect(reacaoEmSoFotos(tecla('ArrowRight'), visiveis)).toBe('passar');
+      expect(reacaoEmSoFotos(tecla('ArrowLeft'), visiveis)).toBe('passar');
+    }
+  });
+
+  it('com os controles à vista, o gesto faz o que sempre fez (o Enter aciona "Mostrar o texto")', () => {
+    expect(reacaoEmSoFotos(tecla('Enter'), true)).toBe('seguir');
+    expect(reacaoEmSoFotos({ tipo: 'toque' }, true)).toBe('seguir');
+  });
+
+  it('nenhum gesto fica sem saída: de qualquer estado, em no máximo dois passos se volta ao texto', () => {
+    // Teclado: Enter mostra os controles com o foco em "Mostrar o texto", e o segundo Enter o aciona.
+    // Toque: o primeiro traz os controles, o segundo cai em "Mostrar o texto".
+    for (const gesto of [tecla('Enter'), { tipo: 'toque' } as const]) {
+      const primeiro = reacaoEmSoFotos(gesto, false);
+      expect(primeiro).toBe('mostrar-controles');
+      expect(reacaoEmSoFotos(gesto, true)).toBe('seguir');
+    }
+    expect(SEGUNDOS_DOS_CONTROLES).toBeGreaterThanOrEqual(4);
   });
 });

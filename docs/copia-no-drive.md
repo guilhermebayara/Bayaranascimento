@@ -2,7 +2,7 @@
 
 Todo dia 1º, de madrugada, um script na conta Google do Gui busca a cópia do banco e salva um arquivo `acervo-AAAA-MM-DD.json` na pasta **Acervo Bayara Nascimento, cópias** do Drive. Cada arquivo tem todas as tabelas: memórias (inclusive rascunhos e restritas a núcleos), relatos, pessoas, núcleos, histórico de versões e a lista de fotos. As fotos em si ficam no R2 e não entram na cópia.
 
-Para uma cópia na hora (depois de cadastrar muita coisa, por exemplo), o Gui ou a Giovanna clicam em **Baixar cópia do acervo**, no rodapé do site, e guardam o arquivo onde quiserem.
+Para uma cópia na hora (depois de cadastrar muita coisa, por exemplo), o Gui ou a Giovanna clicam em **Baixar cópia do acervo** (no rodapé do site; no visual novo, em "Sua conta", na parte "Administração") e guardam o arquivo onde quiserem.
 
 O Cloudflare também guarda o histórico do banco por conta própria (Time Travel do D1), o que permite voltar o banco a um momento dos últimos dias em caso de erro grave. A cópia no Drive cobre o resto: um lugar fora do Cloudflare, com um arquivo por mês.
 

@@ -175,11 +175,11 @@ const datas = [
       </label>
       <label class="marcar">
         <input type="radio" name="visibilidade" value="nucleos" checked={c?.visibilidade === 'nucleos'} disabled={travaQuemVe} />
-        <span>Só quem é dos núcleos marcados abaixo</span>
+        <span>Só quem é das famílias marcadas abaixo</span>
       </label>
       {
         nucleos.length > 0 && (
-          <div class="opcoes" role="group" aria-label="Núcleos">
+          <div class="opcoes" role="group" aria-label="Famílias">
             {nucleos.map((n) => (
               <label class="opcao">
                 <input type="checkbox" name="nucleos" value={n.id} checked={c?.nucleos.includes(n.id)} disabled={travaQuemVe} />

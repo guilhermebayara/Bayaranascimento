@@ -56,7 +56,7 @@ Nada desta pasta entra no repositório. A exceção são as fotos do Chico e da 
 
 ### O espelho da produção
 
-A homologação usa a mesma estrutura de família da produção (filiações, casais com fases, laços do coração com papel e marca de privado, núcleos), com nomes inventados, anos deslocados e memórias de exemplo. Assim a árvore é testada com o formato real da família. Para refazer: no site de verdade, "Baixar cópia do acervo"; na homologação, rodapé → "Espelho da produção" → enviar o arquivo. Refaça depois de cargas grandes na produção e antes de testar mudanças na árvore.
+A homologação usa a mesma estrutura de família da produção (filiações, casais com fases, laços do coração com papel e marca de privado, núcleos), com nomes inventados, anos deslocados e memórias de exemplo. Assim a árvore é testada com o formato real da família. Para refazer: no site de verdade, "Baixar cópia do acervo"; na homologação, "Espelho da produção" → enviar o arquivo. No visual novo os dois ficam na conta (o retrato do topo), em "Administração"; enquanto a revisão visual não chega à `main`, na produção o botão da cópia ainda está no rodapé. Refaça depois de cargas grandes na produção e antes de testar mudanças na árvore.
 
 - A transformação está em `src/lib/espelho.ts`, testada em `testes/espelho.test.ts`: nenhum nome, texto ou memória real passa para o espelho.
 - O espelho é gravado direto no banco da homologação e nunca entra no repositório.
@@ -107,7 +107,7 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 
 - A direção visual foi definida em 16/11/2026 e está em `docs/visual.md`: claro, serifa macia nos títulos, pastéis com pontos saturados, foto como objeto e movimento discreto. A análise das referências está no Claude Doc linkado ali.
 - Movimento: a rolagem é sempre a do aparelho e nenhum efeito quebra um padrão de navegação conhecido. A família inclui gente com pouca familiaridade com sites.
-- A revisão visual é do zero ("Revisão do zero" em `docs/visual.md`): o CSS atual não é base, só as fundações de experiência ficam. Até ela ser aprovada, o estilo atual continua no ar como provisório.
+- A revisão visual é do zero ("Revisão do zero" em `docs/visual.md`). Na fase 3 todas as telas passaram para o visual novo, em quatro PRs empilhados para a `homologa`, e o estilo antigo (`src/styles/global.css`, `Base.astro`) foi apagado no último. Tela nova usa `src/layouts/Visual.astro` ou, se for formulário ou página de trabalho, `src/components/formularios/Pagina.astro`. Na `main`, o estilo antigo continua no ar até a revisão inteira ser levada para lá.
 - O sistema visual (fase 2) está em `src/visual/` e `src/components/visual/`, descrito em "Sistema (fase 2)" de `docs/visual.md`. A fonte do site é uma linha só: `FONTES_DO_SITE`, em `src/lib/visual.ts`. Tela nova usa as peças e os tokens que existem; valor solto de cor, fonte, raio ou largura de tela não passa em `testes/sistema.test.ts` e `testes/visual.test.ts`.
 - O monograma e os ícones do site são gerados por `npm run monograma` e ficam versionados. Só rode de novo se uma serifa mudar.
 - Celular primeiro, desktop de destaque: cada tela nasce em 390 px e ganha composição própria na tela grande, pensada para ver na TV (até 1920 px).

@@ -1,0 +1,556 @@
+---
+// O palco: uma memória por vez, grande, para ver junto (docs/decisoes.md, "Explorar"). Serve ao
+// modo TV, que passa pelas memórias na ordem dos filtros, e ao "Me mostre uma memória", que sorteia.
+// Cada memória é uma página: "Anterior" e "Próxima" são links, então funciona sem script, pelo
+// teclado e pelo controle da TV. Com script, o modo TV passa sem recarregar.
+//
+// A TV é superfície grande (decisões do Gui, 17/11/2026): a foto é uma foto revelada, como no resto
+// do site, e a memória com várias fotos espalha as outras em volta da principal. Os controles ficam
+// numa linha só; o tempo e a animação moram em "Ajustes".
+import Carimbo from '../visual/Carimbo.astro';
+import Polaroid from '../visual/Polaroid.astro';
+import Vazio from '../visual/Vazio.astro';
+import { carimboDaData, estiloDoTipo, legendaLugarAno, listaCurta } from '../../lib/visual';
+
+interface Props {
+  modo: 'tv' | 'acaso';
+  memoria?: { id: string; titulo: string; tipo: string; lugar: string | null; ano: number; mes: number | null; dia: number | null; aproximada: boolean; fotos: { chave: string; legenda: string | null }[] };
+  /** o trecho de um relato e quem contou */
+  trecho?: { texto: string; por: string };
+  /** os nomes de quem estava */
+  nomes?: string[];
+  /** "3 de 41", no modo TV */
+  posicao?: string;
+  /** endereços: a de antes, a de depois (ou outra sorteada) e a volta ao Explorar */
+  antes?: string;
+  depois?: string;
+  sair: string;
+  /**
+   * "Passar sozinho": o tempo em uso (null, desligado), a pausa, o endereço que liga cada tempo e o
+   * que desliga
+   */
+  passar?: { tempo: number | null; pausado: boolean; tempos: { segundos: number; href: string }[]; parar: string };
+  /** para limpar os filtros, quando nada passa neles */
+  limpar: string;
+  /** a animação do modo TV em uso (src/lib/explorar.ts, MOVIMENTOS) */
+  movimento?: string;
+  /** as animações, para quem está vendo escolher */
+  movimentos?: { id: string; nome: string; href: string }[];
+}
+
+/** Quantas fotos da memória, além da principal, cabem em volta dela */
+const EM_VOLTA = 4;
+
+const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, limpar, movimento, movimentos } = Astro.props;
+const [principal, ...outras] = memoria?.fotos ?? [];
+const emVolta = outras.slice(0, EM_VOLTA);
+const abrir = memoria ? `/memorias/${memoria.id}` : '';
+// "Passar sozinho", num toque só, liga no tempo padrão; os outros tempos estão em "Ajustes"
+const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0];
+---
+
+{
+  !memoria && (
+    <div class="miolo">
+      <Vazio frase="Nenhuma memória passa nesses filtros.">
+        <a class="acao" href={limpar}>
+          Limpar filtros
+        </a>
+        <a class="acao acao--quieta" href={sair}>
+          Voltar ao Explorar
+        </a>
+      </Vazio>
+    </div>
+  )
+}
+{
+  memoria && (
+    <article class:list={['palco', `palco--${modo}`]} style={estiloDoTipo(memoria.tipo)} data-palco data-movimento={modo === 'tv' ? movimento : undefined} data-passar={passar?.tempo ?? undefined} data-pausado={passar?.pausado ? '' : undefined}>
+      {/* Com script, a animação só começa com as fotos prontas: até lá, elas esperam fora da tela.
+          Fica antes de tudo, para valer já no primeiro desenho. Se algo falhar, a espera acaba sozinha. */}
+      <script is:inline>
+        (function () {
+          var palco = document.currentScript.parentElement;
+          palco.setAttribute('data-espera', '');
+          setTimeout(function () {
+            palco.removeAttribute('data-espera');
+          }, 4000);
+        })();
+      </script>
+      <header class="palco__topo miolo">
+        <p class="rotulo">
+          {modo === 'tv' ? 'Modo TV' : 'Uma memória ao acaso'}
+          {posicao && <span> · {posicao}</span>}
+        </p>
+        <a class="acao acao--quieta" href={sair} data-palco-sair>
+          {modo === 'tv' ? 'Sair do modo TV' : 'Voltar ao Explorar'}
+        </a>
+      </header>
+      <div class="palco__cena miolo">
+        <div class:list={['palco__fotos', `palco__fotos--${emVolta.length}`]}>
+          {/* As outras fotos da memória, espalhadas em volta da principal */}
+          {emVolta.map((foto, n) => (
+            <div class="palco__extra" data-n={n + 1} aria-hidden="true">
+              <Polaroid id={`${memoria.id}-${n + 1}`} fotos={[foto]} legenda={foto.legenda ?? ''} alt="" monte={false} cedo />
+            </div>
+          ))}
+          {/* No modo TV, tocar na foto passa para a próxima; no "ao acaso", abre a memória */}
+          <a class="palco__principal" href={modo === 'tv' && depois ? depois : abrir} data-palco-leva={modo === 'tv' && depois ? '' : undefined} aria-label={modo === 'tv' && depois ? 'Próxima memória' : `Abrir a memória ${memoria.titulo}`} tabindex="-1">
+            <Polaroid id={memoria.id} fotos={principal ? [principal] : []} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} tipo={memoria.tipo} monte={false} cedo />
+          </a>
+        </div>
+        <div class="palco__texto">
+          <p>
+            <Carimbo itens={[carimboDaData(memoria), memoria.lugar]} />
+          </p>
+          <h1 class="palco__titulo">{memoria.titulo}</h1>
+          {trecho && (
+            <blockquote class="palco__trecho">
+              <p class="serifa t-abertura">“{trecho.texto}”</p>
+              <footer>
+                <span class="mao">{trecho.por}</span>
+              </footer>
+            </blockquote>
+          )}
+          {nomes.length > 0 && <p class="ficha suave">Com {listaCurta(nomes, 5)}</p>}
+          <p>
+            <a class="acao" href={abrir}>
+              Abrir esta memória
+            </a>
+          </p>
+        </div>
+        {/* Os controles ficam num grupo só: em "Só as fotos" eles somem juntos e voltam juntos, numa
+            barra no pé da tela, ao primeiro toque, clique, movimento do mouse ou tecla */}
+        <div class="palco__controles" data-palco-controles>
+        <nav class="palco__passos" aria-label={modo === 'tv' ? 'Passar as memórias' : 'Outra memória'}>
+          {modo === 'tv' && (
+            <>
+              {/* O caminho de volta de "Só as fotos", em destaque. Só aparece nesse modo, com script. */}
+              <button type="button" class="botao palco__volta" data-palco-mostrar-texto hidden>
+                Mostrar o texto
+              </button>
+              <a class="acao" href={antes} aria-disabled={antes ? undefined : 'true'} rel="prev" data-palco-antes data-palco-leva>
+                Anterior
+              </a>
+              <a class="botao" href={depois} aria-disabled={depois ? undefined : 'true'} rel="next" data-palco-depois data-palco-leva>
+                Próxima
+              </a>
+              {/* "Passar sozinho" só existe com script: sem ele, nem aparece. Desligado, um toque liga;
+                  ligado, o mesmo lugar pausa e retoma. O tempo e a animação ficam em "Ajustes". */}
+              {passar && ligar && (
+                <span class="palco__sozinho" data-palco-passar hidden>
+                  {passar.tempo === null ? (
+                    <a class="acao acao--quieta" href={ligar.href}>
+                      Passar sozinho
+                    </a>
+                  ) : (
+                    <button type="button" class="acao" data-palco-pausa aria-pressed={passar.pausado ? 'true' : 'false'}>
+                      {passar.pausado ? 'Retomar' : 'Pausar'}
+                    </button>
+                  )}
+                </span>
+              )}
+            </>
+          )}
+          {modo === 'acaso' && depois && (
+            <a class="botao" href={depois} data-palco-depois>
+              Me mostre outra
+            </a>
+          )}
+        </nav>
+        {modo === 'tv' && (passar || movimentos) && (
+          <details class="palco__ajustes" data-palco-ajustes>
+            <summary>
+              <span>Ajustes</span>
+            </summary>
+            {passar && (
+              <div class="palco__ajuste" role="group" aria-labelledby="ajuste-tempo" data-palco-passar hidden>
+                <p class="rotulo suave" id="ajuste-tempo">
+                  Passar sozinho a cada
+                </p>
+                <p class="palco__opcoes">
+                  {passar.tempos.map((t) => (
+                    <a href={t.href} aria-current={t.segundos === passar.tempo ? 'true' : undefined} data-palco-leva>
+                      {t.segundos} segundos
+                    </a>
+                  ))}
+                  {passar.tempo !== null && <a href={passar.parar}>Parar de passar sozinho</a>}
+                </p>
+              </div>
+            )}
+            {/* Só as fotos, sem os textos, e a tela cheia: para deixar passando na sala. Só com script. */}
+            <div class="palco__ajuste" role="group" aria-labelledby="ajuste-tela" data-palco-tela hidden>
+              <p class="rotulo suave" id="ajuste-tela">
+                Tela
+              </p>
+              <p class="palco__opcoes">
+                <button type="button" data-palco-so-fotos aria-pressed="false">
+                  Só as fotos
+                </button>
+                <button type="button" data-palco-cheia aria-pressed="false" hidden>
+                  Tela cheia
+                </button>
+              </p>
+            </div>
+            {movimentos && (
+              <div class="palco__ajuste" role="group" aria-labelledby="ajuste-animacao">
+                <p class="rotulo suave" id="ajuste-animacao">
+                  Animação
+                </p>
+                <p class="palco__opcoes">
+                  {movimentos.map((m) => (
+                    <a href={m.href} aria-current={m.id === movimento ? 'true' : undefined} data-palco-movimento>
+                      {m.nome}
+                    </a>
+                  ))}
+                </p>
+              </div>
+            )}
+          </details>
+        )}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+<script>
+  // O modo TV passa de uma memória para a outra sem recarregar a página (correção pedida pelo Gui,
+  // 17/11/2026: com a página recarregando, a animação acabava antes de a foto chegar). A página da
+  // memória seguinte é buscada de antemão, com as fotos; ao passar, o palco é trocado com todas
+  // prontas, e é aí que a animação começa. As setas do teclado e do controle da TV passam, e o Esc
+  // sai. Nada espera uma animação acabar: passar no meio de uma chegada troca na hora.
+  // Sem script, "Anterior" e "Próxima" continuam sendo links, e "Passar sozinho" nem aparece.
+  import { SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos } from '../../lib/explorar';
+
+  const calmo = matchMedia('(prefers-reduced-motion: reduce)');
+  const palco = () => document.querySelector<HTMLElement>('[data-palco]');
+  const link = (nome: string) => palco()?.querySelector<HTMLAnchorElement>(`[data-palco-${nome}]`) ?? null;
+  const serve = (a: HTMLAnchorElement | null): a is HTMLAnchorElement => Boolean(a && a.getAttribute('href') && a.getAttribute('aria-disabled') !== 'true');
+
+  // As páginas já buscadas: a de antes e a de depois ficam prontas enquanto a memória está na tela
+  const paginas = new Map<string, Promise<Document>>();
+  const buscar = (href: string) => {
+    if (!paginas.has(href)) {
+      if (paginas.size > 24) paginas.clear();
+      const pagina = fetch(href, { headers: { Accept: 'text/html' } })
+        .then((resposta) => (resposta.ok ? resposta.text() : Promise.reject(new Error(String(resposta.status)))))
+        .then((texto) => new DOMParser().parseFromString(texto, 'text/html'));
+      pagina.catch(() => paginas.delete(href));
+      paginas.set(href, pagina);
+    }
+    return paginas.get(href)!;
+  };
+  // Uma foto pronta: já baixada e aberta, do tamanho certo desde o primeiro desenho
+  const fotoPronta = async (endereco: string) => {
+    const foto = new Image();
+    foto.decoding = 'sync';
+    foto.src = endereco;
+    await foto.decode().catch(() => undefined);
+    return foto;
+  };
+  const fotosDe = (raiz: ParentNode) => [...raiz.querySelectorAll<HTMLImageElement>('.palco__fotos img')];
+  /** Troca cada foto do palco que vai chegar pela foto já pronta: nada aparece pela metade. */
+  const aprontar = (raiz: ParentNode) =>
+    Promise.all(
+      fotosDe(raiz).map(async (img) => {
+        const pronta = await fotoPronta(img.getAttribute('src') ?? '');
+        pronta.alt = img.alt;
+        img.replaceWith(pronta);
+      }),
+    );
+  const memoriaDe = (href: string) => new URL(href, location.href).searchParams.get('m');
+  const animacaoDe = (href: string) => new URL(href, location.href).searchParams.get('mov') ?? 'a';
+
+  // No endereço fica só o que traz a pessoa de volta ao mesmo lugar: a memória da vez e os filtros
+  // (decisão do Gui, 17/11/2026). A animação e o tempo do "Passar sozinho" são preferências,
+  // guardadas no aparelho; se está passando sozinho e a pausa valem enquanto o modo TV está aberto.
+  const semPreferencias = (href: string) => {
+    const url = new URL(href, location.href);
+    for (const nome of ['passar', 'pausa', 'mov']) url.searchParams.delete(nome);
+    return url.pathname + url.search;
+  };
+  const guardar = (nome: string, valor: string) => {
+    try {
+      localStorage.setItem(nome, valor);
+    } catch {
+      // sem armazenamento, a preferência vale só até sair do modo TV
+    }
+  };
+  const guardado = (nome: string) => {
+    try {
+      return localStorage.getItem(nome);
+    } catch {
+      return null;
+    }
+  };
+
+  let pedido = 0;
+  let relogio = 0;
+  let pausado = false;
+  // "Só as fotos": os controles à vista e o relógio que os esconde de novo
+  let controles = false;
+  let relogioDosControles = 0;
+
+  async function passar(a: HTMLAnchorElement | null, deTras = false) {
+    const atual = palco();
+    if (!serve(a) || !atual) return;
+    // Só o modo TV troca no lugar: o "ao acaso" sorteia no servidor, e sair é sair
+    if (!atual.classList.contains('palco--tv') || new URL(a.href).searchParams.get('ver') !== 'tv') return location.assign(a.href);
+    const href = a.href;
+    const meu = ++pedido;
+    clearTimeout(relogio);
+    try {
+      const pagina = await buscar(href);
+      const chegou = pagina.querySelector<HTMLElement>('[data-palco]');
+      if (!chegou) throw new Error('sem o palco');
+      const novo = document.importNode(chegou, true);
+      novo.querySelector('script')?.remove();
+      await aprontar(novo);
+      // Uma passagem mais nova já saiu: esta chegou atrasada
+      if (meu !== pedido) return;
+      novo.toggleAttribute('data-de-tras', deTras);
+      // A mesma memória (trocar o tempo, parar de passar sozinho): nada chega de novo. Trocar a
+      // animação é a exceção: ela chega de novo, para a pessoa ver o que escolheu.
+      const mesma = memoriaDe(href) === memoriaDe(location.href) && animacaoDe(href) === (atual.dataset.movimento ?? 'a');
+      if (!mesma) novo.setAttribute('data-pronta', '');
+      // "Ajustes" continua como estava, aberto ou fechado
+      const ajustes = novo.querySelector<HTMLDetailsElement>('[data-palco-ajustes]');
+      if (ajustes) ajustes.open = atual.querySelector<HTMLDetailsElement>('[data-palco-ajustes]')?.open ?? false;
+      const ativo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const focado = ['antes', 'depois', 'pausa', 'mostrar-texto'].find((nome) => ativo?.hasAttribute(`data-palco-${nome}`));
+      const noAjuste = ativo?.closest('[data-palco-ajustes]') ? ativo.textContent?.trim() : undefined;
+      const cor = getComputedStyle(atual).backgroundColor;
+      // No Álbum, as fotos que estavam na tela saem pela lateral, empurradas pelas que chegam
+      const saem = !mesma && !calmo.matches && novo.dataset.movimento === 'a' ? atual.querySelector<HTMLElement>('.palco__fotos') : null;
+      const saemDe = saem?.getBoundingClientRect();
+      atual.replaceWith(novo);
+      const cena = novo.querySelector<HTMLElement>('.palco__cena');
+      if (saem && saemDe && cena) {
+        const base = cena.getBoundingClientRect();
+        saem.setAttribute('aria-hidden', 'true');
+        saem.inert = true;
+        saem.classList.add('palco__fotos--saindo');
+        Object.assign(saem.style, { left: `${saemDe.left - base.left}px`, top: `${saemDe.top - base.top}px`, width: `${saemDe.width}px`, height: `${saemDe.height}px` });
+        cena.append(saem);
+        // Quem passou para a frente empurra para a esquerda; quem voltou, para a direita
+        const lado = deTras ? 1 : -1;
+        const fim = () => saem.remove();
+        saem.animate([{ translate: '0 0', rotate: '0deg' }, { translate: `${lado * 110}vw 0`, rotate: `${lado * 8}deg` }], { duration: 800, easing: 'cubic-bezier(0.5, 0, 0.8, 0.4)', fill: 'forwards' }).finished.then(fim, fim);
+      }
+      // O fundo passa de uma cor à outra, em vez de trocar de uma vez
+      if (!calmo.matches) novo.animate([{ backgroundColor: cor }, {}], { duration: 900, easing: 'ease-out' });
+      // Passar de memória não enche o histórico: o voltar do aparelho sai do modo TV de uma vez
+      history.replaceState(history.state, '', semPreferencias(href));
+      document.title = pagina.title;
+      preparar();
+      const noMesmoAjuste = noAjuste ? [...novo.querySelectorAll<HTMLElement>('[data-palco-ajustes] :is(a, button)')].find((e) => e.textContent?.trim() === noAjuste) : undefined;
+      // Em "Só as fotos", com os controles escondidos, o foco não vai para nenhum deles
+      if (!escondidos()) (noMesmoAjuste ?? (focado ? novo.querySelector<HTMLElement>(`[data-palco-${focado}]`) : null) ?? link('depois'))?.focus({ preventScroll: true });
+    } catch {
+      location.assign(href);
+    }
+  }
+
+  // O que cada memória precisa ao chegar: "Passar sozinho" à vista, as vizinhas buscadas e o relógio
+  function preparar() {
+    const atual = palco();
+    if (!atual) return;
+    if (atual.classList.contains('palco--tv')) {
+      for (const nome of ['depois', 'antes']) {
+        const vizinha = link(nome);
+        if (!serve(vizinha)) continue;
+        buscar(vizinha.href)
+          .then((pagina) => Promise.all(fotosDe(pagina).map((img) => fotoPronta(img.getAttribute('src') ?? ''))))
+          .catch(() => undefined);
+      }
+    }
+    for (const parte of atual.querySelectorAll<HTMLElement>('[data-palco-passar], [data-palco-tela]')) parte.hidden = false;
+    // "Só as fotos" é preferência guardada no aparelho; a tela cheia vale enquanto durar
+    marcarTela(guardado('tv-so-fotos') === '1');
+    // "Passar sozinho", num toque, liga no tempo que a pessoa escolheu da última vez
+    const tempo = guardado('tv-tempo');
+    const noTempo = [...atual.querySelectorAll<HTMLAnchorElement>('.palco__ajuste[data-palco-passar] a[data-palco-leva]')].find((a) => new URL(a.href).searchParams.get('passar') === tempo);
+    const ligar = atual.querySelector<HTMLAnchorElement>('.palco__sozinho a');
+    if (noTempo && ligar) ligar.setAttribute('href', noTempo.getAttribute('href')!);
+    pausado = atual.hasAttribute('data-pausado');
+    armar();
+  }
+
+  // "Só as fotos" esconde o título, o trecho e os dados; a tela cheia é a do navegador, onde existe
+  // (no iPhone não existe: ali o botão nem aparece)
+  function marcarTela(soFotos: boolean) {
+    const atual = palco();
+    if (!atual) return;
+    atual.toggleAttribute('data-so-fotos', soFotos);
+    // Os controles à vista seguem de uma memória para a outra; fora de "Só as fotos", a marca sai
+    atual.toggleAttribute('data-controles', soFotos && controles);
+    const botao = atual.querySelector<HTMLButtonElement>('[data-palco-so-fotos]');
+    if (botao) {
+      botao.setAttribute('aria-pressed', String(soFotos));
+      botao.textContent = soFotos ? 'Mostrar o texto' : 'Só as fotos';
+    }
+    // O caminho de volta em destaque, na linha de "Anterior" e "Próxima"
+    const volta = atual.querySelector<HTMLButtonElement>('[data-palco-mostrar-texto]');
+    if (volta) volta.hidden = !soFotos;
+    const cheia = atual.querySelector<HTMLButtonElement>('[data-palco-cheia]');
+    if (cheia) {
+      cheia.hidden = !document.fullscreenEnabled;
+      cheia.setAttribute('aria-pressed', String(Boolean(document.fullscreenElement)));
+      cheia.textContent = document.fullscreenElement ? 'Sair da tela cheia' : 'Tela cheia';
+    }
+  }
+
+  const soFotos = () => Boolean(palco()?.hasAttribute('data-so-fotos'));
+  const escondidos = () => soFotos() && !controles;
+
+  // Em "Só as fotos", os controles voltam por alguns segundos a cada gesto e somem de novo sozinhos.
+  // O relógio recomeça a cada gesto, então eles não somem enquanto a pessoa está mexendo.
+  function mostrarControles(focar = false) {
+    const atual = palco();
+    if (!atual || !soFotos()) return;
+    controles = true;
+    atual.setAttribute('data-controles', '');
+    if (focar) atual.querySelector<HTMLElement>('[data-palco-mostrar-texto]')?.focus({ preventScroll: true });
+    clearTimeout(relogioDosControles);
+    relogioDosControles = window.setTimeout(esconderControles, SEGUNDOS_DOS_CONTROLES * 1000);
+  }
+  function esconderControles() {
+    clearTimeout(relogioDosControles);
+    controles = false;
+    const atual = palco();
+    if (!atual) return;
+    atual.removeAttribute('data-controles');
+    // O foco do teclado nunca fica num controle escondido
+    const ativo = document.activeElement;
+    if (soFotos() && ativo instanceof HTMLElement && atual.contains(ativo)) ativo.blur();
+  }
+  // Entrar e sair de "Só as fotos". Ao entrar, os controles ficam na tela por alguns segundos, para
+  // a pessoa ver onde está o caminho de volta; ao sair, o foco vai para "Próxima", como na chegada.
+  function trocarSoFotos(ligar: boolean) {
+    guardar('tv-so-fotos', ligar ? '1' : '0');
+    if (!ligar) {
+      clearTimeout(relogioDosControles);
+      controles = false;
+    }
+    marcarTela(ligar);
+    if (ligar) mostrarControles(true);
+    else link('depois')?.focus({ preventScroll: true });
+  }
+
+  // Ligado: a próxima entra sozinha depois do tempo escolhido. Com a aba escondida, espera.
+  function armar() {
+    clearTimeout(relogio);
+    const segundos = Number(palco()?.dataset.passar);
+    if (segundos > 0 && !pausado && !document.hidden) relogio = window.setTimeout(() => passar(link('depois')), segundos * 1000);
+  }
+
+  // A pausa fica no endereço e segue para a memória seguinte: quem pausou e passa à mão continua pausado
+  function alternarPausa(botao: HTMLButtonElement) {
+    const atual = palco();
+    if (!atual) return;
+    pausado = !pausado;
+    botao.textContent = pausado ? 'Retomar' : 'Pausar';
+    botao.setAttribute('aria-pressed', String(pausado));
+    atual.toggleAttribute('data-pausado', pausado);
+    const levar = (endereco: string) => {
+      const url = new URL(endereco, location.href);
+      if (pausado) url.searchParams.set('pausa', '1');
+      else url.searchParams.delete('pausa');
+      return url.pathname + url.search;
+    };
+    // Escolher um tempo retoma: esses links não levam a pausa
+    for (const a of atual.querySelectorAll<HTMLAnchorElement>('a[data-palco-leva][href], a[data-palco-movimento][href]')) if (!a.closest('[data-palco-passar]')) a.setAttribute('href', levar(a.href));
+    armar();
+  }
+
+  const primeiro = palco();
+  if (primeiro) {
+    // Na chegada pela página, a animação espera as fotos: sem isso ela acabava antes de elas aparecerem
+    Promise.all(fotosDe(primeiro).map((img) => (img.complete ? img.decode().catch(() => undefined) : new Promise((ok) => img.addEventListener('load', ok, { once: true }))))).then(() => {
+      primeiro.setAttribute('data-pronta', '');
+      primeiro.removeAttribute('data-espera');
+    });
+    document.addEventListener('keydown', (evento) => {
+      if (evento.metaKey || evento.ctrlKey || evento.altKey || !palco()) return;
+      // Em "Só as fotos" (reacaoEmSoFotos, em src/lib/explorar.ts): o Esc volta ao modo com texto,
+      // as setas para os lados passam sem mostrar os controles e qualquer outra tecla os traz de volta
+      if (soFotos()) {
+        const reacao = reacaoEmSoFotos({ tipo: 'tecla', tecla: evento.key }, controles);
+        if (reacao === 'voltar-ao-texto') {
+          evento.preventDefault();
+          return trocarSoFotos(false);
+        }
+        if (reacao === 'mostrar-controles') {
+          // O Tab segue o caminho dele, já com os controles à vista; as outras teclas só mostram
+          if (evento.key !== 'Tab') evento.preventDefault();
+          return mostrarControles(evento.key !== 'Tab');
+        }
+        if (reacao === 'seguir') mostrarControles();
+      }
+      if (evento.key === 'ArrowRight') passar(link('depois'));
+      else if (evento.key === 'ArrowLeft') passar(link('antes'), true);
+      else if (evento.key === 'Escape' && serve(link('sair'))) location.assign(link('sair')!.href);
+    });
+    // O toque e o clique, em "Só as fotos" com os controles escondidos, só trazem os controles: a
+    // foto não passa de memória nesse primeiro toque. Na captura, antes de qualquer outro tratamento.
+    document.addEventListener(
+      'click',
+      (evento) => {
+        if (!soFotos()) return;
+        if (reacaoEmSoFotos({ tipo: 'toque' }, controles) === 'mostrar-controles') {
+          evento.preventDefault();
+          evento.stopPropagation();
+        }
+        mostrarControles();
+      },
+      true,
+    );
+    // O mouse que se mexe de verdade: a troca de memória embaixo de um cursor parado não conta
+    let cursor = '';
+    document.addEventListener('mousemove', (evento) => {
+      const onde = `${evento.screenX},${evento.screenY}`;
+      if (onde === cursor) return;
+      const primeiroSinal = cursor === '';
+      cursor = onde;
+      if (!primeiroSinal && soFotos()) mostrarControles();
+    });
+    document.addEventListener('click', (evento) => {
+      const alvo = evento.target instanceof Element ? evento.target : null;
+      const pausa = alvo?.closest<HTMLButtonElement>('[data-palco] [data-palco-pausa]');
+      if (pausa) return alternarPausa(pausa);
+      if (alvo?.closest('[data-palco] :is([data-palco-so-fotos], [data-palco-mostrar-texto])')) return trocarSoFotos(!soFotos());
+      if (alvo?.closest('[data-palco] [data-palco-cheia]')) {
+        const pedido = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+        return void pedido.catch(() => undefined);
+      }
+      // Dentro do modo TV, todo link que continua nele troca no lugar: passar, o tempo, a animação
+      const a = alvo?.closest<HTMLAnchorElement>('[data-palco].palco--tv a[href]');
+      if (!a || evento.defaultPrevented || evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
+      if (new URL(a.href).searchParams.get('ver') !== 'tv') return;
+      evento.preventDefault();
+      // A animação e o tempo escolhidos em "Ajustes" ficam guardados no aparelho
+      if (a.hasAttribute('data-palco-movimento')) guardar('tv-animacao', animacaoDe(a.href));
+      const tempo = a.closest('.palco__ajuste[data-palco-passar]') ? new URL(a.href).searchParams.get('passar') : null;
+      if (tempo) guardar('tv-tempo', tempo);
+      passar(a, a.hasAttribute('data-palco-antes'));
+    });
+    document.addEventListener('visibilitychange', armar);
+    // Sair da tela cheia pelo Esc do navegador não chega à página como tecla: os controles voltam aqui
+    document.addEventListener('fullscreenchange', () => {
+      marcarTela(soFotos());
+      mostrarControles();
+    });
+    preparar();
+    // Quem entra com "Só as fotos" guardado vê os controles por alguns segundos, com o caminho de volta
+    mostrarControles();
+    history.replaceState(history.state, '', semPreferencias(location.href));
+    // A animação guardada no aparelho vale ao entrar no modo TV
+    const animacao = guardado('tv-animacao');
+    const daAnimacao = animacao && animacao !== (primeiro.dataset.movimento ?? 'a') ? [...primeiro.querySelectorAll<HTMLAnchorElement>('a[data-palco-movimento]')].find((a) => animacaoDe(a.href) === animacao) : undefined;
+    if (daAnimacao) passar(daAnimacao);
+    // O foco começa em "Próxima": no controle da TV, o botão do meio já passa. Em "Só as fotos", em
+    // "Mostrar o texto".
+    (soFotos() ? palco()?.querySelector<HTMLElement>('[data-palco-mostrar-texto]') : link('depois'))?.focus({ preventScroll: true });
+  }
+</script>

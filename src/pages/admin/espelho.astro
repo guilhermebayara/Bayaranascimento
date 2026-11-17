@@ -1,37 +1,42 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Abertura from '../../components/Abertura.astro';
+import Pagina from '../../components/formularios/Pagina.astro';
 import { podeEspelhar } from '../../lib/servidor/espelho';
 
 const { usuario } = Astro.locals;
 if (!usuario.admin || !podeEspelhar()) return new Response('Página não encontrada', { status: 404 });
+// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
-<Base titulo="Espelho da produção">
-  <Abertura titulo="Espelho da produção">
+<Pagina titulo="Espelho da produção" rotulo="Administração" secao="conta" larga>
+  <Fragment slot="abertura">
     <p>
       A homologação usa a mesma estrutura de família da produção, com nomes e memórias inventados. Assim dá para ver se a árvore aguenta a
       nossa família antes de publicar.
     </p>
-  </Abertura>
+    <p class="acoes">
+      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+    </p>
+  </Fragment>
 
   <section class="painel">
     <h2>Refazer o espelho</h2>
-    <ol>
-      <li>No site de verdade, em memorias.bayara.com.br, use "Baixar cópia do acervo", no rodapé.</li>
+    <ol class="passos">
+      <li>No site de verdade, em memorias.bayara.com.br, abra a sua conta e, em "Administração", use "Baixar cópia do acervo".</li>
       <li>Envie o arquivo aqui.</li>
     </ol>
     <p class="dica">
-      Ficam os laços de árvore, os casais com as fases, os laços do coração com o papel e a marca de privado, e quem é de cada núcleo. Os nomes
+      Ficam os laços de árvore, os casais com as fases, os laços do coração com o papel e a marca de privado, e quem é de cada família. Os nomes
       são trocados, os anos andam alguns anos para a frente, e memórias, relatos e fotos reais ficam de fora. Tudo o que está hoje nesta
       homologação é apagado e trocado pelo espelho novo.
     </p>
-    <form method="post" action="/api/espelho" enctype="multipart/form-data">
+    <form class="formulario" method="post" action="/api/espelho" enctype="multipart/form-data">
       <label class="campo">
         <span>Cópia do acervo (arquivo .json)</span>
         <input type="file" name="copia" accept="application/json,.json" required />
       </label>
-      <button type="submit" class="botao">Refazer o espelho</button>
+      <div class="acoes">
+        <button type="submit" class="botao">Refazer o espelho</button>
+      </div>
     </form>
   </section>
-</Base>
+</Pagina>

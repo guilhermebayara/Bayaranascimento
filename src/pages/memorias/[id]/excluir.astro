@@ -1,7 +1,6 @@
 ---
 // Excluir é uma ação séria: esta página existe para a pessoa confirmar antes.
-import Base from '../../../layouts/Base.astro';
-import Abertura from '../../../components/Abertura.astro';
+import Pagina from '../../../components/formularios/Pagina.astro';
 import { formatarData } from '../../../lib/datas';
 import { podeExcluirMemoria } from '../../../lib/servidor/permissoes';
 import { outrosAdmins } from '../../../lib/servidor/conteudo';
@@ -18,12 +17,11 @@ const relatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situa
 const titulo = rascunho ? 'Descartar rascunho' : 'Excluir memória';
 // Quem mais pode recuperar, do ponto de vista de quem está excluindo
 const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
+// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
-<Base titulo={titulo}>
-  <Abertura titulo={titulo}>
-
-  </Abertura>
+<Pagina titulo={titulo} rotulo={rascunho ? 'Rascunho' : 'Memória publicada'} nucleos={memoria.nucleos} secao="explorar">
+  <p slot="abertura">Confira antes de confirmar. Nada é apagado de vez.</p>
   <section class="alerta">
     <h2>{memoria.titulo}</h2>
     <p>{formatarData(memoria)}</p>
@@ -49,4 +47,4 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
       <a class="botao botao--leve" href={voltarPara}>Cancelar</a>
     </form>
   </section>
-</Base>
+</Pagina>

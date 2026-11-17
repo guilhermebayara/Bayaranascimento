@@ -1,16 +1,14 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Abertura from '../../components/Abertura.astro';
+import Pagina from '../../components/formularios/Pagina.astro';
 import FichaDoIntegrante from '../../components/FichaDoIntegrante.astro';
+// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
-<Base titulo="Nova pessoa">
-  <Abertura titulo="Nova pessoa">
-    <p>Cadastre alguém da família, um bicho ou uma pessoa querida. Só o nome é obrigatório. Os laços com o resto da família vêm na etapa seguinte.</p>
-  </Abertura>
+<Pagina titulo="Nova pessoa" rotulo="Pessoas" secao="pessoas">
+  <p slot="abertura">Cadastre alguém da família, um bicho ou uma pessoa querida. Só o nome é obrigatório. Os laços com o resto da família vêm na etapa seguinte.</p>
   <ol class="etapas etapas--fluxo" aria-label="Etapas">
     <li><span aria-current="step"><b>1</b><span>Quem é</span></span></li>
     <li><span><b>2</b><span>Laços</span></span></li>
   </ol>
   <FichaDoIntegrante />
-</Base>
+</Pagina>

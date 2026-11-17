@@ -89,7 +89,7 @@ export interface ItemDeAdministracao {
 
 /**
  * "Administração", só para os administradores, numa seção à parte no fim: tipos de momento,
- * famílias e membros, "Baixar cópia do acervo" e, onde o espelho existe (na homologação e no
+ * famílias e membros, a carta de Natal, a página do sistema visual, "Baixar cópia do acervo" e, onde o espelho existe (na homologação e no
  * computador), o espelho da produção. O tamanho do banco entra como texto, à parte. Para quem não é
  * administrador, nada.
  */
@@ -98,6 +98,8 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
   return [
     { rotulo: 'Tipos de momento', href: '/admin/tipos' },
     { rotulo: 'Famílias e membros', href: '/admin/familias' },
+    { rotulo: 'Carta de Natal', href: '/admin/carta' },
+    { rotulo: 'Sistema visual', href: '/sistema' },
     { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
     ...(onde.podeEspelhar ? [{ rotulo: 'Espelho da produção', href: '/admin/espelho' }] : []),
   ];

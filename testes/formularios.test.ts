@@ -52,13 +52,13 @@ describe('árvore na tela', () => {
   it('"Partir de" só oferece quem tem laço de árvore', () => {
     expect(pagina).toMatch(/ordenados\.filter\(\(i\) => comLaco\.has\(i\.id\)\)/);
     expect(cliente).toContain('partir.hidden = estado.centro === p.id || !partivel.has(p.id)');
-    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/\{temLacoDeArvore && <a [^>]*href=\{`\/arvore\?centro=/);
+    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/\{temLacoDeArvore && \(\s*<a [^>]*href=\{`\/arvore\?centro=/);
   });
 
   it('o cartão do ramo aberto fica por cima da legenda', () => {
     expect(cliente).toContain('camadaDosRamos.append(cartao)');
     // A camada dos ramos vem logo depois da árvore e antes dos painéis. O z-index (2, contra 1 da legenda)
-    // está em src/styles/global.css; o vitest não lê CSS, então ele não é conferido aqui.
+    // está em src/visual/telas/arvore.css, conferido em testes/visual.test.ts.
     expect(pagina.indexOf('data-camada-ramos')).toBeGreaterThan(pagina.indexOf('data-camada>'));
     expect(pagina.indexOf('data-camada-ramos')).toBeLessThan(pagina.indexOf('mapa__painel'));
   });
@@ -67,15 +67,16 @@ describe('árvore na tela', () => {
 describe('formulários sem JavaScript e depois de um erro', () => {
   // Achados do QA de 15/11/2026, corrigidos a pedido do Gui (16/11)
   it('o que foi digitado volta quando o servidor recusa', () => {
-    const base = fonte('src/layouts/Base.astro');
-    expect(base).toContain("import { guardarFormularios } from '../lib/cliente/guardar-formulario';");
+    // Mora na página de formulário do visual novo, que todas as telas de formulário usam
+    const base = fonte('src/components/formularios/Pagina.astro');
+    expect(base).toContain("import { guardarFormularios } from '../../lib/cliente/guardar-formulario';");
     const guardar = fonte('src/lib/cliente/guardar-formulario.ts');
     expect(guardar).toContain("searchParams.has('erro')");
     expect(guardar).toContain('sessionStorage');
   });
 
   it('sem JavaScript, somem os botões que dependem dele e aparecem os blocos que ele mostraria', () => {
-    const base = fonte('src/layouts/Base.astro');
+    const base = fonte('src/components/formularios/Pagina.astro');
     expect(base).toMatch(/<noscript>[\s\S]*\[data-etapa-continuar\][\s\S]*display: none[\s\S]*\[data-para\]\[hidden\], \[data-so-epoca\]\[hidden\], \[data-so-periodo\]\[hidden\], \[data-depende\]\[hidden\] \{ display: block/);
   });
 

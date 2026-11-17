@@ -1,0 +1,115 @@
+---
+// O mural de fotos (docs/decisoes.md, "Explorar"): a caixa de fotografias aberta na mesa. Uma
+// superfície só de fotos reveladas, de ponta a ponta; um toque abre a memória. Memória sem foto
+// entra como cartão, na cor do tipo de momento.
+//
+// Decisões do Gui (17/11/2026, segunda rodada: com o ano como cabeçalho, o mural tinha virado uma
+// segunda linha do tempo). A orientação mora em objetos que ficam entre as fotos, sem cabeçalho:
+// - a década é um cartão no meio das fotos, no lugar de uma delas, na cor da família;
+// - o ano é uma aba na primeira foto de cada ano, como a de um fichário;
+// - na margem de cada foto vai só o título da memória, pequeno, na letra manuscrita;
+// - no computador, ao passar o mouse, o verso da foto abre em leque por trás dela, como duas fotos
+//   seguradas pelo canto de baixo: um cartão do mesmo tamanho, com a data escrita no canto que
+//   aparece. É um agrado: a foto continua à vista, e o clique abre a memória;
+// - quem está vendo escolhe o tamanho das fotos: pequenas, médias ou grandes.
+// Nas ordens que não seguem a data ("Entraram por último" e "Mais contadas"), saem os cartões e as
+// abas, e a ficha do verso passa a ser o lugar da data.
+import Polaroid from '../visual/Polaroid.astro';
+import type { Ordem, Tamanho } from '../../lib/explorar';
+import { diaMesCurto, estiloDoTipo, nomeDaDecada } from '../../lib/visual';
+
+interface MemoriaDoMural {
+  id: string;
+  titulo: string;
+  ano: number;
+  mes: number | null;
+  dia: number | null;
+  aproximada: boolean;
+  tipo: string;
+  fotos: { chave: string; legenda: string | null }[];
+}
+
+interface Props {
+  /** as memórias, já filtradas e na ordem pedida */
+  memorias: MemoriaDoMural[];
+  ordem: Ordem;
+  tamanho: Tamanho;
+}
+
+const { memorias, ordem, tamanho } = Astro.props;
+const peloTempo = ordem === 'recentes' || ordem === 'antigas';
+const decadaDe = (ano: number) => Math.floor(ano / 10) * 10;
+const naDecada = (decada: number) => memorias.filter((m) => decadaDe(m.ano) === decada).length;
+const cedo = new Set(memorias.slice(0, 8).map((m) => m.id));
+// A primeira foto de cada ano leva a aba; a primeira de cada década vem depois do cartão dela
+const itens = memorias.map((m, n) => {
+  const anterior = memorias[n - 1];
+  return {
+    m,
+    abreAno: peloTempo && anterior?.ano !== m.ano,
+    abreDecada: peloTempo && (!anterior || decadaDe(anterior.ano) !== decadaDe(m.ano)) ? decadaDe(m.ano) : null,
+  };
+});
+---
+
+<ul class="mural miolo" aria-label="Fotos das memórias" data-mural data-tamanho={tamanho}>
+  {
+    itens.map(({ m, abreAno, abreDecada }) => (
+      <>
+        {abreDecada !== null && (
+          <li class="mural__decada" id={`decada-${abreDecada}`} data-chave={`d:${abreDecada}`} data-ano={m.ano}>
+            <p>
+              <span class="rotulo">{nomeDaDecada(abreDecada).rotulo}</span>
+              <strong data-letras={nomeDaDecada(abreDecada).numero.length}>{nomeDaDecada(abreDecada).numero}</strong>
+              <span class="ficha">
+                {naDecada(abreDecada)} {naDecada(abreDecada) === 1 ? 'memória' : 'memórias'}
+              </span>
+            </p>
+          </li>
+        )}
+        <li class="mural__foto" style={estiloDoTipo(m.tipo)} data-chave={`m:${m.id}`} data-ano={m.ano}>
+          {abreAno && (
+            <span class="mural__aba" aria-hidden="true">
+              {m.ano}
+            </span>
+          )}
+          <a href={`/memorias/${m.id}`}>
+            <Polaroid id={m.id} fotos={m.fotos} legenda={m.titulo} alt="" monte={false} cedo={cedo.has(m.id)} tipo={m.tipo} />
+            <span class="mural__verso">
+              <span class="so-leitor">, </span>
+              {/* No canto que aparece só cabe a data: o dia e o mês numa linha, o ano na outra */}
+              {m.aproximada && <span>por volta de</span>}
+              {diaMesCurto(m) && <span>{diaMesCurto(m)}</span>}
+              <span>{m.ano}</span>
+            </span>
+          </a>
+        </li>
+      </>
+    ))
+  }
+</ul>
+{/* O tamanho das fotos guardado no aparelho vale desde o primeiro desenho, sem o mural pular */}
+<script is:inline>
+  (function () {
+    try {
+      var tamanho = localStorage.getItem('mural-tamanho');
+      var mural = document.currentScript.previousElementSibling;
+      if (mural && ['pequenas', 'medias', 'grandes'].indexOf(tamanho) >= 0) mural.setAttribute('data-tamanho', tamanho);
+    } catch (e) {}
+  })();
+</script>
+
+<script>
+  // O verso abre em leque para a direita da foto; perto da borda direita da tela, para a esquerda.
+  // O mural pode ser trocado sem recarregar a página: por isso quem escuta é o documento.
+  if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    const acertar = (alvo: EventTarget | null) => {
+      const item = alvo instanceof Element ? alvo.closest<HTMLElement>('[data-mural] .mural__foto') : null;
+      if (!item) return;
+      const caixa = item.getBoundingClientRect();
+      item.toggleAttribute('data-para-a-esquerda', innerWidth - caixa.right < caixa.width * 0.45);
+    };
+    document.addEventListener('pointerover', (evento) => acertar(evento.target));
+    document.addEventListener('focusin', (evento) => acertar(evento.target));
+  }
+</script>

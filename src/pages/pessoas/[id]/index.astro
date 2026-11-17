@@ -1,14 +1,36 @@
 ---
-import Base from '../../../layouts/Base.astro';
-import LinhaDoTempo from '../../../components/LinhaDoTempo.astro';
+// A página da pessoa. A ideia da tela (docs/visual.md): o retrato e a voz. O retrato recortado, o
+// parentesco grande, do ponto de vista de quem olha ("sua avó"), e os áudios em que ela fala. A
+// lista de laços fica quieta, e as memórias com ela vêm no fim, na linha do tempo.
+import '../../../visual/telas/linha.css';
+import '../../../visual/telas/pessoa.css';
+import Visual from '../../../layouts/Visual.astro';
+import Linha from '../../../components/explorar/Linha.astro';
+import Audio from '../../../components/visual/Audio.astro';
+import Carimbo from '../../../components/visual/Carimbo.astro';
+import Gente from '../../../components/visual/Gente.astro';
+import Retrato from '../../../components/visual/Retrato.astro';
+import Vazio from '../../../components/visual/Vazio.astro';
+import { duracaoEmTexto } from '../../../lib/audios';
 import { datasDeVida, formatarData } from '../../../lib/datas';
-import { FASES, Familia, estaoJuntos, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
+import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
+import { enderecoDoRetrato } from '../../../lib/retratos';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
-import { corDaFamilia, enderecoDoRetrato, iniciais } from '../../../lib/retratos';
-import { pessoasQueONaoVe, familiasDe, listarAudiosDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarMemorias, listarNucleos } from '../../../lib/servidor/repositorio';
-import { nomeDoPapel } from '../../../lib/parentesco';
-import { duracaoEmTexto } from '../../../lib/audios';
+import {
+  familiasDe,
+  listarAudiosDe,
+  listarCapitulos,
+  listarCasais,
+  listarFiliacoes,
+  listarIntegrantes,
+  listarLacosDoCoracao,
+  listarLacosResumidos,
+  listarMemorias,
+  listarNucleos,
+  pessoasQueONaoVe,
+} from '../../../lib/servidor/repositorio';
+import { corDaPessoa } from '../../../lib/visual';
 
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
@@ -16,9 +38,11 @@ const pessoa = integrantes.find((i) => i.id === Astro.params.id);
 if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
 
 const nucleos = await listarNucleos();
-const memorias = await listarMemorias(usuario, { integrante: pessoa.id });
-const dosNucleos = familiasDe(pessoa).map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean);
-const resumo = [pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bicho') : '', dosNucleos.join(' e ')].filter(Boolean).join(', ');
+const ordemDosNucleos = nucleos.map((n) => n.id);
+// Da mais recente para a mais antiga, como em toda linha do tempo do site
+const memorias = (await listarMemorias(usuario, { integrante: pessoa.id })).reverse();
+const dosNucleos = familiasDe(pessoa).map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n));
+const especie = pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bicho') : null;
 
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const filiacoes = await listarFiliacoes();
@@ -26,11 +50,14 @@ const familia = new Familia(filiacoes, await listarCasais(usuario), tratamentos)
 // Data da adoção, quando a filiação entre esta pessoa e o parente é adotiva e alguém informou
 const adocaoCom = (id: string) => {
   const f = filiacoes.find((x) => x.qualidade === 'adotiva' && ((x.filho === pessoa.id && x.responsavel === id) || (x.responsavel === pessoa.id && x.filho === id)));
-  return f?.adocao ? formatarData({ ano: f.adocao.ano, mes: f.adocao.mes, dia: f.adocao.dia, aproximada: false }) : undefined;
+  return f?.adocao ? `adoção em ${formatarData({ ano: f.adocao.ano, mes: f.adocao.mes, dia: f.adocao.dia, aproximada: false })}` : undefined;
 };
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 const chamar = pessoa.apelido ?? pessoa.nome;
+const naoVe = await pessoasQueONaoVe(usuario);
+const retratoDe = (id: string) => (achar(id)?.retrato && !naoVe.has(id) ? enderecoDoRetrato(achar(id)!.retrato!) : null);
+const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
 // O que cada parente é desta pessoa: "mãe", "irmão", "filho de consideração".
 // Na própria página, com o possessivo, como os laços do coração: "sua mãe", "sua vó de consideração".
 const ehMinha = pessoa.id === usuario.pessoa;
@@ -39,7 +66,7 @@ const papel = (id: string) => {
   if (!relacao) return undefined;
   return ehMinha ? possessivo(relacao, achar(id)?.tratamento ?? null) : relacao.texto;
 };
-const paraVoce = pessoa.id === usuario.pessoa ? undefined : familia.relacao(usuario.pessoa, pessoa.id);
+const paraVoce = ehMinha ? undefined : familia.relacao(usuario.pessoa, pessoa.id);
 
 const pais = familia.pais(pessoa.id).map((p) => p.responsavel);
 const grupos = [
@@ -54,140 +81,185 @@ const lacos = await listarLacosDoCoracao(usuario);
 const escolhidos = lacos.filter((l) => l.dono === pessoa.id);
 const escolhidaPor = lacos.filter((l) => l.pessoa === pessoa.id);
 // Sem parentesco calculado, vale o laço do coração de quem está olhando
-const meuLaco = paraVoce ? undefined : escolhidaPor.find((l) => l.dono === usuario.pessoa);
+const meuLaco = paraVoce || ehMinha ? undefined : escolhidaPor.find((l) => l.dono === usuario.pessoa);
 // Sem filiação nem casal, a árvore a partir da pessoa seria só ela: o botão não aparece
 const temLacoDeArvore = pais.length > 0 || familia.filhos(pessoa.id).length > 0 || casais.length > 0;
 // Parentes de fora das famílias, sem o caminho inteiro ("Caio é sobrinho do Ed")
 const resumidos = (await listarLacosResumidos()).filter((l) => l.a === pessoa.id || l.b === pessoa.id);
-const temFamilia = grupos.length > 0 || casais.length > 0 || escolhidos.length > 0 || escolhidaPor.length > 0 || resumidos.length > 0;
 
 // Os áudios em que a pessoa fala (os dos relatos dela), nas memórias que quem olha vê
 const audiosDaPessoa = await listarAudiosDe(usuario, pessoa.id);
-// O retrato, para quem vê a pessoa. Sem retrato, as iniciais sobre a cor da família.
-const retrato = pessoa.retrato && !(await pessoasQueONaoVe(usuario)).has(pessoa.id) ? enderecoDoRetrato(pessoa.retrato) : null;
-const corDoRetrato = corDaFamilia(familiasDe(pessoa), nucleos.map((n) => n.id));
 const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok || podeMexerEmLaco(usuario, [pessoa]).ok;
+
+// O parentesco grande: "sua avó" ou "seu amigo-irmão". Na própria página e na de quem não tem laço
+// com quem olha, o nome é a linha grande.
+const parentesco = paraVoce ? possessivo(paraVoce, pessoa.tratamento) : meuLaco ? lacoParaODono(meuLaco.nome, pessoa.tratamento) : null;
+// "Nascimento: 4 de maio de 1942" vira dois itens de carimbo, sem o rótulo quando é só o nascimento
+const vida = datasDeVida(pessoa);
+
+// Os grupos de laços, cada um com as suas linhas
+type Linha = { id: string; laco?: string | null; detalhe?: string | null };
+const partes: { titulo: string; linhas: Linha[] }[] = [
+  {
+    titulo: 'Casal',
+    linhas: casais.map((c) => ({
+      id: c.outro,
+      laco: papel(c.outro) ?? (estaoJuntos(c.casal) ? null : 'ex'),
+      detalhe:
+        c.casal.fases.map((fase, n) => [FASES[fase.tipo].toLowerCase(), periodosDasFases(c.casal.fases)[n]].filter(Boolean).join(' ')).join(', depois ') +
+        (c.casal.visibilidade === 'privado' ? ' (só os dois veem)' : ''),
+    })),
+  },
+  ...grupos.map((g) => ({ titulo: g.titulo, linhas: g.ids.map((id) => ({ id, laco: papel(id), detalhe: adocaoCom(id) })) })),
+  {
+    titulo: 'Parentes',
+    linhas: resumidos.map((l) => {
+      const outro = l.a === pessoa.id ? l.b : l.a;
+      return { id: outro, laco: l.a === pessoa.id ? nomeDoPapel(l.papel, achar(outro)?.tratamento ?? null) : `${chamar} é ${nomeDoPapel(l.papel, pessoa.tratamento)}` };
+    }),
+  },
+  {
+    titulo: 'Laços do coração',
+    linhas: escolhidos.map((l) => ({
+      id: l.pessoa,
+      laco: l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : l.nome,
+      detalhe: l.privado ? 'só você vê' : null,
+    })),
+  },
+  {
+    titulo: 'No coração de',
+    linhas: escolhidaPor.map((l) => ({
+      id: l.dono,
+      laco: l.dono === usuario.pessoa ? `${lacoParaODono(l.nome, pessoa.tratamento)} (você)` : `chama de ${l.nome}`,
+      detalhe: l.privado ? 'só você vê' : null,
+    })),
+  },
+].filter((p) => p.linhas.length > 0);
 ---
 
-<Base titulo={pessoa.nome}>
-  <div class="abertura">
-    <span class="retrato retrato--grande" style={`--retrato-cor: ${corDoRetrato}`}>
-      {retrato ? <img src={retrato} alt="" aria-hidden="true" /> : <span aria-hidden="true">{iniciais(chamar)}</span>}
-    </span>
-    <h1>{pessoa.nome}</h1>
-    {resumo && <p>{resumo}</p>}
-    {paraVoce && <p class="parentesco">{chamar} é {possessivo(paraVoce, pessoa.tratamento)}.</p>}
-    {meuLaco && <p class="parentesco">{chamar} é {lacoParaODono(meuLaco.nome, pessoa.tratamento)}.</p>}
-    {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026) */}
-    <p class="acoes acoes--pagina">
-      <a class="botao" href={`/pessoas/${pessoa.id}/editar`}>{podeEditar ? 'Editar página e laços' : 'Adicionar laço'}</a>
-      {temLacoDeArvore && <a class="botao botao--leve" href={`/arvore?centro=${pessoa.id}`}>Ver na árvore</a>}
-      <a class="botao botao--leve" href={`/nova?com=${pessoa.id}`}>Nova memória com {chamar}</a>
-    </p>
-    {datasDeVida(pessoa).map((linha) => <p class="dica">{linha}</p>)}
-    {pessoa.sobre && <div class="bio">{pessoa.sobre.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>}
-  </div>
+<Visual titulo={pessoa.nome} secao="pessoas" nucleos={familiasDe(pessoa)}>
+  <article class="pessoa-pagina">
+    <header class="quem-e bloco">
+      <div class="miolo grade">
+        <div class="quem-e__retrato">
+          <Retrato nome={chamar} foto={retratoDe(pessoa.id)} familia={familiaDe(pessoa.id)} cedo />
+        </div>
+        <div class="quem-e__texto">
+          {(especie || dosNucleos.length > 0) && (
+            <p class="quem-e__sobre">
+              <Carimbo itens={[especie, dosNucleos.join(' e ')]} />
+            </p>
+          )}
+          {/* PROVISÓRIO (pergunta 6 do PR do grupo "pessoal"): o parentesco é a linha grande, e o nome vem logo abaixo */}
+          {parentesco && <p class="quem-e__laco">{parentesco}</p>}
+          <h1 class:list={['quem-e__nome', parentesco ? 't-2' : 't-1']}>{pessoa.nome}</h1>
+          {vida.length > 0 && <p class="quem-e__vida ficha">{vida.join(' · ')}</p>}
+          {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026) */}
+          <p class="quem-e__acoes">
+            <a class="botao" href={`/pessoas/${pessoa.id}/editar`}>
+              {podeEditar ? 'Editar página e laços' : 'Adicionar laço'}
+            </a>
+            {temLacoDeArvore && (
+              <a class="acao" href={`/arvore?centro=${pessoa.id}`}>
+                Ver na árvore
+              </a>
+            )}
+            <a class="acao" href={`/nova?com=${pessoa.id}`}>
+              Nova memória com {chamar}
+            </a>
+          </p>
+        </div>
+      </div>
+    </header>
 
-  {
-    temFamilia && (
-      <section class="familia">
-        <h2>Família e laços</h2>
-        <dl>
-          {casais.length > 0 && (
-            <div>
-              <dt>Casal</dt>
-              {casais.map((c) => (
-                <dd>
-                  <a href={`/pessoas/${c.outro}`}>{nome(c.outro)}</a>
-                  <span>{papel(c.outro) ?? (estaoJuntos(c.casal) ? '' : 'ex')}</span>
-                  <small>
-                    {c.casal.fases
-                      .map((fase, n) => [FASES[fase.tipo].toLowerCase(), periodosDasFases(c.casal.fases)[n]].filter(Boolean).join(' '))
-                      .join(', depois ')}
-                    {c.casal.visibilidade === 'privado' && ' (só os dois veem)'}
-                  </small>
-                </dd>
-              ))}
-            </div>
+    {
+      (pessoa.sobre || audiosDaPessoa.length > 0) && (
+        <div class="voz miolo grade">
+          {pessoa.sobre && (
+            <section class="voz__sobre" aria-labelledby="sobre">
+              <h2 class="rotulo suave" id="sobre">
+                Sobre {chamar}
+              </h2>
+              <div class="voz__texto">
+                {pessoa.sobre.split(/\n{2,}/).map((p) => (
+                  <p>{p}</p>
+                ))}
+              </div>
+            </section>
           )}
-          {grupos.map((g) => (
-            <div>
-              <dt>{g.titulo}</dt>
-              {g.ids.map((id) => (
-                <dd>
-                  <a href={`/pessoas/${id}`}>{nome(id)}</a>
-                  <span>{papel(id)}</span>
-                  {adocaoCom(id) && <small>adoção em {adocaoCom(id)}</small>}
-                </dd>
-              ))}
-            </div>
-          ))}
-          {resumidos.length > 0 && (
-            <div>
-              <dt>Parentes</dt>
-              {resumidos.map((l) => {
-                const outro = l.a === pessoa.id ? l.b : l.a;
-                return (
-                  <dd>
-                    <a href={`/pessoas/${outro}`}>{nome(outro)}</a>
-                    <span>{l.a === pessoa.id ? nomeDoPapel(l.papel, achar(outro)?.tratamento ?? null) : `${chamar} é ${nomeDoPapel(l.papel, pessoa.tratamento)}`}</span>
-                  </dd>
-                );
-              })}
-            </div>
+          {audiosDaPessoa.length > 0 && (
+            <section class="voz__audios" id="audios" aria-labelledby="titulo-audios">
+              <h2 class="t-2" id="titulo-audios">
+                A voz de {chamar}
+              </h2>
+              {audiosDaPessoa.length > 1 && <p class="rotulo suave">{audiosDaPessoa.length} áudios</p>}
+              <ol class="voz__lista">
+                {audiosDaPessoa.map((audio) => (
+                  <li>
+                    <p class="voz__memoria">
+                      <a class="serifa" href={`/memorias/${audio.memoriaId}`}>
+                        {audio.memoriaTitulo}
+                      </a>
+                    </p>
+                    <Audio rotulo={`Áudio · ${duracaoEmTexto(audio.duracao)}`} src={`/audios/${audio.chave}`} transcricao={audio.transcricao} />
+                  </li>
+                ))}
+              </ol>
+            </section>
           )}
-          {escolhidos.length > 0 && (
-            <div>
-              <dt>Laços do coração</dt>
-              {escolhidos.map((l) => (
-                <dd>
-                  <a href={`/pessoas/${l.pessoa}`}>{nome(l.pessoa)}</a>
-                  <span>{l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : l.nome}</span>
-                  {l.privado && <small>só você vê</small>}
-                </dd>
-              ))}
-            </div>
-          )}
-          {escolhidaPor.length > 0 && (
-            <div>
-              <dt>No coração de</dt>
-              {escolhidaPor.map((l) => (
-                <dd>
-                  <a href={`/pessoas/${l.dono}`}>{nome(l.dono)}</a>
-                  <span>{l.dono === usuario.pessoa ? `${lacoParaODono(l.nome, pessoa.tratamento)} (você)` : `chama de ${l.nome}`}</span>
-                  {l.privado && <small>só você vê</small>}
-                </dd>
-              ))}
-            </div>
-          )}
-        </dl>
-      </section>
-    )
-  }
+        </div>
+      )
+    }
 
-  {
-    audiosDaPessoa.length > 0 && (
-      <section class="familia" id="audios">
-        <h2>{audiosDaPessoa.length === 1 ? `A voz de ${chamar}` : `A voz de ${chamar}: ${audiosDaPessoa.length} áudios`}</h2>
-        <ol class="audios__lista audios__lista--leitura">
-          {audiosDaPessoa.map((audio) => (
-            <li class="audio">
-              <p class="audio__titulo">
-                <a href={`/memorias/${audio.memoriaId}`}>{audio.memoriaTitulo}</a> <span>{duracaoEmTexto(audio.duracao)}</span>
-              </p>
-              <audio controls preload="none" src={`/audios/${audio.chave}`}></audio>
-              {audio.transcricao && (
-                <details class="audio__transcricao">
-                  <summary>Ler a transcrição</summary>
-                  {audio.transcricao.split(/\n{2,}/).map((p) => <p>{p}</p>)}
-                </details>
-              )}
-            </li>
-          ))}
-        </ol>
-      </section>
-    )
-  }
+    {
+      partes.length > 0 && (
+        <section class="lacos miolo" aria-labelledby="lacos">
+          <h2 class="rotulo suave" id="lacos">
+            Família e laços
+          </h2>
+          <div class="lacos__grupos">
+            {partes.map((parte) => (
+              <div class="lacos__grupo">
+                <h3 class="ficha">{parte.titulo}</h3>
+                <ul>
+                  {parte.linhas.map((l) => (
+                    <li>
+                      <Gente href={`/pessoas/${l.id}`} nome={nome(l.id)} foto={retratoDe(l.id)} familia={familiaDe(l.id)} laco={l.laco} detalhe={l.detalhe} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
 
-  <LinhaDoTempo memorias={memorias} integrantes={integrantes} nucleos={nucleos} vazio={`Nenhuma memória com ${pessoa.nome} por enquanto.`} />
-</Base>
+    {/* PROVISÓRIO (pergunta 8 do PR do grupo "pessoal"): todas as memórias, na linha do tempo do Explorar */}
+    <section class="com" aria-labelledby="memorias-com">
+      <header class="com__abre miolo">
+        {memorias.length > 0 && (
+          <p class="rotulo suave">
+            {memorias.length} {memorias.length === 1 ? 'memória' : 'memórias'}
+          </p>
+        )}
+        <h2 class="t-2" id="memorias-com">
+          Memórias com {chamar}
+        </h2>
+      </header>
+      {
+        memorias.length === 0 ? (
+          <div class="miolo">
+            <Vazio frase={`Nenhuma memória com ${pessoa.nome} por enquanto.`}>
+              <a class="acao" href={`/nova?com=${pessoa.id}`}>
+                Nova memória com {chamar}
+              </a>
+            </Vazio>
+          </div>
+        ) : (
+          <Linha memorias={memorias} capitulos={await listarCapitulos(usuario)} integrantes={integrantes} nucleos={nucleos} ordem="recentes" trilhos={false} />
+        )
+      }
+    </section>
+  </article>
+</Visual>

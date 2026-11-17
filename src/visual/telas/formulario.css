@@ -1,0 +1,1601 @@
+/* Os formulários (docs/visual.md, "Grupo 4: formularios"). Um estilo só para todas as telas de
+   formulário, usado por src/components/formularios/Pagina.astro: uma pergunta por tela, grande, em
+   serifa, como quem conversa, e a trilha das etapas quieta.
+
+   A marcação dos formulários e a que os scripts de src/lib/cliente/ criam (a trilha das etapas, a
+   busca de pessoa, os áudios, as fotos, "Quem estava?") continuam com os nomes de sempre: campo,
+   opcoes, opcao, marcar, dica, acoes, botao--leve. Este arquivo é o desenho novo desses nomes, e
+   vale só dentro de .pagina-de-formulario. */
+
+.pagina-de-formulario {
+  --coluna: 40rem;
+  display: grid;
+  gap: var(--e-7);
+  padding-block: var(--e-7) var(--e-8);
+}
+.pagina-de-formulario > * {
+  min-width: 0;
+}
+.pagina-de-formulario__abre {
+  display: grid;
+  gap: var(--e-3);
+  max-width: var(--coluna);
+}
+.pagina-de-formulario__frase {
+  max-width: var(--medida);
+  font-size: var(--t-corpo);
+}
+.pagina-de-formulario__frase:empty {
+  display: none;
+}
+.pagina-de-formulario__frase a,
+.pagina-de-formulario .dica a {
+  color: var(--tinta);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+}
+/* Um link sozinho na abertura ("Voltar para a página") é para tocar: ganha a altura do toque */
+.pagina-de-formulario__frase p > a:only-child {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+}
+.pagina-de-formulario .recado {
+  max-width: var(--coluna);
+  margin: 0;
+}
+.pagina-de-formulario .recado[hidden] {
+  display: none;
+}
+
+/* --- O formulário ------------------------------------------------------------------------------ */
+
+.pagina-de-formulario .formulario {
+  display: grid;
+  gap: var(--e-6);
+  max-width: var(--coluna);
+}
+.pagina-de-formulario .formulario > * {
+  min-width: 0;
+}
+.pagina-de-formulario [data-etapa] {
+  display: grid;
+  gap: var(--e-7);
+}
+.pagina-de-formulario [data-etapa][hidden] {
+  display: none;
+}
+.pagina-de-formulario fieldset {
+  display: grid;
+  gap: var(--e-5);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.pagina-de-formulario fieldset > * {
+  min-width: 0;
+}
+/* A pergunta: a legenda de cada parte, grande, em serifa. Dentro de outra parte, um degrau abaixo. */
+.pagina-de-formulario legend {
+  margin-bottom: var(--e-5);
+  padding: 0;
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-2);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.04;
+  text-wrap: balance;
+}
+.pagina-de-formulario legend:focus {
+  outline: none;
+}
+.pagina-de-formulario fieldset fieldset legend,
+.pagina-de-formulario .painel fieldset legend,
+.pagina-de-formulario [data-controle-da-data] legend {
+  margin-bottom: var(--e-3);
+  font-size: var(--t-titulo-3);
+  line-height: 1.15;
+}
+
+/* --- Campo: o rótulo em mono e a resposta numa linha para escrever em cima ----------------------- */
+
+.pagina-de-formulario .campo > span:first-child,
+.pagina-de-formulario .campo > label,
+.pagina-de-formulario .quem-estava__titulo {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  line-height: 1.45;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .campo small {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+.pagina-de-formulario :is(input[type='text'], input[type='number'], input[type='search'], input[type='date'], input[type='email'], select, textarea) {
+  display: block;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: var(--e-2) 0;
+  border: 0;
+  border-bottom: var(--traco) solid var(--tinta);
+  border-radius: 0;
+  background: transparent;
+  color: var(--tinta);
+  font: 400 var(--t-leitura) / 1.4 var(--grotesca);
+  appearance: none;
+  transition:
+    background var(--tempo-curto),
+    box-shadow var(--tempo-curto);
+}
+.pagina-de-formulario textarea {
+  min-height: 9rem;
+  padding: var(--e-3) 0;
+  resize: vertical;
+}
+/* A lista suspensa leva uma seta desenhada, porque a do aparelho sai com a aparência */
+.pagina-de-formulario select {
+  padding-right: var(--e-6);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--tinta) 50%),
+    linear-gradient(135deg, var(--tinta) 50%, transparent 50%);
+  background-position:
+    calc(100% - 0.9rem) 55%,
+    calc(100% - 0.5rem) 55%;
+  background-size:
+    0.4rem 0.4rem,
+    0.4rem 0.4rem;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+.pagina-de-formulario :is(input, textarea)::placeholder {
+  color: var(--tinta-suave);
+  opacity: 1;
+}
+/* O foco engrossa a linha e acende o fundo: o contorno padrão viraria uma caixa em volta */
+.pagina-de-formulario :is(input[type='text'], input[type='number'], input[type='search'], input[type='date'], input[type='email'], select, textarea):focus-visible {
+  outline: 0;
+  background-color: var(--papel-recuo);
+  box-shadow: 0 3px 0 var(--tinta);
+}
+.pagina-de-formulario :is(input, select, textarea):disabled {
+  border-bottom-style: dashed;
+  color: var(--tinta-suave);
+  cursor: not-allowed;
+}
+/* O erro fica marcado no campo, além do balão do navegador, até ser corrigido */
+.pagina-de-formulario :is(input, select, textarea)[aria-invalid='true'] {
+  border-bottom-color: var(--alerta-tinta);
+  box-shadow: 0 2px 0 var(--alerta-tinta);
+}
+.pagina-de-formulario .opcoes:has([aria-invalid='true']) {
+  padding-left: var(--e-3);
+  box-shadow: -3px 0 0 var(--alerta-tinta);
+}
+.pagina-de-formulario .dica {
+  max-width: var(--medida);
+  font-size: var(--t-pequeno);
+  line-height: 1.5;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .oculto-visualmente {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- Escolhas ---------------------------------------------------------------------------------- */
+
+/* Opção em pílula: uma entre poucas (rádio) ou várias (caixa, com o tique antes do nome).
+   PROVISÓRIO (pergunta 5 do PR do grupo "formularios"). */
+.pagina-de-formulario .opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+}
+.pagina-de-formulario .opcoes[hidden] {
+  display: none;
+}
+.pagina-de-formulario .opcao {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+.pagina-de-formulario .opcao input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.pagina-de-formulario .opcao > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-height: var(--toque);
+  padding: 0 var(--e-4);
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-pilula);
+  background: var(--branco);
+  font-size: var(--t-corpo);
+  line-height: 1.2;
+  transition:
+    background var(--tempo-curto),
+    border-color var(--tempo-curto),
+    transform var(--tempo-curto) var(--curva);
+}
+.pagina-de-formulario .opcao input[type='checkbox'] + span::before {
+  content: '';
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border: var(--traco) solid var(--tinta-suave);
+  border-radius: var(--raio-carimbo);
+  color: var(--papel);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.pagina-de-formulario .opcao input[type='checkbox']:checked + span::before {
+  content: '✓';
+  border-color: var(--tinta);
+  background: var(--tinta);
+}
+.pagina-de-formulario .opcao:hover > span {
+  border-color: var(--tinta-suave);
+}
+.pagina-de-formulario .opcao input:checked + span {
+  border-color: var(--tinta);
+  background: var(--tipo-pastel, var(--pastel));
+  font-weight: 550;
+}
+.pagina-de-formulario .opcao input:active + span {
+  transform: scale(0.97);
+}
+.pagina-de-formulario .opcao input:focus-visible + span {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+.pagina-de-formulario .opcao input:disabled + span {
+  border-style: dashed;
+  color: var(--tinta-suave);
+  cursor: not-allowed;
+}
+.pagina-de-formulario .mais-opcoes {
+  margin-top: var(--e-2);
+}
+.pagina-de-formulario .mais-opcoes .opcoes {
+  margin-top: var(--e-2);
+}
+.pagina-de-formulario :is(.mais-opcoes, .quem-estava__todos, .audio__transcricao) > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+  cursor: pointer;
+}
+/* Marcar: uma linha inteira para tocar, com a caixa ou o rádio do aparelho, na cor da tinta */
+.pagina-de-formulario .marcar {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  min-height: var(--toque);
+  cursor: pointer;
+}
+.pagina-de-formulario .marcar input {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  margin: 0;
+  accent-color: var(--tinta);
+}
+.pagina-de-formulario .marcar:has(input:disabled) {
+  color: var(--tinta-suave);
+  cursor: not-allowed;
+}
+.pagina-de-formulario .marcar small {
+  color: var(--tinta-suave);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+}
+.pagina-de-formulario .lista-de-marcar {
+  display: grid;
+  gap: var(--e-1);
+}
+/* Abas: poucas opções que precisam de uma frase para se explicar, cada uma num cartão */
+.pagina-de-formulario .abas {
+  display: grid;
+  gap: var(--e-2);
+}
+.pagina-de-formulario .aba {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+.pagina-de-formulario .aba input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.pagina-de-formulario .aba > span {
+  display: grid;
+  gap: var(--e-1);
+  min-height: var(--toque);
+  padding: var(--e-3) var(--e-4);
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  transition:
+    background var(--tempo-curto),
+    border-color var(--tempo-curto);
+}
+.pagina-de-formulario .aba strong {
+  font-weight: 550;
+}
+.pagina-de-formulario .aba small {
+  font-size: var(--t-pequeno);
+  line-height: 1.45;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .aba input:checked + span {
+  border-color: var(--tinta);
+  background: var(--pastel);
+}
+.pagina-de-formulario .aba input:checked + span small {
+  color: var(--tinta);
+}
+.pagina-de-formulario .aba input:focus-visible + span {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+
+/* --- Ações ------------------------------------------------------------------------------------- */
+
+.pagina-de-formulario .acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-6);
+}
+/* A ação que não é a principal é texto sublinhado: o botão cheio fica para a principal da tela.
+   PROVISÓRIO (pergunta 4 do PR do grupo "formularios"). */
+.pagina-de-formulario .botao.botao--leve {
+  min-height: var(--toque);
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--tinta);
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.32em;
+}
+.pagina-de-formulario .botao.botao--leve::after {
+  content: none;
+}
+.pagina-de-formulario .botao.botao--leve:hover {
+  text-decoration-color: var(--vivo);
+}
+.pagina-de-formulario .botao.botao--leve:disabled,
+.pagina-de-formulario .botao.botao--leve[aria-disabled='true'] {
+  color: var(--tinta-suave);
+  text-decoration-style: dashed;
+}
+.pagina-de-formulario .botao[hidden] {
+  display: none;
+}
+.pagina-de-formulario fieldset > .botao,
+.pagina-de-formulario .campo > .botao {
+  justify-self: start;
+}
+.pagina-de-formulario .botao--arquivo {
+  position: relative;
+  cursor: pointer;
+}
+.pagina-de-formulario .botao--arquivo:focus-within {
+  outline: 3px solid var(--tinta);
+  outline-offset: 3px;
+}
+/* O que tira ou apaga: a cor do alerta, no texto */
+.pagina-de-formulario .botao.botao--perigo {
+  background: var(--alerta-tinta);
+}
+/* Ações de etapa: "Voltar" à esquerda; "Salvar rascunho" e a principal à direita */
+.pagina-de-formulario .acoes--etapas {
+  justify-content: flex-end;
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .acoes--etapas [data-etapa-voltar] {
+  margin-right: auto;
+}
+/* O recado do envio: o que está acontecendo e o que deu errado */
+.pagina-de-formulario .situacao {
+  font-size: var(--t-corpo);
+  font-weight: 550;
+}
+.pagina-de-formulario .situacao:empty {
+  display: none;
+}
+.pagina-de-formulario .situacao[data-tipo='erro'] {
+  padding-left: var(--e-3);
+  border-left: 4px solid var(--alerta);
+  color: var(--alerta-tinta);
+}
+.pagina-de-formulario .memoria__rodape {
+  max-width: var(--coluna);
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .memoria__rodape a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  color: var(--tinta-suave);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+}
+
+/* --- A trilha das etapas, quieta ----------------------------------------------------------------
+   No celular, uma fila de números pequenos e, embaixo, "Etapa 2 de 7: Quando e onde". No
+   computador, uma coluna à esquerda com o nome de cada etapa, e a pergunta à direita.
+   PROVISÓRIO (pergunta 3 do PR do grupo "formularios"). */
+
+.pagina-de-formulario .etapas {
+  display: flex;
+  margin: 0 calc(-1 * var(--e-2));
+  padding: 0;
+  list-style: none;
+}
+.pagina-de-formulario .etapas button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-3);
+  min-width: var(--toque);
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta-suave);
+  font: inherit;
+  font-size: var(--t-pequeno);
+  cursor: pointer;
+}
+.pagina-de-formulario .etapas b {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-pilula);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  font-weight: 400;
+  transition:
+    background var(--tempo-curto),
+    border-color var(--tempo-curto);
+}
+.pagina-de-formulario .etapas button > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.pagina-de-formulario .etapas button[data-feita='true'] b {
+  border-color: var(--tinta-suave);
+  background: var(--papel-recuo);
+  color: var(--tinta);
+}
+.pagina-de-formulario .etapas button[aria-current='step'] {
+  color: var(--tinta);
+}
+.pagina-de-formulario .etapas button[aria-current='step'] b {
+  border-color: var(--tinta);
+  background: var(--tinta);
+  color: var(--papel);
+}
+.pagina-de-formulario .etapas button:hover b {
+  border-color: var(--tinta);
+}
+.pagina-de-formulario .etapas__contagem {
+  margin-top: calc(-1 * var(--e-4));
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+/* --- O formulário em frase, na etapa "Quando e onde" ---------------------------------------------
+   "Isso aconteceu em 24 de dezembro de 2025, em Belo Horizonte." A lacuna da data mostra a data
+   como o site escreve e, ao toque, abre logo abaixo o controle de data flexível. */
+
+.pagina-de-formulario .frase {
+  margin-bottom: var(--e-2);
+  line-height: 1.6;
+}
+.pagina-de-formulario .frase__data {
+  padding: 0.2em 0.12em;
+  border-bottom: var(--traco) solid var(--tinta);
+  color: var(--vivo-tinta);
+  cursor: pointer;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.pagina-de-formulario .frase__data[data-vazia] {
+  color: var(--tinta-suave);
+  font-style: italic;
+}
+.pagina-de-formulario .frase__data[aria-expanded='true'] {
+  background: var(--papel-recuo);
+}
+.pagina-de-formulario .frase__data:focus-visible {
+  outline: 0;
+  background: var(--papel-recuo);
+  box-shadow: 0 3px 0 var(--tinta);
+}
+.pagina-de-formulario .frase__lacuna input[type='text'] {
+  display: inline-block;
+  width: calc(var(--cabe, 8) * 0.56em);
+  max-width: 100%;
+  min-height: var(--toque);
+  padding: 0 0.12em;
+  color: var(--vivo-tinta);
+  font: inherit;
+  font-variation-settings: inherit;
+  letter-spacing: inherit;
+}
+.pagina-de-formulario .frase__lacuna input::placeholder {
+  font-style: italic;
+}
+/* O controle da data abre logo abaixo da frase, empurrando o conteúdo */
+.pagina-de-formulario [data-controle-da-data] {
+  display: grid;
+  gap: var(--e-5);
+  padding: var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+.pagina-de-formulario [data-controle-da-data][hidden] {
+  display: none;
+}
+
+/* --- A data flexível: o ano com −10, −1, +1 e +10, depois mês e dia ------------------------------ */
+
+.pagina-de-formulario .passo-ano {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--e-2);
+}
+.pagina-de-formulario .passo-ano input {
+  flex: 1 1 5rem;
+  width: 5rem;
+  max-width: 8rem;
+  text-align: center;
+  font-family: var(--mono);
+}
+.pagina-de-formulario .passo-ano select {
+  flex: 1 1 100%;
+}
+.pagina-de-formulario [data-passo] {
+  flex: none;
+  min-width: var(--toque);
+  min-height: var(--toque);
+  padding: 0 var(--e-2);
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-pilula);
+  background: var(--branco);
+  color: var(--tinta);
+  font: 400 var(--t-ficha) / 1 var(--mono);
+  cursor: pointer;
+  transition:
+    border-color var(--tempo-curto),
+    transform var(--tempo-curto) var(--curva);
+}
+.pagina-de-formulario [data-passo]:hover {
+  border-color: var(--tinta);
+}
+.pagina-de-formulario [data-passo]:active {
+  transform: scale(0.94);
+}
+.pagina-de-formulario .campos-data {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-5);
+}
+.pagina-de-formulario .atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--e-3) var(--e-6);
+}
+.pagina-de-formulario .atalhos .campo {
+  flex: 1 1 12rem;
+}
+
+/* Os blocos que aparecem conforme a escolha (as datas do capítulo por período, de quem ele é) */
+.pagina-de-formulario :is([data-so-epoca], [data-so-periodo], [data-para], [data-depende]) {
+  display: grid;
+  gap: var(--e-5);
+}
+.pagina-de-formulario :is([data-so-epoca], [data-so-periodo], [data-para], [data-depende]) > * + * {
+  margin-top: 0;
+}
+.pagina-de-formulario .campo > label small {
+  display: block;
+}
+
+/* --- Busca de pessoa (src/lib/cliente/busca-pessoa.ts) -------------------------------------------- */
+
+.pagina-de-formulario .busca {
+  position: relative;
+  width: 100%;
+}
+.pagina-de-formulario .busca__lista {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--e-1));
+  left: 0;
+  right: 0;
+  max-height: 18rem;
+  margin: 0;
+  padding: var(--e-1) 0;
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  list-style: none;
+  overflow-y: auto;
+}
+.pagina-de-formulario .busca__lista[hidden] {
+  display: none;
+}
+.pagina-de-formulario .busca__lista li {
+  display: flex;
+  align-items: center;
+  min-height: var(--toque);
+  padding: var(--e-1) var(--e-4);
+  cursor: pointer;
+}
+.pagina-de-formulario .busca__lista li[aria-selected='true'],
+.pagina-de-formulario .busca__lista li:hover {
+  background: var(--papel-recuo);
+}
+.pagina-de-formulario .busca__novo {
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.3em;
+}
+.pagina-de-formulario .busca__vazio {
+  color: var(--tinta-suave);
+  cursor: default;
+}
+
+/* --- "Quem estava?" ---------------------------------------------------------------------------- */
+
+.pagina-de-formulario :is(.quem-estava__marcados, .quem-estava__sugestoes, .quem-estava__grupo) {
+  display: grid;
+  gap: var(--e-2);
+}
+.pagina-de-formulario :is(.quem-estava__marcados, .quem-estava__sugestoes)[hidden] {
+  display: none;
+}
+.pagina-de-formulario .quem-estava__grupo {
+  margin-top: var(--e-4);
+}
+.pagina-de-formulario .quem-estava > .botao {
+  justify-self: start;
+}
+/* Quem entra pelo nome novo: um cartão com o nome e como se referir */
+.pagina-de-formulario .nova-pessoa {
+  display: grid;
+  gap: var(--e-4);
+  justify-items: start;
+  margin-bottom: var(--e-3);
+  padding: var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+.pagina-de-formulario .nova-pessoa .campo {
+  width: 100%;
+}
+
+/* --- Fotos: cada uma como foto revelada, com a legenda ao lado ----------------------------------- */
+
+.pagina-de-formulario .fotos-enviadas {
+  display: grid;
+  gap: var(--e-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pagina-de-formulario .fotos-enviadas:empty {
+  display: none;
+}
+.pagina-de-formulario .foto-enviada {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--e-5);
+}
+.pagina-de-formulario .foto__papel {
+  padding: 0.3rem 0.3rem 1.1rem;
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  rotate: -1.5deg;
+}
+.pagina-de-formulario .foto-enviada:nth-child(even) .foto__papel {
+  rotate: 1deg;
+}
+.pagina-de-formulario .foto__papel img,
+.pagina-de-formulario .foto__reserva {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 46 / 62;
+  border-radius: var(--raio-foto);
+  background: var(--papel-recuo);
+  object-fit: cover;
+  color: var(--tinta-suave);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  text-align: center;
+}
+.pagina-de-formulario .foto-enviada__campos {
+  display: grid;
+  gap: var(--e-2);
+  justify-items: start;
+}
+.pagina-de-formulario .foto-enviada__campos .campo {
+  width: 100%;
+}
+
+/* --- Áudios do relato -------------------------------------------------------------------------- */
+
+.pagina-de-formulario .audios[hidden] {
+  display: none;
+}
+.pagina-de-formulario .audios__lista {
+  display: grid;
+  gap: var(--e-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pagina-de-formulario .audios__lista:empty {
+  display: none;
+}
+.pagina-de-formulario .audio {
+  display: grid;
+  gap: var(--e-2);
+  padding: var(--e-4) var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+.pagina-de-formulario .audio__titulo {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .audio audio {
+  width: 100%;
+}
+/* Gravando: o botão acende na cor do alerta, e o ponto diz que o microfone está aberto */
+.pagina-de-formulario .botao.gravando {
+  color: var(--alerta-tinta);
+}
+.pagina-de-formulario .botao.gravando::before {
+  content: '';
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: var(--raio-pilula);
+  background: var(--alerta);
+}
+
+/* --- O resumo antes de publicar e a confirmação --------------------------------------------------- */
+
+.pagina-de-formulario .resumo {
+  display: grid;
+  gap: var(--e-4);
+  padding: var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+.pagina-de-formulario .resumo[hidden] {
+  display: none;
+}
+.pagina-de-formulario .resumo h2,
+.pagina-de-formulario .painel > h2 {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-3);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.15;
+}
+.pagina-de-formulario .resumo dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--e-2) var(--e-5);
+  margin: 0;
+}
+.pagina-de-formulario .resumo dt {
+  padding-top: 0.2em;
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .resumo dd {
+  margin: 0;
+}
+.pagina-de-formulario .confirmacao {
+  display: grid;
+  gap: var(--e-4);
+  justify-items: start;
+  max-width: var(--coluna);
+}
+.pagina-de-formulario .confirmacao[hidden] {
+  display: none;
+}
+.pagina-de-formulario .confirmacao h2 {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-2);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.04;
+}
+.pagina-de-formulario .confirmacao h2:focus {
+  outline: none;
+}
+.pagina-de-formulario .confirmacao p:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-6);
+}
+.pagina-de-formulario .confirmacao .botao.botao--leve {
+  min-height: var(--toque);
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--tinta);
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.32em;
+}
+
+/* --- Uma página com mais de um formulário: cada parte separada por um fio ------------------------- */
+
+.pagina-de-formulario .painel {
+  display: grid;
+  gap: var(--e-5);
+  max-width: var(--coluna);
+  padding-top: var(--e-6);
+  border-top: 1px solid var(--fio);
+}
+
+/* Confirmar antes de remover (ConfirmarRemocao.astro) */
+.pagina-de-formulario .confirmar__caixa {
+  display: grid;
+  gap: var(--e-3);
+  padding: var(--e-4) var(--e-5);
+  border-left: 4px solid var(--alerta);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+}
+.pagina-de-formulario .confirmar__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-6);
+}
+
+/* Com "Continuar" na tela, ele é a ação principal: o envio que está sempre à mão ("Salvar
+   alterações", "Salvar capítulo") fica em contorno. Na última etapa, volta a ser o botão cheio.
+   PROVISÓRIO (pergunta 2 do PR do grupo "formularios"). */
+.pagina-de-formulario .acoes--etapas [data-etapa-continuar]:not([hidden]) ~ .botao[type='submit']:not(.botao--leve) {
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--traco) var(--tinta);
+  color: var(--tinta);
+}
+.pagina-de-formulario .acoes--etapas [data-etapa-continuar]:not([hidden]) ~ .botao[type='submit']:not(.botao--leve)::after {
+  content: none;
+}
+
+/* O que o script esconde fica escondido, mesmo onde este arquivo dá um display. Sem JavaScript, o
+   esqueleto da página mostra de volta os blocos que dependem de uma escolha. */
+.pagina-de-formulario [hidden] {
+  display: none !important;
+}
+
+@media (min-width: 40rem) {
+  .pagina-de-formulario .abas {
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  }
+  .pagina-de-formulario .foto-enviada {
+    grid-template-columns: 9rem minmax(0, 1fr);
+  }
+  .pagina-de-formulario .passo-ano select {
+    flex: 1 1 10rem;
+  }
+}
+
+/* No computador, a abertura fica à esquerda e o formulário à direita, na coluna de leitura. Com
+   etapas, a abertura sobe para o alto e a trilha toma a coluna da esquerda, com o nome de cada etapa. */
+@media (min-width: 62rem) {
+  .pagina-de-formulario {
+    --coluna: 44rem;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--calha);
+    align-items: start;
+    padding-block: var(--e-8) var(--e-9);
+  }
+  .pagina-de-formulario > * {
+    grid-column: 5 / -1;
+  }
+  .pagina-de-formulario .pagina-de-formulario__abre {
+    grid-column: 1 / 5;
+    grid-row: 1 / span 3;
+  }
+  .pagina-de-formulario:has(.com-etapas) .pagina-de-formulario__abre {
+    grid-column: 1 / 10;
+    grid-row: auto;
+    max-width: none;
+  }
+  .pagina-de-formulario .formulario.com-etapas {
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    row-gap: 0;
+    max-width: none;
+  }
+  .pagina-de-formulario .formulario.com-etapas > * {
+    grid-column: 5 / -1;
+    max-width: var(--coluna);
+  }
+  .pagina-de-formulario .formulario.com-etapas > :is(.situacao, .acoes, .memoria__rodape) {
+    margin-top: var(--e-6);
+  }
+  .pagina-de-formulario .formulario.com-etapas > .etapas {
+    grid-column: 1 / 5;
+    grid-row: 1 / span 6;
+    display: grid;
+    align-self: start;
+    margin: 0;
+  }
+  .pagina-de-formulario .etapas button {
+    justify-content: start;
+    width: 100%;
+    text-align: left;
+  }
+  .pagina-de-formulario .etapas button > span {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+  .pagina-de-formulario .etapas button[aria-current='step'] > span {
+    font-weight: 550;
+  }
+  .pagina-de-formulario .formulario.com-etapas > .etapas__contagem {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .pagina-de-formulario [data-etapa] {
+    min-height: 20rem;
+    align-content: start;
+  }
+}
+
+/* PROVISÓRIO (pergunta 7 do PR do grupo "formularios"): na tela grande a coluna cresce pouco */
+@media (min-width: 100rem) {
+  .pagina-de-formulario {
+    --coluna: 52rem;
+  }
+}
+
+/* === Segunda metade do grupo 4: pessoa e laços, utilitárias e administração ========================
+   Os mesmos nomes de sempre (etapas--fluxo, guia, escolhas, lacos, editar, fases, em-linha, linhas,
+   alerta, retrato-campo, recorte), com o desenho novo. */
+
+/* --- Página larga: listas e tabelas (histórico, lixeira, rascunhos, administração) --------------- */
+
+.pagina-de-formulario.pagina-de-formulario--larga {
+  --coluna: 56rem;
+}
+
+/* --- A trilha de um fluxo que passa por mais de uma página (nova pessoa e os laços) --------------
+   PROVISÓRIO (pergunta 9 do PR do grupo "formularios"). */
+
+.pagina-de-formulario .etapas--fluxo {
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-4);
+  margin: 0;
+}
+.pagina-de-formulario .etapas--fluxo li > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-height: 2rem;
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .etapas--fluxo li > span[data-feita='true'] b {
+  border-color: var(--tinta-suave);
+  background: var(--papel-recuo);
+  color: var(--tinta);
+}
+.pagina-de-formulario .etapas--fluxo li > span[aria-current='step'] {
+  color: var(--tinta);
+  font-weight: 550;
+}
+.pagina-de-formulario .etapas--fluxo li > span[aria-current='step'] b {
+  border-color: var(--tinta);
+  background: var(--tinta);
+  color: var(--papel);
+}
+/* No celular, só a etapa em que a pessoa está leva o nome */
+.pagina-de-formulario .etapas--fluxo li > span:not([aria-current]) > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- O índice de uma página com mais de uma parte ------------------------------------------------ */
+
+.pagina-de-formulario .indice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+}
+.pagina-de-formulario .indice a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+}
+.pagina-de-formulario .indice a:hover {
+  color: var(--tinta);
+}
+
+/* --- Recolhido: "Nascimento e história", na ficha da pessoa --------------------------------------- */
+
+.pagina-de-formulario .mais {
+  display: grid;
+  gap: var(--e-6);
+}
+.pagina-de-formulario .mais > summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-2);
+  min-height: var(--toque);
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.32em;
+  cursor: pointer;
+}
+.pagina-de-formulario .mais > summary small {
+  display: inline-block;
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+  font-weight: 400;
+}
+.pagina-de-formulario .mais[open] > summary {
+  margin-bottom: var(--e-5);
+}
+.pagina-de-formulario .mais > fieldset + fieldset,
+.pagina-de-formulario .mais > summary ~ fieldset {
+  margin-bottom: var(--e-6);
+}
+
+/* --- O retrato: a foto de agora, escolher e enquadrar --------------------------------------------- */
+
+.pagina-de-formulario .retrato-campo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-4) var(--e-5);
+}
+.pagina-de-formulario .retrato-campo .retrato {
+  flex: none;
+  width: 6.5rem;
+}
+.pagina-de-formulario .retrato-campo > div {
+  display: grid;
+  flex: 1 1 14rem;
+  gap: var(--e-1);
+}
+.pagina-de-formulario .recorte {
+  display: grid;
+  gap: var(--e-4);
+  justify-items: start;
+  padding: var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+.pagina-de-formulario .recorte .campo {
+  width: min(100%, 18rem);
+}
+.pagina-de-formulario .recorte__quadro {
+  display: block;
+  width: min(100%, 18rem);
+  aspect-ratio: 1;
+  border-radius: var(--raio-foto);
+  background: var(--papel-recuo);
+  touch-action: none;
+  cursor: grab;
+}
+.pagina-de-formulario .recorte__quadro:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 3px;
+}
+.pagina-de-formulario input[type='range'] {
+  width: 100%;
+  min-height: var(--toque);
+  margin: 0;
+  accent-color: var(--tinta);
+}
+
+/* --- O cadastro guiado: uma pergunta por tela ----------------------------------------------------- */
+
+.pagina-de-formulario .guia > h2,
+.pagina-de-formulario .alerta > h2 {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-2);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.04;
+  text-wrap: balance;
+}
+.pagina-de-formulario .painel.guia {
+  padding-top: 0;
+  border-top: 0;
+}
+/* Os dois caminhos: cada um num cartão inteiro para tocar.
+   PROVISÓRIO (pergunta 9 do PR do grupo "formularios"). */
+.pagina-de-formulario .escolhas {
+  display: grid;
+  gap: var(--e-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pagina-de-formulario .escolhas .escolha {
+  display: grid;
+  align-items: start;
+  gap: var(--e-2);
+  min-height: var(--toque);
+  padding: var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+  color: var(--tinta);
+  text-decoration: none;
+  transition:
+    box-shadow var(--tempo-curto),
+    transform var(--tempo-curto) var(--curva);
+}
+.pagina-de-formulario .escolhas .escolha:hover {
+  box-shadow: inset 0 0 0 var(--traco) var(--tinta);
+}
+.pagina-de-formulario .escolhas .escolha:active {
+  transform: scale(0.99);
+}
+.pagina-de-formulario .escolhas .escolha strong {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-3);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.15;
+}
+.pagina-de-formulario .escolhas .escolha span {
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+  line-height: 1.5;
+}
+.pagina-de-formulario .guia__completo {
+  max-width: var(--medida);
+  line-height: var(--toque);
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .guia__completo a {
+  color: var(--tinta);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+}
+/* "Voltar" à esquerda e o caminho para a próxima pergunta à direita, como nas etapas */
+.pagina-de-formulario .acoes--guia {
+  justify-content: flex-end;
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .acoes--guia > :first-child:not(:only-child) {
+  margin-right: auto;
+}
+.pagina-de-formulario a.botao {
+  text-align: center;
+}
+
+/* --- Um formulário dentro de uma parte (adicionar laço, a pergunta do guiado) --------------------- */
+
+.pagina-de-formulario :is(.casal, .editar__caixa form) {
+  display: grid;
+  gap: var(--e-5);
+}
+.pagina-de-formulario :is(.casal, .editar__caixa form) > * {
+  min-width: 0;
+}
+.pagina-de-formulario .casal__titulo,
+.pagina-de-formulario .painel fieldset.fase--nova legend {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-3);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.15;
+}
+.pagina-de-formulario .novo-laco {
+  padding-top: var(--e-6);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario [data-para] {
+  display: grid;
+  gap: var(--e-5);
+}
+.pagina-de-formulario .em-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--e-4) var(--e-5);
+}
+.pagina-de-formulario .em-linha__campo,
+.pagina-de-formulario .em-linha > label {
+  display: grid;
+  flex: 1 1 12rem;
+  gap: var(--e-2);
+  min-width: 0;
+}
+.pagina-de-formulario .em-linha__campo > label,
+.pagina-de-formulario .em-linha > label > span {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  line-height: 1.45;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .em-linha__campo > label small {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+.pagina-de-formulario .em-linha > label:has(input[type='color']) {
+  flex: 0 0 auto;
+}
+.pagina-de-formulario .em-linha > .botao {
+  flex: none;
+}
+.pagina-de-formulario input[type='color'] {
+  display: block;
+  width: 3.5rem;
+  height: 3.5rem;
+  padding: 0;
+  border: var(--traco) solid var(--tinta);
+  border-radius: var(--raio-foto);
+  background: none;
+  cursor: pointer;
+}
+.pagina-de-formulario input[type='file']:not(.oculto-visualmente) {
+  display: block;
+  width: 100%;
+  min-height: var(--toque);
+  padding-block: var(--e-2);
+  font: inherit;
+}
+.pagina-de-formulario input[readonly] {
+  border-bottom-style: dashed;
+  color: var(--tinta-suave);
+}
+
+/* --- Os laços que já existem: cada um numa linha, com "Editar" abrindo no lugar -------------------
+   PROVISÓRIO (pergunta 10 do PR do grupo "formularios"): a edição num cartão branco e as fases
+   do casal com um fio ao lado. */
+
+.pagina-de-formulario .grupo-de-lacos {
+  display: grid;
+  gap: var(--e-2);
+}
+.pagina-de-formulario .grupo-de-lacos > h3,
+.pagina-de-formulario .painel > h3 {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  font-weight: 400;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .lacos {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pagina-de-formulario .laco {
+  display: grid;
+  gap: var(--e-2);
+  padding-block: var(--e-3);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .laco__linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--e-3);
+}
+.pagina-de-formulario .laco__linha strong {
+  font-weight: 550;
+}
+.pagina-de-formulario .laco__linha span {
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario :is(.editar, .confirmar) > summary {
+  display: inline-flex;
+  list-style: none;
+  cursor: pointer;
+}
+.pagina-de-formulario :is(.editar, .confirmar, .fase) > summary::-webkit-details-marker {
+  display: none;
+}
+.pagina-de-formulario .editar__caixa {
+  display: grid;
+  gap: var(--e-5);
+  margin-top: var(--e-2);
+  padding: var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+.pagina-de-formulario .editar__remover {
+  padding-top: var(--e-3);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .confirmar__caixa {
+  margin-top: var(--e-2);
+}
+/* As fases do casal como uma linha do tempo: o que foi e quando */
+.pagina-de-formulario .fases {
+  display: grid;
+  gap: var(--e-1);
+  margin: 0;
+  padding: 0 0 0 var(--e-4);
+  border-left: var(--traco) solid var(--fio);
+  list-style: none;
+}
+.pagina-de-formulario .fases li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--e-3);
+}
+.pagina-de-formulario .fases strong {
+  font-weight: 550;
+}
+.pagina-de-formulario .fases span {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.06em;
+  color: var(--tinta-suave);
+}
+/* Cada fase em edição: uma linha que abre com "Mudar" */
+.pagina-de-formulario .fase {
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .fase > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4);
+  min-height: var(--toque);
+  list-style: none;
+  cursor: pointer;
+}
+.pagina-de-formulario .fase__mudar {
+  flex: none;
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.32em;
+}
+.pagina-de-formulario .fase[open] .fase__mudar {
+  visibility: hidden;
+}
+.pagina-de-formulario .fase > fieldset {
+  padding-block: var(--e-3) var(--e-5);
+}
+.pagina-de-formulario .fase--nova {
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--fio);
+}
+
+/* --- Listas utilitárias: histórico, lixeira, rascunhos e administração ---------------------------- */
+
+.pagina-de-formulario .linhas {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pagina-de-formulario .linhas > li {
+  display: grid;
+  gap: var(--e-2);
+  padding-block: var(--e-4);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .linhas > li > div:first-child,
+.pagina-de-formulario .linhas__leva {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--e-4);
+}
+.pagina-de-formulario .linhas strong {
+  font-weight: 550;
+}
+.pagina-de-formulario .linhas > li > div:first-child > span,
+.pagina-de-formulario .linhas__leva > span {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.06em;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .linhas > li:has(> .linhas__leva) {
+  padding-block: 0;
+}
+.pagina-de-formulario .linhas__leva {
+  align-items: center;
+  min-height: 3.5rem;
+  padding-block: var(--e-2);
+  color: var(--tinta);
+  text-decoration: none;
+}
+.pagina-de-formulario .linhas__leva strong {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+}
+.pagina-de-formulario .linhas__leva:hover strong {
+  text-decoration-color: var(--vivo);
+}
+.pagina-de-formulario .linhas--fotos > li {
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--e-4);
+}
+.pagina-de-formulario .linhas--fotos img {
+  grid-row: span 2;
+  width: 4.5rem;
+  aspect-ratio: 1;
+  border-radius: var(--raio-foto);
+  object-fit: cover;
+}
+/* Como era antes: a ficha em mono, o texto antigo recuado */
+.pagina-de-formulario dl.antes {
+  display: grid;
+  gap: var(--e-2);
+  margin: 0;
+  padding-left: var(--e-4);
+  border-left: var(--traco) solid var(--fio);
+}
+.pagina-de-formulario dl.antes dt {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario dl.antes dd {
+  margin: 0;
+}
+.pagina-de-formulario .antes--texto {
+  display: grid;
+  gap: var(--e-3);
+  max-width: var(--medida);
+  padding-left: var(--e-4);
+  border-left: var(--traco) solid var(--fio);
+  color: var(--tinta-suave);
+}
+/* A confirmação de excluir: um cartão com a marca do alerta.
+   PROVISÓRIO (pergunta 12 do PR do grupo "formularios"). */
+.pagina-de-formulario .alerta {
+  display: grid;
+  gap: var(--e-4);
+  max-width: var(--coluna);
+  padding: var(--e-5);
+  border-left: 4px solid var(--alerta);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+.pagina-de-formulario .alerta p {
+  max-width: var(--medida);
+}
+.pagina-de-formulario .alerta .acoes {
+  padding-top: var(--e-3);
+}
+.pagina-de-formulario .passos {
+  display: grid;
+  gap: var(--e-2);
+  max-width: var(--medida);
+  margin: 0;
+  padding-left: 1.25em;
+  list-style: decimal;
+}
+.pagina-de-formulario .vazio {
+  padding-block: var(--e-5);
+}
+
+@media (min-width: 40rem) {
+  .pagina-de-formulario .escolhas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pagina-de-formulario .etapas--fluxo li > span:not([aria-current]) > span {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+}
+
+@media (min-width: 62rem) {
+  .pagina-de-formulario.pagina-de-formulario--larga {
+    --coluna: 56rem;
+  }
+  .pagina-de-formulario .etapas--fluxo {
+    display: flex;
+  }
+}

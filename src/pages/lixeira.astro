@@ -1,6 +1,6 @@
 ---
-import Base from '../layouts/Base.astro';
-import Abertura from '../components/Abertura.astro';
+import Pagina from '../components/formularios/Pagina.astro';
+import Vazio from '../components/visual/Vazio.astro';
 import { formatarData, formatarMomento } from '../lib/datas';
 import { podeExcluirMemoria } from '../lib/servidor/permissoes';
 import { listarCapitulosExcluidos, listarExcluidas, listarIntegrantes } from '../lib/servidor/repositorio';
@@ -15,17 +15,21 @@ const nome = (id: string | null) => {
   const i = integrantes.find((x) => x.id === id);
   return i?.apelido ?? i?.nome ?? 'alguém';
 };
+// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
-<Base titulo="Lixeira">
-  <Abertura titulo="Lixeira">
+<Pagina titulo="Lixeira" rotulo="Sua conta" secao="conta" larga>
+  <Fragment slot="abertura">
     <p>
       {usuario.admin ? 'Memórias excluídas e rascunhos descartados.' : 'Seus rascunhos descartados.'} Nada aqui aparece no site, e tudo pode ser restaurado como estava.
     </p>
-  </Abertura>
+    <p class="acoes">
+      <a class="acao" href="/rascunhos">Ver os rascunhos</a>
+    </p>
+  </Fragment>
   {
     excluidas.length + capitulos.length === 0 ? (
-      <p class="vazio">A lixeira está vazia.</p>
+      <Vazio frase="A lixeira está vazia." />
     ) : (
       <ul class="linhas">
         {excluidas.map((m) => (
@@ -65,4 +69,4 @@ const nome = (id: string | null) => {
       </ul>
     )
   }
-</Base>
+</Pagina>

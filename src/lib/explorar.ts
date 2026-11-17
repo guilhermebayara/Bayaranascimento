@@ -201,3 +201,187 @@ export function sortear<M extends { id: string }>(memorias: M[], anterior: strin
   if (candidatas.length === 0) return undefined;
   return candidatas[Math.min(candidatas.length - 1, Math.floor(sorte() * candidatas.length))];
 }
+
+// --- A tela do Explorar: as formas de ver e o endereço de cada uma -----------------------------
+
+/** As formas de ver do Explorar. No endereço, "ver"; sem ele, a linha do tempo. */
+export type Forma = 'linha' | 'mural' | 'tv' | 'acaso';
+export const FORMAS: Forma[] = ['linha', 'mural', 'tv', 'acaso'];
+export const FORMA_PADRAO: Forma = 'linha';
+
+export const NOMES_DAS_FORMAS: Record<Forma, string> = {
+  linha: 'Linha do tempo',
+  mural: 'Mural de fotos',
+  tv: 'Modo TV',
+  acaso: 'Me mostre uma memória',
+};
+
+export function lerForma(p: URLSearchParams): Forma {
+  const ver = p.get('ver');
+  return FORMAS.includes(ver as Forma) ? (ver as Forma) : FORMA_PADRAO;
+}
+
+/**
+ * O endereço do Explorar com os filtros, a ordem e a forma de ver. `mais` leva o que é só de uma
+ * forma: a memória da vez no modo TV e no "ao acaso" (`m`) e o "Passar sozinho" (passarNoEndereco).
+ */
+export function enderecoDoExplorar(f: Filtros, forma: Forma = FORMA_PADRAO, mais: Record<string, string | undefined> = {}): string {
+  const p = paraEndereco(f);
+  if (forma !== FORMA_PADRAO) p.set('ver', forma);
+  for (const [nome, valor] of Object.entries(mais)) if (valor) p.set(nome, valor);
+  const busca = p.toString();
+  return busca ? `/explorar?${busca}` : '/explorar';
+}
+
+/**
+ * Depois de uma troca sem recarregar, a rolagem volta para o que a pessoa estava olhando. Se a
+ * memória dela saiu, vale a do ano mais próximo; no empate, o ano mais antigo, que na ordem de
+ * sempre é o que vem logo abaixo. Sem nenhum ano, não há para onde voltar.
+ */
+export function anoMaisProximo(anos: number[], alvo: number): number | undefined {
+  let melhor: number | undefined;
+  for (const ano of anos) {
+    if (melhor === undefined || Math.abs(ano - alvo) < Math.abs(melhor - alvo) || (Math.abs(ano - alvo) === Math.abs(melhor - alvo) && ano < melhor)) melhor = ano;
+  }
+  return melhor;
+}
+
+/**
+ * O filtro de família aceita mais de uma (decisão do Gui, 16/11/2026): tocar numa família liga ou
+ * desliga só ela, e as memórias de qualquer uma das marcadas entram. A ordem é a das famílias no
+ * site, para o endereço não depender da ordem dos toques.
+ */
+export function alternarFamilia(marcadas: string[], id: string, todas: string[]): string[] {
+  const novas = marcadas.includes(id) ? marcadas.filter((f) => f !== id) : [...marcadas, id];
+  const naOrdem = todas.filter((f) => novas.includes(f));
+  // Marcar todas é a família completa: o filtro desliga sozinho (decisão do Gui, 17/11/2026)
+  return naOrdem.length === todas.length ? [] : naOrdem;
+}
+
+/**
+ * A animação do modo TV (docs/visual.md, "O modo TV é o lugar de experimentar"): três, para quem
+ * está vendo escolher em "Ajustes" (decisão do Gui, 17/11/2026: a escolha fica com as pessoas, sem
+ * fechar numa só). No endereço, `mov`; sem ele, a primeira.
+ */
+export const MOVIMENTOS = [
+  { id: 'a', nome: 'Álbum' },
+  { id: 'b', nome: 'Revelação' },
+  { id: 'c', nome: 'Mesa' },
+] as const;
+export type Movimento = (typeof MOVIMENTOS)[number]['id'];
+export const MOVIMENTO_PADRAO: Movimento = 'a';
+
+export function lerMovimento(p: URLSearchParams): Movimento {
+  const pedido = p.get('mov');
+  return MOVIMENTOS.find((m) => m.id === pedido)?.id ?? MOVIMENTO_PADRAO;
+}
+
+export const movimentoNoEndereco = (movimento: Movimento): Record<string, string | undefined> => ({ mov: movimento === MOVIMENTO_PADRAO ? undefined : movimento });
+
+/**
+ * O tamanho das fotos no mural (decisão do Gui, 17/11/2026): quem está vendo escolhe a densidade,
+ * com fotos menores ou maiores. Fica no endereço, em `tamanho`; sem ele, o tamanho médio.
+ */
+export type Tamanho = 'pequenas' | 'medias' | 'grandes';
+export const TAMANHOS: Tamanho[] = ['pequenas', 'medias', 'grandes'];
+export const TAMANHO_PADRAO: Tamanho = 'medias';
+export const NOMES_DOS_TAMANHOS: Record<Tamanho, string> = { pequenas: 'Pequenas', medias: 'Médias', grandes: 'Grandes' };
+
+export function lerTamanho(p: URLSearchParams): Tamanho {
+  const pedido = p.get('tamanho');
+  return TAMANHOS.includes(pedido as Tamanho) ? (pedido as Tamanho) : TAMANHO_PADRAO;
+}
+
+/** O que vai no endereço para um tamanho (para `mais`, em enderecoDoExplorar): o padrão não vai. */
+export const tamanhoNoEndereco = (tamanho: Tamanho): Record<string, string | undefined> => ({ tamanho: tamanho === TAMANHO_PADRAO ? undefined : tamanho });
+
+/**
+ * "Passar sozinho", no modo TV (decisão do Gui, 17/11/2026): quem está vendo escolhe o tempo de
+ * cada memória, entre 8, 10 e 15 segundos, e pode pausar e retomar. Fica no endereço, como os
+ * filtros: `passar` leva os segundos e `pausa`, a pausa. Sem `passar`, nada passa sozinho.
+ */
+export const TEMPOS_DE_PASSAR = [8, 10, 15] as const;
+export const TEMPO_DE_PASSAR_PADRAO = 10;
+
+export interface Passar {
+  /** os segundos de cada memória; null quando "Passar sozinho" está desligado */
+  tempo: number | null;
+  pausado: boolean;
+}
+
+export function lerPassar(p: URLSearchParams): Passar {
+  const pedido = p.get('passar');
+  if (pedido === null) return { tempo: null, pausado: false };
+  const segundos = Number(pedido);
+  // Um valor fora da lista (como o "1" dos primeiros endereços) vale o padrão
+  const tempo = (TEMPOS_DE_PASSAR as readonly number[]).includes(segundos) ? segundos : TEMPO_DE_PASSAR_PADRAO;
+  return { tempo, pausado: p.get('pausa') === '1' };
+}
+
+/** O que vai no endereço para um estado do "Passar sozinho" (para `mais`, em enderecoDoExplorar). */
+export function passarNoEndereco(passar: Passar): Record<string, string | undefined> {
+  if (passar.tempo === null) return {};
+  return { passar: String(passar.tempo), pausa: passar.pausado ? '1' : undefined };
+}
+
+/** Os nomes de que o resumo precisa: de cada id, o nome que aparece na tela. */
+export interface NomesDosFiltros {
+  tipo: (id: string) => string | undefined;
+  pessoa: (id: string) => string | undefined;
+  capitulo: (id: string) => string | undefined;
+  tema: (id: string) => string | undefined;
+}
+
+/**
+ * Os filtros ligados, um por item, como aparecem escritos no controle fechado. A família não entra:
+ * ela tem o controle dela, logo acima. O que o endereço pede e não existe (um tipo apagado, um
+ * capítulo que a pessoa não vê) não é escrito.
+ */
+export function resumoDosFiltros(f: Filtros, nomes: NomesDosFiltros): string[] {
+  const achados = (ids: string[], nome: (id: string) => string | undefined) => ids.map(nome).filter((n): n is string => Boolean(n));
+  const itens = [...achados(f.tipos, nomes.tipo)];
+  const pessoas = achados(f.pessoas, nomes.pessoa);
+  if (pessoas.length) itens.push(pessoas.length === 1 ? `com ${pessoas[0]}` : `com ${pessoas.slice(0, -1).join(', ')} e ${pessoas.at(-1)} juntos`);
+  itens.push(...achados(f.capitulos, nomes.capitulo), ...achados(f.temas, nomes.tema));
+  if (f.decada !== null) itens.push(`anos ${f.decada}`);
+  if (f.de !== null && f.ate !== null) itens.push(f.de === f.ate ? `${f.de}` : `de ${f.de} a ${f.ate}`);
+  else if (f.de !== null) itens.push(`de ${f.de} em diante`);
+  else if (f.ate !== null) itens.push(`até ${f.ate}`);
+  if (f.comFoto) itens.push('com foto');
+  if (f.comAudio) itens.push('com áudio');
+  if (f.contou) itens.push('você já contou');
+  if (f.falta) itens.push('você estava e ainda não contou');
+  return itens;
+}
+
+/** As vizinhas de uma memória numa lista: a de antes e a de depois, na ordem em que a lista está. */
+export function vizinhasNaLista<M extends { id: string }>(memorias: M[], id: string): { posicao: number; antes?: M; depois?: M } {
+  const posicao = memorias.findIndex((m) => m.id === id);
+  if (posicao < 0) return { posicao };
+  return { posicao, antes: memorias[posicao - 1], depois: memorias[posicao + 1] };
+}
+
+/**
+ * "Só as fotos", no modo TV: os controles ficam escondidos, e sempre há caminho de volta (defeito
+ * achado pelo Gui, 17/11/2026: depois de "Só as fotos" não dava para voltar ao texto nem chegar aos
+ * ajustes). O que cada gesto faz nesse modo:
+ *
+ * - Esc volta ao modo com texto, sempre;
+ * - as setas para os lados continuam trocando de memória, sem mostrar os controles;
+ * - qualquer outro gesto (toque, clique, movimento do mouse, Enter, seta para cima, qualquer botão do
+ *   controle da TV) traz os controles de volta por alguns segundos, com "Mostrar o texto" em destaque;
+ * - com os controles à vista, o gesto faz o que sempre fez, e o tempo deles na tela recomeça.
+ */
+export type GestoNoPalco = { tipo: 'tecla'; tecla: string } | { tipo: 'toque' } | { tipo: 'mouse' };
+export type ReacaoEmSoFotos = 'voltar-ao-texto' | 'passar' | 'mostrar-controles' | 'seguir';
+
+export function reacaoEmSoFotos(gesto: GestoNoPalco, controlesAVista: boolean): ReacaoEmSoFotos {
+  if (gesto.tipo === 'tecla') {
+    if (gesto.tecla === 'Escape') return 'voltar-ao-texto';
+    if (gesto.tecla === 'ArrowLeft' || gesto.tecla === 'ArrowRight') return 'passar';
+  }
+  return controlesAVista ? 'seguir' : 'mostrar-controles';
+}
+
+/** Quanto tempo os controles ficam na tela, em "Só as fotos", depois do último gesto. */
+export const SEGUNDOS_DOS_CONTROLES = 5;

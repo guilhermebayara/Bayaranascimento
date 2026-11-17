@@ -1,0 +1,33 @@
+---
+// Um capítulo numa lista, como a linha de um sumário de livro: o título em serifa e, embaixo, em
+// mono, o que ele é ("Época", "Capítulo por período", "Capítulo"), o período e a conta das memórias.
+// O ponto leva a cor do capítulo, a mesma do trilho dele na linha do tempo; a época, que é o chão
+// da linha do tempo, fica sem ponto. Serve à lista de capítulos, à página do capítulo e à do tema.
+import Pilula from '../visual/Pilula.astro';
+import { estiloDoCapitulo } from '../../lib/visual';
+
+interface Props {
+  href: string;
+  titulo: string;
+  /** "Época", "Capítulo por período" ou "Capítulo" (nomeDoModo) */
+  selo?: string;
+  periodo?: string;
+  /** "12 memórias", "em parte neste período" */
+  detalhe?: string;
+  /** a posição da cor do capítulo (coresDosCapitulos); sem ela, não há ponto */
+  cor?: number;
+  /** capítulo de dentro de outro: menor e recuado */
+  dentro?: boolean;
+}
+
+const { href, titulo, selo, periodo, detalhe, cor, dentro = false } = Astro.props;
+---
+
+<a class:list={['entrada-de-capitulo', dentro && 'entrada-de-capitulo--dentro']} href={href} style={cor === undefined ? undefined : estiloDoCapitulo(cor)} data-com-cor={cor === undefined ? undefined : ''}>
+  <strong class="entrada-de-capitulo__titulo serifa">{titulo}</strong>
+  <span class="entrada-de-capitulo__dados">
+    {selo && <span class="rotulo suave">{selo}</span>}
+    {periodo && <Pilula>{periodo}</Pilula>}
+    {detalhe && <span class="ficha suave">{detalhe}</span>}
+  </span>
+</a>

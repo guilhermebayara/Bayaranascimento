@@ -1,12 +1,9 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Abertura from '../../components/Abertura.astro';
+import Pagina from '../../components/formularios/Pagina.astro';
 import FichaDoCapitulo from '../../components/FichaDoCapitulo.astro';
 ---
 
-<Base titulo="Novo capítulo">
-  <Abertura titulo="Novo capítulo">
-    <p>Um capítulo junta memórias que formam um momento maior. Só o título é obrigatório.</p>
-  </Abertura>
+<Pagina titulo="Novo capítulo" secao="capitulos">
+  <p slot="abertura">Um capítulo junta memórias que formam um momento maior. Só o título é obrigatório.</p>
   <FichaDoCapitulo />
-</Base>
+</Pagina>

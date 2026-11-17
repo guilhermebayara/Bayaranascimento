@@ -1,29 +1,47 @@
 ---
 // A carta de Natal, depois da primeira visita: o link discreto do painel leva até aqui.
-import Base from '../layouts/Base.astro';
-import { saudacao } from '../lib/painel';
-import { listarIntegrantes, obterCarta } from '../lib/servidor/repositorio';
+import '../visual/telas/painel.css';
+import Visual from '../layouts/Visual.astro';
+import Carta from '../components/Carta.astro';
+import Vazio from '../components/visual/Vazio.astro';
+import { listarIntegrantes, listarMemorias, obterCarta } from '../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const carta = await obterCarta();
 const eu = (await listarIntegrantes()).find((i) => i.id === usuario.pessoa);
-const paragrafos = (texto: string) => texto.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+// As fotos que acompanham a carta: as mais recentes em que a pessoa aparece, entre as que ela vê
+const fotos = carta
+  ? (await listarMemorias(usuario)).filter((m) => m.situacao === 'publicada' && m.integrantes.includes(usuario.pessoa) && m.fotos.length > 0).reverse().slice(0, 3)
+  : [];
 ---
 
-<Base titulo="Carta de Natal">
+<Visual titulo="Carta de Natal" secao="painel" familia="tudo">
   {
     carta && eu ? (
-      <section class="painel" aria-labelledby="saudacao">
-        <h1 id="saudacao">{saudacao(eu.apelido ?? eu.nome)}</h1>
-        {paragrafos(carta.texto).map((p) => <p>{p}</p>)}
-        <p>{carta.assinatura}</p>
-      </section>
+      <Carta para={eu.apelido ?? eu.nome} carta={carta} fotos={fotos} acao={{ href: '/', texto: 'Voltar ao início' }}>
+        {usuario.admin && (
+          <p class="carta__admin">
+            <a class="acao acao--quieta" href="/admin/carta">
+              Escrever a carta
+            </a>
+          </p>
+        )}
+      </Carta>
     ) : (
-      <p class="vazio">A carta ainda não foi escrita.</p>
+      <div class="miolo carta__vazia">
+        <Vazio frase="A carta ainda não foi escrita.">
+          <p>
+            <a class="acao" href="/">
+              Voltar ao início
+            </a>
+            {usuario.admin && (
+              <a class="acao" href="/admin/carta">
+                Escrever a carta
+              </a>
+            )}
+          </p>
+        </Vazio>
+      </div>
     )
   }
-  <p class="acoes">
-    <a href="/">Voltar ao início</a>
-    {usuario.admin && <a href="/admin/carta">Escrever a carta</a>}
-  </p>
-</Base>
+</Visual>

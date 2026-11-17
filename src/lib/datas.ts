@@ -20,6 +20,17 @@ export function formatarData(d: DataFlexivel): string {
   return d.aproximada ? `por volta de ${texto}` : texto;
 }
 
+/**
+ * A data dentro da frase "Isso aconteceu ___" da Nova memória (docs/visual.md, "A data no formulário em
+ * frase"): como o site já escreve, com a preposição que a frase pede. "em 24 de dezembro de 2025",
+ * "em dezembro de 2025", "em 2025", "por volta de 1994". Sem ano, a pergunta que a lacuna faz.
+ */
+export function dataNaFrase(d: { ano?: number; mes?: number; dia?: number; aproximada?: boolean }): string {
+  if (!d.ano) return 'em que data?';
+  const texto = formatarData({ ano: d.ano, mes: d.mes, dia: d.mes ? d.dia : undefined, aproximada: d.aproximada });
+  return d.aproximada ? texto : `em ${texto}`;
+}
+
 /** Parte da data sem o ano, para usar ao lado do ano grande na linha do tempo. */
 export function formatarDiaMes(d: DataFlexivel): string {
   if (!d.mes) return d.aproximada ? 'data aproximada' : '';

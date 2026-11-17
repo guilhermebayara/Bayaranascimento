@@ -1,6 +1,5 @@
 ---
-import Base from '../../../layouts/Base.astro';
-import Abertura from '../../../components/Abertura.astro';
+import Pagina from '../../../components/formularios/Pagina.astro';
 import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
 import ConfirmarRemocao from '../../../components/ConfirmarRemocao.astro';
 import CampoAno from '../../../components/CampoAno.astro';
@@ -26,7 +25,7 @@ const quemCuida = (() => {
   const da = t === 'ela' ? `da ${nome}` : t === 'ele' ? `do ${nome}` : `de ${nome}`;
   const queEla = t === 'ela' ? 'ela' : t === 'ele' ? 'ele' : nome;
   const cadastrou = t === 'ela' ? 'quem a cadastrou' : t === 'ele' ? 'quem o cadastrou' : 'quem fez o cadastro';
-  return `A ficha ${da} é cuidada por quem é do mesmo núcleo que ${queEla}, por ${cadastrou} e pelos administradores.`;
+  return `A ficha ${da} é cuidada por quem é da mesma família que ${queEla}, por ${cadastrou} e pelos administradores.`;
 })();
 const podeFicha = podeEditarIntegrante(usuario, pessoa, comAcesso).ok;
 const podeLacos = podeMexerEmLaco(usuario, [pessoa]).ok;
@@ -151,12 +150,17 @@ const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(
 // Na edição de uma filiação antiga de consideração, a opção continua lá para não trocar sem querer
 const opcoesDeFiliacao = (atual?: Qualidade): [string, string][] => (atual === 'consideracao' ? (Object.entries(QUALIDADES) as [string, string][]) : qualidades);
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
+// PROVISÓRIO (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
-<Base titulo={`Editar ${chamar}`}>
-  <Abertura titulo={chamar}>
-    {!recemCadastrada && <p><a href={`/pessoas/${pessoa.id}`}>Voltar para a página</a></p>}
-  </Abertura>
+<Pagina titulo={chamar} aba={`Editar ${chamar}`} rotulo={recemCadastrada ? 'Nova pessoa' : 'Editar página e laços'} nucleos={familiasDe(pessoa)} secao="pessoas">
+  <Fragment slot="abertura">
+    {!recemCadastrada && (
+      <p>
+        <a href={`/pessoas/${pessoa.id}`}>Voltar para a página</a>
+      </p>
+    )}
+  </Fragment>
   {
     recemCadastrada && (
       <ol class="etapas etapas--fluxo" aria-label="Etapas">
@@ -819,7 +823,7 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
     )
   }
 
-</Base>
+</Pagina>
 
 <script>
   import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';

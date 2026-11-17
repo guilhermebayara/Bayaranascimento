@@ -1,0 +1,77 @@
+/*
+ * A lista de pessoas. Cada família é uma parte da página com a cor dela: o nome da família num
+ * bloco pastel, e as pessoas embaixo, em linhas (a peça Gente), em colunas quando há espaço.
+ */
+
+.pessoas-pagina {
+  padding-block: var(--e-7) var(--e-9);
+}
+.pessoas-pagina__abre h1 {
+  margin-top: var(--e-2);
+  margin-left: -0.04em;
+}
+.pessoas-pagina__frase {
+  max-width: 22em;
+  margin-top: var(--e-4);
+}
+.pessoas-pagina__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-5);
+  margin-top: var(--e-5);
+}
+/* Os atalhos para cada família: quietos, numa linha */
+.pessoas-pagina__atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
+  margin-top: var(--e-5);
+  padding-top: var(--e-2);
+  border-top: 1px solid var(--fio);
+}
+
+.familia-de-gente {
+  margin-top: var(--e-7);
+}
+/* O nome da família no bloco da cor dela, como a capa do álbum de cada casa */
+.familia-de-gente__nome {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-4);
+  padding: var(--e-4) var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--pastel);
+  --tinta-suave: color-mix(in srgb, var(--tinta) 76%, var(--pastel));
+}
+.familia-de-gente__lista {
+  display: grid;
+  column-gap: var(--calha);
+  margin-top: var(--e-2);
+  padding-inline: var(--e-2);
+}
+.familia-de-gente__lista li {
+  border-bottom: 1px solid var(--fio);
+}
+
+@media (min-width: 40rem) {
+  .familia-de-gente__lista {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 62rem) {
+  .pessoas-pagina {
+    padding-block: var(--e-8) var(--e-9);
+  }
+  .familia-de-gente__lista {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 100rem) {
+  .familia-de-gente__lista {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

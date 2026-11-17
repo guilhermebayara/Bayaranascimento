@@ -233,3 +233,7 @@
     grid-column: 1 / -1;
   }
 }
+
+.sis__gente li + li {
+  border-top: 1px solid var(--fio);
+}

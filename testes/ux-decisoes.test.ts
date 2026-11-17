@@ -79,19 +79,30 @@ describe('escolher pessoa', () => {
 });
 
 describe('ação principal', () => {
-  it('fica no alto da memória, da pessoa e do capítulo', () => {
-    // Antes das fotos, na memória; antes da família e dos capítulos de dentro, na pessoa e no capítulo
-    const conteudo: Record<string, string> = {
-      'src/pages/memorias/[id].astro': '<Foto',
-      'src/pages/pessoas/[id]/index.astro': '<section class="familia">',
-      'src/pages/capitulos/[id]/index.astro': '<section class="familia">',
-    };
-    for (const [arquivo, marco] of Object.entries(conteudo)) {
-      const pagina = fonte(arquivo);
-      const acoes = pagina.indexOf('acoes--pagina');
-      expect(acoes).toBeGreaterThan(pagina.indexOf('<h1>'));
-      expect(acoes).toBeLessThan(pagina.indexOf(marco));
-    }
+  it('na memória, um atalho no alto para quem chega querendo contar, e o convite grande no fim', () => {
+    // docs/visual.md, "Página da memória": a ação principal continua ao alcance logo abaixo do título
+    const pagina = fonte('src/pages/memorias/[id].astro');
+    const atalho = pagina.indexOf('abre__atalho');
+    expect(atalho).toBeGreaterThan(pagina.indexOf('<h1'));
+    expect(atalho).toBeLessThan(pagina.indexOf('class="corpo grade"'));
+    expect(pagina.indexOf('class="convite miolo"')).toBeGreaterThan(pagina.indexOf('class="parede"'));
+    expect(pagina.match(/href=\{`\/memorias\/\$\{memoria\.id\}\/relato`\}/g)).toHaveLength(2);
+  });
+
+  it('fica no alto da pessoa e do capítulo', () => {
+    // Antes da família e dos capítulos de dentro
+    // Na pessoa (visual novo): depois do nome, dentro da abertura, antes da voz e dos laços
+    const pessoa = fonte('src/pages/pessoas/[id]/index.astro');
+    const acoesDaPessoa = pessoa.indexOf('quem-e__acoes');
+    expect(acoesDaPessoa).toBeGreaterThan(pessoa.indexOf('<h1'));
+    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="lacos miolo"'));
+    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="voz miolo grade"'));
+    // No capítulo (visual novo): depois do título, dentro da capa, antes dos capítulos de dentro e dos marcos
+    const capitulo = fonte('src/pages/capitulos/[id]/index.astro');
+    const acoesDoCapitulo = capitulo.indexOf('capitulo__acoes');
+    expect(acoesDoCapitulo).toBeGreaterThan(capitulo.indexOf('<h1'));
+    expect(acoesDoCapitulo).toBeLessThan(capitulo.indexOf('class="capitulo__corpo"'));
+    expect(acoesDoCapitulo).toBeLessThan(capitulo.indexOf('class="marcos"'));
   });
 });
 
@@ -119,7 +130,7 @@ describe('enviando', () => {
   it('não desabilita o botão, que precisa ir com o formulário', () => {
     const enviando = fonte('src/lib/cliente/enviando.ts');
     expect(enviando).not.toMatch(/\.disabled = true/);
-    expect(fonte('src/layouts/Base.astro')).toContain('marcarEnvios()');
+    expect(fonte('src/components/formularios/Pagina.astro')).toContain('marcarEnvios()');
   });
 });
 
@@ -312,15 +323,19 @@ describe('como se referir de quem entra pelo nome novo', () => {
 
 describe('linha do tempo', () => {
   it('mais recentes primeiro, em todas as páginas que mostram a linha do tempo', () => {
-    expect(fonte('src/components/LinhaDoTempo.astro')).toContain('agruparPorAno(maisRecentesPrimeiro(memorias))');
+    // No visual novo, a linha do tempo é a do Explorar (explorar/Linha.astro), que recebe as memórias
+    // já na ordem: a pessoa e o tema entregam das mais recentes para as mais antigas, e os marcos do
+    // capítulo seguem a mesma ordem
+    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/listarMemorias\(usuario, \{ integrante: pessoa\.id \}\)\)\.reverse\(\)/);
+    expect(fonte('src/pages/temas/[id].astro')).toMatch(/listarMemorias\(usuario, \{ tema: tema\.id \}\)\)\.reverse\(\)/);
+    expect(fonte('src/pages/capitulos/[id]/index.astro')).toContain('maisRecentesPrimeiro(memorias)');
   });
 });
 
 describe('salto por década', () => {
-  it('barra fixa com as décadas, só com mais de uma, e o filtro tira as que ficam vazias', () => {
-    const linha = fonte('src/components/LinhaDoTempo.astro');
+  it('faixa com as décadas, só com mais de uma', () => {
+    const linha = fonte('src/components/explorar/Linha.astro');
     expect(linha).toContain('decadas.length > 1 &&');
-    expect(linha).toContain('id={`decada-${decadaDe(ano)}`}');
-    expect(linha).toContain("item.hidden = !raiz.querySelector(`.ano[data-decada=\"${item.dataset.decada}\"]:not([hidden])`)");
+    expect(linha).toContain('href={`#decada-${d}`}');
   });
 });

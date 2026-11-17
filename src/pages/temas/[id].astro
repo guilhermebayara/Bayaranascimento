@@ -1,36 +1,74 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Abertura from '../../components/Abertura.astro';
-import LinhaDoTempo from '../../components/LinhaDoTempo.astro';
+// A página de um tema: tudo o que o usa. Os capítulos, como no sumário, e as memórias, na mesma
+// linha do tempo do Explorar.
+import '../../visual/telas/linha.css';
+import '../../visual/telas/capitulo.css';
+import Visual from '../../layouts/Visual.astro';
+import Entrada from '../../components/capitulos/Entrada.astro';
+import Linha from '../../components/explorar/Linha.astro';
+import Vazio from '../../components/visual/Vazio.astro';
+import { ehEpoca, nomeDoModo } from '../../lib/capitulos';
+import { coresDosCapitulos } from '../../lib/linha-capitulos';
 import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemasVisiveis } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const tema = (await listarTemasVisiveis(usuario)).find((t) => t.id === Astro.params.id);
 if (!tema) return new Response('Tema não encontrado', { status: 404 });
-const capitulos = (await listarCapitulos(usuario)).filter((c) => c.temas.includes(tema.id));
-const memorias = await listarMemorias(usuario, { tema: tema.id });
+const todos = await listarCapitulos(usuario);
+const capitulos = todos.filter((c) => c.temas.includes(tema.id));
+// Da mais recente para a mais antiga, como em toda linha do tempo do site
+const memorias = (await listarMemorias(usuario, { tema: tema.id })).reverse();
+const cores = coresDosCapitulos(
+  (await listarMemorias(usuario)).reverse(),
+  todos.map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c)),
+);
 ---
 
-<Base titulo={tema.nome}>
-  <Abertura titulo={tema.nome}>
-    <p class="memoria__etiquetas" slot="antes"><span class="selo">Tema</span></p>
-    <p><a href="/capitulos">Todos os capítulos e temas</a></p>
-  </Abertura>
-  {
-    capitulos.length > 0 && (
-      <section class="familia">
-        <h2>Capítulos</h2>
-        <ul class="lista-de-capitulos">
-          {capitulos.map((c) => (
-            <li>
-              <a href={`/capitulos/${c.id}`}>
-                <strong>{c.titulo}</strong>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </section>
-    )
-  }
-  <LinhaDoTempo memorias={memorias} integrantes={await listarIntegrantes()} nucleos={await listarNucleos()} vazio="Nenhuma memória com este tema por enquanto." />
-</Base>
+<Visual titulo={tema.nome} secao="capitulos">
+  <article class="tema">
+    <header class="tema__abre miolo">
+      <p class="rotulo suave">Tema</p>
+      <h1 class="serifa t-1">{tema.nome}</h1>
+      <p>
+        <a class="acao acao--quieta" href="/capitulos">Todos os capítulos e temas</a>
+      </p>
+    </header>
+    {
+      capitulos.length > 0 && (
+        <section class="tema__capitulos miolo" aria-labelledby="capitulos-do-tema">
+          <h2 class="rotulo suave" id="capitulos-do-tema">
+            Capítulos
+          </h2>
+          <ol class="indice">
+            {capitulos.map((c) => (
+              <li>
+                <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} selo={nomeDoModo(c)} cor={cores.get(c.id)} dentro />
+              </li>
+            ))}
+          </ol>
+        </section>
+      )
+    }
+    <section class="tema__memorias" aria-labelledby="memorias-do-tema">
+      <header class="miolo">
+        {memorias.length > 0 && (
+          <p class="rotulo suave">
+            {memorias.length} {memorias.length === 1 ? 'memória' : 'memórias'}
+          </p>
+        )}
+        <h2 class="serifa t-2" id="memorias-do-tema">
+          Memórias
+        </h2>
+      </header>
+      {
+        memorias.length === 0 ? (
+          <div class="miolo">
+            <Vazio frase="Nenhuma memória com este tema por enquanto." />
+          </div>
+        ) : (
+          <Linha memorias={memorias} capitulos={todos} integrantes={await listarIntegrantes()} nucleos={await listarNucleos()} ordem="recentes" trilhos={false} />
+        )
+      }
+    </section>
+  </article>
+</Visual>

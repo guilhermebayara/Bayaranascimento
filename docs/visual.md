@@ -74,8 +74,8 @@ Construído em 16/11/2026 na branch `tst-visual`, em oito rodadas: a primeira ve
 | --- | --- |
 | Carta da primeira visita | `/conceito?visita=primeira` |
 | Painel, numa visita seguinte | `/conceito` |
-| Linha do tempo (Tudo e cada família) | `/conceito/tudo` |
-| Memória | `/conceito/memorias/<id>` |
+| Linha do tempo (Tudo e cada família) | `/conceito/tudo` (desde a fase 3, `/explorar`) |
+| Memória | `/conceito/memorias/<id>` (desde a fase 3, `/memorias/<id>`) |
 | Fontes, assinatura, cores e peças lado a lado | `/conceito/sobre` |
 
 A faixa do alto (só nas prévias e no computador) troca de tela, de combinação de fontes e de pessoa. As rotas respondem 404 na produção e na homologação, porque o painel usa dados fixos de exemplo (`src/lib/servidor/conceito.ts`, conferido pela guarda da produção).
@@ -171,6 +171,7 @@ Construído em 16/11/2026 na branch `tst-visual-sistema`, a partir do conceito a
 | Etiqueta-balão | `Etiqueta.astro` | Do conceito |
 | Ficha em mono | `Ficha.astro` e `Dado.astro` (classe `verso`) | Do conceito |
 | Retrato recortado | `Retrato.astro` | Do conceito |
+| Pessoa numa linha de lista | `Gente.astro` | Nova, do grupo 2 da fase 3. O Gui ainda não viu |
 | Bilhete e nome manuscrito | `Bilhete.astro` | Do conceito |
 | Bloco de áudio | `Audio.astro` | Do conceito, com o tocador do aparelho |
 | Sinal do capítulo e trilhos | `SinalDoCapitulo.astro`, `Trilhos.astro` | Do conceito |
@@ -210,7 +211,8 @@ O CSS das peças está em `src/visual/pecas.css` (as ações estão em `base.css
 | Um período ou uma data aproximada | `Pilula.astro` | `<Pilula>2018–2020</Pilula>` |
 | A ficha (quando, onde, tipo, capítulos) | `Ficha.astro` e `Dado.astro` | `<Ficha><Dado rotulo="Quando">…</Dado></Ficha>` |
 | A foto de uma pessoa | `Retrato.astro` | `nome`, `foto` (o endereço, de `enderecoDoRetrato`, ou nada), `familia` (de `corDaPessoa`). `redondo` só no topo |
-| Uma pessoa com nome e parentesco | classes `pessoa` e `pessoa__nome` | Um link com o `Retrato`, o nome e o parentesco em `ficha suave` (ver "Quem estava" em `src/pages/conceito/memorias/[id].astro`) |
+| Uma pessoa com nome e parentesco | classes `pessoa` e `pessoa__nome` | Um link com o `Retrato`, o nome e o parentesco em `ficha suave` (ver "Quem estava" em `src/pages/memorias/[id].astro`) |
+| Uma pessoa numa lista de laços | `Gente.astro` | `href`, `nome`, `foto`, `familia`, `laco` ("sua avó") e `detalhe`, em mono |
 | Um relato | `Bilhete.astro` | `por`, `registradoPor` (só quando não foi a própria pessoa) e o conteúdo dentro: `Audio`, depois `<div class="bilhete__texto">`. Com `href`, o bilhete inteiro vira link |
 | Um áudio | `Audio.astro` | `rotulo`, `src`, `transcricao` |
 | O capítulo de uma memória | `SinalDoCapitulo.astro` | `id`, `titulo` e `cor` (a posição dada pela montagem, `src/lib/linha-capitulos.ts`) |
@@ -419,11 +421,355 @@ Hoje a ação principal fica no alto (decisão do QA de UX). Mantenha um atalho 
 - **Capítulo e laço:** título, período e pessoas parados à esquerda no computador; à direita, os marcos numerados, com data e lugar em mono (Union, "Our story"). As fases do casal em sanfona (Union, "The journey").
 - **Data aproximada e período:** em pílula, como no Folira ("2018-2020", "por volta de 1994").
 
+## Todas as telas (fase 3), em andamento
+
+Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo>`. **As branches são empilhadas** (decisão do Gui, 17/11/2026, para os grupos 2 a 4 andarem sem esperar a aprovação do anterior): `tst-visual-pessoal` nasce da `tst-visual-explorar`, `tst-visual-familia` nasce da `tst-visual-pessoal`, e assim por diante. Cada PR diz no alto de qual depende, e o merge segue a ordem dos grupos. Quando um PR de baixo muda, as branches de cima trazem a mudança com um merge, sem refazer a história.
+
+| Grupo | Telas | Situação |
+| --- | --- | --- |
+| 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar` (PR #35, aberto). O Gui viu várias rodadas e ainda quer ajustar: ver "Estado do grupo 1", logo abaixo |
+| 2. `pessoal` | Painel, carta de Natal, sua conta, a página da pessoa e `/sistema` | Construído em 17/11/2026, na `tst-visual-pessoal`, em cima do grupo 1. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 2: pessoal" |
+| 3. `familia` | Capítulos, capítulo, tema, pessoas e árvore (a árvore muda só de aparência) | Construído em 17/11/2026, na `tst-visual-familia`, em cima do grupo 2. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 3: familia" |
+| 4. `formularios` | Nova memória, relato, capítulo, nova pessoa, cadastro guiado, laços, histórico, excluir, rascunhos, lixeira e administração. Por fim, a saída de `src/styles/global.css` | Construído em 17/11/2026, na `tst-visual-formularios`, em cima do grupo 3, em duas metades. PR #38 aberto, sem merge, com perguntas para o Gui. O estilo antigo saiu: ver "Grupo 4", abaixo |
+
+### Estado do grupo 1, para a próxima sessão seguir sem a conversa
+
+Escrito em 17/11/2026, no fim da sessão que construiu o grupo. A branch é a `tst-visual-explorar`, o PR é o #35 para a `homologa`, **aberto e sem merge**: o Gui respondeu que ainda quer ajustar o grupo 1. A próxima sessão continua na mesma branch (trazendo a `homologa` antes) e não abre o grupo 2 enquanto ele não disser. O detalhe de cada decisão está em "Grupo 1", abaixo; aqui fica o resumo e o que não está escrito em outro lugar.
+
+**O que está pronto e o Gui já viu funcionando**
+
+- Explorar em `/explorar`, com as quatro formas de ver, e a página da memória no visual novo.
+- Os controles: "Forma de ver", "Família" (etiquetas na cor de cada família, mais de uma escolha, marcar todas volta à família completa), "Filtros" (cada escolha vale na hora) e, no mural, "Fotos" (pequenas, médias, grandes).
+- A troca sem recarregar com o movimento por item, a rolagem presa e o voltar do navegador.
+- O mural: superfície contínua, cartão da década, aba do ano, título à mão na margem e o verso em leque no computador.
+- O modo TV sem recarregar, com a foto revelada e as outras fotos em volta, "Passar sozinho", "Ajustes", as três animações, "Só as fotos" e "Tela cheia".
+
+**O que mudou desde que o PR foi aberto** (cada linha foi um pedido do Gui ao ver a prévia)
+
+| Assunto | Como era no primeiro push | Como está |
+| --- | --- | --- |
+| Mural | Só as fotos, sem texto | Superfície contínua com cartão de década, aba de ano, título à mão, verso em leque e tamanho das fotos. Passou por cinco rodadas |
+| Troca de filtro, família, ordem e forma de ver | Recarregava a página | Troca só a região do Explorar, com cada item indo ao lugar novo (FLIP), sem mexer na rolagem |
+| Filtros | Formulário com o botão "Mostrar memórias" | Cada escolha vale na hora e o painel continua aberto. O botão ficou só para quem está sem script |
+| Família | Uma só, em links | Mais de uma, em etiquetas na cor de cada família |
+| Modo TV | Uma página por memória, uma foto sem corte, um fade entre páginas | Sem recarregar, foto revelada com até quatro outras em volta, três animações, controles numa linha e o resto em "Ajustes" |
+| "Passar sozinho" | 10 segundos fixos | 8, 10 ou 15 segundos, com pausa |
+| Endereço | Tudo no endereço | Só o que traz de volta ao mesmo lugar; preferências no aparelho |
+
+**O que o Gui ainda tem para escolher ou conferir**
+
+- **A animação do modo TV.** As três ficam para as pessoas escolherem em "Ajustes" (ele decidiu não fechar numa só). O que ele ainda não disse: qual é a de quem nunca escolheu (hoje a Álbum, `MOVIMENTO_PADRAO`) e se os nomes "Álbum", "Revelação" e "Mesa" ficam. Na Álbum ele aprovou a direção e pediu que todas as fotos venham e saiam pela lateral; a correção das fotos que saíam repetindo a chegada ele ainda não viu.
+- **"Só as fotos" e "Tela cheia"**: ele viu e achou o defeito do caminho de volta, corrigido em 17/11/2026. Falta conferir a correção numa TV com controle e no iPhone.
+- **As etiquetas da família**: ele escolheu o formato, mas não viu o resultado.
+- **A aba do ano no mural** precisa ser vista por alguém mais velho. Se passar batida, a saída combinada é o ano na margem de toda foto.
+- **No celular, o mural pequeno fica sem o título** na margem (não cabe). Ele não comentou.
+- **Em 1280 × 720, "Ajustes" fica no pé da tela** e, aberto, pede rolagem.
+- **No iPhone de verdade, nada deste grupo foi conferido**: a troca com movimento, a rolagem devolvida, o voltar pelo gesto, o modo TV e a linha do tempo depois de uma troca (a faixa de décadas e o ano parados).
+- **Numa TV de verdade, com controle**, também não.
+
+**O que ficou por fazer**
+
+- **As capturas estáticas** de `docs/visual/fase-3/explorar/` estão desatualizadas para o modo TV, a família e o mural. Refazer com `CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>` e converter para JPEG (as PNG do grupo inteiro somam 36 MB; em JPEG, 8 MB). As capturas com o mouse em cima de uma foto e no meio de uma animação não saem do script: foram tiradas à parte, com o Playwright.
+- **A lista de `scripts/capturas.mjs`** ainda não tem "Só as fotos", as três animações nem a família com duas marcadas.
+- **O item "Explorar" e o "Capítulos na linha do tempo"** continuam em "Decidido, a construir", em `docs/decisoes.md`, com o andamento. Saem de lá quando o Gui aprovar o grupo.
+- **A página do sistema** muda para `/sistema` no grupo 2 (ver "O que falta, para a sessão seguinte").
+- **`testes/visual.test.ts`** ainda tem o `describe('conceito')` guardando os testes das telas novas. Vale separar quando o conceito sair.
+
+**Como está montada a troca sem recarregar**
+
+- **Onde:** `src/lib/cliente/explorar-troca.ts`, ligado por `ligarTroca()` no script de `src/pages/explorar.astro`. A região que troca é o `<div data-explorar>`, que envolve a linha do tempo ou o mural, com os controles dentro.
+- **O caminho de uma troca** (`trocar`): busca a página do endereço novo, tira dela o `[data-explorar]`, mede o que está perto da tela, troca o nó inteiro, devolve a rolagem, avisa (`explorar:trocou`) e anima a diferença. Qualquer erro cai em `location.assign`, a navegação comum.
+- **Identidade:** `data-chave` em cada item (`m:<id>`, `a:<ano>`, `d:<década>`) e `data-ano`, que serve para achar o ano mais próximo. Item novo que precise se mover leva os dois.
+- **Rolagem, duas regras.** Quem usou um controle fica com ele no mesmo ponto da tela (o seletor `foco`, que precisa valer na região antiga e na nova: por isso cada opção tem `data-opcao`). Sem controle, que é o voltar e o avançar, vale a primeira memória abaixo de 110 px do alto.
+- **O que continua aberto:** os `<details>` dos controles são copiados por posição da região antiga para a nova. Mudar a ordem deles entre uma página e outra quebra isso.
+- **Quem sai** é o próprio nó antigo, posto de volta dentro de `.mural` ou `.linha` com `position: absolute`, no fim da lista, para não mexer no `nth-child` dos outros.
+- **A foto já carregada** é levada do item antigo para o novo (`manterFotos`), para não piscar.
+- **Histórico:** `pushState` a cada troca e `scrollRestoration = 'manual'` antes e depois dele, senão o navegador devolve a rolagem por conta própria ao voltar e briga com a nossa. Ao sair da página (`pagehide`) volta a `'auto'`.
+- **Scripts depois da troca.** O HTML que chega pelo `DOMParser` não roda `<script>`. O script da linha do tempo virou uma função `iniciar`, chamada de novo em `explorar:trocou`, com um `AbortController` que desliga o que escutava a janela. O do mural escuta o documento. Script novo dentro da região segue um dos dois modelos.
+- **O tamanho das fotos** não busca nada: troca o `data-tamanho` do mural no lugar, com o mesmo medir e animar, e guarda no aparelho.
+- **O modo TV tem a troca dele**, no script de `src/components/explorar/Palco.astro`: busca de antemão a página da memória de antes e a de depois, troca o `[data-palco]` inteiro com as fotos já abertas e usa `replaceState`, para o voltar sair do modo TV de uma vez. O estado de "passando sozinho" e da pausa viaja nos endereços dos links da página buscada, e não no endereço da barra.
+
+**Cuidados que custaram tempo neste grupo**
+
+- **A animação começava antes da foto.** Animação em CSS começa quando o elemento entra na página, e a foto ainda não tinha chegado: o Gui via um quadrado pequeno crescendo e nenhum movimento. No modo TV a animação só roda com `data-pronta`, que o script põe depois de abrir todas as fotos (`decode()`), e cada `<img>` que chega é trocado pela `Image` já aberta. Qualquer animação nova de chegada segue isso.
+- **Nó reaproveitado repete a animação de chegada.** Pôr um nó antigo de volta na página reinicia as animações em CSS dele. Foi o que fez "voar fotos que nunca paravam" na Álbum. O que sai leva `animation: none !important`.
+- **O painel dos filtros fechando mudava a rolagem.** A página buscada vem com o painel fechado; sem copiar o estado dos `<details>`, tudo o que estava abaixo subia.
+- **O mesmo endereço em dois controles.** Com o foco achado só pelo `href`, clicar numa família punha o foco em "Linha do tempo", que tinha o mesmo endereço. O foco é achado pelo controle (`aria-labelledby`) e pela opção (`data-opcao`).
+- **A guarda da produção lê os arquivos versionados.** Depois de apagar ou mover arquivo, `npm run build` falha com `ENOENT` até um `git add -A`.
+- **As fotos de exemplo no servidor local** precisam ser enviadas uma vez por banco local: `NO_PROXY=localhost node scripts/enviar-fotos-de-exemplo.mjs http://localhost:4321`. Sem isso, todas as fotos saem quebradas nas capturas.
+- **Regex de teste com `[^>]*`** para em qualquer `>` de dentro de uma expressão, como `m.fotos.length > 0`. Nos componentes, evite `>` dentro dos atributos que um teste lê.
+- **`@view-transition`** só pode aparecer uma vez, dentro de `prefers-reduced-motion: no-preference`: tem teste. Ele hoje só serve para entrar e sair do modo TV.
+- **O `.miolo` é só `padding-inline`.** Uma regra de tela que zere o `padding-inline` de um elemento com `miolo` tira a margem da página.
+- **`tsc --noEmit` e `astro check` travam** nas sessões (passaram de cinco minutos e derrubaram o servidor local). Não deu para anotar a contagem de erros de tipo.
+- **Vídeo das trocas:** o Playwright grava com `recordVideo` no contexto. As capturas do script rodam com movimento reduzido, então animação só se confere em contexto sem `reducedMotion`. Os vídeos não entram no repositório.
+- **O servidor local cai** depois de um `npm run build` longo ou entre uma conversa e outra: confira com um `curl` antes de cada rodada de capturas.
+
+### Grupo 1: Explorar e a página da memória
+
+**Endereços.** "Tudo" virou "Explorar", em `/explorar`. `/tudo` e os endereços antigos (`/?nucleo=...`) levam para lá com os mesmos filtros. As telas `/conceito/tudo` e `/conceito/memorias/<id>` saíram: viraram `/explorar` e `/memorias/<id>`, com os dados de verdade. O menu e a marca do topo de `Visual.astro` apontam para os endereços de verdade ("Início" em `/`, "Explorar" em `/explorar`), e o menu do visual antigo (`Base.astro`) também diz "Explorar".
+
+**Onde está.** A página é `src/pages/explorar.astro`; as partes, em `src/components/explorar/`: `Controles.astro`, `Linha.astro` (a linha do tempo do conceito, com o script dela), `Mural.astro` e `Palco.astro` (modo TV e ao acaso). O CSS da linha do tempo continua em `telas/linha.css`; o do formulário dos filtros, do mural e do palco, em `telas/explorar.css`. As regras continuam em `src/lib/explorar.ts`, que ganhou as formas de ver (`lerForma`), o endereço (`enderecoDoExplorar`) e o resumo dos filtros (`resumoDosFiltros`), com teste.
+
+**Os controles**, um embaixo do outro, cada um com nome e lugar fixo: **Forma de ver** (Linha do tempo, Mural de fotos, Modo TV, Me mostre uma memória), **Família** (como no conceito) e **Filtros**, que fechado diz o que está ligado e a ordem ("Viagem · com foto · Mais contadas") e aberto mostra, no mesmo lugar, um formulário só: ordem, tipo de momento, o que a memória tem (foto, áudio), seus relatos, período (década, ou de um ano a outro) e, recolhidos, quem estava junto, capítulo e tema. O botão é "Mostrar memórias". Tudo é link ou formulário comum: funciona sem script e fica no endereço. O filtro por tipo do conceito, que trocava a lista no navegador, saiu: o tipo agora é um dos filtros do formulário.
+
+**Sem recarregar, com o movimento que mostra o que mudou** (regra em "Movimento que mostra o que mudou", acima). A primeira versão trocava a região inteira com um esmaecer, e a rolagem mudava de lugar; o Gui pediu para refazer. Como ficou, em `src/lib/cliente/explorar-troca.ts`:
+
+- **Cada item tem identidade** (`data-chave`): `m:<id>` para a memória, no mural e na linha do tempo; `a:<ano>` para o ano da linha do tempo; `d:<década>` para o cartão do mural.
+- **A técnica é FLIP**, com a Web Animations API: mede antes, troca, mede depois e anima a diferença. Foi a escolha no lugar das View Transitions com um nome por memória porque funciona em todo Safari do iPhone, anima só o que está perto da tela e deixa cada item seguir o próprio caminho.
+- **Quem continua** vai do lugar antigo ao novo (460 ms). Quando o tamanho das fotos muda, vai também ao tamanho novo. Quando a forma de ver muda entre mural e linha do tempo, quem viaja é a foto de cada memória, e o resto do item aparece em volta dela.
+- **Quem entra** aparece no lugar dele (260 ms). **Quem sai** some onde estava (200 ms): o item antigo é posto de volta por um instante, por cima, no mesmo ponto da tela.
+- **A foto já carregada continua a mesma** na página nova, para não piscar durante o movimento.
+- **A rolagem nunca muda por causa de um filtro** (correção do Gui, 17/11/2026). Quem usou um controle fica com ele no mesmo ponto da tela depois da troca, e os filtros continuam abertos. Cada escolha do formulário vale na hora, sem botão: com script, "Mostrar memórias" some (ele é de quem está sem script). Sem controle, que é o caso do voltar e do avançar do navegador, a rolagem fica presa à primeira memória abaixo do que está parado no alto: ela volta ao mesmo ponto da tela e, se saiu, vale a do ano mais próximo (`anoMaisProximo`, em `src/lib/explorar.ts`; no empate, o ano mais antigo).
+- **O endereço** muda com `history`, e voltar e avançar no navegador desfazem e refazem a troca com o mesmo movimento e a mesma rolagem. Para isso a rolagem dessas entradas do histórico é do site (`scrollRestoration`), e volta a ser do navegador ao sair para outra página.
+- **Com movimento reduzido**, a troca é direta: nada se desloca, e só a rolagem é devolvida. **Sem script**, ou se a busca falhar, cada escolha continua sendo um link ou um formulário comum, com o recarregamento de sempre.
+- A cor da tela e a assinatura do rodapé trocam junto com a família. O foco fica na opção escolhida ou, depois de "Mostrar memórias", no controle dos filtros, e a conta das memórias é anunciada ao leitor de tela. A linha do tempo começa de novo a cada troca (`explorar:trocou`), desligando antes o que escutava a janela.
+- O modo TV também passa sem recarregar, com a troca dele (abaixo). Entrar e sair do modo TV e o "ao acaso" continuam sendo navegação comum.
+- **Um limite para o Gui saber:** no meio da página os controles ficam lá em cima, fora da tela, porque nada fica preso no alto além da faixa de décadas e do ano. Ali, a troca que acontece na prática é a do voltar e do avançar. Trazer os controles para perto (um botão "Filtros" parado no alto, por exemplo) é uma peça presa nova, que pede decisão e conferência no iPhone.
+
+**Família com mais de uma escolha** (decisão do Gui, 16/11/2026). No controle "Família", cada opção é uma etiqueta com o ponto na cor da família, que acende inteira no pastel dela quando está marcada (escolha do Gui em 17/11/2026, entre caixas de marcar, etiquetas e levar a família para dentro de "Filtros": com a escolha múltipla, os links sublinhados deixaram de servir). Cada toque liga ou desliga só aquela família (`alternarFamilia`), "Família completa" desliga todas, e marcar todas volta sozinho à família completa. Com duas marcadas entram as memórias de qualquer uma delas, sempre só o que a pessoa vê, e a assinatura do topo e do rodapé junta os sobrenomes ("Bayara & Bracarense").
+
+**Linha do tempo.** A do conceito, sem mudança de desenho. Os trilhos, as épocas e a faixa de décadas só aparecem quando `mostraTrilhos` deixa. Em "Mais antigas primeiro", a página leva ao presente e o trilho acaba, embaixo, em "Fim do capítulo “Natais”" e "Fim da época “…”" (texto novo, para o Gui confirmar). Em "Entraram por último" e "Mais contadas", a lista é corrida, sem a divisória dos anos, e cada memória traz a data inteira.
+
+**Mural** (decisões do Gui, 17/11/2026, em cinco rodadas). A primeira versão era só as fotos, sem texto. Na segunda, a pedido dele, as fotos ficaram agrupadas por ano, com o ano grande como cabeçalho e o título na margem; ao ver, ele achou que o mural tinha virado uma segunda linha do tempo: o ano é para facilitar, e o mural precisa orientar sem perder a cara de mural. A terceira, que vale:
+
+- **Uma superfície só.** As fotos-chave como fotos reveladas, de ponta a ponta, cada uma com a inclinação dela e um pouco fora de fila, sem cabeçalho nem seção. No tamanho médio, duas colunas no celular (com três, o título à mão ficava pequeno demais para ler), seis no computador e oito na tela grande.
+- **A década é um cartão no meio das fotos.** Ocupa o lugar de uma foto, na cor da família, com "Anos" e o número grande em serifa ("90", "2010") e a conta das memórias da década. A fila de fotos continua na mesma linha depois dele. Um cartão por ano foi descartado: o acervo de exemplo tem 46 memórias em cerca de 30 anos, e seriam quase tantos cartões quanto fotos.
+- **O ano é uma aba na primeira foto de cada ano**, como a de um fichário, saindo do alto da foto. Não ocupa lugar e não interrompe a fila.
+- **O título na margem.** Só o título da memória, pequeno, na letra manuscrita, em até duas linhas. Vale também para a memória sem foto, que entra como cartão na cor do tipo. É o segundo uso da manuscrita, que até aqui só assinava os relatos.
+- **O verso, no computador** (quinta rodada). É um agrado, e não o lugar da informação. Ao passar o mouse, a foto endireita e sobe um pouco e o verso dela abre em leque por trás, girando pelo canto de baixo, como duas fotos seguradas por ali: um cartão do mesmo tamanho da foto, de que aparece a quina de cima, com a data escrita em mono (o dia e o mês numa linha, o ano na outra). Sem carimbo, sem lugar e sem quem estava: no canto que aparece só cabe a data. Perto da borda direita da tela, o leque abre para a esquerda. O foco do teclado faz o mesmo, e com movimento reduzido o verso aparece sem girar. No toque ele não aparece: o título na margem basta. O que veio antes e não ficou: uma ficha pequena deslizando de trás da foto (não funcionou) e o verso inteiro ao lado, em dupla, com carimbo (ficou lado a lado demais). Virar a foto foi pensado e descartado: esconde a foto no momento em que a pessoa aponta para ela e faz várias virarem em sequência quando o mouse passa pela grade.
+- **O tamanho das fotos** (decisão do Gui, 17/11/2026). No mural, o controle "Fotos" deixa escolher a densidade: Pequenas, Médias (o padrão) ou Grandes. Fica no endereço (`tamanho`), como os filtros, e acompanha a troca de família e o formulário. Colunas no celular, no computador e na tela grande: 3, 8 e 10 nas pequenas; 2, 6 e 8 nas médias; 1, 4 e 5 nas grandes. Nas pequenas do celular o título não cabe na margem e fica só a foto.
+- **Fora da ordem do tempo** ("Entraram por último" e "Mais contadas"), saem os cartões de década e as abas de ano, como os trilhos na linha do tempo, e a data fica só no verso.
+
+**Modo TV.** Uma memória por página, na tela inteira, sem o topo e o rodapé do site: a cor do tipo de momento no fundo, a foto inteira com margem de ampliação, o carimbo, o título, um trecho do relato assinado à mão e quem estava. "Anterior" e "Próxima" são links, com o foco já em "Próxima" (no controle da TV, o botão do meio passa); as setas do teclado passam, o Esc sai e tocar na foto passa para a seguinte. A troca esmaece pela transição entre páginas do navegador, só para quem não pediu menos movimento: com movimento reduzido, a troca é sem animação. A memória da vez vai no endereço (`m`).
+
+**O palco do modo TV** (decisões do Gui, 17/11/2026, depois de ver a primeira versão, com uma foto só e sem corte: a TV é superfície grande).
+
+- **A foto é uma foto revelada**, como no resto do site, grande, com o lugar e o ano na margem.
+- **As outras fotos da memória** ficam em volta da principal, até quatro, menores e um pouco tortas, cada uma com a legenda dela. No celular elas ficam atrás, aparecendo pelas bordas. A primeira versão mostrava só a foto-chave por escolha de desenho, uma memória e uma foto por tela, e não por desempenho.
+- **Os controles numa linha só:** "Anterior", "Próxima" e "Passar sozinho", que depois de ligado vira "Pausar" e "Retomar" no mesmo lugar. O tempo (8, 10 ou 15 segundos), "Parar de passar sozinho" e a animação moram em "Ajustes", que abre no lugar. A versão anterior punha tudo isso escrito na tela.
+
+**A animação do modo TV, três para quem está vendo escolher** (regra em "O modo TV é o lugar de experimentar", acima; decisão do Gui, 17/11/2026: a escolha fica com as pessoas, em "Ajustes", sem fechar numa só). No endereço, `mov=a`, `mov=b` ou `mov=c`; sem ele, vale a primeira. As regras estão em `telas/explorar.css` e a lista em `MOVIMENTOS`, em `src/lib/explorar.ts`.
+
+| | Passagem | As outras fotos | Título e trecho |
+| --- | --- | --- | --- |
+| Álbum | A foto vem da lateral, girando um pouco, e as que estavam na tela saem pelo outro lado, como fotos sendo empurradas; ao voltar, o sentido inverte | Fazem o mesmo movimento da principal, logo atrás dela (decisão do Gui, 17/11/2026) | Sobem linha a linha |
+| Revelação | A foto aparece clara e sem cor e vai se revelando, em três segundos e meio | Revelam-se depois, uma a uma | Surgem depois das fotos, sem deslocamento |
+| Mesa | A foto é jogada na mesa, de perto e torta, e assenta | Caem em volta, uma a uma | Entram juntos, logo depois |
+
+Nas três, o fundo passa de uma cor à outra e as fotos se aproximam devagar enquanto a memória está na tela. **A animação só começa com as fotos prontas** (`data-pronta`): na primeira versão ela começava ao carregar a página e acabava antes de a foto chegar, e a foto aparecia como um quadrado pequeno que crescia. Agora cada foto do palco que chega é trocada pela foto já aberta, do tamanho certo desde o primeiro desenho. Trocar de animação em "Ajustes" mostra a chegada de novo, para a pessoa ver o que escolheu. Com movimento reduzido, nada disso roda.
+
+**O que fica no endereço** (decisão do Gui, 17/11/2026: seremos poucos e ninguém vai mandar link de mural ou de linha do tempo; no endereço fica só o que traz a pessoa de volta ao mesmo lugar depois de abrir uma memória e voltar).
+
+| O quê | Onde fica |
+| --- | --- |
+| Forma de ver, família, filtros e ordem | No endereço |
+| A memória da vez no modo TV (`m`) | No endereço |
+| Tamanho das fotos do mural | No aparelho (`mural-tamanho`) |
+| Animação do modo TV e o tempo do "Passar sozinho" | No aparelho (`tv-animacao`, `tv-tempo`) |
+| "Só as fotos", no modo TV | No aparelho (`tv-so-fotos`) |
+| Se está passando sozinho, a pausa e a tela cheia | Só enquanto o modo TV está aberto |
+
+Sem script, os links continuam levando tudo no endereço (`tamanho`, `passar`, `mov`), e o servidor continua aceitando.
+
+**Só as fotos e tela cheia** (pedido do Gui, 17/11/2026). Em "Ajustes", "Só as fotos" esconde o título, o trecho e os dados e deixa as fotos no meio da tela, maiores; "Mostrar o texto" desfaz (ver "O caminho de volta de Só as fotos", abaixo). "Tela cheia" usa a do navegador e continua valendo de uma memória para a outra, porque a página não recarrega; onde o navegador não tem tela cheia, como no iPhone, o botão não aparece.
+
+**O caminho de volta de "Só as fotos"** (defeito achado pelo Gui, 17/11/2026: depois de "Só as fotos" não havia como voltar o texto nem chegar aos ajustes; em 1280 × 720, "Ajustes" voltava fechado e abaixo da dobra). Como ficou:
+
+- **A tela não rola.** Em "Só as fotos" o palco tem a altura exata da tela, e os controles ("Sair do modo TV" no alto; "Mostrar o texto", "Anterior", "Próxima", "Passar sozinho" e "Ajustes" numa barra no pé) ficam por cima das fotos.
+- **Os controles somem sozinhos** depois de 5 segundos sem gesto (`SEGUNDOS_DOS_CONTROLES`, em `src/lib/explorar.ts`), e o cursor do mouse some com eles.
+- **Qualquer gesto os traz de volta**, com "Mostrar o texto" em destaque e com o foco: toque, clique, movimento do mouse e qualquer tecla (Enter, seta para cima, os botões do controle da TV). O primeiro toque ou clique só mostra os controles, sem trocar de memória. O Tab mostra os controles e segue para o primeiro deles.
+- **Esc sempre volta ao modo com texto.** Já no modo com texto, o Esc continua saindo do modo TV.
+- **As setas para os lados** continuam trocando de memória, sem mostrar os controles.
+- **O foco do teclado nunca fica num controle escondido:** escondidos, eles saem da ordem do teclado (`visibility: hidden`), quem tinha o foco o perde, e a troca de memória não devolve o foco a eles.
+- **Com movimento reduzido**, os controles aparecem e somem sem animação.
+- Quem entra no modo TV com "Só as fotos" guardado no aparelho vê os controles nos primeiros segundos. Sair da tela cheia pelo Esc do navegador, que não chega à página como tecla, também os mostra.
+- O botão de "Ajustes" passou a dizer "Mostrar o texto", como o da barra (era "Mostrar os textos").
+- **Onde está:** a regra do que cada gesto faz é `reacaoEmSoFotos`, em `src/lib/explorar.ts`, com teste em `testes/explorar.test.ts` (existe caminho de volta pelo teclado e pelo toque); o script de `Palco.astro` obedece a ela, e `testes/visual.test.ts` confere a ligação. Os controles ficam no grupo `.palco__controles`, que fora de "Só as fotos" não existe para a grade (`display: contents`).
+- **Para o Gui conferir:** numa TV com controle de verdade e no iPhone. Os 5 segundos são um ponto de partida.
+
+**As fotos que saem, no Álbum** (achado do Gui, 17/11/2026: pareciam fotos voando que nunca paravam na tela). As fotos antigas, postas de volta por um instante para sair pela lateral, repetiam a animação de chegada enquanto saíam. Agora elas só vão embora.
+
+**Passar sozinho** (decisão do Gui, 17/11/2026). Quem está vendo escolhe o tempo de cada memória, entre 8, 10 e 15 segundos (`TEMPOS_DE_PASSAR`, em `src/lib/explorar.ts`), e pode pausar e retomar a qualquer momento.
+
+- "Passar sozinho" fica na linha de "Anterior" e "Próxima": um toque liga em 10 segundos, e no mesmo lugar ficam "Pausar" e "Retomar". Os três tempos e "Parar de passar sozinho" estão em "Ajustes".
+- A escolha fica no endereço, como os filtros: `passar` leva os segundos e `pausa=1`, a pausa. Tempo fora da lista vale 10, o padrão. O estado segue de uma memória para a outra: quem pausou e passa à mão continua pausado.
+- Pausar não recarrega a página; retomar conta o tempo de novo, inteiro. Com a aba escondida, espera. Ligado, a última memória volta à primeira.
+- Só existe com script: sem ele, o grupo nem aparece, e "Anterior" e "Próxima" continuam funcionando.
+
+**Ao acaso.** "Me mostre uma memória" sorteia entre as que passam nos filtros e leva ao endereço da sorteada, no mesmo palco, com o topo do site. "Me mostre outra" sorteia de novo, sem repetir a que estava na tela.
+
+O mural, o modo TV e o sorteio não mostram rascunho: o rascunho só aparece na linha do tempo de quem escreveu.
+
+**Página da memória.** A do conceito, com os dados de verdade. Saiu o que era fixo: as fotos "que vieram com o relato" só voltam quando "Fotos pelo relato" existir no banco (o desenho continua em `.bilhete__fotos`, em `telas/memoria.css`). Os links de histórico, relato, corrigir e excluir levam às telas antigas, que são do grupo 4.
+
+**Sua conta, de passagem.** `/conta` é a página de passagem que estava em `/conceito/conta`, agora em todos os ambientes, para o retrato do topo ter aonde levar: sua página, editar seus dados, rascunhos, lixeira e, para os administradores, tipos de momento, famílias, carta de Natal, a cópia do acervo e, na homologação, o espelho. A tela de verdade é do grupo 2.
+
+**Decidido pelo Gui em 17/11/2026, ao ver o PR #35:** ficam o endereço `/explorar`, o nome "Forma de ver" e os textos do formulário ("O que a memória tem", "Seus relatos", "Você já contou", "Você estava e ainda não contou", "Quem estava junto", "Mostrar memórias", "Limpar filtros", "Nenhuma memória passa nesses filtros."), do palco ("Sair do modo TV", "Passar sozinho", "Parar de passar sozinho", "Abrir esta memória", "Uma memória ao acaso", "Me mostre outra", "Voltar ao Explorar") e do pé do trilho ("Fim do capítulo" e "Fim da época", na ordem das mais antigas). Mudaram o mural e o "Passar sozinho", como descrito acima.
+
+**Para o Gui ver na prévia:** os textos "8 segundos", "10 segundos" e "15 segundos", "Pausar" e "Retomar"; no mural, as duas colunas no celular, o cartão da década ("Anos 90", "Anos 2010"), a aba do ano, o verso em leque e o controle "Fotos" ("Pequenas", "Médias", "Grandes"), que ele já viu funcionando. A aba do ano precisa ser conferida com as pessoas mais velhas: se passar batida, a saída é o ano na margem de toda foto.
+
+**Capturas.** `CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>`. As deste grupo estão em `docs/visual/fase-3/explorar/`.
+
+### Grupo 2: pessoal
+
+Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era decisão dele seguiu com a opção recomendada, está marcado no código com `PROVISÓRIO (pergunta N do PR do grupo "pessoal")` e virou pergunta no fim do PR. As fundações não mudaram: as regras continuam em `src/lib/painel.ts` e `src/lib/conta.ts`.
+
+**Painel (`/`).** O desenho do conceito com os dados de verdade (`src/pages/index.astro`, `telas/painel.css`). Na primeira visita, a carta no alto; depois, "Oi, Fulano.", o resumo do que entrou, a mesa com as novidades, "Neste dia, em outros anos", os cartões (aniversários, você no acervo, a memória para contar) e o caminho para a linha do tempo. O painel só mostra memória publicada.
+
+- **A mesa das novidades** mostra duas memórias e um relato, como no conceito. O que passa disso vira uma linha, "E mais N: ver o que entrou por último", que leva a `/explorar?ordem=entraram`. Provisório.
+- **Sem visita anterior e sem carta**, a frase é "Que bom que você chegou.". Provisório.
+- **O parentesco nos aniversários** não se repete quando o apelido já traz ("Tia Cida" fica sem "sua tia" embaixo).
+- **`?hoje=AAAA-MM-DD`** mostra o painel como num outro dia. Só vale onde não há login (prévias, homologação e computador), para conferir os aniversários e o "Neste dia" e para as capturas saírem iguais.
+- "Voltar Fulano à primeira visita" continua no fim da página, só fora da produção.
+
+**Carta de Natal.** A peça é `src/components/Carta.astro`, usada no alto do painel e em `/carta`: a saudação "Oi, Elizete," grande, o primeiro parágrafo como abertura em serifa, o resto como texto de leitura, e a linha de quem assina partida em nomes, cada um à mão ("Gui, Giovanna e Magno" vira três assinaturas). O carimbo diz "Natal de <ano em que a carta foi escrita>" (provisório: o conceito dizia também "Belo Horizonte"). No painel a ação é "Abrir o acervo", que leva ao Explorar; em `/carta`, "Voltar ao início". As fotos ao lado são as três memórias mais recentes em que a pessoa aparece. O banco de teste ganhou a carta de exemplo do conceito (`semearCartaDeExemplo`), só onde não há carta nenhuma.
+
+**Sua conta (`/conta`).** Página íntima, na cor da família da pessoa, com o cartão do painel (`telas/conta.css`, mais `telas/painel.css` pelo cartão). No alto, o retrato em arco, o nome, "Editar seus dados" e "Ver sua página". Depois, quatro cartões: **Seus dados** (ficha em mono; o e-mail de acesso só aparece na produção), **Rascunhos e lixeira** (os rascunhos de memória e de relato, a conta do que é seu na lixeira e "Abrir a lixeira"), **O que você criou** (o número grande de memórias, relatos, fotos e capítulos; cada lista abre no lugar, uma por vez, sem script) e **Seus laços do coração** (com a proximidade, que só a pessoa vê). No fim, **Administração**, só para quem administra: os itens de `administracao()`, que ganhou "Carta de Natal" e "Sistema visual", e o tamanho do banco, que vira recado quando passa do aviso.
+
+- **Editar os dados no lugar não foi feito**: "Editar seus dados" leva a `/pessoas/<id>/editar`, que é do grupo 4. Pergunta no PR.
+- As telas de rascunhos, lixeira e administração continuam no visual antigo, até o grupo 4.
+
+**Página da pessoa (`/pessoas/<id>`).** O retrato e a voz (`telas/pessoa.css`). A abertura é um bloco na cor da família da pessoa, com o retrato em arco, o carimbo (espécie e famílias), o parentesco de quem olha como a linha maior ("sua avó", "seu amigo-irmão") e o nome logo abaixo. Na própria página e na de quem não tem laço com quem olha, o nome é a linha grande. Seguem "Sobre Fulano" e "A voz de Fulano" (cada áudio com o título da memória e o bloco de áudio), "Família e laços", quieta, em colunas, e "Memórias com Fulano", na mesma linha do tempo do Explorar (`explorar/Linha.astro`, sem trilhos nem faixa de décadas). As ações e os textos são os de antes.
+
+**Peça nova: Gente** (`Gente.astro`, classe `gente`, em `pecas.css`). Uma pessoa numa linha de lista: o retrato pequeno, o nome, o laço e um detalhe em mono. Usada nos laços da página da pessoa e da conta, e mostrada em `/sistema`. O Gui ainda não viu.
+
+**A página do sistema mudou para `/sistema`** (seção "A página do sistema fica"). Nas prévias de teste e no computador abre para todos; na produção e na homologação, só para os administradores, pelo link da conta. Fora das prévias ela não lê o acervo: a foto revelada aparece como o cartão sem foto, desenhado. A trava está em `temAcervoDeExemplo()` (`src/lib/servidor/ambiente.ts`), conferida em `testes/sistema.test.ts` e na guarda da produção (item 9). O mesmo teste recusa peça de `src/components/visual/` que não apareça na página.
+
+**O que saiu.** O painel e a carta do conceito (`/conceito`), com os dados fixos. Do conceito ficou só `/conceito/sobre`, as fontes, até a escolha. A faixa de teste do alto aponta para as telas de verdade.
+
+**Capturas.** `CAPTURAS_SO=^pessoal npm run capturas -- tirar <pasta>`. O painel depende das visitas: o script arruma o banco local antes (apaga as visitas da pessoa para a carta, ou põe a visita anterior um minuto atrás e publica agora duas memórias e um relato de exemplo). As deste grupo estão em `docs/visual/fase-3/pessoal/`, em JPEG. A espera das fotos nas capturas ganhou limite de três segundos por foto: foto dentro de uma lista recolhida nunca carregava e a captura não terminava.
+
+**Conferido.** 390, 1280 e 1920 px, com movimento reduzido (as capturas rodam assim; estas telas não têm animação própria). Por teclado: a ordem do foco segue a da tela e todo foco das telas novas é visível. Nove capturas do Explorar e da memória, antes e depois: iguais, fora uma diferença que muda de captura a cada rodada com o mesmo código (foto que ainda não tinha chegado).
+
+**O que não foi conferido:** nada no iPhone de verdade, nem na prévia publicada com as fotos do bucket de teste.
+
+**Achado do grupo 1, sem correção aqui:** na linha do tempo, o link do título de cada memória tem 30 px de altura e o foco do teclado nele não mostra contorno na conferência automática. Vale olhar no PR #35.
+
+### Grupo 3: familia
+
+Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era decisão dele seguiu com a opção recomendada, está marcado no código com `PROVISÓRIO (pergunta N do PR do grupo "familia")` e virou pergunta no fim do PR. As fundações não mudaram: as regras dos capítulos continuam em `src/lib/capitulos.ts`, e a árvore mudou só de aparência.
+
+**Lista de capítulos (`/capitulos`).** Um sumário de livro (`telas/capitulo.css`): à esquerda, "Capítulos", a frase de sempre e "Novo capítulo"; à direita, cada capítulo numa linha, com o título em serifa e, em mono, o que ele é ("Época", "Capítulo por período", "Capítulo"), o período em pílula e a conta das memórias. Os capítulos de dentro ficam recuados sob o maior, presos por um fio. Os temas vêm no fim, como ações quietas. A linha é a peça de tela `src/components/capitulos/Entrada.astro`, usada também na página do capítulo e na do tema.
+
+**A cor do capítulo fora da linha do tempo.** `coresDosCapitulos`, em `src/lib/linha-capitulos.ts`, dá a cada capítulo a mesma cor do trilho dele na linha do tempo inteira, para ele ser reconhecido pela cor nos dois lugares. Capítulo sem memória visível ganha uma cor fixa pela posição. Época não tem cor: ela é o chão. Teste em `testes/linha-capitulos.test.ts`.
+
+**Página do capítulo (`/capitulos/<id>`).** Abertura de capítulo de livro. À esquerda, a capa: o carimbo com o que ele é (e "Só Bayara", quando é restrito), o título grande, o período em pílula com a conta, "Entram as memórias do período com…", as ações de sempre mais "Ver no Explorar", a abertura em serifa, as ligações ("Parte de", "Aconteceu durante", "Temas") e "Quem aparece". No computador com mouse a capa fica parada enquanto os marcos rolam (`sticky` só dentro de `(hover: hover) and (pointer: fine)`); no toque, nada fica preso. À direita, "Capítulos dentro deste", "Aconteceu neste período" e os marcos.
+
+- **Os marcos numerados.** Cada memória do capítulo é um marco: o número grande em serifa, com um traço na cor do capítulo, o carimbo com a data e o lugar, o título, quem estava e a foto revelada pequena. A ordem é a de toda linha do tempo do site, das mais recentes para as mais antigas, e o número é a posição do marco na história contada do começo (o mais recente leva o número mais alto). Provisório: a outra opção é a ordem do livro, do 01 em diante.
+- **Quem aparece.** As seis pessoas que mais estão nas memórias do capítulo, com a conta de cada uma (a peça Gente), e "e mais N pessoas". Provisório.
+- **A cor da tela** vem das famílias do capítulo (as de "quem vê" e as de "de quem é"); sem nenhuma, a da família completa.
+- A marcação da memória de um capítulo de dentro leva o sinal desse capítulo.
+
+**Tema (`/temas/<id>`).** "Tema", o nome grande, "Todos os capítulos e temas", os capítulos que usam o tema (a mesma linha do sumário) e as memórias, na linha do tempo do Explorar (`explorar/Linha.astro`, sem trilhos), como na página da pessoa.
+
+**Pessoas (`/pessoas`).** Cada família é uma parte da página com a cor dela (`telas/pessoas.css`): o nome da família num bloco pastel, com a conta, e as pessoas embaixo com a peça Gente, em uma, duas, três ou quatro colunas. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho. No alto, a conta de pessoas e bichos, "Cadastrar pessoa", "Ver a árvore" e os atalhos para cada família. O parentesco na lista é provisório.
+
+**Árvore (`/arvore`).** Mudou só a aparência (`telas/arvore.css`); `arvore-montagem.ts` e `arvore-desenho.ts` não foram tocados, e os testes `testes/arvore-*.test.ts` passam sem mudança. Conferido com o Playwright, antes e depois, com a árvore como abre, alguém em foco, os laços do coração abertos, um ramo aberto, cada camada desligada e uma família em destaque: a posição de todos os cartões, o caminho de todas as linhas, os cartões dos ramos e a ficha saíram idênticos.
+
+- **O cartão é uma etiqueta:** a cor da família no fundo (quem é de duas leva as duas, na diagonal, como antes), um canto reto como a etiqueta-balão, o nome em serifa e o parentesco em mono. As medidas continuam 150 por 76, as do desenho. Quem olha tem uma faixa de tinta no alto; quem está em foco, um anel de tinta; bicho é cápsula com a espécie em mono; quem é de fora das famílias fica em branco, com um fio.
+- **As cores das famílias** são as dos tokens, na ordem delas (`--arvore-familia-0` a `-3`, definidas em `.mapa`). No código do navegador mudaram só os nomes das variáveis de cor (`fundoDe`, em `src/lib/cliente/arvore.ts`).
+- **Camadas e controles quietos:** "Ajustar a árvore", a ficha, o zoom e a legenda são cartões brancos pousados no mapa, sem contorno. A ficha traz o retrato em arco, o nome em serifa e as três ações numa linha. No celular, com os ajustes abertos, a ficha sai da frente.
+- **A busca de "Partir de"** (`busca-pessoa.ts`) ganhou o estilo novo só dentro do mapa (`.mapa .busca…`). O estilo da busca nos formulários é do grupo 4.
+- A marca do ramo recolhido ganhou área de toque de 44 px (tinha 42).
+
+**"Família" no lugar de "núcleo"** nestas telas: "Quem aparece nas memórias da família, por família." (era "por núcleo"), na lista de pessoas; na árvore, "Família Bayara" em "Destacar" (era "Núcleo Bayara"), "Outras famílias" em "Mostrar" (era "Outros núcleos") e a dica "A árvore parte de Fulano, que é de outra família" (era "de outro núcleo"). Tem teste: nenhuma destas telas escreve "núcleo".
+
+**O menu** acende "Capítulos" na lista, no capítulo e no tema, "Pessoas" na lista e "Árvore" na árvore (`secao`, em `Visual.astro`).
+
+**O que saiu.** `LinhaDoTempo.astro`, `Cartao.astro` e `Foto.astro`, que só serviam às telas antigas de capítulo e tema.
+
+**O achado do grupo 1 sobre o título na linha do tempo não é defeito.** O link do título tem 30 px de altura, mas a área de toque dele é a memória inteira (`.entrada__titulo a::after`), e o foco do teclado aparece como contorno em volta da memória inteira (`.entrada:has(…:focus-visible)`). A conferência automática media só o link.
+
+**Capturas.** `CAPTURAS_SO=^familia npm run capturas -- tirar <pasta>`. As deste grupo estão em `docs/visual/fase-3/familia/`, em JPEG: a lista, o capítulo reunido, o por período, a época e o de dentro, o tema, as pessoas e a árvore (como abre, com foco, com um ramo aberto e com os ajustes).
+
+**Conferido.** 390, 1280 e 1920 px, com movimento reduzido (as capturas rodam assim). Por teclado, em 390 e 1280: a ordem do foco segue a da tela, todo foco é visível e todo alvo tem 44 px. Na árvore, com mouse e com toque: arrastar, aproximar, "Ver tudo", tocar numa pessoa, a ficha, os laços do coração, abrir e fechar um ramo, as cinco camadas e o destaque de uma família.
+
+**O que não foi conferido:** nada no iPhone de verdade (o gesto de dois dedos na árvore, em especial), nem na prévia publicada. A capa parada do capítulo só existe com mouse, então não pede conferência no iPhone. Das 33 capturas, foram olhadas 20, pelo menos uma de cada tela; as de 1920 px olhadas foram a do capítulo reunido, a das pessoas e a da árvore com foco.
+
+### Grupo 4: formularios
+
+Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era decisão dele seguiu com a opção recomendada, está marcado no código com `PROVISÓRIO (pergunta N do PR do grupo "formularios")` e as perguntas estão no fim do PR do grupo. As fundações não mudaram: as etapas, o que é obrigatório, os nomes dos campos, o que os scripts de `src/lib/cliente/` procuram e o funcionamento sem JavaScript.
+
+**A base, para todas as telas de formulário.**
+
+- **A página:** `src/components/formularios/Pagina.astro`. Uma tela de formulário usa `<Pagina titulo="…" rotulo="…" nucleos={…} secao="…">`, com a frase de abertura em `slot="abertura"` e o formulário dentro. Ela traz o esqueleto novo, a abertura quieta, os recados que voltam do servidor (`?ok=` e `?erro=`, na peça Recado) e o que antes morava no `Base.astro`: o `<noscript>` que esconde o que depende de script e mostra os blocos que ele mostraria, `guardarFormularios` (o digitado volta quando o servidor recusa) e `marcarEnvios` ("Salvando…").
+- **O estilo:** `src/visual/telas/formulario.css`, um arquivo só, valendo dentro de `.pagina-de-formulario`. A marcação dos formulários e a que os scripts criam continuam com os nomes de sempre (`campo`, `opcoes`, `opcao`, `marcar`, `dica`, `acoes`, `acoes--etapas`, `botao--leve`, `botao--arquivo`, `situacao`, `resumo`, `confirmacao`, `etapas`, `busca…`, `audio…`, `quem-estava…`, `foto-enviada`, `nova-pessoa`, `abas`, `painel`, `lista-de-marcar`, `passo-ano`, `campos-data`, `confirmar…`); o arquivo é o desenho novo desses nomes, escrito do zero com os tokens. Foi a escolha no lugar de trocar cada classe pelas do sistema (`campo__rotulo`, `campo__entrada`, `escolha`): os scripts criam boa parte dessa marcação, e as telas da segunda metade usam os mesmos componentes ainda no esqueleto antigo. O desenho é o do sistema: rótulo em mono, resposta numa linha para escrever em cima, foco que engrossa a linha e acende o fundo.
+- **A pergunta** é a legenda de cada parte (`legend`), grande, em serifa. Dentro de outra parte, um degrau abaixo.
+- **A trilha das etapas** (`ol.etapas`, criada por `etapas.ts`): no celular, uma fila de números com 44 px de toque e a linha "Etapa 2 de 7: Quando e onde"; no computador, uma coluna à esquerda com o nome de cada etapa, e a abertura sobe para o alto da página. Sem etapas (o relato), a abertura fica à esquerda e o formulário à direita.
+- **Ações:** o botão cheio é a ação principal; `botao--leve` virou texto sublinhado. Nas ações de etapa, "Voltar" à esquerda e o resto à direita. Quando "Continuar" e um envio convivem (correção de memória publicada, edição do capítulo), o envio fica em contorno até a última etapa.
+- **Estados:** pressionado (a opção e os passos do ano encolhem um pouco), enviando (o `aria-disabled` do botão, de `enviando.ts`), erro (`aria-invalid` pinta a linha do campo no alerta; num grupo de opções, uma barra ao lado), desabilitado (linha tracejada e texto suave) e o recado do envio (`.situacao`, com a barra do alerta quando é erro).
+- **O que o script esconde fica escondido:** `.pagina-de-formulario [hidden] { display: none !important }`. Sem isso, qualquer `display` dado por este arquivo mostrava o que estava escondido (apareceu com "O que foi?", do tipo "Outro"). O `<noscript>` da página vence essa regra por vir depois.
+- **A busca de pessoa** ganhou o estilo geral (`.pagina-de-formulario .busca…`); o da árvore continua em `arvore.css`.
+
+**Nova memória (`/nova`).** As sete etapas, na mesma ordem, cada uma com a pergunta grande. Vale para memória nova, rascunho e correção de memória publicada.
+
+- **O formulário em frase**, na etapa "Quando e onde": "Isso aconteceu *em 24 de dezembro de 2025*, em *Belo Horizonte*." A lacuna da data não é campo de digitar: mostra a data como o site escreve (`dataNaFrase`, em `src/lib/datas.ts`, com teste) e, ao toque, ao Enter ou à barra de espaço, abre logo abaixo o controle de data flexível de sempre (`CampoData`, o calendário, "Foi hoje" e "Não tenho certeza da data"), empurrando o conteúdo. Numa memória nova o controle começa aberto, com a lacuna perguntando "em que data?"; com a data já informada, começa fechado. Um erro dentro do controle fechado (31 de fevereiro, ano vazio) o abre, para o aviso aparecer. Sem script, a lacuna some, a frase diz "na data abaixo" e o controle fica aberto. A lacuna do lugar é texto livre (o campo `lugar` de sempre). "Com quem" continua na etapa seguinte, com o "Quem estava?" de hoje.
+- **A lacuna da data é um trecho da frase com papel de botão** (`<span role="button" tabindex="0">`), e não um `<button>`: o botão não quebra de linha no meio, e a data longa precisa quebrar no celular.
+- **Tipos de momento:** a opção marcada acende na cor do tipo (`estiloDoTipo`), e não mais na cor guardada no cadastro do tipo.
+- **Fotos:** cada foto como uma foto revelada pequena, com a legenda, "Usar na linha do tempo" e "Remover foto" ao lado.
+- **O resumo** da última etapa e a confirmação ("Memória publicada") são cartões brancos pousados no papel.
+
+**Relato (`/memorias/<id>/relato`).** A abertura à esquerda, "Como foi?" à direita, com "Quem está contando" (a busca de pessoa), os áudios (cada um num cartão, com o tocador do aparelho, a transcrição recolhida e "Subir", "Descer" e "Remover") e o texto.
+
+**Capítulo (`/capitulos/novo` e `/capitulos/<id>/editar`).** A ficha em três etapas, com "Como as memórias entram?" em cartões que se explicam (Reunido, Por período, Época). Na edição, "Memórias do capítulo" e "Sobre o capítulo" são partes separadas por um fio.
+
+**"Família" no lugar de "núcleo"** nestas telas: a tabela das trocas está no PR do grupo, e tem teste (nenhuma destas telas escreve "núcleo" no que aparece).
+
+**Testes.** `describe('grupo formularios')`, em `testes/visual.test.ts`; a data na frase, em `testes/datas.test.ts`. As quatro telas, a página de formulário e a ficha do capítulo entraram nas listas de telas de `testes/visual.test.ts` e `testes/sistema.test.ts`. Nenhum teste antigo precisou mudar.
+
+**Capturas.** `CAPTURAS_SO=^formularios npm run capturas -- tirar <pasta>`. Estão em `docs/visual/fase-3/formularios/`, em JPEG: a Nova memória (a primeira etapa, o erro, a frase vazia, e a correção e o rascunho etapa a etapa), o relato e o capítulo (novo, por período, em edição e a época).
+
+**Conferido.** 390, 1280 e 1920 px, com movimento reduzido. Com o Playwright, no celular e no computador, só pelo teclado: a Nova memória inteira até salvar um rascunho e até publicar, com o que segura o "Continuar" (título, tipo, ano, 31 de fevereiro), a frase, "Pular esta etapa" e o resumo; em cada etapa, todo alvo com 44 px e o foco visível. Sem JavaScript: as sete etapas em sequência, o controle da data aberto, os botões que dependem de script escondidos, o rascunho salvo por formulário comum, e o relato e o capítulo abrindo com o botão de envio.
+
+**O que não foi conferido:** nada no iPhone de verdade nem na prévia publicada. O envio de fotos e a gravação de áudio não foram exercitados (o estilo das fotos foi visto com as que a memória já tem; o do áudio gravado, não). A edição de um capítulo por período com pessoas marcadas foi vista só no capítulo novo.
+
+**Segunda metade** (17/11/2026, na mesma branch). As telas que ainda estavam no esqueleto antigo passaram para `formularios/Pagina.astro`, com os mesmos nomes de classe, ids e atributos que os scripts e os testes procuram, e `formulario.css` ganhou o desenho novo desses nomes.
+
+- **Nova pessoa (`/pessoas/nova`) e a ficha (`FichaDoIntegrante.astro`).** A trilha de duas etapas ("Quem é", "Laços") é a mesma trilha quieta, em versão de fluxo entre páginas (`etapas--fluxo`): no celular só a etapa em que a pessoa está leva o nome. "Foto, nascimento e história" continua recolhido.
+- **O retrato no formulário (`CampoRetrato.astro`).** O retrato de agora aparece recortado em arco, como no resto do site, sobre a cor da família (`data-familia`, de `corDaPessoa`). Saiu `corDaFamilia`, que devolvia uma variável do estilo antigo. O quadro de enquadrar fica num cartão branco, com "Aproximar", "Usar esta foto" e "Cancelar".
+- **O cadastro guiado (`/pessoas/<id>/editar?novo=1`).** Uma pergunta por tela, grande, em serifa. Os dois caminhos ("Da família", "Do coração") são dois cartões inteiros para tocar, lado a lado a partir de 40rem. Em cada pergunta, "Adicionar" é o botão cheio até alguém ser adicionado; "Voltar" fica à esquerda e "Pular esta pergunta" ou "Próxima pergunta" à direita, como nas etapas da Nova memória.
+- **Editar página e laços (`/pessoas/<id>/editar`).** A ficha, depois os laços por tipo, cada um numa linha com "Editar", que abre no lugar num cartão branco. O casal mostra as fases como uma linha do tempo com um fio ao lado; em edição, cada fase é uma linha que abre com "Mudar". Remover continua com a confirmação no próprio lugar (`ConfirmarRemocao.astro`), com o botão na cor do alerta. "Adicionar laço" usa as abas que já tinham desenho.
+- **Utilitárias, silenciosas:** o histórico da memória, as duas confirmações de excluir (um cartão com a marca do alerta), os rascunhos e a lixeira. As listas usam `linhas`: um fio entre os itens, o nome em destaque, a data em mono e a ação em texto sublinhado. O estado vazio é a peça Vazio.
+- **Administração:** tipos de momento, famílias, carta de Natal e espelho da produção, com "Administração" acima do título e "Voltar para a sua conta". O tamanho do banco e "Baixar cópia do acervo" já estavam na conta desde o grupo 2; o teste do aviso passou a conferir a conta.
+- **Página larga:** `<Pagina larga>` alarga a coluna (`pagina-de-formulario--larga`) para listas e tabelas.
+- **Defeitos corrigidos no caminho:** o texto do espelho mandava procurar "Baixar cópia do acervo" no rodapé, que não existe mais (agora diz "abra a sua conta e, em Administração"); faltava um espaço entre duas frases em `/admin/familias`; "Ver como fica", na carta, não tinha a aparência de ação.
+- **"Família" no lugar de "núcleo"** nestas telas e em dois recados do servidor ("Você só pode marcar famílias de que faz parte."). A tabela das trocas está no PR.
+
+**O estilo antigo saiu.** Foram apagados `src/styles/global.css`, `src/layouts/Base.astro`, `src/components/Abertura.astro` e `testes/tokens.test.ts`, que só conferia os tokens do arquivo apagado. Toda página usa `Visual.astro`, direto ou por `formularios/Pagina.astro`. As conferências que liam o esqueleto antigo mudaram de lugar sem perder regra: o digitado que volta e o `<noscript>` (`testes/formularios.test.ts`) e o `marcarEnvios()` (`testes/ux-decisoes.test.ts`) agora leem `Pagina.astro`; o aviso do tamanho do banco (`testes/tamanho-do-banco.test.ts`) lê a conta. Um teste novo, no `describe('grupo formularios')`, recusa a volta do esqueleto, da abertura, da pasta `src/styles` e das variáveis antigas (`--cor-`, `--tamanho-`, `--espaco-`, `--nucleo-`), e confere que toda página usa o esqueleto novo.
+
+**Camadas do CSS (`@layer`), reavaliadas e não adotadas.** Com o `global.css` fora, a razão que sobra para as camadas é a tela sempre vencer a peça. Elas mudariam quem vence em todas as telas dos quatro grupos de uma vez, e a fase 2 já viu alturas mudarem por isso. Não foi tentado nesta sessão, porque pedia comparar todas as capturas dos quatro grupos com o Gui ausente e os grupos 1 a 3 ainda em aprovação. A regra continua a de "Cuidados que custaram tempo": para a tela ajustar uma peça, um seletor mais específico. Vale tentar depois dos quatro PRs entrarem, numa branch só para isso, com `npm run capturas -- comparar`.
+
+**Conferido na segunda metade.** 390, 1280 e 1920 px, com movimento reduzido. Com o Playwright, no celular e no computador, só pelo teclado: cadastrar uma pessoa, percorrer o cadastro guiado até o fim adicionando a mãe pela busca, editar o laço (a filiação adotiva mostra a data da adoção), remover com a confirmação e restaurar um item da lixeira; em cada tela, todo alvo com 44 px, o foco visível e nenhuma rolagem lateral. Sem JavaScript: nova pessoa cadastra por formulário comum, o botão de escolher foto some, a pergunta do guiado mostra a lista suspensa no lugar da busca e, em "Adicionar laço", os campos de todos os tipos aparecem. Depois de apagar o estilo antigo, uma tela de cada grupo anterior foi capturada antes e depois: a conta, o capítulo e o capítulo novo saíram iguais pixel a pixel; a memória difere só dentro das fotos, de uma rodada para outra (instabilidade já conhecida do grupo 2); a árvore mudou porque a conferência cadastrou pessoas de teste no banco local.
+
+**O que não foi conferido na segunda metade:** nada no iPhone de verdade nem na prévia publicada. O recorte do retrato não foi exercitado com uma foto (o quadro de enquadrar não foi visto aberto). O histórico só foi visto vazio: a memória de exemplo das capturas nunca foi alterada, então as listas de alterações, de textos anteriores e de fotos removidas não foram vistas na tela. O espelho não foi enviado. Das capturas em 1920 px, foram olhadas só a pergunta dos pais e o espelho.
+
+**Capturas.** `CAPTURAS_SO=^formularios npm run capturas -- tirar <pasta>`. As da segunda metade são `formularios-4` (nova pessoa e o guiado), `formularios-5` (editar, um laço e um casal em edição), `formularios-6` (utilitárias) e `formularios-7` (administração). As entradas antigas sem prefixo saíram da lista.
+
+### O que falta
+
+**Da fase 3**
+
+- **A aprovação do Gui**, grupo a grupo, e o merge na ordem: #35, #36, #37 e #38. As perguntas de cada grupo estão no fim do PR dele.
+- **As fontes:** `/conceito/sobre` fica até a escolha, que espera a Giovanna e o Magno. Depois dela, saem as duas combinações que sobrarem ("Como a fonte é trocada").
+- **Limpeza que ficou para depois dos merges:** tirar de "Decidido, a construir" os itens que os grupos fecharam (Explorar, capítulos na linha do tempo, painel, sua conta, "família" no lugar de "núcleo", revisão visual) e levar o resumo para as seções de regra; `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena, como `docs/decisoes.md` já previa; separar os testes dos grupos 1 e 2 do `describe('conceito')`, em `testes/visual.test.ts`; tentar as camadas do CSS.
+- **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Espera a resposta do Gui (pergunta 11 do PR do grupo 4).
+- **O que nenhum grupo viu na tela:** o envio de foto nova, a gravação de áudio, o recorte do retrato com uma foto e o histórico com alterações.
+
+**Da fase 4 (movimento e detalhes)**
+
+- A frase que acende palavra por palavra, a foto que amplia no lugar e o tocador de áudio próprio ("O que ficou de fora do sistema, de propósito").
+
+**Da fase 5 (QA visual no aparelho)**
+
+- **No iPhone de verdade**, nada dos quatro grupos foi conferido: a troca com movimento do Explorar, o modo TV com "Só as fotos", a galeria da memória, a linha do tempo na página da pessoa e do tema, o gesto de dois dedos na árvore, os formulários (teclado do aparelho, a lacuna da data, a gravação de áudio) e o recorte do retrato.
+- **Numa TV de verdade, com controle:** o modo TV.
+- **Na homologação, com o espelho da produção:** a árvore, as páginas de pessoa e a lista de pessoas com o formato real da família.
+
 ## A página do sistema fica (decisão do Gui, 16/11/2026)
 
-`/conceito/sistema` é a referência do projeto para o Gui e continua existindo depois da revisão visual, em todos os ambientes, inclusive no site de verdade, para estar sempre à mão.
+`/sistema` (até o grupo 2 da fase 3, `/conceito/sistema`) é a referência do projeto para o Gui e continua existindo depois da revisão visual, em todos os ambientes, inclusive no site de verdade, para estar sempre à mão.
 
-- Quando a fase 3 apagar as telas do conceito, ela muda para `/sistema`.
+- Mudou para `/sistema` no grupo 2 da fase 3, quando o painel do conceito saiu.
 - Na produção e na homologação, só os administradores abrem (para os outros, 404), com um link na seção "Administração" da conta. Nas prévias e no computador, abre para todos, como hoje.
 - Ela mostra o sistema com conteúdo fixo da própria página, nunca com dados do acervo. Na produção, nada de fotos de exemplo: a guarda já recusa que elas cheguem ao pacote ou ao bucket da produção. Onde a peça pede foto, a página usa um quadro desenhado (cor e textura da própria página) e, nas prévias, pode continuar usando o Chico e a Karol.
 - Ela acompanha o sistema: toda peça, token ou regra nova entra nela no mesmo PR, e `testes/sistema.test.ts` falha se uma peça do sistema não aparecer na página.

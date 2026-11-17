@@ -1,7 +1,12 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Abertura from '../../components/Abertura.astro';
-import { ehEpoca, formatarPeriodo, memoriaDoCapitulo, periodoDasMemorias, type Capitulo } from '../../lib/capitulos';
+// A lista de capítulos, como o sumário de um livro: cada capítulo numa linha, com o período e a
+// conta das memórias, e os capítulos de dentro recuados sob o maior. Os temas ficam no fim, quietos.
+import '../../visual/telas/capitulo.css';
+import Visual from '../../layouts/Visual.astro';
+import Entrada from '../../components/capitulos/Entrada.astro';
+import Vazio from '../../components/visual/Vazio.astro';
+import { ehEpoca, formatarPeriodo, memoriaDoCapitulo, nomeDoModo, periodoDasMemorias, type Capitulo } from '../../lib/capitulos';
+import { coresDosCapitulos } from '../../lib/linha-capitulos';
 import { listarCapitulos, listarMemorias, listarTemasVisiveis } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -24,54 +29,70 @@ const resumo = (c: Capitulo) => {
 // Capítulos de dentro aparecem sob o maior. Os demais, do mais antigo para o mais recente.
 const soltos = capitulos
   .filter((c) => !c.dentroDe || !capitulos.some((x) => x.id === c.dentroDe))
-  .map((c) => ({ c, ...resumo(c), dentro: capitulos.filter((x) => x.dentroDe === c.id) }))
+  .map((c) => ({ c, ...resumo(c), dentro: capitulos.filter((x) => x.dentroDe === c.id).map((d) => ({ c: d, ...resumo(d) })) }))
   .sort((a, b) => a.ordem - b.ordem);
 const temas = await listarTemasVisiveis(usuario);
 const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
+// A cor de cada capítulo é a do trilho dele na linha do tempo; a época é o chão e fica sem cor
+const cores = coresDosCapitulos(
+  [...todas].reverse(),
+  capitulos.map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c)),
+);
 ---
 
-<Base titulo="Capítulos">
-  <Abertura titulo="Capítulos">
-    <p>Memórias reunidas em momentos maiores: um casamento, uma viagem, uma época da vida.</p>
-    <p class="acoes"><a class="botao botao--leve" href="/capitulos/novo">Novo capítulo</a></p>
-  </Abertura>
-  {
-    soltos.length === 0 ? (
-      <p class="vazio">Ainda não há capítulos.</p>
-    ) : (
-      <ul class="lista-de-capitulos lista-de-capitulos--grande">
-        {soltos.map(({ c, periodo, memorias, dentro }) => (
-          <li>
-            <a href={`/capitulos/${c.id}`}>
-              <strong>{c.titulo}</strong>
-              <span>{[ehEpoca(c) && 'época', periodo, contar(memorias)].filter(Boolean).join(', ')}</span>
+<Visual titulo="Capítulos" secao="capitulos">
+  <div class="sumario miolo grade">
+    <header class="sumario__abre">
+      {capitulos.length > 0 && <p class="rotulo suave">{capitulos.length} {capitulos.length === 1 ? 'capítulo' : 'capítulos'}</p>}
+      <h1 class="serifa t-1">Capítulos</h1>
+      <p class="sumario__frase serifa t-abertura">Memórias reunidas em momentos maiores: um casamento, uma viagem, uma época da vida.</p>
+      <p class="sumario__acoes">
+        <a class="botao" href="/capitulos/novo">Novo capítulo</a>
+      </p>
+    </header>
+    <div class="sumario__lista">
+      {
+        soltos.length === 0 ? (
+          <Vazio frase="Ainda não há capítulos.">
+            <a class="acao" href="/capitulos/novo">
+              Novo capítulo
             </a>
-            {dentro.length > 0 && (
-              <ul>
-                {dentro.map((d) => (
-                  <li>
-                    <a href={`/capitulos/${d.id}`}>{d.titulo}</a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
-      </ul>
-    )
-  }
-  {
-    temas.length > 0 && (
-      <section class="familia">
-        <h2>Temas</h2>
-        <p class="opcoes">
-          {temas.map((t) => (
-            <a class="etiqueta" href={`/temas/${t.id}`}>
-              {t.nome}
-            </a>
-          ))}
-        </p>
-      </section>
-    )
-  }
-</Base>
+          </Vazio>
+        ) : (
+          <ol class="indice">
+            {soltos.map(({ c, periodo, memorias, dentro }) => (
+              <li>
+                <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} selo={nomeDoModo(c)} periodo={periodo} detalhe={contar(memorias)} cor={cores.get(c.id)} />
+                {dentro.length > 0 && (
+                  <ol class="indice indice--dentro">
+                    {dentro.map((d) => (
+                      <li>
+                        <Entrada href={`/capitulos/${d.c.id}`} titulo={d.c.titulo} periodo={d.periodo} detalhe={contar(d.memorias)} cor={cores.get(d.c.id)} dentro />
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </li>
+            ))}
+          </ol>
+        )
+      }
+      {
+        temas.length > 0 && (
+          <section class="temas" aria-labelledby="temas">
+            <h2 class="rotulo suave" id="temas">
+              Temas
+            </h2>
+            <p class="temas__lista">
+              {temas.map((t) => (
+                <a class="acao acao--quieta" href={`/temas/${t.id}`}>
+                  {t.nome}
+                </a>
+              ))}
+            </p>
+          </section>
+        )
+      }
+    </div>
+  </div>
+</Visual>
