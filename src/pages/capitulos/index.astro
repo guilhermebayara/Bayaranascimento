@@ -1,14 +1,14 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Abertura from '../../components/Abertura.astro';
-import { dentroDoPeriodo, formatarPeriodo, periodoDasMemorias, type Capitulo } from '../../lib/capitulos';
+import { ehEpoca, formatarPeriodo, memoriaDoCapitulo, periodoDasMemorias, type Capitulo } from '../../lib/capitulos';
 import { listarCapitulos, listarMemorias, listarTemasVisiveis } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const capitulos = await listarCapitulos(usuario);
 const todas = await listarMemorias(usuario);
 const memoriasDe = (c: Capitulo) => {
-  if (c.modo === 'epoca') return c.inicio ? todas.filter((m) => dentroDoPeriodo(m, c.inicio!, c.fim)) : [];
+  if (c.modo === 'epoca') return todas.filter((m) => memoriaDoCapitulo(m, c));
   const ids = new Set([c.id, ...capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id)]);
   return todas.filter((m) => m.capitulos.some((id) => ids.has(id)));
 };
@@ -44,7 +44,7 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
           <li>
             <a href={`/capitulos/${c.id}`}>
               <strong>{c.titulo}</strong>
-              <span>{[c.modo === 'epoca' && 'época', periodo, contar(memorias)].filter(Boolean).join(', ')}</span>
+              <span>{[ehEpoca(c) && 'época', periodo, contar(memorias)].filter(Boolean).join(', ')}</span>
             </a>
             {dentro.length > 0 && (
               <ul>

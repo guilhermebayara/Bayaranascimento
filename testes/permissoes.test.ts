@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  podeEditarCapitulo,
+  podeSalvarCapitulo,
   podeEditarMemoria,
   podeEscreverRelato,
   podeExcluirMemoria,
@@ -196,5 +198,55 @@ describe('avisos de quem pode ver, no capítulo', () => {
     expect(r.ok ? '' : r.motivo).toBe('Escolha pelo menos um núcleo que pode ver o capítulo.');
     const s = validarVisibilidade(gui, 'nucleos', []);
     expect(s.ok ? '' : s.motivo).toBe('Escolha pelo menos um núcleo que pode ver a memória.');
+  });
+});
+
+// Capítulos e épocas (decisões do Gui, 16/11/2026): edita quem criou e os administradores; ter
+// memórias no capítulo não basta. Criar, editar ou transformar em época é só dos administradores.
+describe('editar capítulo e época', () => {
+  const quem = (pessoa: string, admin = false, nucleos = ['bayara-nascimento']) => ({ pessoa, nome: pessoa, admin, nucleos });
+  const gui = quem('gui', true, ['bayara-nascimento', 'bayara-bracarense']);
+  const giovanna = quem('giovanna', true, ['bayara-nascimento', 'bayara-bracarense']);
+  const elizete = quem('elizete');
+  const aguilar = quem('aguilar');
+  const reunido = { visibilidade: 'todos' as const, nucleos: [], criadoPor: 'elizete', modo: 'reunido' as const, pessoas: [], familias: [] };
+  const porPeriodo = { ...reunido, modo: 'epoca' as const, pessoas: ['elizete'] };
+  const epoca = { ...reunido, modo: 'epoca' as const, criadoPor: 'gui' };
+  const epocaDeQuemNaoEAdmin = { ...epoca, criadoPor: 'elizete' };
+  const doCasal = { ...reunido, visibilidade: 'nucleos' as const, nucleos: ['bayara-bracarense'], criadoPor: 'giovanna' };
+
+  it('reunido e por período: quem criou e os administradores', () => {
+    for (const c of [reunido, porPeriodo]) {
+      expect(podeEditarCapitulo(elizete, c).ok).toBe(true);
+      expect(podeEditarCapitulo(gui, c).ok).toBe(true);
+      expect(podeEditarCapitulo(aguilar, c).ok).toBe(false);
+    }
+  });
+
+  it('época: só os administradores, mesmo quem a criou', () => {
+    expect(podeEditarCapitulo(gui, epoca).ok).toBe(true);
+    expect(podeEditarCapitulo(giovanna, epoca).ok).toBe(true);
+    expect(podeEditarCapitulo(elizete, epoca).ok).toBe(false);
+    expect(podeEditarCapitulo(elizete, epocaDeQuemNaoEAdmin).ok).toBe(false);
+  });
+
+  it('administrador não edita o que não vê', () => {
+    const restritoAoCasal = { ...doCasal, criadoPor: 'giovanna' };
+    expect(podeEditarCapitulo({ ...gui, nucleos: ['bayara-nascimento'] }, restritoAoCasal).ok).toBe(false);
+  });
+
+  it('criar uma época ou transformar um capítulo em época: só os administradores', () => {
+    expect(podeSalvarCapitulo(elizete, undefined, 'epoca').ok).toBe(false);
+    expect(podeSalvarCapitulo(elizete, undefined, 'periodo').ok).toBe(true);
+    expect(podeSalvarCapitulo(elizete, undefined, 'reunido').ok).toBe(true);
+    expect(podeSalvarCapitulo(gui, undefined, 'epoca').ok).toBe(true);
+    expect(podeSalvarCapitulo(elizete, porPeriodo, 'epoca').ok).toBe(false);
+    expect(podeSalvarCapitulo(gui, porPeriodo, 'epoca').ok).toBe(true);
+  });
+
+  it('quem não é administrador não edita uma época nem transformando ela em outra coisa', () => {
+    expect(podeSalvarCapitulo(elizete, epocaDeQuemNaoEAdmin, 'periodo').ok).toBe(false);
+    expect(podeSalvarCapitulo(elizete, epocaDeQuemNaoEAdmin, 'reunido').ok).toBe(false);
+    expect(podeSalvarCapitulo(aguilar, reunido, 'reunido').ok).toBe(false);
   });
 });

@@ -16,9 +16,23 @@ interface Props {
   proximos: Record<string, string[]>;
   /** Quem está escrevendo */
   eu: string;
+  /** O título e a dica: os de "Quem estava?", salvo outro uso, como "De quem é" no capítulo */
+  legenda?: string;
+  dica?: string;
+  /** Se oferece cadastrar quem ainda não está no acervo. No capítulo, não. */
+  cadastrar?: boolean;
 }
 
-const { integrantes, marcados, grupos, proximos, eu } = Astro.props;
+const {
+  integrantes,
+  marcados,
+  grupos,
+  proximos,
+  eu,
+  legenda = 'Quem estava?',
+  dica = 'Marque quem aparece nesta memória. Ao marcar alguém, a família dessa pessoa aparece como sugestão.',
+  cadastrar = true,
+} = Astro.props;
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const total = grupos.reduce((n, g) => n + g.ids.length, 0);
 const dados = {
@@ -30,8 +44,8 @@ const dados = {
 ---
 
 <fieldset class="quem-estava" data-quem-estava>
-  <legend>Quem estava?</legend>
-  <p class="dica">Marque quem aparece nesta memória. Ao marcar alguém, a família dessa pessoa aparece como sugestão.</p>
+  <legend>{legenda}</legend>
+  <p class="dica">{dica}</p>
 
   <div class="quem-estava__marcados" data-marcados hidden>
     <p class="quem-estava__titulo">Marcados</p>
@@ -73,7 +87,7 @@ const dados = {
     }
   </details>
 
-  <div data-novas-pessoas></div>
-  <button type="button" class="botao botao--leve" data-adicionar-pessoa>Adicionar alguém que não está no acervo</button>
+  {cadastrar && <div data-novas-pessoas></div>}
+  {cadastrar && <button type="button" class="botao botao--leve" data-adicionar-pessoa>Adicionar alguém que não está no acervo</button>}
   <script type="application/json" data-dados-pessoas set:html={JSON.stringify(dados).replace(/</g, '\\u003c')} />
 </fieldset>

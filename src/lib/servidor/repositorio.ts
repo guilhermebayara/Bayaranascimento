@@ -65,7 +65,7 @@ export interface Memoria extends AcessoDaMemoria {
   lugar: string | null;
   exemplo: boolean;
   fotos: Foto[];
-  /** capítulos reunidos em que foi colocada (os de época são calculados pela data) */
+  /** capítulos reunidos em que foi colocada (os por período são calculados pela data e por quem é o capítulo) */
   capitulos: string[];
   /** ids de temas */
   temas: string[];
@@ -777,19 +777,25 @@ function lerCapitulo(c: Record<string, unknown>): Capitulo {
     nucleos: [],
     criadoPor: c.criado_por as string,
     temas: [],
+    pessoas: [],
+    familias: [],
   };
 }
 
 async function lerCapitulos(condicao: string): Promise<Capitulo[]> {
-  const [capitulos, nucleos, temas] = await db().batch<Record<string, unknown>>([
+  const [capitulos, nucleos, temas, pessoas, familias] = await db().batch<Record<string, unknown>>([
     db().prepare(`SELECT * FROM capitulos WHERE ${condicao} ORDER BY COALESCE(inicio_ano, 9999), titulo`),
     db().prepare('SELECT capitulo_id, nucleo_id FROM capitulo_nucleos'),
     db().prepare('SELECT capitulo_id, tema_id FROM tema_capitulos'),
+    db().prepare('SELECT capitulo_id, integrante_id FROM capitulo_pessoas'),
+    db().prepare('SELECT capitulo_id, nucleo_id FROM capitulo_familias'),
   ]);
   const lista = capitulos.results.map(lerCapitulo);
   const porId = new Map(lista.map((c) => [c.id, c]));
   for (const n of nucleos.results) porId.get(n.capitulo_id as string)?.nucleos.push(n.nucleo_id as string);
   for (const t of temas.results) porId.get(t.capitulo_id as string)?.temas.push(t.tema_id as string);
+  for (const p of pessoas.results) porId.get(p.capitulo_id as string)?.pessoas.push(p.integrante_id as string);
+  for (const f of familias.results) porId.get(f.capitulo_id as string)?.familias.push(f.nucleo_id as string);
   return lista;
 }
 
@@ -803,18 +809,6 @@ export async function idsDeCapitulos(): Promise<Set<string>> {
   return new Set(results.map((r) => r.id));
 }
 
-/** Quem criou as memórias colocadas no capítulo: essas pessoas também podem editá-lo. */
-export async function autoresDasMemoriasDoCapitulo(capituloId: string): Promise<string[]> {
-  const { results } = await db()
-    .prepare(
-      `SELECT DISTINCT m.criada_por FROM capitulo_memorias cm JOIN memorias m ON m.id = cm.memoria_id
-       WHERE cm.capitulo_id = ? AND m.excluida_em IS NULL AND m.situacao = 'publicada'`,
-    )
-    .bind(capituloId)
-    .all<{ criada_por: string }>();
-  return results.map((r) => r.criada_por);
-}
-
 export interface DadosDoCapitulo {
   titulo: string;
   abertura?: string;
@@ -825,6 +819,9 @@ export interface DadosDoCapitulo {
   visibilidade: 'todos' | 'nucleos';
   nucleos: string[];
   temas: string[];
+  /** de quem é o capítulo por período; vazio junto com familias quer dizer época, de todos */
+  pessoas: string[];
+  familias: string[];
 }
 
 export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario: Usuario, novo: boolean): Promise<void> {
@@ -857,6 +854,11 @@ export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario
     db().prepare('DELETE FROM tema_capitulos WHERE capitulo_id = ?').bind(id),
     ...dados.nucleos.map((n) => db().prepare('INSERT OR IGNORE INTO capitulo_nucleos (capitulo_id, nucleo_id) VALUES (?, ?)').bind(id, n)),
     ...dados.temas.map((t) => db().prepare('INSERT OR IGNORE INTO tema_capitulos (tema_id, capitulo_id) VALUES (?, ?)').bind(t, id)),
+    // De quem é: só no capítulo por período. O reunido não guarda ninguém.
+    db().prepare('DELETE FROM capitulo_pessoas WHERE capitulo_id = ?').bind(id),
+    db().prepare('DELETE FROM capitulo_familias WHERE capitulo_id = ?').bind(id),
+    ...(dados.modo === 'epoca' ? dados.pessoas : []).map((p) => db().prepare('INSERT OR IGNORE INTO capitulo_pessoas (capitulo_id, integrante_id) VALUES (?, ?)').bind(id, p)),
+    ...(dados.modo === 'epoca' ? dados.familias : []).map((f) => db().prepare('INSERT OR IGNORE INTO capitulo_familias (capitulo_id, nucleo_id) VALUES (?, ?)').bind(id, f)),
   ];
   await db().batch(comandos);
 }
