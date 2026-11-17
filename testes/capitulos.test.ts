@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dentroDoPeriodo, ehEpoca, formatarPeriodo, lerDeQuem, lerTemas, memoriaDoCapitulo, nomeDoModo, periodoDasMemorias, podeEditarCapitulo, podeVerCapitulo, sobreposicao, validarAninhamento } from '../src/lib/capitulos';
+import { dentroDoPeriodo, ehEpoca, lerModoDoFormulario, modoNoFormulario, formatarPeriodo, lerDeQuem, lerTemas, memoriaDoCapitulo, nomeDoModo, periodoDasMemorias, podeEditarCapitulo, podeVerCapitulo, sobreposicao, validarAninhamento } from '../src/lib/capitulos';
 
 const pandemia = { inicio: { ano: 2020, mes: 3 }, fim: { ano: 2022, mes: 4 } };
 
@@ -129,5 +129,16 @@ describe('época e capítulo por período', () => {
     expect(lerDeQuem({ pessoas: ['giovanna', 'giovanna', ''], familias: ['bracarense'] }, existentes)).toEqual({ pessoas: ['giovanna'], familias: ['bracarense'] });
     expect(lerDeQuem({ pessoas: ['inventada'], familias: [] }, existentes)).toEqual({ erro: expect.any(String) });
     expect(lerDeQuem({ pessoas: [], familias: ['outra'] }, existentes)).toEqual({ erro: expect.any(String) });
+  });
+});
+
+describe('época, capítulo por período e reunido no formulário', () => {
+  it('cada capítulo abre na opção certa, e o formulário só aceita as três', () => {
+    expect(modoNoFormulario(undefined)).toBe('reunido');
+    expect(modoNoFormulario({ modo: 'reunido' })).toBe('reunido');
+    expect(modoNoFormulario({ modo: 'epoca', pessoas: [], familias: [] })).toBe('epoca');
+    expect(modoNoFormulario({ modo: 'epoca', pessoas: ['giovanna'], familias: [] })).toBe('periodo');
+    expect(modoNoFormulario({ modo: 'epoca', pessoas: [], familias: ['bracarense'] })).toBe('periodo');
+    expect(['periodo', 'epoca', 'reunido', 'outro', ''].map(lerModoDoFormulario)).toEqual(['periodo', 'epoca', 'reunido', 'reunido', 'reunido']);
   });
 });

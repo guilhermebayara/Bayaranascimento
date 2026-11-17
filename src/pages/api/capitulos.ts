@@ -1,6 +1,6 @@
 // Capítulos: criar, editar e mandar para a lixeira.
 import type { APIRoute } from 'astro';
-import { lerDeQuem, lerTemas, podeEditarCapitulo, validarAninhamento } from '../../lib/capitulos';
+import { lerDeQuem, lerModoDoFormulario, lerTemas, podeEditarCapitulo, validarAninhamento } from '../../lib/capitulos';
 import { arrumarTexto, codigoNovo } from '../../lib/servidor/conteudo';
 import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeEditarMemoria, podeMudarQuemVe, validarVisibilidade } from '../../lib/servidor/permissoes';
@@ -65,7 +65,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const titulo = campo(dados, 'titulo', 120);
   if (!titulo) return falhar('Dê um título ao capítulo.');
-  const modo = campo(dados, 'modo', 10) === 'epoca' ? 'epoca' : 'reunido';
+  // Época e capítulo por período ficam no mesmo modo do banco; a época é o que não tem ninguém marcado
+  const escolha = lerModoDoFormulario(campo(dados, 'modo', 10));
+  const modo = escolha === 'reunido' ? 'reunido' : 'epoca';
 
   // Por período: início obrigatório, fim opcional
   const anoAtual = new Date().getUTCFullYear();
@@ -81,7 +83,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const fim = lerData('fim');
   if (modo === 'epoca') {
     if (inicio === 'invalida' || fim === 'invalida') return falhar(`Confira as datas. Os anos precisam estar entre 1800 e ${anoAtual}.`);
-    if (!inicio) return falhar('Um capítulo por período precisa de um ano de início.');
+    if (!inicio) return falhar(escolha === 'epoca' ? 'Uma época precisa de um ano de início.' : 'Um capítulo por período precisa de um ano de início.');
     if (fim && (fim.ano < inicio.ano || (fim.ano === inicio.ano && fim.mes && inicio.mes && fim.mes < inicio.mes))) {
       return falhar('O período não pode terminar antes de começar.');
     }
@@ -90,13 +92,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // De quem é o capítulo por período: pessoas, famílias ou os dois. Ninguém marcado quer dizer época, de todos.
   const nucleosDoAcervo = await listarNucleos();
   const deQuem =
-    modo === 'epoca'
+    escolha === 'periodo'
       ? lerDeQuem(
           { pessoas: dados.getAll('pessoas').map(String), familias: dados.getAll('familias').map(String) },
           { pessoas: new Set((await listarIntegrantes()).map((i) => i.id)), familias: new Set(nucleosDoAcervo.map((n) => n.id)) },
         )
       : { pessoas: [], familias: [] };
   if ('erro' in deQuem) return falhar(deQuem.erro);
+  if (escolha === 'periodo' && deQuem.pessoas.length + deQuem.familias.length === 0) {
+    return falhar('Marque de quem é este período. Se ele vale para a família inteira, escolha "Época".');
+  }
 
   // Dentro de outro capítulo: no máximo dois níveis
   const dentroDe = campo(dados, 'dentroDe', 120) || undefined;
@@ -136,5 +141,5 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Um código no endereço, e não o título: ver codigoNovo
   const idFinal = atual?.id ?? codigoNovo(new Set([...(await idsDeCapitulos()), 'novo']));
   await salvarCapitulo(idFinal, ficha, usuario, !atual);
-  return voltar(request, `/capitulos/${idFinal}`, { ok: atual ? 'Capítulo atualizado.' : modo === 'epoca' ? 'Capítulo criado. As memórias do período entram sozinhas.' : 'Capítulo criado. Agora é só colocar as memórias nele.' });
+  return voltar(request, `/capitulos/${idFinal}`, { ok: atual ? 'Capítulo atualizado.' : escolha === 'epoca' ? 'Época criada. Tudo o que aconteceu no período entra sozinho.' : escolha === 'periodo' ? 'Capítulo criado. As memórias do período entram sozinhas.' : 'Capítulo criado. Agora é só colocar as memórias nele.' });
 };

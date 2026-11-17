@@ -92,6 +92,21 @@ export function memoriaDoCapitulo(
   return (m.integrantes ?? []).some((p) => pessoas.includes(p)) || (m.nucleos ?? []).some((n) => familias.includes(n));
 }
 
+/**
+ * A escolha "Como as memórias entram?" do formulário. No banco, época e capítulo por período são o
+ * mesmo modo ('epoca'): a época é o que não tem ninguém marcado.
+ */
+export type ModoDoFormulario = 'reunido' | 'periodo' | 'epoca';
+
+export function modoNoFormulario(c: (Pick<Capitulo, 'modo'> & Partial<Pick<Capitulo, 'pessoas' | 'familias'>>) | undefined): ModoDoFormulario {
+  if (!c || c.modo === 'reunido') return 'reunido';
+  return ehEpoca(c) ? 'epoca' : 'periodo';
+}
+
+export function lerModoDoFormulario(valor: string): ModoDoFormulario {
+  return valor === 'periodo' || valor === 'epoca' ? valor : 'reunido';
+}
+
 /** "Época", "Capítulo por período" ou "Capítulo", para o selo da página. */
 export function nomeDoModo(c: Pick<Capitulo, 'modo'> & Partial<Pick<Capitulo, 'pessoas' | 'familias'>>): string {
   if (ehEpoca(c)) return 'Época';

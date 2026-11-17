@@ -5,7 +5,7 @@ import QuemEstava from './QuemEstava.astro';
 import { Familia } from '../lib/parentesco';
 import { comArtigo } from '../lib/servidor/conteudo';
 import { MESES } from '../lib/datas';
-import type { Capitulo } from '../lib/capitulos';
+import { modoNoFormulario, type Capitulo } from '../lib/capitulos';
 import { familiasDe, listarCapitulos, listarCasais, listarFiliacoes, listarIntegrantes, listarNucleos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 
 interface Props {
@@ -39,7 +39,7 @@ const proximos = Object.fromEntries(
 );
 const temas = await listarTemasVisiveis(usuario);
 const temasDoCapitulo = (c?.temas ?? []).map((id) => temas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
-const modo = c?.modo ?? 'reunido';
+const modo = modoNoFormulario(c);
 const datas = [
   { prefixo: 'inicio', rotulo: 'Começou em', mes: 'Mês em que começou', data: c?.inicio, obrigatorio: true },
   { prefixo: 'fim', rotulo: 'Terminou em', mes: 'Mês em que terminou', data: c?.fim, obrigatorio: false },
@@ -68,15 +68,22 @@ const datas = [
             </span>
           </label>
           <label class="aba">
-            <input type="radio" name="modo" value="epoca" checked={modo === 'epoca'} />
+            <input type="radio" name="modo" value="periodo" checked={modo === 'periodo'} />
             <span>
               <strong>Por período</strong>
-              <small>Tem começo e fim, e as memórias do período entram sozinhas. Ex.: a gravidez da Giovanna, a pandemia.</small>
+              <small>A história de alguém, com começo e fim. Entram sozinhas as memórias do período com essas pessoas ou famílias. Ex.: a gravidez da Giovanna.</small>
+            </span>
+          </label>
+          <label class="aba">
+            <input type="radio" name="modo" value="epoca" checked={modo === 'epoca'} />
+            <span>
+              <strong>Época</strong>
+              <small>Um tempo da família inteira, com começo e fim. Tudo o que aconteceu no período entra sozinho. Ex.: a pandemia, os anos 90.</small>
             </span>
           </label>
         </div>
       </div>
-      <div data-so-epoca hidden={modo !== 'epoca'}>
+      <div data-so-epoca hidden={modo === 'reunido'}>
         {
           datas.map((d) => (
             <div class="campo">
@@ -92,9 +99,10 @@ const datas = [
             </div>
           ))
         }
+        <div data-so-periodo hidden={modo !== 'periodo'}>
         <fieldset class="campo">
           <legend>De quem é este período?</legend>
-          <p class="dica">Marque as famílias ou as pessoas. Entram só as memórias do período com elas. Sem ninguém marcado, é uma época da família inteira, como a pandemia, e entra tudo o que aconteceu no período.</p>
+          <p class="dica">Marque as famílias ou as pessoas. Entram só as memórias do período com elas.</p>
           <div class="opcoes" role="group" aria-label="Famílias">
             {todosOsNucleos.map((n) => (
               <label class="opcao">
@@ -114,6 +122,7 @@ const datas = [
           dica="Ao marcar alguém, a família dessa pessoa aparece como sugestão."
           cadastrar={false}
         />
+        </div>
       </div>
       <label class="campo">
         <span>Texto de abertura <small>(opcional)</small></span>
@@ -193,14 +202,17 @@ const datas = [
 
   const form = document.querySelector<HTMLFormElement>('[data-ficha-capitulo]');
   if (form) {
-    // As datas e "De quem é" só existem para capítulos por período
+    // As datas existem para a época e para o capítulo por período; "De quem é", só para o por período
     const epoca = form.querySelector<HTMLElement>('[data-so-epoca]')!;
+    const periodo = form.querySelector<HTMLElement>('[data-so-periodo]')!;
     const aplicar = () => {
-      const ehEpoca = form.querySelector<HTMLInputElement>('input[name="modo"]:checked')?.value === 'epoca';
-      epoca.hidden = !ehEpoca;
+      const escolha = form.querySelector<HTMLInputElement>('input[name="modo"]:checked')?.value;
+      const comDatas = escolha === 'epoca' || escolha === 'periodo';
+      epoca.hidden = !comDatas;
+      periodo.hidden = escolha !== 'periodo';
       for (const el of epoca.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) {
-        el.disabled = !ehEpoca;
-        if ('obrigatorioNaEpoca' in el.dataset) (el as HTMLInputElement).required = ehEpoca;
+        el.disabled = !comDatas || (escolha !== 'periodo' && periodo.contains(el));
+        if ('obrigatorioNaEpoca' in el.dataset) (el as HTMLInputElement).required = comDatas;
       }
     };
     form.querySelector('[data-modo]')!.addEventListener('change', aplicar);
