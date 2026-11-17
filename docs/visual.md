@@ -425,10 +425,82 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 
 | Grupo | Telas | Situação |
 | --- | --- | --- |
-| 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar` (PR #35). O Gui viu e pediu dois ajustes, no mural e no "Passar sozinho", que já entraram |
+| 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar` (PR #35, aberto). O Gui viu várias rodadas e ainda quer ajustar: ver "Estado do grupo 1", logo abaixo |
 | 2. `pessoal` | Painel, carta de Natal, sua conta e a página da pessoa | A fazer |
 | 3. `familia` | Capítulo, tema, pessoas e árvore (a árvore muda só de aparência) | A fazer |
 | 4. `formularios` | Nova memória, relato, cadastro guiado, laços, capítulo, administração, rascunhos e lixeira. Por fim, apagar `src/styles/global.css` | A fazer |
+
+### Estado do grupo 1, para a próxima sessão seguir sem a conversa
+
+Escrito em 17/11/2026, no fim da sessão que construiu o grupo. A branch é a `tst-visual-explorar`, o PR é o #35 para a `homologa`, **aberto e sem merge**: o Gui respondeu que ainda quer ajustar o grupo 1. A próxima sessão continua na mesma branch (trazendo a `homologa` antes) e não abre o grupo 2 enquanto ele não disser. O detalhe de cada decisão está em "Grupo 1", abaixo; aqui fica o resumo e o que não está escrito em outro lugar.
+
+**O que está pronto e o Gui já viu funcionando**
+
+- Explorar em `/explorar`, com as quatro formas de ver, e a página da memória no visual novo.
+- Os controles: "Forma de ver", "Família" (etiquetas na cor de cada família, mais de uma escolha, marcar todas volta à família completa), "Filtros" (cada escolha vale na hora) e, no mural, "Fotos" (pequenas, médias, grandes).
+- A troca sem recarregar com o movimento por item, a rolagem presa e o voltar do navegador.
+- O mural: superfície contínua, cartão da década, aba do ano, título à mão na margem e o verso em leque no computador.
+- O modo TV sem recarregar, com a foto revelada e as outras fotos em volta, "Passar sozinho", "Ajustes", as três animações, "Só as fotos" e "Tela cheia".
+
+**O que mudou desde que o PR foi aberto** (cada linha foi um pedido do Gui ao ver a prévia)
+
+| Assunto | Como era no primeiro push | Como está |
+| --- | --- | --- |
+| Mural | Só as fotos, sem texto | Superfície contínua com cartão de década, aba de ano, título à mão, verso em leque e tamanho das fotos. Passou por cinco rodadas |
+| Troca de filtro, família, ordem e forma de ver | Recarregava a página | Troca só a região do Explorar, com cada item indo ao lugar novo (FLIP), sem mexer na rolagem |
+| Filtros | Formulário com o botão "Mostrar memórias" | Cada escolha vale na hora e o painel continua aberto. O botão ficou só para quem está sem script |
+| Família | Uma só, em links | Mais de uma, em etiquetas na cor de cada família |
+| Modo TV | Uma página por memória, uma foto sem corte, um fade entre páginas | Sem recarregar, foto revelada com até quatro outras em volta, três animações, controles numa linha e o resto em "Ajustes" |
+| "Passar sozinho" | 10 segundos fixos | 8, 10 ou 15 segundos, com pausa |
+| Endereço | Tudo no endereço | Só o que traz de volta ao mesmo lugar; preferências no aparelho |
+
+**O que o Gui ainda tem para escolher ou conferir**
+
+- **A animação do modo TV.** As três ficam para as pessoas escolherem em "Ajustes" (ele decidiu não fechar numa só). O que ele ainda não disse: qual é a de quem nunca escolheu (hoje a Álbum, `MOVIMENTO_PADRAO`) e se os nomes "Álbum", "Revelação" e "Mesa" ficam. Na Álbum ele aprovou a direção e pediu que todas as fotos venham e saiam pela lateral; a correção das fotos que saíam repetindo a chegada ele ainda não viu.
+- **"Só as fotos" e "Tela cheia"**: construídos por último, ele ainda não viu.
+- **As etiquetas da família**: ele escolheu o formato, mas não viu o resultado.
+- **A aba do ano no mural** precisa ser vista por alguém mais velho. Se passar batida, a saída combinada é o ano na margem de toda foto.
+- **No celular, o mural pequeno fica sem o título** na margem (não cabe). Ele não comentou.
+- **Em 1280 × 720, "Ajustes" fica no pé da tela** e, aberto, pede rolagem.
+- **No iPhone de verdade, nada deste grupo foi conferido**: a troca com movimento, a rolagem devolvida, o voltar pelo gesto, o modo TV e a linha do tempo depois de uma troca (a faixa de décadas e o ano parados).
+- **Numa TV de verdade, com controle**, também não.
+
+**O que ficou por fazer**
+
+- **As capturas estáticas** de `docs/visual/fase-3/explorar/` estão desatualizadas para o modo TV, a família e o mural. Refazer com `CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>` e converter para JPEG (as PNG do grupo inteiro somam 36 MB; em JPEG, 8 MB). As capturas com o mouse em cima de uma foto e no meio de uma animação não saem do script: foram tiradas à parte, com o Playwright.
+- **A lista de `scripts/capturas.mjs`** ainda não tem "Só as fotos", as três animações nem a família com duas marcadas.
+- **O item "Explorar" e o "Capítulos na linha do tempo"** continuam em "Decidido, a construir", em `docs/decisoes.md`, com o andamento. Saem de lá quando o Gui aprovar o grupo.
+- **A página do sistema** muda para `/sistema` no grupo 2 (ver "O que falta, para a sessão seguinte").
+- **`testes/visual.test.ts`** ainda tem o `describe('conceito')` guardando os testes das telas novas. Vale separar quando o conceito sair.
+
+**Como está montada a troca sem recarregar**
+
+- **Onde:** `src/lib/cliente/explorar-troca.ts`, ligado por `ligarTroca()` no script de `src/pages/explorar.astro`. A região que troca é o `<div data-explorar>`, que envolve a linha do tempo ou o mural, com os controles dentro.
+- **O caminho de uma troca** (`trocar`): busca a página do endereço novo, tira dela o `[data-explorar]`, mede o que está perto da tela, troca o nó inteiro, devolve a rolagem, avisa (`explorar:trocou`) e anima a diferença. Qualquer erro cai em `location.assign`, a navegação comum.
+- **Identidade:** `data-chave` em cada item (`m:<id>`, `a:<ano>`, `d:<década>`) e `data-ano`, que serve para achar o ano mais próximo. Item novo que precise se mover leva os dois.
+- **Rolagem, duas regras.** Quem usou um controle fica com ele no mesmo ponto da tela (o seletor `foco`, que precisa valer na região antiga e na nova: por isso cada opção tem `data-opcao`). Sem controle, que é o voltar e o avançar, vale a primeira memória abaixo de 110 px do alto.
+- **O que continua aberto:** os `<details>` dos controles são copiados por posição da região antiga para a nova. Mudar a ordem deles entre uma página e outra quebra isso.
+- **Quem sai** é o próprio nó antigo, posto de volta dentro de `.mural` ou `.linha` com `position: absolute`, no fim da lista, para não mexer no `nth-child` dos outros.
+- **A foto já carregada** é levada do item antigo para o novo (`manterFotos`), para não piscar.
+- **Histórico:** `pushState` a cada troca e `scrollRestoration = 'manual'` antes e depois dele, senão o navegador devolve a rolagem por conta própria ao voltar e briga com a nossa. Ao sair da página (`pagehide`) volta a `'auto'`.
+- **Scripts depois da troca.** O HTML que chega pelo `DOMParser` não roda `<script>`. O script da linha do tempo virou uma função `iniciar`, chamada de novo em `explorar:trocou`, com um `AbortController` que desliga o que escutava a janela. O do mural escuta o documento. Script novo dentro da região segue um dos dois modelos.
+- **O tamanho das fotos** não busca nada: troca o `data-tamanho` do mural no lugar, com o mesmo medir e animar, e guarda no aparelho.
+- **O modo TV tem a troca dele**, no script de `src/components/explorar/Palco.astro`: busca de antemão a página da memória de antes e a de depois, troca o `[data-palco]` inteiro com as fotos já abertas e usa `replaceState`, para o voltar sair do modo TV de uma vez. O estado de "passando sozinho" e da pausa viaja nos endereços dos links da página buscada, e não no endereço da barra.
+
+**Cuidados que custaram tempo neste grupo**
+
+- **A animação começava antes da foto.** Animação em CSS começa quando o elemento entra na página, e a foto ainda não tinha chegado: o Gui via um quadrado pequeno crescendo e nenhum movimento. No modo TV a animação só roda com `data-pronta`, que o script põe depois de abrir todas as fotos (`decode()`), e cada `<img>` que chega é trocado pela `Image` já aberta. Qualquer animação nova de chegada segue isso.
+- **Nó reaproveitado repete a animação de chegada.** Pôr um nó antigo de volta na página reinicia as animações em CSS dele. Foi o que fez "voar fotos que nunca paravam" na Álbum. O que sai leva `animation: none !important`.
+- **O painel dos filtros fechando mudava a rolagem.** A página buscada vem com o painel fechado; sem copiar o estado dos `<details>`, tudo o que estava abaixo subia.
+- **O mesmo endereço em dois controles.** Com o foco achado só pelo `href`, clicar numa família punha o foco em "Linha do tempo", que tinha o mesmo endereço. O foco é achado pelo controle (`aria-labelledby`) e pela opção (`data-opcao`).
+- **A guarda da produção lê os arquivos versionados.** Depois de apagar ou mover arquivo, `npm run build` falha com `ENOENT` até um `git add -A`.
+- **As fotos de exemplo no servidor local** precisam ser enviadas uma vez por banco local: `NO_PROXY=localhost node scripts/enviar-fotos-de-exemplo.mjs http://localhost:4321`. Sem isso, todas as fotos saem quebradas nas capturas.
+- **Regex de teste com `[^>]*`** para em qualquer `>` de dentro de uma expressão, como `m.fotos.length > 0`. Nos componentes, evite `>` dentro dos atributos que um teste lê.
+- **`@view-transition`** só pode aparecer uma vez, dentro de `prefers-reduced-motion: no-preference`: tem teste. Ele hoje só serve para entrar e sair do modo TV.
+- **O `.miolo` é só `padding-inline`.** Uma regra de tela que zere o `padding-inline` de um elemento com `miolo` tira a margem da página.
+- **`tsc --noEmit` e `astro check` travam** nas sessões (passaram de cinco minutos e derrubaram o servidor local). Não deu para anotar a contagem de erros de tipo.
+- **Vídeo das trocas:** o Playwright grava com `recordVideo` no contexto. As capturas do script rodam com movimento reduzido, então animação só se confere em contexto sem `reducedMotion`. Os vídeos não entram no repositório.
+- **O servidor local cai** depois de um `npm run build` longo ou entre uma conversa e outra: confira com um `curl` antes de cada rodada de capturas.
 
 ### Grupo 1: Explorar e a página da memória
 
