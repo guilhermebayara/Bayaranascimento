@@ -1,0 +1,36 @@
+---
+// CONCEITO do quadro do mapa: a faixa que troca entre as duas propostas e entre a árvore e o
+// círculo, para comparar na prévia. Sai junto com o conceito, quando o Gui escolher.
+interface Props {
+  tela: 'arvore' | 'circulo';
+  proposta: 'a' | 'b';
+}
+
+const { tela, proposta } = Astro.props;
+const PROPOSTAS = [
+  { id: 'a', nome: 'A, painel flutuante' },
+  { id: 'b', nome: 'B, coluna e gaveta' },
+];
+const TELAS = [
+  { id: 'arvore', nome: 'Árvore' },
+  { id: 'circulo', nome: 'Círculo' },
+];
+---
+
+<nav class="conceito-troca" aria-label="Conceito do quadro do mapa">
+  <span>Conceito do quadro</span>
+  <span class="conceito-troca__grupo">
+    {PROPOSTAS.map((p) => (
+      <a href={`/conceito/mapa/${tela}?quadro=${p.id}`} aria-current={p.id === proposta ? 'true' : undefined}>
+        {p.nome}
+      </a>
+    ))}
+  </span>
+  <span class="conceito-troca__grupo">
+    {TELAS.map((t) => (
+      <a href={`/conceito/mapa/${t.id}?quadro=${proposta}`} aria-current={t.id === tela ? 'true' : undefined}>
+        {t.nome}
+      </a>
+    ))}
+  </span>
+</nav>

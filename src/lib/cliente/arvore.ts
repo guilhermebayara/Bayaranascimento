@@ -12,7 +12,13 @@ const ZOOM_MIN = 0.25;
 // refeito na escala nova o texto continua nítido.
 const ZOOM_MAX = 4;
 
-export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
+/** O que a página pode pedir ao mapa depois de montado */
+export interface ControleDaArvore {
+  /** Leva o mapa até a pessoa e abre a ficha dela. Quem não está no desenho vira o ponto de partida. */
+  irPara(id: string): void;
+}
+
+export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleDaArvore {
   const mapa = raiz.querySelector<HTMLElement>('[data-mapa]')!;
   const camada = raiz.querySelector<HTMLElement>('[data-camada]')!;
   // Os cartões dos ramos abertos ficam numa camada à parte, que anda junto com a árvore e fica acima da legenda
@@ -144,8 +150,9 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   const centralizar = (id: string, animado = true) => {
     const no = desenho?.pessoas.find((p) => p.id === id);
     if (!no) return;  // quem está num ramo aberto já está à vista
-    vista.x = mapa.clientWidth / 2 - (no.x + MEDIDAS.largura / 2) * vista.zoom;
-    vista.y = mapa.clientHeight / 2 - (no.y + MEDIDAS.altura / 2) * vista.zoom;
+    const livre = areaLivre(mapa.clientHeight);
+    vista.x = livre.x + livre.w / 2 - (no.x + MEDIDAS.largura / 2) * vista.zoom;
+    vista.y = livre.y + livre.h / 2 - (no.y + MEDIDAS.altura / 2) * vista.zoom;
     aplicarVista(animado);
   };
   // Depois de abrir um ramo, o mapa anda o mínimo para o cartão e a origem dele caberem na tela
@@ -181,14 +188,63 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     // No computador o painel fica no alto, à esquerda, e a árvore continua com o mapa todo
     return topo > mapa.clientHeight / 4 ? topo : mapa.clientHeight;
   };
+  // O quadro do mapa (docs/decisoes.md, "Página da árvore como mapa"): o painel pousado sobre o mapa
+  // ocupa um lado dele, ou uma faixa no alto ou no pé, e a árvore é enquadrada no que sobra. Sem
+  // quadro na página, a área livre é o mapa inteiro, como sempre foi.
+  const quadro = raiz.querySelector<HTMLElement>('[data-quadro]');
+  const barraDeBaixo = raiz.querySelector<HTMLElement>('.mapa__zoom');
+  function areaLivre(altura: number) {
+    const livre = { x: 0, y: 0, w: mapa.clientWidth, h: altura };
+    if (!quadro) return livre;
+    const m = mapa.getBoundingClientRect();
+    const q = quadro.getBoundingClientRect();
+    // A barra de baixo também sai da conta: a árvore inteira fica acima dela
+    const b = barraDeBaixo?.getBoundingClientRect();
+    if (b && b.height) livre.h = Math.min(livre.h, b.top - m.top);
+    if (q.width < m.width * 0.6) {
+      // Uma coluna à esquerda
+      livre.x = q.right - m.left;
+      livre.w = m.width - livre.x;
+    } else if (q.top - m.top < m.height / 2) {
+      // Uma faixa no alto. Aberta por cima de quase tudo, ela não conta: a árvore fica onde está.
+      const pe = q.bottom - m.top;
+      if (livre.h - pe > m.height * 0.4) {
+        livre.y = pe;
+        livre.h -= pe;
+      }
+    } else if (q.top - m.top > m.height * 0.4) {
+      // Uma faixa no pé
+      livre.h = Math.min(livre.h, q.top - m.top);
+    }
+    return livre;
+  }
   const verTudo = (animado = true) => {
     if (!desenho) return;
     const altura = alturaLivre();
-    const folga = altura < mapa.clientHeight ? 24 : 56;
-    vista.zoom = Math.max(ZOOM_MIN, Math.min(1.1, (mapa.clientWidth - folga * 2) / desenho.largura, (altura - folga * 2) / desenho.altura));
-    vista.x = (mapa.clientWidth - desenho.largura * vista.zoom) / 2;
-    vista.y = (altura - desenho.altura * vista.zoom) / 2;
+    const livre = areaLivre(altura);
+    const folga = altura < mapa.clientHeight || quadro ? 24 : 56;
+    vista.zoom = Math.max(ZOOM_MIN, Math.min(1.1, (livre.w - folga * 2) / desenho.largura, (livre.h - folga * 2) / desenho.altura));
+    vista.x = livre.x + (livre.w - desenho.largura * vista.zoom) / 2;
+    vista.y = livre.y + (livre.h - desenho.altura * vista.zoom) / 2;
     aplicarVista(animado);
+  };
+  // No quadro, a altura da tela guia o enquadramento da chegada: a árvore cabe de cima a baixo, num
+  // tamanho que dá para ler, e, se não couber de lado, fica à vista o trecho de quem está em foco
+  const enquadrarPelaAltura = () => {
+    if (!desenho) return;
+    const livre = areaLivre(mapa.clientHeight);
+    const folga = 24;
+    vista.zoom = Math.max(0.6, Math.min(1.1, (livre.h - folga * 2) / desenho.altura));
+    const largura = desenho.largura * vista.zoom;
+    const no = desenho.pessoas.find((p) => p.id === estado.foco);
+    if (largura <= livre.w - folga * 2 || !no) vista.x = livre.x + (livre.w - largura) / 2;
+    else {
+      const noCentro = livre.x + livre.w / 2 - (no.x + MEDIDAS.largura / 2) * vista.zoom;
+      vista.x = Math.max(livre.x + livre.w - folga - largura, Math.min(livre.x + folga, noCentro));
+    }
+    const altura = desenho.altura * vista.zoom;
+    vista.y = altura <= livre.h - folga * 2 ? livre.y + (livre.h - altura) / 2 : livre.y + folga;
+    aplicarVista(false);
   };
 
   // A ficha (respostas do Gui, 17/11/2026, P84, P86, P91, P95 e P97). A árvore abre sem ela: aparece
@@ -672,8 +728,10 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       if (inicio + tamanho > ate) return ate - (inicio + tamanho);
       return 0;
     };
-    const dx = ajuste(x, w, livre.lado, mapa.clientWidth - livre.lado);
-    const dy = ajuste(y, h, livre.topo, mapa.clientHeight - livre.pe);
+    // No quadro, o painel também não cobre quem está em foco
+    const area = quadro ? areaLivre(mapa.clientHeight) : undefined;
+    const dx = ajuste(x, w, (area?.x ?? 0) + livre.lado, mapa.clientWidth - livre.lado);
+    const dy = area ? ajuste(y, h, area.y + 24, Math.min(area.y + area.h, mapa.clientHeight - livre.pe)) : ajuste(y, h, livre.topo, mapa.clientHeight - livre.pe);
     if (!dx && !dy) return;
     vista.x += dx;
     vista.y += dy;
@@ -783,11 +841,29 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
   guardarNoEndereco();
   desenhar();
   // Abre mostrando a árvore inteira. Se ela ficar pequena demais para ler, abre no foco.
-  verTudo(false);
-  if (vista.zoom < 0.6) {
-    vista.zoom = 0.75;
-    centralizar(estado.foco, false);
+  if (quadro) enquadrarPelaAltura();
+  else {
+    verTudo(false);
+    if (vista.zoom < 0.6) {
+      vista.zoom = 0.75;
+      centralizar(estado.foco, false);
+    }
   }
   // As caixas só passam a deslizar depois do primeiro desenho, para não "voarem" na chegada
   requestAnimationFrame(() => camada.classList.add('mapa__camada--viva'));
+
+  return {
+    irPara(id) {
+      if (!pessoa.has(id)) return;
+      const naTela = Boolean(desenho?.pessoas.some((p) => p.id === id)) || Boolean(camadaDosRamos.querySelector(`a.no[data-id="${CSS.escape(id)}"]`));
+      // Quem está num ramo recolhido não tem cartão: a árvore passa a partir dessa pessoa
+      if (!naTela && partivel.has(id)) {
+        estado.centro = id;
+        estado.ramos.clear();
+        protegerCentro();
+      }
+      focar(id);
+      if (!naTela) verTudo();
+    },
+  };
 }

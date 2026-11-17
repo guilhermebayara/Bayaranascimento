@@ -1,0 +1,726 @@
+/*
+ * CONCEITO do quadro do mapa (docs/decisoes.md, "Página da árvore como mapa"). O mapa ocupa a janela
+ * inteira abaixo do menu, e um painel só reúne o título, a busca, a ficha de quem foi tocado, os
+ * ajustes e a legenda. Duas propostas, escolhidas por [data-proposta]:
+ *   a: o painel flutuante do conceito do Gui no Figma. No celular, um cartão no alto do mapa.
+ *   b: a coluna encostada na borda. No celular, uma gaveta no pé do mapa.
+ * A árvore e o círculo usam o mesmo quadro. Este arquivo sai quando o Gui escolher: a proposta
+ * escolhida passa para o estilo da tela.
+ */
+
+/* --- A faixa do conceito: troca de proposta e de tela ------------------------------------------- */
+
+.conceito-troca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-5);
+  padding: 0 var(--margem);
+  background: var(--papel-recuo);
+  color: var(--tinta-suave);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.04em;
+}
+.conceito-troca__grupo {
+  display: flex;
+  gap: var(--e-3);
+}
+.conceito-troca a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+}
+.conceito-troca a[aria-current] {
+  color: var(--tinta);
+  font-weight: 500;
+  text-decoration-thickness: var(--traco);
+  text-decoration-color: currentColor;
+}
+
+/* --- O quadro: o mapa pega toda a altura que sobra ---------------------------------------------- */
+
+.quadro {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+.quadro .mapa {
+  /* A altura do painel, medida por src/lib/cliente/painel-do-mapa.ts. Sem script, vale esta. */
+  --pm-altura: 6rem;
+  height: auto;
+  min-height: 0;
+  border-bottom: 0;
+}
+
+/* --- O painel ----------------------------------------------------------------------------------- */
+
+.pm {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  font-size: var(--t-pequeno);
+  cursor: default;
+  user-select: auto;
+}
+.pm__alto {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4);
+  padding-inline: var(--e-4);
+}
+.pm__alto h1 {
+  margin: 0;
+  padding-block: var(--e-2);
+  font-size: var(--t-titulo-3);
+  line-height: 1.05;
+}
+/* O botão que abre o painel no celular: o texto e o mais que vira xis, como nas seções */
+.pm__abre,
+.pm__secao summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-3);
+  min-height: var(--toque);
+  font-weight: 550;
+  cursor: pointer;
+}
+.pm__abre {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  font-weight: 550;
+}
+.pm__abre::after,
+.pm__secao summary::after {
+  content: '';
+  flex: none;
+  width: 0.7em;
+  height: 0.7em;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  transition: rotate var(--tempo-medio) var(--curva);
+}
+.pm__abre[aria-expanded='true']::after,
+.pm__secao[open] summary::after {
+  rotate: 45deg;
+}
+.pm__abre:focus-visible,
+.pm__secao summary:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: -3px;
+}
+.pm__dica {
+  flex: none;
+  margin: 0;
+  padding: 0 var(--e-4) var(--e-3);
+  color: var(--tinta-suave);
+  line-height: 1.35;
+}
+/* Com alguém na ficha, a frase já cumpriu o papel */
+.pm:has(.pm__ficha:not(:empty)) .pm__dica {
+  display: none;
+}
+
+/* A ficha de quem foi tocado: o retrato, o nome, o parentesco e, embaixo, as duas ações.
+   Quem a preenche é src/lib/cliente/arvore.ts (ou o script do círculo). */
+.pm__ficha {
+  display: grid;
+  flex: none;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 var(--e-3);
+  padding: var(--e-2) var(--e-1) var(--e-1) var(--e-4);
+  border-top: 1px solid var(--fio);
+}
+.pm__ficha:empty {
+  display: none;
+}
+.pm__ficha .retrato {
+  grid-area: 1 / 1 / 3 / 2;
+  width: 3rem;
+  background: var(--retrato-cor, var(--papel-recuo));
+  font-size: 1.125rem;
+}
+.pm__ficha strong {
+  grid-area: 1 / 2;
+  align-self: end;
+  overflow: hidden;
+  font-family: var(--serifa);
+  font-size: var(--t-titulo-3);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pm__ficha .mapa__foco-quem {
+  font-size: var(--t-ficha);
+}
+.pm__ficha a,
+.pm__ficha button {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--toque);
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.3em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pm__ficha a:focus-visible,
+.pm__ficha button:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+.pm__ficha .mapa__foco-fechar {
+  grid-area: 1 / 3 / 3 / 4;
+  align-self: start;
+  justify-content: center;
+  border-radius: var(--raio-moldura);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+  text-decoration: none;
+}
+/* As duas ações na mesma linha: "Ver a página" à esquerda e a outra, mais quieta, à direita */
+.pm__ficha a,
+.pm__ficha [data-partir] {
+  grid-row: 3;
+  grid-column: 1 / -1;
+}
+.pm__ficha a {
+  justify-self: start;
+}
+.pm__ficha [data-partir] {
+  display: block;
+  justify-self: end;
+  max-width: calc(100% - 8rem);
+  margin-right: var(--e-3);
+  overflow: hidden;
+  color: var(--tinta-suave);
+  font-weight: 400;
+  text-overflow: ellipsis;
+}
+.pm__ficha .mapa__foco-mais,
+.pm__ficha button[hidden] {
+  display: none;
+}
+@media (hover: hover) {
+  .pm__ficha .mapa__foco-fechar:hover {
+    background: var(--papel-recuo);
+  }
+}
+
+/* O corpo: a busca, as seções que abrem e fecham e o pé. No celular só aparece com o painel aberto. */
+.pm__corpo {
+  display: none;
+  min-height: 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--fio);
+}
+.pm[data-aberto] .pm__corpo {
+  display: block;
+}
+.pm__busca {
+  padding: var(--e-3) var(--e-4) var(--e-4);
+}
+.pm__secao {
+  border-top: 1px solid var(--fio);
+}
+.pm__secao summary {
+  padding-inline: var(--e-4);
+  list-style: none;
+}
+.pm__secao summary::-webkit-details-marker {
+  display: none;
+}
+.pm__secao form {
+  display: grid;
+  gap: var(--e-4);
+  padding: var(--e-2) var(--e-4) var(--e-4);
+}
+.pm .arvore__camadas {
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--e-4);
+}
+.pm .arvore__camadas legend {
+  grid-column: 1 / -1;
+}
+.pm__secao form:has(select[name='nucleo'] option[value='']:checked) .marcar:has(input[name='outros']) {
+  display: none;
+}
+.pm .legenda {
+  padding-top: var(--e-1);
+}
+.pm__pe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-4);
+  margin: 0;
+  padding: 0 var(--e-4);
+  border-top: 1px solid var(--fio);
+  color: var(--tinta-suave);
+}
+
+/* --- Proposta A no celular: um cartão no alto do mapa ------------------------------------------- */
+
+[data-proposta='a'] .pm {
+  top: var(--e-3);
+  left: var(--margem);
+  right: var(--margem);
+  max-height: calc(100% - 2 * var(--e-3));
+  border-radius: var(--raio-moldura);
+}
+
+/* --- Proposta B no celular: uma gaveta no pé do mapa -------------------------------------------- */
+
+[data-proposta='b'] .pm {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 72%;
+  border-top: 1px solid var(--fio);
+  border-radius: var(--raio-bloco) var(--raio-bloco) 0 0;
+  box-shadow: var(--sombra-foto);
+}
+[data-proposta='b'] .pm__alto {
+  padding-top: var(--e-2);
+}
+/* A barra de baixo fica acima da gaveta, e sai enquanto ela está aberta */
+[data-proposta='b'] .mapa__zoom {
+  bottom: calc(var(--pm-altura) + var(--e-3));
+}
+[data-proposta='b'] .pm[data-aberto] ~ .mapa__zoom {
+  display: none;
+}
+
+/* A barra de baixo no celular, sem o botão da legenda: o zoom fica à direita, na segunda linha */
+.quadro .mapa__escala {
+  margin-left: auto;
+}
+
+@media (min-width: 40rem) {
+  /* Proposta A: o cartão flutuante, no alto, à esquerda. O corpo está sempre à vista. */
+  [data-proposta='a'] .pm {
+    top: var(--e-4);
+    right: auto;
+    width: 20rem;
+    max-height: calc(100% - 2 * var(--e-4));
+    overflow-y: auto;
+  }
+  [data-proposta='a'] .pm__abre {
+    display: none;
+  }
+  [data-proposta='a'] .pm__corpo {
+    display: block;
+    overflow: visible;
+  }
+  [data-proposta='a'] .pm__alto h1 {
+    padding-block: var(--e-3) var(--e-2);
+    font-size: var(--t-titulo-2);
+  }
+  [data-proposta='a'] .pm .arvore__camadas {
+    grid-template-columns: 1fr;
+  }
+  [data-proposta='a'] .pm .legenda {
+    display: grid;
+    grid-template-columns: 1fr;
+    columns: auto;
+  }
+  [data-proposta='a'] .pm .legenda section:last-child {
+    grid-column: auto;
+  }
+  [data-proposta='a'] .pm .legenda section + section {
+    margin-top: 0;
+  }
+}
+
+@media (min-width: 62rem) {
+  /* Proposta B: a coluna encostada na borda, do menu ao pé da janela. O mapa é o que sobra. */
+  [data-proposta='b'] .pm {
+    top: 0;
+    right: auto;
+    width: calc(var(--margem) + 19rem);
+    max-height: none;
+    padding-left: calc(var(--margem) - var(--e-4));
+    overflow-y: auto;
+    border-top: 0;
+    border-right: 1px solid var(--fio);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  [data-proposta='b'] .pm__abre {
+    display: none;
+  }
+  [data-proposta='b'] .pm__corpo {
+    display: block;
+    overflow: visible;
+  }
+  [data-proposta='b'] .pm__alto {
+    padding-top: var(--e-4);
+  }
+  [data-proposta='b'] .pm__alto h1 {
+    padding-block: var(--e-3) var(--e-2);
+    font-size: var(--t-titulo-2);
+  }
+  [data-proposta='b'] .pm .arvore__camadas {
+    grid-template-columns: 1fr;
+  }
+  [data-proposta='b'] .pm .legenda {
+    display: grid;
+    grid-template-columns: 1fr;
+    columns: auto;
+  }
+  [data-proposta='b'] .pm .legenda section:last-child {
+    grid-column: auto;
+  }
+  [data-proposta='b'] .pm .legenda section + section {
+    margin-top: 0;
+  }
+  [data-proposta='b'] .mapa__zoom,
+  [data-proposta='b'] .pm[data-aberto] ~ .mapa__zoom {
+    bottom: var(--e-4);
+    display: flex;
+  }
+}
+
+@media (min-width: 100rem) {
+  [data-proposta='a'] .pm {
+    width: 23rem;
+  }
+  [data-proposta='b'] .pm {
+    width: calc(var(--margem) + 22rem);
+  }
+}
+
+/* --- O círculo, no mesmo quadro ------------------------------------------------------------------
+   A pessoa no centro e três faixas. No celular, faixas empilhadas, com os retratos lado a lado, e
+   quem rola é a área do círculo, com a rolagem do aparelho. Na tela grande e na TV, anéis: cada
+   pessoa fica num ponto do anel, e a distância do centro é a proximidade. O círculo sempre cabe
+   inteiro: não tem zoom nem arrasto do mapa, para o arrasto ficar livre para aproximar e afastar. */
+
+.mapa--circulo {
+  --anel-1: color-mix(in srgb, var(--meio) 62%, var(--papel));
+  --anel-2: color-mix(in srgb, var(--meio) 34%, var(--papel));
+  --anel-3: color-mix(in srgb, var(--meio) 14%, var(--papel));
+  cursor: default;
+  touch-action: auto;
+  user-select: auto;
+}
+.circulo-area {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: var(--e-4) var(--margem);
+}
+[data-proposta='a'] .circulo-area {
+  padding-top: calc(var(--pm-altura) + 2 * var(--e-3));
+}
+[data-proposta='b'] .circulo-area {
+  padding-bottom: calc(var(--pm-altura) + var(--e-4));
+}
+.circulo {
+  --tam: 3.25rem;
+  display: grid;
+  gap: var(--e-3);
+}
+.circulo__anel {
+  display: none;
+}
+.circulo__eu {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  margin: 0;
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.circulo__eu .retrato {
+  width: 4rem;
+}
+.circulo__faixa {
+  padding: var(--e-4);
+  border-radius: var(--raio-bloco);
+}
+.circulo__faixa[data-faixa='1'] {
+  background: var(--anel-1);
+}
+.circulo__faixa[data-faixa='2'] {
+  background: var(--anel-2);
+}
+.circulo__faixa[data-faixa='3'] {
+  background: var(--anel-3);
+}
+.circulo__faixa h2 {
+  margin: 0;
+}
+.circulo__faixa ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-3) var(--e-1);
+  margin: var(--e-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.circulo__faixa li[data-fora] {
+  opacity: 0.35;
+}
+.circulo__pessoa {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: var(--e-1);
+  width: calc(var(--tam) + 1.75rem);
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  font-size: var(--t-micro);
+  line-height: 1.2;
+  cursor: pointer;
+}
+.circulo__pessoa .retrato {
+  width: var(--tam);
+  font-size: calc(var(--tam) * 0.36);
+  transition: box-shadow var(--tempo-curto);
+}
+.circulo__pessoa > span:last-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.circulo__pessoa[aria-pressed='true'] .retrato {
+  box-shadow:
+    0 0 0 3px var(--branco),
+    0 0 0 5px var(--tinta);
+}
+.circulo__pessoa[aria-pressed='true'] > span:last-child {
+  font-weight: 600;
+}
+.circulo__pessoa:focus-visible {
+  outline: 0;
+}
+.circulo__pessoa:focus-visible .retrato {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 3px;
+}
+
+/* No painel do círculo: a forma de ver, o texto das seções, o slider e a amostra das faixas */
+.pm__ver {
+  padding: var(--e-3) var(--e-4) 0;
+}
+.segmentado {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  padding: 3px;
+  border-radius: var(--raio-pilula);
+  background: var(--papel-recuo);
+}
+.segmentado a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(var(--toque) - 6px);
+  border-radius: var(--raio-pilula);
+  color: var(--tinta-suave);
+  font-weight: 500;
+  text-decoration: none;
+}
+.segmentado a[aria-current] {
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  color: var(--tinta);
+}
+.pm__texto {
+  margin: 0;
+  padding: 0 var(--e-4) var(--e-4);
+  color: var(--tinta-suave);
+  line-height: 1.4;
+}
+.legenda--circulo {
+  display: block;
+}
+.legenda--circulo p {
+  margin: var(--e-3) 0 0;
+  color: var(--tinta-suave);
+  line-height: 1.4;
+}
+.amostra-anel {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--fio);
+}
+.amostra-anel--1 {
+  background: var(--anel-1);
+}
+.amostra-anel--2 {
+  background: var(--anel-2);
+}
+.amostra-anel--3 {
+  background: var(--anel-3);
+}
+.pm__proximidade {
+  grid-row: 4;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0 var(--e-3);
+  padding: var(--e-1) var(--e-3) var(--e-2) 0;
+}
+.pm__proximidade span,
+.pm__proximidade output {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.pm__proximidade span {
+  color: var(--tinta-suave);
+}
+.pm__proximidade input {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: var(--toque);
+  margin: 0;
+  accent-color: var(--tinta);
+}
+
+@media (min-width: 40rem) {
+  [data-proposta='a'] .circulo-area {
+    padding-top: var(--e-4);
+    padding-left: calc(var(--margem) + 20rem + var(--e-5));
+  }
+}
+
+@media (min-width: 62rem) {
+  /* Os anéis. A área é o que sobra ao lado do painel, e o círculo é o maior que cabe nela. */
+  .circulo-area,
+  [data-proposta='a'] .circulo-area,
+  [data-proposta='b'] .circulo-area {
+    container-type: size;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    padding: var(--e-5);
+  }
+  [data-proposta='a'] .circulo-area {
+    left: calc(var(--margem) + 20rem);
+  }
+  [data-proposta='b'] .circulo-area {
+    left: calc(var(--margem) + 19rem);
+  }
+  .circulo {
+    --tam: clamp(2.5rem, 7cqmin, 4.75rem);
+    position: relative;
+    display: block;
+    width: min(100cqw, 100cqh);
+    aspect-ratio: 1;
+  }
+  .circulo__anel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: block;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    translate: -50% -50%;
+  }
+  .circulo__anel--3 {
+    width: 100%;
+    background: var(--anel-3);
+  }
+  .circulo__anel--2 {
+    width: 70.4%;
+    background: var(--anel-2);
+  }
+  .circulo__anel--1 {
+    width: 44.8%;
+    background: var(--anel-1);
+  }
+  .circulo__eu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    display: grid;
+    justify-items: center;
+    gap: var(--e-1);
+    translate: -50% calc(clamp(3.5rem, 11cqmin, 6.5rem) / -2);
+  }
+  .circulo__eu .retrato {
+    width: clamp(3.5rem, 11cqmin, 6.5rem);
+    box-shadow: 0 0 0 4px var(--branco);
+  }
+  .circulo__faixa,
+  .circulo__faixa ul {
+    display: contents;
+  }
+  /* O nome de cada faixa, pousado no alto do anel dela */
+  .circulo__faixa h2 {
+    position: absolute;
+    left: 50%;
+    z-index: 1;
+    padding: 0.1rem var(--e-3);
+    border-radius: var(--raio-pilula);
+    background: var(--branco);
+    color: var(--tinta-suave);
+    white-space: nowrap;
+    translate: -50% -50%;
+  }
+  .circulo__faixa[data-faixa='3'] h2 {
+    top: 0;
+  }
+  .circulo__faixa[data-faixa='2'] h2 {
+    top: 14.8%;
+  }
+  .circulo__faixa[data-faixa='1'] h2 {
+    top: 27.6%;
+  }
+  .circulo__faixa li {
+    position: absolute;
+    top: calc(50% + var(--y) * 1%);
+    left: calc(50% + var(--x) * 1%);
+    z-index: 2;
+    translate: -50% calc(var(--tam) / -2);
+    transition:
+      top var(--tempo-medio) var(--curva),
+      left var(--tempo-medio) var(--curva);
+  }
+}
+
+@media (min-width: 100rem) {
+  [data-proposta='a'] .circulo-area {
+    left: calc(var(--margem) + 23rem);
+  }
+  [data-proposta='b'] .circulo-area {
+    left: calc(var(--margem) + 22rem);
+  }
+}

@@ -306,6 +306,20 @@ main {
   min-height: 60svh;
 }
 
+/* As telas de mapa, a árvore e o círculo: o mapa ocupa a janela inteira abaixo do menu, sem rodapé
+   (decisão do Gui, 17/11/2026). A página não rola: quem anda é o mapa. Numa janela baixa demais, o
+   mapa mantém uma altura mínima e a página volta a rolar. */
+[data-tela-de-mapa] body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+[data-tela-de-mapa] main {
+  flex: 1;
+  display: grid;
+  min-height: 24rem;
+}
+
 .recado {
   margin: var(--e-4) var(--margem) 0;
   padding: var(--e-4) var(--e-5);
