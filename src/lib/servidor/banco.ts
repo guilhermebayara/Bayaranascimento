@@ -6,7 +6,7 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 
 interface Migracao {
@@ -621,6 +621,14 @@ export const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS avisos_da_memoria ON avisos (memoria_id)`,
     ],
   },
+  {
+    // Ampliar quem vê uma memória com relatos (decisão do Gui, 17/11/2026; regras em permissoes.ts,
+    // "estaNoPublicoDoRelato"). Ao ampliar, cada relato que já existia fica só para quem via antes até
+    // quem o registrou concordar: os núcleos desse público antigo, numa lista em JSON. Vazio: o relato
+    // acompanha a memória, como todos os que já existem.
+    id: '025-relato-so-para-quem-via',
+    sql: [`ALTER TABLE relatos ADD COLUMN so_para_nucleos TEXT`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
@@ -675,6 +683,7 @@ async function migrar(db: D1Database): Promise<void> {
     await semearAudiosDeExemplo(db);
     // Avisos de exemplo, para o "Ver como" mostrar a lista, o número no retrato e a conta
     await semearAvisosDeExemplo(db);
+    await semearPedidoDeExemplo(db);
     await limparBucketDeTeste(db);
   }
 }

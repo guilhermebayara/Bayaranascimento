@@ -15,7 +15,7 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 | Criar memória, capítulo ou tema | Qualquer pessoa com acesso. Uma época, só os admins |
 | Editar um capítulo | Quem criou e os admins, desde que vejam o capítulo. Uma época, só os admins, inclusive para transformar um capítulo em época |
 | Corrigir a ficha da memória | Quem criou e as pessoas citadas nela, desde que vejam a memória. Os admins corrigem só os dados (data, lugar, tipo, quem estava, capítulos e temas) de uma memória publicada que veem; o título, as fotos, as legendas e as famílias ficam como estão, e eles não restauram versões |
-| Mudar quem pode ver uma memória ou um capítulo | Só quem criou, também quando é um admin que corrige. Quem é citado ainda marca núcleos numa memória aberta a todos, o que não restringe nada |
+| Mudar quem pode ver uma memória ou um capítulo | Só quem criou, também quando é um admin que corrige. Quem é citado ainda marca núcleos numa memória aberta a todos, o que não restringe nada. Ao ampliar, cada relato que já existia espera o sim de quem o registrou (ver "Ampliar quem vê uma memória com relatos") |
 | Acrescentar relato a uma memória | Qualquer pessoa que vê a memória, um relato por pessoa |
 | Editar um relato | Só quem escreveu (ou quem registrou, no relato de quem não acessa o site). Os admins também não |
 | Registrar relato de quem não acessa o site | Qualquer pessoa que vê a memória, creditada como "registrado por". Cada pessoa pode ter o seu rascunho, que ninguém mais vê; publicado, fica um só |
@@ -331,13 +331,27 @@ Decisões do Gui de 16/11/2026, tela construída na fase 3 da revisão visual (`
 Decisões do Gui de 17/11/2026 (Onda 1), construídas em 17/11/2026 (migração `024-avisos`). As regras estão em `src/lib/avisos.ts`, a geração em `src/lib/servidor/avisos.ts` e as consultas em `src/lib/servidor/repositorio.ts` ("Avisos"), com teste em `testes/avisos.test.ts`.
 
 - **Dentro do site**, sem e-mail nem notificação no celular. Ficam no alto do Início, logo abaixo da frase das novidades ("2 avisos para você"), num número discreto no retrato do topo, em qualquer tela ("9+" a partir de dez, e o nome do retrato diz "Sua conta, Gui, 2 avisos"), e em "Sua conta", no cartão "Avisos", com o histórico em "Avisos que já saíram da lista".
-- **Tipos:** o pedido para liberar um relato (ver "Ampliar quem vê uma memória com relatos"), relato novo numa memória que a pessoa criou ou em que aparece, e a pessoa marcada em "Quem estava". A sugestão de correção entra com ela, na onda 2.
+- **Tipos:** o pedido para liberar um relato (ver "Ampliar quem vê uma memória com relatos", com a resposta no próprio aviso), relato novo numa memória que a pessoa criou ou em que aparece, e a pessoa marcada em "Quem estava". A sugestão de correção entra com ela, na onda 2.
 - **Quando nasce:** relato novo, quando um relato é publicado numa memória publicada (editar um relato publicado não avisa de novo); "Quem estava", quando a memória sai do rascunho com a pessoa marcada ou quando uma correção a marca. Rascunho não avisa ninguém. Na memória nova, quem estava recebe só o "Quem estava", e não também o relato de quem criou.
 - **Quem recebe:** só quem tem login, e só a partir do primeiro acesso (tabela `acessos`, anotada no primeiro pedido de cada pessoa; quem já tinha aberto o painel entrou com a primeira visita). O que já existia chega como acervo, não como aviso. O pedido para liberar vale sempre. Ninguém recebe aviso do que ela mesma fez.
 - **Quem não vê o item não recebe aviso dele:** a pessoa precisa ver a memória ao nascer o aviso, e a lista confere de novo ao ler. Memória que passou a ser restrita, foi para a lixeira ou voltou a ser só de quem vê, relato que some para ela (o de quem só existe num laço privado de outra pessoa) e aviso feito por alguém que ela não vê saem da lista, do histórico e do número do retrato.
 - **Sai da lista** ao abrir a memória. O pedido para liberar só sai quando a pessoa responde. Sem lembrete.
 - Cada aviso leva à memória e, quando é de um relato, ao bilhete dele.
 - O espelho da produção apaga os avisos, como apaga os relatos. As prévias têm dois avisos de exemplo para cada pessoa do "Ver como" (`semearAvisosDeExemplo`).
+
+## Ampliar quem vê uma memória com relatos
+
+Decisão do Gui de 17/11/2026 (Onda 1, e já no documento de estrutura), construída em 17/11/2026 (migração `025-relato-so-para-quem-via`). As regras estão em `src/lib/servidor/permissoes.ts` (`publicoAmpliado`, `publicoDentroDe`, `estaNoPublicoDoRelato`, `podeLiberarRelato` e `veORelato`), com teste em `testes/ampliar-relatos.test.ts`, que confere consulta por consulta que nada do relato vaza antes do sim.
+
+- **Ampliar** é a memória passar a ser vista por quem não via: de algumas famílias para toda a família, ou com uma família a mais. Só quem criou muda quem vê, então só quem criou amplia.
+- Ao ampliar, cada relato que já existia (publicado ou em rascunho) continua só para o público antigo, os membros das famílias que viam a memória (`relatos.so_para_nucleos`), até quem o registrou concordar. O relato de quem ampliou não espera: foi ela mesma que abriu.
+- Quem passou a ver não recebe nada do relato que espera: nem o texto, nem a contagem de relatos e a ordem "mais contadas", nem os áudios (e o filtro "com áudio", "A voz de Fulano" e o endereço do arquivo), nem as fotos que vieram com ele (na memória, na galeria e no endereço do arquivo), nem as novidades do Início, o filtro de quem contou, a abertura da memória ou os avisos. Na página do relato, nem o nome de quem registrou aparece quando o relato está escondido.
+- **Quem ampliou** vê, na própria memória, de quem são os relatos que esperam: "Os relatos da Elizete e do Lucas aparecem para quem passou a ver quando eles concordarem." A frase fica lá enquanto algum esperar, e a rota devolve a mesma lista ao salvar (`esperam`).
+- **O autor** recebe o pedido como aviso, com a memória, quem ampliou e para quem ("Gui abriu “Natal” para toda a família. Por enquanto, o seu relato continua só para quem via antes."), e responde ali mesmo: "Liberar para quem passou a ver" ou "Manter como estava". O pedido vale mesmo antes do primeiro acesso e só sai da lista com a resposta, que fica no histórico. Depois, o próprio relato tem a linha discreta "Visível só para quem via antes. Liberar", para mudar de ideia. Liberar não tem volta pela tela.
+- **Relato de quem não acessa o site:** quem registrou responde.
+- **Restringir não pede nada.** Quando o público da memória volta a caber no público antigo de um relato, a espera perde o sentido: o relato volta a acompanhar a memória e o pedido sai da lista sem resposta. Ampliar de novo pede de novo.
+- A resposta é um formulário comum (`/api/avisos`), que funciona sem script. Só quem registrou responde; para os outros, o aviso e o relato respondem como se não existissem.
+- As prévias têm um pedido de exemplo: um relato da Giovanna no "Casamento da Prima Carol", do Gui, fica só para a família Bayara Nascimento (`semearPedidoDeExemplo`).
 
 ## Explorar
 
@@ -393,7 +407,6 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - **Histórico de pessoas e laços:** quem pode editar vê as versões, com quem mudou e quando, e restaura uma, como na memória.
     - **Fotos soltas na produção:** nada se apaga sozinho. Em Administração, "Fotos sem memória há mais de 30 dias", com quem enviou; o administrador confere e apaga. A guarda da produção abre só essa rota, com teste.
 - **Onda 1 até 23/11: avisos, as duas regras de privacidade que faltam e o círculo** (decisões do Gui, 17/11/2026). Prazo geral: tudo resolvido até 10/12; de lá ao Natal, só alimentar o acervo.
-    - **Ampliar quem vê uma memória com relatos.** Ao ampliar, cada relato já existente continua só para o público antigo até o autor concordar. Quem ampliou vê, ao salvar, quais relatos esperam ("Os relatos da Elizete e do Lucas aparecem para quem passou a ver quando eles concordarem"), e a memória mostra isso a ele. O autor recebe o pedido e responde "Liberar para quem passou a ver" ou "Manter como estava"; pode mudar de ideia depois, por uma linha discreta no próprio relato ("Visível só para quem via antes. Liberar"). Relato de quem não acessa o site: quem registrou responde. Restringir não pede nada. Regra em `permissoes.ts`, com teste de que o relato não vaza antes do sim.
     - **Publicar memória com alguém que só você vê** (já no documento de estrutura, conferir o que existe): enquanto a pessoa for privada a memória fica em rascunho; ao publicar, o site avisa e oferece abrir a pessoa para todos, publicar sem citá-la ou continuar em rascunho. Nunca publica revelando por tabela uma pessoa privada.
     - **Círculo.** Uma forma de ver em Pessoas ("Por família | Seu círculo"), só da pessoa logada, que só ela vê. A pessoa no centro e três faixas, Muito próximo, Próximo e Conhecido; na tela grande e na TV são anéis concêntricos, no celular são faixas empilhadas com os retratos lado a lado.
         - **Quem aparece:** toda a família que a pessoa vê, os laços do coração dela, quem já faleceu e os bichos.

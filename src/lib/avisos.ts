@@ -90,3 +90,21 @@ export function rotuloDoRetrato(nome: string, pendentes: number): string {
   if (pendentes <= 0) return `Sua conta, ${nome}`;
   return `Sua conta, ${nome}, ${pendentes === 1 ? '1 aviso' : `${pendentes} avisos`}`;
 }
+
+/**
+ * O que quem ampliou a memória vê, ao salvar e na própria memória (decisão do Gui, 17/11/2026): "Os relatos
+ * da Elizete e do Lucas aparecem para quem passou a ver quando eles concordarem."
+ */
+export function fraseDosRelatosQueEsperam(pessoas: { nome: string; tratamento: 'ela' | 'ele' | null }[]): string {
+  if (pessoas.length === 0) return '';
+  const de = (p: { nome: string; tratamento: 'ela' | 'ele' | null }) => `${p.tratamento === 'ela' ? 'da' : p.tratamento === 'ele' ? 'do' : 'de'} ${p.nome}`;
+  if (pessoas.length === 1) {
+    const [p] = pessoas;
+    const quem = p!.tratamento === 'ela' ? 'ela' : p!.tratamento === 'ele' ? 'ele' : 'a pessoa';
+    return `O relato ${de(p!)} aparece para quem passou a ver quando ${quem} concordar.`;
+  }
+  const nomes = pessoas.map(de);
+  const lista = `${nomes.slice(0, -1).join(', ')} e ${nomes.at(-1)}`;
+  const quem = pessoas.every((p) => p.tratamento === 'ela') ? 'elas' : 'eles';
+  return `Os relatos ${lista} aparecem para quem passou a ver quando ${quem} concordarem.`;
+}

@@ -253,8 +253,57 @@ export function pessoasQueNaoVe(emPrivadosDeOutros: ReadonlySet<string>, comLaco
  * página da memória, da contagem de relatos, dos áudios e de "A voz de Fulano". Quem registrou continua
  * vendo. O dono do laço vê a pessoa e, por isso, vê o relato. A memória em si não muda.
  */
-export function veORelato(relato: { por: string; registradoPor: string }, usuario: Pick<Usuario, 'pessoa'>, naoVe: ReadonlySet<string>): boolean {
-  return !naoVe.has(relato.por) || relato.registradoPor === usuario.pessoa;
+export function veORelato(
+  relato: { por: string; registradoPor: string; soParaNucleos?: readonly string[] | null },
+  usuario: Pick<Usuario, 'pessoa'> & Partial<Pick<Usuario, 'nucleos'>>,
+  naoVe: ReadonlySet<string>,
+): boolean {
+  if (relato.registradoPor === usuario.pessoa) return true;
+  return !naoVe.has(relato.por) && estaNoPublicoDoRelato(relato, usuario);
+}
+
+// --- Ampliar quem vê uma memória com relatos (decisão do Gui, 17/11/2026) ---
+
+/** Quem vê uma memória: toda a família, ou só quem é membro de um dos núcleos. */
+export interface Publico {
+  visibilidade: 'todos' | 'nucleos';
+  nucleos: readonly string[];
+}
+
+/**
+ * A memória passou a ser vista por mais gente? Só quando o público novo tem alguém que o antigo não
+ * tinha: de núcleos para toda a família, ou com um núcleo a mais. Restringir não é ampliar.
+ */
+export function publicoAmpliado(antes: Publico, depois: Publico): boolean {
+  if (antes.visibilidade === 'todos') return false;
+  if (depois.visibilidade === 'todos') return true;
+  return depois.nucleos.some((n) => !antes.nucleos.includes(n));
+}
+
+/** O público da memória cabe inteiro no público antigo de um relato: a espera dele perdeu o sentido. */
+export function publicoDentroDe(publico: Publico, soParaNucleos: readonly string[]): boolean {
+  return publico.visibilidade === 'nucleos' && publico.nucleos.every((n) => soParaNucleos.includes(n));
+}
+
+/**
+ * O relato que espera o sim do autor depois de a memória ser ampliada fica só para o público antigo:
+ * os membros dos núcleos que viam a memória antes. Quem registrou sempre vê o que escreveu. Sem espera
+ * (soParaNucleos vazio), o relato acompanha a memória.
+ */
+export function estaNoPublicoDoRelato(
+  relato: { registradoPor: string; soParaNucleos?: readonly string[] | null },
+  usuario: Pick<Usuario, 'pessoa'> & Partial<Pick<Usuario, 'nucleos'>>,
+): boolean {
+  if (!relato.soParaNucleos) return true;
+  if (relato.registradoPor === usuario.pessoa) return true;
+  return relato.soParaNucleos.some((n) => (usuario.nucleos ?? []).includes(n));
+}
+
+/** Responder ao pedido para liberar, ou liberar depois pela linha do relato: só quem registrou o relato. */
+export function podeLiberarRelato(usuario: Usuario, relato: { registradoPor: string; soParaNucleos?: readonly string[] | null }): Decisao {
+  if (relato.registradoPor !== usuario.pessoa) return nao('Só quem escreveu ou registrou o relato decide quem passa a vê-lo.');
+  if (!relato.soParaNucleos) return nao('Este relato já aparece para todos que veem a memória.');
+  return sim;
 }
 
 /** Pôr, trocar ou tirar a foto de retrato: quem pode editar a página da pessoa (decisão do Gui, 16/11/2026). */

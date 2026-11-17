@@ -1406,3 +1406,27 @@ export async function semearAvisosDeExemplo(db: D1Database): Promise<void> {
   }
   await db.batch(comandos);
 }
+
+// Um pedido para liberar de exemplo (docs/decisoes.md, "Ampliar quem vê uma memória com relatos"): um
+// relato da Giovanna numa memória do Gui aberta a todos fica só para a família Bayara Nascimento, como
+// se o Gui tivesse acabado de abrir a memória. No "Ver como", a Giovanna vê o pedido, o Gui vê a frase
+// de quem ampliou e o Magno não vê o relato até ela liberar.
+export async function semearPedidoDeExemplo(db: D1Database): Promise<void> {
+  const ja = await db.prepare(`SELECT 1 AS ok FROM avisos WHERE tipo = 'liberar-relato' AND dados LIKE '%"exemplo":true%' LIMIT 1`).first();
+  if (ja) return;
+  const relato = await db
+    .prepare(
+      `SELECT r.id, r.memoria_id FROM relatos r JOIN memorias m ON m.id = r.memoria_id
+       WHERE r.registrado_por = 'giovanna' AND r.por = 'giovanna' AND r.situacao = 'publicada' AND r.so_para_nucleos IS NULL
+         AND m.criada_por = 'gui' AND m.visibilidade = 'todos' AND m.situacao = 'publicada' AND m.excluida_em IS NULL
+       ORDER BY m.ano DESC LIMIT 1`,
+    )
+    .first<{ id: number; memoria_id: string }>();
+  if (!relato) return;
+  await db.batch([
+    db.prepare(`UPDATE relatos SET so_para_nucleos = '["bayara-nascimento"]' WHERE id = ?`).bind(relato.id),
+    db
+      .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES ('giovanna', 'liberar-relato', ?, ?, 'gui', '{"paraQuem":"toda a família","exemplo":true}')`)
+      .bind(relato.memoria_id, relato.id),
+  ]);
+}

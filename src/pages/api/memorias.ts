@@ -8,7 +8,7 @@ import { TIPO_OUTRO } from '../../lib/tipos';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
-import { avisarQuemEstava } from '../../lib/servidor/avisos';
+import { avisarQuemEstava, mudouQuemVe } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
@@ -259,6 +259,12 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     id = codigoNovo(await idsDeMemorias());
     await criarMemoria(id, dados, usuario);
   }
+  // Quem vê mudou numa memória publicada: ao ampliar, os relatos que já existiam esperam o sim de quem
+  // os registrou (docs/decisoes.md, "Ampliar quem vê uma memória com relatos")
+  let esperam: { por: string }[] = [];
+  if (anterior?.situacao === 'publicada') {
+    esperam = await mudouQuemVe(id, { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos }, { visibilidade: dados.visibilidade, nucleos }, usuario);
+  }
   // Avisos: quem entrou agora em "Quem estava" de uma memória publicada (src/lib/avisos.ts)
   const antes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];
   await avisarQuemEstava({ id, situacao, visibilidade: dados.visibilidade, nucleos, integrantes, criadaPor: anterior?.criadaPor ?? usuario.pessoa }, antes, usuario);
@@ -276,5 +282,6 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     }
   }
 
-  return json({ id, situacao, url: situacao === 'rascunho' ? `/nova?id=${id}` : `/memorias/${id}` }, anterior ? 200 : 201);
+  // "esperam": de quem são os relatos que passaram a esperar, para quem ampliou ver ao salvar
+  return json({ id, situacao, url: situacao === 'rascunho' ? `/nova?id=${id}` : `/memorias/${id}`, esperam: esperam.map((r) => r.por) }, anterior ? 200 : 201);
 }
