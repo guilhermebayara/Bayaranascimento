@@ -205,12 +205,57 @@ export async function trocar(endereco: URL, { foco, empurrar }: Troca) {
     const controleNovo = foco ? nova.querySelector<HTMLElement>(foco) : null;
     if (controleEm !== null && controleNovo?.getClientRects().length) scrollBy({ top: controleNovo.getBoundingClientRect().top - controleEm, behavior: 'instant' });
     else devolverRolagem(nova, ancora);
+    aplicarTamanho();
     document.dispatchEvent(new CustomEvent('explorar:trocou'));
     if (!calmo()) animar(antes, nova);
     controleNovo?.focus({ preventScroll: true });
   } catch {
     location.assign(endereco);
   }
+}
+
+// --- O tamanho das fotos do mural ---------------------------------------------------------------
+// É preferência de quem está vendo, guardada no aparelho, e não vai para o endereço (decisão do Gui,
+// 17/11/2026: no endereço fica só o que traz a pessoa de volta ao mesmo lugar). Sem script, os links
+// do controle continuam levando o tamanho no endereço.
+const GUARDA_DO_TAMANHO = 'mural-tamanho';
+const TAMANHOS_DAS_FOTOS = ['pequenas', 'medias', 'grandes'];
+
+function tamanhoGuardado(): string | null {
+  try {
+    const guardado = localStorage.getItem(GUARDA_DO_TAMANHO);
+    return guardado && TAMANHOS_DAS_FOTOS.includes(guardado) ? guardado : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Põe no mural que está na página o tamanho guardado no aparelho, e marca a opção no controle. */
+export function aplicarTamanho(tamanho = tamanhoGuardado()) {
+  const mural = document.querySelector<HTMLElement>(`${REGIAO} [data-mural]`);
+  if (!mural || !tamanho) return;
+  mural.dataset.tamanho = tamanho;
+  for (const opcao of document.querySelectorAll<HTMLElement>(`${REGIAO} [data-tamanho-das-fotos]`)) {
+    if (opcao.dataset.tamanhoDasFotos === tamanho) opcao.setAttribute('aria-current', 'page');
+    else opcao.removeAttribute('aria-current');
+  }
+}
+
+/** Troca o tamanho das fotos no lugar: as fotos vão ao tamanho e ao lugar novos, sem buscar nada. */
+function trocarTamanho(opcao: HTMLElement) {
+  const regiao = document.querySelector<HTMLElement>(REGIAO);
+  const tamanho = opcao.dataset.tamanhoDasFotos;
+  if (!regiao || !tamanho) return;
+  try {
+    localStorage.setItem(GUARDA_DO_TAMANHO, tamanho);
+  } catch {
+    // sem armazenamento, vale só até sair da página
+  }
+  const em = opcao.getBoundingClientRect().top;
+  const antes = calmo() ? new Map<string, Medida>() : medir(regiao);
+  aplicarTamanho(tamanho);
+  scrollBy({ top: opcao.getBoundingClientRect().top - em, behavior: 'instant' });
+  if (!calmo()) animar(antes, regiao);
 }
 
 /** Liga a troca sem recarregar: os links dos controles, o formulário dos filtros e o histórico. */
@@ -220,7 +265,13 @@ export function ligarTroca() {
   document.addEventListener('click', (evento) => {
     const link = evento.target instanceof Element ? evento.target.closest<HTMLAnchorElement>(`${REGIAO} .controles a[href]`) : null;
     if (!link || evento.defaultPrevented || evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
+    // O tamanho das fotos troca no lugar e não mexe no endereço
+    if (link.dataset.tamanhoDasFotos) {
+      evento.preventDefault();
+      return trocarTamanho(link);
+    }
     const endereco = new URL(link.href);
+    endereco.searchParams.delete('tamanho');
     if (!daRegiao(endereco)) return;
     evento.preventDefault();
     // A mesma opção, no mesmo controle: é o nome dela que não muda de uma página para a outra
@@ -232,10 +283,11 @@ export function ligarTroca() {
   // Os filtros valem na hora, a cada escolha, com o painel aberto e sem sair do lugar. O botão
   // "Mostrar memórias" é de quem está sem script: aqui ele some (classe "com-troca", no CSS).
   document.documentElement.classList.add('com-troca');
+  aplicarTamanho();
   const enderecoDoFormulario = (formulario: HTMLFormElement) => {
     // O endereço fica só com o que foi escolhido: campo vazio não vai junto
     const endereco = new URL(formulario.action);
-    for (const [nome, valor] of new FormData(formulario)) if (typeof valor === 'string' && valor.trim()) endereco.searchParams.append(nome, valor.trim());
+    for (const [nome, valor] of new FormData(formulario)) if (nome !== 'tamanho' && typeof valor === 'string' && valor.trim()) endereco.searchParams.append(nome, valor.trim());
     return endereco;
   };
   const doFormulario = (alvo: EventTarget | null) => (alvo instanceof Element ? alvo.closest<HTMLFormElement>(`${REGIAO} [data-filtros]`) : null);

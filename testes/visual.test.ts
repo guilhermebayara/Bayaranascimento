@@ -333,6 +333,10 @@ describe('conceito', () => {
     const controles = tela('explorar/Controles.astro');
     expect(controles).toMatch(/familias: alternarFamilia\(filtros\.familias, n\.id, ordemDasFamilias\)/);
     expect(controles).toMatch(/aria-current=\{filtros\.familias\.includes\(n\.id\) \? 'true' : undefined\}/);
+    // Cada família é uma etiqueta que acende na cor dela (decisão do Gui, 17/11/2026)
+    expect(controles).toMatch(/class="linha__opcoes linha__opcoes--etiquetas"/);
+    expect(controles).toMatch(/data-familia=\{corDoNucleo\(n\.id, ordemDasFamilias\)\}/);
+    expect(ler('telas/linha.css')).toMatch(/\.linha__opcoes--etiquetas a\[aria-current\]\s*\{[^}]*background:\s*var\(--pastel\)/);
     // A assinatura do topo e a cor saem das famílias marcadas
     const pagina = tela('pages/explorar.astro');
     expect(pagina).toMatch(/assinaturaDaTela\(filtros\.familias, nucleos\)/);
@@ -356,7 +360,16 @@ describe('conceito', () => {
     expect(palco).toMatch(/await fotoPronta\([\s\S]*?atual\.replaceWith\(novo\);/);
     expect(palco).toMatch(/if \(meu !== pedido\) return;/);
     // Passar de memória não enche o histórico, e qualquer problema cai na navegação comum
-    expect(palco).toMatch(/history\.replaceState\(history\.state, '', href\);/);
+    expect(palco).toMatch(/history\.replaceState\(history\.state, '', semPreferencias\(href\)\);/);
+    // No endereço fica só o que traz de volta ao mesmo lugar (decisão do Gui, 17/11/2026): a
+    // animação, o tempo e "Só as fotos" são preferências guardadas no aparelho
+    expect(palco).toMatch(/for \(const nome of \['passar', 'pausa', 'mov'\]\) url\.searchParams\.delete\(nome\);/);
+    for (const nome of ['tv-animacao', 'tv-tempo', 'tv-so-fotos']) expect(palco).toContain(`'${nome}'`);
+    // "Só as fotos" e a tela cheia, para deixar passando na sala; a tela cheia só onde o navegador tem
+    expect(palco).toMatch(/cheia\.hidden = !document\.fullscreenEnabled;/);
+    expect(ler('telas/explorar.css')).toMatch(/\.palco\[data-so-fotos\] \.palco__texto\s*\{\s*display:\s*none/);
+    // No Álbum, as fotos que saem não repetem a chegada (achado do Gui: pareciam fotos que nunca paravam)
+    expect(ler('telas/explorar.css')).toMatch(/\.palco \.palco__fotos--saindo :is\(\.palco__principal, \.palco__extra\)\s*\{\s*animation:\s*none !important/);
     expect(palco).toMatch(/catch \{\s*location\.assign\(href\);/);
     const css = ler('telas/explorar.css');
     for (const v of ['a', 'b', 'c']) expect(css).toContain(`.palco[data-movimento='${v}']`);
@@ -384,6 +397,11 @@ describe('conceito', () => {
     expect(controles).toMatch(/enderecoDoExplorar\(filtros, forma, tamanhoNoEndereco\(t\)\)/);
     // O tamanho acompanha a troca de família e o formulário dos filtros
     expect(controles).toMatch(/<input type="hidden" name="tamanho"/);
+    // Com script, o tamanho é preferência guardada no aparelho e não vai para o endereço
+    const troca = Object.values(import.meta.glob<string>('../src/lib/cliente/explorar-troca.ts', { query: '?raw', import: 'default', eager: true }))[0]!;
+    expect(troca).toMatch(/localStorage\.setItem\(GUARDA_DO_TAMANHO, tamanho\)/);
+    expect(troca).toMatch(/endereco\.searchParams\.delete\('tamanho'\);/);
+    expect(tela('explorar/Mural.astro')).toMatch(/localStorage\.getItem\('mural-tamanho'\)/);
     expect(tela('explorar/Mural.astro')).toMatch(/data-tamanho=\{tamanho\}/);
     const css = ler('telas/explorar.css');
     for (const t of ['pequenas', 'grandes']) expect(css).toContain(`.mural[data-tamanho='${t}']`);

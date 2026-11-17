@@ -22,7 +22,7 @@ import {
   type Forma,
   type Tamanho,
 } from '../../lib/explorar';
-import { estiloDoTipo } from '../../lib/visual';
+import { corDoNucleo, estiloDoTipo } from '../../lib/visual';
 
 interface Opcao {
   id: string;
@@ -81,16 +81,18 @@ const grupos = [
         <p class="controle__nome rotulo suave" id="controle-familia">
           Família
         </p>
-        {/* A família aceita mais de uma: cada opção tem a caixa de marcar dela, e "Família completa"
-            é todas. Marcar as três volta sozinho à família completa. */}
-        <nav class="linha__opcoes linha__opcoes--marcar" aria-labelledby="controle-familia">
-          <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma, doMural)} data-opcao="" aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
+        {/* A família aceita mais de uma: cada opção é uma etiqueta, que acende na cor da família quando
+            está marcada (decisão do Gui, 17/11/2026). "Família completa" é todas, e marcar as três
+            volta sozinho a ela. */}
+        <nav class="linha__opcoes linha__opcoes--etiquetas" aria-labelledby="controle-familia">
+          <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma, doMural)} data-opcao="" data-familia="tudo" aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
             Família completa
           </a>
           {nucleos.map((n) => (
             <a
               href={enderecoDoExplorar({ ...filtros, familias: alternarFamilia(filtros.familias, n.id, ordemDasFamilias) }, forma, doMural)}
               data-opcao={n.id}
+              data-familia={corDoNucleo(n.id, ordemDasFamilias)}
               aria-current={filtros.familias.includes(n.id) ? 'true' : undefined}
             >
               {n.nome}
@@ -244,7 +246,7 @@ const grupos = [
         </p>
         <nav class="linha__opcoes linha__opcoes--curtas" aria-labelledby="controle-tamanho">
           {TAMANHOS.map((t) => (
-            <a href={enderecoDoExplorar(filtros, forma, tamanhoNoEndereco(t))} data-opcao={t} aria-current={t === tamanho ? 'page' : undefined}>
+            <a href={enderecoDoExplorar(filtros, forma, tamanhoNoEndereco(t))} data-opcao={t} data-tamanho-das-fotos={t} aria-current={t === tamanho ? 'page' : undefined}>
               {NOMES_DOS_TAMANHOS[t]}
             </a>
           ))}

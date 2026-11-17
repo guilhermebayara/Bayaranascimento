@@ -88,6 +88,16 @@ const itens = memorias.map((m, n) => {
     ))
   }
 </ul>
+{/* O tamanho das fotos guardado no aparelho vale desde o primeiro desenho, sem o mural pular */}
+<script is:inline>
+  (function () {
+    try {
+      var tamanho = localStorage.getItem('mural-tamanho');
+      var mural = document.currentScript.previousElementSibling;
+      if (mural && ['pequenas', 'medias', 'grandes'].indexOf(tamanho) >= 0) mural.setAttribute('data-tamanho', tamanho);
+    } catch (e) {}
+  })();
+</script>
 
 <script>
   // O verso abre em leque para a direita da foto; perto da borda direita da tela, para a esquerda.

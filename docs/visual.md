@@ -452,7 +452,7 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 - O modo TV também passa sem recarregar, com a troca dele (abaixo). Entrar e sair do modo TV e o "ao acaso" continuam sendo navegação comum.
 - **Um limite para o Gui saber:** no meio da página os controles ficam lá em cima, fora da tela, porque nada fica preso no alto além da faixa de décadas e do ano. Ali, a troca que acontece na prática é a do voltar e do avançar. Trazer os controles para perto (um botão "Filtros" parado no alto, por exemplo) é uma peça presa nova, que pede decisão e conferência no iPhone.
 
-**Família com mais de uma escolha** (decisão do Gui, 16/11/2026). No controle "Família", cada opção tem a caixa de marcar dela, como num formulário, para ficar claro que dá para marcar várias (17/11/2026: com a escolha múltipla, o formato de links sublinhados deixou de servir). Cada toque liga ou desliga só aquela família (`alternarFamilia`), "Família completa" desliga todas, e marcar todas volta sozinho à família completa. Com duas marcadas entram as memórias de qualquer uma delas, sempre só o que a pessoa vê, e a assinatura do topo e do rodapé junta os sobrenomes ("Bayara & Bracarense").
+**Família com mais de uma escolha** (decisão do Gui, 16/11/2026). No controle "Família", cada opção é uma etiqueta com o ponto na cor da família, que acende inteira no pastel dela quando está marcada (escolha do Gui em 17/11/2026, entre caixas de marcar, etiquetas e levar a família para dentro de "Filtros": com a escolha múltipla, os links sublinhados deixaram de servir). Cada toque liga ou desliga só aquela família (`alternarFamilia`), "Família completa" desliga todas, e marcar todas volta sozinho à família completa. Com duas marcadas entram as memórias de qualquer uma delas, sempre só o que a pessoa vê, e a assinatura do topo e do rodapé junta os sobrenomes ("Bayara & Bracarense").
 
 **Linha do tempo.** A do conceito, sem mudança de desenho. Os trilhos, as épocas e a faixa de décadas só aparecem quando `mostraTrilhos` deixa. Em "Mais antigas primeiro", a página leva ao presente e o trilho acaba, embaixo, em "Fim do capítulo “Natais”" e "Fim da época “…”" (texto novo, para o Gui confirmar). Em "Entraram por último" e "Mais contadas", a lista é corrida, sem a divisória dos anos, e cada memória traz a data inteira.
 
@@ -483,6 +483,23 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 | Mesa | A foto é jogada na mesa, de perto e torta, e assenta | Caem em volta, uma a uma | Entram juntos, logo depois |
 
 Nas três, o fundo passa de uma cor à outra e as fotos se aproximam devagar enquanto a memória está na tela. **A animação só começa com as fotos prontas** (`data-pronta`): na primeira versão ela começava ao carregar a página e acabava antes de a foto chegar, e a foto aparecia como um quadrado pequeno que crescia. Agora cada foto do palco que chega é trocada pela foto já aberta, do tamanho certo desde o primeiro desenho. Trocar de animação em "Ajustes" mostra a chegada de novo, para a pessoa ver o que escolheu. Com movimento reduzido, nada disso roda.
+
+**O que fica no endereço** (decisão do Gui, 17/11/2026: seremos poucos e ninguém vai mandar link de mural ou de linha do tempo; no endereço fica só o que traz a pessoa de volta ao mesmo lugar depois de abrir uma memória e voltar).
+
+| O quê | Onde fica |
+| --- | --- |
+| Forma de ver, família, filtros e ordem | No endereço |
+| A memória da vez no modo TV (`m`) | No endereço |
+| Tamanho das fotos do mural | No aparelho (`mural-tamanho`) |
+| Animação do modo TV e o tempo do "Passar sozinho" | No aparelho (`tv-animacao`, `tv-tempo`) |
+| "Só as fotos", no modo TV | No aparelho (`tv-so-fotos`) |
+| Se está passando sozinho, a pausa e a tela cheia | Só enquanto o modo TV está aberto |
+
+Sem script, os links continuam levando tudo no endereço (`tamanho`, `passar`, `mov`), e o servidor continua aceitando.
+
+**Só as fotos e tela cheia** (pedido do Gui, 17/11/2026). Em "Ajustes", "Só as fotos" esconde o título, o trecho e os dados e deixa as fotos no meio da tela, maiores, com os controles pequenos embaixo; "Mostrar os textos" desfaz. "Tela cheia" usa a do navegador e continua valendo de uma memória para a outra, porque a página não recarrega; onde o navegador não tem tela cheia, como no iPhone, o botão não aparece.
+
+**As fotos que saem, no Álbum** (achado do Gui, 17/11/2026: pareciam fotos voando que nunca paravam na tela). As fotos antigas, postas de volta por um instante para sair pela lateral, repetiam a animação de chegada enquanto saíam. Agora elas só vão embora.
 
 **Passar sozinho** (decisão do Gui, 17/11/2026). Quem está vendo escolhe o tempo de cada memória, entre 8, 10 e 15 segundos (`TEMPOS_DE_PASSAR`, em `src/lib/explorar.ts`), e pode pausar e retomar a qualquer momento.
 

@@ -171,6 +171,20 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
                 </p>
               </div>
             )}
+            {/* Só as fotos, sem os textos, e a tela cheia: para deixar passando na sala. Só com script. */}
+            <div class="palco__ajuste" role="group" aria-labelledby="ajuste-tela" data-palco-tela hidden>
+              <p class="rotulo suave" id="ajuste-tela">
+                Tela
+              </p>
+              <p class="palco__opcoes">
+                <button type="button" data-palco-so-fotos aria-pressed="false">
+                  Só as fotos
+                </button>
+                <button type="button" data-palco-cheia aria-pressed="false" hidden>
+                  Tela cheia
+                </button>
+              </p>
+            </div>
             {movimentos && (
               <div class="palco__ajuste" role="group" aria-labelledby="ajuste-animacao">
                 <p class="rotulo suave" id="ajuste-animacao">
@@ -236,7 +250,30 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       }),
     );
   const memoriaDe = (href: string) => new URL(href, location.href).searchParams.get('m');
-  const animacaoDe = (href: string) => new URL(href, location.href).searchParams.get('mov');
+  const animacaoDe = (href: string) => new URL(href, location.href).searchParams.get('mov') ?? 'a';
+
+  // No endereço fica só o que traz a pessoa de volta ao mesmo lugar: a memória da vez e os filtros
+  // (decisão do Gui, 17/11/2026). A animação e o tempo do "Passar sozinho" são preferências,
+  // guardadas no aparelho; se está passando sozinho e a pausa valem enquanto o modo TV está aberto.
+  const semPreferencias = (href: string) => {
+    const url = new URL(href, location.href);
+    for (const nome of ['passar', 'pausa', 'mov']) url.searchParams.delete(nome);
+    return url.pathname + url.search;
+  };
+  const guardar = (nome: string, valor: string) => {
+    try {
+      localStorage.setItem(nome, valor);
+    } catch {
+      // sem armazenamento, a preferência vale só até sair do modo TV
+    }
+  };
+  const guardado = (nome: string) => {
+    try {
+      return localStorage.getItem(nome);
+    } catch {
+      return null;
+    }
+  };
 
   let pedido = 0;
   let relogio = 0;
@@ -262,9 +299,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       novo.toggleAttribute('data-de-tras', deTras);
       // A mesma memória (trocar o tempo, parar de passar sozinho): nada chega de novo. Trocar a
       // animação é a exceção: ela chega de novo, para a pessoa ver o que escolheu.
-      const mesma = memoriaDe(href) === memoriaDe(location.href) && animacaoDe(href) === animacaoDe(location.href);
-      if (mesma) novo.removeAttribute('data-movimento');
-      else novo.setAttribute('data-pronta', '');
+      const mesma = memoriaDe(href) === memoriaDe(location.href) && animacaoDe(href) === (atual.dataset.movimento ?? 'a');
+      if (!mesma) novo.setAttribute('data-pronta', '');
       // "Ajustes" continua como estava, aberto ou fechado
       const ajustes = novo.querySelector<HTMLDetailsElement>('[data-palco-ajustes]');
       if (ajustes) ajustes.open = atual.querySelector<HTMLDetailsElement>('[data-palco-ajustes]')?.open ?? false;
@@ -292,7 +328,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       // O fundo passa de uma cor à outra, em vez de trocar de uma vez
       if (!calmo.matches) novo.animate([{ backgroundColor: cor }, {}], { duration: 900, easing: 'ease-out' });
       // Passar de memória não enche o histórico: o voltar do aparelho sai do modo TV de uma vez
-      history.replaceState(history.state, '', href);
+      history.replaceState(history.state, '', semPreferencias(href));
       document.title = pagina.title;
       preparar();
       const noMesmoAjuste = noAjuste ? [...novo.querySelectorAll<HTMLElement>('[data-palco-ajustes] :is(a, button)')].find((e) => e.textContent?.trim() === noAjuste) : undefined;
@@ -315,9 +351,35 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
           .catch(() => undefined);
       }
     }
-    for (const parte of atual.querySelectorAll<HTMLElement>('[data-palco-passar]')) parte.hidden = false;
+    for (const parte of atual.querySelectorAll<HTMLElement>('[data-palco-passar], [data-palco-tela]')) parte.hidden = false;
+    // "Só as fotos" é preferência guardada no aparelho; a tela cheia vale enquanto durar
+    marcarTela(guardado('tv-so-fotos') === '1');
+    // "Passar sozinho", num toque, liga no tempo que a pessoa escolheu da última vez
+    const tempo = guardado('tv-tempo');
+    const noTempo = [...atual.querySelectorAll<HTMLAnchorElement>('.palco__ajuste[data-palco-passar] a[data-palco-leva]')].find((a) => new URL(a.href).searchParams.get('passar') === tempo);
+    const ligar = atual.querySelector<HTMLAnchorElement>('.palco__sozinho a');
+    if (noTempo && ligar) ligar.setAttribute('href', noTempo.getAttribute('href')!);
     pausado = atual.hasAttribute('data-pausado');
     armar();
+  }
+
+  // "Só as fotos" esconde o título, o trecho e os dados; a tela cheia é a do navegador, onde existe
+  // (no iPhone não existe: ali o botão nem aparece)
+  function marcarTela(soFotos: boolean) {
+    const atual = palco();
+    if (!atual) return;
+    atual.toggleAttribute('data-so-fotos', soFotos);
+    const botao = atual.querySelector<HTMLButtonElement>('[data-palco-so-fotos]');
+    if (botao) {
+      botao.setAttribute('aria-pressed', String(soFotos));
+      botao.textContent = soFotos ? 'Mostrar os textos' : 'Só as fotos';
+    }
+    const cheia = atual.querySelector<HTMLButtonElement>('[data-palco-cheia]');
+    if (cheia) {
+      cheia.hidden = !document.fullscreenEnabled;
+      cheia.setAttribute('aria-pressed', String(Boolean(document.fullscreenElement)));
+      cheia.textContent = document.fullscreenElement ? 'Sair da tela cheia' : 'Tela cheia';
+    }
   }
 
   // Ligado: a próxima entra sozinha depois do tempo escolhido. Com a aba escondida, espera.
@@ -341,7 +403,6 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       else url.searchParams.delete('pausa');
       return url.pathname + url.search;
     };
-    history.replaceState(history.state, '', levar(location.href));
     // Escolher um tempo retoma: esses links não levam a pausa
     for (const a of atual.querySelectorAll<HTMLAnchorElement>('a[data-palco-leva][href], a[data-palco-movimento][href]')) if (!a.closest('[data-palco-passar]')) a.setAttribute('href', levar(a.href));
     armar();
@@ -364,15 +425,34 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       const alvo = evento.target instanceof Element ? evento.target : null;
       const pausa = alvo?.closest<HTMLButtonElement>('[data-palco] [data-palco-pausa]');
       if (pausa) return alternarPausa(pausa);
+      if (alvo?.closest('[data-palco] [data-palco-so-fotos]')) {
+        const soFotos = !palco()!.hasAttribute('data-so-fotos');
+        guardar('tv-so-fotos', soFotos ? '1' : '0');
+        return marcarTela(soFotos);
+      }
+      if (alvo?.closest('[data-palco] [data-palco-cheia]')) {
+        const pedido = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+        return void pedido.catch(() => undefined);
+      }
       // Dentro do modo TV, todo link que continua nele troca no lugar: passar, o tempo, a animação
       const a = alvo?.closest<HTMLAnchorElement>('[data-palco].palco--tv a[href]');
       if (!a || evento.defaultPrevented || evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
       if (new URL(a.href).searchParams.get('ver') !== 'tv') return;
       evento.preventDefault();
+      // A animação e o tempo escolhidos em "Ajustes" ficam guardados no aparelho
+      if (a.hasAttribute('data-palco-movimento')) guardar('tv-animacao', animacaoDe(a.href));
+      const tempo = a.closest('.palco__ajuste[data-palco-passar]') ? new URL(a.href).searchParams.get('passar') : null;
+      if (tempo) guardar('tv-tempo', tempo);
       passar(a, a.hasAttribute('data-palco-antes'));
     });
     document.addEventListener('visibilitychange', armar);
+    document.addEventListener('fullscreenchange', () => marcarTela(Boolean(palco()?.hasAttribute('data-so-fotos'))));
     preparar();
+    history.replaceState(history.state, '', semPreferencias(location.href));
+    // A animação guardada no aparelho vale ao entrar no modo TV
+    const animacao = guardado('tv-animacao');
+    const daAnimacao = animacao && animacao !== (primeiro.dataset.movimento ?? 'a') ? [...primeiro.querySelectorAll<HTMLAnchorElement>('a[data-palco-movimento]')].find((a) => animacaoDe(a.href) === animacao) : undefined;
+    if (daAnimacao) passar(daAnimacao);
     // O foco começa em "Próxima": no controle da TV, o botão do meio já passa
     link('depois')?.focus({ preventScroll: true });
   }
