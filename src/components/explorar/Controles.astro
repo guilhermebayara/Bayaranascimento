@@ -4,7 +4,23 @@
 // lugar ao abrir (pedido do Gui, 16/11/2026). Tudo é link ou formulário comum: funciona sem script,
 // e o que foi escolhido fica no endereço, para guardar ou mandar.
 import IconeDoTipo from '../visual/IconeDoTipo.astro';
-import { FORMAS, NOMES_DAS_FORMAS, NOMES_DAS_ORDENS, ORDENS, ORDEM_PADRAO, SEM_FILTRO, enderecoDoExplorar, temFiltro, type Filtros, type Forma } from '../../lib/explorar';
+import {
+  FORMAS,
+  NOMES_DAS_FORMAS,
+  NOMES_DAS_ORDENS,
+  NOMES_DOS_TAMANHOS,
+  ORDENS,
+  ORDEM_PADRAO,
+  SEM_FILTRO,
+  TAMANHOS,
+  TAMANHO_PADRAO,
+  enderecoDoExplorar,
+  tamanhoNoEndereco,
+  temFiltro,
+  type Filtros,
+  type Forma,
+  type Tamanho,
+} from '../../lib/explorar';
 import { estiloDoTipo } from '../../lib/visual';
 
 interface Opcao {
@@ -26,9 +42,13 @@ interface Props {
   resumo: string[];
   /** a faixa de décadas vem logo abaixo: o nome dela, no celular, fica aqui */
   comDecadas?: boolean;
+  /** no mural: o tamanho das fotos em uso */
+  tamanho?: Tamanho;
 }
 
-const { filtros, forma, nucleos, tipos, pessoas, capitulos, temas, decadas, resumo, comDecadas = false } = Astro.props;
+const { filtros, forma, nucleos, tipos, pessoas, capitulos, temas, decadas, resumo, comDecadas = false, tamanho = TAMANHO_PADRAO } = Astro.props;
+// O tamanho das fotos é do mural: acompanha os links e o formulário enquanto se está nele
+const doMural = forma === 'mural' ? tamanhoNoEndereco(tamanho) : {};
 const umaFamilia = filtros.familias.length === 1 ? filtros.familias[0] : null;
 const filtrando = temFiltro({ ...filtros, familias: [] });
 const semFiltros: Filtros = { ...SEM_FILTRO, familias: filtros.familias };
@@ -46,7 +66,7 @@ const grupos = [
     <nav class="linha__opcoes" aria-labelledby="controle-forma">
       {
         FORMAS.map((f) => (
-          <a href={enderecoDoExplorar(filtros, f)} aria-current={f === forma ? 'page' : undefined}>
+          <a href={enderecoDoExplorar(filtros, f, f === 'mural' ? tamanhoNoEndereco(tamanho) : {})} aria-current={f === forma ? 'page' : undefined}>
             {NOMES_DAS_FORMAS[f]}
           </a>
         ))
@@ -60,11 +80,11 @@ const grupos = [
           Família
         </p>
         <nav class="linha__opcoes" aria-labelledby="controle-familia">
-          <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma)} aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
+          <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma, doMural)} aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
             Família completa
           </a>
           {nucleos.map((n) => (
-            <a href={enderecoDoExplorar({ ...filtros, familias: [n.id] }, forma)} aria-current={umaFamilia === n.id ? 'page' : undefined}>
+            <a href={enderecoDoExplorar({ ...filtros, familias: [n.id] }, forma, doMural)} aria-current={umaFamilia === n.id ? 'page' : undefined}>
               {n.nome}
             </a>
           ))}
@@ -83,6 +103,7 @@ const grupos = [
       </summary>
       <form class="filtros__form" method="get" action="/explorar" data-filtros>
         {forma !== 'linha' && <input type="hidden" name="ver" value={forma} />}
+        {doMural.tamanho && <input type="hidden" name="tamanho" value={doMural.tamanho} />}
         {filtros.familias.map((id) => <input type="hidden" name="nucleo" value={id} />)}
         <fieldset class="filtros__grupo">
           <legend class="rotulo suave">Ordem</legend>
@@ -198,7 +219,7 @@ const grupos = [
           <button class="botao" type="submit">Mostrar memórias</button>
           {
             filtrando && (
-              <a class="acao acao--quieta" href={enderecoDoExplorar(semFiltros, forma)}>
+              <a class="acao acao--quieta" href={enderecoDoExplorar(semFiltros, forma, doMural)}>
                 Limpar filtros
               </a>
             )
@@ -207,6 +228,22 @@ const grupos = [
       </form>
     </details>
   </div>
+  {
+    forma === 'mural' && (
+      <div class="controle">
+        <p class="controle__nome rotulo suave" id="controle-tamanho">
+          Fotos
+        </p>
+        <nav class="linha__opcoes linha__opcoes--curtas" aria-labelledby="controle-tamanho">
+          {TAMANHOS.map((t) => (
+            <a href={enderecoDoExplorar(filtros, forma, tamanhoNoEndereco(t))} aria-current={t === tamanho ? 'page' : undefined}>
+              {NOMES_DOS_TAMANHOS[t]}
+            </a>
+          ))}
+        </nav>
+      </div>
+    )
+  }
   {/* No celular o nome de cada controle fica em cima dele: o da faixa de décadas também */}
   {
     comDecadas && (

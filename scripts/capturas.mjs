@@ -106,7 +106,9 @@ const PAGINAS = [
   { nome: 'explorar-2-antigas', url: '/explorar?ordem=antigas&capitulo=natais', como: 'giovanna', larguras: TODAS, corte: 5000 },
   { nome: 'explorar-2-sem-resultado', url: '/explorar?tipo=viagem&decada=1950', como: 'giovanna', larguras: TODAS },
   { nome: 'explorar-3-mural', url: '/explorar?ver=mural', como: 'giovanna', larguras: TODAS, corte: 5000 },
-  // Fora da ordem do tempo, o mural fica sem os grupos de ano
+  { nome: 'explorar-3-mural-pequenas', url: '/explorar?ver=mural&tamanho=pequenas', como: 'giovanna', larguras: TODAS, corte: 3000 },
+  { nome: 'explorar-3-mural-grandes', url: '/explorar?ver=mural&tamanho=grandes', como: 'giovanna', larguras: TODAS, corte: 3000 },
+  // Fora da ordem do tempo, o mural fica sem os cartões de década e as abas de ano
   { nome: 'explorar-3-mural-mais-contadas', url: '/explorar?ver=mural&ordem=contadas', como: 'giovanna', larguras: TODAS, corte: 3000 },
   { nome: 'explorar-4-modo-tv', url: '/explorar?ver=tv&m=2025-natal', como: 'giovanna', larguras: TODAS },
   // "Passar sozinho" ligado em 15 segundos e pausado, para a captura não trocar de memória

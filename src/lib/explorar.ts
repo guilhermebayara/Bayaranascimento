@@ -234,6 +234,23 @@ export function enderecoDoExplorar(f: Filtros, forma: Forma = FORMA_PADRAO, mais
 }
 
 /**
+ * O tamanho das fotos no mural (decisão do Gui, 17/11/2026): quem está vendo escolhe a densidade,
+ * com fotos menores ou maiores. Fica no endereço, em `tamanho`; sem ele, o tamanho médio.
+ */
+export type Tamanho = 'pequenas' | 'medias' | 'grandes';
+export const TAMANHOS: Tamanho[] = ['pequenas', 'medias', 'grandes'];
+export const TAMANHO_PADRAO: Tamanho = 'medias';
+export const NOMES_DOS_TAMANHOS: Record<Tamanho, string> = { pequenas: 'Pequenas', medias: 'Médias', grandes: 'Grandes' };
+
+export function lerTamanho(p: URLSearchParams): Tamanho {
+  const pedido = p.get('tamanho');
+  return TAMANHOS.includes(pedido as Tamanho) ? (pedido as Tamanho) : TAMANHO_PADRAO;
+}
+
+/** O que vai no endereço para um tamanho (para `mais`, em enderecoDoExplorar): o padrão não vai. */
+export const tamanhoNoEndereco = (tamanho: Tamanho): Record<string, string | undefined> => ({ tamanho: tamanho === TAMANHO_PADRAO ? undefined : tamanho });
+
+/**
  * "Passar sozinho", no modo TV (decisão do Gui, 17/11/2026): quem está vendo escolhe o tempo de
  * cada memória, entre 8, 10 e 15 segundos, e pode pausar e retomar. Fica no endereço, como os
  * filtros: `passar` leva os segundos e `pausa`, a pausa. Sem `passar`, nada passa sozinho.

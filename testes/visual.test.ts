@@ -274,17 +274,29 @@ describe('conceito', () => {
     expect(css).not.toMatch(/position\s*:\s*(sticky|fixed)/);
   });
 
-  it('no mural, a ficha do verso só aparece com o mouse ou com o foco do teclado, e a foto não vira', () => {
-    // Decisão do Gui, 17/11/2026: a ficha desliza de trás da foto, que continua à vista
+  it('no mural, o verso aparece ao lado da foto, como uma dupla, só com o mouse ou com o foco, e a foto não vira', () => {
+    // Decisão do Gui, 17/11/2026: o verso é um cartão do tamanho da foto, que sai de trás dela
     const mural = tela('explorar/Mural.astro');
     expect(mural).toMatch(/<span class="mural__verso">\s*<Carimbo itens=\{\[carimboDaData\(m\), m\.lugar\]\} \/>/);
     const css = ler('telas/explorar.css');
-    expect(css).toMatch(/\.mural__verso\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none/);
+    expect(css).toMatch(/\.mural__verso\s*\{[^}]*width:\s*max\(100%, [^}]*min-height:\s*100%;[^}]*opacity:\s*0;[^}]*pointer-events:\s*none/);
     const comMouse = css.slice(css.indexOf('@media (hover: hover) and (pointer: fine)'));
     expect(comMouse).toMatch(/\.mural a:hover \.mural__verso\s*\{[^}]*opacity:\s*1/);
     expect(css.slice(0, css.indexOf('@media (hover: hover) and (pointer: fine)'))).not.toMatch(/:hover \.mural__verso/);
     expect(css).toMatch(/\.mural a:focus-visible \.mural__verso\s*\{[^}]*opacity:\s*1/);
     expect(css).not.toMatch(/rotate[XY]|backface-visibility|perspective/);
+  });
+
+  it('no mural, quem está vendo escolhe o tamanho das fotos, e a escolha fica no endereço', () => {
+    // Decisão do Gui, 17/11/2026
+    const controles = tela('explorar/Controles.astro');
+    expect(controles).toMatch(/forma === 'mural' && \(\s*<div class="controle">\s*<p class="controle__nome rotulo suave" id="controle-tamanho">\s*Fotos\s*</);
+    expect(controles).toMatch(/enderecoDoExplorar\(filtros, forma, tamanhoNoEndereco\(t\)\)/);
+    // O tamanho acompanha a troca de família e o formulário dos filtros
+    expect(controles).toMatch(/<input type="hidden" name="tamanho"/);
+    expect(tela('explorar/Mural.astro')).toMatch(/data-tamanho=\{tamanho\}/);
+    const css = ler('telas/explorar.css');
+    for (const t of ['pequenas', 'grandes']) expect(css).toContain(`.mural[data-tamanho='${t}']`);
   });
 
   it('o modo TV passa as memórias por links, e só passa sozinho quando a pessoa liga', () => {

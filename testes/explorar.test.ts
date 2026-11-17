@@ -210,6 +210,19 @@ describe('formas de ver e endereço', async () => {
     expect(enderecoDoExplorar(SEM_FILTRO, 'tv', { m: 'a', ...passarNoEndereco({ tempo: 15, pausado: true }) })).toBe('/explorar?ver=tv&m=a&passar=15&pausa=1');
   });
 
+  it('o tamanho das fotos do mural fica no endereço, e o médio é o padrão', async () => {
+    // Decisão do Gui, 17/11/2026
+    const { TAMANHOS, lerTamanho, tamanhoNoEndereco } = await import('../src/lib/explorar');
+    expect(TAMANHOS).toEqual(['pequenas', 'medias', 'grandes']);
+    expect(lerTamanho(new URLSearchParams(''))).toBe('medias');
+    expect(lerTamanho(new URLSearchParams('tamanho=enormes'))).toBe('medias');
+    expect(enderecoDoExplorar(SEM_FILTRO, 'mural', tamanhoNoEndereco('medias'))).toBe('/explorar?ver=mural');
+    for (const t of TAMANHOS) {
+      const endereco = enderecoDoExplorar(SEM_FILTRO, 'mural', tamanhoNoEndereco(t));
+      expect(lerTamanho(new URLSearchParams(endereco.split('?')[1]))).toBe(t);
+    }
+  });
+
   it('no modo TV, a de antes e a de depois saem da lista filtrada, na ordem dela', () => {
     const lista = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
     expect(vizinhasNaLista(lista, 'b')).toEqual({ posicao: 1, antes: { id: 'a' }, depois: { id: 'c' } });

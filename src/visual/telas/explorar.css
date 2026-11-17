@@ -174,34 +174,42 @@
   rotate: -2deg;
 }
 
-/* A ficha do verso: fica atrás da foto e só desliza para o lado onde há mouse, ou com o foco do
-   teclado. No toque ela não aparece: o título na margem basta. O leitor de tela lê sempre. */
+/* O verso: um cartão do tamanho da foto, que sai de trás dela para o lado, um pouco virado para o
+   outro lado, como uma dupla. Só onde há mouse, ou com o foco do teclado. No toque ele não aparece:
+   o título na margem basta. O leitor de tela lê sempre. */
 .mural__verso {
   position: absolute;
   z-index: 0;
-  top: 16%;
-  left: calc(100% - 1.25rem);
+  top: 0;
+  left: 90%;
+  box-sizing: border-box;
   display: grid;
+  align-content: start;
   justify-items: start;
-  gap: var(--e-2);
-  width: max-content;
-  max-width: 15rem;
-  padding: var(--e-4) var(--e-4) var(--e-4) calc(var(--e-4) + 1.25rem);
+  gap: var(--e-3);
+  width: max(100%, 10.5rem);
+  min-height: 100%;
+  padding: var(--e-5) var(--e-4) var(--e-4) calc(var(--e-4) + 6%);
   border-radius: var(--raio-moldura);
   background: var(--branco);
-  box-shadow: var(--sombra-bilhete);
+  box-shadow: var(--sombra-foto);
   opacity: 0;
-  translate: -1.5rem 0;
+  translate: -45% 0;
+  rotate: 0deg;
   pointer-events: none;
   transition:
     opacity var(--tempo-curto) var(--curva),
-    translate var(--tempo-medio) var(--curva);
+    translate var(--tempo-medio) var(--curva),
+    rotate var(--tempo-medio) var(--curva);
+}
+.mural__verso .carimbo {
+  white-space: normal;
 }
 .mural__foto[data-para-a-esquerda] .mural__verso {
   left: auto;
-  right: calc(100% - 1.25rem);
-  padding: var(--e-4) calc(var(--e-4) + 1.25rem) var(--e-4) var(--e-4);
-  translate: 1.5rem 0;
+  right: 90%;
+  padding: var(--e-5) calc(var(--e-4) + 6%) var(--e-4) var(--e-4);
+  translate: 45% 0;
 }
 .mural__foto:has(a:focus-visible) {
   z-index: 3;
@@ -209,6 +217,10 @@
 .mural a:focus-visible .mural__verso {
   opacity: 1;
   translate: 0 0;
+  rotate: 2.5deg;
+}
+.mural__foto[data-para-a-esquerda] a:focus-visible .mural__verso {
+  rotate: -2.5deg;
 }
 @media (hover: hover) and (pointer: fine) {
   .mural__foto:hover {
@@ -217,7 +229,34 @@
   .mural a:hover .mural__verso {
     opacity: 1;
     translate: 0 0;
+    rotate: 2.5deg;
   }
+  .mural__foto[data-para-a-esquerda] a:hover .mural__verso {
+    rotate: -2.5deg;
+  }
+}
+
+/* O tamanho das fotos: quem está vendo escolhe. Nas pequenas do celular, o título não cabe na
+   margem e fica só a foto. */
+.mural[data-tamanho='pequenas'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-6) var(--e-3);
+}
+.mural[data-tamanho='grandes'] {
+  grid-template-columns: minmax(0, 1fr);
+  padding-inline: 12%;
+}
+.mural[data-tamanho='grandes'] li:nth-child(n) {
+  translate: none;
+}
+@container (max-width: 7.5rem) {
+  .mural .polaroid .polaroid__legenda {
+    font-size: 0;
+  }
+}
+/* As três opções de tamanho cabem numa linha, mesmo no celular */
+.linha__opcoes--curtas {
+  grid-template-columns: repeat(3, max-content);
 }
 
 /* --- O palco: uma memória por vez ----------------------------------------------------------------
@@ -385,19 +424,28 @@
   .filtros__acoes {
     grid-column: 1 / -1;
   }
-  .mural {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+  .mural,
+  .mural[data-tamanho] {
+    --colunas: 6;
+    grid-template-columns: repeat(var(--colunas), minmax(0, 1fr));
     gap: var(--e-8) var(--calha);
     padding-top: var(--e-8);
+    padding-inline: var(--margem);
   }
-  .mural li:nth-child(even) {
+  .mural[data-tamanho='pequenas'] {
+    --colunas: 8;
+    row-gap: var(--e-7);
+  }
+  .mural[data-tamanho='grandes'] {
+    --colunas: 4;
+  }
+  .mural li:nth-child(n) {
     translate: none;
   }
-  .mural li:nth-child(6n + 2),
-  .mural li:nth-child(6n + 5) {
+  .mural li:nth-child(4n + 2) {
     translate: 0 var(--e-6);
   }
-  .mural li:nth-child(6n + 4) {
+  .mural li:nth-child(4n) {
     translate: 0 calc(-1 * var(--e-3));
   }
 
@@ -448,20 +496,14 @@
 }
 
 @media (min-width: 100rem) {
-  .mural {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+  .mural,
+  .mural[data-tamanho] {
+    --colunas: 8;
   }
-  .mural li:nth-child(n) {
-    translate: none;
+  .mural[data-tamanho='pequenas'] {
+    --colunas: 10;
   }
-  .mural li:nth-child(8n + 2),
-  .mural li:nth-child(8n + 7) {
-    translate: 0 var(--e-7);
-  }
-  .mural li:nth-child(8n + 4) {
-    translate: 0 var(--e-5);
-  }
-  .mural li:nth-child(8n + 5) {
-    translate: 0 calc(-1 * var(--e-4));
+  .mural[data-tamanho='grandes'] {
+    --colunas: 5;
   }
 }

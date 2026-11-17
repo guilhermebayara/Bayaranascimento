@@ -14,7 +14,7 @@ import Controles from '../components/explorar/Controles.astro';
 import Linha from '../components/explorar/Linha.astro';
 import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
-import { SEM_FILTRO, TEMPOS_DE_PASSAR, enderecoDoExplorar, explorar, lerFiltros, lerForma, lerPassar, passarNoEndereco, resumoDosFiltros, sortear, temFiltro, vizinhasNaLista, type Passar } from '../lib/explorar';
+import { SEM_FILTRO, TEMPOS_DE_PASSAR, enderecoDoExplorar, explorar, lerFiltros, lerForma, lerPassar, lerTamanho, passarNoEndereco, resumoDosFiltros, sortear, temFiltro, vizinhasNaLista, type Passar } from '../lib/explorar';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
@@ -22,6 +22,7 @@ import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
 const { usuario, tipos } = Astro.locals;
 const parametros = Astro.url.searchParams;
 const forma = lerForma(parametros);
+const tamanho = lerTamanho(parametros);
 const [nucleos, todas, integrantes, capitulos, temas] = await Promise.all([
   listarNucleos(),
   listarMemorias(usuario),
@@ -154,10 +155,11 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
             temas={temas}
             decadas={decadas}
             resumo={resumo}
+            tamanho={tamanho}
           />
         </header>
         {memorias.length > 0 ? (
-          <Mural memorias={memorias} ordem={filtros.ordem} nomeDe={nomeDe} />
+          <Mural memorias={memorias} ordem={filtros.ordem} tamanho={tamanho} nomeDe={nomeDe} />
         ) : (
           <div class="miolo">
             <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
