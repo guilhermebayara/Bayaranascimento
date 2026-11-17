@@ -149,3 +149,51 @@ describe('quando os trilhos aparecem', () => {
     }
   });
 });
+
+// A tela do Explorar: as formas de ver, o endereço de cada uma e o resumo dos filtros
+describe('formas de ver e endereço', async () => {
+  const { FORMAS, SEM_FILTRO, enderecoDoExplorar, lerFiltros, lerForma, resumoDosFiltros, vizinhasNaLista } = await import('../src/lib/explorar');
+
+  it('sem "ver", ou com um valor que não existe, vale a linha do tempo', () => {
+    expect(FORMAS).toEqual(['linha', 'mural', 'tv', 'acaso']);
+    expect(lerForma(new URLSearchParams(''))).toBe('linha');
+    expect(lerForma(new URLSearchParams('ver=mural'))).toBe('mural');
+    expect(lerForma(new URLSearchParams('ver=carrossel'))).toBe('linha');
+  });
+
+  it('o endereço guarda os filtros, a ordem e a forma de ver, sem o que está no padrão', () => {
+    expect(enderecoDoExplorar(SEM_FILTRO)).toBe('/explorar');
+    const f = { ...SEM_FILTRO, tipos: ['viagem'], familias: ['bayara'], comFoto: true, ordem: 'antigas' as const };
+    const endereco = enderecoDoExplorar(f, 'tv', { m: '2025-natal', passar: undefined });
+    expect(endereco).toBe('/explorar?tipo=viagem&nucleo=bayara&foto=1&ordem=antigas&ver=tv&m=2025-natal');
+    // Trocar de forma de ver não perde nenhum filtro
+    const p = new URLSearchParams(endereco.split('?')[1]);
+    expect(lerFiltros(p)).toEqual(f);
+    expect(lerForma(p)).toBe('tv');
+  });
+
+  it('o resumo escreve o que está ligado, e cala o que o endereço pede e não existe', () => {
+    const nomes = {
+      tipo: (id: string) => ({ viagem: 'Viagem' })[id],
+      pessoa: (id: string) => ({ gui: 'Gui', giovanna: 'Giovanna' })[id],
+      capitulo: (id: string) => ({ natais: 'Natais' })[id],
+      tema: () => undefined,
+    };
+    expect(resumoDosFiltros(SEM_FILTRO, nomes)).toEqual([]);
+    // A família tem o controle dela: não entra no resumo
+    expect(resumoDosFiltros({ ...SEM_FILTRO, familias: ['bayara'] }, nomes)).toEqual([]);
+    const f = { ...SEM_FILTRO, tipos: ['viagem', 'apagado'], pessoas: ['gui', 'giovanna'], capitulos: ['natais', 'secreto'], temas: ['x'], decada: 1990, comFoto: true, falta: true };
+    expect(resumoDosFiltros(f, nomes)).toEqual(['Viagem', 'com Gui e Giovanna juntos', 'Natais', 'anos 1990', 'com foto', 'você estava e ainda não contou']);
+    expect(resumoDosFiltros({ ...SEM_FILTRO, de: 1990, ate: 1994 }, nomes)).toEqual(['de 1990 a 1994']);
+    expect(resumoDosFiltros({ ...SEM_FILTRO, de: 1990 }, nomes)).toEqual(['de 1990 em diante']);
+    expect(resumoDosFiltros({ ...SEM_FILTRO, ate: 1994 }, nomes)).toEqual(['até 1994']);
+  });
+
+  it('no modo TV, a de antes e a de depois saem da lista filtrada, na ordem dela', () => {
+    const lista = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    expect(vizinhasNaLista(lista, 'b')).toEqual({ posicao: 1, antes: { id: 'a' }, depois: { id: 'c' } });
+    expect(vizinhasNaLista(lista, 'a').antes).toBeUndefined();
+    expect(vizinhasNaLista(lista, 'c').depois).toBeUndefined();
+    expect(vizinhasNaLista(lista, 'fora').posicao).toBe(-1);
+  });
+});

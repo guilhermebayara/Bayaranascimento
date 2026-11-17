@@ -1,0 +1,234 @@
+---
+// Os controles do Explorar (docs/decisoes.md, "Explorar"): a forma de ver, a família e, num lugar
+// só, os filtros e a ordem. Cada controle tem nome e lugar fixo, um embaixo do outro, e não sai do
+// lugar ao abrir (pedido do Gui, 16/11/2026). Tudo é link ou formulário comum: funciona sem script,
+// e o que foi escolhido fica no endereço, para guardar ou mandar.
+import IconeDoTipo from '../visual/IconeDoTipo.astro';
+import { FORMAS, NOMES_DAS_FORMAS, NOMES_DAS_ORDENS, ORDENS, ORDEM_PADRAO, SEM_FILTRO, enderecoDoExplorar, temFiltro, type Filtros, type Forma } from '../../lib/explorar';
+import { estiloDoTipo } from '../../lib/visual';
+
+interface Opcao {
+  id: string;
+  nome: string;
+}
+
+interface Props {
+  filtros: Filtros;
+  forma: Forma;
+  nucleos: Opcao[];
+  tipos: Opcao[];
+  pessoas: Opcao[];
+  capitulos: Opcao[];
+  temas: Opcao[];
+  /** as décadas em que há memória, da mais recente para a mais antiga */
+  decadas: number[];
+  /** os filtros ligados, já escritos (resumoDosFiltros) */
+  resumo: string[];
+  /** a faixa de décadas vem logo abaixo: o nome dela, no celular, fica aqui */
+  comDecadas?: boolean;
+}
+
+const { filtros, forma, nucleos, tipos, pessoas, capitulos, temas, decadas, resumo, comDecadas = false } = Astro.props;
+const umaFamilia = filtros.familias.length === 1 ? filtros.familias[0] : null;
+const filtrando = temFiltro({ ...filtros, familias: [] });
+const semFiltros: Filtros = { ...SEM_FILTRO, familias: filtros.familias };
+// Os grupos longos ficam recolhidos, e abrem sozinhos quando têm algo marcado
+const grupos = [
+  { nome: 'Quem estava junto', campo: 'pessoa', opcoes: pessoas, marcados: filtros.pessoas, dica: 'A memória precisa ter todas as pessoas marcadas.' },
+  { nome: 'Capítulo', campo: 'capitulo', opcoes: capitulos, marcados: filtros.capitulos, dica: null },
+  { nome: 'Tema', campo: 'tema', opcoes: temas, marcados: filtros.temas, dica: null },
+].filter((g) => g.opcoes.length > 0);
+---
+
+<div class="controles">
+  <div class="controle">
+    <p class="controle__nome rotulo suave" id="controle-forma">Forma de ver</p>
+    <nav class="linha__opcoes" aria-labelledby="controle-forma">
+      {
+        FORMAS.map((f) => (
+          <a href={enderecoDoExplorar(filtros, f)} aria-current={f === forma ? 'page' : undefined}>
+            {NOMES_DAS_FORMAS[f]}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+  {
+    nucleos.length > 0 && (
+      <div class="controle">
+        <p class="controle__nome rotulo suave" id="controle-familia">
+          Família
+        </p>
+        <nav class="linha__opcoes" aria-labelledby="controle-familia">
+          <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma)} aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
+            Família completa
+          </a>
+          {nucleos.map((n) => (
+            <a href={enderecoDoExplorar({ ...filtros, familias: [n.id] }, forma)} aria-current={umaFamilia === n.id ? 'page' : undefined}>
+              {n.nome}
+            </a>
+          ))}
+        </nav>
+      </div>
+    )
+  }
+  <div class="controle">
+    <p class="controle__nome rotulo suave" id="controle-filtros">Filtros</p>
+    {/* Fechado, o controle diz o que está ligado e a ordem; aberto, o formulário aparece logo abaixo dele */}
+    <details class="filtros">
+      <summary aria-labelledby="controle-filtros filtro-atual">
+        <span id="filtro-atual" data-filtro-atual>
+          {resumo.length > 0 ? resumo.join(' · ') : 'Nenhum filtro'} · {NOMES_DAS_ORDENS[filtros.ordem]}
+        </span>
+      </summary>
+      <form class="filtros__form" method="get" action="/explorar" data-filtros>
+        {forma !== 'linha' && <input type="hidden" name="ver" value={forma} />}
+        {filtros.familias.map((id) => <input type="hidden" name="nucleo" value={id} />)}
+        <fieldset class="filtros__grupo">
+          <legend class="rotulo suave">Ordem</legend>
+          <ul>
+            {ORDENS.map((o) => (
+              <li>
+                <label class="escolha">
+                  <input type="radio" name="ordem" value={o === ORDEM_PADRAO ? '' : o} checked={filtros.ordem === o} />
+                  <span>{NOMES_DAS_ORDENS[o]}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </fieldset>
+        {
+          tipos.length > 1 && (
+            <fieldset class="filtros__grupo">
+              <legend class="rotulo suave">Tipo de momento</legend>
+              <ul>
+                {tipos.map((t) => (
+                  <li style={estiloDoTipo(t.id)}>
+                    <label class="escolha">
+                      <input type="checkbox" name="tipo" value={t.id} checked={filtros.tipos.includes(t.id)} />
+                      <IconeDoTipo tipo={t.id} />
+                      <span>{t.nome}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+          )
+        }
+        <fieldset class="filtros__grupo">
+          <legend class="rotulo suave">O que a memória tem</legend>
+          <ul>
+            <li>
+              <label class="escolha">
+                <input type="checkbox" name="foto" value="1" checked={filtros.comFoto} />
+                <span>Foto</span>
+              </label>
+            </li>
+            <li>
+              <label class="escolha">
+                <input type="checkbox" name="audio" value="1" checked={filtros.comAudio} />
+                <span>Áudio</span>
+              </label>
+            </li>
+          </ul>
+        </fieldset>
+        <fieldset class="filtros__grupo">
+          <legend class="rotulo suave">Seus relatos</legend>
+          <ul>
+            <li>
+              <label class="escolha">
+                <input type="checkbox" name="contou" value="1" checked={filtros.contou} />
+                <span>Você já contou</span>
+              </label>
+            </li>
+            <li>
+              <label class="escolha">
+                <input type="checkbox" name="falta" value="1" checked={filtros.falta} />
+                <span>Você estava e ainda não contou</span>
+              </label>
+            </li>
+          </ul>
+        </fieldset>
+        <fieldset class="filtros__grupo filtros__grupo--periodo">
+          <legend class="rotulo suave">Período</legend>
+          <label class="campo">
+            <span class="campo__rotulo">Década</span>
+            <select class="campo__entrada" name="decada">
+              <option value="">Qualquer uma</option>
+              {decadas.map((d) => (
+                <option value={d} selected={filtros.decada === d}>
+                  Anos {d}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label class="campo">
+            <span class="campo__rotulo">Do ano</span>
+            <input class="campo__entrada" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="de" value={filtros.de ?? ''} />
+          </label>
+          <label class="campo">
+            <span class="campo__rotulo">Até o ano</span>
+            <input class="campo__entrada" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="ate" value={filtros.ate ?? ''} />
+          </label>
+        </fieldset>
+        {
+          grupos.map((g) => (
+            <details class="filtros__grupo filtros__grupo--longo" open={g.marcados.length > 0}>
+              <summary>
+                <span>
+                  {g.nome}
+                  {g.marcados.length > 0 && ` (${g.marcados.length})`}
+                </span>
+              </summary>
+              {g.dica && <p class="ficha suave">{g.dica}</p>}
+              <ul>
+                {g.opcoes.map((o) => (
+                  <li>
+                    <label class="escolha">
+                      <input type="checkbox" name={g.campo} value={o.id} checked={g.marcados.includes(o.id)} />
+                      <span>{o.nome}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))
+        }
+        <p class="filtros__acoes">
+          <button class="botao" type="submit">Mostrar memórias</button>
+          {
+            filtrando && (
+              <a class="acao acao--quieta" href={enderecoDoExplorar(semFiltros, forma)}>
+                Limpar filtros
+              </a>
+            )
+          }
+        </p>
+      </form>
+    </details>
+  </div>
+  {/* No celular o nome de cada controle fica em cima dele: o da faixa de décadas também */}
+  {
+    comDecadas && (
+      <p class="controle__nome controle__nome--decadas rotulo suave" aria-hidden="true">
+        Ir para a década
+      </p>
+    )
+  }
+</div>
+
+<script>
+  // O endereço fica só com o que foi escolhido: campo vazio não vai junto
+  const formulario = document.querySelector<HTMLFormElement>('[data-filtros]');
+  formulario?.addEventListener('submit', () => {
+    for (const campo of formulario.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[name], select[name]')) {
+      const marcavel = campo instanceof HTMLInputElement && (campo.type === 'checkbox' || campo.type === 'radio');
+      if (!marcavel && !campo.value.trim()) campo.disabled = true;
+      if (marcavel && campo.checked && !campo.value) campo.disabled = true;
+    }
+  });
+  // Voltar para a página pelo histórico: os campos voltam a valer
+  addEventListener('pageshow', () => {
+    for (const campo of formulario?.querySelectorAll<HTMLInputElement | HTMLSelectElement>(':disabled') ?? []) campo.disabled = false;
+  });
+</script>

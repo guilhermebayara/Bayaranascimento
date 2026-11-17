@@ -1,0 +1,155 @@
+---
+// O palco: uma memória por vez, grande, para ver junto (docs/decisoes.md, "Explorar"). Serve ao
+// modo TV, que passa pelas memórias na ordem dos filtros, e ao "Me mostre uma memória", que sorteia.
+// Cada memória é uma página: "Anterior" e "Próxima" são links, então funciona sem script, pelo
+// teclado e pelo controle da TV. O script só acrescenta as setas e o "Passar sozinho".
+import Carimbo from '../visual/Carimbo.astro';
+import Polaroid from '../visual/Polaroid.astro';
+import Vazio from '../visual/Vazio.astro';
+import { carimboDaData, estiloDoTipo, legendaLugarAno, listaCurta } from '../../lib/visual';
+
+interface Props {
+  modo: 'tv' | 'acaso';
+  memoria?: { id: string; titulo: string; tipo: string; lugar: string | null; ano: number; mes: number | null; dia: number | null; aproximada: boolean; fotos: { chave: string; legenda: string | null }[] };
+  /** o trecho de um relato e quem contou */
+  trecho?: { texto: string; por: string };
+  /** os nomes de quem estava */
+  nomes?: string[];
+  /** "3 de 41", no modo TV */
+  posicao?: string;
+  /** endereços: a de antes, a de depois (ou outra sorteada), a volta ao Explorar e o liga e desliga do "Passar sozinho" */
+  antes?: string;
+  depois?: string;
+  sair: string;
+  passar?: { ligado: boolean; href: string };
+  /** a foto da memória seguinte, para já estar carregada quando ela entrar */
+  fotoSeguinte?: string;
+  /** para limpar os filtros, quando nada passa neles */
+  limpar: string;
+}
+
+const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, fotoSeguinte, limpar } = Astro.props;
+const foto = memoria?.fotos[0];
+const abrir = memoria ? `/memorias/${memoria.id}` : '';
+---
+
+{
+  !memoria && (
+    <div class="miolo">
+      <Vazio frase="Nenhuma memória passa nesses filtros.">
+        <a class="acao" href={limpar}>
+          Limpar filtros
+        </a>
+        <a class="acao acao--quieta" href={sair}>
+          Voltar ao Explorar
+        </a>
+      </Vazio>
+    </div>
+  )
+}
+{
+  memoria && (
+    <article class:list={['palco', `palco--${modo}`]} style={estiloDoTipo(memoria.tipo)} data-palco data-passar={passar?.ligado ? '' : undefined}>
+      <header class="palco__topo miolo">
+        <p class="rotulo">
+          {modo === 'tv' ? 'Modo TV' : 'Uma memória ao acaso'}
+          {posicao && <span> · {posicao}</span>}
+        </p>
+        <a class="acao acao--quieta" href={sair} data-palco-sair>
+          {modo === 'tv' ? 'Sair do modo TV' : 'Voltar ao Explorar'}
+        </a>
+      </header>
+      <div class="palco__cena miolo">
+        {/* No modo TV, tocar na foto passa para a próxima; no "ao acaso", abre a memória */}
+        <a class="palco__foto" href={modo === 'tv' && depois ? depois : abrir} aria-label={modo === 'tv' && depois ? 'Próxima memória' : `Abrir a memória ${memoria.titulo}`} tabindex="-1">
+          {foto ? (
+            <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} decoding="async" />
+          ) : (
+            <span class="palco__cartao">
+              <Polaroid id={memoria.id} fotos={[]} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} tipo={memoria.tipo} reta />
+            </span>
+          )}
+        </a>
+        <div class="palco__texto">
+          <p>
+            <Carimbo itens={[carimboDaData(memoria), memoria.lugar]} />
+          </p>
+          <h1 class="palco__titulo">{memoria.titulo}</h1>
+          {trecho && (
+            <blockquote class="palco__trecho">
+              <p class="serifa t-abertura">“{trecho.texto}”</p>
+              <footer>
+                <span class="mao">{trecho.por}</span>
+              </footer>
+            </blockquote>
+          )}
+          {nomes.length > 0 && <p class="ficha suave">Com {listaCurta(nomes, 5)}</p>}
+          <p>
+            <a class="acao" href={abrir}>
+              Abrir esta memória
+            </a>
+          </p>
+        </div>
+        <nav class="palco__passos" aria-label={modo === 'tv' ? 'Passar as memórias' : 'Outra memória'}>
+          {modo === 'tv' && (
+            <>
+              <a class="acao" href={antes} aria-disabled={antes ? undefined : 'true'} rel="prev" data-palco-antes>
+                Anterior
+              </a>
+              <a class="botao" href={depois} aria-disabled={depois ? undefined : 'true'} rel="next" data-palco-depois>
+                Próxima
+              </a>
+              {passar && (
+                <a class="acao acao--quieta" href={passar.href} data-palco-passar hidden>
+                  {passar.ligado ? 'Parar de passar sozinho' : 'Passar sozinho'}
+                </a>
+              )}
+            </>
+          )}
+          {modo === 'acaso' && depois && (
+            <a class="botao" href={depois} data-palco-depois>
+              Me mostre outra
+            </a>
+          )}
+        </nav>
+      </div>
+      {fotoSeguinte && <link rel="preload" as="image" href={fotoSeguinte} />}
+    </article>
+  )
+}
+
+<script>
+  // As setas do teclado e do controle da TV passam as memórias, e o Esc sai. "Passar sozinho" só
+  // existe com script: sem ele, o botão nem aparece. Com movimento reduzido, a troca é sem animação
+  // (a transição entre páginas, no CSS, só vale para quem não pediu menos movimento).
+  const palco = document.querySelector<HTMLElement>('[data-palco]');
+  if (palco) {
+    const link = (nome: string) => palco.querySelector<HTMLAnchorElement>(`[data-palco-${nome}]`);
+    const ir = (a: HTMLAnchorElement | null) => {
+      if (a && a.getAttribute('href') && a.getAttribute('aria-disabled') !== 'true') location.assign(a.href);
+    };
+    addEventListener('keydown', (evento) => {
+      if (evento.metaKey || evento.ctrlKey || evento.altKey) return;
+      if (evento.key === 'ArrowRight') ir(link('depois'));
+      else if (evento.key === 'ArrowLeft') ir(link('antes'));
+      else if (evento.key === 'Escape') ir(link('sair'));
+    });
+    const passar = link('passar');
+    if (passar) {
+      passar.hidden = false;
+      // Ligado: a próxima entra sozinha depois de um tempo de leitura. Com a aba escondida, espera.
+      if (palco.hasAttribute('data-passar')) {
+        const TEMPO = 10000;
+        let relogio = 0;
+        const armar = () => {
+          clearTimeout(relogio);
+          if (!document.hidden) relogio = window.setTimeout(() => ir(link('depois')), TEMPO);
+        };
+        document.addEventListener('visibilitychange', armar);
+        armar();
+      }
+    }
+    // O foco começa em "Próxima": no controle da TV, o botão do meio já passa
+    link('depois')?.focus({ preventScroll: true });
+  }
+</script>

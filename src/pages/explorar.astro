@@ -1,0 +1,170 @@
+---
+// Explorar (docs/decisoes.md, "Explorar"): uma tela só para ver o acervo, com a troca entre as
+// formas de ver no alto (linha do tempo, mural de fotos, modo TV e uma memória ao acaso) e os
+// filtros e a ordem num lugar só. Tudo o que foi escolhido fica no endereço.
+//
+// As regras estão em src/lib/explorar.ts. Aqui só entram memórias que a pessoa vê: o resultado, o
+// sorteio, o mural, o modo TV e as contagens saem todos de listarMemorias.
+import '../visual/telas/linha.css';
+import '../visual/telas/explorar.css';
+import Visual from '../layouts/Visual.astro';
+import Assinatura from '../components/visual/Assinatura.astro';
+import Vazio from '../components/visual/Vazio.astro';
+import Controles from '../components/explorar/Controles.astro';
+import Linha from '../components/explorar/Linha.astro';
+import Mural from '../components/explorar/Mural.astro';
+import Palco from '../components/explorar/Palco.astro';
+import { SEM_FILTRO, enderecoDoExplorar, explorar, lerFiltros, lerForma, resumoDosFiltros, sortear, temFiltro, vizinhasNaLista } from '../lib/explorar';
+import { contextoDoExplorar } from '../lib/servidor/explorar';
+import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
+import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
+
+const { usuario, tipos } = Astro.locals;
+const parametros = Astro.url.searchParams;
+const forma = lerForma(parametros);
+const [nucleos, todas, integrantes, capitulos, temas] = await Promise.all([
+  listarNucleos(),
+  listarMemorias(usuario),
+  listarIntegrantes(),
+  listarCapitulos(usuario),
+  listarTemasVisiveis(usuario),
+]);
+// Todo mundo pode filtrar por qualquer família (decisão do Gui, 16/11/2026). O filtro não muda
+// quem vê o quê: listarMemorias só devolve o que a pessoa pode ver, e de uma família de que ela
+// não é membro isso é o que foi aberto a todos. Família que não existe é ignorada.
+const lidos = lerFiltros(parametros);
+const filtros = { ...lidos, familias: lidos.familias.filter((id) => nucleos.some((n) => n.id === id)) };
+const resultado = explorar(todas, filtros, await contextoDoExplorar(usuario, todas));
+const nomeDe = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome;
+
+// O mural, o modo TV e o sorteio são do que já foi publicado: o rascunho só aparece na linha do
+// tempo de quem escreveu, levando ao formulário
+const publicadas = resultado.memorias.filter((m) => m.situacao !== 'rascunho');
+const memorias = forma === 'linha' ? resultado.memorias : publicadas;
+const limpar = temFiltro(filtros) ? enderecoDoExplorar({ ...SEM_FILTRO, ordem: filtros.ordem }, forma) : undefined;
+const voltar = enderecoDoExplorar(filtros);
+
+// O palco: a memória da vez vai no endereço ("m"), para o voltar do aparelho e o link funcionarem
+const pedida = parametros.get('m');
+let daVez = publicadas.find((m) => m.id === pedida);
+if (forma === 'acaso' && publicadas.length > 0 && (!daVez || parametros.has('outra'))) {
+  // "Me mostre outra": sorteia entre as que passam nos filtros, sem repetir a que estava na tela
+  const sorteada = sortear(publicadas, parametros.get('outra'))!;
+  return Astro.redirect(enderecoDoExplorar(filtros, 'acaso', { m: sorteada.id }), 302);
+}
+if (forma === 'tv') daVez ??= publicadas[0];
+const noPalco = forma === 'tv' || forma === 'acaso';
+const passando = parametros.get('passar') === '1';
+const vizinhas = daVez ? vizinhasNaLista(publicadas, daVez.id) : undefined;
+const naTv = (id: string | undefined, passar = passando) => (id ? enderecoDoExplorar(filtros, 'tv', { m: id, passar: passar ? '1' : undefined }) : undefined);
+// Com "Passar sozinho" ligado, a última leva de volta à primeira
+const seguinte = forma === 'tv' ? (vizinhas?.depois ?? (passando && publicadas.length > 1 ? publicadas[0] : undefined)) : undefined;
+const relatoDaVez = daVez && noPalco ? (await listarRelatos(usuario, daVez.id)).find((r) => r.situacao === 'publicada' && r.texto.trim()) : undefined;
+
+// As opções dos filtros: só o que existe no que a pessoa vê
+const decadaDe = (ano: number) => Math.floor(ano / 10) * 10;
+const decadas = [...new Set(todas.map((m) => decadaDe(m.ano)))].sort((a, b) => b - a);
+const tiposPresentes = tipos.filter((t) => todas.some((m) => m.tipo === t.id)).map((t) => ({ id: t.id, nome: t.rotulo }));
+const presentes = new Set(todas.flatMap((m) => m.integrantes));
+const pessoas = integrantes
+  .filter((i) => presentes.has(i.id))
+  .map((i) => ({ id: i.id, nome: i.apelido ?? i.nome }))
+  .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+const resumo = resumoDosFiltros(filtros, {
+  tipo: (id) => tipos.find((t) => t.id === id)?.rotulo,
+  pessoa: nomeDe,
+  capitulo: (id) => capitulos.find((c) => c.id === id)?.titulo,
+  tema: (id) => temas.find((t) => t.id === id)?.nome,
+});
+
+// A assinatura e a cor acompanham a família filtrada; sem filtro de família, a família completa
+const { sobrenomes } = assinaturaDaTela(filtros.familias, nucleos);
+const umaFamilia = filtros.familias.length === 1 ? nucleos.find((n) => n.id === filtros.familias[0]) : undefined;
+const anosDoResultado = memorias.map((m) => m.ano);
+const primeiro = anosDoResultado.length ? Math.min(...anosDoResultado) : undefined;
+const ultimo = anosDoResultado.length ? Math.max(...anosDoResultado) : undefined;
+const quantas = `${memorias.length} ${memorias.length === 1 ? 'memória' : 'memórias'}`;
+const periodo = primeiro && ultimo && primeiro !== ultimo ? `de ${primeiro} a ${ultimo}` : primeiro ? `em ${primeiro}` : '';
+const conta = memorias.length === 0 ? 'As memórias da nossa família' : [quantas, periodo].filter(Boolean).join(' · ');
+const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
+---
+
+<Visual titulo={titulo} secao="explorar" nucleos={filtros.familias} palco={forma === 'tv'}>
+  {
+    noPalco && (
+      <Palco
+        modo={forma === 'tv' ? 'tv' : 'acaso'}
+        memoria={daVez}
+        trecho={relatoDaVez && { texto: trechoDoRelato(relatoDaVez.texto, forma === 'tv' ? 220 : 150), por: nomeDe(relatoDaVez.por) ?? '' }}
+        nomes={daVez?.integrantes.map(nomeDe).filter((n): n is string => Boolean(n))}
+        posicao={forma === 'tv' && vizinhas ? `${vizinhas.posicao + 1} de ${publicadas.length}` : undefined}
+        antes={naTv(vizinhas?.antes?.id)}
+        depois={forma === 'tv' ? naTv(seguinte?.id) : publicadas.length > 1 && daVez ? enderecoDoExplorar(filtros, 'acaso', { outra: daVez.id }) : undefined}
+        sair={voltar}
+        passar={forma === 'tv' && daVez && publicadas.length > 1 ? { ligado: passando, href: naTv(daVez.id, !passando)! } : undefined}
+        fotoSeguinte={seguinte?.fotos[0] ? `/fotos/${seguinte.fotos[0].chave}` : undefined}
+        limpar={limpar ?? voltar}
+      />
+    )
+  }
+  {
+    forma === 'linha' && (
+      <Linha memorias={memorias} capitulos={capitulos} integrantes={integrantes} nucleos={nucleos} ordem={filtros.ordem} trilhos={resultado.trilhos} limpar={limpar}>
+        <header class="linha__capa miolo" slot="capa">
+          <Assinatura titulo sobrenomes={sobrenomes} />
+          <p class="linha__conta rotulo">{conta}</p>
+          <Controles
+            filtros={filtros}
+            forma={forma}
+            nucleos={nucleos}
+            tipos={tiposPresentes}
+            pessoas={pessoas}
+            capitulos={capitulos.map((c) => ({ id: c.id, nome: c.titulo }))}
+            temas={temas}
+            decadas={decadas}
+            resumo={resumo}
+            comDecadas={resultado.trilhos && new Set(memorias.map((m) => decadaDe(m.ano))).size > 1}
+          />
+        </header>
+      </Linha>
+    )
+  }
+  {
+    forma === 'mural' && (
+      <div class="linha linha--mural">
+        <header class="linha__capa miolo">
+          <Assinatura titulo sobrenomes={sobrenomes} />
+          <p class="linha__conta rotulo">{conta}</p>
+          <Controles
+            filtros={filtros}
+            forma={forma}
+            nucleos={nucleos}
+            tipos={tiposPresentes}
+            pessoas={pessoas}
+            capitulos={capitulos.map((c) => ({ id: c.id, nome: c.titulo }))}
+            temas={temas}
+            decadas={decadas}
+            resumo={resumo}
+          />
+        </header>
+        {memorias.length > 0 ? (
+          <Mural memorias={memorias} />
+        ) : (
+          <div class="miolo">
+            <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
+              {limpar ? (
+                <a class="acao" href={limpar}>
+                  Limpar filtros
+                </a>
+              ) : (
+                <a class="acao" href="/nova">
+                  Nova memória
+                </a>
+              )}
+            </Vazio>
+          </div>
+        )}
+      </div>
+    )
+  }
+</Visual>

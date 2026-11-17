@@ -1,0 +1,315 @@
+/*
+ * Explorar: o que é das formas de ver além da linha do tempo (telas/linha.css) e o formulário dos
+ * filtros. No mural, só as fotos, como a caixa aberta na mesa. No palco (modo TV e "Me mostre uma
+ * memória"), uma memória por vez, grande, para ver junto.
+ */
+
+/* --- Os filtros e a ordem: o formulário que abre dentro do controle ---------------------------- */
+
+.filtros__form {
+  display: grid;
+  gap: var(--e-5);
+  padding-block: var(--e-3) var(--e-5);
+}
+.filtros__grupo {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.filtros__grupo legend {
+  padding: 0;
+}
+.filtros__grupo ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+}
+.filtros__grupo .escolha {
+  font-size: var(--t-pequeno);
+}
+.filtros__grupo .escolha .icone {
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  margin-right: -0.25em;
+  color: var(--tipo-cor);
+}
+.filtros__grupo--periodo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-3) var(--e-5);
+  max-width: 28rem;
+}
+.filtros__grupo--periodo legend {
+  margin-bottom: var(--e-2);
+}
+.filtros__grupo--periodo .campo:first-of-type {
+  grid-column: 1 / -1;
+}
+/* Os grupos longos (pessoas, capítulos, temas) ficam recolhidos: abrem no lugar, como o controle */
+.filtros__grupo--longo summary {
+  font-weight: 400;
+  color: var(--tinta-suave);
+}
+.filtros__grupo--longo[open] summary,
+.filtros__grupo--longo summary:hover {
+  color: var(--tinta);
+}
+.filtros__grupo--longo ul {
+  padding-bottom: var(--e-2);
+}
+.filtros__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-3) var(--e-6);
+  padding-top: var(--e-2);
+}
+
+/* A lista corrida, fora da ordem do tempo: sem a divisória dos anos */
+.ano--corrida {
+  padding-top: var(--e-6);
+}
+
+/* --- Mural de fotos ------------------------------------------------------------------------------
+   As fotos-chave lado a lado, cada uma com a inclinação dela e um pouco fora de fila, como fotos
+   espalhadas na mesa. Sem texto: o cartão sem foto leva o título. */
+
+.linha--mural {
+  padding-bottom: var(--e-8);
+}
+.mural {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-5) var(--e-3);
+  padding-top: var(--e-6);
+}
+.mural li {
+  min-width: 0;
+}
+.mural li:nth-child(3n + 2) {
+  translate: 0 var(--e-4);
+}
+.mural a {
+  display: block;
+  text-decoration: none;
+  border-radius: var(--raio-moldura);
+}
+.mural a:focus-visible {
+  outline-offset: 0.35rem;
+}
+/* No cartão sem foto, o título cabe em até duas linhas na margem de baixo */
+.mural .polaroid--sem-foto .polaroid__legenda {
+  align-items: start;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  height: 23cqi;
+  min-height: 0;
+  padding-block: 2.5cqi 0;
+  font-size: clamp(0.5rem, 5.4cqi, 0.875rem);
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+  color: var(--tinta);
+}
+
+/* --- O palco: uma memória por vez ----------------------------------------------------------------
+   A tela inteira na cor do tipo de momento, como a abertura da página da memória. A foto aparece
+   inteira, sem corte, com a margem branca de uma ampliação. */
+
+.palco {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100svh;
+  padding-bottom: var(--e-7);
+  background: var(--tipo-pastel, var(--pastel));
+  --tinta-suave: color-mix(in srgb, var(--tinta) 76%, var(--tipo-pastel, var(--pastel)));
+}
+/* Com o topo do site por cima, o palco ocupa o que sobra da tela, sem exigir a altura inteira */
+.palco--acaso {
+  min-height: 70svh;
+}
+.palco .carimbo {
+  color: color-mix(in srgb, var(--tipo-tinta, var(--vivo-tinta)) 70%, var(--tinta));
+}
+.palco__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--e-5);
+  min-height: var(--toque);
+  padding-block: var(--e-2);
+}
+.palco__cena {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'foto'
+    'passos'
+    'texto';
+  align-content: start;
+  gap: var(--e-5);
+}
+.palco__foto {
+  grid-area: foto;
+  display: grid;
+  justify-items: center;
+  text-decoration: none;
+}
+.palco__foto img {
+  box-sizing: border-box;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 58svh;
+  padding: clamp(0.375rem, 0.9vw, 0.875rem);
+  border-radius: var(--raio-foto);
+  background: var(--branco);
+  box-shadow: var(--sombra-foto);
+}
+.palco__cartao {
+  display: block;
+  width: min(100%, 42svh);
+}
+.palco__passos {
+  grid-area: passos;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-2) var(--e-6);
+}
+.palco__passos [hidden] {
+  display: none;
+}
+.palco__passos .acao[aria-disabled='true'] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.palco__texto {
+  grid-area: texto;
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: var(--e-4);
+}
+.palco__titulo {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: calc(var(--t-titulo-1) * 0.8);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 0.98;
+  text-wrap: balance;
+}
+.palco__trecho {
+  max-width: 26em;
+}
+.palco__trecho p {
+  /* a aspa de abertura fica pendurada na margem */
+  text-indent: -0.42em;
+  font-style: italic;
+  line-height: 1.18;
+}
+.palco__trecho footer {
+  margin-top: var(--e-3);
+}
+.palco__trecho .mao {
+  display: inline-block;
+  rotate: -3deg;
+}
+
+/* A troca de uma memória para a outra esmaece, só para quem não pediu menos movimento */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+@media (min-width: 62rem) {
+  .filtros__form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--e-5) var(--calha);
+    max-width: 60rem;
+  }
+  .filtros__grupo--longo,
+  .filtros__acoes {
+    grid-column: 1 / -1;
+  }
+  .mural {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--e-7) var(--calha);
+    padding-top: var(--e-8);
+  }
+  .mural li:nth-child(3n + 2) {
+    translate: none;
+  }
+  .mural li:nth-child(6n + 2),
+  .mural li:nth-child(6n + 5) {
+    translate: 0 var(--e-6);
+  }
+  .mural li:nth-child(6n + 4) {
+    translate: 0 calc(-1 * var(--e-3));
+  }
+
+  /* No computador e na TV, a foto fica à esquerda, grande, e o texto à direita, na altura dela */
+  .palco__cena {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-areas: none;
+    grid-template-rows: auto auto;
+    align-content: center;
+    align-items: center;
+    column-gap: var(--calha);
+    row-gap: var(--e-5);
+    padding-block: var(--e-4) 0;
+  }
+  .palco__foto {
+    grid-area: 1 / 1 / 3 / 8;
+  }
+  .palco__foto img {
+    max-height: calc(100svh - 9rem);
+  }
+  .palco--acaso .palco__foto img {
+    max-height: 68svh;
+  }
+  .palco__cartao {
+    width: min(70%, 56svh);
+  }
+  .palco__texto {
+    grid-area: 1 / 8 / 2 / -1;
+    align-self: end;
+    gap: var(--e-5);
+  }
+  .palco__passos {
+    grid-area: 2 / 8 / 3 / -1;
+    align-self: start;
+    justify-content: start;
+    padding-top: var(--e-4);
+  }
+  .palco__titulo {
+    font-size: calc(var(--t-titulo-1) * 0.62);
+  }
+}
+
+@media (min-width: 100rem) {
+  .mural {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+  .mural li:nth-child(n) {
+    translate: none;
+  }
+  .mural li:nth-child(8n + 2),
+  .mural li:nth-child(8n + 7) {
+    translate: 0 var(--e-7);
+  }
+  .mural li:nth-child(8n + 4) {
+    translate: 0 var(--e-5);
+  }
+  .mural li:nth-child(8n + 5) {
+    translate: 0 calc(-1 * var(--e-4));
+  }
+}

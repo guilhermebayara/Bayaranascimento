@@ -147,18 +147,30 @@ describe('CSS do visual novo', () => {
 describe('conceito', () => {
   const paginas = import.meta.glob<string>('../src/pages/conceito/**/*.{astro,ts}', { query: '?raw', import: 'default', eager: true });
 
+  // As telas que já passaram para o visual novo (fase 3), com os componentes de cada uma
+  const telas = import.meta.glob<string>(['../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/conta.astro', '../src/components/explorar/*.astro'], {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  });
+  const tela = (fim: string) => Object.entries(telas).find(([caminho]) => caminho.endsWith(fim))![1];
+
   it('toda rota do conceito responde 404 onde não há acervo de exemplo', () => {
     const rotas = Object.entries(paginas);
-    expect(rotas.length).toBeGreaterThanOrEqual(5);
+    expect(rotas.length).toBeGreaterThanOrEqual(4);
     for (const [caminho, fonte] of rotas) expect(fonte, caminho).toMatch(/if \(!conceitoDisponivel\(\)[^\n]*return naoEncontrado\(\);/);
   });
 
-  it('a linha do tempo deixa filtrar por qualquer família, sem mudar quem vê o quê', () => {
-    // Decisão do Gui, 16/11/2026. O filtro passa pelo listarMemorias, que só devolve o que a pessoa pode ver.
-    const linha = Object.entries(paginas).find(([caminho]) => caminho.endsWith('conceito/tudo.astro'))![1];
-    expect(linha).toContain('const nucleo = nucleos.find((n) => n.id === pedido);');
-    expect(linha).toContain('await listarMemorias(usuario, { nucleo: nucleo?.id })');
-    expect(linha).not.toMatch(/usuario\.nucleos\.includes/);
+  it('o Explorar deixa filtrar por qualquer família, sem mudar quem vê o quê', () => {
+    // Decisão do Gui, 16/11/2026. Tudo sai de listarMemorias, que só devolve o que a pessoa pode ver:
+    // a página não busca memória por outro caminho nem confere a família de quem olha.
+    const pagina = tela('pages/explorar.astro');
+    expect(pagina).toContain('listarMemorias(usuario)');
+    expect(pagina).toMatch(/explorar\(todas, filtros, await contextoDoExplorar\(usuario, todas\)\)/);
+    expect(pagina).not.toMatch(/usuario\.nucleos\.includes|obterMemoria/);
+    // O mural, o modo TV e o sorteio usam o mesmo resultado, sem os rascunhos
+    expect(pagina).toMatch(/const publicadas = resultado\.memorias\.filter/);
+    expect(pagina).toMatch(/sortear\(publicadas,/);
   });
 
   it('memória sem foto ganha o cartão com o ícone do tipo, na linha do tempo e no painel', () => {
@@ -168,15 +180,15 @@ describe('conceito', () => {
     expect(foto).toContain('polaroid--sem-foto');
     expect(foto).toContain('<IconeDoTipo tipo={tipo} />');
     const pagina = (fim: string) => Object.entries(paginas).find(([caminho]) => caminho.endsWith(fim))![1];
-    expect(pagina('conceito/tudo.astro')).toMatch(/<Polaroid id=\{m\.id\}[^>]*tipo=\{m\.tipo\}/);
-    expect(pagina('conceito/tudo.astro')).not.toContain('entrada--so-texto');
+    for (const forma of ['explorar/Linha.astro', 'explorar/Mural.astro']) expect(tela(forma)).toMatch(/<Polaroid id=\{m\.id\}[^>]*tipo=\{m\.tipo\}/);
+    expect(tela('explorar/Linha.astro')).not.toContain('entrada--so-texto');
     expect(pagina('conceito/index.astro')).toMatch(/outro-ano__foto">\s*<Polaroid[^>]*tipo=\{m\.tipo\}/);
   });
 
   it('o topo leva à conta pelo retrato de quem está logado, e "Rascunhos" não está no menu', () => {
     // Decisão do Gui, 16/11/2026 ("Sua conta", em docs/decisoes.md)
     const topo = Object.values(import.meta.glob<string>('../src/layouts/Visual.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
-    expect(topo).toMatch(/<a class="topo__conta" href="\/conceito\/conta"/);
+    expect(topo).toMatch(/<a class="topo__conta" href="\/conta"/);
     expect(topo.slice(topo.indexOf('const menu = ['), topo.indexOf('const telas = ['))).not.toContain('rascunhos');
     // A administração e a lixeira saem do rodapé: passam a morar na conta
     expect(topo.slice(topo.indexOf('<footer'))).not.toMatch(/lixeira|admin\/tipos|api\/copia/);
@@ -186,7 +198,10 @@ describe('conceito', () => {
     // Pedido do Gui, 16/11/2026: "Memórias" leva ao início, mas quem tem menos familiaridade não precisa adivinhar
     const topo = Object.values(import.meta.glob<string>('../src/layouts/Visual.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
     const menu = topo.slice(topo.indexOf('const menu = ['), topo.indexOf('const telas = ['));
-    expect(menu).toMatch(/\{ href: '\/conceito', texto: 'Início'/);
+    expect(menu).toMatch(/\{ href: '\/', texto: 'Início'/);
+    // "Tudo" virou "Explorar" (decisão do Gui, 16/11/2026), e o menu já não aponta para o conceito
+    expect(menu).toMatch(/\{ href: '\/explorar', texto: 'Explorar'/);
+    expect(menu).not.toContain('/conceito');
     // As duas navegações, a do topo e a da sanfona do celular, saem da mesma lista
     expect(topo.match(/menu\.map\(/g)).toHaveLength(2);
   });
@@ -204,20 +219,47 @@ describe('conceito', () => {
     expect(css.slice(0, css.indexOf('@media (hover: hover) and (pointer: fine)'))).not.toContain('[data-vivo]');
   });
 
-  it('os controles da linha do tempo têm nome e lugar fixo: família, tipo e década', () => {
-    // Achado do Gui, 16/11/2026: a década passava batida, o filtro por tipo mudava de lugar ao abrir
-    // e as famílias quebravam a linha
-    const pagina = Object.entries(paginas).find(([caminho]) => caminho.endsWith('conceito/tudo.astro'))![1];
+  it('os controles do Explorar têm nome e lugar fixo: forma de ver, família, filtros e década', () => {
+    // Achado do Gui, 16/11/2026: a década passava batida, o filtro mudava de lugar ao abrir e as
+    // famílias quebravam a linha
+    const controles = tela('explorar/Controles.astro');
     const css = ler('telas/linha.css');
-    for (const nome of ['Família', 'Tipo', 'Década']) expect(pagina).toMatch(new RegExp(`rotulo[^>]*>\\s*${nome}\\s*<`));
+    for (const nome of ['Forma de ver', 'Família', 'Filtros']) expect(controles).toMatch(new RegExp(`rotulo[^>]*>\\s*${nome}\\s*<`));
+    expect(tela('explorar/Linha.astro')).toMatch(/rotulo[^>]*>\s*Década\s*</);
     // "Tudo" passou a se chamar "Família completa" (do Gui, 16/11/2026)
-    expect(pagina).toMatch(/aria-current=\{!nucleo \? 'page' : undefined\}>\s*Família completa\s*</);
-    // A lista de tipos abre dentro do próprio controle: nenhuma regra muda o lugar dele quando abre
+    expect(controles).toMatch(/aria-current=\{filtros\.familias\.length === 0 \? 'page' : undefined\}>\s*Família completa\s*</);
+    // O formulário abre dentro do próprio controle: nenhuma regra muda o lugar dele quando abre
     expect(css).not.toMatch(/\.filtros\[open\]\s*\{[^}]*grid-(column|row|area)/);
     // A faixa de décadas leva a cor da família, diluída no papel: o pastel cheio pesou
     expect(css).toMatch(/\.decadas\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--pastel\) \d+%, var\(--papel\)\)/);
-    // Fechado, o controle do tipo diz o que está escolhido
-    expect(pagina).toContain('data-filtro-atual');
+    // Fechado, o controle dos filtros diz o que está ligado e a ordem
+    expect(controles).toContain('data-filtro-atual');
+    // Os filtros e a ordem são um formulário comum e as outras escolhas são links: tudo funciona
+    // sem script e fica no endereço
+    expect(controles).toMatch(/<form class="filtros__form" method="get" action="\/explorar"/);
+    expect(controles).not.toMatch(/<button type="button"/);
+  });
+
+  it('os trilhos, as épocas e a faixa de décadas só aparecem quando a regra do Explorar deixa', () => {
+    // docs/decisoes.md, "Explorar": fora disso, o capítulo vem escrito em cada memória
+    const linha = tela('explorar/Linha.astro');
+    expect(linha).toMatch(/data-filtrando=\{trilhos \? undefined : ''\}/);
+    expect(linha).toMatch(/trilhos && decadas\.length > 1 &&/);
+    expect(tela('pages/explorar.astro')).toMatch(/trilhos=\{resultado\.trilhos\}/);
+    // Em "Mais antigas primeiro", o trilho acaba, embaixo, no fim do capítulo, e não no começo
+    expect(linha).toMatch(/pontaDeBaixo = paraOPresente \? 'Fim' : 'Começo'/);
+  });
+
+  it('o modo TV passa as memórias por links, e só passa sozinho quando a pessoa liga', () => {
+    // docs/decisoes.md, "Explorar". Sem script, "Anterior" e "Próxima" continuam funcionando
+    const palco = tela('explorar/Palco.astro');
+    for (const nome of ['Anterior', 'Próxima', 'Passar sozinho', 'Sair do modo TV', 'Me mostre outra']) expect(palco).toContain(nome);
+    expect(palco).toMatch(/<a class="botao" href=\{depois\}[^>]*rel="next"/);
+    expect(palco).toMatch(/if \(palco\.hasAttribute\('data-passar'\)\)/);
+    // Com movimento reduzido, a troca é sem animação
+    const css = ler('telas/explorar.css');
+    expect(css).toMatch(/@media \(prefers-reduced-motion: no-preference\) \{\s*@view-transition/);
+    expect(css.replace(/@media \(prefers-reduced-motion: no-preference\) \{\s*@view-transition[^}]*\}\s*\}/, '')).not.toContain('@view-transition');
   });
 
   it('no toque, o que fica parado no alto não usa sticky: anda por animação ligada à rolagem', () => {
@@ -239,7 +281,7 @@ describe('conceito', () => {
     expect(ler('base.css')).toMatch(/:not\(\[data-preso\]\)[\s\S]*animation: none !important/);
     // Só uma peça anda com a rolagem: a que leva a faixa de décadas e a gaveta do ano. Uma animação
     // por ano fazia a faixa e o ano darem um pulinho na troca de ano, no iPhone.
-    const pagina = Object.entries(paginas).find(([caminho]) => caminho.endsWith('conceito/tudo.astro'))![1];
+    const pagina = tela('explorar/Linha.astro');
     expect(pagina.match(/ data-preso/g)?.length).toBe(1);
     expect(pagina).toMatch(/<div class="parada" data-barra data-preso>/);
     expect(css.match(/animation:\s*[a-z-]+ linear both/g)?.length).toBe(2);
@@ -248,7 +290,7 @@ describe('conceito', () => {
 
   it('cada foto da memória abre a galeria, e sem script continua levando à imagem', () => {
     // Pedido do Gui, 16/11/2026: tocar na foto abria a imagem solta, fora da página
-    const pagina = Object.entries(paginas).find(([caminho]) => caminho.endsWith('memorias/[id].astro'))![1];
+    const pagina = tela('memorias/[id].astro');
     expect(pagina).toContain('<dialog class="galeria"');
     for (const link of pagina.matchAll(/<a class="monte"[^>]*>/g)) expect(link[0]).toMatch(/href=\{`\/fotos\/\$\{foto\.chave\}`\} data-galeria=\{n\}/);
     // O voltar do aparelho fecha a galeria em vez de sair da página
@@ -269,6 +311,8 @@ describe('conceito', () => {
       import: 'default',
       eager: true,
     });
-    for (const [caminho, fonte] of Object.entries(fontes)) expect(fonte, caminho).not.toMatch(/^import[^;\n]*(styles\/global\.css|layouts\/Base\.astro)/m);
+    for (const [caminho, fonte] of [...Object.entries(fontes), ...Object.entries(telas)]) expect(fonte, caminho).not.toMatch(/^import[^;\n]*(styles\/global\.css|layouts\/Base\.astro)/m);
+    // E nenhuma tela de verdade leva dado fixo de exemplo nem depende do conceito
+    for (const [caminho, fonte] of Object.entries(telas)) expect(fonte, caminho).not.toMatch(/FIXO|servidor\/conceito/);
   });
 });

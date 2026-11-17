@@ -1,0 +1,25 @@
+---
+// O mural de fotos (docs/decisoes.md, "Explorar"): a caixa de fotografias aberta na mesa. Só as
+// fotos-chave, sem texto; um toque abre a memória. Memória sem foto entra como cartão com o título,
+// na cor do tipo de momento. O nome de cada memória continua valendo para o leitor de tela.
+import Polaroid from '../visual/Polaroid.astro';
+import { estiloDoTipo } from '../../lib/visual';
+
+interface Props {
+  memorias: { id: string; titulo: string; tipo: string; fotos: { chave: string; legenda: string | null }[] }[];
+}
+
+const { memorias } = Astro.props;
+---
+
+<ul class="mural miolo" aria-label="Fotos das memórias">
+  {
+    memorias.map((m, n) => (
+      <li style={estiloDoTipo(m.tipo)}>
+        <a href={`/memorias/${m.id}`} aria-label={m.titulo}>
+          <Polaroid id={m.id} fotos={m.fotos} legenda={m.fotos.length ? '' : m.titulo} alt="" monte={false} cedo={n < 6} tipo={m.tipo} />
+        </a>
+      </li>
+    ))
+  }
+</ul>

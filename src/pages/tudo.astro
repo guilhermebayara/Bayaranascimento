@@ -1,35 +1,5 @@
 ---
-import Base from '../layouts/Base.astro';
-import LinhaDoTempo from '../components/LinhaDoTempo.astro';
-import { listarIntegrantes, listarMemorias, listarNucleos } from '../lib/servidor/repositorio';
-
-const { usuario } = Astro.locals;
-const nucleos = await listarNucleos();
-const pedido = Astro.url.searchParams.get('nucleo');
-// Todo mundo pode filtrar por qualquer família (decisão do Gui, 16/11/2026). O filtro não muda quem vê o quê:
-// listarMemorias só devolve o que a pessoa pode ver, e de uma família de que ela não é membro isso é o que
-// foi aberto a todos.
-const nucleo = nucleos.find((n) => n.id === pedido);
-const memorias = await listarMemorias(usuario, { nucleo: nucleo?.id });
-const integrantes = await listarIntegrantes();
-const primeiro = memorias[0]?.ano;
-const ultimo = memorias.at(-1)?.ano;
-const periodo = primeiro && ultimo && primeiro !== ultimo ? `, de ${primeiro} a ${ultimo}` : primeiro ? `, em ${primeiro}` : '';
-const quantas = `${memorias.length} ${memorias.length === 1 ? 'memória' : 'memórias'}`;
+// "Tudo" virou "Explorar" (decisão do Gui, 16/11/2026). Os endereços antigos continuam valendo:
+// levam para lá com os mesmos filtros.
+return Astro.redirect(`/explorar${Astro.url.search}`, 301);
 ---
-
-<Base titulo={nucleo?.nome}>
-  <div class="abertura">
-    <h1>{nucleo ? nucleo.nome : 'Memórias Bayara e Bracarense'}</h1>
-    <p>
-      {
-        memorias.length === 0
-          ? 'As memórias da nossa família.'
-          : nucleo
-            ? `${quantas} desta família${periodo}.`
-            : `${quantas} da nossa família${periodo}.`
-      }
-    </p>
-  </div>
-  <LinhaDoTempo memorias={memorias} integrantes={integrantes} nucleos={nucleos} />
-</Base>

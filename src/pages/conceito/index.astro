@@ -220,7 +220,7 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
           <ol class="novo__mesa">
             {novas.map((m) => (
               <li class="novidade novidade--memoria" style={estiloDoTipo(m.tipo)}>
-                <a href={`/conceito/memorias/${m.id}`}>
+                <a href={`/memorias/${m.id}`}>
                   <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo forma />
                   <span class="novidade__sobre rotulo">
                     <IconeDoTipo tipo={m.tipo} />
@@ -232,7 +232,7 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
             ))}
             {relatoNovo && memoriaDoRelato && (
               <li class="novidade novidade--relato" style={estiloDoTipo('causo')}>
-                <Bilhete por={nome(relatoNovo.por)} href={`/conceito/memorias/${memoriaDoRelato.id}`}>
+                <Bilhete por={nome(relatoNovo.por)} href={`/memorias/${memoriaDoRelato.id}`}>
                   <span class="novidade__sobre rotulo">
                     <IconeDoTipo tipo="causo" />
                     Relato novo · em {memoriaDoRelato.titulo}
@@ -258,7 +258,7 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
           <ol class="outros-anos__lista">
             {outrosAnos.itens.map((m) => (
               <li style={estiloDoTipo(m.tipo)}>
-                <a class="outro-ano" href={`/conceito/memorias/${m.id}`}>
+                <a class="outro-ano" href={`/memorias/${m.id}`}>
                   <span class="outro-ano__foto">
                     <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} tipo={m.tipo} />
                   </span>
@@ -356,7 +356,7 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
       {memorias.length} memórias{primeiroAno && ultimoAno && primeiroAno !== ultimoAno ? ` · de ${primeiroAno} a ${ultimoAno}` : ''}
     </p>
     <h2 class="caminho__titulo t-1" id="caminho">
-      <a href="/conceito/tudo">
+      <a href="/explorar">
         Ver a linha do tempo inteira <Rabisco desenho="seta" />
       </a>
     </h2>
@@ -365,7 +365,7 @@ const fotosDaCarta = minhas.filter((m) => m.fotos.length > 0).slice(0, 3);
         <ul class="caminho__decadas" aria-label="Ir para a década">
           {decadas.map((d) => (
             <li>
-              <a class="serifa t-3" href={`/conceito/tudo#decada-${d}`}>
+              <a class="serifa t-3" href={`/explorar#decada-${d}`}>
                 {d}
               </a>
             </li>

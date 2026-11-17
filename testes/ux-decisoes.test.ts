@@ -79,10 +79,19 @@ describe('escolher pessoa', () => {
 });
 
 describe('ação principal', () => {
-  it('fica no alto da memória, da pessoa e do capítulo', () => {
-    // Antes das fotos, na memória; antes da família e dos capítulos de dentro, na pessoa e no capítulo
+  it('na memória, um atalho no alto para quem chega querendo contar, e o convite grande no fim', () => {
+    // docs/visual.md, "Página da memória": a ação principal continua ao alcance logo abaixo do título
+    const pagina = fonte('src/pages/memorias/[id].astro');
+    const atalho = pagina.indexOf('abre__atalho');
+    expect(atalho).toBeGreaterThan(pagina.indexOf('<h1'));
+    expect(atalho).toBeLessThan(pagina.indexOf('class="corpo grade"'));
+    expect(pagina.indexOf('class="convite miolo"')).toBeGreaterThan(pagina.indexOf('class="parede"'));
+    expect(pagina.match(/href=\{`\/memorias\/\$\{memoria\.id\}\/relato`\}/g)).toHaveLength(2);
+  });
+
+  it('fica no alto da pessoa e do capítulo', () => {
+    // Antes da família e dos capítulos de dentro
     const conteudo: Record<string, string> = {
-      'src/pages/memorias/[id].astro': '<Foto',
       'src/pages/pessoas/[id]/index.astro': '<section class="familia">',
       'src/pages/capitulos/[id]/index.astro': '<section class="familia">',
     };

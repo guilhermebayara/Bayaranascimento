@@ -8,8 +8,9 @@
 // e o script recusa outro. As capturas saem em largura de celular (390 px) e de
 // desktop (1280 px), com movimento reduzido, como "Gui" no "Ver como".
 //
-// As telas do conceito da revisão visual (/conceito) saem também em 1920 px, uma vez para cada
-// combinação de fontes. Para tirar só elas: CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>
+// As telas do visual novo saem também em 1920 px. As do conceito (/conceito), uma vez para cada
+// combinação de fontes: CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>
+// As da fase 3 saem por grupo: CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>
 // A página do sistema (/conceito/sistema) sai com CAPTURAS_SO=sistema.
 //
 // "comparar" abre as duas capturas de cada página no navegador e compara os pixels.
@@ -50,11 +51,11 @@ const PADRAO = ['celular', 'desktop'];
 const etapa = (n) => async (pagina) => {
   await pagina.locator('ol.etapas button').nth(n).click();
 };
+const abrirFiltros = async (pagina) => {
+  await pagina.locator('.filtros > summary').click();
+};
 const PAGINAS = [
   { nome: 'inicio', url: '/' },
-  { nome: 'inicio-nucleo', url: '/?nucleo=bayara-nascimento' },
-  { nome: 'memoria', url: '/memorias/2025-natal' },
-  { nome: 'memoria-com-fotos', url: '/memorias/2024-aniversario-vo-bela' },
   { nome: 'memoria-historico', url: '/memorias/2025-natal/historico' },
   { nome: 'memoria-relato', url: '/memorias/2025-natal/relato' },
   { nome: 'memoria-excluir', url: '/memorias/2025-natal/excluir' },
@@ -93,12 +94,25 @@ const PAGINAS = [
   ...['a', 'b', 'c'].flatMap((fontes) => [
     { nome: `conceito-${fontes}-1-carta`, url: '/conceito?visita=primeira', como: 'elizete', fontes, larguras: TODAS },
     { nome: `conceito-${fontes}-2-painel`, url: '/conceito', como: 'giovanna', fontes, larguras: TODAS },
-    { nome: `conceito-${fontes}-3-linha-do-tempo`, url: '/conceito/tudo', como: 'giovanna', fontes, larguras: TODAS, corte: 9000 },
-    { nome: `conceito-${fontes}-4-memoria`, url: '/conceito/memorias/2025-natal', como: 'giovanna', fontes, larguras: TODAS },
   ]),
-  // Capítulos na linha do tempo: o trecho com um capítulo dentro de outro (Natais na Vó Vivica, dentro
-  // de Natais) e, no computador, os capítulos de época. Começa em 2006 e vai até o fim da página.
-  { nome: 'conceito-a-5-capitulos', url: '/conceito/tudo', como: 'giovanna', larguras: TODAS, desde: '#ano-2006', corte: 9000 },
+  // Fase 3, grupo "explorar": o Explorar nas quatro formas de ver e a página da memória, nas três
+  // larguras, como Giovanna. Para tirar só elas: CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>
+  { nome: 'explorar-1-linha-do-tempo', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 9000 },
+  // O trecho com um capítulo dentro de outro (Natais na Vó Vivica, dentro de Natais) e as épocas
+  { nome: 'explorar-1-linha-capitulos', url: '/explorar', como: 'giovanna', larguras: TODAS, desde: '#ano-2006', corte: 9000 },
+  { nome: 'explorar-1-linha-familia', url: '/explorar?nucleo=bayara', como: 'giovanna', larguras: TODAS, corte: 4000 },
+  { nome: 'explorar-2-filtros-abertos', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 3200, antes: abrirFiltros },
+  { nome: 'explorar-2-filtrado', url: '/explorar?tipo=viagem&foto=1&ordem=contadas', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-2-antigas', url: '/explorar?ordem=antigas&capitulo=natais', como: 'giovanna', larguras: TODAS, corte: 5000 },
+  { nome: 'explorar-2-sem-resultado', url: '/explorar?tipo=viagem&decada=1950', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-3-mural', url: '/explorar?ver=mural', como: 'giovanna', larguras: TODAS, corte: 5000 },
+  { nome: 'explorar-4-modo-tv', url: '/explorar?ver=tv&m=2025-natal', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-4-modo-tv-sem-foto', url: '/explorar?ver=tv&m=2026-primeira-noite', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-5-ao-acaso', url: '/explorar?ver=acaso&m=1994-festa-de-aniversario', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-6-memoria', url: '/memorias/2025-natal', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-6-memoria-com-fotos', url: '/memorias/1994-festa-de-aniversario', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-6-memoria-sem-foto', url: '/memorias/2026-primeira-noite', como: 'giovanna', larguras: TODAS },
+  { nome: 'explorar-7-conta-de-passagem', url: '/conta', como: 'giovanna' },
   { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
   // O sistema (fase 2): a marca, as fontes, os tokens e as peças, em cada combinação de fontes
   ...['a', 'b', 'c'].map((fontes) => ({ nome: `sistema-${fontes}`, url: '/conceito/sistema', fontes, larguras: TODAS })),

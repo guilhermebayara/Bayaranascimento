@@ -1,47 +1,61 @@
 ---
-// Conceito da revisão visual: a linha do tempo ("Tudo" e cada família).
-// A ideia da tela: a assinatura grande e logo o ano mais recente abrindo a lista; o ano como
-// divisória de fichário e as fotos-chave como fotos reveladas. A ficha de cada memória fica numa
-// linha mono. Os capítulos aparecem como trilhos à esquerda das memórias (src/lib/linha-capitulos.ts).
-import '../../visual/telas/linha.css';
-import Visual from '../../layouts/Visual.astro';
-import Assinatura from '../../components/visual/Assinatura.astro';
-import IconeDoTipo from '../../components/visual/IconeDoTipo.astro';
-import SinalDoCapitulo from '../../components/visual/SinalDoCapitulo.astro';
-import Polaroid from '../../components/visual/Polaroid.astro';
-import Trilhos from '../../components/visual/Trilhos.astro';
-import { agruparPorAno, maisRecentesPrimeiro } from '../../lib/datas';
+// A linha do tempo do Explorar. A ideia da tela: o ano como divisória de fichário e as fotos-chave
+// como fotos reveladas; a ficha de cada memória fica numa linha mono. Os capítulos aparecem como
+// trilhos à esquerda das memórias (src/lib/linha-capitulos.ts), e as épocas de todos, como o chão.
+//
+// As memórias chegam já filtradas e na ordem pedida (src/lib/explorar.ts). Os trilhos, as épocas e
+// a faixa de décadas só aparecem quando a ordem é a do tempo e nenhum filtro quebra a continuidade
+// (`trilhos`): nos outros casos, o capítulo vem escrito em cada memória. Fora da ordem do tempo
+// ("Entraram por último", "Mais contadas"), a lista é corrida, sem a divisória dos anos.
+import IconeDoTipo from '../visual/IconeDoTipo.astro';
+import SinalDoCapitulo from '../visual/SinalDoCapitulo.astro';
+import Polaroid from '../visual/Polaroid.astro';
+import Trilhos from '../visual/Trilhos.astro';
+import Vazio from '../visual/Vazio.astro';
+import { agruparPorAno } from '../../lib/datas';
 import { capitulosNosTrilhos, chaoDaEpoca, montarTrilhos, trilhosNaEpoca, trilhosNaMarca } from '../../lib/linha-capitulos';
-import { ehEpoca } from '../../lib/capitulos';
+import { ehEpoca, type Capitulo } from '../../lib/capitulos';
+import type { Ordem } from '../../lib/explorar';
 import { tipoDaMemoria } from '../../lib/tipos';
-import { conceitoDisponivel, naoEncontrado } from '../../lib/servidor/conceito';
-import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos } from '../../lib/servidor/repositorio';
-import { assinaturaDaTela, diaMesCurto, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../lib/visual';
+import type { Integrante, Memoria, Nucleo } from '../../lib/servidor/repositorio';
+import { carimboDaData, diaMesCurto, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../lib/visual';
 
-if (!conceitoDisponivel()) return naoEncontrado();
+interface Props {
+  /** as memórias que a pessoa vê, já filtradas e na ordem pedida */
+  memorias: Memoria[];
+  /** os capítulos que a pessoa pode ver */
+  capitulos: Capitulo[];
+  integrantes: Integrante[];
+  nucleos: Nucleo[];
+  ordem: Ordem;
+  /** os trilhos, as épocas e a faixa de décadas aparecem (mostraTrilhos, em src/lib/explorar.ts) */
+  trilhos: boolean;
+  /** para limpar os filtros, quando nada passa neles */
+  limpar?: string;
+}
 
-const { usuario, tipos } = Astro.locals;
-const nucleos = await listarNucleos();
-const pedido = Astro.url.searchParams.get('nucleo');
-// Todo mundo pode filtrar por qualquer família (decisão do Gui, 16/11/2026). O filtro não muda
-// quem vê o quê: listarMemorias só devolve o que a pessoa pode ver, e de uma família de que ela
-// não é membro isso é o que foi aberto a todos.
-const nucleo = nucleos.find((n) => n.id === pedido);
-const memorias = await listarMemorias(usuario, { nucleo: nucleo?.id });
-const integrantes = await listarIntegrantes();
+const { memorias, integrantes, nucleos, ordem, trilhos, limpar } = Astro.props;
+const { tipos } = Astro.locals;
 const nomeDe = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome;
 
-// Mais recentes primeiro: rolar a página leva ao passado
-const naOrdemDaTela = maisRecentesPrimeiro(memorias);
-const anos = agruparPorAno(naOrdemDaTela);
+// Na ordem do tempo, o ano é a divisória. Rolar a página leva ao passado ou, em "Mais antigas
+// primeiro", ao presente. Fora dela, a lista é uma só.
+const peloTempo = ordem === 'recentes' || ordem === 'antigas';
+const paraOPresente = ordem === 'antigas';
+const naOrdemDaTela = memorias;
+const anos = peloTempo ? agruparPorAno(naOrdemDaTela) : naOrdemDaTela.length ? [{ ano: 0, itens: naOrdemDaTela }] : [];
 // Os capítulos como trilhos: só os que a pessoa pode ver, contando só as memórias que ela vê aqui
 //
 // Época e capítulo (decisão do Gui, 16/11/2026; ver src/lib/linha-capitulos.ts). O capítulo por
-// período diz de quem é (migração 019): "A infância da Giovanna", no acervo de exemplo, é da
-// Giovanna, e as memórias do período em que ela não está ficam de fora, com o trilho tracejado. Os
-// capítulos por período sem ninguém são épocas de todos e viram o chão, sem trilho.
-const capitulos = (await listarCapitulos(usuario)).map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c));
-const montagem = montarTrilhos(naOrdemDaTela, capitulos);
+// período diz de quem é (migração 019): as memórias do período em que a pessoa não está ficam de
+// fora, com o trilho tracejado. Os capítulos por período sem ninguém são épocas de todos e viram o
+// chão, sem trilho.
+const capitulos = Astro.props.capitulos.map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c));
+// Sem os trilhos, as épocas também saem: o chão só faz sentido com a linha do tempo inteira
+const montagem = montarTrilhos(
+  naOrdemDaTela,
+  capitulos.filter((c) => trilhos || !('deTodos' in c)),
+);
 const posicaoDe = new Map(naOrdemDaTela.map((m, i) => [m.id, i]));
 const capituloDe = (id: string) => montagem.capitulos.find((c) => c.id === id)!;
 const epocaDe = (id: string) => montagem.epocas.find((e) => e.id === id)!;
@@ -63,86 +77,13 @@ const epocasDoAno = (itens: { id: string }[]) => {
 const decadaDe = (ano: number) => Math.floor(ano / 10) * 10;
 const decadas = [...new Set(anos.map((a) => decadaDe(a.ano)))];
 const primeiroDaDecada = new Set(decadas.map((d) => anos.find((a) => decadaDe(a.ano) === d)!.ano));
-const tiposPresentes = tipos.filter((t) => memorias.some((m) => m.tipo === t.id));
-
-const primeiro = memorias[0]?.ano;
-const ultimo = memorias.at(-1)?.ano;
-const quantas = `${memorias.length} ${memorias.length === 1 ? 'memória' : 'memórias'}`;
-const periodo = primeiro && ultimo && primeiro !== ultimo ? `de ${primeiro} a ${ultimo}` : primeiro ? `em ${primeiro}` : '';
-
-// A assinatura acompanha o que está sendo visto: em "Tudo", todas as famílias
-const daTela = nucleo ? [nucleo.id] : [];
-const { sobrenomes } = assinaturaDaTela(daTela, nucleos);
+// Onde o trilho acaba, embaixo: na ordem de sempre, é o começo do capítulo; em "Mais antigas primeiro", o fim
+const pontaDeBaixo = paraOPresente ? 'Fim' : 'Começo';
 const primeiraMemoria = anos[0]?.itens[0]?.id;
 ---
 
-<Visual titulo={nucleo?.nome ?? 'Linha do tempo'} secao="linha" nucleos={daTela}>
-  <div class="linha" data-linha-do-tempo style={`--trilhos: ${montagem.quantos}`}>
-    <header class="linha__capa miolo">
-      <Assinatura titulo sobrenomes={sobrenomes} />
-      <p class="linha__conta rotulo">{memorias.length === 0 ? 'As memórias da nossa família' : [quantas, periodo].filter(Boolean).join(' · ')}</p>
-      {/* Os controles ficam um embaixo do outro, cada um com o nome: família, tipo e, na barra, década.
-          Cada um tem o seu lugar e não sai dele ao abrir (pedido do Gui, 16/11/2026). */}
-      <div class="controles">
-        {
-          nucleos.length > 0 && (
-            <div class="controle">
-              <p class="controle__nome rotulo suave" id="controle-familia">
-                Família
-              </p>
-              <nav class="linha__familias" aria-labelledby="controle-familia">
-                <a href="/conceito/tudo" aria-current={!nucleo ? 'page' : undefined}>
-                  Família completa
-                </a>
-                {nucleos.map((n) => (
-                  <a href={`/conceito/tudo?nucleo=${n.id}`} aria-current={nucleo?.id === n.id ? 'page' : undefined}>
-                    {n.nome}
-                  </a>
-                ))}
-              </nav>
-            </div>
-          )
-        }
-        {
-          tiposPresentes.length > 1 && (
-            <div class="controle">
-              <p class="controle__nome rotulo suave" id="controle-tipo">
-                Tipo
-              </p>
-              {/* Fechado, o controle diz o tipo escolhido; aberto, a lista aparece logo abaixo dele */}
-              <details class="filtros">
-                <summary aria-labelledby="controle-tipo filtro-atual">
-                  <span id="filtro-atual" data-filtro-atual>
-                    Todos os tipos
-                  </span>
-                </summary>
-                <ul aria-label="Filtrar por tipo de momento">
-                  <li>
-                    <button type="button" data-filtro="" aria-pressed="true">
-                      Todos os tipos
-                    </button>
-                  </li>
-                  {tiposPresentes.map((t) => (
-                    <li>
-                      <button type="button" data-filtro={t.id} aria-pressed="false" style={estiloDoTipo(t.id)}>
-                        <IconeDoTipo tipo={t.id} />
-                        {t.rotulo}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </div>
-          )
-        }
-        {/* No celular o nome de cada controle fica em cima dele: o da faixa de décadas também */}
-        {decadas.length > 1 && (
-          <p class="controle__nome controle__nome--decadas rotulo suave" aria-hidden="true">
-            Ir para a década
-          </p>
-        )}
-      </div>
-    </header>
+<div class="linha" data-linha-do-tempo data-filtrando={trilhos ? undefined : ''} style={`--trilhos: ${trilhos ? montagem.quantos : 0}`}>
+    <slot name="capa" />
 
     {/* A década é uma faixa na cor da família, parada no alto, com o nome do que ela faz.
         O bloco em volta (data-trilho) marca até onde a faixa acompanha a rolagem no toque. */}
@@ -150,7 +91,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
     {/* O que fica parado no alto é uma peça só: a faixa de décadas e, no toque, o ano em que se está */}
     <div class="parada" data-barra data-preso>
       {
-        decadas.length > 1 && (
+        trilhos && decadas.length > 1 && (
           <nav class="decadas" aria-label="Ir para a década">
             <div class="decadas__dentro miolo">
               <p class="decadas__nome rotulo" aria-hidden="true">
@@ -176,19 +117,36 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
     <p class="trilho-nome ficha" data-trilho-nome hidden aria-hidden="true" />
     <script type="application/json" data-capitulos-da-linha set:html={JSON.stringify(Object.fromEntries(montagem.capitulos.map((c) => [c.id, { titulo: c.titulo, periodo: c.periodo, estilo: estiloDoCapitulo(c.cor) }])))} />
 
-    {memorias.length === 0 && <p class="linha__vazio miolo t-abertura serifa">Ainda não há memórias aqui.</p>}
+    {
+      memorias.length === 0 && (
+        <div class="miolo">
+          <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
+            {limpar ? (
+              <a class="acao" href={limpar}>
+                Limpar filtros
+              </a>
+            ) : (
+              <a class="acao" href="/nova">
+                Nova memória
+              </a>
+            )}
+          </Vazio>
+        </div>
+      )
+    }
 
     {
       anos.map(({ ano, itens }) => (
         <>
-          {primeiroDaDecada.has(ano) && <div class="decada__ancora" id={`decada-${decadaDe(ano)}`} />}
-          <section class="ano miolo grade" aria-labelledby={`ano-${ano}`} data-decada={decadaDe(ano)}>
+          {peloTempo && primeiroDaDecada.has(ano) && <div class="decada__ancora" id={`decada-${decadaDe(ano)}`} />}
+          <section class:list={['ano miolo grade', !peloTempo && 'ano--corrida']} aria-labelledby={peloTempo ? `ano-${ano}` : undefined} aria-label={peloTempo ? undefined : 'Memórias'} data-decada={peloTempo ? decadaDe(ano) : undefined}>
             {/* Entre um ano e outro, o fio do tempo e os trilhos que vêm de cima continuam */}
             {posicaoDe.get(itens[0]!.id)! > 0 && (
               <div class="ano__passa" data-na-epoca={chaoDeCima(posicaoDe.get(itens[0]!.id)!)}>
                 <Trilhos estados={montagem.linhas[posicaoDe.get(itens[0]!.id)!]!.chega} capitulos={noTrilho(posicaoDe.get(itens[0]!.id)!)} />
               </div>
             )}
+            {peloTempo && (
             <header class="ano__cabeca" data-na-epoca={chaoDeCima(posicaoDe.get(itens[0]!.id)!)}>
               <h2 class="ano__numero" id={`ano-${ano}`}>
                 {ano}
@@ -205,13 +163,15 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                 </p>
               )}
             </header>
+            )}
             <div class="ano__itens">
               {itens.map((m) => {
                 const tipo = tipoDaMemoria(tipos, m);
                 const nomes = m.integrantes.map(nomeDe).filter((n): n is string => Boolean(n));
                 const restritaA = m.visibilidade === 'nucleos' ? m.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean) : [];
-                const destino = m.situacao === 'rascunho' ? `/nova?id=${m.id}` : `/conceito/memorias/${m.id}`;
-                const quando = diaMesCurto(m);
+                const destino = m.situacao === 'rascunho' ? `/nova?id=${m.id}` : `/memorias/${m.id}`;
+                // Na lista corrida não há o ano por cima: a data vem inteira
+                const quando = peloTempo ? diaMesCurto(m) : carimboDaData(m);
                 const posicao = posicaoDe.get(m.id)!;
                 const linha = montagem.linhas[posicao]!;
                 return (
@@ -259,7 +219,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                       <IconeDoTipo tipo={m.tipo} />
                       {quando && <span>{quando}</span>}
                       <span>{tipo.rotulo}</span>
-                      {m.aproximada && <span>data aproximada</span>}
+                      {m.aproximada && peloTempo && <span>data aproximada</span>}
                     </p>
                     {/* Toda memória tem o seu cartão: sem foto, ele leva a cor e o ícone do tipo de momento */}
                     <div class="entrada__foto">
@@ -295,7 +255,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                   {linha.fecha.map(capituloDe).map((c) => (
                     <div class="marca marca--fecha" data-n={c.trilho} data-capitulo={c.id} data-na-epoca={chaoEm(posicao)} style={`--n: ${c.trilho}; ${estiloDoCapitulo(c.cor)}`}>
                       <Trilhos estados={trilhosNaMarca(montagem, posicao, c.id, 'fecha')} capitulos={noTrilho(posicao)} />
-                      <p class="marca__texto ficha suave">Começo do capítulo “{c.titulo}”</p>
+                      <p class="marca__texto ficha suave">{pontaDeBaixo} do capítulo “{c.titulo}”</p>
                     </div>
                   ))}
                   {linha.epocaFecha.map(epocaDe).map((e) => {
@@ -303,7 +263,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                     return (
                       <div class="epoca epoca--fecha" data-na-epoca={chao(lados.fora)} data-chao={chao(lados.dentro)}>
                         <Trilhos estados={trilhosNaEpoca(montagem, posicao, 'fecha')} capitulos={noTrilho(posicao + 1)} />
-                        <p class="epoca__aba ficha suave">Começo da época “{e.titulo}”</p>
+                        <p class="epoca__aba ficha suave">{pontaDeBaixo} da época “{e.titulo}”</p>
                       </div>
                     );
                   })}
@@ -317,55 +277,13 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
     }
     </div>
   </div>
-</Visual>
+
 
 <script>
-  // O filtro por tipo e a década da barra, como na linha do tempo de hoje. O ponto do trilho
-  // acompanha a memória em leitura. Sem script, a lista inteira aparece e nada disso faz falta.
+  // A década da barra, o ano parado no alto e o destaque do capítulo. O ponto do trilho acompanha
+  // a memória em leitura. Sem script, a lista inteira aparece e nada disso faz falta.
   const raiz = document.querySelector<HTMLElement>('[data-linha-do-tempo]');
   if (raiz) {
-    const botoes = [...raiz.querySelectorAll<HTMLButtonElement>('[data-filtro]')];
-    const validos = new Set(botoes.map((b) => b.dataset.filtro));
-
-    const atual = raiz.querySelector<HTMLElement>('[data-filtro-atual]');
-    const aplicar = (tipo: string) => {
-      for (const b of botoes) b.setAttribute('aria-pressed', String(b.dataset.filtro === tipo));
-      // Fechado, o controle continua dizendo o que está escolhido
-      const escolhido = botoes.find((b) => b.dataset.filtro === tipo);
-      if (atual && escolhido) {
-        atual.replaceChildren(...[...escolhido.childNodes].map((no) => no.cloneNode(true)));
-        atual.setAttribute('style', escolhido.getAttribute('style') ?? '');
-      }
-      // Com o filtro, as memórias deixam de estar todas na tela: os trilhos e as marcas saem, e fica o sinal em cada memória
-      raiz.toggleAttribute('data-filtrando', Boolean(tipo));
-      for (const secao of raiz.querySelectorAll<HTMLElement>('.ano')) {
-        let visiveis = 0;
-        for (const entrada of secao.querySelectorAll<HTMLElement>('.entrada')) {
-          const mostra = !tipo || entrada.dataset.tipo === tipo;
-          entrada.hidden = !mostra;
-          if (mostra) visiveis++;
-        }
-        secao.hidden = visiveis === 0;
-        const contagem = secao.querySelector('[data-contagem]');
-        if (contagem) contagem.textContent = `${visiveis} ${visiveis === 1 ? 'memória' : 'memórias'}`;
-      }
-      // Década sem nenhuma memória do tipo escolhido sai da barra de salto
-      for (const item of raiz.querySelectorAll<HTMLElement>('.decadas [data-decada]')) {
-        item.hidden = !raiz.querySelector(`.ano[data-decada="${item.dataset.decada}"]:not([hidden])`);
-      }
-    };
-
-    for (const b of botoes) {
-      b.addEventListener('click', () => {
-        const tipo = b.dataset.filtro ?? '';
-        aplicar(tipo);
-        const url = new URL(location.href);
-        if (tipo) url.searchParams.set('tipo', tipo);
-        else url.searchParams.delete('tipo');
-        history.replaceState(null, '', url);
-      });
-    }
-
     // No computador, passar o mouse por um trilho acende o capítulo inteiro e diz o nome dele ao
     // lado do cursor (pedido do Gui, 16/11/2026: capítulo longo fica fácil de identificar). O foco
     // no título do capítulo faz o mesmo. No celular, o sinal em cada memória já diz o capítulo.
@@ -508,11 +426,6 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
     }
     addEventListener('scroll', pedirOsAnos, { passive: true });
     addEventListener('resize', pedirOsAnos, { passive: true });
-
-    const inicial = new URLSearchParams(location.search).get('tipo') ?? '';
-    if (inicial && validos.has(inicial)) {
-      aplicar(inicial);
-    }
 
     // A memória em leitura e a década dela: a que cruza o meio da tela
     if ('IntersectionObserver' in window) {

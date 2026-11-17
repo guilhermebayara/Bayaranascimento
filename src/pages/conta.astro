@@ -1,12 +1,10 @@
 ---
-// Conceito da revisão visual: "Sua conta" (docs/decisoes.md). A tela é desenhada na fase 3.
-// Esta página só existe para o retrato do topo ter aonde levar: ela junta, sem desenho próprio,
+// "Sua conta" (docs/decisoes.md). A tela é desenhada no grupo "pessoal" da fase 3 da revisão visual.
+// Até lá, esta página existe para o retrato do topo ter aonde levar: ela junta, sem desenho próprio,
 // o que a conta vai guardar e já existe hoje no site, inclusive o que saiu do menu e do rodapé.
-import '../../visual/telas/sobre.css';
-import Visual from '../../layouts/Visual.astro';
-import { conceitoDisponivel, naoEncontrado } from '../../lib/servidor/conceito';
-
-if (!conceitoDisponivel()) return naoEncontrado();
+import '../visual/telas/sobre.css';
+import Visual from '../layouts/Visual.astro';
+import { ehHomologacao } from '../lib/servidor/ambiente';
 
 const { usuario } = Astro.locals;
 ---
@@ -17,7 +15,7 @@ const { usuario } = Astro.locals;
       <p class="rotulo suave">Só você vê esta página</p>
       <h1 class="t-1">Sua conta</h1>
       <p class="sobre__texto">
-        Esta tela ainda vai ser desenhada, junto com as outras, na fase 3. Por enquanto ela só leva ao que já existe e vai morar aqui.
+        Esta tela ainda vai ser desenhada. Por enquanto ela só leva ao que já existe e vai morar aqui.
       </p>
     </header>
     <section aria-labelledby="suas-coisas">
@@ -36,6 +34,8 @@ const { usuario } = Astro.locals;
           <p class="conta__links">
             <a class="acao" href="/admin/tipos">Tipos de momento</a>
             <a class="acao" href="/admin/familias">Famílias</a>
+            <a class="acao" href="/admin/carta">Carta de Natal</a>
+            {ehHomologacao() && <a class="acao" href="/admin/espelho">Espelho da produção</a>}
             <a class="acao" href="/api/copia" download>
               Baixar cópia do acervo
             </a>

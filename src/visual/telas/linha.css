@@ -34,15 +34,15 @@
   padding-bottom: var(--e-3);
 }
 
-/* As famílias: a linha do tempo de cada uma. No celular elas não cabem numa linha: ficam em duas
-   colunas, de propósito, em vez de uma quebra de linha solta. */
-.linha__familias {
+/* As formas de ver e as famílias: uma opção por link. No celular elas não cabem numa linha: ficam em
+   duas colunas, de propósito, em vez de uma quebra de linha solta. */
+.linha__opcoes {
   display: grid;
   grid-template-columns: repeat(2, max-content);
   gap: 0 var(--e-6);
   font-size: var(--t-pequeno);
 }
-.linha__familias a {
+.linha__opcoes a {
   display: inline-flex;
   align-items: center;
   min-height: var(--toque);
@@ -50,10 +50,10 @@
   text-decoration: none;
   white-space: nowrap;
 }
-.linha__familias a:hover {
+.linha__opcoes a:hover {
   color: var(--tinta);
 }
-.linha__familias a[aria-current] {
+.linha__opcoes a[aria-current] {
   color: var(--tinta);
   font-weight: 600;
   text-decoration: underline;
@@ -61,8 +61,8 @@
   text-underline-offset: 0.4em;
 }
 
-/* O tipo: fechado, o controle diz o tipo escolhido; aberto, a lista aparece logo abaixo dele, no
-   mesmo lugar, empurrando a linha do tempo. O controle não muda de lugar ao abrir. */
+/* Os filtros e a ordem: fechado, o controle diz o que está ligado; aberto, o formulário aparece logo
+   abaixo dele, no mesmo lugar, empurrando a página. O controle não muda de lugar ao abrir. */
 .filtros summary {
   display: inline-flex;
   align-items: center;
@@ -77,13 +77,12 @@
   display: none;
 }
 .filtros summary span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
+  text-wrap: balance;
 }
 /* O sinal de mais vira xis quando a lista abre, como no menu */
 .filtros summary::after {
   content: '';
+  flex: none;
   width: 0.7em;
   height: 0.7em;
   background:
@@ -91,42 +90,9 @@
     linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
   transition: rotate var(--tempo-medio) var(--curva);
 }
-.filtros[open] summary::after {
+.filtros[open] > summary::after,
+.filtros details[open] > summary::after {
   rotate: 45deg;
-}
-.filtros :is(summary, button) .icone {
-  width: 1.5em;
-  height: 1.5em;
-  color: var(--tipo-cor);
-}
-.filtros ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--e-5);
-  padding-bottom: var(--e-3);
-}
-.filtros button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-  min-height: var(--toque);
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--tinta-suave);
-  font: inherit;
-  font-size: var(--t-pequeno);
-  cursor: pointer;
-}
-.filtros button:hover {
-  color: var(--tinta);
-}
-.filtros button[aria-pressed='true'] {
-  color: var(--tinta);
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-thickness: var(--traco);
-  text-underline-offset: 0.4em;
 }
 
 /* A barra de décadas fica parada no alto, como na linha do tempo de hoje */
@@ -769,7 +735,7 @@ html.pino-novo .parada__ano[data-vazia] {
   /* A assinatura ocupa dois terços da largura e a conta das memórias fecha a linha à direita, embaixo.
      Os controles vêm depois, na largura inteira, com o nome de cada um numa coluna à esquerda. */
   .linha {
-    --coluna-do-nome: 7.5rem;
+    --coluna-do-nome: 9rem;
   }
   .linha__capa {
     display: grid;
@@ -805,7 +771,7 @@ html.pino-novo .parada__ano[data-vazia] {
     min-height: var(--toque);
     margin: 0;
   }
-  .linha__familias {
+  .linha__opcoes {
     display: flex;
     flex-wrap: wrap;
     gap: 0 var(--e-6);

@@ -225,7 +225,7 @@ describe('monograma', () => {
 });
 
 describe('tokens e peças', () => {
-  const fontesDasTelas = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro', '../src/lib/visual.ts'], {
+  const fontesDasTelas = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro', '../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/conta.astro', '../src/components/explorar/*.astro', '../src/lib/visual.ts'], {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -262,7 +262,7 @@ describe('tokens e peças', () => {
   });
 
   it('as telas usam as peças, sem reescrever a marcação delas', () => {
-    const telas = Object.entries(fontesDasTelas).filter(([caminho]) => caminho.includes('/pages/conceito/') || caminho.includes('/layouts/'));
+    const telas = Object.entries(fontesDasTelas).filter(([caminho]) => caminho.includes('/pages/') || caminho.includes('/components/explorar/') || caminho.includes('/layouts/'));
     expect(telas.length).toBeGreaterThanOrEqual(6);
     for (const [caminho, fonte] of telas) {
       expect(fonte, caminho).not.toMatch(/class="(carimbo|etiqueta|audio|bilhete|bilhete__assina|assinatura|sinal|verso)"/);

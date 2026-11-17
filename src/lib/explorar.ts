@@ -201,3 +201,71 @@ export function sortear<M extends { id: string }>(memorias: M[], anterior: strin
   if (candidatas.length === 0) return undefined;
   return candidatas[Math.min(candidatas.length - 1, Math.floor(sorte() * candidatas.length))];
 }
+
+// --- A tela do Explorar: as formas de ver e o endereço de cada uma -----------------------------
+
+/** As formas de ver do Explorar. No endereço, "ver"; sem ele, a linha do tempo. */
+export type Forma = 'linha' | 'mural' | 'tv' | 'acaso';
+export const FORMAS: Forma[] = ['linha', 'mural', 'tv', 'acaso'];
+export const FORMA_PADRAO: Forma = 'linha';
+
+export const NOMES_DAS_FORMAS: Record<Forma, string> = {
+  linha: 'Linha do tempo',
+  mural: 'Mural de fotos',
+  tv: 'Modo TV',
+  acaso: 'Me mostre uma memória',
+};
+
+export function lerForma(p: URLSearchParams): Forma {
+  const ver = p.get('ver');
+  return FORMAS.includes(ver as Forma) ? (ver as Forma) : FORMA_PADRAO;
+}
+
+/**
+ * O endereço do Explorar com os filtros, a ordem e a forma de ver. `mais` leva o que é só de uma
+ * forma: a memória da vez no modo TV e no "ao acaso" (`m`), "passar sozinho" (`passar`).
+ */
+export function enderecoDoExplorar(f: Filtros, forma: Forma = FORMA_PADRAO, mais: Record<string, string | undefined> = {}): string {
+  const p = paraEndereco(f);
+  if (forma !== FORMA_PADRAO) p.set('ver', forma);
+  for (const [nome, valor] of Object.entries(mais)) if (valor) p.set(nome, valor);
+  const busca = p.toString();
+  return busca ? `/explorar?${busca}` : '/explorar';
+}
+
+/** Os nomes de que o resumo precisa: de cada id, o nome que aparece na tela. */
+export interface NomesDosFiltros {
+  tipo: (id: string) => string | undefined;
+  pessoa: (id: string) => string | undefined;
+  capitulo: (id: string) => string | undefined;
+  tema: (id: string) => string | undefined;
+}
+
+/**
+ * Os filtros ligados, um por item, como aparecem escritos no controle fechado. A família não entra:
+ * ela tem o controle dela, logo acima. O que o endereço pede e não existe (um tipo apagado, um
+ * capítulo que a pessoa não vê) não é escrito.
+ */
+export function resumoDosFiltros(f: Filtros, nomes: NomesDosFiltros): string[] {
+  const achados = (ids: string[], nome: (id: string) => string | undefined) => ids.map(nome).filter((n): n is string => Boolean(n));
+  const itens = [...achados(f.tipos, nomes.tipo)];
+  const pessoas = achados(f.pessoas, nomes.pessoa);
+  if (pessoas.length) itens.push(pessoas.length === 1 ? `com ${pessoas[0]}` : `com ${pessoas.slice(0, -1).join(', ')} e ${pessoas.at(-1)} juntos`);
+  itens.push(...achados(f.capitulos, nomes.capitulo), ...achados(f.temas, nomes.tema));
+  if (f.decada !== null) itens.push(`anos ${f.decada}`);
+  if (f.de !== null && f.ate !== null) itens.push(f.de === f.ate ? `${f.de}` : `de ${f.de} a ${f.ate}`);
+  else if (f.de !== null) itens.push(`de ${f.de} em diante`);
+  else if (f.ate !== null) itens.push(`até ${f.ate}`);
+  if (f.comFoto) itens.push('com foto');
+  if (f.comAudio) itens.push('com áudio');
+  if (f.contou) itens.push('você já contou');
+  if (f.falta) itens.push('você estava e ainda não contou');
+  return itens;
+}
+
+/** As vizinhas de uma memória numa lista: a de antes e a de depois, na ordem em que a lista está. */
+export function vizinhasNaLista<M extends { id: string }>(memorias: M[], id: string): { posicao: number; antes?: M; depois?: M } {
+  const posicao = memorias.findIndex((m) => m.id === id);
+  if (posicao < 0) return { posicao };
+  return { posicao, antes: memorias[posicao - 1], depois: memorias[posicao + 1] };
+}

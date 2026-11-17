@@ -62,10 +62,10 @@ const banco = usuario.admin ? situacaoDoBanco(await tamanhoDoBanco()) : undefine
       <a class="topo__nome" href="/">Memórias Bayara e Bracarense</a>
       <nav class="topo__nav" aria-label="Seções">
         <a href="/" aria-current={caminho === '/' ? 'page' : undefined}>Início</a>
-        <a href="/tudo" aria-current={caminho === '/tudo' && !nucleoAtual ? 'page' : undefined}>Tudo</a>
+        <a href="/explorar" aria-current={caminho === '/explorar' && !nucleoAtual ? 'page' : undefined}>Explorar</a>
         {
           nucleos.map((n) => (
-            <a href={`/tudo?nucleo=${n.id}`} aria-current={caminho === '/tudo' && nucleoAtual === n.id ? 'page' : undefined}>
+            <a href={`/explorar?nucleo=${n.id}`} aria-current={caminho === '/explorar' && nucleoAtual === n.id ? 'page' : undefined}>
               {n.nome}
             </a>
           ))

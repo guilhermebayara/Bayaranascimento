@@ -1,6 +1,6 @@
 ---
-// O esqueleto do visual novo (docs/visual.md, "Revisão do zero" e "Sistema"). Por enquanto ele
-// serve só as telas de /conceito; na fase 3, as telas do site passam para ele uma a uma.
+// O esqueleto do visual novo (docs/visual.md, "Revisão do zero" e "Sistema"). Na fase 3, as telas
+// do site passam para ele grupo a grupo: o menu já aponta para os endereços de verdade.
 // Não importa nada de src/styles/global.css: o estilo inteiro vem de src/visual/sistema.ts.
 import '../visual/sistema';
 import Assinatura from '../components/visual/Assinatura.astro';
@@ -23,12 +23,14 @@ interface Props {
   /** A cor da tela, quando não é a dos núcleos: 'tudo' ou a posição do núcleo ('0', '1', '2', '3') */
   familia?: string;
   /** Qual item do menu está aberto */
-  secao?: 'painel' | 'linha' | 'conceito' | 'conta';
+  secao?: 'painel' | 'explorar' | 'conceito' | 'conta';
   /** A página que só a pessoa vê: tingida na cor da família dela */
   intimo?: boolean;
+  /** O modo TV: a tela inteira é da memória, sem o topo, o menu e o rodapé */
+  palco?: boolean;
 }
 
-const { titulo, nucleos = [], secao, intimo = false } = Astro.props;
+const { titulo, nucleos = [], secao, intimo = false, palco = false } = Astro.props;
 const { usuario } = Astro.locals;
 const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
 const assinatura = assinaturaDaTela(nucleos, await listarNucleos());
@@ -41,7 +43,7 @@ const teste = semLogin();
 const integrantes = await listarIntegrantes();
 const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
 // "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo. A tela é
-// da fase 3; no conceito, o endereço leva a uma página de passagem, com o que já existe hoje.
+// do grupo "pessoal" da fase 3; até lá, o endereço leva a uma página de passagem, com o que já existe.
 const meuRetrato = integrantes.find((i) => i.id === usuario.pessoa)?.retrato;
 const aqui = Astro.url.pathname + Astro.url.search;
 const volta = encodeURIComponent(aqui);
@@ -51,8 +53,8 @@ const primeiraVisita = Astro.url.searchParams.get('visita') === 'primeira';
 // "Memórias", no alto, leva ao início, mas o menu também diz "Início": quem tem menos familiaridade
 // com sites não precisa adivinhar (pedido do Gui, 16/11/2026)
 const menu = [
-  { href: '/conceito', texto: 'Início', atual: secao === 'painel' },
-  { href: '/conceito/tudo', texto: 'Linha do tempo', atual: secao === 'linha' },
+  { href: '/', texto: 'Início', atual: secao === 'painel' },
+  { href: '/explorar', texto: 'Explorar', atual: secao === 'explorar' },
   { href: '/capitulos', texto: 'Capítulos', atual: false },
   { href: '/arvore', texto: 'Árvore', atual: false },
   { href: '/pessoas', texto: 'Pessoas', atual: false },
@@ -60,8 +62,8 @@ const menu = [
 const telas = [
   { href: '/conceito?visita=primeira', texto: 'Carta', atual: caminho === '/conceito' && primeiraVisita },
   { href: '/conceito', texto: 'Painel', atual: caminho === '/conceito' && !primeiraVisita },
-  { href: '/conceito/tudo', texto: 'Linha do tempo', atual: caminho === '/conceito/tudo' },
-  { href: '/conceito/memorias/2025-natal', texto: 'Memória', atual: caminho.startsWith('/conceito/memorias') },
+  { href: '/explorar', texto: 'Explorar', atual: caminho === '/explorar' },
+  { href: '/memorias/2025-natal', texto: 'Memória', atual: caminho.startsWith('/memorias') },
   { href: '/conceito/sobre', texto: 'Fontes', atual: caminho === '/conceito/sobre' },
   { href: '/conceito/sistema', texto: 'Sistema', atual: caminho === '/conceito/sistema' },
 ];
@@ -93,10 +95,10 @@ const telas = [
   </head>
   <body>
     {
-      teste && (
+      teste && !palco && (
         <details class="teste">
           <summary>
-            <span>Conceito do visual novo, com o acervo de exemplo.</span>
+            <span>Visual novo, com o acervo de exemplo.</span>
             <span>
               Fontes {combinacaoEmUso?.toUpperCase() ?? 'misturadas'}, vendo como {usuario.nome}. <u>Trocar</u>
             </span>
@@ -127,14 +129,16 @@ const telas = [
               ))}
             </p>
             <p>
-              <a href="/">Site atual</a>
+              <a href="/">Início do site</a>
             </p>
           </div>
         </details>
       )
     }
+    {
+      !palco && (
     <header class="topo">
-      <a class="topo__marca" href="/conceito" aria-label="Memórias Bayara e Bracarense, página inicial">
+      <a class="topo__marca" href="/" aria-label="Memórias Bayara e Bracarense, página inicial">
         <span class="topo__monograma" aria-hidden="true">
           <Monograma />
         </span>
@@ -150,7 +154,7 @@ const telas = [
         }
         <a class="topo__acao" href="/nova">Nova memória</a>
       </nav>
-      <a class="topo__conta" href="/conceito/conta" aria-label={`Sua conta, ${usuario.nome}`} aria-current={secao === 'conta' ? 'page' : undefined}>
+      <a class="topo__conta" href="/conta" aria-label={`Sua conta, ${usuario.nome}`} aria-current={secao === 'conta' ? 'page' : undefined}>
         <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
         <span class="topo__conta-nome" aria-hidden="true">{usuario.nome}</span>
       </a>
@@ -164,19 +168,25 @@ const telas = [
               </a>
             ))
           }
-          <a href="/conceito/conta" aria-current={secao === 'conta' ? 'page' : undefined}>Sua conta</a>
+          <a href="/conta" aria-current={secao === 'conta' ? 'page' : undefined}>Sua conta</a>
           <a class="menu__acao acao" href="/nova">Nova memória</a>
         </nav>
       </details>
     </header>
+      )
+    }
     <main>
       <slot />
     </main>
+    {
+      !palco && (
     <footer class="rodape">
       <div class="rodape__linha">
         <p>Acervo privado da família. Você entrou como {usuario.nome}.</p>
       </div>
       <Assinatura sobrenomes={assinatura.sobrenomes} />
     </footer>
+      )
+    }
   </body>
 </html>

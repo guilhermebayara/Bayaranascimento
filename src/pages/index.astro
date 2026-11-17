@@ -26,7 +26,7 @@ import {
 
 // Os endereços antigos da linha do tempo ("/?nucleo=...") continuam funcionando. Os recados de uma
 // ação ("?ok=", "?erro=") são do painel e ficam aqui.
-if ([...Astro.url.searchParams.keys()].some((k) => k !== 'ok' && k !== 'erro')) return Astro.redirect(`/tudo${Astro.url.search}`, 301);
+if ([...Astro.url.searchParams.keys()].some((k) => k !== 'ok' && k !== 'erro')) return Astro.redirect(`/explorar${Astro.url.search}`, 301);
 
 const { usuario } = Astro.locals;
 const agora = new Date();
@@ -148,7 +148,7 @@ const paragrafos = (texto: string) => texto.split(/\n\s*\n/).map((p) => p.trim()
   }
 
   <p class="acoes">
-    <a class="botao botao--leve" href="/tudo">Ver todas as memórias</a>
+    <a class="botao botao--leve" href="/explorar">Ver todas as memórias</a>
     {carta && !chegada.cartaNoAlto && <a href="/carta">Carta de Natal</a>}
   </p>
 

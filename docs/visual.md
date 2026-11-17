@@ -74,8 +74,8 @@ Construído em 16/11/2026 na branch `tst-visual`, em oito rodadas: a primeira ve
 | --- | --- |
 | Carta da primeira visita | `/conceito?visita=primeira` |
 | Painel, numa visita seguinte | `/conceito` |
-| Linha do tempo (Tudo e cada família) | `/conceito/tudo` |
-| Memória | `/conceito/memorias/<id>` |
+| Linha do tempo (Tudo e cada família) | `/conceito/tudo` (desde a fase 3, `/explorar`) |
+| Memória | `/conceito/memorias/<id>` (desde a fase 3, `/memorias/<id>`) |
 | Fontes, assinatura, cores e peças lado a lado | `/conceito/sobre` |
 
 A faixa do alto (só nas prévias e no computador) troca de tela, de combinação de fontes e de pessoa. As rotas respondem 404 na produção e na homologação, porque o painel usa dados fixos de exemplo (`src/lib/servidor/conceito.ts`, conferido pela guarda da produção).
@@ -210,7 +210,7 @@ O CSS das peças está em `src/visual/pecas.css` (as ações estão em `base.css
 | Um período ou uma data aproximada | `Pilula.astro` | `<Pilula>2018–2020</Pilula>` |
 | A ficha (quando, onde, tipo, capítulos) | `Ficha.astro` e `Dado.astro` | `<Ficha><Dado rotulo="Quando">…</Dado></Ficha>` |
 | A foto de uma pessoa | `Retrato.astro` | `nome`, `foto` (o endereço, de `enderecoDoRetrato`, ou nada), `familia` (de `corDaPessoa`). `redondo` só no topo |
-| Uma pessoa com nome e parentesco | classes `pessoa` e `pessoa__nome` | Um link com o `Retrato`, o nome e o parentesco em `ficha suave` (ver "Quem estava" em `src/pages/conceito/memorias/[id].astro`) |
+| Uma pessoa com nome e parentesco | classes `pessoa` e `pessoa__nome` | Um link com o `Retrato`, o nome e o parentesco em `ficha suave` (ver "Quem estava" em `src/pages/memorias/[id].astro`) |
 | Um relato | `Bilhete.astro` | `por`, `registradoPor` (só quando não foi a própria pessoa) e o conteúdo dentro: `Audio`, depois `<div class="bilhete__texto">`. Com `href`, o bilhete inteiro vira link |
 | Um áudio | `Audio.astro` | `rotulo`, `src`, `transcricao` |
 | O capítulo de uma memória | `SinalDoCapitulo.astro` | `id`, `titulo` e `cor` (a posição dada pela montagem, `src/lib/linha-capitulos.ts`) |
@@ -414,6 +414,52 @@ Hoje a ação principal fica no alto (decisão do QA de UX). Mantenha um atalho 
 - **Linha do tempo:** lista vertical, a barra de décadas parada no alto como já está, um trilho fino com um ponto marcando a memória em leitura (Folira). Cada memória com a polaroid da foto-chave e a legenda "lugar (ano)".
 - **Capítulo e laço:** título, período e pessoas parados à esquerda no computador; à direita, os marcos numerados, com data e lugar em mono (Union, "Our story"). As fases do casal em sanfona (Union, "The journey").
 - **Data aproximada e período:** em pílula, como no Folira ("2018-2020", "por volta de 1994").
+
+## Todas as telas (fase 3), em andamento
+
+Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo>` nascida da `homologa` atualizada. O Gui confere as capturas e a prévia de cada um antes do seguinte.
+
+| Grupo | Telas | Situação |
+| --- | --- | --- |
+| 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar`. Espera a conferência do Gui |
+| 2. `pessoal` | Painel, carta de Natal, sua conta e a página da pessoa | A fazer |
+| 3. `familia` | Capítulo, tema, pessoas e árvore (a árvore muda só de aparência) | A fazer |
+| 4. `formularios` | Nova memória, relato, cadastro guiado, laços, capítulo, administração, rascunhos e lixeira. Por fim, apagar `src/styles/global.css` | A fazer |
+
+### Grupo 1: Explorar e a página da memória
+
+**Endereços.** "Tudo" virou "Explorar", em `/explorar`. `/tudo` e os endereços antigos (`/?nucleo=...`) levam para lá com os mesmos filtros. As telas `/conceito/tudo` e `/conceito/memorias/<id>` saíram: viraram `/explorar` e `/memorias/<id>`, com os dados de verdade. O menu e a marca do topo de `Visual.astro` apontam para os endereços de verdade ("Início" em `/`, "Explorar" em `/explorar`), e o menu do visual antigo (`Base.astro`) também diz "Explorar".
+
+**Onde está.** A página é `src/pages/explorar.astro`; as partes, em `src/components/explorar/`: `Controles.astro`, `Linha.astro` (a linha do tempo do conceito, com o script dela), `Mural.astro` e `Palco.astro` (modo TV e ao acaso). O CSS da linha do tempo continua em `telas/linha.css`; o do formulário dos filtros, do mural e do palco, em `telas/explorar.css`. As regras continuam em `src/lib/explorar.ts`, que ganhou as formas de ver (`lerForma`), o endereço (`enderecoDoExplorar`) e o resumo dos filtros (`resumoDosFiltros`), com teste.
+
+**Os controles**, um embaixo do outro, cada um com nome e lugar fixo: **Forma de ver** (Linha do tempo, Mural de fotos, Modo TV, Me mostre uma memória), **Família** (como no conceito) e **Filtros**, que fechado diz o que está ligado e a ordem ("Viagem · com foto · Mais contadas") e aberto mostra, no mesmo lugar, um formulário só: ordem, tipo de momento, o que a memória tem (foto, áudio), seus relatos, período (década, ou de um ano a outro) e, recolhidos, quem estava junto, capítulo e tema. O botão é "Mostrar memórias". Tudo é link ou formulário comum: funciona sem script e fica no endereço. O filtro por tipo do conceito, que trocava a lista no navegador, saiu: o tipo agora é um dos filtros do formulário.
+
+**Linha do tempo.** A do conceito, sem mudança de desenho. Os trilhos, as épocas e a faixa de décadas só aparecem quando `mostraTrilhos` deixa. Em "Mais antigas primeiro", a página leva ao presente e o trilho acaba, embaixo, em "Fim do capítulo “Natais”" e "Fim da época “…”" (texto novo, para o Gui confirmar). Em "Entraram por último" e "Mais contadas", a lista é corrida, sem a divisória dos anos, e cada memória traz a data inteira.
+
+**Mural.** Só as fotos-chave como fotos reveladas, cada uma com a inclinação dela e um pouco fora de fila: três colunas no celular, seis no computador, oito na tela grande. Sem texto; a memória sem foto leva o título na margem do cartão, na cor do tipo.
+
+**Modo TV.** Uma memória por página, na tela inteira, sem o topo e o rodapé do site: a cor do tipo de momento no fundo, a foto inteira com margem de ampliação, o carimbo, o título, um trecho do relato assinado à mão e quem estava. "Anterior" e "Próxima" são links, com o foco já em "Próxima" (no controle da TV, o botão do meio passa); as setas do teclado passam, o Esc sai e tocar na foto passa para a seguinte. "Passar sozinho" só existe com script e troca a cada 10 segundos; ligado, a última volta à primeira. A troca esmaece pela transição entre páginas do navegador, só para quem não pediu menos movimento. A memória da vez vai no endereço (`m`).
+
+**Ao acaso.** "Me mostre uma memória" sorteia entre as que passam nos filtros e leva ao endereço da sorteada, no mesmo palco, com o topo do site. "Me mostre outra" sorteia de novo, sem repetir a que estava na tela.
+
+O mural, o modo TV e o sorteio não mostram rascunho: o rascunho só aparece na linha do tempo de quem escreveu.
+
+**Página da memória.** A do conceito, com os dados de verdade. Saiu o que era fixo: as fotos "que vieram com o relato" só voltam quando "Fotos pelo relato" existir no banco (o desenho continua em `.bilhete__fotos`, em `telas/memoria.css`). Os links de histórico, relato, corrigir e excluir levam às telas antigas, que são do grupo 4.
+
+**Sua conta, de passagem.** `/conta` é a página de passagem que estava em `/conceito/conta`, agora em todos os ambientes, para o retrato do topo ter aonde levar: sua página, editar seus dados, rascunhos, lixeira e, para os administradores, tipos de momento, famílias, carta de Natal, a cópia do acervo e, na homologação, o espelho. A tela de verdade é do grupo 2.
+
+**Para o Gui decidir neste grupo:** o endereço `/explorar`; os nomes dos controles ("Forma de ver", "Filtros") e os textos do formulário ("O que a memória tem", "Seus relatos", "Você já contou", "Você estava e ainda não contou", "Quem estava junto", "Mostrar memórias", "Limpar filtros", "Nenhuma memória passa nesses filtros."); "Fim do capítulo" e "Fim da época" na ordem das mais antigas; os textos do palco ("Sair do modo TV", "Passar sozinho", "Parar de passar sozinho", "Abrir esta memória", "Uma memória ao acaso", "Me mostre outra", "Voltar ao Explorar"); os 10 segundos do "Passar sozinho"; e o mural sem ano nem lugar na margem das fotos.
+
+**Capturas.** `CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>`. As deste grupo estão em `docs/visual/fase-3/explorar/`.
+
+### O que falta, para a sessão seguinte
+
+- **Grupos 2, 3 e 4**, na ordem da tabela, cada um numa branch nova nascida da `homologa` depois do merge do anterior.
+- **A página do sistema** (seção abaixo): muda para `/sistema` no grupo em que o painel do conceito sair, que é o 2, junto com a seção "Administração" da conta, com o teste em `testes/sistema.test.ts` (toda peça do sistema aparece na página) e a verificação em `scripts/confere-producao.mjs` (a página não usa fotos de exemplo fora das prévias). Neste grupo ela não foi tocada. As peças novas daqui (os controles, o mural e o palco) são das telas, e não do sistema.
+- **O que ainda está em `/conceito`:** o painel e a carta (`/conceito`), as fontes (`/conceito/sobre`) e o sistema. O painel sai no grupo 2; as fontes ficam até a escolha.
+- **"Família" no lugar de "núcleo":** feito na página da memória ("Famílias" na ficha). Falta nas telas dos grupos 3 e 4.
+- **Camadas do CSS (`@layer`):** reavaliar no grupo 4, quando o `global.css` sair.
+- **No iPhone:** o modo TV e o mural não têm nada parado no alto. A linha do tempo continua com o modelo já conferido.
 
 ## A página do sistema fica (decisão do Gui, 16/11/2026)
 
