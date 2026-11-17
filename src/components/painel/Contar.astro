@@ -1,0 +1,35 @@
+---
+// O cartão "Você estava lá e ainda não contou", do Início: a foto, o título e o botão da tela.
+// Fica entre os cartões e, num dia sem novidade e sem "Neste dia", sobe para a mesa, ao lado da
+// abertura (src/lib/painel.ts, composicaoDoInicio). O estilo está em telas/painel.css.
+import Polaroid from '../visual/Polaroid.astro';
+import type { DataFlexivel } from '../../lib/datas';
+import { carimboDaData, estiloDoTipo, legendaLugarAno } from '../../lib/visual';
+
+interface Props {
+  memoria: DataFlexivel & { id: string; titulo: string; tipo: string; lugar: string | null; fotos: { chave: string; legenda: string | null }[] };
+}
+
+const { memoria } = Astro.props;
+---
+
+<section class="cartao contar" aria-labelledby="contar" style={estiloDoTipo(memoria.tipo)}>
+  <h2 class="cartao__titulo rotulo">Você estava lá e ainda não contou</h2>
+  <div class="contar__miolo">
+    {/* A foto leva à memória, como o título ao lado. Para o teclado e o leitor de tela, o link é o do título */}
+    <a class="contar__foto" href={`/memorias/${memoria.id}`} tabindex="-1" aria-hidden="true">
+      <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} alt="" monte={false} tipo={memoria.tipo} />
+    </a>
+    <div class="contar__texto">
+      <p class="contar__titulo serifa t-3" id="contar">
+        <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>
+      </p>
+      <p class="ficha suave">{carimboDaData(memoria)}</p>
+    </div>
+    <p class="contar__acao">
+      <a class="botao" href={`/memorias/${memoria.id}/relato`}>
+        Escrever meu relato
+      </a>
+    </p>
+  </div>
+</section>

@@ -4,20 +4,39 @@
 // que entrou de novo, como o envelope do laboratório que chega com fotos que a pessoa ainda não
 // viu. Aniversários e atalhos, em segundo plano.
 //
+// A composição segue as respostas do Gui ao QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md,
+// P13 a P28): na primeira visita, só a carta; sem novidade, a mesa recebe "Neste dia" ou a memória
+// para contar; contar vem antes de "Neste dia"; os cartões se ajustam a quantos são. Quem decide
+// onde cada parte fica é composicaoDoInicio(), em src/lib/painel.ts.
+//
 // É a página que só a pessoa vê, e por isso tem cara própria (pedido do Gui, 16/11/2026): a página
 // inteira tingida na cor da família dela, o conteúdo em cartões, o nome dela sublinhado a caneta e
 // o aviso "Só você vê esta página". As regras ficam em src/lib/painel.ts.
 import '../visual/telas/painel.css';
 import Visual from '../layouts/Visual.astro';
 import Carta from '../components/Carta.astro';
-import Bilhete from '../components/visual/Bilhete.astro';
+import Contar from '../components/painel/Contar.astro';
+import Fila from '../components/painel/Fila.astro';
 import IconeDoTipo from '../components/visual/IconeDoTipo.astro';
 import Polaroid from '../components/visual/Polaroid.astro';
 import Rabisco from '../components/visual/Rabisco.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
 import { familiaMaisRecente } from '../lib/familias';
-import { TITULO_DA_PROXIMIDADE, aniversarios, chegarAoPainel, emOutrosAnos, hojeNoBrasil, memoriaParaContar, novidades, type Dia } from '../lib/painel';
+import { seusRascunhos } from '../lib/conta';
+import {
+  TITULO_DA_PROXIMIDADE,
+  aniversarios,
+  anoDaUltimaVisita,
+  chegarAoPainel,
+  composicaoDoInicio,
+  emOutrosAnos,
+  hojeNoBrasil,
+  memoriaParaContar,
+  nomeParaQuemOlha,
+  novidades,
+  type Dia,
+} from '../lib/painel';
 import { Familia, possessivo, type Tratamento } from '../lib/parentesco';
 import { enderecoDoRetrato } from '../lib/retratos';
 import { semLogin } from '../lib/servidor/acesso';
@@ -29,13 +48,14 @@ import {
   listarMemorias,
   listarNucleos,
   listarRelatosPublicadosDesde,
+  listarRelatosRegistradosPor,
   memoriasComRelatoDe,
   obterCarta,
   obterVisitas,
   pessoasQueONaoVe,
   salvarVisitas,
 } from '../lib/servidor/repositorio';
-import { carimboDaData, corDaPessoa, corDoNucleo, diaMesCurto, estiloDoTipo, legendaLugarAno, trechoDoRelato } from '../lib/visual';
+import { corDaPessoa, corDoNucleo, diaMesCurto, estiloDoTipo, legendaLugarAno, nomeDaDecada } from '../lib/visual';
 
 // Os endereços antigos da linha do tempo ("/?nucleo=...") continuam funcionando. Os recados de uma
 // ação ("?ok=", "?erro=") são do painel e ficam aqui. "hoje" só vale fora da produção (abaixo).
@@ -68,15 +88,15 @@ const familia = new Familia(filiacoes, casais, tratamentos);
 // A Giovanna e o Magno veem a cor da família que criaram juntos (decisão do Gui, 16/11/2026).
 const minhaFamilia = familiaMaisRecente({ familias: new Map(integrantes.map((i) => [i.id, familiasDe(i)])), casais, filiacoes }, usuario.pessoa);
 const corDoPainel = corDoNucleo(minhaFamilia, ordemDosNucleos);
-/** "sua avó", do ponto de vista de quem olha. O nome vem escrito ao lado. */
-const paraVoce = (id: string) => {
+/**
+ * O nome e o parentesco do ponto de vista de quem olha: "Tia Cida" para o sobrinho, sem "sua tia"
+ * embaixo, e "Lourdes", "sua irmã", para a irmã da Tia Lourdes (nomeParaQuemOlha, em src/lib/painel.ts).
+ */
+const paraQuemOlha = (id: string) => {
   const relacao = familia.relacao(usuario.pessoa, id);
-  if (!relacao) return undefined;
-  const dito = possessivo(relacao, achar(id)?.tratamento ?? null);
-  // Sem repetir o parentesco quando o apelido já traz: "Tia Cida" não ganha "sua tia" embaixo
-  const [, ...resto] = dito.split(' ');
-  return nome(id).toLowerCase().startsWith(`${resto.join(' ').toLowerCase()} `) ? undefined : dito;
+  return nomeParaQuemOlha(nome(id), relacao ? possessivo(relacao, achar(id)?.tratamento ?? null) : undefined);
 };
+const nomeVisto = (id: string) => paraQuemOlha(id).nome;
 
 // Só o que a pessoa pode ver, da mais antiga para a mais nova. No painel, só o que foi publicado.
 const todas = await listarMemorias(usuario);
@@ -93,7 +113,14 @@ const novo = chegada.novidadesDesde
 // no conceito. O resto fica numa linha, com o caminho para "Entraram por último", no Explorar.
 const naMesa = novo.memorias.slice(0, 2);
 const relatoNaMesa = novo.relatos[0];
-const textoDoRelato = relatoNaMesa?.texto ?? '';
+// O bilhete do relato novo: o rótulo diz só "Relato novo" e o título da memória vem numa linha própria (P24)
+const relatoDaFila = relatoNaMesa && {
+  memoriaId: relatoNaMesa.memoriaId,
+  titulo: porId.get(relatoNaMesa.memoriaId)?.titulo ?? '',
+  texto: relatoNaMesa.texto ?? '',
+  por: nomeVisto(relatoNaMesa.por),
+  registradoPor: relatoNaMesa.registradoPor !== relatoNaMesa.por ? nomeVisto(relatoNaMesa.registradoPor) : null,
+};
 const foraDaMesa = novo.memorias.length - naMesa.length + novo.relatos.length - (relatoNaMesa ? 1 : 0);
 const POR_EXTENSO = ['nenhuma', 'uma', 'duas', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez'];
 const contar = (n: number, um: string, varios: string, masculino = false) => {
@@ -116,7 +143,7 @@ function diaPedido(): Dia | undefined {
 const hoje = diaPedido() ?? hojeNoBrasil(agora);
 const ultimaVisita = chegada.novidadesDesde ? hojeNoBrasil(new Date(`${chegada.novidadesDesde.replace(' ', 'T')}Z`)) : undefined;
 
-// --- Aniversários dos próximos 30 dias --------------------------------------------------------
+// --- Os próximos aniversários (30 dias) ------------------------------------------------------------
 const proximos = aniversarios(integrantes, hoje, naoVe, usuario.pessoa);
 const quando = (emDias: number, dia: number, mes: number) => (emDias === 0 ? 'Hoje' : emDias === 1 ? 'Amanhã' : diaMesCurto({ dia, mes }));
 
@@ -130,6 +157,22 @@ const outrosAnos = emOutrosAnos(memorias, hoje);
 const primeiroAno = memorias[0]?.ano;
 const ultimoAno = memorias.at(-1)?.ano;
 const decadas = [...new Set(recentes.map((m) => Math.floor(m.ano / 10) * 10))];
+
+// --- Os rascunhos da pessoa -------------------------------------------------------------------
+// Uma linha na abertura, para continuar o que ficou pela metade (P6). A lista mora em "Sua conta".
+const rascunhos = seusRascunhos(usuario.pessoa, await listarMemorias(usuario, { rascunhos: true }), await listarRelatosRegistradosPor(usuario));
+const quantosRascunhos = rascunhos.memorias.length + rascunhos.relatos.length;
+const oRascunho = rascunhos.memorias[0] ? `/nova?id=${rascunhos.memorias[0].id}` : rascunhos.relatos[0] ? `/memorias/${rascunhos.relatos[0].memoriaId}/relato` : undefined;
+
+// --- Onde cada parte fica -----------------------------------------------------------------------
+const composicao = composicaoDoInicio({
+  memoriasNovas: novo.memorias.length,
+  relatosNovos: novo.relatos.length,
+  outrosAnos: outrosAnos?.itens.length ?? 0,
+  contar: Boolean(paraContar),
+  aniversarios: proximos.length > 0,
+  voce: Boolean(eu && minhas.length > 0),
+});
 
 const cartaNoAlto = chegada.cartaNoAlto && carta && eu;
 const ok = Astro.url.searchParams.get('ok');
@@ -145,16 +188,14 @@ const erro = Astro.url.searchParams.get('erro');
     )
   }
   {
-    cartaNoAlto ? (
-      <Carta para={eu.apelido ?? eu.nome} carta={carta} fotos={minhas.filter((m) => m.fotos.length > 0)} acao={{ href: '/explorar', texto: 'Abrir o acervo' }} />
-    ) : (
+    // Na primeira visita, só a carta. "Abrir o acervo" traz ao Início normal, e a carta vira o link discreto (P14, P15)
+    cartaNoAlto && <Carta para={eu.apelido ?? eu.nome} carta={carta} fotos={minhas.filter((m) => m.fotos.length > 0)} acao={{ href: '/', texto: 'Abrir o acervo' }} />
+  }
+  {
+    !cartaNoAlto && (
       <section class="novo miolo grade" aria-labelledby="ola">
-        <header class="novo__abre">
-          <p class="rotulo suave">
-            Só você vê esta página
-            <br />
-            {diaMesCurto(hoje)} {hoje.ano}
-          </p>
+        <header class:list={['novo__abre', { 'novo__abre--sem-envelope': !composicao.envelope }]}>
+          <p class="rotulo suave">Só você vê esta página</p>
           <h1 class="t-1" id="ola">
             Oi,{' '}
             <span class="sublinhado">
@@ -171,192 +212,223 @@ const erro = Astro.url.searchParams.get('erro');
                 ? 'Nada de novo desde a sua última visita.'
                 : 'Que bom que você chegou.'}
           </p>
+          {quantosRascunhos > 0 && (
+            <p class="novo__rascunho">
+              <span>{quantosRascunhos === 1 ? 'Você tem um rascunho.' : `Você tem ${quantosRascunhos} rascunhos.`}</span>
+              <a class="acao" href={quantosRascunhos === 1 && oRascunho ? oRascunho : '/rascunhos'}>
+                {quantosRascunhos === 1 ? 'Continuar o rascunho' : 'Ver seus rascunhos'}
+              </a>
+            </p>
+          )}
           <p class="novo__carta">
-            {ultimaVisita && <span class="suave">Sua última visita foi em {diaMesCurto(ultimaVisita)}.</span>}
+            {ultimaVisita && <span class="suave">{`Sua última visita foi em ${diaMesCurto(ultimaVisita)}${anoDaUltimaVisita(ultimaVisita, hoje)}.`}</span>}
             {carta && (
               <a class="acao acao--quieta" href="/carta">
                 Carta de Natal
               </a>
             )}
           </p>
-          <div class="novo__envelope">
-            <Rabisco desenho="envelope" />
-          </div>
+          {composicao.envelope && (
+            <div class="novo__envelope">
+              <Rabisco desenho="envelope" />
+            </div>
+          )}
         </header>
-        {(naMesa.length > 0 || relatoNaMesa) && (
-          <ol class="novo__mesa">
-            {naMesa.map((m) => (
-              <li class="novidade novidade--memoria" style={estiloDoTipo(m.tipo)}>
-                <a href={`/memorias/${m.id}`}>
-                  <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo forma tipo={m.tipo} />
-                  <span class="novidade__sobre rotulo">
-                    <IconeDoTipo tipo={m.tipo} />
-                    Memória nova · {nome(m.criadaPor)} adicionou
-                  </span>
-                  <strong class="novidade__titulo serifa t-3">{m.titulo}</strong>
+
+        {composicao.mesa === 'novidades' && (
+          <div class="novo__direita">
+            {naMesa.length > 0 && (
+              <ol class="novo__mesa">
+                {naMesa.map((m) => (
+                  <li class="novidade novidade--memoria" style={estiloDoTipo(m.tipo)}>
+                    <a href={`/memorias/${m.id}`}>
+                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo forma tipo={m.tipo} />
+                      <span class="novidade__sobre rotulo">
+                        <IconeDoTipo tipo={m.tipo} />
+                        Memória nova · {nomeVisto(m.criadaPor)} adicionou
+                      </span>
+                      <strong class="novidade__titulo serifa t-3">{m.titulo}</strong>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {!composicao.filaInteira && <Fila relato={relatoDaFila} resto={foraDaMesa} />}
+          </div>
+        )}
+        {composicao.mesa === 'novidades' && composicao.filaInteira && <Fila relato={relatoDaFila} resto={foraDaMesa} inteira />}
+
+        {
+          // Sem novidade, no computador, a mesa recebe "Neste dia", como fotos tiradas da caixa (P13).
+          // No celular, quem aparece é o cartão de baixo, depois da memória para contar.
+          composicao.mesa === 'outros-anos' && outrosAnos && (
+            <section class="novo__direita novo__caixa" aria-labelledby="da-caixa">
+              <h2 class="cartao__titulo rotulo" id="da-caixa">
+                <IconeDoTipo tipo="outro" />
+                {TITULO_DA_PROXIMIDADE[outrosAnos.proximidade]}
+              </h2>
+              <ol class="novo__mesa">
+                {outrosAnos.itens.slice(0, 2).map((m) => (
+                  <li class="novidade novidade--memoria" style={estiloDoTipo(m.tipo)}>
+                    <a href={`/memorias/${m.id}`}>
+                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo forma tipo={m.tipo} />
+                      <span class="novidade__sobre rotulo">
+                        <IconeDoTipo tipo={m.tipo} />
+                        Em {m.ano}
+                      </span>
+                      <strong class="novidade__titulo serifa t-3">{m.titulo}</strong>
+                    </a>
+                  </li>
+                ))}
+                {outrosAnos.itens.slice(2).map((m) => (
+                  <li class="novidade novidade--outro" style={estiloDoTipo(m.tipo)}>
+                    <a class="outro-ano" href={`/memorias/${m.id}`}>
+                      <span class="outro-ano__foto">
+                        <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} tipo={m.tipo} />
+                      </span>
+                      <span class="outro-ano__texto">
+                        <span class="outro-ano__ano serifa">em {m.ano}</span>
+                        <strong class="outro-ano__titulo">{m.titulo}</strong>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )
+        }
+
+        {/* Sem novidade e sem "Neste dia", a mesa recebe a memória para contar (P13) */}
+        {composicao.mesa === 'contar' && paraContar && <Contar memoria={paraContar} />}
+      </section>
+    )
+  }
+
+  {
+    !cartaNoAlto && (
+      <div class="cartoes miolo" data-colunas={composicao.naFileira} data-faixa={composicao.outrosAnosEmFaixa ? (paraContar ? 'com-contar' : 'sozinha') : undefined}>
+        {/* Contar vem logo depois das novidades, antes de "Neste dia" (P16) */}
+        {composicao.mesa !== 'contar' && paraContar && <Contar memoria={paraContar} />}
+
+        {outrosAnos && (
+          <section
+            class:list={['cartao', 'outros-anos', { 'outros-anos--faixa': composicao.outrosAnosEmFaixa, 'outros-anos--so-celular': composicao.mesa === 'outros-anos' }]}
+            aria-labelledby="outros-anos"
+          >
+            <h2 class="cartao__titulo rotulo" id="outros-anos">
+              <IconeDoTipo tipo="outro" />
+              {TITULO_DA_PROXIMIDADE[outrosAnos.proximidade]}
+            </h2>
+            <ol class="outros-anos__lista">
+              {outrosAnos.itens.map((m) => (
+                <li style={estiloDoTipo(m.tipo)}>
+                  <a class="outro-ano" href={`/memorias/${m.id}`}>
+                    <span class="outro-ano__foto">
+                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} tipo={m.tipo} />
+                    </span>
+                    <span class="outro-ano__texto">
+                      <span class="outro-ano__ano serifa">em {m.ano}</span>
+                      <strong class="outro-ano__titulo">{m.titulo}</strong>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
+        {proximos.length > 0 && (
+          <section class="cartao aniversarios" aria-labelledby="aniversarios" style={estiloDoTipo('aniversario')}>
+            <h2 class="cartao__titulo rotulo" id="aniversarios">
+              <IconeDoTipo tipo="aniversario" />
+              Próximos aniversários
+            </h2>
+            <ul>
+              {proximos.map((a) => {
+                const quem = paraQuemOlha(a.pessoa.id);
+                return (
+                  <li>
+                    <a class="aniversario" href={`/pessoas/${a.pessoa.id}`}>
+                      <Retrato nome={quem.nome} foto={retratoDe(a.pessoa.id)} familia={familiaDe(a.pessoa.id)} />
+                      <span class="aniversario__quem">
+                        <strong>{quem.nome}</strong>
+                        <span class="suave">{[quem.parentesco, a.faz ? `faz ${a.faz} ${a.faz === 1 ? 'ano' : 'anos'}` : ''].filter(Boolean).join(', ')}</span>
+                      </span>
+                      <span class="aniversario__dia serifa">{quando(a.emDias, a.dia, a.mes)}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {eu && minhas.length > 0 && (
+          <section class="cartao voce" aria-labelledby="voce">
+            <h2 class="cartao__titulo rotulo" id="voce">
+              Você no acervo
+            </h2>
+            <div class="voce__conta">
+              <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={corDoPainel} />
+              <p>
+                <span class="voce__numero serifa">{minhas.length}</span>
+                <span class="voce__texto serifa">{minhas.length === 1 ? 'memória em que você aparece' : 'memórias em que você aparece'}</span>
+              </p>
+            </div>
+            <p class="voce__links">
+              <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
+                Ver sua página
+              </a>
+              <a class="acao" href={`/arvore?centro=${usuario.pessoa}`}>
+                Ver a árvore a partir de você
+              </a>
+            </p>
+          </section>
+        )}
+      </div>
+    )
+  }
+
+  {
+    !cartaNoAlto && (
+      <section class="caminho miolo" aria-labelledby="caminho">
+        <p class="rotulo suave">
+          {memorias.length} {memorias.length === 1 ? 'memória' : 'memórias'}
+          {primeiroAno && ultimoAno && primeiroAno !== ultimoAno ? ` · de ${primeiroAno} a ${ultimoAno}` : ''}
+        </p>
+        {/* O convite usa a palavra do menu (P1) e desce um degrau: a saudação é o único título grande (P20) */}
+        <h2 class="caminho__titulo t-2" id="caminho">
+          <a href="/explorar">
+            Explorar todas as memórias <Rabisco desenho="seta" />
+          </a>
+        </h2>
+        {decadas.length > 1 && (
+          <ul class="caminho__decadas" aria-label="Ir para a década">
+            {decadas.map((d) => (
+              <li>
+                <a class="serifa t-3" href={`/explorar#decada-${d}`}>
+                  {`${nomeDaDecada(d).rotulo} ${nomeDaDecada(d).numero}`}
                 </a>
               </li>
             ))}
-            {relatoNaMesa && (
-              <li class="novidade novidade--relato" style={estiloDoTipo('causo')}>
-                <Bilhete por={nome(relatoNaMesa.por)} registradoPor={relatoNaMesa.registradoPor !== relatoNaMesa.por ? nome(relatoNaMesa.registradoPor) : null} href={`/memorias/${relatoNaMesa.memoriaId}`}>
-                  <span class="novidade__sobre rotulo">
-                    <IconeDoTipo tipo="causo" />
-                    Relato novo · em {porId.get(relatoNaMesa.memoriaId)?.titulo}
-                  </span>
-                  {textoDoRelato && <span class="bilhete__texto">“{trechoDoRelato(textoDoRelato, 120)}”</span>}
-                </Bilhete>
-              </li>
-            )}
-            {foraDaMesa > 0 && (
-              <li class="novidade novidade--resto">
-                <a class="acao" href="/explorar?ordem=entraram">
-                  E mais {foraDaMesa}: ver o que entrou por último
-                </a>
-              </li>
-            )}
-          </ol>
+          </ul>
         )}
       </section>
     )
   }
 
   {
-    outrosAnos && (
-      <section class="outros-anos miolo" aria-labelledby="outros-anos">
-        <div class="cartao">
-          <h2 class="cartao__titulo rotulo" id="outros-anos">
-            <IconeDoTipo tipo="outro" />
-            {TITULO_DA_PROXIMIDADE[outrosAnos.proximidade]}
-          </h2>
-          <ol class="outros-anos__lista">
-            {outrosAnos.itens.map((m) => (
-              <li style={estiloDoTipo(m.tipo)}>
-                <a class="outro-ano" href={`/memorias/${m.id}`}>
-                  <span class="outro-ano__foto">
-                    <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} tipo={m.tipo} />
-                  </span>
-                  <span class="outro-ano__texto">
-                    <span class="outro-ano__ano serifa">em {m.ano}</span>
-                    <strong class="outro-ano__titulo">{m.titulo}</strong>
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-    )
-  }
-
-  <div class="cartoes miolo">
-    {
-      proximos.length > 0 && (
-        <section class="cartao aniversarios" aria-labelledby="aniversarios" style={estiloDoTipo('aniversario')}>
-          <h2 class="cartao__titulo rotulo" id="aniversarios">
-            <IconeDoTipo tipo="aniversario" />
-            Aniversários dos próximos 30 dias
-          </h2>
-          <ul>
-            {proximos.map((a) => (
-              <li>
-                <a class="aniversario" href={`/pessoas/${a.pessoa.id}`}>
-                  <Retrato nome={nome(a.pessoa.id)} foto={retratoDe(a.pessoa.id)} familia={familiaDe(a.pessoa.id)} />
-                  <span class="aniversario__quem">
-                    <strong>{nome(a.pessoa.id)}</strong>
-                    <span class="suave">{[paraVoce(a.pessoa.id), a.faz ? `faz ${a.faz} ${a.faz === 1 ? 'ano' : 'anos'}` : ''].filter(Boolean).join(', ')}</span>
-                  </span>
-                  <span class="aniversario__dia serifa">{quando(a.emDias, a.dia, a.mes)}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )
-    }
-
-    {
-      eu && minhas.length > 0 && (
-        <section class="cartao voce" aria-labelledby="voce">
-          <h2 class="cartao__titulo rotulo" id="voce">
-            Você no acervo
-          </h2>
-          <div class="voce__conta">
-            <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={corDoPainel} />
-            <p>
-              <span class="voce__numero serifa">{minhas.length}</span>
-              <span class="voce__texto serifa">{minhas.length === 1 ? 'memória em que você aparece' : 'memórias em que você aparece'}</span>
-            </p>
-          </div>
-          <p class="voce__links">
-            <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
-              Ver sua página
-            </a>
-            <a class="acao" href={`/arvore?centro=${usuario.pessoa}`}>
-              Ver a árvore a partir de você
-            </a>
-          </p>
-        </section>
-      )
-    }
-
-    {
-      paraContar && (
-        <section class="cartao contar" aria-labelledby="contar" style={estiloDoTipo(paraContar.tipo)}>
-          <h2 class="cartao__titulo rotulo">Você estava lá e ainda não contou</h2>
-          <div class="contar__miolo">
-            <div class="contar__foto">
-              <Polaroid id={paraContar.id} fotos={paraContar.fotos} legenda={legendaLugarAno(paraContar.lugar, paraContar.ano)} alt="" monte={false} tipo={paraContar.tipo} />
-            </div>
-            <div class="contar__texto">
-              <p class="contar__titulo serifa t-3" id="contar">
-                <a href={`/memorias/${paraContar.id}`}>{paraContar.titulo}</a>
-              </p>
-              <p class="ficha suave">{carimboDaData(paraContar)}</p>
-              <p class="contar__acao">
-                <a class="botao" href={`/memorias/${paraContar.id}/relato`}>
-                  Escrever meu relato
-                </a>
-              </p>
-            </div>
-          </div>
-        </section>
-      )
-    }
-  </div>
-
-  <section class="caminho miolo" aria-labelledby="caminho">
-    <p class="rotulo suave">
-      {memorias.length} {memorias.length === 1 ? 'memória' : 'memórias'}{primeiroAno && ultimoAno && primeiroAno !== ultimoAno ? ` · de ${primeiroAno} a ${ultimoAno}` : ''}
-    </p>
-    <h2 class="caminho__titulo t-1" id="caminho">
-      <a href="/explorar">
-        Ver a linha do tempo inteira <Rabisco desenho="seta" />
-      </a>
-    </h2>
-    {
-      decadas.length > 1 && (
-        <ul class="caminho__decadas" aria-label="Ir para a década">
-          {decadas.map((d) => (
-            <li>
-              <a class="serifa t-3" href={`/explorar#decada-${d}`}>
-                {d}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )
-    }
-  </section>
-
-  {
+    // Só fora da produção. Separado do convite por um fio, com o rótulo "Teste" (P28)
     semLogin() && (
       <form method="post" action="/api/painel" class="miolo painel__teste">
-        <input type="hidden" name="acao" value="primeira-visita" />
-        <button type="submit" class="acao acao--quieta">
-          Voltar {usuario.nome} à primeira visita
-        </button>
-        <span class="suave">Só na homologação e nas prévias, para conferir a carta.</span>
+        <div class="painel__teste-linha">
+          <span class="rotulo suave">Teste</span>
+          <input type="hidden" name="acao" value="primeira-visita" />
+          <button type="submit" class="acao acao--quieta">
+            Voltar {usuario.nome} à primeira visita
+          </button>
+          <span class="suave">Só na homologação e nas prévias, para conferir a carta.</span>
+        </div>
       </form>
     )
   }

@@ -118,6 +118,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P1. O mesmo lugar tem três nomes. Qual fica?
 
+**Feito (opção A), a parte do Início:** o convite do fim do Início passou a dizer "Explorar todas as memórias". Capturas: p20-convite-decadas-e-teste--390.jpg, p20-convite-decadas-e-teste--1280.jpg.
+
 **muda a experiência**
 
 - Contexto: o Gui aprovou "Explorar" como nome do item do menu e do endereço, "Ver a linha do tempo inteira" no Início e "Abrir o acervo" na carta.
@@ -180,6 +182,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P6. O Início deve avisar dos rascunhos da pessoa?
+
+**Feito (opção A):** com rascunho, a abertura do Início mostra "Você tem um rascunho." e "Continuar o rascunho", que leva direto a ele; com mais de um, "Ver seus rascunhos" leva à lista. Capturas: p25-abertura-rascunho-e-ultima-visita--390.jpg.
 
 **ajuste**
 
@@ -269,6 +273,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P13. Num dia sem novidade, o que a primeira tela mostra no computador?
 
+**Feito (opção A):** sem novidade, no computador, a mesa da direita recebe "Neste dia, em outros anos" como fotos ou, sem ele, a memória para contar, e o envelope só aparece quando chegou algo. Capturas: p13-sem-novidade-neste-dia-na-mesa--390.jpg, p13-sem-novidade-neste-dia-na-mesa--1280.jpg, p13-sem-novidade-neste-dia-na-mesa--1920.jpg, p13-sem-novidade-contar-na-mesa--1280.jpg.
+
 **muda a experiência**
 
 - Contexto: a ideia forte do Início é "o que entrou de novo". A composição do computador põe a abertura em cinco colunas à esquerda e a mesa das novidades nas sete da direita. "Que bom que você chegou." foi aprovado como frase.
@@ -280,6 +286,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: inicio-painel-sem-novidade--1280.jpg, inicio-painel-sem-novidade--1920.jpg, inicio-painel-chegou--1280.jpg
 
 ### P14. Na primeira visita, a carta fica sozinha na tela ou com o painel embaixo?
+
+**Feito (opção A):** na primeira visita a tela é só a carta, e "Abrir o acervo" leva ao Início normal, com a carta no link discreto. Capturas: p14-primeira-visita-so-a-carta--390.jpg, p14-primeira-visita-so-a-carta--1280.jpg.
 
 **muda a experiência**
 
@@ -293,6 +301,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P15. A carta deve voltar ao alto toda vez que a pessoa toca em "Início" na primeira visita?
 
+**Feito (opção A):** a carta aparece no alto uma vez; na volta ao Início vem o painel, com o link "Carta de Natal" (regra em `chegarAoPainel`, teste ajustado). Capturas: p15-volta-ao-inicio-depois-da-carta--390.jpg, p15-volta-ao-inicio-depois-da-carta--1280.jpg.
+
 **muda a experiência**
 
 - Contexto: regra de `src/lib/painel.ts`: a carta fica no alto durante toda a visita em que apareceu, e a visita só termina depois de duas horas sem abrir o Início.
@@ -303,6 +313,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P16. "Você estava lá e ainda não contou" deve subir na página?
+
+**Feito (opção A):** o cartão de contar vem logo depois das novidades (ou da abertura), antes de "Neste dia", e é a primeira coluna no computador. Capturas: p16-contar-antes-de-neste-dia--390.jpg, p19-cartoes-tres--1280.jpg.
 
 **muda a experiência**
 
@@ -316,6 +328,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P17. Com uma memória e um relato novos, onde fica o relato no computador?
 
+**Feito (opção A):** o relato tem sempre a fileira dele, embaixo das fotos, com sete colunas da mesa. Capturas: p17-uma-memoria-e-um-relato--1280.jpg.
+
 **ajuste**
 
 - Contexto: `painel.css` tem uma regra para o relato ocupar a segunda fileira da mesa, em sete colunas (`.novidade--relato`, linhas 493-497). A captura aprovada do painel mostra o caso de uma memória e um relato.
@@ -327,6 +341,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: inicio-painel-mesa-relato-estreito--1280.jpg
 
 ### P18. Com muitas novidades, o que ocupa a esquerda da mesa no computador?
+
+**Feito (opção A):** quando há "E mais N", o relato e essa linha descem para uma fileira de largura inteira, embaixo da abertura e das duas fotos. Capturas: p18-muitas-novidades--1280.jpg, p18-muitas-novidades--1920.jpg.
 
 **ajuste**
 
@@ -340,6 +356,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P19. Os cartões devem se ajustar ao que têm dentro?
 
+**Feito (opção A):** com dois cartões, duas colunas; "Neste dia" com uma ou duas memórias é um cartão da fileira, e com três ou quatro é uma faixa ao lado do cartão de contar. Capturas: p19-cartoes-dois--1280.jpg, p19-cartoes-tres--1280.jpg, p19-cartoes-faixa-ao-lado-de-contar--1280.jpg, p19-cartoes-faixa-ao-lado-de-contar--1920.jpg.
+
 **ajuste**
 
 - Contexto: no computador, os cartões ficam em três colunas da mesma altura, e "Neste dia" numa faixa de quatro colunas.
@@ -352,6 +370,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P20. "Ver a linha do tempo inteira" precisa ser do tamanho do título da página?
 
+**Feito (opção A):** o convite desceu para `t-2`, e a saudação é o único título grande. Capturas: p20-convite-decadas-e-teste--390.jpg, p20-convite-decadas-e-teste--1280.jpg.
+
 **ajuste**
 
 - Contexto: o convite do fim da página usa `t-1`, o mesmo tamanho de "Oi, Gui.".
@@ -361,6 +381,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está, como fecho da página.
 
 ### P21. O botão "Escrever meu relato" pode quebrar em duas linhas?
+
+**Feito (opção A):** no cartão estreito (390 e 1280 px), o botão ocupa a largura do cartão, embaixo da foto e do título, numa linha só. Capturas: p16-contar-antes-de-neste-dia--390.jpg, p19-cartoes-tres--1280.jpg.
 
 **ajuste**
 
@@ -374,6 +396,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P22. Apelido com parentesco aparece igual para todo mundo?
 
+**Feito (opção A):** apelido com parentesco que não é o de quem olha vira o nome, com o parentesco de quem olha embaixo (para a Elizete, "Lourdes", "sua irmã"); sem parentesco conhecido com quem olha, o apelido fica. Capturas: p22-aniversarios-nome-de-quem-olha--390.jpg.
+
 **ajuste**
 
 - Contexto: nos aniversários, o parentesco não se repete quando o apelido já traz ("Tia Cida" fica sem "sua tia"). O apelido é um só por pessoa.
@@ -384,6 +408,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: inicio-painel-aniversarios--390.jpg
 
 ### P23. As décadas do fim da página parecem anos?
+
+**Feito (opção A):** as décadas dizem "Anos 2020", "Anos 90", como no filtro do Explorar. Capturas: p20-convite-decadas-e-teste--390.jpg.
 
 **detalhe**
 
@@ -397,6 +423,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P24. "Relato novo · em O Chico chega" se lê bem?
 
+**Feito (opção A):** o rótulo diz só "Relato novo", e o título da memória vem numa linha própria, em serifa. Capturas: p24-relato-novo-e-mais-n--390.jpg.
+
 **detalhe**
 
 - Contexto: o rótulo da novidade vai em mono, caixa alta.
@@ -409,6 +437,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P25. A data de hoje precisa estar no alto do Início?
 
+**Feito (opção A):** a data de hoje saiu do alto, e a última visita leva o ano quando não é o corrente ("em 1 jan de 2020"). Capturas: p25-abertura-rascunho-e-ultima-visita--390.jpg.
+
 **detalhe**
 
 - Contexto: acima da saudação vêm duas linhas em mono: "Só você vê esta página" (pedido do Gui) e a data de hoje.
@@ -420,6 +450,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P26. A foto do cartão de contar deve ser link?
 
+**Feito (opção A):** a foto do cartão de contar leva à memória, como o título. Capturas: p16-contar-antes-de-neste-dia--390.jpg.
+
 **detalhe**
 
 - Contexto: nas novidades e em "Neste dia", a foto leva à memória. No cartão de contar, só o título leva.
@@ -430,6 +462,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P27. "Aniversários dos próximos 30 dias" pode ser mais curto?
 
+**Feito (opção A):** o título do cartão é "Próximos aniversários". Capturas: p22-aniversarios-nome-de-quem-olha--390.jpg.
+
 **detalhe**
 
 - Contexto: é o título em mono do cartão.
@@ -439,6 +473,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P28. O botão de teste "Voltar Fulano à primeira visita" deve ficar separado?
+
+**Feito (opção A):** o botão de teste fica depois de um espaço e de um fio, com o rótulo "Teste" em mono. Capturas: p20-convite-decadas-e-teste--390.jpg, p20-convite-decadas-e-teste--1280.jpg.
 
 **detalhe**
 
@@ -453,6 +489,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P29. As fotos da carta devem levar às memórias?
 
+**Feito (opção A):** cada foto da carta leva à memória dela, com nome para o leitor de tela, e a da frente é a primeira na ordem do teclado. Capturas: p29-carta-fotos-e-acoes--390.jpg, p29-carta-fotos-e-acoes--1280.jpg.
+
 **ajuste**
 
 - Contexto: as três fotos que vêm com a carta são as memórias mais recentes em que a pessoa aparece. Hoje são enfeite, escondidas do leitor de tela.
@@ -465,6 +503,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P30. Em `/carta`, o administrador lê "Escrever a carta" com a carta já escrita?
 
+**Feito (opção A):** com a carta escrita, o link dos administradores diz "Editar a carta"; sem carta, "Escrever a carta". Capturas: p29-carta-fotos-e-acoes--390.jpg.
+
 **detalhe**
 
 - Contexto: abaixo do botão, os administradores têm um link para `/admin/carta`.
@@ -474,6 +514,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P31. "Voltar ao início" deve ser botão cheio com seta para a frente?
+
+**Feito (opção A):** em `/carta`, "Voltar ao início" é uma ação sublinhada, sem seta. Capturas: p29-carta-fotos-e-acoes--390.jpg, p29-carta-fotos-e-acoes--1280.jpg.
 
 **detalhe**
 
