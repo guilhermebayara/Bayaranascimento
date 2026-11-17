@@ -105,8 +105,7 @@
   line-height: 1.25;
 }
 @media (hover: hover) {
-  .conta__item:hover strong,
-  .laco:hover strong {
+  .conta__item:hover strong {
     text-decoration: underline;
     text-decoration-thickness: var(--traco);
     text-underline-offset: 0.2em;
@@ -189,28 +188,6 @@
 .conta__gente li + li {
   border-top: 1px solid var(--fio);
 }
-.laco {
-  display: grid;
-  grid-template-columns: clamp(3rem, 2.6rem + 1vw, 4rem) minmax(0, 1fr);
-  align-items: center;
-  gap: var(--e-4);
-  padding-block: var(--e-3);
-  text-decoration: none;
-}
-.laco .retrato {
-  font-size: 0.75em;
-}
-.laco__quem {
-  display: grid;
-  gap: 0.1em;
-}
-.laco__quem strong {
-  font-weight: 550;
-}
-.laco__quem > .suave:not(.ficha) {
-  font-size: var(--t-pequeno);
-}
-
 /* --- Administração: no fim, quieta ------------------------------------------------------------- */
 
 .conta__admin {

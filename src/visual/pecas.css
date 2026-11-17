@@ -404,6 +404,39 @@ a.polaroid__foto {
   line-height: 1.25;
 }
 
+/* --- Gente: uma pessoa numa linha de lista, com o retrato pequeno, o nome e o laço ------------- */
+
+.gente {
+  display: grid;
+  grid-template-columns: clamp(3rem, 2.6rem + 1vw, 4rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-4);
+  min-height: var(--toque);
+  padding-block: var(--e-3);
+  text-decoration: none;
+}
+.gente .retrato {
+  font-size: 0.75em;
+}
+.gente__quem {
+  display: grid;
+  gap: 0.1em;
+}
+.gente__quem strong {
+  font-weight: 550;
+  line-height: 1.25;
+}
+.gente__laco {
+  font-size: var(--t-pequeno);
+}
+@media (hover: hover) {
+  .gente:hover strong {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
+}
+
 /* --- Sinal do capítulo: a mesma parada do trilho, na cor do capítulo, com o nome ---------------- */
 
 .sinal {

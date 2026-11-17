@@ -8,6 +8,7 @@ import '../visual/telas/painel.css';
 import '../visual/telas/conta.css';
 import Visual from '../layouts/Visual.astro';
 import Dado from '../components/visual/Dado.astro';
+import Gente from '../components/visual/Gente.astro';
 import Ficha from '../components/visual/Ficha.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
@@ -215,14 +216,14 @@ const erro = Astro.url.searchParams.get('erro');
             <ul class="conta__gente">
               {lacos.map((l) => (
                 <li>
-                  <a class="laco" href={`/pessoas/${l.pessoa}`}>
-                    <Retrato nome={nome(l.pessoa)} foto={retratoDe(l.pessoa)} familia={familiaDe(l.pessoa)} />
-                    <span class="laco__quem">
-                      <strong>{nome(l.pessoa)}</strong>
-                      <span class="suave">{lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null)}</span>
-                      <span class="ficha suave">{[l.proximidade ? PROXIMIDADES[l.proximidade]!.toLowerCase() : '', l.privado ? 'só você vê' : ''].filter(Boolean).join(' · ')}</span>
-                    </span>
-                  </a>
+                  <Gente
+                    href={`/pessoas/${l.pessoa}`}
+                    nome={nome(l.pessoa)}
+                    foto={retratoDe(l.pessoa)}
+                    familia={familiaDe(l.pessoa)}
+                    laco={lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null)}
+                    detalhe={[l.proximidade ? PROXIMIDADES[l.proximidade]!.toLowerCase() : '', l.privado ? 'só você vê' : ''].filter(Boolean).join(' · ')}
+                  />
                 </li>
               ))}
             </ul>
