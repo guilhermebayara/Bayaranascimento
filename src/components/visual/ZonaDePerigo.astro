@@ -1,0 +1,23 @@
+---
+// A zona de perigo (pedido do Gui, 17/11/2026): nas telas de editar, as ações de apagar ficam
+// juntas no fim, num bloco separado e marcado na cor de alerta, longe do salvar. O bloco só existe
+// quando há o que a pessoa pode apagar: quem usa decide se ele aparece, pelas permissões de sempre.
+// Dentro dele vai o caminho para a confirmação (um link, ou a remoção com confirmação no lugar):
+// nada é apagado ao primeiro toque.
+interface Props {
+  /** O título do bloco */
+  titulo?: string;
+  /** O nível do título na página: 2 no fim de uma página, 3 ou 4 dentro de uma parte dela */
+  nivel?: 2 | 3 | 4;
+  /** Dentro de um cartão, como o editor de um laço: menor, sem o respiro de fim de página */
+  menor?: boolean;
+}
+
+const { titulo = 'Zona de perigo', nivel = 2, menor = false } = Astro.props;
+const Titulo = `h${nivel}` as 'h2';
+---
+
+<section class:list={['perigo', { 'perigo--menor': menor }]} aria-label={titulo}>
+  <Titulo class="perigo__titulo rotulo">{titulo}</Titulo>
+  <slot />
+</section>

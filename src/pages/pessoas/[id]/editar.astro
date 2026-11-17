@@ -2,6 +2,7 @@
 import Pagina from '../../../components/formularios/Pagina.astro';
 import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
 import ConfirmarRemocao from '../../../components/ConfirmarRemocao.astro';
+import ZonaDePerigo from '../../../components/visual/ZonaDePerigo.astro';
 import CampoAno from '../../../components/CampoAno.astro';
 import Opcoes from '../../../components/Opcoes.astro';
 import ComoSeReferir from '../../../components/ComoSeReferir.astro';
@@ -419,12 +420,14 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
                       </div>
                       <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
                     </form>
+                    <ZonaDePerigo menor nivel={4}>
                     <form method="post" action="/api/lacos" class="editar__remover">
                       <input type="hidden" name="volta" value={volta} />
                       <input type="hidden" name="filho" value={pessoa.id} />
                       <input type="hidden" name="responsavel" value={p.responsavel} />
                       <ConfirmarRemocao rotulo="Remover este laço" pergunta={`Remover o laço entre ${chamar} e ${nome(p.responsavel)}?`} acao="filiacao-remover" />
                     </form>
+                    </ZonaDePerigo>
                   </div>
                 </details>
               </li>
@@ -460,12 +463,14 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
                       </div>
                       <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
                     </form>
+                    <ZonaDePerigo menor nivel={4}>
                     <form method="post" action="/api/lacos" class="editar__remover">
                       <input type="hidden" name="volta" value={volta} />
                       <input type="hidden" name="filho" value={f.filho} />
                       <input type="hidden" name="responsavel" value={pessoa.id} />
                       <ConfirmarRemocao rotulo="Remover este laço" pergunta={`Remover o laço entre ${chamar} e ${nome(f.filho)}?`} acao="filiacao-remover" />
                     </form>
+                    </ZonaDePerigo>
                   </div>
                 </details>
               </li>
@@ -553,6 +558,7 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
                         </label>
                         <div class="acoes"><button class="botao" type="submit">Salvar o casal</button></div>
                       </form>
+                      <ZonaDePerigo menor nivel={4}>
                       <form method="post" action="/api/lacos" class="editar__remover">
                         <input type="hidden" name="volta" value={volta} />
                         <input type="hidden" name="id" value={c.casal.id} />
@@ -564,6 +570,7 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
                           semValidar
                         />
                       </form>
+                      </ZonaDePerigo>
                     </div>
                   </details>
                 </li>
@@ -612,11 +619,13 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
                           </label>
                           <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
                         </form>
+                        <ZonaDePerigo menor nivel={4}>
                         <form method="post" action="/api/lacos" class="editar__remover">
                           <input type="hidden" name="volta" value={volta} />
                           <input type="hidden" name="id" value={l.id} />
                           <ConfirmarRemocao rotulo="Remover este laço" pergunta={`Remover o laço entre ${chamar} e ${nome(l.a === pessoa.id ? l.b : l.a)}?`} acao="resumido-remover" />
                         </form>
+                        </ZonaDePerigo>
                       </div>
                     </details>
                   )
@@ -668,11 +677,13 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
                       </label>
                       <div class="acoes"><button class="botao" type="submit">Salvar</button></div>
                     </form>
+                    <ZonaDePerigo menor nivel={4}>
                     <form method="post" action="/api/lacos" class="editar__remover">
                       <input type="hidden" name="volta" value={volta} />
                       <input type="hidden" name="id" value={l.id} />
                       <ConfirmarRemocao rotulo="Remover este laço" pergunta={`Remover o seu laço do coração com ${nome(l.pessoa)}?`} acao="coracao-remover" />
                     </form>
+                    </ZonaDePerigo>
                   </div>
                 </details>
               </li>

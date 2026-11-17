@@ -28,6 +28,7 @@ import Retrato from '../components/visual/Retrato.astro';
 import Sanfona from '../components/visual/Sanfona.astro';
 import SinalDoCapitulo from '../components/visual/SinalDoCapitulo.astro';
 import Vazio from '../components/visual/Vazio.astro';
+import ZonaDePerigo from '../components/visual/ZonaDePerigo.astro';
 import { temAcervoDeExemplo } from '../lib/servidor/ambiente';
 import { fontesDoPedido, naoEncontrado } from '../lib/servidor/conceito';
 import { listarMemorias, listarNucleos } from '../lib/servidor/repositorio';
@@ -464,6 +465,15 @@ const espacos = ['e-1', 'e-2', 'e-3', 'e-4', 'e-5', 'e-6', 'e-7', 'e-8', 'e-9'];
             <a class="acao" href="#pecas">Nova memória</a>
           </Vazio>
           <p class="ficha suave">O recado do alto da página, nas duas vozes, e a tela sem nada para mostrar.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Zona de perigo · nova</h3>
+          <ZonaDePerigo nivel={4}>
+            <p>A memória vai para a lixeira e pode ser restaurada.</p>
+            <a class="acao" href="#pecas">Excluir esta memória</a>
+          </ZonaDePerigo>
+          <p class="ficha suave">No fim das telas de editar, longe do salvar: o que apaga fica junto, marcado na cor de alerta, e leva à confirmação. O botão que confirma continua cheio, na cor de alerta.</p>
         </article>
       </div>
     </section>

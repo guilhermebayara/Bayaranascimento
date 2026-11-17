@@ -182,6 +182,7 @@ Construído em 16/11/2026 na branch `tst-visual-sistema`, a partir do conceito a
 | Formulário em frase | classes `frase` e `frase__lacuna` | Novo, aprovado pelo Gui em 16/11/2026. A ligação com a Nova memória é da fase 3, com a lacuna da data como descrito abaixo |
 | Campo de formulário | classes `pergunta`, `campo` e `escolha` | Novo, aprovado pelo Gui em 16/11/2026 |
 | Recado e estado vazio | `Recado.astro`, `Vazio.astro` | O recado já existia no CSS; o vazio é novo, aprovado pelo Gui em 16/11/2026 |
+| Zona de perigo | `ZonaDePerigo.astro` (classe `perigo`) | Nova, pedida pelo Gui em 17/11/2026: as ações de apagar juntas no fim das telas de editar, marcadas na cor de alerta |
 
 **A data no formulário em frase** (pergunta do Gui, 16/11/2026: só digitação, formato forçado ou seletor de data?). Aprovado pelo Gui em 16/11/2026, a construir na fase 3: a lacuna da data não é campo de digitar. Ela mostra a data como o site já escreve ("24 de dezembro de 2025", "dezembro de 2025", "2025", "por volta de 1994") e, ao toque, abre logo abaixo da frase o controle de data flexível que já existe (o ano com −10, −1, +1 e +10, depois mês e dia, os dois opcionais), empurrando o conteúdo. Sem formato para acertar e sem o seletor de data do aparelho, que obriga a escolher dia, mês e ano e não aceita "só o ano". Sem script, a frase aparece com o controle já aberto embaixo. As lacunas de lugar e de pessoas seguem a mesma ideia: a de lugar é texto livre, e a de pessoas abre o "Quem estava?" de hoje.
 
@@ -219,6 +220,7 @@ O CSS das peças está em `src/visual/pecas.css` (as ações estão em `base.css
 | Fases de um casal ou marcos que abrem | `Sanfona.astro` | `ano`, `titulo`, `quando`, o conteúdo dentro. O mesmo `grupo` em todas faz só uma ficar aberta |
 | Recado de "salvou" ou de erro | `Recado.astro` | `<Recado>` ou `<Recado erro>` |
 | Tela sem nada para mostrar | `Vazio.astro` | `<Vazio frase="…">` com a ação dentro |
+| As ações de apagar de uma tela de editar | `ZonaDePerigo.astro` | `<ZonaDePerigo>` no fim da página, fora do formulário que salva, com uma frase e o link para a confirmação. `menor nivel={4}` dentro de um cartão, como o editor de um laço. Quem usa decide se ela aparece, pela permissão de sempre |
 | Ícone de tipo, rabisco de caneta | `IconeDoTipo.astro`, `Rabisco.astro` | São enfeite: o texto está sempre escrito ao lado |
 | A ação principal da tela | classe `botao` | Uma por tela. `aria-disabled="true"` ou `disabled` para o estado sem poder agir |
 | As outras ações | classes `acao` e `acao--quieta` | Texto sublinhado, em link ou em `<button>` |
@@ -869,4 +871,41 @@ Branch `tst-visual-ajustes`, nascida da `homologa` em 17/11/2026, com o que o Gu
 
 **Capturas:** `CAPTURAS_SO=^ajustes npm run capturas -- tirar <pasta>`, em `docs/visual/fase-3/ajustes/`. O script ganhou `depois`, para o que precisa valer na hora da captura (o mouse em cima de uma linha, o foco do teclado).
 
-**O que falta nos ajustes** (parte 2, na mesma branch): a frase na abertura da Nova memória, o resumo à direita nos formulários, a zona de perigo, a nitidez da árvore no zoom e o respiro do cartão de bicho. Depois, a `tst-visual-tipos`.
+### Parte 2: a frase na abertura, o resumo ao lado e a zona de perigo
+
+**A frase também na abertura da Nova memória** (resposta do Gui à pergunta 1 do PR #38). "Isso aconteceu *em 24 de dezembro de 2025*, *em Belo Horizonte*, *com Aguilar, Elizete, Giovanna e mais 6*." fica no alto da página, abaixo da frase de boas-vindas, na memória nova, no rascunho e na correção.
+
+- **Cada lacuna diz o que já foi preenchido e leva à etapa em que aquilo se preenche:** a data e o lugar, a "Quando e onde" (a da data abre o controle e põe o foco no ano; a do lugar, no campo do lugar); "com ___", a "Quem estava?". Vazias, perguntam: "em que data?", "em que lugar?", "com quem?".
+- **As sete etapas, a ordem e o obrigatório não mudam.** A lacuna usa o mesmo caminho da trilha: para ir adiante, o obrigatório das etapas do caminho precisa estar preenchido, e quem ainda não deu o título fica na primeira, com o aviso.
+- **Na etapa "Quando e onde" a frase da abertura sai**, porque a frase com a data e o lugar já é a própria pergunta. Volta nas outras.
+- **As lacunas são trechos da frase com papel de botão** (`role="button"`, como a da data na etapa), com 44 px de toque, foco visível, Enter e barra de espaço.
+- **Sem script, a frase não aparece:** as etapas já vêm todas em sequência, e a frase não teria o que fazer.
+- **Onde está:** a marcação em `src/pages/nova.astro` (`data-frase-abertura`, no `slot="frase"` que `formularios/Pagina.astro` ganhou), o script na mesma página (`escreverAbertura`), o estilo em `formulario.css` (`.frase--abertura`).
+
+**O resumo ao lado, no computador** (resposta do Gui à pergunta 7 do PR #38). A partir de 62rem, o formulário da memória tem três colunas: a trilha, a pergunta e, à direita, "A memória até aqui".
+
+- **O que mostra:** a foto-chave como foto revelada (a marcada em "Usar na linha do tempo" ou, sem marca, a primeira; a foto recém-enviada entra na hora) ou, sem foto ainda, o cartão do tipo de momento escolhido, como a memória sem foto; o título em serifa; e a ficha com Tipo, Quando, Onde, Quem estava, Fotos, Capítulo e Quem vê. O que ainda não foi preenchido aparece em itálico suave ("a informar", "ninguém marcado").
+- **Acompanha o preenchimento:** cada tecla e cada escolha. O mesmo leitor do formulário (`lerPreenchido`) serve ao resumo da última etapa, à frase da abertura e a este resumo.
+- **No celular não existe**, e a foto não é pedida: a regra geral esconde, o script só o preenche em 62rem ou mais, e a foto revelada usa `soOnde`.
+- **Parado à vista só onde há mouse** (`(hover: hover) and (pointer: fine)`), com `sticky`; sem `fixed`.
+- **É apoio para quem vê a tela:** não recebe foco e não tem `aria-live`, para o leitor de tela não ouvir cada tecla duas vezes. O resumo da última etapa ("Confira antes de publicar") continua sendo o que se confere.
+- **Sem script, não aparece.**
+- **A grade:** o resumo ocupa sessenta linhas da grade do formulário (`grid-row: 1 / span 60`), de propósito: assim a altura dele se espalha por linhas vazias no fim, e não abre vão entre a pergunta e as ações. No esqueleto da página, que tem espaço entre as linhas, a mesma conta abria três mil pixels de vazio: ali o resumo do relato ocupa três linhas.
+- **No relato**, à direita, a foto-chave e a ficha da memória de que o relato fala (`ao-lado--fixo`), sem mudar enquanto se escreve. **No capítulo, na pessoa e nas telas utilitárias, nada à direita** (pergunta para o Gui).
+
+**A zona de perigo** (pedido do Gui, 17/11/2026, junto da resposta à pergunta 12 do PR #38). Peça nova do sistema: `ZonaDePerigo.astro`, classe `perigo`, mostrada em `/sistema`.
+
+- **O que é:** um bloco no fim da tela de editar, fora do formulário que salva, com a borda e o título na cor de alerta, uma frase dizendo o que acontece e o caminho para a confirmação. Nada é apagado ao primeiro toque, e o botão que confirma continua cheio na cor de alerta.
+- **Memória (`/nova?id=`):** "Excluir esta memória", para os administradores, ou "Descartar este rascunho", para quem escreveu. Tomou o lugar do link pequeno "Descartar este rascunho" de baixo do formulário, e a correção de memória publicada ganhou o caminho de excluir, que antes só existia na página da memória.
+- **Capítulo (`/capitulos/<id>/editar`):** "Excluir capítulo", para os administradores.
+- **Laço e casal (`/pessoas/<id>/editar`):** dentro do editor de cada laço, "Remover este laço" e "Apagar, foi cadastrado por engano" ficam numa zona menor, depois do "Salvar", com a confirmação no lugar de sempre (`ConfirmarRemocao`).
+- **As permissões não mudaram:** o bloco só aparece para quem já podia apagar (`podeExcluirMemoria`, administradores no capítulo, quem mexe nos laços) e some quando não há nada.
+- **O que ficou onde estava:** "Remover foto", em cada foto da memória, e "Tirar foto", no retrato. Só valem quando a pessoa salva, e as páginas de leitura continuam com "Excluir" por último.
+
+**Testes:** `describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo')`, em `testes/visual.test.ts`: as três lacunas e a etapa de cada uma, as sete etapas na ordem, o que some sem script, os 44 px, o resumo fora do celular e sem `aria-live`, e a zona fora do formulário, só para quem pode, em toda remoção de laço.
+
+**Conferido:** com o Playwright, em 1280 e 390 px, com e sem movimento reduzido, só pelo teclado: da abertura vazia até salvar um rascunho, passando pelas três lacunas, com o resumo acompanhando título, tipo, data, lugar e pessoas; a zona de perigo levando à confirmação e o rascunho de teste descartado por ela; sem JavaScript, a correção sem a frase e sem o resumo, com a zona e as etapas em sequência. As capturas (`ajustes-4-…`, `ajustes-5-…` e `ajustes-6-…`) foram olhadas nas três larguras.
+
+**O que não foi conferido:** o envio de uma foto nova chegando ao resumo ao lado (a troca da foto-chave foi vista só com as fotos que a memória já tem), o iPhone de verdade e a prévia publicada.
+
+**O que falta nos ajustes** (parte 3, na mesma branch): a nitidez da árvore no zoom e o respiro do cartão de bicho (itens 8 e 9 do pedido), e o PR, com as perguntas de `docs/visual/fase-3/ajustes/perguntas.md` no fim. Depois, a `tst-visual-tipos`.

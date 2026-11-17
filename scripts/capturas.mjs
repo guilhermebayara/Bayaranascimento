@@ -51,6 +51,11 @@ const PADRAO = ['celular', 'desktop'];
 const etapa = (n) => async (pagina) => {
   await pagina.locator('ol.etapas button').nth(n).click();
 };
+// Abre o editor do primeiro laço e a pergunta de remover, para a zona de perigo aparecer
+const abrirLaco = async (pagina) => {
+  await pagina.locator('details.editar > summary').first().click();
+  await pagina.locator('details.editar[open] details.confirmar > summary').first().click();
+};
 const abrirFiltros = async (pagina) => {
   await pagina.locator('.filtros > summary').click();
 };
@@ -166,6 +171,13 @@ const PAGINAS = [
   { nome: 'ajustes-2-pessoa-mural', url: '/pessoas/gui?ver=mural', como: 'giovanna', larguras: TODAS, desde: '#memorias-com', corte: 2400 },
   { nome: 'ajustes-2-pessoa-lista', url: '/pessoas/gui?ver=lista', como: 'giovanna', larguras: TODAS, desde: '#memorias-com', corte: 2400 },
   { nome: 'ajustes-3-capitulo-quem-aparece', url: '/capitulos/natais', como: 'giovanna', larguras: TODAS, corte: 1700 },
+  // Parte 2: a frase na abertura da Nova memória, o resumo ao lado e a zona de perigo
+  { nome: 'ajustes-4-nova-abertura-vazia', url: '/nova', larguras: TODAS },
+  { nome: 'ajustes-4-correcao-abertura-e-zona', url: '/nova?id=2025-natal', larguras: TODAS },
+  { nome: 'ajustes-5-rascunho-quem-estava', url: '/nova?id=2024-almoco-de-domingo', larguras: TODAS, antes: etapa(2) },
+  { nome: 'ajustes-5-relato', url: '/memorias/2025-natal/relato', larguras: TODAS },
+  { nome: 'ajustes-6-capitulo-editar-zona', url: '/capitulos/natais/editar', larguras: TODAS },
+  { nome: 'ajustes-6-pessoa-editar-laco', url: '/pessoas/vo-bela/editar', larguras: TODAS, antes: abrirLaco },
   { nome: 'ajustes-7-titulo-em-foco', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 1300, depois: focoNoTitulo },
   { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
   // O sistema (fase 2): a marca, as fontes, os tokens e as peças, em cada combinação de fontes

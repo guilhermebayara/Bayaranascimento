@@ -1,6 +1,7 @@
 ---
 import Pagina from '../../../components/formularios/Pagina.astro';
 import FichaDoCapitulo from '../../../components/FichaDoCapitulo.astro';
+import ZonaDePerigo from '../../../components/visual/ZonaDePerigo.astro';
 import { formatarData } from '../../../lib/datas';
 import { podeEditarCapitulo, podeEditarMemoria } from '../../../lib/servidor/permissoes';
 import { listarCapitulos, listarMemorias } from '../../../lib/servidor/repositorio';
@@ -59,5 +60,16 @@ const minhas = capitulo.modo === 'reunido' ? (await listarMemorias(usuario)).fil
     )
   }
 
-  {usuario.admin && <p class="memoria__rodape"><a href={`/capitulos/${capitulo.id}/excluir`}>Excluir capítulo</a></p>}
+  {/* A zona de perigo (pedido do Gui, 17/11/2026): o que apaga fica junto, no fim, longe do salvar.
+      Excluir um capítulo é com os administradores, e passa pela página de confirmação. */}
+  {
+    usuario.admin && (
+      <ZonaDePerigo>
+        <p>O capítulo vai para a lixeira e pode ser restaurado. As memórias dele continuam no acervo.</p>
+        <a class="acao" href={`/capitulos/${capitulo.id}/excluir`}>
+          Excluir capítulo
+        </a>
+      </ZonaDePerigo>
+    )
+  }
 </Pagina>

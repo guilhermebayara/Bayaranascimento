@@ -695,6 +695,38 @@ textarea.campo__entrada {
   box-shadow: 0 3px 0 var(--tinta);
 }
 
+/* --- Zona de perigo: as ações de apagar, juntas no fim, marcadas na cor de alerta ----------------
+   Um bloco separado, longe do salvar. Dentro vai o caminho para a confirmação, nunca o apagar
+   direto. O botão que confirma continua cheio, na cor de alerta. */
+
+.perigo {
+  display: grid;
+  justify-items: start;
+  gap: var(--e-2);
+  padding: var(--e-5);
+  border: var(--traco) solid var(--alerta);
+  border-radius: var(--raio-bloco);
+  background: color-mix(in srgb, var(--alerta) 7%, transparent);
+}
+.perigo > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.perigo__titulo {
+  color: var(--alerta-tinta);
+  font-weight: 550;
+}
+.perigo p {
+  max-width: var(--medida);
+  font-size: var(--t-pequeno);
+}
+.perigo .acao {
+  color: var(--alerta-tinta);
+}
+.perigo--menor {
+  padding: var(--e-4);
+}
+
 /* --- Estado vazio: uma frase em serifa e, se couber, o que fazer --------------------------------- */
 
 .vazio {

@@ -761,3 +761,69 @@ describe('ajustes: lista, formas de ver da pessoa, quem aparece e o link do tít
     expect(grande).toMatch(/\.capitulo__gente ul\s*\{\s*display:\s*block;/);
   });
 });
+
+describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo', () => {
+  const fonte = (caminho: string) => readFileSync(new URL(`../src/${caminho}`, import.meta.url), 'utf8');
+  const nova = fonte('pages/nova.astro');
+  const css = ler('telas/formulario.css');
+
+  it('a frase da abertura tem as três lacunas, e cada uma leva à etapa certa', () => {
+    // Resposta do Gui à pergunta 1 do PR do grupo "formularios": "com ___" leva ao "Quem estava?"
+    for (const lacuna of ['data', 'lugar', 'pessoas']) expect(nova).toMatch(new RegExp(`role="button" tabindex="0" data-abertura="${lacuna}"`));
+    expect(nova).toMatch(/indiceDaEtapa\(pessoas \? '\[data-quem-estava\]' : '\[data-frase\]'\)/);
+    // As sete etapas e a ordem não mudam
+    const etapas = [...nova.matchAll(/data-etapa="([^"]+)"/g)].map((m) => m[1]);
+    expect(etapas).toEqual(['O que aconteceu', 'Quando e onde', 'Quem estava', 'Fotos', 'Relato', 'Capítulo e temas', 'Quem vê']);
+  });
+
+  it('sem script, a frase da abertura e o resumo ao lado não aparecem: não prometem o que não fazem', () => {
+    expect(nova).toMatch(/data-frase-abertura hidden>/);
+    expect(nova).toMatch(/<aside class="ao-lado" data-ao-lado aria-labelledby="ao-lado-titulo" hidden>/);
+    expect(fonte('components/formularios/Pagina.astro')).toMatch(/\[data-frase-abertura\], \[data-ao-lado\] \{ display: none !important; \}/);
+  });
+
+  it('cada lacuna da abertura tem 44 px de toque e foco visível', () => {
+    expect(css).toMatch(/\.frase--abertura \.frase__data\s*\{\s*padding-block:\s*calc\(\(var\(--toque\) - 1\.2em\) \/ 2\);/);
+    expect(css).toMatch(/\.frase--abertura \.frase__data:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--tinta\);/);
+  });
+
+  it('o resumo ao lado só existe no computador, não anuncia cada tecla e não baixa a foto no celular', () => {
+    // Fora de 62rem, nada: a regra geral esconde, e só a media query de 62rem mostra
+    expect(css).toMatch(/\.pagina-de-formulario \.ao-lado\s*\{\s*display:\s*none;\s*\}/);
+    const aside = nova.slice(nova.indexOf('<aside class="ao-lado"'), nova.indexOf('</aside>'));
+    expect(aside).not.toMatch(/aria-live|role="status"|aria-hidden/);
+    expect(aside).toMatch(/soOnde=\{ONDE_HA_LADO\}/);
+    expect(nova).toMatch(/const ONDE_HA_LADO = '\(min-width: 62rem\)';/);
+    expect(nova).toMatch(/aoLado\.hidden = !haLado\.matches;\s*if \(!haLado\.matches\) return;/);
+    // Parado à vista só onde há mouse, e nunca com position: fixed
+    expect(css).toMatch(/@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.pagina-de-formulario \.formulario\.com-etapas > \.ao-lado:not\(\[hidden\]\),\s*\.pagina-de-formulario > \.ao-lado--fixo \{\s*position: sticky;/);
+    expect(css).not.toMatch(/position\s*:\s*fixed/);
+  });
+
+  it('a zona de perigo fica no fim das telas de editar, fora do formulário que salva, e só para quem pode', () => {
+    // Memória: depois do fim do formulário, e só com a permissão de excluir de sempre
+    expect(nova.indexOf('<ZonaDePerigo>')).toBeGreaterThan(nova.indexOf('</form>'));
+    expect(nova).toMatch(/const podeExcluir = Boolean\(memoria\) && podeExcluirMemoria\(usuario, memoria!\)\.ok;/);
+    expect(nova).toMatch(/memoria && podeExcluir && \(/);
+    // Capítulo: no fim da página, só para os administradores, como antes
+    const capitulo = fonte('pages/capitulos/[id]/editar.astro');
+    expect(capitulo).toMatch(/usuario\.admin && \(\s*<ZonaDePerigo>/);
+    expect(capitulo.indexOf('<ZonaDePerigo>')).toBeGreaterThan(capitulo.lastIndexOf('<FichaDoCapitulo'));
+    // Laço e casal: toda remoção com confirmação está dentro de uma zona, depois do formulário que salva
+    const pessoa = fonte('pages/pessoas/[id]/editar.astro');
+    const remocoes = pessoa.match(/<ConfirmarRemocao/g) ?? [];
+    const zonas = pessoa.match(/<ZonaDePerigo menor nivel=\{4\}>\s*<form method="post" action="\/api\/lacos" class="editar__remover">/g) ?? [];
+    expect(remocoes.length).toBeGreaterThan(0);
+    expect(zonas.length).toBe(remocoes.length);
+    // Nenhuma tela de editar leva direto ao apagar: a zona tem o caminho da confirmação
+    for (const tela of [nova, capitulo]) expect(tela.slice(tela.indexOf('<ZonaDePerigo>'), tela.indexOf('</ZonaDePerigo>'))).toMatch(/href=\{`\/(memorias|capitulos)\/\$\{\w+\.id\}\/excluir`\}/);
+  });
+
+  it('a zona de perigo é marcada na cor de alerta, e o botão que confirma continua cheio nessa cor', () => {
+    const pecas = ler('pecas.css');
+    expect(pecas).toMatch(/\.perigo\s*\{[^}]*border:\s*var\(--traco\) solid var\(--alerta\);/);
+    expect(pecas).toMatch(/\.perigo__titulo\s*\{\s*color:\s*var\(--alerta-tinta\);/);
+    expect(css).toMatch(/\.botao\.botao--perigo\s*\{\s*background:\s*var\(--alerta-tinta\);/);
+    expect(fonte('components/ConfirmarRemocao.astro')).toMatch(/class="botao botao--perigo" type="submit"/);
+  });
+});

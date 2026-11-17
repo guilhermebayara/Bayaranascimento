@@ -3,11 +3,15 @@ import { comArtigo } from '../lib/servidor/conteudo';
 import Pagina from '../components/formularios/Pagina.astro';
 import CampoData from '../components/CampoData.astro';
 import QuemEstava from '../components/QuemEstava.astro';
+import Dado from '../components/visual/Dado.astro';
+import Ficha from '../components/visual/Ficha.astro';
+import Polaroid from '../components/visual/Polaroid.astro';
 import { Familia } from '../lib/parentesco';
 import { TIPO_OUTRO } from '../lib/tipos';
-import { estiloDoTipo } from '../lib/visual';
+import { estiloDoTipo, legendaLugarAno } from '../lib/visual';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
-import { podeEditarMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
+import { podeEditarMemoria, podeExcluirMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
+import ZonaDePerigo from '../components/visual/ZonaDePerigo.astro';
 import { familiasDe, listarAudiosDosRelatos, listarCapitulos, listarCasais, listarMemorias, listarFiliacoes, listarIntegrantes, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
 
 // Esta página serve para três coisas: registrar uma memória nova, continuar
@@ -19,6 +23,7 @@ if (id && !memoria) return new Response('Memória não encontrada', { status: 40
 if (memoria && !podeEditarMemoria(usuario, memoria).ok) return Astro.redirect(`/memorias/${memoria.id}`);
 
 const publicada = memoria?.situacao === 'publicada';
+const podeExcluir = Boolean(memoria) && podeExcluirMemoria(usuario, memoria!).ok;
 const integrantes = await listarIntegrantes();
 // Só quem criou muda quem pode ver. Para quem é citado, as opções ficam travadas com o valor atual.
 const travaQuemVe = Boolean(memoria) && memoria!.criadaPor !== usuario.pessoa;
@@ -76,6 +81,9 @@ const hojeIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo'
 // Atalhos de outras páginas: "Nova memória com Fulano" (?com=) e "Nova memória neste capítulo" (?capitulo=)
 const comPessoa = !memoria ? integrantes.find((i) => i.id === Astro.url.searchParams.get('com'))?.id : undefined;
 const noCapitulo = !memoria ? capitulosReunidos.find((c) => c.id === Astro.url.searchParams.get('capitulo'))?.id : undefined;
+// A foto-chave, para o resumo ao lado do formulário (só no computador)
+const fotoChave = memoria?.fotos.find((f) => f.principal) ?? memoria?.fotos[0];
+const ONDE_HA_LADO = '(min-width: 62rem)';
 const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'Continuar rascunho';
 ---
 
@@ -87,6 +95,18 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         ? 'Ajuste a ficha, as fotos ou quem pode ver. Os relatos não mudam por aqui: cada pessoa cuida do seu.'
         : `Olá, ${usuario.nome}. Conte o que aconteceu, do seu jeito. Só o título e o ano são obrigatórios, e dá para salvar como rascunho a qualquer momento.`
     }
+  </p>
+  {/* A frase com lacunas também na abertura (resposta do Gui à pergunta 1 do PR do grupo "formularios",
+      17/11/2026): "Isso aconteceu em ___, em ___, com ___." Ela mostra o que já foi preenchido, e cada
+      lacuna leva à etapa certa: a data e o lugar, a "Quando e onde"; as pessoas, a "Quem estava?".
+      Só existe com script, que a preenche e a mostra: sem ele, as etapas já aparecem todas em sequência.
+      PROVISÓRIO (perguntas 5 e 6 do PR de ajustes): o texto das lacunas vazias, e a frase sair na
+      etapa "Quando e onde". */}
+  <p slot="frase" class="frase frase--abertura" data-frase-abertura hidden>
+    Isso aconteceu{' '}
+    <span class="frase__data" role="button" tabindex="0" data-abertura="data">em que data?</span><span data-abertura-liga>, </span>
+    <span class="frase__data" role="button" tabindex="0" data-abertura="lugar">em que lugar?</span><span data-abertura-liga>, </span>
+    <span class="frase__data" role="button" tabindex="0" data-abertura="pessoas">com quem?</span><span data-abertura-liga>.</span>
   </p>
 
   <form class="formulario" method="post" action="/api/memorias" data-formulario-memoria data-id={memoria?.id ?? ''} data-publicada={publicada ? '' : undefined} novalidate>
@@ -143,7 +163,8 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     {/* O formulário em frase (docs/visual.md, "A data no formulário em frase"): a lacuna da data mostra
         a data como o site escreve e, ao toque, abre logo abaixo o controle de data flexível. A do
         lugar é texto livre. Sem script, a lacuna da data não aparece e o controle fica aberto.
-        A MUDAR na tst-visual-ajustes (resposta do Gui, 17/11/2026, à pergunta 1 do PR do grupo "formularios"): o texto da frase e o da lacuna vazia. */}
+        O texto da frase e o da lacuna vazia ("em que data?") ficaram, e a frase entrou também na
+        abertura (resposta do Gui à pergunta 1 do PR do grupo "formularios", 17/11/2026). */}
     <fieldset>
       <legend>Quando e onde foi?</legend>
       <p class="frase" data-frase>
@@ -338,8 +359,50 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         )
       }
     </div>
-    {memoria && !publicada && <p class="memoria__rodape"><a href={`/memorias/${memoria.id}/excluir`}>Descartar este rascunho</a></p>}
+    {/* Ao lado, no computador (resposta do Gui à pergunta 7 do PR do grupo "formularios", 17/11/2026):
+        a foto-chave e um resumo da memória, que acompanham o preenchimento. Sem foto ainda, o cartão
+        do tipo de momento, como a memória sem foto. Só existe a partir de 62rem e com script, que o
+        preenche: a foto não é baixada no celular. É apoio para quem vê a tela: não rouba o foco nem
+        anuncia cada tecla ao leitor de tela (sem aria-live), e o resumo da última etapa continua.
+        PROVISÓRIO (pergunta 7 do PR de ajustes): o que entra no resumo e os rótulos. */}
+    <aside class="ao-lado" data-ao-lado aria-labelledby="ao-lado-titulo" hidden>
+      <h2 class="rotulo suave" id="ao-lado-titulo">A memória até aqui</h2>
+      <div class="ao-lado__foto" data-ao-lado-com-foto style={estiloDoTipo(memoria?.tipo ?? 'outro')} hidden>
+        <Polaroid id={memoria?.id ?? 'nova-memoria'} fotos={[{ chave: fotoChave?.chave ?? '', legenda: null }]} legenda={memoria ? legendaLugarAno(memoria.lugar, memoria.ano) : ''} alt="" monte={false} soOnde={ONDE_HA_LADO} />
+      </div>
+      {[...todosOsTipos.map((t) => t.id), ''].map((tipo) => (
+        <div class="ao-lado__foto" data-ao-lado-sem-foto={tipo} style={estiloDoTipo(tipo || 'outro')} hidden>
+          <Polaroid id={memoria?.id ?? 'nova-memoria'} fotos={[]} legenda="" tipo={tipo || 'outro'} monte={false} />
+        </div>
+      ))}
+      <p class="ao-lado__nome" data-ao-lado-campo="titulo"></p>
+      <Ficha>
+        <Dado rotulo="Tipo"><span data-ao-lado-campo="tipo"></span></Dado>
+        <Dado rotulo="Quando"><span data-ao-lado-campo="quando"></span></Dado>
+        <Dado rotulo="Onde"><span data-ao-lado-campo="onde"></span></Dado>
+        <Dado rotulo="Quem estava"><span data-ao-lado-campo="quem"></span></Dado>
+        <Dado rotulo="Fotos"><span data-ao-lado-campo="fotos"></span></Dado>
+        <Dado rotulo="Capítulo"><span data-ao-lado-campo="capitulo"></span></Dado>
+        <Dado rotulo="Quem vê"><span data-ao-lado-campo="quemve"></span></Dado>
+      </Ficha>
+    </aside>
   </form>
+
+  {/* A zona de perigo (pedido do Gui, 17/11/2026): o que apaga fica junto, no fim, longe do salvar.
+      Só aparece para quem pode excluir (os administradores, ou quem escreveu o rascunho), e leva à
+      página de confirmação. PROVISÓRIO (pergunta 9 do PR de ajustes): o nome do bloco e os textos. */}
+  {
+    memoria && podeExcluir && (
+      <div data-zona-de-perigo>
+        <ZonaDePerigo>
+          <p>{publicada ? 'A memória vai para a lixeira, com as fotos e os relatos, e pode ser restaurada.' : 'O rascunho vai para a lixeira e pode ser restaurado.'}</p>
+          <a class="acao" href={`/memorias/${memoria.id}/excluir`}>
+            {publicada ? 'Excluir esta memória' : 'Descartar este rascunho'}
+          </a>
+        </ZonaDePerigo>
+      </div>
+    )
+  }
 
   <div class="confirmacao" data-confirmacao hidden>
     <h2>{publicada ? 'Memória atualizada' : 'Memória publicada'}</h2>
@@ -355,6 +418,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
   import { ligarCamposDeAno, montarEtapas } from '../lib/cliente/etapas';
   import { ligarDatas } from '../lib/cliente/datas';
   import { dataNaFrase } from '../lib/datas';
+  import { legendaLugarAno, listaCurta } from '../lib/visual';
   import { prepararFoto } from '../lib/cliente/fotos';
   import { buscaDePessoa } from '../lib/cliente/busca-pessoa';
   import { ligarQuemEstava } from '../lib/cliente/quem-estava';
@@ -378,10 +442,9 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 
     // Etapas: uma parte do formulário por vez, com resumo na última
     const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-    const montarResumo = () => {
-      const caixa = form.querySelector<HTMLElement>('[data-resumo]');
-      const lista = form.querySelector<HTMLElement>('[data-resumo-lista]');
-      if (!caixa || !lista) return;
+    // O que já foi preenchido, lido do formulário: serve ao resumo da última etapa, à frase da
+    // abertura e ao resumo ao lado
+    const lerPreenchido = () => {
       const d = new FormData(form);
       const tipo = form.querySelector<HTMLInputElement>('input[name="tipo"]:checked');
       const rotuloDoTipo = tipo?.value === 'outro' && String(d.get('tipoOutro') ?? '').trim() ? String(d.get('tipoOutro')).trim() : (tipo?.nextElementSibling?.textContent ?? '');
@@ -395,17 +458,39 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       ];
       const fotos = form.querySelectorAll('.foto-enviada').length;
       const nucleos = [...form.querySelectorAll<HTMLInputElement>('input[name="nucleos"]:checked')].map((c) => c.nextElementSibling?.textContent ?? '');
+      const visibilidade = form.querySelector<HTMLInputElement>('input[name="visibilidade"]:checked')?.value ?? d.get('visibilidade');
+      return {
+        d,
+        titulo: String(d.get('titulo') ?? '').trim(),
+        tipo: tipo?.value ?? '',
+        rotuloDoTipo: rotuloDoTipo.trim(),
+        ano: Number(d.get('ano')) || undefined,
+        quando,
+        pessoas: pessoas.map((p) => p.trim()).filter(Boolean),
+        lugar: String(d.get('lugar') ?? '').trim(),
+        capitulos: [...form.querySelectorAll<HTMLInputElement>('input[name="capitulos"]:checked')].map((c) => (c.nextElementSibling?.textContent ?? '').trim()),
+        temas: String(d.get('temas') ?? '').split(',').map((t) => t.trim()).filter(Boolean),
+        fotos: fotos === 0 ? 'nenhuma' : fotos === 1 ? '1 foto' : `${fotos} fotos`,
+        quemVe: visibilidade === 'nucleos' ? `só ${nucleos.join(' e ') || 'as famílias marcadas'}` : 'toda a família',
+      };
+    };
+    const montarResumo = () => {
+      const caixa = form.querySelector<HTMLElement>('[data-resumo]');
+      const lista = form.querySelector<HTMLElement>('[data-resumo-lista]');
+      if (!caixa || !lista) return;
+      const p = lerPreenchido();
+      const d = p.d;
       const linhas: [string, string][] = [
-        ['O quê', `${String(d.get('titulo') ?? '').trim() || 'sem título'} (${rotuloDoTipo.trim()})`],
-        ['Quando', quando],
-        ['Quem', pessoas.join(', ') || 'ninguém marcado'],
-        ['Onde', String(d.get('lugar') ?? '').trim() || 'não informado'],
-        ['Capítulo', [...form.querySelectorAll<HTMLInputElement>('input[name="capitulos"]:checked')].map((c) => c.nextElementSibling?.textContent ?? '').join(', ') || 'nenhum'],
-        ['Temas', String(d.get('temas') ?? '').split(',').map((t) => t.trim()).filter(Boolean).join(', ') || 'nenhum'],
-        ['Fotos', fotos === 0 ? 'nenhuma' : fotos === 1 ? '1 foto' : `${fotos} fotos`],
+        ['O quê', `${p.titulo || 'sem título'} (${p.rotuloDoTipo})`],
+        ['Quando', p.quando],
+        ['Quem', p.pessoas.join(', ') || 'ninguém marcado'],
+        ['Onde', p.lugar || 'não informado'],
+        ['Capítulo', p.capitulos.join(', ') || 'nenhum'],
+        ['Temas', p.temas.join(', ') || 'nenhum'],
+        ['Fotos', p.fotos],
       ];
       if (form.querySelector('[name="relato"]')) linhas.push(['Relato', String(d.get('relato') ?? '').trim() ? 'escrito' : 'em branco, dá para escrever depois']);
-      linhas.push(['Quem vê', d.get('visibilidade') === 'nucleos' ? `só ${nucleos.join(' e ') || 'as famílias marcadas'}` : 'toda a família']);
+      linhas.push(['Quem vê', p.quemVe]);
       lista.replaceChildren(
         ...linhas.flatMap(([termo, valor]) => {
           const dt = document.createElement('dt');
@@ -431,9 +516,17 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       const aviso = form.querySelector<HTMLElement>('[data-nucleos-sugeridos]');
       if (aviso) aviso.hidden = false;
     };
+    // A frase da abertura e o resumo ao lado acompanham o preenchimento (escritos mais abaixo)
+    const fraseDaAbertura = document.querySelector<HTMLElement>('[data-frase-abertura]');
+    const aoLado = form.querySelector<HTMLElement>('[data-ao-lado]');
+    const haLado = matchMedia('(min-width: 62rem)');
+    let acompanhar = () => {};
     const etapas = montarEtapas(form, (_indice, secao) => {
       if (secao.querySelector('input[name="nucleos"]')) sugerirNucleos();
       if (secao.querySelector('[data-resumo]')) montarResumo();
+      // Na etapa "Quando e onde" a frase está na própria etapa: a da abertura sai, para não repetir
+      if (fraseDaAbertura) fraseDaAbertura.hidden = Boolean(secao.querySelector('[data-frase]'));
+      acompanhar();
     });
     form.addEventListener('change', () => {
       if (!form.querySelector<HTMLElement>('[data-resumo]')?.closest<HTMLElement>('[data-etapa]')?.hidden) montarResumo();
@@ -476,6 +569,111 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       abrir(!valor('ano'));
       escrever();
     }
+    // A frase da abertura: "Isso aconteceu em ___, em ___, com ___." Cada lacuna diz o que já foi
+    // preenchido e leva à etapa em que aquilo se preenche. Para ir adiante, o obrigatório das etapas
+    // do caminho continua valendo: quem ainda não deu o título fica na primeira, com o aviso.
+    const indiceDaEtapa = (seletor: string) => [...form.querySelectorAll<HTMLElement>('[data-etapa]')].findIndex((secao) => secao.querySelector(seletor));
+    const escreverAbertura = (p: ReturnType<typeof lerPreenchido>) => {
+      if (!fraseDaAbertura) return;
+      const textos: Record<string, [texto: string, vazia: boolean, etapa: string]> = {
+        data: [dataNaFrase({ ano: p.ano, mes: Number(p.d.get('mes')) || undefined, dia: Number(p.d.get('dia')) || undefined, aproximada: p.d.get('aproximada') === 'on' }), !p.ano, 'Quando e onde'],
+        lugar: [p.lugar ? `em ${p.lugar}` : 'em que lugar?', !p.lugar, 'Quando e onde'],
+        pessoas: [p.pessoas.length ? `com ${listaCurta(p.pessoas, 3)}` : 'com quem?', p.pessoas.length === 0, 'Quem estava'],
+      };
+      const lacunas = [...fraseDaAbertura.querySelectorAll<HTMLElement>('[data-abertura]')];
+      const ligas = [...fraseDaAbertura.querySelectorAll<HTMLElement>('[data-abertura-liga]')];
+      lacunas.forEach((lacuna, i) => {
+        const [texto, vazia, etapa] = textos[lacuna.dataset.abertura!];
+        lacuna.textContent = texto;
+        lacuna.toggleAttribute('data-vazia', vazia);
+        lacuna.setAttribute('aria-label', `${texto} (ir para a etapa “${etapa}”)`);
+        // Depois de uma lacuna vazia, que é uma pergunta, a frase segue sem vírgula nem ponto
+        const ultima = i === lacunas.length - 1;
+        if (ligas[i]) ligas[i].textContent = vazia ? (ultima ? '' : ' ') : ultima ? '.' : ', ';
+      });
+    };
+    if (fraseDaAbertura && etapas) {
+      const irPara = (qual: string) => {
+        const pessoas = qual === 'pessoas';
+        const destino = indiceDaEtapa(pessoas ? '[data-quem-estava]' : '[data-frase]');
+        if (destino < 0) return;
+        etapas.ir(destino);
+        if (etapas.atual() !== destino || pessoas) return;
+        // Chegando em "Quando e onde", o foco vai para o que a lacuna prometeu
+        if (qual === 'data') {
+          const controle = form.querySelector<HTMLElement>('[data-controle-da-data]');
+          if (controle?.hidden) form.querySelector<HTMLElement>('[data-frase-data]')?.click();
+          else (form.elements.namedItem('ano') as HTMLInputElement).focus();
+        } else form.querySelector<HTMLInputElement>('[data-frase-lugar]')?.focus();
+      };
+      for (const lacuna of fraseDaAbertura.querySelectorAll<HTMLElement>('[data-abertura]')) {
+        lacuna.addEventListener('click', () => irPara(lacuna.dataset.abertura!));
+        lacuna.addEventListener('keydown', (evento) => {
+          if (evento.key !== 'Enter' && evento.key !== ' ') return;
+          evento.preventDefault();
+          irPara(lacuna.dataset.abertura!);
+        });
+      }
+      fraseDaAbertura.hidden = etapas.atual() === indiceDaEtapa('[data-frase]');
+    }
+
+    // O resumo ao lado, no computador: a foto-chave (ou o cartão do tipo de momento) e a ficha do que
+    // já foi preenchido. No celular ele não existe, e a foto nem é pedida.
+    const escreverAoLado = (p: ReturnType<typeof lerPreenchido>) => {
+      if (!aoLado) return;
+      aoLado.hidden = !haLado.matches;
+      if (!haLado.matches) return;
+      const campo = (nome: string, texto: string, vazio: string) => {
+        const el = aoLado.querySelector<HTMLElement>(`[data-ao-lado-campo="${nome}"]`);
+        if (!el) return;
+        el.textContent = texto || vazio;
+        el.toggleAttribute('data-vazio', !texto);
+      };
+      campo('titulo', p.titulo, 'Sem título ainda');
+      campo('tipo', p.rotuloDoTipo, 'a escolher');
+      campo('quando', p.ano ? p.quando : '', 'a informar');
+      campo('onde', p.lugar, 'não informado');
+      campo('quem', p.pessoas.length ? listaCurta(p.pessoas, 4) : '', 'ninguém marcado');
+      campo('fotos', p.fotos === 'nenhuma' ? '' : p.fotos, 'nenhuma');
+      campo('capitulo', p.capitulos.join(', '), 'nenhum');
+      campo('quemve', p.quemVe, '');
+      // A foto-chave é a marcada em "Usar na linha do tempo" ou, sem marca, a primeira
+      const itens = [...form.querySelectorAll<HTMLElement>('.foto-enviada')];
+      const principal = itens.find((item) => item.querySelector<HTMLInputElement>('input[name="fotoPrincipal"]')?.checked) ?? itens[0];
+      const origem = principal?.querySelector<HTMLImageElement>('.foto__papel img')?.src;
+      const comFoto = aoLado.querySelector<HTMLElement>('[data-ao-lado-com-foto]');
+      const legenda = p.ano ? legendaLugarAno(p.lugar, p.ano) : p.lugar;
+      if (comFoto) {
+        comFoto.hidden = !origem;
+        if (origem) {
+          comFoto.querySelector('source')?.remove();
+          const foto = comFoto.querySelector<HTMLImageElement>('img');
+          if (foto && foto.src !== origem) {
+            foto.loading = 'eager';
+            foto.src = origem;
+          }
+        }
+      }
+      for (const cartao of aoLado.querySelectorAll<HTMLElement>('[data-ao-lado-sem-foto]')) cartao.hidden = Boolean(origem) || cartao.dataset.aoLadoSemFoto !== p.tipo;
+      for (const el of aoLado.querySelectorAll<HTMLElement>('.ao-lado__foto figcaption')) el.textContent = legenda;
+    };
+    acompanhar = () => {
+      const p = lerPreenchido();
+      escreverAbertura(p);
+      escreverAoLado(p);
+    };
+    // Cada tecla e cada escolha; o que muda a lista de fotos ou de pessoas avisa o formulário por "change"
+    let quadro = 0;
+    const acompanharLogo = () => {
+      cancelAnimationFrame(quadro);
+      quadro = requestAnimationFrame(acompanhar);
+    };
+    form.addEventListener('input', acompanharLogo);
+    form.addEventListener('change', acompanharLogo);
+    form.addEventListener('click', () => setTimeout(acompanharLogo));
+    haLado.addEventListener('change', acompanharLogo);
+    acompanhar();
+
     // Calendário e "Foi hoje" preenchem dia, mês e ano de uma vez
     const calendario = form.querySelector<HTMLInputElement>('[data-calendario]');
     const preencherData = (ano: number, mes: number, dia: number) => {
@@ -711,6 +909,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           return location.replace(resultado.url);
         }
         form.hidden = true;
+        for (const parte of document.querySelectorAll<HTMLElement>('[data-zona-de-perigo], [data-frase-abertura]')) parte.hidden = true;
         const confirmacao = document.querySelector<HTMLElement>('[data-confirmacao]')!;
         confirmacao.querySelector<HTMLAnchorElement>('[data-confirmacao-link]')!.href = resultado.url;
         confirmacao.hidden = false;
