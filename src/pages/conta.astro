@@ -20,6 +20,7 @@ import { montarConta } from '../lib/servidor/conta';
 import { familiasDe, listarCasais, listarFiliacoes, listarNucleos } from '../lib/servidor/repositorio';
 import { carimboDaData, corDaPessoa, corDoNucleo } from '../lib/visual';
 
+// PROVISÓRIO (pergunta 7 do PR do grupo "pessoal"): os textos novos desta tela esperam o Gui.
 const { usuario } = Astro.locals;
 const conta = await montarConta(usuario);
 const { dados: eu, integrantes } = conta;
