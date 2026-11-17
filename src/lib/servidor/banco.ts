@@ -6,7 +6,7 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearCartaDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearCartaDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 
 interface Migracao {
@@ -620,6 +620,7 @@ async function migrar(db: D1Database): Promise<void> {
     await semearDeQuemDeExemplo(db);
     await semearAniversariosDeExemplo(db);
     await semearCartaDeExemplo(db);
+    await semearTiposDeExemplo(db);
     // Os exemplos entram como membros (é o padrão da tabela), mas ninguém deles acessa o site: são parentes
     await db.prepare(`UPDATE nucleo_membros SET papel = 'parente' WHERE papel = 'membro' AND integrante_id LIKE 'ex-%'`).run();
     // Fotos e retratos de exemplo: o Chico e a Karol. E a limpeza do que as prévias enviaram há mais de 7 dias.

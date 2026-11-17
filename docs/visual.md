@@ -994,11 +994,11 @@ Construído em 17/11/2026 na branch `tst-visual-tipos`, nascida da `tst-visual-a
 | --- | --- |
 | A tinta da cor sobre o papel e sobre a moldura branca: 4,5 para um | As 23 |
 | O texto do site sobre o pastel da cor: 4,5 para um | As 23 |
-| A tinta da cor sobre o pastel dela: 4,5 para um | As doze novas e sete das onze |
+| A tinta da cor sobre o pastel dela: 4,5 para um | As 23 |
 | O vivo longe do pastel da mesma cor, pelo menos como na manteiga | As doze novas |
 | Nenhuma cor mais perto de outra do que as duas mais próximas entre as onze (ardósia e azul no pastel, coral e pêssego no vivo) | Todos os pares |
 
-**Quatro das onze aprovadas ficam abaixo de 4,5 com a tinta sobre o próprio pastel:** pêssego (3,9), coral (4,2), rosa (4,2) e manteiga (4,4). Não foram mexidas, porque são cores que o Gui aprovou; o teste guarda o valor de hoje como piso e a página do sistema marca as quatro. É a pergunta 4 do PR.
+**Quatro das onze aprovadas ficam abaixo de 4,5 com a tinta sobre o próprio pastel:** pêssego (3,9), coral (4,2), rosa (4,2) e manteiga (4,4). Não foram mexidas, porque são cores que o Gui aprovou; o teste guardava o valor como piso e a página do sistema marcava as quatro. **Resolvido em 17/11/2026 (P160 do QA de design):** o Gui mandou escurecer só a tinta das quatro até 4,5 (pêssego `#a04314`, coral `#a8281e`, rosa `#aa2557`, manteiga `#885700`). O pastel, o meio e o vivo não mudaram, e a regra vale para as 23, sem piso no teste. O alerta do site usa a tinta do coral e escureceu junto.
 
 **O vivo sobre o pastel não chega a 3 para um em quase nenhuma cor**, nem nas onze aprovadas (a manteiga tem 1,5): o vivo é ponto de destaque, nunca texto. Por isso a regra do vivo é de distância entre as duas cores, e não de contraste de leitura.
 
@@ -1020,4 +1020,4 @@ Construído em 17/11/2026 na branch `tst-visual-tipos`, nascida da `tst-visual-a
 
 **Capturas.** `CAPTURAS_SO='^tipos' npm run capturas -- tirar <pasta>`. Estão em `docs/visual/fase-3/tipos/`; as duas com o tipo trocado (`tipos-3-…`) foram tiradas à parte, com "Viagem" em cereja e com a montanha, e o tipo voltou ao azul depois.
 
-**O que falta:** a resposta do Gui às perguntas do PR (as cores novas, os rabiscos, os textos e as quatro cores abaixo de 4,5); conferir no iPhone; e, se ele quiser, exemplos de tipos novos no acervo de exemplo.
+**Respostas do Gui (17/11/2026, P157 a P168 do QA de design):** as doze cores, os dezenove rabiscos e os textos ficam; repetir cor continua podendo; o tipo criado a partir de "Outro" continua escolhendo a cor pelo nome. Mudou: onde há mouse a prévia fica parada ao lado, e no toque uma etiqueta pequena junto do "Salvar" e a etiqueta do resumo acompanham a escolha; salvar volta para a linha do tipo, com o recado ali ("Viagem atualizado."); a ordem da página é "Tipos da lista", "Novo tipo" e, por último, o que foi escrito em "Outro", com a conta no alto; "Cor" e "Desenho" são rótulos em mono; o nome do desenho marcado fica escrito embaixo da grade; e o acervo de exemplo ganhou três tipos (Formatura, Praia e Bichos, em `semearTiposDeExemplo`), com uma memória em cada. **O que falta:** conferir no iPhone.

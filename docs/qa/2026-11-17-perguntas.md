@@ -2168,6 +2168,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P157. A prévia deve ficar à vista enquanto se escolhe a cor e o desenho?
 
+**Feito (opção A):** onde há mouse (1280 e 1920 px) a prévia fica parada ao lado enquanto as grades rolam; no celular, uma etiqueta pequena junto do "Salvar" e a etiqueta do resumo do tipo acompanham a escolha. Capturas: `p157-previa-com-os-desenhos--390.jpg`, `p157-previa-com-os-desenhos--1280.jpg`, `p157-previa-com-os-desenhos--1920.jpg`, `p168-nome-do-desenho-e-etiqueta-no-salvar--390.jpg`.
+
 **muda a experiência**
 
 - Contexto: cada tipo abre com o nome, a prévia "Como fica", a grade de 23 cores e a de 30 desenhos. A prévia acompanha a escolha na hora.
@@ -2180,6 +2182,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P158. As doze cores novas e os nomes ficam? (PR #40, pergunta 1)
 
+**Feito (opção A):** mantido como está.
+
 **ajuste**
 
 - Contexto: a paleta precisava de bem mais que onze cores, na mesma temperatura. Foram feitas doze (limão, oliva, menta, musgo, céu, petróleo, anil, uva, ameixa, cereja, terracota e cacau), medidas para não ficarem mais perto umas das outras do que as onze já ficam entre si.
@@ -2190,6 +2194,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: acrescentar mais. Cabe pouco: mostarda e jade foram tentadas e ficaram perto demais de cores que já existem.
 
 ### P159. Os dezenove rabiscos novos e os nomes de todos ficam? (PR #40, pergunta 2)
+
+**Feito (opção A):** mantido como está.
 
 **ajuste**
 
@@ -2202,6 +2208,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P160. Quatro das onze cores aprovadas não chegam a 4,5 com a tinta sobre o próprio pastel. Escurecer? (PR #40, pergunta 4)
 
+**Feito (opção A):** só a tinta das quatro escureceu até 4,5 sobre o próprio pastel (pêssego `#a04314`, coral `#a8281e`, rosa `#aa2557`, manteiga `#885700`); o pastel e o vivo não mudaram, o piso saiu do teste e a página do sistema não marca mais nenhuma. Captura: `p160-contraste-das-quatro--1280.jpg`.
+
 **ajuste**
 
 - Contexto: pêssego (3,9), coral (4,2), rosa (4,2) e manteiga (4,4). Aparece no carimbo e no ícone sobre o bloco de cor. O texto corrido não é afetado, porque usa a cor do texto do site.
@@ -2211,6 +2219,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: deixar como está, com o piso no teste.
 
 ### P161. Depois de salvar um tipo, a página deve voltar para ele?
+
+**Feito (opção A):** salvar volta para a linha do tipo (âncora no endereço), com o recado ali, dizendo o nome ("Viagem atualizado."). Capturas: `p161-volta-para-o-tipo--390.jpg`, `p161-volta-para-o-tipo--1280.jpg`, `p161-volta-para-o-tipo--1920.jpg`.
 
 **ajuste**
 
@@ -2223,6 +2233,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P162. "Tipos da lista" deve vir antes de "O que a família escreveu em 'Outro'"?
 
+**Feito (opção A):** a ordem passou a "Tipos da lista", "Novo tipo" e, por último, o que foi escrito em "Outro", com a conta no alto ("3 nomes escritos em \"Outro\"") levando até lá. Capturas: `p162-tipos-primeiro--390.jpg`, `p162-tipos-primeiro--1280.jpg`, `p162-tipos-primeiro--1920.jpg`.
+
 **ajuste**
 
 - Contexto: a página tem três partes, nesta ordem: o que foi escrito em "Outro", os tipos da lista e "Novo tipo".
@@ -2233,6 +2245,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P163. Os textos novos de `/admin/tipos` ficam? (PR #40, pergunta 3)
+
+**Feito (opção A):** mantido como está. O recado de salvar passou a dizer o nome do tipo por causa da P161.
 
 **detalhe**
 
@@ -2245,6 +2259,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P164. Dois tipos podem ter a mesma cor? (PR #40, pergunta 5)
 
+**Feito (opção A):** mantido como está.
+
 **detalhe**
 
 - Contexto: hoje pode. A amostra avisa quem já usa, e o tipo novo vem com uma cor livre.
@@ -2254,6 +2270,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: proibir. Com 23 cores, a lista de tipos teria esse teto.
 
 ### P165. O tipo criado a partir de um texto de "Outro" escolhe a cor numa lista de nomes? (PR #40, pergunta 6)
+
+**Feito (opção A):** mantido como está.
 
 **detalhe**
 
@@ -2265,6 +2283,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P166. O acervo de exemplo ganha tipos novos? (PR #40, pergunta 7)
 
+**Feito (opção A):** o acervo de exemplo ganhou três tipos com cores e rabiscos novos (Formatura em anil com o capelo, Praia em céu com o sol e mar, Bichos em terracota com a patinha) e uma memória em cada, só onde os exemplos já rodam. Capturas: `p166-memoria-com-tipo-novo--390.jpg`, `p166-memoria-com-tipo-novo--1280.jpg`.
+
 **detalhe**
 
 - Contexto: nas prévias, os tipos são os onze de sempre. Para ver uma cor nova numa memória é preciso trocar um tipo na mão.
@@ -2275,6 +2295,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P167. "Cor" e "Desenho" devem ser títulos grandes dentro do tipo?
 
+**Feito (opção A):** "Cor" e "Desenho" viraram rótulos em mono, iguais a "Nome". Capturas: `p167-cor-e-desenho-em-mono--390.jpg`, `p167-cor-e-desenho-em-mono--1280.jpg`, `p167-cor-e-desenho-em-mono--1920.jpg`.
+
 **detalhe**
 
 - Contexto: dentro do tipo aberto, "Nome" é um rótulo pequeno em mono, e "Cor" e "Desenho" são legendas em serifa.
@@ -2284,6 +2306,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P168. O desenho escolhido deve dizer o nome?
+
+**Feito (opção A):** uma linha abaixo da grade diz o nome do desenho marcado ("Desenho: Aviãozinho de papel") e acompanha a escolha. Capturas: `p168-nome-do-desenho-e-etiqueta-no-salvar--390.jpg`, `p168-nome-do-desenho-e-etiqueta-no-salvar--1280.jpg`, `p168-nome-do-desenho-e-etiqueta-no-salvar--1920.jpg`.
 
 **detalhe**
 

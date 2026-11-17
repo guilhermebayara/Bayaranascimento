@@ -2,6 +2,9 @@
 // nas telas da conta, da lixeira, da administração, do sistema visual e da página não encontrada.
 import { describe, expect, it } from 'vitest';
 import { LIMITE_DA_LISTA, administracao, fraseDaLixeira, oComeco } from '../src/lib/conta';
+import { TIPOS_DE_EXEMPLO } from '../src/lib/servidor/semente';
+import { CORES_NOVAS, ehCorDaPaleta } from '../src/lib/visual';
+import { ehRabisco } from '../src/visual/rabiscos';
 
 // A leitura de arquivos segue o jeito de testes/visual.test.ts, que não pede os tipos do Node
 const fs = 'node:fs';
@@ -85,5 +88,61 @@ describe('lixeira', () => {
     expect(inicio).toBeGreaterThan(-1);
     expect(css.lastIndexOf('@media (min-width: 62rem)', inicio)).toBeGreaterThan(css.lastIndexOf('\n}\n', inicio) - 1);
     expect(css.slice(inicio, css.indexOf('}', inicio))).toContain('grid-template-columns: minmax(0, 1fr) auto');
+  });
+});
+
+describe('tipos de momento', () => {
+  const pagina = ler('src/pages/admin/tipos.astro');
+  const css = ler('src/visual/telas/tipos.css');
+  const escolha = ler('src/components/formularios/EscolhaDoTipo.astro');
+
+  it('P157: onde há mouse a prévia fica parada ao lado; no toque, uma etiqueta acompanha a escolha junto do "Salvar"', () => {
+    expect(css).toMatch(/@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.pagina-de-formulario \.escolha-do-tipo__previa \{\s*position: sticky;/);
+    expect(css.match(/position:\s*sticky/g)).toHaveLength(1);
+    expect(pagina.match(/data-escolha-amostra/g)!.length).toBeGreaterThanOrEqual(2);
+    // A etiqueta do resumo do tipo também acompanha
+    expect(pagina).toContain("form.closest('details')?.querySelectorAll<HTMLElement>('summary .etiqueta')");
+  });
+
+  it('P161: salvar volta para a linha do tipo, com o nome no recado', () => {
+    expect(ler('src/pages/api/tipos.ts')).toContain('`${PAGINA}?salvo=${encodeURIComponent(id)}#tipo-${encodeURIComponent(id)}`');
+    expect(pagina).toContain('<li id={`tipo-${t.id}`}>');
+    expect(pagina).toContain('{salvo === t.id && <Recado>{t.rotulo} atualizado.</Recado>}');
+  });
+
+  it('P162: "Tipos da lista" vem primeiro, "Novo tipo" depois, e "Outro" por último, com a conta no alto', () => {
+    const [lista, novo, outro] = ['<h2>Tipos da lista</h2>', '<h2>Novo tipo</h2>', '<h2>O que a família escreveu em "Outro"</h2>'].map((t) => pagina.indexOf(t));
+    expect(lista).toBeGreaterThan(-1);
+    expect(novo).toBeGreaterThan(lista);
+    expect(outro).toBeGreaterThan(novo);
+    expect(pagina).toContain('<a class="acao" href="#outro">');
+    expect(pagina).toContain('<section class="painel" id="outro">');
+  });
+
+  it('P166: o acervo de exemplo tem tipos com cores e rabiscos da paleta ampliada, semeados dentro da proteção da produção', () => {
+    expect(TIPOS_DE_EXEMPLO.length).toBeGreaterThanOrEqual(2);
+    for (const t of TIPOS_DE_EXEMPLO) {
+      expect(ehCorDaPaleta(t.cor), t.cor).toBe(true);
+      expect((CORES_NOVAS as readonly string[]).includes(t.cor), t.cor).toBe(true);
+      expect(ehRabisco(t.icone), t.icone).toBe(true);
+    }
+    const semente = ler('src/lib/servidor/semente.ts');
+    for (const t of TIPOS_DE_EXEMPLO) expect(semente, t.id).toContain(`tipo: '${t.id}'`);
+    const banco = ler('src/lib/servidor/banco.ts');
+    expect(banco.indexOf('await semearTiposDeExemplo(db);')).toBeGreaterThan(banco.indexOf('if (AMBIENTES_COM_EXEMPLOS.includes(ambiente())) {'));
+  });
+
+  it('P167: "Cor" e "Desenho" são rótulos em mono, como "Nome"', () => {
+    const inicio = css.indexOf('.pagina-de-formulario .painel .escolha-do-tipo fieldset legend {');
+    expect(inicio).toBeGreaterThan(-1);
+    const regra = css.slice(inicio, css.indexOf('}', inicio));
+    expect(regra).toContain('font-family: var(--mono)');
+    expect(regra).toContain('font-size: var(--t-ficha)');
+  });
+
+  it('P168: o nome do desenho marcado fica escrito embaixo da grade', () => {
+    expect(escolha).toMatch(/Desenho: <span data-escolha-nome-do-desenho>\{rabisco\(icone\)\.nome\}<\/span>/);
+    expect(escolha).toContain('data-nome={r.nome}');
+    expect(pagina).toContain("nomeDoDesenho.textContent = marcado.dataset.nome ?? ''");
   });
 });
