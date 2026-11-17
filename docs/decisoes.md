@@ -276,7 +276,7 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - Na homologação e nas prévias, o "Ver como" mostra a conta da pessoa escolhida.
     - Testes em `testes/`: as listas de "O que você criou" e dos laços trazem só o que é da pessoa e o que ela vê, e a seção de administração não aparece para quem não é administrador.
     - **Andamento** (16/11/2026): as listas estão construídas, sem tela, em `src/lib/conta.ts` (regras, com teste em `testes/conta.test.ts`) e `src/lib/servidor/conta.ts` (`montarConta`, que junta tudo para quem está logado). Falta a tela, na fase 3 da revisão visual; aí o item sai desta lista.
-        - "O que você criou" traz só o que já foi publicado; o que está em rascunho fica em "Rascunhos". As fotos enviadas entram mesmo quando estão na memória de outra pessoa.
+        - "O que você criou" traz só o que já foi publicado; o que está em rascunho fica em "Rascunhos" (decisão do Gui, 16/11/2026). As fotos enviadas entram mesmo quando estão na memória de outra pessoa.
         - O e-mail vem do segredo `ACESSOS`, e só na produção (fora dela não há login).
         - Os avisos ainda não existem ("Círculo e avisos", em "Em aberto"), então o histórico deles também não.
 - **Explorar** (decisões do Gui, 16/11/2026). O item "Tudo" do menu vira "Explorar": uma tela só, com a troca entre as formas de ver no alto e os filtros e a ordem num lugar só. Os atalhos das famílias continuam e passam a ligar o filtro de família, e a assinatura do topo acompanha a família filtrada. Entra na revisão visual (o conceito da linha do tempo é a base; as outras formas são da fase 3). A lógica dos filtros e das ordens fica sem tela, testável.
