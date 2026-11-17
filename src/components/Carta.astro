@@ -14,9 +14,9 @@ interface Props {
   para: string;
   carta: { texto: string; assinatura: string; escritaEm: string };
   /** as fotos que vêm com a carta: as memórias mais recentes em que a pessoa aparece */
-  fotos?: { id: string; fotos: { chave: string; legenda: string | null }[]; lugar: string | null; ano: number }[];
-  /** a ação do fim da carta */
-  acao: { href: string; texto: string };
+  fotos?: { id: string; titulo: string; fotos: { chave: string; legenda: string | null }[]; lugar: string | null; ano: number }[];
+  /** a ação do fim da carta: o botão cheio da tela ou, com `quieta`, uma ação sublinhada, sem seta */
+  acao: { href: string; texto: string; quieta?: boolean };
 }
 
 const { para, carta, fotos = [], acao } = Astro.props;
@@ -26,6 +26,11 @@ const [abertura, ...resto] = paragrafos;
 const assinam = carta.assinatura.split(/\s*,\s*|\s+e\s+|\s*&\s*/).map((n) => n.trim()).filter(Boolean);
 // Aprovado pelo Gui em 17/11/2026 (pergunta 1 do PR do grupo "pessoal"): o carimbo diz só "Natal de <ano>", do ano em que a carta foi escrita
 const ano = carta.escritaEm.slice(0, 4);
+// As três fotos, sobrepostas: a segunda fica na frente. Cada uma leva à memória dela, e a da frente
+// vem primeiro na ordem do teclado (resposta do Gui à pergunta P29 do QA de design de 17/11/2026).
+const LUGARES = ['esquerda', 'frente', 'direita'];
+const comLugar = fotos.slice(0, 3).map((m, n) => ({ m, lugar: LUGARES[n]! }));
+const naOrdemDoFoco = [...comLugar.filter((f) => f.lugar === 'frente'), ...comLugar.filter((f) => f.lugar !== 'frente')];
 ---
 
 <section class="carta bloco" data-familia="tudo" aria-labelledby="saudacao">
@@ -55,20 +60,20 @@ const ano = carta.escritaEm.slice(0, 4);
         ))}
         <Rabisco desenho="coracao" />
       </p>
-      <p class="carta__acao">
-        <a class="botao" href={acao.href}>
+      <p class:list={['carta__acao', { 'carta__acao--quieta': acao.quieta }]}>
+        <a class={acao.quieta ? 'acao' : 'botao'} href={acao.href}>
           {acao.texto}
         </a>
+        <slot />
       </p>
-      <slot />
     </div>
     {
       fotos.length > 0 && (
-        <div class="carta__fotos" aria-hidden="true">
-          {fotos.slice(0, 3).map((m) => (
-            <div class="carta__foto">
+        <div class="carta__fotos">
+          {naOrdemDoFoco.map(({ m, lugar }) => (
+            <a class={`carta__foto carta__foto--${lugar}`} href={`/memorias/${m.id}`} aria-label={`${m.titulo}, ${legendaLugarAno(m.lugar, m.ano)}`}>
               <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} cedo />
-            </div>
+            </a>
           ))}
         </div>
       )

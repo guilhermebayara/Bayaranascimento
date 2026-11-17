@@ -63,11 +63,14 @@
 .carta__acao {
   margin-top: var(--e-7);
 }
-.carta__admin {
-  margin-top: var(--e-4);
-}
 .carta__vazia {
   padding-block: var(--e-8);
+}
+/* Em /carta, a volta ao início é uma ação sublinhada, com o link dos administradores ao lado */
+.carta__acao--quieta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
 }
 .carta__vazia .acao + .acao {
   margin-left: var(--e-5);
@@ -79,22 +82,29 @@
   margin-top: var(--e-5);
   padding-inline: 4%;
 }
+/* Cada foto leva à memória dela. O lugar vem da classe, para a da frente ser a primeira na ordem
+   do teclado */
 .carta__foto {
+  display: block;
   grid-row: 1;
+  text-decoration: none;
 }
-.carta__foto:nth-child(1) {
+.carta__foto--esquerda {
   grid-column: 1 / span 3;
   rotate: -4deg;
 }
-.carta__foto:nth-child(2) {
+.carta__foto--frente {
   grid-column: 3 / span 3;
   margin-top: 22%;
   z-index: 1;
 }
-.carta__foto:nth-child(3) {
+.carta__foto--direita {
   grid-column: 4 / span 3;
   margin-top: -6%;
   rotate: 5deg;
+}
+.carta__foto:focus-visible {
+  z-index: 2;
 }
 
 /* --- Visitas seguintes: o que entrou de novo ----------------------------------------------- */
