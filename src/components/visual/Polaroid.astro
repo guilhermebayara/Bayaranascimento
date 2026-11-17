@@ -26,9 +26,16 @@ interface Props {
   tipo?: string;
   /** na página da memória: cada foto do monte é um link que abre a galeria naquela foto */
   galeria?: boolean;
+  /**
+   * Uma media query: a foto só é baixada onde ela vale. Para a foto que só existe com mouse (a lista
+   * do Explorar): no celular, o navegador fica com uma imagem vazia e não busca o arquivo.
+   */
+  soOnde?: string;
 }
 
-const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false, forma = false, tipo = 'outro', galeria = false } = Astro.props;
+const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false, forma = false, tipo = 'outro', galeria = false, soOnde } = Astro.props;
+// Um ponto transparente: o que o navegador mostra onde a foto não é para ser baixada
+const VAZIA = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const [principal, ...outras] = fotos;
 const atras = monte ? outras.slice(0, 2) : [];
 const giro = reta ? 0 : giroDoId(id);
@@ -76,7 +83,14 @@ const giro = reta ? 0 : giroDoId(id);
           </a>
         ) : (
           <span class="polaroid__foto">
-            <img src={`/fotos/${principal.chave}`} alt={alt ?? principal.legenda ?? ''} loading={cedo ? 'eager' : 'lazy'} decoding="async" />
+            {soOnde ? (
+              <picture>
+                <source media={soOnde} srcset={`/fotos/${principal.chave}`} />
+                <img src={VAZIA} alt={alt ?? principal.legenda ?? ''} loading="lazy" decoding="async" />
+              </picture>
+            ) : (
+              <img src={`/fotos/${principal.chave}`} alt={alt ?? principal.legenda ?? ''} loading={cedo ? 'eager' : 'lazy'} decoding="async" />
+            )}
           </span>
         )}
         <figcaption class="polaroid__legenda">{legenda}</figcaption>

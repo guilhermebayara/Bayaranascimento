@@ -152,14 +152,15 @@
   }
   .lista__linha {
     grid-template-columns:
-      var(--coluna-da-data) 1.5rem minmax(0, 2.1fr) minmax(0, 0.9fr) minmax(0, 1.5fr)
-      6.5rem minmax(0, 1.3fr);
+      var(--coluna-da-data) 1.5rem minmax(0, 2.2fr) minmax(0, 1.5fr) 5.5rem
+      minmax(0, 1.3fr);
     grid-template-areas: none;
-    column-gap: var(--e-5);
+    gap: var(--e-1) var(--e-5);
     padding-block: var(--e-4);
   }
   .lista__data {
-    grid-area: 1 / 1;
+    /* a data que quebra em duas linhas não empurra o lugar para longe do título */
+    grid-area: 1 / 1 / 3 / 2;
     text-align: left;
     white-space: normal;
   }
@@ -181,12 +182,14 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* PROVISÓRIO (pergunta 3 do PR de ajustes): em 1280 px o lugar fica embaixo do título; na tela
+     grande ele ganha a coluna dele (abaixo) */
   .lista__lugar {
-    grid-area: 1 / 4;
+    grid-area: 2 / 3;
   }
   /* Os nomes encolhem com reticências; o "+N" nunca some */
   .lista__quem {
-    grid-area: 1 / 5;
+    grid-area: 1 / 4;
     display: flex;
     gap: 0.5em;
   }
@@ -199,10 +202,10 @@
     flex: none;
   }
   .lista__sinais {
-    grid-area: 1 / 6;
+    grid-area: 1 / 5;
   }
   .lista__capitulo {
-    grid-area: 1 / 7;
+    grid-area: 1 / 6;
   }
 }
 
@@ -210,7 +213,7 @@
    margem reservada à direita, para não cobrir o texto da linha. */
 @media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
   .lista__linha {
-    padding-right: 13rem;
+    padding-right: 11.5rem;
   }
   .lista__foto {
     position: absolute;
@@ -218,7 +221,7 @@
     right: var(--e-5);
     z-index: 2;
     display: block;
-    width: 9.5rem;
+    width: 8.5rem;
     translate: 0 -50%;
     opacity: 0;
     visibility: hidden;
@@ -238,10 +241,33 @@
 }
 
 @media (min-width: 100rem) {
+  /* Na tela grande cabe uma coluna para o lugar */
+  .lista__linha {
+    grid-template-columns:
+      var(--coluna-da-data) 1.5rem minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.5fr)
+      6.5rem minmax(0, 1.3fr);
+  }
+  .lista__lugar {
+    grid-area: 1 / 4;
+  }
+  .lista__quem {
+    grid-area: 1 / 5;
+  }
+  .lista__sinais {
+    grid-area: 1 / 6;
+  }
+  .lista__capitulo {
+    grid-area: 1 / 7;
+  }
   .lista__foto {
     width: 12rem;
   }
   .lista__linha {
     padding-block: var(--e-5);
+  }
+}
+@media (min-width: 100rem) and (hover: hover) and (pointer: fine) {
+  .lista__linha {
+    padding-right: 15rem;
   }
 }

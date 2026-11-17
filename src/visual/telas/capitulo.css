@@ -157,7 +157,7 @@
 }
 /* No celular, quem aparece é uma linha de nomes corrida, sem fotos: "Gui (10), Giovanna (8)".
    Cada nome leva à pessoa, com a altura de toque na própria linha. */
-.capitulo__nomes {
+.capitulo__gente .capitulo__nomes {
   margin-top: var(--e-1);
   line-height: var(--toque);
 }

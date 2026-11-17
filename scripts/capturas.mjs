@@ -88,6 +88,17 @@ const ateAFrase = async (pagina) => {
   await pagina.locator('input[name="tipo"]').first().check({ force: true });
   await pagina.locator('[data-etapa-continuar]').click();
 };
+// Ajustes depois da fase 3: a foto-chave da lista ao passar o mouse (só onde há mouse) e o foco no título
+const mouseNaLinha = async (pagina) => {
+  if (!(await pagina.evaluate(() => matchMedia('(min-width: 62rem)').matches))) return;
+  await pagina.locator('.lista__bloco:nth-child(2) .lista__item:nth-child(1) .lista__linha').hover();
+  await pagina.waitForTimeout(300);
+};
+const focoNoTitulo = async (pagina) => {
+  await pagina.locator('.entrada__titulo a').first().focus();
+  await pagina.keyboard.press('Shift+Tab');
+  await pagina.keyboard.press('Tab');
+};
 const PAGINAS = [
   // Conceito da revisão visual: as mesmas telas em cada combinação de fontes, nas três larguras.
   // A carta é vista como Elizete, que a recebe. O painel, a linha do tempo e a memória, como Giovanna,
@@ -144,6 +155,18 @@ const PAGINAS = [
   { nome: 'familia-5-arvore-foco', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.mapa a.no[data-id="elizete"]').dispatchEvent('click') },
   { nome: 'familia-5-arvore-ramo', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.no__ramo').first().dispatchEvent('click') },
   { nome: 'familia-5-arvore-ajustes', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.mapa__painel > summary').click() },
+  // Ajustes depois da fase 3 (docs/visual.md, "Ajustes depois da fase 3"): a lista no Explorar e na
+  // página da pessoa, as formas de ver da pessoa, "Quem aparece" no capítulo e o foco no título.
+  // Para tirar só elas: CAPTURAS_SO=^ajustes npm run capturas -- tirar <pasta>
+  { nome: 'ajustes-1-lista', url: '/explorar?ver=lista', como: 'giovanna', larguras: TODAS, corte: 4000 },
+  { nome: 'ajustes-1-lista-com-a-foto', url: '/explorar?ver=lista', como: 'giovanna', larguras: TODAS, corte: 1700, depois: mouseNaLinha },
+  { nome: 'ajustes-1-lista-filtrada', url: '/explorar?ver=lista&tipo=viagem&foto=1', como: 'giovanna', larguras: TODAS },
+  { nome: 'ajustes-1-lista-mais-contadas', url: '/explorar?ver=lista&ordem=contadas', como: 'giovanna', larguras: TODAS, corte: 2400 },
+  { nome: 'ajustes-2-pessoa-linha-do-tempo', url: '/pessoas/gui', como: 'giovanna', larguras: TODAS, desde: '#memorias-com', corte: 2400 },
+  { nome: 'ajustes-2-pessoa-mural', url: '/pessoas/gui?ver=mural', como: 'giovanna', larguras: TODAS, desde: '#memorias-com', corte: 2400 },
+  { nome: 'ajustes-2-pessoa-lista', url: '/pessoas/gui?ver=lista', como: 'giovanna', larguras: TODAS, desde: '#memorias-com', corte: 2400 },
+  { nome: 'ajustes-3-capitulo-quem-aparece', url: '/capitulos/natais', como: 'giovanna', larguras: TODAS, corte: 1700 },
+  { nome: 'ajustes-7-titulo-em-foco', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 1300, depois: focoNoTitulo },
   { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
   // O sistema (fase 2): a marca, as fontes, os tokens e as peças, em cada combinação de fontes
   ...['a', 'b', 'c'].map((fontes) => ({ nome: `sistema-${fontes}`, url: '/sistema', fontes, larguras: TODAS })),
@@ -247,6 +270,8 @@ async function tirar(pasta) {
         Promise.all([...document.images].filter((i) => i.getClientRects().length > 0).map((i) => Promise.race([i.decode().catch(() => {}), new Promise((ok) => setTimeout(ok, 3000))]))),
       );
       await pagina.waitForTimeout(300);
+      // "depois": o que precisa valer na hora da captura (o mouse em cima de algo, o foco do teclado)
+      if (p.depois) await p.depois(pagina);
       const arquivo = join(pasta, `${p.nome}--${largura.nome}.png`);
       const altura = await pagina.evaluate(() => document.documentElement.scrollHeight);
       // "desde" é um ponto da página (um seletor): a captura começa um pouco acima dele

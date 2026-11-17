@@ -215,7 +215,7 @@ export const FORMA_PADRAO: Forma = 'linha';
 export const NOMES_DAS_FORMAS: Record<Forma, string> = {
   linha: 'Linha do tempo',
   mural: 'Mural de fotos',
-  // PROVISÓRIO (pergunta 1 do PR de ajustes): o nome da forma de ver
+  // O nome é do Gui (17/11/2026)
   lista: 'Lista',
   tv: 'Modo TV',
   acaso: 'Me mostre uma memória',
@@ -410,6 +410,7 @@ export function enderecoDaPessoa(id: string, forma: FormaDaPessoa = FORMA_PADRAO
 }
 
 /**
+ * PROVISÓRIO (pergunta 2 do PR de ajustes): o que a linha mostra quando a data não tem dia e mês.
  * A data na linha da lista. Dentro do bloco do ano, só o dia e o mês ("24 dez", "dez"); a data
  * aproximada diz "por volta de", com o mês quando ele é conhecido; quem só tem o ano fica sem nada,
  * porque o ano já está no alto do bloco. Fora da ordem do tempo não há bloco: a data vai inteira.
@@ -423,6 +424,7 @@ export function dataNaLista(d: DataFlexivel, noBlocoDoAno: boolean): string {
 // Com a data aproximada, o dia não entra: "por volta de dez"
 const MES_SO = (d: DataFlexivel) => diaMesCurto({ mes: d.mes, dia: null });
 
+/** PROVISÓRIO (pergunta 4 do PR de ajustes): qual nome entra na linha. */
 /** O nome de alguém numa linha curta: como é chamado na família ou, sem apelido, o primeiro nome. */
 export function nomeCurto(pessoa: { nome: string; apelido?: string | null }): string {
   return pessoa.apelido?.trim() || pessoa.nome.trim().split(/\s+/)[0] || pessoa.nome;

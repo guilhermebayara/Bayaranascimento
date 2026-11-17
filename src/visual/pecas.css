@@ -35,6 +35,10 @@
   border-radius: 1cqi;
   background: var(--papel-recuo);
 }
+/* A foto que só é baixada onde há mouse vem dentro de um picture, que não conta para a caixa */
+.polaroid__foto picture {
+  display: contents;
+}
 .polaroid__foto img {
   width: 100%;
   height: 100%;

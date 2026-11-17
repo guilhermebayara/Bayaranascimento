@@ -35,6 +35,8 @@ const { memorias, integrantes, ordem, comAudio } = Astro.props;
 const { tipos } = Astro.locals;
 const pessoaDe = new Map(integrantes.map((i) => [i.id, i]));
 const peloTempo = ordem === 'recentes' || ordem === 'antigas';
+// Onde a foto-chave existe: a mesma regra do CSS (telas/lista.css). Fora dela, o arquivo nem é baixado.
+const COM_MOUSE = '(min-width: 62rem) and (hover: hover) and (pointer: fine)';
 const blocos = peloTempo ? agruparPorAno(memorias) : memorias.length ? [{ ano: 0, itens: memorias }] : [];
 // O capítulo de cada memória sai da mesma montagem da linha do tempo, com a cor de cada um. As
 // épocas, que valem para todos, não entram na linha.
@@ -118,7 +120,7 @@ const capitulosDe = new Map(montagem.linhas.map((l) => [l.id, l.capitulos.map((i
                   {/* A foto-chave, só onde há mouse: no toque ela não é desenhada nem baixada */}
                   {m.fotos.length > 0 && (
                     <div class="lista__foto" aria-hidden="true">
-                      <Polaroid id={m.id} fotos={m.fotos.slice(0, 1)} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} tipo={m.tipo} />
+                      <Polaroid id={m.id} fotos={m.fotos.slice(0, 1)} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} tipo={m.tipo} soOnde={COM_MOUSE} />
                     </div>
                   )}
                 </a>

@@ -841,3 +841,32 @@ O que mudou em vez de ser aprovado (a página da pessoa com "Forma de ver", "Que
 12. O botão de excluir: aprovada (cheio na cor de alerta) e **mais**: a zona de perigo, com as ações de apagar juntas no fim das telas de editar, num bloco separado e marcado na cor de alerta, longe do salvar.
 
 Novidade que vale para o Explorar e a página da pessoa: a forma de ver "Lista", no modelo do "Já rolou" da agenda da @bsurda (descrita no prompt da `tst-visual-ajustes`).
+
+## Ajustes depois da fase 3
+
+Branch `tst-visual-ajustes`, nascida da `homologa` em 17/11/2026, com o que o Gui pediu ao responder as perguntas dos PRs #35 a #38. Um PR só para a `homologa`. Esta seção registra o que cada parte fez; as perguntas novas vão no fim do PR.
+
+### Parte 1: a lista, as formas de ver da pessoa, "Quem aparece" e o link do título
+
+**A forma de ver "Lista"** (pedido do Gui, 17/11/2026, no modelo do "Já rolou" da agenda da @bsurda). Vale no Explorar (`/explorar?ver=lista`) e na página da pessoa.
+
+- **Onde está:** `src/components/explorar/Lista.astro` e `src/visual/telas/lista.css`. As partes da linha que têm regra estão em `src/lib/explorar.ts` (`dataNaLista`, `quemNaLista`, `nomeCurto`, `mostraRascunho`), com teste em `testes/explorar.test.ts`.
+- **O ano grande abre cada bloco**, com a conta das memórias do ano. Fora da ordem do tempo ("Entraram por último", "Mais contadas") não há blocos, e a data vai inteira na linha.
+- **Cada memória é uma linha**, e a linha inteira é o link: o sinal na cor do tipo de momento (o rabisco do tipo), o título, a data, o lugar, quem estava (até três nomes e "+N"), o sinal de áudio, a conta dos relatos e o capítulo, com a parada na cor dele. O rascunho aparece para quem escreveu, levando ao formulário, como na linha do tempo.
+- **A data:** dentro do bloco, o dia e o mês ("24 dez", "dez"); a aproximada diz "por volta de", com o mês quando é conhecido; quem só tem o ano fica em branco.
+- **No celular**, dois andares: o título e a data em cima, o resto embaixo, menor.
+- **No computador**, uma linha em colunas. Em 1280 px o lugar fica embaixo do título; em 1920 px ganha a coluna dele.
+- **A foto-chave** aparece numa margem à direita quando o mouse ou o foco do teclado passa pela linha, só em `(min-width: 62rem) and (hover: hover) and (pointer: fine)`. No celular ela não é desenhada nem baixada: a foto revelada ganhou `soOnde`, que põe o arquivo num `<source>` com essa mesma regra. Só `display: none` não bastava, porque o navegador baixava as fotos do mesmo jeito.
+- **Segue os filtros, a ordem e a troca sem recarregar.** Os itens levam `data-chave` (`m:<id>` e `a:<ano>`) e `data-ano`, e a troca conhece dois tipos novos de item (`lista` e `ano-da-lista`). Da lista para o mural ou para a linha do tempo, os itens aparecem no lugar: a foto não viaja, porque na lista ela está escondida.
+
+**A página da pessoa com "Forma de ver"** (resposta do Gui à pergunta 8 do PR #36): linha do tempo, que é o padrão, mural e lista. A escolha fica no endereço (`/pessoas/<id>?ver=mural`), funciona sem script (o link volta a `#memorias-com`) e, com script, troca sem recarregar, com o controle parado no mesmo ponto da tela. Para isso a troca passou a valer na página em que se está, e não só em `/explorar`, e o voltar do navegador deixou de buscar a página quando só a âncora muda. O mural da pessoa usa o tamanho de fotos guardado no aparelho e não tem o controle "Fotos". O controle só aparece para quem tem mais de uma memória.
+
+**"Quem aparece", no capítulo** (resposta do Gui às perguntas 2 e 4 do PR #37). No celular é uma linha de nomes corrida, sem fotos, "Gui (6), Elizete (5)", na capa, sem empurrar as memórias. A partir de 62rem, a lista com retratos, como estava.
+
+**O link do título na linha do tempo** (defeito apontado pelo Gui). Medido com o Playwright: o link tinha 30 px de altura quando o título cabia numa linha, e o contorno do foco ficava em volta da memória inteira, mais alta que a tela do celular, de modo que só as laterais apareciam. Agora o link tem 44 px nele mesmo e o contorno fica no próprio título. A memória inteira continua levando à página dela. O título de uma linha ficou 14 px mais alto, e as capturas da linha do tempo mudam nessa medida. Teste em `testes/visual.test.ts` (`describe('ajustes…')`).
+
+**Conferido:** no navegador, em 1280 px com mouse e com movimento reduzido, e em 390 px com toque: a foto no mouse e no foco, sem cobrir o texto da linha; nenhuma foto pedida no celular; a troca entrando e saindo da lista, com a família, e o voltar; a página da pessoa nas três formas; sem script; alvos de 44 px; a linha de nomes do capítulo.
+
+**Capturas:** `CAPTURAS_SO=^ajustes npm run capturas -- tirar <pasta>`, em `docs/visual/fase-3/ajustes/`. O script ganhou `depois`, para o que precisa valer na hora da captura (o mouse em cima de uma linha, o foco do teclado).
+
+**O que falta nos ajustes** (parte 2, na mesma branch): a frase na abertura da Nova memória, o resumo à direita nos formulários, a zona de perigo, a nitidez da árvore no zoom e o respiro do cartão de bicho. Depois, a `tst-visual-tipos`.
