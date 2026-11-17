@@ -1292,6 +1292,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P88. Pelo teclado, o mapa pode andar sozinho até o cartão em foco?
 
+**Feito (opção A):** a caixa do mapa não rola mais, o mapa anda o mínimo até o cartão que recebeu o foco do teclado, e o foco volta para a marca do ramo depois de abrir ou recolher. Conferido com o Tab pelos 51 alvos do mapa em 390, 1280 e 1920 px: nenhum fora da vista. Capturas: `arvore/p88-teclado-cartao-em-foco--390.jpg`, `--1280.jpg`.
+
 **ajuste**
 
 - Contexto: é um defeito de teclado, mas a correção mexe em `src/lib/cliente/arvore.ts`, que é o comportamento travado da árvore. Por isso ficou como pergunta, sem mudança.

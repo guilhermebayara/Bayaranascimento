@@ -124,3 +124,21 @@ describe('"Ajustar a árvore"', () => {
     expect(pagina).toMatch(/for \(const caixa of \[painel, legenda\]\) \{\s*caixa\?\.addEventListener\('keydown', \(e\) => \{\s*if \(e\.key !== 'Escape' \|\| e\.defaultPrevented \|\| !caixa\.open\) return;/);
   });
 });
+
+describe('a árvore pelo teclado (P88)', () => {
+  it('a caixa do mapa nunca rola', () => {
+    expect(cliente).toMatch(/const semRolagem = \(\) => \{\s*if \(mapa\.scrollLeft\) mapa\.scrollLeft = 0;\s*if \(mapa\.scrollTop\) mapa\.scrollTop = 0;/);
+    expect(cliente).toContain("mapa.addEventListener('scroll', semRolagem);");
+  });
+  it('o mapa anda até o que recebeu o foco do teclado, e só o do teclado', () => {
+    expect(cliente).toMatch(/c\.addEventListener\('focusin', \(e\) => \{[\s\S]*?if \(alvo\.matches\(':focus-visible'\)\) trazerParaAVista\(alvo\);/);
+    // A vista muda pelo caminho de sempre, que marca o gesto e mantém a nitidez
+    const trazer = cliente.slice(cliente.indexOf('const trazerParaAVista'), cliente.indexOf('const devolverFoco'));
+    expect(trazer).toMatch(/vista\.x \+= dx;\s*vista\.y \+= dy;\s*aplicarVista\(true\);/);
+    expect(trazer).not.toMatch(/vista\.zoom =|style\.transform =/);
+  });
+  it('abrir ou recolher um ramo pelo teclado devolve o foco para a marca do ramo', () => {
+    expect(cliente).toMatch(/desenhar\(\);\s*if \(tinhaFoco\) devolverFoco\(`button\.no__ramo\[data-ramo="\$\{CSS\.escape\(chave\)\}"\]`\);/);
+    expect(cliente).toMatch(/el\.focus\(\{ preventScroll: true \}\)/);
+  });
+});

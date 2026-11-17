@@ -644,9 +644,60 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     else if (e.key === '-') zoomEm(vista.zoom / 1.2, mapa.clientWidth / 2, mapa.clientHeight / 2, true);
   });
 
+  // --- Teclado e foco (correção autorizada pelo Gui, 17/11/2026, P88) ---
+  // A caixa do mapa nunca rola: quem anda é a vista. Com o Tab num cartão fora da vista, o navegador
+  // rolava a caixa, e os ajustes, a ficha e o zoom saíam da tela sem volta.
+  const semRolagem = () => {
+    if (mapa.scrollLeft) mapa.scrollLeft = 0;
+    if (mapa.scrollTop) mapa.scrollTop = 0;
+  };
+  mapa.addEventListener('scroll', semRolagem);
+  // O mapa anda o mínimo até o que recebeu o foco do teclado, a mesma conta que traz o cartão do ramo
+  // para a tela. A posição é lida da vista de agora, mesmo no meio de uma animação.
+  const trazerParaAVista = (el: HTMLElement) => {
+    semRolagem();
+    const caixa = mapa.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const agora = new DOMMatrixReadOnly(getComputedStyle(camada).transform);
+    const escala = agora.a || 1;
+    // Onde o elemento vai estar quando a vista chegar aonde já foi mandada
+    const x = vista.x + ((r.left - caixa.left - agora.e) / escala) * vista.zoom;
+    const y = vista.y + ((r.top - caixa.top - agora.f) / escala) * vista.zoom;
+    const [w, h] = [(r.width / escala) * vista.zoom, (r.height / escala) * vista.zoom];
+    // O que fica por cima do mapa não cobre quem está em foco: os ajustes no alto, a barra embaixo
+    const barra = raiz.querySelector<HTMLElement>('.mapa__zoom');
+    const livre = { topo: 76, pe: (barra?.offsetHeight ?? 44) + 32, lado: 24 };
+    const ajuste = (inicio: number, tamanho: number, de: number, ate: number) => {
+      if (tamanho > ate - de || inicio < de) return de - inicio;
+      if (inicio + tamanho > ate) return ate - (inicio + tamanho);
+      return 0;
+    };
+    const dx = ajuste(x, w, livre.lado, mapa.clientWidth - livre.lado);
+    const dy = ajuste(y, h, livre.topo, mapa.clientHeight - livre.pe);
+    if (!dx && !dy) return;
+    vista.x += dx;
+    vista.y += dy;
+    aplicarVista(true);
+  };
+  for (const c of camadas) {
+    c.addEventListener('focusin', (e) => {
+      const alvo = e.target as HTMLElement;
+      // Só o foco do teclado: o toque e o clique já acontecem em cima do que está à vista
+      if (alvo.matches(':focus-visible')) trazerParaAVista(alvo);
+      else semRolagem();
+    });
+  }
+  // Depois de um desenho, a marca do ramo e os cartões de dentro dele são outros elementos: o foco
+  // volta para o que ficou no lugar
+  const devolverFoco = (seletor: string) => {
+    const el = raiz.querySelector<HTMLElement>(seletor);
+    if (el && el !== document.activeElement) el.focus({ preventScroll: true });
+  };
+
   // Tocar em alguém põe essa pessoa em foco. O segundo toque abre a página dela.
   const aoTocar = (evento: MouseEvent) => {
     if (Date.now() - fimDoArrasto < 300) return evento.preventDefault();
+    const tinhaFoco = document.activeElement instanceof HTMLElement && (evento.target as HTMLElement).closest('a, button') === document.activeElement;
     const doRamo = (evento.target as HTMLElement).closest<HTMLButtonElement>('button[data-ramo]');
     if (doRamo) {
       // Abre ou recolhe um ramo lateral, sem mexer na árvore principal
@@ -655,6 +706,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
       if (abrindo) estado.ramos.add(chave);
       guardarNoEndereco();
       desenhar();
+      if (tinhaFoco) devolverFoco(`button.no__ramo[data-ramo="${CSS.escape(chave)}"]`);
       if (abrindo) mostrarCartao(chave);
       return;
     }
@@ -680,6 +732,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): void {
     }
     evento.preventDefault();
     focar(no.dataset.id!);
+    // Dentro de um ramo aberto o cartão foi refeito: o foco do teclado continua na mesma pessoa
+    if (tinhaFoco && !no.isConnected) devolverFoco(`a.no[data-id="${CSS.escape(estado.foco)}"]`);
   };
   for (const c of camadas) c.addEventListener('click', aoTocar);
   // Tocar no vazio do mapa fecha a ficha. O clique que encerra um arrasto não conta.
