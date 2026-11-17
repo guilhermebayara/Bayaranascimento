@@ -100,8 +100,9 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       17/11/2026): "Isso aconteceu em ___, em ___, com ___." Ela mostra o que já foi preenchido, e cada
       lacuna leva à etapa certa: a data e o lugar, a "Quando e onde"; as pessoas, a "Quem estava?".
       Só existe com script, que a preenche e a mostra: sem ele, as etapas já aparecem todas em sequência.
-      PROVISÓRIO (perguntas 5 e 6 do PR de ajustes): o texto das lacunas vazias, e a frase sair na
-      etapa "Quando e onde". */}
+      Respostas do Gui ao QA de design de 17/11/2026: as lacunas vazias perguntam (P128), a frase sai
+      na etapa "Quando e onde" (P140) e, no celular, ela desce para baixo da pergunta, para a pergunta
+      da etapa ficar no alto da tela (P126; o script a muda de lugar). */}
   <p slot="frase" class="frase frase--abertura" data-frase-abertura hidden>
     Isso aconteceu{' '}
     <span class="frase__data" role="button" tabindex="0" data-abertura="data">em que data?</span><span data-abertura-liga>, </span>
@@ -164,22 +165,28 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         a data como o site escreve e, ao toque, abre logo abaixo o controle de data flexível. A do
         lugar é texto livre. Sem script, a lacuna da data não aparece e o controle fica aberto.
         O texto da frase e o da lacuna vazia ("em que data?") ficaram, e a frase entrou também na
-        abertura (resposta do Gui à pergunta 1 do PR do grupo "formularios", 17/11/2026). */}
+        abertura (resposta do Gui à pergunta 1 do PR do grupo "formularios", 17/11/2026).
+        Nesta etapa a frase é a própria pergunta: a legenda fica só para o leitor de tela, para não
+        haver dois títulos grandes na mesma tela (resposta do Gui à P133 do QA de design, 17/11/2026). */}
     <fieldset>
-      <legend>Quando e onde foi?</legend>
+      <legend class="so-leitor">Quando e onde foi?</legend>
       <p class="frase" data-frase>
         Isso aconteceu{' '}
         {/* A lacuna da data é um trecho da frase que se comporta como botão: um <button> não quebra de
             linha no meio, e a data longa ("por volta de 24 de setembro de 2025") precisa quebrar no celular */}
         <span class="frase__data" role="button" tabindex="0" data-frase-data aria-expanded="true" aria-controls="controle-da-data" hidden>em que data?</span><span data-frase-sem-script>na data abaixo</span>,{' '}
-        em{' '}
-        <label class="frase__lacuna" style="--cabe: 14">
-          <span class="so-leitor">Lugar, se quiser</span>
-          <input type="text" name="lugar" maxlength="120" value={memoria?.lugar ?? ''} placeholder="algum lugar" data-frase-lugar />
-        </label>.
+        {/* "em", o lugar e o ponto final andam juntos: o ponto não fica sozinho na linha de baixo. Com
+            script, a lacuna tem a largura do que foi escrito (resposta do Gui à P144, 17/11/2026). */}
+        <span class="frase__junto">
+          em{' '}
+          <label class="frase__lacuna" style="--cabe: 14">
+            <span class="so-leitor">Lugar, se quiser</span>
+            <input type="text" name="lugar" maxlength="120" value={memoria?.lugar ?? ''} placeholder="algum lugar" data-frase-lugar />
+          </label>.
+        </span>
       </p>
       <div id="controle-da-data" data-controle-da-data>
-        <CampoData ano={memoria?.ano} mes={memoria?.mes} dia={memoria?.dia} obrigatorio />
+        <CampoData ano={memoria?.ano || undefined} mes={memoria?.mes} dia={memoria?.dia} obrigatorio />
         <div class="atalhos">
           <label class="campo">
             <span>Ou escolha no calendário</span>
@@ -202,7 +209,8 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 
     <section data-etapa="Fotos" data-opcional>
     <fieldset>
-      <legend>Fotos</legend>
+      {/* A legenda em pergunta, como as outras etapas (resposta do Gui à P141 do QA de design, 17/11/2026) */}
+      <legend>Tem fotos desse dia?</legend>
       <p class="dica">Escolha as fotos desse momento. Você pode escrever uma legenda para cada uma.</p>
       <label class="botao botao--leve botao--arquivo">
         Escolher fotos
@@ -242,13 +250,6 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         <section data-etapa="Relato" data-opcional>
         <fieldset>
             <legend>Como foi?</legend>
-            <label class="campo">
-              <span>Quem está contando</span>
-              <select name="relatoPor" data-relato-por>
-                <option value={usuario.pessoa}>Eu, {usuario.nome}</option>
-                {semAcesso.map((p) => <option value={p.id} selected={meuRelato?.por === p.id}>{p.nome}, e eu estou escrevendo</option>)}
-              </select>
-            </label>
             {/* Áudios já na memória nova: ficam soltos até a memória ser salva (ver api/audios.ts) */}
             <div class="campo audios" data-audios hidden>
               <span>Prefere falar? <small>(opcional)</small></span>
@@ -269,6 +270,19 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
               <textarea name="relato" rows="8" maxlength="20000" placeholder="Escreva como você lembra. Outras pessoas da família vão poder contar a versão delas depois.">{meuRelato?.texto ?? ''}</textarea>
             </label>
             <p class="dica">Só você vai poder alterar este relato.</p>
+            {/* Quase sempre quem conta é quem escreve: "Quem está contando" deixou de ser o primeiro
+                campo e fica numa linha recolhida, depois do texto, que abre a busca (resposta do Gui à
+                P137 do QA de design, 17/11/2026). Fechar a linha volta para "Eu". */}
+            <details class="mais-opcoes" data-outra-pessoa open={Boolean(meuRelato) && meuRelato!.por !== usuario.pessoa}>
+              <summary>Estou escrevendo por outra pessoa</summary>
+              <label class="campo">
+                <span>Quem está contando</span>
+                <select name="relatoPor" data-relato-por>
+                  <option value={usuario.pessoa}>Eu, {usuario.nome}</option>
+                  {semAcesso.map((p) => <option value={p.id} selected={meuRelato?.por === p.id}>{p.nome}, e eu estou escrevendo</option>)}
+                </select>
+              </label>
+            </details>
           </fieldset>
         </section>
       )
@@ -293,9 +307,10 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
             </div>
           )
         }
+        {/* Sem o link que abria outra aba no meio da memória (resposta do Gui à P142 do QA de design, 17/11/2026) */}
         <p class="dica">
           {capitulosReunidos.length === 0 ? 'Ainda não há capítulos. ' : 'Não achou? '}
-          Dá para <a href="/capitulos/novo" target="_blank" rel="noopener">criar um capítulo</a> e colocar esta memória nele depois.
+          Dá para criar o capítulo depois e colocar esta memória nele.
         </p>
         <label class="campo">
           <span>Temas</span>
@@ -350,32 +365,32 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     <div class="acoes acoes--etapas">
       <button type="button" class="botao botao--leve" data-etapa-voltar>Voltar</button>
       {!publicada && <button type="submit" class="botao botao--leve acoes__rascunho" name="situacao" value="rascunho" data-salvar="rascunho">Salvar rascunho</button>}
+      {/* O botão cheio é sempre o da ponta: na correção, "Salvar alterações" em contorno vem antes de
+          "Continuar" (resposta do Gui à P135 do QA de design, 17/11/2026) */}
+      {publicada && <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada">Salvar alterações</button>}
       <button type="button" class="botao" data-etapa-continuar>Continuar</button>
-      {
-        publicada ? (
-          <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada">Salvar alterações</button>
-        ) : (
-          <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada" data-so-no-fim>Publicar memória</button>
-        )
-      }
+      {!publicada && <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada" data-so-no-fim>Publicar memória</button>}
     </div>
     {/* Ao lado, no computador (resposta do Gui à pergunta 7 do PR do grupo "formularios", 17/11/2026):
         a foto-chave e um resumo da memória, que acompanham o preenchimento. Sem foto ainda, o cartão
         do tipo de momento, como a memória sem foto. Só existe a partir de 62rem e com script, que o
         preenche: a foto não é baixada no celular. É apoio para quem vê a tela: não rouba o foco nem
         anuncia cada tecla ao leitor de tela (sem aria-live), e o resumo da última etapa continua.
-        PROVISÓRIO (pergunta 7 do PR de ajustes): o que entra no resumo e os rótulos. */}
+        Respostas do Gui ao QA de design de 17/11/2026: o que entra e os rótulos ficam (P129); sem tipo
+        escolhido, o cartão é neutro, em papel e sem ícone (P129); e na última etapa ficam só a foto e
+        o título, porque a ficha já está em "Confira antes de publicar" (P134). */}
     <aside class="ao-lado" data-ao-lado aria-labelledby="ao-lado-titulo" hidden>
       <h2 class="rotulo suave" id="ao-lado-titulo">A memória até aqui</h2>
       <div class="ao-lado__foto" data-ao-lado-com-foto style={estiloDoTipo(memoria?.tipo ?? 'outro')} hidden>
-        <Polaroid id={memoria?.id ?? 'nova-memoria'} fotos={[{ chave: fotoChave?.chave ?? '', legenda: null }]} legenda={memoria ? legendaLugarAno(memoria.lugar, memoria.ano) : ''} alt="" monte={false} soOnde={ONDE_HA_LADO} />
+        <Polaroid id={memoria?.id ?? 'nova-memoria'} fotos={[{ chave: fotoChave?.chave ?? '', legenda: null }]} legenda={memoria?.ano ? legendaLugarAno(memoria.lugar, memoria.ano) : (memoria?.lugar ?? '')} alt="" monte={false} soOnde={ONDE_HA_LADO} />
       </div>
       {[...todosOsTipos.map((t) => t.id), ''].map((tipo) => (
-        <div class="ao-lado__foto" data-ao-lado-sem-foto={tipo} style={estiloDoTipo(tipo || 'outro')} hidden>
+        <div class:list={['ao-lado__foto', { 'ao-lado__foto--neutra': !tipo }]} data-ao-lado-sem-foto={tipo} style={tipo ? estiloDoTipo(tipo) : undefined} hidden>
           <Polaroid id={memoria?.id ?? 'nova-memoria'} fotos={[]} legenda="" tipo={tipo || 'outro'} monte={false} />
         </div>
       ))}
       <p class="ao-lado__nome" data-ao-lado-campo="titulo"></p>
+      <div data-ao-lado-ficha>
       <Ficha>
         <Dado rotulo="Tipo"><span data-ao-lado-campo="tipo"></span></Dado>
         <Dado rotulo="Quando"><span data-ao-lado-campo="quando"></span></Dado>
@@ -385,12 +400,15 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         <Dado rotulo="Capítulo"><span data-ao-lado-campo="capitulo"></span></Dado>
         <Dado rotulo="Quem vê"><span data-ao-lado-campo="quemve"></span></Dado>
       </Ficha>
+      </div>
     </aside>
   </form>
 
   {/* A zona de perigo (pedido do Gui, 17/11/2026): o que apaga fica junto, no fim, longe do salvar.
       Só aparece para quem pode excluir (os administradores, ou quem escreveu o rascunho), e leva à
-      página de confirmação. PROVISÓRIO (pergunta 9 do PR de ajustes): o nome do bloco e os textos. */}
+      página de confirmação. O nome e os textos ficaram (resposta do Gui à P131 do QA de design,
+      17/11/2026). Com script, só aparece na última etapa, depois do resumo (P136); sem script, as
+      etapas vêm em sequência e ela fica no fim. */}
   {
     memoria && podeExcluir && (
       <div data-zona-de-perigo>
@@ -431,6 +449,19 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     const novasPessoas = form.querySelector<HTMLElement>('[data-novas-pessoas]')!;
     const relatoPor = form.querySelector<HTMLSelectElement>('[data-relato-por]');
     if (relatoPor) buscaDePessoa(relatoPor);
+    // "Estou escrevendo por outra pessoa": abrir a linha põe o foco na busca, e fechar volta para "Eu"
+    const outraPessoa = form.querySelector<HTMLDetailsElement>('[data-outra-pessoa]');
+    if (outraPessoa && relatoPor) {
+      outraPessoa.querySelector('summary')?.addEventListener('click', () =>
+        setTimeout(() => {
+          // O nome que está no campo fica selecionado: o que a pessoa digitar toma o lugar dele
+          if (outraPessoa.open) return outraPessoa.querySelector<HTMLInputElement>('.busca__campo')?.select();
+          if (relatoPor.selectedIndex === 0) return;
+          relatoPor.selectedIndex = 0;
+          relatoPor.dispatchEvent(new Event('change', { bubbles: true }));
+        }),
+      );
+    }
     const botoes = [...form.querySelectorAll<HTMLButtonElement>('[data-salvar]')];
     const idExistente = form.dataset.id || undefined;
     // Áudios do relato: a memória pode ainda não existir; o áudio fica solto até ela ser salva
@@ -444,6 +475,12 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
     // O que já foi preenchido, lido do formulário: serve ao resumo da última etapa, à frase da
     // abertura e ao resumo ao lado
+    // O ano só conta quando está dentro do intervalo do campo: a frase não escreve "em 1700"
+    const anoInformado = (): number | undefined => {
+      const entrada = form.elements.namedItem('ano') as HTMLInputElement;
+      const ano = Number(entrada.value);
+      return entrada.value && Number.isInteger(ano) && ano >= Number(entrada.min) && ano <= Number(entrada.max) ? ano : undefined;
+    };
     const lerPreenchido = () => {
       const d = new FormData(form);
       const tipo = form.querySelector<HTMLInputElement>('input[name="tipo"]:checked');
@@ -464,7 +501,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         titulo: String(d.get('titulo') ?? '').trim(),
         tipo: tipo?.value ?? '',
         rotuloDoTipo: rotuloDoTipo.trim(),
-        ano: Number(d.get('ano')) || undefined,
+        ano: anoInformado(),
         quando,
         pessoas: pessoas.map((p) => p.trim()).filter(Boolean),
         lugar: String(d.get('lugar') ?? '').trim(),
@@ -482,9 +519,10 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       const d = p.d;
       const linhas: [string, string][] = [
         ['O quê', `${p.titulo || 'sem título'} (${p.rotuloDoTipo})`],
+        // A ordem da frase da abertura: a data, o lugar e quem estava (resposta do Gui à P134, 17/11/2026)
         ['Quando', p.quando],
-        ['Quem', p.pessoas.join(', ') || 'ninguém marcado'],
         ['Onde', p.lugar || 'não informado'],
+        ['Quem', p.pessoas.join(', ') || 'ninguém marcado'],
         ['Capítulo', p.capitulos.join(', ') || 'nenhum'],
         ['Temas', p.temas.join(', ') || 'nenhum'],
         ['Fotos', p.fotos],
@@ -521,13 +559,41 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     const aoLado = form.querySelector<HTMLElement>('[data-ao-lado]');
     const haLado = matchMedia('(min-width: 62rem)');
     let acompanhar = () => {};
-    const etapas = montarEtapas(form, (_indice, secao) => {
-      if (secao.querySelector('input[name="nucleos"]')) sugerirNucleos();
-      if (secao.querySelector('[data-resumo]')) montarResumo();
-      // Na etapa "Quando e onde" a frase está na própria etapa: a da abertura sai, para não repetir
-      if (fraseDaAbertura) fraseDaAbertura.hidden = Boolean(secao.querySelector('[data-frase]'));
-      acompanhar();
-    });
+    const pagina = form.closest<HTMLElement>('.pagina-de-formulario');
+    const zonaDePerigo = document.querySelector<HTMLElement>('[data-zona-de-perigo]');
+    // Depois de "Salvar rascunho" a página recarrega já ligada ao rascunho, e volta para a etapa em
+    // que a pessoa estava (resposta do Gui à P127 do QA de design, 17/11/2026)
+    let voltouDoRascunho = false;
+    let etapaInicial = 0;
+    try {
+      const guardada = sessionStorage.getItem('rascunho-salvo');
+      if (guardada !== null) {
+        sessionStorage.removeItem('rascunho-salvo');
+        voltouDoRascunho = true;
+        etapaInicial = Number(guardada) || 0;
+      }
+    } catch {
+      // sem armazenamento, a página abre na primeira etapa e sem o aviso
+    }
+    const etapas = montarEtapas(
+      form,
+      (indice, secao) => {
+        const ultima = Boolean(secao.querySelector('[data-resumo]'));
+        if (secao.querySelector('input[name="nucleos"]')) sugerirNucleos();
+        if (ultima) montarResumo();
+        // Na etapa "Quando e onde" a frase está na própria etapa: a da abertura sai, para não repetir
+        if (fraseDaAbertura) fraseDaAbertura.hidden = Boolean(secao.querySelector('[data-frase]'));
+        // No celular, a frase de boas-vindas fica só na primeira etapa (P126)
+        pagina?.toggleAttribute('data-adiante', indice > 0);
+        // A zona de perigo só na última etapa, depois do resumo (P136)
+        if (zonaDePerigo) zonaDePerigo.hidden = !ultima;
+        // Na última etapa, o resumo ao lado fica só com a foto e o título (P134)
+        const ficha = aoLado?.querySelector<HTMLElement>('[data-ao-lado-ficha]');
+        if (ficha) ficha.hidden = ultima;
+        acompanhar();
+      },
+      etapaInicial,
+    );
     form.addEventListener('change', () => {
       if (!form.querySelector<HTMLElement>('[data-resumo]')?.closest<HTMLElement>('[data-etapa]')?.hidden) montarResumo();
     });
@@ -542,7 +608,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       lacunaDaData.hidden = false;
       const valor = (nome: string) => Number((form.elements.namedItem(nome) as HTMLInputElement).value) || undefined;
       const escrever = () => {
-        const ano = valor('ano');
+        const ano = anoInformado();
         lacunaDaData.textContent = dataNaFrase({ ano, mes: valor('mes'), dia: valor('dia'), aproximada: (form.elements.namedItem('aproximada') as HTMLInputElement).checked });
         lacunaDaData.toggleAttribute('data-vazia', !ano);
       };
@@ -569,6 +635,40 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       abrir(!valor('ano'));
       escrever();
     }
+    // A lacuna do lugar tem a largura do que foi escrito (ou do exemplo, vazia): medida num trecho
+    // escondido com a mesma letra, para o ponto final ficar junto da última letra (P144)
+    const lugarNaFrase = form.querySelector<HTMLInputElement>('[data-frase-lugar]');
+    if (lugarNaFrase) {
+      const medida = document.createElement('span');
+      medida.className = 'frase__medida';
+      medida.setAttribute('aria-hidden', 'true');
+      lugarNaFrase.after(medida);
+      const ajustar = () => {
+        medida.textContent = lugarNaFrase.value || lugarNaFrase.placeholder;
+        const largura = medida.getBoundingClientRect().width;
+        // Etapa escondida não tem medida: fica a largura do estilo até ela aparecer
+        const estilo = getComputedStyle(lugarNaFrase);
+        if (largura) lugarNaFrase.style.width = `${Math.ceil(largura + parseFloat(estilo.paddingLeft) + parseFloat(estilo.paddingRight)) + 2}px`;
+      };
+      lugarNaFrase.addEventListener('input', ajustar);
+      lugarNaFrase.addEventListener('change', ajustar);
+      form.addEventListener('click', () => setTimeout(ajustar));
+      addEventListener('resize', ajustar);
+      document.fonts?.ready.then(ajustar);
+      ajustar();
+    }
+    // No celular, a frase da abertura fica abaixo da pergunta da etapa, antes das ações, para a
+    // pergunta subir para o alto da tela; no computador, no alto da página (P126)
+    const lugarDaFrase = () => {
+      if (!fraseDaAbertura) return;
+      const cabecalho = pagina?.querySelector<HTMLElement>('.pagina-de-formulario__abre');
+      const destino = haLado.matches ? cabecalho : form;
+      if (!destino || fraseDaAbertura.parentElement === destino) return;
+      if (destino === form) situacaoEl.before(fraseDaAbertura);
+      else destino.append(fraseDaAbertura);
+    };
+    haLado.addEventListener('change', lugarDaFrase);
+    lugarDaFrase();
     // A frase da abertura: "Isso aconteceu em ___, em ___, com ___." Cada lacuna diz o que já foi
     // preenchido e leva à etapa em que aquilo se preenche. Para ir adiante, o obrigatório das etapas
     // do caminho continua valendo: quem ainda não deu o título fica na primeira, com o aviso.
@@ -838,12 +938,15 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       const situacao = (evento.submitter as HTMLElement | null)?.dataset.salvar === 'rascunho' ? 'rascunho' : 'publicada';
       const dados = new FormData(form);
       const titulo = String(dados.get('titulo') ?? '').trim();
-      const ano = Number(dados.get('ano'));
+      const anoEscrito = String(dados.get('ano') ?? '').trim();
+      const ano = anoEscrito ? Number(anoEscrito) : undefined;
       if (!titulo) {
         etapas?.ir(0);
         return avisar('Dê um título para a memória.', 'erro');
       }
-      if (!dados.get('ano') || !Number.isInteger(ano)) {
+      // O rascunho pode ser salvo só com o título: o ano é obrigatório só para publicar, como o tipo
+      // (resposta do Gui à P132 do QA de design, 17/11/2026)
+      if (ano === undefined ? situacao === 'publicada' : !Number.isInteger(ano)) {
         // O aviso do ano aparece na etapa em que o ano se preenche, com o controle da data aberto
         const etapaDaData = indiceDaEtapa('[data-frase]');
         etapas?.ir(etapaDaData < 0 ? 0 : etapaDaData);
@@ -911,8 +1014,13 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           // sem armazenamento, nada a limpar
         }
         if (resultado.situacao === 'rascunho') {
-          // Recarrega já ligada ao rascunho salvo no site, com as pessoas novas na lista
-          sessionStorage.setItem('rascunho-salvo', '1');
+          // Recarrega já ligada ao rascunho salvo no site, com as pessoas novas na lista, e volta
+          // para a etapa em que a pessoa estava
+          try {
+            sessionStorage.setItem('rascunho-salvo', String(etapas?.atual() ?? 0));
+          } catch {
+            // sem armazenamento, a página volta na primeira etapa
+          }
           return location.replace(resultado.url);
         }
         form.hidden = true;
@@ -929,18 +1037,13 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       }
     });
 
-    try {
-      if (sessionStorage.getItem('rascunho-salvo')) {
-        sessionStorage.removeItem('rascunho-salvo');
-        // O recado fica no alto, onde a página abre depois de salvar: junto dos botões ele ficava fora da tela
-        const recado = document.createElement('p');
-        recado.className = 'recado';
-        recado.setAttribute('role', 'status');
-        recado.textContent = 'Rascunho salvo. Só você vê, e dá para continuar de qualquer aparelho.';
-        document.querySelector('.pagina-de-formulario__abre')?.before(recado);
-      }
-    } catch {
-      // sem armazenamento, só não mostra o aviso
+    if (voltouDoRascunho) {
+      // O recado fica no alto, onde a página abre depois de salvar: junto dos botões ele ficava fora da tela
+      const recado = document.createElement('p');
+      recado.className = 'recado';
+      recado.setAttribute('role', 'status');
+      recado.textContent = 'Rascunho salvo. Só você vê, e dá para continuar de qualquer aparelho.';
+      document.querySelector('.pagina-de-formulario__abre')?.before(recado);
     }
   }
 </script>

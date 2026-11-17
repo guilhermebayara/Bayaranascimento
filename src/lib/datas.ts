@@ -12,8 +12,19 @@ export const MESES = [
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
 ];
 
-/** "12 de março de 1994", "março de 1994", "1994" ou "por volta de 1994". */
+/**
+ * O ano de um rascunho salvo antes de a data ser informada (resposta do Gui à P132 do QA de design,
+ * 17/11/2026): o rascunho pode ser salvo só com o título, e o ano só é obrigatório para publicar.
+ * A coluna do banco não aceita vazio, então o rascunho sem data guarda 0. Memória publicada nunca
+ * tem este valor: a publicação exige o ano entre 1800 e o ano atual.
+ */
+export const SEM_ANO = 0;
+/** O que o site escreve no lugar da data de um rascunho que ainda não tem ano. */
+export const SEM_DATA = 'sem data';
+
+/** "12 de março de 1994", "março de 1994", "1994" ou "por volta de 1994". Rascunho sem ano: "sem data". */
 export function formatarData(d: DataFlexivel): string {
+  if (!d.ano) return SEM_DATA;
   let texto = String(d.ano);
   if (d.mes) texto = `${MESES[d.mes - 1]} de ${d.ano}`;
   if (d.mes && d.dia) texto = `${d.dia} de ${texto}`;
@@ -113,8 +124,17 @@ export function diasNoMes(mes: number, ano?: number): number {
 }
 
 /**
+ * O ano fora do intervalo do campo, para avisar ao lado, como a data que não existe (resposta do Gui
+ * à P143 do QA de design, 17/11/2026). O texto foi aprovado por ele.
+ */
+export function problemaNoAno(ano: number | undefined, minimo: number, maximo: number): string | undefined {
+  if (ano === undefined || Number.isNaN(ano)) return undefined;
+  return Number.isInteger(ano) && ano >= minimo && ano <= maximo ? undefined : `O ano vai de ${minimo} a ${maximo}.`;
+}
+
+/**
  * O que está errado numa data enquanto a pessoa escolhe, para avisar na hora e não só ao salvar.
- * O ano fora do intervalo fica com a validação do próprio campo.
+ * O ano fora do intervalo é de problemaNoAno.
  */
 export function problemaNaData(ano?: number, mes?: number, dia?: number): string | undefined {
   if (!dia) return undefined;

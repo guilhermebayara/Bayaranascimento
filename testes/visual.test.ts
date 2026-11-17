@@ -825,7 +825,8 @@ describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo', ()
 
   it('a zona de perigo é marcada na cor de alerta, e o botão que confirma continua cheio nessa cor', () => {
     const pecas = ler('pecas.css');
-    expect(pecas).toMatch(/\.perigo\s*\{[^}]*border:\s*var\(--traco\) solid var\(--alerta\);/);
+    // Quieta: só o fio em cima, sem fundo (resposta do Gui à P131 do QA de design, 17/11/2026)
+    expect(pecas).toMatch(/\.perigo\s*\{[^}]*border-top:\s*var\(--traco\) solid var\(--alerta\);/);
     expect(pecas).toMatch(/\.perigo__titulo\s*\{\s*color:\s*var\(--alerta-tinta\);/);
     expect(css).toMatch(/\.botao\.botao--perigo\s*\{\s*background:\s*var\(--alerta-tinta\);/);
     expect(fonte('components/ConfirmarRemocao.astro')).toMatch(/class="botao botao--perigo" type="submit"/);

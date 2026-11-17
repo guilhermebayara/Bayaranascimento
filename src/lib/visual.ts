@@ -1,5 +1,5 @@
 // Funções puras do sistema visual (docs/visual.md, "Sistema"), usadas pelas telas e pelos testes.
-import type { DataFlexivel } from './datas';
+import { SEM_DATA, type DataFlexivel } from './datas';
 import { LARGURAS_DAS_LETRAS } from '../visual/medidas-das-serifas';
 
 /** Um número fixo tirado de um texto (FNV-1a, 32 bits): o mesmo id sempre dá o mesmo resultado. */
@@ -156,6 +156,8 @@ export function diaMesCurto(d: Pick<DataFlexivel, 'mes' | 'dia'>): string {
 
 /** A data inteira do carimbo: "24 dez 2025", "dez 2025", "2025" ou "por volta de 1994". */
 export function carimboDaData(d: DataFlexivel): string {
+  // Rascunho salvo antes de a data ser informada (SEM_ANO, em datas.ts)
+  if (!d.ano) return SEM_DATA;
   const texto = [diaMesCurto(d), String(d.ano)].filter(Boolean).join(' ');
   return d.aproximada ? `por volta de ${texto}` : texto;
 }

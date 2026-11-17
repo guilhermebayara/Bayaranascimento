@@ -25,10 +25,11 @@ export function enterAvanca(
   return atual < total - 1;
 }
 
-export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, secao: HTMLElement) => void): Etapas | undefined {
+/** `inicial` abre o formulário numa etapa que não a primeira: a volta depois de "Salvar rascunho". */
+export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, secao: HTMLElement) => void, inicial = 0): Etapas | undefined {
   const secoes = [...form.querySelectorAll<HTMLElement>('[data-etapa]')];
   if (secoes.length < 2) return undefined;
-  let atual = 0;
+  let atual = Math.max(0, Math.min(secoes.length - 1, Math.trunc(inicial) || 0));
 
   const trilha = document.createElement('ol');
   trilha.className = 'etapas';

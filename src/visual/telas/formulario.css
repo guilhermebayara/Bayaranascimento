@@ -28,6 +28,11 @@
 .pagina-de-formulario__frase:empty {
   display: none;
 }
+/* No celular, depois da primeira etapa a frase de boas-vindas sai, para a pergunta da etapa ficar no
+   alto da tela (resposta do Gui à P126 do QA de design, 17/11/2026). No computador ela fica (abaixo). */
+.pagina-de-formulario[data-adiante] .pagina-de-formulario__frase {
+  display: none;
+}
 .pagina-de-formulario__frase a,
 .pagina-de-formulario .dica a {
   color: var(--tinta);
@@ -480,6 +485,19 @@
   border-radius: var(--raio-bloco);
   background: color-mix(in srgb, var(--alerta) 7%, transparent);
 }
+/* Dentro da zona, o caminho de apagar é da cor de alerta também quando é um botão em texto (o laço),
+   e o sublinhado não troca para a cor da família ao passar o mouse (respostas do Gui às P131 e P145
+   do QA de design, 17/11/2026) */
+.pagina-de-formulario .perigo .confirmar > summary.botao--leve {
+  color: var(--alerta-tinta);
+}
+.pagina-de-formulario .perigo .botao.botao--leve:hover {
+  text-decoration-color: currentColor;
+}
+/* O botão que confirma o apagar não leva a seta de avançar (P131) */
+.pagina-de-formulario .botao.botao--perigo::after {
+  content: none;
+}
 
 /* --- A trilha das etapas, quieta ----------------------------------------------------------------
    No celular, uma fila de números pequenos e, embaixo, "Etapa 2 de 7: Quando e onde". No
@@ -597,6 +615,24 @@
 .pagina-de-formulario .frase__lacuna input::placeholder {
   font-style: italic;
 }
+/* "em", o lugar e o ponto final andam juntos, e a lacuna tem a largura do que foi escrito (resposta
+   do Gui à P144 do QA de design, 17/11/2026). A medida é um trecho escondido com a mesma letra, que
+   o script de nova.astro lê; ele sai para a esquerda, que não cria rolagem. */
+.pagina-de-formulario .frase__junto {
+  white-space: nowrap;
+}
+.pagina-de-formulario .frase__junto .frase__lacuna {
+  position: relative;
+  max-width: calc(100% - 2.4em);
+}
+.pagina-de-formulario .frase__medida {
+  position: absolute;
+  top: 0;
+  right: 100%;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+}
 /* A frase também na abertura da Nova memória: as três lacunas dizem o que já foi preenchido e levam
    à etapa de cada uma. Um degrau abaixo da pergunta da etapa, para não disputar com ela. */
 .pagina-de-formulario .frase--abertura {
@@ -623,6 +659,18 @@
 }
 .pagina-de-formulario .frase--abertura[hidden] {
   display: none;
+}
+/* Uma lacuna vazia é uma pergunta curta: não quebra no meio (resposta do Gui à P138, 17/11/2026) */
+.pagina-de-formulario .frase__data[data-vazia] {
+  white-space: nowrap;
+}
+/* No celular a frase desce para baixo da pergunta da etapa, antes das ações, menor e com um fio em
+   cima: o que já foi contado até ali (P126). O script de nova.astro a muda de lugar. */
+.pagina-de-formulario .formulario > .frase--abertura {
+  margin: 0;
+  padding-top: var(--e-4);
+  border-top: 1px solid var(--fio);
+  font-size: var(--t-leitura);
 }
 /* O resumo ao lado só existe no computador (abaixo, em 62rem) */
 .pagina-de-formulario .ao-lado {
@@ -984,12 +1032,14 @@
 /* Com "Continuar" na tela, ele é a ação principal: o envio que está sempre à mão ("Salvar
    alterações", "Salvar capítulo") fica em contorno. Na última etapa, volta a ser o botão cheio.
    Aprovado pelo Gui em 17/11/2026 (pergunta 2 do PR do grupo "formularios"). */
-.pagina-de-formulario .acoes--etapas [data-etapa-continuar]:not([hidden]) ~ .botao[type='submit']:not(.botao--leve) {
+/* O botão cheio é sempre o da ponta: na correção da memória, o envio em contorno vem antes do
+   "Continuar" (resposta do Gui à P135 do QA de design, 17/11/2026). A regra vale nas duas ordens. */
+.pagina-de-formulario .acoes--etapas:has([data-etapa-continuar]:not([hidden])) .botao[type='submit']:not(.botao--leve) {
   background: transparent;
   box-shadow: inset 0 0 0 var(--traco) var(--tinta);
   color: var(--tinta);
 }
-.pagina-de-formulario .acoes--etapas [data-etapa-continuar]:not([hidden]) ~ .botao[type='submit']:not(.botao--leve)::after {
+.pagina-de-formulario .acoes--etapas:has([data-etapa-continuar]:not([hidden])) .botao[type='submit']:not(.botao--leve)::after {
   content: none;
 }
 
@@ -1029,14 +1079,29 @@
     grid-column: 1 / 5;
     grid-row: 1 / span 3;
   }
+  /* A abertura vai até a largura do miolo, para a frase com lacunas usar o espaço que sobra (resposta
+     do Gui à P138 do QA de design, 17/11/2026). O título e a frase de boas-vindas guardam a medida. */
   .pagina-de-formulario:has(.com-etapas) .pagina-de-formulario__abre {
-    grid-column: 1 / 10;
+    grid-column: 1 / -1;
     grid-row: auto;
     max-width: none;
+  }
+  .pagina-de-formulario:has(.com-etapas) .pagina-de-formulario__abre > .frase--abertura {
+    max-width: none;
+  }
+  .pagina-de-formulario[data-adiante] .pagina-de-formulario__frase {
+    display: block;
+  }
+  /* O recado de "Rascunho salvo" começa na mesma margem da abertura */
+  .pagina-de-formulario:has(.com-etapas) > .recado {
+    grid-column: 1 / -1;
   }
   .pagina-de-formulario .formulario.com-etapas {
     grid-column: 1 / -1;
     grid-template-columns: subgrid;
+    /* O vão entre as colunas é o da página: com o do formulário, a coluna da pergunta saía 3,5 px
+       do lugar em 1280 px, e a zona de perigo, que é da página, não fechava com ela */
+    column-gap: var(--calha);
     row-gap: 0;
     max-width: none;
   }
@@ -1044,8 +1109,18 @@
     grid-column: 5 / -1;
     max-width: var(--coluna);
   }
+  /* As ações param na mesma largura dos campos (resposta do Gui à P139, 17/11/2026) */
   .pagina-de-formulario .formulario.com-etapas > :is(.situacao, .acoes) {
+    max-width: min(var(--coluna), var(--medida));
     margin-top: var(--e-6);
+  }
+  /* A mesma grade em todo formulário com etapas que é a página inteira: a trilha em três colunas e a
+     pergunta começando na quarta, com ou sem resumo ao lado (resposta do Gui à P130, 17/11/2026) */
+  .pagina-de-formulario > .formulario.com-etapas > * {
+    grid-column: 4 / -1;
+  }
+  .pagina-de-formulario > .formulario.com-etapas > ol.etapas {
+    grid-column: 1 / 4;
   }
   .pagina-de-formulario .formulario.com-etapas > .etapas {
     grid-column: 1 / 5;
@@ -1146,6 +1221,13 @@
     margin-block: var(--e-2) var(--e-3);
   }
   .pagina-de-formulario .ao-lado__foto[hidden] {
+    display: none;
+  }
+  /* Sem tipo escolhido, o cartão é neutro: papel, sem ícone (resposta do Gui à P129, 17/11/2026) */
+  .pagina-de-formulario .ao-lado__foto--neutra .polaroid__foto {
+    background: var(--papel);
+  }
+  .pagina-de-formulario .ao-lado__foto--neutra .icone {
     display: none;
   }
   .pagina-de-formulario .ao-lado__nome {
