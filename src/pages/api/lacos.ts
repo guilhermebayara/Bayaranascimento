@@ -15,6 +15,7 @@ import {
   removerLacoResumido,
   salvarLacoResumido,
   listarIntegrantes,
+  listarIntegrantesQueVe,
   removerLacoDoCoracao,
   salvarLacoDoCoracao,
   obterCasal,
@@ -33,7 +34,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const volta = campo(dados, 'volta', 200) || '/pessoas';
   const falhar = (erro: string) => voltar(request, volta, { erro });
 
-  let integrantes = await listarIntegrantes();
+  // Quem só existe num laço privado de outra pessoa não pode ser escolhido nem achado pelo nome (C1, 17/11/2026).
+  // O dono do laço continua vendo a pessoa. Os ids de todos só servem para o endereço novo não repetir.
+  let integrantes = await listarIntegrantesQueVe(usuario);
+  const todosOsIds = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
   let pendente: { id: string; nome: string; tratamento: 'ela' | 'ele' | null } | undefined;
   const cadastrarPendente = async () => {
     if (pendente) await criarIntegrante(pendente.id, pendente.nome, usuario.pessoa, pendente.tratamento);
@@ -84,7 +88,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const base = criarSlug(nomeNovo);
       const existente = integrantes.find((i) => criarSlug(i.nome) === base || (i.apelido && criarSlug(i.apelido) === base));
       if (existente) return falhar(`Já existe ${existente.nome} no acervo. Escolha na lista em vez de escrever o nome.`);
-      outra = slugUnico(base, new Set([...integrantes.map((i) => i.id), 'nova']));
+      outra = slugUnico(base, todosOsIds);
       // A pessoa nova só é gravada quando o laço passa nas validações e na permissão (ver cadastrarPendente).
       // Antes, um laço recusado deixava a pessoa cadastrada, e a nova tentativa dizia que ela já existia.
       // "Como se referir" de quem entra pelo nome novo: Ela, Ele ou Não informar (pedido do Gui, 16/11/2026)

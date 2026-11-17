@@ -49,7 +49,8 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
     const rascunhos = await repo.listarMemorias(usuario, { rascunhos: true });
     const contexto = await contextoDoExplorar(usuario, publicadas);
     const naoVe = await repo.pessoasQueONaoVe(usuario);
-    const integrantes = (await repo.listarIntegrantes()).filter((i) => !naoVe.has(i.id));
+    // A lista de Pessoas e os seletores de pessoa (C1, decisão do Gui de 17/11/2026)
+    const integrantes = await repo.listarIntegrantesQueVe(usuario);
     const relatosNovos = await repo.listarRelatosPublicadosDesde(usuario, '2000-01-01 00:00:00');
     const conta = await montarConta(usuario);
     const capitulos = await repo.listarCapitulos(usuario);
@@ -170,6 +171,10 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
         }
         expect(await repo.podeVerRetratoDaChave(usuario, 'retratos/zz.jpg')).toBe(false);
         expect((await repo.pessoasQueONaoVe(usuario)).has('zz-pessoa')).toBe(true);
+        // C1: some da lista de Pessoas, dos seletores e da própria página, só para quem não é dono do laço
+        expect((await repo.listarIntegrantesQueVe(usuario)).some((i) => i.id === 'zz-pessoa')).toBe(false);
+        const dono = usuarioDe(quem === 'gui' ? 'giovanna' : 'gui');
+        expect((await repo.listarIntegrantesQueVe(dono)).some((i) => i.id === 'zz-pessoa')).toBe(true);
       } finally {
         banco.sqlite.exec('ROLLBACK TO acervo_de_exemplo');
       }
@@ -184,5 +189,65 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
     expect(gui.comAudio.length).toBeGreaterThan(0);
     expect(gui.aniversarios.length).toBeGreaterThan(0);
     expect(gui.capitulos.length).toBeGreaterThan(3);
+  });
+
+  it('quem só existe num laço privado de outra pessoa continua se vendo', async () => {
+    // A pessoa da conta pode não ter laço nenhum além do privado de outra pessoa
+    sql(`INSERT INTO integrantes (id, nome, tipo, tratamento) VALUES ('zz-sozinha', 'Pessoa Sozinha', 'pessoa', 'ela')`);
+    sql(`INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, privado) VALUES ('gui', 'zz-sozinha', 'Laço escondido', 1)`);
+    try {
+      const sozinha: Usuario = { pessoa: 'zz-sozinha', nome: 'Pessoa Sozinha', admin: false, nucleos: [] };
+      expect((await repo.pessoasQueONaoVe(sozinha)).has('zz-sozinha')).toBe(false);
+      expect((await repo.listarIntegrantesQueVe(sozinha)).some((i) => i.id === 'zz-sozinha')).toBe(true);
+      expect((await repo.listarIntegrantesQueVe(usuarioDe('giovanna'))).some((i) => i.id === 'zz-sozinha')).toBe(false);
+    } finally {
+      banco.sqlite.exec('ROLLBACK TO acervo_de_exemplo');
+    }
+  });
+});
+
+// C1 (decisão do Gui, 17/11/2026): as telas e as APIs que listam, mostram ou marcam pessoas leem a lista
+// de quem a pessoa vê. O teste acima confere a lista; este, que cada lugar usa a lista e não a inteira.
+describe('C1: quem só existe num laço privado de outra pessoa some em todo lugar', () => {
+  const fontes = import.meta.glob<string>(['../src/pages/**/*.astro', '../src/pages/api/*.ts', '../src/components/*.astro'], { query: '?raw', import: 'default', eager: true });
+  const fonte = (caminho: string) => fontes[`../${caminho}`] ?? '';
+  const LUGARES = [
+    // A lista de Pessoas e a página da pessoa (404)
+    'src/pages/pessoas/index.astro',
+    'src/pages/pessoas/[id]/index.astro',
+    'src/pages/pessoas/[id]/editar.astro',
+    // Os seletores de pessoa
+    'src/pages/nova.astro',
+    'src/components/FichaDoCapitulo.astro',
+    'src/components/FichaDoIntegrante.astro',
+    'src/pages/memorias/[id]/relato.astro',
+    // As APIs: não dá para marcar, escrever em nome de nem ligar quem a pessoa não vê
+    'src/pages/api/memorias.ts',
+    'src/pages/api/capitulos.ts',
+    'src/pages/api/relatos.ts',
+    'src/pages/api/lacos.ts',
+    'src/pages/api/integrantes.ts',
+    // Os nomes nas linhas do tempo e nos capítulos
+    'src/pages/explorar.astro',
+    'src/pages/temas/[id].astro',
+    'src/pages/capitulos/[id]/index.astro',
+  ];
+  for (const lugar of LUGARES) {
+    it(lugar, () => {
+      expect(fonte(lugar), lugar).toContain('listarIntegrantesQueVe(');
+    });
+  }
+  it('a página da pessoa responde 404 a quem não está na lista de quem vê', () => {
+    const pagina = fonte('src/pages/pessoas/[id]/index.astro');
+    expect(pagina).toMatch(/const integrantes = await listarIntegrantesQueVe\(usuario\);\s*const pessoa = integrantes\.find\(/);
+    expect(pagina).toMatch(/if \(!pessoa\) return new Response\([^)]*status: 404/);
+  });
+  it('numa edição, a marca que a pessoa não vê continua', () => {
+    expect(fonte('src/pages/api/memorias.ts')).toContain('for (const id of anterior?.integrantes ?? []) if (!marcaveis.has(id)');
+    expect(fonte('src/pages/api/capitulos.ts')).toContain('(atual?.pessoas ?? []).filter((p) => !marcaveis.has(p)');
+  });
+  it('a memória e o histórico não mostram o nome', () => {
+    expect(fonte('src/pages/memorias/[id].astro')).toContain('const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id));');
+    expect(fonte('src/pages/memorias/[id]/historico.astro')).toContain('.filter((id) => !naoVe.has(id))');
   });
 });

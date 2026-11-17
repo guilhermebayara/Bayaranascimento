@@ -12,7 +12,7 @@ import { estiloDoTipo, legendaLugarAno } from '../lib/visual';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { podeEditarMemoria, podeExcluirMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
 import ZonaDePerigo from '../components/visual/ZonaDePerigo.astro';
-import { familiasDe, listarAudiosDosRelatos, listarCapitulos, listarCasais, listarMemorias, listarFiliacoes, listarIntegrantes, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
+import { familiasDe, listarAudiosDosRelatos, listarCapitulos, listarCasais, listarMemorias, listarFiliacoes, listarIntegrantes, listarIntegrantesQueVe, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
 
 // Esta página serve para três coisas: registrar uma memória nova, continuar
 // um rascunho e corrigir uma memória já publicada (?id=...).
@@ -24,11 +24,14 @@ if (memoria && !podeEditarMemoria(usuario, memoria).ok) return Astro.redirect(`/
 
 const publicada = memoria?.situacao === 'publicada';
 const podeExcluir = Boolean(memoria) && podeExcluirMemoria(usuario, memoria!).ok;
-const integrantes = await listarIntegrantes();
+// Quem só existe num laço privado de outra pessoa não é oferecido nem aparece marcado (C1, 17/11/2026).
+// A API mantém essa marca numa edição, e quem criou continua achado na lista inteira.
+const todosOsIntegrantes = await listarIntegrantes();
+const integrantes = await listarIntegrantesQueVe(usuario);
 // Só quem criou muda quem pode ver. Para quem é citado, as opções ficam travadas com o valor atual.
 const travaQuemVe = Boolean(memoria) && memoria!.criadaPor !== usuario.pessoa;
 const travaNucleos = travaQuemVe && memoria!.visibilidade === 'nucleos';
-const criadora = travaQuemVe ? integrantes.find((i) => i.id === memoria!.criadaPor) : undefined;
+const criadora = travaQuemVe ? todosOsIntegrantes.find((i) => i.id === memoria!.criadaPor) : undefined;
 const quemCriou = criadora ? comArtigo(criadora) : 'quem criou';
 const comAcesso = await pessoasComAcesso();
 const semAcesso = integrantes.filter((i) => i.tipo === 'pessoa' && !comAcesso.has(i.id));
@@ -197,7 +200,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     </section>
 
     <section data-etapa="Quem estava" data-opcional>
-      <QuemEstava integrantes={integrantes} marcados={memoria?.integrantes ?? (comPessoa ? [comPessoa] : [])} grupos={gruposDePessoas} proximos={proximos} eu={usuario.pessoa} />
+      <QuemEstava integrantes={integrantes} marcados={memoria?.integrantes.filter((p) => integrantes.some((i) => i.id === p)) ?? (comPessoa ? [comPessoa] : [])} grupos={gruposDePessoas} proximos={proximos} eu={usuario.pessoa} />
     </section>
 
     <section data-etapa="Fotos" data-opcional>

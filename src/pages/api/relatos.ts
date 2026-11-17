@@ -6,7 +6,7 @@ import { arrumarTexto } from '../../lib/servidor/conteudo';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeEscreverRelato } from '../../lib/servidor/permissoes';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
-import { ligarAudios, listarAudiosDosRelatos, listarIntegrantes, obterMemoria, obterRelato, obterRelatoRegistradoPor, salvarRelato } from '../../lib/servidor/repositorio';
+import { ligarAudios, listarAudiosDosRelatos, listarIntegrantesQueVe, obterMemoria, obterRelato, obterRelatoRegistradoPor, salvarRelato } from '../../lib/servidor/repositorio';
 
 const Pedido = z.object({
   memoria: z.string().max(120),
@@ -50,7 +50,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // Quem não vê a memória recebe o mesmo que para uma memória inexistente
   const memoria = await obterMemoria(usuario, memoriaId);
   if (!memoria) return erro(404, 'Memória não encontrada.');
-  if (!(await listarIntegrantes()).some((i) => i.id === por)) return erro(400, 'Pessoa não encontrada.');
+  if (!(await listarIntegrantesQueVe(usuario)).some((i) => i.id === por)) return erro(400, 'Pessoa não encontrada.');
 
   const existente = await obterRelato(memoriaId, por, usuario);
   const decisao = podeEscreverRelato(usuario, por, existente, await pessoasComAcesso());

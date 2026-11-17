@@ -7,11 +7,12 @@ import Visual from '../../layouts/Visual.astro';
 import Gente from '../../components/visual/Gente.astro';
 import { Familia, possessivo, type Tratamento } from '../../lib/parentesco';
 import { enderecoDoRetrato } from '../../lib/retratos';
-import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
+import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
 import { corDaPessoa, corDoNucleo } from '../../lib/visual';
 
 const { usuario } = Astro.locals;
-const integrantes = await listarIntegrantes();
+// Quem só existe num laço privado de outra pessoa não entra na lista (C1, 17/11/2026)
+const integrantes = await listarIntegrantesQueVe(usuario);
 const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
 const memorias = await listarMemorias(usuario);

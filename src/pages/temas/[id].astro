@@ -9,7 +9,7 @@ import Linha from '../../components/explorar/Linha.astro';
 import Vazio from '../../components/visual/Vazio.astro';
 import { ehEpoca, nomeDoModo } from '../../lib/capitulos';
 import { coresDosCapitulos } from '../../lib/linha-capitulos';
-import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemasVisiveis } from '../../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemasVisiveis } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const tema = (await listarTemasVisiveis(usuario)).find((t) => t.id === Astro.params.id);
@@ -66,7 +66,7 @@ const cores = coresDosCapitulos(
             <Vazio frase="Nenhuma memória com este tema por enquanto." />
           </div>
         ) : (
-          <Linha memorias={memorias} capitulos={todos} integrantes={await listarIntegrantes()} nucleos={await listarNucleos()} ordem="recentes" trilhos={false} />
+          <Linha memorias={memorias} capitulos={todos} integrantes={await listarIntegrantesQueVe(usuario)} nucleos={await listarNucleos()} ordem="recentes" trilhos={false} />
         )
       }
     </section>
