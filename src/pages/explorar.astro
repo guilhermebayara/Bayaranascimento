@@ -7,14 +7,16 @@
 // sorteio, o mural, o modo TV e as contagens saem todos de listarMemorias.
 import '../visual/telas/linha.css';
 import '../visual/telas/explorar.css';
+import '../visual/telas/lista.css';
 import Visual from '../layouts/Visual.astro';
 import Assinatura from '../components/visual/Assinatura.astro';
 import Vazio from '../components/visual/Vazio.astro';
 import Controles from '../components/explorar/Controles.astro';
 import Linha from '../components/explorar/Linha.astro';
+import Lista from '../components/explorar/Lista.astro';
 import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
-import { SEM_FILTRO, TEMPOS_DE_PASSAR, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, movimentoNoEndereco, passarNoEndereco, resumoDosFiltros, sortear, temFiltro, vizinhasNaLista, type Passar } from '../lib/explorar';
+import { SEM_FILTRO, TEMPOS_DE_PASSAR, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, mostraRascunho, movimentoNoEndereco, passarNoEndereco, resumoDosFiltros, sortear, temFiltro, vizinhasNaLista, type Passar } from '../lib/explorar';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
@@ -35,13 +37,14 @@ const [nucleos, todas, integrantes, capitulos, temas] = await Promise.all([
 // não é membro isso é o que foi aberto a todos. Família que não existe é ignorada.
 const lidos = lerFiltros(parametros);
 const filtros = { ...lidos, familias: lidos.familias.filter((id) => nucleos.some((n) => n.id === id)) };
-const resultado = explorar(todas, filtros, await contextoDoExplorar(usuario, todas));
+const contexto = await contextoDoExplorar(usuario, todas);
+const resultado = explorar(todas, filtros, contexto);
 const nomeDe = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome;
 
 // O mural, o modo TV e o sorteio são do que já foi publicado: o rascunho só aparece na linha do
-// tempo de quem escreveu, levando ao formulário
+// tempo e na lista de quem escreveu, levando ao formulário
 const publicadas = resultado.memorias.filter((m) => m.situacao !== 'rascunho');
-const memorias = forma === 'linha' ? resultado.memorias : publicadas;
+const memorias = mostraRascunho(forma) ? resultado.memorias : publicadas;
 const limpar = temFiltro(filtros) ? enderecoDoExplorar({ ...SEM_FILTRO, ordem: filtros.ordem }, forma) : undefined;
 const voltar = enderecoDoExplorar(filtros);
 
@@ -167,6 +170,44 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
         </header>
         {memorias.length > 0 ? (
           <Mural memorias={memorias} ordem={filtros.ordem} tamanho={tamanho} />
+        ) : (
+          <div class="miolo">
+            <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
+              {limpar ? (
+                <a class="acao" href={limpar}>
+                  Limpar filtros
+                </a>
+              ) : (
+                <a class="acao" href="/nova">
+                  Nova memória
+                </a>
+              )}
+            </Vazio>
+          </div>
+        )}
+      </div>
+    )
+  }
+  {
+    forma === 'lista' && (
+      <div class="linha linha--lista">
+        <header class="linha__capa miolo">
+          <Assinatura titulo sobrenomes={sobrenomes} />
+          <p class="linha__conta rotulo" aria-live="polite">{conta}</p>
+          <Controles
+            filtros={filtros}
+            forma={forma}
+            nucleos={nucleos}
+            tipos={tiposPresentes}
+            pessoas={pessoas}
+            capitulos={capitulos.map((c) => ({ id: c.id, nome: c.titulo }))}
+            temas={temas}
+            decadas={decadas}
+            resumo={resumo}
+          />
+        </header>
+        {memorias.length > 0 ? (
+          <Lista memorias={memorias} capitulos={capitulos} integrantes={integrantes} ordem={filtros.ordem} comAudio={contexto.comAudio} />
         ) : (
           <div class="miolo">
             <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>

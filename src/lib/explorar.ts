@@ -8,6 +8,9 @@
 // Entre filtros diferentes vale o "e". Dentro de um mesmo filtro, vale o "ou" (este tipo ou aquele,
 // esta família ou aquela), menos nas pessoas, que são "pessoas juntas": a memória precisa ter todas.
 
+import type { DataFlexivel } from './datas';
+import { carimboDaData, diaMesCurto } from './visual';
+
 export type Ordem = 'recentes' | 'antigas' | 'entraram' | 'contadas';
 export const ORDENS: Ordem[] = ['recentes', 'antigas', 'entraram', 'contadas'];
 export const ORDEM_PADRAO: Ordem = 'recentes';
@@ -205,13 +208,15 @@ export function sortear<M extends { id: string }>(memorias: M[], anterior: strin
 // --- A tela do Explorar: as formas de ver e o endereço de cada uma -----------------------------
 
 /** As formas de ver do Explorar. No endereço, "ver"; sem ele, a linha do tempo. */
-export type Forma = 'linha' | 'mural' | 'tv' | 'acaso';
-export const FORMAS: Forma[] = ['linha', 'mural', 'tv', 'acaso'];
+export type Forma = 'linha' | 'mural' | 'lista' | 'tv' | 'acaso';
+export const FORMAS: Forma[] = ['linha', 'mural', 'lista', 'tv', 'acaso'];
 export const FORMA_PADRAO: Forma = 'linha';
 
 export const NOMES_DAS_FORMAS: Record<Forma, string> = {
   linha: 'Linha do tempo',
   mural: 'Mural de fotos',
+  // PROVISÓRIO (pergunta 1 do PR de ajustes): o nome da forma de ver
+  lista: 'Lista',
   tv: 'Modo TV',
   acaso: 'Me mostre uma memória',
 };
@@ -385,3 +390,50 @@ export function reacaoEmSoFotos(gesto: GestoNoPalco, controlesAVista: boolean): 
 
 /** Quanto tempo os controles ficam na tela, em "Só as fotos", depois do último gesto. */
 export const SEGUNDOS_DOS_CONTROLES = 5;
+
+// --- A lista: uma memória por linha ---------------------------------------------------------------
+// Forma de ver pedida pelo Gui em 17/11/2026, no modelo do "Já rolou" da agenda da @bsurda: o ano
+// grande abre cada bloco, e cada memória é uma linha. Aqui ficam as partes da linha que têm regra.
+
+/** As formas de ver da página da pessoa: as mesmas do Explorar, sem o modo TV e o sorteio. */
+export const FORMAS_DA_PESSOA = ['linha', 'mural', 'lista'] as const satisfies readonly Forma[];
+export type FormaDaPessoa = (typeof FORMAS_DA_PESSOA)[number];
+
+export function lerFormaDaPessoa(p: URLSearchParams): FormaDaPessoa {
+  const ver = p.get('ver');
+  return FORMAS_DA_PESSOA.find((f) => f === ver) ?? FORMA_PADRAO;
+}
+
+/** O endereço da página da pessoa em cada forma de ver. A linha do tempo, que é o padrão, não vai no endereço. */
+export function enderecoDaPessoa(id: string, forma: FormaDaPessoa = FORMA_PADRAO): string {
+  return `/pessoas/${id}${forma === FORMA_PADRAO ? '' : `?ver=${forma}`}`;
+}
+
+/**
+ * A data na linha da lista. Dentro do bloco do ano, só o dia e o mês ("24 dez", "dez"); a data
+ * aproximada diz "por volta de", com o mês quando ele é conhecido; quem só tem o ano fica sem nada,
+ * porque o ano já está no alto do bloco. Fora da ordem do tempo não há bloco: a data vai inteira.
+ */
+export function dataNaLista(d: DataFlexivel, noBlocoDoAno: boolean): string {
+  if (!noBlocoDoAno) return carimboDaData(d);
+  const diaMes = diaMesCurto(d);
+  if (d.aproximada) return diaMes ? `por volta de ${MES_SO(d)}` : 'por volta de';
+  return diaMes;
+}
+// Com a data aproximada, o dia não entra: "por volta de dez"
+const MES_SO = (d: DataFlexivel) => diaMesCurto({ mes: d.mes, dia: null });
+
+/** O nome de alguém numa linha curta: como é chamado na família ou, sem apelido, o primeiro nome. */
+export function nomeCurto(pessoa: { nome: string; apelido?: string | null }): string {
+  return pessoa.apelido?.trim() || pessoa.nome.trim().split(/\s+/)[0] || pessoa.nome;
+}
+
+/** Quem estava, na linha da lista: até três nomes, na ordem da memória, e "+N" para o resto. */
+export function quemNaLista(nomes: string[], maximo = 3): { nomes: string[]; mais: number; texto: string } {
+  const primeiros = nomes.slice(0, maximo);
+  const mais = Math.max(0, nomes.length - maximo);
+  return { nomes: primeiros, mais, texto: [primeiros.join(', '), mais > 0 ? `+${mais}` : ''].filter(Boolean).join(' ') };
+}
+
+/** A lista segue a linha do tempo no rascunho: quem escreveu vê o dela, levando ao formulário. */
+export const mostraRascunho = (forma: Forma) => forma === 'linha' || forma === 'lista';

@@ -723,7 +723,12 @@ html.pino-novo .parada__ano[data-vazia] {
   font-size: var(--t-titulo-2);
   line-height: 1.02;
 }
+/* O link do título tem a altura de toque nele mesmo, mesmo quando o título cabe numa linha só
+   (defeito apontado pelo Gui, 17/11/2026: o link media 30 px) */
 .entrada__titulo a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
   text-decoration: none;
 }
 /* A memória inteira leva à página dela */
@@ -733,13 +738,12 @@ html.pino-novo .parada__ano[data-vazia] {
   inset: 0;
   z-index: 1;
 }
+/* O contorno do foco fica no próprio título. Antes ele ficava em volta da memória inteira, que é
+   mais alta que a tela do celular: só as laterais apareciam, e o foco passava batido. */
 .entrada__titulo a:focus-visible {
-  outline: none;
-}
-.entrada:has(.entrada__titulo a:focus-visible) {
   outline: 2px solid var(--tinta);
-  outline-offset: 0.75rem;
-  border-radius: var(--raio-foto);
+  outline-offset: 0.2em;
+  border-radius: var(--raio-carimbo);
 }
 .entrada__ficha {
   display: flex;

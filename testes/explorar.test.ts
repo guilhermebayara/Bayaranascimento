@@ -155,7 +155,8 @@ describe('formas de ver e endereço', async () => {
   const { FORMAS, SEM_FILTRO, enderecoDoExplorar, lerFiltros, lerForma, resumoDosFiltros, vizinhasNaLista } = await import('../src/lib/explorar');
 
   it('sem "ver", ou com um valor que não existe, vale a linha do tempo', () => {
-    expect(FORMAS).toEqual(['linha', 'mural', 'tv', 'acaso']);
+    expect(FORMAS).toEqual(['linha', 'mural', 'lista', 'tv', 'acaso']);
+    expect(lerForma(new URLSearchParams('ver=lista'))).toBe('lista');
     expect(lerForma(new URLSearchParams(''))).toBe('linha');
     expect(lerForma(new URLSearchParams('ver=mural'))).toBe('mural');
     expect(lerForma(new URLSearchParams('ver=carrossel'))).toBe('linha');
@@ -324,5 +325,63 @@ describe('"Só as fotos", no modo TV: sempre existe caminho de volta', () => {
       expect(reacaoEmSoFotos(gesto, true)).toBe('seguir');
     }
     expect(SEGUNDOS_DOS_CONTROLES).toBeGreaterThanOrEqual(4);
+  });
+});
+
+// A lista (pedido do Gui, 17/11/2026): uma memória por linha. As partes da linha que têm regra.
+describe('a lista: as partes de cada linha', async () => {
+  const { FORMAS_DA_PESSOA, dataNaLista, enderecoDaPessoa, enderecoDoExplorar, lerFormaDaPessoa, mostraRascunho, nomeCurto, quemNaLista, SEM_FILTRO } = await import('../src/lib/explorar');
+  const data = (ano: number, mes: number | null = null, dia: number | null = null, aproximada = false) => ({ ano, mes, dia, aproximada });
+
+  it('dentro do bloco do ano, a data é só o dia e o mês', () => {
+    expect(dataNaLista(data(2025, 12, 24), true)).toBe('24 dez');
+    expect(dataNaLista(data(2025, 12), true)).toBe('dez');
+    // quem só tem o ano fica sem nada: o ano já está no alto do bloco
+    expect(dataNaLista(data(2025), true)).toBe('');
+  });
+
+  it('a data aproximada diz "por volta de", com o mês quando ele é conhecido e sem o dia', () => {
+    expect(dataNaLista(data(1994, null, null, true), true)).toBe('por volta de');
+    expect(dataNaLista(data(1994, 8, null, true), true)).toBe('por volta de ago');
+    expect(dataNaLista(data(1994, 8, 14, true), true)).toBe('por volta de ago');
+  });
+
+  it('fora da ordem do tempo não há bloco de ano: a data vai inteira', () => {
+    expect(dataNaLista(data(2025, 12, 24), false)).toBe('24 dez 2025');
+    expect(dataNaLista(data(2025), false)).toBe('2025');
+    expect(dataNaLista(data(1994, null, null, true), false)).toBe('por volta de 1994');
+  });
+
+  it('quem estava: até três nomes, na ordem da memória, e "+N" para o resto', () => {
+    expect(quemNaLista([])).toEqual({ nomes: [], mais: 0, texto: '' });
+    expect(quemNaLista(['Gui']).texto).toBe('Gui');
+    expect(quemNaLista(['Gui', 'Giovanna', 'Magno']).texto).toBe('Gui, Giovanna, Magno');
+    expect(quemNaLista(['Gui', 'Giovanna', 'Magno', 'Elizete', 'Chico'])).toEqual({ nomes: ['Gui', 'Giovanna', 'Magno'], mais: 2, texto: 'Gui, Giovanna, Magno +2' });
+  });
+
+  it('o nome na linha: como a pessoa é chamada na família ou, sem apelido, o primeiro nome', () => {
+    expect(nomeCurto({ nome: 'Isabel Nascimento', apelido: 'Vó Bela' })).toBe('Vó Bela');
+    expect(nomeCurto({ nome: 'Lucas Magno Bracarense', apelido: null })).toBe('Lucas');
+    expect(nomeCurto({ nome: 'Chico' })).toBe('Chico');
+  });
+
+  it('a lista vai no endereço e segue os filtros e a ordem do Explorar', () => {
+    expect(enderecoDoExplorar({ ...SEM_FILTRO, tipos: ['viagem'], ordem: 'contadas' }, 'lista')).toBe('/explorar?tipo=viagem&ordem=contadas&ver=lista');
+  });
+
+  it('o rascunho aparece na lista como na linha do tempo, e não no mural nem no modo TV', () => {
+    expect(mostraRascunho('linha')).toBe(true);
+    expect(mostraRascunho('lista')).toBe(true);
+    for (const forma of ['mural', 'tv', 'acaso'] as const) expect(mostraRascunho(forma)).toBe(false);
+  });
+
+  it('a página da pessoa tem três formas de ver, e a linha do tempo é o padrão', () => {
+    expect([...FORMAS_DA_PESSOA]).toEqual(['linha', 'mural', 'lista']);
+    expect(lerFormaDaPessoa(new URLSearchParams(''))).toBe('linha');
+    expect(lerFormaDaPessoa(new URLSearchParams('ver=lista'))).toBe('lista');
+    // o modo TV e o sorteio são do Explorar
+    expect(lerFormaDaPessoa(new URLSearchParams('ver=tv'))).toBe('linha');
+    expect(enderecoDaPessoa('gui')).toBe('/pessoas/gui');
+    expect(enderecoDaPessoa('gui', 'mural')).toBe('/pessoas/gui?ver=mural');
   });
 });

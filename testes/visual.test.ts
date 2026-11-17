@@ -172,7 +172,7 @@ describe('conceito', () => {
     // a página não busca memória por outro caminho nem confere a família de quem olha.
     const pagina = tela('pages/explorar.astro');
     expect(pagina).toContain('listarMemorias(usuario)');
-    expect(pagina).toMatch(/explorar\(todas, filtros, await contextoDoExplorar\(usuario, todas\)\)/);
+    expect(pagina).toMatch(/const contexto = await contextoDoExplorar\(usuario, todas\);\s*const resultado = explorar\(todas, filtros, contexto\);/);
     expect(pagina).not.toMatch(/usuario\.nucleos\.includes|obterMemoria/);
     // O mural, o modo TV e o sorteio usam o mesmo resultado, sem os rascunhos
     expect(pagina).toMatch(/const publicadas = resultado\.memorias\.filter/);
@@ -694,5 +694,65 @@ describe('grupo formularios', () => {
     expect(fonte('ConfirmarRemocao.astro')).toMatch(/<button class="botao botao--perigo" type="submit" name="acao"/);
     const css = readFileSync(new URL('../src/visual/telas/formulario.css', import.meta.url), 'utf8');
     for (const nome of ['etapas--fluxo', 'escolhas', 'lacos', 'editar__caixa', 'fases', 'linhas', 'alerta', 'retrato-campo', 'recorte__quadro', 'pagina-de-formulario--larga']) expect(css, nome).toContain(`.${nome}`);
+  });
+});
+
+// Ajustes depois da fase 3 (pedidos do Gui, 17/11/2026)
+describe('ajustes: lista, formas de ver da pessoa, quem aparece e o link do título', () => {
+  const fonte = (caminho: string) => readFileSync(new URL(`../src/${caminho}`, import.meta.url), 'utf8');
+
+  it('o link do título de cada memória tem 44 px de toque e o contorno do foco nele mesmo', () => {
+    // Defeito apontado pelo Gui: o link media 30 px quando o título cabia numa linha, e o contorno
+    // ficava em volta da memória inteira, mais alta que a tela do celular
+    const css = ler('telas/linha.css');
+    expect(css).toMatch(/\.entrada__titulo a\s*\{[^}]*display:\s*inline-flex;[^}]*min-height:\s*var\(--toque\);/);
+    expect(css).toMatch(/\.entrada__titulo a:focus-visible\s*\{\s*outline:\s*2px solid var\(--tinta\);/);
+    expect(css).not.toMatch(/\.entrada__titulo a:focus-visible\s*\{\s*outline:\s*none/);
+  });
+
+  it('na lista, a linha inteira é o link, com 44 px de toque e foco visível', () => {
+    const css = ler('telas/lista.css');
+    const lista = fonte('components/explorar/Lista.astro');
+    expect(lista).toMatch(/<li class="lista__item" data-chave=\{`m:\$\{m\.id\}`\} data-ano=\{m\.ano\}/);
+    expect(lista).toMatch(/<header class="lista__cabeca" data-chave=\{`a:\$\{ano\}`\} data-ano=\{ano\}>/);
+    expect(lista).toMatch(/<a class="lista__linha" href=/);
+    expect(css).toMatch(/\.lista__linha\s*\{[^}]*min-height:\s*var\(--toque\);/);
+    expect(css).toMatch(/\.lista__linha:focus-visible\s*\{\s*outline:\s*2px solid var\(--tinta\);/);
+  });
+
+  it('na lista, a foto-chave só existe onde há mouse: no celular ela não é desenhada', () => {
+    const css = ler('telas/lista.css');
+    // Fora da regra de mouse, a foto não existe
+    expect(css).toMatch(/\.lista__foto\s*\{\s*display:\s*none;\s*\}/);
+    const comMouse = css.slice(css.indexOf('@media (min-width: 62rem) and (hover: hover) and (pointer: fine)'));
+    expect(comMouse).toMatch(/\.lista__foto\s*\{[^}]*display:\s*block;/);
+    expect(comMouse).toMatch(/\.lista__linha:hover \.lista__foto,\s*\.lista__linha:focus-visible \.lista__foto\s*\{/);
+    // Só essa regra a mostra, e nada na lista fica preso à tela
+    expect([...css.matchAll(/\.lista__foto\s*\{[^}]*display:\s*block/g)]).toHaveLength(1);
+    expect(css).not.toMatch(/position\s*:\s*(fixed|sticky)/);
+  });
+
+  it('a lista entra na troca sem recarregar, no Explorar e na página da pessoa', () => {
+    const troca = fonte('lib/cliente/explorar-troca.ts');
+    expect(troca).toMatch(/\['linha', 'mural', 'lista', null\]\.includes\(endereco\.searchParams\.get\('ver'\)\)/);
+    expect(troca).toMatch(/endereco\.pathname === location\.pathname/);
+    expect(troca).toMatch(/no\.classList\.contains\('lista__item'\) \? 'lista'/);
+    // Um link de âncora na mesma página não é uma troca
+    expect(troca).toMatch(/if \(endereco\.pathname \+ endereco\.search === ondeEstava\) return;/);
+    const pessoa = fonte('pages/pessoas/[id]/index.astro');
+    expect(pessoa).toMatch(/<div data-explorar>/);
+    expect(pessoa).toMatch(/FORMAS_DA_PESSOA\.map\(\(f\) => \(\s*<a href=\{`\$\{enderecoDaPessoa\(pessoa\.id, f\)\}#memorias-com`\} data-opcao=\{f\}/);
+    expect(pessoa).toMatch(/import \{ ligarTroca \} from '\.\.\/\.\.\/\.\.\/lib\/cliente\/explorar-troca';\s*ligarTroca\(\);/);
+  });
+
+  it('no capítulo, quem aparece é uma linha de nomes no celular e a lista com retratos na tela grande', () => {
+    const pagina = fonte('pages/capitulos/[id]/index.astro');
+    expect(pagina).toMatch(/<p class="capitulo__nomes ficha">/);
+    expect(pagina).toMatch(/\{nomeDe\(id\)\} \(\{n\}\)/);
+    const css = ler('telas/capitulo.css');
+    expect(css).toMatch(/\.capitulo__gente ul\s*\{\s*display:\s*none;/);
+    const grande = css.slice(css.indexOf('@media (min-width: 62rem)'));
+    expect(grande).toMatch(/\.capitulo__nomes\s*\{\s*display:\s*none;/);
+    expect(grande).toMatch(/\.capitulo__gente ul\s*\{\s*display:\s*block;/);
   });
 });

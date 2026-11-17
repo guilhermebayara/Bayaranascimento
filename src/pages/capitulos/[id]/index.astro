@@ -190,6 +190,18 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
             <h2 class="rotulo suave" id="quem-aparece">
               Quem aparece
             </h2>
+            {/* No celular, uma linha de nomes corrida, sem fotos, com a conta de cada pessoa (pedido do
+                Gui, 17/11/2026). A partir de 62rem, a lista com os retratos, logo abaixo. */}
+            <p class="capitulo__nomes ficha">
+              {aparecem.slice(0, QUANTOS).map(([id, n], i) => (
+                <>
+                  {i > 0 && ', '}
+                  <a href={`/pessoas/${id}`}>
+                    {nomeDe(id)} ({n})
+                  </a>
+                </>
+              ))}
+            </p>
             <ul>
               {aparecem.slice(0, QUANTOS).map(([id, n]) => (
                 <li>
