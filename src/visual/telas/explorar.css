@@ -67,6 +67,11 @@
   padding-top: var(--e-2);
 }
 
+/* Com script, cada escolha vale na hora: o botão de enviar é de quem está sem script */
+.com-troca .filtros__acoes .botao {
+  display: none;
+}
+
 /* A lista corrida, fora da ordem do tempo: sem a divisória dos anos */
 .ano--corrida {
   padding-top: var(--e-6);

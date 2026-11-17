@@ -168,71 +168,144 @@ const abrir = memoria ? `/memorias/${memoria.id}` : '';
 }
 
 <script>
-  // As setas do teclado e do controle da TV passam as memórias, e o Esc sai. "Passar sozinho" só
-  // existe com script: sem ele, o grupo nem aparece. Com movimento reduzido, a troca é sem animação
-  // (a transição entre páginas, no CSS, só vale para quem não pediu menos movimento).
-  const palco = document.querySelector<HTMLElement>('[data-palco]');
-  if (palco) {
-    const link = (nome: string) => palco.querySelector<HTMLAnchorElement>(`[data-palco-${nome}]`);
-    // As setas e o controle respondem na hora, mesmo no meio de uma animação: passar é sair para a
-    // página da outra memória, e nada aqui espera um movimento acabar
-    const ir = (a: HTMLAnchorElement | null) => {
-      if (a && a.getAttribute('href') && a.getAttribute('aria-disabled') !== 'true') location.assign(a.href);
-    };
-    // Quem passa para trás vê a memória chegar pelo outro lado
-    const lembrar = (direcao: string) => {
-      try {
-        sessionStorage.setItem('palco-direcao', direcao);
-      } catch {
-        // sem armazenamento, a memória chega sempre pelo mesmo lado
-      }
-    };
-    link('antes')?.addEventListener('click', () => lembrar('antes'));
-    addEventListener('keydown', (evento) => {
-      if (evento.metaKey || evento.ctrlKey || evento.altKey) return;
-      if (evento.key === 'ArrowRight') ir(link('depois'));
-      else if (evento.key === 'ArrowLeft') {
-        lembrar('antes');
-        ir(link('antes'));
-      }
-      else if (evento.key === 'Escape') ir(link('sair'));
-    });
-    const grupo = palco.querySelector<HTMLElement>('[data-palco-passar]');
-    if (grupo) {
-      grupo.hidden = false;
-      const segundos = Number(palco.dataset.passar);
-      const pausa = grupo.querySelector<HTMLButtonElement>('[data-palco-pausa]');
-      if (segundos > 0 && pausa) {
-        // Ligado: a próxima entra sozinha depois do tempo escolhido. Com a aba escondida, espera.
-        let pausado = palco.hasAttribute('data-pausado');
-        let relogio = 0;
-        const armar = () => {
-          clearTimeout(relogio);
-          if (!pausado && !document.hidden) relogio = window.setTimeout(() => ir(link('depois')), segundos * 1000);
-        };
-        // A pausa fica no endereço e segue para a memória seguinte: quem pausou e passa à mão continua pausado
-        const levar = (endereco: string) => {
-          const url = new URL(endereco, location.href);
-          if (pausado) url.searchParams.set('pausa', '1');
-          else url.searchParams.delete('pausa');
-          return url.pathname + url.search;
-        };
-        pausa.addEventListener('click', () => {
-          pausado = !pausado;
-          pausa.textContent = pausado ? 'Retomar' : 'Pausar';
-          pausa.setAttribute('aria-pressed', String(pausado));
-          palco.toggleAttribute('data-pausado', pausado);
-          history.replaceState(history.state, '', levar(location.href));
-          for (const a of palco.querySelectorAll<HTMLAnchorElement>('a[data-palco-leva][href]')) {
-            // Escolher um tempo retoma: esses links não levam a pausa
-            if (!a.closest('.palco__tempos')) a.setAttribute('href', levar(a.href));
-          }
-          armar();
-        });
-        document.addEventListener('visibilitychange', armar);
-        armar();
+  // O modo TV passa de uma memória para a outra sem recarregar a página (correção pedida pelo Gui,
+  // 17/11/2026: com a página recarregando, as animações acabavam antes de a foto chegar). A página
+  // da memória seguinte é buscada de antemão; ao passar, o palco é trocado com a foto já pronta, e
+  // é aí que o movimento começa. As setas do teclado e do controle da TV passam, e o Esc sai.
+  // Nada espera uma animação acabar: passar no meio de uma chegada troca na hora.
+  // Sem script, "Anterior" e "Próxima" continuam sendo links, e "Passar sozinho" nem aparece.
+  const calmo = matchMedia('(prefers-reduced-motion: reduce)');
+  const palco = () => document.querySelector<HTMLElement>('[data-palco]');
+  const link = (nome: string) => palco()?.querySelector<HTMLAnchorElement>(`[data-palco-${nome}]`) ?? null;
+  const serve = (a: HTMLAnchorElement | null): a is HTMLAnchorElement => Boolean(a && a.getAttribute('href') && a.getAttribute('aria-disabled') !== 'true');
+
+  // As páginas já buscadas: a de antes e a de depois ficam prontas enquanto a memória está na tela
+  const paginas = new Map<string, Promise<Document>>();
+  const buscar = (href: string) => {
+    if (!paginas.has(href)) {
+      if (paginas.size > 24) paginas.clear();
+      const pagina = fetch(href, { headers: { Accept: 'text/html' } })
+        .then((resposta) => (resposta.ok ? resposta.text() : Promise.reject(new Error(String(resposta.status)))))
+        .then((texto) => new DOMParser().parseFromString(texto, 'text/html'));
+      pagina.catch(() => paginas.delete(href));
+      paginas.set(href, pagina);
+    }
+    return paginas.get(href)!;
+  };
+  const fotoPronta = (endereco: string | null | undefined) => {
+    if (!endereco) return Promise.resolve();
+    const foto = new Image();
+    foto.src = endereco;
+    return foto.decode().catch(() => undefined);
+  };
+  const memoriaDe = (href: string) => new URL(href, location.href).searchParams.get('m');
+
+  let pedido = 0;
+  let relogio = 0;
+  let pausado = false;
+
+  async function passar(a: HTMLAnchorElement | null, deTras = false) {
+    const atual = palco();
+    if (!serve(a) || !atual) return;
+    // Só o modo TV troca no lugar: o "ao acaso" sorteia no servidor, e sair é sair
+    if (!atual.classList.contains('palco--tv') || new URL(a.href).searchParams.get('ver') !== 'tv') return location.assign(a.href);
+    const href = a.href;
+    const meu = ++pedido;
+    clearTimeout(relogio);
+    try {
+      const pagina = await buscar(href);
+      const chegou = pagina.querySelector<HTMLElement>('[data-palco]');
+      if (!chegou) throw new Error('sem o palco');
+      await fotoPronta(chegou.querySelector<HTMLImageElement>('.palco__foto img')?.getAttribute('src'));
+      // Uma passagem mais nova já saiu: esta chegou atrasada
+      if (meu !== pedido) return;
+      const novo = document.importNode(chegou, true);
+      novo.querySelector('script')?.remove();
+      novo.toggleAttribute('data-de-tras', deTras);
+      // A mesma memória (trocar o tempo, parar de passar sozinho): nada chega de novo
+      if (memoriaDe(href) === memoriaDe(location.href)) novo.removeAttribute('data-movimento');
+      const focado = ['antes', 'depois', 'pausa'].find((nome) => document.activeElement?.hasAttribute(`data-palco-${nome}`)) ?? 'depois';
+      const cor = getComputedStyle(atual).backgroundColor;
+      atual.replaceWith(novo);
+      // O fundo passa de uma cor à outra, em vez de trocar de uma vez
+      if (!calmo.matches) novo.animate([{ backgroundColor: cor }, {}], { duration: 700, easing: 'ease-out' });
+      // Passar de memória não enche o histórico: o voltar do aparelho sai do modo TV de uma vez
+      history.replaceState(history.state, '', href);
+      document.title = pagina.title;
+      preparar();
+      (palco()?.querySelector<HTMLElement>(`[data-palco-${focado}]`) ?? link('depois'))?.focus({ preventScroll: true });
+    } catch {
+      location.assign(href);
+    }
+  }
+
+  // O que cada memória precisa ao chegar: "Passar sozinho" à vista, as vizinhas buscadas e o relógio
+  function preparar() {
+    const atual = palco();
+    if (!atual) return;
+    for (const nome of ['depois', 'antes']) {
+      const vizinha = link(nome);
+      if (serve(vizinha) && atual.classList.contains('palco--tv')) {
+        buscar(vizinha.href)
+          .then((pagina) => fotoPronta(pagina.querySelector<HTMLImageElement>('.palco__foto img')?.getAttribute('src')))
+          .catch(() => undefined);
       }
     }
+    const grupo = atual.querySelector<HTMLElement>('[data-palco-passar]');
+    if (grupo) grupo.hidden = false;
+    pausado = atual.hasAttribute('data-pausado');
+    armar();
+  }
+
+  // Ligado: a próxima entra sozinha depois do tempo escolhido. Com a aba escondida, espera.
+  function armar() {
+    clearTimeout(relogio);
+    const segundos = Number(palco()?.dataset.passar);
+    if (segundos > 0 && !pausado && !document.hidden) relogio = window.setTimeout(() => passar(link('depois')), segundos * 1000);
+  }
+
+  // A pausa fica no endereço e segue para a memória seguinte: quem pausou e passa à mão continua pausado
+  function alternarPausa(botao: HTMLButtonElement) {
+    const atual = palco();
+    if (!atual) return;
+    pausado = !pausado;
+    botao.textContent = pausado ? 'Retomar' : 'Pausar';
+    botao.setAttribute('aria-pressed', String(pausado));
+    atual.toggleAttribute('data-pausado', pausado);
+    const levar = (endereco: string) => {
+      const url = new URL(endereco, location.href);
+      if (pausado) url.searchParams.set('pausa', '1');
+      else url.searchParams.delete('pausa');
+      return url.pathname + url.search;
+    };
+    history.replaceState(history.state, '', levar(location.href));
+    for (const a of atual.querySelectorAll<HTMLAnchorElement>('a[data-palco-leva][href]')) {
+      // Escolher um tempo retoma: esses links não levam a pausa
+      if (!a.closest('.palco__tempos')) a.setAttribute('href', levar(a.href));
+    }
+    armar();
+  }
+
+  if (palco()) {
+    document.addEventListener('keydown', (evento) => {
+      if (evento.metaKey || evento.ctrlKey || evento.altKey || !palco()) return;
+      if (evento.key === 'ArrowRight') passar(link('depois'));
+      else if (evento.key === 'ArrowLeft') passar(link('antes'), true);
+      else if (evento.key === 'Escape' && serve(link('sair'))) location.assign(link('sair')!.href);
+    });
+    document.addEventListener('click', (evento) => {
+      const alvo = evento.target instanceof Element ? evento.target : null;
+      const pausa = alvo?.closest<HTMLButtonElement>('[data-palco] [data-palco-pausa]');
+      if (pausa) return alternarPausa(pausa);
+      // Dentro do modo TV, todo link que continua nele troca no lugar: passar, escolher o tempo, parar
+      const a = alvo?.closest<HTMLAnchorElement>('[data-palco].palco--tv a[href]');
+      if (!a || evento.defaultPrevented || evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
+      if (new URL(a.href).searchParams.get('ver') !== 'tv' || a.closest('.palco__faixa')) return;
+      evento.preventDefault();
+      passar(a, a.hasAttribute('data-palco-antes'));
+    });
+    document.addEventListener('visibilitychange', armar);
+    preparar();
     // O foco começa em "Próxima": no controle da TV, o botão do meio já passa
     link('depois')?.focus({ preventScroll: true });
   }

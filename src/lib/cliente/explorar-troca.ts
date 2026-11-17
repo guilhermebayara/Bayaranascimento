@@ -148,7 +148,11 @@ function animar(antes: Map<string, Medida>, nova: HTMLElement) {
 }
 
 export interface Troca {
-  /** o seletor, dentro da região nova, de onde o foco do teclado deve ficar */
+  /**
+   * O controle que a pessoa usou (um seletor que vale na região antiga e na nova). Ele fica no mesmo
+   * ponto da tela depois da troca, e o foco do teclado continua nele: mudar um filtro nunca muda a
+   * rolagem (correção pedida pelo Gui, 17/11/2026).
+   */
   foco?: string;
   /** o endereço entra no histórico (não, quando a troca veio do voltar ou do avançar) */
   empurrar: boolean;
@@ -174,9 +178,18 @@ export async function trocar(endereco: URL, { foco, empurrar }: Troca) {
     // Uma escolha mais nova já saiu: esta resposta chegou atrasada
     if (meu !== pedido) return;
 
-    const ancora = acharAncora(regiao);
+    // Quem usou um controle fica com ele no mesmo ponto da tela. Sem controle (o voltar e o avançar
+    // do navegador), a rolagem fica presa à memória que estava no alto.
+    const controle = foco ? regiao.querySelector<HTMLElement>(foco) : null;
+    const controleEm = controle?.getClientRects().length ? controle.getBoundingClientRect().top : null;
+    const ancora = controleEm === null ? acharAncora(regiao) : null;
     const antes = calmo() ? new Map<string, Medida>() : medir(regiao);
     manterFotos(antes, nova);
+    // O que estava aberto continua aberto: os filtros não fecham sozinhos a cada escolha
+    const abertos = [...regiao.querySelectorAll<HTMLDetailsElement>('.controles details')].map((d) => d.open);
+    nova.querySelectorAll<HTMLDetailsElement>('.controles details').forEach((d, i) => {
+      if (abertos[i] !== undefined) d.open = abertos[i]!;
+    });
     regiao.replaceWith(nova);
     // A cor da tela e a assinatura do rodapé acompanham as famílias escolhidas
     const familia = pagina.documentElement.dataset.familia;
@@ -189,11 +202,12 @@ export async function trocar(endereco: URL, { foco, empurrar }: Troca) {
     history.scrollRestoration = 'manual';
     if (empurrar) history.pushState({ explorar: true }, '', endereco);
     history.scrollRestoration = 'manual';
-    devolverRolagem(nova, ancora);
+    const controleNovo = foco ? nova.querySelector<HTMLElement>(foco) : null;
+    if (controleEm !== null && controleNovo?.getClientRects().length) scrollBy({ top: controleNovo.getBoundingClientRect().top - controleEm, behavior: 'instant' });
+    else devolverRolagem(nova, ancora);
     document.dispatchEvent(new CustomEvent('explorar:trocou'));
     if (!calmo()) animar(antes, nova);
-    // O foco continua onde a pessoa estava: na opção que ela escolheu, ou no controle dos filtros
-    if (foco) nova.querySelector<HTMLElement>(foco)?.focus({ preventScroll: true });
+    controleNovo?.focus({ preventScroll: true });
   } catch {
     location.assign(endereco);
   }
@@ -215,15 +229,37 @@ export function ligarTroca() {
     trocar(endereco, { empurrar: true, foco: `.controles nav[aria-labelledby="${CSS.escape(controle)}"] a[data-opcao="${CSS.escape(opcao)}"]` });
   });
 
-  document.addEventListener('submit', (evento) => {
-    const formulario = evento.target instanceof HTMLFormElement && evento.target.matches(`${REGIAO} [data-filtros]`) ? evento.target : null;
-    if (!formulario) return;
+  // Os filtros valem na hora, a cada escolha, com o painel aberto e sem sair do lugar. O botão
+  // "Mostrar memórias" é de quem está sem script: aqui ele some (classe "com-troca", no CSS).
+  document.documentElement.classList.add('com-troca');
+  const enderecoDoFormulario = (formulario: HTMLFormElement) => {
     // O endereço fica só com o que foi escolhido: campo vazio não vai junto
     const endereco = new URL(formulario.action);
     for (const [nome, valor] of new FormData(formulario)) if (typeof valor === 'string' && valor.trim()) endereco.searchParams.append(nome, valor.trim());
+    return endereco;
+  };
+  const doFormulario = (alvo: EventTarget | null) => (alvo instanceof Element ? alvo.closest<HTMLFormElement>(`${REGIAO} [data-filtros]`) : null);
+
+  document.addEventListener('change', (evento) => {
+    const formulario = doFormulario(evento.target);
+    const campo = evento.target;
+    if (!formulario || !(campo instanceof HTMLInputElement || campo instanceof HTMLSelectElement)) return;
+    // Ano escrito pela metade ainda não é filtro
+    if (campo instanceof HTMLInputElement && campo.type === 'text' && campo.value && !campo.checkValidity()) return;
+    const endereco = enderecoDoFormulario(formulario);
+    if (!daRegiao(endereco)) return;
+    const marcavel = campo instanceof HTMLInputElement && (campo.type === 'checkbox' || campo.type === 'radio');
+    trocar(endereco, { empurrar: true, foco: `[data-filtros] [name="${CSS.escape(campo.name)}"]${marcavel ? `[value="${CSS.escape(campo.value)}"]` : ''}` });
+  });
+
+  document.addEventListener('submit', (evento) => {
+    const formulario = doFormulario(evento.target);
+    if (!formulario || evento.target !== formulario) return;
+    const endereco = enderecoDoFormulario(formulario);
     evento.preventDefault();
     if (!daRegiao(endereco)) return location.assign(endereco);
-    trocar(endereco, { empurrar: true, foco: '.filtros > summary' });
+    const campo = document.activeElement instanceof HTMLInputElement && formulario.contains(document.activeElement) ? document.activeElement : null;
+    trocar(endereco, { empurrar: true, foco: campo ? `[data-filtros] [name="${CSS.escape(campo.name)}"]` : '.filtros > summary' });
   });
 
   // O voltar e o avançar do aparelho desfazem e refazem a troca, com o mesmo movimento

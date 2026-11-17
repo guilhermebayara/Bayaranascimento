@@ -306,7 +306,7 @@ describe('conceito', () => {
     expect(troca).not.toContain('startViewTransition');
     expect(troca).toMatch(/no\.animate\(/);
     // A rolagem é medida antes e devolvida depois, e ao voltar no navegador a troca é a mesma
-    expect(troca).toMatch(/const ancora = acharAncora\(regiao\);[\s\S]*regiao\.replaceWith\(nova\);[\s\S]*devolverRolagem\(nova, ancora\);/);
+    expect(troca).toMatch(/acharAncora\(regiao\)[\s\S]*regiao\.replaceWith\(nova\);[\s\S]*devolverRolagem\(nova, ancora\);/);
     expect(troca).toMatch(/history\.scrollRestoration = 'manual';\s*if \(empurrar\) history\.pushState/);
     expect(troca).toMatch(/addEventListener\('popstate', \(\) => \{[\s\S]*?trocar\(endereco, \{ empurrar: false \}\)/);
     // Com movimento reduzido, a troca é direta: nada é medido para animar
@@ -314,6 +314,11 @@ describe('conceito', () => {
     expect(troca).toMatch(/if \(!calmo\(\)\) animar\(antes, nova\);/);
     // Qualquer problema na busca cai na navegação comum
     expect(troca).toMatch(/catch \{\s*location\.assign\(endereco\);/);
+    // Mudar um filtro nunca muda a rolagem (correção do Gui, 17/11/2026): o controle usado fica no
+    // mesmo ponto da tela, os filtros continuam abertos e cada escolha vale na hora
+    expect(troca).toMatch(/scrollBy\(\{ top: controleNovo\.getBoundingClientRect\(\)\.top - controleEm, behavior: 'instant' \}\)/);
+    expect(troca).toMatch(/if \(abertos\[i\] !== undefined\) d\.open = abertos\[i\]!;/);
+    expect(troca).toMatch(/document\.addEventListener\('change', /);
     // A linha do tempo começa de novo a cada troca, desligando o que escutava a janela
     expect(linha).toMatch(/document\.addEventListener\('explorar:trocou', iniciar\)/);
     expect(linha).toMatch(/desligar\.abort\(\);/);
@@ -340,7 +345,14 @@ describe('conceito', () => {
     expect(palco).toMatch(/data-movimento=\{modo === 'tv' \? movimento : undefined\}/);
     // Passar é sair para a página da outra memória: nada espera o fim de um movimento
     expect(palco).not.toMatch(/animationend|transitionend|\.finished/);
-    expect(palco).toMatch(/if \(evento\.key === 'ArrowRight'\) ir\(link\('depois'\)\);/);
+    expect(palco).toMatch(/if \(evento\.key === 'ArrowRight'\) passar\(link\('depois'\)\);/);
+    // O modo TV passa sem recarregar (correção do Gui, 17/11/2026): a página seguinte é buscada de
+    // antemão e o palco só troca com a foto pronta, que é quando o movimento começa
+    expect(palco).toMatch(/await fotoPronta\([\s\S]*?atual\.replaceWith\(novo\);/);
+    expect(palco).toMatch(/if \(meu !== pedido\) return;/);
+    // Passar de memória não enche o histórico, e qualquer problema cai na navegação comum
+    expect(palco).toMatch(/history\.replaceState\(history\.state, '', href\);/);
+    expect(palco).toMatch(/catch \{\s*location\.assign\(href\);/);
     const css = ler('telas/explorar.css');
     for (const v of ['a', 'b', 'c']) expect(css).toContain(`.palco[data-movimento='${v}']`);
     // Toda animação do palco fica dentro de "sem pedido de menos movimento"; fora, só as definições
@@ -371,7 +383,7 @@ describe('conceito', () => {
     // aparece com script, o relógio só arma com um tempo escolhido e sem pausa, e a pausa vai no endereço
     expect(palco).toMatch(/data-palco-passar hidden>/);
     expect(palco).toMatch(/passar\.tempos\.map\(\(t\) => \(\s*<a href=\{t\.href\}/);
-    expect(palco).toMatch(/if \(!pausado && !document\.hidden\) relogio = window\.setTimeout\(\(\) => ir\(link\('depois'\)\), segundos \* 1000\)/);
+    expect(palco).toMatch(/if \(segundos > 0 && !pausado && !document\.hidden\) relogio = window\.setTimeout\(\(\) => passar\(link\('depois'\)\), segundos \* 1000\)/);
     expect(palco).toMatch(/url\.searchParams\.set\('pausa', '1'\)/);
     // Com movimento reduzido, a troca é sem animação
     const css = ler('telas/explorar.css');
