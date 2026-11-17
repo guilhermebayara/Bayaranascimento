@@ -29,7 +29,7 @@ describe('sua conta', () => {
 
   it('P150: a página Rascunhos saiu, e nada no site leva a ela', () => {
     expect(existsSync(endereco('src/pages/rascunhos.astro'))).toBe(false);
-    for (const arquivo of ['src/pages/lixeira.astro', 'src/pages/api/lixeira.ts', 'src/pages/conta.astro', 'src/layouts/Visual.astro']) expect(ler(arquivo), arquivo).not.toContain('/rascunhos');
+    for (const arquivo of ['src/pages/lixeira.astro', 'src/pages/api/lixeira.ts', 'src/pages/conta.astro', 'src/pages/index.astro', 'src/layouts/Visual.astro']) expect(ler(arquivo), arquivo).not.toContain('/rascunhos');
     expect(ler('src/pages/api/lixeira.ts')).toMatch(/rascunho \? '\/conta' : '\/'/);
   });
 

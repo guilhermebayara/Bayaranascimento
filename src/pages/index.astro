@@ -215,7 +215,7 @@ const erro = Astro.url.searchParams.get('erro');
           {quantosRascunhos > 0 && (
             <p class="novo__rascunho">
               <span>{quantosRascunhos === 1 ? 'Você tem um rascunho.' : `Você tem ${quantosRascunhos} rascunhos.`}</span>
-              <a class="acao" href={quantosRascunhos === 1 && oRascunho ? oRascunho : '/rascunhos'}>
+              <a class="acao" href={quantosRascunhos === 1 && oRascunho ? oRascunho : '/conta#rascunhos'}>
                 {quantosRascunhos === 1 ? 'Continuar o rascunho' : 'Ver seus rascunhos'}
               </a>
             </p>
