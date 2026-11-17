@@ -430,7 +430,7 @@ Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo
 | 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar` (PR #35, aberto). O Gui viu várias rodadas e ainda quer ajustar: ver "Estado do grupo 1", logo abaixo |
 | 2. `pessoal` | Painel, carta de Natal, sua conta, a página da pessoa e `/sistema` | Construído em 17/11/2026, na `tst-visual-pessoal`, em cima do grupo 1. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 2: pessoal" |
 | 3. `familia` | Capítulos, capítulo, tema, pessoas e árvore (a árvore muda só de aparência) | Construído em 17/11/2026, na `tst-visual-familia`, em cima do grupo 2. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 3: familia" |
-| 4. `formularios` | Nova memória, relato, cadastro guiado, laços, capítulo, administração, rascunhos e lixeira. Por fim, apagar `src/styles/global.css` | A fazer |
+| 4. `formularios` | Nova memória, relato, cadastro guiado, laços, capítulo, administração, rascunhos e lixeira. Por fim, apagar `src/styles/global.css` | Primeira metade construída em 17/11/2026, na `tst-visual-formularios` (a base, a Nova memória, o relato e o capítulo). Falta a segunda metade: ver "Grupo 4", abaixo |
 
 ### Estado do grupo 1, para a próxima sessão seguir sem a conversa
 
@@ -685,6 +685,50 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 **Conferido.** 390, 1280 e 1920 px, com movimento reduzido (as capturas rodam assim). Por teclado, em 390 e 1280: a ordem do foco segue a da tela, todo foco é visível e todo alvo tem 44 px. Na árvore, com mouse e com toque: arrastar, aproximar, "Ver tudo", tocar numa pessoa, a ficha, os laços do coração, abrir e fechar um ramo, as cinco camadas e o destaque de uma família.
 
 **O que não foi conferido:** nada no iPhone de verdade (o gesto de dois dedos na árvore, em especial), nem na prévia publicada. A capa parada do capítulo só existe com mouse, então não pede conferência no iPhone. Das 33 capturas, foram olhadas 20, pelo menos uma de cada tela; as de 1920 px olhadas foram a do capítulo reunido, a das pessoas e a da árvore com foco.
+
+### Grupo 4: formularios (primeira metade)
+
+Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era decisão dele seguiu com a opção recomendada, está marcado no código com `PROVISÓRIO (pergunta N do PR do grupo "formularios")` e as perguntas esperam o PR em `docs/visual/fase-3/formularios/perguntas-parte-1.md`. As fundações não mudaram: as etapas, o que é obrigatório, os nomes dos campos, o que os scripts de `src/lib/cliente/` procuram e o funcionamento sem JavaScript.
+
+**A base, para todas as telas de formulário.**
+
+- **A página:** `src/components/formularios/Pagina.astro`. Uma tela de formulário usa `<Pagina titulo="…" rotulo="…" nucleos={…} secao="…">`, com a frase de abertura em `slot="abertura"` e o formulário dentro. Ela traz o esqueleto novo, a abertura quieta, os recados que voltam do servidor (`?ok=` e `?erro=`, na peça Recado) e o que antes morava no `Base.astro`: o `<noscript>` que esconde o que depende de script e mostra os blocos que ele mostraria, `guardarFormularios` (o digitado volta quando o servidor recusa) e `marcarEnvios` ("Salvando…").
+- **O estilo:** `src/visual/telas/formulario.css`, um arquivo só, valendo dentro de `.pagina-de-formulario`. A marcação dos formulários e a que os scripts criam continuam com os nomes de sempre (`campo`, `opcoes`, `opcao`, `marcar`, `dica`, `acoes`, `acoes--etapas`, `botao--leve`, `botao--arquivo`, `situacao`, `resumo`, `confirmacao`, `etapas`, `busca…`, `audio…`, `quem-estava…`, `foto-enviada`, `nova-pessoa`, `abas`, `painel`, `lista-de-marcar`, `passo-ano`, `campos-data`, `confirmar…`); o arquivo é o desenho novo desses nomes, escrito do zero com os tokens. Foi a escolha no lugar de trocar cada classe pelas do sistema (`campo__rotulo`, `campo__entrada`, `escolha`): os scripts criam boa parte dessa marcação, e as telas da segunda metade usam os mesmos componentes ainda no esqueleto antigo. O desenho é o do sistema: rótulo em mono, resposta numa linha para escrever em cima, foco que engrossa a linha e acende o fundo.
+- **A pergunta** é a legenda de cada parte (`legend`), grande, em serifa. Dentro de outra parte, um degrau abaixo.
+- **A trilha das etapas** (`ol.etapas`, criada por `etapas.ts`): no celular, uma fila de números com 44 px de toque e a linha "Etapa 2 de 7: Quando e onde"; no computador, uma coluna à esquerda com o nome de cada etapa, e a abertura sobe para o alto da página. Sem etapas (o relato), a abertura fica à esquerda e o formulário à direita.
+- **Ações:** o botão cheio é a ação principal; `botao--leve` virou texto sublinhado. Nas ações de etapa, "Voltar" à esquerda e o resto à direita. Quando "Continuar" e um envio convivem (correção de memória publicada, edição do capítulo), o envio fica em contorno até a última etapa.
+- **Estados:** pressionado (a opção e os passos do ano encolhem um pouco), enviando (o `aria-disabled` do botão, de `enviando.ts`), erro (`aria-invalid` pinta a linha do campo no alerta; num grupo de opções, uma barra ao lado), desabilitado (linha tracejada e texto suave) e o recado do envio (`.situacao`, com a barra do alerta quando é erro).
+- **O que o script esconde fica escondido:** `.pagina-de-formulario [hidden] { display: none !important }`. Sem isso, qualquer `display` dado por este arquivo mostrava o que estava escondido (apareceu com "O que foi?", do tipo "Outro"). O `<noscript>` da página vence essa regra por vir depois.
+- **A busca de pessoa** ganhou o estilo geral (`.pagina-de-formulario .busca…`); o da árvore continua em `arvore.css`.
+
+**Nova memória (`/nova`).** As sete etapas, na mesma ordem, cada uma com a pergunta grande. Vale para memória nova, rascunho e correção de memória publicada.
+
+- **O formulário em frase**, na etapa "Quando e onde": "Isso aconteceu *em 24 de dezembro de 2025*, em *Belo Horizonte*." A lacuna da data não é campo de digitar: mostra a data como o site escreve (`dataNaFrase`, em `src/lib/datas.ts`, com teste) e, ao toque, ao Enter ou à barra de espaço, abre logo abaixo o controle de data flexível de sempre (`CampoData`, o calendário, "Foi hoje" e "Não tenho certeza da data"), empurrando o conteúdo. Numa memória nova o controle começa aberto, com a lacuna perguntando "em que data?"; com a data já informada, começa fechado. Um erro dentro do controle fechado (31 de fevereiro, ano vazio) o abre, para o aviso aparecer. Sem script, a lacuna some, a frase diz "na data abaixo" e o controle fica aberto. A lacuna do lugar é texto livre (o campo `lugar` de sempre). "Com quem" continua na etapa seguinte, com o "Quem estava?" de hoje.
+- **A lacuna da data é um trecho da frase com papel de botão** (`<span role="button" tabindex="0">`), e não um `<button>`: o botão não quebra de linha no meio, e a data longa precisa quebrar no celular.
+- **Tipos de momento:** a opção marcada acende na cor do tipo (`estiloDoTipo`), e não mais na cor guardada no cadastro do tipo.
+- **Fotos:** cada foto como uma foto revelada pequena, com a legenda, "Usar na linha do tempo" e "Remover foto" ao lado.
+- **O resumo** da última etapa e a confirmação ("Memória publicada") são cartões brancos pousados no papel.
+
+**Relato (`/memorias/<id>/relato`).** A abertura à esquerda, "Como foi?" à direita, com "Quem está contando" (a busca de pessoa), os áudios (cada um num cartão, com o tocador do aparelho, a transcrição recolhida e "Subir", "Descer" e "Remover") e o texto.
+
+**Capítulo (`/capitulos/novo` e `/capitulos/<id>/editar`).** A ficha em três etapas, com "Como as memórias entram?" em cartões que se explicam (Reunido, Por período, Época). Na edição, "Memórias do capítulo" e "Sobre o capítulo" são partes separadas por um fio.
+
+**"Família" no lugar de "núcleo"** nestas telas: a tabela das trocas está em `perguntas-parte-1.md`, e tem teste (nenhuma destas telas escreve "núcleo" no que aparece).
+
+**Testes.** `describe('grupo formularios')`, em `testes/visual.test.ts`; a data na frase, em `testes/datas.test.ts`. As quatro telas, a página de formulário e a ficha do capítulo entraram nas listas de telas de `testes/visual.test.ts` e `testes/sistema.test.ts`. Nenhum teste antigo precisou mudar.
+
+**Capturas.** `CAPTURAS_SO=^formularios npm run capturas -- tirar <pasta>`. Estão em `docs/visual/fase-3/formularios/`, em JPEG: a Nova memória (a primeira etapa, o erro, a frase vazia, e a correção e o rascunho etapa a etapa), o relato e o capítulo (novo, por período, em edição e a época).
+
+**Conferido.** 390, 1280 e 1920 px, com movimento reduzido. Com o Playwright, no celular e no computador, só pelo teclado: a Nova memória inteira até salvar um rascunho e até publicar, com o que segura o "Continuar" (título, tipo, ano, 31 de fevereiro), a frase, "Pular esta etapa" e o resumo; em cada etapa, todo alvo com 44 px e o foco visível. Sem JavaScript: as sete etapas em sequência, o controle da data aberto, os botões que dependem de script escondidos, o rascunho salvo por formulário comum, e o relato e o capítulo abrindo com o botão de envio.
+
+**O que não foi conferido:** nada no iPhone de verdade nem na prévia publicada. O envio de fotos e a gravação de áudio não foram exercitados (o estilo das fotos foi visto com as que a memória já tem; o do áudio gravado, não). A edição de um capítulo por período com pessoas marcadas foi vista só no capítulo novo.
+
+**O que falta, para a segunda metade do grupo 4**
+
+- **Telas ainda no `Base.astro`:** `memorias/[id]/historico.astro` e `excluir.astro`, `pessoas/nova.astro` e `pessoas/[id]/editar.astro` (cadastro guiado e laços, com `FichaDoIntegrante.astro`), `capitulos/[id]/excluir.astro`, `rascunhos.astro`, `lixeira.astro` e as quatro de `admin/`. Cada uma passa a usar `formularios/Pagina.astro`.
+- **Estilo que ainda não existe em `formulario.css`:** o recorte do retrato (`CampoRetrato.astro`: `retrato-campo`, `recorte`, `recorte__quadro`, `--retrato-cor`), `como-se-referir`, as abas de tipo de laço e o cadastro guiado de `pessoas/[id]/editar.astro`, as tabelas da administração, o histórico e a lixeira. `confirmar…` e `botao--perigo` têm um desenho mínimo, sem conferência.
+- **Depois da última tela:** apagar `Base.astro`, `Abertura.astro` e `src/styles/global.css`; levar para `Pagina.astro` os testes que leem o `Base.astro` (`testes/formularios.test.ts`, as duas conferências de "sem JavaScript e depois de um erro"; `testes/ux-decisoes.test.ts`, `marcarEnvios()`; `testes/tamanho-do-banco.test.ts`, o aviso do tamanho, que foi para a conta); apagar `testes/tokens.test.ts`, que lê o `global.css`; e reavaliar as camadas do CSS (`@layer`).
+- **Abrir o PR** do grupo, com as perguntas de `perguntas-parte-1.md`, e apagar esse arquivo.
 
 ### O que falta, para a sessão seguinte
 

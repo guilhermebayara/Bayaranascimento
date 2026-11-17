@@ -1,6 +1,5 @@
 ---
-import Base from '../../../layouts/Base.astro';
-import Abertura from '../../../components/Abertura.astro';
+import Pagina from '../../../components/formularios/Pagina.astro';
 import { formatarData } from '../../../lib/datas';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { donoDoRelato } from '../../../lib/servidor/permissoes';
@@ -37,12 +36,10 @@ const opcoes = await Promise.all(
 );
 ---
 
-<Base titulo={`Relato: ${memoria.titulo}`}>
-  <Abertura titulo="Meu relato">
-    <p>
-      <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento.
-    </p>
-  </Abertura>
+<Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos}>
+  <p slot="abertura">
+    <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento.
+  </p>
 
   <form class="formulario" method="post" action="/api/relatos" data-formulario-relato data-memoria={memoria.id} novalidate>
     <input type="hidden" name="memoria" value={memoria.id} />
@@ -92,7 +89,7 @@ const opcoes = await Promise.all(
   </div>
 
   <script type="application/json" id="opcoes-relato" set:html={JSON.stringify(opcoes).replace(/</g, '\\u003c')} />
-</Base>
+</Pagina>
 
 <script>
   import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';

@@ -82,21 +82,17 @@ async function prepararVisita(pessoa, qual, comNovidades = false) {
   banco.close();
 }
 
+// Na Nova memória, o título e o tipo são obrigatórios para chegar à frase da etapa "Quando e onde"
+const ateAFrase = async (pagina) => {
+  await pagina.locator('[name="titulo"]').fill('Almoço de aniversário da Vó Bela');
+  await pagina.locator('input[name="tipo"]').first().check({ force: true });
+  await pagina.locator('[data-etapa-continuar]').click();
+};
 const PAGINAS = [
   { nome: 'memoria-historico', url: '/memorias/2025-natal/historico' },
-  { nome: 'memoria-relato', url: '/memorias/2025-natal/relato' },
   { nome: 'memoria-excluir', url: '/memorias/2025-natal/excluir' },
-  { nome: 'nova-1', url: '/nova' },
-  { nome: 'editar-memoria-2', url: '/nova?id=2025-natal', antes: etapa(1) },
-  { nome: 'editar-memoria-3', url: '/nova?id=2025-natal', antes: etapa(2) },
-  { nome: 'editar-memoria-4', url: '/nova?id=2025-natal', antes: etapa(3) },
-  { nome: 'editar-memoria-5', url: '/nova?id=2025-natal', antes: etapa(4) },
-  { nome: 'rascunho-6-resumo', url: '/nova?id=2024-almoco-de-domingo', antes: etapa(5) },
   { nome: 'pessoa-editar', url: '/pessoas/vo-bela/editar' },
   { nome: 'pessoa-nova', url: '/pessoas/nova' },
-  { nome: 'capitulo-editar', url: '/capitulos/natais/editar' },
-  { nome: 'capitulo-epoca-editar', url: '/capitulos/os-anos-90/editar' },
-  { nome: 'capitulo-novo', url: '/capitulos/novo' },
   { nome: 'rascunhos', url: '/rascunhos' },
   { nome: 'lixeira', url: '/lixeira' },
   { nome: 'admin-tipos', url: '/admin/tipos' },
@@ -160,6 +156,24 @@ const PAGINAS = [
   { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
   // O sistema (fase 2): a marca, as fontes, os tokens e as peças, em cada combinação de fontes
   ...['a', 'b', 'c'].map((fontes) => ({ nome: `sistema-${fontes}`, url: '/sistema', fontes, larguras: TODAS })),
+  // Fase 3, grupo "formularios", primeira metade: a Nova memória etapa a etapa, o relato e o capítulo.
+  // Para tirar só elas: CAPTURAS_SO=^formularios npm run capturas -- tirar <pasta>
+  { nome: 'formularios-1-nova-1-o-que-aconteceu', url: '/nova', larguras: TODAS },
+  { nome: 'formularios-1-nova-1-erro', url: '/nova', larguras: TODAS, antes: (pagina) => pagina.locator('[data-etapa-continuar]').click() },
+  { nome: 'formularios-1-nova-2-frase-vazia', url: '/nova', larguras: TODAS, antes: ateAFrase },
+  { nome: 'formularios-1-correcao-2-frase', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(1) },
+  { nome: 'formularios-1-correcao-2-data-aberta', url: '/nova?id=2025-natal', larguras: TODAS, antes: async (pagina) => (await etapa(1)(pagina), pagina.locator('[data-frase-data]').click()) },
+  { nome: 'formularios-1-correcao-3-quem-estava', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(2) },
+  { nome: 'formularios-1-correcao-4-fotos', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(3) },
+  { nome: 'formularios-1-correcao-5-capitulo-e-temas', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(4) },
+  { nome: 'formularios-1-correcao-6-quem-ve', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(5) },
+  { nome: 'formularios-1-rascunho-5-relato', url: '/nova?id=2024-almoco-de-domingo', larguras: TODAS, antes: etapa(4) },
+  { nome: 'formularios-1-rascunho-7-resumo', url: '/nova?id=2024-almoco-de-domingo', larguras: TODAS, antes: etapa(6) },
+  { nome: 'formularios-2-relato', url: '/memorias/2025-natal/relato', larguras: TODAS },
+  { nome: 'formularios-3-capitulo-novo', url: '/capitulos/novo', larguras: TODAS },
+  { nome: 'formularios-3-capitulo-novo-por-periodo', url: '/capitulos/novo', larguras: TODAS, antes: (pagina) => pagina.locator('input[name="modo"][value="periodo"]').check({ force: true }) },
+  { nome: 'formularios-3-capitulo-editar', url: '/capitulos/natais/editar', larguras: TODAS, corte: 2600 },
+  { nome: 'formularios-3-capitulo-epoca-editar', url: '/capitulos/os-anos-90/editar', larguras: TODAS },
   { nome: 'admin-familias', url: '/admin/familias' },
 ];
 
