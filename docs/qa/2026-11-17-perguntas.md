@@ -1568,6 +1568,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P109. Na pergunta do casal, "Separação" e "Já terminou" dizem a mesma coisa de dois jeitos?
 
+**Feito (opção A):** no cadastro guiado, "Como estão hoje?" oferece só Namoro, Noivado, Casamento e União, e "Já terminou" é o único caminho para o fim. Capturas: `p109-guiado-casal--390.jpg`, `p109-guiado-casal--1280.jpg`, `p109-guiado-casal--1920.jpg`.
+
 **muda a experiência**
 
 - Contexto: a pergunta "Fulano tem ou teve um casal?" pede "Como estão hoje?" (Namoro, Noivado, Casamento, União, Separação, Amizade), com "Casamento" já marcado, e logo abaixo a caixa "Já terminou". Está decidido que "Já terminou" acrescenta a separação depois da fase de hoje.
@@ -1580,6 +1582,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P110. O título "Adicionar" acima do formulário de cada pergunta é preciso?
 
+**Feito (opção A):** o título acima do formulário só aparece depois de alguém ser adicionado, como "Adicionar mais alguém". Capturas: `p110-sem-titulo--390.jpg`, `p110-sem-titulo--1280.jpg`, `p110-adicionar-mais-alguem--390.jpg`, `p110-adicionar-mais-alguem--1280.jpg`.
+
 **detalhe**
 
 - Contexto: cada pergunta do guiado é grande, em serifa. Abaixo dela vem um título "Adicionar", também em serifa, e no fim o botão "Adicionar".
@@ -1589,6 +1593,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P111. A trilha do cadastro deve mostrar quantas perguntas vêm?
+
+**Feito (opção A):** mantido como está.
 
 **detalhe**
 
@@ -1600,6 +1606,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P112. Na tela final, "Ver todos os tipos de laço" é o melhor nome para "adicionar mais um laço"?
 
+**Feito (opção A):** na tela final, o link diz "Adicionar outro laço", ou "Adicionar um laço" quando não há nenhum. Capturas: `p112-fim-com-lacos--390.jpg`.
+
 **detalhe**
 
 - Contexto: a tela "Fulano está no acervo" tem o botão "Ver a página de Fulano" e dois links: "Ver todos os tipos de laço" e "Cadastrar outra pessoa".
@@ -1609,6 +1617,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P113. "Foto, nascimento e história" e a frase ao lado parecem dois links?
+
+**Feito (opção A):** só o nome do recolhido é sublinhado, a frase ao lado fica sem sublinhado, e na edição a frase sai. Capturas: `p113-nova-pessoa-recolhido--390.jpg`, `p113-nova-pessoa-recolhido--1280.jpg`, `p113-nova-pessoa-recolhido--1920.jpg`.
 
 **detalhe**
 

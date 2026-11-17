@@ -74,7 +74,8 @@ const existentes = i ? [] : (await listarIntegrantes()).map((x) => ({ id: x.id, 
   {i && <CampoRetrato integrante={i} />}
 
   <details class="mais" open={temMais}>
-    <summary>{i ? 'Nascimento e história' : 'Foto, nascimento e história'} <small>(opcional, dá para preencher depois)</small></summary>
+    {/* Um toque só: o sublinhado fica no nome, e a frase ao lado é apoio. Na edição a frase sai (P113) */}
+    <summary><span class="mais__nome">{i ? 'Nascimento e história' : 'Foto, nascimento e história'}</span>{!i && <small>(opcional, dá para preencher depois)</small>}</summary>
     {!i && <CampoRetrato />}
   <fieldset>
       <legend>Nascimento</legend>

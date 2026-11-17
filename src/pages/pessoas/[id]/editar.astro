@@ -151,6 +151,11 @@ const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(
 // Na edição de uma filiação antiga de consideração, a opção continua lá para não trocar sem querer
 const opcoesDeFiliacao = (atual?: Qualidade): [string, string][] => (atual === 'consideracao' ? (Object.entries(QUALIDADES) as [string, string][]) : qualidades);
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
+// No cadastro guiado, "Como estão hoje?" só oferece o que é estar junto: o fim tem um caminho só, "Já
+// terminou" (resposta do Gui à P109, 17/11/2026). A separação e a amizade entram depois, na edição do
+// casal, em "O que aconteceu depois?".
+const FASES_DE_QUEM_ESTA_JUNTO: readonly TipoDeFase[] = ['namoro', 'noivado', 'casamento', 'uniao'];
+const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id));
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
@@ -260,7 +265,8 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
           <input type="hidden" name="volta" value={volta} />
           <input type="hidden" name="sujeito" value={pessoa.id} />
           <input type="hidden" name="laco" value={PERGUNTAS[passo].laco} />
-          <h3 class="casal__titulo">{jaNoPasso(passo).length > 0 ? 'Adicionar mais alguém' : 'Adicionar'}</h3>
+          {/* O título só aparece depois de alguém ser adicionado: antes, a pergunta já diz tudo (P110) */}
+          {jaNoPasso(passo).length > 0 && <h3 class="casal__titulo">Adicionar mais alguém</h3>}
           {passo === 'coracao' && <input type="hidden" name="reconhece" value="eu" />}
           {passo !== 'coracao' && (<>
           <label class="campo">
@@ -307,7 +313,7 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
             </>
           ) : passo === 'casal' ? (
             <>
-              <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fases} valor="casamento" />
+              <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" />
               <div class="em-linha__campo">
                 <label for="guia-fase-inicio">Começou em <small>(se souber)</small></label>
                 <CampoAno id="guia-fase-inicio" nome="faseInicio" />
@@ -369,7 +375,8 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
         )}
         <p class="acoes">
           <a class="botao" href={`/pessoas/${pessoa.id}`}>Ver a página de {chamar}</a>
-          <a class="botao botao--leve" href={`/pessoas/${pessoa.id}/editar?novo=1&passo=outro`}>Ver todos os tipos de laço</a>
+          {/* Aqui o link diz o que a pessoa vem fazer: adicionar um laço (P112) */}
+          <a class="botao botao--leve" href={`/pessoas/${pessoa.id}/editar?novo=1&passo=outro`}>{temLacos ? 'Adicionar outro laço' : 'Adicionar um laço'}</a>
           <a class="botao botao--leve" href="/pessoas/nova">Cadastrar outra pessoa</a>
         </p>
       </section>

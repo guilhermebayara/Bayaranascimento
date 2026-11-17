@@ -1246,10 +1246,13 @@
   gap: 0 var(--e-2);
   min-height: var(--toque);
   font-weight: 550;
+  cursor: pointer;
+}
+/* O sublinhado fica só no nome: a frase ao lado é apoio, e as duas juntas pareciam dois links */
+.pagina-de-formulario .mais__nome {
   text-decoration: underline;
   text-decoration-thickness: var(--traco);
   text-underline-offset: 0.32em;
-  cursor: pointer;
 }
 .pagina-de-formulario .mais > summary small {
   display: inline-block;
