@@ -190,7 +190,8 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const fotosNoBanco = await obterFotos(pedido.fotos.map((f) => f.id));
   for (const foto of pedido.fotos) {
     const registro = fotosNoBanco.find((f) => f.id === foto.id);
-    const solta = registro && registro.memoriaId === null && registro.enviadaPor === usuario.pessoa;
+    // A foto presa a um relato em rascunho espera o relato: não entra pelo formulário da memória
+    const solta = registro && registro.memoriaId === null && registro.relatoId === null && registro.enviadaPor === usuario.pessoa;
     const desta = registro && anterior && registro.memoriaId === anterior.id;
     if (!solta && !desta) return erro(400, 'Uma das fotos não foi encontrada. Tente enviar de novo.');
   }

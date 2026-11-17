@@ -51,6 +51,8 @@ export interface Foto {
   legenda: string | null;
   principal: boolean;
   enviadaPor: string;
+  /** O relato com que a foto veio ("Fotos pelo relato", migração 022). Vazio: veio pelo formulário da memória. */
+  relatoId: number | null;
 }
 
 export interface Memoria extends AcessoDaMemoria {
@@ -611,6 +613,7 @@ async function completar(memorias: Memoria[], usuario: Usuario): Promise<Memoria
       legenda: f.legenda as string | null,
       principal: Boolean(f.principal),
       enviadaPor: f.enviada_por as string,
+      relatoId: (f.relato_id as number | null) ?? null,
     });
   }
   for (const c of capitulos.results) porId.get(c.memoria_id as string)?.capitulos.push(c.capitulo_id as string);
@@ -1012,6 +1015,7 @@ export async function listarFotosRemovidas(memoriaId: string): Promise<(Foto & {
     legenda: f.legenda as string | null,
     principal: false,
     enviadaPor: f.enviada_por as string,
+    relatoId: (f.relato_id as number | null) ?? null,
     removidaEm: f.removida_em as string,
   }));
 }
@@ -1037,15 +1041,100 @@ export interface FotoNoBanco {
   memoriaId: string | null;
   chave: string;
   enviadaPor: string;
+  /** Presa a um relato em rascunho, ou vinda com um relato. Uma foto presa a um relato não é solta. */
+  relatoId: number | null;
 }
 
 export async function obterFotos(ids: number[]): Promise<FotoNoBanco[]> {
   if (ids.length === 0) return [];
   const { results } = await db()
-    .prepare(`SELECT id, memoria_id, chave, enviada_por FROM fotos WHERE removida_em IS NULL AND id IN (SELECT value FROM json_each(?))`)
+    .prepare(`SELECT id, memoria_id, chave, enviada_por, relato_id FROM fotos WHERE removida_em IS NULL AND id IN (SELECT value FROM json_each(?))`)
     .bind(JSON.stringify(ids))
     .all<Record<string, unknown>>();
-  return results.map((f) => ({ id: f.id as number, memoriaId: f.memoria_id as string | null, chave: f.chave as string, enviadaPor: f.enviada_por as string }));
+  return results.map((f) => ({
+    id: f.id as number,
+    memoriaId: f.memoria_id as string | null,
+    chave: f.chave as string,
+    enviadaPor: f.enviada_por as string,
+    relatoId: (f.relato_id as number | null) ?? null,
+  }));
+}
+
+/**
+ * As fotos que vieram com um relato, na ordem da memória: as que já são da memória e, com o relato em
+ * rascunho, as que esperam a publicação. As removidas ficam de fora.
+ */
+export async function listarFotosDoRelato(relatoId: number): Promise<Foto[]> {
+  const { results } = await db()
+    .prepare('SELECT * FROM fotos WHERE relato_id = ? AND removida_em IS NULL ORDER BY memoria_id IS NULL, ordem, id')
+    .bind(relatoId)
+    .all<Record<string, unknown>>();
+  return results.map((f: Record<string, unknown>) => ({
+    id: f.id as number,
+    chave: f.chave as string,
+    legenda: f.legenda as string | null,
+    principal: Boolean(f.principal),
+    enviadaPor: f.enviada_por as string,
+    relatoId,
+  }));
+}
+
+/**
+ * Fotos pelo relato (docs/decisoes.md): prende ao relato as fotos da lista e, com o relato publicado, à
+ * memória dele. Só entram as fotos soltas que a própria pessoa enviou e as que já eram deste relato:
+ * ninguém prende foto de outra pessoa, nem foto que já é de outra memória ou de outro relato. Quem chama
+ * já conferiu que a pessoa vê a memória e pode escrever o relato. As que chegam à memória vão para o
+ * fim da ordem, sem mexer na principal; se a memória não tiver nenhuma, a primeira vira a principal.
+ * As fotos do relato que saíram da lista vão para a lixeira da memória, e só as que a pessoa enviou.
+ * Devolve quantas fotos ficaram no relato.
+ */
+export async function ligarFotosDoRelato(
+  relato: { id: number; memoriaId: string; situacao: 'rascunho' | 'publicada' },
+  itens: { id: number; legenda?: string }[],
+  usuario: Usuario,
+): Promise<number> {
+  const ids = itens.map((i) => i.id);
+  const { results } = await db()
+    .prepare(
+      `SELECT id, memoria_id FROM fotos WHERE removida_em IS NULL AND enviada_por = ?
+       AND (relato_id = ? OR (relato_id IS NULL AND memoria_id IS NULL))
+       AND (memoria_id IS NULL OR memoria_id = ?)
+       AND id IN (SELECT value FROM json_each(?))`,
+    )
+    .bind(usuario.pessoa, relato.id, relato.memoriaId, JSON.stringify(ids))
+    .all<{ id: number; memoria_id: string | null }>();
+  const naMemoria = new Map(results.map((r: { id: number; memoria_id: string | null }) => [r.id, r.memoria_id]));
+  const validos = itens.filter((i, n) => naMemoria.has(i.id) && ids.indexOf(i.id) === n);
+
+  const ultima = await db()
+    .prepare('SELECT MAX(ordem) AS ordem, MAX(principal) AS principal FROM fotos WHERE memoria_id = ? AND removida_em IS NULL')
+    .bind(relato.memoriaId)
+    .first<{ ordem: number | null; principal: number | null }>();
+  let ordem = (ultima?.ordem ?? -1) + 1;
+  let semPrincipal = !ultima?.principal;
+  const publicado = relato.situacao === 'publicada';
+
+  await db().batch([
+    db()
+      .prepare(
+        `UPDATE fotos SET removida_em = datetime('now') WHERE relato_id = ? AND removida_em IS NULL AND enviada_por = ?
+         AND id NOT IN (SELECT value FROM json_each(?))`,
+      )
+      .bind(relato.id, usuario.pessoa, JSON.stringify(validos.map((i) => i.id))),
+    ...validos.map((item) => {
+      const legenda = item.legenda?.trim() || null;
+      // Já é da memória: muda só a legenda, sem sair do lugar
+      if (naMemoria.get(item.id)) return db().prepare('UPDATE fotos SET legenda = ? WHERE id = ?').bind(legenda, item.id);
+      // Relato em rascunho: a foto espera, presa a ele, e só quem enviou a vê
+      if (!publicado) return db().prepare('UPDATE fotos SET relato_id = ?, legenda = ? WHERE id = ?').bind(relato.id, legenda, item.id);
+      const principal = semPrincipal ? 1 : 0;
+      semPrincipal = false;
+      return db()
+        .prepare('UPDATE fotos SET relato_id = ?, memoria_id = ?, legenda = ?, ordem = ?, principal = ? WHERE id = ?')
+        .bind(relato.id, relato.memoriaId, legenda, ordem++, principal, item.id);
+    }),
+  ]);
+  return validos.length;
 }
 
 /** O usuário pode ver o arquivo desta chave? Foto solta: só quem enviou. Foto de memória: quem vê a memória. Foto removida: só quem enviou. */

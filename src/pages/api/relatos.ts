@@ -6,7 +6,7 @@ import { arrumarTexto } from '../../lib/servidor/conteudo';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeEscreverRelato } from '../../lib/servidor/permissoes';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
-import { ligarAudios, listarAudiosDosRelatos, listarIntegrantesQueVe, obterMemoria, obterRelato, obterRelatoRegistradoPor, salvarRelato } from '../../lib/servidor/repositorio';
+import { ligarAudios, ligarFotosDoRelato, listarAudiosDosRelatos, listarFotosDoRelato, listarIntegrantesQueVe, obterMemoria, obterRelato, obterRelatoRegistradoPor, salvarRelato } from '../../lib/servidor/repositorio';
 
 const Pedido = z.object({
   memoria: z.string().max(120),
@@ -18,6 +18,12 @@ const Pedido = z.object({
   audios: z
     .array(z.object({ id: z.number().int().positive(), transcricao: z.string().max(20000).optional() }))
     .max(AUDIOS_POR_RELATO, `Um relato pode ter até ${AUDIOS_POR_RELATO} áudios.`)
+    .optional(),
+  // Fotos pelo relato (docs/decisoes.md): as que a pessoa enviou neste formulário e as que já vieram
+  // com o relato, na ordem. Só o formulário com script manda a lista; sem ela, as fotos ficam como estão.
+  fotos: z
+    .array(z.object({ id: z.number().int().positive(), legenda: z.string().max(200).optional() }))
+    .max(30, 'Um relato pode trazer até 30 fotos.')
     .optional(),
 });
 
@@ -45,7 +51,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const { usuario } = locals;
   const lido = Pedido.safeParse(bruto);
   if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
-  const { memoria: memoriaId, por, texto, audios } = lido.data;
+  const { memoria: memoriaId, por, texto, audios, fotos } = lido.data;
 
   // Quem não vê a memória recebe o mesmo que para uma memória inexistente
   const memoria = await obterMemoria(usuario, memoriaId);
@@ -65,9 +71,13 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   if (existente?.situacao === 'publicada') situacao = 'publicada';
 
   await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente);
-  if (audios) {
-    const salvo = await obterRelatoRegistradoPor(memoriaId, por, usuario);
-    if (salvo) await ligarAudios(salvo.id, memoriaId, audios, usuario);
+  const salvo = await obterRelatoRegistradoPor(memoriaId, por, usuario);
+  if (salvo && audios) await ligarAudios(salvo.id, memoriaId, audios, usuario);
+  // Fotos: sem a lista (o formulário sem script), as que já estavam com o relato continuam, e as que
+  // esperavam o rascunho entram na memória quando ele é publicado
+  if (salvo) {
+    const lista = fotos ?? (await listarFotosDoRelato(salvo.id)).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined }));
+    if (fotos || lista.length) await ligarFotosDoRelato({ id: salvo.id, memoriaId, situacao }, lista, usuario);
   }
   return json({ url: `/memorias/${memoriaId}`, situacao, editado: Boolean(existente) }, existente ? 200 : 201);
 }

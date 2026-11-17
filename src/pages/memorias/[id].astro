@@ -87,7 +87,8 @@ const textoDaAcao = meuRelatoEmRascunho ? 'Continuar meu relato' : temMeuRelato 
 const relatoDaAbertura = relatos.find((r) => r.situacao === 'publicada' && r.texto.trim());
 const trecho = relatoDaAbertura ? trechoDoRelato(relatoDaAbertura.texto) : undefined;
 // Um só relato, que coube inteiro na abertura: a seção "Relato" não repete o bilhete (P52 do QA de design de 17/11/2026)
-const relatoSoNaAbertura = relatoJaEstaNaAbertura(relatos, trecho, (id) => audiosDosRelatos.get(id)?.length ?? 0);
+// O relato que trouxe fotos fica com o bilhete, para as fotos aparecerem pequenas nele ("Fotos pelo relato")
+const relatoSoNaAbertura = relatoJaEstaNaAbertura(relatos, trecho, (id) => (audiosDosRelatos.get(id)?.length ?? 0) + memoria.fotos.filter((f) => String(f.relatoId) === String(id)).length);
 // No celular, até seis retratos em "Quem estava"; o resto abre no lugar (P51)
 const recolheQuem = recolheQuemEstava(quemEstava.length);
 
@@ -101,9 +102,10 @@ const depois = todas[posicao + 1];
 const corDaTela = memoria.visibilidade === 'nucleos' ? undefined : 'tudo';
 const outrasFotos = memoria.fotos.length > 1;
 
-// A foto que veio com um relato ("Fotos pelo relato", em docs/decisoes.md) ainda não existe no banco:
-// quando existir, ela aparece na parede com as outras e, pequena, no bilhete do relato que a trouxe
-// (o desenho está em .bilhete__fotos, em src/visual/telas/memoria.css, e na galeria).
+// A foto que veio com um relato ("Fotos pelo relato", em docs/decisoes.md) é da memória: aparece na
+// parede e na galeria com as outras e, pequena, no bilhete do relato que a trouxe (.bilhete__fotos,
+// em src/visual/telas/memoria.css). Tocar nela abre a galeria nela.
+const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ foto, n })).filter(({ foto }) => foto.relatoId === relatoId);
 ---
 
 <Visual titulo={memoria.titulo} secao="explorar" nucleos={memoria.nucleos} familia={corDaTela}>
@@ -250,6 +252,21 @@ const outrasFotos = memoria.fotos.length > 1;
                             <p>{paragrafo}</p>
                           ))}
                         </div>
+                      )}
+                      {fotosDoRelato(relato.id).length > 0 && (
+                        <ul class="bilhete__fotos" aria-label={`Fotos que vieram com o relato de ${nome(relato.por)}`}>
+                          {fotosDoRelato(relato.id).map(({ foto, n }) => (
+                            <li>
+                              <a class="monte" href={`/fotos/${foto.chave}`} data-galeria={n} aria-label={`Ver a foto inteira${foto.legenda ? `: ${foto.legenda}` : ''}`}>
+                                <figure class="polaroid" style={`--giro: ${giroDoId(`${memoria.id}-relato-${n}`)}deg`}>
+                                  <span class="polaroid__foto">
+                                    <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
+                                  </span>
+                                </figure>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </Bilhete>
                   );

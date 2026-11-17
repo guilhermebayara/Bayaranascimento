@@ -575,6 +575,14 @@ export const MIGRACOES: Migracao[] = [
       `UPDATE tipos SET cor_da_paleta = 'orquidea', icone = 'outro' WHERE id = 'outro'`,
     ],
   },
+  {
+    // Fotos pelo relato (decisão do Gui, 16/11/2026): a foto guarda o relato com que veio, para
+    // aparecer também pequena no bilhete dele. Ela continua sendo da memória: se o relato sumir, a
+    // foto fica (SET NULL). Enquanto o relato está em rascunho, a foto fica presa a ele, sem memória,
+    // e só quem enviou vê; ao publicar, entra na memória.
+    id: '022-fotos-do-relato',
+    sql: [`ALTER TABLE fotos ADD COLUMN relato_id INTEGER REFERENCES relatos(id) ON DELETE SET NULL`, `CREATE INDEX IF NOT EXISTS fotos_do_relato ON fotos (relato_id)`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

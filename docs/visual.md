@@ -611,7 +611,7 @@ Sem script, os links continuam levando tudo no endereço (`tamanho`, `passar`, `
 
 O mural, o modo TV e o sorteio não mostram rascunho: o rascunho só aparece na linha do tempo de quem escreveu.
 
-**Página da memória.** A do conceito, com os dados de verdade. Saiu o que era fixo: as fotos "que vieram com o relato" só voltam quando "Fotos pelo relato" existir no banco (o desenho continua em `.bilhete__fotos`, em `telas/memoria.css`). Os links de histórico, relato, corrigir e excluir levam às telas antigas, que são do grupo 4.
+**Página da memória.** A do conceito, com os dados de verdade. Saiu o que era fixo: as fotos "que vieram com o relato" voltaram com "Fotos pelo relato" (17/11/2026), no desenho de `.bilhete__fotos`, em `telas/memoria.css`. Os links de histórico, relato, corrigir e excluir levam às telas antigas, que são do grupo 4.
 
 **Sua conta, de passagem.** `/conta` é a página de passagem que estava em `/conceito/conta`, agora em todos os ambientes, para o retrato do topo ter aonde levar: sua página, editar seus dados, rascunhos, lixeira e, para os administradores, tipos de momento, famílias, carta de Natal, a cópia do acervo e, na homologação, o espelho. A tela de verdade é do grupo 2.
 

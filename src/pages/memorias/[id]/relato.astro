@@ -7,7 +7,7 @@ import { formatarData } from '../../../lib/datas';
 import { estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { donoDoRelato } from '../../../lib/servidor/permissoes';
-import { listarAudiosDosRelatos, listarIntegrantes, listarIntegrantesQueVe, obterMemoria, obterRelato } from '../../../lib/servidor/repositorio';
+import { listarAudiosDosRelatos, listarFotosDoRelato, listarIntegrantes, listarIntegrantesQueVe, obterMemoria, obterRelato } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -33,9 +33,13 @@ const opcoes = await Promise.all(
       const bloqueado = Boolean(existente) && dono !== usuario.pessoa;
       // Os áudios do relato que a pessoa pode editar, na ordem
       const audios = existente && !bloqueado ? ((await listarAudiosDosRelatos([existente.id])).get(existente.id) ?? []) : [];
+      // As fotos que vieram com o relato ("Fotos pelo relato"): as que já são da memória e, no rascunho,
+      // as que esperam a publicação. Só quem pode editar o relato as vê aqui.
+      const fotos = existente && !bloqueado ? await listarFotosDoRelato(existente.id) : [];
       return {
         ...opcao,
         audios: audios.map((a) => ({ id: a.id, src: `/audios/${a.chave}`, duracao: a.duracao, transcricao: a.transcricao })),
+        fotos: fotos.map((f) => ({ id: f.id, src: `/fotos/${f.chave}`, legenda: f.legenda })),
         texto: existente && !bloqueado ? existente.texto : '',
         publicado: existente?.situacao === 'publicada' && !bloqueado,
         bloqueado,
@@ -107,6 +111,20 @@ const opcoes = await Promise.all(
       </details>
     </fieldset>
 
+    {/* Fotos pelo relato (decisão do Gui, 16/11/2026): quem conta pode trazer fotos desse dia. Elas
+        entram na memória, junto das outras, e aparecem pequenas no relato. Só com script, como na
+        memória: o envio depende dele. */}
+    <fieldset class="fotos-do-relato" data-fotos-do-relato hidden>
+      <legend>Tem fotos desse dia?</legend>
+      <p class="dica">Elas entram na memória, junto das outras fotos, e aparecem pequenas no seu relato. Enquanto o relato for rascunho, só você vê.</p>
+      <label class="botao botao--leve botao--arquivo">
+        Escolher fotos
+        <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
+      </label>
+      <ul class="fotos-enviadas" data-fotos></ul>
+      <p class="situacao" data-situacao-fotos role="status" aria-live="polite"></p>
+    </fieldset>
+
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
     <div class="acoes">
       <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada">{opcoes[0].publicado ? 'Salvar alterações' : 'Publicar relato'}</button>
@@ -130,6 +148,7 @@ const opcoes = await Promise.all(
 <script>
   import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';
   import { ligarAudios, type AudioNoFormulario } from '../../../lib/cliente/audios';
+  import { ligarFotos, type FotoNoFormulario } from '../../../lib/cliente/fotos';
 
   const form = document.querySelector<HTMLFormElement>('[data-formulario-relato]');
   if (form) {
@@ -141,6 +160,7 @@ const opcoes = await Promise.all(
       bloqueado: boolean;
       quemRegistrou?: string;
       audios: AudioNoFormulario[];
+      fotos: FotoNoFormulario[];
     }
     const opcoes: Opcao[] = JSON.parse(document.getElementById('opcoes-relato')!.textContent ?? '[]');
     const quem = form.elements.namedItem('por') as HTMLSelectElement;
@@ -166,6 +186,9 @@ const opcoes = await Promise.all(
       textoOpcional.hidden = !audios?.lista().length;
     });
 
+    const caixaDeFotos = form.querySelector<HTMLElement>('[data-fotos-do-relato]')!;
+    const fotos = ligarFotos(caixaDeFotos);
+
     const avisar = (mensagem: string, tipo: 'normal' | 'erro' = 'normal') => {
       situacaoEl.textContent = mensagem;
       situacaoEl.dataset.tipo = tipo;
@@ -183,6 +206,8 @@ const opcoes = await Promise.all(
       texto.value = opcao.bloqueado ? '' : opcao.texto;
       audios?.carregar(opcao.bloqueado ? [] : opcao.audios);
       form.querySelector<HTMLElement>('[data-audios]')!.hidden = opcao.bloqueado || !audios;
+      fotos.carregar(opcao.bloqueado ? [] : opcao.fotos);
+      caixaDeFotos.hidden = opcao.bloqueado;
       if (opcao.bloqueado) {
         bloqueio.textContent = `Esse relato já foi registrado por ${opcao.quemRegistrou ?? 'outra pessoa'}, e só quem registrou pode alterar.`;
       }
@@ -199,6 +224,7 @@ const opcoes = await Promise.all(
       const situacao = (evento.submitter as HTMLElement | null)?.dataset.salvar === 'rascunho' ? 'rascunho' : 'publicada';
       const listaDeAudios = audios?.lista() ?? [];
       if (audios?.ocupado()) return avisar('Espere o áudio terminar de gravar e de enviar.', 'erro');
+      if (fotos.ocupado()) return avisar('Espere as fotos terminarem de enviar.', 'erro');
       if (!texto.value.trim() && !listaDeAudios.length) return avisar('Escreva o relato ou grave um áudio antes de salvar.', 'erro');
       publicar.disabled = true;
       rascunho.disabled = true;
@@ -207,7 +233,7 @@ const opcoes = await Promise.all(
         const resposta = await fetch('/api/relatos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memoria, por: quem.value, texto: texto.value, situacao, ...(audios ? { audios: listaDeAudios } : {}) }),
+          body: JSON.stringify({ memoria, por: quem.value, texto: texto.value, situacao, fotos: fotos.lista(), ...(audios ? { audios: listaDeAudios } : {}) }),
         });
         const resultado = await resposta.json();
         if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');
@@ -218,6 +244,7 @@ const opcoes = await Promise.all(
             const item = form.querySelector<HTMLElement>(`[data-audio-id="${a.id}"]`);
             return { id: a.id, src: item?.querySelector('audio')?.getAttribute('src') ?? '', duracao: null, transcricao: a.transcricao ?? null };
           });
+          opcao.fotos = fotos.atuais();
           avisar('Rascunho salvo. Só você vê, e dá para continuar de qualquer aparelho.');
           publicar.disabled = false;
           rascunho.disabled = false;
