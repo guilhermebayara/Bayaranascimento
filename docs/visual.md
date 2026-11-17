@@ -773,3 +773,42 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 - Na produção e na homologação, só os administradores abrem (para os outros, 404), com um link na seção "Administração" da conta. Nas prévias e no computador, abre para todos, como hoje.
 - Ela mostra o sistema com conteúdo fixo da própria página, nunca com dados do acervo. Na produção, nada de fotos de exemplo: a guarda já recusa que elas cheguem ao pacote ou ao bucket da produção. Onde a peça pede foto, a página usa um quadro desenhado (cor e textura da própria página) e, nas prévias, pode continuar usando o Chico e a Karol.
 - Ela acompanha o sistema: toda peça, token ou regra nova entra nela no mesmo PR, e `testes/sistema.test.ts` falha se uma peça do sistema não aparecer na página.
+
+## Respostas do Gui às perguntas da fase 3 (17/11/2026)
+
+As perguntas estão no fim dos PRs #35 a #38. "Aprovada" quer dizer a opção recomendada, como a sessão fez: a marca PROVISÓRIO sai e a decisão vira regra. O que muda está descrito na resposta e é feito na `tst-visual-ajustes` (ou na `tst-visual-tipos`, quando dito).
+
+**#35 (Explorar e memória):** `/explorar`, "Forma de ver" e os textos do formulário, do palco e do pé do trilho, aprovados. Modo TV: "Álbum" é a animação de quem nunca escolheu, e os nomes "Álbum", "Revelação" e "Mesa" ficam.
+
+**#36 (pessoal):**
+1. Carimbo da carta: aprovada ("Natal de" e o ano em que a carta foi escrita, sem lugar).
+2. Carta de exemplo nas prévias: aprovada.
+3. Novidades na mesa: aprovada (as duas memórias e o relato mais novos, e "E mais N").
+4. "Que bom que você chegou.": aprovada.
+5. Editar os dados na conta: aprovada (o link para a tela de editar a página).
+6. Parentesco como linha maior da página da pessoa: aprovada.
+7. Textos novos da conta, da pessoa e da administração: aprovada.
+8. Memórias na página da pessoa: **muda**. A página ganha "Forma de ver", como o Explorar: linha do tempo (o padrão), mural e lista.
+9. A peça Gente: aprovada.
+
+**#37 (família):**
+1. Marcos do capítulo, mais recentes primeiro e numeração decrescente: aprovada.
+2. "Quem aparece": fica. **Muda no celular**: vira uma linha de nomes corrida, sem fotos, no formato "Gui (10), Giovanna (8)", no alto, sem empurrar as memórias. Na tela grande, como está.
+4. A ordem da página do capítulo no celular: resolvida pela 2 (a capa fica no alto, com a linha corrida).
+3, 5 e 6. Parentesco na lista de pessoas, textos novos e o cartão da árvore: aprovadas. Além disso, dois defeitos na árvore: a nitidez no zoom e o respiro do cartão de bicho (itens 8 e 9 do prompt).
+
+**#38 (formulários):**
+1. A frase de lacunas: **muda**. A frase entra também na abertura da Nova memória, com "com ___" levando ao "Quem estava?".
+2. Os dois botões na correção e na edição do capítulo: aprovada.
+3. A trilha das etapas: aprovada.
+4. Ações secundárias como texto sublinhado: aprovada, inclusive "Escolher fotos" e "Gravar áudio".
+5. A cor da opção marcada: aprovada.
+6. A linha pequena acima do título: aprovada.
+7. Formulários na tela grande: **muda**. À direita, a foto-chave e um resumo da memória que acompanha o preenchimento, em 1280 e 1920 px.
+8. Rótulos e textos da segunda metade: aprovada.
+9. O cadastro guiado: aprovada.
+10. O laço em edição: aprovada.
+11. O campo "Cor" dos tipos: **muda**, na `tst-visual-tipos`. Escolha numa paleta ampliada do sistema (bem mais que onze cores, todas com contraste garantido) e seletor de ícone entre os rabiscos de `IconeDoTipo.astro`, com rabiscos novos no mesmo traço.
+12. O botão de excluir: aprovada (cheio na cor de alerta) e **mais**: a zona de perigo, com as ações de apagar juntas no fim das telas de editar, num bloco separado e marcado na cor de alerta, longe do salvar.
+
+Novidade que vale para o Explorar e a página da pessoa: a forma de ver "Lista", no modelo do "Já rolou" da agenda da @bsurda (descrita no prompt da `tst-visual-ajustes`).
