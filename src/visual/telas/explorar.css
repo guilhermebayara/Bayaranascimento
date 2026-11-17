@@ -73,40 +73,29 @@
 }
 
 /* --- Mural de fotos ------------------------------------------------------------------------------
-   As fotos-chave lado a lado, cada uma com a inclinação dela e um pouco fora de fila, como fotos
-   espalhadas na mesa. Cada ano abre com o número grande, a mesma divisória da linha do tempo, e na
-   margem de cada foto vai o título da memória, escrito à mão (decisões do Gui, 17/11/2026). */
+   Uma superfície só de fotos, cada uma com a inclinação dela e um pouco fora de fila, como fotos
+   espalhadas na mesa. Quem orienta são objetos entre as fotos: o cartão da década, no lugar de uma
+   foto, e a aba do ano na primeira foto de cada ano. Na margem, o título, escrito à mão. */
 
 .linha--mural {
-  padding-bottom: var(--e-8);
-}
-.mural__ano {
-  padding-top: var(--e-7);
-}
-.mural__ano--corrido {
-  padding-top: var(--e-5);
-}
-.mural__cabeca {
-  container-type: inline-size;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--e-4);
-  margin-bottom: var(--e-6);
+  padding-bottom: var(--e-9);
 }
 /* No celular, duas colunas: com três, o título escrito à mão ficava pequeno demais para ler */
 .mural {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--e-6) var(--e-5);
+  gap: var(--e-7) var(--e-5);
+  padding-top: var(--e-7);
 }
 .mural li {
+  position: relative;
   min-width: 0;
 }
 .mural li:nth-child(even) {
   translate: 0 var(--e-4);
 }
 .mural a {
+  position: relative;
   display: block;
   border-radius: var(--raio-moldura);
   color: inherit;
@@ -114,6 +103,9 @@
 }
 .mural a:focus-visible {
   outline-offset: 0.35rem;
+}
+.mural .monte {
+  z-index: 1;
 }
 /* O título na margem da foto: manuscrito, pequeno, em até duas linhas */
 .mural .polaroid .polaroid__legenda {
@@ -132,6 +124,100 @@
   letter-spacing: 0;
   text-transform: none;
   color: var(--tinta);
+}
+
+/* A década: um cartão do tamanho de uma foto, na cor da família, deitado entre elas */
+.mural__decada {
+  container-type: inline-size;
+  aspect-ratio: 100 / 146;
+  scroll-margin-top: var(--e-6);
+}
+.mural__decada p {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  padding: 9cqi 8cqi;
+  border-radius: var(--raio-bloco);
+  background: var(--pastel);
+  color: var(--tinta);
+  rotate: -1.5deg;
+}
+.mural__decada strong {
+  align-self: center;
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes-capa);
+  font-weight: var(--serifa-peso-capa);
+  font-size: calc(66cqi * var(--escala-serifa));
+  font-variant-numeric: lining-nums;
+  letter-spacing: var(--aperto-capa);
+  line-height: 0.8;
+}
+.mural__decada strong[data-letras='4'] {
+  font-size: calc(36cqi * var(--escala-serifa));
+}
+
+/* O ano: uma aba de fichário saindo do alto da primeira foto de cada ano */
+.mural__aba {
+  position: absolute;
+  z-index: 0;
+  bottom: calc(100% - 0.5rem);
+  left: 10%;
+  padding: 0.3rem 0.7rem 0.8rem;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: var(--meio);
+  color: var(--tinta);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  rotate: -2deg;
+}
+
+/* A ficha do verso: fica atrás da foto e só desliza para o lado onde há mouse, ou com o foco do
+   teclado. No toque ela não aparece: o título na margem basta. O leitor de tela lê sempre. */
+.mural__verso {
+  position: absolute;
+  z-index: 0;
+  top: 16%;
+  left: calc(100% - 1.25rem);
+  display: grid;
+  justify-items: start;
+  gap: var(--e-2);
+  width: max-content;
+  max-width: 15rem;
+  padding: var(--e-4) var(--e-4) var(--e-4) calc(var(--e-4) + 1.25rem);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  opacity: 0;
+  translate: -1.5rem 0;
+  pointer-events: none;
+  transition:
+    opacity var(--tempo-curto) var(--curva),
+    translate var(--tempo-medio) var(--curva);
+}
+.mural__foto[data-para-a-esquerda] .mural__verso {
+  left: auto;
+  right: calc(100% - 1.25rem);
+  padding: var(--e-4) calc(var(--e-4) + 1.25rem) var(--e-4) var(--e-4);
+  translate: 1.5rem 0;
+}
+.mural__foto:has(a:focus-visible) {
+  z-index: 3;
+}
+.mural a:focus-visible .mural__verso {
+  opacity: 1;
+  translate: 0 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .mural__foto:hover {
+    z-index: 3;
+  }
+  .mural a:hover .mural__verso {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 
 /* --- O palco: uma memória por vez ----------------------------------------------------------------
@@ -299,38 +385,19 @@
   .filtros__acoes {
     grid-column: 1 / -1;
   }
-  /* O ano numa coluna à esquerda, como na linha do tempo, e as fotos ao lado */
-  .mural__ano {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    column-gap: var(--calha);
-    align-items: start;
-    padding-top: var(--e-9);
-  }
-  .mural__cabeca {
-    grid-column: 1 / span 3;
-    display: block;
-    margin: 0;
-  }
-  .mural__cabeca .ano__numero {
-    margin-bottom: var(--e-4);
-  }
   .mural {
-    grid-column: 4 / -1;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--e-7) var(--calha);
-  }
-  .mural__ano--corrido .mural {
-    grid-column: 1 / -1;
     grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--e-8) var(--calha);
+    padding-top: var(--e-8);
   }
   .mural li:nth-child(even) {
     translate: none;
   }
-  .mural li:nth-child(4n + 2) {
-    translate: 0 var(--e-5);
+  .mural li:nth-child(6n + 2),
+  .mural li:nth-child(6n + 5) {
+    translate: 0 var(--e-6);
   }
-  .mural li:nth-child(4n + 3) {
+  .mural li:nth-child(6n + 4) {
     translate: 0 calc(-1 * var(--e-3));
   }
 
@@ -382,19 +449,19 @@
 
 @media (min-width: 100rem) {
   .mural {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-  .mural__ano--corrido .mural {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
   .mural li:nth-child(n) {
     translate: none;
   }
-  .mural li:nth-child(6n + 2),
-  .mural li:nth-child(6n + 5) {
-    translate: 0 var(--e-6);
+  .mural li:nth-child(8n + 2),
+  .mural li:nth-child(8n + 7) {
+    translate: 0 var(--e-7);
   }
-  .mural li:nth-child(6n + 4) {
-    translate: 0 calc(-1 * var(--e-3));
+  .mural li:nth-child(8n + 4) {
+    translate: 0 var(--e-5);
+  }
+  .mural li:nth-child(8n + 5) {
+    translate: 0 calc(-1 * var(--e-4));
   }
 }

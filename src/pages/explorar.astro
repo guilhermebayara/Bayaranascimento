@@ -157,7 +157,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
           />
         </header>
         {memorias.length > 0 ? (
-          <Mural memorias={memorias} ordem={filtros.ordem} />
+          <Mural memorias={memorias} ordem={filtros.ordem} nomeDe={nomeDe} />
         ) : (
           <div class="miolo">
             <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>

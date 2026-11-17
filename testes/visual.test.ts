@@ -11,6 +11,7 @@ import {
   giroDoId,
   legendaLugarAno,
   listaCurta,
+  nomeDaDecada,
   trechoDoRelato,
 } from '../src/lib/visual';
 
@@ -39,6 +40,10 @@ describe('carimbo', () => {
     expect(carimboDaData({ ano: 2025, mes: 12, dia: null, aproximada: false })).toBe('dez 2025');
     expect(carimboDaData({ ano: 1992, mes: null, dia: null, aproximada: false })).toBe('1992');
     expect(carimboDaData({ ano: 1994, mes: null, dia: null, aproximada: true })).toBe('por volta de 1994');
+    // A década, no cartão do mural: como se fala
+    expect(nomeDaDecada(1990)).toEqual({ rotulo: 'Anos', numero: '90' });
+    expect(nomeDaDecada(1900)).toEqual({ rotulo: 'Anos', numero: '00' });
+    expect(nomeDaDecada(2010)).toEqual({ rotulo: 'Anos', numero: '2010' });
     expect(diaMesCurto({ mes: 3, dia: 12 })).toBe('12 mar');
     expect(diaMesCurto({ mes: null, dia: null })).toBe('');
   });
@@ -250,18 +255,36 @@ describe('conceito', () => {
     expect(linha).toMatch(/pontaDeBaixo = paraOPresente \? 'Fim' : 'Começo'/);
   });
 
-  it('o mural agrupa as fotos por ano, com o ano grande, e leva o título de cada memória à mão', () => {
-    // Decisões do Gui, 17/11/2026. Fora da ordem do tempo, o mural fica sem os grupos de ano
+  it('o mural é uma superfície só: a década é um cartão entre as fotos e o ano, uma aba na primeira foto', () => {
+    // Decisões do Gui, 17/11/2026 (segunda rodada): com o ano como cabeçalho, o mural tinha virado
+    // uma segunda linha do tempo. Fora da ordem do tempo, saem os cartões e as abas.
     const mural = tela('explorar/Mural.astro');
     expect(mural).toMatch(/const peloTempo = ordem === 'recentes' \|\| ordem === 'antigas';/);
-    expect(mural).toMatch(/peloTempo \? agruparPorAno\(memorias\) : \[\{ ano: 0, itens: memorias \}\]/);
-    expect(mural).toMatch(/\{peloTempo && \(\s*<header class="mural__cabeca">\s*<h2 class="ano__numero"/);
+    expect(mural.match(/<ul class="mural miolo"/g)).toHaveLength(1);
+    expect(mural).not.toMatch(/<h2|<section|<header/);
+    expect(mural).toMatch(/abreAno: peloTempo && anterior\?\.ano !== m\.ano/);
+    expect(mural).toMatch(/abreDecada: peloTempo && /);
+    expect(mural).toMatch(/\{abreDecada !== null && \(\s*<li class="mural__decada"/);
+    expect(mural).toMatch(/\{abreAno && \(\s*<span class="mural__aba"/);
+    // Na margem, só o título da memória, à mão
     expect(mural).toMatch(/<Polaroid id=\{m\.id\}[^>]*legenda=\{m\.titulo\}/);
-    expect(tela('pages/explorar.astro')).toContain('<Mural memorias={memorias} ordem={filtros.ordem} />');
     const css = ler('telas/explorar.css');
     expect(css).toMatch(/\.mural \.polaroid \.polaroid__legenda\s*\{[^}]*font-family:\s*var\(--mao\)[^}]*text-transform:\s*none/);
-    // O ano do mural rola com a página: nada preso novo
+    // Nada preso novo
     expect(css).not.toMatch(/position\s*:\s*(sticky|fixed)/);
+  });
+
+  it('no mural, a ficha do verso só aparece com o mouse ou com o foco do teclado, e a foto não vira', () => {
+    // Decisão do Gui, 17/11/2026: a ficha desliza de trás da foto, que continua à vista
+    const mural = tela('explorar/Mural.astro');
+    expect(mural).toMatch(/<span class="mural__verso">\s*<Carimbo itens=\{\[carimboDaData\(m\), m\.lugar\]\} \/>/);
+    const css = ler('telas/explorar.css');
+    expect(css).toMatch(/\.mural__verso\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none/);
+    const comMouse = css.slice(css.indexOf('@media (hover: hover) and (pointer: fine)'));
+    expect(comMouse).toMatch(/\.mural a:hover \.mural__verso\s*\{[^}]*opacity:\s*1/);
+    expect(css.slice(0, css.indexOf('@media (hover: hover) and (pointer: fine)'))).not.toMatch(/:hover \.mural__verso/);
+    expect(css).toMatch(/\.mural a:focus-visible \.mural__verso\s*\{[^}]*opacity:\s*1/);
+    expect(css).not.toMatch(/rotate[XY]|backface-visibility|perspective/);
   });
 
   it('o modo TV passa as memórias por links, e só passa sozinho quando a pessoa liga', () => {
