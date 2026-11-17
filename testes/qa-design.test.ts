@@ -121,3 +121,17 @@ describe('capítulos, árvore e pessoas', () => {
     expect(pagina).toMatch(/Use "\$\{podeEditar \? 'Escolher memórias e editar' : 'Escolher memórias'\}"/);
   });
 });
+
+describe('pessoa, laços e administração', () => {
+  it('abrir um laço com outro aberto acima não joga a página para longe', () => {
+    expect(ler('src/pages/pessoas/[id]/editar.astro')).toMatch(/const salto = edicao\.getBoundingClientRect\(\)\.top - antes;\s*if \(salto\) window\.scrollBy/);
+  });
+  it('link no meio da frase do guiado e das dicas tem a altura de toque', () => {
+    const css = ler('src/visual/telas/formulario.css');
+    expect(regra(css, '.pagina-de-formulario :is(.guia__completo, .dica) a')).toMatch(/line-height: var\(--toque\)/);
+    expect(regra(css, '.pagina-de-formulario .escolhas > li')).toMatch(/display: grid/);
+  });
+  it('a marca de quem usa a cor não é cortada', () => {
+    expect(regra(ler('src/visual/telas/tipos.css'), '.pagina-de-formulario .amostra__uso')).not.toMatch(/nowrap|ellipsis/);
+  });
+});

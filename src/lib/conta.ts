@@ -69,9 +69,12 @@ export function seusLacos<L extends LacoDaConta>(eu: string, lacos: L[]): L[] {
 
 /** "Rascunhos": as memórias e os relatos que a pessoa começou e não publicou. */
 export function seusRascunhos<M extends MemoriaDaConta, R extends RelatoDaConta>(eu: string, memorias: M[], relatos: R[]): { memorias: M[]; relatos: R[] } {
+  const minhas = memorias.filter((m) => m.situacao === 'rascunho' && m.criadaPor === eu);
+  // O relato de uma memória que ainda é rascunho é uma etapa do próprio rascunho: não vira outra linha
+  const emRascunho = new Set(minhas.map((m) => m.id));
   return {
-    memorias: memorias.filter((m) => m.situacao === 'rascunho' && m.criadaPor === eu),
-    relatos: relatos.filter((r) => r.situacao === 'rascunho' && r.registradoPor === eu),
+    memorias: minhas,
+    relatos: relatos.filter((r) => r.situacao === 'rascunho' && r.registradoPor === eu && !emRascunho.has(r.memoriaId)),
   };
 }
 

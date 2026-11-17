@@ -56,6 +56,13 @@ describe('o que você criou', () => {
     expect(rascunhos.memorias.map((m) => m.id)).toEqual(['rascunho']);
     expect(rascunhos.relatos.map((x) => x.id)).toEqual([5]);
   });
+
+  // QA de design (17/11/2026): a conta mostrava o mesmo rascunho duas vezes, como memória e como relato
+  it('o relato começado dentro de uma memória em rascunho não vira outra linha', () => {
+    const rascunhos = seusRascunhos('gui', [memoria('lista', 'gui', [], 'rascunho'), memoria('natal', 'gui')], [relato(8, 'lista', 'gui', 'gui', 'rascunho'), relato(9, 'natal', 'gui', 'gui', 'rascunho')]);
+    expect(rascunhos.memorias.map((m) => m.id)).toEqual(['lista']);
+    expect(rascunhos.relatos.map((x) => x.id)).toEqual([9]);
+  });
 });
 
 describe('seus laços do coração', () => {

@@ -905,7 +905,12 @@ const fases = Object.entries(FASES) as [TipoDeFase, string][];
   const edicoes = [...document.querySelectorAll<HTMLDetailsElement>('[data-editar]')];
   for (const edicao of edicoes) {
     edicao.addEventListener('toggle', () => {
-      if (edicao.open) for (const outra of edicoes) if (outra !== edicao) outra.open = false;
+      if (!edicao.open) return;
+      // Fechar um editor aberto mais acima encurta a página: o laço tocado fica onde o dedo tocou
+      const antes = edicao.getBoundingClientRect().top;
+      for (const outra of edicoes) if (outra !== edicao) outra.open = false;
+      const salto = edicao.getBoundingClientRect().top - antes;
+      if (salto) window.scrollBy({ top: salto, behavior: 'instant' });
     });
   }
 

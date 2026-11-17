@@ -141,8 +141,8 @@
   font-family: var(--mono);
   font-size: var(--t-micro);
   line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* A marca diz quem já usa a cor e precisa ser lida inteira: quebra em vez de cortar */
+  overflow-wrap: anywhere;
 }
 .pagina-de-formulario :is(.amostra, .rabisco-a-escolher):hover {
   border-color: var(--tinta-suave);

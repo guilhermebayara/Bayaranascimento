@@ -1351,6 +1351,15 @@
   color: var(--tinta-suave);
   font-size: var(--t-pequeno);
 }
+/* Link no meio de uma frase também tem 44 px de toque: a caixa do link ganha a altura da linha */
+.pagina-de-formulario :is(.guia__completo, .dica) a {
+  display: inline-block;
+  line-height: var(--toque);
+}
+/* Os cartões de uma mesma escolha têm a mesma altura, mesmo quando o texto de um quebra mais */
+.pagina-de-formulario .escolhas > li {
+  display: grid;
+}
 .pagina-de-formulario .guia__completo a {
   color: var(--tinta);
   text-decoration-thickness: 1px;
