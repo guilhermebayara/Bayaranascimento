@@ -82,9 +82,11 @@ describe('quem altera uma memória', () => {
     expect(podeExcluirMemoria(gui, doCasal).ok).toBe(false);
     expect(podeExcluirMemoria(elizete, memoria()).ok).toBe(false);
   });
-  it('só quem enviou remove a foto', () => {
+  it('quem enviou e os administradores removem a foto (Administradores podem mais, 16/11/2026)', () => {
     expect(podeRemoverFoto(giovanna, 'giovanna').ok).toBe(true);
-    expect(podeRemoverFoto(gui, 'giovanna').ok).toBe(false);
+    expect(podeRemoverFoto(gui, 'giovanna').ok).toBe(true);
+    expect(podeRemoverFoto(elizete, 'giovanna').ok).toBe(false);
+    expect(podeRemoverFoto(magno, 'giovanna').ok).toBe(false);
   });
 });
 
@@ -123,9 +125,12 @@ describe('cadastro de integrantes e laços', async () => {
   const lucio = { id: 'lucio', nucleos: ['bracarense'], criadoPor: null };
   const amiga = { id: 'amiga', nucleos: [], criadoPor: 'elizete' };
 
-  it('cada pessoa com acesso cuida da própria página, e só ela', () => {
+  it('a página de quem acessa o site: a própria pessoa e os administradores (Administradores podem mais, 16/11/2026)', () => {
     expect(podeEditarIntegrante(elizete, { id: 'elizete', nucleos: ['bayara-nascimento'] }, comAcesso).ok).toBe(true);
-    expect(podeEditarIntegrante(gui, { id: 'elizete', nucleos: ['bayara-nascimento'] }, comAcesso).ok).toBe(false);
+    expect(podeEditarIntegrante(gui, { id: 'elizete', nucleos: ['bayara-nascimento'] }, comAcesso).ok).toBe(true);
+    // Dividir a família não basta
+    expect(podeEditarIntegrante(elizete, { id: 'gui', nucleos: ['bayara-nascimento'] }, comAcesso).ok).toBe(false);
+    expect(podeEditarIntegrante(magno, { id: 'giovanna', nucleos: ['bayara-bracarense'] }, comAcesso).ok).toBe(false);
   });
   it('página de quem não acessa: núcleo em comum, quem cadastrou ou admin', () => {
     expect(podeEditarIntegrante(elizete, voBela, comAcesso).ok).toBe(true);

@@ -44,12 +44,60 @@ export function podeVerMemoria(usuario: Usuario, m: AcessoDaMemoria): boolean {
   return m.nucleos.some((n) => usuario.nucleos.includes(n));
 }
 
-/** Corrigir a ficha ou mudar a visibilidade: quem criou e as pessoas citadas, desde que vejam a memória. */
+/**
+ * O que a pessoa pode corrigir numa memória que vê ("Administradores podem mais", decisão do Gui,
+ * 16/11/2026):
+ * - "tudo": quem criou e as pessoas citadas, como sempre.
+ * - "dados": os administradores, numa memória publicada de que não são autores nem citados. Só os dados
+ *   (data, lugar, tipo de momento, quem estava, capítulos e temas), e não o conteúdo (título, fotos e
+ *   legendas). Remover a foto de outra pessoa é uma regra à parte (podeRemoverFoto).
+ * Quem pode ver continua sendo só de quem criou (podeMudarQuemVe). Ninguém corrige o que não vê.
+ */
+export type AlcanceDaCorrecao = 'tudo' | 'dados';
+export function alcanceDaCorrecao(usuario: Usuario, m: AcessoDaMemoria): AlcanceDaCorrecao | null {
+  if (!podeVerMemoria(usuario, m)) return null;
+  if (m.criadaPor === usuario.pessoa) return 'tudo';
+  if (m.situacao !== 'publicada') return null;
+  if (m.integrantes.includes(usuario.pessoa)) return 'tudo';
+  return usuario.admin ? 'dados' : null;
+}
+
+/** Corrigir a ficha: quem criou, as pessoas citadas e, só nos dados, os administradores, desde que vejam a memória. */
 export function podeEditarMemoria(usuario: Usuario, m: AcessoDaMemoria): Decisao {
   if (!podeVerMemoria(usuario, m)) return nao('Memória não encontrada.');
-  if (m.criadaPor === usuario.pessoa) return sim;
-  if (m.situacao === 'publicada' && m.integrantes.includes(usuario.pessoa)) return sim;
-  return nao('Só quem criou a memória e as pessoas citadas nela podem alterá-la.');
+  if (alcanceDaCorrecao(usuario, m)) return sim;
+  return nao('Só quem criou a memória, as pessoas citadas nela e os administradores podem alterá-la.');
+}
+
+/** O conteúdo de uma memória, que o administrador sem autoria não muda: título, famílias e fotos com as legendas. */
+export interface ConteudoDaMemoria {
+  titulo: string;
+  nucleos: string[];
+  fotos: { id: number; legenda?: string | null; principal: boolean }[];
+}
+
+/**
+ * Numa correção só dos dados, o que mudou no conteúdo, ou nada. Tirar uma foto é permitido (a regra é
+ * podeRemoverFoto), e, sem a principal, outra toma o lugar dela; o resto das fotos fica como estava, na
+ * mesma ordem, com as mesmas legendas. As famílias da memória ficam com quem criou e com quem estava nela.
+ */
+export function mudancaDeConteudo(anterior: ConteudoDaMemoria, pedido: ConteudoDaMemoria): Decisao {
+  const motivo = 'Os administradores corrigem só os dados desta memória: data, lugar, tipo de momento, quem estava, capítulos e temas.';
+  if (pedido.titulo.trim() !== anterior.titulo.trim()) return nao(`${motivo} O título fica com quem criou e com quem estava nela.`);
+  const mesmas = (a: string[], b: string[]) => a.length === b.length && a.every((n) => b.includes(n));
+  if (!mesmas([...new Set(pedido.nucleos)], anterior.nucleos)) return nao(`${motivo} As famílias da memória ficam com quem criou e com quem estava nela.`);
+  const antes = new Map(anterior.fotos.map((f, ordem) => [f.id, { ...f, ordem }]));
+  let ultima = -1;
+  const principalFicou = pedido.fotos.some((f) => antes.get(f.id)?.principal);
+  for (const foto of pedido.fotos) {
+    const era = antes.get(foto.id);
+    if (!era) return nao(`${motivo} Para acrescentar fotos, escreva o seu relato: as fotos dele entram na memória.`);
+    if ((foto.legenda?.trim() || null) !== (era.legenda?.trim() || null)) return nao(`${motivo} As legendas ficam com quem criou e com quem estava nela.`);
+    if (era.ordem < ultima) return nao(`${motivo} A ordem das fotos fica como está.`);
+    ultima = era.ordem;
+    if (principalFicou && foto.principal !== era.principal) return nao(`${motivo} A foto da linha do tempo fica como está.`);
+  }
+  return sim;
 }
 
 /**
@@ -99,9 +147,13 @@ export function podeEscreverRelato(
   return sim;
 }
 
-/** Remover uma foto: só quem enviou. */
+/**
+ * Remover uma foto: quem enviou e os administradores ("Administradores podem mais", 16/11/2026). Quem
+ * chama já conferiu que a pessoa vê a memória. A foto vai para a lixeira, com o nome de quem tirou.
+ */
 export function podeRemoverFoto(usuario: Usuario, enviadaPor: string): Decisao {
-  return enviadaPor === usuario.pessoa ? sim : nao('Só quem enviou a foto pode removê-la.');
+  if (enviadaPor === usuario.pessoa || usuario.admin) return sim;
+  return nao('Só quem enviou a foto e os administradores podem removê-la.');
 }
 
 /**
@@ -127,13 +179,14 @@ const divideNucleo = (usuario: Usuario, integrante: IntegranteParaPermissao) =>
   [...integrante.nucleos, ...(integrante.parenteDe ?? [])].some((n) => usuario.nucleos.includes(n));
 
 /**
- * Editar o cadastro de um integrante.
- * - Quem acessa o site cuida da própria página, e só ela.
+ * Editar o cadastro de um integrante. Quem chama já conferiu que a pessoa logada vê o integrante.
+ * - Quem acessa o site cuida da própria página, e os administradores também ("Administradores podem
+ *   mais", 16/11/2026: pedir à mãe do Gui para editar alguém viraria uma tarefa para ela).
  * - Quem não acessa: membros do núcleo da pessoa ou do núcleo de que ela é parente, quem cadastrou e os admins.
  */
 export function podeEditarIntegrante(usuario: Usuario, integrante: IntegranteParaPermissao, comAcesso: ReadonlySet<string>): Decisao {
-  if (integrante.id === usuario.pessoa) return sim;
-  if (comAcesso.has(integrante.id)) return nao('Só a própria pessoa edita a página dela.');
+  if (integrante.id === usuario.pessoa || usuario.admin) return sim;
+  if (comAcesso.has(integrante.id)) return nao('Só a própria pessoa e os administradores editam a página dela.');
   if (usuario.admin || integrante.criadoPor === usuario.pessoa || divideNucleo(usuario, integrante)) return sim;
   return nao('Só quem é de um núcleo em comum com a pessoa pode editar a página dela.');
 }
@@ -146,6 +199,17 @@ export function podeMexerEmLaco(usuario: Usuario, envolvidos: IntegranteParaPerm
   if (usuario.admin) return sim;
   if (envolvidos.some((e) => e.id === usuario.pessoa || divideNucleo(usuario, e))) return sim;
   return nao('Só quem é de um núcleo em comum com as pessoas envolvidas pode mudar esse laço.');
+}
+
+/**
+ * Mudar ou remover um laço do coração: o dono e, nos laços que veem, os administradores ("Administradores
+ * podem mais", 16/11/2026). O laço "só eu vejo" continua só do dono: o administrador nem o vê. A
+ * proximidade e o "só eu vejo" são do dono: o administrador muda o nome do laço e o lugar na árvore.
+ */
+export function podeMudarLacoDoCoracao(usuario: Usuario, laco: { dono: string; privado: boolean }): Decisao {
+  if (laco.dono === usuario.pessoa) return sim;
+  if (usuario.admin && !laco.privado) return sim;
+  return nao('Só quem definiu o laço e os administradores podem mudá-lo.');
 }
 
 /**

@@ -53,7 +53,7 @@ describe('laços', () => {
     expect(editar).toContain("const FRASE_DO_CASAL = 'O casal some da árvore e das páginas das duas pessoas. Não vai para a lixeira.';");
     // Toda zona de laço começa pela frase
     const zonas = editar.split('<ZonaDePerigo menor nivel={4}>').slice(1);
-    expect(zonas.length).toBe(5);
+    expect(zonas.length).toBe(6);
     for (const zona of zonas) {
       const dentro = zona.slice(0, zona.indexOf('</ZonaDePerigo>'));
       const frase = dentro.includes('casal-remover') ? '{FRASE_DO_CASAL}' : '{FRASE_DO_LACO}';

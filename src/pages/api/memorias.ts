@@ -9,7 +9,7 @@ import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, validarVisibilidade } from '../../lib/servidor/permissoes';
+import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
   atualizarMemoria,
   criarIntegrante,
@@ -198,7 +198,13 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const fotos = pedido.fotos.map((f) => ({ ...f }));
   if (fotos.length > 0 && !fotos.some((f) => f.principal)) fotos[0].principal = true;
 
-  // Fotos que saíram da lista vão para a lixeira, e só quem enviou pode tirá-las
+  // O administrador que não criou a memória nem está nela corrige só os dados (decisão do Gui, 16/11/2026)
+  if (anterior && alcanceDaCorrecao(usuario, anterior) === 'dados') {
+    const conteudo = mudancaDeConteudo(anterior, { titulo: pedido.titulo, nucleos, fotos: pedido.fotos });
+    if (!conteudo.ok) return erro(403, conteudo.motivo);
+  }
+
+  // Fotos que saíram da lista vão para a lixeira; quem tira é quem enviou ou um administrador
   const mantidas = new Set(fotos.map((f) => f.id));
   const removidas = (anterior?.fotos ?? []).filter((f) => !mantidas.has(f.id));
   for (const foto of removidas) {

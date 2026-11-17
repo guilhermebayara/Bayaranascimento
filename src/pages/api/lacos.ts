@@ -3,7 +3,7 @@ import type { APIRoute } from 'astro';
 import { FASES, FASES_JUNTOS, Familia, PAPEIS, nomeDoPapel, PROXIMIDADES, QUALIDADES, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
 import { criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeMexerEmLaco } from '../../lib/servidor/permissoes';
+import { podeMexerEmLaco, podeMudarLacoDoCoracao } from '../../lib/servidor/permissoes';
 import { sugerirFamilias, type LacoNovo } from '../../lib/familias';
 import {
   criarIntegrante,
@@ -17,6 +17,8 @@ import {
   listarIntegrantes,
   listarIntegrantesQueVe,
   removerLacoDoCoracao,
+  listarLacosDoCoracao,
+  mudarLacoDoCoracaoDeOutro,
   salvarLacoDoCoracao,
   obterCasal,
   removerCasal,
@@ -129,6 +131,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
     acao = campo(dados, 'acao', 30);
   }
 
+  // Um administrador muda o laço do coração de outra pessoa, se o vê ("Administradores podem mais",
+  // 16/11/2026): o nome do laço e o lugar na árvore. O laço "só eu vejo" de outra pessoa nem chega aqui.
+  const dono = campo(dados, 'dono', 80);
+  if (acao === 'coracao-salvar' && dono && dono !== usuario.pessoa) {
+    const laco = (await listarLacosDoCoracao(usuario)).find((l) => l.dono === dono && l.pessoa === campo(dados, 'pessoa', 80));
+    if (!laco || !achar(laco.dono) || !achar(laco.pessoa)) return falhar('Laço não encontrado.');
+    const decisao = podeMudarLacoDoCoracao(usuario, laco);
+    if (!decisao.ok) return falhar(decisao.motivo);
+    const nomeDoLaco = campo(dados, 'nomeDoLaco', 40);
+    if (!nomeDoLaco) return falhar('Dê um nome ao laço, como "amigo-irmão" ou "afilhada".');
+    const papelBruto = campo(dados, 'papel', 12);
+    if (papelBruto && !(papelBruto in PAPEIS)) return falhar('Papel desconhecido.');
+    await mudarLacoDoCoracaoDeOutro(laco, { nome: nomeDoLaco, papel: (papelBruto as Papel) || null }, usuario);
+    return voltar(request, volta, { ok: `Laço de ${nome(laco.dono)} com ${nome(laco.pessoa)} salvo.` });
+  }
+
   if (acao === 'coracao-salvar') {
     const pessoa = achar(campo(dados, 'pessoa', 80));
     if (!pessoa) return falhar('Escolha a pessoa.');
@@ -218,7 +236,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   if (acao === 'coracao-remover') {
-    const removido = await removerLacoDoCoracao(usuario, Number(campo(dados, 'id', 12)));
+    // O dono remove o próprio laço; um administrador, o de outra pessoa que ele vê
+    const laco = (await listarLacosDoCoracao(usuario)).find((l) => l.id === Number(campo(dados, 'id', 12)));
+    if (!laco) return falhar('Laço não encontrado.');
+    const decisao = podeMudarLacoDoCoracao(usuario, laco);
+    if (!decisao.ok) return falhar(decisao.motivo);
+    const removido = await removerLacoDoCoracao(laco, usuario);
     return removido ? voltar(request, volta, { ok: 'Laço removido.' }) : falhar('Laço não encontrado.');
   }
 

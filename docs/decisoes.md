@@ -14,20 +14,28 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 |---|---|
 | Criar memória, capítulo ou tema | Qualquer pessoa com acesso. Uma época, só os admins |
 | Editar um capítulo | Quem criou e os admins, desde que vejam o capítulo. Uma época, só os admins, inclusive para transformar um capítulo em época |
-| Corrigir a ficha da memória | Quem criou e as pessoas citadas nela, desde que vejam a memória |
-| Mudar quem pode ver uma memória ou um capítulo | Só quem criou. Quem é citado ainda marca núcleos numa memória aberta a todos, o que não restringe nada |
+| Corrigir a ficha da memória | Quem criou e as pessoas citadas nela, desde que vejam a memória. Os admins corrigem só os dados (data, lugar, tipo, quem estava, capítulos e temas) de uma memória publicada que veem; o título, as fotos, as legendas e as famílias ficam como estão, e eles não restauram versões |
+| Mudar quem pode ver uma memória ou um capítulo | Só quem criou, também quando é um admin que corrige. Quem é citado ainda marca núcleos numa memória aberta a todos, o que não restringe nada |
 | Acrescentar relato a uma memória | Qualquer pessoa que vê a memória, um relato por pessoa |
-| Editar um relato | Só quem escreveu (ou quem registrou, no relato de quem não acessa o site) |
+| Editar um relato | Só quem escreveu (ou quem registrou, no relato de quem não acessa o site). Os admins também não |
 | Registrar relato de quem não acessa o site | Qualquer pessoa que vê a memória, creditada como "registrado por". Cada pessoa pode ter o seu rascunho, que ninguém mais vê; publicado, fica um só |
 | Acrescentar foto | Qualquer pessoa que vê a memória, pelo formulário da memória (quem pode corrigi-la) ou pelo próprio relato |
-| Remover foto | Só quem enviou |
-| Editar a própria página | A própria pessoa |
+| Remover foto | Quem enviou e os admins, numa memória que veem. A foto vai para a lixeira com o nome de quem tirou, e quem enviou a vê no histórico e restaura |
+| Editar a página de quem acessa o site | A própria pessoa e os admins |
 | Editar a página de quem não acessa o site | Quem divide um núcleo com a pessoa, quem a cadastrou e os admins |
 | Criar ou mudar laços de árvore | Os envolvidos, quem divide um núcleo com algum deles e os admins |
-| Criar ou mudar um laço do coração | Só o dono do laço |
+| Criar ou mudar um laço do coração | O dono do laço. Os admins mudam o nome e o lugar na árvore, e removem, os laços que veem; o "só eu vejo", a proximidade e o laço privado continuam só do dono |
 | Excluir memória inteira | Os admins (Gui, Giovanna e Magno), com alerta, e só o que enxergam. Quem escreve um rascunho pode descartá-lo |
 
-A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `testes/`.
+A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `testes/` (o que os admins passaram a poder em 17/11/2026, linha a linha, em `testes/administradores.test.ts`).
+
+**Administradores podem mais** (pedido e decisões do Gui de 16/11/2026, construído em 17/11/2026). Vai haver administradores em todas as famílias (hoje Gui, Giovanna e Magno), e eles arrumam o acervo sem depender de cada pessoa: pedir à mãe do Gui para editar alguém viraria uma tarefa para ela.
+
+- **O administrador nunca edita o que não enxerga.** Ser administrador não faz ninguém ver memória, rascunho, laço ou pessoa que não via. "Todos os laços" são os que ele vê: os laços do coração "só eu vejo" continuam só do dono.
+- **Nunca edita o que outra pessoa escreveu:** o relato continua de quem escreveu ou registrou.
+- **Na memória, só os dados** (`alcanceDaCorrecao` e `mudancaDeConteudo`): numa memória publicada que vê e em que não está, o administrador corrige data, lugar, tipo de momento, quem estava, capítulos e temas. O título, as famílias, as fotos com as legendas, a ordem e a foto da linha do tempo ficam como estão, e a tela mostra isso travado. Ele pode tirar uma foto (a regra da foto), mas não acrescentar: para isso, o próprio relato. Restaurar uma versão traz o título de volta, então fica com quem criou e com quem está na memória.
+- **No laço do coração de outra pessoa,** o administrador muda o nome e o lugar na árvore, e remove. A proximidade e o "só eu vejo" são do dono. Na edição da pessoa, esses laços aparecem em "Laços do coração de outras pessoas", só para os administradores.
+- **Histórico com o nome de quem fez:** a ficha da pessoa e os laços de árvore já guardavam a versão de antes com o autor; o laço do coração passou a guardar também (versões `laco-coracao`, ao mudar e ao remover), e a foto removida guarda quem tirou (`fotos.removida_por`, migração `023`). No histórico da memória, quem enviou vê "removida por Fulano". A correção dos dados aparece como "Fulano alterou", como qualquer correção. O histórico de integrantes e laços ainda não tem tela ("Em aberto").
 
 ## Princípios
 
@@ -108,7 +116,7 @@ Decisão do Gui, 17/11/2026 (P102 do QA de design, `src/lib/audios-de-exemplo.ts
 - O parentesco aparece do ponto de vista de quem está logado ("sua avó"). Laço de consideração é dito com todas as letras ("seu filho de consideração"); adoção não ganha adjetivo. Na própria página, a família e os laços do coração usam o possessivo do mesmo jeito ("sua mãe", "sua vó de consideração"); na página de outra pessoa, o parentesco é o dela ("mãe"). Na edição dos laços, "filho ou filha" só aparece quando "como se referir" não está informado (decisão do Gui, 16/11/2026).
 - Cada integrante tem "como se referir" (ela, ele ou não informar), usado só para escrever os nomes de parentesco.
 - Um casal pode ser marcado como "só os dois veem": aparece para as duas pessoas e para quem cadastrou. Quem não vê esse casal consegue cadastrar o mesmo par normalmente, como um registro público à parte, e nada denuncia o privado; quem vê o privado continua vendo só ele. Se quem vê o privado o tornar público, ele toma o lugar do registro público. A opção "núcleos escolhidos" para casais desfeitos ainda não existe.
-- Quem edita a ficha: a própria pessoa. Para quem não acessa o site, membros do núcleo da pessoa ou do núcleo de que ela é parente, quem cadastrou e os admins.
+- Quem edita a ficha: a própria pessoa e os admins. Para quem não acessa o site, membros do núcleo da pessoa ou do núcleo de que ela é parente, quem cadastrou e os admins.
 - Quem mexe em laços de árvore: os envolvidos, membros do núcleo de algum deles (ou do núcleo de que ele é parente) e os admins.
 - Os laços entram por um formulário só, "Adicionar laço": um seletor escolhe o tipo (filho de, pai de, casal, do coração e, para quem é de fora das famílias, parente de amigo) e mostra os campos daquele tipo. A outra pessoa pode ser da lista ou um nome novo, cadastrado na hora.
 - **Editar laço** (pedido do Gui, 16/11/2026): na edição da pessoa, os laços que já existem vêm primeiro, agrupados por tipo (Pais, Filhos, Casal, Parentes de fora das famílias, Laços do coração), e cada um tem "Editar", que abre os campos dele no próprio lugar: a filiação (biológica ou adotiva), o nome, o lugar na árvore, a proximidade e "só eu vejo" do laço do coração, o parentesco do parente de amigo, as fases do casal. Remover fica dentro da edição, separado e com confirmação. Um laço em edição por vez. "Cancelar", ao lado de "Salvar", fecha o cartão e desfaz o que foi mexido nele. No computador, "Editar" fica na linha do nome, à direita (respostas do Gui, 17/11/2026). Trocar a outra pessoa de um laço ainda é remover e adicionar. "Adicionar laço" fica depois da lista, para a pessoa ver o que existe antes de criar um repetido.
@@ -355,18 +363,6 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     5. **QA visual no celular de verdade:** o que `docs/visual.md` lista em "O que falta", "Da fase 5".
   A polaroid em toda foto-chave fica para o Gui confirmar vendo a linha do tempo. Quando a revisão terminar, `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena.
 - **"Adicionar outro laço" como ação** (decisão do Gui, 17/11/2026, depois do PR #48). Um degrau abaixo de "Laços" ficou quase igual (22 contra 24 px no celular). Ele desce até o tamanho dos outros botões e links de ação do formulário, sem parecer título. Na mesma decisão, o botão do alto da memória com relato em rascunho continua "Continuar meu relato".
-
-- **Administradores podem mais** (pedido do Gui, 16/11/2026, registrado para depois da revisão visual; não foi construído). Vai haver administradores em todas as famílias (hoje Gui, Giovanna e Magno), e eles precisam poder arrumar o acervo sem depender de cada pessoa: pedir à mãe do Gui para editar alguém viraria uma tarefa para ela.
-    - **O que os administradores já podem hoje** ("Quem pode o quê"): editar a página de quem não acessa o site, criar e mudar laços de árvore, excluir memória e restaurar da lixeira.
-    - **O que passam a poder** (decisões do Gui, 16/11/2026):
-        - Editar a página de quem acessa o site (hoje só a própria pessoa).
-        - Remover foto enviada por outra pessoa (hoje só quem enviou).
-        - Corrigir os dados de uma memória de que não são autores nem citados. **Só os dados, e não o conteúdo** (confirmado pelo Gui, 16/11/2026): dados são a data, o lugar, o tipo de momento, quem estava, os capítulos e os temas; conteúdo é o título, as fotos e as legendas. Quem pode ver a memória continua sendo decisão só de quem criou.
-        - Editar todos os laços, de árvore e do coração, e não só os de árvore.
-    - **O que nunca podem:** editar o que outra pessoa escreveu. O relato continua sendo só de quem escreveu (ou de quem registrou, no relato de quem não acessa o site).
-    - **O administrador nunca edita o que não enxerga** (o Gui concordou). Ser administrador não faz ninguém passar a ver memória, laço ou pessoa que hoje não vê.
-    - **"Todos os laços" são todos os que o administrador vê** (confirmado pelo Gui, 16/11/2026). Os laços do coração privados continuam sendo só do dono: o administrador não passa a vê-los nem a editá-los. Vale para qualquer administrador que venha a existir; a princípio são os três (Gui, Giovanna e Magno).
-    - Ao construir: a regra entra em `src/lib/servidor/permissoes.ts`, com teste para cada linha da tabela que mudar; toda mudança feita por administrador em página, laço ou foto de outra pessoa fica no histórico com o nome dele; e a tabela de "Quem pode o quê" é atualizada no mesmo commit. Vai numa branch própria, pelo caminho normal até a homologação.
 
 ## Em aberto
 

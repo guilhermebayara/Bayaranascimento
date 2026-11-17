@@ -583,6 +583,13 @@ export const MIGRACOES: Migracao[] = [
     id: '022-fotos-do-relato',
     sql: [`ALTER TABLE fotos ADD COLUMN relato_id INTEGER REFERENCES relatos(id) ON DELETE SET NULL`, `CREATE INDEX IF NOT EXISTS fotos_do_relato ON fotos (relato_id)`],
   },
+  {
+    // Administradores podem mais (decisão do Gui, 16/11/2026): toda mudança feita por um administrador
+    // em foto de outra pessoa fica no histórico com o nome dele. Até aqui só quem enviou tirava a foto;
+    // agora a foto removida guarda quem tirou. Vazio nas antigas: foi quem enviou.
+    id: '023-quem-removeu-a-foto',
+    sql: [`ALTER TABLE fotos ADD COLUMN removida_por TEXT REFERENCES integrantes(id)`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

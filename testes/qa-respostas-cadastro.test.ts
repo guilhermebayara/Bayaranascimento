@@ -58,7 +58,8 @@ describe('editar página e laços', () => {
   });
   it('P115: todo editor de laço tem "Cancelar" ao lado de "Salvar", que só aparece com script', () => {
     const editores = editar.match(/<div class="editar__caixa">/g)?.length ?? 0;
-    expect(editores).toBe(5);
+    // Seis editores: o sexto é o do laço do coração de outra pessoa, para os administradores
+    expect(editores).toBe(6);
     expect(editar.match(/data-editar-cancelar hidden>Cancelar<\/button>/g)?.length).toBe(editores);
     expect(editar).toContain('formulario.reset();');
     expect(editar).toContain("edicao.querySelector('summary')?.focus();");
@@ -73,7 +74,7 @@ describe('editar página e laços', () => {
     expect(quieta).toContain('border-top: var(--traco) solid var(--alerta);');
     expect(quieta).toContain('background: none;');
     expect(regra('.pagina-de-formulario .perigo--menor:has(.confirmar[open])')).toContain('border: var(--traco) solid var(--alerta);');
-    expect(editar.match(/<ZonaDePerigo menor nivel=\{4\}>/g)?.length).toBe(5);
+    expect(editar.match(/<ZonaDePerigo menor nivel=\{4\}>/g)?.length).toBe(6);
   });
   it('P118: no retrato, a ação se chama "Remover foto"', () => {
     expect(retrato).toContain('data-tirar-retrato hidden={!i?.retrato}>Remover foto</button>');
