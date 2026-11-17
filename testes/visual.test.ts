@@ -397,6 +397,24 @@ describe('conceito', () => {
     // "Só as fotos" e a tela cheia, para deixar passando na sala; a tela cheia só onde o navegador tem
     expect(palco).toMatch(/cheia\.hidden = !document\.fullscreenEnabled;/);
     expect(ler('telas/explorar.css')).toMatch(/\.palco\[data-so-fotos\] \.palco__texto\s*\{\s*display:\s*none/);
+    // "Só as fotos" tem caminho de volta (defeito achado pelo Gui, 17/11/2026). O botão "Mostrar o
+    // texto" existe na linha dos passos, e o script o mostra e põe o foco nele
+    expect(palco).toMatch(/<button type="button" class="botao palco__volta" data-palco-mostrar-texto hidden>\s*Mostrar o texto/);
+    expect(palco).toMatch(/volta\.hidden = !soFotos;/);
+    expect(palco).toMatch(/if \(focar\) atual\.querySelector<HTMLElement>\('\[data-palco-mostrar-texto\]'\)\?\.focus/);
+    // Teclado, toque e mouse passam pela mesma regra (reacaoEmSoFotos, testada em explorar.test.ts)
+    expect(palco).toMatch(/reacaoEmSoFotos\(\{ tipo: 'tecla', tecla: evento\.key \}, controles\)/);
+    expect(palco).toMatch(/reacaoEmSoFotos\(\{ tipo: 'toque' \}, controles\)/);
+    expect(palco).toMatch(/addEventListener\('mousemove'/);
+    expect(palco).toMatch(/if \(reacao === 'voltar-ao-texto'\) \{\s*evento\.preventDefault\(\);\s*return trocarSoFotos\(false\);/);
+    // Os controles somem sozinhos, e o foco do teclado nunca fica num controle escondido: escondidos,
+    // eles saem da ordem do teclado (visibility) e quem tinha o foco o perde
+    expect(palco).toMatch(/setTimeout\(esconderControles, SEGUNDOS_DOS_CONTROLES \* 1000\)/);
+    expect(palco).toMatch(/atual\.contains\(ativo\)\) ativo\.blur\(\);/);
+    expect(palco).toMatch(/if \(!escondidos\(\)\) \(noMesmoAjuste/);
+    expect(ler('telas/explorar.css')).toMatch(/\.palco\[data-so-fotos\]:not\(\[data-controles\]\) :is\(\.palco__topo, \.palco__controles\)\s*\{\s*visibility:\s*hidden;/);
+    // A tela de "Só as fotos" não rola: os controles voltam dentro dela, e não abaixo da dobra
+    expect(ler('telas/explorar.css')).toMatch(/\.palco\[data-so-fotos\]\s*\{\s*height:\s*100svh;/);
     // No Álbum, as fotos que saem não repetem a chegada (achado do Gui: pareciam fotos que nunca paravam)
     expect(ler('telas/explorar.css')).toMatch(/\.palco \.palco__fotos--saindo :is\(\.palco__principal, \.palco__extra\)\s*\{\s*animation:\s*none !important/);
     expect(palco).toMatch(/catch \{\s*location\.assign\(href\);/);

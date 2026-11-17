@@ -360,3 +360,28 @@ export function vizinhasNaLista<M extends { id: string }>(memorias: M[], id: str
   if (posicao < 0) return { posicao };
   return { posicao, antes: memorias[posicao - 1], depois: memorias[posicao + 1] };
 }
+
+/**
+ * "Só as fotos", no modo TV: os controles ficam escondidos, e sempre há caminho de volta (defeito
+ * achado pelo Gui, 17/11/2026: depois de "Só as fotos" não dava para voltar ao texto nem chegar aos
+ * ajustes). O que cada gesto faz nesse modo:
+ *
+ * - Esc volta ao modo com texto, sempre;
+ * - as setas para os lados continuam trocando de memória, sem mostrar os controles;
+ * - qualquer outro gesto (toque, clique, movimento do mouse, Enter, seta para cima, qualquer botão do
+ *   controle da TV) traz os controles de volta por alguns segundos, com "Mostrar o texto" em destaque;
+ * - com os controles à vista, o gesto faz o que sempre fez, e o tempo deles na tela recomeça.
+ */
+export type GestoNoPalco = { tipo: 'tecla'; tecla: string } | { tipo: 'toque' } | { tipo: 'mouse' };
+export type ReacaoEmSoFotos = 'voltar-ao-texto' | 'passar' | 'mostrar-controles' | 'seguir';
+
+export function reacaoEmSoFotos(gesto: GestoNoPalco, controlesAVista: boolean): ReacaoEmSoFotos {
+  if (gesto.tipo === 'tecla') {
+    if (gesto.tecla === 'Escape') return 'voltar-ao-texto';
+    if (gesto.tecla === 'ArrowLeft' || gesto.tecla === 'ArrowRight') return 'passar';
+  }
+  return controlesAVista ? 'seguir' : 'mostrar-controles';
+}
+
+/** Quanto tempo os controles ficam na tela, em "Só as fotos", depois do último gesto. */
+export const SEGUNDOS_DOS_CONTROLES = 5;

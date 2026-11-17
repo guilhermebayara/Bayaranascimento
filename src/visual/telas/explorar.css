@@ -449,12 +449,89 @@
 .palco__opcoes button[aria-pressed='true'] {
   color: var(--tinta);
 }
-/* "Só as fotos": somem o título, o trecho e os dados, e as fotos ficam com a tela */
+/* Os controles são um grupo só. Fora de "Só as fotos", o grupo não existe para a grade: os passos
+   e os ajustes continuam cada um no seu lugar. */
+.palco__controles {
+  display: contents;
+}
+.palco__volta[hidden] {
+  display: none;
+}
+/* "Só as fotos": somem o título, o trecho e os dados, e as fotos ficam com a tela. A tela é uma
+   só, sem rolagem: os controles viram uma barra no pé, que some e volta. */
+.palco[data-so-fotos] {
+  height: 100svh;
+  min-height: 0;
+  padding-bottom: 0;
+  overflow: clip;
+}
 .palco[data-so-fotos] .palco__texto {
   display: none;
 }
+.palco[data-so-fotos] .palco__cena {
+  align-content: center;
+}
 .palco[data-so-fotos] .palco__fotos {
   --foto: min(70vw, 52svh);
+}
+.palco[data-so-fotos] .palco__controles {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  gap: var(--e-2);
+  max-height: 100%;
+  padding: var(--e-4) var(--margem) var(--e-5);
+  background: color-mix(in srgb, var(--tipo-pastel, var(--pastel)) 94%, transparent);
+  overflow-y: auto;
+}
+.palco[data-so-fotos] :is(.palco__passos, .palco__ajustes) {
+  grid-area: auto;
+  align-self: auto;
+  justify-self: center;
+  justify-content: center;
+  justify-items: center;
+  padding-top: 0;
+}
+.palco[data-so-fotos] :is(.palco__ajuste, .palco__opcoes) {
+  justify-items: center;
+  justify-content: center;
+}
+/* "Mostrar o texto" é o destaque da barra: "Próxima" vira ação de texto enquanto ele está ali */
+.palco[data-so-fotos] .palco__passos a.botao {
+  min-height: var(--toque);
+  transition: none;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.3em;
+}
+.palco[data-so-fotos] .palco__passos a.botao::after {
+  content: none;
+}
+/* Escondidos, os controles saem da tela e da ordem do teclado (visibility), e o cursor some com
+   eles. Qualquer toque, clique, movimento do mouse ou tecla os traz de volta por alguns segundos
+   (data-controles, posto pelo script do palco). Com movimento reduzido, base.css tira a transição
+   e eles aparecem de uma vez. */
+.palco[data-so-fotos] :is(.palco__topo, .palco__controles) {
+  transition:
+    opacity var(--tempo-medio) var(--curva),
+    visibility 0s;
+}
+.palco[data-so-fotos]:not([data-controles]) :is(.palco__topo, .palco__controles) {
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--tempo-medio) var(--curva),
+    visibility 0s linear var(--tempo-medio);
+}
+.palco[data-so-fotos]:not([data-controles]),
+.palco[data-so-fotos]:not([data-controles]) .palco__principal {
+  cursor: none;
 }
 .palco__opcoes a:hover {
   color: var(--tinta);
@@ -766,23 +843,10 @@
   .palco__titulo {
     font-size: calc(var(--t-titulo-1) * 0.62);
   }
-  /* "Só as fotos": as fotos no meio da tela, grandes, e os controles embaixo, pequenos */
+  /* "Só as fotos": as fotos no meio da tela, grandes */
   .palco[data-so-fotos] .palco__fotos {
-    --foto: min(34vw, (100svh - 10rem) / 1.5);
-    grid-area: 1 / 1 / 2 / -1;
-  }
-  .palco[data-so-fotos] .palco__passos {
-    grid-area: 2 / 1 / 3 / -1;
-    justify-content: center;
-  }
-  .palco[data-so-fotos] .palco__ajustes {
-    grid-area: 3 / 1 / 4 / -1;
-    justify-self: center;
-    justify-items: center;
-  }
-  .palco[data-so-fotos] :is(.palco__ajuste, .palco__opcoes) {
-    justify-items: center;
-    justify-content: center;
+    --foto: min(34vw, (100svh - 8rem) / 1.5);
+    grid-area: 1 / 1 / 4 / -1;
   }
 }
 
