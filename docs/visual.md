@@ -82,7 +82,7 @@ A faixa do alto (só nas prévias e no computador) troca de tela, de combinaçã
 
 **Código.** O CSS novo está em `src/visual/` e não importa nada de `src/styles/global.css`: `tokens.css`, `fontes.css`, `base.css`, `pecas.css`, `estrutura.css` e um arquivo por tela em `telas/`. O esqueleto é `src/layouts/Visual.astro`, as peças com marcação própria ficam em `src/components/visual/` (a foto revelada, a assinatura, os ícones dos tipos e os rabiscos) e as funções puras em `src/lib/visual.ts`. Os testes estão em `testes/visual.test.ts`: cor só em `tokens.css`, fonte só em `fontes.css`, nenhum token antigo, toque de 44 px, e nada preso à rolagem além da barra de décadas e do ano.
 
-**Combinações de fontes para escolher** (todas de licença livre, pelo Fontsource, com acentos e itálico conferidos em português). Ainda sem escolha:
+**Combinações de fontes para escolher** (todas de licença livre, pelo Fontsource, com acentos e itálico conferidos em português). **Escolhida a C, De cartaz** (decisão do Gui, 17/11/2026). As três continuam na página do sistema, com um seletor, para comparar se a decisão mudar:
 
 | | Serifa | Grotesca | Mono | Manuscrita | Caráter |
 | --- | --- | --- | --- | --- | --- |
