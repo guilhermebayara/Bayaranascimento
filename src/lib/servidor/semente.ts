@@ -1256,3 +1256,32 @@ export async function semearDeQuemDeExemplo(db: D1Database): Promise<void> {
   if (!existe) return;
   await db.prepare(`INSERT OR IGNORE INTO capitulo_pessoas (capitulo_id, integrante_id) VALUES ('infancia-da-giovanna', 'giovanna')`).run();
 }
+
+// Painel pessoal (migração 020): aniversários de exemplo, um parente por mês, para sempre haver algum
+// nos próximos 30 dias nas prévias. Só preenche quem ainda não tem mês de nascimento.
+const ANIVERSARIOS_DE_EXEMPLO: [string, number, number][] = [
+  ['ex-tia-lourdes', 1, 12],
+  ['ex-tio-jorge', 2, 29],
+  ['ex-prima-carol', 3, 8],
+  ['ex-davi', 4, 21],
+  ['ex-lia', 5, 3],
+  ['ex-primo-rafa', 6, 17],
+  ['ex-tio-paulo', 7, 25],
+  ['ex-luisa', 8, 9],
+  ['ex-bruno', 9, 14],
+  ['ex-dudu', 10, 30],
+  ['ex-tia-cida', 11, 19],
+  ['ex-prima-julia', 12, 28],
+  ['ex-vo-tonho', 12, 5],
+  ['ex-mel', 6, 2],
+];
+
+export async function semearAniversariosDeExemplo(db: D1Database): Promise<void> {
+  const ja = await db.prepare(`SELECT 1 AS ok FROM integrantes WHERE id LIKE 'ex-%' AND nascimento_mes IS NOT NULL LIMIT 1`).first();
+  if (ja) return;
+  await db.batch(
+    ANIVERSARIOS_DE_EXEMPLO.map(([id, mes, dia]) =>
+      db.prepare('UPDATE integrantes SET nascimento_mes = ?, nascimento_dia = ? WHERE id = ? AND nascimento_mes IS NULL').bind(mes, dia, id),
+    ),
+  );
+}

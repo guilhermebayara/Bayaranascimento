@@ -28,6 +28,10 @@ No projeto `bayaranascimento` → Settings:
 
 Para dar acesso a mais alguém: acrescentar o e-mail na política do Access e no segredo `ACESSOS`.
 
+### Duração do login
+
+Quanto tempo a pessoa fica logada é do Cloudflare Access, fora do site. O Gui quer o máximo (17/11/2026), para a família não precisar pedir código toda hora. No painel Zero Trust, em Access → Applications, abra a aplicação da produção, depois a "memorias homologa", e em "Session Duration" escolha o maior valor da lista (um mês). Se a conta tiver um limite geral de sessão (em Settings → Authentication), ele também precisa ser o máximo. Não gera custo.
+
 ## Rodar no computador
 
 ```sh

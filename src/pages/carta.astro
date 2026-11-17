@@ -1,0 +1,29 @@
+---
+// A carta de Natal, depois da primeira visita: o link discreto do painel leva até aqui.
+import Base from '../layouts/Base.astro';
+import { saudacao } from '../lib/painel';
+import { listarIntegrantes, obterCarta } from '../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const carta = await obterCarta();
+const eu = (await listarIntegrantes()).find((i) => i.id === usuario.pessoa);
+const paragrafos = (texto: string) => texto.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+---
+
+<Base titulo="Carta de Natal">
+  {
+    carta && eu ? (
+      <section class="painel" aria-labelledby="saudacao">
+        <h1 id="saudacao">{saudacao(eu.apelido ?? eu.nome)}</h1>
+        {paragrafos(carta.texto).map((p) => <p>{p}</p>)}
+        <p>{carta.assinatura}</p>
+      </section>
+    ) : (
+      <p class="vazio">A carta ainda não foi escrita.</p>
+    )
+  }
+  <p class="acoes">
+    <a href="/">Voltar ao início</a>
+    {usuario.admin && <a href="/admin/carta">Escrever a carta</a>}
+  </p>
+</Base>
