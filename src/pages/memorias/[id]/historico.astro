@@ -3,7 +3,7 @@
 import Pagina from '../../../components/formularios/Pagina.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { formatarData, formatarMomento } from '../../../lib/datas';
-import { podeEditarMemoria, podeVerVersao } from '../../../lib/servidor/permissoes';
+import { alcanceDaCorrecao, podeVerVersao } from '../../../lib/servidor/permissoes';
 import { listarFotosRemovidas, listarIntegrantes, listarRelatos, listarVersoes, obterMemoria, pessoasQueONaoVe, type Memoria, type Relato } from '../../../lib/servidor/repositorio';
 import { tipoDaMemoria } from '../../../lib/tipos';
 
@@ -19,7 +19,9 @@ const nome = (id: string) => {
 };
 // Quem só existe num laço privado de outra pessoa não aparece nas versões (C1, 17/11/2026)
 const naoVe = await pessoasQueONaoVe(usuario);
-const podeRestaurar = podeEditarMemoria(usuario, memoria).ok;
+// Restaurar traz o título de volta, e o título é conteúdo: o administrador que corrige só os dados não
+// restaura versões ("Administradores podem mais", 16/11/2026)
+const podeRestaurar = alcanceDaCorrecao(usuario, memoria) === 'tudo';
 
 const ficha = (m: Memoria) => ({
   título: m.titulo,
@@ -126,14 +128,14 @@ const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0
   {
     minhasFotos.length > 0 && (
       <section class="painel">
-        <h2>Fotos que você tirou desta memória</h2>
+        <h2>Suas fotos que saíram desta memória</h2>
         <ul class="linhas linhas--fotos">
           {minhasFotos.map((f) => (
             <li>
               <img src={`/fotos/${f.chave}`} alt={f.legenda ?? ''} loading="lazy" />
               <div>
                 <strong>{f.legenda ?? 'Sem legenda'}</strong>
-                <span>removida em {formatarMomento(f.removidaEm)}</span>
+                <span>{f.removidaPor !== usuario.pessoa ? `removida por ${nome(f.removidaPor)} em` : 'removida em'} {formatarMomento(f.removidaEm)}</span>
               </div>
               <form method="post" action="/api/lixeira" class="em-linha">
                 <input type="hidden" name="acao" value="restaurar-foto" />

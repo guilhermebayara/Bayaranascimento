@@ -10,7 +10,7 @@ import { Familia } from '../lib/parentesco';
 import { TIPO_OUTRO } from '../lib/tipos';
 import { estiloDoTipo, legendaLugarAno } from '../lib/visual';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
-import { podeEditarMemoria, podeExcluirMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
+import { alcanceDaCorrecao, podeEditarMemoria, podeExcluirMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
 import ZonaDePerigo from '../components/visual/ZonaDePerigo.astro';
 import { familiasDe, listarAudiosDosRelatos, listarCapitulos, listarCasais, listarMemorias, listarFiliacoes, listarIntegrantes, listarIntegrantesQueVe, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
 
@@ -30,7 +30,10 @@ const todosOsIntegrantes = await listarIntegrantes();
 const integrantes = await listarIntegrantesQueVe(usuario);
 // Só quem criou muda quem pode ver. Para quem é citado, as opções ficam travadas com o valor atual.
 const travaQuemVe = Boolean(memoria) && memoria!.criadaPor !== usuario.pessoa;
-const travaNucleos = travaQuemVe && memoria!.visibilidade === 'nucleos';
+// O administrador que não criou a memória nem está nela corrige só os dados: o título, as famílias, as
+// fotos e as legendas ficam como estão, e ele só pode tirar fotos ("Administradores podem mais", 16/11/2026)
+const soDados = Boolean(memoria) && alcanceDaCorrecao(usuario, memoria!) === 'dados';
+const travaNucleos = travaQuemVe && (memoria!.visibilidade === 'nucleos' || soDados);
 const criadora = travaQuemVe ? todosOsIntegrantes.find((i) => i.id === memoria!.criadaPor) : undefined;
 const quemCriou = criadora ? comArtigo(criadora) : 'quem criou';
 const comAcesso = await pessoasComAcesso();
@@ -94,7 +97,9 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 <Pagina titulo={titulo} rotulo={publicada ? 'Memória publicada' : memoria ? 'Rascunho' : undefined} nucleos={memoria?.nucleos} secao="nova">
   <p slot="abertura">
     {
-      publicada
+      soDados
+        ? 'Como administrador, você corrige os dados desta memória: data, lugar, tipo de momento, quem estava, capítulos e temas. O título, as fotos e quem pode ver ficam com quem criou e com quem estava nela.'
+        : publicada
         ? 'Ajuste a ficha, as fotos ou quem pode ver. Os relatos não mudam por aqui: cada pessoa cuida do seu.'
         : `Olá, ${usuario.nome}. Conte o que aconteceu, do seu jeito. Só o título e o ano são obrigatórios, e dá para salvar como rascunho a qualquer momento.`
     }
@@ -121,8 +126,9 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       <legend>O que aconteceu?</legend>
       <label class="campo">
         <span>Título</span>
-        <input type="text" name="titulo" required maxlength="120" autocomplete="off" value={memoria?.titulo ?? ''} placeholder="Ex.: Casamento da Giovanna" />
+        <input type="text" name="titulo" required maxlength="120" autocomplete="off" value={memoria?.titulo ?? ''} placeholder="Ex.: Casamento da Giovanna" readonly={soDados} aria-describedby={soDados ? 'titulo-so-dados' : undefined} />
       </label>
+      {soDados && <p class="dica" id="titulo-so-dados">O título fica com quem criou e com quem estava na memória.</p>}
       <div class="campo">
         <span id="rotulo-tipo">Que tipo de momento foi?</span>
         {/* Começa sem marcação: marcado por padrão, um aniversário passava como dia a dia (decisão do Gui, 16/11/2026) */}
@@ -214,10 +220,16 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     <fieldset>
       {/* A legenda em pergunta, como as outras etapas (resposta do Gui à P141 do QA de design, 17/11/2026) */}
       <legend>Tem fotos desse dia?</legend>
-      <p class="dica">Escolha as fotos desse momento. Você pode escrever uma legenda para cada uma.</p>
-      <label class="botao botao--leve botao--arquivo">
+      {
+        soDados ? (
+          <p class="dica">As fotos e as legendas ficam com quem criou e com quem estava na memória. Como administrador, você pode tirar uma foto: ela vai para a lixeira, com o seu nome. Para acrescentar fotos, escreva o seu relato.</p>
+        ) : (
+          <p class="dica">Escolha as fotos desse momento. Você pode escrever uma legenda para cada uma.</p>
+        )
+      }
+      <label class="botao botao--leve botao--arquivo" hidden={soDados}>
         Escolher fotos
-        <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
+        <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" disabled={soDados} />
       </label>
       <ul class="fotos-enviadas" data-fotos>
         {
@@ -227,10 +239,10 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
               <div class="foto-enviada__campos">
                 <label class="campo">
                   <span>Legenda</span>
-                  <input type="text" data-legenda maxlength="200" value={foto.legenda ?? ''} />
+                  <input type="text" data-legenda maxlength="200" value={foto.legenda ?? ''} readonly={soDados} />
                 </label>
                 <label class="marcar">
-                  <input type="radio" name="fotoPrincipal" value={foto.id} checked={foto.principal} />
+                  <input type="radio" name="fotoPrincipal" value={foto.id} checked={foto.principal} disabled={soDados} />
                   <span>Usar na linha do tempo</span>
                 </label>
                 {podeRemoverFoto(usuario, foto.enviadaPor).ok ? (
@@ -238,7 +250,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
                     Remover foto
                   </button>
                 ) : (
-                  <p class="dica">Só quem enviou pode remover.</p>
+                  <p class="dica">Só quem enviou e os administradores podem remover.</p>
                 )}
               </div>
             </li>

@@ -11,7 +11,7 @@ import CampoData from '../../../components/CampoData.astro';
 import { formatarData } from '../../../lib/datas';
 import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
-import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
+import { podeEditarIntegrante, podeMexerEmLaco, podeMudarLacoDoCoracao } from '../../../lib/servidor/permissoes';
 import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -50,6 +50,11 @@ const outros = integrantes.filter((i) => i.id !== pessoa.id).sort((a, b) => a.no
 const lacosDoCoracao = await listarLacosDoCoracao(usuario);
 // Na própria página, todos os laços da pessoa. Na página de outra, só o laço com ela.
 const meusLacos = lacosDoCoracao.filter((l) => l.dono === usuario.pessoa && (ehMinha || l.pessoa === pessoa.id));
+// Os administradores mudam os laços do coração de outras pessoas que veem ("Administradores podem mais",
+// 16/11/2026): os desta pessoa e os de outras com ela. O "só eu vejo" de outra pessoa nem chega aqui.
+const lacosDeOutros = lacosDoCoracao.filter(
+  (l) => l.dono !== usuario.pessoa && (l.dono === pessoa.id || l.pessoa === pessoa.id) && podeMudarLacoDoCoracao(usuario, l).ok && integrantes.some((i) => i.id === l.dono) && integrantes.some((i) => i.id === l.pessoa),
+);
 // Laço resumido: só entre pessoas de fora das famílias (ver api/lacos.ts)
 const deFora = familiasDe(pessoa).length === 0;
 const resumidos = (await listarLacosResumidos()).filter((l) => l.a === pessoa.id || l.b === pessoa.id);
@@ -719,6 +724,56 @@ const FRASE_DO_CASAL = 'O casal some da árvore e das páginas das duas pessoas.
                       <input type="hidden" name="volta" value={volta} />
                       <input type="hidden" name="id" value={l.id} />
                       <ConfirmarRemocao rotulo="Remover este laço" pergunta={`Remover o seu laço do coração com ${nome(l.pessoa)}?`} acao="coracao-remover" />
+                    </form>
+                    </ZonaDePerigo>
+                  </div>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      lacosDeOutros.length > 0 && (
+        <section class="grupo-de-lacos">
+          <h3>Laços do coração de outras pessoas</h3>
+          <p class="dica">Como administrador, você muda o nome do laço e o lugar na árvore. A proximidade e o “só eu vejo” ficam com quem definiu o laço. A mudança fica guardada com o seu nome.</p>
+          <ul class="lacos">
+            {lacosDeOutros.map((l) => (
+              <li class="laco">
+                <p class="laco__linha">
+                  <strong>{nome(l.pessoa)}</strong>
+                  <span>{[`${l.nome} de ${nome(l.dono)}`, l.papel && `como se fosse ${PAPEIS[l.papel]}`].filter(Boolean).join(', ')}</span>
+                </p>
+                <details class="editar" data-editar>
+                  <summary class="botao botao--leve">Editar</summary>
+                  <div class="editar__caixa">
+                    <form method="post" action="/api/lacos">
+                      <input type="hidden" name="volta" value={volta} />
+                      <input type="hidden" name="acao" value="coracao-salvar" />
+                      <input type="hidden" name="dono" value={l.dono} />
+                      <input type="hidden" name="pessoa" value={l.pessoa} />
+                      <label class="campo">
+                        <span>Nome do laço</span>
+                        <input type="text" name="nomeDoLaco" maxlength="40" autocomplete="off" required value={l.nome} />
+                      </label>
+                      <label class="campo">
+                        <span>Lugar na árvore</span>
+                        <select name="papel">
+                          <option value="">Não aparece na árvore</option>
+                          {papeis.map(([id, rotulo]) => <option value={id} selected={id === l.papel}>Como se fosse {rotulo}</option>)}
+                        </select>
+                      </label>
+                      <div class="acoes"><button class="botao" type="submit">Salvar</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
+                    </form>
+                    <ZonaDePerigo menor nivel={4}>
+                    <p>{FRASE_DO_LACO}</p>
+                    <form method="post" action="/api/lacos" class="editar__remover">
+                      <input type="hidden" name="volta" value={volta} />
+                      <input type="hidden" name="id" value={l.id} />
+                      <ConfirmarRemocao rotulo="Remover este laço" pergunta={`Remover o laço do coração de ${nome(l.dono)} com ${nome(l.pessoa)}?`} acao="coracao-remover" />
                     </form>
                     </ZonaDePerigo>
                   </div>

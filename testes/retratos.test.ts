@@ -27,10 +27,10 @@ const magno: Usuario = { pessoa: 'lucas-magno', nome: 'Lucas Magno', admin: fals
 const comAcesso = new Set(['gui', 'giovanna', 'elizete', 'lucas-magno']);
 
 describe('quem pode pôr e trocar o retrato', () => {
-  it('quem acessa o site: só a própria pessoa', () => {
+  it('quem acessa o site: a própria pessoa e os administradores (Administradores podem mais, 16/11/2026)', () => {
     expect(podeMudarRetrato(elizete, { id: 'elizete', nucleos: ['bayara-nascimento'] }, comAcesso).ok).toBe(true);
-    // Nem quem divide o núcleo, nem os admins
-    expect(podeMudarRetrato(gui, { id: 'elizete', nucleos: ['bayara-nascimento'] }, comAcesso).ok).toBe(false);
+    expect(podeMudarRetrato(gui, { id: 'elizete', nucleos: ['bayara-nascimento'] }, comAcesso).ok).toBe(true);
+    // Quem divide o núcleo, não
     expect(podeMudarRetrato(magno, { id: 'giovanna', nucleos: ['bayara-bracarense'] }, comAcesso).ok).toBe(false);
   });
 

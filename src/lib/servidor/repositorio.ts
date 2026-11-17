@@ -480,10 +480,28 @@ export async function salvarLacoDoCoracao(
     .run();
 }
 
-/** Só o dono remove o próprio laço. */
-export async function removerLacoDoCoracao(usuario: Usuario, id: number): Promise<boolean> {
-  const resultado = await db().prepare('DELETE FROM lacos_coracao WHERE id = ? AND dono_id = ?').bind(id, usuario.pessoa).run();
-  return (resultado.meta.changes ?? 0) > 0;
+/**
+ * Remove um laço do coração que quem chama já pode mudar (podeMudarLacoDoCoracao). A versão de antes
+ * fica guardada com o nome de quem removeu: o dono ou um administrador.
+ */
+export async function removerLacoDoCoracao(laco: LacoDoCoracao, usuario: Usuario): Promise<boolean> {
+  const [, resultado] = await db().batch([
+    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) SELECT 'laco-coracao', CAST(id AS TEXT), json_object('dono', dono_id, 'pessoa', pessoa_id, 'nome', nome, 'papel', papel, 'proximidade', proximidade, 'privado', privado), ? FROM lacos_coracao WHERE id = ?`).bind(usuario.pessoa, laco.id),
+    db().prepare('DELETE FROM lacos_coracao WHERE id = ?').bind(laco.id),
+  ]);
+  return ((resultado as { meta?: { changes?: number } })?.meta?.changes ?? 0) > 0;
+}
+
+/**
+ * Um administrador muda o laço do coração de outra pessoa ("Administradores podem mais", 16/11/2026):
+ * só o nome do laço e o lugar na árvore. A proximidade e o "só eu vejo" continuam do dono. A versão de
+ * antes fica guardada com o nome de quem mudou.
+ */
+export async function mudarLacoDoCoracaoDeOutro(laco: LacoDoCoracao, dados: { nome: string; papel: Papel | null }, usuario: Usuario): Promise<void> {
+  await db().batch([
+    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) SELECT 'laco-coracao', CAST(id AS TEXT), json_object('dono', dono_id, 'pessoa', pessoa_id, 'nome', nome, 'papel', papel, 'proximidade', proximidade, 'privado', privado), ? FROM lacos_coracao WHERE id = ?`).bind(usuario.pessoa, laco.id),
+    db().prepare('UPDATE lacos_coracao SET nome = ?, papel = ? WHERE id = ?').bind(dados.nome, dados.papel, laco.id),
+  ]);
 }
 
 // --- Tipos de momento ---
@@ -786,7 +804,7 @@ export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria,
       )
       .bind(dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.tipoOutro ?? null, dados.lugar ?? null, dados.visibilidade, dados.situacao, anterior.id),
     marcarPublicacao(anterior.id),
-    ...fotosRemovidas.map((id) => db().prepare(`UPDATE fotos SET removida_em = datetime('now') WHERE id = ?`).bind(id)),
+    ...fotosRemovidas.map((id) => db().prepare(`UPDATE fotos SET removida_em = datetime('now'), removida_por = ? WHERE id = ?`).bind(usuario.pessoa, id)),
     ...comandosDeLigacao(anterior.id, dados),
   ]);
 }
@@ -995,7 +1013,7 @@ export interface Versao<T> {
 }
 
 /** Versões anteriores de um item, da mais recente para a mais antiga. */
-export async function listarVersoes<T>(tipo: 'memoria' | 'relato', itemId: string): Promise<Versao<T>[]> {
+export async function listarVersoes<T>(tipo: 'memoria' | 'relato' | 'laco-coracao', itemId: string): Promise<Versao<T>[]> {
   const { results } = await db()
     .prepare('SELECT id, dados, autor, criada_em FROM versoes WHERE tipo = ? AND item_id = ? ORDER BY id DESC LIMIT 50')
     .bind(tipo, itemId)
@@ -1003,8 +1021,8 @@ export async function listarVersoes<T>(tipo: 'memoria' | 'relato', itemId: strin
   return results.map((v) => ({ id: v.id as number, dados: JSON.parse(v.dados as string) as T, autor: v.autor as string, criadaEm: v.criada_em as string }));
 }
 
-/** Fotos tiradas de uma memória, que ainda podem voltar. */
-export async function listarFotosRemovidas(memoriaId: string): Promise<(Foto & { removidaEm: string })[]> {
+/** Fotos tiradas de uma memória, que ainda podem voltar, com quem tirou (vazio nas antigas: foi quem enviou). */
+export async function listarFotosRemovidas(memoriaId: string): Promise<(Foto & { removidaEm: string; removidaPor: string })[]> {
   const { results } = await db()
     .prepare('SELECT * FROM fotos WHERE memoria_id = ? AND removida_em IS NOT NULL ORDER BY removida_em DESC')
     .bind(memoriaId)
@@ -1017,6 +1035,7 @@ export async function listarFotosRemovidas(memoriaId: string): Promise<(Foto & {
     enviadaPor: f.enviada_por as string,
     relatoId: (f.relato_id as number | null) ?? null,
     removidaEm: f.removida_em as string,
+    removidaPor: (f.removida_por as string | null) ?? (f.enviada_por as string),
   }));
 }
 
@@ -1117,8 +1136,8 @@ export async function ligarFotosDoRelato(
   await db().batch([
     db()
       .prepare(
-        `UPDATE fotos SET removida_em = datetime('now') WHERE relato_id = ? AND removida_em IS NULL AND enviada_por = ?
-         AND id NOT IN (SELECT value FROM json_each(?))`,
+        `UPDATE fotos SET removida_em = datetime('now'), removida_por = ?2 WHERE relato_id = ?1 AND removida_em IS NULL AND enviada_por = ?2
+         AND id NOT IN (SELECT value FROM json_each(?3))`,
       )
       .bind(relato.id, usuario.pessoa, JSON.stringify(validos.map((i) => i.id))),
     ...validos.map((item) => {
