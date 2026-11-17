@@ -19,8 +19,8 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 | Acrescentar relato a uma memória | Qualquer pessoa que vê a memória, um relato por pessoa |
 | Editar um relato | Só quem escreveu (ou quem registrou, no relato de quem não acessa o site). Os admins também não |
 | Registrar relato de quem não acessa o site | Qualquer pessoa que vê a memória, creditada como "registrado por". Cada pessoa pode ter o seu rascunho, que ninguém mais vê; publicado, fica um só |
-| Acrescentar foto | Qualquer pessoa que vê a memória, pelo formulário da memória (quem pode corrigi-la) ou pelo próprio relato |
-| Remover foto | Quem enviou e os admins, numa memória que veem. A foto vai para a lixeira com o nome de quem tirou, e quem enviou a vê no histórico e restaura |
+| Acrescentar foto | Qualquer pessoa que vê a memória, pelo formulário da memória (quem pode corrigi-la), pelo próprio relato ou por "Acrescentar fotos", na página da memória |
+| Remover foto | Quem enviou e os admins, numa memória que veem. A foto vai para a lixeira com o nome de quem tirou, e quem enviou e quem tirou a veem no histórico e restauram (resposta do Gui ao PR #52) |
 | Editar a página de quem acessa o site | A própria pessoa e os admins |
 | Editar a página de quem não acessa o site | Quem divide um núcleo com a pessoa, quem a cadastrou e os admins |
 | Criar ou mudar laços de árvore | Os envolvidos, quem divide um núcleo com algum deles e os admins |
@@ -33,7 +33,8 @@ A regra em código está em `src/lib/servidor/permissoes.ts`, com testes em `tes
 
 - **O administrador nunca edita o que não enxerga.** Ser administrador não faz ninguém ver memória, rascunho, laço ou pessoa que não via. "Todos os laços" são os que ele vê: os laços do coração "só eu vejo" continuam só do dono.
 - **Nunca edita o que outra pessoa escreveu:** o relato continua de quem escreveu ou registrou.
-- **Na memória, só os dados** (`alcanceDaCorrecao` e `mudancaDeConteudo`): numa memória publicada que vê e em que não está, o administrador corrige data, lugar, tipo de momento, quem estava, capítulos e temas. O título, as famílias, as fotos com as legendas, a ordem e a foto da linha do tempo ficam como estão, e a tela mostra isso travado. Ele pode tirar uma foto (a regra da foto), mas não acrescentar: para isso, o próprio relato. Restaurar uma versão traz o título de volta, então fica com quem criou e com quem está na memória.
+- **Na memória, só os dados** (`alcanceDaCorrecao` e `mudancaDeConteudo`): numa memória publicada que vê e em que não está, o administrador corrige data, lugar, tipo de momento, quem estava, capítulos e temas. O título, as famílias, as fotos com as legendas, a ordem e a foto da linha do tempo ficam como estão, e a tela mostra isso travado. Ele pode tirar uma foto (a regra da foto), mas não acrescentar pelo formulário: para isso, "Acrescentar fotos" ou o próprio relato. Restaurar uma versão traz o título de volta, então fica com quem criou e com quem está na memória (confirmado pelo Gui ao ver o PR #52, 17/11/2026).
+- **Foto tirada por um administrador** (resposta do Gui ao PR #52, 17/11/2026): quem a tirou também pode restaurar, além de quem enviou; os outros administradores, não (`podeRestaurarFoto`, teste em `testes/administradores.test.ts`). No histórico da memória, a foto aparece para os dois, e para quem tirou com "de Fulano, removida por você em".
 - **No laço do coração de outra pessoa,** o administrador muda o nome e o lugar na árvore, e remove. A proximidade e o "só eu vejo" são do dono. Na edição da pessoa, esses laços aparecem em "Laços do coração de outras pessoas", só para os administradores.
 - **Histórico com o nome de quem fez:** a ficha da pessoa e os laços de árvore já guardavam a versão de antes com o autor; o laço do coração passou a guardar também (versões `laco-coracao`, ao mudar e ao remover), e a foto removida guarda quem tirou (`fotos.removida_por`, migração `023`). No histórico da memória, quem enviou vê "removida por Fulano". A correção dos dados aparece como "Fulano alterou", como qualquer correção. O histórico de integrantes e laços ainda não tem tela ("Em aberto").
 
@@ -183,7 +184,7 @@ Decisão do Gui, 17/11/2026 (P102 do QA de design, `src/lib/audios-de-exemplo.ts
 - O histórico de uma memória (`/memorias/<id>/historico`) mostra cada alteração da ficha, com o que mudou e como era antes. Quem pode corrigir a memória pode voltar a ficha para uma versão anterior.
 - Restaurar uma versão traz título, data, tipo, lugar e pessoas. Quem pode ver, núcleos e fotos ficam como estão, para uma restauração nunca abrir a memória a mais gente.
 - Do relato, cada pessoa vê só os textos anteriores do que ela mesma escreveu ou registrou, e pode voltar a um deles.
-- Fotos removidas aparecem no histórico para quem enviou, que pode devolvê-las à memória.
+- Fotos removidas aparecem no histórico para quem enviou e para quem removeu, que podem devolvê-las à memória.
 - Ainda não existe apagar de vez: o que vai para a lixeira fica lá.
 
 ## Interação dos formulários
@@ -224,7 +225,8 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 - **Relato em rascunho segura as fotos:** elas ficam presas a ele, sem memória, e só quem enviou vê. Ao publicar, entram na memória, mesmo pelo formulário sem script. O formulário da memória não pega uma foto que espera o relato.
 - Uma foto que sai da lista do relato vai para a lixeira da memória, como as que saem pelo formulário da memória. Remover continua sendo de quem enviou, por um formulário ou pelo outro. Se o relato deixar de existir, a foto fica na memória (`ON DELETE SET NULL`).
 - As fotos só se enviam com script, como na memória. Sem a lista, as fotos do relato ficam como estão.
-- Uma foto que chega pelo relato não cria versão no histórico da memória: o histórico guarda a ficha, e as fotos ficam de fora da restauração.
+- Uma foto que chega pelo relato não cria versão no histórico da memória: o histórico guarda a ficha, e as fotos ficam de fora da restauração (confirmado pelo Gui ao ver o PR #51, 17/11/2026, como o relato em rascunho segurar as fotos e os textos novos do PR).
+- **"Acrescentar fotos"** (resposta do Gui ao PR #51, 17/11/2026): na abertura da memória, ao lado de "Escrever meu relato", um atalho para quem vê a memória mandar fotos sem escrever relato (`/memorias/<id>/fotos`), pela mesma peça do passo de fotos do relato (`ligarFotos`). A foto entra no fim da ordem, sem trocar a principal (numa memória sem nenhuma, a primeira vira a principal, como no relato), não cria versão no histórico e não fica ligada a relato nenhum. Só entram fotos soltas que a própria pessoa enviou (`acrescentarFotos`, rota `src/pages/api/acrescentar-fotos.ts`); quem não vê a memória, ou chega com um rascunho, recebe o mesmo que para uma memória que não existe. Só com script, como as outras fotos. Teste em `testes/acrescentar-fotos.test.ts`.
 - Testes em `testes/fotos-pelo-relato.test.ts`, com a rota e o banco de verdade.
 
 ## Áudios nos relatos (liberado pelo Gui em 16/11/2026, migração `015`)
@@ -414,11 +416,6 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
         - **Ajuste:** tocar numa pessoa abre a ficha (nome, laço, "Ver página") com um slider de proximidade; arrastar a pessoa no círculo muda o mesmo valor, na tela grande e no celular. O slider é o caminho pelo teclado. A ponta de fora do slider é "Fora do círculo": a pessoa some do desenho e vai para uma lista no fim, de onde volta.
         - A proximidade continua privada: ninguém mais vê o círculo nem o valor.
     - **Quem já faleceu, no site todo** (árvore, Pessoas, retratos nas memórias, círculo). Uma marca discreta no retrato, sem nenhum sinal religioso, adequada a cada contexto. A data do falecimento fica oculta por padrão em todo lugar e só aparece para quem pedir para ver, na página da pessoa ("Mostrar datas"); vale também para o ano, salvo se o Gui disser outra coisa. O painel não lembra aniversário nem data de falecimento de quem já faleceu (o Gui e a Elizete preferem não lembrar).
-- **Respostas do Gui ao PR #51 e ao #52** (17/11/2026).
-    - **Foto tirada por um administrador:** quem a removeu também pode restaurar, além de quem enviou. Teste em `testes/` junto com os de administradores.
-    - **"Acrescentar fotos" na página da memória:** um atalho para quem vê a memória mandar fotos sem escrever relato, pela mesma peça do passo de fotos do relato. A foto entra no fim da ordem, sem trocar a principal, e só prende fotos que a própria pessoa enviou.
-    - **Ficam como estão** (viram regra na seção do assunto ao construir o resto): o administrador corrige os dados, mas não restaura versões, porque restaurar traz de volta o título; a foto que chega pelo relato não cria versão no histórico; com o relato em rascunho, as fotos ficam guardadas e só quem enviou vê; os textos novos do #51 e do #52.
-    - "Adicionar outro laço" com cara de botão sem ser tocável: o Gui decide olhando a homologação.
 - **Fonte do site: combinação C, De cartaz** (decisão do Gui, 17/11/2026, sem esperar mais a Giovanna e o Magno). DM Serif Display, DM Sans, DM Mono e Nothing You Could Do, em todo o site: `FONTES_DO_SITE = combinacao('c')`, e `npm run monograma` de novo, porque a serifa muda. As três combinações **não saem** do site, ao contrário do que `docs/visual.md` previa: a página do sistema (`/sistema`, que existe também na produção) ganha um seletor entre A, B e C que troca as fontes só nos exemplos daquela página, para comparar se a decisão mudar. O resto do site usa sempre a C, e o cookie da faixa de teste continua valendo só nas prévias. Confira o que a troca de serifa mexe: a largura da assinatura, os títulos longos em 390 px, o monograma e o ícone.
 - **Revisão visual: movimento, detalhes e o aparelho** (fases 4 e 5 da revisão do zero, decisões do Gui de 16/11/2026). As fases 1 a 3 estão no site (ver "Visual"). Falta:
     4. **Movimento e detalhes,** só os de `docs/visual.md`: a frase que acende palavra por palavra, a foto que amplia no lugar e o tocador de áudio próprio ("O que ficou de fora do sistema, de propósito").
@@ -428,6 +425,7 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
 
 ## Em aberto
 
+- "Adicionar outro laço" com cara de botão sem ser tocável: o Gui decide olhando a homologação (resposta ao PR #51 e ao #52, 17/11/2026)
 - Histórico de integrantes e laços no site (as versões já são guardadas, inclusive a chave do retrato anterior) e apagar de vez o que está na lixeira
 - Juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
 - Árvore: regras de ocultar e de exigir parentes de sangue, centros padrão escolhidos na administração e página do laço com linha do tempo

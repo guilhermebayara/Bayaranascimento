@@ -47,6 +47,9 @@
   rotate: -3deg;
 }
 .abre__atalho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
   margin-top: var(--e-5);
 }
 .abre__foto {

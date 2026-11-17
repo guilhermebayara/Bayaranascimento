@@ -91,7 +91,7 @@ export function mudancaDeConteudo(anterior: ConteudoDaMemoria, pedido: ConteudoD
   const principalFicou = pedido.fotos.some((f) => antes.get(f.id)?.principal);
   for (const foto of pedido.fotos) {
     const era = antes.get(foto.id);
-    if (!era) return nao(`${motivo} Para acrescentar fotos, escreva o seu relato: as fotos dele entram na memória.`);
+    if (!era) return nao(`${motivo} Para acrescentar fotos, use “Acrescentar fotos”, na página da memória.`);
     if ((foto.legenda?.trim() || null) !== (era.legenda?.trim() || null)) return nao(`${motivo} As legendas ficam com quem criou e com quem estava nela.`);
     if (era.ordem < ultima) return nao(`${motivo} A ordem das fotos fica como está.`);
     ultima = era.ordem;
@@ -154,6 +154,15 @@ export function podeEscreverRelato(
 export function podeRemoverFoto(usuario: Usuario, enviadaPor: string): Decisao {
   if (enviadaPor === usuario.pessoa || usuario.admin) return sim;
   return nao('Só quem enviou a foto e os administradores podem removê-la.');
+}
+
+/**
+ * Restaurar uma foto removida (resposta do Gui ao PR #52, 17/11/2026): quem enviou e quem a removeu.
+ * Um administrador que tirou a foto de outra pessoa pode desfazer o que fez; os outros administradores, não.
+ */
+export function podeRestaurarFoto(usuario: Usuario, foto: { enviadaPor: string; removidaPor: string | null }): Decisao {
+  if (foto.enviadaPor === usuario.pessoa || foto.removidaPor === usuario.pessoa) return sim;
+  return nao('Só quem enviou a foto e quem a removeu podem restaurá-la.');
 }
 
 /**

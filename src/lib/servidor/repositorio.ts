@@ -1054,10 +1054,10 @@ export async function listarFotosRemovidas(memoriaId: string): Promise<(Foto & {
   }));
 }
 
-/** Devolve a foto à memória. Só quem enviou, a mesma pessoa que pode remover. */
+/** Devolve a foto à memória: quem enviou e quem a removeu (podeRestaurarFoto). Nas antigas, quem removeu foi quem enviou. */
 export async function restaurarFoto(id: number, memoriaId: string, usuario: Usuario): Promise<boolean> {
   const resultado = await db()
-    .prepare('UPDATE fotos SET removida_em = NULL, principal = 0 WHERE id = ? AND memoria_id = ? AND enviada_por = ? AND removida_em IS NOT NULL')
+    .prepare('UPDATE fotos SET removida_em = NULL, removida_por = NULL, principal = 0 WHERE id = ?1 AND memoria_id = ?2 AND (enviada_por = ?3 OR removida_por = ?3) AND removida_em IS NOT NULL')
     .bind(id, memoriaId, usuario.pessoa)
     .run();
   return (resultado.meta.changes ?? 0) > 0;
@@ -1178,8 +1178,8 @@ export async function podeVerFoto(usuario: Usuario, chave: string): Promise<bool
       `SELECT 1 AS ok FROM fotos f WHERE f.chave = ?2 AND (
          (f.memoria_id IS NULL AND f.enviada_por = ?1 AND f.removida_em IS NULL)
          OR (
-           -- foto removida: só quem enviou ainda vê, para poder devolvê-la à memória
-           (f.removida_em IS NULL OR f.enviada_por = ?1)
+           -- foto removida: só quem enviou e quem removeu ainda veem, para poder devolvê-la à memória
+           (f.removida_em IS NULL OR f.enviada_por = ?1 OR f.removida_por = ?1)
            AND EXISTS (SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND ${FILTRO_VISIVEL})
            -- a foto que veio com um relato que espera o sim do autor fica com o público antigo dele
            AND NOT EXISTS (
@@ -1717,4 +1717,43 @@ export async function abrirLacosPrivados(usuario: Usuario, pessoas: string[]): P
       .bind(usuario.pessoa, lista),
     db().prepare('UPDATE lacos_coracao SET privado = 0 WHERE dono_id = ?1 AND privado = 1 AND pessoa_id IN (SELECT value FROM json_each(?2))').bind(usuario.pessoa, lista),
   ]);
+}
+
+// --- Acrescentar fotos (resposta do Gui ao PR #51, 17/11/2026) ---
+
+/**
+ * "Acrescentar fotos", na página da memória: quem vê a memória manda fotos sem escrever relato. Só entram
+ * fotos soltas que a própria pessoa enviou (nem de outra pessoa, nem de outra memória, nem presas a um
+ * relato). Vão para o fim da ordem, sem trocar a principal; numa memória sem nenhuma, a primeira vira a
+ * principal, como no relato. Quem chama já conferiu que a pessoa vê a memória publicada. Não cria versão
+ * no histórico, como as fotos do relato. Devolve quantas entraram.
+ */
+export async function acrescentarFotos(memoriaId: string, itens: { id: number; legenda?: string }[], usuario: Usuario): Promise<number> {
+  const ids = itens.map((i) => i.id);
+  const { results } = await db()
+    .prepare(
+      `SELECT id FROM fotos WHERE removida_em IS NULL AND enviada_por = ? AND memoria_id IS NULL AND relato_id IS NULL
+       AND id IN (SELECT value FROM json_each(?))`,
+    )
+    .bind(usuario.pessoa, JSON.stringify(ids))
+    .all<{ id: number }>();
+  const soltas = new Set(results.map((r: { id: number }) => r.id));
+  const validos = itens.filter((i, n) => soltas.has(i.id) && ids.indexOf(i.id) === n);
+  if (validos.length === 0) return 0;
+  const ultima = await db()
+    .prepare('SELECT MAX(ordem) AS ordem, MAX(principal) AS principal FROM fotos WHERE memoria_id = ? AND removida_em IS NULL')
+    .bind(memoriaId)
+    .first<{ ordem: number | null; principal: number | null }>();
+  let ordem = (ultima?.ordem ?? -1) + 1;
+  let semPrincipal = !ultima?.principal;
+  await db().batch(
+    validos.map((item) => {
+      const principal = semPrincipal ? 1 : 0;
+      semPrincipal = false;
+      return db()
+        .prepare('UPDATE fotos SET memoria_id = ?, legenda = ?, ordem = ?, principal = ? WHERE id = ?')
+        .bind(memoriaId, item.legenda?.trim() || null, ordem++, principal, item.id);
+    }),
+  );
+  return validos.length;
 }

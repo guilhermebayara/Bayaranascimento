@@ -1,0 +1,80 @@
+---
+// "Acrescentar fotos" (resposta do Gui ao PR #51, 17/11/2026): um atalho para quem vê a memória mandar
+// fotos sem escrever relato, pela mesma peça do passo de fotos do relato (src/lib/cliente/fotos.ts). A
+// foto entra no fim da ordem, sem trocar a principal, e só entram fotos que a própria pessoa enviou
+// (acrescentarFotos, em src/lib/servidor/repositorio.ts). Só com script, como as fotos da memória.
+import Pagina from '../../../components/formularios/Pagina.astro';
+import { formatarData } from '../../../lib/datas';
+import { obterMemoria } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
+if (!memoria) return new Response('Memória não encontrada', { status: 404 });
+if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.id}`);
+---
+
+<Pagina titulo="Acrescentar fotos" aba={`Fotos: ${memoria.titulo}`} rotulo="Fotos" nucleos={memoria.nucleos} secao="explorar">
+  <p slot="abertura">
+    <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Mande as fotos que você tem desse dia, sem precisar escrever.
+  </p>
+
+  <form class="formulario" data-acrescentar-fotos data-memoria={memoria.id} novalidate>
+    <fieldset class="fotos-do-relato" data-caixa-de-fotos>
+      <legend>Quais fotos?</legend>
+      <p class="dica">Elas entram depois das fotos que a memória já tem, sem trocar a foto principal.</p>
+      <label class="botao botao--leve botao--arquivo">
+        Escolher fotos
+        <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
+      </label>
+      <ul class="fotos-enviadas" data-fotos></ul>
+      <p class="situacao" data-situacao-fotos role="status" aria-live="polite"></p>
+      <noscript>
+        <p class="recado">Para enviar fotos, o navegador precisa estar com o JavaScript ligado.</p>
+      </noscript>
+    </fieldset>
+
+    <p class="situacao" data-situacao role="status" aria-live="polite"></p>
+    <div class="acoes">
+      <button type="submit" class="botao" data-salvar>Acrescentar fotos</button>
+      <a class="botao botao--leve" href={`/memorias/${memoria.id}`}>Voltar para a memória</a>
+    </div>
+  </form>
+</Pagina>
+
+<script>
+  import { ligarFotos } from '../../../lib/cliente/fotos';
+
+  const form = document.querySelector<HTMLFormElement>('[data-acrescentar-fotos]');
+  if (form) {
+    const fotos = ligarFotos(form.querySelector<HTMLElement>('[data-caixa-de-fotos]')!);
+    const situacao = form.querySelector<HTMLElement>('[data-situacao]')!;
+    const botao = form.querySelector<HTMLButtonElement>('[data-salvar]')!;
+    const avisar = (texto: string, tipo?: 'erro') => {
+      situacao.textContent = texto;
+      if (tipo) situacao.dataset.tipo = tipo;
+      else delete situacao.dataset.tipo;
+    };
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      if (fotos.ocupado()) return avisar('Espere as fotos terminarem de enviar.', 'erro');
+      const lista = fotos.lista();
+      if (lista.length === 0) return avisar('Escolha pelo menos uma foto.', 'erro');
+      botao.disabled = true;
+      avisar('Acrescentando…');
+      try {
+        const resposta = await fetch('/api/acrescentar-fotos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memoria: form.dataset.memoria, fotos: lista }),
+        });
+        const resultado = await resposta.json();
+        if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui acrescentar as fotos.');
+        const recado = resultado.quantas === 1 ? 'Foto acrescentada.' : `${resultado.quantas} fotos acrescentadas.`;
+        location.assign(`${resultado.url}?ok=${encodeURIComponent(recado)}#fotos`);
+      } catch (e) {
+        avisar(e instanceof Error ? e.message : 'Não consegui acrescentar as fotos.', 'erro');
+        botao.disabled = false;
+      }
+    });
+  }
+</script>

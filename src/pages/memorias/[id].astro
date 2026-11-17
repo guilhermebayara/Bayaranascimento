@@ -155,6 +155,10 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
           <a class="acao" href={`/memorias/${memoria.id}/relato`}>
             {textoDaAcao}
           </a>
+          {/* Mandar fotos sem escrever relato (resposta do Gui ao PR #51, 17/11/2026) */}
+          <a class="acao acao--quieta" href={`/memorias/${memoria.id}/fotos`}>
+            Acrescentar fotos
+          </a>
         </p>
       </div>
       {
