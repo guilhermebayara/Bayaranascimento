@@ -1,7 +1,7 @@
 // Explorar (docs/decisoes.md): cada filtro e cada ordem, as combinações, o sorteio só entre as
 // visíveis e a regra de quando os trilhos aparecem. Regras em src/lib/explorar.ts.
 import { describe, expect, it } from 'vitest';
-import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, SEM_FILTRO, sortear, temFiltro, type Contexto, type Filtros, SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos } from '../src/lib/explorar';
+import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, SEM_FILTRO, soFiltrosConhecidos, sortear, temFiltro, type Contexto, type Filtros, SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos } from '../src/lib/explorar';
 
 const m = (id: string, ano: number, o: Partial<{ mes: number; tipo: string; integrantes: string[]; nucleos: string[]; temas: string[]; fotos: number; relatos: number; criadaEm: string }> = {}) => ({
   id,
@@ -383,5 +383,39 @@ describe('a lista: as partes de cada linha', async () => {
     expect(lerFormaDaPessoa(new URLSearchParams('ver=tv'))).toBe('linha');
     expect(enderecoDaPessoa('gui')).toBe('/pessoas/gui');
     expect(enderecoDaPessoa('gui', 'mural')).toBe('/pessoas/gui?ver=mural');
+  });
+});
+
+describe('filtros do endereço que não existem ou a pessoa não vê', () => {
+  // Achado do QA de código de 17/11/2026: davam zero memórias com o resumo "Nenhum filtro", e o resumo
+  // escrevia o nome de quem só existe num laço privado de outra pessoa.
+  const conhecidos = {
+    tipos: new Set(['festa', 'viagem']),
+    pessoas: new Set(['gui', 'giovanna']),
+    familias: new Set(['bayara-nascimento']),
+    capitulos: new Set(['natais']),
+    temas: new Set(['natal']),
+  };
+  const lidos = lerFiltros(
+    new URLSearchParams('tipo=festa&tipo=inventado&pessoa=gui&pessoa=so-num-laco-privado&nucleo=nao-existe&capitulo=natais&capitulo=restrito&tema=natal&tema=de-memoria-restrita&decada=1990'),
+  );
+
+  it('ficam de fora, como se não estivessem no endereço', () => {
+    const f = soFiltrosConhecidos(lidos, conhecidos);
+    expect(f).toMatchObject({ tipos: ['festa'], pessoas: ['gui'], familias: [], capitulos: ['natais'], temas: ['natal'], decada: 1990 });
+  });
+
+  it('o que a pessoa não vê responde igual ao que não existe', () => {
+    const resultado = (endereco: string) => explorar(memorias, soFiltrosConhecidos(lerFiltros(new URLSearchParams(endereco)), conhecidos), ctx).memorias.map((x) => x.id);
+    expect(resultado('pessoa=so-num-laco-privado')).toEqual(resultado(''));
+    expect(resultado('capitulo=restrito')).toEqual(resultado('capitulo=nao-existe'));
+    expect(resultado('tema=de-memoria-restrita')).toEqual(resultado(''));
+    expect(temFiltro(soFiltrosConhecidos(lerFiltros(new URLSearchParams('tipo=inventado')), conhecidos))).toBe(false);
+  });
+
+  it('o Explorar confere os filtros antes de usar', () => {
+    const pagina = Object.values(import.meta.glob<string>('../src/pages/explorar.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
+    expect(pagina).toMatch(/const filtros = soFiltrosConhecidos\(lerFiltros\(parametros\)/);
+    expect(pagina).toMatch(/pessoas: new Set\(integrantes\.filter\(\(i\) => !naoVe\.has\(i\.id\)\)/);
   });
 });

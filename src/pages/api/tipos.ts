@@ -12,7 +12,7 @@ const PAGINA = '/admin/tipos';
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!mesmaOrigem(request)) return new Response('Pedido recusado.', { status: 403 });
   const { usuario, tipos } = locals;
-  if (!usuario.admin) return voltar(request, '/', { erro: 'Só o Gui e a Giovanna cuidam da lista de tipos.' });
+  if (!usuario.admin) return voltar(request, '/', { erro: 'Só os administradores cuidam da lista de tipos.' });
 
   const dados = await request.formData();
   const acao = campo(dados, 'acao', 20);

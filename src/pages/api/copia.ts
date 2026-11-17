@@ -5,6 +5,6 @@ import { respostaDaCopia } from '../../lib/servidor/copia';
 import { erro } from '../../lib/servidor/http';
 
 export const GET: APIRoute = async ({ locals }) => {
-  if (!locals.usuario.admin) return erro(403, 'Só o Gui e a Giovanna podem baixar a cópia do acervo.');
+  if (!locals.usuario.admin) return erro(403, 'Só os administradores baixam a cópia do acervo.');
   return respostaDaCopia();
 };

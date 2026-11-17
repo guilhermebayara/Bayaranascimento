@@ -10,7 +10,7 @@ const LIMITE = 20 * 1024 * 1024;
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!mesmaOrigem(request)) return new Response('Pedido recusado.', { status: 403 });
   if (!podeEspelhar()) return new Response('Página não encontrada', { status: 404 });
-  if (!locals.usuario.admin) return voltar(request, '/', { erro: 'Só o Gui e a Giovanna refazem o espelho.' });
+  if (!locals.usuario.admin) return voltar(request, '/', { erro: 'Só os administradores refazem o espelho.' });
 
   const arquivo = (await request.formData()).get('copia');
   if (!(arquivo instanceof File) || arquivo.size === 0) return voltar(request, PAGINA, { erro: 'Escolha o arquivo da cópia do acervo.' });

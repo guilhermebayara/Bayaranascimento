@@ -214,6 +214,9 @@ export async function trocar(endereco: URL, { foco, empurrar }: Troca) {
     if (!calmo()) animar(antes, nova);
     controleNovo?.focus({ preventScroll: true });
   } catch {
+    // Uma escolha mais nova já saiu: o erro desta não pode levar a pessoa de volta ao endereço antigo
+    // (achado do QA de código de 17/11/2026, testes/explorar-troca.test.ts)
+    if (meu !== pedido) return;
     location.assign(endereco);
   }
 }
