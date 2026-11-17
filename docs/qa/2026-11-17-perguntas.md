@@ -1794,6 +1794,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P126. No celular, a pergunta da etapa pode subir para o alto da tela?
 
+**Feito (opção A):** no celular, a frase de boas-vindas fica só na etapa 1 e a frase com lacunas desce para baixo da pergunta, antes das ações; a pergunta da etapa 1 começa em y = 410 (era 526) e a das outras, perto de 200 depois da rolagem. Capturas: p126-etapa-1--390.jpg, p126-etapa-3--390.jpg.
+
 **muda a experiência**
 
 - Contexto: a ideia forte dos formulários é uma pergunta por tela, grande. A frase da abertura entrou por decisão do Gui.
@@ -1806,6 +1808,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P127. Depois de salvar o rascunho, a pessoa volta para a etapa em que estava?
 
+**Feito (opção A):** depois de "Salvar rascunho" a página volta na etapa em que a pessoa estava, sem rolar, com o aviso no alto. Capturas: p127-volta-na-etapa--390.jpg, p127-volta-na-etapa--1280.jpg.
+
 **muda a experiência**
 
 - Contexto: "Salvar rascunho" está em todas as etapas. Hoje a página recarrega na etapa 1 (o aviso de rascunho salvo passou a aparecer no alto, nesta rodada).
@@ -1817,6 +1821,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P128. Frase da abertura: o que as lacunas vazias dizem? (PR #39, pergunta 5)
 
+**Feito (opção A):** mantido como está. Capturas: p139-acoes-na-largura-dos-campos--1920.jpg (a frase vazia).
+
 **ajuste**
 
 - Contexto: vazia, cada lacuna precisa dizer o que falta.
@@ -1827,6 +1833,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: só aparece o que já foi preenchido, e a frase cresce aos poucos.
 
 ### P129. Resumo ao lado: o que entra e como se chama? (PR #39, pergunta 7)
+
+**Feito (opção A):** o que entra e os rótulos ficam, e sem tipo escolhido o cartão é neutro, em papel e sem ícone. Capturas: p129-cartao-neutro--1280.jpg.
 
 **ajuste**
 
@@ -1840,6 +1848,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P130. Resumo ao lado nos outros formulários? (PR #39, pergunta 8)
 
+**Feito (opção A):** resumo ao lado só na memória e no relato, e todo formulário com etapas ganhou a mesma grade: no capítulo novo a pergunta começa em x = 523 em 1920 px e em 351 em 1280 px, como na Nova memória. Capturas: p130-capitulo-na-mesma-grade--1280.jpg, p130-capitulo-na-mesma-grade--1920.jpg.
+
 **ajuste**
 
 - Contexto: o pedido vale para os formulários em 1280 e 1920 px. Na Nova memória ele acompanha o preenchimento.
@@ -1850,6 +1860,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P131. Zona de perigo: o nome, os textos e o que entra? (PR #39, pergunta 9)
+
+**Feito (opção A):** o nome e os textos ficam, e o bloco ficou quieto: da largura do texto, sem fundo, só o fio em cima e o título na cor de alerta. Em 1280 px ele fecha com a coluna da pergunta (x = 351 nos dois). No laço, o link passou para a cor de alerta e o botão que confirma perdeu a seta; a frase do que acontece no laço ficou como pergunta nova, porque é texto. Capturas: p131-zona-quieta--1280.jpg, p131-zona-quieta--1920.jpg, p136-zona-so-no-fim--390.jpg.
 
 **ajuste**
 
@@ -1865,6 +1877,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P132. "Salvar rascunho" só com o título pede o ano. É o que se quer?
 
+**Feito (opção A):** o rascunho pode ser salvo só com o título, com e sem JavaScript; o ano só é obrigatório para publicar. O rascunho sem ano aparece como "sem data" em Rascunhos, na conta, na lixeira e na confirmação de descartar. Capturas: p132-rascunho-so-com-titulo--390.jpg.
+
 **ajuste**
 
 - Contexto: a abertura diz que dá para salvar como rascunho a qualquer momento, mas o ano é obrigatório também no rascunho. O tipo de momento, não.
@@ -1875,6 +1889,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter, e a frase da abertura deixa de prometer "a qualquer momento".
 
 ### P133. Na etapa "Quando e onde", a pergunta e a frase precisam ser as duas grandes?
+
+**Feito (opção A):** na etapa "Quando e onde" a legenda fica só para o leitor de tela e a frase é a pergunta. Capturas: p133-frase-e-a-pergunta--390.jpg, p133-frase-e-a-pergunta--1280.jpg, p133-frase-e-a-pergunta--1920.jpg.
 
 **ajuste**
 
@@ -1888,6 +1904,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P134. Na última etapa, os dois resumos ficam lado a lado?
 
+**Feito (opção A):** na última etapa o resumo ao lado mostra só a foto e o título, e "Confira antes de publicar" usa a ordem da frase (quando, onde, quem). Capturas: p134-ultima-etapa--1280.jpg.
+
 **ajuste**
 
 - Contexto: "A memória até aqui" acompanha todas as etapas no computador, e "Confira antes de publicar" aparece na última.
@@ -1899,6 +1917,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `form-correcao-dois-resumos--1920.jpg`
 
 ### P135. Na correção, o botão cheio muda de lugar em relação à memória nova?
+
+**Feito (opção A):** na correção, "Salvar alterações" em contorno vem antes e "Continuar" cheio fica na ponta, também na ordem do Tab. Capturas: p135-correcao-botao-cheio-na-ponta--390.jpg, p135-correcao-botao-cheio-na-ponta--1280.jpg.
 
 **ajuste**
 
@@ -1912,6 +1932,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P136. A zona de perigo aparece em todas as etapas?
 
+**Feito (opção A):** com script, a zona de perigo só aparece na última etapa, depois do resumo e das ações; sem script, as etapas vêm em sequência e ela fica no fim. Capturas: p136-zona-so-no-fim--390.jpg, p131-zona-quieta--1280.jpg.
+
 **ajuste**
 
 - Contexto: pedido do Gui, para o apagar ficar longe do salvar.
@@ -1923,6 +1945,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `form-rascunho-zona-em-toda-etapa--390.jpg`
 
 ### P137. "Quem está contando" precisa ser o primeiro campo do relato?
+
+**Feito (opção A):** "Quem está contando" foi para depois do texto, na linha "Estou escrevendo por outra pessoa", que abre a busca com o nome selecionado; fechar a linha volta para "Eu". Vale na memória nova e em "Meu relato". Capturas: p137-escrevendo-por-outra-pessoa--390.jpg.
 
 **ajuste**
 
@@ -1936,6 +1960,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P138. A frase da abertura pode usar a largura que sobra no computador?
 
+**Feito (opção A):** a frase da abertura vai até a largura do miolo e a lacuna vazia não quebra no meio. Capturas: p138-frase-na-largura-do-miolo--1280.jpg, p138-frase-na-largura-do-miolo--1920.jpg.
+
 **ajuste**
 
 - Contexto: a frase fica no alto, acima das três colunas.
@@ -1947,6 +1973,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `form-nova-frase-quebra--1280.jpg`
 
 ### P139. Em 1920 px, os campos acompanham a largura da coluna?
+
+**Feito (opção A):** as ações e o fio param na largura dos campos (x = 523 a 1197 em 1920 px). Capturas: p139-acoes-na-largura-dos-campos--1920.jpg.
 
 **ajuste**
 
@@ -1960,6 +1988,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P140. Frase da abertura: ela sai na etapa "Quando e onde"? (PR #39, pergunta 6)
 
+**Feito (opção A):** mantido como está.
+
 **detalhe**
 
 - Contexto: nessa etapa a frase com a data e o lugar já é a própria pergunta, logo abaixo.
@@ -1970,6 +2000,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: fica só na primeira etapa.
 
 ### P141. "Fotos" vira pergunta, como as outras etapas?
+
+**Feito (opção A):** a legenda passou a ser "Tem fotos desse dia?"; na trilha a etapa continua "Fotos".
 
 **detalhe**
 
@@ -1982,6 +2014,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P142. "criar um capítulo" abre outra aba no meio da memória?
 
+**Feito (opção A):** saiu o link, e a frase é "Dá para criar o capítulo depois e colocar esta memória nele."
+
 **detalhe**
 
 - Contexto: etapa "Capítulo e temas".
@@ -1993,6 +2027,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P143. O ano fora do intervalo ganha aviso ao lado, como o 31 de fevereiro?
 
+**Feito (opção A):** o ano fora do intervalo ganha o aviso "O ano vai de 1800 a 2026." ao lado dos campos, o balão do navegador diz o mesmo e a frase não escreve o ano inválido. Vale em toda data flexível (memória, nascimento, falecimento e adoção). Capturas: p143-aviso-do-ano--390.jpg.
+
 **detalhe**
 
 - Contexto: a data que não existe é avisada ao lado dos campos. Para o ano antes de 1800 ou depois do ano atual só há o balão do navegador.
@@ -2002,6 +2038,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter só o balão.
 
 ### P144. A lacuna do lugar acompanha o tamanho do que foi escrito?
+
+**Feito (opção A):** a lacuna do lugar tem a largura do que foi escrito, e "em", o lugar e o ponto final andam juntos. Sem script, a largura fixa continua. Capturas: p144-lugar-do-tamanho-do-texto--1920.jpg.
 
 **detalhe**
 
@@ -2014,6 +2052,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P145. O sublinhado da ação de perigo muda de cor ao passar o mouse?
 
+**Feito (opção A):** dentro da zona de perigo, o sublinhado continua na cor de alerta ao passar o mouse.
+
 **detalhe**
 
 - Contexto: toda ação em texto ganha o sublinhado na cor viva da família ao passar o mouse.
@@ -2023,6 +2063,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P146. No teclado, o ano vem antes dos botões de −10 e −1?
+
+**Feito (opção A):** mantido como está.
 
 **detalhe**
 
@@ -2035,6 +2077,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 ## Meu relato
 
 ### P147. O relato tem um caminho de volta sem salvar?
+
+**Feito (opção A):** "Voltar para a memória", em texto sublinhado, ao lado do botão. Capturas: p147-relato-voltar-para-a-memoria--390.jpg, p147-relato-voltar-para-a-memoria--1280.jpg, p147-relato-voltar-para-a-memoria--1920.jpg.
 
 **ajuste**
 

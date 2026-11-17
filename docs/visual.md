@@ -220,7 +220,7 @@ O CSS das peças está em `src/visual/pecas.css` (as ações estão em `base.css
 | Fases de um casal ou marcos que abrem | `Sanfona.astro` | `ano`, `titulo`, `quando`, o conteúdo dentro. O mesmo `grupo` em todas faz só uma ficar aberta |
 | Recado de "salvou" ou de erro | `Recado.astro` | `<Recado>` ou `<Recado erro>` |
 | Tela sem nada para mostrar | `Vazio.astro` | `<Vazio frase="…">` com a ação dentro |
-| As ações de apagar de uma tela de editar | `ZonaDePerigo.astro` | `<ZonaDePerigo>` no fim da página, fora do formulário que salva, com uma frase e o link para a confirmação. `menor nivel={4}` dentro de um cartão, como o editor de um laço. Quem usa decide se ela aparece, pela permissão de sempre |
+| As ações de apagar de uma tela de editar | `ZonaDePerigo.astro` | `<ZonaDePerigo>` no fim da página, fora do formulário que salva, com uma frase e o link para a confirmação. É quieta: um fio na cor de alerta em cima, sem fundo. `menor nivel={4}` dentro de um cartão, como o editor de um laço. Quem usa decide se ela aparece, pela permissão de sempre |
 | Ícone de tipo, rabisco de caneta | `IconeDoTipo.astro`, `Rabisco.astro` | São enfeite: o texto está sempre escrito ao lado |
 | A ação principal da tela | classe `botao` | Uma por tela. `aria-disabled="true"` ou `disabled` para o estado sem poder agir |
 | As outras ações | classes `acao` e `acao--quieta` | Texto sublinhado, em link ou em `<button>` |
@@ -933,6 +933,14 @@ Branch `tst-visual-ajustes`, nascida da `homologa` em 17/11/2026, com o que o Gu
 - **Laço e casal (`/pessoas/<id>/editar`):** dentro do editor de cada laço, "Remover este laço" e "Apagar, foi cadastrado por engano" ficam numa zona menor, depois do "Salvar", com a confirmação no lugar de sempre (`ConfirmarRemocao`).
 - **As permissões não mudaram:** o bloco só aparece para quem já podia apagar (`podeExcluirMemoria`, administradores no capítulo, quem mexe nos laços) e some quando não há nada.
 - **O que ficou onde estava:** "Remover foto", em cada foto da memória, e "Tirar foto", no retrato. Só valem quando a pessoa salva, e as páginas de leitura continuam com "Excluir" por último.
+
+**Respostas do Gui ao QA de design (17/11/2026, P126 a P147).** O que mudou nestas peças, com teste em `testes/qa-respostas-nova-memoria.test.ts` e capturas em `docs/visual/qa-respostas/nova-memoria/`:
+
+- **A frase da abertura:** no computador vai até a largura do miolo, e a lacuna vazia não quebra no meio. No celular ela desce para baixo da pergunta da etapa, antes das ações, menor e com um fio em cima (o script de `nova.astro` a muda de lugar), e a frase de boas-vindas fica só na primeira etapa.
+- **A frase da etapa "Quando e onde"** é a pergunta: a legenda fica só para o leitor de tela. A lacuna do lugar tem a largura do que foi escrito, e "em", o lugar e o ponto final andam juntos.
+- **O resumo ao lado:** sem tipo escolhido, o cartão é neutro (papel, sem ícone). Na última etapa ficam só a foto e o título, e "Confira antes de publicar" usa a ordem da frase (quando, onde, quem).
+- **A grade:** todo formulário com etapas que é a página inteira tem a trilha em três colunas e a pergunta começando na quarta, com ou sem resumo ao lado. As ações param na largura dos campos. O vão entre as colunas do formulário é o da página (`--calha`).
+- **A zona de perigo** ficou quieta: da largura do texto, sem fundo, só o fio em cima e o título na cor de alerta. O sublinhado da ação continua na cor de alerta ao passar o mouse, e o botão que confirma não leva a seta. Na memória, com script, ela só aparece na última etapa.
 
 **Testes:** `describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo')`, em `testes/visual.test.ts`: as três lacunas e a etapa de cada uma, as sete etapas na ordem, o que some sem script, os 44 px, o resumo fora do celular e sem `aria-live`, e a zona fora do formulário, só para quem pode, em toda remoção de laço.
 
