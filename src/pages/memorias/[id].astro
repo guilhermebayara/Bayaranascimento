@@ -78,7 +78,8 @@ const capitulos = (await listarCapitulos(usuario)).filter((c) => memoriaDoCapitu
 const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
 const meuRelato = relatos.find((r) => r.por === usuario.pessoa);
 const temMeuRelato = Boolean(meuRelato);
-// Com o relato ainda em rascunho, a linha e a ação dizem isso (resposta do Gui à 45-N8, 17/11/2026)
+// Com o relato ainda em rascunho, a linha e a ação dizem isso (resposta do Gui à 45-N8, 17/11/2026,
+// confirmada depois do PR #48: o botão do alto continua "Continuar meu relato")
 const meuRelatoEmRascunho = meuRelato?.situacao === 'rascunho';
 const textoDaAcao = meuRelatoEmRascunho ? 'Continuar meu relato' : temMeuRelato ? 'Editar meu relato' : 'Escrever meu relato';
 
