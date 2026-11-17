@@ -416,6 +416,9 @@
   font-size: var(--t-pequeno);
 }
 .contar__titulo a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
   text-decoration: none;
 }
 

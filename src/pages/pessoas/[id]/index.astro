@@ -145,9 +145,11 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
           <Retrato nome={chamar} foto={retratoDe(pessoa.id)} familia={familiaDe(pessoa.id)} cedo />
         </div>
         <div class="quem-e__texto">
-          <p class="quem-e__sobre">
-            <Carimbo itens={[especie, dosNucleos.join(' e ')]} />
-          </p>
+          {(especie || dosNucleos.length > 0) && (
+            <p class="quem-e__sobre">
+              <Carimbo itens={[especie, dosNucleos.join(' e ')]} />
+            </p>
+          )}
           {/* PROVISÓRIO (pergunta 6 do PR do grupo "pessoal"): o parentesco é a linha grande, e o nome vem logo abaixo */}
           {parentesco && <p class="quem-e__laco">{parentesco}</p>}
           <h1 class:list={['quem-e__nome', parentesco ? 't-2' : 't-1']}>{pessoa.nome}</h1>
@@ -235,9 +237,11 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
 
     <section class="com" aria-labelledby="memorias-com">
       <header class="com__abre miolo">
-        <p class="rotulo suave">
-          {memorias.length} {memorias.length === 1 ? 'memória' : 'memórias'}
-        </p>
+        {memorias.length > 0 && (
+          <p class="rotulo suave">
+            {memorias.length} {memorias.length === 1 ? 'memória' : 'memórias'}
+          </p>
+        )}
         <h2 class="t-2" id="memorias-com">
           Memórias com {chamar}
         </h2>

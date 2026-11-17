@@ -171,6 +171,7 @@ Construído em 16/11/2026 na branch `tst-visual-sistema`, a partir do conceito a
 | Etiqueta-balão | `Etiqueta.astro` | Do conceito |
 | Ficha em mono | `Ficha.astro` e `Dado.astro` (classe `verso`) | Do conceito |
 | Retrato recortado | `Retrato.astro` | Do conceito |
+| Pessoa numa linha de lista | `Gente.astro` | Nova, do grupo 2 da fase 3. O Gui ainda não viu |
 | Bilhete e nome manuscrito | `Bilhete.astro` | Do conceito |
 | Bloco de áudio | `Audio.astro` | Do conceito, com o tocador do aparelho |
 | Sinal do capítulo e trilhos | `SinalDoCapitulo.astro`, `Trilhos.astro` | Do conceito |
@@ -211,6 +212,7 @@ O CSS das peças está em `src/visual/pecas.css` (as ações estão em `base.css
 | A ficha (quando, onde, tipo, capítulos) | `Ficha.astro` e `Dado.astro` | `<Ficha><Dado rotulo="Quando">…</Dado></Ficha>` |
 | A foto de uma pessoa | `Retrato.astro` | `nome`, `foto` (o endereço, de `enderecoDoRetrato`, ou nada), `familia` (de `corDaPessoa`). `redondo` só no topo |
 | Uma pessoa com nome e parentesco | classes `pessoa` e `pessoa__nome` | Um link com o `Retrato`, o nome e o parentesco em `ficha suave` (ver "Quem estava" em `src/pages/memorias/[id].astro`) |
+| Uma pessoa numa lista de laços | `Gente.astro` | `href`, `nome`, `foto`, `familia`, `laco` ("sua avó") e `detalhe`, em mono |
 | Um relato | `Bilhete.astro` | `por`, `registradoPor` (só quando não foi a própria pessoa) e o conteúdo dentro: `Audio`, depois `<div class="bilhete__texto">`. Com `href`, o bilhete inteiro vira link |
 | Um áudio | `Audio.astro` | `rotulo`, `src`, `transcricao` |
 | O capítulo de uma memória | `SinalDoCapitulo.astro` | `id`, `titulo` e `cor` (a posição dada pela montagem, `src/lib/linha-capitulos.ts`) |
@@ -421,12 +423,12 @@ Hoje a ação principal fica no alto (decisão do QA de UX). Mantenha um atalho 
 
 ## Todas as telas (fase 3), em andamento
 
-Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo>` nascida da `homologa` atualizada. O Gui confere as capturas e a prévia de cada um antes do seguinte.
+Cada grupo de telas vai num PR para a `homologa`, numa branch `tst-visual-<grupo>`. **As branches são empilhadas** (decisão do Gui, 17/11/2026, para os grupos 2 a 4 andarem sem esperar a aprovação do anterior): `tst-visual-pessoal` nasce da `tst-visual-explorar`, `tst-visual-familia` nasce da `tst-visual-pessoal`, e assim por diante. Cada PR diz no alto de qual depende, e o merge segue a ordem dos grupos. Quando um PR de baixo muda, as branches de cima trazem a mudança com um merge, sem refazer a história.
 
 | Grupo | Telas | Situação |
 | --- | --- | --- |
 | 1. `explorar` | Explorar (linha do tempo, mural, modo TV, ao acaso) e a página da memória | Construído em 17/11/2026, na `tst-visual-explorar` (PR #35, aberto). O Gui viu várias rodadas e ainda quer ajustar: ver "Estado do grupo 1", logo abaixo |
-| 2. `pessoal` | Painel, carta de Natal, sua conta e a página da pessoa | A fazer |
+| 2. `pessoal` | Painel, carta de Natal, sua conta, a página da pessoa e `/sistema` | Construído em 17/11/2026, na `tst-visual-pessoal`, em cima do grupo 1. PR aberto, sem merge, com perguntas para o Gui: ver "Grupo 2: pessoal" |
 | 3. `familia` | Capítulo, tema, pessoas e árvore (a árvore muda só de aparência) | A fazer |
 | 4. `formularios` | Nova memória, relato, cadastro guiado, laços, capítulo, administração, rascunhos e lixeira. Por fim, apagar `src/styles/global.css` | A fazer |
 
@@ -594,20 +596,56 @@ O mural, o modo TV e o sorteio não mostram rascunho: o rascunho só aparece na 
 
 **Capturas.** `CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>`. As deste grupo estão em `docs/visual/fase-3/explorar/`.
 
+### Grupo 2: pessoal
+
+Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era decisão dele seguiu com a opção recomendada, está marcado no código com `PROVISÓRIO (pergunta N do PR do grupo "pessoal")` e virou pergunta no fim do PR. As fundações não mudaram: as regras continuam em `src/lib/painel.ts` e `src/lib/conta.ts`.
+
+**Painel (`/`).** O desenho do conceito com os dados de verdade (`src/pages/index.astro`, `telas/painel.css`). Na primeira visita, a carta no alto; depois, "Oi, Fulano.", o resumo do que entrou, a mesa com as novidades, "Neste dia, em outros anos", os cartões (aniversários, você no acervo, a memória para contar) e o caminho para a linha do tempo. O painel só mostra memória publicada.
+
+- **A mesa das novidades** mostra duas memórias e um relato, como no conceito. O que passa disso vira uma linha, "E mais N: ver o que entrou por último", que leva a `/explorar?ordem=entraram`. Provisório.
+- **Sem visita anterior e sem carta**, a frase é "Que bom que você chegou.". Provisório.
+- **O parentesco nos aniversários** não se repete quando o apelido já traz ("Tia Cida" fica sem "sua tia" embaixo).
+- **`?hoje=AAAA-MM-DD`** mostra o painel como num outro dia. Só vale onde não há login (prévias, homologação e computador), para conferir os aniversários e o "Neste dia" e para as capturas saírem iguais.
+- "Voltar Fulano à primeira visita" continua no fim da página, só fora da produção.
+
+**Carta de Natal.** A peça é `src/components/Carta.astro`, usada no alto do painel e em `/carta`: a saudação "Oi, Elizete," grande, o primeiro parágrafo como abertura em serifa, o resto como texto de leitura, e a linha de quem assina partida em nomes, cada um à mão ("Gui, Giovanna e Magno" vira três assinaturas). O carimbo diz "Natal de <ano em que a carta foi escrita>" (provisório: o conceito dizia também "Belo Horizonte"). No painel a ação é "Abrir o acervo", que leva ao Explorar; em `/carta`, "Voltar ao início". As fotos ao lado são as três memórias mais recentes em que a pessoa aparece. O banco de teste ganhou a carta de exemplo do conceito (`semearCartaDeExemplo`), só onde não há carta nenhuma.
+
+**Sua conta (`/conta`).** Página íntima, na cor da família da pessoa, com o cartão do painel (`telas/conta.css`, mais `telas/painel.css` pelo cartão). No alto, o retrato em arco, o nome, "Editar seus dados" e "Ver sua página". Depois, quatro cartões: **Seus dados** (ficha em mono; o e-mail de acesso só aparece na produção), **Rascunhos e lixeira** (os rascunhos de memória e de relato, a conta do que é seu na lixeira e "Abrir a lixeira"), **O que você criou** (o número grande de memórias, relatos, fotos e capítulos; cada lista abre no lugar, uma por vez, sem script) e **Seus laços do coração** (com a proximidade, que só a pessoa vê). No fim, **Administração**, só para quem administra: os itens de `administracao()`, que ganhou "Carta de Natal" e "Sistema visual", e o tamanho do banco, que vira recado quando passa do aviso.
+
+- **Editar os dados no lugar não foi feito**: "Editar seus dados" leva a `/pessoas/<id>/editar`, que é do grupo 4. Pergunta no PR.
+- As telas de rascunhos, lixeira e administração continuam no visual antigo, até o grupo 4.
+
+**Página da pessoa (`/pessoas/<id>`).** O retrato e a voz (`telas/pessoa.css`). A abertura é um bloco na cor da família da pessoa, com o retrato em arco, o carimbo (espécie e famílias), o parentesco de quem olha como a linha maior ("sua avó", "seu amigo-irmão") e o nome logo abaixo. Na própria página e na de quem não tem laço com quem olha, o nome é a linha grande. Seguem "Sobre Fulano" e "A voz de Fulano" (cada áudio com o título da memória e o bloco de áudio), "Família e laços", quieta, em colunas, e "Memórias com Fulano", na mesma linha do tempo do Explorar (`explorar/Linha.astro`, sem trilhos nem faixa de décadas). As ações e os textos são os de antes.
+
+**Peça nova: Gente** (`Gente.astro`, classe `gente`, em `pecas.css`). Uma pessoa numa linha de lista: o retrato pequeno, o nome, o laço e um detalhe em mono. Usada nos laços da página da pessoa e da conta, e mostrada em `/sistema`. O Gui ainda não viu.
+
+**A página do sistema mudou para `/sistema`** (seção "A página do sistema fica"). Nas prévias de teste e no computador abre para todos; na produção e na homologação, só para os administradores, pelo link da conta. Fora das prévias ela não lê o acervo: a foto revelada aparece como o cartão sem foto, desenhado. A trava está em `temAcervoDeExemplo()` (`src/lib/servidor/ambiente.ts`), conferida em `testes/sistema.test.ts` e na guarda da produção (item 9). O mesmo teste recusa peça de `src/components/visual/` que não apareça na página.
+
+**O que saiu.** O painel e a carta do conceito (`/conceito`), com os dados fixos. Do conceito ficou só `/conceito/sobre`, as fontes, até a escolha. A faixa de teste do alto aponta para as telas de verdade.
+
+**Capturas.** `CAPTURAS_SO=^pessoal npm run capturas -- tirar <pasta>`. O painel depende das visitas: o script arruma o banco local antes (apaga as visitas da pessoa para a carta, ou põe a visita anterior um minuto atrás e publica agora duas memórias e um relato de exemplo). As deste grupo estão em `docs/visual/fase-3/pessoal/`, em JPEG. A espera das fotos nas capturas ganhou limite de três segundos por foto: foto dentro de uma lista recolhida nunca carregava e a captura não terminava.
+
+**Conferido.** 390, 1280 e 1920 px, com movimento reduzido (as capturas rodam assim; estas telas não têm animação própria). Por teclado: a ordem do foco segue a da tela e todo foco das telas novas é visível. Nove capturas do Explorar e da memória, antes e depois: iguais, fora uma diferença que muda de captura a cada rodada com o mesmo código (foto que ainda não tinha chegado).
+
+**O que não foi conferido:** nada no iPhone de verdade, nem na prévia publicada com as fotos do bucket de teste.
+
+**Achado do grupo 1, sem correção aqui:** na linha do tempo, o link do título de cada memória tem 30 px de altura e o foco do teclado nele não mostra contorno na conferência automática. Vale olhar no PR #35.
+
 ### O que falta, para a sessão seguinte
 
-- **Grupos 2, 3 e 4**, na ordem da tabela, cada um numa branch nova nascida da `homologa` depois do merge do anterior.
-- **A página do sistema** (seção abaixo): muda para `/sistema` no grupo em que o painel do conceito sair, que é o 2, junto com a seção "Administração" da conta, com o teste em `testes/sistema.test.ts` (toda peça do sistema aparece na página) e a verificação em `scripts/confere-producao.mjs` (a página não usa fotos de exemplo fora das prévias). Neste grupo ela não foi tocada. As peças novas daqui (os controles, o mural e o palco) são das telas, e não do sistema.
-- **O que ainda está em `/conceito`:** o painel e a carta (`/conceito`), as fontes (`/conceito/sobre`) e o sistema. O painel sai no grupo 2; as fontes ficam até a escolha.
-- **"Família" no lugar de "núcleo":** feito na página da memória ("Famílias" na ficha). Falta nas telas dos grupos 3 e 4.
+- **Grupos 3 e 4**, na ordem da tabela, em branches empilhadas.
+- **O que ainda está em `/conceito`:** só as fontes (`/conceito/sobre`), até a escolha.
+- **"Família" no lugar de "núcleo":** feito na página da memória e na da pessoa (o carimbo). Falta nas telas dos grupos 3 e 4.
+- **A lista de Pessoas (`/pessoas`)** é do grupo 3 e pode usar a peça Gente.
 - **Camadas do CSS (`@layer`):** reavaliar no grupo 4, quando o `global.css` sair.
-- **No iPhone:** o modo TV e o mural não têm nada parado no alto. A linha do tempo continua com o modelo já conferido.
+- **`testes/visual.test.ts`** ainda guarda os testes das telas novas dentro do `describe('conceito')`. Vale separar no grupo 4.
+- **No iPhone:** o modo TV e o mural não têm nada parado no alto. A linha do tempo continua com o modelo já conferido, agora também na página da pessoa.
 
 ## A página do sistema fica (decisão do Gui, 16/11/2026)
 
-`/conceito/sistema` é a referência do projeto para o Gui e continua existindo depois da revisão visual, em todos os ambientes, inclusive no site de verdade, para estar sempre à mão.
+`/sistema` (até o grupo 2 da fase 3, `/conceito/sistema`) é a referência do projeto para o Gui e continua existindo depois da revisão visual, em todos os ambientes, inclusive no site de verdade, para estar sempre à mão.
 
-- Quando a fase 3 apagar as telas do conceito, ela muda para `/sistema`.
+- Mudou para `/sistema` no grupo 2 da fase 3, quando o painel do conceito saiu.
 - Na produção e na homologação, só os administradores abrem (para os outros, 404), com um link na seção "Administração" da conta. Nas prévias e no computador, abre para todos, como hoje.
 - Ela mostra o sistema com conteúdo fixo da própria página, nunca com dados do acervo. Na produção, nada de fotos de exemplo: a guarda já recusa que elas cheguem ao pacote ou ao bucket da produção. Onde a peça pede foto, a página usa um quadro desenhado (cor e textura da própria página) e, nas prévias, pode continuar usando o Chico e a Karol.
 - Ela acompanha o sistema: toda peça, token ou regra nova entra nela no mesmo PR, e `testes/sistema.test.ts` falha se uma peça do sistema não aparecer na página.
