@@ -7,7 +7,7 @@ import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
 import type { RegistroDeVisitas } from '../painel';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
-import { pessoasQueNaoVe, podeVerRetrato, type AcessoDaMemoria, type Usuario } from './permissoes';
+import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
 export interface Integrante {
   id: string;
@@ -578,8 +578,10 @@ function lerMemoria(linha: Record<string, unknown>): Memoria {
   };
 }
 
-async function completar(memorias: Memoria[]): Promise<Memoria[]> {
+async function completar(memorias: Memoria[], usuario: Usuario): Promise<Memoria[]> {
   if (memorias.length === 0) return memorias;
+  // A contagem de relatos deixa de fora o de quem a pessoa não vê (ver veORelato)
+  const naoVe = await pessoasQueONaoVe(usuario);
   const ids = JSON.stringify(memorias.map((m) => m.id));
   const dentro = `IN (SELECT value FROM json_each(?))`;
   const [nucleos, integrantes, fotos, relatos, capitulos, temas] = await db().batch<Record<string, unknown>>([
@@ -589,7 +591,7 @@ async function completar(memorias: Memoria[]): Promise<Memoria[]> {
       .prepare(`SELECT * FROM fotos WHERE removida_em IS NULL AND memoria_id ${dentro} ORDER BY principal DESC, ordem, id`)
       .bind(ids),
     db()
-      .prepare(`SELECT memoria_id, COUNT(*) AS n FROM relatos WHERE situacao = 'publicada' AND memoria_id ${dentro} GROUP BY memoria_id`)
+      .prepare(`SELECT memoria_id, por, registrado_por FROM relatos WHERE situacao = 'publicada' AND memoria_id ${dentro}`)
       .bind(ids),
     db()
       .prepare(
@@ -615,29 +617,44 @@ async function completar(memorias: Memoria[]): Promise<Memoria[]> {
   for (const t of temas.results) porId.get(t.memoria_id as string)?.temas.push(t.tema_id as string);
   for (const r of relatos.results) {
     const memoria = porId.get(r.memoria_id as string);
-    if (memoria) memoria.relatos = r.n as number;
+    if (memoria && veORelato({ por: r.por as string, registradoPor: r.registrado_por as string }, usuario, naoVe)) memoria.relatos += 1;
   }
   return memorias;
 }
 
 // --- Explorar ---
 
-/** Memórias com áudio em algum relato publicado. Quem chama cruza com as memórias que a pessoa vê. */
-export async function memoriasComAudio(): Promise<Set<string>> {
-  const { results } = await db()
-    .prepare(
-      `SELECT DISTINCT r.memoria_id FROM audios a JOIN relatos r ON r.id = a.relato_id
-       WHERE a.removido_em IS NULL AND r.situacao = 'publicada'`,
-    )
-    .all<{ memoria_id: string }>();
-  return new Set(results.map((r: { memoria_id: string }) => r.memoria_id));
+type LinhaDeRelato = { memoria_id: string; por: string; registrado_por: string };
+const relatoDaLinha = (r: LinhaDeRelato) => ({ por: r.por, registradoPor: r.registrado_por });
+
+/**
+ * Memórias com áudio em algum relato publicado que a pessoa vê (ver veORelato). Quem chama cruza com as
+ * memórias que ela vê.
+ */
+export async function memoriasComAudio(usuario: Usuario): Promise<Set<string>> {
+  const [{ results }, naoVe] = await Promise.all([
+    db()
+      .prepare(
+        `SELECT DISTINCT r.memoria_id, r.por, r.registrado_por FROM audios a JOIN relatos r ON r.id = a.relato_id
+         WHERE a.removido_em IS NULL AND r.situacao = 'publicada'`,
+      )
+      .all<LinhaDeRelato>(),
+    pessoasQueONaoVe(usuario),
+  ]);
+  return new Set((results as LinhaDeRelato[]).filter((r) => veORelato(relatoDaLinha(r), usuario, naoVe)).map((r) => r.memoria_id));
 }
 
-/** Quem já contou algo (relato publicado) em cada memória. Quem chama cruza com as memórias que a pessoa vê. */
-export async function quemContouEmCadaMemoria(): Promise<Map<string, Set<string>>> {
-  const { results } = await db().prepare(`SELECT memoria_id, por FROM relatos WHERE situacao = 'publicada'`).all<{ memoria_id: string; por: string }>();
+/**
+ * Quem já contou algo (relato publicado) em cada memória, entre os relatos que a pessoa vê (ver
+ * veORelato). Quem chama cruza com as memórias que ela vê.
+ */
+export async function quemContouEmCadaMemoria(usuario: Usuario): Promise<Map<string, Set<string>>> {
+  const [{ results }, naoVe] = await Promise.all([
+    db().prepare(`SELECT memoria_id, por, registrado_por FROM relatos WHERE situacao = 'publicada'`).all<LinhaDeRelato>(),
+    pessoasQueONaoVe(usuario),
+  ]);
   const mapa = new Map<string, Set<string>>();
-  for (const r of results as { memoria_id: string; por: string }[]) {
+  for (const r of (results as LinhaDeRelato[]).filter((r) => veORelato(relatoDaLinha(r), usuario, naoVe))) {
     if (!mapa.has(r.memoria_id)) mapa.set(r.memoria_id, new Set());
     mapa.get(r.memoria_id)!.add(r.por);
   }
@@ -668,7 +685,7 @@ export async function listarMemorias(usuario: Usuario, filtro: FiltroDeMemorias 
     .prepare(`SELECT m.* FROM memorias m WHERE ${condicoes.join(' AND ')} ORDER BY m.ano, COALESCE(m.mes, 0), COALESCE(m.dia, 0), m.criada_em`)
     .bind(...valores)
     .all<Record<string, unknown>>();
-  return completar(results.map(lerMemoria));
+  return completar(results.map(lerMemoria), usuario);
 }
 
 /** Uma memória, se o usuário puder vê-la. Quem não pode recebe o mesmo que para uma memória inexistente. */
@@ -678,7 +695,7 @@ export async function obterMemoria(usuario: Usuario, id: string): Promise<Memori
     .bind(usuario.pessoa, id)
     .first<Record<string, unknown>>();
   if (!linha) return undefined;
-  return (await completar([lerMemoria(linha)]))[0];
+  return (await completar([lerMemoria(linha)], usuario))[0];
 }
 
 export async function idsDeMemorias(): Promise<Set<string>> {
@@ -959,7 +976,7 @@ export async function listarExcluidas(usuario: Usuario): Promise<MemoriaExcluida
     .prepare(`SELECT m.* FROM memorias m WHERE m.excluida_em IS NOT NULL AND ${FILTRO_SEM_LIXEIRA} ORDER BY m.excluida_em DESC`)
     .bind(usuario.pessoa)
     .all<Record<string, unknown>>();
-  const completas = await completar(results.map(lerMemoria));
+  const completas = await completar(results.map(lerMemoria), usuario);
   return completas.map((m, i) => ({ ...m, excluidaEm: results[i].excluida_em as string, excluidaPor: (results[i].excluida_por as string | null) ?? null }));
 }
 
@@ -1062,13 +1079,19 @@ function lerRelato(r: Record<string, unknown>): Relato {
   };
 }
 
-/** Relatos de uma memória já conferida: os publicados, mais os rascunhos de quem pede. */
+/**
+ * Relatos de uma memória já conferida: os publicados, mais os rascunhos de quem pede. O de quem a pessoa
+ * não vê fica de fora (ver veORelato).
+ */
 export async function listarRelatos(usuario: Usuario, memoriaId: string): Promise<Relato[]> {
-  const { results } = await db()
-    .prepare(`SELECT * FROM relatos WHERE memoria_id = ?2 AND (situacao = 'publicada' OR registrado_por = ?1) ORDER BY criado_em, id`)
-    .bind(usuario.pessoa, memoriaId)
-    .all<Record<string, unknown>>();
-  return results.map(lerRelato);
+  const [{ results }, naoVe] = await Promise.all([
+    db()
+      .prepare(`SELECT * FROM relatos WHERE memoria_id = ?2 AND (situacao = 'publicada' OR registrado_por = ?1) ORDER BY criado_em, id`)
+      .bind(usuario.pessoa, memoriaId)
+      .all<Record<string, unknown>>(),
+    pessoasQueONaoVe(usuario),
+  ]);
+  return results.map(lerRelato).filter((r: Relato) => veORelato(r, usuario, naoVe));
 }
 
 /**
@@ -1237,29 +1260,35 @@ export async function ligarAudios(relatoId: number, memoriaId: string, itens: { 
  * rascunho de quem registrou) numa memória que vê; o removido, só quem enviou.
  */
 export async function podeOuvirAudio(usuario: Usuario, chave: string): Promise<boolean> {
-  const linha = await db()
+  // O áudio do relato de quem a pessoa não vê também fica de fora (ver veORelato)
+  const { results } = await db()
     .prepare(
-      `SELECT 1 AS ok FROM audios a WHERE a.chave = ?2 AND (
+      `SELECT r.por, r.registrado_por FROM audios a LEFT JOIN relatos r ON r.id = a.relato_id WHERE a.chave = ?2 AND (
          (a.relato_id IS NULL AND a.enviado_por = ?1)
          OR (
            (a.removido_em IS NULL OR a.enviado_por = ?1)
            AND EXISTS (
-             SELECT 1 FROM relatos r JOIN memorias m ON m.id = r.memoria_id
-             WHERE r.id = a.relato_id AND (r.situacao = 'publicada' OR r.registrado_por = ?1) AND ${FILTRO_VISIVEL}
+             SELECT 1 FROM relatos r2 JOIN memorias m ON m.id = r2.memoria_id
+             WHERE r2.id = a.relato_id AND (r2.situacao = 'publicada' OR r2.registrado_por = ?1) AND ${FILTRO_VISIVEL}
            )
          )
-       ) LIMIT 1`,
+       )`,
     )
     .bind(usuario.pessoa, chave)
-    .first();
-  return Boolean(linha);
+    .all<{ por: string | null; registrado_por: string | null }>();
+  if (results.length === 0) return false;
+  // O áudio solto não tem relato
+  type Linha = { por: string | null; registrado_por: string | null };
+  if ((results as Linha[]).some((r) => r.por === null)) return true;
+  const naoVe = await pessoasQueONaoVe(usuario);
+  return (results as Linha[]).some((r) => veORelato({ por: r.por!, registradoPor: r.registrado_por! }, usuario, naoVe));
 }
 
 /** Os áudios em que uma pessoa fala (os dos relatos dela), entre as memórias que quem pede vê. */
 export async function listarAudiosDe(usuario: Usuario, pessoaId: string): Promise<(Audio & { memoriaTitulo: string; memoriaId: string })[]> {
   const { results } = await db()
     .prepare(
-      `SELECT a.*, m.id AS memoria, m.titulo AS memoria_titulo FROM audios a
+      `SELECT a.*, m.id AS memoria, m.titulo AS memoria_titulo, r.por AS relato_por, r.registrado_por AS relato_registrado_por FROM audios a
        JOIN relatos r ON r.id = a.relato_id
        JOIN memorias m ON m.id = r.memoria_id
        WHERE a.removido_em IS NULL AND r.por = ?2 AND r.situacao = 'publicada' AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
@@ -1267,7 +1296,11 @@ export async function listarAudiosDe(usuario: Usuario, pessoaId: string): Promis
     )
     .bind(usuario.pessoa, pessoaId)
     .all<Record<string, unknown>>();
-  return results.map((r: Record<string, unknown>) => ({ ...lerAudio(r), memoriaId: r.memoria as string, memoriaTitulo: r.memoria_titulo as string }));
+  // "A voz de Fulano" também deixa de fora o relato de quem a pessoa não vê (ver veORelato)
+  const naoVe = await pessoasQueONaoVe(usuario);
+  return results
+    .filter((r: Record<string, unknown>) => veORelato({ por: r.relato_por as string, registradoPor: r.relato_registrado_por as string }, usuario, naoVe))
+    .map((r: Record<string, unknown>) => ({ ...lerAudio(r), memoriaId: r.memoria as string, memoriaTitulo: r.memoria_titulo as string }));
 }
 
 // --- Tamanho do banco (aviso de 300 MB, ver src/lib/tamanho-do-banco.ts) ---
@@ -1298,7 +1331,9 @@ export async function listarRelatosPublicadosDesde(usuario: Usuario, desde: stri
     )
     .bind(usuario.pessoa, desde)
     .all<Record<string, unknown>>();
-  return results.map((r: Record<string, unknown>) => ({ ...lerRelato(r), publicadoEm: r.publicado as string }));
+  // Nas novidades também não entra o relato de quem a pessoa não vê (ver veORelato)
+  const naoVe = await pessoasQueONaoVe(usuario);
+  return results.map((r: Record<string, unknown>) => ({ ...lerRelato(r), publicadoEm: r.publicado as string })).filter((r: Relato) => veORelato(r, usuario, naoVe));
 }
 
 /** As memórias em que a pessoa já contou algo, publicado ou em rascunho. */

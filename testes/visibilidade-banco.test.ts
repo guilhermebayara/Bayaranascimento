@@ -97,8 +97,24 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
       lacos: (await repo.listarLacosDoCoracao(usuario)).map((l) => l.id),
       casais: (await repo.listarCasais(usuario)).map((c) => c.id),
       audios: await Promise.all(PESSOAS.map(async (p) => (await repo.listarAudiosDe(usuario, p)).map((a) => a.id))),
+      // "A voz de Fulano" de quem só existe num laço privado de outra pessoa
+      vozDaEscondida: (await repo.listarAudiosDe(usuario, 'zz-pessoa')).map((a) => a.id),
+      // Os relatos de cada memória, como a página da memória lê
+      relatos: await Promise.all(publicadas.map(async (m) => [m.id, (await repo.listarRelatos(usuario, m.id)).map((r) => r.id)])),
       rascunhosDeRelato: (await repo.listarRascunhosDeRelato(usuario)).map((r) => r.id),
     };
+  }
+
+  /** A memória aberta a todos em que entra o relato de quem só existe num laço privado */
+  const memoriaAberta = () =>
+    (banco.sqlite.prepare(`SELECT id FROM memorias WHERE situacao = 'publicada' AND visibilidade = 'todos' AND excluida_em IS NULL AND id NOT LIKE 'zz-%' ORDER BY id LIMIT 1`).get() as { id: string }).id;
+  /** O relato publicado, com áudio, em nome de 'zz-pessoa', registrado por `registrador` */
+  function relatoDaEscondida(registrador: string) {
+    const memoria = memoriaAberta();
+    sql(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, publicado_em) VALUES (?, 'zz-pessoa', ?, 'Relato escondido', 'publicada', datetime('now'))`, memoria, registrador);
+    const relato = (banco.sqlite.prepare('SELECT MAX(id) AS id FROM relatos').get() as { id: number }).id;
+    sql(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, enviado_por) VALUES (?, ?, 'zz-voz.webm', 'audio/webm', 10, ?)`, relato, memoria, registrador);
+    return { memoria, relato };
   }
 
   /** Acrescenta só o que `quem` não pode ver. */
@@ -137,6 +153,9 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
     for (const { id } of banco.sqlite.prepare(`SELECT id FROM memorias WHERE situacao = 'publicada' AND visibilidade = 'todos' AND id NOT LIKE 'zz-%'`).all() as { id: string }[]) {
       sql(`INSERT OR IGNORE INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, 'Rascunho escondido', 'rascunho')`, id, outro, outro);
     }
+    // Um relato registrado em nome de quem só existe no laço privado, com áudio, numa memória que a pessoa
+    // vê: some inteiro, da página, da contagem, dos áudios e das novidades (decisão do Gui, 17/11/2026)
+    relatoDaEscondida(outro);
     sql(`INSERT INTO capitulos (id, titulo, modo, inicio_ano, fim_ano, visibilidade, criado_por) VALUES ('zz-cap', 'Capítulo escondido', 'epoca', 1990, 2000, 'nucleos', ?)`, membro);
     sql('INSERT INTO capitulo_nucleos VALUES (?, ?)', 'zz-cap', familia);
     sql(`INSERT INTO capitulos (id, titulo, modo, visibilidade, criado_por, excluido_em, excluido_por) VALUES ('zz-cap-lixeira', 'Na lixeira', 'reunido', 'nucleos', ?, '2026-11-10 10:00:00', ?)`, membro, membro);
@@ -170,6 +189,7 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
           expect(await repo.podeVerFoto(usuario, `2026/zz-${id}.jpg`)).toBe(false);
         }
         expect(await repo.podeVerRetratoDaChave(usuario, 'retratos/zz.jpg')).toBe(false);
+        expect(await repo.podeOuvirAudio(usuario, 'zz-voz.webm')).toBe(false);
         expect((await repo.pessoasQueONaoVe(usuario)).has('zz-pessoa')).toBe(true);
         // C1: some da lista de Pessoas, dos seletores e da própria página, só para quem não é dono do laço
         expect((await repo.listarIntegrantesQueVe(usuario)).some((i) => i.id === 'zz-pessoa')).toBe(false);
@@ -189,6 +209,37 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
     expect(gui.comAudio.length).toBeGreaterThan(0);
     expect(gui.aniversarios.length).toBeGreaterThan(0);
     expect(gui.capitulos.length).toBeGreaterThan(3);
+  });
+
+  it('o relato em nome de quem só existe num laço privado: quem registrou e o dono do laço continuam vendo', async () => {
+    // A Giovanna tem o laço privado; o Gui registrou o relato; a Elizete não vê a pessoa
+    sql(`INSERT INTO integrantes (id, nome, tipo, tratamento) VALUES ('zz-pessoa', 'Pessoa Escondida', 'pessoa', 'ela')`);
+    sql(`INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, privado) VALUES ('giovanna', 'zz-pessoa', 'Laço escondido', 1)`);
+    try {
+      const { memoria, relato } = relatoDaEscondida('gui');
+      const contagem = async (quem: string) => (await repo.obterMemoria(usuarioDe(quem), memoria))!.relatos;
+      const base = await contagem('elizete');
+      for (const quem of ['gui', 'giovanna']) {
+        const usuario = usuarioDe(quem);
+        expect((await repo.listarRelatos(usuario, memoria)).some((r) => r.id === relato), quem).toBe(true);
+        expect(await repo.podeOuvirAudio(usuario, 'zz-voz.webm'), quem).toBe(true);
+        expect(await contagem(quem), quem).toBe(base + 1);
+        expect((await repo.memoriasComAudio(usuario)).has(memoria), quem).toBe(true);
+        expect((await repo.quemContouEmCadaMemoria(usuario)).get(memoria)?.has('zz-pessoa'), quem).toBe(true);
+      }
+      // A dona do laço vê "A voz de" da pessoa
+      expect((await repo.listarAudiosDe(usuarioDe('giovanna'), 'zz-pessoa')).length).toBe(1);
+      const elizete = usuarioDe('elizete');
+      expect((await repo.listarRelatos(elizete, memoria)).some((r) => r.id === relato)).toBe(false);
+      expect(await repo.podeOuvirAudio(elizete, 'zz-voz.webm')).toBe(false);
+      expect((await repo.listarAudiosDe(elizete, 'zz-pessoa')).length).toBe(0);
+      expect((await repo.quemContouEmCadaMemoria(elizete)).get(memoria)?.has('zz-pessoa') ?? false).toBe(false);
+      expect((await repo.listarRelatosPublicadosDesde(elizete, '2000-01-01 00:00:00')).some((r) => r.id === relato)).toBe(false);
+      // A memória em si não muda
+      expect(await repo.obterMemoria(elizete, memoria)).toBeDefined();
+    } finally {
+      banco.sqlite.exec('ROLLBACK TO acervo_de_exemplo');
+    }
   });
 
   it('quem só existe num laço privado de outra pessoa continua se vendo', async () => {

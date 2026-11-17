@@ -331,7 +331,7 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
           </div>
         ) : forma === 'lista' ? (
           <div class="linha linha--lista">
-            <Lista memorias={memorias} capitulos={await listarCapitulos(usuario)} integrantes={integrantes} ordem="recentes" comAudio={await memoriasComAudio()} />
+            <Lista memorias={memorias} capitulos={await listarCapitulos(usuario)} integrantes={integrantes} ordem="recentes" comAudio={await memoriasComAudio(usuario)} />
           </div>
         ) : (
           <Linha memorias={memorias} capitulos={await listarCapitulos(usuario)} integrantes={integrantes} nucleos={nucleos} ordem="recentes" trilhos={false} />

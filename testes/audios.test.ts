@@ -72,7 +72,9 @@ describe('quem ouve', () => {
   it('áudio solto, só quem enviou; do relato, quem vê o relato numa memória que vê', () => {
     const regra = repositorio.slice(repositorio.indexOf('export async function podeOuvirAudio'));
     expect(regra).toContain('(a.relato_id IS NULL AND a.enviado_por = ?1)');
-    expect(regra).toContain("(r.situacao = 'publicada' OR r.registrado_por = ?1) AND ${FILTRO_VISIVEL}");
+    expect(regra).toContain("(r2.situacao = 'publicada' OR r2.registrado_por = ?1) AND ${FILTRO_VISIVEL}");
+    // O relato de quem a pessoa não vê também fica de fora (decisão do Gui, 17/11/2026)
+    expect(regra.slice(0, regra.indexOf('\n}\n'))).toContain('veORelato(');
   });
 
   it('a rota responde igual para áudio que não existe e áudio que a pessoa não pode ouvir', () => {

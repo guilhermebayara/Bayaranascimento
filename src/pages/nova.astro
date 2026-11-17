@@ -578,14 +578,25 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     } catch {
       // sem armazenamento, a página abre na primeira etapa e sem o aviso
     }
+    // A frase da abertura sai na etapa "Quando e onde", que já tem a frase, para não repetir (P140). No
+    // celular, sai também na última etapa, em que o "Confira antes de publicar" já diz tudo (resposta do
+    // Gui à 47-N10, 17/11/2026); no computador ela fica no alto da página.
+    let secaoAtual: HTMLElement | undefined;
+    const esconderFraseDaAbertura = () => {
+      if (!fraseDaAbertura || !secaoAtual || form.hidden) return;
+      const naEtapaDaFrase = Boolean(secaoAtual.querySelector('[data-frase]'));
+      const naUltimaNoCelular = !haLado.matches && Boolean(secaoAtual.querySelector('[data-resumo]'));
+      fraseDaAbertura.hidden = naEtapaDaFrase || naUltimaNoCelular;
+    };
+    haLado.addEventListener('change', esconderFraseDaAbertura);
     const etapas = montarEtapas(
       form,
       (indice, secao) => {
         const ultima = Boolean(secao.querySelector('[data-resumo]'));
         if (secao.querySelector('input[name="nucleos"]')) sugerirNucleos();
         if (ultima) montarResumo();
-        // Na etapa "Quando e onde" a frase está na própria etapa: a da abertura sai, para não repetir
-        if (fraseDaAbertura) fraseDaAbertura.hidden = Boolean(secao.querySelector('[data-frase]'));
+        secaoAtual = secao;
+        esconderFraseDaAbertura();
         // No celular, a frase de boas-vindas fica só na primeira etapa (P126)
         pagina?.toggleAttribute('data-adiante', indice > 0);
         // A zona de perigo só na última etapa, depois do resumo (P136)
@@ -717,7 +728,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           irPara(lacuna.dataset.abertura!);
         });
       }
-      fraseDaAbertura.hidden = etapas.atual() === indiceDaEtapa('[data-frase]');
+      esconderFraseDaAbertura();
     }
 
     // O resumo ao lado, no computador: a foto-chave (ou o cartão do tipo de momento) e a ficha do que

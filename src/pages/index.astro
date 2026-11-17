@@ -189,7 +189,7 @@ const erro = Astro.url.searchParams.get('erro');
   }
   {
     // Na primeira visita, só a carta. "Abrir o acervo" traz ao Início normal, e a carta vira o link discreto (P14, P15)
-    cartaNoAlto && <Carta para={eu.apelido ?? eu.nome} carta={carta} fotos={minhas.filter((m) => m.fotos.length > 0)} acao={{ href: '/', texto: 'Abrir o acervo' }} />
+    cartaNoAlto && <Carta para={usuario.nome} carta={carta} fotos={minhas.filter((m) => m.fotos.length > 0)} acao={{ href: '/', texto: 'Abrir o acervo' }} />
   }
   {
     !cartaNoAlto && (

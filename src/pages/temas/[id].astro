@@ -103,7 +103,7 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
           </div>
         ) : forma === 'lista' ? (
           <div class="linha linha--lista tema__larga">
-            <Lista memorias={memorias} capitulos={todos} integrantes={await listarIntegrantesQueVe(usuario)} ordem="recentes" comAudio={await memoriasComAudio()} />
+            <Lista memorias={memorias} capitulos={todos} integrantes={await listarIntegrantesQueVe(usuario)} ordem="recentes" comAudio={await memoriasComAudio(usuario)} />
           </div>
         ) : (
           <Linha memorias={memorias} capitulos={todos} integrantes={await listarIntegrantesQueVe(usuario)} nucleos={await listarNucleos()} ordem="recentes" trilhos={false} />

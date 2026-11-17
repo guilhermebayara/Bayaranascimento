@@ -1861,7 +1861,7 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P131. Zona de perigo: o nome, os textos e o que entra? (PR #39, pergunta 9)
 
-**Feito (opção A):** o nome e os textos ficam, e o bloco ficou quieto: da largura do texto, sem fundo, só o fio em cima e o título na cor de alerta. Em 1280 px ele fecha com a coluna da pergunta (x = 351 nos dois). No laço, o link passou para a cor de alerta e o botão que confirma perdeu a seta; a frase do que acontece no laço ficou como pergunta nova, porque é texto. Capturas: p131-zona-quieta--1280.jpg, p131-zona-quieta--1920.jpg, p136-zona-so-no-fim--390.jpg.
+**Feito (opção A):** o nome e os textos ficam, e o bloco ficou quieto: da largura do texto, sem fundo, só o fio em cima e o título na cor de alerta. Em 1280 px ele fecha com a coluna da pergunta (x = 351 nos dois). No laço, o link passou para a cor de alerta e o botão que confirma perdeu a seta; a frase do que acontece no laço ficou como pergunta nova, porque é texto. Em 17/11/2026, na branch `qa-respostas-novas`, a frase entrou (resposta do Gui à 47-N2) e Esc passou a fechar a pergunta aberta, como "Cancelar" (`ConfirmarRemocao.astro`, teste em `testes/qa-respostas-novas.test.ts`). Capturas: p131-zona-quieta--1280.jpg, p131-zona-quieta--1920.jpg, p136-zona-so-no-fim--390.jpg.
 
 **ajuste**
 

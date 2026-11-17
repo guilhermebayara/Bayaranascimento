@@ -183,6 +183,16 @@ export function pessoasQueNaoVe(emPrivadosDeOutros: ReadonlySet<string>, comLaco
   return new Set([...emPrivadosDeOutros].filter((id) => !comLacoVisivel.has(id)));
 }
 
+/**
+ * Ver um relato de quem a pessoa logada não vê (decisão do Gui, 17/11/2026): o relato registrado em nome
+ * de quem só existe num laço do coração privado de outra pessoa some inteiro, como se não existisse, da
+ * página da memória, da contagem de relatos, dos áudios e de "A voz de Fulano". Quem registrou continua
+ * vendo. O dono do laço vê a pessoa e, por isso, vê o relato. A memória em si não muda.
+ */
+export function veORelato(relato: { por: string; registradoPor: string }, usuario: Pick<Usuario, 'pessoa'>, naoVe: ReadonlySet<string>): boolean {
+  return !naoVe.has(relato.por) || relato.registradoPor === usuario.pessoa;
+}
+
 /** Pôr, trocar ou tirar a foto de retrato: quem pode editar a página da pessoa (decisão do Gui, 16/11/2026). */
 export function podeMudarRetrato(usuario: Usuario, integrante: IntegranteParaPermissao, comAcesso: ReadonlySet<string>): Decisao {
   const decisao = podeEditarIntegrante(usuario, integrante, comAcesso);

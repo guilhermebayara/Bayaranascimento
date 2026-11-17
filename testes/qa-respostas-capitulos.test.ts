@@ -81,6 +81,8 @@ describe('a página do capítulo', () => {
   it('P69: a forma de ver fica na própria página, com o atalho para o modo TV', () => {
     expect(FORMAS_DO_CAPITULO).toEqual(['marcos', 'mural', 'lista']);
     expect(NOMES_DAS_FORMAS_DO_CAPITULO.mural).toBe('Mural de fotos');
+    // 46-N7: a primeira forma tem o nome da página da pessoa
+    expect(NOMES_DAS_FORMAS_DO_CAPITULO.marcos).toBe('Linha do tempo');
     expect(lerFormaDoCapitulo(new URLSearchParams(''))).toBe('marcos');
     expect(lerFormaDoCapitulo(new URLSearchParams('ver=lista'))).toBe('lista');
     // O que não é forma de ver do capítulo cai nos marcos
@@ -112,9 +114,9 @@ describe('a página do capítulo', () => {
     expect(css).toMatch(/\.marco \.carimbo > :not\(:last-child\)::after \{\s*content: none;/);
     expect(css).toMatch(/\.marco \.carimbo > :not\(:first-child\)::before \{\s*content: '·';/);
   });
-  it('P73: "Aconteceu neste período" diz só a exceção', () => {
-    expect(detalheDoCruzamento('parte')).toBeUndefined();
-    expect(detalheDoCruzamento('inteiro')).toBe('inteiro neste período');
+  it('P73 e 46-N9: "Aconteceu neste período" diz só a exceção, que é o "em parte"', () => {
+    expect(detalheDoCruzamento('inteiro')).toBeUndefined();
+    expect(detalheDoCruzamento('parte')).toBe('em parte neste período');
     expect(pagina).toContain('detalhe={detalheDoCruzamento(como)}');
   });
   it('P74: na tela grande, o corpo vai até a margem e a foto do marco cresce', () => {

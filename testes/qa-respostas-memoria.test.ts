@@ -78,7 +78,9 @@ describe('P54: quem já contou', () => {
   it('vê uma linha quieta, sem botão cheio, e o convite fica para quem ainda não contou', () => {
     const linha = pagina.slice(pagina.indexOf('class="contou miolo"'), pagina.indexOf('!temMeuRelato && ('));
     expect(linha).toContain('Você já contou esse dia.');
-    expect(linha).toMatch(/<a class="acao" href=\{`\/memorias\/\$\{memoria\.id\}\/relato`\}>\s*Editar meu relato/);
+    // O texto do link é o da ação do alto: "Editar meu relato", ou "Continuar meu relato" no rascunho (45-N8)
+    expect(linha).toMatch(/<a class="acao" href=\{`\/memorias\/\$\{memoria\.id\}\/relato`\}>\s*\{textoDaAcao\}/);
+    expect(pagina).toContain(": temMeuRelato ? 'Editar meu relato' : 'Escrever meu relato';");
     expect(linha).not.toContain('class="botao"');
     expect(pagina).toMatch(/!temMeuRelato && \(\s*<section class="convite miolo"/);
     // Um só botão cheio na página, e ele é o de escrever

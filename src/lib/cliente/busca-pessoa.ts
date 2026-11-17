@@ -185,13 +185,15 @@ export function buscaDePessoa(lista: HTMLSelectElement, opcoes: { nomeNovo?: HTM
       const passo = e.key === 'ArrowDown' ? 1 : -1;
       marcarAtiva((ativa + passo + atuais.length) % atuais.length);
     } else if (e.key === 'Enter') {
-      if (!sugestoes.hidden && ativa >= 0) {
-        e.preventDefault();
-        escolher(atuais[ativa]);
-      } else if (!sugestoes.hidden && atuais.length === 1) {
-        e.preventDefault();
-        escolher(atuais[0]);
-      } else resolver();
+      // Enter na busca nunca envia o formulário, em todo o site (resposta do Gui à 47-N6, 17/11/2026):
+      // ele escolhe a sugestão marcada, ou a única, ou resolve o que foi escrito, e o formulário fica
+      e.preventDefault();
+      if (!sugestoes.hidden && ativa >= 0) escolher(atuais[ativa]);
+      else if (!sugestoes.hidden && atuais.length === 1) escolher(atuais[0]);
+      else {
+        resolver();
+        fechar();
+      }
     } else if (e.key === 'Escape') {
       if (!sugestoes.hidden) {
         e.preventDefault();

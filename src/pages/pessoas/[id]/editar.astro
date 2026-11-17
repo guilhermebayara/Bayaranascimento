@@ -153,11 +153,14 @@ const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(
 // Na edição de uma filiação antiga de consideração, a opção continua lá para não trocar sem querer
 const opcoesDeFiliacao = (atual?: Qualidade): [string, string][] => (atual === 'consideracao' ? (Object.entries(QUALIDADES) as [string, string][]) : qualidades);
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
-// No cadastro guiado, "Como estão hoje?" só oferece o que é estar junto: o fim tem um caminho só, "Já
-// terminou" (resposta do Gui à P109, 17/11/2026). A separação e a amizade entram depois, na edição do
-// casal, em "O que aconteceu depois?".
+// No cadastro guiado e no "Adicionar laço" completo, "Como estão hoje?" só oferece o que é estar junto:
+// o fim tem um caminho só, "Já terminou" (respostas do Gui à P109 e à 47-N3, 17/11/2026). A separação e a
+// amizade entram depois, na edição do casal, em "O que aconteceu depois?".
 const FASES_DE_QUEM_ESTA_JUNTO: readonly TipoDeFase[] = ['namoro', 'noivado', 'casamento', 'uniao'];
 const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id));
+// O que acontece ao remover um laço: some da árvore e das páginas, e não vai para a lixeira (resposta do Gui à 47-N2, 17/11/2026)
+const FRASE_DO_LACO = 'O laço some da árvore e das páginas das duas pessoas. Não vai para a lixeira.';
+const FRASE_DO_CASAL = 'O casal some da árvore e das páginas das duas pessoas. Não vai para a lixeira.';
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
@@ -442,6 +445,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                       <div class="acoes"><button class="botao" type="submit">Salvar</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                     </form>
                     <ZonaDePerigo menor nivel={4}>
+                    <p>{FRASE_DO_LACO}</p>
                     <form method="post" action="/api/lacos" class="editar__remover">
                       <input type="hidden" name="volta" value={volta} />
                       <input type="hidden" name="filho" value={pessoa.id} />
@@ -485,6 +489,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                       <div class="acoes"><button class="botao" type="submit">Salvar</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                     </form>
                     <ZonaDePerigo menor nivel={4}>
+                    <p>{FRASE_DO_LACO}</p>
                     <form method="post" action="/api/lacos" class="editar__remover">
                       <input type="hidden" name="volta" value={volta} />
                       <input type="hidden" name="filho" value={f.filho} />
@@ -588,6 +593,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                         <div class="acoes"><button class="botao" type="submit">Salvar o casal</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                       </form>
                       <ZonaDePerigo menor nivel={4}>
+                      <p>{FRASE_DO_CASAL}</p>
                       <form method="post" action="/api/lacos" class="editar__remover">
                         <input type="hidden" name="volta" value={volta} />
                         <input type="hidden" name="id" value={c.casal.id} />
@@ -649,6 +655,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                           <div class="acoes"><button class="botao" type="submit">Salvar</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                         </form>
                         <ZonaDePerigo menor nivel={4}>
+                        <p>{FRASE_DO_LACO}</p>
                         <form method="post" action="/api/lacos" class="editar__remover">
                           <input type="hidden" name="volta" value={volta} />
                           <input type="hidden" name="id" value={l.id} />
@@ -707,6 +714,7 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
                       <div class="acoes"><button class="botao" type="submit">Salvar</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                     </form>
                     <ZonaDePerigo menor nivel={4}>
+                    <p>{FRASE_DO_LACO}</p>
                     <form method="post" action="/api/lacos" class="editar__remover">
                       <input type="hidden" name="volta" value={volta} />
                       <input type="hidden" name="id" value={l.id} />
@@ -772,7 +780,8 @@ const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id)
       </div>
 
       <div data-para="casal" hidden>
-        <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fases} valor="casamento" />
+        {/* Como no guiado, só as fases de estar junto (resposta do Gui à 47-N3, 17/11/2026) */}
+        <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" />
         <div class="em-linha">
           <div class="em-linha__campo">
             <label for="fase-nova-inicio">Começou em</label>
