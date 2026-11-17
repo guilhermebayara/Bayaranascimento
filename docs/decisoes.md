@@ -357,6 +357,11 @@ Decisões do Gui de 16/11/2026 e respostas ao QA de design e ao de código de 17
 
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
+- **Respostas do Gui ao PR #51 e ao #52** (17/11/2026).
+    - **Foto tirada por um administrador:** quem a removeu também pode restaurar, além de quem enviou. Teste em `testes/` junto com os de administradores.
+    - **"Acrescentar fotos" na página da memória:** um atalho para quem vê a memória mandar fotos sem escrever relato, pela mesma peça do passo de fotos do relato. A foto entra no fim da ordem, sem trocar a principal, e só prende fotos que a própria pessoa enviou.
+    - **Ficam como estão** (viram regra na seção do assunto ao construir o resto): o administrador corrige os dados, mas não restaura versões, porque restaurar traz de volta o título; a foto que chega pelo relato não cria versão no histórico; com o relato em rascunho, as fotos ficam guardadas e só quem enviou vê; os textos novos do #51 e do #52.
+    - "Adicionar outro laço" com cara de botão sem ser tocável: o Gui decide olhando a homologação.
 - **Fonte do site: combinação C, De cartaz** (decisão do Gui, 17/11/2026, sem esperar mais a Giovanna e o Magno). DM Serif Display, DM Sans, DM Mono e Nothing You Could Do, em todo o site: `FONTES_DO_SITE = combinacao('c')`, e `npm run monograma` de novo, porque a serifa muda. As três combinações **não saem** do site, ao contrário do que `docs/visual.md` previa: a página do sistema (`/sistema`, que existe também na produção) ganha um seletor entre A, B e C que troca as fontes só nos exemplos daquela página, para comparar se a decisão mudar. O resto do site usa sempre a C, e o cookie da faixa de teste continua valendo só nas prévias. Confira o que a troca de serifa mexe: a largura da assinatura, os títulos longos em 390 px, o monograma e o ícone.
 - **Revisão visual: movimento, detalhes e o aparelho** (fases 4 e 5 da revisão do zero, decisões do Gui de 16/11/2026). As fases 1 a 3 estão no site (ver "Visual"). Falta:
     4. **Movimento e detalhes,** só os de `docs/visual.md`: a frase que acende palavra por palavra, a foto que amplia no lugar e o tocador de áudio próprio ("O que ficou de fora do sistema, de propósito").
