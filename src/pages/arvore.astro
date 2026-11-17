@@ -11,6 +11,7 @@ import Vazio from '../components/visual/Vazio.astro';
 import { anosDeVida } from '../lib/datas';
 import { Familia, estaoJuntos, lacoParaODono, nomeDoPapel, possessivo, type Tratamento } from '../lib/parentesco';
 import type { DadosDaArvore } from '../lib/cliente/arvore';
+import { cantoReto } from '../lib/arvore-desenho';
 import { comLacoDeArvore } from '../lib/arvore-montagem';
 import { pessoasQueNaoVe } from '../lib/servidor/permissoes';
 import { enderecoDoRetrato, iniciais } from '../lib/retratos';
@@ -157,7 +158,7 @@ const comLaco = comLacoDeArvore(dados);
           <section>
             <h2>Famílias</h2>
             <ul>
-              {nucleos.map((n, i) => <li><i class="amostra-cor" style={`background: var(--arvore-familia-${i % 4})`}></i> {n.nome}</li>)}
+              {nucleos.map((n, i) => <li><i class:list={['amostra-cor', { 'amostra-cor--direita': cantoReto([i], nucleos.length) === 'direita' }]} style={`background: var(--arvore-familia-${i % 4})`}></i> {n.nome}</li>)}
               {nucleos.length > 1 && <li><i class="amostra-cor amostra-cor--duas"></i> de duas famílias</li>}
               <li><i class="amostra-cor amostra-cor--fora"></i> amigos e de fora</li>
             </ul>

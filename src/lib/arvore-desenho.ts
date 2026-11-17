@@ -56,6 +56,25 @@ export interface Medidas {
 
 export const MEDIDAS: Medidas = { largura: 150, altura: 76, vaoX: 44, vaoY: 136 };
 
+/**
+ * Para que lado aponta o canto reto do cartão de uma pessoa (decisão do Gui, 17/11/2026): o da
+ * família de origem dela. A primeira família fica à esquerda e a última à direita. Quem é de duas
+ * segue a de origem, que é a da ponta: a Giovanna (Bayara e Bayara Bracarense) aponta para a
+ * esquerda, e o Magno (Bayara Bracarense e Bracarense) para a direita. Quem fica bem no meio, sem
+ * puxar para lado nenhum, continua com o canto à esquerda. Quem não é de nenhuma família não tem
+ * canto reto: o cartão fica com os cantos redondos.
+ *
+ * `posicoes` são as posições das famílias da pessoa na ordem das famílias da árvore, e `total`,
+ * quantas famílias a árvore tem.
+ */
+export function cantoReto(posicoes: number[], total: number): 'esquerda' | 'direita' | null {
+  const validas = posicoes.filter((i) => i >= 0 && i < total);
+  if (validas.length === 0) return null;
+  if (total < 2) return 'esquerda';
+  const lado = validas.reduce((soma, i) => soma + i, 0) / validas.length / (total - 1);
+  return lado > 0.5 ? 'direita' : 'esquerda';
+}
+
 export interface Linha {
   /** caminho SVG */
   d: string;
