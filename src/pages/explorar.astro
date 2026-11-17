@@ -18,7 +18,7 @@ import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
 import { SEM_FILTRO, TEMPOS_DE_PASSAR, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, mostraRascunho, movimentoNoEndereco, passarNoEndereco, resumoDosFiltros, soFiltrosConhecidos, sortear, temFiltro, vizinhasNaLista, type Passar } from '../lib/explorar';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
-import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis, pessoasQueONaoVe } from '../lib/servidor/repositorio';
+import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
 
 const { usuario, tipos } = Astro.locals;
@@ -28,7 +28,8 @@ const tamanho = lerTamanho(parametros);
 const [nucleos, todas, integrantes, capitulos, temas] = await Promise.all([
   listarNucleos(),
   listarMemorias(usuario),
-  listarIntegrantes(),
+  // Quem só existe num laço privado de outra pessoa não aparece nem no filtro nem nos nomes (C1)
+  listarIntegrantesQueVe(usuario),
   listarCapitulos(usuario),
   listarTemasVisiveis(usuario),
 ]);
@@ -36,10 +37,9 @@ const [nucleos, todas, integrantes, capitulos, temas] = await Promise.all([
 // quem vê o quê: listarMemorias só devolve o que a pessoa pode ver, e de uma família de que ela
 // não é membro isso é o que foi aberto a todos. Família que não existe é ignorada, assim como o
 // tipo, a pessoa, o capítulo e o tema que não existem ou que a pessoa não vê (soFiltrosConhecidos).
-const naoVe = await pessoasQueONaoVe(usuario);
 const filtros = soFiltrosConhecidos(lerFiltros(parametros), {
   tipos: new Set(tipos.map((t) => t.id)),
-  pessoas: new Set(integrantes.filter((i) => !naoVe.has(i.id)).map((i) => i.id)),
+  pessoas: new Set(integrantes.map((i) => i.id)),
   familias: new Set(nucleos.map((n) => n.id)),
   capitulos: new Set(capitulos.map((c) => c.id)),
   temas: new Set(temas.map((t) => t.id)),

@@ -4,7 +4,7 @@ import Pagina from '../../../components/formularios/Pagina.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { formatarData, formatarMomento } from '../../../lib/datas';
 import { podeEditarMemoria, podeVerVersao } from '../../../lib/servidor/permissoes';
-import { listarFotosRemovidas, listarIntegrantes, listarRelatos, listarVersoes, obterMemoria, type Memoria, type Relato } from '../../../lib/servidor/repositorio';
+import { listarFotosRemovidas, listarIntegrantes, listarRelatos, listarVersoes, obterMemoria, pessoasQueONaoVe, type Memoria, type Relato } from '../../../lib/servidor/repositorio';
 import { tipoDaMemoria } from '../../../lib/tipos';
 
 const { usuario, tipos } = Astro.locals;
@@ -17,6 +17,8 @@ const nome = (id: string) => {
   const i = integrantes.find((x) => x.id === id);
   return i?.apelido ?? i?.nome ?? id;
 };
+// Quem só existe num laço privado de outra pessoa não aparece nas versões (C1, 17/11/2026)
+const naoVe = await pessoasQueONaoVe(usuario);
 const podeRestaurar = podeEditarMemoria(usuario, memoria).ok;
 
 const ficha = (m: Memoria) => ({
@@ -24,7 +26,7 @@ const ficha = (m: Memoria) => ({
   data: formatarData({ ano: m.ano, mes: m.mes ?? null, dia: m.dia ?? null, aproximada: Boolean(m.aproximada) }),
   tipo: tipoDaMemoria(tipos, m).rotulo,
   lugar: m.lugar ?? '',
-  pessoas: (m.integrantes ?? []).map(nome).sort().join(', '),
+  pessoas: (m.integrantes ?? []).filter((id) => !naoVe.has(id)).map(nome).sort().join(', '),
 });
 // Cada versão guarda como a ficha estava ANTES de uma alteração. Comparando com
 // o estado seguinte, dá para dizer o que aquela alteração mudou.

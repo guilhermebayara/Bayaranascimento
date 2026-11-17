@@ -1,7 +1,7 @@
 // Explorar (docs/decisoes.md): cada filtro e cada ordem, as combinações, o sorteio só entre as
 // visíveis e a regra de quando os trilhos aparecem. Regras em src/lib/explorar.ts.
 import { describe, expect, it } from 'vitest';
-import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, SEM_FILTRO, soFiltrosConhecidos, sortear, temFiltro, type Contexto, type Filtros, SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos } from '../src/lib/explorar';
+import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, periodoEmOrdem, SEM_FILTRO, soFiltrosConhecidos, sortear, temFiltro, type Contexto, type Filtros, SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos } from '../src/lib/explorar';
 
 const m = (id: string, ano: number, o: Partial<{ mes: number; tipo: string; integrantes: string[]; nucleos: string[]; temas: string[]; fotos: number; relatos: number; criadaEm: string }> = {}) => ({
   id,
@@ -107,6 +107,17 @@ describe('o endereço', () => {
   });
   it('os atalhos das famílias ("?nucleo=") ligam o filtro de família', () => {
     expect(lerFiltros(new URLSearchParams('nucleo=bracarense')).familias).toEqual(['bracarense']);
+  });
+  it('um período invertido se desinverte sozinho (C2)', () => {
+    const f = lerFiltros(new URLSearchParams('de=2000&ate=1990'));
+    expect([f.de, f.ate]).toEqual([1990, 2000]);
+    expect(paraEndereco(f).toString()).toBe('de=1990&ate=2000');
+    expect(explorar(memorias, f, ctx).memorias.map((m) => m.id)).toEqual(explorar(memorias, { ...SEM_FILTRO, de: 1990, ate: 2000 }, ctx).memorias.map((m) => m.id));
+    // Um só dos dois, ou os dois na ordem, ficam como estão
+    expect(periodoEmOrdem(1990, 2000)).toEqual([1990, 2000]);
+    expect(periodoEmOrdem(2000, null)).toEqual([2000, null]);
+    expect(periodoEmOrdem(null, 1990)).toEqual([null, 1990]);
+    expect(periodoEmOrdem(1995, 1995)).toEqual([1995, 1995]);
   });
   it('o que não faz sentido é ignorado', () => {
     const f = lerFiltros(new URLSearchParams('ordem=sorteio&de=abc&decada=1995&ate=99999&audio=sim'));
@@ -416,6 +427,8 @@ describe('filtros do endereço que não existem ou a pessoa não vê', () => {
   it('o Explorar confere os filtros antes de usar', () => {
     const pagina = Object.values(import.meta.glob<string>('../src/pages/explorar.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
     expect(pagina).toMatch(/const filtros = soFiltrosConhecidos\(lerFiltros\(parametros\)/);
-    expect(pagina).toMatch(/pessoas: new Set\(integrantes\.filter\(\(i\) => !naoVe\.has\(i\.id\)\)/);
+    // A lista já vem sem quem só existe num laço privado de outra pessoa (C1)
+    expect(pagina).toMatch(/listarIntegrantesQueVe\(usuario\)/);
+    expect(pagina).toMatch(/pessoas: new Set\(integrantes\.map\(\(i\) => i\.id\)\)/);
   });
 });

@@ -31,7 +31,7 @@ const casais = await listarCasais(usuario);
 const lacos = await listarLacosDoCoracao(usuario);
 // Quem só existe num laço privado de outra pessoa não aparece: nem o laço, nem o nome
 const soEmPrivados = await pessoasEmLacosPrivadosDeOutros(usuario);
-const temLacoVisivel = new Set<string>([...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
+const temLacoVisivel = new Set<string>([usuario.pessoa, ...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
 const naoVe = pessoasQueNaoVe(soEmPrivados, temLacoVisivel);
 const integrantes = todos.filter((i) => !naoVe.has(i.id));
 const resumidos = (await listarLacosResumidos()).filter((r) => integrantes.some((i) => i.id === r.a) && integrantes.some((i) => i.id === r.b));
