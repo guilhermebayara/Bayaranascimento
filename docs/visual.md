@@ -417,5 +417,9 @@ Hoje a ação principal fica no alto (decisão do QA de UX). Mantenha um atalho 
 
 ## A página do sistema fica (decisão do Gui, 16/11/2026)
 
-`/conceito/sistema` é a referência do projeto para o Gui e continua existindo depois da revisão visual. Quando a fase 3 apagar as telas do conceito, essa página fica: ela muda de endereço para `/sistema`, segue respondendo 404 na produção e na homologação, e acompanha o sistema. Toda peça, token ou regra nova entra nela no mesmo PR, e `testes/sistema.test.ts` falha se uma peça do sistema não aparecer na página.
+`/conceito/sistema` é a referência do projeto para o Gui e continua existindo depois da revisão visual, em todos os ambientes, inclusive no site de verdade, para estar sempre à mão.
 
+- Quando a fase 3 apagar as telas do conceito, ela muda para `/sistema`.
+- Na produção e na homologação, só os administradores abrem (para os outros, 404), com um link na seção "Administração" da conta. Nas prévias e no computador, abre para todos, como hoje.
+- Ela mostra o sistema com conteúdo fixo da própria página, nunca com dados do acervo. Na produção, nada de fotos de exemplo: a guarda já recusa que elas cheguem ao pacote ou ao bucket da produção. Onde a peça pede foto, a página usa um quadro desenhado (cor e textura da própria página) e, nas prévias, pode continuar usando o Chico e a Karol.
+- Ela acompanha o sistema: toda peça, token ou regra nova entra nela no mesmo PR, e `testes/sistema.test.ts` falha se uma peça do sistema não aparecer na página.
