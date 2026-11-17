@@ -88,7 +88,7 @@ describe('administração', () => {
 
   it('para os administradores, com o espelho só onde ele existe', () => {
     const naProducao = administracao({ admin: true }, { podeEspelhar: false }).map((i) => i.rotulo);
-    expect(naProducao).toEqual(['Tipos de momento', 'Famílias e membros', 'Baixar cópia do acervo']);
+    expect(naProducao).toEqual(['Tipos de momento', 'Famílias e membros', 'Carta de Natal', 'Sistema visual', 'Baixar cópia do acervo']);
     expect(administracao({ admin: true }, { podeEspelhar: true }).map((i) => i.rotulo)).toContain('Espelho da produção');
   });
 });

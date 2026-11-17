@@ -1,0 +1,261 @@
+/*
+ * Sua conta: o retrato e o nome da pessoa no alto, e as coisas dela em ordem (dados, rascunhos,
+ * o que criou, laços do coração). A administração fica no fim, quieta, só para quem administra.
+ * É página que só a pessoa vê: papel tingido na cor da família dela e conteúdo em cartões, como
+ * o painel (o cartão vem de painel.css).
+ */
+
+.conta {
+  padding-block: var(--e-6) var(--e-8);
+}
+.conta > .recado {
+  margin-bottom: var(--e-5);
+}
+
+/* --- O alto: retrato e nome -------------------------------------------------------------------- */
+
+.conta__abre {
+  display: grid;
+  grid-template-columns: clamp(5.5rem, 28vw, 8rem) minmax(0, 1fr);
+  align-items: end;
+  gap: var(--e-5);
+}
+.conta__quem h1 {
+  margin-top: var(--e-2);
+  margin-left: -0.04em;
+  overflow-wrap: anywhere;
+}
+.conta__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-3) var(--e-5);
+  margin-top: var(--e-5);
+}
+@media (max-width: 61.99rem) {
+  /* No celular, as ações ocupam a largura toda, embaixo do retrato e do nome */
+  .conta__abre {
+    grid-template-areas:
+      'retrato quem'
+      'acoes acoes';
+  }
+  .conta__retrato {
+    grid-area: retrato;
+  }
+  .conta__quem {
+    display: contents;
+  }
+  .conta__quem > .rotulo {
+    grid-area: quem;
+    align-self: start;
+  }
+  .conta__quem h1 {
+    grid-area: quem;
+    align-self: end;
+  }
+  .conta__acoes {
+    grid-area: acoes;
+    margin-top: 0;
+  }
+}
+
+/* --- As partes, em cartões --------------------------------------------------------------------- */
+
+.conta__partes {
+  display: grid;
+  gap: var(--e-4);
+  margin-top: var(--e-7);
+}
+.conta .cartao {
+  min-width: 0;
+}
+.conta__dica {
+  margin-top: var(--e-4);
+  font-size: var(--t-pequeno);
+}
+.conta__sobre {
+  max-width: var(--medida);
+  margin-top: var(--e-5);
+  padding-top: var(--e-4);
+  border-top: 1px solid var(--fio);
+}
+.conta__sobre p + p {
+  margin-top: var(--e-2);
+}
+.conta__nada {
+  font-size: var(--t-titulo-3);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  line-height: 1.2;
+}
+/* Uma lista de coisas da pessoa: o título e, embaixo, o que é, em mono */
+.conta__lista li + li {
+  border-top: 1px solid var(--fio);
+}
+.conta__item {
+  display: grid;
+  gap: var(--e-1);
+  align-content: center;
+  min-height: var(--toque);
+  padding-block: var(--e-3);
+  text-decoration: none;
+}
+.conta__item strong {
+  font-weight: 550;
+  line-height: 1.25;
+}
+@media (hover: hover) {
+  .conta__item:hover strong,
+  .laco:hover strong {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
+}
+/* O pé do cartão: uma frase de apoio e o caminho */
+.conta__pe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-2) var(--e-5);
+  margin-top: auto;
+  padding-top: var(--e-5);
+  font-size: var(--t-pequeno);
+}
+
+/* --- O que você criou: o número grande, e a lista que abre no lugar ---------------------------- */
+
+.criado + .criado {
+  border-top: 1px solid var(--fio);
+}
+.criado summary {
+  display: grid;
+  grid-template-columns: minmax(2ch, auto) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--e-4);
+  min-height: var(--toque);
+  padding-block: var(--e-3);
+  list-style: none;
+  cursor: pointer;
+}
+.criado summary::-webkit-details-marker {
+  display: none;
+}
+.criado__numero {
+  font-size: var(--t-titulo-1);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1;
+}
+.criado__nome {
+  font-size: var(--t-titulo-3);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  line-height: 1.2;
+}
+.criado__abre {
+  width: auto;
+  min-height: 0;
+  font-size: var(--t-pequeno);
+}
+.criado__abre::before {
+  content: 'Ver';
+}
+.criado[open] .criado__abre::before {
+  content: 'Fechar';
+}
+.criado > ul {
+  padding-bottom: var(--e-4);
+}
+.conta__fotos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr));
+  gap: var(--e-2);
+}
+.conta__fotos a {
+  display: block;
+}
+.conta__fotos img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--raio-foto);
+  object-fit: cover;
+}
+
+/* --- Laços do coração -------------------------------------------------------------------------- */
+
+.conta__gente li + li {
+  border-top: 1px solid var(--fio);
+}
+.laco {
+  display: grid;
+  grid-template-columns: clamp(3rem, 2.6rem + 1vw, 4rem) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-4);
+  padding-block: var(--e-3);
+  text-decoration: none;
+}
+.laco .retrato {
+  font-size: 0.75em;
+}
+.laco__quem {
+  display: grid;
+  gap: 0.1em;
+}
+.laco__quem strong {
+  font-weight: 550;
+}
+.laco__quem > .suave:not(.ficha) {
+  font-size: var(--t-pequeno);
+}
+
+/* --- Administração: no fim, quieta ------------------------------------------------------------- */
+
+.conta__admin {
+  margin-top: var(--e-8);
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--fio);
+}
+.conta__admin .recado {
+  margin-top: var(--e-4);
+}
+.conta__admin-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+  margin-block: var(--e-3);
+}
+
+@media (min-width: 62rem) {
+  .conta {
+    padding-top: var(--e-8);
+  }
+  .conta__abre {
+    grid-template-columns: clamp(9rem, 14vw, 15rem) minmax(0, 1fr);
+    gap: var(--calha);
+  }
+  /* Dados e rascunhos lado a lado; o que você criou, maior, ao lado dos laços */
+  .conta__partes {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--calha);
+    align-items: start;
+  }
+  .conta__dados {
+    grid-column: 1 / span 7;
+  }
+  .conta__rascunhos {
+    grid-column: 8 / -1;
+  }
+  .conta__criou {
+    grid-column: 1 / span 7;
+  }
+  .conta__lacos {
+    grid-column: 8 / -1;
+  }
+  .conta__dados,
+  .conta__rascunhos {
+    align-self: stretch;
+  }
+}

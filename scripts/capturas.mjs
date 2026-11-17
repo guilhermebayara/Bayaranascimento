@@ -195,7 +195,10 @@ async function tirar(pasta) {
       await pagina.waitForLoadState('networkidle');
       // Só as imagens que estão na página: as de dentro de uma caixa fechada (a galeria da memória)
       // só carregam quando ela abre, e esperar por elas não termina nunca
-      await pagina.evaluate(() => Promise.all([...document.images].filter((i) => i.getClientRects().length > 0).map((i) => i.decode().catch(() => {}))));
+      // Vale também para as de uma lista recolhida (<details>): cada espera tem um limite
+      await pagina.evaluate(() =>
+        Promise.all([...document.images].filter((i) => i.getClientRects().length > 0).map((i) => Promise.race([i.decode().catch(() => {}), new Promise((ok) => setTimeout(ok, 3000))]))),
+      );
       await pagina.waitForTimeout(300);
       const arquivo = join(pasta, `${p.nome}--${largura.nome}.png`);
       const altura = await pagina.evaluate(() => document.documentElement.scrollHeight);
