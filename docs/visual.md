@@ -281,7 +281,8 @@ As serifas trazem os próprios acertos (`--escala-serifa`, `--aperto-titulo`, `-
 - A fonte do site é `FONTES_DO_SITE`, em `src/lib/visual.ts`. A combinação inteira: `combinacao('a')`, `combinacao('b')` ou `combinacao('c')`. Misturada: `{ ...combinacao('a'), mao: 'b' }`. Os quatro papéis são `serifa`, `grotesca`, `mono` e `mao`.
 - Nada mais muda junto: o esqueleto põe `data-serifa`, `data-grotesca`, `data-mono` e `data-mao` na página, `fontes.css` responde com as variáveis, o monograma certo acende e o ícone vem de `public/icones/<serifa>/`.
 - Nas prévias de teste e no computador, a faixa do alto troca a combinação por um cookie, para comparar. Na produção e na homologação o cookie não vale.
-- A escolha espera a Giovanna e o Magno. Quando sair: muda a linha, e as duas combinações que sobraram podem sair de `src/visual/sistema.ts` (os arquivos das fontes), de `fontes.css`, de `COMBINACOES_DE_FONTES`, de `scripts/monograma.mjs` e de `public/icones/`, com os testes de `testes/sistema.test.ts` que contam três.
+- O Gui escolheu a C, De cartaz (17/11/2026). As três combinações **ficam** no sistema, ao contrário do que esta seção previa: a página `/sistema` tem o seletor "Fontes dos exemplos" (`?fontes=a`, `b` ou `c`), que põe os quatro atributos só no bloco dos exemplos (`.sis__exemplos`). Trocar a fonte do site continua sendo mudar a linha de `FONTES_DO_SITE`.
+- `npm run capturas` tira as capturas com a C (o cookie `fontes` da faixa de teste).
 - Fonte nova, fora das três: instalar pelo Fontsource, acrescentar a opção em cada papel de `fontes.css` (a serifa pede `--assinatura-em`, `--sobrenomes` e `--ano-em`, medidos na tela até "MEMÓRIAS" e "Bayara & Bracarense" fecharem na mesma largura), acrescentar em `scripts/monograma.mjs` e rodar `npm run monograma`.
 
 ### O que ficou de fora do sistema, de propósito
@@ -784,7 +785,7 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 **Da fase 3**
 
 - **A aprovação do Gui**, grupo a grupo: feita, com o merge de #35 a #38 na `homologa`.
-- **As fontes:** `/conceito/sobre` fica até a escolha, que espera a Giovanna e o Magno. Depois dela, saem as duas combinações que sobrarem ("Como a fonte é trocada").
+- **As fontes:** escolhida a C (17/11/2026). As três ficam, com o seletor da página do sistema, e `/conceito/sobre` continua mostrando as três lado a lado nas prévias.
 - **Limpeza que ficou para depois dos merges:** os itens que os grupos fecharam saíram de "Decidido, a construir" e viraram regra nas seções de `docs/decisoes.md` (17/11/2026). Falta: `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena quando a revisão terminar; separar os testes dos grupos 1 e 2 do `describe('conceito')`, em `testes/visual.test.ts`; tentar as camadas do CSS.
 - **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Resposta do Gui (17/11/2026): mudou na `tst-visual-tipos`, e a cor escolhida em `/admin/tipos` voltou a valer na tela (ver "Tipos: paleta e ícones").
 - **O que nenhum grupo viu na tela:** o envio de foto nova, a gravação de áudio, o recorte do retrato com uma foto e o histórico com alterações.

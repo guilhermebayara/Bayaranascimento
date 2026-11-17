@@ -306,12 +306,13 @@ export function combinacao(id: Fontes): FontesDoSite {
  * Uma combinação inteira: combinacao('a'), combinacao('b') ou combinacao('c').
  * Misturando: { ...combinacao('a'), mao: 'b' } usa a manuscrita da B com o resto da A.
  *
- * A escolha espera a Giovanna e o Magno (docs/visual.md). O monograma, o ícone do site e a largura
- * da assinatura acompanham a serifa escolhida sozinhos.
+ * O Gui escolheu a C, De cartaz (17/11/2026). As três combinações continuam no sistema: a página
+ * /sistema tem um seletor que troca as fontes só nos exemplos dela, para comparar se a decisão
+ * mudar. O monograma, o ícone do site e a largura da assinatura acompanham a serifa sozinhos.
  */
-export const FONTES_DO_SITE: FontesDoSite = combinacao('a');
+export const FONTES_DO_SITE: FontesDoSite = combinacao('c');
 
-/** A combinação pedida na faixa de teste, se for uma das três. */
+/** A combinação pedida na faixa de teste ou no seletor da página do sistema, se for uma das três. */
 export function combinacaoValida(valor: string | null | undefined): Fontes | null {
   return COMBINACOES_DE_FONTES.find((c) => c.id === valor)?.id ?? null;
 }

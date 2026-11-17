@@ -12,6 +12,24 @@
   color: var(--tinta-suave);
 }
 
+/* O seletor das fontes dos exemplos: quieto, numa linha, como a ordem da lista de Pessoas */
+.sis__fontes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-5);
+  margin-top: var(--e-5);
+}
+.sis__fontes a[aria-current] {
+  color: var(--tinta);
+  font-weight: 550;
+  text-decoration: none;
+}
+/* Os exemplos levam as fontes escolhidas no seletor: o texto corrido também, e não só os títulos */
+.sis__exemplos {
+  font-family: var(--grotesca);
+}
+
 /* Monograma */
 .sis__monogramas {
   display: grid;
