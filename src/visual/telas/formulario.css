@@ -1023,6 +1023,11 @@
     align-self: start;
     margin: 0;
   }
+  /* Dentro de uma parte da página (a edição do capítulo), a trilha não vai para a coluna da esquerda
+     e precisa de respiro antes da pergunta */
+  .pagina-de-formulario .painel .formulario.com-etapas > .etapas {
+    margin-bottom: var(--e-6);
+  }
   .pagina-de-formulario .etapas button {
     justify-content: start;
     width: 100%;
@@ -1113,7 +1118,9 @@
     gap: var(--e-3);
   }
 }
-@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+/* Só fica parado em janela alta o bastante para ele caber inteiro: numa janela baixa de notebook
+   o fim do resumo ficava para sempre abaixo da tela */
+@media (min-width: 62rem) and (min-height: 56rem) and (hover: hover) and (pointer: fine) {
   .pagina-de-formulario .formulario.com-etapas > .ao-lado:not([hidden]),
   .pagina-de-formulario > .ao-lado--fixo {
     position: sticky;

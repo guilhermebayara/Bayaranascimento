@@ -63,3 +63,42 @@ describe('ação dentro de um bloco que tira o sublinhado dos links', () => {
     expect(regra(ler('src/visual/telas/painel.css'), '.novidade--resto .acao')).toMatch(/text-decoration-line: underline/);
   });
 });
+
+describe('formulários em etapas', () => {
+  it('Enter num campo avança a etapa em vez de enviar o formulário', async () => {
+    const { enterAvanca } = await import('../src/lib/cliente/etapas');
+    const tecla = (extra: object = {}) => ({ key: 'Enter', defaultPrevented: false, target: { tagName: 'INPUT', type: 'text' }, ...extra });
+    expect(enterAvanca(tecla(), 0, 3)).toBe(true);
+    expect(enterAvanca(tecla({ target: { tagName: 'INPUT', type: 'number' } }), 1, 3)).toBe(true);
+    // Na última etapa o Enter envia, como em qualquer formulário
+    expect(enterAvanca(tecla(), 2, 3)).toBe(false);
+    // No relato, Enter é quebra de linha; num botão, é o toque no botão
+    expect(enterAvanca(tecla({ target: { tagName: 'TEXTAREA' } }), 0, 3)).toBe(false);
+    expect(enterAvanca(tecla({ target: { tagName: 'BUTTON', type: 'button' } }), 0, 3)).toBe(false);
+    // A busca de pessoa já tratou a tecla (escolheu a sugestão)
+    expect(enterAvanca(tecla({ defaultPrevented: true }), 0, 3)).toBe(false);
+    expect(enterAvanca(tecla({ key: 'a' }), 0, 3)).toBe(false);
+    expect(ler('src/lib/cliente/etapas.ts')).toMatch(/addEventListener\('keydown'/);
+  });
+  it('sem script, "Remover foto" some com os outros botões que dependem dele', () => {
+    expect(ler('src/components/formularios/Pagina.astro')).toMatch(/<noscript>[\s\S]*\[data-remover\][\s\S]*display: none/);
+  });
+  it('sem script, o relato já escrito vem no campo, com o botão certo', () => {
+    const relato = ler('src/pages/memorias/[id]/relato.astro');
+    expect(relato).toMatch(/<textarea name="texto"[^>]*>\{opcoes\[0\]\.texto\}<\/textarea>/);
+    expect(relato).toMatch(/opcoes\[0\]\.publicado \? 'Salvar alterações' : 'Publicar relato'/);
+    expect(relato).toMatch(/data-salvar="rascunho" hidden=\{opcoes\[0\]\.publicado\}/);
+  });
+  it('o recado de rascunho salvo fica no alto da página', () => {
+    expect(ler('src/pages/nova.astro')).toMatch(/\.pagina-de-formulario__abre'\)\?\.before\(recado\)/);
+  });
+  it('o resumo ao lado só fica parado em janela alta o bastante', () => {
+    const css = ler('src/visual/telas/formulario.css');
+    const consultas = [...css.matchAll(/@media ([^{]+)\{\s*\.pagina-de-formulario \.formulario\.com-etapas > \.ao-lado:not\(\[hidden\]\),/g)].map((m) => m[1]);
+    expect(consultas.length).toBe(1);
+    expect(consultas[0]).toMatch(/min-height/);
+  });
+  it('a lista de sugestões da busca de pessoa não entra na ordem do Tab', () => {
+    expect(ler('src/lib/cliente/busca-pessoa.ts')).toMatch(/sugestoes\.tabIndex = -1/);
+  });
+});

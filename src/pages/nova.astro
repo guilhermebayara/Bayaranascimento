@@ -844,7 +844,14 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         return avisar('Dê um título para a memória.', 'erro');
       }
       if (!dados.get('ano') || !Number.isInteger(ano)) {
-        etapas?.ir(0);
+        // O aviso do ano aparece na etapa em que o ano se preenche, com o controle da data aberto
+        const etapaDaData = indiceDaEtapa('[data-frase]');
+        etapas?.ir(etapaDaData < 0 ? 0 : etapaDaData);
+        const controle = form.querySelector<HTMLElement>('[data-controle-da-data]');
+        if (controle?.hidden) form.querySelector<HTMLElement>('[data-frase-data]')?.click();
+        else (form.elements.namedItem('ano') as HTMLInputElement | null)?.focus();
+        // Quem ainda não passou da primeira etapa fica nela, e o aviso diz onde o ano se informa
+        if (etapas && etapas.atual() !== etapaDaData) return avisar('Informe o ano, mesmo que seja aproximado, na etapa "Quando e onde".', 'erro');
         return avisar('Informe o ano, mesmo que seja aproximado.', 'erro');
       }
 
@@ -925,7 +932,12 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     try {
       if (sessionStorage.getItem('rascunho-salvo')) {
         sessionStorage.removeItem('rascunho-salvo');
-        avisar('Rascunho salvo. Só você vê, e dá para continuar de qualquer aparelho.');
+        // O recado fica no alto, onde a página abre depois de salvar: junto dos botões ele ficava fora da tela
+        const recado = document.createElement('p');
+        recado.className = 'recado';
+        recado.setAttribute('role', 'status');
+        recado.textContent = 'Rascunho salvo. Só você vê, e dá para continuar de qualquer aparelho.';
+        document.querySelector('.pagina-de-formulario__abre')?.before(recado);
       }
     } catch {
       // sem armazenamento, só não mostra o aviso

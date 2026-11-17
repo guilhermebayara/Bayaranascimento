@@ -93,15 +93,15 @@ const opcoes = await Promise.all(
       </div>
       <label class="campo">
         <span>O relato escrito <small data-texto-opcional hidden>(opcional quando há áudio)</small></span>
-        <textarea name="texto" rows="12" maxlength="20000"></textarea>
+        <textarea name="texto" rows="12" maxlength="20000" disabled={opcoes[0].bloqueado}>{opcoes[0].texto}</textarea>
       </label>
       <p class="dica">Só você vai poder alterar este relato.</p>
     </fieldset>
 
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
     <div class="acoes">
-      <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada">Publicar relato</button>
-      <button type="submit" class="botao botao--leve" name="situacao" value="rascunho" data-salvar="rascunho">Salvar rascunho</button>
+      <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada">{opcoes[0].publicado ? 'Salvar alterações' : 'Publicar relato'}</button>
+      <button type="submit" class="botao botao--leve" name="situacao" value="rascunho" data-salvar="rascunho" hidden={opcoes[0].publicado}>Salvar rascunho</button>
     </div>
   </form>
 
