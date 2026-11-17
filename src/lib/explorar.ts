@@ -71,18 +71,25 @@ function ano(texto: string | null): number | null {
 
 const lista = (p: URLSearchParams, nome: string) => [...new Set(p.getAll(nome).flatMap((v) => v.split(',')).map((v) => v.trim()).filter((v) => v && v.length <= 80))].slice(0, 20);
 
+/** O começo e o fim do período na ordem certa: quem escreve os dois anos trocados quer o mesmo período. */
+export function periodoEmOrdem(de: number | null, ate: number | null): [number | null, number | null] {
+  return de !== null && ate !== null && de > ate ? [ate, de] : [de, ate];
+}
+
 /** Lê os filtros do endereço. O que não faz sentido é ignorado, sem erro. */
 export function lerFiltros(p: URLSearchParams): Filtros {
   const ordem = p.get('ordem');
   const decada = ano(p.get('decada'));
+  // Período invertido se desinverte sozinho (decisão do Gui, 17/11/2026, C2): "de 2000 a 1990" vira "de 1990 a 2000"
+  const [de, ate] = periodoEmOrdem(ano(p.get('de')), ano(p.get('ate')));
   return {
     tipos: lista(p, 'tipo'),
     pessoas: lista(p, 'pessoa'),
     familias: lista(p, 'nucleo'),
     capitulos: lista(p, 'capitulo'),
     temas: lista(p, 'tema'),
-    de: ano(p.get('de')),
-    ate: ano(p.get('ate')),
+    de,
+    ate,
     decada: decada !== null && decada % 10 === 0 ? decada : null,
     comAudio: p.get('audio') === '1',
     comFoto: p.get('foto') === '1',
