@@ -1,7 +1,7 @@
 // Explorar (docs/decisoes.md): cada filtro e cada ordem, as combinações, o sorteio só entre as
 // visíveis e a regra de quando os trilhos aparecem. Regras em src/lib/explorar.ts.
 import { describe, expect, it } from 'vitest';
-import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, SEM_FILTRO, sortear, temFiltro, type Contexto, type Filtros } from '../src/lib/explorar';
+import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, SEM_FILTRO, sortear, temFiltro, type Contexto, type Filtros, SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos } from '../src/lib/explorar';
 
 const m = (id: string, ano: number, o: Partial<{ mes: number; tipo: string; integrantes: string[]; nucleos: string[]; temas: string[]; fotos: number; relatos: number; criadaEm: string }> = {}) => ({
   id,
@@ -280,5 +280,49 @@ describe('formas de ver e endereço', async () => {
     expect(vizinhasNaLista(lista, 'a').antes).toBeUndefined();
     expect(vizinhasNaLista(lista, 'c').depois).toBeUndefined();
     expect(vizinhasNaLista(lista, 'fora').posicao).toBe(-1);
+  });
+});
+
+// Defeito achado pelo Gui em 17/11/2026: depois de "Só as fotos", no modo TV, não dava para voltar
+// ao texto nem chegar aos ajustes. A regra do que cada gesto faz está em reacaoEmSoFotos, e o
+// script do palco só obedece (testes/visual.test.ts confere a ligação).
+describe('"Só as fotos", no modo TV: sempre existe caminho de volta', () => {
+  const tecla = (t: string) => ({ tipo: 'tecla', tecla: t }) as const;
+
+  it('pelo teclado: o Esc volta ao modo com texto, com os controles à vista ou escondidos', () => {
+    expect(reacaoEmSoFotos(tecla('Escape'), false)).toBe('voltar-ao-texto');
+    expect(reacaoEmSoFotos(tecla('Escape'), true)).toBe('voltar-ao-texto');
+  });
+
+  it('pelo teclado e pelo controle da TV: qualquer outra tecla traz os controles de volta', () => {
+    for (const t of ['Enter', 'ArrowUp', 'ArrowDown', ' ', 'Tab', 'MediaPlayPause', 'ContextMenu', 'a']) expect(reacaoEmSoFotos(tecla(t), false), t).toBe('mostrar-controles');
+  });
+
+  it('pelo toque, pelo clique e pelo mouse: os controles voltam', () => {
+    expect(reacaoEmSoFotos({ tipo: 'toque' }, false)).toBe('mostrar-controles');
+    expect(reacaoEmSoFotos({ tipo: 'mouse' }, false)).toBe('mostrar-controles');
+  });
+
+  it('as setas para os lados continuam trocando de memória, sem mostrar os controles', () => {
+    for (const visiveis of [false, true]) {
+      expect(reacaoEmSoFotos(tecla('ArrowRight'), visiveis)).toBe('passar');
+      expect(reacaoEmSoFotos(tecla('ArrowLeft'), visiveis)).toBe('passar');
+    }
+  });
+
+  it('com os controles à vista, o gesto faz o que sempre fez (o Enter aciona "Mostrar o texto")', () => {
+    expect(reacaoEmSoFotos(tecla('Enter'), true)).toBe('seguir');
+    expect(reacaoEmSoFotos({ tipo: 'toque' }, true)).toBe('seguir');
+  });
+
+  it('nenhum gesto fica sem saída: de qualquer estado, em no máximo dois passos se volta ao texto', () => {
+    // Teclado: Enter mostra os controles com o foco em "Mostrar o texto", e o segundo Enter o aciona.
+    // Toque: o primeiro traz os controles, o segundo cai em "Mostrar o texto".
+    for (const gesto of [tecla('Enter'), { tipo: 'toque' } as const]) {
+      const primeiro = reacaoEmSoFotos(gesto, false);
+      expect(primeiro).toBe('mostrar-controles');
+      expect(reacaoEmSoFotos(gesto, true)).toBe('seguir');
+    }
+    expect(SEGUNDOS_DOS_CONTROLES).toBeGreaterThanOrEqual(4);
   });
 });

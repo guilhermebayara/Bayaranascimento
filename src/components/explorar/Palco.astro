@@ -119,9 +119,16 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
             </a>
           </p>
         </div>
+        {/* Os controles ficam num grupo só: em "Só as fotos" eles somem juntos e voltam juntos, numa
+            barra no pé da tela, ao primeiro toque, clique, movimento do mouse ou tecla */}
+        <div class="palco__controles" data-palco-controles>
         <nav class="palco__passos" aria-label={modo === 'tv' ? 'Passar as memórias' : 'Outra memória'}>
           {modo === 'tv' && (
             <>
+              {/* O caminho de volta de "Só as fotos", em destaque. Só aparece nesse modo, com script. */}
+              <button type="button" class="botao palco__volta" data-palco-mostrar-texto hidden>
+                Mostrar o texto
+              </button>
               <a class="acao" href={antes} aria-disabled={antes ? undefined : 'true'} rel="prev" data-palco-antes data-palco-leva>
                 Anterior
               </a>
@@ -201,6 +208,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
             )}
           </details>
         )}
+        </div>
       </div>
     </article>
   )
@@ -213,6 +221,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   // prontas, e é aí que a animação começa. As setas do teclado e do controle da TV passam, e o Esc
   // sai. Nada espera uma animação acabar: passar no meio de uma chegada troca na hora.
   // Sem script, "Anterior" e "Próxima" continuam sendo links, e "Passar sozinho" nem aparece.
+  import { SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos } from '../../lib/explorar';
+
   const calmo = matchMedia('(prefers-reduced-motion: reduce)');
   const palco = () => document.querySelector<HTMLElement>('[data-palco]');
   const link = (nome: string) => palco()?.querySelector<HTMLAnchorElement>(`[data-palco-${nome}]`) ?? null;
@@ -278,6 +288,9 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   let pedido = 0;
   let relogio = 0;
   let pausado = false;
+  // "Só as fotos": os controles à vista e o relógio que os esconde de novo
+  let controles = false;
+  let relogioDosControles = 0;
 
   async function passar(a: HTMLAnchorElement | null, deTras = false) {
     const atual = palco();
@@ -305,7 +318,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       const ajustes = novo.querySelector<HTMLDetailsElement>('[data-palco-ajustes]');
       if (ajustes) ajustes.open = atual.querySelector<HTMLDetailsElement>('[data-palco-ajustes]')?.open ?? false;
       const ativo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const focado = ['antes', 'depois', 'pausa'].find((nome) => ativo?.hasAttribute(`data-palco-${nome}`));
+      const focado = ['antes', 'depois', 'pausa', 'mostrar-texto'].find((nome) => ativo?.hasAttribute(`data-palco-${nome}`));
       const noAjuste = ativo?.closest('[data-palco-ajustes]') ? ativo.textContent?.trim() : undefined;
       const cor = getComputedStyle(atual).backgroundColor;
       // No Álbum, as fotos que estavam na tela saem pela lateral, empurradas pelas que chegam
@@ -332,7 +345,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       document.title = pagina.title;
       preparar();
       const noMesmoAjuste = noAjuste ? [...novo.querySelectorAll<HTMLElement>('[data-palco-ajustes] :is(a, button)')].find((e) => e.textContent?.trim() === noAjuste) : undefined;
-      (noMesmoAjuste ?? (focado ? novo.querySelector<HTMLElement>(`[data-palco-${focado}]`) : null) ?? link('depois'))?.focus({ preventScroll: true });
+      // Em "Só as fotos", com os controles escondidos, o foco não vai para nenhum deles
+      if (!escondidos()) (noMesmoAjuste ?? (focado ? novo.querySelector<HTMLElement>(`[data-palco-${focado}]`) : null) ?? link('depois'))?.focus({ preventScroll: true });
     } catch {
       location.assign(href);
     }
@@ -369,17 +383,59 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     const atual = palco();
     if (!atual) return;
     atual.toggleAttribute('data-so-fotos', soFotos);
+    // Os controles à vista seguem de uma memória para a outra; fora de "Só as fotos", a marca sai
+    atual.toggleAttribute('data-controles', soFotos && controles);
     const botao = atual.querySelector<HTMLButtonElement>('[data-palco-so-fotos]');
     if (botao) {
       botao.setAttribute('aria-pressed', String(soFotos));
-      botao.textContent = soFotos ? 'Mostrar os textos' : 'Só as fotos';
+      botao.textContent = soFotos ? 'Mostrar o texto' : 'Só as fotos';
     }
+    // O caminho de volta em destaque, na linha de "Anterior" e "Próxima"
+    const volta = atual.querySelector<HTMLButtonElement>('[data-palco-mostrar-texto]');
+    if (volta) volta.hidden = !soFotos;
     const cheia = atual.querySelector<HTMLButtonElement>('[data-palco-cheia]');
     if (cheia) {
       cheia.hidden = !document.fullscreenEnabled;
       cheia.setAttribute('aria-pressed', String(Boolean(document.fullscreenElement)));
       cheia.textContent = document.fullscreenElement ? 'Sair da tela cheia' : 'Tela cheia';
     }
+  }
+
+  const soFotos = () => Boolean(palco()?.hasAttribute('data-so-fotos'));
+  const escondidos = () => soFotos() && !controles;
+
+  // Em "Só as fotos", os controles voltam por alguns segundos a cada gesto e somem de novo sozinhos.
+  // O relógio recomeça a cada gesto, então eles não somem enquanto a pessoa está mexendo.
+  function mostrarControles(focar = false) {
+    const atual = palco();
+    if (!atual || !soFotos()) return;
+    controles = true;
+    atual.setAttribute('data-controles', '');
+    if (focar) atual.querySelector<HTMLElement>('[data-palco-mostrar-texto]')?.focus({ preventScroll: true });
+    clearTimeout(relogioDosControles);
+    relogioDosControles = window.setTimeout(esconderControles, SEGUNDOS_DOS_CONTROLES * 1000);
+  }
+  function esconderControles() {
+    clearTimeout(relogioDosControles);
+    controles = false;
+    const atual = palco();
+    if (!atual) return;
+    atual.removeAttribute('data-controles');
+    // O foco do teclado nunca fica num controle escondido
+    const ativo = document.activeElement;
+    if (soFotos() && ativo instanceof HTMLElement && atual.contains(ativo)) ativo.blur();
+  }
+  // Entrar e sair de "Só as fotos". Ao entrar, os controles ficam na tela por alguns segundos, para
+  // a pessoa ver onde está o caminho de volta; ao sair, o foco vai para "Próxima", como na chegada.
+  function trocarSoFotos(ligar: boolean) {
+    guardar('tv-so-fotos', ligar ? '1' : '0');
+    if (!ligar) {
+      clearTimeout(relogioDosControles);
+      controles = false;
+    }
+    marcarTela(ligar);
+    if (ligar) mostrarControles(true);
+    else link('depois')?.focus({ preventScroll: true });
   }
 
   // Ligado: a próxima entra sozinha depois do tempo escolhido. Com a aba escondida, espera.
@@ -417,19 +473,53 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     });
     document.addEventListener('keydown', (evento) => {
       if (evento.metaKey || evento.ctrlKey || evento.altKey || !palco()) return;
+      // Em "Só as fotos" (reacaoEmSoFotos, em src/lib/explorar.ts): o Esc volta ao modo com texto,
+      // as setas para os lados passam sem mostrar os controles e qualquer outra tecla os traz de volta
+      if (soFotos()) {
+        const reacao = reacaoEmSoFotos({ tipo: 'tecla', tecla: evento.key }, controles);
+        if (reacao === 'voltar-ao-texto') {
+          evento.preventDefault();
+          return trocarSoFotos(false);
+        }
+        if (reacao === 'mostrar-controles') {
+          // O Tab segue o caminho dele, já com os controles à vista; as outras teclas só mostram
+          if (evento.key !== 'Tab') evento.preventDefault();
+          return mostrarControles(evento.key !== 'Tab');
+        }
+        if (reacao === 'seguir') mostrarControles();
+      }
       if (evento.key === 'ArrowRight') passar(link('depois'));
       else if (evento.key === 'ArrowLeft') passar(link('antes'), true);
       else if (evento.key === 'Escape' && serve(link('sair'))) location.assign(link('sair')!.href);
+    });
+    // O toque e o clique, em "Só as fotos" com os controles escondidos, só trazem os controles: a
+    // foto não passa de memória nesse primeiro toque. Na captura, antes de qualquer outro tratamento.
+    document.addEventListener(
+      'click',
+      (evento) => {
+        if (!soFotos()) return;
+        if (reacaoEmSoFotos({ tipo: 'toque' }, controles) === 'mostrar-controles') {
+          evento.preventDefault();
+          evento.stopPropagation();
+        }
+        mostrarControles();
+      },
+      true,
+    );
+    // O mouse que se mexe de verdade: a troca de memória embaixo de um cursor parado não conta
+    let cursor = '';
+    document.addEventListener('mousemove', (evento) => {
+      const onde = `${evento.screenX},${evento.screenY}`;
+      if (onde === cursor) return;
+      const primeiroSinal = cursor === '';
+      cursor = onde;
+      if (!primeiroSinal && soFotos()) mostrarControles();
     });
     document.addEventListener('click', (evento) => {
       const alvo = evento.target instanceof Element ? evento.target : null;
       const pausa = alvo?.closest<HTMLButtonElement>('[data-palco] [data-palco-pausa]');
       if (pausa) return alternarPausa(pausa);
-      if (alvo?.closest('[data-palco] [data-palco-so-fotos]')) {
-        const soFotos = !palco()!.hasAttribute('data-so-fotos');
-        guardar('tv-so-fotos', soFotos ? '1' : '0');
-        return marcarTela(soFotos);
-      }
+      if (alvo?.closest('[data-palco] :is([data-palco-so-fotos], [data-palco-mostrar-texto])')) return trocarSoFotos(!soFotos());
       if (alvo?.closest('[data-palco] [data-palco-cheia]')) {
         const pedido = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
         return void pedido.catch(() => undefined);
@@ -446,14 +536,21 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       passar(a, a.hasAttribute('data-palco-antes'));
     });
     document.addEventListener('visibilitychange', armar);
-    document.addEventListener('fullscreenchange', () => marcarTela(Boolean(palco()?.hasAttribute('data-so-fotos'))));
+    // Sair da tela cheia pelo Esc do navegador não chega à página como tecla: os controles voltam aqui
+    document.addEventListener('fullscreenchange', () => {
+      marcarTela(soFotos());
+      mostrarControles();
+    });
     preparar();
+    // Quem entra com "Só as fotos" guardado vê os controles por alguns segundos, com o caminho de volta
+    mostrarControles();
     history.replaceState(history.state, '', semPreferencias(location.href));
     // A animação guardada no aparelho vale ao entrar no modo TV
     const animacao = guardado('tv-animacao');
     const daAnimacao = animacao && animacao !== (primeiro.dataset.movimento ?? 'a') ? [...primeiro.querySelectorAll<HTMLAnchorElement>('a[data-palco-movimento]')].find((a) => animacaoDe(a.href) === animacao) : undefined;
     if (daAnimacao) passar(daAnimacao);
-    // O foco começa em "Próxima": no controle da TV, o botão do meio já passa
-    link('depois')?.focus({ preventScroll: true });
+    // O foco começa em "Próxima": no controle da TV, o botão do meio já passa. Em "Só as fotos", em
+    // "Mostrar o texto".
+    (soFotos() ? palco()?.querySelector<HTMLElement>('[data-palco-mostrar-texto]') : link('depois'))?.focus({ preventScroll: true });
   }
 </script>

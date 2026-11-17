@@ -457,7 +457,7 @@ Escrito em 17/11/2026, no fim da sessão que construiu o grupo. A branch é a `t
 **O que o Gui ainda tem para escolher ou conferir**
 
 - **A animação do modo TV.** As três ficam para as pessoas escolherem em "Ajustes" (ele decidiu não fechar numa só). O que ele ainda não disse: qual é a de quem nunca escolheu (hoje a Álbum, `MOVIMENTO_PADRAO`) e se os nomes "Álbum", "Revelação" e "Mesa" ficam. Na Álbum ele aprovou a direção e pediu que todas as fotos venham e saiam pela lateral; a correção das fotos que saíam repetindo a chegada ele ainda não viu.
-- **"Só as fotos" e "Tela cheia"**: construídos por último, ele ainda não viu.
+- **"Só as fotos" e "Tela cheia"**: ele viu e achou o defeito do caminho de volta, corrigido em 17/11/2026. Falta conferir a correção numa TV com controle e no iPhone.
 - **As etiquetas da família**: ele escolheu o formato, mas não viu o resultado.
 - **A aba do ano no mural** precisa ser vista por alguém mais velho. Se passar batida, a saída combinada é o ano na margem de toda foto.
 - **No celular, o mural pequeno fica sem o título** na margem (não cabe). Ele não comentou.
@@ -569,7 +569,21 @@ Nas três, o fundo passa de uma cor à outra e as fotos se aproximam devagar enq
 
 Sem script, os links continuam levando tudo no endereço (`tamanho`, `passar`, `mov`), e o servidor continua aceitando.
 
-**Só as fotos e tela cheia** (pedido do Gui, 17/11/2026). Em "Ajustes", "Só as fotos" esconde o título, o trecho e os dados e deixa as fotos no meio da tela, maiores, com os controles pequenos embaixo; "Mostrar os textos" desfaz. "Tela cheia" usa a do navegador e continua valendo de uma memória para a outra, porque a página não recarrega; onde o navegador não tem tela cheia, como no iPhone, o botão não aparece.
+**Só as fotos e tela cheia** (pedido do Gui, 17/11/2026). Em "Ajustes", "Só as fotos" esconde o título, o trecho e os dados e deixa as fotos no meio da tela, maiores; "Mostrar o texto" desfaz (ver "O caminho de volta de Só as fotos", abaixo). "Tela cheia" usa a do navegador e continua valendo de uma memória para a outra, porque a página não recarrega; onde o navegador não tem tela cheia, como no iPhone, o botão não aparece.
+
+**O caminho de volta de "Só as fotos"** (defeito achado pelo Gui, 17/11/2026: depois de "Só as fotos" não havia como voltar o texto nem chegar aos ajustes; em 1280 × 720, "Ajustes" voltava fechado e abaixo da dobra). Como ficou:
+
+- **A tela não rola.** Em "Só as fotos" o palco tem a altura exata da tela, e os controles ("Sair do modo TV" no alto; "Mostrar o texto", "Anterior", "Próxima", "Passar sozinho" e "Ajustes" numa barra no pé) ficam por cima das fotos.
+- **Os controles somem sozinhos** depois de 5 segundos sem gesto (`SEGUNDOS_DOS_CONTROLES`, em `src/lib/explorar.ts`), e o cursor do mouse some com eles.
+- **Qualquer gesto os traz de volta**, com "Mostrar o texto" em destaque e com o foco: toque, clique, movimento do mouse e qualquer tecla (Enter, seta para cima, os botões do controle da TV). O primeiro toque ou clique só mostra os controles, sem trocar de memória. O Tab mostra os controles e segue para o primeiro deles.
+- **Esc sempre volta ao modo com texto.** Já no modo com texto, o Esc continua saindo do modo TV.
+- **As setas para os lados** continuam trocando de memória, sem mostrar os controles.
+- **O foco do teclado nunca fica num controle escondido:** escondidos, eles saem da ordem do teclado (`visibility: hidden`), quem tinha o foco o perde, e a troca de memória não devolve o foco a eles.
+- **Com movimento reduzido**, os controles aparecem e somem sem animação.
+- Quem entra no modo TV com "Só as fotos" guardado no aparelho vê os controles nos primeiros segundos. Sair da tela cheia pelo Esc do navegador, que não chega à página como tecla, também os mostra.
+- O botão de "Ajustes" passou a dizer "Mostrar o texto", como o da barra (era "Mostrar os textos").
+- **Onde está:** a regra do que cada gesto faz é `reacaoEmSoFotos`, em `src/lib/explorar.ts`, com teste em `testes/explorar.test.ts` (existe caminho de volta pelo teclado e pelo toque); o script de `Palco.astro` obedece a ela, e `testes/visual.test.ts` confere a ligação. Os controles ficam no grupo `.palco__controles`, que fora de "Só as fotos" não existe para a grade (`display: contents`).
+- **Para o Gui conferir:** numa TV com controle de verdade e no iPhone. Os 5 segundos são um ponto de partida.
 
 **As fotos que saem, no Álbum** (achado do Gui, 17/11/2026: pareciam fotos voando que nunca paravam na tela). As fotos antigas, postas de volta por um instante para sair pela lateral, repetiam a animação de chegada enquanto saíam. Agora elas só vão embora.
 
