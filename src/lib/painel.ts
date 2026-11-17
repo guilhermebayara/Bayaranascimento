@@ -101,11 +101,9 @@ export function chegarAoPainel(anterior: RegistroDeVisitas | undefined, agora: D
   return { registro, cartaNoAlto, novidadesDesde: registro.anterior };
 }
 
-/** "Querida Elizete," / "Querido Aguilar," / "Olá, Chico," */
-export function saudacao(nome: string, tratamento: 'ela' | 'ele' | null): string {
-  if (tratamento === 'ela') return `Querida ${nome},`;
-  if (tratamento === 'ele') return `Querido ${nome},`;
-  return `Olá, ${nome},`;
+/** "Oi, Elizete," (pedido do Gui, 17/11/2026: a mesma saudação para todo mundo) */
+export function saudacao(nome: string): string {
+  return `Oi, ${nome},`;
 }
 
 // --- O que entrou de novo -------------------------------------------------------------------

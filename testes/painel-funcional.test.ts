@@ -39,9 +39,8 @@ describe('a carta e as visitas', () => {
   });
 
   it('a saudação leva o nome de quem abre', () => {
-    expect(saudacao('Elizete', 'ela')).toBe('Querida Elizete,');
-    expect(saudacao('Aguilar', 'ele')).toBe('Querido Aguilar,');
-    expect(saudacao('Chico', null)).toBe('Olá, Chico,');
+    expect(saudacao('Elizete')).toBe('Oi, Elizete,');
+    expect(saudacao('Aguilar')).toBe('Oi, Aguilar,');
   });
 });
 

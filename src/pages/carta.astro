@@ -14,7 +14,7 @@ const paragrafos = (texto: string) => texto.split(/\n\s*\n/).map((p) => p.trim()
   {
     carta && eu ? (
       <section class="painel" aria-labelledby="saudacao">
-        <h1 id="saudacao">{saudacao(eu.apelido ?? eu.nome, eu.tratamento)}</h1>
+        <h1 id="saudacao">{saudacao(eu.apelido ?? eu.nome)}</h1>
         {paragrafos(carta.texto).map((p) => <p>{p}</p>)}
         <p>{carta.assinatura}</p>
       </section>
