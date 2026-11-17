@@ -783,9 +783,9 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 
 **Da fase 3**
 
-- **A aprovação do Gui**, grupo a grupo, e o merge na ordem: #35, #36, #37 e #38. As perguntas de cada grupo estão no fim do PR dele.
+- **A aprovação do Gui**, grupo a grupo: feita, com o merge de #35 a #38 na `homologa`.
 - **As fontes:** `/conceito/sobre` fica até a escolha, que espera a Giovanna e o Magno. Depois dela, saem as duas combinações que sobrarem ("Como a fonte é trocada").
-- **Limpeza que ficou para depois dos merges:** tirar de "Decidido, a construir" os itens que os grupos fecharam (Explorar, capítulos na linha do tempo, painel, sua conta, "família" no lugar de "núcleo", revisão visual) e levar o resumo para as seções de regra; `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena, como `docs/decisoes.md` já previa; separar os testes dos grupos 1 e 2 do `describe('conceito')`, em `testes/visual.test.ts`; tentar as camadas do CSS.
+- **Limpeza que ficou para depois dos merges:** os itens que os grupos fecharam saíram de "Decidido, a construir" e viraram regra nas seções de `docs/decisoes.md` (17/11/2026). Falta: `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena quando a revisão terminar; separar os testes dos grupos 1 e 2 do `describe('conceito')`, em `testes/visual.test.ts`; tentar as camadas do CSS.
 - **O campo "Cor" de `/admin/tipos`** não muda mais nada na tela: o visual novo pinta cada tipo com a cor fixa de `corDoTipo`. Resposta do Gui (17/11/2026): mudou na `tst-visual-tipos`, e a cor escolhida em `/admin/tipos` voltou a valer na tela (ver "Tipos: paleta e ícones").
 - **O que nenhum grupo viu na tela:** o envio de foto nova, a gravação de áudio, o recorte do retrato com uma foto e o histórico com alterações.
 
