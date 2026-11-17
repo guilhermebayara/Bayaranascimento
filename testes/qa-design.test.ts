@@ -1,11 +1,11 @@
 // Regras que nasceram dos defeitos do QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md).
 import { describe, expect, it } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { ehNaoEncontradaSemPagina } from '../src/lib/servidor/http';
 
-const raiz = join(__dirname, '..');
-const ler = (caminho: string) => readFileSync(join(raiz, caminho), 'utf8');
+// A leitura de arquivos segue o jeito de testes/visual.test.ts, que não pede os tipos do Node
+const fs = 'node:fs';
+const { readFileSync } = (await import(/* @vite-ignore */ fs)) as { readFileSync: (caminho: URL, codificacao: string) => string };
+const ler = (caminho: string) => readFileSync(new URL(`../${caminho.replace(/\[/g, '%5B').replace(/\]/g, '%5D')}`, import.meta.url), 'utf8');
 /** O corpo da primeira regra do CSS com exatamente este seletor. */
 const regra = (css: string, seletor: string) => {
   const inicio = css.indexOf(`\n${seletor} {`);
@@ -16,7 +16,6 @@ const regra = (css: string, seletor: string) => {
 describe('página não encontrada', () => {
   const resposta = (status: number, tipo: string | null) => ({ status, headers: { get: () => tipo } });
   it('existe, com o esqueleto do site e a volta ao início', () => {
-    expect(existsSync(join(raiz, 'src/pages/404.astro'))).toBe(true);
     const pagina = ler('src/pages/404.astro');
     expect(pagina).toMatch(/layouts\/Visual\.astro/);
     expect(pagina).toMatch(/href="\/"/);

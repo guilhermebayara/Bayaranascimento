@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { arrumarTexto, codigoNovo, criarSlug, outrosAdmins, slugUnico, validarData } from '../src/lib/servidor/conteudo';
 import { agruparPorAno, formatarData, maisRecentesPrimeiro, formatarDiaMes, problemaNaData } from '../src/lib/datas';
 
@@ -58,11 +56,9 @@ describe('recado de quem não é administrador', () => {
   // QA de design (17/11/2026): o recado de /api/tipos dizia "Só o Gui e a Giovanna", sem o Magno, que é
   // administrador desde a migração 017. Recado de permissão diz "os administradores", sem lista de nomes.
   it('nenhuma rota recusa em nome de só duas pessoas', () => {
-    const pasta = join(__dirname, '../src/pages/api');
-    for (const arquivo of readdirSync(pasta)) {
-      const codigo = readFileSync(join(pasta, arquivo), 'utf8');
-      expect(codigo, arquivo).not.toMatch(/Só o Gui e a Giovanna/);
-    }
+    const rotas = import.meta.glob<string>('../src/pages/api/*.ts', { query: '?raw', import: 'default', eager: true });
+    expect(Object.keys(rotas).length).toBeGreaterThan(5);
+    for (const [arquivo, codigo] of Object.entries(rotas)) expect(codigo, arquivo).not.toMatch(/Só o Gui e a Giovanna/);
   });
 });
 
