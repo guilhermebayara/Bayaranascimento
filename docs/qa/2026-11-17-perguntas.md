@@ -8,6 +8,24 @@ Sessão de QA de design pedida pelo Gui em 17/11/2026 (roteiro em `docs/qa-desig
 
 As 17 perguntas que ficaram abertas nos PRs #39 e #40 estão na tela de cada uma, com o PR e o número no título, e com o que esta rodada viu a mais. Em três delas a recomendação mudou em relação ao PR, e a pergunta diz por quê.
 
+## Respostas do Gui (17/11/2026)
+
+**Todas as perguntas foram respondidas.** Vale a opção recomendada (a primeira, "A") em todas as 174, menos as listadas abaixo. Os dois textos novos ("Não encontramos esta página." e o aviso do ano) estão aprovados.
+
+Diferente da recomendada, ou com acréscimo:
+
+- **P32:** as duas coisas. Controles menores no celular (opção A) e assinatura menor só no Explorar em 1280 e 1920 px (opção B).
+- **P98:** busca no alto e ordem por geração (opção A), com uma troca para ordem alfabética, para cada um achar do jeito que preferir.
+- **P102:** opção A. Os áudios de exemplo são vozes sintetizadas curtas, nunca de ninguém da família, com as mesmas regras das fotos de exemplo: só no banco e no bucket de teste, nunca na produção, com a guarda cobrindo.
+
+Do QA de código (#42):
+
+- **C1:** esconder em todo lugar. Quem só existe num laço do coração privado de outra pessoa some, para quem não é dono do laço, da lista de Pessoas, dos seletores de pessoa (não pode ser marcado em memória nem capítulo) e da própria página (404), com a mesma regra da árvore.
+- **C2:** o Explorar desinverte sozinho um período invertido ("de 2000 a 1990" vira "de 1990 a 2000").
+- **C3:** no modo TV passando sozinho, sem rede, a memória da tela fica, a passagem pausa com "Sem conexão. Tentando de novo…" e volta sozinha quando a rede volta.
+- **C4:** a linha do tempo continua carregando tudo; medir de novo depois da carga do Natal.
+- **P88:** autorizada a correção do teclado e do foco na árvore em `src/lib/cliente/arvore.ts`, sem mudar desenho, arranjo nem gestos; os testes `testes/arvore-*.test.ts` passam sem mudança.
+
 ## Resumo
 
 São 174 perguntas: 24 que mudam a experiência, 78 de ajuste e 72 de detalhe.
