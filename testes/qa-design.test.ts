@@ -102,3 +102,22 @@ describe('formulários em etapas', () => {
     expect(ler('src/lib/cliente/busca-pessoa.ts')).toMatch(/sugestoes\.tabIndex = -1/);
   });
 });
+
+describe('capítulos, árvore e pessoas', () => {
+  it('na página de outra pessoa, o nome do laço do coração entra em minúscula, como na árvore', () => {
+    const pagina = ler('src/pages/pessoas/[id]/index.astro');
+    expect(pagina).toMatch(/: minuscula\(l\.nome\),/);
+    expect(pagina).toMatch(/chama de \$\{minuscula\(l\.nome\)\}/);
+  });
+  it('sem script, a árvore mostra o aviso no lugar do mapa vazio', () => {
+    expect(ler('src/pages/arvore.astro')).toMatch(/<noscript>[\s\S]*\[data-mapa\][^}]*display: none[\s\S]*<\/noscript>/);
+  });
+  it('a capa do capítulo mais alta que a janela não fica parada', () => {
+    expect(ler('src/visual/telas/capitulo.css')).toMatch(/\.capitulo__parado--solta \{\s*position: static;/);
+    expect(ler('src/pages/capitulos/[id]/index.astro')).toMatch(/capitulo__parado--solta', capa\.offsetHeight > window\.innerHeight/);
+  });
+  it('o capítulo vazio manda usar o botão com o nome que ele tem para quem está vendo', () => {
+    const pagina = ler('src/pages/capitulos/[id]/index.astro');
+    expect(pagina).toMatch(/Use "\$\{podeEditar \? 'Escolher memórias e editar' : 'Escolher memórias'\}"/);
+  });
+});

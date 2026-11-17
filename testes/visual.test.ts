@@ -796,7 +796,7 @@ describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo', ()
     expect(nova).toMatch(/const ONDE_HA_LADO = '\(min-width: 62rem\)';/);
     expect(nova).toMatch(/aoLado\.hidden = !haLado\.matches;\s*if \(!haLado\.matches\) return;/);
     // Parado à vista só onde há mouse, e nunca com position: fixed
-    expect(css).toMatch(/@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.pagina-de-formulario \.formulario\.com-etapas > \.ao-lado:not\(\[hidden\]\),\s*\.pagina-de-formulario > \.ao-lado--fixo \{\s*position: sticky;/);
+    expect(css).toMatch(/@media \(min-width: 62rem\) and \(min-height: 56rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.pagina-de-formulario \.formulario\.com-etapas > \.ao-lado:not\(\[hidden\]\),\s*\.pagina-de-formulario > \.ao-lado--fixo \{\s*position: sticky;/);
     expect(css).not.toMatch(/position\s*:\s*fixed/);
   });
 

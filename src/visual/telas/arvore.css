@@ -29,7 +29,9 @@
   --arvore-familia-3: var(--pessego-pastel);
   --arvore-de-fora: var(--branco);
   position: relative;
-  height: calc(100svh - 11rem);
+  /* O topo e o texto somam uns 13rem no celular: com 11rem o mapa passava do pé da janela e a barra
+     de zoom abria cortada (QA de design, 17/11/2026) */
+  height: calc(100svh - 13rem);
   min-height: 26rem;
   overflow: hidden;
   border-block: 1px solid var(--fio);
