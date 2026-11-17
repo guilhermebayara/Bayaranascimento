@@ -1285,3 +1285,19 @@ export async function semearAniversariosDeExemplo(db: D1Database): Promise<void>
     ),
   );
 }
+
+// A carta de Natal de exemplo, a mesma que o conceito da revisão visual mostrava fixa na tela. Só
+// entra onde ainda não há carta nenhuma: a que alguém escrever ao testar nunca é trocada.
+// PROVISÓRIO (pergunta 2 do PR do grupo "pessoal"): o texto de exemplo é o do conceito.
+const CARTA_DE_EXEMPLO = [
+  'Este acervo é o nosso presente de Natal para você.',
+  'Juntamos aqui as fotos que estavam espalhadas pelos celulares e pelas gavetas, e as histórias que a gente só ouve quando a família se senta à mesa. Cada memória diz quando foi e quem estava lá.',
+  'O acervo está só começando. Ele cresce toda vez que alguém conta o que lembra, por escrito ou com a própria voz. Você está em muitas destas histórias, e a sua versão delas ainda está faltando.',
+  'Feliz Natal.',
+].join('\n\n');
+
+export async function semearCartaDeExemplo(db: D1Database): Promise<void> {
+  const ja = await db.prepare('SELECT 1 AS ok FROM cartas LIMIT 1').first();
+  if (ja) return;
+  await db.prepare('INSERT INTO cartas (texto, assinatura, escrita_por) VALUES (?, ?, ?)').bind(CARTA_DE_EXEMPLO, 'Gui, Giovanna e Magno', 'gui').run();
+}

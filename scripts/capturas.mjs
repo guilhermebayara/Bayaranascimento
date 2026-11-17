@@ -8,10 +8,10 @@
 // e o script recusa outro. As capturas saem em largura de celular (390 px) e de
 // desktop (1280 px), com movimento reduzido, como "Gui" no "Ver como".
 //
-// As telas do visual novo saem também em 1920 px. As do conceito (/conceito), uma vez para cada
-// combinação de fontes: CAPTURAS_SO=conceito npm run capturas -- tirar <pasta>
+// As telas do visual novo saem também em 1920 px.
 // As da fase 3 saem por grupo: CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>
-// A página do sistema (/conceito/sistema) sai com CAPTURAS_SO=sistema.
+// As da fase 3 saem por grupo também: CAPTURAS_SO=^pessoal
+// A página do sistema (/sistema) sai com CAPTURAS_SO=sistema.
 //
 // "comparar" abre as duas capturas de cada página no navegador e compara os pixels.
 // Termina com erro se alguma página mudou, e grava a diferença em <depois>/diferencas.
@@ -54,8 +54,35 @@ const etapa = (n) => async (pagina) => {
 const abrirFiltros = async (pagina) => {
   await pagina.locator('.filtros > summary').click();
 };
+
+// O painel depende das visitas de cada pessoa. Para a captura sair sempre igual, o banco local é
+// arrumado antes: "primeira" apaga as visitas da pessoa (a carta aparece no alto) e "seguinte" põe a
+// visita anterior um minuto atrás e publica agora duas memórias e um relato de exemplo, para o
+// painel ter o que mostrar em "o que entrou de novo". Só mexe no banco local (.wrangler).
+const NOVAS_DE_EXEMPLO = ['2026-pao-de-queijo-da-vo-bela', '2025-festa-junina'];
+const RELATO_NOVO_DE_EXEMPLO = { memoria: '2023-chico-chega', por: 'lucas-magno' };
+async function prepararVisita(pessoa, qual, comNovidades = false) {
+  const { DatabaseSync } = await import('node:sqlite');
+  const pasta = '.wrangler/state/v3/d1/miniflare-D1DatabaseObject';
+  const arquivo = readdirSync(pasta).find((a) => a.endsWith('.sqlite') && a !== 'metadata.sqlite');
+  const banco = new DatabaseSync(join(pasta, arquivo));
+  const texto = (d) => d.toISOString().slice(0, 19).replace('T', ' ');
+  const agora = new Date();
+  banco.prepare('DELETE FROM visitas WHERE pessoa = ?').run(pessoa);
+  if (qual === 'seguinte') {
+    const antes = texto(new Date(agora.getTime() - 60000));
+    banco
+      .prepare('INSERT INTO visitas (pessoa, primeira_em, visita_em, ultima_em, anterior_em, carta_em) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(pessoa, '2026-01-01 12:00:00', texto(agora), texto(agora), antes, '2026-01-01 12:00:00');
+    banco.prepare(`UPDATE memorias SET publicada_em = criada_em WHERE situacao = 'publicada'`).run();
+    banco.prepare(`UPDATE relatos SET publicado_em = criado_em WHERE situacao = 'publicada'`).run();
+    if (comNovidades) for (const id of NOVAS_DE_EXEMPLO) banco.prepare('UPDATE memorias SET publicada_em = ? WHERE id = ?').run(texto(agora), id);
+    if (comNovidades) banco.prepare('UPDATE relatos SET publicado_em = ? WHERE memoria_id = ? AND por = ?').run(texto(agora), RELATO_NOVO_DE_EXEMPLO.memoria, RELATO_NOVO_DE_EXEMPLO.por);
+  }
+  banco.close();
+}
+
 const PAGINAS = [
-  { nome: 'inicio', url: '/' },
   { nome: 'memoria-historico', url: '/memorias/2025-natal/historico' },
   { nome: 'memoria-relato', url: '/memorias/2025-natal/relato' },
   { nome: 'memoria-excluir', url: '/memorias/2025-natal/excluir' },
@@ -66,10 +93,6 @@ const PAGINAS = [
   { nome: 'editar-memoria-5', url: '/nova?id=2025-natal', antes: etapa(4) },
   { nome: 'rascunho-6-resumo', url: '/nova?id=2024-almoco-de-domingo', antes: etapa(5) },
   { nome: 'pessoas', url: '/pessoas' },
-  { nome: 'pessoa-quem-acessa', url: '/pessoas/gui' },
-  { nome: 'pessoa-parente', url: '/pessoas/vo-bela' },
-  { nome: 'pessoa-bicho', url: '/pessoas/chico' },
-  { nome: 'pessoa-de-fora', url: '/pessoas/ex-caio-amigo' },
   { nome: 'pessoa-editar', url: '/pessoas/vo-bela/editar' },
   { nome: 'pessoa-nova', url: '/pessoas/nova' },
   { nome: 'capitulos', url: '/capitulos' },
@@ -84,17 +107,12 @@ const PAGINAS = [
   { nome: 'arvore', url: '/arvore' },
   { nome: 'admin-tipos', url: '/admin/tipos' },
   { nome: 'admin-espelho', url: '/admin/espelho' },
-  { nome: 'inicio-como-elizete', url: '/', como: 'elizete' },
   { nome: 'pessoa-nova-como-magno', url: '/pessoas/nova', como: 'lucas-magno' },
   // Conceito da revisão visual: as mesmas telas em cada combinação de fontes, nas três larguras.
   // A carta é vista como Elizete, que a recebe. O painel, a linha do tempo e a memória, como Giovanna,
   // que está em duas famílias, vê todos os capítulos e ainda não contou o Natal de 2025.
   // "corte" limita a altura da captura da linha do tempo, que é muito longa, e "desde" começa a
   // captura num ponto da página.
-  ...['a', 'b', 'c'].flatMap((fontes) => [
-    { nome: `conceito-${fontes}-1-carta`, url: '/conceito?visita=primeira', como: 'elizete', fontes, larguras: TODAS },
-    { nome: `conceito-${fontes}-2-painel`, url: '/conceito', como: 'giovanna', fontes, larguras: TODAS },
-  ]),
   // Fase 3, grupo "explorar": o Explorar nas quatro formas de ver e a página da memória, nas três
   // larguras, como Giovanna. Para tirar só elas: CAPTURAS_SO=^explorar npm run capturas -- tirar <pasta>
   { nome: 'explorar-1-linha-do-tempo', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 9000 },
@@ -118,10 +136,22 @@ const PAGINAS = [
   { nome: 'explorar-6-memoria', url: '/memorias/2025-natal', como: 'giovanna', larguras: TODAS },
   { nome: 'explorar-6-memoria-com-fotos', url: '/memorias/1994-festa-de-aniversario', como: 'giovanna', larguras: TODAS },
   { nome: 'explorar-6-memoria-sem-foto', url: '/memorias/2026-primeira-noite', como: 'giovanna', larguras: TODAS },
-  { nome: 'explorar-7-conta-de-passagem', url: '/conta', como: 'giovanna' },
+  // Fase 3, grupo "pessoal": o painel (a carta na primeira visita e uma visita seguinte, na véspera de
+  // Natal), a carta, a conta, a página da pessoa e o sistema. CAPTURAS_SO=^pessoal npm run capturas -- tirar <pasta>
+  { nome: 'pessoal-1-carta-no-painel', url: '/?hoje=2026-12-24', como: 'elizete', larguras: TODAS, visita: 'primeira' },
+  { nome: 'pessoal-1-painel', url: '/?hoje=2026-12-24', como: 'giovanna', larguras: TODAS, visita: 'seguinte' },
+  { nome: 'pessoal-1-painel-sem-novidade', url: '/?hoje=2026-08-14', como: 'gui', larguras: TODAS, visita: 'seguinte-sem-novidade' },
+  { nome: 'pessoal-2-carta', url: '/carta', como: 'giovanna', larguras: TODAS },
+  { nome: 'pessoal-3-conta', url: '/conta', como: 'giovanna', larguras: TODAS },
+  { nome: 'pessoal-3-conta-admin', url: '/conta', como: 'gui', larguras: TODAS },
+  { nome: 'pessoal-3-conta-elizete', url: '/conta', como: 'elizete', larguras: TODAS },
+  { nome: 'pessoal-4-pessoa-voce', url: '/pessoas/giovanna', como: 'giovanna', larguras: TODAS },
+  { nome: 'pessoal-4-pessoa-parente', url: '/pessoas/vo-bela', como: 'giovanna', larguras: TODAS },
+  { nome: 'pessoal-4-pessoa-bicho', url: '/pessoas/chico', como: 'giovanna', larguras: TODAS },
+  { nome: 'pessoal-4-pessoa-de-fora', url: '/pessoas/ex-caio-amigo', como: 'gui', larguras: TODAS },
   { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
   // O sistema (fase 2): a marca, as fontes, os tokens e as peças, em cada combinação de fontes
-  ...['a', 'b', 'c'].map((fontes) => ({ nome: `sistema-${fontes}`, url: '/conceito/sistema', fontes, larguras: TODAS })),
+  ...['a', 'b', 'c'].map((fontes) => ({ nome: `sistema-${fontes}`, url: '/sistema', fontes, larguras: TODAS })),
   { nome: 'admin-familias', url: '/admin/familias' },
 ];
 
@@ -143,6 +173,7 @@ async function tirar(pasta) {
       if (filtro && !filtro.test(p.nome)) continue;
       if (!(p.larguras ?? PADRAO).includes(largura.nome)) continue;
       await contexto.addCookies([{ name: 'fontes', value: p.fontes ?? 'a', url: BASE }]);
+      if (p.visita) await prepararVisita(p.como ?? 'gui', p.visita === 'primeira' ? 'primeira' : 'seguinte', p.visita === 'seguinte');
       const endereco = `${BASE}/como/${p.como ?? 'gui'}?volta=${encodeURIComponent(p.url)}`;
       // A primeira visita a uma página no servidor local pode demorar enquanto ele compila
       await pagina.goto(endereco, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => pagina.goto(endereco, { waitUntil: 'networkidle', timeout: 60000 }));
