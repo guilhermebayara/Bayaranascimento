@@ -755,6 +755,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P51. No celular, "Quem estava" pode ocupar menos, para o relato chegar antes?
 
+**Feito (opção A):** no celular, "Quem estava" mostra seis retratos e "Ver todos os 9" abre o resto no lugar, com o foco na primeira pessoa que aparece; sem script e a partir de 40rem, todos à vista. Capturas: `p51-quem-estava--390.jpg`, `p51-quem-estava-aberto--390.jpg`, `p51-quem-estava--1280.jpg`, `p51-quem-estava--1920.jpg`.
+
 **ajuste**
 
 - Contexto: a ordem combinada é abertura, ficha, quem estava, relatos, fotos. Os retratos são grandes, três por linha no celular.
@@ -767,6 +769,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P52. Quando o relato inteiro já está na abertura, ele precisa aparecer de novo logo abaixo?
 
+**Feito (opção A):** com um só relato, sem áudio, contado pela própria pessoa e que coube inteiro no trecho da abertura, a seção "Relato" não aparece e a página segue para as fotos. Capturas: `p51-quem-estava--390.jpg` (de "Quem estava" a página vai direto para "Fotos").
+
 **ajuste**
 
 - Contexto: a abertura traz um trecho do primeiro relato, assinado à mão. Mais abaixo, a seção "Relato" mostra os bilhetes.
@@ -777,6 +781,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P53. Memória sem foto: o que ocupa o lado direito da abertura em 1280 e 1920 px?
+
+**Feito (opção A):** a partir de 62rem, a memória sem foto leva à direita o cartão do tipo de momento, o mesmo da linha do tempo; no celular nada muda. Capturas: `p53-sem-foto--390.jpg`, `p53-sem-foto--1280.jpg`, `p53-sem-foto--1920.jpg`.
 
 **ajuste**
 
@@ -790,6 +796,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P54. Quem já contou precisa do convite grande com o botão cheio?
 
+**Feito (opção A):** quem já contou vê uma linha quieta, "Você já contou esse dia." e "Editar meu relato" como ação de texto, sem cartão e sem botão cheio; a página termina em "Antes" e "Depois". Capturas: `p54-ja-contou--390.jpg`, `p54-ja-contou--1280.jpg`, `p54-ja-contou--1920.jpg`.
+
 **ajuste**
 
 - Contexto: no fim da página fica o convite, com o botão principal. Para quem já escreveu, o bilhete diz "Você já contou esse dia." e o botão vira "Editar meu relato".
@@ -802,6 +810,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P55. Tocar fora da foto deve fechar a galeria?
 
+**Feito (opção A):** clicar ou tocar no fundo fecha a galeria; a foto, a legenda e os controles não fecham, e o Esc e o voltar continuam valendo. Capturas: `p55-galeria--1280.jpg`, `p55-galeria--1920.jpg`.
+
 **detalhe**
 
 - Contexto: a regra de movimento diz "a foto que amplia ao toque e fecha ao tocar fora". A galeria fecha por "Fechar", pelo Esc e pelo voltar do aparelho.
@@ -812,6 +822,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `explorar-memoria-galeria--1920.jpg`
 
 ### P56. "Antes" e "Depois" devem seguir de onde a pessoa veio?
+
+**Feito (opção A):** mantido como está.
 
 **detalhe**
 
@@ -825,6 +837,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P57. "Nada é apagado de vez" precisa aparecer duas vezes?
 
+**Feito (opção A):** na memória publicada o subtítulo fica só "Confira antes de confirmar."; no rascunho, onde o cartão não repete a frase, continua inteiro. Capturas: `p57-p58-p59-excluir--390.jpg`, `p57-p58-p59-excluir--1280.jpg`.
+
 **detalhe**
 
 - Contexto: o subtítulo "Confira antes de confirmar. Nada é apagado de vez." foi aprovado para as telas de confirmação.
@@ -836,6 +850,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P58. O botão vermelho de excluir leva seta?
 
+**Feito (opção A):** o botão de perigo não leva mais a seta, aqui e nas outras confirmações (a regra é do botão). Capturas: `p57-p58-p59-excluir--390.jpg`, `p57-p58-p59-excluir--1280.jpg`.
+
 **detalhe**
 
 - Contexto: o botão que confirma é cheio, na cor de alerta (aprovado). O botão cheio do sistema traz uma seta.
@@ -846,6 +862,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 - Captura: `explorar-excluir-confirmacao--390.jpg`
 
 ### P59. A frase de quem pode restaurar pode ficar mais simples?
+
+**Feito (opção A):** "você, a Giovanna ou o Lucas Magno podem restaurar tudo como estava"; com um só outro administrador, "você ou a Giovanna". Capturas: `p57-p58-p59-excluir--390.jpg`.
 
 **detalhe**
 

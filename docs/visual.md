@@ -417,6 +417,14 @@ Decisão do Gui de 16/11/2026: o monograma é o M de Memórias, que não muda, e
 
 Hoje a ação principal fica no alto (decisão do QA de UX). Mantenha um atalho pequeno no alto para quem chega querendo contar, e o convite grande no fim.
 
+Respostas do Gui ao QA de design de 17/11/2026 (regras em `src/lib/memoria.ts`, com teste em `testes/qa-respostas-memoria.test.ts`):
+
+- **Quem estava, no celular:** até seis retratos e "Ver todos os 9", que abre o resto no lugar. A partir de 40rem, todos à vista. Sem script, a lista vem inteira.
+- **Relato que já está inteiro na abertura:** com um só relato, sem áudio, contado pela própria pessoa e que coube inteiro no trecho, a seção "Relato" não repete o bilhete.
+- **Memória sem foto:** a partir de 62rem, o cartão do tipo de momento fica à direita, no lugar da foto. No celular a abertura continua só com o texto.
+- **Quem já contou:** no lugar do convite, uma linha quieta, "Você já contou esse dia." e "Editar meu relato" como ação de texto. O convite com o botão cheio é só de quem ainda não contou.
+- **Galeria:** tocar ou clicar no fundo também fecha.
+
 ## Linha do tempo, capítulo e laço
 
 - **Linha do tempo:** lista vertical, a barra de décadas parada no alto como já está, um trilho fino com um ponto marcando a memória em leitura (Folira). Cada memória com a polaroid da foto-chave e a legenda "lugar (ano)".

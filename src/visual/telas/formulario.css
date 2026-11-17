@@ -419,6 +419,10 @@
 .pagina-de-formulario .botao.botao--perigo {
   background: var(--alerta-tinta);
 }
+/* Sem seta: ela diz "seguir adiante", e aqui a ação termina */
+.pagina-de-formulario .botao.botao--perigo::after {
+  content: none;
+}
 /* Ações de etapa: "Voltar" à esquerda; "Salvar rascunho" e a principal à direita */
 .pagina-de-formulario .acoes--etapas {
   justify-content: flex-end;

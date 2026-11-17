@@ -3,7 +3,7 @@
 import Pagina from '../../../components/formularios/Pagina.astro';
 import { formatarData } from '../../../lib/datas';
 import { podeExcluirMemoria } from '../../../lib/servidor/permissoes';
-import { outrosAdmins } from '../../../lib/servidor/conteudo';
+import { voceOuOsOutrosAdmins } from '../../../lib/servidor/conteudo';
 import { listarIntegrantes, listarRelatos, obterMemoria } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -15,13 +15,14 @@ if (!podeExcluirMemoria(usuario, memoria).ok) return Astro.redirect(voltarPara);
 
 const relatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situacao === 'publicada').length;
 const titulo = rascunho ? 'Descartar rascunho' : 'Excluir memória';
-// Quem mais pode recuperar, do ponto de vista de quem está excluindo
-const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
+// Quem pode recuperar, do ponto de vista de quem está excluindo: "você, a Giovanna ou o Lucas Magno"
+const quemRestaura = voceOuOsOutrosAdmins(usuario.pessoa, await listarIntegrantes());
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
 <Pagina titulo={titulo} rotulo={rascunho ? 'Rascunho' : 'Memória publicada'} nucleos={memoria.nucleos} secao="explorar">
-  <p slot="abertura">Confira antes de confirmar. Nada é apagado de vez.</p>
+  {/* Na memória publicada, "Nada é apagado de vez" já abre a explicação do cartão: aqui fica uma vez só (P57 do QA de design de 17/11/2026) */}
+  <p slot="abertura">{rascunho ? 'Confira antes de confirmar. Nada é apagado de vez.' : 'Confira antes de confirmar.'}</p>
   <section class="alerta">
     <h2>{memoria.titulo}</h2>
     <p>{formatarData(memoria)}</p>
@@ -35,7 +36,7 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
             {memoria.fotos.length === 1 ? ' 1 foto' : ` ${memoria.fotos.length} fotos`} e
             {relatos === 1 ? ' 1 relato' : ` ${relatos} relatos`}, inclusive os que outras pessoas escreveram.
           </p>
-          <p>Nada é apagado de vez: a memória vai para a lixeira, e {outros ? `você ou ${outros} podem` : 'você pode'} restaurar tudo como estava.</p>
+          <p>Nada é apagado de vez: a memória vai para a lixeira, e {quemRestaura} {quemRestaura === 'você' ? 'pode' : 'podem'} restaurar tudo como estava.</p>
           <p>Se a ideia é só corrigir alguma coisa, prefira <a href={`/nova?id=${memoria.id}`}>corrigir a memória</a>.</p>
         </>
       )

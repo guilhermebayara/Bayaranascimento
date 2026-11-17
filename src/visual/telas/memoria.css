@@ -53,6 +53,10 @@
   width: 74%;
   margin-inline: auto;
 }
+/* Sem foto, o cartão do tipo de momento só entra onde a abertura tem dois lados */
+.abre__foto--tipo {
+  display: none;
+}
 
 /* --- Corpo: a ficha de um lado, o conteúdo do outro ---------------------------------------- */
 
@@ -78,6 +82,18 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--e-6) var(--calha);
+}
+/* No celular, até seis retratos; "Ver todos os N" abre o resto no lugar. A classe é posta pelo
+   script: sem ele, a lista vem inteira. */
+.quem--recolhida li:nth-child(n + 7) {
+  display: none;
+}
+.quem__todos {
+  margin-top: var(--e-5);
+}
+/* Até o script ligar a ação, ela não aparece */
+.quem__todos [hidden] {
+  display: none;
 }
 @media (hover: hover) {
   .pessoa:hover .retrato {
@@ -388,8 +404,21 @@ html:has(.galeria[open]) {
   bottom: -0.5em;
   color: var(--tipo-cor, var(--vivo));
 }
-.convite__bilhete--feito .convite__assina {
-  opacity: 1;
+
+/* Quem já contou: uma linha quieta no lugar do convite */
+.contou {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-2) var(--e-5);
+  margin-top: var(--e-9);
+  margin-bottom: var(--e-7);
+}
+.contou__frase {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-3);
 }
 
 /* Antes e depois */
@@ -435,6 +464,13 @@ html:has(.galeria[open]) {
   .quem {
     grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
   }
+  /* Com mais largura, todos os retratos ficam à vista e a ação some */
+  .quem--recolhida li:nth-child(n + 7) {
+    display: block;
+  }
+  .quem__todos {
+    display: none;
+  }
   .relatos {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
   }
@@ -473,15 +509,15 @@ html:has(.galeria[open]) {
   .abre > .abre__texto {
     grid-column: 1 / span 6;
   }
-  /* Sem foto, a abertura é só tipo: o título ganha a página */
-  .abre--sem-foto > .abre__texto {
-    grid-column: 1 / span 10;
-  }
   .abre > .abre__foto {
     grid-column: 8 / -1;
     width: 72%;
     margin: 0;
     justify-self: center;
+  }
+  /* Sem foto, o cartão do tipo de momento ocupa o lugar dela */
+  .abre > .abre__foto--tipo {
+    display: block;
   }
   /* Com mais de uma foto, o monte se abre em leque: a foto principal na frente e as de trás
      espalhadas para os lados, até onde o espaço deixa (pedido do Gui, 16/11/2026) */
@@ -523,6 +559,10 @@ html:has(.galeria[open]) {
   }
   .convite__mesa {
     margin-left: calc((100% + var(--calha)) / 12 * 4);
+  }
+  /* A linha de quem já contou começa na coluna do conteúdo, como o convite */
+  .contou {
+    margin-left: calc((100% - 2 * var(--margem) + var(--calha)) / 12 * 4);
   }
 }
 

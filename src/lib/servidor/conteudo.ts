@@ -57,6 +57,16 @@ export function outrosAdmins(eu: string, integrantes: { id: string; nome: string
   return juntarNomes(integrantes.filter((i) => i.admin && i.id !== eu).map(comArtigo));
 }
 
+/**
+ * Quem pode desfazer, do ponto de vista de quem está logado, para uma frase com "ou": "você",
+ * "você ou a Giovanna", "você, a Giovanna ou o Lucas Magno" (P59 do QA de design de 17/11/2026:
+ * "você ou a Giovanna e o Lucas Magno" pedia uma segunda leitura).
+ */
+export function voceOuOsOutrosAdmins(eu: string, integrantes: Parameters<typeof outrosAdmins>[1]): string {
+  const nomes = ['você', ...integrantes.filter((i) => i.admin && i.id !== eu).map(comArtigo)];
+  return nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} ou ${nomes[nomes.length - 1]}` : 'você';
+}
+
 const LETRAS_DO_CODIGO = 'abcdefghjkmnpqrstuvwxyz23456789';
 
 /**
