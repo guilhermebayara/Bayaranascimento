@@ -1,0 +1,188 @@
+// Visibilidade nas consultas de verdade (src/lib/servidor/repositorio.ts), sobre um banco SQLite em
+// memória com o acervo de exemplo semeado pelas próprias migrações (testes/apoio/d1.ts).
+//
+// QA de código de 17/11/2026. O teste repete, sem servidor, a varredura feita na sessão: para cada
+// pessoa do "Ver como", guarda o que cada consulta nova devolve (painel, novidades, aniversários, conta,
+// Explorar com cada filtro e ordem, sorteio, contagens, capítulos, temas, áudios, lixeira), acrescenta
+// ao banco só o que ela não pode ver (memória restrita a uma família de que ela não é membro, rascunho
+// de outra pessoa, memória na lixeira que ela não via, capítulo restrito e capítulo na lixeira, relato
+// em rascunho de outra pessoa, pessoa que só existe num laço privado de outra pessoa, casal privado de
+// outras pessoas) e confere que nada muda, nem um número.
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { temSqlite, type D1DeTeste } from './apoio/d1';
+
+const comSqlite = await temSqlite();
+
+const env = vi.hoisted(() => ({ AMBIENTE: 'previa' as string, DB: undefined as unknown, FOTOS: undefined as unknown }));
+vi.mock('cloudflare:workers', () => ({ env }));
+
+// Um bucket vazio: a limpeza do bucket de teste lista e não acha nada
+env.FOTOS = { list: async () => ({ objects: [], truncated: false }), delete: async () => undefined, put: async () => undefined, get: async () => null, head: async () => null };
+
+const PESSOAS = ['gui', 'giovanna', 'elizete', 'lucas-magno'] as const;
+type Quem = (typeof PESSOAS)[number];
+
+describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
+  const { criarD1 } = await import('./apoio/d1');
+  const banco: D1DeTeste = await criarD1();
+  env.DB = banco;
+  const { prepararBanco } = await import('../src/lib/servidor/banco');
+  const repo = await import('../src/lib/servidor/repositorio');
+  const { contextoDoExplorar } = await import('../src/lib/servidor/explorar');
+  const { montarConta } = await import('../src/lib/servidor/conta');
+  const { explorar, lerFiltros, ORDENS } = await import('../src/lib/explorar');
+  const { aniversarios, novidades, memoriaParaContar } = await import('../src/lib/painel');
+  type Usuario = import('../src/lib/servidor/permissoes').Usuario;
+
+  const sql = (texto: string, ...valores: (string | number | null)[]) => banco.sqlite.prepare(texto).run(...valores);
+  const usuarioDe = (pessoa: string): Usuario => {
+    const i = banco.sqlite.prepare('SELECT nome, admin FROM integrantes WHERE id = ?').get(pessoa) as { nome: string; admin: number };
+    const nucleos = (banco.sqlite.prepare(`SELECT nucleo_id FROM nucleo_membros WHERE integrante_id = ? AND papel = 'membro'`).all(pessoa) as { nucleo_id: string }[]).map((n) => n.nucleo_id);
+    return { pessoa, nome: i.nome, admin: Boolean(i.admin), nucleos };
+  };
+  const hoje = { ano: 2026, mes: 11, dia: 17 };
+
+  /** Tudo o que as telas novas leem do banco, como a pessoa vê. Sem nada do que ela não pode ver. */
+  async function oQueVe(quem: Quem) {
+    const usuario = usuarioDe(quem);
+    const publicadas = await repo.listarMemorias(usuario);
+    const rascunhos = await repo.listarMemorias(usuario, { rascunhos: true });
+    const contexto = await contextoDoExplorar(usuario, publicadas);
+    const naoVe = await repo.pessoasQueONaoVe(usuario);
+    const integrantes = (await repo.listarIntegrantes()).filter((i) => !naoVe.has(i.id));
+    const relatosNovos = await repo.listarRelatosPublicadosDesde(usuario, '2000-01-01 00:00:00');
+    const conta = await montarConta(usuario);
+    const capitulos = await repo.listarCapitulos(usuario);
+    const temas = await repo.listarTemasVisiveis(usuario);
+    // O Explorar com cada filtro e cada ordem
+    const enderecos = [
+      '',
+      ...ORDENS.map((o) => `ordem=${o}`),
+      'audio=1',
+      'foto=1',
+      'contou=1',
+      'falta=1',
+      'decada=1990',
+      'de=1990&ate=2000',
+      'tipo=outro',
+      ...capitulos.map((c) => `capitulo=${c.id}`),
+      ...temas.map((t) => `tema=${t.id}`),
+      ...['bayara-nascimento', 'bayara-bracarense', 'bracarense'].map((n) => `nucleo=${n}`),
+      ...PESSOAS.map((p) => `pessoa=${p}`),
+    ];
+    const explorado = Object.fromEntries(enderecos.map((e) => [e, explorar(publicadas, lerFiltros(new URLSearchParams(e)), contexto).memorias.map((m) => m.id)]));
+    return {
+      publicadas: publicadas.map((m) => [m.id, m.titulo, m.capitulos, m.temas, m.fotos.length, m.relatos]),
+      rascunhos: rascunhos.map((m) => m.id),
+      explorado,
+      comAudio: [...contexto.comAudio].sort(),
+      contaram: [...contexto.contaram].map(([id, quem]) => [id, [...quem].sort()]).sort(),
+      novidades: novidades(publicadas, relatosNovos, '2000-01-01 00:00:00', quem),
+      paraContar: memoriaParaContar(publicadas, await repo.memoriasComRelatoDe(quem), quem, new Set())?.id,
+      aniversarios: aniversarios(await repo.listarIntegrantes(), hoje, naoVe, quem).map((a) => a.pessoa.id),
+      pessoas: integrantes.map((i) => i.id),
+      conta: {
+        rascunhos: [conta.rascunhos.memorias.map((m) => m.id), conta.rascunhos.relatos.map((r) => r.id)],
+        lixeira: conta.lixeira.map((m) => m.id),
+        criou: [conta.criou.memorias.map((m) => m.id), conta.criou.relatos.map((r) => r.id), conta.criou.fotos.map((f) => f.foto.id), conta.criou.capitulos.map((c) => c.id)],
+        lacos: conta.lacos.map((l) => l.id),
+        titulos: [...conta.titulos.keys()].sort(),
+      },
+      capitulos: capitulos.map((c) => [c.id, c.titulo, c.pessoas, c.familias]),
+      temas: temas.map((t) => t.id),
+      lixeira: (await repo.listarExcluidas(usuario)).map((m) => m.id),
+      capitulosNaLixeira: (await repo.listarCapitulosExcluidos(usuario)).map((c) => c.id),
+      textosDeOutro: await repo.listarTextosDeOutro(usuario),
+      lacos: (await repo.listarLacosDoCoracao(usuario)).map((l) => l.id),
+      casais: (await repo.listarCasais(usuario)).map((c) => c.id),
+      audios: await Promise.all(PESSOAS.map(async (p) => (await repo.listarAudiosDe(usuario, p)).map((a) => a.id))),
+      rascunhosDeRelato: (await repo.listarRascunhosDeRelato(usuario)).map((r) => r.id),
+    };
+  }
+
+  /** Acrescenta só o que `quem` não pode ver. */
+  function acrescentarEscondido(quem: Quem) {
+    const outro = quem === 'gui' ? 'giovanna' : 'gui';
+    // Uma família de que a pessoa não é membro, e alguém que é
+    const [familia, membro] = quem === 'lucas-magno' ? ['bayara-nascimento', 'elizete'] : ['bracarense', 'lucio'];
+    sql(`INSERT INTO integrantes (id, nome, tipo, nascimento_ano, nascimento_mes, nascimento_dia, retrato, tratamento) VALUES ('zz-pessoa', 'Pessoa Escondida', 'pessoa', 1980, 11, 20, 'retratos/zz.jpg', 'ela')`);
+    sql(`INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, papel, proximidade, privado) VALUES (?, 'zz-pessoa', 'Laço escondido', 'irmao', 1, 1)`, outro);
+    sql(`INSERT INTO casais (a_id, b_id, visibilidade, criado_por) VALUES (?, 'zz-pessoa', 'privado', ?)`, outro, outro);
+    sql(`INSERT INTO temas (id, nome) VALUES ('zz-tema', 'Tema escondido')`);
+    const temaVisivel = (banco.sqlite.prepare('SELECT tema_id FROM tema_memorias LIMIT 1').get() as { tema_id: string }).tema_id;
+    const memorias: [string, string, 'todos' | 'nucleos', string, string | null][] = [
+      ['zz-restrita', 'publicada', 'nucleos', membro, null],
+      ['zz-rascunho', 'rascunho', 'todos', outro, null],
+      // Na lixeira e restrita: nem um administrador que não é da família a via
+      ['zz-lixeira', 'publicada', 'nucleos', membro, '2026-11-10 10:00:00'],
+    ];
+    for (const [id, situacao, visibilidade, por, lixo] of memorias) {
+      sql(
+        `INSERT INTO memorias (id, titulo, ano, mes, dia, tipo, tipo_outro, visibilidade, situacao, criada_por, publicada_em, excluida_em, excluida_por)
+         VALUES (?, 'Escondida', 1995, 11, 17, 'outro', 'Texto escondido', ?, ?, ?, datetime('now'), ?, ?)`,
+        id, visibilidade, situacao, por, lixo, lixo ? outro : null,
+      );
+      if (visibilidade === 'nucleos') sql('INSERT INTO memoria_nucleos VALUES (?, ?)', id, familia);
+      for (const p of [quem, outro]) sql('INSERT INTO memoria_integrantes VALUES (?, ?)', id, p);
+      sql(`INSERT INTO fotos (memoria_id, chave, principal, enviada_por) VALUES (?, ?, 1, ?)`, id, `2026/zz-${id}.jpg`, quem);
+      sql(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, publicado_em) VALUES (?, ?, ?, 'Escondido', 'publicada', datetime('now'))`, id, por, por);
+      const relato = (banco.sqlite.prepare('SELECT MAX(id) AS id FROM relatos').get() as { id: number }).id;
+      sql(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, enviado_por) VALUES (?, ?, ?, 'audio/webm', 10, ?)`, relato, id, `zz-${id}.webm`, por);
+      sql('INSERT INTO tema_memorias VALUES (?, ?)', 'zz-tema', id);
+      sql('INSERT INTO tema_memorias VALUES (?, ?)', temaVisivel, id);
+      for (const c of ['natais', 'viagens-de-familia']) sql('INSERT INTO capitulo_memorias VALUES (?, ?)', c, id);
+    }
+    // Rascunho de relato de outra pessoa em toda memória aberta a todos
+    for (const { id } of banco.sqlite.prepare(`SELECT id FROM memorias WHERE situacao = 'publicada' AND visibilidade = 'todos' AND id NOT LIKE 'zz-%'`).all() as { id: string }[]) {
+      sql(`INSERT OR IGNORE INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, 'Rascunho escondido', 'rascunho')`, id, outro, outro);
+    }
+    sql(`INSERT INTO capitulos (id, titulo, modo, inicio_ano, fim_ano, visibilidade, criado_por) VALUES ('zz-cap', 'Capítulo escondido', 'epoca', 1990, 2000, 'nucleos', ?)`, membro);
+    sql('INSERT INTO capitulo_nucleos VALUES (?, ?)', 'zz-cap', familia);
+    sql(`INSERT INTO capitulos (id, titulo, modo, visibilidade, criado_por, excluido_em, excluido_por) VALUES ('zz-cap-lixeira', 'Na lixeira', 'reunido', 'nucleos', ?, '2026-11-10 10:00:00', ?)`, membro, membro);
+    sql('INSERT INTO capitulo_nucleos VALUES (?, ?)', 'zz-cap-lixeira', familia);
+    for (const c of ['zz-cap', 'zz-cap-lixeira']) sql('INSERT INTO tema_capitulos VALUES (?, ?)', 'zz-tema', c);
+    sql('INSERT INTO tema_capitulos VALUES (?, ?)', temaVisivel, 'zz-cap');
+  }
+
+  beforeAll(async () => {
+    await prepararBanco();
+    // O acervo de exemplo não tem áudio: um, num relato aberto a todos, para o filtro "com áudio" ter o que mostrar
+    const relato = banco.sqlite.prepare(`SELECT r.id, r.memoria_id, r.por FROM relatos r JOIN memorias m ON m.id = r.memoria_id WHERE r.situacao = 'publicada' AND m.visibilidade = 'todos' LIMIT 1`).get() as { id: number; memoria_id: string; por: string };
+    sql(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, enviado_por) VALUES (?, ?, 'visivel.webm', 'audio/webm', 10, ?)`, relato.id, relato.memoria_id, relato.por);
+    // O banco do começo, para cada pessoa partir do mesmo acervo de exemplo
+    banco.sqlite.exec('SAVEPOINT acervo_de_exemplo');
+  });
+
+  for (const quem of PESSOAS) {
+    it(`${quem}: nada do que não pode ver aparece, nem como número`, async () => {
+      const antes = await oQueVe(quem);
+      acrescentarEscondido(quem);
+      try {
+        const depois = await oQueVe(quem);
+        // A pessoa só de laço privado some das listas; o resto fica idêntico
+        expect(depois).toEqual(antes);
+        const usuario = usuarioDe(quem);
+        for (const id of ['zz-restrita', 'zz-rascunho', 'zz-lixeira']) expect(await repo.obterMemoria(usuario, id)).toBeUndefined();
+        for (const id of ['zz-restrita', 'zz-rascunho', 'zz-lixeira']) {
+          expect(await repo.podeOuvirAudio(usuario, `zz-${id}.webm`)).toBe(false);
+          // A foto foi enviada pela própria pessoa, mas está numa memória que ela não vê
+          expect(await repo.podeVerFoto(usuario, `2026/zz-${id}.jpg`)).toBe(false);
+        }
+        expect(await repo.podeVerRetratoDaChave(usuario, 'retratos/zz.jpg')).toBe(false);
+        expect((await repo.pessoasQueONaoVe(usuario)).has('zz-pessoa')).toBe(true);
+      } finally {
+        banco.sqlite.exec('ROLLBACK TO acervo_de_exemplo');
+      }
+    });
+  }
+
+  it('o banco de exemplo tem os casos difíceis que o teste confere', async () => {
+    // Sem isso, o teste passaria com um banco vazio
+    const gui = await oQueVe('gui');
+    expect(gui.publicadas.length).toBeGreaterThan(30);
+    expect(gui.rascunhos.length).toBeGreaterThan(0);
+    expect(gui.comAudio.length).toBeGreaterThan(0);
+    expect(gui.aniversarios.length).toBeGreaterThan(0);
+    expect(gui.capitulos.length).toBeGreaterThan(3);
+  });
+});

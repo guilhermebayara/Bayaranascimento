@@ -58,3 +58,13 @@ describe('vazamentos já corrigidos', () => {
     expect(banco.indexOf('`DROP TABLE casal_fases`')).toBeLessThan(banco.indexOf('`DROP TABLE casais`'));
   });
 });
+
+describe('recados de permissão', () => {
+  it('falam dos administradores, e não só do Gui e da Giovanna', () => {
+    // Achado do QA de código de 17/11/2026: o Magno é administrador desde a migração 017, e três rotas
+    // ainda diziam "Só o Gui e a Giovanna..." a quem não é administrador.
+    for (const { caminho, texto } of paginas) {
+      expect(texto, caminho).not.toMatch(/['"`]Só o Gui e a Giovanna/);
+    }
+  });
+});

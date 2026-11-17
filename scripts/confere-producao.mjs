@@ -18,6 +18,9 @@
 //    roda só no ambiente de teste.
 // 8. As telas do conceito da revisão visual (/conceito) trazem dados fixos de exemplo.
 //    Só respondem onde há acervo de exemplo: na produção e na homologação, 404.
+// 9. A página do sistema: fora das prévias de teste, só os administradores, sem ler o acervo.
+// 10. Nenhum arquivo é apagado do bucket das fotos de verdade: só a limpeza do bucket de teste apaga,
+//    e o banco e o bucket são escolhidos só em ambiente.ts.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
@@ -153,6 +156,26 @@ if (existsSync('src/pages/sistema.astro')) {
   const ambiente = readFileSync('src/lib/servidor/ambiente.ts', 'utf8');
   if (!ambiente.includes('export function temAcervoDeExemplo(): boolean {\n  return AMBIENTES_COM_EXEMPLOS.includes(ambiente()) && !ehHomologacao();')) {
     falhar('src/lib/servidor/ambiente.ts: temAcervoDeExemplo() só vale nas prévias de teste e no computador.');
+  }
+}
+
+// 10. Nada se apaga do bucket das fotos de verdade: excluir nunca apaga na hora (docs/decisoes.md,
+// "Princípios"). O único lugar que apaga arquivo é a limpeza de 7 dias, e só no bucket de teste, por
+// bucketDeTesteParaGravar(), que recusa a produção e a homologação. A escolha do banco e do bucket
+// fica só em ambiente.ts: código que lê env.DB ou env.FOTOS direto passaria por cima dela.
+// Achado do QA de código de 17/11/2026.
+{
+  const fontes = existsSync('src') ? readdirSync('src', { recursive: true }).map((a) => `src/${String(a).replace(/\\/g, '/')}`).filter((a) => /\.(astro|ts|mjs|js)$/.test(a)) : [];
+  for (const arquivo of fontes) {
+    const texto = readFileSync(arquivo, 'utf8');
+    if (arquivo !== 'src/lib/servidor/ambiente.ts' && /\benv\.(DB|FOTOS)\w*/.test(texto)) {
+      falhar(`${arquivo}: o banco e o bucket são escolhidos só em src/lib/servidor/ambiente.ts (banco(), bucketDeFotos()), nunca por env.DB ou env.FOTOS.`);
+    }
+    for (const uso of texto.matchAll(/([\w.]*bucket\w*(?:\(\))?)\??\.delete\(/gi)) {
+      const quem = uso[1];
+      const doTeste = quem === 'bucketDeTesteParaGravar()' || (quem === 'bucket' && /const bucket = bucketDeTesteParaGravar\(\);/.test(texto) && !/\bbucket = (?!bucketDeTesteParaGravar)/.test(texto));
+      if (!doTeste) falhar(`${arquivo}: ${quem}.delete(...) apagaria arquivos. Só a limpeza do bucket de teste apaga, por bucketDeTesteParaGravar().`);
+    }
   }
 }
 

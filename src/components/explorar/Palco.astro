@@ -348,6 +348,9 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       // Em "Só as fotos", com os controles escondidos, o foco não vai para nenhum deles
       if (!escondidos()) (noMesmoAjuste ?? (focado ? novo.querySelector<HTMLElement>(`[data-palco-${focado}]`) : null) ?? link('depois'))?.focus({ preventScroll: true });
     } catch {
+      // Uma passagem mais nova já saiu: o erro desta não leva de volta à memória antiga
+      // (achado do QA de código de 17/11/2026, como na troca do Explorar)
+      if (meu !== pedido) return;
       location.assign(href);
     }
   }

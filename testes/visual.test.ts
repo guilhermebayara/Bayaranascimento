@@ -341,8 +341,8 @@ describe('conceito', () => {
     // Com movimento reduzido, a troca é direta: nada é medido para animar
     expect(troca).toMatch(/const antes = calmo\(\) \? new Map<string, Medida>\(\) : medir\(regiao\);/);
     expect(troca).toMatch(/if \(!calmo\(\)\) animar\(antes, nova\);/);
-    // Qualquer problema na busca cai na navegação comum
-    expect(troca).toMatch(/catch \{\s*location\.assign\(endereco\);/);
+    // Erro de rede cai na navegação comum, menos quando uma escolha mais nova já saiu (testes/explorar-troca.test.ts)
+    expect(troca).toMatch(/catch \{\s*(?:\/\/[^\n]*\n\s*)*if \(meu !== pedido\) return;\s*location\.assign\(endereco\);/);
     // Mudar um filtro nunca muda a rolagem (correção do Gui, 17/11/2026): o controle usado fica no
     // mesmo ponto da tela, os filtros continuam abertos e cada escolha vale na hora
     expect(troca).toMatch(/scrollBy\(\{ top: controleNovo\.getBoundingClientRect\(\)\.top - controleEm, behavior: 'instant' \}\)/);
@@ -417,7 +417,8 @@ describe('conceito', () => {
     expect(ler('telas/explorar.css')).toMatch(/\.palco\[data-so-fotos\]\s*\{\s*height:\s*100svh;/);
     // No Álbum, as fotos que saem não repetem a chegada (achado do Gui: pareciam fotos que nunca paravam)
     expect(ler('telas/explorar.css')).toMatch(/\.palco \.palco__fotos--saindo :is\(\.palco__principal, \.palco__extra\)\s*\{\s*animation:\s*none !important/);
-    expect(palco).toMatch(/catch \{\s*location\.assign\(href\);/);
+    // Erro cai na navegação comum, menos quando uma passagem mais nova já saiu (QA de código de 17/11/2026)
+    expect(palco).toMatch(/catch \{\s*(?:\/\/[^\n]*\n\s*)*if \(meu !== pedido\) return;\s*location\.assign\(href\);/);
     const css = ler('telas/explorar.css');
     for (const v of ['a', 'b', 'c']) expect(css).toContain(`.palco[data-movimento='${v}']`);
     // Toda animação do palco fica dentro de "sem pedido de menos movimento"; fora, só as definições

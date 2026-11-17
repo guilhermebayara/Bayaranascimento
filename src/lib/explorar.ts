@@ -93,6 +93,36 @@ export function lerFiltros(p: URLSearchParams): Filtros {
   };
 }
 
+/** O que existe e a pessoa vê, para conferir os filtros lidos do endereço. */
+export interface FiltrosConhecidos {
+  tipos: ReadonlySet<string>;
+  /** as pessoas que a pessoa logada vê (sem quem só existe num laço privado de outra pessoa) */
+  pessoas: ReadonlySet<string>;
+  familias: ReadonlySet<string>;
+  /** os capítulos que a pessoa vê */
+  capitulos: ReadonlySet<string>;
+  /** os temas que a pessoa vê */
+  temas: ReadonlySet<string>;
+}
+
+/**
+ * Tira dos filtros o que não existe ou a pessoa não vê, como se não estivesse no endereço: o que
+ * não faz sentido é ignorado. Achado do QA de código de 17/11/2026: um tipo, uma pessoa, um capítulo
+ * ou um tema desconhecido no endereço dava zero memórias com o resumo "Nenhum filtro", e o resumo
+ * escrevia o nome de quem só existe num laço privado de outra pessoa. Assim, o que a pessoa não vê
+ * responde igual ao que não existe.
+ */
+export function soFiltrosConhecidos(f: Filtros, conhecidos: FiltrosConhecidos): Filtros {
+  return {
+    ...f,
+    tipos: f.tipos.filter((id) => conhecidos.tipos.has(id)),
+    pessoas: f.pessoas.filter((id) => conhecidos.pessoas.has(id)),
+    familias: f.familias.filter((id) => conhecidos.familias.has(id)),
+    capitulos: f.capitulos.filter((id) => conhecidos.capitulos.has(id)),
+    temas: f.temas.filter((id) => conhecidos.temas.has(id)),
+  };
+}
+
 /** Escreve os filtros no endereço, sem o que está no padrão. lerFiltros(paraEndereco(f)) devolve f. */
 export function paraEndereco(f: Filtros): URLSearchParams {
   const p = new URLSearchParams();
