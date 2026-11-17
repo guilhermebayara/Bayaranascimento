@@ -1676,3 +1676,45 @@ export async function responderPedidoDoRelato(relatoId: number, resposta: 'liber
     db().prepare(`UPDATE avisos SET resolvido_em = datetime('now'), resposta = ? WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(resposta, relatoId),
   ]);
 }
+
+// --- Memória com alguém que só você vê (documento de estrutura; decisão do Gui de 17/11/2026) ---
+
+/**
+ * As pessoas que só a pessoa logada vê: as dos laços do coração "só eu vejo" dela que não têm nenhum
+ * laço que a família toda vê (filiação, casal aberto, laço do coração aberto). Para os outros, essas
+ * pessoas nem existem (pessoasQueNaoVe); publicar uma memória com elas as revelaria por tabela.
+ */
+export async function pessoasQueSoVoceVe(usuario: Usuario): Promise<Set<string>> {
+  const { results: meus } = await db().prepare('SELECT pessoa_id FROM lacos_coracao WHERE dono_id = ? AND privado = 1').bind(usuario.pessoa).all<{ pessoa_id: string }>();
+  if (meus.length === 0) return new Set();
+  const [filiacoes, casais, abertos] = await Promise.all([
+    listarFiliacoes(),
+    db().prepare(`SELECT a_id, b_id FROM casais WHERE visibilidade = 'todos'`).all<{ a_id: string; b_id: string }>(),
+    db().prepare('SELECT dono_id, pessoa_id FROM lacos_coracao WHERE privado = 0').all<{ dono_id: string; pessoa_id: string }>(),
+  ]);
+  const comLacoAberto = new Set([
+    ...filiacoes.flatMap((f) => [f.filho, f.responsavel]),
+    ...casais.results.flatMap((c: { a_id: string; b_id: string }) => [c.a_id, c.b_id]),
+    ...abertos.results.flatMap((l: { dono_id: string; pessoa_id: string }) => [l.dono_id, l.pessoa_id]),
+  ]);
+  comLacoAberto.delete(usuario.pessoa);
+  return pessoasQueNaoVe(new Set(meus.map((m: { pessoa_id: string }) => m.pessoa_id)), comLacoAberto);
+}
+
+/**
+ * "Abrir para todos": os laços "só eu vejo" da pessoa logada com estas pessoas passam a ser vistos pela
+ * família toda, com a versão de antes no histórico. A proximidade continua só do dono.
+ */
+export async function abrirLacosPrivados(usuario: Usuario, pessoas: string[]): Promise<void> {
+  if (pessoas.length === 0) return;
+  const lista = JSON.stringify(pessoas);
+  await db().batch([
+    db()
+      .prepare(
+        `INSERT INTO versoes (tipo, item_id, dados, autor) SELECT 'laco-coracao', CAST(id AS TEXT), json_object('dono', dono_id, 'pessoa', pessoa_id, 'nome', nome, 'papel', papel, 'proximidade', proximidade, 'privado', privado), ?1
+         FROM lacos_coracao WHERE dono_id = ?1 AND privado = 1 AND pessoa_id IN (SELECT value FROM json_each(?2))`,
+      )
+      .bind(usuario.pessoa, lista),
+    db().prepare('UPDATE lacos_coracao SET privado = 0 WHERE dono_id = ?1 AND privado = 1 AND pessoa_id IN (SELECT value FROM json_each(?2))').bind(usuario.pessoa, lista),
+  ]);
+}
