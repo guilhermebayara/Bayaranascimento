@@ -236,8 +236,8 @@ describe('conceito', () => {
     // "Tudo" virou "Explorar" (decisão do Gui, 16/11/2026), e o menu já não aponta para o conceito
     expect(menu).toMatch(/\{ href: '\/explorar', texto: 'Explorar'/);
     expect(menu).not.toContain('/conceito');
-    // As duas navegações, a do topo e a da sanfona do celular, saem da mesma lista
-    expect(topo.match(/menu\.map\(/g)).toHaveLength(2);
+    // As três navegações, a do topo, a da sanfona do celular e a do rodapé (resposta do Gui à P3 do QA de design, 17/11/2026), saem da mesma lista
+    expect(topo.match(/menu\.map\(/g)).toHaveLength(3);
   });
 
   it('a aba da época e o chão não deixam vão: a linha da aba não tem margem', () => {

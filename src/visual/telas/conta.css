@@ -190,6 +190,18 @@
 }
 /* --- Administração: no fim, quieta ------------------------------------------------------------- */
 
+/* A carta de Natal, para reler, e a saída da conta (P5 e P4 do QA de design, 17/11/2026) */
+.conta__carta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-5);
+  margin-top: var(--e-7);
+}
+.conta__sair {
+  margin-top: var(--e-7);
+}
+
 .conta__admin {
   margin-top: var(--e-8);
   padding-top: var(--e-5);

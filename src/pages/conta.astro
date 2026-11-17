@@ -7,6 +7,7 @@
 import '../visual/telas/painel.css';
 import '../visual/telas/conta.css';
 import Visual from '../layouts/Visual.astro';
+import Carimbo from '../components/visual/Carimbo.astro';
 import Dado from '../components/visual/Dado.astro';
 import Gente from '../components/visual/Gente.astro';
 import Ficha from '../components/visual/Ficha.astro';
@@ -16,8 +17,9 @@ import { formatarData } from '../lib/datas';
 import { familiaMaisRecente } from '../lib/familias';
 import { PROXIMIDADES, lacoParaODono } from '../lib/parentesco';
 import { enderecoDoRetrato } from '../lib/retratos';
+import { ENDERECO_DE_SAIDA, temLogin } from '../lib/servidor/acesso';
 import { montarConta } from '../lib/servidor/conta';
-import { familiasDe, listarCasais, listarFiliacoes, listarNucleos } from '../lib/servidor/repositorio';
+import { familiasDe, listarCasais, listarFiliacoes, listarNucleos, obterCarta } from '../lib/servidor/repositorio';
 import { carimboDaData, corDaPessoa, corDoNucleo } from '../lib/visual';
 
 // Os textos novos desta tela foram aprovados pelo Gui em 17/11/2026 (pergunta 7 do PR do grupo "pessoal").
@@ -44,6 +46,10 @@ const criados = [
   { id: 'fotos', quantas: criou.fotos.length, um: 'foto que você enviou', varios: 'fotos que você enviou' },
   { id: 'capitulos', quantas: criou.capitulos.length, um: 'capítulo que você criou', varios: 'capítulos que você criou' },
 ].filter((c) => c.quantas > 0);
+// A carta de Natal mora também aqui, para todos, e a saída da conta fica no fim, onde há login
+// (respostas do Gui às P5 e P4 do QA de design, 17/11/2026)
+const carta = await obterCarta();
+const saida = temLogin() ? ENDERECO_DE_SAIDA : undefined;
 const ok = Astro.url.searchParams.get('ok');
 const erro = Astro.url.searchParams.get('erro');
 ---
@@ -240,6 +246,17 @@ const erro = Astro.url.searchParams.get('erro');
     </div>
 
     {
+      carta && (
+        <p class="conta__carta">
+          <Carimbo itens={[`Natal de ${carta.escritaEm.slice(0, 4)}`]} />
+          <a class="acao" href="/carta">
+            Ler a carta de Natal
+          </a>
+        </p>
+      )
+    }
+
+    {
       conta.administracao.length > 0 && (
         <section class="conta__admin" aria-labelledby="administracao">
           <h2 class="rotulo suave" id="administracao">
@@ -261,6 +278,16 @@ const erro = Astro.url.searchParams.get('erro');
           </ul>
           {conta.banco && <p class="ficha suave">Banco: {conta.banco}</p>}
         </section>
+      )
+    }
+
+    {
+      saida && (
+        <p class="conta__sair">
+          <a class="acao acao--quieta" href={saida}>
+            Sair
+          </a>
+        </p>
       )
     }
   </div>

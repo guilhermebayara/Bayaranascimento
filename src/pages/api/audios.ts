@@ -39,7 +39,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // Teto do espaço dos áudios: o acervo fica dentro do plano gratuito, com folga para as fotos
   if (!cabeNoLimite(await espacoDosAudios(), bytes.byteLength, limiteTotal(ambiente()))) {
-    return erro(507, 'O espaço reservado para os áudios do acervo acabou. Avise o Gui ou a Giovanna.');
+    return erro(507, 'O espaço reservado para os áudios do acervo acabou. Avise o Gui, a Giovanna ou o Magno.');
   }
 
   const chave = `${new Date().getUTCFullYear()}/${crypto.randomUUID()}.${formato.extensao}`;

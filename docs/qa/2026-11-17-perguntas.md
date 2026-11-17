@@ -129,6 +129,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P2. No celular, "Nova memória" deve ficar à vista na barra?
 
+**Feito (opção A):** "Nova memória" entrou na barra do celular, sublinhada, entre a marca e o retrato, e saiu do fim do menu. Capturas: p02-barra--390.jpg, p02-barra--320.jpg, p09-menu-aberto--390.jpg.
+
 **muda a experiência**
 
 - Contexto: o acervo cresce quando alguém conta. No computador, "Nova memória" está sempre à vista, sublinhada. O menu em sanfona foi aprovado.
@@ -139,6 +141,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P3. O rodapé deve repetir o menu e ter "Voltar ao alto"?
+
+**Feito (opção A):** o rodapé ganhou os cinco itens do menu como ações quietas e, no celular, "Voltar ao alto". Capturas: p03-rodape-inicio--390.jpg, p03-rodape-inicio--1280.jpg.
 
 **ajuste**
 
@@ -151,6 +155,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P4. Como alguém sai da conta num aparelho dividido?
 
+**Feito (opção A):** "Sair" no fim de "Sua conta" e ao lado da frase do rodapé, levando à saída do Access, só na produção e na homologação (as capturas foram tiradas com o login forçado no computador). Capturas: p04-sair-na-conta-e-no-rodape--390.jpg, p04-sair-na-conta-e-no-rodape--1280.jpg.
+
 **ajuste**
 
 - Contexto: o login é o do Cloudflare Access. O desktop é pensado para "ver juntos na TV", e o Início e a conta são páginas que só a pessoa vê.
@@ -161,6 +167,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P5. Onde mora a carta depois da primeira visita?
+
+**Feito (opção A):** o link do Início ficou e "Sua conta" ganhou, para todos, o carimbo "Natal de 2026" com "Ler a carta de Natal". Capturas: p05-carta-na-conta--390.jpg, p05-carta-na-conta--1280.jpg.
 
 **ajuste**
 
@@ -184,6 +192,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P7. A assinatura do rodapé precisa desse tamanho em todas as telas?
 
+**Feito (opção A):** a assinatura do rodapé tem metade da largura nos formulários e nas telas utilitárias (rascunhos, lixeira, administração, "Sua conta", página não encontrada, sistema) e segue inteira nas outras. Capturas: p07-rodape-metade-rascunhos--390.jpg, p07-rodape-metade-rascunhos--1280.jpg, p07-rodape-metade-rascunhos--1920.jpg, p07-rodape-inteiro-memoria--1920.jpg.
+
 **ajuste**
 
 - Contexto: a assinatura "MEMÓRIAS" e os sobrenomes, na largura inteira, é a marca do site e foi aprovada.
@@ -196,6 +206,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P8. Quem a pessoa deve avisar quando o acesso ou o espaço falha?
 
+**Feito (opção A):** os dois recados dizem "Avise o Gui, a Giovanna ou o Magno", e `docs/decisoes.md` acompanha. Capturas: nenhuma, é só texto.
+
 **detalhe**
 
 - Contexto: o Magno é administrador desde 16/11/2026. Nesta rodada, os recados de permissão passaram a dizer "os administradores" (era o defeito conhecido da API de tipos, e havia mais dois iguais, no espelho e na cópia).
@@ -205,6 +217,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está, com os dois nomes que a família procura primeiro.
 
 ### P9. O menu do celular deve fechar com Esc e com o toque fora?
+
+**Feito (opção A):** um script pequeno fecha o menu com Esc (o foco volta ao "Menu") e com o toque fora; sem script, continua como era. Capturas: p09-menu-aberto--390.jpg.
 
 **detalhe**
 
@@ -216,6 +230,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
 
 ### P10. Que item acende em "Nova memória", no relato e na carta?
 
+**Feito (opção A):** `/nova` acende "Nova memória" (no topo do computador e na barra do celular) e o relato acende "Explorar"; a carta segue em "Início". Capturas: p10-nova-acesa--390.jpg, p10-nova-acesa--1280.jpg.
+
 **detalhe**
 
 - Contexto: o sinal de onde a pessoa está é o ponto de 6 px na cor viva e o texto mais escuro, no item do menu.
@@ -225,6 +241,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - B: manter como está.
 
 ### P11. `/temas` deve levar aos capítulos?
+
+**Feito (opção A):** `/temas` leva a `/capitulos#temas`. Capturas: nenhuma, é só o caminho.
 
 **detalhe**
 
@@ -236,6 +254,8 @@ Tudo na branch `qa-2026-11-17-design`, com teste em `testes/qa-design.test.ts` (
   - C: manter como está.
 
 ### P12. No celular, "Sua conta" precisa estar na barra e no menu?
+
+**Feito (opção A):** mantido como está. Capturas: p02-barra--390.jpg.
 
 **detalhe**
 

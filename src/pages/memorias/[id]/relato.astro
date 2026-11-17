@@ -44,7 +44,7 @@ const opcoes = await Promise.all(
 );
 ---
 
-<Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos}>
+<Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar">
   <p slot="abertura">
     <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento.
   </p>

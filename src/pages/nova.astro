@@ -88,7 +88,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
 ---
 
 {/* Aprovado pelo Gui em 17/11/2026 (pergunta 6 do PR do grupo "formularios"): a linha pequena acima do título */}
-<Pagina titulo={titulo} rotulo={publicada ? 'Memória publicada' : memoria ? 'Rascunho' : undefined} nucleos={memoria?.nucleos}>
+<Pagina titulo={titulo} rotulo={publicada ? 'Memória publicada' : memoria ? 'Rascunho' : undefined} nucleos={memoria?.nucleos} secao="nova">
   <p slot="abertura">
     {
       publicada

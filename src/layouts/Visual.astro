@@ -6,7 +6,7 @@ import '../visual/sistema';
 import Assinatura from '../components/visual/Assinatura.astro';
 import Monograma from '../components/visual/Monograma.astro';
 import Retrato from '../components/visual/Retrato.astro';
-import { PESSOAS_DE_TESTE, semLogin } from '../lib/servidor/acesso';
+import { ENDERECO_DE_SAIDA, PESSOAS_DE_TESTE, semLogin, temLogin } from '../lib/servidor/acesso';
 import { fontesDoPedido } from '../lib/servidor/conceito';
 import { enderecoDoRetrato } from '../lib/retratos';
 import { listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
@@ -23,14 +23,21 @@ interface Props {
   /** A cor da tela, quando não é a dos núcleos: 'tudo' ou a posição do núcleo ('0', '1', '2', '3') */
   familia?: string;
   /** Qual item do menu está aberto */
-  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'conceito' | 'conta' | 'pessoas';
+  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'conceito' | 'conta' | 'pessoas' | 'nova';
   /** A página que só a pessoa vê: tingida na cor da família dela */
   intimo?: boolean;
   /** O modo TV: a tela inteira é da memória, sem o topo, o menu e o rodapé */
   palco?: boolean;
+  /**
+   * A assinatura do rodapé (resposta do Gui à P7 do QA de design, 17/11/2026): inteira nas telas de
+   * leitura, que é o padrão, e pela metade da largura nos formulários e nas telas utilitárias.
+   * "Sua conta" já nasce com a metade.
+   */
+  rodape?: 'inteiro' | 'metade';
 }
 
 const { titulo, nucleos = [], secao, intimo = false, palco = false } = Astro.props;
+const rodape = Astro.props.rodape ?? (secao === 'conta' ? 'metade' : 'inteiro');
 const { usuario } = Astro.locals;
 const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
 const assinatura = assinaturaDaTela(nucleos, await listarNucleos());
@@ -40,6 +47,8 @@ const fontes = fontesDoPedido(Astro.request);
 const combinacaoEmUso = combinacaoDe(fontes);
 const icones = `/icones/${fontes.serifa}`;
 const teste = semLogin();
+// "Sair" só aparece onde há o login do Cloudflare Access (P4 do QA de design, 17/11/2026)
+const saida = temLogin() ? ENDERECO_DE_SAIDA : undefined;
 const integrantes = await listarIntegrantes();
 const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
 // "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo.
@@ -70,7 +79,7 @@ const telas = [
 ---
 
 <!doctype html>
-<html lang="pt-BR" {...atributosDasFontes(fontes)} data-familia={familia} data-intimo={intimo ? '' : undefined}>
+<html lang="pt-BR" id="alto" {...atributosDasFontes(fontes)} data-familia={familia} data-intimo={intimo ? '' : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -153,8 +162,14 @@ const telas = [
             </a>
           ))
         }
-        <a class="topo__acao" href="/nova">Nova memória</a>
+        <a class="topo__acao" href="/nova" aria-current={secao === 'nova' ? 'page' : undefined}>
+          Nova memória
+        </a>
       </nav>
+      {/* No celular, "Nova memória" fica à vista na barra, entre a marca e o retrato, e não no fim do menu (P2 do QA de design, 17/11/2026) */}
+      <a class="topo__nova" href="/nova" aria-current={secao === 'nova' ? 'page' : undefined}>
+        Nova memória
+      </a>
       <a class="topo__conta" href="/conta" aria-label={`Sua conta, ${usuario.nome}`} aria-current={secao === 'conta' ? 'page' : undefined}>
         <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
         <span class="topo__conta-nome" aria-hidden="true">{usuario.nome}</span>
@@ -170,7 +185,6 @@ const telas = [
             ))
           }
           <a href="/conta" aria-current={secao === 'conta' ? 'page' : undefined}>Sua conta</a>
-          <a class="menu__acao acao" href="/nova">Nova memória</a>
         </nav>
       </details>
     </header>
@@ -181,12 +195,52 @@ const telas = [
     </main>
     {
       !palco && (
-    <footer class="rodape">
+    <footer class="rodape" data-assinatura={rodape === 'metade' ? 'metade' : undefined}>
+      {/* O topo não acompanha a rolagem: no fim da página, o menu de novo e a volta ao alto (P3 do QA de design, 17/11/2026) */}
+      <nav class="rodape__links" aria-label="Seções, no fim da página">
+        {
+          menu.map((item) => (
+            <a class="acao acao--quieta" href={item.href} aria-current={item.atual ? 'page' : undefined}>
+              {item.texto}
+            </a>
+          ))
+        }
+      </nav>
       <div class="rodape__linha">
-        <p>Acervo privado da família. Você entrou como {usuario.nome}.</p>
+        <p>
+          <span>Acervo privado da família. Você entrou como {usuario.nome}.</span>
+          {saida && (
+            <a class="acao acao--quieta" href={saida}>
+              Sair
+            </a>
+          )}
+        </p>
+        <a class="rodape__alto acao acao--quieta" href="#alto">
+          Voltar ao alto
+        </a>
       </div>
       <Assinatura sobrenomes={assinatura.sobrenomes} />
     </footer>
+      )
+    }
+    {
+      !palco && (
+        <script>
+          // O menu do celular fecha com Esc e com o toque fora dele (P9 do QA de design, 17/11/2026).
+          // Sem script, continua fechando só pelo "Menu".
+          const menu = document.querySelector<HTMLDetailsElement>('details.menu');
+          if (menu) {
+            addEventListener('keydown', (evento) => {
+              if (evento.key !== 'Escape' || !menu.open) return;
+              const focoDentro = menu.contains(document.activeElement);
+              menu.open = false;
+              if (focoDentro) menu.querySelector('summary')?.focus();
+            });
+            addEventListener('click', (evento) => {
+              if (menu.open && evento.target instanceof Node && !menu.contains(evento.target)) menu.open = false;
+            });
+          }
+        </script>
       )
     }
   </body>
