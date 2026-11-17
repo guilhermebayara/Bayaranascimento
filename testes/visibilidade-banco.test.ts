@@ -147,7 +147,7 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
 
   beforeAll(async () => {
     await prepararBanco();
-    // O acervo de exemplo não tem áudio: um, num relato aberto a todos, para o filtro "com áudio" ter o que mostrar
+    // Mais um áudio, além dos de exemplo, num relato aberto a todos, para o filtro "com áudio" ter o que mostrar
     const relato = banco.sqlite.prepare(`SELECT r.id, r.memoria_id, r.por FROM relatos r JOIN memorias m ON m.id = r.memoria_id WHERE r.situacao = 'publicada' AND m.visibilidade = 'todos' LIMIT 1`).get() as { id: number; memoria_id: string; por: string };
     sql(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, enviado_por) VALUES (?, ?, 'visivel.webm', 'audio/webm', 10, ?)`, relato.id, relato.memoria_id, relato.por);
     // O banco do começo, para cada pessoa partir do mesmo acervo de exemplo

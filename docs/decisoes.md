@@ -61,6 +61,18 @@ Decisão do Gui, 16/11/2026 (`src/lib/fotos-de-exemplo.ts`, `src/lib/servidor/fo
 - **Limpeza do bucket de teste:** as fotos e os retratos que as prévias enviaram ao testar (fora de `exemplos/`) são apagados depois de 7 dias, e o registro passa a apontar para uma foto de exemplo, pelo mesmo sorteio, para nada ficar vazio. Os áudios ficam de fora, porque já têm o teto de 200 MB, e nada de `exemplos/` é apagado. Roda junto da semente, no máximo uma vez por dia (a marca do dia fica na tabela `limpezas_do_teste`, que só existe no banco de teste), e um erro nela nunca derruba o site.
 - A guarda da produção falha se as fotos de exemplo puderem chegar ao pacote publicado (arquivo em `src/` ou `public/`, ou código importando de `exemplos/`), se a produção puder ler o bucket dos exemplos, se a leitura da homologação puder gravar ou apagar, ou se a limpeza ou o envio puderem rodar na produção ou na homologação.
 
+## Áudios de exemplo: voz sintetizada
+
+Decisão do Gui, 17/11/2026 (P102 do QA de design, `src/lib/audios-de-exemplo.ts`, testes em `testes/audios-de-exemplo.test.ts`).
+
+- O acervo de exemplo tem três áudios curtos (de 11 a 14 segundos), para o bloco "A voz de Fulano" da página da pessoa aparecer: dois nos relatos da Vó Bela ("A chegada do Gui" e "A receita do pão de queijo da Vó Bela") e um no da Vó Vivica ("Casamento da Vó Vivica e do Vô Tonho"). São voz sintetizada (espeak-ng, pt-br), nunca de ninguém da família, e a fala começa por "Áudio de exemplo, com voz sintetizada". A transcrição é o que a voz diz.
+- Os arquivos (M4A, cerca de 50 KB cada) ficam em `exemplos/audios/`, fora de `src/` e de `public/`. No banco, a chave é `exemplos/<nome>.m4a`; no bucket de teste, `audios/exemplos/<nome>.m4a`.
+- **Como chegam ao bucket de teste:** pelo mesmo envio das fotos de exemplo, `npm run fotos-de-exemplo -- <endereço>`, que só aceita esses arquivos, conferidos pelo SHA-256, e só nas prévias e no computador.
+- **Semente:** `semearAudiosDeExemplo`, em `src/lib/servidor/semente.ts`, dentro da proteção das memórias de exemplo, confere o ambiente de novo e entra uma vez só, protegida pela existência de um deles: quem remover um ao testar não o vê voltar.
+- A rota `/audios/` só serve a chave de um áudio de exemplo onde há acervo de exemplo, e continua conferindo quem pode ouvir. A produção e a homologação nunca recebem esses áudios, e o espelho não os leva. A limpeza de 7 dias não apaga áudios.
+- A guarda da produção falha se um arquivo de áudio aparecer em `src/` ou `public/`, se `exemplos/audios/` tiver arquivos diferentes da lista, se a semente deixar de conferir o ambiente, se a rota servir a chave de exemplo fora das prévias ou se o espelho passar a usar os áudios de exemplo.
+- O atalho "Ouvir a voz de Vó Bela · 3 áudios" no alto da página da pessoa (a outra metade da opção A da P102) é de tela e fica para a sessão que cuida das telas.
+
 ## Como o site funciona
 
 - **Linha do tempo** (decisão do Gui, 16/11/2026): as memórias mais recentes primeiro, e rolar leva ao passado (`maisRecentesPrimeiro`, em `src/lib/datas.ts`), em todas as páginas que mostram a linha do tempo. "Antes" e "Depois", no fim da memória, continuam pela data. Uma barra fixa no alto da linha do tempo leva direto a cada década (2020, 2010... 1950), só quando há mais de uma; com um filtro de tipo ligado, as décadas sem memória daquele tipo saem da barra.
