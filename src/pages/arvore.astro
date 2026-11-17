@@ -149,6 +149,10 @@ const comLaco = comLacoDeArvore(dados);
       </details>
     </div>
     <noscript>
+      {/* Sem script não há desenho: o mapa vazio e os controles dele saem, e fica só o aviso */}
+      <style is:inline>
+        [data-mapa], .arvore__topo p { display: none !important; }
+      </style>
       <div class="arvore__sem-script miolo">
         <Vazio frase="A árvore precisa de JavaScript para ser desenhada. As ligações de cada pessoa também aparecem na página dela, em Pessoas.">
           <a class="acao" href="/pessoas">Ver as pessoas</a>

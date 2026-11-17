@@ -279,7 +279,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
         </h2>
         {
           marcos.length === 0 ? (
-            <Vazio frase={capitulo.modo === 'epoca' ? 'Nenhuma memória registrada neste período ainda.' : 'Este capítulo ainda não tem memórias. Use "Escolher memórias e editar", no alto, para escolher.'} />
+            <Vazio frase={capitulo.modo === 'epoca' ? 'Nenhuma memória registrada neste período ainda.' : `Este capítulo ainda não tem memórias. Use "${podeEditar ? 'Escolher memórias e editar' : 'Escolher memórias'}", no alto, para escolher.`} />
           ) : (
             <ol class="marcos" reversed>
               {marcos.map(({ m, numero }) => {
@@ -319,3 +319,14 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
     </div>
   </article>
 </Visual>
+
+<script>
+  // A capa só fica parada quando cabe inteira na janela (QA de design, 17/11/2026)
+  const capa = document.querySelector<HTMLElement>('.capitulo__parado');
+  if (capa) {
+    const medir = () => capa.classList.toggle('capitulo__parado--solta', capa.offsetHeight > window.innerHeight - 64);
+    medir();
+    window.addEventListener('resize', medir);
+    window.addEventListener('load', medir);
+  }
+</script>

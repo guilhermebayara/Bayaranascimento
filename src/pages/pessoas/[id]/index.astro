@@ -38,6 +38,8 @@ import {
 } from '../../../lib/servidor/repositorio';
 import { corDaPessoa } from '../../../lib/visual';
 
+// O nome de um laço do coração entra no meio da frase em minúscula, como na árvore
+const minuscula = (texto: string) => texto.charAt(0).toLowerCase() + texto.slice(1);
 const { usuario } = Astro.locals;
 const integrantes = await listarIntegrantes();
 const pessoa = integrantes.find((i) => i.id === Astro.params.id);
@@ -133,7 +135,7 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
     titulo: 'Laços do coração',
     linhas: escolhidos.map((l) => ({
       id: l.pessoa,
-      laco: l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : l.nome,
+      laco: l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : minuscula(l.nome),
       detalhe: l.privado ? 'só você vê' : null,
     })),
   },
@@ -141,7 +143,7 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
     titulo: 'No coração de',
     linhas: escolhidaPor.map((l) => ({
       id: l.dono,
-      laco: l.dono === usuario.pessoa ? `${lacoParaODono(l.nome, pessoa.tratamento)} (você)` : `chama de ${l.nome}`,
+      laco: l.dono === usuario.pessoa ? `${lacoParaODono(l.nome, pessoa.tratamento)} (você)` : `chama de ${minuscula(l.nome)}`,
       detalhe: l.privado ? 'só você vê' : null,
     })),
   },

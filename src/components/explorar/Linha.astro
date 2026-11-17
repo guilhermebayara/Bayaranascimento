@@ -87,7 +87,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
 
     {/* A década é uma faixa na cor da família, parada no alto, com o nome do que ela faz.
         O bloco em volta (data-trilho) marca até onde a faixa acompanha a rolagem no toque. */}
-    <div class="linha__trilho" data-trilho>
+    <div class="linha__trilho" data-trilho data-sem-memorias={anos.length === 0 ? '' : undefined}>
     {/* O que fica parado no alto é uma peça só: a faixa de décadas e, no toque, o ano em que se está */}
     <div class="parada" data-barra data-preso>
       {

@@ -3,6 +3,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { ehServicoDeCopia, usuarioDoPedido } from './lib/servidor/acesso';
 import { guardarTiposDoPedido, noPedido, tiposDoPedido } from './lib/servidor/ambiente';
+import { ehNaoEncontradaSemPagina } from './lib/servidor/http';
 import { prepararBanco } from './lib/servidor/banco';
 import { respostaDaCopia } from './lib/servidor/copia';
 import { listarTipos } from './lib/servidor/repositorio';
@@ -43,6 +44,8 @@ const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo)
   contexto.locals.tipos = await listarTipos();
   guardarTiposDoPedido(contexto.locals.tipos);
   const resposta = await proximo();
+  // Uma página que responde "não encontrada" em texto puro vira a página de erro do site, com menu e volta
+  if (ehNaoEncontradaSemPagina(contexto.url.pathname, resposta)) return contexto.rewrite('/404');
   // Nada do acervo deve ficar guardado em servidores intermediários
   if (!resposta.headers.has('Cache-Control')) resposta.headers.set('Cache-Control', 'private, no-store');
   return resposta;

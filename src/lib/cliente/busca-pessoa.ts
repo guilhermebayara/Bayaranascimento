@@ -46,6 +46,8 @@ export function buscaDePessoa(lista: HTMLSelectElement, opcoes: { nomeNovo?: HTM
   sugestoes.className = 'busca__lista';
   sugestoes.id = `${id}-lista`;
   sugestoes.setAttribute('role', 'listbox');
+  // A lista rola, e o navegador dá foco a caixa que rola: o Tab parava nela e o foco sumia
+  sugestoes.tabIndex = -1;
   sugestoes.hidden = true;
   caixa.append(campo, sugestoes);
 

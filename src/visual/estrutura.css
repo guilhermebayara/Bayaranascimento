@@ -53,6 +53,24 @@
 
 /* --- Topo ------------------------------------------------------------------------------------ */
 
+/* Para quem navega pelo teclado: o primeiro Tab oferece ir direto ao conteúdo. Só aparece com foco. */
+.pular {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  padding-inline: var(--e-4);
+  background: var(--branco);
+  font-weight: 550;
+  translate: 0 -200%;
+}
+.pular:focus-visible {
+  translate: 0 0;
+}
+
 .topo {
   --topo-h: 3.75rem;
   display: grid;
@@ -66,6 +84,7 @@
   z-index: 1;
   display: inline-flex;
   align-items: center;
+  min-width: var(--toque);
   height: var(--topo-h);
   font-family: var(--serifa);
   font-variation-settings: var(--serifa-ajustes);
@@ -93,7 +112,9 @@
   z-index: 1;
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.6rem;
+  min-width: var(--toque);
   height: var(--topo-h);
   margin-right: 5.25rem;
   font-size: var(--t-menu);
@@ -124,6 +145,9 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  /* Só a palavra "Menu" é botão: o resto da barra não abre o menu (QA de design, 17/11/2026) */
+  width: max-content;
+  margin-left: auto;
   height: var(--topo-h);
   list-style: none;
   cursor: pointer;
@@ -180,6 +204,9 @@
 }
 .menu__lista .menu__acao {
   margin-top: var(--e-5);
+  text-decoration-line: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.32em;
   font-family: var(--grotesca);
   font-size: var(--t-corpo);
   letter-spacing: 0;

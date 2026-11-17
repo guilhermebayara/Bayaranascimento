@@ -94,6 +94,7 @@ const telas = [
     </script>
   </head>
   <body>
+    <a class="pular" href="#conteudo">Pular para o conteúdo</a>
     {
       teste && !palco && (
         <details class="teste">
@@ -175,7 +176,7 @@ const telas = [
     </header>
       )
     }
-    <main>
+    <main id="conteudo">
       <slot />
     </main>
     {

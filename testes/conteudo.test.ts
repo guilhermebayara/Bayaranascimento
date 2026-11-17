@@ -52,6 +52,16 @@ describe('textos para quem está logado', () => {
   });
 });
 
+describe('recado de quem não é administrador', () => {
+  // QA de design (17/11/2026): o recado de /api/tipos dizia "Só o Gui e a Giovanna", sem o Magno, que é
+  // administrador desde a migração 017. Recado de permissão diz "os administradores", sem lista de nomes.
+  it('nenhuma rota recusa em nome de só duas pessoas', () => {
+    const rotas = import.meta.glob<string>('../src/pages/api/*.ts', { query: '?raw', import: 'default', eager: true });
+    expect(Object.keys(rotas).length).toBeGreaterThan(5);
+    for (const [arquivo, codigo] of Object.entries(rotas)) expect(codigo, arquivo).not.toMatch(/Só o Gui e a Giovanna/);
+  });
+});
+
 describe('data impossível avisada na hora', () => {
   // Pedido do Gui (16/11/2026): acusar 31 de fevereiro na seleção, e não só ao salvar
   it('acusa dia que não existe no mês', () => {

@@ -12,6 +12,19 @@ export interface Etapas {
   atual(): number;
 }
 
+/** Enter num campo de uma linha, fora da última etapa, avança em vez de enviar o formulário. */
+export function enterAvanca(
+  evento: { key: string; defaultPrevented: boolean; isComposing?: boolean; target: unknown },
+  atual: number,
+  total: number,
+): boolean {
+  if (evento.key !== 'Enter' || evento.defaultPrevented || evento.isComposing) return false;
+  const alvo = evento.target as { tagName?: string; type?: string } | null;
+  if (alvo?.tagName !== 'INPUT') return false;
+  if (['submit', 'button', 'file', 'image', 'reset'].includes(alvo.type ?? '')) return false;
+  return atual < total - 1;
+}
+
 export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, secao: HTMLElement) => void): Etapas | undefined {
   const secoes = [...form.querySelectorAll<HTMLElement>('[data-etapa]')];
   if (secoes.length < 2) return undefined;
@@ -67,6 +80,16 @@ export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, seca
   };
   form.addEventListener('input', atualizarContinuar);
   form.addEventListener('change', atualizarContinuar);
+
+  // Enter num campo não envia o formulário no meio do caminho: faz o mesmo que "Continuar".
+  // Sem isto, o navegador usava o primeiro botão de envio, mesmo escondido: o capítulo era criado
+  // sem passar por "Quem vê", e a memória era salva como rascunho (QA de design, 17/11/2026).
+  // Na última etapa o Enter continua enviando, e quem já tratou a tecla (a busca de pessoa) fica como está.
+  form.addEventListener('keydown', (evento) => {
+    if (!enterAvanca(evento, atual, secoes.length)) return;
+    evento.preventDefault();
+    ir(atual + 1);
+  });
 
   // Para avançar, o que é obrigatório na etapa atual precisa estar preenchido
   const valida = (secao: HTMLElement): boolean => {
