@@ -14,7 +14,7 @@ interface Migracao {
   sql: string[];
 }
 
-const MIGRACOES: Migracao[] = [
+export const MIGRACOES: Migracao[] = [
   {
     id: '001-base',
     sql: [
