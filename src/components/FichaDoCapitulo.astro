@@ -74,13 +74,16 @@ const datas = [
               <small>A história de alguém, com começo e fim. Entram sozinhas as memórias do período com essas pessoas ou famílias. Ex.: a gravidez da Giovanna.</small>
             </span>
           </label>
-          <label class="aba">
-            <input type="radio" name="modo" value="epoca" checked={modo === 'epoca'} />
-            <span>
-              <strong>Época</strong>
-              <small>Um tempo da família inteira, com começo e fim. Tudo o que aconteceu no período entra sozinho. Ex.: a pandemia, os anos 90.</small>
-            </span>
-          </label>
+          {/* Criar e editar uma época é só dos administradores (decisão do Gui, 16/11/2026) */}
+          {usuario.admin && (
+            <label class="aba">
+              <input type="radio" name="modo" value="epoca" checked={modo === 'epoca'} />
+              <span>
+                <strong>Época</strong>
+                <small>Um tempo da família inteira, com começo e fim. Tudo o que aconteceu no período entra sozinho. Ex.: a pandemia, os anos 90.</small>
+              </span>
+            </label>
+          )}
         </div>
       </div>
       <div data-so-epoca hidden={modo === 'reunido'}>

@@ -809,18 +809,6 @@ export async function idsDeCapitulos(): Promise<Set<string>> {
   return new Set(results.map((r) => r.id));
 }
 
-/** Quem criou as memórias colocadas no capítulo: essas pessoas também podem editá-lo. */
-export async function autoresDasMemoriasDoCapitulo(capituloId: string): Promise<string[]> {
-  const { results } = await db()
-    .prepare(
-      `SELECT DISTINCT m.criada_por FROM capitulo_memorias cm JOIN memorias m ON m.id = cm.memoria_id
-       WHERE cm.capitulo_id = ? AND m.excluida_em IS NULL AND m.situacao = 'publicada'`,
-    )
-    .bind(capituloId)
-    .all<{ criada_por: string }>();
-  return results.map((r) => r.criada_por);
-}
-
 export interface DadosDoCapitulo {
   titulo: string;
   abertura?: string;

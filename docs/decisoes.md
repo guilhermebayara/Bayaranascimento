@@ -12,7 +12,8 @@ Regras combinadas para o site da família. Servem de guia para o que for constru
 
 | Ação | Quem |
 |---|---|
-| Criar memória, capítulo ou tema | Qualquer pessoa com acesso |
+| Criar memória, capítulo ou tema | Qualquer pessoa com acesso. Uma época, só os admins |
+| Editar um capítulo | Quem criou e os admins, desde que vejam o capítulo. Uma época, só os admins, inclusive para transformar um capítulo em época |
 | Corrigir a ficha da memória | Quem criou e as pessoas citadas nela, desde que vejam a memória |
 | Mudar quem pode ver uma memória ou um capítulo | Só quem criou. Quem é citado ainda marca núcleos numa memória aberta a todos, o que não restringe nada |
 | Acrescentar relato a uma memória | Qualquer pessoa que vê a memória, um relato por pessoa |
@@ -182,7 +183,7 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 - Um capítulo reúne memórias em um momento maior e tem dois modos. **Reunido:** alguém escolhe as memórias, e o período vai da primeira à última. **Por período:** tem início e fim (o fim pode ficar em aberto), e as memórias entram sozinhas pela data.
 - **Época e capítulo** (decisão do Gui, 16/11/2026, a partir do furo que ele achou: toda memória do período entrava, mesmo num capítulo que é só da vida de uma pessoa ou de um casal; construído em 16/11/2026, migração `019-de-quem-e-o-capitulo`). O capítulo por período diz de quem é: pessoas, famílias ou os dois. Entram só as memórias do período em que alguma dessas pessoas está ou que são de uma dessas famílias; as outras do período ficam de fora. Sem ninguém marcado, ele é uma **época**, que vale para a família inteira, como a pandemia ou os anos 90, e entra tudo o que aconteceu no período. "Capítulo de época" deixou de existir como nome: o selo diz "Época", "Capítulo por período" ou "Capítulo".
     - A regra é uma só (`memoriaDoCapitulo` em `src/lib/capitulos.ts`, com teste em `testes/capitulos.test.ts`) e vale na página do capítulo, na lista de capítulos, na ficha da memória e na montagem da linha do tempo (`src/lib/linha-capitulos.ts`). No banco, o modo continua `epoca`; de quem é fica em `capitulo_pessoas` e `capitulo_familias`.
-    - No formulário do capítulo, "Como as memórias entram?" tem três opções: "Reunido", "Por período" e "Época" (pedido do Gui, 17/11/2026, que não tinha achado como criar uma época). As duas últimas pedem as datas. "De quem é este período?" aparece só em "Por período", com as famílias e a mesma busca de pessoas de "Quem estava?", sem a opção de cadastrar alguém novo, e precisa de pelo menos uma pessoa ou família. No banco, as duas ficam no modo `epoca`; a época é a que não tem ninguém marcado.
+    - No formulário do capítulo, "Como as memórias entram?" tem três opções: "Reunido", "Por período" e "Época" (pedido do Gui, 17/11/2026, que não tinha achado como criar uma época). "Época" só aparece para os administradores. As duas últimas pedem as datas. "De quem é este período?" aparece só em "Por período", com as famílias e a mesma busca de pessoas de "Quem estava?", sem a opção de cadastrar alguém novo, e precisa de pelo menos uma pessoa ou família. No banco, as duas ficam no modo `epoca`; a época é a que não tem ninguém marcado.
     - A página do capítulo diz de quem ele é ("Entram as memórias do período com…"), e "Aconteceu durante" só lista épocas.
     - Na linha do tempo, a época é o chão, com o nome numa aba, e duas épocas podem se sobrepor (`docs/visual.md`, "A época na linha do tempo"). Isso entra com a linha do tempo nova, na fase 3 da revisão visual.
     - No acervo de exemplo, "A infância da Giovanna" é da Giovanna; "Os anos 90" e "Os anos de casa" são épocas.
@@ -191,7 +192,7 @@ Decisões de interação, independentes do visual. O visual pode mudar a aparên
 - **Temas** são etiquetas livres para memórias e capítulos, digitadas separadas por vírgula. Cada tema tem uma página que junta tudo o que o usa.
 - O capítulo tem visibilidade própria (título e abertura). Cada memória mantém a dela: contagem, período e lista consideram só o que quem olha pode ver.
 - Uma memória entra em um capítulo reunido pelo formulário da memória ou pela página do capítulo, onde cada pessoa marca as memórias que pode corrigir.
-- Edita o capítulo quem criou e quem tem memórias nele. Quem pode ver o capítulo, só quem criou muda. Excluir é com os admins e manda para a lixeira; as memórias continuam no acervo.
+- Edita o capítulo quem criou e os admins (decisão do Gui, 16/11/2026: ter memórias nele não basta). Uma época só os admins criam e editam, e só eles transformam um capítulo em época; a opção "Época" do formulário só aparece para eles. Colocar e tirar memórias de um capítulo reunido continua com quem pode corrigir cada memória. Quem pode ver o capítulo, só quem criou muda. Excluir é com os admins e manda para a lixeira; as memórias continuam no acervo.
 - Ficou para depois: capítulo ligado a uma fase de casal, foto de capa escolhida (os capítulos na linha do tempo viraram item de "Decidido, a construir" em 16/11/2026) (depende do visual).
 
 ## Núcleo, parentes e laços (decisões do Gui, 15/11/2026)

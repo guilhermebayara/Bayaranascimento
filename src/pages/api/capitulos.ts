@@ -1,11 +1,10 @@
 // Capítulos: criar, editar e mandar para a lixeira.
 import type { APIRoute } from 'astro';
-import { lerDeQuem, lerModoDoFormulario, lerTemas, podeEditarCapitulo, validarAninhamento } from '../../lib/capitulos';
+import { lerDeQuem, lerModoDoFormulario, lerTemas, validarAninhamento } from '../../lib/capitulos';
 import { arrumarTexto, codigoNovo } from '../../lib/servidor/conteudo';
 import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeEditarMemoria, podeMudarQuemVe, validarVisibilidade } from '../../lib/servidor/permissoes';
+import { podeEditarCapitulo, podeEditarMemoria, podeMudarQuemVe, podeSalvarCapitulo, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
-  autoresDasMemoriasDoCapitulo,
   excluirCapitulo,
   listarMemorias,
   mudarMemoriasDoCapitulo,
@@ -59,15 +58,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const origem = atual ? `/capitulos/${atual.id}/editar` : '/capitulos/novo';
   const falhar = (erro: string) => voltar(request, origem, { erro });
-  if (atual && !podeEditarCapitulo(usuario, atual, await autoresDasMemoriasDoCapitulo(atual.id))) {
-    return voltar(request, `/capitulos/${atual.id}`, { erro: 'Só quem criou o capítulo e quem tem memórias nele pode alterá-lo.' });
+  if (atual) {
+    const editar = podeEditarCapitulo(usuario, atual);
+    if (!editar.ok) return voltar(request, `/capitulos/${atual.id}`, { erro: editar.motivo });
   }
 
-  const titulo = campo(dados, 'titulo', 120);
-  if (!titulo) return falhar('Dê um título ao capítulo.');
   // Época e capítulo por período ficam no mesmo modo do banco; a época é o que não tem ninguém marcado
   const escolha = lerModoDoFormulario(campo(dados, 'modo', 10));
   const modo = escolha === 'reunido' ? 'reunido' : 'epoca';
+  const salvar = podeSalvarCapitulo(usuario, atual, escolha);
+  if (!salvar.ok) return falhar(salvar.motivo);
+
+  const titulo = campo(dados, 'titulo', 120);
+  if (!titulo) return falhar('Dê um título ao capítulo.');
 
   // Por período: início obrigatório, fim opcional
   const anoAtual = new Date().getUTCFullYear();

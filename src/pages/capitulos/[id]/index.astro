@@ -2,6 +2,7 @@
 import Base from '../../../layouts/Base.astro';
 import LinhaDoTempo from '../../../components/LinhaDoTempo.astro';
 import { ehEpoca, formatarPeriodo, memoriaDoCapitulo, nomeDoModo, periodoDasMemorias, sobreposicao, type Capitulo } from '../../../lib/capitulos';
+import { podeEditarCapitulo } from '../../../lib/servidor/permissoes';
 import { listarCapitulos, listarIntegrantes, listarMemorias, listarNucleos, listarTemas, type Memoria } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -54,6 +55,7 @@ const deQuem = [
   ...capitulo.familias.map((id) => nucleos.find((n) => n.id === id)?.nome).map((n) => n && `família ${n}`),
 ].filter((x): x is string => Boolean(x));
 const juntar = (nomes: string[]) => (nomes.length <= 1 ? nomes.join('') : `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`);
+const podeEditar = podeEditarCapitulo(usuario, capitulo).ok;
 const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
 ---
 
@@ -68,7 +70,12 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
     {deQuem.length > 0 && <p class="dica">Entram as memórias do período com {juntar(deQuem)}.</p>}
     {/* A ação principal fica no alto, junto do título (decisão do Gui, 16/11/2026) */}
     <p class="acoes acoes--pagina">
-      <a class="botao" href={`/capitulos/${capitulo.id}/editar`}>{capitulo.modo === 'reunido' ? 'Escolher memórias e editar' : 'Editar capítulo'}</a>
+      {/* No reunido, qualquer um coloca as memórias que pode corrigir; a ficha, só quem pode editar o capítulo */}
+      {capitulo.modo === 'reunido' ? (
+        <a class="botao" href={`/capitulos/${capitulo.id}/editar`}>{podeEditar ? 'Escolher memórias e editar' : 'Escolher memórias'}</a>
+      ) : (
+        podeEditar && <a class="botao" href={`/capitulos/${capitulo.id}/editar`}>{ehEpoca(capitulo) ? 'Editar época' : 'Editar capítulo'}</a>
+      )}
       {capitulo.modo === 'reunido' && <a class="botao botao--leve" href={`/nova?capitulo=${capitulo.id}`}>Nova memória neste capítulo</a>}
     </p>
     {maior && <p class="dica">Parte de <a href={`/capitulos/${maior.id}`}>{maior.titulo}</a></p>}

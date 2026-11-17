@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dentroDoPeriodo, ehEpoca, lerModoDoFormulario, modoNoFormulario, formatarPeriodo, lerDeQuem, lerTemas, memoriaDoCapitulo, nomeDoModo, periodoDasMemorias, podeEditarCapitulo, podeVerCapitulo, sobreposicao, validarAninhamento } from '../src/lib/capitulos';
+import { dentroDoPeriodo, ehEpoca, lerModoDoFormulario, modoNoFormulario, formatarPeriodo, lerDeQuem, lerTemas, memoriaDoCapitulo, nomeDoModo, periodoDasMemorias, podeVerCapitulo, sobreposicao, validarAninhamento } from '../src/lib/capitulos';
 
 const pandemia = { inicio: { ano: 2020, mes: 3 }, fim: { ano: 2022, mes: 4 } };
 
@@ -47,13 +47,6 @@ describe('quem vê e quem edita', () => {
   it('capítulo restrito só aparece para o núcleo', () => {
     expect(podeVerCapitulo(giovanna, doCasal)).toBe(true);
     expect(podeVerCapitulo(elizete, doCasal)).toBe(false);
-  });
-  it('edita quem criou e quem tem memórias nele', () => {
-    const aberto = { visibilidade: 'todos' as const, nucleos: [], criadoPor: 'giovanna' };
-    expect(podeEditarCapitulo(giovanna, aberto, [])).toBe(true);
-    expect(podeEditarCapitulo(elizete, aberto, [])).toBe(false);
-    expect(podeEditarCapitulo(elizete, aberto, ['elizete'])).toBe(true);
-    expect(podeEditarCapitulo(elizete, doCasal, ['elizete'])).toBe(false);
   });
 });
 

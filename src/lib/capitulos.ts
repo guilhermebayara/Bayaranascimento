@@ -156,12 +156,6 @@ export function podeVerCapitulo(usuario: QuemOlha, c: Pick<Capitulo, 'visibilida
   return c.visibilidade === 'todos' || c.nucleos.some((n) => usuario.nucleos.includes(n));
 }
 
-/** Editar um capítulo: quem criou e quem tem memórias nele. */
-export function podeEditarCapitulo(usuario: QuemOlha, c: Pick<Capitulo, 'visibilidade' | 'nucleos' | 'criadoPor'>, autoresDasMemorias: string[]): boolean {
-  if (!podeVerCapitulo(usuario, c)) return false;
-  return c.criadoPor === usuario.pessoa || autoresDasMemorias.includes(usuario.pessoa);
-}
-
 /**
  * Um capítulo pode ficar dentro de outro, com no máximo dois níveis: o de fora
  * não pode estar dentro de ninguém, e o de dentro não pode ter capítulos próprios.

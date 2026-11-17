@@ -2,6 +2,7 @@
 // Funções puras, sem acesso a rede nem a banco, para serem fáceis de testar.
 // A regra de "quem vê" existe também em SQL, em repositorio.ts (FILTRO_VISIVEL):
 // as duas precisam mudar juntas.
+import { ehEpoca, podeVerCapitulo, type Capitulo, type ModoDoFormulario } from '../capitulos';
 
 export interface Usuario {
   /** id do integrante, ex.: "giovanna" */
@@ -191,4 +192,31 @@ export function podeMudarRetrato(usuario: Usuario, integrante: IntegranteParaPer
 /** Ver o retrato: quem vê a pessoa, como vê o nome. Quem não vê recebe o mesmo que um retrato que não existe. */
 export function podeVerRetrato(integranteId: string, naoVe: ReadonlySet<string>): boolean {
   return !naoVe.has(integranteId);
+}
+
+type CapituloParaPermissao = Pick<Capitulo, 'visibilidade' | 'nucleos' | 'criadoPor' | 'modo'> & Partial<Pick<Capitulo, 'pessoas' | 'familias'>>;
+
+/**
+ * Editar um capítulo (decisão do Gui, 16/11/2026): quem criou e os administradores, desde que vejam o
+ * capítulo. Ter memórias nele não basta. Uma época, que vale para a família inteira, só os
+ * administradores editam, mesmo quem a criou.
+ */
+export function podeEditarCapitulo(usuario: Usuario, c: CapituloParaPermissao): Decisao {
+  if (!podeVerCapitulo(usuario, c)) return nao('Capítulo não encontrado.');
+  if (ehEpoca(c)) return usuario.admin ? sim : nao('Só os administradores alteram uma época.');
+  if (usuario.admin || c.criadoPor === usuario.pessoa) return sim;
+  return nao('Só quem criou o capítulo e os administradores podem alterá-lo.');
+}
+
+/**
+ * Salvar o formulário do capítulo: criar um novo (`atual` vazio) ou alterar um que existe. Criar uma
+ * época ou transformar um capítulo em época é só dos administradores (decisão do Gui, 16/11/2026).
+ */
+export function podeSalvarCapitulo(usuario: Usuario, atual: CapituloParaPermissao | undefined, escolha: ModoDoFormulario): Decisao {
+  if (atual) {
+    const editar = podeEditarCapitulo(usuario, atual);
+    if (!editar.ok) return editar;
+  }
+  if (escolha === 'epoca' && !usuario.admin) return nao(atual ? 'Só os administradores transformam um capítulo em época.' : 'Só os administradores criam uma época.');
+  return sim;
 }
