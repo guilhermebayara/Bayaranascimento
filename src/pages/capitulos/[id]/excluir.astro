@@ -1,7 +1,7 @@
 ---
 // Excluir um capítulo passa pela mesma confirmação de excluir uma memória (decisão do Gui, 16/11/2026).
 import Pagina from '../../../components/formularios/Pagina.astro';
-import { outrosAdmins } from '../../../lib/servidor/conteudo';
+import { voceOuOsOutrosAdmins } from '../../../lib/servidor/conteudo';
 import { listarCapitulos, listarIntegrantes } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -9,8 +9,8 @@ const capitulo = (await listarCapitulos(usuario)).find((c) => c.id === Astro.par
 if (!capitulo) return new Response('Capítulo não encontrado', { status: 404 });
 const voltarPara = `/capitulos/${capitulo.id}/editar`;
 if (!usuario.admin) return Astro.redirect(voltarPara);
-// Quem mais pode restaurar, do ponto de vista de quem está excluindo
-const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
+// Quem pode restaurar, do ponto de vista de quem está excluindo, na forma da memória (resposta do Gui à 46-N11, 17/11/2026)
+const quemRestaura = voceOuOsOutrosAdmins(usuario.pessoa, await listarIntegrantes());
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
@@ -20,7 +20,7 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
   <section class="alerta">
     <h2>{capitulo.titulo}</h2>
     <p>O capítulo sai do site para toda a família. As memórias dele continuam no acervo, só deixam de estar reunidas.</p>
-    <p>Nada é apagado de vez: o capítulo vai para a lixeira, e {outros ? `você ou ${outros} podem` : 'você pode'} restaurar como estava.</p>
+    <p>Nada é apagado de vez: o capítulo vai para a lixeira, e {quemRestaura} {quemRestaura === 'você' ? 'pode' : 'podem'} restaurar como estava.</p>
     <form method="post" action="/api/capitulos" class="acoes">
       <input type="hidden" name="acao" value="excluir" />
       <input type="hidden" name="id" value={capitulo.id} />

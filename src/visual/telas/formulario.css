@@ -1563,6 +1563,11 @@
   padding-top: var(--e-6);
   border-top: 1px solid var(--fio);
 }
+/* "Adicionar outro laço" desce um degrau: fica abaixo de "Laços", a parte que o contém (resposta do
+   Gui à 47-N11, 17/11/2026) */
+.pagina-de-formulario .novo-laco > .casal__titulo {
+  font-size: var(--t-abertura);
+}
 .pagina-de-formulario [data-para] {
   display: grid;
   gap: var(--e-5);

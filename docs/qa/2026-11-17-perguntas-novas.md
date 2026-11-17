@@ -6,18 +6,20 @@ A sessão que aplicou as 174 respostas do QA de design (PRs #44 a #47, já na `h
 
 Vale a opção que já está em uso em todas, menos nas listadas abaixo, que pedem mudança:
 
-| Pergunta | Resposta |
-| --- | --- |
-| 44-N7 | A carta saúda com o mesmo nome do painel ("Oi, Elizete,"). |
-| 45-N8 | Com rascunho do relato: "Seu relato está em rascunho." e o botão "Continuar meu relato". |
-| 46-N7 | A primeira forma de ver do capítulo se chama "Linha do tempo", como na página da pessoa. |
-| 46-N9 | Em "Aconteceu neste período", a marca vai em "em parte": no acervo real, o raro é a memória que atravessa a borda do capítulo. |
-| 46-N11 | Excluir capítulo usa a mesma forma da memória: "você, a Giovanna ou o Lucas Magno". |
-| 47-N2 | Zona de perigo do laço: "O laço some da árvore e das páginas das duas pessoas. Não vai para a lixeira." No casal, "O casal some da árvore e das páginas das duas pessoas. Não vai para a lixeira." |
-| 47-N3 | "Como estão hoje?" no "Adicionar laço" completo oferece só as quatro fases de estar junto, igual ao guiado. |
-| 47-N6 | Enter na busca de pessoa nunca envia o formulário, em todo o site. |
-| 47-N10 | No celular, a frase com lacunas some na última etapa da nova memória. |
-| 47-N11 | "Adicionar outro laço" desce um degrau de tamanho. |
+| Pergunta | Resposta | Construído (17/11/2026, branch `qa-respostas-novas`) |
+| --- | --- | --- |
+| 44-N7 | A carta saúda com o mesmo nome do painel ("Oi, Elizete,"). | Feito: `src/pages/index.astro` e `src/pages/carta.astro`. |
+| 45-N8 | Com rascunho do relato: "Seu relato está em rascunho." e o botão "Continuar meu relato". | Feito: a linha e a ação do alto, em `src/pages/memorias/[id].astro`. |
+| 46-N7 | A primeira forma de ver do capítulo se chama "Linha do tempo", como na página da pessoa. | Feito: `NOMES_DAS_FORMAS_DO_CAPITULO`, em `src/lib/capitulos.ts`. |
+| 46-N9 | Em "Aconteceu neste período", a marca vai em "em parte": no acervo real, o raro é a memória que atravessa a borda do capítulo. | Feito: `detalheDoCruzamento`, em `src/lib/capitulos.ts`. |
+| 46-N11 | Excluir capítulo usa a mesma forma da memória: "você, a Giovanna ou o Lucas Magno". | Feito: `src/pages/capitulos/[id]/excluir.astro`, com `voceOuOsOutrosAdmins`. |
+| 47-N2 | Zona de perigo do laço: "O laço some da árvore e das páginas das duas pessoas. Não vai para a lixeira." No casal, "O casal some da árvore e das páginas das duas pessoas. Não vai para a lixeira." | Feito: as cinco zonas de laço em `src/pages/pessoas/[id]/editar.astro`. |
+| 47-N3 | "Como estão hoje?" no "Adicionar laço" completo oferece só as quatro fases de estar junto, igual ao guiado. | Feito: `fasesDeHoje` também no formulário completo. |
+| 47-N6 | Enter na busca de pessoa nunca envia o formulário, em todo o site. | Feito: `src/lib/cliente/busca-pessoa.ts`. |
+| 47-N10 | No celular, a frase com lacunas some na última etapa da nova memória. | Feito: `esconderFraseDaAbertura`, em `src/pages/nova.astro`. |
+| 47-N11 | "Adicionar outro laço" desce um degrau de tamanho. | Feito: `--t-abertura`, em `src/visual/telas/formulario.css`. |
+
+As dez foram construídas em 17/11/2026 e viraram regra na seção do assunto em `docs/decisoes.md`, com teste em `testes/qa-respostas-novas.test.ts`.
 
 Confirmadas como estão, entre as que mudam a experiência: 46-N1 (o toque em quem está em foco mostra a ficha; o segundo abre a página), 47-N1 (rascunho sem ano guarda 0 e aparece como "sem data", sem migração), 44-N1 (a carta conta como vista ao abrir a página) e 45-N1 (a primeira foto do Explorar no celular fica onde está).
 

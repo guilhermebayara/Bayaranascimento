@@ -422,7 +422,7 @@ Respostas do Gui ao QA de design de 17/11/2026 (regras em `src/lib/memoria.ts`, 
 - **Quem estava, no celular:** até seis retratos e "Ver todos os 9", que abre o resto no lugar. A partir de 40rem, todos à vista. Sem script, a lista vem inteira.
 - **Relato que já está inteiro na abertura:** com um só relato, sem áudio, contado pela própria pessoa e que coube inteiro no trecho, a seção "Relato" não repete o bilhete.
 - **Memória sem foto:** a partir de 62rem, o cartão do tipo de momento fica à direita, no lugar da foto. No celular a abertura continua só com o texto.
-- **Quem já contou:** no lugar do convite, uma linha quieta, "Você já contou esse dia." e "Editar meu relato" como ação de texto. O convite com o botão cheio é só de quem ainda não contou.
+- **Quem já contou:** no lugar do convite, uma linha quieta, "Você já contou esse dia." e "Editar meu relato" como ação de texto. O convite com o botão cheio é só de quem ainda não contou. Com o relato em rascunho, "Seu relato está em rascunho." e "Continuar meu relato" (45-N8, 17/11/2026).
 - **Galeria:** tocar ou clicar no fundo também fecha.
 
 ## Linha do tempo, capítulo e laço
@@ -689,7 +689,7 @@ Construído em 17/11/2026, numa sessão em que o Gui não estava: o que era deci
 - **Sumário:** continua do mais antigo para o mais recente. O título de cada linha tem o tamanho de item de lista (`--t-titulo-3`). Toda linha tem o ponto antes do selo, e o da época é vazado em cinza, para os selos alinharem. Com mouse, o alto ("Capítulos", a frase e "Novo capítulo") fica parado. "Ver os temas", no alto, desce até os temas, que continuam no fim (`#temas`).
 - **Capa do capítulo:** no celular a ordem é selo, título, período, frase de abertura e só então as ações. No computador com mouse ficam parados só o selo, o título, o período e as ações; a abertura, as notas e "Quem aparece" rolam e passam por trás desse bloco. O botão cheio é "Nova memória neste capítulo" (só no reunido); editar é ação de texto. O capítulo de dentro diz, acima do título, "Capítulo de “Natais”", com o link.
 - **Forma de ver, no capítulo:** os marcos (o padrão), o mural e a lista do Explorar, na própria página, com a escolha no endereço (`ver`), e "Passar no modo TV", que abre o Explorar com o capítulo. "Ver no Explorar" saiu. No mural e na lista as memórias usam a largura inteira, embaixo da capa.
-- **Marcos:** a foto vai sem legenda, e o carimbo quebra antes do ponto. Na época, o título é "Memórias da época". "Aconteceu neste período" só marca o que coube inteiro ("inteiro neste período"). A partir de 100rem o corpo vai até a margem e a foto do marco cresce.
+- **Marcos:** a foto vai sem legenda, e o carimbo quebra antes do ponto. Na época, o título é "Memórias da época". "Aconteceu neste período" só marca o que atravessa a borda ("em parte neste período", 46-N9, 17/11/2026; antes marcava o que coube inteiro). A partir de 100rem o corpo vai até a margem e a foto do marco cresce.
 - **Formulário do capítulo:** as etapas são "Que capítulo é esse?", "Onde ele se encaixa?" e "Quem vê". O mês tem o rótulo "Mês, se souber" e a opção "Não sei", como na memória. Na edição, "Sobre o capítulo" vem primeiro, com a trilha na coluna da esquerda no computador; "Memórias do capítulo" mostra as que já estão marcadas, e as outras entram por uma busca (sem script, a lista vem inteira).
 - **Tema:** a partir de 62rem, o nome e os capítulos à esquerda e as memórias à direita, com a "Forma de ver" da página da pessoa. A lista usa a largura inteira. A linha de cada capítulo é a do sumário, com o período e a conta.
 

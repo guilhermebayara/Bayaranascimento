@@ -816,7 +816,8 @@ describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo', ()
     // Laço e casal: toda remoção com confirmação está dentro de uma zona, depois do formulário que salva
     const pessoa = fonte('pages/pessoas/[id]/editar.astro');
     const remocoes = pessoa.match(/<ConfirmarRemocao/g) ?? [];
-    const zonas = pessoa.match(/<ZonaDePerigo menor nivel=\{4\}>\s*<form method="post" action="\/api\/lacos" class="editar__remover">/g) ?? [];
+    // A frase do que acontece abre a zona (resposta do Gui à 47-N2, 17/11/2026)
+    const zonas = pessoa.match(/<ZonaDePerigo menor nivel=\{4\}>\s*<p>\{FRASE_DO_(LACO|CASAL)\}<\/p>\s*<form method="post" action="\/api\/lacos" class="editar__remover">/g) ?? [];
     expect(remocoes.length).toBeGreaterThan(0);
     expect(zonas.length).toBe(remocoes.length);
     // Nenhuma tela de editar leva direto ao apagar: a zona tem o caminho da confirmação

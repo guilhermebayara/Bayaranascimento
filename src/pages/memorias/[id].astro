@@ -76,8 +76,11 @@ const podeExcluir = podeExcluirMemoria(usuario, memoria).ok;
 // Capítulos: os reunidos em que foi colocada e os por período em que a data cai, se forem de quem está nela
 const capitulos = (await listarCapitulos(usuario)).filter((c) => memoriaDoCapitulo(memoria, c));
 const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
-const temMeuRelato = relatos.some((r) => r.por === usuario.pessoa);
-const textoDaAcao = temMeuRelato ? 'Editar meu relato' : 'Escrever meu relato';
+const meuRelato = relatos.find((r) => r.por === usuario.pessoa);
+const temMeuRelato = Boolean(meuRelato);
+// Com o relato ainda em rascunho, a linha e a ação dizem isso (resposta do Gui à 45-N8, 17/11/2026)
+const meuRelatoEmRascunho = meuRelato?.situacao === 'rascunho';
+const textoDaAcao = meuRelatoEmRascunho ? 'Continuar meu relato' : temMeuRelato ? 'Editar meu relato' : 'Escrever meu relato';
 
 // O trecho da abertura vem do primeiro relato publicado que tem texto
 const relatoDaAbertura = relatos.find((r) => r.situacao === 'publicada' && r.texto.trim());
@@ -287,9 +290,9 @@ const outrasFotos = memoria.fotos.length > 1;
     {
       temMeuRelato && (
         <p class="contou miolo">
-          <span class="contou__frase">Você já contou esse dia.</span>
+          <span class="contou__frase">{meuRelatoEmRascunho ? 'Seu relato está em rascunho.' : 'Você já contou esse dia.'}</span>
           <a class="acao" href={`/memorias/${memoria.id}/relato`}>
-            Editar meu relato
+            {textoDaAcao}
           </a>
         </p>
       )

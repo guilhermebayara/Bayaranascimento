@@ -207,7 +207,7 @@ export function lerTemas(texto: string): string[] {
  */
 export const FORMAS_DO_CAPITULO = ['marcos', 'mural', 'lista'] as const;
 export type FormaDoCapitulo = (typeof FORMAS_DO_CAPITULO)[number];
-export const NOMES_DAS_FORMAS_DO_CAPITULO: Record<FormaDoCapitulo, string> = { marcos: 'Marcos', mural: 'Mural de fotos', lista: 'Lista' };
+export const NOMES_DAS_FORMAS_DO_CAPITULO: Record<FormaDoCapitulo, string> = { marcos: 'Linha do tempo', mural: 'Mural de fotos', lista: 'Lista' };
 
 export function lerFormaDoCapitulo(p: URLSearchParams): FormaDoCapitulo {
   const ver = p.get('ver');
@@ -226,11 +226,12 @@ export function tituloDasMemorias(c: Pick<Capitulo, 'modo'> & Partial<Pick<Capit
 }
 
 /**
- * O que a linha de "Aconteceu neste período" diz de cada capítulo (P73): só a exceção. O que
- * aconteceu em parte fica sem nada; o que coube inteiro no período é marcado.
+ * O que a linha de "Aconteceu neste período" diz de cada capítulo (P73): só a exceção. No acervo
+ * real, o raro é o que atravessa a borda do capítulo (resposta do Gui à 46-N9, 17/11/2026): o que
+ * aconteceu em parte é marcado, e o que coube inteiro no período fica sem nada.
  */
 export function detalheDoCruzamento(como: 'inteiro' | 'parte'): string | undefined {
-  return como === 'inteiro' ? 'inteiro neste período' : undefined;
+  return como === 'parte' ? 'em parte neste período' : undefined;
 }
 
 // --- Editar capítulo: as memórias (P78 do QA de design de 17/11/2026) ---------------------------

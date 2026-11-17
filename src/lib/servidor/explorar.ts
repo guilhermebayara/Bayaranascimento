@@ -7,7 +7,7 @@ import { listarCapitulos, listarMemorias, memoriasComAudio, quemContouEmCadaMemo
 
 export async function contextoDoExplorar(usuario: Usuario, memorias: Memoria[]): Promise<Contexto> {
   const vistas = new Map(memorias.map((m) => [m.id, m]));
-  const [capitulos, audio, contaram] = await Promise.all([listarCapitulos(usuario), memoriasComAudio(), quemContouEmCadaMemoria()]);
+  const [capitulos, audio, contaram] = await Promise.all([listarCapitulos(usuario), memoriasComAudio(usuario), quemContouEmCadaMemoria(usuario)]);
   const porId = new Map(capitulos.map((c) => [c.id, c]));
   // A mesma regra da página do capítulo: no reunido, as memórias colocadas nele e nos de dentro;
   // no por período e na época, memoriaDoCapitulo (o período e de quem é). Capítulo que a pessoa

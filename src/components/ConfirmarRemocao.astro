@@ -1,7 +1,8 @@
 ---
 // Remoção com confirmação no próprio lugar (decisão do Gui, 16/11/2026): o primeiro toque
 // abre a pergunta, e só o segundo envia. Fica dentro do form da remoção. Sem JavaScript,
-// "Cancelar" some e o mesmo toque no botão de cima fecha a pergunta.
+// "Cancelar" some e o mesmo toque no botão de cima fecha a pergunta. Com a pergunta aberta, Esc
+// fecha como "Cancelar", e o foco volta ao botão que a abriu (P131 do QA de design, 17/11/2026).
 interface Props {
   rotulo: string;
   pergunta: string;
@@ -28,9 +29,17 @@ const { rotulo, pergunta, acao, confirmar = 'Remover', semValidar = false, cheio
 
 <script>
   for (const caixa of document.querySelectorAll<HTMLDetailsElement>('[data-confirmar]')) {
-    caixa.querySelector('[data-confirmar-cancelar]')?.addEventListener('click', () => {
+    const fechar = () => {
       caixa.open = false;
       caixa.querySelector('summary')?.focus();
+    };
+    caixa.querySelector('[data-confirmar-cancelar]')?.addEventListener('click', fechar);
+    // Esc fecha só a pergunta: o editor do laço em volta continua aberto
+    caixa.addEventListener('keydown', (evento) => {
+      if (evento.key !== 'Escape' || !caixa.open) return;
+      evento.preventDefault();
+      evento.stopPropagation();
+      fechar();
     });
   }
 </script>

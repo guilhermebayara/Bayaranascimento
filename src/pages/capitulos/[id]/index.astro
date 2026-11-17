@@ -328,7 +328,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
             </div>
           ) : forma === 'lista' ? (
             <div class="linha linha--lista capitulo__larga">
-              <Lista memorias={publicadas} capitulos={capitulos} integrantes={integrantes} ordem="recentes" comAudio={await memoriasComAudio()} />
+              <Lista memorias={publicadas} capitulos={capitulos} integrantes={integrantes} ordem="recentes" comAudio={await memoriasComAudio(usuario)} />
             </div>
           ) : (
             <ol class="marcos" reversed>
