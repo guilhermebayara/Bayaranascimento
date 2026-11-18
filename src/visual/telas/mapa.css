@@ -156,8 +156,9 @@
   line-height: 1;
   text-decoration: none;
 }
-/* As ações numa linha: "Ver a página" e "Ver o laço" à esquerda e "Ver a árvore de Fulano", mais
-   quieta, à direita. Sem espaço, a linha quebra, e nada fica por cima de nada. */
+/* As ações numa linha, uma depois da outra: "Ver a página", "Ver o laço" e "Ver a árvore de Fulano",
+   esta mais quieta. Sem espaço, a linha quebra, e nada fica por cima de nada. "Ver a árvore de" ficava
+   empurrada para a direita, longe das outras (observação do Gui de 18/11/2026, depois da sessão G). */
 .pm__ficha-acoes {
   display: flex;
   flex-wrap: wrap;
@@ -170,8 +171,6 @@
 .pm__ficha [data-partir] {
   display: block;
   max-width: 100%;
-  margin-left: auto;
-  margin-right: var(--e-3);
   overflow: hidden;
   color: var(--tinta-suave);
   font-weight: 400;

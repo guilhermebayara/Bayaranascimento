@@ -582,6 +582,15 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
       'Ainda sem laços: ',
       ...fora.flatMap((id, i) => [i ? ', ' : '', Object.assign(document.createElement('a'), { href: `/pessoas/${id}/editar#lacos`, textContent: pessoa.get(id)!.nome })]),
     );
+    // Quem estava em foco saiu da árvore (uma camada ou um filtro desligado): a ficha fecha e o foco volta
+    // para quem está na tela, a começar pelo centro (observação do Gui, 18/11/2026: com a camada do
+    // coração desligada, o cartão do ex que virou amizade sumia, mas a ficha dele continuava aberta)
+    const estaNaTela = (id: string) => presentes.has(id) || Boolean(camadaDosRamos.querySelector(`a.no[data-id="${CSS.escape(id)}"]`));
+    if (!estaNaTela(estado.foco)) {
+      fichaAberta = false;
+      estado.foco = [estado.centro, dados.eu, ...dados.centros, ...presentes].find((id) => id && estaNaTela(id)) ?? estado.foco;
+      guardarNoEndereco();
+    }
     mostrarFicha();
   };
 

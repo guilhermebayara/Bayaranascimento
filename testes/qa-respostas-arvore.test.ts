@@ -55,6 +55,11 @@ describe('a ficha da árvore', () => {
     expect(quadro).toMatch(/\.pm__ficha-acoes \{[^}]*flex-wrap: wrap;[^}]*grid-row: 3;/);
     expect(quadro).toMatch(/\.pm__ficha button\[hidden\] \{\s*display: none;/);
   });
+  it('"Ver a árvore de Fulano" fica junto das outras ações, sem ser empurrada para a direita (observação do Gui, 18/11/2026)', () => {
+    const partir = quadro.slice(quadro.indexOf('.pm__ficha [data-partir] {'), quadro.indexOf('}', quadro.indexOf('.pm__ficha [data-partir] {')));
+    expect(partir).not.toMatch(/margin-(left|inline-start): auto/);
+    expect(quadro).not.toMatch(/\.pm__ficha-acoes \{[^}]*justify-content: (space-between|flex-end)/);
+  });
   it('fica dentro do painel, logo abaixo do título (P85, revisto com o painel)', () => {
     const alto = pagina.indexOf('<header class="pm__alto">');
     const lugar = pagina.indexOf('<div class="pm__ficha" data-ficha-do-foco aria-live="polite"></div>');
