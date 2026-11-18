@@ -42,6 +42,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     httpMetadata: { contentType: formato.tipo },
     customMetadata: { enviadaPor: locals.usuario.pessoa },
   });
-  const id = await registrarFoto(chave, locals.usuario);
+  const id = await registrarFoto(chave, locals.usuario, dados.byteLength);
   return json({ id, src: `/fotos/${chave}` }, 201);
 };

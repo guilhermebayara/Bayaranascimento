@@ -666,6 +666,25 @@ export const MIGRACOES: Migracao[] = [
       )`,
     ],
   },
+  {
+    // Espaço das fotos e áudios na administração (decisão do Gui, 18/11/2026). O plano gratuito do R2 vai
+    // até 10 GB, e o site conta sozinho, sem consultar o bucket: cada arquivo guarda o tamanho ao entrar,
+    // e a conta é a soma (src/lib/espaco-dos-arquivos.ts). Os áudios já guardavam (migração 015). As
+    // fotos ganham a coluna; os retratos, que só têm a chave em integrantes.retrato, ganham uma tabela
+    // com cada arquivo enviado, para o retrato trocado continuar contando. Vazio nas fotos de antes: o
+    // cartão da administração mede essas aos poucos, lendo só o tamanho de cada uma no bucket.
+    // Sem chave estrangeira, como os avisos.
+    id: '070-tamanho-dos-arquivos',
+    sql: [
+      `ALTER TABLE fotos ADD COLUMN tamanho INTEGER`,
+      `CREATE TABLE IF NOT EXISTS retratos_enviados (
+        chave TEXT PRIMARY KEY,
+        tamanho INTEGER NOT NULL,
+        enviado_por TEXT,
+        enviado_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

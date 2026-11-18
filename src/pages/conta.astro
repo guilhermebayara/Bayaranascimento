@@ -305,9 +305,9 @@ const erro = Astro.url.searchParams.get('erro');
                 </li>
               ))}
             </ul>
-            <div class:list={['conta__banco', { 'conta__banco--aviso': conta.bancoEmAviso }]}>
+            <div class="conta__banco">
               {conta.banco && (
-                <>
+                <div class:list={['conta__medidor', { 'conta__medidor--aviso': conta.bancoEmAviso }]}>
                   <p class="conta__banco-linha">
                     <strong>Banco do acervo</strong>
                     <span class="ficha">{conta.banco}</span>
@@ -316,7 +316,20 @@ const erro = Astro.url.searchParams.get('erro');
                     <span style={`width: ${bancoPorcento}%`} />
                   </div>
                   {conta.bancoEmAviso && <p class="conta__nota">Perto do limite do plano gratuito. A saída combinada é o plano Workers Paid.</p>}
-                </>
+                </div>
+              )}
+              {conta.espaco && (
+                <div class:list={['conta__medidor', { 'conta__medidor--aviso': conta.espaco.emAviso }]}>
+                  <p class="conta__banco-linha">
+                    <strong>Fotos e áudios</strong>
+                    <span class="ficha">{conta.espaco.frase}</span>
+                  </p>
+                  <div class="conta__medida" role="img" aria-label={`Fotos e áudios: ${conta.espaco.frase}`}>
+                    <span style={`width: ${conta.espaco.porcento}%`} />
+                  </div>
+                  {conta.espaco.emAviso && <p class="conta__nota">Perto do limite do plano gratuito, que soma a produção, a homologação e as prévias.</p>}
+                  {conta.espaco.nota && <p class="conta__nota ficha">{conta.espaco.nota}</p>}
+                </div>
               )}
               {copiaMensal && <p class:list={['conta__nota', 'ficha', { 'conta__pendente': Boolean(pendenciaDo('copia')) }]}>{copiaMensal}</p>}
               {copia && (

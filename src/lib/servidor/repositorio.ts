@@ -1065,9 +1065,64 @@ export async function restaurarFoto(id: number, memoriaId: string, usuario: Usua
 
 // --- Fotos ---
 
-export async function registrarFoto(chave: string, usuario: Usuario): Promise<number> {
-  const resultado = await db().prepare('INSERT INTO fotos (chave, enviada_por) VALUES (?, ?)').bind(chave, usuario.pessoa).run();
+/** A foto nasce solta, com o tamanho do arquivo, que entra na conta do espaço (migração 070). */
+export async function registrarFoto(chave: string, usuario: Usuario, tamanho: number | null = null): Promise<number> {
+  const resultado = await db().prepare('INSERT INTO fotos (chave, enviada_por, tamanho) VALUES (?, ?, ?)').bind(chave, usuario.pessoa, tamanho).run();
   return resultado.meta.last_row_id;
+}
+
+// --- Espaço das fotos e áudios (migração 070; regras em src/lib/espaco-dos-arquivos.ts) ---
+
+/** Anota o retrato enviado, com o tamanho. A chave é a de integrantes.retrato, sem "retratos/". */
+export async function registrarRetratoEnviado(chave: string, tamanho: number, usuario: Usuario): Promise<void> {
+  await db().prepare('INSERT OR IGNORE INTO retratos_enviados (chave, tamanho, enviado_por) VALUES (?, ?, ?)').bind(chave, tamanho, usuario.pessoa).run();
+}
+
+/**
+ * Quanto as fotos, os retratos e os áudios ocupam no bucket deste ambiente, pela soma do que cada um
+ * guardou ao entrar. Conta também o que foi removido, que continua no bucket. Os arquivos de exemplo
+ * ("exemplos/") moram no bucket de teste e ficam de fora. `semMedida` diz quantos arquivos de antes da
+ * contagem ainda não têm tamanho: as fotos e os retratos atuais sem registro.
+ */
+export async function espacoDosArquivos(): Promise<{ bytes: number; semMedida: number }> {
+  const linha = await db()
+    .prepare(
+      `SELECT
+        (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') +
+        (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exemplos/%') +
+        (SELECT COALESCE(SUM(tamanho), 0) FROM retratos_enviados WHERE chave NOT LIKE 'exemplos/%') AS bytes,
+        (SELECT COUNT(*) FROM fotos WHERE tamanho IS NULL AND chave <> '' AND chave NOT LIKE 'exemplos/%') +
+        (SELECT COUNT(DISTINCT retrato) FROM integrantes WHERE retrato IS NOT NULL AND retrato NOT LIKE 'exemplos/%'
+          AND retrato NOT IN (SELECT chave FROM retratos_enviados)) AS sem_medida`,
+    )
+    .first<{ bytes: number; sem_medida: number }>();
+  return { bytes: linha?.bytes ?? 0, semMedida: linha?.sem_medida ?? 0 };
+}
+
+/**
+ * Mede aos poucos os arquivos de antes da contagem: até `limite` por vez, lendo só o tamanho no bucket
+ * (head, que não baixa o arquivo nem grava nada). Quem não for achado no bucket fica com zero, para não
+ * ser procurado de novo. Roda quando um administrador abre "Sua conta".
+ */
+export async function medirArquivosDeAntes(tamanhoNoBucket: (chave: string) => Promise<number | null>, limite = 20): Promise<number> {
+  const { results: fotos } = await db()
+    .prepare(`SELECT id, chave FROM fotos WHERE tamanho IS NULL AND chave <> '' AND chave NOT LIKE 'exemplos/%' LIMIT ?`)
+    .bind(limite)
+    .all<{ id: number; chave: string }>();
+  const { results: retratos } = await db()
+    .prepare(
+      `SELECT DISTINCT retrato AS chave FROM integrantes WHERE retrato IS NOT NULL AND retrato NOT LIKE 'exemplos/%'
+        AND retrato NOT IN (SELECT chave FROM retratos_enviados) LIMIT ?`,
+    )
+    .bind(Math.max(0, limite - fotos.length))
+    .all<{ chave: string }>();
+  const comandos: D1PreparedStatement[] = [];
+  for (const f of fotos) comandos.push(db().prepare('UPDATE fotos SET tamanho = ? WHERE id = ?').bind((await tamanhoNoBucket(f.chave)) ?? 0, f.id));
+  for (const r of retratos) {
+    comandos.push(db().prepare('INSERT OR IGNORE INTO retratos_enviados (chave, tamanho) VALUES (?, ?)').bind(r.chave, (await tamanhoNoBucket(`retratos/${r.chave}`)) ?? 0));
+  }
+  if (comandos.length) await db().batch(comandos);
+  return comandos.length;
 }
 
 export interface FotoNoBanco {

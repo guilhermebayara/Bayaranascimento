@@ -6,7 +6,7 @@ import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http
 import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { podeEditarIntegrante, podeMudarRetrato, type Usuario } from '../../lib/servidor/permissoes';
 import { LIMITE_DO_RETRATO, PASTA_DOS_RETRATOS, formatoDoRetrato } from '../../lib/retratos';
-import { atualizarIntegrante, criarIntegranteCompleto, definirParentes, listarIntegrantes, listarIntegrantesQueVe, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
+import { atualizarIntegrante, criarIntegranteCompleto, registrarRetratoEnviado, definirParentes, listarIntegrantes, listarIntegrantesQueVe, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
 
 function lerData(dados: FormData, prefixo: string, rotulo: string): { ano?: number; mes?: number; dia?: number; erro?: string } {
   const ano = campoNumero(dados, `${prefixo}Ano`);
@@ -40,6 +40,8 @@ async function guardarRetrato(retrato: { bytes: Uint8Array; tipo: string; extens
     httpMetadata: { contentType: retrato.tipo },
     customMetadata: { enviadoPor: usuario.pessoa, integrante },
   });
+  // O tamanho entra na conta do espaço das fotos e áudios (migração 070)
+  await registrarRetratoEnviado(chave, retrato.bytes.byteLength, usuario);
   return chave;
 }
 

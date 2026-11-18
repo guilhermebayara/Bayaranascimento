@@ -124,6 +124,8 @@ export interface SituacaoDaAdministracao {
   /** a carta de Natal mais recente, ou null se ninguém escreveu */
   carta: { escritaEm: string } | null;
   banco?: { bytes: number; passouDoAviso: boolean };
+  /** o espaço das fotos e áudios no R2, pela soma do que cada arquivo guardou (src/lib/espaco-dos-arquivos.ts) */
+  espaco?: { bytes: number; passouDoAviso: boolean };
   /**
    * A cópia mensal do Drive. Só a produção recebe a cópia do script: nas prévias, na homologação e no
    * computador, `conferida` é false, e ela nunca vira pendência.
@@ -135,7 +137,7 @@ export interface SituacaoDaAdministracao {
   duplicados?: number | null;
 }
 
-export type TipoDePendencia = 'carta' | 'banco' | 'copia' | 'fotos-soltas' | 'duplicados';
+export type TipoDePendencia = 'carta' | 'banco' | 'espaco' | 'copia' | 'fotos-soltas' | 'duplicados';
 
 export interface Pendencia {
   tipo: TipoDePendencia;
@@ -190,10 +192,11 @@ export function porcentoDoBanco(bytes: number, limite: number): number {
  * As pendências da administração (escolha do Gui no conceito da sessão E, 17/11/2026): o que pede uma
  * ação de quem administra. Somam no número do retrato do topo e ganham a marca no cartão.
  */
-export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>, hoje: Date): Pendencia[] {
+export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>, hoje: Date): Pendencia[] {
   const lista: Pendencia[] = [];
   if (!s.carta) lista.push({ tipo: 'carta', texto: 'A carta de Natal ainda não foi escrita.', href: '/admin/carta' });
   if (s.banco?.passouDoAviso) lista.push({ tipo: 'banco', texto: 'O banco está perto do limite do plano gratuito.' });
+  if (s.espaco?.passouDoAviso) lista.push({ tipo: 'espaco', texto: 'As fotos e os áudios estão perto do limite do plano gratuito.' });
   if (s.copiaMensal.conferida && copiaAtrasada(s.copiaMensal.ultima, hoje)) {
     lista.push({ tipo: 'copia', texto: s.copiaMensal.ultima ? `A cópia mensal está atrasada: a última foi em ${diaDaCopia(s.copiaMensal.ultima)}.` : 'A cópia mensal ainda não foi feita.' });
   }
