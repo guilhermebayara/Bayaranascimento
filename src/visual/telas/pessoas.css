@@ -100,9 +100,6 @@
   cursor: default;
 }
 /* A ordem da lista: por geração ou de A a Z. A que está valendo fica em tinta, sem sublinhado. */
-.pessoas-pagina__ver {
-  margin-top: var(--e-5);
-}
 .pessoas-pagina__ordem {
   display: flex;
   flex-wrap: wrap;

@@ -49,10 +49,12 @@ export const TABELAS_APAGADAS = [
   'capitulo_familias',
   'capitulos',
   'versoes',
+  // As fotos apontam para relatos (a coluna relato_id, que veio depois por ALTER TABLE) e por isso
+  // saem antes deles; o teste antigo só lia o CREATE TABLE e não via essa ligação
+  'fotos',
   // Áudios apontam para relatos reais: o espelho não leva nenhum, e apaga os que houver
   'audios',
   'relatos',
-  'fotos',
   'memoria_integrantes',
   'memoria_nucleos',
   'memorias',

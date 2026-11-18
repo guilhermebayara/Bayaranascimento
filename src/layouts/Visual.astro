@@ -24,7 +24,7 @@ interface Props {
   /** A cor da tela, quando não é a dos núcleos: 'tudo' ou a posição do núcleo ('0', '1', '2', '3') */
   familia?: string;
   /** Qual item do menu está aberto */
-  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'conceito' | 'conta' | 'pessoas' | 'nova';
+  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'conceito' | 'conta' | 'circulo' | 'pessoas' | 'nova';
   /** A página que só a pessoa vê: tingida na cor da família dela */
   intimo?: boolean;
   /** O modo TV: a tela inteira é da memória, sem o topo, o menu e o rodapé */
@@ -62,7 +62,7 @@ const meuRetrato = integrantes.find((i) => i.id === usuario.pessoa)?.retrato;
 // O número discreto de avisos no retrato, em qualquer tela (docs/decisoes.md, "Avisos")
 const avisosPendentes = palco ? 0 : await contarAvisosPendentes(usuario);
 const numeroDeAvisos = numeroDoRetrato(avisosPendentes);
-// "Sua página" só para quem tem página de pessoa no acervo
+// "Sua página" e "Seu círculo" só para quem tem página de pessoa no acervo
 const temPagina = integrantes.some((i) => i.id === usuario.pessoa);
 const aqui = Astro.url.pathname + Astro.url.search;
 const volta = encodeURIComponent(aqui);
@@ -182,9 +182,10 @@ const telas = [
         Nova memória
       </a>
       {/* O menu da conta (decisão do Gui, 17/11/2026, "Revisão de estrutura das telas"): o retrato e o
-          nome abrem Sua página, Sua conta, Administração (só admins) e Sair. O número de avisos fica no
-          retrato. Sem script, abre e fecha pelo próprio retrato. */}
-      <div class="topo__conta" data-atual={secao === 'conta' ? '' : undefined}>
+          nome abrem Sua página, Seu círculo, Sua conta, Administração (só admins) e Sair. O número de
+          avisos fica no retrato. Sem script, abre e fecha pelo próprio retrato. Seu círculo mora aqui
+          desde que saiu de Pessoas (decisão do Gui, 17/11/2026). */}
+      <div class="topo__conta" data-atual={secao === 'conta' || secao === 'circulo' ? '' : undefined}>
         <details class="conta-menu">
           <summary aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes)}>
             <span class="topo__retrato">
@@ -199,6 +200,7 @@ const telas = [
           </summary>
           <nav class="conta-menu__lista" aria-label="Sua conta">
             {temPagina && <a href={`/pessoas/${usuario.pessoa}`}>Sua página</a>}
+            {temPagina && <a href="/circulo" aria-current={secao === 'circulo' ? 'page' : undefined}>Seu círculo</a>}
             <a href="/conta" aria-current={secao === 'conta' ? 'page' : undefined}>
               Sua conta
               {avisosPendentes > 0 && <span class="conta-menu__avisos">{avisosPendentes === 1 ? '1 aviso' : `${avisosPendentes} avisos`}</span>}
@@ -242,12 +244,8 @@ const telas = [
       </nav>
       <div class="rodape__linha">
         <p>
+          {/* "Sair" mora só no menu da conta, no retrato (resposta do Gui aos PRs #56 a #60, 17/11/2026) */}
           <span>Acervo privado da família. Você entrou como {usuario.nome}.</span>
-          {saida && (
-            <a class="acao acao--quieta" href={saida}>
-              Sair
-            </a>
-          )}
         </p>
         <a class="rodape__alto acao acao--quieta" href="#alto">
           Voltar ao alto

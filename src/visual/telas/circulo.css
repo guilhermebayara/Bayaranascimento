@@ -164,9 +164,6 @@ li[data-arrastando] .circulo__pessoa {
   gap: var(--e-3);
   padding: var(--e-4) var(--e-4) var(--e-2);
 }
-.pm__ver .segmentado {
-  display: grid;
-}
 .pm__texto {
   margin: 0;
   color: var(--tinta-suave);
@@ -192,7 +189,11 @@ li[data-arrastando] .circulo__pessoa {
 .pm__aviso[hidden] {
   display: none;
 }
-/* O slider de proximidade, na ficha: o nome, a faixa de agora e, embaixo, as duas pontas */
+/* O slider de proximidade, na ficha: o nome, a faixa de agora e, embaixo, as duas pontas.
+   Proximidade (docs/visual.md, "Gestalt em toda tela"; pedido do Gui, 17/11/2026): o rótulo, o valor
+   e as pontas ficam colados na barra, e o grupo inteiro se afasta de "Ver a página". A área de toque
+   do slider continua com 44 px: o vazio dela, acima e abaixo da barra, passa por baixo do rótulo e
+   das pontas, que deixam o toque atravessar. */
 .pm__proximidade {
   grid-row: 4;
   grid-column: 1 / -1;
@@ -200,7 +201,8 @@ li[data-arrastando] .circulo__pessoa {
   grid-template-columns: 1fr auto;
   align-items: baseline;
   gap: 0 var(--e-3);
-  padding: var(--e-3) var(--e-3) var(--e-2) 0;
+  margin-top: var(--e-5);
+  padding: var(--e-2) var(--e-3) var(--e-2) 0;
 }
 .pm__proximidade > span,
 .pm__proximidade output,
@@ -214,12 +216,26 @@ li[data-arrastando] .circulo__pessoa {
 .pm__pontas {
   color: var(--tinta-suave);
 }
+.pm__proximidade > span,
+.pm__proximidade output,
+.pm__pontas {
+  position: relative;
+  pointer-events: none;
+}
 .pm__proximidade input {
   grid-column: 1 / -1;
   width: 100%;
   min-height: var(--toque);
-  margin: 0;
+  margin: calc(var(--e-3) * -1) 0;
   accent-color: var(--tinta);
+}
+/* Com o foco do teclado, o contorno abraça o grupo inteiro, em vez de cortar o rótulo e as pontas */
+.pm__proximidade input:focus-visible {
+  outline: none;
+}
+.pm__proximidade:has(input:focus-visible) {
+  outline: 2px solid var(--tinta);
+  outline-offset: 3px;
 }
 .pm__pontas {
   grid-column: 1 / -1;
