@@ -123,3 +123,13 @@ describe('os nomes da família de perto seguem "como se referir" (QA de 18/11/20
     expect(pagina).toContain("nomeDoGrupoDePerto('irmaos', irmaos)");
   });
 });
+
+describe('o quadro em tela baixa (decisão do Gui depois do QA de 18/11/2026)', () => {
+  const css = readFileSync('src/visual/telas/pessoa.css', 'utf8');
+  it('o retrato e os títulos das partes fechadas ficam à vista, e só a parte aberta rola por dentro', () => {
+    expect(css).toMatch(/\.verbete__alto\.grade > \.verbete__quadro \{\s*position: sticky;[^}]*display: flex;\s*flex-direction: column;\s*max-height: calc\(100vh - 2 \* var\(--e-5\)\);\s*\}/);
+    expect(css).toMatch(/\.verbete__quadro > \* \{\s*flex: none;\s*\}/);
+    expect(css).toMatch(/\.verbete__quadro > \.quadro__secao\[open\] \{\s*flex: 0 1 auto;\s*min-height: 0;\s*overflow-y: auto;/);
+    expect(css).toMatch(/\.verbete__quadro > \.quadro__secao\[open\] > summary \{\s*position: sticky;\s*top: 0;/);
+  });
+});
