@@ -768,6 +768,51 @@ export const MIGRACOES: Migracao[] = [
       )`,
     ],
   },
+  {
+    // Sugestão de correção (onda 2, decisão do Gui de 17/11/2026; regras em src/lib/sugestoes.ts): de
+    // dados da memória (data, lugar, quem estava), para quem criou, ou um recado livre a quem registrou
+    // um relato. Quem recebe aceita, recusa ou responde. Sem chave para memórias e relatos, como os
+    // avisos: quem lê confere se a pessoa ainda vê o item.
+    // Os avisos ganham dois tipos: a sugestão e a resposta a ela. O SQLite não muda um CHECK no lugar, e
+    // a tabela é refeita com os mesmos dados (nenhuma outra aponta para ela).
+    id: '074-sugestoes-de-correcao',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS sugestoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memoria_id TEXT NOT NULL,
+        relato_id INTEGER,
+        de TEXT NOT NULL,
+        para TEXT NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('dados', 'recado')),
+        proposta TEXT,
+        texto TEXT,
+        situacao TEXT NOT NULL DEFAULT 'aberta' CHECK (situacao IN ('aberta', 'aceita', 'recusada', 'respondida')),
+        resposta TEXT,
+        criada_em TEXT NOT NULL DEFAULT (datetime('now')),
+        respondida_em TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS sugestoes_da_memoria ON sugestoes (memoria_id)`,
+      `CREATE INDEX IF NOT EXISTS sugestoes_para ON sugestoes (para, situacao)`,
+      `CREATE TABLE avisos_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        para TEXT NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('liberar-relato', 'relato-novo', 'quem-estava', 'sugestao', 'sugestao-resposta')),
+        memoria_id TEXT NOT NULL,
+        relato_id INTEGER,
+        de TEXT NOT NULL,
+        dados TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        resolvido_em TEXT,
+        resposta TEXT
+      )`,
+      `INSERT INTO avisos_novo (id, para, tipo, memoria_id, relato_id, de, dados, criado_em, resolvido_em, resposta)
+        SELECT id, para, tipo, memoria_id, relato_id, de, dados, criado_em, resolvido_em, resposta FROM avisos`,
+      `DROP TABLE avisos`,
+      `ALTER TABLE avisos_novo RENAME TO avisos`,
+      `CREATE INDEX IF NOT EXISTS avisos_de_quem ON avisos (para, resolvido_em)`,
+      `CREATE INDEX IF NOT EXISTS avisos_da_memoria ON avisos (memoria_id)`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

@@ -38,6 +38,8 @@ export const IDS_MANTIDOS = ['gui', 'giovanna', 'elizete', 'lucas-magno'];
 export const TABELAS_APAGADAS = [
   // Os avisos apontam para memórias e relatos da produção: o espelho não leva nenhum
   'avisos',
+  // As sugestões de correção apontam para memórias e relatos da produção (migração 074)
+  'sugestoes',
   // A proximidade do círculo é de cada pessoa, e só ela vê: o espelho não leva nenhuma, e apaga as que houver
   'proximidades',
   // Como o ex aparece é de cada pessoa, e só ela vê: o espelho não leva nenhuma escolha (migração 071)

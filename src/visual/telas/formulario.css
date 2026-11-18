@@ -2507,3 +2507,28 @@
   white-space: normal;
   text-align: start;
 }
+
+/* Sugestões de correção (onda 2): o que mudaria, o recado como citação e a resposta embaixo */
+.pagina-de-formulario .sugestoes > li {
+  display: grid;
+  gap: var(--e-3);
+}
+.pagina-de-formulario .sugestoes__mudancas {
+  display: grid;
+  gap: var(--e-1);
+  padding-left: var(--e-4);
+}
+.pagina-de-formulario .sugestoes__texto {
+  margin: 0;
+  padding-left: var(--e-4);
+  border-left: var(--traco) solid var(--fio);
+  font-family: var(--mao);
+  font-size: var(--t-leitura);
+}
+.pagina-de-formulario .sugestoes__responder {
+  margin-top: var(--e-2);
+}
+.pagina-de-formulario .sugerir__quem {
+  display: grid;
+  gap: var(--e-5);
+}

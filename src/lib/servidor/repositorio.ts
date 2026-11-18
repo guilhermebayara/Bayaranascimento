@@ -9,6 +9,7 @@ import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
 import type { TipoDeAviso } from '../avisos';
 import { exesDe, modosQueValem, type ModoDoEx } from '../ex-casal';
+import type { Proposta, SituacaoDaSugestao, Sugestao, TipoDeSugestao } from '../sugestoes';
 import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
 export interface Integrante {
@@ -1033,6 +1034,7 @@ export async function apagarMemoriaDeVez(id: string, usuario: Usuario): Promise<
   await db().batch([
     db().prepare(`DELETE FROM versoes WHERE (tipo = 'memoria' AND item_id = ?1) OR (tipo = 'relato' AND item_id IN ${relatos})`).bind(id),
     db().prepare('DELETE FROM avisos WHERE memoria_id = ?1').bind(id),
+    db().prepare('DELETE FROM sugestoes WHERE memoria_id = ?1').bind(id),
     db().prepare(`UPDATE fotos SET memoria_id = NULL, relato_id = NULL, legenda = NULL, principal = 0, removida_em = COALESCE(removida_em, datetime('now')), removida_por = COALESCE(removida_por, ?2) WHERE memoria_id = ?1 OR relato_id IN (SELECT id FROM relatos WHERE memoria_id = ?1)`).bind(id, usuario.pessoa),
     db().prepare(`UPDATE audios SET memoria_id = NULL, relato_id = NULL, transcricao = NULL, removido_em = COALESCE(removido_em, datetime('now')) WHERE memoria_id = ?1 OR relato_id IN (SELECT id FROM relatos WHERE memoria_id = ?1)`).bind(id),
     db().prepare('DELETE FROM relatos WHERE memoria_id = ?1').bind(id),
@@ -1777,7 +1779,7 @@ export async function contarAvisosPendentes(usuario: Usuario): Promise<number> {
 /** A pessoa abriu a memória: saem da lista os avisos dela que apontam para ali, menos o pedido para liberar. */
 export async function abrirAvisosDaMemoria(usuario: Usuario, memoriaId: string): Promise<void> {
   await db()
-    .prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE para = ? AND memoria_id = ? AND resolvido_em IS NULL AND tipo <> 'liberar-relato'`)
+    .prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE para = ? AND memoria_id = ? AND resolvido_em IS NULL AND tipo NOT IN ('liberar-relato', 'sugestao')`)
     .bind(usuario.pessoa, memoriaId)
     .run();
 }
@@ -2191,4 +2193,65 @@ export async function juntarIntegrantes(fica: Integrante, sai: Integrante, ficha
   );
   q(`DELETE FROM integrantes WHERE id = ?`, B);
   await db().batch(c);
+}
+
+// --- Sugestão de correção (migração 074; regras em src/lib/sugestoes.ts e permissoes.ts) ---
+
+const lerSugestao = (r: Record<string, unknown>): Sugestao => ({
+  id: r.id as number,
+  memoriaId: r.memoria_id as string,
+  relatoId: (r.relato_id as number | null) ?? null,
+  de: r.de as string,
+  para: r.para as string,
+  tipo: r.tipo as TipoDeSugestao,
+  proposta: r.proposta ? (JSON.parse(r.proposta as string) as Proposta) : null,
+  texto: (r.texto as string | null) ?? null,
+  situacao: r.situacao as SituacaoDaSugestao,
+  resposta: (r.resposta as string | null) ?? null,
+  criadaEm: r.criada_em as string,
+  respondidaEm: (r.respondida_em as string | null) ?? null,
+});
+
+/** Guarda a sugestão e o aviso para quem recebe, num lote só. */
+export async function criarSugestao(s: { memoriaId: string; relatoId: number | null; para: string; tipo: TipoDeSugestao; proposta: Proposta | null; texto: string | null }, usuario: Usuario): Promise<number> {
+  const [r] = await db().batch([
+    db()
+      .prepare('INSERT INTO sugestoes (memoria_id, relato_id, de, para, tipo, proposta, texto) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id')
+      .bind(s.memoriaId, s.relatoId, usuario.pessoa, s.para, s.tipo, s.proposta ? JSON.stringify(s.proposta) : null, s.texto),
+  ]);
+  const id = ((r as { results?: { id: number }[] }).results?.[0]?.id ?? 0) as number;
+  await criarAvisos([{ para: s.para, tipo: 'sugestao', memoriaId: s.memoriaId, relatoId: s.relatoId, de: usuario.pessoa, dados: { sugestao: id, recado: s.tipo === 'recado' } }]);
+  return id;
+}
+
+/** As sugestões de uma memória que a pessoa mandou ou recebeu. As dos outros, ninguém vê. */
+export async function listarSugestoes(memoriaId: string, usuario: Usuario): Promise<Sugestao[]> {
+  const { results } = await db()
+    .prepare('SELECT * FROM sugestoes WHERE memoria_id = ?1 AND (de = ?2 OR para = ?2) ORDER BY id DESC')
+    .bind(memoriaId, usuario.pessoa)
+    .all<Record<string, unknown>>();
+  return results.map(lerSugestao);
+}
+
+/** Quantas sugestões abertas a pessoa recebeu numa memória. */
+export async function contarSugestoesAbertas(memoriaId: string, usuario: Usuario): Promise<number> {
+  const r = await db().prepare(`SELECT COUNT(*) AS n FROM sugestoes WHERE memoria_id = ? AND para = ? AND situacao = 'aberta'`).bind(memoriaId, usuario.pessoa).first<{ n: number }>();
+  return r?.n ?? 0;
+}
+
+export async function obterSugestao(id: number): Promise<Sugestao | undefined> {
+  const r = await db().prepare('SELECT * FROM sugestoes WHERE id = ?').bind(id).first<Record<string, unknown>>();
+  return r ? lerSugestao(r) : undefined;
+}
+
+/**
+ * Responde a sugestão: guarda o que foi feito e a mensagem, tira o aviso da lista de quem recebeu e avisa
+ * quem sugeriu.
+ */
+export async function responderSugestao(s: Sugestao, situacao: Exclude<SituacaoDaSugestao, 'aberta'>, resposta: string | null, usuario: Usuario): Promise<void> {
+  await db().batch([
+    db().prepare(`UPDATE sugestoes SET situacao = ?, resposta = ?, respondida_em = datetime('now') WHERE id = ? AND situacao = 'aberta'`).bind(situacao, resposta, s.id),
+    db().prepare(`UPDATE avisos SET resolvido_em = datetime('now'), resposta = ? WHERE tipo = 'sugestao' AND para = ? AND json_extract(dados, '$.sugestao') = ? AND resolvido_em IS NULL`).bind(situacao, usuario.pessoa, s.id),
+  ]);
+  await criarAvisos([{ para: s.de, tipo: 'sugestao-resposta', memoriaId: s.memoriaId, relatoId: s.relatoId, de: usuario.pessoa, dados: { sugestao: s.id, situacao, recado: s.tipo === 'recado' } }]);
 }

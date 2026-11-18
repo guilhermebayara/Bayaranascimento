@@ -410,3 +410,29 @@ export function podeJuntarCadastros(usuario: Usuario, fica: string, sai: string,
   if (comAcesso.has(sai)) return nao(comAcesso.has(fica) ? 'As duas fichas são de quem acessa o site: não dá para juntar.' : 'A ficha de quem acessa o site é a que fica.');
   return sim;
 }
+
+// --- Sugestão de correção (onda 2, decisão do Gui de 17/11/2026; src/lib/sugestoes.ts) ---
+
+/**
+ * Sugerir uma correção dos dados: quem vê a memória publicada, menos quem a criou (ela mesma corrige). A
+ * sugestão vai para quem criou.
+ */
+export function podeSugerirDados(usuario: Usuario, m: AcessoDaMemoria): Decisao {
+  if (!podeVerMemoria(usuario, m) || m.situacao !== 'publicada') return nao('Memória não encontrada.');
+  if (m.criadaPor === usuario.pessoa) return nao('Você criou esta memória: corrija direto em “Corrigir esta memória”.');
+  return sim;
+}
+
+/** Deixar um recado sobre um relato: quem vê o relato publicado, menos quem o registrou. */
+export function podeDeixarRecado(usuario: Usuario, relato: { registradoPor: string; situacao: string }, veORelatoAgora: boolean): Decisao {
+  if (!veORelatoAgora || relato.situacao !== 'publicada') return nao('Relato não encontrado.');
+  if (relato.registradoPor === usuario.pessoa) return nao('O relato é seu: mude direto em “Editar meu relato”.');
+  return sim;
+}
+
+/** Responder uma sugestão (aceitar, recusar, responder): só quem a recebeu, e só enquanto está aberta. */
+export function podeResponderSugestao(usuario: Usuario, s: { para: string; situacao: string }): Decisao {
+  if (s.para !== usuario.pessoa) return nao('Sugestão não encontrada.');
+  if (s.situacao !== 'aberta') return nao('Esta sugestão já foi respondida.');
+  return sim;
+}

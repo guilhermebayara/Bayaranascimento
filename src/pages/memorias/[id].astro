@@ -29,6 +29,7 @@ import {
   listarAudiosDosRelatos,
   listarCapitulos,
   comoOsExesAparecem,
+  contarSugestoesAbertas,
   listarCasais,
   listarFiliacoes,
   listarIntegrantes,
@@ -83,6 +84,7 @@ const tipo = tipoDaMemoria(tipos, memoria);
 const dosNucleos = memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n));
 const podeEditar = podeEditarMemoria(usuario, memoria).ok;
 const podeExcluir = podeExcluirMemoria(usuario, memoria).ok;
+const sugestoesAbertas = memoria.situacao === 'publicada' ? await contarSugestoesAbertas(memoria.id, usuario) : 0;
 // Capítulos: os reunidos em que foi colocada e os por período em que a data cai, se forem de quem está nela
 const capitulos = (await listarCapitulos(usuario)).filter((c) => memoriaDoCapitulo(memoria, c));
 const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
@@ -460,6 +462,21 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
       podeEditar && (
         <a class="acao acao--quieta" href={`/nova?id=${memoria.id}`}>
           Corrigir esta memória
+        </a>
+      )
+    }
+    {
+      // Sugestão de correção (onda 2): quem vê a memória sugere; quem criou vê as que recebeu
+      memoria.situacao === 'publicada' && (
+        <a class="acao acao--quieta" href={`/memorias/${memoria.id}/sugerir`}>
+          Sugerir uma correção
+        </a>
+      )
+    }
+    {
+      sugestoesAbertas > 0 && (
+        <a class="acao acao--quieta" href={`/memorias/${memoria.id}/sugestoes`}>
+          {sugestoesAbertas === 1 ? '1 sugestão de correção' : `${sugestoesAbertas} sugestões de correção`}
         </a>
       )
     }
