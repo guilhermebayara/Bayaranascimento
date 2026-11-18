@@ -20,14 +20,19 @@ const separados = casal('jean', [
   { tipo: 'separacao', inicioAno: 2014, fimAno: null },
 ]);
 const juntos = casal('lucas-magno', [{ tipo: 'casamento', inicioAno: 2020, fimAno: null }]);
+// Ex que foi da família (casou e separou): continua ex-casal. O Jean, que só namorou, não (testes/casal-fases.test.ts)
+const exMarido = casal('davi', [
+  { tipo: 'casamento', inicioAno: 2005, fimAno: null },
+  { tipo: 'separacao', inicioAno: 2010, fimAno: null },
+]);
 
 describe('o ex que virou amigo', () => {
   it('a fase de hoje decide: amizade sai dos casais e vira amizade; separação continua ex-casal', () => {
     expect(viraramAmigos(amigos)).toBe(true);
     expect(viraramAmigos(separados)).toBe(false);
-    const { casais, amizades } = separarAmizades([amigos, separados, juntos]);
-    expect(casais.map((c) => c.b)).toEqual(['jean', 'lucas-magno']);
-    expect(amizades).toEqual([{ a: 'giovanna', b: 'thiago' }]);
+    const { casais, amizades } = separarAmizades([amigos, separados, exMarido, juntos]);
+    expect(casais.map((c) => c.b)).toEqual(['davi', 'lucas-magno']);
+    expect(amizades).toEqual([{ a: 'giovanna', b: 'thiago', tipo: 'amizade' }]);
   });
 
   const pessoa = (id: string) => ({ id, nome: id, rotulo: '', nucleos: ['bayara'], bicho: false, anos: '' });
@@ -69,7 +74,8 @@ describe('o ex que virou amigo', () => {
   it('a página da árvore manda os casais já separados das amizades', () => {
     const pagina = readFileSync('src/pages/arvore.astro', 'utf8');
     expect(pagina).toContain('casais: separarAmizades(casais).casais.map(');
-    expect(pagina).toContain('amizades: separarAmizades(casais).amizades.map(');
+    expect(pagina).toContain('const casaisDoCoracao = separarAmizades(casais).amizades.map(');
+    expect(pagina).toContain('amizades: casaisDoCoracao,');
   });
 });
 
@@ -120,12 +126,12 @@ describe('o ex que virou amigo não é ex em lugar nenhum', () => {
     expect(podeEscolherComoOExAparece({ pessoa: 'giovanna' } as never, comoOGui).ok).toBe(false);
   });
   it('o parentesco é "amigo", e no círculo ele entra como laço do coração (Próximo)', () => {
-    const familia = new Familia([], [comoOGui, separados], new Map([['thiago', 'ele'], ['jean', 'ele']]));
+    const familia = new Familia([], [comoOGui, separados, exMarido], new Map([['thiago', 'ele'], ['jean', 'ele'], ['davi', 'ele']]));
     const r = familia.relacao('giovanna', 'thiago')!;
     expect(r.texto).toBe('amigo');
     expect(r.caminho).toBe('A');
     expect(proximidadePadrao({ caminho: r.caminho })).toBe(proximidadePadrao({ doCoracao: true }));
-    expect(familia.relacao('giovanna', 'jean')!.texto).toMatch(/^ex-/);
+    expect(familia.relacao('giovanna', 'davi')!.texto).toBe('ex-marido');
   });
   it('na árvore, com a camada desligada, ele sai; e só pela amizade ninguém vira centro', () => {
     const pessoa = (id: string) => ({ id, nome: id, rotulo: '', nucleos: ['bayara'], bicho: false, anos: '' });
@@ -149,10 +155,10 @@ describe('o ex que virou amigo não é ex em lugar nenhum', () => {
   });
   it('na página da pessoa, sai de "Casal" e entra em "Laços do coração"; editar e o laço dizem "hoje, amigos"', () => {
     const pagina = ler('src/pages/pessoas/[id]/index.astro');
-    expect(pagina).toContain('linhas: casais.filter((c) => !viraramAmigos(c.casal)).map(');
-    expect(pagina).toMatch(/\.filter\(\(c\) => viraramAmigos\(c\.casal\) && !escolhidos\.some/);
-    expect(ler('src/pages/pessoas/[id]/editar.astro')).toContain("viraramAmigos(c.casal) ? 'hoje, amigos'");
+    expect(pagina).toContain('linhas: casais.filter((c) => apareceComoCasal(c.casal)).map(');
+    expect(pagina).toMatch(/\.filter\(\(c\) => apareceComoCoracao\(c\.casal\) && !escolhidos\.some/);
+    expect(ler('src/pages/pessoas/[id]/editar.astro')).toContain('{situacaoDoCasal(c.casal)}');
     expect(ler('src/pages/pessoas/[id]/editar.astro')).toContain('{ehEx(c.casal) && [c.casal.a, c.casal.b].includes(usuario.pessoa)');
-    expect(ler('src/pages/lacos/[a]/[b].astro')).toContain("viraramAmigos(casal) ? 'Hoje, amigos'");
+    expect(ler('src/pages/lacos/[a]/[b].astro')).toContain('situacaoDoCasal(casal)');
   });
 });

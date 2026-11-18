@@ -1,62 +1,97 @@
 ---
-// "O que aconteceu depois?" no cadastro do casal (decisão do Gui, 18/11/2026): a história inteira pode ser
-// registrada de uma vez, sem se perder, como já dava na edição do laço. Cada linha é uma fase a mais
-// (o que foi e em que ano), nos mesmos campos paralelos do cadastro (faseTipo, faseInicio, faseFim), que
-// /api/lacos lê em ordem; linha sem "o que foi" é ignorada. Começa com uma linha; "Mais uma fase" mostra
-// a seguinte. Sem script, aparecem só as duas primeiras. O título é de seção pequena, como "Quem vê".
-import CampoAno from '../CampoAno.astro';
+// "Adicionar o que aconteceu depois", no cadastro e na edição do casal (decisão do Gui, 18/11/2026: é o
+// padrão de casal no site inteiro). No lugar de "Já terminou" e da separação solta na lista de fases, uma
+// ação que acrescenta uma linha com o que aconteceu (a fase) e quando (ano, mês e dia, como as outras
+// datas do site). Cada linha tem "Tirar esta linha". Até quatro linhas por vez.
+//
+// Os nomes dos campos seguem o formulário em que a peça está (src/lib/fases-do-formulario.ts):
+// - no cadastro, linhas paralelas (faseTipo, faseInicioAno, faseInicioMes, faseInicioDia), depois da
+//   primeira fase;
+// - na edição, numeradas a partir de `numerada` (fase-3-tipo, fase-3-inicioAno...), depois das que o
+//   casal já tem.
+// Linha sem "o que aconteceu" é ignorada. Sem script, aparecem as duas primeiras linhas, vazias, e a ação
+// some. O título é de seção pequena, como "Quem vê".
+import CampoData from '../CampoData.astro';
 import { FASES, type TipoDeFase } from '../../lib/parentesco';
 
 interface Props {
   /** prefixo dos ids, único na página */
   id: string;
   /** id do rótulo de "Como estão hoje?", que passa a "Como estavam?" quando há uma fase depois */
-  rotuloDaPrimeira: string;
+  rotuloDaPrimeira?: string;
+  /** na edição: o número da primeira fase nova (quantas o casal já tem) */
+  numerada?: number;
 }
-const { id, rotuloDaPrimeira } = Astro.props;
+const { id, rotuloDaPrimeira, numerada } = Astro.props;
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
 const LINHAS = 4;
+const tipo = (n: number) => (numerada === undefined ? 'faseTipo' : `fase-${numerada + n}-tipo`);
+const inicio = (n: number) => (numerada === undefined ? 'faseInicio' : `fase-${numerada + n}-inicio`);
 ---
 
-<fieldset class="fases-depois" data-fases-depois data-rotulo-da-primeira={rotuloDaPrimeira}>
-  <legend class="rotulo suave">O que aconteceu depois? <small>(opcional)</small></legend>
+<div class="fases-depois" data-fases-depois data-rotulo-da-primeira={rotuloDaPrimeira}>
   {
     Array.from({ length: LINHAS }, (_, n) => (
-      <div class="fases-depois__linha em-linha" data-fase-depois hidden={n > 1 ? true : undefined}>
-        <label class="em-linha__campo">
-          <span>{n === 0 ? 'Depois' : 'E depois'}</span>
-          <select name="faseTipo">
-            <option value="">Nada mais</option>
+      <fieldset class="fases-depois__linha" data-fase-depois hidden={n > 1 ? true : undefined}>
+        <legend class="rotulo suave">{n === 0 ? 'Depois' : 'E depois'}</legend>
+        <label class="campo">
+          <span>O que aconteceu</span>
+          <select name={tipo(n)}>
+            <option value="">Escolha</option>
             {fases.map(([valor, rotulo]) => <option value={valor}>{rotulo}</option>)}
           </select>
         </label>
-        <div class="em-linha__campo">
-          <label for={`${id}-${n}-inicio`}>Em que ano?</label>
-          <CampoAno id={`${id}-${n}-inicio`} nome="faseInicio" />
-        </div>
-        <input type="hidden" name="faseFim" value="" />
-      </div>
+        <CampoData prefixo={inicio(n)} id={`${id}-${n}-inicio`} rotuloAno="Quando" />
+        <button type="button" class="acao acao--quieta fases-depois__tirar" data-tirar-fase hidden>Tirar esta linha</button>
+      </fieldset>
     ))
   }
-  <button type="button" class="acao acao--quieta" data-mais-uma-fase hidden>Mais uma fase</button>
-</fieldset>
+  <button type="button" class="botao botao--leve fases-depois__mais" data-mais-uma-fase hidden>Adicionar o que aconteceu depois</button>
+</div>
 
 <script>
-  // Uma linha por vez: "Mais uma fase" mostra a seguinte. Com uma fase depois, a primeira pergunta deixa de
-  // ser "Como estão hoje?" e vira "Como estavam?"
+  // Com script, as linhas nascem escondidas: "Adicionar o que aconteceu depois" mostra uma por vez, e
+  // "Tirar esta linha" esvazia e esconde. Com uma fase depois, a primeira pergunta deixa de ser "Como estão
+  // hoje?" e vira "Como estavam?"
   for (const caixa of document.querySelectorAll<HTMLElement>('[data-fases-depois]')) {
     const linhas = [...caixa.querySelectorAll<HTMLElement>('[data-fase-depois]')];
     const mais = caixa.querySelector<HTMLButtonElement>('[data-mais-uma-fase]')!;
     const rotulo = document.getElementById(caixa.dataset.rotuloDaPrimeira ?? '');
     const hoje = rotulo?.textContent ?? '';
+    const esvaziar = (linha: HTMLElement) => {
+      for (const campo of linha.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) {
+        campo.value = '';
+        campo.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    };
     const atualizar = () => {
-      const visiveis = linhas.filter((l) => !l.hidden);
-      const ultima = visiveis.at(-1)?.querySelector('select');
-      mais.hidden = visiveis.length === linhas.length || !ultima?.value;
+      mais.hidden = linhas.every((l) => !l.hidden);
       const temDepois = linhas.some((l) => !l.hidden && l.querySelector('select')!.value);
       if (rotulo) rotulo.textContent = temDepois ? 'Como estavam?' : hoje;
+      caixa.dispatchEvent(new CustomEvent('fases-depois', { bubbles: true }));
     };
-    for (const [n, l] of linhas.entries()) l.hidden = n > 0;
+    const campos = (linha: HTMLElement) => [...linha.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')];
+    for (const linha of linhas) {
+      linha.hidden = !linha.querySelector('select')!.value;
+      const tirar = linha.querySelector<HTMLButtonElement>('[data-tirar-fase]')!;
+      tirar.hidden = false;
+      tirar.addEventListener('click', () => {
+        // As de baixo sobem uma linha, e a última à vista se esvazia e some: a ordem do que foi escrito fica
+        const visiveis = linhas.filter((l) => !l.hidden);
+        for (let i = visiveis.indexOf(linha); i < visiveis.length - 1; i++) {
+          const [daqui, dali] = [campos(visiveis[i]), campos(visiveis[i + 1])];
+          daqui.forEach((campo, n) => {
+            campo.value = dali[n].value;
+            campo.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+        }
+        const ultima = visiveis[visiveis.length - 1];
+        esvaziar(ultima);
+        ultima.hidden = true;
+        atualizar();
+        (linha.hidden ? mais : linha.querySelector('select')!).focus();
+      });
+    }
     mais.addEventListener('click', () => {
       const proxima = linhas.find((l) => l.hidden);
       if (!proxima) return;

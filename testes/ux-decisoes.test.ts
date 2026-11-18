@@ -210,7 +210,9 @@ describe('laços', () => {
     const editar = fonte('src/pages/pessoas/[id]/editar.astro');
     expect(editar).not.toMatch(/<select name="(qualidade|faseTipo|proximidade)"/);
     expect(editar).toMatch(/<Opcoes nome="qualidade"/);
-    expect(editar).toMatch(/<Opcoes nome="faseTipo"/);
+    // A fase de cada linha da edição do casal; a primeira do cadastro é o seletor segmentado (PrimeiraFase.astro)
+    expect(editar).toContain('<Opcoes nome={`fase-${n}-tipo`}');
+    expect(fonte('src/components/formularios/PrimeiraFase.astro')).toContain('nome="faseTipo"');
     expect(editar).toMatch(/<Opcoes nome="proximidade"/);
   });
 
@@ -220,7 +222,8 @@ describe('laços', () => {
   });
 
   it('a API do casal aceita as fases numeradas da edição', () => {
-    expect(fonte('src/pages/api/lacos.ts')).toMatch(/fase-\$\{n\}-remover/);
+    expect(fonte('src/pages/api/lacos.ts')).toContain('lerFasesDoFormulario(dados)');
+    expect(fonte('src/lib/fases-do-formulario.ts')).toMatch(/fase-\$\{n\}-remover/);
   });
 });
 
@@ -372,10 +375,11 @@ describe('cadastro de laços depois da sessão H', () => {
     expect(css).toMatch(/\.reconhece__troca \{[^}]*background: var\(--papel-recuo\);/);
   });
   it('a história inteira do casal já no cadastro, guiado e completo, e "O que aconteceu depois?" como título pequeno', () => {
-    expect(editar.match(/<FasesDepois /g)?.length).toBe(2);
+    // Revisto pelo Gui em 18/11/2026: "Adicionar o que aconteceu depois" é uma ação, no cadastro e na edição
+    expect(editar.match(/<FasesDepois /g)?.length).toBe(3);
     const fases = fonte('src/components/formularios/FasesDepois.astro');
-    expect(fases).toContain('<select name="faseTipo">');
-    expect(fases).toContain('<input type="hidden" name="faseFim" value="" />');
-    expect(css).toMatch(/fieldset:is\(\.fase--nova, \.fases-depois\) > legend \{[^}]*font-family: var\(--mono\);/);
+    expect(fases).toContain("numerada === undefined ? 'faseTipo'");
+    expect(fases).toContain('>Adicionar o que aconteceu depois</button>');
+    expect(css).toMatch(/\.fases-depois__linha > legend \{[^}]*font-family: var\(--mono\);/);
   });
 });

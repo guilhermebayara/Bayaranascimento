@@ -1,12 +1,13 @@
 ---
 import Segmentado from '../../../components/visual/Segmentado.astro';
 import FasesDepois from '../../../components/formularios/FasesDepois.astro';
+import PrimeiraFase from '../../../components/formularios/PrimeiraFase.astro';
+import JaDaFamilia from '../../../components/formularios/JaDaFamilia.astro';
 import Pagina from '../../../components/formularios/Pagina.astro';
 import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
 import ConfirmarRemocao from '../../../components/ConfirmarRemocao.astro';
 import ZonaDePerigo from '../../../components/visual/ZonaDePerigo.astro';
 import Recado from '../../../components/visual/Recado.astro';
-import CampoAno from '../../../components/CampoAno.astro';
 import Opcoes from '../../../components/Opcoes.astro';
 import ComoSeReferir from '../../../components/ComoSeReferir.astro';
 import CampoData from '../../../components/CampoData.astro';
@@ -14,10 +15,10 @@ import Retrato from '../../../components/visual/Retrato.astro';
 import { formatarData, jaFaleceu, vidaSemRotulo } from '../../../lib/datas';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { corDaPessoa } from '../../../lib/visual';
-import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
+import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, PROXIMIDADES, QUALIDADES, faseAtual, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../../lib/servidor/permissoes';
-import { casalDesfeito, ehEx, opcoesDeQuemVe, opcoesDoModo, viraramAmigos } from '../../../lib/ex-casal';
+import { casalDesfeito, ehEx, opcoesDeQuemVe, opcoesDoModo, situacaoDoCasal } from '../../../lib/ex-casal';
 import { enderecoDoLaco } from '../../../lib/pagina-do-laco';
 import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos, listarNucleos } from '../../../lib/servidor/repositorio';
 
@@ -171,12 +172,6 @@ const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(
 // Na edição de uma filiação antiga de consideração, a opção continua lá para não trocar sem querer
 const opcoesDeFiliacao = (atual?: Qualidade): [string, string][] => (atual === 'consideracao' ? (Object.entries(QUALIDADES) as [string, string][]) : qualidades);
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
-// No cadastro guiado e no "Adicionar laço" completo, "Como estão hoje?" só oferece o que é estar junto:
-// o fim tem um caminho só, "Já terminou" (respostas do Gui à P109 e à 47-N3, 17/11/2026). A separação, a
-// amizade e o resto da história entram em "O que aconteceu depois?", já no cadastro (decisão do Gui,
-// 18/11/2026; FasesDepois.astro) e também na edição do casal.
-const FASES_DE_QUEM_ESTA_JUNTO: readonly TipoDeFase[] = ['namoro', 'noivado', 'casamento', 'uniao'];
-const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id));
 // O que acontece ao remover um laço: some da árvore e das páginas, e não vai para a lixeira (resposta do Gui à 47-N2, 17/11/2026)
 const FRASE_DO_LACO = 'O laço some da árvore e das páginas das duas pessoas. Não vai para a lixeira.';
 const FRASE_DO_CASAL = 'O casal some da árvore e das páginas das duas pessoas. Não vai para a lixeira.';
@@ -384,19 +379,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
             </>
           ) : passo === 'casal' ? (
             <>
-              <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" id="rotulo-fase-guia" />
-              <div class="em-linha__campo">
-                <label for="guia-fase-inicio">Começou em <small>(se souber)</small></label>
-                <CampoAno id="guia-fase-inicio" nome="faseInicio" />
-              </div>
-              <label class="marcar">
-                <input type="checkbox" name="terminou" data-revela="terminou-guia" />
-                <span>Já terminou</span>
-              </label>
-              <div class="em-linha__campo" data-depende="terminou-guia" hidden>
-                <label for="guia-fase-fim">Terminou em</label>
-                <CampoAno id="guia-fase-fim" nome="faseFim" />
-              </div>
+              <PrimeiraFase id="guia" />
               <FasesDepois id="guia-fase-depois" rotuloDaPrimeira="rotulo-fase-guia" />
             </>
           ) : (
@@ -601,7 +584,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                     <p class="laco__linha">
                       <strong>{chamar} e {nome(c.outro)}</strong>
                       {faleceu(c.outro) && <span class="so-leitor">, {nome(c.outro)} já faleceu</span>}
-                      <span>{estaoJuntos(c.casal) ? 'juntos' : viraramAmigos(c.casal) ? 'hoje, amigos' : 'não estão mais juntos'}{c.casal.visibilidade !== 'todos' && `, ${quemVeTexto(c.casal)}`}</span>
+                      <span>{situacaoDoCasal(c.casal)}{c.casal.visibilidade !== 'todos' && `, ${quemVeTexto(c.casal)}`}</span>
                     </p>
                   </div>
                   <p class="laco__ver"><a href={enderecoDoLaco(pessoa.id, c.outro)}>Ver o laço</a></p>
@@ -636,21 +619,15 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                             <fieldset>
                               <legend class="oculto-visualmente">{n + 1}ª fase</legend>
                               <Opcoes nome={`fase-${n}-tipo`} rotulo="O que foi" opcoes={fases} valor={fase.tipo} id={`rotulo-fase-${c.casal.id}-${n}`} />
-                              <div class="em-linha">
-                                <div class="em-linha__campo">
-                                  <label for={`fase-${c.casal.id}-${n}-inicio`}>Começou em</label>
-                                  <CampoAno id={`fase-${c.casal.id}-${n}-inicio`} nome={`fase-${n}-inicio`} valor={fase.inicioAno} />
-                                </div>
-                                {/* Uma fase acaba quando a seguinte começa: o fim só é pedido na última, ou onde já foi preenchido */}
-                                {n === c.casal.fases.length - 1 || fase.fimAno ? (
-                                  <div class="em-linha__campo">
-                                    <label for={`fase-${c.casal.id}-${n}-fim`}>Terminou em <small>(se já acabou)</small></label>
-                                    <CampoAno id={`fase-${c.casal.id}-${n}-fim`} nome={`fase-${n}-fim`} valor={fase.fimAno} />
-                                  </div>
-                                ) : (
-                                  <input type="hidden" name={`fase-${n}-fim`} value="" />
-                                )}
-                              </div>
+                              {/* A data com mês e dia opcionais, como as outras do site (decisão do Gui, 18/11/2026) */}
+                              <CampoData prefixo={`fase-${n}-inicio`} id={`fase-${c.casal.id}-${n}-inicio`} rotuloAno="Começou em" ano={fase.inicioAno} mes={fase.inicioMes} dia={fase.inicioDia} />
+                              {/* Uma fase acaba quando a seguinte começa, e o fim do casal é uma fase a mais ("Adicionar o
+                                  que aconteceu depois"): o fim só fica onde já foi preenchido */}
+                              {fase.fimAno ? (
+                                <CampoData prefixo={`fase-${n}-fim`} id={`fase-${c.casal.id}-${n}-fim`} rotuloAno="Terminou em" ano={fase.fimAno} mes={fase.fimMes} dia={fase.fimDia} />
+                              ) : (
+                                <input type="hidden" name={`fase-${n}-fimAno`} value="" />
+                              )}
                               {c.casal.fases.length > 1 && (
                                 <label class="marcar">
                                   <input type="checkbox" name={`fase-${n}-remover`} data-remover-fase />
@@ -660,15 +637,10 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                             </fieldset>
                           </details>
                         ))}
-                        <fieldset class="fase--nova">
-                          {/* Título de seção pequeno, como "Quem vê" (observação do Gui, 18/11/2026) */}
-                          <legend class="rotulo suave">O que aconteceu depois? <small>(opcional)</small></legend>
-                          <Opcoes nome={`fase-${c.casal.fases.length}-tipo`} rotulo="O que foi" opcoes={fases} id={`rotulo-fase-${c.casal.id}-nova`} />
-                          <div class="em-linha__campo">
-                            <label for={`fase-${c.casal.id}-nova-inicio`}>Em que ano?</label>
-                            <CampoAno id={`fase-${c.casal.id}-nova-inicio`} nome={`fase-${c.casal.fases.length}-inicio`} />
-                          </div>
-                        </fieldset>
+                        {/* O que aconteceu depois: a mesma ação do cadastro (decisão do Gui, 18/11/2026) */}
+                        <FasesDepois id={`fase-depois-${c.casal.id}`} numerada={c.casal.fases.length} />
+                        {/* "Já é da família": só quando a fase de hoje é namoro (migração 100) */}
+                        {faseAtual(c.casal)?.tipo === 'namoro' && <JaDaFamilia id={`ja-da-familia-${c.casal.id}`} marcado={Boolean(c.casal.jaDaFamilia)} />}
                         {/* A escolha vale para o casal inteiro: separada das fases, com o nome do que é (P121) */}
                         {!casalDesfeito(c.casal) ? (
                           <div class="quem-ve" role="group" aria-labelledby={`rotulo-quem-ve-${c.casal.id}`}>
@@ -1016,24 +988,11 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
 
                 {g.novo.laco === 'casal' && (
                   <>
-                    {/* Como no guiado, só as fases de estar junto (resposta do Gui à 47-N3, 17/11/2026) */}
-                    <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" id="rotulo-fase-novo" />
-                    <div class="em-linha">
-                      <div class="em-linha__campo">
-                        <label for="fase-nova-inicio">Começou em</label>
-                        <CampoAno id="fase-nova-inicio" nome="faseInicio" />
-                      </div>
-                      <div class="em-linha__campo" data-depende="terminou-novo" hidden>
-                        <label for="fase-nova-fim">Terminou em</label>
-                        <CampoAno id="fase-nova-fim" nome="faseFim" />
-                      </div>
-                    </div>
-                    <label class="marcar">
-                      <input type="checkbox" name="terminou" data-revela="terminou-novo" />
-                      <span>Já terminou</span>
-                    </label>
+                    {/* Como no guiado: a primeira fase é de estar junto, e o resto da história entra por
+                        "Adicionar o que aconteceu depois" (decisão do Gui, 18/11/2026) */}
+                    <PrimeiraFase id="novo" />
                     <FasesDepois id={`fase-depois-${g.id}`} rotuloDaPrimeira="rotulo-fase-novo" />
-                    <p class="dica">Os anos são opcionais. A história também pode ser contada depois, na edição do casal.</p>
+                    <p class="dica">As datas são opcionais. A história também pode ser contada depois, na edição do casal.</p>
                     <label class="marcar">
                       <input type="checkbox" name="visibilidade" value="privado" />
                       <span>Só os dois veem este casal</span>
@@ -1280,16 +1239,4 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
     aplicar();
   }
 
-  // "Já terminou": a data de fim só aparece quando o casal já acabou. Desmarcar apaga a data.
-  for (const caixa of document.querySelectorAll<HTMLInputElement>('[data-revela]')) {
-    const alvo = document.querySelector<HTMLElement>(`[data-depende="${caixa.dataset.revela}"]`);
-    if (!alvo) continue;
-    const campo = alvo.querySelector<HTMLInputElement>('input');
-    const aplicarFim = () => {
-      alvo.hidden = !caixa.checked;
-      if (!caixa.checked && campo) campo.value = '';
-    };
-    caixa.addEventListener('change', aplicarFim);
-    aplicarFim();
-  }
 </script>

@@ -6,7 +6,8 @@
 // A regra: nomes, datas e laços passam; memórias, relatos, textos, retratos e fotos nunca passam.
 // - Passam, como estão na produção: as pessoas (id, nome, apelido, tipo, espécie, como se referir, as
 //   datas de nascimento e de falecimento, quem administra), quem é de cada família, as filiações (com a
-//   data da adoção), os casais com as fases e as famílias que veem, os laços do coração (com o nome, o
+//   data da adoção), os casais com as fases (com mês e dia), a marca de namoro "já é da família" e as
+//   famílias que veem, os laços do coração (com o nome, o
 //   papel, a proximidade e a marca de privado) e os laços resumidos.
 // - Nenhum arquivo da produção chega à homologação (observação do Gui, 18/11/2026): o retrato de cada
 //   pessoa é uma das fotos de exemplo do Chico e da Karol, sorteada pelo id como nas prévias
@@ -186,7 +187,7 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       if (!existe(a) || !existe(b)) return null;
       // O banco guarda o par em ordem alfabética
       const [x, y] = String(a) < String(b) ? [a, b] : [b, a];
-      return { id: numero(c.id), a_id: x, b_id: y, visibilidade: c.visibilidade ?? 'todos', criado_por: mapear(c.criado_por) };
+      return { id: numero(c.id), a_id: x, b_id: y, visibilidade: c.visibilidade ?? 'todos', criado_por: mapear(c.criado_por), ja_da_familia: numero(c.ja_da_familia) ? 1 : 0 };
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
   const idsDosCasais = new Set(casais.map((c) => c.id));
@@ -196,7 +197,18 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
     .map((f) => ({ casal_id: numero(f.casal_id), nucleo_id: f.nucleo_id }));
   const casalFases = t('casal_fases')
     .filter((f) => idsDosCasais.has(numero(f.casal_id)))
-    .map((f) => ({ casal_id: numero(f.casal_id), tipo: f.tipo, inicio_ano: numero(f.inicio_ano), fim_ano: numero(f.fim_ano), ordem: numero(f.ordem) ?? 0 }));
+    // As datas passam como estão, com o mês e o dia (migração 101), como as outras datas das pessoas
+    .map((f) => ({
+      casal_id: numero(f.casal_id),
+      tipo: f.tipo,
+      inicio_ano: numero(f.inicio_ano),
+      inicio_mes: numero(f.inicio_mes),
+      inicio_dia: numero(f.inicio_dia),
+      fim_ano: numero(f.fim_ano),
+      fim_mes: numero(f.fim_mes),
+      fim_dia: numero(f.fim_dia),
+      ordem: numero(f.ordem) ?? 0,
+    }));
 
   const lacos = t('lacos_coracao')
     .map((l) => {
