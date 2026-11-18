@@ -445,6 +445,10 @@ a.polaroid__foto {
   font-weight: 550;
   line-height: 1.25;
 }
+/* O apelido ao lado do nome, na lista de Pessoas ("Alexsander (Lugh)"): da mesma linha, um peso abaixo */
+.gente__apelido {
+  font-weight: 400;
+}
 .gente__laco {
   font-size: var(--t-pequeno);
 }
