@@ -26,6 +26,7 @@ import { FORMAS_DA_PESSOA, NOMES_DAS_FORMAS, TAMANHO_PADRAO, enderecoDaPessoa, l
 import { apareceComoCasal, apareceComoCoracao, exDoAmigo, viraramAmigos } from '../../../lib/ex-casal';
 import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { enderecoDoRetrato } from '../../../lib/retratos';
+import { apelidoAoLado } from '../../../lib/ordem-das-pessoas';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
 import {
@@ -77,8 +78,10 @@ const adocaoCom = (id: string) => {
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 const chamar = pessoa.apelido ?? pessoa.nome;
-// O apelido que quem olha deu (só ele vê) e o nome de sempre, para a pergunta e para voltar a ele
+// O apelido que quem olha deu (só ele vê). A pergunta usa o nome da ficha (defeito visto pelo Gui depois
+// da sessão I: ela usava o apelido da família); "Voltar a" usa o de sempre, que é o que volta
 const meuApelido = (await listarMeusApelidos(usuario.pessoa)).get(pessoa.id);
+const apelidoNoTitulo = apelidoAoLado(pessoa.nome, pessoa.apelido);
 const nomeDaFamilia = (pessoa.apelidoDaFamilia !== undefined ? pessoa.apelidoDaFamilia : null) ?? pessoa.nome;
 const naoVe = await pessoasQueONaoVe(usuario);
 const retratoDe = (id: string) => (achar(id)?.retrato && !naoVe.has(id) ? enderecoDoRetrato(achar(id)!.retrato!) : null);
@@ -213,7 +216,11 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
           )}
           {/* Aprovado pelo Gui em 17/11/2026 (pergunta 6 do PR do grupo "pessoal"): o parentesco é a linha grande, e o nome vem logo abaixo */}
           {parentesco && <p class="quem-e__laco">{parentesco}</p>}
-          <h1 class:list={['quem-e__nome', parentesco ? 't-2' : 't-1']}>{pessoa.nome}</h1>
+          {/* "Nome (apelido)", como na lista de Pessoas: o apelido que quem olha vê, o seu ou o da família */}
+          <h1 class:list={['quem-e__nome', parentesco ? 't-2' : 't-1']}>
+            {pessoa.nome}
+            {apelidoNoTitulo && <span class="quem-e__apelido"> ({apelidoNoTitulo})</span>}
+          </h1>
           {jaFaleceu(pessoa) && <p class="so-leitor">Já faleceu.</p>}
           {temDataOculta && (
             <p class="quem-e__datas">
@@ -255,14 +262,14 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
               olha dá à pessoa, que só ele vê, no site inteiro */}
           {!ehMinha && (
             <details class="como-chama" id="como-voce-chama">
-              <summary class="acao acao--quieta">{meuApelido ? `Você chama de ${meuApelido}` : `Como você chama ${nomeDaFamilia}?`}</summary>
+              <summary class="acao acao--quieta">{meuApelido ? `Você chama de ${meuApelido}` : `Como você chama ${pessoa.nome}?`}</summary>
               <form class="como-chama__form" method="post" action="/api/apelidos">
                 <input type="hidden" name="pessoa" value={pessoa.id} />
                 <label class="campo">
-                  <span class="so-leitor">Como você chama {nomeDaFamilia}?</span>
+                  <span class="so-leitor">Como você chama {pessoa.nome}?</span>
                   <input class="campo__entrada" type="text" name="apelido" maxlength="40" autocomplete="off" value={meuApelido ?? ''} placeholder="Ex.: Tia Lu, Vó, Dinho" />
                 </label>
-                <p class="campo__dica">Só você vê. No site inteiro, para você, {nomeDaFamilia} aparece assim.</p>
+                <p class="campo__dica">Só você vê. No site inteiro, para você, {pessoa.nome} aparece assim.</p>
                 <p class="como-chama__acoes">
                   <button class="acao" type="submit">Salvar</button>
                   {meuApelido && (

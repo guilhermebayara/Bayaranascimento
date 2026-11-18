@@ -43,6 +43,10 @@
   margin-top: var(--e-3);
   overflow-wrap: anywhere;
 }
+/* "Tia Cida (Cidinha)": o apelido no mesmo tamanho, mais apagado */
+.quem-e__apelido {
+  color: var(--tinta-suave);
+}
 .quem-e__nome.t-1 {
   margin-top: var(--e-4);
   margin-left: -0.04em;
