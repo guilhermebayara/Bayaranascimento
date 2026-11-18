@@ -33,6 +33,7 @@ Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso 
 | Memória | A foto e o verso: a imagem grande, a ficha como carimbo, os relatos como conversa, cada pessoa uma voz | Corrigir, histórico |
 | Pessoa | O retrato e a voz: retrato recortado, parentesco grande ("sua avó"), os áudios dela | A lista de laços |
 | Capítulo | Abertura de capítulo de livro: título, período, marcos numerados | Edição |
+| Laço | A história dos dois, contada como um capítulo: os dois retratos lado a lado, o nome dos dois, as fases e os marcos numerados | O que um é do outro e a conta das memórias |
 | Árvore | As famílias em cor, cartões como etiquetas com nome e parentesco | Camadas e controles |
 | Formulários | Uma pergunta por tela, grande, em serifa, como quem conversa | A trilha das etapas |
 | Sua conta | O retrato e o nome da pessoa no alto, e as coisas dela em ordem: dados, o que criou, avisos, rascunhos, laços | A administração, ao lado do nome no desktop e no fim no celular, só para quem administra |
@@ -130,7 +131,7 @@ Ficam de fora: cartão que deita ao rolar, foto que cresce enquanto se rola, car
 
 **O modo TV é o lugar de experimentar.** É a tela em que o movimento pode ousar mais, porque é para ver junto, parado, na sala: passagem entre memórias com mais caráter, a foto que se aproxima devagar enquanto a memória está na tela, o título e o trecho do relato chegando aos poucos. As regras de sempre continuam: a página não se mexe sozinha fora do "Passar sozinho", as setas e o controle sempre respondem na hora e, com movimento reduzido, tudo isso desliga.
 
-**Peças paradas no alto.** Na linha do tempo, a barra de décadas e o ano grande ficam parados no alto, em qualquer aparelho, para quem rola saber sempre em que ano está (pensando nas pessoas mais velhas). Fora disso, nada fica preso. No toque, nada é preso por `sticky` ou `fixed` (ver "Safari do iPhone e peças paradas", em "Cuidados que custaram tempo"); onde há mouse, a capa do capítulo, o alto da lista de capítulos e o resumo ao lado do relato ficam parados com `sticky`.
+**Peças paradas no alto.** Na linha do tempo, a barra de décadas e o ano grande ficam parados no alto, em qualquer aparelho, para quem rola saber sempre em que ano está (pensando nas pessoas mais velhas). Fora disso, nada fica preso. No toque, nada é preso por `sticky` ou `fixed` (ver "Safari do iPhone e peças paradas", em "Cuidados que custaram tempo"); onde há mouse, a capa do capítulo, a capa do laço, o alto da lista de capítulos e o resumo ao lado do relato ficam parados com `sticky`.
 
 Origem: [histórico, "Movimento"](historico/visual-ate-2026-11-17.md#movimento).
 
@@ -508,6 +509,17 @@ A ação principal fica também no alto, como atalho, para quem chega querendo c
 - **A cor da tela** vem das famílias do capítulo (as de "quem vê" e as de "de quem é"); sem nenhuma, a da família completa.
 - **Tema (`/temas/<id>`):** "Tema", o nome grande, "Todos os capítulos e temas", os capítulos que usam o tema (a linha do sumário, com o período e a conta) e as memórias, com a "Forma de ver" da página da pessoa. A partir de 62rem, o nome e os capítulos à esquerda e as memórias à direita; a lista usa a largura inteira.
 
+### Página do laço
+
+`/lacos/<a>/<b>`, `src/pages/lacos/[a]/[b].astro`, `telas/laco.css` (mais `telas/capitulo.css`, pelos marcos); regras em `src/lib/pagina-do-laco.ts`, teste em `testes/pagina-do-laco.test.ts`. O que aparece e para quem está em `docs/decisoes.md`, "A página do laço". Capturas do acabamento em `docs/visual/sessao-j/pagina-do-laco/`.
+
+- **A ideia:** a história dos dois, contada como um capítulo (Union, "Our story" e "The journey"). A régua da primeira rodada saiu: ela dizia de novo o que as fases e os marcos já dizem, cortava os nomes das fases no celular e pintava cada fase com uma cor sem função.
+- **A capa:** "Laço" em rótulo, os dois retratos lado a lado, do mesmo tamanho (a peça Retrato dentro de `pessoa`, com o nome e o que cada um é de quem olha, levando à página da pessoa), o nome dos dois em `t-1` (o "e" nunca se separa do segundo nome), o período em pílula ("1990 a hoje", "2012 a 2017") com a conta das memórias em mono e, embaixo, a situação do casal na tinta e o que um é do outro em apoio. No computador com mouse, e com a janela de pelo menos 45rem de altura, a capa fica parada à esquerda (colunas 1 a 5); no toque, nada fica preso.
+- **No tempo:** as fases do casal na peça Sanfona, na ordem em que aconteceram: o ano grande, o nome da fase e o período com a data inteira. Abre uma de cada vez, sem script. Dentro, as memórias dos dois daquele tempo, cada uma numa linha com o ano em mono, levando à memória. Chega aberta a fase mais recente que tem memória; sem nenhuma, todas fechadas. A fase sem ano entra sem o número, e o casal sem data nenhuma perde a coluna do ano. No celular e em 1280 px o período fica embaixo do nome da fase; a partir de 100rem, ao lado. Par que não é casal não tem esta parte.
+- **As memórias dos dois:** os marcos numerados do capítulo (o número grande com o traço na cor da tela, o carimbo com a data e o lugar, o título, "Com…" e a foto revelada pequena), das mais recentes para as mais antigas. "Com…" diz só as outras pessoas, porque os dois estão em todas. Sem memória, a peça Vazio, colada no título da parte.
+- **Tela grande:** a mesma divisão de 5 e 6 colunas, com os retratos maiores e, nos marcos, a foto maior, como no capítulo.
+- **A cor da tela** vem das famílias das duas pessoas.
+
 ### Árvore e círculo
 
 O comportamento, o quadro do mapa e o cartão estão em `docs/decisoes.md`, "Árvore" e "Círculo". A aparência:
@@ -560,7 +572,7 @@ Origem: [histórico, "Página da memória"](historico/visual-ate-2026-11-17.md#p
 
 ## Para o futuro
 
-- **Página do laço:** título, período e pessoas parados à esquerda no computador; à direita, os marcos numerados, com data e lugar em mono (Union, "Our story"). As fases do casal em sanfona (Union, "The journey"): ano grande, nome da fase, data pequena; abre uma de cada vez.
+Nada anotado no momento. A página do laço, que estava aqui, foi feita (ver "Página do laço", em "As telas").
 
 Origem: [histórico, "Linha do tempo, capítulo e laço"](historico/visual-ate-2026-11-17.md#linha-do-tempo-capítulo-e-laço); ["Componentes novos"](historico/visual-ate-2026-11-17.md#componentes-novos).
 

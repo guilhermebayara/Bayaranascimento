@@ -1,5 +1,5 @@
-// A página do laço (onda 2, decisão do Gui de 17/11/2026): a linha do tempo de duas pessoas, com as fases
-// do casal como faixas e as memórias em que as duas estão. Chega-se pela ficha da árvore ("Ver o laço") e
+// A página do laço (onda 2, decisão do Gui de 17/11/2026): a história de duas pessoas, com as fases do
+// casal no tempo e as memórias em que as duas estão. Chega-se pela ficha da árvore ("Ver o laço") e
 // pela edição dos laços. Funções puras, testadas em testes/pagina-do-laco.test.ts.
 import { FASES, FASES_JUNTOS, type Fase, type TipoDeFase } from './parentesco';
 
@@ -33,27 +33,39 @@ export function faixasDasFases(fases: readonly Fase[], anoAtual: number): Faixa[
   return faixas;
 }
 
-/** O começo e o fim da linha do tempo: das faixas e das memórias, com um ano de folga dos dois lados. */
-export function periodoDoLaco(faixas: readonly Faixa[], anosDasMemorias: readonly number[], anoAtual: number): { de: number; ate: number } | null {
+/**
+ * O período do laço, para a pílula da capa: do primeiro ano conhecido (das fases e das memórias) ao
+ * último, ou "a hoje" quando a fase de hoje segue. Sem ano nenhum, não há período.
+ */
+export function periodoDoLaco(faixas: readonly Faixa[], anosDasMemorias: readonly number[]): string | null {
   const anos = [...faixas.flatMap((f) => [f.de, f.ate]), ...anosDasMemorias.filter((a) => a > 0)];
   if (anos.length === 0) return null;
-  const de = Math.min(...anos) - 1;
-  const ate = Math.min(anoAtual, Math.max(...anos) + 1);
-  return { de, ate: Math.max(ate, de + 2) };
+  const de = Math.min(...anos);
+  if (faixas.some((f) => f.aberta)) return `${de} a hoje`;
+  const ate = Math.max(...anos);
+  return de === ate ? String(de) : `${de} a ${ate}`;
 }
 
-/** Onde um ano fica na linha, de 0 a 100. */
-export function posicao(ano: number, periodo: { de: number; ate: number }): number {
-  return Math.max(0, Math.min(100, ((ano - periodo.de) / (periodo.ate - periodo.de)) * 100));
-}
-
-/** As marcas de ano da régua: a cada 5, 10 ou 20 anos, conforme o tamanho. */
-export function marcasDosAnos(periodo: { de: number; ate: number }): number[] {
-  const largura = periodo.ate - periodo.de;
-  const passo = largura <= 15 ? 5 : largura <= 50 ? 10 : 20;
-  const marcas: number[] = [];
-  for (let ano = Math.ceil(periodo.de / passo) * passo; ano <= periodo.ate; ano += passo) marcas.push(ano);
-  return marcas;
+/**
+ * De que fase é cada memória, pelo ano: a fase que estava valendo naquele ano. No ano em que uma fase
+ * dá lugar à outra, vale a que começa. A separação é um momento e só fica com as memórias do ano dela;
+ * o que veio depois dela, sem outra fase, não é de fase nenhuma. Devolve, para cada fase (na ordem
+ * das fases do casal), os índices das memórias dela. Fase sem ano não recebe memória: não há como saber.
+ */
+export function memoriasDasFases(fases: readonly Fase[], anosDasMemorias: readonly number[], anoAtual: number): number[][] {
+  const comAno = fases.map((f, i) => ({ f, i })).filter((x) => x.f.inicioAno);
+  const faixas = faixasDasFases(fases, anoAtual);
+  const porFase: number[][] = fases.map(() => []);
+  anosDasMemorias.forEach((ano, n) => {
+    if (!(ano > 0)) return;
+    for (let k = faixas.length - 1; k >= 0; k--) {
+      if (faixas[k].de <= ano && ano <= faixas[k].ate) {
+        porFase[comAno[k].i].push(n);
+        return;
+      }
+    }
+  });
+  return porFase;
 }
 
 /** O endereço da página do laço, sempre na mesma ordem. */
