@@ -15,7 +15,7 @@ import { corDaPessoa } from '../../../lib/visual';
 import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../../lib/servidor/permissoes';
-import { casalDesfeito, opcoesDeQuemVe, opcoesDoModo } from '../../../lib/ex-casal';
+import { casalDesfeito, ehEx, opcoesDeQuemVe, opcoesDoModo, viraramAmigos } from '../../../lib/ex-casal';
 import { enderecoDoLaco } from '../../../lib/pagina-do-laco';
 import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos, listarNucleos } from '../../../lib/servidor/repositorio';
 
@@ -590,7 +590,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                     <p class="laco__linha">
                       <strong>{chamar} e {nome(c.outro)}</strong>
                       {faleceu(c.outro) && <span class="so-leitor">, {nome(c.outro)} já faleceu</span>}
-                      <span>{estaoJuntos(c.casal) ? 'juntos' : 'não estão mais juntos'}{c.casal.visibilidade !== 'todos' && `, ${quemVeTexto(c.casal)}`}</span>
+                      <span>{estaoJuntos(c.casal) ? 'juntos' : viraramAmigos(c.casal) ? 'hoje, amigos' : 'não estão mais juntos'}{c.casal.visibilidade !== 'todos' && `, ${quemVeTexto(c.casal)}`}</span>
                     </p>
                   </div>
                   <p class="laco__ver"><a href={enderecoDoLaco(pessoa.id, c.outro)}>Ver o laço</a></p>
@@ -699,7 +699,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                             <p class="dica">{quemVeTexto(c.casal).charAt(0).toUpperCase() + quemVeTexto(c.casal).slice(1)}. Só {chamar} e {nome(c.outro)} mudam quem vê.</p>
                           </div>
                         )}
-                        {casalDesfeito(c.casal) && [c.casal.a, c.casal.b].includes(usuario.pessoa) && (() => {
+                        {ehEx(c.casal) && [c.casal.a, c.casal.b].includes(usuario.pessoa) && (() => {
                           // Como o ex aparece para quem olha: só para ela, sem mudar o que os outros veem
                           const outro = c.casal.a === usuario.pessoa ? c.casal.b : c.casal.a;
                           const modo = modosDosExes.get(outro) ?? 'presente';

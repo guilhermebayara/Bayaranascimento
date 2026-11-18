@@ -5,8 +5,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { montarDesenho, type DadosDaArvore, type Estado } from '../src/lib/arvore-montagem';
-import { foraQueEPaiViraDiscreto, separarAmizades, viraramAmigos } from '../src/lib/ex-casal';
-import type { Casal } from '../src/lib/parentesco';
+import { ehEx, exesDe, foraQueEPaiViraDiscreto, separarAmizades, viraramAmigos } from '../src/lib/ex-casal';
+import { proximidadePadrao } from '../src/lib/circulo';
+import { podeEscolherComoOExAparece } from '../src/lib/servidor/permissoes';
+import { Familia, type Casal } from '../src/lib/parentesco';
 
 const casal = (b: string, fases: Casal['fases']): Casal => ({ id: 1, a: 'giovanna', b, fases, visibilidade: 'todos', nucleos: [], criadoPor: 'giovanna' });
 const amigos = casal('thiago', [
@@ -67,7 +69,7 @@ describe('o ex que virou amigo', () => {
   it('a página da árvore manda os casais já separados das amizades', () => {
     const pagina = readFileSync('src/pages/arvore.astro', 'utf8');
     expect(pagina).toContain('casais: separarAmizades(casais).casais.map(');
-    expect(pagina).toContain('amizades: separarAmizades(casais).amizades,');
+    expect(pagina).toContain('amizades: separarAmizades(casais).amizades.map(');
   });
 });
 
@@ -99,5 +101,58 @@ describe('ex discreto ou fora sai dos aniversários', () => {
     const inicio = readFileSync('src/pages/index.astro', 'utf8');
     expect(inicio).toContain('const exesQueSaem = await comoOsExesAparecem(usuario);');
     expect(inicio).toContain('aniversarios(integrantes, hoje, new Set([...naoVe, ...exesQueSaem.keys()]), usuario.pessoa)');
+  });
+});
+
+// O caso do Gui (18/11/2026): Namoro 2025, Separação 2025 e Amizade desde 2025, sem família. A fase de hoje
+// "amizade" se comporta como laço do coração em todo lugar onde o casal aparece.
+describe('o ex que virou amigo não é ex em lugar nenhum', () => {
+  const comoOGui = casal('thiago', [
+    { tipo: 'namoro', inicioAno: 2025, fimAno: 2025 },
+    { tipo: 'separacao', inicioAno: 2025, fimAno: null },
+    { tipo: 'amizade', inicioAno: 2025, fimAno: null },
+  ]);
+  const ler = (c: string) => readFileSync(c, 'utf8');
+  it('não é ex: fora das escolhas de como o ex aparece e da lista de exes', () => {
+    expect(ehEx(comoOGui)).toBe(false);
+    expect(ehEx(separados)).toBe(true);
+    expect([...exesDe('giovanna', [comoOGui, separados])]).toEqual(['jean']);
+    expect(podeEscolherComoOExAparece({ pessoa: 'giovanna' } as never, comoOGui).ok).toBe(false);
+  });
+  it('o parentesco é "amigo", e no círculo ele entra como laço do coração (Próximo)', () => {
+    const familia = new Familia([], [comoOGui, separados], new Map([['thiago', 'ele'], ['jean', 'ele']]));
+    const r = familia.relacao('giovanna', 'thiago')!;
+    expect(r.texto).toBe('amigo');
+    expect(r.caminho).toBe('A');
+    expect(proximidadePadrao({ caminho: r.caminho })).toBe(proximidadePadrao({ doCoracao: true }));
+    expect(familia.relacao('giovanna', 'jean')!.texto).toMatch(/^ex-/);
+  });
+  it('na árvore, com a camada desligada, ele sai; e só pela amizade ninguém vira centro', () => {
+    const pessoa = (id: string) => ({ id, nome: id, rotulo: '', nucleos: ['bayara'], bicho: false, anos: '' });
+    const dados: DadosDaArvore = {
+      eu: 'gui',
+      centros: ['gui'],
+      nucleos: [{ id: 'bayara', nome: 'Bayara' }],
+      pessoas: ['elizete', 'aguilar', 'gui', 'giovanna', 'thiago'].map(pessoa),
+      filiacoes: ['gui', 'giovanna'].flatMap((filho) => ['elizete', 'aguilar'].map((responsavel) => ({ filho, responsavel, consideracao: false }))),
+      casais: [{ a: 'aguilar', b: 'elizete', ex: false }],
+      coracao: [],
+    };
+    const estado = (mudar: Partial<Estado> = {}): Estado => ({ foco: 'gui', centro: '', ramos: new Set(), nucleo: '', consideracao: true, ex: true, bichos: true, outros: true, abertos: new Set(['gui']), ...mudar });
+    const m = montarDesenho({ ...dados, amizades: [{ a: 'giovanna', b: 'thiago', rotulo: 'amigo de Giovanna' }] }, estado({ consideracao: false }));
+    expect(m.principal.has('thiago')).toBe(false);
+    const comRotulo = montarDesenho({ ...dados, amizades: [{ a: 'giovanna', b: 'thiago', rotulo: 'amigo de Giovanna' }] }, estado());
+    expect(comRotulo.coracao.find((l) => l.pessoa === 'thiago')!.rotulo).toBe('amigo de Giovanna');
+    for (const arquivo of ['src/pages/arvore.astro', 'src/pages/admin/arvore.astro', 'src/pages/api/ajustes.ts']) {
+      expect(ler(arquivo), arquivo).toMatch(/comLacoDeArvore\(\{[^\n]*separarAmizades\(/);
+    }
+  });
+  it('na página da pessoa, sai de "Casal" e entra em "Laços do coração"; editar e o laço dizem "hoje, amigos"', () => {
+    const pagina = ler('src/pages/pessoas/[id]/index.astro');
+    expect(pagina).toContain('linhas: casais.filter((c) => !viraramAmigos(c.casal)).map(');
+    expect(pagina).toMatch(/\.filter\(\(c\) => viraramAmigos\(c\.casal\) && !escolhidos\.some/);
+    expect(ler('src/pages/pessoas/[id]/editar.astro')).toContain("viraramAmigos(c.casal) ? 'hoje, amigos'");
+    expect(ler('src/pages/pessoas/[id]/editar.astro')).toContain('{ehEx(c.casal) && [c.casal.a, c.casal.b].includes(usuario.pessoa)');
+    expect(ler('src/pages/lacos/[a]/[b].astro')).toContain("viraramAmigos(casal) ? 'Hoje, amigos'");
   });
 });

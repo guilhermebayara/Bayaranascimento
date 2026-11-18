@@ -309,7 +309,7 @@ export class Familia {
       const atual = faseAtual(casal)!;
       sufixo = '';
       if (passos[0].tipo === 'C') formas = PARES[atual.tipo];
-      // O ex que virou amigo aparece como amigo
+      // O ex que virou amigo aparece como amigo, e conta como laço do coração (caminho "A", no círculo)
       else if (atual.tipo === 'amizade') formas = PARES.amizade;
       else {
         formas = PARES[auge(casal)];
@@ -321,7 +321,8 @@ export class Familia {
     if (!formas) return undefined;
     const montar = (base: string) => prefixo + base + sufixo;
     const ehConsideracao = consideracao && sufixo !== '';
-    const caminho = passos.map((p) => p.tipo).join('');
+    const amizade = passos.length === 1 && passos[0].tipo === 'X' && faseAtual(passos[0].casal)?.tipo === 'amizade';
+    const caminho = amizade ? 'A' : passos.map((p) => p.tipo).join('');
     if (tratamento) return { texto: montar(forma(formas, tratamento)), consideracao: ehConsideracao, caminho };
     const [ela, ele] = formas;
     return { texto: `${montar(ele)} ou ${montar(ela)}`, consideracao: ehConsideracao, formas: { ela: montar(ela), ele: montar(ele) }, caminho };

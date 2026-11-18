@@ -18,6 +18,13 @@ export const casalDesfeito = (casal: Casal): boolean => casal.fases.length > 0 &
 export const viraramAmigos = (casal: Casal): boolean => faseAtual(casal)?.tipo === 'amizade';
 
 /**
+ * Ex de verdade: o casal acabou e não virou amizade. O ex que virou amigo se comporta como laço do
+ * coração em todo o site (observação do Gui, 18/11/2026, o caso do Thiago): não é ex na página, na
+ * árvore, no círculo nem nas escolhas de como o ex aparece.
+ */
+export const ehEx = (casal: Casal): boolean => casalDesfeito(casal) && !viraramAmigos(casal);
+
+/**
  * Para a árvore (observação do Gui, 18/11/2026): o casal que virou amizade sai dos casais e entra como
  * amizade, desenhada com a linha tracejada do coração. A página do laço continua com a história toda.
  */
@@ -33,7 +40,7 @@ export function separarAmizades<C extends Casal>(casais: readonly C[]): { casais
 export function exesDe(pessoa: string, casais: readonly Casal[]): Set<string> {
   const ex = new Set<string>();
   for (const c of casais) {
-    if (!casalDesfeito(c)) continue;
+    if (!ehEx(c)) continue;
     if (c.a === pessoa) ex.add(c.b);
     if (c.b === pessoa) ex.add(c.a);
   }

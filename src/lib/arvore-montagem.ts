@@ -38,7 +38,7 @@ export interface DadosDaArvore {
    * como ex-casal, e sim com a linha tracejada do coração, na mesma geração, à vista sem precisar abrir os
    * laços de ninguém. A história do namoro continua na página do laço. Ver separarAmizades, em ex-casal.ts.
    */
-  amizades?: { a: string; b: string }[];
+  amizades?: { a: string; b: string; rotulo?: string }[];
 }
 
 type LacoNaMontagem = { dono: string; pessoa: string; papel: Papel | null; rotulo: string; sangue?: boolean };
@@ -120,7 +120,7 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     // O ex que virou amigo: tracejado do coração, na mesma geração, com a camada de consideração e
     // coração, sem depender de quem abriu os laços (antes ele aparecia sempre, como ex-casal)
     const amizades: LacoNaMontagem[] = estado.consideracao
-      ? (dados.amizades ?? []).filter((a) => dentro(a.a, a.b)).map((a) => ({ dono: a.a, pessoa: a.b, papel: 'irmao', rotulo: 'amizade' }))
+      ? (dados.amizades ?? []).filter((a) => dentro(a.a, a.b)).map((a) => ({ dono: a.a, pessoa: a.b, papel: 'irmao', rotulo: a.rotulo ?? 'amizade' }))
       : [];
 
     // 1b. A linha direta: os centros, os ancestrais, os irmãos, os descendentes e os casais.

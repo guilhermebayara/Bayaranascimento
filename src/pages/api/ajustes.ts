@@ -1,6 +1,7 @@
 // Ajustes do acervo, escolhidos pelos administradores (migração 073). Hoje: os centros da árvore.
 import type { APIRoute } from 'astro';
 import { comLacoDeArvore } from '../../lib/arvore-montagem';
+import { separarAmizades } from '../../lib/ex-casal';
 import { AJUSTE_DOS_CENTROS, centrosValidos } from '../../lib/centros-da-arvore';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { modeloDeTranscricao } from '../../lib/servidor/ambiente';
@@ -33,7 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (acao === 'centros') {
     // Só serve quem o administrador vê e tem laço de árvore: quem ele não vê responde como quem não existe
     const integrantes = new Set((await listarIntegrantesQueVe(usuario)).map((i) => i.id));
-    const comLaco = comLacoDeArvore({ filiacoes: (await listarFiliacoes()).map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })), casais: (await listarCasais(usuario)).filter((c) => c.fases.length > 0).map((c) => ({ a: c.a, b: c.b, ex: false })) });
+    const comLaco = comLacoDeArvore({ filiacoes: (await listarFiliacoes()).map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })), casais: separarAmizades(await listarCasais(usuario)).casais.map((c) => ({ a: c.a, b: c.b, ex: false })) });
     const centros = centrosValidos(dados.getAll('centro').map(String), (id) => integrantes.has(id) && comLaco.has(id));
     if (centros.length === 0) return voltar(request, PAGINA, { erro: 'Escolha pelo menos uma pessoa com pais, filhos ou casal no acervo.' });
     await salvarAjuste(AJUSTE_DOS_CENTROS, centros, usuario);
