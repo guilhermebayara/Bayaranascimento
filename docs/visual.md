@@ -169,7 +169,7 @@ O CSS está em `src/visual/` e os componentes em `src/components/visual/`. A pá
 | Recado de "salvou" ou de erro | `Recado.astro` | `<Recado>` ou `<Recado erro>` |
 | Tela sem nada para mostrar | `Vazio.astro` | `<Vazio frase="…">` com a ação dentro |
 | As ações de apagar de uma tela de editar | `ZonaDePerigo.astro` (classe `perigo`) | `<ZonaDePerigo>` no fim da página, fora do formulário que salva, com uma frase e o link para a confirmação. É quieta: um fio na cor de alerta em cima, sem fundo. `menor nivel={4}` dentro de um cartão, como o editor de um laço. Quem usa decide se ela aparece, pela permissão de sempre |
-| Uma escolha só entre poucas | `Segmentado.astro` | Com links, sem script. Só entra onde o Gui decidir (ver "Decidido, a construir", em `docs/decisoes.md`) |
+| Uma escolha só entre poucas | `Segmentado.astro` | `rotulo`, `nome`, `opcoes` (`valor`, `texto`, `atual`), `travado` e `explicacao` (o id do texto colado embaixo). Cada opção é um rádio, que vai junto com o formulário e funciona sem script. Só em "Quem pode ver?" da nova memória; outro uso é decisão do Gui, porque em Pessoas ele confundia (dava a entender que mudava a forma de organizar) |
 | Ícone de tipo, rabisco de caneta | `IconeDoTipo.astro`, `Rabisco.astro` | São enfeite: o texto está sempre escrito ao lado. Os desenhos estão em `src/visual/rabiscos.ts` |
 | A ação principal da tela | classe `botao` | Uma por tela. `aria-disabled="true"` ou `disabled` para o estado sem poder agir |
 | As outras ações | classes `acao` e `acao--quieta` | Texto sublinhado, em link ou em `<button>` |

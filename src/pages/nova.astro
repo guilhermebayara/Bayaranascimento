@@ -12,6 +12,7 @@ import { estiloDoTipo, legendaLugarAno } from '../lib/visual';
 import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { alcanceDaCorrecao, podeEditarMemoria, podeExcluirMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
 import ZonaDePerigo from '../components/visual/ZonaDePerigo.astro';
+import Segmentado from '../components/visual/Segmentado.astro';
 import { familiasDe, listarAudiosDosRelatos, listarCapitulos, listarCasais, listarMemorias, listarFiliacoes, listarIntegrantes, listarIntegrantesQueVe, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
 
 // Esta página serve para três coisas: registrar uma memória nova, continuar
@@ -90,6 +91,12 @@ const noCapitulo = !memoria ? capitulosReunidos.find((c) => c.id === Astro.url.s
 // A foto-chave, para o resumo ao lado do formulário (só no computador)
 const fotoChave = memoria?.fotos.find((f) => f.principal) ?? memoria?.fotos[0];
 const ONDE_HA_LADO = '(min-width: 62rem)';
+// "Quem pode ver?": o que cada escolha quer dizer, colado no seletor
+const soFamilias = memoria?.visibilidade === 'nucleos';
+const EXPLICA_QUEM_VE = {
+  todos: 'Todo mundo que entra no acervo vê esta memória. Dá para mudar depois.',
+  nucleos: 'Só quem é das famílias escolhidas abaixo vê. Quem não pode ver não fica sabendo que a memória existe.',
+};
 const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'Continuar rascunho';
 ---
 
@@ -339,20 +346,29 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     </section>
 
     <section data-etapa="Quem vê">
-    <fieldset>
+    {/* O seletor segmentado no lugar dos dois rádios (decisão do Gui, 17 e 18/11/2026, conceito da
+        sessão D): a escolha e a explicação dela ficam juntas, e as famílias são um grupo à parte, longe
+        da escolha, com o rótulo colado nelas. Os textos acompanham a escolha (o script, abaixo); sem
+        script, valem os da escolha com que a página abriu. */}
+    <fieldset class="quem-pode-ver">
       <legend>Quem pode ver?</legend>
-      <label class="marcar">
-        <input type="radio" name="visibilidade" value="todos" checked={(memoria?.visibilidade ?? 'todos') === 'todos'} disabled={travaQuemVe} />
-        <span>Toda a família vê</span>
-      </label>
-      <label class="marcar">
-        <input type="radio" name="visibilidade" value="nucleos" checked={memoria?.visibilidade === 'nucleos'} disabled={travaQuemVe} />
-        <span>Só quem é das famílias marcadas abaixo</span>
-      </label>
+      <div class="quem-pode-ver__escolha">
+        <Segmentado
+          rotulo="Quem pode ver"
+          nome="visibilidade"
+          travado={travaQuemVe}
+          explicacao="quem-ve-explica"
+          opcoes={[
+            { valor: 'todos', texto: 'Toda a família', atual: !soFamilias },
+            { valor: 'nucleos', texto: 'Famílias escolhidas', atual: soFamilias },
+          ]}
+        />
+        <p class="dica" id="quem-ve-explica" data-quem-ve-explica={travaQuemVe ? undefined : JSON.stringify(EXPLICA_QUEM_VE)}>{travaQuemVe ? `Só ${quemCriou}, que criou a memória, muda quem pode ver.` : soFamilias ? EXPLICA_QUEM_VE.nucleos : EXPLICA_QUEM_VE.todos}</p>
+      </div>
       {
         nucleosDisponiveis.length > 0 && (
-          <div class="campo">
-            <span id="rotulo-nucleos">De quais famílias é esta memória?</span>
+          <div class="campo quem-pode-ver__familias">
+            <span id="rotulo-nucleos" data-rotulo-nucleos>{soFamilias ? 'Quais famílias podem ver?' : 'De quais famílias é esta memória?'}</span>
             <div class="opcoes" role="group" aria-labelledby="rotulo-nucleos">
               {nucleosDisponiveis.map((n) => (
                 <label class="opcao">
@@ -361,14 +377,14 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
                 </label>
               ))}
             </div>
+            <p class="dica" data-nucleos-explica hidden={soFamilias}>Todos veem. As famílias marcadas servem para achar a memória no filtro de família.</p>
+            <p class="dica" data-nucleos-sugeridos hidden>Marcamos as famílias de quem estava na memória. Confira e mude se precisar.</p>
           </div>
         )
       }
-      <p class="dica" data-nucleos-sugeridos hidden>Marcamos as famílias de quem estava na memória. Confira e mude se precisar.</p>
       <script type="application/json" data-familias-pessoas set:html={JSON.stringify(familiasPorPessoa).replace(/</g, '\\u003c')} />
       {travaQuemVe && <input type="hidden" name="visibilidade" value={memoria!.visibilidade} />}
       {travaNucleos && memoria!.nucleos.map((n) => <input type="hidden" name="nucleos" value={n} />)}
-      <p class="dica">{travaQuemVe ? `Só ${quemCriou}, que criou a memória, muda quem pode ver.` : 'Dá para mudar depois. Quem não pode ver não fica sabendo que a memória existe.'}</p>
     </fieldset>
       <div class="resumo" data-resumo hidden>
         <h2>{publicada ? 'Confira antes de salvar' : 'Confira antes de publicar'}</h2>
@@ -579,6 +595,20 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
       const aviso = form.querySelector<HTMLElement>('[data-nucleos-sugeridos]');
       if (aviso) aviso.hidden = false;
     };
+    // "Quem pode ver?": a explicação colada no seletor e o rótulo das famílias dizem o que a escolha
+    // de agora quer dizer
+    const explicaQuemVe = form.querySelector<HTMLElement>('[data-quem-ve-explica]');
+    const explicarQuemVe = () => {
+      const so = form.querySelector<HTMLInputElement>('input[name="visibilidade"]:checked')?.value === 'nucleos';
+      const textos = explicaQuemVe?.dataset.quemVeExplica ? (JSON.parse(explicaQuemVe.dataset.quemVeExplica) as Record<string, string>) : undefined;
+      if (explicaQuemVe && textos) explicaQuemVe.textContent = so ? textos.nucleos : textos.todos;
+      const rotuloNucleos = form.querySelector<HTMLElement>('[data-rotulo-nucleos]');
+      if (rotuloNucleos) rotuloNucleos.textContent = so ? 'Quais famílias podem ver?' : 'De quais famílias é esta memória?';
+      const nucleosExplica = form.querySelector<HTMLElement>('[data-nucleos-explica]');
+      if (nucleosExplica) nucleosExplica.hidden = so;
+    };
+    for (const r of form.querySelectorAll<HTMLInputElement>('input[name="visibilidade"]')) r.addEventListener('change', explicarQuemVe);
+    explicarQuemVe();
     // A frase da abertura e o resumo ao lado acompanham o preenchimento (escritos mais abaixo)
     const fraseDaAbertura = document.querySelector<HTMLElement>('[data-frase-abertura]');
     const aoLado = form.querySelector<HTMLElement>('[data-ao-lado]');

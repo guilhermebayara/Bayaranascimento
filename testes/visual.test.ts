@@ -661,7 +661,7 @@ describe('grupo formularios', () => {
       const naTela = [...texto.matchAll(/>([^<>{}]*)</g)].map((m) => m[1]).join(' ');
       expect(naTela, fim).not.toMatch(/n[úu]cleo/i);
     }
-    expect(fonte('pages/nova.astro')).toContain('Só quem é das famílias marcadas abaixo');
+    expect(fonte('pages/nova.astro')).toContain('Só quem é das famílias escolhidas abaixo');
     expect(fonte('pages/nova.astro')).toContain('De quais famílias é esta memória?');
     expect(fonte('FichaDoCapitulo.astro')).toContain('Só quem é das famílias marcadas abaixo');
     // A segunda metade do grupo: a ficha da pessoa, o histórico e o espelho

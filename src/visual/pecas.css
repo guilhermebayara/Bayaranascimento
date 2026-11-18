@@ -493,7 +493,23 @@ a.polaroid__foto {
   background: var(--papel-recuo);
   font-size: var(--t-pequeno);
 }
-.segmentado a {
+/* Cada opção é um rádio: o rádio cobre a opção inteira, invisível, e o texto desenha o estado */
+.segmentado label {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  cursor: pointer;
+}
+.segmentado input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.segmentado label > span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -502,22 +518,33 @@ a.polaroid__foto {
   border-radius: var(--raio-pilula);
   color: var(--tinta-suave);
   font-weight: 500;
-  text-decoration: none;
+  text-align: center;
   white-space: nowrap;
+  transition:
+    background var(--tempo-curto) var(--curva),
+    box-shadow var(--tempo-curto) var(--curva),
+    color var(--tempo-curto) var(--curva);
 }
-.segmentado a[aria-current] {
+.segmentado input:checked + span {
   background: var(--branco);
   box-shadow: var(--sombra-bilhete);
   color: var(--tinta);
 }
 @media (hover: hover) {
-  .segmentado a:not([aria-current]):hover {
+  .segmentado label:hover > input:not(:checked, :disabled) + span {
     color: var(--tinta);
   }
 }
-.segmentado a:focus-visible {
+.segmentado input:focus-visible + span {
   outline: var(--traco) solid var(--tinta);
   outline-offset: 2px;
+}
+/* Travado: quem não pode mudar vê o valor de agora, e a outra opção apagada */
+.segmentado input:disabled {
+  cursor: not-allowed;
+}
+.segmentado input:disabled:not(:checked) + span {
+  opacity: 0.55;
 }
 
 .bloco .pilula {

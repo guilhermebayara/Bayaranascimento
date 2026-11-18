@@ -924,6 +924,38 @@
   background: var(--alerta);
 }
 
+/* --- "Quem pode ver?": o seletor segmentado com a explicação colada nele, e as famílias à parte ---
+   Decisão do Gui de 18/11/2026 (conceito da sessão D). Três distâncias, do menor para o maior: a
+   explicação colada no seletor, a pergunta perto dos dois, e as famílias num grupo bem mais longe,
+   com o rótulo colado nelas ("Gestalt em toda tela", em docs/visual.md). */
+
+.pagina-de-formulario .quem-pode-ver {
+  gap: var(--e-7);
+}
+.pagina-de-formulario .quem-pode-ver > legend {
+  margin-bottom: var(--e-4);
+}
+.pagina-de-formulario .quem-pode-ver__escolha {
+  display: grid;
+  justify-items: start;
+  gap: var(--e-2);
+}
+.pagina-de-formulario .quem-pode-ver__escolha .segmentado {
+  font-size: var(--t-corpo);
+}
+.pagina-de-formulario .quem-pode-ver__escolha .segmentado label > span {
+  padding-inline: var(--e-3);
+}
+.pagina-de-formulario .quem-pode-ver__familias {
+  gap: var(--e-2);
+  max-width: none;
+}
+@media (min-width: 40rem) {
+  .pagina-de-formulario .quem-pode-ver__escolha .segmentado label > span {
+    padding-inline: var(--e-6);
+  }
+}
+
 /* --- O resumo antes de publicar e a confirmação --------------------------------------------------- */
 
 .pagina-de-formulario .resumo {
