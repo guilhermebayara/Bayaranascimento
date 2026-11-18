@@ -244,12 +244,8 @@ const telas = [
       </nav>
       <div class="rodape__linha">
         <p>
+          {/* "Sair" mora só no menu da conta, no retrato (resposta do Gui aos PRs #56 a #60, 17/11/2026) */}
           <span>Acervo privado da família. Você entrou como {usuario.nome}.</span>
-          {saida && (
-            <a class="acao acao--quieta" href={saida}>
-              Sair
-            </a>
-          )}
         </p>
         <a class="rodape__alto acao acao--quieta" href="#alto">
           Voltar ao alto

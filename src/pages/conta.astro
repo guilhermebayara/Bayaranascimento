@@ -17,7 +17,6 @@ import { formatarData, jaFaleceu } from '../lib/datas';
 import { familiaMaisRecente } from '../lib/familias';
 import { PROXIMIDADES, lacoParaODono } from '../lib/parentesco';
 import { enderecoDoRetrato } from '../lib/retratos';
-import { ENDERECO_DE_SAIDA, temLogin } from '../lib/servidor/acesso';
 import { montarConta } from '../lib/servidor/conta';
 import { familiasDe, listarAvisos, listarCasais, listarFiliacoes, listarNucleos, obterCarta } from '../lib/servidor/repositorio';
 import { carimboDaData, corDaPessoa, corDoNucleo } from '../lib/visual';
@@ -51,7 +50,6 @@ const criados = [
 // A carta de Natal mora também aqui, para todos, e a saída da conta fica no fim, onde há login
 // (respostas do Gui às P5 e P4 do QA de design, 17/11/2026)
 const carta = await obterCarta();
-const saida = temLogin() ? ENDERECO_DE_SAIDA : undefined;
 // As memórias e as fotos chegam da mais antiga para a mais nova; os relatos, do mais recente para o mais antigo
 const memoriasCriadas = oComeco([...criou.memorias].reverse());
 const relatosCriados = oComeco(criou.relatos);
@@ -297,16 +295,6 @@ const erro = Astro.url.searchParams.get('erro');
             {conta.banco && <span class="ficha suave">Banco: {conta.banco}</span>}
           </p>
         </section>
-      )
-    }
-
-    {
-      saida && (
-        <p class="conta__sair">
-          <a class="acao acao--quieta" href={saida}>
-            Sair
-          </a>
-        </p>
       )
     }
   </div>

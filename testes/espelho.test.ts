@@ -134,20 +134,49 @@ describe('espelho da produção para a homologação', () => {
 
 // Achado ao construir "Época e capítulo" (migração 019): uma tabela nova que aponta para pessoas ou
 // capítulos precisa ser apagada pelo espelho antes delas, senão o espelho falha ou guarda dado real.
+// O espelho lê a cópia mensal, que leva todas as tabelas: o que a lista não apaga passa para a
+// homologação. Resposta do Gui aos PRs #56 a #60 (17/11/2026): além de REFERENCES, as colunas
+// memoria_id e relato_id também contam, porque a tabela avisos aponta para memórias e relatos sem
+// REFERENCES e só entrou na lista à mão.
 describe('tabelas que o espelho apaga', () => {
   const banco = Object.values(import.meta.glob<string>('../src/lib/servidor/banco.ts', { query: '?raw', import: 'default', eager: true }))[0]!;
-  const tabelas = [...banco.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?(\w+) \(([\s\S]*?)\)`/g)]
-    .map(([, nome, corpo]) => ({ nome: nome!.replace(/_novo$/, ''), corpo: corpo! }))
-    .filter((t) => /REFERENCES (integrantes|capitulos|memorias|relatos)\(/.test(t.corpo));
+  const PELA_COLUNA: Record<string, string> = { memoria_id: 'memorias', relato_id: 'relatos' };
+  const PROTEGIDAS = ['integrantes', 'capitulos', 'memorias', 'relatos'];
+  const alvos = new Map<string, Set<string>>();
+  const anotar = (tabela: string, alvo: string) => {
+    if (tabela === alvo) return;
+    if (!alvos.has(tabela)) alvos.set(tabela, new Set());
+    alvos.get(tabela)!.add(alvo);
+  };
+  const lerColunas = (tabela: string, trecho: string) => {
+    for (const [, alvo] of trecho.matchAll(/REFERENCES\s+(\w+)\s*\(/g)) anotar(tabela, alvo!);
+    for (const [, coluna] of trecho.matchAll(/(?:^|[(,]|ADD COLUMN)\s*(memoria_id|relato_id)\s+\w/gm)) anotar(tabela, PELA_COLUNA[coluna!]!);
+  };
+  for (const [, nome, corpo] of banco.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?(\w+) \(([\s\S]*?)\)`/g)) lerColunas(nome!.replace(/_novo$/, ''), corpo!);
+  for (const [, nome, coluna] of banco.matchAll(/ALTER TABLE (\w+) ADD COLUMN ([^`]*)`/g)) lerColunas(nome!.replace(/_novo$/, ''), `ADD COLUMN ${coluna}`);
+  const tabelas = [...alvos].filter(([, a]) => [...a].some((alvo) => PROTEGIDAS.includes(alvo)));
 
   it('toda tabela que aponta para pessoas, memórias, relatos ou capítulos é apagada, antes daquela para a qual aponta', () => {
     expect(tabelas.length).toBeGreaterThan(5);
-    for (const t of tabelas) {
-      expect(TABELAS_APAGADAS, t.nome).toContain(t.nome);
-      for (const [, alvo] of t.corpo.matchAll(/REFERENCES (\w+)\(/g)) {
-        if (alvo === t.nome || !TABELAS_APAGADAS.includes(alvo!)) continue;
-        expect(TABELAS_APAGADAS.indexOf(t.nome), `${t.nome} antes de ${alvo}`).toBeLessThan(TABELAS_APAGADAS.indexOf(alvo!));
+    for (const [nome, apontadas] of tabelas) {
+      expect(TABELAS_APAGADAS, nome).toContain(nome);
+      for (const alvo of apontadas) {
+        if (!TABELAS_APAGADAS.includes(alvo)) continue;
+        expect(TABELAS_APAGADAS.indexOf(nome), `${nome} antes de ${alvo}`).toBeLessThan(TABELAS_APAGADAS.indexOf(alvo));
       }
     }
+  });
+
+  it('pega pelas colunas memoria_id e relato_id a tabela que não tem REFERENCES, como a dos avisos', () => {
+    expect([...(alvos.get('avisos') ?? [])].sort()).toEqual(['memorias', 'relatos']);
+    // E a coluna acrescentada depois, por ALTER TABLE, também conta
+    expect(alvos.get('fotos')?.has('relatos')).toBe(true);
+    // Uma tabela nova com memoria_id e sem REFERENCES, fora da lista, faria o teste falhar
+    const antes = alvos.size;
+    lerColunas('teste_nova', '\n        id INTEGER PRIMARY KEY,\n        memoria_id TEXT NOT NULL,\n        texto TEXT');
+    expect(alvos.get('teste_nova')).toEqual(new Set(['memorias']));
+    expect(TABELAS_APAGADAS).not.toContain('teste_nova');
+    alvos.delete('teste_nova');
+    expect(alvos.size).toBe(antes);
   });
 });

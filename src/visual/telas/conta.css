@@ -213,10 +213,6 @@
   gap: var(--e-2) var(--e-5);
   margin-top: var(--e-7);
 }
-.conta__sair {
-  margin-top: var(--e-7);
-}
-
 .conta__admin {
   margin-top: var(--e-8);
   padding-top: var(--e-5);
