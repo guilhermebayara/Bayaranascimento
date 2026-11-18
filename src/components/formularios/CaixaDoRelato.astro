@@ -1,0 +1,66 @@
+---
+// O relato num campo só (observação do Gui depois da sessão H, 18/11/2026): escrever e falar com o mesmo
+// peso. Uma caixa grande, que cresce com o texto, com o microfone no canto dela, como no WhatsApp, e os
+// áudios gravados como balões dentro da mesma caixa. Conceito com duas propostas (branch tst-relato):
+//   A, "Mensagem": a caixa de escrever de um aplicativo de conversa. Os balões no alto, o texto embaixo e,
+//      no pé da caixa, anexar à esquerda e o microfone à direita.
+//   B, "Bilhete": a caixa é o próprio bilhete, como ele vai aparecer na memória: os balões, o texto, as
+//      fotos desse dia e a assinatura à mão, com o microfone no canto de baixo.
+// O script dos áudios é o de sempre (src/lib/cliente/audios.ts): a marcação guarda os mesmos data-*.
+// Sem script, fica só a caixa de texto: gravar e anexar dependem dele.
+interface Props {
+  proposta: 'a' | 'b';
+  transcricaoAutomatica: string;
+  /** o nome do campo de texto no formulário */
+  nome: string;
+  texto: string;
+  desabilitado?: boolean;
+  /** quem assina o bilhete (proposta B) */
+  assinatura: string;
+}
+const { proposta, transcricaoAutomatica, nome, texto, desabilitado = false, assinatura } = Astro.props;
+const convite = proposta === 'a' ? 'Escreva como foi, ou toque no microfone e conte falando.' : 'Como foi? Escreva aqui, ou toque no microfone e conte falando.';
+---
+
+<div class={`relato-caixa relato-caixa--${proposta}`} data-audios data-caixa-relato data-transcricao-automatica={transcricaoAutomatica}>
+  <ol class="audios__lista relato-caixa__audios" data-lista-audios aria-label="Áudios do relato"></ol>
+  <label class="so-leitor" for="relato-texto">O relato escrito</label>
+  <textarea id="relato-texto" class="relato-caixa__texto" name={nome} rows="6" maxlength="20000" placeholder={convite} disabled={desabilitado}>{texto}</textarea>
+  <slot name="dentro" />
+  <div class="relato-caixa__pe" data-pe-da-caixa hidden>
+    {proposta === 'b' && <span class="mao relato-caixa__assina" aria-hidden="true">{assinatura}</span>}
+    <label class="relato-caixa__anexar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5 12.4 19a5 5 0 0 1-7.1-7.1l7.8-7.8a3.3 3.3 0 0 1 4.7 4.7l-7.6 7.6a1.7 1.7 0 0 1-2.4-2.4l7-7"></path></svg>
+      <span>Anexar áudio<span class="so-leitor"> do celular</span></span>
+      <input type="file" accept="audio/*,.opus,.ogg,.m4a,.mp3,.wav,.webm" multiple data-enviar-audio class="oculto-visualmente" />
+    </label>
+    <div class="gravador relato-caixa__gravador" data-gravador>
+      <span class="gravador__texto" data-gravador-texto>Toque no microfone para gravar</span>
+      <button type="button" class="gravador__cancelar" data-cancelar-gravacao hidden>Cancelar</button>
+      <button type="button" class="gravador__botao" data-gravar aria-label="Gravar áudio">
+        <svg class="gravador__mic" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="9" y="3" width="6" height="11" rx="3"></rect>
+          <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"></path>
+        </svg>
+        <svg class="gravador__parar" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="7" y="7" width="10" height="10" rx="1.5"></rect>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <p class="gravador__dica dica relato-caixa__dica" data-gravador-dica hidden></p>
+  <p class="situacao relato-caixa__situacao" data-situacao-audio role="status" aria-live="polite"></p>
+</div>
+
+<script>
+  // A caixa cresce com o texto. Onde o navegador já faz isso sozinho (field-sizing), o CSS cuida.
+  for (const caixa of document.querySelectorAll<HTMLTextAreaElement>('[data-caixa-relato] textarea')) {
+    if (CSS.supports('field-sizing', 'content')) continue;
+    const crescer = () => {
+      caixa.style.height = 'auto';
+      caixa.style.height = `${caixa.scrollHeight}px`;
+    };
+    caixa.addEventListener('input', crescer);
+    crescer();
+  }
+</script>

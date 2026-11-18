@@ -2833,3 +2833,288 @@
 .pagina-de-formulario .reconhece__painel[hidden] {
   display: none;
 }
+
+/* --- O relato num campo só (conceito, branch tst-relato) ------------------------------------------
+   Observação do Gui depois da sessão H (18/11/2026): escrever e falar com o mesmo peso. Uma caixa só,
+   que cresce com o texto, com o microfone no canto e os áudios como balões dentro dela. Duas propostas:
+   A, "Mensagem" (a caixa de escrever de um aplicativo de conversa) e B, "Bilhete" (a caixa é o bilhete
+   como ele vai aparecer na memória). Marcação em src/components/formularios/CaixaDoRelato.astro. */
+
+.pagina-de-formulario .barra-do-conceito {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2) var(--e-4);
+  margin-bottom: var(--e-5);
+  padding: var(--e-2) var(--e-4);
+  border-radius: var(--raio-pilula);
+  background: var(--papel-recuo);
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .barra-do-conceito a {
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .barra-do-conceito a[aria-current] {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
+/* A pergunta e a caixa: "Como foi?" colado na caixa, e o resto do formulário bem mais longe */
+.pagina-de-formulario .relato {
+  gap: var(--e-3);
+}
+.pagina-de-formulario .relato > .dica {
+  margin-top: var(--e-1);
+}
+.pagina-de-formulario .relato > .mais-opcoes {
+  margin-top: var(--e-5);
+}
+
+.pagina-de-formulario .relato-caixa {
+  position: relative;
+  display: grid;
+  gap: var(--e-4);
+}
+.pagina-de-formulario .relato-caixa__audios {
+  display: grid;
+  gap: var(--e-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pagina-de-formulario .relato-caixa__audios:empty {
+  display: none;
+}
+.pagina-de-formulario .relato-caixa__audios > .audio {
+  display: grid;
+  gap: var(--e-1);
+  width: min(100%, 22rem);
+}
+.pagina-de-formulario textarea.relato-caixa__texto {
+  width: 100%;
+  box-shadow: none;
+  min-height: 9rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--t-leitura);
+  line-height: 1.5;
+  resize: none;
+  field-sizing: content;
+}
+.pagina-de-formulario textarea.relato-caixa__texto:focus-visible {
+  outline: none;
+  background: none;
+  box-shadow: none;
+}
+.pagina-de-formulario .relato-caixa__texto::placeholder {
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .relato-caixa:has(.relato-caixa__texto:focus-visible) {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 3px;
+}
+.pagina-de-formulario .relato-caixa__pe[hidden] {
+  display: none;
+}
+.pagina-de-formulario .relato-caixa__pe {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+}
+.pagina-de-formulario .relato-caixa__anexar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-height: var(--toque);
+  padding-inline: var(--e-2);
+  border-radius: var(--raio-pilula);
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+  cursor: pointer;
+}
+.pagina-de-formulario .relato-caixa__anexar svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.pagina-de-formulario .relato-caixa__anexar:focus-within {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .pagina-de-formulario .relato-caixa__anexar:hover {
+    color: var(--tinta);
+  }
+}
+/* A barra de gravar vira o canto da caixa: sem contorno próprio, o microfone na ponta */
+.pagina-de-formulario .relato-caixa__gravador {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+.pagina-de-formulario .relato-caixa__gravador {
+  justify-content: flex-end;
+}
+/* Parada, a barra não repete o convite: ele já está na caixa. Gravando, ela mostra o tempo */
+.pagina-de-formulario .relato-caixa__gravador:not(.gravador--gravando) .gravador__texto {
+  display: none;
+}
+.pagina-de-formulario .relato-caixa__gravador .gravador__texto {
+  text-wrap: balance;
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .relato-caixa__gravador.gravador--gravando {
+  box-shadow: none;
+}
+.pagina-de-formulario .relato-caixa__gravador.gravador--gravando .gravador__texto {
+  justify-content: flex-start;
+  font-size: var(--t-corpo);
+}
+.pagina-de-formulario .relato-caixa:has(.gravador--gravando) .relato-caixa__anexar,
+.pagina-de-formulario .relato-caixa:has(.gravador--gravando) .relato-caixa__assina {
+  display: none;
+}
+.pagina-de-formulario .relato-caixa__dica,
+.pagina-de-formulario .relato-caixa__situacao {
+  margin: 0;
+  padding-inline: 0;
+}
+.pagina-de-formulario .relato-caixa__situacao {
+  font-weight: 400;
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .relato-caixa__situacao:empty {
+  display: none;
+}
+
+/* A, "Mensagem": a caixa branca de um aplicativo de conversa. Os balões ficam à direita, como as
+   mensagens que a gente manda; o pé, com um fio em cima, tem anexar e o microfone. */
+.pagina-de-formulario .relato-caixa--a {
+  padding: var(--e-4) var(--e-4) var(--e-2);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+  box-shadow: inset 0 0 0 1px var(--fio);
+}
+.pagina-de-formulario .relato-caixa--a .relato-caixa__audios {
+  justify-items: end;
+}
+.pagina-de-formulario .relato-caixa--a .relato-caixa__audios > .audio {
+  justify-items: end;
+}
+.pagina-de-formulario .relato-caixa--a .relato-caixa__texto {
+  padding-inline: var(--e-1);
+}
+.pagina-de-formulario .relato-caixa--a .relato-caixa__pe {
+  margin-inline: calc(var(--e-4) * -1);
+  padding: var(--e-2) var(--e-2) 0 var(--e-3);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .relato-caixa--a:has(.gravador--gravando) {
+  box-shadow: inset 0 0 0 var(--traco) var(--alerta);
+}
+.pagina-de-formulario .relato-caixa--a .relato-caixa__dica,
+.pagina-de-formulario .relato-caixa--a .relato-caixa__situacao {
+  padding-inline: var(--e-1);
+}
+/* As fotos, na A, vêm depois da caixa, como um acréscimo quieto: o título vira rótulo */
+.pagina-de-formulario .fotos-do-relato--a > legend {
+  font-family: inherit;
+  font-size: var(--t-corpo);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* B, "Bilhete": a caixa é o bilhete como ele vai aparecer na memória. Os balões à esquerda, o texto em
+   corpo de leitura, as fotos desse dia e, no pé, a assinatura à mão de quem conta e o microfone no canto. */
+.pagina-de-formulario .relato-caixa--b {
+  gap: var(--e-5);
+  padding: clamp(1.5rem, 1.1rem + 1.6vw, 2.75rem);
+  padding-bottom: var(--e-5);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+.pagina-de-formulario .relato-caixa--b .relato-caixa__texto::placeholder {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-abertura);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.2;
+}
+.pagina-de-formulario .relato-caixa--b .relato-caixa__audios,
+.pagina-de-formulario .relato-caixa--b .relato-caixa__audios > .audio {
+  justify-items: start;
+}
+.pagina-de-formulario .relato-caixa--b .audio__balao {
+  border-radius: var(--raio-bloco) var(--raio-bloco) var(--raio-bloco) var(--raio-foto);
+}
+.pagina-de-formulario .relato-caixa--b .audio__acoes {
+  justify-content: flex-start;
+}
+.pagina-de-formulario .relato-caixa--b .relato-caixa__pe {
+  padding-top: var(--e-3);
+}
+.pagina-de-formulario .relato-caixa--b .relato-caixa__assina {
+  flex: none;
+  font-size: var(--t-titulo-3);
+  rotate: -3deg;
+  transform-origin: left bottom;
+}
+.pagina-de-formulario .relato-caixa--b .relato-caixa__anexar {
+  margin-left: auto;
+}
+.pagina-de-formulario .relato-caixa--b .relato-caixa__gravador {
+  flex: none;
+}
+.pagina-de-formulario .relato-caixa--b .relato-caixa__gravador.gravador--gravando {
+  flex: 1;
+}
+/* O microfone no canto do bilhete, maior, como um selo */
+.pagina-de-formulario .relato-caixa--b .gravador__botao {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+/* As fotos desse dia dentro do bilhete: o título vira rótulo pequeno, e a explicação sai */
+.pagina-de-formulario .fotos-do-relato--b {
+  gap: var(--e-2);
+}
+.pagina-de-formulario .fotos-do-relato--b > legend {
+  float: left;
+  width: 100%;
+  margin-bottom: var(--e-1);
+  padding-top: var(--e-4);
+  border-top: 1px dashed var(--fio);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .fotos-do-relato--b > .dica {
+  display: none;
+}
+
+/* Na B, o bilhete ganha a largura da coluna da memória no computador: ele é a peça da tela */
+@media (min-width: 62rem) {
+  .pagina-de-formulario:has(.relato--b) {
+    --coluna: 44rem;
+  }
+}
+
+/* No celular, a memória de que o relato fala sai, como o comentário da página sempre disse: o nome e a
+   data já estão na abertura, e a foto ao lado não é baixada no celular */
+@media (max-width: 61.99rem) {
+  .pagina-de-formulario .ao-lado--fixo {
+    display: none;
+  }
+}

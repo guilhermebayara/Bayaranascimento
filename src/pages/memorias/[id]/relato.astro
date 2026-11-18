@@ -1,5 +1,6 @@
 ---
-import Gravador from '../../../components/formularios/Gravador.astro';
+import CaixaDoRelato from '../../../components/formularios/CaixaDoRelato.astro';
+import { ambiente } from '../../../lib/servidor/ambiente';
 import { situacaoDaTranscricaoAgora } from '../../../lib/servidor/transcricao';
 import Pagina from '../../../components/formularios/Pagina.astro';
 import Dado from '../../../components/visual/Dado.astro';
@@ -55,9 +56,21 @@ const opcoes = await Promise.all(
 );
 // A transcrição automática dos áudios (onda 2): o botão só aparece onde ela está ligada
 const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
+// Conceito do relato num campo só (branch tst-relato): duas propostas, trocadas pelo endereço. Fora da
+// produção, uma barra no alto troca entre elas.
+const proposta = Astro.url.searchParams.get('conceito') === 'b' ? 'b' : 'a';
+const comBarraDoConceito = ambiente() !== 'producao';
+const trocar = (p: 'a' | 'b') => `${Astro.url.pathname}?conceito=${p}`;
 ---
 
 <Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar">
+  {comBarraDoConceito && (
+    <nav class="barra-do-conceito" aria-label="Propostas do relato" slot="abertura">
+      <span class="ficha suave">Conceito do relato</span>
+      <a href={trocar('a')} aria-current={proposta === 'a' ? 'page' : undefined}>A, mensagem</a>
+      <a href={trocar('b')} aria-current={proposta === 'b' ? 'page' : undefined}>B, bilhete</a>
+    </nav>
+  )}
   <p slot="abertura">
     <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento.
   </p>
@@ -82,15 +95,24 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 
   <form class="formulario" method="post" action="/api/relatos" data-formulario-relato data-memoria={memoria.id} novalidate>
     <input type="hidden" name="memoria" value={memoria.id} />
-    <fieldset>
+    <fieldset class={`relato relato--${proposta}`}>
       <legend>Como foi?</legend>
       <p class="recado" data-bloqueio hidden></p>
-      {/* Áudios (Decidido, a construir; liberado em 16/11/2026). Só com script: gravar e enviar dependem dele */}
-      <Gravador transcricaoAutomatica={transcricaoAutomatica} />
-      <label class="campo">
-        <span>O relato escrito <small data-texto-opcional hidden>(opcional quando há áudio)</small></span>
-        <textarea name="texto" rows="12" maxlength="20000" disabled={opcoes[0].bloqueado}>{opcoes[0].texto}</textarea>
-      </label>
+      {/* O relato num campo só: o texto e os áudios na mesma caixa (conceito, branch tst-relato) */}
+      <CaixaDoRelato proposta={proposta} transcricaoAutomatica={transcricaoAutomatica} nome="texto" texto={opcoes[0].texto} desabilitado={opcoes[0].bloqueado} assinatura={usuario.nome}>
+        {proposta === 'b' && (
+      <fieldset class={`fotos-do-relato fotos-do-relato--${proposta}`} data-fotos-do-relato hidden slot={proposta === 'b' ? 'dentro' : undefined}>
+        <legend>{proposta === 'b' ? 'Fotos desse dia' : 'Tem fotos desse dia?'} <small>(opcional)</small></legend>
+        <p class="dica">Elas entram na memória, junto das outras fotos, e aparecem pequenas no seu relato.</p>
+        <label class="botao botao--leve botao--arquivo">
+          {proposta === 'b' ? 'Pôr fotos' : 'Escolher fotos'}
+          <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
+        </label>
+        <ul class="fotos-enviadas" data-fotos></ul>
+        <p class="situacao" data-situacao-fotos role="status" aria-live="polite"></p>
+      </fieldset>
+        )}
+      </CaixaDoRelato>
       <p class="dica">Só você vai poder alterar este relato.</p>
       {/* Quase sempre quem conta é quem escreve: "Quem está contando" deixou de ser o primeiro campo e
           fica numa linha recolhida, depois do texto, que abre a busca (resposta do Gui à P137 do QA de
@@ -108,17 +130,19 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 
     {/* Fotos pelo relato (decisão do Gui, 16/11/2026): quem conta pode trazer fotos desse dia. Elas
         entram na memória, junto das outras, e aparecem pequenas no relato. Só com script, como na
-        memória: o envio depende dele. */}
-    <fieldset class="fotos-do-relato" data-fotos-do-relato hidden>
-      <legend>Tem fotos desse dia?</legend>
-      <p class="dica">Elas entram na memória, junto das outras fotos, e aparecem pequenas no seu relato. Enquanto o relato for rascunho, só você vê.</p>
-      <label class="botao botao--leve botao--arquivo">
-        Escolher fotos
-        <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
-      </label>
-      <ul class="fotos-enviadas" data-fotos></ul>
-      <p class="situacao" data-situacao-fotos role="status" aria-live="polite"></p>
-    </fieldset>
+        memória: o envio depende dele. Na proposta B, elas ficam dentro do bilhete. */}
+    {proposta === 'a' && (
+      <fieldset class={`fotos-do-relato fotos-do-relato--${proposta}`} data-fotos-do-relato hidden slot={proposta === 'b' ? 'dentro' : undefined}>
+        <legend>{proposta === 'b' ? 'Fotos desse dia' : 'Tem fotos desse dia?'} <small>(opcional)</small></legend>
+        <p class="dica">Elas entram na memória, junto das outras fotos, e aparecem pequenas no seu relato.</p>
+        <label class="botao botao--leve botao--arquivo">
+          {proposta === 'b' ? 'Pôr fotos' : 'Escolher fotos'}
+          <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
+        </label>
+        <ul class="fotos-enviadas" data-fotos></ul>
+        <p class="situacao" data-situacao-fotos role="status" aria-live="polite"></p>
+      </fieldset>
+    )}
 
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
     <div class="acoes">
@@ -176,10 +200,10 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
     const publicar = form.querySelector<HTMLButtonElement>('[data-salvar="publicada"]')!;
     const rascunho = form.querySelector<HTMLButtonElement>('[data-salvar="rascunho"]')!;
     const memoria = form.dataset.memoria!;
-    const textoOpcional = form.querySelector<HTMLElement>('[data-texto-opcional]')!;
-    const audios = ligarAudios(form.querySelector<HTMLElement>('[data-audios]')!, memoria, () => {
-      textoOpcional.hidden = !audios?.lista().length;
-    });
+    const audios = ligarAudios(form.querySelector<HTMLElement>('[data-audios]')!, memoria);
+    // Gravar e anexar só existem com script: o pé da caixa aparece quando os áudios ligam
+    const pe = form.querySelector<HTMLElement>('[data-pe-da-caixa]');
+    if (pe && audios) pe.hidden = false;
 
     const caixaDeFotos = form.querySelector<HTMLElement>('[data-fotos-do-relato]')!;
     const fotos = ligarFotos(caixaDeFotos);
@@ -200,7 +224,8 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       publicar.textContent = opcao.publicado ? 'Salvar alterações' : 'Publicar relato';
       texto.value = opcao.bloqueado ? '' : opcao.texto;
       audios?.carregar(opcao.bloqueado ? [] : opcao.audios);
-      form.querySelector<HTMLElement>('[data-audios]')!.hidden = opcao.bloqueado || !audios;
+      if (pe) pe.hidden = opcao.bloqueado || !audios;
+      texto.dispatchEvent(new Event('input'));
       fotos.carregar(opcao.bloqueado ? [] : opcao.fotos);
       caixaDeFotos.hidden = opcao.bloqueado;
       if (opcao.bloqueado) {

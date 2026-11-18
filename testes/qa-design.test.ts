@@ -84,7 +84,8 @@ describe('formulários em etapas', () => {
   });
   it('sem script, o relato já escrito vem no campo, com o botão certo', () => {
     const relato = ler('src/pages/memorias/[id]/relato.astro');
-    expect(relato).toMatch(/<textarea name="texto"[^>]*>\{opcoes\[0\]\.texto\}<\/textarea>/);
+    expect(relato).toMatch(/<CaixaDoRelato [^>]*nome="texto" texto=\{opcoes\[0\]\.texto\}/);
+    expect(ler('src/components/formularios/CaixaDoRelato.astro')).toMatch(/<textarea [^>]*name=\{nome\}[^>]*>\{texto\}<\/textarea>/);
     expect(relato).toMatch(/opcoes\[0\]\.publicado \? 'Salvar alterações' : 'Publicar relato'/);
     expect(relato).toMatch(/data-salvar="rascunho" hidden=\{opcoes\[0\]\.publicado\}/);
   });

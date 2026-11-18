@@ -103,7 +103,10 @@ describe('o gravador, como mensagem de voz', () => {
   const cliente = ler('src/lib/cliente/audios.ts');
   const css = ler('src/visual/telas/formulario.css');
   it('as duas telas usam a mesma peça, e gravar é a barra com o microfone; anexar fica embaixo, discreto', () => {
-    for (const tela of ['src/pages/nova.astro', 'src/pages/memorias/[id]/relato.astro']) expect(ler(tela), tela).toContain('<Gravador transcricaoAutomatica={transcricaoAutomatica}');
+    // O relato está no conceito do campo só (tst-relato): a caixa leva o mesmo gravador, no canto
+    expect(ler('src/pages/nova.astro')).toContain('<Gravador transcricaoAutomatica={transcricaoAutomatica}');
+    expect(ler('src/pages/memorias/[id]/relato.astro')).toContain('<CaixaDoRelato proposta={proposta} transcricaoAutomatica={transcricaoAutomatica}');
+    expect(ler('src/components/formularios/CaixaDoRelato.astro')).toContain('<button type="button" class="gravador__botao" data-gravar aria-label="Gravar áudio">');
     expect(peca).toContain('<button type="button" class="gravador__botao" data-gravar aria-label="Gravar áudio">');
     expect(peca.indexOf('data-gravador')).toBeLessThan(peca.indexOf('Anexar um áudio do celular'));
     expect(peca).not.toMatch(/botao botao--leve/);
