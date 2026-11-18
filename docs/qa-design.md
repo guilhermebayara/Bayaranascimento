@@ -32,7 +32,7 @@ Como a árvore se desenha e se comporta é travado (ver "Árvore" no `CLAUDE.md`
 
 ## O arquivo de perguntas
 
-Um arquivo só, `docs/qa/AAAA-MM-DD-perguntas.md`, feito para o Gui decidir rápido:
+Um arquivo só, `docs/qa/AAAA-MM-DD-perguntas.md`, feito para o Gui decidir rápido. Fechada a rodada, com as respostas do Gui já nos documentos enxutos, o arquivo vai para `docs/historico/qa/`, e os comentários do código e dos testes que o citam passam a apontar para lá.
 
 - Agrupado por tela, na ordem do menu, e dentro de cada tela da mais importante para a menos.
 - Cada pergunta tem um número único (P1, P2...), uma marca de peso (**muda a experiência**, **ajuste**, **detalhe**), uma ou duas linhas de contexto, o que a sessão observou, e de duas a quatro opções, com a recomendada primeiro e a frase "manter como está" quando fizer sentido.
