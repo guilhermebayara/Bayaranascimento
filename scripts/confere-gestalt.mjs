@@ -33,8 +33,24 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(ENDERECO)) {
   console.error('A conferência só roda no servidor local, com o acervo de exemplo.');
   process.exit(1);
 }
-// O Chromium procura "localhost" no IPv6 primeiro, e o servidor do Astro escuta só no IPv4
-const BASE = ENDERECO.replace('//localhost', '//127.0.0.1');
+// "localhost" é ambíguo: no computador o servidor do Astro escuta só no IPv4, e no GitHub só no IPv6.
+// Vale o primeiro endereço que responder
+async function enderecoQueResponde() {
+  const candidatos = ENDERECO.includes('//localhost')
+    ? [ENDERECO.replace('//localhost', '//127.0.0.1'), ENDERECO.replace('//localhost', '//[::1]')]
+    : [ENDERECO];
+  for (const candidato of candidatos) {
+    try {
+      await fetch(`${candidato}/`, { redirect: 'manual', signal: AbortSignal.timeout(30_000) });
+      return candidato;
+    } catch {
+      // tenta o próximo
+    }
+  }
+  console.error(`Nenhum servidor respondeu em ${candidatos.join(' nem em ')}. Suba o servidor local antes (npm run dev).`);
+  process.exit(1);
+}
+const BASE = await enderecoQueResponde();
 
 const LARGURAS = [
   { nome: 390, width: 390, height: 844 },
