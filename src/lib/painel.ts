@@ -1,5 +1,6 @@
-// Regras puras do painel pessoal (docs/decisoes.md, "Painel pessoal como página inicial").
+// Regras puras do painel pessoal (docs/decisoes.md, "Início (painel pessoal)").
 import type { DataFlexivel } from './datas';
+import { comoOCasalAparece, faseAtual, type Casal } from './parentesco';
 
 export interface Dia {
   ano: number;
@@ -45,7 +46,7 @@ export function emOutrosAnos<T extends DataFlexivel>(memorias: T[], hoje: Dia, m
   return undefined;
 }
 
-// --- Visitas e carta (docs/decisoes.md, "Painel pessoal como página inicial") -----------------
+// --- Visitas e carta (docs/decisoes.md, "Início (painel pessoal)") -----------------
 //
 // Cada pessoa com acesso tem um registro de visitas. Uma visita é uma sequência de idas ao painel
 // sem uma pausa longa: quem volta ao painel depois de PAUSA_ENTRE_VISITAS começa uma visita nova.
@@ -185,6 +186,48 @@ export function aniversarios<P extends PessoaComNascimento>(pessoas: P[], hoje: 
   return lista.sort((a, b) => a.emDias - b.emDias);
 }
 
+// --- Aniversários de casamento ----------------------------------------------------------------
+
+export interface AniversarioDeCasamento {
+  casal: Casal;
+  mes: number;
+  dia: number;
+  /** quantos dias faltam: 0 é hoje */
+  emDias: number;
+  /** quantos anos de casados vão fazer, quando o ano do casamento é conhecido */
+  anos: number | null;
+}
+
+/**
+ * Os aniversários de casamento dos próximos `dias` dias (decisão do Gui, 18/11/2026: "Elizete e Aguilar,
+ * 30 anos de casados"). Só de casais atuais, com o casamento como fase de hoje, e só quando a data do
+ * casamento tem dia e mês. `casais` são os que a pessoa vê (listarCasais já aplica quem vê o casal), e
+ * `sai` diz quem não entra: quem ela não vê, o ex que ela deixou discreto ou fora e quem já faleceu. Se
+ * um dos dois faleceu, o casal não entra: o painel não lembra datas de quem já se foi.
+ */
+export function aniversariosDeCasamento(casais: readonly Casal[], hoje: Dia, sai: (id: string) => boolean, dias = 30): AniversarioDeCasamento[] {
+  const inicio = Date.UTC(hoje.ano, hoje.mes - 1, hoje.dia);
+  const lista: AniversarioDeCasamento[] = [];
+  for (const casal of casais) {
+    const fase = faseAtual(casal);
+    if (!fase || fase.tipo !== 'casamento' || comoOCasalAparece(casal) !== 'casal') continue;
+    if (!fase.inicioMes || !fase.inicioDia || sai(casal.a) || sai(casal.b)) continue;
+    for (const ano of [hoje.ano, hoje.ano + 1]) {
+      const dia = fase.inicioMes === 2 && fase.inicioDia === 29 && !bissexto(ano) ? 28 : fase.inicioDia;
+      const emDias = Math.round((Date.UTC(ano, fase.inicioMes - 1, dia) - inicio) / 86400000);
+      if (emDias < 0) continue;
+      const anos = fase.inicioAno ? ano - fase.inicioAno : null;
+      // O casamento que ainda nem aconteceu (a data é deste ano, mais adiante) não é aniversário
+      if (emDias <= dias && (anos === null || anos > 0)) lista.push({ casal, mes: fase.inicioMes, dia, emDias, anos });
+      break;
+    }
+  }
+  return lista.sort((a, b) => a.emDias - b.emDias);
+}
+
+/** "30 anos de casados", "1 ano de casados" ou, sem o ano do casamento, "aniversário de casamento". */
+export const anosDeCasados = (anos: number | null): string => (anos ? `${anos} ${anos === 1 ? 'ano' : 'anos'} de casados` : 'aniversário de casamento');
+
 // --- Uma memória para contar ----------------------------------------------------------------
 
 /**
@@ -319,4 +362,16 @@ export function composicaoDoInicio(ha: { memoriasNovas: number; relatosNovos: nu
 /** "Sua última visita foi em 17 nov.": o ano só entra quando não é o ano corrente (P25). */
 export function anoDaUltimaVisita(ultima: Dia, hoje: Dia): string {
   return ultima.ano === hoje.ano ? '' : ` de ${ultima.ano}`;
+}
+
+/**
+ * "Você no acervo", proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): a frase com quantas
+ * memórias e de que ano a que ano, e as fotos das quatro mais recentes em que a pessoa aparece. As
+ * memórias chegam da mais recente para a mais antiga; só entra quem tem foto.
+ */
+export function voceNoAcervo<M extends { ano: number; fotos: unknown[] }>(minhas: M[], quantasFotos = 4): { quantas: number; de?: number; ate?: number; comFoto: M[] } {
+  const anos = minhas.map((m) => m.ano);
+  const de = anos.length ? Math.min(...anos) : undefined;
+  const ate = anos.length ? Math.max(...anos) : undefined;
+  return { quantas: minhas.length, ...(de !== ate ? { de, ate } : {}), comFoto: minhas.filter((m) => m.fotos.length > 0).slice(0, quantasFotos) };
 }

@@ -2,11 +2,11 @@
 // Sem pessoa identificada, nada do acervo é entregue.
 import { defineMiddleware } from 'astro:middleware';
 import { ehServicoDeCopia, usuarioDoPedido } from './lib/servidor/acesso';
-import { ambiente, guardarTiposDoPedido, noPedido, tiposDoPedido } from './lib/servidor/ambiente';
+import { ambiente, guardarApelidosDoPedido, guardarTiposDoPedido, noPedido, tiposDoPedido } from './lib/servidor/ambiente';
 import { ehNaoEncontradaSemPagina } from './lib/servidor/http';
 import { prepararBanco } from './lib/servidor/banco';
 import { respostaDaCopia } from './lib/servidor/copia';
-import { anotarCopiaMensal, listarTipos, registrarAcesso } from './lib/servidor/repositorio';
+import { anotarCopiaMensal, listarMeusApelidos, listarTipos, registrarAcesso } from './lib/servidor/repositorio';
 import { lerEscolhasDe } from './lib/visual';
 
 // A cor e o rabisco de cada tipo, escolhidos em /admin/tipos, valem em toda tela do pedido
@@ -56,6 +56,9 @@ const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo)
   }
   contexto.locals.tipos = await listarTipos();
   guardarTiposDoPedido(contexto.locals.tipos);
+  // "Como você chama": nas páginas, as pessoas aparecem com os apelidos que quem olha deu. As rotas de
+  // /api e a administração ficam com os de sempre, para nenhum apelido privado ser gravado como da família
+  if (!/^\/(api|admin)(\/|$)/.test(contexto.url.pathname)) guardarApelidosDoPedido(await listarMeusApelidos(usuario.pessoa));
   const resposta = await proximo();
   // Uma página que responde "não encontrada" em texto puro vira a página de erro do site, com menu e volta
   if (ehNaoEncontradaSemPagina(contexto.url.pathname, resposta)) return contexto.rewrite('/404');

@@ -2,7 +2,7 @@
 // publicada; memória só de algumas famílias pede um aviso antes, e a imagem só é montada depois do sim.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { TAMANHO_DA_IMAGEM, avisoAntesDeCompartilhar, nomeDoArquivo, trechoDoRelato } from '../src/lib/compartilhar';
+import { TAMANHO_DA_IMAGEM, avisoAntesDeCompartilhar, escolhaDoNome, escolhaDoNomeAparece, nomeDoArquivo, nomeNaImagem, trechoDoRelato } from '../src/lib/compartilhar';
 
 describe('compartilhar como imagem', () => {
   it('é vertical, na proporção dos stories', () => {
@@ -30,8 +30,9 @@ describe('compartilhar como imagem', () => {
     expect(pagina).toMatch(/const confirmado = !aviso \|\| Astro\.url\.searchParams\.get\('confirmado'\) === '1';/);
     // Antes do sim, nenhum dado da imagem vai para a página
     expect(pagina).toMatch(/const dados: DadosDaImagem \| null = confirmado/);
-    // O trecho só vem de relato que a pessoa vê
+    // O trecho só vem de relato que a pessoa vê, e o retrato de quem contou, só de quem ela vê
     expect(pagina).toContain('listarRelatos(usuario, memoria.id)');
+    expect(pagina).toContain('retrato: quem?.retrato && !naoVe.has(r.por) ? enderecoDoRetrato(quem.retrato) : null,');
   });
 });
 
@@ -54,5 +55,104 @@ describe('a imagem depois da observação do Gui', async () => {
       if (n > 0) expect(y + n * linha + 16).toBeLessThanOrEqual(A - margem);
     }
     expect(linhasQueCabem(1300, 1824, 54, 90)).toBe(4);
+  });
+});
+
+// Qual nome vai na imagem (decisão do Gui, 18/11/2026, depois da sessão H): o da família é o padrão,
+// porque o apelido próprio é privado e a imagem sai do acervo
+describe('o nome na imagem de compartilhar', () => {
+  const elizete = { nome: 'Elizete', apelidoDaFamilia: 'Zete', meuApelido: 'Mãezinha' };
+  const semApelidoDaFamilia = { nome: 'Aguilar', apelidoDaFamilia: null, meuApelido: 'Pai' };
+  const semOMeu = { nome: 'Vó Bela', apelidoDaFamilia: null, meuApelido: null };
+  it('o da família: o apelido da família, senão o nome; o seu: o seu apelido, senão o da família', () => {
+    expect(nomeNaImagem(elizete, 'familia')).toBe('Zete');
+    expect(nomeNaImagem(elizete, 'meu')).toBe('Mãezinha');
+    expect(nomeNaImagem(semApelidoDaFamilia, 'familia')).toBe('Aguilar');
+    expect(nomeNaImagem(semApelidoDaFamilia, 'meu')).toBe('Pai');
+    expect(nomeNaImagem(semOMeu, 'meu')).toBe('Vó Bela');
+  });
+  it('o padrão nunca vaza o apelido próprio', () => {
+    for (const p of [elizete, semApelidoDaFamilia, semOMeu]) expect(nomeNaImagem(p, escolhaDoNome(undefined))).not.toBe(p.meuApelido);
+    expect(escolhaDoNome(null)).toBe('familia');
+    expect(escolhaDoNome('qualquer')).toBe('familia');
+    expect(escolhaDoNome('meu')).toBe('meu');
+  });
+  it('a escolha só aparece quando muda algo', () => {
+    expect(escolhaDoNomeAparece([elizete])).toBe(true);
+    expect(escolhaDoNomeAparece([semOMeu])).toBe(false);
+    expect(escolhaDoNomeAparece([])).toBe(false);
+    // O apelido próprio igual ao da família não muda nada
+    expect(escolhaDoNomeAparece([{ nome: 'Elizete', apelidoDaFamilia: 'Zete', meuApelido: 'Zete' }])).toBe(false);
+  });
+  it('a página monta a imagem com o nome da família e só leva o seu apelido quando ele muda algo', () => {
+    const pagina = readFileSync('src/pages/memorias/[id]/compartilhar.astro', 'utf-8');
+    expect(pagina).toContain("const daFamilia = nomeNaImagem(nomesDe(r.por), 'familia');");
+    expect(pagina).toContain('comOSeuApelido: meu !== daFamilia ? meu : null,');
+    // `apelido` viria trocado pelo de quem olha: os dois nomes vêm de fontes separadas
+    expect(pagina).toContain('apelidoDaFamilia: i?.apelidoDaFamilia ?? null, meuApelido: meusApelidos.get(id) ?? null');
+    expect(pagina).not.toMatch(/\.apelido \?\?/);
+    expect(pagina).toContain('<input type="radio" name="nomeNaImagem" value="familia" checked />');
+  });
+});
+
+// O espaço de personalizar (proposta A do conceito da sessão J, escolha do Gui de 18/11/2026): a imagem num
+// palco de tamanho fixo e uma bandeja com abas. Escolher não muda o tamanho de nada.
+describe('o espaço de personalizar a imagem', async () => {
+  const { abasDoEstudio, autorNaImagem } = await import('../src/lib/compartilhar');
+  const { quadroDaImagem } = await import('../src/lib/cliente/compartilhar');
+  const relato = (r: Partial<import('../src/lib/compartilhar').RelatoDaImagem> = {}) => ({ autor: 'Vó Bela', comOSeuApelido: null, trecho: 'Era domingo.', retrato: null, faleceu: false, ...r });
+  const monograma = { d: '', largura: 100, altura: 100 };
+  const dados = { titulo: 'Natal', data: '2025', lugar: null, fotos: ['/fotos/a', '/fotos/b'], relatos: [relato({ comOSeuApelido: 'Belinha' }), relato({ autor: 'Vô Tonho', retrato: '/retratos/x', faleceu: true })], monograma };
+  const padrao = { nome: 'familia', cores: 'papel', foto: 0, relato: 0, emMemoria: false } as const;
+
+  it('só aparecem as abas que têm o que escolher, e as cores sempre', () => {
+    expect(abasDoEstudio([relato()], 1)).toEqual(['cores']);
+    expect(abasDoEstudio([relato(), relato()], 3)).toEqual(['cores', 'foto', 'relato']);
+    expect(abasDoEstudio([relato({ comOSeuApelido: 'Belinha' })], 1)).toEqual(['nome', 'cores']);
+    // Quem contou já faleceu e tem retrato: a aba do nome aparece, com a opção "em memória"
+    expect(abasDoEstudio([relato({ faleceu: true, retrato: '/retratos/x' })], 1)).toEqual(['nome', 'cores']);
+    expect(abasDoEstudio([relato({ faleceu: true })], 1)).toEqual(['cores']);
+    expect(abasDoEstudio([], 0)).toEqual(['cores']);
+  });
+
+  it('o padrão é a foto principal, o primeiro relato, o nome da família e o retrato em cor', () => {
+    const quadro = quadroDaImagem(dados, padrao, null);
+    expect(quadro).toMatchObject({ foto: '/fotos/a', trecho: 'Era domingo.', autorDoTrecho: 'Vó Bela', emMemoria: false, cores: null });
+    expect(autorNaImagem(dados.relatos[0]!, 'meu')).toBe('Belinha');
+    expect(autorNaImagem(dados.relatos[1]!, 'meu')).toBe('Vô Tonho');
+  });
+
+  it('"em memória" é opção de quem compartilha, e só vale para quem já faleceu (resposta do Gui, 18/11/2026)', () => {
+    expect(quadroDaImagem(dados, { ...padrao, relato: 1 }, null)).toMatchObject({ autorDoTrecho: 'Vô Tonho', retrato: '/retratos/x', emMemoria: false });
+    expect(quadroDaImagem(dados, { ...padrao, relato: 1, emMemoria: true }, null).emMemoria).toBe(true);
+    expect(quadroDaImagem(dados, { ...padrao, relato: 0, emMemoria: true }, null).emMemoria).toBe(false);
+    const pagina = readFileSync('src/pages/memorias/[id]/compartilhar.astro', 'utf-8');
+    expect(pagina).toMatch(/<label class="marcar-na-imagem" data-em-memoria hidden=\{!\(primeiro\?\.faleceu && primeiro\.retrato\)\}>\s*<input type="checkbox" name="emMemoria" \/>/);
+  });
+
+  it('as escolhas trocam a foto, o relato, o nome e as cores, e uma escolha fora da lista cai no padrão', () => {
+    const cores = { papel: 'a', vivo: 'b', suave: 'c' };
+    expect(quadroDaImagem(dados, { ...padrao, nome: 'meu', foto: 1 }, cores)).toMatchObject({ foto: '/fotos/b', autorDoTrecho: 'Belinha', cores });
+    expect(quadroDaImagem(dados, { ...padrao, foto: 9, relato: 9 }, null)).toMatchObject({ foto: '/fotos/a', autorDoTrecho: 'Vó Bela' });
+    expect(quadroDaImagem({ ...dados, fotos: [], relatos: [] }, padrao, null)).toMatchObject({ foto: null, trecho: null, autorDoTrecho: null, retrato: null });
+  });
+
+  it('a bandeja tem um painel de altura fixa por aba, e o palco guarda o lugar da imagem', () => {
+    const css = readFileSync('src/visual/telas/formulario.css', 'utf-8');
+    expect(css).toMatch(/\.pagina-de-formulario \.bandeja__painel \{\s*height: 13rem;\s*overflow: auto;/);
+    expect(css).toMatch(/\.pagina-de-formulario \.estudio__palco \{[^}]*min-height: calc\(min\(46svh, 30rem\) \+ 2 \* var\(--e-4\)\);/);
+    const pagina = readFileSync('src/pages/memorias/[id]/compartilhar.astro', 'utf-8');
+    expect(pagina).toContain('nome="abaDaImagem"');
+    for (const painel of ['nome', 'cores', 'foto', 'relato']) expect(pagina).toContain(`data-painel="${painel}"`);
+    // A frase que mudava de tamanho com a escolha saiu
+    expect(pagina).not.toContain('data-frase-do-nome');
+  });
+
+  it('na imagem, o retrato de quem contou é de foto de álbum, com as quatro cantoneiras', () => {
+    const desenho = readFileSync('src/lib/cliente/compartilhar.ts', 'utf-8');
+    expect(desenho).toMatch(/const RETRATO = \{ largura: 132, altura: 165,/);
+    expect(desenho).toContain('desenharRetrato(ctx, retrato, margem, topo, d.emMemoria, tinta);');
+    // O pé mais alto entra na conta das linhas do trecho: nada passa por cima de nada
+    expect(desenho).toContain('const espacoDoNome = !d.autorDoTrecho ? 0 : retrato ? RETRATO.altura + 40 : 90;');
   });
 });

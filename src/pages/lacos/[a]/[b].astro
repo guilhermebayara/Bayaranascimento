@@ -1,29 +1,33 @@
 ---
-// A página do laço (onda 2, decisão do Gui de 17/11/2026): a linha do tempo de duas pessoas, com as fases
-// do casal como faixas e as memórias em que as duas estão. Só o que quem olha vê: as duas pessoas, o
-// casal (com a regra de quem vê) e as memórias dela. Regras em src/lib/pagina-do-laco.ts.
-import '../../../visual/telas/lista.css';
+// A página do laço (onda 2, decisão do Gui de 17/11/2026). A ideia da tela (docs/visual.md): a história
+// dos dois, contada como um capítulo. À esquerda, a capa: os dois retratos, o nome dos dois, o período e
+// o que um é do outro (parada, no computador com mouse). À direita, as fases do casal em sanfona e as
+// memórias dos dois como marcos numerados. Só o que quem olha vê: as duas pessoas, o casal (com a regra
+// de quem vê) e as memórias dela. Regras em src/lib/pagina-do-laco.ts.
+import '../../../visual/telas/capitulo.css';
 import '../../../visual/telas/laco.css';
 import Visual from '../../../layouts/Visual.astro';
-import Lista from '../../../components/explorar/Lista.astro';
+import Carimbo from '../../../components/visual/Carimbo.astro';
+import Pilula from '../../../components/visual/Pilula.astro';
+import Polaroid from '../../../components/visual/Polaroid.astro';
 import Retrato from '../../../components/visual/Retrato.astro';
+import Sanfona from '../../../components/visual/Sanfona.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { anosDeVida, jaFaleceu, maisRecentesPrimeiro } from '../../../lib/datas';
-import { enderecoDoLaco, faixasDasFases, marcasDosAnos, periodoDoLaco, posicao } from '../../../lib/pagina-do-laco';
-import { FASES, Familia, estaoJuntos, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
+import { enderecoDoLaco, faixasDasFases, memoriasDasFases, periodoDoLaco } from '../../../lib/pagina-do-laco';
+import { situacaoDoCasal } from '../../../lib/ex-casal';
+import { FASES, Familia, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { enderecoDoRetrato } from '../../../lib/retratos';
-import { corDaPessoa } from '../../../lib/visual';
+import { carimboDaData, corDaPessoa, estiloDoTipo, listaCurta } from '../../../lib/visual';
 import {
   comoOsExesAparecem,
   familiasDe,
-  listarCapitulos,
   listarCasais,
   listarFiliacoes,
   listarIntegrantesQueVe,
   listarLacosDoCoracao,
   listarMemorias,
   listarNucleos,
-  memoriasComAudio,
   obterCasalDoPar,
 } from '../../../lib/servidor/repositorio';
 
@@ -45,94 +49,145 @@ const lacos = (await listarLacosDoCoracao(usuario)).filter((l) => (l.dono === a.
 const chamar = (i: typeof a) => i.apelido ?? i.nome;
 // O que um é do outro: o parentesco, ou o laço do coração
 const relacao = familia.relacao(a.id, b.id);
-const deB = relacao ? `${chamar(b)} é ${relacao.texto} de ${chamar(a)}` : null;
+// Com um dos dois já falecido, o laço de casal fica no passado: "Vó Vivica foi esposa de Vô Tonho" (QA de
+// 18/11/2026). O parentesco de sangue continua no presente: a mãe que faleceu continua sendo mãe
+const alguemFaleceu = jaFaleceu(a) || jaFaleceu(b);
+const verbo = alguemFaleceu && relacao && /^[CX]$/.test(relacao.caminho) ? 'foi' : 'é';
+const deB = relacao ? `${chamar(b)} ${verbo} ${relacao.texto} de ${chamar(a)}` : null;
 const doCoracao = lacos.map((l) => (l.dono === usuario.pessoa ? `${chamar(l.pessoa === a.id ? a : b)} é ${lacoParaODono(l.nome, tratamentos.get(l.pessoa) ?? null)}` : `${chamar(l.dono === a.id ? a : b)} chama ${chamar(l.pessoa === a.id ? a : b)} de ${l.nome.toLowerCase()}`));
 const paraVoce = [a, b].filter((i) => i.id !== usuario.pessoa).map((i) => ({ i, r: familia.relacao(usuario.pessoa, i.id) }));
 
 const anoAtual = new Date().getUTCFullYear();
 const faixas = casal ? faixasDasFases(casal.fases, anoAtual) : [];
 const memorias = maisRecentesPrimeiro((await listarMemorias(usuario)).filter((m) => m.integrantes.includes(a.id) && m.integrantes.includes(b.id)));
-const periodo = periodoDoLaco(faixas, memorias.map((m) => m.ano), anoAtual);
+const periodo = periodoDoLaco(faixas, memorias.map((m) => m.ano));
 const ordem = (await listarNucleos()).map((n) => n.id);
 const retratoDe = (i: typeof a) => (i.retrato ? enderecoDoRetrato(i.retrato) : null);
-const capitulos = await listarCapitulos(usuario);
-const comAudio = await memoriasComAudio(usuario);
 const titulo = `${chamar(a)} e ${chamar(b)}`;
-const situacao = casal ? (estaoJuntos(casal) ? 'Juntos' : 'Não estão mais juntos') : null;
+// A fase decide a situação (decisões do Gui, 18/11/2026): juntos, namorando, hoje amigos ou não estão mais juntos
+const textoDaSituacao = casal ? situacaoDoCasal(casal, { faleceu: alguemFaleceu, elas: a.tratamento === 'ela' && b.tratamento === 'ela' }) : null;
+const situacao = textoDaSituacao ? textoDaSituacao.charAt(0).toUpperCase() + textoDaSituacao.slice(1) : null;
+const conta = memorias.length === 0 ? 'Nenhuma memória dos dois juntos ainda' : memorias.length === 1 ? 'Uma memória dos dois juntos' : `${memorias.length} memórias dos dois juntos`;
+// O que cada um é de quem olha, embaixo do retrato: "sua tia · 1967"
+const paraQuemOlha = (i: typeof a) => {
+  const r = paraVoce.find((p) => p.i.id === i.id)?.r;
+  return [r ? possessivo(r, i.tratamento) : i.id === usuario.pessoa ? 'você' : null, anosDeVida(i) || null].filter(Boolean).join(' · ');
+};
+const nomeDe = (id: string) => {
+  const i = integrantes.find((x) => x.id === id);
+  return i ? chamar(i) : undefined;
+};
+
+// As fases em sanfona: o ano grande, o nome da fase e o período; dentro, as memórias dos dois naquele
+// tempo. Abre a fase mais recente que tem memória; sem nenhuma, todas chegam fechadas. A fase sem ano
+// entra sem o número e sem memórias: não há como saber.
+const periodos = casal ? periodosDasFases(casal.fases, { completas: true }) : [];
+const dasFases = casal ? memoriasDasFases(casal.fases, memorias.map((m) => m.ano), anoAtual) : [];
+const fases = (casal?.fases ?? []).map((f, n) => ({ f, quando: periodos[n], memorias: dasFases[n].map((k) => memorias[k]) }));
+const aberta = fases.reduce((ultima, x, n) => (x.memorias.length > 0 ? n : ultima), -1);
+const semAnos = fases.length > 0 && fases.every((x) => !x.f.inicioAno);
+
+// Os marcos: as memórias dos dois, das mais recentes para as mais antigas, como no capítulo. O número
+// é a posição na história, contada do começo.
+const marcos = memorias.map((m, i) => ({ m, numero: memorias.length - i }));
+const digitos = Math.max(2, String(marcos.length).length);
 ---
 
 <Visual titulo={titulo} nucleos={[...new Set([...familiasDe(a), ...familiasDe(b)])]} secao="arvore">
-  <article class="laco-pagina miolo">
-    <header class="laco-pagina__alto">
-      <p class="rotulo">Laço</p>
+  <article class="laco-pagina miolo grade">
+    <header class="laco-pagina__capa">
+      <p class="rotulo suave">Laço</p>
       <div class="laco-pagina__dois">
         {[a, b].map((i) => (
-          <a class="laco-pagina__pessoa" href={`/pessoas/${i.id}`}>
-            <Retrato nome={chamar(i)} foto={retratoDe(i)} familia={corDaPessoa(familiasDe(i), ordem)} falecido={jaFaleceu(i)} />
-            <span>
-              <strong>{chamar(i)}</strong>
-              <span class="ficha suave">{[paraVoce.find((p) => p.i.id === i.id)?.r ? possessivo(paraVoce.find((p) => p.i.id === i.id)!.r!, i.tratamento) : i.id === usuario.pessoa ? 'você' : null, anosDeVida(i) || null].filter(Boolean).join(' · ')}</span>
-            </span>
+          <a class="pessoa" href={`/pessoas/${i.id}`}>
+            <Retrato nome={chamar(i)} foto={retratoDe(i)} familia={corDaPessoa(familiasDe(i), ordem)} falecido={jaFaleceu(i)} cedo />
+            <span class="pessoa__nome">{chamar(i)}</span>
+            {jaFaleceu(i) && <span class="so-leitor">já faleceu</span>}
+            {paraQuemOlha(i) && <span class="ficha suave">{paraQuemOlha(i)}</span>}
           </a>
         ))}
       </div>
-      <h1 class="serifa">{titulo}</h1>
-      <ul class="laco-pagina__o-que">
-        {situacao && <li>{situacao}</li>}
-        {deB && <li>{deB}</li>}
-        {doCoracao.map((t) => <li>{t}</li>)}
-        <li>{memorias.length === 0 ? 'Nenhuma memória dos dois juntos ainda' : memorias.length === 1 ? 'Uma memória dos dois juntos' : `${memorias.length} memórias dos dois juntos`}</li>
-      </ul>
+      <h1 class="laco-pagina__titulo serifa t-1">
+        {chamar(a)} <span class="laco-pagina__e">e {chamar(b)}</span>
+      </h1>
+      <p class="laco-pagina__periodo">
+        {periodo && <Pilula>{periodo}</Pilula>}
+        <span class="ficha suave">{conta}</span>
+      </p>
+      {(situacao || deB || doCoracao.length > 0) && (
+        <ul class="laco-pagina__o-que">
+          {situacao && <li class="laco-pagina__situacao">{situacao}</li>}
+          {deB && <li>{deB}</li>}
+          {doCoracao.map((t) => <li>{t}</li>)}
+        </ul>
+      )}
     </header>
 
-    {
-      periodo && (
-        <section class="laco-pagina__tempo" aria-labelledby="titulo-tempo">
-          <h2 class="rotulo" id="titulo-tempo">
+    <div class="laco-pagina__corpo">
+      {fases.length > 0 && (
+        <section class:list={['laco-pagina__tempo', { 'laco-pagina__tempo--sem-anos': semAnos }]} aria-labelledby="titulo-tempo">
+          <h2 class="rotulo suave" id="titulo-tempo">
             No tempo
           </h2>
-          <div class="regua" role="img" aria-label={`De ${periodo.de + 1} a ${periodo.ate}: ${[...faixas.map((f) => `${f.rotulo.toLowerCase()} ${f.de === f.ate ? `em ${f.de}` : `de ${f.de} a ${f.aberta ? 'hoje' : f.ate}`}`), `${memorias.length} memórias`].join(', ')}`}>
-            <div class="regua__memorias">
-              {memorias.filter((m) => m.ano > 0).map((m) => (
-                <a class="regua__memoria" href={`/memorias/${m.id}`} style={`left: ${posicao(m.ano + 0.5, periodo)}%`} title={`${m.titulo}, ${m.ano}`} aria-hidden="true" tabindex="-1" />
-              ))}
-            </div>
-            {faixas.length > 0 && (
-            <div class="regua__faixas">
-                {faixas.map((f) => (
-                  <span
-                    class:list={['regua__faixa', `regua__faixa--${f.tipo}`, { 'regua__faixa--momento': f.de === f.ate && f.tipo === 'separacao' }]}
-                    style={`left: ${posicao(f.de, periodo)}%; width: ${Math.max(1.2, posicao(f.ate + 1, periodo) - posicao(f.de, periodo))}%`}
-                  >
-                    <span>{f.rotulo}</span>
-                  </span>
-                ))}
-              </div>
-            )}
-            <div class="regua__anos" aria-hidden="true">
-              {marcasDosAnos(periodo).map((ano) => (
-                <span style={`left: ${posicao(ano, periodo)}%`}>{ano}</span>
-              ))}
-            </div>
+          <div class="laco-pagina__fases">
+            {fases.map(({ f, quando, memorias: dela }, n) => (
+              <Sanfona ano={f.inicioAno ?? ''} titulo={FASES[f.tipo]} quando={quando || undefined} grupo="fases-do-laco" aberta={n === aberta}>
+                {!f.inicioAno ? (
+                  <p class="suave">Esta fase ainda está sem data. Com o ano, as memórias dos dois aparecem aqui.</p>
+                ) : dela.length === 0 ? (
+                  <p class="suave">Nenhuma memória dos dois deste tempo ainda.</p>
+                ) : (
+                  <ul class="laco-pagina__da-fase">
+                    {dela.map((m) => (
+                      <li>
+                        <a href={`/memorias/${m.id}`}>
+                          <span class="ficha suave">{m.ano}</span>
+                          <span>{m.titulo}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Sanfona>
+            ))}
           </div>
-          {casal && casal.fases.length > 0 && (
-            <ol class="laco-pagina__fases">
-              {casal.fases.map((f, n) => (
-                <li>
-                  <strong>{FASES[f.tipo]}</strong> {periodosDasFases(casal.fases)[n] && <span class="ficha suave">{periodosDasFases(casal.fases)[n]}</span>}
-                </li>
-              ))}
-            </ol>
-          )}
         </section>
-      )
-    }
+      )}
 
-    <section class="laco-pagina__memorias" aria-labelledby="titulo-memorias">
-      <h2 class="rotulo" id="titulo-memorias">
-        As memórias dos dois
-      </h2>
-      {memorias.length === 0 ? <Vazio frase={`Ainda não há memória com ${chamar(a)} e ${chamar(b)} juntos.`} /> : <Lista memorias={memorias} capitulos={capitulos} integrantes={integrantes} ordem="recentes" comAudio={comAudio} />}
-    </section>
+      <section class="laco-pagina__memorias" aria-labelledby="titulo-memorias">
+        <h2 class="rotulo suave" id="titulo-memorias">
+          As memórias dos dois
+        </h2>
+        {memorias.length === 0 ? (
+          <Vazio frase={`Ainda não há memória com ${chamar(a)} e ${chamar(b)} juntos.`} />
+        ) : (
+          <ol class="marcos" reversed>
+            {marcos.map(({ m, numero }) => {
+              const outros = m.integrantes.filter((id) => id !== a.id && id !== b.id).map(nomeDe).filter((n): n is string => Boolean(n));
+              return (
+                <li class="marco" style={estiloDoTipo(m.tipo)}>
+                  <span class="marco__numero serifa" aria-hidden="true">
+                    {String(numero).padStart(digitos, '0')}
+                  </span>
+                  <div class="marco__texto">
+                    <p>
+                      <Carimbo itens={[carimboDaData(m), m.lugar]} />
+                    </p>
+                    <h3 class="marco__titulo serifa t-3">
+                      <a href={`/memorias/${m.id}`}>{m.titulo}</a>
+                    </h3>
+                    {outros.length > 0 && <p class="ficha suave">Com {listaCurta(outros, 4)}</p>}
+                  </div>
+                  {/* A foto vai sem legenda: o lugar e o ano já estão no carimbo ao lado */}
+                  <a class="marco__foto" href={`/memorias/${m.id}`} tabindex="-1" aria-hidden="true">
+                    <Polaroid id={m.id} fotos={m.fotos} legenda="" tipo={m.tipo} monte={false} alt="" />
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </section>
+    </div>
   </article>
 </Visual>

@@ -4,17 +4,35 @@
 // de nada). As cores e as fontes vêm do próprio site (as
 // variáveis do CSS e as fontes já carregadas), para a imagem ter a cara do acervo. Depois, "Compartilhar"
 // usa o compartilhamento do aparelho; onde ele não existe, "Baixar a imagem".
-import { TAMANHO_DA_IMAGEM, nomeDoArquivo } from '../compartilhar';
+import { TAMANHO_DA_IMAGEM, autorNaImagem, escolhaDoNome, nomeDoArquivo, type CoresDaImagem, type RelatoDaImagem } from '../compartilhar';
 
+/** O que a página manda: a memória, as fotos e os relatos que quem compartilha pode pôr na imagem. */
 export interface DadosDaImagem {
+  titulo: string;
+  data: string;
+  lugar: string | null;
+  /** as fotos da memória, a principal primeiro */
+  fotos: string[];
+  /** os relatos publicados que a pessoa vê, o dela primeiro */
+  relatos: RelatoDaImagem[];
+  /** o M da serifa em uso (src/visual/monograma.ts), numa caixa de altura 100 */
+  monograma: { d: string; largura: number; altura: number };
+}
+
+/** A imagem de agora, com as escolhas do espaço de personalizar já resolvidas. */
+export interface QuadroDaImagem {
   titulo: string;
   data: string;
   lugar: string | null;
   foto: string | null;
   trecho: string | null;
   autorDoTrecho: string | null;
-  /** o M da serifa em uso (src/visual/monograma.ts), numa caixa de altura 100 */
-  monograma: { d: string; largura: number; altura: number };
+  /** o retrato de quem contou, ao lado do nome: em cor, a não ser que a pessoa peça "em memória" */
+  retrato: string | null;
+  emMemoria: boolean;
+  /** o esquema de cores escolhido; sem ele, as cores da página */
+  cores: { papel: string; vivo: string; suave: string } | null;
+  monograma: DadosDaImagem['monograma'];
 }
 
 /** Quantas linhas do trecho cabem entre `y` e o limite, guardando o lugar do nome de quem contou. */
@@ -64,14 +82,17 @@ const carregar = (src: string) =>
     img.src = src;
   });
 
-export async function desenharImagem(canvas: HTMLCanvasElement, d: DadosDaImagem): Promise<void> {
+export async function desenharImagem(canvas: HTMLCanvasElement, d: QuadroDaImagem): Promise<void> {
   const { largura: L, altura: A } = TAMANHO_DA_IMAGEM;
   canvas.width = L;
   canvas.height = A;
   const ctx = canvas.getContext('2d')!;
   await document.fonts.ready;
-  const [papel, tinta, suave, branco, vivo] = [cor('--papel', '#f8f1e7'), cor('--tinta', '#2a211b'), cor('--tinta-suave', '#6b5f55'), cor('--branco', '#fffdf8'), cor('--vivo', '#d98b2b')];
-  const [serifa, grotesca, mao] = await Promise.all([fonte('--serifa', 'serif'), fonte('--grotesca', 'sans-serif'), fonte('--mao', 'cursive')]);
+  const [tinta, branco] = [cor('--tinta', '#2a211b'), cor('--branco', '#fffdf8')];
+  const papel = d.cores?.papel || cor('--papel', '#f8f1e7');
+  const suave = d.cores?.suave || cor('--tinta-suave', '#6b5f55');
+  const vivo = d.cores?.vivo || cor('--vivo', '#d98b2b');
+  const [serifa, grotesca, mao, mono] = await Promise.all([fonte('--serifa', 'serif'), fonte('--grotesca', 'sans-serif'), fonte('--mao', 'cursive'), fonte('--mono', 'monospace')]);
   const margem = 96;
 
   ctx.fillStyle = papel;
@@ -128,9 +149,11 @@ export async function desenharImagem(canvas: HTMLCanvasElement, d: DadosDaImagem
   ctx.fillText(d.data, margem, y - 20);
   y += 50;
   if (d.trecho) {
-    // O trecho e o nome de quem contou cabem até a margem de baixo: o trecho perde linhas, nunca sobrepõe
+    // O trecho e o nome de quem contou cabem até a margem de baixo: o trecho perde linhas, nunca sobrepõe.
+    // Com o retrato de quem contou, o pé da imagem é mais alto
     const limite = A - margem;
-    const espacoDoNome = d.autorDoTrecho ? 90 : 0;
+    const retrato = d.autorDoTrecho && d.retrato ? await carregar(d.retrato) : null;
+    const espacoDoNome = !d.autorDoTrecho ? 0 : retrato ? RETRATO.altura + 40 : 90;
     const cabem = linhasQueCabem(y, limite, 54, espacoDoNome);
     ctx.fillStyle = tinta;
     ctx.font = `40px ${grotesca}`;
@@ -138,7 +161,19 @@ export async function desenharImagem(canvas: HTMLCanvasElement, d: DadosDaImagem
       ctx.fillText(l, margem, y);
       y += 54;
     }
-    if (d.autorDoTrecho) {
+    if (d.autorDoTrecho && retrato) {
+      // O retrato de foto de álbum de quem contou, com o nome à mão ao lado
+      const topo = Math.min(y, limite - RETRATO.altura);
+      desenharRetrato(ctx, retrato, margem, topo, d.emMemoria, tinta);
+      const x = margem + RETRATO.largura + 36;
+      ctx.fillStyle = suave;
+      ctx.font = `64px ${mao}`;
+      ctx.fillText(d.autorDoTrecho, x, topo + RETRATO.altura / 2 + (d.emMemoria ? 4 : 22));
+      if (d.emMemoria) {
+        ctx.font = `24px ${mono}`;
+        ctx.fillText('EM MEMÓRIA'.split('').join(' '), x, topo + RETRATO.altura / 2 + 52);
+      }
+    } else if (d.autorDoTrecho) {
       ctx.fillStyle = suave;
       ctx.font = `64px ${mao}`;
       ctx.fillText(d.autorDoTrecho, margem, Math.min(y + 16, limite));
@@ -146,32 +181,160 @@ export async function desenharImagem(canvas: HTMLCanvasElement, d: DadosDaImagem
   }
 }
 
-/** Liga a página: desenha, mostra a prévia e oferece compartilhar ou baixar. */
+/** O retrato de quem contou na imagem: 4 por 5, como no site */
+const RETRATO = { largura: 132, altura: 165, cantoneira: 22, passa: 4 } as const;
+
+/**
+ * O retrato de foto de álbum, desenhado na imagem: a foto reta, com as cantoneiras nos quatro cantos.
+ * Vai em cor; "em memória" (opção de quem compartilha) deixa a foto em tom suave, como no site. O tom é
+ * feito ponto a ponto, porque o filtro do canvas não existe em todo navegador.
+ */
+function desenharRetrato(ctx: CanvasRenderingContext2D, foto: HTMLImageElement, x: number, y: number, suave: boolean, tinta: string): void {
+  const { largura, altura, cantoneira: c, passa } = RETRATO;
+  // O recorte do site: a largura ou a altura toda, com o rosto um pouco acima do meio
+  const escala = Math.max(largura / foto.naturalWidth, altura / foto.naturalHeight);
+  const [lf, af] = [largura / escala, altura / escala];
+  const apoio = document.createElement('canvas');
+  apoio.width = largura;
+  apoio.height = altura;
+  const a = apoio.getContext('2d')!;
+  a.drawImage(foto, (foto.naturalWidth - lf) / 2, (foto.naturalHeight - af) * 0.3, lf, af, 0, 0, largura, altura);
+  if (suave) {
+    const pontos = a.getImageData(0, 0, largura, altura);
+    const p = pontos.data;
+    for (let i = 0; i < p.length; i += 4) {
+      const cinza = 0.2126 * p[i]! + 0.7152 * p[i + 1]! + 0.0722 * p[i + 2]!;
+      for (let k = 0; k < 3; k++) p[i + k] = Math.min(255, ((cinza + (p[i + k]! - cinza) * 0.22 - 128) * 0.86 + 128) * 1.1);
+    }
+    a.putImageData(pontos, 0, 0);
+  }
+  ctx.drawImage(apoio, x, y);
+  ctx.fillStyle = tinta;
+  for (const [cx, cy, dx, dy] of [
+    [x - passa, y - passa, 1, 1],
+    [x + largura + passa, y - passa, -1, 1],
+    [x - passa, y + altura + passa, 1, -1],
+    [x + largura + passa, y + altura + passa, -1, -1],
+  ] as const) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + dx * c, cy);
+    ctx.lineTo(cx, cy + dy * c);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+/** As escolhas do espaço de personalizar, lidas dos rádios da bandeja. */
+export interface EscolhasDaImagem {
+  nome: 'familia' | 'meu';
+  cores: CoresDaImagem;
+  foto: number;
+  relato: number;
+  emMemoria: boolean;
+}
+
+/** A imagem de agora: os dados da memória com as escolhas. O padrão é a foto principal, o primeiro relato e o nome da família. */
+export function quadroDaImagem(d: DadosDaImagem, e: EscolhasDaImagem, cores: QuadroDaImagem['cores']): QuadroDaImagem {
+  const relato = d.relatos[e.relato] ?? d.relatos[0] ?? null;
+  return {
+    titulo: d.titulo,
+    data: d.data,
+    lugar: d.lugar,
+    foto: d.fotos[e.foto] ?? d.fotos[0] ?? null,
+    trecho: relato?.trecho ?? null,
+    autorDoTrecho: relato ? autorNaImagem(relato, e.nome) : null,
+    retrato: relato?.retrato ?? null,
+    emMemoria: Boolean(relato?.faleceu && e.emMemoria),
+    cores,
+    monograma: d.monograma,
+  };
+}
+
+/** Liga a página: desenha, mostra a prévia, acompanha as escolhas e oferece compartilhar ou baixar. */
 export async function ligarCompartilhar(raiz: HTMLElement, d: DadosDaImagem): Promise<void> {
   const canvas = raiz.querySelector<HTMLCanvasElement>('canvas')!;
   const previa = raiz.querySelector<HTMLImageElement>('[data-previa]')!;
   const compartilhar = raiz.querySelector<HTMLButtonElement>('[data-compartilhar]')!;
   const baixar = raiz.querySelector<HTMLAnchorElement>('[data-baixar]')!;
   const estado = raiz.querySelector<HTMLElement>('[data-estado]')!;
-  await desenharImagem(canvas, d);
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
-  if (!blob) {
-    estado.textContent = 'Não deu para montar a imagem neste aparelho.';
-    return;
-  }
-  const url = URL.createObjectURL(blob);
-  previa.src = url;
-  previa.hidden = false;
-  baixar.href = url;
-  baixar.download = nomeDoArquivo(d.titulo);
-  baixar.hidden = false;
-  estado.textContent = '';
-  const arquivo = new File([blob], nomeDoArquivo(d.titulo), { type: 'image/png' });
-  if (navigator.canShare?.({ files: [arquivo] })) {
+  // O arquivo da imagem de agora, trocado a cada montagem
+  const atual: { arquivo: File | null } = { arquivo: null };
+  let endereco: string | null = null;
+  let vez = 0;
+  const marcado = (nome: string) => raiz.querySelector<HTMLInputElement>(`input[name="${nome}"]:checked`)?.value;
+  const escolhas = (): EscolhasDaImagem => ({
+    nome: escolhaDoNome(marcado('nomeNaImagem')),
+    cores: (marcado('coresDaImagem') as CoresDaImagem | undefined) ?? 'papel',
+    foto: Number(marcado('fotoDaImagem') ?? 0),
+    relato: Number(marcado('relatoDaImagem') ?? 0),
+    emMemoria: Boolean(raiz.querySelector<HTMLInputElement>('input[name="emMemoria"]')?.checked),
+  });
+  // As cores de um esquema vêm da amostra dele na bandeja, que já está pintada com os tokens do site
+  const coresDe = (esquema: CoresDaImagem): QuadroDaImagem['cores'] => {
+    const amostra = esquema === 'papel' ? null : raiz.querySelector<HTMLElement>(`[data-esquema="${esquema}"]`);
+    if (!amostra) return null;
+    const estilo = getComputedStyle(amostra);
+    return { papel: estilo.getPropertyValue('--amostra-papel').trim(), vivo: estilo.getPropertyValue('--amostra-vivo').trim(), suave: cor('--tinta', '#2a211b') };
+  };
+  // A aba do nome acompanha o relato escolhido: os dois nomes de quem contou, e "em memória" só para quem faleceu
+  const refletirNome = () => {
+    const e = escolhas();
+    const relato = d.relatos[e.relato] ?? d.relatos[0];
+    if (!relato) return;
+    for (const lugar of raiz.querySelectorAll<HTMLElement>('[data-nome-da-familia]')) lugar.textContent = relato.autor;
+    for (const lugar of raiz.querySelectorAll<HTMLElement>('[data-nome-meu]')) lugar.textContent = relato.comOSeuApelido ?? relato.autor;
+    const meu = raiz.querySelector<HTMLInputElement>('input[name="nomeNaImagem"][value="meu"]');
+    if (meu) {
+      meu.disabled = !relato.comOSeuApelido;
+      if (meu.disabled && meu.checked) raiz.querySelector<HTMLInputElement>('input[name="nomeNaImagem"][value="familia"]')!.checked = true;
+    }
+    const memoria = raiz.querySelector<HTMLElement>('[data-em-memoria]');
+    if (memoria) memoria.hidden = !(relato.faleceu && relato.retrato);
+  };
+  // Monta a imagem com as escolhas de agora, no lugar; numa troca rápida, só a última montagem vale
+  const montar = async (): Promise<boolean> => {
+    const minha = ++vez;
+    refletirNome();
+    const e = escolhas();
+    await desenharImagem(canvas, quadroDaImagem(d, e, coresDe(e.cores)));
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+    if (minha !== vez) return true;
+    if (!blob) {
+      estado.textContent = 'Não deu para montar a imagem neste aparelho.';
+      return false;
+    }
+    if (endereco) URL.revokeObjectURL(endereco);
+    endereco = URL.createObjectURL(blob);
+    previa.src = endereco;
+    previa.hidden = false;
+    baixar.href = endereco;
+    baixar.download = nomeDoArquivo(d.titulo);
+    baixar.hidden = false;
+    estado.textContent = '';
+    atual.arquivo = new File([blob], nomeDoArquivo(d.titulo), { type: 'image/png' });
+    return true;
+  };
+  // As abas trocam o painel, que tem a altura fixa: escolher não muda o tamanho de nada
+  const abas = [...raiz.querySelectorAll<HTMLInputElement>('input[name="abaDaImagem"]')];
+  const mostrarAba = () => {
+    // Com uma aba só, não há abas: o único painel fica à vista
+    const aberta = abas.find((a) => a.checked)?.value ?? raiz.querySelector<HTMLElement>('[data-painel]')?.dataset.painel;
+    for (const painel of raiz.querySelectorAll<HTMLElement>('[data-painel]')) painel.hidden = painel.dataset.painel !== aberta;
+  };
+  mostrarAba();
+  raiz.addEventListener('change', (e) => {
+    if ((e.target as HTMLInputElement).name === 'abaDaImagem') return mostrarAba();
+    void montar();
+  });
+  if (!(await montar())) return;
+  const primeiro = atual.arquivo;
+  if (primeiro && navigator.canShare?.({ files: [primeiro] })) {
     compartilhar.hidden = false;
     compartilhar.addEventListener('click', async () => {
+      if (!atual.arquivo) return;
       try {
-        await navigator.share({ files: [arquivo], title: d.titulo });
+        await navigator.share({ files: [atual.arquivo], title: d.titulo });
       } catch {
         // quem desiste do compartilhamento não precisa de recado
       }

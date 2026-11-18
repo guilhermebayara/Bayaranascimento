@@ -12,7 +12,8 @@
     "test": "vitest run testes",
     "capturas": "node scripts/capturas.mjs",
     "monograma": "node scripts/monograma.mjs",
-    "fotos-de-exemplo": "node scripts/enviar-fotos-de-exemplo.mjs"
+    "fotos-de-exemplo": "node scripts/enviar-fotos-de-exemplo.mjs",
+    "gestalt": "node scripts/confere-gestalt.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.8",

@@ -11,20 +11,29 @@
 // que abre e fecha (details, sem script); a pílula de família filtra a lista, uma família por vez
 // (`?familia=`, junto com `?ordem=`); no celular, só a busca fica à vista, e "Famílias e ordem" abre o
 // resto.
+// "Nome (apelido)" (decisão do Gui, 18/11/2026, depois da sessão H): cada pessoa aparece como "Alexsander
+// (Lugh)", com o apelido que quem olha vê (o seu, senão o da família, que `listarIntegrantes` já trocou), e
+// a busca acha pelos dois. Regras em src/lib/ordem-das-pessoas.ts.
 import '../../visual/telas/pessoas.css';
 import Visual from '../../layouts/Visual.astro';
 import Gente from '../../components/visual/Gente.astro';
+import TarjaDoDiscreto from '../../components/visual/TarjaDoDiscreto.astro';
+import { naListaDeQuemOlha } from '../../lib/ex-casal';
 import PilulaDeFamilia from '../../components/visual/PilulaDeFamilia.astro';
 import { Familia, calcularGeracoes, possessivo, type Tratamento } from '../../lib/parentesco';
 import { jaFaleceu } from '../../lib/datas';
-import { enderecoDePessoas, familiaPedida, gruposDaFamilia, ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
+import { apelidoAoLado, enderecoDePessoas, familiaPedida, gruposDaFamilia, nomeComApelido, ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
 import { enderecoDoRetrato } from '../../lib/retratos';
-import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
+import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
 import { corDaPessoa, corDoNucleo } from '../../lib/visual';
 
 const { usuario } = Astro.locals;
 // Quem só existe num laço privado de outra pessoa não entra na lista (C1, 17/11/2026)
-const integrantes = await listarIntegrantesQueVe(usuario);
+// O ex que quem olha deixou fora sai da lista dela; o discreto fica, com a tarja no lugar do nome
+// (decisão do Gui depois do QA de 18/11/2026; naListaDeQuemOlha, em src/lib/ex-casal.ts)
+const modosDosExes = await comoOsExesAparecem(usuario);
+const comoAparece = (id: string) => naListaDeQuemOlha(modosDosExes.get(id));
+const integrantes = (await listarIntegrantesQueVe(usuario)).filter((i) => comoAparece(i.id) !== 'fora');
 // "Procurar pelo nome" sem script: a lista suspensa manda `?ir=<pessoa>`, e a página leva até ela
 const ir = Astro.url.searchParams.get('ir');
 if (ir && integrantes.some((i) => i.id === ir)) return Astro.redirect(`/pessoas/${ir}`);
@@ -74,7 +83,8 @@ const detalhe = (p: Integrante) => {
   // Sem memória nenhuma, a linha da conta não aparece (P101)
   return [p.tipo === 'bicho' ? (p.especie ?? 'bichinho') : null, n > 0 ? plural(n, 'memória', 'memórias') : null].filter(Boolean).join(' · ') || null;
 };
-const porNome = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+// Quem é discreto para quem olha não entra na busca, como na árvore
+const porNome = integrantes.filter((i) => comoAparece(i.id) === 'normal').sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 // A troca de ordem guarda a família, e a pílula de família guarda a ordem
 const ORDENS = [
   { id: 'geracao', texto: 'Por geração', href: enderecoDePessoas(familiaEmUso, 'geracao') },
@@ -100,7 +110,7 @@ const escolhido = [todosOsGrupos.find((g) => g.id === familiaEmUso)?.nome, ordem
         <div class="pessoas-pagina__campo">
           <select id="procurar-pessoa" name="ir" required>
             <option value="">Escreva o nome</option>
-            {porNome.map((p) => <option value={p.id}>{p.nome}</option>)}
+            {porNome.map((p) => <option value={p.id}>{nomeComApelido(p.nome, p.apelido)}</option>)}
           </select>
           <button class="acao" type="submit">Abrir a página</button>
         </div>
@@ -170,15 +180,26 @@ const escolhido = [todosOsGrupos.find((g) => g.id === familiaEmUso)?.nome, ordem
             <ul class="familia-de-gente__lista" aria-labelledby={`familia-${grupo.id}`}>
               {grupo.membros.map((p) => (
                 <li>
+                  {comoAparece(p.id) === 'tarja' ? (
+                    <div class="gente gente--discreto">
+                      <TarjaDoDiscreto
+                        nome={nomeComApelido(p.nome, p.apelido)}
+                        foto={p.retrato && !naoVe.has(p.id) ? enderecoDoRetrato(p.retrato) : null}
+                        familia={corDaPessoa(familiasDe(p), ordemDosNucleos)}
+                      />
+                    </div>
+                  ) : (
                   <Gente
                     href={`/pessoas/${p.id}`}
                     nome={p.nome}
+                    apelido={apelidoAoLado(p.nome, p.apelido)}
                     foto={p.retrato && !naoVe.has(p.id) ? enderecoDoRetrato(p.retrato) : null}
                     familia={corDaPessoa(familiasDe(p), ordemDosNucleos)}
                     laco={paraVoce(p)}
                     detalhe={detalhe(p)}
                     falecido={jaFaleceu(p)}
                   />
+                  )}
                 </li>
               ))}
             </ul>

@@ -6,7 +6,8 @@
 // A regra: nomes, datas e laços passam; memórias, relatos, textos, retratos e fotos nunca passam.
 // - Passam, como estão na produção: as pessoas (id, nome, apelido, tipo, espécie, como se referir, as
 //   datas de nascimento e de falecimento, quem administra), quem é de cada família, as filiações (com a
-//   data da adoção), os casais com as fases e as famílias que veem, os laços do coração (com o nome, o
+//   data da adoção), os casais com as fases (com mês e dia), a marca de namoro "já é da família" e as
+//   famílias que veem, os laços do coração (com o nome, o
 //   papel, a proximidade e a marca de privado) e os laços resumidos.
 // - Nenhum arquivo da produção chega à homologação (observação do Gui, 18/11/2026): o retrato de cada
 //   pessoa é uma das fotos de exemplo do Chico e da Karol, sorteada pelo id como nas prévias
@@ -42,12 +43,16 @@ export const IDS_COM_ACESSO = ['gui', 'giovanna', 'elizete', 'lucas-magno'];
 export const TABELAS_APAGADAS = [
   // Os avisos apontam para memórias e relatos da produção: o espelho não leva nenhum
   'avisos',
+  // Os pedidos para excluir pessoa trazem o motivo escrito: o espelho não leva nenhum (migração 102)
+  'pedidos_de_exclusao',
   // As sugestões de correção apontam para memórias e relatos da produção (migração 074)
   'sugestoes',
   // As reações apontam para memórias, relatos e fotos da produção (migração 075)
   'reacoes',
   // A proximidade do círculo é de cada pessoa, e só ela vê: o espelho não leva nenhuma, e apaga as que houver
   'proximidades',
+  // Como cada pessoa chama a outra é dela, e só ela vê: o espelho não leva nenhum (migração 090)
+  'apelidos_meus',
   // Como o ex aparece é de cada pessoa, e só ela vê: o espelho não leva nenhuma escolha (migração 071)
   'ex_para_mim',
   'tema_capitulos',
@@ -62,6 +67,9 @@ export const TABELAS_APAGADAS = [
   // As fotos apontam para relatos (a coluna relato_id, que veio depois por ALTER TABLE) e por isso
   // saem antes deles; o teste antigo só lia o CREATE TABLE e não via essa ligação
   'fotos',
+  // As mensagens do relato como conversa (migração 103) apontam para relatos reais e trazem o texto escrito:
+  // o espelho não leva nenhuma; a conversa dos relatos do espelho é derivada deles (mensagens-de-antes.ts)
+  'relato_mensagens',
   // Áudios apontam para relatos reais: o espelho não leva nenhum, e apaga os que houver
   'audios',
   'relatos',
@@ -153,6 +161,9 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       admin: numero(p.admin) ?? 0,
       ordem: numero(p.ordem) ?? 50,
       criado_por: mapear(p.criado_por),
+      // Quem está na lixeira (excluir pessoa, migração 102) continua na lixeira no espelho
+      excluida_em: texto(p.excluida_em),
+      excluida_por: texto(p.excluida_em) ? mapear(p.excluida_por) : null,
     };
   });
 
@@ -184,7 +195,7 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       if (!existe(a) || !existe(b)) return null;
       // O banco guarda o par em ordem alfabética
       const [x, y] = String(a) < String(b) ? [a, b] : [b, a];
-      return { id: numero(c.id), a_id: x, b_id: y, visibilidade: c.visibilidade ?? 'todos', criado_por: mapear(c.criado_por) };
+      return { id: numero(c.id), a_id: x, b_id: y, visibilidade: c.visibilidade ?? 'todos', criado_por: mapear(c.criado_por), ja_da_familia: numero(c.ja_da_familia) ? 1 : 0 };
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
   const idsDosCasais = new Set(casais.map((c) => c.id));
@@ -194,7 +205,18 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
     .map((f) => ({ casal_id: numero(f.casal_id), nucleo_id: f.nucleo_id }));
   const casalFases = t('casal_fases')
     .filter((f) => idsDosCasais.has(numero(f.casal_id)))
-    .map((f) => ({ casal_id: numero(f.casal_id), tipo: f.tipo, inicio_ano: numero(f.inicio_ano), fim_ano: numero(f.fim_ano), ordem: numero(f.ordem) ?? 0 }));
+    // As datas passam como estão, com o mês e o dia (migração 101), como as outras datas das pessoas
+    .map((f) => ({
+      casal_id: numero(f.casal_id),
+      tipo: f.tipo,
+      inicio_ano: numero(f.inicio_ano),
+      inicio_mes: numero(f.inicio_mes),
+      inicio_dia: numero(f.inicio_dia),
+      fim_ano: numero(f.fim_ano),
+      fim_mes: numero(f.fim_mes),
+      fim_dia: numero(f.fim_dia),
+      ordem: numero(f.ordem) ?? 0,
+    }));
 
   const lacos = t('lacos_coracao')
     .map((l) => {

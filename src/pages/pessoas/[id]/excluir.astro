@@ -1,0 +1,61 @@
+---
+// Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026): esta página existe para confirmar antes.
+// Os administradores excluem; os outros pedem a exclusão, e um administrador aprova ou recusa. A pessoa
+// vai para a lixeira, com volta: some do site na hora, as memórias ficam, ela sai de "Quem estava" e
+// dos laços, e os relatos que ela contou continuam com o nome, sem link.
+import Pagina from '../../../components/formularios/Pagina.astro';
+import { pessoasComAcesso } from '../../../lib/servidor/acesso';
+import { voceOuOsOutrosAdmins } from '../../../lib/servidor/conteudo';
+import { podeExcluirPessoa, podePedirExclusao } from '../../../lib/servidor/permissoes';
+import { familiasDe, listarIntegrantes, listarIntegrantesQueVe, listarMemorias, pedidoAbertoDeExclusao } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const pessoa = (await listarIntegrantesQueVe(usuario)).find((i) => i.id === Astro.params.id);
+if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
+const voltarPara = `/pessoas/${pessoa.id}/editar`;
+const alvo = { id: pessoa.id, acessa: (await pessoasComAcesso()).has(pessoa.id) };
+const excluir = podeExcluirPessoa(usuario, alvo).ok;
+if (!excluir && !podePedirExclusao(usuario, alvo).ok) return Astro.redirect(voltarPara);
+const pedido = await pedidoAbertoDeExclusao(pessoa.id);
+if (pedido && !excluir) return Astro.redirect(voltarPara);
+
+const memorias = (await listarMemorias(usuario)).filter((m) => m.integrantes.includes(pessoa.id)).length;
+const quemRestaura = voceOuOsOutrosAdmins(usuario.pessoa, await listarIntegrantes());
+const ela = pessoa.tratamento === 'ela' ? 'ela' : pessoa.tratamento === 'ele' ? 'ele' : pessoa.nome;
+---
+
+<Pagina titulo={excluir ? 'Excluir pessoa' : 'Pedir para excluir'} rotulo={pessoa.nome} nucleos={familiasDe(pessoa)} secao="pessoas">
+  <p slot="abertura">Confira antes de confirmar. Nada é apagado de vez.</p>
+  <section class="alerta">
+    <h2>{pessoa.nome}</h2>
+    <p>
+      {pessoa.nome} vai sair do site para toda a família: da lista de Pessoas, da árvore e dos laços.
+      {memorias > 0 && ` As ${memorias === 1 ? 'memória' : `${memorias} memórias`} em que ${ela} aparece ${memorias === 1 ? 'fica' : 'ficam'}, sem ${pessoa.nome} em "Quem estava".`}
+      {' '}Os relatos que {ela} contou continuam, com o nome.
+    </p>
+    {
+      excluir ? (
+        <p>Nada é apagado de vez: {pessoa.nome} vai para a lixeira, e {quemRestaura} {quemRestaura === 'você' ? 'pode' : 'podem'} restaurar tudo como estava.</p>
+      ) : (
+        <p>Só os administradores excluem. O pedido vai para eles, que aprovam ou recusam. Se aprovarem, {pessoa.nome} vai para a lixeira, e dá para restaurar.</p>
+      )
+    }
+    {pedido && excluir && <p>Já há um pedido para excluir {pessoa.nome}{pedido.motivo ? `: “${pedido.motivo}”` : '.'}</p>}
+    <form method="post" action="/api/pessoas-excluidas">
+      <input type="hidden" name="acao" value={excluir ? 'excluir' : 'pedir'} />
+      <input type="hidden" name="pessoa" value={pessoa.id} />
+      {
+        !excluir && (
+          <label class="campo">
+            <span class="campo__rotulo">Por que excluir? (opcional)</span>
+            <textarea class="campo__entrada" name="motivo" rows="3" maxlength="500" placeholder="Ex.: cadastrada duas vezes, nome errado"></textarea>
+          </label>
+        )
+      }
+      <p class="acoes">
+        <button class="botao botao--perigo" type="submit">{excluir ? 'Excluir e mandar para a lixeira' : 'Pedir a exclusão'}</button>
+        <a class="botao botao--leve" href={voltarPara}>Cancelar</a>
+      </p>
+    </form>
+  </section>
+</Pagina>

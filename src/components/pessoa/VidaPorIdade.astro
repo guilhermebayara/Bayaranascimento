@@ -1,0 +1,69 @@
+---
+// A vida em memórias, pela idade (página da pessoa, proposta A da sessão L): as memórias numa lista
+// compacta, de dez em dez anos da vida da pessoa ("Dos 30 aos 39 anos"), cada uma com a foto
+// pequena, a data, a idade, o título e o lugar. Sem o ano de nascimento, pelas décadas.
+// Cada linha tem identidade (data-chave), para a troca de forma de ver mover as memórias no lugar.
+import Polaroid from '../visual/Polaroid.astro';
+import { fasesDaVida, idadeNoAno, textoDaIdade } from '../../lib/pagina-da-pessoa';
+import { carimboDaData, estiloDoTipo } from '../../lib/visual';
+
+interface Props {
+  memorias: {
+    id: string;
+    titulo: string;
+    ano: number;
+    mes: number | null;
+    dia: number | null;
+    aproximada: boolean;
+    tipo: string;
+    lugar: string | null;
+    situacao?: string;
+    fotos: { chave: string; legenda: string | null }[];
+  }[];
+  nascimentoAno?: number | null;
+}
+
+const { memorias, nascimentoAno } = Astro.props;
+const fases = fasesDaVida(memorias, nascimentoAno);
+const plural = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
+---
+
+<div class="vida miolo" data-resultado>
+  {
+    fases.map((fase) => (
+      <section class="vida__fase" aria-labelledby={`fase-${fase.chave}`}>
+        <header class="vida__titulo">
+          <h3 class="t-3" id={`fase-${fase.chave}`}>
+            {fase.titulo}
+          </h3>
+          <p class="ficha suave">
+            {fase.quando} · {plural(fase.memorias.length)}
+          </p>
+        </header>
+        <ol class="vida__memorias">
+          {fase.memorias.map((m) => {
+            const idade = idadeNoAno(nascimentoAno, m.ano);
+            return (
+              <li style={estiloDoTipo(m.tipo)} data-chave={`m:${m.id}`} data-ano={m.ano}>
+                <a class="vida__memoria" href={`/memorias/${m.id}`}>
+                  <span class="vida__foto">
+                    <Polaroid id={m.id} fotos={m.fotos} legenda="" tipo={m.tipo} monte={false} reta />
+                  </span>
+                  <span class="vida__texto">
+                    <span class="ficha suave">
+                      {carimboDaData(m)}
+                      {idade !== null && <> · {textoDaIdade(idade)}</>}
+                      {m.situacao === 'rascunho' && <> · rascunho</>}
+                    </span>
+                    <span class="vida__memoria-titulo">{m.titulo}</span>
+                    {m.lugar && <span class="suave">{m.lugar}</span>}
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    ))
+  }
+</div>

@@ -24,6 +24,11 @@ export interface Fase {
   tipo: TipoDeFase;
   inicioAno: number | null;
   fimAno: number | null;
+  /** Mês e dia, opcionais como nas outras datas do site (migração 101). Só valem com o ano. */
+  inicioMes?: number | null;
+  inicioDia?: number | null;
+  fimMes?: number | null;
+  fimDia?: number | null;
 }
 
 export interface Casal {
@@ -40,6 +45,11 @@ export interface Casal {
   /** as famílias que veem o casal, com visibilidade 'nucleos' */
   nucleos?: string[];
   criadoPor: string | null;
+  /**
+   * "Já é da família" (migração 100, decisão do Gui de 18/11/2026): o namoro longo, marcado assim, aparece
+   * como casal. Sem a marca, o namoro aparece como laço do coração. Só conta quando o casal só namorou.
+   */
+  jaDaFamilia?: boolean;
 }
 
 export const QUALIDADES: Record<Qualidade, string> = {
@@ -69,8 +79,40 @@ export function estaoJuntos(casal: Casal): boolean {
   return Boolean(fase) && FASES_JUNTOS.includes(fase!.tipo);
 }
 
+/**
+ * Como o casal aparece em todo o site (decisões do Gui, 18/11/2026: "a fase decide, num registro só"):
+ * - 'casal': noivado, casamento ou união hoje, ou namoro marcado "já é da família". Linha de casal na
+ *   árvore, e o parentesco passa por ele (sogra, cunhado).
+ * - 'namoro': namoro sem a marca. Aparece como laço do coração (o tracejado), e o parentesco é só entre
+ *   os dois ("namorada"), sem passar adiante.
+ * - 'amizade': o ex que virou amigo. Laço do coração em todo lugar.
+ * - 'ex': terminou depois de ter sido da família (noivado, casamento, união ou namoro marcado). Ex-casal.
+ * - 'namoro-que-acabou': só namoraram e terminaram, sem nunca ter sido da família (o caso do Jean). Não
+ *   aparece na árvore, na página da pessoa nem no círculo; as duas pessoas continuam no acervo e nas
+ *   memórias, e a história fica na página do laço e em "Editar página e laços".
+ */
+export type ComoOCasalAparece = 'casal' | 'namoro' | 'amizade' | 'ex' | 'namoro-que-acabou';
+
+const FASES_DA_FAMILIA: TipoDeFase[] = ['noivado', 'casamento', 'uniao'];
+
+export function comoOCasalAparece(casal: Pick<Casal, 'fases' | 'jaDaFamilia'>): ComoOCasalAparece {
+  const atual = casal.fases[casal.fases.length - 1]?.tipo;
+  if (atual === 'amizade') return 'amizade';
+  if (atual && FASES_DA_FAMILIA.includes(atual)) return 'casal';
+  if (atual === 'namoro') return casal.jaDaFamilia ? 'casal' : 'namoro';
+  // Separação (ou nenhuma fase): ex de verdade só quem foi da família
+  const foiDaFamilia = casal.jaDaFamilia || casal.fases.some((f) => FASES_DA_FAMILIA.includes(f.tipo));
+  return foiDaFamilia ? 'ex' : 'namoro-que-acabou';
+}
+
+/** O casal aparece como casal (junto ou ex) na árvore e na página da pessoa. */
+export const apareceComoCasal = (casal: Pick<Casal, 'fases' | 'jaDaFamilia'>): boolean => ['casal', 'ex'].includes(comoOCasalAparece(casal));
+
+/** O casal aparece como laço do coração: o namoro sem a marca e o ex que virou amigo. */
+export const apareceComoCoracao = (casal: Pick<Casal, 'fases' | 'jaDaFamilia'>): boolean => ['namoro', 'amizade'].includes(comoOCasalAparece(casal));
+
 /** A fase mais adiantada que o casal viveu, para dizer "ex-marido" e não "ex-namorado" de quem foi casado. */
-function auge(casal: Casal): TipoDeFase {
+export function auge(casal: Pick<Casal, 'fases'>): TipoDeFase {
   const ordem: TipoDeFase[] = ['casamento', 'uniao', 'noivado', 'namoro'];
   return ordem.find((t) => casal.fases.some((f) => f.tipo === t)) ?? 'namoro';
 }
@@ -273,10 +315,14 @@ export class Familia {
         if (!e.usouCasal) {
           for (const c of this.casais(e.no)) {
             if (c.outro !== para && e.etapa !== 0) continue; // no meio, o casal só serve para chegar ao destino
-            if (c.juntos) {
+            const como = comoOCasalAparece(c.casal);
+            // Só namoraram e terminaram: não é parentesco de ninguém (decisão do Gui, 18/11/2026)
+            if (como === 'namoro-que-acabou') continue;
+            if (como === 'casal') {
               if (c.outro === para) finais.push([...e.passos, { tipo: 'C', casal: c.casal }]);
               else if (e.etapa === 0) visitar(c.outro, 1, true, [...e.passos, { tipo: 'C', casal: c.casal }]);
             } else if (e.etapa === 0 && c.outro === para) {
+              // O namoro, a amizade e o ex valem só entre os dois: não levam a sogra nem o cunhado
               finais.push([...e.passos, { tipo: 'X', casal: c.casal }]);
             }
           }
@@ -309,8 +355,9 @@ export class Familia {
       const atual = faseAtual(casal)!;
       sufixo = '';
       if (passos[0].tipo === 'C') formas = PARES[atual.tipo];
-      // O ex que virou amigo aparece como amigo
-      else if (atual.tipo === 'amizade') formas = PARES.amizade;
+      // O ex que virou amigo aparece como amigo, e o namoro como namoro: os dois contam como laço do
+      // coração (caminho "A", no círculo)
+      else if (atual.tipo === 'amizade' || atual.tipo === 'namoro') formas = PARES[atual.tipo];
       else {
         formas = PARES[auge(casal)];
         prefixo = 'ex-';
@@ -321,7 +368,8 @@ export class Familia {
     if (!formas) return undefined;
     const montar = (base: string) => prefixo + base + sufixo;
     const ehConsideracao = consideracao && sufixo !== '';
-    const caminho = passos.map((p) => p.tipo).join('');
+    const doCoracao = passos.length === 1 && passos[0].tipo === 'X' && apareceComoCoracao(passos[0].casal);
+    const caminho = doCoracao ? 'A' : passos.map((p) => p.tipo).join('');
     if (tratamento) return { texto: montar(forma(formas, tratamento)), consideracao: ehConsideracao, caminho };
     const [ela, ele] = formas;
     return { texto: `${montar(ele)} ou ${montar(ela)}`, consideracao: ehConsideracao, formas: { ela: montar(ela), ele: montar(ele) }, caminho };
@@ -353,13 +401,19 @@ export function periodoDaFase(fase: Fase): string {
  * seguinte começa (o namoro acaba quando o noivado começa). Só a última, a de hoje, fica "desde".
  * A separação é um momento: "em 2019". Nada disso é gravado; o banco guarda o que foi informado.
  */
-export function periodosDasFases(fases: Fase[]): string[] {
+export function periodosDasFases(fases: Fase[], { completas = false }: { completas?: boolean } = {}): string[] {
+  // Com `completas`, o início e o fim levam o mês e o dia, quando informados ("desde 30 de maio de 1995")
+  const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const data = (ano: number, mes?: number | null, dia?: number | null) =>
+    !completas || !mes ? String(ano) : dia ? `${dia} de ${MESES[mes - 1]} de ${ano}` : `${MESES[mes - 1]} de ${ano}`;
   return fases.map((fase, i) => {
     const ultima = i === fases.length - 1;
-    const fim = fase.fimAno ?? (ultima ? null : (fases.slice(i + 1).find((f) => f.inicioAno)?.inicioAno ?? null));
-    if (fase.tipo === 'separacao' && !fase.fimAno) return fase.inicioAno ? `em ${fase.inicioAno}` : '';
-    if (fase.inicioAno && fim) return fase.inicioAno === fim ? String(fase.inicioAno) : `${fase.inicioAno} a ${fim}`;
-    if (fase.inicioAno) return ultima ? `desde ${fase.inicioAno}` : `a partir de ${fase.inicioAno}`;
+    const seguinte = fases.slice(i + 1).find((f) => f.inicioAno);
+    const fim = fase.fimAno ? data(fase.fimAno, fase.fimMes, fase.fimDia) : ultima || !seguinte ? null : data(seguinte.inicioAno!, seguinte.inicioMes, seguinte.inicioDia);
+    const inicio = fase.inicioAno ? data(fase.inicioAno, fase.inicioMes, fase.inicioDia) : null;
+    if (fase.tipo === 'separacao' && !fase.fimAno) return inicio ? `em ${inicio}` : '';
+    if (inicio && fim) return inicio === fim ? inicio : `${inicio} a ${fim}`;
+    if (inicio) return ultima ? `desde ${inicio}` : `a partir de ${inicio}`;
     if (fim) return `até ${fim}`;
     return '';
   });

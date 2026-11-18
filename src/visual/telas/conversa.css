@@ -1,0 +1,477 @@
+/* O relato como conversa (escolha do Gui depois da sessão I, 18/11/2026; protótipo em tst-relato-conversa).
+   A janela de escrever (src/components/conversa/Janela.astro) e as vozes da memória
+   (src/components/conversa/Voz.astro). Cada mensagem é um balão: as de quem olha à direita, no pastel
+   da família, e as dos outros à esquerda, em branco. A caixa de escrever tem o "+", o texto que cresce
+   e o botão redondo, na cor viva, que grava ou envia. */
+
+.janela {
+  display: grid;
+  gap: var(--e-3);
+  align-content: start;
+}
+.janela__mensagens,
+.voz__mensagens {
+  display: grid;
+  gap: var(--e-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.janela__mensagens {
+  min-height: 12rem;
+  align-content: end;
+  padding: var(--e-4);
+  border-radius: var(--raio-bloco);
+  background: var(--papel-recuo);
+}
+.janela__vazio {
+  align-self: center;
+  justify-self: center;
+  max-width: 22rem;
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+  text-align: center;
+}
+.janela__vazio[hidden],
+.janela__citando[hidden],
+[data-so-com-script][hidden] {
+  display: none;
+}
+/* "Citando Elizete": a citação que vai com a próxima mensagem de texto, colada na caixa */
+.janela__citando {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-1) var(--e-3);
+  margin: 0;
+  padding: var(--e-2) var(--e-3);
+  border-left: var(--traco) solid var(--vivo);
+  background: var(--papel-recuo);
+}
+.janela__citando-texto {
+  flex: 1 1 12rem;
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+}
+.janela__dica,
+.janela .situacao {
+  margin: 0;
+}
+.janela .situacao:empty {
+  display: none;
+}
+
+/* Cada mensagem: um balão. As de quem conta ficam à direita, as dos outros à esquerda */
+.msg {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e-1);
+  justify-self: start;
+  max-width: min(100%, 30rem);
+}
+.msg--minha,
+.voz--minha .msg {
+  justify-self: end;
+}
+.msg--minha {
+  flex-direction: row-reverse;
+}
+.msg__texto,
+.msg__audio,
+.msg__foto {
+  margin: 0;
+  border-radius: var(--raio-bloco) var(--raio-bloco) var(--raio-bloco) var(--raio-foto);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+.msg--minha :is(.msg__texto, .msg__audio, .msg__foto),
+.voz--minha :is(.msg__texto, .msg__audio, .msg__foto) {
+  border-radius: var(--raio-bloco) var(--raio-bloco) var(--raio-foto) var(--raio-bloco);
+  background: var(--pastel);
+}
+.msg__texto {
+  display: grid;
+  gap: var(--e-2);
+  padding: var(--e-3) var(--e-4);
+  font-size: var(--t-corpo);
+  line-height: var(--linha-corpo);
+}
+.msg__texto p {
+  margin: 0;
+  white-space: pre-line;
+}
+.msg__audio {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  width: min(100vw - 6rem, 18rem);
+  padding: var(--e-2) var(--e-4) var(--e-2) var(--e-2);
+}
+.msg__audio audio {
+  display: none;
+}
+.msg__tocar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--toque);
+  height: var(--toque);
+  border: 0;
+  border-radius: 50%;
+  background: var(--tinta);
+  color: var(--papel);
+  cursor: pointer;
+}
+.msg__tocar svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
+}
+.msg__audio--tocando .msg__tocar {
+  background: var(--vivo-tinta);
+}
+.msg__onda {
+  flex: 1;
+  height: 1.25rem;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--tinta) 35%, transparent) 0 2px, transparent 2px 5px);
+  mask: linear-gradient(transparent 30%, var(--tinta) 30% 70%, transparent 70%);
+}
+.msg__foto {
+  padding: var(--e-1);
+}
+.msg__foto img {
+  display: block;
+  width: min(60vw, 14rem);
+  aspect-ratio: 46 / 62;
+  border-radius: var(--raio-foto);
+  object-fit: cover;
+}
+.msg__menu .menu-acoes__botao {
+  opacity: 0.6;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .msg--nova {
+    animation: msg-chega var(--tempo-curto) var(--curva);
+  }
+}
+@keyframes msg-chega {
+  from {
+    opacity: 0;
+    translate: 0 var(--e-2);
+  }
+}
+
+/* A caixa de escrever: o "+", o texto que cresce e o botão redondo que grava ou envia */
+.janela__escrever {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--e-2);
+  padding: var(--e-1);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+  box-shadow: inset 0 0 0 1px var(--fio);
+}
+.janela__escrever[data-modo='gravando'] {
+  box-shadow: inset 0 0 0 var(--traco) var(--alerta);
+}
+.janela__mais {
+  position: relative;
+  flex: none;
+}
+.janela__mais .icone {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.janela__mais-lista {
+  top: auto;
+  right: auto;
+  bottom: calc(100% + var(--e-1));
+  left: 0;
+}
+.janela__campo {
+  flex: 1;
+  min-height: var(--toque);
+  max-height: 12rem;
+  padding: var(--e-2) 0;
+  border: 0;
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  font-size: var(--t-corpo);
+  line-height: 1.45;
+  resize: none;
+  field-sizing: content;
+}
+.pagina-de-formulario .janela__escrever .janela__campo,
+.janela__escrever .janela__campo {
+  width: auto;
+  min-height: var(--toque);
+  margin: 0;
+  padding: var(--e-2) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font-size: var(--t-corpo);
+  resize: none;
+}
+/* O foco é da caixa inteira (o contorno abaixo), e não do campo, como nos outros formulários */
+.pagina-de-formulario .janela__escrever .janela__campo:focus-visible {
+  background: none;
+  box-shadow: none;
+}
+.janela__campo:focus-visible {
+  outline: none;
+}
+.janela__escrever:has(.janela__campo:focus-visible) {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 3px;
+}
+.janela__escrever[data-modo='gravando'] :is(.janela__campo, .janela__mais) {
+  display: none;
+}
+.janela__gravando {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-height: var(--toque);
+  padding-left: var(--e-3);
+  font-variant-numeric: tabular-nums;
+}
+.janela__gravando::before {
+  content: '';
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--alerta);
+}
+.janela__gravando[hidden],
+.janela__cancelar[hidden] {
+  display: none;
+}
+.janela__cancelar {
+  min-height: var(--toque);
+  padding: 0 var(--e-3);
+  border: 0;
+  background: none;
+  color: var(--tinta-suave);
+  font: inherit;
+  font-size: var(--t-pequeno);
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+  cursor: pointer;
+}
+.janela__botao {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tinta);
+  color: var(--papel);
+  cursor: pointer;
+}
+.janela__botao svg {
+  display: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.janela__escrever[data-modo='voz'] .janela__mic,
+.janela__escrever[data-modo='texto'] .janela__enviar,
+.janela__escrever[data-modo='gravando'] .janela__parar {
+  display: block;
+}
+.janela__escrever[data-modo='gravando'] .janela__parar {
+  fill: currentColor;
+  stroke: none;
+}
+.janela__escrever[data-modo='gravando'] .janela__botao {
+  background: var(--alerta-tinta);
+}
+.janela__botao:focus-visible,
+.msg__tocar:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+.janela__dica {
+  margin: 0;
+}
+.janela__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-4) var(--e-5);
+  margin-top: var(--e-4);
+}
+
+/* Na memória: cada pessoa é uma voz, com o retrato e o nome à mão no começo das mensagens */
+.relato-conversa__memoria {
+  display: grid;
+  gap: var(--e-4);
+  align-content: start;
+}
+.voz-fio {
+  display: grid;
+  gap: var(--e-6);
+}
+.voz {
+  display: grid;
+  gap: var(--e-2);
+}
+.voz__quem {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  font-size: var(--t-titulo-3);
+  font-weight: 400;
+}
+.voz__quem .retrato {
+  width: 2.25rem;
+}
+.voz--minha .voz__quem {
+  justify-content: flex-end;
+}
+
+
+/* O botão de áudio ganha cor (escolha do Gui): sem texto, ele grava, na cor viva */
+.janela__escrever[data-modo='voz'] .janela__botao {
+  background: var(--vivo-tinta);
+}
+
+/* A mensagem por dentro: o corpo (a citação e o texto, o áudio, a foto) e o menu de três pontos ao lado */
+.msg__corpo {
+  display: grid;
+  gap: var(--e-1);
+  min-width: 0;
+}
+.msg--minha .msg__corpo,
+.voz--minha .msg__corpo {
+  justify-items: end;
+}
+.msg__cita {
+  display: grid;
+  gap: var(--e-1);
+  margin: 0;
+  padding: var(--e-2) var(--e-3);
+  border-left: var(--traco) solid var(--vivo);
+  border-radius: var(--raio-foto);
+  background: color-mix(in srgb, var(--tinta) 6%, transparent);
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+}
+.msg__texto[hidden] {
+  display: none;
+}
+.msg__audio .msg__pausa,
+.msg__audio--tocando .msg__play {
+  display: none;
+}
+.msg__audio--tocando .msg__pausa {
+  display: block;
+}
+/* Sem script, o tocador do aparelho: o botão e a onda saem */
+.msg__audio:not(.msg__audio--com-script) :is(.msg__tocar, .msg__onda, .msg__tempo) {
+  display: none;
+}
+.msg__audio:not(.msg__audio--com-script) audio {
+  display: block;
+  width: 100%;
+}
+.msg__onda {
+  position: relative;
+  overflow: hidden;
+}
+.msg__andou {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: color-mix(in srgb, var(--vivo-tinta) 55%, transparent);
+}
+.msg__tempo {
+  font-variant-numeric: tabular-nums;
+}
+.msg__foto figcaption {
+  padding: var(--e-1) var(--e-2) 0;
+}
+.msg__transcricao {
+  max-width: min(100%, 30rem);
+  font-size: var(--t-pequeno);
+}
+.msg__transcricao summary {
+  min-height: var(--toque);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.msg__transcricao-painel,
+.msg__edicao {
+  display: grid;
+  gap: var(--e-2);
+  width: min(100%, 30rem);
+}
+.msg__edicao .janela__campo {
+  padding: var(--e-2) var(--e-3);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+  box-shadow: inset 0 0 0 1px var(--fio);
+}
+.msg__edicao-acoes {
+  display: flex;
+  gap: var(--e-4);
+  margin: 0;
+}
+.msg__citar {
+  align-self: center;
+  font-size: var(--t-pequeno);
+}
+/* "Contou mais em 3 de dezembro de 2026": o dia novo, pequeno, entre as mensagens */
+.msg-dia {
+  justify-self: center;
+  margin-block: var(--e-2);
+}
+.voz-fio {
+  display: grid;
+  gap: var(--e-7);
+}
+.voz__quem .ficha {
+  font-size: var(--t-pequeno);
+}
+.voz--minha .voz__quem {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+/* "Escrever meu relato": a janela e, ao lado no computador, a memória como está, com as vozes dos outros */
+.relato-conversa {
+  display: grid;
+  gap: var(--e-7);
+}
+.relato-conversa__memoria {
+  display: grid;
+  gap: var(--e-4);
+  align-content: start;
+}
+.relato-conversa__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-4) var(--e-5);
+  margin: 0;
+}
+@media (min-width: 62rem) {
+  .relato-conversa {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: start;
+  }
+}

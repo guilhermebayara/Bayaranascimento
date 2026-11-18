@@ -1,4 +1,4 @@
-// O conceito da revisão visual (docs/decisoes.md, "Revisão visual do zero", fase 1).
+// O conceito da revisão visual (docs/historico/visual-ate-2026-11-17.md, "Conceito (fase 1), em aprovação").
 // As telas de /conceito usam o acervo de exemplo e, no painel, dados fixos de exemplo.
 // Por isso só existem onde o acervo de exemplo existe: nas prévias de teste e no computador.
 // Na produção e na homologação, respondem 404. A guarda da produção confere esta trava.

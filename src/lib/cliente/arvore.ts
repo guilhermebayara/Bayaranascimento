@@ -28,7 +28,7 @@ export interface ExtrasDaArvore {
 
 export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: ExtrasDaArvore = {}): ControleDaArvore {
   const falecidos = new Set(alem.falecidos ?? []);
-  // A marca de quem já faleceu no cartão: um anel pequeno antes do parentesco, e o aviso para o leitor de tela
+  // A marca de quem já faleceu no cartão: a orelha dobrada no canto, e o aviso para o leitor de tela
   const marcarFalecido = (no: HTMLElement, id: string) => {
     no.classList.toggle('no--falecido', falecidos.has(id));
     if (falecidos.has(id) && !no.querySelector('.so-leitor')) no.append(Object.assign(document.createElement('small'), { className: 'so-leitor', textContent: 'já faleceu' }));
@@ -187,7 +187,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     vista.y = ajuste(caixa.y, caixa.h, livre.y, livre.y + livre.h, vista.y);
     aplicarVista(true);
   };
-  // O quadro do mapa (docs/decisoes.md, "Página da árvore como mapa"): o painel pousado sobre o mapa
+  // O quadro do mapa (docs/decisoes.md, "A página como mapa", em "Árvore"): o painel pousado sobre o mapa
   // ocupa um lado dele (tela grande) ou uma faixa no alto (celular), e a árvore é enquadrada no que
   // sobra, acima da barra de baixo.
   const quadro = raiz.querySelector<HTMLElement>('[data-quadro]');
@@ -236,7 +236,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     const quem = document.createElement('span');
     quem.className = 'mapa__foco-quem';
     quem.append(...[p.rotulo, p.anos].filter(Boolean).map((texto) => Object.assign(document.createElement('span'), { textContent: texto })));
-    // Quem já faleceu: o retrato leva o anel, e o leitor de tela ouve
+    // Quem já faleceu: o retrato fica em tom suave, e o leitor de tela ouve (a ficha não escreve "em memória")
     if (falecidos.has(p.id)) quem.append(Object.assign(document.createElement('i'), { textContent: ', já faleceu', className: 'so-leitor' }));
     const pagina = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}`, textContent: 'Ver a página' });
     const partir = Object.assign(document.createElement('button'), { type: 'button', textContent: `Ver a árvore de ${p.nome}` });
@@ -252,12 +252,20 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     if (p.retrato) retrato.append(Object.assign(new Image(), { src: p.retrato, alt: '' }));
     else retrato.append(Object.assign(document.createElement('span'), { textContent: p.iniciais ?? '' }));
     retrato.firstElementChild!.setAttribute('aria-hidden', 'true');
+    // O retrato de quem faleceu acende com o foco, em qualquer lugar: na ficha ele fica fora de link,
+    // então acende quando "Ver a página" recebe o foco
+    if (falecidos.has(p.id)) {
+      pagina.addEventListener('focus', () => retrato.classList.toggle('retrato--aceso', pagina.matches(':focus-visible')));
+      pagina.addEventListener('blur', () => retrato.classList.remove('retrato--aceso'));
+    }
     // "Ver o laço" (onda 2): a página do laço entre quem olha e a pessoa tocada
     const doLaco = p.id !== dados.eu && pessoa.has(dados.eu) ? [Object.assign(document.createElement('a'), { href: enderecoDoLaco(dados.eu, p.id), textContent: 'Ver o laço' })] : [];
     // As ações ficam numa linha só, que quebra quando falta espaço: com "Ver o laço", eram três links na
     // mesma célula da grade, um em cima do outro (observação do Gui de 18/11/2026)
     const acoes = Object.assign(document.createElement('div'), { className: 'pm__ficha-acoes' });
-    acoes.append(pagina, ...doLaco, partir);
+    // "Como você chama" (só seu, decisão do Gui de 18/11/2026): leva à pergunta, na página da pessoa
+    const comoChama = p.id !== dados.eu ? [Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}#como-voce-chama`, textContent: 'Como você chama' })] : [];
+    acoes.append(pagina, ...doLaco, ...comoChama, partir);
     ficha.replaceChildren(retrato, nome, quem, acoes, fechar);
   };
   const fecharFicha = () => {
@@ -315,7 +323,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
 
   const desenhar = () => {
     // 1 e 2. Quem aparece, em que geração, e o desenho (em src/lib/arvore-montagem.ts)
-    const { desenho: novo, principal, coracao, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis } = montarDesenho(dados, estado, ladoDe);
+    const { desenho: novo, principal, coracao, coracaoDosRamos, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis } = montarDesenho(dados, estado, ladoDe);
     ramosDeAgora = ramos;
     desenho = novo;
 
@@ -489,6 +497,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
         dados.pessoas.filter((p) => membros.includes(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id) })),
         casaisVisiveis.filter((c) => membros.includes(c.a) && membros.includes(c.b)),
         filiacoesVisiveis.filter((f) => membros.includes(f.filho) && membros.includes(f.responsavel)),
+        coracaoDosRamos.filter((l) => membros.includes(l.dono) && membros.includes(l.pessoa)),
       );
       if (!arvoreDoRamo.pessoas.length) continue;
       const primeira = Math.min(...membros.map((id) => geracoes.get(id)!));
@@ -575,7 +584,14 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     for (const e of extras) recuar(e, e.getAttribute('data-ramo') !== emFoco?.chave && (e as HTMLElement).dataset.ramoAberto !== emFoco?.chave);
 
     // 5. Quem não tem laço nenhum com ninguém
-    const comLaco = new Set([...dados.filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...dados.casais.flatMap((c) => [c.a, c.b]), ...dados.coracao.flatMap((l) => [l.dono, l.pessoa])]);
+    // O namoro e o ex que virou amigo são laços; quem só namorou e terminou tem laço, só não aparece na árvore
+    const comLaco = new Set([
+      ...dados.filiacoes.flatMap((f) => [f.filho, f.responsavel]),
+      ...dados.casais.flatMap((c) => [c.a, c.b]),
+      ...dados.coracao.flatMap((l) => [l.dono, l.pessoa]),
+      ...(dados.amizades ?? []).flatMap((a) => [a.a, a.b]),
+      ...(dados.foraDeProposito ?? []),
+    ]);
     const fora = [...visiveis].filter((id) => !comLaco.has(id));
     soltos.hidden = fora.length === 0;
     soltos.replaceChildren(
@@ -781,12 +797,17 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
       if (!naTela(id)) {
         ramo = ramosDeAgora.find((r) => r.membros.includes(id));
         const laco = dados.coracao.find((l) => l.pessoa === id);
+        // O ex que virou amigo aparece com os laços do coração de quem foi o par abertos
+        const amizade = (dados.amizades ?? []).find((a) => !a.namoro && (a.a === id || a.b === id));
         if (ramo) estado.ramos.add(ramo.chave);
         else if (laco) {
           // Quem só aparece por um laço do coração: os laços de quem escolheu se abrem
           estado.consideracao = true;
           estado.abertos.add(laco.dono);
           if (!laco.papel) estado.amigos = true;
+        } else if (amizade) {
+          estado.consideracao = true;
+          estado.abertos.add(amizade.a === id ? amizade.b : amizade.a);
         }
         desenhar();
       }

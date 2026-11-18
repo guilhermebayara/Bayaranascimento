@@ -1,142 +1,164 @@
-/* A página do laço (onda 2, decisão do Gui de 17/11/2026): as duas pessoas, o que uma é da outra, a
-   linha do tempo com as fases do casal como faixas e as memórias dos dois. Desenho de primeira rodada,
-   no sistema: vai passar pelo acabamento visual. */
+/*
+ * A página do laço. A ideia forte: a história dos dois, contada como um capítulo. A capa tem os dois
+ * retratos lado a lado, o nome dos dois, o período e o que um é do outro; no computador com mouse ela
+ * fica parada à esquerda. À direita, as fases do casal em sanfona (o ano grande, o nome da fase e a
+ * data; abre uma de cada vez) e as memórias dos dois como marcos numerados, os mesmos do capítulo
+ * (telas/capitulo.css, que a página importa antes deste arquivo).
+ */
 
 .laco-pagina {
-  display: grid;
-  gap: var(--e-7);
-  padding-block: var(--e-6) var(--e-8);
-}
-.laco-pagina__alto {
-  display: grid;
-  gap: var(--e-3);
-}
-.laco-pagina__dois {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--e-3) var(--e-6);
-  margin-bottom: var(--e-3);
-}
-.laco-pagina__pessoa {
-  display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr);
-  align-items: center;
-  gap: var(--e-3);
-  text-decoration: none;
-}
-.laco-pagina__pessoa > span {
-  display: grid;
-  gap: var(--e-1);
-}
-.laco-pagina h1 {
-  font-size: var(--t-abertura);
-  line-height: 1.05;
-}
-.laco-pagina__o-que {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--e-1) var(--e-4);
-  padding: 0;
-  color: var(--tinta-suave);
-  list-style: none;
-}
-.laco-pagina__tempo,
-.laco-pagina__memorias {
-  display: grid;
-  gap: var(--e-3);
+  row-gap: var(--e-8);
+  padding-block: var(--e-6) var(--e-9);
 }
 
-/* A régua: as memórias como pontos em cima, as faixas das fases no meio e os anos embaixo */
-.regua {
+/* --- A capa ------------------------------------------------------------------------------------ */
+
+/* Os dois retratos lado a lado, do mesmo tamanho: o par é a imagem da tela */
+.laco-pagina__dois {
   display: grid;
-  gap: var(--e-2);
-  padding-block: var(--e-2);
+  grid-template-columns: repeat(2, minmax(0, 7.5rem));
+  align-items: start;
+  gap: var(--e-4);
+  margin-top: var(--e-3);
 }
-.regua__memorias,
-.regua__faixas,
-.regua__anos {
-  position: relative;
+.laco-pagina__dois .pessoa {
+  min-height: var(--toque);
 }
-.regua__memorias {
-  height: var(--e-4);
-  border-bottom: 1px solid var(--fio);
+.laco-pagina__titulo {
+  margin-top: var(--e-6);
+  margin-left: -0.04em;
+  overflow-wrap: anywhere;
 }
-.regua__memoria {
-  position: absolute;
-  bottom: calc(var(--e-1) * -1);
-  width: var(--e-2);
-  height: var(--e-2);
-  margin-left: calc(var(--e-2) / -2);
-  border-radius: var(--raio-pilula);
-  background: var(--tinta);
+/* O segundo nome não se parte do "e": "Tia Cida" numa linha, "e Tio Paulo" na outra, quando não cabe */
+.laco-pagina__e {
+  display: inline-block;
 }
-.regua__faixas {
-  min-height: var(--e-6);
-}
-.regua__faixa {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  padding-inline: var(--e-2);
-  border-radius: var(--raio-carimbo);
-  background: var(--rosa-pastel);
-  color: var(--rosa-tinta);
-  font-family: var(--mono);
-  font-size: var(--t-micro);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.regua__faixa--noivado {
-  background: var(--coral-pastel);
-  color: var(--coral-tinta);
-}
-.regua__faixa--casamento,
-.regua__faixa--uniao {
-  background: var(--roxo-pastel);
-  color: var(--roxo-tinta);
-}
-.regua__faixa--amizade {
-  background: var(--verde-pastel);
-  color: var(--verde-tinta);
-}
-/* A separação é um momento: um traço, com o nome por cima */
-.regua__faixa--separacao {
-  background: var(--ardosia-pastel);
-  color: var(--ardosia-tinta);
-}
-.regua__faixa--momento {
-  overflow: visible;
-  padding: 0;
-  background: var(--ardosia-vivo);
-}
-.regua__faixa--momento span {
-  position: absolute;
-  left: calc(100% + var(--e-1));
-}
-.regua__anos {
-  height: 1.2em;
-  color: var(--tinta-suave);
-  font-family: var(--mono);
-  font-size: var(--t-micro);
-}
-.regua__anos span {
-  position: absolute;
-  transform: translateX(-50%);
-}
-.laco-pagina__fases {
+.laco-pagina__periodo {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--e-1) var(--e-5);
-  padding: 0;
-  list-style: none;
+  align-items: center;
+  gap: var(--e-2) var(--e-4);
+  margin-top: var(--e-4);
+}
+/* O que um é do outro: a situação do casal na tinta, o resto em apoio */
+.laco-pagina__o-que {
+  display: grid;
+  gap: var(--e-1);
+  max-width: var(--medida);
+  margin-top: var(--e-5);
+  color: var(--tinta-suave);
+}
+.laco-pagina__situacao {
+  color: var(--tinta);
+  font-weight: 550;
+}
+
+/* --- O corpo: as fases e os marcos ------------------------------------------------------------- */
+
+.laco-pagina__corpo {
+  display: grid;
+  gap: var(--e-8);
+  align-content: start;
+  min-width: 0;
+}
+.laco-pagina__fases,
+.laco-pagina__memorias > .marcos {
+  margin-top: var(--e-3);
+}
+/* A sanfona cabe numa coluna estreita: o ano e o nome numa linha, a data embaixo do nome */
+.laco-pagina__fases .sanfona summary {
+  grid-template-columns: minmax(2.6em, auto) minmax(0, 1fr) auto;
+  grid-template-areas:
+    'ano titulo sinal'
+    'ano quando sinal';
+  column-gap: var(--e-5);
+}
+.laco-pagina__fases .sanfona__miolo {
+  margin-left: 0;
+  font-size: var(--t-corpo);
+}
+/* A frase de quando não há memória fica colada no título dela, sem o respiro de página vazia */
+.laco-pagina__memorias > .vazio {
+  padding-block: var(--e-4) 0;
+}
+/* Casal sem data nenhuma: a coluna do ano sai, e o nome da fase começa na margem */
+.laco-pagina__tempo--sem-anos .sanfona summary {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'titulo sinal'
+    'quando sinal';
+}
+.laco-pagina__tempo--sem-anos .sanfona__ano {
+  display: none;
+}
+/* As memórias de uma fase: o ano em mono e o título, cada linha com a altura de toque */
+.laco-pagina__da-fase a {
+  display: grid;
+  grid-template-columns: 3.2em minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--e-3);
+  min-height: var(--toque);
+  padding-block: var(--e-2);
+  text-decoration: none;
+}
+.laco-pagina__da-fase li + li {
+  border-top: 1px solid var(--fio);
+}
+@media (hover: hover) {
+  .laco-pagina__da-fase a:hover span:last-child {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
 }
 
 @media (min-width: 62rem) {
+  .laco-pagina {
+    padding-block: var(--e-8) var(--e-9);
+  }
+  .laco-pagina .laco-pagina__capa {
+    grid-column: 1 / span 5;
+  }
+  .laco-pagina .laco-pagina__corpo {
+    grid-column: 7 / -1;
+  }
   .laco-pagina__dois {
-    gap: var(--e-6) var(--e-8);
+    grid-template-columns: repeat(2, minmax(0, 9.5rem));
+    gap: var(--e-5);
+  }
+  .laco-pagina__titulo {
+    margin-top: var(--e-7);
+  }
+}
+
+/* No computador com mouse, a capa fica parada enquanto as fases e os marcos rolam, quando a janela
+   tem altura para ela inteira. No toque, nada fica preso (docs/visual.md, "Peças paradas no alto"). */
+@media (min-width: 62rem) and (min-height: 45rem) and (hover: hover) and (pointer: fine) {
+  .laco-pagina .laco-pagina__capa {
+    position: sticky;
+    top: var(--e-6);
+    align-self: start;
+  }
+}
+
+@media (min-width: 100rem) {
+  .laco-pagina__dois {
+    grid-template-columns: repeat(2, minmax(0, 12rem));
+  }
+  /* Na tela grande há largura para a data ao lado do nome da fase */
+  .laco-pagina__fases .sanfona summary {
+    grid-template-columns: 7rem minmax(0, 1fr) auto auto;
+    grid-template-areas: 'ano titulo quando sinal';
+    column-gap: var(--calha);
+  }
+  .laco-pagina__tempo--sem-anos .sanfona summary {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: 'titulo quando sinal';
+  }
+  .laco-pagina__fases .sanfona__miolo {
+    margin-left: calc(7rem + var(--calha));
+  }
+  .laco-pagina__tempo--sem-anos .sanfona__miolo {
+    margin-left: 0;
   }
 }

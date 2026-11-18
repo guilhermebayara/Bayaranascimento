@@ -43,6 +43,11 @@ export interface CoracaoNoDesenho {
   sangue?: boolean;
   /** "como se fosse": decide, na escadinha, quem fica no meio */
   papel?: Papel | null;
+  /**
+   * O namoro (ajuste do Gui, 18/11/2026): a pessoa que namora fica colada ao lado do namorado, como o par
+   * de um casal, e a linha tracejada vai de lado, sem subir nem descer. Só vale na mesma geração.
+   */
+  colado?: boolean;
 }
 
 export interface Medidas {
@@ -162,6 +167,15 @@ export function desenharArvore(
     empilhar(paresDe, c.a, c.b);
     empilhar(paresDe, c.b, c.a);
   }
+  // Os blocos que andam juntos: os casais lado a lado e o namoro (colado), que fica ao lado do par como
+  // num casal, mas sem a linha nem o ponto de casal. Os pares de casal continuam valendo sozinhos no resto
+  // do desenho (a linha dos filhos, os vizinhos de quem tem irmãos).
+  const paresDoBloco = new Map([...paresDe].map(([id, pares]) => [id, [...pares]]));
+  for (const l of coracao) {
+    if (!l.colado || geracaoDe.get(l.dono) !== geracaoDe.get(l.pessoa)) continue;
+    empilhar(paresDoBloco, l.dono, l.pessoa);
+    empilhar(paresDoBloco, l.pessoa, l.dono);
+  }
 
   const niveis = [...new Set(pessoas.map((p) => p.geracao))].sort((a, b) => a - b);
   /** O parente de laço resumido na geração logo acima, que não tem filhos de fato desenhados (o Ed, para o Caio) */
@@ -221,9 +235,9 @@ export function desenharArvore(
         if (visto.has(atual)) continue;
         visto.add(atual);
         grupo.push(atual);
-        for (const par of paresDe.get(atual) ?? []) if (naLinha.has(par) && !visto.has(par)) fila.push(par);
+        for (const par of paresDoBloco.get(atual) ?? []) if (naLinha.has(par) && !visto.has(par)) fila.push(par);
       }
-      const ids = emFila(grupo, paresDe, chave);
+      const ids = emFila(grupo, paresDoBloco, chave);
       const chaves = ids.filter((i) => chave.has(i)).map((i) => chave.get(i)!);
       // O bloco fica junto da família mais à esquerda entre as que ele une. Assim os irmãos
       // não se separam, e quem casou com alguém de outra família vai para a ponta do grupo.
@@ -1063,15 +1077,35 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
       const acima = new Set(n > 0 ? melhor[n - 1].flat() : []);
       const paisAcima = (id: string) => (paisDe.get(id) ?? []).filter((p) => acima.has(p));
       let mexeu = false;
-      // Primeiro os casais que unem duas famílias (os dois têm pais acima). Quem já foi
-      // posicionado ao lado de um casal fica firme e não puxa nem é puxado de novo.
-      const une = (b: string[]) => b.length > 1 && paisAcima(b[0]).length > 0 && paisAcima(b[b.length - 1]).length > 0;
+      // Um casal de duas famílias nunca fica espelhado: quem é do Bayara à esquerda, quem é do Bracarense
+      // à direita, de qualquer pessoa que a árvore parta. A troca dentro de um casal da mesma família pode
+      // ficar, porque os lados não mudam.
+      const ladosDe = (b: string[]) => b.map((id) => lado.get(id)).filter((l): l is number => l !== undefined && Math.abs(l - 0.5) > 1e-6);
+      const espelhado = (b: string[]) => {
+        const ls = ladosDe(b);
+        return ls.length > 1 && ls[0] > ls[ls.length - 1];
+      };
+      for (const b of linha) if (espelhado(b)) (b.reverse(), (mexeu = true));
+      // Primeiro os casais que unem duas famílias (os dois têm pais acima, ou são de famílias de lados
+      // diferentes). Quem já foi posicionado ao lado de um casal fica firme e não puxa nem é puxado de novo.
+      const une = (b: string[]) =>
+        b.length > 1 && ((paisAcima(b[0]).length > 0 && paisAcima(b[b.length - 1]).length > 0) || (ladosDe(b).some((l) => l < 0.5) && ladosDe(b).some((l) => l > 0.5)));
       const casaisDaLinha = linha.filter((b) => b.length > 1).sort((a, b) => Number(une(b)) - Number(une(a)));
       const firmes = new Set<string[]>();
+      const ligados = (a: string, b?: string) => b !== undefined && coracao.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
       for (const bloco of casaisDaLinha) {
         if (firmes.has(bloco)) continue;
         firmes.add(bloco);
-        for (const [conjuge, esquerda] of [[bloco[0], true], [bloco[bloco.length - 1], false]] as [string, boolean][]) {
+        // As pontas do bloco, e quem fica no meio de um bloco de três (a Giovanna entre o Thiago, ex que virou
+        // amigo, e o Magno): os irmãos de quem está no meio vão para o lado de quem ficou colado, o de fora do
+        // casal, ou, sem ninguém colado, para o lado da família de origem
+        const conjuges: [string, boolean][] = [[bloco[0], true], [bloco[bloco.length - 1], false]];
+        for (let k = 1; k < bloco.length - 1; k++) {
+          const m = bloco[k];
+          const esquerda = ligados(m, bloco[k - 1]) ? true : ligados(m, bloco[k + 1]) ? false : (lado.get(m) ?? 0.5) <= 0.5;
+          conjuges.push([m, esquerda]);
+        }
+        for (const [conjuge, esquerda] of conjuges) {
           const ps = paisAcima(conjuge);
           if (ps.length === 0) continue;
           const irmaos = linha.filter((b) => b !== bloco && !firmes.has(b) && b.some((id) => paisAcima(id).some((p) => ps.includes(p))));
@@ -1084,8 +1118,11 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
             linha.splice(linha.indexOf(b), 1);
             // O irmão fica na ponta do próprio bloco que encosta no casal
             const irmao = b.find((id) => paisAcima(id).some((p) => ps.includes(p)))!;
+            // Só inverte quando isso aproxima o irmão da ponta: no bloco de três (o casal e quem fica colado,
+            // como o ex que virou amigo), o irmão no meio continua no meio
             const ponta = esquerda ? b.length - 1 : 0;
-            if (b.length > 1 && b.indexOf(irmao) !== ponta) b.reverse();
+            const onde = b.indexOf(irmao);
+            if (b.length > 1 && Math.abs(b.length - 1 - onde - ponta) < Math.abs(onde - ponta) && !espelhado([...b].reverse())) b.reverse();
           }
           const i = linha.indexOf(bloco);
           linha.splice(esquerda ? i : i + 1, 0, ...irmaos);
@@ -1197,7 +1234,60 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
           linha.push(blocoDoMeio);
           continue;
         }
-        linha.splice(paraEsquerda ? Math.min(...indices) : Math.max(...indices) + 1, 0, blocoDoMeio);
+        // Do lado desse pai ou mãe, a menos que isso leve o meio-irmão para o lado da outra família (partindo
+        // da Giovanna, com a Elizete à direita do Aguilar, os bichinhos dela passavam para depois do Magno)
+        const trocados = (ordem: string[]) => {
+          const ls = ordem.map((id) => lado.get(id)).filter((l): l is number => l !== undefined);
+          let total = 0;
+          for (let x = 0; x < ls.length; x++) for (let y = x + 1; y < ls.length; y++) if (ls[x] > ls[y]) total++;
+          return total;
+        };
+        const em = (esquerda: boolean) => {
+          const nova = [...linha];
+          nova.splice(esquerda ? Math.min(...indices) : Math.max(...indices) + 1, 0, blocoDoMeio);
+          return nova;
+        };
+        const esquerda = trocados(em(!paraEsquerda).flat()) < trocados(em(paraEsquerda).flat()) ? !paraEsquerda : paraEsquerda;
+        linha.splice(0, linha.length, ...em(esquerda));
+      }
+    }
+
+    // 3. O pai ou a mãe dos meio-irmãos fica do lado deles (QA de 18/11/2026). Partindo da Giovanna, a
+    //    Mel e o Totó, só da Elizete, iam para a esquerda, e a linha da Elizete, à direita do Aguilar,
+    //    passava por baixo dele e cruzava a do casal. Com o casal da mesma família, troca-se o casal de
+    //    lado (e as gerações de cima seguem os filhos) quando isso deixa a árvore mais limpa.
+    if (n > 0) {
+      const { pos } = posicoes(melhor);
+      const casaisATrocar = new Set<string[]>();
+      for (const meio of linha.flat()) {
+        const ps = (paisDe.get(meio) ?? []).filter((p) => anterior.includes(p));
+        if (ps.length !== 1) continue;
+        const bloco = melhor[n - 1].find((b) => b.includes(ps[0]));
+        if (!bloco || bloco.length !== 2 || posicionados.has(bloco)) continue;
+        const outro = bloco[0] === ps[0] ? bloco[1] : bloco[0];
+        // O meio-irmão está do lado do outro, e não do pai ou da mãe dele
+        const doLadoDoOutro = Math.sign(pos.get(meio)! - pos.get(ps[0])!) === Math.sign(pos.get(outro)! - pos.get(ps[0])!);
+        const mesmaFamilia = Math.abs((lado.get(bloco[0]) ?? 0.5) - (lado.get(bloco[1]) ?? 0.5)) < 1e-6;
+        if (doLadoDoOutro && mesmaFamilia) casaisATrocar.add(bloco);
+      }
+      for (const bloco of casaisATrocar) {
+        const antes = custo(melhor);
+        const guardadas = melhor.slice(0, n - 1).map((l) => [...l]);
+        bloco.reverse();
+        // As gerações de cima seguem os filhos: cada bloco vai para cima do meio dos filhos dele
+        for (let k = n - 2; k >= 0; k--) {
+          const { pos: p } = posicoes(melhor);
+          const chave = (b: string[]) => {
+            const filhos = b.flatMap((id) => (filhosDe.get(id) ?? []).filter((f) => melhor[k + 1].flat().includes(f)));
+            return filhos.length ? media(filhos.map((f) => p.get(f)!)) : p.get(b[0])!;
+          };
+          const ordem = melhor[k].map((b, i) => ({ b, c: chave(b), i })).sort((x, y) => x.c - y.c || x.i - y.i).map((x) => x.b);
+          melhor[k].splice(0, melhor[k].length, ...ordem);
+        }
+        if (custo(melhor) >= antes - 1e-9) {
+          bloco.reverse();
+          guardadas.forEach((l, k) => melhor[k].splice(0, melhor[k].length, ...l));
+        }
       }
     }
 

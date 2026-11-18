@@ -141,9 +141,11 @@ export interface SituacaoDaAdministracao {
   fotosSoltas?: number | null;
   /** possíveis cadastros duplicados (onda 2) */
   duplicados?: number | null;
+  /** pedidos para excluir pessoa à espera de um administrador (decisão do Gui depois da sessão I) */
+  exclusoes?: number | null;
 }
 
-export type TipoDePendencia = 'carta' | 'banco' | 'espaco' | 'copia' | 'fotos-soltas' | 'duplicados';
+export type TipoDePendencia = 'carta' | 'banco' | 'espaco' | 'copia' | 'fotos-soltas' | 'duplicados' | 'exclusoes';
 
 export interface Pendencia {
   tipo: TipoDePendencia;
@@ -182,6 +184,12 @@ export function diaDaCopia(ultima: string): string {
   return `${d.getUTCDate()} ${MESES_CURTOS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+/**
+ * A frase ao lado de "Baixar cópia do acervo" (decisão do Gui depois do QA de 18/11/2026): a cópia leva
+ * tudo, inclusive o que o administrador não vê no site, porque é ela que restaura o acervo inteiro.
+ */
+export const FRASE_DA_COPIA_DO_ACERVO = 'A cópia leva o acervo inteiro, inclusive o que você não vê no site, porque é ela que restaura tudo.';
+
 /** A frase da cópia mensal no cartão, ao lado do banco. */
 export function fraseDaCopiaMensal(copia: SituacaoDaAdministracao['copiaMensal'], hoje: Date): string {
   if (!copia.conferida) return 'Cópia mensal: só na produção';
@@ -198,7 +206,7 @@ export function porcentoDoBanco(bytes: number, limite: number): number {
  * As pendências da administração (escolha do Gui no conceito da sessão E, 17/11/2026): o que pede uma
  * ação de quem administra. Somam no número do retrato do topo e ganham a marca no cartão.
  */
-export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>, hoje: Date): Pendencia[] {
+export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados' | 'exclusoes'>, hoje: Date): Pendencia[] {
   const lista: Pendencia[] = [];
   if (!s.carta) lista.push({ tipo: 'carta', texto: 'A carta de Natal ainda não foi escrita.', href: '/admin/carta' });
   if (s.banco?.passouDoAviso) lista.push({ tipo: 'banco', texto: 'O banco está perto do limite do plano gratuito.' });
@@ -210,6 +218,8 @@ export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'cart
   if (n > 0) lista.push({ tipo: 'fotos-soltas', texto: n === 1 ? 'Uma foto sem memória há mais de 30 dias.' : `${n} fotos sem memória há mais de 30 dias.`, href: '/admin/fotos-soltas', quantas: n });
   const d = s.duplicados ?? 0;
   if (d > 0) lista.push({ tipo: 'duplicados', texto: d === 1 ? 'Um possível cadastro duplicado.' : `${d} possíveis cadastros duplicados.`, href: '/admin/duplicados', quantas: d });
+  const e = s.exclusoes ?? 0;
+  if (e > 0) lista.push({ tipo: 'exclusoes', texto: e === 1 ? 'Um pedido para excluir uma pessoa.' : `${e} pedidos para excluir pessoas.`, href: '/admin/exclusoes', quantas: e });
   return lista;
 }
 
@@ -227,6 +237,29 @@ export const TEMAS_DA_ADMINISTRACAO: { tema: TemaDaAdministracao; titulo: string
   { tema: 'arrumar', titulo: 'Para arrumar' },
   { tema: 'ferramentas', titulo: 'Ferramentas' },
 ];
+/** O quarto grupo do cartão: as medidas do banco e das fotos e as cópias (proposta A da sessão H). */
+export const GRUPO_DO_ESPACO = 'Espaço e cópias';
+
+/**
+ * Em que grupo do cartão cada pendência mora, para o balão das pendências dizer onde ela está e o grupo
+ * dela levar a marca (proposta A do conceito da sessão H, escolha do Gui de 18/11/2026).
+ */
+export function grupoDaPendencia(p: Pick<Pendencia, 'tipo'>): string {
+  if (p.tipo === 'carta') return TEMAS_DA_ADMINISTRACAO.find((t) => t.tema === 'acervo')!.titulo;
+  if (p.tipo === 'fotos-soltas' || p.tipo === 'duplicados' || p.tipo === 'exclusoes') return TEMAS_DA_ADMINISTRACAO.find((t) => t.tema === 'arrumar')!.titulo;
+  return GRUPO_DO_ESPACO;
+}
+
+/** O resumo de um grupo fechado: as pendências dele, ou quantos atalhos ele tem. */
+export function resumoDoGrupo(atalhos: number, pendencias: number): string {
+  if (pendencias) return contaDePendencias(pendencias);
+  return atalhos === 1 ? '1 atalho' : `${atalhos} atalhos`;
+}
+
+/** O id do grupo na página, para o balão e os links abrirem o grupo certo. */
+export const idDoGrupo = (titulo: string): string =>
+  `administracao-${titulo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '')}`;
+
 export function gruposDaAdministracao(itens: ItemDeAdministracao[]): { titulo: string; itens: ItemDeAdministracao[] }[] {
   return TEMAS_DA_ADMINISTRACAO.map(({ tema, titulo }) => ({ titulo, itens: itens.filter((i) => i.tema === tema && !i.baixar) })).filter((g) => g.itens.length > 0);
 }
@@ -265,6 +298,13 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
       href: '/admin/duplicados',
       situacao: situacao && (situacao.duplicados ? plural(situacao.duplicados, 'possível', 'possíveis') : 'nenhum à vista'),
       pendencia: Boolean(situacao?.duplicados),
+    },
+    {
+      tema: 'arrumar',
+      rotulo: 'Pedidos para excluir',
+      href: '/admin/exclusoes',
+      situacao: situacao && (situacao.exclusoes ? plural(situacao.exclusoes, 'pedido', 'pedidos') : 'nenhum'),
+      pendencia: Boolean(situacao?.exclusoes),
     },
     { tema: 'ferramentas', rotulo: 'Transcrição automática', href: '/admin/transcricao', situacao: situacao && (situacao.transcricao === 'ligada' ? 'ligada' : 'desligada') },
     { tema: 'ferramentas', rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },

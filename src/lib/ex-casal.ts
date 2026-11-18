@@ -6,7 +6,9 @@
 //   parentes dele continua; sai da página de quem escolheu e do círculo dela;
 // - fora: sai também da árvore de quem escolheu.
 // Nas memórias, quem é discreto ou fora continua em "Quem estava", só com o nome, sem retrato e sem link.
-import { estaoJuntos, faseAtual, type Casal } from './parentesco';
+import { auge, comoOCasalAparece, estaoJuntos, faseAtual, type Casal, type ComoOCasalAparece, type Tratamento } from './parentesco';
+
+export { comoOCasalAparece, apareceComoCasal, apareceComoCoracao, type ComoOCasalAparece } from './parentesco';
 
 export type ModoDoEx = 'presente' | 'discreto' | 'fora';
 export const MODOS_DO_EX: ModoDoEx[] = ['presente', 'discreto', 'fora'];
@@ -18,22 +20,77 @@ export const casalDesfeito = (casal: Casal): boolean => casal.fases.length > 0 &
 export const viraramAmigos = (casal: Casal): boolean => faseAtual(casal)?.tipo === 'amizade';
 
 /**
- * Para a árvore (observação do Gui, 18/11/2026): o casal que virou amizade sai dos casais e entra como
- * amizade, desenhada com a linha tracejada do coração. A página do laço continua com a história toda.
+ * Ex de verdade: o casal acabou e não virou amizade. O ex que virou amigo se comporta como laço do
+ * coração em todo o site (observação do Gui, 18/11/2026, o caso do Thiago): não é ex na página, na
+ * árvore, no círculo nem nas escolhas de como o ex aparece.
  */
-export function separarAmizades<C extends Casal>(casais: readonly C[]): { casais: C[]; amizades: { a: string; b: string }[] } {
+export const ehEx = (casal: Casal): boolean => casalDesfeito(casal) && !viraramAmigos(casal);
+
+/**
+ * Para a árvore (decisões do Gui, 18/11/2026; regra em comoOCasalAparece, em parentesco.ts): o casal que
+ * é família (junto ou ex) fica nos casais; o namoro sem "já é da família" e o ex que virou amigo entram
+ * como laço do coração, desenhados com a linha tracejada; o namoro que acabou sem nunca ter sido da
+ * família não entra. A página do laço continua com a história toda.
+ */
+export function separarAmizades<C extends Casal>(casais: readonly C[]): { casais: C[]; amizades: { a: string; b: string; tipo: 'namoro' | 'amizade' }[] } {
   const comFases = casais.filter((c) => c.fases.length > 0);
+  const como = (c: C) => comoOCasalAparece(c);
   return {
-    casais: comFases.filter((c) => !viraramAmigos(c)),
-    amizades: comFases.filter(viraramAmigos).map((c) => ({ a: c.a, b: c.b })),
+    casais: comFases.filter((c) => como(c) === 'casal' || como(c) === 'ex'),
+    amizades: comFases
+      .filter((c) => como(c) === 'namoro' || como(c) === 'amizade')
+      .map((c) => ({ a: c.a, b: c.b, tipo: como(c) as 'namoro' | 'amizade' })),
   };
+}
+
+/**
+ * O que a pessoa foi no casal, para quem virou amigo (pedido do Gui, 18/11/2026): na página, "amigo" e,
+ * logo abaixo, só "ex-namorado", "ex-namorada" ou "ex-marido", pela fase mais adiantada e por como se
+ * referir, sem datas.
+ */
+export function exDoAmigo(casal: Pick<Casal, 'fases'>, tratamento: Tratamento): string {
+  const formas: Record<string, [string, string]> = {
+    casamento: ['ex-esposa', 'ex-marido'],
+    uniao: ['ex-companheira', 'ex-companheiro'],
+    noivado: ['ex-noiva', 'ex-noivo'],
+    namoro: ['ex-namorada', 'ex-namorado'],
+  };
+  const [ela, ele] = formas[auge(casal)] ?? formas.namoro;
+  return tratamento === 'ela' ? ela : tratamento === 'ele' ? ele : `${ele} ou ${ela}`;
+}
+
+/** O rótulo do laço de casal que aparece como laço do coração, para quem não é do casal: "namorada de Giovanna". */
+export function rotuloDoCasalDoCoracao(tipo: 'namoro' | 'amizade', tratamento: Tratamento, de: string): string {
+  const [ela, ele] = tipo === 'namoro' ? ['namorada', 'namorado'] : ['amiga', 'amigo'];
+  return `${tratamento === 'ela' ? ela : tratamento === 'ele' ? ele : `${ele} ou ${ela}`} de ${de}`;
+}
+
+/**
+ * A situação do casal em uma ou duas palavras, para "Editar página e laços" e a página do laço. Quando um
+ * dos dois já faleceu, no passado (QA de 18/11/2026: o laço do Vô Tonho dizia "Juntos"): "foram casados",
+ * "viveram juntos", "namoraram", "foram amigos", "se separaram". `elas` é quando as duas são tratadas
+ * como "ela".
+ */
+export function situacaoDoCasal(casal: Pick<Casal, 'fases' | 'jaDaFamilia'>, passado: { faleceu: boolean; elas?: boolean } = { faleceu: false }): string {
+  const como: ComoOCasalAparece = comoOCasalAparece(casal);
+  if (passado.faleceu) {
+    if (como === 'amizade') return passado.elas ? 'foram amigas' : 'foram amigos';
+    if (como === 'namoro' || como === 'namoro-que-acabou') return 'namoraram';
+    if (como === 'casal') return auge(casal) === 'casamento' ? (passado.elas ? 'foram casadas' : 'foram casados') : 'viveram juntos';
+    return 'se separaram';
+  }
+  if (como === 'amizade') return 'hoje, amigos';
+  if (como === 'namoro') return 'namorando';
+  if (como === 'casal') return 'juntos';
+  if (como === 'namoro-que-acabou') return 'namoraram, não estão mais juntos';
+  return 'não estão mais juntos';
 }
 
 /** Quem é ex desta pessoa, pelos casais desfeitos que ela vê. */
 export function exesDe(pessoa: string, casais: readonly Casal[]): Set<string> {
   const ex = new Set<string>();
   for (const c of casais) {
-    if (!casalDesfeito(c)) continue;
+    if (!ehEx(c)) continue;
     if (c.a === pessoa) ex.add(c.b);
     if (c.b === pessoa) ex.add(c.a);
   }
@@ -72,8 +129,14 @@ export function foraQueEPaiViraDiscreto(
 /** Sai da página e do círculo de quem escolheu: discreto ou fora. */
 export const saiDaMinhaPagina = (modo: ModoDoEx | undefined): boolean => modo === 'discreto' || modo === 'fora';
 
-/** Em "Quem estava": só o nome, sem retrato e sem link. */
-export const soONomeNaMemoria = saiDaMinhaPagina;
+/**
+ * Em Pessoas e em "Quem estava" (decisão do Gui depois do QA de 18/11/2026): o discreto continua, com a
+ * tarja "assunto encerrado" no lugar do nome, sem retrato e sem link; quem escolheu "Fora" quer que ele
+ * suma, e ele sai das duas listas. O relato que ele contou continua na memória.
+ */
+export function naListaDeQuemOlha(modo: ModoDoEx | undefined): 'normal' | 'tarja' | 'fora' {
+  return modo === 'discreto' ? 'tarja' : modo === 'fora' ? 'fora' : 'normal';
+}
 
 /** As opções do formulário, com o que cada uma faz, ditas para quem escolhe. */
 export function opcoesDoModo(nome: string): { valor: ModoDoEx; rotulo: string; dica: string }[] {

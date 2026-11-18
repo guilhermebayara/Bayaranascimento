@@ -105,6 +105,7 @@ const porNome = [...todos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
                 {f.pessoas.map((p) => (
                   <li style={lugar(p)} data-fora={p.valor >= 100 ? '' : undefined}>
                     <button type="button" class="circulo__pessoa" data-pessoa={p.id} data-nome={p.nome} data-laco={p.laco} data-valor={p.valor} data-angulo={p.angulo} data-padrao={p.padrao} data-angulo-padrao={p.anguloPadrao}>
+                      {/* No círculo, todo mundo é redondo (decisão do Gui depois da sessão J, 18/11/2026); o álbum fica no resto do site */}
                       <Retrato nome={p.nome} foto={p.foto} familia={p.cor} falecido={p.falecido} redondo />
                       <span class="circulo__nome">{p.nome}</span>
                       {p.falecido && <span class="so-leitor">já faleceu</span>}

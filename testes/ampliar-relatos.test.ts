@@ -166,9 +166,13 @@ describe.skipIf(!comSqlite)('ampliar quem vê, no banco e nas rotas', async () =
   it('só quem registrou responde; os outros recebem o mesmo que um aviso que não existe', async () => {
     const [aviso] = (await repo.listarAvisos(elizete)).filter((a) => a.tipo === 'liberar-relato');
     expect((await responder(magno, { aviso: String(aviso!.id), resposta: 'liberar' })).status).toBe(404);
-    expect((await responder(giovanna, { relato: String(daElizete), resposta: 'liberar' })).local).toContain('erro=');
-    // O Magno nem vê o relato: pedir por ele é como pedir por um que não existe
-    expect((await responder(magno, { relato: String(daVo), resposta: 'liberar' })).local).toContain('erro=');
+    // Pelo relato, a resposta é a mesma de um relato que não existe, para quem vê e para quem não vê o
+    // relato (QA de 18/11/2026: o recado de recusa denunciava o relato escondido)
+    const inexistente = await responder(magno, { relato: '999999', resposta: 'liberar' });
+    expect(inexistente.status).toBe(404);
+    expect((await responder(giovanna, { relato: String(daElizete), resposta: 'liberar' })).status).toBe(404);
+    expect((await responder(magno, { relato: String(daVo), resposta: 'manter' })).status).toBe(404);
+    expect((await responder(magno, { relato: String(daElizete), resposta: 'manter' })).status).toBe(404);
     expect((await oQueVe(magno)).contagem).toBe(1);
   });
 

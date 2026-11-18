@@ -131,11 +131,30 @@ function ligar(caixa: HTMLElement): void {
     mouse = window.setTimeout(() => fecharMais(), MOUSE_FECHA);
   });
 
-  // Esc fecha e devolve o foco ao coração; tocar fora também fecha
+  // A paleta não sai da tela: perto da borda (as fotos da coluna da direita, no celular), ela anda para dentro
+  mais.addEventListener('toggle', () => {
+    const paleta = mais.querySelector<HTMLElement>('.reacoes__paleta');
+    if (!paleta) return;
+    paleta.style.removeProperty('--paleta-desvio');
+    if (!mais.open) return;
+    const caixaDaPaleta = paleta.getBoundingClientRect();
+    const margem = 8;
+    const largura = document.documentElement.clientWidth;
+    const passou = caixaDaPaleta.right - (largura - margem);
+    const faltou = margem - caixaDaPaleta.left;
+    const desvio = passou > 0 ? -Math.min(passou, caixaDaPaleta.left - margem) : faltou > 0 ? faltou : 0;
+    if (desvio) paleta.style.setProperty('--paleta-desvio', `${Math.round(desvio)}px`);
+  });
+
+  // Esc fecha e devolve o foco ao coração (ou à conta, no balão de quem marcou); tocar fora também fecha
   caixa.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && mais.open) {
       e.preventDefault();
       fecharMais(true);
+    } else if (e.key === 'Escape' && recebidas.open) {
+      e.preventDefault();
+      recebidas.open = false;
+      recebidas.querySelector<HTMLElement>('[data-reacoes-conta]')?.focus();
     }
   });
   document.addEventListener('click', (e) => {

@@ -62,3 +62,38 @@ export function enderecoDePessoas(familia: string | null, ordem: OrdemDasPessoas
   const busca = q.toString();
   return busca ? `/pessoas?${busca}` : '/pessoas';
 }
+
+// --- "Nome (apelido)" (decisão do Gui, 18/11/2026, depois da sessão H) ------------------------------
+// Na lista de Pessoas, cada pessoa aparece como "Alexsander (Lugh)", com o apelido que quem olha vê: o
+// seu ("Como você chama"), senão o da família. Quem chega aqui já traz esse apelido em `apelido`
+// (`listarIntegrantes` troca o da família pelo de quem está logado). A busca acha pelos dois.
+
+/** O texto sem acento, sem caixa e sem espaço sobrando: o mesmo da busca de pessoa. */
+export const textoSimples = (texto: string) =>
+  texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .trim();
+
+/** O apelido que acompanha o nome na lista, ou nada: sem apelido, ou com o apelido igual ao nome. */
+export function apelidoAoLado(nome: string, apelido: string | null | undefined): string | null {
+  const a = apelido?.trim();
+  return a && textoSimples(a) !== textoSimples(nome) ? a : null;
+}
+
+/** "Alexsander (Lugh)", ou só o nome. */
+export function nomeComApelido(nome: string, apelido: string | null | undefined): string {
+  const a = apelidoAoLado(nome, apelido);
+  return a ? `${nome} (${a})` : nome;
+}
+
+/**
+ * A busca "Procurar pelo nome" acha pelo nome e pelo apelido, sem acento e sem caixa. A busca do
+ * navegador (`src/lib/cliente/busca-pessoa.ts`) procura o termo no texto de cada opção, que é
+ * `nomeComApelido`: esta é a mesma regra, para ser testada.
+ */
+export function buscaAcha(termo: string, nome: string, apelido: string | null | undefined): boolean {
+  return textoSimples(nomeComApelido(nome, apelido)).includes(textoSimples(termo));
+}

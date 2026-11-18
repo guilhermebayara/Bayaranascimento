@@ -4,7 +4,7 @@ import Pagina from '../../../components/formularios/Pagina.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { formatarData, formatarMomento } from '../../../lib/datas';
 import { alcanceDaCorrecao, podeRestaurarFoto, podeVerVersao } from '../../../lib/servidor/permissoes';
-import { listarFotosRemovidas, listarIntegrantes, listarRelatos, listarVersoes, obterMemoria, pessoasQueONaoVe, type Memoria, type Relato } from '../../../lib/servidor/repositorio';
+import { listarFotosRemovidas, listarIntegrantes, listarRelatos, listarVersoes, obterMemoria, pessoasQueONaoVe, type Memoria, type Relato, nomesDasPessoasExcluidas } from '../../../lib/servidor/repositorio';
 import { tipoDaMemoria } from '../../../lib/tipos';
 
 const { usuario, tipos } = Astro.locals;
@@ -13,9 +13,11 @@ if (!memoria) return new Response('Memória não encontrada', { status: 404 });
 if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.id}`);
 
 const integrantes = await listarIntegrantes();
+// Quem está na lixeira (excluir pessoa): o relato que contou continua com o nome
+const nomesNaLixeira = await nomesDasPessoasExcluidas();
 const nome = (id: string) => {
   const i = integrantes.find((x) => x.id === id);
-  return i?.apelido ?? i?.nome ?? id;
+  return i?.apelido ?? i?.nome ?? nomesNaLixeira.get(id) ?? id;
 };
 // Quem só existe num laço privado de outra pessoa não aparece nas versões (C1, 17/11/2026)
 const naoVe = await pessoasQueONaoVe(usuario);

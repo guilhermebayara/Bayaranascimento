@@ -52,7 +52,7 @@ describe('árvore na tela', () => {
   it('"Partir de" só oferece quem tem laço de árvore', () => {
     expect(pagina).toMatch(/ordenados\.filter\(\(i\) => comLaco\.has\(i\.id\)\)/);
     expect(cliente).toContain('partir.hidden = estado.centro === p.id || !partivel.has(p.id)');
-    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/\{temLacoDeArvore && \(\s*<a [^>]*href=\{`\/arvore\?centro=/);
+    expect((fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'))).toMatch(/\{p\.temLacoDeArvore && \(\s*<p class="vizinhanca__ir">\s*<a [^>]*href=\{`\/arvore\?centro=/);
   });
 
   it('o cartão do ramo aberto fica por cima da árvore e abaixo do painel', () => {
@@ -83,7 +83,9 @@ describe('formulários sem JavaScript e depois de um erro', () => {
 
   it('nova memória e relato enviam como formulário comum, e as APIs aceitam', () => {
     expect(fonte('src/pages/nova.astro')).toMatch(/<form class="formulario em-frase" method="post" action="\/api\/memorias"/);
-    expect(fonte('src/pages/memorias/[id]/relato.astro')).toMatch(/<form class="formulario" method="post" action="\/api\/relatos"/);
+    // O relato como conversa: sem script, a janela é um formulário que acrescenta a mensagem no fim
+    expect(fonte('src/components/conversa/Janela.astro')).toContain("const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relatos' } : {};");
+    expect(fonte('src/components/conversa/Janela.astro')).toContain('<input type="hidden" name="acrescentar" value="1" />');
     for (const api of ['src/pages/api/memorias.ts', 'src/pages/api/relatos.ts']) {
       expect(fonte(api), api).toMatch(/if \(!\(request\.headers\.get\('Content-Type'\) \?\? ''\)\.includes\('application\/json'\)\) \{\s*const dados = await request\.formData\(\);/);
     }

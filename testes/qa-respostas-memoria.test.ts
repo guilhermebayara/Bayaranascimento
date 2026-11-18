@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, na página da memória e na
-// confirmação de excluir (docs/qa/2026-11-17-perguntas.md, P51 a P59).
+// confirmação de excluir (docs/historico/qa/2026-11-17-perguntas.md, P51 a P59).
 import { describe, expect, it } from 'vitest';
 import { RETRATOS_NO_CELULAR, recolheQuemEstava, relatoJaEstaNaAbertura } from '../src/lib/memoria';
 import { voceOuOsOutrosAdmins } from '../src/lib/servidor/conteudo';
@@ -21,7 +21,7 @@ describe('P51: "Quem estava" no celular', () => {
   });
   it('a lista vem inteira do servidor, e é o script que recolhe', () => {
     // Sem script, ninguém fica escondido atrás de um botão que não funciona
-    expect(pagina).toMatch(/<button type="button" class="acao" data-quem-todos hidden>\s*Ver todos os \{memoria\.integrantes\.length\}/);
+    expect(pagina).toMatch(/<button type="button" class="acao" data-quem-todos hidden>\s*Ver todos os \{quemEstava\.length\}/);
     expect(pagina).toMatch(/quem\.classList\.add\('quem--recolhida'\);\s*verTodos\.hidden = false;/);
     expect(pagina).not.toMatch(/class:list=\{\[[^\]]*'quem--recolhida'/);
   });

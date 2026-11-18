@@ -1,5 +1,6 @@
-// Decisões do Gui sobre a interface, depois do QA de UX de 16/11/2026 (docs/ux/fluxos.md).
+// Decisões do Gui sobre a interface, depois do QA de UX de 16/11/2026 (docs/historico/ux/fluxos.md).
 // Conferências no código, para nenhuma delas voltar atrás sem querer.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { textoEnviando } from '../src/lib/cliente/enviando';
 
@@ -95,11 +96,11 @@ describe('ação principal', () => {
   it('fica no alto da pessoa e do capítulo', () => {
     // Antes da família e dos capítulos de dentro
     // Na pessoa (visual novo): depois do nome, dentro da abertura, antes da voz e dos laços
-    const pessoa = fonte('src/pages/pessoas/[id]/index.astro');
-    const acoesDaPessoa = pessoa.indexOf('quem-e__acoes');
+    const pessoa = (fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'));
+    const acoesDaPessoa = pessoa.indexOf('verbete__acoes');
     expect(acoesDaPessoa).toBeGreaterThan(pessoa.indexOf('<h1'));
-    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="lacos miolo"'));
-    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="voz miolo grade"'));
+    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="verbete__lacos miolo"'));
+    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="verbete__palavras"'));
     // No capítulo (visual novo): depois do título, dentro da capa, antes dos capítulos de dentro e dos marcos
     const capitulo = fonte('src/pages/capitulos/[id]/index.astro');
     const acoesDoCapitulo = capitulo.indexOf('capitulo__acoes');
@@ -117,7 +118,7 @@ describe('textos do parentesco', () => {
   });
 
   it('na própria página, a família aparece com o possessivo, como os laços do coração', () => {
-    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/ehMinha \? possessivo\(relacao/);
+    expect((fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'))).toMatch(/ehMinha \? possessivo\(relacao/);
   });
 });
 
@@ -193,7 +194,7 @@ describe('etapas da memória', () => {
   });
 
   it('pessoa e capítulo têm atalho para uma memória nova já preenchida', () => {
-    expect(fonte('src/pages/pessoas/[id]/index.astro')).toContain('/nova?com=');
+    expect((fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'))).toContain('/nova?com=');
     expect(fonte('src/pages/capitulos/[id]/index.astro')).toContain('/nova?capitulo=');
   });
 });
@@ -205,12 +206,16 @@ describe('laços', () => {
     expect(editar.match(/<summary class="botao botao--leve">Editar<\/summary>/g)?.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('listas curtas viram botões de opção: filiação, fase do casal e proximidade', () => {
+  it('listas curtas viram botões de opção: filiação e fase do casal; a proximidade é o slider do círculo', () => {
     const editar = fonte('src/pages/pessoas/[id]/editar.astro');
     expect(editar).not.toMatch(/<select name="(qualidade|faseTipo|proximidade)"/);
     expect(editar).toMatch(/<Opcoes nome="qualidade"/);
-    expect(editar).toMatch(/<Opcoes nome="faseTipo"/);
-    expect(editar).toMatch(/<Opcoes nome="proximidade"/);
+    // A fase de cada linha da edição do casal; e a primeira do cadastro (PrimeiraFase.astro)
+    expect(editar).toContain('<Opcoes nome={`fase-${n}-tipo`}');
+    expect(fonte('src/components/formularios/PrimeiraFase.astro')).toContain('<Opcoes nome="faseTipo"');
+    // Decisão do Gui, 18/11/2026: a proximidade virou o slider em todo lugar
+    expect(editar).not.toMatch(/<Opcoes nome="proximidade"/);
+    expect(editar).toMatch(/<CampoProximidade /);
   });
 
   it('a ficha vem antes dos laços na edição', () => {
@@ -219,7 +224,8 @@ describe('laços', () => {
   });
 
   it('a API do casal aceita as fases numeradas da edição', () => {
-    expect(fonte('src/pages/api/lacos.ts')).toMatch(/fase-\$\{n\}-remover/);
+    expect(fonte('src/pages/api/lacos.ts')).toContain('lerFasesDoFormulario(dados)');
+    expect(fonte('src/lib/fases-do-formulario.ts')).toMatch(/fase-\$\{n\}-remover/);
   });
 });
 
@@ -329,7 +335,7 @@ describe('linha do tempo', () => {
     // No visual novo, a linha do tempo é a do Explorar (explorar/Linha.astro), que recebe as memórias
     // já na ordem: a pessoa e o tema entregam das mais recentes para as mais antigas, e os marcos do
     // capítulo seguem a mesma ordem
-    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/listarMemorias\(usuario, \{ integrante: pessoa\.id \}\)\)\.reverse\(\)/);
+    expect((fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'))).toMatch(/listarMemorias\(usuario, \{ integrante: pessoa\.id(, comRascunhos: true)? \}\)\)\.reverse\(\)/);
     expect(fonte('src/pages/temas/[id].astro')).toMatch(/listarMemorias\(usuario, \{ tema: tema\.id \}\)\)\.reverse\(\)/);
     expect(fonte('src/pages/capitulos/[id]/index.astro')).toContain('maisRecentesPrimeiro(memorias)');
   });
@@ -340,5 +346,42 @@ describe('salto por década', () => {
     const linha = fonte('src/components/explorar/Linha.astro');
     expect(linha).toContain('decadas.length > 1 &&');
     expect(linha).toContain('href={`#decada-${d}`}');
+  });
+});
+
+// Observações do Gui na sessão H (18/11/2026), no cadastro de laços
+describe('cadastro de laços depois da sessão H', () => {
+  const editar = fonte('src/pages/pessoas/[id]/editar.astro');
+  const css = readFileSync('src/visual/telas/formulario.css', 'utf8');
+  it('"Pular esta pergunta" fica na linha da ação principal, logo embaixo dos campos', () => {
+    const acoes = editar.slice(editar.indexOf('<div class="acoes acoes--pergunta">'), editar.indexOf('</form>', editar.indexOf('<div class="acoes acoes--pergunta">')));
+    expect(acoes).toContain('>Adicionar</button>');
+    expect(acoes).toContain("'Pular esta pergunta'");
+  });
+  it('laço do coração: os campos mudam de propósito, e a tela diz o que muda (correção do Gui, 18/11/2026)', () => {
+    const doCoracao = editar.slice(editar.indexOf("{g.novo.laco === 'coracao' && podeLacos && ("), editar.indexOf("{g.novo.laco === 'resumido' && ("));
+    // A escolha num seletor segmentado, com uma frase curta só da opção escolhida, colada nele
+    expect(doCoracao).toMatch(/<Segmentado[^]*?nome="reconhece"/);
+    expect(doCoracao).toMatch(/<span data-para="coracao-so-eu">\{ehMinha \? 'Um laço seu, que só vale para você\.'/);
+    expect(doCoracao).toMatch(/<span data-para="coracao-familia" hidden>\{ehMinha \? 'Um parente de consideração seu/);
+    // "Com quem" fica fora da troca, e na página de outra pessoa o "só eu" não pergunta: o título já diz
+    expect(doCoracao).toContain("data-para={g.novo.laco === 'coracao' ? 'coracao-meu coracao-familia' : undefined}");
+    // Cada opção na mesma caixa, com só o que é dela
+    const soEu = doCoracao.slice(doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-so-eu">'), doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-familia" hidden>'));
+    const familia = doCoracao.slice(doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-familia" hidden>'));
+    for (const campo of ['name="nomeDoLaco"', '<CampoProximidade ', 'name="privado"']) {
+      expect(soEu).toContain(campo);
+      expect(familia).not.toContain(campo);
+    }
+    expect(familia).toMatch(/<option value="filho">[^]*<option value="pai">[^]*<option value="irmao">/);
+    expect(css).toMatch(/\.reconhece__troca \{[^}]*background: var\(--papel-recuo\);/);
+  });
+  it('a história inteira do casal já no cadastro, guiado e completo, e "O que aconteceu depois?" como título pequeno', () => {
+    // Revisto pelo Gui em 18/11/2026: "Adicionar o que aconteceu depois" é uma ação, no cadastro e na edição
+    expect(editar.match(/<FasesDepois /g)?.length).toBe(3);
+    const fases = fonte('src/components/formularios/FasesDepois.astro');
+    expect(fases).toContain("numerada === undefined ? 'faseTipo'");
+    expect(fases).toContain('>Adicionar o que aconteceu depois</button>');
+    expect(css).toMatch(/\.fases-depois__linha > legend \{[^}]*font-family: var\(--mono\);/);
   });
 });

@@ -6,8 +6,10 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
+import { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
+import { darMensagensAosRelatosDeAntes } from './mensagens-de-antes';
 
 interface Migracao {
   id: string;
@@ -863,6 +865,85 @@ export const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS reacoes_da_memoria ON reacoes (memoria_id)`,
     ],
   },
+  {
+    // "Como você chama", só seu (decisão do Gui, 18/11/2026; src/lib/apelidos.ts). O apelido que cada pessoa
+    // dá a outra, que só ela vê. Como as proximidades, sem chave estrangeira: quem lê confere se a pessoa
+    // ainda existe, e juntar duplicados leva as linhas para a ficha que fica. O espelho apaga a tabela.
+    id: '090-como-voce-chama',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS apelidos_meus (
+        dono_id TEXT NOT NULL,
+        pessoa_id TEXT NOT NULL,
+        apelido TEXT NOT NULL CHECK (length(apelido) BETWEEN 1 AND 40),
+        mudado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (dono_id, pessoa_id)
+      )`,
+    ],
+  },
+  {
+    // "Já é da família" (decisão do Gui, 18/11/2026; comoOCasalAparece, em src/lib/parentesco.ts): o namoro
+    // aparece como laço do coração, a não ser que se marque assim (namoro longo), e aí aparece como casal.
+    // Coluna nova com valor padrão: não precisa refazer a tabela.
+    id: '100-namoro-da-familia',
+    sql: [`ALTER TABLE casais ADD COLUMN ja_da_familia INTEGER NOT NULL DEFAULT 0`],
+  },
+  {
+    // As fases do casal com mês e dia opcionais, como as outras datas do site (decisão do Gui, 18/11/2026).
+    // Com dia e mês, o casamento de hoje entra nos aniversários do Início.
+    id: '101-datas-das-fases',
+    sql: [
+      `ALTER TABLE casal_fases ADD COLUMN inicio_mes INTEGER`,
+      `ALTER TABLE casal_fases ADD COLUMN inicio_dia INTEGER`,
+      `ALTER TABLE casal_fases ADD COLUMN fim_mes INTEGER`,
+      `ALTER TABLE casal_fases ADD COLUMN fim_dia INTEGER`,
+    ],
+  },
+  {
+    // Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026; regras em permissoes.ts,
+    // "podeExcluirPessoa"). A pessoa excluída vai para a lixeira: some do site na hora, e um administrador
+    // restaura. Nada é apagado: as linhas dela (laços, "quem estava", relatos) ficam no banco, e as
+    // consultas deixam de vê-la. Quem não administra pede; o pedido fica aberto até um administrador
+    // excluir ou recusar. Um pedido aberto por pessoa.
+    id: '102-excluir-pessoa',
+    sql: [
+      `ALTER TABLE integrantes ADD COLUMN excluida_em TEXT`,
+      `ALTER TABLE integrantes ADD COLUMN excluida_por TEXT`,
+      `CREATE TABLE IF NOT EXISTS pedidos_de_exclusao (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pessoa_id TEXT NOT NULL,
+        pedido_por TEXT NOT NULL,
+        motivo TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        resolvido_em TEXT,
+        resolvido_por TEXT,
+        resposta TEXT CHECK (resposta IN ('excluida', 'recusado'))
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS pedidos_de_exclusao_um_aberto ON pedidos_de_exclusao (pessoa_id) WHERE resolvido_em IS NULL`,
+    ],
+  },  {
+    // O relato como conversa (escolha do Gui depois da sessão I, 18/11/2026; regras em src/lib/conversa.ts).
+    // Cada envio é uma mensagem: um texto, um áudio ou uma foto, numa ordem só. O áudio e a foto continuam
+    // nas tabelas deles; a mensagem aponta para eles. O texto do relato (relatos.texto) continua gravado,
+    // feito das mensagens de texto, para o resto do site. Os relatos de antes não mudam no banco: sem
+    // mensagens gravadas, a conversa é derivada deles (os áudios, cada parágrafo e as fotos) e é gravada na
+    // primeira vez que alguém mexe. cita_id: a mensagem de outra pessoa que esta cita, sem chave, para a
+    // citação sumir quando a mensagem citada some.
+    id: '103-mensagens-do-relato',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS relato_mensagens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        relato_id INTEGER NOT NULL REFERENCES relatos(id) ON DELETE CASCADE,
+        ordem INTEGER NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('texto', 'audio', 'foto')),
+        texto TEXT,
+        audio_id INTEGER,
+        foto_id INTEGER,
+        cita_id INTEGER,
+        enviada_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+      `CREATE INDEX IF NOT EXISTS relato_mensagens_do_relato ON relato_mensagens (relato_id, ordem)`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
@@ -898,6 +979,9 @@ async function migrar(db: D1Database): Promise<void> {
     ]);
   }
 
+  // A homologação volta às fotos de exemplo nos retratos, uma vez só (ver retratos-da-homologacao.ts)
+  await consertarRetratosDaHomologacao(db);
+
   // Memórias de exemplo só existem nas prévias e no computador. Nunca na produção, e nunca na
   // homologação, que recebe a estrutura espelhada da produção (ver espelho.ts).
   if (AMBIENTES_COM_EXEMPLOS.includes(ambiente())) {
@@ -905,6 +989,7 @@ async function migrar(db: D1Database): Promise<void> {
     await semearParentesDeExemplo(db);
     await semearAcervoDeExemplo(db);
     await semearConsideracoesDeExemplo(db);
+    await semearCasaisDoCoracaoDeExemplo(db);
     await semearDeQuemDeExemplo(db);
     await semearAniversariosDeExemplo(db);
     await semearCartaDeExemplo(db);
@@ -920,4 +1005,8 @@ async function migrar(db: D1Database): Promise<void> {
     await semearPedidoDeExemplo(db);
     await limparBucketDeTeste(db);
   }
+
+  // O relato como conversa: os relatos sem mensagens ganham as derivadas deles, sem perda (ver
+  // mensagens-de-antes.ts). Depois das migrações e dos exemplos, para pegar também os semeados agora.
+  await darMensagensAosRelatosDeAntes(db);
 }

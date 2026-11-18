@@ -1,7 +1,7 @@
-// Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md),
+// Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026 (docs/historico/qa/2026-11-17-perguntas.md),
 // nas telas "Nova pessoa e cadastro guiado" (P109 a P113) e "Editar página e laços" (P114 a P125).
 import { describe, expect, it } from 'vitest';
-import { PROPORCAO_DO_RETRATO, arcoDoRetrato } from '../src/lib/retratos';
+import { PROPORCAO_DO_RETRATO, quadroDoRetrato } from '../src/lib/retratos';
 
 // A leitura de arquivos segue o jeito de testes/visual.test.ts, que não pede os tipos do Node
 const fs = 'node:fs';
@@ -13,11 +13,12 @@ const ficha = ler('src/components/FichaDoIntegrante.astro');
 const css = ler('src/visual/telas/formulario.css');
 
 describe('cadastro guiado', () => {
-  it('P109: "Como estão hoje?" só oferece o que é estar junto, e o fim fica com "Já terminou"', () => {
-    expect(editar).toContain("const FASES_DE_QUEM_ESTA_JUNTO: readonly TipoDeFase[] = ['namoro', 'noivado', 'casamento', 'uniao'];");
+  // Revisto pelo Gui em 18/11/2026: sai "Já terminou"; o fim é "Adicionar o que aconteceu depois"
+  it('P109: "Como estão hoje?" só oferece o que é estar junto, e o fim fica com "Adicionar o que aconteceu depois"', () => {
     const guiado = editar.slice(editar.indexOf("passo === 'casal' ? ("), editar.indexOf('<Opcoes nome="qualidade" rotulo="Filiação" opcoes={opcoesDeFiliacao()} valor="biologica" id="rotulo-qualidade-guia"'));
-    expect(guiado).toContain('<Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" />');
-    expect(guiado).toContain('name="terminou" data-revela="terminou-guia"');
+    expect(guiado).toContain('<PrimeiraFase id="guia" />');
+    expect(guiado).toContain('<FasesDepois id="guia-fase-depois" rotuloDaPrimeira="rotulo-fase-guia" />');
+    expect(editar).not.toContain('name="terminou"');
   });
   it('P110: o título acima do formulário só aparece depois de alguém ser adicionado', () => {
     expect(editar).toContain('{jaNoPasso(passo).length > 0 && <h3 class="casal__titulo">Adicionar mais alguém</h3>}');
@@ -66,9 +67,9 @@ describe('editar página e laços', () => {
     expect(editar).toContain('formulario.reset();');
     expect(editar).toContain("edicao.querySelector('summary')?.focus();");
   });
-  it('P116: a pergunta de dentro do cartão do casal é um título menor', () => {
-    expect(regra('.pagina-de-formulario .painel fieldset.fase--nova legend')).toContain('font-size: var(--t-corpo);');
-    expect(regra('.pagina-de-formulario .painel fieldset.fase--nova legend')).toContain('font-family: var(--grotesca);');
+  it('P116, revista na sessão H: a pergunta de dentro do cartão do casal é um título de seção pequeno, como "Quem vê"', () => {
+    expect(regra('.pagina-de-formulario .fases-depois__linha > legend')).toContain('font-size: var(--t-ficha);');
+    expect(regra('.pagina-de-formulario .fases-depois__linha > legend')).toContain('font-family: var(--mono);');
   });
   it('P117: dentro do cartão, a zona de perigo é uma linha, e só vira bloco com a pergunta aberta', () => {
     const quieta = regra('.pagina-de-formulario .perigo--menor');
@@ -81,11 +82,11 @@ describe('editar página e laços', () => {
     expect(retrato).toContain('data-tirar-retrato hidden={!i?.retrato}>Remover foto</button>');
     expect(retrato).not.toContain('>Tirar foto<');
   });
-  it('P119: o quadro de enquadrar mostra o arco do retrato, na proporção em que ele aparece no site', () => {
+  it('P119: o quadro de enquadrar mostra o retângulo do retrato, com as cantoneiras, na proporção em que ele aparece no site', () => {
     expect(PROPORCAO_DO_RETRATO).toBe(4 / 5);
     expect(ler('src/visual/pecas.css')).toMatch(/\.retrato \{[^}]*aspect-ratio: 4 \/ 5;/);
-    expect(arcoDoRetrato(300)).toEqual({ x: 30, y: 0, largura: 240, altura: 300, raio: 120 });
-    expect(cliente).toContain('const arco = arcoDoRetrato(lado);');
+    expect(quadroDoRetrato(300)).toEqual({ x: 30, y: 0, largura: 240, altura: 300, cantoneira: 20.4 });
+    expect(cliente).toContain('const q = quadroDoRetrato(lado);');
     expect(cliente).toContain("contexto.fill(fora, 'evenodd');");
   });
   it('P120: a fase marcada para sair aparece riscada, com "será removida ao salvar"', () => {
@@ -95,7 +96,7 @@ describe('editar página e laços', () => {
     expect(regra('.pagina-de-formulario .fase__sai')).toContain('display: none;');
   });
   it('P121: "Só os dois veem este casal" vem separada das fases, com o rótulo "Quem vê", antes do salvar', () => {
-    const cartao = editar.slice(editar.indexOf('<fieldset class="fase--nova">'), editar.indexOf('Salvar o casal'));
+    const cartao = editar.slice(editar.indexOf('<FasesDepois id={`fase-depois-${c.casal.id}`}'), editar.indexOf('Salvar o casal'));
     expect(cartao).toContain('<div class="quem-ve" role="group"');
     expect(cartao).toContain('>Quem vê</p>');
     expect(cartao).toContain('<span>Só os dois veem este casal</span>');

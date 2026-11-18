@@ -1,5 +1,5 @@
 // Regras da página da memória que dá para conferir sem tela (respostas do Gui ao QA de design de
-// 17/11/2026, docs/qa/2026-11-17-perguntas.md, P51 e P52).
+// 17/11/2026, docs/historico/qa/2026-11-17-perguntas.md, P51 e P52).
 
 /** No celular, "Quem estava" mostra até este tanto de retratos; o resto abre no lugar, em "Ver todos os N". */
 export const RETRATOS_NO_CELULAR = 6;

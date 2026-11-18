@@ -1,10 +1,10 @@
 ---
-// Painel pessoal, a página inicial (docs/decisoes.md, "Painel pessoal como página inicial").
+// Painel pessoal, a página inicial (docs/decisoes.md, "Início (painel pessoal)").
 // A ideia da tela (docs/visual.md): na primeira visita, a carta de Natal assinada à mão. Depois, o
 // que entrou de novo, como o envelope do laboratório que chega com fotos que a pessoa ainda não
 // viu. Aniversários e atalhos, em segundo plano.
 //
-// A composição segue as respostas do Gui ao QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md,
+// A composição segue as respostas do Gui ao QA de design de 17/11/2026 (docs/historico/qa/2026-11-17-perguntas.md,
 // P13 a P28): na primeira visita, só a carta; sem novidade, a mesa recebe "Neste dia" ou a memória
 // para contar; contar vem antes de "Neste dia"; os cartões se ajustam a quantos são. Quem decide
 // onde cada parte fica é composicaoDoInicio(), em src/lib/painel.ts.
@@ -28,6 +28,8 @@ import { seusRascunhos } from '../lib/conta';
 import {
   TITULO_DA_PROXIMIDADE,
   aniversarios,
+  aniversariosDeCasamento,
+  anosDeCasados,
   anoDaUltimaVisita,
   chegarAoPainel,
   composicaoDoInicio,
@@ -36,10 +38,13 @@ import {
   memoriaParaContar,
   nomeParaQuemOlha,
   novidades,
+  voceNoAcervo,
   type Dia,
 } from '../lib/painel';
 import { Familia, possessivo, type Tratamento } from '../lib/parentesco';
 import { enderecoDoRetrato } from '../lib/retratos';
+import { jaFaleceu } from '../lib/datas';
+import { enderecoDoLaco } from '../lib/pagina-do-laco';
 import { semLogin } from '../lib/servidor/acesso';
 import {
   comoOsExesAparecem,
@@ -56,8 +61,7 @@ import {
   obterCarta,
   obterVisitas,
   pessoasQueONaoVe,
-  salvarVisitas,
-} from '../lib/servidor/repositorio';
+  salvarVisitas, nomesDasPessoasExcluidas } from '../lib/servidor/repositorio';
 import { corDaPessoa, corDoNucleo, diaMesCurto, estiloDoTipo, legendaLugarAno, nomeDaDecada } from '../lib/visual';
 
 // Os endereços antigos da linha do tempo ("/?nucleo=...") continuam funcionando. Os recados de uma
@@ -75,7 +79,9 @@ const integrantes = await listarIntegrantes();
 const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
 const achar = (id: string) => integrantes.find((i) => i.id === id);
-const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+// Quem está na lixeira (excluir pessoa) some do site, mas o relato que contou continua com o nome
+const nomesNaLixeira = await nomesDasPessoasExcluidas();
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? nomesNaLixeira.get(id) ?? id;
 const eu = achar(usuario.pessoa);
 const naoVe = await pessoasQueONaoVe(usuario);
 const retratoDe = (id: string) => {
@@ -107,6 +113,7 @@ const memorias = todas.filter((m) => m.situacao === 'publicada');
 const porId = new Map(memorias.map((m) => [m.id, m]));
 const recentes = [...memorias].reverse();
 const minhas = recentes.filter((m) => m.integrantes.includes(usuario.pessoa));
+const acervo = voceNoAcervo(minhas);
 
 // --- O que entrou de novo -------------------------------------------------------------------
 const novo = chegada.novidadesDesde
@@ -150,6 +157,15 @@ const ultimaVisita = chegada.novidadesDesde ? hojeNoBrasil(new Date(`${chegada.n
 // Ex discreto ou fora sai dos aniversários de quem escolheu (resposta do Gui à sessão F, 18/11/2026)
 const exesQueSaem = await comoOsExesAparecem(usuario);
 const proximos = aniversarios(integrantes, hoje, new Set([...naoVe, ...exesQueSaem.keys()]), usuario.pessoa);
+// Os aniversários de casamento dos casais de hoje (decisão do Gui, 18/11/2026), na mesma lista: só de quem
+// a pessoa vê, sem o ex discreto ou fora e sem casal em que alguém já faleceu (aniversariosDeCasamento)
+const sai = (id: string) => naoVe.has(id) || exesQueSaem.has(id) || !achar(id) || jaFaleceu(achar(id)!);
+const casamentos = aniversariosDeCasamento(casais, hoje, sai);
+const nomeNoCasal = (id: string) => (id === usuario.pessoa ? 'Você' : nomeVisto(id));
+const lembrancas = [
+  ...proximos.map((a) => ({ tipo: 'pessoa' as const, emDias: a.emDias, a })),
+  ...casamentos.map((c) => ({ tipo: 'casal' as const, emDias: c.emDias, c })),
+].sort((x, y) => x.emDias - y.emDias);
 const quando = (emDias: number, dia: number, mes: number) => (emDias === 0 ? 'Hoje' : emDias === 1 ? 'Amanhã' : diaMesCurto({ dia, mes }));
 
 // --- A pessoa no acervo e uma memória para contar ---------------------------------------------
@@ -175,7 +191,7 @@ const composicao = composicaoDoInicio({
   relatosNovos: novo.relatos.length,
   outrosAnos: outrosAnos?.itens.length ?? 0,
   contar: Boolean(paraContar),
-  aniversarios: proximos.length > 0,
+  aniversarios: lembrancas.length > 0,
   voce: Boolean(eu && minhas.length > 0),
 });
 
@@ -345,14 +361,35 @@ const erro = Astro.url.searchParams.get('erro');
           </section>
         )}
 
-        {proximos.length > 0 && (
+        {lembrancas.length > 0 && (
           <section class="cartao aniversarios" aria-labelledby="aniversarios" style={estiloDoTipo('aniversario')}>
             <h2 class="cartao__titulo rotulo" id="aniversarios">
               <IconeDoTipo tipo="aniversario" />
               Próximos aniversários
             </h2>
             <ul>
-              {proximos.map((a) => {
+              {lembrancas.map((l) => {
+                if (l.tipo === 'casal') {
+                  // O casal leva à página do laço. Quem olha e é do casal vem primeiro: "Você e Lucas Magno"
+                  const { casal } = l.c;
+                  const [um, outro] = casal.b === usuario.pessoa ? [casal.b, casal.a] : [casal.a, casal.b];
+                  return (
+                    <li>
+                      <a class="aniversario aniversario--casal" href={enderecoDoLaco(casal.a, casal.b)}>
+                        <span class="aniversario__dois">
+                          <Retrato nome={nomeNoCasal(um)} foto={retratoDe(um)} familia={familiaDe(um)} />
+                          <Retrato nome={nomeNoCasal(outro)} foto={retratoDe(outro)} familia={familiaDe(outro)} />
+                        </span>
+                        <span class="aniversario__quem">
+                          <strong>{nomeNoCasal(um)} e {nomeVisto(outro)}</strong>
+                          <span class="suave">{anosDeCasados(l.c.anos)}</span>
+                        </span>
+                        <span class="aniversario__dia serifa">{quando(l.emDias, l.c.dia, l.c.mes)}</span>
+                      </a>
+                    </li>
+                  );
+                }
+                const a = l.a;
                 const quem = paraQuemOlha(a.pessoa.id);
                 return (
                   <li>
@@ -372,17 +409,29 @@ const erro = Astro.url.searchParams.get('erro');
         )}
 
         {eu && minhas.length > 0 && (
+          // Proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): o retrato vira a assinatura do
+          // cartão, o corpo é uma frase com o número grande, e as fotos das memórias mais recentes em que a
+          // pessoa aparece ficam embaixo, pequenas, como fotos soltas da caixa
           <section class="cartao voce" aria-labelledby="voce">
-            <h2 class="cartao__titulo rotulo" id="voce">
-              Você no acervo
+            <h2 class="voce__alto" id="voce">
+              <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={corDoPainel} redondo />
+              <span class="rotulo">Você no acervo</span>
             </h2>
-            <div class="voce__conta">
-              <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={corDoPainel} />
-              <p>
-                <span class="voce__numero serifa">{minhas.length}</span>
-                <span class="voce__texto serifa">{minhas.length === 1 ? 'memória em que você aparece' : 'memórias em que você aparece'}</span>
-              </p>
-            </div>
+            <p class="voce__frase serifa">
+              Você aparece em <span class="voce__numero">{acervo.quantas}</span> {acervo.quantas === 1 ? 'memória' : 'memórias'}
+              {acervo.de && <span class="voce__anos">, de {acervo.de} a {acervo.ate}</span>}.
+            </p>
+            {acervo.comFoto.length > 0 && (
+              <ul class="voce__fotos" aria-label="As mais recentes em que você aparece">
+                {acervo.comFoto.map((m) => (
+                  <li>
+                    <a href={`/memorias/${m.id}`} aria-label={m.titulo}>
+                      <img src={`/fotos/${(m.fotos.find((f) => f.principal) ?? m.fotos[0])!.chave}`} alt="" loading="lazy" decoding="async" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
             <p class="voce__links">
               <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
                 Ver sua página

@@ -1,4 +1,4 @@
-// Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md),
+// Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026 (docs/historico/qa/2026-11-17-perguntas.md),
 // nas telas da conta, da lixeira, da administração, do sistema visual e da página não encontrada.
 import { describe, expect, it } from 'vitest';
 import { LIMITE_DA_LISTA, administracao, fraseDaLixeira, oComeco } from '../src/lib/conta';

@@ -4,19 +4,21 @@ import Vazio from '../components/visual/Vazio.astro';
 import ConfirmarRemocao from '../components/ConfirmarRemocao.astro';
 import { formatarData, formatarMomento } from '../lib/datas';
 import { podeExcluirMemoria } from '../lib/servidor/permissoes';
-import { listarCapitulos, listarCapitulosExcluidos, listarExcluidas, listarIntegrantes, obterMemoria } from '../lib/servidor/repositorio';
+import { listarCapitulos, listarCapitulosExcluidos, listarExcluidas, listarIntegrantes, listarPessoasExcluidas, obterMemoria } from '../lib/servidor/repositorio';
 
 // Cada pessoa vê na lixeira só o que poderia recuperar: admins, as memórias que
 // enxergavam; os demais, os próprios rascunhos descartados.
 const { usuario } = Astro.locals;
 const excluidas = (await listarExcluidas(usuario)).filter((m) => podeExcluirMemoria(usuario, m).ok);
 const capitulos = usuario.admin ? await listarCapitulosExcluidos(usuario) : [];
+// Excluir pessoa (decisão do Gui depois da sessão I): as pessoas na lixeira, só para os administradores
+const pessoas = usuario.admin ? await listarPessoasExcluidas() : [];
 const integrantes = await listarIntegrantes();
 const nome = (id: string | null) => {
   const i = integrantes.find((x) => x.id === id);
   return i?.apelido ?? i?.nome ?? 'alguém';
 };
-// Depois de restaurar, a pessoa continua na lixeira, com o caminho para o que voltou (resposta do Gui
+// Depois de restaurar uma memória ou um capítulo, a pessoa continua na lixeira, com o caminho para o que voltou (resposta do Gui
 // à P154, 17/11/2026). Só entra o que ela pode ver: a busca é a de sempre.
 const restaurada = Astro.url.searchParams.get('restaurada');
 const memoriaDeVolta = restaurada ? await obterMemoria(usuario, restaurada) : undefined;
@@ -28,7 +30,7 @@ const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) =
 <Pagina titulo="Lixeira" rotulo="Sua conta" secao="conta" larga>
   <Fragment slot="abertura">
     <p>
-      {usuario.admin ? 'Memórias excluídas e rascunhos descartados.' : 'Seus rascunhos descartados.'} Nada aqui aparece no site, e tudo pode ser restaurado como estava.
+      {usuario.admin ? 'Memórias, capítulos e pessoas excluídos e rascunhos descartados.' : 'Seus rascunhos descartados.'} Nada aqui aparece no site, e tudo pode ser restaurado como estava.
       {usuario.admin && ' Nada some sozinho: só um administrador apaga de vez, um item por vez.'}
     </p>
     <p class="acoes">
@@ -52,7 +54,7 @@ const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) =
     )
   }
   {
-    excluidas.length + capitulos.length === 0 ? (
+    excluidas.length + capitulos.length + pessoas.length === 0 ? (
       <Vazio frase="A lixeira está vazia." />
     ) : (
       <ul class="linhas linhas--com-acao">
@@ -110,6 +112,22 @@ const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) =
                   acao="apagar-capitulo-de-vez"
                   confirmar="Apagar de vez"
                 />
+              </form>
+            </div>
+          </li>
+        ))}
+        {pessoas.map((p) => (
+          <li>
+            <div>
+              <strong>{p.nome}</strong>
+              <span>{p.tipo === 'bicho' ? 'bichinho' : 'pessoa'}</span>
+            </div>
+            <p class="dica">Excluída por {nome(p.excluidaPor)} em {formatarMomento(p.excluidaEm)}. Restaurar devolve a página, os laços e "Quem estava".</p>
+            <div class="lixeira__acoes">
+              <form method="post" action="/api/pessoas-excluidas" class="em-linha">
+                <input type="hidden" name="acao" value="restaurar" />
+                <input type="hidden" name="pessoa" value={p.id} />
+                <button class="botao botao--leve" type="submit">Restaurar</button>
               </form>
             </div>
           </li>

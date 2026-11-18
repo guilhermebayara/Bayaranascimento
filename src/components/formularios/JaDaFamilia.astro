@@ -1,0 +1,21 @@
+---
+// "Já é da família" (decisão do Gui, 18/11/2026; migração 100): o namoro aparece como laço do coração, com
+// a linha tracejada, a não ser que se marque isto, para namoro longo, e aí aparece como casal. Só é
+// perguntado quando a fase de hoje é namoro: na edição, a página só põe a pergunta nesse caso; no
+// cadastro, PrimeiraFase.astro esconde e desmarca quando a escolha muda. O campo escondido diz ao
+// servidor que a pergunta foi feita (lerJaDaFamilia, em src/lib/fases-do-formulario.ts).
+interface Props {
+  id: string;
+  marcado?: boolean;
+}
+const { id, marcado = false } = Astro.props;
+---
+
+<div class="ja-da-familia" data-ja-da-familia>
+  <input type="hidden" name="jaDaFamiliaPergunta" value="1" />
+  <label class="marcar">
+    <input type="checkbox" name="jaDaFamilia" checked={marcado} aria-describedby={`${id}-dica`} />
+    <span>Já é da família</span>
+  </label>
+  <p class="dica" id={`${id}-dica`}>Para namoro longo: aparece na árvore como casal. Sem marcar, o namoro aparece como laço do coração.</p>
+</div>

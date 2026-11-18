@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui às perguntas novas da rodada de 17/11/2026
-// (docs/qa/2026-11-17-perguntas-novas.md, tabela "Respostas do Gui"), e o Esc da P131.
+// (docs/historico/qa/2026-11-17-perguntas-novas.md, tabela "Respostas do Gui"), e o Esc da P131.
 import { describe, expect, it } from 'vitest';
 import { NOMES_DAS_FORMAS_DO_CAPITULO, detalheDoCruzamento } from '../src/lib/capitulos';
 import { veORelato } from '../src/lib/servidor/permissoes';
@@ -60,9 +60,12 @@ describe('laços', () => {
       expect(dentro.trimStart().startsWith(`<p>${frase}</p>`)).toBe(true);
     }
   });
+  // Revisto pelo Gui em 18/11/2026: a primeira fase do cadastro é PrimeiraFase.astro
   it('47-N3: "Como estão hoje?" no "Adicionar laço" completo só oferece as fases de estar junto', () => {
-    expect(editar).not.toContain('rotulo="Como estão hoje?" opcoes={fases}');
-    expect(editar.match(/rotulo="Como estão hoje\?" opcoes=\{fasesDeHoje\}/g)?.length).toBe(2);
+    expect(editar.match(/<PrimeiraFase id="(guia|novo)" \/>/g)?.length).toBe(2);
+    const primeira = ler('src/components/formularios/PrimeiraFase.astro');
+    expect(primeira).toContain("['namoro', 'Namoro'],");
+    expect(primeira).not.toMatch(/\['(separacao|amizade)'/);
   });
   // A decisão seguinte ("Adicionar outro laço" como ação) ficou resolvida pela proposta A da sessão E:
   // o adicionar mora em cada grupo, como ação de texto, e não há mais um título "Adicionar outro laço"

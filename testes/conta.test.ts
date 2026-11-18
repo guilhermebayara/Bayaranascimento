@@ -1,5 +1,6 @@
 // "Sua conta" (docs/decisoes.md): as listas trazem só o que é da pessoa e o que ela vê, e a seção de
 // administração não aparece para quem não é administrador. Regras em src/lib/conta.ts.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   administracao,
@@ -7,6 +8,7 @@ import {
   contaDePendencias,
   copiaAtrasada,
   fraseDaCopiaMensal,
+  FRASE_DA_COPIA_DO_ACERVO,
   oQueVoceCriou,
   pendenciasDaAdministracao,
   PRAZO_DA_COPIA_MENSAL,
@@ -14,6 +16,10 @@ import {
   seusRascunhos,
   suaLixeira,
   type SituacaoDaAdministracao,
+  GRUPO_DO_ESPACO,
+  grupoDaPendencia,
+  idDoGrupo,
+  resumoDoGrupo,
 } from '../src/lib/conta';
 import { numeroDoRetrato, rotuloDoRetrato, somaDoRetrato } from '../src/lib/avisos';
 
@@ -109,7 +115,7 @@ describe('administração', () => {
 
   it('para os administradores, com o espelho só onde ele existe', () => {
     const naProducao = administracao({ admin: true }, { podeEspelhar: false }).map((i) => i.rotulo);
-    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal', 'Fotos sem memória', 'Cadastros duplicados', 'Transcrição automática', 'Sistema visual', 'Baixar cópia do acervo']);
+    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal', 'Fotos sem memória', 'Cadastros duplicados', 'Pedidos para excluir', 'Transcrição automática', 'Sistema visual', 'Baixar cópia do acervo']);
     expect(administracao({ admin: true }, { podeEspelhar: true }).map((i) => i.rotulo)).toContain('Espelho da produção');
   });
 
@@ -143,6 +149,7 @@ describe('administração: situação e pendências', () => {
       ['Carta de Natal', 'escrita em 2026'],
       ['Fotos sem memória', 'nenhuma'],
       ['Cadastros duplicados', 'nenhum à vista'],
+      ['Pedidos para excluir', 'nenhum'],
       ['Transcrição automática', 'desligada'],
       ['Sistema visual', 'tokens e peças'],
       ['Baixar cópia do acervo', undefined],
@@ -225,7 +232,7 @@ describe('grupos da administração', () => {
     const grupos = gruposDaAdministracao(itens);
     expect(grupos.map((g) => [g.titulo, g.itens.map((i) => i.rotulo)])).toEqual([
       ['Do acervo', ['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal']],
-      ['Para arrumar', ['Fotos sem memória', 'Cadastros duplicados']],
+      ['Para arrumar', ['Fotos sem memória', 'Cadastros duplicados', 'Pedidos para excluir']],
       ['Ferramentas', ['Transcrição automática', 'Sistema visual', 'Espelho da produção']],
     ]);
     expect(itens.filter((i) => !i.baixar).every((i) => i.tema)).toBe(true);
@@ -261,5 +268,69 @@ describe('Editar seus dados', () => {
   it('leva à ficha já aberta, pelo #ficha da página de editar', async () => {
     const { readFileSync } = await import('node:fs');
     expect(readFileSync('src/pages/conta.astro', 'utf8')).toContain('href={`/pessoas/${usuario.pessoa}/editar#ficha`}');
+  });
+});
+
+// Proposta A do conceito da sessão H (escolha do Gui, 18/11/2026): os grupos abrem e fecham, um por vez, e
+// o sinal do alto abre o balão das pendências, cada uma dizendo onde mora
+describe('administração em seções que abrem e fecham', () => {
+  const pagina = readFileSync('src/pages/conta.astro', 'utf8');
+  const css = readFileSync('src/visual/telas/conta.css', 'utf8');
+  it('cada pendência mora num grupo: a carta no acervo, as faxinas em "Para arrumar" e o resto no espaço', () => {
+    expect(grupoDaPendencia({ tipo: 'carta' })).toBe('Do acervo');
+    expect(grupoDaPendencia({ tipo: 'fotos-soltas' })).toBe('Para arrumar');
+    expect(grupoDaPendencia({ tipo: 'duplicados' })).toBe('Para arrumar');
+    for (const tipo of ['banco', 'espaco', 'copia'] as const) expect(grupoDaPendencia({ tipo })).toBe(GRUPO_DO_ESPACO);
+  });
+  it('o grupo fechado diz as pendências dele, ou quantos atalhos tem', () => {
+    expect(resumoDoGrupo(4, 0)).toBe('4 atalhos');
+    expect(resumoDoGrupo(1, 0)).toBe('1 atalho');
+    expect(resumoDoGrupo(4, 2)).toBe('2 pendências');
+    expect(idDoGrupo('Espaço e cópias')).toBe('administracao-espaco-e-copias');
+  });
+  it('os grupos são seções de um nome só, e o sinal abre o balão como um menu', () => {
+    expect(pagina).toContain('<details class="conta__grupo" name="administracao"');
+    expect(pagina).toContain('<details class="conta__sinal" data-menu-acoes>');
+    expect(pagina).toContain('ligarMenus();');
+    expect(pagina).toContain('em {grupoDaPendencia(p)}');
+  });
+  it('no computador o cartão fica mais estreito, à direita, e os avisos não ocupam a largura toda', () => {
+    expect(css).toMatch(/\.conta__grade > \.conta__admin \{\s*grid-column: 8 \/ -1;/);
+    expect(css).toMatch(/\.conta__grade > \.regiao > \.avisos--conta \{\s*grid-column: 1 \/ span 7;/);
+    expect(css).toMatch(/\.conta__lacos \{\s*grid-column: 8 \/ -1;\s*grid-row: span 2;/);
+  });
+});
+
+describe('a administração chega fechada', () => {
+  // Observação do Gui depois da sessão H (18/11/2026): todos os grupos começam fechados
+  it('nenhum grupo da administração vem aberto, com ou sem pendência', () => {
+    const conta = readFileSync('src/pages/conta.astro', 'utf8');
+    const grupos = [...conta.matchAll(/<details class="conta__grupo"[^>]*>/g)].map((m) => m[0]);
+    expect(grupos.length).toBe(2);
+    for (const g of grupos) expect(g).not.toMatch(/\bopen=/);
+  });
+  it('a pendência continua abrindo o grupo dela', () => {
+    expect(readFileSync('src/pages/conta.astro', 'utf8')).toContain('data-abre-grupo={p.href ? undefined : idDoGrupo(grupoDaPendencia(p))}');
+  });
+});
+
+// Excluir pessoa (decisão do Gui depois da sessão I): os pedidos de quem não administra viram pendência
+describe('pedidos para excluir pessoa', () => {
+  const base = { carta: { escritaEm: '2026-11-01' }, copiaMensal: { conferida: false, ultima: null } };
+  it('cada pedido aberto vira pendência em "Para arrumar", com o atalho marcado', () => {
+    const [p] = pendenciasDaAdministracao({ ...base, exclusoes: 2 }, new Date('2026-11-18'));
+    expect(p).toMatchObject({ tipo: 'exclusoes', texto: '2 pedidos para excluir pessoas.', href: '/admin/exclusoes', quantas: 2 });
+    expect(grupoDaPendencia(p)).toBe('Para arrumar');
+    expect(pendenciasDaAdministracao({ ...base, exclusoes: 1 }, new Date('2026-11-18'))[0].texto).toBe('Um pedido para excluir uma pessoa.');
+    expect(pendenciasDaAdministracao({ ...base, exclusoes: 0 }, new Date('2026-11-18'))).toEqual([]);
+    const item = administracao({ admin: true }, { podeEspelhar: false }, { tipos: 1, familias: 1, ...base, exclusoes: 1 }).find((i) => i.rotulo === 'Pedidos para excluir')!;
+    expect(item).toMatchObject({ situacao: '1 pedido', pendencia: true });
+  });
+});
+
+describe('a cópia do acervo (decisão do Gui depois do QA de 18/11/2026)', () => {
+  it('a página diz numa frase que a cópia leva tudo, inclusive o que o administrador não vê', () => {
+    expect(FRASE_DA_COPIA_DO_ACERVO).toContain('inclusive o que você não vê no site');
+    expect(readFileSync('src/pages/conta.astro', 'utf-8')).toContain('{copias.length > 0 && <p class="conta__nota">{FRASE_DA_COPIA_DO_ACERVO}</p>}');
   });
 });

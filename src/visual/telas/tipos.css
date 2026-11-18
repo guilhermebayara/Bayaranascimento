@@ -200,10 +200,33 @@
   outline-offset: 0.125rem;
 }
 
+/* Os rabiscos por assunto (decisão do Gui, 18/11/2026). Proximidade: o rótulo do assunto fica colado
+   na grade dele (--e-1) e os quadrados, perto uns dos outros (--e-2); de um assunto para o outro, o
+   triplo (--e-5). Com largura, os assuntos se arrumam em colunas, para a lista não ficar comprida. */
+.pagina-de-formulario .rabiscos__assuntos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15.5rem), 1fr));
+  gap: var(--e-5);
+}
+.pagina-de-formulario .rabiscos__assunto {
+  display: grid;
+  align-content: start;
+  gap: var(--e-1);
+  min-width: 0;
+}
+.pagina-de-formulario .rabiscos__rotulo {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.09em;
+  line-height: 1.45;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
 /* O rabisco a escolher: um quadrado de toque, com o desenho no meio */
 .pagina-de-formulario .rabiscos__grade {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(3.25rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--toque), 1fr));
   gap: var(--e-2);
 }
 .pagina-de-formulario .rabisco-a-escolher {
