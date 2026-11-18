@@ -1,0 +1,142 @@
+/* A página do laço (onda 2, decisão do Gui de 17/11/2026): as duas pessoas, o que uma é da outra, a
+   linha do tempo com as fases do casal como faixas e as memórias dos dois. Desenho de primeira rodada,
+   no sistema: vai passar pelo acabamento visual. */
+
+.laco-pagina {
+  display: grid;
+  gap: var(--e-7);
+  padding-block: var(--e-6) var(--e-8);
+}
+.laco-pagina__alto {
+  display: grid;
+  gap: var(--e-3);
+}
+.laco-pagina__dois {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-3) var(--e-6);
+  margin-bottom: var(--e-3);
+}
+.laco-pagina__pessoa {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-3);
+  text-decoration: none;
+}
+.laco-pagina__pessoa > span {
+  display: grid;
+  gap: var(--e-1);
+}
+.laco-pagina h1 {
+  font-size: var(--t-abertura);
+  line-height: 1.05;
+}
+.laco-pagina__o-que {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-4);
+  padding: 0;
+  color: var(--tinta-suave);
+  list-style: none;
+}
+.laco-pagina__tempo,
+.laco-pagina__memorias {
+  display: grid;
+  gap: var(--e-3);
+}
+
+/* A régua: as memórias como pontos em cima, as faixas das fases no meio e os anos embaixo */
+.regua {
+  display: grid;
+  gap: var(--e-2);
+  padding-block: var(--e-2);
+}
+.regua__memorias,
+.regua__faixas,
+.regua__anos {
+  position: relative;
+}
+.regua__memorias {
+  height: var(--e-4);
+  border-bottom: 1px solid var(--fio);
+}
+.regua__memoria {
+  position: absolute;
+  bottom: calc(var(--e-1) * -1);
+  width: var(--e-2);
+  height: var(--e-2);
+  margin-left: calc(var(--e-2) / -2);
+  border-radius: var(--raio-pilula);
+  background: var(--tinta);
+}
+.regua__faixas {
+  min-height: var(--e-6);
+}
+.regua__faixa {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding-inline: var(--e-2);
+  border-radius: var(--raio-carimbo);
+  background: var(--rosa-pastel);
+  color: var(--rosa-tinta);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.regua__faixa--noivado {
+  background: var(--coral-pastel);
+  color: var(--coral-tinta);
+}
+.regua__faixa--casamento,
+.regua__faixa--uniao {
+  background: var(--roxo-pastel);
+  color: var(--roxo-tinta);
+}
+.regua__faixa--amizade {
+  background: var(--verde-pastel);
+  color: var(--verde-tinta);
+}
+/* A separação é um momento: um traço, com o nome por cima */
+.regua__faixa--separacao {
+  background: var(--ardosia-pastel);
+  color: var(--ardosia-tinta);
+}
+.regua__faixa--momento {
+  overflow: visible;
+  padding: 0;
+  background: var(--ardosia-vivo);
+}
+.regua__faixa--momento span {
+  position: absolute;
+  left: calc(100% + var(--e-1));
+}
+.regua__anos {
+  height: 1.2em;
+  color: var(--tinta-suave);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+}
+.regua__anos span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+.laco-pagina__fases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-5);
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 62rem) {
+  .laco-pagina__dois {
+    gap: var(--e-6) var(--e-8);
+  }
+}

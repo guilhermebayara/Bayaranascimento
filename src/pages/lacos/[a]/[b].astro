@@ -1,0 +1,138 @@
+---
+// A página do laço (onda 2, decisão do Gui de 17/11/2026): a linha do tempo de duas pessoas, com as fases
+// do casal como faixas e as memórias em que as duas estão. Só o que quem olha vê: as duas pessoas, o
+// casal (com a regra de quem vê) e as memórias dela. Regras em src/lib/pagina-do-laco.ts.
+import '../../../visual/telas/lista.css';
+import '../../../visual/telas/laco.css';
+import Visual from '../../../layouts/Visual.astro';
+import Lista from '../../../components/explorar/Lista.astro';
+import Retrato from '../../../components/visual/Retrato.astro';
+import Vazio from '../../../components/visual/Vazio.astro';
+import { anosDeVida, jaFaleceu, maisRecentesPrimeiro } from '../../../lib/datas';
+import { enderecoDoLaco, faixasDasFases, marcasDosAnos, periodoDoLaco, posicao } from '../../../lib/pagina-do-laco';
+import { FASES, Familia, estaoJuntos, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
+import { enderecoDoRetrato } from '../../../lib/retratos';
+import { corDaPessoa } from '../../../lib/visual';
+import {
+  comoOsExesAparecem,
+  familiasDe,
+  listarCapitulos,
+  listarCasais,
+  listarFiliacoes,
+  listarIntegrantesQueVe,
+  listarLacosDoCoracao,
+  listarMemorias,
+  listarNucleos,
+  memoriasComAudio,
+  obterCasalDoPar,
+} from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const integrantes = await listarIntegrantesQueVe(usuario);
+const [a, b] = [Astro.params.a, Astro.params.b].map((id) => integrantes.find((i) => i.id === id));
+if (!a || !b || a.id === b.id) return new Response('Laço não encontrado', { status: 404 });
+// Sempre o mesmo endereço para o mesmo par
+if (a.id > b.id) return Astro.redirect(enderecoDoLaco(a.id, b.id));
+// O ex que quem olha deixou discreto ou fora: a página do laço também sai para ela (src/lib/ex-casal.ts)
+const modos = await comoOsExesAparecem(usuario);
+if ((usuario.pessoa === a.id && modos.has(b.id)) || (usuario.pessoa === b.id && modos.has(a.id))) return new Response('Laço não encontrado', { status: 404 });
+
+const casais = await listarCasais(usuario);
+const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
+const familia = new Familia(await listarFiliacoes(), casais, tratamentos);
+const casal = await obterCasalDoPar(a.id, b.id, usuario);
+const lacos = (await listarLacosDoCoracao(usuario)).filter((l) => (l.dono === a.id && l.pessoa === b.id) || (l.dono === b.id && l.pessoa === a.id));
+const chamar = (i: typeof a) => i.apelido ?? i.nome;
+// O que um é do outro: o parentesco, ou o laço do coração
+const relacao = familia.relacao(a.id, b.id);
+const deB = relacao ? `${chamar(b)} é ${relacao.texto} de ${chamar(a)}` : null;
+const doCoracao = lacos.map((l) => (l.dono === usuario.pessoa ? `${chamar(l.pessoa === a.id ? a : b)} é ${lacoParaODono(l.nome, tratamentos.get(l.pessoa) ?? null)}` : `${chamar(l.dono === a.id ? a : b)} chama ${chamar(l.pessoa === a.id ? a : b)} de ${l.nome.toLowerCase()}`));
+const paraVoce = [a, b].filter((i) => i.id !== usuario.pessoa).map((i) => ({ i, r: familia.relacao(usuario.pessoa, i.id) }));
+
+const anoAtual = new Date().getUTCFullYear();
+const faixas = casal ? faixasDasFases(casal.fases, anoAtual) : [];
+const memorias = maisRecentesPrimeiro((await listarMemorias(usuario)).filter((m) => m.integrantes.includes(a.id) && m.integrantes.includes(b.id)));
+const periodo = periodoDoLaco(faixas, memorias.map((m) => m.ano), anoAtual);
+const ordem = (await listarNucleos()).map((n) => n.id);
+const retratoDe = (i: typeof a) => (i.retrato ? enderecoDoRetrato(i.retrato) : null);
+const capitulos = await listarCapitulos(usuario);
+const comAudio = await memoriasComAudio(usuario);
+const titulo = `${chamar(a)} e ${chamar(b)}`;
+const situacao = casal ? (estaoJuntos(casal) ? 'Juntos' : 'Não estão mais juntos') : null;
+---
+
+<Visual titulo={titulo} nucleos={[...new Set([...familiasDe(a), ...familiasDe(b)])]} secao="arvore">
+  <article class="laco-pagina miolo">
+    <header class="laco-pagina__alto">
+      <p class="rotulo">Laço</p>
+      <div class="laco-pagina__dois">
+        {[a, b].map((i) => (
+          <a class="laco-pagina__pessoa" href={`/pessoas/${i.id}`}>
+            <Retrato nome={chamar(i)} foto={retratoDe(i)} familia={corDaPessoa(familiasDe(i), ordem)} falecido={jaFaleceu(i)} />
+            <span>
+              <strong>{chamar(i)}</strong>
+              <span class="ficha suave">{[paraVoce.find((p) => p.i.id === i.id)?.r ? possessivo(paraVoce.find((p) => p.i.id === i.id)!.r!, i.tratamento) : i.id === usuario.pessoa ? 'você' : null, anosDeVida(i) || null].filter(Boolean).join(' · ')}</span>
+            </span>
+          </a>
+        ))}
+      </div>
+      <h1 class="serifa">{titulo}</h1>
+      <ul class="laco-pagina__o-que">
+        {situacao && <li>{situacao}</li>}
+        {deB && <li>{deB}</li>}
+        {doCoracao.map((t) => <li>{t}</li>)}
+        <li>{memorias.length === 0 ? 'Nenhuma memória dos dois juntos ainda' : memorias.length === 1 ? 'Uma memória dos dois juntos' : `${memorias.length} memórias dos dois juntos`}</li>
+      </ul>
+    </header>
+
+    {
+      periodo && (
+        <section class="laco-pagina__tempo" aria-labelledby="titulo-tempo">
+          <h2 class="rotulo" id="titulo-tempo">
+            No tempo
+          </h2>
+          <div class="regua" role="img" aria-label={`De ${periodo.de + 1} a ${periodo.ate}: ${[...faixas.map((f) => `${f.rotulo.toLowerCase()} ${f.de === f.ate ? `em ${f.de}` : `de ${f.de} a ${f.aberta ? 'hoje' : f.ate}`}`), `${memorias.length} memórias`].join(', ')}`}>
+            <div class="regua__memorias">
+              {memorias.filter((m) => m.ano > 0).map((m) => (
+                <a class="regua__memoria" href={`/memorias/${m.id}`} style={`left: ${posicao(m.ano + 0.5, periodo)}%`} title={`${m.titulo}, ${m.ano}`} aria-hidden="true" tabindex="-1" />
+              ))}
+            </div>
+            {faixas.length > 0 && (
+            <div class="regua__faixas">
+                {faixas.map((f) => (
+                  <span
+                    class:list={['regua__faixa', `regua__faixa--${f.tipo}`, { 'regua__faixa--momento': f.de === f.ate && f.tipo === 'separacao' }]}
+                    style={`left: ${posicao(f.de, periodo)}%; width: ${Math.max(1.2, posicao(f.ate + 1, periodo) - posicao(f.de, periodo))}%`}
+                  >
+                    <span>{f.rotulo}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div class="regua__anos" aria-hidden="true">
+              {marcasDosAnos(periodo).map((ano) => (
+                <span style={`left: ${posicao(ano, periodo)}%`}>{ano}</span>
+              ))}
+            </div>
+          </div>
+          {casal && casal.fases.length > 0 && (
+            <ol class="laco-pagina__fases">
+              {casal.fases.map((f, n) => (
+                <li>
+                  <strong>{FASES[f.tipo]}</strong> {periodosDasFases(casal.fases)[n] && <span class="ficha suave">{periodosDasFases(casal.fases)[n]}</span>}
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      )
+    }
+
+    <section class="laco-pagina__memorias" aria-labelledby="titulo-memorias">
+      <h2 class="rotulo" id="titulo-memorias">
+        As memórias dos dois
+      </h2>
+      {memorias.length === 0 ? <Vazio frase={`Ainda não há memória com ${chamar(a)} e ${chamar(b)} juntos.`} /> : <Lista memorias={memorias} capitulos={capitulos} integrantes={integrantes} ordem="recentes" comAudio={comAudio} />}
+    </section>
+  </article>
+</Visual>

@@ -16,6 +16,7 @@ import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, PROXIMIDADES, QU
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../../lib/servidor/permissoes';
 import { casalDesfeito, opcoesDeQuemVe, opcoesDoModo } from '../../../lib/ex-casal';
+import { enderecoDoLaco } from '../../../lib/pagina-do-laco';
 import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos, listarNucleos } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -592,6 +593,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                       <span>{estaoJuntos(c.casal) ? 'juntos' : 'não estão mais juntos'}{c.casal.visibilidade !== 'todos' && `, ${quemVeTexto(c.casal)}`}</span>
                     </p>
                   </div>
+                  <p class="laco__ver"><a href={enderecoDoLaco(pessoa.id, c.outro)}>Ver o laço</a></p>
                   {/* As fases como uma linha do tempo: o que aconteceu e quando */}
                   <ol class="fases">
                     {c.casal.fases.map((fase, n) => (

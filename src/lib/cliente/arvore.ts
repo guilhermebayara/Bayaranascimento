@@ -1,6 +1,7 @@
 // A árvore interativa. Funciona como um mapa: arrasta, aproxima, afasta, e se
 // reorganiza com animação quando o foco ou os filtros mudam, sem recarregar a página.
 import { MEDIDAS, TARJA_DO_DISCRETO, cantoReto, arredondado, desenharArvore, type Desenho } from '../arvore-desenho';
+import { enderecoDoLaco } from '../pagina-do-laco';
 import { comLacoDeArvore, montarDesenho, type DadosDaArvore, type Estado } from '../arvore-montagem';
 import { areaLivreDoMapa, mapaQueAnda } from './mapa-que-anda';
 
@@ -251,7 +252,9 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     if (p.retrato) retrato.append(Object.assign(new Image(), { src: p.retrato, alt: '' }));
     else retrato.append(Object.assign(document.createElement('span'), { textContent: p.iniciais ?? '' }));
     retrato.firstElementChild!.setAttribute('aria-hidden', 'true');
-    ficha.replaceChildren(retrato, nome, quem, pagina, partir, fechar);
+    // "Ver o laço" (onda 2): a página do laço entre quem olha e a pessoa tocada
+    const doLaco = p.id !== dados.eu && pessoa.has(dados.eu) ? [Object.assign(document.createElement('a'), { href: enderecoDoLaco(dados.eu, p.id), textContent: 'Ver o laço' })] : [];
+    ficha.replaceChildren(retrato, nome, quem, pagina, ...doLaco, partir, fechar);
   };
   const fecharFicha = () => {
     if (!fichaAberta) return;
