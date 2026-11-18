@@ -22,6 +22,8 @@ export interface PessoaDoCirculo {
   valor: number;
   /** a proximidade de quem não declarou nada, para "trazer de volta" */
   padrao: number;
+  /** se o dono escolheu a proximidade (no círculo ou na edição dos laços), ou se vale a de `padrao` */
+  declarada: boolean;
   angulo: number;
   /** o ângulo de quem não escolheu lugar, para "trazer de volta" */
   anguloPadrao: number;
@@ -77,6 +79,7 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
           falecido: jaFaleceu(i),
           valor: declarada?.valor ?? padrao,
           padrao,
+          declarada: Boolean(declarada),
           angulo: (declarada?.angulo ?? null) as number | null,
         },
       ];
@@ -89,4 +92,13 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
     .map((p) => ({ ...p, angulo: noPadrao.get(p.id) ?? 0, anguloPadrao: noPadrao.get(p.id) ?? 0 }))
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   return { eu, cor: corDaPessoa(familiasDe(eu), ordem), dentro, fora };
+}
+
+/**
+ * A proximidade de cada pessoa do círculo de quem está logado, para a edição dos laços mostrar o mesmo
+ * valor do círculo (docs/decisoes.md, "Círculo"). Só do dono, como o círculo: ninguém mais lê.
+ */
+export async function proximidadesDoCirculo(usuario: Usuario): Promise<Map<string, PessoaDoCirculo>> {
+  const circulo = await montarCirculo(usuario);
+  return new Map(circulo ? [...circulo.dentro, ...circulo.fora].map((p) => [p.id, p]) : []);
 }

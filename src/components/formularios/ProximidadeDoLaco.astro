@@ -1,0 +1,33 @@
+---
+// A proximidade de um laço meu, na edição dos laços (decisão do Gui, 18/11/2026: "Proximidade em todo
+// laço meu"). É o mesmo valor do círculo, só de quem está logado, e só ele vê. Ajuste do dia a dia:
+// com script, o slider guarda sozinho, no lugar, sem recarregar (src/lib/cliente/proximidade.ts e
+// no-lugar.ts), e as regiões com o nome da pessoa (a linha do laço e a situação aqui embaixo) são
+// trocadas. Sem script, "Salvar a proximidade" é o formulário comum, que volta para a página.
+import CampoProximidade from './CampoProximidade.astro';
+
+interface Props {
+  /** o id de quem está do outro lado do laço */
+  pessoa: string;
+  /** o id do slider, único na página */
+  id: string;
+  valor: number;
+  /** se o dono já escolheu, ou se vale a que o parentesco ou o laço dão */
+  declarada: boolean;
+  volta: string;
+  rotulo?: string;
+}
+
+const { pessoa, id, valor, declarada, volta, rotulo } = Astro.props;
+const regiao = `proximidade-${pessoa}`;
+---
+
+<form method="post" action="/api/circulo" class="proximidade-do-laco" data-proximidade-no-lugar data-no-lugar={regiao}>
+  <input type="hidden" name="pessoa" value={pessoa} />
+  <input type="hidden" name="volta" value={volta} />
+  <CampoProximidade id={id} valor={valor} rotulo={rotulo} />
+  <p class="dica proximidade-do-laco__situacao">
+    <span class="regiao" data-regiao={regiao}>{declarada ? 'Escolhida por você.' : 'Ainda não escolhida: vale a que o laço dá.'}</span> Só você vê, e muda também no seu círculo.
+  </p>
+  <div class="acoes" data-salvar-proximidade><button class="botao botao--leve" type="submit">Salvar a proximidade</button></div>
+</form>
