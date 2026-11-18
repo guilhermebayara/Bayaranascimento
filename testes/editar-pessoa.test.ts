@@ -52,7 +52,7 @@ describe('os grupos de laço', () => {
 
   it('o laço que a família toda reconhece mora em "Adicionar laço do coração"', () => {
     const doCoracao = editar.slice(editar.indexOf("{g.novo.laco === 'coracao' && podeLacos && ("));
-    expect(doCoracao).toMatch(/^[^]*?name="reconhece" value="familia"/);
+    expect(doCoracao).toMatch(/^[^]*?nome="reconhece"[^]*?valor: 'familia', texto: 'A família toda'/);
   });
 
   it('o grupo vazio é uma linha só, com "nenhum ainda." e "Adicionar"', () => {

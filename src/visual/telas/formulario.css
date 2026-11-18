@@ -1891,7 +1891,12 @@
   text-decoration-thickness: 1px;
   text-underline-offset: 0.3em;
 }
-/* "Voltar" à esquerda e o caminho para a próxima pergunta à direita, como nas etapas */
+/* A ação da pergunta e seguir em frente, lado a lado, logo embaixo dos campos (observação do Gui,
+   18/11/2026: "Pular esta pergunta" ficava no pé, longe da pergunta) */
+.pagina-de-formulario .acoes--pergunta {
+  justify-content: flex-start;
+}
+/* "Voltar" à esquerda e, quando a pergunta não tem formulário, o caminho para a próxima à direita */
 .pagina-de-formulario .acoes--guia {
   justify-content: flex-end;
   padding-top: var(--e-5);
@@ -1923,19 +1928,43 @@
 }
 /* Dentro do cartão de um laço, a pergunta desce a um título menor, sem serifa: o que está mais fundo
    na página não fala mais alto que a parte que o contém ("Laços") */
-.pagina-de-formulario .painel fieldset.fase--nova legend {
-  margin-bottom: var(--e-3);
-  font-family: var(--grotesca);
-  font-variation-settings: normal;
-  font-weight: 550;
-  font-size: var(--t-corpo);
-  letter-spacing: 0;
-  line-height: 1.4;
-}
-.pagina-de-formulario .painel fieldset.fase--nova legend small {
+/* "O que aconteceu depois?", na edição e no cadastro do casal, é um título de seção pequeno, como "Quem
+   vê": o grande era demais para o contexto (observação do Gui, 18/11/2026) */
+.pagina-de-formulario fieldset:is(.fase--nova, .fases-depois) > legend {
+  margin-bottom: var(--e-2);
   color: var(--tinta-suave);
-  font-size: var(--t-pequeno);
+  font-family: var(--mono);
+  font-variation-settings: normal;
   font-weight: 400;
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+.pagina-de-formulario fieldset:is(.fase--nova, .fases-depois) > legend small {
+  font-size: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+}
+/* O fio de cima é um fundo de 1 px: a borda de um fieldset passa por trás da legenda */
+.pagina-de-formulario .fases-depois {
+  display: grid;
+  gap: var(--e-3);
+  padding-top: var(--e-5);
+  background: linear-gradient(var(--fio), var(--fio)) top / 100% 1px no-repeat;
+}
+.pagina-de-formulario .fases-depois > legend {
+  float: left;
+  width: 100%;
+}
+.pagina-de-formulario .fases-depois__linha[hidden] {
+  display: none;
+}
+.pagina-de-formulario .fases-depois [data-mais-uma-fase] {
+  justify-self: start;
+}
+.pagina-de-formulario .fases-depois [data-mais-uma-fase][hidden] {
+  display: none;
 }
 .pagina-de-formulario .novo-laco__quem {
   display: grid;
@@ -2112,7 +2141,11 @@
 }
 .pagina-de-formulario .fase--nova {
   padding-top: var(--e-5);
-  border-top: 1px solid var(--fio);
+  background: linear-gradient(var(--fio), var(--fio)) top / 100% 1px no-repeat;
+}
+.pagina-de-formulario .fase--nova > legend {
+  float: left;
+  width: 100%;
 }
 /* "Remover esta fase" marcada: a linha da fase diz que ela vai sair, mesmo com a fase fechada */
 .pagina-de-formulario .fase__nome {
@@ -2771,4 +2804,32 @@
   font-size: var(--t-leitura);
   font-variation-settings: var(--serifa-ajustes);
   line-height: 1.35;
+}
+
+/* --- Laço do coração: "Só eu" ou "A família toda" ------------------------------------------------
+   Correção do Gui (18/11/2026): os campos mudam de propósito, e a tela precisa deixar isso claro. O
+   seletor segmentado escolhe; logo embaixo, colada nele, uma frase curta diz o que a opção é. O que é
+   de cada opção fica numa caixa recuada, a mesma nas duas, para ficar à vista que é o conteúdo que
+   troca; "Com quem", quando aparece, fica fora dela. */
+.pagina-de-formulario .reconhece {
+  gap: var(--e-2);
+}
+.pagina-de-formulario .reconhece__frase {
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .reconhece__frase [hidden] {
+  display: none;
+}
+.pagina-de-formulario .reconhece__troca {
+  padding: var(--e-4) var(--e-5) var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--papel-recuo);
+}
+.pagina-de-formulario .reconhece__painel {
+  display: grid;
+  gap: var(--e-5);
+}
+.pagina-de-formulario .reconhece__painel[hidden] {
+  display: none;
 }

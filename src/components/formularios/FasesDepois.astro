@@ -1,0 +1,70 @@
+---
+// "O que aconteceu depois?" no cadastro do casal (decisão do Gui, 18/11/2026): a história inteira pode ser
+// registrada de uma vez, sem se perder, como já dava na edição do laço. Cada linha é uma fase a mais
+// (o que foi e em que ano), nos mesmos campos paralelos do cadastro (faseTipo, faseInicio, faseFim), que
+// /api/lacos lê em ordem; linha sem "o que foi" é ignorada. Começa com uma linha; "Mais uma fase" mostra
+// a seguinte. Sem script, aparecem só as duas primeiras. O título é de seção pequena, como "Quem vê".
+import CampoAno from '../CampoAno.astro';
+import { FASES, type TipoDeFase } from '../../lib/parentesco';
+
+interface Props {
+  /** prefixo dos ids, único na página */
+  id: string;
+  /** id do rótulo de "Como estão hoje?", que passa a "Como estavam?" quando há uma fase depois */
+  rotuloDaPrimeira: string;
+}
+const { id, rotuloDaPrimeira } = Astro.props;
+const fases = Object.entries(FASES) as [TipoDeFase, string][];
+const LINHAS = 4;
+---
+
+<fieldset class="fases-depois" data-fases-depois data-rotulo-da-primeira={rotuloDaPrimeira}>
+  <legend class="rotulo suave">O que aconteceu depois? <small>(opcional)</small></legend>
+  {
+    Array.from({ length: LINHAS }, (_, n) => (
+      <div class="fases-depois__linha em-linha" data-fase-depois hidden={n > 1 ? true : undefined}>
+        <label class="em-linha__campo">
+          <span>{n === 0 ? 'Depois' : 'E depois'}</span>
+          <select name="faseTipo">
+            <option value="">Nada mais</option>
+            {fases.map(([valor, rotulo]) => <option value={valor}>{rotulo}</option>)}
+          </select>
+        </label>
+        <div class="em-linha__campo">
+          <label for={`${id}-${n}-inicio`}>Em que ano?</label>
+          <CampoAno id={`${id}-${n}-inicio`} nome="faseInicio" />
+        </div>
+        <input type="hidden" name="faseFim" value="" />
+      </div>
+    ))
+  }
+  <button type="button" class="acao acao--quieta" data-mais-uma-fase hidden>Mais uma fase</button>
+</fieldset>
+
+<script>
+  // Uma linha por vez: "Mais uma fase" mostra a seguinte. Com uma fase depois, a primeira pergunta deixa de
+  // ser "Como estão hoje?" e vira "Como estavam?"
+  for (const caixa of document.querySelectorAll<HTMLElement>('[data-fases-depois]')) {
+    const linhas = [...caixa.querySelectorAll<HTMLElement>('[data-fase-depois]')];
+    const mais = caixa.querySelector<HTMLButtonElement>('[data-mais-uma-fase]')!;
+    const rotulo = document.getElementById(caixa.dataset.rotuloDaPrimeira ?? '');
+    const hoje = rotulo?.textContent ?? '';
+    const atualizar = () => {
+      const visiveis = linhas.filter((l) => !l.hidden);
+      const ultima = visiveis.at(-1)?.querySelector('select');
+      mais.hidden = visiveis.length === linhas.length || !ultima?.value;
+      const temDepois = linhas.some((l) => !l.hidden && l.querySelector('select')!.value);
+      if (rotulo) rotulo.textContent = temDepois ? 'Como estavam?' : hoje;
+    };
+    for (const [n, l] of linhas.entries()) l.hidden = n > 0;
+    mais.addEventListener('click', () => {
+      const proxima = linhas.find((l) => l.hidden);
+      if (!proxima) return;
+      proxima.hidden = false;
+      proxima.querySelector('select')!.focus();
+      atualizar();
+    });
+    caixa.addEventListener('change', atualizar);
+    atualizar();
+  }
+</script>

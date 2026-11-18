@@ -1,4 +1,6 @@
 ---
+import Segmentado from '../../../components/visual/Segmentado.astro';
+import FasesDepois from '../../../components/formularios/FasesDepois.astro';
 import Pagina from '../../../components/formularios/Pagina.astro';
 import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
 import ConfirmarRemocao from '../../../components/ConfirmarRemocao.astro';
@@ -170,8 +172,9 @@ const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(
 const opcoesDeFiliacao = (atual?: Qualidade): [string, string][] => (atual === 'consideracao' ? (Object.entries(QUALIDADES) as [string, string][]) : qualidades);
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
 // No cadastro guiado e no "Adicionar laço" completo, "Como estão hoje?" só oferece o que é estar junto:
-// o fim tem um caminho só, "Já terminou" (respostas do Gui à P109 e à 47-N3, 17/11/2026). A separação e a
-// amizade entram depois, na edição do casal, em "O que aconteceu depois?".
+// o fim tem um caminho só, "Já terminou" (respostas do Gui à P109 e à 47-N3, 17/11/2026). A separação, a
+// amizade e o resto da história entram em "O que aconteceu depois?", já no cadastro (decisão do Gui,
+// 18/11/2026; FasesDepois.astro) e também na edição do casal.
 const FASES_DE_QUEM_ESTA_JUNTO: readonly TipoDeFase[] = ['namoro', 'noivado', 'casamento', 'uniao'];
 const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id));
 // O que acontece ao remover um laço: some da árvore e das páginas, e não vai para a lixeira (resposta do Gui à 47-N2, 17/11/2026)
@@ -381,7 +384,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
             </>
           ) : passo === 'casal' ? (
             <>
-              <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" />
+              <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" id="rotulo-fase-guia" />
               <div class="em-linha__campo">
                 <label for="guia-fase-inicio">Começou em <small>(se souber)</small></label>
                 <CampoAno id="guia-fase-inicio" nome="faseInicio" />
@@ -394,6 +397,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                 <label for="guia-fase-fim">Terminou em</label>
                 <CampoAno id="guia-fase-fim" nome="faseFim" />
               </div>
+              <FasesDepois id="guia-fase-depois" rotuloDaPrimeira="rotulo-fase-guia" />
             </>
           ) : (
             <>
@@ -404,15 +408,22 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
               </div>
             </>
           )}
-          {/* Uma ação principal por tela: antes de adicionar alguém, é "Adicionar"; depois, "Próxima pergunta" */}
-          <div class="acoes"><button class={jaNoPasso(passo).length > 0 ? 'botao botao--leve' : 'botao'} type="submit">Adicionar</button></div>
+          {/* Uma ação principal por tela: antes de adicionar alguém, é "Adicionar"; depois, "Próxima pergunta".
+              Seguir fica na mesma linha da ação principal, à vista, e não no pé, longe da pergunta
+              (observação do Gui, 18/11/2026) */}
+          <div class="acoes acoes--pergunta">
+            <button class={jaNoPasso(passo).length > 0 ? 'botao botao--leve' : 'botao'} type="submit">Adicionar</button>
+            <a class={jaNoPasso(passo).length > 0 ? 'botao' : 'botao botao--leve'} href={enderecoDoPasso(proximoPasso(passo))} data-seguir>{jaNoPasso(passo).length > 0 ? 'Próxima pergunta' : 'Pular esta pergunta'}</a>
+          </div>
         </form>
         )}
-        <p class="acoes acoes--guia">
-          {passoAnterior(passo) && <a class="botao botao--leve" href={enderecoDoPasso(passoAnterior(passo)!)}>Voltar</a>}
-          {/* Sem nada a adicionar nesta pergunta, seguir é a ação principal */}
-          <a class={jaNoPasso(passo).length > 0 || (passo === 'parentes' && !deFora) ? 'botao' : 'botao botao--leve'} href={enderecoDoPasso(proximoPasso(passo))}>{jaNoPasso(passo).length > 0 ? 'Próxima pergunta' : 'Pular esta pergunta'}</a>
-        </p>
+        {(passoAnterior(passo) || (passo === 'parentes' && !deFora)) && (
+          <p class="acoes acoes--guia">
+            {passoAnterior(passo) && <a class="botao botao--leve" href={enderecoDoPasso(passoAnterior(passo)!)}>Voltar</a>}
+            {/* Sem formulário nesta pergunta (parentes de quem já é das famílias), seguir é a ação principal */}
+            {passo === 'parentes' && !deFora && <a class="botao" href={enderecoDoPasso(proximoPasso(passo))} data-seguir>Próxima pergunta</a>}
+          </p>
+        )}
         <p class="guia__completo"><a href={`/pessoas/${pessoa.id}/editar?novo=1&passo=outro`}>Ver todos os tipos de laço</a></p>
       </section>
     )
@@ -650,7 +661,8 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                           </details>
                         ))}
                         <fieldset class="fase--nova">
-                          <legend>O que aconteceu depois? <small>(opcional)</small></legend>
+                          {/* Título de seção pequeno, como "Quem vê" (observação do Gui, 18/11/2026) */}
+                          <legend class="rotulo suave">O que aconteceu depois? <small>(opcional)</small></legend>
                           <Opcoes nome={`fase-${c.casal.fases.length}-tipo`} rotulo="O que foi" opcoes={fases} id={`rotulo-fase-${c.casal.id}-nova`} />
                           <div class="em-linha__campo">
                             <label for={`fase-${c.casal.id}-nova-inicio`}>Em que ano?</label>
@@ -944,26 +956,40 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                 <input type="hidden" name="sujeito" value={pessoa.id} />
                 <input type="hidden" name="laco" value={g.novo.laco} />
 
-                {/* O laço do coração pergunta primeiro quem o reconhece: "a família toda" é o laço de
-                    consideração, que antes era uma aba à parte */}
+                {/* O laço do coração pergunta primeiro quem o reconhece, num seletor segmentado (o padrão do
+                    "Quem pode ver?"), com uma frase curta da opção escolhida: os campos de baixo mudam de
+                    propósito, e a frase diz o que muda (correção do Gui, 18/11/2026) */}
                 {g.novo.laco === 'coracao' && podeLacos && (
-                  <div class="campo">
-                    <span id="rotulo-reconhece">Quem reconhece este laço?</span>
-                    <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-reconhece">
-                      <label class="opcao"><input type="radio" name="reconhece" value="eu" checked /><span>Só eu</span></label>
-                      <label class="opcao"><input type="radio" name="reconhece" value="familia" /><span>A família toda</span></label>
-                    </div>
-                    <p class="dica">
-                      {ehMinha ? 'Só eu: o laço é seu, como um amigo-irmão.' : `Só eu: o laço é entre você e ${chamar}.`} A família toda: vira um laço de consideração de {chamar} que vale para os parentes também, como o filho de consideração da sua mãe, que passa a ser seu irmão de consideração.
+                  <div class="campo reconhece">
+                    <span id={`rotulo-reconhece-${g.id}`}>Quem reconhece este laço?</span>
+                    <Segmentado
+                      rotulo="Quem reconhece este laço"
+                      nome="reconhece"
+                      explicacao={`frase-reconhece-${g.id}`}
+                      opcoes={[
+                        { valor: 'eu', texto: 'Só eu', atual: true },
+                        { valor: 'familia', texto: 'A família toda' },
+                      ]}
+                    />
+                    <p class="reconhece__frase" id={`frase-reconhece-${g.id}`} aria-live="polite">
+                      <span data-para="coracao-so-eu">{ehMinha ? 'Um laço seu, que só vale para você.' : `Um laço entre você e ${chamar}, que só vale para você.`}</span>
+                      <span data-para="coracao-familia" hidden>{ehMinha ? 'Um parente de consideração seu, que vale para a família toda.' : `Um parente de consideração de ${chamar}, que vale para a família toda.`}</span>
                     </p>
                   </div>
                 )}
 
-                {/* Com quem. No laço do coração "só eu" na página de outra pessoa, o laço é com ela */}
+                {/* Com quem: fora da troca, e só quando o título não diz com quem é. Na própria página, nas duas
+                    opções; na página de outra pessoa, o "só eu" já é com ela, e só a família toda pergunta */}
                 <div class="novo-laco__quem" data-para={g.novo.laco === 'coracao' ? 'coracao-meu coracao-familia' : undefined} hidden={g.novo.laco === 'coracao'}>
                   <div class="em-linha">
                     <label>
-                      <span>{g.novo.comQuem}</span>
+                      {g.novo.laco === 'coracao' ? (
+                        <>
+                          {ehMinha ? <span>Com quem?</span> : <span>Quem?</span>}
+                        </>
+                      ) : (
+                        <span>{g.novo.comQuem}</span>
+                      )}
                       <select name="pessoa">
                         <option value="">Escolha</option>
                         {outros.map((i) => <option value={i.id}>{i.nome}</option>)}
@@ -1006,7 +1032,8 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                       <input type="checkbox" name="terminou" data-revela="terminou-novo" />
                       <span>Já terminou</span>
                     </label>
-                    <p class="dica">Os anos são opcionais. Depois de salvar, dá para contar a história inteira em fases: namoro, noivado, casamento.</p>
+                    <FasesDepois id={`fase-depois-${g.id}`} rotuloDaPrimeira="rotulo-fase-novo" />
+                    <p class="dica">Os anos são opcionais. A história também pode ser contada depois, na edição do casal.</p>
                     <label class="marcar">
                       <input type="checkbox" name="visibilidade" value="privado" />
                       <span>Só os dois veem este casal</span>
@@ -1015,31 +1042,40 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                 )}
 
                 {g.novo.laco === 'coracao' && (
-                  <>
-                    <div data-para="coracao-familia" hidden>
-                      <p class="dica">Para a família toda, o lugar na árvore pode ser filho, pai ou mãe, ou irmão de {chamar}. Tio, avô, primo e sobrinho passam pela pessoa do meio: um tio de consideração é irmão de consideração do pai ou da mãe, e é cadastrado na página dele ou dela.</p>
-                    </div>
-                    <label class="campo">
-                      <span>Lugar na árvore</span>
-                      <select name="papel">
-                        <option value="">Não aparece na árvore</option>
-                        {papeis.map(([id, rotulo]) => <option value={id}>Como se fosse {rotulo}</option>)}
-                      </select>
-                    </label>
-                    <div data-para="coracao-so-eu">
+                  <div class="reconhece__troca">
+                    {/* Só eu: o nome, o lugar (opcional), a proximidade e quem vê, tudo seu */}
+                    <div class="reconhece__painel" data-para="coracao-so-eu">
                       <label class="campo">
                         <span>Nome do laço</span>
                         <input type="text" name="nomeDoLaco" maxlength="40" autocomplete="off" placeholder="Ex.: amigo-irmão, afilhada, vó de coração" />
                         <span class="dica">Do jeito que você chama. É o que a família vê.</span>
                       </label>
-                      <Opcoes nome="proximidade" rotulo="Proximidade" opcoes={proximidades} id="rotulo-proximidade-novo" />
-                      <p class="dica">O laço é seu: vale para você, e não para o resto da família. A proximidade só você vê.</p>
+                      <label class="campo">
+                        <span>Lugar na árvore <small>(opcional)</small></span>
+                        <select name="papel">
+                          <option value="">Não aparece na árvore</option>
+                          {papeis.map(([id, rotulo]) => <option value={id}>Como se fosse {rotulo}</option>)}
+                        </select>
+                      </label>
+                      <Opcoes nome="proximidade" rotulo="Proximidade" opcoes={proximidades} id={`rotulo-proximidade-novo-${g.id}`} dica="Só você vê." />
                       <label class="marcar">
                         <input type="checkbox" name="privado" />
                         <span>Só eu vejo este laço</span>
                       </label>
                     </div>
-                  </>
+                    {/* A família toda: o lugar na árvore, que é o laço inteiro */}
+                    <div class="reconhece__painel" data-para="coracao-familia" hidden>
+                      <label class="campo">
+                        <span>{ehMinha ? 'É o quê seu?' : `É o quê de ${chamar}?`}</span>
+                        <select name="papel">
+                          <option value="filho">Filho ou filha</option>
+                          <option value="pai">Pai ou mãe</option>
+                          <option value="irmao">Irmão ou irmã</option>
+                        </select>
+                        <span class="dica">Tio, avô, primo e sobrinho passam pela pessoa do meio: um tio de consideração é irmão de consideração do pai ou da mãe, e é cadastrado na página dele ou dela.</span>
+                      </label>
+                    </div>
+                  </div>
                 )}
 
                 {g.novo.laco === 'resumido' && (

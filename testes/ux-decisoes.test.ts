@@ -1,5 +1,6 @@
 // Decisões do Gui sobre a interface, depois do QA de UX de 16/11/2026 (docs/ux/fluxos.md).
 // Conferências no código, para nenhuma delas voltar atrás sem querer.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { textoEnviando } from '../src/lib/cliente/enviando';
 
@@ -340,5 +341,41 @@ describe('salto por década', () => {
     const linha = fonte('src/components/explorar/Linha.astro');
     expect(linha).toContain('decadas.length > 1 &&');
     expect(linha).toContain('href={`#decada-${d}`}');
+  });
+});
+
+// Observações do Gui na sessão H (18/11/2026), no cadastro de laços
+describe('cadastro de laços depois da sessão H', () => {
+  const editar = fonte('src/pages/pessoas/[id]/editar.astro');
+  const css = readFileSync('src/visual/telas/formulario.css', 'utf8');
+  it('"Pular esta pergunta" fica na linha da ação principal, logo embaixo dos campos', () => {
+    const acoes = editar.slice(editar.indexOf('<div class="acoes acoes--pergunta">'), editar.indexOf('</form>', editar.indexOf('<div class="acoes acoes--pergunta">')));
+    expect(acoes).toContain('>Adicionar</button>');
+    expect(acoes).toContain("'Pular esta pergunta'");
+  });
+  it('laço do coração: os campos mudam de propósito, e a tela diz o que muda (correção do Gui, 18/11/2026)', () => {
+    const doCoracao = editar.slice(editar.indexOf("{g.novo.laco === 'coracao' && podeLacos && ("), editar.indexOf("{g.novo.laco === 'resumido' && ("));
+    // A escolha num seletor segmentado, com uma frase curta só da opção escolhida, colada nele
+    expect(doCoracao).toMatch(/<Segmentado[^]*?nome="reconhece"/);
+    expect(doCoracao).toMatch(/<span data-para="coracao-so-eu">\{ehMinha \? 'Um laço seu, que só vale para você\.'/);
+    expect(doCoracao).toMatch(/<span data-para="coracao-familia" hidden>\{ehMinha \? 'Um parente de consideração seu/);
+    // "Com quem" fica fora da troca, e na página de outra pessoa o "só eu" não pergunta: o título já diz
+    expect(doCoracao).toContain("data-para={g.novo.laco === 'coracao' ? 'coracao-meu coracao-familia' : undefined}");
+    // Cada opção na mesma caixa, com só o que é dela
+    const soEu = doCoracao.slice(doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-so-eu">'), doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-familia" hidden>'));
+    const familia = doCoracao.slice(doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-familia" hidden>'));
+    for (const campo of ['name="nomeDoLaco"', 'nome="proximidade"', 'name="privado"']) {
+      expect(soEu).toContain(campo);
+      expect(familia).not.toContain(campo);
+    }
+    expect(familia).toMatch(/<option value="filho">[^]*<option value="pai">[^]*<option value="irmao">/);
+    expect(css).toMatch(/\.reconhece__troca \{[^}]*background: var\(--papel-recuo\);/);
+  });
+  it('a história inteira do casal já no cadastro, guiado e completo, e "O que aconteceu depois?" como título pequeno', () => {
+    expect(editar.match(/<FasesDepois /g)?.length).toBe(2);
+    const fases = fonte('src/components/formularios/FasesDepois.astro');
+    expect(fases).toContain('<select name="faseTipo">');
+    expect(fases).toContain('<input type="hidden" name="faseFim" value="" />');
+    expect(css).toMatch(/fieldset:is\(\.fase--nova, \.fases-depois\) > legend \{[^}]*font-family: var\(--mono\);/);
   });
 });
