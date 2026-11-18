@@ -96,20 +96,38 @@ describe('quem ouve', () => {
   });
 });
 
-// Proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): gravar como mensagem de voz
-describe('o gravador, como mensagem de voz', () => {
+// Gravar como mensagem de voz (proposta B do conceito da sessão H) dentro do relato num campo só (proposta A
+// do conceito da sessão I, escolha do Gui de 18/11/2026): o texto, os áudios e as fotos numa caixa só, com o
+// "+" à esquerda para anexar e o microfone à direita, como no WhatsApp
+describe('o relato num campo só, como mensagem', () => {
   const ler = (c: string) => readFileSync(c, 'utf8');
-  const peca = ler('src/components/formularios/Gravador.astro');
+  const peca = ler('src/components/formularios/CaixaDoRelato.astro');
   const cliente = ler('src/lib/cliente/audios.ts');
   const css = ler('src/visual/telas/formulario.css');
-  it('as duas telas usam a mesma peça, e gravar é a barra com o microfone; anexar fica embaixo, discreto', () => {
-    // O relato está no conceito do campo só (tst-relato): a caixa leva o mesmo gravador, no canto
-    expect(ler('src/pages/nova.astro')).toContain('<Gravador transcricaoAutomatica={transcricaoAutomatica}');
-    expect(ler('src/pages/memorias/[id]/relato.astro')).toContain('<CaixaDoRelato proposta={proposta} transcricaoAutomatica={transcricaoAutomatica}');
-    expect(ler('src/components/formularios/CaixaDoRelato.astro')).toContain('<button type="button" class="gravador__botao" data-gravar aria-label="Gravar áudio">');
+  it('as duas telas usam a mesma caixa, com o texto e os áudios juntos, e o áudio não vem antes como única opção', () => {
+    expect(ler('src/pages/nova.astro')).toContain('<CaixaDoRelato transcricaoAutomatica={transcricaoAutomatica} nome="relato"');
+    expect(ler('src/pages/memorias/[id]/relato.astro')).toContain('<CaixaDoRelato transcricaoAutomatica={transcricaoAutomatica} nome="texto"');
+    expect(peca).toContain('placeholder="Escreva como foi, ou toque no microfone e conte falando."');
+    expect(peca).not.toMatch(/Prefere falar\?/);
+    // Os balões no alto da caixa, o texto embaixo, e o pé com o "+" antes do microfone
+    expect(peca.indexOf('data-lista-audios')).toBeLessThan(peca.indexOf('<textarea'));
+    expect(peca.indexOf('<textarea')).toBeLessThan(peca.indexOf('data-pe-da-caixa'));
+    expect(peca.indexOf('relato-caixa__mais')).toBeLessThan(peca.indexOf('data-gravar'));
     expect(peca).toContain('<button type="button" class="gravador__botao" data-gravar aria-label="Gravar áudio">');
-    expect(peca.indexOf('data-gravador')).toBeLessThan(peca.indexOf('Anexar um áudio do celular'));
-    expect(peca).not.toMatch(/botao botao--leve/);
+  });
+  it('o "+" abre o menu com as fotos desse dia (só no relato) e o áudio do celular, para cima', () => {
+    expect(peca).toMatch(/\{comFotos && \(\s*<button type="button" class="menu-acoes__item" data-anexar="fotos">/);
+    expect(peca).toContain('data-anexar="audio"');
+    expect(ler('src/pages/memorias/[id]/relato.astro')).toMatch(/<CaixaDoRelato [^>]*comFotos>/);
+    expect(ler('src/pages/nova.astro')).not.toMatch(/<CaixaDoRelato [^>]*comFotos/);
+    expect(css).toMatch(/\.relato-caixa__mais-lista \{[^}]*bottom: calc\(100% \+ var\(--e-1\)\);/);
+  });
+  it('a caixa cresce com o texto, sem rolagem própria', () => {
+    expect(css).toMatch(/textarea\.relato-caixa__texto \{[^}]*field-sizing: content;/);
+    expect(peca).toContain("caixa.style.height = `${caixa.scrollHeight}px`;");
+  });
+  it('sem script, fica só a caixa de texto: o pé com gravar e anexar nasce escondido', () => {
+    expect(peca).toContain('<div class="relato-caixa__pe" data-pe-da-caixa hidden>');
   });
   it('gravando, "Cancelar" descarta sem guardar e fica longe da borda, antes do quadrado de parar', () => {
     expect(peca.indexOf('data-cancelar-gravacao')).toBeLessThan(peca.indexOf('data-gravar'));

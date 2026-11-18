@@ -1,6 +1,5 @@
 ---
 import CaixaDoRelato from '../../../components/formularios/CaixaDoRelato.astro';
-import { ambiente } from '../../../lib/servidor/ambiente';
 import { situacaoDaTranscricaoAgora } from '../../../lib/servidor/transcricao';
 import Pagina from '../../../components/formularios/Pagina.astro';
 import Dado from '../../../components/visual/Dado.astro';
@@ -56,21 +55,9 @@ const opcoes = await Promise.all(
 );
 // A transcrição automática dos áudios (onda 2): o botão só aparece onde ela está ligada
 const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
-// Conceito do relato num campo só (branch tst-relato): duas propostas, trocadas pelo endereço. Fora da
-// produção, uma barra no alto troca entre elas.
-const proposta = Astro.url.searchParams.get('conceito') === 'b' ? 'b' : 'a';
-const comBarraDoConceito = ambiente() !== 'producao';
-const trocar = (p: 'a' | 'b') => `${Astro.url.pathname}?conceito=${p}`;
 ---
 
 <Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar">
-  {comBarraDoConceito && (
-    <nav class="barra-do-conceito" aria-label="Propostas do relato" slot="abertura">
-      <span class="ficha suave">Conceito do relato</span>
-      <a href={trocar('a')} aria-current={proposta === 'a' ? 'page' : undefined}>A, mensagem</a>
-      <a href={trocar('b')} aria-current={proposta === 'b' ? 'page' : undefined}>B, bilhete</a>
-    </nav>
-  )}
   <p slot="abertura">
     <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento.
   </p>
@@ -95,25 +82,23 @@ const trocar = (p: 'a' | 'b') => `${Astro.url.pathname}?conceito=${p}`;
 
   <form class="formulario" method="post" action="/api/relatos" data-formulario-relato data-memoria={memoria.id} novalidate>
     <input type="hidden" name="memoria" value={memoria.id} />
-    <fieldset class={`relato relato--${proposta}`}>
+    <fieldset class="relato">
       <legend>Como foi?</legend>
       <p class="recado" data-bloqueio hidden></p>
-      {/* O relato num campo só: o texto e os áudios na mesma caixa (conceito, branch tst-relato) */}
-      <CaixaDoRelato proposta={proposta} transcricaoAutomatica={transcricaoAutomatica} nome="texto" texto={opcoes[0].texto} desabilitado={opcoes[0].bloqueado} assinatura={usuario.nome}>
-        {proposta === 'b' && (
-      <fieldset class={`fotos-do-relato fotos-do-relato--${proposta}`} data-fotos-do-relato hidden slot={proposta === 'b' ? 'dentro' : undefined}>
-        <legend>{proposta === 'b' ? 'Fotos desse dia' : 'Tem fotos desse dia?'} <small>(opcional)</small></legend>
-        <p class="dica">Elas entram na memória, junto das outras fotos, e aparecem pequenas no seu relato.</p>
-        <label class="botao botao--leve botao--arquivo">
-          {proposta === 'b' ? 'Pôr fotos' : 'Escolher fotos'}
-          <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
-        </label>
-        <ul class="fotos-enviadas" data-fotos></ul>
-        <p class="situacao" data-situacao-fotos role="status" aria-live="polite"></p>
-      </fieldset>
-        )}
+      {/* O relato num campo só (conceito da sessão I, proposta A, escolha do Gui de 18/11/2026): o texto, os
+          áudios e as fotos desse dia na mesma caixa, como uma mensagem. */}
+      <CaixaDoRelato transcricaoAutomatica={transcricaoAutomatica} nome="texto" texto={opcoes[0].texto} desabilitado={opcoes[0].bloqueado} comFotos>
+        {/* Fotos pelo relato (decisão do Gui, 16/11/2026): quem conta pode trazer fotos desse dia. Elas
+            entram na memória, junto das outras, e aparecem pequenas no relato. Entram pelo "+" e aparecem
+            como balões na caixa. Só com script: o envio depende dele. */}
+        <fieldset class="fotos-do-relato" data-fotos-do-relato hidden slot="dentro">
+          <legend class="so-leitor">Fotos desse dia</legend>
+          <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" tabindex="-1" aria-hidden="true" />
+          <ul class="fotos-enviadas" data-fotos></ul>
+          <p class="situacao" data-situacao-fotos role="status" aria-live="polite"></p>
+        </fieldset>
       </CaixaDoRelato>
-      <p class="dica">Só você vai poder alterar este relato.</p>
+      <p class="dica">Só você vai poder alterar este relato. As fotos entram na memória, junto das outras, e aparecem pequenas no seu relato.</p>
       {/* Quase sempre quem conta é quem escreve: "Quem está contando" deixou de ser o primeiro campo e
           fica numa linha recolhida, depois do texto, que abre a busca (resposta do Gui à P137 do QA de
           design, 17/11/2026). Fechar a linha volta para "Eu". */}
@@ -127,22 +112,6 @@ const trocar = (p: 'a' | 'b') => `${Astro.url.pathname}?conceito=${p}`;
         </label>
       </details>
     </fieldset>
-
-    {/* Fotos pelo relato (decisão do Gui, 16/11/2026): quem conta pode trazer fotos desse dia. Elas
-        entram na memória, junto das outras, e aparecem pequenas no relato. Só com script, como na
-        memória: o envio depende dele. Na proposta B, elas ficam dentro do bilhete. */}
-    {proposta === 'a' && (
-      <fieldset class={`fotos-do-relato fotos-do-relato--${proposta}`} data-fotos-do-relato hidden slot={proposta === 'b' ? 'dentro' : undefined}>
-        <legend>{proposta === 'b' ? 'Fotos desse dia' : 'Tem fotos desse dia?'} <small>(opcional)</small></legend>
-        <p class="dica">Elas entram na memória, junto das outras fotos, e aparecem pequenas no seu relato.</p>
-        <label class="botao botao--leve botao--arquivo">
-          {proposta === 'b' ? 'Pôr fotos' : 'Escolher fotos'}
-          <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
-        </label>
-        <ul class="fotos-enviadas" data-fotos></ul>
-        <p class="situacao" data-situacao-fotos role="status" aria-live="polite"></p>
-      </fieldset>
-    )}
 
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
     <div class="acoes">

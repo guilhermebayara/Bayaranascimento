@@ -4,7 +4,7 @@
 // Como mensagem de voz (proposta B do conceito da sessão H, escolha do Gui de 18/11/2026): a barra com o
 // microfone grava e para; gravando, ela mostra o tempo, "Cancelar" e o quadrado de parar. Cada áudio
 // guardado é um balão com tocar, o andamento e a duração, e embaixo a transcrição, a ordem e "Remover".
-// A marcação está em src/components/formularios/Gravador.astro.
+// A marcação está em src/components/formularios/CaixaDoRelato.astro: o relato num campo só.
 import { BITS_POR_SEGUNDO, duracaoEmTexto, LIMITE_POR_ARQUIVO, MINUTOS_POR_GRAVACAO } from '../audios';
 
 export interface AudioNoFormulario {

@@ -1,5 +1,5 @@
 ---
-import Gravador from '../components/formularios/Gravador.astro';
+import CaixaDoRelato from '../components/formularios/CaixaDoRelato.astro';
 import { situacaoDaTranscricaoAgora } from '../lib/servidor/transcricao';
 import { comArtigo } from '../lib/servidor/conteudo';
 import Pagina from '../components/formularios/Pagina.astro';
@@ -279,14 +279,12 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         <section data-etapa="Relato" data-opcional>
         <fieldset>
             <legend>Como foi?</legend>
-            {/* Áudios já na memória nova: ficam soltos até a memória ser salva (ver api/audios.ts) */}
-            <Gravador transcricaoAutomatica={transcricaoAutomatica}>
-              <script type="application/json" data-audios-do-rascunho set:html={JSON.stringify(audiosDoRascunho).replace(/</g, '\\u003c')} />
-            </Gravador>
-            <label class="campo">
-              <span>O relato escrito</span>
-              <textarea name="relato" rows="8" maxlength="20000" placeholder="Escreva como você lembra. Outras pessoas da família vão poder contar a versão delas depois.">{meuRelato?.texto ?? ''}</textarea>
-            </label>
+            {/* O relato num campo só (conceito da sessão I, proposta A, escolha do Gui de 18/11/2026): o texto
+                e os áudios na mesma caixa, como uma mensagem. As fotos têm etapa própria, e o "+" só anexa
+                áudio. Os áudios ficam soltos até a memória ser salva (ver api/audios.ts). */}
+            <CaixaDoRelato transcricaoAutomatica={transcricaoAutomatica} nome="relato" texto={meuRelato?.texto ?? ''}>
+              <script slot="dentro" type="application/json" data-audios-do-rascunho set:html={JSON.stringify(audiosDoRascunho).replace(/</g, '\\u003c')} />
+            </CaixaDoRelato>
             <p class="dica">Só você vai poder alterar este relato.</p>
             {/* Quase sempre quem conta é quem escreve: "Quem está contando" deixou de ser o primeiro
                 campo e fica numa linha recolhida, depois do texto, que abre a busca (resposta do Gui à
@@ -495,6 +493,9 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
     const blocoDeAudios = form.querySelector<HTMLElement>('[data-audios]');
     const audios = blocoDeAudios ? ligarAudios(blocoDeAudios, idExistente ?? '', () => form.dispatchEvent(new Event('change'))) : undefined;
     audios?.carregar(JSON.parse(blocoDeAudios?.querySelector('[data-audios-do-rascunho]')?.textContent ?? '[]'));
+    // Gravar e anexar só existem com script: o pé da caixa aparece quando os áudios ligam
+    const peDaCaixa = blocoDeAudios?.querySelector<HTMLElement>('[data-pe-da-caixa]');
+    if (peDaCaixa && audios) peDaCaixa.hidden = false;
     const RASCUNHO_LOCAL = 'rascunho-nova-memoria';
     let proximaFoto = 0;
     const campoDe = (nome: string) => form.elements.namedItem(nome) as HTMLInputElement;

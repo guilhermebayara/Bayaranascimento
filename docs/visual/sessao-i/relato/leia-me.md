@@ -1,12 +1,16 @@
 # Conceito da sessão I: o relato num campo só
 
-Sessão I, 18/11/2026. Branch `tst-relato`, nascida da `homologa`. O pedido do Gui ("Observações e decisões do Gui depois da sessão H", em `docs/decisoes.md`): escrever e falar com o mesmo peso, numa caixa de relato grande, que cresce com o texto, com o microfone no canto dela, como no WhatsApp, e os áudios gravados como balões dentro da mesma caixa. Hoje o áudio vinha antes do texto e podia ser lido como a única possibilidade.
+Sessão I, 18/11/2026. Branch `tst-relato`, nascida da `homologa`.
+
+**O que o Gui escolheu:** a A, mensagem, com o anexar num "+" à esquerda que abre um menu (fotos desse dia e áudio do celular), como no WhatsApp: a interface fica mais limpa e a analogia, inteira. O bilhete combina com o resto do site (foto, carimbo, álbum), mas o áudio quebra essa ideia. A construção está nas capturas sem prefixo; as do conceito começam com `conceito-`. Ele abriu também uma ideia maior, o relato como conversa (cada envio vira uma mensagem, e a memória mostra na mesma ordem), que segue como conceito à parte.
+
+O texto abaixo é o da época do conceito. O pedido do Gui ("Observações e decisões do Gui depois da sessão H", em `docs/decisoes.md`): escrever e falar com o mesmo peso, numa caixa de relato grande, que cresce com o texto, com o microfone no canto dela, como no WhatsApp, e os áudios gravados como balões dentro da mesma caixa. Hoje o áudio vinha antes do texto e podia ser lido como a única possibilidade.
 
 ## Onde ver
 
-Na prévia, `https://tst-relato.memorias.bayara.com.br/memorias/2025-natal/relato`. A barra "Conceito do relato", no alto, troca entre A e B (`?conceito=a` e `?conceito=b`). As duas funcionam de verdade: gravar, anexar, ouvir, transcrever, pôr fotos e salvar.
+Na prévia, `https://tst-relato.memorias.bayara.com.br/memorias/2025-natal/relato`. Na época, uma barra no alto trocava entre A e B; depois da escolha, ficou só a A.
 
-As capturas desta pasta, em 390, 1280 e 1920 px: `1-vazio` (a caixa sem nada), `2-escrito` (um relato longo, dois áudios e uma foto) e `3-gravando` (um terceiro trecho sendo gravado).
+As capturas da construção, em 390, 1280 e 1920 px: `1-vazio` (a caixa sem nada), `2-escrito` (um relato longo, dois áudios e uma foto), `2b-mais` (o menu do "+" aberto) e `3-gravando` (um terceiro trecho sendo gravado). As do conceito (`conceito-a-*`, `conceito-b-*`) mostram as duas propostas.
 
 ## O que vale nas duas
 
