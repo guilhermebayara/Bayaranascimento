@@ -13,6 +13,12 @@ interface Props {
   nome: string;
   retrato?: string | null;
   familia?: string;
+  /**
+   * quem contou já faleceu: o retrato em tom suave, sem o texto, como na árvore e no círculo (decisão do Gui depois do QA de
+   * 18/11/2026). O retrato da conversa fica redondo, o padrão de mensagens: é uma exceção ao retrato de
+   * álbum, como o círculo e o retrato de quem usa o site
+   */
+  falecido?: boolean;
   /** quem registrou, quando não foi a própria pessoa */
   registradoPor?: string | null;
   mensagens: MensagemNaTela[];
@@ -21,13 +27,14 @@ interface Props {
   citarEm?: string;
 }
 
-const { id, nome, retrato, familia, registradoPor, mensagens, minha = false, citarEm } = Astro.props;
+const { id, nome, retrato, familia, falecido = false, registradoPor, mensagens, minha = false, citarEm } = Astro.props;
 ---
 
 <article class:list={['voz', { 'voz--minha': minha }]} id={id}>
   <h3 class="voz__quem">
-    <Retrato nome={nome} foto={retrato} familia={familia} redondo />
+    <Retrato nome={nome} foto={retrato} familia={familia} falecido={falecido} redondo />
     <span class="mao">{nome}</span>
+    {falecido && <span class="so-leitor">, já faleceu</span>}
     {registradoPor && <span class="ficha suave">registrado por {registradoPor}</span>}
   </h3>
   <slot name="antes" />

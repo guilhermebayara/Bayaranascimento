@@ -7,7 +7,7 @@
 import Pagina from '../../../components/formularios/Pagina.astro';
 import Janela from '../../../components/conversa/Janela.astro';
 import Voz from '../../../components/conversa/Voz.astro';
-import { formatarData } from '../../../lib/datas';
+import { formatarData, jaFaleceu } from '../../../lib/datas';
 import { resumoDaMensagem } from '../../../lib/conversa';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { corDaPessoa } from '../../../lib/visual';
@@ -139,7 +139,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
           <p class="dica">Toque em "Citar" para responder a uma mensagem no seu relato. A citação fica no seu relato.</p>
           <div class="voz-fio">
             {dosOutros.map((r) => (
-              <Voz nome={nome(r.por)} retrato={retratoDe(r.por)} familia={familiaDe(r.por)} registradoPor={r.registradoPor !== r.por ? nome(r.registradoPor) : null} mensagens={conversa.get(r.id) ?? []} minha={r.por === usuario.pessoa} citarEm={bloqueado ? undefined : `/memorias/${memoria.id}/relato?${por !== usuario.pessoa ? `por=${por}&` : ''}cita=`} />
+              <Voz nome={nome(r.por)} retrato={retratoDe(r.por)} familia={familiaDe(r.por)} falecido={Boolean(achar(r.por) && jaFaleceu(achar(r.por)!))} registradoPor={r.registradoPor !== r.por ? nome(r.registradoPor) : null} mensagens={conversa.get(r.id) ?? []} minha={r.por === usuario.pessoa} citarEm={bloqueado ? undefined : `/memorias/${memoria.id}/relato?${por !== usuario.pessoa ? `por=${por}&` : ''}cita=`} />
             ))}
           </div>
         </section>

@@ -356,6 +356,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
                     nome={nome(relato.por)}
                     retrato={retratoDe(relato.por)}
                     familia={familiaDe(relato.por)}
+                    falecido={faleceu(relato.por)}
                     registradoPor={relato.registradoPor !== relato.por ? nome(relato.registradoPor) : null}
                     mensagens={conversa.get(relato.id) ?? []}
                     minha={relato.por === usuario.pessoa}
