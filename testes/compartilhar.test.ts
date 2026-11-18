@@ -2,7 +2,7 @@
 // publicada; memória só de algumas famílias pede um aviso antes, e a imagem só é montada depois do sim.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { TAMANHO_DA_IMAGEM, avisoAntesDeCompartilhar, nomeDoArquivo, trechoDoRelato } from '../src/lib/compartilhar';
+import { TAMANHO_DA_IMAGEM, avisoAntesDeCompartilhar, escolhaDoNome, escolhaDoNomeAparece, nomeDoArquivo, nomeNaImagem, trechoDoRelato } from '../src/lib/compartilhar';
 
 describe('compartilhar como imagem', () => {
   it('é vertical, na proporção dos stories', () => {
@@ -54,5 +54,45 @@ describe('a imagem depois da observação do Gui', async () => {
       if (n > 0) expect(y + n * linha + 16).toBeLessThanOrEqual(A - margem);
     }
     expect(linhasQueCabem(1300, 1824, 54, 90)).toBe(4);
+  });
+});
+
+// Qual nome vai na imagem (decisão do Gui, 18/11/2026, depois da sessão H): o da família é o padrão,
+// porque o apelido próprio é privado e a imagem sai do acervo
+describe('o nome na imagem de compartilhar', () => {
+  const elizete = { nome: 'Elizete', apelidoDaFamilia: 'Zete', meuApelido: 'Mãezinha' };
+  const semApelidoDaFamilia = { nome: 'Aguilar', apelidoDaFamilia: null, meuApelido: 'Pai' };
+  const semOMeu = { nome: 'Vó Bela', apelidoDaFamilia: null, meuApelido: null };
+  it('o da família: o apelido da família, senão o nome; o seu: o seu apelido, senão o da família', () => {
+    expect(nomeNaImagem(elizete, 'familia')).toBe('Zete');
+    expect(nomeNaImagem(elizete, 'meu')).toBe('Mãezinha');
+    expect(nomeNaImagem(semApelidoDaFamilia, 'familia')).toBe('Aguilar');
+    expect(nomeNaImagem(semApelidoDaFamilia, 'meu')).toBe('Pai');
+    expect(nomeNaImagem(semOMeu, 'meu')).toBe('Vó Bela');
+  });
+  it('o padrão nunca vaza o apelido próprio', () => {
+    for (const p of [elizete, semApelidoDaFamilia, semOMeu]) expect(nomeNaImagem(p, escolhaDoNome(undefined))).not.toBe(p.meuApelido);
+    expect(escolhaDoNome(null)).toBe('familia');
+    expect(escolhaDoNome('qualquer')).toBe('familia');
+    expect(escolhaDoNome('meu')).toBe('meu');
+  });
+  it('a escolha só aparece quando muda algo', () => {
+    expect(escolhaDoNomeAparece([elizete])).toBe(true);
+    expect(escolhaDoNomeAparece([semOMeu])).toBe(false);
+    expect(escolhaDoNomeAparece([])).toBe(false);
+    // O apelido próprio igual ao da família não muda nada
+    expect(escolhaDoNomeAparece([{ nome: 'Elizete', apelidoDaFamilia: 'Zete', meuApelido: 'Zete' }])).toBe(false);
+  });
+  it('a página monta a imagem com o nome da família e só leva o seu apelido quando a escolha aparece', () => {
+    const pagina = readFileSync('src/pages/memorias/[id]/compartilhar.astro', 'utf-8');
+    expect(pagina).toContain("autorDoTrecho: relato ? nomeNaImagem(nomesDe(relato.por), 'familia') : null,");
+    expect(pagina).toContain("comOSeuApelido: escolheONome && relato ? { autorDoTrecho: nomeNaImagem(nomesDe(relato.por), 'meu') } : null,");
+    // `apelido` viria trocado pelo de quem olha: os dois nomes vêm de fontes separadas
+    expect(pagina).toContain('apelidoDaFamilia: i?.apelidoDaFamilia ?? null, meuApelido: meusApelidos.get(id) ?? null');
+    expect(pagina).not.toMatch(/\.apelido \?\?/);
+    expect(pagina).toContain('nome="nomeNaImagem"');
+    expect(pagina).toContain("{ valor: 'familia', texto: 'O da família', atual: true }");
+    const cliente = readFileSync('src/lib/cliente/compartilhar.ts', 'utf-8');
+    expect(cliente).toContain("escolhas.find((e) => e.checked)?.value === 'meu' && d.comOSeuApelido ? { ...d, ...d.comOSeuApelido } : d");
   });
 });

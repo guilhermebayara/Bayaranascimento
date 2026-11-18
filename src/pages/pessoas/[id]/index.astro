@@ -23,7 +23,7 @@ import Vazio from '../../../components/visual/Vazio.astro';
 import { duracaoEmTexto } from '../../../lib/audios';
 import { formatarData, jaFaleceu, vidaSemRotulo } from '../../../lib/datas';
 import { FORMAS_DA_PESSOA, NOMES_DAS_FORMAS, TAMANHO_PADRAO, enderecoDaPessoa, lerFormaDaPessoa, mostraRascunho } from '../../../lib/explorar';
-import { viraramAmigos } from '../../../lib/ex-casal';
+import { apareceComoCasal, apareceComoCoracao, exDoAmigo, viraramAmigos } from '../../../lib/ex-casal';
 import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
@@ -108,7 +108,7 @@ const escolhidaPor = lacos.filter((l) => l.pessoa === pessoa.id);
 // Sem parentesco calculado, vale o laço do coração de quem está olhando
 const meuLaco = paraVoce || ehMinha ? undefined : escolhidaPor.find((l) => l.dono === usuario.pessoa);
 // Sem filiação nem casal, a árvore a partir da pessoa seria só ela: o botão não aparece
-const temLacoDeArvore = pais.length > 0 || familia.filhos(pessoa.id).length > 0 || casais.length > 0;
+const temLacoDeArvore = pais.length > 0 || familia.filhos(pessoa.id).length > 0 || casais.some((c) => apareceComoCasal(c.casal));
 // Parentes de fora das famílias, sem o caminho inteiro ("Caio é sobrinho do Ed")
 const resumidos = (await listarLacosResumidos()).filter((l) => l.a === pessoa.id || l.b === pessoa.id);
 
@@ -141,8 +141,10 @@ type Linha = { id: string; laco?: string | null; detalhe?: string | null };
 const partes: { titulo: string; linhas: Linha[] }[] = [
   {
     titulo: 'Casal',
-    // O ex que virou amigo não é casal nem ex: entra nos laços do coração (observação do Gui, 18/11/2026)
-    linhas: casais.filter((c) => !viraramAmigos(c.casal)).map((c) => ({
+    // A fase decide (decisões do Gui, 18/11/2026; comoOCasalAparece): só o que é família fica em "Casal".
+    // O namoro e o ex que virou amigo entram nos laços do coração, e o namoro que acabou sem nunca ter
+    // sido da família não aparece aqui
+    linhas: casais.filter((c) => apareceComoCasal(c.casal)).map((c) => ({
       id: c.outro,
       laco: papel(c.outro) ?? (estaoJuntos(c.casal) ? null : 'ex'),
       detalhe: historiaDoCasal(c.casal),
@@ -164,9 +166,15 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
         laco: l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : minuscula(l.nome),
         detalhe: l.privado ? 'só você vê' : null,
       })),
+      // O ex que virou amigo: "amigo" e, logo abaixo, só "ex-namorado" (pedido do Gui, 18/11/2026), sem datas.
+      // O namoro: "namorada", com a história do casal
       ...casais
-        .filter((c) => viraramAmigos(c.casal) && !escolhidos.some((l) => l.pessoa === c.outro))
-        .map((c) => ({ id: c.outro, laco: achar(c.outro)?.tratamento === 'ela' ? 'amiga' : 'amigo', detalhe: historiaDoCasal(c.casal) })),
+        .filter((c) => apareceComoCoracao(c.casal) && !escolhidos.some((l) => l.pessoa === c.outro))
+        .map((c) => ({
+          id: c.outro,
+          laco: papel(c.outro) ?? (viraramAmigos(c.casal) ? (achar(c.outro)?.tratamento === 'ela' ? 'amiga' : 'amigo') : achar(c.outro)?.tratamento === 'ela' ? 'namorada' : 'namorado'),
+          detalhe: viraramAmigos(c.casal) ? exDoAmigo(c.casal, achar(c.outro)?.tratamento ?? null) : historiaDoCasal(c.casal),
+        })),
     ],
   },
   {

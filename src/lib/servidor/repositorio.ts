@@ -349,9 +349,18 @@ async function lerCasais(): Promise<Casal[]> {
     visibilidade: c.visibilidade as Casal['visibilidade'],
     nucleos: familias.results.filter((f: Record<string, unknown>) => f.casal_id === c.id).map((f: Record<string, unknown>) => f.nucleo_id as string),
     criadoPor: (c.criado_por as string | null) ?? null,
+    jaDaFamilia: Boolean(c.ja_da_familia),
     fases: fases.results
       .filter((f: Record<string, unknown>) => f.casal_id === c.id)
-      .map((f: Record<string, unknown>) => ({ tipo: f.tipo as TipoDeFase, inicioAno: (f.inicio_ano as number | null) ?? null, fimAno: (f.fim_ano as number | null) ?? null })),
+      .map((f: Record<string, unknown>) => ({
+        tipo: f.tipo as TipoDeFase,
+        inicioAno: (f.inicio_ano as number | null) ?? null,
+        fimAno: (f.fim_ano as number | null) ?? null,
+        inicioMes: (f.inicio_mes as number | null) ?? null,
+        inicioDia: (f.inicio_dia as number | null) ?? null,
+        fimMes: (f.fim_mes as number | null) ?? null,
+        fimDia: (f.fim_dia as number | null) ?? null,
+      })),
   }));
 }
 
@@ -387,7 +396,7 @@ export async function obterCasal(id: number): Promise<Casal | undefined> {
  * Cria o casal ou troca as fases dele, guardando no histórico o que havia antes. `nucleos` são as
  * famílias que veem, com visibilidade 'nucleos' (casal desfeito, decisão do Gui de 18/11/2026).
  */
-export async function salvarCasal(x: string, y: string, fases: Fase[], visibilidade: Casal['visibilidade'], usuario: Usuario, nucleos: string[] = []): Promise<void> {
+export async function salvarCasal(x: string, y: string, fases: Fase[], visibilidade: Casal['visibilidade'], usuario: Usuario, nucleos: string[] = [], jaDaFamilia = false): Promise<void> {
   const [a, b] = x < y ? [x, y] : [y, x];
   const anterior = await obterCasalDoPar(a, b, usuario);
   const comandos: D1PreparedStatement[] = [];
@@ -403,20 +412,20 @@ export async function salvarCasal(x: string, y: string, fases: Fase[], visibilid
   if (anterior) {
     comandos.push(
       db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('casal', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(anterior), usuario.pessoa),
-      db().prepare('UPDATE casais SET visibilidade = ? WHERE id = ?').bind(visibilidade, anterior.id),
+      db().prepare('UPDATE casais SET visibilidade = ?, ja_da_familia = ? WHERE id = ?').bind(visibilidade, jaDaFamilia ? 1 : 0, anterior.id),
       db().prepare('DELETE FROM casal_fases WHERE casal_id = ?').bind(anterior.id),
     );
   } else {
-    comandos.push(db().prepare('INSERT INTO casais (a_id, b_id, visibilidade, criado_por) VALUES (?, ?, ?, ?)').bind(a, b, visibilidade, usuario.pessoa));
+    comandos.push(db().prepare('INSERT INTO casais (a_id, b_id, visibilidade, criado_por, ja_da_familia) VALUES (?, ?, ?, ?, ?)').bind(a, b, visibilidade, usuario.pessoa, jaDaFamilia ? 1 : 0));
   }
   fases.forEach((fase, ordem) => {
     comandos.push(
       db()
         .prepare(
-          `INSERT INTO casal_fases (casal_id, tipo, inicio_ano, fim_ano, ordem)
-           VALUES ((SELECT id FROM casais WHERE a_id = ? AND b_id = ? AND visibilidade = ?), ?, ?, ?, ?)`,
+          `INSERT INTO casal_fases (casal_id, tipo, inicio_ano, inicio_mes, inicio_dia, fim_ano, fim_mes, fim_dia, ordem)
+           VALUES ((SELECT id FROM casais WHERE a_id = ? AND b_id = ? AND visibilidade = ?), ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(a, b, visibilidade, fase.tipo, fase.inicioAno, fase.fimAno, ordem),
+        .bind(a, b, visibilidade, fase.tipo, fase.inicioAno, fase.inicioMes ?? null, fase.inicioDia ?? null, fase.fimAno, fase.fimMes ?? null, fase.fimDia ?? null, ordem),
     );
   });
   // As famílias que veem: só com 'nucleos'; nas outras escolhas, a lista fica vazia
@@ -1984,20 +1993,6 @@ export async function salvarProximidade(dono: string, pessoa: string, valor: num
 /** Apaga a proximidade declarada: a pessoa volta para a faixa que o parentesco ou o laço dão. */
 export async function removerProximidade(dono: string, pessoa: string): Promise<void> {
   await db().prepare('DELETE FROM proximidades WHERE dono_id = ? AND pessoa_id = ?').bind(dono, pessoa).run();
-}
-
-/**
- * O formulário do laço do coração escolhe uma das três faixas. Se a proximidade guardada está em
- * outra faixa (ou não existe), ela vai para o meio da escolhida; na mesma faixa, o valor fino fica.
- */
-export async function alinharProximidadeDoLaco(dono: string, pessoa: string, nivel: number | null, meio: number | null, mesmaFaixa: (valor: number) => boolean): Promise<void> {
-  if (nivel === null || meio === null) return;
-  const atual = await db().prepare('SELECT valor FROM proximidades WHERE dono_id = ? AND pessoa_id = ?').bind(dono, pessoa).first<{ valor: number }>();
-  if (atual && mesmaFaixa(atual.valor)) return;
-  await db()
-    .prepare(`INSERT INTO proximidades (dono_id, pessoa_id, valor) VALUES (?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET valor = excluded.valor, mudado_em = datetime('now')`)
-    .bind(dono, pessoa, meio)
-    .run();
 }
 
 // --- Ex-casal: como o ex aparece para mim (migração 071; regras em src/lib/ex-casal.ts) ---

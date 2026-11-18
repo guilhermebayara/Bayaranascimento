@@ -6,7 +6,7 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 
 interface Migracao {
@@ -878,6 +878,24 @@ export const MIGRACOES: Migracao[] = [
       )`,
     ],
   },
+  {
+    // "Já é da família" (decisão do Gui, 18/11/2026; comoOCasalAparece, em src/lib/parentesco.ts): o namoro
+    // aparece como laço do coração, a não ser que se marque assim (namoro longo), e aí aparece como casal.
+    // Coluna nova com valor padrão: não precisa refazer a tabela.
+    id: '100-namoro-da-familia',
+    sql: [`ALTER TABLE casais ADD COLUMN ja_da_familia INTEGER NOT NULL DEFAULT 0`],
+  },
+  {
+    // As fases do casal com mês e dia opcionais, como as outras datas do site (decisão do Gui, 18/11/2026).
+    // Com dia e mês, o casamento de hoje entra nos aniversários do Início.
+    id: '101-datas-das-fases',
+    sql: [
+      `ALTER TABLE casal_fases ADD COLUMN inicio_mes INTEGER`,
+      `ALTER TABLE casal_fases ADD COLUMN inicio_dia INTEGER`,
+      `ALTER TABLE casal_fases ADD COLUMN fim_mes INTEGER`,
+      `ALTER TABLE casal_fases ADD COLUMN fim_dia INTEGER`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
@@ -920,6 +938,7 @@ async function migrar(db: D1Database): Promise<void> {
     await semearParentesDeExemplo(db);
     await semearAcervoDeExemplo(db);
     await semearConsideracoesDeExemplo(db);
+    await semearCasaisDoCoracaoDeExemplo(db);
     await semearDeQuemDeExemplo(db);
     await semearAniversariosDeExemplo(db);
     await semearCartaDeExemplo(db);

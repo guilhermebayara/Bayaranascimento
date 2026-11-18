@@ -1,5 +1,6 @@
 // Regras puras do painel pessoal (docs/decisoes.md, "Painel pessoal como página inicial").
 import type { DataFlexivel } from './datas';
+import { comoOCasalAparece, faseAtual, type Casal } from './parentesco';
 
 export interface Dia {
   ano: number;
@@ -184,6 +185,48 @@ export function aniversarios<P extends PessoaComNascimento>(pessoas: P[], hoje: 
   }
   return lista.sort((a, b) => a.emDias - b.emDias);
 }
+
+// --- Aniversários de casamento ----------------------------------------------------------------
+
+export interface AniversarioDeCasamento {
+  casal: Casal;
+  mes: number;
+  dia: number;
+  /** quantos dias faltam: 0 é hoje */
+  emDias: number;
+  /** quantos anos de casados vão fazer, quando o ano do casamento é conhecido */
+  anos: number | null;
+}
+
+/**
+ * Os aniversários de casamento dos próximos `dias` dias (decisão do Gui, 18/11/2026: "Elizete e Aguilar,
+ * 30 anos de casados"). Só de casais atuais, com o casamento como fase de hoje, e só quando a data do
+ * casamento tem dia e mês. `casais` são os que a pessoa vê (listarCasais já aplica quem vê o casal), e
+ * `sai` diz quem não entra: quem ela não vê, o ex que ela deixou discreto ou fora e quem já faleceu. Se
+ * um dos dois faleceu, o casal não entra: o painel não lembra datas de quem já se foi.
+ */
+export function aniversariosDeCasamento(casais: readonly Casal[], hoje: Dia, sai: (id: string) => boolean, dias = 30): AniversarioDeCasamento[] {
+  const inicio = Date.UTC(hoje.ano, hoje.mes - 1, hoje.dia);
+  const lista: AniversarioDeCasamento[] = [];
+  for (const casal of casais) {
+    const fase = faseAtual(casal);
+    if (!fase || fase.tipo !== 'casamento' || comoOCasalAparece(casal) !== 'casal') continue;
+    if (!fase.inicioMes || !fase.inicioDia || sai(casal.a) || sai(casal.b)) continue;
+    for (const ano of [hoje.ano, hoje.ano + 1]) {
+      const dia = fase.inicioMes === 2 && fase.inicioDia === 29 && !bissexto(ano) ? 28 : fase.inicioDia;
+      const emDias = Math.round((Date.UTC(ano, fase.inicioMes - 1, dia) - inicio) / 86400000);
+      if (emDias < 0) continue;
+      const anos = fase.inicioAno ? ano - fase.inicioAno : null;
+      // O casamento que ainda nem aconteceu (a data é deste ano, mais adiante) não é aniversário
+      if (emDias <= dias && (anos === null || anos > 0)) lista.push({ casal, mes: fase.inicioMes, dia, emDias, anos });
+      break;
+    }
+  }
+  return lista.sort((a, b) => a.emDias - b.emDias);
+}
+
+/** "30 anos de casados", "1 ano de casados" ou, sem o ano do casamento, "aniversário de casamento". */
+export const anosDeCasados = (anos: number | null): string => (anos ? `${anos} ${anos === 1 ? 'ano' : 'anos'} de casados` : 'aniversário de casamento');
 
 // --- Uma memória para contar ----------------------------------------------------------------
 

@@ -81,7 +81,7 @@ describe('a ficha num resumo', () => {
   });
 
   it('segue a ordem do Gui: quem é, as datas juntas, o retrato, "Sobre" e a família', () => {
-    const ordem = ['name="nome"', 'name="apelido"', 'name="tipo"', 'name="especie"', 'name="tratamento"', '<legend>Datas</legend>', 'prefixo="nascimento"', 'name="falecido"', 'prefixo="falecimento"', '<CampoRetrato integrante={i} />', 'name="sobre"', '<legend>Família</legend>'].map((trecho) => ficha.indexOf(trecho));
+    const ordem = ['name="nome"', '<div class="apelidos" data-apelidos>', 'name="tipo"', 'name="especie"', 'name="tratamento"', '<legend>Datas</legend>', 'prefixo="nascimento"', 'name="falecido"', 'prefixo="falecimento"', '<CampoRetrato integrante={i} />', 'name="sobre"', '<legend>Família</legend>'].map((trecho) => ficha.indexOf(trecho));
     for (const i of ordem) expect(i).toBeGreaterThan(-1);
     expect([...ordem].sort((a, b) => a - b)).toEqual(ordem);
   });

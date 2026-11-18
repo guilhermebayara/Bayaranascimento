@@ -133,9 +133,12 @@ describe('o círculo é só de quem está logado', () => {
 
   it('só grava proximidade de quem está no círculo de quem pede, e responde igual para quem não existe', () => {
     expect(rota).toMatch(/const circulo = await montarCirculo\(usuario\);/);
-    expect(rota).toMatch(/!\[\.\.\.circulo\.dentro, \.\.\.circulo\.fora\]\.some\(\(p\) => p\.id === pessoa\)\) return erro\(404,/);
-    expect(rota.indexOf('return erro(404')).toBeLessThan(rota.indexOf('salvarProximidade('));
-    expect(rota.indexOf('return erro(404')).toBeLessThan(rota.indexOf('removerProximidade('));
+    expect(rota).toMatch(/const noCirculo = circulo \? \[\.\.\.circulo\.dentro, \.\.\.circulo\.fora\]\.find\(\(p\) => p\.id === pessoa\) : undefined;/);
+    expect(rota).toMatch(/if \(!circulo \|\| !noCirculo\) return falhar\(404, NAO_ESTA\);/);
+    expect(rota.indexOf('return falhar(404')).toBeLessThan(rota.indexOf('salvarProximidade('));
+    expect(rota.indexOf('return falhar(404')).toBeLessThan(rota.indexOf('removerProximidade('));
+    // O formulário da edição dos laços recebe a mesma recusa, sem dizer se a pessoa existe
+    expect(rota).toMatch(/ehFormulario \? voltar\(request, volta, \{ erro: mensagem \}\) : erro\(status, mensagem\)/);
   });
 
   it('quem aparece é quem a pessoa vê: a montagem parte da lista dela e esconde o retrato de quem não pode', () => {
@@ -183,7 +186,10 @@ describe('o círculo é só de quem está logado', () => {
 
   it('o laço do coração e o círculo usam a mesma escala', () => {
     const lacos = ler('src/pages/api/lacos.ts');
-    expect(lacos).toMatch(/await alinharProximidadeDoLaco\(usuario\.pessoa, pessoa\.id, proximidade, proximidade === null \? null : valorDoNivel\(proximidade\)/);
+    // O slider do laço do coração grava o valor do círculo, e a faixa antiga do laço acompanha
+    expect(lacos).toMatch(/const pedida = proximidadeDoFormulario\(dados\.get\('posicao'\), dados\.get\('posicaoAntes'\), false\);/);
+    expect(lacos).toMatch(/const proximidade = pedida\.mexeu \? nivelDoValor\(pedida\.valor\) :/);
+    expect(lacos).toMatch(/if \(pedida\.mexeu\) await salvarProximidade\(usuario\.pessoa, pessoa\.id, pedida\.valor, null, nivelDoValor\(pedida\.valor\)\);/);
     expect(rota).toMatch(/temLaco \? nivelDoValor\(valor\) : null/);
   });
 });

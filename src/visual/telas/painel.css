@@ -328,6 +328,20 @@
 .aniversario .retrato {
   font-size: 0.6em;
 }
+/* O aniversário de casamento (decisão do Gui, 18/11/2026): os dois retratos no lugar de um, um pouco
+   menores e sobrepostos, na mesma coluna */
+.aniversario__dois {
+  position: relative;
+  padding-bottom: 18%;
+}
+.aniversario__dois .retrato {
+  width: 72%;
+}
+.aniversario__dois .retrato + .retrato {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
 .aniversario__quem {
   display: grid;
   line-height: 1.3;

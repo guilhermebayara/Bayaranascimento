@@ -57,6 +57,41 @@ export function lerProximidade(bruto: unknown): number | null {
   return Number.isInteger(n) && n >= 0 && n <= FORA_DO_CIRCULO ? n : null;
 }
 
+// --- O slider: do mais distante ao mais próximo ------------------------------------------------
+// Em todo lugar (decisão do Gui, 18/11/2026), o slider começa em "Fora do círculo" (ou em "Conhecido",
+// onde fora do círculo não é opção) à esquerda e termina em "Muito próximo" à direita, como se
+// aumentasse a proximidade: a seta para a direita e para cima aproxima. O banco continua guardando o
+// valor de sempre (0 colado no centro, 100 fora); a posição do slider é o contrário dele.
+
+/** A posição do slider (0 à esquerda, 100 à direita) para um valor guardado. */
+export const posicaoDoSlider = (valor: number): number => FORA_DO_CIRCULO - Math.min(Math.max(Math.round(valor), 0), FORA_DO_CIRCULO);
+
+/** O valor guardado para uma posição do slider. */
+export const valorDaPosicao = (posicao: number): number => FORA_DO_CIRCULO - Math.min(Math.max(Math.round(posicao), 0), FORA_DO_CIRCULO);
+
+/** A menor posição do slider: 0 é "Fora do círculo"; sem essa opção, começa em Conhecido. */
+export const posicaoMinima = (comFora: boolean): number => (comFora ? 0 : 1);
+
+/** As pontas do slider, da esquerda para a direita. */
+export const pontasDoSlider = (comFora: boolean): [string, string] => [comFora ? 'Fora do círculo' : FAIXAS[2]!.nome, FAIXAS[0]!.nome];
+
+/** Lê a posição que veio de um formulário (inteiro de 0 a 100), ou nada. */
+export const lerPosicao = (bruto: unknown): number | null => lerProximidade(bruto);
+
+/**
+ * O que um formulário com o slider pede: a posição de agora e a de quando a página abriu. Sem mexer no
+ * slider, nada muda (o slider sempre tem um valor, e "não dizer" é não mexer). Mexido, devolve o valor
+ * guardado; fora do círculo só vale onde é opção.
+ */
+export function proximidadeDoFormulario(posicao: unknown, antes: unknown, comFora = true): { mexeu: false } | { mexeu: true; valor: number } | { erro: string } {
+  if (posicao === null || posicao === undefined || posicao === '') return { mexeu: false };
+  const p = lerPosicao(posicao);
+  if (p === null || p < posicaoMinima(comFora)) return { erro: `A proximidade vai de ${pontasDoSlider(comFora).join(' a ')}.` };
+  const a = lerPosicao(antes);
+  if (a !== null && a === p) return { mexeu: false };
+  return { mexeu: true, valor: valorDaPosicao(p) };
+}
+
 /** Lê um ângulo em graus, de -180 a 360, ou nada. */
 export function lerAngulo(bruto: unknown): number | null {
   const n = typeof bruto === 'number' ? bruto : typeof bruto === 'string' && /^-?\d{1,3}(\.\d{1,2})?$/.test(bruto.trim()) ? Number(bruto) : Number.NaN;

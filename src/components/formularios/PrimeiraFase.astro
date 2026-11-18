@@ -1,0 +1,48 @@
+---
+// A primeira fase no cadastro do casal (guiado e "Adicionar casal"): "Como estão hoje?", só com o que é
+// estar junto, e quando começou, com mês e dia opcionais. O namoro pergunta, logo embaixo, "Já é da
+// família". As quatro opções ficam em pílulas, como antes: no seletor segmentado (liberado pelo Gui em
+// 18/11/2026 onde a escolha troca o que aparece embaixo) elas não cabem lado a lado em 390 px. O fim e o resto
+// da história vêm depois, em "Adicionar o que aconteceu depois" (FasesDepois.astro), que troca a pergunta
+// por "Como estavam?". Os campos são as linhas paralelas do cadastro (faseTipo, faseInicioAno...).
+import CampoData from '../CampoData.astro';
+import Opcoes from '../Opcoes.astro';
+import JaDaFamilia from './JaDaFamilia.astro';
+
+interface Props {
+  /** "guia" ou "novo": os ids da página */
+  id: string;
+}
+const { id } = Astro.props;
+const DE_HOJE: [string, string][] = [
+  ['namoro', 'Namoro'],
+  ['noivado', 'Noivado'],
+  ['casamento', 'Casamento'],
+  ['uniao', 'União'],
+];
+---
+
+<div class="primeira-fase" data-primeira-fase>
+  <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={DE_HOJE} valor="casamento" id={`rotulo-fase-${id}`} />
+</div>
+<CampoData prefixo="faseInicio" id={`${id}-fase-inicio`} rotuloAno="Começou em" />
+<JaDaFamilia id={`ja-da-familia-${id}`} />
+
+<script>
+  // "Já é da família" só vale para o namoro de hoje: some, desmarcado, com outra escolha ou com uma fase depois
+  for (const bloco of document.querySelectorAll<HTMLElement>('[data-primeira-fase]')) {
+    const formulario = bloco.closest('form');
+    const marca = formulario?.querySelector<HTMLElement>('[data-ja-da-familia]');
+    if (!formulario || !marca) continue;
+    const caixa = marca.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+    const aplicar = () => {
+      const tipo = bloco.querySelector<HTMLInputElement>('input:checked')?.value;
+      const depois = [...formulario.querySelectorAll<HTMLSelectElement>('[data-tipo-da-fase]')].some((s) => s.value);
+      marca.hidden = tipo !== 'namoro' || depois;
+      if (marca.hidden) caixa.checked = false;
+    };
+    formulario.addEventListener('change', aplicar);
+    formulario.addEventListener('fases-depois', aplicar);
+    aplicar();
+  }
+</script>

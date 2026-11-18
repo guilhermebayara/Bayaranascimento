@@ -1249,6 +1249,70 @@ export async function semearConsideracoesDeExemplo(db: D1Database): Promise<void
   await db.batch(comandos);
 }
 
+// Namoro, ex e amizade: a fase decide (decisões do Gui, 18/11/2026; comoOCasalAparece, em
+// src/lib/parentesco.ts). Um caso de cada, para as prévias mostrarem:
+// - Thiago namorou a Giovanna, terminou e virou amigo: laço do coração em todo lugar;
+// - Jean só namorou a Giovanna e terminou: não aparece na árvore nem na página dela;
+// - Bia namora o Primo Téo: laço do coração, com a linha tracejada;
+// - Renata namora o Primo Rafa há anos, marcada "já é da família": aparece como casal.
+// E casamentos com dia e mês, para o aniversário de casamento no Início (o da Tia Lourdes e do Tio Jorge
+// cai em dezembro, perto do Natal; o da Ana Candida e do Lúcio, no fim de novembro).
+const PESSOAS_DOS_CASAIS: { id: string; nome: string; tratamento: 'ela' | 'ele'; nasceu: number }[] = [
+  { id: 'ex-thiago', nome: 'Thiago', tratamento: 'ele', nasceu: 1995 },
+  { id: 'ex-jean', nome: 'Jean', tratamento: 'ele', nasceu: 1993 },
+  { id: 'ex-bia', nome: 'Bia', tratamento: 'ela', nasceu: 2003 },
+  { id: 'ex-renata', nome: 'Renata', tratamento: 'ela', nasceu: 1998 },
+];
+// [a, b, "já é da família", fases: [tipo, ano]]
+const CASAIS_DO_CORACAO: [string, string, boolean, [string, number][]][] = [
+  ['ex-thiago', 'giovanna', false, [['namoro', 2014], ['separacao', 2016], ['amizade', 2018]]],
+  ['ex-jean', 'giovanna', false, [['namoro', 2010], ['separacao', 2012]]],
+  ['ex-bia', 'ex-primo-teo', false, [['namoro', 2024]]],
+  ['ex-primo-rafa', 'ex-renata', true, [['namoro', 2017]]],
+];
+// [a, b, ano, mês, dia] do casamento, onde o casamento ainda não tem mês
+const CASAMENTOS_COM_DIA: [string, string, number, number, number][] = [
+  ['ex-tia-lourdes', 'ex-tio-jorge', 1985, 12, 2],
+  ['ana-candida', 'lucio', 1990, 11, 25],
+];
+
+// O tipo do banco vem da função vizinha: os tipos do D1 não estão no tsc das sessões (erros antigos)
+export async function semearCasaisDoCoracaoDeExemplo(db: Parameters<typeof semearConsideracoesDeExemplo>[0]): Promise<void> {
+  const ja = await db.prepare(`SELECT 1 AS ok FROM integrantes WHERE id = 'ex-thiago'`).first();
+  if (ja) return;
+  const comandos = PESSOAS_DOS_CASAIS.map((p, i) =>
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO integrantes (id, nome, tipo, tratamento, nascimento_ano, ordem, sobre)
+         VALUES (?, ?, 'pessoa', ?, ?, ?, 'Pessoa de exemplo, só existe na versão de teste.')`,
+      )
+      .bind(p.id, p.nome, p.tratamento, p.nasceu, 110 + i),
+  );
+  for (const [x, y, daFamilia, fases] of CASAIS_DO_CORACAO) {
+    const [a, b] = x < y ? [x, y] : [y, x];
+    comandos.push(db.prepare('INSERT OR IGNORE INTO casais (a_id, b_id, ja_da_familia) VALUES (?, ?, ?)').bind(a, b, daFamilia ? 1 : 0));
+    fases.forEach(([tipo, ano], ordem) => {
+      comandos.push(
+        db
+          .prepare(`INSERT INTO casal_fases (casal_id, tipo, inicio_ano, ordem) SELECT id, ?, ?, ? FROM casais WHERE a_id = ? AND b_id = ? AND visibilidade = 'todos'`)
+          .bind(tipo, ano, ordem, a, b),
+      );
+    });
+  }
+  for (const [x, y, ano, mes, dia] of CASAMENTOS_COM_DIA) {
+    const [a, b] = x < y ? [x, y] : [y, x];
+    comandos.push(
+      db
+        .prepare(
+          `UPDATE casal_fases SET inicio_ano = COALESCE(inicio_ano, ?), inicio_mes = ?, inicio_dia = ?
+           WHERE tipo = 'casamento' AND inicio_mes IS NULL AND casal_id = (SELECT id FROM casais WHERE a_id = ? AND b_id = ? AND visibilidade = 'todos')`,
+        )
+        .bind(ano, mes, dia, a, b),
+    );
+  }
+  await db.batch(comandos);
+}
+
 // Época e capítulo (decisão do Gui, 16/11/2026, migração 019): "A infância da Giovanna" é o caso do
 // furo que o Gui achou, um capítulo por período que é da vida de uma pessoa só. No acervo de exemplo
 // ele passa a ser da Giovanna; os outros capítulos por período continuam épocas de todos.
