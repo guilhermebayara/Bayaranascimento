@@ -165,7 +165,7 @@ describe('o círculo é só de quem está logado', () => {
     // Lida como texto: o arquivo do banco não carrega fora do Cloudflare
     const banco = ler('src/lib/servidor/banco.ts');
     const ids = [...banco.matchAll(/^    id: '(\d{3}-[^']+)',/gm)].map((m) => m[1]);
-    expect(ids.at(-1)).toBe('030-proximidades');
+    expect(ids).toContain('030-proximidades');
     const sql = banco.slice(banco.indexOf("id: '030-proximidades'"));
     expect(sql).toMatch(/CHECK \(valor BETWEEN 0 AND 100\)/);
     expect(sql).toMatch(/PRIMARY KEY \(dono_id, pessoa_id\)/);

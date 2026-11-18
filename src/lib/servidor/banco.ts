@@ -653,6 +653,19 @@ export const MIGRACOES: Migracao[] = [
         FROM lacos_coracao WHERE proximidade IS NOT NULL`,
     ],
   },
+  {
+    // Cópia mensal atrasada, uma das pendências da administração em "Sua conta" (escolha do Gui no
+    // conceito da sessão E, 17/11/2026). Cada vez que o script do Drive (scripts/copia-no-drive.gs)
+    // baixa a cópia com o token de serviço, o site anota o momento. Só o site grava, no middleware;
+    // ninguém edita. A conta lê a mais recente (src/lib/conta.ts, copiaAtrasada).
+    id: '060-copias-mensais',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS copias_mensais (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        feita_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

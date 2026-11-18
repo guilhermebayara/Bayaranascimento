@@ -218,7 +218,8 @@ describe('conceito', () => {
   it('a conta é montada por montarConta, e a administração só aparece com itens', () => {
     const conta = tela('pages/conta.astro');
     expect(conta).toContain('await montarConta(usuario)');
-    expect(conta).toMatch(/conta\.administracao\.length > 0 && \(/);
+    expect(conta).toContain('const admin = conta.administracao.length > 0;');
+    expect(conta).toMatch(/\{\n\s*admin && \(\n\s*<section class="cartao conta__admin"/);
     expect(conta).not.toMatch(/usuario\.admin/);
     expect(conta).toMatch(/<Visual titulo="Sua conta" secao="conta" familia=\{cor\} intimo>/);
   });

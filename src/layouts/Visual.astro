@@ -9,7 +9,8 @@ import Retrato from '../components/visual/Retrato.astro';
 import { ENDERECO_DE_SAIDA, PESSOAS_DE_TESTE, semLogin, temLogin } from '../lib/servidor/acesso';
 import { fontesDoPedido } from '../lib/servidor/conceito';
 import { enderecoDoRetrato } from '../lib/retratos';
-import { numeroDoRetrato, rotuloDoRetrato } from '../lib/avisos';
+import { numeroDoRetrato, rotuloDoRetrato, somaDoRetrato } from '../lib/avisos';
+import { contarPendenciasDaAdministracao } from '../lib/servidor/conta';
 import { contarAvisosPendentes, listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
 import { COMBINACOES_DE_FONTES, assinaturaDaTela, atributosDasFontes, combinacaoDe } from '../lib/visual';
 
@@ -60,8 +61,10 @@ const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includ
 // "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo.
 const meuRetrato = integrantes.find((i) => i.id === usuario.pessoa)?.retrato;
 // O número discreto de avisos no retrato, em qualquer tela (docs/decisoes.md, "Avisos")
+// Para quem administra, somam as pendências da administração (a marca delas fica em "Sua conta")
 const avisosPendentes = palco ? 0 : await contarAvisosPendentes(usuario);
-const numeroDeAvisos = numeroDoRetrato(avisosPendentes);
+const pendenciasDaAdministracao = palco ? 0 : await contarPendenciasDaAdministracao(usuario);
+const numeroDeAvisos = numeroDoRetrato(somaDoRetrato(avisosPendentes, pendenciasDaAdministracao));
 // "Sua página" e "Seu círculo" só para quem tem página de pessoa no acervo
 const temPagina = integrantes.some((i) => i.id === usuario.pessoa);
 const aqui = Astro.url.pathname + Astro.url.search;
@@ -187,7 +190,7 @@ const telas = [
           desde que saiu de Pessoas (decisão do Gui, 17/11/2026). */}
       <div class="topo__conta" data-atual={secao === 'conta' || secao === 'circulo' ? '' : undefined}>
         <details class="conta-menu">
-          <summary aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes)}>
+          <summary aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes, pendenciasDaAdministracao)}>
             <span class="topo__retrato">
               <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
               {numeroDeAvisos && (
