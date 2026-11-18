@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, na lista de Pessoas e na
-// página da pessoa (P98 a P108 de docs/qa/2026-11-17-perguntas.md).
+// página da pessoa (P98 a P108 de docs/historico/qa/2026-11-17-perguntas.md).
 import { describe, expect, it } from 'vitest';
 import { apelidoAoLado, buscaAcha, enderecoDePessoas, familiaPedida, gruposDaFamilia, nomeComApelido, ordemPedida, ordenarPessoas, type PessoaDaLista } from '../src/lib/ordem-das-pessoas';
 import { calcularGeracoes } from '../src/lib/parentesco';

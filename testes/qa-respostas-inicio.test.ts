@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, no Início e na carta de
-// Natal (docs/qa/2026-11-17-perguntas.md, P1, P6 e P13 a P31).
+// Natal (docs/historico/qa/2026-11-17-perguntas.md, P1, P6 e P13 a P31).
 import { describe, expect, it } from 'vitest';
 import { anoDaUltimaVisita, chegarAoPainel, composicaoDoInicio, nomeParaQuemOlha } from '../src/lib/painel';
 

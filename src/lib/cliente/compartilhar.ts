@@ -318,7 +318,8 @@ export async function ligarCompartilhar(raiz: HTMLElement, d: DadosDaImagem): Pr
   // As abas trocam o painel, que tem a altura fixa: escolher não muda o tamanho de nada
   const abas = [...raiz.querySelectorAll<HTMLInputElement>('input[name="abaDaImagem"]')];
   const mostrarAba = () => {
-    const aberta = abas.find((a) => a.checked)?.value;
+    // Com uma aba só, não há abas: o único painel fica à vista
+    const aberta = abas.find((a) => a.checked)?.value ?? raiz.querySelector<HTMLElement>('[data-painel]')?.dataset.painel;
     for (const painel of raiz.querySelectorAll<HTMLElement>('[data-painel]')) painel.hidden = painel.dataset.painel !== aberta;
   };
   mostrarAba();

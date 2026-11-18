@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
-import { diaDe, fraseDoDia, mensagensDerivadas, mensagensDoRelato, quebrasDeDia, soAcrescentou, textoDasMensagens, trechoDaCitacao } from '../src/lib/conversa';
+import { diaDe, fraseDoDia, mensagensDerivadas, mensagensDoRelato, paragrafos, quebrasDeDia, soAcrescentou, textoDasMensagens, trechoDaCitacao } from '../src/lib/conversa';
 
 describe('as regras da conversa', () => {
   it('o relato de antes vira os áudios, cada parágrafo e as fotos, nessa ordem', () => {
@@ -52,6 +52,15 @@ describe('as regras da conversa', () => {
   });
   it('a citação mostra o começo, numa linha', () => {
     expect(trechoDaCitacao('um dois três', 2)).toBe('um dois…');
+  });
+});
+
+describe('os parágrafos que viram mensagens', () => {
+  it('sem script, o navegador manda "\\r\\n", e cada parágrafo continua uma mensagem (QA de 18/11/2026)', () => {
+    expect(paragrafos('A\r\n\r\nB')).toEqual(['A', 'B']);
+    expect(paragrafos('A\n\nB\n\n\nC')).toEqual(['A', 'B', 'C']);
+    expect(paragrafos('A\n \nB')).toEqual(['A', 'B']);
+    expect(paragrafos('Linha um\r\nlinha dois')).toEqual(['Linha um\nlinha dois']);
   });
 });
 
@@ -109,6 +118,16 @@ describe.skipIf(!comSqlite)('a conversa no banco', async () => {
     expect(semMensagem).toBe(0);
     const daVoBela = todas<{ tipo: string }>(`SELECT m.tipo FROM relato_mensagens m JOIN relatos r ON r.id = m.relato_id WHERE r.memoria_id = ? AND r.por = 'vo-bela' ORDER BY m.ordem`, MEMORIA);
     expect(daVoBela.map((m) => m.tipo)).toEqual(['audio', 'texto']);
+  });
+
+  it('apagar o único áudio de um relato tira o áudio (QA de 18/11/2026: "NOT IN (NULL)" nunca tirava)', async () => {
+    const r = linha<{ id: number; memoria_id: string; registrado_por: string }>(
+      `SELECT r.id, r.memoria_id, r.registrado_por FROM relatos r WHERE (SELECT COUNT(*) FROM audios a WHERE a.relato_id = r.id AND a.removido_em IS NULL) = 1 LIMIT 1`,
+    );
+    expect(r).toBeDefined();
+    await repo.ligarAudios(r.id, r.memoria_id, [], usuarioDe(r.registrado_por));
+    expect(linha<{ n: number }>('SELECT COUNT(*) AS n FROM audios WHERE relato_id = ? AND removido_em IS NULL', r.id).n).toBe(0);
+    banco.sqlite.prepare('UPDATE audios SET removido_em = NULL WHERE relato_id = ?').run(r.id);
   });
 
   it('primeiro publicar: o relato nasce rascunho, e depois cada mensagem nova entra na hora, sem versão', async () => {

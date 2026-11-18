@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui às perguntas novas da rodada de 17/11/2026
-// (docs/qa/2026-11-17-perguntas-novas.md, tabela "Respostas do Gui"), e o Esc da P131.
+// (docs/historico/qa/2026-11-17-perguntas-novas.md, tabela "Respostas do Gui"), e o Esc da P131.
 import { describe, expect, it } from 'vitest';
 import { NOMES_DAS_FORMAS_DO_CAPITULO, detalheDoCruzamento } from '../src/lib/capitulos';
 import { veORelato } from '../src/lib/servidor/permissoes';

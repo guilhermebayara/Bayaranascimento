@@ -172,7 +172,8 @@ describe('conceito', () => {
     // Decisão do Gui, 16/11/2026. Tudo sai de listarMemorias, que só devolve o que a pessoa pode ver:
     // a página não busca memória por outro caminho nem confere a família de quem olha.
     const pagina = tela('pages/explorar.astro');
-    expect(pagina).toContain('listarMemorias(usuario)');
+    // O rascunho de quem escreveu entra na linha do tempo e na lista (QA de 18/11/2026)
+    expect(pagina).toContain('listarMemorias(usuario, { comRascunhos: true })');
     expect(pagina).toMatch(/const contexto = await contextoDoExplorar\(usuario, todas\);\s*const resultado = explorar\(todas, filtros, contexto\);/);
     expect(pagina).not.toMatch(/usuario\.nucleos\.includes|obterMemoria/);
     // O mural, o modo TV e o sorteio usam o mesmo resultado, sem os rascunhos
@@ -202,7 +203,7 @@ describe('conceito', () => {
   });
 
   it('o painel é só de quem olha: lê as regras de src/lib/painel.ts e só memória publicada', () => {
-    // docs/decisoes.md, "Painel pessoal como página inicial". A tela não refaz as regras.
+    // docs/decisoes.md, "Início (painel pessoal)". A tela não refaz as regras.
     const painel = tela('pages/index.astro');
     for (const regra of ['chegarAoPainel', 'novidades', 'aniversarios', 'memoriaParaContar', 'emOutrosAnos']) expect(painel).toContain(`${regra}(`);
     expect(painel).toContain('listarMemorias(usuario)');
@@ -228,7 +229,7 @@ describe('conceito', () => {
   it('a página da pessoa só mostra retrato de quem a pessoa vê', () => {
     const pessoa = tela('pessoas/[id]/index.astro') + readFileSync('src/lib/servidor/pagina-da-pessoa.ts', 'utf-8');
     expect(pessoa).toMatch(/retratoDe = \(id: string\) => \(achar\(id\)\?\.retrato && !naoVe\.has\(id\)/);
-    expect(pessoa).toContain('listarMemorias(usuario, { integrante: pessoa.id })');
+    expect(pessoa).toContain('listarMemorias(usuario, { integrante: pessoa.id, comRascunhos: true })');
   });
 
   it('o menu declara "Início", no computador e no celular', () => {

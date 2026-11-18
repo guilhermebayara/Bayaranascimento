@@ -1,4 +1,4 @@
-// Regras que nasceram dos defeitos do QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md).
+// Regras que nasceram dos defeitos do QA de design de 17/11/2026 (docs/historico/qa/2026-11-17-perguntas.md).
 import { describe, expect, it } from 'vitest';
 import { ehNaoEncontradaSemPagina } from '../src/lib/servidor/http';
 

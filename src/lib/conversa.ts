@@ -32,7 +32,9 @@ export const MENSAGENS_POR_RELATO = 200;
 /** Os parágrafos de um texto, como o relato de hoje separa: uma linha em branco entre eles. */
 export const paragrafos = (texto: string): string[] =>
   texto
-    .split(/\n{2,}/)
+    // O formulário sem script manda as linhas com "\r\n"
+    .replace(/\r\n?/g, '\n')
+    .split(/\n[^\S\n]*\n\s*/)
     .map((p) => p.trim())
     .filter(Boolean);
 

@@ -1,6 +1,6 @@
 # QA de UX: padrões para a troca de visual
 
-Sessão do Claude Code aberta de propósito, quando o Gui pedir. Não é recorrente como o QA de código. A rodada de 16/11/2026, feita antes da revisão visual, está em `docs/historico/ux/`; uma rodada nova escreve os arquivos de novo em `docs/ux/`.
+Sessão do Claude Code aberta de propósito, quando o Gui pedir. Não é recorrente como o QA de código. A rodada de 16/11/2026, feita antes da revisão visual, está em `docs/historico/ux/`; uma rodada nova escreve os arquivos de novo em `docs/ux/`. Fechada a rodada, com as decisões do Gui já nos documentos enxutos, os arquivos vão para `docs/historico/ux/`, e os comentários do código que os citam passam a apontar para lá.
 
 ## Para que serve
 
