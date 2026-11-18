@@ -174,8 +174,8 @@ describe('o formulário do casal', () => {
     expect(depois).toContain('<CampoData prefixo={inicio(n)}');
     expect(editar).not.toMatch(/Já terminou|name="terminou"/);
   });
-  it('"Como estão hoje?" é o seletor segmentado, e "Já é da família" só aparece com o namoro de hoje', () => {
-    expect(primeira).toContain('<Segmentado rotulo="Como estão hoje" rotuloId={`rotulo-fase-${id}`} nome="faseTipo" opcoes={DE_HOJE} />');
+  it('"Como estão hoje?" só com o que é estar junto, e "Já é da família" só aparece com o namoro de hoje', () => {
+    expect(primeira).toContain('<Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={DE_HOJE} valor="casamento" id={`rotulo-fase-${id}`} />');
     expect(primeira).toContain("marca.hidden = tipo !== 'namoro' || depois;");
     expect(primeira).toContain('<CampoData prefixo="faseInicio"');
     expect(editar).toContain("{faseAtual(c.casal)?.tipo === 'namoro' && <JaDaFamilia");

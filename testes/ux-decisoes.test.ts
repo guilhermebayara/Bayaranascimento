@@ -210,9 +210,9 @@ describe('laços', () => {
     const editar = fonte('src/pages/pessoas/[id]/editar.astro');
     expect(editar).not.toMatch(/<select name="(qualidade|faseTipo|proximidade)"/);
     expect(editar).toMatch(/<Opcoes nome="qualidade"/);
-    // A fase de cada linha da edição do casal; a primeira do cadastro é o seletor segmentado (PrimeiraFase.astro)
+    // A fase de cada linha da edição do casal; e a primeira do cadastro (PrimeiraFase.astro)
     expect(editar).toContain('<Opcoes nome={`fase-${n}-tipo`}');
-    expect(fonte('src/components/formularios/PrimeiraFase.astro')).toContain('nome="faseTipo"');
+    expect(fonte('src/components/formularios/PrimeiraFase.astro')).toContain('<Opcoes nome="faseTipo"');
     expect(editar).toMatch(/<Opcoes nome="proximidade"/);
   });
 

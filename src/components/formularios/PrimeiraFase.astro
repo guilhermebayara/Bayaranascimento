@@ -1,11 +1,12 @@
 ---
 // A primeira fase no cadastro do casal (guiado e "Adicionar casal"): "Como estão hoje?", só com o que é
-// estar junto, no seletor segmentado (decisão do Gui, 18/11/2026: a escolha troca o que aparece embaixo,
-// porque o namoro pergunta "Já é da família"), e quando começou, com mês e dia opcionais. O fim e o resto
+// estar junto, e quando começou, com mês e dia opcionais. O namoro pergunta, logo embaixo, "Já é da
+// família". As quatro opções ficam em pílulas, como antes: no seletor segmentado (liberado pelo Gui em
+// 18/11/2026 onde a escolha troca o que aparece embaixo) elas não cabem lado a lado em 390 px. O fim e o resto
 // da história vêm depois, em "Adicionar o que aconteceu depois" (FasesDepois.astro), que troca a pergunta
 // por "Como estavam?". Os campos são as linhas paralelas do cadastro (faseTipo, faseInicioAno...).
 import CampoData from '../CampoData.astro';
-import Segmentado from '../visual/Segmentado.astro';
+import Opcoes from '../Opcoes.astro';
 import JaDaFamilia from './JaDaFamilia.astro';
 
 interface Props {
@@ -13,17 +14,16 @@ interface Props {
   id: string;
 }
 const { id } = Astro.props;
-const DE_HOJE = [
-  { valor: 'namoro', texto: 'Namoro' },
-  { valor: 'noivado', texto: 'Noivado' },
-  { valor: 'casamento', texto: 'Casamento', atual: true },
-  { valor: 'uniao', texto: 'União' },
+const DE_HOJE: [string, string][] = [
+  ['namoro', 'Namoro'],
+  ['noivado', 'Noivado'],
+  ['casamento', 'Casamento'],
+  ['uniao', 'União'],
 ];
 ---
 
-<div class="campo primeira-fase" data-primeira-fase>
-  <span id={`rotulo-fase-${id}`}>Como estão hoje?</span>
-  <Segmentado rotulo="Como estão hoje" rotuloId={`rotulo-fase-${id}`} nome="faseTipo" opcoes={DE_HOJE} />
+<div class="primeira-fase" data-primeira-fase>
+  <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={DE_HOJE} valor="casamento" id={`rotulo-fase-${id}`} />
 </div>
 <CampoData prefixo="faseInicio" id={`${id}-fase-inicio`} rotuloAno="Começou em" />
 <JaDaFamilia id={`ja-da-familia-${id}`} />
@@ -37,7 +37,7 @@ const DE_HOJE = [
     const caixa = marca.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
     const aplicar = () => {
       const tipo = bloco.querySelector<HTMLInputElement>('input:checked')?.value;
-      const depois = [...formulario.querySelectorAll<HTMLSelectElement>('[data-fase-depois] select')].some((s) => s.value);
+      const depois = [...formulario.querySelectorAll<HTMLSelectElement>('[data-tipo-da-fase]')].some((s) => s.value);
       marca.hidden = tipo !== 'namoro' || depois;
       if (marca.hidden) caixa.checked = false;
     };

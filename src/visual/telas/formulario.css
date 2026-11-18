@@ -1963,6 +1963,7 @@
 }
 .pagina-de-formulario .fases-depois :is(.fases-depois__mais, .fases-depois__tirar) {
   justify-self: start;
+  text-align: start;
 }
 .pagina-de-formulario .fases-depois :is(.fases-depois__mais, .fases-depois__tirar)[hidden] {
   display: none;

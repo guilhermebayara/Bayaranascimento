@@ -38,10 +38,12 @@ export interface DadosDaArvore {
    * como ex-casal, e sim com a linha tracejada do coração, na mesma geração, à vista sem precisar abrir os
    * laços de ninguém. A história do namoro continua na página do laço. Ver separarAmizades, em ex-casal.ts.
    */
-  amizades?: { a: string; b: string; rotulo?: string }[];
+  amizades?: { a: string; b: string; rotulo?: string; namoro?: boolean }[];
+  /** quem tem laço que não aparece na árvore (o namoro que acabou): não entra em "Ainda sem laços" */
+  foraDeProposito?: string[];
 }
 
-type LacoNaMontagem = { dono: string; pessoa: string; papel: Papel | null; rotulo: string; sangue?: boolean };
+type LacoNaMontagem = { dono: string; pessoa: string; papel: Papel | null; rotulo: string; sangue?: boolean; colado?: boolean };
 
 export interface Estado {
   /** a pessoa selecionada, com a ficha aberta */
@@ -120,7 +122,7 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     // O ex que virou amigo: tracejado do coração, na mesma geração, com a camada de consideração e
     // coração, sem depender de quem abriu os laços (antes ele aparecia sempre, como ex-casal)
     const amizades: LacoNaMontagem[] = estado.consideracao
-      ? (dados.amizades ?? []).filter((a) => dentro(a.a, a.b)).map((a) => ({ dono: a.a, pessoa: a.b, papel: 'irmao', rotulo: a.rotulo ?? 'amizade' }))
+      ? (dados.amizades ?? []).filter((a) => dentro(a.a, a.b)).map((a) => ({ dono: a.a, pessoa: a.b, papel: 'irmao', rotulo: a.rotulo ?? 'amizade', colado: a.namoro }))
       : [];
 
     // 1b. A linha direta: os centros, os ancestrais, os irmãos, os descendentes e os casais.

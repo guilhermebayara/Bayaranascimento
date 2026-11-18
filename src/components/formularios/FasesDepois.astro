@@ -36,7 +36,7 @@ const inicio = (n: number) => (numerada === undefined ? 'faseInicio' : `fase-${n
         <legend class="rotulo suave">{n === 0 ? 'Depois' : 'E depois'}</legend>
         <label class="campo">
           <span>O que aconteceu</span>
-          <select name={tipo(n)}>
+          <select name={tipo(n)} data-tipo-da-fase>
             <option value="">Escolha</option>
             {fases.map(([valor, rotulo]) => <option value={valor}>{rotulo}</option>)}
           </select>
@@ -46,7 +46,7 @@ const inicio = (n: number) => (numerada === undefined ? 'faseInicio' : `fase-${n
       </fieldset>
     ))
   }
-  <button type="button" class="botao botao--leve fases-depois__mais" data-mais-uma-fase hidden>Adicionar o que aconteceu depois</button>
+  <button type="button" class="acao fases-depois__mais" data-mais-uma-fase hidden>Adicionar o que aconteceu depois</button>
 </div>
 
 <script>
@@ -66,13 +66,13 @@ const inicio = (n: number) => (numerada === undefined ? 'faseInicio' : `fase-${n
     };
     const atualizar = () => {
       mais.hidden = linhas.every((l) => !l.hidden);
-      const temDepois = linhas.some((l) => !l.hidden && l.querySelector('select')!.value);
+      const temDepois = linhas.some((l) => !l.hidden && l.querySelector<HTMLSelectElement>('[data-tipo-da-fase]')!.value);
       if (rotulo) rotulo.textContent = temDepois ? 'Como estavam?' : hoje;
       caixa.dispatchEvent(new CustomEvent('fases-depois', { bubbles: true }));
     };
     const campos = (linha: HTMLElement) => [...linha.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')];
     for (const linha of linhas) {
-      linha.hidden = !linha.querySelector('select')!.value;
+      linha.hidden = !linha.querySelector<HTMLSelectElement>('[data-tipo-da-fase]')!.value;
       const tirar = linha.querySelector<HTMLButtonElement>('[data-tirar-fase]')!;
       tirar.hidden = false;
       tirar.addEventListener('click', () => {
@@ -89,14 +89,14 @@ const inicio = (n: number) => (numerada === undefined ? 'faseInicio' : `fase-${n
         esvaziar(ultima);
         ultima.hidden = true;
         atualizar();
-        (linha.hidden ? mais : linha.querySelector('select')!).focus();
+        (linha.hidden ? mais : linha.querySelector<HTMLSelectElement>('[data-tipo-da-fase]')!).focus();
       });
     }
     mais.addEventListener('click', () => {
       const proxima = linhas.find((l) => l.hidden);
       if (!proxima) return;
       proxima.hidden = false;
-      proxima.querySelector('select')!.focus();
+      proxima.querySelector<HTMLSelectElement>('[data-tipo-da-fase]')!.focus();
       atualizar();
     });
     caixa.addEventListener('change', atualizar);
