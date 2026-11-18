@@ -105,34 +105,108 @@
   display: none;
 }
 
-/* Quem está logado: o retrato leva à conta. No celular, só o retrato, ao lado do "Menu". */
+/* Quem está logado: o retrato abre o menu da conta. No celular, só o retrato, ao lado do "Menu". */
 .topo__conta {
   grid-area: 1 / 1;
   justify-self: end;
-  z-index: 1;
+  z-index: 3;
+  position: relative;
+  min-width: var(--toque);
+  height: var(--topo-h);
+  margin-right: 5.25rem;
+  font-size: var(--t-menu);
+  font-weight: 500;
+}
+.conta-menu summary {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
   gap: 0.6rem;
   min-width: var(--toque);
   height: var(--topo-h);
-  margin-right: 5.25rem;
-  font-size: var(--t-menu);
-  font-weight: 500;
+  list-style: none;
+  cursor: pointer;
+}
+.conta-menu summary::-webkit-details-marker {
+  display: none;
+}
+/* A lista abre embaixo do retrato, por cima da página, alinhada à direita */
+.conta-menu__lista {
+  position: absolute;
+  top: calc(100% - var(--e-2));
+  right: 0;
+  display: grid;
+  min-width: 13rem;
+  padding: var(--e-2) var(--e-4);
+  border: 1px solid var(--fio);
+  border-radius: var(--raio-moldura);
+  background: var(--papel);
+  box-shadow: var(--sombra-bilhete);
+}
+.conta-menu__lista a {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-3);
+  min-height: var(--toque);
+  padding-block: var(--e-3);
   text-decoration: none;
+  white-space: nowrap;
+}
+.conta-menu__lista a + a {
+  border-top: 1px solid var(--fio);
+}
+@media (hover: hover) {
+  .conta-menu__lista a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
+}
+.conta-menu__lista a[aria-current] {
+  font-weight: 600;
+}
+.conta-menu__avisos {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  color: var(--tinta-suave);
 }
 .topo__conta .retrato {
   width: 2.25rem;
   font-size: 0.5rem;
   transition: scale var(--tempo-curto) var(--curva);
 }
-.topo__conta:hover .retrato {
+.conta-menu summary:hover .retrato,
+.conta-menu[open] .retrato {
   scale: 1.06;
 }
 .topo__conta-nome {
   display: none;
 }
-.topo__conta[aria-current] .retrato {
+/* O número de avisos (src/lib/avisos.ts): discreto, no canto do retrato, em qualquer tela */
+.topo__retrato {
+  position: relative;
+  display: inline-flex;
+}
+.topo__avisos {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.45rem;
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border: 2px solid var(--papel);
+  border-radius: var(--raio-pilula);
+  background: var(--tinta);
+  color: var(--papel);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.topo__conta[data-atual] .retrato {
   outline: 2px solid var(--vivo);
   outline-offset: 2px;
 }

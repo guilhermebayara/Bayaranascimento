@@ -7,7 +7,7 @@ import { formatarData } from '../../../lib/datas';
 import { estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { donoDoRelato } from '../../../lib/servidor/permissoes';
-import { listarAudiosDosRelatos, listarFotosDoRelato, listarIntegrantes, listarIntegrantesQueVe, obterMemoria, obterRelato } from '../../../lib/servidor/repositorio';
+import { listarAudiosDosRelatos, listarFotosDoRelato, listarIntegrantes, listarIntegrantesQueVe, listarRelatos, obterMemoria, obterRelato } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -24,6 +24,9 @@ const nomeDoTipo = memoria.tipo === 'outro' && memoria.tipoOutro ? memoria.tipoO
 const comAcesso = await pessoasComAcesso();
 const semAcesso = integrantes.filter((i) => i.tipo === 'pessoa' && !comAcesso.has(i.id) && visiveis.has(i.id));
 
+// Os relatos que a pessoa vê: de um relato que ela não vê (o que espera o sim do autor depois de a memória
+// ser ampliada), nem o nome de quem registrou aparece
+const relatosQueVe = new Set((await listarRelatos(usuario, memoria.id)).map((r) => r.id));
 // Para cada pessoa em nome de quem dá para escrever: o texto atual, se for da pessoa logada, ou o bloqueio
 const opcoes = await Promise.all(
   [{ id: usuario.pessoa, rotulo: `Eu, ${usuario.nome}` }, ...semAcesso.map((p) => ({ id: p.id, rotulo: `${p.nome}, e eu estou escrevendo` }))].map(
@@ -43,7 +46,7 @@ const opcoes = await Promise.all(
         texto: existente && !bloqueado ? existente.texto : '',
         publicado: existente?.situacao === 'publicada' && !bloqueado,
         bloqueado,
-        quemRegistrou: bloqueado ? integrantes.find((i) => i.id === dono)?.nome : undefined,
+        quemRegistrou: bloqueado && existente && relatosQueVe.has(existente.id) ? integrantes.find((i) => i.id === dono)?.nome : undefined,
       };
     },
   ),

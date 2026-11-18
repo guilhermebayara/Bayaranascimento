@@ -9,7 +9,8 @@ import Retrato from '../components/visual/Retrato.astro';
 import { ENDERECO_DE_SAIDA, PESSOAS_DE_TESTE, semLogin, temLogin } from '../lib/servidor/acesso';
 import { fontesDoPedido } from '../lib/servidor/conceito';
 import { enderecoDoRetrato } from '../lib/retratos';
-import { listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
+import { numeroDoRetrato, rotuloDoRetrato } from '../lib/avisos';
+import { contarAvisosPendentes, listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
 import { COMBINACOES_DE_FONTES, assinaturaDaTela, atributosDasFontes, combinacaoDe } from '../lib/visual';
 
 interface Props {
@@ -58,6 +59,11 @@ const integrantes = await listarIntegrantes();
 const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
 // "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo.
 const meuRetrato = integrantes.find((i) => i.id === usuario.pessoa)?.retrato;
+// O número discreto de avisos no retrato, em qualquer tela (docs/decisoes.md, "Avisos")
+const avisosPendentes = palco ? 0 : await contarAvisosPendentes(usuario);
+const numeroDeAvisos = numeroDoRetrato(avisosPendentes);
+// "Sua página" só para quem tem página de pessoa no acervo
+const temPagina = integrantes.some((i) => i.id === usuario.pessoa);
 const aqui = Astro.url.pathname + Astro.url.search;
 const volta = encodeURIComponent(aqui);
 const caminho = Astro.url.pathname.replace(/\/$/, '');
@@ -175,10 +181,33 @@ const telas = [
       <a class="topo__nova" href="/nova" aria-current={secao === 'nova' ? 'page' : undefined}>
         Nova memória
       </a>
-      <a class="topo__conta" href="/conta" aria-label={`Sua conta, ${usuario.nome}`} aria-current={secao === 'conta' ? 'page' : undefined}>
-        <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
-        <span class="topo__conta-nome" aria-hidden="true">{usuario.nome}</span>
-      </a>
+      {/* O menu da conta (decisão do Gui, 17/11/2026, "Revisão de estrutura das telas"): o retrato e o
+          nome abrem Sua página, Sua conta, Administração (só admins) e Sair. O número de avisos fica no
+          retrato. Sem script, abre e fecha pelo próprio retrato. */}
+      <div class="topo__conta" data-atual={secao === 'conta' ? '' : undefined}>
+        <details class="conta-menu">
+          <summary aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes)}>
+            <span class="topo__retrato">
+              <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
+              {numeroDeAvisos && (
+                <span class="topo__avisos" aria-hidden="true">
+                  {numeroDeAvisos}
+                </span>
+              )}
+            </span>
+            <span class="topo__conta-nome" aria-hidden="true">{usuario.nome}</span>
+          </summary>
+          <nav class="conta-menu__lista" aria-label="Sua conta">
+            {temPagina && <a href={`/pessoas/${usuario.pessoa}`}>Sua página</a>}
+            <a href="/conta" aria-current={secao === 'conta' ? 'page' : undefined}>
+              Sua conta
+              {avisosPendentes > 0 && <span class="conta-menu__avisos">{avisosPendentes === 1 ? '1 aviso' : `${avisosPendentes} avisos`}</span>}
+            </a>
+            {usuario.admin && <a href="/conta#administracao">Administração</a>}
+            {saida && <a href={saida}>Sair</a>}
+          </nav>
+        </details>
+      </div>
       <details class="menu">
         <summary><span>Menu</span></summary>
         <nav class="menu__lista" aria-label="Seções">
@@ -233,8 +262,9 @@ const telas = [
         <script>
           // O menu do celular fecha com Esc e com o toque fora dele (P9 do QA de design, 17/11/2026).
           // Sem script, continua fechando só pelo "Menu".
-          const menu = document.querySelector<HTMLDetailsElement>('details.menu');
-          if (menu) {
+          // O menu da conta, no retrato, segue o mesmo jeito; abrir um fecha o outro.
+          const menus = [...document.querySelectorAll<HTMLDetailsElement>('details.menu, details.conta-menu')];
+          for (const menu of menus) {
             addEventListener('keydown', (evento) => {
               if (evento.key !== 'Escape' || !menu.open) return;
               const focoDentro = menu.contains(document.activeElement);
@@ -243,6 +273,9 @@ const telas = [
             });
             addEventListener('click', (evento) => {
               if (menu.open && evento.target instanceof Node && !menu.contains(evento.target)) menu.open = false;
+            });
+            menu.addEventListener('toggle', () => {
+              if (menu.open) for (const outro of menus) if (outro !== menu) outro.open = false;
             });
           }
         </script>

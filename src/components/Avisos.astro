@@ -1,0 +1,87 @@
+---
+// Os avisos de quem está logado (docs/decisoes.md, "Avisos"; regras em src/lib/avisos.ts). No alto do
+// Início, os que estão na lista; em "Sua conta", a lista e o histórico. Cada aviso leva à memória, e
+// abri-la tira o aviso da lista. O pedido para liberar um relato só sai com a resposta, ali mesmo.
+import { fraseDoAviso } from '../lib/avisos';
+import type { Aviso } from '../lib/servidor/repositorio';
+import { listarIntegrantes } from '../lib/servidor/repositorio';
+import { diaMesCurto } from '../lib/visual';
+
+interface Props {
+  avisos: Aviso[];
+  /** no Início, só a lista; na conta, com o título da seção e o histórico */
+  onde: 'inicio' | 'conta';
+  /** em "Sua conta": os que já saíram da lista */
+  historico?: Aviso[];
+}
+
+const { avisos, onde, historico = [] } = Astro.props;
+const { usuario } = Astro.locals;
+const integrantes = avisos.length + historico.length > 0 ? await listarIntegrantes() : [];
+const nome = (id: string) => {
+  const i = integrantes.find((x) => x.id === id);
+  return i?.apelido ?? i?.nome ?? id;
+};
+const frase = (a: Aviso) =>
+  fraseDoAviso({ tipo: a.tipo, de: a.de, titulo: a.titulo, relato: a.relato, paraQuem: (a.dados.paraQuem as string | undefined) ?? null, para: usuario.pessoa }, nome);
+const quando = (a: Aviso) => {
+  const [ano, mes, dia] = a.criadoEm.slice(0, 10).split('-').map(Number);
+  return `${diaMesCurto({ dia, mes })} ${ano}`;
+};
+const RESPOSTAS: Record<string, string> = { liberar: 'Você liberou.', manter: 'Você manteve como estava.' };
+const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
+---
+
+{
+  (avisos.length > 0 || onde === 'conta') && (
+    <section class:list={['avisos', `avisos--${onde}`, onde === 'conta' && 'cartao']} aria-labelledby={`avisos-${onde}`} id={onde === 'conta' ? 'avisos' : undefined}>
+      <h2 class:list={[onde === 'conta' ? 'cartao__titulo' : '', 'rotulo']} id={`avisos-${onde}`}>
+        {onde === 'conta' ? 'Avisos' : avisos.length === 1 ? 'Um aviso para você' : `${avisos.length} avisos para você`}
+      </h2>
+      {avisos.length === 0 ? (
+        <p class="conta__nada serifa">Nenhum aviso agora.</p>
+      ) : (
+        <ul class="avisos__lista">
+          {avisos.map((a) => (
+            <li class:list={['aviso', `aviso--${a.tipo}`]}>
+              <a class="aviso__link" href={`/memorias/${a.memoriaId}${a.relato ? `#relato-${a.relato.id}` : ''}`}>
+                <span class="aviso__frase">{frase(a)}</span>
+                <span class="aviso__quando ficha suave">{quando(a)}</span>
+              </a>
+              {a.tipo === 'liberar-relato' && a.relato && (
+                <form class="aviso__resposta" method="post" action="/api/avisos">
+                  <input type="hidden" name="aviso" value={a.id} />
+                  <input type="hidden" name="volta" value={volta} />
+                  <button type="submit" class="acao" name="resposta" value="liberar">
+                    Liberar para quem passou a ver
+                  </button>
+                  <button type="submit" class="acao acao--quieta" name="resposta" value="manter">
+                    Manter como estava
+                  </button>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {historico.length > 0 && (
+        <details class="avisos__historico">
+          <summary class="acao acao--quieta">Avisos que já saíram da lista</summary>
+          <ul class="avisos__lista">
+            {historico.map((a) => (
+              <li class="aviso aviso--visto">
+                <a class="aviso__link" href={`/memorias/${a.memoriaId}`}>
+                  <span class="aviso__frase">{frase(a)}</span>
+                  <span class="aviso__quando ficha suave">
+                    {quando(a)}
+                    {a.resposta && RESPOSTAS[a.resposta] ? ` · ${RESPOSTAS[a.resposta]}` : ''}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </section>
+  )
+}
