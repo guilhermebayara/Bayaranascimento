@@ -6,6 +6,7 @@
 // alto, quando há áudio que quem olha pode ouvir; no celular, os laços recolhidos numa linha; o
 // botão cheio é "Nova memória com Fulano"; a própria página diz "você"; e o nascimento entra no
 // carimbo, sem rótulo.
+import Recado from '../../../components/visual/Recado.astro';
 import '../../../visual/telas/linha.css';
 import '../../../visual/telas/explorar.css';
 import '../../../visual/telas/lista.css';
@@ -38,6 +39,7 @@ import {
   listarLacosDoCoracao,
   listarLacosResumidos,
   listarMemorias,
+  listarMeusApelidos,
   memoriasComAudio,
   listarNucleos,
   pessoasQueONaoVe,
@@ -75,6 +77,9 @@ const adocaoCom = (id: string) => {
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
 const chamar = pessoa.apelido ?? pessoa.nome;
+// O apelido que quem olha deu (só ele vê) e o nome de sempre, para a pergunta e para voltar a ele
+const meuApelido = (await listarMeusApelidos(usuario.pessoa)).get(pessoa.id);
+const nomeDaFamilia = (pessoa.apelidoDaFamilia !== undefined ? pessoa.apelidoDaFamilia : null) ?? pessoa.nome;
 const naoVe = await pessoasQueONaoVe(usuario);
 const retratoDe = (id: string) => (achar(id)?.retrato && !naoVe.has(id) ? enderecoDoRetrato(achar(id)!.retrato!) : null);
 const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
@@ -182,6 +187,11 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
 
 <Visual titulo={pessoa.nome} secao="pessoas" nucleos={familiasDe(pessoa)}>
   <article class="pessoa-pagina">
+    {(Astro.url.searchParams.get('ok') || Astro.url.searchParams.get('erro')) && (
+      <div class="miolo pessoa-pagina__recado">
+        <Recado erro={Boolean(Astro.url.searchParams.get('erro'))}>{Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get('ok')}</Recado>
+      </div>
+    )}
     <header class="quem-e bloco">
       <div class="miolo grade">
         <div class="quem-e__retrato">
@@ -233,6 +243,29 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
               </a>
             )}
           </p>
+          {/* "Como você chama", só seu (decisão do Gui, 18/11/2026; src/lib/apelidos.ts): o apelido que quem
+              olha dá à pessoa, que só ele vê, no site inteiro */}
+          {!ehMinha && (
+            <details class="como-chama" id="como-voce-chama">
+              <summary class="acao acao--quieta">{meuApelido ? `Você chama de ${meuApelido}` : `Como você chama ${nomeDaFamilia}?`}</summary>
+              <form class="como-chama__form" method="post" action="/api/apelidos">
+                <input type="hidden" name="pessoa" value={pessoa.id} />
+                <label class="campo">
+                  <span class="so-leitor">Como você chama {nomeDaFamilia}?</span>
+                  <input class="campo__entrada" type="text" name="apelido" maxlength="40" autocomplete="off" value={meuApelido ?? ''} placeholder="Ex.: Tia Lu, Vó, Dinho" />
+                </label>
+                <p class="campo__dica">Só você vê. No site inteiro, para você, {nomeDaFamilia} aparece assim.</p>
+                <p class="como-chama__acoes">
+                  <button class="acao" type="submit">Salvar</button>
+                  {meuApelido && (
+                    <button class="acao acao--quieta" type="submit" name="apelido" value="">
+                      Voltar a {nomeDaFamilia}
+                    </button>
+                  )}
+                </p>
+              </form>
+            </details>
+          )}
         </div>
       </div>
     </header>
@@ -368,6 +401,16 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
     </section>
   </article>
 </Visual>
+
+<script>
+  // Quem chega pela ficha da árvore ("Como você chama") encontra a pergunta aberta, com o foco nela
+  const comoChama = document.querySelector<HTMLDetailsElement>('#como-voce-chama');
+  if (comoChama && location.hash === '#como-voce-chama') {
+    comoChama.open = true;
+    comoChama.querySelector<HTMLInputElement>('input[name="apelido"]')?.focus();
+  }
+</script>
+
 
 <script>
   // Trocar a forma de ver não recarrega a página nem tira a pessoa do lugar, como no Explorar.

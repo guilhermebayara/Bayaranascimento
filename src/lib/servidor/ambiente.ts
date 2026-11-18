@@ -11,7 +11,7 @@ import type { Tipo } from '../tipos';
 
 export const ENDERECO_DA_HOMOLOGACAO = 'homologa.memorias.bayara.com.br';
 
-const doPedido = new AsyncLocalStorage<{ homologa: boolean; tipos?: readonly Tipo[] }>();
+const doPedido = new AsyncLocalStorage<{ homologa: boolean; tipos?: readonly Tipo[]; apelidos?: ReadonlyMap<string, string> }>();
 
 /**
  * Os tipos de momento do pedido em curso, com a cor e o rabisco que os administradores escolheram.
@@ -25,6 +25,19 @@ export function guardarTiposDoPedido(tipos: readonly Tipo[]): void {
 }
 export function tiposDoPedido(): readonly Tipo[] | undefined {
   return doPedido.getStore()?.tipos;
+}
+
+/**
+ * Os apelidos que quem está logado deu a outras pessoas ("Como você chama", src/lib/apelidos.ts). O
+ * middleware guarda aqui, só nas páginas (as rotas de /api e a administração leem os de sempre), e
+ * listarIntegrantes troca o apelido por eles. Ficam junto do pedido: são de uma pessoa só.
+ */
+export function guardarApelidosDoPedido(apelidos: ReadonlyMap<string, string>): void {
+  const pedido = doPedido.getStore();
+  if (pedido) pedido.apelidos = apelidos;
+}
+export function apelidosDoPedido(): ReadonlyMap<string, string> | undefined {
+  return doPedido.getStore()?.apelidos;
 }
 
 /** Roda o tratamento de um pedido sabendo se ele é da homologação. */

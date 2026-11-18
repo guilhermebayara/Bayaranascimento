@@ -48,6 +48,8 @@ export const TABELAS_APAGADAS = [
   'reacoes',
   // A proximidade do círculo é de cada pessoa, e só ela vê: o espelho não leva nenhuma, e apaga as que houver
   'proximidades',
+  // Como cada pessoa chama a outra é dela, e só ela vê: o espelho não leva nenhum (migração 090)
+  'apelidos_meus',
   // Como o ex aparece é de cada pessoa, e só ela vê: o espelho não leva nenhuma escolha (migração 071)
   'ex_para_mim',
   'tema_capitulos',

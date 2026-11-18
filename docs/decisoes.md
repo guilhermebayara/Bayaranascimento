@@ -301,6 +301,18 @@ Migração `030`. Prazo geral: tudo resolvido até 10/12, e de lá ao Natal só 
 
 Origem: [histórico, "Círculo"](historico/decisoes-ate-2026-11-17.md#círculo-decisões-do-gui-17-e-18112026-migração-030).
 
+## Como você chama
+
+Decisão do Gui de 18/11/2026. Migração `090-como-voce-chama`; regras em `src/lib/apelidos.ts`, rota em `src/pages/api/apelidos.ts`, teste em `testes/apelidos.test.ts`.
+
+- Cada pessoa pode dar o próprio apelido a outra ("Mãezinha", "Tia Lu"), na página dela, em "Como você chama Fulano?", logo abaixo das ações do alto. A ficha da árvore tem "Como você chama", que leva até lá com a pergunta aberta. Na própria página, não há: o nome é da ficha.
+- Só quem deu vê, e no site inteiro, para ele, a pessoa aparece com esse apelido: árvore, ficha, memórias, círculo, Início. Sem apelido próprio, vale o "como é chamado na família" e, depois, o nome. A lista de Pessoas mostra o nome completo, como sempre.
+- Tirar o apelido ("Voltar a Fulano") devolve o de sempre. O apelido tem no máximo 40 letras.
+- **Como chega à tela:** o middleware guarda no pedido os apelidos de quem está logado, e `listarIntegrantes` troca o apelido por eles. O apelido da família continua em `apelidoDaFamilia`, que é o que a ficha de edição mostra e grava. As rotas de `/api` e a administração (inclusive juntar duplicados) leem os de sempre, para nenhum apelido privado ser gravado como o da família.
+- **Privacidade:** a escolha é privada, como a proximidade do círculo. Só o dono lê as dele; só se dá apelido a quem se vê, e nunca a si mesmo. Não passa pelo espelho (a tabela é apagada) e juntar duplicados leva os apelidos para a ficha que fica.
+
+Origem: [histórico, "Decidido, a construir"](historico/decisoes-ate-2026-11-17.md#decidido-a-construir) (a decisão de 18/11/2026 entrou direto como regra).
+
 ## Tipos de momento
 
 - A lista de tipos vive no banco (tabela `tipos`), não no código. Só os admins criam, renomeiam e mudam a cor e o desenho, em `/admin/tipos`.
