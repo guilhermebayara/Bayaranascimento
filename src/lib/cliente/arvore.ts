@@ -252,6 +252,12 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     if (p.retrato) retrato.append(Object.assign(new Image(), { src: p.retrato, alt: '' }));
     else retrato.append(Object.assign(document.createElement('span'), { textContent: p.iniciais ?? '' }));
     retrato.firstElementChild!.setAttribute('aria-hidden', 'true');
+    // O retrato de quem faleceu acende com o foco, em qualquer lugar: na ficha ele fica fora de link,
+    // então acende quando "Ver a página" recebe o foco
+    if (falecidos.has(p.id)) {
+      pagina.addEventListener('focus', () => retrato.classList.toggle('retrato--aceso', pagina.matches(':focus-visible')));
+      pagina.addEventListener('blur', () => retrato.classList.remove('retrato--aceso'));
+    }
     // "Ver o laço" (onda 2): a página do laço entre quem olha e a pessoa tocada
     const doLaco = p.id !== dados.eu && pessoa.has(dados.eu) ? [Object.assign(document.createElement('a'), { href: enderecoDoLaco(dados.eu, p.id), textContent: 'Ver o laço' })] : [];
     // As ações ficam numa linha só, que quebra quando falta espaço: com "Ver o laço", eram três links na
@@ -790,12 +796,17 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
       if (!naTela(id)) {
         ramo = ramosDeAgora.find((r) => r.membros.includes(id));
         const laco = dados.coracao.find((l) => l.pessoa === id);
+        // O ex que virou amigo aparece com os laços do coração de quem foi o par abertos
+        const amizade = (dados.amizades ?? []).find((a) => !a.namoro && (a.a === id || a.b === id));
         if (ramo) estado.ramos.add(ramo.chave);
         else if (laco) {
           // Quem só aparece por um laço do coração: os laços de quem escolheu se abrem
           estado.consideracao = true;
           estado.abertos.add(laco.dono);
           if (!laco.papel) estado.amigos = true;
+        } else if (amizade) {
+          estado.consideracao = true;
+          estado.abertos.add(amizade.a === id ? amizade.b : amizade.a);
         }
         desenhar();
       }
