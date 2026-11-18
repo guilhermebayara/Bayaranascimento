@@ -1,7 +1,7 @@
 // Painel pessoal como página inicial (docs/decisoes.md): a carta, as visitas, o que entrou de novo,
 // os aniversários e a memória para contar. As regras ficam em src/lib/painel.ts.
 import { describe, expect, it } from 'vitest';
-import { aniversarios, chegarAoPainel, comParentesco, hojeNoBrasil, memoriaParaContar, novidades, PAUSA_ENTRE_VISITAS, saudacao } from '../src/lib/painel';
+import { aniversarios, chegarAoPainel, comParentesco, hojeNoBrasil, memoriaParaContar, novidades, PAUSA_ENTRE_VISITAS, saudacao, voceNoAcervo } from '../src/lib/painel';
 
 const em = (iso: string) => new Date(`${iso}Z`);
 const depois = (d: Date, ms: number) => new Date(d.getTime() + ms);
@@ -144,5 +144,20 @@ describe('o parentesco junto do nome', () => {
     expect(comParentesco('sua tia', 'Tia Cida')).toBe('sua Tia Cida');
     expect(comParentesco('seu tio-avô', 'Tio-avô Zeca')).toBe('seu Tio-avô Zeca');
     expect(comParentesco(undefined, 'Chico')).toBe('Chico');
+  });
+});
+
+describe('"Você no acervo" (proposta B da sessão H)', () => {
+  const m = (ano: number, fotos = 1) => ({ ano, fotos: Array(fotos).fill({}) });
+  it('conta as memórias, diz de que ano a que ano e pega as fotos das quatro mais recentes', () => {
+    const r = voceNoAcervo([m(2026), m(2020, 0), m(2015), m(2010), m(2001), m(1992)]);
+    expect(r.quantas).toBe(6);
+    expect([r.de, r.ate]).toEqual([1992, 2026]);
+    expect(r.comFoto.map((x) => x.ano)).toEqual([2026, 2015, 2010, 2001]);
+  });
+  it('num ano só, sem "de a"', () => {
+    const r = voceNoAcervo([m(2025), m(2025, 0)]);
+    expect(r).toMatchObject({ quantas: 2 });
+    expect(r.de).toBeUndefined();
   });
 });

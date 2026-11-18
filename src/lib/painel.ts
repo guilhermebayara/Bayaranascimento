@@ -320,3 +320,15 @@ export function composicaoDoInicio(ha: { memoriasNovas: number; relatosNovos: nu
 export function anoDaUltimaVisita(ultima: Dia, hoje: Dia): string {
   return ultima.ano === hoje.ano ? '' : ` de ${ultima.ano}`;
 }
+
+/**
+ * "Você no acervo", proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): a frase com quantas
+ * memórias e de que ano a que ano, e as fotos das quatro mais recentes em que a pessoa aparece. As
+ * memórias chegam da mais recente para a mais antiga; só entra quem tem foto.
+ */
+export function voceNoAcervo<M extends { ano: number; fotos: unknown[] }>(minhas: M[], quantasFotos = 4): { quantas: number; de?: number; ate?: number; comFoto: M[] } {
+  const anos = minhas.map((m) => m.ano);
+  const de = anos.length ? Math.min(...anos) : undefined;
+  const ate = anos.length ? Math.max(...anos) : undefined;
+  return { quantas: minhas.length, ...(de !== ate ? { de, ate } : {}), comFoto: minhas.filter((m) => m.fotos.length > 0).slice(0, quantasFotos) };
+}

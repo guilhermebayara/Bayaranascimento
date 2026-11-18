@@ -36,6 +36,7 @@ import {
   memoriaParaContar,
   nomeParaQuemOlha,
   novidades,
+  voceNoAcervo,
   type Dia,
 } from '../lib/painel';
 import { Familia, possessivo, type Tratamento } from '../lib/parentesco';
@@ -107,6 +108,7 @@ const memorias = todas.filter((m) => m.situacao === 'publicada');
 const porId = new Map(memorias.map((m) => [m.id, m]));
 const recentes = [...memorias].reverse();
 const minhas = recentes.filter((m) => m.integrantes.includes(usuario.pessoa));
+const acervo = voceNoAcervo(minhas);
 
 // --- O que entrou de novo -------------------------------------------------------------------
 const novo = chegada.novidadesDesde
@@ -372,17 +374,29 @@ const erro = Astro.url.searchParams.get('erro');
         )}
 
         {eu && minhas.length > 0 && (
+          // Proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): o retrato vira a assinatura do
+          // cartão, o corpo é uma frase com o número grande, e as fotos das memórias mais recentes em que a
+          // pessoa aparece ficam embaixo, pequenas, como fotos soltas da caixa
           <section class="cartao voce" aria-labelledby="voce">
-            <h2 class="cartao__titulo rotulo" id="voce">
-              Você no acervo
+            <h2 class="voce__alto" id="voce">
+              <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={corDoPainel} redondo />
+              <span class="rotulo">Você no acervo</span>
             </h2>
-            <div class="voce__conta">
-              <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={corDoPainel} />
-              <p>
-                <span class="voce__numero serifa">{minhas.length}</span>
-                <span class="voce__texto serifa">{minhas.length === 1 ? 'memória em que você aparece' : 'memórias em que você aparece'}</span>
-              </p>
-            </div>
+            <p class="voce__frase serifa">
+              Você aparece em <span class="voce__numero">{acervo.quantas}</span> {acervo.quantas === 1 ? 'memória' : 'memórias'}
+              {acervo.de && <span class="voce__anos">, de {acervo.de} a {acervo.ate}</span>}.
+            </p>
+            {acervo.comFoto.length > 0 && (
+              <ul class="voce__fotos" aria-label="As mais recentes em que você aparece">
+                {acervo.comFoto.map((m) => (
+                  <li>
+                    <a href={`/memorias/${m.id}`} aria-label={m.titulo}>
+                      <img src={`/fotos/${(m.fotos.find((f) => f.principal) ?? m.fotos[0])!.chave}`} alt="" loading="lazy" decoding="async" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
             <p class="voce__links">
               <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
                 Ver sua página
