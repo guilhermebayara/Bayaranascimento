@@ -460,7 +460,7 @@ export function filtrosLigados(f: Filtros, nomes: NomesDosFiltros): { texto: str
   if (f.comFoto) fichas.push({ texto: 'com foto', sem: { ...f, comFoto: false } });
   if (f.comAudio) fichas.push({ texto: 'com áudio', sem: { ...f, comAudio: false } });
   if (f.contou) fichas.push({ texto: 'você já contou', sem: { ...f, contou: false } });
-  if (f.falta) fichas.push({ texto: 'você estava e ainda não contou', sem: { ...f, falta: false } });
+  if (f.falta) fichas.push({ texto: 'falta o seu relato', sem: { ...f, falta: false } });
   return fichas;
 }
 

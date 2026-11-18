@@ -196,7 +196,7 @@ describe('formas de ver e endereço', async () => {
     // A família tem as pílulas dela: não vira ficha
     expect(textos({ ...SEM_FILTRO, familias: ['bayara'] })).toEqual([]);
     const f = { ...SEM_FILTRO, familias: ['bayara'], ordem: 'antigas' as const, tipos: ['viagem', 'apagado'], pessoas: ['gui', 'giovanna'], capitulos: ['natais', 'secreto'], temas: ['x'], decada: 1990, comFoto: true, falta: true };
-    expect(textos(f)).toEqual(['Viagem', 'com Gui', 'com Giovanna', 'Natais', 'anos 1990', 'com foto', 'você estava e ainda não contou']);
+    expect(textos(f)).toEqual(['Viagem', 'com Gui', 'com Giovanna', 'Natais', 'anos 1990', 'com foto', 'falta o seu relato']);
     // Desligar uma ficha tira só aquele filtro: a família e a ordem continuam
     const semGui = filtrosLigados(f, nomes).find((l) => l.texto === 'com Gui')!.sem;
     expect(semGui).toEqual({ ...f, pessoas: ['giovanna'] });
