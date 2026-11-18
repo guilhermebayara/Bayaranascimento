@@ -28,10 +28,11 @@ describe('limites', () => {
 describe('onde o aviso aparece', () => {
   it('na seção "Administração" da conta, só para os admins', () => {
     // Saiu do rodapé com o esqueleto antigo (fase 3 da revisão visual, grupo 4)
-    expect(fontes['src/lib/servidor/conta.ts']).toContain('const banco = usuario.admin ? situacaoDoBanco(await tamanhoDoBanco()) : undefined;');
+    // Desde a proposta A da sessão E: a medida vermelha com a frase curta, no cartão da administração
+    expect(fontes['src/lib/servidor/conta.ts']).toMatch(/const situacao: SituacaoDaAdministracao \| undefined = usuario\.admin/);
     const conta = fontes['src/pages/conta.astro'];
-    expect(conta).toMatch(/\{conta\.bancoEmAviso && \(/);
-    expect(conta).toContain('Banco: {conta.banco}');
+    expect(conta).toMatch(/\{conta\.bancoEmAviso && <p class="conta__nota">Perto do limite do plano gratuito\./);
+    expect(conta).toContain("'conta__banco--aviso': conta.bancoEmAviso");
   });
 
   it('na cópia, com o tamanho, e o script do Drive falha depois de salvar o arquivo', () => {

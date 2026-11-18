@@ -1,8 +1,10 @@
 /*
- * Sua conta: o retrato, o nome e os dados da pessoa no alto, e as coisas dela em ordem (rascunhos,
- * laços do coração, o que criou). A administração fica no fim, quieta, só para quem administra.
- * É página que só a pessoa vê: papel tingido na cor da família dela e conteúdo em cartões, como
- * o painel (o cartão vem de painel.css).
+ * Sua conta (proposta A do conceito da sessão E, escolha do Gui de 17/11/2026). No celular, em
+ * ordem: quem é, o que criou, avisos, rascunhos, laços, a carta de Natal e, no fim, a administração.
+ * No desktop, para quem administra, o cartão da administração ao lado do nome, com a carta no pé da
+ * coluna do nome; "O que você criou" numa faixa de largura toda, sem cartão, entre dois fios; depois
+ * os avisos, e rascunhos e laços lado a lado. Quem não administra vê o nome na largura toda e a faixa
+ * logo abaixo. Papel tingido na cor da família de quem vê; o cartão vem de painel.css.
  */
 
 .conta {
@@ -76,13 +78,23 @@
   }
 }
 
-/* --- As partes, em cartões --------------------------------------------------------------------- */
+/* --- A grade da página ------------------------------------------------------------------------ */
 
-.conta__partes {
+.conta__grade {
   display: grid;
   gap: var(--e-4);
-  margin-top: var(--e-7);
 }
+.conta__grade > * {
+  min-width: 0;
+}
+/* A marcação já vem na ordem do celular: a carta e, no fim, a administração */
+.conta__grade > .conta__carta {
+  margin-top: var(--e-5);
+}
+.conta__grade > .conta__admin {
+  margin-top: var(--e-6);
+}
+
 .conta .cartao {
   min-width: 0;
 }
@@ -203,37 +215,161 @@
 .conta__gente li + li {
   border-top: 1px solid var(--fio);
 }
-/* --- Administração: no fim, quieta ------------------------------------------------------------- */
+/* --- O que você criou: a faixa reta ------------------------------------------------------------
+   Sem cartão: um fio em cima e outro embaixo, na largura toda, com o rótulo colado nas contas. */
 
-/* A carta de Natal, para reler, e a saída da conta (P5 e P4 do QA de design, 17/11/2026) */
+.conta__criou {
+  margin-block: var(--e-6) var(--e-4);
+  padding-block: var(--e-3) var(--e-2);
+  border-block: 1px solid color-mix(in srgb, var(--tinta) 22%, transparent);
+}
+.conta__criou .conta__criados {
+  margin-top: var(--e-1);
+}
+.conta__criou > .conta__nada {
+  margin-block: var(--e-2) var(--e-3);
+}
+
+/* A carta de Natal, para reler (P5 do QA de design, 17/11/2026) */
 .conta__carta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--e-2) var(--e-5);
-  margin-top: var(--e-7);
 }
-.conta__admin {
-  margin-top: var(--e-8);
-  padding-top: var(--e-5);
-  border-top: 1px solid var(--fio);
-}
-.conta__admin .recado {
-  margin-top: var(--e-4);
-}
-.conta__admin-lista {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--e-6);
-  margin-top: var(--e-3);
-}
-/* A cópia do acervo baixa um arquivo: linha própria, junto do tamanho do banco (resposta do Gui à P153) */
-.conta__copia {
+
+/* --- O cartão da administração ------------------------------------------------------------------ */
+
+.conta__admin-titulo {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0 var(--e-5);
+  justify-content: space-between;
+  gap: var(--e-1) var(--e-4);
   margin-bottom: var(--e-3);
+  color: var(--tinta-suave);
+}
+/* A marca do que pede ação: um ponto na cor de alerta e o texto na tinta dela */
+.conta__pendencias,
+.conta__pendente,
+.conta__atalho--pendente .ficha {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5em;
+  color: var(--alerta-tinta);
+}
+.conta__pendencias::before,
+.conta__pendente::before,
+.conta__atalho--pendente .ficha::before {
+  content: '';
+  flex: none;
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: var(--alerta);
+}
+.conta__soltas {
+  display: grid;
+  gap: var(--e-1);
+  margin-bottom: var(--e-3);
+}
+/* Os atalhos: quadros recuados numa grade que nunca deixa um sozinho na linha. O número de colunas
+   vem de colunasDosAtalhos (src/lib/conta.ts); os da última linha se esticam até fechar a grade. */
+.conta__atalhos {
+  --colunas: var(--colunas-celular, 2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+}
+.conta__atalhos[data-colunas-celular='1'] {
+  --colunas-celular: 1;
+}
+.conta__atalhos[data-colunas-celular='2'] {
+  --colunas-celular: 2;
+}
+.conta__atalhos > li {
+  flex: 1 1 calc((100% - (var(--colunas) - 1) * var(--e-2)) / var(--colunas));
+  min-width: 0;
+}
+.conta__atalho {
+  display: grid;
+  gap: 0.1em;
+  align-content: center;
+  height: 100%;
+  min-height: var(--toque);
+  padding: var(--e-3);
+  border-radius: var(--raio-moldura);
+  background: var(--papel-recuo);
+  text-decoration: none;
+}
+.conta__atalho strong {
+  font-weight: 550;
+  line-height: 1.25;
+}
+.conta__atalho .ficha {
+  color: var(--tinta-suave);
+}
+@media (hover: hover) {
+  .conta__atalho:hover strong {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
+}
+.conta__atalho:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+/* O banco como medida, a cópia mensal e "Baixar cópia do acervo" junto (P153) */
+.conta__banco {
+  display: grid;
+  gap: var(--e-2);
+  margin-top: var(--e-5);
+  padding-top: var(--e-3);
+  border-top: 1px solid var(--fio);
+}
+.conta__banco-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--e-4);
+}
+.conta__banco-linha strong {
+  font-weight: 550;
+}
+.conta__banco-linha .ficha {
+  color: var(--tinta-suave);
+}
+.conta__medida {
+  height: var(--e-2);
+  overflow: hidden;
+  border-radius: var(--raio-pilula);
+  background: var(--papel-recuo);
+}
+.conta__medida span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--vivo);
+}
+.conta__banco--aviso .conta__medida span {
+  background: var(--alerta);
+}
+.conta__banco--aviso .conta__banco-linha .ficha {
+  color: var(--alerta-tinta);
+}
+.conta__nota {
+  font-size: var(--t-pequeno);
+}
+.conta__nota.ficha {
+  color: var(--tinta-suave);
+}
+.conta__nota.conta__pendente {
+  color: var(--alerta-tinta);
+}
+.conta__banco .acao {
+  justify-self: start;
 }
 
 @media (min-width: 62rem) {
@@ -244,11 +380,21 @@
     grid-template-columns: clamp(9rem, 14vw, 15rem) minmax(0, 1fr);
     gap: var(--calha);
   }
-  /* Rascunhos e laços lado a lado; o que você criou embaixo, na largura toda */
-  .conta__partes {
+  /* Rascunhos e laços lado a lado; o nome, a faixa e os avisos na largura toda */
+  .conta__grade {
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: var(--calha);
     align-items: start;
+  }
+  .conta__grade > :is(.conta__abre, .conta__criou, .avisos--conta, .conta__carta) {
+    grid-column: 1 / -1;
+  }
+  /* Quem não administra: a carta fica no fim, como no celular; quem administra: no pé da coluna do nome */
+  .conta--admin .conta__grade > .conta__carta {
+    margin-top: 0;
+  }
+  .conta__criou {
+    margin-block: var(--e-5) 0;
   }
   .conta__rascunhos {
     grid-column: 1 / span 7;
@@ -256,9 +402,33 @@
   .conta__lacos {
     grid-column: 8 / -1;
   }
-  .conta__criou,
-  .avisos--conta {
-    grid-column: 1 / -1;
+  /* Quem administra: o cartão ao lado do nome, na mesma linha. O nome fica no alto e a carta de
+     Natal no pé da coluna, alinhada com o fim do cartão: não sobra vão acima da faixa. */
+  .conta--admin .conta__grade > .conta__abre {
+    grid-column: 1 / span 6;
+    grid-row: 1;
+  }
+  .conta--admin .conta__grade > .conta__carta {
+    grid-column: 1 / span 6;
+    grid-row: 2;
+    align-self: end;
+  }
+  .conta__grade > .conta__admin {
+    grid-column: 7 / -1;
+    grid-row: 1 / span 2;
+    margin-top: 0;
+  }
+  .conta__atalhos {
+    --colunas: var(--colunas-largo, 3);
+  }
+  .conta__atalhos[data-colunas='1'] {
+    --colunas-largo: 1;
+  }
+  .conta__atalhos[data-colunas='2'] {
+    --colunas-largo: 2;
+  }
+  .conta__atalhos[data-colunas='3'] {
+    --colunas-largo: 3;
   }
   /* As contas numa linha só, em colunas iguais. A lista aberta sai da coluna dela e toma a largura
      do cartão: recua as colunas que vêm antes (--i) e soma as que existem (--n). */

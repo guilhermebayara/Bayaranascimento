@@ -85,10 +85,18 @@ export function fraseDoAviso(a: AvisoParaTexto, nome: (id: string) => string): s
 /** O número do retrato: discreto, e "9+" a partir de dez, para não crescer no topo. */
 export const numeroDoRetrato = (pendentes: number): string | null => (pendentes <= 0 ? null : pendentes > 9 ? '9+' : String(pendentes));
 
-/** O nome acessível do retrato, com os avisos: "Sua conta, Gui, 2 avisos". */
-export function rotuloDoRetrato(nome: string, pendentes: number): string {
-  if (pendentes <= 0) return `Sua conta, ${nome}`;
-  return `Sua conta, ${nome}, ${pendentes === 1 ? '1 aviso' : `${pendentes} avisos`}`;
+/**
+ * O número do retrato soma os avisos e, para quem administra, as pendências da administração
+ * (escolha do Gui no conceito da sessão E, 17/11/2026; src/lib/conta.ts, pendenciasDaAdministracao).
+ */
+export const somaDoRetrato = (avisos: number, pendencias = 0): number => Math.max(0, avisos) + Math.max(0, pendencias);
+
+/** O nome acessível do retrato, com os avisos e as pendências: "Sua conta, Gui, 2 avisos, 1 pendência da administração". */
+export function rotuloDoRetrato(nome: string, pendentes: number, pendenciasDaAdministracao = 0): string {
+  const partes = [`Sua conta, ${nome}`];
+  if (pendentes > 0) partes.push(pendentes === 1 ? '1 aviso' : `${pendentes} avisos`);
+  if (pendenciasDaAdministracao > 0) partes.push(pendenciasDaAdministracao === 1 ? '1 pendência da administração' : `${pendenciasDaAdministracao} pendências da administração`);
+  return partes.join(', ');
 }
 
 /**

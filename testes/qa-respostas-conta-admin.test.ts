@@ -57,7 +57,8 @@ describe('sua conta', () => {
     expect(itens.map((i) => i.rotulo)).toContain('Famílias');
     expect(itens.filter((i) => i.baixar).map((i) => i.rotulo)).toEqual(['Baixar cópia do acervo']);
     expect(conta).toContain('conta.administracao.filter((item) => !item.baixar)');
-    expect(conta).toMatch(/class="conta__copia"[\s\S]*?download[\s\S]*?Banco: \{conta\.banco\}/);
+    // Desde a proposta A da sessão E, a cópia fica no pé do cartão, junto da medida do banco
+    expect(conta).toMatch(/class:list=\{\['conta__banco'[\s\S]*?\{conta\.banco\}[\s\S]*?download/);
   });
 });
 

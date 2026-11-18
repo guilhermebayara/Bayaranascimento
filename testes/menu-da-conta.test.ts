@@ -14,7 +14,7 @@ describe('menu da conta', () => {
     expect(botao).toContain('<Retrato');
     expect(botao).toContain('topo__conta-nome');
     expect(botao).toContain('topo__avisos');
-    expect(botao).toContain('rotuloDoRetrato(usuario.nome, avisosPendentes)');
+    expect(botao).toContain('rotuloDoRetrato(usuario.nome, avisosPendentes, pendenciasDaAdministracao)');
   });
 
   it('as opções, nesta ordem: Sua página, Seu círculo, Sua conta, Administração e Sair', () => {

@@ -108,22 +108,145 @@ export interface ItemDeAdministracao {
   href: string;
   /** link de baixar arquivo */
   baixar?: boolean;
+  /** a situação do item, em mono, embaixo do nome ("14 tipos", "escrita em 2026") */
+  situacao?: string;
+  /** o item pede uma ação de quem administra: ganha o ponto na cor de alerta */
+  pendencia?: boolean;
 }
 
 /**
- * "Administração", só para os administradores, numa seção à parte no fim: tipos de momento,
- * famílias, a carta de Natal, a página do sistema visual, "Baixar cópia do acervo" e, onde o espelho existe (na homologação e no
- * computador), o espelho da produção. O tamanho do banco entra como texto, à parte. Para quem não é
- * administrador, nada.
+ * O que a administração sabe do acervo, para a situação de cada item e as pendências. `fotosSoltas` e
+ * `duplicados` dependem das listas da onda 2: enquanto elas não existem, ficam `null` (indisponível).
  */
-export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar: boolean }): ItemDeAdministracao[] {
+export interface SituacaoDaAdministracao {
+  tipos: number;
+  familias: number;
+  /** a carta de Natal mais recente, ou null se ninguém escreveu */
+  carta: { escritaEm: string } | null;
+  banco?: { bytes: number; passouDoAviso: boolean };
+  /**
+   * A cópia mensal do Drive. Só a produção recebe a cópia do script: nas prévias, na homologação e no
+   * computador, `conferida` é false, e ela nunca vira pendência.
+   */
+  copiaMensal: { conferida: boolean; ultima: string | null };
+  /** fotos sem memória há mais de 30 dias (onda 2) */
+  fotosSoltas?: number | null;
+  /** possíveis cadastros duplicados (onda 2) */
+  duplicados?: number | null;
+}
+
+export type TipoDePendencia = 'carta' | 'banco' | 'copia' | 'fotos-soltas' | 'duplicados';
+
+export interface Pendencia {
+  tipo: TipoDePendencia;
+  /** a frase curta, em "Sua conta" */
+  texto: string;
+  /** onde se resolve; vazio quando se resolve fora do site (o banco e a cópia) */
+  href?: string;
+  /** quantos itens ela junta, para as listas (fotos soltas, duplicados) */
+  quantas?: number;
+}
+
+/**
+ * O prazo da cópia mensal: o script roda todo dia 1º, e passa a contar como atrasada quando a última
+ * cópia tem mais de 35 dias (um mês e uns dias de folga para o dia 1º que cai num fim de semana ou
+ * uma falha de um dia). Escolha da sessão de construção, para o Gui conferir.
+ */
+export const PRAZO_DA_COPIA_MENSAL = 35;
+
+const UM_DIA = 24 * 60 * 60 * 1000;
+
+/** "AAAA-MM-DD HH:MM:SS" do SQLite, em UTC, ou ISO: vira data. */
+const lerData = (texto: string): Date => new Date(/T/.test(texto) ? texto : `${texto.replace(' ', 'T')}Z`);
+
+/** A cópia mensal está atrasada: nunca foi feita, ou a última passou do prazo. */
+export function copiaAtrasada(ultima: string | null, hoje: Date, prazo = PRAZO_DA_COPIA_MENSAL): boolean {
+  if (!ultima) return true;
+  const quando = lerData(ultima);
+  if (Number.isNaN(quando.getTime())) return true;
+  return hoje.getTime() - quando.getTime() > prazo * UM_DIA;
+}
+
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+/** "2 set 2026", no fuso de São Paulo, como o script grava o nome do arquivo */
+export function diaDaCopia(ultima: string): string {
+  const d = new Date(lerData(ultima).getTime() - 3 * 60 * 60 * 1000);
+  return `${d.getUTCDate()} ${MESES_CURTOS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
+/** A frase da cópia mensal no cartão, ao lado do banco. */
+export function fraseDaCopiaMensal(copia: SituacaoDaAdministracao['copiaMensal'], hoje: Date): string {
+  if (!copia.conferida) return 'Cópia mensal: só na produção';
+  if (!copia.ultima) return 'Cópia mensal ainda não feita';
+  return copiaAtrasada(copia.ultima, hoje) ? `Cópia mensal atrasada: a última foi em ${diaDaCopia(copia.ultima)}` : `Última cópia mensal: ${diaDaCopia(copia.ultima)}`;
+}
+
+/** Quanto do plano gratuito o banco ocupa, de 2 a 100, para a medida. */
+export function porcentoDoBanco(bytes: number, limite: number): number {
+  return Math.max(2, Math.min(100, Math.round((bytes / limite) * 100)));
+}
+
+/**
+ * As pendências da administração (escolha do Gui no conceito da sessão E, 17/11/2026): o que pede uma
+ * ação de quem administra. Somam no número do retrato do topo e ganham a marca no cartão.
+ */
+export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>, hoje: Date): Pendencia[] {
+  const lista: Pendencia[] = [];
+  if (!s.carta) lista.push({ tipo: 'carta', texto: 'A carta de Natal ainda não foi escrita.', href: '/admin/carta' });
+  if (s.banco?.passouDoAviso) lista.push({ tipo: 'banco', texto: 'O banco está perto do limite do plano gratuito.' });
+  if (s.copiaMensal.conferida && copiaAtrasada(s.copiaMensal.ultima, hoje)) {
+    lista.push({ tipo: 'copia', texto: s.copiaMensal.ultima ? `A cópia mensal está atrasada: a última foi em ${diaDaCopia(s.copiaMensal.ultima)}.` : 'A cópia mensal ainda não foi feita.' });
+  }
+  const n = s.fotosSoltas ?? 0;
+  if (n > 0) lista.push({ tipo: 'fotos-soltas', texto: n === 1 ? 'Uma foto sem memória há mais de 30 dias.' : `${n} fotos sem memória há mais de 30 dias.`, href: '/admin/fotos-soltas', quantas: n });
+  const d = s.duplicados ?? 0;
+  if (d > 0) lista.push({ tipo: 'duplicados', texto: d === 1 ? 'Um possível cadastro duplicado.' : `${d} possíveis cadastros duplicados.`, href: '/admin/duplicados', quantas: d });
+  return lista;
+}
+
+/** "1 pendência", "2 pendências" */
+export const contaDePendencias = (n: number): string => (n === 1 ? '1 pendência' : `${n} pendências`);
+
+/**
+ * Quantas colunas têm os atalhos da administração: nunca um sozinho numa linha (escolha do Gui no
+ * conceito da sessão E). Até `maximo`, todos numa linha; acima, a maior divisão exata; sem divisão
+ * exata, a maior que deixa ao menos dois na última linha (que se esticam até fechar a grade); sem
+ * nenhuma, uma coluna só.
+ */
+export function colunasDosAtalhos(quantos: number, maximo: number): number {
+  if (quantos <= maximo) return Math.max(1, quantos);
+  for (let c = maximo; c >= 2; c--) if (quantos % c === 0) return c;
+  for (let c = maximo; c >= 2; c--) if (quantos % c >= 2) return c;
+  return 1;
+}
+
+/**
+ * "Administração", só para os administradores: tipos de momento, famílias, a carta de Natal, a página
+ * do sistema visual, "Baixar cópia do acervo" e, onde o espelho existe (na homologação e no
+ * computador), o espelho da produção. Com a situação do acervo, cada item diz a dele, e a carta por
+ * escrever ganha a marca de pendência. O banco e a cópia mensal ficam à parte, no pé do cartão. Para
+ * quem não é administrador, nada.
+ */
+export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar: boolean }, situacao?: SituacaoDaAdministracao): ItemDeAdministracao[] {
   if (!usuario.admin) return [];
+  const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
   return [
-    { rotulo: 'Tipos de momento', href: '/admin/tipos' },
-    { rotulo: 'Famílias', href: '/admin/familias' },
-    { rotulo: 'Carta de Natal', href: '/admin/carta' },
-    { rotulo: 'Sistema visual', href: '/sistema' },
+    { rotulo: 'Tipos de momento', href: '/admin/tipos', situacao: situacao && plural(situacao.tipos, 'tipo', 'tipos') },
+    { rotulo: 'Famílias', href: '/admin/familias', situacao: situacao && plural(situacao.familias, 'família', 'famílias') },
+    {
+      rotulo: 'Carta de Natal',
+      href: '/admin/carta',
+      situacao: situacao && (situacao.carta ? `escrita em ${situacao.carta.escritaEm.slice(0, 4)}` : 'ainda não escrita'),
+      pendencia: Boolean(situacao && !situacao.carta),
+    },
+    { rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },
     { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
-    ...(onde.podeEspelhar ? [{ rotulo: 'Espelho da produção', href: '/admin/espelho' }] : []),
-  ];
+    ...(onde.podeEspelhar ? [{ rotulo: 'Espelho da produção', href: '/admin/espelho', situacao: situacao && 'só na homologação' }] : []),
+  ].map((item) => {
+    const limpo: ItemDeAdministracao = { rotulo: item.rotulo, href: item.href };
+    if ('baixar' in item && item.baixar) limpo.baixar = true;
+    if (item.situacao) limpo.situacao = item.situacao;
+    if ('pendencia' in item && item.pendencia) limpo.pendencia = true;
+    return limpo;
+  });
 }

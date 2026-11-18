@@ -6,7 +6,7 @@ import { ambiente, guardarTiposDoPedido, noPedido, tiposDoPedido } from './lib/s
 import { ehNaoEncontradaSemPagina } from './lib/servidor/http';
 import { prepararBanco } from './lib/servidor/banco';
 import { respostaDaCopia } from './lib/servidor/copia';
-import { listarTipos, registrarAcesso } from './lib/servidor/repositorio';
+import { anotarCopiaMensal, listarTipos, registrarAcesso } from './lib/servidor/repositorio';
 import { lerEscolhasDe } from './lib/visual';
 
 // A cor e o rabisco de cada tipo, escolhidos em /admin/tipos, valem em toda tela do pedido
@@ -33,7 +33,11 @@ const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo)
 
   // A cópia mensal no Google Drive entra com um token de serviço, sem pessoa
   if (contexto.url.pathname === '/api/copia' && contexto.request.method === 'GET' && (await ehServicoDeCopia(contexto.request))) {
-    return respostaDaCopia();
+    const resposta = await respostaDaCopia();
+    // A data da última cópia mensal, para a pendência "cópia mensal atrasada" em "Sua conta".
+    // Anotar não pode impedir a cópia de chegar ao Drive.
+    await anotarCopiaMensal().catch(() => undefined);
+    return resposta;
   }
 
   const usuario = await usuarioDoPedido(contexto.request);

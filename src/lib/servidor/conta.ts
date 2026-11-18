@@ -1,7 +1,8 @@
 // "Sua conta": junta, para quem está logado, as listas de src/lib/conta.ts. A tela é src/pages/conta.astro.
-import { administracao, fraseDaLixeira, oQueVoceCriou, seusLacos, seusRascunhos, suaLixeira } from '../conta';
+import { administracao, fraseDaLixeira, oQueVoceCriou, pendenciasDaAdministracao, seusLacos, seusRascunhos, suaLixeira, type SituacaoDaAdministracao } from '../conta';
 import { emMegabytes, LIMITE_DO_PLANO, situacaoDoBanco } from '../tamanho-do-banco';
 import { lerAcessos, semLogin } from './acesso';
+import { ambiente } from './ambiente';
 import { podeEspelhar } from './espelho';
 import { podeExcluirMemoria, type Usuario } from './permissoes';
 import {
@@ -11,9 +12,37 @@ import {
   listarIntegrantes,
   listarLacosDoCoracao,
   listarMemorias,
+  listarNucleos,
   listarRelatosRegistradosPor,
+  listarTipos,
+  obterCarta,
   tamanhoDoBanco,
+  ultimaCopiaMensal,
 } from './repositorio';
+
+/**
+ * O que gera as pendências da administração: a carta, o banco e a cópia mensal. Só a produção recebe a
+ * cópia do script do Drive, e só lá ela é conferida. As fotos soltas e os cadastros duplicados entram
+ * quando as listas existirem (onda 2): até lá, null.
+ */
+async function situacaoDasPendencias(): Promise<Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>> {
+  const conferida = ambiente() === 'producao';
+  const [carta, bytes, ultima] = await Promise.all([obterCarta(), tamanhoDoBanco(), conferida ? ultimaCopiaMensal() : Promise.resolve(null)]);
+  const banco = situacaoDoBanco(bytes);
+  return {
+    carta: carta ? { escritaEm: carta.escritaEm } : null,
+    banco: banco && { bytes: banco.bytes, passouDoAviso: banco.passouDoAviso },
+    copiaMensal: { conferida, ultima },
+    fotosSoltas: null,
+    duplicados: null,
+  };
+}
+
+/** Quantas pendências da administração somam no número do retrato do topo: só para quem administra. */
+export async function contarPendenciasDaAdministracao(usuario: Usuario): Promise<number> {
+  if (!usuario.admin) return 0;
+  return pendenciasDaAdministracao(await situacaoDasPendencias(), new Date()).length;
+}
 
 /** O e-mail com que a pessoa entra. Fora da produção não há login, e não há e-mail. Só os administradores mudam. */
 function emailDe(pessoa: string): string | undefined {
@@ -34,7 +63,11 @@ export async function montarConta(usuario: Usuario) {
     listarIntegrantes(),
   ]);
   const minhaLixeira = suaLixeira(eu, excluidas);
-  const banco = usuario.admin ? situacaoDoBanco(await tamanhoDoBanco()) : undefined;
+  const situacao: SituacaoDaAdministracao | undefined = usuario.admin
+    ? { ...(await situacaoDasPendencias()), tipos: (await listarTipos()).length, familias: (await listarNucleos()).length }
+    : undefined;
+  const banco = situacao?.banco ? situacaoDoBanco(situacao.banco.bytes) : undefined;
+  const hoje = new Date();
   return {
     /** "Seus dados e sua página": editáveis em /pessoas/<id>/editar; a página como os outros veem, em /pessoas/<id> */
     dados: integrantes.find((i) => i.id === eu),
@@ -45,7 +78,11 @@ export async function montarConta(usuario: Usuario) {
     fraseDaLixeira: fraseDaLixeira(usuario.admin, usuario.admin ? excluidas.filter((m) => podeExcluirMemoria(usuario, m).ok).length + (await listarCapitulosExcluidos(usuario)).length : minhaLixeira.length),
     criou: oQueVoceCriou(eu, { memorias: publicadas, relatos, capitulos }),
     lacos: seusLacos(eu, lacos),
-    administracao: administracao(usuario, { podeEspelhar: podeEspelhar() }),
+    administracao: administracao(usuario, { podeEspelhar: podeEspelhar() }, situacao),
+    /** a situação do acervo para a administração, e o que dela pede ação (src/lib/conta.ts) */
+    situacao,
+    pendencias: situacao ? pendenciasDaAdministracao(situacao, hoje) : [],
+    hoje,
     /** o título de cada memória que a pessoa vê, para dizer de qual memória é um relato */
     titulos: new Map([...publicadas, ...rascunhos].map((m) => [m.id, m.titulo])),
     integrantes,

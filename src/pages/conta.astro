@@ -1,8 +1,12 @@
 ---
 // "Sua conta" (docs/decisoes.md): a página de cada pessoa para cuidar do que é dela. O painel é o
-// lugar de chegar e ver o que é novo; a conta, o de cuidar das próprias coisas. A ideia da tela
-// (docs/visual.md): o retrato, o nome e os dados no alto e as coisas dela em ordem (rascunhos, laços
-// do coração, o que criou). A administração fica no fim, só para quem administra.
+// lugar de chegar e ver o que é novo; a conta, o de cuidar das próprias coisas. Composição da
+// proposta A do conceito da sessão E (escolha do Gui, 17/11/2026; docs/visual.md, "Sua conta"): no
+// desktop, para quem administra, o cartão da administração ao lado do nome, com a carta de Natal no
+// pé da coluna do nome; "O que você criou" numa faixa de largura toda logo abaixo; depois os avisos,
+// e rascunhos e laços lado a lado. No celular: quem é, o que criou, avisos, rascunhos, laços, carta
+// e, no fim, a administração. A marcação segue a ordem do celular (é também a do teclado e do leitor
+// de tela); no desktop, a grade põe a administração e a carta no alto.
 // As listas vêm de montarConta (src/lib/servidor/conta.ts), com as regras em src/lib/conta.ts.
 import '../visual/telas/painel.css';
 import '../visual/telas/conta.css';
@@ -12,7 +16,8 @@ import Carimbo from '../components/visual/Carimbo.astro';
 import Gente from '../components/visual/Gente.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
-import { oComeco } from '../lib/conta';
+import { colunasDosAtalhos, contaDePendencias, fraseDaCopiaMensal, oComeco, porcentoDoBanco } from '../lib/conta';
+import { LIMITE_DO_PLANO } from '../lib/tamanho-do-banco';
 import { formatarData, jaFaleceu } from '../lib/datas';
 import { familiaMaisRecente } from '../lib/familias';
 import { PROXIMIDADES, lacoParaODono } from '../lib/parentesco';
@@ -61,6 +66,17 @@ const dados = [nascimento, chamado, conta.email && `e-mail de acesso: ${conta.em
 // "Baixar cópia do acervo" baixa um arquivo: fica à parte dos links que abrem página, junto do tamanho do banco (P153)
 const paginasDaAdministracao = conta.administracao.filter((item) => !item.baixar);
 const copia = conta.administracao.find((item) => item.baixar);
+const admin = conta.administracao.length > 0;
+// As pendências da administração: a carta marca o atalho dela; o banco e a cópia mensal, o pé do
+// cartão; as outras (fotos soltas e duplicados, na onda 2) entram numa lista no alto do cartão
+const { pendencias, situacao } = conta;
+const pendenciaDo = (tipo: string) => pendencias.find((p) => p.tipo === tipo);
+const pendenciasSoltas = pendencias.filter((p) => !['carta', 'banco', 'copia'].includes(p.tipo) && !paginasDaAdministracao.some((i) => i.href === p.href));
+// Os atalhos nunca deixam um sozinho numa linha (colunasDosAtalhos)
+const colunas = colunasDosAtalhos(paginasDaAdministracao.length, 3);
+const colunasNoCelular = colunasDosAtalhos(paginasDaAdministracao.length, 2);
+const bancoPorcento = situacao?.banco ? porcentoDoBanco(situacao.banco.bytes, LIMITE_DO_PLANO) : 0;
+const copiaMensal = situacao ? fraseDaCopiaMensal(situacao.copiaMensal, conta.hoje) : undefined;
 // Os avisos: a lista e o histórico (docs/decisoes.md, "Avisos")
 const todosOsAvisos = await listarAvisos(usuario, { historico: true });
 const avisosPendentes = todosOsAvisos.filter((a) => !a.resolvidoEm);
@@ -70,106 +86,33 @@ const erro = Astro.url.searchParams.get('erro');
 ---
 
 <Visual titulo="Sua conta" secao="conta" familia={cor} intimo>
-  <div class="conta miolo">
+  <div class:list={['conta', 'miolo', { 'conta--admin': admin }]}>
     {(ok || erro) && <Recado erro={Boolean(erro)}>{erro ?? ok}</Recado>}
-    <header class="conta__abre">
-      <div class="conta__retrato">
-        <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={cor} cedo />
-      </div>
-      <div class="conta__quem">
-        <p class="rotulo suave">Sua conta · só você vê esta página</p>
-        <h1 class="t-1">{eu?.nome ?? usuario.nome}</h1>
-        {dados.length > 0 && <p class="conta__dados ficha suave">{dados.join(' · ')}</p>}
-        {!eu && <p class="conta__dados suave">Você entra no acervo, mas ainda não tem uma página de pessoa.</p>}
-        {conta.email && <p class="conta__dados conta__dica suave">Só os administradores mudam o e-mail de acesso.</p>}
-        {/* Aprovado pelo Gui em 17/11/2026 (pergunta 5 do PR do grupo "pessoal"): os dados são editados na tela de editar a página, que é do grupo 4 */}
-        <p class="conta__acoes">
-          <a class="botao" href={`/pessoas/${usuario.pessoa}/editar`}>
-            Editar seus dados
-          </a>
-          <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
-            Ver sua página
-          </a>
-        </p>
-      </div>
-    </header>
+    <div class="conta__grade">
+      <header class="conta__abre">
+        <div class="conta__retrato">
+          <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={cor} cedo />
+        </div>
+        <div class="conta__quem">
+          <p class="rotulo suave">Sua conta · só você vê esta página</p>
+          <h1 class="t-1">{eu?.nome ?? usuario.nome}</h1>
+          {dados.length > 0 && <p class="conta__dados ficha suave">{dados.join(' · ')}</p>}
+          {!eu && <p class="conta__dados suave">Você entra no acervo, mas ainda não tem uma página de pessoa.</p>}
+          {conta.email && <p class="conta__dados conta__dica suave">Só os administradores mudam o e-mail de acesso.</p>}
+          {/* Aprovado pelo Gui em 17/11/2026 (pergunta 5 do PR do grupo "pessoal"): os dados são editados na tela de editar a página, que é do grupo 4 */}
+          <p class="conta__acoes">
+            <a class="botao" href={`/pessoas/${usuario.pessoa}/editar#ficha`}>
+              Editar seus dados
+            </a>
+            <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
+              Ver sua página
+            </a>
+          </p>
+        </div>
+      </header>
 
-    <div class="conta__partes">
-      <Avisos avisos={avisosPendentes} historico={avisosVistos} onde="conta" />
-      <section class="cartao conta__rascunhos" aria-labelledby="rascunhos">
-        <h2 class="cartao__titulo rotulo" id="rascunhos">
-          Rascunhos e lixeira
-        </h2>
-        {
-          quantosRascunhos === 0 ? (
-            <p class="conta__nada serifa">Você não tem rascunhos.</p>
-          ) : (
-            <ul class="conta__lista">
-              {rascunhos.memorias.map((m) => (
-                <li>
-                  <a class="conta__item" href={`/nova?id=${m.id}`}>
-                    <strong>{m.titulo}</strong>
-                    <span class="ficha suave">Memória · {carimboDaData(m)}</span>
-                  </a>
-                </li>
-              ))}
-              {rascunhos.relatos.map((r) => (
-                <li>
-                  <a class="conta__item" href={`/memorias/${r.memoriaId}/relato`}>
-                    <strong>{titulo(r.memoriaId)}</strong>
-                    <span class="ficha suave">{r.por === usuario.pessoa ? 'Relato em andamento' : `Relato de ${nome(r.por)}, em andamento`}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )
-        }
-        <p class="conta__pe">
-          <span class="suave">
-            {/* Quem administra lê a conta do que a lixeira mostra (P152) */}
-            {conta.fraseDaLixeira}
-          </span>
-          <a class="acao" href="/lixeira">
-            Abrir a lixeira
-          </a>
-        </p>
-      </section>
-
-      <section class="cartao conta__lacos" aria-labelledby="lacos">
-        <h2 class="cartao__titulo rotulo" id="lacos">
-          Seus laços do coração
-        </h2>
-        {
-          lacos.length === 0 ? (
-            <p class="conta__nada serifa">Você ainda não tem laços do coração.</p>
-          ) : (
-            <ul class="conta__gente">
-              {lacos.map((l) => (
-                <li>
-                  <Gente
-                    href={`/pessoas/${l.pessoa}`}
-                    nome={nome(l.pessoa)}
-                    foto={retratoDe(l.pessoa)}
-                    familia={familiaDe(l.pessoa)}
-                    laco={lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null)}
-                    detalhe={[l.proximidade ? PROXIMIDADES[l.proximidade]!.toLowerCase() : '', l.privado ? 'só você vê' : ''].filter(Boolean).join(' · ')}
-                    falecido={Boolean(achar(l.pessoa) && jaFaleceu(achar(l.pessoa)!))}
-                  />
-                </li>
-              ))}
-            </ul>
-          )
-        }
-        <p class="conta__pe">
-          {lacos.length > 0 && <span class="suave">A proximidade só você vê.</span>}
-          <a class="acao" href={`/pessoas/${usuario.pessoa}/editar#lacos`}>
-            {lacos.length > 0 ? 'Editar seus laços' : 'Adicionar laço'}
-          </a>
-        </p>
-      </section>
-
-      <section class="cartao conta__criou" aria-labelledby="criou">
-        <h2 class="cartao__titulo rotulo" id="criou">
+      <section class="conta__criou" aria-labelledby="criou">
+        <h2 class="rotulo suave" id="criou">
           O que você criou
         </h2>
         {
@@ -253,49 +196,138 @@ const erro = Astro.url.searchParams.get('erro');
           })}
         </div>
       </section>
-    </div>
-
-    {
-      carta && (
-        <p class="conta__carta">
-          <Carimbo itens={[`Natal de ${carta.escritaEm.slice(0, 4)}`]} />
-          <a class="acao" href="/carta">
-            Ler a carta de Natal
+      <Avisos avisos={avisosPendentes} historico={avisosVistos} onde="conta" />
+      <section class="cartao conta__rascunhos" aria-labelledby="rascunhos">
+        <h2 class="cartao__titulo rotulo" id="rascunhos">
+          Rascunhos e lixeira
+        </h2>
+        {
+          quantosRascunhos === 0 ? (
+            <p class="conta__nada serifa">Você não tem rascunhos.</p>
+          ) : (
+            <ul class="conta__lista">
+              {rascunhos.memorias.map((m) => (
+                <li>
+                  <a class="conta__item" href={`/nova?id=${m.id}`}>
+                    <strong>{m.titulo}</strong>
+                    <span class="ficha suave">Memória · {carimboDaData(m)}</span>
+                  </a>
+                </li>
+              ))}
+              {rascunhos.relatos.map((r) => (
+                <li>
+                  <a class="conta__item" href={`/memorias/${r.memoriaId}/relato`}>
+                    <strong>{titulo(r.memoriaId)}</strong>
+                    <span class="ficha suave">{r.por === usuario.pessoa ? 'Relato em andamento' : `Relato de ${nome(r.por)}, em andamento`}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+        <p class="conta__pe">
+          <span class="suave">
+            {/* Quem administra lê a conta do que a lixeira mostra (P152) */}
+            {conta.fraseDaLixeira}
+          </span>
+          <a class="acao" href="/lixeira">
+            Abrir a lixeira
           </a>
         </p>
-      )
-    }
+      </section>
 
-    {
-      conta.administracao.length > 0 && (
-        <section class="conta__admin" aria-labelledby="administracao">
-          <h2 class="rotulo suave" id="administracao">
-            Administração
-          </h2>
-          {conta.bancoEmAviso && (
-            <Recado erro>
-              O banco do acervo está com {conta.banco}, perto do limite do plano gratuito. A saída combinada é o plano Workers Paid (10 GB por banco). Veja "Custo" no documento de estrutura.
-            </Recado>
-          )}
-          <ul class="conta__admin-lista">
-            {paginasDaAdministracao.map((item) => (
-              <li>
-                <a class="acao" href={item.href}>
-                  {item.rotulo}
-                </a>
-              </li>
-            ))}
-          </ul>
-          <p class="conta__copia">
-            {copia && (
-              <a class="acao" href={copia.href} download>
-                {copia.rotulo}
-              </a>
-            )}
-            {conta.banco && <span class="ficha suave">Banco: {conta.banco}</span>}
+      <section class="cartao conta__lacos" aria-labelledby="lacos">
+        <h2 class="cartao__titulo rotulo" id="lacos">
+          Seus laços do coração
+        </h2>
+        {
+          lacos.length === 0 ? (
+            <p class="conta__nada serifa">Você ainda não tem laços do coração.</p>
+          ) : (
+            <ul class="conta__gente">
+              {lacos.map((l) => (
+                <li>
+                  <Gente
+                    href={`/pessoas/${l.pessoa}`}
+                    nome={nome(l.pessoa)}
+                    foto={retratoDe(l.pessoa)}
+                    familia={familiaDe(l.pessoa)}
+                    laco={lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null)}
+                    detalhe={[l.proximidade ? PROXIMIDADES[l.proximidade]!.toLowerCase() : '', l.privado ? 'só você vê' : ''].filter(Boolean).join(' · ')}
+                    falecido={Boolean(achar(l.pessoa) && jaFaleceu(achar(l.pessoa)!))}
+                  />
+                </li>
+              ))}
+            </ul>
+          )
+        }
+        <p class="conta__pe">
+          {lacos.length > 0 && <span class="suave">A proximidade só você vê.</span>}
+          <a class="acao" href={`/pessoas/${usuario.pessoa}/editar#lacos`}>
+            {lacos.length > 0 ? 'Editar seus laços' : 'Adicionar laço'}
+          </a>
+        </p>
+      </section>
+
+
+      {
+        carta && (
+          <p class="conta__carta">
+            <Carimbo itens={[`Natal de ${carta.escritaEm.slice(0, 4)}`]} />
+            <a class="acao" href="/carta">
+              Ler a carta de Natal
+            </a>
           </p>
-        </section>
-      )
-    }
+        )
+      }
+
+      {
+        admin && (
+          <section class="cartao conta__admin" aria-labelledby="administracao">
+            <h2 class="conta__admin-titulo" id="administracao">
+              <span class="rotulo">Administração</span>
+              {pendencias.length > 0 && <span class="conta__pendencias ficha">{contaDePendencias(pendencias.length)}</span>}
+            </h2>
+            {pendenciasSoltas.length > 0 && (
+              <ul class="conta__soltas">
+                {pendenciasSoltas.map((p) => (
+                  <li>{p.href ? <a class="conta__pendente" href={p.href}>{p.texto}</a> : <span class="conta__pendente">{p.texto}</span>}</li>
+                ))}
+              </ul>
+            )}
+            <ul class="conta__atalhos" data-colunas={colunas} data-colunas-celular={colunasNoCelular}>
+              {paginasDaAdministracao.map((item) => (
+                <li>
+                  <a class:list={['conta__atalho', { 'conta__atalho--pendente': item.pendencia }]} href={item.href}>
+                    <strong>{item.rotulo}</strong>
+                    {item.situacao && <span class="ficha">{item.situacao}</span>}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <div class:list={['conta__banco', { 'conta__banco--aviso': conta.bancoEmAviso }]}>
+              {conta.banco && (
+                <>
+                  <p class="conta__banco-linha">
+                    <strong>Banco do acervo</strong>
+                    <span class="ficha">{conta.banco}</span>
+                  </p>
+                  <div class="conta__medida" role="img" aria-label={`Banco: ${conta.banco}`}>
+                    <span style={`width: ${bancoPorcento}%`} />
+                  </div>
+                  {conta.bancoEmAviso && <p class="conta__nota">Perto do limite do plano gratuito. A saída combinada é o plano Workers Paid.</p>}
+                </>
+              )}
+              {copiaMensal && <p class:list={['conta__nota', 'ficha', { 'conta__pendente': Boolean(pendenciaDo('copia')) }]}>{copiaMensal}</p>}
+              {copia && (
+                <a class="acao" href={copia.href} download>
+                  {copia.rotulo}
+                </a>
+              )}
+            </div>
+          </section>
+        )
+      }
+    </div>
   </div>
 </Visual>

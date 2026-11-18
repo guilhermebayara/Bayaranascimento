@@ -15,6 +15,8 @@ O site é fechado pelo Cloudflare Access, então o script entra com um **token d
 
 O token pode ser revogado a qualquer momento no Zero Trust, e a cópia para na hora.
 
+Cada vez que o script baixa a cópia, o site anota a data (tabela `copias_mensais`). Em "Sua conta", os administradores veem a data da última cópia mensal, e ela vira pendência quando passa de 35 dias ou nunca foi feita. O script não precisou mudar para isso.
+
 ## Instalação
 
 ### 1. Token de serviço (Zero Trust)

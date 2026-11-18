@@ -64,7 +64,7 @@ describe('"Sair" só onde há login (P4)', () => {
 describe('a carta mora também em "Sua conta" (P5)', () => {
   it('para todos, com o carimbo do Natal, quando a carta existe', () => {
     const conta = ler('src/pages/conta.astro');
-    const trecho = conta.slice(conta.indexOf('carta && ('), conta.indexOf('conta.administracao.length > 0'));
+    const trecho = conta.slice(conta.indexOf('carta && ('), conta.indexOf('admin && ('));
     expect(trecho).toMatch(/<Carimbo itens=\{\[`Natal de \$\{carta\.escritaEm\.slice\(0, 4\)\}`\]\} \/>/);
     expect(trecho).toMatch(/href="\/carta"/);
     expect(trecho).not.toContain('admin');

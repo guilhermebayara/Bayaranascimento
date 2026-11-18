@@ -35,7 +35,7 @@ Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso 
 | Capítulo | Abertura de capítulo de livro: título, período, marcos numerados | Edição |
 | Árvore | As famílias em cor, cartões como etiquetas com nome e parentesco | Camadas e controles |
 | Formulários | Uma pergunta por tela, grande, em serifa, como quem conversa | A trilha das etapas |
-| Sua conta | O retrato e o nome da pessoa no alto, e as coisas dela em ordem: dados, rascunhos, o que criou, laços | A administração, no fim, só para quem administra |
+| Sua conta | O retrato e o nome da pessoa no alto, e as coisas dela em ordem: dados, o que criou, avisos, rascunhos, laços | A administração, ao lado do nome no desktop e no fim no celular, só para quem administra |
 | Rascunhos, lixeira, administração | Utilitário e silencioso | Tudo |
 
 ### Decisões
@@ -356,8 +356,9 @@ A regra de cada tela como ela é hoje. O comportamento (o que aparece, para quem
 `/conta`, `telas/conta.css` (mais `telas/painel.css` pelo cartão). Página íntima, na cor da família da pessoa.
 
 - No alto, o retrato em arco, o nome, a linha em mono com apelido, nascimento e e-mail (só o que existe), "Editar seus dados" e "Ver sua página".
-- Os cartões, nesta ordem: **Avisos** (na largura toda), **Rascunhos e lixeira** (os rascunhos de memória e de relato, a conta do que é seu na lixeira e "Abrir a lixeira"), **Seus laços do coração** (com a proximidade) e **O que você criou**, que na tela grande ocupa a largura toda, com as contas em tamanho de título de parte numa linha só ("24 memórias", "19 relatos"); cada lista abre no lugar, uma por vez, sem script.
-- No fim, **Administração**, só para quem administra, com o tamanho do banco, que vira recado quando passa do aviso.
+- Composição da proposta A do conceito da sessão E (escolha do Gui, 17/11/2026; capturas em `docs/visual/sessao-e/conta/`). No desktop, para quem administra, o cartão **Administração** ocupa a metade direita, ao lado do nome, e a carta de Natal ("Natal de 2026 · Ler a carta de Natal") fica no pé da coluna do nome, alinhada com o fim do cartão. Logo abaixo, **O que você criou** é uma faixa sem cartão, entre dois fios, na largura toda, com as contas em tamanho de título de parte numa linha só; cada lista abre no lugar, uma por vez, sem script. Depois, **Avisos** na largura toda, e **Rascunhos e lixeira** e **Seus laços do coração** lado a lado. Quem não administra vê o nome na largura toda, a faixa logo abaixo e a carta no fim.
+- No celular: quem é, o que criou, avisos, rascunhos, laços, a carta e, no fim, a administração, como cartão. A marcação segue essa ordem.
+- O cartão da administração: o rótulo e, à direita, a conta das pendências com o ponto na cor de alerta. Os atalhos são quadros recuados (`--papel-recuo`, `--raio-moldura`), com o nome e a situação em mono; os da última linha se esticam até fechar a grade, e nenhum fica sozinho numa linha. O que pede ação tem o ponto e a tinta de alerta. No pé, depois de um fio, o banco como medida (`--vivo`; perto do limite, `--alerta`, com a frase curta), a linha da cópia mensal em mono e "Baixar cópia do acervo".
 - Os textos da conta, da pessoa e da administração ficam como estão ("Sua conta", "Administração", "Voltar para a sua conta", "Confira antes de confirmar. Nada é apagado de vez.").
 
 ### Explorar

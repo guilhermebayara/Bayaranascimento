@@ -1508,6 +1508,19 @@ export async function obterCarta(): Promise<Carta | undefined> {
   return r ? { texto: r.texto!, assinatura: r.assinatura!, escritaPor: r.escrita_por!, escritaEm: r.escrita_em! } : undefined;
 }
 
+// --- Cópia mensal (migração 060; regras em src/lib/conta.ts, copiaAtrasada) ---
+
+/** O script do Drive baixou a cópia com o token de serviço: anota o momento. */
+export async function anotarCopiaMensal(): Promise<void> {
+  await db().prepare('INSERT INTO copias_mensais DEFAULT VALUES').run();
+}
+
+/** Quando o script do Drive baixou a cópia pela última vez ("AAAA-MM-DD HH:MM:SS", em UTC), ou null se nunca. */
+export async function ultimaCopiaMensal(): Promise<string | null> {
+  const r = await db().prepare('SELECT feita_em FROM copias_mensais ORDER BY id DESC LIMIT 1').first<{ feita_em: string }>();
+  return r?.feita_em ?? null;
+}
+
 /** Cada versão salva da carta é uma linha nova: a anterior fica guardada. */
 export async function salvarCarta(texto: string, assinatura: string, usuario: Usuario): Promise<void> {
   await db().prepare('INSERT INTO cartas (texto, assinatura, escrita_por) VALUES (?, ?, ?)').bind(texto, assinatura, usuario.pessoa).run();
