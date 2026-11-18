@@ -34,3 +34,25 @@ describe('compartilhar como imagem', () => {
     expect(pagina).toContain('listarRelatos(usuario, memoria.id)');
   });
 });
+
+// Observação do Gui (18/11/2026): o nome de quem contou passava por cima da assinatura. A assinatura sai, o
+// monograma entra como marca d'água leve, e o trecho perde linhas antes de chegar à margem de baixo.
+describe('a imagem depois da observação do Gui', async () => {
+  const { linhasQueCabem } = await import('../src/lib/cliente/compartilhar');
+  const desenho = readFileSync('src/lib/cliente/compartilhar.ts', 'utf-8');
+  it('sem a assinatura com o nome do site, e com o monograma leve, atrás', () => {
+    expect(desenho).not.toContain('d.assinatura');
+    expect(desenho).toContain('ctx.globalAlpha = 0.07;');
+    expect(desenho.indexOf('new Path2D(m.d)')).toBeLessThan(desenho.indexOf('A foto revelada'));
+    expect(readFileSync('src/pages/memorias/[id]/compartilhar.astro', 'utf-8')).toContain('monograma: MONOGRAMAS[FONTES_DO_SITE.serifa].normal');
+  });
+  it('o trecho e o nome de quem contou nunca passam da margem de baixo', () => {
+    const [A, margem, linha, nome] = [1920, 96, 54, 90];
+    for (let y = 1300; y <= 1820; y += 10) {
+      const n = linhasQueCabem(y, A - margem, linha, nome);
+      expect(n).toBeLessThanOrEqual(4);
+      if (n > 0) expect(y + n * linha + 16).toBeLessThanOrEqual(A - margem);
+    }
+    expect(linhasQueCabem(1300, 1824, 54, 90)).toBe(4);
+  });
+});

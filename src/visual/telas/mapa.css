@@ -156,19 +156,21 @@
   line-height: 1;
   text-decoration: none;
 }
-/* As duas ações na mesma linha: "Ver a página" à esquerda e a outra, mais quieta, à direita */
-.pm__ficha a,
-.pm__ficha [data-partir] {
+/* As ações numa linha: "Ver a página" e "Ver o laço" à esquerda e "Ver a árvore de Fulano", mais
+   quieta, à direita. Sem espaço, a linha quebra, e nada fica por cima de nada. */
+.pm__ficha-acoes {
+  display: flex;
+  flex-wrap: wrap;
   grid-row: 3;
   grid-column: 1 / -1;
-}
-.pm__ficha a {
-  justify-self: start;
+  align-items: center;
+  gap: 0 var(--e-4);
+  min-width: 0;
 }
 .pm__ficha [data-partir] {
   display: block;
-  justify-self: end;
-  max-width: calc(100% - 8rem);
+  max-width: 100%;
+  margin-left: auto;
   margin-right: var(--e-3);
   overflow: hidden;
   color: var(--tinta-suave);

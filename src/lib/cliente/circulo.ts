@@ -171,7 +171,9 @@ export function montarCirculo(raiz: HTMLElement): void {
     pontas.setAttribute('aria-hidden', 'true');
     pontas.append(Object.assign(document.createElement('span'), { textContent: 'Perto' }), Object.assign(document.createElement('span'), { textContent: 'Fora do círculo' }));
     campo.append(Object.assign(document.createElement('span'), { textContent: 'Proximidade' }), document.createElement('output'), slider, pontas);
-    ficha.replaceChildren(retrato, nome, quem, pagina, campo, fechar);
+    const acoes = Object.assign(document.createElement('div'), { className: 'pm__ficha-acoes' });
+    acoes.append(pagina);
+    ficha.replaceChildren(retrato, nome, quem, acoes, campo, fechar);
     refletirNaFicha();
     slider.addEventListener('input', () => {
       por(botao, Number(slider.value));

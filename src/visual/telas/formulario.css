@@ -2015,10 +2015,15 @@
 }
 
 /* A ficha fechada: o retrato, o nome, o resumo em mono e o começo de "Sobre", com "Editar a ficha".
-   No celular a ação desce para baixo do texto; a partir de 40rem fica na linha, à direita. */
+   No celular a ação desce para baixo do texto; a partir de 40rem fica na linha, à direita. O retrato tem
+   a largura do retrato dos laços (.laco__quem), e o cartão a largura dos cartões dos laços, para o nome
+   da ficha cair na mesma linha vertical dos nomes de baixo (observação do Gui de 18/11/2026). */
+.pagina-de-formulario {
+  --retrato-da-lista: 3rem;
+}
 .pagina-de-formulario :is(.cartao-da-ficha > summary, .cartao-da-ficha__linha) {
   display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr);
+  grid-template-columns: var(--retrato-da-lista) minmax(0, 1fr);
   align-items: center;
   gap: var(--e-1) var(--e-4);
   list-style: none;
@@ -2080,7 +2085,7 @@
 }
 @media (min-width: 40rem) {
   .pagina-de-formulario :is(.cartao-da-ficha > summary, .cartao-da-ficha__linha) {
-    grid-template-columns: 4rem minmax(0, 1fr) auto;
+    grid-template-columns: var(--retrato-da-lista) minmax(0, 1fr) auto;
   }
   .pagina-de-formulario .cartao-da-ficha__retrato {
     grid-row: auto;
@@ -2127,7 +2132,7 @@
 }
 .pagina-de-formulario .laco__quem {
   display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr);
+  grid-template-columns: var(--retrato-da-lista) minmax(0, 1fr);
   align-items: center;
   gap: var(--e-4);
   min-height: 3.75rem;
@@ -2243,9 +2248,6 @@
 @media (min-width: 100rem) {
   .pagina-de-formulario .editar-pessoa {
     max-width: none;
-  }
-  .pagina-de-formulario .ficha-da-pessoa {
-    max-width: var(--coluna);
   }
   .pagina-de-formulario .grupos-de-lacos {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -52,6 +52,11 @@
   gap: 0 var(--e-5);
   margin-top: var(--e-5);
 }
+/* Reagir à memória: logo abaixo das ações do alto, puxado para a margem, porque o toque já tem o respiro dele */
+.abre__reagir {
+  margin-top: var(--e-3);
+  margin-left: calc(var(--e-2) * -1);
+}
 .abre__foto {
   width: 74%;
   margin-inline: auto;
@@ -626,73 +631,19 @@ html:has(.galeria[open]) {
   font-size: var(--t-pequeno);
 }
 
-/* --- Reações (onda 2, src/lib/reacoes.ts): os quatro rabiscos embaixo do relato e de cada foto -------
-   Cada símbolo é um botão de toque inteiro (44 px), com a conta ao lado. O meu fica cheio, na cor viva.
-   "Quem marcou" abre os nomes no lugar. Desenho de primeira rodada, para o acabamento. */
-.reacoes {
-  display: grid;
-  gap: var(--e-1);
+/* As reações e o menu (as peças Reacoes e MenuDeAcoes, em pecas.css) no pé do bilhete e de cada foto da
+   parede. O toque de 44 px já dá o respiro: a linha encosta na margem, puxada pelo meio círculo. */
+.parede .acoes-do-item {
+  margin-top: var(--e-2);
+}
+.bilhete .acoes-do-item {
   margin-top: var(--e-3);
-}
-.reacoes__simbolos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--e-1);
-}
-.reacao {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--e-1);
-  min-width: var(--toque);
-  min-height: var(--toque);
-  padding-inline: var(--e-2);
-  border: 1px solid transparent;
-  border-radius: var(--raio-pilula);
-  background: transparent;
-  color: var(--tinta-suave);
-  font-family: var(--mono);
-  font-size: var(--t-ficha);
-  cursor: pointer;
-}
-.reacao .icone {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-.reacao:hover {
-  border-color: var(--fio);
-  color: var(--tinta);
-}
-.reacao--minha {
-  border-color: var(--vivo);
-  background: var(--pastel);
-  color: var(--tinta);
-}
-.reacao:active {
-  translate: 0 1px;
-}
-.reacoes__quem ul {
-  display: grid;
-  gap: var(--e-1);
-  margin-top: var(--e-2);
-  padding: 0;
-  font-size: var(--t-pequeno);
-  list-style: none;
-}
-.reacoes__quem li {
-  display: flex;
-  align-items: center;
-  gap: var(--e-2);
-}
-.reacoes__quem .icone {
-  flex: none;
-  width: 1rem;
-  height: 1rem;
-}
-.parede .reacoes {
-  margin-top: var(--e-2);
+  margin-inline: calc(var(--e-2) * -1);
 }
 /* Depois de "eu estava lá": a oferta de entrar em Quem estava, numa linha */
+.entrar-em-quem-estava[hidden] {
+  display: none;
+}
 .entrar-em-quem-estava {
   display: flex;
   flex-wrap: wrap;
@@ -702,4 +653,12 @@ html:has(.galeria[open]) {
   padding: var(--e-3) var(--e-4);
   border-radius: var(--raio-moldura);
   background: var(--papel-recuo);
+}
+
+/* O bilhete ou a foto com um menu, uma paleta de reações ou a lista de quem marcou aberta fica por cima
+   dos vizinhos: cada bilhete e cada foto é um objeto pousado, com camada própria, e a lista aberta
+   ficava por baixo do bilhete seguinte */
+:is(.bilhete, .parede > li, .abre__texto):has(details[open]) {
+  position: relative;
+  z-index: 8;
 }

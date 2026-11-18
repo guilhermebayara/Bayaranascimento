@@ -42,6 +42,7 @@ import { Familia, possessivo, type Tratamento } from '../lib/parentesco';
 import { enderecoDoRetrato } from '../lib/retratos';
 import { semLogin } from '../lib/servidor/acesso';
 import {
+  comoOsExesAparecem,
   familiasDe,
   listarCasais,
   listarFiliacoes,
@@ -146,7 +147,9 @@ const hoje = diaPedido() ?? hojeNoBrasil(agora);
 const ultimaVisita = chegada.novidadesDesde ? hojeNoBrasil(new Date(`${chegada.novidadesDesde.replace(' ', 'T')}Z`)) : undefined;
 
 // --- Os próximos aniversários (30 dias) ------------------------------------------------------------
-const proximos = aniversarios(integrantes, hoje, naoVe, usuario.pessoa);
+// Ex discreto ou fora sai dos aniversários de quem escolheu (resposta do Gui à sessão F, 18/11/2026)
+const exesQueSaem = await comoOsExesAparecem(usuario);
+const proximos = aniversarios(integrantes, hoje, new Set([...naoVe, ...exesQueSaem.keys()]), usuario.pessoa);
 const quando = (emDias: number, dia: number, mes: number) => (emDias === 0 ? 'Hoje' : emDias === 1 ? 'Amanhã' : diaMesCurto({ dia, mes }));
 
 // --- A pessoa no acervo e uma memória para contar ---------------------------------------------

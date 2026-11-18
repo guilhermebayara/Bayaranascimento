@@ -1,38 +1,47 @@
 // O espelho da produção, para a homologação.
 //
-// Recebe a cópia do acervo (a mesma do Google Drive e do botão "Baixar cópia do acervo") e
-// devolve um acervo inventado com a mesma estrutura de família: as mesmas filiações, os mesmos
-// casais com as mesmas fases, os mesmos laços do coração com o mesmo papel e a mesma marca de
-// privado, os mesmos núcleos. Se na produção são dois irmãos e três amizades "como se fosse
-// irmão", no espelho também. Assim a árvore é testada com o formato real da família.
+// Recebe a cópia do acervo (a mesma do Google Drive e do botão "Baixar cópia do acervo") e devolve um
+// acervo para a homologação com a família de verdade e as memórias de exemplo (decisão do Gui, 18/11/2026).
 //
-// O que muda: todo nome é trocado por um nome inventado do mesmo gênero, os ids viram
-// "pessoa-001" (menos os de quem tem acesso, que o site usa), os anos andam alguns anos para a
-// frente, e o nome de cada laço do coração vira um nome genérico do papel dele.
-// O que fica de fora: memórias, relatos, fotos, retratos, capítulos, temas, textos e histórico. No lugar
-// entram memórias de exemplo, inventadas a partir das pessoas espelhadas. As fotos dessas memórias e
-// os retratos apontam para as 11 fotos de exemplo do Chico e da Karol, com o mesmo sorteio das
-// prévias; a homologação lê os arquivos do bucket de teste, sem guardar cópia.
+// A regra: nomes, retratos e laços passam; memórias, relatos, textos e fotos de memória nunca passam.
+// - Passam, como estão na produção: as pessoas (id, nome, apelido, tipo, espécie, como se referir, as
+//   datas de nascimento e de falecimento, quem administra), quem é de cada família, as filiações (com a
+//   data da adoção), os casais com as fases e as famílias que veem, os laços do coração (com o nome, o
+//   papel, a proximidade e a marca de privado) e os laços resumidos.
+// - Os retratos passam quando vêm junto da cópia (`retratos`, a foto de cada retrato atual, em base64):
+//   são gravados no bucket da homologação, com a mesma chave. Quem não tem retrato na cópia fica com as
+//   iniciais. A produção nunca grava na homologação: quem grava é a homologação, ao receber a cópia.
+// - Não passam: o "Sobre" de cada pessoa (é texto escrito), memórias, relatos, fotos de memória, áudios,
+//   capítulos, temas, histórico, avisos, sugestões, reações e as escolhas que só o dono vê (proximidade do
+//   círculo e como o ex aparece). No lugar das memórias entram memórias de exemplo, inventadas a partir
+//   das pessoas, com as 11 fotos de exemplo do Chico e da Karol, lidas do bucket de teste.
 //
+// As colunas que passam são listadas uma a uma: coluna nova numa dessas tabelas não passa sem entrar
+// aqui, e testes/espelho.test.ts confere que nada escrito de verdade chega à homologação.
 // Nada daqui vai para o repositório: o espelho é gravado direto no banco da homologação.
 import { NUCLEO_INICIAL } from './familias';
-import { fotoDeMemoriaDeExemplo, quantasFotosNoEspelho, retratoDeExemplo } from './fotos-de-exemplo';
+import { fotoDeMemoriaDeExemplo, quantasFotosNoEspelho } from './fotos-de-exemplo';
+import { CHAVE_DE_RETRATO } from './retratos';
 
 type Linha = Record<string, unknown>;
 
 export interface CopiaDoAcervo {
   acervo: string;
   tabelas: Record<string, Linha[]>;
+  /** A foto de cada retrato atual, pela chave, em base64. Só na cópia baixada para o espelho. */
+  retratos?: Record<string, string>;
 }
 
 export interface Espelho {
   /** linhas por tabela, já na ordem de gravar */
   tabelas: [string, Linha[]][];
-  resumo: { pessoas: number; filiacoes: number; casais: number; lacos: number; memorias: number; deslocamentoDeAnos: number };
+  /** Os retratos a gravar no bucket da homologação, debaixo de retratos/ */
+  retratos: { chave: string; base64: string }[];
+  resumo: { pessoas: number; filiacoes: number; casais: number; lacos: number; memorias: number; retratos: number };
 }
 
-/** Quem tem acesso ao site mantém o id, porque o "Ver como" e a árvore padrão usam esses ids. */
-export const IDS_MANTIDOS = ['gui', 'giovanna', 'elizete', 'lucas-magno'];
+/** Quem tem acesso ao site e aparece nas memórias de exemplo e nos casos que o QA confere. */
+export const IDS_COM_ACESSO = ['gui', 'giovanna', 'elizete', 'lucas-magno'];
 
 /** Tabelas apagadas antes de gravar o espelho, das que dependem para as de que se depende. */
 export const TABELAS_APAGADAS = [
@@ -74,23 +83,6 @@ export const TABELAS_APAGADAS = [
   'nucleo_membros',
   'integrantes',
 ];
-
-// Nomes de pessoas reais da família ficam fora destas listas, para o espelho não confundir
-const NOMES_DELA = ['Ana', 'Beatriz', 'Carla', 'Daniela', 'Elisa', 'Fernanda', 'Gabriela', 'Helena', 'Isabel', 'Júlia', 'Laura', 'Marina', 'Natália', 'Olívia', 'Paula', 'Raquel', 'Sofia', 'Tereza', 'Vera', 'Yara', 'Alice', 'Bruna', 'Cecília', 'Débora', 'Estela', 'Flávia', 'Glória', 'Irene', 'Joana', 'Lívia', 'Mônica', 'Nina', 'Rosa', 'Sílvia', 'Tânia', 'Vânia', 'Aurora', 'Clara', 'Diana', 'Eva', 'Iara', 'Lúcia', 'Marta', 'Noêmia', 'Selma', 'Telma', 'Zélia'];
-const NOMES_DELE = ['André', 'Bernardo', 'Caio', 'Davi', 'Eduardo', 'Fábio', 'Gustavo', 'Heitor', 'Igor', 'João', 'Leonardo', 'Marcos', 'Nicolas', 'Otávio', 'Pedro', 'Rafael', 'Samuel', 'Tiago', 'Vítor', 'Wagner', 'Alberto', 'Bruno', 'César', 'Diego', 'Emílio', 'Felipe', 'Gilberto', 'Henrique', 'Ivan', 'Júlio', 'Luís', 'Mário', 'Nelson', 'Paulo', 'Ricardo', 'Sérgio', 'Antônio', 'Benedito', 'Cláudio', 'Dênis', 'Ernesto', 'Hugo', 'Jorge', 'Lauro', 'Moacir', 'Osvaldo', 'Renato', 'Saulo'];
-const NOMES_DE_BICHO = ['Pipoca', 'Biscoito', 'Farofa', 'Paçoca', 'Tapioca', 'Bolinha', 'Pingo', 'Nescau', 'Fubá', 'Canela', 'Cacau', 'Amendoim', 'Jujuba', 'Quindim', 'Pudim', 'Pirulito'];
-const SEGUNDOS_NOMES = ['Maria', 'Luiza', 'Cristina', 'Helena', 'José', 'Carlos', 'Augusto', 'Henrique'];
-
-const NOMES_DOS_LACOS: Record<string, [string, string]> = {
-  avo: ['Vó de consideração', 'Vô de consideração'],
-  pai: ['Mãe de consideração', 'Pai de consideração'],
-  tio: ['Tia de consideração', 'Tio de consideração'],
-  irmao: ['Amiga-irmã', 'Amigo-irmão'],
-  primo: ['Prima de consideração', 'Primo de consideração'],
-  filho: ['Filha de consideração', 'Filho de consideração'],
-  sobrinho: ['Sobrinha de consideração', 'Sobrinho de consideração'],
-  '': ['Amiga', 'Amigo'],
-};
 
 const LUGARES = ['Em casa', 'Na casa da vó', 'No sítio', 'Na praia', 'Na serra', 'No clube', 'No centro da cidade', 'Na casa nova', 'No interior', 'Num restaurante'];
 const FRASES = [
@@ -137,54 +129,36 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
   const agora = opcoes.agora ?? new Date();
   const anoAtual = agora.getFullYear();
   const s = sorteador(opcoes.semente ?? Math.floor(agora.getTime() / 1000));
-  const deslocamento = s.entre(1, 3);
-  const ano = (v: unknown) => {
-    const n = numero(v);
-    return n === null ? null : Math.min(n + deslocamento, anoAtual);
-  };
+  const texto = (v: unknown) => (typeof v === 'string' && v.trim() ? v : null);
+  const mapear = (v: unknown) => (typeof v === 'string' && v ? v : null);
 
-  // --- Pessoas: id e nome novos, mesmo tipo, mesmo tratamento, anos deslocados ---
+  // --- Pessoas: como estão na produção, sem o "Sobre" ---
   const originais = [...t('integrantes')].sort((a, b) => (numero(a.ordem) ?? 50) - (numero(b.ordem) ?? 50) || String(a.id).localeCompare(String(b.id)));
-  const novoId = new Map<string, string>();
-  let contador = 0;
-  for (const p of originais) {
-    const id = String(p.id);
-    novoId.set(id, IDS_MANTIDOS.includes(id) ? id : `pessoa-${String(++contador).padStart(3, '0')}`);
-  }
-  const mapear = (v: unknown) => (v === null || v === undefined ? null : (novoId.get(String(v)) ?? null));
-
-  const filas = { ela: s.embaralhar(NOMES_DELA), ele: s.embaralhar(NOMES_DELE), bicho: s.embaralhar(NOMES_DE_BICHO) };
-  const usados = new Set<string>();
-  const generoDe = new Map<string, 'ela' | 'ele'>();
-  const nomeInventado = (fila: string[], extra: string[]) => {
-    for (const nome of fila) if (!usados.has(nome)) return (usados.add(nome), nome);
-    // Acabaram os nomes: combina com um segundo nome
-    for (const nome of fila) for (const segundo of extra) {
-      const composto = `${nome} ${segundo}`;
-      if (!usados.has(composto)) return (usados.add(composto), composto);
-    }
-    return `${fila[0]} ${usados.size}`;
-  };
+  const fotosDosRetratos = copia.retratos ?? {};
+  const retratos: Espelho['retratos'] = [];
   const integrantes: Linha[] = originais.map((p) => {
-    const id = novoId.get(String(p.id))!;
     const bicho = p.tipo === 'bicho';
     const tratamento = p.tratamento === 'ela' || p.tratamento === 'ele' ? p.tratamento : null;
-    const genero = tratamento ?? (s.proximo() < 0.5 ? 'ela' : 'ele');
-    generoDe.set(id, genero);
-    const nome = bicho ? nomeInventado(filas.bicho, ['Junior', 'Segundo']) : nomeInventado(filas[genero], SEGUNDOS_NOMES);
+    // O retrato só passa quando a foto veio junto da cópia; sem ela, as iniciais
+    const chave = typeof p.retrato === 'string' && CHAVE_DE_RETRATO.test(p.retrato) && typeof fotosDosRetratos[p.retrato] === 'string' ? p.retrato : null;
+    if (chave) retratos.push({ chave, base64: fotosDosRetratos[chave]! });
     return {
-      id,
-      nome,
-      apelido: null,
+      id: String(p.id),
+      nome: String(p.nome),
+      apelido: texto(p.apelido),
       tipo: bicho ? 'bicho' : 'pessoa',
-      especie: bicho ? (p.especie ?? null) : null,
+      especie: bicho ? texto(p.especie) : null,
       tratamento,
-      nascimento_ano: ano(p.nascimento_ano),
-      falecimento_ano: ano(p.falecimento_ano),
+      nascimento_ano: numero(p.nascimento_ano),
+      nascimento_mes: numero(p.nascimento_mes),
+      nascimento_dia: numero(p.nascimento_dia),
+      falecimento_ano: numero(p.falecimento_ano),
+      falecimento_mes: numero(p.falecimento_mes),
+      falecimento_dia: numero(p.falecimento_dia),
       falecido: numero(p.falecido) ?? (p.falecimento_ano != null ? 1 : 0),
-      sobre: 'Pessoa do espelho da produção: o nome é inventado, os laços seguem os de uma pessoa real.',
-      // O retrato real não vem (é o rosto de uma pessoa de verdade): no lugar, uma foto de exemplo
-      retrato: retratoDeExemplo(id, tratamento, bicho),
+      // O "Sobre" é texto escrito: não passa
+      sobre: null,
+      retrato: chave,
       admin: numero(p.admin) ?? 0,
       ordem: numero(p.ordem) ?? 50,
       criado_por: mapear(p.criado_por),
@@ -201,13 +175,14 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
     }))
     .filter((m) => existe(m.integrante_id));
   const filiacoes = t('filiacoes')
-    // Da data da adoção, só o ano, deslocado como os outros anos (o dia e o mês poderiam identificar alguém)
     .map((f) => ({
       filho_id: mapear(f.filho_id),
       responsavel_id: mapear(f.responsavel_id),
       qualidade: f.qualidade ?? 'biologica',
       criado_por: mapear(f.criado_por),
-      adocao_ano: f.qualidade === 'adotiva' ? ano(f.adocao_ano) : null,
+      adocao_ano: f.qualidade === 'adotiva' ? numero(f.adocao_ano) : null,
+      adocao_mes: f.qualidade === 'adotiva' ? numero(f.adocao_mes) : null,
+      adocao_dia: f.qualidade === 'adotiva' ? numero(f.adocao_dia) : null,
     }))
     .filter((f) => existe(f.filho_id) && existe(f.responsavel_id));
 
@@ -228,17 +203,16 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
     .map((f) => ({ casal_id: numero(f.casal_id), nucleo_id: f.nucleo_id }));
   const casalFases = t('casal_fases')
     .filter((f) => idsDosCasais.has(numero(f.casal_id)))
-    .map((f) => ({ casal_id: numero(f.casal_id), tipo: f.tipo, inicio_ano: ano(f.inicio_ano), fim_ano: ano(f.fim_ano), ordem: numero(f.ordem) ?? 0 }));
+    .map((f) => ({ casal_id: numero(f.casal_id), tipo: f.tipo, inicio_ano: numero(f.inicio_ano), fim_ano: numero(f.fim_ano), ordem: numero(f.ordem) ?? 0 }));
 
   const lacos = t('lacos_coracao')
     .map((l) => {
       const [dono, pessoa] = [mapear(l.dono_id), mapear(l.pessoa_id)];
       if (!existe(dono) || !existe(pessoa)) return null;
-      const [dela, dele] = NOMES_DOS_LACOS[String(l.papel ?? '')] ?? NOMES_DOS_LACOS[''];
       return {
         dono_id: dono,
         pessoa_id: pessoa,
-        nome: generoDe.get(String(pessoa)) === 'ela' ? dela : dele,
+        nome: String(l.nome ?? ''),
         papel: l.papel ?? null,
         proximidade: numero(l.proximidade),
         privado: numero(l.privado) ?? 0,
@@ -257,7 +231,7 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
   const relatos: Linha[] = [];
   const nomeDe = new Map(integrantes.map((i) => [String(i.id), String(i.nome)]));
   const nascimentoDe = new Map(integrantes.map((i) => [String(i.id), numero(i.nascimento_ano)]));
-  const comAcesso = IDS_MANTIDOS.filter((id) => existe(id));
+  const comAcesso = IDS_COM_ACESSO.filter((id) => existe(id));
   const nucleosDe = (id: string) => nucleoMembros.filter((m) => m.integrante_id === id && m.papel === 'membro').map((m) => String(m.nucleo_id));
   const filhosDe = (ids: unknown[]) => filiacoes.filter((f) => ids.includes(f.responsavel_id) && f.qualidade !== 'consideracao').map((f) => String(f.filho_id));
   const pessoas = integrantes.filter((i) => i.tipo === 'pessoa').map((i) => String(i.id));
@@ -359,6 +333,7 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
   );
 
   return {
+    retratos,
     tabelas: [
       ['integrantes', integrantes],
       ['nucleo_membros', nucleoMembros],
@@ -380,7 +355,7 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       casais: casais.length,
       lacos: lacos.length,
       memorias: memorias.length,
-      deslocamentoDeAnos: deslocamento,
+      retratos: retratos.length,
     },
   };
 }

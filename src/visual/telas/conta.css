@@ -246,7 +246,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--e-1) var(--e-4);
-  margin-bottom: var(--e-3);
+  /* O título do cartão fica longe dos rótulos dos grupos, que são um degrau abaixo dele */
+  margin-bottom: var(--e-5);
   color: var(--tinta-suave);
 }
 /* A marca do que pede ação: um ponto na cor de alerta e o texto na tinta dela */
@@ -273,33 +274,32 @@
   gap: var(--e-1);
   margin-bottom: var(--e-3);
 }
-/* Os atalhos: quadros recuados numa grade que nunca deixa um sozinho na linha. O número de colunas
-   vem de colunasDosAtalhos (src/lib/conta.ts); os da última linha se esticam até fechar a grade. */
-.conta__atalhos {
-  --colunas: var(--colunas-celular, 2);
-  display: flex;
-  flex-wrap: wrap;
+/* Os atalhos em grupos por tema (observação do Gui, 18/11/2026: os quadros verdes soltos quebravam a
+   página). Cada grupo é o rótulo e uma lista de linhas, sem fundo: o nome e, à direita, a situação em
+   mono. No celular os grupos ficam um embaixo do outro; no computador, lado a lado, e a situação desce
+   para baixo do nome. Entre grupos, --e-6; o rótulo fica colado na lista (--e-2). */
+.conta__temas {
+  display: grid;
+  gap: var(--e-6);
+}
+.conta__tema {
+  display: grid;
+  align-content: start;
   gap: var(--e-2);
-}
-.conta__atalhos[data-colunas-celular='1'] {
-  --colunas-celular: 1;
-}
-.conta__atalhos[data-colunas-celular='2'] {
-  --colunas-celular: 2;
-}
-.conta__atalhos > li {
-  flex: 1 1 calc((100% - (var(--colunas) - 1) * var(--e-2)) / var(--colunas));
   min-width: 0;
 }
-.conta__atalho {
+.conta__tema ul {
   display: grid;
-  gap: 0.1em;
-  align-content: center;
-  height: 100%;
+}
+.conta__atalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--e-3);
   min-height: var(--toque);
-  padding: var(--e-3);
-  border-radius: var(--raio-moldura);
-  background: var(--papel-recuo);
+  padding-block: var(--e-2);
+  border-top: 1px solid var(--fio);
   text-decoration: none;
 }
 .conta__atalho strong {
@@ -320,14 +320,34 @@
   outline: var(--traco) solid var(--tinta);
   outline-offset: 2px;
 }
-/* O banco como medida, a cópia mensal e "Baixar cópia do acervo" junto (P153) */
+/* O banco como medida, a cópia mensal e "Baixar cópia do acervo" junto (P153). As duas medidas ficam
+   lado a lado a partir de 40rem; a cópia mensal e os links de baixar, numa linha embaixo. */
 .conta__banco {
   display: grid;
-  /* Cada medida é um grupo (o nome, a barra e a nota juntos, a --e-2); entre um grupo e outro, o dobro */
   gap: var(--e-4);
-  margin-top: var(--e-5);
-  padding-top: var(--e-3);
+  margin-top: var(--e-6);
+  padding-top: var(--e-4);
   border-top: 1px solid var(--fio);
+}
+.conta__medidores {
+  display: grid;
+  /* Cada medida é um grupo (o nome, a barra e a nota juntos, a --e-2); entre um grupo e outro, o dobro */
+  gap: var(--e-4) var(--e-6);
+}
+@media (min-width: 40rem) {
+  .conta__medidores {
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  }
+  /* Lado a lado, as duas medidas têm a mesma cara: o nome e, embaixo, o valor */
+  .conta__medidores .conta__banco-linha {
+    flex-direction: column;
+  }
+}
+.conta__copias {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-5);
 }
 .conta__medidor {
   display: grid;
@@ -373,8 +393,8 @@
 .conta__nota.conta__pendente {
   color: var(--alerta-tinta);
 }
-.conta__banco .acao {
-  justify-self: start;
+.conta__copias .acao {
+  min-height: var(--toque);
 }
 
 @media (min-width: 62rem) {
@@ -410,30 +430,27 @@
   /* Quem administra: o cartão ao lado do nome, na mesma linha. O nome fica no alto e a carta de
      Natal no pé da coluna, alinhada com o fim do cartão: não sobra vão acima da faixa. */
   .conta--admin .conta__grade > .conta__abre {
-    grid-column: 1 / span 6;
+    grid-column: 1 / span 5;
     grid-row: 1;
   }
   .conta--admin .conta__grade > .conta__carta {
-    grid-column: 1 / span 6;
+    grid-column: 1 / span 5;
     grid-row: 2;
     align-self: end;
   }
   .conta__grade > .conta__admin {
-    grid-column: 7 / -1;
+    grid-column: 6 / -1;
     grid-row: 1 / span 2;
     margin-top: 0;
   }
-  .conta__atalhos {
-    --colunas: var(--colunas-largo, 3);
+  /* Os grupos lado a lado, em colunas que cabem no cartão */
+  .conta__temas {
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: var(--e-5) var(--e-5);
   }
-  .conta__atalhos[data-colunas='1'] {
-    --colunas-largo: 1;
-  }
-  .conta__atalhos[data-colunas='2'] {
-    --colunas-largo: 2;
-  }
-  .conta__atalhos[data-colunas='3'] {
-    --colunas-largo: 3;
+  .conta__temas .conta__atalho {
+    flex-direction: column;
+    justify-content: center;
   }
   /* As contas numa linha só, em colunas iguais. A lista aberta sai da coluna dela e toma a largura
      do cartão: recua as colunas que vêm antes (--i) e soma as que existem (--n). */

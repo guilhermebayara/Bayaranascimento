@@ -8,8 +8,8 @@ import type { RegistroDeVisitas } from '../painel';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
 import type { TipoDeAviso } from '../avisos';
-import { exesDe, modosQueValem, type ModoDoEx } from '../ex-casal';
-import type { Proposta, SituacaoDaSugestao, Sugestao, TipoDeSugestao } from '../sugestoes';
+import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '../ex-casal';
+import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, type TipoDeSugestao } from '../sugestoes';
 import type { SimboloDaReacao } from '../reacoes';
 import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
@@ -1985,7 +1985,11 @@ export async function comoOsExesAparecem(usuario: Usuario): Promise<Map<string, 
   const { results } = await db().prepare('SELECT pessoa_id, modo FROM ex_para_mim WHERE dono_id = ?').bind(usuario.pessoa).all<{ pessoa_id: string; modo: ModoDoEx }>();
   if (results.length === 0) return new Map();
   const exes = exesDe(usuario.pessoa, await listarCasais(usuario));
-  return modosQueValem(new Map(results.map((r: { pessoa_id: string; modo: ModoDoEx }) => [r.pessoa_id, r.modo])), exes);
+  const valem = modosQueValem(new Map(results.map((r: { pessoa_id: string; modo: ModoDoEx }) => [r.pessoa_id, r.modo])), exes);
+  // "Fora" de quem é pai ou mãe de alguém que a pessoa vê vale como "Discreto" (resposta do Gui à sessão F)
+  if (![...valem.values()].includes('fora')) return valem;
+  const ve = new Set((await listarIntegrantesQueVe(usuario)).map((i) => i.id));
+  return foraQueEPaiViraDiscreto(valem, await listarFiliacoes(), (id) => ve.has(id) || id === usuario.pessoa);
 }
 
 /** Guarda como o ex aparece para quem escolheu. "Presente" apaga a escolha, e tudo volta a ser como era. */
@@ -2212,33 +2216,43 @@ const lerSugestao = (r: Record<string, unknown>): Sugestao => ({
   resposta: (r.resposta as string | null) ?? null,
   criadaEm: r.criada_em as string,
   respondidaEm: (r.respondida_em as string | null) ?? null,
+  respondidaPor: (r.respondida_por as string | null) ?? (r.respondida_em ? (r.para as string) : null),
 });
 
-/** Guarda a sugestão e o aviso para quem recebe, num lote só. */
-export async function criarSugestao(s: { memoriaId: string; relatoId: number | null; para: string; tipo: TipoDeSugestao; proposta: Proposta | null; texto: string | null }, usuario: Usuario): Promise<number> {
+type MemoriaDaSugestao = { id: string; criadaPor: string; integrantes: readonly string[] };
+
+/**
+ * Guarda a sugestão e o aviso para cada um que recebe (`destinatarios`: na de dados, quem criou e quem
+ * está na memória; no recado, quem registrou o relato).
+ */
+export async function criarSugestao(
+  s: { memoriaId: string; relatoId: number | null; para: string; tipo: TipoDeSugestao; proposta: Proposta | null; texto: string | null },
+  usuario: Usuario,
+  memoria: MemoriaDaSugestao,
+): Promise<number> {
   const [r] = await db().batch([
     db()
       .prepare('INSERT INTO sugestoes (memoria_id, relato_id, de, para, tipo, proposta, texto) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id')
       .bind(s.memoriaId, s.relatoId, usuario.pessoa, s.para, s.tipo, s.proposta ? JSON.stringify(s.proposta) : null, s.texto),
   ]);
   const id = ((r as { results?: { id: number }[] }).results?.[0]?.id ?? 0) as number;
-  await criarAvisos([{ para: s.para, tipo: 'sugestao', memoriaId: s.memoriaId, relatoId: s.relatoId, de: usuario.pessoa, dados: { sugestao: id, recado: s.tipo === 'recado' } }]);
+  const recebem = destinatarios({ tipo: s.tipo, para: s.para, de: usuario.pessoa }, memoria);
+  await criarAvisos(recebem.map((para) => ({ para, tipo: 'sugestao' as const, memoriaId: s.memoriaId, relatoId: s.relatoId, de: usuario.pessoa, dados: { sugestao: id, recado: s.tipo === 'recado' } })));
   return id;
 }
 
-/** As sugestões de uma memória que a pessoa mandou ou recebeu. As dos outros, ninguém vê. */
-export async function listarSugestoes(memoriaId: string, usuario: Usuario): Promise<Sugestao[]> {
-  const { results } = await db()
-    .prepare('SELECT * FROM sugestoes WHERE memoria_id = ?1 AND (de = ?2 OR para = ?2) ORDER BY id DESC')
-    .bind(memoriaId, usuario.pessoa)
-    .all<Record<string, unknown>>();
-  return results.map(lerSugestao);
+/**
+ * As sugestões de uma memória que a pessoa mandou ou recebeu (é um dos destinatários hoje). As dos
+ * outros, ninguém vê.
+ */
+export async function listarSugestoes(memoria: MemoriaDaSugestao, usuario: Usuario): Promise<Sugestao[]> {
+  const { results } = await db().prepare('SELECT * FROM sugestoes WHERE memoria_id = ? ORDER BY id DESC').bind(memoria.id).all<Record<string, unknown>>();
+  return results.map(lerSugestao).filter((s) => s.de === usuario.pessoa || destinatarios(s, memoria).includes(usuario.pessoa));
 }
 
 /** Quantas sugestões abertas a pessoa recebeu numa memória. */
-export async function contarSugestoesAbertas(memoriaId: string, usuario: Usuario): Promise<number> {
-  const r = await db().prepare(`SELECT COUNT(*) AS n FROM sugestoes WHERE memoria_id = ? AND para = ? AND situacao = 'aberta'`).bind(memoriaId, usuario.pessoa).first<{ n: number }>();
-  return r?.n ?? 0;
+export async function contarSugestoesAbertas(memoria: MemoriaDaSugestao, usuario: Usuario): Promise<number> {
+  return (await listarSugestoes(memoria, usuario)).filter((s) => s.situacao === 'aberta' && s.de !== usuario.pessoa).length;
 }
 
 export async function obterSugestao(id: number): Promise<Sugestao | undefined> {
@@ -2247,13 +2261,13 @@ export async function obterSugestao(id: number): Promise<Sugestao | undefined> {
 }
 
 /**
- * Responde a sugestão: guarda o que foi feito e a mensagem, tira o aviso da lista de quem recebeu e avisa
- * quem sugeriu.
+ * Responde a sugestão: guarda o que foi feito, a mensagem e quem respondeu, tira o aviso da lista de todos
+ * que receberam (o primeiro que responde resolve) e avisa quem sugeriu.
  */
 export async function responderSugestao(s: Sugestao, situacao: Exclude<SituacaoDaSugestao, 'aberta'>, resposta: string | null, usuario: Usuario): Promise<void> {
   await db().batch([
-    db().prepare(`UPDATE sugestoes SET situacao = ?, resposta = ?, respondida_em = datetime('now') WHERE id = ? AND situacao = 'aberta'`).bind(situacao, resposta, s.id),
-    db().prepare(`UPDATE avisos SET resolvido_em = datetime('now'), resposta = ? WHERE tipo = 'sugestao' AND para = ? AND json_extract(dados, '$.sugestao') = ? AND resolvido_em IS NULL`).bind(situacao, usuario.pessoa, s.id),
+    db().prepare(`UPDATE sugestoes SET situacao = ?, resposta = ?, respondida_em = datetime('now'), respondida_por = ? WHERE id = ? AND situacao = 'aberta'`).bind(situacao, resposta, usuario.pessoa, s.id),
+    db().prepare(`UPDATE avisos SET resolvido_em = datetime('now'), resposta = ? WHERE tipo = 'sugestao' AND json_extract(dados, '$.sugestao') = ? AND resolvido_em IS NULL`).bind(situacao, s.id),
   ]);
   await criarAvisos([{ para: s.de, tipo: 'sugestao-resposta', memoriaId: s.memoriaId, relatoId: s.relatoId, de: usuario.pessoa, dados: { sugestao: s.id, situacao, recado: s.tipo === 'recado' } }]);
 }
@@ -2283,8 +2297,11 @@ export async function listarReacoes(memoriaId: string, usuario: Usuario, alvos: 
 }
 
 /** Marca ou desmarca a reação da pessoa. Devolve se ficou marcada. */
-export async function alternarReacao(memoriaId: string, alvo: 'relato' | 'foto', alvoId: number, simbolo: SimboloDaReacao, usuario: Usuario): Promise<boolean> {
-  const apagou = await db().prepare('DELETE FROM reacoes WHERE alvo = ? AND alvo_id = ? AND pessoa = ? AND simbolo = ?').bind(alvo, alvoId, usuario.pessoa, simbolo).run();
+export async function alternarReacao(memoriaId: string, alvo: 'memoria' | 'relato' | 'foto', alvoId: number, simbolo: SimboloDaReacao, usuario: Usuario): Promise<boolean> {
+  const apagou = await db()
+    .prepare('DELETE FROM reacoes WHERE memoria_id = ? AND alvo = ? AND alvo_id = ? AND pessoa = ? AND simbolo = ?')
+    .bind(memoriaId, alvo, alvoId, usuario.pessoa, simbolo)
+    .run();
   if ((apagou.meta.changes ?? 0) > 0) return false;
   await db().prepare('INSERT INTO reacoes (memoria_id, alvo, alvo_id, pessoa, simbolo) VALUES (?, ?, ?, ?, ?)').bind(memoriaId, alvo, alvoId, usuario.pessoa, simbolo).run();
   return true;

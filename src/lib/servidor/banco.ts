@@ -833,6 +833,36 @@ export const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS reacoes_da_memoria ON reacoes (memoria_id)`,
     ],
   },
+  {
+    // Sugestão de correção para todos que podem corrigir (resposta do Gui à sessão F, 18/11/2026): a de
+    // dados vai para quem criou e para quem está na memória, e o primeiro que responder resolve. Quem
+    // respondeu passa a ser guardado, porque deixa de ser sempre o "para".
+    id: '080-quem-respondeu-a-sugestao',
+    sql: [`ALTER TABLE sugestoes ADD COLUMN respondida_por TEXT`],
+  },
+  {
+    // Reações na memória também (observação do Gui, 18/11/2026: valem para a memória, para cada relato e
+    // para cada foto). O alvo ganha 'memoria', com alvo_id 0, e a chave única passa a contar a memória,
+    // para o alvo_id 0 de uma memória não colidir com o de outra. O SQLite não muda um CHECK no lugar:
+    // a tabela é refeita com os mesmos dados. Nenhuma outra tabela aponta para ela.
+    id: '081-reacoes-na-memoria',
+    sql: [
+      `CREATE TABLE reacoes_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memoria_id TEXT NOT NULL,
+        alvo TEXT NOT NULL CHECK (alvo IN ('memoria', 'relato', 'foto')),
+        alvo_id INTEGER NOT NULL,
+        pessoa TEXT NOT NULL,
+        simbolo TEXT NOT NULL CHECK (simbolo IN ('coracao', 'riso', 'saudade', 'estava')),
+        criada_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (memoria_id, alvo, alvo_id, pessoa, simbolo)
+      )`,
+      `INSERT INTO reacoes_novo (id, memoria_id, alvo, alvo_id, pessoa, simbolo, criada_em) SELECT id, memoria_id, alvo, alvo_id, pessoa, simbolo, criada_em FROM reacoes`,
+      `DROP TABLE reacoes`,
+      `ALTER TABLE reacoes_novo RENAME TO reacoes`,
+      `CREATE INDEX IF NOT EXISTS reacoes_da_memoria ON reacoes (memoria_id)`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

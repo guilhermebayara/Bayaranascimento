@@ -1,23 +1,31 @@
 ---
 // As sugestões de correção de uma memória (onda 2, decisão do Gui de 17/11/2026): quem recebeu aceita
-// (só nos dados), recusa ou responde; quem mandou vê a resposta. Ninguém mais vê as sugestões.
+// (só nos dados), recusa ou responde; quem mandou vê a resposta. Ninguém mais vê as sugestões. A de dados
+// vai para quem criou e para quem está na memória, e o primeiro que responder resolve (resposta do Gui à
+// sessão F, 18/11/2026).
 import Pagina from '../../../components/formularios/Pagina.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { formatarMomento } from '../../../lib/datas';
-import { frasesDaProposta } from '../../../lib/sugestoes';
+import { destinatarios, frasesDaProposta } from '../../../lib/sugestoes';
 import { abrirAvisosDaMemoria, listarIntegrantes, listarSugestoes, obterMemoria, pessoasQueONaoVe } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
 if (!memoria || memoria.situacao !== 'publicada') return new Response('Memória não encontrada', { status: 404 });
-const sugestoes = await listarSugestoes(memoria.id, usuario);
+const sugestoes = await listarSugestoes(memoria, usuario);
 // Abrir a lista tira da lista de avisos as respostas (as sugestões abertas só saem com a resposta)
 await abrirAvisosDaMemoria(usuario, memoria.id);
 const todos = await listarIntegrantes();
 const naoVe = await pessoasQueONaoVe(usuario);
 // Quem quem olha não vê não aparece pelo nome
 const nome = (id: string) => (naoVe.has(id) ? 'alguém' : (todos.find((i) => i.id === id)?.apelido ?? todos.find((i) => i.id === id)?.nome ?? 'alguém'));
-const recebidas = sugestoes.filter((s) => s.para === usuario.pessoa);
+const recebidas = sugestoes.filter((s) => s.de !== usuario.pessoa);
+// "Gui, Elizete e Aguilar", sem quem quem olha não vê
+const listaDeNomes = (ids: string[]) => {
+  const n = ids.filter((id) => !naoVe.has(id)).map(nome);
+  return n.length > 1 ? `${n.slice(0, -1).join(', ')} e ${n[n.length - 1]}` : (n[0] ?? 'quem cuida da memória');
+};
+const quemRespondeu = (s: (typeof sugestoes)[number]) => (s.respondidaPor === usuario.pessoa ? 'Você' : nome(s.respondidaPor ?? s.para));
 const enviadas = sugestoes.filter((s) => s.de === usuario.pessoa);
 const SITUACOES = { aberta: 'esperando resposta', aceita: 'aceita', recusada: 'recusada', respondida: 'respondida' } as const;
 const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>) => ({ ...p, entram: p.entram?.filter((id) => !naoVe.has(id)) });
@@ -31,6 +39,8 @@ const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>)
     <p>Só quem mandou e quem recebeu veem cada sugestão.</p>
   </Fragment>
 
+  {/* As respostas acontecem no lugar, sem recarregar: a lista inteira é uma região */}
+  <div class="regiao" data-regiao="sugestoes">
   {sugestoes.length === 0 && <Vazio frase="Nenhuma sugestão para você nesta memória." />}
 
   {
@@ -54,9 +64,14 @@ const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>)
                 </ul>
               )}
               {s.texto && <blockquote class="sugestoes__texto">{s.texto}</blockquote>}
-              {s.resposta && <p class="dica">Sua resposta: {s.resposta}</p>}
+              {s.situacao !== 'aberta' && s.respondidaPor && s.respondidaPor !== usuario.pessoa && (
+                <p class="dica">
+                  {nome(s.respondidaPor)} já respondeu{s.resposta ? `: ${s.resposta}` : '.'}
+                </p>
+              )}
+              {s.resposta && s.respondidaPor === usuario.pessoa && <p class="dica">Sua resposta: {s.resposta}</p>}
               {s.situacao === 'aberta' && (
-                <form class="formulario sugestoes__responder" method="post" action="/api/sugestoes">
+                <form class="formulario sugestoes__responder" method="post" action="/api/sugestoes" data-no-lugar="sugestoes retrato">
                   <input type="hidden" name="memoria" value={memoria.id} />
                   <input type="hidden" name="sugestao" value={s.id} />
                   <label class="campo">
@@ -95,7 +110,7 @@ const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>)
           {enviadas.map((s) => (
             <li>
               <div>
-                <strong>{s.tipo === 'recado' ? `Recado para ${nome(s.para)}` : `Sugestão para ${nome(s.para)}`}</strong>
+                <strong>{s.tipo === 'recado' ? `Recado para ${nome(s.para)}` : `Sugestão para ${listaDeNomes(destinatarios(s, memoria))}`}</strong>
                 <span>
                   {formatarMomento(s.criadaEm)} · {SITUACOES[s.situacao]}
                 </span>
@@ -110,7 +125,7 @@ const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>)
               {s.texto && <blockquote class="sugestoes__texto">{s.texto}</blockquote>}
               {s.resposta && (
                 <p class="dica">
-                  {nome(s.para)} respondeu: {s.resposta}
+                  {quemRespondeu(s)} respondeu: {s.resposta}
                 </p>
               )}
             </li>
@@ -119,4 +134,5 @@ const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>)
       </section>
     )
   }
+  </div>
 </Pagina>

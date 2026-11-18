@@ -33,6 +33,12 @@ export interface DadosDaArvore {
   coracao: { dono: string; pessoa: string; papel: Papel | null; rotulo: string }[];
   /** laços resumidos: b é <papel> de a, para parentes de quem é de fora das famílias */
   resumidos?: { a: string; b: string; papel: Papel; rotulo: string }[];
+  /**
+   * Ex que virou amigo (observação do Gui, 18/11/2026): o casal cuja fase de hoje é amizade não aparece
+   * como ex-casal, e sim com a linha tracejada do coração, na mesma geração, à vista sem precisar abrir os
+   * laços de ninguém. A história do namoro continua na página do laço. Ver separarAmizades, em ex-casal.ts.
+   */
+  amizades?: { a: string; b: string }[];
 }
 
 type LacoNaMontagem = { dono: string; pessoa: string; papel: Papel | null; rotulo: string; sangue?: boolean };
@@ -77,6 +83,7 @@ export function aplicarComoOsExesAparecem(dados: DadosDaArvore, modos: ReadonlyM
     casais: dados.casais.filter((c) => fica(c.a) && fica(c.b)),
     coracao: dados.coracao.filter((l) => fica(l.dono) && fica(l.pessoa)),
     resumidos: dados.resumidos?.filter((r) => fica(r.a) && fica(r.b)),
+    amizades: dados.amizades?.filter((a) => fica(a.a) && fica(a.b)),
   };
 }
 
@@ -110,6 +117,11 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     const resumidos: LacoNaMontagem[] = (dados.resumidos ?? [])
       .filter((r) => dentro(r.a, r.b))
       .map((r) => ({ dono: r.a, pessoa: r.b, papel: r.papel, rotulo: r.rotulo, sangue: true }));
+    // O ex que virou amigo: tracejado do coração, na mesma geração, com a camada de consideração e
+    // coração, sem depender de quem abriu os laços (antes ele aparecia sempre, como ex-casal)
+    const amizades: LacoNaMontagem[] = estado.consideracao
+      ? (dados.amizades ?? []).filter((a) => dentro(a.a, a.b)).map((a) => ({ dono: a.a, pessoa: a.b, papel: 'irmao', rotulo: 'amizade' }))
+      : [];
 
     // 1b. A linha direta: os centros, os ancestrais, os irmãos, os descendentes e os casais.
     // O resto da família fica em ramos recolhidos, que abrem por cima da árvore.
@@ -145,8 +157,9 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
         trazer(l.pessoa);
         mudou = true;
       }
-      // O parente de quem está na árvore vem junto, de um lado ou do outro do laço resumido
-      for (const r of resumidos) {
+      // O parente de quem está na árvore vem junto, de um lado ou do outro do laço resumido, e o ex que
+      // virou amigo também, como vinha quando era casal
+      for (const r of [...resumidos, ...amizades]) {
         if (principal.has(r.dono) === principal.has(r.pessoa)) continue;
         trazer(principal.has(r.dono) ? r.pessoa : r.dono);
         mudou = true;
@@ -155,6 +168,7 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     const coracao: LacoNaMontagem[] = [
       ...todosDoCoracao.filter((l) => estado.abertos.has(l.dono) && principal.has(l.dono) && principal.has(l.pessoa)),
       ...resumidos.filter((r) => principal.has(r.dono) && principal.has(r.pessoa)),
+      ...amizades.filter((a) => principal.has(a.dono) && principal.has(a.pessoa)),
     ];
     // Escadinha: um laço que passa pela mãe de quem olha traz junto o laço dela, mesmo recolhido,
     // porque é por ele que a pessoa se liga à árvore

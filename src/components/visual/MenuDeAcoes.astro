@@ -1,0 +1,27 @@
+---
+// O botão de menu (os três pontos) com as ações secundárias de um item: da memória, de um relato, de uma
+// foto (observação do Gui, 18/11/2026; "Padrões que as pessoas já conhecem", em docs/visual.md). O que é
+// do dia a dia (reagir) fica à vista; o resto mora aqui, como nas plataformas que a família já usa.
+// Sem script, abre e fecha pelo próprio botão (details). Com script (src/lib/cliente/menus.ts), Esc fecha
+// e devolve o foco ao botão, tocar fora fecha, e abrir um menu fecha os outros.
+// Cada ação entra no slot como <a class="menu-acoes__item"> ou <button class="menu-acoes__item">.
+interface Props {
+  /** do que são as ações, para o leitor de tela: "Mais ações da memória", "Mais ações do relato de Elizete" */
+  rotulo: string;
+}
+
+const { rotulo } = Astro.props;
+---
+
+<details class="menu-acoes" data-menu-acoes>
+  <summary class="menu-acoes__botao" aria-label={rotulo} title="Mais ações">
+    <svg class="icone" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="5" cy="12" r="1.8" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.8" fill="currentColor" />
+      <circle cx="19" cy="12" r="1.8" fill="currentColor" />
+    </svg>
+  </summary>
+  <div class="menu-acoes__lista">
+    <slot />
+  </div>
+</details>

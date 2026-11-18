@@ -7,6 +7,7 @@ import Assinatura from '../components/visual/Assinatura.astro';
 import Monograma from '../components/visual/Monograma.astro';
 import Retrato from '../components/visual/Retrato.astro';
 import { ENDERECO_DE_SAIDA, PESSOAS_DE_TESTE, semLogin, temLogin } from '../lib/servidor/acesso';
+import { ehHomologacao } from '../lib/servidor/ambiente';
 import { fontesDoPedido } from '../lib/servidor/conceito';
 import { enderecoDoRetrato } from '../lib/retratos';
 import { numeroDoRetrato, rotuloDoRetrato, somaDoRetrato } from '../lib/avisos';
@@ -54,6 +55,9 @@ const fontes = fontesDoPedido(Astro.request);
 const combinacaoEmUso = combinacaoDe(fontes);
 const icones = `/icones/${fontes.serifa}`;
 const teste = semLogin();
+// Na homologação a família é a de verdade: a faixa fica bem marcada, como símbolo do ambiente, para
+// ninguém confundir com o site de verdade (decisão do Gui, 18/11/2026)
+const homologa = ehHomologacao();
 // "Sair" só aparece onde há o login do Cloudflare Access (P4 do QA de design, 17/11/2026)
 const saida = temLogin() ? ENDERECO_DE_SAIDA : undefined;
 const integrantes = await listarIntegrantes();
@@ -120,9 +124,15 @@ const telas = [
     <a class="pular" href="#conteudo">Pular para o conteúdo</a>
     {
       teste && !palco && (
-        <details class="teste">
+        <details class:list={['teste', { 'teste--homologa': homologa }]}>
           <summary>
-            <span>Visual novo, com o acervo de exemplo.</span>
+            {homologa ? (
+              <span class="teste__ambiente">
+                <strong>Homologação</strong> A família de verdade, com memórias de exemplo. O que você faz aqui não vai para o site.
+              </span>
+            ) : (
+              <span>Visual novo, com o acervo de exemplo.</span>
+            )}
             <span>
               Fontes {combinacaoEmUso?.toUpperCase() ?? 'misturadas'}, vendo como {usuario.nome}. <u>Trocar</u>
             </span>
@@ -190,7 +200,7 @@ const telas = [
           desde que saiu de Pessoas (decisão do Gui, 17/11/2026). */}
       <div class="topo__conta" data-atual={secao === 'conta' || secao === 'circulo' ? '' : undefined}>
         <details class="conta-menu">
-          <summary aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes, pendenciasDaAdministracao)}>
+          <summary aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes, pendenciasDaAdministracao)} data-regiao="retrato">
             <span class="topo__retrato">
               <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
               {numeroDeAvisos && (
@@ -261,6 +271,9 @@ const telas = [
     {
       !palco && (
         <script>
+          import { ligarNoLugar } from '../lib/cliente/no-lugar';
+          // Os formulários do dia a dia que mudam a tela no lugar, sem recarregar (data-no-lugar)
+          ligarNoLugar();
           // O menu do celular fecha com Esc e com o toque fora dele (P9 do QA de design, 17/11/2026).
           // Sem script, continua fechando só pelo "Menu".
           // O menu da conta, no retrato, segue o mesmo jeito; abrir um fecha o outro.

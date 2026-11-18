@@ -49,7 +49,7 @@ Nada desta pasta entra no repositório. A exceção são as fotos do Chico e da 
 | Branch | Endereço | Dados | Login |
 | --- | --- | --- | --- |
 | `main` | memorias.bayara.com.br | Banco e fotos reais (`bayara-memorias`) | Cloudflare Access, a família |
-| `homologa` | homologa.memorias.bayara.com.br | Banco e bucket `bayara-memorias-homologa`: a estrutura da família espelhada da produção, com nomes e memórias inventados. As fotos e os retratos de exemplo são lidos de `exemplos/` no bucket de teste, só leitura | Cloudflare Access, só Gui, Giovanna e Magno |
+| `homologa` | homologa.memorias.bayara.com.br | Banco e bucket `bayara-memorias-homologa`: a família de verdade espelhada da produção (nomes, retratos e laços), com memórias de exemplo. As fotos de exemplo das memórias são lidas de `exemplos/` no bucket de teste, só leitura | Cloudflare Access, só Gui, Giovanna e Magno |
 | `tst-<assunto>` e as demais | `<branch>.memorias.bayara.com.br` | Banco e bucket `bayara-memorias-teste`, com o acervo de exemplo | Sem login |
 
 - `main` é a produção. Cada push publica sozinho, com o banco e as fotos reais.
@@ -63,10 +63,11 @@ Nada desta pasta entra no repositório. A exceção são as fotos do Chico e da 
 
 ### O espelho da produção
 
-A homologação usa a mesma estrutura de família da produção (filiações, casais com fases, laços do coração com papel e marca de privado, núcleos), com nomes inventados, anos deslocados e memórias de exemplo. Assim a árvore é testada com o formato real da família. Para refazer: no site de verdade, "Baixar cópia do acervo"; na homologação, "Espelho da produção" → enviar o arquivo. No visual novo os dois ficam na conta (o retrato do topo), em "Administração"; enquanto a revisão visual não chega à `main`, na produção o botão da cópia ainda está no rodapé. Refaça depois de cargas grandes na produção e antes de testar mudanças na árvore.
+A homologação usa a família de verdade (decisão do Gui, 18/11/2026): **nomes, retratos e laços passam; memórias, relatos, textos e fotos de memória nunca passam.** Passam as pessoas com os nomes e as datas, os retratos, quem é de cada família, as filiações, os casais com as fases e os laços do coração; o "Sobre" de cada pessoa é texto e fica vazio. No lugar das memórias entram memórias de exemplo. Para refazer: no site de verdade, "Baixar cópia para o espelho" (a cópia com a foto de cada retrato); na homologação, "Espelho da produção" → enviar o arquivo. Uma cópia sem os retratos também serve, e cada pessoa fica com as iniciais. No visual novo os dois ficam na conta (o retrato do topo), em "Administração"; enquanto a revisão visual não chega à `main`, na produção o botão da cópia ainda está no rodapé. Refaça depois de cargas grandes na produção e antes de testar mudanças na árvore.
 
-- A transformação está em `src/lib/espelho.ts`, testada em `testes/espelho.test.ts`: nenhum nome, texto ou memória real passa para o espelho.
-- O espelho é gravado direto no banco da homologação e nunca entra no repositório.
+- A transformação está em `src/lib/espelho.ts`, testada em `testes/espelho.test.ts`: nada que alguém escreveu ou fotografou passa (memória, relato, "Sobre", foto, áudio, capítulo, carta), e as escolhas que só o dono vê (círculo, como o ex aparece) são apagadas. A guarda confere que o espelho só lê da cópia as tabelas da família e que o "Sobre" sai vazio.
+- O espelho é gravado direto no banco e no bucket da homologação e nunca entra no repositório. A produção nunca grava na homologação: ela só lê os próprios retratos para montar a cópia, e quem grava é a homologação, ao receber o arquivo.
+- A faixa do alto da homologação é listrada e diz "Homologação: a família de verdade, com memórias de exemplo", para ninguém confundir com o site de verdade.
 - A escolha do banco é feita pelo endereço do pedido (`src/lib/servidor/ambiente.ts`): o Cloudflare aplica a mesma configuração a todas as prévias, e só `homologa.memorias.bayara.com.br` usa `DB_HOMOLOGA` e `FOTOS_HOMOLOGA`.
 - A homologação nunca recebe o acervo de exemplo. Só as 11 fotos de exemplo são compartilhadas, lidas do bucket de teste (ver "Fotos de exemplo" em `docs/decisoes.md`). Na homologação e nas prévias, o "Ver como" do topo continua valendo.
 
@@ -142,7 +143,7 @@ Vale para sessões abertas só para conferir o site. As regras acima continuam v
 ### Os dois níveis de aprovação
 
 1. O QA confere a `homologa` com o acervo de exemplo, que reúne casos difíceis inventados de propósito para estressar o site.
-2. Depois, o Gui olha a homologação com o espelho da produção: o formato real da família, com nomes inventados.
+2. Depois, o Gui olha a homologação com o espelho da produção: a família de verdade, com memórias de exemplo.
 3. Com os dois níveis certos, a `homologa` vai para a `main`.
 
 Uma sessão de QA por chat: cada rodada começa numa sessão nova do Claude Code, conectada na `homologa`.

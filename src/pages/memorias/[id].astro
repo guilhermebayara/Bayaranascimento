@@ -8,6 +8,7 @@ import Visual from '../../layouts/Visual.astro';
 import Audio from '../../components/visual/Audio.astro';
 import Bilhete from '../../components/visual/Bilhete.astro';
 import Reacoes from '../../components/visual/Reacoes.astro';
+import MenuDeAcoes from '../../components/visual/MenuDeAcoes.astro';
 import { ofereceEntrar } from '../../lib/reacoes';
 import Carimbo from '../../components/visual/Carimbo.astro';
 import Dado from '../../components/visual/Dado.astro';
@@ -90,11 +91,13 @@ const podeEditar = podeEditarMemoria(usuario, memoria).ok;
 const podeExcluir = podeExcluirMemoria(usuario, memoria).ok;
 // Reações (onda 2): só nos relatos publicados e nas fotos que a pessoa vê, e só com quem ela vê
 const publicada = memoria.situacao === 'publicada';
-const alvosDasReacoes = new Set([...relatos.filter((r) => r.situacao === 'publicada').map((r) => `relato:${r.id}`), ...memoria.fotos.map((f) => `foto:${f.id}`)]);
+const alvosDasReacoes = new Set(['memoria:0', ...relatos.filter((r) => r.situacao === 'publicada').map((r) => `relato:${r.id}`), ...memoria.fotos.map((f) => `foto:${f.id}`)]);
 const reacoes = publicada ? await listarReacoes(memoria.id, usuario, alvosDasReacoes) : new Map();
 const temPaginaNoAcervo = integrantes.some((i) => i.id === usuario.pessoa);
-const ofereceQuemEstava = publicada && temPaginaNoAcervo && ofereceEntrar(await disseQueEstava(memoria.id, usuario), memoria.integrantes.includes(usuario.pessoa));
-const sugestoesAbertas = memoria.situacao === 'publicada' ? await contarSugestoesAbertas(memoria.id, usuario) : 0;
+// A oferta fica na página, escondida, para aparecer no lugar logo depois do "eu estava lá" (sem recarregar)
+const podeEntrarEmQuemEstava = publicada && temPaginaNoAcervo && !memoria.integrantes.includes(usuario.pessoa);
+const ofereceQuemEstava = podeEntrarEmQuemEstava && ofereceEntrar(await disseQueEstava(memoria.id, usuario), false);
+const sugestoesAbertas = memoria.situacao === 'publicada' ? await contarSugestoesAbertas(memoria, usuario) : 0;
 // Capítulos: os reunidos em que foi colocada e os por período em que a data cai, se forem de quem está nela
 const capitulos = (await listarCapitulos(usuario)).filter((c) => memoriaDoCapitulo(memoria, c));
 const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
@@ -177,6 +180,32 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
             Acrescentar fotos
           </a>
         </p>
+        {/* Reagir à memória inteira fica à vista, como nas redes (observação do Gui, 18/11/2026) */}
+        {
+          publicada && (
+            <div class="abre__reagir acoes-do-item">
+              <Reacoes memoria={memoria.id} alvo="memoria" marcas={reacoes.get('memoria:0')} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}`} sobre="a memória" />
+              {/* O resto mora no menu, como nas plataformas que a família usa (observação do Gui, 18/11/2026) */}
+              <MenuDeAcoes rotulo="Mais ações da memória">
+                <a class="menu-acoes__item" href={`/memorias/${memoria.id}/compartilhar`}>
+                  Compartilhar como imagem
+                </a>
+                {memoria.criadaPor === usuario.pessoa ? (
+                  <a class="menu-acoes__item" href={`/nova?id=${memoria.id}`}>
+                    Corrigir esta memória
+                  </a>
+                ) : (
+                  <a class="menu-acoes__item" href={`/memorias/${memoria.id}/sugerir`}>
+                    Sugerir uma correção
+                  </a>
+                )}
+                <a class="menu-acoes__item" href={`/memorias/${memoria.id}/historico`}>
+                  Histórico de alterações
+                </a>
+              </MenuDeAcoes>
+            </div>
+          )
+        }
       </div>
       {
         memoria.fotos.length > 0 && (
@@ -237,10 +266,12 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
       </aside>
 
       <div class="corpo__conteudo">
+        {/* "Quem estava" e a oferta de entrar nele: uma região, para entrar acontecer no lugar */}
+        <div class="regiao" data-regiao="quem-estava">
         {
           // Depois de "eu estava lá" numa memória em que não está: um toque para entrar em Quem estava
-          ofereceQuemEstava && (
-            <form class="entrar-em-quem-estava" method="post" action="/api/reacoes">
+          podeEntrarEmQuemEstava && (
+            <form class="entrar-em-quem-estava" method="post" action="/api/reacoes" data-entrar-em-quem-estava hidden={!ofereceQuemEstava} data-no-lugar="quem-estava">
               <input type="hidden" name="acao" value="entrar" />
               <input type="hidden" name="memoria" value={memoria.id} />
               <span>Você disse que estava lá. Quer entrar em Quem estava?</span>
@@ -288,6 +319,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
             </section>
           )
         }
+        </div>
 
         {
           relatos.length > 0 && !relatoSoNaAbertura && (
@@ -303,7 +335,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                       <h3 class="so-leitor">Contado por {nome(relato.por)}</h3>
                       {relato.situacao === 'rascunho' && <p class="selo bilhete__selo">Rascunho, só você vê</p>}
                       {relato.soParaNucleos && relato.registradoPor === usuario.pessoa && (
-                        <form class="bilhete__espera" method="post" action="/api/avisos">
+                        <form class="bilhete__espera" method="post" action="/api/avisos" data-regiao={`liberar-${relato.id}`} data-no-lugar={`liberar-${relato.id} retrato`}>
                           <input type="hidden" name="relato" value={relato.id} />
                           <input type="hidden" name="resposta" value="liberar" />
                           <input type="hidden" name="volta" value={`/memorias/${memoria.id}#relato-${relato.id}`} />
@@ -343,7 +375,21 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                         </ul>
                       )}
                       {publicada && relato.situacao === 'publicada' && (
- <div slot="pe"><Reacoes memoria={memoria.id} alvo="relato" alvoId={relato.id} marcas={reacoes.get(`relato:${relato.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#relato-${relato.id}`} /></div>
+ <div slot="pe" class="acoes-do-item">
+                          <Reacoes memoria={memoria.id} alvo="relato" alvoId={relato.id} marcas={reacoes.get(`relato:${relato.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#relato-${relato.id}`} sobre={`o relato de ${nome(relato.por)}`} />
+                          <MenuDeAcoes rotulo={`Mais ações do relato de ${nome(relato.por)}`}>
+                            {/* O recado ao autor do relato (sugestão de correção, tipo recado). No próprio relato, editar
+                                fica no atalho do alto e na linha do fim */}
+                            {relato.registradoPor !== usuario.pessoa && (
+                              <a class="menu-acoes__item" href={`/memorias/${memoria.id}/sugerir?relato=${relato.id}#recado`}>
+                                Deixar um recado para {nome(relato.registradoPor)}
+                              </a>
+                            )}
+                            <a class="menu-acoes__item" href={`/memorias/${memoria.id}/compartilhar`}>
+                              Compartilhar como imagem
+                            </a>
+                          </MenuDeAcoes>
+                        </div>
                       )}
                     </Bilhete>
                   );
@@ -372,7 +418,19 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                         <figcaption class="polaroid__legenda">{foto.legenda ?? ''}</figcaption>
                       </figure>
                     </a>
-                    {publicada && <Reacoes memoria={memoria.id} alvo="foto" alvoId={foto.id} marcas={reacoes.get(`foto:${foto.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#foto-${foto.id}`} />}
+                    {publicada && (
+                      <div class="acoes-do-item">
+                        <Reacoes memoria={memoria.id} alvo="foto" alvoId={foto.id} marcas={reacoes.get(`foto:${foto.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#foto-${foto.id}`} sobre={`a foto ${n + 1}`} />
+                        <MenuDeAcoes rotulo={`Mais ações da foto ${n + 1}`}>
+                          <a class="menu-acoes__item" href={`/fotos/${foto.chave}`} target="_blank" rel="noopener">
+                            Ver a foto inteira
+                          </a>
+                          <a class="menu-acoes__item" href={`/fotos/${foto.chave}`} download>
+                            Baixar a foto
+                          </a>
+                        </MenuDeAcoes>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -492,22 +550,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
         </a>
       )
     }
-    {
-      // Compartilhar como imagem (onda 2): só a memória publicada
-      memoria.situacao === 'publicada' && (
-        <a class="acao acao--quieta" href={`/memorias/${memoria.id}/compartilhar`}>
-          Compartilhar como imagem
-        </a>
-      )
-    }
-    {
-      // Sugestão de correção (onda 2): quem vê a memória sugere; quem criou vê as que recebeu
-      memoria.situacao === 'publicada' && (
-        <a class="acao acao--quieta" href={`/memorias/${memoria.id}/sugerir`}>
-          Sugerir uma correção
-        </a>
-      )
-    }
+    {/* Compartilhar e sugerir uma correção moram no menu da memória, no alto (observação do Gui, 18/11/2026) */}
     {
       sugestoesAbertas > 0 && (
         <a class="acao acao--quieta" href={`/memorias/${memoria.id}/sugestoes`}>
@@ -529,6 +572,12 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
 </Visual>
 
 <script>
+  import { ligarMenus } from '../../lib/cliente/menus';
+  import { ligarReacoes } from '../../lib/cliente/reacoes';
+  // As reações no lugar, sem recarregar, e os menus dos três pontos
+  ligarReacoes();
+  ligarMenus();
+
   // "Quem estava" no celular: até seis retratos, e "Ver todos os N" abre o resto no lugar. A lista só
   // é recolhida aqui, pelo script: sem ele, ela vem inteira. O CSS só esconde abaixo de 40rem.
   const quem = document.querySelector<HTMLElement>('[data-quem].quem--recolhe');

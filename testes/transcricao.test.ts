@@ -33,9 +33,14 @@ describe('a transcrição automática', () => {
     expect(textoDaTranscricao({ text: '  oi,   tudo bem ' })).toBe('oi, tudo bem');
     expect(textoDaTranscricao(null)).toBe('');
   });
-  it('o Workers AI não está ligado no wrangler.jsonc: a transcrição fica desligada até o Gui decidir', () => {
+  // Resposta do Gui à sessão F (18/11/2026): o binding entra, na produção e nas prévias; a transcrição
+  // continua desligada até um administrador ligar em Administração, primeiro na homologação
+  it('o Workers AI está ligado no wrangler.jsonc, na produção e nas prévias', () => {
     const wrangler = readFileSync('wrangler.jsonc', 'utf-8').replace(/\/\/.*$/gm, '');
-    expect(wrangler).not.toMatch(/"ai"\s*:/);
+    expect(wrangler.match(/"ai": \{ "binding": "AI" \}/g)).toHaveLength(2);
+  });
+  it('a transcrição nasce desligada: só o ajuste de Administração liga', () => {
+    expect(situacaoDaTranscricao(true, false)).toBe('desligada');
   });
   it('a rota confere que está ligada, o teto do dia e quem pode transcrever, e o texto só volta ao formulário', () => {
     const rota = readFileSync('src/pages/api/transcricao.ts', 'utf-8');
