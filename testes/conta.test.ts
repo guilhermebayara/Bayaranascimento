@@ -249,3 +249,10 @@ describe('a data da cópia mensal', () => {
     expect(ler('src/lib/servidor/conta.ts')).toContain("const conferida = ambiente() === 'producao';");
   });
 });
+
+describe('Editar seus dados', () => {
+  it('leva à ficha já aberta, pelo #ficha da página de editar', async () => {
+    const { readFileSync } = await import('node:fs');
+    expect(readFileSync('src/pages/conta.astro', 'utf8')).toContain('href={`/pessoas/${usuario.pessoa}/editar#ficha`}');
+  });
+});
