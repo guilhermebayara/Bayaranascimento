@@ -47,6 +47,9 @@
   rotate: -3deg;
 }
 .abre__atalho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
   margin-top: var(--e-5);
 }
 .abre__foto {
@@ -602,4 +605,23 @@ html:has(.galeria[open]) {
     rotate: 5deg;
     translate: 50% 7%;
   }
+}
+
+/* Ampliar quem vê com relatos (docs/decisoes.md): o recado do alto, a frase para quem ampliou e a
+   linha discreta no relato que espera o sim de quem o registrou */
+.memoria__recados {
+  display: grid;
+  gap: var(--e-2);
+  padding-block: var(--e-5);
+}
+.memoria__espera {
+  max-width: 40rem;
+  font-size: var(--t-pequeno);
+}
+.bilhete__espera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-3);
+  font-size: var(--t-pequeno);
 }

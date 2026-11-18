@@ -3,7 +3,7 @@
 import Pagina from '../../../components/formularios/Pagina.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { formatarData, formatarMomento } from '../../../lib/datas';
-import { alcanceDaCorrecao, podeVerVersao } from '../../../lib/servidor/permissoes';
+import { alcanceDaCorrecao, podeRestaurarFoto, podeVerVersao } from '../../../lib/servidor/permissoes';
 import { listarFotosRemovidas, listarIntegrantes, listarRelatos, listarVersoes, obterMemoria, pessoasQueONaoVe, type Memoria, type Relato } from '../../../lib/servidor/repositorio';
 import { tipoDaMemoria } from '../../../lib/tipos';
 
@@ -43,7 +43,9 @@ const linhas = versoes.map((v, i) => {
 // Do relato, cada pessoa vê só o histórico do que ela mesma escreveu ou registrou
 const meusRelatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.registradoPor === usuario.pessoa);
 const relatos = await Promise.all(meusRelatos.map(async (r) => ({ relato: r, versoes: await listarVersoes<Relato>('relato', String(r.id)) })));
-const minhasFotos = (await listarFotosRemovidas(memoria.id)).filter((f) => f.enviadaPor === usuario.pessoa);
+// As fotos que saíram e que a pessoa pode restaurar: as que ela enviou e as que ela removeu (podeRestaurarFoto)
+const minhasFotos = (await listarFotosRemovidas(memoria.id)).filter((f) => podeRestaurarFoto(usuario, f).ok);
+const soAsMinhas = minhasFotos.every((f) => f.enviadaPor === usuario.pessoa);
 const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0) && minhasFotos.length === 0;
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
@@ -128,14 +130,16 @@ const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0
   {
     minhasFotos.length > 0 && (
       <section class="painel">
-        <h2>Suas fotos que saíram desta memória</h2>
+        <h2>{soAsMinhas ? 'Suas fotos que saíram desta memória' : 'Fotos que saíram desta memória'}</h2>
         <ul class="linhas linhas--fotos">
           {minhasFotos.map((f) => (
             <li>
               <img src={`/fotos/${f.chave}`} alt={f.legenda ?? ''} loading="lazy" />
               <div>
                 <strong>{f.legenda ?? 'Sem legenda'}</strong>
-                <span>{f.removidaPor !== usuario.pessoa ? `removida por ${nome(f.removidaPor)} em` : 'removida em'} {formatarMomento(f.removidaEm)}</span>
+                <span>
+                  {f.enviadaPor !== usuario.pessoa ? `de ${nome(f.enviadaPor)}, removida por você em` : f.removidaPor !== usuario.pessoa ? `removida por ${nome(f.removidaPor)} em` : 'removida em'} {formatarMomento(f.removidaEm)}
+                </span>
               </div>
               <form method="post" action="/api/lixeira" class="em-linha">
                 <input type="hidden" name="acao" value="restaurar-foto" />

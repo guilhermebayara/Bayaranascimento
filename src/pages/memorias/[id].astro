@@ -11,6 +11,8 @@ import Dado from '../../components/visual/Dado.astro';
 import Etiqueta from '../../components/visual/Etiqueta.astro';
 import Ficha from '../../components/visual/Ficha.astro';
 import Retrato from '../../components/visual/Retrato.astro';
+import Recado from '../../components/visual/Recado.astro';
+import { fraseDosRelatosQueEsperam } from '../../lib/avisos';
 import Polaroid from '../../components/visual/Polaroid.astro';
 import Rabisco from '../../components/visual/Rabisco.astro';
 import { memoriaDoCapitulo } from '../../lib/capitulos';
@@ -34,6 +36,7 @@ import {
   listarTemas,
   obterMemoria,
   pessoasQueONaoVe,
+  abrirAvisosDaMemoria,
 } from '../../lib/servidor/repositorio';
 import { carimboDaData, corDaPessoa, estiloDoTipo, giroDoId, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
 
@@ -42,6 +45,8 @@ const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
 // Rascunho se edita no formulário. Memória que a pessoa não vê é como se não existisse.
 if (!memoria) return new Response('Memória não encontrada', { status: 404 });
 if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.id}`);
+// Abrir a memória tira da lista os avisos que apontam para ela (menos o pedido para liberar um relato)
+await abrirAvisosDaMemoria(usuario, memoria.id);
 
 const integrantes = await listarIntegrantes();
 const nucleos = await listarNucleos();
@@ -89,7 +94,8 @@ const relatoDaAbertura = relatos.find((r) => r.situacao === 'publicada' && r.tex
 const trecho = relatoDaAbertura ? trechoDoRelato(relatoDaAbertura.texto) : undefined;
 // Um só relato, que coube inteiro na abertura: a seção "Relato" não repete o bilhete (P52 do QA de design de 17/11/2026)
 // O relato que trouxe fotos fica com o bilhete, para as fotos aparecerem pequenas nele ("Fotos pelo relato")
-const relatoSoNaAbertura = relatoJaEstaNaAbertura(relatos, trecho, (id) => (audiosDosRelatos.get(id)?.length ?? 0) + memoria.fotos.filter((f) => String(f.relatoId) === String(id)).length);
+// A linha para liberar fica no bilhete: o relato que espera não se esconde na abertura
+const relatoSoNaAbertura = !relatos.some((r) => r.soParaNucleos && r.registradoPor === usuario.pessoa) && relatoJaEstaNaAbertura(relatos, trecho, (id) => (audiosDosRelatos.get(id)?.length ?? 0) + memoria.fotos.filter((f) => String(f.relatoId) === String(id)).length);
 // No celular, até seis retratos em "Quem estava"; o resto abre no lugar (P51)
 const recolheQuem = recolheQuemEstava(quemEstava.length);
 
@@ -106,10 +112,25 @@ const outrasFotos = memoria.fotos.length > 1;
 // A foto que veio com um relato ("Fotos pelo relato", em docs/decisoes.md) é da memória: aparece na
 // parede e na galeria com as outras e, pequena, no bilhete do relato que a trouxe (.bilhete__fotos,
 // em src/visual/telas/memoria.css). Tocar nela abre a galeria nela.
+// Ampliar quem vê com relatos (docs/decisoes.md): quem criou a memória vê de quem são os relatos que
+// esperam o sim do autor; quem registrou um relato que espera vê a linha discreta para liberar
+const esperam = memoria.criadaPor === usuario.pessoa ? relatos.filter((r) => r.situacao === 'publicada' && r.soParaNucleos && r.registradoPor !== usuario.pessoa) : [];
+const fraseDaEspera = fraseDosRelatosQueEsperam(esperam.map((r) => ({ nome: nome(r.por), tratamento: achar(r.por)?.tratamento ?? null })));
+const ok = Astro.url.searchParams.get('ok');
+const erro = Astro.url.searchParams.get('erro');
+
 const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ foto, n })).filter(({ foto }) => foto.relatoId === relatoId);
 ---
 
 <Visual titulo={memoria.titulo} secao="explorar" nucleos={memoria.nucleos} familia={corDaTela}>
+  {
+    (ok || erro || fraseDaEspera) && (
+      <div class="miolo memoria__recados">
+        {(ok || erro) && <Recado erro={Boolean(erro)}>{erro ?? ok}</Recado>}
+        {fraseDaEspera && <p class="memoria__espera suave">{fraseDaEspera}</p>}
+      </div>
+    )
+  }
   <article class="memoria">
     <div class="abre__fundo" style={estiloDoTipo(memoria.tipo)}>
     <header class="abre miolo grade">
@@ -134,6 +155,10 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
         <p class="abre__atalho">
           <a class="acao" href={`/memorias/${memoria.id}/relato`}>
             {textoDaAcao}
+          </a>
+          {/* Mandar fotos sem escrever relato (resposta do Gui ao PR #51, 17/11/2026) */}
+          <a class="acao acao--quieta" href={`/memorias/${memoria.id}/fotos`}>
+            Acrescentar fotos
           </a>
         </p>
       </div>
@@ -238,9 +263,20 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                 {relatos.map((relato) => {
                   const audios = audiosDosRelatos.get(relato.id) ?? [];
                   return (
-                    <Bilhete por={nome(relato.por)} registradoPor={relato.registradoPor !== relato.por ? nome(relato.registradoPor) : null}>
+                    <Bilhete id={`relato-${relato.id}`} por={nome(relato.por)} registradoPor={relato.registradoPor !== relato.por ? nome(relato.registradoPor) : null}>
                       <h3 class="so-leitor">Contado por {nome(relato.por)}</h3>
                       {relato.situacao === 'rascunho' && <p class="selo bilhete__selo">Rascunho, só você vê</p>}
+                      {relato.soParaNucleos && relato.registradoPor === usuario.pessoa && (
+                        <form class="bilhete__espera" method="post" action="/api/avisos">
+                          <input type="hidden" name="relato" value={relato.id} />
+                          <input type="hidden" name="resposta" value="liberar" />
+                          <input type="hidden" name="volta" value={`/memorias/${memoria.id}#relato-${relato.id}`} />
+                          <span class="suave">Visível só para quem via antes.</span>
+                          <button type="submit" class="acao acao--quieta">
+                            Liberar
+                          </button>
+                        </form>
+                      )}
                       {audios.map((audio, n) => (
                         <Audio
                           rotulo={`${audios.length > 1 ? `Áudio ${n + 1}` : 'Áudio'}${audio.duracao ? ` · ${duracaoEmTexto(audio.duracao)}` : ''}`}

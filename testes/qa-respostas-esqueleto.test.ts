@@ -121,7 +121,8 @@ describe('/temas leva aos capítulos (P11)', () => {
 
 describe('"Sua conta" na barra e no menu do celular (P12)', () => {
   it('os dois continuam', () => {
-    expect(topo).toMatch(/<a class="topo__conta" href="\/conta"/);
+    // Desde o menu da conta (decisão do Gui, 17/11/2026), o retrato abre um menu que leva a "Sua conta"
+    expect(topo.slice(topo.indexOf('<details class="conta-menu">'))).toMatch(/<a href="\/conta"[^>]*>\s*Sua conta/);
     expect(topo.slice(topo.indexOf('<details class="menu">'))).toMatch(/<a href="\/conta"[^>]*>Sua conta<\/a>/);
   });
 });
