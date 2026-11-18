@@ -182,10 +182,11 @@ const escolhido = [todosOsGrupos.find((g) => g.id === familiaEmUso)?.nome, ordem
                 <li>
                   {comoAparece(p.id) === 'tarja' ? (
                     <div class="gente gente--discreto">
-                      <span aria-hidden="true" />
-                      <span class="gente__quem">
-                        <TarjaDoDiscreto />
-                      </span>
+                      <TarjaDoDiscreto
+                        nome={nomeComApelido(p.nome, p.apelido)}
+                        foto={p.retrato && !naoVe.has(p.id) ? enderecoDoRetrato(p.retrato) : null}
+                        familia={corDaPessoa(familiasDe(p), ordemDosNucleos)}
+                      />
                     </div>
                   ) : (
                   <Gente

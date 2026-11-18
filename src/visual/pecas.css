@@ -481,24 +481,28 @@ a.polaroid__foto {
   font-weight: 550;
   line-height: 1.25;
 }
-/* Um ex que quem olha deixou discreto (src/lib/ex-casal.ts): a tarja no lugar do nome, sem retrato e sem
-   link, na altura dos nomes dos outros */
-.pessoa--so-nome {
-  height: 100%;
-  align-content: end;
-  color: var(--tinta-suave);
-}
+/* --- Discreto: o ex que quem olha deixou discreto, em Pessoas e em "Quem estava" ------------------
+   O retrato borrado a ponto de não se reconhecer, com a tarja do cartão da árvore por cima, e o nome
+   borrado, ilegível. Não é link (decisões do Gui depois do QA de 18/11/2026). */
 
-/* --- Tarja do discreto: a do cartão da árvore, no lugar do nome, em Pessoas e em "Quem estava" ------ */
-
-.tarja-do-discreto {
-  display: inline-grid;
-  justify-items: start;
-  gap: var(--e-1);
+.discreto__foto {
+  position: relative;
+  display: grid;
+  place-items: center;
 }
-.tarja-do-discreto__tinta {
-  padding: 0.3em 0.6em;
-  rotate: -2deg;
+.discreto__foto .retrato {
+  width: 100%;
+  overflow: hidden;
+}
+.discreto__foto .retrato > * {
+  filter: blur(0.75rem) saturate(0.6);
+  scale: 1.4;
+}
+.discreto__tarja {
+  position: absolute;
+  max-width: 100%;
+  padding: 0.3em 0.5em;
+  rotate: -4deg;
   border-radius: var(--raio-foto);
   background: var(--tinta);
   color: var(--papel);
@@ -506,27 +510,26 @@ a.polaroid__foto {
   font-size: var(--t-pequeno);
   letter-spacing: 0.08em;
   line-height: 1.2;
+  text-align: center;
   text-transform: uppercase;
-  white-space: nowrap;
 }
-/* A segunda tarja, curta e sem nada, no lugar da linha de baixo, como no cartão */
-.tarja-do-discreto::after {
-  content: '';
-  width: 52%;
-  height: 0.5rem;
-  rotate: 3deg;
-  border-radius: var(--raio-foto);
-  background: var(--tinta);
+.discreto__nome {
+  filter: blur(0.3em);
+  font-weight: 550;
+  line-height: 1.25;
+  user-select: none;
 }
-.gente--discreto {
+.gente--discreto,
+.pessoa--discreto {
   cursor: default;
 }
-/* Em "Quem estava", a coluna é estreita: a tarja quebra em duas linhas em vez de invadir a vizinha */
-.pessoa--so-nome .tarja-do-discreto {
-  max-width: 100%;
+/* Na linha de Pessoas o retrato é pequeno: a tarja fica menor para caber nele */
+.gente--discreto .discreto__tarja {
+  font-size: 0.5rem;
+  padding: 0.25em 0.35em;
 }
-.pessoa--so-nome .tarja-do-discreto__tinta {
-  white-space: normal;
+.pessoa--discreto .discreto__foto {
+  margin-bottom: var(--e-2);
 }
 
 /* --- Gente: uma pessoa numa linha de lista, com o retrato pequeno, o nome e o laço ------------- */

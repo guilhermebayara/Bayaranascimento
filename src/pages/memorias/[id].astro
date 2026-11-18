@@ -309,9 +309,9 @@ const podeCitar = publicada && temPaginaNoAcervo;
                 {quemEstava.map((id) => (
                   <li>
                     {naListaDeQuemOlha(modosDosExes.get(id)) === 'tarja' ? (
-                      // Um ex que quem olha deixou discreto: a tarja no lugar do nome, sem retrato e sem link
-                      <span class="pessoa pessoa--so-nome">
-                        <TarjaDoDiscreto />
+                      // Um ex que quem olha deixou discreto: a foto borrada com a tarja por cima e o nome borrado, sem link
+                      <span class="pessoa pessoa--discreto">
+                        <TarjaDoDiscreto nome={nome(id)} foto={retratoDe(id)} familia={familiaDe(id)} />
                       </span>
                     ) : (
                       <a class="pessoa" href={`/pessoas/${id}`}>

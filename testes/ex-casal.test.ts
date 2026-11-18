@@ -105,11 +105,11 @@ describe('como o ex aparece para mim', () => {
     expect(cliente).toContain("document.createElement('div')");
     expect(cliente).toContain('no__tarja');
     const memoria = readFileSync('src/pages/memorias/[id].astro', 'utf-8');
-    expect(memoria).toMatch(/naListaDeQuemOlha\(modosDosExes\.get\(id\)\) === 'tarja' \? \([\s\S]*?<TarjaDoDiscreto \/>/);
+    expect(memoria).toMatch(/naListaDeQuemOlha\(modosDosExes\.get\(id\)\) === 'tarja' \? \([\s\S]*?<TarjaDoDiscreto\s/);
     expect(memoria).toContain("naListaDeQuemOlha(modosDosExes.get(id)) !== 'fora'");
     const pessoas = readFileSync('src/pages/pessoas/index.astro', 'utf-8');
     expect(pessoas).toContain("filter((i) => comoAparece(i.id) !== 'fora')");
-    expect(pessoas).toMatch(/comoAparece\(p\.id\) === 'tarja' \? \([\s\S]*?<TarjaDoDiscreto \/>/);
+    expect(pessoas).toMatch(/comoAparece\(p\.id\) === 'tarja' \? \([\s\S]*?<TarjaDoDiscreto\s/);
   });
   it('discreto fica com a tarja em Pessoas e em "Quem estava"; fora sai das duas (decisão do Gui, QA de 18/11/2026)', () => {
     expect(naListaDeQuemOlha('discreto')).toBe('tarja');
@@ -201,5 +201,19 @@ describe.skipIf(!comSqlite)('o ex-casal no banco e na rota', async () => {
     const { TABELAS_APAGADAS } = await import('../src/lib/espelho');
     expect(TABELAS_APAGADAS).toContain('ex_para_mim');
     expect(TABELAS_APAGADAS.indexOf('casal_nucleos')).toBeLessThan(TABELAS_APAGADAS.indexOf('casais'));
+  });
+});
+
+describe('o discreto onde haveria a foto (pedido do Gui, 18/11/2026)', () => {
+  const peca = readFileSync('src/components/visual/TarjaDoDiscreto.astro', 'utf-8');
+  const css = readFileSync('src/visual/pecas.css', 'utf-8');
+  it('a foto borrada a ponto de não se reconhecer, com a tarja por cima, e o nome borrado', () => {
+    expect(peca).toMatch(/<span class="discreto__foto" aria-hidden="true">\s*<Retrato [^>]*\/>\s*<span class="discreto__tarja">\{TARJA_DO_DISCRETO\.texto\}<\/span>/);
+    expect(peca).toContain('<span class="discreto__nome" aria-hidden="true">{nome}</span>');
+    expect(css).toMatch(/\.discreto__foto \.retrato > \* \{\s*filter: blur\(0\.75rem\)/);
+    expect(css).toMatch(/\.discreto__nome \{\s*filter: blur\(0\.3em\);/);
+  });
+  it('quem usa leitor de tela ouve a frase da árvore, e não o nome', () => {
+    expect(peca).toContain('<span class="so-leitor">{TARJA_DO_DISCRETO.leitor}</span>');
   });
 });

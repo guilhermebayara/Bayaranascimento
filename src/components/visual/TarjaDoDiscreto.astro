@@ -1,11 +1,26 @@
 ---
-// Um ex que quem olha deixou discreto (decisão do Gui depois do QA de 18/11/2026): no lugar do nome, a
-// mesma tarja do cartão da árvore, de tinta, de leve torta, com "assunto encerrado" em mono. Quem usa
-// leitor de tela ouve a frase da árvore. Serve à lista de Pessoas e a "Quem estava".
+// Um ex que quem olha deixou discreto (decisões do Gui depois do QA de 18/11/2026). Onde haveria a foto,
+// em Pessoas e em "Quem estava": o retrato tão borrado que não se reconhece, com a mesma tarja do cartão
+// da árvore por cima, de tinta, de leve torta, com "assunto encerrado" em mono; e o nome, borrado, ilegível.
+// Não é link. Quem usa leitor de tela ouve a frase da árvore, sem o nome. O que a peça devolve são as
+// partes soltas (a foto e o nome), para entrar no lugar das de quem aparece normalmente: na linha de
+// Pessoas (`.gente`) e no cartão de "Quem estava" (`.pessoa`).
+import Retrato from './Retrato.astro';
 import { TARJA_DO_DISCRETO } from '../../lib/arvore-desenho';
+
+interface Props {
+  nome: string;
+  /** o endereço do retrato, se a pessoa tem um e quem olha pode ver */
+  foto?: string | null;
+  familia?: string;
+}
+
+const { nome, foto, familia } = Astro.props;
 ---
 
-<span class="tarja-do-discreto">
-  <span class="tarja-do-discreto__tinta" aria-hidden="true">{TARJA_DO_DISCRETO.texto}</span>
-  <span class="so-leitor">{TARJA_DO_DISCRETO.leitor}</span>
+<span class="discreto__foto" aria-hidden="true">
+  <Retrato nome={nome} foto={foto} familia={familia} />
+  <span class="discreto__tarja">{TARJA_DO_DISCRETO.texto}</span>
 </span>
+<span class="discreto__nome" aria-hidden="true">{nome}</span>
+<span class="so-leitor">{TARJA_DO_DISCRETO.leitor}</span>

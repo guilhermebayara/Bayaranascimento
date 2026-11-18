@@ -386,3 +386,8 @@
     text-transform: uppercase;
   }
 }
+
+/* O exemplo do discreto: o cartão de "Quem estava", na largura de uma coluna dele */
+.sis__discreto {
+  max-width: 9rem;
+}
