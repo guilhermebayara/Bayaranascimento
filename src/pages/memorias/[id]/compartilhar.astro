@@ -7,7 +7,8 @@ import Pagina from '../../../components/formularios/Pagina.astro';
 import { avisoAntesDeCompartilhar, trechoDoRelato } from '../../../lib/compartilhar';
 import type { DadosDaImagem } from '../../../lib/cliente/compartilhar';
 import { formatarData } from '../../../lib/datas';
-import { assinaturaDaTela } from '../../../lib/visual';
+import { FONTES_DO_SITE } from '../../../lib/visual';
+import { MONOGRAMAS } from '../../../visual/monograma';
 import { listarIntegrantes, listarNucleos, listarRelatos, obterMemoria } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -25,7 +26,6 @@ const relato = relatos.find((r) => r.por === usuario.pessoa) ?? relatos[0];
 const integrantes = await listarIntegrantes();
 const nome = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome ?? '';
 const principal = memoria.fotos.find((f) => f.principal) ?? memoria.fotos[0];
-const assinatura = assinaturaDaTela(memoria.nucleos, nucleos);
 const dados: DadosDaImagem | null = confirmado
   ? {
       titulo: memoria.titulo,
@@ -34,7 +34,8 @@ const dados: DadosDaImagem | null = confirmado
       foto: principal ? `/fotos/${principal.chave}` : null,
       trecho: relato ? trechoDoRelato(relato.texto) : null,
       autorDoTrecho: relato ? nome(relato.por) : null,
-      assinatura: { palavra: 'MEMÓRIAS', sobrenomes: assinatura.sobrenomes },
+      // O M da serifa em uso, como marca d'água leve (a assinatura com o nome do site saiu, 18/11/2026)
+      monograma: MONOGRAMAS[FONTES_DO_SITE.serifa].normal,
     }
   : null;
 ---
@@ -44,7 +45,7 @@ const dados: DadosDaImagem | null = confirmado
     <p>
       <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>
     </p>
-    <p>Uma imagem vertical, para stories e WhatsApp: a foto, o título, a data, um trecho do relato e a assinatura do acervo.</p>
+    <p>Uma imagem vertical, para stories e WhatsApp: a foto, o título, a data e um trecho do relato.</p>
   </Fragment>
 
   {

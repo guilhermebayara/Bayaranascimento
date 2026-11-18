@@ -1,5 +1,7 @@
 // Desenha a memória como imagem, no navegador (src/lib/compartilhar.ts): a foto revelada no alto, o título,
-// a data, o trecho do relato e a assinatura do acervo. As cores e as fontes vêm do próprio site (as
+// a data e o trecho do relato, com o monograma como marca d'água leve, atrás, de enfeite (observação do
+// Gui, 18/11/2026: a assinatura com o nome do site saiu, e o nome de quem contou não passa mais por cima
+// de nada). As cores e as fontes vêm do próprio site (as
 // variáveis do CSS e as fontes já carregadas), para a imagem ter a cara do acervo. Depois, "Compartilhar"
 // usa o compartilhamento do aparelho; onde ele não existe, "Baixar a imagem".
 import { TAMANHO_DA_IMAGEM, nomeDoArquivo } from '../compartilhar';
@@ -11,7 +13,13 @@ export interface DadosDaImagem {
   foto: string | null;
   trecho: string | null;
   autorDoTrecho: string | null;
-  assinatura: { palavra: string; sobrenomes: string };
+  /** o M da serifa em uso (src/visual/monograma.ts), numa caixa de altura 100 */
+  monograma: { d: string; largura: number; altura: number };
+}
+
+/** Quantas linhas do trecho cabem entre `y` e o limite, guardando o lugar do nome de quem contou. */
+export function linhasQueCabem(y: number, limite: number, alturaDaLinha: number, espacoDoNome: number, maximo = 4): number {
+  return Math.max(0, Math.min(maximo, Math.floor((limite - espacoDoNome - y) / alturaDaLinha) + 1));
 }
 
 const cor = (nome: string, reserva: string) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim() || reserva;
@@ -69,6 +77,17 @@ export async function desenharImagem(canvas: HTMLCanvasElement, d: DadosDaImagem
   ctx.fillStyle = papel;
   ctx.fillRect(0, 0, L, A);
 
+  // O monograma, atrás de tudo, grande e leve, saindo pelo canto de baixo: enfeite, não assinatura
+  const m = d.monograma;
+  const escala = (A * 0.42) / m.altura;
+  ctx.save();
+  ctx.globalAlpha = 0.07;
+  ctx.fillStyle = vivo;
+  ctx.translate(L - m.largura * escala * 0.78, A - m.altura * escala * 0.82);
+  ctx.scale(escala, escala);
+  ctx.fill(new Path2D(m.d));
+  ctx.restore();
+
   // A foto revelada: a moldura branca, levemente torta, com a foto quadrada dentro
   const lado = L - margem * 2 - 40;
   const foto = d.foto ? await carregar(d.foto) : null;
@@ -109,27 +128,22 @@ export async function desenharImagem(canvas: HTMLCanvasElement, d: DadosDaImagem
   ctx.fillText(d.data, margem, y - 20);
   y += 50;
   if (d.trecho) {
+    // O trecho e o nome de quem contou cabem até a margem de baixo: o trecho perde linhas, nunca sobrepõe
+    const limite = A - margem;
+    const espacoDoNome = d.autorDoTrecho ? 90 : 0;
+    const cabem = linhasQueCabem(y, limite, 54, espacoDoNome);
     ctx.fillStyle = tinta;
     ctx.font = `40px ${grotesca}`;
-    for (const l of linhas(ctx, `“${d.trecho}”`, L - margem * 2, 4)) {
+    for (const l of cabem ? linhas(ctx, `“${d.trecho}”`, L - margem * 2, cabem) : []) {
       ctx.fillText(l, margem, y);
       y += 54;
     }
     if (d.autorDoTrecho) {
       ctx.fillStyle = suave;
       ctx.font = `64px ${mao}`;
-      ctx.fillText(d.autorDoTrecho, margem, y + 16);
+      ctx.fillText(d.autorDoTrecho, margem, Math.min(y + 16, limite));
     }
   }
-
-  // A assinatura do acervo, embaixo
-  ctx.fillStyle = vivo;
-  ctx.fillRect(margem, A - margem - 150, 120, 6);
-  ctx.fillStyle = tinta;
-  ctx.font = `92px ${serifa}`;
-  ctx.fillText(d.assinatura.palavra, margem, A - margem - 50);
-  ctx.font = `46px ${serifa}`;
-  ctx.fillText(d.assinatura.sobrenomes, margem, A - margem + 8);
 }
 
 /** Liga a página: desenha, mostra a prévia e oferece compartilhar ou baixar. */
