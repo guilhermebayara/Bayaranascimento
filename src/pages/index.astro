@@ -14,6 +14,7 @@
 // o aviso "Só você vê esta página". As regras ficam em src/lib/painel.ts.
 import '../visual/telas/painel.css';
 import Visual from '../layouts/Visual.astro';
+import Avisos from '../components/Avisos.astro';
 import Carta from '../components/Carta.astro';
 import Contar from '../components/painel/Contar.astro';
 import Fila from '../components/painel/Fila.astro';
@@ -44,6 +45,7 @@ import {
   familiasDe,
   listarCasais,
   listarFiliacoes,
+  listarAvisos,
   listarIntegrantes,
   listarMemorias,
   listarNucleos,
@@ -175,6 +177,8 @@ const composicao = composicaoDoInicio({
 });
 
 const cartaNoAlto = chegada.cartaNoAlto && carta && eu;
+// Os avisos ficam no alto, junto das novidades (docs/decisoes.md, "Avisos")
+const avisos = cartaNoAlto ? [] : await listarAvisos(usuario);
 const ok = Astro.url.searchParams.get('ok');
 const erro = Astro.url.searchParams.get('erro');
 ---
@@ -212,6 +216,7 @@ const erro = Astro.url.searchParams.get('erro');
                 ? 'Nada de novo desde a sua última visita.'
                 : 'Que bom que você chegou.'}
           </p>
+          <Avisos avisos={avisos} onde="inicio" />
           {quantosRascunhos > 0 && (
             <p class="novo__rascunho">
               <span>{quantosRascunhos === 1 ? 'Você tem um rascunho.' : `Você tem ${quantosRascunhos} rascunhos.`}</span>

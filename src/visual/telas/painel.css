@@ -120,6 +120,7 @@
     'sobre envelope'
     'ola ola'
     'resumo resumo'
+    'avisos avisos'
     'rascunho rascunho'
     'carta carta';
   align-items: end;
@@ -127,7 +128,7 @@
 /* O envelope só aparece quando chegou algo: sem ele, a abertura tem uma coluna só */
 .novo__abre--sem-envelope {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'sobre' 'ola' 'resumo' 'rascunho' 'carta';
+  grid-template-areas: 'sobre' 'ola' 'resumo' 'avisos' 'rascunho' 'carta';
 }
 .novo__abre.novo__abre--sem-envelope > .rotulo {
   max-width: none;
@@ -543,7 +544,7 @@
   }
   .novo__abre {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'sobre' 'ola' 'resumo' 'rascunho' 'carta' 'envelope';
+    grid-template-areas: 'sobre' 'ola' 'resumo' 'avisos' 'rascunho' 'carta' 'envelope';
     align-items: start;
   }
   .novo__abre > .rotulo {
@@ -686,4 +687,52 @@
   .cartoes[data-colunas='4'] > .cartao {
     grid-column: span 3;
   }
+}
+
+/* Os avisos (src/components/Avisos.astro): no alto do Início, junto das novidades, e em "Sua conta".
+   Cada um é uma linha que leva à memória; o pedido para liberar um relato traz a resposta embaixo. */
+.avisos--inicio {
+  grid-area: avisos;
+  margin-top: var(--e-5);
+  max-width: 34rem;
+}
+.avisos__lista {
+  margin: var(--e-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.avisos__lista li + li {
+  border-top: 1px solid var(--fio);
+}
+.aviso__link {
+  display: grid;
+  gap: var(--e-1);
+  min-height: var(--toque);
+  padding-block: var(--e-3);
+  text-decoration: none;
+}
+.aviso__frase {
+  font-weight: 550;
+  line-height: 1.3;
+}
+.aviso--visto .aviso__frase {
+  font-weight: 450;
+  color: var(--tinta-suave);
+}
+@media (hover: hover) {
+  .aviso__link:hover .aviso__frase {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
+}
+.aviso__resposta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
+  margin-top: calc(var(--e-2) * -1);
+  padding-bottom: var(--e-2);
+}
+.avisos__historico {
+  margin-top: var(--e-3);
 }

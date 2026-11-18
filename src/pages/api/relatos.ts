@@ -3,6 +3,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto } from '../../lib/servidor/conteudo';
+import { avisarRelatoNovo } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeEscreverRelato } from '../../lib/servidor/permissoes';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
@@ -79,5 +80,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const lista = fotos ?? (await listarFotosDoRelato(salvo.id)).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined }));
     if (fotos || lista.length) await ligarFotosDoRelato({ id: salvo.id, memoriaId, situacao }, lista, usuario);
   }
+  // Avisos: o relato acabou de ser publicado (src/lib/avisos.ts). Editar um relato publicado não avisa ninguém.
+  if (salvo && situacao === 'publicada' && existente?.situacao !== 'publicada') await avisarRelatoNovo(memoria, salvo, usuario);
   return json({ url: `/memorias/${memoriaId}`, situacao, editado: Boolean(existente) }, existente ? 200 : 201);
 }

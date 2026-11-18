@@ -4,10 +4,12 @@ import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import { lerTemas } from '../../lib/capitulos';
 import { SEM_ANO } from '../../lib/datas';
+import { mensagemDaPessoaPrivada } from '../../lib/memoria';
 import { TIPO_OUTRO } from '../../lib/tipos';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
+import { avisarQuemEstava, mudouQuemVe } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
@@ -28,6 +30,8 @@ import {
   type Memoria,
   ligarAudios,
   obterRelatoRegistradoPor,
+  abrirLacosPrivados,
+  pessoasQueSoVoceVe,
 } from '../../lib/servidor/repositorio';
 
 const opcional = (maximo: number) => z.string().trim().max(maximo).optional();
@@ -49,6 +53,8 @@ const Pedido = z.object({
   nucleos: z.array(z.string().max(80)).max(20).default([]),
   visibilidade: z.enum(['todos', 'nucleos']).default('todos'),
   situacao: z.enum(['rascunho', 'publicada']).default('publicada'),
+  // Publicar com alguém que só você vê: a escolha da pessoa depois do aviso (ver mensagemDaPessoaPrivada)
+  pessoasPrivadas: z.enum(['abrir', 'sem-citar']).optional(),
   fotos: z.array(z.object({ id: z.number().int(), legenda: opcional(200), principal: z.boolean().default(false) })).max(30).default([]),
   // capítulos reunidos em que a memória entra, e temas como texto livre separado por vírgulas
   capitulos: z.array(z.string().max(120)).max(20).optional(),
@@ -249,6 +255,22 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     if (!relatoPor) return erro(400, 'Não encontrei a pessoa que contou o relato.');
   }
 
+  // Memória com alguém que só você vê (docs/decisoes.md): o site nunca publica revelando por tabela uma
+  // pessoa que só existe num laço "só eu vejo". Sem escolha, nada é salvo e a pessoa decide: abrir a
+  // pessoa para todos, publicar sem citá-la ou continuar em rascunho (que salva sem esta conferência).
+  if (situacao === 'publicada') {
+    const soMinhas = await pessoasQueSoVoceVe(usuario);
+    const privadas = integrantes.filter((i) => soMinhas.has(i));
+    if (privadas.length > 0) {
+      if (pedido.pessoasPrivadas === 'abrir') await abrirLacosPrivados(usuario, privadas);
+      else if (pedido.pessoasPrivadas === 'sem-citar') for (const p of privadas) integrantes.splice(integrantes.indexOf(p), 1);
+      else {
+        const nomes = privadas.map((p) => integrantesAtuais.find((i) => i.id === p)?.nome ?? p);
+        return json({ erro: mensagemDaPessoaPrivada(nomes, anterior?.situacao === 'publicada'), codigo: 'pessoa-privada', pessoas: privadas.map((id, n) => ({ id, nome: nomes[n] })) }, 409);
+      }
+    }
+  }
+
   let id: string;
   if (anterior) {
     id = anterior.id;
@@ -258,6 +280,15 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     id = codigoNovo(await idsDeMemorias());
     await criarMemoria(id, dados, usuario);
   }
+  // Quem vê mudou numa memória publicada: ao ampliar, os relatos que já existiam esperam o sim de quem
+  // os registrou (docs/decisoes.md, "Ampliar quem vê uma memória com relatos")
+  let esperam: { por: string }[] = [];
+  if (anterior?.situacao === 'publicada') {
+    esperam = await mudouQuemVe(id, { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos }, { visibilidade: dados.visibilidade, nucleos }, usuario);
+  }
+  // Avisos: quem entrou agora em "Quem estava" de uma memória publicada (src/lib/avisos.ts)
+  const antes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];
+  await avisarQuemEstava({ id, situacao, visibilidade: dados.visibilidade, nucleos, integrantes, criadaPor: anterior?.criadaPor ?? usuario.pessoa }, antes, usuario);
 
   if (relatoPor) {
     const existente = await obterRelato(id, relatoPor, usuario);
@@ -272,5 +303,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     }
   }
 
-  return json({ id, situacao, url: situacao === 'rascunho' ? `/nova?id=${id}` : `/memorias/${id}` }, anterior ? 200 : 201);
+  // "esperam": de quem são os relatos que passaram a esperar, para quem ampliou ver ao salvar
+  return json({ id, situacao, url: situacao === 'rascunho' ? `/nova?id=${id}` : `/memorias/${id}`, esperam: esperam.map((r) => r.por) }, anterior ? 200 : 201);
 }
+

@@ -6,7 +6,7 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 
 interface Migracao {
@@ -590,6 +590,45 @@ export const MIGRACOES: Migracao[] = [
     id: '023-quem-removeu-a-foto',
     sql: [`ALTER TABLE fotos ADD COLUMN removida_por TEXT REFERENCES integrantes(id)`],
   },
+  {
+    // Avisos dentro do site (decisões do Gui, 17/11/2026; regras em src/lib/avisos.ts).
+    // - acessos: o primeiro acesso de cada pessoa, para ela só receber avisos a partir dele. Quem já
+    //   abriu o painel entra com a primeira visita.
+    // - avisos: um por pessoa e acontecimento. "resolvido_em" é quando saiu da lista: ao abrir a
+    //   memória, ou, no pedido para liberar um relato, ao responder ("resposta"). Sem chave para as
+    //   memórias e os relatos: a lista confere ao ler se a pessoa ainda vê o item, e uma cascata
+    //   amarraria a refação futura dessas tabelas.
+    id: '024-avisos',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS acessos (
+        pessoa TEXT PRIMARY KEY,
+        primeiro_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+      `INSERT OR IGNORE INTO acessos (pessoa, primeiro_em) SELECT pessoa, primeira_em FROM visitas`,
+      `CREATE TABLE IF NOT EXISTS avisos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        para TEXT NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('liberar-relato', 'relato-novo', 'quem-estava')),
+        memoria_id TEXT NOT NULL,
+        relato_id INTEGER,
+        de TEXT NOT NULL,
+        dados TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        resolvido_em TEXT,
+        resposta TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS avisos_de_quem ON avisos (para, resolvido_em)`,
+      `CREATE INDEX IF NOT EXISTS avisos_da_memoria ON avisos (memoria_id)`,
+    ],
+  },
+  {
+    // Ampliar quem vê uma memória com relatos (decisão do Gui, 17/11/2026; regras em permissoes.ts,
+    // "estaNoPublicoDoRelato"). Ao ampliar, cada relato que já existia fica só para quem via antes até
+    // quem o registrou concordar: os núcleos desse público antigo, numa lista em JSON. Vazio: o relato
+    // acompanha a memória, como todos os que já existem.
+    id: '025-relato-so-para-quem-via',
+    sql: [`ALTER TABLE relatos ADD COLUMN so_para_nucleos TEXT`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
@@ -642,6 +681,9 @@ async function migrar(db: D1Database): Promise<void> {
     await semearFotosDeExemplo(db);
     // Áudios de exemplo, de voz sintetizada, nos relatos da Vó Bela e da Vó Vivica
     await semearAudiosDeExemplo(db);
+    // Avisos de exemplo, para o "Ver como" mostrar a lista, o número no retrato e a conta
+    await semearAvisosDeExemplo(db);
+    await semearPedidoDeExemplo(db);
     await limparBucketDeTeste(db);
   }
 }
