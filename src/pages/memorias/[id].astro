@@ -2,7 +2,7 @@
 // A página da memória (docs/visual.md, "Página da memória").
 // A ideia da tela: a foto e o verso. A frente é a imagem grande; o verso é a ficha em mono, como
 // o carimbo do laboratório, e os relatos como bilhetes assinados à mão. A ordem é a de docs/visual.md.
-import { soONomeNaMemoria } from '../../lib/ex-casal';
+import { naListaDeQuemOlha } from '../../lib/ex-casal';
 import '../../visual/telas/memoria.css';
 import Visual from '../../layouts/Visual.astro';
 import Voz from '../../components/conversa/Voz.astro';
@@ -14,6 +14,7 @@ import Dado from '../../components/visual/Dado.astro';
 import Etiqueta from '../../components/visual/Etiqueta.astro';
 import Ficha from '../../components/visual/Ficha.astro';
 import Retrato from '../../components/visual/Retrato.astro';
+import TarjaDoDiscreto from '../../components/visual/TarjaDoDiscreto.astro';
 import Recado from '../../components/visual/Recado.astro';
 import { fraseDosRelatosQueEsperam } from '../../lib/avisos';
 import Polaroid from '../../components/visual/Polaroid.astro';
@@ -73,10 +74,11 @@ const retratoDe = (id: string) => {
   return pessoa?.retrato && !naoVe.has(id) ? enderecoDoRetrato(pessoa.retrato) : null;
 };
 const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
-// Como os exes aparecem para quem olha (src/lib/ex-casal.ts): discreto ou fora fica em "Quem estava", só com o nome
+// Como os exes aparecem para quem olha (src/lib/ex-casal.ts)
 const modosDosExes = memoria.integrantes.length ? await comoOsExesAparecem(usuario) : new Map<string, 'discreto' | 'fora'>();
 // Quem só existe num laço privado de outra pessoa não aparece em "Quem estava" (C1, 17/11/2026)
-const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id));
+// O ex que quem olha deixou fora sai de "Quem estava"; o discreto fica, com a tarja (naListaDeQuemOlha)
+const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id) && naListaDeQuemOlha(modosDosExes.get(id)) !== 'fora');
 // O parentesco do ponto de vista de quem olha: "sua avó"
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
@@ -306,10 +308,10 @@ const podeCitar = publicada && temPaginaNoAcervo;
               <ul class:list={['quem', recolheQuem && 'quem--recolhe']} data-quem>
                 {quemEstava.map((id) => (
                   <li>
-                    {soONomeNaMemoria(modosDosExes.get(id)) ? (
-                      // Um ex que quem olha deixou discreto ou fora: só o nome, sem retrato e sem link
+                    {naListaDeQuemOlha(modosDosExes.get(id)) === 'tarja' ? (
+                      // Um ex que quem olha deixou discreto: a tarja no lugar do nome, sem retrato e sem link
                       <span class="pessoa pessoa--so-nome">
-                        <span class="pessoa__nome">{nome(id)}</span>
+                        <TarjaDoDiscreto />
                       </span>
                     ) : (
                       <a class="pessoa" href={`/pessoas/${id}`}>
@@ -327,7 +329,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
                 recolheQuem && (
                   <p class="quem__todos">
                     <button type="button" class="acao" data-quem-todos hidden>
-                      Ver todos os {memoria.integrantes.length}
+                      Ver todos os {quemEstava.length}
                     </button>
                   </p>
                 )

@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { aplicarComoOsExesAparecem, type DadosDaArvore } from '../src/lib/arvore-montagem';
-import { casalDesfeito, exesDe, modosQueValem } from '../src/lib/ex-casal';
+import { casalDesfeito, exesDe, modosQueValem, naListaDeQuemOlha } from '../src/lib/ex-casal';
 import { Familia, podeVerCasal, type Casal } from '../src/lib/parentesco';
 import { podeEscolherComoOExAparece, podeMudarQuemVeOCasal } from '../src/lib/servidor/permissoes';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
@@ -100,12 +100,22 @@ describe('como o ex aparece para mim', () => {
   it('sem escolha, nada muda', () => {
     expect(aplicarComoOsExesAparecem(dados, new Map())).toBe(dados);
   });
-  it('o cartão discreto não é link e tem a tarja; a memória mostra só o nome', () => {
+  it('o cartão discreto não é link e tem a tarja; em "Quem estava" e em Pessoas, a tarja no lugar do nome', () => {
     const cliente = readFileSync('src/lib/cliente/arvore.ts', 'utf-8');
     expect(cliente).toContain("document.createElement('div')");
     expect(cliente).toContain('no__tarja');
     const memoria = readFileSync('src/pages/memorias/[id].astro', 'utf-8');
-    expect(memoria).toMatch(/soONomeNaMemoria\(modosDosExes\.get\(id\)\)[\s\S]*?<span class="pessoa pessoa--so-nome">/);
+    expect(memoria).toMatch(/naListaDeQuemOlha\(modosDosExes\.get\(id\)\) === 'tarja' \? \([\s\S]*?<TarjaDoDiscreto \/>/);
+    expect(memoria).toContain("naListaDeQuemOlha(modosDosExes.get(id)) !== 'fora'");
+    const pessoas = readFileSync('src/pages/pessoas/index.astro', 'utf-8');
+    expect(pessoas).toContain("filter((i) => comoAparece(i.id) !== 'fora')");
+    expect(pessoas).toMatch(/comoAparece\(p\.id\) === 'tarja' \? \([\s\S]*?<TarjaDoDiscreto \/>/);
+  });
+  it('discreto fica com a tarja em Pessoas e em "Quem estava"; fora sai das duas (decisão do Gui, QA de 18/11/2026)', () => {
+    expect(naListaDeQuemOlha('discreto')).toBe('tarja');
+    expect(naListaDeQuemOlha('fora')).toBe('fora');
+    expect(naListaDeQuemOlha('presente')).toBe('normal');
+    expect(naListaDeQuemOlha(undefined)).toBe('normal');
   });
 });
 

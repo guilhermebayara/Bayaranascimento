@@ -174,6 +174,6 @@ describe('o ex que virou amigo não é ex em lugar nenhum', () => {
     expect(pagina).toMatch(/\.filter\(\(c\) => apareceComoCoracao\(c\.casal\) && !escolhidos\.some/);
     expect(ler('src/pages/pessoas/[id]/editar.astro')).toContain('{situacaoDoCasal(c.casal)}');
     expect(ler('src/pages/pessoas/[id]/editar.astro')).toContain('{ehEx(c.casal) && [c.casal.a, c.casal.b].includes(usuario.pessoa)');
-    expect(ler('src/pages/lacos/[a]/[b].astro')).toContain('situacaoDoCasal(casal)');
+    expect(ler('src/pages/lacos/[a]/[b].astro')).toContain('situacaoDoCasal(casal, ');
   });
 });

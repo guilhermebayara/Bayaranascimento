@@ -129,8 +129,14 @@ export function foraQueEPaiViraDiscreto(
 /** Sai da página e do círculo de quem escolheu: discreto ou fora. */
 export const saiDaMinhaPagina = (modo: ModoDoEx | undefined): boolean => modo === 'discreto' || modo === 'fora';
 
-/** Em "Quem estava": só o nome, sem retrato e sem link. */
-export const soONomeNaMemoria = saiDaMinhaPagina;
+/**
+ * Em Pessoas e em "Quem estava" (decisão do Gui depois do QA de 18/11/2026): o discreto continua, com a
+ * tarja "assunto encerrado" no lugar do nome, sem retrato e sem link; quem escolheu "Fora" quer que ele
+ * suma, e ele sai das duas listas. O relato que ele contou continua na memória.
+ */
+export function naListaDeQuemOlha(modo: ModoDoEx | undefined): 'normal' | 'tarja' | 'fora' {
+  return modo === 'discreto' ? 'tarja' : modo === 'fora' ? 'fora' : 'normal';
+}
 
 /** As opções do formulário, com o que cada uma faz, ditas para quem escolhe. */
 export function opcoesDoModo(nome: string): { valor: ModoDoEx; rotulo: string; dica: string }[] {

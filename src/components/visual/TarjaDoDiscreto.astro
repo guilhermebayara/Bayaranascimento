@@ -1,0 +1,11 @@
+---
+// Um ex que quem olha deixou discreto (decisão do Gui depois do QA de 18/11/2026): no lugar do nome, a
+// mesma tarja do cartão da árvore, de tinta, de leve torta, com "assunto encerrado" em mono. Quem usa
+// leitor de tela ouve a frase da árvore. Serve à lista de Pessoas e a "Quem estava".
+import { TARJA_DO_DISCRETO } from '../../lib/arvore-desenho';
+---
+
+<span class="tarja-do-discreto">
+  <span class="tarja-do-discreto__tinta" aria-hidden="true">{TARJA_DO_DISCRETO.texto}</span>
+  <span class="so-leitor">{TARJA_DO_DISCRETO.leitor}</span>
+</span>
