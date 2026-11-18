@@ -31,8 +31,9 @@ describe('cadastro guiado', () => {
 });
 
 describe('nova pessoa', () => {
-  it('P113: no recolhido, só o nome é sublinhado, e na edição a frase de apoio sai', () => {
-    expect(ficha).toContain("<summary><span class=\"mais__nome\">{i ? 'Nascimento e história' : 'Foto, nascimento e história'}</span>{!i && <small>(opcional, dá para preencher depois)</small>}</summary>");
+  // O recolhido só existe no cadastro: na edição, a ficha inteira fica fechada num resumo (proposta A da sessão E)
+  it('P113: no recolhido, só o nome é sublinhado', () => {
+    expect(ficha).toContain('<summary><span class="mais__nome">Foto e história</span><small>(opcional, dá para preencher depois)</small></summary>');
     const resumo = css.slice(css.indexOf('\n.pagina-de-formulario .mais > summary {'), css.indexOf('\n.pagina-de-formulario .mais__nome {'));
     expect(resumo).not.toContain('text-decoration');
     expect(css).toMatch(/\.pagina-de-formulario \.mais__nome \{\s*text-decoration: underline;/);
@@ -60,14 +61,14 @@ describe('editar página e laços', () => {
     const editores = editar.match(/<div class="editar__caixa">/g)?.length ?? 0;
     // Seis editores: o sexto é o do laço do coração de outra pessoa, para os administradores
     expect(editores).toBe(6);
-    expect(editar.match(/data-editar-cancelar hidden>Cancelar<\/button>/g)?.length).toBe(editores);
+    // Mais um: o "Adicionar" de cada grupo, que também fecha e desfaz com "Cancelar"
+    expect(editar.match(/data-editar-cancelar hidden>Cancelar<\/button>/g)?.length).toBe(editores + 1);
     expect(editar).toContain('formulario.reset();');
     expect(editar).toContain("edicao.querySelector('summary')?.focus();");
   });
-  it('P116: a pergunta de dentro do cartão do casal é um título menor, e "Ficha" fica só para o leitor de tela', () => {
+  it('P116: a pergunta de dentro do cartão do casal é um título menor', () => {
     expect(regra('.pagina-de-formulario .painel fieldset.fase--nova legend')).toContain('font-size: var(--t-corpo);');
     expect(regra('.pagina-de-formulario .painel fieldset.fase--nova legend')).toContain('font-family: var(--grotesca);');
-    expect(editar).toMatch(/<h2 class="so-leitor">Ficha<\/h2>\s*<FichaDoIntegrante integrante=\{pessoa\} \/>/);
   });
   it('P117: dentro do cartão, a zona de perigo é uma linha, e só vira bloco com a pergunta aberta', () => {
     const quieta = regra('.pagina-de-formulario .perigo--menor');
@@ -100,9 +101,13 @@ describe('editar página e laços', () => {
     expect(cartao).toContain('<span>Só os dois veem este casal</span>');
     expect(regra('.pagina-de-formulario .quem-ve')).toContain('border-top: 1px solid var(--fio);');
   });
-  it('P122: "Editar" só vai para a linha do nome no computador', () => {
-    const noComputador = css.slice(css.indexOf('/* No computador, "Editar" fica na linha do nome'));
-    expect(noComputador).toMatch(/^[^@]*@media \(min-width: 62rem\) \{\s*\.pagina-de-formulario \.laco:has\(> \.editar\) \{\s*position: relative;/);
+  // Na proposta A da sessão E, "Editar" fica na linha do nome em toda largura; "Editar o casal", mais
+  // comprido, só no computador
+  it('P122: "Editar o casal" só vai para a linha do nome no computador', () => {
+    expect(regra('.pagina-de-formulario .grupo-de-lacos .laco:not(.laco--casal) > .editar:not([open]),\n.pagina-de-formulario .grupo-de-lacos .laco:not(.laco--casal) > .editar[open] > summary')).toContain('position: absolute;');
+    const noComputador = css.slice(css.indexOf('/* A abertura ocupa a altura da página'));
+    expect(noComputador).toMatch(/^[^@]*\.laco--casal > \.editar:not\(\[open\]\),[^}]*\{\s*position: absolute;/);
+    expect(css.slice(css.lastIndexOf('@media', css.indexOf('/* A abertura ocupa a altura da página')))).toMatch(/^@media \(min-width: 62rem\)/);
   });
   it('P124: na tela grande o quadro de enquadrar cresce, com os controles ao lado', () => {
     const grande = css.slice(css.indexOf('/* Na tela grande, o quadro cresce'));

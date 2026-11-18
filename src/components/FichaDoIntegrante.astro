@@ -10,7 +10,6 @@ interface Props {
 
 const { integrante: i } = Astro.props;
 const nucleos = i ? await listarNucleos() : [];
-const temMais = Boolean(i && (i.nascimentoAno || i.sobre));
 // As famílias de quem acessa o site são marcadas pelos administradores: aqui elas viram texto, e só
 // aparecem caixas para o que dá para mexer (resposta do Gui à P125, 17/11/2026)
 const familiasFixas = i ? nucleos.filter((n) => i.nucleos.includes(n.id)) : [];
@@ -66,64 +65,79 @@ const existentes = i ? [] : (await listarIntegrantesQueVe(Astro.locals.usuario))
       </div>
       <p class="dica">Serve para o site escrever "sua tia" ou "seu tio" na árvore.</p>
     </div>
-    {/* Fora do recolhido: muda como o site fala da pessoa (QA de UX, 16/11/2026). A data só aparece marcada. */}
+  </fieldset>
+
+  {/* As datas juntas (decisão do Gui, 18/11/2026): o nascimento e, com "Já faleceu" marcado, o falecimento.
+      "Já faleceu" fica à vista também no cadastro: muda como o site fala da pessoa (QA de UX, 16/11/2026). */}
+  <fieldset class="datas-da-ficha">
+    <legend>Datas</legend>
+    <div class="campo datas-da-ficha__uma">
+      <span>Nascimento <small>(se souber)</small></span>
+      <p class="dica">Preencha o que souber. Só o ano já basta.</p>
+      <CampoData prefixo="nascimento" ano={i?.nascimentoAno} mes={i?.nascimentoMes} dia={i?.nascimentoDia} />
+    </div>
     <label class="marcar">
       <input type="checkbox" name="falecido" data-revela="falecimento" checked={i?.falecido} />
       <span>Já faleceu</span>
     </label>
-    <div class="campo" data-depende="falecimento" hidden={!i?.falecido}>
+    <div class="campo datas-da-ficha__uma" data-depende="falecimento" hidden={!i?.falecido}>
       <span>Falecimento <small>(se souber)</small></span>
       <CampoData prefixo="falecimento" ano={i?.falecimentoAno} mes={i?.falecimentoMes} dia={i?.falecimentoDia} />
     </div>
   </fieldset>
 
-  {i && <CampoRetrato integrante={i} />}
-
-  <details class="mais" open={temMais}>
-    {/* Um toque só: o sublinhado fica no nome, e a frase ao lado é apoio. Na edição a frase sai (P113) */}
-    <summary><span class="mais__nome">{i ? 'Nascimento e história' : 'Foto, nascimento e história'}</span>{!i && <small>(opcional, dá para preencher depois)</small>}</summary>
-    {!i && <CampoRetrato />}
-  <fieldset>
-      <legend>Nascimento</legend>
-      <p class="dica">Preencha o que souber. Só o ano já basta.</p>
-      <CampoData prefixo="nascimento" ano={i?.nascimentoAno} mes={i?.nascimentoMes} dia={i?.nascimentoDia} />
-    </fieldset>
-
-
-    <fieldset>
-      <legend>Sobre</legend>
-      <label class="campo">
-        <span>Quem é, do jeito que a família contaria <small>(opcional)</small></span>
-        <textarea name="sobre" rows="6" maxlength="5000">{i?.sobre ?? ''}</textarea>
-      </label>
-    </fieldset>
-  </details>
-
-    {
-      i && (
+  {/* Na edição, o retrato e "Sobre" ficam à vista. No cadastro, vêm recolhidos: só o essencial de cara */}
+  {
+    i ? (
+      <>
+        <CampoRetrato integrante={i} />
         <fieldset>
-          <legend>Família</legend>
-          <p class="dica">De que família {i.apelido ?? i.nome} é. Define a cor e o lado na árvore e quem cuida desta página. Quem acessa o site é marcado pelos administradores.</p>
-          {familiasFixas.length > 0 && (
-            <p data-familias-fixas>
-              {i.apelido ?? i.nome} é {familiasFixas.length > 1 ? 'das famílias' : 'da família'} {emLista(familiasFixas.map((n) => n.nome))}.
-            </p>
-          )}
-          {familiasParaMarcar.length > 0 && (
-            <div class="opcoes">
-              {familiasParaMarcar.map((n) => (
-                <label class="opcao">
-                  <input type="checkbox" name="parenteDe" value={n.id} checked={i.parenteDe.includes(n.id)} />
-                  <span>{n.nome}</span>
-                </label>
-              ))}
-            </div>
-          )}
+          <legend>Sobre</legend>
+          <label class="campo">
+            <span>Quem é, do jeito que a família contaria <small>(opcional)</small></span>
+            <textarea name="sobre" rows="6" maxlength="5000">{i.sobre ?? ''}</textarea>
+          </label>
         </fieldset>
-      )
-    }
+      </>
+    ) : (
+      <details class="mais">
+        {/* Um toque só: o sublinhado fica no nome, e a frase ao lado é apoio (P113) */}
+        <summary><span class="mais__nome">Foto e história</span><small>(opcional, dá para preencher depois)</small></summary>
+        <CampoRetrato />
+        <fieldset>
+          <legend>Sobre</legend>
+          <label class="campo">
+            <span>Quem é, do jeito que a família contaria <small>(opcional)</small></span>
+            <textarea name="sobre" rows="6" maxlength="5000"></textarea>
+          </label>
+        </fieldset>
+      </details>
+    )
+  }
 
-
+  {
+    i && (
+      <fieldset>
+        <legend>Família</legend>
+        <p class="dica">De que família {i.apelido ?? i.nome} é. Define a cor e o lado na árvore e quem cuida desta página. Quem acessa o site é marcado pelos administradores.</p>
+        {familiasFixas.length > 0 && (
+          <p data-familias-fixas>
+            {i.apelido ?? i.nome} é {familiasFixas.length > 1 ? 'das famílias' : 'da família'} {emLista(familiasFixas.map((n) => n.nome))}.
+          </p>
+        )}
+        {familiasParaMarcar.length > 0 && (
+          <div class="opcoes">
+            {familiasParaMarcar.map((n) => (
+              <label class="opcao">
+                <input type="checkbox" name="parenteDe" value={n.id} checked={i.parenteDe.includes(n.id)} />
+                <span>{n.nome}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </fieldset>
+    )
+  }
 
   <div class="acoes">
     <button class="botao" type="submit">{i ? 'Salvar página' : 'Cadastrar e ir para os laços'}</button>

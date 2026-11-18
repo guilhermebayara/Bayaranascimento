@@ -48,7 +48,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const { usuario } = locals;
   const dados = await request.formData();
   const id = campo(dados, 'id', 80);
-  const origem = id ? `/pessoas/${id}/editar` : '/pessoas/nova';
+  // Na edição, a recusa volta com a ficha aberta: na página, ela fica fechada num resumo
+  const origem = id ? `/pessoas/${id}/editar#ficha` : '/pessoas/nova';
 
   const nome = campo(dados, 'nome', 80);
   if (!nome) return voltar(request, origem, { erro: 'Escreva o nome.' });

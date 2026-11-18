@@ -1505,7 +1505,7 @@
   color: var(--tinta);
 }
 
-/* --- Recolhido: "Nascimento e história", na ficha da pessoa --------------------------------------- */
+/* --- Recolhido: "Foto e história", no cadastro de uma pessoa nova ------------------------------------ */
 
 .pagina-de-formulario .mais {
   display: grid;
@@ -1731,20 +1731,9 @@
   font-size: var(--t-pequeno);
   font-weight: 400;
 }
-.pagina-de-formulario .novo-laco {
-  padding-top: var(--e-6);
-  border-top: 1px solid var(--fio);
-}
-/* "Adicionar outro laço" fica no tamanho das ações do formulário, abaixo de "Laços", a parte que o
-   contém, e sem parecer título: a grotesca, no corpo e no peso dos botões (decisão do Gui,
-   17/11/2026, depois da 47-N11, em que um degrau abaixo ainda ficava quase igual a "Laços") */
-.pagina-de-formulario .novo-laco > .casal__titulo {
-  font-family: var(--grotesca);
-  font-variation-settings: normal;
-  font-weight: 550;
-  font-size: var(--t-corpo);
-  letter-spacing: normal;
-  line-height: 1.2;
+.pagina-de-formulario .novo-laco__quem {
+  display: grid;
+  gap: var(--e-5);
 }
 .pagina-de-formulario [data-para] {
   display: grid;
@@ -1809,11 +1798,6 @@
    Aprovado pelo Gui em 17/11/2026 (pergunta 10 do PR do grupo "formularios"): a edição num cartão branco e as fases
    do casal com um fio ao lado. */
 
-.pagina-de-formulario .grupo-de-lacos {
-  display: grid;
-  gap: var(--e-2);
-}
-.pagina-de-formulario .grupo-de-lacos > h3,
 .pagina-de-formulario .painel > h3 {
   font-family: var(--mono);
   font-size: var(--t-ficha);
@@ -1951,23 +1935,312 @@
   padding-top: var(--e-5);
   border-top: 1px solid var(--fio);
 }
-/* No computador, "Editar" fica na linha do nome, à direita. O cartão continua abrindo embaixo. */
+/* --- Editar pessoa e laços: proposta A do conceito da sessão E (escolha do Gui, 18/11/2026) --------
+   Uma página só. Na abertura, o índice com a ficha e cada grupo de laços, com a conta; no computador,
+   onde há mouse, ele acompanha a rolagem. A ficha é um resumo de uma linha que abre no lugar. Cada grupo
+   de laços é um cartão branco com o título em serifa, as pessoas e o "Adicionar" daquele grupo; vazio,
+   o grupo fica numa linha só, com um fio em volta no lugar do fundo. */
+
+.pagina-de-formulario .indice-lacos {
+  display: grid;
+  margin-top: var(--e-4);
+}
+.pagina-de-formulario .indice-lacos > .rotulo {
+  margin-bottom: var(--e-1);
+}
+.pagina-de-formulario .indice-lacos > .rotulo:not(:first-child) {
+  margin-top: var(--e-6);
+}
+.pagina-de-formulario .indice-lacos ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pagina-de-formulario .indice-lacos a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-3);
+  min-height: var(--toque);
+  padding-block: var(--e-1);
+  border-bottom: 1px solid var(--fio);
+  color: var(--tinta);
+  font-weight: 550;
+  text-decoration: none;
+}
+.pagina-de-formulario .indice-lacos .ficha {
+  font-weight: 400;
+}
+@media (hover: hover) {
+  .pagina-de-formulario .indice-lacos a:hover > span:first-child {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
+}
+
+/* As duas partes: a ficha e os laços. O rótulo de cada uma fica colado no que nomeia (--e-3) e longe da
+   parte de cima (--e-7) */
+.pagina-de-formulario .editar-pessoa {
+  display: grid;
+  gap: var(--e-7);
+  max-width: var(--coluna);
+}
+.pagina-de-formulario :is(.ficha-da-pessoa, .lacos-da-pessoa) {
+  display: grid;
+  gap: var(--e-3);
+  min-width: 0;
+}
+.pagina-de-formulario .grupos-de-lacos {
+  display: grid;
+  gap: var(--e-5);
+}
+
+/* Os cartões: a ficha e cada grupo */
+.pagina-de-formulario :is(.cartao-da-ficha, .grupo-de-lacos) {
+  min-width: 0;
+  padding: var(--e-4) var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+
+/* A ficha fechada: o retrato, o nome, o resumo em mono e o começo de "Sobre", com "Editar a ficha".
+   No celular a ação desce para baixo do texto; a partir de 40rem fica na linha, à direita. */
+.pagina-de-formulario :is(.cartao-da-ficha > summary, .cartao-da-ficha__linha) {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-1) var(--e-4);
+  list-style: none;
+}
+.pagina-de-formulario .cartao-da-ficha > summary {
+  cursor: pointer;
+}
+.pagina-de-formulario .cartao-da-ficha > summary::-webkit-details-marker {
+  display: none;
+}
+.pagina-de-formulario .cartao-da-ficha__retrato {
+  grid-row: span 2;
+  align-self: start;
+}
+.pagina-de-formulario .cartao-da-ficha__retrato .retrato {
+  font-size: var(--t-corpo);
+}
+.pagina-de-formulario .cartao-da-ficha__quem {
+  display: grid;
+  gap: var(--e-1);
+  min-width: 0;
+}
+.pagina-de-formulario .cartao-da-ficha__quem strong {
+  font-weight: 550;
+  line-height: 1.25;
+}
+.pagina-de-formulario .cartao-da-ficha__sobre {
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .cartao-da-ficha__abre {
+  grid-column: 2;
+  justify-self: start;
+}
+.pagina-de-formulario .cartao-da-ficha__fechar,
+.pagina-de-formulario .cartao-da-ficha[open] .cartao-da-ficha__editar {
+  display: none;
+}
+.pagina-de-formulario .cartao-da-ficha[open] .cartao-da-ficha__fechar {
+  display: inline;
+}
+.pagina-de-formulario .cartao-da-ficha > .dica {
+  margin-top: var(--e-4);
+}
+.pagina-de-formulario .cartao-da-ficha__campos {
+  margin-top: var(--e-4);
+  padding-block: var(--e-6) var(--e-2);
+  border-top: 1px solid var(--fio);
+}
+/* Dentro do cartão, as perguntas da ficha descem um degrau, como numa parte da página */
+.pagina-de-formulario .cartao-da-ficha fieldset legend {
+  margin-bottom: var(--e-3);
+  font-size: var(--t-titulo-3);
+  line-height: 1.15;
+}
+/* As datas da ficha: o nascimento e o falecimento, cada um com o seu rótulo colado nos campos */
+.pagina-de-formulario .datas-da-ficha__uma {
+  display: grid;
+  gap: var(--e-3);
+}
+@media (min-width: 40rem) {
+  .pagina-de-formulario :is(.cartao-da-ficha > summary, .cartao-da-ficha__linha) {
+    grid-template-columns: 4rem minmax(0, 1fr) auto;
+  }
+  .pagina-de-formulario .cartao-da-ficha__retrato {
+    grid-row: auto;
+    align-self: center;
+  }
+  .pagina-de-formulario .cartao-da-ficha__abre {
+    grid-column: 3;
+  }
+}
+
+/* Cada grupo de laços: o título em serifa, com a conta ao lado, e as pessoas logo abaixo */
+.pagina-de-formulario .grupo-de-lacos {
+  position: relative;
+  display: grid;
+  gap: var(--e-2);
+}
+.pagina-de-formulario .grupo-de-lacos__titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  align-content: center;
+  gap: 0 var(--e-3);
+  min-height: var(--toque);
+}
+.pagina-de-formulario .grupo-de-lacos__titulo h3 {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-3);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.15;
+}
+.pagina-de-formulario .grupo-de-lacos__nenhum {
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .grupo-de-lacos > .dica {
+  margin-bottom: var(--e-2);
+}
+/* Cada laço: o retrato, o nome e o que a pessoa é, com "Editar" na linha do nome, à direita. "Editar o
+   casal", mais comprido, fica embaixo do nome no celular e vai para a direita no computador */
+.pagina-de-formulario .grupo-de-lacos .laco {
+  position: relative;
+  gap: var(--e-1);
+}
+.pagina-de-formulario .laco__quem {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-4);
+  min-height: 3.75rem;
+}
+.pagina-de-formulario .laco__quem .retrato {
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .laco__quem .laco__linha {
+  display: grid;
+  gap: 0.1em;
+}
+.pagina-de-formulario .grupo-de-lacos .laco > :is(.fases, .dica, form.acoes),
+.pagina-de-formulario .grupo-de-lacos .laco--casal > .editar > summary {
+  margin-left: calc(3rem + var(--e-4));
+}
+.pagina-de-formulario .grupo-de-lacos .laco:not(.laco--casal):has(> .editar) > .laco__quem {
+  padding-right: 4.5rem;
+}
+/* Fechado, o "Editar" sai inteiro da fila, para não deixar um vão embaixo do nome. Aberto, só o
+   "Editar" fica no canto, e o cartão ocupa a largura toda */
+.pagina-de-formulario .grupo-de-lacos .laco:not(.laco--casal) > .editar:not([open]),
+.pagina-de-formulario .grupo-de-lacos .laco:not(.laco--casal) > .editar[open] > summary {
+  position: absolute;
+  top: calc(var(--e-3) + (3.75rem - var(--toque)) / 2);
+  right: 0;
+}
+.pagina-de-formulario .grupo-de-lacos .laco > .fases {
+  margin-block: var(--e-1);
+}
+/* O editor aberto e o "Adicionar" aberto ficam no papel, para se destacar do cartão branco do grupo */
+.pagina-de-formulario .grupo-de-lacos .editar__caixa,
+.pagina-de-formulario .adicionar__caixa {
+  margin-top: var(--e-2);
+  padding: var(--e-5);
+  border-radius: var(--raio-moldura);
+  background: var(--papel);
+}
+.pagina-de-formulario .adicionar > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.pagina-de-formulario .adicionar > summary::-webkit-details-marker {
+  display: none;
+}
+.pagina-de-formulario .grupo-de-lacos > .adicionar {
+  padding-top: var(--e-1);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .adicionar[open] {
+  padding-bottom: var(--e-2);
+}
+/* O grupo vazio é uma linha só: "Pais", "nenhum ainda." e, à direita, "Adicionar". O fundo sai e fica
+   o fio em volta, para ele não pesar como os grupos com gente */
+.pagina-de-formulario .grupo-de-lacos--vazio {
+  padding-block: var(--e-2);
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--fio);
+}
+.pagina-de-formulario .grupo-de-lacos--vazio .grupo-de-lacos__titulo {
+  padding-right: 7rem;
+}
+.pagina-de-formulario .grupo-de-lacos--vazio .grupo-de-lacos__titulo h3 {
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .grupo-de-lacos--vazio:not(:has(> .adicionar[open])) {
+  gap: 0;
+}
+/* Aberto, o grupo vazio volta a ser cartão, para o formulário ficar pousado nele como nos outros */
+.pagina-de-formulario .grupo-de-lacos--vazio:has(> .adicionar[open]) {
+  padding-bottom: var(--e-4);
+  background: var(--branco);
+  box-shadow: none;
+}
+.pagina-de-formulario .grupo-de-lacos--vazio > .adicionar {
+  padding-top: 0;
+  border-top: 0;
+}
+.pagina-de-formulario .grupo-de-lacos--vazio > .adicionar > summary {
+  position: absolute;
+  top: var(--e-2);
+  right: var(--e-5);
+}
+
 @media (min-width: 62rem) {
-  .pagina-de-formulario .laco:has(> .editar) {
-    position: relative;
+  /* A abertura ocupa a altura da página, para o índice ter por onde acompanhar a rolagem */
+  .pagina-de-formulario:has(.indice-lacos) > .pagina-de-formulario__abre {
+    grid-row: 1 / span 2;
+    grid-template-rows: auto auto 1fr;
+    align-self: stretch;
   }
-  .pagina-de-formulario .laco:has(> .editar) > .laco__linha {
-    align-content: center;
-    min-height: var(--toque);
-    padding-right: 10rem;
+  .pagina-de-formulario .grupo-de-lacos .laco--casal > .editar > summary {
+    margin-left: 0;
   }
-  /* Fechado, o "Editar" sai inteiro da fila, para não deixar um vão embaixo do nome. Aberto, só o
-     "Editar" fica no canto, e o cartão ocupa a largura toda */
-  .pagina-de-formulario .laco > .editar:not([open]),
-  .pagina-de-formulario .laco > .editar[open] > summary {
+  .pagina-de-formulario .grupo-de-lacos .laco--casal > .laco__quem {
+    padding-right: 9rem;
+  }
+  .pagina-de-formulario .grupo-de-lacos .laco--casal > .editar:not([open]),
+  .pagina-de-formulario .grupo-de-lacos .laco--casal > .editar[open] > summary {
     position: absolute;
-    top: var(--e-3);
+    top: calc(var(--e-3) + (3.75rem - var(--toque)) / 2);
     right: 0;
+  }
+}
+/* Parado à vista só onde há mouse: no toque, um elemento preso faz o Safari do iPhone desenhar uma
+   banda atrás das barras dele (CLAUDE.md, "Banda do Safari no iPhone") */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .pagina-de-formulario .indice-lacos {
+    position: sticky;
+    top: var(--e-6);
+  }
+}
+/* Na tela grande, os grupos ficam dois a dois */
+@media (min-width: 100rem) {
+  .pagina-de-formulario .editar-pessoa {
+    max-width: none;
+  }
+  .pagina-de-formulario .ficha-da-pessoa {
+    max-width: var(--coluna);
+  }
+  .pagina-de-formulario .grupos-de-lacos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
   }
 }
 

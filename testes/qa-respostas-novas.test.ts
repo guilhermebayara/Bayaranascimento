@@ -64,16 +64,12 @@ describe('laços', () => {
     expect(editar).not.toContain('rotulo="Como estão hoje?" opcoes={fases}');
     expect(editar.match(/rotulo="Como estão hoje\?" opcoes=\{fasesDeHoje\}/g)?.length).toBe(2);
   });
-  it('47-N11 e a decisão seguinte: "Adicionar outro laço" fica no tamanho das ações do formulário, sem parecer título', () => {
-    expect(editar).toContain('<h3 class="casal__titulo">{temLacos ? \'Adicionar outro laço\' : \'Adicionar laço\'}</h3>');
-    const regra = /\.pagina-de-formulario \.novo-laco > \.casal__titulo \{([^}]*)\}/.exec(css)?.[1] ?? '';
-    // O mesmo corpo, peso e família do botão (.botao, em base.css)
-    expect(regra).toMatch(/font-family: var\(--grotesca\);/);
-    expect(regra).toMatch(/font-weight: 550;/);
-    expect(regra).toMatch(/font-size: var\(--t-corpo\);/);
-    expect(ler('src/visual/base.css')).toMatch(/\.botao \{[^}]*font: 550 var\(--t-corpo\) \/ 1\.2 var\(--grotesca\);/);
-    // "Laços" continua no degrau de cima
-    expect(css).toMatch(/\.pagina-de-formulario \.painel > h2 \{[^}]*font-size: var\(--t-titulo-3\);/);
+  // A decisão seguinte ("Adicionar outro laço" como ação) ficou resolvida pela proposta A da sessão E:
+  // o adicionar mora em cada grupo, como ação de texto, e não há mais um título "Adicionar outro laço"
+  it('47-N11 e a decisão seguinte: adicionar é uma ação de texto dentro de cada grupo, sem parecer título', () => {
+    expect(editar).not.toContain('Adicionar outro laço\' : \'Adicionar laço\'');
+    expect(editar).toContain('<details class="adicionar" data-adicionar>');
+    expect(editar).toMatch(/<summary class="acao">\{g\.quantos === 0 \?/);
   });
   it('P131: Esc fecha a confirmação de remover, como "Cancelar", sem fechar o editor do laço', () => {
     const confirmar = ler('src/components/ConfirmarRemocao.astro');
