@@ -4,12 +4,13 @@
 // aparece depois de a pessoa confirmar (?confirmado=1, que funciona sem script). A imagem é desenhada no
 // navegador, sem passar pelo servidor.
 import Pagina from '../../../components/formularios/Pagina.astro';
-import { avisoAntesDeCompartilhar, trechoDoRelato } from '../../../lib/compartilhar';
+import Segmentado from '../../../components/visual/Segmentado.astro';
+import { avisoAntesDeCompartilhar, escolhaDoNomeAparece, nomeNaImagem, trechoDoRelato, type NomesDeQuemAparece } from '../../../lib/compartilhar';
 import type { DadosDaImagem } from '../../../lib/cliente/compartilhar';
 import { formatarData } from '../../../lib/datas';
 import { FONTES_DO_SITE } from '../../../lib/visual';
 import { MONOGRAMAS } from '../../../visual/monograma';
-import { listarIntegrantes, listarNucleos, listarRelatos, obterMemoria } from '../../../lib/servidor/repositorio';
+import { listarIntegrantes, listarMeusApelidos, listarNucleos, listarRelatos, obterMemoria } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -23,8 +24,18 @@ const confirmado = !aviso || Astro.url.searchParams.get('confirmado') === '1';
 // O trecho: o relato de quem compartilha, se houver; senão, o primeiro relato publicado que ela vê
 const relatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situacao === 'publicada' && r.texto.trim());
 const relato = relatos.find((r) => r.por === usuario.pessoa) ?? relatos[0];
+// Qual nome vai na imagem (decisão do Gui, 18/11/2026, depois da sessão H): o da família é o padrão,
+// porque o apelido próprio é privado e a imagem sai do acervo. `apelido` já viria trocado pelo de quem
+// olha (listarIntegrantes, nas páginas), então os dois nomes são lidos à parte, cada um da sua fonte.
 const integrantes = await listarIntegrantes();
-const nome = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome ?? '';
+const meusApelidos = await listarMeusApelidos(usuario.pessoa);
+const nomesDe = (id: string): NomesDeQuemAparece => {
+  const i = integrantes.find((x) => x.id === id);
+  return { nome: i?.nome ?? '', apelidoDaFamilia: i?.apelidoDaFamilia ?? null, meuApelido: meusApelidos.get(id) ?? null };
+};
+// Quem aparece na imagem: hoje, só quem contou o trecho
+const quemAparece = relato ? [nomesDe(relato.por)] : [];
+const escolheONome = escolhaDoNomeAparece(quemAparece);
 const principal = memoria.fotos.find((f) => f.principal) ?? memoria.fotos[0];
 const dados: DadosDaImagem | null = confirmado
   ? {
@@ -33,7 +44,9 @@ const dados: DadosDaImagem | null = confirmado
       lugar: memoria.lugar,
       foto: principal ? `/fotos/${principal.chave}` : null,
       trecho: relato ? trechoDoRelato(relato.texto) : null,
-      autorDoTrecho: relato ? nome(relato.por) : null,
+      autorDoTrecho: relato ? nomeNaImagem(nomesDe(relato.por), 'familia') : null,
+      // Com o seu apelido, só quando a escolha muda algo; até a pessoa escolher, nada dele vai para a imagem
+      comOSeuApelido: escolheONome && relato ? { autorDoTrecho: nomeNaImagem(nomesDe(relato.por), 'meu') } : null,
       // O M da serifa em uso, como marca d'água leve (a assinatura com o nome do site saiu, 18/11/2026)
       monograma: MONOGRAMAS[FONTES_DO_SITE.serifa].normal,
     }
@@ -69,6 +82,27 @@ const dados: DadosDaImagem | null = confirmado
         <noscript>
           <p class="dica">Para montar a imagem, o navegador precisa estar com o JavaScript ligado.</p>
         </noscript>
+        {/* Qual nome usar: só aparece quando muda algo. O seletor troca a imagem no lugar */}
+        {escolheONome && (
+          <div class="campo nome-na-imagem" data-nome-na-imagem>
+            <span id="rotulo-nome-na-imagem">Qual nome usar?</span>
+            <Segmentado
+              rotulo="Qual nome usar na imagem"
+              nome="nomeNaImagem"
+              explicacao="frase-nome-na-imagem"
+              opcoes={[
+                { valor: 'familia', texto: 'O da família', atual: true },
+                { valor: 'meu', texto: 'O seu apelido' },
+              ]}
+            />
+            <p class="nome-na-imagem__frase" id="frase-nome-na-imagem" aria-live="polite">
+              <span data-frase-do-nome="familia">Como a família toda conhece: {dados?.autorDoTrecho}.</span>
+              <span data-frase-do-nome="meu" hidden>
+                Como você chama: {dados?.comOSeuApelido?.autorDoTrecho}. Quem receber a imagem vai ver o seu apelido.
+              </span>
+            </p>
+          </div>
+        )}
         <canvas hidden />
         <img class="compartilhar__previa" data-previa alt={`A imagem de “${memoria.titulo}” para compartilhar`} hidden />
         <p class="acoes">

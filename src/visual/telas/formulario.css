@@ -2793,6 +2793,19 @@
   display: grid;
   gap: var(--e-4);
 }
+/* Qual nome usar na imagem (decisão do Gui, 18/11/2026): o seletor segmentado com a frase colada nele
+   (--e-2), como no laço do coração, e a prévia a --e-4, que já é o espaço entre as partes da tela */
+.pagina-de-formulario .nome-na-imagem {
+  gap: var(--e-2);
+  margin-bottom: var(--e-2);
+}
+.pagina-de-formulario .nome-na-imagem__frase {
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .nome-na-imagem__frase [hidden] {
+  display: none;
+}
 
 /* O recado sobre um relato (recado.astro): o começo do relato, para quem escreve saber do que fala */
 .pagina-de-formulario .citacao-do-relato {

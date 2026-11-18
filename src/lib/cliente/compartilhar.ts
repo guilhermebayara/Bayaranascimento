@@ -13,6 +13,11 @@ export interface DadosDaImagem {
   foto: string | null;
   trecho: string | null;
   autorDoTrecho: string | null;
+  /**
+   * Os nomes com o apelido de quem compartilha ("O seu apelido"), quando a escolha muda algo. O padrão é
+   * o da família, que já está nos campos de cima (decisão do Gui, 18/11/2026; src/lib/compartilhar.ts).
+   */
+  comOSeuApelido?: { autorDoTrecho: string | null } | null;
   /** o M da serifa em uso (src/visual/monograma.ts), numa caixa de altura 100 */
   monograma: { d: string; largura: number; altura: number };
 }
@@ -153,25 +158,55 @@ export async function ligarCompartilhar(raiz: HTMLElement, d: DadosDaImagem): Pr
   const compartilhar = raiz.querySelector<HTMLButtonElement>('[data-compartilhar]')!;
   const baixar = raiz.querySelector<HTMLAnchorElement>('[data-baixar]')!;
   const estado = raiz.querySelector<HTMLElement>('[data-estado]')!;
-  await desenharImagem(canvas, d);
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
-  if (!blob) {
-    estado.textContent = 'Não deu para montar a imagem neste aparelho.';
-    return;
+  // O arquivo da imagem de agora, trocado a cada montagem
+  const atual: { arquivo: File | null } = { arquivo: null };
+  let endereco: string | null = null;
+  let vez = 0;
+  // Monta a imagem com os dados de agora. A escolha do nome monta de novo, no lugar; numa troca rápida,
+  // só a última montagem vale
+  const montar = async (dados: DadosDaImagem): Promise<boolean> => {
+    const minha = ++vez;
+    await desenharImagem(canvas, dados);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+    if (minha !== vez) return true;
+    if (!blob) {
+      estado.textContent = 'Não deu para montar a imagem neste aparelho.';
+      return false;
+    }
+    if (endereco) URL.revokeObjectURL(endereco);
+    endereco = URL.createObjectURL(blob);
+    previa.src = endereco;
+    previa.hidden = false;
+    baixar.href = endereco;
+    baixar.download = nomeDoArquivo(dados.titulo);
+    baixar.hidden = false;
+    estado.textContent = '';
+    atual.arquivo = new File([blob], nomeDoArquivo(dados.titulo), { type: 'image/png' });
+    return true;
+  };
+  const escolhas = [...raiz.querySelectorAll<HTMLInputElement>('input[name="nomeNaImagem"]')];
+  // O nome escolhido: o da família, a não ser que a pessoa tenha escolhido o seu apelido
+  const comAEscolha = (): DadosDaImagem => (escolhas.find((e) => e.checked)?.value === 'meu' && d.comOSeuApelido ? { ...d, ...d.comOSeuApelido } : d);
+  const mostrarFrase = () => {
+    const valor = escolhas.find((e) => e.checked)?.value ?? 'familia';
+    for (const frase of raiz.querySelectorAll<HTMLElement>('[data-frase-do-nome]')) frase.hidden = frase.dataset.fraseDoNome !== valor;
+  };
+  mostrarFrase();
+  // Qual nome usar: o da família (o padrão) ou o seu apelido. Trocar monta a imagem de novo, no lugar
+  for (const escolha of escolhas) {
+    escolha.addEventListener('change', () => {
+      mostrarFrase();
+      void montar(comAEscolha());
+    });
   }
-  const url = URL.createObjectURL(blob);
-  previa.src = url;
-  previa.hidden = false;
-  baixar.href = url;
-  baixar.download = nomeDoArquivo(d.titulo);
-  baixar.hidden = false;
-  estado.textContent = '';
-  const arquivo = new File([blob], nomeDoArquivo(d.titulo), { type: 'image/png' });
-  if (navigator.canShare?.({ files: [arquivo] })) {
+  if (!(await montar(comAEscolha()))) return;
+  const primeiro = atual.arquivo;
+  if (primeiro && navigator.canShare?.({ files: [primeiro] })) {
     compartilhar.hidden = false;
     compartilhar.addEventListener('click', async () => {
+      if (!atual.arquivo) return;
       try {
-        await navigator.share({ files: [arquivo], title: d.titulo });
+        await navigator.share({ files: [atual.arquivo], title: d.titulo });
       } catch {
         // quem desiste do compartilhamento não precisa de recado
       }
