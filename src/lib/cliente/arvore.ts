@@ -257,7 +257,9 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     // As ações ficam numa linha só, que quebra quando falta espaço: com "Ver o laço", eram três links na
     // mesma célula da grade, um em cima do outro (observação do Gui de 18/11/2026)
     const acoes = Object.assign(document.createElement('div'), { className: 'pm__ficha-acoes' });
-    acoes.append(pagina, ...doLaco, partir);
+    // "Como você chama" (só seu, decisão do Gui de 18/11/2026): leva à pergunta, na página da pessoa
+    const comoChama = p.id !== dados.eu ? [Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}#como-voce-chama`, textContent: 'Como você chama' })] : [];
+    acoes.append(pagina, ...doLaco, ...comoChama, partir);
     ficha.replaceChildren(retrato, nome, quem, acoes, fechar);
   };
   const fecharFicha = () => {

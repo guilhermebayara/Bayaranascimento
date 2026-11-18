@@ -863,6 +863,21 @@ export const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS reacoes_da_memoria ON reacoes (memoria_id)`,
     ],
   },
+  {
+    // "Como você chama", só seu (decisão do Gui, 18/11/2026; src/lib/apelidos.ts). O apelido que cada pessoa
+    // dá a outra, que só ela vê. Como as proximidades, sem chave estrangeira: quem lê confere se a pessoa
+    // ainda existe, e juntar duplicados leva as linhas para a ficha que fica. O espelho apaga a tabela.
+    id: '090-como-voce-chama',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS apelidos_meus (
+        dono_id TEXT NOT NULL,
+        pessoa_id TEXT NOT NULL,
+        apelido TEXT NOT NULL CHECK (length(apelido) BETWEEN 1 AND 40),
+        mudado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (dono_id, pessoa_id)
+      )`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

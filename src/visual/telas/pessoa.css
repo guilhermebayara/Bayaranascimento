@@ -248,3 +248,34 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* O recado de "Como você chama" (ok ou erro), acima da abertura */
+.pessoa-pagina__recado {
+  padding-top: var(--e-5);
+}
+/* "Como você chama", só seu: uma linha quieta embaixo das ações, que abre a pergunta no lugar */
+.como-chama {
+  margin-top: var(--e-3);
+}
+.como-chama > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.como-chama > summary::-webkit-details-marker {
+  display: none;
+}
+.como-chama__form {
+  display: grid;
+  gap: var(--e-2);
+  max-width: 26rem;
+  margin-top: var(--e-3);
+}
+.como-chama__form .campo {
+  display: grid;
+  gap: var(--e-1);
+}
+.como-chama__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-5);
+}

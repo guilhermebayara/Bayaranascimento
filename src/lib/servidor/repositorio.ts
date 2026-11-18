@@ -1,6 +1,6 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
-import { banco } from './ambiente';
+import { apelidosDoPedido, banco } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
 import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
@@ -16,7 +16,10 @@ import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type 
 export interface Integrante {
   id: string;
   nome: string;
+  /** O apelido que vale para quem olha: o que ela deu à pessoa, se deu ("Como você chama"), e senão o da família */
   apelido: string | null;
+  /** O "como é chamado na família", o mesmo para todos: é o que a ficha de edição mostra e grava */
+  apelidoDaFamilia?: string | null;
   tipo: 'pessoa' | 'bicho';
   especie: string | null;
   tratamento: Tratamento;
@@ -132,10 +135,12 @@ export async function listarIntegrantes(): Promise<Integrante[]> {
   const linhas = membros.results as Record<string, unknown>[];
   const daPessoa = (id: string, papel: 'membro' | 'parente') =>
     linhas.filter((m) => m.integrante_id === id && (m.papel ?? 'membro') === papel).map((m) => m.nucleo_id as string);
+  const meus = apelidosDoPedido();
   return integrantes.results.map((i) => ({
     id: i.id as string,
     nome: i.nome as string,
-    apelido: i.apelido as string | null,
+    apelido: meus?.get(i.id as string) ?? (i.apelido as string | null),
+    apelidoDaFamilia: i.apelido as string | null,
     tipo: i.tipo as 'pessoa' | 'bicho',
     especie: i.especie as string | null,
     tratamento: (i.tratamento as Tratamento) ?? null,
@@ -1932,6 +1937,26 @@ export interface Proximidade {
   angulo: number | null;
 }
 
+// --- "Como você chama", só seu (migração 090; regras em src/lib/apelidos.ts) ---
+
+/** Os apelidos que uma pessoa deu. Só o dono lê os dele: ninguém mais vê. */
+export async function listarMeusApelidos(dono: string): Promise<Map<string, string>> {
+  const { results } = await db().prepare('SELECT pessoa_id, apelido FROM apelidos_meus WHERE dono_id = ?').bind(dono).all<{ pessoa_id: string; apelido: string }>();
+  return new Map(results.map((r: { pessoa_id: string; apelido: string }) => [r.pessoa_id, r.apelido]));
+}
+
+/** Guarda o apelido que o dono dá à pessoa; sem apelido, apaga, e vale o da família. */
+export async function guardarMeuApelido(dono: string, pessoa: string, apelido: string | null): Promise<void> {
+  if (!apelido) {
+    await db().prepare('DELETE FROM apelidos_meus WHERE dono_id = ? AND pessoa_id = ?').bind(dono, pessoa).run();
+    return;
+  }
+  await db()
+    .prepare(`INSERT INTO apelidos_meus (dono_id, pessoa_id, apelido) VALUES (?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET apelido = excluded.apelido, mudado_em = datetime('now')`)
+    .bind(dono, pessoa, apelido)
+    .run();
+}
+
 /** As proximidades que uma pessoa declarou. Só o dono lê as dele: ninguém mais vê o círculo nem o valor. */
 export async function listarProximidades(dono: string): Promise<Map<string, Proximidade>> {
   const { results } = await db().prepare('SELECT pessoa_id, valor, angulo FROM proximidades WHERE dono_id = ?').bind(dono).all<{ pessoa_id: string; valor: number; angulo: number | null }>();
@@ -2165,6 +2190,7 @@ export async function juntarIntegrantes(fica: Integrante, sai: Integrante, ficha
     ['lacos_resumidos', 'a_id', 'b_id'],
     ['proximidades', 'dono_id', 'pessoa_id'],
     ['ex_para_mim', 'dono_id', 'pessoa_id'],
+    ['apelidos_meus', 'dono_id', 'pessoa_id'],
   ] as const) {
     q(`DELETE FROM ${tabela} WHERE (${x} = ?1 AND ${y} = ?2) OR (${x} = ?2 AND ${y} = ?1)`, A, B);
     q(`UPDATE OR IGNORE ${tabela} SET ${x} = ?1 WHERE ${x} = ?2`, A, B);

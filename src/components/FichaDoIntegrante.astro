@@ -43,7 +43,7 @@ const existentes = i ? [] : (await listarIntegrantesQueVe(Astro.locals.usuario))
     }
     <label class="campo">
       <span>Como é chamado na família <small>(opcional)</small></span>
-      <input type="text" name="apelido" maxlength="40" autocomplete="off" value={i?.apelido ?? ''} placeholder="Ex.: Vó Bela" />
+      <input type="text" name="apelido" maxlength="40" autocomplete="off" value={(i && i.apelidoDaFamilia !== undefined ? i.apelidoDaFamilia : i?.apelido) ?? ''} placeholder="Ex.: Vó Bela" />
     </label>
     <div class="campo">
       <span id="rotulo-tipo-integrante">É pessoa ou bichinho?</span>
