@@ -1,6 +1,8 @@
-// Reações (onda 2, decisão do Gui de 17/11/2026): em relato e em foto, quatro símbolos desenhados com os
-// rabiscos do site, nunca emoji do aparelho. Tocar num símbolo marca ou desmarca o seu; "Quem marcou" mostra
-// os nomes, só de quem a pessoa vê. "Eu estava lá" numa memória em que a pessoa não está marcada oferece
+// Reações (onda 2, decisão do Gui de 17/11/2026; refeitas no padrão das redes em 18/11/2026): na memória,
+// em cada relato e em cada foto, quatro símbolos desenhados com os rabiscos do site, nunca emoji do
+// aparelho. Um toque marca o coração, no lugar, sem recarregar; segurar (ou passar o mouse) abre os
+// quatro, cada um com o nome. Ao lado, as reações recebidas com o número; tocar no número mostra quem
+// marcou, só quem a pessoa vê. "Eu estava lá" numa memória em que a pessoa não está marcada oferece
 // "Quer entrar em Quem estava?", com um toque. Testado em testes/reacoes.test.ts.
 import { rabisco } from '../visual/rabiscos';
 
@@ -32,6 +34,34 @@ export const SIMBOLOS_DAS_REACOES: Simbolo[] = [
 ];
 
 export const ehSimbolo = (valor: string): valor is SimboloDaReacao => (SIMBOLOS as readonly string[]).includes(valor);
+
+export const ALVOS = ['memoria', 'relato', 'foto'] as const;
+export type AlvoDaReacao = (typeof ALVOS)[number];
+export const ehAlvo = (valor: string): valor is AlvoDaReacao => (ALVOS as readonly string[]).includes(valor);
+
+/** O resumo das reações de um item, o mesmo para a página e para a resposta da rota, que redesenha no lugar. */
+export interface ResumoDasReacoes {
+  /** quantas marcas ao todo (uma pessoa pode marcar mais de um símbolo) */
+  total: number;
+  /** os símbolos que a pessoa marcou */
+  minhas: SimboloDaReacao[];
+  /** os símbolos recebidos, na ordem dos símbolos, com os nomes de quem marcou ("você" para quem olha) */
+  recebidas: { simbolo: SimboloDaReacao; nome: string; conta: number; quem: string }[];
+}
+
+export function resumoDasReacoes(marcas: ReadonlyMap<SimboloDaReacao, readonly string[]> | undefined, eu: string, nome: (id: string) => string): ResumoDasReacoes {
+  const recebidas = SIMBOLOS_DAS_REACOES.filter((s) => (marcas?.get(s.id) ?? []).length > 0).map((s) => {
+    const quem = marcas!.get(s.id)!;
+    // Quem olha vem primeiro, como "você"
+    const ordem = [...quem.filter((id) => id === eu), ...quem.filter((id) => id !== eu)];
+    return { simbolo: s.id, nome: s.nome, conta: quem.length, quem: nomesDeQuemMarcou(ordem.map((id) => (id === eu ? 'você' : nome(id))), 12) };
+  });
+  return {
+    total: recebidas.reduce((n, r) => n + r.conta, 0),
+    minhas: SIMBOLOS.filter((s) => (marcas?.get(s) ?? []).includes(eu)),
+    recebidas,
+  };
+}
 
 /** "Gui e Elizete", "Gui, Elizete e mais 3" */
 export function nomesDeQuemMarcou(nomes: string[], maximo = 4): string {

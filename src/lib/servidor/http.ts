@@ -26,6 +26,24 @@ export function voltar(request: Request, destino: string, recado: { ok?: string;
   return new Response(null, { status: 303, headers: { Location: alvo.pathname + alvo.search + alvo.hash, 'Cache-Control': 'no-store' } });
 }
 
+/**
+ * O pedido veio do script da página, que muda a tela no lugar, sem recarregar ("Interação sem recarregar
+ * a página", em docs/visual.md). Sem script, o mesmo formulário chega como formulário comum.
+ */
+export const pedeJson = (request: Request): boolean => (request.headers.get('Accept') ?? '').includes('application/json');
+
+/**
+ * Responde a um formulário: ao script, em JSON, com o recado e o que ele precisa para redesenhar; sem
+ * script, volta para a página, como sempre (a reserva).
+ */
+export function responder(request: Request, destino: string, recado: { ok?: string; erro?: string } = {}, dados: Record<string, unknown> = {}): Response {
+  if (!pedeJson(request)) return voltar(request, destino, recado);
+  return new Response(JSON.stringify({ ...dados, ...recado }), {
+    status: recado.erro ? 400 : 200,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
+
 /** Lê um campo de texto de um formulário, já sem espaços nas pontas. */
 export function campo(dados: FormData, nome: string, maximo = 200): string {
   const valor = dados.get(nome);

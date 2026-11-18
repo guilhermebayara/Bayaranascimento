@@ -878,3 +878,204 @@ textarea.campo__entrada {
   line-height: 1.18;
   text-wrap: pretty;
 }
+
+/* --- Reações (Reacoes.astro, src/lib/reacoes.ts) -------------------------------------------------
+   No padrão das redes (observação do Gui, 18/11/2026): o coração à vista, que um toque marca, e os quatro
+   símbolos com o nome numa paleta que abre por cima ao segurar ou ao passar o mouse. Ao lado, as
+   recebidas: os símbolos e o número, que abre quem marcou. Toda área de toque tem 44 px. */
+.reacoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-2);
+}
+.reacoes__form {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.reacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-1);
+  min-width: var(--toque);
+  min-height: var(--toque);
+  padding: 0 var(--e-2);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--tinta-suave);
+  font: inherit;
+  cursor: pointer;
+  /* Segurar no toque não seleciona nem abre o menu do aparelho */
+  -webkit-touch-callout: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+.reacao .icone {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.reacao[aria-pressed='true'] {
+  color: var(--vivo-tinta);
+}
+.reacao[aria-pressed='true'] .icone {
+  fill: var(--vivo);
+}
+.reacao:focus-visible,
+.reacoes summary:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .reacao:hover {
+    background: var(--papel-recuo);
+    color: var(--tinta);
+  }
+}
+/* O toque que marca: o símbolo cresce e volta, uma vez. Com movimento reduzido, nada se mexe. */
+@media (prefers-reduced-motion: no-preference) {
+  .reacao--pulsa .icone {
+    animation: reacao-pulsa var(--tempo-medio) var(--curva);
+  }
+}
+@keyframes reacoes-aparece {
+  from {
+    opacity: 0;
+    translate: 0 0.25rem;
+  }
+}
+@keyframes reacao-pulsa {
+  40% {
+    scale: 1.35;
+  }
+}
+/* "Outras reações": só aparece com o foco do teclado (e sem script); no toque e no mouse, a paleta abre
+   ao segurar ou ao passar o mouse */
+.reacoes__mais > summary {
+  list-style: none;
+}
+.reacoes__mais > summary::-webkit-details-marker {
+  display: none;
+}
+.reacoes__abre {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.reacoes__abre:focus-visible {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  height: auto;
+  min-height: var(--toque);
+  padding: 0 var(--e-2);
+  clip-path: none;
+  font-size: var(--t-pequeno);
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.2em;
+}
+.reacoes__paleta {
+  position: absolute;
+  bottom: calc(100% + var(--e-1));
+  left: 0;
+  z-index: 5;
+  display: flex;
+  gap: var(--e-1);
+  padding: var(--e-1);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reacoes__mais[open] .reacoes__paleta {
+    animation: reacoes-aparece var(--tempo-curto) var(--curva);
+  }
+}
+.reacao--paleta {
+  flex-direction: column;
+  gap: 0;
+  min-width: 3.5rem;
+  padding: var(--e-1);
+  border-radius: var(--raio-bloco);
+}
+.reacao__nome {
+  font-size: var(--t-micro);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+/* As recebidas: os símbolos encostados e o número. Tocar abre quem marcou, embaixo. */
+.reacoes__recebidas[hidden] {
+  display: none;
+}
+.reacoes__recebidas > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  min-height: var(--toque);
+  padding: 0 var(--e-2);
+  border-radius: var(--raio-pilula);
+  color: var(--tinta-suave);
+  list-style: none;
+  cursor: pointer;
+}
+.reacoes__recebidas > summary::-webkit-details-marker {
+  display: none;
+}
+@media (hover: hover) {
+  .reacoes__recebidas > summary:hover {
+    background: var(--papel-recuo);
+    color: var(--tinta);
+  }
+}
+.reacoes__icones {
+  display: inline-flex;
+}
+.reacoes__icones .icone {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+.reacoes__icones .icone + .icone {
+  margin-left: -0.3rem;
+}
+.reacoes__numero {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+}
+.reacoes__recebidas {
+  position: relative;
+}
+/* Quem marcou abre embaixo do número, por cima do que vem depois, como a paleta */
+.reacoes__quem {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 5;
+  display: grid;
+  gap: var(--e-2);
+  width: max-content;
+  max-width: min(20rem, 80vw);
+  margin: 0;
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  font-size: var(--t-pequeno);
+  list-style: none;
+}
+.reacoes__quem li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-2);
+}
+.reacoes__quem .icone {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}

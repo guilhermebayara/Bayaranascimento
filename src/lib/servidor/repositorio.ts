@@ -2297,8 +2297,11 @@ export async function listarReacoes(memoriaId: string, usuario: Usuario, alvos: 
 }
 
 /** Marca ou desmarca a reação da pessoa. Devolve se ficou marcada. */
-export async function alternarReacao(memoriaId: string, alvo: 'relato' | 'foto', alvoId: number, simbolo: SimboloDaReacao, usuario: Usuario): Promise<boolean> {
-  const apagou = await db().prepare('DELETE FROM reacoes WHERE alvo = ? AND alvo_id = ? AND pessoa = ? AND simbolo = ?').bind(alvo, alvoId, usuario.pessoa, simbolo).run();
+export async function alternarReacao(memoriaId: string, alvo: 'memoria' | 'relato' | 'foto', alvoId: number, simbolo: SimboloDaReacao, usuario: Usuario): Promise<boolean> {
+  const apagou = await db()
+    .prepare('DELETE FROM reacoes WHERE memoria_id = ? AND alvo = ? AND alvo_id = ? AND pessoa = ? AND simbolo = ?')
+    .bind(memoriaId, alvo, alvoId, usuario.pessoa, simbolo)
+    .run();
   if ((apagou.meta.changes ?? 0) > 0) return false;
   await db().prepare('INSERT INTO reacoes (memoria_id, alvo, alvo_id, pessoa, simbolo) VALUES (?, ?, ?, ?, ?)').bind(memoriaId, alvo, alvoId, usuario.pessoa, simbolo).run();
   return true;

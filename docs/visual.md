@@ -167,6 +167,7 @@ O CSS está em `src/visual/` e os componentes em `src/components/visual/`. A pá
 | Um relato | `Bilhete.astro` | `por`, `registradoPor` (só quando não foi a própria pessoa) e o conteúdo dentro: `Audio`, depois `<div class="bilhete__texto">`. Com `href`, o bilhete inteiro vira link |
 | Um áudio | `Audio.astro` | `rotulo`, `src`, `transcricao`. Usa o tocador do aparelho |
 | O capítulo de uma memória | `SinalDoCapitulo.astro`, `Trilhos.astro` | `id`, `titulo` e `cor` (a posição dada pela montagem, `src/lib/linha-capitulos.ts`) |
+| Reagir a uma memória, um relato ou uma foto | `Reacoes.astro` | `memoria`, `alvo` (`memoria`, `relato` ou `foto`), `alvoId`, `marcas`, `eu`, `nome`, `volta` e `sobre` ("o relato de Elizete", para o leitor de tela). O coração à vista, os quatro numa paleta que abre ao segurar ou passar o mouse, e o número que abre quem marcou. A página chama `ligarReacoes()`, de `src/lib/cliente/reacoes.ts`, para tudo acontecer no lugar |
 | Fases de um casal ou marcos que abrem | `Sanfona.astro` | `ano`, `titulo`, `quando`, o conteúdo dentro. Sem script; o mesmo `grupo` em todas faz só uma ficar aberta |
 | Recado de "salvou" ou de erro | `Recado.astro` | `<Recado>` ou `<Recado erro>` |
 | Tela sem nada para mostrar | `Vazio.astro` | `<Vazio frase="…">` com a ação dentro |
