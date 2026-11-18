@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 // Áudios nos relatos: formatos aceitos, limites de espaço e regras de quem ouve
 import { describe, expect, it } from 'vitest';
 import { AUDIOS_POR_RELATO, cabeNoLimite, CHAVE_DE_AUDIO, duracaoEmTexto, formatoDoAudio, limiteTotal, LIMITE_POR_ARQUIVO, LIMITE_TOTAL } from '../src/lib/audios';
@@ -92,5 +93,28 @@ describe('quem ouve', () => {
     const { TABELAS_APAGADAS } = await import('../src/lib/espelho');
     expect(TABELAS_APAGADAS.indexOf('audios')).toBeGreaterThanOrEqual(0);
     expect(TABELAS_APAGADAS.indexOf('audios')).toBeLessThan(TABELAS_APAGADAS.indexOf('relatos'));
+  });
+});
+
+// Proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): gravar como mensagem de voz
+describe('o gravador, como mensagem de voz', () => {
+  const ler = (c: string) => readFileSync(c, 'utf8');
+  const peca = ler('src/components/formularios/Gravador.astro');
+  const cliente = ler('src/lib/cliente/audios.ts');
+  const css = ler('src/visual/telas/formulario.css');
+  it('as duas telas usam a mesma peça, e gravar é a barra com o microfone; anexar fica embaixo, discreto', () => {
+    for (const tela of ['src/pages/nova.astro', 'src/pages/memorias/[id]/relato.astro']) expect(ler(tela), tela).toContain('<Gravador transcricaoAutomatica={transcricaoAutomatica}');
+    expect(peca).toContain('<button type="button" class="gravador__botao" data-gravar aria-label="Gravar áudio">');
+    expect(peca.indexOf('data-gravador')).toBeLessThan(peca.indexOf('Anexar um áudio do celular'));
+    expect(peca).not.toMatch(/botao botao--leve/);
+  });
+  it('gravando, "Cancelar" descarta sem guardar e fica longe da borda, antes do quadrado de parar', () => {
+    expect(peca.indexOf('data-cancelar-gravacao')).toBeLessThan(peca.indexOf('data-gravar'));
+    expect(cliente).toMatch(/if \(cancelada\) return avisar\('Gravação cancelada\. Nada foi guardado\.'\);/);
+    expect(css).toMatch(/\.gravador__cancelar \{[^}]*padding: 0 var\(--e-3\);/);
+  });
+  it('cada áudio é um balão com tocar e a duração, e a transcrição, a ordem e "Remover" embaixo', () => {
+    for (const marca of ['data-tocar', 'data-andou', 'data-abre-transcricao', 'data-subir', 'data-descer', 'data-remover-audio', 'data-transcricao']) expect(cliente).toContain(marca);
+    expect(cliente).toContain("setAttribute('aria-label', `Ouvir o áudio ${i + 1}`)");
   });
 });
