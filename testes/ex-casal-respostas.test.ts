@@ -1,5 +1,6 @@
 // Ex-casal, depois da sessão F (observação e respostas do Gui, 18/11/2026):
-// - o ex que virou amigo aparece na árvore com a linha tracejada do coração, e não como ex-casal;
+// - o ex que virou amigo aparece na árvore com a linha tracejada do coração, e não como ex-casal, só com
+//   os laços do coração de quem foi o par abertos, colado ao lado dela;
 // - ex "Fora" que é pai ou mãe de alguém que a pessoa vê vale como "Discreto";
 // - ex discreto ou fora sai dos aniversários do Início de quem escolheu.
 import { readFileSync } from 'node:fs';
@@ -48,17 +49,31 @@ describe('o ex que virou amigo', () => {
   };
   const estado = (mudar: Partial<Estado> = {}): Estado => ({ foco: 'gui', centro: '', ramos: new Set(), nucleo: '', consideracao: true, ex: true, bichos: true, outros: true, abertos: new Set(['gui']), ...mudar });
 
-  it('na árvore, entra com a linha do coração, na geração de quem foi o par, sem abrir os laços de ninguém', () => {
-    const m = montarDesenho(dados, estado());
+  it('na árvore, só aparece com os laços do coração de quem foi o par abertos (decisão do Gui depois da sessão I)', () => {
+    const fechado = montarDesenho(dados, estado());
+    expect(fechado.principal.has('thiago')).toBe(false);
+    expect(fechado.desenho.pessoas.some((p) => p.id === 'thiago')).toBe(false);
+    // O botão ♥ da Giovanna conta a amizade: é por ele que o Thiago aparece
+    expect(fechado.lacosDe.get('giovanna')).toBe(1);
+    // Abrir os laços de quem olha não traz o amigo da Giovanna
+    expect(montarDesenho(dados, estado({ abertos: new Set(['gui']) })).principal.has('thiago')).toBe(false);
+  });
+  it('com os laços da Giovanna abertos, entra com a linha do coração, colado ao lado dela, na mesma geração', () => {
+    const m = montarDesenho(dados, estado({ abertos: new Set(['gui', 'giovanna']) }));
     expect(m.principal.has('thiago')).toBe(true);
     expect(m.casaisVisiveis.some((c) => c.b === 'thiago' || c.a === 'thiago')).toBe(false);
     const laco = m.coracao.find((l) => l.pessoa === 'thiago')!;
     expect(laco).toMatchObject({ dono: 'giovanna', papel: 'irmao' });
     expect(laco.sangue).toBeFalsy();
     expect(m.geracoes.get('thiago')).toBe(m.geracoes.get('giovanna'));
+    expect(laco.colado).toBe(true);
+    const [gio, thiago] = ['giovanna', 'thiago'].map((id) => m.desenho.pessoas.find((p) => p.id === id)!);
+    expect(thiago.y).toBe(gio.y);
+    const fileira = m.desenho.pessoas.filter((p) => p.y === gio.y).sort((x, y) => x.x - y.x).map((p) => p.id);
+    expect(Math.abs(fileira.indexOf('thiago') - fileira.indexOf('giovanna'))).toBe(1);
   });
   it('desligar a camada de consideração e coração tira a amizade, como tira os outros laços do coração', () => {
-    const m = montarDesenho(dados, estado({ consideracao: false }));
+    const m = montarDesenho(dados, estado({ consideracao: false, abertos: new Set(['gui', 'giovanna']) }));
     expect(m.coracao.some((l) => l.pessoa === 'thiago')).toBe(false);
     // E a pessoa sai junto: nem na árvore, nem nas gerações, nem no desenho (observação do Gui, 18/11/2026)
     expect(m.principal.has('thiago')).toBe(false);
@@ -147,7 +162,7 @@ describe('o ex que virou amigo não é ex em lugar nenhum', () => {
     const estado = (mudar: Partial<Estado> = {}): Estado => ({ foco: 'gui', centro: '', ramos: new Set(), nucleo: '', consideracao: true, ex: true, bichos: true, outros: true, abertos: new Set(['gui']), ...mudar });
     const m = montarDesenho({ ...dados, amizades: [{ a: 'giovanna', b: 'thiago', rotulo: 'amigo de Giovanna' }] }, estado({ consideracao: false }));
     expect(m.principal.has('thiago')).toBe(false);
-    const comRotulo = montarDesenho({ ...dados, amizades: [{ a: 'giovanna', b: 'thiago', rotulo: 'amigo de Giovanna' }] }, estado());
+    const comRotulo = montarDesenho({ ...dados, amizades: [{ a: 'giovanna', b: 'thiago', rotulo: 'amigo de Giovanna' }] }, estado({ abertos: new Set(['giovanna']) }));
     expect(comRotulo.coracao.find((l) => l.pessoa === 'thiago')!.rotulo).toBe('amigo de Giovanna');
     for (const arquivo of ['src/pages/arvore.astro', 'src/pages/admin/arvore.astro', 'src/pages/api/ajustes.ts']) {
       expect(ler(arquivo), arquivo).toMatch(/comLacoDeArvore\(\{[^\n]*separarAmizades\(/);
