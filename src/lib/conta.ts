@@ -184,6 +184,12 @@ export function diaDaCopia(ultima: string): string {
   return `${d.getUTCDate()} ${MESES_CURTOS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+/**
+ * A frase ao lado de "Baixar cópia do acervo" (decisão do Gui depois do QA de 18/11/2026): a cópia leva
+ * tudo, inclusive o que o administrador não vê no site, porque é ela que restaura o acervo inteiro.
+ */
+export const FRASE_DA_COPIA_DO_ACERVO = 'A cópia leva o acervo inteiro, inclusive o que você não vê no site, porque é ela que restaura tudo.';
+
 /** A frase da cópia mensal no cartão, ao lado do banco. */
 export function fraseDaCopiaMensal(copia: SituacaoDaAdministracao['copiaMensal'], hoje: Date): string {
   if (!copia.conferida) return 'Cópia mensal: só na produção';
