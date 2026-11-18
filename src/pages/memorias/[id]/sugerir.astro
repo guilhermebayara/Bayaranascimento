@@ -18,6 +18,8 @@ const dados = podeSugerirDados(usuario, memoria).ok;
 // Os relatos de outras pessoas, para o recado: só os que quem olha vê
 const relatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situacao === 'publicada' && r.registradoPor !== usuario.pessoa && veORelato(r, usuario, naoVe));
 const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id));
+// Quem chega pelo menu de um relato ("Deixar um recado para Fulano") encontra esse relato já escolhido
+const relatoPedido = relatos.find((r) => r.id === Number(Astro.url.searchParams.get('relato')))?.id;
 // A sugestão de dados vai para quem criou e para quem está na memória (resposta do Gui à sessão F)
 const recebem = destinatarios({ tipo: 'dados', para: memoria.criadaPor, de: usuario.pessoa }, memoria).filter((id) => !naoVe.has(id)).map(nome);
 const paraQuem = recebem.length > 1 ? `${recebem.slice(0, -1).join(', ')} e ${recebem[recebem.length - 1]}` : (recebem[0] ?? nome(memoria.criadaPor));
@@ -96,7 +98,7 @@ const deQuem = (r: (typeof relatos)[number]) => (r.por === r.registradoPor ? nom
 
   {
     relatos.length > 0 && (
-      <section class="painel">
+      <section class="painel" id="recado">
         <h2>Um recado sobre um relato</h2>
         <p class="dica">Vai só para quem escreveu ou registrou o relato. O relato continua como está.</p>
         <form class="formulario" method="post" action="/api/sugestoes">
@@ -110,7 +112,7 @@ const deQuem = (r: (typeof relatos)[number]) => (r.por === r.registradoPor ? nom
               <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-recado-relato">
                 {relatos.map((r, n) => (
                   <label class="opcao">
-                    <input type="radio" name="relato" value={r.id} checked={n === 0} />
+                    <input type="radio" name="relato" value={r.id} checked={relatoPedido ? r.id === relatoPedido : n === 0} />
                     <span>{deQuem(r)}</span>
                   </label>
                 ))}

@@ -542,6 +542,18 @@ Migrações `075-reacoes` e `081-reacoes-na-memoria` (onda 2, decisão do Gui de
 
 Origem: [histórico, "Decidido, a construir"](historico/decisoes-ate-2026-11-17.md#decidido-a-construir) (a onda 2).
 
+## Botão de menu nas memórias
+
+Observação do Gui de 18/11/2026 ("Padrões que as pessoas já conhecem", em `docs/visual.md`). A peça é `src/components/visual/MenuDeAcoes.astro`, com o script em `src/lib/cliente/menus.ts`; teste em `testes/menu-de-acoes.test.ts`.
+
+- A memória, cada relato e cada foto da parede têm um botão de menu (os três pontos), na mesma linha das reações, à direita. Reagir fica à vista; o resto mora no menu.
+- **Memória:** "Compartilhar como imagem", "Sugerir uma correção" (ou "Corrigir esta memória", para quem criou) e "Histórico de alterações". Compartilhar e sugerir saíram do pé da página; o pé continua com corrigir, as sugestões abertas, o histórico e excluir.
+- **Relato:** "Deixar um recado para Fulano" (no relato de outra pessoa; leva a "Um recado sobre um relato", em `/memorias/<id>/sugerir?relato=<id>#recado`, com o relato já escolhido) e "Compartilhar como imagem".
+- **Foto:** "Ver a foto inteira" e "Baixar a foto".
+- Sem script, abre e fecha pelo próprio botão. Com script, Esc fecha e devolve o foco ao botão, as setas andam entre as ações, tocar fora fecha e abrir um menu fecha os outros. O bilhete ou a foto com algo aberto fica por cima dos vizinhos.
+
+Origem: [histórico, "Decidido, a construir"](historico/decisoes-ate-2026-11-17.md#decidido-a-construir) (a observação do Gui de 18/11/2026 entrou direto como regra).
+
 ## Compartilhar como imagem
 
 Onda 2, decisão do Gui de 17/11/2026. As regras estão em `src/lib/compartilhar.ts`, o desenho em `src/lib/cliente/compartilhar.ts` e a página em `src/pages/memorias/[id]/compartilhar.astro`, com teste em `testes/compartilhar.test.ts`.
@@ -611,7 +623,6 @@ Origem: [histórico, "Visual"](historico/decisoes-ate-2026-11-17.md#visual).
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
 - **Observações do Gui na homologação, depois da sessão F** (18/11/2026). Cada ponto com o endereço em que ele viu.
-    - **Ações da memória, do relato e da foto num botão de menu** (os três pontos), como nas plataformas que a família já usa: reagir fica à vista, e compartilhar, sugerir correção e o recado ao autor do relato moram no menu. Hoje estão escondidos no pé e quase invisíveis, e o recado logo abaixo do relato não funciona como está.
     - **Imagem de compartilhar:** a estrutura funciona. Corrigir a sobreposição no fim (o nome de quem contou passa por cima da assinatura). Sai a assinatura com o nome do site; no lugar, o monograma como marca d'água leve, atrás, de enfeite. O resto do acabamento fica para depois.
     - Aprovados como estão: juntar duplicados, fotos sem memória, centros da árvore, transcrição, lixeira, histórico de pessoas e laços, "bichinho" e o texto da tarja do ex ("assunto encerrado").
 - **Respostas do Gui à sessão F** (18/11/2026). A construir:

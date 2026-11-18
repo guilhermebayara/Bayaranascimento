@@ -631,12 +631,14 @@ html:has(.galeria[open]) {
   font-size: var(--t-pequeno);
 }
 
-/* As reações (a peça Reacoes, em pecas.css) no pé do bilhete e de cada foto da parede */
-.parede .reacoes {
+/* As reações e o menu (as peças Reacoes e MenuDeAcoes, em pecas.css) no pé do bilhete e de cada foto da
+   parede. O toque de 44 px já dá o respiro: a linha encosta na margem, puxada pelo meio círculo. */
+.parede .acoes-do-item {
   margin-top: var(--e-2);
 }
-.bilhete .reacoes {
+.bilhete .acoes-do-item {
   margin-top: var(--e-3);
+  margin-inline: calc(var(--e-2) * -1);
 }
 /* Depois de "eu estava lá": a oferta de entrar em Quem estava, numa linha */
 .entrar-em-quem-estava[hidden] {
@@ -651,4 +653,12 @@ html:has(.galeria[open]) {
   padding: var(--e-3) var(--e-4);
   border-radius: var(--raio-moldura);
   background: var(--papel-recuo);
+}
+
+/* O bilhete ou a foto com um menu, uma paleta de reações ou a lista de quem marcou aberta fica por cima
+   dos vizinhos: cada bilhete e cada foto é um objeto pousado, com camada própria, e a lista aberta
+   ficava por baixo do bilhete seguinte */
+:is(.bilhete, .parede > li, .abre__texto):has(details[open]) {
+  position: relative;
+  z-index: 8;
 }

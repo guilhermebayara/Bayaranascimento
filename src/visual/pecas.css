@@ -1079,3 +1079,87 @@ textarea.campo__entrada {
   width: 1rem;
   height: 1rem;
 }
+
+/* --- O botão de menu (MenuDeAcoes.astro): os três pontos com as ações secundárias de um item ---------
+   Como nas plataformas que a família já usa (observação do Gui, 18/11/2026). O botão é um círculo de toque
+   inteiro; a lista abre por cima do que vem depois, encostada à direita do botão. */
+.menu-acoes {
+  position: relative;
+}
+.menu-acoes__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--toque);
+  height: var(--toque);
+  border-radius: var(--raio-pilula);
+  color: var(--tinta-suave);
+  list-style: none;
+  cursor: pointer;
+}
+.menu-acoes__botao::-webkit-details-marker {
+  display: none;
+}
+.menu-acoes__botao .icone {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.menu-acoes[open] > .menu-acoes__botao {
+  background: var(--papel-recuo);
+  color: var(--tinta);
+}
+@media (hover: hover) {
+  .menu-acoes__botao:hover {
+    background: var(--papel-recuo);
+    color: var(--tinta);
+  }
+}
+.menu-acoes__botao:focus-visible,
+.menu-acoes__item:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+.menu-acoes__lista {
+  position: absolute;
+  top: calc(100% + var(--e-1));
+  right: 0;
+  z-index: 6;
+  display: grid;
+  min-width: 13rem;
+  padding: var(--e-1);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .menu-acoes[open] .menu-acoes__lista {
+    animation: reacoes-aparece var(--tempo-curto) var(--curva);
+  }
+}
+.menu-acoes__item {
+  display: flex;
+  align-items: center;
+  min-height: var(--toque);
+  padding: 0 var(--e-3);
+  border: 0;
+  border-radius: var(--raio-bloco);
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .menu-acoes__item:hover {
+    background: var(--papel-recuo);
+  }
+}
+/* Um item com reações à esquerda e o menu à direita, na mesma linha */
+.acoes-do-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-2);
+}

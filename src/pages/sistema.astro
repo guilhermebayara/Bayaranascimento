@@ -27,6 +27,7 @@ import Polaroid from '../components/visual/Polaroid.astro';
 import Rabisco from '../components/visual/Rabisco.astro';
 import Recado from '../components/visual/Recado.astro';
 import Reacoes from '../components/visual/Reacoes.astro';
+import MenuDeAcoes from '../components/visual/MenuDeAcoes.astro';
 import Retrato from '../components/visual/Retrato.astro';
 import Sanfona from '../components/visual/Sanfona.astro';
 import SinalDoCapitulo from '../components/visual/SinalDoCapitulo.astro';
@@ -592,7 +593,19 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
         <article class="sis__peca">
           <h3 class="rotulo">Reações · nova</h3>
           <Reacoes memoria="exemplo" alvo="relato" alvoId={0} marcas={new Map([['coracao', ['eu', 'a']], ['estava', ['b']]])} eu="eu" nome={(id) => ({ a: 'Elizete', b: 'Gui' })[id] ?? id} volta="/sistema#pecas" sobre="o relato de exemplo" />
-          <p class="ficha suave">Embaixo do relato e de cada foto: coração, riso, saudade e “eu estava lá”, nos rabiscos do site. O seu fica cheio. O riso é provisório, para o acabamento.</p>
+          <p class="ficha suave">Na memória, embaixo do relato e de cada foto. Um toque marca o coração; segurar ou passar o mouse abre os quatro, com o nome; o número abre quem marcou. O riso é provisório, para o acabamento.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Botão de menu · nova</h3>
+          <div class="acoes-do-item">
+            <span class="ficha suave">Ações de um relato</span>
+            <MenuDeAcoes rotulo="Mais ações do relato de exemplo">
+              <a class="menu-acoes__item" href="/sistema#pecas">Deixar um recado</a>
+              <a class="menu-acoes__item" href="/sistema#pecas">Compartilhar como imagem</a>
+            </MenuDeAcoes>
+          </div>
+          <p class="ficha suave">Os três pontos, com as ações secundárias de um item, como nas plataformas que a família usa. Reagir fica à vista; o resto mora aqui.</p>
         </article>
 
         <article class="sis__peca">
@@ -608,3 +621,8 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
     </div>
   </div>
 </Visual>
+
+<script>
+  import { ligarMenus } from '../lib/cliente/menus';
+  ligarMenus();
+</script>
