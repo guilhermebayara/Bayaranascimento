@@ -1077,7 +1077,7 @@ export interface Versao<T> {
 }
 
 /** Versões anteriores de um item, da mais recente para a mais antiga. */
-export async function listarVersoes<T>(tipo: 'memoria' | 'relato' | 'laco-coracao', itemId: string): Promise<Versao<T>[]> {
+export async function listarVersoes<T>(tipo: 'memoria' | 'relato' | 'laco-coracao' | 'integrante', itemId: string): Promise<Versao<T>[]> {
   const { results } = await db()
     .prepare('SELECT id, dados, autor, criada_em FROM versoes WHERE tipo = ? AND item_id = ? ORDER BY id DESC LIMIT 50')
     .bind(tipo, itemId)
@@ -2023,4 +2023,64 @@ export async function salvarAjuste(chave: string, valor: unknown, usuario: Usuar
 export async function quemMudouOAjuste(chave: string): Promise<{ por: string | null; em: string } | undefined> {
   const linha = await db().prepare('SELECT mudado_por, mudado_em FROM ajustes WHERE chave = ?').bind(chave).first<{ mudado_por: string | null; mudado_em: string }>();
   return linha ? { por: linha.mudado_por, em: linha.mudado_em } : undefined;
+}
+
+// --- Histórico de pessoas e laços (onda 2; regras em src/lib/historico-da-pessoa.ts) ---
+
+/** As versões da ficha de uma pessoa, da mais nova para a mais antiga. */
+export async function listarVersoesDaFicha(id: string): Promise<Versao<Integrante>[]> {
+  const { results } = await db()
+    .prepare(`SELECT id, dados, autor, criada_em FROM versoes WHERE tipo = 'integrante' AND item_id = ? ORDER BY id DESC LIMIT 50`)
+    .bind(id)
+    .all<Record<string, unknown>>();
+  return results.map((v: Record<string, unknown>) => ({ id: v.id as number, dados: JSON.parse(v.dados as string) as Integrante, autor: v.autor as string, criadaEm: v.criada_em as string }));
+}
+
+/**
+ * As versões dos laços em que a pessoa está: filiações removidas, casais mudados ou removidos e laços
+ * do coração mudados ou removidos. Sem filtro: quem mostra passa cada uma por veAVersaoDoLaco.
+ */
+export async function listarVersoesDosLacos(id: string): Promise<(Versao<unknown> & { tipo: 'filiacao' | 'casal' | 'laco-coracao' })[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT id, tipo, dados, autor, criada_em FROM versoes WHERE
+        (tipo = 'filiacao' AND (json_extract(dados, '$.filho') = ?1 OR json_extract(dados, '$.responsavel') = ?1))
+        OR (tipo = 'casal' AND (json_extract(dados, '$.a') = ?1 OR json_extract(dados, '$.b') = ?1))
+        OR (tipo = 'laco-coracao' AND (json_extract(dados, '$.dono') = ?1 OR json_extract(dados, '$.pessoa') = ?1))
+       ORDER BY id DESC LIMIT 100`,
+    )
+    .bind(id)
+    .all<Record<string, unknown>>();
+  return results.map((v: Record<string, unknown>) => ({
+    id: v.id as number,
+    tipo: v.tipo as 'filiacao' | 'casal' | 'laco-coracao',
+    dados: JSON.parse(v.dados as string) as unknown,
+    autor: v.autor as string,
+    criadaEm: v.criada_em as string,
+  }));
+}
+
+/** Uma versão pelo id, com o tipo. */
+export async function obterVersao(id: number): Promise<{ id: number; tipo: string; itemId: string; dados: unknown } | undefined> {
+  const v = await db().prepare('SELECT id, tipo, item_id, dados FROM versoes WHERE id = ?').bind(id).first<{ id: number; tipo: string; item_id: string; dados: string }>();
+  return v ? { id: v.id, tipo: v.tipo, itemId: v.item_id, dados: JSON.parse(v.dados) } : undefined;
+}
+
+/**
+ * Restaura um laço do coração guardado: o dono volta com tudo; um administrador, só o nome e o lugar na
+ * árvore (num laço que já existe) ou o laço como era, aberto (num laço removido). A versão de hoje vai
+ * para o histórico.
+ */
+export async function restaurarLacoDoCoracao(dados: { dono: string; pessoa: string; nome: string; papel: Papel | null; proximidade?: number | null; privado: number | boolean }, usuario: Usuario): Promise<void> {
+  const doDono = dados.dono === usuario.pessoa;
+  await db().batch([
+    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) SELECT 'laco-coracao', CAST(id AS TEXT), json_object('dono', dono_id, 'pessoa', pessoa_id, 'nome', nome, 'papel', papel, 'proximidade', proximidade, 'privado', privado), ? FROM lacos_coracao WHERE dono_id = ? AND pessoa_id = ?`).bind(usuario.pessoa, dados.dono, dados.pessoa),
+    doDono
+      ? db()
+          .prepare(`INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, papel, proximidade, privado) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET nome = excluded.nome, papel = excluded.papel, proximidade = excluded.proximidade, privado = excluded.privado`)
+          .bind(dados.dono, dados.pessoa, dados.nome, dados.papel, dados.proximidade ?? null, dados.privado ? 1 : 0)
+      : db()
+          .prepare(`INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, papel, proximidade, privado) VALUES (?, ?, ?, ?, ?, 0) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET nome = excluded.nome, papel = excluded.papel`)
+          .bind(dados.dono, dados.pessoa, dados.nome, dados.papel, dados.proximidade ?? null),
+  ]);
 }

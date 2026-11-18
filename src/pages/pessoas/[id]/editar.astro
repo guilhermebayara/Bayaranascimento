@@ -228,6 +228,13 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
     {!recemCadastrada && (
       <p>
         <a href={`/pessoas/${pessoa.id}`}>Voltar para a página</a>
+        {/* O histórico da ficha e dos laços (onda 2), para quem pode mexer em alguma das duas coisas */}
+        {(podeFicha || podeLacos) && (
+          <>
+            {' · '}
+            <a href={`/pessoas/${pessoa.id}/historico`}>Ver o histórico</a>
+          </>
+        )}
       </p>
     )}
     {/* O índice: a ficha e cada grupo de laços, com quantas pessoas tem. No computador, onde há mouse,
