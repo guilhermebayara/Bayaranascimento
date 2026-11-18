@@ -339,30 +339,68 @@
   font-size: var(--t-pequeno);
 }
 
-.voce__conta {
-  display: grid;
-  grid-template-columns: clamp(5.5rem, 34%, 9rem) minmax(0, 1fr);
-  /* O retrato e o texto terminam na mesma linha: a base do arco fica na linha de base da última palavra */
-  align-items: end;
-  gap: var(--e-5);
-  margin-block: var(--e-3) auto;
-}
-.voce__conta p {
-  display: grid;
+/* "Você no acervo", proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): o retrato pequeno e
+   redondo assina o cartão, ao lado do rótulo; o corpo é uma frase com o número grande; embaixo, as fotos
+   das quatro memórias mais recentes, pequenas e tortas, como fotos soltas da caixa. */
+.voce__alto {
+  display: flex;
+  align-items: center;
   gap: var(--e-3);
-  padding-bottom: 0.15em;
+  color: var(--tinta-suave);
+}
+.voce__alto .retrato {
+  flex: none;
+  width: 2.75rem;
+}
+.voce__frase {
+  margin-top: var(--e-5);
+  font-size: var(--t-abertura);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  line-height: 1.1;
 }
 .voce__numero {
+  display: block;
   font-size: calc(clamp(4.5rem, 3rem + 6vw, 8rem) * var(--escala-serifa));
   font-variation-settings: var(--serifa-ajustes-capa);
   font-weight: var(--serifa-peso-capa);
   letter-spacing: var(--aperto-capa);
-  line-height: 0.8;
+  line-height: 0.85;
   font-variant-numeric: lining-nums;
 }
-.voce__texto {
-  font-size: var(--t-abertura);
-  line-height: 1.12;
+.voce__anos {
+  color: var(--tinta-suave);
+}
+.voce__fotos {
+  display: flex;
+  margin-top: var(--e-5);
+  padding-left: var(--e-2);
+}
+.voce__fotos li {
+  width: 4.25rem;
+  margin-left: calc(var(--e-2) * -1);
+  rotate: -3deg;
+}
+.voce__fotos li:nth-child(even) {
+  rotate: 2deg;
+  translate: 0 var(--e-1);
+}
+.voce__fotos a {
+  display: block;
+  padding: 0.2rem 0.2rem 0.6rem;
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-foto);
+}
+.voce__fotos img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--raio-foto);
+  object-fit: cover;
+}
+.voce__fotos a:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
 }
 .voce__links {
   display: flex;
