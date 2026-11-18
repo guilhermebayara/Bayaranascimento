@@ -3,14 +3,14 @@
 // Recebe a cópia do acervo (a mesma do Google Drive e do botão "Baixar cópia do acervo") e devolve um
 // acervo para a homologação com a família de verdade e as memórias de exemplo (decisão do Gui, 18/11/2026).
 //
-// A regra: nomes, retratos e laços passam; memórias, relatos, textos e fotos de memória nunca passam.
+// A regra: nomes, datas e laços passam; memórias, relatos, textos, retratos e fotos nunca passam.
 // - Passam, como estão na produção: as pessoas (id, nome, apelido, tipo, espécie, como se referir, as
 //   datas de nascimento e de falecimento, quem administra), quem é de cada família, as filiações (com a
 //   data da adoção), os casais com as fases e as famílias que veem, os laços do coração (com o nome, o
 //   papel, a proximidade e a marca de privado) e os laços resumidos.
-// - Os retratos passam quando vêm junto da cópia (`retratos`, a foto de cada retrato atual, em base64):
-//   são gravados no bucket da homologação, com a mesma chave. Quem não tem retrato na cópia fica com as
-//   iniciais. A produção nunca grava na homologação: quem grava é a homologação, ao receber a cópia.
+// - Nenhum arquivo da produção chega à homologação (observação do Gui, 18/11/2026): o retrato de cada
+//   pessoa é uma das fotos de exemplo do Chico e da Karol, sorteada pelo id como nas prévias
+//   (retratoDeExemplo), e a chave do retrato de verdade nem é lida.
 // - Não passam: o "Sobre" de cada pessoa (é texto escrito), memórias, relatos, fotos de memória, áudios,
 //   capítulos, temas, histórico, avisos, sugestões, reações e as escolhas que só o dono vê (proximidade do
 //   círculo e como o ex aparece). No lugar das memórias entram memórias de exemplo, inventadas a partir
@@ -20,24 +20,19 @@
 // aqui, e testes/espelho.test.ts confere que nada escrito de verdade chega à homologação.
 // Nada daqui vai para o repositório: o espelho é gravado direto no banco da homologação.
 import { NUCLEO_INICIAL } from './familias';
-import { fotoDeMemoriaDeExemplo, quantasFotosNoEspelho } from './fotos-de-exemplo';
-import { CHAVE_DE_RETRATO } from './retratos';
+import { fotoDeMemoriaDeExemplo, quantasFotosNoEspelho, retratoDeExemplo } from './fotos-de-exemplo';
 
 type Linha = Record<string, unknown>;
 
 export interface CopiaDoAcervo {
   acervo: string;
   tabelas: Record<string, Linha[]>;
-  /** A foto de cada retrato atual, pela chave, em base64. Só na cópia baixada para o espelho. */
-  retratos?: Record<string, string>;
 }
 
 export interface Espelho {
   /** linhas por tabela, já na ordem de gravar */
   tabelas: [string, Linha[]][];
-  /** Os retratos a gravar no bucket da homologação, debaixo de retratos/ */
-  retratos: { chave: string; base64: string }[];
-  resumo: { pessoas: number; filiacoes: number; casais: number; lacos: number; memorias: number; retratos: number };
+  resumo: { pessoas: number; filiacoes: number; casais: number; lacos: number; memorias: number };
 }
 
 /** Quem tem acesso ao site e aparece nas memórias de exemplo e nos casos que o QA confere. */
@@ -134,14 +129,9 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
 
   // --- Pessoas: como estão na produção, sem o "Sobre" ---
   const originais = [...t('integrantes')].sort((a, b) => (numero(a.ordem) ?? 50) - (numero(b.ordem) ?? 50) || String(a.id).localeCompare(String(b.id)));
-  const fotosDosRetratos = copia.retratos ?? {};
-  const retratos: Espelho['retratos'] = [];
   const integrantes: Linha[] = originais.map((p) => {
     const bicho = p.tipo === 'bicho';
     const tratamento = p.tratamento === 'ela' || p.tratamento === 'ele' ? p.tratamento : null;
-    // O retrato só passa quando a foto veio junto da cópia; sem ela, as iniciais
-    const chave = typeof p.retrato === 'string' && CHAVE_DE_RETRATO.test(p.retrato) && typeof fotosDosRetratos[p.retrato] === 'string' ? p.retrato : null;
-    if (chave) retratos.push({ chave, base64: fotosDosRetratos[chave]! });
     return {
       id: String(p.id),
       nome: String(p.nome),
@@ -158,7 +148,8 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       falecido: numero(p.falecido) ?? (p.falecimento_ano != null ? 1 : 0),
       // O "Sobre" é texto escrito: não passa
       sobre: null,
-      retrato: chave,
+      // O retrato de verdade não passa: no lugar, uma das fotos de exemplo, como nas prévias
+      retrato: retratoDeExemplo(String(p.id), tratamento, bicho),
       admin: numero(p.admin) ?? 0,
       ordem: numero(p.ordem) ?? 50,
       criado_por: mapear(p.criado_por),
@@ -333,7 +324,6 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
   );
 
   return {
-    retratos,
     tabelas: [
       ['integrantes', integrantes],
       ['nucleo_membros', nucleoMembros],
@@ -355,7 +345,6 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       casais: casais.length,
       lacos: lacos.length,
       memorias: memorias.length,
-      retratos: retratos.length,
     },
   };
 }

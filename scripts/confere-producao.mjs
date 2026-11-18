@@ -26,9 +26,11 @@
 // 10. Nenhum arquivo é apagado do bucket das fotos de verdade: só a limpeza do bucket de teste apaga, e a
 //    foto sem memória há mais de 30 dias, que um administrador apaga em src/pages/api/fotos-soltas.ts,
 //    e o banco e o bucket são escolhidos só em ambiente.ts.
-// 11. O espelho da homologação leva a família de verdade (decisão do Gui, 18/11/2026): nomes, retratos e
-//    laços passam; memórias, relatos, textos e fotos de memória nunca passam. O espelho só lê da cópia as
+// 11. O espelho da homologação leva a família de verdade (decisão do Gui, 18/11/2026): nomes, datas e
+//    laços passam; memórias, relatos, textos, retratos e fotos nunca passam. O espelho só lê da cópia as
 //    tabelas da família, o "Sobre" sai vazio, e só a homologação (ou o computador) grava o espelho.
+//    Nenhum arquivo da produção chega à homologação: o retrato é uma foto de exemplo, a cópia não lê o
+//    bucket e o espelho não grava em bucket nenhum.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
@@ -243,8 +245,15 @@ const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';
   if (!/\n      sobre: null,\n/.test(espelho)) falhar('src/lib/espelho.ts: o "Sobre" de cada pessoa é texto escrito e não passa para a homologação (sobre: null).');
   const servidor = readFileSync('src/lib/servidor/espelho.ts', 'utf8');
   if (!servidor.includes("if (!podeEspelhar()) throw new Error('O espelho só pode ser gravado na homologação.');") || !servidor.includes('return ehHomologacao() || import.meta.env.DEV;')) {
-    falhar('src/lib/servidor/espelho.ts: o espelho (banco e retratos) só é gravado na homologação ou no computador.');
+    falhar('src/lib/servidor/espelho.ts: o espelho só é gravado na homologação ou no computador.');
   }
+  // Nenhum arquivo da produção chega à homologação (observação do Gui, 18/11/2026)
+  const soCodigo = (texto) => texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  if (!/\n      retrato: retratoDeExemplo\(String\(p\.id\), tratamento, bicho\),\n/.test(espelho) || /p\.retrato|copia\.retratos|base64/.test(soCodigo(espelho))) {
+    falhar('src/lib/espelho.ts: o retrato de cada pessoa no espelho é uma foto de exemplo (retratoDeExemplo); o retrato de verdade não é lido.');
+  }
+  if (/bucket|\.put\(/i.test(soCodigo(servidor))) falhar('src/lib/servidor/espelho.ts: o espelho grava só o banco; nenhum arquivo vai para o bucket da homologação.');
+  if (/bucket/i.test(soCodigo(readFileSync('src/lib/servidor/copia.ts', 'utf8')))) falhar('src/lib/servidor/copia.ts: a cópia do acervo leva só o banco; ela não lê fotos nem retratos do bucket.');
 }
 
 // 6. Migrações que apagariam dados por cascata

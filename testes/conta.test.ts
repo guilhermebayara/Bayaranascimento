@@ -113,13 +113,10 @@ describe('administração', () => {
     expect(administracao({ admin: true }, { podeEspelhar: true }).map((i) => i.rotulo)).toContain('Espelho da produção');
   });
 
-  it('só a produção oferece a cópia para o espelho, com os retratos (decisão do Gui, 18/11/2026)', () => {
-    const copias = (producao: boolean) => administracao({ admin: true }, { podeEspelhar: !producao, producao }).filter((i) => i.baixar);
-    expect(copias(true)).toEqual([
-      { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
-      { rotulo: 'Baixar cópia para o espelho', href: '/api/copia?retratos=1', baixar: true },
-    ]);
-    expect(copias(false).map((i) => i.rotulo)).toEqual(['Baixar cópia do acervo']);
+  it('só há uma cópia para baixar, a do acervo: a cópia com os retratos para o espelho saiu (observação do Gui, 18/11/2026)', () => {
+    for (const podeEspelhar of [true, false]) {
+      expect(administracao({ admin: true }, { podeEspelhar }).filter((i) => i.baixar)).toEqual([{ rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true }]);
+    }
   });
 });
 
@@ -224,7 +221,7 @@ describe('administração: situação e pendências', () => {
 // Os quadros soltos quebravam a página (observação do Gui, 18/11/2026): os atalhos vão em grupos por tema
 describe('grupos da administração', () => {
   it('três grupos, cada atalho num deles, e os links de baixar ficam fora', () => {
-    const itens = administracao({ admin: true }, { podeEspelhar: true, producao: false });
+    const itens = administracao({ admin: true }, { podeEspelhar: true });
     const grupos = gruposDaAdministracao(itens);
     expect(grupos.map((g) => [g.titulo, g.itens.map((i) => i.rotulo)])).toEqual([
       ['Do acervo', ['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal']],
