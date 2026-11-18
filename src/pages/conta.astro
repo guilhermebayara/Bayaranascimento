@@ -309,10 +309,10 @@ const erro = Astro.url.searchParams.get('erro');
                 <span class="ficha suave">Tudo em dia</span>
               )}
             </div>
-            {grupos.map((grupo, i) => {
+            {grupos.map((grupo) => {
               const marcadas = pendencias.filter((p) => grupoDaPendencia(p) === grupo.titulo).length;
               return (
-                <details class="conta__grupo" name="administracao" id={idDoGrupo(grupo.titulo)} open={i === 0 && pendencias.length === 0 ? true : undefined}>
+                <details class="conta__grupo" name="administracao" id={idDoGrupo(grupo.titulo)}>
                   <summary>
                     <span class="conta__grupo-nome">{grupo.titulo}</span>
                     <span class:list={['ficha', marcadas ? 'conta__pendente' : 'suave']}>{resumoDoGrupo(grupo.itens.length, marcadas)}</span>
