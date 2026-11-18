@@ -1,5 +1,6 @@
 // "Sua conta" (docs/decisoes.md): as listas trazem só o que é da pessoa e o que ela vê, e a seção de
 // administração não aparece para quem não é administrador. Regras em src/lib/conta.ts.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   administracao,
@@ -14,6 +15,10 @@ import {
   seusRascunhos,
   suaLixeira,
   type SituacaoDaAdministracao,
+  GRUPO_DO_ESPACO,
+  grupoDaPendencia,
+  idDoGrupo,
+  resumoDoGrupo,
 } from '../src/lib/conta';
 import { numeroDoRetrato, rotuloDoRetrato, somaDoRetrato } from '../src/lib/avisos';
 
@@ -261,5 +266,35 @@ describe('Editar seus dados', () => {
   it('leva à ficha já aberta, pelo #ficha da página de editar', async () => {
     const { readFileSync } = await import('node:fs');
     expect(readFileSync('src/pages/conta.astro', 'utf8')).toContain('href={`/pessoas/${usuario.pessoa}/editar#ficha`}');
+  });
+});
+
+// Proposta A do conceito da sessão H (escolha do Gui, 18/11/2026): os grupos abrem e fecham, um por vez, e
+// o sinal do alto abre o balão das pendências, cada uma dizendo onde mora
+describe('administração em seções que abrem e fecham', () => {
+  const pagina = readFileSync('src/pages/conta.astro', 'utf8');
+  const css = readFileSync('src/visual/telas/conta.css', 'utf8');
+  it('cada pendência mora num grupo: a carta no acervo, as faxinas em "Para arrumar" e o resto no espaço', () => {
+    expect(grupoDaPendencia({ tipo: 'carta' })).toBe('Do acervo');
+    expect(grupoDaPendencia({ tipo: 'fotos-soltas' })).toBe('Para arrumar');
+    expect(grupoDaPendencia({ tipo: 'duplicados' })).toBe('Para arrumar');
+    for (const tipo of ['banco', 'espaco', 'copia'] as const) expect(grupoDaPendencia({ tipo })).toBe(GRUPO_DO_ESPACO);
+  });
+  it('o grupo fechado diz as pendências dele, ou quantos atalhos tem', () => {
+    expect(resumoDoGrupo(4, 0)).toBe('4 atalhos');
+    expect(resumoDoGrupo(1, 0)).toBe('1 atalho');
+    expect(resumoDoGrupo(4, 2)).toBe('2 pendências');
+    expect(idDoGrupo('Espaço e cópias')).toBe('administracao-espaco-e-copias');
+  });
+  it('os grupos são seções de um nome só, e o sinal abre o balão como um menu', () => {
+    expect(pagina).toContain('<details class="conta__grupo" name="administracao"');
+    expect(pagina).toContain('<details class="conta__sinal" data-menu-acoes>');
+    expect(pagina).toContain('ligarMenus();');
+    expect(pagina).toContain('em {grupoDaPendencia(p)}');
+  });
+  it('no computador o cartão fica mais estreito, à direita, e os avisos não ocupam a largura toda', () => {
+    expect(css).toMatch(/\.conta__grade > \.conta__admin \{\s*grid-column: 8 \/ -1;/);
+    expect(css).toMatch(/\.conta__grade > \.regiao > \.avisos--conta \{\s*grid-column: 1 \/ span 7;/);
+    expect(css).toMatch(/\.conta__lacos \{\s*grid-column: 8 \/ -1;\s*grid-row: span 2;/);
   });
 });
