@@ -131,6 +131,10 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 - O Gui desenha os ajustes no Figma, no time Bayara: laços do coração e arranjo no FigJam (https://www.figma.com/board/B7Ke0nL9jG9wQa6uS3Tliw) e o comportamento dos ramos no Figma Design (https://www.figma.com/design/ymPTKrTROQFhfsYTfpLoRk). Ele olha posição e linhas: as duas contam. Ao ler um ajuste, transforme em regra no código, em teste e em `docs/decisoes.md`.
 - Nas linhas, curva mostra direção e bifurcação, e ângulo reto fica para cruzamento. Linhas que andam juntas são desenhadas uma vez só, para o tracejado não virar linha cheia.
 
+## Relatório no fim de toda sessão
+
+Formato que o Gui escolheu (18/11/2026): além do relatório, toda sessão termina com uma tabela "O quê | Onde ver", uma linha por assunto, com o endereço completo e clicável onde ele confere o resultado (`https://homologa.memorias.bayara.com.br/...` depois do merge, ou a prévia da branch, `https://<branch>.memorias.bayara.com.br/...`, antes). Endereço de página com id usa uma pessoa ou memória que exista no espelho ou no acervo de exemplo. O Gui responde por linha, citando o endereço.
+
 ## Sessões de QA
 
 Vale para sessões abertas só para conferir o site. As regras acima continuam valendo inteiras; esta seção diz o que muda quando o trabalho é QA. A sessão de QA lê tudo, inclusive `docs/historico/` (ver "Quem lê o quê").
