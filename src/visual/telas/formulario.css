@@ -2599,3 +2599,31 @@
   font-variation-settings: var(--serifa-ajustes);
   line-height: 1.35;
 }
+
+/* --- Laço do coração: "Só eu" ou "A família toda" ------------------------------------------------
+   Correção do Gui (18/11/2026): os campos mudam de propósito, e a tela precisa deixar isso claro. O
+   seletor segmentado escolhe; logo embaixo, colada nele, uma frase curta diz o que a opção é. O que é
+   de cada opção fica numa caixa recuada, a mesma nas duas, para ficar à vista que é o conteúdo que
+   troca; "Com quem", quando aparece, fica fora dela. */
+.pagina-de-formulario .reconhece {
+  gap: var(--e-2);
+}
+.pagina-de-formulario .reconhece__frase {
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .reconhece__frase [hidden] {
+  display: none;
+}
+.pagina-de-formulario .reconhece__troca {
+  padding: var(--e-4) var(--e-5) var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--papel-recuo);
+}
+.pagina-de-formulario .reconhece__painel {
+  display: grid;
+  gap: var(--e-5);
+}
+.pagina-de-formulario .reconhece__painel[hidden] {
+  display: none;
+}

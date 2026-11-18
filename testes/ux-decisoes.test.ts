@@ -353,12 +353,23 @@ describe('cadastro de laços depois da sessão H', () => {
     expect(acoes).toContain('>Adicionar</button>');
     expect(acoes).toContain("'Pular esta pergunta'");
   });
-  it('laço do coração: cada opção tem a explicação dela no mesmo lugar, e "Com quem" diz de quem é o laço', () => {
-    expect(editar).toMatch(/<p class="dica" data-para="coracao-so-eu">/);
-    expect(editar).toMatch(/<p class="dica" data-para="coracao-familia" hidden>/);
-    expect(editar).toContain('<span data-para="coracao-familia">{ehMinha ? \'Com quem você tem este laço?\' : `Com quem ${chamar} tem este laço?`}</span>');
-    // O lugar na árvore vem antes dos campos que só "Só eu" tem
-    expect(editar.indexOf('<span>Lugar na árvore</span>', editar.indexOf('data-novo-laco'))).toBeLessThan(editar.indexOf('<span>Nome do laço</span>', editar.indexOf('data-novo-laco')));
+  it('laço do coração: os campos mudam de propósito, e a tela diz o que muda (correção do Gui, 18/11/2026)', () => {
+    const doCoracao = editar.slice(editar.indexOf("{g.novo.laco === 'coracao' && podeLacos && ("), editar.indexOf("{g.novo.laco === 'resumido' && ("));
+    // A escolha num seletor segmentado, com uma frase curta só da opção escolhida, colada nele
+    expect(doCoracao).toMatch(/<Segmentado[^]*?nome="reconhece"/);
+    expect(doCoracao).toMatch(/<span data-para="coracao-so-eu">\{ehMinha \? 'Um laço seu, que só vale para você\.'/);
+    expect(doCoracao).toMatch(/<span data-para="coracao-familia" hidden>\{ehMinha \? 'Um parente de consideração seu/);
+    // "Com quem" fica fora da troca, e na página de outra pessoa o "só eu" não pergunta: o título já diz
+    expect(doCoracao).toContain("data-para={g.novo.laco === 'coracao' ? 'coracao-meu coracao-familia' : undefined}");
+    // Cada opção na mesma caixa, com só o que é dela
+    const soEu = doCoracao.slice(doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-so-eu">'), doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-familia" hidden>'));
+    const familia = doCoracao.slice(doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-familia" hidden>'));
+    for (const campo of ['name="nomeDoLaco"', 'nome="proximidade"', 'name="privado"']) {
+      expect(soEu).toContain(campo);
+      expect(familia).not.toContain(campo);
+    }
+    expect(familia).toMatch(/<option value="filho">[^]*<option value="pai">[^]*<option value="irmao">/);
+    expect(css).toMatch(/\.reconhece__troca \{[^}]*background: var\(--papel-recuo\);/);
   });
   it('a história inteira do casal já no cadastro, guiado e completo, e "O que aconteceu depois?" como título pequeno', () => {
     expect(editar.match(/<FasesDepois /g)?.length).toBe(2);
