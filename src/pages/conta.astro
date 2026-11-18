@@ -84,7 +84,7 @@ const erro = Astro.url.searchParams.get('erro');
         {conta.email && <p class="conta__dados conta__dica suave">Só os administradores mudam o e-mail de acesso.</p>}
         {/* Aprovado pelo Gui em 17/11/2026 (pergunta 5 do PR do grupo "pessoal"): os dados são editados na tela de editar a página, que é do grupo 4 */}
         <p class="conta__acoes">
-          <a class="botao" href={`/pessoas/${usuario.pessoa}/editar#ficha`}>
+          <a class="botao" href={`/pessoas/${usuario.pessoa}/editar`}>
             Editar seus dados
           </a>
           <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
