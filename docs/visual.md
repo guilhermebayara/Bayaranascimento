@@ -132,7 +132,7 @@ Ficam de fora: cartão que deita ao rolar, foto que cresce enquanto se rola, car
 
 **O modo TV é o lugar de experimentar.** É a tela em que o movimento pode ousar mais, porque é para ver junto, parado, na sala: passagem entre memórias com mais caráter, a foto que se aproxima devagar enquanto a memória está na tela, o título e o trecho do relato chegando aos poucos. As regras de sempre continuam: a página não se mexe sozinha fora do "Passar sozinho", as setas e o controle sempre respondem na hora e, com movimento reduzido, tudo isso desliga.
 
-**Peças paradas no alto.** Na linha do tempo, a barra de décadas e o ano grande ficam parados no alto, em qualquer aparelho, para quem rola saber sempre em que ano está (pensando nas pessoas mais velhas). Fora disso, nada fica preso. No toque, nada é preso por `sticky` ou `fixed` (ver "Safari do iPhone e peças paradas", em "Cuidados que custaram tempo"); onde há mouse, a capa do capítulo, a capa do laço, o alto da lista de capítulos e o resumo ao lado do relato ficam parados com `sticky`.
+**Peças paradas no alto.** Na linha do tempo, a barra de décadas e o ano grande ficam parados no alto, em qualquer aparelho, para quem rola saber sempre em que ano está (pensando nas pessoas mais velhas). Fora disso, nada fica preso. No toque, nada é preso por `sticky` ou `fixed` (ver "Safari do iPhone e peças paradas", em "Cuidados que custaram tempo"); onde há mouse, a capa do capítulo, a capa do laço e o alto da lista de capítulos ficam parados com `sticky`.
 
 Origem: [histórico, "Movimento"](historico/visual-ate-2026-11-17.md#movimento).
 
@@ -311,7 +311,7 @@ A regra de quem escolhe está em `docs/decisoes.md`, "Tipos de momento".
 - **A galeria de fotos** (o `<dialog>` da página da memória) está em `telas/memoria.css` e no script da própria página. Vira peça quando uma segunda tela precisar ampliar foto.
 - **A linha do tempo** (trilhos, épocas, faixa de décadas, o ano parado) é da tela, em `telas/linha.css`. Só o sinal do capítulo virou peça.
 - **Camadas do CSS** (`@layer`): tentadas uma vez, mudaram a altura de várias telas, porque elas dependem da ordem dos arquivos, e não foram adotadas. A regra continua a de "A ordem do CSS", abaixo. Vale tentar numa branch só para isso, com `npm run capturas -- comparar` de todas as telas.
-- **Tocador de áudio próprio.** O bloco "A voz de" e o áudio dentro do relato usam o do aparelho. Só o formulário do relato tem um tocar próprio, no balão do áudio gravado (`telas/formulario.css`, "Áudios do relato").
+- **Tocador de áudio próprio.** As mensagens de áudio da conversa, na memória, na janela do relato e em "Nas palavras de", na página da pessoa, têm o tocar próprio do balão (`conversa/Mensagem.astro`, `telas/conversa.css`), com o tocador do aparelho como reserva sem script.
 - **Os efeitos da fase 4:** a frase que acende e a foto que amplia no lugar.
 - **Modo escuro.** A decisão é claro, sem fundo escuro.
 
@@ -564,9 +564,9 @@ O comportamento, o quadro do mapa e o cartão estão em `docs/decisoes.md`, "Ár
 - **"Quem pode ver?"**: o seletor segmentado, com a explicação colada nele (`--e-2`), e as famílias num grupo à parte, a `--e-7`.
 - **Fotos:** cada foto como uma foto revelada pequena, com a legenda, "Usar na linha do tempo" e "Remover foto" ao lado.
 
-O resumo ao lado só existe no relato. Os outros formulários com etapas (o capítulo) usam a grade de sempre, com a trilha numerada à esquerda.
+Nenhum formulário tem o resumo ao lado: na nova memória, a frase é o resumo. Os outros formulários com etapas (o capítulo) usam a grade de sempre, com a trilha numerada à esquerda.
 
-**Relato (`/memorias/<id>/relato`):** a abertura à esquerda, "Como foi?" à direita, com "Quem está contando" (a busca de pessoa), os áudios (cada um num cartão, com o tocador do aparelho, a transcrição recolhida e "Subir", "Descer" e "Remover") e o texto. À direita, no computador, a foto-chave e a ficha da memória de que o relato fala (`ao-lado--fixo`), sem mudar enquanto se escreve.
+**Relato (`/memorias/<id>/relato`):** a janela da conversa (`conversa/Janela.astro`, ver "Relato como conversa" em `docs/decisoes.md`), com "Voltar para a memória" como ação de texto. "Quem está contando" fica depois da janela, na linha recolhida "Estou escrevendo por outra pessoa", que abre a busca de pessoa.
 
 **Capítulo (`/capitulos/novo` e `/capitulos/<id>/editar`):** as etapas "Que capítulo é esse?", "Onde ele se encaixa?" e "Quem vê". O mês tem o rótulo "Mês, se souber" e a opção "Não sei", como na memória. Na edição, "Sobre o capítulo" vem primeiro, com a trilha na coluna da esquerda no computador; "Memórias do capítulo" mostra as que já estão marcadas, e as outras entram por uma busca (sem script, a lista vem inteira). As duas partes são separadas por um fio.
 
