@@ -8,7 +8,7 @@ import type { RegistroDeVisitas } from '../painel';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
 import type { TipoDeAviso } from '../avisos';
-import { exesDe, modosQueValem, type ModoDoEx } from '../ex-casal';
+import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '../ex-casal';
 import type { Proposta, SituacaoDaSugestao, Sugestao, TipoDeSugestao } from '../sugestoes';
 import type { SimboloDaReacao } from '../reacoes';
 import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
@@ -1985,7 +1985,11 @@ export async function comoOsExesAparecem(usuario: Usuario): Promise<Map<string, 
   const { results } = await db().prepare('SELECT pessoa_id, modo FROM ex_para_mim WHERE dono_id = ?').bind(usuario.pessoa).all<{ pessoa_id: string; modo: ModoDoEx }>();
   if (results.length === 0) return new Map();
   const exes = exesDe(usuario.pessoa, await listarCasais(usuario));
-  return modosQueValem(new Map(results.map((r: { pessoa_id: string; modo: ModoDoEx }) => [r.pessoa_id, r.modo])), exes);
+  const valem = modosQueValem(new Map(results.map((r: { pessoa_id: string; modo: ModoDoEx }) => [r.pessoa_id, r.modo])), exes);
+  // "Fora" de quem é pai ou mãe de alguém que a pessoa vê vale como "Discreto" (resposta do Gui à sessão F)
+  if (![...valem.values()].includes('fora')) return valem;
+  const ve = new Set((await listarIntegrantesQueVe(usuario)).map((i) => i.id));
+  return foraQueEPaiViraDiscreto(valem, await listarFiliacoes(), (id) => ve.has(id) || id === usuario.pessoa);
 }
 
 /** Guarda como o ex aparece para quem escolheu. "Presente" apaga a escolha, e tudo volta a ser como era. */
