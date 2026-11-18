@@ -112,6 +112,8 @@ export interface ItemDeAdministracao {
   situacao?: string;
   /** o item pede uma ação de quem administra: ganha o ponto na cor de alerta */
   pendencia?: boolean;
+  /** o grupo do atalho no cartão (os links de baixar ficam no pé, sem grupo) */
+  tema?: TemaDaAdministracao;
 }
 
 /**
@@ -215,16 +217,18 @@ export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'cart
 export const contaDePendencias = (n: number): string => (n === 1 ? '1 pendência' : `${n} pendências`);
 
 /**
- * Quantas colunas têm os atalhos da administração: nunca um sozinho numa linha (escolha do Gui no
- * conceito da sessão E). Até `maximo`, todos numa linha; acima, a maior divisão exata; sem divisão
- * exata, a maior que deixa ao menos dois na última linha (que se esticam até fechar a grade); sem
- * nenhuma, uma coluna só.
+ * Os atalhos da administração em grupos, por tema (observação do Gui, 18/11/2026: os quadros soltos
+ * quebravam a página). "Do acervo" é o que define o acervo; "Para arrumar", o que pede faxina; e
+ * "Ferramentas", o resto. Grupo vazio não aparece.
  */
-export function colunasDosAtalhos(quantos: number, maximo: number): number {
-  if (quantos <= maximo) return Math.max(1, quantos);
-  for (let c = maximo; c >= 2; c--) if (quantos % c === 0) return c;
-  for (let c = maximo; c >= 2; c--) if (quantos % c >= 2) return c;
-  return 1;
+export type TemaDaAdministracao = 'acervo' | 'arrumar' | 'ferramentas';
+export const TEMAS_DA_ADMINISTRACAO: { tema: TemaDaAdministracao; titulo: string }[] = [
+  { tema: 'acervo', titulo: 'Do acervo' },
+  { tema: 'arrumar', titulo: 'Para arrumar' },
+  { tema: 'ferramentas', titulo: 'Ferramentas' },
+];
+export function gruposDaAdministracao(itens: ItemDeAdministracao[]): { titulo: string; itens: ItemDeAdministracao[] }[] {
+  return TEMAS_DA_ADMINISTRACAO.map(({ tema, titulo }) => ({ titulo, itens: itens.filter((i) => i.tema === tema && !i.baixar) })).filter((g) => g.itens.length > 0);
 }
 
 /**
@@ -238,35 +242,39 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
   if (!usuario.admin) return [];
   const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
   return [
-    { rotulo: 'Tipos de momento', href: '/admin/tipos', situacao: situacao && plural(situacao.tipos, 'tipo', 'tipos') },
-    { rotulo: 'Famílias', href: '/admin/familias', situacao: situacao && plural(situacao.familias, 'família', 'famílias') },
-    { rotulo: 'Centros da árvore', href: '/admin/arvore', situacao: situacao && (situacao.centros ? plural(situacao.centros, 'pessoa escolhida', 'pessoas escolhidas') : 'o padrão') },
+    { tema: 'acervo', rotulo: 'Tipos de momento', href: '/admin/tipos', situacao: situacao && plural(situacao.tipos, 'tipo', 'tipos') },
+    { tema: 'acervo', rotulo: 'Famílias', href: '/admin/familias', situacao: situacao && plural(situacao.familias, 'família', 'famílias') },
+    { tema: 'acervo', rotulo: 'Centros da árvore', href: '/admin/arvore', situacao: situacao && (situacao.centros ? plural(situacao.centros, 'pessoa escolhida', 'pessoas escolhidas') : 'o padrão') },
     {
+      tema: 'acervo',
       rotulo: 'Carta de Natal',
       href: '/admin/carta',
       situacao: situacao && (situacao.carta ? `escrita em ${situacao.carta.escritaEm.slice(0, 4)}` : 'ainda não escrita'),
       pendencia: Boolean(situacao && !situacao.carta),
     },
     {
+      tema: 'arrumar',
       rotulo: 'Fotos sem memória',
       href: '/admin/fotos-soltas',
       situacao: situacao && (situacao.fotosSoltas ? plural(situacao.fotosSoltas, 'foto', 'fotos') : 'nenhuma'),
       pendencia: Boolean(situacao?.fotosSoltas),
     },
     {
+      tema: 'arrumar',
       rotulo: 'Cadastros duplicados',
       href: '/admin/duplicados',
       situacao: situacao && (situacao.duplicados ? plural(situacao.duplicados, 'possível', 'possíveis') : 'nenhum à vista'),
       pendencia: Boolean(situacao?.duplicados),
     },
-    { rotulo: 'Transcrição automática', href: '/admin/transcricao', situacao: situacao && (situacao.transcricao === 'ligada' ? 'ligada' : 'desligada') },
-    { rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },
+    { tema: 'ferramentas', rotulo: 'Transcrição automática', href: '/admin/transcricao', situacao: situacao && (situacao.transcricao === 'ligada' ? 'ligada' : 'desligada') },
+    { tema: 'ferramentas', rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },
     { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
     // Na produção, a cópia que leva também os retratos, para o espelho da homologação (decisão do Gui, 18/11/2026)
     ...(onde.producao ? [{ rotulo: 'Baixar cópia para o espelho', href: '/api/copia?retratos=1', baixar: true }] : []),
-    ...(onde.podeEspelhar ? [{ rotulo: 'Espelho da produção', href: '/admin/espelho', situacao: situacao && 'só na homologação' }] : []),
+    ...(onde.podeEspelhar ? [{ tema: 'ferramentas', rotulo: 'Espelho da produção', href: '/admin/espelho', situacao: situacao && 'só na homologação' }] : []),
   ].map((item) => {
     const limpo: ItemDeAdministracao = { rotulo: item.rotulo, href: item.href };
+    if ('tema' in item && item.tema) limpo.tema = item.tema as TemaDaAdministracao;
     if ('baixar' in item && item.baixar) limpo.baixar = true;
     if (item.situacao) limpo.situacao = item.situacao;
     if ('pendencia' in item && item.pendencia) limpo.pendencia = true;

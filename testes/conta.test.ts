@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   administracao,
-  colunasDosAtalhos,
+  gruposDaAdministracao,
   contaDePendencias,
   copiaAtrasada,
   fraseDaCopiaMensal,
@@ -221,28 +221,20 @@ describe('administração: situação e pendências', () => {
   });
 });
 
-// "Sistema visual" ficava sozinho na segunda linha: os atalhos nunca deixam um sozinho numa linha
-describe('colunas dos atalhos da administração', () => {
-  it('até o máximo, todos numa linha', () => {
-    expect(colunasDosAtalhos(1, 3)).toBe(1);
-    expect(colunasDosAtalhos(3, 3)).toBe(3);
-    expect(colunasDosAtalhos(2, 2)).toBe(2);
+// Os quadros soltos quebravam a página (observação do Gui, 18/11/2026): os atalhos vão em grupos por tema
+describe('grupos da administração', () => {
+  it('três grupos, cada atalho num deles, e os links de baixar ficam fora', () => {
+    const itens = administracao({ admin: true }, { podeEspelhar: true, producao: false });
+    const grupos = gruposDaAdministracao(itens);
+    expect(grupos.map((g) => [g.titulo, g.itens.map((i) => i.rotulo)])).toEqual([
+      ['Do acervo', ['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal']],
+      ['Para arrumar', ['Fotos sem memória', 'Cadastros duplicados']],
+      ['Ferramentas', ['Transcrição automática', 'Sistema visual', 'Espelho da produção']],
+    ]);
+    expect(itens.filter((i) => !i.baixar).every((i) => i.tema)).toBe(true);
   });
-  it('a produção (4 atalhos) fica em 2 × 2; a homologação (5), em 3 e 2', () => {
-    expect(colunasDosAtalhos(4, 3)).toBe(2);
-    expect(colunasDosAtalhos(5, 3)).toBe(3);
-    expect(colunasDosAtalhos(5, 2)).toBe(1);
-  });
-  it('nunca um sozinho na última linha, qualquer que seja a quantidade', () => {
-    for (const maximo of [2, 3, 4]) {
-      for (let n = 1; n <= 30; n++) {
-        const c = colunasDosAtalhos(n, maximo);
-        expect(c).toBeGreaterThanOrEqual(1);
-        expect(c).toBeLessThanOrEqual(maximo);
-        const resto = n % c;
-        if (c > 1 && n > 1) expect(resto === 1, `${n} atalhos em ${c} colunas`).toBe(false);
-      }
-    }
+  it('grupo vazio não aparece', () => {
+    expect(gruposDaAdministracao([{ rotulo: 'Famílias', href: '/admin/familias', tema: 'acervo' }]).map((g) => g.titulo)).toEqual(['Do acervo']);
   });
 });
 

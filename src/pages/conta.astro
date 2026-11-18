@@ -16,7 +16,7 @@ import Carimbo from '../components/visual/Carimbo.astro';
 import Gente from '../components/visual/Gente.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
-import { colunasDosAtalhos, contaDePendencias, fraseDaCopiaMensal, oComeco, porcentoDoBanco } from '../lib/conta';
+import { contaDePendencias, gruposDaAdministracao, fraseDaCopiaMensal, oComeco, porcentoDoBanco } from '../lib/conta';
 import { LIMITE_DO_PLANO } from '../lib/tamanho-do-banco';
 import { formatarData, jaFaleceu } from '../lib/datas';
 import { familiaMaisRecente } from '../lib/familias';
@@ -72,9 +72,8 @@ const admin = conta.administracao.length > 0;
 const { pendencias, situacao } = conta;
 const pendenciaDo = (tipo: string) => pendencias.find((p) => p.tipo === tipo);
 const pendenciasSoltas = pendencias.filter((p) => !['carta', 'banco', 'copia'].includes(p.tipo) && !paginasDaAdministracao.some((i) => i.href === p.href));
-// Os atalhos nunca deixam um sozinho numa linha (colunasDosAtalhos)
-const colunas = colunasDosAtalhos(paginasDaAdministracao.length, 3);
-const colunasNoCelular = colunasDosAtalhos(paginasDaAdministracao.length, 2);
+// Os atalhos em grupos por tema, cada um numa lista de linhas (observação do Gui, 18/11/2026)
+const grupos = gruposDaAdministracao(paginasDaAdministracao);
 const bancoPorcento = situacao?.banco ? porcentoDoBanco(situacao.banco.bytes, LIMITE_DO_PLANO) : 0;
 const copiaMensal = situacao ? fraseDaCopiaMensal(situacao.copiaMensal, conta.hoje) : undefined;
 // Os avisos: a lista e o histórico (docs/decisoes.md, "Avisos")
@@ -295,17 +294,25 @@ const erro = Astro.url.searchParams.get('erro');
                 ))}
               </ul>
             )}
-            <ul class="conta__atalhos" data-colunas={colunas} data-colunas-celular={colunasNoCelular}>
-              {paginasDaAdministracao.map((item) => (
-                <li>
-                  <a class:list={['conta__atalho', { 'conta__atalho--pendente': item.pendencia }]} href={item.href}>
-                    <strong>{item.rotulo}</strong>
-                    {item.situacao && <span class="ficha">{item.situacao}</span>}
-                  </a>
-                </li>
+            <div class="conta__temas">
+              {grupos.map((grupo) => (
+                <section class="conta__tema" aria-label={grupo.titulo}>
+                  <h3 class="rotulo suave">{grupo.titulo}</h3>
+                  <ul>
+                    {grupo.itens.map((item) => (
+                      <li>
+                        <a class:list={['conta__atalho', { 'conta__atalho--pendente': item.pendencia }]} href={item.href}>
+                          <strong>{item.rotulo}</strong>
+                          {item.situacao && <span class="ficha">{item.situacao}</span>}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
+            </div>
             <div class="conta__banco">
+              <div class="conta__medidores">
               {conta.banco && (
                 <div class:list={['conta__medidor', { 'conta__medidor--aviso': conta.bancoEmAviso }]}>
                   <p class="conta__banco-linha">
@@ -331,12 +338,15 @@ const erro = Astro.url.searchParams.get('erro');
                   {conta.espaco.nota && <p class="conta__nota ficha">{conta.espaco.nota}</p>}
                 </div>
               )}
+              </div>
+              <div class="conta__copias">
               {copiaMensal && <p class:list={['conta__nota', 'ficha', { 'conta__pendente': Boolean(pendenciaDo('copia')) }]}>{copiaMensal}</p>}
               {copias.map((copia) => (
                 <a class="acao" href={copia.href} download>
                   {copia.rotulo}
                 </a>
               ))}
+              </div>
             </div>
           </section>
         )
