@@ -206,12 +206,14 @@ describe('laços', () => {
     expect(editar.match(/<summary class="botao botao--leve">Editar<\/summary>/g)?.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('listas curtas viram botões de opção: filiação, fase do casal e proximidade', () => {
+  it('listas curtas viram botões de opção: filiação e fase do casal; a proximidade é o slider do círculo', () => {
     const editar = fonte('src/pages/pessoas/[id]/editar.astro');
     expect(editar).not.toMatch(/<select name="(qualidade|faseTipo|proximidade)"/);
     expect(editar).toMatch(/<Opcoes nome="qualidade"/);
     expect(editar).toMatch(/<Opcoes nome="faseTipo"/);
-    expect(editar).toMatch(/<Opcoes nome="proximidade"/);
+    // Decisão do Gui, 18/11/2026: a proximidade virou o slider em todo lugar
+    expect(editar).not.toMatch(/<Opcoes nome="proximidade"/);
+    expect(editar).toMatch(/<CampoProximidade /);
   });
 
   it('a ficha vem antes dos laços na edição', () => {
@@ -364,7 +366,7 @@ describe('cadastro de laços depois da sessão H', () => {
     // Cada opção na mesma caixa, com só o que é dela
     const soEu = doCoracao.slice(doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-so-eu">'), doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-familia" hidden>'));
     const familia = doCoracao.slice(doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-familia" hidden>'));
-    for (const campo of ['name="nomeDoLaco"', 'nome="proximidade"', 'name="privado"']) {
+    for (const campo of ['name="nomeDoLaco"', '<CampoProximidade ', 'name="privado"']) {
       expect(soEu).toContain(campo);
       expect(familia).not.toContain(campo);
     }

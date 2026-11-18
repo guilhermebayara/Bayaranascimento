@@ -1,12 +1,12 @@
 // O círculo no navegador (docs/decisoes.md, "Círculo"). Tocar em alguém abre a ficha, com o slider de
-// proximidade; arrastar a pessoa muda o mesmo valor, na tela grande (para perto ou longe do centro) e
-// no celular (de uma faixa para outra). O slider é o caminho pelo teclado. A ponta de fora do slider,
+// proximidade, do mais distante (à esquerda) ao mais próximo (à direita); arrastar a pessoa muda o mesmo valor, na tela grande (para perto ou longe do centro) e
+// no celular (de uma faixa para outra). O slider é o caminho pelo teclado. A ponta esquerda do slider,
 // ou soltar a pessoa além da borda, é "Fora do círculo": ela sai do desenho e vai para a lista do
 // painel, de onde volta. Tudo é gravado em /api/circulo, que só aceita o dono.
 //
 // As contas (faixas, raio, ponto) são de src/lib/circulo.ts. Na tela grande o desenho é um mapa que
 // anda e aproxima (mapa-que-anda.ts); no celular é uma lista, com a rolagem do aparelho.
-import { FAIXAS, FORA_DO_CIRCULO, faixaDoValor, nomeDaProximidade, pontoDe, valorDoRaio } from '../circulo';
+import { FAIXAS, FORA_DO_CIRCULO, faixaDoValor, nomeDaProximidade, pontasDoSlider, pontoDe, posicaoDoSlider, valorDaPosicao, valorDoRaio } from '../circulo';
 import { buscaDePessoa } from './busca-pessoa';
 import { areaLivreDoMapa, mapaQueAnda } from './mapa-que-anda';
 import { painelDoMapa } from './painel-do-mapa';
@@ -137,7 +137,8 @@ export function montarCirculo(raiz: HTMLElement): void {
     const slider = ficha.querySelector<HTMLInputElement>('input');
     if (!slider || !aberta) return;
     const valor = Number(aberta.dataset.valor);
-    if (Number(slider.value) !== valor) slider.value = String(valor);
+    // O slider vai do mais distante, à esquerda, ao mais próximo, à direita: a posição é o contrário do valor
+    if (Number(slider.value) !== posicaoDoSlider(valor)) slider.value = String(posicaoDoSlider(valor));
     slider.setAttribute('aria-valuetext', nomeDaProximidade(valor));
     ficha.querySelector('output')!.textContent = nomeDaProximidade(valor);
   };
@@ -169,14 +170,14 @@ export function montarCirculo(raiz: HTMLElement): void {
     const slider = Object.assign(document.createElement('input'), { type: 'range', min: '0', max: String(FORA_DO_CIRCULO), step: '1' });
     const pontas = Object.assign(document.createElement('span'), { className: 'pm__pontas' });
     pontas.setAttribute('aria-hidden', 'true');
-    pontas.append(Object.assign(document.createElement('span'), { textContent: 'Perto' }), Object.assign(document.createElement('span'), { textContent: 'Fora do círculo' }));
+    pontas.append(...pontasDoSlider(true).map((ponta) => Object.assign(document.createElement('span'), { textContent: ponta })));
     campo.append(Object.assign(document.createElement('span'), { textContent: 'Proximidade' }), document.createElement('output'), slider, pontas);
     const acoes = Object.assign(document.createElement('div'), { className: 'pm__ficha-acoes' });
     acoes.append(pagina);
     ficha.replaceChildren(retrato, nome, quem, acoes, campo, fechar);
     refletirNaFicha();
     slider.addEventListener('input', () => {
-      por(botao, Number(slider.value));
+      por(botao, valorDaPosicao(Number(slider.value)));
       guardar(botao);
     });
     if (focoNoSlider) slider.focus({ preventScroll: true });

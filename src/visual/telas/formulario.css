@@ -2833,3 +2833,60 @@
 .pagina-de-formulario .reconhece__painel[hidden] {
   display: none;
 }
+
+/* --- O slider de proximidade (decisões do Gui, 18/11/2026) -----------------------------------------
+   O mesmo do círculo, do mais distante, à esquerda, ao mais próximo, à direita. Como na ficha do círculo
+   (.pm__proximidade), o rótulo e a faixa de agora ficam numa linha, colados na barra, e as pontas logo
+   embaixo dela: é um grupo só (docs/visual.md, "Gestalt em toda tela"). */
+.pagina-de-formulario .campo-proximidade {
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 0 var(--e-3);
+}
+.pagina-de-formulario .campo-proximidade output,
+.pagina-de-formulario .campo-proximidade__pontas {
+  font-family: var(--mono);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.pagina-de-formulario .campo-proximidade output {
+  font-size: var(--t-ficha);
+  color: var(--tinta);
+}
+.pagina-de-formulario .campo-proximidade input[type='range'],
+.pagina-de-formulario .campo-proximidade > .dica {
+  grid-column: 1 / -1;
+}
+.pagina-de-formulario .campo-proximidade__pontas {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e-3);
+  font-size: var(--t-micro);
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .campo-proximidade > .dica {
+  margin-top: var(--e-2);
+}
+/* Com o foco do teclado, o contorno abraça o grupo inteiro, como no círculo, em vez de cortar as pontas */
+.pagina-de-formulario .campo-proximidade input[type='range']:focus-visible {
+  outline: none;
+}
+.pagina-de-formulario .campo-proximidade:has(input:focus-visible) {
+  outline: 2px solid var(--tinta);
+  outline-offset: var(--e-2);
+  border-radius: var(--raio-bloco);
+}
+/* A proximidade de um laço meu, no alto da edição dele: um grupo à parte, que guarda sozinho, separado
+   por um fio dos campos do laço, que só guardam com "Salvar" */
+.pagina-de-formulario form.proximidade-do-laco {
+  display: grid;
+  gap: var(--e-2);
+}
+.pagina-de-formulario form.proximidade-do-laco + form {
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .grupo-de-lacos--proximidade > form.proximidade-do-laco {
+  margin-top: var(--e-3);
+}

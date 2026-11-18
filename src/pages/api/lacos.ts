@@ -1,15 +1,14 @@
 // Laços de árvore: filiação (de quem alguém é filho) e casal, com suas fases.
 import type { APIRoute } from 'astro';
-import { FASES, FASES_JUNTOS, Familia, PAPEIS, nomeDoPapel, podeVerCasal, PROXIMIDADES, QUALIDADES, type Casal, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
+import { FASES, FASES_JUNTOS, Familia, PAPEIS, nomeDoPapel, podeVerCasal, QUALIDADES, type Casal, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
 import { MODOS_DO_EX, type ModoDoEx } from '../../lib/ex-casal';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
-import { nivelDoValor, valorDoNivel } from '../../lib/circulo';
+import { nivelDoValor, proximidadeDoFormulario } from '../../lib/circulo';
 import { criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeEscolherComoOExAparece, podeMexerEmLaco, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../lib/servidor/permissoes';
 import { sugerirFamilias, type LacoNovo } from '../../lib/familias';
 import {
-  alinharProximidadeDoLaco,
   criarIntegrante,
   definirParentes,
   familiasDe,
@@ -32,6 +31,8 @@ import {
   salvarCasal,
   salvarFiliacao,
   listarNucleos,
+  listarProximidades,
+  salvarProximidade,
 } from '../../lib/servidor/repositorio';
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -161,8 +162,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!nomeDoLaco) return falhar('Dê um nome ao laço, como "amigo-irmão" ou "afilhada".');
     const papelBruto = campo(dados, 'papel', 12);
     if (papelBruto && !(papelBruto in PAPEIS)) return falhar('Papel desconhecido.');
-    const proximidade = Number(campo(dados, 'proximidade', 2)) || null;
-    if (proximidade !== null && !(proximidade in PROXIMIDADES)) return falhar('Proximidade desconhecida.');
+    // A proximidade é o slider do círculo, do mais distante ao mais próximo (decisão do Gui, 18/11/2026).
+    // Sem mexer nele, nada muda; mexido, grava o mesmo valor do círculo, e a faixa do laço acompanha. No
+    // "Adicionar", o slider vai até Conhecido: um laço novo não começa fora do círculo. Na edição de um laço
+    // que já existe, a proximidade é ajustada à parte, no lugar (/api/circulo), e a faixa fica como está.
+    const pedida = proximidadeDoFormulario(dados.get('posicao'), dados.get('posicaoAntes'), false);
+    if ('erro' in pedida) return falhar(pedida.erro);
+    const existente = (await listarLacosDoCoracao(usuario)).find((l) => l.dono === usuario.pessoa && l.pessoa === pessoa.id);
+    const declarada = (await listarProximidades(usuario.pessoa)).get(pessoa.id);
+    const proximidade = pedida.mexeu ? nivelDoValor(pedida.valor) : (existente?.proximidade ?? (declarada ? nivelDoValor(declarada.valor) : null));
     await cadastrarPendente();
     await salvarLacoDoCoracao(usuario, pessoa.id, {
       nome: nomeDoLaco,
@@ -170,8 +178,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       proximidade,
       privado: dados.get('privado') === 'on',
     });
-    // A proximidade do círculo usa a mesma escala: a faixa escolhida aqui vale lá também
-    await alinharProximidadeDoLaco(usuario.pessoa, pessoa.id, proximidade, proximidade === null ? null : valorDoNivel(proximidade), (valor) => nivelDoValor(valor) === proximidade);
+    if (pedida.mexeu) await salvarProximidade(usuario.pessoa, pessoa.id, pedida.valor, null, nivelDoValor(pedida.valor));
     return voltar(request, volta, { ok: `Laço com ${nome(pessoa.id)} salvo.` });
   }
 

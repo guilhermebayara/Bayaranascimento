@@ -1986,20 +1986,6 @@ export async function removerProximidade(dono: string, pessoa: string): Promise<
   await db().prepare('DELETE FROM proximidades WHERE dono_id = ? AND pessoa_id = ?').bind(dono, pessoa).run();
 }
 
-/**
- * O formulário do laço do coração escolhe uma das três faixas. Se a proximidade guardada está em
- * outra faixa (ou não existe), ela vai para o meio da escolhida; na mesma faixa, o valor fino fica.
- */
-export async function alinharProximidadeDoLaco(dono: string, pessoa: string, nivel: number | null, meio: number | null, mesmaFaixa: (valor: number) => boolean): Promise<void> {
-  if (nivel === null || meio === null) return;
-  const atual = await db().prepare('SELECT valor FROM proximidades WHERE dono_id = ? AND pessoa_id = ?').bind(dono, pessoa).first<{ valor: number }>();
-  if (atual && mesmaFaixa(atual.valor)) return;
-  await db()
-    .prepare(`INSERT INTO proximidades (dono_id, pessoa_id, valor) VALUES (?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET valor = excluded.valor, mudado_em = datetime('now')`)
-    .bind(dono, pessoa, meio)
-    .run();
-}
-
 // --- Ex-casal: como o ex aparece para mim (migração 071; regras em src/lib/ex-casal.ts) ---
 
 /**
