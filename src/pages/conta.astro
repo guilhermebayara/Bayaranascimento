@@ -94,7 +94,8 @@ const erro = Astro.url.searchParams.get('erro');
         </div>
         <div class="conta__quem">
           <p class="rotulo suave">Sua conta · só você vê esta página</p>
-          <h1 class="t-1">{eu?.nome ?? usuario.nome}</h1>
+          {/* --letras: a palavra mais longa do nome, para o título caber na coluna (conta.css) */}
+          <h1 class="t-1" style={`--letras: ${Math.max(...(eu?.nome ?? usuario.nome).split(/\s+/).map((p) => p.length))}`}>{eu?.nome ?? usuario.nome}</h1>
           {dados.length > 0 && <p class="conta__dados ficha suave">{dados.join(' · ')}</p>}
           {!eu && <p class="conta__dados suave">Você entra no acervo, mas ainda não tem uma página de pessoa.</p>}
           {conta.email && <p class="conta__dados conta__dica suave">Só os administradores mudam o e-mail de acesso.</p>}

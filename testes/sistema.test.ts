@@ -258,7 +258,7 @@ describe('tokens e peças', () => {
     const definidas = new Set([...tudo.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
     // As que o script da linha do tempo põe na página, as que a assinatura põe em si mesma e o
     // progresso da frase da nova memória
-    const postasPorScript = ['--alt', '--barra-alt', '--encolhe-a', '--encolhe-b', '--encolhe-c', '--retrato-cor', '--feito'];
+    const postasPorScript = ['--alt', '--barra-alt', '--encolhe-a', '--encolhe-b', '--encolhe-c', '--retrato-cor', '--feito', '--letras'];
     const usadas = new Set([...tudo.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]!).filter((v) => !v.endsWith('-')));
     const soltas = [...usadas].filter((v) => !definidas.has(v) && !postasPorScript.includes(v));
     expect(soltas).toEqual([]);
