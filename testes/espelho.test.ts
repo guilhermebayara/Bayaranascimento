@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { comandosDoEspelho, espelhar, IDS_COM_ACESSO, TABELAS_APAGADAS, type CopiaDoAcervo } from '../src/lib/espelho';
+import { retratoDeExemplo } from '../src/lib/fotos-de-exemplo';
 
-// Uma cópia pequena, no formato da cópia do acervo. A regra (decisão do Gui, 18/11/2026): nomes, retratos e
-// laços passam; memórias, relatos, textos e fotos de memória nunca passam.
+// Uma cópia pequena, no formato da cópia do acervo. A regra (decisões do Gui, 18/11/2026): nomes, datas e
+// laços passam; memórias, relatos, textos, retratos e fotos nunca passam. Nenhum arquivo da produção
+// chega à homologação: a cópia abaixo traz ainda os retratos em base64, como a cópia para o espelho da
+// sessão G, e o espelho precisa ignorá-los.
 const RETRATO_DO_GUI = '0f3c2a1e-0000-4000-8000-00000000aaaa.jpg';
 const RETRATO_SEM_ARQUIVO = '0f3c2a1e-0000-4000-8000-00000000bbbb.jpg';
-const copia: CopiaDoAcervo = {
+const copia = {
   acervo: 'Bayara Nascimento',
   retratos: { [RETRATO_DO_GUI]: 'AQID' },
   tabelas: {
@@ -60,7 +63,7 @@ const copia: CopiaDoAcervo = {
     proximidades: [{ dono_id: 'gui', pessoa_id: 'amiga', valor: 12 }],
     ex_para_mim: [{ dono_id: 'elizete', pessoa_id: 'aguilar', como: 'fora' }],
   },
-};
+} as CopiaDoAcervo;
 const agora = new Date('2026-11-15T12:00:00Z');
 const e = espelhar(copia, { semente: 42, agora });
 const tabela = (nome: string) => e.tabelas.find(([t]) => t === nome)![1];
@@ -87,13 +90,17 @@ describe('espelho da produção para a homologação: a família de verdade', ()
     const bela = tabela('integrantes').find((i) => i.id === 'vo-bela')!;
     expect(bela).toMatchObject({ nome: 'Bela Real', falecimento_ano: 2020, falecido: 1 });
   });
-  it('o retrato passa quando a foto veio junto da cópia; sem a foto, as iniciais', () => {
-    expect(tabela('integrantes').find((i) => i.id === 'gui')!.retrato).toBe(RETRATO_DO_GUI);
-    expect(tabela('integrantes').find((i) => i.id === 'giovanna')!.retrato).toBeNull();
-    expect(e.retratos).toEqual([{ chave: RETRATO_DO_GUI, base64: 'AQID' }]);
-    expect(e.resumo.retratos).toBe(1);
-    // Nenhuma pessoa ganha retrato de exemplo: o Chico e a Karol ficam só nas fotos das memórias
-    expect(tabela('integrantes').some((i) => String(i.retrato ?? '').startsWith('exemplos/'))).toBe(false);
+  it('nenhum arquivo da produção chega à homologação: cada retrato é uma das fotos de exemplo, como nas prévias', () => {
+    const pessoas = tabela('integrantes');
+    for (const p of pessoas) expect(p.retrato, String(p.id)).toBe(retratoDeExemplo(String(p.id), (p.tratamento as 'ela' | 'ele' | null) ?? null, p.tipo === 'bicho'));
+    // Ela é a Karol, ele é o Chico, e quem não informa é um dos dois
+    expect(pessoas.find((p) => p.id === 'giovanna')!.retrato).toMatch(/^exemplos\/karol-\d\.jpg$/);
+    expect(pessoas.find((p) => p.id === 'gui')!.retrato).toMatch(/^exemplos\/chico-\d\.jpg$/);
+    // Nem a chave do retrato de verdade nem o arquivo dele, mesmo quando a cópia os traz
+    const tudo = JSON.stringify(e);
+    for (const daProducao of [RETRATO_DO_GUI, RETRATO_SEM_ARQUIVO, 'AQID']) expect(tudo).not.toContain(daProducao);
+    expect(e).not.toHaveProperty('retratos');
+    expect(Object.keys(e)).toEqual(['tabelas', 'resumo']);
   });
   it('as fotos das memórias apontam para as 11 fotos de exemplo, sem nenhuma vazia', () => {
     const fotos = tabela('fotos');

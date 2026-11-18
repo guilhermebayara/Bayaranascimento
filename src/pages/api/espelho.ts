@@ -5,8 +5,7 @@ import { gravarEspelho, podeEspelhar } from '../../lib/servidor/espelho';
 import { mesmaOrigem, voltar } from '../../lib/servidor/http';
 
 const PAGINA = '/admin/espelho';
-// A cópia para o espelho leva os retratos em base64: uns 150 KB por pessoa
-const LIMITE = 60 * 1024 * 1024;
+const LIMITE = 20 * 1024 * 1024;
 
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!mesmaOrigem(request)) return new Response('Pedido recusado.', { status: 403 });
@@ -26,7 +25,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const r = await gravarEspelho(copia);
     return voltar(request, PAGINA, {
-      ok: `Espelho refeito: ${r.pessoas} pessoas, ${r.retratos} ${r.retratos === 1 ? 'retrato' : 'retratos'}, ${r.filiacoes} filiações, ${r.casais} casais, ${r.lacos} laços do coração e ${r.memorias} memórias de exemplo.`,
+      ok: `Espelho refeito: ${r.pessoas} pessoas, ${r.filiacoes} filiações, ${r.casais} casais, ${r.lacos} laços do coração e ${r.memorias} memórias de exemplo.`,
     });
   } catch (erro) {
     return voltar(request, PAGINA, { erro: erro instanceof Error ? erro.message : 'Não consegui gravar o espelho.' });
