@@ -65,9 +65,20 @@ export function rotuloDoCasalDoCoracao(tipo: 'namoro' | 'amizade', tratamento: T
   return `${tratamento === 'ela' ? ela : tratamento === 'ele' ? ele : `${ele} ou ${ela}`} de ${de}`;
 }
 
-/** A situação do casal em uma ou duas palavras, para "Editar página e laços" e a página do laço. */
-export function situacaoDoCasal(casal: Pick<Casal, 'fases' | 'jaDaFamilia'>): string {
+/**
+ * A situação do casal em uma ou duas palavras, para "Editar página e laços" e a página do laço. Quando um
+ * dos dois já faleceu, no passado (QA de 18/11/2026: o laço do Vô Tonho dizia "Juntos"): "foram casados",
+ * "viveram juntos", "namoraram", "foram amigos", "se separaram". `elas` é quando as duas são tratadas
+ * como "ela".
+ */
+export function situacaoDoCasal(casal: Pick<Casal, 'fases' | 'jaDaFamilia'>, passado: { faleceu: boolean; elas?: boolean } = { faleceu: false }): string {
   const como: ComoOCasalAparece = comoOCasalAparece(casal);
+  if (passado.faleceu) {
+    if (como === 'amizade') return passado.elas ? 'foram amigas' : 'foram amigos';
+    if (como === 'namoro' || como === 'namoro-que-acabou') return 'namoraram';
+    if (como === 'casal') return auge(casal) === 'casamento' ? (passado.elas ? 'foram casadas' : 'foram casados') : 'viveram juntos';
+    return 'se separaram';
+  }
   if (como === 'amizade') return 'hoje, amigos';
   if (como === 'namoro') return 'namorando';
   if (como === 'casal') return 'juntos';
@@ -118,8 +129,14 @@ export function foraQueEPaiViraDiscreto(
 /** Sai da página e do círculo de quem escolheu: discreto ou fora. */
 export const saiDaMinhaPagina = (modo: ModoDoEx | undefined): boolean => modo === 'discreto' || modo === 'fora';
 
-/** Em "Quem estava": só o nome, sem retrato e sem link. */
-export const soONomeNaMemoria = saiDaMinhaPagina;
+/**
+ * Em Pessoas e em "Quem estava" (decisão do Gui depois do QA de 18/11/2026): o discreto continua, com a
+ * tarja "assunto encerrado" no lugar do nome, sem retrato e sem link; quem escolheu "Fora" quer que ele
+ * suma, e ele sai das duas listas. O relato que ele contou continua na memória.
+ */
+export function naListaDeQuemOlha(modo: ModoDoEx | undefined): 'normal' | 'tarja' | 'fora' {
+  return modo === 'discreto' ? 'tarja' : modo === 'fora' ? 'fora' : 'normal';
+}
 
 /** As opções do formulário, com o que cada uma faz, ditas para quem escolhe. */
 export function opcoesDoModo(nome: string): { valor: ModoDoEx; rotulo: string; dica: string }[] {

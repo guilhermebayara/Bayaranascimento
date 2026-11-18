@@ -21,7 +21,7 @@ import Recado from '../../../components/visual/Recado.astro';
 import Retrato from '../../../components/visual/Retrato.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { TAMANHO_PADRAO } from '../../../lib/explorar';
-import { FORMAS_DA_VIDA, enderecoDaVida, fraseDoAcervo, lerFormaDaVida, mostraRascunhoNaVida, nomeDaFormaDaVida } from '../../../lib/pagina-da-pessoa';
+import { FORMAS_DA_VIDA, contaDaFamiliaDePerto, enderecoDaVida, fraseDoAcervo, nomeDoGrupoDePerto, lerFormaDaVida, mostraRascunhoNaVida, nomeDaFormaDaVida } from '../../../lib/pagina-da-pessoa';
 import { montarPaginaDaPessoa, type Ligada } from '../../../lib/servidor/pagina-da-pessoa';
 import { listarCapitulos } from '../../../lib/servidor/repositorio';
 
@@ -53,13 +53,8 @@ const casais = grupo('casal');
 const filhos = grupo('filhos');
 const irmaos = grupo('irmaos');
 const pertoNaArvore = [...pais, ...casais, ...filhos, ...irmaos];
-const contaDaArvore = [
-  pais.length && plural(pais.length, 'pai ou mãe', 'pais'),
-  casais.length && (casais.length === 1 ? 'casal' : `${casais.length} casais`),
-  filhos.length && plural(filhos.length, 'filho', 'filhos'),
-  irmaos.length && plural(irmaos.length, 'irmão', 'irmãos'),
-].filter(Boolean) as string[];
-const resumoDaArvore = contaDaArvore.length > 1 ? `${contaDaArvore.slice(0, -1).join(', ')} e ${contaDaArvore.at(-1)}` : (contaDaArvore[0] ?? '');
+const resumoDaArvore = contaDaFamiliaDePerto({ pais, casais: casais.length, filhos, irmaos });
+const maiuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const RELATOS_A_VISTA = 3;
 const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get('ok');
 ---
@@ -236,7 +231,7 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
               <div class="arvorezinha">
                 {pais.length > 0 && (
                   <div class="arvorezinha__nivel">
-                    <p class="ficha suave">{pais.length === 1 ? 'Pai ou mãe' : 'Pais'}</p>
+                    <p class="ficha suave">{maiuscula(nomeDoGrupoDePerto('pais', pais))}</p>
                     <ul>
                       {pais.map((l: Ligada) => (
                         <li>
@@ -271,7 +266,7 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
                 </div>
                 {filhos.length > 0 && (
                   <div class="arvorezinha__nivel">
-                    <p class="ficha suave">{filhos.length === 1 ? 'Filho' : 'Filhos'}</p>
+                    <p class="ficha suave">{maiuscula(nomeDoGrupoDePerto('filhos', filhos))}</p>
                     <ul>
                       {filhos.map((l: Ligada) => (
                         <li>
@@ -288,7 +283,7 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
               </div>
               {irmaos.length > 0 && (
                 <div class="vizinhanca__irmaos">
-                  <p class="ficha suave">{irmaos.length === 1 ? 'Irmão ou irmã' : 'Irmãos'}</p>
+                  <p class="ficha suave">{maiuscula(nomeDoGrupoDePerto('irmaos', irmaos))}</p>
                   <ul>
                     {irmaos.map((l: Ligada) => (
                       <li>

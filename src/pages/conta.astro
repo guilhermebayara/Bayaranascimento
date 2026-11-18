@@ -16,7 +16,7 @@ import Carimbo from '../components/visual/Carimbo.astro';
 import Gente from '../components/visual/Gente.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
-import { GRUPO_DO_ESPACO, contaDePendencias, grupoDaPendencia, gruposDaAdministracao, fraseDaCopiaMensal, idDoGrupo, oComeco, porcentoDoBanco, resumoDoGrupo } from '../lib/conta';
+import { FRASE_DA_COPIA_DO_ACERVO, GRUPO_DO_ESPACO, contaDePendencias, grupoDaPendencia, gruposDaAdministracao, fraseDaCopiaMensal, idDoGrupo, oComeco, porcentoDoBanco, resumoDoGrupo } from '../lib/conta';
 import { LIMITE_DO_PLANO } from '../lib/tamanho-do-banco';
 import { formatarData, jaFaleceu } from '../lib/datas';
 import { familiaMaisRecente } from '../lib/familias';
@@ -375,6 +375,7 @@ const erro = Astro.url.searchParams.get('erro');
                           {copia.rotulo}
                         </a>
                       ))}
+                      {copias.length > 0 && <p class="conta__nota">{FRASE_DA_COPIA_DO_ACERVO}</p>}
                     </div>
                   </div>
                 </details>

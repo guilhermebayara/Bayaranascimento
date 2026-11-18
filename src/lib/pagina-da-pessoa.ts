@@ -84,3 +84,31 @@ export function fraseDoAcervo(o: { nome: string; memorias: number; de?: number |
   const contou = o.relatos === 0 ? '' : o.memorias === 1 ? ', e contou essa história' : o.relatos === 1 ? ', e contou uma delas' : o.relatos >= o.memorias ? ', e contou todas' : `, e contou ${o.relatos} delas`;
   return `${quem} aparece em ${conta} do acervo${periodo}${contou}.`;
 }
+
+type ComTratamento = { tratamento: 'ela' | 'ele' | null };
+
+/**
+ * O nome de um grupo da família de perto, seguindo "como se referir" de quem está nele (QA de 18/11/2026:
+ * "1 pai ou mãe" no bichinho e "Irmão ou irmã" de quem tem o tratamento informado). Todas "ela", a forma
+ * feminina; todos "ele", a masculina; uma pessoa só sem tratamento, as duas formas; mais de uma, mista ou
+ * sem tratamento, o plural de sempre.
+ */
+export function nomeDoGrupoDePerto(grupo: 'pais' | 'filhos' | 'irmaos', pessoas: ComTratamento[]): string {
+  const [ela, ele, elas, eles] = { pais: ['mãe', 'pai', 'mães', 'pais'], filhos: ['filha', 'filho', 'filhas', 'filhos'], irmaos: ['irmã', 'irmão', 'irmãs', 'irmãos'] }[grupo];
+  const todas = pessoas.length > 0 && pessoas.every((p) => p.tratamento === 'ela');
+  const todos = pessoas.length > 0 && pessoas.every((p) => p.tratamento === 'ele');
+  if (pessoas.length === 1) return todas ? ela : todos ? ele : grupo === 'pais' ? 'pai ou mãe' : `${ele} ou ${ela}`;
+  return todas ? elas : eles;
+}
+
+/** A conta do quadro "Na árvore", fechado: "1 mãe, casal, 2 filhas e 1 irmão". */
+export function contaDaFamiliaDePerto(o: { pais: ComTratamento[]; casais: number; filhos: ComTratamento[]; irmaos: ComTratamento[] }): string {
+  const conta = (g: 'pais' | 'filhos' | 'irmaos', pessoas: ComTratamento[]) => pessoas.length > 0 && `${pessoas.length} ${nomeDoGrupoDePerto(g, pessoas)}`;
+  const partes = [
+    conta('pais', o.pais),
+    o.casais > 0 && (o.casais === 1 ? 'casal' : `${o.casais} casais`),
+    conta('filhos', o.filhos),
+    conta('irmaos', o.irmaos),
+  ].filter(Boolean) as string[];
+  return partes.length > 1 ? `${partes.slice(0, -1).join(', ')} e ${partes.at(-1)}` : (partes[0] ?? '');
+}

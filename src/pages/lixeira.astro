@@ -18,13 +18,12 @@ const nome = (id: string | null) => {
   const i = integrantes.find((x) => x.id === id);
   return i?.apelido ?? i?.nome ?? 'alguém';
 };
-// Depois de restaurar, a pessoa continua na lixeira, com o caminho para o que voltou (resposta do Gui
+// Depois de restaurar uma memória ou um capítulo, a pessoa continua na lixeira, com o caminho para o que voltou (resposta do Gui
 // à P154, 17/11/2026). Só entra o que ela pode ver: a busca é a de sempre.
 const restaurada = Astro.url.searchParams.get('restaurada');
 const memoriaDeVolta = restaurada ? await obterMemoria(usuario, restaurada) : undefined;
 const restaurado = Astro.url.searchParams.get('restaurado');
 const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) => c.id === restaurado) : undefined;
-const pessoaDeVolta = integrantes.find((i) => i.id === Astro.url.searchParams.get('restaurada-pessoa'));
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
@@ -51,13 +50,6 @@ const pessoaDeVolta = integrantes.find((i) => i.id === Astro.url.searchParams.ge
     capituloDeVolta && (
       <p class="acoes">
         <a class="acao" href={`/capitulos/${capituloDeVolta.id}`}>Ver o capítulo</a>
-      </p>
-    )
-  }
-  {
-    pessoaDeVolta && (
-      <p class="acoes">
-        <a class="acao" href={`/pessoas/${pessoaDeVolta.id}`}>Ver a página de {pessoaDeVolta.nome}</a>
       </p>
     )
   }

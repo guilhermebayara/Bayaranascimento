@@ -20,3 +20,15 @@ describe('os relatos na página da memória', () => {
     expect(css).toMatch(/\.parte--conversa \.voz__mensagens \{\s*gap: var\(--e-1\);/);
   });
 });
+
+describe('o retrato de quem contou, na conversa (decisão do Gui depois do QA de 18/11/2026)', () => {
+  const voz = ler('src/components/conversa/Voz.astro');
+  it('fica redondo, o padrão de mensagens, e quem faleceu ganha o tom suave, sem o texto', () => {
+    expect(voz).toContain('<Retrato nome={nome} foto={retrato} familia={familia} falecido={falecido} redondo />');
+    expect(voz).toContain('{falecido && <span class="so-leitor">, já faleceu</span>}');
+  });
+  it('a memória e a página do relato dizem quem já faleceu', () => {
+    expect(ler('src/pages/memorias/[id].astro')).toContain('falecido={faleceu(relato.por)}');
+    expect(ler('src/pages/memorias/[id]/relato.astro')).toContain('falecido={Boolean(achar(r.por) && jaFaleceu(achar(r.por)!))}');
+  });
+});

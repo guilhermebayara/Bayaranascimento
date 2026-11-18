@@ -319,7 +319,7 @@ describe('C1: quem só existe num laço privado de outra pessoa some em todo lug
     expect(fonte('src/pages/api/capitulos.ts')).toContain('(atual?.pessoas ?? []).filter((p) => !marcaveis.has(p)');
   });
   it('a memória e o histórico não mostram o nome', () => {
-    expect(fonte('src/pages/memorias/[id].astro')).toContain('const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id));');
+    expect(fonte('src/pages/memorias/[id].astro')).toContain("const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id) && naListaDeQuemOlha(modosDosExes.get(id)) !== 'fora');");
     expect(fonte('src/pages/memorias/[id]/historico.astro')).toContain('.filter((id) => !naoVe.has(id))');
   });
 });

@@ -635,15 +635,32 @@ a.vizinhanca__quem:focus-visible span {
   }
 }
 
-/* Com mouse, o quadro acompanha a rolagem, como o painel da árvore, e a parte aberta que não couber
-   rola por dentro. No toque, nada fica preso (Safari do iPhone, em docs/visual.md) */
+/* Com mouse, o quadro acompanha a rolagem, como o painel da árvore. Em tela baixa (decisão do Gui depois
+   do QA de 18/11/2026, em 1280×800), o retrato e os títulos das partes fechadas ficam sempre à vista, e só
+   a parte aberta rola por dentro, com o título dela parado no alto. No toque, nada fica preso (Safari do
+   iPhone, em docs/visual.md) */
 @media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
   .verbete__alto.grade > .verbete__quadro {
     position: sticky;
     top: var(--e-5);
+    display: flex;
+    flex-direction: column;
     max-height: calc(100vh - 2 * var(--e-5));
+  }
+  .verbete__quadro > * {
+    flex: none;
+  }
+  .verbete__quadro > .quadro__secao[open] {
+    flex: 0 1 auto;
+    min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+  .verbete__quadro > .quadro__secao[open] > summary {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--branco);
   }
   /* Parado na tela, o retrato cabe junto das partes: a altura dele segue a da janela */
   .verbete__quadro .verbete__retrato {

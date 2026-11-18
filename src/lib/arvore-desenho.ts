@@ -1252,6 +1252,45 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
       }
     }
 
+    // 3. O pai ou a mãe dos meio-irmãos fica do lado deles (QA de 18/11/2026). Partindo da Giovanna, a
+    //    Mel e o Totó, só da Elizete, iam para a esquerda, e a linha da Elizete, à direita do Aguilar,
+    //    passava por baixo dele e cruzava a do casal. Com o casal da mesma família, troca-se o casal de
+    //    lado (e as gerações de cima seguem os filhos) quando isso deixa a árvore mais limpa.
+    if (n > 0) {
+      const { pos } = posicoes(melhor);
+      const casaisATrocar = new Set<string[]>();
+      for (const meio of linha.flat()) {
+        const ps = (paisDe.get(meio) ?? []).filter((p) => anterior.includes(p));
+        if (ps.length !== 1) continue;
+        const bloco = melhor[n - 1].find((b) => b.includes(ps[0]));
+        if (!bloco || bloco.length !== 2 || posicionados.has(bloco)) continue;
+        const outro = bloco[0] === ps[0] ? bloco[1] : bloco[0];
+        // O meio-irmão está do lado do outro, e não do pai ou da mãe dele
+        const doLadoDoOutro = Math.sign(pos.get(meio)! - pos.get(ps[0])!) === Math.sign(pos.get(outro)! - pos.get(ps[0])!);
+        const mesmaFamilia = Math.abs((lado.get(bloco[0]) ?? 0.5) - (lado.get(bloco[1]) ?? 0.5)) < 1e-6;
+        if (doLadoDoOutro && mesmaFamilia) casaisATrocar.add(bloco);
+      }
+      for (const bloco of casaisATrocar) {
+        const antes = custo(melhor);
+        const guardadas = melhor.slice(0, n - 1).map((l) => [...l]);
+        bloco.reverse();
+        // As gerações de cima seguem os filhos: cada bloco vai para cima do meio dos filhos dele
+        for (let k = n - 2; k >= 0; k--) {
+          const { pos: p } = posicoes(melhor);
+          const chave = (b: string[]) => {
+            const filhos = b.flatMap((id) => (filhosDe.get(id) ?? []).filter((f) => melhor[k + 1].flat().includes(f)));
+            return filhos.length ? media(filhos.map((f) => p.get(f)!)) : p.get(b[0])!;
+          };
+          const ordem = melhor[k].map((b, i) => ({ b, c: chave(b), i })).sort((x, y) => x.c - y.c || x.i - y.i).map((x) => x.b);
+          melhor[k].splice(0, melhor[k].length, ...ordem);
+        }
+        if (custo(melhor) >= antes - 1e-9) {
+          bloco.reverse();
+          guardadas.forEach((l, k) => melhor[k].splice(0, melhor[k].length, ...l));
+        }
+      }
+    }
+
     // A família de quem foi escolhido acompanha: pais em cima, filhos embaixo
     for (const bloco of retirados) puxarPais(melhor, n, bloco);
     if (retirados.some((b) => b.some((id) => filhosDe.has(id)))) reorganizarAbaixo(melhor, n);

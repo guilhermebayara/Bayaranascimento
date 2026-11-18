@@ -481,12 +481,55 @@ a.polaroid__foto {
   font-weight: 550;
   line-height: 1.25;
 }
-/* Um ex que quem olha deixou discreto ou fora (src/lib/ex-casal.ts): só o nome, sem retrato e sem link,
-   na altura dos nomes dos outros */
-.pessoa--so-nome {
-  height: 100%;
-  align-content: end;
-  color: var(--tinta-suave);
+/* --- Discreto: o ex que quem olha deixou discreto, em Pessoas e em "Quem estava" ------------------
+   O retrato borrado a ponto de não se reconhecer, com a tarja do cartão da árvore por cima, e o nome
+   borrado, ilegível. Não é link (decisões do Gui depois do QA de 18/11/2026). */
+
+.discreto__foto {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.discreto__foto .retrato {
+  width: 100%;
+  overflow: hidden;
+}
+.discreto__foto .retrato > * {
+  filter: blur(0.75rem) saturate(0.6);
+  scale: 1.4;
+}
+.discreto__tarja {
+  position: absolute;
+  max-width: 100%;
+  padding: 0.3em 0.5em;
+  rotate: -4deg;
+  border-radius: var(--raio-foto);
+  background: var(--tinta);
+  color: var(--papel);
+  font-family: var(--mono);
+  font-size: var(--t-pequeno);
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+.discreto__nome {
+  filter: blur(0.3em);
+  font-weight: 550;
+  line-height: 1.25;
+  user-select: none;
+}
+.gente--discreto,
+.pessoa--discreto {
+  cursor: default;
+}
+/* Na linha de Pessoas o retrato é pequeno: a tarja fica menor para caber nele */
+.gente--discreto .discreto__tarja {
+  font-size: 0.5rem;
+  padding: 0.25em 0.35em;
+}
+.pessoa--discreto .discreto__foto {
+  margin-bottom: var(--e-2);
 }
 
 /* --- Gente: uma pessoa numa linha de lista, com o retrato pequeno, o nome e o laço ------------- */

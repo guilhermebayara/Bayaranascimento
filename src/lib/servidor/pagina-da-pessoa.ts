@@ -45,6 +45,8 @@ export interface Ligada {
   laco?: string | null;
   detalhe?: string | null;
   falecido: boolean;
+  /** "como se referir", para o nome do grupo ("Mãe", "Irmã") */
+  tratamento: 'ela' | 'ele' | null;
   /** a página do laço entre esta pessoa e a ligada */
   enderecoDoLaco: string;
 }
@@ -134,6 +136,7 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
     laco,
     detalhe,
     falecido: faleceu(id),
+    tratamento: achar(id)?.tratamento ?? null,
     enderecoDoLaco: enderecoDoLaco(pessoa.id, id),
   });
 

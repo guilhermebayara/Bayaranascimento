@@ -8,6 +8,7 @@ import {
   contaDePendencias,
   copiaAtrasada,
   fraseDaCopiaMensal,
+  FRASE_DA_COPIA_DO_ACERVO,
   oQueVoceCriou,
   pendenciasDaAdministracao,
   PRAZO_DA_COPIA_MENSAL,
@@ -324,5 +325,12 @@ describe('pedidos para excluir pessoa', () => {
     expect(pendenciasDaAdministracao({ ...base, exclusoes: 0 }, new Date('2026-11-18'))).toEqual([]);
     const item = administracao({ admin: true }, { podeEspelhar: false }, { tipos: 1, familias: 1, ...base, exclusoes: 1 }).find((i) => i.rotulo === 'Pedidos para excluir')!;
     expect(item).toMatchObject({ situacao: '1 pedido', pendencia: true });
+  });
+});
+
+describe('a cópia do acervo (decisão do Gui depois do QA de 18/11/2026)', () => {
+  it('a página diz numa frase que a cópia leva tudo, inclusive o que o administrador não vê', () => {
+    expect(FRASE_DA_COPIA_DO_ACERVO).toContain('inclusive o que você não vê no site');
+    expect(readFileSync('src/pages/conta.astro', 'utf-8')).toContain('{copias.length > 0 && <p class="conta__nota">{FRASE_DA_COPIA_DO_ACERVO}</p>}');
   });
 });

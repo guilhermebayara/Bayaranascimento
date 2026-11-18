@@ -14,6 +14,7 @@ import Assinatura from '../components/visual/Assinatura.astro';
 import Audio from '../components/visual/Audio.astro';
 import Bilhete from '../components/visual/Bilhete.astro';
 import Carimbo from '../components/visual/Carimbo.astro';
+import TarjaDoDiscreto from '../components/visual/TarjaDoDiscreto.astro';
 import Dado from '../components/visual/Dado.astro';
 import Gente from '../components/visual/Gente.astro';
 import Etiqueta from '../components/visual/Etiqueta.astro';
@@ -428,6 +429,12 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
             <span class="selo">Só Bayara</span>
           </p>
           <p class="ficha suave">O carimbo diz data e lugar. A etiqueta diz o tipo de momento. A pílula, que é nova, diz um período ou uma data aproximada.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Tarja do discreto</h3>
+          <p class="pessoa pessoa--discreto sis__discreto"><TarjaDoDiscreto nome="Fulano de Tal" familia="tudo" /></p>
+          <p class="ficha suave">Um ex que quem olha deixou discreto, em Pessoas e em "Quem estava": o retrato borrado com a tarja por cima e o nome borrado. Sem link. No cartão da árvore, que não tem foto, a tarja fica sobre o nome.</p>
         </article>
 
         <article class="sis__peca">
