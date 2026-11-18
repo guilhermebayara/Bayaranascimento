@@ -192,7 +192,7 @@
   margin-top: calc(var(--e-3) - var(--e-5));
 }
 .dados__familias .pilulas-de-familia {
-  margin-top: var(--e-2);
+  margin-top: var(--e-1);
 }
 /* Os números do acervo, como no alto de um álbum: o número em serifa e o nome em mono embaixo */
 .dados__numeros {
@@ -477,7 +477,7 @@ a.vizinhanca__quem:focus-visible span {
 .lacos__grupos {
   display: grid;
   gap: var(--e-6);
-  margin-top: var(--e-6);
+  margin-top: var(--e-7);
 }
 .lacos__grupo ul {
   display: grid;
