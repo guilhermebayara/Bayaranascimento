@@ -2313,3 +2313,17 @@ export function fichaComoEsta(m: Memoria): DadosDaMemoria {
     fotos: m.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
   };
 }
+
+// --- Transcrição automática (onda 2; regras em src/lib/transcricao.ts) ---
+
+/** Um áudio que a pessoa pode transcrever: o que ela enviou, ainda solto ou num relato que ela registrou. */
+export async function audioParaTranscrever(id: number, usuario: Usuario): Promise<{ id: number; chave: string; tipo: string; tamanho: number; duracao: number | null } | undefined> {
+  const a = await db()
+    .prepare(
+      `SELECT a.id, a.chave, a.tipo, a.tamanho, a.duracao FROM audios a LEFT JOIN relatos r ON r.id = a.relato_id
+       WHERE a.id = ?1 AND a.removido_em IS NULL AND ((a.relato_id IS NULL AND a.enviado_por = ?2) OR r.registrado_por = ?2)`,
+    )
+    .bind(id, usuario.pessoa)
+    .first<{ id: number; chave: string; tipo: string; tamanho: number; duracao: number | null }>();
+  return a ?? undefined;
+}

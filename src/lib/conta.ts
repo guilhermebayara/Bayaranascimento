@@ -121,6 +121,8 @@ export interface ItemDeAdministracao {
 export interface SituacaoDaAdministracao {
   tipos: number;
   familias: number;
+  /** a transcrição automática dos áudios (src/lib/transcricao.ts) */
+  transcricao?: 'sem-binding' | 'desligada' | 'ligada';
   /** quantas pessoas os administradores escolheram como centros da árvore; vazio no padrão */
   centros?: number | null;
   /** a carta de Natal mais recente, ou null se ninguém escreveu */
@@ -257,6 +259,7 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
       situacao: situacao && (situacao.duplicados ? plural(situacao.duplicados, 'possível', 'possíveis') : 'nenhum à vista'),
       pendencia: Boolean(situacao?.duplicados),
     },
+    { rotulo: 'Transcrição automática', href: '/admin/transcricao', situacao: situacao && (situacao.transcricao === 'ligada' ? 'ligada' : 'desligada') },
     { rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },
     { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
     ...(onde.podeEspelhar ? [{ rotulo: 'Espelho da produção', href: '/admin/espelho', situacao: situacao && 'só na homologação' }] : []),

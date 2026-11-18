@@ -3,6 +3,8 @@ import type { APIRoute } from 'astro';
 import { comLacoDeArvore } from '../../lib/arvore-montagem';
 import { AJUSTE_DOS_CENTROS, centrosValidos } from '../../lib/centros-da-arvore';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
+import { modeloDeTranscricao } from '../../lib/servidor/ambiente';
+import { AJUSTE_DA_TRANSCRICAO } from '../../lib/transcricao';
 import { podeMudarAjustes } from '../../lib/servidor/permissoes';
 import { listarCasais, listarFiliacoes, listarIntegrantesQueVe, salvarAjuste } from '../../lib/servidor/repositorio';
 
@@ -15,6 +17,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!decisao.ok) return voltar(request, '/conta', { erro: decisao.motivo });
   const dados = await request.formData();
   const acao = campo(dados, 'acao', 30);
+
+  // A transcrição automática (onda 2): só liga onde o Workers AI está ligado no Cloudflare
+  if (acao === 'transcricao-ligar' || acao === 'transcricao-desligar') {
+    const ligar = acao === 'transcricao-ligar';
+    if (ligar && !modeloDeTranscricao()) return voltar(request, '/admin/transcricao', { erro: 'Falta ligar o Workers AI no Cloudflare.' });
+    await salvarAjuste(AJUSTE_DA_TRANSCRICAO, ligar, usuario);
+    return voltar(request, '/admin/transcricao', { ok: ligar ? 'Transcrição automática ligada.' : 'Transcrição automática desligada.' });
+  }
 
   if (acao === 'centros-padrao') {
     await salvarAjuste(AJUSTE_DOS_CENTROS, null, usuario);

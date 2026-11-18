@@ -2,6 +2,7 @@
 import { administracao, fraseDaLixeira, oQueVoceCriou, pendenciasDaAdministracao, seusLacos, seusRascunhos, suaLixeira, type SituacaoDaAdministracao } from '../conta';
 import { emMegabytes, LIMITE_DO_PLANO, situacaoDoBanco } from '../tamanho-do-banco';
 import { AJUSTE_DOS_CENTROS } from '../centros-da-arvore';
+import { situacaoDaTranscricaoAgora } from './transcricao';
 import { AJUSTE_DOS_NAO_DUPLICADOS } from '../juntar';
 import { possiveisDuplicados } from '../nomes-parecidos';
 import { fraseDoEspaco, notaDosSemMedida, situacaoDoEspaco } from '../espaco-dos-arquivos';
@@ -98,6 +99,7 @@ export async function montarConta(usuario: Usuario) {
         ...(await situacaoDasPendencias(usuario)),
         tipos: (await listarTipos()).length,
         familias: (await listarNucleos()).length,
+        transcricao: await situacaoDaTranscricaoAgora(),
         centros: ((c) => (Array.isArray(c) && c.length ? c.length : null))(await lerAjuste(AJUSTE_DOS_CENTROS)),
       }
     : undefined;

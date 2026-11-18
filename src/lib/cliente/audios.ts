@@ -65,6 +65,31 @@ export function ligarAudios(raiz: HTMLElement, memoria: string, aoMudar?: () => 
     const transcricao = item.querySelector<HTMLTextAreaElement>('[data-transcricao]')!;
     transcricao.value = audio.transcricao ?? '';
     if (audio.transcricao) item.querySelector('details')!.open = true;
+    // Transcrição automática (onda 2): só onde os administradores ligaram. O texto entra na caixa como
+    // rascunho, e só vale quando a pessoa revisa e salva o relato.
+    if (raiz.dataset.transcricaoAutomatica === 'ligada') {
+      const botao = Object.assign(document.createElement('button'), { type: 'button', className: 'botao botao--leve', textContent: 'Transcrever automaticamente' });
+      const nota = Object.assign(document.createElement('p'), { className: 'dica' });
+      nota.setAttribute('aria-live', 'polite');
+      botao.addEventListener('click', async () => {
+        botao.disabled = true;
+        nota.textContent = 'Transcrevendo… pode levar um minuto.';
+        try {
+          const resposta = await fetch('/api/transcricao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ audio: audio.id }) });
+          const resultado = (await resposta.json()) as { texto?: string; erro?: string };
+          if (!resposta.ok || !resultado.texto) throw new Error(resultado.erro ?? 'Não consegui transcrever agora.');
+          transcricao.value = transcricao.value.trim() ? `${transcricao.value.trim()}\n\n${resultado.texto}` : resultado.texto;
+          item.querySelector('details')!.open = true;
+          nota.textContent = 'Transcrição automática: confira e corrija antes de salvar.';
+          aoMudar?.();
+        } catch (e) {
+          nota.textContent = e instanceof Error ? e.message : 'Não consegui transcrever agora.';
+        } finally {
+          botao.disabled = false;
+        }
+      });
+      item.querySelector('details')!.append(botao, nota);
+    }
     item.querySelector('[data-subir]')!.addEventListener('click', () => {
       item.previousElementSibling?.before(item);
       numerar();

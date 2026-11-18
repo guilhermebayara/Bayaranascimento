@@ -1,4 +1,5 @@
 ---
+import { situacaoDaTranscricaoAgora } from '../../../lib/servidor/transcricao';
 import Pagina from '../../../components/formularios/Pagina.astro';
 import Dado from '../../../components/visual/Dado.astro';
 import Ficha from '../../../components/visual/Ficha.astro';
@@ -51,6 +52,8 @@ const opcoes = await Promise.all(
     },
   ),
 );
+// A transcrição automática dos áudios (onda 2): o botão só aparece onde ela está ligada
+const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 ---
 
 <Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar">
@@ -82,7 +85,7 @@ const opcoes = await Promise.all(
       <legend>Como foi?</legend>
       <p class="recado" data-bloqueio hidden></p>
       {/* Áudios (Decidido, a construir; liberado em 16/11/2026). Só com script: gravar e enviar dependem dele */}
-      <div class="campo audios" data-audios hidden>
+      <div class="campo audios" data-audios data-transcricao-automatica={transcricaoAutomatica} hidden>
         <span>Prefere falar? <small>(opcional)</small></span>
         <p class="dica">Grave contando como foi, ou envie um áudio que já está no celular, como os do WhatsApp. Dá para ter vários, em ordem.</p>
         <ol class="audios__lista" data-lista-audios></ol>

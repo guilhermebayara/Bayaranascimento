@@ -12,6 +12,11 @@ declare namespace Cloudflare {
     ACESSOS: string;
     /** Client ID do token de serviço do Access usado pela cópia mensal no Google Drive. */
     COPIA_CLIENT_ID?: string;
+    /**
+     * Workers AI, para a transcrição automática dos áudios (onda 2). Não está ligado no wrangler.jsonc:
+     * a transcrição fica pronta e desligada até o Gui decidir (docs/decisoes.md, "Transcrição automática").
+     */
+    AI?: { run(modelo: string, entrada: Record<string, unknown>): Promise<unknown> };
   }
 }
 
