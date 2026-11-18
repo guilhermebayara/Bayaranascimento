@@ -10,6 +10,7 @@ import Retrato from '../../../components/visual/Retrato.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { anosDeVida, jaFaleceu, maisRecentesPrimeiro } from '../../../lib/datas';
 import { enderecoDoLaco, faixasDasFases, marcasDosAnos, periodoDoLaco, posicao } from '../../../lib/pagina-do-laco';
+import { viraramAmigos } from '../../../lib/ex-casal';
 import { FASES, Familia, estaoJuntos, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { corDaPessoa } from '../../../lib/visual';
@@ -58,7 +59,7 @@ const retratoDe = (i: typeof a) => (i.retrato ? enderecoDoRetrato(i.retrato) : n
 const capitulos = await listarCapitulos(usuario);
 const comAudio = await memoriasComAudio(usuario);
 const titulo = `${chamar(a)} e ${chamar(b)}`;
-const situacao = casal ? (estaoJuntos(casal) ? 'Juntos' : 'Não estão mais juntos') : null;
+const situacao = casal ? (estaoJuntos(casal) ? 'Juntos' : viraramAmigos(casal) ? 'Hoje, amigos' : 'Não estão mais juntos') : null;
 ---
 
 <Visual titulo={titulo} nucleos={[...new Set([...familiasDe(a), ...familiasDe(b)])]} secao="arvore">

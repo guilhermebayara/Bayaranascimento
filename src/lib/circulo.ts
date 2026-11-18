@@ -31,7 +31,8 @@ export const nomeDaProximidade = (valor: number): string => faixaDoValor(valor)?
 // Sem valor declarado, a família vem pela distância na árvore (os caminhos de Relacao.caminho):
 // pais, filhos, irmãos e casal em Muito próximo; avós, netos, tios, sobrinhos e cunhados em Próximo.
 const MUITO_PROXIMO = new Set(['U', 'D', 'UD', 'C']);
-const PROXIMO = new Set(['UU', 'DD', 'UUD', 'UDD', 'UDC', 'CUD']);
+// "A" é o ex que virou amigo: vale como laço do coração sem proximidade (observação do Gui, 18/11/2026)
+const PROXIMO = new Set(['UU', 'DD', 'UUD', 'UDD', 'UDC', 'CUD', 'A']);
 
 /**
  * A proximidade de quem não tem valor declarado. `caminho` é o da árvore, se houver. Laço do coração

@@ -22,6 +22,7 @@ import Vazio from '../../../components/visual/Vazio.astro';
 import { duracaoEmTexto } from '../../../lib/audios';
 import { formatarData, jaFaleceu, vidaSemRotulo } from '../../../lib/datas';
 import { FORMAS_DA_PESSOA, NOMES_DAS_FORMAS, TAMANHO_PADRAO, enderecoDaPessoa, lerFormaDaPessoa, mostraRascunho } from '../../../lib/explorar';
+import { viraramAmigos } from '../../../lib/ex-casal';
 import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
@@ -123,6 +124,10 @@ const vida = vidaSemRotulo(pessoa, mostrarDatas);
 // Na própria página, o carimbo diz "você" e a memória nova é "com você" (P107)
 const comQuem = ehMinha ? 'você' : chamar;
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+// A história de um casal numa linha: "namoro 2025, depois separação 2025, depois amizade desde 2025"
+const historiaDoCasal = (casal: (typeof casais)[number]['casal']) =>
+  casal.fases.map((fase, n) => [FASES[fase.tipo].toLowerCase(), periodosDasFases(casal.fases)[n]].filter(Boolean).join(' ')).join(', depois ') +
+  (casal.visibilidade === 'privado' ? ' (só os dois veem)' : casal.visibilidade === 'nucleos' ? ' (só as famílias escolhidas veem)' : '');
 
 // Como os exes aparecem para quem olha: só vale na página de quem escolheu
 const modosDosExes = ehMinha ? await comoOsExesAparecem(usuario) : new Map<string, 'discreto' | 'fora'>();
@@ -131,12 +136,11 @@ type Linha = { id: string; laco?: string | null; detalhe?: string | null };
 const partes: { titulo: string; linhas: Linha[] }[] = [
   {
     titulo: 'Casal',
-    linhas: casais.map((c) => ({
+    // O ex que virou amigo não é casal nem ex: entra nos laços do coração (observação do Gui, 18/11/2026)
+    linhas: casais.filter((c) => !viraramAmigos(c.casal)).map((c) => ({
       id: c.outro,
       laco: papel(c.outro) ?? (estaoJuntos(c.casal) ? null : 'ex'),
-      detalhe:
-        c.casal.fases.map((fase, n) => [FASES[fase.tipo].toLowerCase(), periodosDasFases(c.casal.fases)[n]].filter(Boolean).join(' ')).join(', depois ') +
-        (c.casal.visibilidade === 'privado' ? ' (só os dois veem)' : c.casal.visibilidade === 'nucleos' ? ' (só as famílias escolhidas veem)' : ''),
+      detalhe: historiaDoCasal(c.casal),
     })),
   },
   ...grupos.map((g) => ({ titulo: g.titulo, linhas: g.ids.map((id) => ({ id, laco: papel(id), detalhe: adocaoCom(id) })) })),
@@ -149,11 +153,16 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
   },
   {
     titulo: 'Laços do coração',
-    linhas: escolhidos.map((l) => ({
-      id: l.pessoa,
-      laco: l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : minuscula(l.nome),
-      detalhe: l.privado ? 'só você vê' : null,
-    })),
+    linhas: [
+      ...escolhidos.map((l) => ({
+        id: l.pessoa,
+        laco: l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : minuscula(l.nome),
+        detalhe: l.privado ? 'só você vê' : null,
+      })),
+      ...casais
+        .filter((c) => viraramAmigos(c.casal) && !escolhidos.some((l) => l.pessoa === c.outro))
+        .map((c) => ({ id: c.outro, laco: achar(c.outro)?.tratamento === 'ela' ? 'amiga' : 'amigo', detalhe: historiaDoCasal(c.casal) })),
+    ],
   },
   {
     titulo: 'No coração de',

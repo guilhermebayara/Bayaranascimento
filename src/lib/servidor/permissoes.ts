@@ -3,7 +3,7 @@
 // A regra de "quem vê" existe também em SQL, em repositorio.ts (FILTRO_VISIVEL):
 // as duas precisam mudar juntas.
 import { ehEpoca, podeVerCapitulo, type Capitulo, type ModoDoFormulario } from '../capitulos';
-import { casalDesfeito } from '../ex-casal';
+import { casalDesfeito, ehEx } from '../ex-casal';
 import type { Casal } from '../parentesco';
 
 export interface Usuario {
@@ -372,7 +372,7 @@ export function podeMudarQuemVeOCasal(usuario: Usuario, casal: Pick<Casal, 'a' |
 /** Escolher como o ex aparece para mim: só quem é uma das duas pessoas de um casal desfeito, e só para si. */
 export function podeEscolherComoOExAparece(usuario: Usuario, casal: Pick<Casal, 'a' | 'b' | 'fases'>): Decisao {
   if (casal.a !== usuario.pessoa && casal.b !== usuario.pessoa) return nao('Casal não encontrado.');
-  if (!casalDesfeito(casal as Casal)) return nao('Só dá para escolher como alguém aparece para você depois que o casal terminou.');
+  if (!ehEx(casal as Casal)) return nao('Só dá para escolher como alguém aparece para você depois que o casal terminou.');
   return sim;
 }
 
