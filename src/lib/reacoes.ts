@@ -15,22 +15,21 @@ export interface Simbolo {
   nome: string;
   /** o miolo do SVG, na caixa de 24 por 24 dos rabiscos */
   desenho: string;
-  /** desenho feito para as reações, à espera do acabamento visual */
-  provisorio: boolean;
 }
 
 /**
- * O riso não tinha rabisco: este é provisório, no mesmo traço dos outros (uma carinha de olhos fechados
- * e boca aberta). Os outros três vêm de src/visual/rabiscos.ts: o coração, a flor (saudade) e a câmera
- * ("eu estava lá").
+ * O riso (versão final, 18/11/2026): uma carinha de olhos em arco e boca bem aberta, no mesmo traço dos
+ * rabiscos, que se lê como riso a 20 px ao lado dos outros. As variações que não ficaram estão em
+ * docs/visual/sessao-j/icones-e-cores/. Os outros três vêm de src/visual/rabiscos.ts: o coração, a flor
+ * (saudade) e a câmera ("eu estava lá").
  */
-const RISO = '<circle cx="12" cy="12" r="8.2"/><path d="M8 10.2c.6-.8 1.4-.8 2 0M14 10.2c.6-.8 1.4-.8 2 0"/><path d="M7.8 13.4c.9 2.4 2.4 3.6 4.2 3.6s3.3-1.2 4.2-3.6z"/>';
+const RISO = '<circle cx="12" cy="12" r="8.4"/><path d="M7.2 10.6c.6-1.6 2.4-1.6 3 0M13.8 10.6c.6-1.6 2.4-1.6 3 0"/><path d="M7 13.2h10c-.3 3-2.3 5-5 5s-4.7-2-5-5z"/>';
 
 export const SIMBOLOS_DAS_REACOES: Simbolo[] = [
-  { id: 'coracao', nome: 'Coração', desenho: rabisco('coracao').desenho, provisorio: false },
-  { id: 'riso', nome: 'Riso', desenho: RISO, provisorio: true },
-  { id: 'saudade', nome: 'Saudade', desenho: rabisco('despedida').desenho, provisorio: false },
-  { id: 'estava', nome: 'Eu estava lá', desenho: rabisco('camera').desenho, provisorio: false },
+  { id: 'coracao', nome: 'Coração', desenho: rabisco('coracao').desenho },
+  { id: 'riso', nome: 'Riso', desenho: RISO },
+  { id: 'saudade', nome: 'Saudade', desenho: rabisco('despedida').desenho },
+  { id: 'estava', nome: 'Eu estava lá', desenho: rabisco('camera').desenho },
 ];
 
 export const ehSimbolo = (valor: string): valor is SimboloDaReacao => (SIMBOLOS as readonly string[]).includes(valor);
