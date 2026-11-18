@@ -182,6 +182,8 @@ const comLaco = comLacoDeArvore(dados);
           <p class="pm__pe">
             <span data-sem-lacos hidden></span>
             <a class="acao acao--quieta" href="/pessoas/nova">Cadastrar pessoa</a>
+            {/* Seu círculo mora no menu da conta; daqui, um link discreto para quem procurar (decisão do Gui, 17/11/2026) */}
+            {achar(usuario.pessoa) && <a class="acao acao--quieta" href="/circulo">Ver seu círculo</a>}
           </p>
         </div>
       </aside>

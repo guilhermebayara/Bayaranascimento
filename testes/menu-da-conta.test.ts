@@ -1,5 +1,5 @@
 // O menu da conta (decisão do Gui de 17/11/2026, "Revisão de estrutura das telas"): o retrato e o nome no
-// topo abrem um menu com Sua página, Sua conta, Administração (só admins) e Sair, e o número de avisos fica
+// topo abrem um menu com Sua página, Seu círculo, Sua conta, Administração (só admins) e Sair, e o número de avisos fica
 // no retrato. Confere o esqueleto (src/layouts/Visual.astro) e o estilo (src/visual/estrutura.css).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -17,9 +17,9 @@ describe('menu da conta', () => {
     expect(botao).toContain('rotuloDoRetrato(usuario.nome, avisosPendentes)');
   });
 
-  it('as opções, nesta ordem: Sua página, Sua conta, Administração e Sair', () => {
+  it('as opções, nesta ordem: Sua página, Seu círculo, Sua conta, Administração e Sair', () => {
     const lista = menu.slice(menu.indexOf('<nav'));
-    const ordem = ['Sua página', 'Sua conta', 'Administração', 'Sair'].map((t) => lista.indexOf(`${t}\n`) >= 0 ? lista.indexOf(`${t}\n`) : lista.indexOf(`${t}</a>`));
+    const ordem = ['Sua página', 'Seu círculo', 'Sua conta', 'Administração', 'Sair'].map((t) => lista.indexOf(`${t}\n`) >= 0 ? lista.indexOf(`${t}\n`) : lista.indexOf(`${t}</a>`));
     expect(ordem.every((n) => n > 0)).toBe(true);
     expect([...ordem].sort((a, b) => a - b)).toEqual(ordem);
   });
