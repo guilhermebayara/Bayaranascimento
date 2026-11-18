@@ -11,6 +11,7 @@ const semComentario = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
 
 const pagina = ler('src/pages/arvore.astro');
 const cliente = ler('src/lib/cliente/arvore.ts');
+const modulo = ler('src/lib/cliente/mapa-que-anda.ts');
 const quadro = semComentario(ler('src/visual/telas/mapa.css'));
 const arvore = semComentario(ler('src/visual/telas/arvore.css'));
 
@@ -55,9 +56,12 @@ describe('a árvore como mapa', () => {
     expect(cliente).toMatch(/vista\.zoom = Math\.max\(0\.6, Math\.min\(1\.1, \(livre\.h - folga \* 2\) \/ desenho\.altura\)\);/);
     expect(cliente).toMatch(/enquadrarPelaAltura\(\);\s*\/\/ As caixas só passam a deslizar/);
     // A barra de baixo sai da conta, para a árvore inteira ficar acima dela
-    expect(cliente).toMatch(/if \(b && b\.height\) livre\.h = Math\.min\(livre\.h, b\.top - m\.top\);/);
-    // A vista continua mudando só por aplicarVista, que mantém a nitidez
-    expect(cliente.match(/c\.style\.transform = `translate\(\$\{vista\.x\}px/g)).toHaveLength(1);
+    expect(cliente).toContain('const areaLivre = () => areaLivreDoMapa(mapa, quadro, barraDeBaixo);');
+    expect(modulo).toMatch(/if \(b && b\.height\) livre\.h = Math\.min\(livre\.h, b\.top - m\.top\);/);
+    // A vista continua mudando só por aplicarVista, que passa pelo módulo e mantém a nitidez
+    expect(cliente).toContain('const aplicarVista = (animado = false) => anda.aplicar(animado);');
+    expect(cliente).not.toMatch(/style\.transform = `translate\(\$\{vista\.x\}px/);
+    expect(modulo.match(/c\.style\.transform = `translate\(\$\{vista\.x\}px/g)).toHaveLength(1);
   });
 
   it('a busca por nome mantém a linha direta: abre o cartão do ramo e leva o mapa até a pessoa, com a ficha', () => {
@@ -97,5 +101,25 @@ describe('a árvore como mapa', () => {
     expect(existsSync(url('src/pages/conceito/mapa'))).toBe(false);
     expect(existsSync(url('src/visual/telas/mapa-conceito.css'))).toBe(false);
     expect(existsSync(url('src/components/conceito'))).toBe(false);
+  });
+});
+
+describe('o código de andar e aproximar, num módulo só (resposta do Gui aos PRs #53 a #62)', () => {
+  const circulo = ler('src/lib/cliente/circulo.ts');
+  it('a árvore e o círculo usam src/lib/cliente/mapa-que-anda.ts, sem cópia própria dos gestos', () => {
+    for (const arquivo of [cliente, circulo]) {
+      expect(arquivo).toMatch(/import \{ areaLivreDoMapa, mapaQueAnda \} from '\.\/mapa-que-anda';/);
+      expect(arquivo).toMatch(/= mapaQueAnda\(\{/);
+      // O círculo tem o próprio pointerdown, que arrasta uma pessoa; a roda e o arrasto do mapa são do módulo
+      expect(arquivo).not.toMatch(/mapa\.addEventListener\(\s*'(wheel|dragstart|scroll)'/);
+      expect(arquivo).not.toMatch(/const (dedos|pinca|emGesto) =|let (pinca|fimDoGesto)\b/);
+    }
+  });
+  it('sem mudar o comportamento: na árvore o teclado anda com o foco num cartão; no círculo, só com o foco no mapa', () => {
+    expect(cliente).toMatch(/tecladoAnda: \(alvo\) => !alvo\.closest\('\[data-sobre-o-mapa\]'\),/);
+    expect(cliente).toMatch(/foraDoGesto: \(alvo\) => Boolean\(alvo\.closest\('\[data-sobre-o-mapa\]'\)\),/);
+    expect(circulo).not.toMatch(/tecladoAnda/);
+    expect(modulo).toMatch(/tecladoAnda = \(alvo\) => alvo === mapa/);
+    expect(modulo).toMatch(/if \(!ativo\(\) \|\| !tecladoAnda\(e\.target as HTMLElement\)\) return;/);
   });
 });

@@ -1,7 +1,7 @@
 // Um mapa que anda e aproxima: arrastar o vazio move, dois dedos ou Ctrl com a roda aproximam, as
-// setas e + e − fazem o mesmo pelo teclado. É o comportamento do mapa da árvore
-// (src/lib/cliente/arvore.ts), separado para o círculo usar. A árvore ainda tem a cópia dela: juntar
-// as duas é trabalho à parte, porque os gestos da árvore são travados e têm teste próprio.
+// setas e + e − fazem o mesmo pelo teclado. É o único lugar desse código: a árvore
+// (src/lib/cliente/arvore.ts) e o círculo (src/lib/cliente/circulo.ts) usam este módulo (resposta do
+// Gui aos PRs #53 a #62, 17/11/2026: juntar sem mudar o comportamento de nenhum dos dois).
 //
 // A nitidez no zoom segue a regra da árvore: a camada só é promovida (will-change, na classe
 // mapa__camada--em-gesto) enquanto o gesto dura, e é desenhada de novo quando ele acaba.
@@ -23,6 +23,8 @@ export interface MapaQueAnda {
   vista: Vista;
   /** Vai para uma vista inteira de uma vez */
   ir(vista: Vista, animado?: boolean): void;
+  /** Aplica a vista depois de uma conta que mexeu nela direto */
+  aplicar(animado?: boolean): void;
   mover(dx: number, dy: number, animado?: boolean): void;
   /** Aproxima ou afasta mantendo parado o ponto (px, py) do mapa */
   zoomEm(novo: number, px: number, py: number, animado?: boolean): void;
@@ -39,12 +41,18 @@ interface Opcoes {
   ativo?: () => boolean;
   /** Onde o gesto não começa: o painel, a barra de baixo, uma pessoa que se arrasta */
   foraDoGesto: (alvo: HTMLElement) => boolean;
+  /**
+   * Com o foco onde, as setas e o + e − andam o mapa. Sem esta opção, só com o foco no próprio mapa
+   * (o círculo, em que a pessoa com o foco usa o Enter para chegar ao slider). Na árvore, em qualquer
+   * lugar fora do painel e da barra, inclusive num cartão.
+   */
+  tecladoAnda?: (alvo: HTMLElement) => boolean;
   aoMudar?: (vista: Vista) => void;
 }
 
 const TEMPO_DO_GESTO = 180;
 
-export function mapaQueAnda({ mapa, camadas, zoomMin, zoomMax, ativo = () => true, foraDoGesto, aoMudar }: Opcoes): MapaQueAnda {
+export function mapaQueAnda({ mapa, camadas, zoomMin, zoomMax, ativo = () => true, foraDoGesto, tecladoAnda = (alvo) => alvo === mapa, aoMudar }: Opcoes): MapaQueAnda {
   const vista: Vista = { x: 0, y: 0, zoom: 1 };
   let fimDoGesto = 0;
   const emGesto = (animado: boolean) => {
@@ -121,6 +129,8 @@ export function mapaQueAnda({ mapa, camadas, zoomMin, zoomMax, ativo = () => tru
     if (dedos.size === 0) arrasto = undefined;
     mapa.classList.remove('mapa--arrastando');
   };
+  // Com o mouse, arrastar começando em cima de um cartão virava o arrasto de link do navegador, e
+  // o mapa parava no primeiro passo. O mapa não tem nada para arrastar para fora.
   mapa.addEventListener('dragstart', (e) => e.preventDefault());
   window.addEventListener('pointerup', soltar);
   window.addEventListener('pointercancel', soltar);
@@ -141,7 +151,7 @@ export function mapaQueAnda({ mapa, camadas, zoomMin, zoomMax, ativo = () => tru
 
   // Teclado, com o foco no próprio mapa: setas movem, + e − aproximam
   mapa.addEventListener('keydown', (e) => {
-    if (!ativo() || e.target !== mapa) return;
+    if (!ativo() || !tecladoAnda(e.target as HTMLElement)) return;
     const passo = 80;
     const movimentos: Record<string, [number, number]> = { ArrowLeft: [passo, 0], ArrowRight: [-passo, 0], ArrowUp: [0, passo], ArrowDown: [0, -passo] };
     const movimento = movimentos[e.key];
@@ -164,6 +174,7 @@ export function mapaQueAnda({ mapa, camadas, zoomMin, zoomMax, ativo = () => tru
       Object.assign(vista, nova);
       aplicar(animado);
     },
+    aplicar,
     mover,
     zoomEm,
     acabouDeArrastar: () => Date.now() - fimDoArrasto < 300,

@@ -35,7 +35,8 @@ describe('a ficha da árvore', () => {
     expect(cliente).toMatch(/closest\('a\.no, button, \.ramo, \[data-sobre-o-mapa\]'\)\) return;\s*fecharFicha\(\);/);
   });
   it('o toque que encerra um arrasto não fecha a ficha', () => {
-    expect(cliente).toMatch(/mapa\.addEventListener\('click', \(evento\) => \{\s*if \(Date\.now\(\) - fimDoArrasto < 300\) return;/);
+    expect(cliente).toMatch(/mapa\.addEventListener\('click', \(evento\) => \{\s*if \(anda\.acabouDeArrastar\(\)\) return;/);
+    expect(ler('src/lib/cliente/mapa-que-anda.ts')).toMatch(/acabouDeArrastar: \(\) => Date\.now\(\) - fimDoArrasto < 300,/);
   });
   it('tem "Ver a página" e "Ver a árvore de Fulano", e não tem mais "Laços" (P91)', () => {
     expect(ficha).toContain("textContent: 'Ver a página'");
@@ -143,7 +144,9 @@ describe('"Ajustar a árvore"', () => {
 describe('a árvore pelo teclado (P88)', () => {
   it('a caixa do mapa nunca rola', () => {
     expect(cliente).toMatch(/const semRolagem = \(\) => \{\s*if \(mapa\.scrollLeft\) mapa\.scrollLeft = 0;\s*if \(mapa\.scrollTop\) mapa\.scrollTop = 0;/);
-    expect(cliente).toContain("mapa.addEventListener('scroll', semRolagem);");
+    // O módulo do mapa devolve a caixa ao lugar a cada rolagem, e a árvore faz o mesmo antes de medir
+    expect(ler('src/lib/cliente/mapa-que-anda.ts')).toMatch(/mapa\.addEventListener\('scroll', \(\) => \{\s*if \(!ativo\(\)\) return;\s*if \(mapa\.scrollLeft\) mapa\.scrollLeft = 0;\s*if \(mapa\.scrollTop\) mapa\.scrollTop = 0;/);
+    expect(cliente).toMatch(/const trazerParaAVista = \(el: HTMLElement\) => \{\s*semRolagem\(\);/);
   });
   it('o mapa anda até o que recebeu o foco do teclado, e só o do teclado', () => {
     expect(cliente).toMatch(/c\.addEventListener\('focusin', \(e\) => \{[\s\S]*?if \(alvo\.matches\(':focus-visible'\)\) trazerParaAVista\(alvo\);/);
