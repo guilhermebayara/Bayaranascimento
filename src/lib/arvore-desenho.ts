@@ -1098,8 +1098,11 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
             linha.splice(linha.indexOf(b), 1);
             // O irmão fica na ponta do próprio bloco que encosta no casal
             const irmao = b.find((id) => paisAcima(id).some((p) => ps.includes(p)))!;
+            // Só inverte quando isso aproxima o irmão da ponta: no bloco de três (o casal e quem fica colado,
+            // como o ex que virou amigo), o irmão no meio continua no meio
             const ponta = esquerda ? b.length - 1 : 0;
-            if (b.length > 1 && b.indexOf(irmao) !== ponta) b.reverse();
+            const onde = b.indexOf(irmao);
+            if (b.length > 1 && Math.abs(b.length - 1 - onde - ponta) < Math.abs(onde - ponta)) b.reverse();
           }
           const i = linha.indexOf(bloco);
           linha.splice(esquerda ? i : i + 1, 0, ...irmaos);

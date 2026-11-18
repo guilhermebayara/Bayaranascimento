@@ -270,7 +270,55 @@ export function veORelato(
   naoVe: ReadonlySet<string>,
 ): boolean {
   if (relato.registradoPor === usuario.pessoa) return true;
-  return !naoVe.has(relato.por) && estaNoPublicoDoRelato(relato, usuario);
+  // Quem está na lixeira (excluir pessoa) some do site, mas o relato que ela escreveu fica, com o nome
+  const naLixeira = excluidasDe(naoVe).has(relato.por);
+  return (naLixeira || !naoVe.has(relato.por)) && estaNoPublicoDoRelato(relato, usuario);
+}
+
+// --- Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026) ---
+
+const EXCLUIDAS = Symbol('excluidas');
+type ComExcluidas = ReadonlySet<string> & { [EXCLUIDAS]?: ReadonlySet<string> };
+
+/**
+ * Marca, no conjunto de quem a pessoa logada não vê, quem está ali por estar na lixeira. Para as telas,
+ * as duas coisas são iguais (a pessoa some); só o relato distingue: o de quem está na lixeira fica.
+ */
+export function comExcluidas<T extends Set<string>>(naoVe: T, excluidas: ReadonlySet<string>): T {
+  Object.defineProperty(naoVe, EXCLUIDAS, { value: excluidas, enumerable: false });
+  return naoVe;
+}
+export const excluidasDe = (naoVe: ReadonlySet<string>): ReadonlySet<string> => (naoVe as ComExcluidas)[EXCLUIDAS] ?? new Set();
+
+/** A pessoa que alguém quer excluir: quem acessa o site não sai por aqui, nem a própria pessoa. */
+export interface AlvoDaExclusao {
+  id: string;
+  /** a pessoa entra no site (está no segredo ACESSOS) */
+  acessa: boolean;
+}
+
+/**
+ * Excluir uma pessoa: só os administradores. Ela vai para a lixeira, some do site e volta por "Restaurar".
+ * Ninguém exclui a si mesmo nem quem acessa o site: a pessoa perderia a própria página.
+ */
+export function podeExcluirPessoa(usuario: Usuario, alvo: AlvoDaExclusao): Decisao {
+  if (alvo.id === usuario.pessoa) return nao('Você não pode excluir a sua própria página.');
+  if (alvo.acessa) return nao('Quem entra no site não pode ser excluído: a pessoa perderia a própria página.');
+  if (!usuario.admin) return nao('Só os administradores excluem uma pessoa. Você pode pedir a exclusão.');
+  return sim;
+}
+
+/** Pedir a exclusão: quem não administra, nas mesmas condições. Um administrador aprova ou recusa. */
+export function podePedirExclusao(usuario: Usuario, alvo: AlvoDaExclusao): Decisao {
+  if (alvo.id === usuario.pessoa) return nao('Você não pode pedir para excluir a sua própria página.');
+  if (alvo.acessa) return nao('Quem entra no site não pode ser excluído: a pessoa perderia a própria página.');
+  if (usuario.admin) return nao('Quem administra exclui direto, sem pedir.');
+  return sim;
+}
+
+/** Restaurar uma pessoa da lixeira, aprovar ou recusar um pedido: só os administradores. */
+export function podeCuidarDaExclusao(usuario: Usuario): Decisao {
+  return usuario.admin ? sim : nao('Só os administradores cuidam das pessoas na lixeira e dos pedidos de exclusão.');
 }
 
 // --- Ampliar quem vê uma memória com relatos (decisão do Gui, 17/11/2026) ---

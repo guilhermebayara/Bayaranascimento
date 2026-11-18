@@ -11,18 +11,21 @@ const estado = (abertos: string[], mudar: Partial<Estado> = {}): Estado => ({
   foco: 'gui', centro: '', ramos: new Set(), nucleo: '', consideracao: true, ex: true, bichos: true, outros: true, abertos: new Set(abertos), ...mudar,
 });
 const pessoa = (id: string, nome: string) => ({ id, nome, rotulo: '', nucleos: [], bicho: false, anos: '' });
-// A Bia namora o Gui; o Thiago, ex da Giovanna, virou amigo (esse não fica colado)
+// A Bia namora o Gui. O Thiago, ex da Giovanna, virou amigo: aparece colado a ela, só com os laços dela
+// abertos (decisão do Gui depois da sessão I), e é conferido nos dados da prévia sem a Bia, como na família
 const comNamoro: DadosDaArvore = {
   ...base,
-  pessoas: [...base.pessoas, pessoa('bia', 'Bia'), pessoa('thiago', 'Thiago')],
-  amizades: [
-    { a: 'gui', b: 'bia', rotulo: 'namorada de Gui', namoro: true },
-    { a: 'giovanna', b: 'thiago', rotulo: 'amigo de Giovanna' },
-  ],
+  pessoas: [...base.pessoas, pessoa('bia', 'Bia')],
+  amizades: [{ a: 'gui', b: 'bia', rotulo: 'namorada de Gui', namoro: true }],
 };
-const nome = new Map(comNamoro.pessoas.map((p) => [p.id, p.nome]));
-const fileiras = (dados: DadosDaArvore, abertos: string[]) => {
-  const { desenho } = montarDesenho(dados, estado(abertos));
+const comAmigo: DadosDaArvore = {
+  ...base,
+  pessoas: [...base.pessoas, pessoa('thiago', 'Thiago')],
+  amizades: [{ a: 'giovanna', b: 'thiago', rotulo: 'amigo de Giovanna' }],
+};
+const nome = new Map([...comNamoro.pessoas, pessoa('thiago', 'Thiago')].map((p) => [p.id, p.nome]));
+const fileiras = (dados: DadosDaArvore, abertos: string[], amigos = false) => {
+  const { desenho } = montarDesenho(dados, { ...estado(abertos), amigos });
   const porY = new Map<number, typeof desenho.pessoas>();
   for (const p of desenho.pessoas) porY.set(p.y, [...(porY.get(p.y) ?? []), p]);
   return [...porY].sort((a, b) => a[0] - b[0]).map(([, ps]) => ps.sort((a, b) => a.x - b.x).map((p) => nome.get(p.id)!));
@@ -57,10 +60,31 @@ describe('o namoro na árvore', () => {
     expect(desenho.linhas.some((l) => (l.tipo === 'casal' || l.tipo === 'ponto') && l.de.includes('bia'))).toBe(false);
   });
 
-  it('o ex que virou amigo não fica colado: continua como laço do coração de sempre', () => {
-    const { desenho } = montarDesenho({ ...comNamoro, amizades: comNamoro.amizades!.filter((a) => !a.namoro) }, estado(['gui']));
-    const semNamoro = montarDesenho({ ...base, pessoas: comNamoro.pessoas, amizades: comNamoro.amizades!.filter((a) => !a.namoro) }, estado(['gui']));
-    expect(desenho.pessoas).toEqual(semNamoro.desenho.pessoas);
+  it('o ex que virou amigo só aparece com os laços da Giovanna abertos, colado ao lado dela', () => {
+    expect(fileiras(comAmigo, ['gui']).flat()).not.toContain('Thiago');
+    const comGiovanna = [...COMBINACOES.filter((c) => c.includes('giovanna')), ['giovanna', 'lucas-magno']];
+    for (const abertos of comGiovanna) {
+      for (const amigos of [false, true]) {
+        const f = fileiras(comAmigo, abertos, amigos);
+        const texto = f.map((l) => l.join(' | ')).join('\n');
+        const linha = f.find((l) => l.includes('Giovanna'))!;
+        // Do lado de fora do casal, entre os irmãos: Gui, Thiago, Giovanna, Lucas Magno
+        expect(linha.indexOf('Thiago') + 1, texto).toBe(linha.indexOf('Giovanna'));
+        expect(linha.indexOf('Gui'), texto).toBeLessThan(linha.indexOf('Thiago'));
+        expect(linha.indexOf('Giovanna') + 1, texto).toBe(linha.indexOf('Lucas Magno'));
+        const avos = f.find((l) => l.includes('Vó Vivica'))!;
+        expect(avos.indexOf('Vó Vivica'), texto).toBeLessThan(avos.indexOf('Regina'));
+      }
+    }
+  });
+
+  it('a linha do ex que virou amigo é a do coração, de lado, sem linha nem ponto de casal', () => {
+    const { desenho } = montarDesenho(comAmigo, estado(['giovanna']));
+    const linha = desenho.linhas.find((l) => l.tipo === 'coracao' && l.de.includes('thiago'))!;
+    expect(linha).toBeDefined();
+    const alturas = new Set([...linha.d.matchAll(/(-?[\d.]+)[ ,](-?[\d.]+)/g)].map((m) => Number(m[2])));
+    expect(alturas.size, linha.d).toBe(1);
+    expect(desenho.linhas.some((l) => (l.tipo === 'casal' || l.tipo === 'ponto') && l.de.includes('thiago'))).toBe(false);
   });
 
   it('os outros laços do coração continuam ligando as mesmas pessoas, em tronco', () => {
@@ -68,7 +92,7 @@ describe('o namoro na árvore', () => {
     // (a regra de sempre: os laços para o mesmo lado saem juntos)
     const ligados = (dados: DadosDaArvore) =>
       new Set(montarDesenho(dados, { ...estado(['gui']), amigos: true }).desenho.linhas.filter((l) => l.tipo === 'coracao').flatMap((l) => l.de).filter((id) => id !== 'bia'));
-    const semNamoro = { ...comNamoro, amizades: comNamoro.amizades!.filter((a) => !a.namoro) };
+    const semNamoro = { ...comNamoro, amizades: [] };
     expect([...ligados(comNamoro)].sort()).toEqual([...ligados(semNamoro)].sort());
     const { desenho } = montarDesenho(comNamoro, { ...estado(['gui']), amigos: true });
     const doGui = desenho.linhas.filter((l) => l.tipo === 'coracao' && l.de.includes('gui') && !l.de.includes('bia'));

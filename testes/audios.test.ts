@@ -97,24 +97,26 @@ describe('quem ouve', () => {
 });
 
 // Proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): gravar como mensagem de voz
-describe('o gravador, como mensagem de voz', () => {
+// O gravador agora mora na janela de escrever do relato como conversa (escolha do Gui depois da sessão I,
+// 18/11/2026): o botão redondo grava sem texto e envia com texto, e cada áudio vira uma mensagem
+describe('gravar na janela da conversa', () => {
   const ler = (c: string) => readFileSync(c, 'utf8');
-  const peca = ler('src/components/formularios/Gravador.astro');
-  const cliente = ler('src/lib/cliente/audios.ts');
-  const css = ler('src/visual/telas/formulario.css');
-  it('as duas telas usam a mesma peça, e gravar é a barra com o microfone; anexar fica embaixo, discreto', () => {
-    for (const tela of ['src/pages/nova.astro', 'src/pages/memorias/[id]/relato.astro']) expect(ler(tela), tela).toContain('<Gravador transcricaoAutomatica={transcricaoAutomatica}');
-    expect(peca).toContain('<button type="button" class="gravador__botao" data-gravar aria-label="Gravar áudio">');
-    expect(peca.indexOf('data-gravador')).toBeLessThan(peca.indexOf('Anexar um áudio do celular'));
-    expect(peca).not.toMatch(/botao botao--leve/);
+  const janela = ler('src/components/conversa/Janela.astro');
+  const cliente = ler('src/lib/cliente/conversa.ts');
+  const css = ler('src/visual/telas/conversa.css');
+  it('as duas telas usam a mesma janela', () => {
+    expect(ler('src/pages/nova.astro')).toContain('<Janela modo="formulario"');
+    expect(ler('src/pages/memorias/[id]/relato.astro')).toContain('<Janela modo="ao-vivo"');
   });
-  it('gravando, "Cancelar" descarta sem guardar e fica longe da borda, antes do quadrado de parar', () => {
-    expect(peca.indexOf('data-cancelar-gravacao')).toBeLessThan(peca.indexOf('data-gravar'));
-    expect(cliente).toMatch(/if \(cancelada\) return avisar\('Gravação cancelada\. Nada foi guardado\.'\);/);
-    expect(css).toMatch(/\.gravador__cancelar \{[^}]*padding: 0 var\(--e-3\);/);
+  it('sem texto o botão grava, com texto envia, gravando ele para; o "+" anexa o áudio do celular', () => {
+    expect(cliente).toMatch(/const modo = gravador\?\.state === 'recording' \? 'gravando' : campo\.value\.trim\(\) \|\| !podeGravar \? 'texto' : 'voz';/);
+    expect(janela).toContain('data-anexar="audio">Áudio do celular</button>');
+    expect(cliente).toContain("if (cancelada) return avisar('Gravação cancelada. Nada foi guardado.');");
   });
-  it('cada áudio é um balão com tocar e a duração, e a transcrição, a ordem e "Remover" embaixo', () => {
-    for (const marca of ['data-tocar', 'data-andou', 'data-abre-transcricao', 'data-subir', 'data-descer', 'data-remover-audio', 'data-transcricao']) expect(cliente).toContain(marca);
-    expect(cliente).toContain("setAttribute('aria-label', `Ouvir o áudio ${i + 1}`)");
+  it('o botão de áudio ganha cor: sem texto, na cor viva', () => {
+    expect(css).toMatch(/\.janela__escrever\[data-modo='voz'\] \.janela__botao \{\s*background: var\(--vivo-tinta\);/);
+  });
+  it('cada áudio é uma mensagem com tocar, a onda e a duração; a transcrição mora no menu dela', () => {
+    for (const marca of ['data-tocar', 'data-andou', 'data-tempo', 'data-transcrever', 'data-transcricao-campo']) expect(cliente).toContain(marca);
   });
 });

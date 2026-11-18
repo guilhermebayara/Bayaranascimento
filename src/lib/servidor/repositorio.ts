@@ -11,7 +11,8 @@ import type { TipoDeAviso } from '../avisos';
 import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '../ex-casal';
 import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, type TipoDeSugestao } from '../sugestoes';
 import type { SimboloDaReacao } from '../reacoes';
-import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
+import { mensagensDoRelato, type Mensagem } from '../conversa';
+import { comExcluidas, pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
 export interface Integrante {
   id: string;
@@ -127,9 +128,15 @@ const FILTRO_VISIVEL = `(m.excluida_em IS NULL AND ${FILTRO_SEM_LIXEIRA})`;
 
 // --- Integrantes e núcleos ---
 
+/**
+ * Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026): quem está na lixeira não aparece em
+ * nenhuma lista de pessoas nem de laços. As linhas continuam no banco, para restaurar devolver tudo.
+ */
+const ativa = (coluna: string) => `${coluna} NOT IN (SELECT id FROM integrantes WHERE excluida_em IS NOT NULL)`;
+
 export async function listarIntegrantes(): Promise<Integrante[]> {
   const [integrantes, membros] = await db().batch<Record<string, unknown>>([
-    db().prepare('SELECT * FROM integrantes ORDER BY ordem, nome'),
+    db().prepare('SELECT * FROM integrantes WHERE excluida_em IS NULL ORDER BY ordem, nome'),
     db().prepare('SELECT nucleo_id, integrante_id, papel FROM nucleo_membros'),
   ]);
   const linhas = membros.results as Record<string, unknown>[];
@@ -273,7 +280,7 @@ export interface LacoResumido {
 }
 
 export async function listarLacosResumidos(): Promise<LacoResumido[]> {
-  const { results } = await db().prepare('SELECT id, a_id, b_id, papel, criado_por FROM lacos_resumidos ORDER BY id').all<Record<string, unknown>>();
+  const { results } = await db().prepare(`SELECT id, a_id, b_id, papel, criado_por FROM lacos_resumidos WHERE ${ativa('a_id')} AND ${ativa('b_id')} ORDER BY id`).all<Record<string, unknown>>();
   return results.map((r) => ({ id: r.id as number, a: r.a_id as string, b: r.b_id as string, papel: r.papel as Papel, criadoPor: (r.criado_por as string | null) ?? null }));
 }
 
@@ -300,7 +307,7 @@ export async function removerLacoResumido(id: number, usuario: Usuario): Promise
 // --- Laços de árvore ---
 
 export async function listarFiliacoes(): Promise<Filiacao[]> {
-  const { results } = await db().prepare('SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes').all<Record<string, unknown>>();
+  const { results } = await db().prepare(`SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE ${ativa('filho_id')} AND ${ativa('responsavel_id')}`).all<Record<string, unknown>>();
   return results.map((r) => ({
     filho: r.filho_id as string,
     responsavel: r.responsavel_id as string,
@@ -372,7 +379,8 @@ const FECHAMENTO: Record<Casal['visibilidade'], number> = { privado: 2, nucleos:
  * escolhidas) e um público, cadastrado por quem não via o restrito. Quem vê o restrito fica com ele.
  */
 export async function listarCasais(usuario: Usuario): Promise<Casal[]> {
-  const visiveis = (await lerCasais()).filter((c) => podeVerCasal(usuario.pessoa, c, usuario.nucleos ?? []));
+  const [casais, excluidas] = await Promise.all([lerCasais(), idsDasPessoasExcluidas()]);
+  const visiveis = casais.filter((c) => podeVerCasal(usuario.pessoa, c, usuario.nucleos ?? []) && !excluidas.has(c.a) && !excluidas.has(c.b));
   const porPar = new Map<string, Casal>();
   for (const c of visiveis) {
     const chave = `${c.a}|${c.b}`;
@@ -449,7 +457,7 @@ export async function removerCasal(casal: Casal, usuario: Usuario): Promise<void
 
 /** Laços do coração que o usuário pode ver. A proximidade só acompanha os laços dele. */
 export async function listarLacosDoCoracao(usuario: Usuario): Promise<LacoDoCoracao[]> {
-  const { results } = await db().prepare('SELECT * FROM lacos_coracao ORDER BY COALESCE(proximidade, 9), nome').all<Record<string, unknown>>();
+  const { results } = await db().prepare(`SELECT * FROM lacos_coracao WHERE ${ativa('dono_id')} AND ${ativa('pessoa_id')} ORDER BY COALESCE(proximidade, 9), nome`).all<Record<string, unknown>>();
   return results
     .map((l) => ({
       id: l.id as number,
@@ -472,10 +480,18 @@ export async function pessoasEmLacosPrivadosDeOutros(usuario: Usuario): Promise<
   return new Set(results.map((r) => r.pessoa_id));
 }
 
-/** Quem a pessoa logada não vê (ver pessoasQueNaoVe). Barato quando ninguém tem laço privado. */
+/**
+ * Quem a pessoa logada não vê (ver pessoasQueNaoVe), e quem está na lixeira (excluir pessoa), que ninguém
+ * vê. O conjunto leva junto quem está na lixeira (`comExcluidas`), para o relato que ela escreveu ficar,
+ * com o nome, sem link (veORelato). Barato quando ninguém tem laço privado.
+ */
 export async function pessoasQueONaoVe(usuario: Usuario): Promise<Set<string>> {
-  const emPrivados = await pessoasEmLacosPrivadosDeOutros(usuario);
-  if (emPrivados.size === 0) return emPrivados;
+  const [emPrivados, excluidas] = await Promise.all([pessoasEmLacosPrivadosDeOutros(usuario), idsDasPessoasExcluidas()]);
+  if (emPrivados.size === 0) return comExcluidas(new Set(excluidas), excluidas);
+  return comExcluidas(new Set([...(await pessoasQueONaoVeEmPrivados(usuario, emPrivados)), ...excluidas]), excluidas);
+}
+
+async function pessoasQueONaoVeEmPrivados(usuario: Usuario, emPrivados: Set<string>): Promise<Set<string>> {
   const [filiacoes, casais, lacos] = await Promise.all([listarFiliacoes(), listarCasais(usuario), listarLacosDoCoracao(usuario)]);
   // A pessoa logada sempre se vê, mesmo sem laço nenhum além do privado de outra pessoa
   const comLaco = new Set([usuario.pessoa, ...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
@@ -1440,6 +1456,9 @@ export async function salvarRelato(
   situacao: 'rascunho' | 'publicada',
   usuario: Usuario,
   anterior: Relato | undefined,
+  // O relato como conversa: só acrescentar mensagens no fim (voltar e contar mais) não guarda versão.
+  // A versão leva junto as mensagens de antes, quando há (src/lib/conversa.ts)
+  versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
 ): Promise<void> {
   // A data de publicação é a da primeira vez que o relato sai do rascunho, e não muda depois
   const marcar = `UPDATE relatos SET publicado_em = datetime('now') WHERE situacao = 'publicada' AND publicado_em IS NULL`;
@@ -1453,7 +1472,9 @@ export async function salvarRelato(
     return;
   }
   await db().batch([
-    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(anterior), usuario.pessoa),
+    ...(versao.guardar
+      ? [db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(versao.mensagens ? { ...anterior, mensagens: versao.mensagens } : anterior), usuario.pessoa)]
+      : []),
     db().prepare(`UPDATE relatos SET texto = ?, situacao = ?, atualizado_em = datetime('now') WHERE id = ?`).bind(texto, situacao, anterior.id),
     db().prepare(`${marcar} AND id = ?`).bind(anterior.id),
   ]);
@@ -2364,4 +2385,206 @@ export async function audioParaTranscrever(id: number, usuario: Usuario): Promis
     .bind(id, usuario.pessoa)
     .first<{ id: number; chave: string; tipo: string; tamanho: number; duracao: number | null }>();
   return a ?? undefined;
+}
+
+
+// --- Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026; migração 102-excluir-pessoa) ---
+// A pessoa excluída vai para a lixeira: some do site na hora (listarIntegrantes, os laços e
+// pessoasQueONaoVe deixam de vê-la), e as linhas dela ficam no banco, para restaurar devolver tudo.
+
+/** Quem está na lixeira. */
+export async function idsDasPessoasExcluidas(): Promise<Set<string>> {
+  const { results } = await db().prepare('SELECT id FROM integrantes WHERE excluida_em IS NOT NULL').all<{ id: string }>();
+  return new Set(results.map((r: { id: string }) => r.id));
+}
+
+export interface PessoaExcluida {
+  id: string;
+  nome: string;
+  tipo: 'pessoa' | 'bicho';
+  excluidaEm: string;
+  excluidaPor: string | null;
+}
+
+/** Quem está na lixeira, das excluídas mais recentes para as mais antigas. */
+export async function listarPessoasExcluidas(): Promise<PessoaExcluida[]> {
+  const { results } = await db()
+    .prepare('SELECT id, nome, tipo, excluida_em, excluida_por FROM integrantes WHERE excluida_em IS NOT NULL ORDER BY excluida_em DESC, nome')
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    nome: r.nome as string,
+    tipo: r.tipo as 'pessoa' | 'bicho',
+    excluidaEm: r.excluida_em as string,
+    excluidaPor: (r.excluida_por as string | null) ?? null,
+  }));
+}
+
+/** O nome de quem está na lixeira, para o relato que ela escreveu continuar assinado. */
+export async function nomesDasPessoasExcluidas(): Promise<Map<string, string>> {
+  return new Map((await listarPessoasExcluidas()).map((p) => [p.id, p.nome]));
+}
+
+/**
+ * Manda a pessoa para a lixeira. O pedido aberto para ela fica resolvido como excluída. Devolve false
+ * quando ela já estava na lixeira ou não existe.
+ */
+export async function excluirPessoa(id: string, usuario: Usuario): Promise<boolean> {
+  const [feito] = await db().batch([
+    db().prepare(`UPDATE integrantes SET excluida_em = datetime('now'), excluida_por = ? WHERE id = ? AND excluida_em IS NULL`).bind(usuario.pessoa, id),
+    db()
+      .prepare(`UPDATE pedidos_de_exclusao SET resolvido_em = datetime('now'), resolvido_por = ?, resposta = 'excluida' WHERE pessoa_id = ? AND resolvido_em IS NULL`)
+      .bind(usuario.pessoa, id),
+  ]);
+  return Boolean(feito.meta?.changes);
+}
+
+/** Tira a pessoa da lixeira: ela volta com tudo, os laços, "quem estava" e os relatos. */
+export async function restaurarPessoa(id: string): Promise<boolean> {
+  const feito = await db().prepare('UPDATE integrantes SET excluida_em = NULL, excluida_por = NULL WHERE id = ? AND excluida_em IS NOT NULL').bind(id).run();
+  return Boolean(feito.meta?.changes);
+}
+
+export interface PedidoDeExclusao {
+  id: number;
+  pessoa: string;
+  pedidoPor: string;
+  motivo: string | null;
+  criadoEm: string;
+}
+
+/** Os pedidos abertos, dos mais antigos aos mais novos. Só de quem ainda não está na lixeira. */
+export async function listarPedidosDeExclusao(): Promise<PedidoDeExclusao[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT p.id, p.pessoa_id, p.pedido_por, p.motivo, p.criado_em FROM pedidos_de_exclusao p
+       JOIN integrantes i ON i.id = p.pessoa_id AND i.excluida_em IS NULL
+       WHERE p.resolvido_em IS NULL ORDER BY p.criado_em, p.id`,
+    )
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({
+    id: r.id as number,
+    pessoa: r.pessoa_id as string,
+    pedidoPor: r.pedido_por as string,
+    motivo: (r.motivo as string | null) ?? null,
+    criadoEm: r.criado_em as string,
+  }));
+}
+
+/** O pedido aberto para essa pessoa, se houver. */
+export async function pedidoAbertoDeExclusao(pessoa: string): Promise<PedidoDeExclusao | undefined> {
+  return (await listarPedidosDeExclusao()).find((p) => p.pessoa === pessoa);
+}
+
+/** Pede a exclusão. Um pedido aberto por pessoa: o segundo não entra. Devolve se entrou. */
+export async function pedirExclusao(pessoa: string, motivo: string | null, usuario: Usuario): Promise<boolean> {
+  const feito = await db()
+    .prepare('INSERT OR IGNORE INTO pedidos_de_exclusao (pessoa_id, pedido_por, motivo) VALUES (?, ?, ?)')
+    .bind(pessoa, usuario.pessoa, motivo || null)
+    .run();
+  return Boolean(feito.meta?.changes);
+}
+
+/** Recusa o pedido aberto: a pessoa continua no acervo. */
+export async function recusarPedidoDeExclusao(id: number, usuario: Usuario): Promise<boolean> {
+  const feito = await db()
+    .prepare(`UPDATE pedidos_de_exclusao SET resolvido_em = datetime('now'), resolvido_por = ?, resposta = 'recusado' WHERE id = ? AND resolvido_em IS NULL`)
+    .bind(usuario.pessoa, id)
+    .run();
+  return Boolean(feito.meta?.changes);
+}
+
+
+// --- O relato como conversa (migração 103-mensagens-do-relato; regras em src/lib/conversa.ts) ---
+
+function lerMensagem(r: Record<string, unknown>): Mensagem & { id: number; relatoId: number; enviadaEm: string } {
+  return {
+    id: r.id as number,
+    relatoId: r.relato_id as number,
+    tipo: r.tipo as Mensagem['tipo'],
+    ...(r.texto != null ? { texto: r.texto as string } : {}),
+    ...(r.audio_id != null ? { audioId: r.audio_id as number } : {}),
+    ...(r.foto_id != null ? { fotoId: r.foto_id as number } : {}),
+    citaId: (r.cita_id as number | null) ?? null,
+    enviadaEm: r.enviada_em as string,
+  };
+}
+
+/** As mensagens gravadas de cada relato, na ordem. Relato sem nenhuma fica de fora (vale a derivada). */
+export async function listarMensagensGravadas(relatoIds: number[]): Promise<Map<number, ReturnType<typeof lerMensagem>[]>> {
+  const mapa = new Map<number, ReturnType<typeof lerMensagem>[]>();
+  if (!relatoIds.length) return mapa;
+  const { results } = await db()
+    .prepare(`SELECT * FROM relato_mensagens WHERE relato_id IN (${relatoIds.map(() => '?').join(', ')}) ORDER BY relato_id, ordem, id`)
+    .bind(...relatoIds)
+    .all<Record<string, unknown>>();
+  for (const r of results.map(lerMensagem)) mapa.set(r.relatoId, [...(mapa.get(r.relatoId) ?? []), r]);
+  return mapa;
+}
+
+/**
+ * As mensagens que valem para cada relato (mensagensDoRelato): as gravadas, sem o áudio ou a foto que
+ * saiu, ou as derivadas do relato de antes da conversa. Só com os áudios e as fotos que ainda são dele.
+ */
+export async function listarMensagensDosRelatos(relatos: Pick<Relato, 'id' | 'texto'>[]): Promise<Map<number, Mensagem[]>> {
+  const ids = relatos.map((r) => r.id);
+  const [gravadas, audios, fotos] = await Promise.all([
+    listarMensagensGravadas(ids),
+    listarAudiosDosRelatos(ids),
+    ids.length
+      ? db()
+          .prepare(`SELECT id, relato_id FROM fotos WHERE removida_em IS NULL AND relato_id IN (${ids.map(() => '?').join(', ')}) ORDER BY memoria_id IS NULL, ordem, id`)
+          .bind(...ids)
+          .all<{ id: number; relato_id: number }>()
+      : Promise.resolve({ results: [] as { id: number; relato_id: number }[] }),
+  ]);
+  const fotosDe = new Map<number, number[]>();
+  for (const f of fotos.results as { id: number; relato_id: number }[]) fotosDe.set(f.relato_id, [...(fotosDe.get(f.relato_id) ?? []), f.id]);
+  return new Map(
+    relatos.map((r) => [r.id, mensagensDoRelato(gravadas.get(r.id) ?? [], r.texto, (audios.get(r.id) ?? []).map((a) => a.id), fotosDe.get(r.id) ?? [])]),
+  );
+}
+
+/**
+ * Grava as mensagens do relato, na ordem dada. A que tem id e é deste relato é atualizada no lugar
+ * (guarda a hora em que foi enviada e o id, para quem a cita); a nova entra com a hora de agora; a que
+ * saiu da lista é apagada. Devolve as mensagens gravadas, com os ids.
+ */
+export async function gravarMensagens(relatoId: number, mensagens: Mensagem[]): Promise<Mensagem[]> {
+  const antes = (await listarMensagensGravadas([relatoId])).get(relatoId) ?? [];
+  const deste = new Set(antes.map((m) => m.id));
+  const ficam = new Set(mensagens.filter((m) => m.id !== undefined && deste.has(m.id)).map((m) => m.id));
+  const comandos = [
+    ...antes.filter((m) => !ficam.has(m.id)).map((m) => db().prepare('DELETE FROM relato_mensagens WHERE id = ?').bind(m.id)),
+    ...mensagens.map((m, ordem) =>
+      m.id !== undefined && deste.has(m.id)
+        ? db()
+            .prepare('UPDATE relato_mensagens SET ordem = ?, tipo = ?, texto = ?, audio_id = ?, foto_id = ?, cita_id = ? WHERE id = ? AND relato_id = ?')
+            .bind(ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null, m.id, relatoId)
+        : db()
+            .prepare('INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto, audio_id, foto_id, cita_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .bind(relatoId, ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null),
+    ),
+  ];
+  if (comandos.length) await db().batch(comandos);
+  return (await listarMensagensGravadas([relatoId])).get(relatoId) ?? [];
+}
+
+/** Uma mensagem gravada, com a memória e o relato dela, para conferir uma citação. */
+export async function obterMensagem(id: number): Promise<(Mensagem & { relatoId: number; memoriaId: string; por: string; registradoPor: string; soParaNucleos: string[] | null; situacao: string }) | undefined> {
+  const r = await db()
+    .prepare(
+      `SELECT m.*, r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos, r.situacao FROM relato_mensagens m JOIN relatos r ON r.id = m.relato_id WHERE m.id = ?`,
+    )
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!r) return undefined;
+  return {
+    ...lerMensagem(r),
+    memoriaId: r.memoria_id as string,
+    por: r.por as string,
+    registradoPor: r.registrado_por as string,
+    soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) ?? null,
+    situacao: r.situacao as string,
+  };
 }
