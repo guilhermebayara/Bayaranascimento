@@ -56,9 +56,10 @@ O que nenhuma das duas mexe: quem vê o quê (a página usa as mesmas consultas 
     - **Sobre:** o texto e os dados (nasceu, famílias, de que ano a que ano aparece nas memórias).
 - Muda em relação a hoje: a linha do tempo dá lugar ao mural; as abas escondem uma parte da página de cada vez (é o preço do padrão conhecido).
 
-## Para decidir
+## A escolha (Gui, 18/11/2026)
 
-1. A ou B (ou uma mistura dita por partes).
-2. Na A: tirar a linha do tempo grande da página da pessoa está certo?
-3. Na B: a aba que abre primeiro é sempre "Memórias", ou a primeira com conteúdo, como está?
-4. "No seu círculo" na página de outra pessoa: fica, só para quem olha?
+1. **A, com um pouco mais da cor da família.** A página inteira em cor seria demais; a cor entra com medida (o retrato sobre o pastel no alto do quadro, o ponto de cada idade e o fio das citações).
+2. **Pela idade é o padrão, com a linha do tempo como opção.** Ficaram três formas: pela idade, linha do tempo e mural de fotos.
+3. **"No seu círculo" fica** na página de outra pessoa, só para quem olha.
+
+A construção está na regra de `docs/decisoes.md` e `docs/visual.md`, "Página da pessoa". As rotas das propostas e a faixa que trocava entre elas saíram do site; ficam as capturas desta pasta.

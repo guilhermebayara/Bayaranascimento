@@ -31,7 +31,7 @@ Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso 
 | Linha do tempo | O ano grande como divisória e as fotos-chave como polaroids | A ficha de cada memória em uma linha mono |
 | Explorar, mural e modo TV | No mural, só as fotos, como a caixa aberta na mesa. No modo TV, uma memória por vez, grande, para ver junto | Filtros e ordem recolhidos numa linha |
 | Memória | A foto e o verso: a imagem grande, a ficha como carimbo, os relatos como conversa, cada pessoa uma voz | Corrigir, histórico |
-| Pessoa | O retrato e a voz: retrato recortado, parentesco grande ("sua avó"), os áudios dela | A lista de laços |
+| Pessoa | O verbete: o parentesco grande ("sua avó"), uma frase que diz quem ela é e o quadro ao lado com o retrato e a família de perto; depois, a vida dela em memórias, pela idade | A lista de laços, no fim |
 | Capítulo | Abertura de capítulo de livro: título, período, marcos numerados | Edição |
 | Laço | A história dos dois, contada como um capítulo: os dois retratos lado a lado, o nome dos dois, as fases e os marcos numerados | O que um é do outro e a conta das memórias |
 | Árvore | As famílias em cor, cartões como etiquetas com nome e parentesco | Camadas e controles |
@@ -163,7 +163,7 @@ O CSS está em `src/visual/` e os componentes em `src/components/visual/`. A pá
 | O tipo de momento | `Etiqueta.astro` | `<Etiqueta tipo={id} rotulo={nome} />` |
 | Um período ou uma data aproximada | `Pilula.astro` | `<Pilula>2018–2020</Pilula>` ("2018-2020", "por volta de 1994") |
 | A ficha (quando, onde, tipo, capítulos) | `Ficha.astro` e `Dado.astro` (classe `verso`) | `<Ficha><Dado rotulo="Quando">…</Dado></Ficha>` |
-| A foto de uma pessoa | `Retrato.astro` | `nome`, `foto` (o endereço, de `enderecoDoRetrato`, ou nada), `familia` (de `corDaPessoa`). `falecido` para quem já faleceu (tom suave, que acende). `redondo` só para o retrato de quem está usando o site: o topo, o Início e o centro do círculo |
+| A foto de uma pessoa | `Retrato.astro` | `nome`, `foto` (o endereço, de `enderecoDoRetrato`, ou nada), `familia` (de `corDaPessoa`). `falecido` para quem já faleceu (tom suave, que acende). `redondo` para o retrato de quem está usando o site (o topo e o Início) e para todo mundo no círculo |
 | Uma pessoa com nome e parentesco | classes `pessoa` e `pessoa__nome` | Um link com o `Retrato`, o nome e o parentesco em `ficha suave` (ver "Quem estava" em `src/pages/memorias/[id].astro`) |
 | Uma pessoa numa lista de laços | `Gente.astro` | `href`, `nome`, `foto`, `familia`, `laco` ("sua avó") e `detalhe`, em mono. Para listas de pessoas e de laços |
 | Um relato, na memória | `conversa/Voz.astro` | O relato como conversa: o retrato e o nome à mão no começo, as mensagens (`conversa/Mensagem.astro`) e, pelos slots, o selo de rascunho, a linha para liberar, as reações e o menu. Com `minha`, à direita, no pastel da família. `Bilhete.astro` continua no cartão de "relato novo" do Início |
@@ -187,7 +187,7 @@ O CSS está em `src/visual/` e os componentes em `src/components/visual/`. A pá
 
 Classes de texto, em `base.css`: `t-capa`, `t-1`, `t-2`, `t-3` e `t-abertura` para a serifa; `ficha` e `rotulo` para a mono; `mao` para a manuscrita; `suave` para o texto de apoio; `so-leitor` para o que só o leitor de tela lê; `miolo` para a margem da página e `grade` para as colunas.
 
-**Medidas das peças.** A foto revelada tem a moldura branca no formato da Instax mini: foto em retrato de 46 por 62, cantos arredondados e margem de baixo bem mais larga, com a legenda "lugar (ano)" em mono. Sombra suave e quente. Inclinação entre poucos valores (−3°, −1,5°, 1°, 2,5°), escolhida pelo id da memória para ficar sempre igual. Atrás, uma forma de cor (círculo, arco ou cápsula, também pelo id) na cor do tipo de momento. O banco não guarda a orientação da foto: toda foto-chave é recortada em retrato. Com mais de uma foto, as outras aparecem atrás da principal, levemente giradas (o monte). A etiqueta-balão é uma pílula com um canto reto, na cor do tipo. O retrato é de foto de álbum (decisão do Gui, 18/11/2026): um retângulo reto, 4 por 5, sem inclinação, com cantoneiras nos quatro cantos, na tinta do site, que passam um pouco da foto e crescem com o retrato (de 7 px no de lista a 32 px no grande). O arco saiu: qualquer forma alta de topo redondo lembrava lápide em quem faleceu. Quem não tem foto aparece com as iniciais sobre a cor da família. As formas de cor atrás das fotos reveladas (círculo, arco, cápsula) continuam.
+**Medidas das peças.** A foto revelada tem a moldura branca no formato da Instax mini: foto em retrato de 46 por 62, cantos arredondados e margem de baixo bem mais larga, com a legenda "lugar (ano)" em mono. Sombra suave e quente. Inclinação entre poucos valores (−3°, −1,5°, 1°, 2,5°), escolhida pelo id da memória para ficar sempre igual. Atrás, uma forma de cor (círculo, arco ou cápsula, também pelo id) na cor do tipo de momento. O banco não guarda a orientação da foto: toda foto-chave é recortada em retrato. Com mais de uma foto, as outras aparecem atrás da principal, levemente giradas (o monte). A etiqueta-balão é uma pílula com um canto reto, na cor do tipo. O retrato é de foto de álbum (decisão do Gui, 18/11/2026): um retângulo reto, 4 por 5, sem inclinação, com cantoneiras nos quatro cantos, na tinta do site, que passam um pouco da foto e crescem com o retrato (de 7 px no de lista a 32 px no grande). O arco saiu: qualquer forma alta de topo redondo lembrava lápide em quem faleceu. No círculo, todos os retratos são redondos (decisão do Gui depois da sessão J). Quem não tem foto aparece com as iniciais sobre a cor da família. As formas de cor atrás das fotos reveladas (círculo, arco, cápsula) continuam.
 
 ### Os tokens e quando usar cada um
 
@@ -485,11 +485,14 @@ A ação principal fica também no alto, como atalho, para quem chega querendo c
 
 ### Página da pessoa
 
-`telas/pessoa.css`. O retrato e a voz.
+`telas/pessoa.css`, `src/components/pessoa/VidaPorIdade.astro`. O verbete (proposta A do conceito da sessão L, escolha do Gui de 18/11/2026; o estudo e as capturas das duas propostas em `docs/visual/conceito-pessoa-do-zero/`). O que aparece e para quem está em `docs/decisoes.md`, "Página da pessoa".
 
-- A abertura é um bloco na cor da família da pessoa, com o retrato de álbum, o carimbo (espécie, famílias e o nascimento, sem rótulo), o parentesco de quem olha como a linha maior ("sua avó", "seu amigo-irmão") e o nome logo abaixo. Na própria página e na de quem não tem laço com quem olha, o nome é a linha grande. O retrato ocupa três das quatro colunas no celular e fica na margem da página em toda largura.
-- Seguem "Sobre Fulano", "A voz de Fulano" (cada áudio com o título da memória e o bloco de áudio), "Família e laços", quieta, em colunas, com a peça Gente, e "Memórias com Fulano".
-- **"Forma de ver"** das memórias: linha do tempo (o padrão), mural e lista, no endereço (`?ver=mural`), sem script pelo link (que volta a `#memorias-com`) e, com script, pela troca sem recarregar. O mural usa o tamanho de fotos guardado no aparelho e não tem o controle "Fotos". O controle só aparece para quem tem mais de uma memória.
+- **O alto, no computador:** a abertura e "Nas palavras de" nas colunas 1 a 7, e o quadro nas colunas 9 a 12, ao lado. Pela idade, a vida em memórias continua na coluna da esquerda, embaixo das palavras, para o quadro não deixar vão; a linha do tempo e o mural usam a largura toda, embaixo do quadro (a regra é `:has()` na região que troca). Na tela grande, a mesma divisão, com a lista pela idade em duas colunas. **No celular**, uma coluna: abertura, quadro, palavras, vida, laços.
+- **A abertura:** o carimbo, o parentesco em `--t-titulo-1` (ou o nome, quando não há parentesco), o nome em `t-2`, e a frase de abertura em serifa, no tamanho da abertura. As ações logo abaixo, com o botão cheio só na memória nova.
+- **A cor da família, com medida** (pedido do Gui ao escolher: a página inteira em cor seria demais): o retrato pousa num bloco pastel no alto do quadro, como a página de um álbum, e o resto do quadro é um cartão branco com a sombra do bilhete; cada idade abre com um ponto na cor viva e um fio no tom do meio; os trechos dos relatos têm o fio da cor viva à esquerda.
+- **"Na árvore":** retratos pequenos (3,25rem), com o nome embaixo, em níveis (pais, casal, irmãos, filhos) que ficam lado a lado quando cabem.
+- **A vida pela idade:** cada idade é um título `t-3` com os anos e a conta em mono colados nele; cada memória é uma linha com a foto revelada pequena e reta (sem monte), a data e a idade em mono, o título em serifa e o lugar. A troca de forma de ver é a do Explorar (`explorar-troca.ts`), e cada linha tem `data-chave` para se mover no lugar.
+- **"Família e laços"**, no fim, em colunas (duas a partir de 40rem, três no computador, quatro na tela grande), com a peça Gente e "Ver o laço" embaixo do casal e dos laços do coração.
 
 ### Pessoas
 

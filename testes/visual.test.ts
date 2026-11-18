@@ -1,4 +1,5 @@
 // O visual novo (docs/visual.md): as funções puras das telas do conceito e as regras do CSS novo.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   CORES,
@@ -225,7 +226,7 @@ describe('conceito', () => {
   });
 
   it('a página da pessoa só mostra retrato de quem a pessoa vê', () => {
-    const pessoa = tela('pessoas/[id]/index.astro');
+    const pessoa = tela('pessoas/[id]/index.astro') + readFileSync('src/lib/servidor/pagina-da-pessoa.ts', 'utf-8');
     expect(pessoa).toMatch(/retratoDe = \(id: string\) => \(achar\(id\)\?\.retrato && !naoVe\.has\(id\)/);
     expect(pessoa).toContain('listarMemorias(usuario, { integrante: pessoa.id })');
   });
@@ -734,8 +735,9 @@ describe('ajustes: lista, formas de ver da pessoa, quem aparece e o link do tít
     // Um link de âncora na mesma página não é uma troca
     expect(troca).toMatch(/if \(endereco\.pathname \+ endereco\.search === ondeEstava\) return;/);
     const pessoa = fonte('pages/pessoas/[id]/index.astro');
-    expect(pessoa).toMatch(/<div data-explorar>/);
-    expect(pessoa).toMatch(/FORMAS_DA_PESSOA\.map\(\(f\) => \(\s*<a href=\{`\$\{enderecoDaPessoa\(pessoa\.id, f\)\}#memorias-com`\} data-opcao=\{f\}/);
+    // A página da pessoa (sessão L): a região da vida em memórias troca no lugar, pela idade, na linha do tempo e no mural
+    expect(pessoa).toMatch(/<section class:list=\{\['verbete__vida', `verbete__vida--\$\{forma\}`\]\} aria-labelledby="memorias-com" data-explorar>/);
+    expect(pessoa).toMatch(/FORMAS_DA_VIDA\.map\(\(f\) => \(\s*<a href=\{`\$\{enderecoDaVida\(pessoa\.id, f\)\}#memorias-com`\} data-opcao=\{f\}/);
     expect(pessoa).toMatch(/import \{ ligarTroca \} from '\.\.\/\.\.\/\.\.\/lib\/cliente\/explorar-troca';\s*ligarTroca\(\);/);
   });
 

@@ -85,8 +85,8 @@ describe('parentesco pela fase', () => {
     expect(exDoAmigo(thiago, 'ela')).toBe('ex-namorada');
     expect(exDoAmigo(amigoDepoisDoCasamento, 'ele')).toBe('ex-marido');
     expect(exDoAmigo(amigoDepoisDoCasamento, null)).toBe('ex-marido ou ex-esposa');
-    const pagina = ler('src/pages/pessoas/[id]/index.astro');
-    expect(pagina).toContain('detalhe: viraramAmigos(c.casal) ? exDoAmigo(c.casal, achar(c.outro)?.tratamento ?? null) : historiaDoCasal(c.casal),');
+    const pagina = (ler('src/pages/pessoas/[id]/index.astro') + ler('src/lib/servidor/pagina-da-pessoa.ts'));
+    expect(pagina).toContain('viraramAmigos(c.casal) ? exDoAmigo(c.casal, achar(c.outro)?.tratamento ?? null) : historiaDoCasal(c.casal),');
   });
   it('a situação em editar e na página do laço', () => {
     expect(situacaoDoCasal(casados)).toBe('juntos');

@@ -39,7 +39,7 @@ describe('como você chama, só seu', () => {
     expect(ler('src/lib/servidor/repositorio.ts')).toContain("['apelidos_meus', 'dono_id', 'pessoa_id'],");
   });
   it('dá para dar o apelido na página da pessoa e chegar lá pela ficha da árvore', () => {
-    const pagina = ler('src/pages/pessoas/[id]/index.astro');
+    const pagina = (ler('src/pages/pessoas/[id]/index.astro') + ler('src/lib/servidor/pagina-da-pessoa.ts'));
     expect(pagina).toContain('<details class="como-chama" id="como-voce-chama">');
     expect(pagina).toContain('action="/api/apelidos"');
     expect(ler('src/lib/cliente/arvore.ts')).toContain('href: `/pessoas/${p.id}#como-voce-chama`');
@@ -111,15 +111,15 @@ describe('apelidos na ficha', () => {
 // apelido da família ("Como você chama Cidinha?"), e o título da página não trazia o apelido como na
 // lista de Pessoas. A pergunta usa o nome da ficha; o título é "Nome (apelido)".
 describe('a página da pessoa com apelido', () => {
-  const pagina = ler('src/pages/pessoas/[id]/index.astro');
+  const pagina = (ler('src/pages/pessoas/[id]/index.astro') + ler('src/lib/servidor/pagina-da-pessoa.ts'));
   it('a pergunta usa o nome da ficha, e "Voltar a" usa o de sempre', () => {
     expect(pagina).toContain('`Como você chama ${pessoa.nome}?`');
     expect(pagina).toContain('<span class="so-leitor">Como você chama {pessoa.nome}?</span>');
     expect(pagina).not.toContain('Como você chama ${nomeDaFamilia}');
-    expect(pagina).toContain('Voltar a {nomeDaFamilia}');
+    expect(pagina).toContain('Voltar a {p.nomeDaFamilia}');
   });
   it('o título mostra "Nome (apelido)", com o apelido que quem olha vê', () => {
-    expect(pagina).toContain('const apelidoNoTitulo = apelidoAoLado(pessoa.nome, pessoa.apelido);');
-    expect(pagina).toMatch(/\{pessoa\.nome\}\s*\{apelidoNoTitulo && <span class="quem-e__apelido"> \(\{apelidoNoTitulo\}\)<\/span>\}\s*<\/h1>/);
+    expect(pagina).toContain('apelidoNoTitulo: apelidoAoLado(pessoa.nome, pessoa.apelido),');
+    expect(pagina).toMatch(/\{pessoa\.nome\}\s*\{p\.apelidoNoTitulo && <span class="verbete__apelido"> \(\{p\.apelidoNoTitulo\}\)<\/span>\}\s*<\/h1>/);
   });
 });

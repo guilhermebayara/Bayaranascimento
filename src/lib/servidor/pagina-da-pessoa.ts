@@ -1,8 +1,8 @@
-// O que a página da pessoa mostra, montado uma vez para as duas propostas do conceito da sessão L
-// (docs/visual/conceito-pessoa-do-zero/leia-me.md). Repete as regras da página de hoje
-// (src/pages/pessoas/[id]/index.astro): quem vê o quê, o parentesco de quem olha, os laços e as
-// memórias. Acrescenta o que as propostas pedem: os relatos que a pessoa contou, o lugar dela no
-// círculo de quem olha (só ele vê) e a idade em cada memória.
+// O que a página da pessoa mostra (proposta A do conceito da sessão L, "o verbete", escolha do Gui de
+// 18/11/2026; docs/visual/conceito-pessoa-do-zero/leia-me.md): quem vê o quê, o parentesco de quem
+// olha, a família de perto, os laços, os relatos e os áudios que a pessoa contou, o lugar dela no
+// círculo de quem olha (só ele vê) e as memórias com ela. As regras sem banco estão em
+// src/lib/pagina-da-pessoa.ts.
 import { duracaoEmTexto } from '../audios';
 import { nomeDaProximidade } from '../circulo';
 import { formatarData, jaFaleceu, vidaSemRotulo } from '../datas';
@@ -11,6 +11,7 @@ import { enderecoDoLaco } from '../pagina-do-laco';
 import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../parentesco';
 import { enderecoDoRetrato } from '../retratos';
 import { apelidoAoLado } from '../ordem-das-pessoas';
+import { idadeNoAno } from '../pagina-da-pessoa';
 import { corDaPessoa, corDoNucleo, trechoDoRelato } from '../visual';
 import { pessoasComAcesso } from './acesso';
 import { proximidadesDoCirculo } from './circulo';
@@ -27,6 +28,7 @@ import {
   listarMemorias,
   listarNucleos,
   listarRelatosDe,
+  listarMeusApelidos,
   pessoasQueONaoVe,
   type Memoria,
 } from './repositorio';
@@ -46,9 +48,9 @@ export interface Ligada {
   enderecoDoLaco: string;
 }
 
-export async function montarPaginaDaPessoa(usuario: Usuario, id: string, mostrarDatas: boolean) {
+export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, mostrarDatas: boolean) {
   const integrantes = await listarIntegrantesQueVe(usuario);
-  const pessoa = integrantes.find((i) => i.id === id);
+  const pessoa = integrantes.find((i) => i.id === pessoaId);
   if (!pessoa) return null;
 
   const nucleos = await listarNucleos();
@@ -64,22 +66,22 @@ export async function montarPaginaDaPessoa(usuario: Usuario, id: string, mostrar
   const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
   const filiacoes = await listarFiliacoes();
   const familia = new Familia(filiacoes, await listarCasais(usuario), tratamentos);
-  const adocaoCom = (outro: string) => {
-    const f = filiacoes.find((x) => x.qualidade === 'adotiva' && ((x.filho === pessoa.id && x.responsavel === outro) || (x.responsavel === pessoa.id && x.filho === outro)));
+  const adocaoCom = (id: string) => {
+    const f = filiacoes.find((x) => x.qualidade === 'adotiva' && ((x.filho === pessoa.id && x.responsavel === id) || (x.responsavel === pessoa.id && x.filho === id)));
     return f?.adocao ? `adoção em ${formatarData({ ano: f.adocao.ano, mes: f.adocao.mes, dia: f.adocao.dia, aproximada: false })}` : undefined;
   };
-  const achar = (x: string) => integrantes.find((i) => i.id === x);
-  const nome = (x: string) => achar(x)?.apelido ?? achar(x)?.nome ?? x;
+  const achar = (id: string) => integrantes.find((i) => i.id === id);
+  const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
   const chamar = pessoa.apelido ?? pessoa.nome;
   const naoVe = await pessoasQueONaoVe(usuario);
-  const retratoDe = (x: string) => (achar(x)?.retrato && !naoVe.has(x) ? enderecoDoRetrato(achar(x)!.retrato!) : null);
-  const familiaDe = (x: string) => corDaPessoa(achar(x) ? familiasDe(achar(x)!) : [], ordemDosNucleos);
-  const faleceu = (x: string) => Boolean(achar(x) && jaFaleceu(achar(x)!));
+  const retratoDe = (id: string) => (achar(id)?.retrato && !naoVe.has(id) ? enderecoDoRetrato(achar(id)!.retrato!) : null);
+  const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
+  const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
   const ehMinha = pessoa.id === usuario.pessoa;
-  const papel = (x: string) => {
-    const relacao = familia.relacao(pessoa.id, x);
+  const papel = (id: string) => {
+    const relacao = familia.relacao(pessoa.id, id);
     if (!relacao) return undefined;
-    return ehMinha ? possessivo(relacao, achar(x)?.tratamento ?? null) : relacao.texto;
+    return ehMinha ? possessivo(relacao, achar(id)?.tratamento ?? null) : relacao.texto;
   };
   const paraVoce = ehMinha ? undefined : familia.relacao(usuario.pessoa, pessoa.id);
 
@@ -105,15 +107,15 @@ export async function montarPaginaDaPessoa(usuario: Usuario, id: string, mostrar
     (casal.visibilidade === 'privado' ? ' (só os dois veem)' : casal.visibilidade === 'nucleos' ? ' (só as famílias escolhidas veem)' : '');
   const modosDosExes = ehMinha ? await comoOsExesAparecem(usuario) : new Map<string, 'discreto' | 'fora'>();
 
-  const ligada = (x: string, laco?: string | null, detalhe?: string | null): Ligada => ({
-    id: x,
-    nome: nome(x),
-    foto: retratoDe(x),
-    familia: familiaDe(x),
+  const ligada = (id: string, laco?: string | null, detalhe?: string | null): Ligada => ({
+    id,
+    nome: nome(id),
+    foto: retratoDe(id),
+    familia: familiaDe(id),
     laco,
     detalhe,
-    falecido: faleceu(x),
-    enderecoDoLaco: enderecoDoLaco(pessoa.id, x),
+    falecido: faleceu(id),
+    enderecoDoLaco: enderecoDoLaco(pessoa.id, id),
   });
 
   const grupos: { chave: string; titulo: string; linhas: Ligada[] }[] = [
@@ -167,7 +169,7 @@ export async function montarPaginaDaPessoa(usuario: Usuario, id: string, mostrar
   const circulo = noCirculo ? { faixa: nomeDaProximidade(noCirculo.valor), valor: noCirculo.valor } : null;
 
   // A idade da pessoa em cada memória, quando o ano de nascimento é conhecido
-  const idadeEm = (ano: number) => (pessoa.nascimentoAno && ano >= pessoa.nascimentoAno ? ano - pessoa.nascimentoAno : null);
+  const idadeEm = (ano: number) => idadeNoAno(pessoa.nascimentoAno, ano);
   const anos = publicadas.map((m) => m.ano);
   const periodo = anos.length ? { de: Math.min(...anos), ate: Math.max(...anos) } : null;
 
@@ -177,6 +179,10 @@ export async function montarPaginaDaPessoa(usuario: Usuario, id: string, mostrar
     nucleos,
     chamar,
     apelidoNoTitulo: apelidoAoLado(pessoa.nome, pessoa.apelido),
+    // "Como você chama" (src/lib/apelidos.ts): o apelido que quem olha deu, que só ele vê. "Voltar a"
+    // usa o nome de sempre da família
+    meuApelido: (await listarMeusApelidos(usuario.pessoa)).get(pessoa.id),
+    nomeDaFamilia: (pessoa.apelidoDaFamilia !== undefined ? pessoa.apelidoDaFamilia : null) ?? pessoa.nome,
     ehMinha,
     comQuem: ehMinha ? 'você' : chamar,
     especie,

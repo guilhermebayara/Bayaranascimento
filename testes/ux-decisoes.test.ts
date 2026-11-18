@@ -96,11 +96,11 @@ describe('ação principal', () => {
   it('fica no alto da pessoa e do capítulo', () => {
     // Antes da família e dos capítulos de dentro
     // Na pessoa (visual novo): depois do nome, dentro da abertura, antes da voz e dos laços
-    const pessoa = fonte('src/pages/pessoas/[id]/index.astro');
-    const acoesDaPessoa = pessoa.indexOf('quem-e__acoes');
+    const pessoa = (fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'));
+    const acoesDaPessoa = pessoa.indexOf('verbete__acoes');
     expect(acoesDaPessoa).toBeGreaterThan(pessoa.indexOf('<h1'));
-    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="lacos miolo"'));
-    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="voz miolo grade"'));
+    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="verbete__lacos miolo"'));
+    expect(acoesDaPessoa).toBeLessThan(pessoa.indexOf('class="verbete__palavras"'));
     // No capítulo (visual novo): depois do título, dentro da capa, antes dos capítulos de dentro e dos marcos
     const capitulo = fonte('src/pages/capitulos/[id]/index.astro');
     const acoesDoCapitulo = capitulo.indexOf('capitulo__acoes');
@@ -118,7 +118,7 @@ describe('textos do parentesco', () => {
   });
 
   it('na própria página, a família aparece com o possessivo, como os laços do coração', () => {
-    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/ehMinha \? possessivo\(relacao/);
+    expect((fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'))).toMatch(/ehMinha \? possessivo\(relacao/);
   });
 });
 
@@ -194,7 +194,7 @@ describe('etapas da memória', () => {
   });
 
   it('pessoa e capítulo têm atalho para uma memória nova já preenchida', () => {
-    expect(fonte('src/pages/pessoas/[id]/index.astro')).toContain('/nova?com=');
+    expect((fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'))).toContain('/nova?com=');
     expect(fonte('src/pages/capitulos/[id]/index.astro')).toContain('/nova?capitulo=');
   });
 });
@@ -335,7 +335,7 @@ describe('linha do tempo', () => {
     // No visual novo, a linha do tempo é a do Explorar (explorar/Linha.astro), que recebe as memórias
     // já na ordem: a pessoa e o tema entregam das mais recentes para as mais antigas, e os marcos do
     // capítulo seguem a mesma ordem
-    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/listarMemorias\(usuario, \{ integrante: pessoa\.id \}\)\)\.reverse\(\)/);
+    expect((fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'))).toMatch(/listarMemorias\(usuario, \{ integrante: pessoa\.id \}\)\)\.reverse\(\)/);
     expect(fonte('src/pages/temas/[id].astro')).toMatch(/listarMemorias\(usuario, \{ tema: tema\.id \}\)\)\.reverse\(\)/);
     expect(fonte('src/pages/capitulos/[id]/index.astro')).toContain('maisRecentesPrimeiro(memorias)');
   });
