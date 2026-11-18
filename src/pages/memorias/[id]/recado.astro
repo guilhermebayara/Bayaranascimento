@@ -1,0 +1,52 @@
+---
+// Um recado sobre um relato (onda 2, decisão do Gui de 17/11/2026): para quem escreveu ou registrou o
+// relato, que continua como está. É uma ação à parte da sugestão de correção dos dados: parte do menu do
+// relato ("Deixar um recado para Fulano") e chega aqui com o relato escolhido (observação do Gui de
+// 18/11/2026, depois da sessão G: o recado vinha logo abaixo do botão de enviar a sugestão). Regras em
+// src/lib/sugestoes.ts e permissoes.ts; a rota é /api/sugestoes.
+import Pagina from '../../../components/formularios/Pagina.astro';
+import { formatarData } from '../../../lib/datas';
+import { trechoDoRelato } from '../../../lib/visual';
+import { veORelato } from '../../../lib/servidor/permissoes';
+import { listarIntegrantesQueVe, listarRelatos, obterMemoria, pessoasQueONaoVe } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
+if (!memoria || memoria.situacao !== 'publicada') return new Response('Memória não encontrada', { status: 404 });
+const [visiveis, naoVe] = await Promise.all([listarIntegrantesQueVe(usuario), pessoasQueONaoVe(usuario)]);
+const nome = (id: string) => visiveis.find((i) => i.id === id)?.apelido ?? visiveis.find((i) => i.id === id)?.nome ?? id;
+// Só um relato publicado de outra pessoa, que quem olha vê. Sem ele, o mesmo que um relato que não existe.
+const relato = (await listarRelatos(usuario, memoria.id)).find(
+  (r) => r.id === Number(Astro.url.searchParams.get('relato')) && r.situacao === 'publicada' && r.registradoPor !== usuario.pessoa && veORelato(r, usuario, naoVe),
+);
+if (!relato) return new Response('Relato não encontrado', { status: 404 });
+const deQuem = relato.por === relato.registradoPor ? nome(relato.por) : `${nome(relato.por)}, registrado por ${nome(relato.registradoPor)}`;
+const trecho = relato.texto.trim() ? trechoDoRelato(relato.texto) : '';
+---
+
+<Pagina titulo={`Recado para ${nome(relato.registradoPor)}`} aba={`Recado sobre um relato em ${memoria.titulo}`} rotulo="Memória" nucleos={memoria.nucleos} secao="explorar">
+  <Fragment slot="abertura">
+    <p>
+      <a href={`/memorias/${memoria.id}#relato-${relato.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}{memoria.lugar && `, em ${memoria.lugar}`}.
+    </p>
+    <p>O recado vai só para {nome(relato.registradoPor)}. O relato continua como está.</p>
+  </Fragment>
+
+  <section class="painel" id="recado">
+    <h2>Sobre o relato de {deQuem}</h2>
+    {trecho && <blockquote class="citacao-do-relato">“{trecho}”</blockquote>}
+    <form class="formulario" method="post" action="/api/sugestoes">
+      <input type="hidden" name="acao" value="recado" />
+      <input type="hidden" name="memoria" value={memoria.id} />
+      <input type="hidden" name="relato" value={relato.id} />
+      <label class="campo">
+        <span>Recado</span>
+        <textarea name="texto" rows="4" maxlength="2000" required placeholder="Ex.: acho que foi em 1998"></textarea>
+      </label>
+      <div class="acoes">
+        <button class="botao" type="submit">Enviar o recado</button>
+        <a class="acao acao--quieta" href={`/memorias/${memoria.id}#relato-${relato.id}`}>Voltar para a memória</a>
+      </div>
+    </form>
+  </section>
+</Pagina>

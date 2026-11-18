@@ -2554,3 +2554,15 @@
   display: grid;
   gap: var(--e-4);
 }
+
+/* O recado sobre um relato (recado.astro): o começo do relato, para quem escreve saber do que fala */
+.pagina-de-formulario .citacao-do-relato {
+  margin-block: var(--e-2) var(--e-5);
+  padding-left: var(--e-4);
+  border-left: var(--traco) solid var(--fio);
+  color: var(--tinta-suave);
+  font-family: var(--serifa);
+  font-size: var(--t-leitura);
+  font-variation-settings: var(--serifa-ajustes);
+  line-height: 1.35;
+}

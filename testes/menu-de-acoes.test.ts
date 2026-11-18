@@ -38,10 +38,20 @@ describe('a memória, o relato e a foto', () => {
     expect(menu).toContain('Compartilhar como imagem');
     expect(menu).toContain('Sugerir uma correção');
   });
-  it('o recado ao autor do relato sai do menu do relato e chega ao formulário com o relato escolhido', () => {
-    expect(pagina).toContain('/sugerir?relato=${relato.id}#recado');
-    expect(sugerir).toContain('<section class="painel" id="recado">');
-    expect(sugerir).toContain("Astro.url.searchParams.get('relato')");
+  it('o recado ao autor do relato sai do menu do relato e chega à página dele, com o relato escolhido', () => {
+    const recado = readFileSync('src/pages/memorias/[id]/recado.astro', 'utf-8');
+    expect(pagina).toContain('/recado?relato=${relato.id}');
+    expect(recado).toContain("Astro.url.searchParams.get('relato')");
+    expect(recado).toContain('<input type="hidden" name="relato" value={relato.id} />');
+    // Sem um relato que a pessoa vê e não registrou, a página é a de um relato que não existe
+    expect(recado).toMatch(/r\.situacao === 'publicada' && r\.registradoPor !== usuario\.pessoa && veORelato\(r, usuario, naoVe\)/);
+    expect(recado).toContain("if (!relato) return new Response('Relato não encontrado', { status: 404 });");
+  });
+  it('a sugestão de correção é só dos dados da memória: o recado é outra ação, que parte do relato (observação do Gui, 18/11/2026)', () => {
+    expect(sugerir).not.toContain('id="recado"');
+    expect(sugerir).not.toContain('acao" value="recado"');
+    expect(sugerir).not.toContain('listarRelatos');
+    expect(pagina).not.toContain('/sugerir?relato=');
   });
 });
 

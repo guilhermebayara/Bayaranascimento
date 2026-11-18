@@ -383,10 +383,11 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
  <div slot="pe" class="acoes-do-item">
                           <Reacoes memoria={memoria.id} alvo="relato" alvoId={relato.id} marcas={reacoes.get(`relato:${relato.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#relato-${relato.id}`} sobre={`o relato de ${nome(relato.por)}`} />
                           <MenuDeAcoes rotulo={`Mais ações do relato de ${nome(relato.por)}`}>
-                            {/* O recado ao autor do relato (sugestão de correção, tipo recado). No próprio relato, editar
-                                fica no atalho do alto e na linha do fim */}
+                            {/* O recado ao autor do relato, numa página própria, à parte da sugestão de dados da
+                                memória (observação do Gui, 18/11/2026). No próprio relato, editar fica no atalho do
+                                alto e na linha do fim */}
                             {relato.registradoPor !== usuario.pessoa && (
-                              <a class="menu-acoes__item" href={`/memorias/${memoria.id}/sugerir?relato=${relato.id}#recado`}>
+                              <a class="menu-acoes__item" href={`/memorias/${memoria.id}/recado?relato=${relato.id}`}>
                                 Deixar um recado para {nome(relato.registradoPor)}
                               </a>
                             )}
