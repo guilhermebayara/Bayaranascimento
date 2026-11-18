@@ -851,17 +851,18 @@ describe('ajustes: a árvore nítida no zoom, o cartão de bicho e a foto da lis
     const comPromocao = [...css.matchAll(/([^{}]+)\{[^{}]*will-change[^{}]*\}/g)].map((m) => m[1].trim());
     expect(comPromocao).toEqual(['.mapa__camada--em-gesto']);
     expect(css).not.toMatch(/translate3d|translateZ|backface-visibility/);
-    const cliente = fonte('lib/cliente/arvore.ts');
+    // O código de andar e aproximar mora num módulo só, o da árvore e do círculo (src/lib/cliente/mapa-que-anda.ts)
+    const cliente = fonte('lib/cliente/mapa-que-anda.ts');
     expect(cliente).toMatch(/classList\.add\('mapa__camada--em-gesto'\)/);
-    expect(cliente).toMatch(/setTimeout\(\(\) => \{\s*for \(const c of camadas\) c\.classList\.remove\('mapa__camada--em-gesto'\);/);
-    // Toda mudança da vista passa por aplicarVista, que é quem marca o gesto
-    expect(cliente).toMatch(/const aplicarVista = \(animado = false\) => \{\s*emGesto\(animado\);/);
+    expect(cliente).toMatch(/for \(const c of camadas\) c\.classList\.remove\('mapa__camada--em-gesto'\);/);
+    // Toda mudança da vista passa por aplicar, que é quem marca o gesto
+    expect(cliente).toMatch(/const aplicar = \(animado = false\) => \{\s*if \(!ativo\(\)\) return;\s*emGesto\(animado\);/);
     expect(cliente.match(/c\.style\.transform = `translate\(\$\{vista\.x\}px/g)).toHaveLength(1);
-    expect(cliente).not.toMatch(/willChange|translate3d/);
+    for (const arquivo of ['lib/cliente/arvore.ts', 'lib/cliente/circulo.ts', 'lib/cliente/mapa-que-anda.ts']) expect(fonte(arquivo)).not.toMatch(/willChange|translate3d/);
   });
 
   it('arrastar o mapa começando num cartão não vira o arrasto de link do navegador', () => {
-    expect(fonte('lib/cliente/arvore.ts')).toMatch(/mapa\.addEventListener\('dragstart', \(e\) => e\.preventDefault\(\)\);/);
+    expect(fonte('lib/cliente/mapa-que-anda.ts')).toMatch(/mapa\.addEventListener\('dragstart', \(e\) => e\.preventDefault\(\)\);/);
   });
 
   it('no cartão de bicho, o respiro acompanha o arredondado (achado do Gui, 17/11/2026)', () => {

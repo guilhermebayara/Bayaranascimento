@@ -2,6 +2,7 @@
 // reorganiza com animação quando o foco ou os filtros mudam, sem recarregar a página.
 import { MEDIDAS, cantoReto, arredondado, desenharArvore, type Desenho } from '../arvore-desenho';
 import { comLacoDeArvore, montarDesenho, type DadosDaArvore, type Estado } from '../arvore-montagem';
+import { areaLivreDoMapa, mapaQueAnda } from './mapa-que-anda';
 
 export type { DadosDaArvore };
 
@@ -83,8 +84,6 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     amigos: url.searchParams.get('amigos') === '1',
     abertos: new Set(url.searchParams.has('coracao') ? url.searchParams.get('coracao')!.split(',').filter((id) => pessoa.has(id)) : [dados.eu]),
   };
-  // Onde o mapa está: deslocamento e zoom
-  const vista = { x: 0, y: 0, zoom: 1 };
   let desenho: Desenho | undefined;
   const nos = new Map<string, HTMLAnchorElement>();
   const botoesDoCoracao = new Map<string, HTMLButtonElement>();
@@ -137,36 +136,22 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
   };
 
   // --- O mapa: mover e aproximar ---
-  // A nitidez no zoom (defeito achado pelo Gui, 17/11/2026). A camada só fica promovida
-  // (will-change, na classe mapa__camada--em-gesto) enquanto o gesto dura, para ele correr solto.
-  // Quando o gesto acaba, a classe sai e o navegador desenha tudo de novo na escala nova: texto,
-  // cartões e linhas ficam nítidos em qualquer zoom, em vez de um desenho a 100% esticado.
-  let fimDoGesto = 0;
-  const TEMPO_DO_GESTO = 180;
-  const emGesto = (animado: boolean) => {
-    for (const c of camadas) c.classList.add('mapa__camada--em-gesto');
-    clearTimeout(fimDoGesto);
-    // Com a transição ligada, espera ela acabar (tempo-medio é bem menor que isto)
-    fimDoGesto = window.setTimeout(() => {
-      for (const c of camadas) c.classList.remove('mapa__camada--em-gesto');
-    }, animado ? 600 : TEMPO_DO_GESTO);
-  };
-  const aplicarVista = (animado = false) => {
-    emGesto(animado);
-    for (const c of camadas) {
-      c.classList.toggle('mapa__camada--animada', animado);
-      c.style.transform = `translate(${vista.x}px, ${vista.y}px) scale(${vista.zoom})`;
-    }
-    zoomAtual.textContent = `${Math.round(vista.zoom * 100)}%`;
-  };
-  const zoomEm = (novo: number, px: number, py: number, animado = false) => {
-    const zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, novo));
-    // O ponto sob o cursor (ou entre os dedos) fica parado enquanto o resto cresce
-    vista.x = px - ((px - vista.x) / vista.zoom) * zoom;
-    vista.y = py - ((py - vista.y) / vista.zoom) * zoom;
-    vista.zoom = zoom;
-    aplicarVista(animado);
-  };
+  // Arrastar, a pinça, a roda, as setas e a nitidez no zoom moram em src/lib/cliente/mapa-que-anda.ts,
+  // o mesmo módulo do círculo (resposta do Gui aos PRs #53 a #62, 17/11/2026). Na árvore, as setas e
+  // o + e − andam o mapa com o foco em qualquer lugar dele, inclusive num cartão.
+  const anda = mapaQueAnda({
+    mapa,
+    camadas,
+    zoomMin: ZOOM_MIN,
+    zoomMax: ZOOM_MAX,
+    foraDoGesto: (alvo) => Boolean(alvo.closest('[data-sobre-o-mapa]')),
+    tecladoAnda: (alvo) => !alvo.closest('[data-sobre-o-mapa]'),
+    aoMudar: (v) => (zoomAtual.textContent = `${Math.round(v.zoom * 100)}%`),
+  });
+  // Onde o mapa está: deslocamento e zoom. As contas abaixo mudam a vista e chamam aplicarVista.
+  const vista = anda.vista;
+  const aplicarVista = (animado = false) => anda.aplicar(animado);
+  const zoomEm = anda.zoomEm;
   const centralizar = (id: string, animado = true) => {
     const no = desenho?.pessoas.find((p) => p.id === id);
     if (!no) return;  // quem está num ramo aberto já está à vista
@@ -205,28 +190,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
   // sobra, acima da barra de baixo.
   const quadro = raiz.querySelector<HTMLElement>('[data-quadro]');
   const barraDeBaixo = raiz.querySelector<HTMLElement>('.mapa__zoom');
-  function areaLivre() {
-    const livre = { x: 0, y: 0, w: mapa.clientWidth, h: mapa.clientHeight };
-    if (!quadro) return livre;
-    const m = mapa.getBoundingClientRect();
-    const q = quadro.getBoundingClientRect();
-    // A barra de baixo também sai da conta: a árvore inteira fica acima dela
-    const b = barraDeBaixo?.getBoundingClientRect();
-    if (b && b.height) livre.h = Math.min(livre.h, b.top - m.top);
-    if (q.width < m.width * 0.6) {
-      // Uma coluna à esquerda
-      livre.x = q.right - m.left;
-      livre.w = m.width - livre.x;
-    } else if (q.top - m.top < m.height / 2) {
-      // Uma faixa no alto. Aberta por cima de quase tudo, ela não conta: a árvore fica onde está.
-      const pe = q.bottom - m.top;
-      if (livre.h - pe > m.height * 0.4) {
-        livre.y = pe;
-        livre.h -= pe;
-      }
-    }
-    return livre;
-  }
+  const areaLivre = () => areaLivreDoMapa(mapa, quadro, barraDeBaixo);
   const verTudo = (animado = true) => {
     if (!desenho) return;
     const livre = areaLivre();
@@ -627,96 +591,14 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
   });
   controles.addEventListener('submit', (e) => e.preventDefault());
 
-  // Arrastar move o mapa (mouse ou dedo). Dois dedos aproximam e afastam.
-  const dedos = new Map<number, { x: number; y: number }>();
-  let arrasto: { x: number; y: number; vx: number; vy: number; andou: boolean } | undefined;
-  let pinca: { distancia: number; zoom: number } | undefined;
-  let fimDoArrasto = 0;
-  const ponto = (e: { clientX: number; clientY: number }) => {
-    const caixa = mapa.getBoundingClientRect();
-    return { x: e.clientX - caixa.left, y: e.clientY - caixa.top };
-  };
-  mapa.addEventListener('pointerdown', (e) => {
-    if ((e.target as HTMLElement).closest('[data-sobre-o-mapa]')) return;
-    dedos.set(e.pointerId, ponto(e));
-    if (dedos.size === 1) arrasto = { ...ponto(e), vx: vista.x, vy: vista.y, andou: false };
-    if (dedos.size === 2) {
-      const [a, b] = [...dedos.values()];
-      pinca = { distancia: Math.hypot(a.x - b.x, a.y - b.y), zoom: vista.zoom };
-      arrasto = undefined;
-    }
-  });
-  window.addEventListener('pointermove', (e) => {
-    if (!dedos.has(e.pointerId)) return;
-    dedos.set(e.pointerId, ponto(e));
-    if (pinca && dedos.size === 2) {
-      const [a, b] = [...dedos.values()];
-      zoomEm((pinca.zoom * Math.hypot(a.x - b.x, a.y - b.y)) / pinca.distancia, (a.x + b.x) / 2, (a.y + b.y) / 2);
-      return;
-    }
-    if (!arrasto) return;
-    const p = ponto(e);
-    if (Math.abs(p.x - arrasto.x) + Math.abs(p.y - arrasto.y) > 5) arrasto.andou = true;
-    if (!arrasto.andou) return;
-    mapa.classList.add('mapa--arrastando');
-    vista.x = arrasto.vx + p.x - arrasto.x;
-    vista.y = arrasto.vy + p.y - arrasto.y;
-    aplicarVista();
-  });
-  const soltar = (e: PointerEvent) => {
-    if (!dedos.delete(e.pointerId)) return;
-    // O clique que vem logo depois de um arrasto não deve escolher ninguém
-    if (arrasto?.andou || pinca) fimDoArrasto = Date.now();
-    if (dedos.size < 2) pinca = undefined;
-    if (dedos.size === 0) arrasto = undefined;
-    mapa.classList.remove('mapa--arrastando');
-  };
-  // Com o mouse, arrastar começando em cima de um cartão virava o arrasto de link do navegador, e
-  // o mapa parava no primeiro passo. O mapa não tem nada para arrastar para fora.
-  mapa.addEventListener('dragstart', (e) => e.preventDefault());
-  window.addEventListener('pointerup', soltar);
-  window.addEventListener('pointercancel', soltar);
-
-  // Rolar move o mapa. Com Ctrl (ou o gesto de pinça do trackpad), aproxima e afasta.
-  mapa.addEventListener(
-    'wheel',
-    (e) => {
-      if ((e.target as HTMLElement).closest('[data-sobre-o-mapa]')) return;
-      e.preventDefault();
-      if (e.ctrlKey || e.metaKey) {
-        const p = ponto(e);
-        zoomEm(vista.zoom * Math.exp(-e.deltaY * 0.01), p.x, p.y);
-      } else {
-        vista.x -= e.deltaX;
-        vista.y -= e.deltaY;
-        aplicarVista();
-      }
-    },
-    { passive: false },
-  );
-
-  // Teclado: setas movem, + e − aproximam
-  mapa.addEventListener('keydown', (e) => {
-    if ((e.target as HTMLElement).closest('[data-sobre-o-mapa]')) return;
-    const passo = 80;
-    const movimentos: Record<string, [number, number]> = { ArrowLeft: [passo, 0], ArrowRight: [-passo, 0], ArrowUp: [0, passo], ArrowDown: [0, -passo] };
-    if (movimentos[e.key]) {
-      e.preventDefault();
-      vista.x += movimentos[e.key][0];
-      vista.y += movimentos[e.key][1];
-      aplicarVista(true);
-    } else if (e.key === '+' || e.key === '=') zoomEm(vista.zoom * 1.2, mapa.clientWidth / 2, mapa.clientHeight / 2, true);
-    else if (e.key === '-') zoomEm(vista.zoom / 1.2, mapa.clientWidth / 2, mapa.clientHeight / 2, true);
-  });
-
   // --- Teclado e foco (correção autorizada pelo Gui, 17/11/2026, P88) ---
   // A caixa do mapa nunca rola: quem anda é a vista. Com o Tab num cartão fora da vista, o navegador
   // rolava a caixa, e os ajustes, a ficha e o zoom saíam da tela sem volta.
+  // O módulo do mapa já devolve a caixa ao lugar quando ela rola; aqui, antes de medir.
   const semRolagem = () => {
     if (mapa.scrollLeft) mapa.scrollLeft = 0;
     if (mapa.scrollTop) mapa.scrollTop = 0;
   };
-  mapa.addEventListener('scroll', semRolagem);
   // O mapa anda o mínimo até o que recebeu o foco do teclado, a mesma conta que traz o cartão do ramo
   // para a tela. A posição é lida da vista de agora, mesmo no meio de uma animação.
   const trazerParaAVista = (el: HTMLElement) => {
@@ -763,7 +645,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
 
   // Tocar em alguém põe essa pessoa em foco. O segundo toque abre a página dela.
   const aoTocar = (evento: MouseEvent) => {
-    if (Date.now() - fimDoArrasto < 300) return evento.preventDefault();
+    if (anda.acabouDeArrastar()) return evento.preventDefault();
     const tinhaFoco = document.activeElement instanceof HTMLElement && (evento.target as HTMLElement).closest('a, button') === document.activeElement;
     const doRamo = (evento.target as HTMLElement).closest<HTMLButtonElement>('button[data-ramo]');
     if (doRamo) {
@@ -805,7 +687,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
   for (const c of camadas) c.addEventListener('click', aoTocar);
   // Tocar no vazio do mapa fecha a ficha. O clique que encerra um arrasto não conta.
   mapa.addEventListener('click', (evento) => {
-    if (Date.now() - fimDoArrasto < 300) return;
+    if (anda.acabouDeArrastar()) return;
     if ((evento.target as HTMLElement).closest('a.no, button, .ramo, [data-sobre-o-mapa]')) return;
     fecharFicha();
   });

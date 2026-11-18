@@ -132,8 +132,9 @@
   animation: arvore-surge 0.4s ease-out;
 }
 /* O canto reto aponta para o lado da família de origem (decisão do Gui, 17/11/2026): o padrão é a
-   esquerda, quem é do lado direito da árvore leva o canto à direita, e quem não é de nenhuma
-   família fica com os quatro cantos redondos. Quem decide é cantoReto, em arvore-desenho.ts. */
+   esquerda, quem é do lado direito da árvore leva o canto à direita, e quem é só da família do meio
+   (o Bayara Bracarense) ou não é de nenhuma família fica com os quatro cantos redondos. Quem decide
+   é cantoReto, em arvore-desenho.ts. */
 .no--canto-direita {
   border-radius: 0.875rem 0.875rem var(--raio-foto) 0.875rem;
 }
@@ -657,6 +658,9 @@
 /* A amostra da família do lado direito leva o canto reto à direita, como os cartões dela */
 .amostra-cor--direita {
   border-radius: 0.3rem 0.3rem var(--raio-foto) 0.3rem;
+}
+.amostra-cor--sem-canto {
+  border-radius: 0.3rem;
 }
 .amostra-cor--fora {
   border-radius: 0.3rem;

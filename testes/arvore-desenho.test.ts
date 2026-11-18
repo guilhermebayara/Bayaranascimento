@@ -432,8 +432,17 @@ describe('canto reto do cartão', () => {
     expect(cantoReto([-1], TOTAL)).toBeNull();
     expect(cantoReto([7], TOTAL)).toBeNull();
   });
-  it('quem fica bem no meio continua com o canto à esquerda', () => {
-    expect(cantoReto([1], TOTAL)).toBe('esquerda');
+  it('quem é só do Bayara Bracarense, a família do meio, fica com os cantos redondos (resposta do Gui aos PRs #53 a #62)', () => {
+    expect(cantoReto([1], TOTAL)).toBeNull();
+    expect(cantoReto([1, 1], TOTAL)).toBeNull();
+    // Com cinco famílias, o meio é a terceira
+    expect(cantoReto([2], 5)).toBeNull();
+    expect(cantoReto([1], 5)).toBe('esquerda');
+    // Com um número par de famílias não há família do meio
+    expect(cantoReto([1], 4)).toBe('esquerda');
+    expect(cantoReto([2], 4)).toBe('direita');
+  });
+  it('quem fica no meio por ser das duas pontas continua com o canto à esquerda', () => {
     expect(cantoReto([0, 2], TOTAL)).toBe('esquerda');
   });
   it('com uma família só, todos apontam para a esquerda; com duas, cada uma para o seu lado', () => {
@@ -449,6 +458,7 @@ describe('canto reto do cartão', () => {
     // Os dois lugares que montam cartão: a árvore principal e os ramos abertos
     expect(cliente.match(/marcarCanto\(no, p\.nucleos\);/g)).toHaveLength(2);
     expect(ler('src/pages/arvore.astro')).toContain("cantoReto([i], nucleos.length) === 'direita'");
+    expect(ler('src/pages/arvore.astro')).toContain("'amostra-cor--sem-canto': cantoReto([i], nucleos.length) === null");
     const css = ler('src/visual/telas/arvore.css');
     expect(css).toMatch(/\.no--canto-direita \{\s*border-radius: 0\.875rem 0\.875rem var\(--raio-foto\) 0\.875rem;/);
     expect(css).toMatch(/\.no--sem-canto \{\s*border-radius: 0\.875rem;/);
