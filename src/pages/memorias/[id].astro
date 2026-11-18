@@ -493,6 +493,14 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
       )
     }
     {
+      // Compartilhar como imagem (onda 2): só a memória publicada
+      memoria.situacao === 'publicada' && (
+        <a class="acao acao--quieta" href={`/memorias/${memoria.id}/compartilhar`}>
+          Compartilhar como imagem
+        </a>
+      )
+    }
+    {
       // Sugestão de correção (onda 2): quem vê a memória sugere; quem criou vê as que recebeu
       memoria.situacao === 'publicada' && (
         <a class="acao acao--quieta" href={`/memorias/${memoria.id}/sugerir`}>

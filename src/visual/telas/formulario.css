@@ -2532,3 +2532,23 @@
   display: grid;
   gap: var(--e-5);
 }
+
+/* Compartilhar como imagem (onda 2): a prévia da imagem vertical e as ações embaixo */
+.pagina-de-formulario .compartilhar {
+  display: grid;
+  justify-items: start;
+  gap: var(--e-4);
+}
+.pagina-de-formulario .compartilhar__previa {
+  width: min(100%, 22rem);
+  height: auto;
+  border-radius: var(--raio-moldura);
+  box-shadow: var(--sombra-foto);
+}
+.pagina-de-formulario .compartilhar__previa[hidden] {
+  display: none;
+}
+.pagina-de-formulario .compartilhar__aviso {
+  display: grid;
+  gap: var(--e-4);
+}
