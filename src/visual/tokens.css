@@ -33,6 +33,9 @@
   --tinta-suave: #75665a; /* 5:1 sobre o papel */
   --fio: #e4d6c1;
   /* O que deu errado ou pede atenção: o coral, vivo na marca e escurecido no texto */
+  /* A faixa da homologação, o símbolo do ambiente: listras de manteiga, longe das cores das famílias */
+  --faixa-homologa: var(--manteiga-meio);
+  --faixa-homologa-listra: var(--manteiga-vivo);
   --alerta: var(--coral-vivo);
   --alerta-tinta: var(--coral-tinta);
 

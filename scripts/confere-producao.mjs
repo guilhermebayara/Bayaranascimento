@@ -26,6 +26,9 @@
 // 10. Nenhum arquivo é apagado do bucket das fotos de verdade: só a limpeza do bucket de teste apaga, e a
 //    foto sem memória há mais de 30 dias, que um administrador apaga em src/pages/api/fotos-soltas.ts,
 //    e o banco e o bucket são escolhidos só em ambiente.ts.
+// 11. O espelho da homologação leva a família de verdade (decisão do Gui, 18/11/2026): nomes, retratos e
+//    laços passam; memórias, relatos, textos e fotos de memória nunca passam. O espelho só lê da cópia as
+//    tabelas da família, o "Sobre" sai vazio, e só a homologação (ou o computador) grava o espelho.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
@@ -227,6 +230,20 @@ const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';
   const regra = /const FOTO_SOLTA = `([\s\S]*?)`;/.exec(repo)?.[1] ?? '';
   if (!/export const DIAS_DA_FOTO_SOLTA = 30;/.test(repo) || !regra.includes("f.chave NOT LIKE 'exemplos/%'") || !regra.includes('f.memoria_id IS NULL') || !regra.includes('f.relato_id IS NULL') || !regra.includes("datetime('now', '-${DIAS_DA_FOTO_SOLTA} days')")) {
     falhar('src/lib/servidor/repositorio.ts: FOTO_SOLTA precisa deixar de fora as fotos de exemplo e as presas a memória ou relato, e esperar 30 dias.');
+  }
+}
+
+// 11. O espelho: só as tabelas da família passam, e o que alguém escreveu nunca
+{
+  const espelho = readFileSync('src/lib/espelho.ts', 'utf8');
+  const PODE_LER = new Set(['integrantes', 'nucleo_membros', 'filiacoes', 'casais', 'casal_nucleos', 'casal_fases', 'lacos_coracao', 'lacos_resumidos']);
+  const lidas = [...espelho.matchAll(/\bt\('(\w+)'\)/g)].map((m) => m[1]);
+  for (const tabela of lidas) if (!PODE_LER.has(tabela)) falhar(`src/lib/espelho.ts: o espelho lê "${tabela}" da cópia; só as tabelas da família passam (nomes, retratos e laços).`);
+  if (/copia\.tabelas\[(?!nome\])|copia\.tabelas\./.test(espelho)) falhar('src/lib/espelho.ts: a cópia só é lida pela função t(), para a guarda ver cada tabela lida.');
+  if (!/\n      sobre: null,\n/.test(espelho)) falhar('src/lib/espelho.ts: o "Sobre" de cada pessoa é texto escrito e não passa para a homologação (sobre: null).');
+  const servidor = readFileSync('src/lib/servidor/espelho.ts', 'utf8');
+  if (!servidor.includes("if (!podeEspelhar()) throw new Error('O espelho só pode ser gravado na homologação.');") || !servidor.includes('return ehHomologacao() || import.meta.env.DEV;')) {
+    falhar('src/lib/servidor/espelho.ts: o espelho (banco e retratos) só é gravado na homologação ou no computador.');
   }
 }
 

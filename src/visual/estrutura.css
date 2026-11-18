@@ -51,6 +51,29 @@
   font-weight: 600;
 }
 
+/* Na homologação a faixa é o símbolo do ambiente: a família é a de verdade, e a faixa listrada, cheia e
+   em negrito não deixa ninguém confundir com o site de verdade (decisão do Gui, 18/11/2026). */
+.teste--homologa {
+  background: repeating-linear-gradient(-45deg, var(--faixa-homologa) 0 0.75rem, var(--faixa-homologa-listra) 0.75rem 1.5rem);
+  color: var(--tinta);
+  font-size: var(--t-ficha);
+}
+.teste--homologa summary {
+  min-height: var(--toque);
+}
+.teste__ambiente {
+  padding: 0.15em 0.6em;
+  border-radius: var(--raio-carimbo);
+  background: var(--branco);
+  font-weight: 500;
+}
+.teste__ambiente strong {
+  margin-right: 0.5em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 /* --- Topo ------------------------------------------------------------------------------------ */
 
 /* Para quem navega pelo teclado: o primeiro Tab oferece ir direto ao conteúdo. Só aparece com foco. */

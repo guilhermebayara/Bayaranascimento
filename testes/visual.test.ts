@@ -652,7 +652,7 @@ describe('grupo formularios', () => {
     for (const fim of ['FichaDoIntegrante.astro', 'CampoRetrato.astro']) expect(fonte(fim).replace(/^---[\s\S]*?^---/m, '').replace(/<script[\s\S]*?<\/script>/g, ''), fim).not.toMatch(/n[úu]cleo/i);
     expect(fonte('pessoas/[id]/editar.astro')).toContain('por quem é da mesma família que');
     expect(fonte('historico.astro')).toContain('Mudou fotos, famílias ou quem pode ver.');
-    expect(fonte('admin/espelho.astro')).toContain('e quem é de cada família.');
+    expect(fonte('admin/espelho.astro')).toContain('quem é de cada família,');
   });
 
   it('o estilo antigo saiu: nada usa o esqueleto, a abertura, o arquivo nem as variáveis dele', () => {

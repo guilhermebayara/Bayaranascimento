@@ -11,8 +11,8 @@ if (!usuario.admin || !podeEspelhar()) return new Response('Página não encontr
 <Pagina titulo="Espelho da produção" rotulo="Administração" secao="conta" larga>
   <Fragment slot="abertura">
     <p>
-      A homologação usa a mesma estrutura de família da produção, com nomes e memórias inventados. Assim dá para ver se a árvore aguenta a
-      nossa família antes de publicar.
+      A homologação usa a família de verdade, com os nomes, os retratos e os laços da produção, e memórias de exemplo. Assim dá para ver se o
+      site aguenta a nossa família antes de publicar.
     </p>
     <p class="acoes">
       <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
@@ -22,13 +22,13 @@ if (!usuario.admin || !podeEspelhar()) return new Response('Página não encontr
   <section class="painel">
     <h2>Refazer o espelho</h2>
     <ol class="passos">
-      <li>No site de verdade, em memorias.bayara.com.br, abra a sua conta e, em "Administração", use "Baixar cópia do acervo".</li>
+      <li>No site de verdade, em memorias.bayara.com.br, abra a sua conta e, em "Administração", use "Baixar cópia para o espelho", que leva também os retratos.</li>
       <li>Envie o arquivo aqui.</li>
     </ol>
     <p class="dica">
-      Ficam os laços de árvore, os casais com as fases, os laços do coração com o papel e a marca de privado, e quem é de cada família. Os nomes
-      são trocados, os anos andam alguns anos para a frente, e memórias, relatos e fotos reais ficam de fora. Tudo o que está hoje nesta
-      homologação é apagado e trocado pelo espelho novo.
+      Passam as pessoas com os nomes, as datas e os retratos, quem é de cada família, os laços de árvore, os casais com as fases e os laços do
+      coração. Memórias, relatos, o "Sobre" de cada pessoa, fotos e áudios nunca passam: no lugar das memórias entram memórias de exemplo.
+      Tudo o que está hoje nesta homologação é apagado e trocado pelo espelho novo.
     </p>
     <form class="formulario" method="post" action="/api/espelho" enctype="multipart/form-data">
       <label class="campo">

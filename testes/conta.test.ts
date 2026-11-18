@@ -112,6 +112,15 @@ describe('administração', () => {
     expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal', 'Fotos sem memória', 'Cadastros duplicados', 'Transcrição automática', 'Sistema visual', 'Baixar cópia do acervo']);
     expect(administracao({ admin: true }, { podeEspelhar: true }).map((i) => i.rotulo)).toContain('Espelho da produção');
   });
+
+  it('só a produção oferece a cópia para o espelho, com os retratos (decisão do Gui, 18/11/2026)', () => {
+    const copias = (producao: boolean) => administracao({ admin: true }, { podeEspelhar: !producao, producao }).filter((i) => i.baixar);
+    expect(copias(true)).toEqual([
+      { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
+      { rotulo: 'Baixar cópia para o espelho', href: '/api/copia?retratos=1', baixar: true },
+    ]);
+    expect(copias(false).map((i) => i.rotulo)).toEqual(['Baixar cópia do acervo']);
+  });
 });
 
 // Escolha do Gui no conceito da sessão E (17/11/2026): a administração em atalhos, com a situação de

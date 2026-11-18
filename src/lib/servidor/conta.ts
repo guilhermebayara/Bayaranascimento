@@ -117,7 +117,7 @@ export async function montarConta(usuario: Usuario) {
     fraseDaLixeira: fraseDaLixeira(usuario.admin, usuario.admin ? excluidas.filter((m) => podeExcluirMemoria(usuario, m).ok).length + (await listarCapitulosExcluidos(usuario)).length : minhaLixeira.length),
     criou: oQueVoceCriou(eu, { memorias: publicadas, relatos, capitulos }),
     lacos: seusLacos(eu, lacos),
-    administracao: administracao(usuario, { podeEspelhar: podeEspelhar() }, situacao),
+    administracao: administracao(usuario, { podeEspelhar: podeEspelhar(), producao: ambiente() === 'producao' }, situacao),
     /** a situação do acervo para a administração, e o que dela pede ação (src/lib/conta.ts) */
     situacao,
     pendencias: situacao ? pendenciasDaAdministracao(situacao, hoje) : [],

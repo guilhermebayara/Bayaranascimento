@@ -65,7 +65,7 @@ const chamado = eu?.apelido && eu.apelido !== eu.nome ? `${eu.tratamento === 'el
 const dados = [nascimento, chamado, conta.email && `e-mail de acesso: ${conta.email}`].filter(Boolean);
 // "Baixar cópia do acervo" baixa um arquivo: fica à parte dos links que abrem página, junto do tamanho do banco (P153)
 const paginasDaAdministracao = conta.administracao.filter((item) => !item.baixar);
-const copia = conta.administracao.find((item) => item.baixar);
+const copias = conta.administracao.filter((item) => item.baixar);
 const admin = conta.administracao.length > 0;
 // As pendências da administração: a carta marca o atalho dela; o banco e a cópia mensal, o pé do
 // cartão; as outras (fotos soltas e duplicados, na onda 2) entram numa lista no alto do cartão
@@ -332,11 +332,11 @@ const erro = Astro.url.searchParams.get('erro');
                 </div>
               )}
               {copiaMensal && <p class:list={['conta__nota', 'ficha', { 'conta__pendente': Boolean(pendenciaDo('copia')) }]}>{copiaMensal}</p>}
-              {copia && (
+              {copias.map((copia) => (
                 <a class="acao" href={copia.href} download>
                   {copia.rotulo}
                 </a>
-              )}
+              ))}
             </div>
           </section>
         )

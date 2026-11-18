@@ -234,7 +234,7 @@ export function colunasDosAtalhos(quantos: number, maximo: number): number {
  * escrever ganha a marca de pendência. O banco e a cópia mensal ficam à parte, no pé do cartão. Para
  * quem não é administrador, nada.
  */
-export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar: boolean }, situacao?: SituacaoDaAdministracao): ItemDeAdministracao[] {
+export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar: boolean; producao?: boolean }, situacao?: SituacaoDaAdministracao): ItemDeAdministracao[] {
   if (!usuario.admin) return [];
   const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
   return [
@@ -262,6 +262,8 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
     { rotulo: 'Transcrição automática', href: '/admin/transcricao', situacao: situacao && (situacao.transcricao === 'ligada' ? 'ligada' : 'desligada') },
     { rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },
     { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
+    // Na produção, a cópia que leva também os retratos, para o espelho da homologação (decisão do Gui, 18/11/2026)
+    ...(onde.producao ? [{ rotulo: 'Baixar cópia para o espelho', href: '/api/copia?retratos=1', baixar: true }] : []),
     ...(onde.podeEspelhar ? [{ rotulo: 'Espelho da produção', href: '/admin/espelho', situacao: situacao && 'só na homologação' }] : []),
   ].map((item) => {
     const limpo: ItemDeAdministracao = { rotulo: item.rotulo, href: item.href };
