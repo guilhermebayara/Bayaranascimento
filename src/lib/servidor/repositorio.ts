@@ -622,6 +622,8 @@ interface FiltroDeMemorias {
   nucleo?: string;
   /** só os rascunhos de quem pede */
   rascunhos?: boolean;
+  /** as publicadas e, junto, os rascunhos de quem pede (a linha do tempo de quem escreveu) */
+  comRascunhos?: boolean;
   /** memórias colocadas em qualquer um destes capítulos reunidos */
   capitulos?: string[];
   tema?: string;
@@ -745,7 +747,9 @@ export async function quemContouEmCadaMemoria(usuario: Usuario): Promise<Map<str
 
 /** Memórias que o usuário pode ver, da mais antiga para a mais recente. Rascunhos ficam de fora, salvo pedido. */
 export async function listarMemorias(usuario: Usuario, filtro: FiltroDeMemorias = {}): Promise<Memoria[]> {
-  const condicoes = [FILTRO_VISIVEL, filtro.rascunhos ? `m.situacao = 'rascunho'` : `m.situacao = 'publicada'`];
+  // O rascunho só passa por FILTRO_VISIVEL para quem o criou
+  const situacao = filtro.rascunhos ? `m.situacao = 'rascunho'` : filtro.comRascunhos ? `m.situacao IN ('publicada', 'rascunho')` : `m.situacao = 'publicada'`;
+  const condicoes = [FILTRO_VISIVEL, situacao];
   const valores: unknown[] = [usuario.pessoa];
   if (filtro.integrante) {
     valores.push(filtro.integrante);
@@ -1309,11 +1313,15 @@ export async function ligarFotosDoRelato(
   return validos.length;
 }
 
-/** O usuário pode ver o arquivo desta chave? Foto solta: só quem enviou. Foto de memória: quem vê a memória. Foto removida: só quem enviou. */
+/**
+ * O usuário pode ver o arquivo desta chave? Foto solta: só quem enviou. Foto de memória: quem vê a memória.
+ * Foto removida: só quem enviou. A foto que veio com um relato segue o relato (veORelato), como o áudio: a do
+ * relato em nome de quem a pessoa não vê também fica de fora.
+ */
 export async function podeVerFoto(usuario: Usuario, chave: string): Promise<boolean> {
-  const linha = await db()
+  const { results } = await db()
     .prepare(
-      `SELECT 1 AS ok FROM fotos f WHERE f.chave = ?2 AND (
+      `SELECT r.por, r.registrado_por, r.so_para_nucleos FROM fotos f LEFT JOIN relatos r ON r.id = f.relato_id WHERE f.chave = ?2 AND (
          (f.memoria_id IS NULL AND f.enviada_por = ?1 AND f.removida_em IS NULL)
          -- foto sem memória há mais de 30 dias: os administradores conferem antes de apagar (onda 2)
          OR (?3 = 1 AND ${FOTO_SOLTA})
@@ -1330,11 +1338,17 @@ export async function podeVerFoto(usuario: Usuario, chave: string): Promise<bool
                )
            )
          )
-       ) LIMIT 1`,
+       )`,
     )
     .bind(usuario.pessoa, chave, usuario.admin ? 1 : 0)
-    .first();
-  return Boolean(linha);
+    .all<{ por: string | null; registrado_por: string | null; so_para_nucleos: string | null }>();
+  type Linha = { por: string | null; registrado_por: string | null; so_para_nucleos: string | null };
+  const linhas = results as Linha[];
+  if (linhas.length === 0) return false;
+  // A foto sem relato não depende de quem contou
+  if (linhas.some((r) => r.por === null)) return true;
+  const naoVe = await pessoasQueONaoVe(usuario);
+  return linhas.some((r) => veORelato({ por: r.por!, registradoPor: r.registrado_por!, soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) }, usuario, naoVe));
 }
 
 // --- Fotos sem memória (onda 2, decisão do Gui de 17/11/2026) ---
@@ -1564,7 +1578,8 @@ export async function ligarAudios(relatoId: number, memoriaId: string, itens: { 
   const validos = itens.filter((i) => aceitos.has(i.id));
   await db().batch([
     db()
-      .prepare(`UPDATE audios SET removido_em = datetime('now') WHERE relato_id = ? AND removido_em IS NULL AND id NOT IN (${validos.length ? validos.map(() => '?').join(', ') : 'NULL'})`)
+      // Sem nenhum áudio que fica, a lista some: "id NOT IN (NULL)" nunca é verdadeiro e o último áudio não saía
+      .prepare(`UPDATE audios SET removido_em = datetime('now') WHERE relato_id = ? AND removido_em IS NULL${validos.length ? ` AND id NOT IN (${validos.map(() => '?').join(', ')})` : ''}`)
       .bind(relatoId, ...validos.map((i) => i.id)),
     ...validos.map((item, ordem) =>
       db()

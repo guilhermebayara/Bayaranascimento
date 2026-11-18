@@ -27,7 +27,9 @@ const forma = lerForma(parametros);
 const tamanho = lerTamanho(parametros);
 const [nucleos, todas, integrantes, capitulos, temas] = await Promise.all([
   listarNucleos(),
-  listarMemorias(usuario),
+  // O rascunho de quem escreveu entra na linha do tempo e na lista; o mural, o modo TV e o sorteio usam
+  // só as publicadas (abaixo)
+  listarMemorias(usuario, { comRascunhos: true }),
   // Quem só existe num laço privado de outra pessoa não aparece nem no filtro nem nos nomes (C1)
   listarIntegrantesQueVe(usuario),
   listarCapitulos(usuario),

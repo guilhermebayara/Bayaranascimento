@@ -56,7 +56,7 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
 
   const nucleos = await listarNucleos();
   const ordemDosNucleos = nucleos.map((n) => n.id);
-  const todasComEla: Memoria[] = (await listarMemorias(usuario, { integrante: pessoa.id })).reverse();
+  const todasComEla: Memoria[] = (await listarMemorias(usuario, { integrante: pessoa.id, comRascunhos: true })).reverse();
   const publicadas = todasComEla.filter((m) => m.situacao !== 'rascunho');
   const familiasDaPessoa = familiasDe(pessoa)
     .map((nid) => nucleos.find((n) => n.id === nid))
@@ -102,7 +102,7 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
   // Gui, 18/11/2026). Os que têm áudio vêm primeiro, para a voz dela aparecer logo; depois, do mais
   // recente ao mais antigo. As fotos das mensagens são as das memórias que quem olha vê
   const relatosDela = await listarRelatosDe(usuario, pessoa.id);
-  const fotosDasMemorias = todasComEla.flatMap((m) => m.fotos);
+  const fotosDasMemorias = publicadas.flatMap((m) => m.fotos);
   const conversa = await conversaDosRelatos(relatosDela, fotosDasMemorias, (id) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome ?? id);
   const comAudio = (id: number) => (conversa.get(id) ?? []).some((m) => m.tipo === 'audio');
   const relatos = relatosDela

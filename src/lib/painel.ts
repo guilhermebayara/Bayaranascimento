@@ -1,4 +1,4 @@
-// Regras puras do painel pessoal (docs/decisoes.md, "Painel pessoal como página inicial").
+// Regras puras do painel pessoal (docs/decisoes.md, "Início (painel pessoal)").
 import type { DataFlexivel } from './datas';
 import { comoOCasalAparece, faseAtual, type Casal } from './parentesco';
 
@@ -46,7 +46,7 @@ export function emOutrosAnos<T extends DataFlexivel>(memorias: T[], hoje: Dia, m
   return undefined;
 }
 
-// --- Visitas e carta (docs/decisoes.md, "Painel pessoal como página inicial") -----------------
+// --- Visitas e carta (docs/decisoes.md, "Início (painel pessoal)") -----------------
 //
 // Cada pessoa com acesso tem um registro de visitas. Uma visita é uma sequência de idas ao painel
 // sem uma pausa longa: quem volta ao painel depois de PAUSA_ENTRE_VISITAS começa uma visita nova.

@@ -123,10 +123,16 @@ const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>)
                 </ul>
               )}
               {s.texto && <blockquote class="sugestoes__texto">{s.texto}</blockquote>}
-              {s.resposta && (
+              {s.resposta ? (
                 <p class="dica">
                   {quemRespondeu(s)} respondeu: {s.resposta}
                 </p>
+              ) : (
+                s.situacao !== 'aberta' && s.respondidaPor && (
+                  <p class="dica">
+                    {quemRespondeu(s)} {s.situacao === 'aceita' ? 'aceitou' : s.situacao === 'recusada' ? 'recusou' : 'respondeu'}.
+                  </p>
+                )
               )}
             </li>
           ))}

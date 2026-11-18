@@ -38,7 +38,7 @@ Também foram para o histórico, sem mudança: `docs/qa/` (as perguntas e respos
 | Ampliar quem vê uma memória com relatos | Inteiro em "Ampliar quem vê uma memória com relatos", sem as datas |
 | Explorar | Regra em "Explorar"; o desenho em `visual.md`, "Explorar" |
 | Decidido, a construir | Inteiro em "Decidido, a construir". Uma frase mudou: os arquivos de `docs/ux/` que "saem de cena quando a revisão terminar" ganharam a nota de que já foram para `docs/historico/ux/` |
-| Em aberto | Inteiro em "Em aberto". O item "Círculo" continua lá, como estava, embora o círculo já exista ⚑ |
+| Em aberto | Inteiro em "Em aberto". O item "Círculo", que continuava lá embora o círculo já existisse, saiu depois, na limpeza da sessão L |
 | Origem | Regra em "Estrutura e princípios" (o site como registro), "Famílias, núcleos e parentes" (as três famílias) e "Como o site funciona" (páginas montadas para cada pessoa). A lista das ideias do jantar ficou só no histórico, porque todas viraram regra. "Outras pessoas dos Bracarense, a definir", sobre os acessos, ficou só no histórico ⚑ |
 
 ## visual.md
@@ -95,8 +95,8 @@ Uma observação à parte: as respostas do QA de design (`historico/qa/2026-11-1
 1. **Estrutura:** "O núcleo (Gui, Giovanna, Elizete) fica no menu, e as demais ficam na página Pessoas." O menu de hoje não lista pessoas. Saiu por estar desatualizada.
 2. **Origem, acessos:** "Outras pessoas dos Bracarense, a definir." Não achei outra decisão sobre isso.
 3. **Quem pode ver, na memória:** o texto antigo citava "Só quem é dos núcleos marcados"; no site está "Só quem é das famílias marcadas abaixo", e foi esse que entrou.
-4. **Em aberto, "Círculo":** o item continua na lista, como estava, mas o círculo já foi construído. Pode sair?
+4. **Em aberto, "Círculo":** resolvido. O item saiu de "Em aberto" na limpeza da sessão L, e o círculo tem a regra dele em "Círculo".
 5. **Galeria:** a foto que veio com um relato dizia "Veio com o relato de …" na galeria. Não achei o texto no código. Ficou de fora até você dizer se deve voltar.
-6. **Modo TV em 1280 × 720:** a P50 do QA de design pôs "Ajustes" em colunas, e a página passou a caber em 1280 × 900 e 1920 × 1080; em 1280 × 720, aberta, ela ainda tem 818 px e rola. Fica assim?
+6. **Modo TV em 1280 × 720:** resolvido. O Gui decidiu que o modo TV cabe em 1280 × 720 com "Ajustes" aberto (17/11/2026): abaixo de 50rem de altura, o respiro de baixo encolhe e cada ajuste fica numa linha. A regra está em `decisoes.md`, "Explorar", com teste em `testes/explorar-controles.test.ts`.
 7. **Etiquetas da família no Explorar:** você escolheu o formato, mas a nota do grupo 1 diz que ainda não tinha visto o resultado.
 8. **`tsc` e `astro check`:** a nota do grupo 1 diz que travavam nas sessões e derrubavam o servidor local. O `CLAUDE.md` pede para anotar a contagem de erros de tipo; se continuar travando, vale escrever ali.

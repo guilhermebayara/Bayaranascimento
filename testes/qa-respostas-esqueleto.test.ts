@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, no esqueleto do site:
-// topo, menu e rodapé (P2 a P12 de docs/qa/2026-11-17-perguntas.md).
+// topo, menu e rodapé (P2 a P12 de docs/historico/qa/2026-11-17-perguntas.md).
 import { describe, expect, it } from 'vitest';
 
 // A leitura de arquivos segue o jeito de testes/visual.test.ts, que não pede os tipos do Node

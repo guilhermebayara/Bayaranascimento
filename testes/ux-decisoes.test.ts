@@ -1,4 +1,4 @@
-// Decisões do Gui sobre a interface, depois do QA de UX de 16/11/2026 (docs/ux/fluxos.md).
+// Decisões do Gui sobre a interface, depois do QA de UX de 16/11/2026 (docs/historico/ux/fluxos.md).
 // Conferências no código, para nenhuma delas voltar atrás sem querer.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -335,7 +335,7 @@ describe('linha do tempo', () => {
     // No visual novo, a linha do tempo é a do Explorar (explorar/Linha.astro), que recebe as memórias
     // já na ordem: a pessoa e o tema entregam das mais recentes para as mais antigas, e os marcos do
     // capítulo seguem a mesma ordem
-    expect((fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'))).toMatch(/listarMemorias\(usuario, \{ integrante: pessoa\.id \}\)\)\.reverse\(\)/);
+    expect((fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'))).toMatch(/listarMemorias\(usuario, \{ integrante: pessoa\.id(, comRascunhos: true)? \}\)\)\.reverse\(\)/);
     expect(fonte('src/pages/temas/[id].astro')).toMatch(/listarMemorias\(usuario, \{ tema: tema\.id \}\)\)\.reverse\(\)/);
     expect(fonte('src/pages/capitulos/[id]/index.astro')).toContain('maisRecentesPrimeiro(memorias)');
   });
