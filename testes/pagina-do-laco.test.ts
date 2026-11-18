@@ -74,7 +74,7 @@ describe('as faixas das fases', () => {
     // Quem já faleceu é dito ao leitor de tela ao lado do nome
     expect(pagina).toMatch(/jaFaleceu\(i\) && <span class="so-leitor">já faleceu<\/span>/);
     // Os textos de situação continuam vindo da regra (ex-casal.ts), e não da página
-    expect(pagina).toContain('situacaoDoCasal(casal)');
+    expect(pagina).toContain('situacaoDoCasal(casal, ');
     for (const texto of ['Juntos', 'amigos', 'Namorando']) expect(pagina).not.toContain(`'${texto}`);
   });
   it('a capa só fica parada onde há mouse; no toque, nada preso', () => {

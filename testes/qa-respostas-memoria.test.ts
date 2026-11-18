@@ -21,7 +21,7 @@ describe('P51: "Quem estava" no celular', () => {
   });
   it('a lista vem inteira do servidor, e é o script que recolhe', () => {
     // Sem script, ninguém fica escondido atrás de um botão que não funciona
-    expect(pagina).toMatch(/<button type="button" class="acao" data-quem-todos hidden>\s*Ver todos os \{memoria\.integrantes\.length\}/);
+    expect(pagina).toMatch(/<button type="button" class="acao" data-quem-todos hidden>\s*Ver todos os \{quemEstava\.length\}/);
     expect(pagina).toMatch(/quem\.classList\.add\('quem--recolhida'\);\s*verTodos\.hidden = false;/);
     expect(pagina).not.toMatch(/class:list=\{\[[^\]]*'quem--recolhida'/);
   });

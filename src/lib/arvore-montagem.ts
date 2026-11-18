@@ -202,7 +202,10 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     }
 
     // 1d. Os ramos recolhidos, e quais deles estão abertos
-    const ramos = ramosRecolhidos(principal, [...visiveis], filiacoes, casais);
+    // O namoro de quem está num ramo vai junto para o cartão do ramo (QA de 18/11/2026: a Bia, namorada
+    // do Primo Téo, não aparecia no ramo dele), como o casal: colado ao lado, com o tracejado do coração
+    const namoros = casaisDoCoracao.filter((a) => !a.amizade);
+    const ramos = ramosRecolhidos(principal, [...visiveis], filiacoes, [...casais, ...namoros.map((a) => ({ a: a.dono, b: a.pessoa }))]);
     const abertos = ramos.filter((r) => estado.ramos.has(r.chave));
     const noRamo = new Set(abertos.flatMap((r) => r.membros));
     const entra = (id: string) => principal.has(id) || noRamo.has(id);
@@ -234,6 +237,12 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
         mudou = true;
       }
     }
+    // O namoro de um ramo aberto entra na geração do par
+    const coracaoDosRamos = namoros.filter((a) => noRamo.has(a.dono) && noRamo.has(a.pessoa) && !naPrincipal(a.dono, a.pessoa));
+    for (const a of coracaoDosRamos) {
+      if (geracoes.has(a.dono) && !geracoes.has(a.pessoa)) geracoes.set(a.pessoa, geracoes.get(a.dono)!);
+      else if (geracoes.has(a.pessoa) && !geracoes.has(a.dono)) geracoes.set(a.dono, geracoes.get(a.pessoa)!);
+    }
     // Todo laço do coração aberto entra no desenho, com ou sem "como se fosse"
     const ligados = coracao.filter((l) => geracoes.has(l.dono) && geracoes.has(l.pessoa));
 
@@ -246,7 +255,7 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
       ligados,
     );
 
-  return { desenho, principal, coracao, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis };
+  return { desenho, principal, coracao, coracaoDosRamos, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis };
 }
 
 export type Montagem = ReturnType<typeof montarDesenho>;

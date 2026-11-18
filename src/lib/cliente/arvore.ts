@@ -323,7 +323,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
 
   const desenhar = () => {
     // 1 e 2. Quem aparece, em que geração, e o desenho (em src/lib/arvore-montagem.ts)
-    const { desenho: novo, principal, coracao, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis } = montarDesenho(dados, estado, ladoDe);
+    const { desenho: novo, principal, coracao, coracaoDosRamos, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis } = montarDesenho(dados, estado, ladoDe);
     ramosDeAgora = ramos;
     desenho = novo;
 
@@ -497,6 +497,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
         dados.pessoas.filter((p) => membros.includes(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id) })),
         casaisVisiveis.filter((c) => membros.includes(c.a) && membros.includes(c.b)),
         filiacoesVisiveis.filter((f) => membros.includes(f.filho) && membros.includes(f.responsavel)),
+        coracaoDosRamos.filter((l) => membros.includes(l.dono) && membros.includes(l.pessoa)),
       );
       if (!arvoreDoRamo.pessoas.length) continue;
       const primeira = Math.min(...membros.map((id) => geracoes.get(id)!));
