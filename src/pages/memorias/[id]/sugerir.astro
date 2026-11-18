@@ -1,13 +1,14 @@
 ---
-// Sugerir uma correção (onda 2, decisão do Gui de 17/11/2026): dos dados da memória, para quem a criou, ou
-// um recado a quem registrou um relato. Ninguém muda a memória ou o relato de outra pessoa: quem recebe
-// decide. Regras em src/lib/sugestoes.ts e permissoes.ts; a rota é /api/sugestoes.
+// Sugerir uma correção dos dados da memória (onda 2, decisão do Gui de 17/11/2026), para quem a criou e
+// quem está nela. Ninguém muda a memória de outra pessoa: quem recebe decide. O recado sobre um relato é
+// outra ação, com página própria (recado.astro), que parte do menu do relato (observação do Gui de
+// 18/11/2026). Regras em src/lib/sugestoes.ts e permissoes.ts; a rota é /api/sugestoes.
 import Pagina from '../../../components/formularios/Pagina.astro';
 import CampoAno from '../../../components/CampoAno.astro';
 import { formatarData } from '../../../lib/datas';
 import { destinatarios } from '../../../lib/sugestoes';
-import { podeSugerirDados, veORelato } from '../../../lib/servidor/permissoes';
-import { listarIntegrantesQueVe, listarRelatos, obterMemoria, pessoasQueONaoVe, pessoasQueSoVoceVe } from '../../../lib/servidor/repositorio';
+import { podeSugerirDados } from '../../../lib/servidor/permissoes';
+import { listarIntegrantesQueVe, obterMemoria, pessoasQueONaoVe, pessoasQueSoVoceVe } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -15,18 +16,13 @@ if (!memoria || memoria.situacao !== 'publicada') return new Response('Memória 
 const [visiveis, soDela, naoVe] = await Promise.all([listarIntegrantesQueVe(usuario), pessoasQueSoVoceVe(usuario), pessoasQueONaoVe(usuario)]);
 const nome = (id: string) => visiveis.find((i) => i.id === id)?.apelido ?? visiveis.find((i) => i.id === id)?.nome ?? id;
 const dados = podeSugerirDados(usuario, memoria).ok;
-// Os relatos de outras pessoas, para o recado: só os que quem olha vê
-const relatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situacao === 'publicada' && r.registradoPor !== usuario.pessoa && veORelato(r, usuario, naoVe));
 const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id));
-// Quem chega pelo menu de um relato ("Deixar um recado para Fulano") encontra esse relato já escolhido
-const relatoPedido = relatos.find((r) => r.id === Number(Astro.url.searchParams.get('relato')))?.id;
 // A sugestão de dados vai para quem criou e para quem está na memória (resposta do Gui à sessão F)
 const recebem = destinatarios({ tipo: 'dados', para: memoria.criadaPor, de: usuario.pessoa }, memoria).filter((id) => !naoVe.has(id)).map(nome);
 const paraQuem = recebem.length > 1 ? `${recebem.slice(0, -1).join(', ')} e ${recebem[recebem.length - 1]}` : (recebem[0] ?? nome(memoria.criadaPor));
 // Quem pode entrar: quem quem sugere vê, que ainda não está, e que não existe só para ela
 const podemEntrar = visiveis.filter((i) => !memoria.integrantes.includes(i.id) && !soDela.has(i.id)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-const deQuem = (r: (typeof relatos)[number]) => (r.por === r.registradoPor ? nome(r.por) : `${nome(r.por)}, registrado por ${nome(r.registradoPor)}`);
 ---
 
 <Pagina titulo="Sugerir uma correção" aba={`Sugerir uma correção em ${memoria.titulo}`} rotulo="Memória" nucleos={memoria.nucleos} secao="explorar">
@@ -96,41 +92,7 @@ const deQuem = (r: (typeof relatos)[number]) => (r.por === r.registradoPor ? nom
     )
   }
 
-  {
-    relatos.length > 0 && (
-      <section class="painel" id="recado">
-        <h2>Um recado sobre um relato</h2>
-        <p class="dica">Vai só para quem escreveu ou registrou o relato. O relato continua como está.</p>
-        <form class="formulario" method="post" action="/api/sugestoes">
-          <input type="hidden" name="acao" value="recado" />
-          <input type="hidden" name="memoria" value={memoria.id} />
-          {relatos.length === 1 ? (
-            <input type="hidden" name="relato" value={relatos[0]!.id} />
-          ) : (
-            <div class="campo">
-              <span id="rotulo-recado-relato">Sobre o relato de</span>
-              <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-recado-relato">
-                {relatos.map((r, n) => (
-                  <label class="opcao">
-                    <input type="radio" name="relato" value={r.id} checked={relatoPedido ? r.id === relatoPedido : n === 0} />
-                    <span>{deQuem(r)}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-          <label class="campo">
-            <span>{relatos.length === 1 ? `Recado sobre o relato de ${deQuem(relatos[0]!)}` : 'Recado'}</span>
-            <textarea name="texto" rows="4" maxlength="2000" required placeholder="Ex.: acho que foi em 1998"></textarea>
-          </label>
-          <div class="acoes">
-            <button class="botao" type="submit">Enviar o recado</button>
-          </div>
-        </form>
-      </section>
-    )
-  }
-  {!dados && relatos.length === 0 && <p class="dica">Esta memória é sua e não tem relato de outra pessoa: corrija direto em <a href={`/nova?id=${memoria.id}`}>Corrigir esta memória</a>.</p>}
+  {!dados && <p class="dica">Esta memória é sua: corrija direto em <a href={`/nova?id=${memoria.id}`}>Corrigir esta memória</a>.</p>}
 </Pagina>
 
 <script>

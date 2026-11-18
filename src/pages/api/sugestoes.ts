@@ -56,8 +56,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (acao === 'recado') {
     const relato = (await listarRelatos(usuario, memoria.id)).find((r) => r.id === Number(campo(dados, 'relato', 12)));
     const decisao = relato ? podeDeixarRecado(usuario, relato, true) : podeDeixarRecado(usuario, { registradoPor: '', situacao: '' }, false);
-    if (!relato || !decisao.ok) return voltar(request, sugerir, { erro: decisao.ok ? 'Relato não encontrado.' : decisao.motivo });
-    if (!texto) return voltar(request, sugerir, { erro: 'Escreva o recado.' });
+    // O recado tem página própria, que parte do menu do relato (observação do Gui, 18/11/2026)
+    if (!relato || !decisao.ok) return voltar(request, pagina, { erro: decisao.ok ? 'Relato não encontrado.' : decisao.motivo });
+    if (!texto) return voltar(request, `${pagina}/recado?relato=${relato.id}`, { erro: 'Escreva o recado.' });
     await criarSugestao({ memoriaId: memoria.id, relatoId: relato.id, para: relato.registradoPor, tipo: 'recado', proposta: null, texto }, usuario, memoria);
     return voltar(request, pagina, { ok: 'Recado enviado. Quem escreveu o relato recebe um aviso.' });
   }
