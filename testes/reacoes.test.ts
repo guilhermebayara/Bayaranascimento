@@ -18,7 +18,10 @@ describe('os símbolos', () => {
       expect(s.desenho).toMatch(/^<(path|circle)/);
       expect(s.desenho).not.toMatch(/\p{Extended_Pictographic}/u);
     }
-    expect(SIMBOLOS_DAS_REACOES.filter((s) => s.provisorio).map((s) => s.id)).toEqual(['riso']);
+    // O riso é um desenho próprio, no traço dos rabiscos: uma carinha, e não o coração nem a flor
+    const riso = SIMBOLOS_DAS_REACOES.find((s) => s.id === 'riso')!;
+    expect(riso.desenho).toMatch(/^<circle cx="12" cy="12"/);
+    expect(new Set(SIMBOLOS_DAS_REACOES.map((s) => s.desenho)).size).toBe(4);
     expect(readFileSync('src/components/visual/Reacoes.astro', 'utf-8')).not.toMatch(/\p{Extended_Pictographic}/u);
   });
   it('os nomes de quem marcou e a oferta de entrar em Quem estava', () => {
