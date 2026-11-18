@@ -104,7 +104,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--e-5);
-  margin-top: var(--e-2);
+  margin-top: 0;
 }
 
 /* --- A página do capítulo ---------------------------------------------------------------------- */
@@ -184,7 +184,7 @@
 /* O que liga o capítulo aos outros: quieto, em linhas de rótulo e valor */
 .capitulo__notas {
   display: grid;
-  gap: var(--e-3);
+  gap: var(--e-5);
   margin-top: var(--e-6);
 }
 .capitulo__notas:empty {

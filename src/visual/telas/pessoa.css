@@ -192,7 +192,7 @@
   margin-top: calc(var(--e-3) - var(--e-5));
 }
 .dados__familias .pilulas-de-familia {
-  margin-top: var(--e-2);
+  margin-top: var(--e-1);
 }
 /* Os números do acervo, como no alto de um álbum: o número em serifa e o nome em mono embaixo */
 .dados__numeros {
@@ -447,6 +447,10 @@ a.vizinhanca__quem:focus-visible span {
   display: grid;
   gap: var(--e-3);
 }
+/* No celular, os controles ficam perto do título (o respiro do toque já os afasta) */
+.vida__abre > .vida__controles {
+  margin-top: 0;
+}
 .vida__controles .linha__opcoes {
   display: flex;
   flex-wrap: wrap;
@@ -473,16 +477,24 @@ a.vizinhanca__quem:focus-visible span {
 .lacos__grupos {
   display: grid;
   gap: var(--e-6);
-  margin-top: var(--e-5);
+  margin-top: var(--e-7);
 }
 .lacos__grupo ul {
   display: grid;
   gap: var(--e-3);
-  margin-top: var(--e-2);
+  margin-top: 0;
 }
 .lacos__laco {
   margin-left: calc(clamp(3rem, 2.6rem + 1vw, 4rem) + var(--e-4));
   font-size: var(--t-pequeno);
+}
+/* "Ver o laço" é da pessoa de cima: encosta nela (o retrato perde o respiro de baixo, e o próprio
+   link tem a altura do toque), e a próxima pessoa fica mais longe (gestalt) */
+.lacos__grupo ul:has(.lacos__laco) {
+  gap: var(--e-5);
+}
+.lacos__grupo li:has(.lacos__laco) > .gente {
+  padding-bottom: 0;
 }
 
 /* "Como você chama", só seu: uma linha quieta embaixo das ações, que abre a pergunta no lugar */
@@ -532,6 +544,10 @@ a.vizinhanca__quem:focus-visible span {
   .verbete__alto {
     grid-template-rows: auto auto 1fr;
     row-gap: 0;
+  }
+  /* No computador os controles voltam a ter o fio e o respiro de linha.css */
+  .vida__abre > .vida__controles {
+    margin-top: var(--e-6);
   }
   .verbete__alto.grade > *,
   .verbete__alto .verbete__abre {

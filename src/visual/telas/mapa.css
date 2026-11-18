@@ -210,7 +210,7 @@
 }
 .pm__secao form {
   display: grid;
-  gap: var(--e-4);
+  gap: var(--e-6);
   padding: var(--e-2) var(--e-4) var(--e-4);
 }
 .pm .arvore__camadas {

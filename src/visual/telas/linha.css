@@ -774,7 +774,7 @@ html.pino-novo .parada__ano[data-vazia] {
 }
 .entrada__foto {
   width: 70%;
-  margin-block: var(--e-4) var(--e-5);
+  margin-block: var(--e-2) var(--e-5);
   margin-left: 6%;
 }
 /* As fotos não ficam em fila: uma encosta à esquerda, a outra à direita */
