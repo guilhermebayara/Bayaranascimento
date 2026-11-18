@@ -49,12 +49,15 @@ describe('"Sair" só onde há login (P4)', () => {
     expect(acesso).toMatch(/export function temLogin\(\): boolean \{\s*return ambiente\(\) === 'producao' \|\| ambiente\(\) === 'homologa';/);
     expect(acesso).toMatch(/ENDERECO_DE_SAIDA = '\/cdn-cgi\/access\/logout'/);
   });
-  it('o rodapé e a conta só mostram "Sair" quando há login', () => {
+  it('"Sair" mora só no menu da conta, quando há login (resposta do Gui aos PRs #56 a #60, 17/11/2026)', () => {
+    expect(esqueleto).toMatch(/const saida = temLogin\(\) \? ENDERECO_DE_SAIDA : undefined;/);
+    const menu = esqueleto.slice(esqueleto.indexOf('<details class="conta-menu">'), esqueleto.indexOf('</details>', esqueleto.indexOf('<details class="conta-menu">')));
+    expect(menu).toMatch(/\{saida && <a href=\{saida\}>Sair<\/a>\}/);
+    // Uma vez só no esqueleto, e nenhuma no rodapé nem em Sua conta
+    expect(esqueleto.match(/href=\{saida\}/g)).toHaveLength(1);
+    expect(esqueleto.slice(esqueleto.indexOf('<footer'))).not.toMatch(/saida|>\s*Sair\s*</);
     const conta = ler('src/pages/conta.astro');
-    for (const tela of [esqueleto, conta]) {
-      expect(tela).toMatch(/const saida = temLogin\(\) \? ENDERECO_DE_SAIDA : undefined;/);
-      expect(tela).toMatch(/\{\s*saida && \(\s*(<p class="conta__sair">\s*)?<a class="acao acao--quieta" href=\{saida\}>\s*Sair/);
-    }
+    expect(conta).not.toMatch(/ENDERECO_DE_SAIDA|conta__sair|>\s*Sair\s*</);
   });
 });
 
