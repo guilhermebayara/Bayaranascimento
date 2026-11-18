@@ -14,7 +14,7 @@ if (!usuario.admin) return new Response('Página não encontrada', { status: 404
 // Só oferece quem o administrador vê e tem laço de árvore: de quem não tem, a árvore seria só a pessoa
 const integrantes = await listarIntegrantesQueVe(usuario);
 const casais = await listarCasais(usuario);
-const comLaco = comLacoDeArvore({ filiacoes: await listarFiliacoes(), casais: casais.filter((c) => c.fases.length > 0) });
+const comLaco = comLacoDeArvore({ filiacoes: (await listarFiliacoes()).map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })), casais: casais.filter((c) => c.fases.length > 0).map((c) => ({ a: c.a, b: c.b, ex: false })) });
 const opcoes = integrantes.filter((i) => comLaco.has(i.id)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 const serve = (id: string) => opcoes.some((i) => i.id === id);
 const guardado = await lerAjuste(AJUSTE_DOS_CENTROS);

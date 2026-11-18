@@ -56,7 +56,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (acao === 'recado') {
     const relato = (await listarRelatos(usuario, memoria.id)).find((r) => r.id === Number(campo(dados, 'relato', 12)));
     const decisao = relato ? podeDeixarRecado(usuario, relato, true) : podeDeixarRecado(usuario, { registradoPor: '', situacao: '' }, false);
-    if (!relato || !decisao.ok) return voltar(request, sugerir, { erro: decisao.motivo });
+    if (!relato || !decisao.ok) return voltar(request, sugerir, { erro: decisao.ok ? 'Relato não encontrado.' : decisao.motivo });
     if (!texto) return voltar(request, sugerir, { erro: 'Escreva o recado.' });
     await criarSugestao({ memoriaId: memoria.id, relatoId: relato.id, para: relato.registradoPor, tipo: 'recado', proposta: null, texto }, usuario);
     return voltar(request, pagina, { ok: 'Recado enviado. Quem escreveu o relato recebe um aviso.' });

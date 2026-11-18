@@ -42,7 +42,7 @@ const naoVe = pessoasQueNaoVe(soEmPrivados, temLacoVisivel);
 const integrantes = todos.filter((i) => !naoVe.has(i.id));
 const resumidos = (await listarLacosResumidos()).filter((r) => integrantes.some((i) => i.id === r.a) && integrantes.some((i) => i.id === r.b));
 // Só serve de centro quem quem olha vê e tem laço de árvore
-const comLacoDeArvoreVisivel = comLacoDeArvore({ filiacoes, casais: casais.filter((c) => c.fases.length > 0) });
+const comLacoDeArvoreVisivel = comLacoDeArvore({ filiacoes: filiacoes.map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })), casais: casais.filter((c) => c.fases.length > 0).map((c) => ({ a: c.a, b: c.b, ex: false })) });
 const centros = centrosDaArvore(await lerAjuste(AJUSTE_DOS_CENTROS), (id) => integrantes.some((i) => i.id === id) && comLacoDeArvoreVisivel.has(id));
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const familia = new Familia(filiacoes, casais, tratamentos);
