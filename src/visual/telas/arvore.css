@@ -597,11 +597,14 @@
 .arvore__voltar[hidden] {
   display: none;
 }
+/* Proximidade (pedido do Gui, 18/11/2026): o espaço entre os grupos é quatro vezes o que separa o
+   título dos itens dele e um item do outro. Assim cada título se lê junto da lista que nomeia, e
+   não solto entre duas. */
 .legenda {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--e-4) var(--e-5);
-  padding: 0 var(--e-4) var(--e-4);
+  gap: var(--e-6) var(--e-5);
+  padding: 0 var(--e-4) var(--e-5);
 }
 .legenda section:last-child {
   grid-column: 1 / -1;

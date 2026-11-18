@@ -81,6 +81,18 @@ describe('a árvore como mapa', () => {
     expect(pagina).toContain('const integrantes = todos.filter((i) => !naoVe.has(i.id));');
   });
 
+  it('na legenda, os grupos ficam mais longe uns dos outros do que o título dos próprios itens (proximidade)', () => {
+    // Pedido do Gui (18/11/2026): com quase o mesmo espaço antes e depois, o título ficava solto
+    // entre duas listas. Os tokens de espaço crescem com o número: --e-6 é quatro vezes --e-2.
+    const passo = (regra: RegExp) => Number(regra.exec(arvore)![1]);
+    const entreGrupos = passo(/\.legenda \{[^}]*gap: var\(--e-(\d)\)/);
+    const doTitulo = passo(/\.legenda h2 \{\s*margin: 0 0 var\(--e-(\d)\);/);
+    const entreItens = passo(/\.legenda ul \{[^}]*gap: var\(--e-(\d)\);/);
+    expect(entreGrupos).toBeGreaterThanOrEqual(doTitulo + 3);
+    expect(entreGrupos).toBeGreaterThanOrEqual(entreItens + 3);
+    expect(doTitulo).toBeLessThanOrEqual(entreItens);
+  });
+
   it('a rota de conceito saiu quando a construção substituiu a página', () => {
     expect(existsSync(url('src/pages/conceito/mapa'))).toBe(false);
     expect(existsSync(url('src/visual/telas/mapa-conceito.css'))).toBe(false);

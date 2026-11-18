@@ -998,6 +998,7 @@ Decisão do Gui em 18/11/2026, depois de ver duas propostas montadas a partir do
 - **Onde fica:** o estilo do quadro em `src/visual/telas/mapa.css` (classe `.quadro` na página e `.pm` no painel), o comportamento em `src/lib/cliente/painel-do-mapa.ts`. A tela pede a janela inteira com `mapa` em `src/layouts/Visual.astro`.
 - **O painel** é um cartão branco pousado no mapa, com a sombra do bilhete e o raio da moldura: 20rem de largura na tela grande, 23rem na TV, e de margem a margem no celular, recolhido numa linha.
 - **Tela de mapa nova** (o círculo): usa `.quadro`, um `<aside class="pm" data-quadro>` com `pm__alto`, `pm__ficha`, `pm__corpo` e seções `pm__secao`, e a barra de baixo `mapa__zoom`.
+- **Proximidade** (pedido do Gui, 18/11/2026: "gestalt tem que sempre fazer parte do design"). O espaço diz o que pertence a quê: dentro de um grupo ele é pequeno, e entre grupos é bem maior. Um título fica colado no que ele nomeia e longe do grupo de cima. Na legenda, os grupos ficam a `--e-6` uns dos outros, e o título e os itens a `--e-2`. Vale para toda tela nova: antes de entregar, confira se algum título ficou com quase o mesmo espaço antes e depois.
 - **Capturas:** `docs/visual/quadro-do-mapa/`, em 390, 1280 e 1920 px.
 - **Falta conferir no aparelho:** no iPhone, se o Safari desenha a banda atrás das barras com o mapa encostado no pé da tela; e, numa TV de verdade, o painel e a busca com o controle.
 
