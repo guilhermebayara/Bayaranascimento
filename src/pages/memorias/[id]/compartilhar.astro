@@ -3,14 +3,18 @@
 // Só gera quem vê a memória publicada. Se ela é só de algumas famílias, o aviso vem antes, e a imagem só
 // aparece depois de a pessoa confirmar (?confirmado=1, que funciona sem script). A imagem é desenhada no
 // navegador, sem passar pelo servidor.
+//
+// O espaço de personalizar (proposta A do conceito da sessão J, escolha do Gui de 18/11/2026): a imagem
+// num palco de tamanho fixo e uma bandeja com abas, um assunto por vez, num painel de altura fixa.
 import Pagina from '../../../components/formularios/Pagina.astro';
 import Segmentado from '../../../components/visual/Segmentado.astro';
-import { avisoAntesDeCompartilhar, escolhaDoNomeAparece, nomeNaImagem, trechoDoRelato, type NomesDeQuemAparece } from '../../../lib/compartilhar';
+import { CORES_DA_IMAGEM, abasDoEstudio, avisoAntesDeCompartilhar, nomeNaImagem, trechoDoRelato, type AbaDoEstudio, type NomesDeQuemAparece, type RelatoDaImagem } from '../../../lib/compartilhar';
 import type { DadosDaImagem } from '../../../lib/cliente/compartilhar';
-import { formatarData } from '../../../lib/datas';
-import { FONTES_DO_SITE } from '../../../lib/visual';
+import { formatarData, jaFaleceu } from '../../../lib/datas';
+import { enderecoDoRetrato } from '../../../lib/retratos';
+import { FONTES_DO_SITE, estiloDoTipo } from '../../../lib/visual';
 import { MONOGRAMAS } from '../../../visual/monograma';
-import { listarIntegrantes, listarMeusApelidos, listarNucleos, listarRelatos, obterMemoria } from '../../../lib/servidor/repositorio';
+import { listarIntegrantes, listarMeusApelidos, listarNucleos, listarRelatos, obterMemoria, pessoasQueONaoVe } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -21,36 +25,59 @@ const aviso = avisoAntesDeCompartilhar(
   memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n)),
 );
 const confirmado = !aviso || Astro.url.searchParams.get('confirmado') === '1';
-// O trecho: o relato de quem compartilha, se houver; senão, o primeiro relato publicado que ela vê
-const relatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situacao === 'publicada' && r.texto.trim());
-const relato = relatos.find((r) => r.por === usuario.pessoa) ?? relatos[0];
+// Os trechos: só de relato publicado que a pessoa vê. O dela vem primeiro, e é o padrão
+const publicados = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situacao === 'publicada' && r.texto.trim());
+const naOrdem = [...publicados.filter((r) => r.por === usuario.pessoa), ...publicados.filter((r) => r.por !== usuario.pessoa)];
 // Qual nome vai na imagem (decisão do Gui, 18/11/2026, depois da sessão H): o da família é o padrão,
 // porque o apelido próprio é privado e a imagem sai do acervo. `apelido` já viria trocado pelo de quem
 // olha (listarIntegrantes, nas páginas), então os dois nomes são lidos à parte, cada um da sua fonte.
 const integrantes = await listarIntegrantes();
 const meusApelidos = await listarMeusApelidos(usuario.pessoa);
+const naoVe = await pessoasQueONaoVe(usuario);
 const nomesDe = (id: string): NomesDeQuemAparece => {
   const i = integrantes.find((x) => x.id === id);
   return { nome: i?.nome ?? '', apelidoDaFamilia: i?.apelidoDaFamilia ?? null, meuApelido: meusApelidos.get(id) ?? null };
 };
-// Quem aparece na imagem: hoje, só quem contou o trecho
-const quemAparece = relato ? [nomesDe(relato.por)] : [];
-const escolheONome = escolhaDoNomeAparece(quemAparece);
-const principal = memoria.fotos.find((f) => f.principal) ?? memoria.fotos[0];
+const relatos: RelatoDaImagem[] = naOrdem.map((r) => {
+  const quem = integrantes.find((i) => i.id === r.por);
+  const daFamilia = nomeNaImagem(nomesDe(r.por), 'familia');
+  const meu = nomeNaImagem(nomesDe(r.por), 'meu');
+  return {
+    autor: daFamilia,
+    // O seu apelido só vai para a página quando muda algo
+    comOSeuApelido: meu !== daFamilia ? meu : null,
+    trecho: trechoDoRelato(r.texto),
+    // O retrato de quem contou, só de quem a pessoa vê
+    retrato: quem?.retrato && !naoVe.has(r.por) ? enderecoDoRetrato(quem.retrato) : null,
+    faleceu: Boolean(quem && jaFaleceu(quem)),
+  };
+});
+// A foto principal primeiro: é o padrão
+const fotos = [...memoria.fotos.filter((f) => f.principal), ...memoria.fotos.filter((f) => !f.principal)].map((f) => `/fotos/${f.chave}`);
 const dados: DadosDaImagem | null = confirmado
   ? {
       titulo: memoria.titulo,
       data: formatarData(memoria),
       lugar: memoria.lugar,
-      foto: principal ? `/fotos/${principal.chave}` : null,
-      trecho: relato ? trechoDoRelato(relato.texto) : null,
-      autorDoTrecho: relato ? nomeNaImagem(nomesDe(relato.por), 'familia') : null,
-      // Com o seu apelido, só quando a escolha muda algo; até a pessoa escolher, nada dele vai para a imagem
-      comOSeuApelido: escolheONome && relato ? { autorDoTrecho: nomeNaImagem(nomesDe(relato.por), 'meu') } : null,
+      fotos,
+      relatos,
       // O M da serifa em uso, como marca d'água leve (a assinatura com o nome do site saiu, 18/11/2026)
       monograma: MONOGRAMAS[FONTES_DO_SITE.serifa].normal,
     }
   : null;
+const abas = abasDoEstudio(relatos, fotos.length);
+const NOMES_DAS_ABAS: Record<AbaDoEstudio, string> = { nome: 'Nome', cores: 'Cores', foto: 'Foto', relato: 'Relato' };
+// As amostras de cor carregam os tokens de cada esquema: o script lê delas as cores da imagem
+const esquemas = CORES_DA_IMAGEM.filter((c) => c.id !== 'momento' || memoria.tipo).map((c) => ({
+  ...c,
+  estilo:
+    c.id === 'papel'
+      ? '--amostra-papel: var(--papel); --amostra-vivo: var(--vivo)'
+      : c.id === 'familia'
+        ? '--amostra-papel: var(--pastel); --amostra-vivo: var(--vivo)'
+        : `${estiloDoTipo(memoria.tipo)}; --amostra-papel: var(--tipo-pastel); --amostra-vivo: var(--tipo-cor)`,
+}));
+const primeiro = relatos[0];
 ---
 
 <Pagina titulo="Compartilhar como imagem" aba={`Compartilhar ${memoria.titulo}`} rotulo="Memória" nucleos={memoria.nucleos} secao="explorar">
@@ -75,44 +102,99 @@ const dados: DadosDaImagem | null = confirmado
         </p>
       </section>
     ) : (
-      <section class="compartilhar" data-compartilhar-raiz>
-        <p class="dica" data-estado>
-          Montando a imagem…
-        </p>
-        <noscript>
-          <p class="dica">Para montar a imagem, o navegador precisa estar com o JavaScript ligado.</p>
-        </noscript>
-        {/* Qual nome usar: só aparece quando muda algo. O seletor troca a imagem no lugar */}
-        {escolheONome && (
-          <div class="campo nome-na-imagem" data-nome-na-imagem>
-            <span id="rotulo-nome-na-imagem">Qual nome usar?</span>
-            <Segmentado
-              rotulo="Qual nome usar na imagem"
-              nome="nomeNaImagem"
-              explicacao="frase-nome-na-imagem"
-              opcoes={[
-                { valor: 'familia', texto: 'O da família', atual: true },
-                { valor: 'meu', texto: 'O seu apelido' },
-              ]}
-            />
-            <p class="nome-na-imagem__frase" id="frase-nome-na-imagem" aria-live="polite">
-              <span data-frase-do-nome="familia">Como a família toda conhece: {dados?.autorDoTrecho}.</span>
-              <span data-frase-do-nome="meu" hidden>
-                Como você chama: {dados?.comOSeuApelido?.autorDoTrecho}. Quem receber a imagem vai ver o seu apelido.
-              </span>
-            </p>
+      <section class="compartilhar estudio" data-compartilhar-raiz>
+        <div class="estudio__palco">
+          <p class="dica" data-estado>
+            Montando a imagem…
+          </p>
+          <noscript>
+            <p class="dica">Para montar a imagem, o navegador precisa estar com o JavaScript ligado.</p>
+          </noscript>
+          <canvas hidden />
+          <img class="compartilhar__previa" data-previa alt={`A imagem de “${memoria.titulo}” para compartilhar`} hidden />
+        </div>
+        <div class="estudio__lado">
+          <div class="bandeja" data-bandeja>
+            <h2 class="bandeja__titulo">Personalizar</h2>
+            {abas.length > 1 && <Segmentado rotulo="O que personalizar" nome="abaDaImagem" opcoes={abas.map((a, i) => ({ valor: a, texto: NOMES_DAS_ABAS[a], atual: i === 0 }))} />}
+            {abas.includes('nome') && (
+              <fieldset class="opcoes-da-imagem bandeja__painel" data-painel="nome" hidden={abas[0] !== 'nome'}>
+                <legend class="so-leitor">Qual nome usar na imagem</legend>
+                <label class="opcao-da-imagem">
+                  <input type="radio" name="nomeNaImagem" value="familia" checked />
+                  <span>
+                    <strong>O da família</strong>
+                    <span class="mao" data-nome-da-familia>
+                      {primeiro?.autor}
+                    </span>
+                    <small>Como a família toda conhece.</small>
+                  </span>
+                </label>
+                <label class="opcao-da-imagem">
+                  <input type="radio" name="nomeNaImagem" value="meu" disabled={!primeiro?.comOSeuApelido} />
+                  <span>
+                    <strong>O seu apelido</strong>
+                    <span class="mao" data-nome-meu>
+                      {primeiro?.comOSeuApelido ?? primeiro?.autor}
+                    </span>
+                    <small>Quem receber a imagem vai ver.</small>
+                  </span>
+                </label>
+                <label class="marcar-na-imagem" data-em-memoria hidden={!(primeiro?.faleceu && primeiro.retrato)}>
+                  <input type="checkbox" name="emMemoria" />
+                  <span>Mostrar “em memória”, com a foto em tom suave</span>
+                </label>
+              </fieldset>
+            )}
+            <fieldset class="opcoes-da-imagem opcoes-da-imagem--lado bandeja__painel" data-painel="cores" hidden={abas[0] !== 'cores'}>
+              <legend class="so-leitor">As cores da imagem</legend>
+              {esquemas.map((e, i) => (
+                <label class="opcao-da-imagem">
+                  <input type="radio" name="coresDaImagem" value={e.id} checked={i === 0} />
+                  <span data-esquema={e.id} style={e.estilo}>
+                    <span class="opcao-da-imagem__cor" />
+                    <strong>{e.nome}</strong>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            {abas.includes('foto') && (
+              <fieldset class="opcoes-da-imagem opcoes-da-imagem--lado bandeja__painel" data-painel="foto" hidden>
+                <legend class="so-leitor">Qual foto vai na imagem</legend>
+                {fotos.map((f, i) => (
+                  <label class="opcao-da-imagem opcao-da-imagem--foto">
+                    <input type="radio" name="fotoDaImagem" value={i} checked={i === 0} aria-label={`Foto ${i + 1} de ${fotos.length}`} />
+                    <span>
+                      <img class="opcao-da-imagem__foto" src={f} alt="" loading="lazy" />
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            {abas.includes('relato') && (
+              <fieldset class="opcoes-da-imagem bandeja__painel" data-painel="relato" hidden>
+                <legend class="so-leitor">Qual relato vai na imagem</legend>
+                {relatos.map((r, i) => (
+                  <label class="opcao-da-imagem">
+                    <input type="radio" name="relatoDaImagem" value={i} checked={i === 0} />
+                    <span>
+                      <strong>{r.autor}</strong>
+                      <small>{r.trecho}</small>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
           </div>
-        )}
-        <canvas hidden />
-        <img class="compartilhar__previa" data-previa alt={`A imagem de “${memoria.titulo}” para compartilhar`} hidden />
-        <p class="acoes">
-          <button class="botao" type="button" data-compartilhar hidden>
-            Compartilhar
-          </button>
-          <a class="acao" data-baixar hidden>
-            Baixar a imagem
-          </a>
-        </p>
+          <p class="acoes">
+            <button class="botao" type="button" data-compartilhar hidden>
+              Compartilhar
+            </button>
+            <a class="acao" data-baixar hidden>
+              Baixar a imagem
+            </a>
+          </p>
+        </div>
         <script type="application/json" id="dados-da-imagem" set:html={JSON.stringify(dados).replace(/</g, '\\u003c')} />
       </section>
     )
