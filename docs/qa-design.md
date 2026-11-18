@@ -1,6 +1,6 @@
 # QA de design
 
-Sessão do Claude Code aberta quando o Gui pedir, depois de uma rodada grande de telas. A primeira foi pedida em 17/11/2026, com o visual novo inteiro na `homologa`. O QA de UX anterior (`docs/qa-ux.md`) olhou fluxos e padrões com o visual ainda provisório; este olha tudo, agora com o visual de verdade.
+Sessão do Claude Code aberta quando o Gui pedir, depois de uma rodada grande de telas. A primeira foi pedida em 17/11/2026, com o visual novo inteiro na `homologa`; as perguntas e as respostas dela estão em `docs/historico/qa/`. O QA de UX anterior (`docs/qa-ux.md`) olhou fluxos e padrões com o visual ainda provisório; este olha tudo, agora com o visual de verdade.
 
 ## Para que serve
 
@@ -28,15 +28,15 @@ Como a árvore se desenha e se comporta é travado (ver "Árvore" no `CLAUDE.md`
 ## O que a sessão faz com cada achado
 
 - **Defeito** (quebrado, inacessível, diferente do combinado em `docs/visual.md` e `docs/decisoes.md`, texto fora das regras de escrita): corrige, com teste quando couber.
-- **Decisão** (todo o resto, inclusive "eu faria diferente"): não muda nada. Escreve como pergunta em `docs/qa/2026-11-17-perguntas.md`.
+- **Decisão** (todo o resto, inclusive "eu faria diferente"): não muda nada. Escreve como pergunta em `docs/qa/AAAA-MM-DD-perguntas.md`, com a data da rodada.
 
 ## O arquivo de perguntas
 
-Um arquivo só, `docs/qa/2026-11-17-perguntas.md`, feito para o Gui decidir rápido:
+Um arquivo só, `docs/qa/AAAA-MM-DD-perguntas.md`, feito para o Gui decidir rápido:
 
 - Agrupado por tela, na ordem do menu, e dentro de cada tela da mais importante para a menos.
 - Cada pergunta tem um número único (P1, P2...), uma marca de peso (**muda a experiência**, **ajuste**, **detalhe**), uma ou duas linhas de contexto, o que a sessão observou, e de duas a quatro opções, com a recomendada primeiro e a frase "manter como está" quando fizer sentido.
-- Quando ajuda, o nome da captura que mostra o ponto (em `docs/visual/qa-2026-11-17/`).
+- Quando ajuda, o nome da captura que mostra o ponto (em `docs/visual/qa-AAAA-MM-DD/`).
 - No começo do arquivo, um resumo: quantas perguntas por peso e por tela, e as cinco que mais mudam a experiência.
 - As perguntas que ficaram abertas nos PRs #39 (dez) e #40 (sete) entram no mesmo arquivo, cada uma na sua tela, para o Gui responder tudo de uma vez.
 

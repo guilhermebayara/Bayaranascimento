@@ -6,6 +6,8 @@ Acervo de memórias da família, em [memorias.bayara.com.br](https://memorias.ba
 
 - `CLAUDE.md`: regras de trabalho para as sessões do Claude, inclusive as de QA
 - `docs/decisoes.md`: as regras combinadas e o que ainda está em aberto
+- `docs/visual.md`: a direção visual, o sistema e a regra de cada tela
+- `docs/historico/`: como os dois documentos estavam até 17/11/2026, as rodadas de QA fechadas e o mapa da redução
 - `docs/publicar.md`: ambientes, configuração no Cloudflare e como rodar no computador
 - `src/lib/servidor/`: banco, regras de permissão e login
 - `src/pages/`: as páginas e as rotas de envio

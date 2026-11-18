@@ -2,7 +2,15 @@
 
 Instruções para qualquer sessão de trabalho neste repositório. O site é o acervo privado de memórias da família, presente de Natal de 2026 do Gui, da Giovanna e do Magno (Lucas Magno), que também cuidam do acervo. Até o Natal é surpresa: só os três usam e alimentam o acervo. O site é em português; o código, os comentários e as mensagens de commit também.
 
-Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto) e `docs/publicar.md` (ambientes e configuração no Cloudflare).
+Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto), `docs/visual.md` (a direção e o sistema visual) e `docs/publicar.md` (ambientes e configuração no Cloudflare).
+
+## Quem lê o quê
+
+`docs/decisoes.md` e `docs/visual.md` trazem só as regras em vigor. O processo, as datas, o que mudou no caminho e as rodadas de QA fechadas estão em `docs/historico/`: a cópia inteira dos dois documentos até 17/11/2026, as perguntas e respostas de QA (`historico/qa/`) e o QA de UX de antes da revisão visual (`historico/ux/`). Cada seção dos documentos enxutos termina com o link para o trecho do histórico de onde veio, e `docs/historico/mapa-da-reducao.md` diz para onde foi cada título antigo.
+
+- **Sessão de construção** lê os enxutos. Abre o histórico quando uma regra parecer incompleta, contraditória ou sem motivo, e antes de mudar algo que pode ter sido decisão do Gui.
+- **Sessão de QA** lê tudo, inclusive o histórico.
+- Decisão nova entra no enxuto, na seção do assunto, já como regra.
 
 ## Como o trabalho acontece
 
@@ -106,8 +114,8 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 
 - A direção visual foi definida em 16/11/2026 e está em `docs/visual.md`: claro, serifa macia nos títulos, pastéis com pontos saturados, foto como objeto e movimento discreto. A análise das referências está no Claude Doc linkado ali.
 - Movimento: a rolagem é sempre a do aparelho e nenhum efeito quebra um padrão de navegação conhecido. A família inclui gente com pouca familiaridade com sites.
-- A revisão visual é do zero ("Revisão do zero" em `docs/visual.md`). Na fase 3 todas as telas passaram para o visual novo, em quatro PRs empilhados para a `homologa`, e o estilo antigo (`src/styles/global.css`, `Base.astro`) foi apagado no último. Tela nova usa `src/layouts/Visual.astro` ou, se for formulário ou página de trabalho, `src/components/formularios/Pagina.astro`. Na `main`, o estilo antigo continua no ar até a revisão inteira ser levada para lá.
-- O sistema visual (fase 2) está em `src/visual/` e `src/components/visual/`, descrito em "Sistema (fase 2)" de `docs/visual.md`. A fonte do site é uma linha só: `FONTES_DO_SITE`, em `src/lib/visual.ts`. Tela nova usa as peças e os tokens que existem; valor solto de cor, fonte, raio ou largura de tela não passa em `testes/sistema.test.ts` e `testes/visual.test.ts`.
+- A revisão visual foi do zero (o relato das fases está no histórico, `docs/historico/visual-ate-2026-11-17.md`). Na fase 3 todas as telas passaram para o visual novo, em quatro PRs empilhados para a `homologa`, e o estilo antigo (`src/styles/global.css`, `Base.astro`) foi apagado no último. Tela nova usa `src/layouts/Visual.astro` ou, se for formulário ou página de trabalho, `src/components/formularios/Pagina.astro`. Na `main`, o estilo antigo continua no ar até a revisão inteira ser levada para lá.
+- O sistema visual (fase 2) está em `src/visual/` e `src/components/visual/`, descrito em "Sistema" de `docs/visual.md`. A fonte do site é uma linha só: `FONTES_DO_SITE`, em `src/lib/visual.ts`. Tela nova usa as peças e os tokens que existem; valor solto de cor, fonte, raio ou largura de tela não passa em `testes/sistema.test.ts` e `testes/visual.test.ts`.
 - O monograma e os ícones do site são gerados por `npm run monograma` e ficam versionados. Só rode de novo se uma serifa mudar.
 - Celular primeiro, desktop de destaque: cada tela nasce em 390 px e ganha composição própria na tela grande, pensada para ver na TV (até 1920 px).
 - Toda mudança visual é conferida em 390, 1280 e 1920 px, por teclado, e com movimento reduzido.
@@ -125,7 +133,7 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 
 ## Sessões de QA
 
-Vale para sessões abertas só para conferir o site. As regras acima continuam valendo inteiras; esta seção diz o que muda quando o trabalho é QA.
+Vale para sessões abertas só para conferir o site. As regras acima continuam valendo inteiras; esta seção diz o que muda quando o trabalho é QA. A sessão de QA lê tudo, inclusive `docs/historico/` (ver "Quem lê o quê").
 
 ### Os dois níveis de aprovação
 
