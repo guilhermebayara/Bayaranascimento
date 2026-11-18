@@ -270,3 +270,9 @@ button.acao--quieta {
     animation: none !important;
   }
 }
+
+/* Uma região que o script troca no lugar, sem recarregar (src/lib/cliente/no-lugar.ts). Não muda o
+   desenho: os filhos se arrumam como se ela não existisse. */
+.regiao {
+  display: contents;
+}

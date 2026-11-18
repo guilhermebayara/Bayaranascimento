@@ -32,6 +32,8 @@ const RESPOSTAS: Record<string, string> = { liberar: 'Você liberou.', manter: '
 const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
 ---
 
+{/* A região dos avisos fica sempre na página, para a resposta trocar a lista no lugar, sem recarregar */}
+<div class="regiao" data-regiao={`avisos-${onde}`}>
 {
   (avisos.length > 0 || onde === 'conta') && (
     <section class:list={['avisos', `avisos--${onde}`, onde === 'conta' && 'cartao']} aria-labelledby={`avisos-${onde}`} id={onde === 'conta' ? 'avisos' : undefined}>
@@ -49,7 +51,7 @@ const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
                 <span class="aviso__quando ficha suave">{quando(a)}</span>
               </a>
               {a.tipo === 'liberar-relato' && a.relato && (
-                <form class="aviso__resposta" method="post" action="/api/avisos">
+                <form class="aviso__resposta" method="post" action="/api/avisos" data-no-lugar={`avisos-${onde} retrato`}>
                   <input type="hidden" name="aviso" value={a.id} />
                   <input type="hidden" name="volta" value={volta} />
                   <button type="submit" class="acao" name="resposta" value="liberar">
@@ -85,3 +87,4 @@ const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
     </section>
   )
 }
+</div>

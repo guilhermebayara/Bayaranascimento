@@ -39,6 +39,8 @@ const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>)
     <p>Só quem mandou e quem recebeu veem cada sugestão.</p>
   </Fragment>
 
+  {/* As respostas acontecem no lugar, sem recarregar: a lista inteira é uma região */}
+  <div class="regiao" data-regiao="sugestoes">
   {sugestoes.length === 0 && <Vazio frase="Nenhuma sugestão para você nesta memória." />}
 
   {
@@ -69,7 +71,7 @@ const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>)
               )}
               {s.resposta && s.respondidaPor === usuario.pessoa && <p class="dica">Sua resposta: {s.resposta}</p>}
               {s.situacao === 'aberta' && (
-                <form class="formulario sugestoes__responder" method="post" action="/api/sugestoes">
+                <form class="formulario sugestoes__responder" method="post" action="/api/sugestoes" data-no-lugar="sugestoes retrato">
                   <input type="hidden" name="memoria" value={memoria.id} />
                   <input type="hidden" name="sugestao" value={s.id} />
                   <label class="campo">
@@ -132,4 +134,5 @@ const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>)
       </section>
     )
   }
+  </div>
 </Pagina>

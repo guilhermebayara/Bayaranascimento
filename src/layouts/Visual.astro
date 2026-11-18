@@ -200,7 +200,7 @@ const telas = [
           desde que saiu de Pessoas (decisão do Gui, 17/11/2026). */}
       <div class="topo__conta" data-atual={secao === 'conta' || secao === 'circulo' ? '' : undefined}>
         <details class="conta-menu">
-          <summary aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes, pendenciasDaAdministracao)}>
+          <summary aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes, pendenciasDaAdministracao)} data-regiao="retrato">
             <span class="topo__retrato">
               <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
               {numeroDeAvisos && (
@@ -271,6 +271,9 @@ const telas = [
     {
       !palco && (
         <script>
+          import { ligarNoLugar } from '../lib/cliente/no-lugar';
+          // Os formulários do dia a dia que mudam a tela no lugar, sem recarregar (data-no-lugar)
+          ligarNoLugar();
           // O menu do celular fecha com Esc e com o toque fora dele (P9 do QA de design, 17/11/2026).
           // Sem script, continua fechando só pelo "Menu".
           // O menu da conta, no retrato, segue o mesmo jeito; abrir um fecha o outro.

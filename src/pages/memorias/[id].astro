@@ -266,10 +266,12 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
       </aside>
 
       <div class="corpo__conteudo">
+        {/* "Quem estava" e a oferta de entrar nele: uma região, para entrar acontecer no lugar */}
+        <div class="regiao" data-regiao="quem-estava">
         {
           // Depois de "eu estava lá" numa memória em que não está: um toque para entrar em Quem estava
           podeEntrarEmQuemEstava && (
-            <form class="entrar-em-quem-estava" method="post" action="/api/reacoes" data-entrar-em-quem-estava hidden={!ofereceQuemEstava}>
+            <form class="entrar-em-quem-estava" method="post" action="/api/reacoes" data-entrar-em-quem-estava hidden={!ofereceQuemEstava} data-no-lugar="quem-estava">
               <input type="hidden" name="acao" value="entrar" />
               <input type="hidden" name="memoria" value={memoria.id} />
               <span>Você disse que estava lá. Quer entrar em Quem estava?</span>
@@ -317,6 +319,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
             </section>
           )
         }
+        </div>
 
         {
           relatos.length > 0 && !relatoSoNaAbertura && (
@@ -332,7 +335,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                       <h3 class="so-leitor">Contado por {nome(relato.por)}</h3>
                       {relato.situacao === 'rascunho' && <p class="selo bilhete__selo">Rascunho, só você vê</p>}
                       {relato.soParaNucleos && relato.registradoPor === usuario.pessoa && (
-                        <form class="bilhete__espera" method="post" action="/api/avisos">
+                        <form class="bilhete__espera" method="post" action="/api/avisos" data-regiao={`liberar-${relato.id}`} data-no-lugar={`liberar-${relato.id} retrato`}>
                           <input type="hidden" name="relato" value={relato.id} />
                           <input type="hidden" name="resposta" value="liberar" />
                           <input type="hidden" name="volta" value={`/memorias/${memoria.id}#relato-${relato.id}`} />
