@@ -2,7 +2,7 @@
 // dá o próprio apelido a alguém, e só ela vê, no site inteiro. Sem apelido próprio, vale o da família.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { LIMITE_DO_APELIDO, lerApelido, podeDarApelido } from '../src/lib/apelidos';
+import { LIMITE_DO_APELIDO, apelidoSoSeuDaFicha, apelidosDaFicha, lerApelido, podeDarApelido, quemVeOApelido } from '../src/lib/apelidos';
 import { TABELAS_APAGADAS } from '../src/lib/espelho';
 
 const ler = (c: string) => readFileSync(c, 'utf8');
@@ -46,5 +46,63 @@ describe('como você chama, só seu', () => {
     const rota = ler('src/pages/api/apelidos.ts');
     expect(rota).toContain('if (!mesmaOrigem(request))');
     expect(rota).toContain('if (!podeDarApelido(usuario.pessoa, pessoa, ve))');
+  });
+});
+
+// Apelidos na edição da pessoa (decisão do Gui, 18/11/2026, depois da sessão H): o campo do apelido deixa de
+// ficar sempre aberto; "Adicionar apelido" pergunta se é o da família ou só seu.
+describe('apelidos na ficha', () => {
+  it('quem já tem apelido aparece com ele; o que falta entra por "Adicionar apelido"', () => {
+    expect(apelidosDaFicha({ familia: '', meu: '', propria: false })).toEqual({ tipos: ['familia', 'meu'], existentes: [], faltam: ['familia', 'meu'], pergunta: true });
+    const comODaFamilia = apelidosDaFicha({ familia: 'Vó Bela', meu: null, propria: false });
+    expect(comODaFamilia.existentes).toEqual([{ deQuem: 'familia', apelido: 'Vó Bela' }]);
+    expect(comODaFamilia.faltam).toEqual(['meu']);
+    // Sobrou um só: "Adicionar apelido" não pergunta de quem é
+    expect(comODaFamilia.pergunta).toBe(false);
+    const comOsDois = apelidosDaFicha({ familia: 'Vó Bela', meu: 'Vovó', propria: false });
+    expect(comOsDois.existentes.map((e) => e.deQuem)).toEqual(['familia', 'meu']);
+    expect(comOsDois.faltam).toEqual([]);
+    expect(apelidosDaFicha({ familia: '  ', meu: undefined, propria: false }).existentes).toEqual([]);
+  });
+  it('na própria ficha não há apelido só seu', () => {
+    const propria = apelidosDaFicha({ familia: '', meu: 'Eu mesmo', propria: true });
+    expect(propria.tipos).toEqual(['familia']);
+    expect(propria.existentes).toEqual([]);
+    expect(propria.faltam).toEqual(['familia']);
+    expect(propria.pergunta).toBe(false);
+  });
+  it('a frase colada na escolha diz quem vê', () => {
+    expect(quemVeOApelido('familia', 'Elizete')).toBe('Um apelido que a família toda vê.');
+    expect(quemVeOApelido('meu', 'Elizete')).toBe('Só você vê. No site inteiro, para você, Elizete aparece assim.');
+    expect(quemVeOApelido('meu', null)).toContain('a pessoa aparece assim');
+  });
+  it('o apelido só seu que vem com a ficha: gravado à parte, nunca para si mesmo', () => {
+    expect(apelidoSoSeuDaFicha('  Tia  Zete ', 'gui', 'elizete')).toEqual({ ok: true, guardar: true, apelido: 'Tia Zete' });
+    expect(apelidoSoSeuDaFicha('', 'gui', 'elizete')).toEqual({ ok: true, guardar: true, apelido: null });
+    // Sem o campo (a própria ficha, ou um envio antigo), nada muda
+    expect(apelidoSoSeuDaFicha(null, 'gui', 'elizete')).toEqual({ ok: true, guardar: false, apelido: null });
+    expect(apelidoSoSeuDaFicha('Eu', 'gui', 'gui')).toEqual({ ok: true, guardar: false, apelido: null });
+    expect(apelidoSoSeuDaFicha('x'.repeat(LIMITE_DO_APELIDO + 1), 'gui', 'elizete').ok).toBe(false);
+  });
+  it('a ficha usa o seletor segmentado com a frase colada, e sem script os campos continuam', () => {
+    const ficha = ler('src/components/FichaDoIntegrante.astro');
+    expect(ficha).toContain('nome="apelidoDeQuem"');
+    expect(ficha).toContain('explicacao="frase-do-apelido"');
+    expect(ficha).toContain("{ valor: 'familia', texto: 'A família toda', atual: true }");
+    expect(ficha).toContain("{ valor: 'meu', texto: 'Só eu' }");
+    expect(ficha).toContain('Adicionar apelido');
+    // Os campos de sempre vão com a ficha; escondidos com script, à vista sem ele (data-depende, no noscript)
+    expect(ficha).toMatch(/<label class="campo apelidos__campo" data-apelido-campo=\{t\} data-depende="apelido" hidden>/);
+    expect(ficha).toContain("name={t === 'familia' ? 'apelido' : 'meuApelido'}");
+    // A linha do apelido que já existe e o "Adicionar" são só com script
+    expect(ficha).toContain('<ul class="apelidos__lista" data-so-com-script>');
+    expect(ficha).toContain('data-apelido-adicionar data-so-com-script');
+    expect(ler('src/components/formularios/Pagina.astro')).toContain('[data-depende][hidden] { display: block !important; }');
+  });
+  it('a rota da ficha grava o apelido só seu à parte, para quem deu', () => {
+    const rota = ler('src/pages/api/integrantes.ts');
+    expect(rota).toContain("apelidoSoSeuDaFicha(dados.get('meuApelido'), usuario.pessoa, id || '(nova)')");
+    expect(rota).toContain('await guardarMeuApelido(usuario.pessoa, id, meuApelido.apelido);');
+    expect(rota).toContain('await guardarMeuApelido(usuario.pessoa, novoId, meuApelido.apelido);');
   });
 });

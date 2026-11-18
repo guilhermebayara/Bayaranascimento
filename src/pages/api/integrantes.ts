@@ -6,7 +6,8 @@ import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http
 import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { podeEditarIntegrante, podeMudarRetrato, type Usuario } from '../../lib/servidor/permissoes';
 import { LIMITE_DO_RETRATO, PASTA_DOS_RETRATOS, formatoDoRetrato } from '../../lib/retratos';
-import { atualizarIntegrante, criarIntegranteCompleto, registrarRetratoEnviado, definirParentes, listarIntegrantes, listarIntegrantesQueVe, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
+import { apelidoSoSeuDaFicha } from '../../lib/apelidos';
+import { atualizarIntegrante, criarIntegranteCompleto, registrarRetratoEnviado, definirParentes, guardarMeuApelido, listarIntegrantes, listarIntegrantesQueVe, listarMeusApelidos, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
 
 function lerData(dados: FormData, prefixo: string, rotulo: string): { ano?: number; mes?: number; dia?: number; erro?: string } {
   const ano = campoNumero(dados, `${prefixo}Ano`);
@@ -83,6 +84,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     sobre: arrumarTexto(campo(dados, 'sobre', 5000)) || undefined,
   };
 
+  // O apelido só seu (decisão do Gui, 18/11/2026; src/lib/apelidos.ts): vem com a ficha, pelo "Adicionar
+  // apelido", e é gravado à parte, só para quem deu. Na própria ficha ele não vale: ninguém se dá apelido.
+  const meuApelido = apelidoSoSeuDaFicha(dados.get('meuApelido'), usuario.pessoa, id || '(nova)');
+  if (!meuApelido.ok) return voltar(request, origem, { erro: meuApelido.motivo });
+
   // Foto de retrato: "Trocar foto" manda o arquivo recortado; "Tirar foto" manda tirarRetrato
   const retrato = await lerRetrato(dados);
   if (retrato.erro) return voltar(request, origem, { erro: retrato.erro });
@@ -106,6 +112,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ficha.retrato = retrato.bytes ? await guardarRetrato(retrato as Required<typeof retrato>, id, usuario) : null;
     }
     await atualizarIntegrante(anterior, ficha, usuario);
+    // Quem chegou à ficha vê a pessoa (anterior saiu de listarIntegrantesQueVe): pode dar apelido a ela
+    if (meuApelido.guardar && ((await listarMeusApelidos(usuario.pessoa)).get(id) ?? null) !== meuApelido.apelido) {
+      await guardarMeuApelido(usuario.pessoa, id, meuApelido.apelido);
+    }
     // Família: só as de parente. Quem é membro (acessa o site) continua como está.
     if (dados.has('parenteDe') || anterior.parenteDe.length) {
       const nucleos = new Set((await listarNucleos()).map((n) => n.id));
@@ -128,5 +138,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Quem cadastra pode editar a página, então pode pôr o retrato
   if (retrato.bytes) ficha.retrato = await guardarRetrato(retrato as Required<typeof retrato>, novoId, usuario);
   await criarIntegranteCompleto(novoId, ficha, usuario);
+  if (meuApelido.guardar && meuApelido.apelido) await guardarMeuApelido(usuario.pessoa, novoId, meuApelido.apelido);
   return voltar(request, `/pessoas/${novoId}/editar?novo=1`, { ok: `${nome} entrou no acervo. Agora, os laços.` });
 };
