@@ -1,0 +1,278 @@
+/*
+ * O quadro do mapa (docs/decisoes.md, "Página da árvore como mapa"; proposta A, escolhida pelo Gui
+ * em 17/11/2026 a partir do conceito dele no Figma). O mapa ocupa a janela inteira abaixo do menu,
+ * e um painel flutuante reúne o título, a ficha de quem foi tocado, a busca, os ajustes e a
+ * legenda, em seções que abrem uma por vez. No celular o painel é um cartão no alto do mapa,
+ * recolhido numa linha. A árvore e o círculo usam o mesmo quadro: aqui fica só o que é dos dois.
+ * O comportamento é de src/lib/cliente/painel-do-mapa.ts.
+ */
+
+/* --- O quadro: o mapa pega toda a altura que sobra ---------------------------------------------- */
+
+.quadro {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+.quadro .mapa {
+  /* A altura do painel, medida por src/lib/cliente/painel-do-mapa.ts. Sem script, vale esta. */
+  --pm-altura: 6rem;
+}
+
+/* --- O painel ----------------------------------------------------------------------------------- */
+
+.pm {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  font-size: var(--t-pequeno);
+  cursor: default;
+  user-select: auto;
+}
+.pm__alto {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4);
+  padding-inline: var(--e-4);
+}
+.pm__alto h1 {
+  margin: 0;
+  padding-block: var(--e-2);
+  font-size: var(--t-titulo-3);
+  line-height: 1.05;
+}
+/* O botão que abre o painel no celular: o texto e o mais que vira xis, como nas seções */
+.pm__abre,
+.pm__secao summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-3);
+  min-height: var(--toque);
+  font-weight: 550;
+  cursor: pointer;
+}
+.pm__abre {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  font-weight: 550;
+}
+.pm__abre::after,
+.pm__secao summary::after {
+  content: '';
+  flex: none;
+  width: 0.7em;
+  height: 0.7em;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  transition: rotate var(--tempo-medio) var(--curva);
+}
+.pm__abre[aria-expanded='true']::after,
+.pm__secao[open] summary::after {
+  rotate: 45deg;
+}
+.pm__abre:focus-visible,
+.pm__secao summary:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: -3px;
+}
+/* A ficha de quem foi tocado: o retrato, o nome, o parentesco e, embaixo, as duas ações.
+   Quem a preenche é src/lib/cliente/arvore.ts. */
+.pm__ficha {
+  display: grid;
+  flex: none;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 var(--e-3);
+  padding: var(--e-2) var(--e-1) var(--e-1) var(--e-4);
+  border-top: 1px solid var(--fio);
+}
+.pm__ficha:empty {
+  display: none;
+}
+.pm__ficha .retrato {
+  grid-area: 1 / 1 / 3 / 2;
+  width: 3rem;
+  background: var(--retrato-cor, var(--papel-recuo));
+  font-size: 1.125rem;
+}
+.pm__ficha strong {
+  grid-area: 1 / 2;
+  align-self: end;
+  overflow: hidden;
+  font-family: var(--serifa);
+  font-size: var(--t-titulo-3);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pm__ficha .mapa__foco-quem {
+  grid-area: 2 / 2;
+  align-self: start;
+  font-size: var(--t-ficha);
+}
+.pm__ficha a,
+.pm__ficha button {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--toque);
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  font-weight: 550;
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.3em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pm__ficha a:focus-visible,
+.pm__ficha button:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+.pm__ficha .mapa__foco-fechar {
+  grid-area: 1 / 3 / 3 / 4;
+  align-self: start;
+  justify-content: center;
+  border-radius: var(--raio-moldura);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+  text-decoration: none;
+}
+/* As duas ações na mesma linha: "Ver a página" à esquerda e a outra, mais quieta, à direita */
+.pm__ficha a,
+.pm__ficha [data-partir] {
+  grid-row: 3;
+  grid-column: 1 / -1;
+}
+.pm__ficha a {
+  justify-self: start;
+}
+.pm__ficha [data-partir] {
+  display: block;
+  justify-self: end;
+  max-width: calc(100% - 8rem);
+  margin-right: var(--e-3);
+  overflow: hidden;
+  color: var(--tinta-suave);
+  font-weight: 400;
+  text-overflow: ellipsis;
+}
+.pm__ficha button[hidden] {
+  display: none;
+}
+@media (hover: hover) {
+  .pm__ficha .mapa__foco-fechar:hover {
+    background: var(--papel-recuo);
+  }
+}
+
+/* O corpo: a busca, as seções que abrem e fecham e o pé. No celular só aparece com o painel aberto. */
+.pm__corpo {
+  display: none;
+  min-height: 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--fio);
+}
+.pm[data-aberto] .pm__corpo {
+  display: block;
+}
+.pm__busca {
+  padding: var(--e-3) var(--e-4) var(--e-4);
+}
+.pm__secao {
+  border-top: 1px solid var(--fio);
+}
+.pm__secao summary {
+  padding-inline: var(--e-4);
+  list-style: none;
+}
+.pm__secao summary::-webkit-details-marker {
+  display: none;
+}
+.pm__secao form {
+  display: grid;
+  gap: var(--e-4);
+  padding: var(--e-2) var(--e-4) var(--e-4);
+}
+.pm .arvore__camadas {
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--e-4);
+}
+.pm .arvore__camadas legend {
+  grid-column: 1 / -1;
+}
+.pm__secao form:has(select[name='nucleo'] option[value='']:checked) .marcar:has(input[name='outros']) {
+  display: none;
+}
+.pm .legenda {
+  padding-top: var(--e-2);
+}
+.pm__pe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-4);
+  margin: 0;
+  padding: 0 var(--e-4);
+  border-top: 1px solid var(--fio);
+  color: var(--tinta-suave);
+}
+
+/* No celular: um cartão no alto do mapa, de margem a margem */
+.pm {
+  top: var(--e-3);
+  left: var(--margem);
+  right: var(--margem);
+  max-height: calc(100% - 2 * var(--e-3));
+  border-radius: var(--raio-moldura);
+}
+
+@media (min-width: 40rem) {
+  /* Na tela grande: o cartão flutuante, no alto, à esquerda. O corpo está sempre à vista. */
+  .pm {
+    top: var(--e-4);
+    right: auto;
+    width: 20rem;
+    max-height: calc(100% - 2 * var(--e-4));
+    overflow-y: auto;
+  }
+  .pm__abre {
+    display: none;
+  }
+  .pm__corpo {
+    display: block;
+    overflow: visible;
+  }
+  .pm__alto h1 {
+    padding-block: var(--e-3) var(--e-2);
+    font-size: var(--t-titulo-2);
+  }
+  .pm .arvore__camadas {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 100rem) {
+  /* Na TV o painel é mais largo, para o texto maior caber */
+  .pm {
+    width: 23rem;
+  }
+}

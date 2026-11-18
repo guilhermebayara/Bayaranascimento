@@ -1,6 +1,10 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, na árvore (P84 a P97 de
 // docs/qa/2026-11-17-perguntas.md). Só o que fica em volta do desenho: a ficha, a legenda, os
 // ajustes, a barra de baixo e o teclado. O arranjo e as linhas continuam em testes/arvore-*.test.ts.
+//
+// Com a página da árvore como mapa (proposta A, escolhida pelo Gui em 17/11/2026), a ficha, os
+// ajustes e a legenda passaram para o painel flutuante. O que mudou de lugar está marcado em cada
+// teste, e o quadro tem os testes dele em testes/mapa.test.ts.
 import { describe, expect, it } from 'vitest';
 
 // A leitura de arquivos segue o jeito de testes/visual.test.ts, que não pede os tipos do Node
@@ -12,6 +16,8 @@ const semComentario = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const pagina = ler('src/pages/arvore.astro');
 const cliente = ler('src/lib/cliente/arvore.ts');
 const css = semComentario(ler('src/visual/telas/arvore.css'));
+const quadro = semComentario(ler('src/visual/telas/mapa.css'));
+const painel = ler('src/lib/cliente/painel-do-mapa.ts');
 /** O CSS que vale no celular: o que vem antes da primeira regra de largura. */
 const celular = css.slice(0, css.indexOf('@media (min-width: 40rem)'));
 
@@ -21,7 +27,7 @@ describe('a ficha da árvore', () => {
     expect(ficha).toMatch(/let fichaAberta = false;/);
     expect(ficha).toMatch(/if \(!fichaAberta\) return ficha\.replaceChildren\(\);/);
     expect(cliente).toMatch(/const focar = \(id: string\) => \{\s*estado\.foco = id;\s*fichaAberta = true;/);
-    expect(css).toMatch(/\.mapa__foco:empty \{\s*display: none;/);
+    expect(quadro).toMatch(/\.pm__ficha:empty \{\s*display: none;/);
   });
   it('fecha no "×", no Esc e no toque no vazio (P84)', () => {
     expect(cliente).toMatch(/closest\('\[data-fechar-ficha\]'\)\) return fecharFicha\(\);/);
@@ -43,25 +49,36 @@ describe('a ficha da árvore', () => {
     expect(css).toMatch(/\.mapa__foco-quem span \+ span::before \{\s*content: ' · ';/);
     expect(css).toMatch(/\.mapa__foco-quem \{[^}]*text-transform: uppercase;/);
   });
-  it('no celular é uma linha, com a outra ação depois de "Mais", e sai com um ramo aberto (P86)', () => {
-    expect(celular).toMatch(/\.mapa__foco \[data-partir\] \{[^}]*display: none;/);
-    expect(celular).toMatch(/\.mapa__foco\[data-mais\] \[data-partir\] \{\s*display: inline-flex;/);
-    expect(ficha).toMatch(/mais\.setAttribute\('aria-expanded', 'false'\)/);
-    expect(celular).toMatch(/\.mapa:has\(\.ramo\) \.mapa__foco \{\s*display: none;/);
+  it('as duas ações ficam à vista no celular e na tela grande, sem "Mais" (P86, revisto com o painel)', () => {
+    expect(ficha).not.toMatch(/Mais|data-mais/);
+    expect(quadro).toMatch(/\.pm__ficha a,\s*\.pm__ficha \[data-partir\] \{\s*grid-row: 3;/);
+    expect(quadro).toMatch(/\.pm__ficha button\[hidden\] \{\s*display: none;/);
   });
-  it('no computador fica embaixo, no centro, com largura fixa (P85)', () => {
-    const computador = css.slice(css.indexOf('@media (min-width: 40rem)'), css.indexOf('@media (min-width: 62rem)'));
-    expect(computador).toMatch(/\.mapa__foco \{\s*left: 50%;[^}]*bottom: [^}]*width: 22rem;[^}]*translate: -50% 0;/);
-    expect(computador).not.toMatch(/\.mapa__foco \{[^}]*top:/);
+  it('fica dentro do painel, logo abaixo do título (P85, revisto com o painel)', () => {
+    const alto = pagina.indexOf('<header class="pm__alto">');
+    const lugar = pagina.indexOf('<div class="pm__ficha" data-ficha-do-foco aria-live="polite"></div>');
+    expect(alto).toBeGreaterThan(-1);
+    expect(lugar).toBeGreaterThan(alto);
+    expect(lugar).toBeLessThan(pagina.indexOf('<div class="pm__corpo"'));
+    expect(css).not.toMatch(/\.mapa__foco \{/);
   });
 });
 
 describe('a barra de baixo da árvore', () => {
   it('diz para quem a árvore volta e chama a vista inteira pelo nome (P95)', () => {
     expect(pagina).toContain('<button type="button" data-ir-ao-foco>Voltar para {chamar(usuario.pessoa)}</button>');
-    expect(pagina).toContain('<button type="button" data-ver-tudo>Ver a árvore inteira</button>');
     expect(cliente).toContain('irAoFoco.textContent = `Voltar para ${p.nome}`;');
-    expect(pagina).not.toMatch(/Ir ao foco|>Ver tudo</);
+    expect(pagina).not.toMatch(/Ir ao foco/);
+    // No celular o nome vem encurtado, para a barra caber numa linha (resposta do Gui, 17/11/2026).
+    // O nome por extenso continua valendo para o leitor de tela e na tela grande.
+    expect(pagina).toContain('<button type="button" data-ver-tudo aria-label="Ver a árvore inteira"><span class="longo">Ver a árvore inteira</span><span class="curto">Ver tudo</span></button>');
+  });
+  it('no celular cabe numa linha: o nome encurtado e o zoom sem a escala', () => {
+    expect(celular).not.toMatch(/\.mapa__zoom \{[^}]*flex-wrap/);
+    expect(celular).toMatch(/\.mapa__vista \.longo,\s*\.mapa__escala span \{\s*display: none;/);
+    const computador = css.slice(css.indexOf('@media (min-width: 40rem)'));
+    expect(computador).toMatch(/\.mapa__vista \.curto \{\s*display: none;/);
+    expect(computador).toMatch(/\.mapa__vista \.longo \{\s*display: inline;/);
   });
   it('o zoom continua indo até 400% (P94)', () => {
     expect(cliente).toMatch(/const ZOOM_MAX = 4;/);
@@ -70,16 +87,14 @@ describe('a barra de baixo da árvore', () => {
 });
 
 describe('a legenda da árvore', () => {
-  it('no celular abre pelo botão "Legenda" da barra de baixo, por cima do mapa (P87)', () => {
-    expect(pagina).toMatch(/<button type="button" class="mapa__abre-legenda" data-abrir-legenda aria-controls="legenda-da-arvore">Legenda<\/button>/);
-    expect(celular).toMatch(/\.mapa__legenda \{\s*display: none;/);
-    expect(celular).toMatch(/\.mapa__legenda\[open\] \{\s*display: block;/);
-    expect(pagina).toMatch(/abreLegenda\?\.addEventListener\('click', \(\) => \{\s*legenda\.open = true;/);
+  it('é uma seção do painel, no celular e na tela grande (P87, revisto com o painel)', () => {
+    expect(pagina).toMatch(/<details class="pm__secao" name="painel-do-mapa" data-legenda>\s*<summary>Legenda<\/summary>/);
+    expect(pagina).not.toMatch(/mapa__abre-legenda|data-abrir-legenda/);
   });
-  it('nasce fechada no HTML; no computador abre na primeira visita e lembra se foi fechada (P89)', () => {
-    expect(pagina).toMatch(/<details class="mapa__legenda" id="legenda-da-arvore" data-sobre-o-mapa data-legenda>/);
-    expect(pagina).toMatch(/if \(largo\.matches && guardado\(\) !== 'fechada'\) legenda\.open = true;/);
-    expect(pagina).toMatch(/localStorage\.setItem\(CHAVE, legenda\.open \? 'aberta' : 'fechada'\)/);
+  it('nasce fechada, e abrir uma seção do painel fecha a outra (P89, revisto com o painel)', () => {
+    expect(pagina).not.toMatch(/<details[^>]*\sopen/);
+    expect([...pagina.matchAll(/<details class="pm__secao" name="painel-do-mapa"/g)]).toHaveLength(2);
+    expect(pagina).not.toMatch(/localStorage/);
   });
   it('tem três grupos com título e tudo o que a árvore mostra (P90)', () => {
     const legenda = pagina.slice(pagina.indexOf('<div class="legenda">'), pagina.indexOf('</details>', pagina.indexOf('<div class="legenda">')));
@@ -94,9 +109,9 @@ describe('a legenda da árvore', () => {
 });
 
 describe('o alto e o pé da página da árvore', () => {
-  it('o texto do alto é uma frase só (P93)', () => {
-    expect(pagina).toMatch(/<p>Toque em alguém para ver quem é\.<\/p>/);
-    expect(pagina).not.toMatch(/Arraste para andar pela família\. Toque/);
+  it('o alto é só o título: a frase saiu (resposta do Gui, 17/11/2026, depois da P93)', () => {
+    expect(pagina).not.toMatch(/Toque em alguém para ver quem é/);
+    expect(pagina).toMatch(/<header class="pm__alto">\s*<h1 class="serifa">Árvore<\/h1>/);
   });
   it('"Cadastrar pessoa" tem o mesmo nome aqui e em Pessoas (P96)', () => {
     expect(pagina).toMatch(/href="\/pessoas\/nova">Cadastrar pessoa<\/a>/);
@@ -113,15 +128,15 @@ describe('"Ajustar a árvore"', () => {
     expect(pagina).toMatch(/centro\.value = '';\s*centro\.dispatchEvent\(new Event\('change', \{ bubbles: true \}\)\);/);
   });
   it('"Outras famílias" só aparece com uma família em destaque (P92)', () => {
-    expect(css).toMatch(/\.mapa__painel form:has\(select\[name='nucleo'\] option\[value=''\]:checked\) \.marcar:has\(input\[name='outros'\]\) \{\s*display: none;/);
+    expect(quadro).toMatch(/\.pm__secao form:has\(select\[name='nucleo'\] option\[value=''\]:checked\) \.marcar:has\(input\[name='outros'\]\) \{\s*display: none;/);
   });
-  it('no celular abre no pé do mapa, com as caixas em duas colunas, e a árvore é enquadrada acima (P92)', () => {
-    expect(celular).toMatch(/\.mapa__painel\[open\] \{[^}]*top: auto;\s*bottom: var\(--e-4\);/);
-    expect(celular).toMatch(/\.mapa__painel\[open\] \.arvore__camadas \{\s*grid-template-columns: 1fr 1fr;/);
-    expect(cliente).toMatch(/const altura = alturaLivre\(\);/);
+  it('no celular as caixas ficam em duas colunas, e a árvore é enquadrada no que sobra do painel (P92, revisto)', () => {
+    expect(quadro).toMatch(/\.pm \.arvore__camadas \{\s*grid-template-columns: 1fr 1fr;/);
+    expect(cliente).toMatch(/const verTudo = \(animado = true\) => \{\s*if \(!desenho\) return;\s*const livre = areaLivre\(\);/);
   });
-  it('Esc fecha os ajustes e a legenda, depois da lista de sugestões da busca (P92)', () => {
-    expect(pagina).toMatch(/for \(const caixa of \[painel, legenda\]\) \{\s*caixa\?\.addEventListener\('keydown', \(e\) => \{\s*if \(e\.key !== 'Escape' \|\| e\.defaultPrevented \|\| !caixa\.open\) return;/);
+  it('Esc fecha a seção aberta do painel, depois da lista de sugestões da busca (P92)', () => {
+    expect(painel).toMatch(/if \(e\.key !== 'Escape' \|\| e\.defaultPrevented\) return;/);
+    expect(painel).toMatch(/secao\.open = false;\s*secao\.querySelector<HTMLElement>\('summary'\)\?\.focus\(\);/);
   });
 });
 

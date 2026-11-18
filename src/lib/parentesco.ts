@@ -89,6 +89,12 @@ export interface Relacao {
   consideracao: boolean;
   /** as duas formas, quando a pessoa não tem "como se referir" informado */
   formas?: { ela: string; ele: string };
+  /**
+   * O caminho na árvore, passo a passo: U sobe a um dos pais, D desce a um filho, C passa por um
+   * casal e X por um ex-casal. "U" é mãe ou pai, "UD" é irmã ou irmão, "UUD" é tia ou tio.
+   * Serve ao círculo, que tira daí a faixa de quem não tem proximidade declarada.
+   */
+  caminho: string;
 }
 
 // [ela, ele, sem tratamento informado]
@@ -304,9 +310,10 @@ export class Familia {
     if (!formas) return undefined;
     const montar = (base: string) => prefixo + base + sufixo;
     const ehConsideracao = consideracao && sufixo !== '';
-    if (tratamento) return { texto: montar(forma(formas, tratamento)), consideracao: ehConsideracao };
+    const caminho = passos.map((p) => p.tipo).join('');
+    if (tratamento) return { texto: montar(forma(formas, tratamento)), consideracao: ehConsideracao, caminho };
     const [ela, ele] = formas;
-    return { texto: `${montar(ele)} ou ${montar(ela)}`, consideracao: ehConsideracao, formas: { ela: montar(ela), ele: montar(ele) } };
+    return { texto: `${montar(ele)} ou ${montar(ela)}`, consideracao: ehConsideracao, formas: { ela: montar(ela), ele: montar(ele) }, caminho };
   }
 }
 

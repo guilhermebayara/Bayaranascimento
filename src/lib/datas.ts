@@ -78,13 +78,16 @@ interface Vida {
   falecido?: boolean;
 }
 
-/** Anos de vida para listas e para a árvore: "1942 a 2019", "1942 a ?" (faleceu, sem data), "1994" ou vazio. */
+/** Já faleceu: está marcado assim, ou tem data de falecimento. */
+export const jaFaleceu = (v: Pick<Vida, 'falecido' | 'falecimentoAno'>): boolean => Boolean(v.falecido || v.falecimentoAno);
+
+/**
+ * O ano de nascimento, para listas e para a árvore: "1994" ou vazio. A data do falecimento, e o ano
+ * também, ficam ocultos em todo lugar (decisão do Gui, 17/11/2026): só aparecem na página da pessoa,
+ * para quem pedir em "Mostrar datas".
+ */
 export function anosDeVida(v: Vida): string {
-  if (v.nascimentoAno && v.falecimentoAno) return `${v.nascimentoAno} a ${v.falecimentoAno}`;
-  if (v.nascimentoAno && v.falecido) return `${v.nascimentoAno} a ?`;
-  if (v.nascimentoAno) return String(v.nascimentoAno);
-  if (v.falecimentoAno) return `até ${v.falecimentoAno}`;
-  return '';
+  return v.nascimentoAno ? String(v.nascimentoAno) : '';
 }
 
 /** Nascimento e falecimento por extenso, com o que se souber de cada data. */
@@ -101,10 +104,14 @@ export function datasDeVida(v: Vida): string[] {
  * Nascimento e falecimento sem rótulo, para o carimbo da página da pessoa (resposta do Gui ao QA de
  * design, 17/11/2026, P108): "1999", "4 de maio de 1942", "1942 a 2019", "1930 a ?" ou vazio.
  * Cada data entra com o que se souber dela.
+ *
+ * O falecimento só entra com `comFalecimento`, que a página liga quando a pessoa pede em "Mostrar
+ * datas" (decisão do Gui, 17/11/2026). Sem isso, só o nascimento.
  */
-export function vidaSemRotulo(v: Vida): string {
+export function vidaSemRotulo(v: Vida, comFalecimento = false): string {
   const data = (ano: number, mes?: number | null, dia?: number | null) => formatarData({ ano, mes: mes ?? null, dia: dia ?? null, aproximada: false });
   const nascimento = v.nascimentoAno ? data(v.nascimentoAno, v.nascimentoMes, v.nascimentoDia) : '';
+  if (!comFalecimento) return nascimento;
   const falecimento = v.falecimentoAno ? data(v.falecimentoAno, v.falecimentoMes, v.falecimentoDia) : v.falecido ? '?' : '';
   if (nascimento && falecimento) return `${nascimento} a ${falecimento}`;
   if (falecimento && falecimento !== '?') return `até ${falecimento}`;

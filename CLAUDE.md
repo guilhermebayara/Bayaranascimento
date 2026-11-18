@@ -111,6 +111,7 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 - O monograma e os ícones do site são gerados por `npm run monograma` e ficam versionados. Só rode de novo se uma serifa mudar.
 - Celular primeiro, desktop de destaque: cada tela nasce em 390 px e ganha composição própria na tela grande, pensada para ver na TV (até 1920 px).
 - Toda mudança visual é conferida em 390, 1280 e 1920 px, por teclado, e com movimento reduzido.
+- Proximidade (pedido do Gui, 18/11/2026): gestalt faz parte de todo desenho. O espaço entre grupos é bem maior que o espaço dentro de um grupo, e um título fica colado no que nomeia, nunca com quase o mesmo espaço antes e depois.
 
 ## Árvore
 

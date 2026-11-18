@@ -629,6 +629,30 @@ export const MIGRACOES: Migracao[] = [
     id: '025-relato-so-para-quem-via',
     sql: [`ALTER TABLE relatos ADD COLUMN so_para_nucleos TEXT`],
   },
+  {
+    // O círculo (decisão do Gui, 17/11/2026; contas em src/lib/circulo.ts). A proximidade passa a ser
+    // contínua e por dono, para qualquer pessoa que ele vê, da família ou do coração: de 0 (colado no
+    // centro) a 99 (a borda), e 100 é "Fora do círculo". O ângulo guarda o lugar de quem foi
+    // arrastado; vazio, o site espalha pela volta. Só o dono lê e escreve as linhas dele.
+    // - Os três níveis antigos do laço do coração (1, 2 e 3) entram no meio de cada faixa: 16, 50 e 83.
+    //   A coluna antiga continua em lacos_coracao, dizendo a faixa, e as duas andam juntas.
+    // - Sem chave estrangeira, como os avisos: uma cascata amarraria a refação futura de integrantes.
+    //   Quem lê confere se a pessoa ainda existe e se o dono ainda a vê.
+    id: '030-proximidades',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS proximidades (
+        dono_id TEXT NOT NULL,
+        pessoa_id TEXT NOT NULL,
+        valor INTEGER NOT NULL CHECK (valor BETWEEN 0 AND 100),
+        angulo REAL,
+        mudado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (dono_id, pessoa_id)
+      )`,
+      `INSERT OR IGNORE INTO proximidades (dono_id, pessoa_id, valor)
+        SELECT dono_id, pessoa_id, CASE proximidade WHEN 1 THEN 16 WHEN 2 THEN 50 ELSE 83 END
+        FROM lacos_coracao WHERE proximidade IS NOT NULL`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

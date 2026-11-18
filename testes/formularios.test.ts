@@ -55,12 +55,13 @@ describe('árvore na tela', () => {
     expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/\{temLacoDeArvore && \(\s*<a [^>]*href=\{`\/arvore\?centro=/);
   });
 
-  it('o cartão do ramo aberto fica por cima da legenda', () => {
+  it('o cartão do ramo aberto fica por cima da árvore e abaixo do painel', () => {
     expect(cliente).toContain('camadaDosRamos.append(cartao)');
-    // A camada dos ramos vem logo depois da árvore e antes dos painéis. O z-index (2, contra 1 da legenda)
-    // está em src/visual/telas/arvore.css, conferido em testes/visual.test.ts.
+    // A camada dos ramos vem logo depois da árvore. O painel do mapa vem antes das duas, para o
+    // teclado chegar primeiro à busca e aos ajustes; quem fica por cima é o z-index (2 dos ramos,
+    // 3 do painel), em arvore.css e mapa.css, conferido em testes/visual.test.ts.
     expect(pagina.indexOf('data-camada-ramos')).toBeGreaterThan(pagina.indexOf('data-camada>'));
-    expect(pagina.indexOf('data-camada-ramos')).toBeLessThan(pagina.indexOf('mapa__painel'));
+    expect(pagina.indexOf('<aside class="pm"')).toBeLessThan(pagina.indexOf('data-camada>'));
   });
 });
 

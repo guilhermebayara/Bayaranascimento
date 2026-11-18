@@ -35,9 +35,14 @@ interface Props {
    * "Sua conta" já nasce com a metade.
    */
   rodape?: 'inteiro' | 'metade';
+  /**
+   * As telas de mapa, a árvore e o círculo (decisão do Gui, 17/11/2026): o mapa ocupa a janela
+   * inteira abaixo do menu, e o rodapé não aparece. Nas outras telas, o rodapé fica.
+   */
+  mapa?: boolean;
 }
 
-const { titulo, nucleos = [], secao, intimo = false, palco = false } = Astro.props;
+const { titulo, nucleos = [], secao, intimo = false, palco = false, mapa = false } = Astro.props;
 const rodape = Astro.props.rodape ?? (secao === 'conta' ? 'metade' : 'inteiro');
 const { usuario } = Astro.locals;
 const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
@@ -85,7 +90,7 @@ const telas = [
 ---
 
 <!doctype html>
-<html lang="pt-BR" id="alto" {...atributosDasFontes(fontes)} data-familia={familia} data-intimo={intimo ? '' : undefined}>
+<html lang="pt-BR" id="alto" {...atributosDasFontes(fontes)} data-familia={familia} data-intimo={intimo ? '' : undefined} data-tela-de-mapa={mapa ? '' : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -223,7 +228,7 @@ const telas = [
       <slot />
     </main>
     {
-      !palco && (
+      !palco && !mapa && (
     <footer class="rodape" data-assinatura={rodape === 'metade' ? 'metade' : undefined}>
       {/* O topo não acompanha a rolagem: no fim da página, o menu de novo e a volta ao alto (P3 do QA de design, 17/11/2026) */}
       <nav class="rodape__links" aria-label="Seções, no fim da página">

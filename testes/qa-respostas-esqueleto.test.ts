@@ -126,3 +126,24 @@ describe('"Sua conta" na barra e no menu do celular (P12)', () => {
     expect(topo.slice(topo.indexOf('<details class="menu">'))).toMatch(/<a href="\/conta"[^>]*>Sua conta<\/a>/);
   });
 });
+
+// Decisão do Gui (17/11/2026), "Revisão de estrutura das telas": o rodapé some só nas telas de mapa
+describe('o rodapé some nas telas de mapa', () => {
+  it('o esqueleto só deixa de desenhar o rodapé quando a tela pede, e o padrão é desenhar', () => {
+    expect(esqueleto).toMatch(/mapa\?: boolean;/);
+    expect(esqueleto).toMatch(/palco = false, mapa = false \} = Astro\.props;/);
+    expect(esqueleto).toMatch(/!palco && !mapa && \(\s*<footer class="rodape"/);
+    expect(esqueleto).toMatch(/data-tela-de-mapa=\{mapa \? '' : undefined\}/);
+  });
+  it('o mapa ocupa a janela inteira abaixo do menu, sem prender nada à rolagem', () => {
+    expect(css).toMatch(/\[data-tela-de-mapa\] body \{\s*display: flex;\s*flex-direction: column;\s*min-height: 100svh;/);
+    expect(css).toMatch(/\[data-tela-de-mapa\] main \{\s*flex: 1;\s*display: grid;\s*min-height: 24rem;/);
+    expect(css).not.toMatch(/position\s*:\s*(fixed|sticky)[^}]*\}\s*\[data-tela-de-mapa\]/);
+  });
+  it('só as telas de mapa pedem: a árvore pede, e as outras telas ficam com o rodapé', () => {
+    expect(ler('src/pages/arvore.astro')).toMatch(/<Visual titulo="Árvore" secao="arvore" mapa>/);
+    for (const tela of ['src/pages/index.astro', 'src/pages/explorar.astro', 'src/pages/pessoas/index.astro', 'src/pages/conta.astro', 'src/pages/capitulos/index.astro']) {
+      expect(ler(tela), tela).not.toMatch(/<Visual[^>]*\smapa[\s>]/);
+    }
+  });
+});

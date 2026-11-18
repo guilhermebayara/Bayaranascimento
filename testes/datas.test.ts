@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { anosDeVida, dataNaFrase, datasDeVida } from '../src/lib/datas';
 
 describe('falecimento como opção', () => {
-  it('quem faleceu sem data conhecida aparece com interrogação nos anos e sem data por extenso', () => {
-    expect(anosDeVida({ nascimentoAno: 1930, falecimentoAno: null, falecido: true })).toBe('1930 a ?');
+  it('quem faleceu aparece só com o ano de nascimento nas listas e na árvore, e sem data por extenso', () => {
+    // O falecimento fica oculto em todo lugar, e o ano também (decisão do Gui, 17/11/2026)
+    expect(anosDeVida({ nascimentoAno: 1930, falecimentoAno: null, falecido: true })).toBe('1930');
+    expect(anosDeVida({ nascimentoAno: 1942, falecimentoAno: 2019 })).toBe('1942');
+    expect(anosDeVida({ nascimentoAno: null, falecimentoAno: 2019 })).toBe('');
     expect(datasDeVida({ nascimentoAno: 1930, falecimentoAno: null, falecido: true })).toContain('Falecimento: data desconhecida');
   });
 

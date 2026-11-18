@@ -18,7 +18,7 @@ import Rabisco from '../../components/visual/Rabisco.astro';
 import { memoriaDoCapitulo } from '../../lib/capitulos';
 import { recolheQuemEstava, relatoJaEstaNaAbertura } from '../../lib/memoria';
 import { tipoDaMemoria } from '../../lib/tipos';
-import { formatarData } from '../../lib/datas';
+import { formatarData, jaFaleceu } from '../../lib/datas';
 import { duracaoEmTexto } from '../../lib/audios';
 import { Familia, possessivo, type Tratamento } from '../../lib/parentesco';
 import { enderecoDoRetrato } from '../../lib/retratos';
@@ -55,6 +55,7 @@ const relatos = await listarRelatos(usuario, memoria.id);
 const audiosDosRelatos = await listarAudiosDosRelatos(relatos.map((r) => r.id));
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
 
 // Retratos em "Quem estava": só de quem a pessoa vê. Sem retrato, as iniciais sobre a cor da família.
 const naoVe = memoria.integrantes.length ? await pessoasQueONaoVe(usuario) : new Set<string>();
@@ -230,8 +231,9 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                 {quemEstava.map((id) => (
                   <li>
                     <a class="pessoa" href={`/pessoas/${id}`}>
-                      <Retrato nome={nome(id)} foto={retratoDe(id)} familia={familiaDe(id)} />
+                      <Retrato nome={nome(id)} foto={retratoDe(id)} familia={familiaDe(id)} falecido={faleceu(id)} />
                       <span class="pessoa__nome">{nome(id)}</span>
+                      {faleceu(id) && <span class="so-leitor">já faleceu</span>}
                       {paraVoce(id) && <span class="pessoa__laco ficha suave">{paraVoce(id)}</span>}
                     </a>
                   </li>
