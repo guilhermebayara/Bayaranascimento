@@ -76,3 +76,50 @@ export function nomeNaImagem(p: NomesDeQuemAparece, escolha: NomeNaImagem): stri
 export function escolhaDoNomeAparece(pessoas: NomesDeQuemAparece[]): boolean {
   return pessoas.some((p) => nomeNaImagem(p, 'meu') !== nomeNaImagem(p, 'familia'));
 }
+
+// --- O espaço de personalizar (proposta A do conceito da sessão J, escolha do Gui de 18/11/2026) -----
+// Em vez de uma escolha solta, que mudava o tamanho da página, um espaço dedicado: a imagem num palco de
+// tamanho fixo e, embaixo dela (ao lado, no computador), uma bandeja com abas, um assunto por vez, num
+// painel de altura fixa. Hoje: o nome, as cores, a foto e o relato. O que entrar depois ganha uma aba.
+
+/** Um relato que pode ir na imagem, visto por quem compartilha. */
+export interface RelatoDaImagem {
+  /** o nome de quem contou, como a família toda conhece */
+  autor: string;
+  /** o apelido que quem compartilha deu a quem contou, só quando é diferente do da família */
+  comOSeuApelido: string | null;
+  trecho: string;
+  /** o endereço do retrato de quem contou, se há um e quem compartilha pode ver */
+  retrato: string | null;
+  /** quem contou já faleceu: a opção "em memória" aparece */
+  faleceu: boolean;
+}
+
+/** Os esquemas de cores da imagem: o papel do site, a cor da família da memória ou a do tipo de momento. */
+export const CORES_DA_IMAGEM = [
+  { id: 'papel', nome: 'Papel' },
+  { id: 'familia', nome: 'Da família' },
+  { id: 'momento', nome: 'Do momento' },
+] as const;
+export type CoresDaImagem = (typeof CORES_DA_IMAGEM)[number]['id'];
+
+export type AbaDoEstudio = 'nome' | 'cores' | 'foto' | 'relato';
+
+/**
+ * As abas que aparecem, na ordem: só as que têm o que escolher. O nome, quando quem compartilha deu um
+ * apelido próprio a alguém que contou ou quando quem contou já faleceu (a opção "em memória"); a foto e
+ * o relato, quando há mais de um. As cores, sempre.
+ */
+export function abasDoEstudio(relatos: RelatoDaImagem[], fotos: number): AbaDoEstudio[] {
+  const abas: AbaDoEstudio[] = [];
+  if (relatos.some((r) => r.comOSeuApelido || (r.faleceu && r.retrato))) abas.push('nome');
+  abas.push('cores');
+  if (fotos > 1) abas.push('foto');
+  if (relatos.length > 1) abas.push('relato');
+  return abas;
+}
+
+/** O nome que sai na imagem para um relato. O padrão, o da família, nunca usa o apelido próprio. */
+export function autorNaImagem(relato: RelatoDaImagem, escolha: NomeNaImagem): string {
+  return escolha === 'meu' && relato.comOSeuApelido ? relato.comOSeuApelido : relato.autor;
+}
