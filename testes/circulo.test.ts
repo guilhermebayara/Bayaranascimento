@@ -192,15 +192,26 @@ describe('a tela do círculo', () => {
   const css = ler('src/visual/telas/circulo.css').replace(/\/\*[\s\S]*?\*\//g, '');
 
   it('usa o quadro do mapa, sem rodapé, tingida na cor de quem olha', () => {
-    expect(pagina).toMatch(/<Visual titulo="Seu círculo" secao="pessoas" familia=\{cor\} intimo mapa>/);
+    expect(pagina).toMatch(/<Visual titulo="Seu círculo" secao="circulo" familia=\{cor\} intimo mapa>/);
     expect(pagina).toMatch(/<aside class="pm" data-sobre-o-mapa data-quadro/);
     expect(pagina.indexOf('<aside class="pm"')).toBeLessThan(pagina.indexOf('data-camada'));
   });
 
-  it('é uma forma de ver em Pessoas: "Por família | Seu círculo", nos dois lugares', () => {
-    const opcoes = /opcoes=\{\[\{ href: '\/pessoas', texto: 'Por família'(, atual: true)? \}, \{ href: '\/circulo', texto: 'Seu círculo'(, atual: true)? \}\]\}/;
-    expect(pagina).toMatch(opcoes);
-    expect(ler('src/pages/pessoas/index.astro')).toMatch(opcoes);
+  it('mora no menu da conta, sem seletor segmentado, com um link discreto em Pessoas e na Árvore', () => {
+    // Decisão do Gui, 17/11/2026: "O círculo sai de Pessoas"
+    const topo = ler('src/layouts/Visual.astro');
+    expect(topo).toMatch(/\{temPagina && <a href="\/circulo" aria-current=\{secao === 'circulo' \? 'page' : undefined\}>Seu círculo<\/a>\}/);
+    const pessoas = ler('src/pages/pessoas/index.astro');
+    for (const arquivo of [pagina, pessoas]) expect(arquivo).not.toMatch(/Segmentado|Por família/);
+    expect(pessoas).toMatch(/\{temPagina && <a class="acao acao--quieta" href="\/circulo">Ver seu círculo<\/a>\}/);
+    expect(ler('src/pages/arvore.astro')).toMatch(/\{achar\(usuario\.pessoa\) && <a class="acao acao--quieta" href="\/circulo">Ver seu círculo<\/a>\}/);
+  });
+
+  it('no slider, o rótulo e as pontas ficam colados na barra, e o grupo longe do que vem antes', () => {
+    // "Gestalt em toda tela": a área de toque de 44 px continua, com o vazio dela por baixo do texto
+    expect(css).toMatch(/\.pm__proximidade input \{[^}]*margin: calc\(var\(--e-3\) \* -1\) 0;/);
+    expect(css).toMatch(/\.pm__proximidade \{[^}]*margin-top: var\(--e-5\);[^}]*padding: var\(--e-2\)/);
+    expect(css).toMatch(/\.pm__pontas \{[^}]*pointer-events: none;/);
   });
 
   it('no celular são faixas empilhadas com a rolagem do aparelho; na tela grande, anéis com zoom', () => {

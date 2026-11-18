@@ -1,6 +1,5 @@
 ---
-// Seu círculo (docs/decisoes.md, "Círculo"): uma forma de ver as pessoas, só de quem está logado, que
-// só ela vê. A pessoa no centro e três faixas, Muito próximo, Próximo e Conhecido. Na tela grande e
+// Seu círculo (docs/decisoes.md, "Círculo"): no menu da conta, só de quem está logado, que só ela vê. A pessoa no centro e três faixas, Muito próximo, Próximo e Conhecido. Na tela grande e
 // na TV são anéis, num mapa que anda e aproxima como o da árvore; no celular, faixas empilhadas, com
 // os retratos lado a lado e a rolagem do aparelho. Usa o mesmo quadro da árvore
 // (src/visual/telas/mapa.css). Quem aparece e a que distância vem de src/lib/servidor/circulo.ts; o
@@ -10,7 +9,6 @@ import '../visual/telas/mapa.css';
 import '../visual/telas/circulo.css';
 import Visual from '../layouts/Visual.astro';
 import Retrato from '../components/visual/Retrato.astro';
-import Segmentado from '../components/visual/Segmentado.astro';
 import { FAIXAS, diametroDoAnel, faixaDoValor, pontoDe } from '../lib/circulo';
 import { montarCirculo } from '../lib/servidor/circulo';
 import { enderecoDoRetrato } from '../lib/retratos';
@@ -31,7 +29,7 @@ const lugar = (p: (typeof todos)[number]) => {
 const porNome = [...todos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 ---
 
-<Visual titulo="Seu círculo" secao="pessoas" familia={cor} intimo mapa>
+<Visual titulo="Seu círculo" secao="circulo" familia={cor} intimo mapa>
   <div class="quadro" data-circulo>
     <div class="mapa mapa--circulo" data-mapa tabindex="0" aria-label="Seu círculo. Arraste ou use as setas para andar por ele.">
       {/* O painel do quadro, antes do desenho para o teclado chegar primeiro a ele */}
@@ -44,7 +42,6 @@ const porNome = [...todos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
         <p class="pm__aviso" data-aviso role="alert" hidden></p>
         <div class="pm__corpo" id="corpo-do-painel">
           <div class="pm__ver">
-            <Segmentado rotulo="Forma de ver as pessoas" opcoes={[{ href: '/pessoas', texto: 'Por família' }, { href: '/circulo', texto: 'Seu círculo', atual: true }]} />
             <p class="pm__texto">Só você vê o seu círculo. Toque em alguém para aproximar ou afastar, ou arraste.</p>
           </div>
           <form class="pm__busca" data-procurar>
