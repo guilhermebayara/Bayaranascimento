@@ -77,7 +77,10 @@
 
 /* A ficha em mono: rótulo pequeno em caixa alta e valor */
 
-.parte + .parte {
+.parte + .parte,
+/* "Quem estava" mora numa região sem caixa (a classe regiao): a parte seguinte conta com ela */
+.regiao + .parte,
+* + .regiao > .parte:first-child {
   margin-top: var(--e-8);
 }
 .parte__titulo {
@@ -681,4 +684,39 @@ html:has(.galeria[open]) {
 :is(.bilhete, .parede > li, .abre__texto):has(details[open]) {
   position: relative;
   z-index: 8;
+}
+
+/* --- Relatos: a conversa (observação do Gui depois da sessão K, 18/11/2026) --------------------------
+   O título colado nas vozes, e as vozes num container, como a janela de uma conversa: o fundo recuado
+   junta as mensagens, que deixam de parecer soltas na página. A coluna tem a largura de uma conversa
+   e não cresce na TV. */
+.parte--conversa > .parte__titulo {
+  margin-bottom: var(--e-3);
+}
+.parte--conversa .voz-fio {
+  gap: var(--e-5);
+  max-width: 44rem;
+  padding: var(--e-5) var(--e-4);
+  border-radius: var(--raio-bloco);
+  background: var(--papel-recuo);
+}
+/* Dentro de cada voz: o nome colado nas mensagens, as mensagens juntas, e as reações logo embaixo */
+.parte--conversa .voz {
+  gap: var(--e-1);
+}
+.parte--conversa .voz__mensagens {
+  gap: var(--e-1);
+}
+.parte--conversa .voz .acoes-do-item {
+  margin-top: var(--e-1);
+}
+/* Uma voz e a seguinte: um fio fino, como a troca de quem fala */
+.parte--conversa .voz + .voz {
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--fio);
+}
+@media (min-width: 62rem) {
+  .parte--conversa .voz-fio {
+    padding: var(--e-6);
+  }
 }

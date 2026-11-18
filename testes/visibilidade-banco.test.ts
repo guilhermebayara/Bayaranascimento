@@ -8,6 +8,7 @@
 // de outra pessoa, memória na lixeira que ela não via, capítulo restrito e capítulo na lixeira, relato
 // em rascunho de outra pessoa, pessoa que só existe num laço privado de outra pessoa, casal privado de
 // outras pessoas) e confere que nada muda, nem um número.
+import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 
@@ -283,15 +284,18 @@ describe('C1: quem só existe num laço privado de outra pessoa some em todo lug
     'src/pages/temas/[id].astro',
     'src/pages/capitulos/[id]/index.astro',
   ];
+  // A página da pessoa monta os dados em src/lib/servidor/pagina-da-pessoa.ts (sessão L)
+  const servidorDaPessoa = readFileSync('src/lib/servidor/pagina-da-pessoa.ts', 'utf-8');
+  const comServidor = (lugar: string) => (lugar === 'src/pages/pessoas/[id]/index.astro' ? fonte(lugar) + servidorDaPessoa : fonte(lugar));
   for (const lugar of LUGARES) {
     it(lugar, () => {
-      expect(fonte(lugar), lugar).toContain('listarIntegrantesQueVe(');
+      expect(comServidor(lugar), lugar).toContain('listarIntegrantesQueVe(');
     });
   }
   it('a página da pessoa responde 404 a quem não está na lista de quem vê', () => {
-    const pagina = fonte('src/pages/pessoas/[id]/index.astro');
-    expect(pagina).toMatch(/const integrantes = await listarIntegrantesQueVe\(usuario\);\s*const pessoa = integrantes\.find\(/);
-    expect(pagina).toMatch(/if \(!pessoa\) return new Response\([^)]*status: 404/);
+    expect(servidorDaPessoa).toMatch(/const integrantes = await listarIntegrantesQueVe\(usuario\);\s*const pessoa = integrantes\.find\(/);
+    expect(servidorDaPessoa).toMatch(/if \(!pessoa\) return null;/);
+    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/if \(!p\) return new Response\([^)]*status: 404/);
   });
   it('numa edição, a marca que a pessoa não vê continua', () => {
     expect(fonte('src/pages/api/memorias.ts')).toContain('for (const id of anterior?.integrantes ?? []) if (!marcaveis.has(id)');

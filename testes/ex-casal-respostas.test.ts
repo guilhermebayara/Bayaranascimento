@@ -169,7 +169,7 @@ describe('o ex que virou amigo não é ex em lugar nenhum', () => {
     }
   });
   it('na página da pessoa, sai de "Casal" e entra em "Laços do coração"; editar e o laço dizem "hoje, amigos"', () => {
-    const pagina = ler('src/pages/pessoas/[id]/index.astro');
+    const pagina = (ler('src/pages/pessoas/[id]/index.astro') + ler('src/lib/servidor/pagina-da-pessoa.ts'));
     expect(pagina).toContain('linhas: casais.filter((c) => apareceComoCasal(c.casal)).map(');
     expect(pagina).toMatch(/\.filter\(\(c\) => apareceComoCoracao\(c\.casal\) && !escolhidos\.some/);
     expect(ler('src/pages/pessoas/[id]/editar.astro')).toContain('{situacaoDoCasal(c.casal)}');

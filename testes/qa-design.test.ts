@@ -104,7 +104,7 @@ describe('formulários em etapas', () => {
 
 describe('capítulos, árvore e pessoas', () => {
   it('na página de outra pessoa, o nome do laço do coração entra em minúscula, como na árvore', () => {
-    const pagina = ler('src/pages/pessoas/[id]/index.astro');
+    const pagina = (ler('src/pages/pessoas/[id]/index.astro') + ler('src/lib/servidor/pagina-da-pessoa.ts'));
     expect(pagina).toMatch(/: minuscula\(l\.nome\),/);
     expect(pagina).toMatch(/chama de \$\{minuscula\(l\.nome\)\}/);
   });

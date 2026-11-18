@@ -1,53 +1,23 @@
 /*
- * A página da pessoa. A ideia forte: o retrato e a voz. O retrato de foto de álbum, grande, num
- * bloco na cor da família dela; o parentesco de quem olha ("sua avó") como a linha maior da tela;
- * e os áudios em que ela fala. A lista de laços fica quieta, e as memórias com ela vêm no fim, na
- * mesma linha do tempo do Explorar.
+ * A página da pessoa: o verbete (proposta A do conceito da sessão L, escolhida pelo Gui em 18/11/2026).
+ * A frase de abertura com o parentesco grande; o quadro ao lado, com o retrato no alto na cor da
+ * família, os dados, a família de perto e o que a pessoa é para você; as palavras dela; a vida em
+ * memórias, pela idade, com a linha do tempo e o mural como opção; e os laços, quietos, no fim.
+ * A cor da família entra com medida (pedido do Gui: a página inteira em cor seria demais): atrás do
+ * retrato, no ponto de cada idade e no fio das citações.
  */
 
-/* --- O alto: o retrato e quem ela é para você -------------------------------------------------- */
+/* --- O alto: a abertura, o quadro e as palavras -------------------------------------------------- */
 
-.quem-e {
-  padding-block: var(--e-6) var(--e-7);
-  background: var(--pastel);
+
+.verbete__alto {
+  row-gap: var(--e-8);
+  padding-top: var(--e-7);
 }
-.quem-e .grade {
-  row-gap: var(--e-5);
-  align-items: end;
+.verbete__carimbo {
+  margin-bottom: var(--e-4);
 }
-/* No celular o retrato ocupa três das quatro colunas (resposta do Gui, 17/11/2026, P105) */
-.quem-e .quem-e__retrato {
-  grid-column: 1 / span 3;
-}
-.quem-e__retrato .retrato {
-  background: var(--meio);
-  font-size: clamp(2.5rem, 12vw, 6rem);
-}
-/* O retrato de quem faleceu é um botão: tocar acende a foto (docs/decisoes.md, "Quem já faleceu") */
-.quem-e__acender {
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-.quem-e__acender:focus-visible {
-  outline: 2px solid var(--tinta);
-  outline-offset: 0.5rem;
-}
-.quem-e__memoria {
-  margin-top: var(--e-2);
-}
-.quem-e .quem-e__texto {
-  grid-column: 1 / -1;
-  min-width: 0;
-}
-/* "sua avó": a linha maior da tela, em serifa */
-.quem-e__laco {
-  margin-top: var(--e-4);
+.verbete__laco {
   margin-left: -0.04em;
   font-family: var(--serifa);
   font-size: var(--t-titulo-1);
@@ -57,224 +27,464 @@
   line-height: 0.95;
   text-wrap: balance;
 }
-.quem-e__nome {
-  margin-top: var(--e-3);
+.verbete__nome {
+  margin-top: var(--e-2);
   overflow-wrap: anywhere;
 }
-/* "Tia Cida (Cidinha)": o apelido no mesmo tamanho, mais apagado */
-.quem-e__apelido {
-  color: var(--tinta-suave);
+.verbete__em-memoria {
+  margin-top: var(--e-2);
 }
-.quem-e__nome.t-1 {
-  margin-top: var(--e-4);
-  margin-left: -0.04em;
+.verbete__abre {
+  min-width: 0;
 }
-/* O atalho para os áudios: "Ouvir a voz de Fulano · 3 áudios" */
-.quem-e__voz {
-  margin-top: var(--e-3);
+.verbete__abertura {
+  max-width: min(100%, var(--medida));
+  margin-top: var(--e-6);
+  font-family: var(--serifa);
+  font-size: var(--t-abertura);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  line-height: 1.2;
+  text-wrap: pretty;
 }
-.quem-e__acoes {
+.verbete__acoes {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--e-2) var(--e-5);
-  margin-top: var(--e-5);
+  margin-top: var(--e-6);
 }
 
-/* --- Sobre ela e a voz dela -------------------------------------------------------------------- */
-
-.voz {
-  row-gap: var(--e-7);
-  padding-block: var(--e-7);
-}
-.voz > * {
-  grid-column: 1 / -1;
-}
-.voz__texto {
-  max-width: var(--medida);
-  margin-top: var(--e-3);
-  font-size: var(--t-leitura);
-  line-height: 1.55;
-  text-wrap: pretty;
-}
-.voz__texto p + p {
-  margin-top: 1em;
-}
-.voz__audios > .rotulo {
-  margin-top: var(--e-2);
-}
-.voz__lista {
+/* O quadro ao lado, como o painel da árvore: um cartão pousado no papel, com o retrato no alto, sobre
+   a cor da família, e as partes em sanfona, uma aberta por vez */
+.verbete__quadro {
   display: grid;
-  gap: var(--e-5);
-  margin-top: var(--e-5);
+  align-self: start;
+  overflow: hidden;
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
 }
-.voz__memoria {
-  margin-bottom: var(--e-2);
+.verbete__capa {
+  padding: var(--e-5) var(--e-5) var(--e-6);
+  background: var(--pastel);
 }
-.voz__memoria a {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--toque);
-  font-size: var(--t-titulo-3);
-  font-variation-settings: var(--serifa-ajustes);
-  font-weight: var(--serifa-peso);
-  line-height: 1.2;
-  text-decoration: none;
+.verbete__capa .retrato {
+  background: var(--meio);
+  font-size: clamp(2.5rem, 12vw, 5rem);
 }
-.voz__memoria a:hover {
-  text-decoration: underline;
-  text-decoration-thickness: var(--traco);
-  text-underline-offset: 0.2em;
+.verbete__retrato {
+  width: min(60%, 14rem);
+  margin-inline: auto;
 }
-
-/* --- Família e laços: quieta, em colunas ------------------------------------------------------- */
-
-.lacos {
-  padding-block: var(--e-6) var(--e-7);
-  border-top: 1px solid var(--fio);
-}
-.lacos__grupos {
-  display: grid;
-  gap: var(--e-5) var(--calha);
-  margin-top: var(--e-4);
-}
-/* No celular os laços ficam fechados numa linha, "Família e laços · 11 pessoas", que abre no lugar
-   (P103). O botão toma o lugar do título e mantém a aparência dele. */
-.lacos__abre {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--e-4);
+.verbete__acender {
+  display: block;
   width: 100%;
-  min-height: var(--toque);
   padding: 0;
   border: 0;
   background: none;
-  color: var(--tinta);
+  color: inherit;
   font: inherit;
-  letter-spacing: inherit;
-  text-align: left;
-  text-transform: inherit;
   cursor: pointer;
 }
-.lacos__abre[hidden] {
+.verbete__acender:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 0.5rem;
+}
+
+/* Cada parte: o nome à esquerda, o resumo e o mais que vira xis à direita, como no painel da árvore */
+.quadro__secao {
+  border-top: 1px solid var(--fio);
+}
+.quadro__secao:first-of-type {
+  border-top: 0;
+}
+.quadro__secao > summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--e-1) var(--e-3);
+  min-height: calc(var(--toque) + var(--e-2));
+  padding: var(--e-2) var(--e-5);
+  font-weight: 550;
+  list-style: none;
+  cursor: pointer;
+}
+.quadro__secao > summary::-webkit-details-marker {
   display: none;
 }
-/* O sinal de abrir e fechar: um mais que vira xis, como no menu */
-.lacos__abre::after {
+.quadro__secao > summary::after {
   content: '';
-  flex: none;
-  width: 0.8em;
-  height: 0.8em;
+  grid-column: 3;
+  grid-row: 1;
+  width: 0.7em;
+  height: 0.7em;
   background:
     linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
     linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
   transition: rotate var(--tempo-medio) var(--curva);
 }
-.lacos__abre[aria-expanded='true']::after {
+.quadro__secao[open] > summary::after {
   rotate: 45deg;
 }
-.lacos__abre:focus-visible {
+.quadro__secao > summary:focus-visible {
   outline: var(--traco) solid var(--tinta);
-  outline-offset: 2px;
+  outline-offset: -3px;
 }
-.lacos[data-recolhe] .lacos__titulo {
+/* O nome da parte numa linha; o resumo em rostos ao lado, e a conta escrita embaixo */
+.quadro__nome {
+  white-space: nowrap;
+}
+.quadro__resumo {
+  justify-self: end;
+}
+.quadro__conta {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+/* Aberta, a parte não repete o resumo: o conteúdo já diz */
+.quadro__secao[open] :is(.quadro__resumo, .quadro__conta) {
   display: none;
 }
-.lacos[data-recolhe]:not([data-aberta]) .lacos__grupos {
-  display: none;
+/* Os rostos de quem está na árvore, um encostado no outro, no resumo fechado */
+.quadro__rostos {
+  display: flex;
 }
-.lacos[data-recolhe]:not([data-aberta]) {
-  padding-block: var(--e-3);
+.quadro__rostos .retrato {
+  width: 1.75rem;
+  font-size: 0.6rem;
+  box-shadow: 0 0 0 2px var(--branco);
 }
-.lacos__grupo h3 {
-  padding-bottom: var(--e-2);
-  border-bottom: 1px solid var(--fio);
-  font-weight: 400;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--tinta-suave);
+.quadro__rostos .retrato + .retrato {
+  margin-left: -0.5rem;
 }
-.lacos__grupo li + li {
+.quadro__corpo {
+  padding: var(--e-1) var(--e-5) var(--e-6);
+}
+.quadro__pe {
+  padding: var(--e-3) var(--e-5) var(--e-5);
   border-top: 1px solid var(--fio);
 }
 
-/* --- As memórias com ela ----------------------------------------------------------------------- */
-
-.com {
-  padding-top: var(--e-7);
-  border-top: 1px solid var(--fio);
+/* Os dados: as datas com o ano grande, as famílias e os números do acervo, cada um com a sua cara */
+.dados {
+  display: grid;
+  gap: var(--e-5);
 }
-.com__abre h2 {
+.dados__datas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-7);
+}
+.dados__data[hidden] {
+  display: none;
+}
+.dados__ano {
+  margin-top: var(--e-1);
+  font-family: var(--serifa);
+  font-size: var(--t-titulo-2);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  line-height: 1;
+}
+.dados__mostrar {
+  justify-self: start;
+  margin-top: calc(var(--e-3) - var(--e-5));
+}
+.dados__familias .pilulas-de-familia {
   margin-top: var(--e-2);
 }
-.com .vazio {
-  margin-block: var(--e-6) var(--e-8);
+/* Os números do acervo, como no alto de um álbum: o número em serifa e o nome em mono embaixo */
+.dados__numeros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--e-2);
+  margin: 0;
+  padding: var(--e-3) 0;
+  border-block: 1px solid var(--meio);
+  list-style: none;
+}
+.dados__numeros a {
+  display: grid;
+  min-height: var(--toque);
+  color: inherit;
+  text-decoration: none;
+}
+.dados__numeros strong {
+  font-family: var(--serifa);
+  font-size: var(--t-titulo-2);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  line-height: 1;
+}
+.dados__numeros span {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.dados__numeros a:hover span,
+.dados__numeros a:focus-visible span {
+  text-decoration: underline;
 }
 
-@media (min-width: 40rem) {
-  .lacos__grupos {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  /* Fora do celular os laços ficam sempre à vista, com o título de antes */
-  .lacos[data-recolhe] .lacos__titulo {
-    display: inline;
-  }
-  .lacos .lacos__abre {
-    display: none;
-  }
-  .lacos[data-recolhe]:not([data-aberta]) .lacos__grupos {
-    display: grid;
-  }
-  .lacos[data-recolhe]:not([data-aberta]) {
-    padding-block: var(--e-6) var(--e-7);
-  }
+/* Na árvore: um pedaço dela, os pais em cima, a pessoa com o casal no meio e os filhos embaixo, ligados
+   por um fio; os irmãos à parte */
+.vizinhanca {
+  display: grid;
+  gap: var(--e-6);
+}
+.arvorezinha {
+  display: grid;
+  justify-items: center;
+}
+.arvorezinha__nivel {
+  display: grid;
+  justify-items: center;
+  gap: var(--e-1);
+}
+.arvorezinha__nivel + .arvorezinha__nivel::before {
+  content: '';
+  width: 1px;
+  height: var(--e-5);
+  margin-bottom: var(--e-1);
+  background: var(--tinta-suave);
+}
+.arvorezinha__nivel ul,
+.vizinhanca__irmaos ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--e-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* O casal fica ao lado da pessoa, ligado por um traço */
+.arvorezinha__casal {
+  position: relative;
+}
+.arvorezinha__casal::before {
+  content: '';
+  position: absolute;
+  top: 1.6rem;
+  right: 100%;
+  width: var(--e-3);
+  height: var(--traco);
+  background: var(--tinta);
+}
+.vizinhanca__irmaos {
+  display: grid;
+  justify-items: center;
+  gap: var(--e-1);
+  padding-top: var(--e-4);
+  border-top: 1px solid var(--fio);
+}
+.vizinhanca__quem {
+  display: grid;
+  justify-items: center;
+  gap: var(--e-1);
+  width: 4.25rem;
+  min-height: var(--toque);
+  color: inherit;
+  font-size: var(--t-pequeno);
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+}
+.vizinhanca__quem .retrato {
+  width: 2.75rem;
+  font-size: 0.9rem;
+}
+a.vizinhanca__quem:hover span,
+a.vizinhanca__quem:focus-visible span {
+  text-decoration: underline;
+}
+/* A própria pessoa, no meio: o retrato maior, com o anel da cor viva */
+.vizinhanca__quem--ela {
+  font-weight: 600;
+}
+.vizinhanca__quem--ela .retrato {
+  width: 3.25rem;
+  outline: var(--traco) solid var(--vivo);
+  outline-offset: 3px;
+}
+.vizinhanca__ir {
+  justify-self: center;
+}
+.verbete__voce {
+  display: grid;
+  gap: var(--e-2);
+}
+.verbete__voce .ficha {
+  display: block;
+}
+.verbete__voce-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-5);
 }
 
-@media (min-width: 62rem) {
-  .quem-e {
-    padding-block: var(--e-8);
-  }
-  .quem-e .quem-e__retrato {
-    grid-column: 1 / span 4;
-  }
-  .quem-e__retrato .retrato {
-    font-size: clamp(5rem, 10vw, 11rem);
-  }
-  .quem-e .quem-e__texto {
-    grid-column: 6 / -1;
-    padding-bottom: var(--e-4);
-  }
-  .voz {
-    padding-block: var(--e-8);
-    align-items: start;
-  }
-  .voz > .voz__sobre {
-    grid-column: 1 / span 5;
-  }
-  .voz > .voz__audios {
-    grid-column: 7 / -1;
-  }
-  /* Só uma das duas: ela fica na coluna de leitura */
-  .voz > :only-child {
-    grid-column: 1 / span 8;
-  }
-  .lacos__grupos {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+/* A vida em memórias, pela idade */
+.vida__fase + .vida__fase {
+  margin-top: var(--e-7);
+}
+.vida__titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-1) var(--e-4);
+  padding-bottom: var(--e-2);
+  border-bottom: 1px solid var(--fio);
+}
+.vida__memorias {
+  display: grid;
+}
+.vida__memoria {
+  display: grid;
+  grid-template-columns: 3.75rem minmax(0, 1fr);
+  gap: var(--e-4);
+  align-items: center;
+  padding-block: var(--e-3);
+  border-bottom: 1px solid var(--fio);
+  color: inherit;
+  text-decoration: none;
+}
+.vida__foto {
+  display: block;
+}
+.vida__texto {
+  display: grid;
+  gap: var(--e-1);
+  min-width: 0;
+}
+.vida__memoria-titulo {
+  font-family: var(--serifa);
+  font-size: var(--t-titulo-3);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  line-height: 1.1;
+}
+.vida__memoria:hover .vida__memoria-titulo,
+.vida__memoria:focus-visible .vida__memoria-titulo {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
-/* Em 1920 px o retrato continua nas colunas 1 a 4, na margem da página, como tudo o mais (P106) */
-@media (min-width: 100rem) {
-  .lacos__grupos {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+/* Nas palavras dela: os relatos como as mensagens da conversa da página da memória (conversa.css),
+   cada um com a memória de onde veio em cima, colada nos balões */
+.verbete__palavras > h2 {
+  margin-bottom: var(--e-5);
+}
+.palavras__sobre {
+  display: grid;
+  gap: var(--e-4);
+  max-width: var(--medida);
+  margin-bottom: var(--e-6);
+  font-size: var(--t-leitura);
+}
+.palavras__relatos {
+  display: grid;
+  gap: var(--e-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.palavra {
+  display: grid;
+  gap: var(--e-2);
+}
+/* O fio da cor viva da família, à esquerda das mensagens de cada relato */
+.palavra .voz__mensagens {
+  padding-left: var(--e-3);
+  border-left: var(--traco) solid var(--vivo);
+}
+.palavras__mais {
+  margin-top: var(--e-6);
+}
+.palavras__mais[open] > summary {
+  margin-bottom: var(--e-6);
 }
 
-/* O recado de "Como você chama" (ok ou erro), acima da abertura */
-.pessoa-pagina__recado {
+/* A cor da família no quadro: o retrato pousado num bloco pastel, como a página de um álbum (acima) */
+.verbete__so-voce {
+  display: block;
+}
+.verbete__apelido {
+  color: var(--tinta-suave);
+}
+.verbete__recado {
   padding-top: var(--e-5);
 }
+
+/* As idades levam o ponto na cor viva da família, e o fio embaixo, o tom do meio */
+.vida__titulo h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+.vida__titulo h3::before {
+  content: '';
+  flex: none;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--vivo);
+}
+.vida__titulo {
+  border-bottom-color: var(--meio);
+}
+
+/* --- A vida em memórias ---------------------------------------------------------------------------- */
+
+/* Dentro da grade do alto, a região sai da margem da página e as peças de dentro (a linha do tempo,
+   o mural, a lista pela idade) trazem a margem delas, como no Explorar */
+.verbete__alto > .verbete__vida {
+  margin-inline: calc(-1 * var(--margem));
+  padding-block: var(--e-2) var(--e-6);
+}
+.vida__abre {
+  display: grid;
+  gap: var(--e-3);
+}
+.vida__controles .linha__opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--e-6);
+}
+.verbete__vida--idade .vida {
+  margin-top: var(--e-6);
+}
+.verbete__vida .vazio {
+  padding-block: var(--e-4) 0;
+}
+
+/* --- Família e laços, quieta, no fim ------------------------------------------------------------- */
+
+.verbete__lacos {
+  padding-block: var(--e-8) var(--e-9);
+}
+.lacos__abre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-1) var(--e-4);
+}
+.lacos__grupos {
+  display: grid;
+  gap: var(--e-6);
+  margin-top: var(--e-5);
+}
+.lacos__grupo ul {
+  display: grid;
+  gap: var(--e-3);
+  margin-top: var(--e-2);
+}
+.lacos__laco {
+  margin-left: calc(clamp(3rem, 2.6rem + 1vw, 4rem) + var(--e-4));
+  font-size: var(--t-pequeno);
+}
+
 /* "Como você chama", só seu: uma linha quieta embaixo das ações, que abre a pergunta no lugar */
 .como-chama {
   margin-top: var(--e-3);
@@ -300,4 +510,152 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--e-5);
+}
+
+/* A abertura fica dentro de uma região sem caixa (a classe regiao): ela é que ocupa a grade */
+.verbete__alto .verbete__abre {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 40rem) {
+  .lacos__grupos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .verbete__retrato {
+    width: min(50%, 14rem);
+  }
+}
+
+/* No computador: a abertura, as palavras e a vida na coluna da esquerda (1 a 7), e o quadro ao lado
+   (9 a 12), de cima a baixo; os laços embaixo, na largura toda */
+@media (min-width: 62rem) {
+  .verbete__alto {
+    grid-template-rows: auto auto 1fr;
+    row-gap: 0;
+  }
+  .verbete__alto.grade > *,
+  .verbete__alto .verbete__abre {
+    grid-column: 1 / span 7;
+  }
+  .verbete__alto .verbete__abre {
+    grid-row: 1;
+    align-self: start;
+  }
+  .verbete__alto > .verbete__palavras {
+    grid-row: 2;
+    align-self: start;
+    margin-top: var(--e-8);
+  }
+  .verbete__alto > .verbete__vida {
+    grid-row: 3;
+    margin-top: var(--e-8);
+  }
+  .verbete__alto.grade > .verbete__quadro {
+    grid-column: 9 / -1;
+    grid-row: 1 / span 3;
+    align-self: start;
+  }
+  .verbete__retrato {
+    width: 100%;
+  }
+  .vida__memoria {
+    grid-template-columns: 5rem minmax(0, 1fr);
+  }
+  .lacos__grupos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* A linha do tempo na coluna estreita, mais simples que a do Explorar (pedido do Gui, 18/11/2026):
+     o ano menor, numa coluna curta, e as memórias ao lado */
+  .verbete__vida--linha .ano > .ano__cabeca {
+    grid-column: 1 / span 3;
+  }
+  .verbete__vida--linha .ano > :is(.ano__itens, .ano__passa) {
+    grid-column: 4 / -1;
+  }
+  .verbete__vida--linha .ano__numero {
+    font-size: var(--t-titulo-1);
+    margin-bottom: var(--e-2);
+  }
+  .verbete__vida--linha .ano {
+    padding-top: var(--e-7);
+  }
+  .verbete__vida--linha .entrada {
+    padding-bottom: var(--e-7);
+  }
+  /* A memória com foto: a foto pequena à esquerda e o texto ocupando o resto */
+  .verbete__vida--linha .entrada--com-foto {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    column-gap: var(--calha);
+  }
+  .verbete__vida--linha .entrada--com-foto .entrada__foto,
+  .verbete__vida--linha .entrada--com-foto:nth-child(even) .entrada__foto {
+    width: 100%;
+    margin: 0;
+  }
+  .verbete__vida--linha .entrada--com-foto .entrada__quando {
+    margin-top: var(--e-4);
+  }
+  .verbete__vida--linha .entrada--com-foto .entrada__titulo {
+    font-size: var(--t-titulo-3);
+  }
+  .verbete__vida--linha .entrada--so-texto {
+    max-width: none;
+  }
+  /* O ano parado e a faixa de décadas são da linha do tempo da página inteira: aqui, o ano rola junto */
+  .verbete__vida--linha :is(.parada, .decadas) {
+    display: none;
+  }
+  /* O mural na coluna: menos fotos por linha, como no tema */
+  .verbete__vida .mural,
+  .verbete__vida .mural[data-tamanho] {
+    --colunas: 3;
+  }
+  .verbete__vida .mural[data-tamanho='pequenas'] {
+    --colunas: 4;
+  }
+  .verbete__vida .mural[data-tamanho='grandes'] {
+    --colunas: 2;
+  }
+}
+
+/* Com mouse, o quadro acompanha a rolagem, como o painel da árvore, e a parte aberta que não couber
+   rola por dentro. No toque, nada fica preso (Safari do iPhone, em docs/visual.md) */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .verbete__alto.grade > .verbete__quadro {
+    position: sticky;
+    top: var(--e-5);
+    max-height: calc(100vh - 2 * var(--e-5));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Parado na tela, o retrato cabe junto das partes: a altura dele segue a da janela */
+  .verbete__quadro .verbete__retrato {
+    width: min(100%, 26vh);
+    margin-inline: auto;
+  }
+}
+
+@media (min-width: 100rem) {
+  .verbete__alto.grade > *,
+  .verbete__alto .verbete__abre {
+    grid-column: 1 / span 7;
+  }
+  .verbete__alto.grade > .verbete__quadro {
+    grid-column: 9 / span 3;
+  }
+  .vida__memorias {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--calha);
+  }
+  .vida__memoria {
+    grid-template-columns: 6rem minmax(0, 1fr);
+  }
+  .lacos__grupos {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .verbete__vida .mural,
+  .verbete__vida .mural[data-tamanho] {
+    --colunas: 4;
+  }
 }

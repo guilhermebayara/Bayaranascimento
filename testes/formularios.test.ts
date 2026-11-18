@@ -52,7 +52,7 @@ describe('árvore na tela', () => {
   it('"Partir de" só oferece quem tem laço de árvore', () => {
     expect(pagina).toMatch(/ordenados\.filter\(\(i\) => comLaco\.has\(i\.id\)\)/);
     expect(cliente).toContain('partir.hidden = estado.centro === p.id || !partivel.has(p.id)');
-    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/\{temLacoDeArvore && \(\s*<a [^>]*href=\{`\/arvore\?centro=/);
+    expect((fonte('src/pages/pessoas/[id]/index.astro') + fonte('src/lib/servidor/pagina-da-pessoa.ts'))).toMatch(/\{p\.temLacoDeArvore && \(\s*<p class="vizinhanca__ir">\s*<a [^>]*href=\{`\/arvore\?centro=/);
   });
 
   it('o cartão do ramo aberto fica por cima da árvore e abaixo do painel', () => {

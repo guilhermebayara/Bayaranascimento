@@ -96,7 +96,8 @@ describe('quem vê o retrato', () => {
   });
 
   it('as páginas só mostram o retrato de quem a pessoa vê', () => {
-    expect(fontes['src/pages/pessoas/[id]/index.astro']).toMatch(/achar\(id\)\?\.retrato && !naoVe\.has\(id\)/);
+    // A página da pessoa monta os dados em src/lib/servidor/pagina-da-pessoa.ts (sessão L)
+    expect(readFileSync('src/lib/servidor/pagina-da-pessoa.ts', 'utf-8')).toMatch(/achar\(id\)\?\.retrato && !naoVe\.has\(id\)/);
     expect(fontes['src/pages/memorias/[id].astro']).toMatch(/pessoa\?\.retrato && !naoVe\.has\(id\)/);
     // Na árvore, quem a pessoa não vê nem chega ao navegador
     const arvore = fontes['src/pages/arvore.astro'];

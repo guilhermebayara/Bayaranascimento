@@ -164,6 +164,49 @@ export interface Troca {
 
 let pedido = 0;
 
+// --- Adiantar a página da troca ------------------------------------------------------------------
+// A troca espera o servidor montar a página nova, e na página da pessoa isso demorava (observação do
+// Gui, 18/11/2026). O endereço de uma opção é buscado antes do toque: quando o mouse passa por ela, o
+// foco chega nela ou o dedo encosta. A página fica guardada por pouco tempo, e a troca usa a guardada.
+const ADIANTADAS = new Map<string, { quando: number; texto: Promise<string> }>();
+const VALIDADE_DA_ADIANTADA = 60_000;
+
+function chaveDe(endereco: URL): string {
+  const limpo = new URL(endereco);
+  limpo.hash = '';
+  limpo.searchParams.delete('tamanho');
+  return limpo.href;
+}
+
+/** Busca o endereço antes de ele ser pedido. Uma busca que falha é esquecida, e a troca busca de novo. */
+export function adiantar(endereco: URL): void {
+  const chave = chaveDe(endereco);
+  const guardada = ADIANTADAS.get(chave);
+  if (guardada && Date.now() - guardada.quando < VALIDADE_DA_ADIANTADA) return;
+  const texto = fetch(chave, { headers: { Accept: 'text/html' } }).then((r) => {
+    if (!r.ok) throw new Error(String(r.status));
+    return r.text();
+  });
+  texto.catch(() => ADIANTADAS.delete(chave));
+  ADIANTADAS.set(chave, { quando: Date.now(), texto });
+}
+
+async function buscarPagina(endereco: URL): Promise<string> {
+  const chave = chaveDe(endereco);
+  const guardada = ADIANTADAS.get(chave);
+  ADIANTADAS.delete(chave);
+  if (guardada && Date.now() - guardada.quando < VALIDADE_DA_ADIANTADA) {
+    try {
+      return await guardada.texto;
+    } catch {
+      // A adiantada falhou: busca de novo
+    }
+  }
+  const resposta = await fetch(endereco, { headers: { Accept: 'text/html' } });
+  if (!resposta.ok) throw new Error(String(resposta.status));
+  return resposta.text();
+}
+
 /**
  * Busca a página do endereço e troca só a região do Explorar, com o movimento. Qualquer problema
  * cai na navegação comum.
@@ -174,9 +217,8 @@ export async function trocar(endereco: URL, { foco, empurrar }: Troca) {
   const meu = ++pedido;
   regiao.setAttribute('aria-busy', 'true');
   try {
-    const resposta = await fetch(endereco, { headers: { Accept: 'text/html' } });
-    if (!resposta.ok) throw new Error(String(resposta.status));
-    const pagina = new DOMParser().parseFromString(await resposta.text(), 'text/html');
+    const texto = await buscarPagina(endereco);
+    const pagina = new DOMParser().parseFromString(texto, 'text/html');
     const nova = pagina.querySelector<HTMLElement>(REGIAO);
     if (!nova) throw new Error('sem a região');
     // Uma escolha mais nova já saiu: esta resposta chegou atrasada
@@ -335,6 +377,15 @@ export function ligarTroca() {
     }
     trocar(endereco, { empurrar: true, foco: `.controles nav[aria-labelledby="${CSS.escape(controle)}"] a[data-opcao="${CSS.escape(opcao)}"]` });
   });
+
+  // A página de uma opção é buscada antes do toque, para a troca ser imediata
+  const quandoChega = (evento: Event) => {
+    const link = evento.target instanceof Element ? evento.target.closest<HTMLAnchorElement>(`${REGIAO} .controles a[data-opcao][href]`) : null;
+    if (!link || link.getAttribute('aria-current')) return;
+    const endereco = new URL(link.href);
+    if (daRegiao(endereco)) adiantar(endereco);
+  };
+  for (const tipo of ['pointerover', 'focusin', 'touchstart']) document.addEventListener(tipo, quandoChega, { passive: true });
 
   // Os seletores do sistema (a ordem) fecham com o Esc, que devolve o foco a eles, e com o toque fora
   document.addEventListener('keydown', (evento) => {

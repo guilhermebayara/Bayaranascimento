@@ -1623,6 +1623,27 @@ export async function listarAudiosDe(usuario: Usuario, pessoaId: string): Promis
     .map((r: Record<string, unknown>) => ({ ...lerAudio(r), memoriaId: r.memoria as string, memoriaTitulo: r.memoria_titulo as string }));
 }
 
+/**
+ * Os relatos que a pessoa contou (publicados, em memórias publicadas que quem olha vê), com o título e
+ * o ano da memória. Passa pela mesma regra de "A voz de Fulano" (veORelato). Conceito da página da
+ * pessoa, sessão L.
+ */
+export async function listarRelatosDe(usuario: Usuario, pessoaId: string): Promise<(Relato & { memoriaTitulo: string; memoriaAno: number })[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT r.*, m.titulo AS memoria_titulo, m.ano AS memoria_ano FROM relatos r
+       JOIN memorias m ON m.id = r.memoria_id
+       WHERE r.por = ?2 AND r.situacao = 'publicada' AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       ORDER BY m.ano DESC, m.mes DESC, m.dia DESC`,
+    )
+    .bind(usuario.pessoa, pessoaId)
+    .all<Record<string, unknown>>();
+  const naoVe = await pessoasQueONaoVe(usuario);
+  return results
+    .map((r: Record<string, unknown>) => ({ ...lerRelato(r), memoriaTitulo: r.memoria_titulo as string, memoriaAno: r.memoria_ano as number }))
+    .filter((r: Relato) => veORelato(r, usuario, naoVe));
+}
+
 // --- Tamanho do banco (aviso de 300 MB, ver src/lib/tamanho-do-banco.ts) ---
 
 /**
