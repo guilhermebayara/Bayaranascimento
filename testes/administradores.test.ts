@@ -13,6 +13,7 @@ import {
   podeMudarLacoDoCoracao,
   podeMudarQuemVe,
   podeRemoverFoto,
+  podeRestaurarFoto,
   type AcessoDaMemoria,
   type Usuario,
 } from '../src/lib/servidor/permissoes';
@@ -117,6 +118,7 @@ describe.skipIf(!comSqlite)('administradores, nas rotas e no banco', async () =>
   const repo = await import('../src/lib/servidor/repositorio');
   const memorias = await import('../src/pages/api/memorias');
   const lacos = await import('../src/pages/api/lacos');
+  const lixeira = await import('../src/pages/api/lixeira');
 
   const sql = (texto: string, ...valores: (string | number | null)[]) => banco.sqlite.prepare(texto).run(...valores);
   const linha = <T>(texto: string, ...valores: (string | number | null)[]) => banco.sqlite.prepare(texto).get(...valores) as T;
@@ -185,6 +187,25 @@ describe.skipIf(!comSqlite)('administradores, nas rotas e no banco', async () =>
     expect(removida).toMatchObject({ enviadaPor: 'elizete', removidaPor: 'giovanna' });
     // Sem a principal, a que ficou toma o lugar dela
     expect((await repo.obterMemoria(dona, 't-adm'))!.fotos).toMatchObject([{ id: foto2, principal: true }]);
+  });
+
+  it('quem removeu a foto também a restaura, além de quem enviou; outro administrador, não (resposta ao PR #52)', async () => {
+    const restaurar = async (quem: Usuario) => {
+      const formulario = new FormData();
+      for (const [k, v] of Object.entries({ acao: 'restaurar-foto', memoria: 't-adm', foto: String(foto1) })) formulario.set(k, v);
+      return pedir(lixeira, quem, formulario);
+    };
+    // O Magno também é administrador, mas não tirou a foto nem a enviou
+    const magno = usuarioDe('lucas-magno');
+    expect(podeRestaurarFoto(magno, { enviadaPor: 'elizete', removidaPor: 'giovanna' }).ok).toBe(false);
+    await restaurar(magno);
+    expect((await repo.listarFotosRemovidas('t-adm')).some((f) => f.id === foto1)).toBe(true);
+    // Quem tirou vê a foto removida no histórico e a devolve
+    expect(await repo.podeVerFoto(admin, 'teste/adm-1.jpg')).toBe(true);
+    expect(await repo.podeVerFoto(magno, 'teste/adm-1.jpg')).toBe(false);
+    await restaurar(admin);
+    expect((await repo.listarFotosRemovidas('t-adm')).some((f) => f.id === foto1)).toBe(false);
+    expect((await repo.obterMemoria(dona, 't-adm'))!.fotos.map((f) => f.id)).toContain(foto1);
   });
 
   it('o administrador muda o nome e o lugar na árvore do laço do coração de outra pessoa, e a versão fica com o nome dele', async () => {

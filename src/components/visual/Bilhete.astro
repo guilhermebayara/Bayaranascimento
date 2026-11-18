@@ -9,14 +9,16 @@ interface Props {
   registradoPor?: string | null;
   /** o bilhete inteiro como link, para o cartão de "relato novo" */
   href?: string;
+  /** a âncora do bilhete, para um aviso levar direto ao relato */
+  id?: string;
 }
 
-const { por, registradoPor, href } = Astro.props;
+const { por, registradoPor, href, id } = Astro.props;
 const Caixa = href ? 'a' : 'article';
 const Linha = href ? 'span' : 'p';
 ---
 
-<Caixa class="bilhete" href={href}>
+<Caixa class="bilhete" href={href} id={id}>
   <slot />
   <Linha class="bilhete__assina">
     <span class="mao">{por}</span>
