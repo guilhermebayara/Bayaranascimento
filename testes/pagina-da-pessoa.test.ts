@@ -68,7 +68,9 @@ describe('a página, depois das observações do Gui (18/11/2026)', () => {
   });
   it('com mouse, o quadro acompanha a rolagem e rola por dentro; no toque, nada fica preso', () => {
     const preso = css.slice(css.indexOf('@media (min-width: 62rem) and (hover: hover) and (pointer: fine)'));
-    expect(preso).toMatch(/position: sticky;[^}]*max-height: calc\(100vh - 2 \* var\(--e-5\)\);\s*overflow-y: auto;/);
+    expect(preso).toMatch(/position: sticky;[^}]*max-height: calc\(100vh - 2 \* var\(--e-5\)\);/);
+    // Rola por dentro só a parte aberta (QA de 18/11/2026, abaixo)
+    expect(preso).toMatch(/\.quadro__secao\[open\] \{[^}]*overflow-y: auto;/);
     expect(css.slice(0, css.indexOf('@media (min-width: 62rem) and (hover: hover) and (pointer: fine)'))).not.toMatch(/position: sticky/);
   });
   it('"Mostrar datas" e "Como você chama" não recarregam a página (o mínimo de recarregamentos)', () => {
