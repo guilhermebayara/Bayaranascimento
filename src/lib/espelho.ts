@@ -40,6 +40,8 @@ export const TABELAS_APAGADAS = [
   'avisos',
   // As sugestões de correção apontam para memórias e relatos da produção (migração 074)
   'sugestoes',
+  // As reações apontam para memórias, relatos e fotos da produção (migração 075)
+  'reacoes',
   // A proximidade do círculo é de cada pessoa, e só ela vê: o espelho não leva nenhuma, e apaga as que houver
   'proximidades',
   // Como o ex aparece é de cada pessoa, e só ela vê: o espelho não leva nenhuma escolha (migração 071)

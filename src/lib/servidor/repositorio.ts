@@ -10,6 +10,7 @@ import type { Tipo } from '../tipos';
 import type { TipoDeAviso } from '../avisos';
 import { exesDe, modosQueValem, type ModoDoEx } from '../ex-casal';
 import type { Proposta, SituacaoDaSugestao, Sugestao, TipoDeSugestao } from '../sugestoes';
+import type { SimboloDaReacao } from '../reacoes';
 import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
 export interface Integrante {
@@ -1035,6 +1036,7 @@ export async function apagarMemoriaDeVez(id: string, usuario: Usuario): Promise<
     db().prepare(`DELETE FROM versoes WHERE (tipo = 'memoria' AND item_id = ?1) OR (tipo = 'relato' AND item_id IN ${relatos})`).bind(id),
     db().prepare('DELETE FROM avisos WHERE memoria_id = ?1').bind(id),
     db().prepare('DELETE FROM sugestoes WHERE memoria_id = ?1').bind(id),
+    db().prepare('DELETE FROM reacoes WHERE memoria_id = ?1').bind(id),
     db().prepare(`UPDATE fotos SET memoria_id = NULL, relato_id = NULL, legenda = NULL, principal = 0, removida_em = COALESCE(removida_em, datetime('now')), removida_por = COALESCE(removida_por, ?2) WHERE memoria_id = ?1 OR relato_id IN (SELECT id FROM relatos WHERE memoria_id = ?1)`).bind(id, usuario.pessoa),
     db().prepare(`UPDATE audios SET memoria_id = NULL, relato_id = NULL, transcricao = NULL, removido_em = COALESCE(removido_em, datetime('now')) WHERE memoria_id = ?1 OR relato_id IN (SELECT id FROM relatos WHERE memoria_id = ?1)`).bind(id),
     db().prepare('DELETE FROM relatos WHERE memoria_id = ?1').bind(id),
@@ -2254,4 +2256,60 @@ export async function responderSugestao(s: Sugestao, situacao: Exclude<SituacaoD
     db().prepare(`UPDATE avisos SET resolvido_em = datetime('now'), resposta = ? WHERE tipo = 'sugestao' AND para = ? AND json_extract(dados, '$.sugestao') = ? AND resolvido_em IS NULL`).bind(situacao, usuario.pessoa, s.id),
   ]);
   await criarAvisos([{ para: s.de, tipo: 'sugestao-resposta', memoriaId: s.memoriaId, relatoId: s.relatoId, de: usuario.pessoa, dados: { sugestao: s.id, situacao, recado: s.tipo === 'recado' } }]);
+}
+
+// --- Reações (migração 075; regras em src/lib/reacoes.ts) ---
+
+/**
+ * As reações de uma memória, por item ("relato:12", "foto:3"), com quem marcou cada símbolo. Só entram
+ * os itens que quem pede vê (`alvos`) e as pessoas que ela vê: a conta nunca denuncia quem ela não vê.
+ */
+export async function listarReacoes(memoriaId: string, usuario: Usuario, alvos: ReadonlySet<string>): Promise<Map<string, Map<SimboloDaReacao, string[]>>> {
+  const { results } = await db()
+    .prepare('SELECT alvo, alvo_id, pessoa, simbolo FROM reacoes WHERE memoria_id = ? ORDER BY id')
+    .bind(memoriaId)
+    .all<{ alvo: string; alvo_id: number; pessoa: string; simbolo: SimboloDaReacao }>();
+  const porItem = new Map<string, Map<SimboloDaReacao, string[]>>();
+  if (results.length === 0) return porItem;
+  const naoVe = await pessoasQueONaoVe(usuario);
+  for (const r of results as { alvo: string; alvo_id: number; pessoa: string; simbolo: SimboloDaReacao }[]) {
+    const chave = `${r.alvo}:${r.alvo_id}`;
+    if (!alvos.has(chave) || naoVe.has(r.pessoa)) continue;
+    const doItem = porItem.get(chave) ?? new Map<SimboloDaReacao, string[]>();
+    doItem.set(r.simbolo, [...(doItem.get(r.simbolo) ?? []), r.pessoa]);
+    porItem.set(chave, doItem);
+  }
+  return porItem;
+}
+
+/** Marca ou desmarca a reação da pessoa. Devolve se ficou marcada. */
+export async function alternarReacao(memoriaId: string, alvo: 'relato' | 'foto', alvoId: number, simbolo: SimboloDaReacao, usuario: Usuario): Promise<boolean> {
+  const apagou = await db().prepare('DELETE FROM reacoes WHERE alvo = ? AND alvo_id = ? AND pessoa = ? AND simbolo = ?').bind(alvo, alvoId, usuario.pessoa, simbolo).run();
+  if ((apagou.meta.changes ?? 0) > 0) return false;
+  await db().prepare('INSERT INTO reacoes (memoria_id, alvo, alvo_id, pessoa, simbolo) VALUES (?, ?, ?, ?, ?)').bind(memoriaId, alvo, alvoId, usuario.pessoa, simbolo).run();
+  return true;
+}
+
+/** A pessoa marcou "eu estava lá" em algo desta memória? */
+export async function disseQueEstava(memoriaId: string, usuario: Usuario): Promise<boolean> {
+  return Boolean(await db().prepare(`SELECT 1 AS ok FROM reacoes WHERE memoria_id = ? AND pessoa = ? AND simbolo = 'estava' LIMIT 1`).bind(memoriaId, usuario.pessoa).first());
+}
+
+/** A ficha de uma memória como ela está, para salvar com uma mudança só (aceitar sugestão, entrar em Quem estava). */
+export function fichaComoEsta(m: Memoria): DadosDaMemoria {
+  return {
+    titulo: m.titulo,
+    ano: m.ano,
+    mes: m.mes ?? undefined,
+    dia: m.dia ?? undefined,
+    aproximada: m.aproximada,
+    tipo: m.tipo,
+    tipoOutro: m.tipoOutro ?? undefined,
+    lugar: m.lugar ?? undefined,
+    visibilidade: m.visibilidade,
+    situacao: m.situacao,
+    nucleos: m.nucleos,
+    integrantes: m.integrantes,
+    fotos: m.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
+  };
 }

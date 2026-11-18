@@ -813,6 +813,26 @@ export const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS avisos_da_memoria ON avisos (memoria_id)`,
     ],
   },
+  {
+    // Reações (onda 2, decisão do Gui de 17/11/2026; regras em src/lib/reacoes.ts): em relato e em foto,
+    // quatro símbolos desenhados com os rabiscos do site (coração, riso, saudade e "eu estava lá"). Uma
+    // linha por pessoa, símbolo e item. Sem chave para memórias, relatos e fotos, como os avisos: quem lê
+    // confere se ainda vê o item e quem marcou.
+    id: '075-reacoes',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS reacoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memoria_id TEXT NOT NULL,
+        alvo TEXT NOT NULL CHECK (alvo IN ('relato', 'foto')),
+        alvo_id INTEGER NOT NULL,
+        pessoa TEXT NOT NULL,
+        simbolo TEXT NOT NULL CHECK (simbolo IN ('coracao', 'riso', 'saudade', 'estava')),
+        criada_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (alvo, alvo_id, pessoa, simbolo)
+      )`,
+      `CREATE INDEX IF NOT EXISTS reacoes_da_memoria ON reacoes (memoria_id)`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

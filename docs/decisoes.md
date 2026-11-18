@@ -520,6 +520,18 @@ Migração `074-sugestoes-de-correcao` (onda 2, decisão do Gui de 17/11/2026). 
 
 Origem: [histórico, "Decidido, a construir"](historico/decisoes-ate-2026-11-17.md#decidido-a-construir) (a onda 2).
 
+## Reações
+
+Migração `075-reacoes` (onda 2, decisão do Gui de 17/11/2026). As regras estão em `src/lib/reacoes.ts`, a peça em `src/components/visual/Reacoes.astro` (também na página do sistema), a rota em `src/pages/api/reacoes.ts` e o teste em `testes/reacoes.test.ts`.
+
+- Em cada relato publicado (no pé do bilhete, depois da assinatura) e em cada foto da parede, quatro símbolos desenhados com os rabiscos do site, nunca emoji do aparelho: **coração** (o rabisco do coração), **riso** (uma carinha de olhos fechados, provisória, para o acabamento), **saudade** (a flor) e **"eu estava lá"** (a câmera). Cada símbolo é um botão de 44 px que marca ou desmarca o seu, com a conta ao lado; o seu fica cheio. Funciona sem script: cada toque é um formulário comum, que volta para o mesmo ponto da página.
+- **"Quem marcou"** abre no lugar os nomes de cada símbolo ("você", "Elizete e Gui").
+- **"Eu estava lá"** numa memória em que a pessoa não está marcada mostra, no alto do corpo da memória, "Você disse que estava lá. Quer entrar em Quem estava?" com "Entrar em Quem estava", que põe a pessoa na memória, com a versão de antes no histórico.
+- **Privacidade:** só reage quem vê o relato ou a foto; quem não vê recebe o mesmo que para um item que não existe. Os nomes e a conta só contam quem a pessoa vê. O espelho apaga as reações, e "Apagar de vez" leva as da memória.
+- As reações ficam só na parede de fotos (memória com mais de uma foto) e nos bilhetes; a foto única do alto e a galeria não têm.
+
+Origem: [histórico, "Decidido, a construir"](historico/decisoes-ate-2026-11-17.md#decidido-a-construir) (a onda 2).
+
 ## Ampliar quem vê uma memória com relatos
 
 Migração `025-relato-so-para-quem-via`. As regras estão em `src/lib/servidor/permissoes.ts` (`publicoAmpliado`, `publicoDentroDe`, `estaNoPublicoDoRelato`, `podeLiberarRelato` e `veORelato`), com teste em `testes/ampliar-relatos.test.ts`, que confere consulta por consulta que nada do relato vaza antes do sim.
@@ -588,8 +600,7 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - **Processo: conceito primeiro, com parada.** Nos redesenhos grandes (árvore como mapa e círculo; editar pessoa e laços; página da pessoa e Pessoas; nova memória em frase; controles do Explorar), a sessão monta duas propostas numa prévia de teste (`tst-<assunto>`), manda as capturas em 390, 1280 e 1920 px e para. O Gui escolhe olhando, e só então ela constrói. As perguntas que sobrarem vêm poucas por vez. Primeiro redesenho feito assim: o quadro do mapa (17 e 18/11/2026), com a proposta A escolhida; ver "A página da árvore como mapa", em "Integrantes e laços de árvore".
     - **Componentes do sistema.** Família é sempre pill, como no Explorar (em Pessoas hoje são links). O seletor segmentado já está em "Quem pode ver?" da nova memória (ver "Nova memória").
     - **Página da pessoa no desktop.** "Família e laços" tem o mesmo peso que o título de cada grupo; o espaço da tela grande é mal aproveitado; o retrato e o nome ocupam espaço demais no desktop, a ponto de parecer um problema (o espaço continua sendo parte do visual, só não em excesso).
-- **Onda 2, até 1/12** (escopo decidido pelo Gui, 17/11/2026; os detalhes de desenho ainda serão perguntados antes de construir). Entram: compartilhar uma memória como imagem, reações e a transcrição automática dos áudios (Whisper no Workers AI, só se couber na cota gratuita, conferida antes; a transcrição entra como rascunho e quem registrou revisa).
-    - **Reações** (17/11/2026): em relato e em foto, quatro símbolos desenhados com os rabiscos do site, nunca emoji do aparelho: coração, riso, saudade e "eu estava lá". Tocar num símbolo mostra os nomes de quem marcou, só os que a pessoa vê. "Eu estava lá" numa memória em que a pessoa não está marcada oferece "Quer entrar em Quem estava?", com um toque.
+- **Onda 2, até 1/12** (escopo decidido pelo Gui, 17/11/2026; os detalhes de desenho ainda serão perguntados antes de construir). Entram: compartilhar uma memória como imagem e a transcrição automática dos áudios (Whisper no Workers AI, só se couber na cota gratuita, conferida antes; a transcrição entra como rascunho e quem registrou revisa).
     - **Compartilhar como imagem:** vertical, para stories e WhatsApp: a foto revelada no alto, título, data, um trecho curto do relato e a assinatura do acervo embaixo. Só gera quem vê a memória. Se a memória é visível só para uma ou mais famílias, um aviso antes ("Esta memória é só da família Bracarense. Quem receber a imagem vai ver.") e a pessoa confirma; memória de uma família que todos podem ver não tem aviso.
 - **Fonte do site: combinação C, De cartaz** (decisão do Gui, 17/11/2026, sem esperar mais a Giovanna e o Magno). DM Serif Display, DM Sans, DM Mono e Nothing You Could Do, em todo o site: `FONTES_DO_SITE = combinacao('c')`, e `npm run monograma` de novo, porque a serifa muda. As três combinações **não saem** do site, ao contrário do que `docs/visual.md` previa: a página do sistema (`/sistema`, que existe também na produção) ganha um seletor entre A, B e C que troca as fontes só nos exemplos daquela página, para comparar se a decisão mudar. O resto do site usa sempre a C, e o cookie da faixa de teste continua valendo só nas prévias. Confira o que a troca de serifa mexe: a largura da assinatura, os títulos longos em 390 px, o monograma e o ícone.
 - **Revisão visual: movimento, detalhes e o aparelho** (fases 4 e 5 da revisão do zero, decisões do Gui de 16/11/2026). As fases 1 a 3 estão no site (ver "Visual"). Falta:

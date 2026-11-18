@@ -7,6 +7,8 @@ import '../../visual/telas/memoria.css';
 import Visual from '../../layouts/Visual.astro';
 import Audio from '../../components/visual/Audio.astro';
 import Bilhete from '../../components/visual/Bilhete.astro';
+import Reacoes from '../../components/visual/Reacoes.astro';
+import { ofereceEntrar } from '../../lib/reacoes';
 import Carimbo from '../../components/visual/Carimbo.astro';
 import Dado from '../../components/visual/Dado.astro';
 import Etiqueta from '../../components/visual/Etiqueta.astro';
@@ -30,6 +32,8 @@ import {
   listarCapitulos,
   comoOsExesAparecem,
   contarSugestoesAbertas,
+  disseQueEstava,
+  listarReacoes,
   listarCasais,
   listarFiliacoes,
   listarIntegrantes,
@@ -84,6 +88,12 @@ const tipo = tipoDaMemoria(tipos, memoria);
 const dosNucleos = memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n));
 const podeEditar = podeEditarMemoria(usuario, memoria).ok;
 const podeExcluir = podeExcluirMemoria(usuario, memoria).ok;
+// Reações (onda 2): só nos relatos publicados e nas fotos que a pessoa vê, e só com quem ela vê
+const publicada = memoria.situacao === 'publicada';
+const alvosDasReacoes = new Set([...relatos.filter((r) => r.situacao === 'publicada').map((r) => `relato:${r.id}`), ...memoria.fotos.map((f) => `foto:${f.id}`)]);
+const reacoes = publicada ? await listarReacoes(memoria.id, usuario, alvosDasReacoes) : new Map();
+const temPaginaNoAcervo = integrantes.some((i) => i.id === usuario.pessoa);
+const ofereceQuemEstava = publicada && temPaginaNoAcervo && ofereceEntrar(await disseQueEstava(memoria.id, usuario), memoria.integrantes.includes(usuario.pessoa));
 const sugestoesAbertas = memoria.situacao === 'publicada' ? await contarSugestoesAbertas(memoria.id, usuario) : 0;
 // Capítulos: os reunidos em que foi colocada e os por período em que a data cai, se forem de quem está nela
 const capitulos = (await listarCapitulos(usuario)).filter((c) => memoriaDoCapitulo(memoria, c));
@@ -228,6 +238,19 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
 
       <div class="corpo__conteudo">
         {
+          // Depois de "eu estava lá" numa memória em que não está: um toque para entrar em Quem estava
+          ofereceQuemEstava && (
+            <form class="entrar-em-quem-estava" method="post" action="/api/reacoes">
+              <input type="hidden" name="acao" value="entrar" />
+              <input type="hidden" name="memoria" value={memoria.id} />
+              <span>Você disse que estava lá. Quer entrar em Quem estava?</span>
+              <button class="acao" type="submit">
+                Entrar em Quem estava
+              </button>
+            </form>
+          )
+        }
+        {
           quemEstava.length > 0 && (
             <section class="parte" aria-labelledby="quem-estava">
               <h2 class="parte__titulo" id="quem-estava">
@@ -319,6 +342,9 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                           ))}
                         </ul>
                       )}
+                      {publicada && relato.situacao === 'publicada' && (
+ <div slot="pe"><Reacoes memoria={memoria.id} alvo="relato" alvoId={relato.id} marcas={reacoes.get(`relato:${relato.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#relato-${relato.id}`} /></div>
+                      )}
                     </Bilhete>
                   );
                 })}
@@ -337,7 +363,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
               </h2>
               <ul class="parede">
                 {memoria.fotos.map((foto, n) => (
-                  <li>
+                  <li id={`foto-${foto.id}`}>
                     <a class="monte" href={`/fotos/${foto.chave}`} data-galeria={n} aria-label={`Ver a foto inteira${foto.legenda ? `: ${foto.legenda}` : ''}`}>
                       <figure class="polaroid" style={`--giro: ${giroDoId(`${memoria.id}-${n}`)}deg`}>
                         <span class="polaroid__foto">
@@ -346,6 +372,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                         <figcaption class="polaroid__legenda">{foto.legenda ?? ''}</figcaption>
                       </figure>
                     </a>
+                    {publicada && <Reacoes memoria={memoria.id} alvo="foto" alvoId={foto.id} marcas={reacoes.get(`foto:${foto.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#foto-${foto.id}`} />}
                   </li>
                 ))}
               </ul>
