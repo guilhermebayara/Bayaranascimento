@@ -254,7 +254,11 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     retrato.firstElementChild!.setAttribute('aria-hidden', 'true');
     // "Ver o laço" (onda 2): a página do laço entre quem olha e a pessoa tocada
     const doLaco = p.id !== dados.eu && pessoa.has(dados.eu) ? [Object.assign(document.createElement('a'), { href: enderecoDoLaco(dados.eu, p.id), textContent: 'Ver o laço' })] : [];
-    ficha.replaceChildren(retrato, nome, quem, pagina, ...doLaco, partir, fechar);
+    // As ações ficam numa linha só, que quebra quando falta espaço: com "Ver o laço", eram três links na
+    // mesma célula da grade, um em cima do outro (observação do Gui de 18/11/2026)
+    const acoes = Object.assign(document.createElement('div'), { className: 'pm__ficha-acoes' });
+    acoes.append(pagina, ...doLaco, partir);
+    ficha.replaceChildren(retrato, nome, quem, acoes, fechar);
   };
   const fecharFicha = () => {
     if (!fichaAberta) return;

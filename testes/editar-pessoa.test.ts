@@ -94,3 +94,14 @@ describe('a ficha num resumo', () => {
     expect(ficha.indexOf('prefixo="nascimento"')).toBeLessThan(ficha.indexOf('<details class="mais">'));
   });
 });
+
+// Observação do Gui na homologação (18/11/2026): o cartão da ficha não alinhava com os cartões dos laços
+describe('a ficha alinha com os laços', () => {
+  it('o retrato da ficha e o dos laços têm a mesma largura, e o nome cai na mesma linha', () => {
+    expect(css).toMatch(/:is\(\.cartao-da-ficha > summary, \.cartao-da-ficha__linha\) \{\s*display: grid;\s*grid-template-columns: var\(--retrato-da-lista\) minmax\(0, 1fr\);/);
+    expect(css).toMatch(/\.laco__quem \{\s*display: grid;\s*grid-template-columns: var\(--retrato-da-lista\) minmax\(0, 1fr\);/);
+  });
+  it('na tela grande, a ficha tem a largura dos grupos de laços', () => {
+    expect(css).not.toMatch(/\.ficha-da-pessoa \{\s*max-width/);
+  });
+});

@@ -52,7 +52,7 @@ describe('a ficha da árvore', () => {
   });
   it('as duas ações ficam à vista no celular e na tela grande, sem "Mais" (P86, revisto com o painel)', () => {
     expect(ficha).not.toMatch(/Mais|data-mais/);
-    expect(quadro).toMatch(/\.pm__ficha a,\s*\.pm__ficha \[data-partir\] \{\s*grid-row: 3;/);
+    expect(quadro).toMatch(/\.pm__ficha-acoes \{[^}]*flex-wrap: wrap;[^}]*grid-row: 3;/);
     expect(quadro).toMatch(/\.pm__ficha button\[hidden\] \{\s*display: none;/);
   });
   it('fica dentro do painel, logo abaixo do título (P85, revisto com o painel)', () => {
