@@ -8,6 +8,7 @@ import {
   atualizarMemoria,
   listarCapitulosExcluidos,
   excluirMemoria,
+  idsDasPessoasExcluidas,
   listarExcluidas,
   listarIntegrantes,
   listarVersoes,
@@ -82,7 +83,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .find((v) => v.id === Number(campo(dados, 'versao', 12)) && podeVerVersao(usuario, memoria, v.dados));
     if (!versao) return voltar(request, historico, { erro: 'Versão não encontrada.' });
     const antiga = versao.dados;
-    const existentes = new Set((await listarIntegrantes()).map((i) => i.id));
+    // Quem está na lixeira (excluir pessoa) volta na versão, escondido como hoje, para restaurar a pessoa devolvê-la
+    const existentes = new Set([...(await listarIntegrantes()).map((i) => i.id), ...(await idsDasPessoasExcluidas())]);
     // Volta a ficha: título, data, tipo, lugar e pessoas. Quem vê, núcleos e fotos ficam como estão hoje,
     // para uma restauração nunca abrir a memória a mais gente sem alguém decidir isso.
     const restaurada: DadosDaMemoria = {

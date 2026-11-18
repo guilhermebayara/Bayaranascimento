@@ -43,6 +43,8 @@ export const IDS_COM_ACESSO = ['gui', 'giovanna', 'elizete', 'lucas-magno'];
 export const TABELAS_APAGADAS = [
   // Os avisos apontam para memórias e relatos da produção: o espelho não leva nenhum
   'avisos',
+  // Os pedidos para excluir pessoa trazem o motivo escrito: o espelho não leva nenhum (migração 102)
+  'pedidos_de_exclusao',
   // As sugestões de correção apontam para memórias e relatos da produção (migração 074)
   'sugestoes',
   // As reações apontam para memórias, relatos e fotos da produção (migração 075)
@@ -156,6 +158,9 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       admin: numero(p.admin) ?? 0,
       ordem: numero(p.ordem) ?? 50,
       criado_por: mapear(p.criado_por),
+      // Quem está na lixeira (excluir pessoa, migração 102) continua na lixeira no espelho
+      excluida_em: texto(p.excluida_em),
+      excluida_por: texto(p.excluida_em) ? mapear(p.excluida_por) : null,
     };
   });
 

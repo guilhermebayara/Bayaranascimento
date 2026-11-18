@@ -27,6 +27,7 @@ import {
   medirArquivosDeAntes,
   obterCarta,
   tamanhoDoBanco,
+  listarPedidosDeExclusao,
   ultimaCopiaMensal,
 } from './repositorio';
 
@@ -35,9 +36,9 @@ import {
  * cópia do script do Drive, e só lá ela é conferida. As fotos soltas e os cadastros duplicados entram
  * quando as listas existirem (onda 2): até lá, null.
  */
-async function situacaoDasPendencias(usuario: Usuario): Promise<Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>> {
+async function situacaoDasPendencias(usuario: Usuario): Promise<Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados' | 'exclusoes'>> {
   const conferida = ambiente() === 'producao';
-  const [carta, bytes, ultima, arquivos, fotosSoltas, integrantes, naoSao] = await Promise.all([
+  const [carta, bytes, ultima, arquivos, fotosSoltas, integrantes, naoSao, pedidos] = await Promise.all([
     obterCarta(),
     tamanhoDoBanco(),
     conferida ? ultimaCopiaMensal() : Promise.resolve(null),
@@ -46,6 +47,7 @@ async function situacaoDasPendencias(usuario: Usuario): Promise<Pick<SituacaoDaA
     // Só quem o administrador vê: a conta nunca denuncia quem está num laço privado de outra pessoa
     listarIntegrantesQueVe(usuario),
     lerAjuste(AJUSTE_DOS_NAO_DUPLICADOS),
+    listarPedidosDeExclusao(),
   ]);
   // Os possíveis cadastros duplicados, pelas comparações baratas (src/lib/nomes-parecidos.ts)
   const duplicados = possiveisDuplicados(integrantes, new Set(Array.isArray(naoSao) ? (naoSao as string[]) : [])).length;
@@ -58,6 +60,8 @@ async function situacaoDasPendencias(usuario: Usuario): Promise<Pick<SituacaoDaA
     copiaMensal: { conferida, ultima },
     fotosSoltas,
     duplicados,
+    // Só o pedido de quem o administrador vê
+    exclusoes: pedidos.filter((p) => integrantes.some((i) => i.id === p.pessoa)).length,
   };
 }
 

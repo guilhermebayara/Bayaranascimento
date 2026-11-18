@@ -10,7 +10,7 @@ import type { DadosDaImagem } from '../../../lib/cliente/compartilhar';
 import { formatarData } from '../../../lib/datas';
 import { FONTES_DO_SITE } from '../../../lib/visual';
 import { MONOGRAMAS } from '../../../visual/monograma';
-import { listarIntegrantes, listarMeusApelidos, listarNucleos, listarRelatos, obterMemoria } from '../../../lib/servidor/repositorio';
+import { listarIntegrantes, listarMeusApelidos, listarNucleos, listarRelatos, obterMemoria, nomesDasPessoasExcluidas } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -29,9 +29,11 @@ const relato = relatos.find((r) => r.por === usuario.pessoa) ?? relatos[0];
 // olha (listarIntegrantes, nas páginas), então os dois nomes são lidos à parte, cada um da sua fonte.
 const integrantes = await listarIntegrantes();
 const meusApelidos = await listarMeusApelidos(usuario.pessoa);
+// Quem está na lixeira (excluir pessoa): o relato que contou continua com o nome
+const nomesNaLixeira = await nomesDasPessoasExcluidas();
 const nomesDe = (id: string): NomesDeQuemAparece => {
   const i = integrantes.find((x) => x.id === id);
-  return { nome: i?.nome ?? '', apelidoDaFamilia: i?.apelidoDaFamilia ?? null, meuApelido: meusApelidos.get(id) ?? null };
+  return { nome: i?.nome ?? nomesNaLixeira.get(id) ?? '', apelidoDaFamilia: i?.apelidoDaFamilia ?? null, meuApelido: meusApelidos.get(id) ?? null };
 };
 // Quem aparece na imagem: hoje, só quem contou o trecho
 const quemAparece = relato ? [nomesDe(relato.por)] : [];

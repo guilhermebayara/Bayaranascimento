@@ -44,8 +44,7 @@ import {
   listarTemas,
   obterMemoria,
   pessoasQueONaoVe,
-  abrirAvisosDaMemoria,
-} from '../../lib/servidor/repositorio';
+  abrirAvisosDaMemoria, nomesDasPessoasExcluidas } from '../../lib/servidor/repositorio';
 import { carimboDaData, corDaPessoa, estiloDoTipo, giroDoId, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
 
 const { usuario, tipos } = Astro.locals;
@@ -62,7 +61,9 @@ const ordemDosNucleos = nucleos.map((n) => n.id);
 const relatos = await listarRelatos(usuario, memoria.id);
 const audiosDosRelatos = await listarAudiosDosRelatos(relatos.map((r) => r.id));
 const achar = (id: string) => integrantes.find((i) => i.id === id);
-const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+// Quem está na lixeira (excluir pessoa) some do site, mas o relato que contou continua com o nome
+const nomesNaLixeira = await nomesDasPessoasExcluidas();
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? nomesNaLixeira.get(id) ?? id;
 const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
 
 // Retratos em "Quem estava": só de quem a pessoa vê. Sem retrato, as iniciais sobre a cor da família.

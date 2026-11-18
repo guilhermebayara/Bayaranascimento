@@ -897,6 +897,29 @@ export const MIGRACOES: Migracao[] = [
       `ALTER TABLE casal_fases ADD COLUMN fim_dia INTEGER`,
     ],
   },
+  {
+    // Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026; regras em permissoes.ts,
+    // "podeExcluirPessoa"). A pessoa excluída vai para a lixeira: some do site na hora, e um administrador
+    // restaura. Nada é apagado: as linhas dela (laços, "quem estava", relatos) ficam no banco, e as
+    // consultas deixam de vê-la. Quem não administra pede; o pedido fica aberto até um administrador
+    // excluir ou recusar. Um pedido aberto por pessoa.
+    id: '102-excluir-pessoa',
+    sql: [
+      `ALTER TABLE integrantes ADD COLUMN excluida_em TEXT`,
+      `ALTER TABLE integrantes ADD COLUMN excluida_por TEXT`,
+      `CREATE TABLE IF NOT EXISTS pedidos_de_exclusao (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pessoa_id TEXT NOT NULL,
+        pedido_por TEXT NOT NULL,
+        motivo TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        resolvido_em TEXT,
+        resolvido_por TEXT,
+        resposta TEXT CHECK (resposta IN ('excluida', 'recusado'))
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS pedidos_de_exclusao_um_aberto ON pedidos_de_exclusao (pessoa_id) WHERE resolvido_em IS NULL`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

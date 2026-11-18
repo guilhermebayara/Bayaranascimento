@@ -11,7 +11,7 @@ import type { TipoDeAviso } from '../avisos';
 import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '../ex-casal';
 import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, type TipoDeSugestao } from '../sugestoes';
 import type { SimboloDaReacao } from '../reacoes';
-import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
+import { comExcluidas, pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
 export interface Integrante {
   id: string;
@@ -127,9 +127,15 @@ const FILTRO_VISIVEL = `(m.excluida_em IS NULL AND ${FILTRO_SEM_LIXEIRA})`;
 
 // --- Integrantes e núcleos ---
 
+/**
+ * Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026): quem está na lixeira não aparece em
+ * nenhuma lista de pessoas nem de laços. As linhas continuam no banco, para restaurar devolver tudo.
+ */
+const ativa = (coluna: string) => `${coluna} NOT IN (SELECT id FROM integrantes WHERE excluida_em IS NOT NULL)`;
+
 export async function listarIntegrantes(): Promise<Integrante[]> {
   const [integrantes, membros] = await db().batch<Record<string, unknown>>([
-    db().prepare('SELECT * FROM integrantes ORDER BY ordem, nome'),
+    db().prepare('SELECT * FROM integrantes WHERE excluida_em IS NULL ORDER BY ordem, nome'),
     db().prepare('SELECT nucleo_id, integrante_id, papel FROM nucleo_membros'),
   ]);
   const linhas = membros.results as Record<string, unknown>[];
@@ -273,7 +279,7 @@ export interface LacoResumido {
 }
 
 export async function listarLacosResumidos(): Promise<LacoResumido[]> {
-  const { results } = await db().prepare('SELECT id, a_id, b_id, papel, criado_por FROM lacos_resumidos ORDER BY id').all<Record<string, unknown>>();
+  const { results } = await db().prepare(`SELECT id, a_id, b_id, papel, criado_por FROM lacos_resumidos WHERE ${ativa('a_id')} AND ${ativa('b_id')} ORDER BY id`).all<Record<string, unknown>>();
   return results.map((r) => ({ id: r.id as number, a: r.a_id as string, b: r.b_id as string, papel: r.papel as Papel, criadoPor: (r.criado_por as string | null) ?? null }));
 }
 
@@ -300,7 +306,7 @@ export async function removerLacoResumido(id: number, usuario: Usuario): Promise
 // --- Laços de árvore ---
 
 export async function listarFiliacoes(): Promise<Filiacao[]> {
-  const { results } = await db().prepare('SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes').all<Record<string, unknown>>();
+  const { results } = await db().prepare(`SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE ${ativa('filho_id')} AND ${ativa('responsavel_id')}`).all<Record<string, unknown>>();
   return results.map((r) => ({
     filho: r.filho_id as string,
     responsavel: r.responsavel_id as string,
@@ -372,7 +378,8 @@ const FECHAMENTO: Record<Casal['visibilidade'], number> = { privado: 2, nucleos:
  * escolhidas) e um público, cadastrado por quem não via o restrito. Quem vê o restrito fica com ele.
  */
 export async function listarCasais(usuario: Usuario): Promise<Casal[]> {
-  const visiveis = (await lerCasais()).filter((c) => podeVerCasal(usuario.pessoa, c, usuario.nucleos ?? []));
+  const [casais, excluidas] = await Promise.all([lerCasais(), idsDasPessoasExcluidas()]);
+  const visiveis = casais.filter((c) => podeVerCasal(usuario.pessoa, c, usuario.nucleos ?? []) && !excluidas.has(c.a) && !excluidas.has(c.b));
   const porPar = new Map<string, Casal>();
   for (const c of visiveis) {
     const chave = `${c.a}|${c.b}`;
@@ -449,7 +456,7 @@ export async function removerCasal(casal: Casal, usuario: Usuario): Promise<void
 
 /** Laços do coração que o usuário pode ver. A proximidade só acompanha os laços dele. */
 export async function listarLacosDoCoracao(usuario: Usuario): Promise<LacoDoCoracao[]> {
-  const { results } = await db().prepare('SELECT * FROM lacos_coracao ORDER BY COALESCE(proximidade, 9), nome').all<Record<string, unknown>>();
+  const { results } = await db().prepare(`SELECT * FROM lacos_coracao WHERE ${ativa('dono_id')} AND ${ativa('pessoa_id')} ORDER BY COALESCE(proximidade, 9), nome`).all<Record<string, unknown>>();
   return results
     .map((l) => ({
       id: l.id as number,
@@ -472,10 +479,18 @@ export async function pessoasEmLacosPrivadosDeOutros(usuario: Usuario): Promise<
   return new Set(results.map((r) => r.pessoa_id));
 }
 
-/** Quem a pessoa logada não vê (ver pessoasQueNaoVe). Barato quando ninguém tem laço privado. */
+/**
+ * Quem a pessoa logada não vê (ver pessoasQueNaoVe), e quem está na lixeira (excluir pessoa), que ninguém
+ * vê. O conjunto leva junto quem está na lixeira (`comExcluidas`), para o relato que ela escreveu ficar,
+ * com o nome, sem link (veORelato). Barato quando ninguém tem laço privado.
+ */
 export async function pessoasQueONaoVe(usuario: Usuario): Promise<Set<string>> {
-  const emPrivados = await pessoasEmLacosPrivadosDeOutros(usuario);
-  if (emPrivados.size === 0) return emPrivados;
+  const [emPrivados, excluidas] = await Promise.all([pessoasEmLacosPrivadosDeOutros(usuario), idsDasPessoasExcluidas()]);
+  if (emPrivados.size === 0) return comExcluidas(new Set(excluidas), excluidas);
+  return comExcluidas(new Set([...(await pessoasQueONaoVeEmPrivados(usuario, emPrivados)), ...excluidas]), excluidas);
+}
+
+async function pessoasQueONaoVeEmPrivados(usuario: Usuario, emPrivados: Set<string>): Promise<Set<string>> {
   const [filiacoes, casais, lacos] = await Promise.all([listarFiliacoes(), listarCasais(usuario), listarLacosDoCoracao(usuario)]);
   // A pessoa logada sempre se vê, mesmo sem laço nenhum além do privado de outra pessoa
   const comLaco = new Set([usuario.pessoa, ...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
@@ -2364,4 +2379,111 @@ export async function audioParaTranscrever(id: number, usuario: Usuario): Promis
     .bind(id, usuario.pessoa)
     .first<{ id: number; chave: string; tipo: string; tamanho: number; duracao: number | null }>();
   return a ?? undefined;
+}
+
+
+// --- Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026; migração 102-excluir-pessoa) ---
+// A pessoa excluída vai para a lixeira: some do site na hora (listarIntegrantes, os laços e
+// pessoasQueONaoVe deixam de vê-la), e as linhas dela ficam no banco, para restaurar devolver tudo.
+
+/** Quem está na lixeira. */
+export async function idsDasPessoasExcluidas(): Promise<Set<string>> {
+  const { results } = await db().prepare('SELECT id FROM integrantes WHERE excluida_em IS NOT NULL').all<{ id: string }>();
+  return new Set(results.map((r: { id: string }) => r.id));
+}
+
+export interface PessoaExcluida {
+  id: string;
+  nome: string;
+  tipo: 'pessoa' | 'bicho';
+  excluidaEm: string;
+  excluidaPor: string | null;
+}
+
+/** Quem está na lixeira, das excluídas mais recentes para as mais antigas. */
+export async function listarPessoasExcluidas(): Promise<PessoaExcluida[]> {
+  const { results } = await db()
+    .prepare('SELECT id, nome, tipo, excluida_em, excluida_por FROM integrantes WHERE excluida_em IS NOT NULL ORDER BY excluida_em DESC, nome')
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    nome: r.nome as string,
+    tipo: r.tipo as 'pessoa' | 'bicho',
+    excluidaEm: r.excluida_em as string,
+    excluidaPor: (r.excluida_por as string | null) ?? null,
+  }));
+}
+
+/** O nome de quem está na lixeira, para o relato que ela escreveu continuar assinado. */
+export async function nomesDasPessoasExcluidas(): Promise<Map<string, string>> {
+  return new Map((await listarPessoasExcluidas()).map((p) => [p.id, p.nome]));
+}
+
+/**
+ * Manda a pessoa para a lixeira. O pedido aberto para ela fica resolvido como excluída. Devolve false
+ * quando ela já estava na lixeira ou não existe.
+ */
+export async function excluirPessoa(id: string, usuario: Usuario): Promise<boolean> {
+  const [feito] = await db().batch([
+    db().prepare(`UPDATE integrantes SET excluida_em = datetime('now'), excluida_por = ? WHERE id = ? AND excluida_em IS NULL`).bind(usuario.pessoa, id),
+    db()
+      .prepare(`UPDATE pedidos_de_exclusao SET resolvido_em = datetime('now'), resolvido_por = ?, resposta = 'excluida' WHERE pessoa_id = ? AND resolvido_em IS NULL`)
+      .bind(usuario.pessoa, id),
+  ]);
+  return Boolean(feito.meta?.changes);
+}
+
+/** Tira a pessoa da lixeira: ela volta com tudo, os laços, "quem estava" e os relatos. */
+export async function restaurarPessoa(id: string): Promise<boolean> {
+  const feito = await db().prepare('UPDATE integrantes SET excluida_em = NULL, excluida_por = NULL WHERE id = ? AND excluida_em IS NOT NULL').bind(id).run();
+  return Boolean(feito.meta?.changes);
+}
+
+export interface PedidoDeExclusao {
+  id: number;
+  pessoa: string;
+  pedidoPor: string;
+  motivo: string | null;
+  criadoEm: string;
+}
+
+/** Os pedidos abertos, dos mais antigos aos mais novos. Só de quem ainda não está na lixeira. */
+export async function listarPedidosDeExclusao(): Promise<PedidoDeExclusao[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT p.id, p.pessoa_id, p.pedido_por, p.motivo, p.criado_em FROM pedidos_de_exclusao p
+       JOIN integrantes i ON i.id = p.pessoa_id AND i.excluida_em IS NULL
+       WHERE p.resolvido_em IS NULL ORDER BY p.criado_em, p.id`,
+    )
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({
+    id: r.id as number,
+    pessoa: r.pessoa_id as string,
+    pedidoPor: r.pedido_por as string,
+    motivo: (r.motivo as string | null) ?? null,
+    criadoEm: r.criado_em as string,
+  }));
+}
+
+/** O pedido aberto para essa pessoa, se houver. */
+export async function pedidoAbertoDeExclusao(pessoa: string): Promise<PedidoDeExclusao | undefined> {
+  return (await listarPedidosDeExclusao()).find((p) => p.pessoa === pessoa);
+}
+
+/** Pede a exclusão. Um pedido aberto por pessoa: o segundo não entra. Devolve se entrou. */
+export async function pedirExclusao(pessoa: string, motivo: string | null, usuario: Usuario): Promise<boolean> {
+  const feito = await db()
+    .prepare('INSERT OR IGNORE INTO pedidos_de_exclusao (pessoa_id, pedido_por, motivo) VALUES (?, ?, ?)')
+    .bind(pessoa, usuario.pessoa, motivo || null)
+    .run();
+  return Boolean(feito.meta?.changes);
+}
+
+/** Recusa o pedido aberto: a pessoa continua no acervo. */
+export async function recusarPedidoDeExclusao(id: number, usuario: Usuario): Promise<boolean> {
+  const feito = await db()
+    .prepare(`UPDATE pedidos_de_exclusao SET resolvido_em = datetime('now'), resolvido_por = ?, resposta = 'recusado' WHERE id = ? AND resolvido_em IS NULL`)
+    .bind(usuario.pessoa, id)
+    .run();
+  return Boolean(feito.meta?.changes);
 }
