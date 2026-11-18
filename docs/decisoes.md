@@ -518,6 +518,7 @@ Origem: [histórico, "Visual"](historico/decisoes-ate-2026-11-17.md#visual).
 
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
+- **Modo TV cabe em 1280 × 720** (decisão do Gui, 17/11/2026, apontada na redução dos documentos). Com "Ajustes" aberto, a página não pode rolar numa janela de 720 px de altura: o painel fica mais compacto nessa altura.
 - **Gestalt que se confere sozinha** (pedido do Gui, 17/11/2026; o princípio está em "O nível de qualidade", em `docs/visual.md`). Uma conferência automática, rodando junto do build ou dos testes com o Playwright, que abre as telas em 390 e 1280 px e, para cada rótulo e título de grupo, mede o espaço acima (até o grupo anterior) e o espaço abaixo (até o próprio conteúdo), falhando quando o de cima não for pelo menos o dobro. O que for exceção de propósito entra numa lista no próprio script. Os casos que ela pegar na primeira rodada são corrigidos no mesmo PR, sem mudar o desenho além do espaçamento.
 - **Revisão de estrutura das telas** (pedido do Gui, 17/11/2026, depois de usar a homologação; respostas no mesmo dia). O Gui achou várias telas soltas, como uma lista do que precisa estar ali, e quer menos decisões por vez, tomadas vendo a tela.
     - **Processo: conceito primeiro, com parada.** Nos redesenhos grandes (árvore como mapa e círculo; editar pessoa e laços; página da pessoa e Pessoas; nova memória em frase; controles do Explorar), a sessão monta duas propostas numa prévia de teste (`tst-<assunto>`), manda as capturas em 390, 1280 e 1920 px e para. O Gui escolhe olhando, e só então ela constrói. As perguntas que sobrarem vêm poucas por vez. Primeiro redesenho feito assim: o quadro do mapa (17 e 18/11/2026), com a proposta A escolhida; ver "A página da árvore como mapa", em "Integrantes e laços de árvore".
@@ -551,7 +552,6 @@ Origem: [histórico, "Decidido, a construir"](historico/decisoes-ate-2026-11-17.
 - Histórico de integrantes e laços no site (as versões já são guardadas, inclusive a chave do retrato anterior) e apagar de vez o que está na lixeira
 - Juntar cadastros duplicados e sugestão de nomes parecidos ao digitar
 - Árvore: regras de ocultar e de exigir parentes de sangue, centros padrão escolhidos na administração e página do laço com linha do tempo
-- Círculo
 - Fotos enviadas em um formulário abandonado ficam no bucket sem uso: falta uma limpeza periódica na produção (nas prévias, a limpeza de 7 dias já cuida)
 
 Origem: [histórico, "Em aberto"](historico/decisoes-ate-2026-11-17.md#em-aberto).
