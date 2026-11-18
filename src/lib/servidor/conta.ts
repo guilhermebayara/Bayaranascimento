@@ -2,6 +2,8 @@
 import { administracao, fraseDaLixeira, oQueVoceCriou, pendenciasDaAdministracao, seusLacos, seusRascunhos, suaLixeira, type SituacaoDaAdministracao } from '../conta';
 import { emMegabytes, LIMITE_DO_PLANO, situacaoDoBanco } from '../tamanho-do-banco';
 import { AJUSTE_DOS_CENTROS } from '../centros-da-arvore';
+import { AJUSTE_DOS_NAO_DUPLICADOS } from '../juntar';
+import { possiveisDuplicados } from '../nomes-parecidos';
 import { fraseDoEspaco, notaDosSemMedida, situacaoDoEspaco } from '../espaco-dos-arquivos';
 import { lerAcessos, semLogin } from './acesso';
 import { ambiente, bucketDeFotos } from './ambiente';
@@ -12,6 +14,7 @@ import {
   listarCapitulosExcluidos,
   listarExcluidas,
   listarIntegrantes,
+  listarIntegrantesQueVe,
   listarLacosDoCoracao,
   listarMemorias,
   listarNucleos,
@@ -31,9 +34,20 @@ import {
  * cópia do script do Drive, e só lá ela é conferida. As fotos soltas e os cadastros duplicados entram
  * quando as listas existirem (onda 2): até lá, null.
  */
-async function situacaoDasPendencias(): Promise<Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>> {
+async function situacaoDasPendencias(usuario: Usuario): Promise<Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>> {
   const conferida = ambiente() === 'producao';
-  const [carta, bytes, ultima, arquivos, fotosSoltas] = await Promise.all([obterCarta(), tamanhoDoBanco(), conferida ? ultimaCopiaMensal() : Promise.resolve(null), espacoDosArquivos(), contarFotosSoltas()]);
+  const [carta, bytes, ultima, arquivos, fotosSoltas, integrantes, naoSao] = await Promise.all([
+    obterCarta(),
+    tamanhoDoBanco(),
+    conferida ? ultimaCopiaMensal() : Promise.resolve(null),
+    espacoDosArquivos(),
+    contarFotosSoltas(),
+    // Só quem o administrador vê: a conta nunca denuncia quem está num laço privado de outra pessoa
+    listarIntegrantesQueVe(usuario),
+    lerAjuste(AJUSTE_DOS_NAO_DUPLICADOS),
+  ]);
+  // Os possíveis cadastros duplicados, pelas comparações baratas (src/lib/nomes-parecidos.ts)
+  const duplicados = possiveisDuplicados(integrantes, new Set(Array.isArray(naoSao) ? (naoSao as string[]) : [])).length;
   const banco = situacaoDoBanco(bytes);
   const espaco = situacaoDoEspaco(arquivos.bytes, arquivos.semMedida);
   return {
@@ -42,14 +56,14 @@ async function situacaoDasPendencias(): Promise<Pick<SituacaoDaAdministracao, 'c
     espaco: espaco && { bytes: espaco.bytes, passouDoAviso: espaco.passouDoAviso },
     copiaMensal: { conferida, ultima },
     fotosSoltas,
-    duplicados: null,
+    duplicados,
   };
 }
 
 /** Quantas pendências da administração somam no número do retrato do topo: só para quem administra. */
 export async function contarPendenciasDaAdministracao(usuario: Usuario): Promise<number> {
   if (!usuario.admin) return 0;
-  return pendenciasDaAdministracao(await situacaoDasPendencias(), new Date()).length;
+  return pendenciasDaAdministracao(await situacaoDasPendencias(usuario), new Date()).length;
 }
 
 /** O e-mail com que a pessoa entra. Fora da produção não há login, e não há e-mail. Só os administradores mudam. */
@@ -81,7 +95,7 @@ export async function montarConta(usuario: Usuario) {
   }
   const situacao: SituacaoDaAdministracao | undefined = usuario.admin
     ? {
-        ...(await situacaoDasPendencias()),
+        ...(await situacaoDasPendencias(usuario)),
         tipos: (await listarTipos()).length,
         familias: (await listarNucleos()).length,
         centros: ((c) => (Array.isArray(c) && c.length ? c.length : null))(await lerAjuste(AJUSTE_DOS_CENTROS)),

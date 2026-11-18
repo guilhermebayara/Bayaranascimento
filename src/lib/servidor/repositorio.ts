@@ -2084,3 +2084,111 @@ export async function restaurarLacoDoCoracao(dados: { dono: string; pessoa: stri
           .bind(dados.dono, dados.pessoa, dados.nome, dados.papel, dados.proximidade ?? null),
   ]);
 }
+
+// --- Juntar cadastros duplicados (onda 2; regras em src/lib/nomes-parecidos.ts e permissoes.ts) ---
+
+/**
+ * As memórias em que as duas fichas têm relato e que impedem juntar: um relato por pessoa em cada
+ * memória. Quem administra resolve antes (um dos dois relatos sai), e junta depois.
+ */
+export async function conflitosAoJuntar(fica: string, sai: string): Promise<string[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT DISTINCT m.titulo FROM relatos rs JOIN relatos rf ON rf.memoria_id = rs.memoria_id AND rf.por = ?1 JOIN memorias m ON m.id = rs.memoria_id
+       WHERE rs.por = ?2 AND (rf.registrado_por = rs.registrado_por OR (rf.situacao = 'publicada' AND rs.situacao = 'publicada'))`,
+    )
+    .bind(fica, sai)
+    .all<{ titulo: string }>();
+  return results.map((r: { titulo: string }) => r.titulo);
+}
+
+/**
+ * Junta duas fichas da mesma pessoa: a que fica recebe os campos escolhidos e tudo o que era da outra
+ * (memórias, relatos, fotos, áudios, laços, famílias, capítulos, proximidades, avisos), e a que sai deixa
+ * de existir. As duas fichas de antes ficam no histórico, a que saiu com a marca de para onde foi. Um
+ * lote só: ou entra tudo, ou nada. Quem chama já conferiu a permissão e os conflitos.
+ */
+export async function juntarIntegrantes(fica: Integrante, sai: Integrante, ficha: DadosDoIntegrante, usuario: Usuario): Promise<void> {
+  const [A, B] = [fica.id, sai.id];
+  const c: D1PreparedStatement[] = [];
+  const q = (sql: string, ...v: unknown[]) => c.push(db().prepare(sql).bind(...v));
+  // O histórico: as duas fichas como eram
+  q(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('integrante', ?, ?, ?)`, A, JSON.stringify(fica), usuario.pessoa);
+  q(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('integrante', ?, ?, ?)`, B, JSON.stringify({ ...sai, juntadaEm: A }), usuario.pessoa);
+  q(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('juntar', ?, ?, ?)`, A, JSON.stringify({ fica: A, sai: B, nomeDaQueSaiu: sai.nome }), usuario.pessoa);
+  // Famílias: quem era membro numa das duas continua membro
+  q(`INSERT OR IGNORE INTO nucleo_membros (nucleo_id, integrante_id, papel) SELECT nucleo_id, ?1, papel FROM nucleo_membros WHERE integrante_id = ?2`, A, B);
+  q(`UPDATE nucleo_membros SET papel = 'membro' WHERE integrante_id = ?1 AND nucleo_id IN (SELECT nucleo_id FROM nucleo_membros WHERE integrante_id = ?2 AND papel = 'membro')`, A, B);
+  q(`DELETE FROM nucleo_membros WHERE integrante_id = ?`, B);
+  // Memórias, relatos, fotos e áudios
+  q(`UPDATE memorias SET criada_por = ?1 WHERE criada_por = ?2`, A, B);
+  q(`INSERT OR IGNORE INTO memoria_integrantes (memoria_id, integrante_id) SELECT memoria_id, ?1 FROM memoria_integrantes WHERE integrante_id = ?2`, A, B);
+  q(`DELETE FROM memoria_integrantes WHERE integrante_id = ?`, B);
+  q(`UPDATE relatos SET por = ?1 WHERE por = ?2`, A, B);
+  q(`UPDATE relatos SET registrado_por = ?1 WHERE registrado_por = ?2`, A, B);
+  q(`UPDATE fotos SET enviada_por = ?1 WHERE enviada_por = ?2`, A, B);
+  q(`UPDATE fotos SET removida_por = ?1 WHERE removida_por = ?2`, A, B);
+  q(`UPDATE audios SET enviado_por = ?1 WHERE enviado_por = ?2`, A, B);
+  // Filiações: sem repetir e sem a pessoa virar filha de si mesma
+  q(
+    `INSERT OR IGNORE INTO filiacoes (filho_id, responsavel_id, qualidade, criado_por, criado_em, adocao_ano, adocao_mes, adocao_dia)
+     SELECT CASE WHEN filho_id = ?2 THEN ?1 ELSE filho_id END, CASE WHEN responsavel_id = ?2 THEN ?1 ELSE responsavel_id END, qualidade, criado_por, criado_em, adocao_ano, adocao_mes, adocao_dia
+     FROM filiacoes WHERE (filho_id = ?2 OR responsavel_id = ?2) AND NOT (filho_id = ?2 AND responsavel_id = ?1) AND NOT (filho_id = ?1 AND responsavel_id = ?2)`,
+    A,
+    B,
+  );
+  q(`DELETE FROM filiacoes WHERE filho_id = ?1 OR responsavel_id = ?1`, B);
+  // Casais: o par se refaz em ordem; se a que fica já tem o mesmo casal, fica o dela
+  for (const casal of (await lerCasais()).filter((x) => x.a === B || x.b === B)) {
+    const outro = casal.a === B ? casal.b : casal.a;
+    const [na, nb] = A < outro ? [A, outro] : [outro, A];
+    if (outro === A) {
+      q(`DELETE FROM casal_fases WHERE casal_id = ?`, casal.id);
+      q(`DELETE FROM casais WHERE id = ?`, casal.id);
+      continue;
+    }
+    q(`DELETE FROM casal_fases WHERE casal_id = ?1 AND EXISTS (SELECT 1 FROM casais WHERE a_id = ?2 AND b_id = ?3 AND visibilidade = ?4)`, casal.id, na, nb, casal.visibilidade);
+    q(`DELETE FROM casais WHERE id = ?1 AND EXISTS (SELECT 1 FROM casais WHERE a_id = ?2 AND b_id = ?3 AND visibilidade = ?4)`, casal.id, na, nb, casal.visibilidade);
+    q(`UPDATE casais SET a_id = ?2, b_id = ?3 WHERE id = ?1`, casal.id, na, nb);
+  }
+  // Laços do coração, laços resumidos, capítulos, proximidades e ex
+  for (const [tabela, x, y] of [
+    ['lacos_coracao', 'dono_id', 'pessoa_id'],
+    ['lacos_resumidos', 'a_id', 'b_id'],
+    ['proximidades', 'dono_id', 'pessoa_id'],
+    ['ex_para_mim', 'dono_id', 'pessoa_id'],
+  ] as const) {
+    q(`DELETE FROM ${tabela} WHERE (${x} = ?1 AND ${y} = ?2) OR (${x} = ?2 AND ${y} = ?1)`, A, B);
+    q(`UPDATE OR IGNORE ${tabela} SET ${x} = ?1 WHERE ${x} = ?2`, A, B);
+    q(`UPDATE OR IGNORE ${tabela} SET ${y} = ?1 WHERE ${y} = ?2`, A, B);
+    q(`DELETE FROM ${tabela} WHERE ${x} = ?1 OR ${y} = ?1`, B);
+  }
+  q(`UPDATE capitulos SET criado_por = ?1 WHERE criado_por = ?2`, A, B);
+  q(`INSERT OR IGNORE INTO capitulo_pessoas (capitulo_id, integrante_id) SELECT capitulo_id, ?1 FROM capitulo_pessoas WHERE integrante_id = ?2`, A, B);
+  q(`DELETE FROM capitulo_pessoas WHERE integrante_id = ?`, B);
+  for (const [tabela, coluna] of [
+    ['avisos', 'para'],
+    ['avisos', 'de'],
+    ['integrantes', 'criado_por'],
+    ['casais', 'criado_por'],
+    ['filiacoes', 'criado_por'],
+    ['lacos_resumidos', 'criado_por'],
+    ['cartas', 'escrita_por'],
+  ] as const) {
+    q(`UPDATE ${tabela} SET ${coluna} = ?1 WHERE ${coluna} = ?2`, A, B);
+  }
+  // Quem sai não tem login (a rota confere): as marcas de visita e de acesso dela não servem
+  q(`DELETE FROM visitas WHERE pessoa = ?`, B);
+  q(`DELETE FROM acessos WHERE pessoa = ?`, B);
+  // A ficha que fica, com os campos escolhidos, e a que sai deixa de existir
+  const retrato = ficha.retrato === undefined ? fica.retrato : ficha.retrato;
+  q(
+    `UPDATE integrantes SET nome = ?, apelido = ?, tipo = ?, especie = ?, tratamento = ?, nascimento_ano = ?, nascimento_mes = ?,
+       nascimento_dia = ?, falecimento_ano = ?, falecimento_mes = ?, falecimento_dia = ?, falecido = ?, sobre = ?, retrato = ? WHERE id = ?`,
+    ...valoresDoIntegrante(ficha),
+    retrato,
+    A,
+  );
+  q(`DELETE FROM integrantes WHERE id = ?`, B);
+  await db().batch(c);
+}

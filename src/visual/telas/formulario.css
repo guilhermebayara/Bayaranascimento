@@ -2486,3 +2486,24 @@
     justify-self: end;
   }
 }
+
+/* Juntar fichas (onda 2): as duas fichas lado a lado, e cada campo diferente com as duas opções */
+.pagina-de-formulario .juntar__fichas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-4);
+}
+.pagina-de-formulario .juntar__ficha {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-3);
+}
+.pagina-de-formulario .juntar__ficha p {
+  display: grid;
+  gap: var(--e-1);
+}
+.pagina-de-formulario .juntar__campo .opcao span {
+  white-space: normal;
+  text-align: start;
+}

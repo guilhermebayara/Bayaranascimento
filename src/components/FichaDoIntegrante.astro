@@ -146,6 +146,7 @@ const existentes = i ? [] : (await listarIntegrantesQueVe(Astro.locals.usuario))
 </form>
 
 <script>
+  import { nomesParecidos } from '../lib/nomes-parecidos';
   import { ligarDatas } from '../lib/cliente/datas';
   import { ligarCamposDeAno } from '../lib/cliente/etapas';
 
@@ -170,13 +171,24 @@ const existentes = i ? [] : (await listarIntegrantesQueVe(Astro.locals.usuario))
     const simples = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     const existentes = JSON.parse(ficha.querySelector('[data-nomes-existentes]')?.textContent ?? '[]') as { id: string; nome: string; apelido: string | null }[];
     const texto = repetido.querySelector<HTMLElement>('[data-nome-repetido-texto]')!;
+    const outra = repetido.querySelector<HTMLElement>('label.marcar');
+    const link = (x: { id: string; nome: string }) => Object.assign(document.createElement('a'), { href: `/pessoas/${x.id}`, textContent: x.nome, target: '_blank' });
     const conferir = () => {
       const nome = simples(campoNome.value);
       const igual = nome ? existentes.find((x) => simples(x.nome) === nome || (x.apelido && simples(x.apelido) === nome)) : undefined;
-      repetido.hidden = !igual;
+      // Nomes parecidos (onda 2): a sugestão aparece para todos, sem pedir a confirmação do nome igual
+      const parecidos = igual ? [] : nomesParecidos(campoNome.value, existentes);
+      repetido.hidden = !igual && parecidos.length === 0;
+      if (outra) outra.hidden = !igual;
       if (igual) {
-        texto.replaceChildren('Já existe ', Object.assign(document.createElement('a'), { href: `/pessoas/${igual.id}`, textContent: igual.nome, target: '_blank' }), ' no acervo. Se for a mesma pessoa, não precisa cadastrar de novo.');
-      } else repetido.querySelector<HTMLInputElement>('input[name="outra"]')!.checked = false;
+        texto.replaceChildren('Já existe ', link(igual), ' no acervo. Se for a mesma pessoa, não precisa cadastrar de novo.');
+      } else {
+        repetido.querySelector<HTMLInputElement>('input[name="outra"]')!.checked = false;
+        if (parecidos.length > 0) {
+          const nomes = parecidos.flatMap((x, n) => [...(n === 0 ? [] : [n === parecidos.length - 1 ? ' e ' : ', ']), link(x)]);
+          texto.replaceChildren('Parecido com ', ...nomes, parecidos.length > 1 ? ', que já estão no acervo. Confira antes de cadastrar.' : ', que já está no acervo. Confira antes de cadastrar.');
+        }
+      }
     };
     campoNome.addEventListener('input', conferir);
     conferir();

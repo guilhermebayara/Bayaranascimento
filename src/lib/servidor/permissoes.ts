@@ -397,3 +397,16 @@ export function podeApagarFotoSolta(usuario: Usuario): Decisao {
 export function podeMudarAjustes(usuario: Usuario): Decisao {
   return usuario.admin ? sim : nao('Só os administradores mudam os ajustes do acervo.');
 }
+
+// --- Juntar cadastros duplicados (onda 2, decisão do Gui de 17/11/2026) ---
+
+/**
+ * Juntar duas fichas da mesma pessoa: só os administradores, e só fichas que eles veem (quem chama acha as
+ * duas na lista de quem vê). A ficha de quem acessa o site é sempre a que fica: o login aponta para ela.
+ */
+export function podeJuntarCadastros(usuario: Usuario, fica: string, sai: string, comAcesso: ReadonlySet<string>): Decisao {
+  if (!usuario.admin) return nao('Só os administradores juntam cadastros.');
+  if (fica === sai) return nao('Escolha duas fichas diferentes.');
+  if (comAcesso.has(sai)) return nao(comAcesso.has(fica) ? 'As duas fichas são de quem acessa o site: não dá para juntar.' : 'A ficha de quem acessa o site é a que fica.');
+  return sim;
+}

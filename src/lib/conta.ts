@@ -251,6 +251,12 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
       situacao: situacao && (situacao.fotosSoltas ? plural(situacao.fotosSoltas, 'foto', 'fotos') : 'nenhuma'),
       pendencia: Boolean(situacao?.fotosSoltas),
     },
+    {
+      rotulo: 'Cadastros duplicados',
+      href: '/admin/duplicados',
+      situacao: situacao && (situacao.duplicados ? plural(situacao.duplicados, 'possível', 'possíveis') : 'nenhum à vista'),
+      pendencia: Boolean(situacao?.duplicados),
+    },
     { rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },
     { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
     ...(onde.podeEspelhar ? [{ rotulo: 'Espelho da produção', href: '/admin/espelho', situacao: situacao && 'só na homologação' }] : []),

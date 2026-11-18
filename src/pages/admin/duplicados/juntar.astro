@@ -1,0 +1,116 @@
+---
+// Comparar duas fichas e juntar (onda 2, decisão do Gui de 17/11/2026). Campo a campo, o administrador
+// escolhe o que fica; a ficha de quem acessa o site é sempre a que fica. Tudo o que era da outra passa
+// para a que fica (memórias, relatos, fotos, laços, famílias), e as duas fichas de antes ficam no histórico.
+import Pagina from '../../../components/formularios/Pagina.astro';
+import Retrato from '../../../components/visual/Retrato.astro';
+import { formatarData } from '../../../lib/datas';
+import { CAMPOS_DA_JUNCAO } from '../../../lib/juntar';
+import { enderecoDoRetrato } from '../../../lib/retratos';
+import { pessoasComAcesso } from '../../../lib/servidor/acesso';
+import { conflitosAoJuntar, listarIntegrantesQueVe, listarMemorias, type Integrante } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
+const visiveis = await listarIntegrantesQueVe(usuario);
+const [x, y] = [Astro.url.searchParams.get('a'), Astro.url.searchParams.get('b')].map((id) => visiveis.find((i) => i.id === id));
+if (!x || !y || x.id === y.id) return Astro.redirect('/admin/duplicados?erro=' + encodeURIComponent('Escolha duas fichas diferentes.'));
+
+const comAcesso = await pessoasComAcesso();
+// Fica, por padrão, a de quem acessa o site; depois, a que aparece em mais memórias
+const memorias = await listarMemorias(usuario);
+const quantas = (id: string) => memorias.filter((m) => m.integrantes.includes(id)).length;
+const [fica, sai] = comAcesso.has(y.id) || (!comAcesso.has(x.id) && quantas(y.id) > quantas(x.id)) ? [y, x] : [x, y];
+const travada = comAcesso.has(fica.id);
+const ambasComAcesso = comAcesso.has(fica.id) && comAcesso.has(sai.id);
+const conflitos = [...(await conflitosAoJuntar(fica.id, sai.id)), ...(await conflitosAoJuntar(sai.id, fica.id))];
+
+const data = (ano: number | null, mes: number | null, dia: number | null) => (ano ? formatarData({ ano, mes, dia, aproximada: false }) : '');
+const valor = (i: Integrante, campo: (typeof CAMPOS_DA_JUNCAO)[number]): string => {
+  switch (campo) {
+    case 'nome':
+      return i.nome;
+    case 'apelido':
+      return i.apelido ?? '';
+    case 'tipo':
+      return i.tipo === 'bicho' ? `bichinho${i.especie ? `, ${i.especie}` : ''}` : 'pessoa';
+    case 'tratamento':
+      return i.tratamento ?? 'não informar';
+    case 'nascimento':
+      return data(i.nascimentoAno, i.nascimentoMes, i.nascimentoDia);
+    case 'falecimento':
+      return data(i.falecimentoAno, i.falecimentoMes, i.falecimentoDia) || (i.falecido ? 'já faleceu, sem data' : '');
+    case 'sobre':
+      return i.sobre ?? '';
+    case 'retrato':
+      return i.retrato ? 'com foto' : 'sem foto';
+  }
+};
+const ROTULOS: Record<(typeof CAMPOS_DA_JUNCAO)[number], string> = {
+  nome: 'Nome',
+  apelido: 'Como é chamado',
+  tipo: 'Pessoa ou bichinho',
+  tratamento: 'Como se referir',
+  nascimento: 'Nascimento',
+  falecimento: 'Falecimento',
+  sobre: 'Sobre',
+  retrato: 'Foto de retrato',
+};
+// Só pergunta o que é diferente; o que é igual nas duas fica como está
+const diferentes = CAMPOS_DA_JUNCAO.filter((c) => valor(fica, c) !== valor(sai, c));
+const padrao = (c: (typeof CAMPOS_DA_JUNCAO)[number]) => (valor(fica, c) ? 'fica' : 'sai');
+const retratoDe = (i: Integrante) => (i.retrato ? enderecoDoRetrato(i.retrato) : null);
+---
+
+<Pagina titulo="Juntar fichas" rotulo="Cadastros duplicados" secao="conta" larga>
+  <Fragment slot="abertura">
+    <p>
+      Fica a ficha de <a href={`/pessoas/${fica.id}`}>{fica.nome}</a>{travada && ', que acessa o site'}. Tudo o que era da ficha de <a href={`/pessoas/${sai.id}`}>{sai.nome}</a> passa para a que fica: memórias, relatos, fotos, laços e famílias. As duas fichas de antes ficam no histórico.
+    </p>
+    <p class="acoes">
+      <a class="acao" href="/admin/duplicados">Voltar para os cadastros duplicados</a>
+    </p>
+  </Fragment>
+
+  {ambasComAcesso && <p class="recado recado--erro">As duas fichas são de quem acessa o site: não dá para juntar.</p>}
+  {conflitos.length > 0 && <p class="recado recado--erro">As duas fichas têm relato em {conflitos.map((t) => `“${t}”`).join(', ')}. Cada pessoa tem um relato por memória: deixe um só antes de juntar.</p>}
+
+  <form class="formulario juntar" method="post" action="/api/duplicados">
+    <input type="hidden" name="acao" value="juntar" />
+    <input type="hidden" name="fica" value={fica.id} />
+    <input type="hidden" name="sai" value={sai.id} />
+    <div class="juntar__fichas">
+      {[fica, sai].map((i, n) => (
+        <div class="juntar__ficha">
+          <Retrato nome={i.nome} foto={retratoDe(i)} />
+          <p>
+            <strong>{i.nome}</strong>
+            <span class="ficha suave">{n === 0 ? 'fica' : 'sai'} · {quantas(i.id)} memórias</span>
+          </p>
+        </div>
+      ))}
+    </div>
+    {diferentes.length === 0 ? (
+      <p class="dica">As duas fichas dizem o mesmo em tudo.</p>
+    ) : (
+      diferentes.map((c) => (
+        <div class="campo juntar__campo" role="radiogroup" aria-labelledby={`rotulo-juntar-${c}`}>
+          <span id={`rotulo-juntar-${c}`}>{ROTULOS[c]}</span>
+          <div class="opcoes">
+            {(['fica', 'sai'] as const).map((lado) => (
+              <label class="opcao">
+                <input type="radio" name={`campo-${c}`} value={lado} checked={padrao(c) === lado} />
+                <span>{valor(lado === 'fica' ? fica : sai, c) || 'vazio'}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ))
+    )}
+    <div class="acoes">
+      <button class="botao" type="submit" disabled={ambasComAcesso || conflitos.length > 0}>
+        Juntar as duas fichas
+      </button>
+    </div>
+  </form>
+</Pagina>
