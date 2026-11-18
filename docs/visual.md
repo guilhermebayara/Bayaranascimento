@@ -123,6 +123,7 @@ Entram:
 - a sanfona que abre empurrando o conteúdo;
 - a foto que amplia ao toque e fecha ao tocar fora;
 - o item da barra de décadas que acende;
+- a foto de quem faleceu, que passa do tom suave para a cor, devagar, com o mouse em cima, com o foco do teclado ou com o toque no retrato grande da página da pessoa;
 - uma frase de abertura que acende palavra por palavra como na home do bayara.design: acompanha a rolagem natural, não prende a página e aparece pronta com movimento reduzido.
 
 Ficam de fora: cartão que deita ao rolar, foto que cresce enquanto se rola, carrossel lateral, anel 3D, imagem distorcida, tela de carregamento com porcentagem, faixa que corre sozinha e qualquer trecho que segura a página. Com movimento reduzido, nem o esmaecer.
@@ -162,7 +163,7 @@ O CSS está em `src/visual/` e os componentes em `src/components/visual/`. A pá
 | O tipo de momento | `Etiqueta.astro` | `<Etiqueta tipo={id} rotulo={nome} />` |
 | Um período ou uma data aproximada | `Pilula.astro` | `<Pilula>2018–2020</Pilula>` ("2018-2020", "por volta de 1994") |
 | A ficha (quando, onde, tipo, capítulos) | `Ficha.astro` e `Dado.astro` (classe `verso`) | `<Ficha><Dado rotulo="Quando">…</Dado></Ficha>` |
-| A foto de uma pessoa | `Retrato.astro` | `nome`, `foto` (o endereço, de `enderecoDoRetrato`, ou nada), `familia` (de `corDaPessoa`). `redondo` só no topo |
+| A foto de uma pessoa | `Retrato.astro` | `nome`, `foto` (o endereço, de `enderecoDoRetrato`, ou nada), `familia` (de `corDaPessoa`). `falecido` para quem já faleceu (tom suave, que acende). `redondo` só para o retrato de quem está usando o site: o topo, o Início e o centro do círculo |
 | Uma pessoa com nome e parentesco | classes `pessoa` e `pessoa__nome` | Um link com o `Retrato`, o nome e o parentesco em `ficha suave` (ver "Quem estava" em `src/pages/memorias/[id].astro`) |
 | Uma pessoa numa lista de laços | `Gente.astro` | `href`, `nome`, `foto`, `familia`, `laco` ("sua avó") e `detalhe`, em mono. Para listas de pessoas e de laços |
 | Um relato, na memória | `conversa/Voz.astro` | O relato como conversa: o retrato e o nome à mão no começo, as mensagens (`conversa/Mensagem.astro`) e, pelos slots, o selo de rascunho, a linha para liberar, as reações e o menu. Com `minha`, à direita, no pastel da família. `Bilhete.astro` continua no cartão de "relato novo" do Início |
@@ -186,7 +187,7 @@ O CSS está em `src/visual/` e os componentes em `src/components/visual/`. A pá
 
 Classes de texto, em `base.css`: `t-capa`, `t-1`, `t-2`, `t-3` e `t-abertura` para a serifa; `ficha` e `rotulo` para a mono; `mao` para a manuscrita; `suave` para o texto de apoio; `so-leitor` para o que só o leitor de tela lê; `miolo` para a margem da página e `grade` para as colunas.
 
-**Medidas das peças.** A foto revelada tem a moldura branca no formato da Instax mini: foto em retrato de 46 por 62, cantos arredondados e margem de baixo bem mais larga, com a legenda "lugar (ano)" em mono. Sombra suave e quente. Inclinação entre poucos valores (−3°, −1,5°, 1°, 2,5°), escolhida pelo id da memória para ficar sempre igual. Atrás, uma forma de cor (círculo, arco ou cápsula, também pelo id) na cor do tipo de momento. O banco não guarda a orientação da foto: toda foto-chave é recortada em retrato. Com mais de uma foto, as outras aparecem atrás da principal, levemente giradas (o monte). A etiqueta-balão é uma pílula com um canto reto, na cor do tipo. O retrato é recortado em arco ou cápsula; quem não tem foto aparece com as iniciais sobre a cor da família.
+**Medidas das peças.** A foto revelada tem a moldura branca no formato da Instax mini: foto em retrato de 46 por 62, cantos arredondados e margem de baixo bem mais larga, com a legenda "lugar (ano)" em mono. Sombra suave e quente. Inclinação entre poucos valores (−3°, −1,5°, 1°, 2,5°), escolhida pelo id da memória para ficar sempre igual. Atrás, uma forma de cor (círculo, arco ou cápsula, também pelo id) na cor do tipo de momento. O banco não guarda a orientação da foto: toda foto-chave é recortada em retrato. Com mais de uma foto, as outras aparecem atrás da principal, levemente giradas (o monte). A etiqueta-balão é uma pílula com um canto reto, na cor do tipo. O retrato é de foto de álbum (decisão do Gui, 18/11/2026): um retângulo reto, 4 por 5, sem inclinação, com cantoneiras nos quatro cantos, na tinta do site, que passam um pouco da foto e crescem com o retrato (de 7 px no de lista a 32 px no grande). O arco saiu: qualquer forma alta de topo redondo lembrava lápide em quem faleceu. Quem não tem foto aparece com as iniciais sobre a cor da família. As formas de cor atrás das fotos reveladas (círculo, arco, cápsula) continuam.
 
 ### Os tokens e quando usar cada um
 
@@ -221,6 +222,7 @@ Todos em `src/visual/tokens.css`. A tabela diz a intenção; os valores estão n
 | `--toque` | 44 px: a altura mínima de tudo o que se toca |
 | `--sombra-foto`, `--sombra-bilhete` | A foto revelada; o bilhete e o recado. Não há outra sombra |
 | `--curva`, `--tempo-curto`, `--tempo-medio` | Toda transição: uma curva e dois tempos |
+| `--tempo-lento` | Só a foto de quem faleceu, que acende devagar |
 
 As serifas trazem os próprios acertos (`--escala-serifa`, `--aperto-titulo`, `--serifa-ajustes`, `--serifa-peso`), já aplicados nas classes de título. Texto em serifa fora dessas classes precisa levar `font-family`, `font-variation-settings` e `font-weight` juntos, como em `.pergunta`.
 
@@ -366,7 +368,7 @@ A regra de cada tela como ela é hoje. O comportamento (o que aparece, para quem
 
 `/conta`, `telas/conta.css` (mais `telas/painel.css` pelo cartão). Página íntima, na cor da família da pessoa.
 
-- No alto, o retrato em arco, o nome, a linha em mono com apelido, nascimento e e-mail (só o que existe), "Editar seus dados" e "Ver sua página".
+- No alto, o retrato, o nome, a linha em mono com apelido, nascimento e e-mail (só o que existe), "Editar seus dados" e "Ver sua página".
 - Composição da proposta A do conceito da sessão E (escolha do Gui, 17/11/2026; capturas em `docs/visual/sessao-e/conta/`). No desktop, para quem administra, o cartão **Administração** fica à direita do nome, em cinco das doze colunas, e a carta de Natal ("Natal de 2026 · Ler a carta de Natal") fica no pé da coluna do nome, alinhada com o fim do cartão. Logo abaixo, **O que você criou** é uma faixa sem cartão, entre dois fios, na largura toda, com as contas em tamanho de título de parte numa linha só; cada lista abre no lugar, uma por vez, sem script. Depois, **Avisos** e, embaixo, **Rascunhos e lixeira** numa coluna de sete, com **Seus laços do coração** ao lado dos dois. Quem não administra vê o nome na largura toda, a faixa logo abaixo e a carta no fim.
 - No celular: quem é, o que criou, avisos, rascunhos, laços, a carta e, no fim, a administração, como cartão. A marcação segue essa ordem.
 - O cartão da administração (proposta A do conceito da sessão H, capturas em `docs/visual/conceito-h/`): o rótulo e, à direita, "Tudo em dia" ou o sinal das pendências, uma pílula com o ponto de alerta que abre o balão por cima (branco, `--sombra-bilhete`, `--raio-bloco`). Embaixo, os quatro grupos, cada um uma linha entre fios com o nome em serifa (`--t-abertura`), o resumo em mono à direita e o mais que vira ×, como no painel da árvore. Aberto, cada atalho é uma linha com a situação em mono à direita; no grupo "Espaço e cópias", as duas medidas (`--vivo`; perto do limite, `--alerta`), a linha da cópia mensal em mono e "Baixar cópia do acervo". O que pede ação tem o ponto e a tinta de alerta.
@@ -485,7 +487,7 @@ A ação principal fica também no alto, como atalho, para quem chega querendo c
 
 `telas/pessoa.css`. O retrato e a voz.
 
-- A abertura é um bloco na cor da família da pessoa, com o retrato em arco, o carimbo (espécie, famílias e o nascimento, sem rótulo), o parentesco de quem olha como a linha maior ("sua avó", "seu amigo-irmão") e o nome logo abaixo. Na própria página e na de quem não tem laço com quem olha, o nome é a linha grande. O retrato ocupa três das quatro colunas no celular e fica na margem da página em toda largura.
+- A abertura é um bloco na cor da família da pessoa, com o retrato de álbum, o carimbo (espécie, famílias e o nascimento, sem rótulo), o parentesco de quem olha como a linha maior ("sua avó", "seu amigo-irmão") e o nome logo abaixo. Na própria página e na de quem não tem laço com quem olha, o nome é a linha grande. O retrato ocupa três das quatro colunas no celular e fica na margem da página em toda largura.
 - Seguem "Sobre Fulano", "A voz de Fulano" (cada áudio com o título da memória e o bloco de áudio), "Família e laços", quieta, em colunas, com a peça Gente, e "Memórias com Fulano".
 - **"Forma de ver"** das memórias: linha do tempo (o padrão), mural e lista, no endereço (`?ver=mural`), sem script pelo link (que volta a `#memorias-com`) e, com script, pela troca sem recarregar. O mural usa o tamanho de fotos guardado no aparelho e não tem o controle "Fotos". O controle só aparece para quem tem mais de uma memória.
 
@@ -528,7 +530,7 @@ O comportamento, o quadro do mapa e o cartão estão em `docs/decisoes.md`, "Ár
 
 - `telas/arvore.css`, `telas/mapa.css` (o quadro: `.quadro` na página e `.pm` no painel) e `telas/circulo.css`.
 - As cores das famílias na árvore são as dos tokens, na ordem delas (`--arvore-familia-0` a `-3`, definidas em `.mapa`; no navegador, `fundoDe`, em `src/lib/cliente/arvore.ts`).
-- O painel é um cartão branco pousado no mapa, com a sombra do bilhete e o raio da moldura: 20rem de largura na tela grande, 23rem na TV, e de margem a margem no celular, recolhido numa linha. A ficha traz o retrato em arco e o nome em serifa.
+- O painel é um cartão branco pousado no mapa, com a sombra do bilhete e o raio da moldura: 20rem de largura na tela grande, 23rem na TV, e de margem a margem no celular, recolhido numa linha. A ficha traz o retrato e o nome em serifa.
 - A busca de "Partir de" tem o estilo do mapa (`.mapa .busca…`); a dos formulários, o de `formulario.css`.
 - O círculo usa o mesmo quadro: `.quadro`, um `<aside class="pm" data-quadro>` com `pm__alto`, `pm__ficha`, `pm__corpo` e seções `pm__secao`, e a barra de baixo `mapa__zoom`. As três faixas são a cor da tela cada vez mais clara (`--faixa-1` a `--faixa-3`), e a tela é tingida na cor da família de quem olha, como a conta e o Início.
 
@@ -562,7 +564,7 @@ O resumo ao lado só existe no relato. Os outros formulários com etapas (o cap�
 
 **Capítulo (`/capitulos/novo` e `/capitulos/<id>/editar`):** as etapas "Que capítulo é esse?", "Onde ele se encaixa?" e "Quem vê". O mês tem o rótulo "Mês, se souber" e a opção "Não sei", como na memória. Na edição, "Sobre o capítulo" vem primeiro, com a trilha na coluna da esquerda no computador; "Memórias do capítulo" mostra as que já estão marcadas, e as outras entram por uma busca (sem script, a lista vem inteira). As duas partes são separadas por um fio.
 
-**Nova pessoa, ficha e retrato:** `/pessoas/nova` e `FichaDoIntegrante.astro`. O apelido, logo abaixo do nome, é um grupo só (`.apelidos`): o rótulo em mono colado no que nomeia (`--e-2`), cada apelido que já existe numa linha com o nome em destaque, quem vê em mono e "Mudar" e "Tirar" em ação quieta, um fio entre as linhas, e "Adicionar apelido" em ação de texto. Aberto, o seletor segmentado com a frase colada nele (`--e-2`) e o campo embaixo, a `--e-4`, com "Cancelar". O retrato no formulário (`CampoRetrato.astro`) aparece recortado em arco, sobre a cor da família (`data-familia`, de `corDaPessoa`).
+**Nova pessoa, ficha e retrato:** `/pessoas/nova` e `FichaDoIntegrante.astro`. O apelido, logo abaixo do nome, é um grupo só (`.apelidos`): o rótulo em mono colado no que nomeia (`--e-2`), cada apelido que já existe numa linha com o nome em destaque, quem vê em mono e "Mudar" e "Tirar" em ação quieta, um fio entre as linhas, e "Adicionar apelido" em ação de texto. Aberto, o seletor segmentado com a frase colada nele (`--e-2`) e o campo embaixo, a `--e-4`, com "Cancelar". O retrato no formulário (`CampoRetrato.astro`) aparece em retrato de álbum, sobre a cor da família (`data-familia`, de `corDaPessoa`).
 
 **Editar página e laços (`/pessoas/<id>/editar`):** proposta A do conceito da sessão E (escolha do Gui, 18/11/2026; capturas em `docs/visual/sessao-e/editar/`). A página é larga. No computador, a abertura fica à esquerda com o índice (a ficha e cada grupo, com a conta em mono), que acompanha a rolagem só onde há mouse (`sticky` dentro de `(hover: hover) and (pointer: fine)`); a abertura ocupa a altura da página para ele ter por onde andar. À direita, "Ficha" e "Laços de Fulano" em rótulo mono, cada um colado no que nomeia (`--e-3`) e a `--e-7` da parte de cima. A ficha é um cartão branco de uma linha (retrato, nome, resumo em mono, começo de "Sobre" e "Editar a ficha"); aberta, os campos entram no mesmo cartão, abaixo de um fio, com as perguntas um degrau abaixo (`--t-titulo-3`). Cada grupo de laços é um cartão branco, a `--e-5` um do outro, com o título em serifa (`--t-titulo-3`) e a conta em mono ao lado; cada laço é uma linha com o retrato (3rem), o nome, o que a pessoa é e "Editar" à direita, com um fio entre as linhas. O editor e o "Adicionar" abertos ficam no papel, dentro do cartão. O grupo vazio é uma linha só, sem fundo, com um fio em volta e o título em `--tinta-suave`. Na tela grande, os grupos ficam dois a dois. Remover usa a confirmação no próprio lugar, com o botão na cor do alerta.
 

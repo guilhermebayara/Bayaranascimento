@@ -315,8 +315,8 @@ const podeCitar = publicada && temPaginaNoAcervo;
                       <a class="pessoa" href={`/pessoas/${id}`}>
                         <Retrato nome={nome(id)} foto={retratoDe(id)} familia={familiaDe(id)} falecido={faleceu(id)} />
                         <span class="pessoa__nome">{nome(id)}</span>
-                        {faleceu(id) && <span class="so-leitor">já faleceu</span>}
                         {paraVoce(id) && <span class="pessoa__laco ficha suave">{paraVoce(id)}</span>}
+                        {faleceu(id) && <span class="em-memoria">em memória</span>}
                       </a>
                     )}
                   </li>

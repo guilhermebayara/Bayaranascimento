@@ -206,7 +206,15 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
     <header class="quem-e bloco">
       <div class="miolo grade">
         <div class="quem-e__retrato">
-          <Retrato nome={chamar} foto={retratoDe(pessoa.id)} familia={familiaDe(pessoa.id)} falecido={jaFaleceu(pessoa)} cedo />
+          {jaFaleceu(pessoa) ? (
+            // Acender a foto (pedido do Gui, 18/11/2026): tocar no retrato grande acende, e ele fica aceso
+            // enquanto se está na página. Com mouse e pelo teclado, acende também só de passar ou focar
+            <button class="quem-e__acender" type="button" data-acender aria-pressed="false" aria-label={`Acender a foto de ${chamar}`}>
+              <Retrato nome={chamar} foto={retratoDe(pessoa.id)} familia={familiaDe(pessoa.id)} falecido cedo />
+            </button>
+          ) : (
+            <Retrato nome={chamar} foto={retratoDe(pessoa.id)} familia={familiaDe(pessoa.id)} cedo />
+          )}
         </div>
         <div class="quem-e__texto">
           {(ehMinha || especie || dosNucleos.length > 0 || vida) && (
@@ -221,7 +229,7 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
             {pessoa.nome}
             {apelidoNoTitulo && <span class="quem-e__apelido"> ({apelidoNoTitulo})</span>}
           </h1>
-          {jaFaleceu(pessoa) && <p class="so-leitor">Já faleceu.</p>}
+          {jaFaleceu(pessoa) && <p class="quem-e__memoria em-memoria">em memória</p>}
           {temDataOculta && (
             <p class="quem-e__datas">
               <a class="acao acao--quieta" href={mostrarDatas ? `/pessoas/${pessoa.id}` : `/pessoas/${pessoa.id}?datas=1`}>
@@ -432,4 +440,15 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
   // Sem script, cada opção é um link comum, que volta a esta parte da página.
   import { ligarTroca } from '../../../lib/cliente/explorar-troca';
   ligarTroca();
+</script>
+
+<script>
+  // Acender a foto de quem faleceu: o toque liga e desliga, e fica como está enquanto se está na página
+  for (const botao of document.querySelectorAll<HTMLButtonElement>('[data-acender]')) {
+    botao.addEventListener('click', () => {
+      const aceso = botao.getAttribute('aria-pressed') !== 'true';
+      botao.setAttribute('aria-pressed', String(aceso));
+      botao.querySelector('.retrato')?.classList.toggle('retrato--aceso', aceso);
+    });
+  }
 </script>

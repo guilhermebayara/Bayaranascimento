@@ -95,12 +95,12 @@ export function recorteDaFoto(largura: number, altura: number, quadrado: number,
 export const PROPORCAO_DO_RETRATO = 4 / 5;
 
 /**
- * O arco em que o retrato aparece no site, dentro do quadro de enquadrar (resposta do Gui à P119,
- * 17/11/2026). O arquivo guardado é o quadrado inteiro; o site mostra a altura toda e a faixa do meio
- * da largura, com o alto arredondado. O quadro desenha este arco por cima, e o que fica de fora, mais
- * apagado: o que a pessoa enquadra é o que ela vê depois.
+ * O retângulo em que o retrato aparece no site, dentro do quadro de enquadrar (resposta do Gui à P119,
+ * 17/11/2026; o retrato de foto de álbum, 18/11/2026). O arquivo guardado é o quadrado inteiro; o site
+ * mostra a altura toda e a faixa do meio da largura. O quadro desenha este retângulo por cima, com as
+ * cantoneiras, e o que fica de fora, mais apagado: o que a pessoa enquadra é o que ela vê depois.
  */
-export function arcoDoRetrato(quadrado: number): { x: number; y: number; largura: number; altura: number; raio: number } {
+export function quadroDoRetrato(quadrado: number): { x: number; y: number; largura: number; altura: number; cantoneira: number } {
   const largura = quadrado * PROPORCAO_DO_RETRATO;
-  return { x: (quadrado - largura) / 2, y: 0, largura, altura: quadrado, raio: largura / 2 };
+  return { x: (quadrado - largura) / 2, y: 0, largura, altura: quadrado, cantoneira: Math.min(32, largura * 0.06 + 6) };
 }

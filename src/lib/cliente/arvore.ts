@@ -28,7 +28,7 @@ export interface ExtrasDaArvore {
 
 export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: ExtrasDaArvore = {}): ControleDaArvore {
   const falecidos = new Set(alem.falecidos ?? []);
-  // A marca de quem já faleceu no cartão: um anel pequeno antes do parentesco, e o aviso para o leitor de tela
+  // A marca de quem já faleceu no cartão: a orelha dobrada no canto, e o aviso para o leitor de tela
   const marcarFalecido = (no: HTMLElement, id: string) => {
     no.classList.toggle('no--falecido', falecidos.has(id));
     if (falecidos.has(id) && !no.querySelector('.so-leitor')) no.append(Object.assign(document.createElement('small'), { className: 'so-leitor', textContent: 'já faleceu' }));
@@ -236,7 +236,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     const quem = document.createElement('span');
     quem.className = 'mapa__foco-quem';
     quem.append(...[p.rotulo, p.anos].filter(Boolean).map((texto) => Object.assign(document.createElement('span'), { textContent: texto })));
-    // Quem já faleceu: o retrato leva o anel, e o leitor de tela ouve
+    // Quem já faleceu: o retrato fica em tom suave, e o leitor de tela ouve (a ficha não escreve "em memória")
     if (falecidos.has(p.id)) quem.append(Object.assign(document.createElement('i'), { textContent: ', já faleceu', className: 'so-leitor' }));
     const pagina = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}`, textContent: 'Ver a página' });
     const partir = Object.assign(document.createElement('button'), { type: 'button', textContent: `Ver a árvore de ${p.nome}` });

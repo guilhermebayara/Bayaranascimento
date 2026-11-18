@@ -476,7 +476,7 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
         </article>
 
         <article class="sis__peca">
-          <h3 class="rotulo">Retrato recortado</h3>
+          <h3 class="rotulo">Retrato de foto de álbum</h3>
           <p class="sis__retratos">
             {
               familias.map((f) => (
@@ -485,9 +485,15 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
                 </span>
               ))
             }
+            <span>
+              <Retrato nome="Vô Tonho" familia="0" falecido />
+            </span>
             <span class="sis__retrato-redondo"><Retrato nome={usuario.nome} redondo /></span>
           </p>
-          <p class="ficha suave">Em arco, com a foto do cadastro. Sem foto, as iniciais sobre a cor da família. Redondo só no topo.</p>
+          <p class="ficha suave">
+            Reto, com cantoneiras nos quatro cantos. Sem foto, as iniciais sobre a cor da família. Quem já faleceu fica em tom suave e acende com o mouse em cima ou com
+            o foco. Redondo só o retrato de quem está usando o site.
+          </p>
         </article>
 
         <article class="sis__peca">
