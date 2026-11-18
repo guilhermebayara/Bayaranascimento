@@ -42,12 +42,12 @@ const copia = {
     ],
     casais: [
       { id: 1, a_id: 'aguilar', b_id: 'elizete', visibilidade: 'todos' },
-      { id: 2, a_id: 'giovanna', b_id: 'lucas-magno', visibilidade: 'todos' },
+      { id: 2, a_id: 'giovanna', b_id: 'lucas-magno', visibilidade: 'todos', ja_da_familia: 1 },
     ],
     casal_fases: [
       { casal_id: 1, tipo: 'casamento', inicio_ano: 1988, ordem: 0 },
       { casal_id: 1, tipo: 'separacao', inicio_ano: 2005, ordem: 1 },
-      { casal_id: 2, tipo: 'casamento', inicio_ano: 2026, ordem: 0 },
+      { casal_id: 2, tipo: 'casamento', inicio_ano: 2026, inicio_mes: 5, inicio_dia: 30, ordem: 0 },
     ],
     lacos_coracao: [{ dono_id: 'gui', pessoa_id: 'amiga', nome: 'Amiga do colégio', papel: 'irmao', proximidade: 1, privado: 1 }],
     // O que nunca passa: tudo o que alguém escreveu ou fotografou
@@ -119,6 +119,9 @@ describe('espelho da produção para a homologação: a família de verdade', ()
     expect(tabela('filiacoes')).toHaveLength(7);
     expect(tabela('casais')).toHaveLength(2);
     expect(tabela('casal_fases').map((f) => [f.tipo, f.inicio_ano])).toEqual([['casamento', 1988], ['separacao', 2005], ['casamento', 2026]]);
+    // O mês e o dia das fases (migração 101) e a marca "já é da família" (migração 100) passam como estão
+    expect(tabela('casal_fases').at(-1)).toMatchObject({ inicio_ano: 2026, inicio_mes: 5, inicio_dia: 30, fim_mes: null, fim_dia: null });
+    expect(tabela('casais').map((c) => c.ja_da_familia)).toEqual([0, 1]);
     expect(tabela('nucleo_membros')).toHaveLength(6);
     // A Vó Bela veio de uma cópia sem papel: vira parente, como na migração 013
     expect(tabela('nucleo_membros').filter((m) => m.papel === 'parente').map((m) => m.integrante_id).sort()).toEqual(['aguilar', 'vo-bela']);

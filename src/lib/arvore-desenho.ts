@@ -43,6 +43,11 @@ export interface CoracaoNoDesenho {
   sangue?: boolean;
   /** "como se fosse": decide, na escadinha, quem fica no meio */
   papel?: Papel | null;
+  /**
+   * O namoro (ajuste do Gui, 18/11/2026): a pessoa que namora fica colada ao lado do namorado, como o par
+   * de um casal, e a linha tracejada vai de lado, sem subir nem descer. Só vale na mesma geração.
+   */
+  colado?: boolean;
 }
 
 export interface Medidas {
@@ -162,6 +167,15 @@ export function desenharArvore(
     empilhar(paresDe, c.a, c.b);
     empilhar(paresDe, c.b, c.a);
   }
+  // Os blocos que andam juntos: os casais lado a lado e o namoro (colado), que fica ao lado do par como
+  // num casal, mas sem a linha nem o ponto de casal. Os pares de casal continuam valendo sozinhos no resto
+  // do desenho (a linha dos filhos, os vizinhos de quem tem irmãos).
+  const paresDoBloco = new Map([...paresDe].map(([id, pares]) => [id, [...pares]]));
+  for (const l of coracao) {
+    if (!l.colado || geracaoDe.get(l.dono) !== geracaoDe.get(l.pessoa)) continue;
+    empilhar(paresDoBloco, l.dono, l.pessoa);
+    empilhar(paresDoBloco, l.pessoa, l.dono);
+  }
 
   const niveis = [...new Set(pessoas.map((p) => p.geracao))].sort((a, b) => a - b);
   /** O parente de laço resumido na geração logo acima, que não tem filhos de fato desenhados (o Ed, para o Caio) */
@@ -221,9 +235,9 @@ export function desenharArvore(
         if (visto.has(atual)) continue;
         visto.add(atual);
         grupo.push(atual);
-        for (const par of paresDe.get(atual) ?? []) if (naLinha.has(par) && !visto.has(par)) fila.push(par);
+        for (const par of paresDoBloco.get(atual) ?? []) if (naLinha.has(par) && !visto.has(par)) fila.push(par);
       }
-      const ids = emFila(grupo, paresDe, chave);
+      const ids = emFila(grupo, paresDoBloco, chave);
       const chaves = ids.filter((i) => chave.has(i)).map((i) => chave.get(i)!);
       // O bloco fica junto da família mais à esquerda entre as que ele une. Assim os irmãos
       // não se separam, e quem casou com alguém de outra família vai para a ponta do grupo.

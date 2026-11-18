@@ -92,7 +92,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const visibilidade = podeQuemVe || !atual ? d.visibilidade : atual.visibilidade;
     const nucleos = podeQuemVe || !atual ? (d.nucleos ?? []) : (atual.nucleos ?? []);
     try {
-      await salvarCasal(d.a, d.b, d.fases, visibilidade, usuario, nucleos);
+      await salvarCasal(d.a, d.b, d.fases, visibilidade, usuario, nucleos, Boolean(d.jaDaFamilia));
     } catch {
       return voltar(request, volta, { erro: 'Não foi possível restaurar esse casal.' });
     }

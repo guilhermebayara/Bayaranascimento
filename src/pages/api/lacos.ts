@@ -1,7 +1,8 @@
 // Laços de árvore: filiação (de quem alguém é filho) e casal, com suas fases.
 import type { APIRoute } from 'astro';
-import { FASES, FASES_JUNTOS, Familia, PAPEIS, nomeDoPapel, podeVerCasal, QUALIDADES, type Casal, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
-import { MODOS_DO_EX, type ModoDoEx } from '../../lib/ex-casal';
+import { Familia, PAPEIS, nomeDoPapel, podeVerCasal, QUALIDADES, type Casal, type Papel, type Qualidade } from '../../lib/parentesco';
+import { MODOS_DO_EX, apareceComoCasal, type ModoDoEx } from '../../lib/ex-casal';
+import { lerFasesDoFormulario, lerJaDaFamilia } from '../../lib/fases-do-formulario';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { nivelDoValor, proximidadeDoFormulario } from '../../lib/circulo';
 import { criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
@@ -313,39 +314,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Um casal privado de outras pessoas não conta: quem não o vê cadastra o par como um registro à parte,
     // e nada na resposta denuncia o privado (ver salvarCasal)
-    // As fases chegam numeradas (fase-0-tipo, fase-0-inicio, fase-0-fim, fase-0-remover), da edição do casal,
-    // ou em linhas paralelas (faseTipo, faseInicio, faseFim), do cadastro. Linhas sem tipo são ignoradas.
-    const numeradas = [...new Set([...dados.keys()].map((k) => /^fase-(\d+)-tipo$/.exec(k)?.[1]).filter((n) => n !== undefined))].map(Number).sort((x, y) => x - y);
-    const tipos = numeradas.length ? numeradas.map((n) => (dados.get(`fase-${n}-remover`) === 'on' ? '' : String(dados.get(`fase-${n}-tipo`) ?? ''))) : dados.getAll('faseTipo').map(String);
-    const inicios = numeradas.length ? numeradas.map((n) => String(dados.get(`fase-${n}-inicio`) ?? '')) : dados.getAll('faseInicio').map(String);
-    const fins = numeradas.length ? numeradas.map((n) => String(dados.get(`fase-${n}-fim`) ?? '')) : dados.getAll('faseFim').map(String);
-    const anoAtual = new Date().getUTCFullYear();
-    const fases: Fase[] = [];
-    for (let i = 0; i < tipos.length; i++) {
-      if (!tipos[i]) continue;
-      if (!(tipos[i] in FASES)) return falhar('Fase desconhecida.');
-      const ler = (texto: string | undefined) => (texto?.trim() ? Number(texto) : null);
-      const inicioAno = ler(inicios[i]);
-      const fimAno = ler(fins[i]);
-      for (const ano of [inicioAno, fimAno]) {
-        if (ano !== null && (!Number.isInteger(ano) || ano < 1800 || ano > anoAtual)) return falhar(`Os anos das fases precisam estar entre 1800 e ${anoAtual}.`);
-      }
-      if (inicioAno && fimAno && fimAno < inicioAno) return falhar('Uma fase não pode terminar antes de começar.');
-      fases.push({ tipo: tipos[i] as TipoDeFase, inicioAno, fimAno });
-    }
-    if (fases.length === 0) return falhar('Informe pelo menos uma fase, como namoro ou casamento.');
-    // "Já terminou", no cadastro do casal: a relação acabou, então entra a separação depois da fase de hoje
-    if (dados.get('terminou') === 'on') {
-      const ultima = fases[fases.length - 1];
-      if (FASES_JUNTOS.includes(ultima.tipo)) fases.push({ tipo: 'separacao', inicioAno: ultima.fimAno, fimAno: null });
-    }
-    if (fases.length > 12) return falhar('São fases demais para um casal só.');
+    // As fases chegam numeradas, da edição do casal, ou em linhas paralelas, do cadastro (ver
+    // src/lib/fases-do-formulario.ts). O fim da relação é uma fase a mais, de "Adicionar o que aconteceu
+    // depois" (decisão do Gui, 18/11/2026): não há mais "Já terminou".
+    const lidas = lerFasesDoFormulario(dados);
+    if ('erro' in lidas) return falhar(lidas.erro);
+    const { fases } = lidas;
     // Quem vê: todos, só os dois ou, num casal desfeito, as famílias escolhidas (decisão do Gui, 18/11/2026)
     const pedida = campo(dados, 'visibilidade', 10);
     let visibilidade: Casal['visibilidade'] = pedida === 'privado' ? 'privado' : pedida === 'nucleos' ? 'nucleos' : 'todos';
     const familiasExistentes = new Set((await listarNucleos()).map((n) => n.id));
     let familiasDoCasal = [...new Set(dados.getAll('familiasDoCasal').map(String))].filter((n) => familiasExistentes.has(n));
     const anterior = await obterCasalDoPar(a.id, b.id, usuario);
+    // "Já é da família": o namoro longo aparece como casal (migração 100)
+    const jaDaFamilia = lerJaDaFamilia(dados, anterior?.jaDaFamilia);
     const [x, y] = a.id < b.id ? [a.id, b.id] : [b.id, a.id];
     // Num casal desfeito, quem vê é das duas pessoas do casal: os outros salvam as fases, e quem vê fica como estava
     if (!podeMudarQuemVeOCasal(usuario, { a: x, b: y, fases }, await pessoasComAcesso()).ok) {
@@ -358,13 +340,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const escolheuModo = MODOS_DO_EX.includes(modo) && podeEscolherComoOExAparece(usuario, { a: x, b: y, fases }).ok;
     await cadastrarPendente();
     try {
-      await salvarCasal(a.id, b.id, fases, visibilidade, usuario, familiasDoCasal);
+      await salvarCasal(a.id, b.id, fases, visibilidade, usuario, familiasDoCasal, jaDaFamilia);
       if (escolheuModo) await salvarComoOExAparece(usuario, usuario.pessoa === x ? y : x, modo);
     } catch {
       // Só acontece se uma terceira pessoa marcar como privado um par que já tem um casal privado de outros
       return falhar('Não foi possível salvar esse casal.');
     }
-    const aviso = (await sugerirFamilia(b.id, { tipo: 'casal', com: a.id })) || (await sugerirFamilia(a.id, { tipo: 'casal', com: b.id }));
+    // O namoro que ainda não é da família e o ex que virou amigo são laços do coração: ninguém vira parente por eles
+    const daFamilia = apareceComoCasal({ fases, jaDaFamilia });
+    const aviso = daFamilia ? (await sugerirFamilia(b.id, { tipo: 'casal', com: a.id })) || (await sugerirFamilia(a.id, { tipo: 'casal', com: b.id })) : '';
     return voltar(request, volta, { ok: `Casal salvo.${aviso}` });
   }
 

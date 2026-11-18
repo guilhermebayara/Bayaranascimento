@@ -10,8 +10,8 @@ import Retrato from '../../../components/visual/Retrato.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { anosDeVida, jaFaleceu, maisRecentesPrimeiro } from '../../../lib/datas';
 import { enderecoDoLaco, faixasDasFases, marcasDosAnos, periodoDoLaco, posicao } from '../../../lib/pagina-do-laco';
-import { viraramAmigos } from '../../../lib/ex-casal';
-import { FASES, Familia, estaoJuntos, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
+import { situacaoDoCasal } from '../../../lib/ex-casal';
+import { FASES, Familia, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { corDaPessoa } from '../../../lib/visual';
 import {
@@ -59,7 +59,8 @@ const retratoDe = (i: typeof a) => (i.retrato ? enderecoDoRetrato(i.retrato) : n
 const capitulos = await listarCapitulos(usuario);
 const comAudio = await memoriasComAudio(usuario);
 const titulo = `${chamar(a)} e ${chamar(b)}`;
-const situacao = casal ? (estaoJuntos(casal) ? 'Juntos' : viraramAmigos(casal) ? 'Hoje, amigos' : 'Não estão mais juntos') : null;
+// A fase decide a situação (decisões do Gui, 18/11/2026): juntos, namorando, hoje amigos ou não estão mais juntos
+const situacao = casal ? situacaoDoCasal(casal).charAt(0).toUpperCase() + situacaoDoCasal(casal).slice(1) : null;
 ---
 
 <Visual titulo={titulo} nucleos={[...new Set([...familiasDe(a), ...familiasDe(b)])]} secao="arvore">
@@ -120,7 +121,7 @@ const situacao = casal ? (estaoJuntos(casal) ? 'Juntos' : viraramAmigos(casal) ?
             <ol class="laco-pagina__fases">
               {casal.fases.map((f, n) => (
                 <li>
-                  <strong>{FASES[f.tipo]}</strong> {periodosDasFases(casal.fases)[n] && <span class="ficha suave">{periodosDasFases(casal.fases)[n]}</span>}
+                  <strong>{FASES[f.tipo]}</strong> {periodosDasFases(casal.fases, { completas: true })[n] && <span class="ficha suave">{periodosDasFases(casal.fases, { completas: true })[n]}</span>}
                 </li>
               ))}
             </ol>
