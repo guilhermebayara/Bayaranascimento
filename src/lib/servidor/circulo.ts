@@ -69,7 +69,7 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
         {
           id: i.id,
           nome: i.apelido ?? i.nome,
-          laco: relacao ? possessivo(relacao, i.tratamento) : meu ? lacoParaODono(meu.nome, i.tratamento) : i.tipo === 'bicho' ? (i.especie ?? 'bicho') : '',
+          laco: relacao ? possessivo(relacao, i.tratamento) : meu ? lacoParaODono(meu.nome, i.tratamento) : i.tipo === 'bicho' ? (i.especie ?? 'bichinho') : '',
           foto: i.retrato && !naoVe.has(i.id) ? enderecoDoRetrato(i.retrato) : null,
           cor: corDaPessoa(familiasDe(i), ordem),
           falecido: jaFaleceu(i),

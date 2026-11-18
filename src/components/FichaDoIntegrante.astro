@@ -46,14 +46,14 @@ const existentes = i ? [] : (await listarIntegrantesQueVe(Astro.locals.usuario))
       <input type="text" name="apelido" maxlength="40" autocomplete="off" value={i?.apelido ?? ''} placeholder="Ex.: Vó Bela" />
     </label>
     <div class="campo">
-      <span id="rotulo-tipo-integrante">É pessoa ou bicho?</span>
+      <span id="rotulo-tipo-integrante">É pessoa ou bichinho?</span>
       <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-tipo-integrante">
         <label class="opcao"><input type="radio" name="tipo" value="pessoa" checked={(i?.tipo ?? 'pessoa') === 'pessoa'} /><span>Pessoa</span></label>
-        <label class="opcao"><input type="radio" name="tipo" value="bicho" checked={i?.tipo === 'bicho'} /><span>Bicho</span></label>
+        <label class="opcao"><input type="radio" name="tipo" value="bicho" checked={i?.tipo === 'bicho'} /><span>Bichinho</span></label>
       </div>
     </div>
     <label class="campo" data-especie hidden={i?.tipo !== 'bicho'}>
-      <span>Que bicho?</span>
+      <span>Que bichinho?</span>
       <input type="text" name="especie" maxlength="40" autocomplete="off" value={i?.especie ?? ''} placeholder="Ex.: cachorro" />
     </label>
     <div class="campo">

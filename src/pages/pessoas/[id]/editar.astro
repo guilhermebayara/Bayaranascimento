@@ -129,12 +129,12 @@ const TRILHA = pessoa.tipo === 'bicho' ? [...PASSOS, 'fim'] : passo === 'inicio'
 const PERGUNTAS: Record<string, { titulo: string; dica: string; laco: string; rotulo: string }> = {
   pais: {
     titulo: pessoa.tipo === 'bicho' ? `Quem é a família de ${chamar}?` : `Quem são os pais de ${chamar}?`,
-    dica: pessoa.tipo === 'bicho' ? 'As famílias tratam os bichos como filhos: escolha de quem ele é.' : 'Um de cada vez. Depois de adicionar o primeiro, dá para adicionar o outro.',
+    dica: pessoa.tipo === 'bicho' ? 'As famílias tratam os bichinhos como filhos: escolha de quem ele é.' : 'Um de cada vez. Depois de adicionar o primeiro, dá para adicionar o outro.',
     laco: 'filho-de',
     rotulo: pessoa.tipo === 'bicho' ? 'De quem é' : 'Pai ou mãe',
   },
   casal: { titulo: `${chamar} tem ou teve um casal?`, dica: 'Namoro, casamento, união, e também quem já se separou.', laco: 'casal', rotulo: 'Com quem' },
-  filhos: { titulo: `${chamar} tem filhos?`, dica: 'Bichos da família também entram aqui.', laco: 'pai-de', rotulo: 'Filho ou filha' },
+  filhos: { titulo: `${chamar} tem filhos?`, dica: 'Bichinhos da família também entram aqui.', laco: 'pai-de', rotulo: 'Filho ou filha' },
   coracao: { titulo: `O que ${chamar} é para você?`, dica: 'Do jeito que você chama: amiga, padrinho, vó de coração.', laco: 'coracao', rotulo: '' },
   parentes: {
     titulo: `Alguém da família de ${chamar} está no acervo?`,
@@ -183,7 +183,7 @@ const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!)
 const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
 // O resumo da ficha, numa linha: só o que existe
 const resumoDaFicha = [
-  pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bicho') : null,
+  pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bichinho') : null,
   pessoa.tratamento,
   vidaSemRotulo(pessoa, true),
   familiasDe(pessoa).map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean).join(' e '),

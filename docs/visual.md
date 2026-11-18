@@ -486,7 +486,7 @@ A ação principal fica também no alto, como atalho, para quem chega querendo c
 - **Celular:** só a busca fica à vista. O controle "Famílias e ordem" (um mais que vira xis) abre as famílias e a ordem no lugar, empurrando a página; fechado, diz o que está valendo. Sem script, tudo à vista e o controle não aparece.
 - **Computador:** o alto vira o índice, na coluna da esquerda (3 das 12 colunas), com as famílias empilhadas e a conta de cada uma à direita da pílula; a lista ocupa da coluna 5 ao fim, em duas colunas de pessoas (três na tela grande). O índice acompanha a lista (`sticky`) só onde há mouse (`hover: hover` e `pointer: fine`) e quando a janela tem pelo menos 54rem de altura, porque com cinco famílias ele tem uns 790 px e não pode ficar cortado. No toque, nada fica preso.
 - **Famílias:** a peça Pílula de família, uma por vez, com "Todas" no começo.
-- **Cada família** é uma faixa na cor dela (`details`), com o nome em serifa, a conta por extenso e o sinal de abrir à direita, que abre e fecha a lista dela. Nasce aberta. As pessoas embaixo usam a peça Gente, com os retratos na margem do nome da família. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho.
+- **Cada família** é uma faixa na cor dela (`details`), com o nome em serifa, a conta por extenso e o sinal de abrir à direita, que abre e fecha a lista dela. Nasce aberta. As pessoas embaixo usam a peça Gente, com os retratos na margem do nome da família. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bichinho.
 
 ### Capítulos, capítulo e tema
 
@@ -574,6 +574,6 @@ Origem: [histórico, "Linha do tempo, capítulo e laço"](historico/visual-ate-2
 **Limpeza**
 
 - Separar os testes das telas do `describe('conceito')`, em `testes/visual.test.ts`.
-- Refazer as capturas da árvore em `docs/visual/fase-3/familia/` (mostram o cartão de bicho antigo) e as do Explorar em `docs/visual/fase-3/explorar/` (desatualizadas para o modo TV, a família e o mural), e pôr na lista de `scripts/capturas.mjs` "Só as fotos", as três animações e a família com duas marcadas.
+- Refazer as capturas da árvore em `docs/visual/fase-3/familia/` (mostram o cartão de bichinho antigo) e as do Explorar em `docs/visual/fase-3/explorar/` (desatualizadas para o modo TV, a família e o mural), e pôr na lista de `scripts/capturas.mjs` "Só as fotos", as três animações e a família com duas marcadas.
 
 Origem: [histórico, "O que falta"](historico/visual-ate-2026-11-17.md#o-que-falta); ["Estado do grupo 1"](historico/visual-ate-2026-11-17.md#estado-do-grupo-1-para-a-próxima-sessão-seguir-sem-a-conversa); ["Parte 3"](historico/visual-ate-2026-11-17.md#parte-3-a-árvore-nítida-no-zoom-o-cartão-de-bicho-e-a-conferência-final); ["Quadro do mapa"](historico/visual-ate-2026-11-17.md#quadro-do-mapa-árvore-e-círculo); ["Tipos: paleta e ícones"](historico/visual-ate-2026-11-17.md#tipos-paleta-e-ícones).

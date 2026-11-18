@@ -60,7 +60,7 @@ const todasComEla = (await listarMemorias(usuario, { integrante: pessoa.id })).r
 const forma = lerFormaDaPessoa(Astro.url.searchParams);
 const memorias = mostraRascunho(forma) ? todasComEla : todasComEla.filter((m) => m.situacao !== 'rascunho');
 const dosNucleos = familiasDe(pessoa).map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n));
-const especie = pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bicho') : null;
+const especie = pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bichinho') : null;
 
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const filiacoes = await listarFiliacoes();
