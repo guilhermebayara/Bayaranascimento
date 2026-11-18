@@ -152,7 +152,7 @@ const comLaco = comLacoDeArvore(dados);
               <section>
                 <h2>Famílias</h2>
                 <ul>
-                  {nucleos.map((n, i) => <li><i class:list={['amostra-cor', { 'amostra-cor--direita': cantoReto([i], nucleos.length) === 'direita' }]} style={`background: var(--arvore-familia-${i % 4})`}></i> {n.nome}</li>)}
+                  {nucleos.map((n, i) => <li><i class:list={['amostra-cor', { 'amostra-cor--direita': cantoReto([i], nucleos.length) === 'direita', 'amostra-cor--sem-canto': cantoReto([i], nucleos.length) === null }]} style={`background: var(--arvore-familia-${i % 4})`}></i> {n.nome}</li>)}
                   {nucleos.length > 1 && <li><i class="amostra-cor amostra-cor--duas"></i> de duas famílias</li>}
                   <li><i class="amostra-cor amostra-cor--fora"></i> amigos e de fora</li>
                 </ul>

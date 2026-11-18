@@ -60,9 +60,11 @@ export const MEDIDAS: Medidas = { largura: 150, altura: 76, vaoX: 44, vaoY: 136 
  * Para que lado aponta o canto reto do cartão de uma pessoa (decisão do Gui, 17/11/2026): o da
  * família de origem dela. A primeira família fica à esquerda e a última à direita. Quem é de duas
  * segue a de origem, que é a da ponta: a Giovanna (Bayara e Bayara Bracarense) aponta para a
- * esquerda, e o Magno (Bayara Bracarense e Bracarense) para a direita. Quem fica bem no meio, sem
- * puxar para lado nenhum, continua com o canto à esquerda. Quem não é de nenhuma família não tem
- * canto reto: o cartão fica com os cantos redondos.
+ * esquerda, e o Magno (Bayara Bracarense e Bracarense) para a direita. Quem é só da família do meio
+ * (o Bayara Bracarense, com o Chico e os filhos que vierem) não tem lado de origem e fica com os
+ * cantos redondos (resposta do Gui aos PRs #53 a #62, 17/11/2026). Quem fica no meio por ser das duas
+ * pontas (Bayara e Bracarense) continua com o canto à esquerda. Quem não é de nenhuma família também
+ * não tem canto reto.
  *
  * `posicoes` são as posições das famílias da pessoa na ordem das famílias da árvore, e `total`,
  * quantas famílias a árvore tem.
@@ -71,6 +73,8 @@ export function cantoReto(posicoes: number[], total: number): 'esquerda' | 'dire
   const validas = posicoes.filter((i) => i >= 0 && i < total);
   if (validas.length === 0) return null;
   if (total < 2) return 'esquerda';
+  // Só da família do meio: os cantos redondos
+  if (total % 2 === 1 && validas.every((i) => i === (total - 1) / 2)) return null;
   const lado = validas.reduce((soma, i) => soma + i, 0) / validas.length / (total - 1);
   return lado > 0.5 ? 'direita' : 'esquerda';
 }
