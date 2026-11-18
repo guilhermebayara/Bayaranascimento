@@ -833,6 +833,13 @@ export const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS reacoes_da_memoria ON reacoes (memoria_id)`,
     ],
   },
+  {
+    // Sugestão de correção para todos que podem corrigir (resposta do Gui à sessão F, 18/11/2026): a de
+    // dados vai para quem criou e para quem está na memória, e o primeiro que responder resolve. Quem
+    // respondeu passa a ser guardado, porque deixa de ser sempre o "para".
+    id: '080-quem-respondeu-a-sugestao',
+    sql: [`ALTER TABLE sugestoes ADD COLUMN respondida_por TEXT`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

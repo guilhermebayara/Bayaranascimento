@@ -72,10 +72,36 @@ describe.skipIf(!comSqlite)('a sugestão pela rota', async () => {
     expect(linha(`SELECT tipo FROM avisos WHERE para = 'gui' AND tipo = 'sugestao'`)).toBeDefined();
   });
 
+  const naMemoria = async () => (await repo.obterMemoria(gui, 't-sug'))!;
+
   it('só quem mandou e quem recebeu veem a sugestão', async () => {
-    expect(await repo.listarSugestoes('t-sug', gui)).toHaveLength(1);
-    expect(await repo.listarSugestoes('t-sug', elizete)).toHaveLength(1);
-    expect(await repo.listarSugestoes('t-sug', giovanna)).toHaveLength(0);
+    expect(await repo.listarSugestoes(await naMemoria(), gui)).toHaveLength(1);
+    expect(await repo.listarSugestoes(await naMemoria(), elizete)).toHaveLength(1);
+    expect(await repo.listarSugestoes(await naMemoria(), giovanna)).toHaveLength(0);
+  });
+
+  // Resposta do Gui à sessão F (18/11/2026): a sugestão de dados vai para quem criou e para quem está na
+  // memória; o primeiro que responder resolve, e o aviso some para os outros
+  it('vai para quem criou e para quem está na memória, e o primeiro que responde resolve para todos', async () => {
+    sql(`INSERT INTO memorias (id, titulo, ano, tipo, situacao, criada_por, publicada_em) VALUES ('t-sug-todos', 'Almoço', 2001, 'causo', 'publicada', 'gui', datetime('now'))`);
+    sql(`INSERT INTO memoria_integrantes VALUES ('t-sug-todos', 'gui'), ('t-sug-todos', 'elizete'), ('t-sug-todos', 'giovanna')`);
+    expect(await pedir(giovanna, [['acao', 'sugerir-dados'], ['memoria', 't-sug-todos'], ['lugar', 'Na casa da vó']])).toContain('primeiro que responder');
+    const avisos = (para: string) => linha<{ resolvido_em: string | null }>(`SELECT resolvido_em FROM avisos WHERE para = ? AND tipo = 'sugestao' AND memoria_id = 't-sug-todos'`, para);
+    expect(avisos('gui')).toEqual({ resolvido_em: null });
+    expect(avisos('elizete')).toEqual({ resolvido_em: null });
+    expect(avisos('giovanna')).toBeUndefined();
+    const memoria = (await repo.obterMemoria(gui, 't-sug-todos'))!;
+    expect(await repo.contarSugestoesAbertas(memoria, elizete)).toBe(1);
+    expect(await repo.contarSugestoesAbertas(memoria, giovanna)).toBe(0);
+    const id = linha<{ id: number }>(`SELECT id FROM sugestoes WHERE memoria_id = 't-sug-todos'`).id;
+    // A Elizete, que está na memória, aceita; o aviso some para o Gui também
+    expect(await pedir(elizete, [['acao', 'aceitar'], ['memoria', 't-sug-todos'], ['sugestao', String(id)]])).toContain('Sugestão aceita');
+    expect(linha<{ lugar: string }>(`SELECT lugar FROM memorias WHERE id = 't-sug-todos'`).lugar).toBe('Na casa da vó');
+    expect(avisos('gui')).not.toEqual({ resolvido_em: null });
+    expect(linha(`SELECT respondida_por FROM sugestoes WHERE id = ?`, id)).toEqual({ respondida_por: 'elizete' });
+    expect(linha(`SELECT de FROM avisos WHERE para = 'giovanna' AND tipo = 'sugestao-resposta'`)).toEqual({ de: 'elizete' });
+    // O Gui chega depois: já foi respondida
+    expect(await pedir(gui, [['acao', 'recusar'], ['memoria', 't-sug-todos'], ['sugestao', String(id)]])).toContain('já foi respondida');
   });
 
   it('quem mandou não aceita a própria sugestão', async () => {

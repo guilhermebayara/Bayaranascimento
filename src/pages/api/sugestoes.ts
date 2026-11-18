@@ -2,7 +2,7 @@
 // memória sugere uma correção dos dados a quem a criou, ou deixa um recado a quem registrou um relato.
 // Quem recebe aceita (só nos dados), recusa ou responde. Quem não vê responde como quem não existe.
 import type { APIRoute } from 'astro';
-import { limparProposta, propostaVazia, aplicarProposta, type Proposta } from '../../lib/sugestoes';
+import { destinatarios, limparProposta, propostaVazia, aplicarProposta, type Proposta } from '../../lib/sugestoes';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeDeixarRecado, podeEditarMemoria, podeResponderSugestao, podeSugerirDados } from '../../lib/servidor/permissoes';
 import {
@@ -49,8 +49,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (pedida.ano && (pedida.ano < 1800 || pedida.ano > anoAtual)) return voltar(request, sugerir, { erro: `O ano vai de 1800 a ${anoAtual}.` });
     const proposta = limparProposta(pedida, memoria, pode);
     if (propostaVazia(proposta) && !texto) return voltar(request, sugerir, { erro: 'Diga o que mudaria, ou escreva um recado.' });
-    await criarSugestao({ memoriaId: memoria.id, relatoId: null, para: memoria.criadaPor, tipo: 'dados', proposta: propostaVazia(proposta) ? null : proposta, texto }, usuario);
-    return voltar(request, pagina, { ok: 'Sugestão enviada. Quem criou a memória recebe um aviso e decide.' });
+    await criarSugestao({ memoriaId: memoria.id, relatoId: null, para: memoria.criadaPor, tipo: 'dados', proposta: propostaVazia(proposta) ? null : proposta, texto }, usuario, memoria);
+    return voltar(request, pagina, { ok: 'Sugestão enviada. Quem criou a memória e quem está nela recebem um aviso, e o primeiro que responder decide.' });
   }
 
   if (acao === 'recado') {
@@ -58,14 +58,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const decisao = relato ? podeDeixarRecado(usuario, relato, true) : podeDeixarRecado(usuario, { registradoPor: '', situacao: '' }, false);
     if (!relato || !decisao.ok) return voltar(request, sugerir, { erro: decisao.ok ? 'Relato não encontrado.' : decisao.motivo });
     if (!texto) return voltar(request, sugerir, { erro: 'Escreva o recado.' });
-    await criarSugestao({ memoriaId: memoria.id, relatoId: relato.id, para: relato.registradoPor, tipo: 'recado', proposta: null, texto }, usuario);
+    await criarSugestao({ memoriaId: memoria.id, relatoId: relato.id, para: relato.registradoPor, tipo: 'recado', proposta: null, texto }, usuario, memoria);
     return voltar(request, pagina, { ok: 'Recado enviado. Quem escreveu o relato recebe um aviso.' });
   }
 
   // Responder: só quem recebeu, e só a sugestão desta memória
   const sugestao = await obterSugestao(Number(campo(dados, 'sugestao', 12)));
   if (!sugestao || sugestao.memoriaId !== memoria.id) return voltar(request, sugestoes, { erro: 'Sugestão não encontrada.' });
-  const decisao = podeResponderSugestao(usuario, sugestao);
+  const decisao = podeResponderSugestao(usuario, sugestao, destinatarios(sugestao, memoria));
   if (!decisao.ok) return voltar(request, sugestoes, { erro: decisao.motivo });
 
   if (acao === 'aceitar') {

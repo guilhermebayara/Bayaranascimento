@@ -430,9 +430,12 @@ export function podeDeixarRecado(usuario: Usuario, relato: { registradoPor: stri
   return sim;
 }
 
-/** Responder uma sugestão (aceitar, recusar, responder): só quem a recebeu, e só enquanto está aberta. */
-export function podeResponderSugestao(usuario: Usuario, s: { para: string; situacao: string }): Decisao {
-  if (s.para !== usuario.pessoa) return nao('Sugestão não encontrada.');
+/**
+ * Responder uma sugestão (aceitar, recusar, responder): só quem a recebeu (`recebem`, de `destinatarios`,
+ * em src/lib/sugestoes.ts), e só enquanto está aberta. O primeiro que responde resolve para todos.
+ */
+export function podeResponderSugestao(usuario: Usuario, s: { situacao: string }, recebem: readonly string[]): Decisao {
+  if (!recebem.includes(usuario.pessoa)) return nao('Sugestão não encontrada.');
   if (s.situacao !== 'aberta') return nao('Esta sugestão já foi respondida.');
   return sim;
 }

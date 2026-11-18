@@ -32,6 +32,18 @@ export interface Sugestao {
   resposta: string | null;
   criadaEm: string;
   respondidaEm: string | null;
+  /** quem respondeu (migração 080); nas antigas, quem recebeu */
+  respondidaPor: string | null;
+}
+
+/**
+ * Quem recebe a sugestão (resposta do Gui à sessão F, 18/11/2026). A de dados vai para todos que podem
+ * corrigir a ficha: quem criou a memória e quem está nela, hoje, menos quem sugeriu. O recado vai só
+ * para quem registrou o relato. O primeiro que responder resolve, e o aviso sai da lista dos outros.
+ */
+export function destinatarios(s: Pick<Sugestao, 'tipo' | 'para' | 'de'>, memoria: { criadaPor: string; integrantes: readonly string[] }): string[] {
+  if (s.tipo === 'recado') return [s.para];
+  return [...new Set([memoria.criadaPor, ...memoria.integrantes])].filter((p) => p !== s.de);
 }
 
 interface DadosAtuais {

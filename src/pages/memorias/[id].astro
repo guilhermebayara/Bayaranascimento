@@ -94,7 +94,7 @@ const alvosDasReacoes = new Set([...relatos.filter((r) => r.situacao === 'public
 const reacoes = publicada ? await listarReacoes(memoria.id, usuario, alvosDasReacoes) : new Map();
 const temPaginaNoAcervo = integrantes.some((i) => i.id === usuario.pessoa);
 const ofereceQuemEstava = publicada && temPaginaNoAcervo && ofereceEntrar(await disseQueEstava(memoria.id, usuario), memoria.integrantes.includes(usuario.pessoa));
-const sugestoesAbertas = memoria.situacao === 'publicada' ? await contarSugestoesAbertas(memoria.id, usuario) : 0;
+const sugestoesAbertas = memoria.situacao === 'publicada' ? await contarSugestoesAbertas(memoria, usuario) : 0;
 // Capítulos: os reunidos em que foi colocada e os por período em que a data cai, se forem de quem está nela
 const capitulos = (await listarCapitulos(usuario)).filter((c) => memoriaDoCapitulo(memoria, c));
 const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
