@@ -2846,3 +2846,90 @@
 .pagina-de-formulario .reconhece__painel[hidden] {
   display: none;
 }
+
+/* --- Apelidos na ficha: o da família e o seu (decisão do Gui, 18/11/2026, depois da sessão H) -----
+   Quem já tem apelido aparece com ele, numa linha com "Mudar" e "Tirar"; o que falta entra por
+   "Adicionar apelido". A escolha de quem vê é o seletor segmentado, com a frase colada nele (--e-2),
+   como no laço do coração. O rótulo fica colado no que nomeia (--e-2) e o grupo inteiro, a --e-5 do
+   campo de cima, como os outros campos da ficha. */
+.pagina-de-formulario .apelidos {
+  display: grid;
+  gap: var(--e-2);
+  justify-items: start;
+  max-width: var(--medida);
+}
+.pagina-de-formulario .apelidos > * {
+  min-width: 0;
+}
+.pagina-de-formulario .apelidos__rotulo {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  line-height: 1.45;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .apelidos__rotulo small {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+.pagina-de-formulario .apelidos__lista {
+  display: grid;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pagina-de-formulario .apelidos__um {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-1) var(--e-4);
+  padding-block: var(--e-2);
+  border-bottom: 1px solid var(--fio);
+}
+.pagina-de-formulario .apelidos__um[hidden] {
+  display: none;
+}
+.pagina-de-formulario .apelidos__quem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-1) var(--e-3);
+}
+.pagina-de-formulario .apelidos__quem strong {
+  font-size: var(--t-leitura);
+}
+.pagina-de-formulario .apelidos__um--tirado strong {
+  color: var(--tinta-suave);
+  text-decoration: line-through;
+}
+.pagina-de-formulario .apelidos__sai {
+  color: var(--alerta-tinta);
+}
+.pagina-de-formulario .apelidos__acoes {
+  display: flex;
+  gap: var(--e-4);
+}
+.pagina-de-formulario .apelidos__novo {
+  display: grid;
+  gap: var(--e-2);
+}
+.pagina-de-formulario .apelidos__novo[hidden],
+.pagina-de-formulario .apelidos__frase [hidden] {
+  display: none;
+}
+.pagina-de-formulario .apelidos__frase {
+  color: var(--tinta-suave);
+  font-size: var(--t-pequeno);
+}
+/* Com a frase de quem vê colada na escolha, a dica do campo repetiria o mesmo */
+.pagina-de-formulario .apelidos--acrescentando .apelidos__campo .dica {
+  display: none;
+}
+.pagina-de-formulario .apelidos__campo {
+  width: 100%;
+  margin-top: var(--e-2);
+}
