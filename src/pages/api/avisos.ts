@@ -25,16 +25,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const relato = relatoId ? await obterRelatoPorId(relatoId) : undefined;
   // Quem não vê a memória recebe o mesmo que para um relato que não existe
   const memoria = relato ? await obterMemoria(usuario, relato.memoriaId) : undefined;
-  if (!relato || !memoria) return erro(404, 'Relato não encontrado.');
+  // Só quem registrou responde; para os outros, o relato responde como se não existisse, para não
+  // denunciar um relato que eles não veem (QA de 18/11/2026)
+  if (!relato || !memoria || relato.registradoPor !== usuario.pessoa) return erro(404, 'Relato não encontrado.');
   const volta = campo(dados, 'volta', 300) || `/memorias/${memoria.id}`;
   const decisao = podeLiberarRelato(usuario, relato);
   if (!decisao.ok) {
     // O relato já acompanha a memória (liberado antes, ou a memória foi restringida): o pedido só sai da lista
-    if (relato.registradoPor === usuario.pessoa) {
-      await responderPedidoDoRelato(relato.id, resposta);
-      return voltar(request, volta, { ok: 'Este relato já aparece para todos que veem a memória.' });
-    }
-    return voltar(request, volta, { erro: decisao.motivo });
+    await responderPedidoDoRelato(relato.id, resposta);
+    return voltar(request, volta, { ok: 'Este relato já aparece para todos que veem a memória.' });
   }
   await responderPedidoDoRelato(relato.id, resposta);
   return voltar(request, volta, { ok: RECADOS[resposta] });
