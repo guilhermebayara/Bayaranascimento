@@ -170,6 +170,11 @@ const PAGINAS = [
   { nome: 'familia-2-capitulo-por-periodo', url: '/capitulos/infancia-da-giovanna', como: 'giovanna', larguras: TODAS, corte: 5000 },
   { nome: 'familia-2-capitulo-epoca', url: '/capitulos/os-anos-90', como: 'giovanna', larguras: TODAS, corte: 5000 },
   { nome: 'familia-2-capitulo-de-dentro', url: '/capitulos/natais-na-vo-vivica', como: 'giovanna', larguras: TODAS },
+  // A página do laço: casal com fases e datas, casal separado sem datas, o ex que virou amigo e um par só com laço do coração
+  { nome: 'familia-6-laco-casal', url: '/lacos/ex-tia-cida/ex-tio-paulo', como: 'gui', larguras: TODAS },
+  { nome: 'familia-6-laco-separado', url: '/lacos/aguilar/elizete', como: 'gui', larguras: TODAS, corte: 5000 },
+  { nome: 'familia-6-laco-amigos', url: '/lacos/ex-thiago/giovanna', como: 'giovanna', larguras: TODAS },
+  { nome: 'familia-6-laco-do-coracao', url: '/lacos/elizete/ex-dona-fatima', como: 'elizete', larguras: TODAS },
   { nome: 'familia-3-tema', url: '/temas/natal', como: 'giovanna', larguras: TODAS, corte: 5000 },
   { nome: 'familia-4-pessoas', url: '/pessoas', como: 'giovanna', larguras: TODAS },
   { nome: 'familia-4-pessoas-familias-e-ordem', url: '/pessoas', como: 'giovanna', larguras: [390], antes: abrirFamiliasEOrdem },
