@@ -188,24 +188,31 @@
   color: var(--tinta);
   font-weight: 500;
 }
-/* Quem já faleceu (decisão do Gui, 17/11/2026): o mesmo anel do retrato, pequeno, antes do
-   parentesco. O cartão não tem foto, então o anel vai junto do texto. */
-.no--falecido span::before,
-.amostra-anel {
+/* Quem já faleceu (ideia do Gui, 18/11/2026): uma orelha dobrada no canto de cima, à direita, como a
+   página de um livro que alguém marcou. O cartão não tem foto, e a cor da família continua inteira:
+   em tom suave ele se confundia com o que a árvore apaga ao destacar uma família. A ponta dobrada
+   mostra o papel do mapa por trás, e a dobra é a cor do cartão um pouco mais escura. */
+.no--falecido::after,
+.amostra-orelha::after {
   content: '';
-  display: inline-block;
-  flex: none;
-  width: 0.5rem;
-  height: 0.5rem;
-  margin-right: 0.35rem;
-  border: var(--traco) solid currentColor;
-  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--orelha, 1.125rem);
+  height: var(--orelha, 1.125rem);
+  border-bottom-left-radius: 0.1875rem;
+  background: linear-gradient(225deg, var(--orelha-fundo, var(--papel)) 50%, color-mix(in srgb, var(--tinta) 26%, transparent) 50%);
 }
-.amostra-anel {
-  width: 0.75rem;
-  height: 0.75rem;
-  margin: 0 0.625rem;
-  color: var(--tinta-suave);
+.no--falecido.no--bicho::after {
+  top: 0.125rem;
+  right: 0.5rem;
+}
+/* A amostra da legenda: a amostra de cor com a orelha, sobre o branco do painel */
+.amostra-orelha {
+  --orelha: 0.4375rem;
+  --orelha-fundo: var(--branco);
+  position: relative;
+  overflow: hidden;
 }
 /* Bicho da família: a etiqueta em cápsula, com a espécie escrita */
 /* O respiro acompanha o arredondado (achado do Gui, 17/11/2026: a espécie, o nome e o parentesco
@@ -228,8 +235,9 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-/* Um ex que quem olha deixou discreto (src/lib/ex-casal.ts): a tarja de tinta, de leve torta, por cima
-   do nome, e o cartão sem toque. Provisória: vai passar pelo acabamento visual. */
+/* Um ex que quem olha deixou discreto (src/lib/ex-casal.ts): o cartão como um documento com o nome
+   riscado. Duas tarjas de tinta, de leve tortas, no lugar das duas linhas do cartão: a do nome, com
+   "assunto encerrado" em mono, e uma curta, sem nada, no lugar do parentesco. O cartão não tem toque. */
 .no--discreto {
   cursor: default;
 }
@@ -239,18 +247,32 @@
 .no .no__tarja {
   display: block;
   position: absolute;
-  inset-inline: var(--e-2);
   top: 50%;
-  padding: var(--e-1) var(--e-2);
-  transform: translateY(-50%) rotate(-4deg);
-  border-radius: var(--raio-carimbo);
+  left: 0.55rem;
+  overflow: visible;
+  padding: 0.3rem 0.5rem;
+  translate: 0 -72%;
+  rotate: -2deg;
+  border-radius: var(--raio-foto);
   background: var(--tinta);
   color: var(--papel);
   font-family: var(--mono);
   font-size: 0.625rem;
   letter-spacing: 0.08em;
-  text-align: center;
+  line-height: 1.2;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+.no .no__tarja::after {
+  content: '';
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0.1rem;
+  width: 52%;
+  height: 0.5rem;
+  rotate: 3deg;
+  border-radius: var(--raio-foto);
+  background: var(--tinta);
 }
 /* Amigos e quem não é de nenhuma família: a etiqueta em branco, com um fio */
 .no--de-fora {

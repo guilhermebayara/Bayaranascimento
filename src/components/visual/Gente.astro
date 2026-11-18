@@ -18,7 +18,7 @@ interface Props {
   laco?: string | null;
   /** um detalhe, em mono */
   detalhe?: string | null;
-  /** quem já faleceu: o retrato leva o anel, e o leitor de tela ouve "já faleceu" */
+  /** quem já faleceu: o retrato fica em tom suave, e "em memória" vem escrito embaixo */
   falecido?: boolean;
 }
 
@@ -29,8 +29,8 @@ const { href, nome, apelido, foto, familia, laco, detalhe, falecido = false } = 
   <Retrato nome={nome} foto={foto} familia={familia} falecido={falecido} />
   <span class="gente__quem">
     <strong>{nome}{apelido && <span class="gente__apelido"> ({apelido})</span>}</strong>
-    {falecido && <span class="so-leitor">já faleceu</span>}
     {laco && <span class="gente__laco suave">{laco}</span>}
     {detalhe && <span class="ficha suave">{detalhe}</span>}
+    {falecido && <span class="em-memoria">em memória</span>}
   </span>
 </a>

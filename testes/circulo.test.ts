@@ -265,7 +265,7 @@ describe('a tela do círculo', () => {
   });
 
   it('quem já faleceu aparece com a marca, e o leitor de tela ouve', () => {
-    expect(pagina).toMatch(/<Retrato nome=\{p\.nome\} foto=\{p\.foto\} familia=\{p\.cor\} falecido=\{p\.falecido\} redondo \/>/);
+    expect(pagina).toMatch(/<Retrato nome=\{p\.nome\} foto=\{p\.foto\} familia=\{p\.cor\} falecido=\{p\.falecido\} \/>/);
     expect(pagina).toMatch(/\{p\.falecido && <span class="so-leitor">já faleceu<\/span>\}/);
     expect(ler('src/lib/servidor/circulo.ts')).toMatch(/falecido: jaFaleceu\(i\),/);
   });

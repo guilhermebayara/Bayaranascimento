@@ -85,7 +85,7 @@
   font-size: var(--t-titulo-3);
 }
 
-/* Quem estava: retratos em arco, com o parentesco de quem olha */
+/* Quem estava: retratos de álbum, com o parentesco de quem olha */
 .quem {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
