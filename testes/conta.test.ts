@@ -298,3 +298,16 @@ describe('administração em seções que abrem e fecham', () => {
     expect(css).toMatch(/\.conta__lacos \{\s*grid-column: 8 \/ -1;\s*grid-row: span 2;/);
   });
 });
+
+describe('a administração chega fechada', () => {
+  // Observação do Gui depois da sessão H (18/11/2026): todos os grupos começam fechados
+  it('nenhum grupo da administração vem aberto, com ou sem pendência', () => {
+    const conta = readFileSync('src/pages/conta.astro', 'utf8');
+    const grupos = [...conta.matchAll(/<details class="conta__grupo"[^>]*>/g)].map((m) => m[0]);
+    expect(grupos.length).toBe(2);
+    for (const g of grupos) expect(g).not.toMatch(/\bopen=/);
+  });
+  it('a pendência continua abrindo o grupo dela', () => {
+    expect(readFileSync('src/pages/conta.astro', 'utf8')).toContain('data-abre-grupo={p.href ? undefined : idDoGrupo(grupoDaPendencia(p))}');
+  });
+});
