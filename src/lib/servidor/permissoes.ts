@@ -375,3 +375,15 @@ export function podeEscolherComoOExAparece(usuario: Usuario, casal: Pick<Casal, 
   if (!casalDesfeito(casal as Casal)) return nao('Só dá para escolher como alguém aparece para você depois que o casal terminou.');
   return sim;
 }
+
+// --- Apagar de vez o que está na lixeira (decisão do Gui, 17/11/2026, onda 2) ---
+
+/**
+ * Apagar de vez: só os administradores, item a item, e só o que já está na lixeira e que eles veem ali
+ * (quem chama acha o item pela lixeira de quem pede). Nada some sozinho.
+ */
+export function podeApagarDeVez(usuario: Usuario, item: { naLixeira: boolean }): Decisao {
+  if (!usuario.admin) return nao('Só os administradores apagam de vez o que está na lixeira.');
+  if (!item.naLixeira) return nao('Só dá para apagar de vez o que já está na lixeira.');
+  return sim;
+}

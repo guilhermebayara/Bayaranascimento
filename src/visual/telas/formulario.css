@@ -2306,6 +2306,16 @@
 .pagina-de-formulario > .recado + .acoes {
   margin-top: calc(var(--e-4) - var(--e-7));
 }
+/* A lixeira: "Restaurar" e, para os administradores, "Apagar de vez", que abre a pergunta embaixo */
+.pagina-de-formulario .lixeira__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--e-2) var(--e-4);
+}
+.pagina-de-formulario .lixeira__apagar summary.botao {
+  color: var(--alerta-tinta);
+}
 /* A lixeira: na tela grande, "Restaurar" fica à direita, na linha do título (resposta do Gui à P156, 17/11/2026) */
 @media (min-width: 62rem) {
   .pagina-de-formulario .linhas--com-acao > li {
@@ -2317,9 +2327,18 @@
     grid-column: 1;
     grid-row: 2;
   }
-  .pagina-de-formulario .linhas--com-acao > li > form {
+  .pagina-de-formulario .linhas--com-acao > li > form,
+  .pagina-de-formulario .linhas--com-acao > li > .lixeira__acoes {
     grid-column: 2;
     grid-row: 1 / span 2;
+  }
+  .pagina-de-formulario .linhas--com-acao > li:has(> .lixeira__acoes) {
+    grid-template-rows: auto 1fr;
+  }
+  .pagina-de-formulario .lixeira__acoes {
+    flex-direction: column;
+    align-items: end;
+    max-width: 24rem;
   }
 }
 .pagina-de-formulario .linhas--fotos > li {

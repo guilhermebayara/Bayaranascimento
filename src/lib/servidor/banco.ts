@@ -739,6 +739,21 @@ export const MIGRACOES: Migracao[] = [
       )`,
     ],
   },
+  {
+    // Apagar de vez o que está na lixeira (decisão do Gui, 17/11/2026, onda 2): só os administradores,
+    // item a item, com confirmação. O que foi apagado não volta. Fica só a anotação de que algo foi
+    // apagado, por quem e quando, sem título nem conteúdo nenhum.
+    id: '072-apagados-de-vez',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS apagados_de_vez (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL CHECK (tipo IN ('memoria', 'capitulo')),
+        item_id TEXT NOT NULL,
+        por TEXT NOT NULL,
+        em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

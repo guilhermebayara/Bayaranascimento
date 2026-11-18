@@ -1020,6 +1020,41 @@ export async function excluirMemoria(id: string, usuario: Usuario): Promise<void
   await db().prepare(`UPDATE memorias SET excluida_em = datetime('now'), excluida_por = ? WHERE id = ?`).bind(usuario.pessoa, id).run();
 }
 
+/**
+ * Apaga de vez uma memória que está na lixeira (onda 2): a ficha, os relatos, as versões, as pessoas,
+ * as famílias, os capítulos e temas, os avisos e as reações. As fotos e os áudios ficam soltos, sem
+ * legenda e sem transcrição: o arquivo continua no bucket, e as fotos passam a aparecer em "Fotos sem
+ * memória", onde um administrador apaga o arquivo. Fica só a anotação de que algo foi apagado.
+ */
+export async function apagarMemoriaDeVez(id: string, usuario: Usuario): Promise<boolean> {
+  const naLixeira = await db().prepare('SELECT 1 AS ok FROM memorias WHERE id = ? AND excluida_em IS NOT NULL').bind(id).first<{ ok: number }>();
+  if (!naLixeira) return false;
+  const relatos = `(SELECT CAST(id AS TEXT) FROM relatos WHERE memoria_id = ?1)`;
+  await db().batch([
+    db().prepare(`DELETE FROM versoes WHERE (tipo = 'memoria' AND item_id = ?1) OR (tipo = 'relato' AND item_id IN ${relatos})`).bind(id),
+    db().prepare('DELETE FROM avisos WHERE memoria_id = ?1').bind(id),
+    db().prepare(`UPDATE fotos SET memoria_id = NULL, relato_id = NULL, legenda = NULL, principal = 0, removida_em = COALESCE(removida_em, datetime('now')), removida_por = COALESCE(removida_por, ?2) WHERE memoria_id = ?1 OR relato_id IN (SELECT id FROM relatos WHERE memoria_id = ?1)`).bind(id, usuario.pessoa),
+    db().prepare(`UPDATE audios SET memoria_id = NULL, relato_id = NULL, transcricao = NULL, removido_em = COALESCE(removido_em, datetime('now')) WHERE memoria_id = ?1 OR relato_id IN (SELECT id FROM relatos WHERE memoria_id = ?1)`).bind(id),
+    db().prepare('DELETE FROM relatos WHERE memoria_id = ?1').bind(id),
+    db().prepare('DELETE FROM memorias WHERE id = ?1 AND excluida_em IS NOT NULL').bind(id),
+    db().prepare(`INSERT INTO apagados_de_vez (tipo, item_id, por) VALUES ('memoria', ?1, ?2)`).bind(id, usuario.pessoa),
+  ]);
+  return true;
+}
+
+/** Apaga de vez um capítulo que está na lixeira. As memórias dele continuam; os capítulos de dentro ficam soltos. */
+export async function apagarCapituloDeVez(id: string, usuario: Usuario): Promise<boolean> {
+  const naLixeira = await db().prepare('SELECT 1 AS ok FROM capitulos WHERE id = ? AND excluido_em IS NOT NULL').bind(id).first<{ ok: number }>();
+  if (!naLixeira) return false;
+  await db().batch([
+    db().prepare('UPDATE capitulos SET pai_id = NULL WHERE pai_id = ?1').bind(id),
+    db().prepare(`DELETE FROM versoes WHERE tipo = 'capitulo' AND item_id = ?1`).bind(id),
+    db().prepare('DELETE FROM capitulos WHERE id = ?1 AND excluido_em IS NOT NULL').bind(id),
+    db().prepare(`INSERT INTO apagados_de_vez (tipo, item_id, por) VALUES ('capitulo', ?1, ?2)`).bind(id, usuario.pessoa),
+  ]);
+  return true;
+}
+
 /** A lixeira de quem pede: só o que a pessoa veria se a memória não tivesse sido excluída. */
 export async function listarExcluidas(usuario: Usuario): Promise<MemoriaExcluida[]> {
   const { results } = await db()
