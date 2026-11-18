@@ -1,0 +1,58 @@
+---
+// Pedidos para excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026): quem não administra pede a
+// exclusão na edição da pessoa, e um administrador aprova ou recusa aqui. Aprovar manda a pessoa para a
+// lixeira, com volta. A rota é /api/pessoas-excluidas.
+import Pagina from '../../components/formularios/Pagina.astro';
+import Vazio from '../../components/visual/Vazio.astro';
+import { formatarMomento } from '../../lib/datas';
+import { listarIntegrantesQueVe, listarPedidosDeExclusao } from '../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
+
+const integrantes = await listarIntegrantesQueVe(usuario);
+const achar = (id: string) => integrantes.find((i) => i.id === id);
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? 'alguém';
+// Só o pedido de quem o administrador vê
+const pedidos = (await listarPedidosDeExclusao()).filter((p) => achar(p.pessoa));
+---
+
+<Pagina titulo="Pedidos para excluir" rotulo="Administração" secao="conta" larga>
+  <Fragment slot="abertura">
+    <p>Quem não administra pede para excluir uma pessoa na edição dela. Excluir manda a pessoa para a lixeira: ela some do site, as memórias ficam, e dá para restaurar.</p>
+    <p class="acoes">
+      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+    </p>
+  </Fragment>
+  {
+    pedidos.length === 0 ? (
+      <Vazio frase="Nenhum pedido para excluir." />
+    ) : (
+      <ul class="linhas linhas--com-acao">
+        {pedidos.map((p) => (
+          <li>
+            <div>
+              <strong>
+                <a href={`/pessoas/${p.pessoa}`}>{achar(p.pessoa)!.nome}</a>
+              </strong>
+              <span class="ficha suave">pedido por {nome(p.pedidoPor)} em {formatarMomento(p.criadoEm)}</span>
+            </div>
+            {p.motivo && <p class="dica">“{p.motivo}”</p>}
+            <div class="lixeira__acoes">
+              <form method="post" action="/api/pessoas-excluidas" class="em-linha">
+                <input type="hidden" name="acao" value="aprovar" />
+                <input type="hidden" name="pedido" value={p.id} />
+                <button class="botao botao--perigo" type="submit">Excluir {achar(p.pessoa)!.nome}</button>
+              </form>
+              <form method="post" action="/api/pessoas-excluidas" class="em-linha">
+                <input type="hidden" name="acao" value="recusar" />
+                <input type="hidden" name="pedido" value={p.id} />
+                <button class="botao botao--leve" type="submit">Recusar</button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Pagina>

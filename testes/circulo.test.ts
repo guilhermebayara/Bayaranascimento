@@ -215,11 +215,10 @@ describe('a tela do círculo', () => {
     expect(ler('src/pages/arvore.astro')).toMatch(/\{achar\(usuario\.pessoa\) && <a class="acao acao--quieta" href="\/circulo">Ver seu círculo<\/a>\}/);
   });
 
-  it('no slider, o rótulo e as pontas ficam colados na barra, e o grupo longe do que vem antes', () => {
-    // "Gestalt em toda tela": a área de toque de 44 px continua, com o vazio dela por baixo do texto
-    expect(css).toMatch(/\.pm__proximidade input \{[^}]*margin: calc\(var\(--e-3\) \* -1\) 0;/);
+  it('no slider, o rótulo, a régua e os nomes das faixas são um grupo só, longe do que vem antes', () => {
+    // "Gestalt em toda tela": a peça Proximidade é um bloco, e a ficha só dá a distância até "Ver a página"
     expect(css).toMatch(/\.pm__proximidade \{[^}]*margin-top: var\(--e-5\);[^}]*padding: var\(--e-2\)/);
-    expect(css).toMatch(/\.pm__pontas \{[^}]*pointer-events: none;/);
+    expect(ler('src/visual/pecas.css')).toMatch(/\.prox input\[type='range'\] \{[^}]*height: var\(--toque\);/);
   });
 
   it('no celular são faixas empilhadas com a rolagem do aparelho; na tela grande, anéis com zoom', () => {
@@ -236,13 +235,12 @@ describe('a tela do círculo', () => {
   });
 
   it('tocar abre a ficha com o slider, que é o caminho pelo teclado', () => {
-    expect(cliente).toMatch(/type: 'range', min: '0', max: String\(FORA_DO_CIRCULO\), step: '1'/);
-    expect(cliente).toMatch(/slider\.setAttribute\('aria-valuetext', nomeDaProximidade\(valor\)\);/);
+    expect(ler('src/lib/cliente/proximidade.ts')).toMatch(/type: 'range', id, min: String\(minimoDoSlider\(true\)\), max: '100', step: '1'/);
+    expect(cliente).toMatch(/refletirProximidade\(ficha\.querySelector<HTMLElement>\('\[data-proximidade\]'\)!\);/);
     expect(cliente).toMatch(/abrirFicha\(botao, botao\.matches\(':focus-visible'\)\);/);
     expect(cliente).toMatch(/if \(focoNoSlider\) slider\.focus\(/);
     // Esc fecha a ficha e devolve o foco à pessoa
     expect(cliente).toMatch(/e\.key !== 'Escape' \|\| e\.defaultPrevented \|\| !aberta\) return;/);
-    expect(css).toMatch(/\.pm__proximidade input \{[^}]*min-height: var\(--toque\);/);
   });
 
   it('arrastar muda o mesmo valor: com o mouse na hora, com o dedo depois de um toque longo', () => {

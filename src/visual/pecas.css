@@ -603,6 +603,170 @@ a.polaroid__foto {
   color: var(--tinta-suave);
 }
 
+/* --- Proximidade: o slider do círculo, a régua com os nomes (escolha do Gui, 18/11/2026) -------
+   Um <input type="range"> de verdade por baixo, para o teclado e o leitor de tela, e o desenho por
+   cima. Livre, com marcas onde a faixa muda; cada faixa tem o nome embaixo do trecho dela, e
+   "Fora do círculo" é um trecho à parte, tracejado. --pos é o lugar do botão em porcentagem da barra,
+   posto pelo servidor e acompanhado pelo script; --fora, onde o trecho de fora acaba. */
+
+.prox {
+  --botao: 1.75rem;
+  --pos: 50;
+  --fora: 0;
+  --em: 0;
+  --colunas: 1fr;
+  /* onde fica o centro do botão na barra, e onde o trecho de fora acaba */
+  --x: calc(var(--botao) / 2 + (100% - var(--botao)) * var(--pos) / 100);
+  --x-fora: calc(var(--botao) / 2 + (100% - var(--botao)) * var(--fora) / 100);
+  display: grid;
+  min-width: 0;
+  border-radius: var(--raio-moldura);
+}
+/* Com o foco do teclado, o contorno abraça o grupo inteiro: o rótulo, a régua e os nomes */
+.prox:has(input:focus-visible) {
+  outline: 2px solid var(--tinta);
+  outline-offset: var(--e-2);
+}
+.prox__alto {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-3);
+}
+.prox__alto label {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.prox__alto output {
+  font-weight: 550;
+  text-align: right;
+}
+.prox__barra {
+  position: relative;
+  display: grid;
+  align-items: center;
+  height: var(--toque);
+}
+.prox__barra > * {
+  grid-area: 1 / 1;
+}
+.prox input[type='range'] {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 0;
+  height: var(--toque);
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.prox input[type='range']:focus-visible {
+  outline: none;
+}
+.prox input[type='range']::-webkit-slider-runnable-track {
+  height: var(--toque);
+  background: none;
+}
+.prox input[type='range']::-moz-range-track {
+  height: var(--toque);
+  background: none;
+}
+.prox input[type='range']::-webkit-slider-thumb {
+  width: var(--botao);
+  height: var(--botao);
+  margin-top: calc((var(--toque) - var(--botao)) / 2);
+  border: 2px solid var(--tinta);
+  border-radius: 50%;
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  appearance: none;
+  -webkit-appearance: none;
+}
+.prox input[type='range']::-moz-range-thumb {
+  box-sizing: border-box;
+  width: var(--botao);
+  height: var(--botao);
+  border: 2px solid var(--tinta);
+  border-radius: 50%;
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+.prox__trilho,
+.prox__cheio,
+.prox__fora {
+  height: 0.5rem;
+  border-radius: var(--raio-pilula);
+  pointer-events: none;
+}
+.prox__trilho {
+  background: var(--papel-recuo);
+  box-shadow: inset 0 0 0 1px var(--fio);
+}
+/* O preenchimento, na cor viva da família da tela */
+.prox__cheio {
+  width: var(--x);
+  background: var(--vivo);
+}
+.prox__fora {
+  display: none;
+}
+/* "Fora do círculo": um trecho à parte, tracejado, antes da régua */
+.prox--com-fora .prox__fora {
+  display: block;
+  justify-self: start;
+  width: calc(var(--x-fora) - 0.3125rem);
+  border: 1px dashed var(--tinta-suave);
+}
+.prox--com-fora .prox__trilho {
+  margin-left: var(--x-fora);
+}
+.prox--com-fora .prox__cheio {
+  margin-left: var(--x-fora);
+  width: max(0px, calc(var(--x) - var(--x-fora)));
+}
+/* As marcas onde a faixa muda */
+.prox__marcas {
+  position: relative;
+  height: 1.125rem;
+  pointer-events: none;
+}
+.prox__marcas i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--botao) / 2 + (100% - var(--botao)) * var(--em) / 100);
+  width: var(--traco);
+  margin-left: calc(var(--traco) / -2);
+  background: var(--tinta-suave);
+}
+/* O nome de cada faixa, embaixo do trecho dela; a de agora, em destaque */
+.prox__faixas {
+  display: grid;
+  grid-template-columns: var(--colunas);
+  padding-inline: calc(var(--botao) / 2);
+  font-size: var(--t-micro);
+  line-height: 1.2;
+  color: var(--tinta-suave);
+}
+.prox__faixas span {
+  padding-inline: 0.125rem;
+  text-align: center;
+  text-wrap: balance;
+}
+.prox--com-fora .prox__faixas span:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+.prox__faixas [data-atual] {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
 /* --- Seletor segmentado: uma escolha só entre poucas (decisão do Gui, 17/11/2026) ----------- */
 
 .segmentado {

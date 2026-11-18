@@ -7,6 +7,7 @@ import { SEM_ANO } from '../../lib/datas';
 import { mensagemDaPessoaPrivada } from '../../lib/memoria';
 import { TIPO_OUTRO } from '../../lib/tipos';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
+import { MENSAGENS_POR_RELATO, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { avisarQuemEstava, mudouQuemVe } from '../../lib/servidor/avisos';
@@ -32,6 +33,9 @@ import {
   obterRelatoRegistradoPor,
   abrirLacosPrivados,
   pessoasQueSoVoceVe,
+  gravarMensagens,
+  listarAudiosDosRelatos,
+  listarMensagensDosRelatos,
 } from '../../lib/servidor/repositorio';
 
 const opcional = (maximo: number) => z.string().trim().max(maximo).optional();
@@ -65,6 +69,18 @@ const Pedido = z.object({
       texto: z.string().max(20000),
       // Áudios gravados ou enviados na etapa do relato, ainda soltos (ver api/audios.ts)
       audios: z.array(z.object({ id: z.number().int().positive(), transcricao: z.string().max(20000).optional() })).max(AUDIOS_POR_RELATO).optional(),
+      // O relato como conversa (src/lib/conversa.ts): as mensagens, na ordem. Na memória nova, só texto e áudio
+      mensagens: z
+        .array(
+          z.object({
+            id: z.number().int().positive().optional(),
+            tipo: z.enum(['texto', 'audio']),
+            texto: z.string().max(20000).optional(),
+            audioId: z.number().int().positive().optional(),
+          }),
+        )
+        .max(MENSAGENS_POR_RELATO)
+        .optional(),
     })
     .optional(),
 });
@@ -296,10 +312,19 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     if (!decisao.ok) return erro(403, `A memória foi salva, mas o relato não: ${decisao.motivo}`);
     // Relato já publicado continua publicado. Os demais acompanham a situação da memória.
     const situacaoDoRelato = existente?.situacao === 'publicada' ? 'publicada' : situacao;
-    await salvarRelato(id, relatoPor, textoDoRelato, situacaoDoRelato, usuario, existente);
-    if (audiosDoRelato) {
-      const meu = await obterRelatoRegistradoPor(id, relatoPor, usuario);
-      if (meu) await ligarAudios(meu.id, id, audiosDoRelato, usuario);
+    // As mensagens de antes, para o histórico e para o envio sem script, que acrescenta no fim
+    const antesDoRelato = existente ? ((await listarMensagensDosRelatos([existente])).get(existente.id) ?? []) : [];
+    const mensagens: Mensagem[] = pedido.relato?.mensagens
+      ? pedido.relato.mensagens.map((m) => ({ ...(m.id ? { id: m.id } : {}), tipo: m.tipo, ...(m.tipo === 'texto' ? { texto: arrumarTexto(m.texto ?? '') } : { audioId: m.audioId }) }))
+      : [...antesDoRelato, ...paragrafos(textoDoRelato).map((t) => ({ tipo: 'texto' as const, texto: t }))];
+    const texto = pedido.relato?.mensagens ? textoDasMensagens(mensagens) : textoDasMensagens(mensagens) || textoDoRelato;
+    await salvarRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato });
+    const meu = await obterRelatoRegistradoPor(id, relatoPor, usuario);
+    if (meu && audiosDoRelato) await ligarAudios(meu.id, id, audiosDoRelato, usuario);
+    if (meu) {
+      // Só as mensagens de áudio que ficaram mesmo no relato
+      const ficaram = new Set(((await listarAudiosDosRelatos([meu.id])).get(meu.id) ?? []).map((a) => a.id));
+      await gravarMensagens(meu.id, mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim()))));
     }
   }
 

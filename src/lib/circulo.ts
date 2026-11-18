@@ -75,8 +75,50 @@ export const posicaoMinima = (comFora: boolean): number => (comFora ? 0 : 1);
 /** As pontas do slider, da esquerda para a direita. */
 export const pontasDoSlider = (comFora: boolean): [string, string] => [comFora ? 'Fora do círculo' : FAIXAS[2]!.nome, FAIXAS[0]!.nome];
 
-/** Lê a posição que veio de um formulário (inteiro de 0 a 100), ou nada. */
-export const lerPosicao = (bruto: unknown): number | null => lerProximidade(bruto);
+/**
+ * "Fora do círculo" tem um trecho só dele, à esquerda da régua (acabamento, proposta A, escolha do Gui de
+ * 18/11/2026): no slider, as posições abaixo de 1 são todas fora, e o botão assenta no meio do trecho.
+ * O que se guarda não muda: fora continua sendo a posição 0.
+ */
+export const TRECHO_DE_FORA = 13;
+
+/** O menor valor do slider: o começo do trecho de fora, ou Conhecido onde fora não é opção. */
+export const minimoDoSlider = (comFora: boolean): number => (comFora ? -TRECHO_DE_FORA : 1);
+
+/** Onde o botão do slider fica para um valor guardado: o meio do trecho de fora, ou a posição. */
+export function lugarNoSlider(valor: number, comFora: boolean): number {
+  const posicao = posicaoDoSlider(valor);
+  if (posicao >= 1) return posicao;
+  return comFora ? -Math.floor(TRECHO_DE_FORA / 2) : 1;
+}
+
+/** A posição (de 0 a 100) de um lugar do slider: o trecho de fora inteiro é a posição 0. */
+export const posicaoDoLugar = (lugar: number): number => Math.min(Math.max(Math.round(lugar), 0), FORA_DO_CIRCULO);
+
+/** Um lugar do slider em porcentagem da barra, para o desenho. */
+export const porcentagemNoSlider = (lugar: number, comFora: boolean): number => {
+  const minimo = minimoDoSlider(comFora);
+  return Math.round(((lugar - minimo) / (FORA_DO_CIRCULO - minimo)) * 1000) / 10;
+};
+
+/**
+ * As faixas do slider, da esquerda para a direita, com o nome curto que vai embaixo de cada trecho e onde
+ * cada uma acaba (a marca de troca), em porcentagem da barra. O slider é livre: as marcas só dizem onde a
+ * faixa muda.
+ */
+export function faixasDoSlider(comFora: boolean): { nome: string; curto: string; largura: number; ate: number }[] {
+  const minimo = minimoDoSlider(comFora);
+  // Entre uma posição e a seguinte: fora | conhecido | próximo | muito próximo
+  const cortes = [...(comFora ? [0.5] : []), FORA_DO_CIRCULO - FAIXAS[2]!.de + 0.5, FORA_DO_CIRCULO - FAIXAS[1]!.de + 0.5, FORA_DO_CIRCULO];
+  const nomes = [...(comFora ? [{ nome: 'Fora do círculo', curto: 'Fora' }] : []), ...[...FAIXAS].reverse().map((f) => ({ nome: f.nome, curto: f.nome }))];
+  return nomes.map((n, i) => ({ ...n, largura: Math.round((cortes[i]! - (i === 0 ? minimo : cortes[i - 1]!)) * 10) / 10, ate: porcentagemNoSlider(cortes[i]!, comFora) }));
+}
+
+/** Lê o que o slider mandou: um inteiro do começo do trecho de fora a 100, já como posição (fora é 0). */
+export function lerPosicao(bruto: unknown): number | null {
+  const n = typeof bruto === 'number' ? bruto : typeof bruto === 'string' && /^-?\d{1,3}$/.test(bruto.trim()) ? Number(bruto) : Number.NaN;
+  return Number.isInteger(n) && n >= -TRECHO_DE_FORA && n <= FORA_DO_CIRCULO ? posicaoDoLugar(n) : null;
+}
 
 /**
  * O que um formulário com o slider pede: a posição de agora e a de quando a página abriu. Sem mexer no

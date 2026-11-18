@@ -4,6 +4,7 @@
 // de todo laço de quem está logado, que só ele vê. As contas, o texto das telas e as rotas de verdade sobre
 // o banco SQLite em memória.
 import { describe, expect, it, vi } from 'vitest';
+import { TRECHO_DE_FORA, faixasDoSlider, lugarNoSlider, minimoDoSlider, porcentagemNoSlider, posicaoDoLugar } from '../src/lib/circulo';
 import { FAIXAS, FORA_DO_CIRCULO, faixaDoValor, nomeDaProximidade, pontasDoSlider, posicaoDoSlider, posicaoMinima, proximidadeDoFormulario, valorDaPosicao } from '../src/lib/circulo';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 
@@ -60,7 +61,11 @@ describe('o slider vai do mais distante ao mais próximo', () => {
     expect(proximidadeDoFormulario('50', null)).toEqual({ mexeu: true, valor: 50 });
     expect(proximidadeDoFormulario('0', '50')).toEqual({ mexeu: true, valor: 100 });
     expect(proximidadeDoFormulario('0', '50', false)).toHaveProperty('erro');
-    for (const ruim of ['101', '-1', 'abc', '1.5']) expect(proximidadeDoFormulario(ruim, '50'), ruim).toHaveProperty('erro');
+    for (const ruim of ['101', '-14', 'abc', '1.5']) expect(proximidadeDoFormulario(ruim, '50'), ruim).toHaveProperty('erro');
+    // O trecho de fora inteiro é a posição 0: qualquer lugar dele manda "Fora do círculo", e só onde é opção
+    expect(proximidadeDoFormulario('-6', '50')).toEqual({ mexeu: true, valor: 100 });
+    expect(proximidadeDoFormulario('-6', '-6')).toEqual({ mexeu: false });
+    expect(proximidadeDoFormulario('-6', '50', false)).toHaveProperty('erro');
   });
 });
 
@@ -68,23 +73,56 @@ describe('o mesmo slider em todo lugar', () => {
   const cliente = ler('src/lib/cliente/circulo.ts');
   const campo = ler('src/components/formularios/CampoProximidade.astro');
 
-  it('no círculo, a ficha usa a posição do slider, com as pontas de fora e de muito próximo', () => {
-    expect(cliente).toMatch(/slider\.value = String\(posicaoDoSlider\(valor\)\)/);
-    expect(cliente).toMatch(/por\(botao, valorDaPosicao\(Number\(slider\.value\)\)\);/);
-    expect(cliente).toMatch(/pontasDoSlider\(true\)/);
-    expect(cliente).not.toMatch(/'Perto'/);
+  it('a régua com os nomes (proposta A, escolha do Gui de 18/11/2026): livre, com marcas onde a faixa muda', () => {
+    // Com fora: um trecho à parte, e o botão assenta no meio dele
+    expect(minimoDoSlider(true)).toBe(-TRECHO_DE_FORA);
+    expect(minimoDoSlider(false)).toBe(1);
+    expect(lugarNoSlider(100, true)).toBe(-6);
+    expect(lugarNoSlider(100, false)).toBe(1);
+    expect(lugarNoSlider(50, true)).toBe(50);
+    for (let lugar = -TRECHO_DE_FORA; lugar <= 0; lugar++) expect(posicaoDoLugar(lugar)).toBe(0);
+    // Os nomes, da esquerda para a direita, e cada marca no fim da faixa dela
+    const comFora = faixasDoSlider(true);
+    expect(comFora.map((f) => f.curto)).toEqual(['Fora', 'Conhecido', 'Próximo', 'Muito próximo']);
+    expect(faixasDoSlider(false).map((f) => f.nome)).toEqual(['Conhecido', 'Próximo', 'Muito próximo']);
+    for (const fora of [true, false]) {
+      const faixas = faixasDoSlider(fora);
+      // Em cada trecho, o lugar do meio dele tem o nome que está escrito embaixo
+      let de = minimoDoSlider(fora);
+      for (const f of faixas) {
+        const ate = de + f.largura;
+        const meio = Math.round((de + ate) / 2);
+        expect(nomeDaProximidade(valorDaPosicao(posicaoDoLugar(meio))), `${f.nome} ${meio}`).toBe(f.nome);
+        expect(f.ate).toBeCloseTo(porcentagemNoSlider(ate, fora), 0);
+        de = ate;
+      }
+      expect(faixas.at(-1)!.ate).toBe(100);
+    }
   });
 
-  it('nos formulários, o campo manda a posição e a de quando a página abriu, e diz a faixa ao leitor de tela', () => {
-    expect(campo).toMatch(/<input type="range" id=\{id\} name="posicao" min=\{posicaoMinima\(comFora\)\} max="100" step="1" value=\{posicao\} aria-valuetext=\{faixa\}/);
-    expect(campo).toMatch(/<input type="hidden" name="posicaoAntes" value=\{posicao\} \/>/);
-    expect(campo).toMatch(/const \[esquerda, direita\] = pontasDoSlider\(comFora\);/);
-    expect(ler('src/lib/cliente/proximidade.ts')).toMatch(/slider\.setAttribute\('aria-valuetext', nome\);/);
+  it('no círculo e nos formulários é a mesma peça, com um range de verdade por baixo', () => {
+    const peca = ler('src/components/visual/Proximidade.astro');
+    expect(peca).toMatch(/<input type="range" id=\{id\} name=\{nome\} min=\{minimoDoSlider\(comFora\)\} max="100" step="1" value=\{lugar\} aria-valuetext=\{faixa\}/);
+    // As pontas não têm mais texto: o nome de cada faixa fica embaixo do trecho dela
+    expect(peca).not.toMatch(/pontasDoSlider/);
+    expect(peca).toMatch(/<span data-faixa=\{f\.nome\} data-atual=/);
+    expect(campo).toMatch(/<Proximidade id=\{id\} valor=\{valor\} comFora=\{comFora\} rotulo=\{rotulo\} nome="posicao"/);
+    expect(campo).toMatch(/<input type="hidden" name="posicaoAntes" value=\{lugarNoSlider\(valor, comFora\)\} \/>/);
+    expect(cliente).toMatch(/criarProximidade\('proximidade-da-ficha', Number\(botao\.dataset\.valor\)\)/);
+    expect(cliente).toMatch(/por\(botao, valorDaPosicao\(posicaoDoLugar\(Number\(slider\.value\)\)\)\);/);
+    expect(cliente).not.toMatch(/'Perto'|pontasDoSlider/);
+    const script = ler('src/lib/cliente/proximidade.ts');
+    expect(script).toMatch(/slider\.setAttribute\('aria-valuetext', nome\);/);
+    // O preenchimento sai do preto: a cor viva da família da tela
+    const css = ler('src/visual/pecas.css');
+    expect(css).toMatch(/\.prox__cheio \{[^}]*background: var\(--vivo\);/);
+    expect(css).not.toMatch(/\.prox[^{]*\{[^}]*accent-color/);
+    expect(css).toMatch(/\.prox:has\(input:focus-visible\) \{\s*outline: 2px solid var\(--tinta\);/);
   });
 
   it('nenhum outro slider de proximidade no site: todo range passa pelas mesmas contas', () => {
     const comRange = arquivos('src').filter((a) => /\.(astro|ts)$/.test(a) && /type[=:]\s*["']range["']/.test(ler(a)));
-    for (const a of comRange) expect(['src/lib/cliente/circulo.ts', 'src/lib/cliente/proximidade.ts', 'src/components/formularios/CampoProximidade.astro', 'src/components/CampoRetrato.astro'], a).toContain(a);
+    for (const a of comRange) expect(['src/lib/cliente/proximidade.ts', 'src/components/visual/Proximidade.astro', 'src/components/CampoRetrato.astro'], a).toContain(a);
   });
 
   it('o laço do coração troca a escolha de faixa pelo slider, no cadastro guiado e no "Adicionar"', () => {

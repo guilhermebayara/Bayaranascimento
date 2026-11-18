@@ -1,14 +1,15 @@
 ---
 // A cor e o desenho de um tipo de momento, em /admin/tipos (resposta do Gui à pergunta 11 do PR #38,
 // 17/11/2026). A cor é escolhida numa grade de amostras da paleta do sistema, e o desenho, numa grade
-// dos rabiscos. Tudo é rádio de formulário comum: funciona sem script e pelo teclado (as setas andam
+// dos rabiscos, arrumados por assunto (decisão do Gui, 18/11/2026): cada assunto é um grupo com o
+// rótulo em mono colado na grade dele. Tudo é rádio de formulário comum: funciona sem script e pelo teclado (as setas andam
 // pela grade). A escolhida leva o tique e o nome em negrito, além da cor. Ao lado, a prévia mostra a
 // etiqueta e o cartão de memória sem foto; com script, ela acompanha a escolha na hora.
 import Etiqueta from '../visual/Etiqueta.astro';
 import IconeDoTipo from '../visual/IconeDoTipo.astro';
 import Polaroid from '../visual/Polaroid.astro';
 import { NOMES_DAS_CORES, PALETA, estiloDaCor } from '../../lib/visual';
-import { RABISCOS, rabisco } from '../../visual/rabiscos';
+import { rabisco, rabiscosPorAssunto } from '../../visual/rabiscos';
 
 interface Props {
   /** o que distingue este formulário dos outros da página (o id do tipo, ou "novo") */
@@ -48,16 +49,26 @@ const { chave, cor, icone, rotulo, emUso } = Astro.props;
     </fieldset>
     <fieldset class="rabiscos">
       <legend>Desenho</legend>
-      <div class="rabiscos__grade">
+      {/* Os grupos são só arrumação: os rádios têm todos o mesmo nome, e as setas andam de um grupo para o outro */}
+      <div class="rabiscos__assuntos">
         {
-          RABISCOS.map((r) => (
-            <label class="rabisco-a-escolher" title={r.nome}>
-              <input type="radio" name="icone" value={r.id} checked={r.id === icone} required data-escolha-icone data-nome={r.nome} />
-              <span class="rabisco-a-escolher__desenho" aria-hidden="true">
-                <IconeDoTipo rabisco={r.id} />
-              </span>
-              <span class="so-leitor">{r.nome}</span>
-            </label>
+          rabiscosPorAssunto().map((a) => (
+            <div class="rabiscos__assunto" role="group" aria-labelledby={`assunto-${chave}-${a.id}`}>
+              <p class="rabiscos__rotulo" id={`assunto-${chave}-${a.id}`}>
+                {a.nome}
+              </p>
+              <div class="rabiscos__grade">
+                {a.rabiscos.map((r) => (
+                  <label class="rabisco-a-escolher" title={r.nome}>
+                    <input type="radio" name="icone" value={r.id} checked={r.id === icone} required data-escolha-icone data-nome={r.nome} />
+                    <span class="rabisco-a-escolher__desenho" aria-hidden="true">
+                      <IconeDoTipo rabisco={r.id} />
+                    </span>
+                    <span class="so-leitor">{r.nome}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           ))
         }
       </div>

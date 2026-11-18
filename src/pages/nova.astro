@@ -1,5 +1,6 @@
 ---
-import Gravador from '../components/formularios/Gravador.astro';
+import Janela from '../components/conversa/Janela.astro';
+import { conversaDosRelatos } from '../lib/servidor/conversa';
 import { situacaoDaTranscricaoAgora } from '../lib/servidor/transcricao';
 import { comArtigo } from '../lib/servidor/conteudo';
 import Pagina from '../components/formularios/Pagina.astro';
@@ -62,10 +63,10 @@ const nucleosMarcados = memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usua
 // Pode ser o relato da própria pessoa ou o de alguém que não acessa o site, registrado por ela.
 const doRascunho = memoria && !publicada ? (await listarRelatos(usuario, memoria.id)).filter((r) => r.registradoPor === usuario.pessoa) : [];
 const meuRelato = doRascunho.find((r) => r.por === usuario.pessoa) ?? doRascunho[0];
-// Os áudios do relato do rascunho, para continuar de onde parou
-const audiosDoRascunho = meuRelato
-  ? ((await listarAudiosDosRelatos([meuRelato.id])).get(meuRelato.id) ?? []).map((a) => ({ id: a.id, src: `/audios/${a.chave}`, duracao: a.duracao, transcricao: a.transcricao }))
-  : [];
+// As mensagens do relato do rascunho, para continuar de onde parou (o relato como conversa). As fotos da
+// memória nova têm a etapa delas: aqui só texto e áudio.
+const nomeNoRelato = (id: string) => integrantes.find((i) => i.id === id)?.nome ?? 'Alguém';
+const mensagensDoRascunho = meuRelato ? ((await conversaDosRelatos([meuRelato], [], nomeNoRelato)).get(meuRelato.id) ?? []) : [];
 const capitulosReunidos = (await listarCapitulos(usuario)).filter((c) => c.modo === 'reunido');
 // Tipos de momento: com mais de oito, ficam à vista os seis mais usados nas memórias que a pessoa vê
 // (na ordem da lista dos admins), e o resto em "Ver mais tipos". Com poucos, todos à vista.
@@ -279,15 +280,10 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         <section data-etapa="Relato" data-opcional>
         <fieldset>
             <legend>Como foi?</legend>
-            {/* Áudios já na memória nova: ficam soltos até a memória ser salva (ver api/audios.ts) */}
-            <Gravador transcricaoAutomatica={transcricaoAutomatica}>
-              <script type="application/json" data-audios-do-rascunho set:html={JSON.stringify(audiosDoRascunho).replace(/</g, '\\u003c')} />
-            </Gravador>
-            <label class="campo">
-              <span>O relato escrito</span>
-              <textarea name="relato" rows="8" maxlength="20000" placeholder="Escreva como você lembra. Outras pessoas da família vão poder contar a versão delas depois.">{meuRelato?.texto ?? ''}</textarea>
-            </label>
-            <p class="dica">Só você vai poder alterar este relato.</p>
+            {/* O relato como conversa (escolha do Gui depois da sessão I): a mesma janela de "Escrever meu
+                relato". As mensagens vão junto com a memória; os áudios ficam soltos até ela ser salva (ver
+                api/audios.ts). Sem script, o campo é o texto do relato. */}
+            <Janela modo="formulario" memoria={memoria?.id ?? ''} mensagens={mensagensDoRascunho} campo="relato" transcricaoAutomatica={transcricaoAutomatica} />
             {/* Quase sempre quem conta é quem escreve: "Quem está contando" deixou de ser o primeiro
                 campo e fica numa linha recolhida, depois do texto, que abre a busca (resposta do Gui à
                 P137 do QA de design, 17/11/2026). Fechar a linha volta para "Eu". */}
@@ -467,7 +463,8 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
   import { prepararFoto } from '../lib/cliente/fotos';
   import { buscaDePessoa } from '../lib/cliente/busca-pessoa';
   import { ligarQuemEstava } from '../lib/cliente/quem-estava';
-  import { ligarAudios } from '../lib/cliente/audios';
+  import { ligarConversa } from '../lib/cliente/conversa';
+  import { textoDasMensagens } from '../lib/conversa';
 
   const form = document.querySelector<HTMLFormElement>('[data-formulario-memoria]');
   if (form) {
@@ -492,9 +489,9 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
     const botoes = [...form.querySelectorAll<HTMLButtonElement>('[data-salvar]')];
     const idExistente = form.dataset.id || undefined;
     // Áudios do relato: a memória pode ainda não existir; o áudio fica solto até ela ser salva
-    const blocoDeAudios = form.querySelector<HTMLElement>('[data-audios]');
-    const audios = blocoDeAudios ? ligarAudios(blocoDeAudios, idExistente ?? '', () => form.dispatchEvent(new Event('change'))) : undefined;
-    audios?.carregar(JSON.parse(blocoDeAudios?.querySelector('[data-audios-do-rascunho]')?.textContent ?? '[]'));
+    // O relato como conversa: as mensagens vão junto com a memória
+    const janelaDoRelato = form.querySelector<HTMLElement>('[data-conversa]');
+    const conversa = janelaDoRelato ? ligarConversa(janelaDoRelato, () => form.dispatchEvent(new Event('change'))) : undefined;
     const RASCUNHO_LOCAL = 'rascunho-nova-memoria';
     let proximaFoto = 0;
     const campoDe = (nome: string) => form.elements.namedItem(nome) as HTMLInputElement;
@@ -527,7 +524,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         lugar: String(d.get('lugar') ?? '').trim(),
         pessoas,
         fotos: form.querySelectorAll('.foto-enviada').length,
-        relato: Boolean(String(d.get('relato') ?? '').trim()) || Boolean(audios?.lista().length),
+        relato: Boolean(String(d.get('relato') ?? '').trim()) || Boolean(conversa?.mensagens().length),
         capitulos: [...form.querySelectorAll<HTMLInputElement>('input[name="capitulos"]:checked')].map(rotuloDe),
         soFamilias: visibilidade === 'nucleos' ? familias : null,
       };
@@ -990,7 +987,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 
       const itens = [...listaFotos.querySelectorAll<HTMLElement>('.foto-enviada')];
       if (itens.some((i) => i.dataset.estado === 'enviando')) return avisar('Espere as fotos terminarem de enviar.', 'erro');
-      if (audios?.ocupado()) return avisar('Espere o áudio terminar de gravar e de enviar.', 'erro');
+      if (conversa?.ocupado()) return avisar('Espere o áudio ou a foto terminar de gravar e de enviar.', 'erro');
       if (itens.some((i) => i.dataset.estado === 'erro')) return avisar('Uma foto não foi enviada. Remova ou escolha de novo.', 'erro');
 
       const novas = [...novasPessoas.querySelectorAll<HTMLElement>('[data-nova-pessoa]')].map((linha) => ({
@@ -999,7 +996,10 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       }));
       if (novas.some((n) => !n.nome)) return avisar('Escreva o nome da pessoa que você adicionou, ou remova a linha.', 'erro');
 
-      const relato = String(dados.get('relato') ?? '');
+      // O que ficou escrito na caixa do relato vira a última mensagem
+      conversa?.enviarOQueFicou();
+      const mensagensDoRelato = conversa?.mensagens() ?? [];
+      const relato = conversa ? textoDasMensagens(mensagensDoRelato) : String(dados.get('relato') ?? '');
       const pedido = {
         id: idExistente,
         titulo,
@@ -1023,8 +1023,13 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
           principal: item.querySelector<HTMLInputElement>('input[type="radio"]')?.checked ?? false,
         })),
         relato:
-          relatoPor && (relato.trim() || audios?.lista().length)
-            ? { por: relatoPor.value, texto: relato, ...(audios ? { audios: audios.lista() } : {}) }
+          relatoPor && (relato.trim() || mensagensDoRelato.length)
+            ? {
+                por: relatoPor.value,
+                texto: relato,
+                audios: mensagensDoRelato.filter((m) => m.tipo === 'audio').map((m) => ({ id: m.audioId!, ...(m.transcricao ? { transcricao: m.transcricao } : {}) })),
+                mensagens: mensagensDoRelato,
+              }
             : undefined,
       };
 
