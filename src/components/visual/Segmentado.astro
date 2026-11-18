@@ -1,22 +1,32 @@
 ---
 // O seletor segmentado (decisão do Gui, 17/11/2026, "Componentes do sistema"): uma escolha só entre
-// poucas, no estilo do controle segmentado do iOS. Cada opção é um link, e por isso funciona sem
-// script: a escolha de agora fica marcada e as outras levam à página que mostra aquela opção.
+// poucas, no estilo do controle segmentado do iOS. Só entra em "Quem pode ver?" da nova memória; outro
+// uso depende de decisão do Gui.
+//
+// Cada opção é um rádio de formulário: a escolha vai junto com o envio, funciona sem script, e as
+// setas do teclado passam de uma opção à outra, como em todo grupo de rádios.
 interface Props {
-  /** o que está sendo escolhido, para o leitor de tela: "Forma de ver as pessoas" */
+  /** o que está sendo escolhido, para o leitor de tela: "Quem pode ver" */
   rotulo: string;
-  opcoes: { href: string; texto: string; atual?: boolean }[];
+  /** o nome do campo do formulário */
+  nome: string;
+  /** trava a escolha: quem não pode mudar vê o valor de agora */
+  travado?: boolean;
+  /** id do texto que explica a escolha, lido junto do grupo */
+  explicacao?: string;
+  opcoes: { valor: string; texto: string; atual?: boolean }[];
 }
 
-const { rotulo, opcoes } = Astro.props;
+const { rotulo, nome, travado = false, explicacao, opcoes } = Astro.props;
 ---
 
-<nav class="segmentado" aria-label={rotulo}>
+<div class="segmentado" role="radiogroup" aria-label={rotulo} aria-describedby={explicacao}>
   {
     opcoes.map((o) => (
-      <a href={o.href} aria-current={o.atual ? 'true' : undefined}>
-        {o.texto}
-      </a>
+      <label>
+        <input type="radio" name={nome} value={o.valor} checked={o.atual} disabled={travado} />
+        <span>{o.texto}</span>
+      </label>
     ))
   }
-</nav>
+</div>

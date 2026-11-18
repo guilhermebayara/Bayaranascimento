@@ -259,20 +259,20 @@ describe('conceito', () => {
     // famílias quebravam a linha
     const controles = tela('explorar/Controles.astro');
     const css = ler('telas/linha.css');
-    for (const nome of ['Forma de ver', 'Família', 'Filtros']) expect(controles).toMatch(new RegExp(`rotulo[^>]*>\\s*${nome}\\s*<`));
+    for (const nome of ['Forma de ver', 'Famílias']) expect(controles).toMatch(new RegExp(`class="so-leitor"[^>]*>\\s*${nome}\\s*<`));
+    expect(controles).toMatch(/<span>Filtros<\/span>/);
+    expect(controles).toMatch(/<span class="rotulo suave" id="controle-ordem">Ordem<\/span>/);
     expect(tela('explorar/Linha.astro')).toMatch(/rotulo[^>]*>\s*Ir para a década\s*</);
     // "Tudo" passou a se chamar "Família completa" (do Gui, 16/11/2026)
     // O texto fica dentro da peça que reserva a largura do negrito (P37, resposta do Gui de 17/11/2026)
     expect(controles).toMatch(/aria-current=\{filtros\.familias\.length === 0 \? 'page' : undefined\}>\s*<span[^>]*>Família completa<\/span>\s*</);
-    // O formulário abre dentro do próprio controle: nenhuma regra muda o lugar dele quando abre
-    expect(css).not.toMatch(/\.filtros\[open\]\s*\{[^}]*grid-(column|row|area)/);
     // A faixa de décadas leva a cor da família, diluída no papel: o pastel cheio pesou
     expect(css).toMatch(/\.decadas\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--pastel\) \d+%, var\(--papel\)\)/);
-    // Fechado, o controle dos filtros diz o que está ligado e a ordem
-    expect(controles).toContain('data-filtro-atual');
-    // Os filtros e a ordem são um formulário comum e as outras escolhas são links: tudo funciona
-    // sem script e fica no endereço
-    expect(controles).toMatch(/<form class="filtros__form" method="get" action="\/explorar"/);
+    // Os filtros são um formulário comum e as outras escolhas, a ordem inclusive, são links: tudo
+    // funciona sem script e fica no endereço
+    expect(controles).toMatch(/<form class="filtros__cartao" method="get" action="\/explorar"/);
+    expect(controles).toMatch(/<a href=\{para\(\{ \.\.\.filtros, ordem: o \}\)\}/);
+    expect(controles).not.toMatch(/<select/);
     expect(controles).not.toMatch(/<button type="button"/);
   });
 
@@ -444,7 +444,7 @@ describe('conceito', () => {
   it('no mural, quem está vendo escolhe o tamanho das fotos, e a escolha fica no endereço', () => {
     // Decisão do Gui, 17/11/2026
     const controles = tela('explorar/Controles.astro');
-    expect(controles).toMatch(/forma === 'mural' && \(\s*<div class="controle">\s*<p class="controle__nome rotulo suave" id="controle-tamanho">\s*Fotos\s*</);
+    expect(controles).toMatch(/forma === 'mural' && \(\s*<div class="controles__tamanho">\s*<p class="rotulo suave" id="controle-tamanho">\s*Fotos\s*</);
     expect(controles).toMatch(/enderecoDoExplorar\(filtros, forma, tamanhoNoEndereco\(t\)\)/);
     // O tamanho acompanha a troca de família e o formulário dos filtros
     expect(controles).toMatch(/<input type="hidden" name="tamanho"/);
@@ -625,23 +625,6 @@ describe('grupo formularios', () => {
     expect(pagina).toContain('{recadoErro && <Recado erro>{recadoErro}</Recado>}');
   });
 
-  it('a frase da etapa "Quando e onde": a lacuna da data abre o controle de data flexível, e sem script ele já vem aberto', () => {
-    const nova = fonte('pages/nova.astro');
-    // A lacuna é um botão escondido até o script chegar, e aponta para o controle
-    expect(nova).toMatch(/class="frase__data" role="button" tabindex="0" data-frase-data aria-expanded="true" aria-controls="controle-da-data" hidden/);
-    expect(nova).toMatch(/<div id="controle-da-data" data-controle-da-data>\s*<CampoData /);
-    // O controle é o de sempre: nada de campo de digitar a data nem do seletor do aparelho como único caminho
-    expect(nova).toContain("lacunaDaData.textContent = dataNaFrase(");
-    // Com a data informada começa fechado; vazia, aberto; e um erro dentro dele o abre
-    expect(nova).toContain("abrir(!valor('ano'));");
-    expect(nova).toContain("controleDaData.addEventListener('invalid', () => abrir(true), true);");
-    // Responde ao teclado como botão
-    expect(nova).toMatch(/if \(evento\.key !== 'Enter' && evento\.key !== ' '\) return;/);
-    // Sem script, a página esconde a lacuna e o controle continua aberto
-    expect(fonte('Pagina.astro')).toMatch(/<noscript>[\s\S]*\[data-frase-data\][\s\S]*display: none/);
-    // O lugar é texto livre, dentro da frase
-    expect(nova).toMatch(/<input type="text" name="lugar"[^>]*data-frase-lugar/);
-  });
 
   it('o que o script esconde fica escondido, e o foco tirado de um campo ganha outro sinal', () => {
     const css = readFileSync(new URL('../src/visual/telas/formulario.css', import.meta.url), 'utf8');
@@ -661,7 +644,7 @@ describe('grupo formularios', () => {
       const naTela = [...texto.matchAll(/>([^<>{}]*)</g)].map((m) => m[1]).join(' ');
       expect(naTela, fim).not.toMatch(/n[úu]cleo/i);
     }
-    expect(fonte('pages/nova.astro')).toContain('Só quem é das famílias marcadas abaixo');
+    expect(fonte('pages/nova.astro')).toContain('Só quem é das famílias escolhidas abaixo');
     expect(fonte('pages/nova.astro')).toContain('De quais famílias é esta memória?');
     expect(fonte('FichaDoCapitulo.astro')).toContain('Só quem é das famílias marcadas abaixo');
     // A segunda metade do grupo: a ficha da pessoa, o histórico e o espelho
@@ -767,43 +750,14 @@ describe('ajustes: lista, formas de ver da pessoa, quem aparece e o link do tít
   });
 });
 
-describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo', () => {
+describe('ajustes: a zona de perigo', () => {
   const fonte = (caminho: string) => readFileSync(new URL(`../src/${caminho}`, import.meta.url), 'utf8');
   const nova = fonte('pages/nova.astro');
   const css = ler('telas/formulario.css');
 
-  it('a frase da abertura tem as três lacunas, e cada uma leva à etapa certa', () => {
-    // Resposta do Gui à pergunta 1 do PR do grupo "formularios": "com ___" leva ao "Quem estava?"
-    for (const lacuna of ['data', 'lugar', 'pessoas']) expect(nova).toMatch(new RegExp(`role="button" tabindex="0" data-abertura="${lacuna}"`));
-    expect(nova).toMatch(/indiceDaEtapa\(pessoas \? '\[data-quem-estava\]' : '\[data-frase\]'\)/);
-    // As sete etapas e a ordem não mudam
-    const etapas = [...nova.matchAll(/data-etapa="([^"]+)"/g)].map((m) => m[1]);
-    expect(etapas).toEqual(['O que aconteceu', 'Quando e onde', 'Quem estava', 'Fotos', 'Relato', 'Capítulo e temas', 'Quem vê']);
-  });
 
-  it('sem script, a frase da abertura e o resumo ao lado não aparecem: não prometem o que não fazem', () => {
-    expect(nova).toMatch(/data-frase-abertura hidden>/);
-    expect(nova).toMatch(/<aside class="ao-lado" data-ao-lado aria-labelledby="ao-lado-titulo" hidden>/);
-    expect(fonte('components/formularios/Pagina.astro')).toMatch(/\[data-frase-abertura\], \[data-ao-lado\] \{ display: none !important; \}/);
-  });
 
-  it('cada lacuna da abertura tem 44 px de toque e foco visível', () => {
-    expect(css).toMatch(/\.frase--abertura \.frase__data\s*\{\s*padding-block:\s*calc\(\(var\(--toque\) - 1\.2em\) \/ 2\);/);
-    expect(css).toMatch(/\.frase--abertura \.frase__data:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--tinta\);/);
-  });
 
-  it('o resumo ao lado só existe no computador, não anuncia cada tecla e não baixa a foto no celular', () => {
-    // Fora de 62rem, nada: a regra geral esconde, e só a media query de 62rem mostra
-    expect(css).toMatch(/\.pagina-de-formulario \.ao-lado\s*\{\s*display:\s*none;\s*\}/);
-    const aside = nova.slice(nova.indexOf('<aside class="ao-lado"'), nova.indexOf('</aside>'));
-    expect(aside).not.toMatch(/aria-live|role="status"|aria-hidden/);
-    expect(aside).toMatch(/soOnde=\{ONDE_HA_LADO\}/);
-    expect(nova).toMatch(/const ONDE_HA_LADO = '\(min-width: 62rem\)';/);
-    expect(nova).toMatch(/aoLado\.hidden = !haLado\.matches;\s*if \(!haLado\.matches\) return;/);
-    // Parado à vista só onde há mouse, e nunca com position: fixed
-    expect(css).toMatch(/@media \(min-width: 62rem\) and \(min-height: 56rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.pagina-de-formulario \.formulario\.com-etapas > \.ao-lado:not\(\[hidden\]\),\s*\.pagina-de-formulario > \.ao-lado--fixo \{\s*position: sticky;/);
-    expect(css).not.toMatch(/position\s*:\s*fixed/);
-  });
 
   it('a zona de perigo fica no fim das telas de editar, fora do formulário que salva, e só para quem pode', () => {
     // Memória: depois do fim do formulário, e só com a permissão de excluir de sempre

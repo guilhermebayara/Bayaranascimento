@@ -318,6 +318,8 @@ export function ligarTroca() {
       evento.preventDefault();
       return trocarTamanho(link);
     }
+    // Num seletor do sistema (a ordem), a escolha fecha o seletor, e o foco volta para ele
+    const menu = link.closest<HTMLDetailsElement>('details[data-menu]');
     const endereco = new URL(link.href);
     endereco.searchParams.delete('tamanho');
     // A âncora do link é de quem está sem script: aqui a rolagem já fica no lugar
@@ -327,7 +329,25 @@ export function ligarTroca() {
     // A mesma opção, no mesmo controle: é o nome dela que não muda de uma página para a outra
     const controle = link.closest('nav')?.getAttribute('aria-labelledby') ?? '';
     const opcao = link.dataset.opcao ?? '';
+    if (menu) {
+      menu.open = false;
+      return trocar(endereco, { empurrar: true, foco: '.controles details[data-menu] > summary' });
+    }
     trocar(endereco, { empurrar: true, foco: `.controles nav[aria-labelledby="${CSS.escape(controle)}"] a[data-opcao="${CSS.escape(opcao)}"]` });
+  });
+
+  // Os seletores do sistema (a ordem) fecham com o Esc, que devolve o foco a eles, e com o toque fora
+  document.addEventListener('keydown', (evento) => {
+    if (evento.key !== 'Escape') return;
+    const aberto = evento.target instanceof Element ? evento.target.closest<HTMLDetailsElement>(`${REGIAO} details[data-menu][open]`) : null;
+    if (!aberto) return;
+    aberto.open = false;
+    aberto.querySelector<HTMLElement>('summary')?.focus();
+  });
+  document.addEventListener('pointerdown', (evento) => {
+    for (const aberto of document.querySelectorAll<HTMLDetailsElement>(`${REGIAO} details[data-menu][open]`)) {
+      if (!(evento.target instanceof Node && aberto.contains(evento.target))) aberto.open = false;
+    }
   });
 
   // Os filtros valem na hora, a cada escolha, com o painel aberto e sem sair do lugar. O botão

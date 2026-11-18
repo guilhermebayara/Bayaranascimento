@@ -88,12 +88,12 @@ describe('formulários em etapas', () => {
     expect(relato).toMatch(/opcoes\[0\]\.publicado \? 'Salvar alterações' : 'Publicar relato'/);
     expect(relato).toMatch(/data-salvar="rascunho" hidden=\{opcoes\[0\]\.publicado\}/);
   });
-  it('o recado de rascunho salvo fica no alto da página', () => {
-    expect(ler('src/pages/nova.astro')).toMatch(/\.pagina-de-formulario__abre'\)\?\.before\(recado\)/);
+  it('o recado de rascunho salvo fica no alto da coluna da pergunta', () => {
+    expect(ler('src/pages/nova.astro')).toContain('form.prepend(recado);');
   });
-  it('o resumo ao lado só fica parado em janela alta o bastante', () => {
+  it('o resumo ao lado do relato só fica parado em janela alta o bastante', () => {
     const css = ler('src/visual/telas/formulario.css');
-    const consultas = [...css.matchAll(/@media ([^{]+)\{\s*\.pagina-de-formulario \.formulario\.com-etapas > \.ao-lado:not\(\[hidden\]\),/g)].map((m) => m[1]);
+    const consultas = [...css.matchAll(/@media ([^{]+)\{\s*\.pagina-de-formulario > \.ao-lado--fixo \{/g)].map((m) => m[1]);
     expect(consultas.length).toBe(1);
     expect(consultas[0]).toMatch(/min-height/);
   });

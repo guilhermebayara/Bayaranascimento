@@ -25,8 +25,17 @@ export function enterAvanca(
   return atual < total - 1;
 }
 
+export interface OpcoesDasEtapas {
+  /**
+   * Quem faz o papel da trilha: sem a trilha numerada, o formulário mostra o caminho de outro jeito
+   * (a nova memória, em que a frase é a trilha) e este elemento é o alto para onde a página rola a
+   * cada etapa. A contagem ("Etapa 2 de 7") fica com quem usa, pelo `aoEntrar`.
+   */
+  semTrilha?: HTMLElement;
+}
+
 /** `inicial` abre o formulário numa etapa que não a primeira: a volta depois de "Salvar rascunho". */
-export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, secao: HTMLElement) => void, inicial = 0): Etapas | undefined {
+export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, secao: HTMLElement) => void, inicial = 0, opcoes: OpcoesDasEtapas = {}): Etapas | undefined {
   const secoes = [...form.querySelectorAll<HTMLElement>('[data-etapa]')];
   if (secoes.length < 2) return undefined;
   let atual = Math.max(0, Math.min(secoes.length - 1, Math.trunc(inicial) || 0));
@@ -47,7 +56,7 @@ export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, seca
   });
   const contagem = document.createElement('p');
   contagem.className = 'etapas__contagem';
-  form.prepend(trilha, contagem);
+  if (!opcoes.semTrilha) form.prepend(trilha, contagem);
   const limparErro = (evento: Event) => {
     const el = evento.target as HTMLInputElement;
     if (!el.name) return;
@@ -123,7 +132,7 @@ export function montarEtapas(form: HTMLElement, aoEntrar?: (indice: number, seca
     if (foco) {
       // Com movimento reduzido, a página vai direto para a trilha, sem rolar animada
       const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      trilha.scrollIntoView({ block: 'start', behavior: reduzido ? 'auto' : 'smooth' });
+      (opcoes.semTrilha ?? trilha).scrollIntoView({ block: 'start', behavior: reduzido ? 'auto' : 'smooth' });
       const titulo = secoes[atual].querySelector<HTMLElement>('legend, h2');
       titulo?.setAttribute('tabindex', '-1');
       titulo?.focus({ preventScroll: true });

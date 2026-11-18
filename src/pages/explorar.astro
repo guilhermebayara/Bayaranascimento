@@ -16,7 +16,7 @@ import Linha from '../components/explorar/Linha.astro';
 import Lista from '../components/explorar/Lista.astro';
 import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
-import { SEM_FILTRO, TEMPOS_DE_PASSAR, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, mostraRascunho, movimentoNoEndereco, passarNoEndereco, resumoDosFiltros, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo, vizinhasNaLista, type Passar } from '../lib/explorar';
+import { SEM_FILTRO, TEMPOS_DE_PASSAR, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, mostraRascunho, movimentoNoEndereco, passarNoEndereco, filtrosLigados, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo, vizinhasNaLista, type Passar } from '../lib/explorar';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
@@ -84,7 +84,7 @@ const pessoas = integrantes
   .filter((i) => presentes.has(i.id))
   .map((i) => ({ id: i.id, nome: i.apelido ?? i.nome }))
   .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-const resumo = resumoDosFiltros(filtros, {
+const ligados = filtrosLigados(filtros, {
   tipo: (id) => tipos.find((t) => t.id === id)?.rotulo,
   pessoa: nomeDe,
   capitulo: (id) => capitulos.find((c) => c.id === id)?.titulo,
@@ -152,7 +152,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
             capitulos={capitulos.map((c) => ({ id: c.id, nome: c.titulo }))}
             temas={temas}
             quantas={memorias.length}
-            resumo={resumo}
+            ligados={ligados}
             comDecadas={resultado.trilhos && new Set(memorias.map((m) => decadaDe(m.ano))).size > 1}
           />
         </header>
@@ -174,7 +174,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
             capitulos={capitulos.map((c) => ({ id: c.id, nome: c.titulo }))}
             temas={temas}
             quantas={memorias.length}
-            resumo={resumo}
+            ligados={ligados}
             tamanho={tamanho}
           />
         </header>
@@ -213,7 +213,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
             capitulos={capitulos.map((c) => ({ id: c.id, nome: c.titulo }))}
             temas={temas}
             quantas={memorias.length}
-            resumo={resumo}
+            ligados={ligados}
           />
         </header>
         {memorias.length > 0 ? (

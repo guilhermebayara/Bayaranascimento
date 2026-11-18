@@ -166,40 +166,6 @@
   text-decoration: none;
 }
 
-/* Os filtros e a ordem: fechado, o controle diz o que está ligado; aberto, o formulário aparece logo
-   abaixo dele, no mesmo lugar, empurrando a página. O controle não muda de lugar ao abrir. */
-.filtros summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6em;
-  min-height: var(--toque);
-  list-style: none;
-  cursor: pointer;
-  font-size: var(--t-pequeno);
-  font-weight: 600;
-}
-.filtros summary::-webkit-details-marker {
-  display: none;
-}
-.filtros summary span {
-  text-wrap: balance;
-}
-/* O sinal de mais vira xis quando a lista abre, como no menu */
-.filtros summary::after {
-  content: '';
-  flex: none;
-  width: 0.7em;
-  height: 0.7em;
-  background:
-    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
-    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
-  transition: rotate var(--tempo-medio) var(--curva);
-}
-.filtros[open] > summary::after,
-.filtros details[open] > summary::after {
-  rotate: 45deg;
-}
-
 /* A barra de décadas fica parada no alto, como na linha do tempo de hoje */
 .linha {
   --barra: 2.75rem;

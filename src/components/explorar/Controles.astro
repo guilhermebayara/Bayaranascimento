@@ -1,14 +1,18 @@
 ---
-// Os controles do Explorar (docs/decisoes.md, "Explorar"): a forma de ver, a família e, num lugar
-// só, os filtros e a ordem. Cada controle tem nome e lugar fixo, um embaixo do outro, e não sai do
-// lugar ao abrir (pedido do Gui, 16/11/2026). Tudo é link ou formulário comum: funciona sem script,
-// e o que foi escolhido fica no endereço, para guardar ou mandar.
+// Os controles do Explorar, proposta A do conceito da sessão D, "cada coisa no seu lugar" (decisão
+// do Gui, 18/11/2026; docs/decisoes.md, "Explorar"). Três coisas relacionadas e distintas, cada uma
+// com a sua cara e o seu lugar:
 //
-// Respostas do Gui ao QA de design de 17/11/2026: "Forma de ver" tem só as três formas que trocam no
-// lugar, e "Modo TV" e "Me mostre uma memória" são saídas, ao lado, com seta (P34). No celular, as
-// opções de cada controle ficam numa linha só, que rola para o lado (P32). Toda opção reserva a
-// largura do negrito, para nenhuma mudar de lugar ao ser marcada (P37). O período é só "Do ano" e
-// "Até o ano" (P35), e o fim do formulário leva ao resultado (P33).
+// - as famílias, em pílula, logo abaixo do nome do acervo: é de quem são as memórias;
+// - as formas de ver, em abas coladas no conteúdo, com a conta das memórias na mesma linha: mudam o
+//   formato do que vem embaixo. "Modo TV" e "Me mostre uma memória" são saídas, ao lado, com seta;
+// - "Filtros", uma ferramenta só: fechada diz quantos estão ligados, e cada filtro ligado aparece
+//   embaixo como ficha que se desliga com um toque. Aberta, é um cartão, com os grupos em linhas
+//   que abrem no lugar. A ordem fica à parte, ao lado, num seletor desenhado no sistema.
+//
+// Tudo é link ou formulário comum: funciona sem script, e o que foi escolhido fica no endereço. Com
+// script, a troca acontece sem recarregar (src/lib/cliente/explorar-troca.ts). A ordem dos <details>
+// é a mesma nas três formas de ver: a troca copia quais estavam abertos pela posição.
 import IconeDoTipo from '../visual/IconeDoTipo.astro';
 import {
   FORMAS_NO_LUGAR,
@@ -47,15 +51,15 @@ interface Props {
   temas: Opcao[];
   /** quantas memórias passam nos filtros, na forma de ver em uso */
   quantas: number;
-  /** os filtros ligados, já escritos (resumoDosFiltros) */
-  resumo: string[];
+  /** os filtros ligados, um por ficha, com os filtros sem ele (filtrosLigados) */
+  ligados: { texto: string; sem: Filtros }[];
   /** a faixa de décadas vem logo abaixo: o nome dela, no celular, fica aqui */
   comDecadas?: boolean;
   /** no mural: o tamanho das fotos em uso */
   tamanho?: Tamanho;
 }
 
-const { filtros, forma, nucleos, tipos, pessoas, capitulos, temas, quantas, resumo, comDecadas = false, tamanho = TAMANHO_PADRAO } = Astro.props;
+const { filtros, forma, nucleos, tipos, pessoas, capitulos, temas, quantas, ligados, comDecadas = false, tamanho = TAMANHO_PADRAO } = Astro.props;
 const verOResultado = acaoDeVerOResultado(quantas);
 // O período tem um jeito só de ser dito: de um ano a outro. O endereço que chega com uma década
 // (um link antigo) aparece nos dois campos, e a escolha seguinte já sai como intervalo.
@@ -63,23 +67,67 @@ const doAno = filtros.de ?? filtros.decada;
 const ateOAno = filtros.ate ?? (filtros.decada === null ? null : filtros.decada + 9);
 // O tamanho das fotos é do mural: acompanha os links e o formulário enquanto se está nele
 const doMural = forma === 'mural' ? tamanhoNoEndereco(tamanho) : {};
+const para = (f: Filtros) => enderecoDoExplorar(f, forma, doMural);
 // A família aceita mais de uma escolha: cada toque liga ou desliga só aquela
 const ordemDasFamilias = nucleos.map((n) => n.id);
 const filtrando = temFiltro({ ...filtros, familias: [] });
-const semFiltros: Filtros = { ...SEM_FILTRO, familias: filtros.familias };
-// Os grupos longos ficam recolhidos, e abrem sozinhos quando têm algo marcado
+// Limpar tira os filtros, e deixa a família e a ordem, que têm os controles deles
+const semFiltros: Filtros = { ...SEM_FILTRO, familias: filtros.familias, ordem: filtros.ordem };
+const nome = (lista: Opcao[], id: string) => lista.find((o) => o.id === id)?.nome ?? id;
+const resumoDe = (lista: Opcao[], ids: string[], vazio: string) => (ids.length === 0 ? vazio : ids.length <= 2 ? ids.map((id) => nome(lista, id)).join(' e ') : `${ids.length} marcados`);
+const periodo = doAno !== null && ateOAno !== null ? (doAno === ateOAno ? `${doAno}` : `de ${doAno} a ${ateOAno}`) : doAno !== null ? `de ${doAno} em diante` : ateOAno !== null ? `até ${ateOAno}` : null;
+// Os grupos que abrem no lugar: o nome, o que está marcado (escrito) e as opções
 const grupos = [
-  { nome: 'Quem estava junto', campo: 'pessoa', opcoes: pessoas, marcados: filtros.pessoas, dica: 'A memória precisa ter todas as pessoas marcadas.' },
-  { nome: 'Capítulo', campo: 'capitulo', opcoes: capitulos, marcados: filtros.capitulos, dica: null },
-  { nome: 'Tema', campo: 'tema', opcoes: temas, marcados: filtros.temas, dica: null },
-].filter((g) => g.opcoes.length > 0);
+  { nome: 'Tipo de momento', campo: 'tipo', opcoes: tipos, marcados: filtros.tipos, resumo: resumoDe(tipos, filtros.tipos, 'Qualquer um'), dica: null, icone: true },
+  { nome: 'Quem estava junto', campo: 'pessoa', opcoes: pessoas, marcados: filtros.pessoas, resumo: resumoDe(pessoas, filtros.pessoas, 'Qualquer pessoa'), dica: 'A memória precisa ter todas as pessoas marcadas.', icone: false },
+  { nome: 'Capítulo', campo: 'capitulo', opcoes: capitulos, marcados: filtros.capitulos, resumo: resumoDe(capitulos, filtros.capitulos, 'Qualquer um'), dica: null, icone: false },
+  { nome: 'Tema', campo: 'tema', opcoes: temas, marcados: filtros.temas, resumo: resumoDe(temas, filtros.temas, 'Qualquer um'), dica: null, icone: false },
+].filter((g) => (g.campo === 'tipo' ? g.opcoes.length > 1 : g.opcoes.length > 0));
+// O que liga com um toque: o que a memória tem e os relatos de quem está olhando
+const rapidos = [
+  { campo: 'foto', texto: 'com foto', marcado: filtros.comFoto },
+  { campo: 'audio', texto: 'com áudio', marcado: filtros.comAudio },
+  { campo: 'contou', texto: 'você já contou', marcado: filtros.contou },
+  { campo: 'falta', texto: 'falta o seu relato', marcado: filtros.falta },
+];
 ---
 
 <div class="controles">
-  <div class="controle">
-    <p class="controle__nome rotulo suave" id="controle-forma">Forma de ver</p>
+  {/* --- As famílias, em pílula, logo abaixo do nome do acervo --------------------------------- */}
+  {
+    nucleos.length > 0 && (
+      <div class="controles__familias">
+        <p class="so-leitor" id="controle-familia">
+          Famílias
+        </p>
+        {/* Cada etiqueta acende na cor da família quando está marcada (decisão do Gui, 17/11/2026).
+            "Família completa" é todas, e marcar as três volta sozinho a ela. */}
+        <div class="controle__linha">
+          <nav class="linha__opcoes linha__opcoes--etiquetas" aria-labelledby="controle-familia">
+            <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma, doMural)} data-opcao="" data-familia="tudo" aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
+              <span class="opcao__texto" data-texto="Família completa">Família completa</span>
+            </a>
+            {nucleos.map((n) => (
+              <a
+                href={enderecoDoExplorar({ ...filtros, familias: alternarFamilia(filtros.familias, n.id, ordemDasFamilias) }, forma, doMural)}
+                data-opcao={n.id}
+                data-familia={corDoNucleo(n.id, ordemDasFamilias)}
+                aria-current={filtros.familias.includes(n.id) ? 'true' : undefined}
+              >
+                <span class="opcao__texto" data-texto={n.nome}>{n.nome}</span>
+              </a>
+            ))}
+          </nav>
+        </div>
+      </div>
+    )
+  }
+
+  {/* --- As formas de ver, em abas coladas no conteúdo, e as duas saídas ----------------------- */}
+  <div class="controles__formas">
+    <p class="so-leitor" id="controle-forma">Forma de ver</p>
     <div class="controle__linha">
-      <nav class="linha__opcoes" aria-labelledby="controle-forma">
+      <nav class="abas" aria-labelledby="controle-forma">
         {
           FORMAS_NO_LUGAR.map((f) => (
             <a href={enderecoDoExplorar(filtros, f, f === 'mural' ? tamanhoNoEndereco(tamanho) : {})} data-opcao={f} aria-current={f === forma ? 'page' : undefined}>
@@ -88,7 +136,7 @@ const grupos = [
           ))
         }
       </nav>
-      {/* As duas saídas: levam a outra tela, e por isso nunca ficam marcadas como a forma em uso */}
+      {/* As saídas levam a outra tela, e por isso nunca ficam marcadas como a forma em uso */}
       <p class="controle__saidas">
         {
           FORMAS_QUE_SAEM.map((f) => (
@@ -100,151 +148,73 @@ const grupos = [
       </p>
     </div>
   </div>
-  {
-    nucleos.length > 0 && (
-      <div class="controle">
-        <p class="controle__nome rotulo suave" id="controle-familia">
-          Família
-        </p>
-        {/* A família aceita mais de uma: cada opção é uma etiqueta, que acende na cor da família quando
-            está marcada (decisão do Gui, 17/11/2026). "Família completa" é todas, e marcar as três
-            volta sozinho a ela. */}
-        <div class="controle__linha">
-        <nav class="linha__opcoes linha__opcoes--etiquetas" aria-labelledby="controle-familia">
-          <a href={enderecoDoExplorar({ ...filtros, familias: [] }, forma, doMural)} data-opcao="" data-familia="tudo" aria-current={filtros.familias.length === 0 ? 'page' : undefined}>
-            <span class="opcao__texto" data-texto="Família completa">Família completa</span>
-          </a>
-          {nucleos.map((n) => (
-            <a
-              href={enderecoDoExplorar({ ...filtros, familias: alternarFamilia(filtros.familias, n.id, ordemDasFamilias) }, forma, doMural)}
-              data-opcao={n.id}
-              data-familia={corDoNucleo(n.id, ordemDasFamilias)}
-              aria-current={filtros.familias.includes(n.id) ? 'true' : undefined}
-            >
-              <span class="opcao__texto" data-texto={n.nome}>{n.nome}</span>
-            </a>
-          ))}
-        </nav>
-        </div>
-      </div>
-    )
-  }
-  <div class="controle">
-    <p class="controle__nome rotulo suave" id="controle-filtros">Filtros</p>
-    {/* Fechado, o controle diz o que está ligado e a ordem; aberto, o formulário aparece logo abaixo dele */}
+
+  {/* --- Filtros, uma ferramenta só, e a ordem à parte ----------------------------------------- */}
+  <div class="controles__ferramentas">
     <details class="filtros">
-      <summary aria-labelledby="controle-filtros filtro-atual">
-        <span id="filtro-atual" data-filtro-atual>
-          {resumo.length > 0 ? resumo.join(' · ') : 'Nenhum filtro'} · {NOMES_DAS_ORDENS[filtros.ordem]}
-        </span>
+      <summary aria-describedby={ligados.length > 0 ? 'filtros-quantos' : undefined}>
+        <span>Filtros</span>
+        {ligados.length > 0 && <b class="filtros__quantos" id="filtros-quantos" aria-label={ligados.length === 1 ? '1 ligado' : `${ligados.length} ligados`}>{ligados.length}</b>}
       </summary>
-      <form class="filtros__form" method="get" action="/explorar" data-filtros>
+      <form class="filtros__cartao" method="get" action="/explorar" data-filtros>
         {forma !== 'linha' && <input type="hidden" name="ver" value={forma} />}
         {doMural.tamanho && <input type="hidden" name="tamanho" value={doMural.tamanho} />}
         {filtros.familias.map((id) => <input type="hidden" name="nucleo" value={id} />)}
-        <fieldset class="filtros__grupo">
-          <legend class="rotulo suave">Ordem</legend>
-          <ul>
-            {ORDENS.map((o) => (
-              <li>
-                <label class="escolha">
-                  <input type="radio" name="ordem" value={o === ORDEM_PADRAO ? '' : o} checked={filtros.ordem === o} />
-                  <span>{NOMES_DAS_ORDENS[o]}</span>
-                </label>
-              </li>
+        {/* A ordem tem o seletor dela: aqui só vai junto, para o filtro não desfazer a ordem */}
+        {filtros.ordem !== ORDEM_PADRAO && <input type="hidden" name="ordem" value={filtros.ordem} />}
+        <fieldset class="filtros__rapidos">
+          <legend class="rotulo suave">Só as memórias</legend>
+          <div class="filtros__fichas">
+            {rapidos.map((r) => (
+              <label class="ficha-de-filtro">
+                <input type="checkbox" name={r.campo} value="1" checked={r.marcado} />
+                <span>{r.texto}</span>
+              </label>
             ))}
-          </ul>
+          </div>
         </fieldset>
-        {
-          tipos.length > 1 && (
-            <fieldset class="filtros__grupo">
-              <legend class="rotulo suave">Tipo de momento</legend>
-              <ul>
-                {tipos.map((t) => (
-                  <li style={estiloDoTipo(t.id)}>
-                    <label class="escolha">
-                      <input type="checkbox" name="tipo" value={t.id} checked={filtros.tipos.includes(t.id)} />
-                      <IconeDoTipo tipo={t.id} />
-                      <span>{t.nome}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </fieldset>
-          )
-        }
-        <fieldset class="filtros__grupo">
-          <legend class="rotulo suave">O que a memória tem</legend>
-          <ul>
-            <li>
-              <label class="escolha">
-                <input type="checkbox" name="foto" value="1" checked={filtros.comFoto} />
-                <span>Foto</span>
-              </label>
-            </li>
-            <li>
-              <label class="escolha">
-                <input type="checkbox" name="audio" value="1" checked={filtros.comAudio} />
-                <span>Áudio</span>
-              </label>
-            </li>
-          </ul>
-        </fieldset>
-        <fieldset class="filtros__grupo">
-          <legend class="rotulo suave">Seus relatos</legend>
-          <ul>
-            <li>
-              <label class="escolha">
-                <input type="checkbox" name="contou" value="1" checked={filtros.contou} />
-                <span>Você já contou</span>
-              </label>
-            </li>
-            <li>
-              <label class="escolha">
-                <input type="checkbox" name="falta" value="1" checked={filtros.falta} />
-                <span>Você estava e ainda não contou</span>
-              </label>
-            </li>
-          </ul>
-        </fieldset>
-        <fieldset class="filtros__grupo filtros__grupo--periodo">
-          <legend class="rotulo suave">Período</legend>
-          <label class="campo">
-            <span class="campo__rotulo">Do ano</span>
-            <input class="campo__entrada" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="de" value={doAno ?? ''} />
-          </label>
-          <label class="campo">
-            <span class="campo__rotulo">Até o ano</span>
-            <input class="campo__entrada" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="ate" value={ateOAno ?? ''} />
-          </label>
-        </fieldset>
-        {
-          grupos.map((g) => (
-            <details class="filtros__grupo filtros__grupo--longo" open={g.marcados.length > 0}>
+        <div class="filtros__grupos">
+          {grupos.map((g) => (
+            <details class="filtros__grupo">
               <summary>
-                <span>
-                  {g.nome}
-                  {g.marcados.length > 0 && ` (${g.marcados.length})`}
-                </span>
+                <span class="filtros__grupo-nome">{g.nome}</span>
+                <span class:list={['filtros__grupo-valor', { suave: g.marcados.length === 0 }]}>{g.resumo}</span>
               </summary>
               {g.dica && <p class="ficha suave">{g.dica}</p>}
-              <ul>
+              <ul class="filtros__lista">
                 {g.opcoes.map((o) => (
-                  <li>
+                  <li style={g.icone ? estiloDoTipo(o.id) : undefined}>
                     <label class="escolha">
                       <input type="checkbox" name={g.campo} value={o.id} checked={g.marcados.includes(o.id)} />
+                      {g.icone && <IconeDoTipo tipo={o.id} />}
                       <span>{o.nome}</span>
                     </label>
                   </li>
                 ))}
               </ul>
             </details>
-          ))
-        }
+          ))}
+          <details class="filtros__grupo">
+            <summary>
+              <span class="filtros__grupo-nome">Período</span>
+              <span class:list={['filtros__grupo-valor', { suave: !periodo }]}>{periodo ?? 'Qualquer ano'}</span>
+            </summary>
+            <div class="filtros__periodo">
+              <label class="campo">
+                <span class="campo__rotulo">Do ano</span>
+                <input class="campo__entrada" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="de" value={doAno ?? ''} />
+              </label>
+              <label class="campo">
+                <span class="campo__rotulo">Até o ano</span>
+                <input class="campo__entrada" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" name="ate" value={ateOAno ?? ''} />
+              </label>
+            </div>
+          </details>
+        </div>
         <p class="filtros__acoes">
           <button class="botao sem-troca" type="submit">Mostrar memórias</button>
-          {/* Com script cada escolha já valeu: o fim do formulário diz quantas memórias passam e leva
-              a elas, fechando o painel. O texto muda a cada escolha, com a região. */}
+          {/* Com script cada escolha já valeu: o fim do cartão diz quantas memórias passam e leva a
+              elas, fechando o cartão */}
           {verOResultado ? (
             <button class="botao so-com-troca" type="button" data-ver-resultado>
               {verOResultado}
@@ -252,21 +222,58 @@ const grupos = [
           ) : (
             <span class="so-com-troca">Nenhuma memória passa nesses filtros.</span>
           )}
-          {
-            filtrando && (
-              <a class="acao acao--quieta" href={enderecoDoExplorar(semFiltros, forma, doMural)}>
-                Limpar filtros
-              </a>
-            )
-          }
+          {filtrando && (
+            <a class="acao acao--quieta" href={para(semFiltros)}>
+              Limpar filtros
+            </a>
+          )}
         </p>
       </form>
     </details>
+
+    {/* A ordem não é filtro: um seletor do sistema, e não o do navegador. Cada ordem é um link, que
+        funciona sem script; com script, a escolha fecha o seletor e troca sem recarregar. */}
+    <details class="ordenar" data-menu>
+      <summary>
+        <span class="rotulo suave" id="controle-ordem">Ordem</span>
+        <span class="ordenar__atual">{NOMES_DAS_ORDENS[filtros.ordem]}</span>
+      </summary>
+      <nav class="ordenar__menu" aria-labelledby="controle-ordem">
+        {
+          ORDENS.map((o) => (
+            <a href={para({ ...filtros, ordem: o })} data-opcao={o} aria-current={o === filtros.ordem ? 'true' : undefined}>
+              {NOMES_DAS_ORDENS[o]}
+            </a>
+          ))
+        }
+      </nav>
+    </details>
   </div>
+
+  {/* --- O que está ligado fica à vista, e cada ficha desliga o filtro dela ---------------------- */}
+  {
+    ligados.length > 0 && (
+      <ul class="controles__ligados" aria-label="Filtros ligados">
+        {ligados.map((l) => (
+          <li>
+            <a class="ficha-ligada" href={para(l.sem)} aria-label={`Tirar o filtro “${l.texto}”`}>
+              {l.texto}
+            </a>
+          </li>
+        ))}
+        <li class="controles__limpar">
+          <a class="acao acao--quieta" href={para(semFiltros)}>
+            Limpar filtros
+          </a>
+        </li>
+      </ul>
+    )
+  }
+
   {
     forma === 'mural' && (
-      <div class="controle">
-        <p class="controle__nome rotulo suave" id="controle-tamanho">
+      <div class="controles__tamanho">
+        <p class="rotulo suave" id="controle-tamanho">
           Fotos
         </p>
         <nav class="linha__opcoes linha__opcoes--curtas" aria-labelledby="controle-tamanho">
@@ -279,7 +286,7 @@ const grupos = [
       </div>
     )
   }
-  {/* No celular o nome de cada controle fica em cima dele: o da faixa de décadas também */}
+  {/* No celular o nome da faixa de décadas fica em cima dela */}
   {
     comDecadas && (
       <p class="controle__nome controle__nome--decadas rotulo suave" aria-hidden="true">

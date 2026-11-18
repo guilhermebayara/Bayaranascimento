@@ -408,10 +408,10 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
 
         <article class="sis__peca">
           <h3 class="rotulo">Seletor segmentado</h3>
-          <p>
-            <Segmentado rotulo="Exemplo de escolha" opcoes={[{ href: '#pecas', texto: 'Por família', atual: true }, { href: '#pecas', texto: 'Seu círculo' }]} />
-          </p>
-          <p class="ficha suave">Uma escolha só entre poucas: a forma de ver, a ordem, quem vê. Cada opção é um link, e funciona sem script.</p>
+          <div>
+            <Segmentado rotulo="Exemplo de escolha" nome="exemplo-segmentado" opcoes={[{ valor: 'todos', texto: 'Toda a família', atual: true }, { valor: 'nucleos', texto: 'Famílias escolhidas' }]} />
+          </div>
+          <p class="ficha suave">Uma escolha só entre duas ou três, com a explicação colada embaixo. Hoje só em "Quem pode ver?" da nova memória. Cada opção é um rádio: vai junto com o formulário e funciona sem script.</p>
         </article>
 
         <article class="sis__peca">

@@ -434,25 +434,34 @@ export interface NomesDosFiltros {
 }
 
 /**
- * Os filtros ligados, um por item, como aparecem escritos no controle fechado. A família não entra:
- * ela tem o controle dela, logo acima. O que o endereço pede e não existe (um tipo apagado, um
- * capítulo que a pessoa não vê) não é escrito.
+ * Os filtros ligados, um por ficha, como aparecem embaixo de "Filtros" (proposta A do conceito da
+ * sessão D, decisão do Gui de 18/11/2026). Cada ficha diz o filtro e traz os filtros sem ele, para
+ * desligar com um toque. A família não entra: ela tem as pílulas dela, no alto. O que o endereço pede
+ * e não existe (um tipo apagado, um capítulo que a pessoa não vê) não vira ficha.
  */
-export function resumoDosFiltros(f: Filtros, nomes: NomesDosFiltros): string[] {
-  const achados = (ids: string[], nome: (id: string) => string | undefined) => ids.map(nome).filter((n): n is string => Boolean(n));
-  const itens = [...achados(f.tipos, nomes.tipo)];
-  const pessoas = achados(f.pessoas, nomes.pessoa);
-  if (pessoas.length) itens.push(pessoas.length === 1 ? `com ${pessoas[0]}` : `com ${pessoas.slice(0, -1).join(', ')} e ${pessoas.at(-1)} juntos`);
-  itens.push(...achados(f.capitulos, nomes.capitulo), ...achados(f.temas, nomes.tema));
-  if (f.decada !== null) itens.push(`anos ${f.decada}`);
-  if (f.de !== null && f.ate !== null) itens.push(f.de === f.ate ? `${f.de}` : `de ${f.de} a ${f.ate}`);
-  else if (f.de !== null) itens.push(`de ${f.de} em diante`);
-  else if (f.ate !== null) itens.push(`até ${f.ate}`);
-  if (f.comFoto) itens.push('com foto');
-  if (f.comAudio) itens.push('com áudio');
-  if (f.contou) itens.push('você já contou');
-  if (f.falta) itens.push('você estava e ainda não contou');
-  return itens;
+export function filtrosLigados(f: Filtros, nomes: NomesDosFiltros): { texto: string; sem: Filtros }[] {
+  const sem = (lista: string[], id: string) => lista.filter((x) => x !== id);
+  const fichas: { texto: string; sem: Filtros }[] = [];
+  const cada = (ids: string[], nome: (id: string) => string | undefined, texto: (n: string) => string, tirar: (id: string) => Filtros) => {
+    for (const id of ids) {
+      const n = nome(id);
+      if (n) fichas.push({ texto: texto(n), sem: tirar(id) });
+    }
+  };
+  cada(f.tipos, nomes.tipo, (n) => n, (id) => ({ ...f, tipos: sem(f.tipos, id) }));
+  cada(f.pessoas, nomes.pessoa, (n) => `com ${n}`, (id) => ({ ...f, pessoas: sem(f.pessoas, id) }));
+  cada(f.capitulos, nomes.capitulo, (n) => n, (id) => ({ ...f, capitulos: sem(f.capitulos, id) }));
+  cada(f.temas, nomes.tema, (n) => n, (id) => ({ ...f, temas: sem(f.temas, id) }));
+  const semPeriodo = { ...f, decada: null, de: null, ate: null };
+  if (f.decada !== null) fichas.push({ texto: `anos ${f.decada}`, sem: semPeriodo });
+  if (f.de !== null && f.ate !== null) fichas.push({ texto: f.de === f.ate ? `${f.de}` : `de ${f.de} a ${f.ate}`, sem: semPeriodo });
+  else if (f.de !== null) fichas.push({ texto: `de ${f.de} em diante`, sem: semPeriodo });
+  else if (f.ate !== null) fichas.push({ texto: `até ${f.ate}`, sem: semPeriodo });
+  if (f.comFoto) fichas.push({ texto: 'com foto', sem: { ...f, comFoto: false } });
+  if (f.comAudio) fichas.push({ texto: 'com áudio', sem: { ...f, comAudio: false } });
+  if (f.contou) fichas.push({ texto: 'você já contou', sem: { ...f, contou: false } });
+  if (f.falta) fichas.push({ texto: 'falta o seu relato', sem: { ...f, falta: false } });
+  return fichas;
 }
 
 /** As vizinhas de uma memória numa lista: a de antes e a de depois, na ordem em que a lista está. */

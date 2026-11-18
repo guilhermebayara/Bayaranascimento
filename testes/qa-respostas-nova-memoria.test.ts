@@ -52,7 +52,7 @@ describe('P143: o ano fora do intervalo ganha aviso ao lado', () => {
     const datas = ler('src/lib/cliente/datas.ts');
     expect(datas).toMatch(/problemaNoAno\(numero\(ano\), Number\(limites\.min\), Number\(limites\.max\)\)/);
     expect(datas).toMatch(/ano\.setCustomValidity\(doAno\);/);
-    expect(nova).toMatch(/const ano = anoInformado\(\);\s*lacunaDaData\.textContent = dataNaFrase\(/);
+    expect(nova).toContain('ano: anoInformado(),');
   });
 });
 
@@ -61,18 +61,6 @@ describe('Nova memória: as etapas', () => {
     expect(nova).toMatch(/sessionStorage\.setItem\('rascunho-salvo', String\(etapas\?\.atual\(\) \?\? 0\)\);/);
     expect(nova).toMatch(/etapaInicial = Number\(guardada\) \|\| 0;/);
     expect(ler('src/lib/cliente/etapas.ts')).toMatch(/let atual = Math\.max\(0, Math\.min\(secoes\.length - 1, Math\.trunc\(inicial\) \|\| 0\)\);/);
-  });
-  it('P126: no celular, a frase de boas-vindas só na primeira etapa, e a frase com lacunas abaixo da pergunta', () => {
-    expect(nova).toMatch(/pagina\?\.toggleAttribute\('data-adiante', indice > 0\);/);
-    expect(css).toMatch(/\n\.pagina-de-formulario\[data-adiante\] \.pagina-de-formulario__frase \{\s*display: none;/);
-    const computador = css.slice(css.indexOf('@media (min-width: 62rem)'));
-    expect(computador).toMatch(/\.pagina-de-formulario\[data-adiante\] \.pagina-de-formulario__frase \{\s*display: block;/);
-    // A frase muda de lugar com a largura: antes das ações no celular, na abertura no computador
-    expect(nova).toMatch(/const destino = haLado\.matches \? cabecalho : form;/);
-    expect(nova).toMatch(/situacaoEl\.before\(fraseDaAbertura\);/);
-  });
-  it('P133: em "Quando e onde" a frase é a pergunta, e a legenda fica para o leitor de tela', () => {
-    expect(nova).toMatch(/<legend class="so-leitor">Quando e onde foi\?<\/legend>\s*<p class="frase" data-frase>/);
   });
   it('P141 e P142: "Fotos" é pergunta, e a etapa do capítulo não abre outra aba', () => {
     expect(nova).toMatch(/<section data-etapa="Fotos" data-opcional>[\s\S]{0,300}<legend>Tem fotos desse dia\?<\/legend>/);
@@ -86,17 +74,6 @@ describe('Nova memória: as etapas', () => {
     expect(acoes.indexOf('Publicar memória')).toBeGreaterThan(acoes.indexOf('data-etapa-continuar'));
     expect(css).toMatch(/\.acoes--etapas:has\(\[data-etapa-continuar\]:not\(\[hidden\]\)\) \.botao\[type='submit'\]:not\(\.botao--leve\) \{\s*background: transparent;/);
   });
-  it('P134: o resumo final segue a ordem da frase, e na última etapa o resumo ao lado fica sem a ficha', () => {
-    const linhas = nova.slice(nova.indexOf('const linhas: [string, string][] = ['), nova.indexOf("if (form.querySelector('[name=\"relato\"]'))"));
-    expect(linhas.indexOf("['Quando'")).toBeLessThan(linhas.indexOf("['Onde'"));
-    expect(linhas.indexOf("['Onde'")).toBeLessThan(linhas.indexOf("['Quem'"));
-    expect(nova).toMatch(/if \(ficha\) ficha\.hidden = ultima;/);
-  });
-  it('P129: sem tipo escolhido, o cartão do resumo ao lado é neutro', () => {
-    expect(nova).toMatch(/'ao-lado__foto--neutra': !tipo/);
-    expect(css).toMatch(/\.ao-lado__foto--neutra \.polaroid__foto \{\s*background: var\(--papel\);/);
-    expect(css).toMatch(/\.ao-lado__foto--neutra \.icone \{\s*display: none;/);
-  });
 });
 
 describe('a zona de perigo quieta', () => {
@@ -108,7 +85,7 @@ describe('a zona de perigo quieta', () => {
     expect(css).toMatch(/\.botao\.botao--perigo::after \{\s*content: none;/);
   });
   it('P136: na memória, com script, só aparece na última etapa; sem script, fica no fim', () => {
-    expect(nova).toMatch(/if \(zonaDePerigo\) zonaDePerigo\.hidden = !ultima;/);
+    expect(nova).toMatch(/if \(zonaDePerigo\) zonaDePerigo\.hidden = indice !== ultima;/);
     // Nasce visível: quem a esconde é o script
     expect(nova).toMatch(/<div data-zona-de-perigo>/);
   });
@@ -142,9 +119,8 @@ describe('a grade dos formulários no computador', () => {
     expect(computador).toMatch(/\.pagina-de-formulario > \.formulario\.com-etapas > \* \{\s*grid-column: 4 \/ -1;/);
     expect(computador).toMatch(/\.pagina-de-formulario > \.formulario\.com-etapas > ol\.etapas \{\s*grid-column: 1 \/ 4;/);
   });
-  it('P138 e P139: a frase da abertura usa a largura do miolo, e as ações param na largura dos campos', () => {
+  it('P138 e P139: a abertura usa a largura do miolo, e as ações param na largura dos campos', () => {
     expect(computador).toMatch(/:has\(\.com-etapas\) \.pagina-de-formulario__abre \{\s*grid-column: 1 \/ -1;/);
-    expect(css).toMatch(/\.frase__data\[data-vazia\] \{\s*white-space: nowrap;/);
     expect(computador).toMatch(/\.formulario\.com-etapas > :is\(\.situacao, \.acoes\) \{\s*max-width: min\(var\(--coluna\), var\(--medida\)\);/);
   });
   it('a zona de perigo do fim da página fecha com a coluna da pergunta: o vão do formulário é o da página', () => {
