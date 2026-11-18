@@ -121,6 +121,8 @@ const PAGINAS = [
   { nome: 'explorar-1-linha-capitulos', url: '/explorar', como: 'giovanna', larguras: TODAS, desde: '#ano-2006', corte: 9000 },
   { nome: 'explorar-1-linha-familia', url: '/explorar?nucleo=bayara-nascimento', como: 'giovanna', larguras: TODAS, corte: 4000 },
   { nome: 'explorar-2-filtros-abertos', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 3200, antes: abrirFiltros },
+  { nome: 'explorar-2-filtros-ligados', url: '/explorar?tipo=viagem&foto=1', como: 'giovanna', larguras: TODAS, corte: 1300 },
+  { nome: 'explorar-2-ordem-aberta', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 1300, antes: (pagina) => pagina.locator('.ordenar > summary').click() },
   { nome: 'explorar-2-filtrado', url: '/explorar?tipo=viagem&foto=1&ordem=contadas', como: 'giovanna', larguras: TODAS },
   { nome: 'explorar-2-antigas', url: '/explorar?ordem=antigas&capitulo=natais', como: 'giovanna', larguras: TODAS, corte: 5000 },
   { nome: 'explorar-2-sem-resultado', url: '/explorar?tipo=viagem&decada=1950', como: 'giovanna', larguras: TODAS },

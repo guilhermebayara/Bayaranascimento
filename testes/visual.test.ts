@@ -259,20 +259,20 @@ describe('conceito', () => {
     // famílias quebravam a linha
     const controles = tela('explorar/Controles.astro');
     const css = ler('telas/linha.css');
-    for (const nome of ['Forma de ver', 'Família', 'Filtros']) expect(controles).toMatch(new RegExp(`rotulo[^>]*>\\s*${nome}\\s*<`));
+    for (const nome of ['Forma de ver', 'Famílias']) expect(controles).toMatch(new RegExp(`class="so-leitor"[^>]*>\\s*${nome}\\s*<`));
+    expect(controles).toMatch(/<span>Filtros<\/span>/);
+    expect(controles).toMatch(/<span class="rotulo suave" id="controle-ordem">Ordem<\/span>/);
     expect(tela('explorar/Linha.astro')).toMatch(/rotulo[^>]*>\s*Ir para a década\s*</);
     // "Tudo" passou a se chamar "Família completa" (do Gui, 16/11/2026)
     // O texto fica dentro da peça que reserva a largura do negrito (P37, resposta do Gui de 17/11/2026)
     expect(controles).toMatch(/aria-current=\{filtros\.familias\.length === 0 \? 'page' : undefined\}>\s*<span[^>]*>Família completa<\/span>\s*</);
-    // O formulário abre dentro do próprio controle: nenhuma regra muda o lugar dele quando abre
-    expect(css).not.toMatch(/\.filtros\[open\]\s*\{[^}]*grid-(column|row|area)/);
     // A faixa de décadas leva a cor da família, diluída no papel: o pastel cheio pesou
     expect(css).toMatch(/\.decadas\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--pastel\) \d+%, var\(--papel\)\)/);
-    // Fechado, o controle dos filtros diz o que está ligado e a ordem
-    expect(controles).toContain('data-filtro-atual');
-    // Os filtros e a ordem são um formulário comum e as outras escolhas são links: tudo funciona
-    // sem script e fica no endereço
-    expect(controles).toMatch(/<form class="filtros__form" method="get" action="\/explorar"/);
+    // Os filtros são um formulário comum e as outras escolhas, a ordem inclusive, são links: tudo
+    // funciona sem script e fica no endereço
+    expect(controles).toMatch(/<form class="filtros__cartao" method="get" action="\/explorar"/);
+    expect(controles).toMatch(/<a href=\{para\(\{ \.\.\.filtros, ordem: o \}\)\}/);
+    expect(controles).not.toMatch(/<select/);
     expect(controles).not.toMatch(/<button type="button"/);
   });
 
@@ -444,7 +444,7 @@ describe('conceito', () => {
   it('no mural, quem está vendo escolhe o tamanho das fotos, e a escolha fica no endereço', () => {
     // Decisão do Gui, 17/11/2026
     const controles = tela('explorar/Controles.astro');
-    expect(controles).toMatch(/forma === 'mural' && \(\s*<div class="controle">\s*<p class="controle__nome rotulo suave" id="controle-tamanho">\s*Fotos\s*</);
+    expect(controles).toMatch(/forma === 'mural' && \(\s*<div class="controles__tamanho">\s*<p class="rotulo suave" id="controle-tamanho">\s*Fotos\s*</);
     expect(controles).toMatch(/enderecoDoExplorar\(filtros, forma, tamanhoNoEndereco\(t\)\)/);
     // O tamanho acompanha a troca de família e o formulário dos filtros
     expect(controles).toMatch(/<input type="hidden" name="tamanho"/);

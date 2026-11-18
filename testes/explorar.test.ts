@@ -163,7 +163,7 @@ describe('quando os trilhos aparecem', () => {
 
 // A tela do Explorar: as formas de ver, o endereço de cada uma e o resumo dos filtros
 describe('formas de ver e endereço', async () => {
-  const { FORMAS, SEM_FILTRO, enderecoDoExplorar, lerFiltros, lerForma, resumoDosFiltros, vizinhasNaLista } = await import('../src/lib/explorar');
+  const { FORMAS, SEM_FILTRO, enderecoDoExplorar, lerFiltros, lerForma, filtrosLigados, vizinhasNaLista } = await import('../src/lib/explorar');
 
   it('sem "ver", ou com um valor que não existe, vale a linha do tempo', () => {
     expect(FORMAS).toEqual(['linha', 'mural', 'lista', 'tv', 'acaso']);
@@ -184,21 +184,27 @@ describe('formas de ver e endereço', async () => {
     expect(lerForma(p)).toBe('tv');
   });
 
-  it('o resumo escreve o que está ligado, e cala o que o endereço pede e não existe', () => {
+  it('cada filtro ligado vira uma ficha que se desliga com um toque, e o que não existe não vira ficha', () => {
     const nomes = {
       tipo: (id: string) => ({ viagem: 'Viagem' })[id],
       pessoa: (id: string) => ({ gui: 'Gui', giovanna: 'Giovanna' })[id],
       capitulo: (id: string) => ({ natais: 'Natais' })[id],
       tema: () => undefined,
     };
-    expect(resumoDosFiltros(SEM_FILTRO, nomes)).toEqual([]);
-    // A família tem o controle dela: não entra no resumo
-    expect(resumoDosFiltros({ ...SEM_FILTRO, familias: ['bayara'] }, nomes)).toEqual([]);
-    const f = { ...SEM_FILTRO, tipos: ['viagem', 'apagado'], pessoas: ['gui', 'giovanna'], capitulos: ['natais', 'secreto'], temas: ['x'], decada: 1990, comFoto: true, falta: true };
-    expect(resumoDosFiltros(f, nomes)).toEqual(['Viagem', 'com Gui e Giovanna juntos', 'Natais', 'anos 1990', 'com foto', 'você estava e ainda não contou']);
-    expect(resumoDosFiltros({ ...SEM_FILTRO, de: 1990, ate: 1994 }, nomes)).toEqual(['de 1990 a 1994']);
-    expect(resumoDosFiltros({ ...SEM_FILTRO, de: 1990 }, nomes)).toEqual(['de 1990 em diante']);
-    expect(resumoDosFiltros({ ...SEM_FILTRO, ate: 1994 }, nomes)).toEqual(['até 1994']);
+    const textos = (f: typeof SEM_FILTRO) => filtrosLigados(f, nomes).map((l) => l.texto);
+    expect(textos(SEM_FILTRO)).toEqual([]);
+    // A família tem as pílulas dela: não vira ficha
+    expect(textos({ ...SEM_FILTRO, familias: ['bayara'] })).toEqual([]);
+    const f = { ...SEM_FILTRO, familias: ['bayara'], ordem: 'antigas' as const, tipos: ['viagem', 'apagado'], pessoas: ['gui', 'giovanna'], capitulos: ['natais', 'secreto'], temas: ['x'], decada: 1990, comFoto: true, falta: true };
+    expect(textos(f)).toEqual(['Viagem', 'com Gui', 'com Giovanna', 'Natais', 'anos 1990', 'com foto', 'você estava e ainda não contou']);
+    // Desligar uma ficha tira só aquele filtro: a família e a ordem continuam
+    const semGui = filtrosLigados(f, nomes).find((l) => l.texto === 'com Gui')!.sem;
+    expect(semGui).toEqual({ ...f, pessoas: ['giovanna'] });
+    expect(enderecoDoExplorar(filtrosLigados(f, nomes)[0].sem, 'linha')).not.toContain('tipo=viagem');
+    expect(textos({ ...SEM_FILTRO, de: 1990, ate: 1994 })).toEqual(['de 1990 a 1994']);
+    expect(textos({ ...SEM_FILTRO, de: 1990 })).toEqual(['de 1990 em diante']);
+    expect(textos({ ...SEM_FILTRO, ate: 1994 })).toEqual(['até 1994']);
+    expect(filtrosLigados({ ...SEM_FILTRO, de: 1990, ate: 1994 }, nomes)[0].sem).toEqual(SEM_FILTRO);
   });
 
   it('"Passar sozinho" guarda no endereço o tempo escolhido, entre 8, 10 e 15 segundos, e a pausa', async () => {

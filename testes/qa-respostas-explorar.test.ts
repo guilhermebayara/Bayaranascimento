@@ -77,7 +77,7 @@ describe('os filtros (P33, P36, P38)', () => {
     for (const peca of ['Linha', 'Lista', 'Mural']) expect(ler(`src/components/explorar/${peca}.astro`), peca).toMatch(/data-resultado/);
   });
   it('no celular, as caixas de marcar ficam em duas colunas fixas', () => {
-    expect(cssDoExplorar).toMatch(/@media \(max-width: 61\.99rem\) \{\s*\.filtros__grupo ul \{\s*display: grid;\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+    expect(cssDoExplorar).toMatch(/\.filtros__lista \{\s*display: grid;\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
   });
   it('sem resultado, a conta diz "Nenhuma memória"', () => {
     expect(contaDoExplorar([])).toBe('Nenhuma memória');

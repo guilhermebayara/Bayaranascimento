@@ -4,68 +4,245 @@
  * memória"), uma memória por vez, grande, para ver junto.
  */
 
-/* --- Os filtros e a ordem: o formulário que abre dentro do controle ---------------------------- */
+/* --- Os controles do Explorar: cada coisa no seu lugar ------------------------------------------
+   Proposta A do conceito da sessão D (decisão do Gui, 18/11/2026). A família, a forma de ver e os
+   filtros são três coisas, cada uma com a sua cara: a família é pílula redonda com o ponto da cor
+   dela, logo abaixo do nome do acervo; a forma de ver são abas coladas no conteúdo, com a conta das
+   memórias na mesma linha; o filtro é uma ficha de canto reto, que fica escura quando está ligada.
+   O alto da página vira uma grade, e os controles entram nela peça por peça (display: contents). */
 
-.filtros__form {
+.linha__capa--explorar {
   display: grid;
-  gap: var(--e-5);
-  padding-block: var(--e-3) var(--e-5);
+  grid-template-columns: minmax(0, 1fr);
 }
-.filtros__grupo {
+.linha__capa--explorar > * {
+  min-width: 0;
+}
+.linha__capa--explorar .controles {
+  display: contents;
+}
+/* As famílias, de quem são as memórias, coladas no nome do acervo */
+.controles__familias {
+  order: 1;
+  margin-top: var(--e-3);
+}
+/* As abas: longe das famílias, coladas no que vem embaixo, com o fio que fecha o alto do conteúdo */
+.controles__formas {
+  order: 2;
+  margin-top: var(--e-7);
+  border-bottom: var(--traco) solid var(--tinta);
+}
+.controles__formas .controle__linha {
+  margin-block: 0;
+  padding-block: 0;
+}
+.abas {
+  display: flex;
+  gap: var(--e-5);
+}
+.abas a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  color: var(--tinta-suave);
+  font-size: var(--t-corpo);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--tempo-curto) var(--curva);
+}
+.abas a[aria-current] {
+  box-shadow: inset 0 -4px 0 var(--tinta);
+  color: var(--tinta);
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .abas a:hover {
+    color: var(--tinta);
+  }
+}
+.abas a:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: -3px;
+}
+/* "Filtros" à esquerda e a ordem à direita, na mesma linha; o cartão dos filtros abre embaixo dos dois */
+.controles__ferramentas {
+  order: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  margin-top: var(--e-2);
+}
+.controles__ferramentas > .filtros {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+.controles__ferramentas > .ordenar {
+  grid-column: 2;
+  grid-row: 1;
+  z-index: 2;
+}
+.controles__ligados {
+  order: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-2);
+  margin: var(--e-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.controles__limpar {
+  margin-left: var(--e-3);
+}
+.controles__tamanho {
+  order: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--e-5);
+  margin-top: var(--e-2);
+}
+/* A conta é do resultado: no celular fica por último, junto do que ela conta */
+.linha__capa--explorar .linha__conta {
+  order: 6;
+  margin-top: var(--e-5);
+  padding-top: 0;
+  border-top: 0;
+}
+.linha__capa--explorar .controle__nome--decadas {
+  order: 7;
+}
+
+/* "Filtros": o nome, quantos estão ligados e o sinal de abrir, que vira xis aberto */
+.filtros > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: var(--toque);
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--t-pequeno);
+  font-weight: 600;
+}
+.filtros summary::-webkit-details-marker {
+  display: none;
+}
+.filtros > summary::after,
+.filtros__grupo > summary::after {
+  content: '';
+  flex: none;
+  width: 0.7em;
+  height: 0.7em;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  transition: rotate var(--tempo-medio) var(--curva);
+}
+.filtros[open] > summary::after,
+.filtros__grupo[open] > summary::after {
+  rotate: 45deg;
+}
+.filtros > summary:focus-visible,
+.filtros__grupo > summary:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+.filtros__quantos {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4em;
+  border-radius: var(--raio-pilula);
+  background: var(--tinta);
+  color: var(--papel);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  font-weight: 400;
+}
+/* Aberto, os filtros são um cartão: um limite só para tudo o que é filtro */
+.filtros__cartao {
+  display: grid;
+  gap: var(--e-6);
+  margin-top: var(--e-2);
+  padding: var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+.filtros__rapidos {
   min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
 }
-.filtros__grupo legend {
+.filtros__rapidos legend {
+  margin-bottom: var(--e-2);
   padding: 0;
 }
-.filtros__grupo ul {
+.filtros__fichas {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 var(--e-6);
+  gap: var(--e-2);
 }
-.filtros__grupo .escolha {
+/* Cada grupo é uma linha: o nome, o que está marcado e o sinal de abrir. Abre no lugar. */
+.filtros__grupos {
+  border-bottom: 1px solid var(--fio);
+}
+.filtros__grupo {
+  border-top: 1px solid var(--fio);
+}
+.filtros__grupo > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--e-3);
+  min-height: 3.25rem;
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--t-corpo);
+}
+.filtros__grupo-nome {
+  font-weight: 600;
+}
+.filtros__grupo-valor {
+  font-size: var(--t-pequeno);
+  text-align: right;
+}
+.filtros__grupo > :not(summary) {
+  margin-bottom: var(--e-4);
+}
+.filtros__lista {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--e-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.filtros__lista .escolha {
   font-size: var(--t-pequeno);
 }
-.filtros__grupo .escolha .icone {
+.filtros__lista .icone {
   flex: none;
   width: 1.5em;
   height: 1.5em;
   margin-right: -0.25em;
   color: var(--tipo-cor);
 }
-.filtros__grupo--periodo {
+.filtros__periodo {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--e-3) var(--e-5);
-  max-width: 28rem;
-}
-.filtros__grupo--periodo legend {
-  margin-bottom: var(--e-2);
-}
-/* Os grupos longos (pessoas, capítulos, temas) ficam recolhidos: abrem no lugar, como o controle */
-.filtros__grupo--longo summary {
-  font-weight: 400;
-  color: var(--tinta-suave);
-}
-.filtros__grupo--longo[open] summary,
-.filtros__grupo--longo summary:hover {
-  color: var(--tinta);
-}
-.filtros__grupo--longo ul {
-  padding-bottom: var(--e-2);
+  gap: var(--e-5);
+  max-width: 22rem;
 }
 .filtros__acoes {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--e-3) var(--e-6);
-  padding-top: var(--e-2);
+  margin: 0;
 }
-
-/* Com script, cada escolha vale na hora: o botão de enviar é de quem está sem script. No lugar
-   dele fica a conta do resultado, com a ação que fecha o painel e leva às memórias (P33). */
+/* Com script, cada escolha vale na hora: o botão de enviar é de quem está sem script. No lugar dele
+   fica a conta do resultado, com a ação que fecha o cartão e leva às memórias. */
 .com-troca .filtros__acoes .sem-troca,
 html:not(.com-troca) .filtros__acoes .so-com-troca {
   display: none;
@@ -74,13 +251,237 @@ html:not(.com-troca) .filtros__acoes .so-com-troca {
   font-size: var(--t-pequeno);
 }
 
-/* No celular, as caixas de marcar ficam em duas colunas fixas: a segunda começa sempre no mesmo
-   lugar (P36) */
-@media (max-width: 61.99rem) {
-  .filtros__grupo ul {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 var(--e-4);
+/* A ficha de filtro: canto reto, escura quando ligada, com o xis de desligar */
+.ficha-de-filtro {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+.ficha-de-filtro input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.ficha-de-filtro > span,
+.ficha-ligada {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: var(--toque);
+  padding: 0 var(--e-3);
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-carimbo);
+  background: var(--branco);
+  color: var(--tinta);
+  font-size: var(--t-pequeno);
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--tempo-curto) var(--curva),
+    border-color var(--tempo-curto) var(--curva);
+}
+.ficha-de-filtro input:checked + span,
+.ficha-ligada {
+  border-color: var(--tinta);
+  background: var(--tinta);
+  color: var(--papel);
+  font-weight: 550;
+}
+.ficha-de-filtro input:checked + span::after,
+.ficha-ligada::after {
+  content: '';
+  flex: none;
+  width: 0.62em;
+  height: 0.62em;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  rotate: 45deg;
+}
+.ficha-de-filtro input:focus-visible + span,
+.ficha-ligada:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .ficha-de-filtro:hover > input:not(:checked) + span {
+    border-color: var(--tinta-suave);
+  }
+}
+
+/* A ordem: um seletor do sistema. Fechado, "Ordem" e a escolha de agora, sublinhada; aberto, um
+   cartão por cima da página, com as quatro ordens e a marcada com o tique. */
+.ordenar {
+  position: relative;
+}
+/* Aberto, o seletor fica por cima da faixa de décadas, que vem logo abaixo e é presa */
+.linha__capa--explorar:has(.ordenar[open]) {
+  position: relative;
+  z-index: 7;
+}
+.ordenar > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-3);
+  min-height: var(--toque);
+  list-style: none;
+  cursor: pointer;
+}
+.ordenar > summary::-webkit-details-marker {
+  display: none;
+}
+.ordenar__atual {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding-block: 0.35em;
+  border-bottom: var(--traco) solid var(--tinta);
+  font-size: var(--t-pequeno);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* A seta de abrir, desenhada com o traço, vira para cima aberta */
+.ordenar__atual::after {
+  content: '';
+  flex: none;
+  width: 0.45em;
+  height: 0.45em;
+  margin-top: -0.25em;
+  border-right: var(--traco) solid currentColor;
+  border-bottom: var(--traco) solid currentColor;
+  rotate: 45deg;
+  transition: rotate var(--tempo-medio) var(--curva), margin var(--tempo-medio) var(--curva);
+}
+.ordenar[open] .ordenar__atual::after {
+  margin-top: 0.25em;
+  rotate: 225deg;
+}
+.ordenar > summary:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+.ordenar__menu {
+  position: absolute;
+  top: calc(100% + var(--e-1));
+  right: 0;
+  display: grid;
+  min-width: 15rem;
+  padding: var(--e-2);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+.ordenar__menu a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4);
+  min-height: var(--toque);
+  padding: 0 var(--e-3);
+  border-radius: var(--raio-moldura);
+  color: var(--tinta);
+  font-size: var(--t-pequeno);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ordenar__menu a[aria-current] {
+  font-weight: 600;
+}
+/* O tique da ordem em uso */
+.ordenar__menu a[aria-current]::after {
+  content: '';
+  flex: none;
+  width: 0.35em;
+  height: 0.7em;
+  margin-top: -0.15em;
+  border-right: var(--traco) solid currentColor;
+  border-bottom: var(--traco) solid currentColor;
+  rotate: 45deg;
+}
+@media (hover: hover) {
+  .ordenar__menu a:hover {
+    background: var(--papel-recuo);
+  }
+}
+.ordenar__menu a:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: -3px;
+}
+
+@media (min-width: 62rem) {
+  .linha__capa--explorar {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .linha__capa--explorar > *,
+  .linha__capa--explorar .controles > * {
+    grid-column: 1 / -1;
+  }
+  .linha__capa--explorar .assinatura {
+    grid-column: 1 / span 8;
+    grid-row: 1;
+  }
+  .controles__familias {
+    grid-row: 2;
+    margin-top: var(--e-4);
+  }
+  .controles__formas {
+    grid-row: 3;
+  }
+  .controles__formas .controle__linha {
+    gap: 0 var(--e-7);
+  }
+  .abas {
+    gap: var(--e-6);
+  }
+  /* A conta sobe para a linha das abas, à direita: quantas memórias, na forma de ver escolhida */
+  .linha__capa--explorar .linha__conta {
+    grid-row: 3;
+    grid-column: 9 / -1;
+    justify-self: end;
+    align-self: end;
+    z-index: 1;
+    margin: 0 0 var(--e-3);
+    padding: 0;
+  }
+  .controles__ferramentas {
+    grid-row: 4;
+  }
+  .controles__ligados {
+    grid-row: 5;
+  }
+  .controles__tamanho {
+    grid-row: 6;
+  }
+  /* No computador o cartão tem dois lados: à esquerda o que liga com um toque e a saída, à direita
+     os grupos que abrem */
+  .filtros__cartao {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--calha);
+    padding: var(--e-6);
+  }
+  .filtros__cartao > * {
+    grid-column: 1 / -1;
+  }
+  .filtros__cartao .filtros__rapidos {
+    grid-column: 1 / span 4;
+    grid-row: 1;
+  }
+  .filtros__cartao .filtros__acoes {
+    grid-column: 1 / span 4;
+    grid-row: 2;
+    align-self: end;
+  }
+  .filtros__cartao .filtros__grupos {
+    grid-column: 6 / -1;
+    grid-row: 1 / span 2;
+  }
+  .filtros__lista {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -805,15 +1206,6 @@ html:not(.com-troca) .filtros__acoes .so-com-troca {
 }
 
 @media (min-width: 62rem) {
-  .filtros__form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--e-5) var(--calha);
-    max-width: 60rem;
-  }
-  .filtros__grupo--longo,
-  .filtros__acoes {
-    grid-column: 1 / -1;
-  }
   .mural,
   .mural[data-tamanho] {
     --colunas: 6;
@@ -925,6 +1317,25 @@ html:not(.com-troca) .filtros__acoes .so-com-troca {
   .palco[data-so-fotos] .palco__fotos {
     --foto: min(34vw, (100svh - 8rem) / 1.5);
     grid-area: 1 / 1 / 4 / -1;
+  }
+}
+
+/* Modo TV em 1280 × 720 (decisão do Gui, 17/11/2026): numa janela baixa, com "Ajustes" aberto, a
+   página não rola. O respiro de baixo encolhe e a faixa dos ajustes fica mais compacta, com o nome
+   de cada ajuste ao lado das opções. */
+@media (min-width: 62rem) and (max-height: 50rem) {
+  .palco--tv:not([data-so-fotos]):has(.palco__ajustes[open]) {
+    padding-bottom: var(--e-3);
+  }
+  .palco:not([data-so-fotos]) .palco__cena:has(.palco__ajustes[open]) {
+    row-gap: var(--e-3);
+    padding-bottom: calc(var(--toque) + var(--e-3));
+  }
+  .palco:not([data-so-fotos]) .palco__ajustes[open] .palco__ajuste {
+    grid-auto-flow: column;
+    align-items: center;
+    gap: var(--e-4);
+    padding-top: 0;
   }
 }
 
