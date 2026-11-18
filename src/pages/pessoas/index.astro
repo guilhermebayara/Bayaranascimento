@@ -6,12 +6,18 @@
 // cada família, a ordem é por geração, dos mais velhos aos mais novos, com os bichos no fim, e quem
 // preferir troca para a ordem alfabética (`?ordem=nome`, sem script); a conta do bloco vem por
 // extenso; e a linha das memórias some quando a conta é zero.
+// Proposta B do conceito da sessão E (escolha do Gui, 17/11/2026): no computador, o alto vira um
+// índice na coluna da esquerda, que acompanha a lista onde há mouse; cada família é uma faixa colorida
+// que abre e fecha (details, sem script); a pílula de família filtra a lista, uma família por vez
+// (`?familia=`, junto com `?ordem=`); no celular, só a busca fica à vista, e "Famílias e ordem" abre o
+// resto.
 import '../../visual/telas/pessoas.css';
 import Visual from '../../layouts/Visual.astro';
 import Gente from '../../components/visual/Gente.astro';
+import PilulaDeFamilia from '../../components/visual/PilulaDeFamilia.astro';
 import { Familia, calcularGeracoes, possessivo, type Tratamento } from '../../lib/parentesco';
 import { jaFaleceu } from '../../lib/datas';
-import { ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
+import { enderecoDePessoas, familiaPedida, gruposDaFamilia, ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
 import { enderecoDoRetrato } from '../../lib/retratos';
 import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
 import { corDaPessoa, corDoNucleo } from '../../lib/visual';
@@ -35,11 +41,14 @@ const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
 const memorias = await listarMemorias(usuario);
 const contar = (id: string) => memorias.filter((m) => m.integrantes.includes(id)).length;
-const grupos = [
+const todosOsGrupos = [
   // Membros e parentes de cada família juntos, sem diferença na tela
   ...nucleos.map((n) => ({ id: n.id, nome: n.nome, cor: corDoNucleo(n.id, ordemDosNucleos), membros: naOrdem(integrantes.filter((i) => familiasDe(i).includes(n.id))) })),
   { id: 'outras', nome: 'Outras pessoas', cor: 'tudo', membros: naOrdem(integrantes.filter((i) => familiasDe(i).length === 0)) },
 ].filter((g) => g.membros.length > 0);
+// A pílula marcada mostra só aquela família; "Todas" mostra todas. Família que não está na lista vale "Todas".
+const familiaEmUso = familiaPedida(Astro.url.searchParams.get('familia'), todosOsGrupos.map((g) => g.id));
+const grupos = gruposDaFamilia(todosOsGrupos, familiaEmUso);
 
 // O que cada pessoa é para quem olha: "sua avó", "seu primo". Sem laço calculado, a linha fica sem.
 // Aprovado pelo Gui em 17/11/2026 (pergunta 3 do PR do grupo "familia"): o parentesco de quem olha na lista de pessoas
@@ -66,24 +75,26 @@ const detalhe = (p: Integrante) => {
   return [p.tipo === 'bicho' ? (p.especie ?? 'bicho') : null, n > 0 ? plural(n, 'memória', 'memórias') : null].filter(Boolean).join(' · ') || null;
 };
 const porNome = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+// A troca de ordem guarda a família, e a pílula de família guarda a ordem
 const ORDENS = [
-  { id: 'geracao', texto: 'Por geração', href: '/pessoas' },
-  { id: 'nome', texto: 'De A a Z', href: '/pessoas?ordem=nome' },
+  { id: 'geracao', texto: 'Por geração', href: enderecoDePessoas(familiaEmUso, 'geracao') },
+  { id: 'nome', texto: 'De A a Z', href: enderecoDePessoas(familiaEmUso, 'nome') },
 ];
+// O que está valendo, para o controle fechado do celular dizer sem abrir (como os filtros do Explorar)
+const escolhido = [todosOsGrupos.find((g) => g.id === familiaEmUso)?.nome, ordem === 'nome' ? 'De A a Z' : null].filter(Boolean).join(' · ');
 ---
 
 <Visual titulo="Pessoas" secao="pessoas">
   <div class="pessoas-pagina miolo">
-    <header class="pessoas-pagina__abre">
-      <p class="rotulo suave">{conta}</p>
-      <h1 class="serifa t-1">Pessoas</h1>
-      <p class="pessoas-pagina__frase serifa t-abertura">Quem aparece nas memórias da família, por família.</p>
-      <p class="pessoas-pagina__acoes">
-        <a class="botao" href="/pessoas/nova">Cadastrar pessoa</a>
-        <a class="acao" href="/arvore">Ver a árvore</a>
-        {/* Seu círculo mora no menu da conta; daqui, um link discreto para quem procurar (decisão do Gui, 17/11/2026) */}
-        {temPagina && <a class="acao acao--quieta" href="/circulo">Ver seu círculo</a>}
-      </p>
+    <header class="pessoas-pagina__indice">
+      {/* O que esta página é: o título, com a conta colada nele, e a frase de apoio */}
+      <div class="pessoas-pagina__abre">
+        <h1 class="serifa t-2">Pessoas</h1>
+        <p class="rotulo suave">{conta}</p>
+        <p class="pessoas-pagina__frase suave">Quem aparece nas memórias da família, por família.</p>
+      </div>
+
+      {/* Achar alguém: a busca sempre à vista; as famílias e a ordem, no celular, quando a pessoa pede */}
       <form class="pessoas-pagina__busca" method="get" action="/pessoas" data-procurar>
         <label class="pessoas-pagina__rotulo rotulo suave" for="procurar-pessoa">Procurar pelo nome</label>
         <div class="pessoas-pagina__campo">
@@ -94,53 +105,87 @@ const ORDENS = [
           <button class="acao" type="submit">Abrir a página</button>
         </div>
       </form>
-      <nav class="pessoas-pagina__ordem" aria-label="Ordem da lista">
-        <span class="rotulo suave">Ordem</span>
-        {ORDENS.map((o) => (
-          <a class="acao acao--quieta" href={o.href} aria-current={o.id === ordem ? 'true' : undefined}>
-            {o.texto}
-          </a>
-        ))}
-      </nav>
-      {
-        grupos.length > 1 && (
-          <nav class="pessoas-pagina__atalhos" aria-label="Ir para a família">
-            {grupos.map((g) => (
-              <a class="acao acao--quieta" href={`#familia-${g.id}`}>
-                {g.nome}
-              </a>
-            ))}
+      <div class="pessoas-pagina__controles" data-controles>
+        {/* Sem script o botão não aparece e as escolhas ficam à vista */}
+        <button class="pessoas-pagina__abre-controles" type="button" aria-expanded="false" aria-controls="familias-e-ordem" hidden>
+          <span>
+            Famílias e ordem{escolhido && <span class="pessoas-pagina__escolhido"> · {escolhido}</span>}
+          </span>
+        </button>
+        <div class="pessoas-pagina__escolhas" id="familias-e-ordem">
+          {
+            todosOsGrupos.length > 1 && (
+              <div class="pessoas-pagina__familias">
+                <p class="rotulo suave" id="rotulo-familias">
+                  Família
+                </p>
+                <nav class="pilulas-de-familia" aria-labelledby="rotulo-familias">
+                  <PilulaDeFamilia href={enderecoDePessoas(null, ordem)} familia="tudo" atual={familiaEmUso === null}>
+                    Todas
+                  </PilulaDeFamilia>
+                  {todosOsGrupos.map((g) => (
+                    <PilulaDeFamilia href={enderecoDePessoas(g.id, ordem)} familia={g.cor} atual={familiaEmUso === g.id} conta={g.membros.length}>
+                      {g.nome}
+                    </PilulaDeFamilia>
+                  ))}
+                </nav>
+              </div>
+            )
+          }
+          <nav class="pessoas-pagina__ordem" aria-labelledby="rotulo-ordem">
+            <p class="rotulo suave" id="rotulo-ordem">
+              Ordem
+            </p>
+            <p class="pessoas-pagina__opcoes">
+              {ORDENS.map((o) => (
+                <a class="acao acao--quieta" href={o.href} aria-current={o.id === ordem ? 'true' : undefined}>
+                  {o.texto}
+                </a>
+              ))}
+            </p>
           </nav>
-        )
-      }
+        </div>
+      </div>
+
+      {/* O que dá para fazer daqui. Na proposta B não há botão cheio: a tela é de procurar */}
+      <p class="pessoas-pagina__acoes">
+        <a class="acao" href="/pessoas/nova">Cadastrar pessoa</a>
+        <a class="acao" href="/arvore">Ver a árvore</a>
+        {/* Seu círculo mora no menu da conta; daqui, um link discreto para quem procurar (decisão do Gui, 17/11/2026) */}
+        {temPagina && <a class="acao acao--quieta" href="/circulo">Ver seu círculo</a>}
+      </p>
     </header>
-    {
-      grupos.map((grupo) => (
-        <section class="familia-de-gente" data-familia={grupo.cor} aria-labelledby={`familia-${grupo.id}`}>
-          <header class="familia-de-gente__nome">
-            <h2 class="serifa t-2" id={`familia-${grupo.id}`}>
-              {grupo.nome}
-            </h2>
-            <p class="rotulo suave">{contaDe(grupo.membros)}</p>
-          </header>
-          <ul class="familia-de-gente__lista">
-            {grupo.membros.map((p) => (
-              <li>
-                <Gente
-                  href={`/pessoas/${p.id}`}
-                  nome={p.nome}
-                  foto={p.retrato && !naoVe.has(p.id) ? enderecoDoRetrato(p.retrato) : null}
-                  familia={corDaPessoa(familiasDe(p), ordemDosNucleos)}
-                  laco={paraVoce(p)}
-                  detalhe={detalhe(p)}
-                  falecido={jaFaleceu(p)}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))
-    }
+
+    <div class="pessoas-pagina__lista">
+      {
+        grupos.map((grupo) => (
+          <details class="familia-de-gente" data-familia={grupo.cor} open>
+            {/* A faixa da família abre e fecha a lista dela, sem script. Nasce aberta. */}
+            <summary class="familia-de-gente__nome">
+              <h2 class="serifa t-2" id={`familia-${grupo.id}`}>
+                {grupo.nome}
+              </h2>
+              <span class="rotulo suave">{contaDe(grupo.membros)}</span>
+            </summary>
+            <ul class="familia-de-gente__lista" aria-labelledby={`familia-${grupo.id}`}>
+              {grupo.membros.map((p) => (
+                <li>
+                  <Gente
+                    href={`/pessoas/${p.id}`}
+                    nome={p.nome}
+                    foto={p.retrato && !naoVe.has(p.id) ? enderecoDoRetrato(p.retrato) : null}
+                    familia={corDaPessoa(familiasDe(p), ordemDosNucleos)}
+                    laco={paraVoce(p)}
+                    detalhe={detalhe(p)}
+                    falecido={jaFaleceu(p)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </details>
+        ))
+      }
+    </div>
   </div>
 </Visual>
 
@@ -164,6 +209,20 @@ const ORDENS = [
     addEventListener('pageshow', () => {
       lista.value = '';
       lista.dispatchEvent(new Event('busca:atualizar'));
+    });
+  }
+
+  // "Famílias e ordem": no celular, as famílias e a ordem ficam guardadas atrás de um controle, e só a
+  // busca fica à vista. No computador o CSS esconde o controle e mostra tudo. Sem script, tudo à vista.
+  const controles = document.querySelector<HTMLElement>('[data-controles]');
+  const abre = controles?.querySelector<HTMLButtonElement>('button');
+  if (controles && abre) {
+    controles.setAttribute('data-recolhe', '');
+    abre.hidden = false;
+    abre.addEventListener('click', () => {
+      const aberta = !controles.hasAttribute('data-aberta');
+      controles.toggleAttribute('data-aberta', aberta);
+      abre.setAttribute('aria-expanded', String(aberta));
     });
   }
 </script>

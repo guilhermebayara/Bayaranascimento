@@ -6,27 +6,27 @@
 .pessoas-pagina {
   padding-block: var(--e-7) var(--e-9);
 }
+
+/* --- O alto, que no computador vira o índice ao lado da lista ------------------------------------
+   Três grupos: o que a página é (título, conta e frase), achar alguém (busca, famílias e ordem) e o
+   que dá para fazer (cadastrar, árvore, círculo). Dentro de um grupo, --e-1 a --e-4; entre grupos,
+   --e-6, e o rótulo fica a --e-1 do que nomeia. */
 .pessoas-pagina__abre h1 {
-  margin-top: var(--e-2);
   margin-left: -0.04em;
 }
-.pessoas-pagina__frase {
-  max-width: 22em;
-  margin-top: var(--e-4);
+/* A conta fica colada no título: é dele que ela fala */
+.pessoas-pagina__abre .rotulo {
+  margin-top: var(--e-2);
 }
-.pessoas-pagina__acoes {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--e-2) var(--e-5);
-  margin-top: var(--e-5);
+.pessoas-pagina__frase {
+  max-width: 28em;
+  margin-top: var(--e-3);
 }
 /* "Procurar pelo nome": o campo da busca de pessoa (src/lib/cliente/busca-pessoa.ts). Sem script,
    fica a lista suspensa com "Abrir a página". */
 .pessoas-pagina__busca {
   display: grid;
   gap: var(--e-1);
-  max-width: 26rem;
   margin-top: var(--e-6);
 }
 .pessoas-pagina__campo {
@@ -99,42 +99,143 @@
   color: var(--tinta-suave);
   cursor: default;
 }
-/* A ordem da lista: por geração ou de A a Z. A que está valendo fica em tinta, sem sublinhado. */
+/* "Famílias e ordem": no celular, o controle que guarda as famílias e a ordem (o script põe
+   data-recolhe; sem ele, tudo fica à vista). Fechado, ele diz o que está valendo. */
+.pessoas-pagina__controles {
+  margin-top: var(--e-5);
+}
+.pessoas-pagina__controles[data-recolhe] {
+  margin-top: var(--e-3);
+}
+.pessoas-pagina__abre-controles {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-4);
+  width: 100%;
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.pessoas-pagina__abre-controles[hidden] {
+  display: none;
+}
+.pessoas-pagina__escolhido {
+  color: var(--tinta-suave);
+  font-weight: 400;
+}
+/* O sinal de abrir e fechar: um mais que vira xis, como no menu */
+.pessoas-pagina__abre-controles::after {
+  content: '';
+  flex: none;
+  width: 0.8em;
+  height: 0.8em;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  transition: rotate var(--tempo-medio) var(--curva);
+}
+.pessoas-pagina__abre-controles[aria-expanded='true']::after {
+  rotate: 45deg;
+}
+.pessoas-pagina__abre-controles:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+.pessoas-pagina__controles[data-recolhe]:not([data-aberta]) .pessoas-pagina__escolhas {
+  display: none;
+}
+.pessoas-pagina__escolhas {
+  display: grid;
+  gap: var(--e-5);
+}
+.pessoas-pagina__controles[data-recolhe] .pessoas-pagina__escolhas {
+  padding-top: var(--e-4);
+}
+.pessoas-pagina__familias,
 .pessoas-pagina__ordem {
+  display: grid;
+  gap: var(--e-1);
+}
+/* A ordem da lista: por geração ou de A a Z. A que está valendo fica em tinta, sem sublinhado. */
+.pessoas-pagina__opcoes {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0 var(--e-5);
-  margin-top: var(--e-4);
 }
-.pessoas-pagina__ordem a[aria-current] {
+.pessoas-pagina__opcoes a[aria-current] {
   color: var(--tinta);
   font-weight: 550;
   text-decoration: none;
 }
-/* Os atalhos para cada família: quietos, numa linha */
-.pessoas-pagina__atalhos {
+/* Cadastrar, a árvore e o círculo: ações de texto, separadas do achar por um fio */
+.pessoas-pagina__acoes {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 var(--e-5);
-  margin-top: var(--e-2);
-  padding-top: var(--e-2);
+  align-items: center;
+  gap: var(--e-2) var(--e-5);
+  margin-top: var(--e-6);
+  padding-top: var(--e-4);
   border-top: 1px solid var(--fio);
 }
 
-.familia-de-gente {
+/* --- A lista: cada família é uma faixa na cor dela, que abre e fecha a lista (details) ---------- */
+.pessoas-pagina__lista {
   margin-top: var(--e-7);
+}
+.familia-de-gente + .familia-de-gente {
+  margin-top: var(--e-6);
 }
 /* O nome da família no bloco da cor dela, como a capa do álbum de cada casa */
 .familia-de-gente__nome {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--e-4);
+  flex-wrap: wrap;
+  gap: var(--e-1) var(--e-4);
+  position: relative;
   padding: var(--e-4) var(--e-5);
+  /* O sinal de abrir mora à direita, fora do texto, para o nome e a conta quebrarem sem levá-lo junto */
+  padding-right: calc(var(--e-5) + 0.9rem + var(--e-4));
   border-radius: var(--raio-bloco);
   background: var(--pastel);
   --tinta-suave: color-mix(in srgb, var(--tinta) 76%, var(--pastel));
+  list-style: none;
+  cursor: pointer;
+}
+.familia-de-gente__nome::-webkit-details-marker {
+  display: none;
+}
+/* A conta e o sinal ficam juntos à direita; o sinal é um mais que vira xis quando a lista abre */
+.familia-de-gente__nome .rotulo {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.familia-de-gente__nome::after {
+  content: '';
+  position: absolute;
+  top: calc(50% - 0.45rem);
+  right: var(--e-5);
+  width: 0.9rem;
+  height: 0.9rem;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  transition: rotate var(--tempo-medio) var(--curva);
+}
+.familia-de-gente[open] > .familia-de-gente__nome::after {
+  rotate: 45deg;
+}
+.familia-de-gente__nome:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
 }
 .familia-de-gente__lista {
   display: grid;
@@ -155,15 +256,56 @@
 
 @media (min-width: 62rem) {
   .pessoas-pagina {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--calha);
+    align-items: start;
     padding-block: var(--e-8) var(--e-9);
   }
+  /* O índice: a coluna da esquerda, com as famílias empilhadas e a conta de cada uma à direita */
+  .pessoas-pagina__indice {
+    grid-column: 1 / span 3;
+  }
+  .pessoas-pagina__lista {
+    grid-column: 5 / -1;
+    margin-top: 0;
+  }
+  .pessoas-pagina__controles .pessoas-pagina__abre-controles {
+    display: none;
+  }
+  .pessoas-pagina__controles[data-recolhe] {
+    margin-top: var(--e-5);
+  }
+  .pessoas-pagina__controles[data-recolhe]:not([data-aberta]) .pessoas-pagina__escolhas {
+    display: grid;
+  }
+  .pessoas-pagina__controles[data-recolhe] .pessoas-pagina__escolhas {
+    padding-top: 0;
+  }
+  .pessoas-pagina__familias .pilulas-de-familia {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pessoas-pagina__familias .pilula-de-familia__conta {
+    margin-left: auto;
+  }
   .familia-de-gente__lista {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* O índice acompanha a lista só onde há mouse: no toque, nada fica preso (a banda do Safari no
+   iPhone, ver CLAUDE.md). E só quando ele cabe inteiro na altura da janela
+   (com cinco famílias ele tem uns 790 px). */
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) and (min-height: 54rem) {
+  .pessoas-pagina__indice {
+    position: sticky;
+    top: var(--e-6);
   }
 }
 
 @media (min-width: 100rem) {
   .familia-de-gente__lista {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

@@ -169,6 +169,7 @@ O CSS está em `src/visual/` e os componentes em `src/components/visual/`. A pá
 | Recado de "salvou" ou de erro | `Recado.astro` | `<Recado>` ou `<Recado erro>` |
 | Tela sem nada para mostrar | `Vazio.astro` | `<Vazio frase="…">` com a ação dentro |
 | As ações de apagar de uma tela de editar | `ZonaDePerigo.astro` (classe `perigo`) | `<ZonaDePerigo>` no fim da página, fora do formulário que salva, com uma frase e o link para a confirmação. É quieta: um fio na cor de alerta em cima, sem fundo. `menor nivel={4}` dentro de um cartão, como o editor de um laço. Quem usa decide se ela aparece, pela permissão de sempre |
+| Uma família que filtra ou que se escolhe | `PilulaDeFamilia.astro` | `href`, `familia` (a cor, de `corDoNucleo`, ou `tudo`), `atual` e `conta` (um número pequeno à direita, opcional), o nome dentro. Várias ficam num elemento com a classe `pilulas-de-familia`. Família é sempre pill: o ponto na cor viva e, marcada, a pílula inteira no pastel. Hoje em Pessoas; o Explorar ainda desenha as dele em `telas/linha.css` e pode passar a usar a peça |
 | Uma escolha só entre poucas | `Segmentado.astro` | `rotulo`, `nome`, `opcoes` (`valor`, `texto`, `atual`), `travado` e `explicacao` (o id do texto colado embaixo). Cada opção é um rádio, que vai junto com o formulário e funciona sem script. Só em "Quem pode ver?" da nova memória; outro uso é decisão do Gui, porque em Pessoas ele confundia (dava a entender que mudava a forma de organizar) |
 | Ícone de tipo, rabisco de caneta | `IconeDoTipo.astro`, `Rabisco.astro` | São enfeite: o texto está sempre escrito ao lado. Os desenhos estão em `src/visual/rabiscos.ts` |
 | A ação principal da tela | classe `botao` | Uma por tela. `aria-disabled="true"` ou `disabled` para o estado sem poder agir |
@@ -480,7 +481,12 @@ A ação principal fica também no alto, como atalho, para quem chega querendo c
 
 ### Pessoas
 
-`telas/pessoas.css`. Cada família é uma parte da página com a cor dela: o nome da família num bloco pastel, com a conta por extenso e os retratos na margem do nome, e as pessoas embaixo com a peça Gente, em uma, duas, três ou quatro colunas. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho. No alto, a conta de pessoas e bichos, "Procurar pelo nome", a troca de ordem ("Por geração", "De A a Z"), "Cadastrar pessoa", "Ver a árvore", "Ver seu círculo" e os atalhos para cada família. A frase do alto é "Quem aparece nas memórias da família, por família.".
+`telas/pessoas.css`. Proposta B do conceito da sessão E ("Índice ao lado", escolhida pelo Gui em 17/11/2026, com dois ajustes). O alto tem três grupos, a `--e-6` uns dos outros: o que a página é (o título "Pessoas" com a conta colada nele e a frase "Quem aparece nas memórias da família, por família."), achar alguém (busca, famílias e ordem) e o que dá para fazer ("Cadastrar pessoa", "Ver a árvore" e "Ver seu círculo", todas ações de texto, depois de um fio).
+
+- **Celular:** só a busca fica à vista. O controle "Famílias e ordem" (um mais que vira xis) abre as famílias e a ordem no lugar, empurrando a página; fechado, diz o que está valendo. Sem script, tudo à vista e o controle não aparece.
+- **Computador:** o alto vira o índice, na coluna da esquerda (3 das 12 colunas), com as famílias empilhadas e a conta de cada uma à direita da pílula; a lista ocupa da coluna 5 ao fim, em duas colunas de pessoas (três na tela grande). O índice acompanha a lista (`sticky`) só onde há mouse (`hover: hover` e `pointer: fine`) e quando a janela tem pelo menos 54rem de altura, porque com cinco famílias ele tem uns 790 px e não pode ficar cortado. No toque, nada fica preso.
+- **Famílias:** a peça Pílula de família, uma por vez, com "Todas" no começo.
+- **Cada família** é uma faixa na cor dela (`details`), com o nome em serifa, a conta por extenso e o sinal de abrir à direita, que abre e fecha a lista dela. Nasce aberta. As pessoas embaixo usam a peça Gente, com os retratos na margem do nome da família. Cada pessoa mostra o retrato, o nome, o que ela é para quem olha ("sua avó", "você") e a conta das memórias, com a espécie quando é bicho.
 
 ### Capítulos, capítulo e tema
 

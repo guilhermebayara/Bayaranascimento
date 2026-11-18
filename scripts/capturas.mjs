@@ -54,6 +54,15 @@ const etapa = (n) => async (pagina) => {
   for (let i = 0; i < n; i++) await pagina.locator('[data-etapa-continuar]').click();
 };
 // Abre o editor do primeiro laço e a pergunta de remover, para a zona de perigo aparecer
+// Pessoas: no celular, abre "Famílias e ordem" (no computador o controle não aparece)
+const abrirFamiliasEOrdem = async (pagina) => {
+  const abre = pagina.locator('.pessoas-pagina__abre-controles');
+  if (await abre.isVisible()) await abre.click();
+};
+// Pessoas: fecha a faixa da primeira família
+const fecharFamilia = async (pagina) => {
+  await pagina.locator('details.familia-de-gente > summary').first().click();
+};
 const abrirLaco = async (pagina) => {
   await pagina.locator('details.editar > summary').first().click();
   await pagina.locator('details.editar[open] details.confirmar > summary').first().click();
@@ -163,6 +172,9 @@ const PAGINAS = [
   { nome: 'familia-2-capitulo-de-dentro', url: '/capitulos/natais-na-vo-vivica', como: 'giovanna', larguras: TODAS },
   { nome: 'familia-3-tema', url: '/temas/natal', como: 'giovanna', larguras: TODAS, corte: 5000 },
   { nome: 'familia-4-pessoas', url: '/pessoas', como: 'giovanna', larguras: TODAS },
+  { nome: 'familia-4-pessoas-familias-e-ordem', url: '/pessoas', como: 'giovanna', larguras: [390], antes: abrirFamiliasEOrdem },
+  { nome: 'familia-4-pessoas-filtrada', url: '/pessoas?familia=bracarense&ordem=nome', como: 'giovanna', larguras: TODAS },
+  { nome: 'familia-4-pessoas-faixa-fechada', url: '/pessoas', como: 'giovanna', larguras: TODAS, antes: fecharFamilia },
   // A árvore: como abre, com alguém em foco (a ficha), com um ramo aberto e com os ajustes abertos
   { nome: 'familia-5-arvore', url: '/arvore', larguras: TODAS },
   { nome: 'familia-5-arvore-foco', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.mapa a.no[data-id="elizete"]').dispatchEvent('click') },

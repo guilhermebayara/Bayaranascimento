@@ -1,7 +1,7 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, na lista de Pessoas e na
 // página da pessoa (P98 a P108 de docs/qa/2026-11-17-perguntas.md).
 import { describe, expect, it } from 'vitest';
-import { ordemPedida, ordenarPessoas, type PessoaDaLista } from '../src/lib/ordem-das-pessoas';
+import { enderecoDePessoas, familiaPedida, gruposDaFamilia, ordemPedida, ordenarPessoas, type PessoaDaLista } from '../src/lib/ordem-das-pessoas';
 import { calcularGeracoes } from '../src/lib/parentesco';
 import { vidaSemRotulo } from '../src/lib/datas';
 
@@ -70,13 +70,14 @@ describe('a lista de Pessoas', () => {
     expect(pagina).toContain('buscaDePessoa(lista);');
   });
   it('a troca de ordem é um link, no endereço, e diz qual está valendo (P98)', () => {
-    expect(pagina).toMatch(/\{ id: 'geracao', texto: 'Por geração', href: '\/pessoas' \}/);
-    expect(pagina).toMatch(/\{ id: 'nome', texto: 'De A a Z', href: '\/pessoas\?ordem=nome' \}/);
+    // A troca de ordem guarda a família filtrada (proposta B, 17/11/2026)
+    expect(pagina).toMatch(/\{ id: 'geracao', texto: 'Por geração', href: enderecoDePessoas\(familiaEmUso, 'geracao'\) \}/);
+    expect(pagina).toMatch(/\{ id: 'nome', texto: 'De A a Z', href: enderecoDePessoas\(familiaEmUso, 'nome'\) \}/);
     expect(pagina).toMatch(/aria-current=\{o\.id === ordem \? 'true' : undefined\}/);
     expect(pagina).toMatch(/const ordem = ordemPedida\(Astro\.url\.searchParams\.get\('ordem'\)\);/);
   });
   it('a conta de cada família vem por extenso, e quem é de duas continua nas duas (P99)', () => {
-    expect(pagina).toMatch(/<p class="rotulo suave">\{contaDe\(grupo\.membros\)\}<\/p>/);
+    expect(pagina).toMatch(/<span class="rotulo suave">\{contaDe\(grupo\.membros\)\}<\/span>/);
     expect(pagina).toMatch(/integrantes\.filter\(\(i\) => familiasDe\(i\)\.includes\(n\.id\)\)/);
   });
   it('os retratos nascem na margem do nome da família (P100)', () => {
@@ -86,6 +87,75 @@ describe('a lista de Pessoas', () => {
   });
   it('sem memória nenhuma, a linha da conta não aparece (P101)', () => {
     expect(pagina).toMatch(/n > 0 \? plural\(n, 'memória', 'memórias'\) : null/);
+  });
+});
+
+describe('Pessoas na proposta B (escolha do Gui no conceito da sessão E, 17/11/2026)', () => {
+  const pagina = ler('src/pages/pessoas/index.astro');
+  const css = semComentario(ler('src/visual/telas/pessoas.css'));
+  const pecas = semComentario(ler('src/visual/pecas.css'));
+  const celular = css.slice(0, css.indexOf('@media (min-width: 40rem)'));
+  const comMouse = '@media (min-width: 62rem) and (hover: hover) and (pointer: fine)';
+
+  it('a família pedida no endereço só vale se estiver na lista; outra coisa é "Todas"', () => {
+    const familias = ['bayara', 'bracarense', 'outras'];
+    expect(familiaPedida('bracarense', familias)).toBe('bracarense');
+    expect(familiaPedida('outras', familias)).toBe('outras');
+    for (const valor of [null, undefined, '', 'nao-existe', 'BAYARA']) expect(familiaPedida(valor, familias)).toBeNull();
+    // A família que a pessoa não vê, ou vazia, não entra na lista, e por isso não filtra
+    expect(familiaPedida('bayara', ['outras'])).toBeNull();
+  });
+  it('a pílula filtra uma família por vez, e "Todas" mostra todas', () => {
+    const grupos = [{ id: 'bayara' }, { id: 'bracarense' }, { id: 'outras' }];
+    expect(gruposDaFamilia(grupos, 'bracarense')).toEqual([{ id: 'bracarense' }]);
+    expect(gruposDaFamilia(grupos, null)).toEqual(grupos);
+  });
+  it('a família e a ordem ficam juntas no endereço: trocar uma não desfaz a outra', () => {
+    expect(enderecoDePessoas(null, 'geracao')).toBe('/pessoas');
+    expect(enderecoDePessoas(null, 'nome')).toBe('/pessoas?ordem=nome');
+    expect(enderecoDePessoas('bracarense', 'geracao')).toBe('/pessoas?familia=bracarense');
+    expect(enderecoDePessoas('bracarense', 'nome')).toBe('/pessoas?familia=bracarense&ordem=nome');
+    expect(pagina).toMatch(/const familiaEmUso = familiaPedida\(Astro\.url\.searchParams\.get\('familia'\), todosOsGrupos\.map\(\(g\) => g\.id\)\);/);
+    expect(pagina).toMatch(/const grupos = gruposDaFamilia\(todosOsGrupos, familiaEmUso\);/);
+    // As pílulas guardam a ordem; a de cada família e "Todas"
+    expect(pagina).toMatch(/<PilulaDeFamilia href=\{enderecoDePessoas\(null, ordem\)\} familia="tudo" atual=\{familiaEmUso === null\}>\s*Todas/);
+    expect(pagina).toMatch(/<PilulaDeFamilia href=\{enderecoDePessoas\(g\.id, ordem\)\} familia=\{g\.cor\} atual=\{familiaEmUso === g\.id\}/);
+  });
+  it('família é sempre pill: a peça do sistema, com o ponto na cor viva e, marcada, o pastel', () => {
+    const peca = ler('src/components/visual/PilulaDeFamilia.astro');
+    expect(peca).toMatch(/<a class="pilula-de-familia" href=\{href\} data-familia=\{familia\} aria-current=\{atual \? 'true' : undefined\}>/);
+    expect(pecas).toMatch(/\.pilula-de-familia::before \{[^}]*background: var\(--vivo\);/);
+    expect(pecas).toMatch(/\.pilula-de-familia\[aria-current\] \{[^}]*background: var\(--pastel\);/);
+    expect(pecas).toMatch(/\.pilula-de-familia \{[^}]*min-height: var\(--toque\);/);
+    expect(ler('src/pages/sistema.astro')).toContain('<PilulaDeFamilia');
+  });
+  it('cada família é uma faixa que abre e fecha sem script, e nasce aberta', () => {
+    expect(pagina).toMatch(/<details class="familia-de-gente" data-familia=\{grupo\.cor\} open>\s*(\{\/\*[\s\S]*?\*\/\}\s*)?<summary class="familia-de-gente__nome">/);
+    expect(css).toMatch(/\.familia-de-gente__nome::-webkit-details-marker \{\s*display: none;/);
+    expect(css).toMatch(/\.familia-de-gente\[open\] > \.familia-de-gente__nome::after \{\s*rotate: 45deg;/);
+    expect(css).toMatch(/\.familia-de-gente__nome:focus-visible \{\s*outline:/);
+  });
+  it('no celular só a busca fica à vista; "Famílias e ordem" abre o resto, e sem script tudo fica à vista', () => {
+    expect(pagina).toMatch(/<button class="pessoas-pagina__abre-controles" type="button" aria-expanded="false" aria-controls="familias-e-ordem" hidden>/);
+    expect(pagina).toMatch(/controles\.setAttribute\('data-recolhe', ''\);/);
+    expect(celular).toMatch(/\.pessoas-pagina__controles\[data-recolhe\]:not\(\[data-aberta\]\) \.pessoas-pagina__escolhas \{\s*display: none;/);
+    // Sem o atributo que o script põe, nada some
+    expect(celular).not.toMatch(/\n\.pessoas-pagina__escolhas \{[^}]*display: none/);
+    // No computador, as escolhas ficam sempre à vista e o controle não aparece
+    const computador = css.slice(css.indexOf('@media (min-width: 62rem)'), css.indexOf(comMouse));
+    expect(computador).toMatch(/\.pessoas-pagina__controles\[data-recolhe\]:not\(\[data-aberta\]\) \.pessoas-pagina__escolhas \{\s*display: grid;/);
+    expect(computador).toMatch(/\.pessoas-pagina__controles \.pessoas-pagina__abre-controles \{\s*display: none;/);
+  });
+  it('o índice só fica preso onde há mouse; no toque, nada preso (banda do Safari no iPhone)', () => {
+    expect(css.match(/position:\s*sticky/g)).toHaveLength(1);
+    const preso = css.slice(css.indexOf(comMouse));
+    expect(preso).toMatch(/^@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\)[^{]*\{\s*\.pessoas-pagina__indice \{\s*position: sticky;/);
+    expect(css.slice(0, css.indexOf(comMouse))).not.toMatch(/position:\s*(sticky|fixed)/);
+  });
+  it('na B não há botão cheio: "Cadastrar pessoa" é ação de texto, e "Ver seu círculo" continua', () => {
+    expect(pagina).not.toMatch(/class="botao"/);
+    expect(pagina).toMatch(/<a class="acao" href="\/pessoas\/nova">Cadastrar pessoa<\/a>/);
+    expect(pagina).toMatch(/\{temPagina && <a class="acao acao--quieta" href="\/circulo">Ver seu círculo<\/a>\}/);
   });
 });
 
