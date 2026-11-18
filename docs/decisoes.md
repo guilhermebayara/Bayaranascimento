@@ -641,6 +641,7 @@ Origem: [histórico, "Visual"](historico/decisoes-ate-2026-11-17.md#visual).
 
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
+- **Marca de quem já faleceu, para o acabamento visual** (observação do Gui, 18/11/2026). O retrato em arco é amado porque parece janela de casa do interior, mas o contorno em volta do arco, com os cantos de baixo arredondados, fez o retrato de quem faleceu lembrar uma lápide. A marca muda; o arco fica. Direções para o conceito: nada de contorno que desenhe a silhueta inteira do arco; os cantos de baixo do retrato retos, como o peitoril de uma janela (vale para todos os retratos, se ficar melhor); a marca discreta sai do retrato e vai para perto do nome, ou vira um tratamento da própria foto, sempre sem sinal religioso nem nada que remeta a cemitério (cruz, flor de túmulo, vela, lápide). Duas propostas, na sessão de acabamento.
 - **Observações e decisões do Gui depois da sessão H** (18/11/2026).
     - **Administração na conta:** todos os grupos começam fechados.
     - **Relato num campo só** (conceito com duas propostas antes de construir). Escrever e falar com o mesmo peso: uma caixa de relato grande, que cresce com o texto, com o microfone no canto dela, como no WhatsApp; os áudios gravados aparecem como balões dentro da mesma caixa. Hoje o áudio vem antes e pode ser lido como a única possibilidade ou como um incentivo a não escrever. A tela inteira do relato merece um cuidado a mais.
