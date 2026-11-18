@@ -8,6 +8,7 @@ import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
 import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
+import { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
 
 interface Migracao {
   id: string;
@@ -912,6 +913,9 @@ async function migrar(db: D1Database): Promise<void> {
       db.prepare('INSERT OR IGNORE INTO _migracoes (id) VALUES (?)').bind(migracao.id),
     ]);
   }
+
+  // A homologação volta às fotos de exemplo nos retratos, uma vez só (ver retratos-da-homologacao.ts)
+  await consertarRetratosDaHomologacao(db);
 
   // Memórias de exemplo só existem nas prévias e no computador. Nunca na produção, e nunca na
   // homologação, que recebe a estrutura espelhada da produção (ver espelho.ts).
