@@ -87,13 +87,6 @@ describe('formulários', () => {
     const busca = ler('src/lib/cliente/busca-pessoa.ts');
     expect(busca).toMatch(/\} else if \(e\.key === 'Enter'\) \{\s*(\/\/[^\n]*\n\s*)*e\.preventDefault\(\);/);
   });
-  it('47-N10: no celular, a frase com lacunas sai na última etapa da nova memória', () => {
-    const nova = ler('src/pages/nova.astro');
-    expect(nova).toContain("const naUltimaNoCelular = !haLado.matches && Boolean(secaoAtual.querySelector('[data-resumo]'));");
-    expect(nova).toContain('fraseDaAbertura.hidden = naEtapaDaFrase || naUltimaNoCelular;');
-    // A troca entre celular e computador recalcula
-    expect(nova).toContain("haLado.addEventListener('change', esconderFraseDaAbertura);");
-  });
 });
 
 describe('relato em nome de quem só existe num laço privado', () => {

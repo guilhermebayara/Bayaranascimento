@@ -22,9 +22,11 @@ interface Props {
   secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'pessoas' | 'conta' | 'nova';
   /** Página de trabalho estreita (o padrão) ou larga, para listas e tabelas */
   larga?: boolean;
+  /** Sem a abertura de sempre: a página traz o próprio alto, com o h1 (a nova memória, em frase) */
+  semAbertura?: boolean;
 }
 
-const { titulo, aba, rotulo, nucleos, secao, larga = false } = Astro.props;
+const { titulo, aba, rotulo, nucleos, secao, larga = false, semAbertura = false } = Astro.props;
 // Recados deixados por formulários comuns, que voltam para a página com ?ok= ou ?erro=
 const recadoOk = Astro.url.searchParams.get('ok');
 const recadoErro = Astro.url.searchParams.get('erro');
@@ -34,20 +36,22 @@ const recadoErro = Astro.url.searchParams.get('erro');
   <noscript>
     {/* Sem JavaScript: some o que só funciona com ele, e aparecem os blocos que ele mostraria conforme a escolha */}
     <style is:inline>
-      [data-passo], .atalhos, [data-etapa-voltar], [data-etapa-continuar], [data-adicionar-pessoa], .botao--arquivo, [data-tirar-retrato], [data-confirmar-cancelar], [data-frase-data], [data-remover], [data-frase-abertura], [data-ao-lado] { display: none !important; }
+      [data-passo], .atalhos, [data-etapa-voltar], [data-etapa-continuar], [data-adicionar-pessoa], .botao--arquivo, [data-tirar-retrato], [data-confirmar-cancelar], [data-frase-data], [data-remover], [data-so-com-script], [data-hoje] { display: none !important; }
       [data-para][hidden], [data-so-epoca][hidden], [data-so-periodo][hidden], [data-depende][hidden] { display: block !important; }
     </style>
   </noscript>
   <div class:list={['pagina-de-formulario', 'miolo', { 'pagina-de-formulario--larga': larga }]}>
-    <header class="pagina-de-formulario__abre">
-      {rotulo && <p class="rotulo suave">{rotulo}</p>}
-      <h1 class="t-2">{titulo}</h1>
-      <div class="pagina-de-formulario__frase suave">
-        <slot name="abertura" />
-      </div>
-      {/* A frase com lacunas da abertura (Nova memória): quem usa decide se ela existe */}
-      <slot name="frase" />
-    </header>
+    {
+      !semAbertura && (
+        <header class="pagina-de-formulario__abre">
+          {rotulo && <p class="rotulo suave">{rotulo}</p>}
+          <h1 class="t-2">{titulo}</h1>
+          <div class="pagina-de-formulario__frase suave">
+            <slot name="abertura" />
+          </div>
+        </header>
+      )
+    }
     {recadoErro && <Recado erro>{recadoErro}</Recado>}
     {recadoOk && <Recado>{recadoOk}</Recado>}
     <slot />
