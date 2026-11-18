@@ -53,6 +53,16 @@ describe('o ex que virou amigo', () => {
   it('desligar a camada de consideração e coração tira a amizade, como tira os outros laços do coração', () => {
     const m = montarDesenho(dados, estado({ consideracao: false }));
     expect(m.coracao.some((l) => l.pessoa === 'thiago')).toBe(false);
+    // E a pessoa sai junto: nem na árvore, nem nas gerações, nem no desenho (observação do Gui, 18/11/2026)
+    expect(m.principal.has('thiago')).toBe(false);
+    expect(m.geracoes.has('thiago')).toBe(false);
+    expect(m.desenho.pessoas.some((p) => p.id === 'thiago')).toBe(false);
+  });
+  it('com a camada desligada, a ficha de quem saiu da árvore fecha e o foco volta para quem está na tela', () => {
+    const cliente = readFileSync('src/lib/cliente/arvore.ts', 'utf8');
+    const fim = cliente.slice(cliente.indexOf('const estaNaTela = '), cliente.indexOf('mostrarFicha();', cliente.indexOf('const estaNaTela = ')));
+    expect(fim).toMatch(/if \(!estaNaTela\(estado\.foco\)\) \{\s*fichaAberta = false;/);
+    expect(fim).toContain('guardarNoEndereco();');
   });
   it('a página da árvore manda os casais já separados das amizades', () => {
     const pagina = readFileSync('src/pages/arvore.astro', 'utf8');
