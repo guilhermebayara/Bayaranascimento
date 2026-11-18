@@ -72,6 +72,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
   const botoesDoCoracao = new Map<string, HTMLButtonElement>();
   // Marcas dos ramos recolhidos e os cartões dos ramos abertos, refeitos a cada desenho
   const extras: HTMLElement[] = [];
+  // Os ramos recolhidos do último desenho, para a busca saber em qual deles alguém está
+  let ramosDeAgora: { chave: string; membros: string[] }[] = [];
   const svg = document.createElementNS(SVG, 'svg');
   svg.setAttribute('class', 'mapa__linhas');
   svg.setAttribute('aria-hidden', 'true');
@@ -150,7 +152,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
   const centralizar = (id: string, animado = true) => {
     const no = desenho?.pessoas.find((p) => p.id === id);
     if (!no) return;  // quem está num ramo aberto já está à vista
-    const livre = areaLivre(mapa.clientHeight);
+    const livre = areaLivre();
     vista.x = livre.x + livre.w / 2 - (no.x + MEDIDAS.largura / 2) * vista.zoom;
     vista.y = livre.y + livre.h / 2 - (no.y + MEDIDAS.altura / 2) * vista.zoom;
     aplicarVista(animado);
@@ -167,34 +169,26 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
     const topo = my - MEDIDAS.altura - 40;
     const caixa = { x: cx - 24, y: topo, w: cartao.offsetWidth + 48, h: cy + cartao.offsetHeight + 24 - topo };
     const z = vista.zoom;
-    const ajuste = (inicio: number, tamanho: number, tela: number, atual: number) => {
+    // O cartão cabe no que sobra ao lado do painel e acima da barra de baixo
+    const livre = areaLivre();
+    const ajuste = (inicio: number, tamanho: number, de: number, ate: number, atual: number) => {
       const a = atual + inicio * z;
       const b = a + tamanho * z;
-      if (tamanho * z > tela) return atual - a;
-      if (a < 0) return atual - a;
-      if (b > tela) return atual - (b - tela);
+      if (tamanho * z > ate - de || a < de) return atual + de - a;
+      if (b > ate) return atual - (b - ate);
       return atual;
     };
-    vista.x = ajuste(caixa.x, caixa.w, mapa.clientWidth, vista.x);
-    vista.y = ajuste(caixa.y, caixa.h, mapa.clientHeight, vista.y);
+    vista.x = ajuste(caixa.x, caixa.w, livre.x, livre.x + livre.w, vista.x);
+    vista.y = ajuste(caixa.y, caixa.h, livre.y, livre.y + livre.h, vista.y);
     aplicarVista(true);
   };
-  // No celular, os ajustes abertos ficam no pé do mapa (resposta do Gui, 17/11/2026, P92): a árvore
-  // inteira é enquadrada no que sobra acima deles, para a pessoa ver o efeito de cada caixa
-  const painel = raiz.querySelector<HTMLDetailsElement>('[data-painel]');
-  const alturaLivre = () => {
-    if (!painel?.open) return mapa.clientHeight;
-    const topo = painel.getBoundingClientRect().top - mapa.getBoundingClientRect().top;
-    // No computador o painel fica no alto, à esquerda, e a árvore continua com o mapa todo
-    return topo > mapa.clientHeight / 4 ? topo : mapa.clientHeight;
-  };
   // O quadro do mapa (docs/decisoes.md, "Página da árvore como mapa"): o painel pousado sobre o mapa
-  // ocupa um lado dele, ou uma faixa no alto ou no pé, e a árvore é enquadrada no que sobra. Sem
-  // quadro na página, a área livre é o mapa inteiro, como sempre foi.
+  // ocupa um lado dele (tela grande) ou uma faixa no alto (celular), e a árvore é enquadrada no que
+  // sobra, acima da barra de baixo.
   const quadro = raiz.querySelector<HTMLElement>('[data-quadro]');
   const barraDeBaixo = raiz.querySelector<HTMLElement>('.mapa__zoom');
-  function areaLivre(altura: number) {
-    const livre = { x: 0, y: 0, w: mapa.clientWidth, h: altura };
+  function areaLivre() {
+    const livre = { x: 0, y: 0, w: mapa.clientWidth, h: mapa.clientHeight };
     if (!quadro) return livre;
     const m = mapa.getBoundingClientRect();
     const q = quadro.getBoundingClientRect();
@@ -212,17 +206,13 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
         livre.y = pe;
         livre.h -= pe;
       }
-    } else if (q.top - m.top > m.height * 0.4) {
-      // Uma faixa no pé
-      livre.h = Math.min(livre.h, q.top - m.top);
     }
     return livre;
   }
   const verTudo = (animado = true) => {
     if (!desenho) return;
-    const altura = alturaLivre();
-    const livre = areaLivre(altura);
-    const folga = altura < mapa.clientHeight || quadro ? 24 : 56;
+    const livre = areaLivre();
+    const folga = 24;
     vista.zoom = Math.max(ZOOM_MIN, Math.min(1.1, (livre.w - folga * 2) / desenho.largura, (livre.h - folga * 2) / desenho.altura));
     vista.x = livre.x + (livre.w - desenho.largura * vista.zoom) / 2;
     vista.y = livre.y + (livre.h - desenho.altura * vista.zoom) / 2;
@@ -232,7 +222,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
   // tamanho que dá para ler, e, se não couber de lado, fica à vista o trecho de quem está em foco
   const enquadrarPelaAltura = () => {
     if (!desenho) return;
-    const livre = areaLivre(mapa.clientHeight);
+    const livre = areaLivre();
     const folga = 24;
     vista.zoom = Math.max(0.6, Math.min(1.1, (livre.h - folga * 2) / desenho.altura));
     const largura = desenho.largura * vista.zoom;
@@ -266,15 +256,9 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
     const partir = Object.assign(document.createElement('button'), { type: 'button', textContent: `Ver a árvore de ${p.nome}` });
     partir.dataset.partir = p.id;
     partir.hidden = estado.centro === p.id || !partivel.has(p.id);
-    // No celular a ficha tem uma linha, e "Mais" mostra a outra ação
-    const mais = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Mais', className: 'mapa__foco-mais' });
-    mais.dataset.maisDaFicha = '';
-    mais.setAttribute('aria-expanded', 'false');
-    mais.hidden = partir.hidden;
     const fechar = Object.assign(document.createElement('button'), { type: 'button', textContent: '×', className: 'mapa__foco-fechar' });
     fechar.dataset.fecharFicha = '';
     fechar.setAttribute('aria-label', 'Fechar');
-    ficha.removeAttribute('data-mais');
     // O retrato aparece só aqui, na ficha. Sem retrato, as iniciais sobre a cor da família.
     const retrato = document.createElement('span');
     retrato.className = 'retrato';
@@ -282,7 +266,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
     if (p.retrato) retrato.append(Object.assign(new Image(), { src: p.retrato, alt: '' }));
     else retrato.append(Object.assign(document.createElement('span'), { textContent: p.iniciais ?? '' }));
     retrato.firstElementChild!.setAttribute('aria-hidden', 'true');
-    ficha.replaceChildren(retrato, nome, quem, pagina, mais, partir, fechar);
+    ficha.replaceChildren(retrato, nome, quem, pagina, partir, fechar);
   };
   const fecharFicha = () => {
     if (!fichaAberta) return;
@@ -322,6 +306,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
   const desenhar = () => {
     // 1 e 2. Quem aparece, em que geração, e o desenho (em src/lib/arvore-montagem.ts)
     const { desenho: novo, principal, coracao, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis } = montarDesenho(dados, estado, ladoDe);
+    ramosDeAgora = ramos;
     desenho = novo;
 
     // 3. Linhas: redesenhadas a cada vez, surgindo aos poucos
@@ -722,16 +707,16 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
     const [w, h] = [(r.width / escala) * vista.zoom, (r.height / escala) * vista.zoom];
     // O que fica por cima do mapa não cobre quem está em foco: os ajustes no alto, a barra embaixo
     const barra = raiz.querySelector<HTMLElement>('.mapa__zoom');
-    const livre = { topo: 76, pe: (barra?.offsetHeight ?? 44) + 32, lado: 24 };
+    const livre = { pe: (barra?.offsetHeight ?? 44) + 32, lado: 24 };
     const ajuste = (inicio: number, tamanho: number, de: number, ate: number) => {
       if (tamanho > ate - de || inicio < de) return de - inicio;
       if (inicio + tamanho > ate) return ate - (inicio + tamanho);
       return 0;
     };
     // No quadro, o painel também não cobre quem está em foco
-    const area = quadro ? areaLivre(mapa.clientHeight) : undefined;
-    const dx = ajuste(x, w, (area?.x ?? 0) + livre.lado, mapa.clientWidth - livre.lado);
-    const dy = area ? ajuste(y, h, area.y + 24, Math.min(area.y + area.h, mapa.clientHeight - livre.pe)) : ajuste(y, h, livre.topo, mapa.clientHeight - livre.pe);
+    const area = areaLivre();
+    const dx = ajuste(x, w, area.x + livre.lado, mapa.clientWidth - livre.lado);
+    const dy = ajuste(y, h, area.y + 24, Math.min(area.y + area.h, mapa.clientHeight - livre.pe));
     if (!dx && !dy) return;
     vista.x += dx;
     vista.y += dy;
@@ -806,17 +791,10 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
     fecharFicha();
   });
 
-  // Na ficha: "×" fecha, "Mais" mostra a outra ação no celular, e "Ver a árvore de Fulano" faz a
-  // linha direta passar a ser a dela
+  // Na ficha: "×" fecha, e "Ver a árvore de Fulano" faz a linha direta passar a ser a dela
   ficha.addEventListener('click', (evento) => {
     const alvo = evento.target as HTMLElement;
     if (alvo.closest('[data-fechar-ficha]')) return fecharFicha();
-    const mais = alvo.closest<HTMLButtonElement>('[data-mais-da-ficha]');
-    if (mais) {
-      const aberto = ficha.toggleAttribute('data-mais');
-      mais.setAttribute('aria-expanded', String(aberto));
-      return;
-    }
     const botao = alvo.closest<HTMLButtonElement>('[data-partir]');
     if (!botao) return;
     estado.centro = botao.dataset.partir!;
@@ -840,30 +818,51 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
   // O endereço passa a dizer o que está na tela (um centro inválido some dele)
   guardarNoEndereco();
   desenhar();
-  // Abre mostrando a árvore inteira. Se ela ficar pequena demais para ler, abre no foco.
-  if (quadro) enquadrarPelaAltura();
-  else {
-    verTudo(false);
-    if (vista.zoom < 0.6) {
-      vista.zoom = 0.75;
-      centralizar(estado.foco, false);
-    }
-  }
+  // Abre com a altura da tela guiando o enquadramento: a árvore à vista de cima a baixo
+  enquadrarPelaAltura();
   // As caixas só passam a deslizar depois do primeiro desenho, para não "voarem" na chegada
   requestAnimationFrame(() => camada.classList.add('mapa__camada--viva'));
 
+  const naTela = (id: string) => Boolean(desenho?.pessoas.some((p) => p.id === id)) || Boolean(camadaDosRamos.querySelector(`a.no[data-id="${CSS.escape(id)}"]`));
   return {
+    // A busca por nome (resposta do Gui, 17/11/2026): a linha direta fica como está. Quem está num
+    // ramo recolhido aparece com o cartão do ramo aberto, e o mapa vai até a pessoa, com a ficha.
     irPara(id) {
-      if (!pessoa.has(id)) return;
-      const naTela = Boolean(desenho?.pessoas.some((p) => p.id === id)) || Boolean(camadaDosRamos.querySelector(`a.no[data-id="${CSS.escape(id)}"]`));
-      // Quem está num ramo recolhido não tem cartão: a árvore passa a partir dessa pessoa
-      if (!naTela && partivel.has(id)) {
+      const p = pessoa.get(id);
+      if (!p) return;
+      let ramo: { chave: string } | undefined;
+      let trocouCentro = false;
+      if (!naTela(id)) {
+        // Um filtro que esconde a pessoa é desligado antes de procurar
+        if (p.bicho) estado.bichos = true;
+        if (estado.nucleo && !p.nucleos.includes(estado.nucleo)) estado.outros = true;
+        desenhar();
+      }
+      if (!naTela(id)) {
+        ramo = ramosDeAgora.find((r) => r.membros.includes(id));
+        const laco = dados.coracao.find((l) => l.pessoa === id);
+        if (ramo) estado.ramos.add(ramo.chave);
+        else if (laco) {
+          // Quem só aparece por um laço do coração: os laços de quem escolheu se abrem
+          estado.consideracao = true;
+          estado.abertos.add(laco.dono);
+          if (!laco.papel) estado.amigos = true;
+        }
+        desenhar();
+      }
+      // Só quem não tem lugar na árvore de agora vira o ponto de partida
+      if (!naTela(id) && partivel.has(id)) {
         estado.centro = id;
         estado.ramos.clear();
         protegerCentro();
+        trocouCentro = true;
       }
       focar(id);
-      if (!naTela) verTudo();
+      if (ramo) mostrarCartao(ramo.chave);
+      else if (trocouCentro) verTudo();
+      // Por fim, a pessoa procurada fica à vista, fora do painel e da barra
+      const cartao = raiz.querySelector<HTMLElement>(`a.no[data-id="${CSS.escape(id)}"]`);
+      if (cartao) trazerParaAVista(cartao);
     },
   };
 }

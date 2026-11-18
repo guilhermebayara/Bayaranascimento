@@ -991,6 +991,16 @@ Branch `tst-visual-ajustes`, nascida da `homologa` em 17/11/2026, com o que o Gu
 - **Numa TV de verdade:** o modo TV com o controle, e os formulários em 1920 px com o resumo ao lado.
 - **Refazer as capturas da árvore** em `docs/visual/fase-3/familia/`.
 
+## Quadro do mapa (árvore e círculo)
+
+Decisão do Gui em 18/11/2026, depois de ver duas propostas montadas a partir do conceito dele no Figma: a **proposta A, painel flutuante**. As regras estão em "A página da árvore como mapa", em `docs/decisoes.md`.
+
+- **Onde fica:** o estilo do quadro em `src/visual/telas/mapa.css` (classe `.quadro` na página e `.pm` no painel), o comportamento em `src/lib/cliente/painel-do-mapa.ts`. A tela pede a janela inteira com `mapa` em `src/layouts/Visual.astro`.
+- **O painel** é um cartão branco pousado no mapa, com a sombra do bilhete e o raio da moldura: 20rem de largura na tela grande, 23rem na TV, e de margem a margem no celular, recolhido numa linha.
+- **Tela de mapa nova** (o círculo): usa `.quadro`, um `<aside class="pm" data-quadro>` com `pm__alto`, `pm__ficha`, `pm__corpo` e seções `pm__secao`, e a barra de baixo `mapa__zoom`.
+- **Capturas:** `docs/visual/quadro-do-mapa/`, em 390, 1280 e 1920 px.
+- **Falta conferir no aparelho:** no iPhone, se o Safari desenha a banda atrás das barras com o mapa encostado no pé da tela; e, numa TV de verdade, o painel e a busca com o controle.
+
 ## Tipos: paleta e ícones
 
 Construído em 17/11/2026 na branch `tst-visual-tipos`, nascida da `tst-visual-ajustes`. O PR é o #40, para a `homologa`, aberto e sem merge; depende do #39. As sete perguntas para o Gui estão no fim dele. É a resposta do Gui à pergunta 11 do PR #38: em `/admin/tipos`, a cor vira uma escolha numa paleta ampliada do sistema e entra um seletor de ícone entre os rabiscos.

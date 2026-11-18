@@ -1,11 +1,15 @@
 ---
-// A árvore da família inteira, com todas as ligações. Os controles mudam o que
-// está em destaque e o que aparece, na hora, sem recarregar:
+// A árvore da família inteira, com todas as ligações, como um mapa: ela ocupa a janela inteira
+// abaixo do menu, e um painel flutuante reúne o título, a ficha de quem foi tocado, a busca por
+// nome, os ajustes e a legenda (docs/decisoes.md, "Página da árvore como mapa"; o estilo do quadro
+// é src/visual/telas/mapa.css). Os controles mudam o que está em destaque e o que aparece, na hora,
+// sem recarregar:
 // - partir de: de quem é a linha direta (por padrão, Gui, Giovanna e Magno). O resto da
 //   família fica em ramos recolhidos, que abrem por cima da árvore;
 // - família: destaca uma família e deixa as outras mais apagadas, ou escondidas;
 // - camadas: consideração e coração, ex-casais, bichos.
 import '../visual/telas/arvore.css';
+import '../visual/telas/mapa.css';
 import Visual from '../layouts/Visual.astro';
 import Vazio from '../components/visual/Vazio.astro';
 import { anosDeVida } from '../lib/datas';
@@ -86,108 +90,117 @@ const comLaco = comLacoDeArvore(dados);
 ---
 
 <Visual titulo="Árvore" secao="arvore" mapa>
-  <div class="arvore" data-arvore>
-    <div class="arvore__topo miolo">
-      <h1 class="serifa t-2">Árvore</h1>
-      {/* Resposta do Gui (17/11/2026, P93): uma frase só. O resto está na legenda. */}
-      <p>Toque em alguém para ver quem é.</p>
-    </div>
-
+  <div class="arvore quadro" data-arvore>
     <div class="mapa" data-mapa tabindex="0" aria-label="Árvore da família. Arraste ou use as setas para andar por ela.">
-      <div class="mapa__camada" data-camada></div>
-      <div class="mapa__camada mapa__camada--ramos" data-camada-ramos></div>
-
-      {/* Respostas do Gui (17/11/2026, P92): o valor de agora de "Partir de" aparece como valor, com
-          "Voltar ao começo" quando o centro foi trocado; "Outras famílias" só aparece com uma família
-          em destaque; no celular o painel abre no pé do mapa; Esc fecha. */}
-      <details class="mapa__painel" data-sobre-o-mapa data-painel>
-        <summary>Ajustar a árvore</summary>
-        <form data-controles>
-          <div class="arvore__partir">
+      {/* O painel do quadro: o título, a ficha de quem foi tocado, a busca, os ajustes e a legenda.
+          A ficha (P84) nasce vazia: quem a preenche é src/lib/cliente/arvore.ts. As seções abrem
+          uma por vez, e Esc fecha. Vem antes das camadas do mapa para o teclado chegar à busca e aos
+          ajustes sem passar por todos os cartões; quem fica por cima é decidido no estilo. */}
+      <aside class="pm" data-sobre-o-mapa data-quadro aria-label="Sobre a árvore">
+        <header class="pm__alto">
+          <h1 class="serifa">Árvore</h1>
+          <button type="button" class="pm__abre" data-abrir-painel aria-expanded="false" aria-controls="corpo-do-painel">Ajustes e legenda</button>
+        </header>
+        <div class="pm__ficha" data-ficha-do-foco aria-live="polite"></div>
+        <div class="pm__corpo" id="corpo-do-painel">
+          <form class="pm__busca" data-procurar>
             <label class="arvore__campo">
-              <span>Partir de</span>
-              <select name="centro">
-                <option value="">{nomesDosCentros}</option>
-                {ordenados.filter((i) => comLaco.has(i.id)).map((i) => <option value={i.id}>{i.nome}</option>)}
+              <span>Procurar na árvore</span>
+              <select name="quem">
+                <option value="">Escreva o nome</option>
+                {ordenados.map((i) => <option value={i.id}>{i.nome}</option>)}
               </select>
             </label>
-            <button type="button" class="arvore__voltar" data-voltar-ao-comeco hidden>Voltar ao começo</button>
-          </div>
-          <label class="arvore__campo">
-            <span>Destacar</span>
-            <select name="nucleo">
-              <option value="">Família inteira</option>
-              {nucleos.map((n) => <option value={n.id}>Família {n.nome}</option>)}
-            </select>
-          </label>
-          <fieldset class="arvore__camadas">
-            <legend>Mostrar</legend>
-            <label class="marcar"><input type="checkbox" name="outros" checked /><span>Outras famílias</span></label>
-            <label class="marcar"><input type="checkbox" name="consideracao" checked /><span>Consideração e coração</span></label>
-            <label class="marcar"><input type="checkbox" name="ex" checked /><span>Ex-casais</span></label>
-            <label class="marcar"><input type="checkbox" name="bichos" checked /><span>Bichos</span></label>
-            <label class="marcar"><input type="checkbox" name="amigos" /><span>Amigos sem lugar na família</span></label>
-          </fieldset>
-        </form>
-      </details>
+          </form>
+          <details class="pm__secao" name="painel-do-mapa" data-painel>
+            <summary>Ajustar a árvore</summary>
+            <form data-controles>
+              <div class="arvore__partir">
+                <label class="arvore__campo">
+                  <span>Partir de</span>
+                  <select name="centro">
+                    <option value="">{nomesDosCentros}</option>
+                    {ordenados.filter((i) => comLaco.has(i.id)).map((i) => <option value={i.id}>{i.nome}</option>)}
+                  </select>
+                </label>
+                <button type="button" class="arvore__voltar" data-voltar-ao-comeco hidden>Voltar ao começo</button>
+              </div>
+              <label class="arvore__campo">
+                <span>Destacar</span>
+                <select name="nucleo">
+                  <option value="">Família inteira</option>
+                  {nucleos.map((n) => <option value={n.id}>Família {n.nome}</option>)}
+                </select>
+              </label>
+              <fieldset class="arvore__camadas">
+                <legend>Mostrar</legend>
+                <label class="marcar"><input type="checkbox" name="outros" checked /><span>Outras famílias</span></label>
+                <label class="marcar"><input type="checkbox" name="consideracao" checked /><span>Consideração e coração</span></label>
+                <label class="marcar"><input type="checkbox" name="ex" checked /><span>Ex-casais</span></label>
+                <label class="marcar"><input type="checkbox" name="bichos" checked /><span>Bichos</span></label>
+                <label class="marcar"><input type="checkbox" name="amigos" /><span>Amigos sem lugar na família</span></label>
+              </fieldset>
+            </form>
+          </details>
+          <details class="pm__secao" name="painel-do-mapa" data-legenda>
+            <summary>Legenda</summary>
+            <div class="legenda">
+              <section>
+                <h2>Famílias</h2>
+                <ul>
+                  {nucleos.map((n, i) => <li><i class="amostra-cor" style={`background: var(--arvore-familia-${i % 4})`}></i> {n.nome}</li>)}
+                  {nucleos.length > 1 && <li><i class="amostra-cor amostra-cor--duas"></i> de duas famílias</li>}
+                  <li><i class="amostra-cor amostra-cor--fora"></i> amigos e de fora</li>
+                </ul>
+              </section>
+              <section>
+                <h2>Linhas</h2>
+                <ul>
+                  <li><i class="amostra amostra--casal"></i> casal</li>
+                  <li><i class="amostra amostra--ex"></i> não estão mais juntos</li>
+                  <li><i class="amostra amostra--filhos"></i> pais e filhos</li>
+                  <li><i class="amostra amostra--coracao"></i> consideração ou coração</li>
+                </ul>
+              </section>
+              <section>
+                <h2>Botões e marcas</h2>
+                <ul>
+                  <li><b class="amostra-botao amostra-botao--ramo">+ 1</b> abre outro ramo da família</li>
+                  <li><b class="amostra-botao">♥ 2</b> abre os laços do coração de alguém</li>
+                  <li><i class="amostra-cor amostra-cor--eu"></i> você</li>
+                  <li><i class="amostra-cor amostra-cor--foco"></i> quem você tocou</li>
+                  <li><i class="amostra-cor amostra-cor--bicho"></i> bicho da família</li>
+                </ul>
+              </section>
+            </div>
+          </details>
+          <p class="pm__pe">
+            <span data-sem-lacos hidden></span>
+            <a class="acao acao--quieta" href="/pessoas/nova">Cadastrar pessoa</a>
+          </p>
+        </div>
+      </aside>
 
-      {/* A ficha de quem foi tocado (P84): vazia até alguém ser tocado, e fecha no "×", no Esc ou no
-          toque no vazio. Quem a preenche é src/lib/cliente/arvore.ts. */}
-      <div class="mapa__foco" data-sobre-o-mapa data-ficha-do-foco aria-live="polite"></div>
+      <div class="mapa__camada" data-camada></div>
+      <div class="mapa__camada mapa__camada--ramos" data-camada-ramos></div>
 
       <div class="mapa__zoom" data-sobre-o-mapa>
         <span class="mapa__vista">
           <button type="button" data-ir-ao-foco>Voltar para {chamar(usuario.pessoa)}</button>
-          <button type="button" data-ver-tudo>Ver a árvore inteira</button>
+          {/* No celular o nome vem encurtado, para a barra caber numa linha (resposta do Gui, 17/11/2026) */}
+          <button type="button" data-ver-tudo aria-label="Ver a árvore inteira"><span class="longo">Ver a árvore inteira</span><span class="curto">Ver tudo</span></button>
         </span>
-        {/* No celular a legenda abre por este botão, por cima do mapa (P87) */}
-        <button type="button" class="mapa__abre-legenda" data-abrir-legenda aria-controls="legenda-da-arvore">Legenda</button>
         <span class="mapa__escala">
           <button type="button" data-zoom-menos aria-label="Afastar">−</button>
           <span data-zoom-atual>100%</span>
           <button type="button" data-zoom-mais aria-label="Aproximar">+</button>
         </span>
       </div>
-
-      {/* A legenda (P89 e P90): nasce fechada no HTML. No computador, o script abre na primeira visita e
-          lembra, no aparelho, se a pessoa fechou. Três grupos, com tudo o que a árvore mostra. */}
-      <details class="mapa__legenda" id="legenda-da-arvore" data-sobre-o-mapa data-legenda>
-        <summary>Legenda</summary>
-        <div class="legenda">
-          <section>
-            <h2>Famílias</h2>
-            <ul>
-              {nucleos.map((n, i) => <li><i class="amostra-cor" style={`background: var(--arvore-familia-${i % 4})`}></i> {n.nome}</li>)}
-              {nucleos.length > 1 && <li><i class="amostra-cor amostra-cor--duas"></i> de duas famílias</li>}
-              <li><i class="amostra-cor amostra-cor--fora"></i> amigos e de fora</li>
-            </ul>
-          </section>
-          <section>
-            <h2>Linhas</h2>
-            <ul>
-              <li><i class="amostra amostra--casal"></i> casal</li>
-              <li><i class="amostra amostra--ex"></i> não estão mais juntos</li>
-              <li><i class="amostra amostra--filhos"></i> pais e filhos</li>
-              <li><i class="amostra amostra--coracao"></i> consideração ou coração</li>
-            </ul>
-          </section>
-          <section>
-            <h2>Botões e marcas</h2>
-            <ul>
-              <li><b class="amostra-botao amostra-botao--ramo">+ 1</b> abre outro ramo da família</li>
-              <li><b class="amostra-botao">♥ 2</b> abre os laços do coração de alguém</li>
-              <li><i class="amostra-cor amostra-cor--eu"></i> você</li>
-              <li><i class="amostra-cor amostra-cor--foco"></i> quem você tocou</li>
-              <li><i class="amostra-cor amostra-cor--bicho"></i> bicho da família</li>
-            </ul>
-          </section>
-        </div>
-      </details>
     </div>
     <noscript>
       {/* Sem script não há desenho: o mapa vazio e os controles dele saem, e fica só o aviso */}
       <style is:inline>
-        [data-mapa], .arvore__topo p { display: none !important; }
+        [data-mapa] { display: none !important; }
       </style>
       <div class="arvore__sem-script miolo">
         <Vazio frase="A árvore precisa de JavaScript para ser desenhada. As ligações de cada pessoa também aparecem na página dela, em Pessoas.">
@@ -195,11 +208,6 @@ const comLaco = comLacoDeArvore(dados);
         </Vazio>
       </div>
     </noscript>
-
-    <p class="arvore__rodape miolo">
-      <span data-sem-lacos hidden></span>
-      <a class="acao acao--quieta" href="/pessoas/nova">Cadastrar pessoa</a>
-    </p>
   </div>
 
   <script type="application/json" id="dados-da-arvore" set:html={JSON.stringify(dados).replace(/</g, '\\u003c')} />
@@ -208,17 +216,31 @@ const comLaco = comLacoDeArvore(dados);
 <script>
   import { montarArvore, type DadosDaArvore } from '../lib/cliente/arvore';
   import { buscaDePessoa } from '../lib/cliente/busca-pessoa';
+  import { painelDoMapa } from '../lib/cliente/painel-do-mapa';
 
   const raiz = document.querySelector<HTMLElement>('[data-arvore]');
   const bruto = document.getElementById('dados-da-arvore')?.textContent;
   if (raiz && bruto) {
-    montarArvore(raiz, JSON.parse(bruto) as DadosDaArvore);
-    // "Partir de": busca com sugestão no lugar da lista com todo mundo
+    // O painel mede o próprio pé antes de a árvore ser enquadrada no que sobra
+    const painel = painelDoMapa(raiz);
+    const arvore = montarArvore(raiz, JSON.parse(bruto) as DadosDaArvore);
     const centro = raiz.querySelector<HTMLSelectElement>('select[name="centro"]');
     if (centro) buscaDePessoa(centro);
 
-    // "Voltar ao começo" (P92): aparece quando a árvore parte de outra pessoa, e devolve a linha
-    // direta de sempre pelo mesmo caminho de quem apaga o campo
+    // "Procurar na árvore": escolher alguém leva o mapa até a pessoa e abre a ficha dela
+    const quem = raiz.querySelector<HTMLSelectElement>('select[name="quem"]');
+    if (quem) {
+      buscaDePessoa(quem);
+      quem.addEventListener('change', () => {
+        if (!quem.value) return;
+        painel.fechar();
+        arvore.irPara(quem.value);
+        quem.value = '';
+        quem.dispatchEvent(new Event('busca:atualizar'));
+      });
+      quem.form?.addEventListener('submit', (e) => e.preventDefault());
+    }
+
     const voltar = raiz.querySelector<HTMLButtonElement>('[data-voltar-ao-comeco]');
     if (centro && voltar) {
       const refletir = () => (voltar.hidden = !centro.value);
@@ -227,55 +249,8 @@ const comLaco = comLacoDeArvore(dados);
       voltar.addEventListener('click', () => {
         centro.value = '';
         centro.dispatchEvent(new Event('change', { bubbles: true }));
-        raiz.querySelector<HTMLElement>('.busca__campo')?.focus();
       });
       refletir();
-    }
-
-    // Esc fecha os ajustes e a legenda, e o foco volta para o botão que abriu. A lista de sugestões
-    // da busca fecha antes, com o próprio Esc dela.
-    const painel = raiz.querySelector<HTMLDetailsElement>('[data-painel]');
-    const legenda = raiz.querySelector<HTMLDetailsElement>('[data-legenda]');
-    const abreLegenda = raiz.querySelector<HTMLButtonElement>('[data-abrir-legenda]');
-    const visivel = (el: HTMLElement | null | undefined) => Boolean(el && el.offsetParent);
-    for (const caixa of [painel, legenda]) {
-      caixa?.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape' || e.defaultPrevented || !caixa.open) return;
-        e.preventDefault();
-        caixa.open = false;
-        const resumo = caixa.querySelector<HTMLElement>('summary');
-        (visivel(resumo) ? resumo : abreLegenda)?.focus();
-      });
-    }
-
-    // A legenda (P87 e P89). No computador abre na primeira visita e lembra, no aparelho, se a pessoa
-    // fechou. No celular fica fechada, e o botão "Legenda" da barra de baixo abre por cima do mapa.
-    if (legenda) {
-      const CHAVE = 'arvore-legenda';
-      const guardado = () => {
-        try {
-          return localStorage.getItem(CHAVE);
-        } catch {
-          return null;
-        }
-      };
-      const largo = matchMedia('(min-width: 62rem)');
-      if (largo.matches && guardado() !== 'fechada') legenda.open = true;
-      legenda.addEventListener('toggle', () => {
-        abreLegenda?.setAttribute('aria-expanded', String(legenda.open));
-        if (!legenda.open && abreLegenda && visivel(abreLegenda) && legenda.contains(document.activeElement)) abreLegenda.focus();
-        if (!largo.matches) return;
-        try {
-          localStorage.setItem(CHAVE, legenda.open ? 'aberta' : 'fechada');
-        } catch {
-          // Sem lugar para guardar, a legenda só volta a abrir na próxima visita
-        }
-      });
-      abreLegenda?.setAttribute('aria-expanded', String(legenda.open));
-      abreLegenda?.addEventListener('click', () => {
-        legenda.open = true;
-        legenda.querySelector<HTMLElement>('summary')?.focus();
-      });
     }
   }
 </script>

@@ -583,9 +583,9 @@ describe('grupo familia', () => {
     const css = ler('telas/arvore.css');
     // As quatro cores das famílias, na ordem dos tokens ([data-familia] em tokens.css)
     expect(css).toMatch(/--arvore-familia-0: var\(--verde-pastel\);\s*--arvore-familia-1: var\(--orquidea-pastel\);\s*--arvore-familia-2: var\(--azul-pastel\);\s*--arvore-familia-3: var\(--pessego-pastel\);/);
-    // O cartão do ramo aberto fica por cima da legenda e abaixo do painel, da ficha e do zoom
+    // O cartão do ramo aberto fica por cima da árvore e abaixo do painel do mapa
     expect(css).toMatch(/\.mapa__camada--ramos \{\s*z-index: 2;/);
-    expect(css).toMatch(/\.mapa__legenda \{\s*display: none;\s*z-index: 1;/);
+    expect(ler('telas/mapa.css')).toMatch(/\.pm \{\s*position: absolute;\s*z-index: 3;/);
     // Toque mínimo: o botão do coração e a marca do ramo têm a área de toque maior que o desenho
     expect(css).toMatch(/\.no__coracao::after,\s*\.no__ramo::after \{\s*content: '';\s*position: absolute;\s*inset: -0\.5rem;/);
   });
