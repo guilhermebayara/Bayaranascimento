@@ -6,7 +6,8 @@
 //
 // As contas (faixas, raio, ponto) são de src/lib/circulo.ts. Na tela grande o desenho é um mapa que
 // anda e aproxima (mapa-que-anda.ts); no celular é uma lista, com a rolagem do aparelho.
-import { FAIXAS, FORA_DO_CIRCULO, faixaDoValor, nomeDaProximidade, pontasDoSlider, pontoDe, posicaoDoSlider, valorDaPosicao, valorDoRaio } from '../circulo';
+import { FAIXAS, FORA_DO_CIRCULO, faixaDoValor, lugarNoSlider, pontoDe, posicaoDoLugar, valorDaPosicao, valorDoRaio } from '../circulo';
+import { criarProximidade, refletirProximidade } from './proximidade';
 import { buscaDePessoa } from './busca-pessoa';
 import { areaLivreDoMapa, mapaQueAnda } from './mapa-que-anda';
 import { painelDoMapa } from './painel-do-mapa';
@@ -137,10 +138,9 @@ export function montarCirculo(raiz: HTMLElement): void {
     const slider = ficha.querySelector<HTMLInputElement>('input');
     if (!slider || !aberta) return;
     const valor = Number(aberta.dataset.valor);
-    // O slider vai do mais distante, à esquerda, ao mais próximo, à direita: a posição é o contrário do valor
-    if (Number(slider.value) !== posicaoDoSlider(valor)) slider.value = String(posicaoDoSlider(valor));
-    slider.setAttribute('aria-valuetext', nomeDaProximidade(valor));
-    ficha.querySelector('output')!.textContent = nomeDaProximidade(valor);
+    // O slider vai do mais distante, à esquerda, ao mais próximo, à direita: o lugar é o contrário do valor
+    if (posicaoDoLugar(Number(slider.value)) !== posicaoDoLugar(lugarNoSlider(valor, true))) slider.value = String(lugarNoSlider(valor, true));
+    refletirProximidade(ficha.querySelector<HTMLElement>('[data-proximidade]')!);
   };
   const fecharFicha = () => {
     if (!aberta) return;
@@ -166,18 +166,16 @@ export function montarCirculo(raiz: HTMLElement): void {
     const fechar = Object.assign(document.createElement('button'), { type: 'button', textContent: '×', className: 'mapa__foco-fechar' });
     fechar.dataset.fecharFicha = '';
     fechar.setAttribute('aria-label', 'Fechar');
-    const campo = Object.assign(document.createElement('label'), { className: 'pm__proximidade' });
-    const slider = Object.assign(document.createElement('input'), { type: 'range', min: '0', max: String(FORA_DO_CIRCULO), step: '1' });
-    const pontas = Object.assign(document.createElement('span'), { className: 'pm__pontas' });
-    pontas.setAttribute('aria-hidden', 'true');
-    pontas.append(...pontasDoSlider(true).map((ponta) => Object.assign(document.createElement('span'), { textContent: ponta })));
-    campo.append(Object.assign(document.createElement('span'), { textContent: 'Proximidade' }), document.createElement('output'), slider, pontas);
+    // O slider é a peça Proximidade (src/components/visual/Proximidade.astro), montada aqui
+    const { bloco, slider } = criarProximidade('proximidade-da-ficha', Number(botao.dataset.valor));
+    const campo = Object.assign(document.createElement('div'), { className: 'pm__proximidade' });
+    campo.append(bloco);
     const acoes = Object.assign(document.createElement('div'), { className: 'pm__ficha-acoes' });
     acoes.append(pagina);
     ficha.replaceChildren(retrato, nome, quem, acoes, campo, fechar);
     refletirNaFicha();
     slider.addEventListener('input', () => {
-      por(botao, valorDaPosicao(Number(slider.value)));
+      por(botao, valorDaPosicao(posicaoDoLugar(Number(slider.value))));
       guardar(botao);
     });
     if (focoNoSlider) slider.focus({ preventScroll: true });

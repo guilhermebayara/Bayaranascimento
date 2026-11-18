@@ -141,9 +141,11 @@ export interface SituacaoDaAdministracao {
   fotosSoltas?: number | null;
   /** possíveis cadastros duplicados (onda 2) */
   duplicados?: number | null;
+  /** pedidos para excluir pessoa à espera de um administrador (decisão do Gui depois da sessão I) */
+  exclusoes?: number | null;
 }
 
-export type TipoDePendencia = 'carta' | 'banco' | 'espaco' | 'copia' | 'fotos-soltas' | 'duplicados';
+export type TipoDePendencia = 'carta' | 'banco' | 'espaco' | 'copia' | 'fotos-soltas' | 'duplicados' | 'exclusoes';
 
 export interface Pendencia {
   tipo: TipoDePendencia;
@@ -198,7 +200,7 @@ export function porcentoDoBanco(bytes: number, limite: number): number {
  * As pendências da administração (escolha do Gui no conceito da sessão E, 17/11/2026): o que pede uma
  * ação de quem administra. Somam no número do retrato do topo e ganham a marca no cartão.
  */
-export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>, hoje: Date): Pendencia[] {
+export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados' | 'exclusoes'>, hoje: Date): Pendencia[] {
   const lista: Pendencia[] = [];
   if (!s.carta) lista.push({ tipo: 'carta', texto: 'A carta de Natal ainda não foi escrita.', href: '/admin/carta' });
   if (s.banco?.passouDoAviso) lista.push({ tipo: 'banco', texto: 'O banco está perto do limite do plano gratuito.' });
@@ -210,6 +212,8 @@ export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'cart
   if (n > 0) lista.push({ tipo: 'fotos-soltas', texto: n === 1 ? 'Uma foto sem memória há mais de 30 dias.' : `${n} fotos sem memória há mais de 30 dias.`, href: '/admin/fotos-soltas', quantas: n });
   const d = s.duplicados ?? 0;
   if (d > 0) lista.push({ tipo: 'duplicados', texto: d === 1 ? 'Um possível cadastro duplicado.' : `${d} possíveis cadastros duplicados.`, href: '/admin/duplicados', quantas: d });
+  const e = s.exclusoes ?? 0;
+  if (e > 0) lista.push({ tipo: 'exclusoes', texto: e === 1 ? 'Um pedido para excluir uma pessoa.' : `${e} pedidos para excluir pessoas.`, href: '/admin/exclusoes', quantas: e });
   return lista;
 }
 
@@ -236,7 +240,7 @@ export const GRUPO_DO_ESPACO = 'Espaço e cópias';
  */
 export function grupoDaPendencia(p: Pick<Pendencia, 'tipo'>): string {
   if (p.tipo === 'carta') return TEMAS_DA_ADMINISTRACAO.find((t) => t.tema === 'acervo')!.titulo;
-  if (p.tipo === 'fotos-soltas' || p.tipo === 'duplicados') return TEMAS_DA_ADMINISTRACAO.find((t) => t.tema === 'arrumar')!.titulo;
+  if (p.tipo === 'fotos-soltas' || p.tipo === 'duplicados' || p.tipo === 'exclusoes') return TEMAS_DA_ADMINISTRACAO.find((t) => t.tema === 'arrumar')!.titulo;
   return GRUPO_DO_ESPACO;
 }
 
@@ -288,6 +292,13 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
       href: '/admin/duplicados',
       situacao: situacao && (situacao.duplicados ? plural(situacao.duplicados, 'possível', 'possíveis') : 'nenhum à vista'),
       pendencia: Boolean(situacao?.duplicados),
+    },
+    {
+      tema: 'arrumar',
+      rotulo: 'Pedidos para excluir',
+      href: '/admin/exclusoes',
+      situacao: situacao && (situacao.exclusoes ? plural(situacao.exclusoes, 'pedido', 'pedidos') : 'nenhum'),
+      pendencia: Boolean(situacao?.exclusoes),
     },
     { tema: 'ferramentas', rotulo: 'Transcrição automática', href: '/admin/transcricao', situacao: situacao && (situacao.transcricao === 'ligada' ? 'ligada' : 'desligada') },
     { tema: 'ferramentas', rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },

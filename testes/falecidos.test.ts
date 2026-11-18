@@ -16,23 +16,49 @@ describe('quem já faleceu', () => {
     expect(jaFaleceu({ falecido: false, falecimentoAno: null })).toBe(false);
   });
 
-  it('a marca é um anel em volta do retrato, sem símbolo, e a foto continua em cor', () => {
+  it('o retrato é de foto de álbum: reto, com cantoneiras, e o arco saiu (decisão do Gui, 18/11/2026)', () => {
+    const css = ler('src/visual/pecas.css');
+    const regra = css.slice(css.indexOf('.retrato {'), css.indexOf('}', css.indexOf('.retrato {')));
+    expect(regra).toMatch(/aspect-ratio: 4 \/ 5;/);
+    expect(regra).not.toMatch(/border-radius|rotate|overflow: hidden/);
+    // As quatro cantoneiras, na tinta do site
+    const cantos = css.slice(css.indexOf('.retrato::after {'), css.indexOf('}', css.indexOf('.retrato::after {')));
+    expect(cantos.match(/linear-gradient\(\d+deg, var\(--tinta\)/g)).toHaveLength(4);
+    // Redondo, só o retrato de quem está usando o site: o topo, o Início e o centro do círculo
+    const redondos = ['src/layouts/Visual.astro', 'src/pages/index.astro', 'src/pages/circulo.astro', 'src/pages/sistema.astro'];
+    for (const arquivo of redondos) expect(ler(arquivo).match(/<Retrato [^>]*\bredondo\b[^>]*>/g) ?? [], arquivo).toHaveLength(1);
+    expect(ler('src/pages/circulo.astro')).toMatch(/<Retrato nome=\{eu\.nome\}[^>]* redondo cedo \/>/);
+  });
+
+  it('a marca é a foto em tom mais suave, sem anel e sem símbolo, com "em memória" perto do nome', () => {
     const peca = ler('src/components/visual/Retrato.astro');
     expect(peca).toMatch(/'retrato--falecido': falecido/);
     const css = ler('src/visual/pecas.css');
+    expect(css).toMatch(/\.retrato--falecido img \{\s*filter: saturate\(/);
     const regra = css.slice(css.indexOf('.retrato--falecido {'), css.indexOf('}', css.indexOf('.retrato--falecido {')));
-    expect(regra).toMatch(/outline: var\(--traco\) solid var\(--tinta-suave\);/);
-    expect(regra).not.toMatch(/content|filter|background/);
+    expect(regra).not.toMatch(/outline|border|content/);
     // Nenhum sinal religioso nem de luto escrito em lugar nenhum do visual
     for (const arquivo of ['src/visual/pecas.css', 'src/visual/telas/arvore.css', 'src/components/visual/Retrato.astro', 'src/components/visual/Gente.astro']) {
       expect(ler(arquivo), arquivo).not.toMatch(/[✝✞✟†☦✡☪🕊]|in memoriam|luto/i);
     }
   });
 
+  it('a foto acende: com o mouse e o foco em todo lugar, com o toque no retrato grande, devagar, e na hora com movimento reduzido', () => {
+    const css = ler('src/visual/pecas.css');
+    expect(css).toMatch(/@media \(hover: hover\) \{\s*\.retrato--falecido:hover,\s*:is\(a, button, summary\):hover \.retrato--falecido \{/);
+    expect(css).toMatch(/:is\(a, button, summary\):focus-visible \.retrato--falecido img,\s*\.retrato--aceso img \{\s*filter: none;/);
+    expect(css).toMatch(/\.retrato--falecido img \{[^}]*transition: filter var\(--tempo-lento\) var\(--curva\);/);
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.retrato--falecido,\s*\.retrato--falecido img \{\s*transition: none;/);
+    // Na página da pessoa, o retrato grande é um botão, e o toque fica valendo enquanto se está ali
+    const pagina = ler('src/pages/pessoas/[id]/index.astro');
+    expect(pagina).toMatch(/<button class="quem-e__acender" type="button" data-acender aria-pressed="false" aria-label=\{`Acender a foto de \$\{chamar\}`\}>/);
+    expect(pagina).toMatch(/classList\.toggle\('retrato--aceso', aceso\)/);
+  });
+
   it('a marca aparece em Pessoas, nos laços, em "Quem estava", no capítulo, na conta e na árvore', () => {
     expect(ler('src/components/visual/Gente.astro')).toMatch(/<Retrato nome=\{nome\} foto=\{foto\} familia=\{familia\} falecido=\{falecido\} \/>/);
     expect(ler('src/pages/pessoas/index.astro')).toMatch(/falecido=\{jaFaleceu\(p\)\}/);
-    expect(ler('src/pages/pessoas/[id]/index.astro')).toMatch(/falecido=\{jaFaleceu\(pessoa\)\} cedo/);
+    expect(ler('src/pages/pessoas/[id]/index.astro')).toMatch(/\{jaFaleceu\(pessoa\) \? \(/);
     expect(ler('src/pages/pessoas/[id]/index.astro')).toMatch(/falecido=\{faleceu\(l\.id\)\}/);
     expect(ler('src/pages/memorias/[id].astro')).toMatch(/falecido=\{faleceu\(id\)\}/);
     expect(ler('src/pages/capitulos/[id]/index.astro')).toMatch(/falecido=\{Boolean\(achar\(id\) && jaFaleceu\(achar\(id\)!\)\)\}/);
@@ -40,14 +66,18 @@ describe('quem já faleceu', () => {
     const cliente = ler('src/lib/cliente/arvore.ts');
     expect(cliente.match(/marcarFalecido\(no, p\.id\);/g)).toHaveLength(2);
     expect(cliente).toMatch(/falecidos\.has\(p\.id\) \? 'retrato retrato--falecido' : 'retrato'/);
-    expect(ler('src/visual/telas/arvore.css')).toMatch(/\.no--falecido span::before,\s*\.amostra-anel \{/);
+    // No cartão, que não tem foto, a orelha dobrada no canto (ideia do Gui, 18/11/2026), e a legenda explica
+    expect(ler('src/visual/telas/arvore.css')).toMatch(/\.no--falecido::after,\s*\.amostra-orelha::after \{/);
+    expect(ler('src/pages/arvore.astro')).toMatch(/<i class="amostra-cor amostra-orelha"><\/i> em memória/);
   });
 
-  it('quem usa leitor de tela ouve "já faleceu" onde a marca aparece', () => {
-    expect(ler('src/components/visual/Gente.astro')).toMatch(/\{falecido && <span class="so-leitor">já faleceu<\/span>\}/);
-    expect(ler('src/pages/memorias/[id].astro')).toMatch(/\{faleceu\(id\) && <span class="so-leitor">já faleceu<\/span>\}/);
-    expect(ler('src/pages/pessoas/[id]/index.astro')).toMatch(/\{jaFaleceu\(pessoa\) && <p class="so-leitor">Já faleceu\.<\/p>\}/);
+  it('"em memória" vem escrito perto do nome; na árvore e no círculo, só o leitor de tela ouve', () => {
+    expect(ler('src/components/visual/Gente.astro')).toMatch(/\{falecido && <span class="em-memoria">em memória<\/span>\}/);
+    expect(ler('src/pages/memorias/[id].astro')).toMatch(/\{faleceu\(id\) && <span class="em-memoria">em memória<\/span>\}/);
+    expect(ler('src/pages/pessoas/[id]/index.astro')).toMatch(/\{jaFaleceu\(pessoa\) && <p class="quem-e__memoria em-memoria">em memória<\/p>\}/);
+    // A ficha da árvore não escreve "em memória" (resposta do Gui, 18/11/2026): a foto em tom suave basta
     expect(ler('src/lib/cliente/arvore.ts')).toMatch(/className: 'so-leitor', textContent: 'já faleceu'/);
+    expect(ler('src/lib/cliente/arvore.ts')).not.toMatch(/em memória"?,|textContent: 'em memória'/);
   });
 
   it('a data do falecimento fica oculta em todo lugar, e o ano também', () => {

@@ -61,8 +61,7 @@ import {
   obterCarta,
   obterVisitas,
   pessoasQueONaoVe,
-  salvarVisitas,
-} from '../lib/servidor/repositorio';
+  salvarVisitas, nomesDasPessoasExcluidas } from '../lib/servidor/repositorio';
 import { corDaPessoa, corDoNucleo, diaMesCurto, estiloDoTipo, legendaLugarAno, nomeDaDecada } from '../lib/visual';
 
 // Os endereços antigos da linha do tempo ("/?nucleo=...") continuam funcionando. Os recados de uma
@@ -80,7 +79,9 @@ const integrantes = await listarIntegrantes();
 const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
 const achar = (id: string) => integrantes.find((i) => i.id === id);
-const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+// Quem está na lixeira (excluir pessoa) some do site, mas o relato que contou continua com o nome
+const nomesNaLixeira = await nomesDasPessoasExcluidas();
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? nomesNaLixeira.get(id) ?? id;
 const eu = achar(usuario.pessoa);
 const naoVe = await pessoasQueONaoVe(usuario);
 const retratoDe = (id: string) => {

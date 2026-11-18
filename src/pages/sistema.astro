@@ -21,6 +21,7 @@ import Ficha from '../components/visual/Ficha.astro';
 import IconeDoTipo from '../components/visual/IconeDoTipo.astro';
 import Monograma from '../components/visual/Monograma.astro';
 import Pilula from '../components/visual/Pilula.astro';
+import Proximidade from '../components/visual/Proximidade.astro';
 import Segmentado from '../components/visual/Segmentado.astro';
 import PilulaDeFamilia from '../components/visual/PilulaDeFamilia.astro';
 import Polaroid from '../components/visual/Polaroid.astro';
@@ -38,8 +39,8 @@ import { conceitoDisponivel, fontesDoPedido, naoEncontrado } from '../lib/servid
 import { listarMemorias, listarNucleos } from '../lib/servidor/repositorio';
 import tokens from '../visual/tokens.css?raw';
 import { contraste, coresDosTokens, neutroDosTokens } from '../lib/contraste';
-import { RABISCOS } from '../visual/rabiscos';
-import { COMBINACOES_DE_FONTES, CORES, CORES_NOVAS, NOMES_DAS_CORES, PALETA, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, atributosDasFontes, combinacao, combinacaoDe, combinacaoValida, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../lib/visual';
+import { RABISCOS, rabiscosPorAssunto } from '../visual/rabiscos';
+import { COMBINACOES_DE_FONTES, CORES, CORES_MAIS_NOVAS, CORES_NOVAS, NOMES_DAS_CORES, PALETA, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, atributosDasFontes, combinacao, combinacaoDe, combinacaoValida, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../lib/visual';
 
 const { usuario, tipos } = Astro.locals;
 const comExemplos = temAcervoDeExemplo();
@@ -259,6 +260,26 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
           ))
         }
       </ul>
+      <h3 class="sis__subtitulo" id="cores-de-18-11">Mais onze cores para os tipos de momento (18/11/2026)</h3>
+      <p class="sis__nota suave">
+        Entraram as que couberam com folga na regra de distância: cada uma fica pelo menos 1,2 vez mais longe de qualquer outra do que as duas mais próximas
+        entre as onze aprovadas. Entre o amarelo e o verde e entre o laranja e o amarelo não cabe mais nenhuma.
+      </p>
+      <ul class="cores sis__cores sis__cores--novas">
+        {
+          CORES_MAIS_NOVAS.map((c) => (
+            <li>
+              <span style={`background: var(--${c}-pastel)`} />
+              <span style={`background: var(--${c}-meio)`} />
+              <span style={`background: var(--${c}-vivo)`} />
+              <span style={`background: var(--${c}-tinta)`} />
+              <span class="ficha">
+                {NOMES_DAS_CORES[c]} · {c}
+              </span>
+            </li>
+          ))
+        }
+      </ul>
       <h3 class="sis__subtitulo">O contraste de cada cor da paleta</h3>
       <p class="sis__nota suave">
         A razão de contraste, pela conta da WCAG: a tinta da cor sobre o pastel dela, a tinta da cor sobre o papel e o texto do site sobre o pastel. O
@@ -430,6 +451,20 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
         </article>
 
         <article class="sis__peca">
+          <h3 class="rotulo">Proximidade · nova</h3>
+          <div>
+            <Proximidade id="sis-proximidade" valor={50} />
+          </div>
+          <div>
+            <Proximidade id="sis-proximidade-sem-fora" valor={20} comFora={false} rotulo="Sem fora do círculo" />
+          </div>
+          <p class="ficha suave">
+            O slider do círculo, na ficha dele e nos formulários de laço. Livre, com marcas onde a faixa muda e o nome de cada faixa embaixo do trecho dela. "Fora do
+            círculo" é um trecho à parte, tracejado. O preenchimento é a cor viva da família da tela.
+          </p>
+        </article>
+
+        <article class="sis__peca">
           <h3 class="rotulo">Ficha em mono</h3>
           <Ficha>
             <Dado rotulo="Quando">24 de dezembro de 2025</Dado>
@@ -441,7 +476,7 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
         </article>
 
         <article class="sis__peca">
-          <h3 class="rotulo">Retrato recortado</h3>
+          <h3 class="rotulo">Retrato de foto de álbum</h3>
           <p class="sis__retratos">
             {
               familias.map((f) => (
@@ -450,9 +485,15 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
                 </span>
               ))
             }
+            <span>
+              <Retrato nome="Vô Tonho" familia="0" falecido />
+            </span>
             <span class="sis__retrato-redondo"><Retrato nome={usuario.nome} redondo /></span>
           </p>
-          <p class="ficha suave">Em arco, com a foto do cadastro. Sem foto, as iniciais sobre a cor da família. Redondo só no topo.</p>
+          <p class="ficha suave">
+            Reto, com cantoneiras nos quatro cantos. Sem foto, as iniciais sobre a cor da família. Quem já faleceu fica em tom suave e acende com o mouse em cima ou com
+            o foco. Redondo só o retrato de quem está usando o site.
+          </p>
         </article>
 
         <article class="sis__peca">
@@ -505,17 +546,26 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
           <p class="sis__linha sis__icones-dos-tipos">
             {tipos.map((t) => <span style={estiloDoTipo(t.id)}><IconeDoTipo tipo={t.id} /></span>)}
           </p>
-          <h4 class="rotulo suave" id="todos-os-rabiscos">Todos os rabiscos dos tipos de momento, com o nome de cada um</h4>
-          <ul class="sis__todos-os-rabiscos">
+          <h4 class="rotulo suave" id="todos-os-rabiscos">Os {RABISCOS.length} rabiscos dos tipos de momento, por assunto, com o nome de cada um</h4>
+          <div class="sis__assuntos">
             {
-              RABISCOS.map((r) => (
-                <li>
-                  <IconeDoTipo rabisco={r.id} />
-                  <span class="ficha">{r.nome}</span>
-                </li>
+              rabiscosPorAssunto().map((a) => (
+                <div class="sis__assunto" role="group" aria-labelledby={`sis-assunto-${a.id}`}>
+                  <h5 class="ficha suave" id={`sis-assunto-${a.id}`}>
+                    {a.nome}
+                  </h5>
+                  <ul class="sis__todos-os-rabiscos">
+                    {a.rabiscos.map((r) => (
+                      <li>
+                        <IconeDoTipo rabisco={r.id} />
+                        <span class="ficha">{r.nome}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))
             }
-          </ul>
+          </div>
           <p class="sis__linha sis__rabiscos">
             <span class="sublinhado serifa t-3">Oi, Gui.<Rabisco desenho="sublinha" /></span>
             <Rabisco desenho="seta" />
@@ -624,5 +674,7 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
 
 <script>
   import { ligarMenus } from '../lib/cliente/menus';
+  import { ligarProximidades } from '../lib/cliente/proximidade';
   ligarMenus();
+  ligarProximidades();
 </script>

@@ -96,7 +96,7 @@ describe('a escolha de cor e de desenho dos tipos', () => {
     for (const cor of PALETA) expect(ehCorDaPaleta(cor)).toBe(true);
     for (const nome of ['', 'vermelho', '#2F7D6B', 'verde-pastel', 'var(--verde-vivo)', null, undefined]) expect(ehCorDaPaleta(nome), String(nome)).toBe(false);
     for (const r of RABISCOS) expect(ehRabisco(r.id)).toBe(true);
-    for (const nome of ['', 'cachorro', '<svg>', null, undefined]) expect(ehRabisco(nome), String(nome)).toBe(false);
+    for (const nome of ['', 'dinossauro', '<svg>', null, undefined]) expect(ehRabisco(nome), String(nome)).toBe(false);
     // O banco guarda os nomes, e a lista chega a cada pedido com eles
     const repositorio = ler('lib/servidor/repositorio.ts');
     expect(repositorio).toContain("SELECT id, rotulo, cor, cor_da_paleta AS corDaPaleta, icone FROM tipos");
@@ -113,6 +113,9 @@ describe('a escolha de cor e de desenho dos tipos', () => {
     const escolha = ler('components/formularios/EscolhaDoTipo.astro');
     expect(escolha).toMatch(/<input type="radio" name="cor" value=\{c\} checked=\{c === cor\} required/);
     expect(escolha).toMatch(/<input type="radio" name="icone" value=\{r\.id\} checked=\{r\.id === icone\} required/);
+    // Os desenhos vêm por assunto, e o grupo é só arrumação: um nome de campo só, sem script
+    expect(escolha).toMatch(/rabiscosPorAssunto\(\)\.map\(\(a\) => \([\s\S]*?class="rabiscos__rotulo"[\s\S]*?\{a\.nome\}[\s\S]*?a\.rabiscos\.map\(/);
+    expect(escolha.match(/name="icone"/g)).toHaveLength(1);
     // O nome da cor está escrito, e o do rabisco é lido pelo leitor de tela
     expect(escolha).toContain('{NOMES_DAS_CORES[c]}');
     expect(escolha).toContain('<span class="so-leitor">{r.nome}</span>');
@@ -127,8 +130,9 @@ describe('a escolha de cor e de desenho dos tipos', () => {
     const sistema = ler('pages/sistema.astro');
     expect(sistema).toMatch(/CORES\.map\(/);
     expect(sistema).toMatch(/CORES_NOVAS\.map\(/);
+    expect(sistema).toMatch(/CORES_MAIS_NOVAS\.map\(/);
     expect(sistema).toMatch(/PALETA\.map\(\(c\) => \{[\s\S]*?razao\(v\.tinta, v\.pastel\)[\s\S]*?razao\(v\.tinta, corDoPapel\)[\s\S]*?razao\(corDaTinta, v\.pastel\)/);
-    expect(sistema).toMatch(/RABISCOS\.map\(\(r\) => \([\s\S]*?<IconeDoTipo rabisco=\{r\.id\} \/>[\s\S]*?\{r\.nome\}/);
+    expect(sistema).toMatch(/rabiscosPorAssunto\(\)\.map\(\(a\) => \([\s\S]*?\{a\.nome\}[\s\S]*?a\.rabiscos\.map\(\(r\) => \([\s\S]*?<IconeDoTipo rabisco=\{r\.id\} \/>[\s\S]*?\{r\.nome\}/);
   });
 
   it('ninguém mais pinta o tipo por conta própria: a cor e o rabisco saem de estiloDoTipo e do IconeDoTipo', () => {

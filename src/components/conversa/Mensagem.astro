@@ -1,0 +1,96 @@
+---
+// Uma mensagem do relato como conversa (src/lib/conversa.ts): um balão de texto (com a citação em cima,
+// quando cita alguém), um áudio com tocar, a onda e a duração, ou uma foto. Serve à janela de escrever e à
+// página da memória. O script da janela (src/lib/cliente/conversa.ts) lê os data-* para montar a lista.
+import '../../visual/telas/conversa.css';
+import { duracaoEmTexto } from '../../lib/audios';
+import type { MensagemNaTela } from '../../lib/conversa';
+
+interface Props {
+  mensagem: MensagemNaTela;
+  /** de quem olha: à direita, no pastel da família */
+  minha?: boolean;
+  /** quem contou, para o leitor de tela ("Ouvir o áudio de Elizete") */
+  de?: string;
+  /** a ação de citar, na memória e na janela de escrever (o endereço ou o botão) */
+  citar?: string | boolean;
+}
+
+const { mensagem: m, minha = false, de, citar } = Astro.props;
+const idDaMensagem = m.id ? `mensagem-${m.id}` : undefined;
+---
+
+{m.contouMais && <li class="msg-dia ficha suave">{m.contouMais}</li>}
+<li
+  class:list={['msg', { 'msg--minha': minha }]}
+  id={idDaMensagem}
+  data-msg
+  data-tipo={m.tipo}
+  data-id={m.id}
+  data-cita-id={m.citaId ?? undefined}
+>
+  <div class="msg__corpo">
+    {
+      m.tipo === 'texto' && (
+        <div class="msg__texto">
+          {m.citacao && (
+            <blockquote class="msg__cita" data-citacao>
+              <span class="ficha">{m.citacao.quem}</span>
+              <span>{m.citacao.resumo}</span>
+            </blockquote>
+          )}
+          <p data-texto>{m.texto}</p>
+        </div>
+      )
+    }
+    {
+      m.tipo === 'audio' && m.audio && (
+        <>
+          <div class="msg__audio" data-audio data-audio-id={m.audio.id} data-src={m.audio.src} data-duracao={m.audio.duracao ?? undefined}>
+            <button type="button" class="msg__tocar" data-tocar aria-label={de ? `Ouvir o áudio de ${de}` : 'Ouvir o áudio'}>
+              <svg class="msg__play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z" /></svg>
+              <svg class="msg__pausa" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /></svg>
+            </button>
+            <span class="msg__onda" aria-hidden="true"><span class="msg__andou" data-andou /></span>
+            <span class="msg__tempo ficha" data-tempo>{duracaoEmTexto(m.audio.duracao)}</span>
+            {/* Sem script, o tocador do aparelho */}
+            <audio controls preload="none" src={m.audio.src} />
+          </div>
+          {m.audio.transcricao && (
+            <details class="msg__transcricao" data-transcricao-lida>
+              <summary>Ler a transcrição</summary>
+              <div data-transcricao-texto>
+                {m.audio.transcricao.split(/\n{2,}/).map((p) => (
+                  <p>{p}</p>
+                ))}
+              </div>
+            </details>
+          )}
+        </>
+      )
+    }
+    {
+      m.tipo === 'foto' && m.foto && (
+        <figure class="msg__foto" data-foto data-foto-id={m.foto.id} data-legenda={m.foto.legenda ?? undefined}>
+          {m.foto.galeria !== undefined ? (
+            <a href={m.foto.src} data-galeria={m.foto.galeria} aria-label={`Ver a foto inteira${m.foto.legenda ? `: ${m.foto.legenda}` : ''}`}>
+              <img src={m.foto.src} alt={m.foto.legenda ?? ''} loading="lazy" decoding="async" />
+            </a>
+          ) : (
+            <img src={m.foto.src} alt={m.foto.legenda ?? ''} loading="lazy" decoding="async" />
+          )}
+          {m.foto.legenda && <figcaption class="ficha suave">{m.foto.legenda}</figcaption>}
+        </figure>
+      )
+    }
+  </div>
+  {
+    citar && m.id && (
+      typeof citar === 'string' ? (
+        <a class="msg__citar acao acao--quieta" href={citar}>Citar</a>
+      ) : (
+        <button type="button" class="msg__citar acao acao--quieta" data-citar={m.id} data-quem={de}>Citar</button>
+      )
+    )
+  }
+</li>

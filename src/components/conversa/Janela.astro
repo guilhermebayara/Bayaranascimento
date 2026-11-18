@@ -1,0 +1,108 @@
+---
+// A janela de escrever do relato como conversa (escolha do Gui depois da sessão I, 18/11/2026; protótipo
+// em tst-relato-conversa). Cada envio vira uma mensagem: um texto, um áudio ou uma foto, na ordem em que
+// a pessoa manda. No pé, o "+" (foto, áudio do celular), a caixa que cresce com o texto e o botão redondo,
+// na cor viva: sem texto ele grava, com texto ele envia, como nos aplicativos de mensagem. Enter envia;
+// Shift e Enter muda de linha. Cada mensagem tem os três pontos: editar o texto, a transcrição do áudio,
+// subir, descer e apagar.
+//
+// Dois modos. "ao-vivo" (Escrever meu relato): cada mudança é gravada na hora, em /api/relatos; o relato
+// nasce rascunho e entra na memória com "Publicar relato", e depois de publicado cada mensagem nova entra
+// na hora. Sem script, a janela é um formulário que acrescenta a mensagem no fim. "formulario" (a etapa do
+// relato da memória nova): as mensagens vão junto com a memória, e sem script o campo é o texto do relato.
+// O script está em src/lib/cliente/conversa.ts.
+import '../../visual/telas/conversa.css';
+import Mensagem from './Mensagem.astro';
+import type { MensagemNaTela } from '../../lib/conversa';
+
+interface Props {
+  modo: 'ao-vivo' | 'formulario';
+  memoria: string;
+  por?: string;
+  mensagens: MensagemNaTela[];
+  publicado?: boolean;
+  /** "ligada" quando a transcrição automática está ligada em Administração */
+  transcricaoAutomatica?: string;
+  /** a foto pelo "+": só em "Escrever meu relato" (a memória nova tem a etapa das fotos) */
+  comFotos?: boolean;
+  /** o nome do campo de texto sem script: "texto" no relato, "relato" na memória nova */
+  campo?: string;
+  /** a mensagem que já chega citada (pela memória, "Citar") */
+  citando?: { id: number; quem: string; resumo: string } | null;
+}
+
+const { modo, memoria, por = '', mensagens, publicado = false, transcricaoAutomatica = 'desligada', comFotos = false, campo = 'texto', citando = null } = Astro.props;
+const Caixa = modo === 'ao-vivo' ? 'form' : 'div';
+const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relatos' } : {};
+---
+
+<Caixa
+  class="janela"
+  data-conversa
+  data-modo-da-janela={modo}
+  data-memoria={memoria}
+  data-por={por}
+  data-publicado={String(publicado)}
+  data-transcricao-automatica={transcricaoAutomatica}
+  {...doFormulario}
+>
+  {
+    modo === 'ao-vivo' && (
+      <>
+        <input type="hidden" name="memoria" value={memoria} />
+        <input type="hidden" name="por" value={por} />
+        <input type="hidden" name="acrescentar" value="1" />
+      </>
+    )
+  }
+  <ol class="janela__mensagens" data-mensagens aria-live="polite" aria-label="Seu relato, mensagem por mensagem">
+    <li class="janela__vazio" data-vazio hidden={mensagens.length > 0}>Conte como foi. Mande um texto, um áudio ou uma foto, quantos quiser e na ordem que vierem.</li>
+    {mensagens.map((m) => <Mensagem mensagem={m} minha />)}
+  </ol>
+  <p class="janela__citando" data-citando hidden={!citando}>
+    <span class="ficha suave">Citando <span data-citando-quem>{citando?.quem}</span></span>
+    <span class="janela__citando-texto" data-citando-texto>{citando?.resumo}</span>
+    <button type="button" class="acao acao--quieta" data-tirar-citacao>Tirar a citação</button>
+    {citando && modo === 'ao-vivo' && <input type="hidden" name="cita" value={citando.id} data-cita-sem-script />}
+  </p>
+  <div class="janela__escrever" data-escrever data-modo="voz">
+    <details class="menu-acoes janela__mais" data-menu-acoes data-so-com-script hidden>
+      <summary class="menu-acoes__botao" aria-label="Anexar uma foto ou um áudio" title="Anexar">
+        <svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+      </summary>
+      <div class="menu-acoes__lista janela__mais-lista">
+        {comFotos && <button type="button" class="menu-acoes__item" data-anexar="foto">Foto</button>}
+        <button type="button" class="menu-acoes__item" data-anexar="audio">Áudio do celular</button>
+      </div>
+    </details>
+    <input type="file" accept="image/*" multiple hidden data-arquivo="foto" />
+    <input type="file" accept="audio/*,.m4a,.mp3,.ogg,.opus,.webm,.wav" multiple hidden data-arquivo="audio" />
+    <label class="so-leitor" for={`janela-${modo}`}>Mensagem</label>
+    <textarea id={`janela-${modo}`} class="janela__campo" name={campo} rows="1" maxlength="20000" placeholder="Mensagem" data-campo></textarea>
+    <span class="janela__gravando" data-gravando hidden>Gravando <span data-relogio>0:00</span></span>
+    <button type="button" class="janela__cancelar" data-cancelar hidden>Cancelar</button>
+    <button
+      type={modo === 'ao-vivo' ? 'submit' : 'button'}
+      class="janela__botao"
+      data-botao
+      aria-label="Enviar"
+      {...(modo === 'ao-vivo' ? { name: 'situacao', value: publicado ? 'publicada' : 'rascunho' } : {})}
+    >
+      <svg class="janela__mic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" /></svg>
+      <svg class="janela__enviar" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
+      <svg class="janela__parar" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5" /></svg>
+    </button>
+  </div>
+  <p class="dica janela__dica" data-dica>
+    {
+      modo === 'ao-vivo'
+        ? publicado
+          ? 'Seu relato já está na memória. Cada mensagem nova entra na hora.'
+          : 'Só você vê até publicar.'
+        : 'Só você vai poder alterar este relato.'
+    }
+    <span data-so-com-script hidden> Enter envia; Shift e Enter muda de linha.</span>
+  </p>
+  <p class="situacao" data-situacao role="status" aria-live="polite"></p>
+  <slot />
+</Caixa>

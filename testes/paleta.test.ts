@@ -1,11 +1,11 @@
-// A paleta do sistema (src/visual/tokens.css): as onze cores aprovadas pelo Gui em 16/11/2026 e as
-// doze da paleta ampliada (resposta dele à pergunta 11 do PR #38, 17/11/2026), entre as quais os
-// administradores escolhem a cor de cada tipo de momento. O contraste é calculado de verdade, pela
+// A paleta do sistema (src/visual/tokens.css): as onze cores aprovadas pelo Gui em 16/11/2026, as
+// doze da paleta ampliada (resposta dele à pergunta 11 do PR #38, 17/11/2026) e mais onze (decisão
+// dele de 18/11/2026), entre as quais os administradores escolhem a cor de cada tipo de momento. O contraste é calculado de verdade, pela
 // conta da WCAG, sobre os valores escritos em tokens.css.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { TONS, contraste, coresDosTokens, distancia, neutroDosTokens } from '../src/lib/contraste';
-import { CORES, CORES_NOVAS, NOMES_DAS_CORES, PALETA } from '../src/lib/visual';
+import { CORES, CORES_MAIS_NOVAS, CORES_NOVAS, NOMES_DAS_CORES, PALETA } from '../src/lib/visual';
 
 const tokens = readFileSync(new URL('../src/visual/tokens.css', import.meta.url), 'utf8');
 const cores = coresDosTokens(tokens);
@@ -16,13 +16,14 @@ const pares = (nomes: readonly string[]) => nomes.flatMap((a, i) => nomes.slice(
 
 // Quatro das onze cores aprovadas tinham a tinta abaixo de 4,5 para um sobre o próprio pastel
 // (pêssego, coral, rosa e manteiga). O Gui mandou escurecer só a tinta delas até 4,5 (P160 do QA de
-// design, 17/11/2026): o pastel e o vivo não mudaram, e hoje a regra vale para as 23, sem exceção.
+// design, 17/11/2026): o pastel e o vivo não mudaram, e hoje a regra vale para as 34, sem exceção.
 
 describe('a paleta do sistema', () => {
-  it('é bem maior que as onze cores: as onze aprovadas e mais doze', () => {
+  it('é bem maior que as onze cores: as onze aprovadas, mais doze e mais onze', () => {
     expect(CORES).toHaveLength(11);
     expect(CORES_NOVAS).toHaveLength(12);
-    expect(PALETA).toHaveLength(23);
+    expect(CORES_MAIS_NOVAS).toHaveLength(11);
+    expect(PALETA).toHaveLength(34);
     expect(new Set(PALETA).size).toBe(PALETA.length);
   });
 
@@ -56,7 +57,7 @@ describe('a paleta do sistema', () => {
     for (const cor of PALETA) expect(contraste(tinta, cores[cor]!.pastel), cor).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('a tinta de cada cor se lê sobre o pastel dela: 4,5 para um nas 23', () => {
+  it('a tinta de cada cor se lê sobre o pastel dela: 4,5 para um nas 34', () => {
     for (const cor of PALETA) expect(contraste(cores[cor]!.tinta, cores[cor]!.pastel), cor).toBeGreaterThanOrEqual(4.5);
   });
 
@@ -65,7 +66,7 @@ describe('a paleta do sistema', () => {
     // (0,145 no OKLab); nenhuma cor nova fica abaixo disso.
     const menorDasAprovadas = Math.min(...CORES.map((c) => distancia(cores[c]!.vivo, cores[c]!.pastel)));
     expect(menorDasAprovadas).toBeGreaterThan(0.14);
-    for (const cor of CORES_NOVAS) expect(distancia(cores[cor]!.vivo, cores[cor]!.pastel), cor).toBeGreaterThanOrEqual(menorDasAprovadas);
+    for (const cor of [...CORES_NOVAS, ...CORES_MAIS_NOVAS]) expect(distancia(cores[cor]!.vivo, cores[cor]!.pastel), cor).toBeGreaterThanOrEqual(menorDasAprovadas);
   });
 
   it('nenhuma cor fica mais perto de outra do que as duas mais próximas entre as onze aprovadas', () => {
@@ -74,6 +75,14 @@ describe('a paleta do sistema', () => {
     for (const tom of ['pastel', 'vivo'] as const) {
       const menorDasAprovadas = Math.min(...pares(CORES).map(([a, b]) => distancia(cores[a]![tom], cores[b]![tom])));
       for (const [a, b] of pares(PALETA)) expect(distancia(cores[a]![tom], cores[b]![tom]), `${a} e ${b}, ${tom}`).toBeGreaterThanOrEqual(menorDasAprovadas);
+    }
+  });
+
+  it('as onze de 18/11/2026 entram com folga: pelo menos 1,2 vez a menor distância entre as aprovadas', () => {
+    // A regra de distância não foi afrouxada para elas caberem: cada uma fica ainda mais longe das outras
+    for (const tom of ['pastel', 'vivo'] as const) {
+      const menorDasAprovadas = Math.min(...pares(CORES).map(([a, b]) => distancia(cores[a]![tom], cores[b]![tom])));
+      for (const nova of CORES_MAIS_NOVAS) for (const outra of PALETA) if (outra !== nova) expect(distancia(cores[nova]![tom], cores[outra]![tom]), `${nova} e ${outra}, ${tom}`).toBeGreaterThanOrEqual(menorDasAprovadas * 1.2);
     }
   });
 

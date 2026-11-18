@@ -302,11 +302,23 @@
   border-radius: var(--raio-carimbo);
   font-weight: 650;
 }
+/* Por assunto: o nome do assunto colado na grade dele, e os assuntos bem mais longe uns dos outros */
+.sis__assuntos {
+  display: grid;
+  gap: var(--e-6);
+  margin-top: var(--e-4);
+}
+.sis__assunto h5 {
+  margin: 0;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
 .sis__todos-os-rabiscos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
   gap: var(--e-4) var(--e-3);
-  margin: var(--e-3) 0 0;
+  margin: var(--e-2) 0 0;
   padding: 0;
   list-style: none;
 }

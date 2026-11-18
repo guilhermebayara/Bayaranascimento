@@ -19,12 +19,12 @@ import { enderecoDoRetrato } from '../../../lib/retratos';
 import { corDaPessoa } from '../../../lib/visual';
 import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, QUALIDADES, faseAtual, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
-import { podeEditarIntegrante, podeMexerEmLaco, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../../lib/servidor/permissoes';
+import { podeEditarIntegrante, podeExcluirPessoa, podeMexerEmLaco, podePedirExclusao, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../../lib/servidor/permissoes';
 import { casalDesfeito, ehEx, opcoesDeQuemVe, opcoesDoModo, situacaoDoCasal } from '../../../lib/ex-casal';
 import { enderecoDoLaco } from '../../../lib/pagina-do-laco';
 import { nomeDaProximidade, proximidadePadrao } from '../../../lib/circulo';
 import { proximidadesDoCirculo } from '../../../lib/servidor/circulo';
-import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos, listarNucleos } from '../../../lib/servidor/repositorio';
+import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos, listarNucleos, pedidoAbertoDeExclusao } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 // Quem só existe num laço privado de outra pessoa não é editado nem oferecido nos laços (C1)
@@ -44,6 +44,10 @@ const quemCuida = (() => {
 })();
 const podeFicha = podeEditarIntegrante(usuario, pessoa, comAcesso).ok;
 const podeLacos = podeMexerEmLaco(usuario, [pessoa]).ok;
+const alvoDaExclusao = { id: pessoa.id, acessa: comAcesso.has(pessoa.id) };
+const podeExcluir = podeExcluirPessoa(usuario, alvoDaExclusao).ok;
+const podePedir = podePedirExclusao(usuario, alvoDaExclusao).ok;
+const pedidoAberto = podeExcluir || podePedir ? await pedidoAbertoDeExclusao(pessoa.id) : undefined;
 // Laço do coração qualquer pessoa cria, entre ela e quem quiser. Por isso a página abre para todos.
 const ehMinha = pessoa.id === usuario.pessoa;
 // Chegando do cadastro, esta página é a segunda etapa: só os laços
@@ -1117,6 +1121,26 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
         <a class="botao" href={`/pessoas/${pessoa.id}`}>Concluir</a>
         <a class="botao botao--leve" href="/pessoas/nova">Cadastrar outra pessoa</a>
       </p>
+    )
+  }
+
+  {/* Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026): os administradores excluem; os
+      outros pedem, e um administrador aprova ou recusa. A pessoa vai para a lixeira, com volta */}
+  {
+    !recemCadastrada && (podeExcluir || podePedir) && (
+      <ZonaDePerigo>
+        {pedidoAberto && !podeExcluir ? (
+          <p>{pedidoAberto.pedidoPor === usuario.pessoa ? 'Você pediu a exclusão' : 'Alguém já pediu a exclusão'} de {pessoa.nome}. Um administrador vai aprovar ou recusar.</p>
+        ) : (
+          <>
+            <p>
+              {pessoa.nome} vai para a lixeira e some do site na hora. As memórias ficam, sem {pessoa.nome} em "Quem estava", e os relatos que {pessoa.tratamento === 'ela' ? 'ela' : pessoa.tratamento === 'ele' ? 'ele' : 'a pessoa'} contou continuam, com o nome.
+              {podeExcluir ? ' Um administrador pode restaurar tudo.' : ' Quem administra o acervo aprova ou recusa o pedido.'}
+            </p>
+            <a class="acao" href={`/pessoas/${pessoa.id}/excluir`}>{podeExcluir ? 'Excluir esta pessoa' : 'Pedir para excluir esta pessoa'}</a>
+          </>
+        )}
+      </ZonaDePerigo>
     )
   }
 

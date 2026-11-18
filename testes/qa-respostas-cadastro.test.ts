@@ -1,7 +1,7 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md),
 // nas telas "Nova pessoa e cadastro guiado" (P109 a P113) e "Editar página e laços" (P114 a P125).
 import { describe, expect, it } from 'vitest';
-import { PROPORCAO_DO_RETRATO, arcoDoRetrato } from '../src/lib/retratos';
+import { PROPORCAO_DO_RETRATO, quadroDoRetrato } from '../src/lib/retratos';
 
 // A leitura de arquivos segue o jeito de testes/visual.test.ts, que não pede os tipos do Node
 const fs = 'node:fs';
@@ -82,11 +82,11 @@ describe('editar página e laços', () => {
     expect(retrato).toContain('data-tirar-retrato hidden={!i?.retrato}>Remover foto</button>');
     expect(retrato).not.toContain('>Tirar foto<');
   });
-  it('P119: o quadro de enquadrar mostra o arco do retrato, na proporção em que ele aparece no site', () => {
+  it('P119: o quadro de enquadrar mostra o retângulo do retrato, com as cantoneiras, na proporção em que ele aparece no site', () => {
     expect(PROPORCAO_DO_RETRATO).toBe(4 / 5);
     expect(ler('src/visual/pecas.css')).toMatch(/\.retrato \{[^}]*aspect-ratio: 4 \/ 5;/);
-    expect(arcoDoRetrato(300)).toEqual({ x: 30, y: 0, largura: 240, altura: 300, raio: 120 });
-    expect(cliente).toContain('const arco = arcoDoRetrato(lado);');
+    expect(quadroDoRetrato(300)).toEqual({ x: 30, y: 0, largura: 240, altura: 300, cantoneira: 20.4 });
+    expect(cliente).toContain('const q = quadroDoRetrato(lado);');
     expect(cliente).toContain("contexto.fill(fora, 'evenodd');");
   });
   it('P120: a fase marcada para sair aparece riscada, com "será removida ao salvar"', () => {

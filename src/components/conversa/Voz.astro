@@ -1,0 +1,38 @@
+---
+// Uma voz da conversa, na página da memória (o relato como conversa; escolha do Gui depois da sessão I):
+// o retrato e o nome à mão no começo, e as mensagens de quem contou, na ordem em que mandou. As dos
+// outros ficam à esquerda, em branco; as de quem olha, à direita, no pastel da família. O resto do relato
+// (o selo de rascunho, a linha para liberar, as reações e o menu) entra pelos slots.
+import Retrato from '../visual/Retrato.astro';
+import Mensagem from './Mensagem.astro';
+import type { MensagemNaTela } from '../../lib/conversa';
+
+interface Props {
+  /** a âncora do relato, para um aviso levar direto a ele */
+  id?: string;
+  nome: string;
+  retrato?: string | null;
+  familia?: string;
+  /** quem registrou, quando não foi a própria pessoa */
+  registradoPor?: string | null;
+  mensagens: MensagemNaTela[];
+  minha?: boolean;
+  /** o endereço para citar uma mensagem desta voz no relato de quem olha ("?cita=" entra no fim) */
+  citarEm?: string;
+}
+
+const { id, nome, retrato, familia, registradoPor, mensagens, minha = false, citarEm } = Astro.props;
+---
+
+<article class:list={['voz', { 'voz--minha': minha }]} id={id}>
+  <h3 class="voz__quem">
+    <Retrato nome={nome} foto={retrato} familia={familia} redondo />
+    <span class="mao">{nome}</span>
+    {registradoPor && <span class="ficha suave">registrado por {registradoPor}</span>}
+  </h3>
+  <slot name="antes" />
+  <ol class="voz__mensagens">
+    {mensagens.map((m) => <Mensagem mensagem={m} minha={minha} de={nome} citar={citarEm && m.id ? `${citarEm}${m.id}` : undefined} />)}
+  </ol>
+  <slot name="pe" />
+</article>

@@ -114,7 +114,7 @@ describe('administração', () => {
 
   it('para os administradores, com o espelho só onde ele existe', () => {
     const naProducao = administracao({ admin: true }, { podeEspelhar: false }).map((i) => i.rotulo);
-    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal', 'Fotos sem memória', 'Cadastros duplicados', 'Transcrição automática', 'Sistema visual', 'Baixar cópia do acervo']);
+    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal', 'Fotos sem memória', 'Cadastros duplicados', 'Pedidos para excluir', 'Transcrição automática', 'Sistema visual', 'Baixar cópia do acervo']);
     expect(administracao({ admin: true }, { podeEspelhar: true }).map((i) => i.rotulo)).toContain('Espelho da produção');
   });
 
@@ -148,6 +148,7 @@ describe('administração: situação e pendências', () => {
       ['Carta de Natal', 'escrita em 2026'],
       ['Fotos sem memória', 'nenhuma'],
       ['Cadastros duplicados', 'nenhum à vista'],
+      ['Pedidos para excluir', 'nenhum'],
       ['Transcrição automática', 'desligada'],
       ['Sistema visual', 'tokens e peças'],
       ['Baixar cópia do acervo', undefined],
@@ -230,7 +231,7 @@ describe('grupos da administração', () => {
     const grupos = gruposDaAdministracao(itens);
     expect(grupos.map((g) => [g.titulo, g.itens.map((i) => i.rotulo)])).toEqual([
       ['Do acervo', ['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal']],
-      ['Para arrumar', ['Fotos sem memória', 'Cadastros duplicados']],
+      ['Para arrumar', ['Fotos sem memória', 'Cadastros duplicados', 'Pedidos para excluir']],
       ['Ferramentas', ['Transcrição automática', 'Sistema visual', 'Espelho da produção']],
     ]);
     expect(itens.filter((i) => !i.baixar).every((i) => i.tema)).toBe(true);
@@ -309,5 +310,19 @@ describe('a administração chega fechada', () => {
   });
   it('a pendência continua abrindo o grupo dela', () => {
     expect(readFileSync('src/pages/conta.astro', 'utf8')).toContain('data-abre-grupo={p.href ? undefined : idDoGrupo(grupoDaPendencia(p))}');
+  });
+});
+
+// Excluir pessoa (decisão do Gui depois da sessão I): os pedidos de quem não administra viram pendência
+describe('pedidos para excluir pessoa', () => {
+  const base = { carta: { escritaEm: '2026-11-01' }, copiaMensal: { conferida: false, ultima: null } };
+  it('cada pedido aberto vira pendência em "Para arrumar", com o atalho marcado', () => {
+    const [p] = pendenciasDaAdministracao({ ...base, exclusoes: 2 }, new Date('2026-11-18'));
+    expect(p).toMatchObject({ tipo: 'exclusoes', texto: '2 pedidos para excluir pessoas.', href: '/admin/exclusoes', quantas: 2 });
+    expect(grupoDaPendencia(p)).toBe('Para arrumar');
+    expect(pendenciasDaAdministracao({ ...base, exclusoes: 1 }, new Date('2026-11-18'))[0].texto).toBe('Um pedido para excluir uma pessoa.');
+    expect(pendenciasDaAdministracao({ ...base, exclusoes: 0 }, new Date('2026-11-18'))).toEqual([]);
+    const item = administracao({ admin: true }, { podeEspelhar: false }, { tipos: 1, familias: 1, ...base, exclusoes: 1 }).find((i) => i.rotulo === 'Pedidos para excluir')!;
+    expect(item).toMatchObject({ situacao: '1 pedido', pendencia: true });
   });
 });

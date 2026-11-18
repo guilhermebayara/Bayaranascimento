@@ -1,5 +1,5 @@
 /*
- * A página da pessoa. A ideia forte: o retrato e a voz. O retrato recortado em arco, grande, num
+ * A página da pessoa. A ideia forte: o retrato e a voz. O retrato de foto de álbum, grande, num
  * bloco na cor da família dela; o parentesco de quem olha ("sua avó") como a linha maior da tela;
  * e os áudios em que ela fala. A lista de laços fica quieta, e as memórias com ela vêm no fim, na
  * mesma linha do tempo do Explorar.
@@ -23,6 +23,24 @@
   background: var(--meio);
   font-size: clamp(2.5rem, 12vw, 6rem);
 }
+/* O retrato de quem faleceu é um botão: tocar acende a foto (docs/decisoes.md, "Quem já faleceu") */
+.quem-e__acender {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.quem-e__acender:focus-visible {
+  outline: 2px solid var(--tinta);
+  outline-offset: 0.5rem;
+}
+.quem-e__memoria {
+  margin-top: var(--e-2);
+}
 .quem-e .quem-e__texto {
   grid-column: 1 / -1;
   min-width: 0;
@@ -42,6 +60,10 @@
 .quem-e__nome {
   margin-top: var(--e-3);
   overflow-wrap: anywhere;
+}
+/* "Tia Cida (Cidinha)": o apelido no mesmo tamanho, mais apagado */
+.quem-e__apelido {
+  color: var(--tinta-suave);
 }
 .quem-e__nome.t-1 {
   margin-top: var(--e-4);
