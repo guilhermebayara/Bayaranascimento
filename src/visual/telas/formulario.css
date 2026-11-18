@@ -1928,9 +1928,10 @@
 }
 /* Dentro do cartão de um laço, a pergunta desce a um título menor, sem serifa: o que está mais fundo
    na página não fala mais alto que a parte que o contém ("Laços") */
-/* "O que aconteceu depois?", na edição e no cadastro do casal, é um título de seção pequeno, como "Quem
-   vê": o grande era demais para o contexto (observação do Gui, 18/11/2026) */
-.pagina-de-formulario fieldset:is(.fase--nova, .fases-depois) > legend {
+/* Cada linha de "Adicionar o que aconteceu depois" ("Depois", "E depois"), na edição e no cadastro do
+   casal, tem um título de seção pequeno, como "Quem vê": o grande era demais para o contexto (observação
+   do Gui, 18/11/2026) */
+.pagina-de-formulario .fases-depois__linha > legend {
   margin-bottom: var(--e-2);
   color: var(--tinta-suave);
   font-family: var(--mono);
@@ -1941,30 +1942,36 @@
   line-height: 1.4;
   text-transform: uppercase;
 }
-.pagina-de-formulario fieldset:is(.fase--nova, .fases-depois) > legend small {
-  font-size: inherit;
-  text-transform: none;
-  letter-spacing: 0;
-}
-/* O fio de cima é um fundo de 1 px: a borda de um fieldset passa por trás da legenda */
+/* A ação e as linhas que ela acrescenta (decisão do Gui, 18/11/2026). Cada linha é um grupo, com um fio em
+   cima: o fio é um fundo de 1 px, porque a borda de um fieldset passa por trás da legenda */
 .pagina-de-formulario .fases-depois {
   display: grid;
+  gap: var(--e-5);
+}
+.pagina-de-formulario .fases-depois__linha {
+  display: grid;
   gap: var(--e-3);
-  padding-top: var(--e-5);
+  padding-top: var(--e-4);
   background: linear-gradient(var(--fio), var(--fio)) top / 100% 1px no-repeat;
 }
-.pagina-de-formulario .fases-depois > legend {
+.pagina-de-formulario .fases-depois__linha > legend {
   float: left;
   width: 100%;
 }
 .pagina-de-formulario .fases-depois__linha[hidden] {
   display: none;
 }
-.pagina-de-formulario .fases-depois [data-mais-uma-fase] {
+.pagina-de-formulario .fases-depois :is(.fases-depois__mais, .fases-depois__tirar) {
   justify-self: start;
+  text-align: start;
 }
-.pagina-de-formulario .fases-depois [data-mais-uma-fase][hidden] {
+.pagina-de-formulario .fases-depois :is(.fases-depois__mais, .fases-depois__tirar)[hidden] {
   display: none;
+}
+/* "Já é da família": a caixa e a dica coladas, como um grupo só */
+.pagina-de-formulario .ja-da-familia {
+  display: grid;
+  gap: var(--e-1);
 }
 .pagina-de-formulario .novo-laco__quem {
   display: grid;
@@ -2138,14 +2145,6 @@
 }
 .pagina-de-formulario .fase > fieldset {
   padding-block: var(--e-3) var(--e-5);
-}
-.pagina-de-formulario .fase--nova {
-  padding-top: var(--e-5);
-  background: linear-gradient(var(--fio), var(--fio)) top / 100% 1px no-repeat;
-}
-.pagina-de-formulario .fase--nova > legend {
-  float: left;
-  width: 100%;
 }
 /* "Remover esta fase" marcada: a linha da fase diz que ela vai sair, mesmo com a fase fechada */
 .pagina-de-formulario .fase__nome {
@@ -2919,4 +2918,61 @@
 .pagina-de-formulario .apelidos__campo {
   width: 100%;
   margin-top: var(--e-2);
+}
+
+/* --- O slider de proximidade (decisões do Gui, 18/11/2026) -----------------------------------------
+   O mesmo do círculo, do mais distante, à esquerda, ao mais próximo, à direita. Como na ficha do círculo
+   (.pm__proximidade), o rótulo e a faixa de agora ficam numa linha, colados na barra, e as pontas logo
+   embaixo dela: é um grupo só (docs/visual.md, "Gestalt em toda tela"). */
+.pagina-de-formulario .campo-proximidade {
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 0 var(--e-3);
+}
+.pagina-de-formulario .campo-proximidade output,
+.pagina-de-formulario .campo-proximidade__pontas {
+  font-family: var(--mono);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.pagina-de-formulario .campo-proximidade output {
+  font-size: var(--t-ficha);
+  color: var(--tinta);
+}
+.pagina-de-formulario .campo-proximidade input[type='range'],
+.pagina-de-formulario .campo-proximidade > .dica {
+  grid-column: 1 / -1;
+}
+.pagina-de-formulario .campo-proximidade__pontas {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e-3);
+  font-size: var(--t-micro);
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .campo-proximidade > .dica {
+  margin-top: var(--e-2);
+}
+/* Com o foco do teclado, o contorno abraça o grupo inteiro, como no círculo, em vez de cortar as pontas */
+.pagina-de-formulario .campo-proximidade input[type='range']:focus-visible {
+  outline: none;
+}
+.pagina-de-formulario .campo-proximidade:has(input:focus-visible) {
+  outline: 2px solid var(--tinta);
+  outline-offset: var(--e-2);
+  border-radius: var(--raio-bloco);
+}
+/* A proximidade de um laço meu, no alto da edição dele: um grupo à parte, que guarda sozinho, separado
+   por um fio dos campos do laço, que só guardam com "Salvar" */
+.pagina-de-formulario form.proximidade-do-laco {
+  display: grid;
+  gap: var(--e-2);
+}
+.pagina-de-formulario form.proximidade-do-laco + form {
+  padding-top: var(--e-5);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .grupo-de-lacos--proximidade > form.proximidade-do-laco {
+  margin-top: var(--e-3);
 }

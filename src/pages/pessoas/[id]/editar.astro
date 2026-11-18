@@ -1,12 +1,15 @@
 ---
 import Segmentado from '../../../components/visual/Segmentado.astro';
 import FasesDepois from '../../../components/formularios/FasesDepois.astro';
+import CampoProximidade from '../../../components/formularios/CampoProximidade.astro';
+import ProximidadeDoLaco from '../../../components/formularios/ProximidadeDoLaco.astro';
+import PrimeiraFase from '../../../components/formularios/PrimeiraFase.astro';
+import JaDaFamilia from '../../../components/formularios/JaDaFamilia.astro';
 import Pagina from '../../../components/formularios/Pagina.astro';
 import FichaDoIntegrante from '../../../components/FichaDoIntegrante.astro';
 import ConfirmarRemocao from '../../../components/ConfirmarRemocao.astro';
 import ZonaDePerigo from '../../../components/visual/ZonaDePerigo.astro';
 import Recado from '../../../components/visual/Recado.astro';
-import CampoAno from '../../../components/CampoAno.astro';
 import Opcoes from '../../../components/Opcoes.astro';
 import ComoSeReferir from '../../../components/ComoSeReferir.astro';
 import CampoData from '../../../components/CampoData.astro';
@@ -14,11 +17,13 @@ import Retrato from '../../../components/visual/Retrato.astro';
 import { formatarData, jaFaleceu, vidaSemRotulo } from '../../../lib/datas';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { corDaPessoa } from '../../../lib/visual';
-import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
+import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, QUALIDADES, faseAtual, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../../lib/servidor/permissoes';
-import { casalDesfeito, ehEx, opcoesDeQuemVe, opcoesDoModo, viraramAmigos } from '../../../lib/ex-casal';
+import { casalDesfeito, ehEx, opcoesDeQuemVe, opcoesDoModo, situacaoDoCasal } from '../../../lib/ex-casal';
 import { enderecoDoLaco } from '../../../lib/pagina-do-laco';
+import { nomeDaProximidade, proximidadePadrao } from '../../../lib/circulo';
+import { proximidadesDoCirculo } from '../../../lib/servidor/circulo';
 import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos, listarNucleos } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -90,7 +95,21 @@ const abas = [
   ...(deFora ? [{ valor: 'resumido', nome: 'Parente de amigo', frase: `alguém da família de ${chamar}, sem cadastrar quem fica no meio` }] : []),
 ];
 const papeis = Object.entries(PAPEIS) as [Papel, string][];
-const proximidades: [string, string][] = [['', 'Não dizer'], ...Object.entries(PROXIMIDADES)];
+// A proximidade (decisões do Gui, 18/11/2026): o mesmo valor do círculo, só de quem está logado, num
+// slider do mais distante ao mais próximo. Os laços meus (na própria página, todos os grupos; na de outra
+// pessoa, só o laço com ela) ajustam a proximidade no lugar; sem valor declarado, o slider mostra o que o
+// círculo usaria. Ninguém mais vê esses valores: o mapa é montado só para quem está logado.
+const proximidades = await proximidadesDoCirculo(usuario);
+const PADRAO_DO_CORACAO = proximidadePadrao({ doCoracao: true });
+/** A proximidade com alguém, para um laço do coração novo: a do círculo, ou a de um laço do coração sem valor. */
+const proximidadeParaNovoLaco = (id: string) => proximidades.get(id)?.valor ?? PADRAO_DO_CORACAO;
+/** A proximidade de um laço meu: na própria página, de qualquer grupo; na de outra pessoa, só com ela. */
+const minhaProximidade = (id: string, grupo: string) => (grupo === 'coracao' || ehMinha || id === pessoa.id ? proximidades.get(id) : undefined);
+/** O pedaço da linha do laço que diz a proximidade escolhida, que só quem está logado vê. */
+const naLinha = (id: string, grupo: string) => {
+  const p = minhaProximidade(id, grupo);
+  return p?.declarada ? nomeDaProximidade(p.valor).toLowerCase() : '';
+};
 const tratamentoDe = (id: string) => integrantes.find((i) => i.id === id)?.tratamento ?? null;
 const temLacos = pais.length + filhos.length + casais.length + resumidos.length + meusLacos.length > 0;
 // Cadastro guiado (pedidos do Gui, 16/11/2026): depois da ficha, a primeira pergunta é se a pessoa é
@@ -171,12 +190,6 @@ const qualidades = (Object.entries(QUALIDADES) as [Qualidade, string][]).filter(
 // Na edição de uma filiação antiga de consideração, a opção continua lá para não trocar sem querer
 const opcoesDeFiliacao = (atual?: Qualidade): [string, string][] => (atual === 'consideracao' ? (Object.entries(QUALIDADES) as [string, string][]) : qualidades);
 const fases = Object.entries(FASES) as [TipoDeFase, string][];
-// No cadastro guiado e no "Adicionar laço" completo, "Como estão hoje?" só oferece o que é estar junto:
-// o fim tem um caminho só, "Já terminou" (respostas do Gui à P109 e à 47-N3, 17/11/2026). A separação, a
-// amizade e o resto da história entram em "O que aconteceu depois?", já no cadastro (decisão do Gui,
-// 18/11/2026; FasesDepois.astro) e também na edição do casal.
-const FASES_DE_QUEM_ESTA_JUNTO: readonly TipoDeFase[] = ['namoro', 'noivado', 'casamento', 'uniao'];
-const fasesDeHoje = fases.filter(([id]) => FASES_DE_QUEM_ESTA_JUNTO.includes(id));
 // O que acontece ao remover um laço: some da árvore e das páginas, e não vai para a lixeira (resposta do Gui à 47-N2, 17/11/2026)
 const FRASE_DO_LACO = 'O laço some da árvore e das páginas das duas pessoas. Não vai para a lixeira.';
 const FRASE_DO_CASAL = 'O casal some da árvore e das páginas das duas pessoas. Não vai para a lixeira.';
@@ -366,7 +379,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                   {papeis.map(([id, rotulo]) => <option value={id}>Como se fosse {rotulo}</option>)}
                 </select>
               </label>
-              <Opcoes nome="proximidade" rotulo="Proximidade" opcoes={proximidades} id="rotulo-proximidade-guia" dica="Só você vê." />
+              <CampoProximidade id="proximidade-guia" valor={proximidadeParaNovoLaco(pessoa.id)} comFora={false} dica="Só você vê. É a mesma do seu círculo." />
               <label class="marcar">
                 <input type="checkbox" name="privado" />
                 <span>Só eu vejo este laço</span>
@@ -384,19 +397,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
             </>
           ) : passo === 'casal' ? (
             <>
-              <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" id="rotulo-fase-guia" />
-              <div class="em-linha__campo">
-                <label for="guia-fase-inicio">Começou em <small>(se souber)</small></label>
-                <CampoAno id="guia-fase-inicio" nome="faseInicio" />
-              </div>
-              <label class="marcar">
-                <input type="checkbox" name="terminou" data-revela="terminou-guia" />
-                <span>Já terminou</span>
-              </label>
-              <div class="em-linha__campo" data-depende="terminou-guia" hidden>
-                <label for="guia-fase-fim">Terminou em</label>
-                <CampoAno id="guia-fase-fim" nome="faseFim" />
-              </div>
+              <PrimeiraFase id="guia" />
               <FasesDepois id="guia-fase-depois" rotuloDaPrimeira="rotulo-fase-guia" />
             </>
           ) : (
@@ -560,12 +561,15 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                   <p class="laco__linha">
                     <strong>{nome(p.responsavel)}</strong>
                     {faleceu(p.responsavel) && <span class="so-leitor">, já faleceu</span>}
-                    <span>{nomeDoPapel('pai', tratamentoDe(p.responsavel))} de {chamar}{p.qualidade === 'adotiva' && (`, adoção${p.adocao ? ` em ${formatarData({ ano: p.adocao.ano, mes: p.adocao.mes, dia: p.adocao.dia, aproximada: false })}` : ''}`)}{p.qualidade === 'consideracao' && ', de consideração'}</span>
+                    <span>{nomeDoPapel('pai', tratamentoDe(p.responsavel))} de {chamar}{p.qualidade === 'adotiva' && (`, adoção${p.adocao ? ` em ${formatarData({ ano: p.adocao.ano, mes: p.adocao.mes, dia: p.adocao.dia, aproximada: false })}` : ''}`)}{p.qualidade === 'consideracao' && ', de consideração'}<span class="regiao" data-regiao={`proximidade-${p.responsavel}`}>{naLinha(p.responsavel, 'pais') && `, ${naLinha(p.responsavel, 'pais')}`}</span></span>
                   </p>
                 </div>
                 <details class="editar" data-editar>
                   <summary class="botao botao--leve">Editar</summary>
                   <div class="editar__caixa">
+                    {minhaProximidade(p.responsavel, 'pais') && (
+                      <ProximidadeDoLaco pessoa={p.responsavel} id={`proximidade-pais-${p.responsavel}`} valor={minhaProximidade(p.responsavel, 'pais')!.valor} declarada={minhaProximidade(p.responsavel, 'pais')!.declarada} volta={volta} />
+                    )}
                     <form method="post" action="/api/lacos">
                       <input type="hidden" name="volta" value={volta} />
                       <input type="hidden" name="acao" value="filiacao-salvar" />
@@ -601,7 +605,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                     <p class="laco__linha">
                       <strong>{chamar} e {nome(c.outro)}</strong>
                       {faleceu(c.outro) && <span class="so-leitor">, {nome(c.outro)} já faleceu</span>}
-                      <span>{estaoJuntos(c.casal) ? 'juntos' : viraramAmigos(c.casal) ? 'hoje, amigos' : 'não estão mais juntos'}{c.casal.visibilidade !== 'todos' && `, ${quemVeTexto(c.casal)}`}</span>
+                      <span>{situacaoDoCasal(c.casal)}{c.casal.visibilidade !== 'todos' && `, ${quemVeTexto(c.casal)}`}<span class="regiao" data-regiao={`proximidade-${c.outro}`}>{naLinha(c.outro, 'casal') && `, ${naLinha(c.outro, 'casal')}`}</span></span>
                     </p>
                   </div>
                   <p class="laco__ver"><a href={enderecoDoLaco(pessoa.id, c.outro)}>Ver o laço</a></p>
@@ -617,6 +621,9 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                   <details class="editar" data-editar>
                     <summary class="botao botao--leve">Editar o casal</summary>
                     <div class="editar__caixa">
+                    {minhaProximidade(c.outro, 'casal') && (
+                      <ProximidadeDoLaco pessoa={c.outro} id={`proximidade-casal-${c.outro}`} valor={minhaProximidade(c.outro, 'casal')!.valor} declarada={minhaProximidade(c.outro, 'casal')!.declarada} volta={volta} />
+                    )}
                       <form method="post" action="/api/lacos">
                         <input type="hidden" name="volta" value={volta} />
                         <input type="hidden" name="acao" value="casal-salvar" />
@@ -636,21 +643,15 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                             <fieldset>
                               <legend class="oculto-visualmente">{n + 1}ª fase</legend>
                               <Opcoes nome={`fase-${n}-tipo`} rotulo="O que foi" opcoes={fases} valor={fase.tipo} id={`rotulo-fase-${c.casal.id}-${n}`} />
-                              <div class="em-linha">
-                                <div class="em-linha__campo">
-                                  <label for={`fase-${c.casal.id}-${n}-inicio`}>Começou em</label>
-                                  <CampoAno id={`fase-${c.casal.id}-${n}-inicio`} nome={`fase-${n}-inicio`} valor={fase.inicioAno} />
-                                </div>
-                                {/* Uma fase acaba quando a seguinte começa: o fim só é pedido na última, ou onde já foi preenchido */}
-                                {n === c.casal.fases.length - 1 || fase.fimAno ? (
-                                  <div class="em-linha__campo">
-                                    <label for={`fase-${c.casal.id}-${n}-fim`}>Terminou em <small>(se já acabou)</small></label>
-                                    <CampoAno id={`fase-${c.casal.id}-${n}-fim`} nome={`fase-${n}-fim`} valor={fase.fimAno} />
-                                  </div>
-                                ) : (
-                                  <input type="hidden" name={`fase-${n}-fim`} value="" />
-                                )}
-                              </div>
+                              {/* A data com mês e dia opcionais, como as outras do site (decisão do Gui, 18/11/2026) */}
+                              <CampoData prefixo={`fase-${n}-inicio`} id={`fase-${c.casal.id}-${n}-inicio`} rotuloAno="Começou em" ano={fase.inicioAno} mes={fase.inicioMes} dia={fase.inicioDia} />
+                              {/* Uma fase acaba quando a seguinte começa, e o fim do casal é uma fase a mais ("Adicionar o
+                                  que aconteceu depois"): o fim só fica onde já foi preenchido */}
+                              {fase.fimAno ? (
+                                <CampoData prefixo={`fase-${n}-fim`} id={`fase-${c.casal.id}-${n}-fim`} rotuloAno="Terminou em" ano={fase.fimAno} mes={fase.fimMes} dia={fase.fimDia} />
+                              ) : (
+                                <input type="hidden" name={`fase-${n}-fimAno`} value="" />
+                              )}
                               {c.casal.fases.length > 1 && (
                                 <label class="marcar">
                                   <input type="checkbox" name={`fase-${n}-remover`} data-remover-fase />
@@ -660,15 +661,10 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                             </fieldset>
                           </details>
                         ))}
-                        <fieldset class="fase--nova">
-                          {/* Título de seção pequeno, como "Quem vê" (observação do Gui, 18/11/2026) */}
-                          <legend class="rotulo suave">O que aconteceu depois? <small>(opcional)</small></legend>
-                          <Opcoes nome={`fase-${c.casal.fases.length}-tipo`} rotulo="O que foi" opcoes={fases} id={`rotulo-fase-${c.casal.id}-nova`} />
-                          <div class="em-linha__campo">
-                            <label for={`fase-${c.casal.id}-nova-inicio`}>Em que ano?</label>
-                            <CampoAno id={`fase-${c.casal.id}-nova-inicio`} nome={`fase-${c.casal.fases.length}-inicio`} />
-                          </div>
-                        </fieldset>
+                        {/* O que aconteceu depois: a mesma ação do cadastro (decisão do Gui, 18/11/2026) */}
+                        <FasesDepois id={`fase-depois-${c.casal.id}`} numerada={c.casal.fases.length} />
+                        {/* "Já é da família": só quando a fase de hoje é namoro (migração 100) */}
+                        {faseAtual(c.casal)?.tipo === 'namoro' && <JaDaFamilia id={`ja-da-familia-${c.casal.id}`} marcado={Boolean(c.casal.jaDaFamilia)} />}
                         {/* A escolha vale para o casal inteiro: separada das fases, com o nome do que é (P121) */}
                         {!casalDesfeito(c.casal) ? (
                           <div class="quem-ve" role="group" aria-labelledby={`rotulo-quem-ve-${c.casal.id}`}>
@@ -762,12 +758,15 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                   <p class="laco__linha">
                     <strong>{nome(f.filho)}</strong>
                     {faleceu(f.filho) && <span class="so-leitor">, já faleceu</span>}
-                    <span>{nomeDoPapel('filho', tratamentoDe(f.filho))} de {chamar}{f.qualidade === 'adotiva' && (`, adoção${f.adocao ? ` em ${formatarData({ ano: f.adocao.ano, mes: f.adocao.mes, dia: f.adocao.dia, aproximada: false })}` : ''}`)}{f.qualidade === 'consideracao' && ', de consideração'}</span>
+                    <span>{nomeDoPapel('filho', tratamentoDe(f.filho))} de {chamar}{f.qualidade === 'adotiva' && (`, adoção${f.adocao ? ` em ${formatarData({ ano: f.adocao.ano, mes: f.adocao.mes, dia: f.adocao.dia, aproximada: false })}` : ''}`)}{f.qualidade === 'consideracao' && ', de consideração'}<span class="regiao" data-regiao={`proximidade-${f.filho}`}>{naLinha(f.filho, 'filhos') && `, ${naLinha(f.filho, 'filhos')}`}</span></span>
                   </p>
                 </div>
                 <details class="editar" data-editar>
                   <summary class="botao botao--leve">Editar</summary>
                   <div class="editar__caixa">
+                    {minhaProximidade(f.filho, 'filhos') && (
+                      <ProximidadeDoLaco pessoa={f.filho} id={`proximidade-filhos-${f.filho}`} valor={minhaProximidade(f.filho, 'filhos')!.valor} declarada={minhaProximidade(f.filho, 'filhos')!.declarada} volta={volta} />
+                    )}
                     <form method="post" action="/api/lacos">
                       <input type="hidden" name="volta" value={volta} />
                       <input type="hidden" name="acao" value="filiacao-salvar" />
@@ -802,15 +801,20 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                     <strong>{nome(l.pessoa)}</strong>
                     {faleceu(l.pessoa) && <span class="so-leitor">, já faleceu</span>}
                     <span>
-                      {[l.nome, l.papel && `como se fosse ${PAPEIS[l.papel]}`, l.proximidade && PROXIMIDADES[l.proximidade].toLowerCase(), l.privado && 'só você vê']
+                      {[l.nome, l.papel && `como se fosse ${PAPEIS[l.papel]}`, l.privado && 'só você vê']
                         .filter(Boolean)
                         .join(', ')}
+                      {/* A proximidade é a do círculo, trocada no lugar quando o slider guarda */}
+                      <span class="regiao" data-regiao={`proximidade-${l.pessoa}`}>{naLinha(l.pessoa, 'coracao') && `, ${naLinha(l.pessoa, 'coracao')}`}</span>
                     </span>
                   </p>
                 </div>
                 <details class="editar" data-editar>
                   <summary class="botao botao--leve">Editar</summary>
                   <div class="editar__caixa">
+                    {minhaProximidade(l.pessoa, 'coracao') && (
+                      <ProximidadeDoLaco pessoa={l.pessoa} id={`proximidade-coracao-${l.pessoa}`} valor={minhaProximidade(l.pessoa, 'coracao')!.valor} declarada={minhaProximidade(l.pessoa, 'coracao')!.declarada} volta={volta} />
+                    )}
                     <form method="post" action="/api/lacos">
                       <input type="hidden" name="volta" value={volta} />
                       <input type="hidden" name="acao" value="coracao-salvar" />
@@ -826,7 +830,6 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                           {papeis.map(([id, rotulo]) => <option value={id} selected={id === l.papel}>Como se fosse {rotulo}</option>)}
                         </select>
                       </label>
-                      <Opcoes nome="proximidade" rotulo="Proximidade" opcoes={proximidades} valor={l.proximidade} id={`rotulo-proximidade-${l.id}`} dica="Só você vê." />
                       <label class="marcar">
                         <input type="checkbox" name="privado" checked={l.privado} />
                         <span>Só eu vejo este laço</span>
@@ -870,6 +873,9 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                     <details class="editar" data-editar>
                       <summary class="botao botao--leve">Editar</summary>
                       <div class="editar__caixa">
+                    {minhaProximidade((l.a === pessoa.id ? l.b : l.a), 'parentes') && (
+                      <ProximidadeDoLaco pessoa={(l.a === pessoa.id ? l.b : l.a)} id={`proximidade-parentes-${(l.a === pessoa.id ? l.b : l.a)}`} valor={minhaProximidade((l.a === pessoa.id ? l.b : l.a), 'parentes')!.valor} declarada={minhaProximidade((l.a === pessoa.id ? l.b : l.a), 'parentes')!.declarada} volta={volta} />
+                    )}
                         <form method="post" action="/api/lacos">
                           <input type="hidden" name="volta" value={volta} />
                           <input type="hidden" name="acao" value="resumido-salvar" />
@@ -983,9 +989,12 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                 <div class="novo-laco__quem" data-para={g.novo.laco === 'coracao' ? 'coracao-meu coracao-familia' : undefined} hidden={g.novo.laco === 'coracao'}>
                   <div class="em-linha">
                     <label>
+                      {/* "Com quem?" gerava dúvida (observação do Gui, 18/11/2026): a pergunta diz o que fazer, e
+                          muda com a escolha de cima. Sem script, fica a de "Só eu", que serve às duas */}
                       {g.novo.laco === 'coracao' ? (
                         <>
-                          {ehMinha ? <span>Com quem?</span> : <span>Quem?</span>}
+                          <span data-rotulo-para="eu">Quem é do seu coração?</span>
+                          <span data-rotulo-para="familia" hidden>{ehMinha ? 'Quem é seu parente de consideração?' : `Quem é parente de consideração de ${chamar}?`}</span>
                         </>
                       ) : (
                         <span>{g.novo.comQuem}</span>
@@ -1000,6 +1009,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                       <input type="text" name="nomeNovo" maxlength="80" autocomplete="off" placeholder="Escreva o nome" />
                     </label>
                   </div>
+                  {g.novo.laco === 'coracao' && <p class="dica">Procure pelo nome. Quem ainda não está no acervo é cadastrado na hora.</p>}
                   <ComoSeReferir id={`rotulo-tratamento-novo-${g.id}`} />
                 </div>
 
@@ -1016,24 +1026,11 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
 
                 {g.novo.laco === 'casal' && (
                   <>
-                    {/* Como no guiado, só as fases de estar junto (resposta do Gui à 47-N3, 17/11/2026) */}
-                    <Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" id="rotulo-fase-novo" />
-                    <div class="em-linha">
-                      <div class="em-linha__campo">
-                        <label for="fase-nova-inicio">Começou em</label>
-                        <CampoAno id="fase-nova-inicio" nome="faseInicio" />
-                      </div>
-                      <div class="em-linha__campo" data-depende="terminou-novo" hidden>
-                        <label for="fase-nova-fim">Terminou em</label>
-                        <CampoAno id="fase-nova-fim" nome="faseFim" />
-                      </div>
-                    </div>
-                    <label class="marcar">
-                      <input type="checkbox" name="terminou" data-revela="terminou-novo" />
-                      <span>Já terminou</span>
-                    </label>
+                    {/* Como no guiado: a primeira fase é de estar junto, e o resto da história entra por
+                        "Adicionar o que aconteceu depois" (decisão do Gui, 18/11/2026) */}
+                    <PrimeiraFase id="novo" />
                     <FasesDepois id={`fase-depois-${g.id}`} rotuloDaPrimeira="rotulo-fase-novo" />
-                    <p class="dica">Os anos são opcionais. A história também pode ser contada depois, na edição do casal.</p>
+                    <p class="dica">As datas são opcionais. A história também pode ser contada depois, na edição do casal.</p>
                     <label class="marcar">
                       <input type="checkbox" name="visibilidade" value="privado" />
                       <span>Só os dois veem este casal</span>
@@ -1057,7 +1054,9 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                           {papeis.map(([id, rotulo]) => <option value={id}>Como se fosse {rotulo}</option>)}
                         </select>
                       </label>
-                      <Opcoes nome="proximidade" rotulo="Proximidade" opcoes={proximidades} id={`rotulo-proximidade-novo-${g.id}`} dica="Só você vê." />
+                      {/* Na própria página, a pessoa ainda não foi escolhida: o slider parte de Próximo, a de um laço
+                          do coração sem valor. Na de outra pessoa, parte da proximidade dela no círculo */}
+                      <CampoProximidade id={`proximidade-novo-${g.id}`} valor={ehMinha ? PADRAO_DO_CORACAO : proximidadeParaNovoLaco(pessoa.id)} comFora={false} dica="Só você vê. É a mesma do seu círculo." />
                       <label class="marcar">
                         <input type="checkbox" name="privado" />
                         <span>Só eu vejo este laço</span>
@@ -1097,6 +1096,16 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
         )}
       </section>
     ))}
+    {/* Na página de outra pessoa, a proximidade é só a do laço entre quem está logado e ela. Com um laço do
+        coração, ela mora na edição dele; sem, num cartão próprio. Só quem está logado vê */}
+    {!ehMinha && !meusLacos.some((l) => l.pessoa === pessoa.id) && minhaProximidade(pessoa.id, 'pessoa') && (
+      <section class="grupo-de-lacos grupo-de-lacos--proximidade" id="proximidade" aria-labelledby="titulo-proximidade">
+        <header class="grupo-de-lacos__titulo">
+          <h3 id="titulo-proximidade">Sua proximidade com {chamar}</h3>
+        </header>
+        <ProximidadeDoLaco pessoa={pessoa.id} id="proximidade-da-pessoa" valor={minhaProximidade(pessoa.id, 'pessoa')!.valor} declarada={minhaProximidade(pessoa.id, 'pessoa')!.declarada} volta={volta} />
+      </section>
+    )}
     </div>
   </section>
   </div>
@@ -1118,6 +1127,10 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
   import { ligarCamposDeAno } from '../../../lib/cliente/etapas';
   import { ligarDatas } from '../../../lib/cliente/datas';
   import { camposDo, devolver, type Guardado } from '../../../lib/cliente/guardar-formulario';
+  import { ligarProximidades } from '../../../lib/cliente/proximidade';
+
+  // O slider de proximidade: a faixa acompanha, e na edição dos laços guarda sozinho, no lugar
+  ligarProximidades();
 
   // Os anos das fases do casal têm os mesmos botões −10, −1, +1 e +10 dos outros formulários
   ligarCamposDeAno(document);
@@ -1164,6 +1177,8 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
         bloco.hidden = !mostra;
         for (const el of bloco.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) el.disabled = !mostra;
       }
+      // A pergunta de quem é a outra pessoa acompanha a escolha
+      for (const rotulo of form.querySelectorAll<HTMLElement>('[data-rotulo-para]')) rotulo.hidden = rotulo.dataset.rotuloPara !== (daFamilia ? 'familia' : 'eu');
     };
     for (const r of form.querySelectorAll('input[name="reconhece"]')) r.addEventListener('change', aplicar);
     aplicar();
@@ -1246,7 +1261,8 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
     if (document.readyState === 'complete') devolverPendente();
     else addEventListener('load', devolverPendente, { once: true });
     for (const outro of document.querySelectorAll<HTMLFormElement>('form')) {
-      if (outro === ficha) continue;
+      // O que guarda no lugar (a proximidade) não recarrega: a ficha continua na tela como está
+      if (outro === ficha || outro.hasAttribute('data-no-lugar')) continue;
       outro.addEventListener('submit', () => {
         const campos = camposDo(ficha);
         const foto = fotoMexida();
@@ -1280,16 +1296,4 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
     aplicar();
   }
 
-  // "Já terminou": a data de fim só aparece quando o casal já acabou. Desmarcar apaga a data.
-  for (const caixa of document.querySelectorAll<HTMLInputElement>('[data-revela]')) {
-    const alvo = document.querySelector<HTMLElement>(`[data-depende="${caixa.dataset.revela}"]`);
-    if (!alvo) continue;
-    const campo = alvo.querySelector<HTMLInputElement>('input');
-    const aplicarFim = () => {
-      alvo.hidden = !caixa.checked;
-      if (!caixa.checked && campo) campo.value = '';
-    };
-    caixa.addEventListener('change', aplicarFim);
-    aplicarFim();
-  }
 </script>
