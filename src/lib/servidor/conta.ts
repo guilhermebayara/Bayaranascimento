@@ -17,6 +17,7 @@ import {
   listarRelatosRegistradosPor,
   listarTipos,
   espacoDosArquivos,
+  contarFotosSoltas,
   medirArquivosDeAntes,
   obterCarta,
   tamanhoDoBanco,
@@ -30,7 +31,7 @@ import {
  */
 async function situacaoDasPendencias(): Promise<Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>> {
   const conferida = ambiente() === 'producao';
-  const [carta, bytes, ultima, arquivos] = await Promise.all([obterCarta(), tamanhoDoBanco(), conferida ? ultimaCopiaMensal() : Promise.resolve(null), espacoDosArquivos()]);
+  const [carta, bytes, ultima, arquivos, fotosSoltas] = await Promise.all([obterCarta(), tamanhoDoBanco(), conferida ? ultimaCopiaMensal() : Promise.resolve(null), espacoDosArquivos(), contarFotosSoltas()]);
   const banco = situacaoDoBanco(bytes);
   const espaco = situacaoDoEspaco(arquivos.bytes, arquivos.semMedida);
   return {
@@ -38,7 +39,7 @@ async function situacaoDasPendencias(): Promise<Pick<SituacaoDaAdministracao, 'c
     banco: banco && { bytes: banco.bytes, passouDoAviso: banco.passouDoAviso },
     espaco: espaco && { bytes: espaco.bytes, passouDoAviso: espaco.passouDoAviso },
     copiaMensal: { conferida, ultima },
-    fotosSoltas: null,
+    fotosSoltas,
     duplicados: null,
   };
 }

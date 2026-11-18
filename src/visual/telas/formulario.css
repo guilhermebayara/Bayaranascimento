@@ -2451,3 +2451,38 @@
   flex-wrap: wrap;
   gap: var(--e-3);
 }
+
+/* Fotos sem memória (onda 2): a foto pequena, quem enviou e quando, e "Apagar", que pergunta no lugar */
+.pagina-de-formulario .soltas > li {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-2) var(--e-4);
+}
+.pagina-de-formulario .soltas img {
+  width: 4.5rem;
+  height: 4.5rem;
+  object-fit: cover;
+  border-radius: var(--raio-foto);
+  background: var(--papel-recuo);
+}
+.pagina-de-formulario .soltas__quem {
+  display: grid;
+  gap: var(--e-1);
+}
+.pagina-de-formulario .soltas .lixeira__apagar {
+  grid-column: 1 / -1;
+}
+.pagina-de-formulario .soltas__grupo {
+  display: grid;
+  gap: var(--e-3);
+}
+@media (min-width: 62rem) {
+  .pagina-de-formulario .soltas > li {
+    grid-template-columns: 4.5rem minmax(0, 1fr) minmax(0, 22rem);
+  }
+  .pagina-de-formulario .soltas .lixeira__apagar {
+    grid-column: 3;
+    justify-self: end;
+  }
+}

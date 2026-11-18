@@ -1281,6 +1281,8 @@ export async function podeVerFoto(usuario: Usuario, chave: string): Promise<bool
     .prepare(
       `SELECT 1 AS ok FROM fotos f WHERE f.chave = ?2 AND (
          (f.memoria_id IS NULL AND f.enviada_por = ?1 AND f.removida_em IS NULL)
+         -- foto sem memória há mais de 30 dias: os administradores conferem antes de apagar (onda 2)
+         OR (?3 = 1 AND ${FOTO_SOLTA})
          OR (
            -- foto removida: só quem enviou e quem removeu ainda veem, para poder devolvê-la à memória
            (f.removida_em IS NULL OR f.enviada_por = ?1 OR f.removida_por = ?1)
@@ -1296,9 +1298,52 @@ export async function podeVerFoto(usuario: Usuario, chave: string): Promise<bool
          )
        ) LIMIT 1`,
     )
-    .bind(usuario.pessoa, chave)
+    .bind(usuario.pessoa, chave, usuario.admin ? 1 : 0)
     .first();
   return Boolean(linha);
+}
+
+// --- Fotos sem memória (onda 2, decisão do Gui de 17/11/2026) ---
+
+/** Os dias que uma foto fica sem memória antes de entrar na lista dos administradores. */
+export const DIAS_DA_FOTO_SOLTA = 30;
+
+/**
+ * A foto que ficou sem memória: enviada num formulário abandonado, ou solta por "Apagar de vez". Nem
+ * de memória nem de relato, há mais de 30 dias. As fotos de exemplo (que as prévias dividem) nunca.
+ */
+const FOTO_SOLTA = `(f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%'
+  AND f.enviada_em < datetime('now', '-${DIAS_DA_FOTO_SOLTA} days'))`;
+
+export interface FotoSolta {
+  id: number;
+  chave: string;
+  enviadaPor: string;
+  enviadaEm: string;
+  tamanho: number | null;
+}
+
+export async function listarFotosSoltas(): Promise<FotoSolta[]> {
+  const { results } = await db()
+    .prepare(`SELECT f.id, f.chave, f.enviada_por, f.enviada_em, f.tamanho FROM fotos f WHERE ${FOTO_SOLTA} ORDER BY f.enviada_em, f.id`)
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({ id: r.id as number, chave: r.chave as string, enviadaPor: r.enviada_por as string, enviadaEm: r.enviada_em as string, tamanho: (r.tamanho as number | null) ?? null }));
+}
+
+export async function contarFotosSoltas(): Promise<number> {
+  const linha = await db().prepare(`SELECT COUNT(*) AS n FROM fotos f WHERE ${FOTO_SOLTA}`).first<{ n: number }>();
+  return linha?.n ?? 0;
+}
+
+/** A foto solta deste id, conferida de novo no banco antes de apagar, ou nada. */
+export async function obterFotoSolta(id: number): Promise<FotoSolta | undefined> {
+  return (await listarFotosSoltas()).find((f) => f.id === id);
+}
+
+/** Tira o registro da foto solta, depois que o arquivo saiu do bucket. Só se ela continua solta. */
+export async function esquecerFotoSolta(id: number): Promise<boolean> {
+  const r = await db().prepare(`DELETE FROM fotos WHERE id = ? AND id IN (SELECT f.id FROM fotos f WHERE ${FOTO_SOLTA})`).bind(id).run();
+  return (r.meta.changes ?? 0) > 0;
 }
 
 // --- Relatos ---

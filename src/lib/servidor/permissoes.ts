@@ -387,3 +387,8 @@ export function podeApagarDeVez(usuario: Usuario, item: { naLixeira: boolean }):
   if (!item.naLixeira) return nao('Só dá para apagar de vez o que já está na lixeira.');
   return sim;
 }
+
+/** Apagar uma foto que ficou sem memória há mais de 30 dias: só os administradores (onda 2). */
+export function podeApagarFotoSolta(usuario: Usuario): Decisao {
+  return usuario.admin ? sim : nao('Só os administradores apagam fotos sem memória.');
+}

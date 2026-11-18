@@ -242,6 +242,12 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
       situacao: situacao && (situacao.carta ? `escrita em ${situacao.carta.escritaEm.slice(0, 4)}` : 'ainda não escrita'),
       pendencia: Boolean(situacao && !situacao.carta),
     },
+    {
+      rotulo: 'Fotos sem memória',
+      href: '/admin/fotos-soltas',
+      situacao: situacao && (situacao.fotosSoltas ? plural(situacao.fotosSoltas, 'foto', 'fotos') : 'nenhuma'),
+      pendencia: Boolean(situacao?.fotosSoltas),
+    },
     { rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },
     { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
     ...(onde.podeEspelhar ? [{ rotulo: 'Espelho da produção', href: '/admin/espelho', situacao: situacao && 'só na homologação' }] : []),
