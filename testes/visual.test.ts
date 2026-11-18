@@ -202,7 +202,7 @@ describe('conceito', () => {
   });
 
   it('o painel é só de quem olha: lê as regras de src/lib/painel.ts e só memória publicada', () => {
-    // docs/decisoes.md, "Painel pessoal como página inicial". A tela não refaz as regras.
+    // docs/decisoes.md, "Início (painel pessoal)". A tela não refaz as regras.
     const painel = tela('pages/index.astro');
     for (const regra of ['chegarAoPainel', 'novidades', 'aniversarios', 'memoriaParaContar', 'emOutrosAnos']) expect(painel).toContain(`${regra}(`);
     expect(painel).toContain('listarMemorias(usuario)');

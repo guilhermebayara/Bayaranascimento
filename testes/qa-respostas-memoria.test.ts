@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, na página da memória e na
-// confirmação de excluir (docs/qa/2026-11-17-perguntas.md, P51 a P59).
+// confirmação de excluir (docs/historico/qa/2026-11-17-perguntas.md, P51 a P59).
 import { describe, expect, it } from 'vitest';
 import { RETRATOS_NO_CELULAR, recolheQuemEstava, relatoJaEstaNaAbertura } from '../src/lib/memoria';
 import { voceOuOsOutrosAdmins } from '../src/lib/servidor/conteudo';

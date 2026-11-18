@@ -185,7 +185,7 @@ const PAGINAS = [
   { nome: 'familia-5-arvore-foco', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.mapa a.no[data-id="elizete"]').dispatchEvent('click') },
   { nome: 'familia-5-arvore-ramo', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.no__ramo').first().dispatchEvent('click') },
   { nome: 'familia-5-arvore-ajustes', url: '/arvore', larguras: TODAS, antes: (pagina) => pagina.locator('.mapa__painel > summary').click() },
-  // Ajustes depois da fase 3 (docs/visual.md, "Ajustes depois da fase 3"): a lista no Explorar e na
+  // Ajustes depois da fase 3 (docs/historico/visual-ate-2026-11-17.md, "Ajustes depois da fase 3"): a lista no Explorar e na
   // página da pessoa, as formas de ver da pessoa, "Quem aparece" no capítulo e o foco no título.
   // Para tirar só elas: CAPTURAS_SO=^ajustes npm run capturas -- tirar <pasta>
   { nome: 'ajustes-1-lista', url: '/explorar?ver=lista', como: 'giovanna', larguras: TODAS, corte: 4000 },

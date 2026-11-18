@@ -1,4 +1,4 @@
-// Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md),
+// Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026 (docs/historico/qa/2026-11-17-perguntas.md),
 // nas telas "Nova pessoa e cadastro guiado" (P109 a P113) e "Editar página e laços" (P114 a P125).
 import { describe, expect, it } from 'vitest';
 import { PROPORCAO_DO_RETRATO, quadroDoRetrato } from '../src/lib/retratos';

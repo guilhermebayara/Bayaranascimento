@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, nos capítulos e nos temas
-// (docs/qa/2026-11-17-perguntas.md, P60 a P83).
+// (docs/historico/qa/2026-11-17-perguntas.md, P60 a P83).
 import { describe, expect, it } from 'vitest';
 import {
   FORMAS_DO_CAPITULO,

@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, na árvore (P84 a P97 de
-// docs/qa/2026-11-17-perguntas.md). Só o que fica em volta do desenho: a ficha, a legenda, os
+// docs/historico/qa/2026-11-17-perguntas.md). Só o que fica em volta do desenho: a ficha, a legenda, os
 // ajustes, a barra de baixo e o teclado. O arranjo e as linhas continuam em testes/arvore-*.test.ts.
 //
 // Com a página da árvore como mapa (proposta A, escolhida pelo Gui em 17/11/2026), a ficha, os

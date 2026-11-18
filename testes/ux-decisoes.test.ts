@@ -1,4 +1,4 @@
-// Decisões do Gui sobre a interface, depois do QA de UX de 16/11/2026 (docs/ux/fluxos.md).
+// Decisões do Gui sobre a interface, depois do QA de UX de 16/11/2026 (docs/historico/ux/fluxos.md).
 // Conferências no código, para nenhuma delas voltar atrás sem querer.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

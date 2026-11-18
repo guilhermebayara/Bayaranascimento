@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, nas telas "Nova memória"
-// (P126 a P146) e "Meu relato" (P147). As perguntas estão em docs/qa/2026-11-17-perguntas.md.
+// (P126 a P146) e "Meu relato" (P147). As perguntas estão em docs/historico/qa/2026-11-17-perguntas.md.
 import { describe, expect, it } from 'vitest';
 import { SEM_ANO, SEM_DATA, dataNaFrase, formatarData, problemaNoAno } from '../src/lib/datas';
 import { carimboDaData } from '../src/lib/visual';
