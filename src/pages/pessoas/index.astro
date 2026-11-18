@@ -11,13 +11,16 @@
 // que abre e fecha (details, sem script); a pílula de família filtra a lista, uma família por vez
 // (`?familia=`, junto com `?ordem=`); no celular, só a busca fica à vista, e "Famílias e ordem" abre o
 // resto.
+// "Nome (apelido)" (decisão do Gui, 18/11/2026, depois da sessão H): cada pessoa aparece como "Alexsander
+// (Lugh)", com o apelido que quem olha vê (o seu, senão o da família, que `listarIntegrantes` já trocou), e
+// a busca acha pelos dois. Regras em src/lib/ordem-das-pessoas.ts.
 import '../../visual/telas/pessoas.css';
 import Visual from '../../layouts/Visual.astro';
 import Gente from '../../components/visual/Gente.astro';
 import PilulaDeFamilia from '../../components/visual/PilulaDeFamilia.astro';
 import { Familia, calcularGeracoes, possessivo, type Tratamento } from '../../lib/parentesco';
 import { jaFaleceu } from '../../lib/datas';
-import { enderecoDePessoas, familiaPedida, gruposDaFamilia, ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
+import { apelidoAoLado, enderecoDePessoas, familiaPedida, gruposDaFamilia, nomeComApelido, ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
 import { enderecoDoRetrato } from '../../lib/retratos';
 import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
 import { corDaPessoa, corDoNucleo } from '../../lib/visual';
@@ -100,7 +103,7 @@ const escolhido = [todosOsGrupos.find((g) => g.id === familiaEmUso)?.nome, ordem
         <div class="pessoas-pagina__campo">
           <select id="procurar-pessoa" name="ir" required>
             <option value="">Escreva o nome</option>
-            {porNome.map((p) => <option value={p.id}>{p.nome}</option>)}
+            {porNome.map((p) => <option value={p.id}>{nomeComApelido(p.nome, p.apelido)}</option>)}
           </select>
           <button class="acao" type="submit">Abrir a página</button>
         </div>
@@ -173,6 +176,7 @@ const escolhido = [todosOsGrupos.find((g) => g.id === familiaEmUso)?.nome, ordem
                   <Gente
                     href={`/pessoas/${p.id}`}
                     nome={p.nome}
+                    apelido={apelidoAoLado(p.nome, p.apelido)}
                     foto={p.retrato && !naoVe.has(p.id) ? enderecoDoRetrato(p.retrato) : null}
                     familia={corDaPessoa(familiasDe(p), ordemDosNucleos)}
                     laco={paraVoce(p)}

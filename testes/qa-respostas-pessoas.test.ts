@@ -1,7 +1,7 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, na lista de Pessoas e na
 // página da pessoa (P98 a P108 de docs/qa/2026-11-17-perguntas.md).
 import { describe, expect, it } from 'vitest';
-import { enderecoDePessoas, familiaPedida, gruposDaFamilia, ordemPedida, ordenarPessoas, type PessoaDaLista } from '../src/lib/ordem-das-pessoas';
+import { apelidoAoLado, buscaAcha, enderecoDePessoas, familiaPedida, gruposDaFamilia, nomeComApelido, ordemPedida, ordenarPessoas, type PessoaDaLista } from '../src/lib/ordem-das-pessoas';
 import { calcularGeracoes } from '../src/lib/parentesco';
 import { vidaSemRotulo } from '../src/lib/datas';
 
@@ -217,5 +217,37 @@ describe('a página da pessoa', () => {
     expect(vidaSemRotulo({ nascimentoAno: null, falecimentoAno: 2010 }, true)).toBe('até 2010');
     expect(vida({})).toBe('');
     expect(vida({ nascimentoAno: 1942 })).not.toMatch(/Nascimento|:/);
+  });
+});
+
+// "Nome (apelido)" na lista de Pessoas (decisão do Gui, 18/11/2026, depois da sessão H)
+describe('a lista de Pessoas com o apelido ao lado do nome', () => {
+  it('"Alexsander (Lugh)"; sem apelido, só o nome; apelido igual ao nome não se repete', () => {
+    expect(nomeComApelido('Alexsander', 'Lugh')).toBe('Alexsander (Lugh)');
+    expect(nomeComApelido('Alexsander', null)).toBe('Alexsander');
+    expect(nomeComApelido('Alexsander', '  ')).toBe('Alexsander');
+    expect(nomeComApelido('Alexsander', 'alexsander')).toBe('Alexsander');
+    expect(nomeComApelido('Vó Bela', 'Vo bela')).toBe('Vó Bela');
+    expect(apelidoAoLado('Elizete', 'Tia Zete')).toBe('Tia Zete');
+    expect(apelidoAoLado('Elizete', 'Elizete')).toBeNull();
+  });
+  it('a busca acha pelo nome e pelo apelido, sem acento e sem caixa', () => {
+    expect(buscaAcha('lugh', 'Alexsander', 'Lugh')).toBe(true);
+    expect(buscaAcha('ALEX', 'Alexsander', 'Lugh')).toBe(true);
+    expect(buscaAcha('vo', 'Isabela', 'Vó Bela')).toBe(true);
+    expect(buscaAcha('zete', 'Elizete', null)).toBe(true);
+    expect(buscaAcha('lugh', 'Alexsander', null)).toBe(false);
+    // A busca do navegador procura no texto da opção, que é o nome com o apelido
+    expect(ler('src/lib/cliente/busca-pessoa.ts')).toContain('simples(o.texto).includes(t)');
+  });
+  it('a página usa o apelido que quem olha vê, nas linhas e na busca', () => {
+    const pagina = ler('src/pages/pessoas/index.astro');
+    expect(pagina).toContain('<option value={p.id}>{nomeComApelido(p.nome, p.apelido)}</option>');
+    expect(pagina).toContain('apelido={apelidoAoLado(p.nome, p.apelido)}');
+    // O apelido de quem olha chega em `apelido`: listarIntegrantes troca o da família pelo seu
+    expect(ler('src/lib/servidor/repositorio.ts')).toContain('apelido: meus?.get(i.id as string) ?? (i.apelido as string | null),');
+    expect(pagina).toContain('listarIntegrantesQueVe(usuario)');
+    // O retrato continua com as iniciais do nome, e o apelido fica ao lado, na mesma linha
+    expect(ler('src/components/visual/Gente.astro')).toContain('<Retrato nome={nome}');
   });
 });
