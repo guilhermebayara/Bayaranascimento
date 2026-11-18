@@ -64,7 +64,7 @@ const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um :
 // do Gui, P99), então a soma dos blocos passa da conta do alto, e os números soltos convidavam a somar.
 const contaDe = (lista: Integrante[]) => {
   const bichos = lista.filter((i) => i.tipo === 'bicho').length;
-  return [lista.length > bichos ? plural(lista.length - bichos, 'pessoa', 'pessoas') : null, bichos > 0 ? plural(bichos, 'bicho', 'bichos') : null].filter(Boolean).join(' · ');
+  return [lista.length > bichos ? plural(lista.length - bichos, 'pessoa', 'pessoas') : null, bichos > 0 ? plural(bichos, 'bichinho', 'bichinhos') : null].filter(Boolean).join(' · ');
 };
 const conta = contaDe(integrantes);
 const naoVe = await pessoasQueONaoVe(usuario);
@@ -72,7 +72,7 @@ const temPagina = integrantes.some((i) => i.id === usuario.pessoa);
 const detalhe = (p: Integrante) => {
   const n = contar(p.id);
   // Sem memória nenhuma, a linha da conta não aparece (P101)
-  return [p.tipo === 'bicho' ? (p.especie ?? 'bicho') : null, n > 0 ? plural(n, 'memória', 'memórias') : null].filter(Boolean).join(' · ') || null;
+  return [p.tipo === 'bicho' ? (p.especie ?? 'bichinho') : null, n > 0 ? plural(n, 'memória', 'memórias') : null].filter(Boolean).join(' · ') || null;
 };
 const porNome = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 // A troca de ordem guarda a família, e a pílula de família guarda a ordem

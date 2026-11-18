@@ -625,3 +625,81 @@ html:has(.galeria[open]) {
   gap: 0 var(--e-3);
   font-size: var(--t-pequeno);
 }
+
+/* --- Reações (onda 2, src/lib/reacoes.ts): os quatro rabiscos embaixo do relato e de cada foto -------
+   Cada símbolo é um botão de toque inteiro (44 px), com a conta ao lado. O meu fica cheio, na cor viva.
+   "Quem marcou" abre os nomes no lugar. Desenho de primeira rodada, para o acabamento. */
+.reacoes {
+  display: grid;
+  gap: var(--e-1);
+  margin-top: var(--e-3);
+}
+.reacoes__simbolos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-1);
+}
+.reacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-1);
+  min-width: var(--toque);
+  min-height: var(--toque);
+  padding-inline: var(--e-2);
+  border: 1px solid transparent;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--tinta-suave);
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  cursor: pointer;
+}
+.reacao .icone {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.reacao:hover {
+  border-color: var(--fio);
+  color: var(--tinta);
+}
+.reacao--minha {
+  border-color: var(--vivo);
+  background: var(--pastel);
+  color: var(--tinta);
+}
+.reacao:active {
+  translate: 0 1px;
+}
+.reacoes__quem ul {
+  display: grid;
+  gap: var(--e-1);
+  margin-top: var(--e-2);
+  padding: 0;
+  font-size: var(--t-pequeno);
+  list-style: none;
+}
+.reacoes__quem li {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+.reacoes__quem .icone {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+.parede .reacoes {
+  margin-top: var(--e-2);
+}
+/* Depois de "eu estava lá": a oferta de entrar em Quem estava, numa linha */
+.entrar-em-quem-estava {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-2) var(--e-4);
+  margin-bottom: var(--e-6);
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--raio-moldura);
+  background: var(--papel-recuo);
+}

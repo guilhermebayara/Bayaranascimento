@@ -7,7 +7,7 @@ import { Familia, lacoParaODono, possessivo, type Tratamento } from '../parentes
 import { enderecoDoRetrato } from '../retratos';
 import { corDaPessoa } from '../visual';
 import type { Usuario } from './permissoes';
-import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarNucleos, listarProximidades, pessoasQueONaoVe, type Integrante } from './repositorio';
+import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarNucleos, listarProximidades, pessoasQueONaoVe, type Integrante } from './repositorio';
 
 export interface PessoaDoCirculo {
   id: string;
@@ -41,7 +41,7 @@ export interface Circulo {
  * os laços do coração dela, quem já faleceu e os bichos. Quem ela não vê não entra.
  */
 export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
-  const [integrantes, filiacoes, casais, todosOsLacos, nucleos, naoVe, declaradas] = await Promise.all([
+  const [integrantes, filiacoes, casais, todosOsLacos, nucleos, naoVe, declaradas, modosDosExes] = await Promise.all([
     listarIntegrantesQueVe(usuario),
     listarFiliacoes(),
     listarCasais(usuario),
@@ -49,6 +49,7 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
     listarNucleos(),
     pessoasQueONaoVe(usuario),
     listarProximidades(usuario.pessoa),
+    comoOsExesAparecem(usuario),
   ]);
   const eu = integrantes.find((i) => i.id === usuario.pessoa);
   if (!eu) return null;
@@ -57,7 +58,8 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
   const familia = new Familia(filiacoes, casais, new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento])));
 
   const todos = integrantes
-    .filter((i) => i.id !== eu.id)
+    // O ex que a pessoa deixou discreto ou fora sai do círculo dela (src/lib/ex-casal.ts)
+    .filter((i) => i.id !== eu.id && !modosDosExes.has(i.id))
     .flatMap((i) => {
       const relacao = familia.relacao(eu.id, i.id);
       const meu = lacos.find((l) => l.pessoa === i.id);
@@ -69,7 +71,7 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
         {
           id: i.id,
           nome: i.apelido ?? i.nome,
-          laco: relacao ? possessivo(relacao, i.tratamento) : meu ? lacoParaODono(meu.nome, i.tratamento) : i.tipo === 'bicho' ? (i.especie ?? 'bicho') : '',
+          laco: relacao ? possessivo(relacao, i.tratamento) : meu ? lacoParaODono(meu.nome, i.tratamento) : i.tipo === 'bicho' ? (i.especie ?? 'bichinho') : '',
           foto: i.retrato && !naoVe.has(i.id) ? enderecoDoRetrato(i.retrato) : null,
           cor: corDaPessoa(familiasDe(i), ordem),
           falecido: jaFaleceu(i),

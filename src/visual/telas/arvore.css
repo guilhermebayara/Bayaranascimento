@@ -228,6 +228,30 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+/* Um ex que quem olha deixou discreto (src/lib/ex-casal.ts): a tarja de tinta, de leve torta, por cima
+   do nome, e o cartão sem toque. Provisória: vai passar pelo acabamento visual. */
+.no--discreto {
+  cursor: default;
+}
+.no--discreto > :not(.no__tarja) {
+  visibility: hidden;
+}
+.no .no__tarja {
+  display: block;
+  position: absolute;
+  inset-inline: var(--e-2);
+  top: 50%;
+  padding: var(--e-1) var(--e-2);
+  transform: translateY(-50%) rotate(-4deg);
+  border-radius: var(--raio-carimbo);
+  background: var(--tinta);
+  color: var(--papel);
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
 /* Amigos e quem não é de nenhuma família: a etiqueta em branco, com um fio */
 .no--de-fora {
   box-shadow: inset 0 0 0 1px var(--fio);

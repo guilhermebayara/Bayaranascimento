@@ -80,3 +80,11 @@ export function bucketDeTesteParaGravar(): R2Bucket {
   if (!AMBIENTES_COM_EXEMPLOS.includes(ambiente()) || ehHomologacao()) throw new Error('Só as prévias de teste gravam no bucket de teste.');
   return env.FOTOS;
 }
+
+/**
+ * O Workers AI, para a transcrição automática (onda 2). Vazio enquanto o binding "AI" não estiver no
+ * wrangler.jsonc: a transcrição fica pronta e desligada (src/lib/transcricao.ts).
+ */
+export function modeloDeTranscricao(): Cloudflare.Env['AI'] | null {
+  return env.AI ?? null;
+}

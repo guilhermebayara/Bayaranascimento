@@ -32,7 +32,7 @@ describe('onde o aviso aparece', () => {
     expect(fontes['src/lib/servidor/conta.ts']).toMatch(/const situacao: SituacaoDaAdministracao \| undefined = usuario\.admin/);
     const conta = fontes['src/pages/conta.astro'];
     expect(conta).toMatch(/\{conta\.bancoEmAviso && <p class="conta__nota">Perto do limite do plano gratuito\./);
-    expect(conta).toContain("'conta__banco--aviso': conta.bancoEmAviso");
+    expect(conta).toContain("'conta__medidor--aviso': conta.bancoEmAviso");
   });
 
   it('na cópia, com o tamanho, e o script do Drive falha depois de salvar o arquivo', () => {

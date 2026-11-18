@@ -14,8 +14,10 @@ import { enderecoDoRetrato } from '../../../lib/retratos';
 import { corDaPessoa } from '../../../lib/visual';
 import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, PROXIMIDADES, QUALIDADES, estaoJuntos, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
-import { podeEditarIntegrante, podeMexerEmLaco, podeMudarLacoDoCoracao } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos, listarNucleos } from '../../../lib/servidor/repositorio';
+import { podeEditarIntegrante, podeMexerEmLaco, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../../lib/servidor/permissoes';
+import { casalDesfeito, opcoesDeQuemVe, opcoesDoModo } from '../../../lib/ex-casal';
+import { enderecoDoLaco } from '../../../lib/pagina-do-laco';
+import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos, listarNucleos } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 // Quem só existe num laço privado de outra pessoa não é editado nem oferecido nos laços (C1)
@@ -49,6 +51,12 @@ const chamar = pessoa.apelido ?? pessoa.nome;
 const pais = familia.pais(pessoa.id);
 const filhos = familia.filhos(pessoa.id);
 const casais = familia.casais(pessoa.id);
+// Ex-casal (decisões do Gui, 18/11/2026; src/lib/ex-casal.ts): num casal desfeito, quem vê é das duas
+// pessoas, com a opção das famílias escolhidas, e cada uma escolhe como a outra aparece para ela
+const modosDosExes = await comoOsExesAparecem(usuario);
+const todasAsFamilias = await listarNucleos();
+const quemVeTexto = (c: { visibilidade: string; nucleos?: string[] }) =>
+  c.visibilidade === 'privado' ? 'só os dois veem' : c.visibilidade === 'nucleos' ? `só ${(c.nucleos ?? []).map((n) => `a família ${todasAsFamilias.find((f) => f.id === n)?.nome ?? n}`).join(' e ')} vê` : 'todos veem';
 const outros = integrantes.filter((i) => i.id !== pessoa.id).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 const lacosDoCoracao = await listarLacosDoCoracao(usuario);
 // Na própria página, todos os laços da pessoa. Na página de outra, só o laço com ela.
@@ -129,12 +137,12 @@ const TRILHA = pessoa.tipo === 'bicho' ? [...PASSOS, 'fim'] : passo === 'inicio'
 const PERGUNTAS: Record<string, { titulo: string; dica: string; laco: string; rotulo: string }> = {
   pais: {
     titulo: pessoa.tipo === 'bicho' ? `Quem é a família de ${chamar}?` : `Quem são os pais de ${chamar}?`,
-    dica: pessoa.tipo === 'bicho' ? 'As famílias tratam os bichos como filhos: escolha de quem ele é.' : 'Um de cada vez. Depois de adicionar o primeiro, dá para adicionar o outro.',
+    dica: pessoa.tipo === 'bicho' ? 'As famílias tratam os bichinhos como filhos: escolha de quem ele é.' : 'Um de cada vez. Depois de adicionar o primeiro, dá para adicionar o outro.',
     laco: 'filho-de',
     rotulo: pessoa.tipo === 'bicho' ? 'De quem é' : 'Pai ou mãe',
   },
   casal: { titulo: `${chamar} tem ou teve um casal?`, dica: 'Namoro, casamento, união, e também quem já se separou.', laco: 'casal', rotulo: 'Com quem' },
-  filhos: { titulo: `${chamar} tem filhos?`, dica: 'Bichos da família também entram aqui.', laco: 'pai-de', rotulo: 'Filho ou filha' },
+  filhos: { titulo: `${chamar} tem filhos?`, dica: 'Bichinhos da família também entram aqui.', laco: 'pai-de', rotulo: 'Filho ou filha' },
   coracao: { titulo: `O que ${chamar} é para você?`, dica: 'Do jeito que você chama: amiga, padrinho, vó de coração.', laco: 'coracao', rotulo: '' },
   parentes: {
     titulo: `Alguém da família de ${chamar} está no acervo?`,
@@ -183,7 +191,7 @@ const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!)
 const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
 // O resumo da ficha, numa linha: só o que existe
 const resumoDaFicha = [
-  pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bicho') : null,
+  pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bichinho') : null,
   pessoa.tratamento,
   vidaSemRotulo(pessoa, true),
   familiasDe(pessoa).map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean).join(' e '),
@@ -221,6 +229,13 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
     {!recemCadastrada && (
       <p>
         <a href={`/pessoas/${pessoa.id}`}>Voltar para a página</a>
+        {/* O histórico da ficha e dos laços (onda 2), para quem pode mexer em alguma das duas coisas */}
+        {(podeFicha || podeLacos) && (
+          <>
+            {' · '}
+            <a href={`/pessoas/${pessoa.id}/historico`}>Ver o histórico</a>
+          </>
+        )}
       </p>
     )}
     {/* O índice: a ficha e cada grupo de laços, com quantas pessoas tem. No computador, onde há mouse,
@@ -575,9 +590,10 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                     <p class="laco__linha">
                       <strong>{chamar} e {nome(c.outro)}</strong>
                       {faleceu(c.outro) && <span class="so-leitor">, {nome(c.outro)} já faleceu</span>}
-                      <span>{estaoJuntos(c.casal) ? 'juntos' : 'não estão mais juntos'}{c.casal.visibilidade === 'privado' && ', só os dois veem'}</span>
+                      <span>{estaoJuntos(c.casal) ? 'juntos' : 'não estão mais juntos'}{c.casal.visibilidade !== 'todos' && `, ${quemVeTexto(c.casal)}`}</span>
                     </p>
                   </div>
+                  <p class="laco__ver"><a href={enderecoDoLaco(pessoa.id, c.outro)}>Ver o laço</a></p>
                   {/* As fases como uma linha do tempo: o que aconteceu e quando */}
                   <ol class="fases">
                     {c.casal.fases.map((fase, n) => (
@@ -642,13 +658,69 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                           </div>
                         </fieldset>
                         {/* A escolha vale para o casal inteiro: separada das fases, com o nome do que é (P121) */}
-                        <div class="quem-ve" role="group" aria-labelledby={`rotulo-quem-ve-${c.casal.id}`}>
-                          <p class="rotulo suave" id={`rotulo-quem-ve-${c.casal.id}`}>Quem vê</p>
-                          <label class="marcar">
-                            <input type="checkbox" name="visibilidade" value="privado" checked={c.casal.visibilidade === 'privado'} />
-                            <span>Só os dois veem este casal</span>
-                          </label>
-                        </div>
+                        {!casalDesfeito(c.casal) ? (
+                          <div class="quem-ve" role="group" aria-labelledby={`rotulo-quem-ve-${c.casal.id}`}>
+                            <p class="rotulo suave" id={`rotulo-quem-ve-${c.casal.id}`}>Quem vê</p>
+                            <label class="marcar">
+                              <input type="checkbox" name="visibilidade" value="privado" checked={c.casal.visibilidade === 'privado'} />
+                              <span>Só os dois veem este casal</span>
+                            </label>
+                          </div>
+                        ) : podeMudarQuemVeOCasal(usuario, c.casal, comAcesso).ok ? (
+                          // Casal desfeito: todos, famílias escolhidas ou só os dois, das duas pessoas do casal
+                          <div class="quem-ve" role="group" aria-labelledby={`rotulo-quem-ve-${c.casal.id}`} data-quem-ve-do-casal>
+                            <p class="rotulo suave" id={`rotulo-quem-ve-${c.casal.id}`}>Quem vê este laço</p>
+                            <div class="opcoes" role="radiogroup">
+                              {opcoesDeQuemVe().map((o) => (
+                                <label class="opcao">
+                                  <input type="radio" name="visibilidade" value={o.valor} checked={c.casal.visibilidade === o.valor} />
+                                  <span>{o.rotulo}</span>
+                                </label>
+                              ))}
+                            </div>
+                            {opcoesDeQuemVe().map((o) => (
+                              <p class="dica" data-dica-de={o.valor} hidden={c.casal.visibilidade !== o.valor}>{o.dica}</p>
+                            ))}
+                            <div class="quem-ve__familias" data-familias-do-casal>
+                              <p class="rotulo suave">Quais famílias veem?</p>
+                              <div class="opcoes">
+                                {todasAsFamilias.map((f) => (
+                                  <label class="opcao">
+                                    <input type="checkbox" name="familiasDoCasal" value={f.id} checked={(c.casal.nucleos ?? []).includes(f.id)} />
+                                    <span>{f.nome}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div class="quem-ve">
+                            <p class="rotulo suave">Quem vê este laço</p>
+                            <p class="dica">{quemVeTexto(c.casal).charAt(0).toUpperCase() + quemVeTexto(c.casal).slice(1)}. Só {chamar} e {nome(c.outro)} mudam quem vê.</p>
+                          </div>
+                        )}
+                        {casalDesfeito(c.casal) && [c.casal.a, c.casal.b].includes(usuario.pessoa) && (() => {
+                          // Como o ex aparece para quem olha: só para ela, sem mudar o que os outros veem
+                          const outro = c.casal.a === usuario.pessoa ? c.casal.b : c.casal.a;
+                          const modo = modosDosExes.get(outro) ?? 'presente';
+                          return (
+                            <div class="quem-ve" role="group" aria-labelledby={`rotulo-como-aparece-${c.casal.id}`} data-como-aparece>
+                              <p class="rotulo suave" id={`rotulo-como-aparece-${c.casal.id}`}>Como {nome(outro)} aparece para você</p>
+                              <div class="opcoes" role="radiogroup">
+                                {opcoesDoModo(nome(outro)).map((o) => (
+                                  <label class="opcao">
+                                    <input type="radio" name="comoAparece" value={o.valor} checked={modo === o.valor} />
+                                    <span>{o.rotulo}</span>
+                                  </label>
+                                ))}
+                              </div>
+                              {opcoesDoModo(nome(outro)).map((o) => (
+                                <p class="dica" data-dica-de={o.valor} hidden={modo !== o.valor}>{o.dica}</p>
+                              ))}
+                              <p class="dica">Só muda para você. Os outros continuam vendo como antes.</p>
+                            </div>
+                          );
+                        })()}
                         <div class="acoes"><button class="botao" type="submit">Salvar o casal</button><button class="botao botao--leve" type="button" data-editar-cancelar hidden>Cancelar</button></div>
                       </form>
                       <ZonaDePerigo menor nivel={4}>
@@ -1157,6 +1229,19 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
         // nada a apagar
       }
     });
+  }
+
+  // Ex-casal: a dica de cada escolha acompanha o que está marcado. Sem script, aparece a da escolha
+  // com que a página abriu, e as famílias ficam sempre à vista.
+  for (const grupo of document.querySelectorAll<HTMLElement>('[data-quem-ve-do-casal], [data-como-aparece]')) {
+    const familias = grupo.querySelector<HTMLElement>('[data-familias-do-casal]');
+    const aplicar = () => {
+      const marcado = grupo.querySelector<HTMLInputElement>('.opcoes[role="radiogroup"] input:checked')?.value;
+      for (const dica of grupo.querySelectorAll<HTMLElement>('[data-dica-de]')) dica.hidden = dica.dataset.dicaDe !== marcado;
+      if (familias) familias.hidden = marcado !== 'nucleos';
+    };
+    grupo.addEventListener('change', aplicar);
+    aplicar();
   }
 
   // "Já terminou": a data de fim só aparece quando o casal já acabou. Desmarcar apaga a data.

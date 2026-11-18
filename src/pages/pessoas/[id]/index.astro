@@ -28,6 +28,7 @@ import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco } from '../../../lib/servidor/permissoes';
 import {
   familiasDe,
+  comoOsExesAparecem,
   listarAudiosDe,
   listarCapitulos,
   listarCasais,
@@ -60,7 +61,7 @@ const todasComEla = (await listarMemorias(usuario, { integrante: pessoa.id })).r
 const forma = lerFormaDaPessoa(Astro.url.searchParams);
 const memorias = mostraRascunho(forma) ? todasComEla : todasComEla.filter((m) => m.situacao !== 'rascunho');
 const dosNucleos = familiasDe(pessoa).map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n));
-const especie = pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bicho') : null;
+const especie = pessoa.tipo === 'bicho' ? (pessoa.especie ?? 'bichinho') : null;
 
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const filiacoes = await listarFiliacoes();
@@ -123,6 +124,8 @@ const vida = vidaSemRotulo(pessoa, mostrarDatas);
 const comQuem = ehMinha ? 'você' : chamar;
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
+// Como os exes aparecem para quem olha: só vale na página de quem escolheu
+const modosDosExes = ehMinha ? await comoOsExesAparecem(usuario) : new Map<string, 'discreto' | 'fora'>();
 // Os grupos de laços, cada um com as suas linhas
 type Linha = { id: string; laco?: string | null; detalhe?: string | null };
 const partes: { titulo: string; linhas: Linha[] }[] = [
@@ -133,7 +136,7 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
       laco: papel(c.outro) ?? (estaoJuntos(c.casal) ? null : 'ex'),
       detalhe:
         c.casal.fases.map((fase, n) => [FASES[fase.tipo].toLowerCase(), periodosDasFases(c.casal.fases)[n]].filter(Boolean).join(' ')).join(', depois ') +
-        (c.casal.visibilidade === 'privado' ? ' (só os dois veem)' : ''),
+        (c.casal.visibilidade === 'privado' ? ' (só os dois veem)' : c.casal.visibilidade === 'nucleos' ? ' (só as famílias escolhidas veem)' : ''),
     })),
   },
   ...grupos.map((g) => ({ titulo: g.titulo, linhas: g.ids.map((id) => ({ id, laco: papel(id), detalhe: adocaoCom(id) })) })),
@@ -160,7 +163,10 @@ const partes: { titulo: string; linhas: Linha[] }[] = [
       detalhe: l.privado ? 'só você vê' : null,
     })),
   },
-].filter((p) => p.linhas.length > 0);
+]
+  // Na própria página, o ex que a pessoa deixou discreto ou fora sai dos laços (src/lib/ex-casal.ts)
+  .map((p) => (ehMinha && modosDosExes.size > 0 ? { ...p, linhas: p.linhas.filter((l) => !modosDosExes.has(l.id)) } : p))
+  .filter((p) => p.linhas.length > 0);
 // Quantas pessoas há nos laços, sem contar duas vezes quem aparece em dois grupos
 const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => l.id))).size;
 ---

@@ -1,0 +1,122 @@
+---
+// As sugestões de correção de uma memória (onda 2, decisão do Gui de 17/11/2026): quem recebeu aceita
+// (só nos dados), recusa ou responde; quem mandou vê a resposta. Ninguém mais vê as sugestões.
+import Pagina from '../../../components/formularios/Pagina.astro';
+import Vazio from '../../../components/visual/Vazio.astro';
+import { formatarMomento } from '../../../lib/datas';
+import { frasesDaProposta } from '../../../lib/sugestoes';
+import { abrirAvisosDaMemoria, listarIntegrantes, listarSugestoes, obterMemoria, pessoasQueONaoVe } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
+if (!memoria || memoria.situacao !== 'publicada') return new Response('Memória não encontrada', { status: 404 });
+const sugestoes = await listarSugestoes(memoria.id, usuario);
+// Abrir a lista tira da lista de avisos as respostas (as sugestões abertas só saem com a resposta)
+await abrirAvisosDaMemoria(usuario, memoria.id);
+const todos = await listarIntegrantes();
+const naoVe = await pessoasQueONaoVe(usuario);
+// Quem quem olha não vê não aparece pelo nome
+const nome = (id: string) => (naoVe.has(id) ? 'alguém' : (todos.find((i) => i.id === id)?.apelido ?? todos.find((i) => i.id === id)?.nome ?? 'alguém'));
+const recebidas = sugestoes.filter((s) => s.para === usuario.pessoa);
+const enviadas = sugestoes.filter((s) => s.de === usuario.pessoa);
+const SITUACOES = { aberta: 'esperando resposta', aceita: 'aceita', recusada: 'recusada', respondida: 'respondida' } as const;
+const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>) => ({ ...p, entram: p.entram?.filter((id) => !naoVe.has(id)) });
+---
+
+<Pagina titulo="Sugestões de correção" aba={`Sugestões em ${memoria.titulo}`} rotulo="Memória" nucleos={memoria.nucleos} secao="explorar" larga>
+  <Fragment slot="abertura">
+    <p>
+      <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>
+    </p>
+    <p>Só quem mandou e quem recebeu veem cada sugestão.</p>
+  </Fragment>
+
+  {sugestoes.length === 0 && <Vazio frase="Nenhuma sugestão para você nesta memória." />}
+
+  {
+    recebidas.length > 0 && (
+      <section class="painel">
+        <h2>Para você</h2>
+        <ul class="linhas sugestoes">
+          {recebidas.map((s) => (
+            <li>
+              <div>
+                <strong>{s.tipo === 'recado' ? `Recado de ${nome(s.de)} sobre o seu relato` : `${nome(s.de)} sugeriu`}</strong>
+                <span>
+                  {formatarMomento(s.criadaEm)} · {SITUACOES[s.situacao]}
+                </span>
+              </div>
+              {s.proposta && (
+                <ul class="sugestoes__mudancas">
+                  {frasesDaProposta(propostaVisivel(s.proposta), memoria, nome).map((f) => (
+                    <li>{f}</li>
+                  ))}
+                </ul>
+              )}
+              {s.texto && <blockquote class="sugestoes__texto">{s.texto}</blockquote>}
+              {s.resposta && <p class="dica">Sua resposta: {s.resposta}</p>}
+              {s.situacao === 'aberta' && (
+                <form class="formulario sugestoes__responder" method="post" action="/api/sugestoes">
+                  <input type="hidden" name="memoria" value={memoria.id} />
+                  <input type="hidden" name="sugestao" value={s.id} />
+                  <label class="campo">
+                    <span>
+                      Resposta para {nome(s.de)} <small>(opcional para aceitar ou recusar)</small>
+                    </span>
+                    <textarea name="texto" rows="2" maxlength="2000" />
+                  </label>
+                  <div class="acoes">
+                    {s.tipo === 'dados' && s.proposta && (
+                      <button class="botao" type="submit" name="acao" value="aceitar">
+                        Aceitar e corrigir
+                      </button>
+                    )}
+                    <button class="botao botao--leve" type="submit" name="acao" value="responder">
+                      Responder
+                    </button>
+                    <button class="botao botao--leve" type="submit" name="acao" value="recusar">
+                      Recusar
+                    </button>
+                  </div>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    enviadas.length > 0 && (
+      <section class="painel">
+        <h2>As que você mandou</h2>
+        <ul class="linhas sugestoes">
+          {enviadas.map((s) => (
+            <li>
+              <div>
+                <strong>{s.tipo === 'recado' ? `Recado para ${nome(s.para)}` : `Sugestão para ${nome(s.para)}`}</strong>
+                <span>
+                  {formatarMomento(s.criadaEm)} · {SITUACOES[s.situacao]}
+                </span>
+              </div>
+              {s.proposta && (
+                <ul class="sugestoes__mudancas">
+                  {frasesDaProposta(s.proposta, memoria, nome).map((f) => (
+                    <li>{f}</li>
+                  ))}
+                </ul>
+              )}
+              {s.texto && <blockquote class="sugestoes__texto">{s.texto}</blockquote>}
+              {s.resposta && (
+                <p class="dica">
+                  {nome(s.para)} respondeu: {s.resposta}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+</Pagina>

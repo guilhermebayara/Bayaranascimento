@@ -109,7 +109,7 @@ describe('administração', () => {
 
   it('para os administradores, com o espelho só onde ele existe', () => {
     const naProducao = administracao({ admin: true }, { podeEspelhar: false }).map((i) => i.rotulo);
-    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Carta de Natal', 'Sistema visual', 'Baixar cópia do acervo']);
+    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal', 'Fotos sem memória', 'Cadastros duplicados', 'Transcrição automática', 'Sistema visual', 'Baixar cópia do acervo']);
     expect(administracao({ admin: true }, { podeEspelhar: true }).map((i) => i.rotulo)).toContain('Espelho da produção');
   });
 });
@@ -133,13 +133,22 @@ describe('administração: situação e pendências', () => {
     expect(itens.map((i) => [i.rotulo, i.situacao])).toEqual([
       ['Tipos de momento', '14 tipos'],
       ['Famílias', '3 famílias'],
+      ['Centros da árvore', 'o padrão'],
       ['Carta de Natal', 'escrita em 2026'],
+      ['Fotos sem memória', 'nenhuma'],
+      ['Cadastros duplicados', 'nenhum à vista'],
+      ['Transcrição automática', 'desligada'],
       ['Sistema visual', 'tokens e peças'],
       ['Baixar cópia do acervo', undefined],
       ['Espelho da produção', 'só na homologação'],
     ]);
     expect(itens.some((i) => i.pendencia)).toBe(false);
     expect(administracao({ admin: true }, { podeEspelhar: false }, { ...tudoEmDia, familias: 1 })[1]!.situacao).toBe('1 família');
+  });
+
+  it('as fotos sem memória marcam o atalho delas (onda 2)', () => {
+    const fotos = administracao({ admin: true }, { podeEspelhar: false }, { ...tudoEmDia, fotosSoltas: 3 }).find((i) => i.href === '/admin/fotos-soltas')!;
+    expect(fotos).toMatchObject({ situacao: '3 fotos', pendencia: true });
   });
 
   it('a carta por escrever marca o atalho dela', () => {

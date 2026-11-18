@@ -1935,6 +1935,15 @@
   padding-top: var(--e-5);
   border-top: 1px solid var(--fio);
 }
+/* Ex-casal: as famílias que veem são um grupo à parte da escolha, com o dobro do espaço acima */
+.pagina-de-formulario .quem-ve__familias {
+  display: grid;
+  gap: var(--e-2);
+  margin-top: var(--e-4);
+}
+.pagina-de-formulario .quem-ve__familias[hidden] {
+  display: none;
+}
 /* --- Editar pessoa e laços: proposta A do conceito da sessão E (escolha do Gui, 18/11/2026) --------
    Uma página só. Na abertura, o índice com a ficha e cada grupo de laços, com a conta; no computador,
    onde há mouse, ele acompanha a rolagem. A ficha é um resumo de uma linha que abre no lugar. Cada grupo
@@ -2297,6 +2306,16 @@
 .pagina-de-formulario > .recado + .acoes {
   margin-top: calc(var(--e-4) - var(--e-7));
 }
+/* A lixeira: "Restaurar" e, para os administradores, "Apagar de vez", que abre a pergunta embaixo */
+.pagina-de-formulario .lixeira__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--e-2) var(--e-4);
+}
+.pagina-de-formulario .lixeira__apagar summary.botao {
+  color: var(--alerta-tinta);
+}
 /* A lixeira: na tela grande, "Restaurar" fica à direita, na linha do título (resposta do Gui à P156, 17/11/2026) */
 @media (min-width: 62rem) {
   .pagina-de-formulario .linhas--com-acao > li {
@@ -2308,9 +2327,18 @@
     grid-column: 1;
     grid-row: 2;
   }
-  .pagina-de-formulario .linhas--com-acao > li > form {
+  .pagina-de-formulario .linhas--com-acao > li > form,
+  .pagina-de-formulario .linhas--com-acao > li > .lixeira__acoes {
     grid-column: 2;
     grid-row: 1 / span 2;
+  }
+  .pagina-de-formulario .linhas--com-acao > li:has(> .lixeira__acoes) {
+    grid-template-rows: auto 1fr;
+  }
+  .pagina-de-formulario .lixeira__acoes {
+    flex-direction: column;
+    align-items: end;
+    max-width: 24rem;
   }
 }
 .pagina-de-formulario .linhas--fotos > li {
@@ -2422,4 +2450,105 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--e-3);
+}
+
+/* Fotos sem memória (onda 2): a foto pequena, quem enviou e quando, e "Apagar", que pergunta no lugar */
+.pagina-de-formulario .soltas > li {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-2) var(--e-4);
+}
+.pagina-de-formulario .soltas img {
+  width: 4.5rem;
+  height: 4.5rem;
+  object-fit: cover;
+  border-radius: var(--raio-foto);
+  background: var(--papel-recuo);
+}
+.pagina-de-formulario .soltas__quem {
+  display: grid;
+  gap: var(--e-1);
+}
+.pagina-de-formulario .soltas .lixeira__apagar {
+  grid-column: 1 / -1;
+}
+.pagina-de-formulario .soltas__grupo {
+  display: grid;
+  gap: var(--e-3);
+}
+@media (min-width: 62rem) {
+  .pagina-de-formulario .soltas > li {
+    grid-template-columns: 4.5rem minmax(0, 1fr) minmax(0, 22rem);
+  }
+  .pagina-de-formulario .soltas .lixeira__apagar {
+    grid-column: 3;
+    justify-self: end;
+  }
+}
+
+/* Juntar fichas (onda 2): as duas fichas lado a lado, e cada campo diferente com as duas opções */
+.pagina-de-formulario .juntar__fichas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--e-4);
+}
+.pagina-de-formulario .juntar__ficha {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-3);
+}
+.pagina-de-formulario .juntar__ficha p {
+  display: grid;
+  gap: var(--e-1);
+}
+.pagina-de-formulario .juntar__campo .opcao span {
+  white-space: normal;
+  text-align: start;
+}
+
+/* Sugestões de correção (onda 2): o que mudaria, o recado como citação e a resposta embaixo */
+.pagina-de-formulario .sugestoes > li {
+  display: grid;
+  gap: var(--e-3);
+}
+.pagina-de-formulario .sugestoes__mudancas {
+  display: grid;
+  gap: var(--e-1);
+  padding-left: var(--e-4);
+}
+.pagina-de-formulario .sugestoes__texto {
+  margin: 0;
+  padding-left: var(--e-4);
+  border-left: var(--traco) solid var(--fio);
+  font-family: var(--mao);
+  font-size: var(--t-leitura);
+}
+.pagina-de-formulario .sugestoes__responder {
+  margin-top: var(--e-2);
+}
+.pagina-de-formulario .sugerir__quem {
+  display: grid;
+  gap: var(--e-5);
+}
+
+/* Compartilhar como imagem (onda 2): a prévia da imagem vertical e as ações embaixo */
+.pagina-de-formulario .compartilhar {
+  display: grid;
+  justify-items: start;
+  gap: var(--e-4);
+}
+.pagina-de-formulario .compartilhar__previa {
+  width: min(100%, 22rem);
+  height: auto;
+  border-radius: var(--raio-moldura);
+  box-shadow: var(--sombra-foto);
+}
+.pagina-de-formulario .compartilhar__previa[hidden] {
+  display: none;
+}
+.pagina-de-formulario .compartilhar__aviso {
+  display: grid;
+  gap: var(--e-4);
 }

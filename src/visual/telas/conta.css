@@ -323,10 +323,15 @@
 /* O banco como medida, a cópia mensal e "Baixar cópia do acervo" junto (P153) */
 .conta__banco {
   display: grid;
-  gap: var(--e-2);
+  /* Cada medida é um grupo (o nome, a barra e a nota juntos, a --e-2); entre um grupo e outro, o dobro */
+  gap: var(--e-4);
   margin-top: var(--e-5);
   padding-top: var(--e-3);
   border-top: 1px solid var(--fio);
+}
+.conta__medidor {
+  display: grid;
+  gap: var(--e-2);
 }
 .conta__banco-linha {
   display: flex;
@@ -353,10 +358,10 @@
   border-radius: inherit;
   background: var(--vivo);
 }
-.conta__banco--aviso .conta__medida span {
+.conta__medidor--aviso .conta__medida span {
   background: var(--alerta);
 }
-.conta__banco--aviso .conta__banco-linha .ficha {
+.conta__medidor--aviso .conta__banco-linha .ficha {
   color: var(--alerta-tinta);
 }
 .conta__nota {

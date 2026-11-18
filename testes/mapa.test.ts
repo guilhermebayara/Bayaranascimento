@@ -81,7 +81,8 @@ describe('a árvore como mapa', () => {
 
   it('a busca só oferece quem a pessoa vê, e não muda quem aparece na árvore', () => {
     expect(pagina).toMatch(/<select name="quem">\s*<option value="">Escreva o nome<\/option>\s*\{ordenados\.map\(/);
-    expect(pagina).toMatch(/const ordenados = \[\.\.\.integrantes\]\.sort/);
+    // Quem é ex discreto ou fora para quem olha também sai da busca (src/lib/ex-casal.ts)
+    expect(pagina).toMatch(/const ordenados = integrantes\.filter\(\(i\) => !modosDosExes\.has\(i\.id\)\)\.sort/);
     expect(pagina).toContain('const integrantes = todos.filter((i) => !naoVe.has(i.id));');
   });
 

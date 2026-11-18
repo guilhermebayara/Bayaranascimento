@@ -415,6 +415,13 @@ a.polaroid__foto {
   font-weight: 550;
   line-height: 1.25;
 }
+/* Um ex que quem olha deixou discreto ou fora (src/lib/ex-casal.ts): só o nome, sem retrato e sem link,
+   na altura dos nomes dos outros */
+.pessoa--so-nome {
+  height: 100%;
+  align-content: end;
+  color: var(--tinta-suave);
+}
 
 /* --- Gente: uma pessoa numa linha de lista, com o retrato pequeno, o nome e o laço ------------- */
 

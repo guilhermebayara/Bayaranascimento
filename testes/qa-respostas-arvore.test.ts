@@ -100,7 +100,7 @@ describe('a legenda da árvore', () => {
   it('tem três grupos com título e tudo o que a árvore mostra (P90)', () => {
     const legenda = pagina.slice(pagina.indexOf('<div class="legenda">'), pagina.indexOf('</details>', pagina.indexOf('<div class="legenda">')));
     expect([...legenda.matchAll(/<h2>([^<]+)<\/h2>/g)].map((m) => m[1])).toEqual(['Famílias', 'Linhas', 'Botões e marcas']);
-    for (const item of ['de duas famílias', 'amigos e de fora', 'casal', 'não estão mais juntos', 'pais e filhos', 'consideração ou coração', '+ 1', '♥ 2', 'você', 'quem você tocou', 'bicho da família']) {
+    for (const item of ['de duas famílias', 'amigos e de fora', 'casal', 'não estão mais juntos', 'pais e filhos', 'consideração ou coração', '+ 1', '♥ 2', 'você', 'quem você tocou', 'bichinho da família']) {
       expect(legenda, item).toContain(item);
     }
     // O bicho é mostrado pela forma do cartão, e não por uma linha

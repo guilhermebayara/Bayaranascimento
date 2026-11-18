@@ -666,6 +666,173 @@ export const MIGRACOES: Migracao[] = [
       )`,
     ],
   },
+  {
+    // Espaço das fotos e áudios na administração (decisão do Gui, 18/11/2026). O plano gratuito do R2 vai
+    // até 10 GB, e o site conta sozinho, sem consultar o bucket: cada arquivo guarda o tamanho ao entrar,
+    // e a conta é a soma (src/lib/espaco-dos-arquivos.ts). Os áudios já guardavam (migração 015). As
+    // fotos ganham a coluna; os retratos, que só têm a chave em integrantes.retrato, ganham uma tabela
+    // com cada arquivo enviado, para o retrato trocado continuar contando. Vazio nas fotos de antes: o
+    // cartão da administração mede essas aos poucos, lendo só o tamanho de cada uma no bucket.
+    // Sem chave estrangeira, como os avisos.
+    id: '070-tamanho-dos-arquivos',
+    sql: [
+      `ALTER TABLE fotos ADD COLUMN tamanho INTEGER`,
+      `CREATE TABLE IF NOT EXISTS retratos_enviados (
+        chave TEXT PRIMARY KEY,
+        tamanho INTEGER NOT NULL,
+        enviado_por TEXT,
+        enviado_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
+  {
+    // Ex-casal: quem vê e como aparece para mim (decisões do Gui, 18/11/2026; regras em permissoes.ts e
+    // em src/lib/ex-casal.ts).
+    // - Quem vê um casal desfeito ganha "famílias escolhidas": visibilidade 'nucleos', com as famílias em
+    //   casal_nucleos. O SQLite não muda um CHECK no lugar, então os casais são refeitos com os mesmos
+    //   dados, e as fases antes, como na 012: apagar casais com as fases apontando para ela levaria as
+    //   fases junto, pela exclusão em cascata. As famílias do casal são criadas depois, já apontando
+    //   para a tabela nova.
+    // - Como o ex aparece para cada uma das duas pessoas do casal: 'discreto' ou 'fora' (sem linha, como
+    //   hoje: presente). Só o dono lê e escreve as linhas dele. Sem chave estrangeira, como as
+    //   proximidades: quem lê confere se a pessoa ainda existe e se ainda é ex de quem escolheu.
+    id: '071-ex-casal',
+    sql: [
+      `CREATE TABLE casais_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        a_id TEXT NOT NULL REFERENCES integrantes(id),
+        b_id TEXT NOT NULL REFERENCES integrantes(id),
+        visibilidade TEXT NOT NULL DEFAULT 'todos' CHECK (visibilidade IN ('todos', 'privado', 'nucleos')),
+        criado_por TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (a_id, b_id, visibilidade),
+        CHECK (a_id < b_id)
+      )`,
+      `INSERT INTO casais_novo (id, a_id, b_id, visibilidade, criado_por, criado_em)
+        SELECT id, a_id, b_id, visibilidade, criado_por, criado_em FROM casais`,
+      `CREATE TABLE casal_fases_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        casal_id INTEGER NOT NULL REFERENCES casais_novo(id) ON DELETE CASCADE,
+        tipo TEXT NOT NULL CHECK (tipo IN ('namoro', 'noivado', 'casamento', 'uniao', 'separacao', 'amizade')),
+        inicio_ano INTEGER,
+        fim_ano INTEGER,
+        ordem INTEGER NOT NULL DEFAULT 0
+      )`,
+      `INSERT INTO casal_fases_novo (id, casal_id, tipo, inicio_ano, fim_ano, ordem)
+        SELECT id, casal_id, tipo, inicio_ano, fim_ano, ordem FROM casal_fases`,
+      `DROP TABLE casal_fases`,
+      `DROP TABLE casais`,
+      `ALTER TABLE casais_novo RENAME TO casais`,
+      `ALTER TABLE casal_fases_novo RENAME TO casal_fases`,
+      `CREATE INDEX IF NOT EXISTS fases_do_casal ON casal_fases (casal_id, ordem)`,
+      `CREATE TABLE IF NOT EXISTS casal_nucleos (
+        casal_id INTEGER NOT NULL REFERENCES casais(id) ON DELETE CASCADE,
+        nucleo_id TEXT NOT NULL REFERENCES nucleos(id),
+        PRIMARY KEY (casal_id, nucleo_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS ex_para_mim (
+        dono_id TEXT NOT NULL,
+        pessoa_id TEXT NOT NULL,
+        modo TEXT NOT NULL CHECK (modo IN ('discreto', 'fora')),
+        mudado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (dono_id, pessoa_id)
+      )`,
+    ],
+  },
+  {
+    // Apagar de vez o que está na lixeira (decisão do Gui, 17/11/2026, onda 2): só os administradores,
+    // item a item, com confirmação. O que foi apagado não volta. Fica só a anotação de que algo foi
+    // apagado, por quem e quando, sem título nem conteúdo nenhum.
+    id: '072-apagados-de-vez',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS apagados_de_vez (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL CHECK (tipo IN ('memoria', 'capitulo')),
+        item_id TEXT NOT NULL,
+        por TEXT NOT NULL,
+        em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
+  {
+    // Ajustes do acervo que os administradores escolhem no site, um por chave, com o valor em JSON. O
+    // primeiro: os centros da árvore (onda 2, decisão do Gui de 17/11/2026), de quem é a linha direta
+    // quando a árvore abre. A versão de antes vai para o histórico (versoes, tipo 'ajuste').
+    id: '073-ajustes-do-acervo',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS ajustes (
+        chave TEXT PRIMARY KEY,
+        valor TEXT NOT NULL,
+        mudado_por TEXT,
+        mudado_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
+  {
+    // Sugestão de correção (onda 2, decisão do Gui de 17/11/2026; regras em src/lib/sugestoes.ts): de
+    // dados da memória (data, lugar, quem estava), para quem criou, ou um recado livre a quem registrou
+    // um relato. Quem recebe aceita, recusa ou responde. Sem chave para memórias e relatos, como os
+    // avisos: quem lê confere se a pessoa ainda vê o item.
+    // Os avisos ganham dois tipos: a sugestão e a resposta a ela. O SQLite não muda um CHECK no lugar, e
+    // a tabela é refeita com os mesmos dados (nenhuma outra aponta para ela).
+    id: '074-sugestoes-de-correcao',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS sugestoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memoria_id TEXT NOT NULL,
+        relato_id INTEGER,
+        de TEXT NOT NULL,
+        para TEXT NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('dados', 'recado')),
+        proposta TEXT,
+        texto TEXT,
+        situacao TEXT NOT NULL DEFAULT 'aberta' CHECK (situacao IN ('aberta', 'aceita', 'recusada', 'respondida')),
+        resposta TEXT,
+        criada_em TEXT NOT NULL DEFAULT (datetime('now')),
+        respondida_em TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS sugestoes_da_memoria ON sugestoes (memoria_id)`,
+      `CREATE INDEX IF NOT EXISTS sugestoes_para ON sugestoes (para, situacao)`,
+      `CREATE TABLE avisos_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        para TEXT NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('liberar-relato', 'relato-novo', 'quem-estava', 'sugestao', 'sugestao-resposta')),
+        memoria_id TEXT NOT NULL,
+        relato_id INTEGER,
+        de TEXT NOT NULL,
+        dados TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        resolvido_em TEXT,
+        resposta TEXT
+      )`,
+      `INSERT INTO avisos_novo (id, para, tipo, memoria_id, relato_id, de, dados, criado_em, resolvido_em, resposta)
+        SELECT id, para, tipo, memoria_id, relato_id, de, dados, criado_em, resolvido_em, resposta FROM avisos`,
+      `DROP TABLE avisos`,
+      `ALTER TABLE avisos_novo RENAME TO avisos`,
+      `CREATE INDEX IF NOT EXISTS avisos_de_quem ON avisos (para, resolvido_em)`,
+      `CREATE INDEX IF NOT EXISTS avisos_da_memoria ON avisos (memoria_id)`,
+    ],
+  },
+  {
+    // Reações (onda 2, decisão do Gui de 17/11/2026; regras em src/lib/reacoes.ts): em relato e em foto,
+    // quatro símbolos desenhados com os rabiscos do site (coração, riso, saudade e "eu estava lá"). Uma
+    // linha por pessoa, símbolo e item. Sem chave para memórias, relatos e fotos, como os avisos: quem lê
+    // confere se ainda vê o item e quem marcou.
+    id: '075-reacoes',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS reacoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memoria_id TEXT NOT NULL,
+        alvo TEXT NOT NULL CHECK (alvo IN ('relato', 'foto')),
+        alvo_id INTEGER NOT NULL,
+        pessoa TEXT NOT NULL,
+        simbolo TEXT NOT NULL CHECK (simbolo IN ('coracao', 'riso', 'saudade', 'estava')),
+        criada_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (alvo, alvo_id, pessoa, simbolo)
+      )`,
+      `CREATE INDEX IF NOT EXISTS reacoes_da_memoria ON reacoes (memoria_id)`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

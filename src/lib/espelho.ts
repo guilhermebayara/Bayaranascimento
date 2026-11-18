@@ -38,8 +38,14 @@ export const IDS_MANTIDOS = ['gui', 'giovanna', 'elizete', 'lucas-magno'];
 export const TABELAS_APAGADAS = [
   // Os avisos apontam para memórias e relatos da produção: o espelho não leva nenhum
   'avisos',
+  // As sugestões de correção apontam para memórias e relatos da produção (migração 074)
+  'sugestoes',
+  // As reações apontam para memórias, relatos e fotos da produção (migração 075)
+  'reacoes',
   // A proximidade do círculo é de cada pessoa, e só ela vê: o espelho não leva nenhuma, e apaga as que houver
   'proximidades',
+  // Como o ex aparece é de cada pessoa, e só ela vê: o espelho não leva nenhuma escolha (migração 071)
+  'ex_para_mim',
   'tema_capitulos',
   'tema_memorias',
   'temas',
@@ -60,6 +66,8 @@ export const TABELAS_APAGADAS = [
   'memorias',
   'lacos_resumidos',
   'lacos_coracao',
+  // As famílias que veem um casal desfeito (migração 071) apontam para os casais
+  'casal_nucleos',
   'casal_fases',
   'casais',
   'filiacoes',
@@ -214,6 +222,10 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
     })
     .filter((c): c is NonNullable<typeof c> => c !== null);
   const idsDosCasais = new Set(casais.map((c) => c.id));
+  // As famílias que veem um casal desfeito: os núcleos têm os mesmos ids na homologação
+  const casalNucleos = t('casal_nucleos')
+    .filter((f) => idsDosCasais.has(numero(f.casal_id)))
+    .map((f) => ({ casal_id: numero(f.casal_id), nucleo_id: f.nucleo_id }));
   const casalFases = t('casal_fases')
     .filter((f) => idsDosCasais.has(numero(f.casal_id)))
     .map((f) => ({ casal_id: numero(f.casal_id), tipo: f.tipo, inicio_ano: ano(f.inicio_ano), fim_ano: ano(f.fim_ano), ordem: numero(f.ordem) ?? 0 }));
@@ -353,6 +365,7 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
       ['filiacoes', filiacoes],
       ['casais', casais],
       ['casal_fases', casalFases],
+      ['casal_nucleos', casalNucleos],
       ['lacos_coracao', lacos],
       ['lacos_resumidos', resumidos],
       ['memorias', memorias],

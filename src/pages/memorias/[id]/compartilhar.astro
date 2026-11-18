@@ -1,0 +1,92 @@
+---
+// Compartilhar uma memória como imagem (onda 2, decisão do Gui de 17/11/2026; src/lib/compartilhar.ts).
+// Só gera quem vê a memória publicada. Se ela é só de algumas famílias, o aviso vem antes, e a imagem só
+// aparece depois de a pessoa confirmar (?confirmado=1, que funciona sem script). A imagem é desenhada no
+// navegador, sem passar pelo servidor.
+import Pagina from '../../../components/formularios/Pagina.astro';
+import { avisoAntesDeCompartilhar, trechoDoRelato } from '../../../lib/compartilhar';
+import type { DadosDaImagem } from '../../../lib/cliente/compartilhar';
+import { formatarData } from '../../../lib/datas';
+import { assinaturaDaTela } from '../../../lib/visual';
+import { listarIntegrantes, listarNucleos, listarRelatos, obterMemoria } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
+if (!memoria || memoria.situacao !== 'publicada') return new Response('Memória não encontrada', { status: 404 });
+const nucleos = await listarNucleos();
+const aviso = avisoAntesDeCompartilhar(
+  memoria.visibilidade,
+  memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n)),
+);
+const confirmado = !aviso || Astro.url.searchParams.get('confirmado') === '1';
+// O trecho: o relato de quem compartilha, se houver; senão, o primeiro relato publicado que ela vê
+const relatos = (await listarRelatos(usuario, memoria.id)).filter((r) => r.situacao === 'publicada' && r.texto.trim());
+const relato = relatos.find((r) => r.por === usuario.pessoa) ?? relatos[0];
+const integrantes = await listarIntegrantes();
+const nome = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome ?? '';
+const principal = memoria.fotos.find((f) => f.principal) ?? memoria.fotos[0];
+const assinatura = assinaturaDaTela(memoria.nucleos, nucleos);
+const dados: DadosDaImagem | null = confirmado
+  ? {
+      titulo: memoria.titulo,
+      data: formatarData(memoria),
+      lugar: memoria.lugar,
+      foto: principal ? `/fotos/${principal.chave}` : null,
+      trecho: relato ? trechoDoRelato(relato.texto) : null,
+      autorDoTrecho: relato ? nome(relato.por) : null,
+      assinatura: { palavra: 'MEMÓRIAS', sobrenomes: assinatura.sobrenomes },
+    }
+  : null;
+---
+
+<Pagina titulo="Compartilhar como imagem" aba={`Compartilhar ${memoria.titulo}`} rotulo="Memória" nucleos={memoria.nucleos} secao="explorar">
+  <Fragment slot="abertura">
+    <p>
+      <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>
+    </p>
+    <p>Uma imagem vertical, para stories e WhatsApp: a foto, o título, a data, um trecho do relato e a assinatura do acervo.</p>
+  </Fragment>
+
+  {
+    !confirmado ? (
+      <section class="compartilhar__aviso">
+        <p class="recado recado--erro">{aviso}</p>
+        <p class="acoes">
+          <a class="botao" href={`/memorias/${memoria.id}/compartilhar?confirmado=1`}>
+            Entendi, montar a imagem
+          </a>
+          <a class="acao" href={`/memorias/${memoria.id}`}>
+            Voltar para a memória
+          </a>
+        </p>
+      </section>
+    ) : (
+      <section class="compartilhar" data-compartilhar-raiz>
+        <p class="dica" data-estado>
+          Montando a imagem…
+        </p>
+        <noscript>
+          <p class="dica">Para montar a imagem, o navegador precisa estar com o JavaScript ligado.</p>
+        </noscript>
+        <canvas hidden />
+        <img class="compartilhar__previa" data-previa alt={`A imagem de “${memoria.titulo}” para compartilhar`} hidden />
+        <p class="acoes">
+          <button class="botao" type="button" data-compartilhar hidden>
+            Compartilhar
+          </button>
+          <a class="acao" data-baixar hidden>
+            Baixar a imagem
+          </a>
+        </p>
+        <script type="application/json" id="dados-da-imagem" set:html={JSON.stringify(dados).replace(/</g, '\\u003c')} />
+      </section>
+    )
+  }
+</Pagina>
+
+<script>
+  import { ligarCompartilhar, type DadosDaImagem } from '../../../lib/cliente/compartilhar';
+  const raiz = document.querySelector<HTMLElement>('[data-compartilhar-raiz]');
+  const bruto = document.getElementById('dados-da-imagem')?.textContent;
+  if (raiz && bruto) void ligarCompartilhar(raiz, JSON.parse(bruto) as DadosDaImagem);
+</script>

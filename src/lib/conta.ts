@@ -121,9 +121,15 @@ export interface ItemDeAdministracao {
 export interface SituacaoDaAdministracao {
   tipos: number;
   familias: number;
+  /** a transcrição automática dos áudios (src/lib/transcricao.ts) */
+  transcricao?: 'sem-binding' | 'desligada' | 'ligada';
+  /** quantas pessoas os administradores escolheram como centros da árvore; vazio no padrão */
+  centros?: number | null;
   /** a carta de Natal mais recente, ou null se ninguém escreveu */
   carta: { escritaEm: string } | null;
   banco?: { bytes: number; passouDoAviso: boolean };
+  /** o espaço das fotos e áudios no R2, pela soma do que cada arquivo guardou (src/lib/espaco-dos-arquivos.ts) */
+  espaco?: { bytes: number; passouDoAviso: boolean };
   /**
    * A cópia mensal do Drive. Só a produção recebe a cópia do script: nas prévias, na homologação e no
    * computador, `conferida` é false, e ela nunca vira pendência.
@@ -135,7 +141,7 @@ export interface SituacaoDaAdministracao {
   duplicados?: number | null;
 }
 
-export type TipoDePendencia = 'carta' | 'banco' | 'copia' | 'fotos-soltas' | 'duplicados';
+export type TipoDePendencia = 'carta' | 'banco' | 'espaco' | 'copia' | 'fotos-soltas' | 'duplicados';
 
 export interface Pendencia {
   tipo: TipoDePendencia;
@@ -190,10 +196,11 @@ export function porcentoDoBanco(bytes: number, limite: number): number {
  * As pendências da administração (escolha do Gui no conceito da sessão E, 17/11/2026): o que pede uma
  * ação de quem administra. Somam no número do retrato do topo e ganham a marca no cartão.
  */
-export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>, hoje: Date): Pendencia[] {
+export function pendenciasDaAdministracao(s: Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados'>, hoje: Date): Pendencia[] {
   const lista: Pendencia[] = [];
   if (!s.carta) lista.push({ tipo: 'carta', texto: 'A carta de Natal ainda não foi escrita.', href: '/admin/carta' });
   if (s.banco?.passouDoAviso) lista.push({ tipo: 'banco', texto: 'O banco está perto do limite do plano gratuito.' });
+  if (s.espaco?.passouDoAviso) lista.push({ tipo: 'espaco', texto: 'As fotos e os áudios estão perto do limite do plano gratuito.' });
   if (s.copiaMensal.conferida && copiaAtrasada(s.copiaMensal.ultima, hoje)) {
     lista.push({ tipo: 'copia', texto: s.copiaMensal.ultima ? `A cópia mensal está atrasada: a última foi em ${diaDaCopia(s.copiaMensal.ultima)}.` : 'A cópia mensal ainda não foi feita.' });
   }
@@ -233,12 +240,26 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
   return [
     { rotulo: 'Tipos de momento', href: '/admin/tipos', situacao: situacao && plural(situacao.tipos, 'tipo', 'tipos') },
     { rotulo: 'Famílias', href: '/admin/familias', situacao: situacao && plural(situacao.familias, 'família', 'famílias') },
+    { rotulo: 'Centros da árvore', href: '/admin/arvore', situacao: situacao && (situacao.centros ? plural(situacao.centros, 'pessoa escolhida', 'pessoas escolhidas') : 'o padrão') },
     {
       rotulo: 'Carta de Natal',
       href: '/admin/carta',
       situacao: situacao && (situacao.carta ? `escrita em ${situacao.carta.escritaEm.slice(0, 4)}` : 'ainda não escrita'),
       pendencia: Boolean(situacao && !situacao.carta),
     },
+    {
+      rotulo: 'Fotos sem memória',
+      href: '/admin/fotos-soltas',
+      situacao: situacao && (situacao.fotosSoltas ? plural(situacao.fotosSoltas, 'foto', 'fotos') : 'nenhuma'),
+      pendencia: Boolean(situacao?.fotosSoltas),
+    },
+    {
+      rotulo: 'Cadastros duplicados',
+      href: '/admin/duplicados',
+      situacao: situacao && (situacao.duplicados ? plural(situacao.duplicados, 'possível', 'possíveis') : 'nenhum à vista'),
+      pendencia: Boolean(situacao?.duplicados),
+    },
+    { rotulo: 'Transcrição automática', href: '/admin/transcricao', situacao: situacao && (situacao.transcricao === 'ligada' ? 'ligada' : 'desligada') },
     { rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },
     { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
     ...(onde.podeEspelhar ? [{ rotulo: 'Espelho da produção', href: '/admin/espelho', situacao: situacao && 'só na homologação' }] : []),

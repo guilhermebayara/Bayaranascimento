@@ -1,0 +1,59 @@
+---
+// As reações de um relato ou de uma foto (onda 2, src/lib/reacoes.ts): os quatro símbolos, cada um um
+// botão que marca ou desmarca o seu, com a conta ao lado; e "Quem marcou", que abre os nomes no lugar.
+// Funciona sem script: cada toque é um formulário comum, que volta para o mesmo ponto da página.
+import { SIMBOLOS_DAS_REACOES, nomesDeQuemMarcou, type SimboloDaReacao } from '../../lib/reacoes';
+
+interface Props {
+  memoria: string;
+  alvo: 'relato' | 'foto';
+  alvoId: number;
+  /** quem marcou cada símbolo, só quem a pessoa vê */
+  marcas?: Map<SimboloDaReacao, string[]>;
+  eu: string;
+  nome: (id: string) => string;
+  /** para onde volta depois do toque */
+  volta: string;
+}
+
+const { memoria, alvo, alvoId, marcas = new Map(), eu, nome, volta } = Astro.props;
+const algum = [...marcas.values()].some((l) => l.length > 0);
+---
+
+<div class="reacoes">
+  <form class="reacoes__simbolos" method="post" action="/api/reacoes">
+    <input type="hidden" name="acao" value="reagir" />
+    <input type="hidden" name="memoria" value={memoria} />
+    <input type="hidden" name="alvo" value={alvo} />
+    <input type="hidden" name="alvoId" value={alvoId} />
+    <input type="hidden" name="volta" value={volta} />
+    {
+      SIMBOLOS_DAS_REACOES.map((s) => {
+        const quem = marcas.get(s.id) ?? [];
+        const meu = quem.includes(eu);
+        return (
+          <button type="submit" class:list={['reacao', { 'reacao--minha': meu }]} name="simbolo" value={s.id} aria-pressed={meu ? 'true' : 'false'} aria-label={`${s.nome}${quem.length ? `, ${quem.length}` : ''}`} title={s.nome}>
+            <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={s.desenho} />
+            {quem.length > 0 && <span class="reacao__conta" aria-hidden="true">{quem.length}</span>}
+          </button>
+        );
+      })
+    }
+  </form>
+  {
+    algum && (
+      <details class="reacoes__quem">
+        <summary class="acao acao--quieta">Quem marcou</summary>
+        <ul>
+          {SIMBOLOS_DAS_REACOES.filter((s) => (marcas.get(s.id) ?? []).length > 0).map((s) => (
+            <li>
+              <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={s.desenho} />
+              <span class="so-leitor">{s.nome}:</span>
+              {nomesDeQuemMarcou((marcas.get(s.id) ?? []).map((id) => (id === eu ? 'você' : nome(id))), 12)}
+            </li>
+          ))}
+        </ul>
+      </details>
+    )
+  }
+</div>

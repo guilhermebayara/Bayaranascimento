@@ -24,4 +24,6 @@ const Linha = href ? 'span' : 'p';
     <span class="mao">{por}</span>
     {registradoPor && <span class="ficha suave">registrado por {registradoPor}</span>}
   </Linha>
+  {/* O pé do bilhete, depois da assinatura: as reações (onda 2) */}
+  <slot name="pe" />
 </Caixa>

@@ -23,7 +23,8 @@
 // 8. As telas do conceito da revisão visual (/conceito) trazem dados fixos de exemplo.
 //    Só respondem onde há acervo de exemplo: na produção e na homologação, 404.
 // 9. A página do sistema: fora das prévias de teste, só os administradores, sem ler o acervo.
-// 10. Nenhum arquivo é apagado do bucket das fotos de verdade: só a limpeza do bucket de teste apaga,
+// 10. Nenhum arquivo é apagado do bucket das fotos de verdade: só a limpeza do bucket de teste apaga, e a
+//    foto sem memória há mais de 30 dias, que um administrador apaga em src/pages/api/fotos-soltas.ts,
 //    e o banco e o bucket são escolhidos só em ambiente.ts.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -189,6 +190,7 @@ if (existsSync('src/pages/sistema.astro')) {
   }
 }
 
+const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';
 // 10. Nada se apaga do bucket das fotos de verdade: excluir nunca apaga na hora (docs/decisoes.md,
 // "Princípios"). O único lugar que apaga arquivo é a limpeza de 7 dias, e só no bucket de teste, por
 // bucketDeTesteParaGravar(), que recusa a produção e a homologação. A escolha do banco e do bucket
@@ -204,8 +206,27 @@ if (existsSync('src/pages/sistema.astro')) {
     for (const uso of texto.matchAll(/([\w.]*bucket\w*(?:\(\))?)\??\.delete\(/gi)) {
       const quem = uso[1];
       const doTeste = quem === 'bucketDeTesteParaGravar()' || (quem === 'bucket' && /const bucket = bucketDeTesteParaGravar\(\);/.test(texto) && !/\bbucket = (?!bucketDeTesteParaGravar)/.test(texto));
-      if (!doTeste) falhar(`${arquivo}: ${quem}.delete(...) apagaria arquivos. Só a limpeza do bucket de teste apaga, por bucketDeTesteParaGravar().`);
+      // A única exceção (onda 2): a foto sem memória há mais de 30 dias, que um administrador apaga em
+      // Administração. Só nesta rota, uma vez, e só a chave conferida de novo no banco por obterFotoSolta.
+      const fotoSolta =
+        arquivo === ROTA_DAS_FOTOS_SOLTAS &&
+        uso[0] === 'bucketDeFotos().delete(' &&
+        (texto.match(/\.delete\(/g) ?? []).length === 1 &&
+        /const foto = await obterFotoSolta\(/.test(texto) &&
+        /podeApagarFotoSolta\(locals\.usuario\)/.test(texto) &&
+        /await bucketDeFotos\(\)\.delete\(foto\.chave\);/.test(texto);
+      if (!doTeste && !fotoSolta) falhar(`${arquivo}: ${quem}.delete(...) apagaria arquivos. Só a limpeza do bucket de teste apaga, por bucketDeTesteParaGravar(), e a foto sem memória, por ${ROTA_DAS_FOTOS_SOLTAS}.`);
     }
+  }
+}
+
+// 10b. A foto sem memória que a rota acima apaga: nunca uma de exemplo (as prévias dividem os 11
+// arquivos), nunca uma presa a memória ou relato, e só depois de 30 dias.
+{
+  const repo = readFileSync('src/lib/servidor/repositorio.ts', 'utf8');
+  const regra = /const FOTO_SOLTA = `([\s\S]*?)`;/.exec(repo)?.[1] ?? '';
+  if (!/export const DIAS_DA_FOTO_SOLTA = 30;/.test(repo) || !regra.includes("f.chave NOT LIKE 'exemplos/%'") || !regra.includes('f.memoria_id IS NULL') || !regra.includes('f.relato_id IS NULL') || !regra.includes("datetime('now', '-${DIAS_DA_FOTO_SOLTA} days')")) {
+    falhar('src/lib/servidor/repositorio.ts: FOTO_SOLTA precisa deixar de fora as fotos de exemplo e as presas a memória ou relato, e esperar 30 dias.');
   }
 }
 

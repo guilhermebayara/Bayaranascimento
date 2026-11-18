@@ -1,9 +1,12 @@
 // Excluir e recuperar: memórias na lixeira, versões anteriores e fotos removidas.
 import type { APIRoute } from 'astro';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { alcanceDaCorrecao, podeEditarMemoria, podeExcluirMemoria, podeVerVersao } from '../../lib/servidor/permissoes';
+import { alcanceDaCorrecao, podeApagarDeVez, podeEditarMemoria, podeExcluirMemoria, podeVerVersao } from '../../lib/servidor/permissoes';
 import {
+  apagarCapituloDeVez,
+  apagarMemoriaDeVez,
   atualizarMemoria,
+  listarCapitulosExcluidos,
   excluirMemoria,
   listarExcluidas,
   listarIntegrantes,
@@ -35,6 +38,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Restaurar não tira ninguém da lixeira (resposta do Gui à P154, 17/11/2026): a página mostra o
     // recado e o caminho para o que voltou, e quem veio restaurar duas coisas continua ali
     return voltar(request, `/lixeira?restaurada=${encodeURIComponent(id)}`, { ok: excluida.situacao === 'rascunho' ? 'Rascunho restaurado.' : 'Memória restaurada.' });
+  }
+
+  // Apagar de vez (onda 2): só os administradores, item a item, e só o que eles veem na lixeira.
+  // Quem não vê o item recebe o mesmo que para um item que não existe.
+  if (acao === 'apagar-de-vez') {
+    const decisao = podeApagarDeVez(usuario, { naLixeira: true });
+    if (!decisao.ok) return voltar(request, '/lixeira', { erro: decisao.motivo });
+    const excluida = (await listarExcluidas(usuario)).find((m) => m.id === id && podeExcluirMemoria(usuario, m).ok);
+    if (!excluida || !(await apagarMemoriaDeVez(id, usuario))) return voltar(request, '/lixeira', { erro: 'Memória não encontrada na lixeira.' });
+    return voltar(request, '/lixeira', { ok: `"${excluida.titulo}" foi apagada de vez.` });
+  }
+  if (acao === 'apagar-capitulo-de-vez') {
+    const decisao = podeApagarDeVez(usuario, { naLixeira: true });
+    if (!decisao.ok) return voltar(request, '/lixeira', { erro: decisao.motivo });
+    const capitulo = (await listarCapitulosExcluidos(usuario)).find((c) => c.id === campo(dados, 'capitulo', 120));
+    if (!capitulo || !(await apagarCapituloDeVez(capitulo.id, usuario))) return voltar(request, '/lixeira', { erro: 'Capítulo não encontrado na lixeira.' });
+    return voltar(request, '/lixeira', { ok: `O capítulo "${capitulo.titulo}" foi apagado de vez.` });
   }
 
   const memoria = await obterMemoria(usuario, id);

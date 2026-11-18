@@ -1,0 +1,145 @@
+---
+// O histórico de uma pessoa e dos laços dela (onda 2, decisão do Gui de 17/11/2026): quem pode editar vê
+// as versões, com quem mudou e quando, e restaura uma, como na memória. A ficha, para quem edita a
+// página; os laços, para quem mexe nos laços, cada um com a regra de quem vê o laço de hoje.
+import Pagina from '../../../components/formularios/Pagina.astro';
+import Vazio from '../../../components/visual/Vazio.astro';
+import { formatarMomento } from '../../../lib/datas';
+import { fichaParaComparar, oQueMudou, pessoasDoLaco, semOQueEDoDono, veAVersaoDoLaco, type VersaoDeLaco } from '../../../lib/historico-da-pessoa';
+import { FASES, nomeDoPapel, periodosDasFases, QUALIDADES } from '../../../lib/parentesco';
+import { pessoasComAcesso } from '../../../lib/servidor/acesso';
+import { podeEditarIntegrante, podeMexerEmLaco, podeMudarLacoDoCoracao } from '../../../lib/servidor/permissoes';
+import { familiasDe, listarIntegrantes, listarIntegrantesQueVe, listarVersoesDaFicha, listarVersoesDosLacos, pessoasQueONaoVe } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const visiveis = await listarIntegrantesQueVe(usuario);
+const pessoa = visiveis.find((i) => i.id === Astro.params.id);
+if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
+const comAcesso = await pessoasComAcesso();
+const podeFicha = podeEditarIntegrante(usuario, pessoa, comAcesso).ok;
+const podeLacos = podeMexerEmLaco(usuario, [pessoa]).ok;
+const ehAdminOuDono = (dono: string, privado: boolean) => podeMudarLacoDoCoracao(usuario, { dono, privado }).ok;
+// Quem não pode editar a página nem os laços não tem histórico para ver: responde como uma página que não existe
+if (!podeFicha && !podeLacos && !usuario.admin) return new Response('Página não encontrada', { status: 404 });
+
+const todos = await listarIntegrantes();
+const nome = (id: string) => {
+  const i = todos.find((x) => x.id === id);
+  return i?.apelido ?? i?.nome ?? 'alguém';
+};
+const chamar = pessoa.apelido ?? pessoa.nome;
+const naoVe = await pessoasQueONaoVe(usuario);
+
+// A ficha: cada versão guarda como ela estava ANTES de uma alteração; comparando com a seguinte, sai o que mudou
+const versoesDaFicha = podeFicha ? await listarVersoesDaFicha(pessoa.id) : [];
+const fichas = versoesDaFicha.map((v, i) => {
+  const antes = fichaParaComparar(v.dados);
+  const depois = fichaParaComparar(i === 0 ? pessoa : versoesDaFicha[i - 1].dados);
+  return { ...v, antes, mudou: oQueMudou(antes, depois) };
+});
+
+// Os laços: só as versões que quem olha veria hoje, sem a proximidade de outra pessoa
+const lacos = (await listarVersoesDosLacos(pessoa.id))
+  .map((v) => ({ ...v, laco: semOQueEDoDono({ tipo: v.tipo, dados: v.dados } as VersaoDeLaco, usuario.pessoa) }))
+  .filter((v) => veAVersaoDoLaco(v.laco, usuario, naoVe))
+  .filter((v) => (v.laco.tipo === 'laco-coracao' ? ehAdminOuDono(v.laco.dados.dono, Boolean(v.laco.dados.privado)) : podeLacos));
+const descrever = (v: VersaoDeLaco): { titulo: string; detalhe: string } => {
+  if (v.tipo === 'filiacao') {
+    const d = v.dados;
+    return { titulo: `${nome(d.filho)}, filho ou filha de ${nome(d.responsavel)}`, detalhe: `Filiação ${QUALIDADES[d.qualidade]?.toLowerCase() ?? ''}${d.adocao_ano ? `, adoção em ${d.adocao_ano}` : ''}` };
+  }
+  if (v.tipo === 'casal') {
+    const periodos = periodosDasFases(v.dados.fases);
+    const fases = v.dados.fases.map((f, n) => [FASES[f.tipo], periodos[n]].filter(Boolean).join(', ')).join('; ');
+    const quemVe = v.dados.visibilidade === 'privado' ? ' Só os dois viam.' : v.dados.visibilidade === 'nucleos' ? ' Só as famílias escolhidas viam.' : ' Todos viam.';
+    return { titulo: `Casal ${nome(v.dados.a)} e ${nome(v.dados.b)}`, detalhe: `${fases || 'sem fases'}.${quemVe}` };
+  }
+  const d = v.dados;
+  return {
+    titulo: `${nome(d.pessoa)}, “${d.nome}” de ${nome(d.dono)}`,
+    detalhe: [d.papel ? `como se fosse ${nomeDoPapel(d.papel, null)}` : 'sem lugar na árvore', d.privado && d.dono === usuario.pessoa ? 'só você via' : null].filter(Boolean).join(', '),
+  };
+};
+const vazio = fichas.length === 0 && lacos.length === 0;
+---
+
+<Pagina titulo="Histórico" aba={`Histórico de ${chamar}`} rotulo={chamar} nucleos={familiasDe(pessoa)} secao="pessoas" larga>
+  <Fragment slot="abertura">
+    <p>O que já mudou na ficha de {chamar} e nos laços {pessoa.tratamento === 'ela' ? 'dela' : pessoa.tratamento === 'ele' ? 'dele' : 'dessa pessoa'}, com quem mudou e quando. Restaurar uma versão guarda a de hoje aqui.</p>
+    <p class="acoes">
+      <a class="acao" href={`/pessoas/${pessoa.id}/editar`}>Voltar para Editar página e laços</a>
+    </p>
+  </Fragment>
+
+  {vazio && <Vazio frase={`Nada mudou ainda na ficha nem nos laços de ${chamar}.`} />}
+
+  {
+    fichas.length > 0 && (
+      <section class="painel">
+        <h2>Alterações na ficha</h2>
+        <p class="dica">Restaurar traz de volta a ficha e a foto de retrato. As famílias ficam como estão hoje.</p>
+        <ul class="linhas">
+          {fichas.map((v) => (
+            <li>
+              <div>
+                <strong>{nome(v.autor)} alterou</strong>
+                <span>{formatarMomento(v.criadaEm)}</span>
+              </div>
+              <p class="dica">{v.mudou.length > 0 ? `Mudou: ${v.mudou.join(', ')}.` : 'Mudou as famílias.'}</p>
+              {v.mudou.length > 0 && (
+                <dl class="antes">
+                  {v.mudou.map((campo) => (
+                    <div>
+                      <dt>{campo}, antes</dt>
+                      <dd>{v.antes[campo] || 'vazio'}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {v.mudou.length > 0 && (
+                <form method="post" action="/api/historico-pessoa" class="em-linha">
+                  <input type="hidden" name="pessoa" value={pessoa.id} />
+                  <input type="hidden" name="versao" value={v.id} />
+                  <button class="botao botao--leve" type="submit">Restaurar esta versão</button>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    lacos.length > 0 && (
+      <section class="painel">
+        <h2>Laços que mudaram ou saíram</h2>
+        <p class="dica">Cada linha mostra o laço como era antes da mudança. Restaurar põe o laço de volta como estava.</p>
+        <ul class="linhas">
+          {lacos.map((v) => {
+            const { titulo, detalhe } = descrever(v.laco);
+            const [a, b] = pessoasDoLaco(v.laco);
+            return (
+              <li>
+                <div>
+                  <strong>{titulo}</strong>
+                  <span>
+                    {nome(v.autor)} mudou ou removeu em {formatarMomento(v.criadaEm)}
+                  </span>
+                </div>
+                <p class="dica">Antes: {detalhe}</p>
+                {todos.some((i) => i.id === a) && todos.some((i) => i.id === b) && (
+                  <form method="post" action="/api/historico-pessoa" class="em-linha">
+                    <input type="hidden" name="pessoa" value={pessoa.id} />
+                    <input type="hidden" name="versao" value={v.id} />
+                    <button class="botao botao--leve" type="submit">Restaurar este laço</button>
+                  </form>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )
+  }
+</Pagina>

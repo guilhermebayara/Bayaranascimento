@@ -1,4 +1,5 @@
 ---
+import { situacaoDaTranscricaoAgora } from '../lib/servidor/transcricao';
 import { comArtigo } from '../lib/servidor/conteudo';
 import Pagina from '../components/formularios/Pagina.astro';
 import CampoData from '../components/CampoData.astro';
@@ -91,6 +92,8 @@ const EXPLICA_QUEM_VE = {
   nucleos: 'Só quem é das famílias escolhidas abaixo vê. Quem não pode ver não fica sabendo que a memória existe.',
 };
 const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'Continuar rascunho';
+// A transcrição automática dos áudios (onda 2): o botão só aparece onde ela está ligada
+const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 ---
 
 {/* A nova memória em frase, proposta B do conceito da sessão D (decisão do Gui, 18/11/2026): a frase é
@@ -276,7 +279,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         <fieldset>
             <legend>Como foi?</legend>
             {/* Áudios já na memória nova: ficam soltos até a memória ser salva (ver api/audios.ts) */}
-            <div class="campo audios" data-audios hidden>
+            <div class="campo audios" data-audios data-transcricao-automatica={transcricaoAutomatica} hidden>
               <span>Prefere falar? <small>(opcional)</small></span>
               <p class="dica">Grave contando como foi, ou envie um áudio que já está no celular, como os do WhatsApp.</p>
               <ol class="audios__lista" data-lista-audios></ol>
