@@ -1935,6 +1935,15 @@
   padding-top: var(--e-5);
   border-top: 1px solid var(--fio);
 }
+/* Ex-casal: as famílias que veem são um grupo à parte da escolha, com o dobro do espaço acima */
+.pagina-de-formulario .quem-ve__familias {
+  display: grid;
+  gap: var(--e-2);
+  margin-top: var(--e-4);
+}
+.pagina-de-formulario .quem-ve__familias[hidden] {
+  display: none;
+}
 /* --- Editar pessoa e laços: proposta A do conceito da sessão E (escolha do Gui, 18/11/2026) --------
    Uma página só. Na abertura, o índice com a ficha e cada grupo de laços, com a conta; no computador,
    onde há mouse, ele acompanha a rolagem. A ficha é um resumo de uma linha que abre no lugar. Cada grupo

@@ -32,7 +32,13 @@ export interface Casal {
   b: string;
   /** na ordem em que aconteceram: a última é a fase atual */
   fases: Fase[];
-  visibilidade: 'todos' | 'privado';
+  /**
+   * Quem vê: todos; só os dois (e quem cadastrou); ou, num casal desfeito, os dois, quem cadastrou e os
+   * membros das famílias escolhidas (`nucleos`), como numa memória (decisão do Gui, 18/11/2026).
+   */
+  visibilidade: 'todos' | 'privado' | 'nucleos';
+  /** as famílias que veem o casal, com visibilidade 'nucleos' */
+  nucleos?: string[];
   criadoPor: string | null;
 }
 
@@ -69,9 +75,14 @@ function auge(casal: Casal): TipoDeFase {
   return ordem.find((t) => casal.fases.some((f) => f.tipo === t)) ?? 'namoro';
 }
 
-/** Quem pode ver um casal: todos, ou só as duas pessoas e quem cadastrou quando é privado. */
-export function podeVerCasal(pessoa: string, casal: Casal): boolean {
-  return casal.visibilidade === 'todos' || casal.a === pessoa || casal.b === pessoa || casal.criadoPor === pessoa;
+/**
+ * Quem pode ver um casal: todos; as duas pessoas e quem cadastrou, sempre; e, com famílias escolhidas,
+ * quem é membro de uma delas (parente não conta, como na memória). `nucleosDeQuemOlha` são os núcleos de
+ * que a pessoa é membro.
+ */
+export function podeVerCasal(pessoa: string, casal: Casal, nucleosDeQuemOlha: readonly string[] = []): boolean {
+  if (casal.visibilidade === 'todos' || casal.a === pessoa || casal.b === pessoa || casal.criadoPor === pessoa) return true;
+  return casal.visibilidade === 'nucleos' && (casal.nucleos ?? []).some((n) => nucleosDeQuemOlha.includes(n));
 }
 
 export interface Camadas {

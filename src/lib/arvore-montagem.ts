@@ -22,6 +22,11 @@ export interface DadosDaArvore {
     /** endereço da foto de retrato, só para a ficha que abre ao tocar (os cartões continuam sem foto) */
     retrato?: string | null;
     iniciais?: string;
+    /**
+     * Um ex que quem olha marcou como discreto (src/lib/ex-casal.ts): o cartão ganha a tarja sobre o nome
+     * e não abre nada, mas continua no lugar, para o caminho até os parentes dele não se perder.
+     */
+    discreto?: boolean;
   }[];
   filiacoes: { filho: string; responsavel: string; consideracao: boolean }[];
   casais: { a: string; b: string; ex: boolean }[];
@@ -48,6 +53,31 @@ export interface Estado {
   amigos?: boolean;
   /** de quem são os laços do coração abertos na árvore. Por padrão, só os de quem está olhando. */
   abertos: Set<string>;
+}
+
+/**
+ * Como os exes aparecem para quem olha (decisões do Gui, 18/11/2026; src/lib/ex-casal.ts). Quem está
+ * "fora" sai dos dados com todos os laços dele: quem só se ligava por ele vem por outro caminho ou não
+ * aparece. Quem está "discreto" fica, com a marca, o nome coberto e sem retrato nem anos, que a ficha
+ * mostraria. Não sai de linha direta: a árvore padrão continua a mesma. Vale só para quem escolheu: os
+ * modos chegam já filtrados pela pessoa logada.
+ */
+export function aplicarComoOsExesAparecem(dados: DadosDaArvore, modos: ReadonlyMap<string, 'discreto' | 'fora'>): DadosDaArvore {
+  if (modos.size === 0) return dados;
+  const fora = new Set([...modos].filter(([id, modo]) => modo === 'fora' && id !== dados.eu).map(([id]) => id));
+  const discretos = new Set([...modos].filter(([id, modo]) => modo === 'discreto' && id !== dados.eu).map(([id]) => id));
+  const fica = (id: string) => !fora.has(id);
+  return {
+    ...dados,
+    centros: dados.centros.filter(fica),
+    pessoas: dados.pessoas
+      .filter((p) => fica(p.id))
+      .map((p) => (discretos.has(p.id) ? { ...p, discreto: true, rotulo: '', anos: '', retrato: null, iniciais: '' } : p)),
+    filiacoes: dados.filiacoes.filter((f) => fica(f.filho) && fica(f.responsavel)),
+    casais: dados.casais.filter((c) => fica(c.a) && fica(c.b)),
+    coracao: dados.coracao.filter((l) => fica(l.dono) && fica(l.pessoa)),
+    resumidos: dados.resumidos?.filter((r) => fica(r.a) && fica(r.b)),
+  };
 }
 
 /** Quem tem laço de árvore (filiação ou casal) com alguém. Só dá para partir dessas pessoas. */

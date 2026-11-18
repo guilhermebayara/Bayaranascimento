@@ -166,7 +166,9 @@ describe('o círculo é só de quem está logado', () => {
     const banco = ler('src/lib/servidor/banco.ts');
     const ids = [...banco.matchAll(/^    id: '(\d{3}-[^']+)',/gm)].map((m) => m[1]);
     expect(ids).toContain('030-proximidades');
-    const sql = banco.slice(banco.indexOf("id: '030-proximidades'"));
+    const inicio = banco.indexOf("id: '030-proximidades'");
+    const fim = banco.indexOf("    id: '", inicio + 10);
+    const sql = banco.slice(inicio, fim < 0 ? undefined : fim);
     expect(sql).toMatch(/CHECK \(valor BETWEEN 0 AND 100\)/);
     expect(sql).toMatch(/PRIMARY KEY \(dono_id, pessoa_id\)/);
     expect(sql).toMatch(/CASE proximidade WHEN 1 THEN 16 WHEN 2 THEN 50 ELSE 83 END/);

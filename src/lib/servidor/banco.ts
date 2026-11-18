@@ -685,6 +685,60 @@ export const MIGRACOES: Migracao[] = [
       )`,
     ],
   },
+  {
+    // Ex-casal: quem vê e como aparece para mim (decisões do Gui, 18/11/2026; regras em permissoes.ts e
+    // em src/lib/ex-casal.ts).
+    // - Quem vê um casal desfeito ganha "famílias escolhidas": visibilidade 'nucleos', com as famílias em
+    //   casal_nucleos. O SQLite não muda um CHECK no lugar, então os casais são refeitos com os mesmos
+    //   dados, e as fases antes, como na 012: apagar casais com as fases apontando para ela levaria as
+    //   fases junto, pela exclusão em cascata. As famílias do casal são criadas depois, já apontando
+    //   para a tabela nova.
+    // - Como o ex aparece para cada uma das duas pessoas do casal: 'discreto' ou 'fora' (sem linha, como
+    //   hoje: presente). Só o dono lê e escreve as linhas dele. Sem chave estrangeira, como as
+    //   proximidades: quem lê confere se a pessoa ainda existe e se ainda é ex de quem escolheu.
+    id: '071-ex-casal',
+    sql: [
+      `CREATE TABLE casais_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        a_id TEXT NOT NULL REFERENCES integrantes(id),
+        b_id TEXT NOT NULL REFERENCES integrantes(id),
+        visibilidade TEXT NOT NULL DEFAULT 'todos' CHECK (visibilidade IN ('todos', 'privado', 'nucleos')),
+        criado_por TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (a_id, b_id, visibilidade),
+        CHECK (a_id < b_id)
+      )`,
+      `INSERT INTO casais_novo (id, a_id, b_id, visibilidade, criado_por, criado_em)
+        SELECT id, a_id, b_id, visibilidade, criado_por, criado_em FROM casais`,
+      `CREATE TABLE casal_fases_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        casal_id INTEGER NOT NULL REFERENCES casais_novo(id) ON DELETE CASCADE,
+        tipo TEXT NOT NULL CHECK (tipo IN ('namoro', 'noivado', 'casamento', 'uniao', 'separacao', 'amizade')),
+        inicio_ano INTEGER,
+        fim_ano INTEGER,
+        ordem INTEGER NOT NULL DEFAULT 0
+      )`,
+      `INSERT INTO casal_fases_novo (id, casal_id, tipo, inicio_ano, fim_ano, ordem)
+        SELECT id, casal_id, tipo, inicio_ano, fim_ano, ordem FROM casal_fases`,
+      `DROP TABLE casal_fases`,
+      `DROP TABLE casais`,
+      `ALTER TABLE casais_novo RENAME TO casais`,
+      `ALTER TABLE casal_fases_novo RENAME TO casal_fases`,
+      `CREATE INDEX IF NOT EXISTS fases_do_casal ON casal_fases (casal_id, ordem)`,
+      `CREATE TABLE IF NOT EXISTS casal_nucleos (
+        casal_id INTEGER NOT NULL REFERENCES casais(id) ON DELETE CASCADE,
+        nucleo_id TEXT NOT NULL REFERENCES nucleos(id),
+        PRIMARY KEY (casal_id, nucleo_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS ex_para_mim (
+        dono_id TEXT NOT NULL,
+        pessoa_id TEXT NOT NULL,
+        modo TEXT NOT NULL CHECK (modo IN ('discreto', 'fora')),
+        mudado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (dono_id, pessoa_id)
+      )`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

@@ -8,6 +8,7 @@ import type { RegistroDeVisitas } from '../painel';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
 import type { TipoDeAviso } from '../avisos';
+import { exesDe, modosQueValem, type ModoDoEx } from '../ex-casal';
 import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
 export interface Integrante {
@@ -329,34 +330,38 @@ export async function removerFiliacao(filho: string, responsavel: string, usuari
 
 /** Todos os casais, sem filtro de visibilidade. Para conferências internas, nunca para mostrar. */
 async function lerCasais(): Promise<Casal[]> {
-  const [casais, fases] = await db().batch<Record<string, unknown>>([
+  const [casais, fases, familias] = await db().batch<Record<string, unknown>>([
     db().prepare('SELECT * FROM casais ORDER BY id'),
     db().prepare('SELECT * FROM casal_fases ORDER BY casal_id, ordem, id'),
+    db().prepare('SELECT casal_id, nucleo_id FROM casal_nucleos ORDER BY nucleo_id'),
   ]);
   return casais.results.map((c) => ({
     id: c.id as number,
     a: c.a_id as string,
     b: c.b_id as string,
-    visibilidade: c.visibilidade as 'todos' | 'privado',
+    visibilidade: c.visibilidade as Casal['visibilidade'],
+    nucleos: familias.results.filter((f: Record<string, unknown>) => f.casal_id === c.id).map((f: Record<string, unknown>) => f.nucleo_id as string),
     criadoPor: (c.criado_por as string | null) ?? null,
     fases: fases.results
-      .filter((f) => f.casal_id === c.id)
-      .map((f) => ({ tipo: f.tipo as TipoDeFase, inicioAno: (f.inicio_ano as number | null) ?? null, fimAno: (f.fim_ano as number | null) ?? null })),
+      .filter((f: Record<string, unknown>) => f.casal_id === c.id)
+      .map((f: Record<string, unknown>) => ({ tipo: f.tipo as TipoDeFase, inicioAno: (f.inicio_ano as number | null) ?? null, fimAno: (f.fim_ano as number | null) ?? null })),
   }));
 }
 
-/** Casais que o usuário pode ver: os abertos a todos e os privados de que ele faz parte ou que cadastrou. */
+/** Do mais fechado para o mais aberto: quem vê mais de um registro do mesmo par fica com o mais fechado. */
+const FECHAMENTO: Record<Casal['visibilidade'], number> = { privado: 2, nucleos: 1, todos: 0 };
+
 /**
- * Os casais que a pessoa vê, um por par. Um par pode ter um registro privado (que só os dois e quem
- * cadastrou veem) e um público, cadastrado por quem não via o privado. Quem vê o privado fica com ele.
+ * Os casais que a pessoa vê, um por par. Um par pode ter um registro restrito (só os dois, ou famílias
+ * escolhidas) e um público, cadastrado por quem não via o restrito. Quem vê o restrito fica com ele.
  */
 export async function listarCasais(usuario: Usuario): Promise<Casal[]> {
-  const visiveis = (await lerCasais()).filter((c) => podeVerCasal(usuario.pessoa, c));
+  const visiveis = (await lerCasais()).filter((c) => podeVerCasal(usuario.pessoa, c, usuario.nucleos ?? []));
   const porPar = new Map<string, Casal>();
   for (const c of visiveis) {
     const chave = `${c.a}|${c.b}`;
     const ja = porPar.get(chave);
-    if (!ja || (ja.visibilidade === 'todos' && c.visibilidade === 'privado')) porPar.set(chave, c);
+    if (!ja || FECHAMENTO[c.visibilidade] > FECHAMENTO[ja.visibilidade]) porPar.set(chave, c);
   }
   return visiveis.filter((c) => porPar.get(`${c.a}|${c.b}`) === c);
 }
@@ -371,14 +376,17 @@ export async function obterCasal(id: number): Promise<Casal | undefined> {
   return (await lerCasais()).find((c) => c.id === id);
 }
 
-/** Cria o casal ou troca as fases dele, guardando no histórico o que havia antes. */
-export async function salvarCasal(x: string, y: string, fases: Fase[], visibilidade: 'todos' | 'privado', usuario: Usuario): Promise<void> {
+/**
+ * Cria o casal ou troca as fases dele, guardando no histórico o que havia antes. `nucleos` são as
+ * famílias que veem, com visibilidade 'nucleos' (casal desfeito, decisão do Gui de 18/11/2026).
+ */
+export async function salvarCasal(x: string, y: string, fases: Fase[], visibilidade: Casal['visibilidade'], usuario: Usuario, nucleos: string[] = []): Promise<void> {
   const [a, b] = x < y ? [x, y] : [y, x];
   const anterior = await obterCasalDoPar(a, b, usuario);
   const comandos: D1PreparedStatement[] = [];
-  // Quem vê o casal privado e o torna público assume o lugar do registro público que outra pessoa tinha feito
+  // Quem vê o casal restrito e o torna público assume o lugar do registro público que outra pessoa tinha feito
   const publico = (await lerCasais()).find((c) => c.a === a && c.b === b && c.visibilidade === 'todos');
-  if (anterior && anterior.visibilidade === 'privado' && visibilidade === 'todos' && publico && publico.id !== anterior.id) {
+  if (anterior && anterior.visibilidade !== 'todos' && visibilidade === 'todos' && publico && publico.id !== anterior.id) {
     comandos.push(
       db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('casal', ?, ?, ?)`).bind(String(publico.id), JSON.stringify(publico), usuario.pessoa),
       db().prepare('DELETE FROM casal_fases WHERE casal_id = ?').bind(publico.id),
@@ -404,6 +412,12 @@ export async function salvarCasal(x: string, y: string, fases: Fase[], visibilid
         .bind(a, b, visibilidade, fase.tipo, fase.inicioAno, fase.fimAno, ordem),
     );
   });
+  // As famílias que veem: só com 'nucleos'; nas outras escolhas, a lista fica vazia
+  const casalDoPar = `(SELECT id FROM casais WHERE a_id = ? AND b_id = ? AND visibilidade = ?)`;
+  comandos.push(db().prepare(`DELETE FROM casal_nucleos WHERE casal_id = ${casalDoPar}`).bind(a, b, visibilidade));
+  if (visibilidade === 'nucleos') {
+    for (const n of [...new Set(nucleos)]) comandos.push(db().prepare(`INSERT INTO casal_nucleos (casal_id, nucleo_id) VALUES (${casalDoPar}, ?)`).bind(a, b, visibilidade, n));
+  }
   await db().batch(comandos);
 }
 
@@ -1874,5 +1888,30 @@ export async function alinharProximidadeDoLaco(dono: string, pessoa: string, niv
   await db()
     .prepare(`INSERT INTO proximidades (dono_id, pessoa_id, valor) VALUES (?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET valor = excluded.valor, mudado_em = datetime('now')`)
     .bind(dono, pessoa, meio)
+    .run();
+}
+
+// --- Ex-casal: como o ex aparece para mim (migração 071; regras em src/lib/ex-casal.ts) ---
+
+/**
+ * Como cada ex aparece para a pessoa logada: só as escolhas dela, e só de quem ainda é ex dela num casal
+ * desfeito que ela vê. Ninguém mais lê estas linhas: não há rota de leitura.
+ */
+export async function comoOsExesAparecem(usuario: Usuario): Promise<Map<string, Exclude<ModoDoEx, 'presente'>>> {
+  const { results } = await db().prepare('SELECT pessoa_id, modo FROM ex_para_mim WHERE dono_id = ?').bind(usuario.pessoa).all<{ pessoa_id: string; modo: ModoDoEx }>();
+  if (results.length === 0) return new Map();
+  const exes = exesDe(usuario.pessoa, await listarCasais(usuario));
+  return modosQueValem(new Map(results.map((r: { pessoa_id: string; modo: ModoDoEx }) => [r.pessoa_id, r.modo])), exes);
+}
+
+/** Guarda como o ex aparece para quem escolheu. "Presente" apaga a escolha, e tudo volta a ser como era. */
+export async function salvarComoOExAparece(usuario: Usuario, pessoa: string, modo: ModoDoEx): Promise<void> {
+  if (modo === 'presente') {
+    await db().prepare('DELETE FROM ex_para_mim WHERE dono_id = ? AND pessoa_id = ?').bind(usuario.pessoa, pessoa).run();
+    return;
+  }
+  await db()
+    .prepare(`INSERT INTO ex_para_mim (dono_id, pessoa_id, modo) VALUES (?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET modo = excluded.modo, mudado_em = datetime('now')`)
+    .bind(usuario.pessoa, pessoa, modo)
     .run();
 }

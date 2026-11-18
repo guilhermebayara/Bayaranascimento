@@ -16,10 +16,10 @@ import { anosDeVida, jaFaleceu } from '../lib/datas';
 import { Familia, estaoJuntos, lacoParaODono, nomeDoPapel, possessivo, type Tratamento } from '../lib/parentesco';
 import type { DadosDaArvore } from '../lib/cliente/arvore';
 import { cantoReto } from '../lib/arvore-desenho';
-import { comLacoDeArvore } from '../lib/arvore-montagem';
+import { aplicarComoOsExesAparecem, comLacoDeArvore } from '../lib/arvore-montagem';
 import { pessoasQueNaoVe } from '../lib/servidor/permissoes';
 import { enderecoDoRetrato, iniciais } from '../lib/retratos';
-import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarNucleos, pessoasEmLacosPrivadosDeOutros } from '../lib/servidor/repositorio';
+import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarNucleos, pessoasEmLacosPrivadosDeOutros } from '../lib/servidor/repositorio';
 
 // De quem é a linha direta mostrada quando a árvore abre: os três que unem os núcleos.
 // Quem quiser parte de outra pessoa pelo seletor "Partir de" ou pela ficha.
@@ -54,7 +54,7 @@ const rotulo = (id: string) => {
   return meu ? lacoParaODono(meu.nome, achar(id)!.tratamento) : '';
 };
 
-const dados: DadosDaArvore = {
+const dadosDeTodos: DadosDaArvore = {
   eu: usuario.pessoa,
   centros,
   nucleos: nucleos.map((n) => ({ id: n.id, nome: n.nome })),
@@ -81,14 +81,19 @@ const dados: DadosDaArvore = {
     rotulo: l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : `${minuscula(l.nome)} de ${chamar(l.dono)}`,
   })),
 };
+// Como os exes aparecem para quem olha (src/lib/ex-casal.ts): "fora" sai da árvore dela, "discreto"
+// fica com a tarja e sem toque. Só vale para ela: a escolha é lida só da pessoa logada.
+const modosDosExes = await comoOsExesAparecem(usuario);
+const dados = aplicarComoOsExesAparecem(dadosDeTodos, modosDosExes);
 // Quem já faleceu leva a marca no cartão e na ficha (decisão do Gui, 17/11/2026). A lista vai ao
 // lado dos dados, porque a montagem da árvore não muda.
-const falecidos = integrantes.filter((i) => jaFaleceu(i)).map((i) => i.id);
+const falecidos = integrantes.filter((i) => jaFaleceu(i) && !modosDosExes.has(i.id)).map((i) => i.id);
 const nomesDosCentros = (() => {
   const n = centros.map(chamar);
   return n.length > 1 ? `${n.slice(0, -1).join(', ')} e ${n[n.length - 1]}` : (n[0] ?? 'Você');
 })();
-const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+// Quem é discreto ou fora para quem olha não entra na busca nem em "Partir de"
+const ordenados = integrantes.filter((i) => !modosDosExes.has(i.id)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 // "Partir de" só oferece quem tem laço de árvore (filiação ou casal): de quem não tem, a árvore seria só a pessoa
 const comLaco = comLacoDeArvore(dados);
 ---

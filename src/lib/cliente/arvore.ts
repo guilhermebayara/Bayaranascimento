@@ -1,6 +1,6 @@
 // A árvore interativa. Funciona como um mapa: arrasta, aproxima, afasta, e se
 // reorganiza com animação quando o foco ou os filtros mudam, sem recarregar a página.
-import { MEDIDAS, cantoReto, arredondado, desenharArvore, type Desenho } from '../arvore-desenho';
+import { MEDIDAS, TARJA_DO_DISCRETO, cantoReto, arredondado, desenharArvore, type Desenho } from '../arvore-desenho';
 import { comLacoDeArvore, montarDesenho, type DadosDaArvore, type Estado } from '../arvore-montagem';
 import { areaLivreDoMapa, mapaQueAnda } from './mapa-que-anda';
 
@@ -73,7 +73,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
   const url = new URL(location.href);
   const ligada = (nome: string) => url.searchParams.get(nome) !== '0';
   const estado: Estado = {
-    foco: pessoa.has(url.searchParams.get('foco') ?? '') ? url.searchParams.get('foco')! : dados.eu,
+    // Um ex discreto não recebe o foco: o cartão dele não abre nada
+    foco: pessoa.has(url.searchParams.get('foco') ?? '') && !pessoa.get(url.searchParams.get('foco')!)?.discreto ? url.searchParams.get('foco')! : dados.eu,
     centro: partivel.has(url.searchParams.get('centro') ?? '') ? url.searchParams.get('centro')! : '',
     ramos: new Set((url.searchParams.get('ramos') ?? '').split(',').filter(Boolean)),
     nucleo: idsDosNucleos.includes(url.searchParams.get('nucleo') ?? '') ? url.searchParams.get('nucleo')! : '',
@@ -264,11 +265,25 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
   // Bichos: a espécie aparece no cartão, para um bicho não se confundir com uma criança (marca provisória)
   const marcaDeBicho = (especie?: string | null) => Object.assign(document.createElement('small'), { className: 'no__bicho', textContent: especie || 'bichinho' });
 
+  // Um ex que quem olha deixou discreto: o cartão continua no lugar, com a tarja sobre o nome, e não
+  // abre nada (não é link, não recebe o foco nem o toque). O caminho até os parentes dele continua.
+  const cartaoVazio = (p: { id: string; discreto?: boolean }) => {
+    if (!p.discreto) {
+      const a = document.createElement('a');
+      a.href = `/pessoas/${p.id}`;
+      return a;
+    }
+    const div = document.createElement('div');
+    div.setAttribute('role', 'img');
+    div.setAttribute('aria-label', TARJA_DO_DISCRETO.leitor);
+    return div;
+  };
+  const tarja = () => Object.assign(document.createElement('span'), { className: 'no__tarja', textContent: TARJA_DO_DISCRETO.texto, ariaHidden: 'true' });
+
   // Uma caixa de pessoa para os ramos abertos (as da árvore principal são guardadas e reaproveitadas)
   const criarNo = (id: string, x: number, y: number) => {
     const p = pessoa.get(id)!;
-    const no = document.createElement('a');
-    no.href = `/pessoas/${p.id}`;
+    const no = cartaoVazio(p);
     no.dataset.id = p.id;
     no.className = 'no';
     no.classList.toggle('no--foco', p.id === estado.foco);
@@ -285,7 +300,9 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     quem.textContent = p.rotulo || (p.bicho ? 'bichinho da família' : '');
     no.append(nome, quem);
     if (p.bicho) no.append(marcaDeBicho(p.especie));
+    if (p.discreto) no.append(tarja());
     no.classList.toggle('no--bicho', p.bicho);
+    no.classList.toggle('no--discreto', Boolean(p.discreto));
     return no;
   };
 
@@ -320,20 +337,21 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
       presentes.add(p.id);
       let no = nos.get(p.id);
       if (!no) {
-        no = document.createElement('a');
-        no.href = `/pessoas/${p.id}`;
+        no = cartaoVazio(p) as HTMLAnchorElement;
         no.dataset.id = p.id;
         no.style.width = `${MEDIDAS.largura}px`;
         no.style.height = `${MEDIDAS.altura}px`;
         no.append(document.createElement('strong'), document.createElement('span'));
         no.firstElementChild!.textContent = p.nome;
         if (p.bicho) no.append(marcaDeBicho(p.especie));
+        if (p.discreto) no.append(tarja());
         nos.set(p.id, no);
         camada.append(no);
       }
       no.querySelector('span')!.textContent = p.rotulo || rotuloDoCoracao.get(p.id) || (p.bicho ? 'bichinho da família' : '');
       no.className = 'no';
       no.classList.toggle('no--bicho', p.bicho);
+      no.classList.toggle('no--discreto', Boolean(p.discreto));
       no.classList.toggle('no--eu', p.id === dados.eu);
       no.classList.toggle('no--foco', p.id === estado.foco);
       no.classList.toggle('no--apagado', Boolean(estado.nucleo) && !noNucleo(p.id));

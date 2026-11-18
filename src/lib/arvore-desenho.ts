@@ -1207,3 +1207,11 @@ function otimizarOrdem(linhas: string[][][], filiacoes: [string, string][], cora
   }
   linhas.splice(0, linhas.length, ...melhor);
 }
+
+/**
+ * A tarja do cartão de um ex discreto (decisão do Gui, 18/11/2026; src/lib/ex-casal.ts): uma faixa de
+ * tinta, de leve torta, por cima do nome, com uma frase divertida. O cartão fica no mesmo lugar e do
+ * mesmo tamanho, para o arranjo e as linhas não mudarem, e não abre nada. Desenho provisório: vai passar
+ * pelo acabamento visual.
+ */
+export const TARJA_DO_DISCRETO = { texto: 'assunto encerrado', leitor: 'Alguém que você deixou discreto' } as const;

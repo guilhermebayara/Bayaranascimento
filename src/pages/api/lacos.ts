@@ -1,10 +1,12 @@
 // Laços de árvore: filiação (de quem alguém é filho) e casal, com suas fases.
 import type { APIRoute } from 'astro';
-import { FASES, FASES_JUNTOS, Familia, PAPEIS, nomeDoPapel, PROXIMIDADES, QUALIDADES, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
+import { FASES, FASES_JUNTOS, Familia, PAPEIS, nomeDoPapel, podeVerCasal, PROXIMIDADES, QUALIDADES, type Casal, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
+import { MODOS_DO_EX, type ModoDoEx } from '../../lib/ex-casal';
+import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { nivelDoValor, valorDoNivel } from '../../lib/circulo';
 import { criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeMexerEmLaco, podeMudarLacoDoCoracao } from '../../lib/servidor/permissoes';
+import { podeEscolherComoOExAparece, podeMexerEmLaco, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../lib/servidor/permissoes';
 import { sugerirFamilias, type LacoNovo } from '../../lib/familias';
 import {
   alinharProximidadeDoLaco,
@@ -23,6 +25,8 @@ import {
   mudarLacoDoCoracaoDeOutro,
   salvarLacoDoCoracao,
   obterCasal,
+  obterCasalDoPar,
+  salvarComoOExAparece,
   removerCasal,
   removerFiliacao,
   salvarCasal,
@@ -329,10 +333,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (FASES_JUNTOS.includes(ultima.tipo)) fases.push({ tipo: 'separacao', inicioAno: ultima.fimAno, fimAno: null });
     }
     if (fases.length > 12) return falhar('São fases demais para um casal só.');
-    const visibilidade = campo(dados, 'visibilidade', 10) === 'privado' ? 'privado' : 'todos';
+    // Quem vê: todos, só os dois ou, num casal desfeito, as famílias escolhidas (decisão do Gui, 18/11/2026)
+    const pedida = campo(dados, 'visibilidade', 10);
+    let visibilidade: Casal['visibilidade'] = pedida === 'privado' ? 'privado' : pedida === 'nucleos' ? 'nucleos' : 'todos';
+    const familiasExistentes = new Set((await listarNucleos()).map((n) => n.id));
+    let familiasDoCasal = [...new Set(dados.getAll('familiasDoCasal').map(String))].filter((n) => familiasExistentes.has(n));
+    const anterior = await obterCasalDoPar(a.id, b.id, usuario);
+    const [x, y] = a.id < b.id ? [a.id, b.id] : [b.id, a.id];
+    // Num casal desfeito, quem vê é das duas pessoas do casal: os outros salvam as fases, e quem vê fica como estava
+    if (!podeMudarQuemVeOCasal(usuario, { a: x, b: y, fases }, await pessoasComAcesso()).ok) {
+      visibilidade = anterior?.visibilidade ?? 'todos';
+      familiasDoCasal = anterior?.nucleos ?? [];
+    }
+    if (visibilidade === 'nucleos' && familiasDoCasal.length === 0) return falhar('Escolha pelo menos uma família que vê este laço.');
+    // Como o ex aparece para mim: só para quem é uma das duas pessoas, num casal que terminou
+    const modo = campo(dados, 'comoAparece', 10) as ModoDoEx;
+    const escolheuModo = MODOS_DO_EX.includes(modo) && podeEscolherComoOExAparece(usuario, { a: x, b: y, fases }).ok;
     await cadastrarPendente();
     try {
-      await salvarCasal(a.id, b.id, fases, visibilidade, usuario);
+      await salvarCasal(a.id, b.id, fases, visibilidade, usuario, familiasDoCasal);
+      if (escolheuModo) await salvarComoOExAparece(usuario, usuario.pessoa === x ? y : x, modo);
     } catch {
       // Só acontece se uma terceira pessoa marcar como privado um par que já tem um casal privado de outros
       return falhar('Não foi possível salvar esse casal.');
@@ -343,7 +363,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (acao === 'casal-remover') {
     const casal = await obterCasal(Number(campo(dados, 'id', 12)));
-    const visivel = casal && (casal.visibilidade === 'todos' || [casal.a, casal.b, casal.criadoPor].includes(usuario.pessoa));
+    const visivel = casal && podeVerCasal(usuario.pessoa, casal, usuario.nucleos);
     if (!casal || !visivel) return falhar('Casal não encontrado.');
     const envolvidos = [achar(casal.a), achar(casal.b)].filter((i) => i !== undefined);
     const decisao = podeMexerEmLaco(usuario, envolvidos);

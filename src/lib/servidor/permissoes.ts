@@ -3,6 +3,8 @@
 // A regra de "quem vê" existe também em SQL, em repositorio.ts (FILTRO_VISIVEL):
 // as duas precisam mudar juntas.
 import { ehEpoca, podeVerCapitulo, type Capitulo, type ModoDoFormulario } from '../capitulos';
+import { casalDesfeito } from '../ex-casal';
+import type { Casal } from '../parentesco';
 
 export interface Usuario {
   /** id do integrante, ex.: "giovanna" */
@@ -350,5 +352,26 @@ export function podeSalvarCapitulo(usuario: Usuario, atual: CapituloParaPermissa
     if (!editar.ok) return editar;
   }
   if (escolha === 'epoca' && !usuario.admin) return nao(atual ? 'Só os administradores transformam um capítulo em época.' : 'Só os administradores criam uma época.');
+  return sim;
+}
+
+// --- Ex-casal: quem vê e como aparece para mim (decisões do Gui, 18/11/2026; src/lib/ex-casal.ts) ---
+
+/**
+ * Mudar quem vê um casal desfeito: as duas pessoas do casal. Quando nenhuma das duas acessa o site (o
+ * casal dos avós, por exemplo), vale a regra dos laços de árvore, que quem chama confere. Num casal
+ * junto, quem vê continua com a regra dos laços.
+ */
+export function podeMudarQuemVeOCasal(usuario: Usuario, casal: Pick<Casal, 'a' | 'b' | 'fases'>, comAcesso: ReadonlySet<string>): Decisao {
+  if (!casalDesfeito(casal as Casal)) return sim;
+  if (casal.a === usuario.pessoa || casal.b === usuario.pessoa) return sim;
+  if (!comAcesso.has(casal.a) && !comAcesso.has(casal.b)) return sim;
+  return nao('Só as duas pessoas do casal mudam quem vê este laço.');
+}
+
+/** Escolher como o ex aparece para mim: só quem é uma das duas pessoas de um casal desfeito, e só para si. */
+export function podeEscolherComoOExAparece(usuario: Usuario, casal: Pick<Casal, 'a' | 'b' | 'fases'>): Decisao {
+  if (casal.a !== usuario.pessoa && casal.b !== usuario.pessoa) return nao('Casal não encontrado.');
+  if (!casalDesfeito(casal as Casal)) return nao('Só dá para escolher como alguém aparece para você depois que o casal terminou.');
   return sim;
 }
