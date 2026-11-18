@@ -65,8 +65,9 @@ describe('parentesco calculado', () => {
     expect(r('elizete', 'aguilar')).toBe('ex-marido');
     expect(r('aguilar', 'elizete')).toBe('ex-esposa');
     expect(r('gui', 'rafa')).toBe('amigo');
-    expect(r('gui', 'dani')).toBe('ex-namorado ou ex-namorada');
-    expect(possessivo(familia.relacao('gui', 'dani')!, null)).toBe('seu ex-namorado ou sua ex-namorada');
+    // Só namoraram e terminaram, sem nunca ter sido da família: não é parentesco (decisão do Gui, 18/11/2026)
+    expect(familia.relacao('gui', 'dani')).toBeUndefined();
+    expect(familia.relacao('dani', 'gui')).toBeUndefined();
   });
   it('parentes pelo casamento', () => {
     expect(r('lucas-magno', 'elizete')).toBe('sogra');

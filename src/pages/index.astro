@@ -28,6 +28,8 @@ import { seusRascunhos } from '../lib/conta';
 import {
   TITULO_DA_PROXIMIDADE,
   aniversarios,
+  aniversariosDeCasamento,
+  anosDeCasados,
   anoDaUltimaVisita,
   chegarAoPainel,
   composicaoDoInicio,
@@ -41,6 +43,8 @@ import {
 } from '../lib/painel';
 import { Familia, possessivo, type Tratamento } from '../lib/parentesco';
 import { enderecoDoRetrato } from '../lib/retratos';
+import { jaFaleceu } from '../lib/datas';
+import { enderecoDoLaco } from '../lib/pagina-do-laco';
 import { semLogin } from '../lib/servidor/acesso';
 import {
   comoOsExesAparecem,
@@ -152,6 +156,15 @@ const ultimaVisita = chegada.novidadesDesde ? hojeNoBrasil(new Date(`${chegada.n
 // Ex discreto ou fora sai dos aniversários de quem escolheu (resposta do Gui à sessão F, 18/11/2026)
 const exesQueSaem = await comoOsExesAparecem(usuario);
 const proximos = aniversarios(integrantes, hoje, new Set([...naoVe, ...exesQueSaem.keys()]), usuario.pessoa);
+// Os aniversários de casamento dos casais de hoje (decisão do Gui, 18/11/2026), na mesma lista: só de quem
+// a pessoa vê, sem o ex discreto ou fora e sem casal em que alguém já faleceu (aniversariosDeCasamento)
+const sai = (id: string) => naoVe.has(id) || exesQueSaem.has(id) || !achar(id) || jaFaleceu(achar(id)!);
+const casamentos = aniversariosDeCasamento(casais, hoje, sai);
+const nomeNoCasal = (id: string) => (id === usuario.pessoa ? 'Você' : nomeVisto(id));
+const lembrancas = [
+  ...proximos.map((a) => ({ tipo: 'pessoa' as const, emDias: a.emDias, a })),
+  ...casamentos.map((c) => ({ tipo: 'casal' as const, emDias: c.emDias, c })),
+].sort((x, y) => x.emDias - y.emDias);
 const quando = (emDias: number, dia: number, mes: number) => (emDias === 0 ? 'Hoje' : emDias === 1 ? 'Amanhã' : diaMesCurto({ dia, mes }));
 
 // --- A pessoa no acervo e uma memória para contar ---------------------------------------------
@@ -177,7 +190,7 @@ const composicao = composicaoDoInicio({
   relatosNovos: novo.relatos.length,
   outrosAnos: outrosAnos?.itens.length ?? 0,
   contar: Boolean(paraContar),
-  aniversarios: proximos.length > 0,
+  aniversarios: lembrancas.length > 0,
   voce: Boolean(eu && minhas.length > 0),
 });
 
@@ -347,14 +360,35 @@ const erro = Astro.url.searchParams.get('erro');
           </section>
         )}
 
-        {proximos.length > 0 && (
+        {lembrancas.length > 0 && (
           <section class="cartao aniversarios" aria-labelledby="aniversarios" style={estiloDoTipo('aniversario')}>
             <h2 class="cartao__titulo rotulo" id="aniversarios">
               <IconeDoTipo tipo="aniversario" />
               Próximos aniversários
             </h2>
             <ul>
-              {proximos.map((a) => {
+              {lembrancas.map((l) => {
+                if (l.tipo === 'casal') {
+                  // O casal leva à página do laço. Quem olha e é do casal vem primeiro: "Você e Lucas Magno"
+                  const { casal } = l.c;
+                  const [um, outro] = casal.b === usuario.pessoa ? [casal.b, casal.a] : [casal.a, casal.b];
+                  return (
+                    <li>
+                      <a class="aniversario aniversario--casal" href={enderecoDoLaco(casal.a, casal.b)}>
+                        <span class="aniversario__dois">
+                          <Retrato nome={nomeNoCasal(um)} foto={retratoDe(um)} familia={familiaDe(um)} />
+                          <Retrato nome={nomeNoCasal(outro)} foto={retratoDe(outro)} familia={familiaDe(outro)} />
+                        </span>
+                        <span class="aniversario__quem">
+                          <strong>{nomeNoCasal(um)} e {nomeVisto(outro)}</strong>
+                          <span class="suave">{anosDeCasados(l.c.anos)}</span>
+                        </span>
+                        <span class="aniversario__dia serifa">{quando(l.emDias, l.c.dia, l.c.mes)}</span>
+                      </a>
+                    </li>
+                  );
+                }
+                const a = l.a;
                 const quem = paraQuemOlha(a.pessoa.id);
                 return (
                   <li>

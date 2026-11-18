@@ -206,12 +206,16 @@ describe('laços', () => {
     expect(editar.match(/<summary class="botao botao--leve">Editar<\/summary>/g)?.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('listas curtas viram botões de opção: filiação, fase do casal e proximidade', () => {
+  it('listas curtas viram botões de opção: filiação e fase do casal; a proximidade é o slider do círculo', () => {
     const editar = fonte('src/pages/pessoas/[id]/editar.astro');
     expect(editar).not.toMatch(/<select name="(qualidade|faseTipo|proximidade)"/);
     expect(editar).toMatch(/<Opcoes nome="qualidade"/);
-    expect(editar).toMatch(/<Opcoes nome="faseTipo"/);
-    expect(editar).toMatch(/<Opcoes nome="proximidade"/);
+    // A fase de cada linha da edição do casal; e a primeira do cadastro (PrimeiraFase.astro)
+    expect(editar).toContain('<Opcoes nome={`fase-${n}-tipo`}');
+    expect(fonte('src/components/formularios/PrimeiraFase.astro')).toContain('<Opcoes nome="faseTipo"');
+    // Decisão do Gui, 18/11/2026: a proximidade virou o slider em todo lugar
+    expect(editar).not.toMatch(/<Opcoes nome="proximidade"/);
+    expect(editar).toMatch(/<CampoProximidade /);
   });
 
   it('a ficha vem antes dos laços na edição', () => {
@@ -220,7 +224,8 @@ describe('laços', () => {
   });
 
   it('a API do casal aceita as fases numeradas da edição', () => {
-    expect(fonte('src/pages/api/lacos.ts')).toMatch(/fase-\$\{n\}-remover/);
+    expect(fonte('src/pages/api/lacos.ts')).toContain('lerFasesDoFormulario(dados)');
+    expect(fonte('src/lib/fases-do-formulario.ts')).toMatch(/fase-\$\{n\}-remover/);
   });
 });
 
@@ -364,7 +369,7 @@ describe('cadastro de laços depois da sessão H', () => {
     // Cada opção na mesma caixa, com só o que é dela
     const soEu = doCoracao.slice(doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-so-eu">'), doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-familia" hidden>'));
     const familia = doCoracao.slice(doCoracao.indexOf('<div class="reconhece__painel" data-para="coracao-familia" hidden>'));
-    for (const campo of ['name="nomeDoLaco"', 'nome="proximidade"', 'name="privado"']) {
+    for (const campo of ['name="nomeDoLaco"', '<CampoProximidade ', 'name="privado"']) {
       expect(soEu).toContain(campo);
       expect(familia).not.toContain(campo);
     }
@@ -372,10 +377,11 @@ describe('cadastro de laços depois da sessão H', () => {
     expect(css).toMatch(/\.reconhece__troca \{[^}]*background: var\(--papel-recuo\);/);
   });
   it('a história inteira do casal já no cadastro, guiado e completo, e "O que aconteceu depois?" como título pequeno', () => {
-    expect(editar.match(/<FasesDepois /g)?.length).toBe(2);
+    // Revisto pelo Gui em 18/11/2026: "Adicionar o que aconteceu depois" é uma ação, no cadastro e na edição
+    expect(editar.match(/<FasesDepois /g)?.length).toBe(3);
     const fases = fonte('src/components/formularios/FasesDepois.astro');
-    expect(fases).toContain('<select name="faseTipo">');
-    expect(fases).toContain('<input type="hidden" name="faseFim" value="" />');
-    expect(css).toMatch(/fieldset:is\(\.fase--nova, \.fases-depois\) > legend \{[^}]*font-family: var\(--mono\);/);
+    expect(fases).toContain("numerada === undefined ? 'faseTipo'");
+    expect(fases).toContain('>Adicionar o que aconteceu depois</button>');
+    expect(css).toMatch(/\.fases-depois__linha > legend \{[^}]*font-family: var\(--mono\);/);
   });
 });

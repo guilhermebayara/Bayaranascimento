@@ -577,7 +577,14 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     for (const e of extras) recuar(e, e.getAttribute('data-ramo') !== emFoco?.chave && (e as HTMLElement).dataset.ramoAberto !== emFoco?.chave);
 
     // 5. Quem não tem laço nenhum com ninguém
-    const comLaco = new Set([...dados.filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...dados.casais.flatMap((c) => [c.a, c.b]), ...dados.coracao.flatMap((l) => [l.dono, l.pessoa])]);
+    // O namoro e o ex que virou amigo são laços; quem só namorou e terminou tem laço, só não aparece na árvore
+    const comLaco = new Set([
+      ...dados.filiacoes.flatMap((f) => [f.filho, f.responsavel]),
+      ...dados.casais.flatMap((c) => [c.a, c.b]),
+      ...dados.coracao.flatMap((l) => [l.dono, l.pessoa]),
+      ...(dados.amizades ?? []).flatMap((a) => [a.a, a.b]),
+      ...(dados.foraDeProposito ?? []),
+    ]);
     const fora = [...visiveis].filter((id) => !comLaco.has(id));
     soltos.hidden = fora.length === 0;
     soltos.replaceChildren(

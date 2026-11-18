@@ -17,7 +17,7 @@ import { Familia, estaoJuntos, lacoParaODono, nomeDoPapel, possessivo, type Trat
 import type { DadosDaArvore } from '../lib/cliente/arvore';
 import { cantoReto } from '../lib/arvore-desenho';
 import { aplicarComoOsExesAparecem, comLacoDeArvore } from '../lib/arvore-montagem';
-import { separarAmizades } from '../lib/ex-casal';
+import { comoOCasalAparece, rotuloDoCasalDoCoracao, separarAmizades } from '../lib/ex-casal';
 import { AJUSTE_DOS_CENTROS, centrosDaArvore } from '../lib/centros-da-arvore';
 import { pessoasQueNaoVe } from '../lib/servidor/permissoes';
 import { enderecoDoRetrato, iniciais } from '../lib/retratos';
@@ -49,13 +49,26 @@ const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.
 const familia = new Familia(filiacoes, casais, tratamentos);
 const minuscula = (texto: string) => texto.charAt(0).toLowerCase() + texto.slice(1);
 
-// O que cada pessoa é de quem está olhando: parentesco, ou o laço do coração dela
+// O namoro (sem "já é da família") e o ex que virou amigo entram como laço do coração, com a linha
+// tracejada; o namoro que acabou sem nunca ter sido da família não entra (comoOCasalAparece). O lado de
+// quem tem família na árvore é o dono do laço, e o outro leva o rótulo "amigo de Giovanna" ou
+// "namorada de Gui"
+const casaisDoCoracao = separarAmizades(casais).amizades.map(({ a, b, tipo }) => {
+  const daFamilia = (id: string) => filiacoes.some((f) => f.filho === id || f.responsavel === id) || familiasDe(achar(id)!).length > 0;
+  const [dono, pessoa] = daFamilia(a) || !daFamilia(b) ? [a, b] : [b, a];
+  // O namoro fica colado ao lado de quem namora, com a linha de lado (ajuste do Gui, 18/11/2026)
+  return { a: dono, b: pessoa, rotulo: rotuloDoCasalDoCoracao(tipo, achar(pessoa)?.tratamento ?? null, chamar(dono)), namoro: tipo === 'namoro' };
+});
+
+// O que cada pessoa é de quem está olhando: parentesco, ou o laço do coração dela. Sem nenhum dos dois, o
+// laço de casal que aparece como do coração ("amigo de Giovanna"), para a ficha não ficar sem laço
 const rotulo = (id: string) => {
   if (id === usuario.pessoa) return 'você';
   const relacao = familia.relacao(usuario.pessoa, id);
   if (relacao) return possessivo(relacao, achar(id)!.tratamento);
   const meu = lacos.find((l) => l.pessoa === id && l.dono === usuario.pessoa);
-  return meu ? lacoParaODono(meu.nome, achar(id)!.tratamento) : '';
+  if (meu) return lacoParaODono(meu.nome, achar(id)!.tratamento);
+  return casaisDoCoracao.find((c) => c.b === id)?.rotulo ?? '';
 };
 
 const dadosDeTodos: DadosDaArvore = {
@@ -76,14 +89,10 @@ const dadosDeTodos: DadosDaArvore = {
     iniciais: iniciais(i.apelido ?? i.nome),
   })),
   filiacoes: filiacoes.map((f) => ({ filho: f.filho, responsavel: f.responsavel, consideracao: f.qualidade === 'consideracao' })),
-  // O ex que virou amigo entra como amizade, com a linha do coração, e não como ex-casal
+  // O namoro e o ex que virou amigo entram como laço do coração, e não como casal nem ex-casal
   casais: separarAmizades(casais).casais.map((c) => ({ a: c.a, b: c.b, ex: !estaoJuntos(c) })),
-  // O lado de quem tem família na árvore é o dono do laço, e o outro leva o rótulo "amigo de Giovanna"
-  amizades: separarAmizades(casais).amizades.map(({ a, b }) => {
-    const daFamilia = (id: string) => filiacoes.some((f) => f.filho === id || f.responsavel === id) || familiasDe(achar(id)!).length > 0;
-    const [dono, pessoa] = daFamilia(a) || !daFamilia(b) ? [a, b] : [b, a];
-    return { a: dono, b: pessoa, rotulo: `${achar(pessoa)?.tratamento === 'ela' ? 'amiga' : 'amigo'} de ${chamar(dono)}` };
-  }),
+  amizades: casaisDoCoracao,
+  foraDeProposito: casais.filter((c) => comoOCasalAparece(c) === 'namoro-que-acabou').flatMap((c) => [c.a, c.b]),
   resumidos: resumidos.map((r) => ({ a: r.a, b: r.b, papel: r.papel, rotulo: `${nomeDoPapel(r.papel, achar(r.b)?.tratamento ?? null)} de ${chamar(r.a)}` })),
   coracao: lacos.map((l) => ({
     dono: l.dono,
