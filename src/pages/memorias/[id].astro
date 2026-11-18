@@ -5,8 +5,7 @@
 import { soONomeNaMemoria } from '../../lib/ex-casal';
 import '../../visual/telas/memoria.css';
 import Visual from '../../layouts/Visual.astro';
-import Audio from '../../components/visual/Audio.astro';
-import Bilhete from '../../components/visual/Bilhete.astro';
+import Voz from '../../components/conversa/Voz.astro';
 import Reacoes from '../../components/visual/Reacoes.astro';
 import MenuDeAcoes from '../../components/visual/MenuDeAcoes.astro';
 import { ofereceEntrar } from '../../lib/reacoes';
@@ -23,13 +22,13 @@ import { memoriaDoCapitulo } from '../../lib/capitulos';
 import { recolheQuemEstava, relatoJaEstaNaAbertura } from '../../lib/memoria';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { formatarData, jaFaleceu } from '../../lib/datas';
-import { duracaoEmTexto } from '../../lib/audios';
 import { Familia, possessivo, type Tratamento } from '../../lib/parentesco';
 import { enderecoDoRetrato } from '../../lib/retratos';
 import { podeEditarMemoria, podeExcluirMemoria } from '../../lib/servidor/permissoes';
 import {
   familiasDe,
   listarAudiosDosRelatos,
+  listarFotosDoRelato,
   listarCapitulos,
   comoOsExesAparecem,
   contarSugestoesAbertas,
@@ -45,6 +44,7 @@ import {
   obterMemoria,
   pessoasQueONaoVe,
   abrirAvisosDaMemoria, nomesDasPessoasExcluidas } from '../../lib/servidor/repositorio';
+import { conversaDosRelatos } from '../../lib/servidor/conversa';
 import { carimboDaData, corDaPessoa, estiloDoTipo, giroDoId, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
 
 const { usuario, tipos } = Astro.locals;
@@ -139,7 +139,17 @@ const fraseDaEspera = fraseDosRelatosQueEsperam(esperam.map((r) => ({ nome: nome
 const ok = Astro.url.searchParams.get('ok');
 const erro = Astro.url.searchParams.get('erro');
 
-const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ foto, n })).filter(({ foto }) => foto.relatoId === relatoId);
+// O relato como conversa: as mensagens de cada relato, com os áudios, as fotos (que abrem a galeria da
+// memória) e as citações resolvidas para quem olha. As fotos do meu relato em rascunho ainda não são da
+// memória: entram à parte, sem galeria.
+const meuEmRascunho = relatos.find((r) => r.situacao === 'rascunho' && r.registradoPor === usuario.pessoa);
+const fotosDoRascunho = meuEmRascunho ? await listarFotosDoRelato(meuEmRascunho.id) : [];
+const conversa = await conversaDosRelatos(relatos, [...memoria.fotos, ...fotosDoRascunho.filter((f) => !memoria.fotos.some((m) => m.id === f.id))], nome, (fotoId) => {
+  const n = memoria.fotos.findIndex((f) => f.id === fotoId);
+  return n >= 0 ? n : undefined;
+});
+// "Citar": quem tem página no acervo cita uma mensagem dos outros no próprio relato
+const podeCitar = publicada && temPaginaNoAcervo;
 ---
 
 <Visual titulo={memoria.titulo} secao="explorar" nucleos={memoria.nucleos} familia={corDaTela}>
@@ -333,12 +343,23 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
               <h2 class="parte__titulo" id="relatos">
                 {relatos.length === 1 ? 'Relato' : 'Relatos'}
               </h2>
-              <div class="relatos">
-                {relatos.map((relato) => {
-                  const audios = audiosDosRelatos.get(relato.id) ?? [];
-                  return (
-                    <Bilhete id={`relato-${relato.id}`} por={nome(relato.por)} registradoPor={relato.registradoPor !== relato.por ? nome(relato.registradoPor) : null}>
-                      <h3 class="so-leitor">Contado por {nome(relato.por)}</h3>
+              {/* O relato como conversa (escolha do Gui depois da sessão I, 18/11/2026; src/lib/conversa.ts): cada
+                  pessoa é uma voz, com o retrato e o nome à mão no começo e as mensagens na ordem em que mandou,
+                  quem contou primeiro antes. As de quem olha à direita, no pastel da família. As reações são do
+                  relato inteiro, no fim da voz. "Citar" leva ao relato de quem olha, com a mensagem citada. */}
+              <div class="voz-fio">
+                {relatos.map((relato) => (
+                  <Voz
+                    id={`relato-${relato.id}`}
+                    nome={nome(relato.por)}
+                    retrato={retratoDe(relato.por)}
+                    familia={familiaDe(relato.por)}
+                    registradoPor={relato.registradoPor !== relato.por ? nome(relato.registradoPor) : null}
+                    mensagens={conversa.get(relato.id) ?? []}
+                    minha={relato.por === usuario.pessoa}
+                    citarEm={podeCitar && relato.situacao === 'publicada' && relato.registradoPor !== usuario.pessoa ? `/memorias/${memoria.id}/relato?cita=` : undefined}
+                  >
+                    <Fragment slot="antes">
                       {relato.situacao === 'rascunho' && <p class="selo bilhete__selo">Rascunho, só você vê</p>}
                       {relato.soParaNucleos && relato.registradoPor === usuario.pessoa && (
                         <form class="bilhete__espera" method="post" action="/api/avisos" data-regiao={`liberar-${relato.id}`} data-no-lugar={`liberar-${relato.id} retrato`}>
@@ -351,56 +372,27 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                           </button>
                         </form>
                       )}
-                      {audios.map((audio, n) => (
-                        <Audio
-                          rotulo={`${audios.length > 1 ? `Áudio ${n + 1}` : 'Áudio'}${audio.duracao ? ` · ${duracaoEmTexto(audio.duracao)}` : ''}`}
-                          src={`/audios/${audio.chave}`}
-                          transcricao={audio.transcricao}
-                        />
-                      ))}
-                      {relato.texto.trim() && (
-                        <div class="bilhete__texto">
-                          {relato.texto.split(/\n{2,}/).map((paragrafo) => (
-                            <p>{paragrafo}</p>
-                          ))}
-                        </div>
-                      )}
-                      {fotosDoRelato(relato.id).length > 0 && (
-                        <ul class="bilhete__fotos" aria-label={`Fotos que vieram com o relato de ${nome(relato.por)}`}>
-                          {fotosDoRelato(relato.id).map(({ foto, n }) => (
-                            <li>
-                              <a class="monte" href={`/fotos/${foto.chave}`} data-galeria={n} aria-label={`Ver a foto inteira${foto.legenda ? `: ${foto.legenda}` : ''}`}>
-                                <figure class="polaroid" style={`--giro: ${giroDoId(`${memoria.id}-relato-${n}`)}deg`}>
-                                  <span class="polaroid__foto">
-                                    <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
-                                  </span>
-                                </figure>
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {publicada && relato.situacao === 'publicada' && (
- <div slot="pe" class="acoes-do-item">
-                          <Reacoes memoria={memoria.id} alvo="relato" alvoId={relato.id} marcas={reacoes.get(`relato:${relato.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#relato-${relato.id}`} sobre={`o relato de ${nome(relato.por)}`} />
-                          <MenuDeAcoes rotulo={`Mais ações do relato de ${nome(relato.por)}`}>
-                            {/* O recado ao autor do relato, numa página própria, à parte da sugestão de dados da
-                                memória (observação do Gui, 18/11/2026). No próprio relato, editar fica no atalho do
-                                alto e na linha do fim */}
-                            {relato.registradoPor !== usuario.pessoa && (
-                              <a class="menu-acoes__item" href={`/memorias/${memoria.id}/recado?relato=${relato.id}`}>
-                                Deixar um recado para {nome(relato.registradoPor)}
-                              </a>
-                            )}
-                            <a class="menu-acoes__item" href={`/memorias/${memoria.id}/compartilhar`}>
-                              Compartilhar como imagem
+                    </Fragment>
+                    {publicada && relato.situacao === 'publicada' && (
+                      <div slot="pe" class="acoes-do-item">
+                        <Reacoes memoria={memoria.id} alvo="relato" alvoId={relato.id} marcas={reacoes.get(`relato:${relato.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#relato-${relato.id}`} sobre={`o relato de ${nome(relato.por)}`} />
+                        <MenuDeAcoes rotulo={`Mais ações do relato de ${nome(relato.por)}`}>
+                          {/* O recado ao autor do relato, numa página própria, à parte da sugestão de dados da
+                              memória (observação do Gui, 18/11/2026). No próprio relato, contar mais fica no
+                              atalho do alto e na linha do fim */}
+                          {relato.registradoPor !== usuario.pessoa && (
+                            <a class="menu-acoes__item" href={`/memorias/${memoria.id}/recado?relato=${relato.id}`}>
+                              Deixar um recado para {nome(relato.registradoPor)}
                             </a>
-                          </MenuDeAcoes>
-                        </div>
-                      )}
-                    </Bilhete>
-                  );
-                })}
+                          )}
+                          <a class="menu-acoes__item" href={`/memorias/${memoria.id}/compartilhar`}>
+                            Compartilhar como imagem
+                          </a>
+                        </MenuDeAcoes>
+                      </div>
+                    )}
+                  </Voz>
+                ))}
               </div>
             </section>
           )
@@ -581,9 +573,12 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
 <script>
   import { ligarMenus } from '../../lib/cliente/menus';
   import { ligarReacoes } from '../../lib/cliente/reacoes';
+  import { ligarAudioDaMensagem } from '../../lib/cliente/conversa';
   // As reações no lugar, sem recarregar, e os menus dos três pontos
   ligarReacoes();
   ligarMenus();
+  // Os áudios das vozes: o botão de tocar e a onda; sem script, o tocador do aparelho
+  for (const audio of document.querySelectorAll<HTMLElement>('.voz [data-audio]')) ligarAudioDaMensagem(audio);
 
   // "Quem estava" no celular: até seis retratos, e "Ver todos os N" abre o resto no lugar. A lista só
   // é recolhida aqui, pelo script: sem ele, ela vem inteira. O CSS só esconde abaixo de 40rem.

@@ -1,15 +1,33 @@
 ---
-import Gravador from '../../../components/formularios/Gravador.astro';
-import { situacaoDaTranscricaoAgora } from '../../../lib/servidor/transcricao';
+// Escrever meu relato, como conversa (escolha do Gui depois da sessão I, 18/11/2026; regras em
+// src/lib/conversa.ts). À esquerda, a janela de escrever: cada envio vira uma mensagem, gravada na hora.
+// O relato nasce rascunho e entra na memória com "Publicar relato"; depois, cada mensagem nova entra na
+// hora. Ao lado, no computador (embaixo, no celular), os relatos dos outros, como estão na memória, com
+// "Citar" em cada mensagem: a citação vai no relato de quem cita.
 import Pagina from '../../../components/formularios/Pagina.astro';
-import Dado from '../../../components/visual/Dado.astro';
-import Ficha from '../../../components/visual/Ficha.astro';
-import Polaroid from '../../../components/visual/Polaroid.astro';
+import Janela from '../../../components/conversa/Janela.astro';
+import Voz from '../../../components/conversa/Voz.astro';
 import { formatarData } from '../../../lib/datas';
-import { estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
+import { resumoDaMensagem } from '../../../lib/conversa';
+import { enderecoDoRetrato } from '../../../lib/retratos';
+import { corDaPessoa } from '../../../lib/visual';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
-import { donoDoRelato } from '../../../lib/servidor/permissoes';
-import { listarAudiosDosRelatos, listarFotosDoRelato, listarIntegrantes, listarIntegrantesQueVe, listarRelatos, obterMemoria, obterRelato } from '../../../lib/servidor/repositorio';
+import { conversaDosRelatos } from '../../../lib/servidor/conversa';
+import { donoDoRelato, veORelato } from '../../../lib/servidor/permissoes';
+import { situacaoDaTranscricaoAgora } from '../../../lib/servidor/transcricao';
+import {
+  familiasDe,
+  listarFotosDoRelato,
+  listarIntegrantes,
+  listarIntegrantesQueVe,
+  listarNucleos,
+  listarRelatos,
+  nomesDasPessoasExcluidas,
+  obterMemoria,
+  obterMensagem,
+  obterRelato,
+  pessoasQueONaoVe,
+} from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -17,245 +35,177 @@ if (!memoria) return new Response('Memória não encontrada', { status: 404 });
 if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.id}`);
 
 const integrantes = await listarIntegrantes();
-// Em nome de quem dá para escrever: só quem a pessoa vê (C1, 17/11/2026)
-const visiveis = new Set((await listarIntegrantesQueVe(usuario)).map((i) => i.id));
-// Ao lado, no computador: a foto-chave e a ficha da memória, para contar olhando para ela
-const fotoChave = memoria.fotos.find((f) => f.principal) ?? memoria.fotos[0];
-const quemEstava = memoria.integrantes.filter((id) => visiveis.has(id)).map((id) => integrantes.find((i) => i.id === id)).filter((i) => i !== undefined).map((i) => i.apelido ?? i.nome);
-const nomeDoTipo = memoria.tipo === 'outro' && memoria.tipoOutro ? memoria.tipoOutro : (Astro.locals.tipos.find((t) => t.id === memoria.tipo)?.rotulo ?? '');
-const comAcesso = await pessoasComAcesso();
-const semAcesso = integrantes.filter((i) => i.tipo === 'pessoa' && !comAcesso.has(i.id) && visiveis.has(i.id));
+const nomesNaLixeira = await nomesDasPessoasExcluidas();
+const achar = (id: string) => integrantes.find((i) => i.id === id);
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? nomesNaLixeira.get(id) ?? 'Alguém';
+const ordemDosNucleos = (await listarNucleos()).map((n) => n.id);
+const retratoDe = (id: string) => (achar(id)?.retrato ? enderecoDoRetrato(achar(id)!.retrato!) : null);
+const familiaDe = (id: string) => (achar(id) ? corDaPessoa(familiasDe(achar(id)!), ordemDosNucleos) : undefined);
 
-// Os relatos que a pessoa vê: de um relato que ela não vê (o que espera o sim do autor depois de a memória
-// ser ampliada), nem o nome de quem registrou aparece
-const relatosQueVe = new Set((await listarRelatos(usuario, memoria.id)).map((r) => r.id));
-// Para cada pessoa em nome de quem dá para escrever: o texto atual, se for da pessoa logada, ou o bloqueio
-const opcoes = await Promise.all(
-  [{ id: usuario.pessoa, rotulo: `Eu, ${usuario.nome}` }, ...semAcesso.map((p) => ({ id: p.id, rotulo: `${p.nome}, e eu estou escrevendo` }))].map(
-    async (opcao) => {
-      const existente = await obterRelato(memoria.id, opcao.id, usuario);
-      const dono = existente && donoDoRelato(existente);
-      const bloqueado = Boolean(existente) && dono !== usuario.pessoa;
-      // Os áudios do relato que a pessoa pode editar, na ordem
-      const audios = existente && !bloqueado ? ((await listarAudiosDosRelatos([existente.id])).get(existente.id) ?? []) : [];
-      // As fotos que vieram com o relato ("Fotos pelo relato"): as que já são da memória e, no rascunho,
-      // as que esperam a publicação. Só quem pode editar o relato as vê aqui.
-      const fotos = existente && !bloqueado ? await listarFotosDoRelato(existente.id) : [];
-      return {
-        ...opcao,
-        audios: audios.map((a) => ({ id: a.id, src: `/audios/${a.chave}`, duracao: a.duracao, transcricao: a.transcricao })),
-        fotos: fotos.map((f) => ({ id: f.id, src: `/fotos/${f.chave}`, legenda: f.legenda })),
-        texto: existente && !bloqueado ? existente.texto : '',
-        publicado: existente?.situacao === 'publicada' && !bloqueado,
-        bloqueado,
-        quemRegistrou: bloqueado && existente && relatosQueVe.has(existente.id) ? integrantes.find((i) => i.id === dono)?.nome : undefined,
-      };
-    },
-  ),
-);
-// A transcrição automática dos áudios (onda 2): o botão só aparece onde ela está ligada
+// Em nome de quem dá para escrever: a própria pessoa e quem não acessa o site, entre quem ela vê (C1)
+const visiveis = await listarIntegrantesQueVe(usuario);
+const comAcesso = await pessoasComAcesso();
+const semAcesso = visiveis.filter((i) => i.tipo === 'pessoa' && !comAcesso.has(i.id) && i.id !== usuario.pessoa);
+const pedido = Astro.url.searchParams.get('por');
+const por = pedido && semAcesso.some((p) => p.id === pedido) ? pedido : usuario.pessoa;
+const opcoes = [{ id: usuario.pessoa, rotulo: `Eu, ${usuario.nome}` }, ...semAcesso.map((p) => ({ id: p.id, rotulo: `${p.nome}, e eu estou escrevendo` }))];
+
+const existente = await obterRelato(memoria.id, por, usuario);
+const bloqueado = Boolean(existente) && donoDoRelato(existente!) !== usuario.pessoa;
+const relatos = await listarRelatos(usuario, memoria.id);
+const quemRegistrou = bloqueado && relatos.some((r) => r.id === existente!.id) ? nome(donoDoRelato(existente!)) : undefined;
+const publicado = existente?.situacao === 'publicada' && !bloqueado;
+
+// Os relatos dos outros, publicados, como na memória (quem contou primeiro antes)
+const dosOutros = relatos.filter((r) => r.situacao === 'publicada' && r.id !== existente?.id);
+const fotosDoMeu = existente && !bloqueado ? await listarFotosDoRelato(existente.id) : [];
+const fotos = [...memoria.fotos, ...fotosDoMeu.filter((f) => !memoria.fotos.some((m) => m.id === f.id))];
+const conversa = await conversaDosRelatos([...(existente && !bloqueado ? [existente] : []), ...dosOutros], fotos, nome, undefined, relatos);
+const minhas = existente && !bloqueado ? (conversa.get(existente.id) ?? []) : [];
+
+// "Citar", vindo da memória: só uma mensagem publicada de outra pessoa, nesta memória, que quem escreve vê
+const pedidoDeCitacao = Number(Astro.url.searchParams.get('cita')) || 0;
+let citando: { id: number; quem: string; resumo: string } | null = null;
+if (pedidoDeCitacao && !bloqueado) {
+  const citada = await obterMensagem(pedidoDeCitacao);
+  if (citada && citada.memoriaId === memoria.id && citada.situacao === 'publicada' && citada.relatoId !== existente?.id && veORelato(citada, usuario, await pessoasQueONaoVe(usuario))) {
+    citando = { id: citada.id!, quem: nome(citada.por), resumo: resumoDaMensagem(citada) };
+  }
+}
 const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 ---
 
-<Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar">
+<Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar" larga>
   <p slot="abertura">
-    <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento.
+    <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento: um texto, um áudio ou uma foto por vez, na ordem que vierem.
   </p>
 
-  {/* Ao lado, no computador (resposta do Gui à pergunta 7 do PR do grupo "formularios", 17/11/2026):
-      a foto-chave e a ficha da memória de que o relato fala. No celular não existe, e a foto não é
-      baixada. Nos outros formulários não há resumo ao lado (resposta do Gui à P130 do QA de design,
-      17/11/2026). */}
-  <aside class="ao-lado ao-lado--fixo" aria-labelledby="ao-lado-titulo">
-    <h2 class="rotulo suave" id="ao-lado-titulo">A memória</h2>
-    <div class="ao-lado__foto" style={estiloDoTipo(memoria.tipo)}>
-      <Polaroid id={memoria.id} fotos={fotoChave ? [fotoChave] : []} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} alt="" tipo={memoria.tipo} monte={false} soOnde="(min-width: 62rem)" />
-    </div>
-    <p class="ao-lado__nome">{memoria.titulo}</p>
-    <Ficha>
-      {nomeDoTipo && <Dado rotulo="Tipo">{nomeDoTipo}</Dado>}
-      <Dado rotulo="Quando">{formatarData(memoria)}</Dado>
-      {memoria.lugar && <Dado rotulo="Onde">{memoria.lugar}</Dado>}
-      {quemEstava.length > 0 && <Dado rotulo="Quem estava">{listaCurta(quemEstava, 4)}</Dado>}
-    </Ficha>
-  </aside>
+  <div class="relato-conversa">
+    <section class="janela-do-relato" aria-labelledby="titulo-seu-relato">
+      <h2 class="rotulo suave" id="titulo-seu-relato">{por === usuario.pessoa ? 'Seu relato' : `O relato de ${nome(por)}`}</h2>
 
-  <form class="formulario" method="post" action="/api/relatos" data-formulario-relato data-memoria={memoria.id} novalidate>
-    <input type="hidden" name="memoria" value={memoria.id} />
-    <fieldset>
-      <legend>Como foi?</legend>
-      <p class="recado" data-bloqueio hidden></p>
-      {/* Áudios (Decidido, a construir; liberado em 16/11/2026). Só com script: gravar e enviar dependem dele */}
-      <Gravador transcricaoAutomatica={transcricaoAutomatica} />
-      <label class="campo">
-        <span>O relato escrito <small data-texto-opcional hidden>(opcional quando há áudio)</small></span>
-        <textarea name="texto" rows="12" maxlength="20000" disabled={opcoes[0].bloqueado}>{opcoes[0].texto}</textarea>
-      </label>
-      <p class="dica">Só você vai poder alterar este relato.</p>
-      {/* Quase sempre quem conta é quem escreve: "Quem está contando" deixou de ser o primeiro campo e
-          fica numa linha recolhida, depois do texto, que abre a busca (resposta do Gui à P137 do QA de
-          design, 17/11/2026). Fechar a linha volta para "Eu". */}
-      <details class="mais-opcoes" data-outra-pessoa>
-        <summary>Estou escrevendo por outra pessoa</summary>
-        <label class="campo">
-          <span>Quem está contando</span>
-          <select name="por">
-            {opcoes.map((o) => <option value={o.id}>{o.rotulo}</option>)}
-          </select>
-        </label>
-      </details>
-    </fieldset>
+      {
+        bloqueado ? (
+          <p class="recado">Esse relato já foi registrado por {quemRegistrou ?? 'outra pessoa'}, e só quem registrou pode alterar.</p>
+        ) : (
+          <Janela modo="ao-vivo" memoria={memoria.id} por={por} mensagens={minhas} publicado={publicado} transcricaoAutomatica={transcricaoAutomatica} comFotos citando={citando}>
+            <p class="relato-conversa__acoes">
+              {!publicado && (
+                <button type="submit" class="botao" name="situacao" value="publicada" data-publicar>
+                  Publicar relato
+                </button>
+              )}
+              <a class={publicado ? 'botao' : 'acao'} href={`/memorias/${memoria.id}${existente ? `#relato-${existente.id}` : ''}`}>
+                Voltar para a memória
+              </a>
+            </p>
+          </Janela>
+        )
+      }
 
-    {/* Fotos pelo relato (decisão do Gui, 16/11/2026): quem conta pode trazer fotos desse dia. Elas
-        entram na memória, junto das outras, e aparecem pequenas no relato. Só com script, como na
-        memória: o envio depende dele. */}
-    <fieldset class="fotos-do-relato" data-fotos-do-relato hidden>
-      <legend>Tem fotos desse dia?</legend>
-      <p class="dica">Elas entram na memória, junto das outras fotos, e aparecem pequenas no seu relato. Enquanto o relato for rascunho, só você vê.</p>
-      <label class="botao botao--leve botao--arquivo">
-        Escolher fotos
-        <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
-      </label>
-      <ul class="fotos-enviadas" data-fotos></ul>
-      <p class="situacao" data-situacao-fotos role="status" aria-live="polite"></p>
-    </fieldset>
+      {/* Quem está contando: quase sempre quem escreve. A linha recolhida fica depois da janela e abre a
+          escolha; trocar abre o relato daquela pessoa (resposta do Gui à P137 do QA de design, 17/11/2026) */}
+      {
+        semAcesso.length > 0 && (
+          <details class="mais-opcoes" data-outra-pessoa open={por !== usuario.pessoa}>
+            <summary>Estou escrevendo por outra pessoa</summary>
+            <form method="get" class="em-linha" data-quem-conta>
+              <label class="campo">
+                <span>Quem está contando</span>
+                <select name="por">
+                  {opcoes.map((o) => (
+                    <option value={o.id} selected={o.id === por}>
+                      {o.rotulo}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button class="acao" type="submit" data-trocar-sem-script>
+                Abrir o relato
+              </button>
+            </form>
+          </details>
+        )
+      }
 
-    <p class="situacao" data-situacao role="status" aria-live="polite"></p>
-    <div class="acoes">
-      <button type="submit" class="botao" name="situacao" value="publicada" data-salvar="publicada">{opcoes[0].publicado ? 'Salvar alterações' : 'Publicar relato'}</button>
-      <button type="submit" class="botao botao--leve" name="situacao" value="rascunho" data-salvar="rascunho" hidden={opcoes[0].publicado}>Salvar rascunho</button>
-      {/* O caminho de volta sem salvar (resposta do Gui à P147 do QA de design, 17/11/2026) */}
-      <a class="botao botao--leve" href={`/memorias/${memoria.id}`}>Voltar para a memória</a>
-    </div>
-  </form>
+    </section>
+
+    {
+      dosOutros.length > 0 && (
+        <section class="relato-conversa__memoria" aria-labelledby="titulo-na-memoria">
+          <h2 class="rotulo suave" id="titulo-na-memoria">
+            Na memória
+          </h2>
+          <p class="dica">Toque em "Citar" para responder a uma mensagem no seu relato. A citação fica no seu relato.</p>
+          <div class="voz-fio">
+            {dosOutros.map((r) => (
+              <Voz nome={nome(r.por)} retrato={retratoDe(r.por)} familia={familiaDe(r.por)} registradoPor={r.registradoPor !== r.por ? nome(r.registradoPor) : null} mensagens={conversa.get(r.id) ?? []} minha={r.por === usuario.pessoa} citarEm={bloqueado ? undefined : `/memorias/${memoria.id}/relato?${por !== usuario.pessoa ? `por=${por}&` : ''}cita=`} />
+            ))}
+          </div>
+        </section>
+      )
+    }
+  </div>
 
   <div class="confirmacao" data-confirmacao hidden>
     <h2>Relato publicado</h2>
-    <p>Ele já aparece na página da memória.</p>
+    <p>Ele já aparece na página da memória. Se lembrar de mais alguma coisa, é só voltar e mandar.</p>
     <p>
-      <a class="botao" href={`/memorias/${memoria.id}`}>Voltar para a memória</a>
+      <a class="botao" href={`/memorias/${memoria.id}`} data-ir-para-memoria>Voltar para a memória</a>
     </p>
   </div>
-
-  <script type="application/json" id="opcoes-relato" set:html={JSON.stringify(opcoes).replace(/</g, '\\u003c')} />
 </Pagina>
 
 <script>
   import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';
-  import { ligarAudios, type AudioNoFormulario } from '../../../lib/cliente/audios';
-  import { ligarFotos, type FotoNoFormulario } from '../../../lib/cliente/fotos';
+  import { ligarConversa } from '../../../lib/cliente/conversa';
 
-  const form = document.querySelector<HTMLFormElement>('[data-formulario-relato]');
-  if (form) {
-    buscaDePessoa(form.querySelector<HTMLSelectElement>('select[name="por"]')!);
-    interface Opcao {
-      id: string;
-      texto: string;
-      publicado: boolean;
-      bloqueado: boolean;
-      quemRegistrou?: string;
-      audios: AudioNoFormulario[];
-      fotos: FotoNoFormulario[];
+  // Quem está contando: escolher abre o relato daquela pessoa
+  const quemConta = document.querySelector<HTMLFormElement>('[data-quem-conta]');
+  if (quemConta) {
+    const select = quemConta.querySelector<HTMLSelectElement>('select[name="por"]')!;
+    buscaDePessoa(select);
+    quemConta.querySelector<HTMLElement>('[data-trocar-sem-script]')!.hidden = true;
+    select.addEventListener('change', () => quemConta.requestSubmit());
+    const linha = document.querySelector<HTMLDetailsElement>('[data-outra-pessoa]')!;
+    // Fechar a linha volta para "Eu"
+    linha.addEventListener('toggle', () => {
+      if (!linha.open && select.selectedIndex !== 0) {
+        select.selectedIndex = 0;
+        quemConta.requestSubmit();
+      }
+    });
+  }
+
+  const janela = document.querySelector<HTMLElement>('[data-conversa]');
+  if (janela) {
+    // "Citar" ao lado: na janela, o botão cita sem sair da página
+    for (const citar of document.querySelectorAll<HTMLAnchorElement>('.relato-conversa__memoria a.msg__citar')) {
+      const id = new URL(citar.href).searchParams.get('cita') ?? '';
+      const botao = Object.assign(document.createElement('button'), { type: 'button', className: citar.className, textContent: 'Citar' });
+      botao.dataset.citar = id;
+      botao.dataset.quem = citar.closest('.voz')?.querySelector('.voz__quem .mao')?.textContent ?? '';
+      citar.replaceWith(botao);
     }
-    const opcoes: Opcao[] = JSON.parse(document.getElementById('opcoes-relato')!.textContent ?? '[]');
-    const quem = form.elements.namedItem('por') as HTMLSelectElement;
-    // "Estou escrevendo por outra pessoa": abrir a linha põe o foco na busca, e fechar volta para "Eu"
-    const outraPessoa = form.querySelector<HTMLDetailsElement>('[data-outra-pessoa]');
-    outraPessoa?.querySelector('summary')?.addEventListener('click', () =>
-      setTimeout(() => {
-        // O nome que está no campo fica selecionado: o que a pessoa digitar toma o lugar dele
-        if (outraPessoa.open) return outraPessoa.querySelector<HTMLInputElement>('.busca__campo')?.select();
-        if (quem.selectedIndex === 0) return;
-        quem.selectedIndex = 0;
-        quem.dispatchEvent(new Event('change', { bubbles: true }));
-      }),
-    );
-    const texto = form.elements.namedItem('texto') as HTMLTextAreaElement;
-    const bloqueio = form.querySelector<HTMLElement>('[data-bloqueio]')!;
-    const situacaoEl = form.querySelector<HTMLElement>('[data-situacao]')!;
-    const publicar = form.querySelector<HTMLButtonElement>('[data-salvar="publicada"]')!;
-    const rascunho = form.querySelector<HTMLButtonElement>('[data-salvar="rascunho"]')!;
-    const memoria = form.dataset.memoria!;
-    const textoOpcional = form.querySelector<HTMLElement>('[data-texto-opcional]')!;
-    const audios = ligarAudios(form.querySelector<HTMLElement>('[data-audios]')!, memoria, () => {
-      textoOpcional.hidden = !audios?.lista().length;
-    });
-
-    const caixaDeFotos = form.querySelector<HTMLElement>('[data-fotos-do-relato]')!;
-    const fotos = ligarFotos(caixaDeFotos);
-
-    const avisar = (mensagem: string, tipo: 'normal' | 'erro' = 'normal') => {
-      situacaoEl.textContent = mensagem;
-      situacaoEl.dataset.tipo = tipo;
-    };
-
-    const carregar = () => {
-      const opcao = opcoes.find((o) => o.id === quem.value)!;
-      bloqueio.hidden = !opcao.bloqueado;
-      texto.disabled = opcao.bloqueado;
-      publicar.disabled = opcao.bloqueado;
-      rascunho.disabled = opcao.bloqueado;
-      // Relato já publicado não volta a ser rascunho
-      rascunho.hidden = opcao.publicado;
-      publicar.textContent = opcao.publicado ? 'Salvar alterações' : 'Publicar relato';
-      texto.value = opcao.bloqueado ? '' : opcao.texto;
-      audios?.carregar(opcao.bloqueado ? [] : opcao.audios);
-      form.querySelector<HTMLElement>('[data-audios]')!.hidden = opcao.bloqueado || !audios;
-      fotos.carregar(opcao.bloqueado ? [] : opcao.fotos);
-      caixaDeFotos.hidden = opcao.bloqueado;
-      if (opcao.bloqueado) {
-        bloqueio.textContent = `Esse relato já foi registrado por ${opcao.quemRegistrou ?? 'outra pessoa'}, e só quem registrou pode alterar.`;
+    const conversa = ligarConversa(janela);
+    janela.addEventListener('submit', (e) => e.preventDefault());
+    const publicar = janela.querySelector<HTMLButtonElement>('[data-publicar]');
+    publicar?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (conversa.ocupado()) {
+        // Espera o envio que está a caminho
+        await new Promise((r) => setTimeout(r, 400));
       }
-    };
-    quem.addEventListener('change', carregar);
-    carregar();
-
-    texto.addEventListener('input', () => {
-      if (situacaoEl.dataset.tipo === 'erro') avisar('');
-    });
-
-    form.addEventListener('submit', async (evento) => {
-      evento.preventDefault();
-      const situacao = (evento.submitter as HTMLElement | null)?.dataset.salvar === 'rascunho' ? 'rascunho' : 'publicada';
-      const listaDeAudios = audios?.lista() ?? [];
-      if (audios?.ocupado()) return avisar('Espere o áudio terminar de gravar e de enviar.', 'erro');
-      if (fotos.ocupado()) return avisar('Espere as fotos terminarem de enviar.', 'erro');
-      if (!texto.value.trim() && !listaDeAudios.length) return avisar('Escreva o relato ou grave um áudio antes de salvar.', 'erro');
       publicar.disabled = true;
-      rascunho.disabled = true;
-      avisar('Salvando…');
-      try {
-        const resposta = await fetch('/api/relatos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memoria, por: quem.value, texto: texto.value, situacao, fotos: fotos.lista(), ...(audios ? { audios: listaDeAudios } : {}) }),
-        });
-        const resultado = await resposta.json();
-        if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');
-        if (resultado.situacao === 'rascunho') {
-          const opcao = opcoes.find((o) => o.id === quem.value)!;
-          opcao.texto = texto.value;
-          opcao.audios = listaDeAudios.map((a) => {
-            const item = form.querySelector<HTMLElement>(`[data-audio-id="${a.id}"]`);
-            return { id: a.id, src: item?.querySelector('audio')?.getAttribute('src') ?? '', duracao: null, transcricao: a.transcricao ?? null };
-          });
-          opcao.fotos = fotos.atuais();
-          avisar('Rascunho salvo. Só você vê, e dá para continuar de qualquer aparelho.');
-          publicar.disabled = false;
-          rascunho.disabled = false;
-          return;
-        }
-        form.hidden = true;
-        const confirmacao = document.querySelector<HTMLElement>('[data-confirmacao]')!;
-        confirmacao.hidden = false;
-        const titulo = confirmacao.querySelector<HTMLElement>('h2')!;
-        titulo.setAttribute('tabindex', '-1');
-        titulo.focus();
-      } catch (e) {
-        avisar(e instanceof Error ? e.message : 'Não consegui salvar.', 'erro');
-        publicar.disabled = false;
-        rascunho.disabled = false;
-      }
+      const destino = await conversa.publicar();
+      publicar.disabled = false;
+      if (!destino) return;
+      publicar.remove();
+      const confirmacao = document.querySelector<HTMLElement>('[data-confirmacao]')!;
+      confirmacao.hidden = false;
+      const titulo = confirmacao.querySelector<HTMLElement>('h2')!;
+      titulo.setAttribute('tabindex', '-1');
+      titulo.focus();
     });
   }
 </script>

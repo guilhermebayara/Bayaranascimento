@@ -30,7 +30,7 @@ Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso 
 | Explorar na linha do tempo e famílias | A assinatura ("MEMÓRIAS" e os sobrenomes) grande, e logo o ano mais recente abrindo a lista | Menu e filtros pequenos |
 | Linha do tempo | O ano grande como divisória e as fotos-chave como polaroids | A ficha de cada memória em uma linha mono |
 | Explorar, mural e modo TV | No mural, só as fotos, como a caixa aberta na mesa. No modo TV, uma memória por vez, grande, para ver junto | Filtros e ordem recolhidos numa linha |
-| Memória | A foto e o verso: a imagem grande, a ficha como carimbo, os relatos como bilhetes assinados | Corrigir, histórico |
+| Memória | A foto e o verso: a imagem grande, a ficha como carimbo, os relatos como conversa, cada pessoa uma voz | Corrigir, histórico |
 | Pessoa | O retrato e a voz: retrato recortado, parentesco grande ("sua avó"), os áudios dela | A lista de laços |
 | Capítulo | Abertura de capítulo de livro: título, período, marcos numerados | Edição |
 | Árvore | As famílias em cor, cartões como etiquetas com nome e parentesco | Camadas e controles |
@@ -164,7 +164,8 @@ O CSS está em `src/visual/` e os componentes em `src/components/visual/`. A pá
 | A foto de uma pessoa | `Retrato.astro` | `nome`, `foto` (o endereço, de `enderecoDoRetrato`, ou nada), `familia` (de `corDaPessoa`). `redondo` só no topo |
 | Uma pessoa com nome e parentesco | classes `pessoa` e `pessoa__nome` | Um link com o `Retrato`, o nome e o parentesco em `ficha suave` (ver "Quem estava" em `src/pages/memorias/[id].astro`) |
 | Uma pessoa numa lista de laços | `Gente.astro` | `href`, `nome`, `foto`, `familia`, `laco` ("sua avó") e `detalhe`, em mono. Para listas de pessoas e de laços |
-| Um relato | `Bilhete.astro` | `por`, `registradoPor` (só quando não foi a própria pessoa) e o conteúdo dentro: `Audio`, depois `<div class="bilhete__texto">`. Com `href`, o bilhete inteiro vira link |
+| Um relato, na memória | `conversa/Voz.astro` | O relato como conversa: o retrato e o nome à mão no começo, as mensagens (`conversa/Mensagem.astro`) e, pelos slots, o selo de rascunho, a linha para liberar, as reações e o menu. Com `minha`, à direita, no pastel da família. `Bilhete.astro` continua no cartão de "relato novo" do Início |
+| Escrever um relato | `conversa/Janela.astro` | A janela da conversa: as mensagens, "Citando", e a caixa com o "+", o texto que cresce e o botão redondo (na cor viva quando grava, `--vivo-tinta`). Estilo em `src/visual/telas/conversa.css` |
 | Um áudio | `Audio.astro` | `rotulo`, `src`, `transcricao`. Usa o tocador do aparelho |
 | O capítulo de uma memória | `SinalDoCapitulo.astro`, `Trilhos.astro` | `id`, `titulo` e `cor` (a posição dada pela montagem, `src/lib/linha-capitulos.ts`) |
 | Reagir a uma memória, um relato ou uma foto | `Reacoes.astro` | `memoria`, `alvo` (`memoria`, `relato` ou `foto`), `alvoId`, `marcas`, `eu`, `nome`, `volta` e `sobre` ("o relato de Elizete", para o leitor de tela). O coração à vista, os quatro numa paleta que abre ao segurar ou passar o mouse, e o número que abre quem marcou. A página chama `ligarReacoes()`, de `src/lib/cliente/reacoes.ts`, para tudo acontecer no lugar |
@@ -468,7 +469,7 @@ Sem script, os links levam tudo no endereço (`tamanho`, `passar`, `pausa`, `mov
 1. Abertura num bloco na cor do tipo: título grande, trecho de um relato e a foto-chave como polaroid, com o monte de fotos atrás. Com mais de uma foto e espaço (computador e tela grande), as fotos de trás se abrem em leque para os lados da principal; no celular, continuam em monte. Memória sem foto: a partir de 62rem, o cartão do tipo fica à direita, no lugar da foto; no celular, só o texto.
 2. Ficha: parada à esquerda no computador, no alto no celular. Data, lugar, tipo, capítulos.
 3. Quem estava, com os retratos e o parentesco de quem olha. No celular, até seis retratos e "Ver todos os 9", que abre o resto no lugar; a partir de 40rem, todos à vista; sem script, a lista inteira.
-4. Relatos, um por pessoa, como bilhetes com o nome manuscrito, o áudio e as fotos que vieram com o relato (`.bilhete__fotos`). Com um só relato, sem áudio, contado pela própria pessoa e que coube inteiro no trecho da abertura, a seção não repete o bilhete.
+4. Relatos, um por pessoa, como vozes de uma conversa: o retrato e o nome manuscrito no começo e as mensagens (texto, áudio, foto) na ordem em que a pessoa mandou (ver "Relato como conversa" em `docs/decisoes.md`). Com um só relato, sem áudio, contado pela própria pessoa e que coube inteiro no trecho da abertura, a seção não repete o bilhete.
 5. **Parede de fotos:** todas como fotos reveladas, um pouco fora de fila, cada uma com a legenda.
 6. Fim: o convite para escrever, um bilhete em branco com o retrato e o nome de quem está vendo, as linhas vazias e a assinatura dela ainda apagada, com a frase "Cada pessoa conta o dia do jeito que lembra." e "Escrever meu relato" em destaque; depois "Antes" e "Depois". Quem já contou vê a linha quieta descrita em `docs/decisoes.md`.
 

@@ -11,6 +11,7 @@ import type { TipoDeAviso } from '../avisos';
 import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '../ex-casal';
 import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, type TipoDeSugestao } from '../sugestoes';
 import type { SimboloDaReacao } from '../reacoes';
+import { mensagensDoRelato, type Mensagem } from '../conversa';
 import { comExcluidas, pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
 export interface Integrante {
@@ -1455,6 +1456,9 @@ export async function salvarRelato(
   situacao: 'rascunho' | 'publicada',
   usuario: Usuario,
   anterior: Relato | undefined,
+  // O relato como conversa: só acrescentar mensagens no fim (voltar e contar mais) não guarda versão.
+  // A versão leva junto as mensagens de antes, quando há (src/lib/conversa.ts)
+  versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
 ): Promise<void> {
   // A data de publicação é a da primeira vez que o relato sai do rascunho, e não muda depois
   const marcar = `UPDATE relatos SET publicado_em = datetime('now') WHERE situacao = 'publicada' AND publicado_em IS NULL`;
@@ -1468,7 +1472,9 @@ export async function salvarRelato(
     return;
   }
   await db().batch([
-    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(anterior), usuario.pessoa),
+    ...(versao.guardar
+      ? [db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(versao.mensagens ? { ...anterior, mensagens: versao.mensagens } : anterior), usuario.pessoa)]
+      : []),
     db().prepare(`UPDATE relatos SET texto = ?, situacao = ?, atualizado_em = datetime('now') WHERE id = ?`).bind(texto, situacao, anterior.id),
     db().prepare(`${marcar} AND id = ?`).bind(anterior.id),
   ]);
@@ -2486,4 +2492,99 @@ export async function recusarPedidoDeExclusao(id: number, usuario: Usuario): Pro
     .bind(usuario.pessoa, id)
     .run();
   return Boolean(feito.meta?.changes);
+}
+
+
+// --- O relato como conversa (migração 103-mensagens-do-relato; regras em src/lib/conversa.ts) ---
+
+function lerMensagem(r: Record<string, unknown>): Mensagem & { id: number; relatoId: number; enviadaEm: string } {
+  return {
+    id: r.id as number,
+    relatoId: r.relato_id as number,
+    tipo: r.tipo as Mensagem['tipo'],
+    ...(r.texto != null ? { texto: r.texto as string } : {}),
+    ...(r.audio_id != null ? { audioId: r.audio_id as number } : {}),
+    ...(r.foto_id != null ? { fotoId: r.foto_id as number } : {}),
+    citaId: (r.cita_id as number | null) ?? null,
+    enviadaEm: r.enviada_em as string,
+  };
+}
+
+/** As mensagens gravadas de cada relato, na ordem. Relato sem nenhuma fica de fora (vale a derivada). */
+export async function listarMensagensGravadas(relatoIds: number[]): Promise<Map<number, ReturnType<typeof lerMensagem>[]>> {
+  const mapa = new Map<number, ReturnType<typeof lerMensagem>[]>();
+  if (!relatoIds.length) return mapa;
+  const { results } = await db()
+    .prepare(`SELECT * FROM relato_mensagens WHERE relato_id IN (${relatoIds.map(() => '?').join(', ')}) ORDER BY relato_id, ordem, id`)
+    .bind(...relatoIds)
+    .all<Record<string, unknown>>();
+  for (const r of results.map(lerMensagem)) mapa.set(r.relatoId, [...(mapa.get(r.relatoId) ?? []), r]);
+  return mapa;
+}
+
+/**
+ * As mensagens que valem para cada relato (mensagensDoRelato): as gravadas, sem o áudio ou a foto que
+ * saiu, ou as derivadas do relato de antes da conversa. Só com os áudios e as fotos que ainda são dele.
+ */
+export async function listarMensagensDosRelatos(relatos: Pick<Relato, 'id' | 'texto'>[]): Promise<Map<number, Mensagem[]>> {
+  const ids = relatos.map((r) => r.id);
+  const [gravadas, audios, fotos] = await Promise.all([
+    listarMensagensGravadas(ids),
+    listarAudiosDosRelatos(ids),
+    ids.length
+      ? db()
+          .prepare(`SELECT id, relato_id FROM fotos WHERE removida_em IS NULL AND relato_id IN (${ids.map(() => '?').join(', ')}) ORDER BY memoria_id IS NULL, ordem, id`)
+          .bind(...ids)
+          .all<{ id: number; relato_id: number }>()
+      : Promise.resolve({ results: [] as { id: number; relato_id: number }[] }),
+  ]);
+  const fotosDe = new Map<number, number[]>();
+  for (const f of fotos.results as { id: number; relato_id: number }[]) fotosDe.set(f.relato_id, [...(fotosDe.get(f.relato_id) ?? []), f.id]);
+  return new Map(
+    relatos.map((r) => [r.id, mensagensDoRelato(gravadas.get(r.id) ?? [], r.texto, (audios.get(r.id) ?? []).map((a) => a.id), fotosDe.get(r.id) ?? [])]),
+  );
+}
+
+/**
+ * Grava as mensagens do relato, na ordem dada. A que tem id e é deste relato é atualizada no lugar
+ * (guarda a hora em que foi enviada e o id, para quem a cita); a nova entra com a hora de agora; a que
+ * saiu da lista é apagada. Devolve as mensagens gravadas, com os ids.
+ */
+export async function gravarMensagens(relatoId: number, mensagens: Mensagem[]): Promise<Mensagem[]> {
+  const antes = (await listarMensagensGravadas([relatoId])).get(relatoId) ?? [];
+  const deste = new Set(antes.map((m) => m.id));
+  const ficam = new Set(mensagens.filter((m) => m.id !== undefined && deste.has(m.id)).map((m) => m.id));
+  const comandos = [
+    ...antes.filter((m) => !ficam.has(m.id)).map((m) => db().prepare('DELETE FROM relato_mensagens WHERE id = ?').bind(m.id)),
+    ...mensagens.map((m, ordem) =>
+      m.id !== undefined && deste.has(m.id)
+        ? db()
+            .prepare('UPDATE relato_mensagens SET ordem = ?, tipo = ?, texto = ?, audio_id = ?, foto_id = ?, cita_id = ? WHERE id = ? AND relato_id = ?')
+            .bind(ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null, m.id, relatoId)
+        : db()
+            .prepare('INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto, audio_id, foto_id, cita_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .bind(relatoId, ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null),
+    ),
+  ];
+  if (comandos.length) await db().batch(comandos);
+  return (await listarMensagensGravadas([relatoId])).get(relatoId) ?? [];
+}
+
+/** Uma mensagem gravada, com a memória e o relato dela, para conferir uma citação. */
+export async function obterMensagem(id: number): Promise<(Mensagem & { relatoId: number; memoriaId: string; por: string; registradoPor: string; soParaNucleos: string[] | null; situacao: string }) | undefined> {
+  const r = await db()
+    .prepare(
+      `SELECT m.*, r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos, r.situacao FROM relato_mensagens m JOIN relatos r ON r.id = m.relato_id WHERE m.id = ?`,
+    )
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!r) return undefined;
+  return {
+    ...lerMensagem(r),
+    memoriaId: r.memoria_id as string,
+    por: r.por as string,
+    registradoPor: r.registrado_por as string,
+    soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) ?? null,
+    situacao: r.situacao as string,
+  };
 }

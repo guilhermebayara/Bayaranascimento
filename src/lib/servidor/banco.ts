@@ -9,6 +9,7 @@ import { NUCLEO_INICIAL } from '../familias';
 import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 import { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
+import { darMensagensAosRelatosDeAntes } from './mensagens-de-antes';
 
 interface Migracao {
   id: string;
@@ -919,6 +920,29 @@ export const MIGRACOES: Migracao[] = [
       )`,
       `CREATE UNIQUE INDEX IF NOT EXISTS pedidos_de_exclusao_um_aberto ON pedidos_de_exclusao (pessoa_id) WHERE resolvido_em IS NULL`,
     ],
+  },  {
+    // O relato como conversa (escolha do Gui depois da sessão I, 18/11/2026; regras em src/lib/conversa.ts).
+    // Cada envio é uma mensagem: um texto, um áudio ou uma foto, numa ordem só. O áudio e a foto continuam
+    // nas tabelas deles; a mensagem aponta para eles. O texto do relato (relatos.texto) continua gravado,
+    // feito das mensagens de texto, para o resto do site. Os relatos de antes não mudam no banco: sem
+    // mensagens gravadas, a conversa é derivada deles (os áudios, cada parágrafo e as fotos) e é gravada na
+    // primeira vez que alguém mexe. cita_id: a mensagem de outra pessoa que esta cita, sem chave, para a
+    // citação sumir quando a mensagem citada some.
+    id: '103-mensagens-do-relato',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS relato_mensagens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        relato_id INTEGER NOT NULL REFERENCES relatos(id) ON DELETE CASCADE,
+        ordem INTEGER NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('texto', 'audio', 'foto')),
+        texto TEXT,
+        audio_id INTEGER,
+        foto_id INTEGER,
+        cita_id INTEGER,
+        enviada_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+      `CREATE INDEX IF NOT EXISTS relato_mensagens_do_relato ON relato_mensagens (relato_id, ordem)`,
+    ],
   },
 ];
 
@@ -981,4 +1005,8 @@ async function migrar(db: D1Database): Promise<void> {
     await semearPedidoDeExemplo(db);
     await limparBucketDeTeste(db);
   }
+
+  // O relato como conversa: os relatos sem mensagens ganham as derivadas deles, sem perda (ver
+  // mensagens-de-antes.ts). Depois das migrações e dos exemplos, para pegar também os semeados agora.
+  await darMensagensAosRelatosDeAntes(db);
 }

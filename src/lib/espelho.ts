@@ -67,6 +67,9 @@ export const TABELAS_APAGADAS = [
   // As fotos apontam para relatos (a coluna relato_id, que veio depois por ALTER TABLE) e por isso
   // saem antes deles; o teste antigo só lia o CREATE TABLE e não via essa ligação
   'fotos',
+  // As mensagens do relato como conversa (migração 103) apontam para relatos reais e trazem o texto escrito:
+  // o espelho não leva nenhuma; a conversa dos relatos do espelho é derivada deles (mensagens-de-antes.ts)
+  'relato_mensagens',
   // Áudios apontam para relatos reais: o espelho não leva nenhum, e apaga os que houver
   'audios',
   'relatos',
