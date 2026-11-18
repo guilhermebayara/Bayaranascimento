@@ -227,6 +227,29 @@ export const TEMAS_DA_ADMINISTRACAO: { tema: TemaDaAdministracao; titulo: string
   { tema: 'arrumar', titulo: 'Para arrumar' },
   { tema: 'ferramentas', titulo: 'Ferramentas' },
 ];
+/** O quarto grupo do cartão: as medidas do banco e das fotos e as cópias (proposta A da sessão H). */
+export const GRUPO_DO_ESPACO = 'Espaço e cópias';
+
+/**
+ * Em que grupo do cartão cada pendência mora, para o balão das pendências dizer onde ela está e o grupo
+ * dela levar a marca (proposta A do conceito da sessão H, escolha do Gui de 18/11/2026).
+ */
+export function grupoDaPendencia(p: Pick<Pendencia, 'tipo'>): string {
+  if (p.tipo === 'carta') return TEMAS_DA_ADMINISTRACAO.find((t) => t.tema === 'acervo')!.titulo;
+  if (p.tipo === 'fotos-soltas' || p.tipo === 'duplicados') return TEMAS_DA_ADMINISTRACAO.find((t) => t.tema === 'arrumar')!.titulo;
+  return GRUPO_DO_ESPACO;
+}
+
+/** O resumo de um grupo fechado: as pendências dele, ou quantos atalhos ele tem. */
+export function resumoDoGrupo(atalhos: number, pendencias: number): string {
+  if (pendencias) return contaDePendencias(pendencias);
+  return atalhos === 1 ? '1 atalho' : `${atalhos} atalhos`;
+}
+
+/** O id do grupo na página, para o balão e os links abrirem o grupo certo. */
+export const idDoGrupo = (titulo: string): string =>
+  `administracao-${titulo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '')}`;
+
 export function gruposDaAdministracao(itens: ItemDeAdministracao[]): { titulo: string; itens: ItemDeAdministracao[] }[] {
   return TEMAS_DA_ADMINISTRACAO.map(({ tema, titulo }) => ({ titulo, itens: itens.filter((i) => i.tema === tema && !i.baixar) })).filter((g) => g.itens.length > 0);
 }
