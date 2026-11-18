@@ -82,7 +82,7 @@ describe('formulários sem JavaScript e depois de um erro', () => {
   });
 
   it('nova memória e relato enviam como formulário comum, e as APIs aceitam', () => {
-    expect(fonte('src/pages/nova.astro')).toMatch(/<form class="formulario" method="post" action="\/api\/memorias"/);
+    expect(fonte('src/pages/nova.astro')).toMatch(/<form class="formulario em-frase" method="post" action="\/api\/memorias"/);
     expect(fonte('src/pages/memorias/[id]/relato.astro')).toMatch(/<form class="formulario" method="post" action="\/api\/relatos"/);
     for (const api of ['src/pages/api/memorias.ts', 'src/pages/api/relatos.ts']) {
       expect(fonte(api), api).toMatch(/if \(!\(request\.headers\.get\('Content-Type'\) \?\? ''\)\.includes\('application\/json'\)\) \{\s*const dados = await request\.formData\(\);/);

@@ -48,8 +48,10 @@ const TODAS = LARGURAS.map((l) => l.nome);
 const PADRAO = ['celular', 'desktop'];
 
 // Cada página: nome do arquivo, endereço, quem está vendo e, se preciso, o que fazer antes da captura
+// Na nova memória não há trilha numerada (a frase é a trilha): ali, "Continuar" até a etapa
 const etapa = (n) => async (pagina) => {
-  await pagina.locator('ol.etapas button').nth(n).click();
+  if ((await pagina.locator('ol.etapas button').count()) > 0) return pagina.locator('ol.etapas button').nth(n).click();
+  for (let i = 0; i < n; i++) await pagina.locator('[data-etapa-continuar]').click();
 };
 // Abre o editor do primeiro laço e a pergunta de remover, para a zona de perigo aparecer
 const abrirLaco = async (pagina) => {
@@ -91,7 +93,7 @@ async function prepararVisita(pessoa, qual, comNovidades = false) {
   banco.close();
 }
 
-// Na Nova memória, o título e o tipo são obrigatórios para chegar à frase da etapa "Quando e onde"
+// Na Nova memória, o título e o tipo são obrigatórios para chegar à etapa "Quando e onde"
 const ateAFrase = async (pagina) => {
   await pagina.locator('[name="titulo"]').fill('Almoço de aniversário da Vó Bela');
   await pagina.locator('input[name="tipo"]').first().check({ force: true });
@@ -177,9 +179,8 @@ const PAGINAS = [
   { nome: 'ajustes-2-pessoa-mural', url: '/pessoas/gui?ver=mural', como: 'giovanna', larguras: TODAS, desde: '#memorias-com', corte: 2400 },
   { nome: 'ajustes-2-pessoa-lista', url: '/pessoas/gui?ver=lista', como: 'giovanna', larguras: TODAS, desde: '#memorias-com', corte: 2400 },
   { nome: 'ajustes-3-capitulo-quem-aparece', url: '/capitulos/natais', como: 'giovanna', larguras: TODAS, corte: 1700 },
-  // Parte 2: a frase na abertura da Nova memória, o resumo ao lado e a zona de perigo
-  { nome: 'ajustes-4-nova-abertura-vazia', url: '/nova', larguras: TODAS },
-  { nome: 'ajustes-4-correcao-abertura-e-zona', url: '/nova?id=2025-natal', larguras: TODAS },
+  // Parte 2: a zona de perigo da correção (a frase da abertura e o resumo ao lado saíram em 18/11/2026)
+  { nome: 'ajustes-4-correcao-abertura-e-zona', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(5) },
   { nome: 'ajustes-5-rascunho-quem-estava', url: '/nova?id=2024-almoco-de-domingo', larguras: TODAS, antes: etapa(2) },
   { nome: 'ajustes-5-relato', url: '/memorias/2025-natal/relato', larguras: TODAS },
   { nome: 'ajustes-6-capitulo-editar-zona', url: '/capitulos/natais/editar', larguras: TODAS },
@@ -192,9 +193,9 @@ const PAGINAS = [
   // Para tirar só elas: CAPTURAS_SO=^formularios npm run capturas -- tirar <pasta>
   { nome: 'formularios-1-nova-1-o-que-aconteceu', url: '/nova', larguras: TODAS },
   { nome: 'formularios-1-nova-1-erro', url: '/nova', larguras: TODAS, antes: (pagina) => pagina.locator('[data-etapa-continuar]').click() },
-  { nome: 'formularios-1-nova-2-frase-vazia', url: '/nova', larguras: TODAS, antes: ateAFrase },
-  { nome: 'formularios-1-correcao-2-frase', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(1) },
-  { nome: 'formularios-1-correcao-2-data-aberta', url: '/nova?id=2025-natal', larguras: TODAS, antes: async (pagina) => (await etapa(1)(pagina), pagina.locator('[data-frase-data]').click()) },
+  { nome: 'formularios-1-nova-2-data-vazia', url: '/nova', larguras: TODAS, antes: ateAFrase },
+  { nome: 'formularios-1-nova-2-data-so-o-ano', url: '/nova', larguras: TODAS, antes: async (pagina) => (await ateAFrase(pagina), pagina.locator('[data-anos] button').nth(5).click()) },
+  { nome: 'formularios-1-correcao-2-data-completa', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(1) },
   { nome: 'formularios-1-correcao-3-quem-estava', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(2) },
   { nome: 'formularios-1-correcao-4-fotos', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(3) },
   { nome: 'formularios-1-correcao-5-capitulo-e-temas', url: '/nova?id=2025-natal', larguras: TODAS, antes: etapa(4) },

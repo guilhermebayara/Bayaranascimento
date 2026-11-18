@@ -625,23 +625,6 @@ describe('grupo formularios', () => {
     expect(pagina).toContain('{recadoErro && <Recado erro>{recadoErro}</Recado>}');
   });
 
-  it('a frase da etapa "Quando e onde": a lacuna da data abre o controle de data flexível, e sem script ele já vem aberto', () => {
-    const nova = fonte('pages/nova.astro');
-    // A lacuna é um botão escondido até o script chegar, e aponta para o controle
-    expect(nova).toMatch(/class="frase__data" role="button" tabindex="0" data-frase-data aria-expanded="true" aria-controls="controle-da-data" hidden/);
-    expect(nova).toMatch(/<div id="controle-da-data" data-controle-da-data>\s*<CampoData /);
-    // O controle é o de sempre: nada de campo de digitar a data nem do seletor do aparelho como único caminho
-    expect(nova).toContain("lacunaDaData.textContent = dataNaFrase(");
-    // Com a data informada começa fechado; vazia, aberto; e um erro dentro dele o abre
-    expect(nova).toContain("abrir(!valor('ano'));");
-    expect(nova).toContain("controleDaData.addEventListener('invalid', () => abrir(true), true);");
-    // Responde ao teclado como botão
-    expect(nova).toMatch(/if \(evento\.key !== 'Enter' && evento\.key !== ' '\) return;/);
-    // Sem script, a página esconde a lacuna e o controle continua aberto
-    expect(fonte('Pagina.astro')).toMatch(/<noscript>[\s\S]*\[data-frase-data\][\s\S]*display: none/);
-    // O lugar é texto livre, dentro da frase
-    expect(nova).toMatch(/<input type="text" name="lugar"[^>]*data-frase-lugar/);
-  });
 
   it('o que o script esconde fica escondido, e o foco tirado de um campo ganha outro sinal', () => {
     const css = readFileSync(new URL('../src/visual/telas/formulario.css', import.meta.url), 'utf8');
@@ -661,7 +644,7 @@ describe('grupo formularios', () => {
       const naTela = [...texto.matchAll(/>([^<>{}]*)</g)].map((m) => m[1]).join(' ');
       expect(naTela, fim).not.toMatch(/n[úu]cleo/i);
     }
-    expect(fonte('pages/nova.astro')).toContain('Só quem é das famílias marcadas abaixo');
+    expect(fonte('pages/nova.astro')).toContain('Só quem é das famílias escolhidas abaixo');
     expect(fonte('pages/nova.astro')).toContain('De quais famílias é esta memória?');
     expect(fonte('FichaDoCapitulo.astro')).toContain('Só quem é das famílias marcadas abaixo');
     // A segunda metade do grupo: a ficha da pessoa, o histórico e o espelho
@@ -767,43 +750,14 @@ describe('ajustes: lista, formas de ver da pessoa, quem aparece e o link do tít
   });
 });
 
-describe('ajustes: a frase na abertura, o resumo ao lado e a zona de perigo', () => {
+describe('ajustes: a zona de perigo', () => {
   const fonte = (caminho: string) => readFileSync(new URL(`../src/${caminho}`, import.meta.url), 'utf8');
   const nova = fonte('pages/nova.astro');
   const css = ler('telas/formulario.css');
 
-  it('a frase da abertura tem as três lacunas, e cada uma leva à etapa certa', () => {
-    // Resposta do Gui à pergunta 1 do PR do grupo "formularios": "com ___" leva ao "Quem estava?"
-    for (const lacuna of ['data', 'lugar', 'pessoas']) expect(nova).toMatch(new RegExp(`role="button" tabindex="0" data-abertura="${lacuna}"`));
-    expect(nova).toMatch(/indiceDaEtapa\(pessoas \? '\[data-quem-estava\]' : '\[data-frase\]'\)/);
-    // As sete etapas e a ordem não mudam
-    const etapas = [...nova.matchAll(/data-etapa="([^"]+)"/g)].map((m) => m[1]);
-    expect(etapas).toEqual(['O que aconteceu', 'Quando e onde', 'Quem estava', 'Fotos', 'Relato', 'Capítulo e temas', 'Quem vê']);
-  });
 
-  it('sem script, a frase da abertura e o resumo ao lado não aparecem: não prometem o que não fazem', () => {
-    expect(nova).toMatch(/data-frase-abertura hidden>/);
-    expect(nova).toMatch(/<aside class="ao-lado" data-ao-lado aria-labelledby="ao-lado-titulo" hidden>/);
-    expect(fonte('components/formularios/Pagina.astro')).toMatch(/\[data-frase-abertura\], \[data-ao-lado\] \{ display: none !important; \}/);
-  });
 
-  it('cada lacuna da abertura tem 44 px de toque e foco visível', () => {
-    expect(css).toMatch(/\.frase--abertura \.frase__data\s*\{\s*padding-block:\s*calc\(\(var\(--toque\) - 1\.2em\) \/ 2\);/);
-    expect(css).toMatch(/\.frase--abertura \.frase__data:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--tinta\);/);
-  });
 
-  it('o resumo ao lado só existe no computador, não anuncia cada tecla e não baixa a foto no celular', () => {
-    // Fora de 62rem, nada: a regra geral esconde, e só a media query de 62rem mostra
-    expect(css).toMatch(/\.pagina-de-formulario \.ao-lado\s*\{\s*display:\s*none;\s*\}/);
-    const aside = nova.slice(nova.indexOf('<aside class="ao-lado"'), nova.indexOf('</aside>'));
-    expect(aside).not.toMatch(/aria-live|role="status"|aria-hidden/);
-    expect(aside).toMatch(/soOnde=\{ONDE_HA_LADO\}/);
-    expect(nova).toMatch(/const ONDE_HA_LADO = '\(min-width: 62rem\)';/);
-    expect(nova).toMatch(/aoLado\.hidden = !haLado\.matches;\s*if \(!haLado\.matches\) return;/);
-    // Parado à vista só onde há mouse, e nunca com position: fixed
-    expect(css).toMatch(/@media \(min-width: 62rem\) and \(min-height: 56rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.pagina-de-formulario \.formulario\.com-etapas > \.ao-lado:not\(\[hidden\]\),\s*\.pagina-de-formulario > \.ao-lado--fixo \{\s*position: sticky;/);
-    expect(css).not.toMatch(/position\s*:\s*fixed/);
-  });
 
   it('a zona de perigo fica no fim das telas de editar, fora do formulário que salva, e só para quem pode', () => {
     // Memória: depois do fim do formulário, e só com a permissão de excluir de sempre

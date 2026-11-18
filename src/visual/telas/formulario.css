@@ -28,11 +28,6 @@
 .pagina-de-formulario__frase:empty {
   display: none;
 }
-/* No celular, depois da primeira etapa a frase de boas-vindas sai, para a pergunta da etapa ficar no
-   alto da tela (resposta do Gui à P126 do QA de design, 17/11/2026). No computador ela fica (abaixo). */
-.pagina-de-formulario[data-adiante] .pagina-de-formulario__frase {
-  display: none;
-}
 .pagina-de-formulario__frase a,
 .pagina-de-formulario .dica a {
   color: var(--tinta);
@@ -569,119 +564,306 @@
   color: var(--tinta-suave);
 }
 
-/* --- O formulário em frase, na etapa "Quando e onde" ---------------------------------------------
-   "Isso aconteceu em 24 de dezembro de 2025, em Belo Horizonte." A lacuna da data mostra a data
-   como o site escreve e, ao toque, abre logo abaixo o controle de data flexível. */
+/* --- A nova memória em frase: a frase é a trilha ----------------------------------------------------
+   Proposta B do conceito da sessão D (decisão do Gui, 18/11/2026). Uma frase só, que cresce a cada
+   etapa. No celular, ela fica num cartão no alto, com a parte da etapa marcada como com marca-texto
+   e um fio de progresso. No computador, cada parte numa linha, à esquerda, e a pergunta à direita
+   (abaixo, em 62rem). Cada parte já escrita é um caminho de volta para a etapa dela. A frase não fica
+   parada na tela: o resumo ao lado, preso, escondia o que passava da altura da janela. */
 
-.pagina-de-formulario .frase {
-  margin-bottom: var(--e-2);
-  line-height: 1.6;
+.pagina-de-formulario .em-frase__alto {
+  display: grid;
+  gap: var(--e-3);
+  max-width: var(--coluna);
+  scroll-margin-top: var(--e-4);
 }
-.pagina-de-formulario .frase__data {
-  padding: 0.2em 0.12em;
-  border-bottom: var(--traco) solid var(--tinta);
-  color: var(--vivo-tinta);
+/* O cartão só existe com a frase: sem script fica só o título da página */
+.pagina-de-formulario .em-frase__alto:has(> [data-frase-da-memoria]:not([hidden])) {
+  padding: var(--e-4);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+}
+/* Sem script, os campos da data de sempre, um embaixo do outro */
+.pagina-de-formulario .campos-da-data {
+  display: grid;
+  gap: var(--e-5);
+}
+.pagina-de-formulario .em-frase__rotulo {
+  margin: 0;
+  color: var(--tinta-suave);
+  font-weight: 400;
+}
+.pagina-de-formulario .em-frase__frase {
+  margin: 0;
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-leitura);
+  letter-spacing: var(--aperto-titulo);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+/* Cada parte já escrita leva à etapa dela: sublinhada, como toda ação de texto */
+.pagina-de-formulario .em-frase__parte {
+  padding-block: 0.12em;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--tinta-suave);
+  text-underline-offset: 0.2em;
   cursor: pointer;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
-.pagina-de-formulario .frase__data[data-vazia] {
-  color: var(--tinta-suave);
-  font-style: italic;
+@media (hover: hover) {
+  .pagina-de-formulario .em-frase__parte:hover {
+    text-decoration-thickness: var(--traco);
+    text-decoration-color: var(--tinta);
+  }
 }
-.pagina-de-formulario .frase__data[aria-expanded='true'] {
-  background: var(--papel-recuo);
-}
-.pagina-de-formulario .frase__data:focus-visible {
-  outline: 0;
-  background: var(--papel-recuo);
-  box-shadow: 0 3px 0 var(--tinta);
-}
-.pagina-de-formulario .frase__lacuna input[type='text'] {
-  display: inline-block;
-  width: calc(var(--cabe, 8) * 0.56em);
-  max-width: 100%;
-  min-height: var(--toque);
-  padding: 0 0.12em;
-  color: var(--vivo-tinta);
-  font: inherit;
-  font-variation-settings: inherit;
-  letter-spacing: inherit;
-}
-.pagina-de-formulario .frase__lacuna input::placeholder {
-  font-style: italic;
-}
-/* "em", o lugar e o ponto final andam juntos, e a lacuna tem a largura do que foi escrito (resposta
-   do Gui à P144 do QA de design, 17/11/2026). A medida é um trecho escondido com a mesma letra, que
-   o script de nova.astro lê; ele sai para a esquerda, que não cria rolagem. */
-.pagina-de-formulario .frase__junto {
-  white-space: nowrap;
-}
-.pagina-de-formulario .frase__junto .frase__lacuna {
-  position: relative;
-  max-width: calc(100% - 2.4em);
-}
-.pagina-de-formulario .frase__medida {
-  position: absolute;
-  top: 0;
-  right: 100%;
-  visibility: hidden;
-  white-space: pre;
-  pointer-events: none;
-}
-/* A frase também na abertura da Nova memória: as três lacunas dizem o que já foi preenchido e levam
-   à etapa de cada uma. Um degrau abaixo da pergunta da etapa, para não disputar com ela. */
-.pagina-de-formulario .frase--abertura {
-  max-width: var(--coluna);
-  margin: var(--e-2) 0 0;
-  font-size: var(--t-titulo-3);
-  line-height: 1.7;
-}
-/* Cada lacuna da abertura é para tocar: 44 px de altura, com o traço junto do texto */
-.pagina-de-formulario .frase--abertura {
-  line-height: calc(var(--toque) + 0.25rem);
-}
-.pagina-de-formulario .frase--abertura .frase__data {
-  padding-block: calc((var(--toque) - 1.2em) / 2);
-  border-bottom: 0;
-  text-decoration: underline;
-  text-decoration-thickness: var(--traco);
-  text-underline-offset: 0.28em;
-}
-.pagina-de-formulario .frase--abertura .frase__data:focus-visible {
-  box-shadow: none;
+.pagina-de-formulario .em-frase__parte:focus-visible {
   outline: 3px solid var(--tinta);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
-.pagina-de-formulario .frase--abertura[hidden] {
-  display: none;
+.pagina-de-formulario .em-frase__parte[data-vazia] {
+  font-style: italic;
 }
-/* Uma lacuna vazia é uma pergunta curta: não quebra no meio (resposta do Gui à P138, 17/11/2026) */
-.pagina-de-formulario .frase__data[data-vazia] {
-  white-space: nowrap;
+.pagina-de-formulario .em-frase__parte[data-vazia]:not([data-atual]) {
+  color: var(--tinta-suave);
 }
-/* No celular a frase desce para baixo da pergunta da etapa, antes das ações, menor e com um fio em
-   cima: o que já foi contado até ali (P126). O script de nova.astro a muda de lugar. */
-.pagina-de-formulario .formulario > .frase--abertura {
+/* A parte da etapa em uso, como com marca-texto, na cor da família */
+.pagina-de-formulario .em-frase__parte[data-atual] {
+  background: var(--pastel);
+  color: var(--tinta);
+  text-decoration: none;
+  box-shadow:
+    -0.2em 0 0 var(--pastel),
+    0.2em 0 0 var(--pastel);
+}
+/* O quanto já foi andado: um fio que se enche */
+.pagina-de-formulario .em-frase__passo {
+  height: 3px;
+  margin: var(--e-1) 0 0;
+  border-radius: var(--raio-pilula);
+  background: linear-gradient(to right, var(--tinta) calc(var(--feito, 0) * 100%), var(--fio) 0);
+  transition: background var(--tempo-medio) var(--curva);
+}
+.pagina-de-formulario .em-frase__nota {
   margin: 0;
-  padding-top: var(--e-4);
-  border-top: 1px solid var(--fio);
-  font-size: var(--t-leitura);
 }
-/* O resumo ao lado só existe no computador (abaixo, em 62rem) */
-.pagina-de-formulario .ao-lado {
-  display: none;
+
+/* "Confira antes de publicar": a frase completa, com o tipo em cima e o que ficou sem embaixo */
+.pagina-de-formulario .em-frase__confira {
+  gap: var(--e-3);
 }
-/* O controle da data abre logo abaixo da frase, empurrando o conteúdo */
-.pagina-de-formulario [data-controle-da-data] {
+.pagina-de-formulario .em-frase__confira-tipo,
+.pagina-de-formulario .em-frase__temas {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+.pagina-de-formulario .em-frase__confira-tipo {
+  margin-bottom: calc(-1 * var(--e-2));
+}
+.pagina-de-formulario .em-frase__frase--confira {
+  font-size: var(--t-titulo-3);
+  line-height: 1.4;
+}
+.pagina-de-formulario .em-frase__faltas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-3);
+  margin: 0;
+  font-size: var(--t-pequeno);
+}
+.pagina-de-formulario .em-frase__faltas-lista {
+  display: contents;
+}
+.pagina-de-formulario .em-frase__faltas .acao {
+  min-height: var(--toque);
+  font-size: inherit;
+}
+
+/* --- A data por toque: três níveis, um embaixo do outro, cada um só depois do de cima ------------ */
+
+.pagina-de-formulario .grade-data {
   display: grid;
-  gap: var(--e-5);
-  padding: var(--e-5);
-  border-radius: var(--raio-bloco);
-  background: var(--branco);
+  gap: var(--e-6);
 }
-.pagina-de-formulario [data-controle-da-data][hidden] {
+.pagina-de-formulario .grade-data__nivel {
+  display: grid;
+  gap: var(--e-2);
+}
+.pagina-de-formulario .grade-data__titulo {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  line-height: 1.45;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .grade-data [role='group'] button {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--toque);
+  min-height: var(--toque);
+  padding: 0 var(--e-2);
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  color: var(--tinta);
+  font: inherit;
+  font-family: var(--mono);
+  font-size: var(--t-pequeno);
+  cursor: pointer;
+  transition:
+    background var(--tempo-curto) var(--curva),
+    border-color var(--tempo-curto) var(--curva),
+    transform var(--tempo-curto) var(--curva);
+}
+.pagina-de-formulario .grade-data [role='group'] button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+.pagina-de-formulario .grade-data [role='group'] button[aria-pressed='true'] {
+  border-color: var(--tinta);
+  background: var(--tinta);
+  color: var(--papel);
+}
+.pagina-de-formulario .grade-data [role='group'] button:disabled {
+  border-style: dashed;
+  background: transparent;
+  color: var(--tinta-suave);
+  cursor: not-allowed;
+}
+.pagina-de-formulario .grade-data [role='group'] button:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .pagina-de-formulario .grade-data [role='group'] button:not(:disabled, [aria-pressed='true']):hover {
+    border-color: var(--tinta-suave);
+  }
+}
+/* As décadas: uma fila de texto que rola para o lado no celular, da atual para trás */
+.pagina-de-formulario .grade-data__decadas {
+  display: flex;
+  gap: var(--e-1);
+  margin-inline: calc(-1 * var(--margem));
+  padding: var(--e-1) var(--margem);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pagina-de-formulario .grade-data__decadas::-webkit-scrollbar {
   display: none;
+}
+.pagina-de-formulario .grade-data .grade-data__decadas[role='group'] button {
+  flex: none;
+  padding-inline: var(--e-3);
+  border-color: transparent;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--tinta-suave);
+}
+.pagina-de-formulario .grade-data .grade-data__decadas[role='group'] button[aria-pressed='true'] {
+  background: var(--papel-recuo);
+  color: var(--tinta);
+  font-weight: 600;
+}
+.pagina-de-formulario .grade-data__anos {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--e-2);
+}
+.pagina-de-formulario .grade-data__meses {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--e-2);
+}
+.pagina-de-formulario .grade-data__dias {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--e-2);
+}
+/* "Foi hoje" e "Não tenho certeza", juntas, depois do que se escolhe, com um fio em cima */
+.pagina-de-formulario .grade-data__ajudas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-6);
+  padding-top: var(--e-2);
+  border-top: 1px solid var(--fio);
+}
+.pagina-de-formulario .grade-data__erro {
+  margin: 0;
+}
+
+@media (min-width: 62rem) {
+  /* Duas colunas: à esquerda a frase, uma parte por linha, que é também a trilha; à direita, a pergunta */
+  .pagina-de-formulario:has(> .em-frase__alto) {
+    row-gap: var(--e-6);
+  }
+  .pagina-de-formulario > .em-frase__alto,
+  .pagina-de-formulario > .em-frase__alto:has(> [data-frase-da-memoria]:not([hidden])) {
+    grid-column: 1 / 6;
+    grid-row: 1 / span 2;
+    align-self: start;
+    gap: var(--e-4);
+    padding: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .pagina-de-formulario > .formulario.em-frase.com-etapas {
+    grid-column: 7 / -1;
+    grid-row: 1;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0;
+  }
+  .pagina-de-formulario > .formulario.em-frase.com-etapas > * {
+    grid-column: 1 / -1;
+  }
+  .pagina-de-formulario:has(> .em-frase__alto) > [data-zona-de-perigo] {
+    grid-column: 7 / -1;
+  }
+  .pagina-de-formulario .em-frase__alto .em-frase__frase {
+    display: grid;
+    justify-items: start;
+    gap: var(--e-1);
+    font-size: var(--t-titulo-3);
+    line-height: 1.2;
+  }
+  .pagina-de-formulario .em-frase__alto .em-frase__trecho:not([hidden]) {
+    display: block;
+    max-width: 100%;
+    padding-block: var(--e-1);
+  }
+  .pagina-de-formulario .em-frase__alto .em-frase__parte {
+    text-decoration-color: var(--fio);
+  }
+  .pagina-de-formulario .em-frase__alto .em-frase__trecho:not([data-atual]) {
+    color: var(--tinta-suave);
+  }
+  .pagina-de-formulario .em-frase__alto .em-frase__passo {
+    max-width: 16rem;
+    margin-top: var(--e-3);
+  }
+  .pagina-de-formulario .grade-data__decadas {
+    flex-wrap: wrap;
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+  }
+  .pagina-de-formulario .grade-data__meses {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .pagina-de-formulario .grade-data__dias {
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+  }
+}
+@media (min-width: 100rem) {
+  .pagina-de-formulario .em-frase__alto .em-frase__frase {
+    font-size: var(--t-titulo-2);
+  }
 }
 
 /* --- A data flexível: o ano com −10, −1, +1 e +10, depois mês e dia ------------------------------ */
@@ -924,6 +1106,38 @@
   background: var(--alerta);
 }
 
+/* --- "Quem pode ver?": o seletor segmentado com a explicação colada nele, e as famílias à parte ---
+   Decisão do Gui de 18/11/2026 (conceito da sessão D). Três distâncias, do menor para o maior: a
+   explicação colada no seletor, a pergunta perto dos dois, e as famílias num grupo bem mais longe,
+   com o rótulo colado nelas ("Gestalt em toda tela", em docs/visual.md). */
+
+.pagina-de-formulario .quem-pode-ver {
+  gap: var(--e-7);
+}
+.pagina-de-formulario .quem-pode-ver > legend {
+  margin-bottom: var(--e-4);
+}
+.pagina-de-formulario .quem-pode-ver__escolha {
+  display: grid;
+  justify-items: start;
+  gap: var(--e-2);
+}
+.pagina-de-formulario .quem-pode-ver__escolha .segmentado {
+  font-size: var(--t-corpo);
+}
+.pagina-de-formulario .quem-pode-ver__escolha .segmentado label > span {
+  padding-inline: var(--e-3);
+}
+.pagina-de-formulario .quem-pode-ver__familias {
+  gap: var(--e-2);
+  max-width: none;
+}
+@media (min-width: 40rem) {
+  .pagina-de-formulario .quem-pode-ver__escolha .segmentado label > span {
+    padding-inline: var(--e-6);
+  }
+}
+
 /* --- O resumo antes de publicar e a confirmação --------------------------------------------------- */
 
 .pagina-de-formulario .resumo {
@@ -1075,18 +1289,11 @@
     grid-column: 1 / 5;
     grid-row: 1 / span 3;
   }
-  /* A abertura vai até a largura do miolo, para a frase com lacunas usar o espaço que sobra (resposta
-     do Gui à P138 do QA de design, 17/11/2026). O título e a frase de boas-vindas guardam a medida. */
+  /* Com etapas, a abertura vai até a largura do miolo, e a trilha toma a coluna da esquerda */
   .pagina-de-formulario:has(.com-etapas) .pagina-de-formulario__abre {
     grid-column: 1 / -1;
     grid-row: auto;
     max-width: none;
-  }
-  .pagina-de-formulario:has(.com-etapas) .pagina-de-formulario__abre > .frase--abertura {
-    max-width: none;
-  }
-  .pagina-de-formulario[data-adiante] .pagina-de-formulario__frase {
-    display: block;
   }
   /* O recado de "Rascunho salvo" começa na mesma margem da abertura */
   .pagina-de-formulario:has(.com-etapas) > .recado {
@@ -1177,26 +1384,10 @@
   }
 }
 
-/* Ao lado do formulário, no computador (resposta do Gui à pergunta 7 do PR do grupo "formularios",
-   17/11/2026): a foto-chave e um resumo da memória, que acompanham o preenchimento. A trilha fica
-   com três colunas, a pergunta com seis e o resumo com as três da direita. O resumo ocupa a altura
-   do formulário inteiro (muitas linhas da grade, para a altura dele não abrir vão entre a pergunta e
-   as ações) e, onde há mouse, fica à vista enquanto a página rola. */
+/* Ao lado do formulário do relato, no computador: a foto-chave e a ficha da memória de que o relato
+   fala, à direita, e, onde há mouse, à vista enquanto a página rola. A nova memória não tem resumo
+   ao lado desde 18/11/2026: a frase é o resumo. */
 @media (min-width: 62rem) {
-  .pagina-de-formulario .formulario.com-etapas:has(> .ao-lado:not([hidden])) > * {
-    grid-column: 4 / 10;
-  }
-  .pagina-de-formulario .formulario.com-etapas:has(> .ao-lado:not([hidden])) > .etapas {
-    grid-column: 1 / 4;
-  }
-  .pagina-de-formulario .formulario.com-etapas > .ao-lado:not([hidden]) {
-    grid-column: 10 / -1;
-    grid-row: 1 / span 60;
-    align-self: start;
-    display: grid;
-    gap: var(--e-4);
-    max-width: none;
-  }
   /* Sem etapas (o relato): o resumo é da página, à direita do formulário, e não muda */
   .pagina-de-formulario:has(> .ao-lado--fixo) > :not(.pagina-de-formulario__abre, .ao-lado) {
     grid-column: 5 / 10;
@@ -1208,23 +1399,9 @@
     display: grid;
     gap: var(--e-4);
   }
-  /* A zona de perigo acompanha a coluna da pergunta */
-  .pagina-de-formulario:has(.formulario > .ao-lado:not([hidden])) > [data-zona-de-perigo] {
-    grid-column: 4 / 10;
-  }
   .pagina-de-formulario .ao-lado__foto {
     width: min(100%, 13rem);
     margin-block: var(--e-2) var(--e-3);
-  }
-  .pagina-de-formulario .ao-lado__foto[hidden] {
-    display: none;
-  }
-  /* Sem tipo escolhido, o cartão é neutro: papel, sem ícone (resposta do Gui à P129, 17/11/2026) */
-  .pagina-de-formulario .ao-lado__foto--neutra .polaroid__foto {
-    background: var(--papel);
-  }
-  .pagina-de-formulario .ao-lado__foto--neutra .icone {
-    display: none;
   }
   .pagina-de-formulario .ao-lado__nome {
     font-family: var(--serifa);
@@ -1235,10 +1412,6 @@
     line-height: 1.2;
     overflow-wrap: anywhere;
   }
-  .pagina-de-formulario .ao-lado [data-vazio] {
-    color: var(--tinta-suave);
-    font-style: italic;
-  }
   .pagina-de-formulario .ao-lado .verso {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--e-3);
@@ -1247,7 +1420,6 @@
 /* Só fica parado em janela alta o bastante para ele caber inteiro: numa janela baixa de notebook
    o fim do resumo ficava para sempre abaixo da tela */
 @media (min-width: 62rem) and (min-height: 56rem) and (hover: hover) and (pointer: fine) {
-  .pagina-de-formulario .formulario.com-etapas > .ao-lado:not([hidden]),
   .pagina-de-formulario > .ao-lado--fixo {
     position: sticky;
     top: var(--e-6);
