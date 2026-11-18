@@ -78,7 +78,7 @@
 }
 /* A pergunta: a legenda de cada parte, grande, em serifa. Dentro de outra parte, um degrau abaixo. */
 .pagina-de-formulario legend {
-  margin-bottom: var(--e-5);
+  margin-bottom: var(--e-4);
   padding: 0;
   font-family: var(--serifa);
   font-variation-settings: var(--serifa-ajustes);
@@ -992,7 +992,7 @@
   display: none;
 }
 .pagina-de-formulario .quem-estava__grupo {
-  margin-top: var(--e-4);
+  margin-top: var(--e-5);
 }
 .pagina-de-formulario .quem-estava > .botao {
   justify-self: start;
@@ -1828,6 +1828,11 @@
 .pagina-de-formulario .painel.guia {
   padding-top: 0;
   border-top: 0;
+}
+/* A pergunta do caminho fica colada na explicação, como a legenda de um fieldset: o espaço do
+   painel (--e-5) encolhe para --e-4 logo abaixo dela (gestalt, npm run gestalt) */
+.pagina-de-formulario .guia > h2 {
+  margin-bottom: calc(var(--e-4) - var(--e-5));
 }
 /* Os dois caminhos: cada um num cartão inteiro para tocar.
    Aprovado pelo Gui em 17/11/2026 (pergunta 9 do PR do grupo "formularios"). */
