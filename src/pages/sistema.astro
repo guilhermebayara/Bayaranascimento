@@ -21,6 +21,7 @@ import Ficha from '../components/visual/Ficha.astro';
 import IconeDoTipo from '../components/visual/IconeDoTipo.astro';
 import Monograma from '../components/visual/Monograma.astro';
 import Pilula from '../components/visual/Pilula.astro';
+import Proximidade from '../components/visual/Proximidade.astro';
 import Segmentado from '../components/visual/Segmentado.astro';
 import PilulaDeFamilia from '../components/visual/PilulaDeFamilia.astro';
 import Polaroid from '../components/visual/Polaroid.astro';
@@ -430,6 +431,20 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
         </article>
 
         <article class="sis__peca">
+          <h3 class="rotulo">Proximidade · nova</h3>
+          <div>
+            <Proximidade id="sis-proximidade" valor={50} />
+          </div>
+          <div>
+            <Proximidade id="sis-proximidade-sem-fora" valor={20} comFora={false} rotulo="Sem fora do círculo" />
+          </div>
+          <p class="ficha suave">
+            O slider do círculo, na ficha dele e nos formulários de laço. Livre, com marcas onde a faixa muda e o nome de cada faixa embaixo do trecho dela. "Fora do
+            círculo" é um trecho à parte, tracejado. O preenchimento é a cor viva da família da tela.
+          </p>
+        </article>
+
+        <article class="sis__peca">
           <h3 class="rotulo">Ficha em mono</h3>
           <Ficha>
             <Dado rotulo="Quando">24 de dezembro de 2025</Dado>
@@ -624,5 +639,7 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
 
 <script>
   import { ligarMenus } from '../lib/cliente/menus';
+  import { ligarProximidades } from '../lib/cliente/proximidade';
   ligarMenus();
+  ligarProximidades();
 </script>
