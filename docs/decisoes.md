@@ -603,6 +603,12 @@ Origem: [histórico, "Visual"](historico/decisoes-ate-2026-11-17.md#visual).
 
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
+- **Respostas do Gui à sessão F** (18/11/2026). A construir:
+    - **Ex "Fora" que é pai ou mãe de alguém que a pessoa vê vale como Discreto:** a tarja fica e o caminho até o filho e a família dele continua.
+    - **Ex Discreto ou Fora sai dos aniversários do Início** de quem escolheu.
+    - **Sugestão de correção vai para quem criou e para quem está na memória** (todos que podem corrigir a ficha); o primeiro que responder resolve, e o aviso some para os outros.
+    - **Ligar a transcrição:** a conta do Cloudflare está no plano gratuito, então passar da cota só faz o pedido falhar. Pôr `"ai": { "binding": "AI" }` no `wrangler.jsonc`; a transcrição continua desligada em Administração até o Gui ligar, primeiro na homologação.
+  Ficam como estão: tocar no símbolo de reação marca a sua reação, com os nomes em "Quem marcou"; e as outras escolhas do relatório da sessão F (medir o espaço das fotos antigas aos poucos; quem muda "quem vê" do ex são as duas pessoas do casal; áudios de relato apagado de vez ficam no bucket; o admin vê a foto de outra pessoa só depois dos 30 dias; até 4 centros da árvore; o histórico de pessoas em "Editar página e laços" até a página da pessoa ser refeita; as regras de juntar duplicados; o trecho da imagem de compartilhar).
 - **Mais ícones e cores para os tipos de momento** (decisão do Gui, 18/11/2026). Sem biblioteca: uns 50 rabiscos novos no mesmo traço de `src/visual/rabiscos.ts`, por assunto (família, casa, trabalho, escola, saúde, bichinhos, viagens, comida, música, esporte, fé, festas), e mais cores na paleta dos tipos, com a mesma regra de contraste das 23 de hoje. O seletor de ícones agrupa por assunto.
 - **Página da pessoa, da sessão E** (escolhas do Gui, 17 e 18/11/2026; registro do conceito em `docs/visual/conceito-pessoas/leia-me.md`). Pessoas, Editar pessoa e laços e Sua conta já estão no site (PRs #70, #71 e #72).
     - **Laços: conceito C, aprovado** (18/11/2026): grupos em linha e os mais próximos primeiro, com a abertura baixa. Construção na branch `tst-pessoa`.
