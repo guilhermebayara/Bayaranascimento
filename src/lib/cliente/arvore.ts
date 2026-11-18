@@ -1,6 +1,6 @@
 // A árvore interativa. Funciona como um mapa: arrasta, aproxima, afasta, e se
 // reorganiza com animação quando o foco ou os filtros mudam, sem recarregar a página.
-import { MEDIDAS, arredondado, desenharArvore, type Desenho } from '../arvore-desenho';
+import { MEDIDAS, cantoReto, arredondado, desenharArvore, type Desenho } from '../arvore-desenho';
 import { comLacoDeArvore, montarDesenho, type DadosDaArvore, type Estado } from '../arvore-montagem';
 
 export type { DadosDaArvore };
@@ -44,6 +44,12 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
     if (cores.length === 1) return cores[0];
     const fatia = 100 / cores.length;
     return `linear-gradient(135deg, ${cores.map((c, i) => `${c} ${i * fatia}% ${(i + 1) * fatia}%`).join(', ')})`;
+  };
+  // O canto reto do cartão aponta para o lado da família de origem (cantoReto, em arvore-desenho.ts)
+  const marcarCanto = (no: HTMLElement, nucleos: string[]) => {
+    const canto = cantoReto(indicesDosNucleos(nucleos), idsDosNucleos.length);
+    no.classList.toggle('no--canto-direita', canto === 'direita');
+    no.classList.toggle('no--sem-canto', canto === null);
   };
   const ladoDe = new Map<string, number>();
   for (const p of dados.pessoas) {
@@ -289,6 +295,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
     no.className = 'no';
     no.classList.toggle('no--foco', p.id === estado.foco);
     no.classList.toggle('no--de-fora', p.nucleos.length === 0);
+    marcarCanto(no, p.nucleos);
     no.style.width = `${MEDIDAS.largura}px`;
     no.style.height = `${MEDIDAS.altura}px`;
     no.style.background = fundoDe(p.nucleos);
@@ -352,6 +359,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
       no.classList.toggle('no--foco', p.id === estado.foco);
       no.classList.toggle('no--apagado', Boolean(estado.nucleo) && !noNucleo(p.id));
       no.classList.toggle('no--de-fora', p.nucleos.length === 0);
+      marcarCanto(no, p.nucleos);
       no.style.background = fundoDe(p.nucleos);
       no.style.transform = `translate(${lugar.x}px, ${lugar.y}px)`;
     }

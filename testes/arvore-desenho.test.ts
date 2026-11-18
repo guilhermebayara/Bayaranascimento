@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MEDIDAS, desenharArvore, passaPor, type CasalNoDesenho, type FiliacaoNoDesenho, type PessoaNoDesenho } from '../src/lib/arvore-desenho';
+import { MEDIDAS, cantoReto, desenharArvore, passaPor, type CasalNoDesenho, type FiliacaoNoDesenho, type PessoaNoDesenho } from '../src/lib/arvore-desenho';
 
 const p = (id: string, geracao: number): PessoaNoDesenho => ({ id, geracao });
 const filho = (f: string, ...pais: string[]): FiliacaoNoDesenho[] => pais.map((responsavel) => ({ filho: f, responsavel, consideracao: false }));
@@ -409,5 +409,50 @@ describe('o parente do amigo não cruza a linha dos filhos de outro amigo (achad
   it('o Caio continua embaixo do Ed, e o Otto não sai de baixo dos pais para perto da Karol', () => {
     expect(x('caio')).toBe(x('ed'));
     expect(Math.abs(x('otto') - (x('renan') + x('nati')) / 2)).toBeLessThan(MEDIDAS.largura + MEDIDAS.vaoX);
+  });
+});
+
+// Decisão do Gui (17/11/2026): o canto reto do cartão aponta para o lado da família de origem
+describe('canto reto do cartão', () => {
+  // As três famílias, na ordem da árvore: Bayara, Bayara Bracarense e Bracarense
+  const TOTAL = 3;
+  it('Bayara aponta para a esquerda e Bracarense para a direita', () => {
+    expect(cantoReto([0], TOTAL)).toBe('esquerda');
+    expect(cantoReto([2], TOTAL)).toBe('direita');
+  });
+  it('quem é de duas famílias segue a de origem: a Giovanna para o Bayara, o Magno para o Bracarense', () => {
+    expect(cantoReto([0, 1], TOTAL)).toBe('esquerda');
+    expect(cantoReto([1, 2], TOTAL)).toBe('direita');
+    // A ordem em que as famílias chegam não muda o lado
+    expect(cantoReto([2, 1], TOTAL)).toBe('direita');
+  });
+  it('quem não é de nenhuma família fica sem canto reto', () => {
+    expect(cantoReto([], TOTAL)).toBeNull();
+    // Família que a árvore não conhece não conta
+    expect(cantoReto([-1], TOTAL)).toBeNull();
+    expect(cantoReto([7], TOTAL)).toBeNull();
+  });
+  it('quem fica bem no meio continua com o canto à esquerda', () => {
+    expect(cantoReto([1], TOTAL)).toBe('esquerda');
+    expect(cantoReto([0, 2], TOTAL)).toBe('esquerda');
+  });
+  it('com uma família só, todos apontam para a esquerda; com duas, cada uma para o seu lado', () => {
+    expect(cantoReto([0], 1)).toBe('esquerda');
+    expect(cantoReto([0], 2)).toBe('esquerda');
+    expect(cantoReto([1], 2)).toBe('direita');
+  });
+  it('o cartão e a legenda usam a mesma regra, e o bicho continua em cápsula', async () => {
+    const { readFileSync } = await import('node:fs');
+    const ler = (caminho: string) => readFileSync(new URL(`../${caminho}`, import.meta.url), 'utf8');
+    const cliente = ler('src/lib/cliente/arvore.ts');
+    expect(cliente).toMatch(/const canto = cantoReto\(indicesDosNucleos\(nucleos\), idsDosNucleos\.length\);/);
+    // Os dois lugares que montam cartão: a árvore principal e os ramos abertos
+    expect(cliente.match(/marcarCanto\(no, p\.nucleos\);/g)).toHaveLength(2);
+    expect(ler('src/pages/arvore.astro')).toContain("cantoReto([i], nucleos.length) === 'direita'");
+    const css = ler('src/visual/telas/arvore.css');
+    expect(css).toMatch(/\.no--canto-direita \{\s*border-radius: 0\.875rem 0\.875rem var\(--raio-foto\) 0\.875rem;/);
+    expect(css).toMatch(/\.no--sem-canto \{\s*border-radius: 0\.875rem;/);
+    // A regra do bicho vem depois das do canto, e por isso ganha
+    expect(css.indexOf('.no--bicho {')).toBeGreaterThan(css.indexOf('.no--sem-canto {'));
   });
 });
