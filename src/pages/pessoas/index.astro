@@ -9,6 +9,7 @@
 import '../../visual/telas/pessoas.css';
 import Visual from '../../layouts/Visual.astro';
 import Gente from '../../components/visual/Gente.astro';
+import Segmentado from '../../components/visual/Segmentado.astro';
 import { Familia, calcularGeracoes, possessivo, type Tratamento } from '../../lib/parentesco';
 import { jaFaleceu } from '../../lib/datas';
 import { ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
@@ -77,6 +78,10 @@ const ORDENS = [
       <p class="rotulo suave">{conta}</p>
       <h1 class="serifa t-1">Pessoas</h1>
       <p class="pessoas-pagina__frase serifa t-abertura">Quem aparece nas memórias da família, por família.</p>
+      {/* A forma de ver (decisão do Gui, 17/11/2026): por família, que é esta lista, ou o círculo de quem olha */}
+      <p class="pessoas-pagina__ver">
+        <Segmentado rotulo="Forma de ver as pessoas" opcoes={[{ href: '/pessoas', texto: 'Por família', atual: true }, { href: '/circulo', texto: 'Seu círculo' }]} />
+      </p>
       <p class="pessoas-pagina__acoes">
         <a class="botao" href="/pessoas/nova">Cadastrar pessoa</a>
         <a class="acao" href="/arvore">Ver a árvore</a>

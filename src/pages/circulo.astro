@@ -1,0 +1,145 @@
+---
+// Seu círculo (docs/decisoes.md, "Círculo"): uma forma de ver as pessoas, só de quem está logado, que
+// só ela vê. A pessoa no centro e três faixas, Muito próximo, Próximo e Conhecido. Na tela grande e
+// na TV são anéis, num mapa que anda e aproxima como o da árvore; no celular, faixas empilhadas, com
+// os retratos lado a lado e a rolagem do aparelho. Usa o mesmo quadro da árvore
+// (src/visual/telas/mapa.css). Quem aparece e a que distância vem de src/lib/servidor/circulo.ts; o
+// slider e o arrasto, de src/lib/cliente/circulo.ts, que grava em /api/circulo.
+import '../visual/telas/arvore.css';
+import '../visual/telas/mapa.css';
+import '../visual/telas/circulo.css';
+import Visual from '../layouts/Visual.astro';
+import Retrato from '../components/visual/Retrato.astro';
+import Segmentado from '../components/visual/Segmentado.astro';
+import { FAIXAS, diametroDoAnel, faixaDoValor, pontoDe } from '../lib/circulo';
+import { montarCirculo } from '../lib/servidor/circulo';
+import { enderecoDoRetrato } from '../lib/retratos';
+
+const { usuario } = Astro.locals;
+const circulo = await montarCirculo(usuario);
+if (!circulo) return Astro.redirect('/pessoas');
+const { eu, cor, dentro, fora } = circulo;
+
+// Cada pessoa mora na faixa dela. Quem está fora do círculo fica guardado na faixa para onde volta.
+const todos = [...dentro, ...fora];
+const faixaDe = (p: (typeof todos)[number]) => (faixaDoValor(p.valor) ?? faixaDoValor(p.padrao) ?? FAIXAS[2]!).id;
+const porFaixa = FAIXAS.map((f) => ({ ...f, pessoas: todos.filter((p) => faixaDe(p) === f.id).sort((a, b) => a.valor - b.valor || a.nome.localeCompare(b.nome, 'pt-BR')) }));
+const lugar = (p: (typeof todos)[number]) => {
+  const { x, y } = pontoDe(p.valor, p.angulo);
+  return `--x: ${x}; --y: ${y}`;
+};
+const porNome = [...todos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+---
+
+<Visual titulo="Seu círculo" secao="pessoas" familia={cor} intimo mapa>
+  <div class="quadro" data-circulo>
+    <div class="mapa mapa--circulo" data-mapa tabindex="0" aria-label="Seu círculo. Arraste ou use as setas para andar por ele.">
+      {/* O painel do quadro, antes do desenho para o teclado chegar primeiro a ele */}
+      <aside class="pm" data-sobre-o-mapa data-quadro aria-label="Sobre o seu círculo">
+        <header class="pm__alto">
+          <h1 class="serifa">Seu círculo</h1>
+          <button type="button" class="pm__abre" data-abrir-painel aria-expanded="false" aria-controls="corpo-do-painel">Mais</button>
+        </header>
+        <div class="pm__ficha" data-ficha-do-circulo aria-live="polite"></div>
+        <p class="pm__aviso" data-aviso role="alert" hidden></p>
+        <div class="pm__corpo" id="corpo-do-painel">
+          <div class="pm__ver">
+            <Segmentado rotulo="Forma de ver as pessoas" opcoes={[{ href: '/pessoas', texto: 'Por família' }, { href: '/circulo', texto: 'Seu círculo', atual: true }]} />
+            <p class="pm__texto">Só você vê o seu círculo. Toque em alguém para aproximar ou afastar, ou arraste.</p>
+          </div>
+          <form class="pm__busca" data-procurar>
+            <label class="arvore__campo">
+              <span>Procurar no círculo</span>
+              <select name="quem">
+                <option value="">Escreva o nome</option>
+                {porNome.map((p) => <option value={p.id}>{p.nome}</option>)}
+              </select>
+            </label>
+          </form>
+          <details class="pm__secao" name="painel-do-mapa" data-fora-do-circulo>
+            <summary>
+              <span>Fora do círculo <span class="pm__conta" data-quantos-fora>{fora.length > 0 ? fora.length : ''}</span></span>
+            </summary>
+            <div class="pm__miolo">
+              <p class="pm__texto" data-ninguem-fora hidden={fora.length > 0}>Ninguém está fora do seu círculo. Quem você afastar até o fim vem para cá, e daqui volta.</p>
+              <ul class="circulo-fora" data-lista-de-fora>
+                {fora.map((p) => (
+                  <li>
+                    <span>{p.nome}</span>
+                    <button type="button" data-voltar={p.id}>
+                      Trazer de volta
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
+          <details class="pm__secao" name="painel-do-mapa" data-legenda>
+            <summary>Legenda</summary>
+            <div class="legenda legenda--circulo">
+              <section>
+                <h2>Faixas</h2>
+                <ul>
+                  {FAIXAS.map((f) => <li><i class={`amostra-faixa amostra-faixa--${f.id}`}></i> {f.nome}</li>)}
+                </ul>
+              </section>
+              <section>
+                <h2>Quem aparece</h2>
+                <p>A família que você vê, os seus laços do coração, quem já faleceu e os bichos.</p>
+              </section>
+            </div>
+          </details>
+        </div>
+      </aside>
+
+      <div class="circulo-area" data-area>
+        <div class="mapa__camada circulo" data-camada>
+          {[...FAIXAS].reverse().map((f) => <i class={`circulo__anel circulo__anel--${f.id}`} style={`--d: ${diametroDoAnel(f)}`} aria-hidden="true"></i>)}
+          <p class="circulo__eu">
+            <Retrato nome={eu.nome} foto={eu.retrato ? enderecoDoRetrato(eu.retrato) : null} familia={cor} redondo cedo />
+            <span>Você</span>
+          </p>
+          {porFaixa.map((f) => (
+            <section class="circulo__faixa" data-faixa={f.id} aria-labelledby={`faixa-${f.id}`}>
+              <h2 class="rotulo" id={`faixa-${f.id}`} style={`--d: ${diametroDoAnel(f)}`}>
+                {f.nome}
+              </h2>
+              <ul>
+                {f.pessoas.map((p) => (
+                  <li style={lugar(p)} data-fora={p.valor >= 100 ? '' : undefined}>
+                    <button type="button" class="circulo__pessoa" data-pessoa={p.id} data-nome={p.nome} data-laco={p.laco} data-valor={p.valor} data-angulo={p.angulo} data-padrao={p.padrao} data-angulo-padrao={p.anguloPadrao}>
+                      <Retrato nome={p.nome} foto={p.foto} familia={p.cor} falecido={p.falecido} redondo />
+                      <span class="circulo__nome">{p.nome}</span>
+                      {p.falecido && <span class="so-leitor">já faleceu</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </div>
+
+      <div class="mapa__zoom" data-sobre-o-mapa>
+        <span class="mapa__vista">
+          <button type="button" data-ver-tudo aria-label="Ver o círculo inteiro"><span class="longo">Ver o círculo inteiro</span><span class="curto">Ver tudo</span></button>
+        </span>
+        <span class="mapa__escala">
+          <button type="button" data-zoom-menos aria-label="Afastar">−</button>
+          <span data-zoom-atual>100%</span>
+          <button type="button" data-zoom-mais aria-label="Aproximar">+</button>
+        </span>
+      </div>
+    </div>
+    <noscript>
+      <p class="circulo__sem-script miolo">O círculo precisa de JavaScript para aproximar e afastar as pessoas. Elas também estão em <a href="/pessoas">Pessoas</a>.</p>
+    </noscript>
+  </div>
+</Visual>
+
+<script>
+  import { montarCirculo } from '../lib/cliente/circulo';
+
+  const raiz = document.querySelector<HTMLElement>('[data-circulo]');
+  if (raiz) montarCirculo(raiz);
+</script>

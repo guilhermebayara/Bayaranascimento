@@ -1757,3 +1757,54 @@ export async function acrescentarFotos(memoriaId: string, itens: { id: number; l
   );
   return validos.length;
 }
+
+// --- O círculo: a proximidade de cada pessoa para o dono (migração 030) -------------------------
+
+export interface Proximidade {
+  valor: number;
+  /** o lugar na volta, em graus, de quem foi arrastado; vazio, o site espalha */
+  angulo: number | null;
+}
+
+/** As proximidades que uma pessoa declarou. Só o dono lê as dele: ninguém mais vê o círculo nem o valor. */
+export async function listarProximidades(dono: string): Promise<Map<string, Proximidade>> {
+  const { results } = await db().prepare('SELECT pessoa_id, valor, angulo FROM proximidades WHERE dono_id = ?').bind(dono).all<{ pessoa_id: string; valor: number; angulo: number | null }>();
+  return new Map(results.map((l) => [l.pessoa_id, { valor: l.valor, angulo: l.angulo }]));
+}
+
+/**
+ * Guarda a proximidade de alguém para o dono. Se os dois têm um laço do coração, a faixa dele
+ * acompanha (os três níveis de sempre), para a conta e o formulário do laço dizerem o mesmo. Fora do
+ * círculo, o laço continua com a faixa que tinha.
+ */
+export async function salvarProximidade(dono: string, pessoa: string, valor: number, angulo: number | null, nivel: number | null): Promise<void> {
+  const comandos = [
+    db()
+      .prepare(
+        `INSERT INTO proximidades (dono_id, pessoa_id, valor, angulo) VALUES (?, ?, ?, ?)
+         ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET valor = excluded.valor, angulo = COALESCE(excluded.angulo, proximidades.angulo), mudado_em = datetime('now')`,
+      )
+      .bind(dono, pessoa, valor, angulo),
+  ];
+  if (nivel !== null) comandos.push(db().prepare('UPDATE lacos_coracao SET proximidade = ? WHERE dono_id = ? AND pessoa_id = ?').bind(nivel, dono, pessoa));
+  await db().batch(comandos);
+}
+
+/** Apaga a proximidade declarada: a pessoa volta para a faixa que o parentesco ou o laço dão. */
+export async function removerProximidade(dono: string, pessoa: string): Promise<void> {
+  await db().prepare('DELETE FROM proximidades WHERE dono_id = ? AND pessoa_id = ?').bind(dono, pessoa).run();
+}
+
+/**
+ * O formulário do laço do coração escolhe uma das três faixas. Se a proximidade guardada está em
+ * outra faixa (ou não existe), ela vai para o meio da escolhida; na mesma faixa, o valor fino fica.
+ */
+export async function alinharProximidadeDoLaco(dono: string, pessoa: string, nivel: number | null, meio: number | null, mesmaFaixa: (valor: number) => boolean): Promise<void> {
+  if (nivel === null || meio === null) return;
+  const atual = await db().prepare('SELECT valor FROM proximidades WHERE dono_id = ? AND pessoa_id = ?').bind(dono, pessoa).first<{ valor: number }>();
+  if (atual && mesmaFaixa(atual.valor)) return;
+  await db()
+    .prepare(`INSERT INTO proximidades (dono_id, pessoa_id, valor) VALUES (?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET valor = excluded.valor, mudado_em = datetime('now')`)
+    .bind(dono, pessoa, meio)
+    .run();
+}

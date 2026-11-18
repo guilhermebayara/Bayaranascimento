@@ -1,11 +1,13 @@
 // Laços de árvore: filiação (de quem alguém é filho) e casal, com suas fases.
 import type { APIRoute } from 'astro';
 import { FASES, FASES_JUNTOS, Familia, PAPEIS, nomeDoPapel, PROXIMIDADES, QUALIDADES, type Fase, type Papel, type Qualidade, type TipoDeFase } from '../../lib/parentesco';
+import { nivelDoValor, valorDoNivel } from '../../lib/circulo';
 import { criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeMexerEmLaco, podeMudarLacoDoCoracao } from '../../lib/servidor/permissoes';
 import { sugerirFamilias, type LacoNovo } from '../../lib/familias';
 import {
+  alinharProximidadeDoLaco,
   criarIntegrante,
   definirParentes,
   familiasDe,
@@ -164,6 +166,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       proximidade,
       privado: dados.get('privado') === 'on',
     });
+    // A proximidade do círculo usa a mesma escala: a faixa escolhida aqui vale lá também
+    await alinharProximidadeDoLaco(usuario.pessoa, pessoa.id, proximidade, proximidade === null ? null : valorDoNivel(proximidade), (valor) => nivelDoValor(valor) === proximidade);
     return voltar(request, volta, { ok: `Laço com ${nome(pessoa.id)} salvo.` });
   }
 

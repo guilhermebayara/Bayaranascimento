@@ -1,0 +1,22 @@
+---
+// O seletor segmentado (decisão do Gui, 17/11/2026, "Componentes do sistema"): uma escolha só entre
+// poucas, no estilo do controle segmentado do iOS. Cada opção é um link, e por isso funciona sem
+// script: a escolha de agora fica marcada e as outras levam à página que mostra aquela opção.
+interface Props {
+  /** o que está sendo escolhido, para o leitor de tela: "Forma de ver as pessoas" */
+  rotulo: string;
+  opcoes: { href: string; texto: string; atual?: boolean }[];
+}
+
+const { rotulo, opcoes } = Astro.props;
+---
+
+<nav class="segmentado" aria-label={rotulo}>
+  {
+    opcoes.map((o) => (
+      <a href={o.href} aria-current={o.atual ? 'true' : undefined}>
+        {o.texto}
+      </a>
+    ))
+  }
+</nav>

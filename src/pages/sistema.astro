@@ -21,6 +21,7 @@ import Ficha from '../components/visual/Ficha.astro';
 import IconeDoTipo from '../components/visual/IconeDoTipo.astro';
 import Monograma from '../components/visual/Monograma.astro';
 import Pilula from '../components/visual/Pilula.astro';
+import Segmentado from '../components/visual/Segmentado.astro';
 import Polaroid from '../components/visual/Polaroid.astro';
 import Rabisco from '../components/visual/Rabisco.astro';
 import Recado from '../components/visual/Recado.astro';
@@ -403,6 +404,14 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
             <span class="selo">Só Bayara</span>
           </p>
           <p class="ficha suave">O carimbo diz data e lugar. A etiqueta diz o tipo de momento. A pílula, que é nova, diz um período ou uma data aproximada.</p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Seletor segmentado</h3>
+          <p>
+            <Segmentado rotulo="Exemplo de escolha" opcoes={[{ href: '#pecas', texto: 'Por família', atual: true }, { href: '#pecas', texto: 'Seu círculo' }]} />
+          </p>
+          <p class="ficha suave">Uma escolha só entre poucas: a forma de ver, a ordem, quem vê. Cada opção é um link, e funciona sem script.</p>
         </article>
 
         <article class="sis__peca">
