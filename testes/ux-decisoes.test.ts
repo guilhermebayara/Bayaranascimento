@@ -1,5 +1,6 @@
 // Decisões do Gui sobre a interface, depois do QA de UX de 16/11/2026 (docs/ux/fluxos.md).
 // Conferências no código, para nenhuma delas voltar atrás sem querer.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { textoEnviando } from '../src/lib/cliente/enviando';
 
@@ -340,5 +341,30 @@ describe('salto por década', () => {
     const linha = fonte('src/components/explorar/Linha.astro');
     expect(linha).toContain('decadas.length > 1 &&');
     expect(linha).toContain('href={`#decada-${d}`}');
+  });
+});
+
+// Observações do Gui na sessão H (18/11/2026), no cadastro de laços
+describe('cadastro de laços depois da sessão H', () => {
+  const editar = fonte('src/pages/pessoas/[id]/editar.astro');
+  const css = readFileSync('src/visual/telas/formulario.css', 'utf8');
+  it('"Pular esta pergunta" fica na linha da ação principal, logo embaixo dos campos', () => {
+    const acoes = editar.slice(editar.indexOf('<div class="acoes acoes--pergunta">'), editar.indexOf('</form>', editar.indexOf('<div class="acoes acoes--pergunta">')));
+    expect(acoes).toContain('>Adicionar</button>');
+    expect(acoes).toContain("'Pular esta pergunta'");
+  });
+  it('laço do coração: cada opção tem a explicação dela no mesmo lugar, e "Com quem" diz de quem é o laço', () => {
+    expect(editar).toMatch(/<p class="dica" data-para="coracao-so-eu">/);
+    expect(editar).toMatch(/<p class="dica" data-para="coracao-familia" hidden>/);
+    expect(editar).toContain('<span data-para="coracao-familia">{ehMinha ? \'Com quem você tem este laço?\' : `Com quem ${chamar} tem este laço?`}</span>');
+    // O lugar na árvore vem antes dos campos que só "Só eu" tem
+    expect(editar.indexOf('<span>Lugar na árvore</span>', editar.indexOf('data-novo-laco'))).toBeLessThan(editar.indexOf('<span>Nome do laço</span>', editar.indexOf('data-novo-laco')));
+  });
+  it('a história inteira do casal já no cadastro, guiado e completo, e "O que aconteceu depois?" como título pequeno', () => {
+    expect(editar.match(/<FasesDepois /g)?.length).toBe(2);
+    const fases = fonte('src/components/formularios/FasesDepois.astro');
+    expect(fases).toContain('<select name="faseTipo">');
+    expect(fases).toContain('<input type="hidden" name="faseFim" value="" />');
+    expect(css).toMatch(/fieldset:is\(\.fase--nova, \.fases-depois\) > legend \{[^}]*font-family: var\(--mono\);/);
   });
 });

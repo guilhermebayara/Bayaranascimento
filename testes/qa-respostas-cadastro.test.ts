@@ -16,7 +16,7 @@ describe('cadastro guiado', () => {
   it('P109: "Como estão hoje?" só oferece o que é estar junto, e o fim fica com "Já terminou"', () => {
     expect(editar).toContain("const FASES_DE_QUEM_ESTA_JUNTO: readonly TipoDeFase[] = ['namoro', 'noivado', 'casamento', 'uniao'];");
     const guiado = editar.slice(editar.indexOf("passo === 'casal' ? ("), editar.indexOf('<Opcoes nome="qualidade" rotulo="Filiação" opcoes={opcoesDeFiliacao()} valor="biologica" id="rotulo-qualidade-guia"'));
-    expect(guiado).toContain('<Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" />');
+    expect(guiado).toContain('<Opcoes nome="faseTipo" rotulo="Como estão hoje?" opcoes={fasesDeHoje} valor="casamento" id="rotulo-fase-guia" />');
     expect(guiado).toContain('name="terminou" data-revela="terminou-guia"');
   });
   it('P110: o título acima do formulário só aparece depois de alguém ser adicionado', () => {
@@ -66,9 +66,9 @@ describe('editar página e laços', () => {
     expect(editar).toContain('formulario.reset();');
     expect(editar).toContain("edicao.querySelector('summary')?.focus();");
   });
-  it('P116: a pergunta de dentro do cartão do casal é um título menor', () => {
-    expect(regra('.pagina-de-formulario .painel fieldset.fase--nova legend')).toContain('font-size: var(--t-corpo);');
-    expect(regra('.pagina-de-formulario .painel fieldset.fase--nova legend')).toContain('font-family: var(--grotesca);');
+  it('P116, revista na sessão H: a pergunta de dentro do cartão do casal é um título de seção pequeno, como "Quem vê"', () => {
+    expect(regra('.pagina-de-formulario fieldset:is(.fase--nova, .fases-depois) > legend')).toContain('font-size: var(--t-ficha);');
+    expect(regra('.pagina-de-formulario fieldset:is(.fase--nova, .fases-depois) > legend')).toContain('font-family: var(--mono);');
   });
   it('P117: dentro do cartão, a zona de perigo é uma linha, e só vira bloco com a pergunta aberta', () => {
     const quieta = regra('.pagina-de-formulario .perigo--menor');
