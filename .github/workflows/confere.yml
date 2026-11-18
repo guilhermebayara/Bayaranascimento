@@ -51,7 +51,10 @@ jobs:
       - name: Servidor local com o acervo de exemplo
         run: |
           npx astro dev --port 4321 --background
-          timeout 180 sh -c 'until curl -sf -o /dev/null http://127.0.0.1:4321/; do sleep 2; done'
+          # O servidor atende em "localhost", que no GitHub pode ser só IPv6: 127.0.0.1 nunca respondia.
+          # Qualquer resposta HTTP basta para saber que subiu; se não subir, o log ajuda a entender
+          timeout 180 sh -c 'until curl -s -o /dev/null http://localhost:4321/; do sleep 2; done' || { npx astro dev logs; exit 1; }
+          curl -s -o /dev/null -w 'Primeira resposta: %{http_code}\n' http://localhost:4321/
           npm run fotos-de-exemplo -- http://localhost:4321
       - name: Gestalt em 390 e 1280 px
         run: npm run gestalt
