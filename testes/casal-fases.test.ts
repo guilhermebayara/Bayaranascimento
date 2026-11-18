@@ -95,6 +95,18 @@ describe('parentesco pela fase', () => {
     expect(situacaoDoCasal(exMarido)).toBe('não estão mais juntos');
     expect(situacaoDoCasal(jean)).toBe('namoraram, não estão mais juntos');
   });
+  it('com um dos dois já falecido, a situação vai para o passado (QA de 18/11/2026)', () => {
+    const morreu = { faleceu: true };
+    expect(situacaoDoCasal(casados, morreu)).toBe('foram casados');
+    expect(situacaoDoCasal(casados, { faleceu: true, elas: true })).toBe('foram casadas');
+    expect(situacaoDoCasal(bia, morreu)).toBe('namoraram');
+    expect(situacaoDoCasal(thiago, morreu)).toBe('foram amigos');
+    expect(situacaoDoCasal(exMarido, morreu)).toBe('se separaram');
+    expect(situacaoDoCasal(jean, morreu)).toBe('namoraram');
+    const laco = ler('src/pages/lacos/[a]/[b].astro');
+    expect(laco).toContain("situacaoDoCasal(casal, { faleceu: alguemFaleceu,");
+    expect(laco).toContain("const verbo = alguemFaleceu && relacao && /^[CX]$/.test(relacao.caminho) ? 'foi' : 'é';");
+  });
   it('o namoro e o ex que virou amigo não sugerem família a ninguém', () => {
     const api = ler('src/pages/api/lacos.ts');
     expect(api).toContain('const daFamilia = apareceComoCasal({ fases, jaDaFamilia });');

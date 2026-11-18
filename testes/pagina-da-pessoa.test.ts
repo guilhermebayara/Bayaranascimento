@@ -1,7 +1,7 @@
 // A página da pessoa, proposta A do conceito da sessão L ("o verbete", escolha do Gui de 18/11/2026).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { FORMAS_DA_VIDA, enderecoDaVida, fasesDaVida, fraseDoAcervo, idadeNoAno, lerFormaDaVida, mostraRascunhoNaVida, nomeDaFormaDaVida, textoDaIdade } from '../src/lib/pagina-da-pessoa';
+import { FORMAS_DA_VIDA, contaDaFamiliaDePerto, enderecoDaVida, fasesDaVida, nomeDoGrupoDePerto, fraseDoAcervo, idadeNoAno, lerFormaDaVida, mostraRascunhoNaVida, nomeDaFormaDaVida, textoDaIdade } from '../src/lib/pagina-da-pessoa';
 
 
 describe('as formas de ver da página da pessoa', () => {
@@ -91,5 +91,35 @@ describe('a página, depois das observações do Gui (18/11/2026)', () => {
   });
   it('o histórico da página aparece para quem pode mudá-la', () => {
     expect(pagina).toMatch(/\{p\.podeEditar && \(\s*<a class="acao acao--quieta" href=\{`\/pessoas\/\$\{pessoa\.id\}\/historico`\}>/);
+  });
+});
+
+describe('os nomes da família de perto seguem "como se referir" (QA de 18/11/2026)', () => {
+  const ela = { tratamento: 'ela' as const };
+  const ele = { tratamento: 'ele' as const };
+  const sem = { tratamento: null };
+  it('uma pessoa só, com o tratamento: mãe, pai, irmã, irmão, filha, filho', () => {
+    expect(nomeDoGrupoDePerto('pais', [ela])).toBe('mãe');
+    expect(nomeDoGrupoDePerto('pais', [ele])).toBe('pai');
+    expect(nomeDoGrupoDePerto('irmaos', [ela])).toBe('irmã');
+    expect(nomeDoGrupoDePerto('irmaos', [ele])).toBe('irmão');
+    expect(nomeDoGrupoDePerto('filhos', [ela])).toBe('filha');
+  });
+  it('sem o tratamento, as duas formas; mais de um, o plural (feminino só quando são todas)', () => {
+    expect(nomeDoGrupoDePerto('pais', [sem])).toBe('pai ou mãe');
+    expect(nomeDoGrupoDePerto('irmaos', [sem])).toBe('irmão ou irmã');
+    expect(nomeDoGrupoDePerto('pais', [ela, ele])).toBe('pais');
+    expect(nomeDoGrupoDePerto('irmaos', [ela, ela])).toBe('irmãs');
+    expect(nomeDoGrupoDePerto('filhos', [ela, sem])).toBe('filhos');
+  });
+  it('a conta do quadro fechado: o bichinho com a tutora não diz "1 pai ou mãe"', () => {
+    expect(contaDaFamiliaDePerto({ pais: [ela], casais: 0, filhos: [], irmaos: [] })).toBe('1 mãe');
+    expect(contaDaFamiliaDePerto({ pais: [ela, ele], casais: 1, filhos: [ela, ela], irmaos: [ele] })).toBe('2 pais, casal, 2 filhas e 1 irmão');
+  });
+  it('a página usa os nomes que seguem o tratamento, e não as duas formas fixas', () => {
+    const pagina = readFileSync('src/pages/pessoas/[id]/index.astro', 'utf8');
+    expect(pagina).not.toContain("'Irmão ou irmã'");
+    expect(pagina).not.toContain("'pai ou mãe'");
+    expect(pagina).toContain("nomeDoGrupoDePerto('irmaos', irmaos)");
   });
 });

@@ -65,9 +65,20 @@ export function rotuloDoCasalDoCoracao(tipo: 'namoro' | 'amizade', tratamento: T
   return `${tratamento === 'ela' ? ela : tratamento === 'ele' ? ele : `${ele} ou ${ela}`} de ${de}`;
 }
 
-/** A situação do casal em uma ou duas palavras, para "Editar página e laços" e a página do laço. */
-export function situacaoDoCasal(casal: Pick<Casal, 'fases' | 'jaDaFamilia'>): string {
+/**
+ * A situação do casal em uma ou duas palavras, para "Editar página e laços" e a página do laço. Quando um
+ * dos dois já faleceu, no passado (QA de 18/11/2026: o laço do Vô Tonho dizia "Juntos"): "foram casados",
+ * "viveram juntos", "namoraram", "foram amigos", "se separaram". `elas` é quando as duas são tratadas
+ * como "ela".
+ */
+export function situacaoDoCasal(casal: Pick<Casal, 'fases' | 'jaDaFamilia'>, passado: { faleceu: boolean; elas?: boolean } = { faleceu: false }): string {
   const como: ComoOCasalAparece = comoOCasalAparece(casal);
+  if (passado.faleceu) {
+    if (como === 'amizade') return passado.elas ? 'foram amigas' : 'foram amigos';
+    if (como === 'namoro' || como === 'namoro-que-acabou') return 'namoraram';
+    if (como === 'casal') return auge(casal) === 'casamento' ? (passado.elas ? 'foram casadas' : 'foram casados') : 'viveram juntos';
+    return 'se separaram';
+  }
   if (como === 'amizade') return 'hoje, amigos';
   if (como === 'namoro') return 'namorando';
   if (como === 'casal') return 'juntos';

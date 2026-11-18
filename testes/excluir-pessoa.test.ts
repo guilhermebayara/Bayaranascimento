@@ -113,6 +113,23 @@ describe.skipIf(!comSqlite)('excluir pessoa no banco', async () => {
     expect(resposta).toEqual({ resposta: 'excluida', resolvido_por: 'gui' });
     await repo.restaurarPessoa('ex-tia-cida');
   });
+
+  it('restaurar pela lixeira leva à página da pessoa, e ela sai da lixeira (QA de 18/11/2026)', async () => {
+    const rota = await import('../src/pages/api/pessoas-excluidas');
+    const pedir = async (campos: Record<string, string>) => {
+      const f = new FormData();
+      for (const [k, v] of Object.entries(campos)) f.set(k, v);
+      const request = new Request('http://localhost/api/pessoas-excluidas', { method: 'POST', headers: { Origin: 'http://localhost' }, body: f });
+      const r = await rota.POST({ request, locals: { usuario: gui } } as never);
+      return decodeURIComponent((r.headers.get('Location') ?? '').replace(/\+/g, ' '));
+    };
+    expect(await pedir({ acao: 'excluir', pessoa: 'ex-tia-cida' })).toMatch(/^\/pessoas\?ok=/);
+    expect((await repo.listarPessoasExcluidas()).map((p) => p.id)).toContain('ex-tia-cida');
+    const destino = await pedir({ acao: 'restaurar', pessoa: 'ex-tia-cida' });
+    expect(destino).toMatch(/^\/pessoas\/ex-tia-cida\?ok=/);
+    expect(destino).not.toContain('/lixeira');
+    expect((await repo.listarPessoasExcluidas()).map((p) => p.id)).not.toContain('ex-tia-cida');
+  });
 });
 
 describe('as telas de excluir pessoa', () => {
