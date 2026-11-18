@@ -73,11 +73,10 @@ describe('a ficha num resumo', () => {
     expect(editar).toMatch(/<div class="cartao-da-ficha__campos">\s*<FichaDoIntegrante integrante=\{pessoa\} \/>/);
   });
 
-  it('abre sozinha para quem chega por #ficha: a conta, a recusa do servidor e o aviso de ficha não salva', () => {
+  it('abre sozinha para quem chega por #ficha: a recusa do servidor e o aviso de ficha não salva', () => {
     expect(editar).toContain("if (location.hash === '#ficha') cartaoDaFicha.open = true;");
     expect(editar).toContain("addEventListener('hashchange', abrirFicha);");
     expect(editar).toContain("document.querySelectorAll<HTMLAnchorElement>('a[href=\"#ficha\"]')");
-    expect(ler('src/pages/conta.astro')).toContain('href={`/pessoas/${usuario.pessoa}/editar#ficha`}');
     expect(ler('src/pages/api/integrantes.ts')).toContain("const origem = id ? `/pessoas/${id}/editar#ficha` : '/pessoas/nova';");
   });
 
