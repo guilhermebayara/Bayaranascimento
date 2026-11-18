@@ -517,6 +517,26 @@ html:has(.galeria[open]) {
   .abre > .abre__texto {
     grid-column: 1 / span 6;
   }
+  /* Reagir, os dois atalhos e o menu numa linha só, nesta ordem (sugestão do Gui, 18/11/2026). O menu
+     fica junto do resto, e não solto na ponta da coluna. */
+  .abre__acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--e-2) var(--e-5);
+    margin-top: var(--e-5);
+  }
+  .abre__acoes > .abre__atalho,
+  .abre__acoes > .abre__reagir {
+    display: contents;
+  }
+  .abre__acoes .reacoes {
+    order: -1;
+    margin-left: calc(var(--e-2) * -1);
+  }
+  .abre__acoes .menu-acoes {
+    margin-left: calc(var(--e-3) * -1);
+  }
   .abre > .abre__foto {
     grid-column: 8 / -1;
     width: 72%;

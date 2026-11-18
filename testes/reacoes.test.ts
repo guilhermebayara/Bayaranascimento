@@ -167,3 +167,17 @@ describe.skipIf(!comSqlite)('reações pela rota', async () => {
     expect(TABELAS_APAGADAS.indexOf('reacoes')).toBeLessThan(TABELAS_APAGADAS.indexOf('memorias'));
   });
 });
+
+// A paleta encostava no texto em volta (observação do Gui, 18/11/2026)
+describe('a paleta de reações', () => {
+  const pecas = readFileSync('src/visual/pecas.css', 'utf-8');
+  const paleta = pecas.slice(pecas.indexOf('.reacoes__paleta {'), pecas.indexOf('}', pecas.indexOf('.reacoes__paleta {')));
+  it('abre com respiro: longe do botão e com folga por dentro e entre os símbolos', () => {
+    expect(paleta).toContain('bottom: calc(100% + var(--e-3));');
+    expect(paleta).toContain('gap: var(--e-2);');
+    expect(paleta).toContain('padding: var(--e-2) var(--e-3);');
+  });
+  it('a ponte embaixo cobre o vão, para o mouse chegar à paleta sem ela fechar', () => {
+    expect(pecas).toMatch(/\.reacoes__paleta::after \{[^}]*inset: 100% 0 auto;[^}]*height: var\(--e-3\);/);
+  });
+});

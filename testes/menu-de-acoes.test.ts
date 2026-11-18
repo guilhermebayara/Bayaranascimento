@@ -44,3 +44,18 @@ describe('a memória, o relato e a foto', () => {
     expect(sugerir).toContain("Astro.url.searchParams.get('relato')");
   });
 });
+
+// Sugestão do Gui (18/11/2026): no computador, o menu da memória ficava escondido na ponta da coluna
+describe('o alto da memória no computador', () => {
+  const css = readFileSync('src/visual/telas/memoria.css', 'utf-8');
+  it('reagir, os dois atalhos e o menu numa linha só, com reagir primeiro', () => {
+    expect(pagina).toMatch(/<div class="abre__acoes">\s*\{[^}]*\}\s*<p class="abre__atalho">/);
+    const tela = css.slice(css.indexOf('.abre__acoes {'));
+    expect(tela).toMatch(/\.abre__acoes \{[^}]*display: flex;/);
+    expect(tela).toMatch(/\.abre__acoes > \.abre__atalho,\s*\.abre__acoes > \.abre__reagir \{\s*display: contents;/);
+    expect(tela).toMatch(/\.abre__acoes \.reacoes \{\s*order: -1;/);
+    // Só no computador: no celular, o menu continua à direita, embaixo dos atalhos
+    const antes = css.slice(0, css.indexOf('.abre__acoes {'));
+    expect(antes.lastIndexOf('@media (min-width: 62rem)')).toBeGreaterThan(antes.lastIndexOf('}\n}'));
+  });
+});

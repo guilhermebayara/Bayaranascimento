@@ -981,17 +981,26 @@ textarea.campo__entrada {
   text-decoration-thickness: var(--traco);
   text-underline-offset: 0.2em;
 }
+/* A paleta abre por cima, com respiro: longe do botão, do que vem em cima e entre os símbolos, para não
+   encostar no texto em volta (observação do Gui, 18/11/2026). A ponte invisível embaixo cobre o vão, para
+   o mouse ir do coração à paleta sem ela fechar. */
 .reacoes__paleta {
   position: absolute;
-  bottom: calc(100% + var(--e-1));
-  left: 0;
+  bottom: calc(100% + var(--e-3));
+  left: calc(var(--e-2) * -1);
   z-index: 5;
   display: flex;
-  gap: var(--e-1);
-  padding: var(--e-1);
-  border-radius: var(--raio-moldura);
+  gap: var(--e-2);
+  padding: var(--e-2) var(--e-3);
+  border-radius: var(--raio-bloco);
   background: var(--branco);
   box-shadow: var(--sombra-bilhete);
+}
+.reacoes__paleta::after {
+  content: '';
+  position: absolute;
+  inset: 100% 0 auto;
+  height: var(--e-3);
 }
 @media (prefers-reduced-motion: no-preference) {
   .reacoes__mais[open] .reacoes__paleta {
