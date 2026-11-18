@@ -1,6 +1,7 @@
 // "Sua conta": junta, para quem está logado, as listas de src/lib/conta.ts. A tela é src/pages/conta.astro.
 import { administracao, fraseDaLixeira, oQueVoceCriou, pendenciasDaAdministracao, seusLacos, seusRascunhos, suaLixeira, type SituacaoDaAdministracao } from '../conta';
 import { emMegabytes, LIMITE_DO_PLANO, situacaoDoBanco } from '../tamanho-do-banco';
+import { AJUSTE_DOS_CENTROS } from '../centros-da-arvore';
 import { fraseDoEspaco, notaDosSemMedida, situacaoDoEspaco } from '../espaco-dos-arquivos';
 import { lerAcessos, semLogin } from './acesso';
 import { ambiente, bucketDeFotos } from './ambiente';
@@ -17,6 +18,7 @@ import {
   listarRelatosRegistradosPor,
   listarTipos,
   espacoDosArquivos,
+  lerAjuste,
   contarFotosSoltas,
   medirArquivosDeAntes,
   obterCarta,
@@ -78,7 +80,12 @@ export async function montarConta(usuario: Usuario) {
     }
   }
   const situacao: SituacaoDaAdministracao | undefined = usuario.admin
-    ? { ...(await situacaoDasPendencias()), tipos: (await listarTipos()).length, familias: (await listarNucleos()).length }
+    ? {
+        ...(await situacaoDasPendencias()),
+        tipos: (await listarTipos()).length,
+        familias: (await listarNucleos()).length,
+        centros: ((c) => (Array.isArray(c) && c.length ? c.length : null))(await lerAjuste(AJUSTE_DOS_CENTROS)),
+      }
     : undefined;
   const banco = situacao?.banco ? situacaoDoBanco(situacao.banco.bytes) : undefined;
   const arquivos = usuario.admin ? await espacoDosArquivos() : undefined;

@@ -754,6 +754,20 @@ export const MIGRACOES: Migracao[] = [
       )`,
     ],
   },
+  {
+    // Ajustes do acervo que os administradores escolhem no site, um por chave, com o valor em JSON. O
+    // primeiro: os centros da árvore (onda 2, decisão do Gui de 17/11/2026), de quem é a linha direta
+    // quando a árvore abre. A versão de antes vai para o histórico (versoes, tipo 'ajuste').
+    id: '073-ajustes-do-acervo',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS ajustes (
+        chave TEXT PRIMARY KEY,
+        valor TEXT NOT NULL,
+        mudado_por TEXT,
+        mudado_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

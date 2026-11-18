@@ -121,6 +121,8 @@ export interface ItemDeAdministracao {
 export interface SituacaoDaAdministracao {
   tipos: number;
   familias: number;
+  /** quantas pessoas os administradores escolheram como centros da árvore; vazio no padrão */
+  centros?: number | null;
   /** a carta de Natal mais recente, ou null se ninguém escreveu */
   carta: { escritaEm: string } | null;
   banco?: { bytes: number; passouDoAviso: boolean };
@@ -236,6 +238,7 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
   return [
     { rotulo: 'Tipos de momento', href: '/admin/tipos', situacao: situacao && plural(situacao.tipos, 'tipo', 'tipos') },
     { rotulo: 'Famílias', href: '/admin/familias', situacao: situacao && plural(situacao.familias, 'família', 'famílias') },
+    { rotulo: 'Centros da árvore', href: '/admin/arvore', situacao: situacao && (situacao.centros ? plural(situacao.centros, 'pessoa escolhida', 'pessoas escolhidas') : 'o padrão') },
     {
       rotulo: 'Carta de Natal',
       href: '/admin/carta',

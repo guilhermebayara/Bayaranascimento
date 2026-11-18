@@ -1,0 +1,77 @@
+---
+// Os centros da árvore (onda 2, decisão do Gui de 17/11/2026): de quem é a linha direta quando a
+// árvore abre, para todo mundo. "Partir de" continua para todos. Regras em src/lib/centros-da-arvore.ts.
+import Pagina from '../../components/formularios/Pagina.astro';
+import { formatarMomento } from '../../lib/datas';
+import { AJUSTE_DOS_CENTROS, CENTROS_PADRAO, MAXIMO_DE_CENTROS, centrosDaArvore } from '../../lib/centros-da-arvore';
+import { comLacoDeArvore } from '../../lib/arvore-montagem';
+import { outrosAdmins } from '../../lib/servidor/conteudo';
+import { lerAjuste, listarCasais, listarFiliacoes, listarIntegrantes, listarIntegrantesQueVe, quemMudouOAjuste } from '../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
+
+// Só oferece quem o administrador vê e tem laço de árvore: de quem não tem, a árvore seria só a pessoa
+const integrantes = await listarIntegrantesQueVe(usuario);
+const casais = await listarCasais(usuario);
+const comLaco = comLacoDeArvore({ filiacoes: await listarFiliacoes(), casais: casais.filter((c) => c.fases.length > 0) });
+const opcoes = integrantes.filter((i) => comLaco.has(i.id)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+const serve = (id: string) => opcoes.some((i) => i.id === id);
+const guardado = await lerAjuste(AJUSTE_DOS_CENTROS);
+const atuais = centrosDaArvore(guardado, serve);
+const ehPadrao = !Array.isArray(guardado) || atuais.join() === CENTROS_PADRAO.filter(serve).join();
+const nome = (id: string) => integrantes.find((i) => i.id === id)?.nome ?? id;
+const mudado = await quemMudouOAjuste(AJUSTE_DOS_CENTROS);
+const todos = await listarIntegrantes();
+const quemMudou = mudado?.por ? (todos.find((i) => i.id === mudado.por)?.apelido ?? todos.find((i) => i.id === mudado.por)?.nome) : undefined;
+const outros = outrosAdmins(usuario.pessoa, todos);
+const lugares = Array.from({ length: MAXIMO_DE_CENTROS }, (_, n) => atuais[n] ?? '');
+const emLista = (nomes: string[]) => (nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}` : (nomes[0] ?? ''));
+const ORDINAIS = ['Primeira pessoa', 'Segunda pessoa', 'Terceira pessoa', 'Quarta pessoa'];
+---
+
+<Pagina titulo="Centros da árvore" rotulo="Administração" secao="conta" larga>
+  <Fragment slot="abertura">
+    <p>
+      A árvore abre na linha direta destas pessoas, para todo mundo. Os tios, primos e sobrinhos delas ficam em ramos recolhidos. Cada pessoa continua podendo partir de quem quiser, em “Ajustar a árvore”. {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}
+    </p>
+    <p class="acoes">
+      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+    </p>
+  </Fragment>
+
+  <section class="painel">
+    <h2>A árvore abre em</h2>
+    <p class="dica">
+      Hoje: {emLista(atuais.map(nome))}{ehPadrao ? ', o padrão do site' : ''}.
+      {quemMudou && mudado && ` Mudado por ${quemMudou} em ${formatarMomento(mudado.em)}.`}
+    </p>
+    <form class="formulario" method="post" action="/api/ajustes" data-centros>
+      <input type="hidden" name="acao" value="centros" />
+      {lugares.map((id, n) => (
+        <label class="campo">
+          <span>{ORDINAIS[n]}{n > 0 && <small> (opcional)</small>}</span>
+          <select name="centro" required={n === 0}>
+            <option value="">{n === 0 ? 'Escolha alguém' : 'Ninguém'}</option>
+            {opcoes.map((i) => <option value={i.id} selected={i.id === id}>{i.nome}</option>)}
+          </select>
+        </label>
+      ))}
+      <p class="dica">Até {MAXIMO_DE_CENTROS} pessoas. Só aparece quem tem pais, filhos ou casal no acervo.</p>
+      <div class="acoes">
+        <button class="botao" type="submit">Salvar os centros</button>
+      </div>
+    </form>
+    {!ehPadrao && (
+      <form method="post" action="/api/ajustes" class="acoes">
+        <input type="hidden" name="acao" value="centros-padrao" />
+        <button class="botao botao--leve" type="submit">Voltar ao padrão ({emLista(CENTROS_PADRAO.filter(serve).map(nome))})</button>
+      </form>
+    )}
+  </section>
+</Pagina>
+
+<script>
+  import { buscaDePessoa } from '../../lib/cliente/busca-pessoa';
+  for (const lista of document.querySelectorAll<HTMLSelectElement>('[data-centros] select[name="centro"]')) buscaDePessoa(lista);
+</script>

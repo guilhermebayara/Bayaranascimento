@@ -109,7 +109,7 @@ describe('administração', () => {
 
   it('para os administradores, com o espelho só onde ele existe', () => {
     const naProducao = administracao({ admin: true }, { podeEspelhar: false }).map((i) => i.rotulo);
-    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Carta de Natal', 'Fotos sem memória', 'Sistema visual', 'Baixar cópia do acervo']);
+    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal', 'Fotos sem memória', 'Sistema visual', 'Baixar cópia do acervo']);
     expect(administracao({ admin: true }, { podeEspelhar: true }).map((i) => i.rotulo)).toContain('Espelho da produção');
   });
 });
@@ -133,6 +133,7 @@ describe('administração: situação e pendências', () => {
     expect(itens.map((i) => [i.rotulo, i.situacao])).toEqual([
       ['Tipos de momento', '14 tipos'],
       ['Famílias', '3 famílias'],
+      ['Centros da árvore', 'o padrão'],
       ['Carta de Natal', 'escrita em 2026'],
       ['Fotos sem memória', 'nenhuma'],
       ['Sistema visual', 'tokens e peças'],

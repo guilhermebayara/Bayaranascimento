@@ -1995,3 +1995,32 @@ export async function salvarComoOExAparece(usuario: Usuario, pessoa: string, mod
     .bind(usuario.pessoa, pessoa, modo)
     .run();
 }
+
+// --- Ajustes do acervo, escolhidos pelos administradores (migração 073) ---
+
+/** O valor de um ajuste, já lido do JSON, ou nada. */
+export async function lerAjuste(chave: string): Promise<unknown> {
+  const linha = await db().prepare('SELECT valor FROM ajustes WHERE chave = ?').bind(chave).first<{ valor: string }>();
+  if (!linha) return undefined;
+  try {
+    return JSON.parse(linha.valor);
+  } catch {
+    return undefined;
+  }
+}
+
+/** Guarda um ajuste. O valor de antes vai para o histórico, com quem mudou. */
+export async function salvarAjuste(chave: string, valor: unknown, usuario: Usuario): Promise<void> {
+  await db().batch([
+    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) SELECT 'ajuste', chave, valor, ? FROM ajustes WHERE chave = ?`).bind(usuario.pessoa, chave),
+    db()
+      .prepare(`INSERT INTO ajustes (chave, valor, mudado_por) VALUES (?, ?, ?) ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor, mudado_por = excluded.mudado_por, mudado_em = datetime('now')`)
+      .bind(chave, JSON.stringify(valor), usuario.pessoa),
+  ]);
+}
+
+/** Quem mudou o ajuste por último, e quando. */
+export async function quemMudouOAjuste(chave: string): Promise<{ por: string | null; em: string } | undefined> {
+  const linha = await db().prepare('SELECT mudado_por, mudado_em FROM ajustes WHERE chave = ?').bind(chave).first<{ mudado_por: string | null; mudado_em: string }>();
+  return linha ? { por: linha.mudado_por, em: linha.mudado_em } : undefined;
+}

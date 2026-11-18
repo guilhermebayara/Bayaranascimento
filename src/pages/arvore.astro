@@ -17,13 +17,14 @@ import { Familia, estaoJuntos, lacoParaODono, nomeDoPapel, possessivo, type Trat
 import type { DadosDaArvore } from '../lib/cliente/arvore';
 import { cantoReto } from '../lib/arvore-desenho';
 import { aplicarComoOsExesAparecem, comLacoDeArvore } from '../lib/arvore-montagem';
+import { AJUSTE_DOS_CENTROS, centrosDaArvore } from '../lib/centros-da-arvore';
 import { pessoasQueNaoVe } from '../lib/servidor/permissoes';
 import { enderecoDoRetrato, iniciais } from '../lib/retratos';
-import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarNucleos, pessoasEmLacosPrivadosDeOutros } from '../lib/servidor/repositorio';
+import { comoOsExesAparecem, familiasDe, lerAjuste, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarNucleos, pessoasEmLacosPrivadosDeOutros } from '../lib/servidor/repositorio';
 
-// De quem é a linha direta mostrada quando a árvore abre: os três que unem os núcleos.
-// Quem quiser parte de outra pessoa pelo seletor "Partir de" ou pela ficha.
-const CENTROS_PADRAO = ['gui', 'giovanna', 'lucas-magno'];
+// De quem é a linha direta mostrada quando a árvore abre: a escolha dos administradores, em
+// Administração, ou os três que unem os núcleos (src/lib/centros-da-arvore.ts). Quem quiser parte de
+// outra pessoa pelo seletor "Partir de" ou pela ficha.
 
 const { usuario } = Astro.locals;
 const todos = await listarIntegrantes();
@@ -40,7 +41,9 @@ const temLacoVisivel = new Set<string>([usuario.pessoa, ...filiacoes.flatMap((f)
 const naoVe = pessoasQueNaoVe(soEmPrivados, temLacoVisivel);
 const integrantes = todos.filter((i) => !naoVe.has(i.id));
 const resumidos = (await listarLacosResumidos()).filter((r) => integrantes.some((i) => i.id === r.a) && integrantes.some((i) => i.id === r.b));
-const centros = CENTROS_PADRAO.filter((id) => integrantes.some((i) => i.id === id));
+// Só serve de centro quem quem olha vê e tem laço de árvore
+const comLacoDeArvoreVisivel = comLacoDeArvore({ filiacoes, casais: casais.filter((c) => c.fases.length > 0) });
+const centros = centrosDaArvore(await lerAjuste(AJUSTE_DOS_CENTROS), (id) => integrantes.some((i) => i.id === id) && comLacoDeArvoreVisivel.has(id));
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const familia = new Familia(filiacoes, casais, tratamentos);
 const minuscula = (texto: string) => texto.charAt(0).toLowerCase() + texto.slice(1);

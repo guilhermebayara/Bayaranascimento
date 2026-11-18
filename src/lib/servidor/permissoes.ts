@@ -392,3 +392,8 @@ export function podeApagarDeVez(usuario: Usuario, item: { naLixeira: boolean }):
 export function podeApagarFotoSolta(usuario: Usuario): Decisao {
   return usuario.admin ? sim : nao('Só os administradores apagam fotos sem memória.');
 }
+
+/** Os ajustes do acervo (os centros da árvore): só os administradores (onda 2, 17/11/2026). */
+export function podeMudarAjustes(usuario: Usuario): Decisao {
+  return usuario.admin ? sim : nao('Só os administradores mudam os ajustes do acervo.');
+}
