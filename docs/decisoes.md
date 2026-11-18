@@ -603,6 +603,16 @@ Origem: [histórico, "Visual"](historico/decisoes-ate-2026-11-17.md#visual).
 
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
+- **Observações do Gui na homologação, depois da sessão F** (18/11/2026). Cada ponto com o endereço em que ele viu.
+    - **Árvore, defeito** (`/arvore`): na ficha da pessoa, "Ver a página" e "Ver o laço" ficam um em cima do outro.
+    - **Editar pessoa, defeito** (`/pessoas/gui/editar`): o cartão da ficha não alinha com os cartões dos laços abaixo.
+    - **Homologação com a família de verdade.** O espelho passa a trazer os nomes, os retratos e os laços reais, sem anonimizar. As memórias continuam as de exemplo, e nada que alguém escreva de verdade (relatos, textos, fotos de memória) passa para lá. Os retratos chegam junto com a cópia que se envia no "Espelho da produção" e são gravados no bucket da homologação; a produção nunca grava na homologação. Atualizar `src/lib/espelho.ts`, o teste do espelho, a guarda e o `CLAUDE.md`. A faixa do alto da homologação fica bem marcada, como símbolo do ambiente, para ninguém confundir com o site de verdade.
+    - **Sua conta, administração** (`/conta`): a inclusão foi boa, mas quebrou o layout da página. Agrupar os atalhos por tema, simplificar os cartões verdes, pôr as barras de espaço (banco e fotos e áudios) lado a lado e deixar o painel mais enxuto, ocupando menos espaço.
+    - **Ex que virou amigo** (caso do Thiago): casal cuja fase atual é "amizade" aparece na árvore com a linha tracejada do coração, e não como ex-casal, automaticamente. A história do namoro continua na página do laço.
+    - **Reações, refeitas no padrão das redes:** um toque marca o coração, com animação e sem recarregar; segurar (ou passar o mouse) abre as quatro, cada uma com o nome. Ao lado, as reações recebidas com o número; tocar no número mostra quem marcou (sai o link "Quem marcou"). Valem para a memória, para cada relato e para cada foto.
+    - **Ações da memória, do relato e da foto num botão de menu** (os três pontos), como nas plataformas que a família já usa: reagir fica à vista, e compartilhar, sugerir correção e o recado ao autor do relato moram no menu. Hoje estão escondidos no pé e quase invisíveis, e o recado logo abaixo do relato não funciona como está.
+    - **Imagem de compartilhar:** a estrutura funciona. Corrigir a sobreposição no fim (o nome de quem contou passa por cima da assinatura). Sai a assinatura com o nome do site; no lugar, o monograma como marca d'água leve, atrás, de enfeite. O resto do acabamento fica para depois.
+    - Aprovados como estão: juntar duplicados, fotos sem memória, centros da árvore, transcrição, lixeira, histórico de pessoas e laços, "bichinho" e o texto da tarja do ex ("assunto encerrado").
 - **Respostas do Gui à sessão F** (18/11/2026). A construir:
     - **Ex "Fora" que é pai ou mãe de alguém que a pessoa vê vale como Discreto:** a tarja fica e o caminho até o filho e a família dele continua.
     - **Ex Discreto ou Fora sai dos aniversários do Início** de quem escolheu.
