@@ -1,0 +1,48 @@
+---
+// O slider de proximidade (proposta A do conceito da sessão J, escolha do Gui de 18/11/2026;
+// docs/decisoes.md, "Círculo"). Livre, sem etapas, do mais distante, à esquerda, ao mais próximo, à
+// direita. As pontas não têm texto: cada faixa tem o nome embaixo do trecho dela, com uma marca onde a
+// faixa muda, e a de agora fica em destaque e repetida no alto. "Fora do círculo" é um trecho à parte,
+// tracejado, antes da régua. O preenchimento é a cor viva da família da tela.
+//
+// Por baixo há um <input type="range"> de verdade, para o teclado, o leitor de tela e o envio sem script.
+// O script de src/lib/cliente/proximidade.ts acompanha a faixa e o preenchimento enquanto o slider anda;
+// a ficha do círculo monta esta mesma marcação por lá (criarProximidade).
+import { faixasDoSlider, lugarNoSlider, minimoDoSlider, nomeDaProximidade, porcentagemNoSlider, posicaoDoLugar, valorDaPosicao } from '../../lib/circulo';
+
+interface Props {
+  /** o id do slider, único na página */
+  id: string;
+  /** o valor guardado (0 colado no centro, 100 fora do círculo) */
+  valor: number;
+  /** se "Fora do círculo" é opção; sem ela, a régua começa em Conhecido */
+  comFora?: boolean;
+  rotulo?: string;
+  /** o nome do campo, quando o slider vai num formulário */
+  nome?: string;
+  /** o id do texto de ajuda, lido junto */
+  descricao?: string;
+}
+
+const { id, valor, comFora = true, rotulo = 'Proximidade', nome, descricao } = Astro.props;
+const lugar = lugarNoSlider(valor, comFora);
+const faixa = nomeDaProximidade(valorDaPosicao(posicaoDoLugar(lugar)));
+const faixas = faixasDoSlider(comFora);
+---
+
+<div class:list={['prox', { 'prox--com-fora': comFora }]} data-proximidade data-com-fora={comFora ? '' : undefined} style={`--pos:${porcentagemNoSlider(lugar, comFora)};--fora:${comFora ? faixas[0]!.ate : 0};--colunas:${faixas.map((f) => `${f.largura}fr`).join(' ')}`}>
+  <div class="prox__alto">
+    <label for={id}>{rotulo}</label>
+    <output for={id}>{faixa}</output>
+  </div>
+  <div class="prox__barra">
+    <span class="prox__fora"></span>
+    <span class="prox__trilho"></span>
+    <span class="prox__cheio"></span>
+    <span class="prox__marcas" aria-hidden="true">{faixas.slice(0, -1).map((f) => <i style={`--em:${f.ate}`} />)}</span>
+    <input type="range" id={id} name={nome} min={minimoDoSlider(comFora)} max="100" step="1" value={lugar} aria-valuetext={faixa} aria-describedby={descricao} />
+  </div>
+  <div class="prox__faixas" aria-hidden="true">
+    {faixas.map((f) => <span data-faixa={f.nome} data-atual={f.nome === faixa ? '' : undefined}>{f.curto}</span>)}
+  </div>
+</div>

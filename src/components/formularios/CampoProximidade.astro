@@ -1,35 +1,27 @@
 ---
 // O slider de proximidade nos formulários (decisão do Gui, 18/11/2026; docs/decisoes.md, "Círculo"): o
-// mesmo valor do círculo, do mais distante, à esquerda, ao mais próximo, à direita, como se aumentasse a
-// proximidade. A seta para a direita e para cima aproxima, e o leitor de tela diz a faixa. O valor
-// guardado continua o de sempre (src/lib/circulo.ts): o campo manda a posição, e a de quando a página
-// abriu, para o servidor saber se a pessoa mexeu (o slider sempre tem um valor, e não mexer é não dizer).
-// O script de src/lib/cliente/proximidade.ts acompanha a faixa enquanto o slider anda.
-import { nomeDaProximidade, pontasDoSlider, posicaoDoSlider, posicaoMinima, valorDaPosicao } from '../../lib/circulo';
+// mesmo valor do círculo, com o desenho da peça Proximidade. O valor guardado continua o de sempre
+// (src/lib/circulo.ts): o campo manda o lugar do slider, e o de quando a página abriu, para o servidor
+// saber se a pessoa mexeu (o slider sempre tem um valor, e não mexer é não dizer).
+import Proximidade from '../visual/Proximidade.astro';
+import { lugarNoSlider } from '../../lib/circulo';
 
 interface Props {
   /** o id do slider, único na página */
   id: string;
   /** o valor guardado (0 colado no centro, 100 fora do círculo) */
   valor: number;
-  /** se "Fora do círculo" é a ponta esquerda; sem ela, o slider começa em Conhecido */
+  /** se "Fora do círculo" é opção; sem ela, o slider começa em Conhecido */
   comFora?: boolean;
   rotulo?: string;
   dica?: string;
 }
 
 const { id, valor, comFora = true, rotulo = 'Proximidade', dica } = Astro.props;
-// Onde fora do círculo não é opção, quem está fora aparece na ponta de Conhecido, e não mexer não muda nada
-const posicao = Math.max(posicaoDoSlider(valor), posicaoMinima(comFora));
-const faixa = nomeDaProximidade(valorDaPosicao(posicao));
-const [esquerda, direita] = pontasDoSlider(comFora);
 ---
 
-<div class="campo campo-proximidade" data-proximidade>
-  <label for={id}>{rotulo}</label>
-  <output for={id}>{faixa}</output>
-  <input type="range" id={id} name="posicao" min={posicaoMinima(comFora)} max="100" step="1" value={posicao} aria-valuetext={faixa} aria-describedby={dica ? `${id}-dica` : undefined} />
-  <span class="campo-proximidade__pontas" aria-hidden="true"><span>{esquerda}</span><span>{direita}</span></span>
-  <input type="hidden" name="posicaoAntes" value={posicao} />
+<div class="campo campo-proximidade">
+  <Proximidade id={id} valor={valor} comFora={comFora} rotulo={rotulo} nome="posicao" descricao={dica ? `${id}-dica` : undefined} />
+  <input type="hidden" name="posicaoAntes" value={lugarNoSlider(valor, comFora)} />
   {dica && <p class="dica" id={`${id}-dica`}>{dica}</p>}
 </div>
