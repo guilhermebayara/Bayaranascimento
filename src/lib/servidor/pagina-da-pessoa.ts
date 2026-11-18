@@ -5,7 +5,7 @@
 // src/lib/pagina-da-pessoa.ts.
 import { duracaoEmTexto } from '../audios';
 import { nomeDaProximidade } from '../circulo';
-import { formatarData, jaFaleceu, vidaSemRotulo } from '../datas';
+import { formatarData, formatarDiaMes, jaFaleceu, vidaSemRotulo } from '../datas';
 import { apareceComoCasal, apareceComoCoracao, exDoAmigo, viraramAmigos } from '../ex-casal';
 import { enderecoDoLaco } from '../pagina-do-laco';
 import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../parentesco';
@@ -14,6 +14,7 @@ import { apelidoAoLado } from '../ordem-das-pessoas';
 import { idadeNoAno } from '../pagina-da-pessoa';
 import { corDaPessoa, corDoNucleo, trechoDoRelato } from '../visual';
 import { pessoasComAcesso } from './acesso';
+import { conversaDosRelatos } from './conversa';
 import { proximidadesDoCirculo } from './circulo';
 import { podeEditarIntegrante, podeMexerEmLaco, type Usuario } from './permissoes';
 import {
@@ -97,11 +98,29 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
   const temLacoDeArvore = pais.length > 0 || filhos.length > 0 || casais.some((c) => apareceComoCasal(c.casal));
   const resumidos = (await listarLacosResumidos()).filter((l) => l.a === pessoa.id || l.b === pessoa.id);
   const audios = (await listarAudiosDe(usuario, pessoa.id)).map((a) => ({ ...a, duracaoEmTexto: duracaoEmTexto(a.duracao) }));
-  const relatos = (await listarRelatosDe(usuario, pessoa.id)).map((r) => ({ ...r, trecho: trechoDoRelato(r.texto, 180) })).filter((r) => r.trecho);
+  // Os relatos que a pessoa contou, como mensagens (o modelo da conversa da página da memória; pedido do
+  // Gui, 18/11/2026). Os que têm áudio vêm primeiro, para a voz dela aparecer logo; depois, do mais
+  // recente ao mais antigo. As fotos das mensagens são as das memórias que quem olha vê
+  const relatosDela = await listarRelatosDe(usuario, pessoa.id);
+  const fotosDasMemorias = todasComEla.flatMap((m) => m.fotos);
+  const conversa = await conversaDosRelatos(relatosDela, fotosDasMemorias, (id) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome ?? id);
+  const comAudio = (id: number) => (conversa.get(id) ?? []).some((m) => m.tipo === 'audio');
+  const relatos = relatosDela
+    .map((r) => ({ ...r, trecho: trechoDoRelato(r.texto, 180), mensagens: conversa.get(r.id) ?? [] }))
+    .filter((r) => r.mensagens.length > 0)
+    .sort((a, b) => Number(comAudio(b.id)) - Number(comAudio(a.id)));
   const podeEditar = podeEditarIntegrante(usuario, pessoa, await pessoasComAcesso()).ok || podeMexerEmLaco(usuario, [pessoa]).ok;
   const parentesco = paraVoce ? possessivo(paraVoce, pessoa.tratamento) : meuLaco ? lacoParaODono(meuLaco.nome, pessoa.tratamento) : null;
   const temDataOculta = Boolean(pessoa.falecimentoAno);
   const vida = vidaSemRotulo(pessoa, mostrarDatas);
+  // As datas em partes, para o quadro: o ano grande e o dia e o mês ao lado. O falecimento vai na página
+  // sempre, escondido, e "Mostrar datas" o mostra no lugar, sem recarregar (pedido do Gui, 18/11/2026)
+  const nascimento = pessoa.nascimentoAno
+    ? { ano: pessoa.nascimentoAno, diaMes: formatarDiaMes({ ano: pessoa.nascimentoAno, mes: pessoa.nascimentoMes ?? null, dia: pessoa.nascimentoDia ?? null, aproximada: false }) }
+    : null;
+  const falecimento = pessoa.falecimentoAno
+    ? { ano: pessoa.falecimentoAno, diaMes: formatarDiaMes({ ano: pessoa.falecimentoAno, mes: pessoa.falecimentoMes ?? null, dia: pessoa.falecimentoDia ?? null, aproximada: false }) }
+    : null;
   const historiaDoCasal = (casal: (typeof casais)[number]['casal']) =>
     casal.fases.map((fase, n) => [FASES[fase.tipo].toLowerCase(), periodosDasFases(casal.fases)[n]].filter(Boolean).join(' ')).join(', depois ') +
     (casal.visibilidade === 'privado' ? ' (só os dois veem)' : casal.visibilidade === 'nucleos' ? ' (só as famílias escolhidas veem)' : '');
@@ -192,6 +211,8 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
     falecida: jaFaleceu(pessoa),
     parentesco,
     vida,
+    nascimento,
+    falecimento,
     temDataOculta,
     mostrarDatas,
     podeEditar,

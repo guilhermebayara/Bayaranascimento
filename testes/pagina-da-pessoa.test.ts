@@ -1,4 +1,5 @@
 // A página da pessoa, proposta A do conceito da sessão L ("o verbete", escolha do Gui de 18/11/2026).
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { FORMAS_DA_VIDA, enderecoDaVida, fasesDaVida, fraseDoAcervo, idadeNoAno, lerFormaDaVida, mostraRascunhoNaVida, nomeDaFormaDaVida, textoDaIdade } from '../src/lib/pagina-da-pessoa';
 
@@ -52,5 +53,43 @@ describe('a frase de abertura sem "Sobre"', () => {
     expect(fraseDoAcervo({ nome: 'Lourdes', memorias: 0, relatos: 0, eu: false })).toBe('Lourdes ainda não aparece em nenhuma memória do acervo.');
     expect(fraseDoAcervo({ nome: 'Gui', memorias: 1, de: 2010, ate: 2010, relatos: 0, eu: true })).toBe('Você aparece em 1 memória do acervo, em 2010.');
     expect(fraseDoAcervo({ nome: 'Bela', memorias: 3, de: 1990, ate: 2000, relatos: 1, eu: false })).toBe('Bela aparece em 3 memórias do acervo, de 1990 a 2000, e contou uma delas.');
+  });
+});
+
+describe('a página, depois das observações do Gui (18/11/2026)', () => {
+  const ler = (c: string) => readFileSync(c, 'utf-8');
+  const pagina = ler('src/pages/pessoas/[id]/index.astro');
+  const css = ler('src/visual/telas/pessoa.css');
+
+  it('o quadro é como o painel da árvore: partes em sanfona, uma aberta por vez, "Dados" aberta e "Na árvore" fechada com um resumo', () => {
+    expect(pagina).toMatch(/<details class="quadro__secao" name="quadro-da-pessoa" open>\s*<summary>\s*<span class="quadro__nome">Dados<\/span>/);
+    expect(pagina).toMatch(/<details class="quadro__secao" name="quadro-da-pessoa">\s*<summary>\s*<span class="quadro__nome">Na árvore<\/span>\s*<span class="quadro__resumo"/);
+    expect(pagina).toContain('<span class="quadro__conta ficha suave">{resumoDaArvore}</span>');
+  });
+  it('com mouse, o quadro acompanha a rolagem e rola por dentro; no toque, nada fica preso', () => {
+    const preso = css.slice(css.indexOf('@media (min-width: 62rem) and (hover: hover) and (pointer: fine)'));
+    expect(preso).toMatch(/position: sticky;[^}]*max-height: calc\(100vh - 2 \* var\(--e-5\)\);\s*overflow-y: auto;/);
+    expect(css.slice(0, css.indexOf('@media (min-width: 62rem) and (hover: hover) and (pointer: fine)'))).not.toMatch(/position: sticky/);
+  });
+  it('"Mostrar datas" e "Como você chama" não recarregam a página (o mínimo de recarregamentos)', () => {
+    expect(pagina).toMatch(/<div class="dados__data" data-falecimento hidden=\{!p\.mostrarDatas\}>/);
+    expect(pagina).toMatch(/falecimento\.hidden = !falecimento\.hidden;/);
+    expect(pagina).toMatch(/history\.replaceState\(history\.state, '', endereco\);/);
+    expect(pagina).toMatch(/<form class="como-chama__form" method="post" action="\/api\/apelidos" data-no-lugar="abertura">/);
+    expect(pagina).toMatch(/<div class="regiao" data-regiao="abertura">/);
+  });
+  it('as outras formas de ver são buscadas antes, para a troca ser imediata', () => {
+    const troca = ler('src/lib/cliente/explorar-troca.ts');
+    expect(troca).toMatch(/export function adiantar\(endereco: URL\): void/);
+    expect(troca).toMatch(/const texto = await buscarPagina\(endereco\);/);
+    expect(pagina).toMatch(/adiantar\(new URL\(link\.href\)\)/);
+  });
+  it('a linha do tempo e o mural cabem na coluna, ao lado do quadro', () => {
+    expect(css).toMatch(/\.verbete__vida--linha \.ano__numero \{\s*font-size: var\(--t-titulo-1\);/);
+    expect(css).toMatch(/\.verbete__vida \.mural,\s*\.verbete__vida \.mural\[data-tamanho\] \{\s*--colunas: 3;/);
+    expect(css).not.toMatch(/verbete__vida--mural\s*\{\s*grid-column: 1 \/ -1/);
+  });
+  it('o histórico da página aparece para quem pode mudá-la', () => {
+    expect(pagina).toMatch(/\{p\.podeEditar && \(\s*<a class="acao acao--quieta" href=\{`\/pessoas\/\$\{pessoa\.id\}\/historico`\}>/);
   });
 });

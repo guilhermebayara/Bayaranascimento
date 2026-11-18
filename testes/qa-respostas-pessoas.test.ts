@@ -169,8 +169,10 @@ describe('a página da pessoa', () => {
   it('os áudios só aparecem, e só contam, os que quem olha pode ouvir (P102)', () => {
     // A conta do quadro e a lista de "Nas palavras de" saem da mesma consulta, que já filtra pelo que a pessoa vê
     expect(pagina).toMatch(/const audios = \(await listarAudiosDe\(usuario, pessoa\.id\)\)/);
-    expect(pagina).toMatch(/<a class="acao acao--quieta" href="#palavras">\{plural\(p\.audios\.length, 'áudio', 'áudios'\)\}<\/a>/);
-    expect(pagina).toMatch(/<ol class="palavras__audios" id="audios">/);
+    // Os áudios são mensagens dos relatos dela, em "Nas palavras de", e o quadro conta quantos são
+    expect(pagina).toMatch(/<strong>\{p\.audios\.length\}<\/strong>/);
+    expect(pagina).toMatch(/<ol class="palavras__relatos" id="audios">/);
+    expect(pagina).toMatch(/<Mensagem mensagem=\{m\} de=\{chamar\} \/>/);
     const consulta = ler('src/lib/servidor/repositorio.ts');
     const audios = consulta.slice(consulta.indexOf('export async function listarAudiosDe'), consulta.indexOf('export async function listarRelatosDe'));
     expect(audios).toMatch(/a\.removido_em IS NULL AND r\.por = \?2 AND r\.situacao = 'publicada' AND m\.situacao = 'publicada' AND \$\{FILTRO_VISIVEL\}/);

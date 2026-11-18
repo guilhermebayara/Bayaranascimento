@@ -13,7 +13,7 @@ import Visual from '../../../layouts/Visual.astro';
 import Linha from '../../../components/explorar/Linha.astro';
 import Mural from '../../../components/explorar/Mural.astro';
 import VidaPorIdade from '../../../components/pessoa/VidaPorIdade.astro';
-import Audio from '../../../components/visual/Audio.astro';
+import Mensagem from '../../../components/conversa/Mensagem.astro';
 import Carimbo from '../../../components/visual/Carimbo.astro';
 import Gente from '../../../components/visual/Gente.astro';
 import PilulaDeFamilia from '../../../components/visual/PilulaDeFamilia.astro';
@@ -45,18 +45,24 @@ const abertura =
   sobre[0] ?? fraseDoAcervo({ nome: chamar, memorias: p.publicadas.length, de: p.periodo?.de, ate: p.periodo?.ate, relatos: p.relatos.length, eu: p.ehMinha });
 const restoDoSobre = sobre.slice(1);
 
-// A família de perto, para o quadro: quem está acima, ao lado e abaixo na árvore
+// A família de perto, para o quadro, como um pedaço da árvore: os pais em cima, a pessoa com o casal no
+// meio, os filhos embaixo e os irmãos à parte. Fechada, a seção mostra o resumo (os retratos e a conta)
 const grupo = (chave: string) => p.grupos.find((g) => g.chave === chave)?.linhas ?? [];
-const vizinhanca = [
-  { rotulo: 'Pais', gente: grupo('pais') },
-  { rotulo: grupo('casal').length === 1 ? 'Casal' : 'Casais', gente: grupo('casal') },
-  { rotulo: 'Irmãos', gente: grupo('irmaos') },
-  { rotulo: 'Filhos', gente: grupo('filhos') },
-].filter((g) => g.gente.length > 0);
+const pais = grupo('pais');
+const casais = grupo('casal');
+const filhos = grupo('filhos');
+const irmaos = grupo('irmaos');
+const pertoNaArvore = [...pais, ...casais, ...filhos, ...irmaos];
+const contaDaArvore = [
+  pais.length && plural(pais.length, 'pai ou mãe', 'pais'),
+  casais.length && (casais.length === 1 ? 'casal' : `${casais.length} casais`),
+  filhos.length && plural(filhos.length, 'filho', 'filhos'),
+  irmaos.length && plural(irmaos.length, 'irmão', 'irmãos'),
+].filter(Boolean) as string[];
+const resumoDaArvore = contaDaArvore.length > 1 ? `${contaDaArvore.slice(0, -1).join(', ')} e ${contaDaArvore.at(-1)}` : (contaDaArvore[0] ?? '');
 const RELATOS_A_VISTA = 3;
 const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get('ok');
 ---
-
 <Visual titulo={pessoa.nome} secao="pessoas" nucleos={p.familiasDaPessoa.map((f) => f.id)}>
   <article class="verbete">
     {recado && (
@@ -65,63 +71,69 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
       </div>
     )}
     <div class="verbete__alto miolo grade">
-      <header class="verbete__abre">
-        {(p.ehMinha || p.especie) && (
-          <p class="verbete__carimbo">
-            <Carimbo itens={[p.ehMinha && 'Você', p.especie]} />
-          </p>
-        )}
-        {/* O parentesco de quem olha é a linha grande ("sua mãe"), e o nome vem logo abaixo. Na própria
-            página e na de quem não tem laço com quem olha, o nome é a linha grande */}
-        {p.parentesco && <p class="verbete__laco">{p.parentesco}</p>}
-        {/* "Nome (apelido)", como na lista de Pessoas: o apelido que quem olha vê, o seu ou o da família */}
-        <h1 class:list={['verbete__nome', p.parentesco ? 't-2' : 't-1']}>
-          {pessoa.nome}
-          {p.apelidoNoTitulo && <span class="verbete__apelido"> ({p.apelidoNoTitulo})</span>}
-        </h1>
-        {p.falecida && <p class="verbete__memoria em-memoria">em memória</p>}
-        <p class="verbete__abertura">{abertura}</p>
-        {/* A ação principal fica no alto, junto do título: a que alimenta o acervo, a memória nova */}
-        <p class="verbete__acoes">
-          <a class="botao" href={`/nova?com=${pessoa.id}`}>
-            Nova memória com {p.comQuem}
-          </a>
-          <a class="acao" href={`/pessoas/${pessoa.id}/editar`}>
-            {p.podeEditar ? 'Editar página e laços' : 'Adicionar laço'}
-          </a>
-          {p.ehMinha && (
-            <a class="acao acao--quieta" href="/conta">
-              Sua conta
-            </a>
+      {/* A abertura é uma região: "Como você chama" troca o nome no lugar, sem recarregar (no-lugar.ts) */}
+      <div class="regiao" data-regiao="abertura">
+        <header class="verbete__abre">
+          {(p.ehMinha || p.especie) && (
+            <p class="verbete__carimbo">
+              <Carimbo itens={[p.ehMinha && 'Você', p.especie]} />
+            </p>
           )}
-        </p>
-        {/* "Como você chama", só seu (src/lib/apelidos.ts): o apelido que quem olha dá à pessoa */}
-        {!p.ehMinha && (
-          <details class="como-chama" id="como-voce-chama">
-            <summary class="acao acao--quieta">{p.meuApelido ? `Você chama de ${p.meuApelido}` : `Como você chama ${pessoa.nome}?`}</summary>
-            <form class="como-chama__form" method="post" action="/api/apelidos">
-              <input type="hidden" name="pessoa" value={pessoa.id} />
-              <label class="campo">
-                <span class="so-leitor">Como você chama {pessoa.nome}?</span>
-                <input class="campo__entrada" type="text" name="apelido" maxlength="40" autocomplete="off" value={p.meuApelido ?? ''} placeholder="Ex.: Tia Lu, Vó, Dinho" />
-              </label>
-              <p class="campo__dica">Só você vê. No site inteiro, para você, {pessoa.nome} aparece assim.</p>
-              <p class="como-chama__acoes">
-                <button class="acao" type="submit">Salvar</button>
-                {p.meuApelido && (
-                  <button class="acao acao--quieta" type="submit" name="apelido" value="">
-                    Voltar a {p.nomeDaFamilia}
-                  </button>
-                )}
-              </p>
-            </form>
-          </details>
-        )}
-      </header>
+          {/* O parentesco de quem olha é a linha grande ("sua mãe"), e o nome vem logo abaixo. Na própria
+              página e na de quem não tem laço com quem olha, o nome é a linha grande */}
+          {p.parentesco && <p class="verbete__laco">{p.parentesco}</p>}
+          {/* "Nome (apelido)", como na lista de Pessoas: o apelido que quem olha vê, o seu ou o da família */}
+          <h1 class:list={['verbete__nome', p.parentesco ? 't-2' : 't-1']}>
+            {pessoa.nome}
+            {p.apelidoNoTitulo && <span class="verbete__apelido"> ({p.apelidoNoTitulo})</span>}
+          </h1>
+          {p.falecida && <p class="verbete__memoria em-memoria">em memória</p>}
+          <p class="verbete__abertura">{abertura}</p>
+          {/* A ação principal fica no alto, junto do título: a que alimenta o acervo, a memória nova */}
+          <p class="verbete__acoes">
+            <a class="botao" href={`/nova?com=${pessoa.id}`}>
+              Nova memória com {p.comQuem}
+            </a>
+            <a class="acao" href={`/pessoas/${pessoa.id}/editar`}>
+              {p.podeEditar ? 'Editar página e laços' : 'Adicionar laço'}
+            </a>
+            {p.ehMinha && (
+              <a class="acao acao--quieta" href="/conta">
+                Sua conta
+              </a>
+            )}
+          </p>
+          {/* "Como você chama", só seu (src/lib/apelidos.ts): o apelido que quem olha dá à pessoa. Salva no
+              lugar, sem recarregar; sem script, é o formulário comum */}
+          {!p.ehMinha && (
+            <details class="como-chama" id="como-voce-chama">
+              <summary class="acao acao--quieta">{p.meuApelido ? `Você chama de ${p.meuApelido}` : `Como você chama ${pessoa.nome}?`}</summary>
+              <form class="como-chama__form" method="post" action="/api/apelidos" data-no-lugar="abertura">
+                <input type="hidden" name="pessoa" value={pessoa.id} />
+                <label class="campo">
+                  <span class="so-leitor">Como você chama {pessoa.nome}?</span>
+                  <input class="campo__entrada" type="text" name="apelido" maxlength="40" autocomplete="off" value={p.meuApelido ?? ''} placeholder="Ex.: Tia Lu, Vó, Dinho" />
+                </label>
+                <p class="campo__dica">Só você vê. No site inteiro, para você, {pessoa.nome} aparece assim.</p>
+                <p class="como-chama__acoes">
+                  <button class="acao" type="submit">Salvar</button>
+                  {p.meuApelido && (
+                    <button class="acao acao--quieta" type="submit" name="apelido" value="">
+                      Voltar a {p.nomeDaFamilia}
+                    </button>
+                  )}
+                </p>
+              </form>
+            </details>
+          )}
+        </header>
+      </div>
 
-      {/* O quadro ao lado, como o de um verbete: o retrato no alto, na cor da família, os dados, a
-          família de perto e o que a pessoa é para você. No celular, logo depois da abertura */}
-      <aside class="verbete__quadro" aria-label={`Ficha de ${chamar}`}>
+      {/* O quadro, como o painel da árvore (pedido do Gui, 18/11/2026): o retrato no alto, sobre a cor da
+          família, e as partes em sanfona, uma aberta por vez. "Dados" chega aberta; "Na árvore" e "Você e
+          Fulano" chegam fechadas, com um resumo do que mostram. No computador com mouse, o quadro acompanha
+          a rolagem e, se a parte aberta não couber na tela, rola por dentro. No celular, logo depois da abertura */}
+      <aside class="verbete__quadro quadro" aria-label={`Ficha de ${chamar}`}>
         <div class="verbete__capa" data-familia={p.familiaDaPessoa}>
           <div class="verbete__retrato">
             {p.falecida ? (
@@ -135,58 +147,150 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
             )}
           </div>
         </div>
-        <div class="verbete__ficha">
-          <dl class="verbete__dados">
-            {p.vida && (
-              <div>
-                <dt class="rotulo suave">Nasceu</dt>
-                <dd>
-                  {p.vida}
-                  {/* O falecimento fica oculto (decisão do Gui, 17/11/2026): só para quem pedir */}
-                  {p.temDataOculta && (
-                    <a class="acao acao--quieta verbete__datas" href={p.mostrarDatas ? `/pessoas/${pessoa.id}` : `/pessoas/${pessoa.id}?datas=1`}>
-                      {p.mostrarDatas ? 'Esconder datas' : 'Mostrar datas'}
-                    </a>
-                  )}
-                </dd>
+
+        <details class="quadro__secao" name="quadro-da-pessoa" open>
+          <summary>
+            <span class="quadro__nome">Dados</span>
+          </summary>
+          <div class="quadro__corpo dados">
+            {p.nascimento && (
+              <div class="dados__datas">
+                <div class="dados__data">
+                  <p class="rotulo suave">Nasceu</p>
+                  <p class="dados__ano">{p.nascimento.ano}</p>
+                  {p.nascimento.diaMes && <p class="ficha suave">{p.nascimento.diaMes}</p>}
+                </div>
+                {/* O falecimento fica oculto (decisão do Gui, 17/11/2026) e só aparece para quem pedir. Vai na
+                    página escondido, e "Mostrar datas" o mostra no lugar; sem script, o link recarrega com ?datas=1 */}
+                {p.falecimento && (
+                  <div class="dados__data" data-falecimento hidden={!p.mostrarDatas}>
+                    <p class="rotulo suave">Faleceu</p>
+                    <p class="dados__ano">{p.falecimento.ano}</p>
+                    {p.falecimento.diaMes && <p class="ficha suave">{p.falecimento.diaMes}</p>}
+                  </div>
+                )}
               </div>
             )}
+            {p.temDataOculta && (
+              <a class="acao acao--quieta dados__mostrar" href={p.mostrarDatas ? `/pessoas/${pessoa.id}` : `/pessoas/${pessoa.id}?datas=1`} data-mostrar-datas>
+                {p.mostrarDatas ? 'Esconder datas' : 'Mostrar datas'}
+              </a>
+            )}
             {p.familiasDaPessoa.length > 0 && (
-              <div>
-                <dt class="rotulo suave">{p.familiasDaPessoa.length === 1 ? 'Família' : 'Famílias'}</dt>
-                <dd class="pilulas-de-familia">
+              <div class="dados__familias">
+                <p class="rotulo suave">{p.familiasDaPessoa.length === 1 ? 'Família' : 'Famílias'}</p>
+                <p class="pilulas-de-familia">
                   {p.familiasDaPessoa.map((f) => (
                     <PilulaDeFamilia href={`/pessoas?familia=${f.id}`} familia={f.cor}>
                       {f.nome}
                     </PilulaDeFamilia>
                   ))}
-                </dd>
+                </p>
               </div>
             )}
-            <div>
-              <dt class="rotulo suave">No acervo</dt>
-              <dd>
-                {plural(p.publicadas.length, 'memória', 'memórias')}
-                {p.relatos.length > 0 && <>, {plural(p.relatos.length, 'relato', 'relatos')}</>}
-                {p.audios.length > 0 && (
-                  <>
-                    , <a class="acao acao--quieta" href="#palavras">{plural(p.audios.length, 'áudio', 'áudios')}</a>
-                  </>
-                )}
-              </dd>
-            </div>
-          </dl>
+            {/* No acervo: os números como os de um álbum, cada um levando à parte dele na página */}
+            <ul class="dados__numeros" aria-label="No acervo">
+              <li>
+                <a href="#memorias-com">
+                  <strong>{p.publicadas.length}</strong>
+                  <span>{p.publicadas.length === 1 ? 'memória' : 'memórias'}</span>
+                </a>
+              </li>
+              <li>
+                <a href="#palavras">
+                  <strong>{p.relatos.length}</strong>
+                  <span>{p.relatos.length === 1 ? 'relato' : 'relatos'}</span>
+                </a>
+              </li>
+              <li>
+                <a href="#palavras">
+                  <strong>{p.audios.length}</strong>
+                  <span>{p.audios.length === 1 ? 'áudio' : 'áudios'}</span>
+                </a>
+              </li>
+            </ul>
+            {/* O histórico da página (alterações da ficha e dos laços), só para quem pode mudá-la */}
+            {p.podeEditar && (
+              <a class="acao acao--quieta" href={`/pessoas/${pessoa.id}/historico`}>
+                Ver o histórico da página
+              </a>
+            )}
+          </div>
+        </details>
 
-          {vizinhanca.length > 0 && (
-            <section class="vizinhanca" aria-labelledby="vizinhanca">
-              <h2 class="rotulo suave" id="vizinhanca">
-                Na árvore
-              </h2>
-              {vizinhanca.map((g) => (
-                <div class="vizinhanca__nivel">
-                  <p class="ficha suave">{g.rotulo}</p>
+        {pertoNaArvore.length > 0 && (
+          <details class="quadro__secao" name="quadro-da-pessoa">
+            <summary>
+              <span class="quadro__nome">Na árvore</span>
+              <span class="quadro__resumo" aria-hidden="true">
+                <span class="quadro__rostos">
+                  {pertoNaArvore.slice(0, 4).map((l) => (
+                    <Retrato nome={l.nome} foto={l.foto} familia={l.familia} falecido={l.falecido} redondo />
+                  ))}
+                </span>
+              </span>
+              <span class="quadro__conta ficha suave">{resumoDaArvore}</span>
+            </summary>
+            <div class="quadro__corpo vizinhanca">
+              {/* Um pedaço da árvore: os pais em cima, a pessoa com o casal no meio, os filhos embaixo */}
+              <div class="arvorezinha">
+                {pais.length > 0 && (
+                  <div class="arvorezinha__nivel">
+                    <p class="ficha suave">{pais.length === 1 ? 'Pai ou mãe' : 'Pais'}</p>
+                    <ul>
+                      {pais.map((l: Ligada) => (
+                        <li>
+                          <a class="vizinhanca__quem" href={`/pessoas/${l.id}`}>
+                            <Retrato nome={l.nome} foto={l.foto} familia={l.familia} falecido={l.falecido} />
+                            <span>{l.nome}</span>
+                            {l.falecido && <span class="so-leitor">, já faleceu</span>}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div class="arvorezinha__nivel arvorezinha__nivel--meio">
                   <ul>
-                    {g.gente.map((l: Ligada) => (
+                    <li>
+                      <span class="vizinhanca__quem vizinhanca__quem--ela" aria-current="page">
+                        <Retrato nome={chamar} foto={p.retrato} familia={p.familiaDaPessoa} falecido={p.falecida} />
+                        <span>{p.ehMinha ? 'Você' : chamar}</span>
+                      </span>
+                    </li>
+                    {casais.map((l: Ligada) => (
+                      <li class="arvorezinha__casal">
+                        <a class="vizinhanca__quem" href={`/pessoas/${l.id}`}>
+                          <Retrato nome={l.nome} foto={l.foto} familia={l.familia} falecido={l.falecido} />
+                          <span>{l.nome}</span>
+                          {l.falecido && <span class="so-leitor">, já faleceu</span>}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {filhos.length > 0 && (
+                  <div class="arvorezinha__nivel">
+                    <p class="ficha suave">{filhos.length === 1 ? 'Filho' : 'Filhos'}</p>
+                    <ul>
+                      {filhos.map((l: Ligada) => (
+                        <li>
+                          <a class="vizinhanca__quem" href={`/pessoas/${l.id}`}>
+                            <Retrato nome={l.nome} foto={l.foto} familia={l.familia} falecido={l.falecido} />
+                            <span>{l.nome}</span>
+                            {l.falecido && <span class="so-leitor">, já faleceu</span>}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              {irmaos.length > 0 && (
+                <div class="vizinhanca__irmaos">
+                  <p class="ficha suave">{irmaos.length === 1 ? 'Irmão ou irmã' : 'Irmãos'}</p>
+                  <ul>
+                    {irmaos.map((l: Ligada) => (
                       <li>
                         <a class="vizinhanca__quem" href={`/pessoas/${l.id}`}>
                           <Retrato nome={l.nome} foto={l.foto} familia={l.familia} falecido={l.falecido} />
@@ -197,7 +301,7 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
                     ))}
                   </ul>
                 </div>
-              ))}
+              )}
               {/* Sem filiação nem casal, a árvore a partir da pessoa seria só ela: o botão não aparece */}
               {p.temLacoDeArvore && (
                 <p class="vizinhanca__ir">
@@ -206,23 +310,19 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
                   </a>
                 </p>
               )}
-            </section>
-          )}
-          {vizinhanca.length === 0 && p.temLacoDeArvore && (
-            <p>
-              <a class="acao" href={`/arvore?centro=${pessoa.id}`}>
-                Ver na árvore
-              </a>
-            </p>
-          )}
+            </div>
+          </details>
+        )}
 
-          {/* Você e a pessoa (decisão do Gui, 18/11/2026): o lugar dela no seu círculo, que só você vê,
-              e a página do laço de vocês. Na própria página, o caminho para o seu círculo */}
-          {(p.circulo || p.lacoComVoce) && (
-            <section class="verbete__voce" aria-labelledby="voce-e">
-              <h2 class="rotulo suave" id="voce-e">
-                Você e {chamar}
-              </h2>
+        {/* Você e a pessoa (decisão do Gui, 18/11/2026): o lugar dela no seu círculo, que só você vê, e a
+            página do laço de vocês. Na própria página, o caminho para o seu círculo */}
+        {(p.circulo || p.lacoComVoce) && (
+          <details class="quadro__secao" name="quadro-da-pessoa">
+            <summary>
+              <span class="quadro__nome">Você e {chamar}</span>
+              {p.circulo && <span class="quadro__conta ficha suave">{p.circulo.faixa}</span>}
+            </summary>
+            <div class="quadro__corpo verbete__voce">
               {p.circulo && (
                 <p>
                   No seu círculo: <strong>{p.circulo.faixa}</strong>
@@ -241,21 +341,22 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
                   </a>
                 )}
               </p>
-            </section>
-          )}
-          {p.ehMinha && (
-            <p class="verbete__voce">
-              <a class="acao" href="/circulo">
-                Ver seu círculo
-              </a>
-            </p>
-          )}
-        </div>
+            </div>
+          </details>
+        )}
+        {p.ehMinha && (
+          <p class="quadro__pe">
+            <a class="acao" href="/circulo">
+              Ver seu círculo
+            </a>
+          </p>
+        )}
       </aside>
 
-      {/* Nas palavras dela: o resto de "Sobre", os áudios dos relatos e os trechos dos relatos, só os
-          que quem olha pode ver (listarAudiosDe e listarRelatosDe passam por veORelato) */}
-      {(p.relatos.length > 0 || p.audios.length > 0 || restoDoSobre.length > 0) && (
+      {/* Nas palavras dela: o resto de "Sobre" e os relatos que ela contou, como as mensagens da conversa
+          na página da memória (pedido do Gui, 18/11/2026): os balões de texto, os áudios com tocar e as fotos.
+          Os relatos com áudio vêm primeiro. Só os que quem olha pode ver (listarRelatosDe passa por veORelato) */}
+      {(p.relatos.length > 0 || restoDoSobre.length > 0) && (
         <section class="verbete__palavras" id="palavras" aria-labelledby="titulo-palavras">
           <h2 class="t-2" id="titulo-palavras">
             {p.ehMinha ? 'Nas suas palavras' : `Nas palavras de ${chamar}`}
@@ -267,29 +368,21 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
               ))}
             </div>
           )}
-          {p.audios.length > 0 && (
-            <ol class="palavras__audios" id="audios">
-              {p.audios.map((a) => (
-                <li>
-                  <a class="serifa" href={`/memorias/${a.memoriaId}`}>
-                    {a.memoriaTitulo}
-                  </a>
-                  <Audio rotulo={`Áudio · ${a.duracaoEmTexto}`} src={`/audios/${a.chave}`} transcricao={a.transcricao} />
-                </li>
-              ))}
-            </ol>
-          )}
           {p.relatos.length > 0 && (
-            <ol class="palavras__relatos">
+            <ol class="palavras__relatos" id="audios">
               {p.relatos.slice(0, RELATOS_A_VISTA).map((r) => (
-                <li>
-                  <blockquote class="palavras__trecho">{r.trecho}</blockquote>
-                  <p class="ficha suave">
+                <li class="palavra voz" id={`palavra-${r.id}`}>
+                  <p class="palavra__de ficha suave">
                     {r.memoriaAno} ·{' '}
-                    <a class="acao acao--quieta" href={`/memorias/${r.memoriaId}`}>
+                    <a class="acao acao--quieta" href={`/memorias/${r.memoriaId}#relato-${r.id}`}>
                       {r.memoriaTitulo}
                     </a>
                   </p>
+                  <ol class="voz__mensagens">
+                    {r.mensagens.map((m) => (
+                      <Mensagem mensagem={m} de={chamar} />
+                    ))}
+                  </ol>
                 </li>
               ))}
             </ol>
@@ -299,14 +392,18 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
               <summary class="acao">Ver {p.relatos.length - RELATOS_A_VISTA === 1 ? 'o outro relato' : `os outros ${p.relatos.length - RELATOS_A_VISTA} relatos`}</summary>
               <ol class="palavras__relatos">
                 {p.relatos.slice(RELATOS_A_VISTA).map((r) => (
-                  <li>
-                    <blockquote class="palavras__trecho">{r.trecho}</blockquote>
-                    <p class="ficha suave">
+                  <li class="palavra voz" id={`palavra-${r.id}`}>
+                    <p class="palavra__de ficha suave">
                       {r.memoriaAno} ·{' '}
-                      <a class="acao acao--quieta" href={`/memorias/${r.memoriaId}`}>
+                      <a class="acao acao--quieta" href={`/memorias/${r.memoriaId}#relato-${r.id}`}>
                         {r.memoriaTitulo}
                       </a>
                     </p>
+                    <ol class="voz__mensagens">
+                      {r.mensagens.map((m) => (
+                        <Mensagem mensagem={m} de={chamar} />
+                      ))}
+                    </ol>
                   </li>
                 ))}
               </ol>
@@ -316,7 +413,8 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
       )}
 
       {/* A vida em memórias. A região troca de conteúdo sem recarregar a página, como no Explorar
-          (explorar-troca.ts): pela idade (o padrão), a linha do tempo e o mural */}
+          (explorar-troca.ts): pela idade (o padrão), a linha do tempo e o mural. No computador, as três
+          ficam na coluna da esquerda, ao lado do quadro, adaptadas à largura dela */}
       <section class:list={['verbete__vida', `verbete__vida--${forma}`]} aria-labelledby="memorias-com" data-explorar>
         <header class="vida__abre miolo">
           <h2 class="t-2" id="memorias-com">
@@ -400,6 +498,41 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
     comoChama.open = true;
     comoChama.querySelector<HTMLInputElement>('input[name="apelido"]')?.focus();
   }
+</script>
+
+<script>
+  // "Como você chama" salva no lugar, sem recarregar (no-lugar.ts); os áudios das mensagens tocam com a onda
+  import { ligarNoLugar } from '../../../lib/cliente/no-lugar';
+  import { ligarAudioDaMensagem } from '../../../lib/cliente/conversa';
+  ligarNoLugar();
+  for (const audio of document.querySelectorAll<HTMLElement>('.palavra [data-audio]')) ligarAudioDaMensagem(audio);
+
+  // "Mostrar datas" mostra o falecimento no lugar, sem recarregar (pedido do Gui, 18/11/2026: o mínimo de
+  // recarregamentos no site todo). O endereço acompanha, para o link continuar servindo. Sem script, recarrega
+  const mostrar = document.querySelector<HTMLAnchorElement>('[data-mostrar-datas]');
+  const falecimento = document.querySelector<HTMLElement>('[data-falecimento]');
+  if (mostrar && falecimento) {
+    mostrar.setAttribute('role', 'button');
+    mostrar.setAttribute('aria-pressed', String(!falecimento.hidden));
+    mostrar.addEventListener('click', (evento) => {
+      evento.preventDefault();
+      falecimento.hidden = !falecimento.hidden;
+      mostrar.textContent = falecimento.hidden ? 'Mostrar datas' : 'Esconder datas';
+      mostrar.setAttribute('aria-pressed', String(!falecimento.hidden));
+      const endereco = new URL(location.href);
+      if (falecimento.hidden) endereco.searchParams.delete('datas');
+      else endereco.searchParams.set('datas', '1');
+      history.replaceState(history.state, '', endereco);
+    });
+  }
+
+  // As outras formas de ver são buscadas assim que a página se acomoda, para a troca ser imediata
+  import { adiantar } from '../../../lib/cliente/explorar-troca';
+  const adiantarFormas = () => {
+    for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-explorar] .controles a[data-opcao]:not([aria-current])')) adiantar(new URL(link.href));
+  };
+  if ('requestIdleCallback' in window) requestIdleCallback(adiantarFormas, { timeout: 3000 });
+  else setTimeout(adiantarFormas, 1500);
 </script>
 
 <script>
