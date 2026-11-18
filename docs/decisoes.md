@@ -641,6 +641,21 @@ Origem: [histórico, "Visual"](historico/decisoes-ate-2026-11-17.md#visual).
 
 O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessão do Claude Code tira o que construir. Ao terminar, o item sai desta lista e vira regra na seção do assunto.
 
+- **Observações e decisões do Gui depois da sessão H** (18/11/2026).
+    - **Administração na conta:** todos os grupos começam fechados.
+    - **Relato num campo só** (conceito com duas propostas antes de construir). Escrever e falar com o mesmo peso: uma caixa de relato grande, que cresce com o texto, com o microfone no canto dela, como no WhatsApp; os áudios gravados aparecem como balões dentro da mesma caixa. Hoje o áudio vem antes e pode ser lido como a única possibilidade ou como um incentivo a não escrever. A tela inteira do relato merece um cuidado a mais.
+    - **Namoro, ex e amizade: a fase decide, num registro só** (o Gui questionou criar um laço do coração automático; ficou um casal só, sem duplicar). Namoro aparece como laço do coração (tracejado), a não ser que se marque "já é da família" (para namoro longo). Noivado, casamento e união são família. Ex que nunca foi da família (o Jean) não aparece na árvore como ex. Término que virou amizade aparece como amigo em todo lugar, inclusive na árvore (hoje o Thiago ainda aparece como ex: https://homologa.memorias.bayara.com.br/arvore) e na barra lateral dela, que hoje diz "sem laço". Na página, o rótulo é "Amigo" e, logo abaixo, só "ex-namorado", sem datas.
+    - **Datas das fases do casal com mês e dia opcionais**, como as outras datas do site. Com dia e mês, o aniversário de casamento entra nos aniversários do Início ("Elizete e Aguilar, 30 anos de casados"), só de casais atuais.
+    - **Casal, "o que aconteceu depois" como ação:** no cadastro e na edição, sai o seletor "Já terminou" e a "Separação" solta na lista de fases; no lugar, "Adicionar o que aconteceu depois", que acrescenta uma linha com a fase e a data. É o padrão de casal.
+    - **Laço do coração:** o "Com quem?" gera dúvida; trocar por um texto que oriente a ação (por exemplo, "Quem é essa pessoa para você?" ou a busca com uma frase de ajuda). A proximidade vira slider aqui também.
+    - **Slider de proximidade em todo lugar, do mais distante ao mais próximo:** começa em "Fora do círculo" ou "Conhecido" à esquerda e termina em "Muito próximo" à direita, como se aumentasse a proximidade. Vale no círculo, na ficha e nos formulários.
+    - **Proximidade em todo laço meu:** como o círculo mostra todo mundo, a edição de laços deixa ajustar a proximidade de qualquer pessoa ligada a mim, da família inclusive, não só dos laços do coração. É o mesmo valor do círculo.
+    - **Apelidos na edição da pessoa:** o campo "Como é chamado na família" deixa de ficar sempre aberto. No lugar, "Adicionar apelido", que pergunta se é o da família ou só seu.
+    - **Seletor segmentado onde fizer sentido** (o Gui liberou a regra): escolha de uma opção entre poucas que troca o que aparece embaixo.
+    - **Lista de Pessoas:** "Nome (apelido)", com o apelido que a pessoa vê (o seu, senão o da família): "Alexsander (Lugh)". A busca acha pelos dois.
+    - **Imagem de compartilhar:** na hora de gerar, a pessoa escolhe qual nome usar (o da família ou o seu apelido); o padrão é o da família, porque o apelido próprio é privado.
+    - **Homologação sem retratos, defeito:** as pessoas aparecem sem foto; elas devem ter as fotos do Chico e da Karol, como antes. Os retratos reais que a sessão G gravou no bucket da homologação são apagados (autorizado pelo Gui).
+    - Aprovados: "Você no acervo" (B), gravar áudio (B) como base do conceito novo, o Thiago no lugar certo da página, o seletor segmentado no laço do coração, "Como você chama".
 - **Observações do Gui na homologação, depois da sessão G** (18/11/2026). Cada ponto com o endereço em que ele viu.
     - **Imagem de compartilhar:** ficou bem melhor. Ideias para o acabamento: escolher o esquema de cores, qual foto e qual relato, e outra personalização simples.
 - **Observações do Gui na homologação, depois da sessão F** (18/11/2026). Cada ponto com o endereço em que ele viu.
