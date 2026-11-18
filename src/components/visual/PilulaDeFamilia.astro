@@ -1,0 +1,22 @@
+---
+// A pílula de família ("Família é sempre pill", decisão do Gui, 17/11/2026): borda fina, o ponto na
+// cor viva da família e, marcada, a pílula inteira no pastel dela. É um link, e por isso funciona sem
+// script: a marcada é a que está valendo, e as outras levam à página com aquela família.
+// Ponha várias dentro de um elemento com a classe `pilulas-de-familia`, que cuida do espaço entre elas.
+interface Props {
+  href: string;
+  /** a cor da família, de `corDoNucleo` (ou 'tudo' para todas as famílias juntas) */
+  familia: string;
+  /** a família que está valendo */
+  atual?: boolean;
+  /** um número pequeno, em mono, à direita do nome (quantas pessoas, por exemplo) */
+  conta?: number;
+}
+
+const { href, familia, atual = false, conta } = Astro.props;
+---
+
+<a class="pilula-de-familia" href={href} data-familia={familia} aria-current={atual ? 'true' : undefined}>
+  <span class="pilula-de-familia__nome"><slot /></span>
+  {conta !== undefined && <small class="pilula-de-familia__conta">{conta}</small>}
+</a>

@@ -36,3 +36,29 @@ export function ordenarPessoas<T extends PessoaDaLista>(pessoas: T[], geracoes: 
     return porNome(a, b);
   });
 }
+
+// --- O filtro por família (proposta B do conceito da sessão E, escolhida pelo Gui em 17/11/2026) ---
+// A pílula de família filtra a lista, como no Explorar, mas aqui é uma família por vez; "Todas" volta
+// a mostrar tudo. A família e a ordem ficam juntas no endereço: trocar uma não desfaz a outra.
+
+/**
+ * A família pedida no endereço (`?familia=<id>`), se ela está entre as que a lista mostra. Uma família
+ * que não existe, que está vazia ou que a pessoa não vê é ignorada, como no Explorar: vale "Todas".
+ */
+export function familiaPedida(valor: string | null | undefined, familias: readonly string[]): string | null {
+  return valor && familias.includes(valor) ? valor : null;
+}
+
+/** Os grupos que aparecem: só o da família pedida, ou todos quando não há família pedida. */
+export function gruposDaFamilia<T extends { id: string }>(grupos: T[], familia: string | null): T[] {
+  return familia === null ? grupos : grupos.filter((g) => g.id === familia);
+}
+
+/** O endereço da lista com a família e a ordem. Sem família e na ordem por geração, é só `/pessoas`. */
+export function enderecoDePessoas(familia: string | null, ordem: OrdemDasPessoas): string {
+  const q = new URLSearchParams();
+  if (familia) q.set('familia', familia);
+  if (ordem === 'nome') q.set('ordem', 'nome');
+  const busca = q.toString();
+  return busca ? `/pessoas?${busca}` : '/pessoas';
+}

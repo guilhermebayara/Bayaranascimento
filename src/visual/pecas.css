@@ -481,6 +481,51 @@ a.polaroid__foto {
   text-transform: uppercase;
   white-space: nowrap;
 }
+/* --- Pílula de família: "família é sempre pill" (decisão do Gui, 17/11/2026) -------------------
+   A cara das famílias do Explorar: borda fina, o ponto na cor viva da família e, marcada, a pílula
+   inteira no pastel dela. A cor vem de data-familia, posto em cada pílula. */
+
+.pilulas-de-familia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+}
+.pilula-de-familia {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  min-height: var(--toque);
+  padding: 0 1em 0 0.85em;
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-pilula);
+  color: var(--tinta);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.pilula-de-familia::before {
+  content: '';
+  flex: none;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: var(--vivo);
+}
+.pilula-de-familia[aria-current] {
+  border-color: var(--pastel);
+  background: var(--pastel);
+  font-weight: 600;
+}
+.pilula-de-familia:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+.pilula-de-familia__conta {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  font-weight: 400;
+  color: var(--tinta-suave);
+}
+
 /* --- Seletor segmentado: uma escolha só entre poucas (decisão do Gui, 17/11/2026) ----------- */
 
 .segmentado {
