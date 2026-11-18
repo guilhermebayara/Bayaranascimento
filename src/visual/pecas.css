@@ -237,6 +237,13 @@ a.polaroid__foto {
   aspect-ratio: 1;
   border-radius: 50%;
 }
+/* Quem já faleceu (decisão do Gui, 17/11/2026): um anel fino em volta do retrato, com um respiro.
+   Discreto, sem sinal religioso, e igual em todo lugar em que o retrato aparece. A foto continua
+   em cor. */
+.retrato--falecido {
+  outline: var(--traco) solid var(--tinta-suave);
+  outline-offset: 0.1875rem;
+}
 
 /* --- Bilhete: o relato, com a assinatura de quem contou ----------------------------------- */
 

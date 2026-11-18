@@ -137,10 +137,14 @@ describe('a página da pessoa', () => {
     expect(pagina).not.toMatch(/datasDeVida|quem-e__vida/);
     const vida = (v: Partial<Parameters<typeof vidaSemRotulo>[0]>) => vidaSemRotulo({ nascimentoAno: null, falecimentoAno: null, ...v });
     expect(vida({ nascimentoAno: 1999 })).toBe('1999');
-    expect(vida({ nascimentoAno: 1942, falecimentoAno: 2019 })).toBe('1942 a 2019');
+    // O falecimento só entra para quem pediu em "Mostrar datas" (decisão do Gui, 17/11/2026)
+    expect(vida({ nascimentoAno: 1942, falecimentoAno: 2019 })).toBe('1942');
+    expect(vidaSemRotulo({ nascimentoAno: 1942, falecimentoAno: 2019 }, true)).toBe('1942 a 2019');
     expect(vida({ nascimentoAno: 1942, nascimentoMes: 5, nascimentoDia: 4 })).toBe('4 de maio de 1942');
-    expect(vida({ nascimentoAno: 1930, falecido: true })).toBe('1930 a ?');
-    expect(vida({ falecimentoAno: 2010 })).toBe('até 2010');
+    expect(vida({ nascimentoAno: 1930, falecido: true })).toBe('1930');
+    expect(vidaSemRotulo({ nascimentoAno: 1930, falecimentoAno: null, falecido: true }, true)).toBe('1930 a ?');
+    expect(vida({ falecimentoAno: 2010 })).toBe('');
+    expect(vidaSemRotulo({ nascimentoAno: null, falecimentoAno: 2010 }, true)).toBe('até 2010');
     expect(vida({})).toBe('');
     expect(vida({ nascimentoAno: 1942 })).not.toMatch(/Nascimento|:/);
   });

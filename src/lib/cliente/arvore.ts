@@ -14,11 +14,23 @@ const ZOOM_MAX = 4;
 
 /** O que a página pode pedir ao mapa depois de montado */
 export interface ControleDaArvore {
-  /** Leva o mapa até a pessoa e abre a ficha dela. Quem não está no desenho vira o ponto de partida. */
+  /** Leva o mapa até a pessoa e abre a ficha dela, sem trocar a linha direta. */
   irPara(id: string): void;
 }
 
-export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleDaArvore {
+/** O que a página sabe além dos dados da montagem */
+export interface ExtrasDaArvore {
+  /** quem já faleceu: o cartão e o retrato da ficha levam a marca */
+  falecidos?: string[];
+}
+
+export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: ExtrasDaArvore = {}): ControleDaArvore {
+  const falecidos = new Set(alem.falecidos ?? []);
+  // A marca de quem já faleceu no cartão: um anel pequeno antes do parentesco, e o aviso para o leitor de tela
+  const marcarFalecido = (no: HTMLElement, id: string) => {
+    no.classList.toggle('no--falecido', falecidos.has(id));
+    if (falecidos.has(id) && !no.querySelector('.so-leitor')) no.append(Object.assign(document.createElement('small'), { className: 'so-leitor', textContent: 'já faleceu' }));
+  };
   const mapa = raiz.querySelector<HTMLElement>('[data-mapa]')!;
   const camada = raiz.querySelector<HTMLElement>('[data-camada]')!;
   // Os cartões dos ramos abertos ficam numa camada à parte, que anda junto com a árvore e fica acima da legenda
@@ -258,6 +270,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
     const quem = document.createElement('span');
     quem.className = 'mapa__foco-quem';
     quem.append(...[p.rotulo, p.anos].filter(Boolean).map((texto) => Object.assign(document.createElement('span'), { textContent: texto })));
+    // Quem já faleceu: o retrato leva o anel, e o leitor de tela ouve
+    if (falecidos.has(p.id)) quem.append(Object.assign(document.createElement('i'), { textContent: ', já faleceu', className: 'so-leitor' }));
     const pagina = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}`, textContent: 'Ver a página' });
     const partir = Object.assign(document.createElement('button'), { type: 'button', textContent: `Ver a árvore de ${p.nome}` });
     partir.dataset.partir = p.id;
@@ -267,7 +281,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
     fechar.setAttribute('aria-label', 'Fechar');
     // O retrato aparece só aqui, na ficha. Sem retrato, as iniciais sobre a cor da família.
     const retrato = document.createElement('span');
-    retrato.className = 'retrato';
+    retrato.className = falecidos.has(p.id) ? 'retrato retrato--falecido' : 'retrato';
     retrato.style.setProperty('--retrato-cor', fundoDe(p.nucleos) || 'var(--arvore-de-fora)');
     if (p.retrato) retrato.append(Object.assign(new Image(), { src: p.retrato, alt: '' }));
     else retrato.append(Object.assign(document.createElement('span'), { textContent: p.iniciais ?? '' }));
@@ -296,6 +310,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
     no.classList.toggle('no--foco', p.id === estado.foco);
     no.classList.toggle('no--de-fora', p.nucleos.length === 0);
     marcarCanto(no, p.nucleos);
+    marcarFalecido(no, p.id);
     no.style.width = `${MEDIDAS.largura}px`;
     no.style.height = `${MEDIDAS.altura}px`;
     no.style.background = fundoDe(p.nucleos);
@@ -360,6 +375,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore): ControleD
       no.classList.toggle('no--apagado', Boolean(estado.nucleo) && !noNucleo(p.id));
       no.classList.toggle('no--de-fora', p.nucleos.length === 0);
       marcarCanto(no, p.nucleos);
+      marcarFalecido(no, p.id);
       no.style.background = fundoDe(p.nucleos);
       no.style.transform = `translate(${lugar.x}px, ${lugar.y}px)`;
     }

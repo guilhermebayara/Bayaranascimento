@@ -187,6 +187,25 @@
   color: var(--tinta);
   font-weight: 500;
 }
+/* Quem já faleceu (decisão do Gui, 17/11/2026): o mesmo anel do retrato, pequeno, antes do
+   parentesco. O cartão não tem foto, então o anel vai junto do texto. */
+.no--falecido span::before,
+.amostra-anel {
+  content: '';
+  display: inline-block;
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.35rem;
+  border: var(--traco) solid currentColor;
+  border-radius: 50%;
+}
+.amostra-anel {
+  width: 0.75rem;
+  height: 0.75rem;
+  margin: 0 0.625rem;
+  color: var(--tinta-suave);
+}
 /* Bicho da família: a etiqueta em cápsula, com a espécie escrita */
 /* O respiro acompanha o arredondado (achado do Gui, 17/11/2026: a espécie, o nome e o parentesco
    encostavam na curva das pontas). O raio é menor que meia altura, para a curva não comer o canto

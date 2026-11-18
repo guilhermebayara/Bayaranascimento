@@ -12,7 +12,7 @@ import '../visual/telas/arvore.css';
 import '../visual/telas/mapa.css';
 import Visual from '../layouts/Visual.astro';
 import Vazio from '../components/visual/Vazio.astro';
-import { anosDeVida } from '../lib/datas';
+import { anosDeVida, jaFaleceu } from '../lib/datas';
 import { Familia, estaoJuntos, lacoParaODono, nomeDoPapel, possessivo, type Tratamento } from '../lib/parentesco';
 import type { DadosDaArvore } from '../lib/cliente/arvore';
 import { cantoReto } from '../lib/arvore-desenho';
@@ -81,6 +81,9 @@ const dados: DadosDaArvore = {
     rotulo: l.dono === usuario.pessoa ? lacoParaODono(l.nome, achar(l.pessoa)?.tratamento ?? null) : `${minuscula(l.nome)} de ${chamar(l.dono)}`,
   })),
 };
+// Quem já faleceu leva a marca no cartão e na ficha (decisão do Gui, 17/11/2026). A lista vai ao
+// lado dos dados, porque a montagem da árvore não muda.
+const falecidos = integrantes.filter((i) => jaFaleceu(i)).map((i) => i.id);
 const nomesDosCentros = (() => {
   const n = centros.map(chamar);
   return n.length > 1 ? `${n.slice(0, -1).join(', ')} e ${n[n.length - 1]}` : (n[0] ?? 'Você');
@@ -171,6 +174,7 @@ const comLaco = comLacoDeArvore(dados);
                   <li><i class="amostra-cor amostra-cor--eu"></i> você</li>
                   <li><i class="amostra-cor amostra-cor--foco"></i> quem você tocou</li>
                   <li><i class="amostra-cor amostra-cor--bicho"></i> bicho da família</li>
+                  {falecidos.length > 0 && <li><i class="amostra-anel"></i> já faleceu</li>}
                 </ul>
               </section>
             </div>
@@ -212,6 +216,7 @@ const comLaco = comLacoDeArvore(dados);
   </div>
 
   <script type="application/json" id="dados-da-arvore" set:html={JSON.stringify(dados).replace(/</g, '\\u003c')} />
+  <script type="application/json" id="falecidos-da-arvore" set:html={JSON.stringify(falecidos).replace(/</g, '\\u003c')} />
 </Visual>
 
 <script>
@@ -224,7 +229,8 @@ const comLaco = comLacoDeArvore(dados);
   if (raiz && bruto) {
     // O painel mede o próprio pé antes de a árvore ser enquadrada no que sobra
     const painel = painelDoMapa(raiz);
-    const arvore = montarArvore(raiz, JSON.parse(bruto) as DadosDaArvore);
+    const falecidos = JSON.parse(document.getElementById('falecidos-da-arvore')?.textContent || '[]') as string[];
+    const arvore = montarArvore(raiz, JSON.parse(bruto) as DadosDaArvore, { falecidos });
     const centro = raiz.querySelector<HTMLSelectElement>('select[name="centro"]');
     if (centro) buscaDePessoa(centro);
 
