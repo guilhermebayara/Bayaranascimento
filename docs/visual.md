@@ -304,7 +304,7 @@ A regra de quem escolhe está em `docs/decisoes.md`, "Tipos de momento".
 - **A galeria de fotos** (o `<dialog>` da página da memória) está em `telas/memoria.css` e no script da própria página. Vira peça quando uma segunda tela precisar ampliar foto.
 - **A linha do tempo** (trilhos, épocas, faixa de décadas, o ano parado) é da tela, em `telas/linha.css`. Só o sinal do capítulo virou peça.
 - **Camadas do CSS** (`@layer`): tentadas uma vez, mudaram a altura de várias telas, porque elas dependem da ordem dos arquivos, e não foram adotadas. A regra continua a de "A ordem do CSS", abaixo. Vale tentar numa branch só para isso, com `npm run capturas -- comparar` de todas as telas.
-- **Tocador de áudio próprio.** O bloco usa o do aparelho.
+- **Tocador de áudio próprio.** O bloco "A voz de" e o áudio dentro do relato usam o do aparelho. Só o formulário do relato tem um tocar próprio, no balão do áudio gravado (`telas/formulario.css`, "Áudios do relato").
 - **Os efeitos da fase 4:** a frase que acende e a foto que amplia no lugar.
 - **Modo escuro.** A decisão é claro, sem fundo escuro.
 

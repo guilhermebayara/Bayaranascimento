@@ -1,4 +1,5 @@
 ---
+import Gravador from '../components/formularios/Gravador.astro';
 import { situacaoDaTranscricaoAgora } from '../lib/servidor/transcricao';
 import { comArtigo } from '../lib/servidor/conteudo';
 import Pagina from '../components/formularios/Pagina.astro';
@@ -279,20 +280,9 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         <fieldset>
             <legend>Como foi?</legend>
             {/* Áudios já na memória nova: ficam soltos até a memória ser salva (ver api/audios.ts) */}
-            <div class="campo audios" data-audios data-transcricao-automatica={transcricaoAutomatica} hidden>
-              <span>Prefere falar? <small>(opcional)</small></span>
-              <p class="dica">Grave contando como foi, ou envie um áudio que já está no celular, como os do WhatsApp.</p>
-              <ol class="audios__lista" data-lista-audios></ol>
-              <p class="acoes">
-                <button type="button" class="botao botao--leve" data-gravar>Gravar áudio</button>
-                <label class="botao botao--leve botao--arquivo">
-                  Enviar arquivo de áudio
-                  <input type="file" accept="audio/*,.opus,.ogg,.m4a,.mp3,.wav,.webm" multiple data-enviar-audio class="oculto-visualmente" />
-                </label>
-              </p>
-              <p class="situacao" data-situacao-audio role="status" aria-live="polite"></p>
+            <Gravador transcricaoAutomatica={transcricaoAutomatica}>
               <script type="application/json" data-audios-do-rascunho set:html={JSON.stringify(audiosDoRascunho).replace(/</g, '\\u003c')} />
-            </div>
+            </Gravador>
             <label class="campo">
               <span>O relato escrito</span>
               <textarea name="relato" rows="8" maxlength="20000" placeholder="Escreva como você lembra. Outras pessoas da família vão poder contar a versão delas depois.">{meuRelato?.texto ?? ''}</textarea>

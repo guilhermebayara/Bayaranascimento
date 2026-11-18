@@ -1,0 +1,39 @@
+---
+// Gravar áudio no relato e na memória nova, como mensagem de voz (proposta B do conceito da sessão H,
+// escolha do Gui de 18/11/2026; registro em docs/visual/conceito-h/). Gravar é a ação principal: uma barra
+// com o microfone redondo à direita, como no WhatsApp. Anexar um arquivo do celular fica embaixo, discreto.
+// Cada áudio guardado vira um balão com tocar e a duração, e a transcrição e o remover logo embaixo dele.
+// Só com script: gravar e enviar dependem dele (src/lib/cliente/audios.ts).
+interface Props {
+  transcricaoAutomatica: string;
+}
+const { transcricaoAutomatica } = Astro.props;
+---
+
+<div class="campo audios" data-audios data-transcricao-automatica={transcricaoAutomatica} hidden>
+  <span>Prefere falar? <small>(opcional)</small></span>
+  <p class="dica" data-dica-audio>Grave como uma mensagem de voz, contando como foi. Dá para mandar várias.</p>
+  <ol class="audios__lista" data-lista-audios></ol>
+  <div class="gravador" data-gravador>
+    <span class="gravador__texto" data-gravador-texto>Toque no microfone para gravar</span>
+    <button type="button" class="gravador__cancelar" data-cancelar-gravacao hidden>Cancelar</button>
+    <button type="button" class="gravador__botao" data-gravar aria-label="Gravar áudio">
+      <svg class="gravador__mic" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="9" y="3" width="6" height="11" rx="3"></rect>
+        <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"></path>
+      </svg>
+      <svg class="gravador__parar" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="7" y="7" width="10" height="10" rx="1.5"></rect>
+      </svg>
+    </button>
+  </div>
+  <p class="gravador__dica dica" data-gravador-dica hidden></p>
+  <p class="audios__anexar">
+    <label>
+      Anexar um áudio do celular
+      <input type="file" accept="audio/*,.opus,.ogg,.m4a,.mp3,.wav,.webm" multiple data-enviar-audio class="oculto-visualmente" />
+    </label>
+  </p>
+  <p class="situacao" data-situacao-audio role="status" aria-live="polite"></p>
+  <slot />
+</div>
