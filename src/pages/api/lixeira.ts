@@ -97,7 +97,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (acao === 'restaurar-foto') {
     const devolvida = await restaurarFoto(Number(campo(dados, 'foto', 12)), memoria.id, usuario);
-    return devolvida ? voltar(request, pagina, { ok: 'Foto restaurada.' }) : voltar(request, historico, { erro: 'Só quem enviou a foto pode restaurá-la.' });
+    return devolvida ? voltar(request, pagina, { ok: 'Foto restaurada.' }) : voltar(request, historico, { erro: 'Só quem enviou a foto e quem a removeu podem restaurá-la.' });
   }
 
   return voltar(request, pagina, { erro: 'Ação desconhecida.' });

@@ -2,11 +2,11 @@
 // Sem pessoa identificada, nada do acervo é entregue.
 import { defineMiddleware } from 'astro:middleware';
 import { ehServicoDeCopia, usuarioDoPedido } from './lib/servidor/acesso';
-import { guardarTiposDoPedido, noPedido, tiposDoPedido } from './lib/servidor/ambiente';
+import { ambiente, guardarTiposDoPedido, noPedido, tiposDoPedido } from './lib/servidor/ambiente';
 import { ehNaoEncontradaSemPagina } from './lib/servidor/http';
 import { prepararBanco } from './lib/servidor/banco';
 import { respostaDaCopia } from './lib/servidor/copia';
-import { listarTipos } from './lib/servidor/repositorio';
+import { listarTipos, registrarAcesso } from './lib/servidor/repositorio';
 import { lerEscolhasDe } from './lib/visual';
 
 // A cor e o rabisco de cada tipo, escolhidos em /admin/tipos, valem em toda tela do pedido
@@ -17,6 +17,10 @@ const RECADO = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta na
 <h1>Não consegui identificar você</h1>
 <p>O acervo é privado. Seu login foi aceito, mas seu e-mail ainda não está ligado a ninguém da família no site.</p>
 <p>Avise o Gui, a Giovanna ou o Magno para liberarem seu acesso.</p></body></html>`;
+
+// O primeiro acesso de cada pessoa, para os avisos (src/lib/avisos.ts): anotado uma vez por banco e
+// por processo, e no banco só na primeira vez de todas (INSERT OR IGNORE)
+const acessosAnotados = new Set<string>();
 
 // Cada pedido roda sabendo se é da homologação, que tem banco e fotos próprios
 export const onRequest = defineMiddleware((contexto, proximo) => noPedido(contexto.request, () => tratar(contexto, proximo)));
@@ -41,6 +45,11 @@ const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo)
     });
   }
   contexto.locals.usuario = usuario;
+  const acesso = `${ambiente()}:${usuario.pessoa}`;
+  if (!acessosAnotados.has(acesso)) {
+    await registrarAcesso(usuario.pessoa);
+    acessosAnotados.add(acesso);
+  }
   contexto.locals.tipos = await listarTipos();
   guardarTiposDoPedido(contexto.locals.tipos);
   const resposta = await proximo();

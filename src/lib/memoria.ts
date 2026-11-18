@@ -30,3 +30,14 @@ export function relatoJaEstaNaAbertura(relatos: RelatoDaPagina[], trecho: string
   if (audios(relato.id) > 0) return false;
   return relato.texto.trim() === trecho;
 }
+
+/**
+ * O aviso de quem tenta publicar com alguém que só ela vê. Com script, vem junto da escolha; sem script,
+ * diz o caminho: abrir o laço na página da pessoa ou tirá-la de "Quem estava".
+ */
+export function mensagemDaPessoaPrivada(nomes: string[], jaPublicada: boolean): string {
+  const lista = nomes.length === 1 ? nomes[0] : `${nomes.slice(0, -1).join(', ')} e ${nomes.at(-1)}`;
+  const so = nomes.length === 1 ? `${lista} só aparece para você` : `${lista} só aparecem para você`;
+  const fica = jaPublicada ? 'Para salvar' : 'Enquanto for assim, a memória fica em rascunho. Para publicar';
+  return `${so}: o laço de vocês está marcado como “só eu vejo”, e a memória mostraria isso a todos. ${fica}, abra o laço para todos ou tire ${nomes.length === 1 ? 'essa pessoa' : 'essas pessoas'} de “Quem estava”.`;
+}

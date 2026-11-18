@@ -1957,3 +1957,24 @@
     display: flex;
   }
 }
+
+/* Publicar com alguém que só você vê (docs/decisoes.md): o aviso e as três escolhas, logo acima das
+   ações. Os botões ficam um embaixo do outro no celular e lado a lado quando cabem. */
+.privada {
+  display: grid;
+  gap: var(--e-4);
+  margin-block: var(--e-5);
+  padding: var(--e-5);
+  border: 1px solid var(--fio);
+  border-left: 3px solid var(--alerta);
+  border-radius: var(--raio-moldura);
+  background: var(--papel);
+}
+.privada__frase {
+  max-width: 40rem;
+}
+.privada__escolhas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-3);
+}

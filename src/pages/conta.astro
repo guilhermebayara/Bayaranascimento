@@ -7,6 +7,7 @@
 import '../visual/telas/painel.css';
 import '../visual/telas/conta.css';
 import Visual from '../layouts/Visual.astro';
+import Avisos from '../components/Avisos.astro';
 import Carimbo from '../components/visual/Carimbo.astro';
 import Gente from '../components/visual/Gente.astro';
 import Recado from '../components/visual/Recado.astro';
@@ -18,7 +19,7 @@ import { PROXIMIDADES, lacoParaODono } from '../lib/parentesco';
 import { enderecoDoRetrato } from '../lib/retratos';
 import { ENDERECO_DE_SAIDA, temLogin } from '../lib/servidor/acesso';
 import { montarConta } from '../lib/servidor/conta';
-import { familiasDe, listarCasais, listarFiliacoes, listarNucleos, obterCarta } from '../lib/servidor/repositorio';
+import { familiasDe, listarAvisos, listarCasais, listarFiliacoes, listarNucleos, obterCarta } from '../lib/servidor/repositorio';
 import { carimboDaData, corDaPessoa, corDoNucleo } from '../lib/visual';
 
 // Os textos novos desta tela foram aprovados pelo Gui em 17/11/2026 (pergunta 7 do PR do grupo "pessoal").
@@ -62,6 +63,10 @@ const dados = [nascimento, chamado, conta.email && `e-mail de acesso: ${conta.em
 // "Baixar cópia do acervo" baixa um arquivo: fica à parte dos links que abrem página, junto do tamanho do banco (P153)
 const paginasDaAdministracao = conta.administracao.filter((item) => !item.baixar);
 const copia = conta.administracao.find((item) => item.baixar);
+// Os avisos: a lista e o histórico (docs/decisoes.md, "Avisos")
+const todosOsAvisos = await listarAvisos(usuario, { historico: true });
+const avisosPendentes = todosOsAvisos.filter((a) => !a.resolvidoEm);
+const avisosVistos = todosOsAvisos.filter((a) => a.resolvidoEm).slice(0, 20);
 const ok = Astro.url.searchParams.get('ok');
 const erro = Astro.url.searchParams.get('erro');
 ---
@@ -92,6 +97,7 @@ const erro = Astro.url.searchParams.get('erro');
     </header>
 
     <div class="conta__partes">
+      <Avisos avisos={avisosPendentes} historico={avisosVistos} onde="conta" />
       <section class="cartao conta__rascunhos" aria-labelledby="rascunhos">
         <h2 class="cartao__titulo rotulo" id="rascunhos">
           Rascunhos e lixeira

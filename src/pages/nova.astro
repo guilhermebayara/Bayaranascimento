@@ -377,6 +377,16 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
     </section>
 
     <p class="situacao" data-situacao role="status" aria-live="polite"></p>
+    {/* Publicar com alguém que só você vê (docs/decisoes.md): o servidor recusa e a pessoa escolhe aqui.
+        O texto e os botões são preenchidos pelo script com o nome de quem é só dela. */}
+    <div class="privada" data-privada role="alert" hidden>
+      <p class="privada__frase" data-privada-frase></p>
+      <div class="privada__escolhas">
+        <button type="button" class="botao botao--leve" data-privada-escolha="abrir"></button>
+        <button type="button" class="botao botao--leve" data-privada-escolha="sem-citar"></button>
+        <button type="button" class="botao botao--leve" data-privada-escolha="rascunho">{publicada ? 'Voltar e revisar' : 'Continuar em rascunho'}</button>
+      </div>
+    </div>
     <div class="acoes acoes--etapas">
       <button type="button" class="botao botao--leve" data-etapa-voltar>Voltar</button>
       {!publicada && <button type="submit" class="botao botao--leve acoes__rascunho" name="situacao" value="rascunho" data-salvar="rascunho">Salvar rascunho</button>}
@@ -1024,6 +1034,43 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
             : undefined,
       };
 
+      await enviar(pedido);
+    });
+
+    // Publicar com alguém que só você vê: o servidor recusa com o nome de quem é só da pessoa, e ela
+    // escolhe entre abrir a pessoa para todos, publicar sem citá-la ou continuar em rascunho
+    const privada = document.querySelector<HTMLElement>('[data-privada]')!;
+    let pedidoRecusado: Record<string, unknown> | undefined;
+    const mostrarPrivada = (resultado: { erro: string; pessoas: { nome: string }[] }, pedido: Record<string, unknown>) => {
+      pedidoRecusado = pedido;
+      const nomes = resultado.pessoas.map((p) => p.nome);
+      const lista = nomes.length === 1 ? nomes[0] : `${nomes.slice(0, -1).join(', ')} e ${nomes.at(-1)}`;
+      const varias = nomes.length > 1;
+      privada.querySelector('[data-privada-frase]')!.textContent = varias
+        ? `${lista} só aparecem para você: os laços de vocês estão marcados como “só eu vejo”. Publicada com essas pessoas, a memória mostraria isso a todos.`
+        : `${lista} só aparece para você: o laço de vocês está marcado como “só eu vejo”. Publicada assim, a memória mostraria isso a todos.`;
+      privada.querySelector('[data-privada-escolha="abrir"]')!.textContent = `Abrir ${lista} para todos e ${form.dataset.publicada !== undefined ? 'salvar' : 'publicar'}`;
+      privada.querySelector('[data-privada-escolha="sem-citar"]')!.textContent = `${form.dataset.publicada !== undefined ? 'Salvar' : 'Publicar'} sem citar ${lista}`;
+      avisar('');
+      privada.hidden = false;
+      privada.querySelector<HTMLButtonElement>('[data-privada-escolha]')?.focus();
+    };
+    for (const escolha of privada.querySelectorAll<HTMLButtonElement>('[data-privada-escolha]')) {
+      escolha.addEventListener('click', () => {
+        if (!pedidoRecusado) return;
+        privada.hidden = true;
+        const qual = escolha.dataset.privadaEscolha;
+        // Numa memória já publicada, "Voltar e revisar" só fecha o aviso
+        if (qual === 'rascunho' && form.dataset.publicada !== undefined) {
+          for (const b of botoes) b.disabled = false;
+          return;
+        }
+        void enviar(qual === 'rascunho' ? { ...pedidoRecusado, situacao: 'rascunho' } : { ...pedidoRecusado, pessoasPrivadas: qual });
+      });
+    }
+
+    async function enviar(pedido: Record<string, unknown>) {
+      const situacao = pedido.situacao;
       for (const b of botoes) b.disabled = true;
       avisar(situacao === 'rascunho' ? 'Salvando rascunho…' : form.dataset.publicada !== undefined ? 'Salvando…' : 'Publicando…');
       try {
@@ -1033,6 +1080,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
           body: JSON.stringify(pedido),
         });
         const resultado = await resposta.json();
+        if (resposta.status === 409 && resultado.codigo === 'pessoa-privada') return mostrarPrivada(resultado, pedido);
         if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');
         try {
           localStorage.removeItem(RASCUNHO_LOCAL);
@@ -1061,7 +1109,7 @@ const titulo = !memoria ? 'Nova memória' : publicada ? 'Corrigir memória' : 'C
         avisar(e instanceof Error ? e.message : 'Não consegui salvar.', 'erro');
         for (const b of botoes) b.disabled = false;
       }
-    });
+    }
 
     if (voltouDoRascunho) {
       // O recado fica no alto, onde a página abre depois de salvar: junto dos botões ele ficava fora da tela

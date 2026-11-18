@@ -193,7 +193,8 @@ describe('conceito', () => {
   it('o topo leva à conta pelo retrato de quem está logado, e "Rascunhos" não está no menu', () => {
     // Decisão do Gui, 16/11/2026 ("Sua conta", em docs/decisoes.md)
     const topo = Object.values(import.meta.glob<string>('../src/layouts/Visual.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
-    expect(topo).toMatch(/<a class="topo__conta" href="\/conta"/);
+    // O retrato abre o menu da conta, que leva a "Sua conta" (decisão do Gui, 17/11/2026)
+    expect(topo.slice(topo.indexOf('<details class="conta-menu">'))).toMatch(/<a href="\/conta"[^>]*>\s*Sua conta/);
     expect(topo.slice(topo.indexOf('const menu = ['), topo.indexOf('const telas = ['))).not.toContain('rascunhos');
     // A administração e a lixeira saem do rodapé: passam a morar na conta
     expect(topo.slice(topo.indexOf('<footer'))).not.toMatch(/lixeira|admin\/tipos|api\/copia/);
