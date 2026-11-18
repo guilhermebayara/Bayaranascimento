@@ -170,6 +170,10 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
             </blockquote>
           )
         }
+        {/* As ações do alto. No celular, os dois atalhos e, embaixo, reagir e o menu; no computador, tudo
+            numa linha: reagir, os dois atalhos e o menu (sugestão do Gui, 18/11/2026: o menu ficava
+            escondido na ponta da coluna, encostado nas fotos) */}
+        <div class="abre__acoes">
         {/* Atalho pequeno no alto para quem chega querendo contar; o convite grande fica no fim */}
         <p class="abre__atalho">
           <a class="acao" href={`/memorias/${memoria.id}/relato`}>
@@ -206,6 +210,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
             </div>
           )
         }
+        </div>
       </div>
       {
         memoria.fotos.length > 0 && (
