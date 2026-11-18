@@ -25,7 +25,10 @@
 .conta__quem h1 {
   margin-top: var(--e-2);
   margin-left: -0.04em;
-  overflow-wrap: anywhere;
+  /* O nome quebra entre as palavras, nunca no meio de uma ("Guilher / me"); só um nome que não cabe
+     inteiro numa linha quebra dentro dele (observação do Gui, 18/11/2026) */
+  overflow-wrap: break-word;
+  text-wrap: balance;
 }
 /* Os dados da pessoa, numa linha em mono abaixo do nome (resposta do Gui à P149, 17/11/2026) */
 .conta__dados {
@@ -405,13 +408,26 @@
     grid-template-columns: clamp(9rem, 14vw, 15rem) minmax(0, 1fr);
     gap: var(--calha);
   }
+  /* O nome cabe na coluna: o tamanho de título é o teto, e a palavra mais longa do nome (--letras, posto
+     pela página) manda abaixo dele, para caber inteira na largura da coluna. "Guilherme Bayara", ao lado
+     da administração, ocupava três linhas enormes (observação do Gui, 18/11/2026); "Gui" continua do
+     tamanho de sempre. Cada letra da serifa de capa ocupa perto de meia altura de letra. */
+  .conta__quem {
+    container-type: inline-size;
+  }
+  .conta__quem h1 {
+    font-size: min(var(--t-titulo-1), calc(100cqi / (var(--letras, 6) * 0.52)));
+  }
   /* Rascunhos e laços lado a lado; o nome, a faixa e os avisos na largura toda */
   .conta__grade {
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: var(--calha);
     align-items: start;
   }
-  .conta__grade > :is(.conta__abre, .conta__criou, .avisos--conta, .conta__carta) {
+  /* Os avisos vêm dentro da região que troca no lugar (Avisos.astro): a região não tem caixa, mas o
+     seletor de filho olha a marcação, e por isso passa por ela */
+  .conta__grade > :is(.conta__abre, .conta__criou, .conta__carta),
+  .conta__grade > .regiao > .avisos--conta {
     grid-column: 1 / -1;
   }
   /* Quem não administra: a carta fica no fim, como no celular; quem administra: no pé da coluna do nome */

@@ -46,3 +46,26 @@ describe('formulários no lugar', () => {
     expect(readFileSync('src/visual/base.css', 'utf-8')).toMatch(/\.regiao \{\s*display: contents;/);
   });
 });
+
+// A região (.regiao) não tem caixa, mas continua na marcação: um seletor de filho (">") olha a marcação,
+// e não as caixas. No cartão de avisos da conta, `.conta__grade > .avisos--conta` nunca valia, e o cartão
+// ficava numa coluna só da grade (observação do Gui, 18/11/2026). A regra: nenhuma folha de estilo pega
+// por ">" o primeiro elemento de dentro de uma região sem passar pela região.
+describe('o que está dentro de uma região', () => {
+  const css = [...readdirSync('src/visual/telas').map((n) => join('src/visual/telas', n)), 'src/visual/pecas.css', 'src/visual/estrutura.css'].map((c) => readFileSync(c, 'utf-8')).join('\n');
+  // As classes do primeiro elemento de dentro de cada <div class="regiao">
+  const deDentro = new Set(
+    fontes.flatMap(({ texto }) =>
+      [...texto.matchAll(/<div class="regiao"[^>]*>\s*(?:\{[^<]*)?<(\w+)\s[^>]*?class(?::list)?=\{?\[?['"`]?([\w-]+)/g)].map((m) => m[2]!),
+    ),
+  );
+  it('acha as regiões que embrulham um elemento com classe', () => {
+    expect(deDentro.has('avisos')).toBe(true);
+  });
+  it('nenhum seletor de filho pula a região', () => {
+    for (const classe of deDentro) {
+      const pulando = new RegExp(`(?<!\\.regiao\\s*)>\\s*(?::is\\([^)]*)?\\.${classe}(?:--[\\w-]+)?\\b`);
+      expect(css, classe).not.toMatch(pulando);
+    }
+  });
+});
