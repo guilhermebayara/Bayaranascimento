@@ -12,6 +12,8 @@ import '../../../visual/telas/explorar.css';
 import '../../../visual/telas/lista.css';
 import '../../../visual/telas/pessoa.css';
 import Visual from '../../../layouts/Visual.astro';
+import TrocaDaProposta from '../../../components/pessoa/TrocaDaProposta.astro';
+import { temAcervoDeExemplo } from '../../../lib/servidor/ambiente';
 import Linha from '../../../components/explorar/Linha.astro';
 import Lista from '../../../components/explorar/Lista.astro';
 import Mural from '../../../components/explorar/Mural.astro';
@@ -50,6 +52,15 @@ import { corDaPessoa } from '../../../lib/visual';
 // O nome de um laço do coração entra no meio da frase em minúscula, como na árvore
 const minuscula = (texto: string) => texto.charAt(0).toLowerCase() + texto.slice(1);
 const { usuario } = Astro.locals;
+// Conceito da sessão L, só nas prévias: "?proposta=a" ou "b" abre uma das duas propostas, e a escolha
+// fica num cookie para seguir de uma pessoa a outra; "?proposta=hoje" volta à página de hoje
+const propostaPedida = temAcervoDeExemplo() ? (Astro.url.searchParams.get('proposta') ?? Astro.cookies.get('proposta-pessoa')?.value ?? null) : null;
+if (Astro.url.searchParams.has('proposta') && temAcervoDeExemplo()) Astro.cookies.set('proposta-pessoa', propostaPedida ?? 'hoje', { path: '/', maxAge: 60 * 60 * 24 * 30 });
+if (propostaPedida === 'a' || propostaPedida === 'b') {
+  const resto = new URLSearchParams(Astro.url.searchParams);
+  resto.delete('proposta');
+  return Astro.rewrite(`/conceito/pessoa/${propostaPedida}/${Astro.params.id}${resto.size ? `?${resto}` : ''}`);
+}
 // Quem só existe num laço privado de outra pessoa responde como quem não existe (C1, 17/11/2026)
 const integrantes = await listarIntegrantesQueVe(usuario);
 const pessoa = integrantes.find((i) => i.id === Astro.params.id);
@@ -197,6 +208,7 @@ const genteNosLacos = new Set(partes.flatMap((parte) => parte.linhas.map((l) => 
 ---
 
 <Visual titulo={pessoa.nome} secao="pessoas" nucleos={familiasDe(pessoa)}>
+  {temAcervoDeExemplo() && <TrocaDaProposta atual="hoje" id={pessoa.id} />}
   <article class="pessoa-pagina">
     {(Astro.url.searchParams.get('ok') || Astro.url.searchParams.get('erro')) && (
       <div class="miolo pessoa-pagina__recado">

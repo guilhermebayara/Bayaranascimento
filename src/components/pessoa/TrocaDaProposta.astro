@@ -1,0 +1,25 @@
+---
+// Só nas prévias: a faixa que troca entre a página de hoje e as duas propostas do conceito da
+// página da pessoa (sessão L). A escolha fica num cookie, para seguir ao passar de uma pessoa a outra.
+interface Props {
+  atual: 'hoje' | 'a' | 'b';
+  id: string;
+}
+const { atual, id } = Astro.props;
+const opcoes = [
+  { valor: 'hoje', texto: 'Hoje' },
+  { valor: 'a', texto: 'A, o verbete' },
+  { valor: 'b', texto: 'B, o álbum' },
+] as const;
+---
+
+<nav class="troca-da-proposta miolo" aria-label="Conceito da página da pessoa">
+  <span class="rotulo suave">Conceito da página da pessoa</span>
+  <span class="troca-da-proposta__opcoes">
+    {opcoes.map((o) => (
+      <a href={`/pessoas/${id}?proposta=${o.valor}`} aria-current={o.valor === atual ? 'page' : undefined}>
+        {o.texto}
+      </a>
+    ))}
+  </span>
+</nav>
