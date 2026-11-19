@@ -17,11 +17,11 @@ const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? 'alguém';
 const pedidos = (await listarPedidosDeExclusao()).filter((p) => achar(p.pessoa));
 ---
 
-<Pagina titulo="Pedidos para excluir" rotulo="Administração" secao="conta" larga>
+<Pagina titulo="Pedidos para excluir" rotulo="Administração" secao="administracao" larga>
   <Fragment slot="abertura">
     <p>Quem não administra pede para excluir uma pessoa na edição dela. Excluir manda a pessoa para a lixeira: ela some do site, as memórias ficam, e dá para restaurar.</p>
     <p class="acoes">
-      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+      <a class="acao" href="/admin">Voltar para a Administração</a>
     </p>
   </Fragment>
   {

@@ -56,9 +56,10 @@ describe('sua conta', () => {
     const itens = administracao({ admin: true }, { podeEspelhar: true });
     expect(itens.map((i) => i.rotulo)).toContain('Famílias');
     expect(itens.filter((i) => i.baixar).map((i) => i.rotulo)).toEqual(['Baixar cópia do acervo']);
-    expect(conta).toContain('conta.administracao.filter((item) => !item.baixar)');
-    // Desde a proposta A da sessão E, a cópia fica no pé do cartão, junto da medida do banco
-    expect(conta).toMatch(/class="conta__banco"[\s\S]*?\{conta\.banco\}[\s\S]*?download/);
+    // A Administração tem página própria desde 18/11/2026; a cópia continua no pé do cartão, junto da medida do banco
+    const admin = ler('src/pages/admin/index.astro');
+    expect(admin).toContain('adm.administracao.filter((item) => !item.baixar)');
+    expect(admin).toMatch(/class="conta__banco"[\s\S]*?\{adm\.banco\}[\s\S]*?download/);
   });
 });
 

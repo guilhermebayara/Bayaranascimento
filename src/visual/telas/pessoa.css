@@ -166,7 +166,7 @@
   border-top: 1px solid var(--fio);
 }
 
-/* Os dados: as datas com o ano grande, as famílias e os números do acervo, cada um com a sua cara */
+/* Os dados: as datas com o aniversário grande e o ano pequeno, as famílias e os números do acervo, cada um com a sua cara */
 .dados {
   display: grid;
   gap: var(--e-5);
@@ -179,7 +179,7 @@
 .dados__data[hidden] {
   display: none;
 }
-.dados__ano {
+.dados__grande {
   margin-top: var(--e-1);
   font-family: var(--serifa);
   font-size: var(--t-titulo-2);

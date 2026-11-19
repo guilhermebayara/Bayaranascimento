@@ -36,8 +36,9 @@ import { jaFaleceu, maisRecentesPrimeiro } from '../../../lib/datas';
 import { coresDosCapitulos } from '../../../lib/linha-capitulos';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { podeEditarCapitulo } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
-import { carimboDaData, corDaPessoa, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
+import { familiasDe, listarCapitulos, listarCasais, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
+import { coresDasPessoas } from '../../../lib/familias';
+import { carimboDaData, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
 
 const { usuario } = Astro.locals;
 const capitulos = await listarCapitulos(usuario);
@@ -58,7 +59,7 @@ const periodoDe = (c: Capitulo) => (c.modo === 'epoca' ? (c.inicio ? { inicio: c
 
 const memorias = memoriasDe(capitulo);
 const periodo = periodoDe(capitulo);
-const textoDoPeriodo = periodo ? formatarPeriodo(periodo.inicio, periodo.fim, capitulo.modo === 'epoca') : '';
+const textoDoPeriodo = periodo ? formatarPeriodo(periodo.inicio, periodo.fim, capitulo.modo === 'epoca', capitulo.modo === 'epoca') : '';
 const maior = capitulo.dentroDe ? capitulos.find((c) => c.id === capitulo.dentroDe) : undefined;
 
 // Relações pelo tempo, sem ninguém marcar: o que aconteceu dentro deste período, e as épocas em que ele caiu.
@@ -80,6 +81,7 @@ const temas = (await listarTemas()).filter((t) => capitulo.temas.includes(t.id))
 const integrantes = await listarIntegrantesQueVe(usuario);
 const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
+const corDe = coresDasPessoas(integrantes, await listarCasais(usuario), ordemDosNucleos);
 const restritoA = capitulo.visibilidade === 'nucleos' ? capitulo.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean) : [];
 // De quem é o capítulo por período, para quem chega entender por que só algumas memórias do período entram
 const achar = (id: string) => integrantes.find((x) => x.id === id);
@@ -233,7 +235,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
                     href={`/pessoas/${id}`}
                     nome={nomeDe(id)!}
                     foto={achar(id)?.retrato && !naoVe.has(id) ? enderecoDoRetrato(achar(id)!.retrato!) : null}
-                    familia={corDaPessoa(familiasDe(achar(id)!), ordemDosNucleos)}
+                    familia={corDe(id)}
                     detalhe={contar(n)}
                     falecido={Boolean(achar(id) && jaFaleceu(achar(id)!))}
                   />
@@ -261,7 +263,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
                 const p = periodoDe(c);
                 return (
                   <li>
-                    <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} periodo={p ? formatarPeriodo(p.inicio, p.fim) : undefined} detalhe={contar(memoriasDe(c).length)} cor={cores.get(c.id)} dentro />
+                    <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} periodo={p ? formatarPeriodo(p.inicio, p.fim, false, c.modo === 'epoca') : undefined} detalhe={contar(memoriasDe(c).length)} cor={cores.get(c.id)} dentro />
                   </li>
                 );
               })}
@@ -282,7 +284,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
                   <Entrada
                     href={`/capitulos/${c.id}`}
                     titulo={c.titulo}
-                    periodo={formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca')}
+                    periodo={formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca', c.modo === 'epoca')}
                     detalhe={detalheDoCruzamento(como)}
                     cor={cores.get(c.id)}
                     dentro

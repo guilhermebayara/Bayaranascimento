@@ -46,7 +46,8 @@ import {
   pessoasQueONaoVe,
   abrirAvisosDaMemoria, nomesDasPessoasExcluidas } from '../../lib/servidor/repositorio';
 import { conversaDosRelatos } from '../../lib/servidor/conversa';
-import { carimboDaData, corDaPessoa, estiloDoTipo, giroDoId, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
+import { carimboDaData, estiloDoTipo, giroDoId, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
+import { coresDasPessoas } from '../../lib/familias';
 
 const { usuario, tipos } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -73,7 +74,8 @@ const retratoDe = (id: string) => {
   const pessoa = achar(id);
   return pessoa?.retrato && !naoVe.has(id) ? enderecoDoRetrato(pessoa.retrato) : null;
 };
-const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
+const corDe = coresDasPessoas(integrantes, await listarCasais(usuario), ordemDosNucleos);
+const familiaDe = (id: string) => corDe(id);
 // Como os exes aparecem para quem olha (src/lib/ex-casal.ts)
 const modosDosExes = memoria.integrantes.length ? await comoOsExesAparecem(usuario) : new Map<string, 'discreto' | 'fora'>();
 // Quem só existe num laço privado de outra pessoa não aparece em "Quem estava" (C1, 17/11/2026)

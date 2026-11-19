@@ -2,6 +2,8 @@
 // com alguém da família já sai marcado como parente dela, e quem cadastrou confirma ou troca na página.
 // Função pura: vale igual no servidor e nos testes.
 
+import { corDaPessoa } from './visual';
+
 /** Quem acessa o site em 15/11/2026: os membros dos núcleos. O resto da família virou parente (migração 013). */
 export const NUCLEO_INICIAL = ['gui', 'giovanna', 'lucas-magno', 'elizete', 'ana-candida', 'lucio', 'regina'];
 
@@ -19,18 +21,27 @@ export type LacoNovo =
   | { tipo: 'pai-de'; com: string }
   | { tipo: 'casal'; com: string };
 
-const de = (dados: DadosDasFamilias, id: string) => dados.familias.get(id) ?? [];
-const conjuges = (dados: DadosDasFamilias, id: string) => dados.casais.flatMap((c) => (c.a === id ? [c.b] : c.b === id ? [c.a] : []));
+const de = (dados: Pick<DadosDasFamilias, 'familias'>, id: string) => dados.familias.get(id) ?? [];
+const conjuges = (dados: Pick<DadosDasFamilias, 'casais'>, id: string) => dados.casais.flatMap((c) => (c.a === id ? [c.b] : c.b === id ? [c.a] : []));
 
 /**
  * A família de onde a pessoa veio: as famílias dela menos as que ela formou com quem casou.
  * A Giovanna é Bayara e Bayara Bracarense; o Bayara Bracarense ela divide com o Magno, então ela veio do Bayara.
  * Quando não sobra nada (a Elizete e o Aguilar são os dois do Bayara), valem todas.
  */
-export function familiaDeOrigem(dados: DadosDasFamilias, id: string): string[] {
+export function familiaDeOrigem(dados: Pick<DadosDasFamilias, 'familias' | 'casais'>, id: string): string[] {
   const dosConjuges = new Set(conjuges(dados, id).flatMap((c) => de(dados, c)));
   const origem = de(dados, id).filter((n) => !dosConjuges.has(n));
   return origem.length ? origem : de(dados, id);
+}
+
+/**
+ * A família que a pessoa formou com quem casou, quando há: a Giovanna e o Magno formaram o Bayara
+ * Bracarense. Quem não formou outra (o Gui, a Elizete, o Aguilar) não tem. Com mais de uma, a mais recente.
+ */
+export function familiaFormada(dados: Pick<DadosDasFamilias, 'familias' | 'casais'>, id: string): string | undefined {
+  const origem = new Set(familiaDeOrigem(dados, id));
+  return de(dados, id).filter((n) => !origem.has(n)).at(-1);
 }
 
 /**
@@ -39,9 +50,31 @@ export function familiaDeOrigem(dados: DadosDasFamilias, id: string): string[] {
  * outra fica com a de origem: o Gui e a Elizete, com o Bayara.
  */
 export function familiaMaisRecente(dados: DadosDasFamilias, id: string): string | undefined {
-  const origem = new Set(familiaDeOrigem(dados, id));
-  const formadas = de(dados, id).filter((n) => !origem.has(n));
-  return formadas.at(-1) ?? de(dados, id)[0];
+  return familiaFormada(dados, id) ?? de(dados, id)[0];
+}
+
+/**
+ * A cor de cada pessoa, onde ela leva uma cor só (o fundo do retrato, as iniciais, a abertura da página):
+ * a do núcleo que ela formou, quando há, e senão a da primeira família dela na ordem das famílias
+ * (pedido do Gui, 18/11/2026: a Giovanna é Bayara Bracarense, e não Bayara). O cartão da árvore não usa
+ * esta cor: leva as duas, na diagonal. Os casais são os que quem olha vê.
+ */
+export function coresDasPessoas(
+  pessoas: { id: string; nucleos: string[]; parenteDe: string[] }[],
+  casais: { a: string; b: string }[],
+  ordemDosNucleos: string[],
+): (id: string) => string {
+  const familias = new Map(pessoas.map((p) => [p.id, [...p.nucleos, ...p.parenteDe]]));
+  const dados = { familias, casais };
+  const cores = new Map<string, string>();
+  return (id) => {
+    let cor = cores.get(id);
+    if (!cor) {
+      cor = corDaPessoa(familias.get(id) ?? [], ordemDosNucleos, familiaFormada(dados, id));
+      cores.set(id, cor);
+    }
+    return cor;
+  };
 }
 
 /** O que dois pais dividem: o filho da Giovanna com o Magno é do Bayara Bracarense, o núcleo que os dois criaram. */

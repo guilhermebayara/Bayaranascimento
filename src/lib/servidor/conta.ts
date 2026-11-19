@@ -90,27 +90,6 @@ export async function montarConta(usuario: Usuario) {
     listarIntegrantes(),
   ]);
   const minhaLixeira = suaLixeira(eu, excluidas);
-  // Quem administra abre a conta: os arquivos de antes da contagem são medidos aos poucos, só lendo o tamanho
-  if (usuario.admin) {
-    try {
-      await medirArquivosDeAntes(async (chave) => (await bucketDeFotos().head(chave))?.size ?? null);
-    } catch {
-      // Medir é um extra: um erro do bucket nunca derruba a conta
-    }
-  }
-  const situacao: SituacaoDaAdministracao | undefined = usuario.admin
-    ? {
-        ...(await situacaoDasPendencias(usuario)),
-        tipos: (await listarTipos()).length,
-        familias: (await listarNucleos()).length,
-        transcricao: await situacaoDaTranscricaoAgora(),
-        centros: ((c) => (Array.isArray(c) && c.length ? c.length : null))(await lerAjuste(AJUSTE_DOS_CENTROS)),
-      }
-    : undefined;
-  const banco = situacao?.banco ? situacaoDoBanco(situacao.banco.bytes) : undefined;
-  const arquivos = usuario.admin ? await espacoDosArquivos() : undefined;
-  const espaco = arquivos ? situacaoDoEspaco(arquivos.bytes, arquivos.semMedida) : undefined;
-  const hoje = new Date();
   return {
     /** "Seus dados e sua página": editáveis em /pessoas/<id>/editar; a página como os outros veem, em /pessoas/<id> */
     dados: integrantes.find((i) => i.id === eu),
@@ -121,14 +100,46 @@ export async function montarConta(usuario: Usuario) {
     fraseDaLixeira: fraseDaLixeira(usuario.admin, usuario.admin ? excluidas.filter((m) => podeExcluirMemoria(usuario, m).ok).length + (await listarCapitulosExcluidos(usuario)).length : minhaLixeira.length),
     criou: oQueVoceCriou(eu, { memorias: publicadas, relatos, capitulos }),
     lacos: seusLacos(eu, lacos),
-    administracao: administracao(usuario, { podeEspelhar: podeEspelhar() }, situacao),
-    /** a situação do acervo para a administração, e o que dela pede ação (src/lib/conta.ts) */
-    situacao,
-    pendencias: situacao ? pendenciasDaAdministracao(situacao, hoje) : [],
-    hoje,
+    /** quem administra vê o atalho para a Administração (src/pages/admin/index.astro) */
+    administra: usuario.admin,
+    /** quantas pendências a administração tem, para o atalho de quem administra (0 para os outros) */
+    pendenciasDaAdministracao: usuario.admin ? await contarPendenciasDaAdministracao(usuario) : 0,
     /** o título de cada memória que a pessoa vê, para dizer de qual memória é um relato */
     titulos: new Map([...publicadas, ...rascunhos].map((m) => [m.id, m.titulo])),
     integrantes,
+  };
+}
+
+/**
+ * A página da Administração (decisão do Gui, 18/11/2026: ela sai de "Sua conta" e ganha página própria):
+ * os atalhos, a situação do acervo, as pendências, o banco e o espaço das fotos e áudios. Só para quem
+ * administra; para os outros, nada.
+ */
+export async function montarAdministracao(usuario: Usuario) {
+  if (!usuario.admin) return undefined;
+  // Quem administra abre a página: os arquivos de antes da contagem são medidos aos poucos, só lendo o tamanho
+  try {
+    await medirArquivosDeAntes(async (chave) => (await bucketDeFotos().head(chave))?.size ?? null);
+  } catch {
+    // Medir é um extra: um erro do bucket nunca derruba a página
+  }
+  const situacao: SituacaoDaAdministracao = {
+    ...(await situacaoDasPendencias(usuario)),
+    tipos: (await listarTipos()).length,
+    familias: (await listarNucleos()).length,
+    transcricao: await situacaoDaTranscricaoAgora(),
+    centros: ((c) => (Array.isArray(c) && c.length ? c.length : null))(await lerAjuste(AJUSTE_DOS_CENTROS)),
+  };
+  const banco = situacao.banco ? situacaoDoBanco(situacao.banco.bytes) : undefined;
+  const arquivos = await espacoDosArquivos();
+  const espaco = situacaoDoEspaco(arquivos.bytes, arquivos.semMedida);
+  const hoje = new Date();
+  return {
+    administracao: administracao(usuario, { podeEspelhar: podeEspelhar() }, situacao),
+    /** a situação do acervo para a administração, e o que dela pede ação (src/lib/conta.ts) */
+    situacao,
+    pendencias: pendenciasDaAdministracao(situacao, hoje),
+    hoje,
     banco: banco && `${banco.texto} de ${emMegabytes(LIMITE_DO_PLANO)}`,
     /** o banco passou do tamanho de aviso (docs/decisoes.md, "Aviso de tamanho do banco") */
     bancoEmAviso: Boolean(banco?.passouDoAviso),
