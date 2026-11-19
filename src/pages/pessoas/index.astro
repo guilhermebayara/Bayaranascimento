@@ -20,11 +20,11 @@ import Gente from '../../components/visual/Gente.astro';
 import TarjaDoDiscreto from '../../components/visual/TarjaDoDiscreto.astro';
 import { naListaDeQuemOlha } from '../../lib/ex-casal';
 import PilulaDeFamilia from '../../components/visual/PilulaDeFamilia.astro';
-import { Familia, calcularGeracoes, possessivo, type Tratamento } from '../../lib/parentesco';
+import { Familia, calcularGeracoes, lacoParaODono, possessivo, type Tratamento } from '../../lib/parentesco';
 import { jaFaleceu } from '../../lib/datas';
 import { apelidoAoLado, enderecoDePessoas, familiaPedida, gruposDaFamilia, nomeComApelido, ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
 import { enderecoDoRetrato } from '../../lib/retratos';
-import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
+import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
 import { corDaPessoa, corDoNucleo } from '../../lib/visual';
 
 const { usuario } = Astro.locals;
@@ -63,10 +63,15 @@ const grupos = gruposDaFamilia(todosOsGrupos, familiaEmUso);
 // Aprovado pelo Gui em 17/11/2026 (pergunta 3 do PR do grupo "familia"): o parentesco de quem olha na lista de pessoas
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const familia = new Familia(filiacoes, casais, tratamentos);
+// Sem parentesco de árvore, vale o laço do coração de quem olha ("seu amigo"), como na página da pessoa
+// e no Início (defeito visto pelo Gui na produção, 18/11/2026)
+const meusLacos = (await listarLacosDoCoracao(usuario)).filter((l) => l.dono === usuario.pessoa);
 const paraVoce = (p: Integrante) => {
   if (p.id === usuario.pessoa) return 'você';
   const relacao = familia.relacao(usuario.pessoa, p.id);
-  return relacao ? possessivo(relacao, p.tratamento) : null;
+  if (relacao) return possessivo(relacao, p.tratamento);
+  const meuLaco = meusLacos.find((l) => l.pessoa === p.id);
+  return meuLaco ? lacoParaODono(meuLaco.nome, p.tratamento) : null;
 };
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 // A conta por extenso, no alto e em cada bloco. Quem é de duas famílias aparece nas duas (resposta
