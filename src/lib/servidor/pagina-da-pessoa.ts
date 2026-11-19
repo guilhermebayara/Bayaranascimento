@@ -5,14 +5,15 @@
 // src/lib/pagina-da-pessoa.ts.
 import { duracaoEmTexto } from '../audios';
 import { nomeDaProximidade } from '../circulo';
-import { formatarData, formatarDiaMes, jaFaleceu, vidaSemRotulo } from '../datas';
+import { formatarData, jaFaleceu, vidaSemRotulo } from '../datas';
 import { apareceComoCasal, apareceComoCoracao, exDoAmigo, viraramAmigos } from '../ex-casal';
 import { enderecoDoLaco } from '../pagina-do-laco';
 import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../parentesco';
 import { enderecoDoRetrato } from '../retratos';
 import { apelidoAoLado } from '../ordem-das-pessoas';
-import { idadeNoAno } from '../pagina-da-pessoa';
-import { corDaPessoa, corDoNucleo, trechoDoRelato } from '../visual';
+import { idadeNoAno, partesDaData } from '../pagina-da-pessoa';
+import { corDoNucleo, trechoDoRelato } from '../visual';
+import { coresDasPessoas } from '../familias';
 import { pessoasComAcesso } from './acesso';
 import { conversaDosRelatos } from './conversa';
 import { proximidadesDoCirculo } from './circulo';
@@ -68,7 +69,8 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
 
   const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
   const filiacoes = await listarFiliacoes();
-  const familia = new Familia(filiacoes, await listarCasais(usuario), tratamentos);
+  const casaisQueVe = await listarCasais(usuario);
+  const familia = new Familia(filiacoes, casaisQueVe, tratamentos);
   const adocaoCom = (id: string) => {
     const f = filiacoes.find((x) => x.qualidade === 'adotiva' && ((x.filho === pessoa.id && x.responsavel === id) || (x.responsavel === pessoa.id && x.filho === id)));
     return f?.adocao ? `adoção em ${formatarData({ ano: f.adocao.ano, mes: f.adocao.mes, dia: f.adocao.dia, aproximada: false })}` : undefined;
@@ -78,7 +80,8 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
   const chamar = pessoa.apelido ?? pessoa.nome;
   const naoVe = await pessoasQueONaoVe(usuario);
   const retratoDe = (id: string) => (achar(id)?.retrato && !naoVe.has(id) ? enderecoDoRetrato(achar(id)!.retrato!) : null);
-  const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
+  // A cor de quem é de duas famílias é a do núcleo que formou (coresDasPessoas, pedido do Gui, 18/11/2026)
+  const familiaDe = coresDasPessoas(integrantes, casaisQueVe, ordemDosNucleos);
   const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
   const ehMinha = pessoa.id === usuario.pessoa;
   const papel = (id: string) => {
@@ -115,13 +118,13 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
   const parentesco = paraVoce ? possessivo(paraVoce, pessoa.tratamento) : meuLaco ? lacoParaODono(meuLaco.nome, pessoa.tratamento) : null;
   const temDataOculta = Boolean(pessoa.falecimentoAno);
   const vida = vidaSemRotulo(pessoa, mostrarDatas);
-  // As datas em partes, para o quadro: o ano grande e o dia e o mês ao lado. O falecimento vai na página
+  // As datas em partes, para o quadro: o aniversário grande e o ano pequeno (partesDaData). O falecimento vai na página
   // sempre, escondido, e "Mostrar datas" o mostra no lugar, sem recarregar (pedido do Gui, 18/11/2026)
   const nascimento = pessoa.nascimentoAno
-    ? { ano: pessoa.nascimentoAno, diaMes: formatarDiaMes({ ano: pessoa.nascimentoAno, mes: pessoa.nascimentoMes ?? null, dia: pessoa.nascimentoDia ?? null, aproximada: false }) }
+    ? partesDaData({ ano: pessoa.nascimentoAno, mes: pessoa.nascimentoMes, dia: pessoa.nascimentoDia })
     : null;
   const falecimento = pessoa.falecimentoAno
-    ? { ano: pessoa.falecimentoAno, diaMes: formatarDiaMes({ ano: pessoa.falecimentoAno, mes: pessoa.falecimentoMes ?? null, dia: pessoa.falecimentoDia ?? null, aproximada: false }) }
+    ? partesDaData({ ano: pessoa.falecimentoAno, mes: pessoa.falecimentoMes, dia: pessoa.falecimentoDia })
     : null;
   const historiaDoCasal = (casal: (typeof casais)[number]['casal']) =>
     casal.fases.map((fase, n) => [FASES[fase.tipo].toLowerCase(), periodosDasFases(casal.fases)[n]].filter(Boolean).join(' ')).join(', depois ') +

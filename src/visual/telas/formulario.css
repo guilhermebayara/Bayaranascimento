@@ -884,10 +884,6 @@
 .pagina-de-formulario .passo-ano select {
   flex: 1 1 100%;
 }
-/* O mês ao lado do ano, com o rótulo dele (o capítulo por período) */
-.pagina-de-formulario .passo-ano .passo-ano__mes {
-  flex: 1 1 100%;
-}
 .pagina-de-formulario [data-passo] {
   flex: none;
   min-width: var(--toque);
@@ -1472,8 +1468,7 @@
   .pagina-de-formulario .foto-enviada {
     grid-template-columns: 9rem minmax(0, 1fr);
   }
-  .pagina-de-formulario .passo-ano select,
-  .pagina-de-formulario .passo-ano .passo-ano__mes {
+  .pagina-de-formulario .passo-ano select {
     flex: 1 1 10rem;
   }
 }

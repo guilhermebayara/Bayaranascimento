@@ -5,7 +5,7 @@ import { FORA_DO_CIRCULO, distribuir, faixaDoValor, proximidadePadrao, valorDoNi
 import { jaFaleceu } from '../datas';
 import { Familia, lacoParaODono, possessivo, type Tratamento } from '../parentesco';
 import { enderecoDoRetrato } from '../retratos';
-import { corDaPessoa } from '../visual';
+import { coresDasPessoas } from '../familias';
 import type { Usuario } from './permissoes';
 import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarNucleos, listarProximidades, pessoasQueONaoVe, type Integrante } from './repositorio';
 
@@ -56,6 +56,7 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
   const eu = integrantes.find((i) => i.id === usuario.pessoa);
   if (!eu) return null;
   const ordem = nucleos.map((n) => n.id);
+  const corDe = coresDasPessoas(integrantes, casais, ordem);
   const lacos = todosOsLacos.filter((l) => l.dono === usuario.pessoa);
   const familia = new Familia(filiacoes, casais, new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento])));
 
@@ -75,7 +76,7 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
           nome: i.apelido ?? i.nome,
           laco: relacao ? possessivo(relacao, i.tratamento) : meu ? lacoParaODono(meu.nome, i.tratamento) : i.tipo === 'bicho' ? (i.especie ?? 'bichinho') : '',
           foto: i.retrato && !naoVe.has(i.id) ? enderecoDoRetrato(i.retrato) : null,
-          cor: corDaPessoa(familiasDe(i), ordem),
+          cor: corDe(i.id),
           falecido: jaFaleceu(i),
           valor: declarada?.valor ?? padrao,
           padrao,
@@ -91,7 +92,7 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
     .filter((p) => p.valor >= FORA_DO_CIRCULO)
     .map((p) => ({ ...p, angulo: noPadrao.get(p.id) ?? 0, anguloPadrao: noPadrao.get(p.id) ?? 0 }))
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-  return { eu, cor: corDaPessoa(familiasDe(eu), ordem), dentro, fora };
+  return { eu, cor: corDe(eu.id), dentro, fora };
 }
 
 /**

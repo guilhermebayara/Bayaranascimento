@@ -1,6 +1,6 @@
 // Capítulos: criar, editar e mandar para a lixeira.
 import type { APIRoute } from 'astro';
-import { lerDeQuem, lerModoDoFormulario, lerTemas, validarAninhamento } from '../../lib/capitulos';
+import { lerDeQuem, lerModoDoFormulario, lerPeriodoDoCapitulo, lerTemas, validarAninhamento } from '../../lib/capitulos';
 import { arrumarTexto, codigoNovo } from '../../lib/servidor/conteudo';
 import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeEditarCapitulo, podeEditarMemoria, podeMudarQuemVe, podeSalvarCapitulo, validarVisibilidade } from '../../lib/servidor/permissoes';
@@ -73,25 +73,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const titulo = campo(dados, 'titulo', 120);
   if (!titulo) return falhar('Dê um título ao capítulo.');
 
-  // Por período: início obrigatório, fim opcional
-  const anoAtual = new Date().getUTCFullYear();
-  const lerData = (prefixo: string): { ano: number; mes?: number } | undefined | 'invalida' => {
-    const ano = campoNumero(dados, `${prefixo}Ano`);
-    const mes = campoNumero(dados, `${prefixo}Mes`);
-    if (ano === undefined) return mes ? 'invalida' : undefined;
-    if (!Number.isInteger(ano) || ano < 1800 || ano > anoAtual) return 'invalida';
-    if (mes !== undefined && (!Number.isInteger(mes) || mes < 1 || mes > 12)) return 'invalida';
-    return { ano, mes };
-  };
-  const inicio = lerData('inicio');
-  const fim = lerData('fim');
-  if (modo === 'epoca') {
-    if (inicio === 'invalida' || fim === 'invalida') return falhar(`Confira as datas. Os anos precisam estar entre 1800 e ${anoAtual}.`);
-    if (!inicio) return falhar(escolha === 'epoca' ? 'Uma época precisa de um ano de início.' : 'Um capítulo por período precisa de um ano de início.');
-    if (fim && (fim.ano < inicio.ano || (fim.ano === inicio.ano && fim.mes && inicio.mes && fim.mes < inicio.mes))) {
-      return falhar('O período não pode terminar antes de começar.');
-    }
-  }
+  // Por período e época: início obrigatório, fim opcional, com mês e dia opcionais (lerPeriodoDoCapitulo)
+  const nomes = ['inicioAno', 'inicioMes', 'inicioDia', 'fimAno', 'fimMes', 'fimDia'] as const;
+  const periodo =
+    modo === 'epoca'
+      ? lerPeriodoDoCapitulo(Object.fromEntries(nomes.map((n) => [n, campoNumero(dados, n)])) as Record<(typeof nomes)[number], number | undefined>, new Date().getUTCFullYear(), escolha === 'epoca')
+      : undefined;
+  if (periodo && 'erro' in periodo) return falhar(periodo.erro);
 
   // De quem é o capítulo por período: pessoas, famílias ou os dois. Ninguém marcado quer dizer época, de todos.
   const nucleosDoAcervo = await listarNucleos();
@@ -135,8 +123,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     titulo,
     abertura: arrumarTexto(campo(dados, 'abertura', 5000)) || undefined,
     modo,
-    inicio: modo === 'epoca' ? (inicio as { ano: number; mes?: number }) : undefined,
-    fim: modo === 'epoca' ? (fim as { ano: number; mes?: number } | undefined) : undefined,
+    inicio: periodo?.inicio,
+    fim: periodo?.fim,
     dentroDe,
     visibilidade,
     nucleos: visibilidade === 'nucleos' ? nucleos : [],
