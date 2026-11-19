@@ -12,7 +12,8 @@ import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFas
 import { enderecoDoRetrato } from '../retratos';
 import { apelidoAoLado } from '../ordem-das-pessoas';
 import { idadeNoAno } from '../pagina-da-pessoa';
-import { corDaPessoa, corDoNucleo, trechoDoRelato } from '../visual';
+import { corDoNucleo, trechoDoRelato } from '../visual';
+import { coresDasPessoas } from '../familias';
 import { pessoasComAcesso } from './acesso';
 import { conversaDosRelatos } from './conversa';
 import { proximidadesDoCirculo } from './circulo';
@@ -68,7 +69,8 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
 
   const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
   const filiacoes = await listarFiliacoes();
-  const familia = new Familia(filiacoes, await listarCasais(usuario), tratamentos);
+  const casaisQueVe = await listarCasais(usuario);
+  const familia = new Familia(filiacoes, casaisQueVe, tratamentos);
   const adocaoCom = (id: string) => {
     const f = filiacoes.find((x) => x.qualidade === 'adotiva' && ((x.filho === pessoa.id && x.responsavel === id) || (x.responsavel === pessoa.id && x.filho === id)));
     return f?.adocao ? `adoção em ${formatarData({ ano: f.adocao.ano, mes: f.adocao.mes, dia: f.adocao.dia, aproximada: false })}` : undefined;
@@ -78,7 +80,8 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
   const chamar = pessoa.apelido ?? pessoa.nome;
   const naoVe = await pessoasQueONaoVe(usuario);
   const retratoDe = (id: string) => (achar(id)?.retrato && !naoVe.has(id) ? enderecoDoRetrato(achar(id)!.retrato!) : null);
-  const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
+  // A cor de quem é de duas famílias é a do núcleo que formou (coresDasPessoas, pedido do Gui, 18/11/2026)
+  const familiaDe = coresDasPessoas(integrantes, casaisQueVe, ordemDosNucleos);
   const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
   const ehMinha = pessoa.id === usuario.pessoa;
   const papel = (id: string) => {

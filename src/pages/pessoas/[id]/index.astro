@@ -58,7 +58,7 @@ const maiuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const RELATOS_A_VISTA = 3;
 const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get('ok');
 ---
-<Visual titulo={pessoa.nome} secao="pessoas" nucleos={p.familiasDaPessoa.map((f) => f.id)}>
+<Visual titulo={pessoa.nome} secao="pessoas" nucleos={p.familiasDaPessoa.map((f) => f.id)} familia={p.familiaDaPessoa}>
   <article class="verbete">
     {recado && (
       <div class="miolo verbete__recado">

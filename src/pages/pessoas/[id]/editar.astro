@@ -16,7 +16,7 @@ import CampoData from '../../../components/CampoData.astro';
 import Retrato from '../../../components/visual/Retrato.astro';
 import { formatarData, jaFaleceu, vidaSemRotulo } from '../../../lib/datas';
 import { enderecoDoRetrato } from '../../../lib/retratos';
-import { corDaPessoa } from '../../../lib/visual';
+import { coresDasPessoas } from '../../../lib/familias';
 import { FASES, Familia, PAPEIS, nomeDoPapel, periodosDasFases, QUALIDADES, faseAtual, type Papel, type Qualidade, type TipoDeFase } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeExcluirPessoa, podeMexerEmLaco, podePedirExclusao, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../../lib/servidor/permissoes';
@@ -53,7 +53,8 @@ const ehMinha = pessoa.id === usuario.pessoa;
 // Chegando do cadastro, esta página é a segunda etapa: só os laços
 const recemCadastrada = Astro.url.searchParams.has('novo');
 
-const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario));
+const casaisQueVe = await listarCasais(usuario);
+const familia = new Familia(await listarFiliacoes(), casaisQueVe);
 const nome = (id: string) => {
   const i = integrantes.find((x) => x.id === id);
   return i?.apelido ?? i?.nome ?? id;
@@ -207,7 +208,8 @@ const ordemDosNucleos = nucleos.map((n) => n.id);
 const achar = (id: string) => integrantes.find((i) => i.id === id);
 // A lista já vem sem quem só existe num laço privado de outra pessoa: o retrato segue a mesma regra
 const retratoDe = (id: string) => (achar(id)?.retrato ? enderecoDoRetrato(achar(id)!.retrato!) : null);
-const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
+const corDe = coresDasPessoas(integrantes, casaisQueVe, ordemDosNucleos);
+const familiaDe = (id: string) => corDe(id);
 const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
 // O resumo da ficha, numa linha: só o que existe
 const resumoDaFicha = [

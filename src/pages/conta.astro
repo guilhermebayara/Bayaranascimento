@@ -19,12 +19,12 @@ import Retrato from '../components/visual/Retrato.astro';
 import { FRASE_DA_COPIA_DO_ACERVO, GRUPO_DO_ESPACO, contaDePendencias, grupoDaPendencia, gruposDaAdministracao, fraseDaCopiaMensal, idDoGrupo, oComeco, porcentoDoBanco, resumoDoGrupo } from '../lib/conta';
 import { LIMITE_DO_PLANO } from '../lib/tamanho-do-banco';
 import { formatarData, jaFaleceu } from '../lib/datas';
-import { familiaMaisRecente } from '../lib/familias';
+import { coresDasPessoas, familiaMaisRecente } from '../lib/familias';
 import { PROXIMIDADES, lacoParaODono } from '../lib/parentesco';
 import { enderecoDoRetrato } from '../lib/retratos';
 import { montarConta } from '../lib/servidor/conta';
 import { familiasDe, listarAvisos, listarCasais, listarFiliacoes, listarNucleos, obterCarta, nomesDasPessoasExcluidas } from '../lib/servidor/repositorio';
-import { carimboDaData, corDaPessoa, corDoNucleo } from '../lib/visual';
+import { carimboDaData, corDoNucleo } from '../lib/visual';
 
 // Os textos novos desta tela foram aprovados pelo Gui em 17/11/2026 (pergunta 7 do PR do grupo "pessoal").
 const { usuario } = Astro.locals;
@@ -36,9 +36,11 @@ const nomesNaLixeira = await nomesDasPessoasExcluidas();
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? nomesNaLixeira.get(id) ?? id;
 const ordemDosNucleos = (await listarNucleos()).map((n) => n.id);
 // A mesma cor do painel: a da família mais recente de quem vê
-const minhaFamilia = familiaMaisRecente({ familias: new Map(integrantes.map((i) => [i.id, familiasDe(i)])), casais: await listarCasais(usuario), filiacoes: await listarFiliacoes() }, usuario.pessoa);
+const casais = await listarCasais(usuario);
+const minhaFamilia = familiaMaisRecente({ familias: new Map(integrantes.map((i) => [i.id, familiasDe(i)])), casais, filiacoes: await listarFiliacoes() }, usuario.pessoa);
 const cor = corDoNucleo(minhaFamilia, ordemDosNucleos);
-const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
+const corDe = coresDasPessoas(integrantes, casais, ordemDosNucleos);
+const familiaDe = (id: string) => corDe(id);
 const retratoDe = (id: string) => (achar(id)?.retrato ? enderecoDoRetrato(achar(id)!.retrato!) : null);
 
 const nascimento = eu?.nascimentoAno ? formatarData({ ano: eu.nascimentoAno, mes: eu.nascimentoMes, dia: eu.nascimentoDia, aproximada: false }) : undefined;

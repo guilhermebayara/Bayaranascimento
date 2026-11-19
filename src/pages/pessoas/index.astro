@@ -25,7 +25,8 @@ import { jaFaleceu } from '../../lib/datas';
 import { apelidoAoLado, enderecoDePessoas, familiaPedida, gruposDaFamilia, nomeComApelido, ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
 import { enderecoDoRetrato } from '../../lib/retratos';
 import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
-import { corDaPessoa, corDoNucleo } from '../../lib/visual';
+import { corDoNucleo } from '../../lib/visual';
+import { coresDasPessoas } from '../../lib/familias';
 
 const { usuario } = Astro.locals;
 // Quem só existe num laço privado de outra pessoa não entra na lista (C1, 17/11/2026)
@@ -48,6 +49,7 @@ const geracoes = calcularGeracoes(
 const naOrdem = (membros: Integrante[]) => ordenarPessoas(membros, geracoes, ordem);
 const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
+const corDe = coresDasPessoas(integrantes, casais, ordemDosNucleos);
 const memorias = await listarMemorias(usuario);
 const contar = (id: string) => memorias.filter((m) => m.integrantes.includes(id)).length;
 const todosOsGrupos = [
@@ -190,7 +192,7 @@ const escolhido = [todosOsGrupos.find((g) => g.id === familiaEmUso)?.nome, ordem
                       <TarjaDoDiscreto
                         nome={nomeComApelido(p.nome, p.apelido)}
                         foto={p.retrato && !naoVe.has(p.id) ? enderecoDoRetrato(p.retrato) : null}
-                        familia={corDaPessoa(familiasDe(p), ordemDosNucleos)}
+                        familia={corDe(p.id)}
                       />
                     </div>
                   ) : (
@@ -199,7 +201,7 @@ const escolhido = [todosOsGrupos.find((g) => g.id === familiaEmUso)?.nome, ordem
                     nome={p.nome}
                     apelido={apelidoAoLado(p.nome, p.apelido)}
                     foto={p.retrato && !naoVe.has(p.id) ? enderecoDoRetrato(p.retrato) : null}
-                    familia={corDaPessoa(familiasDe(p), ordemDosNucleos)}
+                    familia={corDe(p.id)}
                     laco={paraVoce(p)}
                     detalhe={detalhe(p)}
                     falecido={jaFaleceu(p)}
