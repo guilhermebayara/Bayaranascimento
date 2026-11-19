@@ -565,8 +565,9 @@ describe('grupo familia', () => {
     expect(pagina).toMatch(/style=\{cor === undefined \? undefined : estiloDoCapitulo\(cor\)\}/);
     const css = ler('telas/capitulo.css');
     expect(css).toMatch(/@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.capitulo__parado \{\s*position: sticky;/);
-    // A capa do capítulo e, desde a resposta do Gui à P62 do QA de design de 17/11/2026, o alto do sumário
-    expect(css.match(/position:\s*sticky/g)).toHaveLength(2);
+    // A capa do capítulo, o alto do sumário (resposta do Gui à P62 do QA de design de 17/11/2026) e a
+    // coluna da página do tema (19/11/2026)
+    expect(css.match(/position:\s*sticky/g)).toHaveLength(3);
   });
 
   it('na tela é "família", e não "núcleo"', () => {
@@ -854,27 +855,49 @@ describe('ajustes: a árvore nítida no zoom, o cartão de bicho e a foto da lis
   });
 });
 
-describe('página de tema: a lista de capítulos rola à parte', () => {
+describe('página de tema: a coluna da esquerda fica parada e a lista rola por dentro', () => {
   const css = ler('telas/capitulo.css');
   const pagina = readFileSync(new URL('../src/pages/temas/[id].astro', import.meta.url), 'utf8');
-  // O bloco de duas colunas, onde a lista pode passar do limite
+  // O bloco de duas colunas (teto da lista, para o toque) e o bloco só de mouse (coluna parada)
   const duasColunas = css.slice(css.indexOf('@media (min-width: 62rem) {', css.indexOf('.tema__memorias {')));
   const bloco = duasColunas.slice(0, duasColunas.indexOf('@media (min-width: 62rem) and (hover'));
+  const marca = '@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {';
+  const mouse = css.slice(css.indexOf(marca), css.indexOf('@media (min-width: 100rem)'));
 
-  it('só na tela de duas colunas a lista tem altura máxima e rola; no celular ela corre inteira', () => {
+  it('no toque largo a lista tem teto e rola; no celular ela corre inteira', () => {
     expect(bloco).toMatch(/\.tema__rolagem \{\s*max-height: 60svh;\s*overflow-y: auto;/);
     const fora = css.replace(bloco, '');
-    expect(fora).not.toMatch(/\.tema__rolagem \{[^}]*(max-height|overflow)/);
+    expect(fora).not.toMatch(/\.tema__rolagem \{[^}]*(max-height: 60svh|overflow)/);
   });
 
-  it('a rolagem da página é a do aparelho: nada preso na coluna do tema', () => {
+  it('a coluna parada só vale com mouse: nada preso no toque, por causa da banda do Safari', () => {
     const regras = css.match(/\.tema[^{}]*\{[^}]*\}/g) ?? [];
-    for (const r of regras) expect(r).not.toMatch(/position:\s*(sticky|fixed)/);
+    const presas = regras.filter((r) => /position:\s*(sticky|fixed)/.test(r));
+    expect(presas.length).toBeGreaterThan(0);
+    for (const r of presas) expect(mouse).toContain(r);
+    expect(mouse).toMatch(/\.tema:not\(:has\(\.linha--lista\)\) > \.tema__capa \{[^}]*position: sticky;[^}]*top:/);
+    expect(css.replace(mouse, '')).not.toMatch(/\.tema[^{}]*\{[^}]*position:\s*(sticky|fixed)/);
+  });
+
+  it('com mouse a coluna inteira acompanha a janela e a lista ocupa o resto, sem o teto fixo', () => {
+    expect(mouse).toMatch(/\.tema__capa \{[^}]*display: flex;[^}]*flex-direction: column;[^}]*max-height: calc\(100svh \+ var\(--sobe\)\);/);
+    expect(mouse).toMatch(/\.tema__capitulos \{[^}]*display: flex;[^}]*min-height: 0;/);
+    expect(mouse).toMatch(/\.tema__rolagem \{[^}]*max-height: none;/);
+    expect(mouse).not.toMatch(/\.tema__rolagem \{[^}]*60svh/);
+  });
+
+  it('com a lista de memórias em largura inteira a capa vai em cima e nada fica parado', () => {
+    expect(mouse).not.toMatch(/\.tema > \.tema__capa \{[^}]*sticky/);
+    expect(mouse).toContain('.tema:not(:has(.linha--lista))');
   });
 
   it('a lista fica abaixo do cabeçalho do tema, e o cabeçalho fora da área que rola', () => {
     const rolagem = pagina.indexOf('data-rolagem');
     expect(pagina.indexOf('id="capitulos-do-tema"')).toBeLessThan(rolagem);
     expect(pagina.indexOf('class="tema__abre')).toBeLessThan(rolagem);
+  });
+
+  it('a lista só vira ponto de parada do teclado quando de fato rola', () => {
+    expect(pagina).toMatch(/scrollHeight > rolagem\.clientHeight \+ 1\) rolagem\.tabIndex = 0;\s*else rolagem\.removeAttribute\('tabindex'\)/);
   });
 });

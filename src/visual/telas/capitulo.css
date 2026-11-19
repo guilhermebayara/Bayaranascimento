@@ -429,9 +429,10 @@
   .tema__abre {
     padding-block: var(--e-8) var(--e-6);
   }
-  /* A lista de capítulos da coluna rola à parte quando é longa, abaixo do nome do tema: o alto
-     fica com a página. Lista curta não chega ao limite e não rola. A rolagem da página continua
-     a do aparelho, e nada fica preso. No celular as colunas se empilham e a lista corre inteira. */
+  /* A lista de capítulos tem um teto e rola dentro dele quando é longa, abaixo do nome do tema.
+     Lista curta não chega ao teto e não rola. Este é o jeito do toque (o iPad deitado): nada fica
+     preso, a página rola com as memórias. No celular as colunas se empilham e a lista corre
+     inteira. Com mouse, a coluna toda fica parada e a lista ocupa a altura da janela (abaixo). */
   .tema__rolagem {
     max-height: 60svh;
     overflow-y: auto;
@@ -488,6 +489,29 @@
     position: sticky;
     top: var(--e-6);
     align-self: start;
+  }
+  /* Página do tema: a coluna da esquerda inteira fica parada, como a capa do capítulo. O nome e
+     "Todos os capítulos e temas" ficam no alto dela e a lista de capítulos ocupa o resto da altura
+     da janela, rolando por dentro só quando não couber. A rolagem da página fica com as memórias.
+     O alto do nome sobe um pouco ao parar, para o respiro de cima não gastar a janela. Com o mural
+     e a linha do tempo a coluna é parada; com a lista a capa vai em cima das memórias e nada
+     fica parado (a lista mantém o teto de 60svh). */
+  .tema:not(:has(.linha--lista)) > .tema__capa {
+    --sobe: calc(var(--e-8) - var(--e-6));
+    position: sticky;
+    top: calc(-1 * var(--sobe));
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100svh + var(--sobe));
+  }
+  .tema:not(:has(.linha--lista)) .tema__capitulos {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .tema:not(:has(.linha--lista)) .tema__rolagem {
+    min-height: 10rem;
+    max-height: none;
   }
   /* Capa mais alta que a janela não fica parada: o fim dela ("Quem aparece") nunca chegava à vista.
      Quem mede é o script da página do capítulo. */
