@@ -14,6 +14,7 @@
 // script, a troca acontece sem recarregar (src/lib/cliente/explorar-troca.ts). A ordem dos <details>
 // é a mesma nas três formas de ver: a troca copia quais estavam abertos pela posição.
 import IconeDoTipo from '../visual/IconeDoTipo.astro';
+import QuaisFotos from './QuaisFotos.astro';
 import {
   FORMAS_NO_LUGAR,
   FORMAS_QUE_SAEM,
@@ -29,6 +30,9 @@ import {
   alternarFamilia,
   enderecoDoExplorar,
   tamanhoNoEndereco,
+  fotosDoMuralNoEndereco,
+  FOTOS_DO_MURAL_PADRAO,
+  type FotosDoMural,
   temFiltro,
   type Filtros,
   type Forma,
@@ -57,16 +61,18 @@ interface Props {
   comDecadas?: boolean;
   /** no mural: o tamanho das fotos em uso */
   tamanho?: Tamanho;
+  /** no mural: só as capas ou todas as fotos */
+  fotos?: FotosDoMural;
 }
 
-const { filtros, forma, nucleos, tipos, pessoas, capitulos, temas, quantas, ligados, comDecadas = false, tamanho = TAMANHO_PADRAO } = Astro.props;
+const { filtros, forma, nucleos, tipos, pessoas, capitulos, temas, quantas, ligados, comDecadas = false, tamanho = TAMANHO_PADRAO, fotos = FOTOS_DO_MURAL_PADRAO } = Astro.props;
 const verOResultado = acaoDeVerOResultado(quantas);
 // O período tem um jeito só de ser dito: de um ano a outro. O endereço que chega com uma década
 // (um link antigo) aparece nos dois campos, e a escolha seguinte já sai como intervalo.
 const doAno = filtros.de ?? filtros.decada;
 const ateOAno = filtros.ate ?? (filtros.decada === null ? null : filtros.decada + 9);
 // O tamanho das fotos é do mural: acompanha os links e o formulário enquanto se está nele
-const doMural = forma === 'mural' ? tamanhoNoEndereco(tamanho) : {};
+const doMural = forma === 'mural' ? { ...tamanhoNoEndereco(tamanho), ...fotosDoMuralNoEndereco(fotos) } : {};
 const para = (f: Filtros) => enderecoDoExplorar(f, forma, doMural);
 // A família aceita mais de uma escolha: cada toque liga ou desliga só aquela
 const ordemDasFamilias = nucleos.map((n) => n.id);
@@ -130,7 +136,7 @@ const rapidos = [
       <nav class="abas" aria-labelledby="controle-forma">
         {
           FORMAS_NO_LUGAR.map((f) => (
-            <a href={enderecoDoExplorar(filtros, f, f === 'mural' ? tamanhoNoEndereco(tamanho) : {})} data-opcao={f} aria-current={f === forma ? 'page' : undefined}>
+            <a href={enderecoDoExplorar(filtros, f, f === 'mural' ? { ...tamanhoNoEndereco(tamanho), ...fotosDoMuralNoEndereco(fotos) } : {})} data-opcao={f} aria-current={f === forma ? 'page' : undefined}>
               <span class="opcao__texto" data-texto={NOMES_DAS_FORMAS[f]}>{NOMES_DAS_FORMAS[f]}</span>
             </a>
           ))
@@ -159,6 +165,7 @@ const rapidos = [
       <form class="filtros__cartao" method="get" action="/explorar" data-filtros>
         {forma !== 'linha' && <input type="hidden" name="ver" value={forma} />}
         {doMural.tamanho && <input type="hidden" name="tamanho" value={doMural.tamanho} />}
+        {doMural.fotos && <input type="hidden" name="fotos" value={doMural.fotos} />}
         {filtros.familias.map((id) => <input type="hidden" name="nucleo" value={id} />)}
         {/* A ordem tem o seletor dela: aqui só vai junto, para o filtro não desfazer a ordem */}
         {filtros.ordem !== ORDEM_PADRAO && <input type="hidden" name="ordem" value={filtros.ordem} />}
@@ -273,16 +280,19 @@ const rapidos = [
   {
     forma === 'mural' && (
       <div class="controles__tamanho">
-        <p class="rotulo suave" id="controle-tamanho">
-          Fotos
-        </p>
-        <nav class="linha__opcoes linha__opcoes--curtas" aria-labelledby="controle-tamanho">
-          {TAMANHOS.map((t) => (
-            <a href={enderecoDoExplorar(filtros, forma, tamanhoNoEndereco(t))} data-opcao={t} data-tamanho-das-fotos={t} aria-current={t === tamanho ? 'page' : undefined}>
-              <span class="opcao__texto" data-texto={NOMES_DOS_TAMANHOS[t]}>{NOMES_DOS_TAMANHOS[t]}</span>
-            </a>
-          ))}
-        </nav>
+        <div class="controle controle--tamanho">
+          <p class="rotulo suave" id="controle-tamanho">
+            Fotos
+          </p>
+          <nav class="linha__opcoes linha__opcoes--curtas" aria-labelledby="controle-tamanho">
+            {TAMANHOS.map((t) => (
+              <a href={enderecoDoExplorar(filtros, forma, { ...tamanhoNoEndereco(t), ...fotosDoMuralNoEndereco(fotos) })} data-opcao={t} data-tamanho-das-fotos={t} aria-current={t === tamanho ? 'page' : undefined}>
+                <span class="opcao__texto" data-texto={NOMES_DOS_TAMANHOS[t]}>{NOMES_DOS_TAMANHOS[t]}</span>
+              </a>
+            ))}
+          </nav>
+        </div>
+        <QuaisFotos atual={fotos} endereco={(f) => enderecoDoExplorar(filtros, forma, { ...tamanhoNoEndereco(tamanho), ...fotosDoMuralNoEndereco(f) })} />
       </div>
     )
   }

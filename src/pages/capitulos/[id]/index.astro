@@ -31,7 +31,8 @@ import {
   tituloDasMemorias,
   type Capitulo,
 } from '../../../lib/capitulos';
-import { TAMANHO_PADRAO } from '../../../lib/explorar';
+import { TAMANHO_PADRAO, fotosDoMuralNoEndereco, lerFotosDoMural } from '../../../lib/explorar';
+import QuaisFotos from '../../../components/explorar/QuaisFotos.astro';
 import { jaFaleceu, maisRecentesPrimeiro } from '../../../lib/datas';
 import { coresDosCapitulos } from '../../../lib/linha-capitulos';
 import { enderecoDoRetrato } from '../../../lib/retratos';
@@ -113,6 +114,7 @@ const digitos = Math.max(2, String(marcos.length).length);
 // A forma de ver (P69 do QA de design de 17/11/2026): os marcos, que são o padrão, o mural e a lista
 // do Explorar, na própria página. No mural e na lista, como lá, o rascunho não entra.
 const forma = lerFormaDoCapitulo(Astro.url.searchParams);
+const fotosDoMural = lerFotosDoMural(Astro.url.searchParams);
 const publicadas = maisRecentesPrimeiro(memorias).filter((m) => m.situacao !== 'rascunho');
 const nomeDoEditar = capitulo.modo === 'reunido' ? (podeEditar ? 'Escolher memórias e editar' : 'Escolher memórias') : podeEditar ? (ehEpoca(capitulo) ? 'Editar época' : 'Editar capítulo') : null;
 // O selo: o que o capítulo é e a quem ele é restrito. O capítulo de dentro diz de qual faz parte (P70)
@@ -315,6 +317,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
                 ))}
               </nav>
             </div>
+            {forma === 'mural' && <QuaisFotos atual={fotosDoMural} endereco={(f) => `${enderecoDoCapitulo(capitulo.id, 'mural', fotosDoMuralNoEndereco(f))}#marcos`} />}
             <p class="capitulo__tv">
               <a class="acao acao--quieta" href={`/explorar?capitulo=${capitulo.id}&ver=tv`}>
                 Passar no modo TV
@@ -327,7 +330,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
             <Vazio frase={capitulo.modo === 'epoca' ? 'Nenhuma memória registrada neste período ainda.' : `Este capítulo ainda não tem memórias. Use "${podeEditar ? 'Escolher memórias e editar' : 'Escolher memórias'}", no alto, para escolher.`} />
           ) : forma === 'mural' ? (
             <div class="linha linha--mural capitulo__larga">
-              <Mural memorias={publicadas} ordem="recentes" tamanho={TAMANHO_PADRAO} />
+              <Mural memorias={publicadas} ordem="recentes" tamanho={TAMANHO_PADRAO} fotos={fotosDoMural} />
             </div>
           ) : forma === 'lista' ? (
             <div class="linha linha--lista capitulo__larga">
