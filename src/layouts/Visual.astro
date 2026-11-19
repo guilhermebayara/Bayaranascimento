@@ -6,7 +6,7 @@ import '../visual/sistema';
 import Assinatura from '../components/visual/Assinatura.astro';
 import Monograma from '../components/visual/Monograma.astro';
 import Retrato from '../components/visual/Retrato.astro';
-import { ENDERECO_DE_SAIDA, PESSOAS_DE_TESTE, semLogin, temLogin } from '../lib/servidor/acesso';
+import { PESSOAS_DE_TESTE, enderecoDeSaida, semLogin, temLogin } from '../lib/servidor/acesso';
 import { ehHomologacao } from '../lib/servidor/ambiente';
 import { fontesDoPedido } from '../lib/servidor/conceito';
 import { enderecoDoRetrato } from '../lib/retratos';
@@ -60,7 +60,7 @@ const teste = semLogin();
 // ninguém confundir com o site de verdade (decisão do Gui, 18/11/2026)
 const homologa = ehHomologacao();
 // "Sair" só aparece onde há o login do Cloudflare Access (P4 do QA de design, 17/11/2026)
-const saida = temLogin() ? ENDERECO_DE_SAIDA : undefined;
+const saida = temLogin() ? enderecoDeSaida() : undefined;
 const integrantes = await listarIntegrantes();
 const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
 // "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo.

@@ -6,6 +6,6 @@ import { describe, expect, it } from 'vitest';
 describe('tela de quem não foi identificado', () => {
   const codigo = readFileSync('src/middleware.ts', 'utf8');
   it('tem o botão de sair do Access', () => {
-    expect(codigo).toMatch(/Não consegui identificar você[\s\S]*href="\$\{ENDERECO_DE_SAIDA\}"[\s\S]*>Sair</);
+    expect(codigo).toMatch(/Não consegui identificar você[\s\S]*href="\$\{enderecoDeSaida\(\)\}"[\s\S]*>Sair</);
   });
 });

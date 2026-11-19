@@ -47,17 +47,17 @@ describe('"Sair" só onde há login (P4)', () => {
   const acesso = ler('src/lib/servidor/acesso.ts');
   it('o login existe na produção e na homologação, e a saída é a do Cloudflare Access', () => {
     expect(acesso).toMatch(/export function temLogin\(\): boolean \{\s*return ambiente\(\) === 'producao' \|\| ambiente\(\) === 'homologa';/);
-    expect(acesso).toMatch(/ENDERECO_DE_SAIDA = '\/cdn-cgi\/access\/logout'/);
+    expect(acesso).toMatch(/https:\/\/\$\{env\.ACCESS_TEAM_DOMAIN\}\/cdn-cgi\/access\/logout/);
   });
   it('"Sair" mora só no menu da conta, quando há login (resposta do Gui aos PRs #56 a #60, 17/11/2026)', () => {
-    expect(esqueleto).toMatch(/const saida = temLogin\(\) \? ENDERECO_DE_SAIDA : undefined;/);
+    expect(esqueleto).toMatch(/const saida = temLogin\(\) \? enderecoDeSaida\(\) : undefined;/);
     const menu = esqueleto.slice(esqueleto.indexOf('<details class="conta-menu">'), esqueleto.indexOf('</details>', esqueleto.indexOf('<details class="conta-menu">')));
     expect(menu).toMatch(/\{saida && <a href=\{saida\}>Sair<\/a>\}/);
     // Uma vez só no esqueleto, e nenhuma no rodapé nem em Sua conta
     expect(esqueleto.match(/href=\{saida\}/g)).toHaveLength(1);
     expect(esqueleto.slice(esqueleto.indexOf('<footer'))).not.toMatch(/saida|>\s*Sair\s*</);
     const conta = ler('src/pages/conta.astro');
-    expect(conta).not.toMatch(/ENDERECO_DE_SAIDA|conta__sair|>\s*Sair\s*</);
+    expect(conta).not.toMatch(/enderecoDeSaida|conta__sair|>\s*Sair\s*</);
   });
 });
 
