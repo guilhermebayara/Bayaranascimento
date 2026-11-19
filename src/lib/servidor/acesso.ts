@@ -108,8 +108,15 @@ export function temLogin(): boolean {
   return ambiente() === 'producao' || ambiente() === 'homologa';
 }
 
-/** A saída do Cloudflare Access: encerra a sessão da pessoa neste aparelho. */
-export const ENDERECO_DE_SAIDA = '/cdn-cgi/access/logout';
+/**
+ * A saída do Cloudflare Access, no domínio da equipe: encerra a sessão da pessoa neste aparelho, em
+ * todo o Access, para ela poder entrar de novo com outro e-mail. A saída pelo endereço do próprio site
+ * (/cdn-cgi/access/logout) caía em "Unable to find your Access organization" depois que o Gui trocou o
+ * domínio da equipe (19/11/2026).
+ */
+export function enderecoDeSaida(): string {
+  return `https://${env.ACCESS_TEAM_DOMAIN}/cdn-cgi/access/logout`;
+}
 
 /**
  * Integrantes que têm login no site. Fora da produção, quem tem núcleo conta
