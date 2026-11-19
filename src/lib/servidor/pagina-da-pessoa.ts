@@ -5,13 +5,13 @@
 // src/lib/pagina-da-pessoa.ts.
 import { duracaoEmTexto } from '../audios';
 import { nomeDaProximidade } from '../circulo';
-import { formatarData, formatarDiaMes, jaFaleceu, vidaSemRotulo } from '../datas';
+import { formatarData, jaFaleceu, vidaSemRotulo } from '../datas';
 import { apareceComoCasal, apareceComoCoracao, exDoAmigo, viraramAmigos } from '../ex-casal';
 import { enderecoDoLaco } from '../pagina-do-laco';
 import { FASES, Familia, estaoJuntos, lacoParaODono, nomeDoPapel, periodosDasFases, possessivo, type Tratamento } from '../parentesco';
 import { enderecoDoRetrato } from '../retratos';
 import { apelidoAoLado } from '../ordem-das-pessoas';
-import { idadeNoAno } from '../pagina-da-pessoa';
+import { idadeNoAno, partesDaData } from '../pagina-da-pessoa';
 import { corDoNucleo, trechoDoRelato } from '../visual';
 import { coresDasPessoas } from '../familias';
 import { pessoasComAcesso } from './acesso';
@@ -118,13 +118,13 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
   const parentesco = paraVoce ? possessivo(paraVoce, pessoa.tratamento) : meuLaco ? lacoParaODono(meuLaco.nome, pessoa.tratamento) : null;
   const temDataOculta = Boolean(pessoa.falecimentoAno);
   const vida = vidaSemRotulo(pessoa, mostrarDatas);
-  // As datas em partes, para o quadro: o ano grande e o dia e o mês ao lado. O falecimento vai na página
+  // As datas em partes, para o quadro: o aniversário grande e o ano pequeno (partesDaData). O falecimento vai na página
   // sempre, escondido, e "Mostrar datas" o mostra no lugar, sem recarregar (pedido do Gui, 18/11/2026)
   const nascimento = pessoa.nascimentoAno
-    ? { ano: pessoa.nascimentoAno, diaMes: formatarDiaMes({ ano: pessoa.nascimentoAno, mes: pessoa.nascimentoMes ?? null, dia: pessoa.nascimentoDia ?? null, aproximada: false }) }
+    ? partesDaData({ ano: pessoa.nascimentoAno, mes: pessoa.nascimentoMes, dia: pessoa.nascimentoDia })
     : null;
   const falecimento = pessoa.falecimentoAno
-    ? { ano: pessoa.falecimentoAno, diaMes: formatarDiaMes({ ano: pessoa.falecimentoAno, mes: pessoa.falecimentoMes ?? null, dia: pessoa.falecimentoDia ?? null, aproximada: false }) }
+    ? partesDaData({ ano: pessoa.falecimentoAno, mes: pessoa.falecimentoMes, dia: pessoa.falecimentoDia })
     : null;
   const historiaDoCasal = (casal: (typeof casais)[number]['casal']) =>
     casal.fases.map((fase, n) => [FASES[fase.tipo].toLowerCase(), periodosDasFases(casal.fases)[n]].filter(Boolean).join(' ')).join(', depois ') +

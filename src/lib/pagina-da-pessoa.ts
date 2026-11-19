@@ -2,6 +2,8 @@
 // em 18/11/2026): a frase de abertura, a vida em memórias agrupada pela idade e as formas de ver.
 // Sem tela e sem banco, para os testes (testes/pagina-da-pessoa.test.ts).
 
+import { MESES } from './datas';
+
 /** As formas de ver as memórias da pessoa: pela idade (o padrão), a linha do tempo e o mural. */
 export const FORMAS_DA_VIDA = ['idade', 'linha', 'mural'] as const;
 export type FormaDaVida = (typeof FORMAS_DA_VIDA)[number];
@@ -24,6 +26,18 @@ export function nomeDaFormaDaVida(forma: FormaDaVida, comIdade: boolean): string
 
 /** O rascunho de quem escreveu aparece pela idade e na linha do tempo; o mural é só do que foi publicado. */
 export const mostraRascunhoNaVida = (forma: FormaDaVida) => forma !== 'mural';
+
+/**
+ * Uma data de "Dados", em duas partes: a grande e a pequena. O aniversário vem em destaque (pedido do
+ * Gui, 18/11/2026): com o dia e o mês, "24 de julho" é o grande e o ano fica pequeno. Sem o dia, o ano
+ * continua sendo o grande, com o mês, quando há, pequeno ao lado. Vale igual para o falecimento, que
+ * fica ao lado e segue a mesma forma.
+ */
+export function partesDaData(d: { ano: number; mes?: number | null; dia?: number | null }): { grande: string; pequena: string | null } {
+  const mes = d.mes && d.mes >= 1 && d.mes <= 12 ? MESES[d.mes - 1] : null;
+  if (mes && d.dia) return { grande: `${d.dia} de ${mes}`, pequena: String(d.ano) };
+  return { grande: String(d.ano), pequena: mes };
+}
 
 /** A idade num ano, quando o nascimento é conhecido e o ano não é anterior a ele. */
 export function idadeNoAno(nascimentoAno: number | null | undefined, ano: number): number | null {

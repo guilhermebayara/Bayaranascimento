@@ -6,7 +6,7 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 import { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
 import { darMensagensAosRelatosDeAntes } from './mensagens-de-antes';
@@ -992,6 +992,7 @@ async function migrar(db: D1Database): Promise<void> {
     await semearCasaisDoCoracaoDeExemplo(db);
     await semearDeQuemDeExemplo(db);
     await semearAniversariosDeExemplo(db);
+    await semearNascimentoDaElizeteDeExemplo(db);
     await semearCartaDeExemplo(db);
     await semearTiposDeExemplo(db);
     // Os exemplos entram como membros (é o padrão da tabela), mas ninguém deles acessa o site: são parentes
