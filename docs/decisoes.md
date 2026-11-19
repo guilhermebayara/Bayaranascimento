@@ -394,6 +394,7 @@ Origem: [histórico, "Áudios nos relatos"](historico/decisoes-ate-2026-11-17.md
 - Uma memória entra em um capítulo reunido pelo formulário da memória ou pela página do capítulo, onde cada pessoa marca as memórias que pode corrigir.
 - **Quem edita:** quem criou e os admins (ter memórias no capítulo não basta). Uma época só os admins criam e editam, e só eles transformam um capítulo em época. Colocar e tirar memórias de um capítulo reunido é com quem pode corrigir cada memória. Quem pode ver o capítulo, só quem criou muda. Excluir é com os admins e manda para a lixeira; as memórias continuam no acervo. A confirmação diz quem pode restaurar na forma da memória: "você, a Giovanna ou o Lucas Magno".
 - Ficou para depois: capítulo ligado a uma fase de casal e foto de capa escolhida.
+- **Página do tema: a lista de capítulos rola à parte** (decisão do Gui, 19/11/2026). A rolagem da página fica com as memórias. Na tela de duas colunas (a partir de 62rem), a coluna da esquerda mantém o nome do tema no alto e a lista de capítulos abaixo dele rola dentro de uma altura máxima de 60% da tela. Lista curta não chega ao limite e não rola. Nada fica preso: a rolagem é a do aparelho. No celular as colunas se empilham e a lista corre inteira, sem rolagem interna. A lista vira ponto de parada do teclado só quando de fato rola. Teste em `testes/visual.test.ts`.
 
 **Capítulos na linha do tempo** (montagem em `src/lib/linha-capitulos.ts`, com teste em `testes/linha-capitulos.test.ts`; desenho em `src/visual/telas/linha.css` e em `docs/visual.md`)
 

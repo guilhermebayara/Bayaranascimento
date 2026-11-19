@@ -847,3 +847,28 @@ describe('ajustes: a árvore nítida no zoom, o cartão de bicho e a foto da lis
     expect(css).toMatch(/\.lista__linha,\s*\.lista__cabeca \{\s*padding-right: 15rem;/);
   });
 });
+
+describe('página de tema: a lista de capítulos rola à parte', () => {
+  const css = ler('telas/capitulo.css');
+  const pagina = readFileSync(new URL('../src/pages/temas/[id].astro', import.meta.url), 'utf8');
+  // O bloco de duas colunas, onde a lista pode passar do limite
+  const duasColunas = css.slice(css.indexOf('@media (min-width: 62rem) {', css.indexOf('.tema__memorias {')));
+  const bloco = duasColunas.slice(0, duasColunas.indexOf('@media (min-width: 62rem) and (hover'));
+
+  it('só na tela de duas colunas a lista tem altura máxima e rola; no celular ela corre inteira', () => {
+    expect(bloco).toMatch(/\.tema__rolagem \{\s*max-height: 60svh;\s*overflow-y: auto;/);
+    const fora = css.replace(bloco, '');
+    expect(fora).not.toMatch(/\.tema__rolagem \{[^}]*(max-height|overflow)/);
+  });
+
+  it('a rolagem da página é a do aparelho: nada preso na coluna do tema', () => {
+    const regras = css.match(/\.tema[^{}]*\{[^}]*\}/g) ?? [];
+    for (const r of regras) expect(r).not.toMatch(/position:\s*(sticky|fixed)/);
+  });
+
+  it('a lista fica abaixo do cabeçalho do tema, e o cabeçalho fora da área que rola', () => {
+    const rolagem = pagina.indexOf('data-rolagem');
+    expect(pagina.indexOf('id="capitulos-do-tema"')).toBeLessThan(rolagem);
+    expect(pagina.indexOf('class="tema__abre')).toBeLessThan(rolagem);
+  });
+});

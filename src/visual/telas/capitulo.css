@@ -335,7 +335,7 @@
 .tema__capitulos {
   padding-bottom: var(--e-7);
 }
-.tema__capitulos .indice {
+.tema__rolagem {
   margin-top: var(--e-3);
 }
 .tema__memorias {
@@ -428,6 +428,16 @@
   }
   .tema__abre {
     padding-block: var(--e-8) var(--e-6);
+  }
+  /* A lista de capítulos da coluna rola à parte quando é longa, abaixo do nome do tema: o alto
+     fica com a página. Lista curta não chega ao limite e não rola. A rolagem da página continua
+     a do aparelho, e nada fica preso. No celular as colunas se empilham e a lista corre inteira. */
+  .tema__rolagem {
+    max-height: 60svh;
+    overflow-y: auto;
+  }
+  .tema__rolagem:focus-visible {
+    outline-offset: var(--e-1);
   }
   /* Na coluna, o mural tem menos fotos por linha */
   .tema__memorias .mural,
