@@ -75,7 +75,7 @@ A homologação usa a família de verdade (decisão do Gui, 18/11/2026): **nomes
 
 1. Traga a `main` para a branch.
 2. `npm run build` sem erro. Ele roda antes a guarda da produção e os testes (ver "Conferências").
-3. A homologação publicada com a mudança, com a marca verde do Cloudflare e a do GitHub no último commit.
+3. A homologação publicada com a mudança, com a marca verde do Cloudflare no último commit e a do GitHub no PR que a levou.
 4. A aprovação do Gui na homologação.
 
 ## O que nunca fazer
@@ -102,7 +102,7 @@ O plano gratuito do GitHub não protege branches de repositório privado. As reg
 - `npm test`: os testes em `testes/`, das regras de permissão, das datas, do login, do parentesco e da árvore.
 - `npm run gestalt` (`scripts/confere-gestalt.mjs`), a gestalt que se confere sozinha: abre as telas em 390 e 1280 px e falha quando um título ou rótulo de grupo tem acima menos que o dobro do espaço de baixo. Precisa do servidor local no ar (`npm run dev` e `npm run fotos-de-exemplo`); recebe o endereço, como `npm run gestalt -- http://localhost:4400`. Exceção de propósito entra na lista do script, com o motivo. A regra está em "Visual", em `docs/decisoes.md`.
 - `npm run build` roda os dois primeiros antes do build (`prebuild`); a gestalt fica fora, porque o build do Cloudflare não tem servidor nem navegador. O Cloudflare publica com `npm run build`: se algo falhar, nada vai ao ar e a versão anterior continua.
-- No GitHub, `.github/workflows/confere.yml` roda o mesmo a cada push, em qualquer branch, e em todo PR para a `main`, e num passo à parte sobe o servidor local com o acervo de exemplo e roda a gestalt. Falha vira marca vermelha no commit e e-mail.
+- No GitHub, `.github/workflows/confere.yml` roda o mesmo nos PRs para a `homologa` e para a `main` (não a cada push, para poupar os minutos do GitHub Actions; decisão do Gui, 18/11/2026), e num passo à parte sobe o servidor local com o acervo de exemplo e roda a gestalt. PR só de documento não dispara. Um push novo no PR cancela a conferência anterior. Falha vira marca vermelha no PR e e-mail. A gestalt continua valendo antes de cada push, rodada na máquina da sessão.
 
 Regra nova que nasce de um achado vira teste em `testes/` ou verificação na guarda, no mesmo commit da correção, para continuar valendo sem depender de memória.
 
