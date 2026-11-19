@@ -112,7 +112,7 @@ export function montarTrilhos(memorias: MemoriaDaLinha[], todos: CapituloDaLinha
   const epocas: EpocaDaLinha[] = [];
   for (const c of todos.filter((x) => x.modo === 'epoca' && x.deTodos)) {
     const posicoes = noPeriodo(c);
-    if (posicoes.length) epocas.push({ id: c.id, titulo: c.titulo, periodo: formatarPeriodo(c.inicio, c.fim, true), primeira: Math.min(...posicoes), ultima: Math.max(...posicoes) });
+    if (posicoes.length) epocas.push({ id: c.id, titulo: c.titulo, periodo: formatarPeriodo(c.inicio, c.fim, true, true), primeira: Math.min(...posicoes), ultima: Math.max(...posicoes) });
   }
   const capitulos = todos.filter((x) => !(x.modo === 'epoca' && x.deTodos));
 
@@ -210,7 +210,7 @@ export function montarTrilhos(memorias: MemoriaDaLinha[], todos: CapituloDaLinha
 
 /** O período escrito no alto do trilho: o do capítulo por período; no reunido, da primeira à última memória. */
 function periodoDoCapitulo(c: CapituloDaLinha, dele: DataSolta[]): string {
-  if (c.modo === 'epoca') return formatarPeriodo(c.inicio, c.fim, true);
+  if (c.modo === 'epoca') return formatarPeriodo(c.inicio, c.fim, true, true);
   const periodo = periodoDasMemorias(dele);
   return periodo ? formatarPeriodo({ ano: periodo.inicio.ano }, { ano: periodo.fim.ano }) : '';
 }

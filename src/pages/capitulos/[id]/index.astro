@@ -58,7 +58,7 @@ const periodoDe = (c: Capitulo) => (c.modo === 'epoca' ? (c.inicio ? { inicio: c
 
 const memorias = memoriasDe(capitulo);
 const periodo = periodoDe(capitulo);
-const textoDoPeriodo = periodo ? formatarPeriodo(periodo.inicio, periodo.fim, capitulo.modo === 'epoca') : '';
+const textoDoPeriodo = periodo ? formatarPeriodo(periodo.inicio, periodo.fim, capitulo.modo === 'epoca', capitulo.modo === 'epoca') : '';
 const maior = capitulo.dentroDe ? capitulos.find((c) => c.id === capitulo.dentroDe) : undefined;
 
 // Relações pelo tempo, sem ninguém marcar: o que aconteceu dentro deste período, e as épocas em que ele caiu.
@@ -261,7 +261,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
                 const p = periodoDe(c);
                 return (
                   <li>
-                    <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} periodo={p ? formatarPeriodo(p.inicio, p.fim) : undefined} detalhe={contar(memoriasDe(c).length)} cor={cores.get(c.id)} dentro />
+                    <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} periodo={p ? formatarPeriodo(p.inicio, p.fim, false, c.modo === 'epoca') : undefined} detalhe={contar(memoriasDe(c).length)} cor={cores.get(c.id)} dentro />
                   </li>
                 );
               })}
@@ -282,7 +282,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
                   <Entrada
                     href={`/capitulos/${c.id}`}
                     titulo={c.titulo}
-                    periodo={formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca')}
+                    periodo={formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca', c.modo === 'epoca')}
                     detalhe={detalheDoCruzamento(como)}
                     cor={cores.get(c.id)}
                     dentro

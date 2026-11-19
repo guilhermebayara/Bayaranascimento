@@ -6,7 +6,7 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 import { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
 import { darMensagensAosRelatosDeAntes } from './mensagens-de-antes';
@@ -944,6 +944,12 @@ export const MIGRACOES: Migracao[] = [
       `CREATE INDEX IF NOT EXISTS relato_mensagens_do_relato ON relato_mensagens (relato_id, ordem)`,
     ],
   },
+  {
+    // O capítulo por período e a época com dia opcional no começo e no fim (pedido do Gui, 18/11/2026).
+    // Colunas novas, vazias nos capítulos de hoje: eles continuam como estão, sem perda.
+    id: '104-dia-dos-capitulos',
+    sql: [`ALTER TABLE capitulos ADD COLUMN inicio_dia INTEGER`, `ALTER TABLE capitulos ADD COLUMN fim_dia INTEGER`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
@@ -992,6 +998,7 @@ async function migrar(db: D1Database): Promise<void> {
     await semearCasaisDoCoracaoDeExemplo(db);
     await semearDeQuemDeExemplo(db);
     await semearAniversariosDeExemplo(db);
+    await semearDiaDosCapitulosDeExemplo(db);
     await semearCartaDeExemplo(db);
     await semearTiposDeExemplo(db);
     // Os exemplos entram como membros (é o padrão da tabela), mas ninguém deles acessa o site: são parentes
