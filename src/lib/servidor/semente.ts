@@ -1353,6 +1353,15 @@ export async function semearAniversariosDeExemplo(db: D1Database): Promise<void>
   );
 }
 
+// O nascimento inteiro da Elizete, inventado, para a página dela mostrar o aniversário em destaque em
+// "Dados" (pedido do Gui, 18/11/2026). Só entra se ela ainda não tem nascimento: o que alguém mudar ao
+// testar fica.
+export async function semearNascimentoDaElizeteDeExemplo(db: D1Database): Promise<void> {
+  const ela = await db.prepare(`SELECT nascimento_ano AS ano FROM integrantes WHERE id = 'elizete'`).first<{ ano: number | null }>();
+  if (!ela || ela.ano) return;
+  await db.prepare(`UPDATE integrantes SET nascimento_ano = 1966, nascimento_mes = 10, nascimento_dia = 12 WHERE id = 'elizete' AND nascimento_ano IS NULL`).run();
+}
+
 // A carta de Natal de exemplo, a mesma que o conceito da revisão visual mostrava fixa na tela. Só
 // entra onde ainda não há carta nenhuma: a que alguém escrever ao testar nunca é trocada.
 // Aprovado pelo Gui em 17/11/2026 (pergunta 2 do PR do grupo "pessoal"): o texto de exemplo é o do conceito.

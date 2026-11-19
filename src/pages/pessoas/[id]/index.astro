@@ -152,16 +152,16 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
               <div class="dados__datas">
                 <div class="dados__data">
                   <p class="rotulo suave">Nasceu</p>
-                  <p class="dados__ano">{p.nascimento.ano}</p>
-                  {p.nascimento.diaMes && <p class="ficha suave">{p.nascimento.diaMes}</p>}
+                  <p class="dados__grande">{p.nascimento.grande}</p>
+                  {p.nascimento.pequena && <p class="ficha suave">{p.nascimento.pequena}</p>}
                 </div>
                 {/* O falecimento fica oculto (decisão do Gui, 17/11/2026) e só aparece para quem pedir. Vai na
                     página escondido, e "Mostrar datas" o mostra no lugar; sem script, o link recarrega com ?datas=1 */}
                 {p.falecimento && (
                   <div class="dados__data" data-falecimento hidden={!p.mostrarDatas}>
                     <p class="rotulo suave">Faleceu</p>
-                    <p class="dados__ano">{p.falecimento.ano}</p>
-                    {p.falecimento.diaMes && <p class="ficha suave">{p.falecimento.diaMes}</p>}
+                    <p class="dados__grande">{p.falecimento.grande}</p>
+                    {p.falecimento.pequena && <p class="ficha suave">{p.falecimento.pequena}</p>}
                   </div>
                 )}
               </div>
