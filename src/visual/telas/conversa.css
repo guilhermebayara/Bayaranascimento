@@ -185,7 +185,10 @@
   stroke-width: 1.6;
   stroke-linecap: round;
 }
-.janela__mais-lista {
+/* Abre para cima, por cima da janela. A classe vem com o seletor do pai para valer sobre a de
+   .menu-acoes__lista (pecas.css) em qualquer ordem de carga: na memória nova, pecas.css chegava
+   depois e a lista ficava presa entre top e bottom, sem altura, por cima do texto de baixo. */
+.janela__mais .janela__mais-lista {
   top: auto;
   right: auto;
   bottom: calc(100% + var(--e-1));
