@@ -33,6 +33,9 @@
   --tinta-suave: #75665a; /* 5:1 sobre o papel */
   --fio: #e4d6c1;
   /* O que deu errado ou pede atenção: o coral, vivo na marca e escurecido no texto */
+  /* A faixa da homologação, o símbolo do ambiente: listras de manteiga, longe das cores das famílias */
+  --faixa-homologa: var(--manteiga-meio);
+  --faixa-homologa-listra: var(--manteiga-vivo);
   --alerta: var(--coral-vivo);
   --alerta-tinta: var(--coral-tinta);
 
@@ -144,6 +147,57 @@
   --cacau-tinta: #603f26;
 
   /*
+   * Mais onze cores para os tipos de momento (decisão do Gui, 18/11/2026, tst-icones-e-cores), com as
+   * mesmas regras das outras, conferidas em testes/paleta.test.ts. Entraram as que couberam com folga
+   * na regra de distância: entre o amarelo e o verde e entre o laranja e o amarelo não cabe mais
+   * nenhuma (mostarda, jade e tangerina ficaram de fora).
+   */
+  --salmao-pastel: #fed6d4;
+  --salmao-meio: #f5b4b0;
+  --salmao-vivo: #f28885;
+  --salmao-tinta: #9b4747;
+  --chiclete-pastel: #fed2ee;
+  --chiclete-meio: #f4addc;
+  --chiclete-vivo: #f46cbf;
+  --chiclete-tinta: #a5357d;
+  --vinho-pastel: #e5bac1;
+  --vinho-meio: #dd97a3;
+  --vinho-vivo: #771732;
+  --vinho-tinta: #5a0822;
+  --cafe-pastel: #ddbcab;
+  --cafe-meio: #d29c7f;
+  --cafe-vivo: #5c3825;
+  --cafe-tinta: #442617;
+  --pistache-pastel: #cdeaaa;
+  --pistache-meio: #a7d663;
+  --pistache-vivo: #60b01a;
+  --pistache-tinta: #386f05;
+  --agua-pastel: #c2f3f2;
+  --agua-meio: #87dfdd;
+  --agua-vivo: #3ec0c4;
+  --agua-tinta: #1b7275;
+  --marinho-pastel: #b6cdeb;
+  --marinho-meio: #8db3e6;
+  --marinho-vivo: #184687;
+  --marinho-tinta: #0b3268;
+  --lavanda-pastel: #e7e0fd;
+  --lavanda-meio: #cec1f2;
+  --lavanda-vivo: #a186de;
+  --lavanda-tinta: #6f58a0;
+  --violeta-pastel: #c8befb;
+  --violeta-meio: #b09cfe;
+  --violeta-vivo: #a162fc;
+  --violeta-tinta: #6635a8;
+  --nevoa-pastel: #dddbd5;
+  --nevoa-meio: #c4c0b7;
+  --nevoa-vivo: #79746b;
+  --nevoa-tinta: #635e57;
+  --grafite-pastel: #bec5cc;
+  --grafite-meio: #a1abb7;
+  --grafite-vivo: #454e58;
+  --grafite-tinta: #333a42;
+
+  /*
    * A cor de cada família, escolhida em data-familia: uma cor só, com variação de tons
    * (decisão do Gui, 16/11/2026). Sem família, vale "tudo", as famílias juntas.
    */
@@ -206,6 +260,8 @@
   --curva: cubic-bezier(0.2, 0.7, 0.2, 1);
   --tempo-curto: 0.2s;
   --tempo-medio: 0.45s;
+  /* Só para a foto de quem faleceu, que acende devagar (docs/decisoes.md, "Quem já faleceu") */
+  --tempo-lento: 1.4s;
 }
 
 /* A cor da família da tela ou de um trecho dela */

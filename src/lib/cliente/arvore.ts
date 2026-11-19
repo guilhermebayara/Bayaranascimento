@@ -1,6 +1,7 @@
 // A árvore interativa. Funciona como um mapa: arrasta, aproxima, afasta, e se
 // reorganiza com animação quando o foco ou os filtros mudam, sem recarregar a página.
-import { MEDIDAS, cantoReto, arredondado, desenharArvore, type Desenho } from '../arvore-desenho';
+import { MEDIDAS, TARJA_DO_DISCRETO, cantoReto, arredondado, desenharArvore, type Desenho } from '../arvore-desenho';
+import { enderecoDoLaco } from '../pagina-do-laco';
 import { comLacoDeArvore, montarDesenho, type DadosDaArvore, type Estado } from '../arvore-montagem';
 import { areaLivreDoMapa, mapaQueAnda } from './mapa-que-anda';
 
@@ -27,7 +28,7 @@ export interface ExtrasDaArvore {
 
 export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: ExtrasDaArvore = {}): ControleDaArvore {
   const falecidos = new Set(alem.falecidos ?? []);
-  // A marca de quem já faleceu no cartão: um anel pequeno antes do parentesco, e o aviso para o leitor de tela
+  // A marca de quem já faleceu no cartão: a orelha dobrada no canto, e o aviso para o leitor de tela
   const marcarFalecido = (no: HTMLElement, id: string) => {
     no.classList.toggle('no--falecido', falecidos.has(id));
     if (falecidos.has(id) && !no.querySelector('.so-leitor')) no.append(Object.assign(document.createElement('small'), { className: 'so-leitor', textContent: 'já faleceu' }));
@@ -73,7 +74,8 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
   const url = new URL(location.href);
   const ligada = (nome: string) => url.searchParams.get(nome) !== '0';
   const estado: Estado = {
-    foco: pessoa.has(url.searchParams.get('foco') ?? '') ? url.searchParams.get('foco')! : dados.eu,
+    // Um ex discreto não recebe o foco: o cartão dele não abre nada
+    foco: pessoa.has(url.searchParams.get('foco') ?? '') && !pessoa.get(url.searchParams.get('foco')!)?.discreto ? url.searchParams.get('foco')! : dados.eu,
     centro: partivel.has(url.searchParams.get('centro') ?? '') ? url.searchParams.get('centro')! : '',
     ramos: new Set((url.searchParams.get('ramos') ?? '').split(',').filter(Boolean)),
     nucleo: idsDosNucleos.includes(url.searchParams.get('nucleo') ?? '') ? url.searchParams.get('nucleo')! : '',
@@ -185,7 +187,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     vista.y = ajuste(caixa.y, caixa.h, livre.y, livre.y + livre.h, vista.y);
     aplicarVista(true);
   };
-  // O quadro do mapa (docs/decisoes.md, "Página da árvore como mapa"): o painel pousado sobre o mapa
+  // O quadro do mapa (docs/decisoes.md, "A página como mapa", em "Árvore"): o painel pousado sobre o mapa
   // ocupa um lado dele (tela grande) ou uma faixa no alto (celular), e a árvore é enquadrada no que
   // sobra, acima da barra de baixo.
   const quadro = raiz.querySelector<HTMLElement>('[data-quadro]');
@@ -234,7 +236,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     const quem = document.createElement('span');
     quem.className = 'mapa__foco-quem';
     quem.append(...[p.rotulo, p.anos].filter(Boolean).map((texto) => Object.assign(document.createElement('span'), { textContent: texto })));
-    // Quem já faleceu: o retrato leva o anel, e o leitor de tela ouve
+    // Quem já faleceu: o retrato fica em tom suave, e o leitor de tela ouve (a ficha não escreve "em memória")
     if (falecidos.has(p.id)) quem.append(Object.assign(document.createElement('i'), { textContent: ', já faleceu', className: 'so-leitor' }));
     const pagina = Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}`, textContent: 'Ver a página' });
     const partir = Object.assign(document.createElement('button'), { type: 'button', textContent: `Ver a árvore de ${p.nome}` });
@@ -250,7 +252,21 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     if (p.retrato) retrato.append(Object.assign(new Image(), { src: p.retrato, alt: '' }));
     else retrato.append(Object.assign(document.createElement('span'), { textContent: p.iniciais ?? '' }));
     retrato.firstElementChild!.setAttribute('aria-hidden', 'true');
-    ficha.replaceChildren(retrato, nome, quem, pagina, partir, fechar);
+    // O retrato de quem faleceu acende com o foco, em qualquer lugar: na ficha ele fica fora de link,
+    // então acende quando "Ver a página" recebe o foco
+    if (falecidos.has(p.id)) {
+      pagina.addEventListener('focus', () => retrato.classList.toggle('retrato--aceso', pagina.matches(':focus-visible')));
+      pagina.addEventListener('blur', () => retrato.classList.remove('retrato--aceso'));
+    }
+    // "Ver o laço" (onda 2): a página do laço entre quem olha e a pessoa tocada
+    const doLaco = p.id !== dados.eu && pessoa.has(dados.eu) ? [Object.assign(document.createElement('a'), { href: enderecoDoLaco(dados.eu, p.id), textContent: 'Ver o laço' })] : [];
+    // As ações ficam numa linha só, que quebra quando falta espaço: com "Ver o laço", eram três links na
+    // mesma célula da grade, um em cima do outro (observação do Gui de 18/11/2026)
+    const acoes = Object.assign(document.createElement('div'), { className: 'pm__ficha-acoes' });
+    // "Como você chama" (só seu, decisão do Gui de 18/11/2026): leva à pergunta, na página da pessoa
+    const comoChama = p.id !== dados.eu ? [Object.assign(document.createElement('a'), { href: `/pessoas/${p.id}#como-voce-chama`, textContent: 'Como você chama' })] : [];
+    acoes.append(pagina, ...doLaco, ...comoChama, partir);
+    ficha.replaceChildren(retrato, nome, quem, acoes, fechar);
   };
   const fecharFicha = () => {
     if (!fichaAberta) return;
@@ -262,13 +278,27 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
   };
 
   // Bichos: a espécie aparece no cartão, para um bicho não se confundir com uma criança (marca provisória)
-  const marcaDeBicho = (especie?: string | null) => Object.assign(document.createElement('small'), { className: 'no__bicho', textContent: especie || 'bicho' });
+  const marcaDeBicho = (especie?: string | null) => Object.assign(document.createElement('small'), { className: 'no__bicho', textContent: especie || 'bichinho' });
+
+  // Um ex que quem olha deixou discreto: o cartão continua no lugar, com a tarja sobre o nome, e não
+  // abre nada (não é link, não recebe o foco nem o toque). O caminho até os parentes dele continua.
+  const cartaoVazio = (p: { id: string; discreto?: boolean }) => {
+    if (!p.discreto) {
+      const a = document.createElement('a');
+      a.href = `/pessoas/${p.id}`;
+      return a;
+    }
+    const div = document.createElement('div');
+    div.setAttribute('role', 'img');
+    div.setAttribute('aria-label', TARJA_DO_DISCRETO.leitor);
+    return div;
+  };
+  const tarja = () => Object.assign(document.createElement('span'), { className: 'no__tarja', textContent: TARJA_DO_DISCRETO.texto, ariaHidden: 'true' });
 
   // Uma caixa de pessoa para os ramos abertos (as da árvore principal são guardadas e reaproveitadas)
   const criarNo = (id: string, x: number, y: number) => {
     const p = pessoa.get(id)!;
-    const no = document.createElement('a');
-    no.href = `/pessoas/${p.id}`;
+    const no = cartaoVazio(p);
     no.dataset.id = p.id;
     no.className = 'no';
     no.classList.toggle('no--foco', p.id === estado.foco);
@@ -282,16 +312,18 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     const nome = document.createElement('strong');
     nome.textContent = p.nome;
     const quem = document.createElement('span');
-    quem.textContent = p.rotulo || (p.bicho ? 'bicho da família' : '');
+    quem.textContent = p.rotulo || (p.bicho ? 'bichinho da família' : '');
     no.append(nome, quem);
     if (p.bicho) no.append(marcaDeBicho(p.especie));
+    if (p.discreto) no.append(tarja());
     no.classList.toggle('no--bicho', p.bicho);
+    no.classList.toggle('no--discreto', Boolean(p.discreto));
     return no;
   };
 
   const desenhar = () => {
     // 1 e 2. Quem aparece, em que geração, e o desenho (em src/lib/arvore-montagem.ts)
-    const { desenho: novo, principal, coracao, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis } = montarDesenho(dados, estado, ladoDe);
+    const { desenho: novo, principal, coracao, coracaoDosRamos, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis } = montarDesenho(dados, estado, ladoDe);
     ramosDeAgora = ramos;
     desenho = novo;
 
@@ -320,20 +352,21 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
       presentes.add(p.id);
       let no = nos.get(p.id);
       if (!no) {
-        no = document.createElement('a');
-        no.href = `/pessoas/${p.id}`;
+        no = cartaoVazio(p) as HTMLAnchorElement;
         no.dataset.id = p.id;
         no.style.width = `${MEDIDAS.largura}px`;
         no.style.height = `${MEDIDAS.altura}px`;
         no.append(document.createElement('strong'), document.createElement('span'));
         no.firstElementChild!.textContent = p.nome;
         if (p.bicho) no.append(marcaDeBicho(p.especie));
+        if (p.discreto) no.append(tarja());
         nos.set(p.id, no);
         camada.append(no);
       }
-      no.querySelector('span')!.textContent = p.rotulo || rotuloDoCoracao.get(p.id) || (p.bicho ? 'bicho da família' : '');
+      no.querySelector('span')!.textContent = p.rotulo || rotuloDoCoracao.get(p.id) || (p.bicho ? 'bichinho da família' : '');
       no.className = 'no';
       no.classList.toggle('no--bicho', p.bicho);
+      no.classList.toggle('no--discreto', Boolean(p.discreto));
       no.classList.toggle('no--eu', p.id === dados.eu);
       no.classList.toggle('no--foco', p.id === estado.foco);
       no.classList.toggle('no--apagado', Boolean(estado.nucleo) && !noNucleo(p.id));
@@ -464,6 +497,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
         dados.pessoas.filter((p) => membros.includes(p.id)).map((p) => ({ id: p.id, geracao: geracoes.get(p.id)!, lado: ladoDe.get(p.id) })),
         casaisVisiveis.filter((c) => membros.includes(c.a) && membros.includes(c.b)),
         filiacoesVisiveis.filter((f) => membros.includes(f.filho) && membros.includes(f.responsavel)),
+        coracaoDosRamos.filter((l) => membros.includes(l.dono) && membros.includes(l.pessoa)),
       );
       if (!arvoreDoRamo.pessoas.length) continue;
       const primeira = Math.min(...membros.map((id) => geracoes.get(id)!));
@@ -550,13 +584,29 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     for (const e of extras) recuar(e, e.getAttribute('data-ramo') !== emFoco?.chave && (e as HTMLElement).dataset.ramoAberto !== emFoco?.chave);
 
     // 5. Quem não tem laço nenhum com ninguém
-    const comLaco = new Set([...dados.filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...dados.casais.flatMap((c) => [c.a, c.b]), ...dados.coracao.flatMap((l) => [l.dono, l.pessoa])]);
+    // O namoro e o ex que virou amigo são laços; quem só namorou e terminou tem laço, só não aparece na árvore
+    const comLaco = new Set([
+      ...dados.filiacoes.flatMap((f) => [f.filho, f.responsavel]),
+      ...dados.casais.flatMap((c) => [c.a, c.b]),
+      ...dados.coracao.flatMap((l) => [l.dono, l.pessoa]),
+      ...(dados.amizades ?? []).flatMap((a) => [a.a, a.b]),
+      ...(dados.foraDeProposito ?? []),
+    ]);
     const fora = [...visiveis].filter((id) => !comLaco.has(id));
     soltos.hidden = fora.length === 0;
     soltos.replaceChildren(
       'Ainda sem laços: ',
       ...fora.flatMap((id, i) => [i ? ', ' : '', Object.assign(document.createElement('a'), { href: `/pessoas/${id}/editar#lacos`, textContent: pessoa.get(id)!.nome })]),
     );
+    // Quem estava em foco saiu da árvore (uma camada ou um filtro desligado): a ficha fecha e o foco volta
+    // para quem está na tela, a começar pelo centro (observação do Gui, 18/11/2026: com a camada do
+    // coração desligada, o cartão do ex que virou amizade sumia, mas a ficha dele continuava aberta)
+    const estaNaTela = (id: string) => presentes.has(id) || Boolean(camadaDosRamos.querySelector(`a.no[data-id="${CSS.escape(id)}"]`));
+    if (!estaNaTela(estado.foco)) {
+      fichaAberta = false;
+      estado.foco = [estado.centro, dados.eu, ...dados.centros, ...presentes].find((id) => id && estaNaTela(id)) ?? estado.foco;
+      guardarNoEndereco();
+    }
     mostrarFicha();
   };
 
@@ -747,12 +797,17 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
       if (!naTela(id)) {
         ramo = ramosDeAgora.find((r) => r.membros.includes(id));
         const laco = dados.coracao.find((l) => l.pessoa === id);
+        // O ex que virou amigo aparece com os laços do coração de quem foi o par abertos
+        const amizade = (dados.amizades ?? []).find((a) => !a.namoro && (a.a === id || a.b === id));
         if (ramo) estado.ramos.add(ramo.chave);
         else if (laco) {
           // Quem só aparece por um laço do coração: os laços de quem escolheu se abrem
           estado.consideracao = true;
           estado.abertos.add(laco.dono);
           if (!laco.papel) estado.amigos = true;
+        } else if (amizade) {
+          estado.consideracao = true;
+          estado.abertos.add(amizade.a === id ? amizade.b : amizade.a);
         }
         desenhar();
       }

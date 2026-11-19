@@ -22,15 +22,29 @@ export interface DadosDaArvore {
     /** endereço da foto de retrato, só para a ficha que abre ao tocar (os cartões continuam sem foto) */
     retrato?: string | null;
     iniciais?: string;
+    /**
+     * Um ex que quem olha marcou como discreto (src/lib/ex-casal.ts): o cartão ganha a tarja sobre o nome
+     * e não abre nada, mas continua no lugar, para o caminho até os parentes dele não se perder.
+     */
+    discreto?: boolean;
   }[];
   filiacoes: { filho: string; responsavel: string; consideracao: boolean }[];
   casais: { a: string; b: string; ex: boolean }[];
   coracao: { dono: string; pessoa: string; papel: Papel | null; rotulo: string }[];
   /** laços resumidos: b é <papel> de a, para parentes de quem é de fora das famílias */
   resumidos?: { a: string; b: string; papel: Papel; rotulo: string }[];
+  /**
+   * Os casais que aparecem como laço do coração (separarAmizades, em ex-casal.ts). O namoro fica sempre à
+   * vista, colado ao lado de quem namora. O ex que virou amigo (decisão do Gui depois da sessão I,
+   * 18/11/2026) só aparece com os laços do coração da pessoa abertos, ao lado dela, com a ligação lateral
+   * de casal; com o coração fechado, fica oculto. A história do namoro continua na página do laço.
+   */
+  amizades?: { a: string; b: string; rotulo?: string; namoro?: boolean }[];
+  /** quem tem laço que não aparece na árvore (o namoro que acabou): não entra em "Ainda sem laços" */
+  foraDeProposito?: string[];
 }
 
-type LacoNaMontagem = { dono: string; pessoa: string; papel: Papel | null; rotulo: string; sangue?: boolean };
+type LacoNaMontagem = { dono: string; pessoa: string; papel: Papel | null; rotulo: string; sangue?: boolean; colado?: boolean };
 
 export interface Estado {
   /** a pessoa selecionada, com a ficha aberta */
@@ -48,6 +62,32 @@ export interface Estado {
   amigos?: boolean;
   /** de quem são os laços do coração abertos na árvore. Por padrão, só os de quem está olhando. */
   abertos: Set<string>;
+}
+
+/**
+ * Como os exes aparecem para quem olha (decisões do Gui, 18/11/2026; src/lib/ex-casal.ts). Quem está
+ * "fora" sai dos dados com todos os laços dele: quem só se ligava por ele vem por outro caminho ou não
+ * aparece. Quem está "discreto" fica, com a marca, o nome coberto e sem retrato nem anos, que a ficha
+ * mostraria. Não sai de linha direta: a árvore padrão continua a mesma. Vale só para quem escolheu: os
+ * modos chegam já filtrados pela pessoa logada.
+ */
+export function aplicarComoOsExesAparecem(dados: DadosDaArvore, modos: ReadonlyMap<string, 'discreto' | 'fora'>): DadosDaArvore {
+  if (modos.size === 0) return dados;
+  const fora = new Set([...modos].filter(([id, modo]) => modo === 'fora' && id !== dados.eu).map(([id]) => id));
+  const discretos = new Set([...modos].filter(([id, modo]) => modo === 'discreto' && id !== dados.eu).map(([id]) => id));
+  const fica = (id: string) => !fora.has(id);
+  return {
+    ...dados,
+    centros: dados.centros.filter(fica),
+    pessoas: dados.pessoas
+      .filter((p) => fica(p.id))
+      .map((p) => (discretos.has(p.id) ? { ...p, discreto: true, rotulo: '', anos: '', retrato: null, iniciais: '' } : p)),
+    filiacoes: dados.filiacoes.filter((f) => fica(f.filho) && fica(f.responsavel)),
+    casais: dados.casais.filter((c) => fica(c.a) && fica(c.b)),
+    coracao: dados.coracao.filter((l) => fica(l.dono) && fica(l.pessoa)),
+    resumidos: dados.resumidos?.filter((r) => fica(r.a) && fica(r.b)),
+    amizades: dados.amizades?.filter((a) => fica(a.a) && fica(a.b)),
+  };
 }
 
 /** Quem tem laço de árvore (filiação ou casal) com alguém. Só dá para partir dessas pessoas. */
@@ -80,6 +120,21 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     const resumidos: LacoNaMontagem[] = (dados.resumidos ?? [])
       .filter((r) => dentro(r.a, r.b))
       .map((r) => ({ dono: r.a, pessoa: r.b, papel: r.papel, rotulo: r.rotulo, sangue: true }));
+    // O namoro e o ex que virou amigo: tracejado do coração, colado ao lado, na mesma geração, com a
+    // camada de consideração e coração. O namoro aparece sempre; o ex que virou amigo, só com os laços do
+    // coração de um dos dois abertos (decisão do Gui depois da sessão I, 18/11/2026)
+    const doCasal = estado.consideracao ? (dados.amizades ?? []).filter((a) => dentro(a.a, a.b)) : [];
+    const paraLaco = (a: (typeof doCasal)[number]): LacoNaMontagem & { amizade: boolean } => ({
+      dono: a.a,
+      pessoa: a.b,
+      papel: 'irmao',
+      rotulo: a.rotulo ?? 'amizade',
+      colado: true,
+      amizade: !a.namoro,
+    });
+    const casaisDoCoracao = doCasal.map(paraLaco);
+    const amizadeAberta = (a: { dono: string; pessoa: string }) => estado.abertos.has(a.dono) || estado.abertos.has(a.pessoa);
+    const amizades: LacoNaMontagem[] = casaisDoCoracao.filter((a) => !a.amizade || amizadeAberta(a));
 
     // 1b. A linha direta: os centros, os ancestrais, os irmãos, os descendentes e os casais.
     // O resto da família fica em ramos recolhidos, que abrem por cima da árvore.
@@ -115,9 +170,12 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
         trazer(l.pessoa);
         mudou = true;
       }
-      // O parente de quem está na árvore vem junto, de um lado ou do outro do laço resumido
-      for (const r of resumidos) {
+      // O parente de quem está na árvore vem junto, de um lado ou do outro do laço resumido, e o namoro
+      // também. O ex que virou amigo vem só pelo lado de quem está com os laços abertos
+      for (const r of [...resumidos, ...amizades]) {
         if (principal.has(r.dono) === principal.has(r.pessoa)) continue;
+        const dentroDaArvore = principal.has(r.dono) ? r.dono : r.pessoa;
+        if ((r as { amizade?: boolean }).amizade && !estado.abertos.has(dentroDaArvore)) continue;
         trazer(principal.has(r.dono) ? r.pessoa : r.dono);
         mudou = true;
       }
@@ -125,6 +183,7 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     const coracao: LacoNaMontagem[] = [
       ...todosDoCoracao.filter((l) => estado.abertos.has(l.dono) && principal.has(l.dono) && principal.has(l.pessoa)),
       ...resumidos.filter((r) => principal.has(r.dono) && principal.has(r.pessoa)),
+      ...amizades.filter((a) => principal.has(a.dono) && principal.has(a.pessoa)),
     ];
     // Escadinha: um laço que passa pela mãe de quem olha traz junto o laço dela, mesmo recolhido,
     // porque é por ele que a pessoa se liga à árvore
@@ -136,9 +195,17 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
     }
     const lacosDe = new Map<string, number>();
     for (const l of todosDoCoracao) if (principal.has(l.dono)) lacosDe.set(l.dono, (lacosDe.get(l.dono) ?? 0) + 1);
+    // O ex que virou amigo conta no botão ♥ de quem está na árvore: é por ele que o amigo aparece
+    for (const a of casaisDoCoracao.filter((x) => x.amizade)) {
+      const de = principal.has(a.dono) ? a.dono : principal.has(a.pessoa) ? a.pessoa : null;
+      if (de) lacosDe.set(de, (lacosDe.get(de) ?? 0) + 1);
+    }
 
     // 1d. Os ramos recolhidos, e quais deles estão abertos
-    const ramos = ramosRecolhidos(principal, [...visiveis], filiacoes, casais);
+    // O namoro de quem está num ramo vai junto para o cartão do ramo (QA de 18/11/2026: a Bia, namorada
+    // do Primo Téo, não aparecia no ramo dele), como o casal: colado ao lado, com o tracejado do coração
+    const namoros = casaisDoCoracao.filter((a) => !a.amizade);
+    const ramos = ramosRecolhidos(principal, [...visiveis], filiacoes, [...casais, ...namoros.map((a) => ({ a: a.dono, b: a.pessoa }))]);
     const abertos = ramos.filter((r) => estado.ramos.has(r.chave));
     const noRamo = new Set(abertos.flatMap((r) => r.membros));
     const entra = (id: string) => principal.has(id) || noRamo.has(id);
@@ -170,6 +237,12 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
         mudou = true;
       }
     }
+    // O namoro de um ramo aberto entra na geração do par
+    const coracaoDosRamos = namoros.filter((a) => noRamo.has(a.dono) && noRamo.has(a.pessoa) && !naPrincipal(a.dono, a.pessoa));
+    for (const a of coracaoDosRamos) {
+      if (geracoes.has(a.dono) && !geracoes.has(a.pessoa)) geracoes.set(a.pessoa, geracoes.get(a.dono)!);
+      else if (geracoes.has(a.pessoa) && !geracoes.has(a.dono)) geracoes.set(a.dono, geracoes.get(a.pessoa)!);
+    }
     // Todo laço do coração aberto entra no desenho, com ou sem "como se fosse"
     const ligados = coracao.filter((l) => geracoes.has(l.dono) && geracoes.has(l.pessoa));
 
@@ -182,7 +255,7 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
       ligados,
     );
 
-  return { desenho, principal, coracao, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis };
+  return { desenho, principal, coracao, coracaoDosRamos, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis };
 }
 
 export type Montagem = ReturnType<typeof montarDesenho>;

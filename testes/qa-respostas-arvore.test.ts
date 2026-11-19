@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, na árvore (P84 a P97 de
-// docs/qa/2026-11-17-perguntas.md). Só o que fica em volta do desenho: a ficha, a legenda, os
+// docs/historico/qa/2026-11-17-perguntas.md). Só o que fica em volta do desenho: a ficha, a legenda, os
 // ajustes, a barra de baixo e o teclado. O arranjo e as linhas continuam em testes/arvore-*.test.ts.
 //
 // Com a página da árvore como mapa (proposta A, escolhida pelo Gui em 17/11/2026), a ficha, os
@@ -52,8 +52,13 @@ describe('a ficha da árvore', () => {
   });
   it('as duas ações ficam à vista no celular e na tela grande, sem "Mais" (P86, revisto com o painel)', () => {
     expect(ficha).not.toMatch(/Mais|data-mais/);
-    expect(quadro).toMatch(/\.pm__ficha a,\s*\.pm__ficha \[data-partir\] \{\s*grid-row: 3;/);
+    expect(quadro).toMatch(/\.pm__ficha-acoes \{[^}]*flex-wrap: wrap;[^}]*grid-row: 3;/);
     expect(quadro).toMatch(/\.pm__ficha button\[hidden\] \{\s*display: none;/);
+  });
+  it('"Ver a árvore de Fulano" fica junto das outras ações, sem ser empurrada para a direita (observação do Gui, 18/11/2026)', () => {
+    const partir = quadro.slice(quadro.indexOf('.pm__ficha [data-partir] {'), quadro.indexOf('}', quadro.indexOf('.pm__ficha [data-partir] {')));
+    expect(partir).not.toMatch(/margin-(left|inline-start): auto/);
+    expect(quadro).not.toMatch(/\.pm__ficha-acoes \{[^}]*justify-content: (space-between|flex-end)/);
   });
   it('fica dentro do painel, logo abaixo do título (P85, revisto com o painel)', () => {
     const alto = pagina.indexOf('<header class="pm__alto">');
@@ -100,7 +105,7 @@ describe('a legenda da árvore', () => {
   it('tem três grupos com título e tudo o que a árvore mostra (P90)', () => {
     const legenda = pagina.slice(pagina.indexOf('<div class="legenda">'), pagina.indexOf('</details>', pagina.indexOf('<div class="legenda">')));
     expect([...legenda.matchAll(/<h2>([^<]+)<\/h2>/g)].map((m) => m[1])).toEqual(['Famílias', 'Linhas', 'Botões e marcas']);
-    for (const item of ['de duas famílias', 'amigos e de fora', 'casal', 'não estão mais juntos', 'pais e filhos', 'consideração ou coração', '+ 1', '♥ 2', 'você', 'quem você tocou', 'bicho da família']) {
+    for (const item of ['de duas famílias', 'amigos e de fora', 'casal', 'não estão mais juntos', 'pais e filhos', 'consideração ou coração', '+ 1', '♥ 2', 'você', 'quem você tocou', 'bichinho da família']) {
       expect(legenda, item).toContain(item);
     }
     // O bicho é mostrado pela forma do cartão, e não por uma linha

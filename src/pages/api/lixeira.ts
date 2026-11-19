@@ -1,10 +1,19 @@
 // Excluir e recuperar: memórias na lixeira, versões anteriores e fotos removidas.
 import type { APIRoute } from 'astro';
+import { mensagensDerivadas, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { alcanceDaCorrecao, podeEditarMemoria, podeExcluirMemoria, podeVerVersao } from '../../lib/servidor/permissoes';
+import { alcanceDaCorrecao, podeApagarDeVez, podeEditarMemoria, podeExcluirMemoria, podeVerVersao } from '../../lib/servidor/permissoes';
 import {
+  apagarCapituloDeVez,
+  apagarMemoriaDeVez,
   atualizarMemoria,
+  listarCapitulosExcluidos,
   excluirMemoria,
+  gravarMensagens,
+  listarAudiosDosRelatos,
+  listarFotosDoRelato,
+  listarMensagensDosRelatos,
+  idsDasPessoasExcluidas,
   listarExcluidas,
   listarIntegrantes,
   listarVersoes,
@@ -37,6 +46,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return voltar(request, `/lixeira?restaurada=${encodeURIComponent(id)}`, { ok: excluida.situacao === 'rascunho' ? 'Rascunho restaurado.' : 'Memória restaurada.' });
   }
 
+  // Apagar de vez (onda 2): só os administradores, item a item, e só o que eles veem na lixeira.
+  // Quem não vê o item recebe o mesmo que para um item que não existe.
+  if (acao === 'apagar-de-vez') {
+    const decisao = podeApagarDeVez(usuario, { naLixeira: true });
+    if (!decisao.ok) return voltar(request, '/lixeira', { erro: decisao.motivo });
+    const excluida = (await listarExcluidas(usuario)).find((m) => m.id === id && podeExcluirMemoria(usuario, m).ok);
+    if (!excluida || !(await apagarMemoriaDeVez(id, usuario))) return voltar(request, '/lixeira', { erro: 'Memória não encontrada na lixeira.' });
+    return voltar(request, '/lixeira', { ok: `"${excluida.titulo}" foi apagada de vez.` });
+  }
+  if (acao === 'apagar-capitulo-de-vez') {
+    const decisao = podeApagarDeVez(usuario, { naLixeira: true });
+    if (!decisao.ok) return voltar(request, '/lixeira', { erro: decisao.motivo });
+    const capitulo = (await listarCapitulosExcluidos(usuario)).find((c) => c.id === campo(dados, 'capitulo', 120));
+    if (!capitulo || !(await apagarCapituloDeVez(capitulo.id, usuario))) return voltar(request, '/lixeira', { erro: 'Capítulo não encontrado na lixeira.' });
+    return voltar(request, '/lixeira', { ok: `O capítulo "${capitulo.titulo}" foi apagado de vez.` });
+  }
+
   const memoria = await obterMemoria(usuario, id);
   if (!memoria) return voltar(request, '/', { erro: 'Memória não encontrada.' });
   const pagina = `/memorias/${memoria.id}`;
@@ -62,7 +88,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .find((v) => v.id === Number(campo(dados, 'versao', 12)) && podeVerVersao(usuario, memoria, v.dados));
     if (!versao) return voltar(request, historico, { erro: 'Versão não encontrada.' });
     const antiga = versao.dados;
-    const existentes = new Set((await listarIntegrantes()).map((i) => i.id));
+    // Quem está na lixeira (excluir pessoa) volta na versão, escondido como hoje, para restaurar a pessoa devolvê-la
+    const existentes = new Set([...(await listarIntegrantes()).map((i) => i.id), ...(await idsDasPessoasExcluidas())]);
     // Volta a ficha: título, data, tipo, lugar e pessoas. Quem vê, núcleos e fotos ficam como estão hoje,
     // para uma restauração nunca abrir a memória a mais gente sem alguém decidir isso.
     const restaurada: DadosDaMemoria = {
@@ -89,9 +116,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const por = campo(dados, 'por', 80);
     const relato = await obterRelato(memoria.id, por, usuario);
     if (!relato || relato.registradoPor !== usuario.pessoa) return voltar(request, historico, { erro: 'Só quem escreveu o relato pode restaurar uma versão dele.' });
-    const versao = (await listarVersoes<Relato>('relato', String(relato.id))).find((v) => v.id === Number(campo(dados, 'versao', 12)));
+    const versao = (await listarVersoes<Relato & { mensagens?: Mensagem[] }>('relato', String(relato.id))).find((v) => v.id === Number(campo(dados, 'versao', 12)));
     if (!versao) return voltar(request, historico, { erro: 'Versão não encontrada.' });
-    await salvarRelato(memoria.id, por, versao.dados.texto, relato.situacao, usuario, relato);
+    // O relato como conversa: a versão traz as mensagens de antes. Os áudios e as fotos que saíram do
+    // relato não voltam por aqui (a mensagem deles fica de fora); os textos e a ordem voltam.
+    const hoje = (await listarMensagensDosRelatos([relato])).get(relato.id) ?? [];
+    const antigas = versao.dados.mensagens ?? mensagensDerivadas(versao.dados.texto, [], []);
+    const audios = new Set((await listarAudiosDosRelatos([relato.id])).get(relato.id)?.map((a) => a.id) ?? []);
+    const fotos = new Set((await listarFotosDoRelato(relato.id)).map((f) => f.id));
+    const voltam = [
+      ...antigas.filter((m) => (m.tipo === 'audio' ? audios.has(m.audioId!) : m.tipo === 'foto' ? fotos.has(m.fotoId!) : Boolean(m.texto?.trim()))),
+      // Áudio ou foto de hoje que a versão não tinha continua, no fim
+      ...hoje.filter((m) => m.tipo !== 'texto' && !antigas.some((a) => a.tipo === m.tipo && a.audioId === m.audioId && a.fotoId === m.fotoId)),
+    ];
+    await salvarRelato(memoria.id, por, textoDasMensagens(voltam), relato.situacao, usuario, relato, { guardar: true, mensagens: hoje });
+    await gravarMensagens(relato.id, voltam);
     return voltar(request, pagina, { ok: 'Texto do relato restaurado.' });
   }
 

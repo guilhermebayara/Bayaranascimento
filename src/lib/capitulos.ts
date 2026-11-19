@@ -9,6 +9,8 @@
 // de uma dessas famílias. Sem ninguém marcado, ele é uma época, que vale para a família inteira, como
 // a pandemia: entra tudo o que aconteceu no período.
 
+import { problemaNaData } from './datas';
+
 export interface DataSolta {
   ano: number;
   mes?: number | null;
@@ -134,15 +136,54 @@ export function sobreposicao(
 }
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-const curta = (d: DataSolta) => (d.mes ? `${MESES[d.mes - 1]} de ${d.ano}` : String(d.ano));
+const curta = (d: DataSolta, comDia: boolean) => (d.mes ? `${comDia && d.dia ? `${d.dia} de ` : ''}${MESES[d.mes - 1]} de ${d.ano}` : String(d.ano));
 
-/** "2019 a 2021", "mar de 2020 em diante", "2026". */
-export function formatarPeriodo(inicio: DataSolta | null, fim: DataSolta | null, aberto = false): string {
+/**
+ * "2019 a 2021", "mar de 2020 em diante", "2026". `comDia` mostra o dia, quando há ("11 de mar de 2020
+ * em diante"): vale para as datas do próprio capítulo por período e da época. O período do capítulo
+ * reunido vem das memórias e fica sem o dia.
+ */
+export function formatarPeriodo(inicio: DataSolta | null, fim: DataSolta | null, aberto = false, comDia = false): string {
   if (!inicio) return '';
-  if (!fim) return aberto ? `${curta(inicio)} em diante` : curta(inicio);
-  const a = curta(inicio);
-  const b = curta(fim);
+  if (!fim) return aberto ? `${curta(inicio, comDia)} em diante` : curta(inicio, comDia);
+  const a = curta(inicio, comDia);
+  const b = curta(fim, comDia);
   return a === b ? a : `${a} a ${b}`;
+}
+
+/**
+ * As datas do capítulo por período e da época, como chegam do formulário: o ano, e o mês e o dia
+ * opcionais, como as outras datas do site (pedido do Gui, 18/11/2026: para alguns capítulos, o dia faz
+ * diferença). O início é obrigatório e o fim pode ficar em aberto. Devolve o erro, se houver.
+ */
+export function lerPeriodoDoCapitulo(
+  campos: Record<'inicioAno' | 'inicioMes' | 'inicioDia' | 'fimAno' | 'fimMes' | 'fimDia', number | undefined>,
+  anoAtual: number,
+  epoca: boolean,
+): { inicio: DataSolta; fim: DataSolta | undefined } | { erro: string } {
+  const invalida = `Confira as datas. Os anos precisam estar entre 1800 e ${anoAtual}.`;
+  const ler = (prefixo: 'inicio' | 'fim'): DataSolta | undefined | { erro: string } => {
+    const ano = campos[`${prefixo}Ano`];
+    const mes = campos[`${prefixo}Mes`];
+    const dia = campos[`${prefixo}Dia`];
+    if (ano === undefined) return mes || dia ? { erro: invalida } : undefined;
+    if (!Number.isInteger(ano) || ano < 1800 || ano > anoAtual) return { erro: invalida };
+    if (mes !== undefined && (!Number.isInteger(mes) || mes < 1 || mes > 12)) return { erro: invalida };
+    if (dia !== undefined && !Number.isInteger(dia)) return { erro: invalida };
+    const problema = problemaNaData(ano, mes, dia);
+    if (problema) return { erro: problema };
+    return { ano, mes: mes ?? null, dia: dia ?? null };
+  };
+  const inicio = ler('inicio');
+  const fim = ler('fim');
+  if (inicio && 'erro' in inicio) return inicio;
+  if (fim && 'erro' in fim) return fim;
+  if (!inicio) return { erro: epoca ? 'Uma época precisa de um ano de início.' : 'Um capítulo por período precisa de um ano de início.' };
+  // Só compara o que as duas datas sabem: "2020" e "mar de 2020" não se contradizem
+  const ordemComum = (d: DataSolta, outra: DataSolta) =>
+    d.ano * 10000 + (d.mes && outra.mes ? d.mes : 0) * 100 + (d.mes && outra.mes && d.dia && outra.dia ? d.dia : 0);
+  if (fim && ordemComum(fim, inicio) < ordemComum(inicio, fim)) return { erro: 'O período não pode terminar antes de começar.' };
+  return { inicio, fim };
 }
 
 export interface QuemOlha {
@@ -215,8 +256,11 @@ export function lerFormaDoCapitulo(p: URLSearchParams): FormaDoCapitulo {
 }
 
 /** O endereço da página do capítulo em cada forma de ver. Os marcos, que são o padrão, não vão no endereço. */
-export function enderecoDoCapitulo(id: string, forma: FormaDoCapitulo = 'marcos'): string {
-  return `/capitulos/${id}${forma === 'marcos' ? '' : `?ver=${forma}`}`;
+export function enderecoDoCapitulo(id: string, forma: FormaDoCapitulo = 'marcos', mais: Record<string, string | undefined> = {}): string {
+  const p = new URLSearchParams();
+  if (forma !== 'marcos') p.set('ver', forma);
+  for (const [nome, valor] of Object.entries(mais)) if (valor) p.set(nome, valor);
+  return `/capitulos/${id}${p.size > 0 ? `?${p}` : ''}`;
 }
 
 /** O título da parte das memórias (P71): a época não é capítulo. */
@@ -261,8 +305,9 @@ export function resumoDoCapitulo<M extends MemoriaParaCapitulo>(c: Capitulo, cap
   const dele = c.modo === 'epoca' ? memorias.filter((m) => memoriaDoCapitulo(m, c)) : memorias.filter((m) => m.capitulos.some((id) => ids.has(id)));
   const p = c.modo === 'epoca' ? (c.inicio ? { inicio: c.inicio, fim: c.fim } : null) : periodoDasMemorias(dele);
   return {
-    periodo: p ? formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca') : '',
-    ordem: p ? p.inicio.ano * 100 + (p.inicio.mes ?? 0) : 999999,
+    periodo: p ? formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca', c.modo === 'epoca') : '',
+    // O dia do capítulo por período entra como fração, para dois do mesmo mês seguirem a ordem do dia
+    ordem: p ? p.inicio.ano * 100 + (p.inicio.mes ?? 0) + (c.modo === 'epoca' && p.inicio.mes ? (p.inicio.dia ?? 0) / 100 : 0) : 999999,
     memorias: dele.length,
   };
 }

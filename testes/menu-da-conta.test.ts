@@ -25,7 +25,8 @@ describe('menu da conta', () => {
   });
 
   it('Administração só para os administradores, Sair só onde há login e Sua página só para quem tem página', () => {
-    expect(menu).toMatch(/\{usuario\.admin && <a href="\/conta#administracao">Administração<\/a>\}/);
+    // A Administração tem página própria (decisão do Gui, 18/11/2026), com as pendências dela ao lado
+    expect(menu).toMatch(/\{usuario\.admin && \(\s*<a href=\{ENDERECO_DA_ADMINISTRACAO\} aria-current=\{secao === 'administracao' \? 'page' : undefined\}>\s*Administração\s*\{pendenciasDaAdministracao > 0 &&/);
     expect(menu).toMatch(/\{saida && <a href=\{saida\}>Sair<\/a>\}/);
     expect(menu).toMatch(/\{temPagina && <a href=\{`\/pessoas\/\$\{usuario\.pessoa\}`\}>Sua página<\/a>\}/);
   });

@@ -6,8 +6,10 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearExemplos, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
+import { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
+import { darMensagensAosRelatosDeAntes } from './mensagens-de-antes';
 
 interface Migracao {
   id: string;
@@ -666,6 +668,288 @@ export const MIGRACOES: Migracao[] = [
       )`,
     ],
   },
+  {
+    // Espaço das fotos e áudios na administração (decisão do Gui, 18/11/2026). O plano gratuito do R2 vai
+    // até 10 GB, e o site conta sozinho, sem consultar o bucket: cada arquivo guarda o tamanho ao entrar,
+    // e a conta é a soma (src/lib/espaco-dos-arquivos.ts). Os áudios já guardavam (migração 015). As
+    // fotos ganham a coluna; os retratos, que só têm a chave em integrantes.retrato, ganham uma tabela
+    // com cada arquivo enviado, para o retrato trocado continuar contando. Vazio nas fotos de antes: o
+    // cartão da administração mede essas aos poucos, lendo só o tamanho de cada uma no bucket.
+    // Sem chave estrangeira, como os avisos.
+    id: '070-tamanho-dos-arquivos',
+    sql: [
+      `ALTER TABLE fotos ADD COLUMN tamanho INTEGER`,
+      `CREATE TABLE IF NOT EXISTS retratos_enviados (
+        chave TEXT PRIMARY KEY,
+        tamanho INTEGER NOT NULL,
+        enviado_por TEXT,
+        enviado_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
+  {
+    // Ex-casal: quem vê e como aparece para mim (decisões do Gui, 18/11/2026; regras em permissoes.ts e
+    // em src/lib/ex-casal.ts).
+    // - Quem vê um casal desfeito ganha "famílias escolhidas": visibilidade 'nucleos', com as famílias em
+    //   casal_nucleos. O SQLite não muda um CHECK no lugar, então os casais são refeitos com os mesmos
+    //   dados, e as fases antes, como na 012: apagar casais com as fases apontando para ela levaria as
+    //   fases junto, pela exclusão em cascata. As famílias do casal são criadas depois, já apontando
+    //   para a tabela nova.
+    // - Como o ex aparece para cada uma das duas pessoas do casal: 'discreto' ou 'fora' (sem linha, como
+    //   hoje: presente). Só o dono lê e escreve as linhas dele. Sem chave estrangeira, como as
+    //   proximidades: quem lê confere se a pessoa ainda existe e se ainda é ex de quem escolheu.
+    id: '071-ex-casal',
+    sql: [
+      `CREATE TABLE casais_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        a_id TEXT NOT NULL REFERENCES integrantes(id),
+        b_id TEXT NOT NULL REFERENCES integrantes(id),
+        visibilidade TEXT NOT NULL DEFAULT 'todos' CHECK (visibilidade IN ('todos', 'privado', 'nucleos')),
+        criado_por TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (a_id, b_id, visibilidade),
+        CHECK (a_id < b_id)
+      )`,
+      `INSERT INTO casais_novo (id, a_id, b_id, visibilidade, criado_por, criado_em)
+        SELECT id, a_id, b_id, visibilidade, criado_por, criado_em FROM casais`,
+      `CREATE TABLE casal_fases_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        casal_id INTEGER NOT NULL REFERENCES casais_novo(id) ON DELETE CASCADE,
+        tipo TEXT NOT NULL CHECK (tipo IN ('namoro', 'noivado', 'casamento', 'uniao', 'separacao', 'amizade')),
+        inicio_ano INTEGER,
+        fim_ano INTEGER,
+        ordem INTEGER NOT NULL DEFAULT 0
+      )`,
+      `INSERT INTO casal_fases_novo (id, casal_id, tipo, inicio_ano, fim_ano, ordem)
+        SELECT id, casal_id, tipo, inicio_ano, fim_ano, ordem FROM casal_fases`,
+      `DROP TABLE casal_fases`,
+      `DROP TABLE casais`,
+      `ALTER TABLE casais_novo RENAME TO casais`,
+      `ALTER TABLE casal_fases_novo RENAME TO casal_fases`,
+      `CREATE INDEX IF NOT EXISTS fases_do_casal ON casal_fases (casal_id, ordem)`,
+      `CREATE TABLE IF NOT EXISTS casal_nucleos (
+        casal_id INTEGER NOT NULL REFERENCES casais(id) ON DELETE CASCADE,
+        nucleo_id TEXT NOT NULL REFERENCES nucleos(id),
+        PRIMARY KEY (casal_id, nucleo_id)
+      )`,
+      `CREATE TABLE IF NOT EXISTS ex_para_mim (
+        dono_id TEXT NOT NULL,
+        pessoa_id TEXT NOT NULL,
+        modo TEXT NOT NULL CHECK (modo IN ('discreto', 'fora')),
+        mudado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (dono_id, pessoa_id)
+      )`,
+    ],
+  },
+  {
+    // Apagar de vez o que está na lixeira (decisão do Gui, 17/11/2026, onda 2): só os administradores,
+    // item a item, com confirmação. O que foi apagado não volta. Fica só a anotação de que algo foi
+    // apagado, por quem e quando, sem título nem conteúdo nenhum.
+    id: '072-apagados-de-vez',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS apagados_de_vez (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL CHECK (tipo IN ('memoria', 'capitulo')),
+        item_id TEXT NOT NULL,
+        por TEXT NOT NULL,
+        em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
+  {
+    // Ajustes do acervo que os administradores escolhem no site, um por chave, com o valor em JSON. O
+    // primeiro: os centros da árvore (onda 2, decisão do Gui de 17/11/2026), de quem é a linha direta
+    // quando a árvore abre. A versão de antes vai para o histórico (versoes, tipo 'ajuste').
+    id: '073-ajustes-do-acervo',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS ajustes (
+        chave TEXT PRIMARY KEY,
+        valor TEXT NOT NULL,
+        mudado_por TEXT,
+        mudado_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
+  {
+    // Sugestão de correção (onda 2, decisão do Gui de 17/11/2026; regras em src/lib/sugestoes.ts): de
+    // dados da memória (data, lugar, quem estava), para quem criou, ou um recado livre a quem registrou
+    // um relato. Quem recebe aceita, recusa ou responde. Sem chave para memórias e relatos, como os
+    // avisos: quem lê confere se a pessoa ainda vê o item.
+    // Os avisos ganham dois tipos: a sugestão e a resposta a ela. O SQLite não muda um CHECK no lugar, e
+    // a tabela é refeita com os mesmos dados (nenhuma outra aponta para ela).
+    id: '074-sugestoes-de-correcao',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS sugestoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memoria_id TEXT NOT NULL,
+        relato_id INTEGER,
+        de TEXT NOT NULL,
+        para TEXT NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('dados', 'recado')),
+        proposta TEXT,
+        texto TEXT,
+        situacao TEXT NOT NULL DEFAULT 'aberta' CHECK (situacao IN ('aberta', 'aceita', 'recusada', 'respondida')),
+        resposta TEXT,
+        criada_em TEXT NOT NULL DEFAULT (datetime('now')),
+        respondida_em TEXT
+      )`,
+      `CREATE INDEX IF NOT EXISTS sugestoes_da_memoria ON sugestoes (memoria_id)`,
+      `CREATE INDEX IF NOT EXISTS sugestoes_para ON sugestoes (para, situacao)`,
+      `CREATE TABLE avisos_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        para TEXT NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('liberar-relato', 'relato-novo', 'quem-estava', 'sugestao', 'sugestao-resposta')),
+        memoria_id TEXT NOT NULL,
+        relato_id INTEGER,
+        de TEXT NOT NULL,
+        dados TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        resolvido_em TEXT,
+        resposta TEXT
+      )`,
+      `INSERT INTO avisos_novo (id, para, tipo, memoria_id, relato_id, de, dados, criado_em, resolvido_em, resposta)
+        SELECT id, para, tipo, memoria_id, relato_id, de, dados, criado_em, resolvido_em, resposta FROM avisos`,
+      `DROP TABLE avisos`,
+      `ALTER TABLE avisos_novo RENAME TO avisos`,
+      `CREATE INDEX IF NOT EXISTS avisos_de_quem ON avisos (para, resolvido_em)`,
+      `CREATE INDEX IF NOT EXISTS avisos_da_memoria ON avisos (memoria_id)`,
+    ],
+  },
+  {
+    // Reações (onda 2, decisão do Gui de 17/11/2026; regras em src/lib/reacoes.ts): em relato e em foto,
+    // quatro símbolos desenhados com os rabiscos do site (coração, riso, saudade e "eu estava lá"). Uma
+    // linha por pessoa, símbolo e item. Sem chave para memórias, relatos e fotos, como os avisos: quem lê
+    // confere se ainda vê o item e quem marcou.
+    id: '075-reacoes',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS reacoes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memoria_id TEXT NOT NULL,
+        alvo TEXT NOT NULL CHECK (alvo IN ('relato', 'foto')),
+        alvo_id INTEGER NOT NULL,
+        pessoa TEXT NOT NULL,
+        simbolo TEXT NOT NULL CHECK (simbolo IN ('coracao', 'riso', 'saudade', 'estava')),
+        criada_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (alvo, alvo_id, pessoa, simbolo)
+      )`,
+      `CREATE INDEX IF NOT EXISTS reacoes_da_memoria ON reacoes (memoria_id)`,
+    ],
+  },
+  {
+    // Sugestão de correção para todos que podem corrigir (resposta do Gui à sessão F, 18/11/2026): a de
+    // dados vai para quem criou e para quem está na memória, e o primeiro que responder resolve. Quem
+    // respondeu passa a ser guardado, porque deixa de ser sempre o "para".
+    id: '080-quem-respondeu-a-sugestao',
+    sql: [`ALTER TABLE sugestoes ADD COLUMN respondida_por TEXT`],
+  },
+  {
+    // Reações na memória também (observação do Gui, 18/11/2026: valem para a memória, para cada relato e
+    // para cada foto). O alvo ganha 'memoria', com alvo_id 0, e a chave única passa a contar a memória,
+    // para o alvo_id 0 de uma memória não colidir com o de outra. O SQLite não muda um CHECK no lugar:
+    // a tabela é refeita com os mesmos dados. Nenhuma outra tabela aponta para ela.
+    id: '081-reacoes-na-memoria',
+    sql: [
+      `CREATE TABLE reacoes_novo (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        memoria_id TEXT NOT NULL,
+        alvo TEXT NOT NULL CHECK (alvo IN ('memoria', 'relato', 'foto')),
+        alvo_id INTEGER NOT NULL,
+        pessoa TEXT NOT NULL,
+        simbolo TEXT NOT NULL CHECK (simbolo IN ('coracao', 'riso', 'saudade', 'estava')),
+        criada_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (memoria_id, alvo, alvo_id, pessoa, simbolo)
+      )`,
+      `INSERT INTO reacoes_novo (id, memoria_id, alvo, alvo_id, pessoa, simbolo, criada_em) SELECT id, memoria_id, alvo, alvo_id, pessoa, simbolo, criada_em FROM reacoes`,
+      `DROP TABLE reacoes`,
+      `ALTER TABLE reacoes_novo RENAME TO reacoes`,
+      `CREATE INDEX IF NOT EXISTS reacoes_da_memoria ON reacoes (memoria_id)`,
+    ],
+  },
+  {
+    // "Como você chama", só seu (decisão do Gui, 18/11/2026; src/lib/apelidos.ts). O apelido que cada pessoa
+    // dá a outra, que só ela vê. Como as proximidades, sem chave estrangeira: quem lê confere se a pessoa
+    // ainda existe, e juntar duplicados leva as linhas para a ficha que fica. O espelho apaga a tabela.
+    id: '090-como-voce-chama',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS apelidos_meus (
+        dono_id TEXT NOT NULL,
+        pessoa_id TEXT NOT NULL,
+        apelido TEXT NOT NULL CHECK (length(apelido) BETWEEN 1 AND 40),
+        mudado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (dono_id, pessoa_id)
+      )`,
+    ],
+  },
+  {
+    // "Já é da família" (decisão do Gui, 18/11/2026; comoOCasalAparece, em src/lib/parentesco.ts): o namoro
+    // aparece como laço do coração, a não ser que se marque assim (namoro longo), e aí aparece como casal.
+    // Coluna nova com valor padrão: não precisa refazer a tabela.
+    id: '100-namoro-da-familia',
+    sql: [`ALTER TABLE casais ADD COLUMN ja_da_familia INTEGER NOT NULL DEFAULT 0`],
+  },
+  {
+    // As fases do casal com mês e dia opcionais, como as outras datas do site (decisão do Gui, 18/11/2026).
+    // Com dia e mês, o casamento de hoje entra nos aniversários do Início.
+    id: '101-datas-das-fases',
+    sql: [
+      `ALTER TABLE casal_fases ADD COLUMN inicio_mes INTEGER`,
+      `ALTER TABLE casal_fases ADD COLUMN inicio_dia INTEGER`,
+      `ALTER TABLE casal_fases ADD COLUMN fim_mes INTEGER`,
+      `ALTER TABLE casal_fases ADD COLUMN fim_dia INTEGER`,
+    ],
+  },
+  {
+    // Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026; regras em permissoes.ts,
+    // "podeExcluirPessoa"). A pessoa excluída vai para a lixeira: some do site na hora, e um administrador
+    // restaura. Nada é apagado: as linhas dela (laços, "quem estava", relatos) ficam no banco, e as
+    // consultas deixam de vê-la. Quem não administra pede; o pedido fica aberto até um administrador
+    // excluir ou recusar. Um pedido aberto por pessoa.
+    id: '102-excluir-pessoa',
+    sql: [
+      `ALTER TABLE integrantes ADD COLUMN excluida_em TEXT`,
+      `ALTER TABLE integrantes ADD COLUMN excluida_por TEXT`,
+      `CREATE TABLE IF NOT EXISTS pedidos_de_exclusao (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pessoa_id TEXT NOT NULL,
+        pedido_por TEXT NOT NULL,
+        motivo TEXT,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+        resolvido_em TEXT,
+        resolvido_por TEXT,
+        resposta TEXT CHECK (resposta IN ('excluida', 'recusado'))
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS pedidos_de_exclusao_um_aberto ON pedidos_de_exclusao (pessoa_id) WHERE resolvido_em IS NULL`,
+    ],
+  },  {
+    // O relato como conversa (escolha do Gui depois da sessão I, 18/11/2026; regras em src/lib/conversa.ts).
+    // Cada envio é uma mensagem: um texto, um áudio ou uma foto, numa ordem só. O áudio e a foto continuam
+    // nas tabelas deles; a mensagem aponta para eles. O texto do relato (relatos.texto) continua gravado,
+    // feito das mensagens de texto, para o resto do site. Os relatos de antes não mudam no banco: sem
+    // mensagens gravadas, a conversa é derivada deles (os áudios, cada parágrafo e as fotos) e é gravada na
+    // primeira vez que alguém mexe. cita_id: a mensagem de outra pessoa que esta cita, sem chave, para a
+    // citação sumir quando a mensagem citada some.
+    id: '103-mensagens-do-relato',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS relato_mensagens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        relato_id INTEGER NOT NULL REFERENCES relatos(id) ON DELETE CASCADE,
+        ordem INTEGER NOT NULL,
+        tipo TEXT NOT NULL CHECK (tipo IN ('texto', 'audio', 'foto')),
+        texto TEXT,
+        audio_id INTEGER,
+        foto_id INTEGER,
+        cita_id INTEGER,
+        enviada_em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+      `CREATE INDEX IF NOT EXISTS relato_mensagens_do_relato ON relato_mensagens (relato_id, ordem)`,
+    ],
+  },
+  {
+    // O capítulo por período e a época com dia opcional no começo e no fim (pedido do Gui, 18/11/2026).
+    // Colunas novas, vazias nos capítulos de hoje: eles continuam como estão, sem perda.
+    id: '104-dia-dos-capitulos',
+    sql: [`ALTER TABLE capitulos ADD COLUMN inicio_dia INTEGER`, `ALTER TABLE capitulos ADD COLUMN fim_dia INTEGER`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
@@ -701,6 +985,9 @@ async function migrar(db: D1Database): Promise<void> {
     ]);
   }
 
+  // A homologação volta às fotos de exemplo nos retratos, uma vez só (ver retratos-da-homologacao.ts)
+  await consertarRetratosDaHomologacao(db);
+
   // Memórias de exemplo só existem nas prévias e no computador. Nunca na produção, e nunca na
   // homologação, que recebe a estrutura espelhada da produção (ver espelho.ts).
   if (AMBIENTES_COM_EXEMPLOS.includes(ambiente())) {
@@ -708,8 +995,11 @@ async function migrar(db: D1Database): Promise<void> {
     await semearParentesDeExemplo(db);
     await semearAcervoDeExemplo(db);
     await semearConsideracoesDeExemplo(db);
+    await semearCasaisDoCoracaoDeExemplo(db);
     await semearDeQuemDeExemplo(db);
     await semearAniversariosDeExemplo(db);
+    await semearDiaDosCapitulosDeExemplo(db);
+    await semearNascimentoDaElizeteDeExemplo(db);
     await semearCartaDeExemplo(db);
     await semearTiposDeExemplo(db);
     // Os exemplos entram como membros (é o padrão da tabela), mas ninguém deles acessa o site: são parentes
@@ -723,4 +1013,8 @@ async function migrar(db: D1Database): Promise<void> {
     await semearPedidoDeExemplo(db);
     await limparBucketDeTeste(db);
   }
+
+  // O relato como conversa: os relatos sem mensagens ganham as derivadas deles, sem perda (ver
+  // mensagens-de-antes.ts). Depois das migrações e dos exemplos, para pegar também os semeados agora.
+  await darMensagensAosRelatosDeAntes(db);
 }

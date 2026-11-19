@@ -16,7 +16,7 @@ describe('falecimento como opção', () => {
 });
 
 
-// O formulário em frase da Nova memória (docs/visual.md, "A data no formulário em frase")
+// A frase da Nova memória (docs/decisoes.md, "A frase é a trilha", em "Nova memória")
 describe('a data na frase "Isso aconteceu ___"', () => {
   it('escreve a data como o site já escreve, com a preposição que a frase pede', () => {
     expect(dataNaFrase({ ano: 2025, mes: 12, dia: 24 })).toBe('em 24 de dezembro de 2025');

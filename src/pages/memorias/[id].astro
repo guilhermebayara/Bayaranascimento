@@ -2,15 +2,19 @@
 // A página da memória (docs/visual.md, "Página da memória").
 // A ideia da tela: a foto e o verso. A frente é a imagem grande; o verso é a ficha em mono, como
 // o carimbo do laboratório, e os relatos como bilhetes assinados à mão. A ordem é a de docs/visual.md.
+import { naListaDeQuemOlha } from '../../lib/ex-casal';
 import '../../visual/telas/memoria.css';
 import Visual from '../../layouts/Visual.astro';
-import Audio from '../../components/visual/Audio.astro';
-import Bilhete from '../../components/visual/Bilhete.astro';
+import Voz from '../../components/conversa/Voz.astro';
+import Reacoes from '../../components/visual/Reacoes.astro';
+import MenuDeAcoes from '../../components/visual/MenuDeAcoes.astro';
+import { ofereceEntrar } from '../../lib/reacoes';
 import Carimbo from '../../components/visual/Carimbo.astro';
 import Dado from '../../components/visual/Dado.astro';
 import Etiqueta from '../../components/visual/Etiqueta.astro';
 import Ficha from '../../components/visual/Ficha.astro';
 import Retrato from '../../components/visual/Retrato.astro';
+import TarjaDoDiscreto from '../../components/visual/TarjaDoDiscreto.astro';
 import Recado from '../../components/visual/Recado.astro';
 import { fraseDosRelatosQueEsperam } from '../../lib/avisos';
 import Polaroid from '../../components/visual/Polaroid.astro';
@@ -19,14 +23,18 @@ import { memoriaDoCapitulo } from '../../lib/capitulos';
 import { recolheQuemEstava, relatoJaEstaNaAbertura } from '../../lib/memoria';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { formatarData, jaFaleceu } from '../../lib/datas';
-import { duracaoEmTexto } from '../../lib/audios';
 import { Familia, possessivo, type Tratamento } from '../../lib/parentesco';
 import { enderecoDoRetrato } from '../../lib/retratos';
 import { podeEditarMemoria, podeExcluirMemoria } from '../../lib/servidor/permissoes';
 import {
   familiasDe,
   listarAudiosDosRelatos,
+  listarFotosDoRelato,
   listarCapitulos,
+  comoOsExesAparecem,
+  contarSugestoesAbertas,
+  disseQueEstava,
+  listarReacoes,
   listarCasais,
   listarFiliacoes,
   listarIntegrantes,
@@ -36,9 +44,10 @@ import {
   listarTemas,
   obterMemoria,
   pessoasQueONaoVe,
-  abrirAvisosDaMemoria,
-} from '../../lib/servidor/repositorio';
-import { carimboDaData, corDaPessoa, estiloDoTipo, giroDoId, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
+  abrirAvisosDaMemoria, nomesDasPessoasExcluidas } from '../../lib/servidor/repositorio';
+import { conversaDosRelatos } from '../../lib/servidor/conversa';
+import { carimboDaData, estiloDoTipo, giroDoId, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
+import { coresDasPessoas } from '../../lib/familias';
 
 const { usuario, tipos } = Astro.locals;
 const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
@@ -54,7 +63,9 @@ const ordemDosNucleos = nucleos.map((n) => n.id);
 const relatos = await listarRelatos(usuario, memoria.id);
 const audiosDosRelatos = await listarAudiosDosRelatos(relatos.map((r) => r.id));
 const achar = (id: string) => integrantes.find((i) => i.id === id);
-const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+// Quem está na lixeira (excluir pessoa) some do site, mas o relato que contou continua com o nome
+const nomesNaLixeira = await nomesDasPessoasExcluidas();
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? nomesNaLixeira.get(id) ?? id;
 const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
 
 // Retratos em "Quem estava": só de quem a pessoa vê. Sem retrato, as iniciais sobre a cor da família.
@@ -63,9 +74,13 @@ const retratoDe = (id: string) => {
   const pessoa = achar(id);
   return pessoa?.retrato && !naoVe.has(id) ? enderecoDoRetrato(pessoa.retrato) : null;
 };
-const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
+const corDe = coresDasPessoas(integrantes, await listarCasais(usuario), ordemDosNucleos);
+const familiaDe = (id: string) => corDe(id);
+// Como os exes aparecem para quem olha (src/lib/ex-casal.ts)
+const modosDosExes = memoria.integrantes.length ? await comoOsExesAparecem(usuario) : new Map<string, 'discreto' | 'fora'>();
 // Quem só existe num laço privado de outra pessoa não aparece em "Quem estava" (C1, 17/11/2026)
-const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id));
+// O ex que quem olha deixou fora sai de "Quem estava"; o discreto fica, com a tarja (naListaDeQuemOlha)
+const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id) && naListaDeQuemOlha(modosDosExes.get(id)) !== 'fora');
 // O parentesco do ponto de vista de quem olha: "sua avó"
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
 const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
@@ -79,6 +94,15 @@ const tipo = tipoDaMemoria(tipos, memoria);
 const dosNucleos = memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n));
 const podeEditar = podeEditarMemoria(usuario, memoria).ok;
 const podeExcluir = podeExcluirMemoria(usuario, memoria).ok;
+// Reações (onda 2): só nos relatos publicados e nas fotos que a pessoa vê, e só com quem ela vê
+const publicada = memoria.situacao === 'publicada';
+const alvosDasReacoes = new Set(['memoria:0', ...relatos.filter((r) => r.situacao === 'publicada').map((r) => `relato:${r.id}`), ...memoria.fotos.map((f) => `foto:${f.id}`)]);
+const reacoes = publicada ? await listarReacoes(memoria.id, usuario, alvosDasReacoes) : new Map();
+const temPaginaNoAcervo = integrantes.some((i) => i.id === usuario.pessoa);
+// A oferta fica na página, escondida, para aparecer no lugar logo depois do "eu estava lá" (sem recarregar)
+const podeEntrarEmQuemEstava = publicada && temPaginaNoAcervo && !memoria.integrantes.includes(usuario.pessoa);
+const ofereceQuemEstava = podeEntrarEmQuemEstava && ofereceEntrar(await disseQueEstava(memoria.id, usuario), false);
+const sugestoesAbertas = memoria.situacao === 'publicada' ? await contarSugestoesAbertas(memoria, usuario) : 0;
 // Capítulos: os reunidos em que foi colocada e os por período em que a data cai, se forem de quem está nela
 const capitulos = (await listarCapitulos(usuario)).filter((c) => memoriaDoCapitulo(memoria, c));
 const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
@@ -119,7 +143,17 @@ const fraseDaEspera = fraseDosRelatosQueEsperam(esperam.map((r) => ({ nome: nome
 const ok = Astro.url.searchParams.get('ok');
 const erro = Astro.url.searchParams.get('erro');
 
-const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ foto, n })).filter(({ foto }) => foto.relatoId === relatoId);
+// O relato como conversa: as mensagens de cada relato, com os áudios, as fotos (que abrem a galeria da
+// memória) e as citações resolvidas para quem olha. As fotos do meu relato em rascunho ainda não são da
+// memória: entram à parte, sem galeria.
+const meuEmRascunho = relatos.find((r) => r.situacao === 'rascunho' && r.registradoPor === usuario.pessoa);
+const fotosDoRascunho = meuEmRascunho ? await listarFotosDoRelato(meuEmRascunho.id) : [];
+const conversa = await conversaDosRelatos(relatos, [...memoria.fotos, ...fotosDoRascunho.filter((f) => !memoria.fotos.some((m) => m.id === f.id))], nome, (fotoId) => {
+  const n = memoria.fotos.findIndex((f) => f.id === fotoId);
+  return n >= 0 ? n : undefined;
+});
+// "Citar": quem tem página no acervo cita uma mensagem dos outros no próprio relato
+const podeCitar = publicada && temPaginaNoAcervo;
 ---
 
 <Visual titulo={memoria.titulo} secao="explorar" nucleos={memoria.nucleos} familia={corDaTela}>
@@ -151,6 +185,10 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
             </blockquote>
           )
         }
+        {/* As ações do alto. No celular, os dois atalhos e, embaixo, reagir e o menu; no computador, tudo
+            numa linha: reagir, os dois atalhos e o menu (sugestão do Gui, 18/11/2026: o menu ficava
+            escondido na ponta da coluna, encostado nas fotos) */}
+        <div class="abre__acoes">
         {/* Atalho pequeno no alto para quem chega querendo contar; o convite grande fica no fim */}
         <p class="abre__atalho">
           <a class="acao" href={`/memorias/${memoria.id}/relato`}>
@@ -161,6 +199,33 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
             Acrescentar fotos
           </a>
         </p>
+        {/* Reagir à memória inteira fica à vista, como nas redes (observação do Gui, 18/11/2026) */}
+        {
+          publicada && (
+            <div class="abre__reagir acoes-do-item">
+              <Reacoes memoria={memoria.id} alvo="memoria" marcas={reacoes.get('memoria:0')} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}`} sobre="a memória" />
+              {/* O resto mora no menu, como nas plataformas que a família usa (observação do Gui, 18/11/2026) */}
+              <MenuDeAcoes rotulo="Mais ações da memória">
+                <a class="menu-acoes__item" href={`/memorias/${memoria.id}/compartilhar`}>
+                  Compartilhar como imagem
+                </a>
+                {memoria.criadaPor === usuario.pessoa ? (
+                  <a class="menu-acoes__item" href={`/nova?id=${memoria.id}`}>
+                    Corrigir esta memória
+                  </a>
+                ) : (
+                  <a class="menu-acoes__item" href={`/memorias/${memoria.id}/sugerir`}>
+                    Sugerir uma correção
+                  </a>
+                )}
+                <a class="menu-acoes__item" href={`/memorias/${memoria.id}/historico`}>
+                  Histórico de alterações
+                </a>
+              </MenuDeAcoes>
+            </div>
+          )
+        }
+        </div>
       </div>
       {
         memoria.fotos.length > 0 && (
@@ -221,6 +286,21 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
       </aside>
 
       <div class="corpo__conteudo">
+        {/* "Quem estava" e a oferta de entrar nele: uma região, para entrar acontecer no lugar */}
+        <div class="regiao" data-regiao="quem-estava">
+        {
+          // Depois de "eu estava lá" numa memória em que não está: um toque para entrar em Quem estava
+          podeEntrarEmQuemEstava && (
+            <form class="entrar-em-quem-estava" method="post" action="/api/reacoes" data-entrar-em-quem-estava hidden={!ofereceQuemEstava} data-no-lugar="quem-estava">
+              <input type="hidden" name="acao" value="entrar" />
+              <input type="hidden" name="memoria" value={memoria.id} />
+              <span>Você disse que estava lá. Quer entrar em Quem estava?</span>
+              <button class="acao" type="submit">
+                Entrar em Quem estava
+              </button>
+            </form>
+          )
+        }
         {
           quemEstava.length > 0 && (
             <section class="parte" aria-labelledby="quem-estava">
@@ -230,12 +310,19 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
               <ul class:list={['quem', recolheQuem && 'quem--recolhe']} data-quem>
                 {quemEstava.map((id) => (
                   <li>
-                    <a class="pessoa" href={`/pessoas/${id}`}>
-                      <Retrato nome={nome(id)} foto={retratoDe(id)} familia={familiaDe(id)} falecido={faleceu(id)} />
-                      <span class="pessoa__nome">{nome(id)}</span>
-                      {faleceu(id) && <span class="so-leitor">já faleceu</span>}
-                      {paraVoce(id) && <span class="pessoa__laco ficha suave">{paraVoce(id)}</span>}
-                    </a>
+                    {naListaDeQuemOlha(modosDosExes.get(id)) === 'tarja' ? (
+                      // Um ex que quem olha deixou discreto: a foto borrada com a tarja por cima e o nome borrado, sem link
+                      <span class="pessoa pessoa--discreto">
+                        <TarjaDoDiscreto nome={nome(id)} foto={retratoDe(id)} familia={familiaDe(id)} />
+                      </span>
+                    ) : (
+                      <a class="pessoa" href={`/pessoas/${id}`}>
+                        <Retrato nome={nome(id)} foto={retratoDe(id)} familia={familiaDe(id)} falecido={faleceu(id)} />
+                        <span class="pessoa__nome">{nome(id)}</span>
+                        {paraVoce(id) && <span class="pessoa__laco ficha suave">{paraVoce(id)}</span>}
+                        {faleceu(id) && <span class="em-memoria">em memória</span>}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -244,7 +331,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                 recolheQuem && (
                   <p class="quem__todos">
                     <button type="button" class="acao" data-quem-todos hidden>
-                      Ver todos os {memoria.integrantes.length}
+                      Ver todos os {quemEstava.length}
                     </button>
                   </p>
                 )
@@ -252,22 +339,35 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
             </section>
           )
         }
+        </div>
 
         {
           relatos.length > 0 && !relatoSoNaAbertura && (
-            <section class="parte" aria-labelledby="relatos">
+            <section class="parte parte--conversa" aria-labelledby="relatos">
               <h2 class="parte__titulo" id="relatos">
                 {relatos.length === 1 ? 'Relato' : 'Relatos'}
               </h2>
-              <div class="relatos">
-                {relatos.map((relato) => {
-                  const audios = audiosDosRelatos.get(relato.id) ?? [];
-                  return (
-                    <Bilhete id={`relato-${relato.id}`} por={nome(relato.por)} registradoPor={relato.registradoPor !== relato.por ? nome(relato.registradoPor) : null}>
-                      <h3 class="so-leitor">Contado por {nome(relato.por)}</h3>
+              {/* O relato como conversa (escolha do Gui depois da sessão I, 18/11/2026; src/lib/conversa.ts): cada
+                  pessoa é uma voz, com o retrato e o nome à mão no começo e as mensagens na ordem em que mandou,
+                  quem contou primeiro antes. As de quem olha à direita, no pastel da família. As reações são do
+                  relato inteiro, no fim da voz. "Citar" leva ao relato de quem olha, com a mensagem citada. */}
+              <div class="voz-fio">
+                {relatos.map((relato) => (
+                  <Voz
+                    id={`relato-${relato.id}`}
+                    nome={nome(relato.por)}
+                    retrato={retratoDe(relato.por)}
+                    familia={familiaDe(relato.por)}
+                    falecido={faleceu(relato.por)}
+                    registradoPor={relato.registradoPor !== relato.por ? nome(relato.registradoPor) : null}
+                    mensagens={conversa.get(relato.id) ?? []}
+                    minha={relato.por === usuario.pessoa}
+                    citarEm={podeCitar && relato.situacao === 'publicada' && relato.registradoPor !== usuario.pessoa ? `/memorias/${memoria.id}/relato?cita=` : undefined}
+                  >
+                    <Fragment slot="antes">
                       {relato.situacao === 'rascunho' && <p class="selo bilhete__selo">Rascunho, só você vê</p>}
                       {relato.soParaNucleos && relato.registradoPor === usuario.pessoa && (
-                        <form class="bilhete__espera" method="post" action="/api/avisos">
+                        <form class="bilhete__espera" method="post" action="/api/avisos" data-regiao={`liberar-${relato.id}`} data-no-lugar={`liberar-${relato.id} retrato`}>
                           <input type="hidden" name="relato" value={relato.id} />
                           <input type="hidden" name="resposta" value="liberar" />
                           <input type="hidden" name="volta" value={`/memorias/${memoria.id}#relato-${relato.id}`} />
@@ -277,38 +377,27 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                           </button>
                         </form>
                       )}
-                      {audios.map((audio, n) => (
-                        <Audio
-                          rotulo={`${audios.length > 1 ? `Áudio ${n + 1}` : 'Áudio'}${audio.duracao ? ` · ${duracaoEmTexto(audio.duracao)}` : ''}`}
-                          src={`/audios/${audio.chave}`}
-                          transcricao={audio.transcricao}
-                        />
-                      ))}
-                      {relato.texto.trim() && (
-                        <div class="bilhete__texto">
-                          {relato.texto.split(/\n{2,}/).map((paragrafo) => (
-                            <p>{paragrafo}</p>
-                          ))}
-                        </div>
-                      )}
-                      {fotosDoRelato(relato.id).length > 0 && (
-                        <ul class="bilhete__fotos" aria-label={`Fotos que vieram com o relato de ${nome(relato.por)}`}>
-                          {fotosDoRelato(relato.id).map(({ foto, n }) => (
-                            <li>
-                              <a class="monte" href={`/fotos/${foto.chave}`} data-galeria={n} aria-label={`Ver a foto inteira${foto.legenda ? `: ${foto.legenda}` : ''}`}>
-                                <figure class="polaroid" style={`--giro: ${giroDoId(`${memoria.id}-relato-${n}`)}deg`}>
-                                  <span class="polaroid__foto">
-                                    <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
-                                  </span>
-                                </figure>
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </Bilhete>
-                  );
-                })}
+                    </Fragment>
+                    {publicada && relato.situacao === 'publicada' && (
+                      <div slot="pe" class="acoes-do-item">
+                        <Reacoes memoria={memoria.id} alvo="relato" alvoId={relato.id} marcas={reacoes.get(`relato:${relato.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#relato-${relato.id}`} sobre={`o relato de ${nome(relato.por)}`} />
+                        <MenuDeAcoes rotulo={`Mais ações do relato de ${nome(relato.por)}`}>
+                          {/* O recado ao autor do relato, numa página própria, à parte da sugestão de dados da
+                              memória (observação do Gui, 18/11/2026). No próprio relato, contar mais fica no
+                              atalho do alto e na linha do fim */}
+                          {relato.registradoPor !== usuario.pessoa && (
+                            <a class="menu-acoes__item" href={`/memorias/${memoria.id}/recado?relato=${relato.id}`}>
+                              Deixar um recado para {nome(relato.registradoPor)}
+                            </a>
+                          )}
+                          <a class="menu-acoes__item" href={`/memorias/${memoria.id}/compartilhar`}>
+                            Compartilhar como imagem
+                          </a>
+                        </MenuDeAcoes>
+                      </div>
+                    )}
+                  </Voz>
+                ))}
               </div>
             </section>
           )
@@ -324,7 +413,7 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
               </h2>
               <ul class="parede">
                 {memoria.fotos.map((foto, n) => (
-                  <li>
+                  <li id={`foto-${foto.id}`}>
                     <a class="monte" href={`/fotos/${foto.chave}`} data-galeria={n} aria-label={`Ver a foto inteira${foto.legenda ? `: ${foto.legenda}` : ''}`}>
                       <figure class="polaroid" style={`--giro: ${giroDoId(`${memoria.id}-${n}`)}deg`}>
                         <span class="polaroid__foto">
@@ -333,6 +422,19 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
                         <figcaption class="polaroid__legenda">{foto.legenda ?? ''}</figcaption>
                       </figure>
                     </a>
+                    {publicada && (
+                      <div class="acoes-do-item">
+                        <Reacoes memoria={memoria.id} alvo="foto" alvoId={foto.id} marcas={reacoes.get(`foto:${foto.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#foto-${foto.id}`} sobre={`a foto ${n + 1}`} />
+                        <MenuDeAcoes rotulo={`Mais ações da foto ${n + 1}`}>
+                          <a class="menu-acoes__item" href={`/fotos/${foto.chave}`} target="_blank" rel="noopener">
+                            Ver a foto inteira
+                          </a>
+                          <a class="menu-acoes__item" href={`/fotos/${foto.chave}`} download>
+                            Baixar a foto
+                          </a>
+                        </MenuDeAcoes>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -452,6 +554,14 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
         </a>
       )
     }
+    {/* Compartilhar e sugerir uma correção moram no menu da memória, no alto (observação do Gui, 18/11/2026) */}
+    {
+      sugestoesAbertas > 0 && (
+        <a class="acao acao--quieta" href={`/memorias/${memoria.id}/sugestoes`}>
+          {sugestoesAbertas === 1 ? '1 sugestão de correção' : `${sugestoesAbertas} sugestões de correção`}
+        </a>
+      )
+    }
     <a class="acao acao--quieta" href={`/memorias/${memoria.id}/historico`}>
       Histórico de alterações
     </a>
@@ -466,6 +576,15 @@ const fotosDoRelato = (relatoId: number) => memoria.fotos.map((foto, n) => ({ fo
 </Visual>
 
 <script>
+  import { ligarMenus } from '../../lib/cliente/menus';
+  import { ligarReacoes } from '../../lib/cliente/reacoes';
+  import { ligarAudioDaMensagem } from '../../lib/cliente/conversa';
+  // As reações no lugar, sem recarregar, e os menus dos três pontos
+  ligarReacoes();
+  ligarMenus();
+  // Os áudios das vozes: o botão de tocar e a onda; sem script, o tocador do aparelho
+  for (const audio of document.querySelectorAll<HTMLElement>('.voz [data-audio]')) ligarAudioDaMensagem(audio);
+
   // "Quem estava" no celular: até seis retratos, e "Ver todos os N" abre o resto no lugar. A lista só
   // é recolhida aqui, pelo script: sem ele, ela vem inteira. O CSS só esconde abaixo de 40rem.
   const quem = document.querySelector<HTMLElement>('[data-quem].quem--recolhe');

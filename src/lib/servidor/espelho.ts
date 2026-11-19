@@ -1,4 +1,9 @@
 // Grava o espelho da produção no banco da homologação. Ver lib/espelho.ts.
+//
+// Só o banco: nenhum arquivo da produção chega à homologação (observação do Gui, 18/11/2026). Os
+// retratos e as fotos das memórias do espelho apontam para as 11 fotos de exemplo, lidas do bucket de
+// teste. A produção nunca grava na homologação: quem grava é a própria homologação, ao receber a cópia
+// enviada por um administrador.
 import { comandosDoEspelho, espelhar, type CopiaDoAcervo, type Espelho } from '../espelho';
 import { banco, ehHomologacao } from './ambiente';
 

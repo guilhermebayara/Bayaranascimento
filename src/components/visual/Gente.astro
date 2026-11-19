@@ -8,6 +8,8 @@ import Retrato from './Retrato.astro';
 interface Props {
   href: string;
   nome: string;
+  /** o apelido que quem olha vê, ao lado do nome: "Alexsander (Lugh)". Só na lista de Pessoas */
+  apelido?: string | null;
   /** o endereço do retrato, se a pessoa tem um e quem olha pode ver */
   foto?: string | null;
   /** a cor da família da pessoa */
@@ -16,19 +18,19 @@ interface Props {
   laco?: string | null;
   /** um detalhe, em mono */
   detalhe?: string | null;
-  /** quem já faleceu: o retrato leva o anel, e o leitor de tela ouve "já faleceu" */
+  /** quem já faleceu: o retrato fica em tom suave, e "em memória" vem escrito embaixo */
   falecido?: boolean;
 }
 
-const { href, nome, foto, familia, laco, detalhe, falecido = false } = Astro.props;
+const { href, nome, apelido, foto, familia, laco, detalhe, falecido = false } = Astro.props;
 ---
 
 <a class="gente" href={href}>
   <Retrato nome={nome} foto={foto} familia={familia} falecido={falecido} />
   <span class="gente__quem">
-    <strong>{nome}</strong>
-    {falecido && <span class="so-leitor">já faleceu</span>}
+    <strong>{nome}{apelido && <span class="gente__apelido"> ({apelido})</span>}</strong>
     {laco && <span class="gente__laco suave">{laco}</span>}
     {detalhe && <span class="ficha suave">{detalhe}</span>}
+    {falecido && <span class="em-memoria">em memória</span>}
   </span>
 </a>

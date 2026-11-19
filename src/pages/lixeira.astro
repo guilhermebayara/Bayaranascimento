@@ -1,21 +1,24 @@
 ---
 import Pagina from '../components/formularios/Pagina.astro';
 import Vazio from '../components/visual/Vazio.astro';
+import ConfirmarRemocao from '../components/ConfirmarRemocao.astro';
 import { formatarData, formatarMomento } from '../lib/datas';
 import { podeExcluirMemoria } from '../lib/servidor/permissoes';
-import { listarCapitulos, listarCapitulosExcluidos, listarExcluidas, listarIntegrantes, obterMemoria } from '../lib/servidor/repositorio';
+import { listarCapitulos, listarCapitulosExcluidos, listarExcluidas, listarIntegrantes, listarPessoasExcluidas, obterMemoria } from '../lib/servidor/repositorio';
 
 // Cada pessoa vê na lixeira só o que poderia recuperar: admins, as memórias que
 // enxergavam; os demais, os próprios rascunhos descartados.
 const { usuario } = Astro.locals;
 const excluidas = (await listarExcluidas(usuario)).filter((m) => podeExcluirMemoria(usuario, m).ok);
 const capitulos = usuario.admin ? await listarCapitulosExcluidos(usuario) : [];
+// Excluir pessoa (decisão do Gui depois da sessão I): as pessoas na lixeira, só para os administradores
+const pessoas = usuario.admin ? await listarPessoasExcluidas() : [];
 const integrantes = await listarIntegrantes();
 const nome = (id: string | null) => {
   const i = integrantes.find((x) => x.id === id);
   return i?.apelido ?? i?.nome ?? 'alguém';
 };
-// Depois de restaurar, a pessoa continua na lixeira, com o caminho para o que voltou (resposta do Gui
+// Depois de restaurar uma memória ou um capítulo, a pessoa continua na lixeira, com o caminho para o que voltou (resposta do Gui
 // à P154, 17/11/2026). Só entra o que ela pode ver: a busca é a de sempre.
 const restaurada = Astro.url.searchParams.get('restaurada');
 const memoriaDeVolta = restaurada ? await obterMemoria(usuario, restaurada) : undefined;
@@ -27,7 +30,8 @@ const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) =
 <Pagina titulo="Lixeira" rotulo="Sua conta" secao="conta" larga>
   <Fragment slot="abertura">
     <p>
-      {usuario.admin ? 'Memórias excluídas e rascunhos descartados.' : 'Seus rascunhos descartados.'} Nada aqui aparece no site, e tudo pode ser restaurado como estava.
+      {usuario.admin ? 'Memórias, capítulos e pessoas excluídos e rascunhos descartados.' : 'Seus rascunhos descartados.'} Nada aqui aparece no site, e tudo pode ser restaurado como estava.
+      {usuario.admin && ' Nada some sozinho: só um administrador apaga de vez, um item por vez.'}
     </p>
     <p class="acoes">
       <a class="acao" href="/conta">Voltar para a sua conta</a>
@@ -50,7 +54,7 @@ const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) =
     )
   }
   {
-    excluidas.length + capitulos.length === 0 ? (
+    excluidas.length + capitulos.length + pessoas.length === 0 ? (
       <Vazio frase="A lixeira está vazia." />
     ) : (
       <ul class="linhas linhas--com-acao">
@@ -67,11 +71,24 @@ const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) =
               {m.situacao === 'rascunho' ? 'Descartado' : 'Excluída'} por {nome(m.excluidaPor)} em {formatarMomento(m.excluidaEm)}.
               {m.situacao === 'publicada' && ` ${m.fotos.length} ${m.fotos.length === 1 ? 'foto' : 'fotos'}, ${m.relatos} ${m.relatos === 1 ? 'relato' : 'relatos'}.`}
             </p>
-            <form method="post" action="/api/lixeira" class="em-linha">
-              <input type="hidden" name="acao" value="restaurar-excluida" />
-              <input type="hidden" name="memoria" value={m.id} />
-              <button class="botao botao--leve" type="submit">Restaurar</button>
-            </form>
+            <div class="lixeira__acoes">
+              <form method="post" action="/api/lixeira" class="em-linha">
+                <input type="hidden" name="acao" value="restaurar-excluida" />
+                <input type="hidden" name="memoria" value={m.id} />
+                <button class="botao botao--leve" type="submit">Restaurar</button>
+              </form>
+              {usuario.admin && (
+                <form method="post" action="/api/lixeira" class="lixeira__apagar">
+                  <input type="hidden" name="memoria" value={m.id} />
+                  <ConfirmarRemocao
+                    rotulo="Apagar de vez"
+                    pergunta={`Apagar de vez “${m.titulo}”? A ficha, os relatos e o histórico somem para sempre e não dá para restaurar.`}
+                    acao="apagar-de-vez"
+                    confirmar="Apagar de vez"
+                  />
+                </form>
+              )}
+            </div>
           </li>
         ))}
         {capitulos.map((c) => (
@@ -81,11 +98,38 @@ const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) =
               <span>capítulo</span>
             </div>
             <p class="dica">Excluído em {formatarMomento(c.excluidoEm)}. As memórias dele continuam no acervo.</p>
-            <form method="post" action="/api/capitulos" class="em-linha">
-              <input type="hidden" name="acao" value="restaurar" />
-              <input type="hidden" name="id" value={c.id} />
-              <button class="botao botao--leve" type="submit">Restaurar</button>
-            </form>
+            <div class="lixeira__acoes">
+              <form method="post" action="/api/capitulos" class="em-linha">
+                <input type="hidden" name="acao" value="restaurar" />
+                <input type="hidden" name="id" value={c.id} />
+                <button class="botao botao--leve" type="submit">Restaurar</button>
+              </form>
+              <form method="post" action="/api/lixeira" class="lixeira__apagar">
+                <input type="hidden" name="capitulo" value={c.id} />
+                <ConfirmarRemocao
+                  rotulo="Apagar de vez"
+                  pergunta={`Apagar de vez o capítulo “${c.titulo}”? Ele some para sempre. As memórias dele continuam no acervo.`}
+                  acao="apagar-capitulo-de-vez"
+                  confirmar="Apagar de vez"
+                />
+              </form>
+            </div>
+          </li>
+        ))}
+        {pessoas.map((p) => (
+          <li>
+            <div>
+              <strong>{p.nome}</strong>
+              <span>{p.tipo === 'bicho' ? 'bichinho' : 'pessoa'}</span>
+            </div>
+            <p class="dica">Excluída por {nome(p.excluidaPor)} em {formatarMomento(p.excluidaEm)}. Restaurar devolve a página, os laços e "Quem estava".</p>
+            <div class="lixeira__acoes">
+              <form method="post" action="/api/pessoas-excluidas" class="em-linha">
+                <input type="hidden" name="acao" value="restaurar" />
+                <input type="hidden" name="pessoa" value={p.id} />
+                <button class="botao botao--leve" type="submit">Restaurar</button>
+              </form>
+            </div>
           </li>
         ))}
       </ul>

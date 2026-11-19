@@ -1,5 +1,5 @@
 ---
-// A carta de Natal, escrita pelos administradores no próprio site (docs/decisoes.md, "Painel pessoal").
+// A carta de Natal, escrita pelos administradores no próprio site (docs/decisoes.md, "Início (painel pessoal)").
 // Fica no banco, nunca no repositório. Cada versão salva é uma linha nova, e vale a mais recente.
 import Pagina from '../../components/formularios/Pagina.astro';
 import { saudacao } from '../../lib/painel';
@@ -16,13 +16,13 @@ const quem = carta ? integrantes.find((i) => i.id === carta.escritaPor) : undefi
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
-<Pagina titulo="Carta de Natal" rotulo="Administração" secao="conta" larga>
+<Pagina titulo="Carta de Natal" rotulo="Administração" secao="administracao" larga>
   <Fragment slot="abertura">
     <p>
       A carta abre o site na primeira visita de cada pessoa. Depois, fica num link no início. {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}
     </p>
     <p class="acoes">
-      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+      <a class="acao" href="/admin">Voltar para a Administração</a>
     </p>
   </Fragment>
 

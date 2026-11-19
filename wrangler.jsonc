@@ -21,7 +21,7 @@
 
   "vars": {
     // Cloudflare Access: usados para conferir quem está logado
-    "ACCESS_TEAM_DOMAIN": "misty-meadow-4f1e.cloudflareaccess.com",
+    "ACCESS_TEAM_DOMAIN": "memoriasb-b.cloudflareaccess.com",
     "ACCESS_AUD": "6cb7130805a6a1e18b9863e6d91d6d76e5d980ae09acba0a63e5aba2229fddda",
     // "producao" exige login. Só as prévias de branch usam "previa".
     "AMBIENTE": "producao"
@@ -32,7 +32,7 @@
   // acervo real fica ao alcance de uma prévia.
   "previews": {
     "vars": {
-      "ACCESS_TEAM_DOMAIN": "misty-meadow-4f1e.cloudflareaccess.com",
+      "ACCESS_TEAM_DOMAIN": "memoriasb-b.cloudflareaccess.com",
       "ACCESS_AUD": "6cb7130805a6a1e18b9863e6d91d6d76e5d980ae09acba0a63e5aba2229fddda",
       "AMBIENTE": "previa"
     },
@@ -46,8 +46,15 @@
     "d1_databases": [
       { "binding": "DB", "database_name": "bayara-memorias-teste", "database_id": "d2c94f2a-5945-4414-8772-5769febac77b" },
       { "binding": "DB_HOMOLOGA", "database_name": "bayara-memorias-homologa", "database_id": "004a27d4-df4b-4127-baa4-fe6b1cf32c34" }
-    ]
+    ],
+    // As prévias e a homologação também têm o Workers AI: o Gui liga a transcrição primeiro na homologação
+    "ai": { "binding": "AI" }
   },
+
+  // Workers AI, para a transcrição automática dos áudios (resposta do Gui à sessão F, 18/11/2026). A conta
+  // está no plano gratuito: passar da cota só faz o pedido falhar, sem cobrança. A transcrição continua
+  // desligada até um administrador ligar em Administração, "Transcrição automática".
+  "ai": { "binding": "AI" },
 
   "observability": { "enabled": true }
 

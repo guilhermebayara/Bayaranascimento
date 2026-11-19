@@ -16,27 +16,30 @@ import Carimbo from '../components/visual/Carimbo.astro';
 import Gente from '../components/visual/Gente.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
-import { colunasDosAtalhos, contaDePendencias, fraseDaCopiaMensal, oComeco, porcentoDoBanco } from '../lib/conta';
-import { LIMITE_DO_PLANO } from '../lib/tamanho-do-banco';
+import { ENDERECO_DA_ADMINISTRACAO, contaDePendencias, oComeco } from '../lib/conta';
 import { formatarData, jaFaleceu } from '../lib/datas';
-import { familiaMaisRecente } from '../lib/familias';
+import { coresDasPessoas, familiaMaisRecente } from '../lib/familias';
 import { PROXIMIDADES, lacoParaODono } from '../lib/parentesco';
 import { enderecoDoRetrato } from '../lib/retratos';
 import { montarConta } from '../lib/servidor/conta';
-import { familiasDe, listarAvisos, listarCasais, listarFiliacoes, listarNucleos, obterCarta } from '../lib/servidor/repositorio';
-import { carimboDaData, corDaPessoa, corDoNucleo } from '../lib/visual';
+import { familiasDe, listarAvisos, listarCasais, listarFiliacoes, listarNucleos, obterCarta, nomesDasPessoasExcluidas } from '../lib/servidor/repositorio';
+import { carimboDaData, corDoNucleo } from '../lib/visual';
 
 // Os textos novos desta tela foram aprovados pelo Gui em 17/11/2026 (pergunta 7 do PR do grupo "pessoal").
 const { usuario } = Astro.locals;
 const conta = await montarConta(usuario);
 const { dados: eu, integrantes } = conta;
 const achar = (id: string) => integrantes.find((i) => i.id === id);
-const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? id;
+// Quem está na lixeira (excluir pessoa) some do site, mas o relato que contou continua com o nome
+const nomesNaLixeira = await nomesDasPessoasExcluidas();
+const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? nomesNaLixeira.get(id) ?? id;
 const ordemDosNucleos = (await listarNucleos()).map((n) => n.id);
 // A mesma cor do painel: a da família mais recente de quem vê
-const minhaFamilia = familiaMaisRecente({ familias: new Map(integrantes.map((i) => [i.id, familiasDe(i)])), casais: await listarCasais(usuario), filiacoes: await listarFiliacoes() }, usuario.pessoa);
+const casais = await listarCasais(usuario);
+const minhaFamilia = familiaMaisRecente({ familias: new Map(integrantes.map((i) => [i.id, familiasDe(i)])), casais, filiacoes: await listarFiliacoes() }, usuario.pessoa);
 const cor = corDoNucleo(minhaFamilia, ordemDosNucleos);
-const familiaDe = (id: string) => corDaPessoa(achar(id) ? familiasDe(achar(id)!) : [], ordemDosNucleos);
+const corDe = coresDasPessoas(integrantes, casais, ordemDosNucleos);
+const familiaDe = (id: string) => corDe(id);
 const retratoDe = (id: string) => (achar(id)?.retrato ? enderecoDoRetrato(achar(id)!.retrato!) : null);
 
 const nascimento = eu?.nascimentoAno ? formatarData({ ano: eu.nascimentoAno, mes: eu.nascimentoMes, dia: eu.nascimentoDia, aproximada: false }) : undefined;
@@ -63,20 +66,9 @@ const capitulosCriados = oComeco(criou.capitulos);
 // Os dados sobem para o alto, numa linha, e só entra o que existe (P149)
 const chamado = eu?.apelido && eu.apelido !== eu.nome ? `${eu.tratamento === 'ela' ? 'chamada' : 'chamado'} de ${eu.apelido}` : undefined;
 const dados = [nascimento, chamado, conta.email && `e-mail de acesso: ${conta.email}`].filter(Boolean);
-// "Baixar cópia do acervo" baixa um arquivo: fica à parte dos links que abrem página, junto do tamanho do banco (P153)
-const paginasDaAdministracao = conta.administracao.filter((item) => !item.baixar);
-const copia = conta.administracao.find((item) => item.baixar);
-const admin = conta.administracao.length > 0;
-// As pendências da administração: a carta marca o atalho dela; o banco e a cópia mensal, o pé do
-// cartão; as outras (fotos soltas e duplicados, na onda 2) entram numa lista no alto do cartão
-const { pendencias, situacao } = conta;
-const pendenciaDo = (tipo: string) => pendencias.find((p) => p.tipo === tipo);
-const pendenciasSoltas = pendencias.filter((p) => !['carta', 'banco', 'copia'].includes(p.tipo) && !paginasDaAdministracao.some((i) => i.href === p.href));
-// Os atalhos nunca deixam um sozinho numa linha (colunasDosAtalhos)
-const colunas = colunasDosAtalhos(paginasDaAdministracao.length, 3);
-const colunasNoCelular = colunasDosAtalhos(paginasDaAdministracao.length, 2);
-const bancoPorcento = situacao?.banco ? porcentoDoBanco(situacao.banco.bytes, LIMITE_DO_PLANO) : 0;
-const copiaMensal = situacao ? fraseDaCopiaMensal(situacao.copiaMensal, conta.hoje) : undefined;
+// A Administração tem página própria (decisão do Gui, 18/11/2026). Aqui, para quem administra, só o
+// atalho para ela, ao lado das ações do alto, com as pendências que ela tem
+const admin = conta.administra;
 // Os avisos: a lista e o histórico (docs/decisoes.md, "Avisos")
 const todosOsAvisos = await listarAvisos(usuario, { historico: true });
 const avisosPendentes = todosOsAvisos.filter((a) => !a.resolvidoEm);
@@ -86,7 +78,7 @@ const erro = Astro.url.searchParams.get('erro');
 ---
 
 <Visual titulo="Sua conta" secao="conta" familia={cor} intimo>
-  <div class:list={['conta', 'miolo', { 'conta--admin': admin }]}>
+  <div class="conta miolo" data-administra={admin ? '' : undefined}>
     {(ok || erro) && <Recado erro={Boolean(erro)}>{erro ?? ok}</Recado>}
     <div class="conta__grade">
       <header class="conta__abre">
@@ -95,7 +87,8 @@ const erro = Astro.url.searchParams.get('erro');
         </div>
         <div class="conta__quem">
           <p class="rotulo suave">Sua conta · só você vê esta página</p>
-          <h1 class="t-1">{eu?.nome ?? usuario.nome}</h1>
+          {/* --letras: a palavra mais longa do nome, para o título caber na coluna (conta.css) */}
+          <h1 class="t-1" style={`--letras: ${Math.max(...(eu?.nome ?? usuario.nome).split(/\s+/).map((p) => p.length))}`}>{eu?.nome ?? usuario.nome}</h1>
           {dados.length > 0 && <p class="conta__dados ficha suave">{dados.join(' · ')}</p>}
           {!eu && <p class="conta__dados suave">Você entra no acervo, mas ainda não tem uma página de pessoa.</p>}
           {conta.email && <p class="conta__dados conta__dica suave">Só os administradores mudam o e-mail de acesso.</p>}
@@ -107,6 +100,16 @@ const erro = Astro.url.searchParams.get('erro');
             <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
               Ver sua página
             </a>
+            {/* O atalho para a Administração, só para quem administra (decisão do Gui, 18/11/2026), com as
+                pendências dela ao lado, na cor de alerta */}
+            {admin && (
+              <span class="conta__administra">
+                <a class="acao" href={ENDERECO_DA_ADMINISTRACAO}>
+                  Administração
+                </a>
+                {conta.pendenciasDaAdministracao > 0 && <span class="ficha conta__pendente">{contaDePendencias(conta.pendenciasDaAdministracao)}</span>}
+              </span>
+            )}
           </p>
         </div>
       </header>
@@ -281,53 +284,14 @@ const erro = Astro.url.searchParams.get('erro');
         )
       }
 
-      {
-        admin && (
-          <section class="cartao conta__admin" aria-labelledby="administracao">
-            <h2 class="conta__admin-titulo" id="administracao">
-              <span class="rotulo">Administração</span>
-              {pendencias.length > 0 && <span class="conta__pendencias ficha">{contaDePendencias(pendencias.length)}</span>}
-            </h2>
-            {pendenciasSoltas.length > 0 && (
-              <ul class="conta__soltas">
-                {pendenciasSoltas.map((p) => (
-                  <li>{p.href ? <a class="conta__pendente" href={p.href}>{p.texto}</a> : <span class="conta__pendente">{p.texto}</span>}</li>
-                ))}
-              </ul>
-            )}
-            <ul class="conta__atalhos" data-colunas={colunas} data-colunas-celular={colunasNoCelular}>
-              {paginasDaAdministracao.map((item) => (
-                <li>
-                  <a class:list={['conta__atalho', { 'conta__atalho--pendente': item.pendencia }]} href={item.href}>
-                    <strong>{item.rotulo}</strong>
-                    {item.situacao && <span class="ficha">{item.situacao}</span>}
-                  </a>
-                </li>
-              ))}
-            </ul>
-            <div class:list={['conta__banco', { 'conta__banco--aviso': conta.bancoEmAviso }]}>
-              {conta.banco && (
-                <>
-                  <p class="conta__banco-linha">
-                    <strong>Banco do acervo</strong>
-                    <span class="ficha">{conta.banco}</span>
-                  </p>
-                  <div class="conta__medida" role="img" aria-label={`Banco: ${conta.banco}`}>
-                    <span style={`width: ${bancoPorcento}%`} />
-                  </div>
-                  {conta.bancoEmAviso && <p class="conta__nota">Perto do limite do plano gratuito. A saída combinada é o plano Workers Paid.</p>}
-                </>
-              )}
-              {copiaMensal && <p class:list={['conta__nota', 'ficha', { 'conta__pendente': Boolean(pendenciaDo('copia')) }]}>{copiaMensal}</p>}
-              {copia && (
-                <a class="acao" href={copia.href} download>
-                  {copia.rotulo}
-                </a>
-              )}
-            </div>
-          </section>
-        )
-      }
     </div>
   </div>
 </Visual>
+
+<script>
+  // A Administração saiu daqui e ganhou página própria (decisão do Gui, 18/11/2026). Os endereços antigos
+  // da seção (as âncoras dela em "Sua conta") levam à página nova, no grupo que apontavam.
+  import { destinoDaAncoraAntiga } from '../lib/conta';
+  const destino = document.querySelector('[data-administra]') ? destinoDaAncoraAntiga(location.hash) : undefined;
+  if (destino) location.replace(destino);
+</script>

@@ -1,6 +1,6 @@
 ---
-// O retrato recortado em arco (docs/visual.md). Quem não tem foto aparece com as iniciais sobre
-// a cor da família. É enfeite: o nome da pessoa está sempre escrito ao lado.
+// O retrato de foto de álbum (docs/visual.md): um retângulo reto com cantoneiras nos quatro cantos.
+// Quem não tem foto aparece com as iniciais sobre a cor da família. É enfeite: o nome da pessoa está sempre escrito ao lado.
 import { iniciais } from '../../lib/retratos';
 
 interface Props {
@@ -9,13 +9,13 @@ interface Props {
   foto?: string | null;
   /** a cor da família da pessoa: 'tudo', '0', '1', '2' ou '3'. Sem ela, vale a cor da tela */
   familia?: string;
-  /** em círculo, para o tamanho pequeno do topo */
+  /** em círculo: o retrato de quem está usando o site (o topo e o Início) e as pessoas do círculo */
   redondo?: boolean;
   /** carrega logo, para o que está no alto da página */
   cedo?: boolean;
   /**
-   * Quem já faleceu (decisão do Gui, 17/11/2026): um anel fino em volta do retrato, discreto e sem
-   * sinal religioso. Quem usa o retrato escreve "já faleceu" para o leitor de tela, ao lado do nome.
+   * Quem já faleceu (decisões do Gui, 18/11/2026): a foto em tom mais suave, que acende com o mouse em
+   * cima e com o foco do teclado. Quem usa o retrato escreve "em memória" perto do nome.
    */
   falecido?: boolean;
 }

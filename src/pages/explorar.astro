@@ -16,7 +16,7 @@ import Linha from '../components/explorar/Linha.astro';
 import Lista from '../components/explorar/Lista.astro';
 import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
-import { SEM_FILTRO, TEMPOS_DE_PASSAR, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, mostraRascunho, movimentoNoEndereco, passarNoEndereco, filtrosLigados, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo, vizinhasNaLista, type Passar } from '../lib/explorar';
+import { SEM_FILTRO, TEMPOS_DE_PASSAR, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, lerFotosDoMural, mostraRascunho, movimentoNoEndereco, passarNoEndereco, filtrosLigados, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo, vizinhasNaLista, type Passar } from '../lib/explorar';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
@@ -25,9 +25,12 @@ const { usuario, tipos } = Astro.locals;
 const parametros = Astro.url.searchParams;
 const forma = lerForma(parametros);
 const tamanho = lerTamanho(parametros);
+const fotosDoMural = lerFotosDoMural(parametros);
 const [nucleos, todas, integrantes, capitulos, temas] = await Promise.all([
   listarNucleos(),
-  listarMemorias(usuario),
+  // O rascunho de quem escreveu entra na linha do tempo e na lista; o mural, o modo TV e o sorteio usam
+  // só as publicadas (abaixo)
+  listarMemorias(usuario, { comRascunhos: true }),
   // Quem só existe num laço privado de outra pessoa não aparece nem no filtro nem nos nomes (C1)
   listarIntegrantesQueVe(usuario),
   listarCapitulos(usuario),
@@ -176,10 +179,11 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
             quantas={memorias.length}
             ligados={ligados}
             tamanho={tamanho}
+            fotos={fotosDoMural}
           />
         </header>
         {memorias.length > 0 ? (
-          <Mural memorias={memorias} ordem={filtros.ordem} tamanho={tamanho} />
+          <Mural memorias={memorias} ordem={filtros.ordem} tamanho={tamanho} fotos={fotosDoMural} />
         ) : (
           <div class="miolo">
             <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>

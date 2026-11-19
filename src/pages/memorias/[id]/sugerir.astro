@@ -1,0 +1,102 @@
+---
+// Sugerir uma correção dos dados da memória (onda 2, decisão do Gui de 17/11/2026), para quem a criou e
+// quem está nela. Ninguém muda a memória de outra pessoa: quem recebe decide. O recado sobre um relato é
+// outra ação, com página própria (recado.astro), que parte do menu do relato (observação do Gui de
+// 18/11/2026). Regras em src/lib/sugestoes.ts e permissoes.ts; a rota é /api/sugestoes.
+import Pagina from '../../../components/formularios/Pagina.astro';
+import CampoAno from '../../../components/CampoAno.astro';
+import { formatarData } from '../../../lib/datas';
+import { destinatarios } from '../../../lib/sugestoes';
+import { podeSugerirDados } from '../../../lib/servidor/permissoes';
+import { listarIntegrantesQueVe, obterMemoria, pessoasQueONaoVe, pessoasQueSoVoceVe } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
+if (!memoria || memoria.situacao !== 'publicada') return new Response('Memória não encontrada', { status: 404 });
+const [visiveis, soDela, naoVe] = await Promise.all([listarIntegrantesQueVe(usuario), pessoasQueSoVoceVe(usuario), pessoasQueONaoVe(usuario)]);
+const nome = (id: string) => visiveis.find((i) => i.id === id)?.apelido ?? visiveis.find((i) => i.id === id)?.nome ?? id;
+const dados = podeSugerirDados(usuario, memoria).ok;
+const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id));
+// A sugestão de dados vai para quem criou e para quem está na memória (resposta do Gui à sessão F)
+const recebem = destinatarios({ tipo: 'dados', para: memoria.criadaPor, de: usuario.pessoa }, memoria).filter((id) => !naoVe.has(id)).map(nome);
+const paraQuem = recebem.length > 1 ? `${recebem.slice(0, -1).join(', ')} e ${recebem[recebem.length - 1]}` : (recebem[0] ?? nome(memoria.criadaPor));
+// Quem pode entrar: quem quem sugere vê, que ainda não está, e que não existe só para ela
+const podemEntrar = visiveis.filter((i) => !memoria.integrantes.includes(i.id) && !soDela.has(i.id)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+---
+
+<Pagina titulo="Sugerir uma correção" aba={`Sugerir uma correção em ${memoria.titulo}`} rotulo="Memória" nucleos={memoria.nucleos} secao="explorar">
+  <Fragment slot="abertura">
+    <p>
+      <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}{memoria.lugar && `, em ${memoria.lugar}`}.
+    </p>
+    <p>Ninguém muda o que outra pessoa registrou: quem recebe a sugestão decide se aceita, recusa ou responde.</p>
+  </Fragment>
+
+  {
+    dados && (
+      <section class="painel">
+        <h2>Os dados da memória</h2>
+        <p class="dica">Preencha só o que mudaria. Vai para {paraQuem}, que podem corrigir a memória; o primeiro que responder decide.</p>
+        <form class="formulario" method="post" action="/api/sugestoes">
+          <input type="hidden" name="acao" value="sugerir-dados" />
+          <input type="hidden" name="memoria" value={memoria.id} />
+          <div class="em-linha" role="group" aria-label="Quando foi">
+              <div class="em-linha__campo">
+                <label for="sugestao-ano">Em que ano foi</label>
+                <CampoAno id="sugestao-ano" nome="ano" />
+              </div>
+              <label class="campo em-linha__campo">
+                <span>Mês <small>(se souber)</small></span>
+                <select name="mes">
+                  <option value="">Não sei</option>
+                  {MESES.map((m, n) => <option value={n + 1}>{m}</option>)}
+                </select>
+              </label>
+          </div>
+          <label class="campo">
+            <span>Onde foi</span>
+            <input type="text" name="lugar" maxlength="120" placeholder={memoria.lugar ?? 'Ex.: Belo Horizonte'} />
+          </label>
+          <div class="sugerir__quem" role="group" aria-label="Quem estava">
+            <label class="campo">
+              <span>Faltou alguém?</span>
+              <select name="entram" data-busca-sugestao>
+                <option value="">Escreva o nome</option>
+                {podemEntrar.map((i) => <option value={i.id}>{i.nome}</option>)}
+              </select>
+            </label>
+            {quemEstava.length > 0 && (
+              <div class="campo">
+                <span>Alguém não estava?</span>
+                <div class="opcoes">
+                  {quemEstava.map((id) => (
+                    <label class="opcao">
+                      <input type="checkbox" name="saem" value={id} />
+                      <span>{nome(id)}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <label class="campo">
+            <span>Por quê? <small>(opcional)</small></span>
+            <textarea name="texto" rows="3" maxlength="2000" placeholder="Ex.: acho que foi em 1998, no ano em que a Vó mudou"></textarea>
+          </label>
+          <div class="acoes">
+            <button class="botao" type="submit">Enviar a sugestão</button>
+          </div>
+        </form>
+      </section>
+    )
+  }
+
+  {!dados && <p class="dica">Esta memória é sua: corrija direto em <a href={`/nova?id=${memoria.id}`}>Corrigir esta memória</a>.</p>}
+</Pagina>
+
+<script>
+  import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';
+  const lista = document.querySelector<HTMLSelectElement>('[data-busca-sugestao]');
+  if (lista) buscaDePessoa(lista);
+</script>

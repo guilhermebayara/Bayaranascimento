@@ -1,5 +1,5 @@
 /*
- * O quadro do mapa (docs/decisoes.md, "Página da árvore como mapa"; proposta A, escolhida pelo Gui
+ * O quadro do mapa (docs/decisoes.md, "A página como mapa", em "Árvore"; proposta A, escolhida pelo Gui
  * em 17/11/2026 a partir do conceito dele no Figma). O mapa ocupa a janela inteira abaixo do menu,
  * e um painel flutuante reúne o título, a ficha de quem foi tocado, a busca, os ajustes e a
  * legenda, em seções que abrem uma por vez. No celular o painel é um cartão no alto do mapa,
@@ -156,20 +156,21 @@
   line-height: 1;
   text-decoration: none;
 }
-/* As duas ações na mesma linha: "Ver a página" à esquerda e a outra, mais quieta, à direita */
-.pm__ficha a,
-.pm__ficha [data-partir] {
+/* As ações numa linha, uma depois da outra: "Ver a página", "Ver o laço" e "Ver a árvore de Fulano",
+   esta mais quieta. Sem espaço, a linha quebra, e nada fica por cima de nada. "Ver a árvore de" ficava
+   empurrada para a direita, longe das outras (observação do Gui de 18/11/2026, depois da sessão G). */
+.pm__ficha-acoes {
+  display: flex;
+  flex-wrap: wrap;
   grid-row: 3;
   grid-column: 1 / -1;
-}
-.pm__ficha a {
-  justify-self: start;
+  align-items: center;
+  gap: 0 var(--e-4);
+  min-width: 0;
 }
 .pm__ficha [data-partir] {
   display: block;
-  justify-self: end;
-  max-width: calc(100% - 8rem);
-  margin-right: var(--e-3);
+  max-width: 100%;
   overflow: hidden;
   color: var(--tinta-suave);
   font-weight: 400;
@@ -209,7 +210,7 @@
 }
 .pm__secao form {
   display: grid;
-  gap: var(--e-4);
+  gap: var(--e-6);
   padding: var(--e-2) var(--e-4) var(--e-4);
 }
 .pm .arvore__camadas {

@@ -1,0 +1,60 @@
+---
+// Fotos sem memória há mais de 30 dias (onda 2, decisão do Gui de 17/11/2026). Fotos enviadas num
+// formulário abandonado, ou soltas por "Apagar de vez", ficam no bucket sem uso. Nada se apaga
+// sozinho: o administrador confere cada uma, com quem enviou, e apaga. A rota é /api/fotos-soltas.
+import Pagina from '../../components/formularios/Pagina.astro';
+import ConfirmarRemocao from '../../components/ConfirmarRemocao.astro';
+import Vazio from '../../components/visual/Vazio.astro';
+import { formatarMomento } from '../../lib/datas';
+import { emGigabytes } from '../../lib/espaco-dos-arquivos';
+import { DIAS_DA_FOTO_SOLTA, listarFotosSoltas, listarIntegrantes } from '../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
+
+const fotos = await listarFotosSoltas();
+const integrantes = await listarIntegrantes();
+const nome = (id: string) => {
+  const i = integrantes.find((x) => x.id === id);
+  return i?.apelido ?? i?.nome ?? 'alguém';
+};
+const total = fotos.reduce((soma, f) => soma + (f.tamanho ?? 0), 0);
+---
+
+<Pagina titulo="Fotos sem memória" rotulo="Administração" secao="administracao" larga>
+  <Fragment slot="abertura">
+    <p>
+      Fotos enviadas há mais de {DIAS_DA_FOTO_SOLTA} dias que não ficaram em nenhuma memória: um formulário que ficou pela metade, ou uma memória apagada de vez. Nada se apaga sozinho. Confira cada uma e apague a que não serve.
+    </p>
+    <p class="acoes">
+      <a class="acao" href="/admin">Voltar para a Administração</a>
+    </p>
+  </Fragment>
+  {
+    fotos.length === 0 ? (
+      <Vazio frase={`Nenhuma foto sem memória há mais de ${DIAS_DA_FOTO_SOLTA} dias.`} />
+    ) : (
+      <div class="soltas__grupo">
+        <p class="dica soltas__conta">
+          {fotos.length === 1 ? 'Uma foto' : `${fotos.length} fotos`}
+          {total > 0 && `, ${emGigabytes(total)}`}.
+        </p>
+        <ul class="linhas soltas">
+          {fotos.map((f) => (
+            <li>
+              <img src={`/fotos/${f.chave}`} alt="" loading="lazy" width="72" height="72" />
+              <div class="soltas__quem">
+                <strong>Enviada por {nome(f.enviadaPor)}</strong>
+                <span class="ficha suave">{formatarMomento(f.enviadaEm)}{f.tamanho ? ` · ${emGigabytes(f.tamanho)}` : ''}</span>
+              </div>
+              <form method="post" action="/api/fotos-soltas" class="lixeira__apagar">
+                <input type="hidden" name="foto" value={f.id} />
+                <ConfirmarRemocao rotulo="Apagar" pergunta="Apagar esta foto? O arquivo sai do acervo para sempre." acao="apagar" confirmar="Apagar a foto" />
+              </form>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+</Pagina>

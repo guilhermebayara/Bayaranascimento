@@ -1,4 +1,4 @@
-// A frase da Nova memória (docs/decisoes.md, "Nova memória em frase", pedido do Gui de 17/11/2026):
+// A frase da Nova memória (docs/decisoes.md, "A frase é a trilha", em "Nova memória", pedido do Gui de 17/11/2026):
 // uma frase só, que cresce em todas as etapas. "[Título] foi em [data], em [lugar], com [pessoas].
 // Tem [fotos] e [o seu relato]. Faz parte de [capítulo]. [Toda a família vê]."
 //

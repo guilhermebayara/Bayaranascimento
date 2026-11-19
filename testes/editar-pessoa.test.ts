@@ -52,7 +52,7 @@ describe('os grupos de laço', () => {
 
   it('o laço que a família toda reconhece mora em "Adicionar laço do coração"', () => {
     const doCoracao = editar.slice(editar.indexOf("{g.novo.laco === 'coracao' && podeLacos && ("));
-    expect(doCoracao).toMatch(/^[^]*?name="reconhece" value="familia"/);
+    expect(doCoracao).toMatch(/^[^]*?nome="reconhece"[^]*?valor: 'familia', texto: 'A família toda'/);
   });
 
   it('o grupo vazio é uma linha só, com "nenhum ainda." e "Adicionar"', () => {
@@ -81,7 +81,7 @@ describe('a ficha num resumo', () => {
   });
 
   it('segue a ordem do Gui: quem é, as datas juntas, o retrato, "Sobre" e a família', () => {
-    const ordem = ['name="nome"', 'name="apelido"', 'name="tipo"', 'name="especie"', 'name="tratamento"', '<legend>Datas</legend>', 'prefixo="nascimento"', 'name="falecido"', 'prefixo="falecimento"', '<CampoRetrato integrante={i} />', 'name="sobre"', '<legend>Família</legend>'].map((trecho) => ficha.indexOf(trecho));
+    const ordem = ['name="nome"', '<div class="apelidos" data-apelidos>', 'name="tipo"', 'name="especie"', 'name="tratamento"', '<legend>Datas</legend>', 'prefixo="nascimento"', 'name="falecido"', 'prefixo="falecimento"', '<CampoRetrato integrante={i} />', 'name="sobre"', '<legend>Família</legend>'].map((trecho) => ficha.indexOf(trecho));
     for (const i of ordem) expect(i).toBeGreaterThan(-1);
     expect([...ordem].sort((a, b) => a - b)).toEqual(ordem);
   });
@@ -92,5 +92,16 @@ describe('a ficha num resumo', () => {
     expect(recolhido).toContain('name="sobre"');
     expect(recolhido).not.toContain('nascimento');
     expect(ficha.indexOf('prefixo="nascimento"')).toBeLessThan(ficha.indexOf('<details class="mais">'));
+  });
+});
+
+// Observação do Gui na homologação (18/11/2026): o cartão da ficha não alinhava com os cartões dos laços
+describe('a ficha alinha com os laços', () => {
+  it('o retrato da ficha e o dos laços têm a mesma largura, e o nome cai na mesma linha', () => {
+    expect(css).toMatch(/:is\(\.cartao-da-ficha > summary, \.cartao-da-ficha__linha\) \{\s*display: grid;\s*grid-template-columns: var\(--retrato-da-lista\) minmax\(0, 1fr\);/);
+    expect(css).toMatch(/\.laco__quem \{\s*display: grid;\s*grid-template-columns: var\(--retrato-da-lista\) minmax\(0, 1fr\);/);
+  });
+  it('na tela grande, a ficha tem a largura dos grupos de laços', () => {
+    expect(css).not.toMatch(/\.ficha-da-pessoa \{\s*max-width/);
   });
 });

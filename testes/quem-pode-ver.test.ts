@@ -44,11 +44,13 @@ describe('Quem pode ver, com o seletor segmentado', () => {
     expect(regra('.pagina-de-formulario .quem-pode-ver__familias')).toContain('gap: var(--e-2)');
   });
 
-  it('o seletor segmentado só aparece em Quem pode ver (e na página do sistema)', () => {
+  // Na sessão H, também em "Quem reconhece este laço?", no laço do coração (a troca entre "Só eu" e "A família
+  // toda" mostra outro conteúdo embaixo, o padrão do controle segmentado; uso a confirmar pelo Gui)
+  it('o seletor segmentado só aparece em Quem pode ver, em Quem reconhece este laço, em Adicionar apelido, no nome da imagem de compartilhar (e na página do sistema)', () => {
     const usam = arquivos('src')
       .filter((f) => f.endsWith('.astro'))
       .filter((f) => /<Segmentado\b/.test(ler(f)))
       .map((f) => f.replace(/\\/g, '/'));
-    expect(usam.sort()).toEqual(['src/pages/nova.astro', 'src/pages/sistema.astro']);
+    expect(usam.sort()).toEqual(['src/components/FichaDoIntegrante.astro', 'src/pages/memorias/[id]/compartilhar.astro', 'src/pages/nova.astro', 'src/pages/pessoas/[id]/editar.astro', 'src/pages/sistema.astro']);
   });
 });

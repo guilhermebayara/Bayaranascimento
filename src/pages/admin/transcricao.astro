@@ -1,0 +1,42 @@
+---
+// A transcrição automática dos áudios (onda 2; src/lib/transcricao.ts): em que pé está, quanto foi usado
+// hoje e o botão de ligar e desligar. Precisa também do binding "AI" no wrangler.jsonc, que hoje não está.
+import Pagina from '../../components/formularios/Pagina.astro';
+import { COTA_GRATUITA_POR_DIA, NEURONIOS_POR_MINUTO, TETO_DE_MINUTOS_POR_DIA } from '../../lib/transcricao';
+import { minutosUsadosHoje, situacaoDaTranscricaoAgora } from '../../lib/servidor/transcricao';
+
+const { usuario } = Astro.locals;
+if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
+const situacao = await situacaoDaTranscricaoAgora();
+const usados = await minutosUsadosHoje();
+const FRASES = {
+  'sem-binding': 'Desligada. Falta ligar o Workers AI no Cloudflare: até lá, o botão aqui não muda nada.',
+  desligada: 'Desligada. O Workers AI está pronto: ligar faz aparecer “Transcrever automaticamente” em cada áudio dos relatos.',
+  ligada: 'Ligada. Cada áudio dos relatos tem “Transcrever automaticamente”.',
+} as const;
+---
+
+<Pagina titulo="Transcrição automática" rotulo="Administração" secao="administracao">
+  <Fragment slot="abertura">
+    <p>Os áudios dos relatos podem ser transcritos pelo Whisper, no Workers AI do Cloudflare. A transcrição entra como rascunho, e quem registrou o relato confere e corrige antes de salvar.</p>
+    <p class="acoes">
+      <a class="acao" href="/admin">Voltar para a Administração</a>
+    </p>
+  </Fragment>
+
+  <section class="painel">
+    <h2>Agora</h2>
+    <p>{FRASES[situacao]}</p>
+    <p class="dica">
+      Hoje: {usados} de {TETO_DE_MINUTOS_POR_DIA} minutos. O teto do site fica bem abaixo da cota gratuita do Cloudflare ({COTA_GRATUITA_POR_DIA.toLocaleString('pt-BR')} neurônios por dia; cada minuto gasta cerca de {String(NEURONIOS_POR_MINUTO).replace('.', ',')}). No plano gratuito, passar da cota só faz o pedido falhar, sem cobrança; no plano pago, o que passa da cota é cobrado.
+    </p>
+    {situacao !== 'sem-binding' && (
+      <form method="post" action="/api/ajustes" class="acoes">
+        <input type="hidden" name="acao" value={situacao === 'ligada' ? 'transcricao-desligar' : 'transcricao-ligar'} />
+        <button class={situacao === 'ligada' ? 'botao botao--leve' : 'botao'} type="submit">
+          {situacao === 'ligada' ? 'Desligar a transcrição automática' : 'Ligar a transcrição automática'}
+        </button>
+      </form>
+    )}
+  </section>
+</Pagina>

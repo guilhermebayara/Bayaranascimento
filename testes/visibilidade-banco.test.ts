@@ -8,6 +8,7 @@
 // de outra pessoa, memória na lixeira que ela não via, capítulo restrito e capítulo na lixeira, relato
 // em rascunho de outra pessoa, pessoa que só existe num laço privado de outra pessoa, casal privado de
 // outras pessoas) e confere que nada muda, nem um número.
+import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 
@@ -114,6 +115,8 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
     sql(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, publicado_em) VALUES (?, 'zz-pessoa', ?, 'Relato escondido', 'publicada', datetime('now'))`, memoria, registrador);
     const relato = (banco.sqlite.prepare('SELECT MAX(id) AS id FROM relatos').get() as { id: number }).id;
     sql(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, enviado_por) VALUES (?, ?, 'zz-voz.webm', 'audio/webm', 10, ?)`, relato, memoria, registrador);
+    // A foto que veio com o relato segue o relato (QA de 18/11/2026: o arquivo era entregue pela rota)
+    sql(`INSERT INTO fotos (memoria_id, relato_id, chave, principal, enviada_por) VALUES (?, ?, '2026/zz-foto-do-relato.jpg', 0, ?)`, memoria, relato, registrador);
     return { memoria, relato };
   }
 
@@ -201,6 +204,19 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
     });
   }
 
+  it('a linha do tempo de quem escreveu leva os rascunhos dela, e só os dela', async () => {
+    // QA de 18/11/2026: o Explorar e a página da pessoa pediam só as publicadas, e o rascunho não aparecia
+    for (const quem of PESSOAS) {
+      const usuario = usuarioDe(quem);
+      const meus = (await repo.listarMemorias(usuario, { rascunhos: true })).map((m) => m.id).sort();
+      const linha = await repo.listarMemorias(usuario, { comRascunhos: true });
+      const publicadas = (await repo.listarMemorias(usuario)).map((m) => m.id);
+      expect(linha.filter((m) => m.situacao === 'rascunho').map((m) => m.id).sort(), quem).toEqual(meus);
+      expect(linha.filter((m) => m.situacao !== 'rascunho').map((m) => m.id), quem).toEqual(publicadas);
+    }
+    expect((await repo.listarMemorias(usuarioDe('gui'), { rascunhos: true })).length).toBeGreaterThan(0);
+  });
+
   it('o banco de exemplo tem os casos difíceis que o teste confere', async () => {
     // Sem isso, o teste passaria com um banco vazio
     const gui = await oQueVe('gui');
@@ -223,6 +239,7 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
         const usuario = usuarioDe(quem);
         expect((await repo.listarRelatos(usuario, memoria)).some((r) => r.id === relato), quem).toBe(true);
         expect(await repo.podeOuvirAudio(usuario, 'zz-voz.webm'), quem).toBe(true);
+        expect(await repo.podeVerFoto(usuario, '2026/zz-foto-do-relato.jpg'), quem).toBe(true);
         expect(await contagem(quem), quem).toBe(base + 1);
         expect((await repo.memoriasComAudio(usuario)).has(memoria), quem).toBe(true);
         expect((await repo.quemContouEmCadaMemoria(usuario)).get(memoria)?.has('zz-pessoa'), quem).toBe(true);
@@ -232,6 +249,7 @@ describe.skipIf(!comSqlite)('visibilidade nas consultas do banco', async () => {
       const elizete = usuarioDe('elizete');
       expect((await repo.listarRelatos(elizete, memoria)).some((r) => r.id === relato)).toBe(false);
       expect(await repo.podeOuvirAudio(elizete, 'zz-voz.webm')).toBe(false);
+      expect(await repo.podeVerFoto(elizete, '2026/zz-foto-do-relato.jpg')).toBe(false);
       expect((await repo.listarAudiosDe(elizete, 'zz-pessoa')).length).toBe(0);
       expect((await repo.quemContouEmCadaMemoria(elizete)).get(memoria)?.has('zz-pessoa') ?? false).toBe(false);
       expect((await repo.listarRelatosPublicadosDesde(elizete, '2000-01-01 00:00:00')).some((r) => r.id === relato)).toBe(false);
@@ -283,22 +301,25 @@ describe('C1: quem só existe num laço privado de outra pessoa some em todo lug
     'src/pages/temas/[id].astro',
     'src/pages/capitulos/[id]/index.astro',
   ];
+  // A página da pessoa monta os dados em src/lib/servidor/pagina-da-pessoa.ts (sessão L)
+  const servidorDaPessoa = readFileSync('src/lib/servidor/pagina-da-pessoa.ts', 'utf-8');
+  const comServidor = (lugar: string) => (lugar === 'src/pages/pessoas/[id]/index.astro' ? fonte(lugar) + servidorDaPessoa : fonte(lugar));
   for (const lugar of LUGARES) {
     it(lugar, () => {
-      expect(fonte(lugar), lugar).toContain('listarIntegrantesQueVe(');
+      expect(comServidor(lugar), lugar).toContain('listarIntegrantesQueVe(');
     });
   }
   it('a página da pessoa responde 404 a quem não está na lista de quem vê', () => {
-    const pagina = fonte('src/pages/pessoas/[id]/index.astro');
-    expect(pagina).toMatch(/const integrantes = await listarIntegrantesQueVe\(usuario\);\s*const pessoa = integrantes\.find\(/);
-    expect(pagina).toMatch(/if \(!pessoa\) return new Response\([^)]*status: 404/);
+    expect(servidorDaPessoa).toMatch(/const integrantes = await listarIntegrantesQueVe\(usuario\);\s*const pessoa = integrantes\.find\(/);
+    expect(servidorDaPessoa).toMatch(/if \(!pessoa\) return null;/);
+    expect(fonte('src/pages/pessoas/[id]/index.astro')).toMatch(/if \(!p\) return new Response\([^)]*status: 404/);
   });
   it('numa edição, a marca que a pessoa não vê continua', () => {
     expect(fonte('src/pages/api/memorias.ts')).toContain('for (const id of anterior?.integrantes ?? []) if (!marcaveis.has(id)');
     expect(fonte('src/pages/api/capitulos.ts')).toContain('(atual?.pessoas ?? []).filter((p) => !marcaveis.has(p)');
   });
   it('a memória e o histórico não mostram o nome', () => {
-    expect(fonte('src/pages/memorias/[id].astro')).toContain('const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id));');
+    expect(fonte('src/pages/memorias/[id].astro')).toContain("const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id) && naListaDeQuemOlha(modosDosExes.get(id)) !== 'fora');");
     expect(fonte('src/pages/memorias/[id]/historico.astro')).toContain('.filter((id) => !naoVe.has(id))');
   });
 });

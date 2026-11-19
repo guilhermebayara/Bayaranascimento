@@ -36,10 +36,15 @@ export type Cor = (typeof CORES)[number];
  * A paleta ampliada (resposta do Gui à pergunta 11 do PR #38, 17/11/2026): as onze e mais doze, para
  * os administradores escolherem a cor de cada tipo de momento em /admin/tipos. Os valores estão em
  * src/visual/tokens.css, nos quatro tons de sempre, com o contraste conferido em testes/paleta.test.ts.
- * PROVISÓRIO (pergunta 1 do PR dos tipos): as doze cores novas e os nomes delas.
+ * PROVISÓRIO (pergunta 1 do PR dos tipos): as cores novas e os nomes delas.
  */
 export const CORES_NOVAS = ['limao', 'oliva', 'menta', 'musgo', 'ceu', 'petroleo', 'anil', 'uva', 'ameixa', 'cereja', 'terracota', 'cacau'] as const;
-export const PALETA = [...CORES, ...CORES_NOVAS] as const;
+/**
+ * Mais onze, só para os tipos de momento (decisão do Gui, 18/11/2026). Entraram as que couberam com
+ * folga na regra de distância de testes/paleta.test.ts; o alvo era de 8 a 12.
+ */
+export const CORES_MAIS_NOVAS = ['salmao', 'chiclete', 'vinho', 'cafe', 'pistache', 'agua', 'marinho', 'lavanda', 'violeta', 'nevoa', 'grafite'] as const;
+export const PALETA = [...CORES, ...CORES_NOVAS, ...CORES_MAIS_NOVAS] as const;
 export type CorDaPaleta = (typeof PALETA)[number];
 
 /** O nome de cada cor, como a pessoa lê na grade de /admin/tipos e em /sistema. */
@@ -67,6 +72,17 @@ export const NOMES_DAS_CORES: Record<CorDaPaleta, string> = {
   cereja: 'Cereja',
   terracota: 'Terracota',
   cacau: 'Cacau',
+  salmao: 'Salmão',
+  chiclete: 'Chiclete',
+  vinho: 'Vinho',
+  cafe: 'Café',
+  pistache: 'Pistache',
+  agua: 'Água',
+  marinho: 'Marinho',
+  lavanda: 'Lavanda',
+  violeta: 'Violeta',
+  nevoa: 'Névoa',
+  grafite: 'Grafite',
 };
 
 export const ehCorDaPaleta = (nome: string | null | undefined): nome is CorDaPaleta => (PALETA as readonly string[]).includes(nome ?? '');
@@ -339,7 +355,12 @@ export function corDoNucleo(id: string | null | undefined, ordemDosNucleos: stri
   return indice >= 0 ? String(indice % CORES_DAS_FAMILIAS) : 'tudo';
 }
 
-/** A cor de uma pessoa, para o retrato sem foto: a do primeiro núcleo dela, na ordem das famílias. */
-export function corDaPessoa(familiasDaPessoa: string[], ordemDosNucleos: string[]): string {
+/**
+ * A cor de uma pessoa, para o retrato sem foto: a do núcleo que ela formou (`formada`, de
+ * `familiaFormada` em src/lib/familias.ts), quando há, e senão a do primeiro núcleo dela na ordem das
+ * famílias. As páginas chegam aqui por `coresDasPessoas`, que acha a família formada pelos casais.
+ */
+export function corDaPessoa(familiasDaPessoa: string[], ordemDosNucleos: string[], formada?: string): string {
+  if (formada && familiasDaPessoa.includes(formada) && ordemDosNucleos.includes(formada)) return corDoNucleo(formada, ordemDosNucleos);
   return corDoNucleo(ordemDosNucleos.find((n) => familiasDaPessoa.includes(n)), ordemDosNucleos);
 }

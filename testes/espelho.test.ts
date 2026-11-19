@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { comandosDoEspelho, espelhar, IDS_MANTIDOS, TABELAS_APAGADAS, type CopiaDoAcervo } from '../src/lib/espelho';
+import { comandosDoEspelho, espelhar, IDS_COM_ACESSO, TABELAS_APAGADAS, type CopiaDoAcervo } from '../src/lib/espelho';
+import { retratoDeExemplo } from '../src/lib/fotos-de-exemplo';
 
-// Uma cópia pequena, no formato da cópia do acervo, com nomes e textos "reais" para conferir que nada vaza
-const copia: CopiaDoAcervo = {
+// Uma cópia pequena, no formato da cópia do acervo. A regra (decisões do Gui, 18/11/2026): nomes, datas e
+// laços passam; memórias, relatos, textos, retratos e fotos nunca passam. Nenhum arquivo da produção
+// chega à homologação: a cópia abaixo traz ainda os retratos em base64, como a cópia para o espelho da
+// sessão G, e o espelho precisa ignorá-los.
+const RETRATO_DO_GUI = '0f3c2a1e-0000-4000-8000-00000000aaaa.jpg';
+const RETRATO_SEM_ARQUIVO = '0f3c2a1e-0000-4000-8000-00000000bbbb.jpg';
+const copia = {
   acervo: 'Bayara Nascimento',
+  retratos: { [RETRATO_DO_GUI]: 'AQID' },
   tabelas: {
     integrantes: [
-      { id: 'gui', nome: 'Guilherme Real', tipo: 'pessoa', tratamento: 'ele', nascimento_ano: 1990, admin: 1, ordem: 1, sobre: 'Texto secreto do Gui', retrato: '0f3c2a1e-0000-4000-8000-retratoreal1.jpg' },
-      { id: 'giovanna', nome: 'Giovanna Real', tipo: 'pessoa', tratamento: 'ela', nascimento_ano: 1997, admin: 1, ordem: 2 },
+      { id: 'gui', nome: 'Guilherme Real', apelido: 'Gui', tipo: 'pessoa', tratamento: 'ele', nascimento_ano: 1990, nascimento_mes: 4, nascimento_dia: 12, admin: 1, ordem: 1, sobre: 'Texto secreto do Gui', retrato: RETRATO_DO_GUI, foto: 'foto-antiga-secreta.jpg' },
+      { id: 'giovanna', nome: 'Giovanna Real', tipo: 'pessoa', tratamento: 'ela', nascimento_ano: 1997, admin: 1, ordem: 2, retrato: RETRATO_SEM_ARQUIVO },
       { id: 'elizete', nome: 'Elizete Real', tipo: 'pessoa', tratamento: 'ela', nascimento_ano: 1960, ordem: 3 },
       { id: 'lucas-magno', nome: 'Magno Real', tipo: 'pessoa', tratamento: 'ele', ordem: 4 },
       { id: 'aguilar', nome: 'Aguilar Real', tipo: 'pessoa', tratamento: 'ele', nascimento_ano: 1958, ordem: 5 },
@@ -35,34 +42,65 @@ const copia: CopiaDoAcervo = {
     ],
     casais: [
       { id: 1, a_id: 'aguilar', b_id: 'elizete', visibilidade: 'todos' },
-      { id: 2, a_id: 'giovanna', b_id: 'lucas-magno', visibilidade: 'todos' },
+      { id: 2, a_id: 'giovanna', b_id: 'lucas-magno', visibilidade: 'todos', ja_da_familia: 1 },
     ],
     casal_fases: [
       { casal_id: 1, tipo: 'casamento', inicio_ano: 1988, ordem: 0 },
       { casal_id: 1, tipo: 'separacao', inicio_ano: 2005, ordem: 1 },
-      { casal_id: 2, tipo: 'casamento', inicio_ano: 2026, ordem: 0 },
+      { casal_id: 2, tipo: 'casamento', inicio_ano: 2026, inicio_mes: 5, inicio_dia: 30, ordem: 0 },
     ],
-    lacos_coracao: [{ dono_id: 'gui', pessoa_id: 'amiga', nome: 'Amiga do colégio Tal', papel: 'irmao', proximidade: 1, privado: 1 }],
+    lacos_coracao: [{ dono_id: 'gui', pessoa_id: 'amiga', nome: 'Amiga do colégio', papel: 'irmao', proximidade: 1, privado: 1 }],
+    // O que nunca passa: tudo o que alguém escreveu ou fotografou
     memorias: [{ id: 'real-1', titulo: 'Memória real secreta' }],
     relatos: [{ memoria_id: 'real-1', texto: 'Relato real secreto' }],
+    fotos: [{ memoria_id: 'real-1', chave: 'foto-real-secreta.jpg', legenda: 'Legenda secreta' }],
+    audios: [{ relato_id: 1, chave: 'audios/audio-real-secreto.m4a', transcricao: 'Transcrição secreta' }],
+    capitulos: [{ id: 'cap-real', titulo: 'Capítulo secreto', texto: 'Abertura secreta' }],
+    temas: [{ id: 'tema-real', nome: 'Tema secreto' }],
+    versoes: [{ tipo: 'memoria', dados: 'Versão secreta' }],
+    cartas: [{ texto: 'Carta secreta' }],
+    sugestoes: [{ recado: 'Recado secreto' }],
+    proximidades: [{ dono_id: 'gui', pessoa_id: 'amiga', valor: 12 }],
+    ex_para_mim: [{ dono_id: 'elizete', pessoa_id: 'aguilar', como: 'fora' }],
   },
-};
+} as CopiaDoAcervo;
 const agora = new Date('2026-11-15T12:00:00Z');
 const e = espelhar(copia, { semente: 42, agora });
 const tabela = (nome: string) => e.tabelas.find(([t]) => t === nome)![1];
 
-describe('espelho da produção para a homologação', () => {
-  it('nenhum nome, texto ou memória real passa para o espelho', () => {
+describe('espelho da produção para a homologação: a família de verdade', () => {
+  it('nada que alguém escreveu ou fotografou passa: memórias, relatos, sobre, fotos, áudios, capítulos, cartas', () => {
     const tudo = JSON.stringify(e);
-    for (const segredo of ['Real', 'secreto', 'Texto secreto', 'colégio Tal', 'vo-bela', 'aguilar', 'real-1']) expect(tudo).not.toContain(segredo);
+    for (const segredo of ['secret', 'real-1', 'cap-real', 'tema-real', 'Texto secreto']) expect(tudo).not.toContain(segredo);
+    for (const i of tabela('integrantes')) expect(i.sobre).toBeNull();
   });
-  it('não leva retratos reais: no lugar, uma das fotos de exemplo, pelo tratamento', () => {
-    expect(JSON.stringify(e)).not.toContain('retratoreal');
-    for (const i of tabela('integrantes')) {
-      expect(i.retrato).toMatch(/^exemplos\/(chico-[1-5]|karol-[1-6])\.jpg$/);
-      if (i.tipo === 'pessoa' && i.tratamento === 'ela') expect(i.retrato).toMatch(/karol/);
-      if (i.tipo === 'pessoa' && i.tratamento === 'ele') expect(i.retrato).toMatch(/chico/);
-    }
+  it('só grava as tabelas da família e das memórias de exemplo', () => {
+    expect(e.tabelas.map(([t]) => t).sort()).toEqual(
+      ['casais', 'casal_fases', 'casal_nucleos', 'filiacoes', 'fotos', 'integrantes', 'lacos_coracao', 'lacos_resumidos', 'memoria_integrantes', 'memoria_nucleos', 'memorias', 'nucleo_membros', 'relatos'].sort(),
+    );
+    // As escolhas que só o dono vê não passam, e as que houver na homologação são apagadas
+    for (const t of ['proximidades', 'ex_para_mim', 'cartas', 'audios', 'capitulos', 'versoes']) expect(e.tabelas.some(([n]) => n === t)).toBe(false);
+    for (const t of ['proximidades', 'ex_para_mim', 'audios', 'capitulos', 'versoes', 'sugestoes', 'reacoes', 'avisos']) expect(TABELAS_APAGADAS).toContain(t);
+  });
+  it('as pessoas passam como estão: ids, nomes, apelido e datas', () => {
+    const gui = tabela('integrantes').find((i) => i.id === 'gui')!;
+    expect(gui).toMatchObject({ nome: 'Guilherme Real', apelido: 'Gui', nascimento_ano: 1990, nascimento_mes: 4, nascimento_dia: 12, admin: 1 });
+    expect(gui).not.toHaveProperty('foto');
+    expect(tabela('integrantes').map((i) => i.id).sort()).toEqual(copia.tabelas.integrantes!.map((i) => i.id).sort());
+    const bela = tabela('integrantes').find((i) => i.id === 'vo-bela')!;
+    expect(bela).toMatchObject({ nome: 'Bela Real', falecimento_ano: 2020, falecido: 1 });
+  });
+  it('nenhum arquivo da produção chega à homologação: cada retrato é uma das fotos de exemplo, como nas prévias', () => {
+    const pessoas = tabela('integrantes');
+    for (const p of pessoas) expect(p.retrato, String(p.id)).toBe(retratoDeExemplo(String(p.id), (p.tratamento as 'ela' | 'ele' | null) ?? null, p.tipo === 'bicho'));
+    // Ela é a Karol, ele é o Chico, e quem não informa é um dos dois
+    expect(pessoas.find((p) => p.id === 'giovanna')!.retrato).toMatch(/^exemplos\/karol-\d\.jpg$/);
+    expect(pessoas.find((p) => p.id === 'gui')!.retrato).toMatch(/^exemplos\/chico-\d\.jpg$/);
+    // Nem a chave do retrato de verdade nem o arquivo dele, mesmo quando a cópia os traz
+    const tudo = JSON.stringify(e);
+    for (const daProducao of [RETRATO_DO_GUI, RETRATO_SEM_ARQUIVO, 'AQID']) expect(tudo).not.toContain(daProducao);
+    expect(e).not.toHaveProperty('retratos');
+    expect(Object.keys(e)).toEqual(['tabelas', 'resumo']);
   });
   it('as fotos das memórias apontam para as 11 fotos de exemplo, sem nenhuma vazia', () => {
     const fotos = tabela('fotos');
@@ -73,42 +111,24 @@ describe('espelho da produção para a homologação', () => {
       expect(memorias.has(f.memoria_id)).toBe(true);
     }
   });
-  it('mantém os ids de quem tem acesso e troca os outros', () => {
+  it('quem tem acesso continua com o mesmo id', () => {
     const ids = tabela('integrantes').map((i) => i.id);
-    for (const id of IDS_MANTIDOS) expect(ids).toContain(id);
-    expect(ids.filter((id) => String(id).startsWith('pessoa-'))).toHaveLength(4);
+    for (const id of IDS_COM_ACESSO) expect(ids).toContain(id);
   });
-  it('a estrutura da família é a mesma: filiações, casais, fases, laços e núcleos', () => {
+  it('os laços passam como estão: filiações, casais, fases, laços do coração e núcleos', () => {
     expect(tabela('filiacoes')).toHaveLength(7);
     expect(tabela('casais')).toHaveLength(2);
-    expect(tabela('casal_fases').map((f) => f.tipo)).toEqual(['casamento', 'separacao', 'casamento']);
+    expect(tabela('casal_fases').map((f) => [f.tipo, f.inicio_ano])).toEqual([['casamento', 1988], ['separacao', 2005], ['casamento', 2026]]);
+    // O mês e o dia das fases (migração 101) e a marca "já é da família" (migração 100) passam como estão
+    expect(tabela('casal_fases').at(-1)).toMatchObject({ inicio_ano: 2026, inicio_mes: 5, inicio_dia: 30, fim_mes: null, fim_dia: null });
+    expect(tabela('casais').map((c) => c.ja_da_familia)).toEqual([0, 1]);
     expect(tabela('nucleo_membros')).toHaveLength(6);
-    // Membro e parente continuam como na produção
     // A Vó Bela veio de uma cópia sem papel: vira parente, como na migração 013
-    expect(tabela('nucleo_membros').filter((m) => m.papel === 'parente')).toHaveLength(2);
-    expect(tabela('nucleo_membros').filter((m) => m.papel === 'parente').every((m) => String(m.integrante_id).startsWith('pessoa-'))).toBe(true);
-    const [resumido] = tabela('lacos_resumidos');
-    expect(resumido).toMatchObject({ papel: 'sobrinho', criado_por: 'gui' });
-    expect(String(resumido.a_id)).toMatch(/^pessoa-/);
-    const [laco] = tabela('lacos_coracao');
-    expect(laco).toMatchObject({ dono_id: 'gui', papel: 'irmao', privado: 1, nome: 'Amiga-irmã' });
-    // Gui e Giovanna continuam irmãos: os mesmos dois pais
-    const pais = (filho: string) => tabela('filiacoes').filter((f) => f.filho_id === filho && f.qualidade !== 'consideracao').map((f) => f.responsavel_id).sort();
-    expect(pais('gui')).toEqual(pais('giovanna'));
-    // O bicho continua bicho, filho de consideração do Gui
-    const bicho = tabela('integrantes').find((i) => i.tipo === 'bicho')!;
-    expect(tabela('filiacoes')).toContainEqual(expect.objectContaining({ filho_id: bicho.id, responsavel_id: 'gui', qualidade: 'consideracao' }));
-  });
-  it('os anos andam alguns anos para a frente, sem passar do ano atual', () => {
-    const gui = tabela('integrantes').find((i) => i.id === 'gui')!;
-    expect(Number(gui.nascimento_ano) - 1990).toBe(e.resumo.deslocamentoDeAnos);
-    expect(e.resumo.deslocamentoDeAnos).toBeGreaterThanOrEqual(1);
-    // Da data da adoção, só o ano, deslocado como os outros
+    expect(tabela('nucleo_membros').filter((m) => m.papel === 'parente').map((m) => m.integrante_id).sort()).toEqual(['aguilar', 'vo-bela']);
+    expect(tabela('lacos_resumidos')).toEqual([{ a_id: 'amiga', b_id: 'cachorro', papel: 'sobrinho', criado_por: 'gui' }]);
+    expect(tabela('lacos_coracao')).toEqual([{ dono_id: 'gui', pessoa_id: 'amiga', nome: 'Amiga do colégio', papel: 'irmao', proximidade: 1, privado: 1 }]);
     const adocao = tabela('filiacoes').find((f) => f.qualidade === 'adotiva')!;
-    expect(Number(adocao.adocao_ano) - 2010).toBe(e.resumo.deslocamentoDeAnos);
-    expect(adocao).not.toHaveProperty('adocao_mes');
-    expect(adocao).not.toHaveProperty('adocao_dia');
-    expect(tabela('casal_fases').every((f) => f.inicio_ano === null || Number(f.inicio_ano) <= 2026)).toBe(true);
+    expect(adocao).toMatchObject({ adocao_ano: 2010, adocao_mes: 3, adocao_dia: 14 });
   });
   it('as memórias são inventadas e trazem os casos que o QA confere', () => {
     const memorias = tabela('memorias');

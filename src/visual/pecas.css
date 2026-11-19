@@ -213,14 +213,18 @@ a.polaroid__foto {
   color: var(--tinta-suave);
 }
 
-/* --- Retrato recortado em arco ------------------------------------------------------------ */
+/* --- Retrato de foto de álbum (decisão do Gui, 18/11/2026) ----------------------------------
+   Um retângulo reto, 4 por 5, sem inclinação, com cantoneiras de álbum nos quatro cantos, na tinta
+   do site. O arco saiu: qualquer forma alta de topo redondo lembrava lápide em quem faleceu.
+   As cantoneiras passam um pouco da foto, como as de verdade, e crescem com o retrato sem ficar
+   desproporcionais (de 7 px no retrato de lista a 32 px no grande). As medidas são em porcentagem
+   do próprio retrato: como ele é sempre 4 por 5, 6% da largura e 4,8% da altura dão um quadrado. */
 
 .retrato {
+  position: relative;
   display: grid;
   place-items: center;
   aspect-ratio: 4 / 5;
-  overflow: hidden;
-  border-radius: var(--raio-pilula) var(--raio-pilula) var(--raio-foto) var(--raio-foto);
   background: var(--pastel);
   font-family: var(--serifa);
   font-variation-settings: var(--serifa-ajustes);
@@ -228,21 +232,83 @@ a.polaroid__foto {
   line-height: 1;
 }
 .retrato img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: 50% 30%;
 }
+.retrato::after {
+  content: '';
+  position: absolute;
+  inset: min(-1.5px, max(-1.4%, -5px));
+  background:
+    linear-gradient(135deg, var(--tinta) calc(50% - 0.5px), transparent 50%) top left,
+    linear-gradient(225deg, var(--tinta) calc(50% - 0.5px), transparent 50%) top right,
+    linear-gradient(45deg, var(--tinta) calc(50% - 0.5px), transparent 50%) bottom left,
+    linear-gradient(315deg, var(--tinta) calc(50% - 0.5px), transparent 50%) bottom right;
+  background-repeat: no-repeat;
+  background-size: clamp(0.4375rem, 6% + 0.375rem, 2rem) clamp(0.4375rem, 4.8% + 0.375rem, 2rem);
+  pointer-events: none;
+}
+/* Redondo: só o retrato de quem está usando o site (o topo, o Início e o centro do círculo) */
 .retrato--redondo {
   aspect-ratio: 1;
+  overflow: hidden;
   border-radius: 50%;
 }
-/* Quem já faleceu (decisão do Gui, 17/11/2026): um anel fino em volta do retrato, com um respiro.
-   Discreto, sem sinal religioso, e igual em todo lugar em que o retrato aparece. A foto continua
-   em cor. */
+.retrato--redondo::after {
+  content: none;
+}
+/* Quem já faleceu (decisões do Gui, 18/11/2026): a foto em tom mais suave, sem anel e sem sinal
+   nenhum na forma, e "em memória" escrito perto do nome por quem usa o retrato. O tom suave tem
+   volta: a foto acende, devagar, com o mouse em cima e com o foco do teclado, no retrato ou no link
+   ou botão que o envolve. No retrato grande da página da pessoa, o toque acende (.retrato--aceso). */
 .retrato--falecido {
-  outline: var(--traco) solid var(--tinta-suave);
-  outline-offset: 0.1875rem;
+  background: color-mix(in srgb, var(--pastel) 40%, var(--papel));
+  color: var(--tinta-suave);
+  transition:
+    background-color var(--tempo-lento) var(--curva),
+    color var(--tempo-lento) var(--curva);
+}
+.retrato--falecido img {
+  filter: saturate(0.22) contrast(0.86) brightness(1.1) sepia(0.14);
+  transition: filter var(--tempo-lento) var(--curva);
+}
+@media (hover: hover) {
+  .retrato--falecido:hover,
+  :is(a, button, summary):hover .retrato--falecido {
+    background: var(--pastel);
+    color: var(--tinta);
+  }
+  .retrato--falecido:hover img,
+  :is(a, button, summary):hover .retrato--falecido img {
+    filter: none;
+  }
+}
+:is(a, button, summary):focus-visible .retrato--falecido,
+.retrato--falecido.retrato--aceso {
+  background: var(--pastel);
+  color: var(--tinta);
+}
+:is(a, button, summary):focus-visible .retrato--falecido img,
+.retrato--aceso img {
+  filter: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .retrato--falecido,
+  .retrato--falecido img {
+    transition: none;
+  }
+}
+/* "em memória", perto do nome de quem já faleceu: quieto, em mono, como o selo */
+.em-memoria {
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
 }
 
 /* --- Bilhete: o relato, com a assinatura de quem contou ----------------------------------- */
@@ -400,7 +466,7 @@ a.polaroid__foto {
   margin-block: calc((1.45em - var(--toque)) / 2);
 }
 
-/* --- Pessoa: o retrato em arco, o nome e o parentesco de quem olha ("sua avó") ------------------ */
+/* --- Pessoa: o retrato, o nome e o parentesco de quem olha ("sua avó") ------------------ */
 
 .pessoa {
   display: grid;
@@ -414,6 +480,56 @@ a.polaroid__foto {
 .pessoa__nome {
   font-weight: 550;
   line-height: 1.25;
+}
+/* --- Discreto: o ex que quem olha deixou discreto, em Pessoas e em "Quem estava" ------------------
+   O retrato borrado a ponto de não se reconhecer, com a tarja do cartão da árvore por cima, e o nome
+   borrado, ilegível. Não é link (decisões do Gui depois do QA de 18/11/2026). */
+
+.discreto__foto {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.discreto__foto .retrato {
+  width: 100%;
+  overflow: hidden;
+}
+.discreto__foto .retrato > * {
+  filter: blur(0.75rem) saturate(0.6);
+  scale: 1.4;
+}
+.discreto__tarja {
+  position: absolute;
+  max-width: 100%;
+  padding: 0.3em 0.5em;
+  rotate: -4deg;
+  border-radius: var(--raio-foto);
+  background: var(--tinta);
+  color: var(--papel);
+  font-family: var(--mono);
+  font-size: var(--t-pequeno);
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+.discreto__nome {
+  filter: blur(0.3em);
+  font-weight: 550;
+  line-height: 1.25;
+  user-select: none;
+}
+.gente--discreto,
+.pessoa--discreto {
+  cursor: default;
+}
+/* Na linha de Pessoas o retrato é pequeno: a tarja fica menor para caber nele */
+.gente--discreto .discreto__tarja {
+  font-size: 0.5rem;
+  padding: 0.25em 0.35em;
+}
+.pessoa--discreto .discreto__foto {
+  margin-bottom: var(--e-2);
 }
 
 /* --- Gente: uma pessoa numa linha de lista, com o retrato pequeno, o nome e o laço ------------- */
@@ -437,6 +553,10 @@ a.polaroid__foto {
 .gente__quem strong {
   font-weight: 550;
   line-height: 1.25;
+}
+/* O apelido ao lado do nome, na lista de Pessoas ("Alexsander (Lugh)"): da mesma linha, um peso abaixo */
+.gente__apelido {
+  font-weight: 400;
 }
 .gente__laco {
   font-size: var(--t-pequeno);
@@ -524,6 +644,170 @@ a.polaroid__foto {
   font-size: var(--t-micro);
   font-weight: 400;
   color: var(--tinta-suave);
+}
+
+/* --- Proximidade: o slider do círculo, a régua com os nomes (escolha do Gui, 18/11/2026) -------
+   Um <input type="range"> de verdade por baixo, para o teclado e o leitor de tela, e o desenho por
+   cima. Livre, com marcas onde a faixa muda; cada faixa tem o nome embaixo do trecho dela, e
+   "Fora do círculo" é um trecho à parte, tracejado. --pos é o lugar do botão em porcentagem da barra,
+   posto pelo servidor e acompanhado pelo script; --fora, onde o trecho de fora acaba. */
+
+.prox {
+  --botao: 1.75rem;
+  --pos: 50;
+  --fora: 0;
+  --em: 0;
+  --colunas: 1fr;
+  /* onde fica o centro do botão na barra, e onde o trecho de fora acaba */
+  --x: calc(var(--botao) / 2 + (100% - var(--botao)) * var(--pos) / 100);
+  --x-fora: calc(var(--botao) / 2 + (100% - var(--botao)) * var(--fora) / 100);
+  display: grid;
+  min-width: 0;
+  border-radius: var(--raio-moldura);
+}
+/* Com o foco do teclado, o contorno abraça o grupo inteiro: o rótulo, a régua e os nomes */
+.prox:has(input:focus-visible) {
+  outline: 2px solid var(--tinta);
+  outline-offset: var(--e-2);
+}
+.prox__alto {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-3);
+}
+.prox__alto label {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+.prox__alto output {
+  font-weight: 550;
+  text-align: right;
+}
+.prox__barra {
+  position: relative;
+  display: grid;
+  align-items: center;
+  height: var(--toque);
+}
+.prox__barra > * {
+  grid-area: 1 / 1;
+}
+.prox input[type='range'] {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 0;
+  height: var(--toque);
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.prox input[type='range']:focus-visible {
+  outline: none;
+}
+.prox input[type='range']::-webkit-slider-runnable-track {
+  height: var(--toque);
+  background: none;
+}
+.prox input[type='range']::-moz-range-track {
+  height: var(--toque);
+  background: none;
+}
+.prox input[type='range']::-webkit-slider-thumb {
+  width: var(--botao);
+  height: var(--botao);
+  margin-top: calc((var(--toque) - var(--botao)) / 2);
+  border: 2px solid var(--tinta);
+  border-radius: 50%;
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  appearance: none;
+  -webkit-appearance: none;
+}
+.prox input[type='range']::-moz-range-thumb {
+  box-sizing: border-box;
+  width: var(--botao);
+  height: var(--botao);
+  border: 2px solid var(--tinta);
+  border-radius: 50%;
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+.prox__trilho,
+.prox__cheio,
+.prox__fora {
+  height: 0.5rem;
+  border-radius: var(--raio-pilula);
+  pointer-events: none;
+}
+.prox__trilho {
+  background: var(--papel-recuo);
+  box-shadow: inset 0 0 0 1px var(--fio);
+}
+/* O preenchimento, na cor viva da família da tela */
+.prox__cheio {
+  width: var(--x);
+  background: var(--vivo);
+}
+.prox__fora {
+  display: none;
+}
+/* "Fora do círculo": um trecho à parte, tracejado, antes da régua */
+.prox--com-fora .prox__fora {
+  display: block;
+  justify-self: start;
+  width: calc(var(--x-fora) - 0.3125rem);
+  border: 1px dashed var(--tinta-suave);
+}
+.prox--com-fora .prox__trilho {
+  margin-left: var(--x-fora);
+}
+.prox--com-fora .prox__cheio {
+  margin-left: var(--x-fora);
+  width: max(0px, calc(var(--x) - var(--x-fora)));
+}
+/* As marcas onde a faixa muda */
+.prox__marcas {
+  position: relative;
+  height: 1.125rem;
+  pointer-events: none;
+}
+.prox__marcas i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--botao) / 2 + (100% - var(--botao)) * var(--em) / 100);
+  width: var(--traco);
+  margin-left: calc(var(--traco) / -2);
+  background: var(--tinta-suave);
+}
+/* O nome de cada faixa, embaixo do trecho dela; a de agora, em destaque */
+.prox__faixas {
+  display: grid;
+  grid-template-columns: var(--colunas);
+  padding-inline: calc(var(--botao) / 2);
+  font-size: var(--t-micro);
+  line-height: 1.2;
+  color: var(--tinta-suave);
+}
+.prox__faixas span {
+  padding-inline: 0.125rem;
+  text-align: center;
+  text-wrap: balance;
+}
+.prox--com-fora .prox__faixas span:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+.prox__faixas [data-atual] {
+  color: var(--tinta);
+  font-weight: 600;
 }
 
 /* --- Seletor segmentado: uma escolha só entre poucas (decisão do Gui, 17/11/2026) ----------- */
@@ -870,4 +1154,301 @@ textarea.campo__entrada {
   letter-spacing: calc(var(--aperto-titulo) / 2);
   line-height: 1.18;
   text-wrap: pretty;
+}
+
+/* --- Reações (Reacoes.astro, src/lib/reacoes.ts) -------------------------------------------------
+   No padrão das redes (observação do Gui, 18/11/2026): o coração à vista, que um toque marca, e os quatro
+   símbolos com o nome numa paleta que abre por cima ao segurar ou ao passar o mouse. Ao lado, as
+   recebidas: os símbolos e o número, que abre quem marcou. Toda área de toque tem 44 px. */
+.reacoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-2);
+}
+.reacoes__form {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.reacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-1);
+  min-width: var(--toque);
+  min-height: var(--toque);
+  padding: 0 var(--e-2);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--tinta-suave);
+  font: inherit;
+  cursor: pointer;
+  /* Segurar no toque não seleciona nem abre o menu do aparelho */
+  -webkit-touch-callout: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+.reacao .icone {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.reacao[aria-pressed='true'] {
+  color: var(--vivo-tinta);
+}
+.reacao[aria-pressed='true'] .icone {
+  fill: var(--vivo);
+}
+.reacao:focus-visible,
+.reacoes summary:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .reacao:hover {
+    background: var(--papel-recuo);
+    color: var(--tinta);
+  }
+}
+/* O toque que marca: o símbolo cresce e volta, uma vez. Com movimento reduzido, nada se mexe. */
+@media (prefers-reduced-motion: no-preference) {
+  .reacao--pulsa .icone {
+    animation: reacao-pulsa var(--tempo-medio) var(--curva);
+  }
+}
+@keyframes reacoes-aparece {
+  from {
+    opacity: 0;
+    translate: var(--paleta-desvio, 0px) 0.25rem;
+  }
+}
+@keyframes reacao-pulsa {
+  40% {
+    scale: 1.35;
+  }
+}
+/* "Outras reações": só aparece com o foco do teclado (e sem script); no toque e no mouse, a paleta abre
+   ao segurar ou ao passar o mouse */
+.reacoes__mais > summary {
+  list-style: none;
+}
+.reacoes__mais > summary::-webkit-details-marker {
+  display: none;
+}
+.reacoes__abre {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.reacoes__abre:focus-visible {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  height: auto;
+  min-height: var(--toque);
+  padding: 0 var(--e-2);
+  clip-path: none;
+  font-size: var(--t-pequeno);
+  text-decoration: underline;
+  text-decoration-thickness: var(--traco);
+  text-underline-offset: 0.2em;
+}
+/* A paleta abre por cima, com respiro: longe do botão, do que vem em cima e entre os símbolos, para não
+   encostar no texto em volta (observação do Gui, 18/11/2026). A ponte invisível embaixo cobre o vão, para
+   o mouse ir do coração à paleta sem ela fechar. */
+.reacoes__paleta {
+  position: absolute;
+  bottom: calc(100% + var(--e-3));
+  left: calc(var(--e-2) * -1);
+  /* Perto da borda da tela, o script desloca a paleta para dentro (reacoes.ts) */
+  --paleta-desvio: 0px;
+  translate: var(--paleta-desvio) 0;
+  z-index: 5;
+  display: flex;
+  gap: var(--e-2);
+  padding: var(--e-2) var(--e-3);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+.reacoes__paleta::after {
+  content: '';
+  position: absolute;
+  inset: 100% 0 auto;
+  height: var(--e-3);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reacoes__mais[open] .reacoes__paleta {
+    animation: reacoes-aparece var(--tempo-curto) var(--curva);
+  }
+}
+.reacao--paleta {
+  flex-direction: column;
+  gap: 0;
+  min-width: 3.5rem;
+  padding: var(--e-1);
+  border-radius: var(--raio-bloco);
+}
+.reacao__nome {
+  font-size: var(--t-micro);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+/* As recebidas: os símbolos encostados e o número. Tocar abre quem marcou, embaixo. */
+.reacoes__recebidas[hidden] {
+  display: none;
+}
+.reacoes__recebidas > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-1);
+  min-height: var(--toque);
+  padding: 0 var(--e-2);
+  border-radius: var(--raio-pilula);
+  color: var(--tinta-suave);
+  list-style: none;
+  cursor: pointer;
+}
+.reacoes__recebidas > summary::-webkit-details-marker {
+  display: none;
+}
+@media (hover: hover) {
+  .reacoes__recebidas > summary:hover {
+    background: var(--papel-recuo);
+    color: var(--tinta);
+  }
+}
+.reacoes__icones {
+  display: inline-flex;
+}
+.reacoes__icones .icone {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+.reacoes__icones .icone + .icone {
+  margin-left: -0.3rem;
+}
+.reacoes__numero {
+  font-family: var(--mono);
+  font-size: var(--t-ficha);
+}
+.reacoes__recebidas {
+  position: relative;
+}
+/* Quem marcou abre embaixo do número, por cima do que vem depois, como a paleta */
+.reacoes__quem {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 5;
+  display: grid;
+  gap: var(--e-2);
+  width: max-content;
+  max-width: min(20rem, 80vw);
+  margin: 0;
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  font-size: var(--t-pequeno);
+  list-style: none;
+}
+.reacoes__quem li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e-2);
+}
+.reacoes__quem .icone {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* --- O botão de menu (MenuDeAcoes.astro): os três pontos com as ações secundárias de um item ---------
+   Como nas plataformas que a família já usa (observação do Gui, 18/11/2026). O botão é um círculo de toque
+   inteiro; a lista abre por cima do que vem depois, encostada à direita do botão. */
+.menu-acoes {
+  position: relative;
+}
+.menu-acoes__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--toque);
+  height: var(--toque);
+  border-radius: var(--raio-pilula);
+  color: var(--tinta-suave);
+  list-style: none;
+  cursor: pointer;
+}
+.menu-acoes__botao::-webkit-details-marker {
+  display: none;
+}
+.menu-acoes__botao .icone {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.menu-acoes[open] > .menu-acoes__botao {
+  background: var(--papel-recuo);
+  color: var(--tinta);
+}
+@media (hover: hover) {
+  .menu-acoes__botao:hover {
+    background: var(--papel-recuo);
+    color: var(--tinta);
+  }
+}
+.menu-acoes__botao:focus-visible,
+.menu-acoes__item:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+.menu-acoes__lista {
+  position: absolute;
+  top: calc(100% + var(--e-1));
+  right: 0;
+  z-index: 6;
+  display: grid;
+  min-width: 13rem;
+  padding: var(--e-1);
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .menu-acoes[open] .menu-acoes__lista {
+    animation: reacoes-aparece var(--tempo-curto) var(--curva);
+  }
+}
+.menu-acoes__item {
+  display: flex;
+  align-items: center;
+  min-height: var(--toque);
+  padding: 0 var(--e-3);
+  border: 0;
+  border-radius: var(--raio-bloco);
+  background: none;
+  color: var(--tinta);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .menu-acoes__item:hover {
+    background: var(--papel-recuo);
+  }
+}
+/* Um item com reações à esquerda e o menu à direita, na mesma linha */
+.acoes-do-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-2);
 }

@@ -1,6 +1,6 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
-import { banco } from './ambiente';
+import { apelidosDoPedido, banco } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
 import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
@@ -8,12 +8,19 @@ import type { RegistroDeVisitas } from '../painel';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
 import type { TipoDeAviso } from '../avisos';
-import { pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
+import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '../ex-casal';
+import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, type TipoDeSugestao } from '../sugestoes';
+import type { SimboloDaReacao } from '../reacoes';
+import { mensagensDoRelato, type Mensagem } from '../conversa';
+import { comExcluidas, pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
 
 export interface Integrante {
   id: string;
   nome: string;
+  /** O apelido que vale para quem olha: o que ela deu à pessoa, se deu ("Como você chama"), e senão o da família */
   apelido: string | null;
+  /** O "como é chamado na família", o mesmo para todos: é o que a ficha de edição mostra e grava */
+  apelidoDaFamilia?: string | null;
   tipo: 'pessoa' | 'bicho';
   especie: string | null;
   tratamento: Tratamento;
@@ -121,18 +128,26 @@ const FILTRO_VISIVEL = `(m.excluida_em IS NULL AND ${FILTRO_SEM_LIXEIRA})`;
 
 // --- Integrantes e núcleos ---
 
+/**
+ * Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026): quem está na lixeira não aparece em
+ * nenhuma lista de pessoas nem de laços. As linhas continuam no banco, para restaurar devolver tudo.
+ */
+const ativa = (coluna: string) => `${coluna} NOT IN (SELECT id FROM integrantes WHERE excluida_em IS NOT NULL)`;
+
 export async function listarIntegrantes(): Promise<Integrante[]> {
   const [integrantes, membros] = await db().batch<Record<string, unknown>>([
-    db().prepare('SELECT * FROM integrantes ORDER BY ordem, nome'),
+    db().prepare('SELECT * FROM integrantes WHERE excluida_em IS NULL ORDER BY ordem, nome'),
     db().prepare('SELECT nucleo_id, integrante_id, papel FROM nucleo_membros'),
   ]);
   const linhas = membros.results as Record<string, unknown>[];
   const daPessoa = (id: string, papel: 'membro' | 'parente') =>
     linhas.filter((m) => m.integrante_id === id && (m.papel ?? 'membro') === papel).map((m) => m.nucleo_id as string);
+  const meus = apelidosDoPedido();
   return integrantes.results.map((i) => ({
     id: i.id as string,
     nome: i.nome as string,
-    apelido: i.apelido as string | null,
+    apelido: meus?.get(i.id as string) ?? (i.apelido as string | null),
+    apelidoDaFamilia: i.apelido as string | null,
     tipo: i.tipo as 'pessoa' | 'bicho',
     especie: i.especie as string | null,
     tratamento: (i.tratamento as Tratamento) ?? null,
@@ -265,7 +280,7 @@ export interface LacoResumido {
 }
 
 export async function listarLacosResumidos(): Promise<LacoResumido[]> {
-  const { results } = await db().prepare('SELECT id, a_id, b_id, papel, criado_por FROM lacos_resumidos ORDER BY id').all<Record<string, unknown>>();
+  const { results } = await db().prepare(`SELECT id, a_id, b_id, papel, criado_por FROM lacos_resumidos WHERE ${ativa('a_id')} AND ${ativa('b_id')} ORDER BY id`).all<Record<string, unknown>>();
   return results.map((r) => ({ id: r.id as number, a: r.a_id as string, b: r.b_id as string, papel: r.papel as Papel, criadoPor: (r.criado_por as string | null) ?? null }));
 }
 
@@ -292,7 +307,7 @@ export async function removerLacoResumido(id: number, usuario: Usuario): Promise
 // --- Laços de árvore ---
 
 export async function listarFiliacoes(): Promise<Filiacao[]> {
-  const { results } = await db().prepare('SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes').all<Record<string, unknown>>();
+  const { results } = await db().prepare(`SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE ${ativa('filho_id')} AND ${ativa('responsavel_id')}`).all<Record<string, unknown>>();
   return results.map((r) => ({
     filho: r.filho_id as string,
     responsavel: r.responsavel_id as string,
@@ -329,34 +344,48 @@ export async function removerFiliacao(filho: string, responsavel: string, usuari
 
 /** Todos os casais, sem filtro de visibilidade. Para conferências internas, nunca para mostrar. */
 async function lerCasais(): Promise<Casal[]> {
-  const [casais, fases] = await db().batch<Record<string, unknown>>([
+  const [casais, fases, familias] = await db().batch<Record<string, unknown>>([
     db().prepare('SELECT * FROM casais ORDER BY id'),
     db().prepare('SELECT * FROM casal_fases ORDER BY casal_id, ordem, id'),
+    db().prepare('SELECT casal_id, nucleo_id FROM casal_nucleos ORDER BY nucleo_id'),
   ]);
   return casais.results.map((c) => ({
     id: c.id as number,
     a: c.a_id as string,
     b: c.b_id as string,
-    visibilidade: c.visibilidade as 'todos' | 'privado',
+    visibilidade: c.visibilidade as Casal['visibilidade'],
+    nucleos: familias.results.filter((f: Record<string, unknown>) => f.casal_id === c.id).map((f: Record<string, unknown>) => f.nucleo_id as string),
     criadoPor: (c.criado_por as string | null) ?? null,
+    jaDaFamilia: Boolean(c.ja_da_familia),
     fases: fases.results
-      .filter((f) => f.casal_id === c.id)
-      .map((f) => ({ tipo: f.tipo as TipoDeFase, inicioAno: (f.inicio_ano as number | null) ?? null, fimAno: (f.fim_ano as number | null) ?? null })),
+      .filter((f: Record<string, unknown>) => f.casal_id === c.id)
+      .map((f: Record<string, unknown>) => ({
+        tipo: f.tipo as TipoDeFase,
+        inicioAno: (f.inicio_ano as number | null) ?? null,
+        fimAno: (f.fim_ano as number | null) ?? null,
+        inicioMes: (f.inicio_mes as number | null) ?? null,
+        inicioDia: (f.inicio_dia as number | null) ?? null,
+        fimMes: (f.fim_mes as number | null) ?? null,
+        fimDia: (f.fim_dia as number | null) ?? null,
+      })),
   }));
 }
 
-/** Casais que o usuário pode ver: os abertos a todos e os privados de que ele faz parte ou que cadastrou. */
+/** Do mais fechado para o mais aberto: quem vê mais de um registro do mesmo par fica com o mais fechado. */
+const FECHAMENTO: Record<Casal['visibilidade'], number> = { privado: 2, nucleos: 1, todos: 0 };
+
 /**
- * Os casais que a pessoa vê, um por par. Um par pode ter um registro privado (que só os dois e quem
- * cadastrou veem) e um público, cadastrado por quem não via o privado. Quem vê o privado fica com ele.
+ * Os casais que a pessoa vê, um por par. Um par pode ter um registro restrito (só os dois, ou famílias
+ * escolhidas) e um público, cadastrado por quem não via o restrito. Quem vê o restrito fica com ele.
  */
 export async function listarCasais(usuario: Usuario): Promise<Casal[]> {
-  const visiveis = (await lerCasais()).filter((c) => podeVerCasal(usuario.pessoa, c));
+  const [casais, excluidas] = await Promise.all([lerCasais(), idsDasPessoasExcluidas()]);
+  const visiveis = casais.filter((c) => podeVerCasal(usuario.pessoa, c, usuario.nucleos ?? []) && !excluidas.has(c.a) && !excluidas.has(c.b));
   const porPar = new Map<string, Casal>();
   for (const c of visiveis) {
     const chave = `${c.a}|${c.b}`;
     const ja = porPar.get(chave);
-    if (!ja || (ja.visibilidade === 'todos' && c.visibilidade === 'privado')) porPar.set(chave, c);
+    if (!ja || FECHAMENTO[c.visibilidade] > FECHAMENTO[ja.visibilidade]) porPar.set(chave, c);
   }
   return visiveis.filter((c) => porPar.get(`${c.a}|${c.b}`) === c);
 }
@@ -371,14 +400,17 @@ export async function obterCasal(id: number): Promise<Casal | undefined> {
   return (await lerCasais()).find((c) => c.id === id);
 }
 
-/** Cria o casal ou troca as fases dele, guardando no histórico o que havia antes. */
-export async function salvarCasal(x: string, y: string, fases: Fase[], visibilidade: 'todos' | 'privado', usuario: Usuario): Promise<void> {
+/**
+ * Cria o casal ou troca as fases dele, guardando no histórico o que havia antes. `nucleos` são as
+ * famílias que veem, com visibilidade 'nucleos' (casal desfeito, decisão do Gui de 18/11/2026).
+ */
+export async function salvarCasal(x: string, y: string, fases: Fase[], visibilidade: Casal['visibilidade'], usuario: Usuario, nucleos: string[] = [], jaDaFamilia = false): Promise<void> {
   const [a, b] = x < y ? [x, y] : [y, x];
   const anterior = await obterCasalDoPar(a, b, usuario);
   const comandos: D1PreparedStatement[] = [];
-  // Quem vê o casal privado e o torna público assume o lugar do registro público que outra pessoa tinha feito
+  // Quem vê o casal restrito e o torna público assume o lugar do registro público que outra pessoa tinha feito
   const publico = (await lerCasais()).find((c) => c.a === a && c.b === b && c.visibilidade === 'todos');
-  if (anterior && anterior.visibilidade === 'privado' && visibilidade === 'todos' && publico && publico.id !== anterior.id) {
+  if (anterior && anterior.visibilidade !== 'todos' && visibilidade === 'todos' && publico && publico.id !== anterior.id) {
     comandos.push(
       db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('casal', ?, ?, ?)`).bind(String(publico.id), JSON.stringify(publico), usuario.pessoa),
       db().prepare('DELETE FROM casal_fases WHERE casal_id = ?').bind(publico.id),
@@ -388,22 +420,28 @@ export async function salvarCasal(x: string, y: string, fases: Fase[], visibilid
   if (anterior) {
     comandos.push(
       db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('casal', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(anterior), usuario.pessoa),
-      db().prepare('UPDATE casais SET visibilidade = ? WHERE id = ?').bind(visibilidade, anterior.id),
+      db().prepare('UPDATE casais SET visibilidade = ?, ja_da_familia = ? WHERE id = ?').bind(visibilidade, jaDaFamilia ? 1 : 0, anterior.id),
       db().prepare('DELETE FROM casal_fases WHERE casal_id = ?').bind(anterior.id),
     );
   } else {
-    comandos.push(db().prepare('INSERT INTO casais (a_id, b_id, visibilidade, criado_por) VALUES (?, ?, ?, ?)').bind(a, b, visibilidade, usuario.pessoa));
+    comandos.push(db().prepare('INSERT INTO casais (a_id, b_id, visibilidade, criado_por, ja_da_familia) VALUES (?, ?, ?, ?, ?)').bind(a, b, visibilidade, usuario.pessoa, jaDaFamilia ? 1 : 0));
   }
   fases.forEach((fase, ordem) => {
     comandos.push(
       db()
         .prepare(
-          `INSERT INTO casal_fases (casal_id, tipo, inicio_ano, fim_ano, ordem)
-           VALUES ((SELECT id FROM casais WHERE a_id = ? AND b_id = ? AND visibilidade = ?), ?, ?, ?, ?)`,
+          `INSERT INTO casal_fases (casal_id, tipo, inicio_ano, inicio_mes, inicio_dia, fim_ano, fim_mes, fim_dia, ordem)
+           VALUES ((SELECT id FROM casais WHERE a_id = ? AND b_id = ? AND visibilidade = ?), ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(a, b, visibilidade, fase.tipo, fase.inicioAno, fase.fimAno, ordem),
+        .bind(a, b, visibilidade, fase.tipo, fase.inicioAno, fase.inicioMes ?? null, fase.inicioDia ?? null, fase.fimAno, fase.fimMes ?? null, fase.fimDia ?? null, ordem),
     );
   });
+  // As famílias que veem: só com 'nucleos'; nas outras escolhas, a lista fica vazia
+  const casalDoPar = `(SELECT id FROM casais WHERE a_id = ? AND b_id = ? AND visibilidade = ?)`;
+  comandos.push(db().prepare(`DELETE FROM casal_nucleos WHERE casal_id = ${casalDoPar}`).bind(a, b, visibilidade));
+  if (visibilidade === 'nucleos') {
+    for (const n of [...new Set(nucleos)]) comandos.push(db().prepare(`INSERT INTO casal_nucleos (casal_id, nucleo_id) VALUES (${casalDoPar}, ?)`).bind(a, b, visibilidade, n));
+  }
   await db().batch(comandos);
 }
 
@@ -419,7 +457,7 @@ export async function removerCasal(casal: Casal, usuario: Usuario): Promise<void
 
 /** Laços do coração que o usuário pode ver. A proximidade só acompanha os laços dele. */
 export async function listarLacosDoCoracao(usuario: Usuario): Promise<LacoDoCoracao[]> {
-  const { results } = await db().prepare('SELECT * FROM lacos_coracao ORDER BY COALESCE(proximidade, 9), nome').all<Record<string, unknown>>();
+  const { results } = await db().prepare(`SELECT * FROM lacos_coracao WHERE ${ativa('dono_id')} AND ${ativa('pessoa_id')} ORDER BY COALESCE(proximidade, 9), nome`).all<Record<string, unknown>>();
   return results
     .map((l) => ({
       id: l.id as number,
@@ -442,10 +480,18 @@ export async function pessoasEmLacosPrivadosDeOutros(usuario: Usuario): Promise<
   return new Set(results.map((r) => r.pessoa_id));
 }
 
-/** Quem a pessoa logada não vê (ver pessoasQueNaoVe). Barato quando ninguém tem laço privado. */
+/**
+ * Quem a pessoa logada não vê (ver pessoasQueNaoVe), e quem está na lixeira (excluir pessoa), que ninguém
+ * vê. O conjunto leva junto quem está na lixeira (`comExcluidas`), para o relato que ela escreveu ficar,
+ * com o nome, sem link (veORelato). Barato quando ninguém tem laço privado.
+ */
 export async function pessoasQueONaoVe(usuario: Usuario): Promise<Set<string>> {
-  const emPrivados = await pessoasEmLacosPrivadosDeOutros(usuario);
-  if (emPrivados.size === 0) return emPrivados;
+  const [emPrivados, excluidas] = await Promise.all([pessoasEmLacosPrivadosDeOutros(usuario), idsDasPessoasExcluidas()]);
+  if (emPrivados.size === 0) return comExcluidas(new Set(excluidas), excluidas);
+  return comExcluidas(new Set([...(await pessoasQueONaoVeEmPrivados(usuario, emPrivados)), ...excluidas]), excluidas);
+}
+
+async function pessoasQueONaoVeEmPrivados(usuario: Usuario, emPrivados: Set<string>): Promise<Set<string>> {
   const [filiacoes, casais, lacos] = await Promise.all([listarFiliacoes(), listarCasais(usuario), listarLacosDoCoracao(usuario)]);
   // A pessoa logada sempre se vê, mesmo sem laço nenhum além do privado de outra pessoa
   const comLaco = new Set([usuario.pessoa, ...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
@@ -576,6 +622,8 @@ interface FiltroDeMemorias {
   nucleo?: string;
   /** só os rascunhos de quem pede */
   rascunhos?: boolean;
+  /** as publicadas e, junto, os rascunhos de quem pede (a linha do tempo de quem escreveu) */
+  comRascunhos?: boolean;
   /** memórias colocadas em qualquer um destes capítulos reunidos */
   capitulos?: string[];
   tema?: string;
@@ -699,7 +747,9 @@ export async function quemContouEmCadaMemoria(usuario: Usuario): Promise<Map<str
 
 /** Memórias que o usuário pode ver, da mais antiga para a mais recente. Rascunhos ficam de fora, salvo pedido. */
 export async function listarMemorias(usuario: Usuario, filtro: FiltroDeMemorias = {}): Promise<Memoria[]> {
-  const condicoes = [FILTRO_VISIVEL, filtro.rascunhos ? `m.situacao = 'rascunho'` : `m.situacao = 'publicada'`];
+  // O rascunho só passa por FILTRO_VISIVEL para quem o criou
+  const situacao = filtro.rascunhos ? `m.situacao = 'rascunho'` : filtro.comRascunhos ? `m.situacao IN ('publicada', 'rascunho')` : `m.situacao = 'publicada'`;
+  const condicoes = [FILTRO_VISIVEL, situacao];
   const valores: unknown[] = [usuario.pessoa];
   if (filtro.integrante) {
     valores.push(filtro.integrante);
@@ -870,14 +920,15 @@ export async function garantirTemas(nomes: string[], usuario: Usuario): Promise<
 }
 
 function lerCapitulo(c: Record<string, unknown>): Capitulo {
-  const data = (ano: unknown, mes: unknown) => (ano ? { ano: ano as number, mes: (mes as number | null) ?? null } : null);
+  const data = (ano: unknown, mes: unknown, dia: unknown) =>
+    ano ? { ano: ano as number, mes: (mes as number | null) ?? null, dia: mes ? ((dia as number | null) ?? null) : null } : null;
   return {
     id: c.id as string,
     titulo: c.titulo as string,
     abertura: (c.abertura as string | null) ?? null,
     modo: c.modo as 'reunido' | 'epoca',
-    inicio: data(c.inicio_ano, c.inicio_mes),
-    fim: data(c.fim_ano, c.fim_mes),
+    inicio: data(c.inicio_ano, c.inicio_mes, c.inicio_dia),
+    fim: data(c.fim_ano, c.fim_mes, c.fim_dia),
     dentroDe: (c.pai_id as string | null) ?? null,
     visibilidade: c.visibilidade as 'todos' | 'nucleos',
     nucleos: [],
@@ -919,8 +970,8 @@ export interface DadosDoCapitulo {
   titulo: string;
   abertura?: string;
   modo: 'reunido' | 'epoca';
-  inicio?: { ano: number; mes?: number };
-  fim?: { ano: number; mes?: number };
+  inicio?: { ano: number; mes?: number | null; dia?: number | null };
+  fim?: { ano: number; mes?: number | null; dia?: number | null };
   dentroDe?: string;
   visibilidade: 'todos' | 'nucleos';
   nucleos: string[];
@@ -937,8 +988,10 @@ export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario
     dados.modo,
     dados.modo === 'epoca' ? (dados.inicio?.ano ?? null) : null,
     dados.modo === 'epoca' ? (dados.inicio?.mes ?? null) : null,
+    dados.modo === 'epoca' && dados.inicio?.mes ? (dados.inicio.dia ?? null) : null,
     dados.modo === 'epoca' ? (dados.fim?.ano ?? null) : null,
     dados.modo === 'epoca' ? (dados.fim?.mes ?? null) : null,
+    dados.modo === 'epoca' && dados.fim?.mes ? (dados.fim.dia ?? null) : null,
     dados.dentroDe ?? null,
     dados.visibilidade,
   ];
@@ -946,13 +999,13 @@ export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario
     novo
       ? db()
           .prepare(
-            `INSERT INTO capitulos (titulo, abertura, modo, inicio_ano, inicio_mes, fim_ano, fim_mes, pai_id, visibilidade, id, criado_por)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO capitulos (titulo, abertura, modo, inicio_ano, inicio_mes, inicio_dia, fim_ano, fim_mes, fim_dia, pai_id, visibilidade, id, criado_por)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(...valores, id, usuario.pessoa)
       : db()
           .prepare(
-            `UPDATE capitulos SET titulo = ?, abertura = ?, modo = ?, inicio_ano = ?, inicio_mes = ?, fim_ano = ?, fim_mes = ?,
+            `UPDATE capitulos SET titulo = ?, abertura = ?, modo = ?, inicio_ano = ?, inicio_mes = ?, inicio_dia = ?, fim_ano = ?, fim_mes = ?, fim_dia = ?,
                pai_id = ?, visibilidade = ?, atualizado_em = datetime('now') WHERE id = ?`,
           )
           .bind(...valores, id),
@@ -1006,6 +1059,43 @@ export async function excluirMemoria(id: string, usuario: Usuario): Promise<void
   await db().prepare(`UPDATE memorias SET excluida_em = datetime('now'), excluida_por = ? WHERE id = ?`).bind(usuario.pessoa, id).run();
 }
 
+/**
+ * Apaga de vez uma memória que está na lixeira (onda 2): a ficha, os relatos, as versões, as pessoas,
+ * as famílias, os capítulos e temas, os avisos e as reações. As fotos e os áudios ficam soltos, sem
+ * legenda e sem transcrição: o arquivo continua no bucket, e as fotos passam a aparecer em "Fotos sem
+ * memória", onde um administrador apaga o arquivo. Fica só a anotação de que algo foi apagado.
+ */
+export async function apagarMemoriaDeVez(id: string, usuario: Usuario): Promise<boolean> {
+  const naLixeira = await db().prepare('SELECT 1 AS ok FROM memorias WHERE id = ? AND excluida_em IS NOT NULL').bind(id).first<{ ok: number }>();
+  if (!naLixeira) return false;
+  const relatos = `(SELECT CAST(id AS TEXT) FROM relatos WHERE memoria_id = ?1)`;
+  await db().batch([
+    db().prepare(`DELETE FROM versoes WHERE (tipo = 'memoria' AND item_id = ?1) OR (tipo = 'relato' AND item_id IN ${relatos})`).bind(id),
+    db().prepare('DELETE FROM avisos WHERE memoria_id = ?1').bind(id),
+    db().prepare('DELETE FROM sugestoes WHERE memoria_id = ?1').bind(id),
+    db().prepare('DELETE FROM reacoes WHERE memoria_id = ?1').bind(id),
+    db().prepare(`UPDATE fotos SET memoria_id = NULL, relato_id = NULL, legenda = NULL, principal = 0, removida_em = COALESCE(removida_em, datetime('now')), removida_por = COALESCE(removida_por, ?2) WHERE memoria_id = ?1 OR relato_id IN (SELECT id FROM relatos WHERE memoria_id = ?1)`).bind(id, usuario.pessoa),
+    db().prepare(`UPDATE audios SET memoria_id = NULL, relato_id = NULL, transcricao = NULL, removido_em = COALESCE(removido_em, datetime('now')) WHERE memoria_id = ?1 OR relato_id IN (SELECT id FROM relatos WHERE memoria_id = ?1)`).bind(id),
+    db().prepare('DELETE FROM relatos WHERE memoria_id = ?1').bind(id),
+    db().prepare('DELETE FROM memorias WHERE id = ?1 AND excluida_em IS NOT NULL').bind(id),
+    db().prepare(`INSERT INTO apagados_de_vez (tipo, item_id, por) VALUES ('memoria', ?1, ?2)`).bind(id, usuario.pessoa),
+  ]);
+  return true;
+}
+
+/** Apaga de vez um capítulo que está na lixeira. As memórias dele continuam; os capítulos de dentro ficam soltos. */
+export async function apagarCapituloDeVez(id: string, usuario: Usuario): Promise<boolean> {
+  const naLixeira = await db().prepare('SELECT 1 AS ok FROM capitulos WHERE id = ? AND excluido_em IS NOT NULL').bind(id).first<{ ok: number }>();
+  if (!naLixeira) return false;
+  await db().batch([
+    db().prepare('UPDATE capitulos SET pai_id = NULL WHERE pai_id = ?1').bind(id),
+    db().prepare(`DELETE FROM versoes WHERE tipo = 'capitulo' AND item_id = ?1`).bind(id),
+    db().prepare('DELETE FROM capitulos WHERE id = ?1 AND excluido_em IS NOT NULL').bind(id),
+    db().prepare(`INSERT INTO apagados_de_vez (tipo, item_id, por) VALUES ('capitulo', ?1, ?2)`).bind(id, usuario.pessoa),
+  ]);
+  return true;
+}
+
 /** A lixeira de quem pede: só o que a pessoa veria se a memória não tivesse sido excluída. */
 export async function listarExcluidas(usuario: Usuario): Promise<MemoriaExcluida[]> {
   const { results } = await db()
@@ -1028,7 +1118,7 @@ export interface Versao<T> {
 }
 
 /** Versões anteriores de um item, da mais recente para a mais antiga. */
-export async function listarVersoes<T>(tipo: 'memoria' | 'relato' | 'laco-coracao', itemId: string): Promise<Versao<T>[]> {
+export async function listarVersoes<T>(tipo: 'memoria' | 'relato' | 'laco-coracao' | 'integrante', itemId: string): Promise<Versao<T>[]> {
   const { results } = await db()
     .prepare('SELECT id, dados, autor, criada_em FROM versoes WHERE tipo = ? AND item_id = ? ORDER BY id DESC LIMIT 50')
     .bind(tipo, itemId)
@@ -1065,9 +1155,64 @@ export async function restaurarFoto(id: number, memoriaId: string, usuario: Usua
 
 // --- Fotos ---
 
-export async function registrarFoto(chave: string, usuario: Usuario): Promise<number> {
-  const resultado = await db().prepare('INSERT INTO fotos (chave, enviada_por) VALUES (?, ?)').bind(chave, usuario.pessoa).run();
+/** A foto nasce solta, com o tamanho do arquivo, que entra na conta do espaço (migração 070). */
+export async function registrarFoto(chave: string, usuario: Usuario, tamanho: number | null = null): Promise<number> {
+  const resultado = await db().prepare('INSERT INTO fotos (chave, enviada_por, tamanho) VALUES (?, ?, ?)').bind(chave, usuario.pessoa, tamanho).run();
   return resultado.meta.last_row_id;
+}
+
+// --- Espaço das fotos e áudios (migração 070; regras em src/lib/espaco-dos-arquivos.ts) ---
+
+/** Anota o retrato enviado, com o tamanho. A chave é a de integrantes.retrato, sem "retratos/". */
+export async function registrarRetratoEnviado(chave: string, tamanho: number, usuario: Usuario): Promise<void> {
+  await db().prepare('INSERT OR IGNORE INTO retratos_enviados (chave, tamanho, enviado_por) VALUES (?, ?, ?)').bind(chave, tamanho, usuario.pessoa).run();
+}
+
+/**
+ * Quanto as fotos, os retratos e os áudios ocupam no bucket deste ambiente, pela soma do que cada um
+ * guardou ao entrar. Conta também o que foi removido, que continua no bucket. Os arquivos de exemplo
+ * ("exemplos/") moram no bucket de teste e ficam de fora. `semMedida` diz quantos arquivos de antes da
+ * contagem ainda não têm tamanho: as fotos e os retratos atuais sem registro.
+ */
+export async function espacoDosArquivos(): Promise<{ bytes: number; semMedida: number }> {
+  const linha = await db()
+    .prepare(
+      `SELECT
+        (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') +
+        (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exemplos/%') +
+        (SELECT COALESCE(SUM(tamanho), 0) FROM retratos_enviados WHERE chave NOT LIKE 'exemplos/%') AS bytes,
+        (SELECT COUNT(*) FROM fotos WHERE tamanho IS NULL AND chave <> '' AND chave NOT LIKE 'exemplos/%') +
+        (SELECT COUNT(DISTINCT retrato) FROM integrantes WHERE retrato IS NOT NULL AND retrato NOT LIKE 'exemplos/%'
+          AND retrato NOT IN (SELECT chave FROM retratos_enviados)) AS sem_medida`,
+    )
+    .first<{ bytes: number; sem_medida: number }>();
+  return { bytes: linha?.bytes ?? 0, semMedida: linha?.sem_medida ?? 0 };
+}
+
+/**
+ * Mede aos poucos os arquivos de antes da contagem: até `limite` por vez, lendo só o tamanho no bucket
+ * (head, que não baixa o arquivo nem grava nada). Quem não for achado no bucket fica com zero, para não
+ * ser procurado de novo. Roda quando um administrador abre "Sua conta".
+ */
+export async function medirArquivosDeAntes(tamanhoNoBucket: (chave: string) => Promise<number | null>, limite = 20): Promise<number> {
+  const { results: fotos } = await db()
+    .prepare(`SELECT id, chave FROM fotos WHERE tamanho IS NULL AND chave <> '' AND chave NOT LIKE 'exemplos/%' LIMIT ?`)
+    .bind(limite)
+    .all<{ id: number; chave: string }>();
+  const { results: retratos } = await db()
+    .prepare(
+      `SELECT DISTINCT retrato AS chave FROM integrantes WHERE retrato IS NOT NULL AND retrato NOT LIKE 'exemplos/%'
+        AND retrato NOT IN (SELECT chave FROM retratos_enviados) LIMIT ?`,
+    )
+    .bind(Math.max(0, limite - fotos.length))
+    .all<{ chave: string }>();
+  const comandos: D1PreparedStatement[] = [];
+  for (const f of fotos) comandos.push(db().prepare('UPDATE fotos SET tamanho = ? WHERE id = ?').bind((await tamanhoNoBucket(f.chave)) ?? 0, f.id));
+  for (const r of retratos) {
+    comandos.push(db().prepare('INSERT OR IGNORE INTO retratos_enviados (chave, tamanho) VALUES (?, ?)').bind(r.chave, (await tamanhoNoBucket(`retratos/${r.chave}`)) ?? 0));
+  }
+  if (comandos.length) await db().batch(comandos);
+  return comandos.length;
 }
 
 export interface FotoNoBanco {
@@ -1171,12 +1316,18 @@ export async function ligarFotosDoRelato(
   return validos.length;
 }
 
-/** O usuário pode ver o arquivo desta chave? Foto solta: só quem enviou. Foto de memória: quem vê a memória. Foto removida: só quem enviou. */
+/**
+ * O usuário pode ver o arquivo desta chave? Foto solta: só quem enviou. Foto de memória: quem vê a memória.
+ * Foto removida: só quem enviou. A foto que veio com um relato segue o relato (veORelato), como o áudio: a do
+ * relato em nome de quem a pessoa não vê também fica de fora.
+ */
 export async function podeVerFoto(usuario: Usuario, chave: string): Promise<boolean> {
-  const linha = await db()
+  const { results } = await db()
     .prepare(
-      `SELECT 1 AS ok FROM fotos f WHERE f.chave = ?2 AND (
+      `SELECT r.por, r.registrado_por, r.so_para_nucleos FROM fotos f LEFT JOIN relatos r ON r.id = f.relato_id WHERE f.chave = ?2 AND (
          (f.memoria_id IS NULL AND f.enviada_por = ?1 AND f.removida_em IS NULL)
+         -- foto sem memória há mais de 30 dias: os administradores conferem antes de apagar (onda 2)
+         OR (?3 = 1 AND ${FOTO_SOLTA})
          OR (
            -- foto removida: só quem enviou e quem removeu ainda veem, para poder devolvê-la à memória
            (f.removida_em IS NULL OR f.enviada_por = ?1 OR f.removida_por = ?1)
@@ -1190,11 +1341,60 @@ export async function podeVerFoto(usuario: Usuario, chave: string): Promise<bool
                )
            )
          )
-       ) LIMIT 1`,
+       )`,
     )
-    .bind(usuario.pessoa, chave)
-    .first();
-  return Boolean(linha);
+    .bind(usuario.pessoa, chave, usuario.admin ? 1 : 0)
+    .all<{ por: string | null; registrado_por: string | null; so_para_nucleos: string | null }>();
+  type Linha = { por: string | null; registrado_por: string | null; so_para_nucleos: string | null };
+  const linhas = results as Linha[];
+  if (linhas.length === 0) return false;
+  // A foto sem relato não depende de quem contou
+  if (linhas.some((r) => r.por === null)) return true;
+  const naoVe = await pessoasQueONaoVe(usuario);
+  return linhas.some((r) => veORelato({ por: r.por!, registradoPor: r.registrado_por!, soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) }, usuario, naoVe));
+}
+
+// --- Fotos sem memória (onda 2, decisão do Gui de 17/11/2026) ---
+
+/** Os dias que uma foto fica sem memória antes de entrar na lista dos administradores. */
+export const DIAS_DA_FOTO_SOLTA = 30;
+
+/**
+ * A foto que ficou sem memória: enviada num formulário abandonado, ou solta por "Apagar de vez". Nem
+ * de memória nem de relato, há mais de 30 dias. As fotos de exemplo (que as prévias dividem) nunca.
+ */
+const FOTO_SOLTA = `(f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%'
+  AND f.enviada_em < datetime('now', '-${DIAS_DA_FOTO_SOLTA} days'))`;
+
+export interface FotoSolta {
+  id: number;
+  chave: string;
+  enviadaPor: string;
+  enviadaEm: string;
+  tamanho: number | null;
+}
+
+export async function listarFotosSoltas(): Promise<FotoSolta[]> {
+  const { results } = await db()
+    .prepare(`SELECT f.id, f.chave, f.enviada_por, f.enviada_em, f.tamanho FROM fotos f WHERE ${FOTO_SOLTA} ORDER BY f.enviada_em, f.id`)
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({ id: r.id as number, chave: r.chave as string, enviadaPor: r.enviada_por as string, enviadaEm: r.enviada_em as string, tamanho: (r.tamanho as number | null) ?? null }));
+}
+
+export async function contarFotosSoltas(): Promise<number> {
+  const linha = await db().prepare(`SELECT COUNT(*) AS n FROM fotos f WHERE ${FOTO_SOLTA}`).first<{ n: number }>();
+  return linha?.n ?? 0;
+}
+
+/** A foto solta deste id, conferida de novo no banco antes de apagar, ou nada. */
+export async function obterFotoSolta(id: number): Promise<FotoSolta | undefined> {
+  return (await listarFotosSoltas()).find((f) => f.id === id);
+}
+
+/** Tira o registro da foto solta, depois que o arquivo saiu do bucket. Só se ela continua solta. */
+export async function esquecerFotoSolta(id: number): Promise<boolean> {
+  const r = await db().prepare(`DELETE FROM fotos WHERE id = ? AND id IN (SELECT f.id FROM fotos f WHERE ${FOTO_SOLTA})`).bind(id).run();
+  return (r.meta.changes ?? 0) > 0;
 }
 
 // --- Relatos ---
@@ -1273,6 +1473,9 @@ export async function salvarRelato(
   situacao: 'rascunho' | 'publicada',
   usuario: Usuario,
   anterior: Relato | undefined,
+  // O relato como conversa: só acrescentar mensagens no fim (voltar e contar mais) não guarda versão.
+  // A versão leva junto as mensagens de antes, quando há (src/lib/conversa.ts)
+  versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
 ): Promise<void> {
   // A data de publicação é a da primeira vez que o relato sai do rascunho, e não muda depois
   const marcar = `UPDATE relatos SET publicado_em = datetime('now') WHERE situacao = 'publicada' AND publicado_em IS NULL`;
@@ -1286,7 +1489,9 @@ export async function salvarRelato(
     return;
   }
   await db().batch([
-    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(anterior), usuario.pessoa),
+    ...(versao.guardar
+      ? [db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(versao.mensagens ? { ...anterior, mensagens: versao.mensagens } : anterior), usuario.pessoa)]
+      : []),
     db().prepare(`UPDATE relatos SET texto = ?, situacao = ?, atualizado_em = datetime('now') WHERE id = ?`).bind(texto, situacao, anterior.id),
     db().prepare(`${marcar} AND id = ?`).bind(anterior.id),
   ]);
@@ -1376,7 +1581,8 @@ export async function ligarAudios(relatoId: number, memoriaId: string, itens: { 
   const validos = itens.filter((i) => aceitos.has(i.id));
   await db().batch([
     db()
-      .prepare(`UPDATE audios SET removido_em = datetime('now') WHERE relato_id = ? AND removido_em IS NULL AND id NOT IN (${validos.length ? validos.map(() => '?').join(', ') : 'NULL'})`)
+      // Sem nenhum áudio que fica, a lista some: "id NOT IN (NULL)" nunca é verdadeiro e o último áudio não saía
+      .prepare(`UPDATE audios SET removido_em = datetime('now') WHERE relato_id = ? AND removido_em IS NULL${validos.length ? ` AND id NOT IN (${validos.map(() => '?').join(', ')})` : ''}`)
       .bind(relatoId, ...validos.map((i) => i.id)),
     ...validos.map((item, ordem) =>
       db()
@@ -1433,6 +1639,27 @@ export async function listarAudiosDe(usuario: Usuario, pessoaId: string): Promis
   return results
     .filter((r: Record<string, unknown>) => veORelato({ por: r.relato_por as string, registradoPor: r.relato_registrado_por as string, soParaNucleos: lerNucleosDoRelato(r.relato_so) }, usuario, naoVe))
     .map((r: Record<string, unknown>) => ({ ...lerAudio(r), memoriaId: r.memoria as string, memoriaTitulo: r.memoria_titulo as string }));
+}
+
+/**
+ * Os relatos que a pessoa contou (publicados, em memórias publicadas que quem olha vê), com o título e
+ * o ano da memória. Passa pela mesma regra de "A voz de Fulano" (veORelato). Conceito da página da
+ * pessoa, sessão L.
+ */
+export async function listarRelatosDe(usuario: Usuario, pessoaId: string): Promise<(Relato & { memoriaTitulo: string; memoriaAno: number })[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT r.*, m.titulo AS memoria_titulo, m.ano AS memoria_ano FROM relatos r
+       JOIN memorias m ON m.id = r.memoria_id
+       WHERE r.por = ?2 AND r.situacao = 'publicada' AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       ORDER BY m.ano DESC, m.mes DESC, m.dia DESC`,
+    )
+    .bind(usuario.pessoa, pessoaId)
+    .all<Record<string, unknown>>();
+  const naoVe = await pessoasQueONaoVe(usuario);
+  return results
+    .map((r: Record<string, unknown>) => ({ ...lerRelato(r), memoriaTitulo: r.memoria_titulo as string, memoriaAno: r.memoria_ano as number }))
+    .filter((r: Relato) => veORelato(r, usuario, naoVe));
 }
 
 // --- Tamanho do banco (aviso de 300 MB, ver src/lib/tamanho-do-banco.ts) ---
@@ -1628,7 +1855,7 @@ export async function contarAvisosPendentes(usuario: Usuario): Promise<number> {
 /** A pessoa abriu a memória: saem da lista os avisos dela que apontam para ali, menos o pedido para liberar. */
 export async function abrirAvisosDaMemoria(usuario: Usuario, memoriaId: string): Promise<void> {
   await db()
-    .prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE para = ? AND memoria_id = ? AND resolvido_em IS NULL AND tipo <> 'liberar-relato'`)
+    .prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE para = ? AND memoria_id = ? AND resolvido_em IS NULL AND tipo NOT IN ('liberar-relato', 'sugestao')`)
     .bind(usuario.pessoa, memoriaId)
     .run();
 }
@@ -1779,6 +2006,26 @@ export interface Proximidade {
   angulo: number | null;
 }
 
+// --- "Como você chama", só seu (migração 090; regras em src/lib/apelidos.ts) ---
+
+/** Os apelidos que uma pessoa deu. Só o dono lê os dele: ninguém mais vê. */
+export async function listarMeusApelidos(dono: string): Promise<Map<string, string>> {
+  const { results } = await db().prepare('SELECT pessoa_id, apelido FROM apelidos_meus WHERE dono_id = ?').bind(dono).all<{ pessoa_id: string; apelido: string }>();
+  return new Map(results.map((r: { pessoa_id: string; apelido: string }) => [r.pessoa_id, r.apelido]));
+}
+
+/** Guarda o apelido que o dono dá à pessoa; sem apelido, apaga, e vale o da família. */
+export async function guardarMeuApelido(dono: string, pessoa: string, apelido: string | null): Promise<void> {
+  if (!apelido) {
+    await db().prepare('DELETE FROM apelidos_meus WHERE dono_id = ? AND pessoa_id = ?').bind(dono, pessoa).run();
+    return;
+  }
+  await db()
+    .prepare(`INSERT INTO apelidos_meus (dono_id, pessoa_id, apelido) VALUES (?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET apelido = excluded.apelido, mudado_em = datetime('now')`)
+    .bind(dono, pessoa, apelido)
+    .run();
+}
+
 /** As proximidades que uma pessoa declarou. Só o dono lê as dele: ninguém mais vê o círculo nem o valor. */
 export async function listarProximidades(dono: string): Promise<Map<string, Proximidade>> {
   const { results } = await db().prepare('SELECT pessoa_id, valor, angulo FROM proximidades WHERE dono_id = ?').bind(dono).all<{ pessoa_id: string; valor: number; angulo: number | null }>();
@@ -1808,16 +2055,575 @@ export async function removerProximidade(dono: string, pessoa: string): Promise<
   await db().prepare('DELETE FROM proximidades WHERE dono_id = ? AND pessoa_id = ?').bind(dono, pessoa).run();
 }
 
+// --- Ex-casal: como o ex aparece para mim (migração 071; regras em src/lib/ex-casal.ts) ---
+
 /**
- * O formulário do laço do coração escolhe uma das três faixas. Se a proximidade guardada está em
- * outra faixa (ou não existe), ela vai para o meio da escolhida; na mesma faixa, o valor fino fica.
+ * Como cada ex aparece para a pessoa logada: só as escolhas dela, e só de quem ainda é ex dela num casal
+ * desfeito que ela vê. Ninguém mais lê estas linhas: não há rota de leitura.
  */
-export async function alinharProximidadeDoLaco(dono: string, pessoa: string, nivel: number | null, meio: number | null, mesmaFaixa: (valor: number) => boolean): Promise<void> {
-  if (nivel === null || meio === null) return;
-  const atual = await db().prepare('SELECT valor FROM proximidades WHERE dono_id = ? AND pessoa_id = ?').bind(dono, pessoa).first<{ valor: number }>();
-  if (atual && mesmaFaixa(atual.valor)) return;
+export async function comoOsExesAparecem(usuario: Usuario): Promise<Map<string, Exclude<ModoDoEx, 'presente'>>> {
+  const { results } = await db().prepare('SELECT pessoa_id, modo FROM ex_para_mim WHERE dono_id = ?').bind(usuario.pessoa).all<{ pessoa_id: string; modo: ModoDoEx }>();
+  if (results.length === 0) return new Map();
+  const exes = exesDe(usuario.pessoa, await listarCasais(usuario));
+  const valem = modosQueValem(new Map(results.map((r: { pessoa_id: string; modo: ModoDoEx }) => [r.pessoa_id, r.modo])), exes);
+  // "Fora" de quem é pai ou mãe de alguém que a pessoa vê vale como "Discreto" (resposta do Gui à sessão F)
+  if (![...valem.values()].includes('fora')) return valem;
+  const ve = new Set((await listarIntegrantesQueVe(usuario)).map((i) => i.id));
+  return foraQueEPaiViraDiscreto(valem, await listarFiliacoes(), (id) => ve.has(id) || id === usuario.pessoa);
+}
+
+/** Guarda como o ex aparece para quem escolheu. "Presente" apaga a escolha, e tudo volta a ser como era. */
+export async function salvarComoOExAparece(usuario: Usuario, pessoa: string, modo: ModoDoEx): Promise<void> {
+  if (modo === 'presente') {
+    await db().prepare('DELETE FROM ex_para_mim WHERE dono_id = ? AND pessoa_id = ?').bind(usuario.pessoa, pessoa).run();
+    return;
+  }
   await db()
-    .prepare(`INSERT INTO proximidades (dono_id, pessoa_id, valor) VALUES (?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET valor = excluded.valor, mudado_em = datetime('now')`)
-    .bind(dono, pessoa, meio)
+    .prepare(`INSERT INTO ex_para_mim (dono_id, pessoa_id, modo) VALUES (?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET modo = excluded.modo, mudado_em = datetime('now')`)
+    .bind(usuario.pessoa, pessoa, modo)
     .run();
+}
+
+// --- Ajustes do acervo, escolhidos pelos administradores (migração 073) ---
+
+/** O valor de um ajuste, já lido do JSON, ou nada. */
+export async function lerAjuste(chave: string): Promise<unknown> {
+  const linha = await db().prepare('SELECT valor FROM ajustes WHERE chave = ?').bind(chave).first<{ valor: string }>();
+  if (!linha) return undefined;
+  try {
+    return JSON.parse(linha.valor);
+  } catch {
+    return undefined;
+  }
+}
+
+/** Guarda um ajuste. O valor de antes vai para o histórico, com quem mudou. */
+export async function salvarAjuste(chave: string, valor: unknown, usuario: Usuario): Promise<void> {
+  await db().batch([
+    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) SELECT 'ajuste', chave, valor, ? FROM ajustes WHERE chave = ?`).bind(usuario.pessoa, chave),
+    db()
+      .prepare(`INSERT INTO ajustes (chave, valor, mudado_por) VALUES (?, ?, ?) ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor, mudado_por = excluded.mudado_por, mudado_em = datetime('now')`)
+      .bind(chave, JSON.stringify(valor), usuario.pessoa),
+  ]);
+}
+
+/** Quem mudou o ajuste por último, e quando. */
+export async function quemMudouOAjuste(chave: string): Promise<{ por: string | null; em: string } | undefined> {
+  const linha = await db().prepare('SELECT mudado_por, mudado_em FROM ajustes WHERE chave = ?').bind(chave).first<{ mudado_por: string | null; mudado_em: string }>();
+  return linha ? { por: linha.mudado_por, em: linha.mudado_em } : undefined;
+}
+
+// --- Histórico de pessoas e laços (onda 2; regras em src/lib/historico-da-pessoa.ts) ---
+
+/** As versões da ficha de uma pessoa, da mais nova para a mais antiga. */
+export async function listarVersoesDaFicha(id: string): Promise<Versao<Integrante>[]> {
+  const { results } = await db()
+    .prepare(`SELECT id, dados, autor, criada_em FROM versoes WHERE tipo = 'integrante' AND item_id = ? ORDER BY id DESC LIMIT 50`)
+    .bind(id)
+    .all<Record<string, unknown>>();
+  return results.map((v: Record<string, unknown>) => ({ id: v.id as number, dados: JSON.parse(v.dados as string) as Integrante, autor: v.autor as string, criadaEm: v.criada_em as string }));
+}
+
+/**
+ * As versões dos laços em que a pessoa está: filiações removidas, casais mudados ou removidos e laços
+ * do coração mudados ou removidos. Sem filtro: quem mostra passa cada uma por veAVersaoDoLaco.
+ */
+export async function listarVersoesDosLacos(id: string): Promise<(Versao<unknown> & { tipo: 'filiacao' | 'casal' | 'laco-coracao' })[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT id, tipo, dados, autor, criada_em FROM versoes WHERE
+        (tipo = 'filiacao' AND (json_extract(dados, '$.filho') = ?1 OR json_extract(dados, '$.responsavel') = ?1))
+        OR (tipo = 'casal' AND (json_extract(dados, '$.a') = ?1 OR json_extract(dados, '$.b') = ?1))
+        OR (tipo = 'laco-coracao' AND (json_extract(dados, '$.dono') = ?1 OR json_extract(dados, '$.pessoa') = ?1))
+       ORDER BY id DESC LIMIT 100`,
+    )
+    .bind(id)
+    .all<Record<string, unknown>>();
+  return results.map((v: Record<string, unknown>) => ({
+    id: v.id as number,
+    tipo: v.tipo as 'filiacao' | 'casal' | 'laco-coracao',
+    dados: JSON.parse(v.dados as string) as unknown,
+    autor: v.autor as string,
+    criadaEm: v.criada_em as string,
+  }));
+}
+
+/** Uma versão pelo id, com o tipo. */
+export async function obterVersao(id: number): Promise<{ id: number; tipo: string; itemId: string; dados: unknown } | undefined> {
+  const v = await db().prepare('SELECT id, tipo, item_id, dados FROM versoes WHERE id = ?').bind(id).first<{ id: number; tipo: string; item_id: string; dados: string }>();
+  return v ? { id: v.id, tipo: v.tipo, itemId: v.item_id, dados: JSON.parse(v.dados) } : undefined;
+}
+
+/**
+ * Restaura um laço do coração guardado: o dono volta com tudo; um administrador, só o nome e o lugar na
+ * árvore (num laço que já existe) ou o laço como era, aberto (num laço removido). A versão de hoje vai
+ * para o histórico.
+ */
+export async function restaurarLacoDoCoracao(dados: { dono: string; pessoa: string; nome: string; papel: Papel | null; proximidade?: number | null; privado: number | boolean }, usuario: Usuario): Promise<void> {
+  const doDono = dados.dono === usuario.pessoa;
+  await db().batch([
+    db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) SELECT 'laco-coracao', CAST(id AS TEXT), json_object('dono', dono_id, 'pessoa', pessoa_id, 'nome', nome, 'papel', papel, 'proximidade', proximidade, 'privado', privado), ? FROM lacos_coracao WHERE dono_id = ? AND pessoa_id = ?`).bind(usuario.pessoa, dados.dono, dados.pessoa),
+    doDono
+      ? db()
+          .prepare(`INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, papel, proximidade, privado) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET nome = excluded.nome, papel = excluded.papel, proximidade = excluded.proximidade, privado = excluded.privado`)
+          .bind(dados.dono, dados.pessoa, dados.nome, dados.papel, dados.proximidade ?? null, dados.privado ? 1 : 0)
+      : db()
+          .prepare(`INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, papel, proximidade, privado) VALUES (?, ?, ?, ?, ?, 0) ON CONFLICT (dono_id, pessoa_id) DO UPDATE SET nome = excluded.nome, papel = excluded.papel`)
+          .bind(dados.dono, dados.pessoa, dados.nome, dados.papel, dados.proximidade ?? null),
+  ]);
+}
+
+// --- Juntar cadastros duplicados (onda 2; regras em src/lib/nomes-parecidos.ts e permissoes.ts) ---
+
+/**
+ * As memórias em que as duas fichas têm relato e que impedem juntar: um relato por pessoa em cada
+ * memória. Quem administra resolve antes (um dos dois relatos sai), e junta depois.
+ */
+export async function conflitosAoJuntar(fica: string, sai: string): Promise<string[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT DISTINCT m.titulo FROM relatos rs JOIN relatos rf ON rf.memoria_id = rs.memoria_id AND rf.por = ?1 JOIN memorias m ON m.id = rs.memoria_id
+       WHERE rs.por = ?2 AND (rf.registrado_por = rs.registrado_por OR (rf.situacao = 'publicada' AND rs.situacao = 'publicada'))`,
+    )
+    .bind(fica, sai)
+    .all<{ titulo: string }>();
+  return results.map((r: { titulo: string }) => r.titulo);
+}
+
+/**
+ * Junta duas fichas da mesma pessoa: a que fica recebe os campos escolhidos e tudo o que era da outra
+ * (memórias, relatos, fotos, áudios, laços, famílias, capítulos, proximidades, avisos), e a que sai deixa
+ * de existir. As duas fichas de antes ficam no histórico, a que saiu com a marca de para onde foi. Um
+ * lote só: ou entra tudo, ou nada. Quem chama já conferiu a permissão e os conflitos.
+ */
+export async function juntarIntegrantes(fica: Integrante, sai: Integrante, ficha: DadosDoIntegrante, usuario: Usuario): Promise<void> {
+  const [A, B] = [fica.id, sai.id];
+  const c: D1PreparedStatement[] = [];
+  const q = (sql: string, ...v: unknown[]) => c.push(db().prepare(sql).bind(...v));
+  // O histórico: as duas fichas como eram
+  q(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('integrante', ?, ?, ?)`, A, JSON.stringify(fica), usuario.pessoa);
+  q(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('integrante', ?, ?, ?)`, B, JSON.stringify({ ...sai, juntadaEm: A }), usuario.pessoa);
+  q(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('juntar', ?, ?, ?)`, A, JSON.stringify({ fica: A, sai: B, nomeDaQueSaiu: sai.nome }), usuario.pessoa);
+  // Famílias: quem era membro numa das duas continua membro
+  q(`INSERT OR IGNORE INTO nucleo_membros (nucleo_id, integrante_id, papel) SELECT nucleo_id, ?1, papel FROM nucleo_membros WHERE integrante_id = ?2`, A, B);
+  q(`UPDATE nucleo_membros SET papel = 'membro' WHERE integrante_id = ?1 AND nucleo_id IN (SELECT nucleo_id FROM nucleo_membros WHERE integrante_id = ?2 AND papel = 'membro')`, A, B);
+  q(`DELETE FROM nucleo_membros WHERE integrante_id = ?`, B);
+  // Memórias, relatos, fotos e áudios
+  q(`UPDATE memorias SET criada_por = ?1 WHERE criada_por = ?2`, A, B);
+  q(`INSERT OR IGNORE INTO memoria_integrantes (memoria_id, integrante_id) SELECT memoria_id, ?1 FROM memoria_integrantes WHERE integrante_id = ?2`, A, B);
+  q(`DELETE FROM memoria_integrantes WHERE integrante_id = ?`, B);
+  q(`UPDATE relatos SET por = ?1 WHERE por = ?2`, A, B);
+  q(`UPDATE relatos SET registrado_por = ?1 WHERE registrado_por = ?2`, A, B);
+  q(`UPDATE fotos SET enviada_por = ?1 WHERE enviada_por = ?2`, A, B);
+  q(`UPDATE fotos SET removida_por = ?1 WHERE removida_por = ?2`, A, B);
+  q(`UPDATE audios SET enviado_por = ?1 WHERE enviado_por = ?2`, A, B);
+  // Filiações: sem repetir e sem a pessoa virar filha de si mesma
+  q(
+    `INSERT OR IGNORE INTO filiacoes (filho_id, responsavel_id, qualidade, criado_por, criado_em, adocao_ano, adocao_mes, adocao_dia)
+     SELECT CASE WHEN filho_id = ?2 THEN ?1 ELSE filho_id END, CASE WHEN responsavel_id = ?2 THEN ?1 ELSE responsavel_id END, qualidade, criado_por, criado_em, adocao_ano, adocao_mes, adocao_dia
+     FROM filiacoes WHERE (filho_id = ?2 OR responsavel_id = ?2) AND NOT (filho_id = ?2 AND responsavel_id = ?1) AND NOT (filho_id = ?1 AND responsavel_id = ?2)`,
+    A,
+    B,
+  );
+  q(`DELETE FROM filiacoes WHERE filho_id = ?1 OR responsavel_id = ?1`, B);
+  // Casais: o par se refaz em ordem; se a que fica já tem o mesmo casal, fica o dela
+  for (const casal of (await lerCasais()).filter((x) => x.a === B || x.b === B)) {
+    const outro = casal.a === B ? casal.b : casal.a;
+    const [na, nb] = A < outro ? [A, outro] : [outro, A];
+    if (outro === A) {
+      q(`DELETE FROM casal_fases WHERE casal_id = ?`, casal.id);
+      q(`DELETE FROM casais WHERE id = ?`, casal.id);
+      continue;
+    }
+    q(`DELETE FROM casal_fases WHERE casal_id = ?1 AND EXISTS (SELECT 1 FROM casais WHERE a_id = ?2 AND b_id = ?3 AND visibilidade = ?4)`, casal.id, na, nb, casal.visibilidade);
+    q(`DELETE FROM casais WHERE id = ?1 AND EXISTS (SELECT 1 FROM casais WHERE a_id = ?2 AND b_id = ?3 AND visibilidade = ?4)`, casal.id, na, nb, casal.visibilidade);
+    q(`UPDATE casais SET a_id = ?2, b_id = ?3 WHERE id = ?1`, casal.id, na, nb);
+  }
+  // Laços do coração, laços resumidos, capítulos, proximidades e ex
+  for (const [tabela, x, y] of [
+    ['lacos_coracao', 'dono_id', 'pessoa_id'],
+    ['lacos_resumidos', 'a_id', 'b_id'],
+    ['proximidades', 'dono_id', 'pessoa_id'],
+    ['ex_para_mim', 'dono_id', 'pessoa_id'],
+    ['apelidos_meus', 'dono_id', 'pessoa_id'],
+  ] as const) {
+    q(`DELETE FROM ${tabela} WHERE (${x} = ?1 AND ${y} = ?2) OR (${x} = ?2 AND ${y} = ?1)`, A, B);
+    q(`UPDATE OR IGNORE ${tabela} SET ${x} = ?1 WHERE ${x} = ?2`, A, B);
+    q(`UPDATE OR IGNORE ${tabela} SET ${y} = ?1 WHERE ${y} = ?2`, A, B);
+    q(`DELETE FROM ${tabela} WHERE ${x} = ?1 OR ${y} = ?1`, B);
+  }
+  q(`UPDATE capitulos SET criado_por = ?1 WHERE criado_por = ?2`, A, B);
+  q(`INSERT OR IGNORE INTO capitulo_pessoas (capitulo_id, integrante_id) SELECT capitulo_id, ?1 FROM capitulo_pessoas WHERE integrante_id = ?2`, A, B);
+  q(`DELETE FROM capitulo_pessoas WHERE integrante_id = ?`, B);
+  for (const [tabela, coluna] of [
+    ['avisos', 'para'],
+    ['avisos', 'de'],
+    ['integrantes', 'criado_por'],
+    ['casais', 'criado_por'],
+    ['filiacoes', 'criado_por'],
+    ['lacos_resumidos', 'criado_por'],
+    ['cartas', 'escrita_por'],
+  ] as const) {
+    q(`UPDATE ${tabela} SET ${coluna} = ?1 WHERE ${coluna} = ?2`, A, B);
+  }
+  // Quem sai não tem login (a rota confere): as marcas de visita e de acesso dela não servem
+  q(`DELETE FROM visitas WHERE pessoa = ?`, B);
+  q(`DELETE FROM acessos WHERE pessoa = ?`, B);
+  // A ficha que fica, com os campos escolhidos, e a que sai deixa de existir
+  const retrato = ficha.retrato === undefined ? fica.retrato : ficha.retrato;
+  q(
+    `UPDATE integrantes SET nome = ?, apelido = ?, tipo = ?, especie = ?, tratamento = ?, nascimento_ano = ?, nascimento_mes = ?,
+       nascimento_dia = ?, falecimento_ano = ?, falecimento_mes = ?, falecimento_dia = ?, falecido = ?, sobre = ?, retrato = ? WHERE id = ?`,
+    ...valoresDoIntegrante(ficha),
+    retrato,
+    A,
+  );
+  q(`DELETE FROM integrantes WHERE id = ?`, B);
+  await db().batch(c);
+}
+
+// --- Sugestão de correção (migração 074; regras em src/lib/sugestoes.ts e permissoes.ts) ---
+
+const lerSugestao = (r: Record<string, unknown>): Sugestao => ({
+  id: r.id as number,
+  memoriaId: r.memoria_id as string,
+  relatoId: (r.relato_id as number | null) ?? null,
+  de: r.de as string,
+  para: r.para as string,
+  tipo: r.tipo as TipoDeSugestao,
+  proposta: r.proposta ? (JSON.parse(r.proposta as string) as Proposta) : null,
+  texto: (r.texto as string | null) ?? null,
+  situacao: r.situacao as SituacaoDaSugestao,
+  resposta: (r.resposta as string | null) ?? null,
+  criadaEm: r.criada_em as string,
+  respondidaEm: (r.respondida_em as string | null) ?? null,
+  respondidaPor: (r.respondida_por as string | null) ?? (r.respondida_em ? (r.para as string) : null),
+});
+
+type MemoriaDaSugestao = { id: string; criadaPor: string; integrantes: readonly string[] };
+
+/**
+ * Guarda a sugestão e o aviso para cada um que recebe (`destinatarios`: na de dados, quem criou e quem
+ * está na memória; no recado, quem registrou o relato).
+ */
+export async function criarSugestao(
+  s: { memoriaId: string; relatoId: number | null; para: string; tipo: TipoDeSugestao; proposta: Proposta | null; texto: string | null },
+  usuario: Usuario,
+  memoria: MemoriaDaSugestao,
+): Promise<number> {
+  const [r] = await db().batch([
+    db()
+      .prepare('INSERT INTO sugestoes (memoria_id, relato_id, de, para, tipo, proposta, texto) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id')
+      .bind(s.memoriaId, s.relatoId, usuario.pessoa, s.para, s.tipo, s.proposta ? JSON.stringify(s.proposta) : null, s.texto),
+  ]);
+  const id = ((r as { results?: { id: number }[] }).results?.[0]?.id ?? 0) as number;
+  const recebem = destinatarios({ tipo: s.tipo, para: s.para, de: usuario.pessoa }, memoria);
+  await criarAvisos(recebem.map((para) => ({ para, tipo: 'sugestao' as const, memoriaId: s.memoriaId, relatoId: s.relatoId, de: usuario.pessoa, dados: { sugestao: id, recado: s.tipo === 'recado' } })));
+  return id;
+}
+
+/**
+ * As sugestões de uma memória que a pessoa mandou ou recebeu (é um dos destinatários hoje). As dos
+ * outros, ninguém vê.
+ */
+export async function listarSugestoes(memoria: MemoriaDaSugestao, usuario: Usuario): Promise<Sugestao[]> {
+  const { results } = await db().prepare('SELECT * FROM sugestoes WHERE memoria_id = ? ORDER BY id DESC').bind(memoria.id).all<Record<string, unknown>>();
+  return results.map(lerSugestao).filter((s) => s.de === usuario.pessoa || destinatarios(s, memoria).includes(usuario.pessoa));
+}
+
+/** Quantas sugestões abertas a pessoa recebeu numa memória. */
+export async function contarSugestoesAbertas(memoria: MemoriaDaSugestao, usuario: Usuario): Promise<number> {
+  return (await listarSugestoes(memoria, usuario)).filter((s) => s.situacao === 'aberta' && s.de !== usuario.pessoa).length;
+}
+
+export async function obterSugestao(id: number): Promise<Sugestao | undefined> {
+  const r = await db().prepare('SELECT * FROM sugestoes WHERE id = ?').bind(id).first<Record<string, unknown>>();
+  return r ? lerSugestao(r) : undefined;
+}
+
+/**
+ * Responde a sugestão: guarda o que foi feito, a mensagem e quem respondeu, tira o aviso da lista de todos
+ * que receberam (o primeiro que responde resolve) e avisa quem sugeriu.
+ */
+export async function responderSugestao(s: Sugestao, situacao: Exclude<SituacaoDaSugestao, 'aberta'>, resposta: string | null, usuario: Usuario): Promise<void> {
+  await db().batch([
+    db().prepare(`UPDATE sugestoes SET situacao = ?, resposta = ?, respondida_em = datetime('now'), respondida_por = ? WHERE id = ? AND situacao = 'aberta'`).bind(situacao, resposta, usuario.pessoa, s.id),
+    db().prepare(`UPDATE avisos SET resolvido_em = datetime('now'), resposta = ? WHERE tipo = 'sugestao' AND json_extract(dados, '$.sugestao') = ? AND resolvido_em IS NULL`).bind(situacao, s.id),
+  ]);
+  await criarAvisos([{ para: s.de, tipo: 'sugestao-resposta', memoriaId: s.memoriaId, relatoId: s.relatoId, de: usuario.pessoa, dados: { sugestao: s.id, situacao, recado: s.tipo === 'recado' } }]);
+}
+
+// --- Reações (migração 075; regras em src/lib/reacoes.ts) ---
+
+/**
+ * As reações de uma memória, por item ("relato:12", "foto:3"), com quem marcou cada símbolo. Só entram
+ * os itens que quem pede vê (`alvos`) e as pessoas que ela vê: a conta nunca denuncia quem ela não vê.
+ */
+export async function listarReacoes(memoriaId: string, usuario: Usuario, alvos: ReadonlySet<string>): Promise<Map<string, Map<SimboloDaReacao, string[]>>> {
+  const { results } = await db()
+    .prepare('SELECT alvo, alvo_id, pessoa, simbolo FROM reacoes WHERE memoria_id = ? ORDER BY id')
+    .bind(memoriaId)
+    .all<{ alvo: string; alvo_id: number; pessoa: string; simbolo: SimboloDaReacao }>();
+  const porItem = new Map<string, Map<SimboloDaReacao, string[]>>();
+  if (results.length === 0) return porItem;
+  const naoVe = await pessoasQueONaoVe(usuario);
+  for (const r of results as { alvo: string; alvo_id: number; pessoa: string; simbolo: SimboloDaReacao }[]) {
+    const chave = `${r.alvo}:${r.alvo_id}`;
+    if (!alvos.has(chave) || naoVe.has(r.pessoa)) continue;
+    const doItem = porItem.get(chave) ?? new Map<SimboloDaReacao, string[]>();
+    doItem.set(r.simbolo, [...(doItem.get(r.simbolo) ?? []), r.pessoa]);
+    porItem.set(chave, doItem);
+  }
+  return porItem;
+}
+
+/** Marca ou desmarca a reação da pessoa. Devolve se ficou marcada. */
+export async function alternarReacao(memoriaId: string, alvo: 'memoria' | 'relato' | 'foto', alvoId: number, simbolo: SimboloDaReacao, usuario: Usuario): Promise<boolean> {
+  const apagou = await db()
+    .prepare('DELETE FROM reacoes WHERE memoria_id = ? AND alvo = ? AND alvo_id = ? AND pessoa = ? AND simbolo = ?')
+    .bind(memoriaId, alvo, alvoId, usuario.pessoa, simbolo)
+    .run();
+  if ((apagou.meta.changes ?? 0) > 0) return false;
+  await db().prepare('INSERT INTO reacoes (memoria_id, alvo, alvo_id, pessoa, simbolo) VALUES (?, ?, ?, ?, ?)').bind(memoriaId, alvo, alvoId, usuario.pessoa, simbolo).run();
+  return true;
+}
+
+/** A pessoa marcou "eu estava lá" em algo desta memória? */
+export async function disseQueEstava(memoriaId: string, usuario: Usuario): Promise<boolean> {
+  return Boolean(await db().prepare(`SELECT 1 AS ok FROM reacoes WHERE memoria_id = ? AND pessoa = ? AND simbolo = 'estava' LIMIT 1`).bind(memoriaId, usuario.pessoa).first());
+}
+
+/** A ficha de uma memória como ela está, para salvar com uma mudança só (aceitar sugestão, entrar em Quem estava). */
+export function fichaComoEsta(m: Memoria): DadosDaMemoria {
+  return {
+    titulo: m.titulo,
+    ano: m.ano,
+    mes: m.mes ?? undefined,
+    dia: m.dia ?? undefined,
+    aproximada: m.aproximada,
+    tipo: m.tipo,
+    tipoOutro: m.tipoOutro ?? undefined,
+    lugar: m.lugar ?? undefined,
+    visibilidade: m.visibilidade,
+    situacao: m.situacao,
+    nucleos: m.nucleos,
+    integrantes: m.integrantes,
+    fotos: m.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
+  };
+}
+
+// --- Transcrição automática (onda 2; regras em src/lib/transcricao.ts) ---
+
+/** Um áudio que a pessoa pode transcrever: o que ela enviou, ainda solto ou num relato que ela registrou. */
+export async function audioParaTranscrever(id: number, usuario: Usuario): Promise<{ id: number; chave: string; tipo: string; tamanho: number; duracao: number | null } | undefined> {
+  const a = await db()
+    .prepare(
+      `SELECT a.id, a.chave, a.tipo, a.tamanho, a.duracao FROM audios a LEFT JOIN relatos r ON r.id = a.relato_id
+       WHERE a.id = ?1 AND a.removido_em IS NULL AND ((a.relato_id IS NULL AND a.enviado_por = ?2) OR r.registrado_por = ?2)`,
+    )
+    .bind(id, usuario.pessoa)
+    .first<{ id: number; chave: string; tipo: string; tamanho: number; duracao: number | null }>();
+  return a ?? undefined;
+}
+
+
+// --- Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026; migração 102-excluir-pessoa) ---
+// A pessoa excluída vai para a lixeira: some do site na hora (listarIntegrantes, os laços e
+// pessoasQueONaoVe deixam de vê-la), e as linhas dela ficam no banco, para restaurar devolver tudo.
+
+/** Quem está na lixeira. */
+export async function idsDasPessoasExcluidas(): Promise<Set<string>> {
+  const { results } = await db().prepare('SELECT id FROM integrantes WHERE excluida_em IS NOT NULL').all<{ id: string }>();
+  return new Set(results.map((r: { id: string }) => r.id));
+}
+
+export interface PessoaExcluida {
+  id: string;
+  nome: string;
+  tipo: 'pessoa' | 'bicho';
+  excluidaEm: string;
+  excluidaPor: string | null;
+}
+
+/** Quem está na lixeira, das excluídas mais recentes para as mais antigas. */
+export async function listarPessoasExcluidas(): Promise<PessoaExcluida[]> {
+  const { results } = await db()
+    .prepare('SELECT id, nome, tipo, excluida_em, excluida_por FROM integrantes WHERE excluida_em IS NOT NULL ORDER BY excluida_em DESC, nome')
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    nome: r.nome as string,
+    tipo: r.tipo as 'pessoa' | 'bicho',
+    excluidaEm: r.excluida_em as string,
+    excluidaPor: (r.excluida_por as string | null) ?? null,
+  }));
+}
+
+/** O nome de quem está na lixeira, para o relato que ela escreveu continuar assinado. */
+export async function nomesDasPessoasExcluidas(): Promise<Map<string, string>> {
+  return new Map((await listarPessoasExcluidas()).map((p) => [p.id, p.nome]));
+}
+
+/**
+ * Manda a pessoa para a lixeira. O pedido aberto para ela fica resolvido como excluída. Devolve false
+ * quando ela já estava na lixeira ou não existe.
+ */
+export async function excluirPessoa(id: string, usuario: Usuario): Promise<boolean> {
+  const [feito] = await db().batch([
+    db().prepare(`UPDATE integrantes SET excluida_em = datetime('now'), excluida_por = ? WHERE id = ? AND excluida_em IS NULL`).bind(usuario.pessoa, id),
+    db()
+      .prepare(`UPDATE pedidos_de_exclusao SET resolvido_em = datetime('now'), resolvido_por = ?, resposta = 'excluida' WHERE pessoa_id = ? AND resolvido_em IS NULL`)
+      .bind(usuario.pessoa, id),
+  ]);
+  return Boolean(feito.meta?.changes);
+}
+
+/** Tira a pessoa da lixeira: ela volta com tudo, os laços, "quem estava" e os relatos. */
+export async function restaurarPessoa(id: string): Promise<boolean> {
+  const feito = await db().prepare('UPDATE integrantes SET excluida_em = NULL, excluida_por = NULL WHERE id = ? AND excluida_em IS NOT NULL').bind(id).run();
+  return Boolean(feito.meta?.changes);
+}
+
+export interface PedidoDeExclusao {
+  id: number;
+  pessoa: string;
+  pedidoPor: string;
+  motivo: string | null;
+  criadoEm: string;
+}
+
+/** Os pedidos abertos, dos mais antigos aos mais novos. Só de quem ainda não está na lixeira. */
+export async function listarPedidosDeExclusao(): Promise<PedidoDeExclusao[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT p.id, p.pessoa_id, p.pedido_por, p.motivo, p.criado_em FROM pedidos_de_exclusao p
+       JOIN integrantes i ON i.id = p.pessoa_id AND i.excluida_em IS NULL
+       WHERE p.resolvido_em IS NULL ORDER BY p.criado_em, p.id`,
+    )
+    .all<Record<string, unknown>>();
+  return results.map((r: Record<string, unknown>) => ({
+    id: r.id as number,
+    pessoa: r.pessoa_id as string,
+    pedidoPor: r.pedido_por as string,
+    motivo: (r.motivo as string | null) ?? null,
+    criadoEm: r.criado_em as string,
+  }));
+}
+
+/** O pedido aberto para essa pessoa, se houver. */
+export async function pedidoAbertoDeExclusao(pessoa: string): Promise<PedidoDeExclusao | undefined> {
+  return (await listarPedidosDeExclusao()).find((p) => p.pessoa === pessoa);
+}
+
+/** Pede a exclusão. Um pedido aberto por pessoa: o segundo não entra. Devolve se entrou. */
+export async function pedirExclusao(pessoa: string, motivo: string | null, usuario: Usuario): Promise<boolean> {
+  const feito = await db()
+    .prepare('INSERT OR IGNORE INTO pedidos_de_exclusao (pessoa_id, pedido_por, motivo) VALUES (?, ?, ?)')
+    .bind(pessoa, usuario.pessoa, motivo || null)
+    .run();
+  return Boolean(feito.meta?.changes);
+}
+
+/** Recusa o pedido aberto: a pessoa continua no acervo. */
+export async function recusarPedidoDeExclusao(id: number, usuario: Usuario): Promise<boolean> {
+  const feito = await db()
+    .prepare(`UPDATE pedidos_de_exclusao SET resolvido_em = datetime('now'), resolvido_por = ?, resposta = 'recusado' WHERE id = ? AND resolvido_em IS NULL`)
+    .bind(usuario.pessoa, id)
+    .run();
+  return Boolean(feito.meta?.changes);
+}
+
+
+// --- O relato como conversa (migração 103-mensagens-do-relato; regras em src/lib/conversa.ts) ---
+
+function lerMensagem(r: Record<string, unknown>): Mensagem & { id: number; relatoId: number; enviadaEm: string } {
+  return {
+    id: r.id as number,
+    relatoId: r.relato_id as number,
+    tipo: r.tipo as Mensagem['tipo'],
+    ...(r.texto != null ? { texto: r.texto as string } : {}),
+    ...(r.audio_id != null ? { audioId: r.audio_id as number } : {}),
+    ...(r.foto_id != null ? { fotoId: r.foto_id as number } : {}),
+    citaId: (r.cita_id as number | null) ?? null,
+    enviadaEm: r.enviada_em as string,
+  };
+}
+
+/** As mensagens gravadas de cada relato, na ordem. Relato sem nenhuma fica de fora (vale a derivada). */
+export async function listarMensagensGravadas(relatoIds: number[]): Promise<Map<number, ReturnType<typeof lerMensagem>[]>> {
+  const mapa = new Map<number, ReturnType<typeof lerMensagem>[]>();
+  if (!relatoIds.length) return mapa;
+  const { results } = await db()
+    .prepare(`SELECT * FROM relato_mensagens WHERE relato_id IN (${relatoIds.map(() => '?').join(', ')}) ORDER BY relato_id, ordem, id`)
+    .bind(...relatoIds)
+    .all<Record<string, unknown>>();
+  for (const r of results.map(lerMensagem)) mapa.set(r.relatoId, [...(mapa.get(r.relatoId) ?? []), r]);
+  return mapa;
+}
+
+/**
+ * As mensagens que valem para cada relato (mensagensDoRelato): as gravadas, sem o áudio ou a foto que
+ * saiu, ou as derivadas do relato de antes da conversa. Só com os áudios e as fotos que ainda são dele.
+ */
+export async function listarMensagensDosRelatos(relatos: Pick<Relato, 'id' | 'texto'>[]): Promise<Map<number, Mensagem[]>> {
+  const ids = relatos.map((r) => r.id);
+  const [gravadas, audios, fotos] = await Promise.all([
+    listarMensagensGravadas(ids),
+    listarAudiosDosRelatos(ids),
+    ids.length
+      ? db()
+          .prepare(`SELECT id, relato_id FROM fotos WHERE removida_em IS NULL AND relato_id IN (${ids.map(() => '?').join(', ')}) ORDER BY memoria_id IS NULL, ordem, id`)
+          .bind(...ids)
+          .all<{ id: number; relato_id: number }>()
+      : Promise.resolve({ results: [] as { id: number; relato_id: number }[] }),
+  ]);
+  const fotosDe = new Map<number, number[]>();
+  for (const f of fotos.results as { id: number; relato_id: number }[]) fotosDe.set(f.relato_id, [...(fotosDe.get(f.relato_id) ?? []), f.id]);
+  return new Map(
+    relatos.map((r) => [r.id, mensagensDoRelato(gravadas.get(r.id) ?? [], r.texto, (audios.get(r.id) ?? []).map((a) => a.id), fotosDe.get(r.id) ?? [])]),
+  );
+}
+
+/**
+ * Grava as mensagens do relato, na ordem dada. A que tem id e é deste relato é atualizada no lugar
+ * (guarda a hora em que foi enviada e o id, para quem a cita); a nova entra com a hora de agora; a que
+ * saiu da lista é apagada. Devolve as mensagens gravadas, com os ids.
+ */
+export async function gravarMensagens(relatoId: number, mensagens: Mensagem[]): Promise<Mensagem[]> {
+  const antes = (await listarMensagensGravadas([relatoId])).get(relatoId) ?? [];
+  const deste = new Set(antes.map((m) => m.id));
+  const ficam = new Set(mensagens.filter((m) => m.id !== undefined && deste.has(m.id)).map((m) => m.id));
+  const comandos = [
+    ...antes.filter((m) => !ficam.has(m.id)).map((m) => db().prepare('DELETE FROM relato_mensagens WHERE id = ?').bind(m.id)),
+    ...mensagens.map((m, ordem) =>
+      m.id !== undefined && deste.has(m.id)
+        ? db()
+            .prepare('UPDATE relato_mensagens SET ordem = ?, tipo = ?, texto = ?, audio_id = ?, foto_id = ?, cita_id = ? WHERE id = ? AND relato_id = ?')
+            .bind(ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null, m.id, relatoId)
+        : db()
+            .prepare('INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto, audio_id, foto_id, cita_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .bind(relatoId, ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null),
+    ),
+  ];
+  if (comandos.length) await db().batch(comandos);
+  return (await listarMensagensGravadas([relatoId])).get(relatoId) ?? [];
+}
+
+/** Uma mensagem gravada, com a memória e o relato dela, para conferir uma citação. */
+export async function obterMensagem(id: number): Promise<(Mensagem & { relatoId: number; memoriaId: string; por: string; registradoPor: string; soParaNucleos: string[] | null; situacao: string }) | undefined> {
+  const r = await db()
+    .prepare(
+      `SELECT m.*, r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos, r.situacao FROM relato_mensagens m JOIN relatos r ON r.id = m.relato_id WHERE m.id = ?`,
+    )
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!r) return undefined;
+  return {
+    ...lerMensagem(r),
+    memoriaId: r.memoria_id as string,
+    por: r.por as string,
+    registradoPor: r.registrado_por as string,
+    soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) ?? null,
+    situacao: r.situacao as string,
+  };
 }

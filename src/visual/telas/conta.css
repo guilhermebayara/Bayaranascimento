@@ -1,10 +1,12 @@
 /*
- * Sua conta (proposta A do conceito da sessão E, escolha do Gui de 17/11/2026). No celular, em
- * ordem: quem é, o que criou, avisos, rascunhos, laços, a carta de Natal e, no fim, a administração.
- * No desktop, para quem administra, o cartão da administração ao lado do nome, com a carta no pé da
- * coluna do nome; "O que você criou" numa faixa de largura toda, sem cartão, entre dois fios; depois
- * os avisos, e rascunhos e laços lado a lado. Quem não administra vê o nome na largura toda e a faixa
- * logo abaixo. Papel tingido na cor da família de quem vê; o cartão vem de painel.css.
+ * Sua conta (proposta A do conceito da sessão E, escolha do Gui de 17/11/2026), igual para todos. No
+ * celular, em ordem: quem é, o que criou, avisos, rascunhos, laços e a carta de Natal. No desktop, o
+ * nome na largura toda; "O que você criou" numa faixa de largura toda, sem cartão, entre dois fios;
+ * depois os avisos, e rascunhos e laços lado a lado. Papel tingido na cor da família de quem vê; o
+ * cartão vem de painel.css.
+ *
+ * Também a página da Administração (/admin), que saiu daqui (decisão do Gui, 18/11/2026): o cartão dos
+ * atalhos continua com as classes conta__, e a página tem o título à esquerda e o cartão à direita.
  */
 
 .conta {
@@ -25,7 +27,10 @@
 .conta__quem h1 {
   margin-top: var(--e-2);
   margin-left: -0.04em;
-  overflow-wrap: anywhere;
+  /* O nome quebra entre as palavras, nunca no meio de uma ("Guilher / me"); só um nome que não cabe
+     inteiro numa linha quebra dentro dele (observação do Gui, 18/11/2026) */
+  overflow-wrap: break-word;
+  text-wrap: balance;
 }
 /* Os dados da pessoa, numa linha em mono abaixo do nome (resposta do Gui à P149, 17/11/2026) */
 .conta__dados {
@@ -87,12 +92,16 @@
 .conta__grade > * {
   min-width: 0;
 }
-/* A marcação já vem na ordem do celular: a carta e, no fim, a administração */
+/* A marcação já vem na ordem do celular: a carta no fim */
 .conta__grade > .conta__carta {
   margin-top: var(--e-5);
 }
-.conta__grade > .conta__admin {
-  margin-top: var(--e-6);
+/* O atalho para a Administração, para quem administra: o link e, ao lado, as pendências */
+.conta__administra {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-1) var(--e-3);
 }
 
 .conta .cartao {
@@ -238,14 +247,18 @@
   gap: var(--e-2) var(--e-5);
 }
 
-/* --- O cartão da administração ------------------------------------------------------------------ */
+/* --- O cartão da administração ------------------------------------------------------------------
+   Proposta A do conceito da sessão H (escolha do Gui, 18/11/2026): cada grupo é uma linha com o nome em
+   serifa e um resumo à direita, que abre e fecha, uma por vez, como no painel da árvore. O espaço e as
+   cópias são o quarto grupo. No alto, "Tudo em dia" ou o sinal das pendências, que abre um balão por cima. */
 
-.conta__admin-titulo {
+.conta__admin-alto {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--e-1) var(--e-4);
+  min-height: var(--toque);
   margin-bottom: var(--e-3);
   color: var(--tinta-suave);
 }
@@ -268,38 +281,146 @@
   border-radius: 50%;
   background: var(--alerta);
 }
-.conta__soltas {
+/* O sinal das pendências: um botão que abre o balão por cima do cartão */
+.conta__sinal {
+  position: relative;
+}
+.conta__sinal > summary {
+  align-items: center;
+  min-height: var(--toque);
+  margin-right: calc(var(--e-3) * -1);
+  padding-inline: var(--e-3);
+  border-radius: var(--raio-pilula);
+  list-style: none;
+  cursor: pointer;
+}
+.conta__sinal > summary::-webkit-details-marker {
+  display: none;
+}
+.conta__sinal > summary::after {
+  content: '';
+  width: 0.45em;
+  height: 0.45em;
+  margin-left: 0.2em;
+  border-right: var(--traco) solid currentColor;
+  border-bottom: var(--traco) solid currentColor;
+  rotate: 45deg;
+  translate: 0 -0.15em;
+}
+.conta__sinal[open] > summary {
+  background: var(--papel-recuo);
+}
+@media (hover: hover) {
+  .conta__sinal > summary:hover {
+    background: var(--papel-recuo);
+  }
+}
+.conta__sinal > summary:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+}
+.conta__balao {
+  position: absolute;
+  top: calc(100% + var(--e-2));
+  right: calc(var(--e-3) * -1);
+  z-index: 6;
+  display: grid;
+  gap: var(--e-2);
+  width: min(22rem, 80vw);
+  padding: var(--e-4) var(--e-5);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+  color: var(--tinta);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .conta__sinal[open] .conta__balao {
+    animation: reacoes-aparece var(--tempo-curto) var(--curva);
+  }
+}
+.conta__balao li + li {
+  border-top: 1px solid var(--fio);
+}
+.conta__balao .menu-acoes__item {
   display: grid;
   gap: var(--e-1);
-  margin-bottom: var(--e-3);
+  padding: var(--e-3) 0;
+  border-radius: 0;
+  white-space: normal;
 }
-/* Os atalhos: quadros recuados numa grade que nunca deixa um sozinho na linha. O número de colunas
-   vem de colunasDosAtalhos (src/lib/conta.ts); os da última linha se esticam até fechar a grade. */
-.conta__atalhos {
-  --colunas: var(--colunas-celular, 2);
+.conta__balao strong {
+  font-weight: 550;
+  line-height: 1.25;
+}
+@media (hover: hover) {
+  .conta__balao .menu-acoes__item:hover {
+    background: none;
+  }
+  .conta__balao .menu-acoes__item:hover strong {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
+}
+/* Cada grupo: uma linha que abre e fecha, entre fios */
+.conta__grupo {
+  border-top: 1px solid var(--fio);
+}
+.conta__grupo:last-child {
+  border-bottom: 1px solid var(--fio);
+}
+.conta__grupo > summary {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--e-2);
+  align-items: center;
+  gap: var(--e-3);
+  min-height: calc(var(--toque) + var(--e-3));
+  list-style: none;
+  cursor: pointer;
 }
-.conta__atalhos[data-colunas-celular='1'] {
-  --colunas-celular: 1;
+.conta__grupo > summary::-webkit-details-marker {
+  display: none;
 }
-.conta__atalhos[data-colunas-celular='2'] {
-  --colunas-celular: 2;
+.conta__grupo-nome {
+  flex: 1;
+  font-family: var(--serifa);
+  font-size: var(--t-abertura);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  line-height: 1.15;
 }
-.conta__atalhos > li {
-  flex: 1 1 calc((100% - (var(--colunas) - 1) * var(--e-2)) / var(--colunas));
-  min-width: 0;
+.conta__grupo > summary .ficha.suave {
+  color: var(--tinta-suave);
+}
+.conta__grupo > summary::after {
+  content: '';
+  flex: none;
+  width: 0.7em;
+  height: 0.7em;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% var(--traco) no-repeat,
+    linear-gradient(currentColor, currentColor) center / var(--traco) 100% no-repeat;
+  transition: rotate var(--tempo-medio) var(--curva);
+}
+.conta__grupo[open] > summary::after {
+  rotate: 45deg;
+}
+.conta__grupo > summary:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: -3px;
+}
+.conta__grupo > ul,
+.conta__grupo > .conta__banco {
+  padding-bottom: var(--e-5);
 }
 .conta__atalho {
-  display: grid;
-  gap: 0.1em;
-  align-content: center;
-  height: 100%;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--e-3);
   min-height: var(--toque);
-  padding: var(--e-3);
-  border-radius: var(--raio-moldura);
-  background: var(--papel-recuo);
+  padding-block: var(--e-2);
+  border-top: 1px solid var(--fio);
   text-decoration: none;
 }
 .conta__atalho strong {
@@ -320,13 +441,35 @@
   outline: var(--traco) solid var(--tinta);
   outline-offset: 2px;
 }
-/* O banco como medida, a cópia mensal e "Baixar cópia do acervo" junto (P153) */
+/* O banco como medida, a cópia mensal e "Baixar cópia do acervo" junto (P153). As duas medidas ficam
+   lado a lado a partir de 40rem; a cópia mensal e os links de baixar, numa linha embaixo. */
 .conta__banco {
   display: grid;
+  gap: var(--e-4);
+}
+.conta__medidores {
+  display: grid;
+  /* Cada medida é um grupo (o nome, a barra e a nota juntos, a --e-2); entre um grupo e outro, o dobro */
+  gap: var(--e-4) var(--e-6);
+}
+@media (min-width: 40rem) {
+  .conta__medidores {
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  }
+  /* Lado a lado, as duas medidas têm a mesma cara: o nome e, embaixo, o valor */
+  .conta__medidores .conta__banco-linha {
+    flex-direction: column;
+  }
+}
+.conta__copias {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-5);
+}
+.conta__medidor {
+  display: grid;
   gap: var(--e-2);
-  margin-top: var(--e-5);
-  padding-top: var(--e-3);
-  border-top: 1px solid var(--fio);
 }
 .conta__banco-linha {
   display: flex;
@@ -353,10 +496,10 @@
   border-radius: inherit;
   background: var(--vivo);
 }
-.conta__banco--aviso .conta__medida span {
+.conta__medidor--aviso .conta__medida span {
   background: var(--alerta);
 }
-.conta__banco--aviso .conta__banco-linha .ficha {
+.conta__medidor--aviso .conta__banco-linha .ficha {
   color: var(--alerta-tinta);
 }
 .conta__nota {
@@ -368,8 +511,8 @@
 .conta__nota.conta__pendente {
   color: var(--alerta-tinta);
 }
-.conta__banco .acao {
-  justify-self: start;
+.conta__copias .acao {
+  min-height: var(--toque);
 }
 
 @media (min-width: 62rem) {
@@ -380,18 +523,32 @@
     grid-template-columns: clamp(9rem, 14vw, 15rem) minmax(0, 1fr);
     gap: var(--calha);
   }
-  /* Rascunhos e laços lado a lado; o nome, a faixa e os avisos na largura toda */
+  /* O nome cabe na coluna: o tamanho de título é o teto, e a palavra mais longa do nome (--letras, posto
+     pela página) manda abaixo dele, para caber inteira na largura da coluna. "Guilherme Bayara", ao lado
+     da administração, ocupava três linhas enormes (observação do Gui, 18/11/2026); "Gui" continua do
+     tamanho de sempre. Cada letra da serifa de capa ocupa perto de meia altura de letra. */
+  .conta__quem {
+    container-type: inline-size;
+  }
+  .conta__quem h1 {
+    font-size: min(var(--t-titulo-1), calc(100cqi / (var(--letras, 6) * 0.52)));
+  }
+  /* O nome e a faixa na largura toda; os avisos e, embaixo deles, os rascunhos numa coluna, e os laços
+     ao lado dos dois. Na largura toda, os avisos deixavam vazio demais com poucos itens (observação do
+     Gui, 18/11/2026). "dense" põe os laços na linha dos avisos, embora venham depois dos rascunhos. */
   .conta__grade {
     grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-flow: row dense;
     gap: var(--calha);
     align-items: start;
   }
-  .conta__grade > :is(.conta__abre, .conta__criou, .avisos--conta, .conta__carta) {
+  .conta__grade > :is(.conta__abre, .conta__criou, .conta__carta) {
     grid-column: 1 / -1;
   }
-  /* Quem não administra: a carta fica no fim, como no celular; quem administra: no pé da coluna do nome */
-  .conta--admin .conta__grade > .conta__carta {
-    margin-top: 0;
+  /* Os avisos vêm dentro da região que troca no lugar (Avisos.astro): a região não tem caixa, mas o
+     seletor de filho olha a marcação, e por isso passa por ela */
+  .conta__grade > .regiao > .avisos--conta {
+    grid-column: 1 / span 7;
   }
   .conta__criou {
     margin-block: var(--e-5) 0;
@@ -401,34 +558,7 @@
   }
   .conta__lacos {
     grid-column: 8 / -1;
-  }
-  /* Quem administra: o cartão ao lado do nome, na mesma linha. O nome fica no alto e a carta de
-     Natal no pé da coluna, alinhada com o fim do cartão: não sobra vão acima da faixa. */
-  .conta--admin .conta__grade > .conta__abre {
-    grid-column: 1 / span 6;
-    grid-row: 1;
-  }
-  .conta--admin .conta__grade > .conta__carta {
-    grid-column: 1 / span 6;
-    grid-row: 2;
-    align-self: end;
-  }
-  .conta__grade > .conta__admin {
-    grid-column: 7 / -1;
-    grid-row: 1 / span 2;
-    margin-top: 0;
-  }
-  .conta__atalhos {
-    --colunas: var(--colunas-largo, 3);
-  }
-  .conta__atalhos[data-colunas='1'] {
-    --colunas-largo: 1;
-  }
-  .conta__atalhos[data-colunas='2'] {
-    --colunas-largo: 2;
-  }
-  .conta__atalhos[data-colunas='3'] {
-    --colunas-largo: 3;
+    grid-row: span 2;
   }
   /* As contas numa linha só, em colunas iguais. A lista aberta sai da coluna dela e toma a largura
      do cartão: recua as colunas que vêm antes (--i) e soma as que existem (--n). */
@@ -489,5 +619,39 @@
   }
   .criado__lista .conta__lista li:nth-child(n + 3) {
     border-top: 1px solid var(--fio);
+  }
+}
+
+/* --- A página da Administração (/admin) ----------------------------------------------------------
+   No celular, o título e, embaixo, o cartão. No computador, o título à esquerda, em cinco das doze
+   colunas, e o cartão à direita, nas outras sete. */
+
+.admin {
+  display: grid;
+  gap: var(--e-6);
+  padding-block: var(--e-6) var(--e-8);
+}
+.admin__abre {
+  container-type: inline-size;
+}
+/* O título cabe na coluna, como o nome em "Sua conta": o tamanho de título é o teto, e as 13 letras de
+   "Administração" mandam abaixo dele. Cada letra da serifa de capa ocupa perto de meia altura de letra. */
+.admin__abre h1 {
+  margin-top: var(--e-2);
+  margin-left: -0.04em;
+  font-size: min(var(--t-titulo-1), calc(100cqi / (13 * 0.52)));
+}
+@media (min-width: 62rem) {
+  .admin {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--calha);
+    align-items: start;
+    padding-top: var(--e-8);
+  }
+  .admin__abre {
+    grid-column: 1 / span 5;
+  }
+  .admin__cartao {
+    grid-column: 6 / -1;
   }
 }

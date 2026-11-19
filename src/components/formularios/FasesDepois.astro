@@ -1,0 +1,105 @@
+---
+// "Adicionar o que aconteceu depois", no cadastro e na edição do casal (decisão do Gui, 18/11/2026: é o
+// padrão de casal no site inteiro). No lugar de "Já terminou" e da separação solta na lista de fases, uma
+// ação que acrescenta uma linha com o que aconteceu (a fase) e quando (ano, mês e dia, como as outras
+// datas do site). Cada linha tem "Tirar esta linha". Até quatro linhas por vez.
+//
+// Os nomes dos campos seguem o formulário em que a peça está (src/lib/fases-do-formulario.ts):
+// - no cadastro, linhas paralelas (faseTipo, faseInicioAno, faseInicioMes, faseInicioDia), depois da
+//   primeira fase;
+// - na edição, numeradas a partir de `numerada` (fase-3-tipo, fase-3-inicioAno...), depois das que o
+//   casal já tem.
+// Linha sem "o que aconteceu" é ignorada. Sem script, aparecem as duas primeiras linhas, vazias, e a ação
+// some. O título é de seção pequena, como "Quem vê".
+import CampoData from '../CampoData.astro';
+import { FASES, type TipoDeFase } from '../../lib/parentesco';
+
+interface Props {
+  /** prefixo dos ids, único na página */
+  id: string;
+  /** id do rótulo de "Como estão hoje?", que passa a "Como estavam?" quando há uma fase depois */
+  rotuloDaPrimeira?: string;
+  /** na edição: o número da primeira fase nova (quantas o casal já tem) */
+  numerada?: number;
+}
+const { id, rotuloDaPrimeira, numerada } = Astro.props;
+const fases = Object.entries(FASES) as [TipoDeFase, string][];
+const LINHAS = 4;
+const tipo = (n: number) => (numerada === undefined ? 'faseTipo' : `fase-${numerada + n}-tipo`);
+const inicio = (n: number) => (numerada === undefined ? 'faseInicio' : `fase-${numerada + n}-inicio`);
+---
+
+<div class="fases-depois" data-fases-depois data-rotulo-da-primeira={rotuloDaPrimeira}>
+  {
+    Array.from({ length: LINHAS }, (_, n) => (
+      <fieldset class="fases-depois__linha" data-fase-depois hidden={n > 1 ? true : undefined}>
+        <legend class="rotulo suave">{n === 0 ? 'Depois' : 'E depois'}</legend>
+        <label class="campo">
+          <span>O que aconteceu</span>
+          <select name={tipo(n)} data-tipo-da-fase>
+            <option value="">Escolha</option>
+            {fases.map(([valor, rotulo]) => <option value={valor}>{rotulo}</option>)}
+          </select>
+        </label>
+        <CampoData prefixo={inicio(n)} id={`${id}-${n}-inicio`} rotuloAno="Quando" />
+        <button type="button" class="acao acao--quieta fases-depois__tirar" data-tirar-fase hidden>Tirar esta linha</button>
+      </fieldset>
+    ))
+  }
+  <button type="button" class="acao fases-depois__mais" data-mais-uma-fase hidden>Adicionar o que aconteceu depois</button>
+</div>
+
+<script>
+  // Com script, as linhas nascem escondidas: "Adicionar o que aconteceu depois" mostra uma por vez, e
+  // "Tirar esta linha" esvazia e esconde. Com uma fase depois, a primeira pergunta deixa de ser "Como estão
+  // hoje?" e vira "Como estavam?"
+  for (const caixa of document.querySelectorAll<HTMLElement>('[data-fases-depois]')) {
+    const linhas = [...caixa.querySelectorAll<HTMLElement>('[data-fase-depois]')];
+    const mais = caixa.querySelector<HTMLButtonElement>('[data-mais-uma-fase]')!;
+    const rotulo = document.getElementById(caixa.dataset.rotuloDaPrimeira ?? '');
+    const hoje = rotulo?.textContent ?? '';
+    const esvaziar = (linha: HTMLElement) => {
+      for (const campo of linha.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) {
+        campo.value = '';
+        campo.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    };
+    const atualizar = () => {
+      mais.hidden = linhas.every((l) => !l.hidden);
+      const temDepois = linhas.some((l) => !l.hidden && l.querySelector<HTMLSelectElement>('[data-tipo-da-fase]')!.value);
+      if (rotulo) rotulo.textContent = temDepois ? 'Como estavam?' : hoje;
+      caixa.dispatchEvent(new CustomEvent('fases-depois', { bubbles: true }));
+    };
+    const campos = (linha: HTMLElement) => [...linha.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')];
+    for (const linha of linhas) {
+      linha.hidden = !linha.querySelector<HTMLSelectElement>('[data-tipo-da-fase]')!.value;
+      const tirar = linha.querySelector<HTMLButtonElement>('[data-tirar-fase]')!;
+      tirar.hidden = false;
+      tirar.addEventListener('click', () => {
+        // As de baixo sobem uma linha, e a última à vista se esvazia e some: a ordem do que foi escrito fica
+        const visiveis = linhas.filter((l) => !l.hidden);
+        for (let i = visiveis.indexOf(linha); i < visiveis.length - 1; i++) {
+          const [daqui, dali] = [campos(visiveis[i]), campos(visiveis[i + 1])];
+          daqui.forEach((campo, n) => {
+            campo.value = dali[n].value;
+            campo.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+        }
+        const ultima = visiveis[visiveis.length - 1];
+        esvaziar(ultima);
+        ultima.hidden = true;
+        atualizar();
+        (linha.hidden ? mais : linha.querySelector<HTMLSelectElement>('[data-tipo-da-fase]')!).focus();
+      });
+    }
+    mais.addEventListener('click', () => {
+      const proxima = linhas.find((l) => l.hidden);
+      if (!proxima) return;
+      proxima.hidden = false;
+      proxima.querySelector<HTMLSelectElement>('[data-tipo-da-fase]')!.focus();
+      atualizar();
+    });
+    caixa.addEventListener('change', atualizar);
+    atualizar();
+  }
+</script>

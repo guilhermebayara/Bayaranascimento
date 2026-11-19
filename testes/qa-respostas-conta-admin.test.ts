@@ -1,4 +1,4 @@
-// Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md),
+// Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026 (docs/historico/qa/2026-11-17-perguntas.md),
 // nas telas da conta, da lixeira, da administração, do sistema visual e da página não encontrada.
 import { describe, expect, it } from 'vitest';
 import { LIMITE_DA_LISTA, administracao, fraseDaLixeira, oComeco } from '../src/lib/conta';
@@ -56,9 +56,10 @@ describe('sua conta', () => {
     const itens = administracao({ admin: true }, { podeEspelhar: true });
     expect(itens.map((i) => i.rotulo)).toContain('Famílias');
     expect(itens.filter((i) => i.baixar).map((i) => i.rotulo)).toEqual(['Baixar cópia do acervo']);
-    expect(conta).toContain('conta.administracao.filter((item) => !item.baixar)');
-    // Desde a proposta A da sessão E, a cópia fica no pé do cartão, junto da medida do banco
-    expect(conta).toMatch(/class:list=\{\['conta__banco'[\s\S]*?\{conta\.banco\}[\s\S]*?download/);
+    // A Administração tem página própria desde 18/11/2026; a cópia continua no pé do cartão, junto da medida do banco
+    const admin = ler('src/pages/admin/index.astro');
+    expect(admin).toContain('adm.administracao.filter((item) => !item.baixar)');
+    expect(admin).toMatch(/class="conta__banco"[\s\S]*?\{adm\.banco\}[\s\S]*?download/);
   });
 });
 

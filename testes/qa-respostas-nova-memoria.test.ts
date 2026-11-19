@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, nas telas "Nova memória"
-// (P126 a P146) e "Meu relato" (P147). As perguntas estão em docs/qa/2026-11-17-perguntas.md.
+// (P126 a P146) e "Meu relato" (P147). As perguntas estão em docs/historico/qa/2026-11-17-perguntas.md.
 import { describe, expect, it } from 'vitest';
 import { SEM_ANO, SEM_DATA, dataNaFrase, formatarData, problemaNoAno } from '../src/lib/datas';
 import { carimboDaData } from '../src/lib/visual';
@@ -97,19 +97,21 @@ describe('a zona de perigo quieta', () => {
 
 describe('P137 e P147: o relato', () => {
   it('"Quem está contando" fica numa linha recolhida, depois do texto, na memória nova e no relato', () => {
-    for (const [tela, campo] of [[nova, 'name="relato"'], [relato, 'name="texto"']] as const) {
+    // O relato como conversa: a linha vem depois da janela de escrever
+    for (const tela of [nova, relato]) {
       const linha = tela.indexOf('<summary>Estou escrevendo por outra pessoa</summary>');
-      expect(linha).toBeGreaterThan(tela.indexOf(`<textarea ${campo}`));
+      expect(linha).toBeGreaterThan(tela.indexOf('<Janela modo='));
       expect(tela.slice(linha, linha + 400)).toMatch(/<span>Quem está contando<\/span>\s*<select name="(relatoPor|por)"/);
     }
   });
   it('fechar a linha volta para quem está escrevendo', () => {
     expect(nova).toMatch(/relatoPor\.selectedIndex = 0;\s*relatoPor\.dispatchEvent\(new Event\('change', \{ bubbles: true \}\)\);/);
-    expect(relato).toMatch(/quem\.selectedIndex = 0;\s*quem\.dispatchEvent\(new Event\('change', \{ bubbles: true \}\)\);/);
+    // No relato, trocar quem conta abre o relato daquela pessoa; fechar a linha volta para quem escreve
+    expect(relato).toMatch(/if \(!linha\.open && select\.selectedIndex !== 0\) \{\s*select\.selectedIndex = 0;\s*quemConta\.requestSubmit\(\);/);
   });
   it('o relato tem o caminho de volta sem salvar, ao lado do botão', () => {
-    const acoes = relato.slice(relato.indexOf('<div class="acoes">'), relato.indexOf('</form>'));
-    expect(acoes).toMatch(/<a class="botao botao--leve" href=\{`\/memorias\/\$\{memoria\.id\}`\}>Voltar para a memória<\/a>/);
+    const acoes = relato.slice(relato.indexOf('<p class="relato-conversa__acoes">'), relato.indexOf('</Janela>'));
+    expect(acoes).toContain('Voltar para a memória');
   });
 });
 

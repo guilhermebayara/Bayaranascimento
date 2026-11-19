@@ -3,6 +3,8 @@
 // A regra de "quem vê" existe também em SQL, em repositorio.ts (FILTRO_VISIVEL):
 // as duas precisam mudar juntas.
 import { ehEpoca, podeVerCapitulo, type Capitulo, type ModoDoFormulario } from '../capitulos';
+import { casalDesfeito, ehEx } from '../ex-casal';
+import type { Casal } from '../parentesco';
 
 export interface Usuario {
   /** id do integrante, ex.: "giovanna" */
@@ -268,7 +270,55 @@ export function veORelato(
   naoVe: ReadonlySet<string>,
 ): boolean {
   if (relato.registradoPor === usuario.pessoa) return true;
-  return !naoVe.has(relato.por) && estaNoPublicoDoRelato(relato, usuario);
+  // Quem está na lixeira (excluir pessoa) some do site, mas o relato que ela escreveu fica, com o nome
+  const naLixeira = excluidasDe(naoVe).has(relato.por);
+  return (naLixeira || !naoVe.has(relato.por)) && estaNoPublicoDoRelato(relato, usuario);
+}
+
+// --- Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026) ---
+
+const EXCLUIDAS = Symbol('excluidas');
+type ComExcluidas = ReadonlySet<string> & { [EXCLUIDAS]?: ReadonlySet<string> };
+
+/**
+ * Marca, no conjunto de quem a pessoa logada não vê, quem está ali por estar na lixeira. Para as telas,
+ * as duas coisas são iguais (a pessoa some); só o relato distingue: o de quem está na lixeira fica.
+ */
+export function comExcluidas<T extends Set<string>>(naoVe: T, excluidas: ReadonlySet<string>): T {
+  Object.defineProperty(naoVe, EXCLUIDAS, { value: excluidas, enumerable: false });
+  return naoVe;
+}
+export const excluidasDe = (naoVe: ReadonlySet<string>): ReadonlySet<string> => (naoVe as ComExcluidas)[EXCLUIDAS] ?? new Set();
+
+/** A pessoa que alguém quer excluir: quem acessa o site não sai por aqui, nem a própria pessoa. */
+export interface AlvoDaExclusao {
+  id: string;
+  /** a pessoa entra no site (está no segredo ACESSOS) */
+  acessa: boolean;
+}
+
+/**
+ * Excluir uma pessoa: só os administradores. Ela vai para a lixeira, some do site e volta por "Restaurar".
+ * Ninguém exclui a si mesmo nem quem acessa o site: a pessoa perderia a própria página.
+ */
+export function podeExcluirPessoa(usuario: Usuario, alvo: AlvoDaExclusao): Decisao {
+  if (alvo.id === usuario.pessoa) return nao('Você não pode excluir a sua própria página.');
+  if (alvo.acessa) return nao('Quem entra no site não pode ser excluído: a pessoa perderia a própria página.');
+  if (!usuario.admin) return nao('Só os administradores excluem uma pessoa. Você pode pedir a exclusão.');
+  return sim;
+}
+
+/** Pedir a exclusão: quem não administra, nas mesmas condições. Um administrador aprova ou recusa. */
+export function podePedirExclusao(usuario: Usuario, alvo: AlvoDaExclusao): Decisao {
+  if (alvo.id === usuario.pessoa) return nao('Você não pode pedir para excluir a sua própria página.');
+  if (alvo.acessa) return nao('Quem entra no site não pode ser excluído: a pessoa perderia a própria página.');
+  if (usuario.admin) return nao('Quem administra exclui direto, sem pedir.');
+  return sim;
+}
+
+/** Restaurar uma pessoa da lixeira, aprovar ou recusar um pedido: só os administradores. */
+export function podeCuidarDaExclusao(usuario: Usuario): Decisao {
+  return usuario.admin ? sim : nao('Só os administradores cuidam das pessoas na lixeira e dos pedidos de exclusão.');
 }
 
 // --- Ampliar quem vê uma memória com relatos (decisão do Gui, 17/11/2026) ---
@@ -350,5 +400,90 @@ export function podeSalvarCapitulo(usuario: Usuario, atual: CapituloParaPermissa
     if (!editar.ok) return editar;
   }
   if (escolha === 'epoca' && !usuario.admin) return nao(atual ? 'Só os administradores transformam um capítulo em época.' : 'Só os administradores criam uma época.');
+  return sim;
+}
+
+// --- Ex-casal: quem vê e como aparece para mim (decisões do Gui, 18/11/2026; src/lib/ex-casal.ts) ---
+
+/**
+ * Mudar quem vê um casal desfeito: as duas pessoas do casal. Quando nenhuma das duas acessa o site (o
+ * casal dos avós, por exemplo), vale a regra dos laços de árvore, que quem chama confere. Num casal
+ * junto, quem vê continua com a regra dos laços.
+ */
+export function podeMudarQuemVeOCasal(usuario: Usuario, casal: Pick<Casal, 'a' | 'b' | 'fases'>, comAcesso: ReadonlySet<string>): Decisao {
+  if (!casalDesfeito(casal as Casal)) return sim;
+  if (casal.a === usuario.pessoa || casal.b === usuario.pessoa) return sim;
+  if (!comAcesso.has(casal.a) && !comAcesso.has(casal.b)) return sim;
+  return nao('Só as duas pessoas do casal mudam quem vê este laço.');
+}
+
+/** Escolher como o ex aparece para mim: só quem é uma das duas pessoas de um casal desfeito, e só para si. */
+export function podeEscolherComoOExAparece(usuario: Usuario, casal: Pick<Casal, 'a' | 'b' | 'fases'>): Decisao {
+  if (casal.a !== usuario.pessoa && casal.b !== usuario.pessoa) return nao('Casal não encontrado.');
+  if (!ehEx(casal as Casal)) return nao('Só dá para escolher como alguém aparece para você depois que o casal terminou.');
+  return sim;
+}
+
+// --- Apagar de vez o que está na lixeira (decisão do Gui, 17/11/2026, onda 2) ---
+
+/**
+ * Apagar de vez: só os administradores, item a item, e só o que já está na lixeira e que eles veem ali
+ * (quem chama acha o item pela lixeira de quem pede). Nada some sozinho.
+ */
+export function podeApagarDeVez(usuario: Usuario, item: { naLixeira: boolean }): Decisao {
+  if (!usuario.admin) return nao('Só os administradores apagam de vez o que está na lixeira.');
+  if (!item.naLixeira) return nao('Só dá para apagar de vez o que já está na lixeira.');
+  return sim;
+}
+
+/** Apagar uma foto que ficou sem memória há mais de 30 dias: só os administradores (onda 2). */
+export function podeApagarFotoSolta(usuario: Usuario): Decisao {
+  return usuario.admin ? sim : nao('Só os administradores apagam fotos sem memória.');
+}
+
+/** Os ajustes do acervo (os centros da árvore): só os administradores (onda 2, 17/11/2026). */
+export function podeMudarAjustes(usuario: Usuario): Decisao {
+  return usuario.admin ? sim : nao('Só os administradores mudam os ajustes do acervo.');
+}
+
+// --- Juntar cadastros duplicados (onda 2, decisão do Gui de 17/11/2026) ---
+
+/**
+ * Juntar duas fichas da mesma pessoa: só os administradores, e só fichas que eles veem (quem chama acha as
+ * duas na lista de quem vê). A ficha de quem acessa o site é sempre a que fica: o login aponta para ela.
+ */
+export function podeJuntarCadastros(usuario: Usuario, fica: string, sai: string, comAcesso: ReadonlySet<string>): Decisao {
+  if (!usuario.admin) return nao('Só os administradores juntam cadastros.');
+  if (fica === sai) return nao('Escolha duas fichas diferentes.');
+  if (comAcesso.has(sai)) return nao(comAcesso.has(fica) ? 'As duas fichas são de quem acessa o site: não dá para juntar.' : 'A ficha de quem acessa o site é a que fica.');
+  return sim;
+}
+
+// --- Sugestão de correção (onda 2, decisão do Gui de 17/11/2026; src/lib/sugestoes.ts) ---
+
+/**
+ * Sugerir uma correção dos dados: quem vê a memória publicada, menos quem a criou (ela mesma corrige). A
+ * sugestão vai para quem criou.
+ */
+export function podeSugerirDados(usuario: Usuario, m: AcessoDaMemoria): Decisao {
+  if (!podeVerMemoria(usuario, m) || m.situacao !== 'publicada') return nao('Memória não encontrada.');
+  if (m.criadaPor === usuario.pessoa) return nao('Você criou esta memória: corrija direto em “Corrigir esta memória”.');
+  return sim;
+}
+
+/** Deixar um recado sobre um relato: quem vê o relato publicado, menos quem o registrou. */
+export function podeDeixarRecado(usuario: Usuario, relato: { registradoPor: string; situacao: string }, veORelatoAgora: boolean): Decisao {
+  if (!veORelatoAgora || relato.situacao !== 'publicada') return nao('Relato não encontrado.');
+  if (relato.registradoPor === usuario.pessoa) return nao('O relato é seu: mude direto em “Editar meu relato”.');
+  return sim;
+}
+
+/**
+ * Responder uma sugestão (aceitar, recusar, responder): só quem a recebeu (`recebem`, de `destinatarios`,
+ * em src/lib/sugestoes.ts), e só enquanto está aberta. O primeiro que responde resolve para todos.
+ */
+export function podeResponderSugestao(usuario: Usuario, s: { situacao: string }, recebem: readonly string[]): Decisao {
+  if (!recebem.includes(usuario.pessoa)) return nao('Sugestão não encontrada.');
+  if (s.situacao !== 'aberta') return nao('Esta sugestão já foi respondida.');
   return sim;
 }

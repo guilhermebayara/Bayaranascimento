@@ -42,8 +42,8 @@ const temas = await listarTemasVisiveis(usuario);
 const temasDoCapitulo = (c?.temas ?? []).map((id) => temas.find((t) => t.id === id)?.nome).filter(Boolean).join(', ');
 const modo = modoNoFormulario(c);
 const datas = [
-  { prefixo: 'inicio', rotulo: 'Começou em', mes: 'Mês em que começou', data: c?.inicio, obrigatorio: true },
-  { prefixo: 'fim', rotulo: 'Terminou em', mes: 'Mês em que terminou', data: c?.fim, obrigatorio: false },
+  { prefixo: 'inicio', rotulo: 'Começou em', mes: 'Mês em que começou', dia: 'Dia em que começou', data: c?.inicio, obrigatorio: true },
+  { prefixo: 'fim', rotulo: 'Terminou em', mes: 'Mês em que terminou', dia: 'Dia em que terminou', data: c?.fim, obrigatorio: false },
 ];
 ---
 
@@ -95,16 +95,21 @@ const datas = [
               <label for={`campo-${d.prefixo}`}>
                 {d.rotulo} {!d.obrigatorio && <small>(deixe vazio se ainda não acabou)</small>}
               </label>
-              <CampoAno id={`campo-${d.prefixo}`} nome={`${d.prefixo}Ano`} valor={d.data?.ano} obrigatorioNaEpoca={d.obrigatorio}>
-                {/* O mês com o mesmo rótulo e o mesmo "Não sei" da data da memória (P77) */}
-                <label class="campo passo-ano__mes">
+              <CampoAno id={`campo-${d.prefixo}`} nome={`${d.prefixo}Ano`} valor={d.data?.ano} obrigatorioNaEpoca={d.obrigatorio} />
+              {/* O mês e o dia opcionais, como nas outras datas do site (CampoData; pedido do Gui, 18/11/2026) */}
+              <div class="campos-data campos-data--dois">
+                <label class="campo">
                   <span>Mês, se souber</span>
                   <select name={`${d.prefixo}Mes`} aria-label={d.mes}>
                     <option value="">Não sei</option>
                     {MESES.map((m, n) => <option value={n + 1} selected={d.data?.mes === n + 1}>{m}</option>)}
                   </select>
                 </label>
-              </CampoAno>
+                <label class="campo">
+                  <span>Dia, se souber</span>
+                  <input type="number" name={`${d.prefixo}Dia`} aria-label={d.dia} inputmode="numeric" min="1" max="31" value={d.data?.dia ?? ''} />
+                </label>
+              </div>
             </div>
           ))
         }
@@ -206,6 +211,7 @@ const datas = [
 </form>
 
 <script>
+  import { ligarDatas } from '../lib/cliente/datas';
   import { ligarCamposDeAno, montarEtapas } from '../lib/cliente/etapas';
   import { ligarQuemEstava } from '../lib/cliente/quem-estava';
 
@@ -229,6 +235,11 @@ const datas = [
     const quemE = form.querySelector<HTMLElement>('[data-quem-estava]');
     if (quemE) ligarQuemEstava(quemE);
     ligarCamposDeAno(form);
+    // O dia que não existe (31 de fevereiro, dia sem mês) é avisado na hora, como nas outras datas
+    ligarDatas(form, [
+      { ano: 'inicioAno', mes: 'inicioMes', dia: 'inicioDia' },
+      { ano: 'fimAno', mes: 'fimMes', dia: 'fimDia' },
+    ]);
     montarEtapas(form);
   }
 </script>

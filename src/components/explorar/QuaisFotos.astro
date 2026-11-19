@@ -1,0 +1,29 @@
+---
+// A escolha do mural (pedido do Gui, 18/11/2026): só a foto-chave de cada memória (as capas) ou todas
+// as fotos. É o mesmo seletor da "Forma de ver": dois links que trocam no lugar, sem recarregar a
+// página (explorar-troca.ts), e que funcionam sem script. Vale em todo mural do site: quem usa só diz
+// o endereço de cada escolha.
+import { FOTOS_DO_MURAL, NOMES_DAS_FOTOS_DO_MURAL, type FotosDoMural } from '../../lib/explorar';
+
+interface Props {
+  /** a escolha em uso */
+  atual: FotosDoMural;
+  /** o endereço da página com cada escolha */
+  endereco: (fotos: FotosDoMural) => string;
+}
+
+const { atual, endereco } = Astro.props;
+---
+
+<div class="controle controle--fotos">
+  <p class="controle__nome rotulo suave" id="controle-quais-fotos">Mostrar</p>
+  <nav class="linha__opcoes linha__opcoes--duas" aria-labelledby="controle-quais-fotos">
+    {
+      FOTOS_DO_MURAL.map((f) => (
+        <a href={endereco(f)} data-opcao={f} aria-current={f === atual ? 'page' : undefined}>
+          {NOMES_DAS_FOTOS_DO_MURAL[f]}
+        </a>
+      ))
+    }
+  </nav>
+</div>

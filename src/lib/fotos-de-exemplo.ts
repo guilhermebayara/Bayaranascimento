@@ -87,3 +87,20 @@ export function paraLimpar(objetos: { key: string; uploaded: Date }[], agora: Da
     .filter((o) => o.uploaded.getTime() < limite)
     .map((o) => o.key);
 }
+
+/**
+ * Os retratos da homologação que precisam voltar a ser de exemplo (defeito visto pelo Gui depois da
+ * sessão H, 18/11/2026): o espelho da sessão G levou os retratos reais e, sem eles na cópia, deixou as
+ * pessoas sem retrato. Na homologação, todo retrato é uma das fotos do Chico e da Karol, sorteada pelo id
+ * como no espelho (retratoDeExemplo). Devolve só quem muda.
+ */
+export function retratosDeExemploParaHomologacao(
+  integrantes: { id: string; retrato: string | null; tratamento: string | null; tipo: string }[],
+): { id: string; retrato: string }[] {
+  return integrantes
+    .filter((i) => !i.retrato || !ehChaveDeExemplo(i.retrato))
+    .map((i) => {
+      const tratamento = i.tratamento === 'ela' || i.tratamento === 'ele' ? i.tratamento : null;
+      return { id: i.id, retrato: retratoDeExemplo(i.id, tratamento, i.tipo === 'bicho') };
+    });
+}

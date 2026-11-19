@@ -1,7 +1,7 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, na lista de Pessoas e na
-// página da pessoa (P98 a P108 de docs/qa/2026-11-17-perguntas.md).
+// página da pessoa (P98 a P108 de docs/historico/qa/2026-11-17-perguntas.md).
 import { describe, expect, it } from 'vitest';
-import { enderecoDePessoas, familiaPedida, gruposDaFamilia, ordemPedida, ordenarPessoas, type PessoaDaLista } from '../src/lib/ordem-das-pessoas';
+import { apelidoAoLado, buscaAcha, enderecoDePessoas, familiaPedida, gruposDaFamilia, nomeComApelido, ordemPedida, ordenarPessoas, type PessoaDaLista } from '../src/lib/ordem-das-pessoas';
 import { calcularGeracoes } from '../src/lib/parentesco';
 import { vidaSemRotulo } from '../src/lib/datas';
 
@@ -160,48 +160,38 @@ describe('Pessoas na proposta B (escolha do Gui no conceito da sessão E, 17/11/
 });
 
 describe('a página da pessoa', () => {
-  const pagina = ler('src/pages/pessoas/[id]/index.astro');
-  const css = semComentario(ler('src/visual/telas/pessoa.css'));
-  const celular = css.slice(0, css.indexOf('@media (min-width: 40rem)'));
-  const alto = pagina.slice(pagina.indexOf('<header class="quem-e bloco">'), pagina.indexOf('</header>', pagina.indexOf('<header class="quem-e bloco">')));
+  // A página foi refeita do zero na sessão L (proposta A, "o verbete", escolha do Gui de 18/11/2026). As
+  // respostas P102 a P107 viraram: os áudios em "Nas palavras de" e no "No acervo" do quadro; os laços
+  // quietos no fim, sempre à vista; o retrato no quadro ao lado, na cor da família
+  const pagina = (ler('src/pages/pessoas/[id]/index.astro') + ler('src/lib/servidor/pagina-da-pessoa.ts'));
+  const alto = pagina.slice(pagina.indexOf('<header class="verbete__abre">'), pagina.indexOf('</header>', pagina.indexOf('<header class="verbete__abre">')));
 
-  it('o atalho da voz só aparece, e só conta, com os áudios que quem olha pode ouvir (P102)', () => {
-    // A conta e a lista de baixo saem da mesma consulta, que já filtra pelo que a pessoa vê
-    expect(pagina).toMatch(/const audiosDaPessoa = await listarAudiosDe\(usuario, pessoa\.id\);/);
-    expect(alto).toMatch(/\{audiosDaPessoa\.length > 0 && \(\s*<p class="quem-e__voz">\s*<a class="acao" href="#audios">\s*Ouvir a voz de \{chamar\} · \{plural\(audiosDaPessoa\.length, 'áudio', 'áudios'\)\}/);
-    expect(pagina).toMatch(/<section class="voz__audios" id="audios"/);
+  it('os áudios só aparecem, e só contam, os que quem olha pode ouvir (P102)', () => {
+    // A conta do quadro e a lista de "Nas palavras de" saem da mesma consulta, que já filtra pelo que a pessoa vê
+    expect(pagina).toMatch(/const audios = \(await listarAudiosDe\(usuario, pessoa\.id\)\)/);
+    // Os áudios são mensagens dos relatos dela, em "Nas palavras de", e o quadro conta quantos são
+    expect(pagina).toMatch(/<strong>\{p\.audios\.length\}<\/strong>/);
+    expect(pagina).toMatch(/<ol class="palavras__relatos" id="audios">/);
+    expect(pagina).toMatch(/<Mensagem mensagem=\{m\} de=\{chamar\} \/>/);
     const consulta = ler('src/lib/servidor/repositorio.ts');
-    const audios = consulta.slice(consulta.indexOf('export async function listarAudiosDe'), consulta.indexOf('// --- Tamanho do banco'));
+    const audios = consulta.slice(consulta.indexOf('export async function listarAudiosDe'), consulta.indexOf('export async function listarRelatosDe'));
     expect(audios).toMatch(/a\.removido_em IS NULL AND r\.por = \?2 AND r\.situacao = 'publicada' AND m\.situacao = 'publicada' AND \$\{FILTRO_VISIVEL\}/);
+    // Os relatos dela passam pela mesma regra
+    const relatos = consulta.slice(consulta.indexOf('export async function listarRelatosDe'), consulta.indexOf('// --- Tamanho do banco'));
+    expect(relatos).toMatch(/r\.por = \?2 AND r\.situacao = 'publicada' AND m\.situacao = 'publicada' AND \$\{FILTRO_VISIVEL\}/);
+    expect(relatos).toMatch(/\.filter\(\(r: Relato\) => veORelato\(r, usuario, naoVe\)\)/);
   });
-  it('no celular os laços ficam fechados numa linha, que abre no lugar; sem script, ficam abertos (P103)', () => {
-    expect(pagina).toMatch(/<button class="lacos__abre" type="button" aria-expanded="false" aria-controls="lista-de-lacos" hidden>\s*Família e laços · \{plural\(genteNosLacos, 'pessoa', 'pessoas'\)\}/);
-    expect(pagina).toMatch(/lacos\.setAttribute\('data-recolhe', ''\);/);
-    expect(celular).toMatch(/\.lacos\[data-recolhe\]:not\(\[data-aberta\]\) \.lacos__grupos \{\s*display: none;/);
-    // Sem o atributo que o script põe, nada some
-    expect(celular).not.toMatch(/\n\.lacos__grupos \{[^}]*display: none/);
-    // Fora do celular, a lista fica sempre à vista e o botão não aparece
-    const computador = css.slice(css.indexOf('@media (min-width: 40rem)'), css.indexOf('@media (min-width: 62rem)'));
-    expect(computador).toMatch(/\.lacos\[data-recolhe\]:not\(\[data-aberta\]\) \.lacos__grupos \{\s*display: grid;/);
-    expect(computador).toMatch(/\.lacos \.lacos__abre \{\s*display: none;/);
-  });
-  it('o botão cheio é a memória nova; editar e a árvore são texto (P104)', () => {
-    const acoes = alto.slice(alto.indexOf('<p class="quem-e__acoes">'));
+  it('o botão cheio é a memória nova; editar é texto, e a árvore mora no quadro (P104)', () => {
+    const acoes = alto.slice(alto.indexOf('<p class="verbete__acoes">'));
     expect(acoes.match(/class="botao"/g)).toHaveLength(1);
-    expect(acoes).toMatch(/<a class="botao" href=\{`\/nova\?com=\$\{pessoa\.id\}`\}>\s*Nova memória com \{comQuem\}/);
+    expect(acoes).toMatch(/<a class="botao" href=\{`\/nova\?com=\$\{pessoa\.id\}`\}>\s*Nova memória com \{p\.comQuem\}/);
     expect(acoes).toMatch(/<a class="acao" href=\{`\/pessoas\/\$\{pessoa\.id\}\/editar`\}>/);
     expect(acoes.indexOf('class="botao"')).toBeLessThan(acoes.indexOf('/editar'));
   });
-  it('o retrato ocupa três colunas no celular e fica na margem da página em toda largura (P105 e P106)', () => {
-    expect(celular).toMatch(/\.quem-e \.quem-e__retrato \{\s*grid-column: 1 \/ span 3;/);
-    const colunas = [...css.matchAll(/\.quem-e \.quem-e__retrato \{\s*grid-column: (\d+) \//g)].map((m) => m[1]);
-    expect(colunas.length).toBeGreaterThanOrEqual(2);
-    expect(new Set(colunas)).toEqual(new Set(['1']));
-  });
   it('a própria página diz "você", tem "Nova memória com você" e leva a "Sua conta" (P107)', () => {
-    expect(alto).toMatch(/<Carimbo itens=\{\[ehMinha && 'Você', especie, dosNucleos\.join\(' e '\), vida\]\} \/>/);
-    expect(pagina).toMatch(/const comQuem = ehMinha \? 'você' : chamar;/);
-    expect(alto).toMatch(/\{ehMinha && \(\s*<a class="acao acao--quieta" href="\/conta">\s*Sua conta/);
+    expect(alto).toMatch(/<Carimbo itens=\{\[p\.ehMinha && 'Você', p\.especie\]\} \/>/);
+    expect(pagina).toMatch(/comQuem: ehMinha \? 'você' : chamar,/);
+    expect(alto).toMatch(/\{p\.ehMinha && \(\s*<a class="acao acao--quieta" href="\/conta">\s*Sua conta/);
   });
   it('o nascimento entra no carimbo, sem rótulo (P108)', () => {
     expect(pagina).not.toMatch(/datasDeVida|quem-e__vida/);
@@ -217,5 +207,37 @@ describe('a página da pessoa', () => {
     expect(vidaSemRotulo({ nascimentoAno: null, falecimentoAno: 2010 }, true)).toBe('até 2010');
     expect(vida({})).toBe('');
     expect(vida({ nascimentoAno: 1942 })).not.toMatch(/Nascimento|:/);
+  });
+});
+
+// "Nome (apelido)" na lista de Pessoas (decisão do Gui, 18/11/2026, depois da sessão H)
+describe('a lista de Pessoas com o apelido ao lado do nome', () => {
+  it('"Alexsander (Lugh)"; sem apelido, só o nome; apelido igual ao nome não se repete', () => {
+    expect(nomeComApelido('Alexsander', 'Lugh')).toBe('Alexsander (Lugh)');
+    expect(nomeComApelido('Alexsander', null)).toBe('Alexsander');
+    expect(nomeComApelido('Alexsander', '  ')).toBe('Alexsander');
+    expect(nomeComApelido('Alexsander', 'alexsander')).toBe('Alexsander');
+    expect(nomeComApelido('Vó Bela', 'Vo bela')).toBe('Vó Bela');
+    expect(apelidoAoLado('Elizete', 'Tia Zete')).toBe('Tia Zete');
+    expect(apelidoAoLado('Elizete', 'Elizete')).toBeNull();
+  });
+  it('a busca acha pelo nome e pelo apelido, sem acento e sem caixa', () => {
+    expect(buscaAcha('lugh', 'Alexsander', 'Lugh')).toBe(true);
+    expect(buscaAcha('ALEX', 'Alexsander', 'Lugh')).toBe(true);
+    expect(buscaAcha('vo', 'Isabela', 'Vó Bela')).toBe(true);
+    expect(buscaAcha('zete', 'Elizete', null)).toBe(true);
+    expect(buscaAcha('lugh', 'Alexsander', null)).toBe(false);
+    // A busca do navegador procura no texto da opção, que é o nome com o apelido
+    expect(ler('src/lib/cliente/busca-pessoa.ts')).toContain('simples(o.texto).includes(t)');
+  });
+  it('a página usa o apelido que quem olha vê, nas linhas e na busca', () => {
+    const pagina = ler('src/pages/pessoas/index.astro');
+    expect(pagina).toContain('<option value={p.id}>{nomeComApelido(p.nome, p.apelido)}</option>');
+    expect(pagina).toContain('apelido={apelidoAoLado(p.nome, p.apelido)}');
+    // O apelido de quem olha chega em `apelido`: listarIntegrantes troca o da família pelo seu
+    expect(ler('src/lib/servidor/repositorio.ts')).toContain('apelido: meus?.get(i.id as string) ?? (i.apelido as string | null),');
+    expect(pagina).toContain('listarIntegrantesQueVe(usuario)');
+    // O retrato continua com as iniciais do nome, e o apelido fica ao lado, na mesma linha
+    expect(ler('src/components/visual/Gente.astro')).toContain('<Retrato nome={nome}');
   });
 });

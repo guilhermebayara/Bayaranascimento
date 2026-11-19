@@ -1,5 +1,5 @@
 // Regras que nasceram das respostas do Gui ao QA de design e ao QA de código de 17/11/2026, nas telas
-// do Explorar (docs/qa/2026-11-17-perguntas.md, P32 a P50, e o C3 do modo TV sem rede).
+// do Explorar (docs/historico/qa/2026-11-17-perguntas.md, P32 a P50, e o C3 do modo TV sem rede).
 import { describe, expect, it } from 'vitest';
 import {
   AVISO_SEM_REDE,

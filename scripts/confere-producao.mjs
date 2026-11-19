@@ -23,8 +23,14 @@
 // 8. As telas do conceito da revisão visual (/conceito) trazem dados fixos de exemplo.
 //    Só respondem onde há acervo de exemplo: na produção e na homologação, 404.
 // 9. A página do sistema: fora das prévias de teste, só os administradores, sem ler o acervo.
-// 10. Nenhum arquivo é apagado do bucket das fotos de verdade: só a limpeza do bucket de teste apaga,
+// 10. Nenhum arquivo é apagado do bucket das fotos de verdade: só a limpeza do bucket de teste apaga, e a
+//    foto sem memória há mais de 30 dias, que um administrador apaga em src/pages/api/fotos-soltas.ts,
 //    e o banco e o bucket são escolhidos só em ambiente.ts.
+// 11. O espelho da homologação leva a família de verdade (decisão do Gui, 18/11/2026): nomes, datas e
+//    laços passam; memórias, relatos, textos, retratos e fotos nunca passam. O espelho só lê da cópia as
+//    tabelas da família, o "Sobre" sai vazio, e só a homologação (ou o computador) grava o espelho.
+//    Nenhum arquivo da produção chega à homologação: o retrato é uma foto de exemplo, a cópia não lê o
+//    bucket e o espelho não grava em bucket nenhum.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
@@ -189,6 +195,7 @@ if (existsSync('src/pages/sistema.astro')) {
   }
 }
 
+const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';
 // 10. Nada se apaga do bucket das fotos de verdade: excluir nunca apaga na hora (docs/decisoes.md,
 // "Princípios"). O único lugar que apaga arquivo é a limpeza de 7 dias, e só no bucket de teste, por
 // bucketDeTesteParaGravar(), que recusa a produção e a homologação. A escolha do banco e do bucket
@@ -204,9 +211,49 @@ if (existsSync('src/pages/sistema.astro')) {
     for (const uso of texto.matchAll(/([\w.]*bucket\w*(?:\(\))?)\??\.delete\(/gi)) {
       const quem = uso[1];
       const doTeste = quem === 'bucketDeTesteParaGravar()' || (quem === 'bucket' && /const bucket = bucketDeTesteParaGravar\(\);/.test(texto) && !/\bbucket = (?!bucketDeTesteParaGravar)/.test(texto));
-      if (!doTeste) falhar(`${arquivo}: ${quem}.delete(...) apagaria arquivos. Só a limpeza do bucket de teste apaga, por bucketDeTesteParaGravar().`);
+      // A única exceção (onda 2): a foto sem memória há mais de 30 dias, que um administrador apaga em
+      // Administração. Só nesta rota, uma vez, e só a chave conferida de novo no banco por obterFotoSolta.
+      const fotoSolta =
+        arquivo === ROTA_DAS_FOTOS_SOLTAS &&
+        uso[0] === 'bucketDeFotos().delete(' &&
+        (texto.match(/\.delete\(/g) ?? []).length === 1 &&
+        /const foto = await obterFotoSolta\(/.test(texto) &&
+        /podeApagarFotoSolta\(locals\.usuario\)/.test(texto) &&
+        /await bucketDeFotos\(\)\.delete\(foto\.chave\);/.test(texto);
+      if (!doTeste && !fotoSolta) falhar(`${arquivo}: ${quem}.delete(...) apagaria arquivos. Só a limpeza do bucket de teste apaga, por bucketDeTesteParaGravar(), e a foto sem memória, por ${ROTA_DAS_FOTOS_SOLTAS}.`);
     }
   }
+}
+
+// 10b. A foto sem memória que a rota acima apaga: nunca uma de exemplo (as prévias dividem os 11
+// arquivos), nunca uma presa a memória ou relato, e só depois de 30 dias.
+{
+  const repo = readFileSync('src/lib/servidor/repositorio.ts', 'utf8');
+  const regra = /const FOTO_SOLTA = `([\s\S]*?)`;/.exec(repo)?.[1] ?? '';
+  if (!/export const DIAS_DA_FOTO_SOLTA = 30;/.test(repo) || !regra.includes("f.chave NOT LIKE 'exemplos/%'") || !regra.includes('f.memoria_id IS NULL') || !regra.includes('f.relato_id IS NULL') || !regra.includes("datetime('now', '-${DIAS_DA_FOTO_SOLTA} days')")) {
+    falhar('src/lib/servidor/repositorio.ts: FOTO_SOLTA precisa deixar de fora as fotos de exemplo e as presas a memória ou relato, e esperar 30 dias.');
+  }
+}
+
+// 11. O espelho: só as tabelas da família passam, e o que alguém escreveu nunca
+{
+  const espelho = readFileSync('src/lib/espelho.ts', 'utf8');
+  const PODE_LER = new Set(['integrantes', 'nucleo_membros', 'filiacoes', 'casais', 'casal_nucleos', 'casal_fases', 'lacos_coracao', 'lacos_resumidos']);
+  const lidas = [...espelho.matchAll(/\bt\('(\w+)'\)/g)].map((m) => m[1]);
+  for (const tabela of lidas) if (!PODE_LER.has(tabela)) falhar(`src/lib/espelho.ts: o espelho lê "${tabela}" da cópia; só as tabelas da família passam (nomes, retratos e laços).`);
+  if (/copia\.tabelas\[(?!nome\])|copia\.tabelas\./.test(espelho)) falhar('src/lib/espelho.ts: a cópia só é lida pela função t(), para a guarda ver cada tabela lida.');
+  if (!/\n      sobre: null,\n/.test(espelho)) falhar('src/lib/espelho.ts: o "Sobre" de cada pessoa é texto escrito e não passa para a homologação (sobre: null).');
+  const servidor = readFileSync('src/lib/servidor/espelho.ts', 'utf8');
+  if (!servidor.includes("if (!podeEspelhar()) throw new Error('O espelho só pode ser gravado na homologação.');") || !servidor.includes('return ehHomologacao() || import.meta.env.DEV;')) {
+    falhar('src/lib/servidor/espelho.ts: o espelho só é gravado na homologação ou no computador.');
+  }
+  // Nenhum arquivo da produção chega à homologação (observação do Gui, 18/11/2026)
+  const soCodigo = (texto) => texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  if (!/\n      retrato: retratoDeExemplo\(String\(p\.id\), tratamento, bicho\),\n/.test(espelho) || /p\.retrato|copia\.retratos|base64/.test(soCodigo(espelho))) {
+    falhar('src/lib/espelho.ts: o retrato de cada pessoa no espelho é uma foto de exemplo (retratoDeExemplo); o retrato de verdade não é lido.');
+  }
+  if (/bucket|\.put\(/i.test(soCodigo(servidor))) falhar('src/lib/servidor/espelho.ts: o espelho grava só o banco; nenhum arquivo vai para o bucket da homologação.');
+  if (/bucket/i.test(soCodigo(readFileSync('src/lib/servidor/copia.ts', 'utf8')))) falhar('src/lib/servidor/copia.ts: a cópia do acervo leva só o banco; ela não lê fotos nem retratos do bucket.');
 }
 
 // 6. Migrações que apagariam dados por cascata

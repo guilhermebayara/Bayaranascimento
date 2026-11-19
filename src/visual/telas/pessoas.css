@@ -153,7 +153,7 @@
 }
 .pessoas-pagina__escolhas {
   display: grid;
-  gap: var(--e-5);
+  gap: var(--e-6);
 }
 .pessoas-pagina__controles[data-recolhe] .pessoas-pagina__escolhas {
   padding-top: var(--e-4);
@@ -162,6 +162,10 @@
 .pessoas-pagina__ordem {
   display: grid;
   gap: var(--e-1);
+}
+/* As opções da ordem são links com a altura do toque: o respiro do toque já afasta do rótulo */
+.pessoas-pagina__ordem {
+  gap: 0;
 }
 /* A ordem da lista: por geração ou de A a Z. A que está valendo fica em tinta, sem sublinhado. */
 .pessoas-pagina__opcoes {

@@ -1,4 +1,5 @@
 // O visual novo (docs/visual.md): as funções puras das telas do conceito e as regras do CSS novo.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   CORES,
@@ -171,7 +172,8 @@ describe('conceito', () => {
     // Decisão do Gui, 16/11/2026. Tudo sai de listarMemorias, que só devolve o que a pessoa pode ver:
     // a página não busca memória por outro caminho nem confere a família de quem olha.
     const pagina = tela('pages/explorar.astro');
-    expect(pagina).toContain('listarMemorias(usuario)');
+    // O rascunho de quem escreveu entra na linha do tempo e na lista (QA de 18/11/2026)
+    expect(pagina).toContain('listarMemorias(usuario, { comRascunhos: true })');
     expect(pagina).toMatch(/const contexto = await contextoDoExplorar\(usuario, todas\);\s*const resultado = explorar\(todas, filtros, contexto\);/);
     expect(pagina).not.toMatch(/usuario\.nucleos\.includes|obterMemoria/);
     // O mural, o modo TV e o sorteio usam o mesmo resultado, sem os rascunhos
@@ -201,7 +203,7 @@ describe('conceito', () => {
   });
 
   it('o painel é só de quem olha: lê as regras de src/lib/painel.ts e só memória publicada', () => {
-    // docs/decisoes.md, "Painel pessoal como página inicial". A tela não refaz as regras.
+    // docs/decisoes.md, "Início (painel pessoal)". A tela não refaz as regras.
     const painel = tela('pages/index.astro');
     for (const regra of ['chegarAoPainel', 'novidades', 'aniversarios', 'memoriaParaContar', 'emOutrosAnos']) expect(painel).toContain(`${regra}(`);
     expect(painel).toContain('listarMemorias(usuario)');
@@ -215,19 +217,20 @@ describe('conceito', () => {
     expect(tela('components/Carta.astro')).toContain('saudacao(para)');
   });
 
-  it('a conta é montada por montarConta, e a administração só aparece com itens', () => {
+  it('a conta é montada por montarConta, e para quem administra só tem o atalho para a Administração', () => {
     const conta = tela('pages/conta.astro');
     expect(conta).toContain('await montarConta(usuario)');
-    expect(conta).toContain('const admin = conta.administracao.length > 0;');
-    expect(conta).toMatch(/\{\n\s*admin && \(\n\s*<section class="cartao conta__admin"/);
+    expect(conta).toContain('const admin = conta.administra;');
+    expect(conta).toMatch(/\{admin && \(\s*<span class="conta__administra">\s*<a class="acao" href=\{ENDERECO_DA_ADMINISTRACAO\}>/);
+    expect(conta).not.toContain('conta__admin"');
     expect(conta).not.toMatch(/usuario\.admin/);
     expect(conta).toMatch(/<Visual titulo="Sua conta" secao="conta" familia=\{cor\} intimo>/);
   });
 
   it('a página da pessoa só mostra retrato de quem a pessoa vê', () => {
-    const pessoa = tela('pessoas/[id]/index.astro');
+    const pessoa = tela('pessoas/[id]/index.astro') + readFileSync('src/lib/servidor/pagina-da-pessoa.ts', 'utf-8');
     expect(pessoa).toMatch(/retratoDe = \(id: string\) => \(achar\(id\)\?\.retrato && !naoVe\.has\(id\)/);
-    expect(pessoa).toContain('listarMemorias(usuario, { integrante: pessoa.id })');
+    expect(pessoa).toContain('listarMemorias(usuario, { integrante: pessoa.id, comRascunhos: true })');
   });
 
   it('o menu declara "Início", no computador e no celular', () => {
@@ -328,8 +331,9 @@ describe('conceito', () => {
     expect(pagina).toMatch(/<div data-explorar>/);
     expect(pagina).toMatch(/import \{ ligarTroca \} from '\.\.\/lib\/cliente\/explorar-troca';\s*ligarTroca\(\);/);
     const troca = Object.values(import.meta.glob<string>('../src/lib/cliente/explorar-troca.ts', { query: '?raw', import: 'default', eager: true }))[0]!;
-    // Cada item tem identidade própria, no mural e na linha do tempo
-    expect(tela('explorar/Mural.astro')).toMatch(/class="mural__foto"[^>]*data-chave=\{`m:\$\{m\.id\}`\} data-ano=\{m\.ano\}/);
+    // Cada item tem identidade própria, no mural e na linha do tempo. No mural, a capa é a memória
+    // (`m:`) e as outras fotos de "todas as fotos" têm a delas (`f:`)
+    expect(tela('explorar/Mural.astro')).toMatch(/class="mural__foto"[^>]*data-chave=\{n === 0 \? `m:\$\{m\.id\}` : `f:\$\{m\.id\}:\$\{n\}`\} data-ano=\{m\.ano\}/);
     expect(tela('explorar/Mural.astro')).toMatch(/class="mural__decada"[^>]*data-chave=\{`d:\$\{abreDecada\}`\}/);
     const linha = tela('explorar/Linha.astro');
     expect(linha).toMatch(/data-chave=\{`m:\$\{m\.id\}`\}\s*data-ano=\{m\.ano\}/);
@@ -445,8 +449,9 @@ describe('conceito', () => {
   it('no mural, quem está vendo escolhe o tamanho das fotos, e a escolha fica no endereço', () => {
     // Decisão do Gui, 17/11/2026
     const controles = tela('explorar/Controles.astro');
-    expect(controles).toMatch(/forma === 'mural' && \(\s*<div class="controles__tamanho">\s*<p class="rotulo suave" id="controle-tamanho">\s*Fotos\s*</);
-    expect(controles).toMatch(/enderecoDoExplorar\(filtros, forma, tamanhoNoEndereco\(t\)\)/);
+    expect(controles).toMatch(/forma === 'mural' && \(\s*<div class="controles__tamanho">\s*<div class="controle controle--tamanho">\s*<p class="rotulo suave" id="controle-tamanho">\s*Fotos\s*</);
+    // o tamanho leva junto a escolha de quais fotos, para o link sem script não a perder
+    expect(controles).toMatch(/enderecoDoExplorar\(filtros, forma, \{ \.\.\.tamanhoNoEndereco\(t\), \.\.\.fotosDoMuralNoEndereco\(fotos\) \}\)/);
     // O tamanho acompanha a troca de família e o formulário dos filtros
     expect(controles).toMatch(/<input type="hidden" name="tamanho"/);
     // Com script, o tamanho é preferência guardada no aparelho e não vai para o endereço
@@ -652,7 +657,7 @@ describe('grupo formularios', () => {
     for (const fim of ['FichaDoIntegrante.astro', 'CampoRetrato.astro']) expect(fonte(fim).replace(/^---[\s\S]*?^---/m, '').replace(/<script[\s\S]*?<\/script>/g, ''), fim).not.toMatch(/n[úu]cleo/i);
     expect(fonte('pessoas/[id]/editar.astro')).toContain('por quem é da mesma família que');
     expect(fonte('historico.astro')).toContain('Mudou fotos, famílias ou quem pode ver.');
-    expect(fonte('admin/espelho.astro')).toContain('e quem é de cada família.');
+    expect(fonte('admin/espelho.astro')).toContain('quem é de cada família,');
   });
 
   it('o estilo antigo saiu: nada usa o esqueleto, a abertura, o arquivo nem as variáveis dele', () => {
@@ -734,8 +739,9 @@ describe('ajustes: lista, formas de ver da pessoa, quem aparece e o link do tít
     // Um link de âncora na mesma página não é uma troca
     expect(troca).toMatch(/if \(endereco\.pathname \+ endereco\.search === ondeEstava\) return;/);
     const pessoa = fonte('pages/pessoas/[id]/index.astro');
-    expect(pessoa).toMatch(/<div data-explorar>/);
-    expect(pessoa).toMatch(/FORMAS_DA_PESSOA\.map\(\(f\) => \(\s*<a href=\{`\$\{enderecoDaPessoa\(pessoa\.id, f\)\}#memorias-com`\} data-opcao=\{f\}/);
+    // A página da pessoa (sessão L): a região da vida em memórias troca no lugar, pela idade, na linha do tempo e no mural
+    expect(pessoa).toMatch(/<section class:list=\{\['verbete__vida', `verbete__vida--\$\{forma\}`\]\} aria-labelledby="memorias-com" data-explorar>/);
+    expect(pessoa).toMatch(/FORMAS_DA_VIDA\.map\(\(f\) => \(\s*<a href=\{`\$\{enderecoDaVida\(pessoa\.id, f\)\}#memorias-com`\} data-opcao=\{f\}/);
     expect(pessoa).toMatch(/import \{ ligarTroca \} from '\.\.\/\.\.\/\.\.\/lib\/cliente\/explorar-troca';\s*ligarTroca\(\);/);
   });
 

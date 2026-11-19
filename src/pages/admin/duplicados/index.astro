@@ -1,0 +1,88 @@
+---
+// Possíveis cadastros duplicados (onda 2, decisão do Gui de 17/11/2026): só os administradores. Cada par
+// com o nome parecido leva à comparação, onde se escolhe o que fica de cada ficha. "Não são a mesma
+// pessoa" tira o par da lista. Dá também para juntar duas fichas quaisquer, escolhidas pelo nome.
+import Pagina from '../../../components/formularios/Pagina.astro';
+import Vazio from '../../../components/visual/Vazio.astro';
+import { AJUSTE_DOS_NAO_DUPLICADOS } from '../../../lib/juntar';
+import { possiveisDuplicados } from '../../../lib/nomes-parecidos';
+import { anosDeVida } from '../../../lib/datas';
+import { lerAjuste, listarIntegrantesQueVe } from '../../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
+
+const integrantes = await listarIntegrantesQueVe(usuario);
+const naoSao = await lerAjuste(AJUSTE_DOS_NAO_DUPLICADOS);
+const pares = possiveisDuplicados(integrantes, new Set(Array.isArray(naoSao) ? (naoSao as string[]) : []));
+const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+const quem = (i: (typeof integrantes)[number]) => [i.nome, i.apelido && i.apelido !== i.nome ? `“${i.apelido}”` : null, anosDeVida(i) || null].filter(Boolean).join(', ');
+---
+
+<Pagina titulo="Cadastros duplicados" rotulo="Administração" secao="administracao" larga>
+  <Fragment slot="abertura">
+    <p>Fichas com o nome parecido, que podem ser da mesma pessoa. Compare as duas e escolha o que fica de cada uma: tudo o que era da outra passa para a que fica, e as duas fichas de antes ficam no histórico.</p>
+    <p class="acoes">
+      <a class="acao" href="/admin">Voltar para a Administração</a>
+    </p>
+  </Fragment>
+
+  <section class="painel" data-regiao="duplicados">
+    <h2>Podem ser a mesma pessoa</h2>
+    {
+      pares.length === 0 ? (
+        <Vazio frase="Nenhum nome parecido no acervo." />
+      ) : (
+        <ul class="linhas linhas--com-acao">
+          {pares.map(([a, b]) => (
+            <li>
+              <div>
+                <strong>
+                  {a.nome} e {b.nome}
+                </strong>
+                <span>
+                  {quem(a)} · {quem(b)}
+                </span>
+              </div>
+              <div class="lixeira__acoes">
+                <a class="botao botao--leve" href={`/admin/duplicados/juntar?a=${encodeURIComponent(a.id)}&b=${encodeURIComponent(b.id)}`}>
+                  Comparar
+                </a>
+                {/* No lugar, sem recarregar: o par sai da lista, e a conta do retrato acompanha */}
+                <form method="post" action="/api/duplicados" data-no-lugar="duplicados retrato">
+                  <input type="hidden" name="acao" value="nao-sao" />
+                  <input type="hidden" name="a" value={a.id} />
+                  <input type="hidden" name="b" value={b.id} />
+                  <button class="botao botao--leve" type="submit">Não são a mesma pessoa</button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+
+  <section class="painel">
+    <h2>Juntar outras duas fichas</h2>
+    <form class="formulario" method="get" action="/admin/duplicados/juntar" data-juntar>
+      {['a', 'b'].map((campo, n) => (
+        <label class="campo">
+          <span>{n === 0 ? 'Uma ficha' : 'A outra ficha'}</span>
+          <select name={campo} required>
+            <option value="">Escreva o nome</option>
+            {ordenados.map((i) => <option value={i.id}>{quem(i)}</option>)}
+          </select>
+        </label>
+      ))}
+      <div class="acoes">
+        <button class="botao" type="submit">Comparar as duas</button>
+      </div>
+    </form>
+  </section>
+</Pagina>
+
+<script>
+  import { buscaDePessoa } from '../../../lib/cliente/busca-pessoa';
+  for (const lista of document.querySelectorAll<HTMLSelectElement>('[data-juntar] select')) buscaDePessoa(lista);
+</script>

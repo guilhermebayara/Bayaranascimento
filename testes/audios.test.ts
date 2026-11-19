@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 // Áudios nos relatos: formatos aceitos, limites de espaço e regras de quem ouve
 import { describe, expect, it } from 'vitest';
 import { AUDIOS_POR_RELATO, cabeNoLimite, CHAVE_DE_AUDIO, duracaoEmTexto, formatoDoAudio, limiteTotal, LIMITE_POR_ARQUIVO, LIMITE_TOTAL } from '../src/lib/audios';
@@ -92,5 +93,30 @@ describe('quem ouve', () => {
     const { TABELAS_APAGADAS } = await import('../src/lib/espelho');
     expect(TABELAS_APAGADAS.indexOf('audios')).toBeGreaterThanOrEqual(0);
     expect(TABELAS_APAGADAS.indexOf('audios')).toBeLessThan(TABELAS_APAGADAS.indexOf('relatos'));
+  });
+});
+
+// Proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): gravar como mensagem de voz
+// O gravador agora mora na janela de escrever do relato como conversa (escolha do Gui depois da sessão I,
+// 18/11/2026): o botão redondo grava sem texto e envia com texto, e cada áudio vira uma mensagem
+describe('gravar na janela da conversa', () => {
+  const ler = (c: string) => readFileSync(c, 'utf8');
+  const janela = ler('src/components/conversa/Janela.astro');
+  const cliente = ler('src/lib/cliente/conversa.ts');
+  const css = ler('src/visual/telas/conversa.css');
+  it('as duas telas usam a mesma janela', () => {
+    expect(ler('src/pages/nova.astro')).toContain('<Janela modo="formulario"');
+    expect(ler('src/pages/memorias/[id]/relato.astro')).toContain('<Janela modo="ao-vivo"');
+  });
+  it('sem texto o botão grava, com texto envia, gravando ele para; o "+" anexa o áudio do celular', () => {
+    expect(cliente).toMatch(/const modo = gravador\?\.state === 'recording' \? 'gravando' : campo\.value\.trim\(\) \|\| !podeGravar \? 'texto' : 'voz';/);
+    expect(janela).toContain('data-anexar="audio">Áudio do celular</button>');
+    expect(cliente).toContain("if (cancelada) return avisar('Gravação cancelada. Nada foi guardado.');");
+  });
+  it('o botão de áudio ganha cor: sem texto, na cor viva', () => {
+    expect(css).toMatch(/\.janela__escrever\[data-modo='voz'\] \.janela__botao \{\s*background: var\(--vivo-tinta\);/);
+  });
+  it('cada áudio é uma mensagem com tocar, a onda e a duração; a transcrição mora no menu dela', () => {
+    for (const marca of ['data-tocar', 'data-andou', 'data-tempo', 'data-transcrever', 'data-transcricao-campo']) expect(cliente).toContain(marca);
   });
 });

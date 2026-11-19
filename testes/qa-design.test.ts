@@ -1,4 +1,4 @@
-// Regras que nasceram dos defeitos do QA de design de 17/11/2026 (docs/qa/2026-11-17-perguntas.md).
+// Regras que nasceram dos defeitos do QA de design de 17/11/2026 (docs/historico/qa/2026-11-17-perguntas.md).
 import { describe, expect, it } from 'vitest';
 import { ehNaoEncontradaSemPagina } from '../src/lib/servidor/http';
 
@@ -82,11 +82,11 @@ describe('formulários em etapas', () => {
   it('sem script, "Remover foto" some com os outros botões que dependem dele', () => {
     expect(ler('src/components/formularios/Pagina.astro')).toMatch(/<noscript>[\s\S]*\[data-remover\][\s\S]*display: none/);
   });
-  it('sem script, o relato já escrito vem no campo, com o botão certo', () => {
+  it('sem script, o relato já escrito vem como mensagens, e o botão diz o que acontece', () => {
+    // O relato como conversa: as mensagens que já existem vêm na janela, e a caixa manda a próxima
     const relato = ler('src/pages/memorias/[id]/relato.astro');
-    expect(relato).toMatch(/<textarea name="texto"[^>]*>\{opcoes\[0\]\.texto\}<\/textarea>/);
-    expect(relato).toMatch(/opcoes\[0\]\.publicado \? 'Salvar alterações' : 'Publicar relato'/);
-    expect(relato).toMatch(/data-salvar="rascunho" hidden=\{opcoes\[0\]\.publicado\}/);
+    expect(ler('src/components/conversa/Janela.astro')).toContain('{mensagens.map((m) => <Mensagem mensagem={m} minha />)}');
+    expect(relato).toMatch(/\{!publicado && \(\s*<button type="submit" class="botao" name="situacao" value="publicada" data-publicar>\s*Publicar relato/);
   });
   it('o recado de rascunho salvo fica no alto da coluna da pergunta', () => {
     expect(ler('src/pages/nova.astro')).toContain('form.prepend(recado);');
@@ -104,7 +104,7 @@ describe('formulários em etapas', () => {
 
 describe('capítulos, árvore e pessoas', () => {
   it('na página de outra pessoa, o nome do laço do coração entra em minúscula, como na árvore', () => {
-    const pagina = ler('src/pages/pessoas/[id]/index.astro');
+    const pagina = (ler('src/pages/pessoas/[id]/index.astro') + ler('src/lib/servidor/pagina-da-pessoa.ts'));
     expect(pagina).toMatch(/: minuscula\(l\.nome\),/);
     expect(pagina).toMatch(/chama de \$\{minuscula\(l\.nome\)\}/);
   });

@@ -23,15 +23,17 @@ const nome = (id: string) => {
   return i?.apelido ?? i?.nome ?? id;
 };
 const frase = (a: Aviso) =>
-  fraseDoAviso({ tipo: a.tipo, de: a.de, titulo: a.titulo, relato: a.relato, paraQuem: (a.dados.paraQuem as string | undefined) ?? null, para: usuario.pessoa }, nome);
+  fraseDoAviso({ tipo: a.tipo, de: a.de, titulo: a.titulo, relato: a.relato, paraQuem: (a.dados.paraQuem as string | undefined) ?? null, para: usuario.pessoa, dados: a.dados }, nome);
 const quando = (a: Aviso) => {
   const [ano, mes, dia] = a.criadoEm.slice(0, 10).split('-').map(Number);
   return `${diaMesCurto({ dia, mes })} ${ano}`;
 };
-const RESPOSTAS: Record<string, string> = { liberar: 'Você liberou.', manter: 'Você manteve como estava.' };
+const RESPOSTAS: Record<string, string> = { liberar: 'Você liberou.', manter: 'Você manteve como estava.', aceita: 'Você aceitou.', recusada: 'Você recusou.', respondida: 'Você respondeu.' };
 const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
 ---
 
+{/* A região dos avisos fica sempre na página, para a resposta trocar a lista no lugar, sem recarregar */}
+<div class="regiao" data-regiao={`avisos-${onde}`}>
 {
   (avisos.length > 0 || onde === 'conta') && (
     <section class:list={['avisos', `avisos--${onde}`, onde === 'conta' && 'cartao']} aria-labelledby={`avisos-${onde}`} id={onde === 'conta' ? 'avisos' : undefined}>
@@ -44,12 +46,12 @@ const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
         <ul class="avisos__lista">
           {avisos.map((a) => (
             <li class:list={['aviso', `aviso--${a.tipo}`]}>
-              <a class="aviso__link" href={`/memorias/${a.memoriaId}${a.relato ? `#relato-${a.relato.id}` : ''}`}>
+              <a class="aviso__link" href={a.tipo === 'sugestao' || a.tipo === 'sugestao-resposta' ? `/memorias/${a.memoriaId}/sugestoes` : `/memorias/${a.memoriaId}${a.relato ? `#relato-${a.relato.id}` : ''}`}>
                 <span class="aviso__frase">{frase(a)}</span>
                 <span class="aviso__quando ficha suave">{quando(a)}</span>
               </a>
               {a.tipo === 'liberar-relato' && a.relato && (
-                <form class="aviso__resposta" method="post" action="/api/avisos">
+                <form class="aviso__resposta" method="post" action="/api/avisos" data-no-lugar={`avisos-${onde} retrato`}>
                   <input type="hidden" name="aviso" value={a.id} />
                   <input type="hidden" name="volta" value={volta} />
                   <button type="submit" class="acao" name="resposta" value="liberar">
@@ -85,3 +87,4 @@ const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
     </section>
   )
 }
+</div>

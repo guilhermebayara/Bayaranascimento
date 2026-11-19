@@ -1,15 +1,17 @@
 ---
-// O esqueleto do visual novo (docs/visual.md, "Revisão do zero" e "Sistema"). Na fase 3, as telas
+// O esqueleto do visual novo (docs/visual.md, "Fundações que não mudam" e "Sistema"). Na fase 3, as telas
 // do site passam para ele grupo a grupo: o menu já aponta para os endereços de verdade.
 // Não importa nada de src/styles/global.css: o estilo inteiro vem de src/visual/sistema.ts.
 import '../visual/sistema';
 import Assinatura from '../components/visual/Assinatura.astro';
 import Monograma from '../components/visual/Monograma.astro';
 import Retrato from '../components/visual/Retrato.astro';
-import { ENDERECO_DE_SAIDA, PESSOAS_DE_TESTE, semLogin, temLogin } from '../lib/servidor/acesso';
+import { PESSOAS_DE_TESTE, enderecoDeSaida, semLogin, temLogin } from '../lib/servidor/acesso';
+import { ehHomologacao } from '../lib/servidor/ambiente';
 import { fontesDoPedido } from '../lib/servidor/conceito';
 import { enderecoDoRetrato } from '../lib/retratos';
 import { numeroDoRetrato, rotuloDoRetrato, somaDoRetrato } from '../lib/avisos';
+import { ENDERECO_DA_ADMINISTRACAO, contaDePendencias } from '../lib/conta';
 import { contarPendenciasDaAdministracao } from '../lib/servidor/conta';
 import { contarAvisosPendentes, listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
 import { COMBINACOES_DE_FONTES, assinaturaDaTela, atributosDasFontes, combinacaoDe } from '../lib/visual';
@@ -25,7 +27,7 @@ interface Props {
   /** A cor da tela, quando não é a dos núcleos: 'tudo' ou a posição do núcleo ('0', '1', '2', '3') */
   familia?: string;
   /** Qual item do menu está aberto */
-  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'conceito' | 'conta' | 'circulo' | 'pessoas' | 'nova';
+  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'conceito' | 'conta' | 'administracao' | 'circulo' | 'pessoas' | 'nova';
   /** A página que só a pessoa vê: tingida na cor da família dela */
   intimo?: boolean;
   /** O modo TV: a tela inteira é da memória, sem o topo, o menu e o rodapé */
@@ -44,7 +46,7 @@ interface Props {
 }
 
 const { titulo, nucleos = [], secao, intimo = false, palco = false, mapa = false } = Astro.props;
-const rodape = Astro.props.rodape ?? (secao === 'conta' ? 'metade' : 'inteiro');
+const rodape = Astro.props.rodape ?? (secao === 'conta' || secao === 'administracao' ? 'metade' : 'inteiro');
 const { usuario } = Astro.locals;
 const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
 const assinatura = assinaturaDaTela(nucleos, await listarNucleos());
@@ -54,8 +56,11 @@ const fontes = fontesDoPedido(Astro.request);
 const combinacaoEmUso = combinacaoDe(fontes);
 const icones = `/icones/${fontes.serifa}`;
 const teste = semLogin();
+// Na homologação a família é a de verdade: a faixa fica bem marcada, como símbolo do ambiente, para
+// ninguém confundir com o site de verdade (decisão do Gui, 18/11/2026)
+const homologa = ehHomologacao();
 // "Sair" só aparece onde há o login do Cloudflare Access (P4 do QA de design, 17/11/2026)
-const saida = temLogin() ? ENDERECO_DE_SAIDA : undefined;
+const saida = temLogin() ? enderecoDeSaida() : undefined;
 const integrantes = await listarIntegrantes();
 const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
 // "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo.
@@ -120,9 +125,15 @@ const telas = [
     <a class="pular" href="#conteudo">Pular para o conteúdo</a>
     {
       teste && !palco && (
-        <details class="teste">
+        <details class:list={['teste', { 'teste--homologa': homologa }]}>
           <summary>
-            <span>Visual novo, com o acervo de exemplo.</span>
+            {homologa ? (
+              <span class="teste__ambiente">
+                <strong>Homologação</strong> A família de verdade, com memórias de exemplo. O que você faz aqui não vai para o site.
+              </span>
+            ) : (
+              <span>Visual novo, com o acervo de exemplo.</span>
+            )}
             <span>
               Fontes {combinacaoEmUso?.toUpperCase() ?? 'misturadas'}, vendo como {usuario.nome}. <u>Trocar</u>
             </span>
@@ -190,7 +201,7 @@ const telas = [
           desde que saiu de Pessoas (decisão do Gui, 17/11/2026). */}
       <div class="topo__conta" data-atual={secao === 'conta' || secao === 'circulo' ? '' : undefined}>
         <details class="conta-menu">
-          <summary aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes, pendenciasDaAdministracao)}>
+          <summary aria-label={rotuloDoRetrato(usuario.nome, avisosPendentes, pendenciasDaAdministracao)} data-regiao="retrato">
             <span class="topo__retrato">
               <Retrato nome={usuario.nome} foto={meuRetrato ? enderecoDoRetrato(meuRetrato) : null} redondo cedo />
               {numeroDeAvisos && (
@@ -208,7 +219,13 @@ const telas = [
               Sua conta
               {avisosPendentes > 0 && <span class="conta-menu__avisos">{avisosPendentes === 1 ? '1 aviso' : `${avisosPendentes} avisos`}</span>}
             </a>
-            {usuario.admin && <a href="/conta#administracao">Administração</a>}
+            {/* A Administração tem página própria (decisão do Gui, 18/11/2026), com as pendências dela ao lado, como os avisos */}
+            {usuario.admin && (
+              <a href={ENDERECO_DA_ADMINISTRACAO} aria-current={secao === 'administracao' ? 'page' : undefined}>
+                Administração
+                {pendenciasDaAdministracao > 0 && <span class="conta-menu__avisos">{contaDePendencias(pendenciasDaAdministracao)}</span>}
+              </a>
+            )}
             {saida && <a href={saida}>Sair</a>}
           </nav>
         </details>
@@ -261,6 +278,9 @@ const telas = [
     {
       !palco && (
         <script>
+          import { ligarNoLugar } from '../lib/cliente/no-lugar';
+          // Os formulários do dia a dia que mudam a tela no lugar, sem recarregar (data-no-lugar)
+          ligarNoLugar();
           // O menu do celular fecha com Esc e com o toque fora dele (P9 do QA de design, 17/11/2026).
           // Sem script, continua fechando só pelo "Menu".
           // O menu da conta, no retrato, segue o mesmo jeito; abrir um fecha o outro.

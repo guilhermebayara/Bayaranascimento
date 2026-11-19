@@ -11,9 +11,10 @@ import Entrada from '../../components/capitulos/Entrada.astro';
 import Linha from '../../components/explorar/Linha.astro';
 import Lista from '../../components/explorar/Lista.astro';
 import Mural from '../../components/explorar/Mural.astro';
+import QuaisFotos from '../../components/explorar/QuaisFotos.astro';
 import Vazio from '../../components/visual/Vazio.astro';
 import { ehEpoca, nomeDoModo, resumoDoCapitulo } from '../../lib/capitulos';
-import { FORMAS_DA_PESSOA, NOMES_DAS_FORMAS, TAMANHO_PADRAO, lerFormaDaPessoa, mostraRascunho } from '../../lib/explorar';
+import { FORMAS_DA_PESSOA, NOMES_DAS_FORMAS, TAMANHO_PADRAO, fotosDoMuralNoEndereco, lerFormaDaPessoa, lerFotosDoMural, mostraRascunho } from '../../lib/explorar';
 import { coresDosCapitulos } from '../../lib/linha-capitulos';
 import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemasVisiveis, memoriasComAudio } from '../../lib/servidor/repositorio';
 
@@ -27,8 +28,14 @@ const todasDoTema = (await listarMemorias(usuario, { tema: tema.id })).reverse()
 // As formas de ver são as da página da pessoa, e a escolha fica no endereço ("ver"). Como lá, o
 // rascunho só aparece na linha do tempo e na lista de quem escreveu.
 const forma = lerFormaDaPessoa(Astro.url.searchParams);
+const fotosDoMural = lerFotosDoMural(Astro.url.searchParams);
 const memorias = mostraRascunho(forma) ? todasDoTema : todasDoTema.filter((m) => m.situacao !== 'rascunho');
-const enderecoDoTema = (f: (typeof FORMAS_DA_PESSOA)[number]) => `/temas/${tema.id}${f === 'linha' ? '' : `?ver=${f}`}`;
+const enderecoDoTema = (f: (typeof FORMAS_DA_PESSOA)[number], mais: Record<string, string | undefined> = {}) => {
+  const p = new URLSearchParams();
+  if (f !== 'linha') p.set('ver', f);
+  for (const [nome, valor] of Object.entries(mais)) if (valor) p.set(nome, valor);
+  return `/temas/${tema.id}${p.size > 0 ? `?${p}` : ''}`;
+};
 const acervo = await listarMemorias(usuario);
 const cores = coresDosCapitulos(
   [...acervo].reverse(),
@@ -93,6 +100,7 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
                 ))}
               </nav>
             </div>
+            {forma === 'mural' && <QuaisFotos atual={fotosDoMural} endereco={(f) => `${enderecoDoTema('mural', fotosDoMuralNoEndereco(f))}#memorias-do-tema`} />}
           </div>
         )}
         {memorias.length === 0 ? (
@@ -101,7 +109,7 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
           </div>
         ) : forma === 'mural' ? (
           <div class="linha linha--mural tema__larga">
-            <Mural memorias={memorias} ordem="recentes" tamanho={TAMANHO_PADRAO} />
+            <Mural memorias={memorias} ordem="recentes" tamanho={TAMANHO_PADRAO} fotos={fotosDoMural} />
           </div>
         ) : forma === 'lista' ? (
           <div class="linha linha--lista tema__larga">

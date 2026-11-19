@@ -133,9 +133,12 @@ describe('o círculo é só de quem está logado', () => {
 
   it('só grava proximidade de quem está no círculo de quem pede, e responde igual para quem não existe', () => {
     expect(rota).toMatch(/const circulo = await montarCirculo\(usuario\);/);
-    expect(rota).toMatch(/!\[\.\.\.circulo\.dentro, \.\.\.circulo\.fora\]\.some\(\(p\) => p\.id === pessoa\)\) return erro\(404,/);
-    expect(rota.indexOf('return erro(404')).toBeLessThan(rota.indexOf('salvarProximidade('));
-    expect(rota.indexOf('return erro(404')).toBeLessThan(rota.indexOf('removerProximidade('));
+    expect(rota).toMatch(/const noCirculo = circulo \? \[\.\.\.circulo\.dentro, \.\.\.circulo\.fora\]\.find\(\(p\) => p\.id === pessoa\) : undefined;/);
+    expect(rota).toMatch(/if \(!circulo \|\| !noCirculo\) return falhar\(404, NAO_ESTA\);/);
+    expect(rota.indexOf('return falhar(404')).toBeLessThan(rota.indexOf('salvarProximidade('));
+    expect(rota.indexOf('return falhar(404')).toBeLessThan(rota.indexOf('removerProximidade('));
+    // O formulário da edição dos laços recebe a mesma recusa, sem dizer se a pessoa existe
+    expect(rota).toMatch(/ehFormulario \? voltar\(request, volta, \{ erro: mensagem \}\) : erro\(status, mensagem\)/);
   });
 
   it('quem aparece é quem a pessoa vê: a montagem parte da lista dela e esconde o retrato de quem não pode', () => {
@@ -166,7 +169,9 @@ describe('o círculo é só de quem está logado', () => {
     const banco = ler('src/lib/servidor/banco.ts');
     const ids = [...banco.matchAll(/^    id: '(\d{3}-[^']+)',/gm)].map((m) => m[1]);
     expect(ids).toContain('030-proximidades');
-    const sql = banco.slice(banco.indexOf("id: '030-proximidades'"));
+    const inicio = banco.indexOf("id: '030-proximidades'");
+    const fim = banco.indexOf("    id: '", inicio + 10);
+    const sql = banco.slice(inicio, fim < 0 ? undefined : fim);
     expect(sql).toMatch(/CHECK \(valor BETWEEN 0 AND 100\)/);
     expect(sql).toMatch(/PRIMARY KEY \(dono_id, pessoa_id\)/);
     expect(sql).toMatch(/CASE proximidade WHEN 1 THEN 16 WHEN 2 THEN 50 ELSE 83 END/);
@@ -181,7 +186,10 @@ describe('o círculo é só de quem está logado', () => {
 
   it('o laço do coração e o círculo usam a mesma escala', () => {
     const lacos = ler('src/pages/api/lacos.ts');
-    expect(lacos).toMatch(/await alinharProximidadeDoLaco\(usuario\.pessoa, pessoa\.id, proximidade, proximidade === null \? null : valorDoNivel\(proximidade\)/);
+    // O slider do laço do coração grava o valor do círculo, e a faixa antiga do laço acompanha
+    expect(lacos).toMatch(/const pedida = proximidadeDoFormulario\(dados\.get\('posicao'\), dados\.get\('posicaoAntes'\), false\);/);
+    expect(lacos).toMatch(/const proximidade = pedida\.mexeu \? nivelDoValor\(pedida\.valor\) :/);
+    expect(lacos).toMatch(/if \(pedida\.mexeu\) await salvarProximidade\(usuario\.pessoa, pessoa\.id, pedida\.valor, null, nivelDoValor\(pedida\.valor\)\);/);
     expect(rota).toMatch(/temLaco \? nivelDoValor\(valor\) : null/);
   });
 });
@@ -207,11 +215,10 @@ describe('a tela do círculo', () => {
     expect(ler('src/pages/arvore.astro')).toMatch(/\{achar\(usuario\.pessoa\) && <a class="acao acao--quieta" href="\/circulo">Ver seu círculo<\/a>\}/);
   });
 
-  it('no slider, o rótulo e as pontas ficam colados na barra, e o grupo longe do que vem antes', () => {
-    // "Gestalt em toda tela": a área de toque de 44 px continua, com o vazio dela por baixo do texto
-    expect(css).toMatch(/\.pm__proximidade input \{[^}]*margin: calc\(var\(--e-3\) \* -1\) 0;/);
+  it('no slider, o rótulo, a régua e os nomes das faixas são um grupo só, longe do que vem antes', () => {
+    // "Gestalt em toda tela": a peça Proximidade é um bloco, e a ficha só dá a distância até "Ver a página"
     expect(css).toMatch(/\.pm__proximidade \{[^}]*margin-top: var\(--e-5\);[^}]*padding: var\(--e-2\)/);
-    expect(css).toMatch(/\.pm__pontas \{[^}]*pointer-events: none;/);
+    expect(ler('src/visual/pecas.css')).toMatch(/\.prox input\[type='range'\] \{[^}]*height: var\(--toque\);/);
   });
 
   it('no celular são faixas empilhadas com a rolagem do aparelho; na tela grande, anéis com zoom', () => {
@@ -228,13 +235,12 @@ describe('a tela do círculo', () => {
   });
 
   it('tocar abre a ficha com o slider, que é o caminho pelo teclado', () => {
-    expect(cliente).toMatch(/type: 'range', min: '0', max: String\(FORA_DO_CIRCULO\), step: '1'/);
-    expect(cliente).toMatch(/slider\.setAttribute\('aria-valuetext', nomeDaProximidade\(valor\)\);/);
+    expect(ler('src/lib/cliente/proximidade.ts')).toMatch(/type: 'range', id, min: String\(minimoDoSlider\(true\)\), max: '100', step: '1'/);
+    expect(cliente).toMatch(/refletirProximidade\(ficha\.querySelector<HTMLElement>\('\[data-proximidade\]'\)!\);/);
     expect(cliente).toMatch(/abrirFicha\(botao, botao\.matches\(':focus-visible'\)\);/);
     expect(cliente).toMatch(/if \(focoNoSlider\) slider\.focus\(/);
     // Esc fecha a ficha e devolve o foco à pessoa
     expect(cliente).toMatch(/e\.key !== 'Escape' \|\| e\.defaultPrevented \|\| !aberta\) return;/);
-    expect(css).toMatch(/\.pm__proximidade input \{[^}]*min-height: var\(--toque\);/);
   });
 
   it('arrastar muda o mesmo valor: com o mouse na hora, com o dedo depois de um toque longo', () => {

@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const r = await gravarEspelho(copia);
     return voltar(request, PAGINA, {
-      ok: `Espelho refeito: ${r.pessoas} pessoas, ${r.filiacoes} filiações, ${r.casais} casais, ${r.lacos} laços do coração e ${r.memorias} memórias de exemplo. Os anos andaram ${r.deslocamentoDeAnos} para a frente.`,
+      ok: `Espelho refeito: ${r.pessoas} pessoas, ${r.filiacoes} filiações, ${r.casais} casais, ${r.lacos} laços do coração e ${r.memorias} memórias de exemplo.`,
     });
   } catch (erro) {
     return voltar(request, PAGINA, { erro: erro instanceof Error ? erro.message : 'Não consegui gravar o espelho.' });

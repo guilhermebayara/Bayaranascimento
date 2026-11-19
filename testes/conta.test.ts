@@ -1,12 +1,16 @@
 // "Sua conta" (docs/decisoes.md): as listas trazem só o que é da pessoa e o que ela vê, e a seção de
 // administração não aparece para quem não é administrador. Regras em src/lib/conta.ts.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   administracao,
-  colunasDosAtalhos,
+  destinoDaAncoraAntiga,
+  ENDERECO_DA_ADMINISTRACAO,
+  gruposDaAdministracao,
   contaDePendencias,
   copiaAtrasada,
   fraseDaCopiaMensal,
+  FRASE_DA_COPIA_DO_ACERVO,
   oQueVoceCriou,
   pendenciasDaAdministracao,
   PRAZO_DA_COPIA_MENSAL,
@@ -14,6 +18,10 @@ import {
   seusRascunhos,
   suaLixeira,
   type SituacaoDaAdministracao,
+  GRUPO_DO_ESPACO,
+  grupoDaPendencia,
+  idDoGrupo,
+  resumoDoGrupo,
 } from '../src/lib/conta';
 import { numeroDoRetrato, rotuloDoRetrato, somaDoRetrato } from '../src/lib/avisos';
 
@@ -109,8 +117,14 @@ describe('administração', () => {
 
   it('para os administradores, com o espelho só onde ele existe', () => {
     const naProducao = administracao({ admin: true }, { podeEspelhar: false }).map((i) => i.rotulo);
-    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Carta de Natal', 'Sistema visual', 'Baixar cópia do acervo']);
+    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal', 'Fotos sem memória', 'Cadastros duplicados', 'Pedidos para excluir', 'Transcrição automática', 'Sistema visual', 'Baixar cópia do acervo']);
     expect(administracao({ admin: true }, { podeEspelhar: true }).map((i) => i.rotulo)).toContain('Espelho da produção');
+  });
+
+  it('só há uma cópia para baixar, a do acervo: a cópia com os retratos para o espelho saiu (observação do Gui, 18/11/2026)', () => {
+    for (const podeEspelhar of [true, false]) {
+      expect(administracao({ admin: true }, { podeEspelhar }).filter((i) => i.baixar)).toEqual([{ rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true }]);
+    }
   });
 });
 
@@ -133,13 +147,23 @@ describe('administração: situação e pendências', () => {
     expect(itens.map((i) => [i.rotulo, i.situacao])).toEqual([
       ['Tipos de momento', '14 tipos'],
       ['Famílias', '3 famílias'],
+      ['Centros da árvore', 'o padrão'],
       ['Carta de Natal', 'escrita em 2026'],
+      ['Fotos sem memória', 'nenhuma'],
+      ['Cadastros duplicados', 'nenhum à vista'],
+      ['Pedidos para excluir', 'nenhum'],
+      ['Transcrição automática', 'desligada'],
       ['Sistema visual', 'tokens e peças'],
       ['Baixar cópia do acervo', undefined],
       ['Espelho da produção', 'só na homologação'],
     ]);
     expect(itens.some((i) => i.pendencia)).toBe(false);
     expect(administracao({ admin: true }, { podeEspelhar: false }, { ...tudoEmDia, familias: 1 })[1]!.situacao).toBe('1 família');
+  });
+
+  it('as fotos sem memória marcam o atalho delas (onda 2)', () => {
+    const fotos = administracao({ admin: true }, { podeEspelhar: false }, { ...tudoEmDia, fotosSoltas: 3 }).find((i) => i.href === '/admin/fotos-soltas')!;
+    expect(fotos).toMatchObject({ situacao: '3 fotos', pendencia: true });
   });
 
   it('a carta por escrever marca o atalho dela', () => {
@@ -203,28 +227,20 @@ describe('administração: situação e pendências', () => {
   });
 });
 
-// "Sistema visual" ficava sozinho na segunda linha: os atalhos nunca deixam um sozinho numa linha
-describe('colunas dos atalhos da administração', () => {
-  it('até o máximo, todos numa linha', () => {
-    expect(colunasDosAtalhos(1, 3)).toBe(1);
-    expect(colunasDosAtalhos(3, 3)).toBe(3);
-    expect(colunasDosAtalhos(2, 2)).toBe(2);
+// Os quadros soltos quebravam a página (observação do Gui, 18/11/2026): os atalhos vão em grupos por tema
+describe('grupos da administração', () => {
+  it('três grupos, cada atalho num deles, e os links de baixar ficam fora', () => {
+    const itens = administracao({ admin: true }, { podeEspelhar: true });
+    const grupos = gruposDaAdministracao(itens);
+    expect(grupos.map((g) => [g.titulo, g.itens.map((i) => i.rotulo)])).toEqual([
+      ['Do acervo', ['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal']],
+      ['Para arrumar', ['Fotos sem memória', 'Cadastros duplicados', 'Pedidos para excluir']],
+      ['Ferramentas', ['Transcrição automática', 'Sistema visual', 'Espelho da produção']],
+    ]);
+    expect(itens.filter((i) => !i.baixar).every((i) => i.tema)).toBe(true);
   });
-  it('a produção (4 atalhos) fica em 2 × 2; a homologação (5), em 3 e 2', () => {
-    expect(colunasDosAtalhos(4, 3)).toBe(2);
-    expect(colunasDosAtalhos(5, 3)).toBe(3);
-    expect(colunasDosAtalhos(5, 2)).toBe(1);
-  });
-  it('nunca um sozinho na última linha, qualquer que seja a quantidade', () => {
-    for (const maximo of [2, 3, 4]) {
-      for (let n = 1; n <= 30; n++) {
-        const c = colunasDosAtalhos(n, maximo);
-        expect(c).toBeGreaterThanOrEqual(1);
-        expect(c).toBeLessThanOrEqual(maximo);
-        const resto = n % c;
-        if (c > 1 && n > 1) expect(resto === 1, `${n} atalhos em ${c} colunas`).toBe(false);
-      }
-    }
+  it('grupo vazio não aparece', () => {
+    expect(gruposDaAdministracao([{ rotulo: 'Famílias', href: '/admin/familias', tema: 'acervo' }]).map((g) => g.titulo)).toEqual(['Do acervo']);
   });
 });
 
@@ -254,5 +270,112 @@ describe('Editar seus dados', () => {
   it('leva à ficha já aberta, pelo #ficha da página de editar', async () => {
     const { readFileSync } = await import('node:fs');
     expect(readFileSync('src/pages/conta.astro', 'utf8')).toContain('href={`/pessoas/${usuario.pessoa}/editar#ficha`}');
+  });
+});
+
+// Proposta A do conceito da sessão H (escolha do Gui, 18/11/2026): os grupos abrem e fecham, um por vez, e
+// o sinal do alto abre o balão das pendências, cada uma dizendo onde mora
+describe('administração em seções que abrem e fecham', () => {
+  // A Administração tem página própria (decisão do Gui, 18/11/2026)
+  const pagina = readFileSync('src/pages/admin/index.astro', 'utf8');
+  const css = readFileSync('src/visual/telas/conta.css', 'utf8');
+  it('cada pendência mora num grupo: a carta no acervo, as faxinas em "Para arrumar" e o resto no espaço', () => {
+    expect(grupoDaPendencia({ tipo: 'carta' })).toBe('Do acervo');
+    expect(grupoDaPendencia({ tipo: 'fotos-soltas' })).toBe('Para arrumar');
+    expect(grupoDaPendencia({ tipo: 'duplicados' })).toBe('Para arrumar');
+    for (const tipo of ['banco', 'espaco', 'copia'] as const) expect(grupoDaPendencia({ tipo })).toBe(GRUPO_DO_ESPACO);
+  });
+  it('o grupo fechado diz as pendências dele, ou quantos atalhos tem', () => {
+    expect(resumoDoGrupo(4, 0)).toBe('4 atalhos');
+    expect(resumoDoGrupo(1, 0)).toBe('1 atalho');
+    expect(resumoDoGrupo(4, 2)).toBe('2 pendências');
+    expect(idDoGrupo('Espaço e cópias')).toBe('administracao-espaco-e-copias');
+  });
+  it('os grupos são seções de um nome só, e o sinal abre o balão como um menu', () => {
+    expect(pagina).toContain('<details class="conta__grupo" name="administracao"');
+    expect(pagina).toContain('<details class="conta__sinal" data-menu-acoes>');
+    expect(pagina).toContain('ligarMenus();');
+    expect(pagina).toContain('em {grupoDaPendencia(p)}');
+  });
+  it('no computador o cartão fica à direita do título, e na conta os avisos não ocupam a largura toda', () => {
+    expect(css).toMatch(/\.admin__abre \{\s*grid-column: 1 \/ span 5;/);
+    expect(css).toMatch(/\.admin__cartao \{\s*grid-column: 6 \/ -1;/);
+    expect(css).toMatch(/\.conta__grade > \.regiao > \.avisos--conta \{\s*grid-column: 1 \/ span 7;/);
+    expect(css).toMatch(/\.conta__lacos \{\s*grid-column: 8 \/ -1;\s*grid-row: span 2;/);
+  });
+});
+
+describe('a administração chega fechada', () => {
+  // Observação do Gui depois da sessão H (18/11/2026): todos os grupos começam fechados
+  it('nenhum grupo da administração vem aberto, com ou sem pendência', () => {
+    const conta = readFileSync('src/pages/admin/index.astro', 'utf8');
+    const grupos = [...conta.matchAll(/<details class="conta__grupo"[^>]*>/g)].map((m) => m[0]);
+    expect(grupos.length).toBe(2);
+    for (const g of grupos) expect(g).not.toMatch(/\bopen=/);
+  });
+  it('a pendência continua abrindo o grupo dela', () => {
+    expect(readFileSync('src/pages/admin/index.astro', 'utf8')).toContain('data-abre-grupo={p.href ? undefined : idDoGrupo(grupoDaPendencia(p))}');
+  });
+});
+
+// Excluir pessoa (decisão do Gui depois da sessão I): os pedidos de quem não administra viram pendência
+describe('pedidos para excluir pessoa', () => {
+  const base = { carta: { escritaEm: '2026-11-01' }, copiaMensal: { conferida: false, ultima: null } };
+  it('cada pedido aberto vira pendência em "Para arrumar", com o atalho marcado', () => {
+    const [p] = pendenciasDaAdministracao({ ...base, exclusoes: 2 }, new Date('2026-11-18'));
+    expect(p).toMatchObject({ tipo: 'exclusoes', texto: '2 pedidos para excluir pessoas.', href: '/admin/exclusoes', quantas: 2 });
+    expect(grupoDaPendencia(p)).toBe('Para arrumar');
+    expect(pendenciasDaAdministracao({ ...base, exclusoes: 1 }, new Date('2026-11-18'))[0].texto).toBe('Um pedido para excluir uma pessoa.');
+    expect(pendenciasDaAdministracao({ ...base, exclusoes: 0 }, new Date('2026-11-18'))).toEqual([]);
+    const item = administracao({ admin: true }, { podeEspelhar: false }, { tipos: 1, familias: 1, ...base, exclusoes: 1 }).find((i) => i.rotulo === 'Pedidos para excluir')!;
+    expect(item).toMatchObject({ situacao: '1 pedido', pendencia: true });
+  });
+});
+
+describe('a cópia do acervo (decisão do Gui depois do QA de 18/11/2026)', () => {
+  it('a página diz numa frase que a cópia leva tudo, inclusive o que o administrador não vê', () => {
+    expect(FRASE_DA_COPIA_DO_ACERVO).toContain('inclusive o que você não vê no site');
+    expect(readFileSync('src/pages/admin/index.astro', 'utf-8')).toContain('{copias.length > 0 && <p class="conta__nota">{FRASE_DA_COPIA_DO_ACERVO}</p>}');
+  });
+});
+
+// A Administração em página própria (decisão do Gui, 18/11/2026): "Sua conta" fica igual para todos, só
+// com o que é da pessoa, e quem administra tem o atalho para a página nova, que também está no menu do retrato
+describe('a Administração em página própria', () => {
+  const conta = readFileSync('src/pages/conta.astro', 'utf8');
+  const admin = readFileSync('src/pages/admin/index.astro', 'utf8');
+  const esqueleto = readFileSync('src/layouts/Visual.astro', 'utf8');
+  it('os endereços antigos da seção levam à página nova, no grupo que apontavam', () => {
+    expect(ENDERECO_DA_ADMINISTRACAO).toBe('/admin');
+    expect(destinoDaAncoraAntiga('#administracao')).toBe('/admin');
+    expect(destinoDaAncoraAntiga('#administracao-cartao')).toBe('/admin');
+    expect(destinoDaAncoraAntiga('#administracao-espaco-e-copias')).toBe('/admin#administracao-espaco-e-copias');
+    expect(destinoDaAncoraAntiga('#administracao-para-arrumar')).toBe('/admin#administracao-para-arrumar');
+    expect(destinoDaAncoraAntiga('#rascunhos')).toBeUndefined();
+    expect(destinoDaAncoraAntiga('')).toBeUndefined();
+    // Só quem administra é levado: para os outros, a âncora não leva a lugar nenhum, como antes
+    expect(conta).toContain("document.querySelector('[data-administra]') ? destinoDaAncoraAntiga(location.hash) : undefined");
+    expect(conta).toContain("data-administra={admin ? '' : undefined}");
+  });
+  it('"Sua conta" não tem mais o cartão, e quem administra tem o atalho, com as pendências ao lado', () => {
+    expect(conta).not.toContain('conta__grupo');
+    expect(conta).not.toContain('montarAdministracao');
+    expect(conta).toMatch(/\{admin && \(\s*<span class="conta__administra">[\s\S]*?contaDePendencias\(conta\.pendenciasDaAdministracao\)/);
+  });
+  it('a página nova é só dos administradores, e as páginas de dentro voltam para ela', () => {
+    expect(admin).toContain("if (!adm) return new Response('Página não encontrada', { status: 404 });");
+    expect(admin).toContain('<Visual titulo="Administração" secao="administracao">');
+    for (const pagina of ['tipos', 'familias', 'arvore', 'carta', 'fotos-soltas', 'exclusoes', 'transcricao', 'espelho', 'duplicados/index']) {
+      const fonte = readFileSync(`src/pages/admin/${pagina}.astro`, 'utf8');
+      expect(fonte).not.toContain('/conta#administracao');
+      expect(fonte).toContain('<a class="acao" href="/admin">Voltar para a Administração</a>');
+    }
+  });
+  it('o menu do retrato leva à página nova, e nada mais aponta para a seção antiga', () => {
+    expect(esqueleto).toContain('<a href={ENDERECO_DA_ADMINISTRACAO}');
+    expect(esqueleto).not.toContain('/conta#administracao');
+  });
+  it('quem chega pelo endereço de um grupo o encontra aberto', () => {
+    expect(admin).toContain('if (doEndereco instanceof HTMLDetailsElement) doEndereco.open = true;');
   });
 });

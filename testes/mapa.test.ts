@@ -1,4 +1,4 @@
-// O quadro do mapa (docs/decisoes.md, "Página da árvore como mapa"): proposta A, escolhida pelo Gui em
+// O quadro do mapa (docs/decisoes.md, "A página como mapa", em "Árvore"): proposta A, escolhida pelo Gui em
 // 17/11/2026. O mapa na janela inteira, o painel flutuante, o enquadramento pela altura e a busca
 // por nome. O arranjo e as linhas da árvore continuam em testes/arvore-*.test.ts.
 import { describe, expect, it } from 'vitest';
@@ -81,7 +81,8 @@ describe('a árvore como mapa', () => {
 
   it('a busca só oferece quem a pessoa vê, e não muda quem aparece na árvore', () => {
     expect(pagina).toMatch(/<select name="quem">\s*<option value="">Escreva o nome<\/option>\s*\{ordenados\.map\(/);
-    expect(pagina).toMatch(/const ordenados = \[\.\.\.integrantes\]\.sort/);
+    // Quem é ex discreto ou fora para quem olha também sai da busca (src/lib/ex-casal.ts)
+    expect(pagina).toMatch(/const ordenados = integrantes\.filter\(\(i\) => !modosDosExes\.has\(i\.id\)\)\.sort/);
     expect(pagina).toContain('const integrantes = todos.filter((i) => !naoVe.has(i.id));');
   });
 

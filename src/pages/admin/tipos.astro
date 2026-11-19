@@ -30,11 +30,11 @@ const salvo = Astro.url.searchParams.get('salvo');
 const nomesEmOutro = textos.length === 1 ? 'Um nome escrito em "Outro"' : `${textos.length} nomes escritos em "Outro"`;
 ---
 
-<Pagina titulo="Tipos de momento" rotulo="Administração" secao="conta" larga>
+<Pagina titulo="Tipos de momento" rotulo="Administração" secao="administracao" larga>
   <Fragment slot="abertura">
     <p>A lista que aparece em "Que tipo de momento foi?". {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}</p>
     <p class="acoes">
-      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+      <a class="acao" href="/admin">Voltar para a Administração</a>
     </p>
   </Fragment>
 

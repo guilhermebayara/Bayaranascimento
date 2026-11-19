@@ -4,8 +4,8 @@
 // src/lib/servidor/repositorio.ts ("Avisos").
 //
 // - Tipos: o pedido para liberar um relato (quando quem criou a memória amplia quem vê), relato novo
-//   numa memória que a pessoa criou ou em que aparece, e a pessoa marcada em "Quem estava". A sugestão
-//   de correção entra na onda 2.
+//   numa memória que a pessoa criou ou em que aparece, a pessoa marcada em "Quem estava", a sugestão de
+//   correção (que só sai com a resposta) e a resposta a ela (onda 2, src/lib/sugestoes.ts).
 // - Cada pessoa só recebe avisos a partir do primeiro acesso dela: o que já existia chega como acervo.
 //   O pedido para liberar vale sempre.
 // - Ninguém recebe aviso do que ela mesma fez.
@@ -13,11 +13,11 @@
 // - Um aviso sai da lista ao abrir o que ele aponta. O pedido para liberar só sai quando a pessoa responde.
 //   Sem lembrete: o pedido fica no alto até ser respondido.
 
-export const TIPOS_DE_AVISO = ['liberar-relato', 'relato-novo', 'quem-estava'] as const;
+export const TIPOS_DE_AVISO = ['liberar-relato', 'relato-novo', 'quem-estava', 'sugestao', 'sugestao-resposta'] as const;
 export type TipoDeAviso = (typeof TIPOS_DE_AVISO)[number];
 
-/** O pedido para liberar só sai com a resposta; os outros saem ao abrir a memória. */
-export const saiAoAbrir = (tipo: TipoDeAviso): boolean => tipo !== 'liberar-relato';
+/** O pedido para liberar e a sugestão de correção só saem com a resposta; os outros saem ao abrir a memória. */
+export const saiAoAbrir = (tipo: TipoDeAviso): boolean => tipo !== 'liberar-relato' && tipo !== 'sugestao';
 
 /** O pedido para liberar chega mesmo a quem ainda não entrou no site: é uma decisão que só a pessoa toma. */
 export const valeAntesDoPrimeiroAcesso = (tipo: TipoDeAviso): boolean => tipo === 'liberar-relato';
@@ -65,12 +65,20 @@ export interface AvisoParaTexto {
   paraQuem?: string | null;
   /** quem recebe o aviso */
   para: string;
+  /** na sugestão e na resposta: se é um recado ao relato, e o que quem recebeu fez */
+  dados?: Record<string, unknown>;
 }
 
 /** A frase do aviso, do ponto de vista de quem recebe. `nome` dá o nome curto de cada pessoa. */
 export function fraseDoAviso(a: AvisoParaTexto, nome: (id: string) => string): string {
   const titulo = `“${a.titulo}”`;
   if (a.tipo === 'quem-estava') return `${nome(a.de)} marcou você em ${titulo}.`;
+  // Sugestão de correção (onda 2): o pedido e a resposta
+  if (a.tipo === 'sugestao') return a.dados?.recado ? `${nome(a.de)} deixou um recado sobre o seu relato em ${titulo}.` : `${nome(a.de)} sugeriu uma correção em ${titulo}.`;
+  if (a.tipo === 'sugestao-resposta') {
+    const fez = a.dados?.situacao === 'aceita' ? 'aceitou' : a.dados?.situacao === 'recusada' ? 'recusou' : 'respondeu';
+    return `${nome(a.de)} ${fez} a sua ${a.dados?.recado ? 'mensagem' : 'sugestão'} em ${titulo}.`;
+  }
   if (a.tipo === 'relato-novo') {
     const r = a.relato;
     if (r && r.registradoPor !== r.por) return `${nome(r.registradoPor)} registrou o relato de ${nome(r.por)} em ${titulo}.`;

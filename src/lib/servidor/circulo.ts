@@ -5,9 +5,9 @@ import { FORA_DO_CIRCULO, distribuir, faixaDoValor, proximidadePadrao, valorDoNi
 import { jaFaleceu } from '../datas';
 import { Familia, lacoParaODono, possessivo, type Tratamento } from '../parentesco';
 import { enderecoDoRetrato } from '../retratos';
-import { corDaPessoa } from '../visual';
+import { coresDasPessoas } from '../familias';
 import type { Usuario } from './permissoes';
-import { familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarNucleos, listarProximidades, pessoasQueONaoVe, type Integrante } from './repositorio';
+import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarNucleos, listarProximidades, pessoasQueONaoVe, type Integrante } from './repositorio';
 
 export interface PessoaDoCirculo {
   id: string;
@@ -22,6 +22,8 @@ export interface PessoaDoCirculo {
   valor: number;
   /** a proximidade de quem não declarou nada, para "trazer de volta" */
   padrao: number;
+  /** se o dono escolheu a proximidade (no círculo ou na edição dos laços), ou se vale a de `padrao` */
+  declarada: boolean;
   angulo: number;
   /** o ângulo de quem não escolheu lugar, para "trazer de volta" */
   anguloPadrao: number;
@@ -41,7 +43,7 @@ export interface Circulo {
  * os laços do coração dela, quem já faleceu e os bichos. Quem ela não vê não entra.
  */
 export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
-  const [integrantes, filiacoes, casais, todosOsLacos, nucleos, naoVe, declaradas] = await Promise.all([
+  const [integrantes, filiacoes, casais, todosOsLacos, nucleos, naoVe, declaradas, modosDosExes] = await Promise.all([
     listarIntegrantesQueVe(usuario),
     listarFiliacoes(),
     listarCasais(usuario),
@@ -49,15 +51,18 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
     listarNucleos(),
     pessoasQueONaoVe(usuario),
     listarProximidades(usuario.pessoa),
+    comoOsExesAparecem(usuario),
   ]);
   const eu = integrantes.find((i) => i.id === usuario.pessoa);
   if (!eu) return null;
   const ordem = nucleos.map((n) => n.id);
+  const corDe = coresDasPessoas(integrantes, casais, ordem);
   const lacos = todosOsLacos.filter((l) => l.dono === usuario.pessoa);
   const familia = new Familia(filiacoes, casais, new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento])));
 
   const todos = integrantes
-    .filter((i) => i.id !== eu.id)
+    // O ex que a pessoa deixou discreto ou fora sai do círculo dela (src/lib/ex-casal.ts)
+    .filter((i) => i.id !== eu.id && !modosDosExes.has(i.id))
     .flatMap((i) => {
       const relacao = familia.relacao(eu.id, i.id);
       const meu = lacos.find((l) => l.pessoa === i.id);
@@ -69,12 +74,13 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
         {
           id: i.id,
           nome: i.apelido ?? i.nome,
-          laco: relacao ? possessivo(relacao, i.tratamento) : meu ? lacoParaODono(meu.nome, i.tratamento) : i.tipo === 'bicho' ? (i.especie ?? 'bicho') : '',
+          laco: relacao ? possessivo(relacao, i.tratamento) : meu ? lacoParaODono(meu.nome, i.tratamento) : i.tipo === 'bicho' ? (i.especie ?? 'bichinho') : '',
           foto: i.retrato && !naoVe.has(i.id) ? enderecoDoRetrato(i.retrato) : null,
-          cor: corDaPessoa(familiasDe(i), ordem),
+          cor: corDe(i.id),
           falecido: jaFaleceu(i),
           valor: declarada?.valor ?? padrao,
           padrao,
+          declarada: Boolean(declarada),
           angulo: (declarada?.angulo ?? null) as number | null,
         },
       ];
@@ -86,5 +92,14 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
     .filter((p) => p.valor >= FORA_DO_CIRCULO)
     .map((p) => ({ ...p, angulo: noPadrao.get(p.id) ?? 0, anguloPadrao: noPadrao.get(p.id) ?? 0 }))
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-  return { eu, cor: corDaPessoa(familiasDe(eu), ordem), dentro, fora };
+  return { eu, cor: corDe(eu.id), dentro, fora };
+}
+
+/**
+ * A proximidade de cada pessoa do círculo de quem está logado, para a edição dos laços mostrar o mesmo
+ * valor do círculo (docs/decisoes.md, "Círculo"). Só do dono, como o círculo: ninguém mais lê.
+ */
+export async function proximidadesDoCirculo(usuario: Usuario): Promise<Map<string, PessoaDoCirculo>> {
+  const circulo = await montarCirculo(usuario);
+  return new Map(circulo ? [...circulo.dentro, ...circulo.fora].map((p) => [p.id, p]) : []);
 }

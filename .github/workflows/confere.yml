@@ -1,13 +1,22 @@
-# Confere o site a cada push, em qualquer branch, e em todo PR para a main. Se algo falha, o
-# commit fica com a marca vermelha e o GitHub manda um e-mail. O Cloudflare roda as mesmas
-# conferências antes de publicar (npm run build chama o prebuild): se falharem, nada é
-# publicado e a versão anterior continua no ar. Ver CLAUDE.md, "Conferências".
+# Confere o site nos PRs para a homologa e para a main. Se algo falha, o PR fica com a marca
+# vermelha e o GitHub manda um e-mail. O Cloudflare roda a guarda e os testes no build de toda
+# branch (npm run build chama o prebuild): se falharem, nada é publicado e a versão anterior
+# continua no ar. Por isso não roda mais a cada push em qualquer branch: os minutos do GitHub
+# Actions acabavam (decisão do Gui, 18/11/2026). Mudança só de documento não dispara nada.
+# Ver CLAUDE.md, "Conferências".
 name: Confere o site
 
 on:
-  push:
   pull_request:
-    branches: [main]
+    branches: [homologa, main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+
+# Um push novo no mesmo PR cancela a conferência anterior, que já não vale
+concurrency:
+  group: confere-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -25,3 +34,36 @@ jobs:
       # O build chama antes a guarda da produção e os testes (prebuild)
       - name: Guarda da produção, testes e build
         run: npm run build
+
+  # A gestalt que se confere sozinha (npm run gestalt, ver CLAUDE.md, "Conferências"). Precisa do
+  # servidor local com o acervo de exemplo e de um navegador, que o build do Cloudflare não tem: por
+  # isso roda aqui, num trabalho à parte. Não usa segredo nenhum: o servidor local não fala com o
+  # Cloudflare (remoteBindings: false em astro.config.mjs) e o banco e as fotos são os locais.
+  gestalt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # O Playwright entra só aqui, fora das dependências do site
+      # (a versão fica numa variável: "nome@versão" parece e-mail para a guarda da produção)
+      - name: Navegador da conferência
+        env:
+          VERSAO_DO_PLAYWRIGHT: 1.63.0
+        run: |
+          npm install --no-save "playwright@${VERSAO_DO_PLAYWRIGHT}"
+          npx playwright install --with-deps chromium
+      - name: Servidor local com o acervo de exemplo
+        run: |
+          npx astro dev --port 4321 --background
+          # O servidor atende em "localhost", que no GitHub pode ser só IPv6: 127.0.0.1 nunca respondia.
+          # Qualquer resposta HTTP basta para saber que subiu; se não subir, o log ajuda a entender
+          timeout 180 sh -c 'until curl -s -o /dev/null http://localhost:4321/; do sleep 2; done' || { npx astro dev logs; exit 1; }
+          curl -s -o /dev/null -w 'Primeira resposta: %{http_code}\n' http://localhost:4321/
+          npm run fotos-de-exemplo -- http://localhost:4321
+      - name: Gestalt em 390 e 1280 px
+        run: npm run gestalt

@@ -2,7 +2,9 @@
 // Formulário da ficha de um integrante. Serve para cadastrar e para editar.
 import CampoData from './CampoData.astro';
 import CampoRetrato from './CampoRetrato.astro';
-import { listarIntegrantesQueVe, listarNucleos, type Integrante } from '../lib/servidor/repositorio';
+import Segmentado from './visual/Segmentado.astro';
+import { apelidosDaFicha, DESCRICAO_DO_APELIDO, LIMITE_DO_APELIDO, quemVeOApelido, type DeQuemEOApelido } from '../lib/apelidos';
+import { listarIntegrantesQueVe, listarMeusApelidos, listarNucleos, type Integrante } from '../lib/servidor/repositorio';
 
 interface Props {
   integrante?: Integrante;
@@ -18,6 +20,18 @@ const emLista = (nomes: string[]) => (nomes.length > 1 ? `${nomes.slice(0, -1).j
 // No cadastro, os nomes que já existem: "É outra pessoa?" só aparece quando o nome se repete
 // Sem quem só existe num laço privado de outra pessoa: o aviso de nome repetido denunciaria o nome (C1)
 const existentes = i ? [] : (await listarIntegrantesQueVe(Astro.locals.usuario)).map((x) => ({ id: x.id, nome: x.nome, apelido: x.apelido }));
+
+// Apelidos (decisão do Gui, 18/11/2026, depois da sessão H; regras em src/lib/apelidos.ts): o da família,
+// que todos veem, e o seu, que só você vê. Quem já tem aparece com o apelido; o que falta entra por
+// "Adicionar apelido". Na própria ficha, só o da família. No cadastro, os dois, como na edição.
+const { usuario } = Astro.locals;
+const propria = i?.id === usuario.pessoa;
+const apelidoDaFamilia = (i && i.apelidoDaFamilia !== undefined ? i.apelidoDaFamilia : i?.apelido) ?? '';
+const meuApelido = i && !propria ? ((await listarMeusApelidos(usuario.pessoa)).get(i.id) ?? '') : '';
+const apelidos = apelidosDaFicha({ familia: apelidoDaFamilia, meu: meuApelido, propria });
+const nomeDaFamilia = i ? apelidoDaFamilia || i.nome : null;
+const valorDo = (t: DeQuemEOApelido) => (t === 'familia' ? apelidoDaFamilia : meuApelido);
+const primeiraQueFalta = apelidos.faltam[0] ?? 'familia';
 ---
 
 <form class="formulario" method="post" action="/api/integrantes" enctype="multipart/form-data" data-ficha>
@@ -41,19 +55,102 @@ const existentes = i ? [] : (await listarIntegrantesQueVe(Astro.locals.usuario))
         <script type="application/json" data-nomes-existentes set:html={JSON.stringify(existentes).replace(/</g, '\\u003c')} />
       )
     }
-    <label class="campo">
-      <span>Como é chamado na família <small>(opcional)</small></span>
-      <input type="text" name="apelido" maxlength="40" autocomplete="off" value={i?.apelido ?? ''} placeholder="Ex.: Vó Bela" />
-    </label>
+    {/* Apelidos: quem já tem aparece com ele, com "Mudar" e "Tirar"; o que falta entra por "Adicionar
+        apelido", que pergunta de quem é num seletor segmentado, com a frase de quem vê colada nele (o
+        padrão do laço do coração). Sem script, os campos de sempre, cada um com quem vê. */}
+    <div class="apelidos" data-apelidos>
+      <span class="apelidos__rotulo">Apelido <small>(opcional)</small></span>
+      {
+        apelidos.existentes.length > 0 && (
+          <ul class="apelidos__lista" data-so-com-script>
+            {apelidos.existentes.map((a) => (
+              <li class="apelidos__um" data-apelido-linha={a.deQuem}>
+                <span class="apelidos__quem">
+                  <strong>{a.apelido}</strong>
+                  <span class="ficha suave" data-apelido-descricao>
+                    {DESCRICAO_DO_APELIDO[a.deQuem]}
+                  </span>
+                  <span class="ficha apelidos__sai" data-apelido-sai hidden>
+                    Sai ao salvar
+                  </span>
+                </span>
+                <span class="apelidos__acoes">
+                  <button type="button" class="acao acao--quieta" data-apelido-mudar={a.deQuem}>
+                    Mudar<span class="so-leitor"> o apelido {a.apelido}</span>
+                  </button>
+                  <button type="button" class="acao acao--quieta" data-apelido-tirar={a.deQuem}>
+                    Tirar<span class="so-leitor"> o apelido {a.apelido}</span>
+                  </button>
+                  <button type="button" class="acao acao--quieta" data-apelido-desfazer={a.deQuem} hidden>
+                    Desfazer<span class="so-leitor">: manter o apelido {a.apelido}</span>
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+      {
+        apelidos.faltam.length > 0 && (
+          <>
+            <button type="button" class="acao apelidos__adicionar" data-apelido-adicionar data-so-com-script>
+              Adicionar apelido
+            </button>
+            <div class="apelidos__novo" data-apelido-novo hidden>
+              {apelidos.pergunta && (
+                <Segmentado
+                  rotulo="De quem é este apelido"
+                  nome="apelidoDeQuem"
+                  explicacao="frase-do-apelido"
+                  opcoes={[
+                    { valor: 'familia', texto: 'A família toda', atual: true },
+                    { valor: 'meu', texto: 'Só eu' },
+                  ]}
+                />
+              )}
+              <p class="apelidos__frase" id="frase-do-apelido" aria-live="polite">
+                {apelidos.faltam.map((t) => (
+                  <span data-frase-do-apelido={t} hidden={t !== primeiraQueFalta}>
+                    {quemVeOApelido(t, nomeDaFamilia)}
+                  </span>
+                ))}
+              </p>
+            </div>
+          </>
+        )
+      }
+      {
+        apelidos.tipos.map((t) => (
+          <label class="campo apelidos__campo" data-apelido-campo={t} data-depende="apelido" hidden>
+            <span>
+              {t === 'familia' ? 'Como é chamado na família' : `Como você chama ${nomeDaFamilia ?? 'a pessoa'}`} <small>(opcional)</small>
+            </span>
+            <input
+              type="text"
+              name={t === 'familia' ? 'apelido' : 'meuApelido'}
+              maxlength={LIMITE_DO_APELIDO}
+              autocomplete="off"
+              value={valorDo(t)}
+              data-original={valorDo(t)}
+              placeholder={t === 'familia' ? 'Ex.: Vó Bela' : 'Ex.: Tia Lu, Vó, Dinho'}
+            />
+            <span class="dica">{t === 'familia' ? 'A família toda vê.' : 'Só você vê.'}</span>
+          </label>
+        ))
+      }
+      <button type="button" class="acao acao--quieta apelidos__cancelar" data-apelido-cancelar hidden>
+        Cancelar<span class="so-leitor"> o apelido</span>
+      </button>
+    </div>
     <div class="campo">
-      <span id="rotulo-tipo-integrante">É pessoa ou bicho?</span>
+      <span id="rotulo-tipo-integrante">É pessoa ou bichinho?</span>
       <div class="opcoes" role="radiogroup" aria-labelledby="rotulo-tipo-integrante">
         <label class="opcao"><input type="radio" name="tipo" value="pessoa" checked={(i?.tipo ?? 'pessoa') === 'pessoa'} /><span>Pessoa</span></label>
-        <label class="opcao"><input type="radio" name="tipo" value="bicho" checked={i?.tipo === 'bicho'} /><span>Bicho</span></label>
+        <label class="opcao"><input type="radio" name="tipo" value="bicho" checked={i?.tipo === 'bicho'} /><span>Bichinho</span></label>
       </div>
     </div>
     <label class="campo" data-especie hidden={i?.tipo !== 'bicho'}>
-      <span>Que bicho?</span>
+      <span>Que bichinho?</span>
       <input type="text" name="especie" maxlength="40" autocomplete="off" value={i?.especie ?? ''} placeholder="Ex.: cachorro" />
     </label>
     <div class="campo">
@@ -146,10 +243,13 @@ const existentes = i ? [] : (await listarIntegrantesQueVe(Astro.locals.usuario))
 </form>
 
 <script>
+  import { nomesParecidos } from '../lib/nomes-parecidos';
   import { ligarDatas } from '../lib/cliente/datas';
   import { ligarCamposDeAno } from '../lib/cliente/etapas';
+  import { ligarApelidos } from '../lib/cliente/apelidos-da-ficha';
 
   const ficha = document.querySelector<HTMLFormElement>('[data-ficha]');
+  if (ficha) ligarApelidos(ficha);
   if (ficha) ligarCamposDeAno(ficha);
   if (ficha) ligarDatas(ficha, ['nascimento', 'falecimento'].map((p) => ({ ano: `${p}Ano`, mes: `${p}Mes`, dia: `${p}Dia` })));
   // "Já faleceu": a data só aparece marcada, e desmarcar apaga a data
@@ -170,13 +270,24 @@ const existentes = i ? [] : (await listarIntegrantesQueVe(Astro.locals.usuario))
     const simples = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     const existentes = JSON.parse(ficha.querySelector('[data-nomes-existentes]')?.textContent ?? '[]') as { id: string; nome: string; apelido: string | null }[];
     const texto = repetido.querySelector<HTMLElement>('[data-nome-repetido-texto]')!;
+    const outra = repetido.querySelector<HTMLElement>('label.marcar');
+    const link = (x: { id: string; nome: string }) => Object.assign(document.createElement('a'), { href: `/pessoas/${x.id}`, textContent: x.nome, target: '_blank' });
     const conferir = () => {
       const nome = simples(campoNome.value);
       const igual = nome ? existentes.find((x) => simples(x.nome) === nome || (x.apelido && simples(x.apelido) === nome)) : undefined;
-      repetido.hidden = !igual;
+      // Nomes parecidos (onda 2): a sugestão aparece para todos, sem pedir a confirmação do nome igual
+      const parecidos = igual ? [] : nomesParecidos(campoNome.value, existentes);
+      repetido.hidden = !igual && parecidos.length === 0;
+      if (outra) outra.hidden = !igual;
       if (igual) {
-        texto.replaceChildren('Já existe ', Object.assign(document.createElement('a'), { href: `/pessoas/${igual.id}`, textContent: igual.nome, target: '_blank' }), ' no acervo. Se for a mesma pessoa, não precisa cadastrar de novo.');
-      } else repetido.querySelector<HTMLInputElement>('input[name="outra"]')!.checked = false;
+        texto.replaceChildren('Já existe ', link(igual), ' no acervo. Se for a mesma pessoa, não precisa cadastrar de novo.');
+      } else {
+        repetido.querySelector<HTMLInputElement>('input[name="outra"]')!.checked = false;
+        if (parecidos.length > 0) {
+          const nomes = parecidos.flatMap((x, n) => [...(n === 0 ? [] : [n === parecidos.length - 1 ? ' e ' : ', ']), link(x)]);
+          texto.replaceChildren('Parecido com ', ...nomes, parecidos.length > 1 ? ', que já estão no acervo. Confira antes de cadastrar.' : ', que já está no acervo. Confira antes de cadastrar.');
+        }
+      }
     };
     campoNome.addEventListener('input', conferir);
     conferir();
