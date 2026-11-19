@@ -36,8 +36,9 @@ import { jaFaleceu, maisRecentesPrimeiro } from '../../../lib/datas';
 import { coresDosCapitulos } from '../../../lib/linha-capitulos';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { podeEditarCapitulo } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
-import { carimboDaData, corDaPessoa, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
+import { familiasDe, listarCapitulos, listarCasais, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
+import { coresDasPessoas } from '../../../lib/familias';
+import { carimboDaData, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
 
 const { usuario } = Astro.locals;
 const capitulos = await listarCapitulos(usuario);
@@ -80,6 +81,7 @@ const temas = (await listarTemas()).filter((t) => capitulo.temas.includes(t.id))
 const integrantes = await listarIntegrantesQueVe(usuario);
 const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
+const corDe = coresDasPessoas(integrantes, await listarCasais(usuario), ordemDosNucleos);
 const restritoA = capitulo.visibilidade === 'nucleos' ? capitulo.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter(Boolean) : [];
 // De quem é o capítulo por período, para quem chega entender por que só algumas memórias do período entram
 const achar = (id: string) => integrantes.find((x) => x.id === id);
@@ -233,7 +235,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
                     href={`/pessoas/${id}`}
                     nome={nomeDe(id)!}
                     foto={achar(id)?.retrato && !naoVe.has(id) ? enderecoDoRetrato(achar(id)!.retrato!) : null}
-                    familia={corDaPessoa(familiasDe(achar(id)!), ordemDosNucleos)}
+                    familia={corDe(id)}
                     detalhe={contar(n)}
                     falecido={Boolean(achar(id) && jaFaleceu(achar(id)!))}
                   />

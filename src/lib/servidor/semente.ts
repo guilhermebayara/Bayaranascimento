@@ -1353,6 +1353,15 @@ export async function semearAniversariosDeExemplo(db: D1Database): Promise<void>
   );
 }
 
+// O nascimento inteiro da Elizete, inventado, para a página dela mostrar o aniversário em destaque em
+// "Dados" (pedido do Gui, 18/11/2026). Só entra se ela ainda não tem nascimento: o que alguém mudar ao
+// testar fica.
+export async function semearNascimentoDaElizeteDeExemplo(db: D1Database): Promise<void> {
+  const ela = await db.prepare(`SELECT nascimento_ano AS ano FROM integrantes WHERE id = 'elizete'`).first<{ ano: number | null }>();
+  if (!ela || ela.ano) return;
+  await db.prepare(`UPDATE integrantes SET nascimento_ano = 1966, nascimento_mes = 10, nascimento_dia = 12 WHERE id = 'elizete' AND nascimento_ano IS NULL`).run();
+}
+
 // O dia no começo de "Os anos de casa", para a prévia mostrar um capítulo com dia (pedido do Gui,
 // 18/11/2026: o capítulo de período e a época com dia opcional). Só entra se o começo ainda não tem dia.
 export async function semearDiaDosCapitulosDeExemplo(db: D1Database): Promise<void> {

@@ -10,13 +10,14 @@ import Voz from '../../../components/conversa/Voz.astro';
 import { formatarData, jaFaleceu } from '../../../lib/datas';
 import { resumoDaMensagem } from '../../../lib/conversa';
 import { enderecoDoRetrato } from '../../../lib/retratos';
-import { corDaPessoa } from '../../../lib/visual';
+import { coresDasPessoas } from '../../../lib/familias';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { conversaDosRelatos } from '../../../lib/servidor/conversa';
 import { donoDoRelato, veORelato } from '../../../lib/servidor/permissoes';
 import { situacaoDaTranscricaoAgora } from '../../../lib/servidor/transcricao';
 import {
   familiasDe,
+  listarCasais,
   listarFotosDoRelato,
   listarIntegrantes,
   listarIntegrantesQueVe,
@@ -40,7 +41,8 @@ const achar = (id: string) => integrantes.find((i) => i.id === id);
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? nomesNaLixeira.get(id) ?? 'Alguém';
 const ordemDosNucleos = (await listarNucleos()).map((n) => n.id);
 const retratoDe = (id: string) => (achar(id)?.retrato ? enderecoDoRetrato(achar(id)!.retrato!) : null);
-const familiaDe = (id: string) => (achar(id) ? corDaPessoa(familiasDe(achar(id)!), ordemDosNucleos) : undefined);
+const corDe = coresDasPessoas(integrantes, await listarCasais(usuario), ordemDosNucleos);
+const familiaDe = (id: string) => (achar(id) ? corDe(id) : undefined);
 
 // Em nome de quem dá para escrever: a própria pessoa e quem não acessa o site, entre quem ela vê (C1)
 const visiveis = await listarIntegrantesQueVe(usuario);

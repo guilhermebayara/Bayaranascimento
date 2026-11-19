@@ -18,7 +18,8 @@ import { enderecoDoLaco, faixasDasFases, memoriasDasFases, periodoDoLaco } from 
 import { situacaoDoCasal } from '../../../lib/ex-casal';
 import { FASES, Familia, lacoParaODono, periodosDasFases, possessivo, type Tratamento } from '../../../lib/parentesco';
 import { enderecoDoRetrato } from '../../../lib/retratos';
-import { carimboDaData, corDaPessoa, estiloDoTipo, listaCurta } from '../../../lib/visual';
+import { carimboDaData, estiloDoTipo, listaCurta } from '../../../lib/visual';
+import { coresDasPessoas } from '../../../lib/familias';
 import {
   comoOsExesAparecem,
   familiasDe,
@@ -62,6 +63,7 @@ const faixas = casal ? faixasDasFases(casal.fases, anoAtual) : [];
 const memorias = maisRecentesPrimeiro((await listarMemorias(usuario)).filter((m) => m.integrantes.includes(a.id) && m.integrantes.includes(b.id)));
 const periodo = periodoDoLaco(faixas, memorias.map((m) => m.ano));
 const ordem = (await listarNucleos()).map((n) => n.id);
+const corDe = coresDasPessoas(integrantes, casais, ordem);
 const retratoDe = (i: typeof a) => (i.retrato ? enderecoDoRetrato(i.retrato) : null);
 const titulo = `${chamar(a)} e ${chamar(b)}`;
 // A fase decide a situação (decisões do Gui, 18/11/2026): juntos, namorando, hoje amigos ou não estão mais juntos
@@ -100,7 +102,7 @@ const digitos = Math.max(2, String(marcos.length).length);
       <div class="laco-pagina__dois">
         {[a, b].map((i) => (
           <a class="pessoa" href={`/pessoas/${i.id}`}>
-            <Retrato nome={chamar(i)} foto={retratoDe(i)} familia={corDaPessoa(familiasDe(i), ordem)} falecido={jaFaleceu(i)} cedo />
+            <Retrato nome={chamar(i)} foto={retratoDe(i)} familia={corDe(i.id)} falecido={jaFaleceu(i)} cedo />
             <span class="pessoa__nome">{chamar(i)}</span>
             {jaFaleceu(i) && <span class="so-leitor">já faleceu</span>}
             {paraQuemOlha(i) && <span class="ficha suave">{paraQuemOlha(i)}</span>}
