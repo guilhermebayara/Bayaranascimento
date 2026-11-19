@@ -1,13 +1,22 @@
-# Confere o site a cada push, em qualquer branch, e em todo PR para a main. Se algo falha, o
-# commit fica com a marca vermelha e o GitHub manda um e-mail. O Cloudflare roda as mesmas
-# conferências antes de publicar (npm run build chama o prebuild): se falharem, nada é
-# publicado e a versão anterior continua no ar. Ver CLAUDE.md, "Conferências".
+# Confere o site nos PRs para a homologa e para a main. Se algo falha, o PR fica com a marca
+# vermelha e o GitHub manda um e-mail. O Cloudflare roda a guarda e os testes no build de toda
+# branch (npm run build chama o prebuild): se falharem, nada é publicado e a versão anterior
+# continua no ar. Por isso não roda mais a cada push em qualquer branch: os minutos do GitHub
+# Actions acabavam (decisão do Gui, 18/11/2026). Mudança só de documento não dispara nada.
+# Ver CLAUDE.md, "Conferências".
 name: Confere o site
 
 on:
-  push:
   pull_request:
-    branches: [main]
+    branches: [homologa, main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+
+# Um push novo no mesmo PR cancela a conferência anterior, que já não vale
+concurrency:
+  group: confere-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
