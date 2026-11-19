@@ -426,6 +426,7 @@ A regra de cada tela como ela é hoje. O comportamento (o que aparece, para quem
 - **O ano é uma aba na primeira foto de cada ano,** saindo do alto da foto, sem ocupar lugar.
 - **O título na margem:** só o título da memória, pequeno, na manuscrita, em até duas linhas. Vale também para a memória sem foto, que entra como cartão na cor do tipo.
 - **O verso, no computador:** ao passar o mouse ou com o foco, a foto endireita e sobe um pouco e o verso abre em leque por trás, girando pelo canto de baixo: um cartão do mesmo tamanho da foto, de que aparece a quina de cima, com a data em mono (o dia e o mês numa linha, o ano na outra). Perto da borda direita, abre para a esquerda. Com movimento reduzido, aparece sem girar. No toque, não aparece. Virar a foto foi descartado: esconde a foto no momento em que a pessoa aponta para ela.
+- **Quais fotos** (19/11/2026): "Só as capas" (o padrão) ou "Todas as fotos". Em "todas", cada foto a mais é um item igual ao da capa (a mesma inclinação do id da memória, o título na margem, o verso com a data), logo depois dela, na mesma grade; a aba do ano e o cartão da década ficam só na capa. A capa tem `data-chave="m:<id>"`, e as outras, `f:<id>:<n>`, para a troca no lugar mover a capa e fazer as outras entrarem e saírem. O seletor é o `QuaisFotos.astro`, com o rótulo "Mostrar", no Explorar ao lado do tamanho (`.controles__tamanho`) e, nas páginas da pessoa, do capítulo e do tema, depois da "Forma de ver".
 - **O tamanho das fotos:** colunas no celular, no computador e na tela grande: 3, 8 e 10 nas pequenas; 2, 6 e 8 nas médias (o padrão); 1, 4 e 5 nas grandes. Nas pequenas do celular, o título não cabe na margem e fica só a foto.
 - Fora da ordem do tempo, saem os cartões de década e as abas de ano, e a data fica só no verso.
 
@@ -465,6 +466,7 @@ A regra de cada tela como ela é hoje. O comportamento (o que aparece, para quem
 | Forma de ver, família, filtros e ordem | No endereço |
 | A memória da vez no modo TV (`m`) | No endereço |
 | Tamanho das fotos do mural | No aparelho (`mural-tamanho`) |
+| Quais fotos o mural mostra | No endereço (`fotos=todas`; as capas, que são o padrão, não vão) |
 | Animação do modo TV e o tempo do "Passar sozinho" | No aparelho (`tv-animacao`, `tv-tempo`) |
 | "Só as fotos", no modo TV | No aparelho (`tv-so-fotos`) |
 | Se está passando sozinho, a pausa e a tela cheia | Só enquanto o modo TV está aberto |
