@@ -346,6 +346,37 @@ export function lerTamanho(p: URLSearchParams): Tamanho {
 export const tamanhoNoEndereco = (tamanho: Tamanho): Record<string, string | undefined> => ({ tamanho: tamanho === TAMANHO_PADRAO ? undefined : tamanho });
 
 /**
+ * Quais fotos o mural mostra (pedido do Gui, 18/11/2026): só a foto-chave de cada memória, as capas
+ * (o padrão: uma foto por memória, como a caixa de fotografias aberta), ou todas as fotos de todas
+ * as memórias. Vale para todo mural do site (Explorar, página da pessoa, do capítulo e do tema).
+ * Fica no endereço, em `fotos`, e troca no lugar como a forma de ver; sem ele, as capas.
+ */
+export type FotosDoMural = 'capas' | 'todas';
+export const FOTOS_DO_MURAL: FotosDoMural[] = ['capas', 'todas'];
+export const FOTOS_DO_MURAL_PADRAO: FotosDoMural = 'capas';
+export const NOMES_DAS_FOTOS_DO_MURAL: Record<FotosDoMural, string> = { capas: 'Só as capas', todas: 'Todas as fotos' };
+
+export function lerFotosDoMural(p: URLSearchParams): FotosDoMural {
+  const pedido = p.get('fotos');
+  return FOTOS_DO_MURAL.includes(pedido as FotosDoMural) ? (pedido as FotosDoMural) : FOTOS_DO_MURAL_PADRAO;
+}
+
+/** O que vai no endereço para essa escolha (para `mais`, em enderecoDoExplorar): o padrão não vai. */
+export const fotosDoMuralNoEndereco = (fotos: FotosDoMural): Record<string, string | undefined> => ({ fotos: fotos === FOTOS_DO_MURAL_PADRAO ? undefined : fotos });
+
+/**
+ * Os itens do mural, na ordem das memórias. Cada memória entra com a capa (a primeira foto, ou sem
+ * foto, quando não há nenhuma) e, em "todas as fotos", com as outras logo depois dela. `n` é a
+ * posição da foto na memória: 0 é a capa, que leva a aba do ano e é a âncora da troca.
+ */
+export function itensDoMural<M extends { fotos: { chave: string }[] }>(memorias: M[], fotos: FotosDoMural): { m: M; foto: M['fotos'][number] | undefined; n: number }[] {
+  return memorias.flatMap((m): { m: M; foto: M['fotos'][number] | undefined; n: number }[] => {
+    const quais = fotos === 'todas' ? m.fotos : m.fotos.slice(0, 1);
+    return quais.length > 0 ? quais.map((foto, n) => ({ m, foto, n })) : [{ m, foto: undefined, n: 0 }];
+  });
+}
+
+/**
  * "Passar sozinho", no modo TV (decisão do Gui, 17/11/2026): quem está vendo escolhe o tempo de
  * cada memória, entre 8, 10 e 15 segundos, e pode pausar e retomar. Fica no endereço, como os
  * filtros: `passar` leva os segundos e `pausa`, a pausa. Sem `passar`, nada passa sozinho.

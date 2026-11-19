@@ -256,8 +256,11 @@ export function lerFormaDoCapitulo(p: URLSearchParams): FormaDoCapitulo {
 }
 
 /** O endereço da página do capítulo em cada forma de ver. Os marcos, que são o padrão, não vão no endereço. */
-export function enderecoDoCapitulo(id: string, forma: FormaDoCapitulo = 'marcos'): string {
-  return `/capitulos/${id}${forma === 'marcos' ? '' : `?ver=${forma}`}`;
+export function enderecoDoCapitulo(id: string, forma: FormaDoCapitulo = 'marcos', mais: Record<string, string | undefined> = {}): string {
+  const p = new URLSearchParams();
+  if (forma !== 'marcos') p.set('ver', forma);
+  for (const [nome, valor] of Object.entries(mais)) if (valor) p.set(nome, valor);
+  return `/capitulos/${id}${p.size > 0 ? `?${p}` : ''}`;
 }
 
 /** O título da parte das memórias (P71): a época não é capítulo. */

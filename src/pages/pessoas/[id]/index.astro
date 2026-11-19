@@ -20,7 +20,8 @@ import PilulaDeFamilia from '../../../components/visual/PilulaDeFamilia.astro';
 import Recado from '../../../components/visual/Recado.astro';
 import Retrato from '../../../components/visual/Retrato.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
-import { TAMANHO_PADRAO } from '../../../lib/explorar';
+import { TAMANHO_PADRAO, lerFotosDoMural, fotosDoMuralNoEndereco } from '../../../lib/explorar';
+import QuaisFotos from '../../../components/explorar/QuaisFotos.astro';
 import { FORMAS_DA_VIDA, contaDaFamiliaDePerto, enderecoDaVida, fraseDoAcervo, nomeDoGrupoDePerto, lerFormaDaVida, mostraRascunhoNaVida, nomeDaFormaDaVida } from '../../../lib/pagina-da-pessoa';
 import { montarPaginaDaPessoa, type Ligada } from '../../../lib/servidor/pagina-da-pessoa';
 import { listarCapitulos } from '../../../lib/servidor/repositorio';
@@ -35,6 +36,7 @@ const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um :
 // A forma de ver as memórias (pedido do Gui, 18/11/2026): pela idade é o padrão, e a linha do tempo e
 // o mural continuam como opção. A escolha fica no endereço ("ver") e troca sem recarregar
 const forma = lerFormaDaVida(Astro.url.searchParams);
+const fotosDoMural = lerFotosDoMural(Astro.url.searchParams);
 const memorias = mostraRascunhoNaVida(forma) ? p.todasComEla : p.publicadas;
 const comIdade = Boolean(pessoa.nascimentoAno);
 
@@ -429,6 +431,7 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
                   ))}
                 </nav>
               </div>
+              {forma === 'mural' && <QuaisFotos atual={fotosDoMural} endereco={(f) => `${enderecoDaVida(pessoa.id, forma, fotosDoMuralNoEndereco(f))}#memorias-com`} />}
             </div>
           )}
         </header>
@@ -442,7 +445,7 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
           </div>
         ) : forma === 'mural' ? (
           <div class="linha linha--mural">
-            <Mural memorias={memorias} ordem="recentes" tamanho={TAMANHO_PADRAO} />
+            <Mural memorias={memorias} ordem="recentes" tamanho={TAMANHO_PADRAO} fotos={fotosDoMural} />
           </div>
         ) : forma === 'linha' ? (
           <Linha memorias={memorias} capitulos={await listarCapitulos(usuario)} integrantes={p.integrantes} nucleos={p.nucleos} ordem="recentes" trilhos={false} />

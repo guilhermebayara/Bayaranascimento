@@ -15,8 +15,11 @@ export function lerFormaDaVida(p: URLSearchParams): FormaDaVida {
 }
 
 /** O endereço da página da pessoa em cada forma de ver. A forma padrão não vai no endereço. */
-export function enderecoDaVida(id: string, forma: FormaDaVida = FORMA_DA_VIDA_PADRAO): string {
-  return `/pessoas/${id}${forma === FORMA_DA_VIDA_PADRAO ? '' : `?ver=${forma}`}`;
+export function enderecoDaVida(id: string, forma: FormaDaVida = FORMA_DA_VIDA_PADRAO, mais: Record<string, string | undefined> = {}): string {
+  const p = new URLSearchParams();
+  if (forma !== FORMA_DA_VIDA_PADRAO) p.set('ver', forma);
+  for (const [nome, valor] of Object.entries(mais)) if (valor) p.set(nome, valor);
+  return `/pessoas/${id}${p.size > 0 ? `?${p}` : ''}`;
 }
 
 /** O nome de cada forma. Sem o ano de nascimento, a primeira agrupa por década. */

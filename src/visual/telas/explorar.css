@@ -97,8 +97,9 @@
 .controles__tamanho {
   order: 5;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--e-5);
+  gap: var(--e-3) var(--e-6);
   margin-top: var(--e-2);
 }
 /* A conta é do resultado: no celular fica por último, junto do que ela conta */
@@ -672,6 +673,17 @@ html:not(.com-troca) .filtros__acoes .so-com-troca {
 /* As três opções de tamanho cabem numa linha, mesmo no celular */
 .linha__opcoes--curtas {
   grid-template-columns: repeat(3, max-content);
+}
+/* "Quais fotos": só as capas ou todas, duas opções que cabem numa linha */
+.linha__opcoes--duas {
+  grid-template-columns: repeat(2, max-content);
+}
+/* O tamanho e a escolha das fotos são dois controles, cada um com o nome ao lado das opções */
+.controles__tamanho .controle--tamanho,
+.controles__tamanho .controle--fotos {
+  display: flex;
+  align-items: center;
+  gap: var(--e-5);
 }
 
 /* --- O palco: uma memória por vez ----------------------------------------------------------------

@@ -331,8 +331,9 @@ describe('conceito', () => {
     expect(pagina).toMatch(/<div data-explorar>/);
     expect(pagina).toMatch(/import \{ ligarTroca \} from '\.\.\/lib\/cliente\/explorar-troca';\s*ligarTroca\(\);/);
     const troca = Object.values(import.meta.glob<string>('../src/lib/cliente/explorar-troca.ts', { query: '?raw', import: 'default', eager: true }))[0]!;
-    // Cada item tem identidade própria, no mural e na linha do tempo
-    expect(tela('explorar/Mural.astro')).toMatch(/class="mural__foto"[^>]*data-chave=\{`m:\$\{m\.id\}`\} data-ano=\{m\.ano\}/);
+    // Cada item tem identidade própria, no mural e na linha do tempo. No mural, a capa é a memória
+    // (`m:`) e as outras fotos de "todas as fotos" têm a delas (`f:`)
+    expect(tela('explorar/Mural.astro')).toMatch(/class="mural__foto"[^>]*data-chave=\{n === 0 \? `m:\$\{m\.id\}` : `f:\$\{m\.id\}:\$\{n\}`\} data-ano=\{m\.ano\}/);
     expect(tela('explorar/Mural.astro')).toMatch(/class="mural__decada"[^>]*data-chave=\{`d:\$\{abreDecada\}`\}/);
     const linha = tela('explorar/Linha.astro');
     expect(linha).toMatch(/data-chave=\{`m:\$\{m\.id\}`\}\s*data-ano=\{m\.ano\}/);
@@ -448,8 +449,9 @@ describe('conceito', () => {
   it('no mural, quem está vendo escolhe o tamanho das fotos, e a escolha fica no endereço', () => {
     // Decisão do Gui, 17/11/2026
     const controles = tela('explorar/Controles.astro');
-    expect(controles).toMatch(/forma === 'mural' && \(\s*<div class="controles__tamanho">\s*<p class="rotulo suave" id="controle-tamanho">\s*Fotos\s*</);
-    expect(controles).toMatch(/enderecoDoExplorar\(filtros, forma, tamanhoNoEndereco\(t\)\)/);
+    expect(controles).toMatch(/forma === 'mural' && \(\s*<div class="controles__tamanho">\s*<div class="controle controle--tamanho">\s*<p class="rotulo suave" id="controle-tamanho">\s*Fotos\s*</);
+    // o tamanho leva junto a escolha de quais fotos, para o link sem script não a perder
+    expect(controles).toMatch(/enderecoDoExplorar\(filtros, forma, \{ \.\.\.tamanhoNoEndereco\(t\), \.\.\.fotosDoMuralNoEndereco\(fotos\) \}\)/);
     // O tamanho acompanha a troca de família e o formulário dos filtros
     expect(controles).toMatch(/<input type="hidden" name="tamanho"/);
     // Com script, o tamanho é preferência guardada no aparelho e não vai para o endereço
