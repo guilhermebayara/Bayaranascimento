@@ -21,7 +21,7 @@
 
   "vars": {
     // Cloudflare Access: usados para conferir quem está logado
-    "ACCESS_TEAM_DOMAIN": "misty-meadow-4f1e.cloudflareaccess.com",
+    "ACCESS_TEAM_DOMAIN": "memoriasb-b.cloudflareaccess.com",
     "ACCESS_AUD": "6cb7130805a6a1e18b9863e6d91d6d76e5d980ae09acba0a63e5aba2229fddda",
     // "producao" exige login. Só as prévias de branch usam "previa".
     "AMBIENTE": "producao"
@@ -32,7 +32,7 @@
   // acervo real fica ao alcance de uma prévia.
   "previews": {
     "vars": {
-      "ACCESS_TEAM_DOMAIN": "misty-meadow-4f1e.cloudflareaccess.com",
+      "ACCESS_TEAM_DOMAIN": "memoriasb-b.cloudflareaccess.com",
       "ACCESS_AUD": "6cb7130805a6a1e18b9863e6d91d6d76e5d980ae09acba0a63e5aba2229fddda",
       "AMBIENTE": "previa"
     },
