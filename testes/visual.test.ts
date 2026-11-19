@@ -217,11 +217,12 @@ describe('conceito', () => {
     expect(tela('components/Carta.astro')).toContain('saudacao(para)');
   });
 
-  it('a conta é montada por montarConta, e a administração só aparece com itens', () => {
+  it('a conta é montada por montarConta, e para quem administra só tem o atalho para a Administração', () => {
     const conta = tela('pages/conta.astro');
     expect(conta).toContain('await montarConta(usuario)');
-    expect(conta).toContain('const admin = conta.administracao.length > 0;');
-    expect(conta).toMatch(/\{\n\s*admin && \(\n\s*<section class="cartao conta__admin"/);
+    expect(conta).toContain('const admin = conta.administra;');
+    expect(conta).toMatch(/\{admin && \(\s*<span class="conta__administra">\s*<a class="acao" href=\{ENDERECO_DA_ADMINISTRACAO\}>/);
+    expect(conta).not.toContain('conta__admin"');
     expect(conta).not.toMatch(/usuario\.admin/);
     expect(conta).toMatch(/<Visual titulo="Sua conta" secao="conta" familia=\{cor\} intimo>/);
   });

@@ -260,6 +260,21 @@ export function resumoDoGrupo(atalhos: number, pendencias: number): string {
 export const idDoGrupo = (titulo: string): string =>
   `administracao-${titulo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '')}`;
 
+/** A página da Administração (decisão do Gui, 18/11/2026: ela saiu de "Sua conta" e ganhou página própria). */
+export const ENDERECO_DA_ADMINISTRACAO = '/admin';
+
+/**
+ * Para onde vai um endereço antigo da seção da administração em "Sua conta": "#administracao" e
+ * "#administracao-cartao" levam à página nova, e o de um grupo ("#administracao-espaco-e-copias") leva ao
+ * mesmo grupo nela. Qualquer outra âncora da conta ("#rascunhos") fica onde está.
+ */
+export function destinoDaAncoraAntiga(ancora: string): string | undefined {
+  const id = decodeURIComponent(ancora.replace(/^#/, ''));
+  if (id === 'administracao' || id === 'administracao-cartao') return ENDERECO_DA_ADMINISTRACAO;
+  const grupos = [...TEMAS_DA_ADMINISTRACAO.map((t) => t.titulo), GRUPO_DO_ESPACO].map(idDoGrupo);
+  return grupos.includes(id) ? `${ENDERECO_DA_ADMINISTRACAO}#${id}` : undefined;
+}
+
 export function gruposDaAdministracao(itens: ItemDeAdministracao[]): { titulo: string; itens: ItemDeAdministracao[] }[] {
   return TEMAS_DA_ADMINISTRACAO.map(({ tema, titulo }) => ({ titulo, itens: itens.filter((i) => i.tema === tema && !i.baixar) })).filter((g) => g.itens.length > 0);
 }

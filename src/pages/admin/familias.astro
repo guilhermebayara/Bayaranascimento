@@ -14,14 +14,14 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
-<Pagina titulo="Famílias" rotulo="Administração" secao="conta" larga>
+<Pagina titulo="Famílias" rotulo="Administração" secao="administracao" larga>
   <Fragment slot="abertura">
     <p>
       Os sobrenomes de que cada família é feita. É com eles que o site escreve a linha embaixo de "MEMÓRIAS" quando a tela mostra mais de uma família.{' '}
       {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}
     </p>
     <p class="acoes">
-      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+      <a class="acao" href="/admin">Voltar para a Administração</a>
     </p>
   </Fragment>
 

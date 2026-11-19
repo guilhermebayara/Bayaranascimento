@@ -21,13 +21,13 @@ const nome = (id: string) => {
 const total = fotos.reduce((soma, f) => soma + (f.tamanho ?? 0), 0);
 ---
 
-<Pagina titulo="Fotos sem memória" rotulo="Administração" secao="conta" larga>
+<Pagina titulo="Fotos sem memória" rotulo="Administração" secao="administracao" larga>
   <Fragment slot="abertura">
     <p>
       Fotos enviadas há mais de {DIAS_DA_FOTO_SOLTA} dias que não ficaram em nenhuma memória: um formulário que ficou pela metade, ou uma memória apagada de vez. Nada se apaga sozinho. Confira cada uma e apague a que não serve.
     </p>
     <p class="acoes">
-      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+      <a class="acao" href="/admin">Voltar para a Administração</a>
     </p>
   </Fragment>
   {

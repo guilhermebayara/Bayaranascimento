@@ -64,7 +64,7 @@ describe('"Sair" só onde há login (P4)', () => {
 describe('a carta mora também em "Sua conta" (P5)', () => {
   it('para todos, com o carimbo do Natal, quando a carta existe', () => {
     const conta = ler('src/pages/conta.astro');
-    const trecho = conta.slice(conta.indexOf('carta && ('), conta.indexOf('admin && ('));
+    const trecho = conta.slice(conta.indexOf('carta && ('), conta.indexOf('</Visual>'));
     expect(trecho).toMatch(/<Carimbo itens=\{\[`Natal de \$\{carta\.escritaEm\.slice\(0, 4\)\}`\]\} \/>/);
     expect(trecho).toMatch(/href="\/carta"/);
     expect(trecho).not.toContain('admin');
@@ -73,7 +73,7 @@ describe('a carta mora também em "Sua conta" (P5)', () => {
 
 describe('a assinatura do rodapé pela metade nos formulários e nas telas utilitárias (P7)', () => {
   it('o esqueleto decide num lugar só, e o padrão é a assinatura inteira', () => {
-    expect(esqueleto).toMatch(/const rodape = Astro\.props\.rodape \?\? \(secao === 'conta' \? 'metade' : 'inteiro'\);/);
+    expect(esqueleto).toMatch(/const rodape = Astro\.props\.rodape \?\? \(secao === 'conta' \|\| secao === 'administracao' \? 'metade' : 'inteiro'\);/);
     expect(esqueleto).toMatch(/<footer class="rodape" data-assinatura=\{rodape === 'metade' \? 'metade' : undefined\}>/);
     expect(regra(css, ".rodape[data-assinatura='metade'] .assinatura")).toMatch(/width: 50%/);
   });

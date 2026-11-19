@@ -16,8 +16,7 @@ import Carimbo from '../components/visual/Carimbo.astro';
 import Gente from '../components/visual/Gente.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
-import { FRASE_DA_COPIA_DO_ACERVO, GRUPO_DO_ESPACO, contaDePendencias, grupoDaPendencia, gruposDaAdministracao, fraseDaCopiaMensal, idDoGrupo, oComeco, porcentoDoBanco, resumoDoGrupo } from '../lib/conta';
-import { LIMITE_DO_PLANO } from '../lib/tamanho-do-banco';
+import { ENDERECO_DA_ADMINISTRACAO, contaDePendencias, oComeco } from '../lib/conta';
 import { formatarData, jaFaleceu } from '../lib/datas';
 import { familiaMaisRecente } from '../lib/familias';
 import { PROXIMIDADES, lacoParaODono } from '../lib/parentesco';
@@ -65,17 +64,9 @@ const capitulosCriados = oComeco(criou.capitulos);
 // Os dados sobem para o alto, numa linha, e só entra o que existe (P149)
 const chamado = eu?.apelido && eu.apelido !== eu.nome ? `${eu.tratamento === 'ela' ? 'chamada' : 'chamado'} de ${eu.apelido}` : undefined;
 const dados = [nascimento, chamado, conta.email && `e-mail de acesso: ${conta.email}`].filter(Boolean);
-// "Baixar cópia do acervo" baixa um arquivo: fica à parte dos links que abrem página, junto do tamanho do banco (P153)
-const paginasDaAdministracao = conta.administracao.filter((item) => !item.baixar);
-const copias = conta.administracao.filter((item) => item.baixar);
-const admin = conta.administracao.length > 0;
-// As pendências da administração: o sinal do alto abre a lista delas, e cada uma marca o grupo onde mora
-const { pendencias, situacao } = conta;
-const pendenciaDo = (tipo: string) => pendencias.find((p) => p.tipo === tipo);
-// Os atalhos em grupos por tema, cada um numa lista de linhas (observação do Gui, 18/11/2026)
-const grupos = gruposDaAdministracao(paginasDaAdministracao);
-const bancoPorcento = situacao?.banco ? porcentoDoBanco(situacao.banco.bytes, LIMITE_DO_PLANO) : 0;
-const copiaMensal = situacao ? fraseDaCopiaMensal(situacao.copiaMensal, conta.hoje) : undefined;
+// A Administração tem página própria (decisão do Gui, 18/11/2026). Aqui, para quem administra, só o
+// atalho para ela, ao lado das ações do alto, com as pendências que ela tem
+const admin = conta.administra;
 // Os avisos: a lista e o histórico (docs/decisoes.md, "Avisos")
 const todosOsAvisos = await listarAvisos(usuario, { historico: true });
 const avisosPendentes = todosOsAvisos.filter((a) => !a.resolvidoEm);
@@ -85,7 +76,7 @@ const erro = Astro.url.searchParams.get('erro');
 ---
 
 <Visual titulo="Sua conta" secao="conta" familia={cor} intimo>
-  <div class:list={['conta', 'miolo', { 'conta--admin': admin }]}>
+  <div class="conta miolo" data-administra={admin ? '' : undefined}>
     {(ok || erro) && <Recado erro={Boolean(erro)}>{erro ?? ok}</Recado>}
     <div class="conta__grade">
       <header class="conta__abre">
@@ -107,6 +98,16 @@ const erro = Astro.url.searchParams.get('erro');
             <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
               Ver sua página
             </a>
+            {/* O atalho para a Administração, só para quem administra (decisão do Gui, 18/11/2026), com as
+                pendências dela ao lado, na cor de alerta */}
+            {admin && (
+              <span class="conta__administra">
+                <a class="acao" href={ENDERECO_DA_ADMINISTRACAO}>
+                  Administração
+                </a>
+                {conta.pendenciasDaAdministracao > 0 && <span class="ficha conta__pendente">{contaDePendencias(conta.pendenciasDaAdministracao)}</span>}
+              </span>
+            )}
           </p>
         </div>
       </header>
@@ -281,124 +282,14 @@ const erro = Astro.url.searchParams.get('erro');
         )
       }
 
-      {
-        admin && (
-          <section class="cartao conta__admin" aria-labelledby="administracao" id="administracao-cartao">
-            {/* Proposta A do conceito da sessão H (escolha do Gui, 18/11/2026): cada grupo é uma linha que abre e
-                fecha, uma por vez, como no painel da árvore; o sinal do alto abre, por cima, a lista das pendências */}
-            <div class="conta__admin-alto">
-              <h2 class="rotulo" id="administracao">
-                Administração
-              </h2>
-              {pendencias.length > 0 ? (
-                <details class="conta__sinal" data-menu-acoes>
-                  <summary class="conta__pendencias ficha">{contaDePendencias(pendencias.length)}</summary>
-                  <div class="conta__balao">
-                    <p class="rotulo suave">O que pede você</p>
-                    <ul>
-                      {pendencias.map((p) => (
-                        <li>
-                          <a class="menu-acoes__item" href={p.href ?? `#${idDoGrupo(grupoDaPendencia(p))}`} data-abre-grupo={p.href ? undefined : idDoGrupo(grupoDaPendencia(p))}>
-                            <strong>{p.texto}</strong>
-                            <span class="ficha suave">em {grupoDaPendencia(p)}</span>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </details>
-              ) : (
-                <span class="ficha suave">Tudo em dia</span>
-              )}
-            </div>
-            {grupos.map((grupo) => {
-              const marcadas = pendencias.filter((p) => grupoDaPendencia(p) === grupo.titulo).length;
-              return (
-                <details class="conta__grupo" name="administracao" id={idDoGrupo(grupo.titulo)}>
-                  <summary>
-                    <span class="conta__grupo-nome">{grupo.titulo}</span>
-                    <span class:list={['ficha', marcadas ? 'conta__pendente' : 'suave']}>{resumoDoGrupo(grupo.itens.length, marcadas)}</span>
-                  </summary>
-                  <ul>
-                    {grupo.itens.map((item) => (
-                      <li>
-                        <a class:list={['conta__atalho', { 'conta__atalho--pendente': item.pendencia }]} href={item.href}>
-                          <strong>{item.rotulo}</strong>
-                          {item.situacao && <span class="ficha">{item.situacao}</span>}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              );
-            })}
-            {(() => {
-              const marcadas = pendencias.filter((p) => grupoDaPendencia(p) === GRUPO_DO_ESPACO).length;
-              return (
-                <details class="conta__grupo" name="administracao" id={idDoGrupo(GRUPO_DO_ESPACO)}>
-                  <summary>
-                    <span class="conta__grupo-nome">{GRUPO_DO_ESPACO}</span>
-                    <span class:list={['ficha', marcadas ? 'conta__pendente' : 'suave']}>{marcadas ? contaDePendencias(marcadas) : conta.banco ? `banco em ${bancoPorcento}%` : 'tudo certo'}</span>
-                  </summary>
-                  <div class="conta__banco">
-                    <div class="conta__medidores">
-                      {conta.banco && (
-                        <div class:list={['conta__medidor', { 'conta__medidor--aviso': conta.bancoEmAviso }]}>
-                          <p class="conta__banco-linha">
-                            <strong>Banco do acervo</strong>
-                            <span class="ficha">{conta.banco}</span>
-                          </p>
-                          <div class="conta__medida" role="img" aria-label={`Banco: ${conta.banco}`}>
-                            <span style={`width: ${bancoPorcento}%`} />
-                          </div>
-                          {conta.bancoEmAviso && <p class="conta__nota">Perto do limite do plano gratuito. A saída combinada é o plano Workers Paid.</p>}
-                        </div>
-                      )}
-                      {conta.espaco && (
-                        <div class:list={['conta__medidor', { 'conta__medidor--aviso': conta.espaco.emAviso }]}>
-                          <p class="conta__banco-linha">
-                            <strong>Fotos e áudios</strong>
-                            <span class="ficha">{conta.espaco.frase}</span>
-                          </p>
-                          <div class="conta__medida" role="img" aria-label={`Fotos e áudios: ${conta.espaco.frase}`}>
-                            <span style={`width: ${conta.espaco.porcento}%`} />
-                          </div>
-                          {conta.espaco.emAviso && <p class="conta__nota">Perto do limite do plano gratuito, que soma a produção, a homologação e as prévias.</p>}
-                          {conta.espaco.nota && <p class="conta__nota ficha">{conta.espaco.nota}</p>}
-                        </div>
-                      )}
-                    </div>
-                    <div class="conta__copias">
-                      {copiaMensal && <p class:list={['conta__nota', 'ficha', { conta__pendente: Boolean(pendenciaDo('copia')) }]}>{copiaMensal}</p>}
-                      {copias.map((copia) => (
-                        <a class="acao" href={copia.href} download>
-                          {copia.rotulo}
-                        </a>
-                      ))}
-                      {copias.length > 0 && <p class="conta__nota">{FRASE_DA_COPIA_DO_ACERVO}</p>}
-                    </div>
-                  </div>
-                </details>
-              );
-            })()}
-          </section>
-        )
-      }
     </div>
   </div>
 </Visual>
 
 <script>
-  // O balão das pendências (Esc, toque fora) e a pendência sem página própria, que abre o grupo dela
-  import { ligarMenus } from '../lib/cliente/menus';
-  ligarMenus();
-  document.addEventListener('click', (e) => {
-    const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('[data-abre-grupo]');
-    const grupo = link && (document.getElementById(link.dataset.abreGrupo!) as HTMLDetailsElement | null);
-    if (!link || !grupo) return;
-    e.preventDefault();
-    link.closest<HTMLDetailsElement>('details[data-menu-acoes]')!.open = false;
-    grupo.open = true;
-    grupo.querySelector('summary')?.focus();
-  });
+  // A Administração saiu daqui e ganhou página própria (decisão do Gui, 18/11/2026). Os endereços antigos
+  // da seção (as âncoras dela em "Sua conta") levam à página nova, no grupo que apontavam.
+  import { destinoDaAncoraAntiga } from '../lib/conta';
+  const destino = document.querySelector('[data-administra]') ? destinoDaAncoraAntiga(location.hash) : undefined;
+  if (destino) location.replace(destino);
 </script>

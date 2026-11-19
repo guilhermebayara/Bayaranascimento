@@ -36,7 +36,7 @@ Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso 
 | Laço | A história dos dois, contada como um capítulo: os dois retratos lado a lado, o nome dos dois, as fases e os marcos numerados | O que um é do outro e a conta das memórias |
 | Árvore | As famílias em cor, cartões como etiquetas com nome e parentesco | Camadas e controles |
 | Formulários | Uma pergunta por tela, grande, em serifa, como quem conversa | A trilha das etapas |
-| Sua conta | O retrato e o nome da pessoa no alto, e as coisas dela em ordem: dados, o que criou, avisos, rascunhos, laços | A administração, ao lado do nome no desktop e no fim no celular, só para quem administra |
+| Sua conta | O retrato e o nome da pessoa no alto, e as coisas dela em ordem: dados, o que criou, avisos, rascunhos, laços | Para quem administra, só o atalho para a Administração, que tem página própria |
 | Rascunhos, lixeira, administração | Utilitário e silencioso | Tudo |
 
 ### Decisões
@@ -301,7 +301,7 @@ A regra de quem escolhe está em `docs/decisoes.md`, "Tipos de momento".
 
 `/sistema` é a referência do projeto para o Gui, em todos os ambientes, inclusive no site de verdade.
 
-- Na produção e na homologação, só os administradores abrem (para os outros, 404), com um link na seção "Administração" da conta. Nas prévias e no computador, abre para todos.
+- Na produção e na homologação, só os administradores abrem (para os outros, 404), com um link na página da Administração. Nas prévias e no computador, abre para todos.
 - Mostra o sistema com conteúdo fixo da própria página, nunca com dados do acervo. Fora das prévias, onde a peça pede foto, a página usa um quadro desenhado; nas prévias pode usar o Chico e a Karol. A trava está em `temAcervoDeExemplo()` (`src/lib/servidor/ambiente.ts`), conferida em `testes/sistema.test.ts` e na guarda da produção.
 - Ela acompanha o sistema: toda peça, token ou regra nova entra nela no mesmo PR, e `testes/sistema.test.ts` falha se uma peça de `src/components/visual/` não aparecer na página.
 - No celular, a paleta ampliada mostra duas cores por linha, com o nome de gente e o do código ("Limão · limao"). A tabela do contraste não rola de lado: os três números de cada cor ficam numa linha abaixo do nome, cada um com o nome da coluna em cima.
@@ -370,10 +370,12 @@ A regra de cada tela como ela é hoje. O comportamento (o que aparece, para quem
 `/conta`, `telas/conta.css` (mais `telas/painel.css` pelo cartão). Página íntima, na cor da família da pessoa.
 
 - No alto, o retrato, o nome, a linha em mono com apelido, nascimento e e-mail (só o que existe), "Editar seus dados" e "Ver sua página".
-- Composição da proposta A do conceito da sessão E (escolha do Gui, 17/11/2026; capturas em `docs/visual/sessao-e/conta/`). No desktop, para quem administra, o cartão **Administração** fica à direita do nome, em cinco das doze colunas, e a carta de Natal ("Natal de 2026 · Ler a carta de Natal") fica no pé da coluna do nome, alinhada com o fim do cartão. Logo abaixo, **O que você criou** é uma faixa sem cartão, entre dois fios, na largura toda, com as contas em tamanho de título de parte numa linha só; cada lista abre no lugar, uma por vez, sem script. Depois, **Avisos** e, embaixo, **Rascunhos e lixeira** numa coluna de sete, com **Seus laços do coração** ao lado dos dois. Quem não administra vê o nome na largura toda, a faixa logo abaixo e a carta no fim.
-- No celular: quem é, o que criou, avisos, rascunhos, laços, a carta e, no fim, a administração, como cartão. A marcação segue essa ordem.
+- No alto, para quem administra, também o atalho "Administração", na linha das ações, com as pendências em mono na tinta de alerta ao lado.
+- Composição da proposta A do conceito da sessão E (escolha do Gui, 17/11/2026; capturas em `docs/visual/sessao-e/conta/`), igual para todos desde que a administração ganhou página própria (18/11/2026). No desktop, o nome na largura toda. Logo abaixo, **O que você criou** é uma faixa sem cartão, entre dois fios, na largura toda, com as contas em tamanho de título de parte numa linha só; cada lista abre no lugar, uma por vez, sem script. Depois, **Avisos** e, embaixo, **Rascunhos e lixeira** numa coluna de sete, com **Seus laços do coração** ao lado dos dois. A carta ("Natal de 2026 · Ler a carta de Natal") fica no fim.
+- No celular: quem é, o que criou, avisos, rascunhos, laços e a carta. A marcação segue essa ordem.
+- **Administração** (`/admin`, `src/pages/admin/index.astro`, também em `telas/conta.css`): papel sem tinta, porque é do acervo e não da pessoa. No alto, o rótulo de quem vê e o título, que encolhe para caber na coluna como o nome da conta; no celular, o cartão embaixo; no computador, o título em cinco das doze colunas e o cartão nas outras sete.
 - O cartão da administração (proposta A do conceito da sessão H, capturas em `docs/visual/conceito-h/`): o rótulo e, à direita, "Tudo em dia" ou o sinal das pendências, uma pílula com o ponto de alerta que abre o balão por cima (branco, `--sombra-bilhete`, `--raio-bloco`). Embaixo, os quatro grupos, cada um uma linha entre fios com o nome em serifa (`--t-abertura`), o resumo em mono à direita e o mais que vira ×, como no painel da árvore. Aberto, cada atalho é uma linha com a situação em mono à direita; no grupo "Espaço e cópias", as duas medidas (`--vivo`; perto do limite, `--alerta`), a linha da cópia mensal em mono e "Baixar cópia do acervo". O que pede ação tem o ponto e a tinta de alerta.
-- Os textos da conta, da pessoa e da administração ficam como estão ("Sua conta", "Administração", "Voltar para a sua conta", "Confira antes de confirmar.").
+- Os textos da conta, da pessoa e da administração ficam como estão ("Sua conta", "Administração", "Confira antes de confirmar."); as páginas de cada atalho voltam com "Voltar para a Administração".
 
 ### Explorar
 
@@ -577,7 +579,7 @@ Nenhum formulário tem o resumo ao lado: na nova memória, a frase é o resumo. 
 
 **Utilitárias, silenciosas:** o histórico da memória, as confirmações de excluir (um cartão com a marca do alerta), os rascunhos e a lixeira. As listas usam `linhas`: um fio entre os itens, o nome em destaque, a data em mono e a ação em texto sublinhado. O estado vazio é a peça Vazio. Na lixeira, a partir de 62rem, "Restaurar" fica à direita, na linha do título; no celular, embaixo.
 
-**Administração:** tipos de momento (ver "Tipos: paleta e ícones"), famílias, carta de Natal e espelho da produção, com "Administração" acima do título e "Voltar para a sua conta". O texto do espelho manda abrir a conta e ir a "Administração" para baixar a cópia.
+**Administração:** tipos de momento (ver "Tipos: paleta e ícones"), famílias, carta de Natal e espelho da produção, com "Administração" acima do título e "Voltar para a Administração". O texto do espelho manda abrir "Administração", no menu do retrato, para baixar a cópia.
 
 Origem: [histórico, "Página da memória"](historico/visual-ate-2026-11-17.md#página-da-memória); ["Linha do tempo, capítulo e laço"](historico/visual-ate-2026-11-17.md#linha-do-tempo-capítulo-e-laço); ["Conceito"](historico/visual-ate-2026-11-17.md#conceito-fase-1-em-aprovação); ["Grupo 1"](historico/visual-ate-2026-11-17.md#grupo-1-explorar-e-a-página-da-memória); ["Grupo 2"](historico/visual-ate-2026-11-17.md#grupo-2-pessoal); ["Grupo 3"](historico/visual-ate-2026-11-17.md#grupo-3-familia); ["Grupo 4"](historico/visual-ate-2026-11-17.md#grupo-4-formularios); ["Respostas do Gui às perguntas da fase 3"](historico/visual-ate-2026-11-17.md#respostas-do-gui-às-perguntas-da-fase-3-17112026); ["Parte 1"](historico/visual-ate-2026-11-17.md#parte-1-a-lista-as-formas-de-ver-da-pessoa-quem-aparece-e-o-link-do-título); ["Parte 2"](historico/visual-ate-2026-11-17.md#parte-2-a-frase-na-abertura-o-resumo-ao-lado-e-a-zona-de-perigo); ["Parte 3"](historico/visual-ate-2026-11-17.md#parte-3-a-árvore-nítida-no-zoom-o-cartão-de-bicho-e-a-conferência-final); ["Quadro do mapa"](historico/visual-ate-2026-11-17.md#quadro-do-mapa-árvore-e-círculo).
 

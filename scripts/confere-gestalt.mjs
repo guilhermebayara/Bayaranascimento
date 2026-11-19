@@ -128,6 +128,10 @@ const TELAS = [
   { nome: 'rascunho-7', url: '/nova?id=2024-almoco-de-domingo', antes: etapa(6) },
   { nome: 'conta', url: '/conta', como: 'giovanna' },
   { nome: 'conta-admin', url: '/conta' },
+  { nome: 'conta-sem-admin', url: '/conta', como: 'elizete' },
+  // A Administração em página própria, fechada e com o grupo do espaço aberto pelo endereço
+  { nome: 'admin', url: '/admin' },
+  { nome: 'admin-espaco', url: '/admin#administracao-espaco-e-copias' },
   { nome: 'lixeira', url: '/lixeira' },
   { nome: 'circulo', url: '/circulo', como: 'giovanna' },
   { nome: 'arvore', url: '/arvore' },

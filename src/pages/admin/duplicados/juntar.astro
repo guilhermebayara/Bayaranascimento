@@ -62,7 +62,7 @@ const padrao = (c: (typeof CAMPOS_DA_JUNCAO)[number]) => (valor(fica, c) ? 'fica
 const retratoDe = (i: Integrante) => (i.retrato ? enderecoDoRetrato(i.retrato) : null);
 ---
 
-<Pagina titulo="Juntar fichas" rotulo="Cadastros duplicados" secao="conta" larga>
+<Pagina titulo="Juntar fichas" rotulo="Cadastros duplicados" secao="administracao" larga>
   <Fragment slot="abertura">
     <p>
       Fica a ficha de <a href={`/pessoas/${fica.id}`}>{fica.nome}</a>{travada && ', que acessa o site'}. Tudo o que era da ficha de <a href={`/pessoas/${sai.id}`}>{sai.nome}</a> passa para a que fica: memórias, relatos, fotos, laços e famílias. As duas fichas de antes ficam no histórico.

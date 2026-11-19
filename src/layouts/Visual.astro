@@ -11,6 +11,7 @@ import { ehHomologacao } from '../lib/servidor/ambiente';
 import { fontesDoPedido } from '../lib/servidor/conceito';
 import { enderecoDoRetrato } from '../lib/retratos';
 import { numeroDoRetrato, rotuloDoRetrato, somaDoRetrato } from '../lib/avisos';
+import { ENDERECO_DA_ADMINISTRACAO, contaDePendencias } from '../lib/conta';
 import { contarPendenciasDaAdministracao } from '../lib/servidor/conta';
 import { contarAvisosPendentes, listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
 import { COMBINACOES_DE_FONTES, assinaturaDaTela, atributosDasFontes, combinacaoDe } from '../lib/visual';
@@ -26,7 +27,7 @@ interface Props {
   /** A cor da tela, quando não é a dos núcleos: 'tudo' ou a posição do núcleo ('0', '1', '2', '3') */
   familia?: string;
   /** Qual item do menu está aberto */
-  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'conceito' | 'conta' | 'circulo' | 'pessoas' | 'nova';
+  secao?: 'painel' | 'explorar' | 'capitulos' | 'arvore' | 'conceito' | 'conta' | 'administracao' | 'circulo' | 'pessoas' | 'nova';
   /** A página que só a pessoa vê: tingida na cor da família dela */
   intimo?: boolean;
   /** O modo TV: a tela inteira é da memória, sem o topo, o menu e o rodapé */
@@ -45,7 +46,7 @@ interface Props {
 }
 
 const { titulo, nucleos = [], secao, intimo = false, palco = false, mapa = false } = Astro.props;
-const rodape = Astro.props.rodape ?? (secao === 'conta' ? 'metade' : 'inteiro');
+const rodape = Astro.props.rodape ?? (secao === 'conta' || secao === 'administracao' ? 'metade' : 'inteiro');
 const { usuario } = Astro.locals;
 const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
 const assinatura = assinaturaDaTela(nucleos, await listarNucleos());
@@ -218,7 +219,13 @@ const telas = [
               Sua conta
               {avisosPendentes > 0 && <span class="conta-menu__avisos">{avisosPendentes === 1 ? '1 aviso' : `${avisosPendentes} avisos`}</span>}
             </a>
-            {usuario.admin && <a href="/conta#administracao">Administração</a>}
+            {/* A Administração tem página própria (decisão do Gui, 18/11/2026), com as pendências dela ao lado, como os avisos */}
+            {usuario.admin && (
+              <a href={ENDERECO_DA_ADMINISTRACAO} aria-current={secao === 'administracao' ? 'page' : undefined}>
+                Administração
+                {pendenciasDaAdministracao > 0 && <span class="conta-menu__avisos">{contaDePendencias(pendenciasDaAdministracao)}</span>}
+              </a>
+            )}
             {saida && <a href={saida}>Sair</a>}
           </nav>
         </details>
