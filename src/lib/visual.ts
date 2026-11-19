@@ -355,7 +355,12 @@ export function corDoNucleo(id: string | null | undefined, ordemDosNucleos: stri
   return indice >= 0 ? String(indice % CORES_DAS_FAMILIAS) : 'tudo';
 }
 
-/** A cor de uma pessoa, para o retrato sem foto: a do primeiro núcleo dela, na ordem das famílias. */
-export function corDaPessoa(familiasDaPessoa: string[], ordemDosNucleos: string[]): string {
+/**
+ * A cor de uma pessoa, para o retrato sem foto: a do núcleo que ela formou (`formada`, de
+ * `familiaFormada` em src/lib/familias.ts), quando há, e senão a do primeiro núcleo dela na ordem das
+ * famílias. As páginas chegam aqui por `coresDasPessoas`, que acha a família formada pelos casais.
+ */
+export function corDaPessoa(familiasDaPessoa: string[], ordemDosNucleos: string[], formada?: string): string {
+  if (formada && familiasDaPessoa.includes(formada) && ordemDosNucleos.includes(formada)) return corDoNucleo(formada, ordemDosNucleos);
   return corDoNucleo(ordemDosNucleos.find((n) => familiasDaPessoa.includes(n)), ordemDosNucleos);
 }

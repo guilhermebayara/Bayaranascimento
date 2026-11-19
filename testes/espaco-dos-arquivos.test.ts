@@ -40,8 +40,8 @@ describe('a conta do espaço', () => {
     const [p] = pendenciasDaAdministracao({ ...base, espaco: { bytes: AVISO_DO_R2, passouDoAviso: true } }, new Date());
     expect(p).toMatchObject({ tipo: 'espaco', texto: 'As fotos e os áudios estão perto do limite do plano gratuito.' });
   });
-  it('a conta mostra a medida ao lado do banco e a foto e o retrato guardam o tamanho ao entrar', () => {
-    const pagina = readFileSync('src/pages/conta.astro', 'utf-8');
+  it('a Administração mostra a medida ao lado do banco e a foto e o retrato guardam o tamanho ao entrar', () => {
+    const pagina = readFileSync('src/pages/admin/index.astro', 'utf-8');
     expect(pagina).toContain('<strong>Fotos e áudios</strong>');
     expect(readFileSync('src/pages/api/fotos.ts', 'utf-8')).toContain('registrarFoto(chave, locals.usuario, dados.byteLength)');
     expect(readFileSync('src/pages/api/integrantes.ts', 'utf-8')).toContain('registrarRetratoEnviado(chave, retrato.bytes.byteLength, usuario)');

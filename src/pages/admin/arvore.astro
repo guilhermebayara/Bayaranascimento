@@ -31,13 +31,13 @@ const emLista = (nomes: string[]) => (nomes.length > 1 ? `${nomes.slice(0, -1).j
 const ORDINAIS = ['Primeira pessoa', 'Segunda pessoa', 'Terceira pessoa', 'Quarta pessoa'];
 ---
 
-<Pagina titulo="Centros da árvore" rotulo="Administração" secao="conta" larga>
+<Pagina titulo="Centros da árvore" rotulo="Administração" secao="administracao" larga>
   <Fragment slot="abertura">
     <p>
       A árvore abre na linha direta destas pessoas, para todo mundo. Os tios, primos e sobrinhos delas ficam em ramos recolhidos. Cada pessoa continua podendo partir de quem quiser, em “Ajustar a árvore”. {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}
     </p>
     <p class="acoes">
-      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+      <a class="acao" href="/admin">Voltar para a Administração</a>
     </p>
   </Fragment>
 

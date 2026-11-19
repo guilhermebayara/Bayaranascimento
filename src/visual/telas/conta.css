@@ -1,10 +1,12 @@
 /*
- * Sua conta (proposta A do conceito da sessão E, escolha do Gui de 17/11/2026). No celular, em
- * ordem: quem é, o que criou, avisos, rascunhos, laços, a carta de Natal e, no fim, a administração.
- * No desktop, para quem administra, o cartão da administração ao lado do nome, com a carta no pé da
- * coluna do nome; "O que você criou" numa faixa de largura toda, sem cartão, entre dois fios; depois
- * os avisos, e rascunhos e laços lado a lado. Quem não administra vê o nome na largura toda e a faixa
- * logo abaixo. Papel tingido na cor da família de quem vê; o cartão vem de painel.css.
+ * Sua conta (proposta A do conceito da sessão E, escolha do Gui de 17/11/2026), igual para todos. No
+ * celular, em ordem: quem é, o que criou, avisos, rascunhos, laços e a carta de Natal. No desktop, o
+ * nome na largura toda; "O que você criou" numa faixa de largura toda, sem cartão, entre dois fios;
+ * depois os avisos, e rascunhos e laços lado a lado. Papel tingido na cor da família de quem vê; o
+ * cartão vem de painel.css.
+ *
+ * Também a página da Administração (/admin), que saiu daqui (decisão do Gui, 18/11/2026): o cartão dos
+ * atalhos continua com as classes conta__, e a página tem o título à esquerda e o cartão à direita.
  */
 
 .conta {
@@ -90,12 +92,16 @@
 .conta__grade > * {
   min-width: 0;
 }
-/* A marcação já vem na ordem do celular: a carta e, no fim, a administração */
+/* A marcação já vem na ordem do celular: a carta no fim */
 .conta__grade > .conta__carta {
   margin-top: var(--e-5);
 }
-.conta__grade > .conta__admin {
-  margin-top: var(--e-6);
+/* O atalho para a Administração, para quem administra: o link e, ao lado, as pendências */
+.conta__administra {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--e-1) var(--e-3);
 }
 
 .conta .cartao {
@@ -544,10 +550,6 @@
   .conta__grade > .regiao > .avisos--conta {
     grid-column: 1 / span 7;
   }
-  /* Quem não administra: a carta fica no fim, como no celular; quem administra: no pé da coluna do nome */
-  .conta--admin .conta__grade > .conta__carta {
-    margin-top: 0;
-  }
   .conta__criou {
     margin-block: var(--e-5) 0;
   }
@@ -557,24 +559,6 @@
   .conta__lacos {
     grid-column: 8 / -1;
     grid-row: span 2;
-  }
-  /* Quem administra: o cartão ao lado do nome, na mesma linha. O nome fica no alto e a carta de
-     Natal no pé da coluna, alinhada com o fim do cartão: não sobra vão acima da faixa. */
-  /* O cartão da administração fica mais estreito, à direita, e não ocupa a largura toda (escolha do Gui,
-     18/11/2026): o nome ganha as sete primeiras colunas */
-  .conta--admin .conta__grade > .conta__abre {
-    grid-column: 1 / span 7;
-    grid-row: 1;
-  }
-  .conta--admin .conta__grade > .conta__carta {
-    grid-column: 1 / span 7;
-    grid-row: 2;
-    align-self: end;
-  }
-  .conta__grade > .conta__admin {
-    grid-column: 8 / -1;
-    grid-row: 1 / span 2;
-    margin-top: 0;
   }
   /* As contas numa linha só, em colunas iguais. A lista aberta sai da coluna dela e toma a largura
      do cartão: recua as colunas que vêm antes (--i) e soma as que existem (--n). */
@@ -635,5 +619,39 @@
   }
   .criado__lista .conta__lista li:nth-child(n + 3) {
     border-top: 1px solid var(--fio);
+  }
+}
+
+/* --- A página da Administração (/admin) ----------------------------------------------------------
+   No celular, o título e, embaixo, o cartão. No computador, o título à esquerda, em cinco das doze
+   colunas, e o cartão à direita, nas outras sete. */
+
+.admin {
+  display: grid;
+  gap: var(--e-6);
+  padding-block: var(--e-6) var(--e-8);
+}
+.admin__abre {
+  container-type: inline-size;
+}
+/* O título cabe na coluna, como o nome em "Sua conta": o tamanho de título é o teto, e as 13 letras de
+   "Administração" mandam abaixo dele. Cada letra da serifa de capa ocupa perto de meia altura de letra. */
+.admin__abre h1 {
+  margin-top: var(--e-2);
+  margin-left: -0.04em;
+  font-size: min(var(--t-titulo-1), calc(100cqi / (13 * 0.52)));
+}
+@media (min-width: 62rem) {
+  .admin {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--calha);
+    align-items: start;
+    padding-top: var(--e-8);
+  }
+  .admin__abre {
+    grid-column: 1 / span 5;
+  }
+  .admin__cartao {
+    grid-column: 6 / -1;
   }
 }

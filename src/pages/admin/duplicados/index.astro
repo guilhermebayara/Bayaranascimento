@@ -19,11 +19,11 @@ const ordenados = [...integrantes].sort((a, b) => a.nome.localeCompare(b.nome, '
 const quem = (i: (typeof integrantes)[number]) => [i.nome, i.apelido && i.apelido !== i.nome ? `“${i.apelido}”` : null, anosDeVida(i) || null].filter(Boolean).join(', ');
 ---
 
-<Pagina titulo="Cadastros duplicados" rotulo="Administração" secao="conta" larga>
+<Pagina titulo="Cadastros duplicados" rotulo="Administração" secao="administracao" larga>
   <Fragment slot="abertura">
     <p>Fichas com o nome parecido, que podem ser da mesma pessoa. Compare as duas e escolha o que fica de cada uma: tudo o que era da outra passa para a que fica, e as duas fichas de antes ficam no histórico.</p>
     <p class="acoes">
-      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+      <a class="acao" href="/admin">Voltar para a Administração</a>
     </p>
   </Fragment>
 

@@ -1,7 +1,7 @@
 // A página da pessoa, proposta A do conceito da sessão L ("o verbete", escolha do Gui de 18/11/2026).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { FORMAS_DA_VIDA, contaDaFamiliaDePerto, enderecoDaVida, fasesDaVida, nomeDoGrupoDePerto, fraseDoAcervo, idadeNoAno, lerFormaDaVida, mostraRascunhoNaVida, nomeDaFormaDaVida, textoDaIdade } from '../src/lib/pagina-da-pessoa';
+import { FORMAS_DA_VIDA, contaDaFamiliaDePerto, enderecoDaVida, fasesDaVida, nomeDoGrupoDePerto, fraseDoAcervo, idadeNoAno, lerFormaDaVida, mostraRascunhoNaVida, nomeDaFormaDaVida, partesDaData, textoDaIdade } from '../src/lib/pagina-da-pessoa';
 
 
 describe('as formas de ver da página da pessoa', () => {
@@ -133,5 +133,21 @@ describe('o quadro em tela baixa (decisão do Gui depois do QA de 18/11/2026)', 
     expect(css).toMatch(/\.verbete__quadro > \* \{\s*flex: none;\s*\}/);
     expect(css).toMatch(/\.verbete__quadro > \.quadro__secao\[open\] \{\s*flex: 0 1 auto;\s*min-height: 0;\s*overflow-y: auto;/);
     expect(css).toMatch(/\.verbete__quadro > \.quadro__secao\[open\] > summary \{\s*position: sticky;\s*top: 0;/);
+  });
+});
+
+describe('o nascimento em "Dados": o aniversário em destaque (pedido do Gui, 18/11/2026)', () => {
+  it('com o dia e o mês, o aniversário é o grande e o ano fica pequeno', () => {
+    expect(partesDaData({ ano: 1961, mes: 7, dia: 24 })).toEqual({ grande: '24 de julho', pequena: '1961' });
+  });
+  it('sem o dia, o ano continua grande, com o mês pequeno quando há', () => {
+    expect(partesDaData({ ano: 1961, mes: 7, dia: null })).toEqual({ grande: '1961', pequena: 'julho' });
+    expect(partesDaData({ ano: 1961 })).toEqual({ grande: '1961', pequena: null });
+  });
+  it('a página usa as duas partes, e não mais o ano fixo como o grande', () => {
+    const pagina = readFileSync('src/pages/pessoas/[id]/index.astro', 'utf8');
+    expect(pagina).toContain('{p.nascimento.grande}');
+    expect(pagina).toContain('{p.nascimento.pequena}');
+    expect(pagina).not.toContain('{p.nascimento.ano}');
   });
 });

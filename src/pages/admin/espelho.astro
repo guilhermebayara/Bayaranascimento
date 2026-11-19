@@ -8,21 +8,21 @@ if (!usuario.admin || !podeEspelhar()) return new Response('Página não encontr
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
-<Pagina titulo="Espelho da produção" rotulo="Administração" secao="conta" larga>
+<Pagina titulo="Espelho da produção" rotulo="Administração" secao="administracao" larga>
   <Fragment slot="abertura">
     <p>
       A homologação usa a família de verdade, com os nomes, os retratos e os laços da produção, e memórias de exemplo. Assim dá para ver se o
       site aguenta a nossa família antes de publicar.
     </p>
     <p class="acoes">
-      <a class="acao" href="/conta#administracao">Voltar para a sua conta</a>
+      <a class="acao" href="/admin">Voltar para a Administração</a>
     </p>
   </Fragment>
 
   <section class="painel">
     <h2>Refazer o espelho</h2>
     <ol class="passos">
-      <li>No site de verdade, em memorias.bayara.com.br, abra a sua conta e, em "Administração", use "Baixar cópia do acervo".</li>
+      <li>No site de verdade, em memorias.bayara.com.br, abra "Administração", no menu do retrato, e use "Baixar cópia do acervo", em "Espaço e cópias".</li>
       <li>Envie o arquivo aqui.</li>
     </ol>
     <p class="dica">

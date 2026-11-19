@@ -1,10 +1,13 @@
 // Núcleo e parentes (decisão do Gui, 15/11/2026): a sugestão de família no cadastro, quem cuida de um
 // parente, e a regra de que parente nunca vê o que é restrito ao núcleo.
 import { describe, expect, it } from 'vitest';
-import { NUCLEO_INICIAL, familiaDeOrigem, familiaMaisRecente, sugerirFamilias, type DadosDasFamilias } from '../src/lib/familias';
+import { NUCLEO_INICIAL, coresDasPessoas, familiaDeOrigem, familiaFormada, familiaMaisRecente, sugerirFamilias, type DadosDasFamilias } from '../src/lib/familias';
 import { podeEditarIntegrante, podeMexerEmLaco, type Usuario } from '../src/lib/servidor/permissoes';
 import repositorio from '../src/lib/servidor/repositorio.ts?raw';
 import banco from '../src/lib/servidor/banco.ts?raw';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { corDaPessoa, corDoNucleo } from '../src/lib/visual';
 
 const dados: DadosDasFamilias = {
   familias: new Map([
@@ -34,6 +37,48 @@ describe('família mais recente', () => {
     expect(familiaMaisRecente(dados, 'gui')).toBe('bayara');
     expect(familiaMaisRecente(dados, 'elizete')).toBe('bayara');
     expect(familiaMaisRecente(dados, 'ed')).toBeUndefined();
+  });
+});
+
+describe('a cor de quem é de duas famílias (pedido do Gui, 18/11/2026)', () => {
+  // Bayara vem antes na ordem: pela regra antiga, a Giovanna levava a cor do Bayara
+  const ordem = ['bayara', 'bayara-bracarense', 'bracarense'];
+  const pessoas = [...dados.familias].map(([id, familias]) => ({ id, nucleos: familias, parenteDe: [] as string[] }));
+  const corDe = coresDasPessoas(pessoas, dados.casais, ordem);
+
+  it('quem formou um núcleo com quem casou leva a cor dele, a Giovanna e o Magno igual', () => {
+    expect(familiaFormada(dados, 'giovanna')).toBe('bayara-bracarense');
+    expect(corDe('giovanna')).toBe(corDoNucleo('bayara-bracarense', ordem));
+    expect(corDe('lucas-magno')).toBe(corDoNucleo('bayara-bracarense', ordem));
+  });
+  it('quem não formou outro núcleo continua com a primeira família na ordem', () => {
+    expect(familiaFormada(dados, 'gui')).toBeUndefined();
+    expect(corDe('gui')).toBe(corDoNucleo('bayara', ordem));
+    expect(corDe('elizete')).toBe(corDoNucleo('bayara', ordem));
+    expect(corDe('ed')).toBe('tudo');
+  });
+  it('sem o casal à vista, vale a regra de antes', () => {
+    const semCasal = coresDasPessoas(pessoas, [], ordem);
+    expect(semCasal('giovanna')).toBe(corDoNucleo('bayara', ordem));
+  });
+  it('a família formada só vale se for mesmo da pessoa', () => {
+    expect(corDaPessoa(['bayara'], ordem, 'bracarense')).toBe(corDoNucleo('bayara', ordem));
+  });
+  it('a página da pessoa leva a cor dela na tela inteira, e não a mistura das famílias', () => {
+    expect(readFileSync('src/pages/pessoas/[id]/index.astro', 'utf8')).toMatch(/<Visual [^\n]*familia=\{p\.familiaDaPessoa\}/);
+  });
+  it('as páginas e o servidor chegam à cor da pessoa só por coresDasPessoas', () => {
+    const arquivos: string[] = [];
+    const andar = (dir: string) => {
+      for (const n of readdirSync(dir)) {
+        const c = join(dir, n);
+        if (statSync(c).isDirectory()) andar(c);
+        else if (/\.(astro|ts)$/.test(n)) arquivos.push(c);
+      }
+    };
+    andar('src');
+    const soltos = arquivos.filter((a) => !/src\/lib\/(visual|familias)\.ts$/.test(a) && readFileSync(a, 'utf8').includes('corDaPessoa('));
+    expect(soltos).toEqual([]);
   });
 });
 

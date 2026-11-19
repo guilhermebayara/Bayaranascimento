@@ -1353,6 +1353,23 @@ export async function semearAniversariosDeExemplo(db: D1Database): Promise<void>
   );
 }
 
+// O nascimento inteiro da Elizete, inventado, para a página dela mostrar o aniversário em destaque em
+// "Dados" (pedido do Gui, 18/11/2026). Só entra se ela ainda não tem nascimento: o que alguém mudar ao
+// testar fica.
+export async function semearNascimentoDaElizeteDeExemplo(db: D1Database): Promise<void> {
+  const ela = await db.prepare(`SELECT nascimento_ano AS ano FROM integrantes WHERE id = 'elizete'`).first<{ ano: number | null }>();
+  if (!ela || ela.ano) return;
+  await db.prepare(`UPDATE integrantes SET nascimento_ano = 1966, nascimento_mes = 10, nascimento_dia = 12 WHERE id = 'elizete' AND nascimento_ano IS NULL`).run();
+}
+
+// O dia no começo de "Os anos de casa", para a prévia mostrar um capítulo com dia (pedido do Gui,
+// 18/11/2026: o capítulo de período e a época com dia opcional). Só entra se o começo ainda não tem dia.
+export async function semearDiaDosCapitulosDeExemplo(db: D1Database): Promise<void> {
+  const ja = await db.prepare('SELECT 1 AS ok FROM capitulos WHERE inicio_dia IS NOT NULL OR fim_dia IS NOT NULL LIMIT 1').first();
+  if (ja) return;
+  await db.prepare(`UPDATE capitulos SET inicio_dia = 16 WHERE id = 'pandemia' AND inicio_mes = 3 AND inicio_dia IS NULL`).run();
+}
+
 // A carta de Natal de exemplo, a mesma que o conceito da revisão visual mostrava fixa na tela. Só
 // entra onde ainda não há carta nenhuma: a que alguém escrever ao testar nunca é trocada.
 // Aprovado pelo Gui em 17/11/2026 (pergunta 2 do PR do grupo "pessoal"): o texto de exemplo é o do conceito.

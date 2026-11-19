@@ -920,14 +920,15 @@ export async function garantirTemas(nomes: string[], usuario: Usuario): Promise<
 }
 
 function lerCapitulo(c: Record<string, unknown>): Capitulo {
-  const data = (ano: unknown, mes: unknown) => (ano ? { ano: ano as number, mes: (mes as number | null) ?? null } : null);
+  const data = (ano: unknown, mes: unknown, dia: unknown) =>
+    ano ? { ano: ano as number, mes: (mes as number | null) ?? null, dia: mes ? ((dia as number | null) ?? null) : null } : null;
   return {
     id: c.id as string,
     titulo: c.titulo as string,
     abertura: (c.abertura as string | null) ?? null,
     modo: c.modo as 'reunido' | 'epoca',
-    inicio: data(c.inicio_ano, c.inicio_mes),
-    fim: data(c.fim_ano, c.fim_mes),
+    inicio: data(c.inicio_ano, c.inicio_mes, c.inicio_dia),
+    fim: data(c.fim_ano, c.fim_mes, c.fim_dia),
     dentroDe: (c.pai_id as string | null) ?? null,
     visibilidade: c.visibilidade as 'todos' | 'nucleos',
     nucleos: [],
@@ -969,8 +970,8 @@ export interface DadosDoCapitulo {
   titulo: string;
   abertura?: string;
   modo: 'reunido' | 'epoca';
-  inicio?: { ano: number; mes?: number };
-  fim?: { ano: number; mes?: number };
+  inicio?: { ano: number; mes?: number | null; dia?: number | null };
+  fim?: { ano: number; mes?: number | null; dia?: number | null };
   dentroDe?: string;
   visibilidade: 'todos' | 'nucleos';
   nucleos: string[];
@@ -987,8 +988,10 @@ export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario
     dados.modo,
     dados.modo === 'epoca' ? (dados.inicio?.ano ?? null) : null,
     dados.modo === 'epoca' ? (dados.inicio?.mes ?? null) : null,
+    dados.modo === 'epoca' && dados.inicio?.mes ? (dados.inicio.dia ?? null) : null,
     dados.modo === 'epoca' ? (dados.fim?.ano ?? null) : null,
     dados.modo === 'epoca' ? (dados.fim?.mes ?? null) : null,
+    dados.modo === 'epoca' && dados.fim?.mes ? (dados.fim.dia ?? null) : null,
     dados.dentroDe ?? null,
     dados.visibilidade,
   ];
@@ -996,13 +999,13 @@ export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario
     novo
       ? db()
           .prepare(
-            `INSERT INTO capitulos (titulo, abertura, modo, inicio_ano, inicio_mes, fim_ano, fim_mes, pai_id, visibilidade, id, criado_por)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO capitulos (titulo, abertura, modo, inicio_ano, inicio_mes, inicio_dia, fim_ano, fim_mes, fim_dia, pai_id, visibilidade, id, criado_por)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .bind(...valores, id, usuario.pessoa)
       : db()
           .prepare(
-            `UPDATE capitulos SET titulo = ?, abertura = ?, modo = ?, inicio_ano = ?, inicio_mes = ?, fim_ano = ?, fim_mes = ?,
+            `UPDATE capitulos SET titulo = ?, abertura = ?, modo = ?, inicio_ano = ?, inicio_mes = ?, inicio_dia = ?, fim_ano = ?, fim_mes = ?, fim_dia = ?,
                pai_id = ?, visibilidade = ?, atualizado_em = datetime('now') WHERE id = ?`,
           )
           .bind(...valores, id),
