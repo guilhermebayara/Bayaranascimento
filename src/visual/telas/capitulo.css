@@ -244,12 +244,13 @@
 .capitulo__tv {
   margin: 0;
 }
-/* O mural e a lista são do Explorar e trazem a própria margem: aqui eles vão de ponta a ponta */
-.capitulo__larga {
+/* O mural e a lista são do Explorar e trazem a própria margem: no celular eles vão de ponta a ponta.
+   Na tela grande moram na coluna do corpo, no mesmo lugar da linha do tempo, e a margem some. */
+.capitulo__explorar {
   margin-inline: calc(-1 * var(--margem));
 }
-.capitulo .capitulo__larga .mural,
-.capitulo .capitulo__larga .lista {
+.capitulo .capitulo__explorar .mural,
+.capitulo .capitulo__explorar .lista {
   padding-top: var(--e-5);
 }
 
@@ -393,12 +394,14 @@
   .capitulo .capitulo__corpo {
     grid-column: 7 / -1;
   }
-  /* No mural e na lista, as memórias usam a largura inteira, embaixo da capa */
-  .capitulo:has(.capitulo__larga) .capitulo__capa {
-    grid-column: 1 / span 7;
+  /* O mural e a lista ficam na coluna do corpo, o mesmo lugar dos marcos: a margem do Explorar zera
+     e, na coluna mais estreita, o mural tem menos fotos por linha (como no tema) */
+  .capitulo__explorar {
+    --margem: 0px;
   }
-  .capitulo:has(.capitulo__larga) .capitulo__corpo {
-    grid-column: 1 / -1;
+  .capitulo__explorar .mural,
+  .capitulo__explorar .mural[data-tamanho] {
+    --colunas: 3;
   }
   .marco {
     grid-template-columns: 6.5rem minmax(0, 1fr) 9rem;
@@ -445,14 +448,6 @@
   .tema__memorias .mural[data-tamanho] {
     --colunas: 3;
   }
-  /* A lista precisa da largura inteira: a capa fica em cima, e as memórias embaixo */
-  .tema:has(.linha--lista) > .tema__capa {
-    grid-column: 1 / span 7;
-  }
-  .tema:has(.linha--lista) > .tema__memorias {
-    grid-column: 1 / -1;
-    padding-top: var(--e-6);
-  }
 }
 
 /* No computador com mouse, a capa e o alto do sumário ficam parados enquanto a lista rola. No
@@ -477,13 +472,6 @@
     background: linear-gradient(var(--papel), transparent);
     pointer-events: none;
   }
-  /* No mural e na lista a capa fica em cima das memórias: nada parado */
-  .capitulo:has(.capitulo__larga) .capitulo__parado {
-    position: static;
-  }
-  .capitulo:has(.capitulo__larga) .capitulo__parado::after {
-    content: none;
-  }
   /* O alto do sumário ("Capítulos", a frase e "Novo capítulo") cabe na janela e acompanha a lista */
   .sumario .sumario__abre {
     position: sticky;
@@ -493,10 +481,10 @@
   /* Página do tema: a coluna da esquerda inteira fica parada, como a capa do capítulo. O nome e
      "Todos os capítulos e temas" ficam no alto dela e a lista de capítulos ocupa o resto da altura
      da janela, rolando por dentro só quando não couber. A rolagem da página fica com as memórias.
-     O alto do nome sobe um pouco ao parar, para o respiro de cima não gastar a janela. Com o mural
-     e a linha do tempo a coluna é parada; com a lista a capa vai em cima das memórias e nada
-     fica parado (a lista mantém o teto de 60svh). */
-  .tema:not(:has(.linha--lista)) > .tema__capa {
+     O alto do nome sobe um pouco ao parar, para o respiro de cima não gastar a janela. A coluna é
+     parada nas três formas de ver (linha do tempo, mural e lista): trocar de forma nunca muda o
+     lugar de nada. */
+  .tema > .tema__capa {
     --sobe: calc(var(--e-8) - var(--e-6));
     position: sticky;
     top: calc(-1 * var(--sobe));
@@ -504,12 +492,12 @@
     flex-direction: column;
     max-height: calc(100svh + var(--sobe));
   }
-  .tema:not(:has(.linha--lista)) .tema__capitulos {
+  .tema .tema__capitulos {
     display: flex;
     flex-direction: column;
     min-height: 0;
   }
-  .tema:not(:has(.linha--lista)) .tema__rolagem {
+  .tema .tema__rolagem {
     min-height: 10rem;
     max-height: none;
   }
@@ -525,7 +513,9 @@
 
 @media (min-width: 100rem) {
   .tema__memorias .mural,
-  .tema__memorias .mural[data-tamanho] {
+  .tema__memorias .mural[data-tamanho],
+  .capitulo__explorar .mural,
+  .capitulo__explorar .mural[data-tamanho] {
     --colunas: 4;
   }
   .capitulo .capitulo__capa,
@@ -536,12 +526,6 @@
   .capitulo .capitulo__corpo,
   .sumario .sumario__lista {
     grid-column: 6 / -1;
-  }
-  .capitulo:has(.capitulo__larga) .capitulo__capa {
-    grid-column: 1 / span 6;
-  }
-  .capitulo:has(.capitulo__larga) .capitulo__corpo {
-    grid-column: 1 / -1;
   }
   .marco {
     grid-template-columns: 8rem minmax(0, 1fr) 14rem;

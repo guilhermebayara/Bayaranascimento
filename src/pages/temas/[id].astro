@@ -108,11 +108,11 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
             <Vazio frase="Nenhuma memória com este tema por enquanto." />
           </div>
         ) : forma === 'mural' ? (
-          <div class="linha linha--mural tema__larga">
+          <div class="linha linha--mural">
             <Mural memorias={memorias} ordem="recentes" tamanho={TAMANHO_PADRAO} fotos={fotosDoMural} />
           </div>
         ) : forma === 'lista' ? (
-          <div class="linha linha--lista tema__larga">
+          <div class="linha linha--lista linha--coluna">
             <Lista memorias={memorias} capitulos={todos} integrantes={await listarIntegrantesQueVe(usuario)} ordem="recentes" comAudio={await memoriasComAudio(usuario)} />
           </div>
         ) : (

@@ -875,7 +875,7 @@ describe('página de tema: a coluna da esquerda fica parada e a lista rola por d
     const presas = regras.filter((r) => /position:\s*(sticky|fixed)/.test(r));
     expect(presas.length).toBeGreaterThan(0);
     for (const r of presas) expect(mouse).toContain(r);
-    expect(mouse).toMatch(/\.tema:not\(:has\(\.linha--lista\)\) > \.tema__capa \{[^}]*position: sticky;[^}]*top:/);
+    expect(mouse).toMatch(/\.tema > \.tema__capa \{[^}]*position: sticky;[^}]*top:/);
     expect(css.replace(mouse, '')).not.toMatch(/\.tema[^{}]*\{[^}]*position:\s*(sticky|fixed)/);
   });
 
@@ -886,9 +886,9 @@ describe('página de tema: a coluna da esquerda fica parada e a lista rola por d
     expect(mouse).not.toMatch(/\.tema__rolagem \{[^}]*60svh/);
   });
 
-  it('com a lista de memórias em largura inteira a capa vai em cima e nada fica parado', () => {
-    expect(mouse).not.toMatch(/\.tema > \.tema__capa \{[^}]*sticky/);
-    expect(mouse).toContain('.tema:not(:has(.linha--lista))');
+  it('a coluna parada vale nas três formas de ver, inclusive na lista', () => {
+    expect(mouse).toMatch(/\.tema > \.tema__capa \{[^}]*position: sticky;/);
+    expect(mouse).not.toContain(':has(');
   });
 
   it('a lista fica abaixo do cabeçalho do tema, e o cabeçalho fora da área que rola', () => {
@@ -899,5 +899,61 @@ describe('página de tema: a coluna da esquerda fica parada e a lista rola por d
 
   it('a lista só vira ponto de parada do teclado quando de fato rola', () => {
     expect(pagina).toMatch(/scrollHeight > rolagem\.clientHeight \+ 1\) rolagem\.tabIndex = 0;\s*else rolagem\.removeAttribute\('tabindex'\)/);
+  });
+});
+
+// Decisão do Gui, 19/11/2026: "largura inteira" é a largura inteira disponível. Trocar a forma de ver
+// (linha do tempo, mural, lista) nunca muda o lugar de nada: elemento saltando na página é o que ele
+// mais quer evitar. As colunas do tema e do capítulo são as mesmas nos três modos.
+describe('trocar a forma de ver não muda o arranjo das colunas, no tema e no capítulo', () => {
+  const css = ler('telas/capitulo.css');
+  const lista = ler('telas/lista.css');
+  const tema = readFileSync(new URL('../src/pages/temas/[id].astro', import.meta.url), 'utf8');
+  const capitulo = readFileSync(new URL('../src/pages/capitulos/[id]/index.astro', import.meta.url), 'utf8');
+  const semComentarios = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('nenhuma regra de coluna depende da forma de ver (nada de :has com a lista ou o mural)', () => {
+    const regras = semComentarios(css);
+    expect(regras).not.toMatch(/:has\([^)]*(linha--|capitulo__larga|capitulo__explorar|mural|lista)/);
+    expect(regras).not.toContain('capitulo__larga');
+    expect(regras).not.toContain('tema__larga');
+  });
+
+  it('as colunas do capítulo são as mesmas com marcos, mural e lista', () => {
+    const regras = semComentarios(css);
+    // A posição da capa e a do corpo só mudam com a largura da tela: o seletor é sempre o simples
+    const seletores = [...regras.matchAll(/([^{}]+)\{[^{}]*grid-column[^{}]*\}/g)]
+      .flatMap((m) => m[1].split(','))
+      .map((x) => x.trim())
+      .filter((x) => /capitulo__(capa|corpo)/.test(x));
+    expect(seletores.length).toBeGreaterThan(0);
+    for (const x of seletores) expect(x).toMatch(/^\.capitulo \.capitulo__(capa|corpo)$/);
+    // O mural e a lista moram dentro do corpo, junto com os marcos
+    const corpo = capitulo.slice(capitulo.indexOf('<div class="capitulo__corpo">'));
+    for (const marca of ['class="marcos"', 'linha--mural', 'linha--lista']) expect(corpo, marca).toContain(marca);
+    expect(capitulo.slice(0, capitulo.indexOf('<div class="capitulo__corpo">'))).not.toMatch(/linha--(mural|lista)/);
+  });
+
+  it('as colunas do tema são as mesmas com linha do tempo, mural e lista', () => {
+    const regras = semComentarios(css);
+    expect(regras.match(/\.tema > \.tema__memorias \{[^}]*grid-column:[^;]*;/g)).toHaveLength(1);
+    expect(regras.match(/\.tema > \.tema__capa \{[^}]*grid-column:[^;]*;/g)).toHaveLength(1);
+    const memorias = tema.slice(tema.indexOf('<section class="tema__memorias"'));
+    for (const marca of ['<Linha ', 'linha--mural', 'linha--lista']) expect(memorias, marca).toContain(marca);
+    expect(tema.slice(0, tema.indexOf('<section class="tema__memorias"'))).not.toMatch(/linha--(mural|lista)/);
+  });
+
+  it('o mural e a lista na coluna: menos fotos por linha e a linha da lista em dois andares', () => {
+    const regras = semComentarios(css);
+    expect(regras).toMatch(/\.capitulo__explorar \.mural\[data-tamanho\] \{\s*--colunas: 3;/);
+    expect(regras).toMatch(/\.capitulo__explorar \.mural\[data-tamanho\] \{\s*--colunas: 4;/);
+    expect(tema).toContain('linha--lista linha--coluna');
+    expect(capitulo).toContain('linha--lista linha--coluna');
+    expect(semComentarios(lista)).toMatch(/\.linha--coluna \.lista__linha \{\s*grid-template-columns: var\(--coluna-da-data\) 1\.5rem minmax\(0, 1fr\);/);
+  });
+
+  it('a capa do capítulo só é solta pelo script que mede, nunca por causa da forma de ver', () => {
+    expect(capitulo).toContain("classList.toggle('capitulo__parado--solta'");
+    expect(semComentarios(css)).toMatch(/\.capitulo__parado--solta \{\s*position: static;/);
   });
 });

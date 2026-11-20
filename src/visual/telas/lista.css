@@ -284,3 +284,39 @@
     padding-right: 15rem;
   }
 }
+
+/* --- Numa coluna estreita ----------------------------------------------------------------------
+   A lista do tema e a do capítulo moram na coluna da direita, o mesmo lugar da linha do tempo e do
+   mural (em 1280 px, de 36 a 42rem; em 1920 px, 64rem). As seis colunas do computador não cabem aí:
+   o título quebrava a cada palavra. Na coluna, a linha tem dois andares como no celular, mas com a
+   data à esquerda, como no computador: a data e o tipo ao lado, o título e, embaixo dele, o resto. */
+
+@media (min-width: 62rem) {
+  .linha--coluna .lista__linha {
+    grid-template-columns: var(--coluna-da-data) 1.5rem minmax(0, 1fr);
+    grid-template-areas: none;
+    gap: var(--e-1) var(--e-4);
+    padding-block: var(--e-4);
+  }
+  .linha--coluna .lista__resto {
+    grid-area: 2 / 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--e-4);
+  }
+  .linha--coluna .lista__resto > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* A foto-chave cabe numa margem menor, e o cabeçalho do ano acompanha */
+  .linha--coluna .lista__foto {
+    width: 6rem;
+    right: var(--e-2);
+  }
+}
+@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
+  .linha--coluna .lista__linha,
+  .linha--coluna .lista__cabeca {
+    padding-right: 7.5rem;
+  }
+}
