@@ -165,18 +165,14 @@ const TELAS = [
 
 // Exceções de propósito: { tela (opcional), seletor (texto exato ou expressão), motivo }.
 // O seletor é o que a conferência imprime na falha.
+// A exceção do título da entrada (div.entrada__texto > h3.entrada__titulo) saiu em 20/11/2026.
+// A gestalt avisava que ela não era usada, e os títulos passam sem ela.
 export const EXCECOES = [
   {
     seletor: /> p\.entrada__quando\.rotulo$/,
     anterior: /> div\.(marca|epoca)\b/,
     motivo:
       'Na linha do tempo, a marca que abre ou fecha um capítulo e a aba da época fazem parte do desenho dos trilhos: a entrada seguinte encosta nelas de propósito, e a marca que abre nomeia as entradas abaixo dela.',
-  },
-  {
-    seletor: /^div\.entrada__texto > h3\.entrada__titulo/,
-    anterior: /> div\.entrada__foto$/,
-    motivo:
-      'Na linha do tempo, o título da memória fica embaixo da própria foto: a foto é do mesmo grupo (a entrada), e não um grupo anterior. Entre uma entrada e outra o espaço já é o dobro.',
   },
 ];
 
