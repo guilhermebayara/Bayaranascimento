@@ -158,8 +158,9 @@
     font-size: var(--t-titulo-1);
   }
   .lista__linha {
+    /* A coluna dos sinais cabe o ícone de áudio junto com "2 relatos". Com 5,5rem o fim da palavra era cortado. */
     grid-template-columns:
-      var(--coluna-da-data) 1.5rem minmax(0, 2.2fr) minmax(0, 1.5fr) 5.5rem
+      var(--coluna-da-data) 1.5rem minmax(0, 2.2fr) minmax(0, 1.5fr) 7rem
       minmax(0, 1.3fr);
     grid-template-areas: none;
     gap: var(--e-1) var(--e-5);

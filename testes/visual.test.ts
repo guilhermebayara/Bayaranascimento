@@ -715,6 +715,12 @@ describe('ajustes: lista, formas de ver da pessoa, quem aparece e o link do tít
     expect(css).toMatch(/\.lista__linha:focus-visible\s*\{\s*outline:\s*2px solid var\(--tinta\);/);
   });
 
+  it('na lista do computador, a coluna dos sinais cabe o ícone de áudio e os relatos', () => {
+    // Com 5,5rem, "2 relatos" ao lado do ícone de áudio era cortado no fim da palavra (QA de 20/11/2026)
+    const css = ler('telas/lista.css').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).toMatch(/grid-template-columns:\s*var\(--coluna-da-data\) 1\.5rem minmax\(0, 2\.2fr\) minmax\(0, 1\.5fr\) 7rem\s*minmax\(0, 1\.3fr\)/);
+  });
+
   it('na lista, a foto-chave só existe onde há mouse: no celular ela não é desenhada', () => {
     const css = ler('telas/lista.css');
     // Fora da regra de mouse, a foto não existe
