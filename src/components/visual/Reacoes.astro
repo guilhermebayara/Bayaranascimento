@@ -7,7 +7,7 @@
 // - ao lado, as reações recebidas, com os símbolos e o número; tocar no número mostra quem marcou.
 // Sem script, tudo continua funcionando: cada toque é um formulário comum, que volta para o mesmo ponto
 // da página, e "Outras reações" fica à vista. O script é src/lib/cliente/reacoes.ts.
-import { SIMBOLOS_DAS_REACOES, resumoDasReacoes, type AlvoDaReacao, type SimboloDaReacao } from '../../lib/reacoes';
+import { SIMBOLOS_DAS_REACOES, emSobre, resumoDasReacoes, type AlvoDaReacao, type SimboloDaReacao } from '../../lib/reacoes';
 
 interface Props {
   memoria: string;
@@ -39,14 +39,14 @@ const conta = (n: number) => (n === 1 ? '1 reação' : `${n} reações`);
     <input type="hidden" name="alvo" value={alvo} />
     <input type="hidden" name="alvoId" value={alvoId} />
     <input type="hidden" name="volta" value={volta} />
-    <button type="submit" class="reacao reacao--principal" name="simbolo" value="coracao" aria-pressed={meuCoracao ? 'true' : 'false'} aria-label={`Coração em ${sobre}`} data-reacao="coracao" data-reacao-principal>
+    <button type="submit" class="reacao reacao--principal" name="simbolo" value="coracao" aria-pressed={meuCoracao ? 'true' : 'false'} aria-label={`Coração ${emSobre(sobre)}`} data-reacao="coracao" data-reacao-principal>
       <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={coracao.desenho} />
     </button>
     <details class="reacoes__mais" data-reacoes-mais>
       <summary class="reacoes__abre">
         <span>Outras reações</span>
       </summary>
-      <div class="reacoes__paleta" role="group" aria-label={`Reações em ${sobre}`}>
+      <div class="reacoes__paleta" role="group" aria-label={`Reações ${emSobre(sobre)}`}>
         {
           SIMBOLOS_DAS_REACOES.map((s) => (
             <button type="submit" class="reacao reacao--paleta" name="simbolo" value={s.id} aria-pressed={resumo.minhas.includes(s.id) ? 'true' : 'false'} data-reacao={s.id}>

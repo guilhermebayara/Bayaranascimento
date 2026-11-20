@@ -3,7 +3,7 @@
 // verdade (api/reacoes.ts) sobre o banco SQLite em memória.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { SIMBOLOS_DAS_REACOES, nomesDeQuemMarcou, ofereceEntrar, resumoDasReacoes } from '../src/lib/reacoes';
+import { SIMBOLOS_DAS_REACOES, emSobre, nomesDeQuemMarcou, ofereceEntrar, resumoDasReacoes } from '../src/lib/reacoes';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 
 const comSqlite = await temSqlite();
@@ -29,6 +29,17 @@ describe('os símbolos', () => {
     expect(nomesDeQuemMarcou(['a', 'b', 'c', 'd', 'e', 'f'])).toBe('a, b, c, d e mais 2');
     expect(ofereceEntrar(true, false)).toBe(true);
     expect(ofereceEntrar(true, true)).toBe(false);
+  });
+  it('o rótulo junta "em" sem "em a" nem "em o" (QA de 20/11/2026)', () => {
+    expect(emSobre('a memória')).toBe('na memória');
+    expect(emSobre('a foto 1')).toBe('na foto 1');
+    expect(emSobre('o relato de Elizete')).toBe('no relato de Elizete');
+    expect(emSobre('o relato de exemplo')).toBe('no relato de exemplo');
+    expect(emSobre('alguém')).toBe('em alguém');
+    const peca = readFileSync('src/components/visual/Reacoes.astro', 'utf-8');
+    expect(peca).toContain('emSobre(sobre)');
+    expect(peca).not.toMatch(/aria-label=\{`Coração em \$\{sobre\}`\}/);
+    expect(peca).not.toMatch(/aria-label=\{`Reações em \$\{sobre\}`\}/);
   });
   it('o resumo: o total, as minhas e quem marcou cada uma, com "você" primeiro', () => {
     const r = resumoDasReacoes(new Map([['coracao', ['elizete', 'gui']], ['estava', ['elizete']]]), 'gui', (id) => ({ elizete: 'Elizete' })[id] ?? id);
