@@ -1,40 +1,30 @@
-# Confere o site nos PRs para a homologa e para a main. Se algo falha, o PR fica com a marca
-# vermelha e o GitHub manda um e-mail. O Cloudflare roda a guarda e os testes no build de toda
-# branch (npm run build chama o prebuild): se falharem, nada é publicado e a versão anterior
-# continua no ar. Por isso não roda mais a cada push em qualquer branch: os minutos do GitHub
-# Actions acabavam (decisão do Gui, 18/11/2026). Mudança só de documento não dispara nada.
-# Ver CLAUDE.md, "Conferências".
+# O GitHub roda só a gestalt, e só no PR para a main e por disparo manual (aba Actions, "Run workflow").
+# A guarda da produção e os testes já rodam no build do Cloudflare (npm run build chama o prebuild) em
+# todo push: se falharem, nada é publicado e a versão anterior continua no ar. O GitHub não repete esse
+# trabalho. Nos PRs para a homologa, a gestalt é a que a sessão roda na própria máquina antes de cada push.
+# O motivo: o repositório vira privado depois de 10/12/2026, e no plano gratuito a cota mensal de Actions
+# é uma só para todos os repositórios privados da conta, sem proteção de branch. A estimativa era de 800 a
+# 1.300 minutos por mês antes e de 50 a 70 depois (decisão do Gui, 20/11/2026).
+# Mudança só de documento não dispara nada. Ver CLAUDE.md, "Conferências".
 name: Confere o site
 
 on:
   pull_request:
-    branches: [homologa, main]
+    branches: [main]
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
+  workflow_dispatch:
 
-# Um push novo no mesmo PR cancela a conferência anterior, que já não vale
+# Um push novo no mesmo PR, ou um novo disparo manual na mesma branch, cancela a rodada anterior
 concurrency:
-  group: confere-${{ github.event.pull_request.number }}
+  group: confere-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  conferir:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      # O build chama antes a guarda da produção e os testes (prebuild)
-      - name: Guarda da produção, testes e build
-        run: npm run build
-
   # A gestalt que se confere sozinha (npm run gestalt, ver CLAUDE.md, "Conferências"). Precisa do
   # servidor local com o acervo de exemplo e de um navegador, que o build do Cloudflare não tem: por
   # isso roda aqui, num trabalho à parte. Não usa segredo nenhum: o servidor local não fala com o

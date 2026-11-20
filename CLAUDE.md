@@ -75,7 +75,7 @@ A homologação usa a família de verdade (decisão do Gui, 18/11/2026): **nomes
 
 1. Traga a `main` para a branch.
 2. `npm run build` sem erro. Ele roda antes a guarda da produção e os testes (ver "Conferências").
-3. A homologação publicada com a mudança, com a marca verde do Cloudflare no último commit e a do GitHub no PR que a levou.
+3. A homologação publicada com a mudança, com a marca verde do Cloudflare no último commit e, no PR para a `main`, a da gestalt do GitHub.
 4. A aprovação do Gui na homologação.
 
 ## O que nunca fazer
@@ -102,7 +102,7 @@ O plano gratuito do GitHub não protege branches de repositório privado. As reg
 - `npm test`: os testes em `testes/`, das regras de permissão, das datas, do login, do parentesco e da árvore.
 - `npm run gestalt` (`scripts/confere-gestalt.mjs`), a gestalt que se confere sozinha: abre as telas em 390 e 1280 px e falha quando um título ou rótulo de grupo tem acima menos que o dobro do espaço de baixo. Precisa do servidor local no ar (`npm run dev` e `npm run fotos-de-exemplo`); recebe o endereço, como `npm run gestalt -- http://localhost:4400`. Exceção de propósito entra na lista do script, com o motivo. A regra está em "Visual", em `docs/decisoes.md`.
 - `npm run build` roda os dois primeiros antes do build (`prebuild`); a gestalt fica fora, porque o build do Cloudflare não tem servidor nem navegador. O Cloudflare publica com `npm run build`: se algo falhar, nada vai ao ar e a versão anterior continua.
-- No GitHub, `.github/workflows/confere.yml` roda o mesmo nos PRs para a `homologa` e para a `main` (não a cada push, para poupar os minutos do GitHub Actions; decisão do Gui, 18/11/2026), e num passo à parte sobe o servidor local com o acervo de exemplo e roda a gestalt. PR só de documento não dispara. Um push novo no PR cancela a conferência anterior. Falha vira marca vermelha no PR e e-mail. A gestalt continua valendo antes de cada push, rodada na máquina da sessão.
+- No GitHub, `.github/workflows/confere.yml` roda só a gestalt, e só no PR para a `main` e por disparo manual (aba Actions, "Run workflow"). Ele sobe o servidor local com o acervo de exemplo e abre o navegador, o que o build do Cloudflare não faz. A guarda e os testes não rodam no GitHub: ficam no build do Cloudflare, que já roda em todo push e trava a publicação. Nos PRs para a `homologa`, o GitHub não roda nada, e a gestalt da máquina da sessão, antes de cada push, é a única conferência dela nesse caminho. PR só de documento não dispara. Um push novo no PR, ou um novo disparo manual na mesma branch, cancela a rodada anterior. Falha vira marca vermelha no PR e e-mail. O motivo (decisão do Gui, 20/11/2026): o repositório vira privado depois de 10/12/2026, e a cota mensal de Actions do plano gratuito é uma só para todos os repositórios privados da conta (ver "Infraestrutura", em `docs/decisoes.md`).
 
 Regra nova que nasce de um achado vira teste em `testes/` ou verificação na guarda, no mesmo commit da correção, para continuar valendo sem depender de memória.
 
