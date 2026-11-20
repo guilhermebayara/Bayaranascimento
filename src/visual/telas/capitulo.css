@@ -120,7 +120,8 @@
   display: flex;
   flex-direction: column;
 }
-.capitulo__parado {
+.capitulo__parado,
+.capitulo__rolagem {
   display: contents;
 }
 .capitulo__abertura {
@@ -244,12 +245,13 @@
 .capitulo__tv {
   margin: 0;
 }
-/* O mural e a lista são do Explorar e trazem a própria margem: aqui eles vão de ponta a ponta */
-.capitulo__larga {
+/* O mural e a lista são do Explorar e trazem a própria margem: no celular eles vão de ponta a ponta.
+   Na tela grande moram na coluna do corpo, no mesmo lugar da linha do tempo, e a margem some. */
+.capitulo__explorar {
   margin-inline: calc(-1 * var(--margem));
 }
-.capitulo .capitulo__larga .mural,
-.capitulo .capitulo__larga .lista {
+.capitulo .capitulo__explorar .mural,
+.capitulo .capitulo__explorar .lista {
   padding-top: var(--e-5);
 }
 
@@ -335,7 +337,7 @@
 .tema__capitulos {
   padding-bottom: var(--e-7);
 }
-.tema__capitulos .indice {
+.tema__rolagem {
   margin-top: var(--e-3);
 }
 .tema__memorias {
@@ -387,18 +389,21 @@
     display: block;
     grid-column: 1 / span 5;
   }
-  .capitulo .capitulo__parado {
+  .capitulo .capitulo__parado,
+  .capitulo .capitulo__rolagem {
     display: block;
   }
   .capitulo .capitulo__corpo {
     grid-column: 7 / -1;
   }
-  /* No mural e na lista, as memórias usam a largura inteira, embaixo da capa */
-  .capitulo:has(.capitulo__larga) .capitulo__capa {
-    grid-column: 1 / span 7;
+  /* O mural e a lista ficam na coluna do corpo, o mesmo lugar dos marcos: a margem do Explorar zera
+     e, na coluna mais estreita, o mural tem menos fotos por linha (como no tema) */
+  .capitulo__explorar {
+    --margem: 0px;
   }
-  .capitulo:has(.capitulo__larga) .capitulo__corpo {
-    grid-column: 1 / -1;
+  .capitulo__explorar .mural,
+  .capitulo__explorar .mural[data-tamanho] {
+    --colunas: 3;
   }
   .marco {
     grid-template-columns: 6.5rem minmax(0, 1fr) 9rem;
@@ -429,49 +434,55 @@
   .tema__abre {
     padding-block: var(--e-8) var(--e-6);
   }
+  /* A lista de capítulos tem um teto e rola dentro dele quando é longa, abaixo do nome do tema.
+     Lista curta não chega ao teto e não rola. Este é o jeito do toque (o iPad deitado): nada fica
+     preso, a página rola com as memórias. No celular as colunas se empilham e a lista corre
+     inteira. Com mouse, a coluna toda fica parada e a lista ocupa a altura da janela (abaixo). */
+  .tema__rolagem {
+    max-height: 60svh;
+    overflow-y: auto;
+  }
+  .tema__rolagem:focus-visible {
+    outline-offset: var(--e-1);
+  }
   /* Na coluna, o mural tem menos fotos por linha */
   .tema__memorias .mural,
   .tema__memorias .mural[data-tamanho] {
     --colunas: 3;
-  }
-  /* A lista precisa da largura inteira: a capa fica em cima, e as memórias embaixo */
-  .tema:has(.linha--lista) > .tema__capa {
-    grid-column: 1 / span 7;
-  }
-  .tema:has(.linha--lista) > .tema__memorias {
-    grid-column: 1 / -1;
-    padding-top: var(--e-6);
   }
 }
 
 /* No computador com mouse, a capa e o alto do sumário ficam parados enquanto a lista rola. No
    toque, nada novo fica preso (docs/visual.md, "Safari do iPhone e peças paradas"). */
 @media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
-  .capitulo__parado {
+  /* A capa inteira fica parada, como a coluna da página do tema. No alto, parados, o selo, o título,
+     o período e as ações. Tudo o que vem abaixo da data e da conta (a abertura, as notas e "Quem
+     aparece") ocupa o resto da altura da janela e rola por dentro só quando não cabe. A rolagem da
+     página fica com as memórias, nas três formas de ver. Como a capa nunca passa da janela, ela
+     sempre cabe e não precisa de um script que meça. */
+  .capitulo .capitulo__capa {
     position: sticky;
-    /* Só o selo, o título, o período e as ações ficam parados. O resto da capa rola e passa por
-       trás deste bloco, que por isso tem o fundo do papel e cobre até o alto da janela. */
-    top: 0;
-    z-index: 1;
-    margin-top: calc(-1 * var(--e-6));
-    padding-block: var(--e-6) var(--e-4);
-    background: var(--papel);
+    top: var(--e-6);
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100svh - var(--e-6) - var(--e-4));
   }
-  /* O que passa por trás some aos poucos, e não num corte seco */
-  .capitulo__parado::after {
-    content: '';
-    position: absolute;
-    inset: 100% 0 auto;
-    height: var(--e-5);
-    background: linear-gradient(var(--papel), transparent);
-    pointer-events: none;
+  .capitulo .capitulo__parado {
+    flex: none;
   }
-  /* No mural e na lista a capa fica em cima das memórias: nada parado */
-  .capitulo:has(.capitulo__larga) .capitulo__parado {
-    position: static;
+  .capitulo .capitulo__rolagem {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    /* O que passa pelas bordas some aos poucos, e não num corte seco. O respiro da abertura e o
+       de baixo (padding) são maiores que o esmaecido: parada no começo ou no fim, a leitura fica limpa. */
+    padding-bottom: var(--e-4);
+    -webkit-mask-image: linear-gradient(transparent, var(--papel) var(--e-4), var(--papel) calc(100% - var(--e-4)), transparent);
+    mask-image: linear-gradient(transparent, var(--papel) var(--e-4), var(--papel) calc(100% - var(--e-4)), transparent);
   }
-  .capitulo:has(.capitulo__larga) .capitulo__parado::after {
-    content: none;
+  .capitulo .capitulo__rolagem:focus-visible {
+    outline-offset: var(--e-1);
   }
   /* O alto do sumário ("Capítulos", a frase e "Novo capítulo") cabe na janela e acompanha a lista */
   .sumario .sumario__abre {
@@ -479,19 +490,36 @@
     top: var(--e-6);
     align-self: start;
   }
-  /* Capa mais alta que a janela não fica parada: o fim dela ("Quem aparece") nunca chegava à vista.
-     Quem mede é o script da página do capítulo. */
-  .capitulo__parado--solta {
-    position: static;
+  /* Página do tema: a coluna da esquerda inteira fica parada, como a capa do capítulo. O nome e
+     "Todos os capítulos e temas" ficam no alto dela e a lista de capítulos ocupa o resto da altura
+     da janela, rolando por dentro só quando não couber. A rolagem da página fica com as memórias.
+     O alto do nome sobe um pouco ao parar, para o respiro de cima não gastar a janela. A coluna é
+     parada nas três formas de ver (linha do tempo, mural e lista): trocar de forma nunca muda o
+     lugar de nada. */
+  .tema > .tema__capa {
+    --sobe: calc(var(--e-8) - var(--e-6));
+    position: sticky;
+    top: calc(-1 * var(--sobe));
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100svh + var(--sobe));
   }
-  .capitulo__parado--solta::after {
-    content: none;
+  .tema .tema__capitulos {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .tema .tema__rolagem {
+    min-height: 10rem;
+    max-height: none;
   }
 }
 
 @media (min-width: 100rem) {
   .tema__memorias .mural,
-  .tema__memorias .mural[data-tamanho] {
+  .tema__memorias .mural[data-tamanho],
+  .capitulo__explorar .mural,
+  .capitulo__explorar .mural[data-tamanho] {
     --colunas: 4;
   }
   .capitulo .capitulo__capa,
@@ -502,12 +530,6 @@
   .capitulo .capitulo__corpo,
   .sumario .sumario__lista {
     grid-column: 6 / -1;
-  }
-  .capitulo:has(.capitulo__larga) .capitulo__capa {
-    grid-column: 1 / span 6;
-  }
-  .capitulo:has(.capitulo__larga) .capitulo__corpo {
-    grid-column: 1 / -1;
   }
   .marco {
     grid-template-columns: 8rem minmax(0, 1fr) 14rem;
