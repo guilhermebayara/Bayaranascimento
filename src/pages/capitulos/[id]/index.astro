@@ -173,6 +173,9 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
           </p>
         )}
       </div>
+      {/* Tudo o que vem abaixo da data e da conta rola à parte, na coluna da capa, com mouse (capitulo.css).
+          No celular este bloco se desfaz (display: contents), como o de cima. */}
+      <div class="capitulo__rolagem" data-rolagem>
       {capitulo.abertura && (
         <div class="capitulo__abertura serifa t-abertura">
           {capitulo.abertura.split(/\n{2,}/).map((p) => (
@@ -251,6 +254,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
             )}
           </section>
         )}
+      </div>
     </header>
 
     <div class="capitulo__corpo">
@@ -383,12 +387,16 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
   import { ligarTroca } from '../../../lib/cliente/explorar-troca';
   ligarTroca();
 
-  // A capa só fica parada quando cabe inteira na janela (QA de design, 17/11/2026)
-  const capa = document.querySelector<HTMLElement>('.capitulo__parado');
-  if (capa) {
-    const medir = () => capa.classList.toggle('capitulo__parado--solta', capa.offsetHeight > window.innerHeight - 64);
-    medir();
-    window.addEventListener('resize', medir);
-    window.addEventListener('load', medir);
+  // A parte de baixo da capa rola à parte com mouse quando não cabe na janela (capitulo.css). Só aí ela
+  // vira um ponto de parada do teclado, para quem não usa mouse chegar a "Quem aparece".
+  const rolagem = document.querySelector<HTMLElement>('[data-rolagem]');
+  if (rolagem) {
+    const marcar = () => {
+      if (rolagem.scrollHeight > rolagem.clientHeight + 1) rolagem.tabIndex = 0;
+      else rolagem.removeAttribute('tabindex');
+    };
+    marcar();
+    addEventListener('resize', marcar);
+    addEventListener('load', marcar);
   }
 </script>

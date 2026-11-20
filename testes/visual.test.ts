@@ -564,7 +564,7 @@ describe('grupo familia', () => {
     // A cor do capítulo é a do trilho dele na linha do tempo
     expect(pagina).toMatch(/style=\{cor === undefined \? undefined : estiloDoCapitulo\(cor\)\}/);
     const css = ler('telas/capitulo.css');
-    expect(css).toMatch(/@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\) \{\s*\.capitulo__parado \{\s*position: sticky;/);
+    expect(css).toMatch(/@media \(min-width: 62rem\) and \(hover: hover\) and \(pointer: fine\) \{[^@]*?\.capitulo \.capitulo__capa \{\s*position: sticky;/);
     // A capa do capítulo, o alto do sumário (resposta do Gui à P62 do QA de design de 17/11/2026) e a
     // coluna da página do tema (19/11/2026)
     expect(css.match(/position:\s*sticky/g)).toHaveLength(3);
@@ -902,6 +902,41 @@ describe('página de tema: a coluna da esquerda fica parada e a lista rola por d
   });
 });
 
+describe('página do capítulo: a coluna da capa fica parada e o que vem abaixo da data rola por dentro', () => {
+  const css = ler('telas/capitulo.css');
+  const pagina = readFileSync(new URL('../src/pages/capitulos/[id]/index.astro', import.meta.url), 'utf8');
+  const marca = '@media (min-width: 62rem) and (hover: hover) and (pointer: fine) {';
+  const mouse = css.slice(css.indexOf(marca), css.indexOf('@media (min-width: 100rem)'));
+  const semComentarios = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('a capa inteira fica parada com mouse e nunca passa da altura da janela', () => {
+    expect(mouse).toMatch(/\.capitulo \.capitulo__capa \{[^}]*position: sticky;[^}]*top: var\(--e-6\);[^}]*align-self: start;[^}]*display: flex;[^}]*flex-direction: column;[^}]*max-height: calc\(100svh/);
+  });
+  it('o alto (selo, título, data, conta e ações) não encolhe, e o resto ocupa a altura que sobra e rola', () => {
+    expect(mouse).toMatch(/\.capitulo \.capitulo__parado \{\s*flex: none;/);
+    expect(mouse).toMatch(/\.capitulo \.capitulo__rolagem \{[^}]*flex: 1 1 auto;[^}]*min-height: 0;[^}]*overflow-y: auto;/);
+  });
+  it('sticky e rolagem própria só com mouse: no toque nada fica preso, no celular a capa corre inteira', () => {
+    const fora = semComentarios(css.replace(mouse, ''));
+    expect(fora).not.toMatch(/\.capitulo[^{}]*\{[^}]*(position:\s*(sticky|fixed)|overflow-y)/);
+    expect(fora).toMatch(/\.capitulo__parado,\s*\.capitulo__rolagem \{\s*display: contents;/);
+  });
+  it('a área que rola vem depois do bloco do alto e leva a abertura, as notas e "Quem aparece"', () => {
+    const capa = pagina.slice(pagina.indexOf('<header class="capitulo__capa">'), pagina.indexOf('</header>'));
+    const rolagem = capa.indexOf('class="capitulo__rolagem" data-rolagem');
+    expect(rolagem).toBeGreaterThan(capa.indexOf('class="capitulo__parado"'));
+    for (const peca of ['capitulo__abertura', 'capitulo__notas', 'capitulo__gente']) expect(capa.indexOf(peca), peca).toBeGreaterThan(rolagem);
+    for (const peca of ['capitulo__titulo', 'capitulo__periodo', 'capitulo__acoes']) expect(capa.indexOf(peca), peca).toBeLessThan(rolagem);
+  });
+  it('a capa sempre cabe, então o script que media e a classe --solta saíram', () => {
+    expect(css).not.toContain('--solta');
+    expect(pagina).not.toMatch(/--solta|offsetHeight|innerHeight/);
+  });
+  it('a área só vira ponto de parada do teclado quando de fato rola', () => {
+    expect(pagina).toMatch(/scrollHeight > rolagem\.clientHeight \+ 1\) rolagem\.tabIndex = 0;\s*else rolagem\.removeAttribute\('tabindex'\)/);
+  });
+});
+
 // Decisão do Gui, 19/11/2026: "largura inteira" é a largura inteira disponível. Trocar a forma de ver
 // (linha do tempo, mural, lista) nunca muda o lugar de nada: elemento saltando na página é o que ele
 // mais quer evitar. As colunas do tema e do capítulo são as mesmas nos três modos.
@@ -952,8 +987,8 @@ describe('trocar a forma de ver não muda o arranjo das colunas, no tema e no ca
     expect(semComentarios(lista)).toMatch(/\.linha--coluna \.lista__linha \{\s*grid-template-columns: var\(--coluna-da-data\) 1\.5rem minmax\(0, 1fr\);/);
   });
 
-  it('a capa do capítulo só é solta pelo script que mede, nunca por causa da forma de ver', () => {
-    expect(capitulo).toContain("classList.toggle('capitulo__parado--solta'");
-    expect(semComentarios(css)).toMatch(/\.capitulo__parado--solta \{\s*position: static;/);
+  it('a capa do capítulo não depende da forma de ver: ela é parada e rola por dentro nos três modos', () => {
+    expect(semComentarios(css)).not.toMatch(/\.capitulo__(capa|parado|rolagem)[^{}]*:has\(/);
+    expect(capitulo.slice(0, capitulo.indexOf('<div class="capitulo__corpo">'))).toContain('capitulo__rolagem');
   });
 });

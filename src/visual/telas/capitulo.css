@@ -120,7 +120,8 @@
   display: flex;
   flex-direction: column;
 }
-.capitulo__parado {
+.capitulo__parado,
+.capitulo__rolagem {
   display: contents;
 }
 .capitulo__abertura {
@@ -388,7 +389,8 @@
     display: block;
     grid-column: 1 / span 5;
   }
-  .capitulo .capitulo__parado {
+  .capitulo .capitulo__parado,
+  .capitulo .capitulo__rolagem {
     display: block;
   }
   .capitulo .capitulo__corpo {
@@ -453,24 +455,34 @@
 /* No computador com mouse, a capa e o alto do sumário ficam parados enquanto a lista rola. No
    toque, nada novo fica preso (docs/visual.md, "Safari do iPhone e peças paradas"). */
 @media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
-  .capitulo__parado {
+  /* A capa inteira fica parada, como a coluna da página do tema. No alto, parados, o selo, o título,
+     o período e as ações. Tudo o que vem abaixo da data e da conta (a abertura, as notas e "Quem
+     aparece") ocupa o resto da altura da janela e rola por dentro só quando não cabe. A rolagem da
+     página fica com as memórias, nas três formas de ver. Como a capa nunca passa da janela, ela
+     sempre cabe e não precisa de um script que meça. */
+  .capitulo .capitulo__capa {
     position: sticky;
-    /* Só o selo, o título, o período e as ações ficam parados. O resto da capa rola e passa por
-       trás deste bloco, que por isso tem o fundo do papel e cobre até o alto da janela. */
-    top: 0;
-    z-index: 1;
-    margin-top: calc(-1 * var(--e-6));
-    padding-block: var(--e-6) var(--e-4);
-    background: var(--papel);
+    top: var(--e-6);
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100svh - var(--e-6) - var(--e-4));
   }
-  /* O que passa por trás some aos poucos, e não num corte seco */
-  .capitulo__parado::after {
-    content: '';
-    position: absolute;
-    inset: 100% 0 auto;
-    height: var(--e-5);
-    background: linear-gradient(var(--papel), transparent);
-    pointer-events: none;
+  .capitulo .capitulo__parado {
+    flex: none;
+  }
+  .capitulo .capitulo__rolagem {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    /* O que passa pelas bordas some aos poucos, e não num corte seco. O respiro da abertura e o
+       de baixo (padding) são maiores que o esmaecido: parada no começo ou no fim, a leitura fica limpa. */
+    padding-bottom: var(--e-4);
+    -webkit-mask-image: linear-gradient(transparent, var(--papel) var(--e-4), var(--papel) calc(100% - var(--e-4)), transparent);
+    mask-image: linear-gradient(transparent, var(--papel) var(--e-4), var(--papel) calc(100% - var(--e-4)), transparent);
+  }
+  .capitulo .capitulo__rolagem:focus-visible {
+    outline-offset: var(--e-1);
   }
   /* O alto do sumário ("Capítulos", a frase e "Novo capítulo") cabe na janela e acompanha a lista */
   .sumario .sumario__abre {
@@ -500,14 +512,6 @@
   .tema .tema__rolagem {
     min-height: 10rem;
     max-height: none;
-  }
-  /* Capa mais alta que a janela não fica parada: o fim dela ("Quem aparece") nunca chegava à vista.
-     Quem mede é o script da página do capítulo. */
-  .capitulo__parado--solta {
-    position: static;
-  }
-  .capitulo__parado--solta::after {
-    content: none;
   }
 }
 

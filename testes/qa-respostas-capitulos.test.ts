@@ -57,10 +57,10 @@ describe('a página do capítulo', () => {
 
   it('P65: no celular, a frase de abertura vem antes das ações', () => {
     const celular = css.slice(0, css.indexOf('@media (min-width: 40rem)'));
-    expect(celular).toMatch(/\.capitulo__parado \{\s*display: contents;/);
+    expect(celular).toMatch(/\.capitulo__parado,\s*\.capitulo__rolagem \{\s*display: contents;/);
     expect(celular).toMatch(/\.capitulo__abertura \{\s*order: 1;\s*\}\s*\.capitulo__acoes \{\s*order: 2;/);
     // No computador o bloco volta a existir, e a ordem é a da marcação
-    expect(css).toMatch(/\.capitulo \.capitulo__parado \{\s*display: block;/);
+    expect(css).toMatch(/\.capitulo \.capitulo__parado,\s*\.capitulo \.capitulo__rolagem \{\s*display: block;/);
   });
   it('P66: no celular, cada nome de "Quem aparece" continua sendo um link', () => {
     expect(capa).toMatch(/<p class="capitulo__nomes ficha">[\s\S]*?<a href=\{`\/pessoas\/\$\{id\}`\}>/);
@@ -75,8 +75,9 @@ describe('a página do capítulo', () => {
   it('P68: ficam parados só o selo, o título, o período e as ações', () => {
     for (const peca of ['capitulo__selo', 'capitulo__titulo', 'capitulo__periodo', 'capitulo__acoes']) expect(parado, peca).toContain(peca);
     for (const peca of ['capitulo__notas', 'capitulo__gente']) expect(parado, peca).not.toContain(peca);
-    // O que rola passa por trás do bloco: ele cobre até o alto da janela, com o fundo do papel
-    expect(comMouse).toMatch(/\.capitulo__parado \{\s*position: sticky;[^}]*top: 0;[^}]*background: var\(--papel\);/);
+    // A capa inteira fica parada, e o bloco do alto não encolhe; o resto rola numa área própria
+    expect(comMouse).toMatch(/\.capitulo \.capitulo__capa \{\s*position: sticky;[^}]*top: var\(--e-6\);/);
+    expect(comMouse).toMatch(/\.capitulo \.capitulo__parado \{\s*flex: none;/);
   });
   it('P69: a forma de ver fica na própria página, com o atalho para o modo TV', () => {
     expect(FORMAS_DO_CAPITULO).toEqual(['marcos', 'mural', 'lista']);
