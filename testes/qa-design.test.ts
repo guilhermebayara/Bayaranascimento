@@ -111,9 +111,9 @@ describe('capítulos, árvore e pessoas', () => {
   it('sem script, a árvore mostra o aviso no lugar do mapa vazio', () => {
     expect(ler('src/pages/arvore.astro')).toMatch(/<noscript>[\s\S]*\[data-mapa\][^}]*display: none[\s\S]*<\/noscript>/);
   });
-  it('a capa do capítulo mais alta que a janela não fica parada', () => {
-    expect(ler('src/visual/telas/capitulo.css')).toMatch(/\.capitulo__parado--solta \{\s*position: static;/);
-    expect(ler('src/pages/capitulos/[id]/index.astro')).toMatch(/capitulo__parado--solta', capa\.offsetHeight > window\.innerHeight/);
+  it('a capa do capítulo nunca passa da janela: o que vem abaixo da data rola à parte, sem script que meça', () => {
+    expect(ler('src/visual/telas/capitulo.css')).not.toContain('--solta');
+    expect(ler('src/pages/capitulos/[id]/index.astro')).not.toMatch(/--solta|offsetHeight|innerHeight/);
   });
   it('o capítulo vazio manda usar o botão com o nome que ele tem para quem está vendo', () => {
     const pagina = ler('src/pages/capitulos/[id]/index.astro');

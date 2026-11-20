@@ -60,7 +60,8 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
             <h2 class="rotulo suave" id="capitulos-do-tema">
               Capítulos
             </h2>
-            <ol class="indice">
+            <div class="tema__rolagem" data-rolagem>
+              <ol class="indice">
               {capitulos.map((c) => {
                 // A linha igual à do sumário: o que é, o período e a conta
                 const r = resumoDoCapitulo(c, todos, acervo);
@@ -70,7 +71,8 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
                   </li>
                 );
               })}
-            </ol>
+              </ol>
+            </div>
           </section>
         )
       }
@@ -106,11 +108,11 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
             <Vazio frase="Nenhuma memória com este tema por enquanto." />
           </div>
         ) : forma === 'mural' ? (
-          <div class="linha linha--mural tema__larga">
+          <div class="linha linha--mural">
             <Mural memorias={memorias} ordem="recentes" tamanho={TAMANHO_PADRAO} fotos={fotosDoMural} />
           </div>
         ) : forma === 'lista' ? (
-          <div class="linha linha--lista tema__larga">
+          <div class="linha linha--lista linha--coluna">
             <Lista memorias={memorias} capitulos={todos} integrantes={await listarIntegrantesQueVe(usuario)} ordem="recentes" comAudio={await memoriasComAudio(usuario)} />
           </div>
         ) : (
@@ -126,4 +128,16 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
   // Sem script, cada opção é um link comum, que volta a esta parte da página.
   import { ligarTroca } from '../../lib/cliente/explorar-troca';
   ligarTroca();
+
+  // A lista de capítulos da coluna rola à parte quando é longa (capitulo.css). Só aí ela vira um
+  // ponto de parada do teclado, para quem não usa mouse chegar aos capítulos de baixo.
+  const rolagem = document.querySelector<HTMLElement>('[data-rolagem]');
+  if (rolagem) {
+    const marcar = () => {
+      if (rolagem.scrollHeight > rolagem.clientHeight + 1) rolagem.tabIndex = 0;
+      else rolagem.removeAttribute('tabindex');
+    };
+    marcar();
+    addEventListener('resize', marcar);
+  }
 </script>
