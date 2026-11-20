@@ -61,8 +61,11 @@ describe('cada coisa no seu lugar', () => {
 });
 
 describe('modo TV em 1280 × 720', () => {
-  it('numa janela baixa, com "Ajustes" aberto, o respiro encolhe e cada ajuste fica numa linha', () => {
+  it('numa janela baixa o palco cabe na altura, e com "Ajustes" aberto cada ajuste fica numa linha', () => {
     const bloco = css.slice(css.indexOf('@media (min-width: 62rem) and (max-height: 50rem) {'));
+    // Sem rolagem: o palco tem a altura da janela (QA de 20/11/2026)
+    expect(bloco).toMatch(/\.palco--tv:not\(\[data-so-fotos\]\) \{\s*min-height: 100svh;\s*height: 100svh;\s*max-height: 100svh;/);
+    expect(bloco).toMatch(/\.palco--tv:not\(\[data-so-fotos\]\) \.palco__fotos \{\s*--foto: min\(24vw, \(100svh - 14rem\) \/ 1\.7\);/);
     expect(bloco).toMatch(/\.palco--tv:not\(\[data-so-fotos\]\):has\(\.palco__ajustes\[open\]\) \{\s*padding-bottom: var\(--e-3\);/);
     expect(bloco).toMatch(/\.palco__ajustes\[open\] \.palco__ajuste \{\s*grid-auto-flow: column;/);
   });

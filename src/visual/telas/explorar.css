@@ -1332,16 +1332,35 @@ html:not(.com-troca) .filtros__acoes .so-com-troca {
   }
 }
 
-/* Modo TV em 1280 × 720 (decisão do Gui, 17/11/2026): numa janela baixa, com "Ajustes" aberto, a
-   página não rola. O respiro de baixo encolhe e a faixa dos ajustes fica mais compacta, com o nome
-   de cada ajuste ao lado das opções. */
+/* Modo TV em 1280 × 720 (decisão do Gui, 17/11/2026; QA de 20/11/2026): numa janela baixa o
+   conteúdo cabe na altura da janela, sem a página rolar. A foto e o respiro encolhem; com
+   "Ajustes" aberto, a faixa fica mais compacta, com o nome de cada ajuste ao lado das opções. */
 @media (min-width: 62rem) and (max-height: 50rem) {
+  .palco--tv:not([data-so-fotos]) {
+    min-height: 100svh;
+    height: 100svh;
+    max-height: 100svh;
+    padding-bottom: var(--e-3);
+    box-sizing: border-box;
+    overflow: clip;
+  }
+  .palco--tv:not([data-so-fotos]) .palco__cena {
+    min-height: 0;
+    row-gap: var(--e-2);
+    padding-block: var(--e-2) 0;
+  }
+  .palco--tv:not([data-so-fotos]) .palco__fotos {
+    --foto: min(24vw, (100svh - 14rem) / 1.7);
+  }
+  .palco--tv:not([data-so-fotos]) .palco__texto {
+    gap: var(--e-3);
+  }
   .palco--tv:not([data-so-fotos]):has(.palco__ajustes[open]) {
     padding-bottom: var(--e-3);
   }
   .palco:not([data-so-fotos]) .palco__cena:has(.palco__ajustes[open]) {
-    row-gap: var(--e-3);
-    padding-bottom: calc(var(--toque) + var(--e-3));
+    row-gap: var(--e-2);
+    padding-bottom: calc(var(--toque) + var(--e-2));
   }
   .palco:not([data-so-fotos]) .palco__ajustes[open] .palco__ajuste {
     grid-auto-flow: column;
