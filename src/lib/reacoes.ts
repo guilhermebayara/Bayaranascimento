@@ -70,3 +70,16 @@ export function nomesDeQuemMarcou(nomes: string[], maximo = 4): string {
 
 /** Oferecer "Quer entrar em Quem estava?": marcou "eu estava lá" e não está marcada na memória. */
 export const ofereceEntrar = (disseQueEstava: boolean, estaNaMemoria: boolean): boolean => disseQueEstava && !estaNaMemoria;
+
+/**
+ * Junta a preposição "em" com o que recebe a reação ("a memória", "o relato de Elizete", "a foto 1"),
+ * sem "em a" nem "em o" (achado do QA de 20/11/2026).
+ */
+export function emSobre(sobre: string): string {
+  const t = sobre.trim();
+  if (/^a\s/i.test(t)) return `na ${t.slice(2).trimStart()}`;
+  if (/^o\s/i.test(t)) return `no ${t.slice(2).trimStart()}`;
+  if (/^as\s/i.test(t)) return `nas ${t.slice(3).trimStart()}`;
+  if (/^os\s/i.test(t)) return `nos ${t.slice(3).trimStart()}`;
+  return `em ${t}`;
+}
