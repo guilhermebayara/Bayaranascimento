@@ -1,6 +1,6 @@
 # A memória como lugar de ler e contar (exploração E3)
 
-Situação: escrito no chat em 22/11/2026, esperando a aprovação do Gui. Aprovado, vira a sessão de exploração E3: duas propostas numa prévia `tst-memoria-vozes`, e a sessão para até o Gui escolher. Prazo: antes de 10/12/2026.
+Situação: escrito no chat e aprovado pelo Gui em 22/11/2026. Vira a sessão de exploração E3: duas propostas numa prévia `tst-memoria-vozes`, e a sessão para até o Gui escolher. Prazo: antes de 10/12/2026.
 
 ## De onde vem
 

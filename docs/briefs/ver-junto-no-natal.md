@@ -1,6 +1,6 @@
 # Ver junto no Natal (exploração E1)
 
-Situação: escrito no chat em 22/11/2026, esperando a aprovação do Gui. Aprovado, vira a sessão de exploração E1: duas propostas numa prévia `tst-ver-junto`, e a sessão para até o Gui escolher. Prazo: antes de 10/12/2026.
+Situação: escrito no chat e aprovado pelo Gui em 22/11/2026. Vira a sessão de exploração E1: duas propostas numa prévia `tst-ver-junto`, e a sessão para até o Gui escolher. Prazo: antes de 10/12/2026.
 
 ## De onde vem
 
@@ -25,13 +25,14 @@ O dia 25 é coletivo, e o site só tem entradas individuais. Hoje:
 
 **Visual.** O modo TV com a barra (sessão X, em `docs/visual.md`, "O modo TV") é a referência que já funciona: uma memória por vez, grande, para ver junto; símbolos de TV com nome; nada rola. A carta é a tela mais forte do site (C2), e na tela grande ela continua sendo a carta assinada à mão. O modo TV é o lugar de experimentar no movimento (`docs/visual.md`, "Movimento"), e o dia é de festa.
 
-**Inferido, para o Gui confirmar.** O aparelho da sala é um computador no cabo HDMI ou um celular espelhado (AirPlay, Chromecast). O navegador da própria TV fica de fora, porque o login do Access com o controle remoto é penoso.
+**O aparelho da sala** (resposta do Gui, 22/11/2026): um computador no cabo HDMI ou um celular espelhado (AirPlay, Chromecast), os dois. O navegador da própria TV fica de fora, porque o login do Access com o controle remoto é penoso.
 
 ## O que já está decidido e não se reabre
 
 - O modo TV com a barra, a partir de 62rem, como está. A exploração usa e estende, sem trocar o que existe.
 - Quem vê o quê: o modo TV só mostra o que a pessoa logada vê; rascunho nunca aparece; relato que espera nunca aparece, nem o áudio dele.
 - A carta é uma por pessoa, com a saudação no nome dela, escrita em `/admin/carta`. Aparece sozinha na primeira ida e depois fica em `/carta`.
+- **Na sala, só o que é aberto a toda a família** (resposta do Gui, 22/11/2026). No "ver junto", entram só as memórias abertas a todos, seja qual for o login: nada restrito a uma ou mais famílias vai para a TV, mesmo que quem logou veja. Dentro delas, valem as regras de sempre (relato que espera, rascunho). As contagens da sala contam só o que entra.
 - O login do dia 25 é assistido: os três fazem o primeiro login no celular de cada pessoa, com o ícone na tela inicial. A página do Access em português é configuração à parte, sem código.
 - "Neste dia" no Natal, de 24 a 26 de dezembro, mostra as memórias de 24 e de 25 de dezembro de todos os anos. Vai na sessão AA.
 - As fundações de `docs/visual.md`, a rolagem do aparelho, a gestalt e o modelo `pino-novo` para qualquer peça parada (a banda do Safari).
@@ -44,7 +45,7 @@ O dia 25 é coletivo, e o site só tem entradas individuais. Hoje:
 4. **A janela deitada.** O modo TV em 844 × 390, e em toda janela mais larga que alta abaixo de 62rem, sem rolar e com os controles à vista.
 5. **O áudio dos relatos.** O áudio do trecho na vez da memória, o controle de som e o que acontece com "Passar sozinho" enquanto alguém fala. Os navegadores só tocam som depois de um gesto da pessoa: a proposta diz qual é esse gesto.
 6. **Quem está na sala.** Se dá para escolher as pessoas presentes e ver as memórias delas, sem virar formulário.
-7. **O que aparece na sala.** Depende da resposta do Gui à pergunta deste brief (ver "Para o Gui decidir antes").
+7. **Como a regra da sala aparece.** O que entra está decidido (ver abaixo); a exploração decide como a sala sabe disso, se é que precisa saber, e o que acontece quando quem logou toca numa memória restrita fora do "ver junto".
 8. **Quem abre sozinho, longe da festa.** O que essa pessoa vê da porta nova.
 
 ## As duas propostas
@@ -62,7 +63,8 @@ As duas resolvem a janela deitada e o áudio, porque são o mesmo problema nas d
 - Sem migração nova: a prévia divide o banco com as outras de teste, e os números de migração seguem a `homologa` (a 109 já é do #163). O que precisar ser guardado fica simulado na prévia e descrito no relatório para a aplicação.
 - Dados de exemplo são decisão do Gui. Se faltar caso (um áudio num Natal, por exemplo), a sessão acrescenta numa função própria da semente, marcada como da exploração, e diz no relatório.
 - `npm run tv` continua passando nas janelas de hoje, e as janelas deitadas entram na conferência.
-- Nada do que a pessoa logada não vê pode chegar à sala, nem como contagem.
+- Nada restrito a uma ou mais famílias chega à sala, nem como contagem, foto ou trecho, desde a prévia.
+- A aplicação que sair daqui decide o que aparece na sala, então tem revisão contra lista fechada, de outro modelo.
 
 ## O que a sessão entrega
 
@@ -72,6 +74,3 @@ As duas resolvem a janela deitada e o áudio, porque são o mesmo problema nas d
 - A tabela "O quê | Onde ver", com o endereço completo de cada tela na prévia.
 - E para. A escolha vira sessão de aplicação; se a proposta escolhida for grande, ela pode passar antes por uma crítica (`claude/critica-design.md`, no Projeto).
 
-## Para o Gui decidir antes
-
-- **O que aparece na sala.** O modo TV mostra o que a pessoa logada vê. Na sala estão as três famílias, e o Gui, a Giovanna ou o Magno veem memórias restritas a algumas delas.

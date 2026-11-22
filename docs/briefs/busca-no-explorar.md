@@ -1,6 +1,6 @@
 # Busca por digitação no Explorar (exploração E2)
 
-Situação: escrito no chat em 22/11/2026, esperando a aprovação do Gui. Aprovado, vira a sessão de exploração E2: duas propostas numa prévia `tst-busca`, e a sessão para até o Gui escolher. Prazo: antes de 10/12/2026.
+Situação: escrito no chat e aprovado pelo Gui em 22/11/2026. Vira a sessão de exploração E2: duas propostas numa prévia `tst-busca`, e a sessão para até o Gui escolher. Prazo: antes de 10/12/2026.
 
 ## De onde vem
 
@@ -25,6 +25,7 @@ As críticas de design C1 e C2 de 22/11/2026 e as respostas do Gui no item "Crí
 ## O que já está decidido e não se reabre
 
 - A busca existe e entra antes de 10/12.
+- **A busca acha também o texto dos relatos e as transcrições dos áudios** (resposta do Gui, 22/11/2026). Só relato publicado que a pessoa vê: rascunho e relato que espera nunca aparecem, nem o trecho, nem a contagem. "O Natal em que faltou luz" pode estar só no relato de alguém.
 - As saídas "Modo TV" e "Me mostre uma memória" ficam à vista no celular, numa linha própria, e "Quem estava junto" ganha o parentesco de quem olha. Vão na sessão AA; a exploração parte desse desenho.
 - A família, a forma de ver e os filtros são três coisas, cada uma com a sua cara (proposta A da sessão D). As formas de ver, os filtros e a ordem ficam no endereço e funcionam sem script.
 - A troca no lugar, sem recarregar e sem tirar a pessoa do ponto da tela (`explorar-troca.ts`, "Movimento que mostra o que mudou"). "Nada salta na página".
@@ -35,7 +36,7 @@ As críticas de design C1 e C2 de 22/11/2026 e as respostas do Gui no item "Crí
 
 1. **Onde a busca mora:** no alto do Explorar, no topo do site, no Início, ou em mais de um lugar.
 2. **Como convive com os filtros:** mais um filtro no endereço (`q=`), com a ficha ligada como os outros, ou uma camada à parte que leva aos filtros.
-3. **O que ela acha:** título, lugar, pessoas (pelo nome, pelo apelido e pelo parentesco de quem procura: "minha mãe", "vó"), capítulo, tema e tipo, numa caixa só. Sem diferença de acento e de maiúscula ("sabara" acha "Sabará"). O texto dos relatos depende da resposta do Gui (ver "Para o Gui decidir antes").
+3. **O que ela acha:** título, lugar, pessoas (pelo nome, pelo apelido e pelo parentesco de quem procura: "minha mãe", "vó"), capítulo, tema e tipo, numa caixa só. Sem diferença de acento e de maiúscula ("sabara" acha "Sabará"). Também o texto dos relatos publicados e as transcrições, e como o trecho achado aparece no resultado.
 4. **Como mostra o resultado:** nas formas de ver de hoje, numa lista própria, ou agrupado (memórias, pessoas, capítulos), e o que aparece enquanto se digita.
 5. **Sem resultado:** o que a tela diz e para onde leva.
 6. **O teclado do celular:** o que fica à vista com o teclado aberto, em 390 × 844.
@@ -64,6 +65,3 @@ Sugestão de partida; a sessão pode trocar por duas mais distintas, explicando 
 - As perguntas que sobrarem, poucas por vez, e a tabela "O quê | Onde ver" com os endereços na prévia.
 - E para. A escolha vira sessão de aplicação, com a revisão de outro modelo.
 
-## Para o Gui decidir antes
-
-- **A busca acha o texto dos relatos?** "O Natal em que faltou luz" pode estar só no relato de alguém. Achar no relato é mais útil e pede mais cuidado: o relato que espera e o rascunho não podem aparecer, nem o trecho deles.
