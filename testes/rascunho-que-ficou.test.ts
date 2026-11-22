@@ -3,6 +3,7 @@
 // do Aguilar; quando outra pessoa publica, a página de quem ficou para trás mostra, embaixo do recado, o
 // texto do rascunho, para copiar, e "Descartar este rascunho", que o manda para a lixeira dela. O relato
 // publicado continua em "Na memória". Só quem escreveu o rascunho vê o texto dele.
+// E o título da página diz de quem é o relato (P5): "Relato de Aguilar"; "Meu relato" fica para o próprio.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
@@ -25,6 +26,13 @@ describe('a página do relato', () => {
 
   it('o relato publicado por outra pessoa continua em "Na memória"', () => {
     expect(pagina).toContain("r.situacao === 'publicada' && (bloqueado || r.id !== existente?.id)");
+  });
+
+  it('o título diz de quem é o relato (P5)', () => {
+    expect(pagina).toContain("const tituloDaPagina = por === usuario.pessoa ? 'Meu relato' : `Relato de ${nome(por)}`;");
+    expect(pagina).toContain('<Pagina titulo={tituloDaPagina}');
+    // A aba do navegador também diz de quem é, quando não é o próprio
+    expect(pagina).toContain("aba={`${por === usuario.pessoa ? 'Relato' : tituloDaPagina}: ${memoria.titulo}`}");
   });
 });
 

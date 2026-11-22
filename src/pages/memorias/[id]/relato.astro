@@ -66,6 +66,8 @@ const paragrafosDoRascunho = (rascunhoQueFicou?.texto ?? '').split(/\n\s*\n/).ma
 // Os relatos dos outros, publicados, como na memória (quem contou primeiro antes). O relato que outra
 // pessoa registrou em nome de "por" continua aqui, porque não é o de quem escreve
 const dosOutros = relatos.filter((r) => r.situacao === 'publicada' && (bloqueado || r.id !== existente?.id));
+// O título diz de quem é o relato (resposta do Gui à P5 do QA de 23/11/2026)
+const tituloDaPagina = por === usuario.pessoa ? 'Meu relato' : `Relato de ${nome(por)}`;
 const fotosDoMeu = existente && !bloqueado ? await listarFotosDoRelato(existente.id) : [];
 const fotos = [...memoria.fotos, ...fotosDoMeu.filter((f) => !memoria.fotos.some((m) => m.id === f.id))];
 const conversa = await conversaDosRelatos([...(existente && !bloqueado ? [existente] : []), ...dosOutros], fotos, nome, undefined, relatos);
@@ -83,7 +85,7 @@ if (pedidoDeCitacao && !bloqueado) {
 const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 ---
 
-<Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar" larga>
+<Pagina titulo={tituloDaPagina} aba={`${por === usuario.pessoa ? 'Relato' : tituloDaPagina}: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar" larga>
   <p slot="abertura">
     <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento: um texto, um áudio ou uma foto por vez, na ordem que vierem.
   </p>
