@@ -505,23 +505,65 @@ export function vizinhasNaLista<M extends { id: string }>(memorias: M[], id: str
 /**
  * "Só as fotos", no modo TV: os controles ficam escondidos, e sempre há caminho de volta (defeito
  * achado pelo Gui, 17/11/2026: depois de "Só as fotos" não dava para voltar ao texto nem chegar aos
- * ajustes). O que cada gesto faz nesse modo:
- *
- * - Esc volta ao modo com texto, sempre;
- * - as setas para os lados continuam trocando de memória, sem mostrar os controles;
- * - qualquer outro gesto (toque, clique, movimento do mouse, Enter, seta para cima, qualquer botão do
- *   controle da TV) traz os controles de volta por alguns segundos, com "Mostrar o texto" em destaque;
- * - com os controles à vista, o gesto faz o que sempre fez, e o tempo deles na tela recomeça.
+ * ajustes). O que o toque, o clique e o movimento do mouse fazem nesse modo: com os controles
+ * escondidos, só os trazem de volta por alguns segundos, com "Mostrar o texto" em destaque; com eles à
+ * vista, fazem o que sempre fizeram, e o tempo deles na tela recomeça. As teclas estão em teclaNaTv.
  */
-export type GestoNoPalco = { tipo: 'tecla'; tecla: string } | { tipo: 'toque' } | { tipo: 'mouse' };
-export type ReacaoEmSoFotos = 'voltar-ao-texto' | 'passar' | 'mostrar-controles' | 'seguir';
+export type GestoNoPalco = { tipo: 'toque' } | { tipo: 'mouse' };
+export type ReacaoEmSoFotos = 'mostrar-controles' | 'seguir';
 
-export function reacaoEmSoFotos(gesto: GestoNoPalco, controlesAVista: boolean): ReacaoEmSoFotos {
-  if (gesto.tipo === 'tecla') {
-    if (gesto.tecla === 'Escape') return 'voltar-ao-texto';
-    if (gesto.tecla === 'ArrowLeft' || gesto.tecla === 'ArrowRight') return 'passar';
-  }
+export function reacaoEmSoFotos(_gesto: GestoNoPalco, controlesAVista: boolean): ReacaoEmSoFotos {
   return controlesAVista ? 'seguir' : 'mostrar-controles';
+}
+
+/**
+ * As teclas do modo TV, com a lógica de interface de TV (decisão do Gui, 22/11/2026). O script do
+ * palco só obedece; a tabela está em docs/visual.md, "O modo TV".
+ *
+ * - Com os controles ocultos pelo botão, as setas para os lados e as teclas de mídia passam as
+ *   memórias sem trazer a barra (pedido do Gui, 22/11/2026: navegar entre as memórias pelo teclado).
+ *   O foco fica no botão do canto que traz a barra: o Enter o aciona, e o Esc também a traz.
+ * - O Esc fecha primeiro "Ajustes"; depois mostra os controles escondidos; em "Só as fotos", volta ao
+ *   texto; e só então sai do modo TV.
+ * - As teclas de mídia, quando o navegador as entrega, fazem o que dizem.
+ * - Em "Só as fotos", com os controles escondidos, as setas para os lados passam sem mostrar a barra, e
+ *   qualquer outra tecla a traz de volta.
+ * - As setas para os lados andam pelos botões da barra quando ela tem o foco (a barra só existe a
+ *   partir de 62rem) e, fora dela, trocam de memória. Com "Ajustes" aberto, as setas para cima e para
+ *   baixo entram na folha e voltam ao botão que a abriu.
+ * - O espaço aciona o link com o foco (o Enter já aciona, e o espaço já aciona os botões).
+ */
+export interface EstadoDaTv {
+  /** a barra do pé da tela, a partir de 62rem */
+  barra: boolean;
+  ajustesAbertos: boolean;
+  /** ocultos pelo botão "Ocultar os controles" */
+  ocultos: boolean;
+  soFotos: boolean;
+  /** em "Só as fotos": os controles estão à vista agora */
+  controlesAVista: boolean;
+  /** o foco está num dos botões da barra ou da folha de "Ajustes" */
+  focoNaBarra: boolean;
+}
+export type TeclaNaTv = 'fechar-ajustes' | 'reexibir' | 'mostrar-controles' | 'voltar-ao-texto' | 'sair' | 'andar' | 'subir' | 'descer' | 'anterior' | 'proxima' | 'tocar-ou-pausar' | 'acionar' | 'seguir';
+
+const TECLAS_DE_MIDIA: Record<string, TeclaNaTv> = { MediaTrackNext: 'proxima', MediaTrackPrevious: 'anterior', MediaPlayPause: 'tocar-ou-pausar' };
+
+export function teclaNaTv(tecla: string, e: EstadoDaTv): TeclaNaTv {
+  const midia = TECLAS_DE_MIDIA[tecla];
+  const lado = tecla === 'ArrowLeft' ? 'anterior' : tecla === 'ArrowRight' ? 'proxima' : undefined;
+  if (e.ocultos) return tecla === 'Escape' ? 'reexibir' : (midia ?? lado ?? (tecla === ' ' ? 'acionar' : 'seguir'));
+  if (tecla === 'Escape') {
+    if (e.ajustesAbertos) return 'fechar-ajustes';
+    if (e.soFotos && !e.controlesAVista) return 'mostrar-controles';
+    return e.soFotos ? 'voltar-ao-texto' : 'sair';
+  }
+  if (midia) return midia;
+  if (e.soFotos && !e.controlesAVista) return lado ?? 'mostrar-controles';
+  if (lado) return e.barra && e.focoNaBarra ? 'andar' : lado;
+  if ((tecla === 'ArrowUp' || tecla === 'ArrowDown') && e.barra && e.ajustesAbertos && e.focoNaBarra) return tecla === 'ArrowUp' ? 'subir' : 'descer';
+  if (tecla === ' ') return 'acionar';
+  return 'seguir';
 }
 
 /** Quanto tempo os controles ficam na tela, em "Só as fotos", depois do último gesto. */
@@ -584,3 +626,18 @@ export function quemNaLista(nomes: string[], maximo = 3): { nomes: string[]; mai
 
 /** A lista segue a linha do tempo no rascunho: quem escreveu vê o dela, levando ao formulário. */
 export const mostraRascunho = (forma: Forma) => forma === 'linha' || forma === 'lista';
+
+/**
+ * No modo TV, a partir de 62rem (a barra, proposta A da sessão X, escolhida em 22/11/2026), o título
+ * desce na escala conforme o tamanho, para caber sempre na coluna do texto: até 40 letras, o tamanho
+ * de capa; até 90, um degrau abaixo; daí em diante, o menor. O limite de linhas do CSS é só a rede de
+ * proteção do título que passa de 150 letras, com "Abrir esta memória" logo embaixo.
+ */
+export function degrauDoTitulo(titulo: string): 1 | 2 | 3 {
+  const letras = [...titulo.trim()].length;
+  return letras <= 40 ? 1 : letras <= 90 ? 2 : 3;
+}
+/** O trecho do relato faz o mesmo, em dois degraus: até 150 letras e daí até o máximo, 220 */
+export function degrauDoTrecho(texto: string): 1 | 2 {
+  return [...texto.trim()].length <= 150 ? 1 : 2;
+}

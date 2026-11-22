@@ -91,6 +91,10 @@ const TELAS = [
   { nome: 'explorar-lista', url: '/explorar?ver=lista', como: 'giovanna' },
   { nome: 'explorar-filtros', url: '/explorar', como: 'giovanna', antes: (p) => p.locator('.filtros > summary').click() },
   { nome: 'explorar-sem-resultado', url: '/explorar?tipo=viagem&decada=1950', como: 'giovanna' },
+  // O modo TV: a barra a partir de 62rem e o de antes no celular. "Ajustes" aberto fica de fora: no
+  // celular, "Animação" tem 8 px acima e 13,5 px abaixo, como antes da barra (22/11/2026); a decisão
+  // é do Gui, e o modo TV abaixo de 62rem não muda até lá
+  { nome: 'modo-tv', url: '/explorar?ver=tv&m=2012-casamento-carol-davi', como: 'giovanna' },
   { nome: 'tudo', url: '/tudo' },
   { nome: 'pessoas', url: '/pessoas', como: 'giovanna' },
   { nome: 'pessoa-voce', url: '/pessoas/giovanna', como: 'giovanna' },

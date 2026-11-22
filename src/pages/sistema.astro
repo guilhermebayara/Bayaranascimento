@@ -27,6 +27,8 @@ import Segmentado from '../components/visual/Segmentado.astro';
 import PilulaDeFamilia from '../components/visual/PilulaDeFamilia.astro';
 import Polaroid from '../components/visual/Polaroid.astro';
 import Rabisco from '../components/visual/Rabisco.astro';
+import Simbolo from '../components/visual/Simbolo.astro';
+import BotaoDeSimbolo from '../components/visual/BotaoDeSimbolo.astro';
 import Recado from '../components/visual/Recado.astro';
 import Reacoes from '../components/visual/Reacoes.astro';
 import MenuDeAcoes from '../components/visual/MenuDeAcoes.astro';
@@ -41,6 +43,7 @@ import { listarMemorias, listarNucleos } from '../lib/servidor/repositorio';
 import tokens from '../visual/tokens.css?raw';
 import { contraste, coresDosTokens, neutroDosTokens } from '../lib/contraste';
 import { RABISCOS, rabiscosPorAssunto } from '../visual/rabiscos';
+import { SIMBOLOS } from '../visual/simbolos';
 import { COMBINACOES_DE_FONTES, CORES, CORES_MAIS_NOVAS, CORES_NOVAS, NOMES_DAS_CORES, PALETA, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, atributosDasFontes, combinacao, combinacaoDe, combinacaoValida, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../lib/visual';
 
 const { usuario, tipos } = Astro.locals;
@@ -578,6 +581,28 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
             <Rabisco desenho="seta" />
             <Rabisco desenho="brilhos" />
             <Rabisco desenho="coracao" />
+          </p>
+        </article>
+
+        <article class="sis__peca">
+          <h3 class="rotulo">Símbolos e botão de símbolo · nova</h3>
+          <ul class="sis__todos-os-rabiscos sis__simbolos">
+            {SIMBOLOS.map((s) => (
+              <li>
+                <Simbolo id={s.id} />
+                <span class="ficha">{s.nome}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="sis__linha sis__botoes-de-simbolo">
+            <BotaoDeSimbolo simbolo="anterior" nome="Anterior" />
+            <BotaoDeSimbolo simbolo="tocar" nome="Passar sozinho" />
+            <BotaoDeSimbolo simbolo="proxima" nome="Próxima" cheio />
+            <BotaoDeSimbolo simbolo="ajustes" nome="Ajustes" />
+            <BotaoDeSimbolo simbolo="ocultar" nome="Ocultar os controles" />
+          </p>
+          <p class="ficha suave">
+            Os sinais do controle da TV e do tocador, no traço dos rabiscos. Nasceram no modo TV e ficam para a navegação. Símbolo nunca fica sozinho: o nome é o nome acessível e aparece escrito embaixo do botão no foco e no ponteiro (passe o mouse ou use o Tab). O cheio é a ação principal do grupo.
           </p>
         </article>
 

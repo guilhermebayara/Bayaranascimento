@@ -1,0 +1,30 @@
+---
+// O botão de símbolo, com o nome (decisão do Gui, 22/11/2026, no modo TV: "vamos usar a lógica de
+// interface de tv"). O símbolo diz a ação a quem já conhece o sinal; o nome está sempre lá para quem
+// não conhece: é o nome acessível (aria-label) e aparece escrito junto do botão quando ele recebe o
+// foco ou o ponteiro, como nas TVs. Por padrão o nome aparece embaixo; com `nomeAcima`, em cima.
+//
+// `elemento` diz o que ele é: um link (`a`, com href), um botão (`button`) ou o `summary` de um
+// <details>. `cheio` é a ação principal do grupo (o botão cheio do sistema, redondo). Os outros
+// atributos passam direto para o elemento (data-*, rel, aria-pressed, hidden).
+// Quem troca o símbolo e o nome pelo script (tocar e pausar) troca os dois e o aria-label juntos.
+import type { HTMLAttributes } from 'astro/types';
+import Simbolo from './Simbolo.astro';
+import type { IdDoSimbolo } from '../../visual/simbolos';
+
+interface Props extends HTMLAttributes<'a'> {
+  simbolo: IdDoSimbolo;
+  nome: string;
+  elemento?: 'a' | 'button' | 'summary';
+  cheio?: boolean;
+  nomeAcima?: boolean;
+}
+
+const { simbolo, nome, elemento = 'button', cheio = false, nomeAcima = false, class: classe, ...atributos } = Astro.props;
+const Elemento = elemento;
+---
+
+<Elemento class:list={['botao-simbolo', { 'botao-simbolo--cheio': cheio, 'botao-simbolo--nome-acima': nomeAcima }, classe]} aria-label={nome} type={elemento === 'button' ? 'button' : undefined} {...atributos}>
+  <Simbolo id={simbolo} />
+  <span class="botao-simbolo__nome" aria-hidden="true">{nome}</span>
+</Elemento>

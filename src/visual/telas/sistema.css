@@ -332,6 +332,14 @@
   height: 2.5rem;
   color: var(--tinta);
 }
+/* Os símbolos no mesmo tamanho dos rabiscos; embaixo dos botões, o lugar do nome que aparece */
+.sis__simbolos .simbolo {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.sis__botoes-de-simbolo {
+  padding-bottom: var(--e-6);
+}
 
 /* No celular (respostas do Gui às P172 e P173, 17/11/2026): a paleta ampliada em duas cores por
    linha, e a tabela do contraste sem rolar de lado, com os três números de cada cor numa linha só

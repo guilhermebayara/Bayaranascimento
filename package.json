@@ -13,7 +13,8 @@
     "capturas": "node scripts/capturas.mjs",
     "monograma": "node scripts/monograma.mjs",
     "fotos-de-exemplo": "node scripts/enviar-fotos-de-exemplo.mjs",
-    "gestalt": "node scripts/confere-gestalt.mjs"
+    "gestalt": "node scripts/confere-gestalt.mjs",
+    "tv": "node scripts/confere-tv.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.8",

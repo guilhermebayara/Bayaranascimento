@@ -1,0 +1,423 @@
+/*
+ * O modo TV a partir de 62rem: a barra (proposta A da sessão X, escolhida pelo Gui em 22/11/2026,
+ * com as respostas do mesmo dia: o material do site, o cartão branco, e a lógica de interface de TV).
+ * A marcação é a de src/components/explorar/Palco.astro; abaixo de 62rem, o modo TV é o de antes,
+ * em telas/explorar.css.
+ *
+ * - A tela não rola: o palco tem a altura exata da janela, e os controles são absolutos dentro dele,
+ *   sem fixed nem sticky.
+ * - Tudo é proporcional à janela: 1rem é 1/80 da largura ou 1/45 da altura, o que for menor. Nenhuma
+ *   regra aqui olha para a altura da janela em degraus.
+ * - Os controles moram num cartão branco que flutua no pé da tela, centrado: os símbolos do tocador
+ *   (anterior, tocar ou pausar, próxima), a tela cheia, "Ajustes" e "Ocultar os controles". O nome de
+ *   cada símbolo aparece embaixo dele no foco e no ponteiro, no espaço que a barra guarda até a borda.
+ *   "Ajustes" abre uma folha do mesmo cartão, que sobe da barra.
+ * - A memória longa desce na escala: o título em três degraus e o trecho em dois (degrauDoTitulo e
+ *   degrauDoTrecho, em src/lib/explorar.ts). O limite de linhas é a rede de proteção, com "Abrir esta
+ *   memória" logo embaixo.
+ *
+ * Este arquivo entra depois de explorar.css e antes do sistema, e mexe nas mesmas classes: os
+ * seletores levam o prefixo .palco.palco--tv[data-palco] para vencer as regras de lá e as das peças.
+ */
+
+@media (min-width: 62rem) {
+  /* A unidade. No modo TV, 1rem deixa de ser o do navegador e passa a ser um pedaço da janela:
+     1/80 da largura ou 1/45 da altura, o que for menor. Dá 16 px em 1280 × 720 e 24 px em
+     1920 × 1080. Tudo o que o sistema mede em rem (tokens, peças, toque) cresce junto, e a tela
+     desenhada para caber em 80 × 45rem cabe em qualquer janela. */
+  html:has(.palco--tv) {
+    font-size: min(100vw / 80, 100svh / 45);
+  }
+
+  /* --- O palco: a altura exata da janela ------------------------------------------------------ */
+
+  .palco.palco--tv[data-palco] {
+    /* Na tela de 1920 × 1080, o que se lê tem 24 px e os controles, 22 px (resposta do Gui à P48) */
+    --tv-leitura: 1rem;
+    --tv-controle: 0.9167rem;
+    --tv-topo: 3.5rem;
+    /* A barra: a distância até a borda de baixo guarda o lugar do nome que aparece embaixo de cada
+       símbolo; o pé da cena guarda a barra inteira, com um respiro em cima */
+    --tv-barra-pe: 2.5rem;
+    --tv-barra: calc(var(--toque) + 2 * var(--e-1));
+    --tv-pe: calc(var(--tv-barra-pe) + var(--tv-barra) + var(--e-2));
+    --tv-respiro: 1.75rem;
+    --tv-foto-max: 24rem;
+    /* a altura da foto revelada, para a largura dela */
+    --tv-razao: 1.46;
+    position: relative;
+    grid-template-rows: var(--tv-topo) minmax(0, 1fr);
+    height: 100svh;
+    min-height: 0;
+    padding-bottom: 0;
+    overflow: clip;
+  }
+  .palco.palco--tv[data-palco] .palco__topo {
+    flex-wrap: nowrap;
+    min-height: 0;
+    padding-block: 0;
+  }
+  .palco.palco--tv[data-palco] .palco__topo :is(.rotulo, .acao) {
+    font-size: var(--tv-controle);
+  }
+  /* Sem rede: o aviso flutua no alto, no meio, sem empurrar nada */
+  .palco.palco--tv[data-palco] .palco__aviso {
+    position: absolute;
+    z-index: 6;
+    top: var(--e-3);
+    left: 50%;
+    translate: -50% 0;
+    padding: var(--e-2) var(--e-4);
+    border-radius: var(--raio-pilula);
+    background: var(--branco);
+    box-shadow: var(--sombra-bilhete);
+    font-size: var(--tv-leitura);
+    white-space: nowrap;
+  }
+  /* O foco do teclado e do controle remoto, grande o bastante para ver do sofá: 3 px em 1280 × 720 e
+     4,5 px em 1920 × 1080 */
+  .palco.palco--tv[data-palco] :focus-visible {
+    outline: 0.1875rem solid var(--tinta);
+    outline-offset: 0.1875rem;
+  }
+
+  /* --- A cena: as fotos à esquerda, o texto à direita ----------------------------------------- */
+
+  .palco.palco--tv[data-palco] .palco__cena {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    align-content: stretch;
+    align-items: center;
+    row-gap: 0;
+    min-height: 0;
+    padding-block: 0 var(--tv-pe);
+  }
+  /* A foto principal tem a largura que cabe na altura que sobra, com folga para ela se aproximar */
+  .palco.palco--tv[data-palco] .palco__fotos {
+    --foto: min(var(--tv-foto-max), (100svh - var(--tv-topo) - var(--tv-pe) - var(--tv-respiro)) / var(--tv-razao));
+    grid-area: 1 / 1 / 2 / 8;
+    margin: 0;
+  }
+  /* A legenda da foto principal fica numa linha só, no meio da margem, e cresce com a foto (24 px
+     em 1920 × 1080). O lugar longo termina em reticências: inteiro, ele está na página da memória. */
+  .palco.palco--tv[data-palco] .palco__principal .polaroid__legenda {
+    display: block;
+    box-sizing: border-box;
+    height: 23cqi;
+    min-height: 0;
+    overflow: hidden;
+    font-size: 4.6cqi;
+    line-height: 18cqi;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .palco.palco--tv[data-palco] .palco__texto {
+    grid-area: 1 / 8 / 2 / -1;
+    align-self: center;
+    gap: var(--e-4);
+    min-width: 0;
+  }
+  .palco.palco--tv[data-palco] .palco__texto > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* O carimbo: a data e o lugar, cada um na sua linha quando não cabem juntos. O lugar longo
+     termina em reticências. */
+  .palco.palco--tv[data-palco] .palco__texto > p:first-child .carimbo {
+    font-size: var(--tv-leitura);
+  }
+  .palco.palco--tv[data-palco] .palco__texto > p:first-child .carimbo > span {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  /* O título e o trecho têm limite de linhas. A folga em cima e embaixo guarda os acentos e as
+     pernas das letras, que o corte levaria. */
+  .palco.palco--tv[data-palco] .palco__titulo {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    margin-block: -0.1em;
+    padding-block: 0.1em;
+    overflow: hidden;
+    font-size: calc(var(--t-titulo-1) * 0.62);
+    line-height: 1;
+    overflow-wrap: anywhere;
+  }
+  .palco.palco--tv[data-palco] .palco__trecho {
+    max-width: none;
+  }
+  .palco.palco--tv[data-palco] .palco__trecho > p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    /* a aspa pendurada fica dentro da caixa, para o corte não a levar */
+    margin-left: -0.5em;
+    padding-left: 0.5em;
+    overflow: hidden;
+  }
+  .palco.palco--tv[data-palco] .palco__trecho footer {
+    margin-top: var(--e-2);
+  }
+  .palco.palco--tv[data-palco] .palco__texto > .ficha {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: var(--tv-leitura);
+  }
+  .palco.palco--tv[data-palco] .palco__texto .acao {
+    font-size: var(--tv-controle);
+  }
+  /* A memória longa desce na escala conforme o tamanho; o limite de linhas é só a rede de proteção */
+  .palco.palco--tv[data-palco] .palco__titulo[data-degrau='2'] {
+    -webkit-line-clamp: 4;
+    font-size: calc(var(--t-titulo-1) * 0.46);
+  }
+  .palco.palco--tv[data-palco] .palco__titulo[data-degrau='3'] {
+    -webkit-line-clamp: 5;
+    font-size: calc(var(--t-titulo-1) * 0.36);
+    line-height: 1.04;
+  }
+  .palco.palco--tv[data-palco] .palco__trecho[data-degrau='2'] > p {
+    -webkit-line-clamp: 5;
+    font-size: calc(var(--t-abertura) * 0.82);
+  }
+
+  /* --- A barra: um cartão branco que flutua no pé da tela ------------------------------------- */
+
+  .palco.palco--tv[data-palco] .palco__controles {
+    /* No cartão branco, o texto de apoio é a tinta sobre o branco, e não sobre o pastel do tipo */
+    --tinta-suave: color-mix(in srgb, var(--tinta) 76%, var(--branco));
+    position: absolute;
+    inset: auto auto var(--tv-barra-pe) 50%;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: var(--e-1);
+    width: max-content;
+    max-width: calc(100% - 2 * var(--margem));
+    max-height: none;
+    padding: var(--e-1);
+    border-radius: var(--raio-pilula);
+    background: none;
+    font-size: var(--tv-controle);
+    translate: -50% 0;
+    overflow: visible;
+  }
+  /* O cartão fica num elemento à parte, atrás dos controles: a folha de "Ajustes", que mora dentro
+     do grupo, sobe dele sem herdar a forma da barra. O material é o do site: o branco do que está
+     pousado no papel (o bilhete, o verso da foto), com a sombra do bilhete e o fio, que separa o
+     cartão da moldura branca da foto quando ele passa por cima dela em "Só as fotos". */
+  .palco.palco--tv[data-palco] .palco__controles::before,
+  .palco.palco--tv[data-palco] .palco__controles .palco__ajustes[open] .palco__partes {
+    border: 1px solid var(--fio);
+    background: var(--branco);
+    box-shadow: var(--sombra-bilhete);
+  }
+  .palco.palco--tv[data-palco] .palco__controles::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+  }
+  .palco.palco--tv[data-palco] .palco__passos {
+    grid-area: auto;
+    align-self: auto;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    justify-self: auto;
+    gap: var(--e-1);
+    padding: 0;
+  }
+  /* Entre o tocador e o resto, um fio. A tela cheia, "Ajustes" e o ocultar ficam do outro lado. */
+  .palco.palco--tv[data-palco] .palco__passos:not(:last-child) {
+    margin-right: var(--e-1);
+    padding-right: var(--e-2);
+    border-right: 1px solid var(--fio);
+  }
+  .palco.palco--tv[data-palco] .palco__sozinho {
+    display: flex;
+  }
+
+  /* Os símbolos: a peça do sistema, no tamanho da TV. Todos na tinta cheia, para ler do sofá. */
+  .palco.palco--tv[data-palco] .palco__controles .botao-simbolo {
+    color: var(--tinta);
+    font-size: var(--tv-controle);
+    font-weight: 450;
+    transition: background var(--tempo-curto);
+  }
+  .palco.palco--tv[data-palco] .palco__controles .botao-simbolo--cheio {
+    background: var(--tinta);
+    color: var(--branco);
+  }
+  .palco.palco--tv[data-palco] .palco__controles .botao-simbolo:not(.botao-simbolo--cheio):is(:hover, :focus-visible),
+  .palco.palco--tv[data-palco] .palco__ajustes[open] > .botao-simbolo {
+    background: color-mix(in srgb, var(--tinta) 10%, transparent);
+  }
+  .palco.palco--tv[data-palco] .palco__controles .botao-simbolo:focus-visible {
+    border-radius: var(--raio-pilula);
+  }
+  .palco.palco--tv[data-palco] .palco__controles .botao-simbolo .simbolo {
+    width: 1.6em;
+    height: 1.6em;
+  }
+  /* O nome, embaixo do símbolo, no espaço que a barra guarda até a borda de baixo. É a etiqueta de
+     tinta da peça, no tamanho dos controles da TV. */
+  .palco.palco--tv[data-palco] .palco__controles .botao-simbolo__nome {
+    top: calc(100% + var(--e-1) + var(--e-2));
+    font-size: var(--tv-controle);
+  }
+  /* "Ajustes" é o summary de um <details>: o sinal de mais de baixo de 62rem não entra na barra */
+  .palco.palco--tv[data-palco] .palco__ajustes > summary {
+    display: inline-grid;
+    gap: 0;
+  }
+  .palco.palco--tv[data-palco] .palco__ajustes > summary::after {
+    content: none;
+  }
+  /* "Mostrar o texto", em "Só as fotos": o botão cheio da barra, com o nome escrito */
+  .palco.palco--tv[data-palco] .palco__volta {
+    min-height: var(--toque);
+    padding: 0 var(--e-5);
+    font-size: var(--tv-controle);
+  }
+  .palco.palco--tv[data-palco] .palco__opcoes .palco__fora-da-barra {
+    display: none;
+  }
+  .palco.palco--tv[data-palco] .palco__ajustes {
+    grid-area: auto;
+    align-self: auto;
+    justify-self: auto;
+    display: block;
+    padding: 0;
+  }
+
+  /* --- "Ajustes": uma folha do mesmo cartão, que sobe da barra, centrada nela ----------------- */
+
+  .palco.palco--tv[data-palco] .palco__controles .palco__ajustes[open] .palco__partes {
+    position: absolute;
+    inset: auto auto calc(100% + var(--e-2)) 50%;
+    z-index: 1;
+    display: grid;
+    grid-auto-flow: column;
+    justify-content: start;
+    gap: var(--e-2) var(--e-7);
+    width: max-content;
+    max-width: calc(100vw - 2 * var(--margem));
+    padding: var(--e-4) var(--e-6);
+    border-radius: var(--raio-bloco);
+    translate: -50% 0;
+  }
+  .palco.palco--tv[data-palco] .palco__controles .palco__ajustes[open] .palco__ajuste {
+    grid-auto-flow: row;
+    justify-items: start;
+    align-items: start;
+    gap: 0;
+    padding-top: 0;
+  }
+  .palco.palco--tv[data-palco] .palco__controles .palco__opcoes {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 0 var(--e-5);
+  }
+  .palco.palco--tv[data-palco] .palco__ajuste .rotulo,
+  .palco.palco--tv[data-palco] .palco__opcoes :is(a, button) {
+    font-size: var(--tv-controle);
+  }
+
+  /* --- Ocultar os controles: a memória sozinha na tela, até a pessoa pedir de volta ----------- */
+
+  .palco.palco--tv[data-palco] :is(.palco__topo, .palco__controles) {
+    transition:
+      opacity var(--tempo-medio) var(--curva),
+      visibility 0s;
+  }
+  /* Vale também para os controles que somem sozinhos em "Só as fotos" */
+  .palco.palco--tv[data-palco]:is([data-oculto], [data-so-fotos]:not([data-controles])) :is(.palco__topo, .palco__controles) {
+    visibility: hidden;
+    opacity: 0;
+    transition:
+      opacity var(--tempo-medio) var(--curva),
+      visibility 0s linear var(--tempo-medio);
+  }
+  /* "Abrir esta memória" é controle, e não memória: sai junto, sem mudar nada de lugar */
+  .palco.palco--tv[data-palco][data-oculto] .palco__texto > p:last-child {
+    visibility: hidden;
+    opacity: 0;
+  }
+  /* Sem rede, o aviso aparece mesmo com os controles ocultos */
+  .palco.palco--tv[data-palco][data-sem-rede]:is([data-oculto], [data-so-fotos]) .palco__topo {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  /* Com os controles ocultos, o ponteiro continua à vista, para alcançar o botão do canto, mesmo em
+     "Só as fotos" */
+  .palco.palco--tv[data-palco][data-oculto] {
+    cursor: auto;
+  }
+  .palco.palco--tv[data-palco][data-oculto] .palco__principal {
+    cursor: pointer;
+  }
+  /* O botão do canto que traz os controles de volta: só existe com eles ocultos, pequeno, no canto
+     de baixo à direita, no cartão branco da barra. O nome aparece em cima, encostado à direita. */
+  .palco.palco--tv[data-palco] .palco__reexibir {
+    display: none;
+  }
+  .palco.palco--tv[data-palco][data-oculto] .palco__reexibir:not([hidden]) {
+    position: absolute;
+    right: var(--margem);
+    bottom: var(--e-5);
+    z-index: 4;
+    display: inline-grid;
+    border: 1px solid var(--fio);
+    background: var(--branco);
+    box-shadow: var(--sombra-bilhete);
+    color: var(--tinta);
+    font-size: var(--tv-controle);
+  }
+  .palco.palco--tv[data-palco] .palco__reexibir .simbolo {
+    width: 1.6em;
+    height: 1.6em;
+  }
+  .palco.palco--tv[data-palco] .palco__reexibir .botao-simbolo__nome {
+    left: auto;
+    right: 0;
+    font-size: var(--tv-controle);
+    translate: none;
+  }
+
+  /* --- "Só as fotos": as fotos no meio da tela, e os controles somem e voltam ----------------- */
+
+  /* As fotos ficam maiores e descem: a barra, enquanto está à vista, passa só pela margem de baixo
+     da foto principal, abaixo da legenda, e o nome de cada símbolo fica abaixo da foto */
+  .palco.palco--tv[data-palco][data-so-fotos] {
+    --tv-pe-so-fotos: calc(var(--tv-pe) - 2.5rem);
+  }
+  .palco.palco--tv[data-palco][data-so-fotos] .palco__cena {
+    padding-bottom: var(--tv-pe-so-fotos);
+  }
+  .palco.palco--tv[data-palco][data-so-fotos] .palco__fotos {
+    --foto: min(28rem, (100svh - var(--tv-topo) - var(--tv-respiro) - var(--tv-pe-so-fotos)) / var(--tv-razao));
+    grid-area: 1 / 1 / 2 / -1;
+  }
+  /* O cheio passa para "Mostrar o texto": "Próxima" fica como os outros símbolos */
+  .palco.palco--tv[data-palco][data-so-fotos] .palco__controles .palco__proxima {
+    border-radius: var(--raio-pilula);
+    background: none;
+    color: var(--tinta);
+  }
+  .palco.palco--tv[data-palco][data-so-fotos] :is(.palco__passos, .palco__ajustes) {
+    justify-items: stretch;
+  }
+  .palco.palco--tv[data-palco][data-so-fotos] :is(.palco__ajuste, .palco__opcoes) {
+    justify-items: start;
+    justify-content: start;
+  }
+}
