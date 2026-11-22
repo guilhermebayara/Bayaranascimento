@@ -116,6 +116,14 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(impressao()).toBe(antes);
   });
 
+  it('/api/relatos: o público que a tela não oferece é recusado sem mudar nada (D5 da sessão Z)', async () => {
+    const relatos = await import('../src/pages/api/relatos');
+    const antes = impressao();
+    const r = await formulario(relatos, '/api/relatos', elizete, { memoria: 'recusas', por: 'aguilar', acrescentar: '1', texto: 'Forjado.', situacao: 'publicada', publico: 'nucleos:bracarense' });
+    expect(r.erro).toBe('Envio inválido.');
+    expect(impressao()).toBe(antes);
+  });
+
   it('o mesmo pedido, sem o que era recusado, grava tudo, e a mesma pessoa nova repetida vira uma só', async () => {
     const r = await salvar(elizete, { titulo: 'Aceita', ano: 2020, tipo, pessoas: ['nova:0', 'nova:1'], novasPessoas: [{ nome: 'Pessoa Aceita' }, { nome: 'Pessoa Aceita' }], temas: 'Tema Aceito', relato: { por: 'elizete', texto: 'O meu relato.' } });
     expect(r.status).toBe(201);

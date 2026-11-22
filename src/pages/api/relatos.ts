@@ -5,7 +5,7 @@ import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto } from '../../lib/servidor/conteudo';
 import { avisarRelatoNovo, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeEscreverRelato, publicoDaChave, relatoQueNasce, veORelato, type Publico, type Usuario } from '../../lib/servidor/permissoes';
+import { chaveDoPublico, podeEscreverRelato, publicoDaChave, relatoQueNasce, veORelato, type Publico, type Usuario } from '../../lib/servidor/permissoes';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, mensagensDerivadas, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import {
@@ -137,6 +137,20 @@ async function publicoQueAPaginaMostrava(chave: string | undefined, memoria: Mem
   return { visibilidade: 'nucleos', nucleos: usuario.nucleos };
 }
 
+/**
+ * O público que a página mandou precisa ser um que ela pode ter mostrado (D5 da sessão Z): todos, famílias
+ * da memória ou de quem escreve, ou um público que a memória já teve (a página aberta antes de quem criou
+ * mudar quem vê). O que a tela não oferece é recusado.
+ */
+async function aPaginaPodeTerMostrado(chave: string, memoria: Memoria, usuario: Usuario): Promise<boolean> {
+  const publico = publicoDaChave(chave);
+  if (!publico) return false;
+  if (publico.visibilidade === 'todos') return true;
+  const conhecidas = new Set([...memoria.nucleos, ...usuario.nucleos]);
+  if (publico.nucleos.every((n) => conhecidas.has(n))) return true;
+  return (await publicosQueAMemoriaJaTeve(memoria)).has(chaveDoPublico(publico));
+}
+
 async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const { usuario } = locals;
   const lido = Pedido.safeParse(bruto);
@@ -162,6 +176,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const memoria = await obterMemoria(usuario, memoriaId);
   if (!memoria) return erro(404, 'Memória não encontrada.');
   if (!(await listarIntegrantesQueVe(usuario)).some((i) => i.id === por)) return erro(400, 'Pessoa não encontrada.');
+  if (lido.data.publico !== undefined && !(await aPaginaPodeTerMostrado(lido.data.publico, memoria, usuario))) return erro(400, 'Envio inválido.');
 
   const existente = await obterRelato(memoriaId, por, usuario);
   const decisao = podeEscreverRelato(usuario, por, existente, await pessoasComAcesso());

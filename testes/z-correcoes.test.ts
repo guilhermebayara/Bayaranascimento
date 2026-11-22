@@ -357,5 +357,44 @@ describe.skipIf(!comSqlite)('Z: defeitos das revisões do PR #160', async () => 
       expect(fotosDa(id).filter((f) => !f.removida)).toEqual([{ id: fotos[1], principal: 1, removida: 0 }]);
     });
   });
+
+  describe('D5: o público do relato que a tela não oferece', () => {
+    /** Uma memória da Giovanna só da Bayara Nascimento, aberta depois para todos: o relato novo da página de antes espera */
+    async function aberta(titulo: string) {
+      const ficha = { titulo, ano: 2021, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: ['bayara-nascimento'] };
+      const id = (await pedir('memorias', giovanna, ficha)).corpo.id as string;
+      expect((await pedir('memorias', giovanna, { ...ficha, id, visibilidade: 'todos' })).status).toBe(200);
+      return id;
+    }
+
+    it('a família que não é da memória nem de quem escreve é recusada, sem gravar nada', async () => {
+      const id = await aberta('Z: D5 família de fora');
+      expect(elizete.nucleos).not.toContain('bracarense');
+      const antes = impressao();
+      for (const publico of ['nucleos:bracarense', 'nucleos:bayara-nascimento,bracarense', 'nucleos:', 'qualquer-coisa']) {
+        const r = await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Forjado.', publico });
+        expect(r.status, publico).toBe(400);
+        expect(r.corpo.erro).toBe('Envio inválido.');
+      }
+      expect(impressao()).toBe(antes);
+    });
+
+    it('o público que a página mostrava continua valendo: o relato nasce só para ele e espera', async () => {
+      const id = await aberta('Z: D5 página de antes');
+      const r = await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Da página de antes.', publico: 'nucleos:bayara-nascimento' });
+      expect(r.status).toBe(201);
+      expect(linhas<{ so: string }>('SELECT so_para_nucleos AS so FROM relatos WHERE memoria_id = ? AND por = ?', id, 'elizete')[0].so).toBe('["bayara-nascimento"]');
+    });
+
+    it('um público que a memória já teve, com uma família que não é de quem escreve, também vale', async () => {
+      // A memória era da Bayara Nascimento e da Bracarense; a Elizete, da Bayara Nascimento, abriu a página então
+      const ficha = { titulo: 'Z: D5 duas famílias', ano: 2021, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: ['bayara-nascimento', 'bracarense'] };
+      const gio = { ...giovanna, nucleos: [...giovanna.nucleos, 'bracarense'] };
+      const id = (await pedir('memorias', gio, ficha)).corpo.id as string;
+      expect((await pedir('memorias', gio, { ...ficha, id, visibilidade: 'todos', nucleos: [] })).status).toBe(200);
+      const r = await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Da página com as duas famílias.', publico: 'nucleos:bayara-nascimento,bracarense' });
+      expect(r.status).toBe(201);
+    });
+  });
 });
 
