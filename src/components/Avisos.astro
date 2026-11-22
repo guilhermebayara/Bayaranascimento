@@ -52,7 +52,7 @@ const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
                 <span class="aviso__quando ficha suave">{quando(a)}</span>
               </a>
               {a.tipo === 'liberar-relato' && a.relato && (
-                <form class="aviso__resposta" method="post" action="/api/avisos" data-no-lugar={`avisos-${onde} retrato`}>
+                <form class="aviso__resposta" method="post" action="/api/avisos" data-no-lugar={`avisos-${onde} retrato`} data-chave={`aviso-${a.id}`}>
                   <input type="hidden" name="aviso" value={a.id} />
                   {/* O público que a pessoa leu no pedido: se a memória mudar antes da resposta, a rota não faz nada e mostra o pedido de agora */}
                   <input type="hidden" name="publico" value={chaveDoPublico(a.publico)} />

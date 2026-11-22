@@ -368,7 +368,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
                     <Fragment slot="antes">
                       {relato.situacao === 'rascunho' && <p class="selo bilhete__selo">Rascunho, só você vê</p>}
                       {relato.soParaNucleos && relato.registradoPor === usuario.pessoa && (
-                        <form class="bilhete__espera" method="post" action="/api/avisos" data-regiao={`liberar-${relato.id}`} data-no-lugar={`liberar-${relato.id} retrato`}>
+                        <form class="bilhete__espera" method="post" action="/api/avisos" data-regiao={`liberar-${relato.id}`} data-no-lugar={`liberar-${relato.id} retrato`} data-chave={`liberar-${relato.id}`}>
                           <input type="hidden" name="relato" value={relato.id} />
                           <input type="hidden" name="resposta" value="liberar" />
                           {/* Liberar diz para quem libera, e a rota confere que é esse o público de agora (revisão Y2 do PR #160) */}
