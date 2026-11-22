@@ -83,6 +83,15 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(temasChamados('Tema Recusado Três')).toBe(0);
   });
 
+  it('/api/memorias: com áudio no relato, o pedido recusado não prende o áudio nem grava a memória (D1 da sessão Z)', async () => {
+    const repo = await import('../src/lib/servidor/repositorio');
+    const audio = await repo.registrarAudio({ chave: 'teste/recusado-com-audio.m4a', tipo: 'audio/mp4', tamanho: 10, duracao: 2, memoriaId: null }, elizete);
+    const antes = impressao();
+    const r = await salvar(elizete, { titulo: 'Recusada com áudio', ano: 2020, tipo, pessoas: ['elizete'], relato: { por: 'gui', texto: 'No lugar do Gui.', audios: [{ id: audio }] } });
+    expect(r.status).toBe(403);
+    expect(impressao()).toBe(antes);
+  });
+
   it('o mesmo pedido, sem o que era recusado, grava tudo, e a mesma pessoa nova repetida vira uma só', async () => {
     const r = await salvar(elizete, { titulo: 'Aceita', ano: 2020, tipo, pessoas: ['nova:0', 'nova:1'], novasPessoas: [{ nome: 'Pessoa Aceita' }, { nome: 'Pessoa Aceita' }], temas: 'Tema Aceito', relato: { por: 'elizete', texto: 'O meu relato.' } });
     expect(r.status).toBe(201);

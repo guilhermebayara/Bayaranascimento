@@ -32,10 +32,10 @@ import {
   obterRelato,
   type DadosDaMemoria,
   type Memoria,
-  ligarAudios,
-  obterRelatoRegistradoPor,
+  audiosQueEntram,
+  comandosDasMensagens,
+  comandosDosAudios,
   pessoasQueSoVoceVe,
-  gravarMensagens,
   listarAudiosDosRelatos,
   listarMensagensDosRelatos,
   MemoriaMudou,
@@ -348,9 +348,10 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const marcadosAntes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];
   const avisos = comandosDosAvisos(await avisosDeQuemEstava({ id, situacao, visibilidade: dados.visibilidade, nucleos, integrantes, criadaPor: anterior?.criadaPor ?? usuario.pessoa }, marcadosAntes, usuario));
 
-  // Relato de quem está registrando: no mesmo lote. Relato já publicado continua publicado; os demais
-  // acompanham a situação da memória
-  let doRelato: { comandos: Comando[]; mensagens: Mensagem[]; nasce: boolean } | undefined;
+  // Relato de quem está registrando: no mesmo lote, com os áudios e as mensagens dele. Relato já publicado
+  // continua publicado; os demais acompanham a situação da memória. Um lote só: se ele falha, nada fica, o
+  // áudio continua solto e a nova tentativa cria a memória uma vez (D1, revisões do PR #160)
+  let doRelato: { comandos: Comando[]; nasce: boolean } | undefined;
   if (relatoPor) {
     const existente = anterior ? await obterRelato(id, relatoPor, usuario) : undefined;
     const situacaoDoRelato = existente?.situacao === 'publicada' ? 'publicada' : situacao;
@@ -360,9 +361,22 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
       ? pedido.relato.mensagens.map((m) => ({ ...(m.id ? { id: m.id } : {}), tipo: m.tipo, ...(m.tipo === 'texto' ? { texto: arrumarTexto(m.texto ?? '') } : { audioId: m.audioId }) }))
       : [...antesDoRelato, ...paragrafos(textoDoRelato).map((t) => ({ tipo: 'texto' as const, texto: t }))];
     const texto = pedido.relato?.mensagens ? textoDasMensagens(mensagens) : textoDasMensagens(mensagens) || textoDoRelato;
+    // O relato de quem registra: o id, se já existe, ou a consulta que o acha no lote em que nasce. O relato
+    // registrado por outra pessoa não recebe os áudios nem as mensagens de quem salva
+    const meu = !existente ? { memoriaId: id, por: relatoPor, registradoPor: usuario.pessoa } : existente.registradoPor === usuario.pessoa ? existente.id : undefined;
+    const relatoId = typeof meu === 'number' ? meu : null;
+    // Os áudios: só os que a pessoa enviou para esta memória e ainda estão soltos ou neste relato. Sem a
+    // lista, os do relato ficam como estão
+    const aceitos = meu && audiosDoRelato ? await audiosQueEntram(relatoId, id, audiosDoRelato, usuario) : undefined;
+    const ficaram = new Set(aceitos ? aceitos.map((a) => a.id) : relatoId ? ((await listarAudiosDosRelatos([relatoId])).get(relatoId) ?? []).map((a) => a.id) : []);
+    // Só as mensagens de áudio que ficaram mesmo no relato
+    const validas = mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim())));
     doRelato = {
-      comandos: comandosDoRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato }),
-      mensagens,
+      comandos: [
+        ...comandosDoRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato }),
+        ...(meu && aceitos ? comandosDosAudios(meu, id, aceitos) : []),
+        ...(meu ? await comandosDasMensagens(meu, validas) : []),
+      ],
       nasce: !existente,
     };
   }
@@ -395,17 +409,6 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     });
   } else {
     await criarMemoria(id, dados, usuario, { antes: antesDaFicha, junto: depoisDaFicha });
-  }
-
-  // Os áudios e as mensagens do relato apontam para ele: entram depois de o lote passar
-  if (relatoPor && doRelato) {
-    const meu = await obterRelatoRegistradoPor(id, relatoPor, usuario);
-    if (meu && audiosDoRelato) await ligarAudios(meu.id, id, audiosDoRelato, usuario);
-    if (meu) {
-      // Só as mensagens de áudio que ficaram mesmo no relato
-      const ficaram = new Set(((await listarAudiosDosRelatos([meu.id])).get(meu.id) ?? []).map((a) => a.id));
-      await gravarMensagens(meu.id, doRelato.mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim()))));
-    }
   }
 
   // "esperam": de quem são os relatos que passaram a esperar, para quem ampliou ver ao salvar

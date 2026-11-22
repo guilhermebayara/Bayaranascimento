@@ -84,8 +84,8 @@ describe('quem ouve', () => {
     expect(rota).toContain("'Accept-Ranges', 'bytes'");
   });
 
-  it('só entram no relato áudios que a própria pessoa enviou para aquela memória', () => {
-    const ligar = repositorio.slice(repositorio.indexOf('export async function ligarAudios'));
+  it('só entram no relato áudios que a própria pessoa enviou para aquela memória (audiosQueEntram, que ligarAudios e a rota da memória usam)', () => {
+    const ligar = repositorio.slice(repositorio.indexOf('export async function audiosQueEntram'));
     expect(ligar).toContain('enviado_por = ? AND (memoria_id = ? OR memoria_id IS NULL)');
   });
 
