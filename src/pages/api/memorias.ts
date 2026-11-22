@@ -266,7 +266,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
 
   // Só sai da memória a foto que a pessoa viu e tirou (Y3 do PR #160): a que a página mostrava e não está
   // mais na lista. A que entrou depois (por um relato, por "Acrescentar fotos") fica, no fim da ordem e como
-  // estava. A página de antes, que não diz o que mostrava, não tira foto nenhuma
+  // estava. A página de antes, que não diz o que mostrava, não tira foto nenhuma (e não mexe nas outras, D7)
   const mostradas = new Set(pedido.fotosMostradas ?? []);
   const mantidas = new Set(fotos.map((f) => f.id));
   const removidas = (anterior?.fotos ?? []).filter((f) => mostradas.has(f.id) && !mantidas.has(f.id));
@@ -285,6 +285,17 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     // fotos ficam como estão no banco, sem as que ele tirou (D4 da sessão Z)
     const tiradas = new Set(removidas.map((f) => f.id));
     fotos = anterior.fotos.filter((f) => !tiradas.has(f.id)).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal }));
+  }
+  // A página de antes, que não diz o que mostrava (o pedido em JSON sem "fotosMostradas"), não mexe nas fotos
+  // da memória: elas ficam como estão no banco, sem tirar nenhuma e sem mudar ordem, legenda ou principal, e
+  // só entram as novas que a pessoa enviou, no fim. Assim "Memória atualizada" não promete o que não foi
+  // feito com as fotos (D7 da sessão Z)
+  if (anterior && !pedido.fotosMostradas) {
+    const daMemoria = new Set(anterior.fotos.map((f) => f.id));
+    fotos = [
+      ...anterior.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
+      ...pedidas.filter((f) => !daMemoria.has(f.id)).map((f) => ({ ...f, principal: false })),
+    ];
   }
   // Memória com foto sempre tem principal: sem nenhuma, a primeira vira a principal, também quando a pessoa
   // tirou a única que via e ficou a que outra pessoa acrescentou (D8 da sessão Z)

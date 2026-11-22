@@ -334,5 +334,28 @@ describe.skipIf(!comSqlite)('Z: defeitos das revisões do PR #160', async () => 
       ]);
     });
   });
+
+  describe('D7: a página aberta antes da publicação, sem fotosMostradas', () => {
+    it('não mexe nas fotos que a memória tem, e só as novas entram, no fim', async () => {
+      const { id, fotos, ficha } = await memoriaComFotos('Z: D7 página de antes', 2);
+      banco.sqlite.prepare(`INSERT INTO fotos (memoria_id, chave, principal, ordem, enviada_por) VALUES (NULL, 'teste/z-d7-nova.jpg', 0, 0, 'giovanna')`).run();
+      const nova = linhas<{ id: number }>('SELECT MAX(id) AS id FROM fotos')[0].id;
+      const antes = fotosDa(id);
+      // A página de antes tirou a primeira foto, pôs legenda e principal na segunda e mandou uma nova
+      const r = await pedir('memorias', giovanna, { ...ficha, lugar: 'Sabará', fotos: [{ id: fotos[1], legenda: 'Legenda da página de antes', principal: true }, { id: nova }] });
+      expect(r.status).toBe(200);
+      expect(fotosDa(id)).toEqual([...antes, { id: nova, principal: 0, removida: 0 }]);
+      expect(linhas<{ legenda: string | null }>('SELECT legenda FROM fotos WHERE id = ?', fotos[1])[0].legenda).toBeNull();
+      // O resto da correção vale
+      expect(linhas<{ lugar: string }>('SELECT lugar FROM memorias WHERE id = ?', id)[0].lugar).toBe('Sabará');
+    });
+
+    it('a página de hoje, que manda fotosMostradas, continua tirando e reordenando', async () => {
+      const { id, fotos, ficha } = await memoriaComFotos('Z: D7 página de hoje', 2);
+      const r = await pedir('memorias', giovanna, { ...ficha, fotos: [{ id: fotos[1], principal: true }], fotosMostradas: fotos });
+      expect(r.status).toBe(200);
+      expect(fotosDa(id).filter((f) => !f.removida)).toEqual([{ id: fotos[1], principal: 1, removida: 0 }]);
+    });
+  });
 });
 
