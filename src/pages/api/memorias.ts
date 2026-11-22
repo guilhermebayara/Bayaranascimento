@@ -64,7 +64,11 @@ const Pedido = z.object({
   situacao: z.enum(['rascunho', 'publicada']).default('publicada'),
   // Publicar com alguém que só você vê: a escolha da pessoa depois do aviso (ver mensagemDaPessoaPrivada)
   pessoasPrivadas: z.enum(['abrir', 'sem-citar']).optional(),
-  fotos: z.array(z.object({ id: z.number().int(), legenda: opcional(200), principal: z.boolean().default(false) })).max(30).default([]),
+  // As fotos que ficam, na ordem. Sem a lista (o formulário sem script), as fotos ficam como estão
+  fotos: z.array(z.object({ id: z.number().int(), legenda: opcional(200), principal: z.boolean().default(false) })).max(30).optional(),
+  // As fotos que a página mostrava quando abriu: só sai da memória a que está aqui e não está em "fotos"
+  // (Y3 do PR #160). A foto que entrou depois não está em nenhuma das duas, e fica
+  fotosMostradas: z.array(z.number().int()).max(60).optional(),
   // capítulos reunidos em que a memória entra, e temas como texto livre separado por vírgulas
   capitulos: z.array(z.string().max(120)).max(20).optional(),
   temas: z.string().max(500).optional(),
@@ -127,7 +131,10 @@ async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Pro
 
 const mesmasFamilias = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((n) => b.includes(n));
 
-/** O formulário comum, no formato do pedido em JSON. Fotos só se enviam com JavaScript: as que já estão ficam. */
+/**
+ * O formulário comum, no formato do pedido em JSON. Fotos só se enviam e se tiram com JavaScript: sem a
+ * lista, as que a memória tem na hora de gravar ficam, lidas dentro de cada tentativa (Y3 do PR #160).
+ */
 function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unknown {
   const texto = (nome: string) => String(dados.get(nome) ?? '').trim();
   const numero = (nome: string) => (texto(nome) ? Number(texto(nome)) : undefined);
@@ -148,7 +155,7 @@ function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unk
     nucleos: dados.getAll('nucleos').map(String),
     visibilidade: texto('visibilidade') || 'todos',
     situacao: texto('situacao') === 'rascunho' ? 'rascunho' : 'publicada',
-    fotos: (anterior?.fotos ?? []).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
+    fotosMostradas: dados.getAll('fotosMostradas').map(Number).filter((n) => Number.isInteger(n) && n > 0),
     relato: relato ? { por: texto('relatoPor'), texto: relato } : undefined,
   };
 }
@@ -231,27 +238,39 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // Numa edição, quem já estava marcado e a pessoa não vê continua: o formulário nem mostrou essa marca
   for (const id of anterior?.integrantes ?? []) if (!marcaveis.has(id) && !integrantes.includes(id)) integrantes.push(id);
 
-  // Fotos: entram as que a pessoa acabou de enviar e as que já eram desta memória
-  const fotosNoBanco = await obterFotos(pedido.fotos.map((f) => f.id));
-  for (const foto of pedido.fotos) {
+  // Fotos: entram as que a pessoa acabou de enviar e as que já eram desta memória. Sem a lista, ficam as que
+  // a memória tem agora, lidas nesta tentativa (anterior é lido de novo a cada vez)
+  const pedidas = pedido.fotos ?? (anterior?.fotos ?? []).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal }));
+  const fotosNoBanco = await obterFotos(pedidas.map((f) => f.id));
+  for (const foto of pedidas) {
     const registro = fotosNoBanco.find((f) => f.id === foto.id);
     // A foto presa a um relato em rascunho espera o relato: não entra pelo formulário da memória
     const solta = registro && registro.memoriaId === null && registro.relatoId === null && registro.enviadaPor === usuario.pessoa;
     const desta = registro && anterior && registro.memoriaId === anterior.id;
     if (!solta && !desta) return erro(400, 'Uma das fotos não foi encontrada. Tente enviar de novo.');
   }
-  const fotos = pedido.fotos.map((f) => ({ ...f }));
+  const fotos = pedidas.map((f) => ({ ...f }));
   if (fotos.length > 0 && !fotos.some((f) => f.principal)) fotos[0].principal = true;
+
+  // Só sai da memória a foto que a pessoa viu e tirou (Y3 do PR #160): a que a página mostrava e não está
+  // mais na lista. A que entrou depois (por um relato, por "Acrescentar fotos") fica, no fim da ordem e como
+  // estava. A página de antes, que não diz o que mostrava, não tira foto nenhuma
+  const mostradas = new Set(pedido.fotosMostradas ?? []);
+  const mantidas = new Set(fotos.map((f) => f.id));
+  const removidas = (anterior?.fotos ?? []).filter((f) => mostradas.has(f.id) && !mantidas.has(f.id));
+  const naoVistas = (anterior?.fotos ?? []).filter((f) => !mantidas.has(f.id) && !mostradas.has(f.id));
+  const temPrincipal = fotos.some((f) => f.principal);
+  for (const f of naoVistas) fotos.push({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal && !temPrincipal });
 
   // O administrador que não criou a memória nem está nela corrige só os dados (decisão do Gui, 16/11/2026)
   if (anterior && alcanceDaCorrecao(usuario, anterior) === 'dados') {
-    const conteudo = mudancaDeConteudo(anterior, { titulo: pedido.titulo, nucleos, fotos: pedido.fotos });
+    // As fotos que a página não mostrava ficam como estão: a conferência é só sobre as que a pessoa viu
+    const vistas = pedido.fotosMostradas ? anterior.fotos.filter((f) => mostradas.has(f.id)) : anterior.fotos;
+    const conteudo = mudancaDeConteudo({ ...anterior, fotos: vistas }, { titulo: pedido.titulo, nucleos, fotos: pedidas });
     if (!conteudo.ok) return erro(403, conteudo.motivo);
   }
 
-  // Fotos que saíram da lista vão para a lixeira; quem tira é quem enviou ou um administrador
-  const mantidas = new Set(fotos.map((f) => f.id));
-  const removidas = (anterior?.fotos ?? []).filter((f) => !mantidas.has(f.id));
+  // As fotos tiradas vão para a lixeira; quem tira é quem enviou ou um administrador
   for (const foto of removidas) {
     const decisao = podeRemoverFoto(usuario, foto.enviadaPor);
     if (!decisao.ok) return erro(403, decisao.motivo);
