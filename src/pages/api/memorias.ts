@@ -181,16 +181,19 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const marcaveis = new Set(integrantesAtuais.map((i) => i.id));
   // "nova" é o endereço do formulário de cadastro, então não pode ser id de ninguém
   const idsIntegrantes = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
+  // As pessoas novas só ganham o id aqui: o cadastro é gravado depois de todas as conferências, para um
+  // pedido recusado não deixar ninguém cadastrado pela metade (QA de 23/11/2026)
   const idsNovas: string[] = [];
+  const aCadastrar: { id: string; nome: string; tratamento: 'ela' | 'ele' | null }[] = [];
   for (const nova of pedido.novasPessoas) {
     const base = criarSlug(nova.nome);
-    const jaExiste = integrantesAtuais.find((i) => criarSlug(i.nome) === base);
+    const jaExiste = integrantesAtuais.find((i) => criarSlug(i.nome) === base) ?? aCadastrar.find((c) => criarSlug(c.nome) === base);
     if (jaExiste) {
       idsNovas.push(jaExiste.id);
       continue;
     }
     const id = slugUnico(base, idsIntegrantes);
-    await criarIntegrante(id, nova.nome, usuario.pessoa, nova.tratamento ?? null);
+    aCadastrar.push({ id, nome: nova.nome, tratamento: nova.tratamento ?? null });
     idsIntegrantes.add(id);
     idsNovas.push(id);
   }
@@ -242,8 +245,6 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const ocultos = (anterior?.capitulos ?? []).filter((c) => !visiveis.has(c));
     capitulos = [...new Set([...pedido.capitulos, ...ocultos])];
   }
-  const temas = pedido.temas === undefined ? undefined : await garantirTemas(lerTemas(pedido.temas), usuario);
-
   const dados: DadosDaMemoria = {
     titulo: pedido.titulo,
     ano: ano ?? SEM_ANO,
@@ -258,7 +259,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     nucleos,
     integrantes,
     capitulos,
-    temas,
+    temas: undefined,
     fotos,
   };
 
@@ -269,6 +270,10 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   if (pedido.relato && (textoDoRelato || audiosDoRelato?.length)) {
     relatoPor = resolver(pedido.relato.por);
     if (!relatoPor) return erro(400, 'Não encontrei a pessoa que contou o relato.');
+    // Conferido antes de salvar: o relato recusado não deixa a memória salva sem ele (QA de 23/11/2026)
+    const existente = anterior ? await obterRelato(anterior.id, relatoPor, usuario) : undefined;
+    const decisao = podeEscreverRelato(usuario, relatoPor, existente, await pessoasComAcesso());
+    if (!decisao.ok) return erro(403, decisao.motivo);
   }
 
   // Memória com alguém que só você vê (docs/decisoes.md): o site nunca publica revelando por tabela uma
@@ -286,6 +291,11 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
       }
     }
   }
+
+  // Tudo conferido: agora grava. Primeiro as pessoas novas e os temas, que a memória cita.
+  for (const nova of aCadastrar) await criarIntegrante(nova.id, nova.nome, usuario.pessoa, nova.tratamento);
+  const temas = pedido.temas === undefined ? undefined : await garantirTemas(lerTemas(pedido.temas), usuario);
+  dados.temas = temas;
 
   let id: string;
   if (anterior) {
