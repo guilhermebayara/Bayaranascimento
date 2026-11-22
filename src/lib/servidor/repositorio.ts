@@ -1700,7 +1700,8 @@ async function ultimasRespostas(relatoIds: number[]): Promise<Map<number, { resp
     .bind(JSON.stringify(relatoIds))
     .all<{ relato_id: number; resposta: string; publico: string | null }>();
   // Em ordem, a última de cada relato fica por cima
-  return new Map(results.map((r) => [Number(r.relato_id), { resposta: r.resposta, publico: r.publico ? (JSON.parse(r.publico) as Publico) : null }]));
+  type Linha = { relato_id: number; resposta: string; publico: string | null };
+  return new Map((results as Linha[]).map((r) => [Number(r.relato_id), { resposta: r.resposta, publico: r.publico ? (JSON.parse(r.publico) as Publico) : null }]));
 }
 
 export async function salvarRelato(
@@ -2126,7 +2127,7 @@ export async function comandosDaMudancaDeQuemVe(
   const { results } = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ? AND descartado_em IS NULL').bind(memoriaId).all<Record<string, unknown>>();
   const relatos = results.map(lerRelato);
   if (relatos.length === 0) return { comandos: [], passaram: [] };
-  const respostas = await ultimasRespostas(relatos.map((r) => r.id));
+  const respostas = await ultimasRespostas(relatos.map((r: Relato) => r.id));
   const passaram: Relato[] = [];
   const comandos = relatos.flatMap((r) => {
     const novo = relatoDepoisDaMudanca(r, antes, depois, pedido.quemNaoEspera);

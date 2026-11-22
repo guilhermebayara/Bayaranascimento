@@ -327,13 +327,7 @@ describe.skipIf(!comSqlite)('W3: o que sobrou da revisão Y2', async () => {
       expect(impressao()).toBe(antes);
     });
 
-    it('os dois formulários mandam o público lido, e a linha do relato diz para quem libera', async () => {
-      const { readFileSync } = await import('node:fs');
-      const aviso = readFileSync('src/components/Avisos.astro', 'utf8');
-      const memoria = readFileSync('src/pages/memorias/[id].astro', 'utf8');
-      expect(aviso).toContain('name="publico" value={chaveDoPublico(a.publico)}');
-      expect(memoria).toContain('name="publico" value={chaveDoPublico(memoria)}');
-      expect(memoria).toMatch(/Liberar para \{paraQuemPassouAVer\(comoPublicoAntigo\(relato\.publicoConhecido \?\? relato\.soParaNucleos\), memoria, nucleos\)\}/);
+    it('a linha do relato diz para quem libera (os formulários, em testes/no-lugar.test.ts)', async () => {
       const { paraQuemPassouAVer, comoPublicoAntigo } = await import('../src/lib/servidor/avisos');
       const nomes = [{ id: BN, nome: 'Bayara Nascimento' }, { id: BB, nome: 'Bayara Bracarense' }];
       expect(paraQuemPassouAVer(comoPublicoAntigo([BN]), { visibilidade: 'todos', nucleos: [] }, nomes)).toBe('toda a família');

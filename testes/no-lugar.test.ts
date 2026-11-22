@@ -48,6 +48,12 @@ describe('formulários no lugar', () => {
     expect(readFileSync('src/components/Avisos.astro', 'utf-8')).toContain('data-chave={`aviso-${a.id}`}');
     expect(readFileSync('src/pages/memorias/[id].astro', 'utf-8')).toContain('data-chave={`liberar-${relato.id}`}');
   });
+  it('os dois formulários de resposta ao pedido mandam o público lido, e a linha do relato diz para quem libera (W3)', () => {
+    const memoria = readFileSync('src/pages/memorias/[id].astro', 'utf-8');
+    expect(readFileSync('src/components/Avisos.astro', 'utf-8')).toContain('name="publico" value={chaveDoPublico(a.publico)}');
+    expect(memoria).toContain('name="publico" value={chaveDoPublico(memoria)}');
+    expect(memoria).toMatch(/Liberar para \{paraQuemPassouAVer\(comoPublicoAntigo\(relato\.publicoConhecido \?\? relato\.soParaNucleos\), memoria, nucleos\)\}/);
+  });
   it('a região não muda o desenho', () => {
     expect(readFileSync('src/visual/base.css', 'utf-8')).toMatch(/\.regiao \{\s*display: contents;/);
   });

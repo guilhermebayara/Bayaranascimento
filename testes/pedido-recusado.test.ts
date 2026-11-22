@@ -166,7 +166,8 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     const doRascunho = linha<{ id: number }>(`SELECT id FROM avisos WHERE relato_id = ? AND tipo = 'liberar-relato'`, rascunho).id;
     await formulario(lixeira, '/api/lixeira', gui, { acao: 'descartar-relato', memoria: id, por: 'aguilar' });
     const antes = impressao();
-    for (const campos of [{ aviso: String(doRascunho) }, { relato: String(rascunho) }]) {
+    const pedidos: Record<string, string>[] = [{ aviso: String(doRascunho) }, { relato: String(rascunho) }];
+    for (const campos of pedidos) {
       for (const resposta of ['liberar', 'manter']) {
         expect((await formulario(avisos, '/api/avisos', gui, { ...campos, resposta, publico: 'todos' })).status).toBe(404);
       }
