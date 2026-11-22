@@ -54,8 +54,9 @@ export function paraQuemPassouAVer(antes: Publico, depois: Publico, nomes: { id:
  * nada é pedido, e as esperas que perderam o sentido se desfazem. Devolve os relatos publicados que
  * passaram a esperar.
  */
-export async function mudouQuemVe(memoriaId: string, antes: Publico, depois: Publico, quem: Usuario): Promise<Relato[]> {
-  const esperam = await ajustarRelatosAoPublico(memoriaId, antes, depois, quem.pessoa);
+export async function mudouQuemVe(memoriaId: string, antes: Publico, depois: Publico, quem: Usuario, criadaPor: string): Promise<Relato[]> {
+  // "Quem ampliou não espera" vale só para quem criou, a única pessoa que muda quem vê
+  const esperam = await ajustarRelatosAoPublico(memoriaId, antes, depois, quem.pessoa === criadaPor ? criadaPor : '');
   if (esperam.length === 0) return [];
   const nucleos = await listarNucleos();
   const comoPublico = (conhecido: PublicoConhecido | null | undefined): Publico => ({ visibilidade: 'nucleos', nucleos: conhecido === 'todos' ? [] : [...(conhecido ?? [])] });

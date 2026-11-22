@@ -12,7 +12,7 @@ import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { avisarQuemEstava, mudouQuemVe } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, validarVisibilidade } from '../../lib/servidor/permissoes';
+import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, publicoMudou, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
   atualizarMemoria,
   criarIntegrante,
@@ -307,10 +307,12 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     await criarMemoria(id, dados, usuario);
   }
   // Quem vê mudou numa memória publicada: ao ampliar, os relatos que já existiam esperam o sim de quem
-  // os registrou (docs/decisoes.md, "Ampliar quem vê uma memória com relatos")
+  // os registrou (docs/decisoes.md, "Ampliar quem vê uma memória com relatos"). Salvar sem mudar o
+  // público não toca em relato nenhum (revisão Y do PR #160)
   let esperam: { por: string }[] = [];
-  if (anterior?.situacao === 'publicada') {
-    esperam = await mudouQuemVe(id, { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos }, { visibilidade: dados.visibilidade, nucleos }, usuario);
+  const publicoAntes = anterior ? { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos } : undefined;
+  if (anterior?.situacao === 'publicada' && publicoAntes && publicoMudou(publicoAntes, { visibilidade: dados.visibilidade, nucleos })) {
+    esperam = await mudouQuemVe(id, publicoAntes, { visibilidade: dados.visibilidade, nucleos }, usuario, anterior.criadaPor);
   }
   // Avisos: quem entrou agora em "Quem estava" de uma memória publicada (src/lib/avisos.ts)
   const antes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];

@@ -8,7 +8,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fraseDosRelatosQueEsperam } from '../src/lib/avisos';
 import { paraQuemPassouAVer } from '../src/lib/servidor/avisos';
-import { cabeNoConhecido, estaNoPublicoDoRelato, juntarPublicos, publicoConhecidoAntes, relatoDepoisDaMudanca, veORelato } from '../src/lib/servidor/permissoes';
+import { cabeNoConhecido, estaNoPublicoDoRelato, juntarPublicos, publicoConhecidoAntes, publicoMudou, relatoDepoisDaMudanca, veORelato } from '../src/lib/servidor/permissoes';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 
 const comSqlite = await temSqlite();
@@ -28,6 +28,16 @@ describe('regras de ampliar quem vê', () => {
     expect(cabeNoConhecido(nucleos('a', 'c'), ['a', 'b'])).toBe(false);
     expect(cabeNoConhecido(todos, ['a'])).toBe(false);
     expect(cabeNoConhecido(todos, 'todos')).toBe(true);
+  });
+
+  it('só a mudança de público conta: famílias marcadas numa memória aberta a todos não mudam quem vê (revisão Y)', () => {
+    expect(publicoMudou(todos, { visibilidade: 'todos', nucleos: ['a'] })).toBe(false);
+    expect(publicoMudou({ visibilidade: 'todos', nucleos: ['a'] }, todos)).toBe(false);
+    expect(publicoMudou(nucleos('a', 'b'), nucleos('b', 'a'))).toBe(false);
+    expect(publicoMudou(nucleos('a'), nucleos('a', 'b'))).toBe(true);
+    expect(publicoMudou(nucleos('a', 'b'), nucleos('a'))).toBe(true);
+    expect(publicoMudou(nucleos('a'), todos)).toBe(true);
+    expect(publicoMudou(todos, nucleos('a'))).toBe(true);
   });
 
   it('sem registro, o público conhecido é o de hoje, sem supor passado', () => {

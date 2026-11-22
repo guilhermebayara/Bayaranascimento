@@ -330,6 +330,17 @@ export interface Publico {
 }
 
 /**
+ * O público da memória mudou de fato: outra visibilidade, ou outras famílias numa memória restrita. Numa
+ * memória aberta a todos, marcar ou tirar famílias não muda quem vê (revisão Y do PR #160, 22/11/2026):
+ * só a mudança de público recalcula os relatos.
+ */
+export function publicoMudou(antes: Publico, depois: Publico): boolean {
+  if (antes.visibilidade !== depois.visibilidade) return true;
+  if (depois.visibilidade === 'todos') return false;
+  return antes.nucleos.length !== depois.nucleos.length || antes.nucleos.some((n) => !depois.nucleos.includes(n));
+}
+
+/**
  * O relato que espera o sim do autor depois de a memória ser ampliada fica só para quem já o viu: os
  * membros dos núcleos do público conhecido dele. Quem registrou sempre vê o que escreveu. Sem espera
  * (soParaNucleos vazio), o relato acompanha a memória.

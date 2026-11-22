@@ -104,6 +104,14 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
   banco.sqlite.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES ('recusas', 'aguilar', 'gui', 'O Aguilar, pelo Gui.', 'rascunho')`).run();
   const doGui = linha<{ id: number }>(`SELECT id FROM relatos WHERE memoria_id = 'recusas' AND registrado_por = 'gui'`).id;
 
+  it('/api/memorias: quem é citada e tenta mudar quem vê é recusada sem mudar nada, nem os relatos que esperam', async () => {
+    banco.sqlite.prepare(`INSERT INTO memoria_integrantes (memoria_id, integrante_id) VALUES ('recusas', 'elizete')`).run();
+    const antes = impressao();
+    const ficha = { id: 'recusas', titulo: 'Pedidos recusados', ano: 1991, tipo, pessoas: ['elizete'] };
+    expect((await salvar(elizete, { ...ficha, visibilidade: 'nucleos', nucleos: ['bayara-nascimento'] })).status).toBe(403);
+    expect(impressao()).toBe(antes);
+  });
+
   it('/api/avisos: liberar o relato de outra pessoa é recusado sem mudar nada', async () => {
     const antes = impressao();
     expect((await formulario(avisos, '/api/avisos', gui, { relato: String(daElizete), resposta: 'liberar' })).status).toBe(404);
