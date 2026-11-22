@@ -71,6 +71,19 @@ describe.skipIf(!comSqlite)('revisão Y: as correções', async () => {
     expect((await repo.listarRelatos(lucio, id)).map((r) => r.texto)).toEqual(['Da Elizete, para a família.']);
   });
 
+  it('"Sua conta" conta o rascunho de relato descartado na frase da lixeira', async () => {
+    const { montarConta } = await import('../src/lib/servidor/conta');
+    expect((await montarConta(elizete)).fraseDaLixeira).toBe('Nada seu na lixeira.');
+    // Memória da Giovanna: a Elizete começa o relato do Aguilar, o Gui publica o dele, a Elizete descarta o rascunho
+    const base = { titulo: 'Lixeira da conta', ano: 2012, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: [BN] };
+    const id = (await pedir('memorias', giovanna, base)).corpo.id as string;
+    await pedir('relatos', elizete, { memoria: id, por: 'aguilar', texto: 'Rascunho da Elizete.', situacao: 'rascunho' });
+    await pedir('relatos', gui, { memoria: id, por: 'aguilar', texto: 'Publicado pelo Gui.' });
+    await pedir('lixeira', elizete, { acao: 'descartar-relato', memoria: id, por: 'aguilar' }, true);
+    expect((await repo.listarRascunhosDeRelatoDescartados(elizete)).length).toBe(1);
+    expect((await montarConta(elizete)).fraseDaLixeira).toBe('Uma coisa sua na lixeira.');
+  });
+
   describe('o rascunho de relato na lixeira fica parado e volta com o que a regra dá a ele', () => {
     it('a memória foi aberta a todos enquanto ele estava na lixeira: ao restaurar, ele espera e o Gui recebe o pedido', async () => {
       const { id, base } = await comRascunhoQueFicou('Lixeira e ampliar');

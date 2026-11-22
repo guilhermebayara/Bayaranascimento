@@ -19,6 +19,7 @@ import {
   listarLacosDoCoracao,
   listarMemorias,
   listarNucleos,
+  listarRascunhosDeRelatoDescartados,
   listarRelatosRegistradosPor,
   listarTipos,
   espacoDosArquivos,
@@ -80,7 +81,7 @@ function emailDe(pessoa: string): string | undefined {
 
 export async function montarConta(usuario: Usuario) {
   const eu = usuario.pessoa;
-  const [publicadas, rascunhos, relatos, capitulos, lacos, excluidas, integrantes] = await Promise.all([
+  const [publicadas, rascunhos, relatos, capitulos, lacos, excluidas, integrantes, relatosDescartados] = await Promise.all([
     listarMemorias(usuario),
     listarMemorias(usuario, { rascunhos: true }),
     listarRelatosRegistradosPor(usuario),
@@ -88,6 +89,7 @@ export async function montarConta(usuario: Usuario) {
     listarLacosDoCoracao(usuario),
     listarExcluidas(usuario),
     listarIntegrantes(),
+    listarRascunhosDeRelatoDescartados(usuario),
   ]);
   const minhaLixeira = suaLixeira(eu, excluidas);
   return {
@@ -96,8 +98,14 @@ export async function montarConta(usuario: Usuario) {
     email: emailDe(eu),
     rascunhos: seusRascunhos(eu, rascunhos, relatos),
     lixeira: minhaLixeira,
-    /** a frase da lixeira: quem administra lê a conta do que a página da lixeira mostra (src/pages/lixeira.astro); os demais, a do que é deles */
-    fraseDaLixeira: fraseDaLixeira(usuario.admin, usuario.admin ? excluidas.filter((m) => podeExcluirMemoria(usuario, m).ok).length + (await listarCapitulosExcluidos(usuario)).length : minhaLixeira.length),
+    /**
+     * a frase da lixeira: quem administra lê a conta do que a página da lixeira mostra (src/pages/lixeira.astro); os demais, a do que é deles.
+     * Nos dois, o rascunho de relato que a pessoa descartou, que a lixeira mostra a ela (revisão Y do PR #160)
+     */
+    fraseDaLixeira: fraseDaLixeira(
+      usuario.admin,
+      (usuario.admin ? excluidas.filter((m) => podeExcluirMemoria(usuario, m).ok).length + (await listarCapitulosExcluidos(usuario)).length : minhaLixeira.length) + relatosDescartados.length,
+    ),
     criou: oQueVoceCriou(eu, { memorias: publicadas, relatos, capitulos }),
     lacos: seusLacos(eu, lacos),
     /** quem administra vê o atalho para a Administração (src/pages/admin/index.astro) */
