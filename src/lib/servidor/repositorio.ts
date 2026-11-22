@@ -127,6 +127,8 @@ const lerPublicoConhecido = (valor: unknown): PublicoConhecido | null =>
 const gravarPublicoConhecido = (publico: PublicoConhecido): string => (publico === 'todos' ? 'todos' : JSON.stringify(publico));
 
 const db = () => banco();
+/** Um comando do banco, para gravar junto num lote (db.batch, uma transação). */
+export type Comando = ReturnType<ReturnType<typeof banco>['prepare']>;
 
 /**
  * Regra de visibilidade em SQL. ?1 é sempre o id do usuário.
@@ -877,8 +879,12 @@ export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: U
 const marcarPublicacao = (id: string) =>
   db().prepare(`UPDATE memorias SET publicada_em = datetime('now') WHERE id = ? AND situacao = 'publicada' AND publicada_em IS NULL`).bind(id);
 
-/** Atualiza a ficha, guardando a versão anterior no histórico. Fotos que saíram da lista vão para a lixeira. */
-export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria, usuario: Usuario, fotosRemovidas: number[]): Promise<void> {
+/**
+ * Atualiza a ficha, guardando a versão anterior no histórico. Fotos que saíram da lista vão para a lixeira.
+ * `junto`: o que precisa gravar na mesma transação, como os relatos e os pedidos de uma mudança de quem vê
+ * (comandosDaMudancaDeQuemVe): se um falhar, a memória continua com o público de antes (revisão Y do PR #160).
+ */
+export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria, usuario: Usuario, fotosRemovidas: number[], junto: Comando[] = []): Promise<void> {
   await db().batch([
     db()
       .prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('memoria', ?, ?, ?)`)
@@ -892,6 +898,7 @@ export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria,
     marcarPublicacao(anterior.id),
     ...fotosRemovidas.map((id) => db().prepare(`UPDATE fotos SET removida_em = datetime('now'), removida_por = ? WHERE id = ?`).bind(usuario.pessoa, id)),
     ...comandosDeLigacao(anterior.id, dados),
+    ...junto,
   ]);
 }
 
@@ -1980,18 +1987,19 @@ export async function abrirAvisosDaMemoria(usuario: Usuario, memoriaId: string):
  * relatoDepoisDaMudanca, em permissoes.ts. Ao ampliar, espera só o relato que o público novo nunca viu;
  * quando o público novo cabe no que o relato já teve, ele volta a acompanhar a memória, e o pedido sai da
  * lista sem resposta. O público conhecido de cada relato é gravado a cada mudança (migração 105).
- * Devolve os relatos que passaram a esperar agora.
+ * Só lê: devolve os comandos, para quem chama gravá-los junto com a memória (atualizarMemoria), e os
+ * relatos que passam a esperar.
  */
-export async function ajustarRelatosAoPublico(
+export async function comandosDaMudancaDeQuemVe(
   memoriaId: string,
   antes: Publico,
   depois: Publico,
   pedido: { quemNaoEspera: string; de: string; paraQuem: (conhecido: PublicoConhecido) => string },
-): Promise<Relato[]> {
+): Promise<{ comandos: Comando[]; passaram: Relato[] }> {
   // O rascunho de relato na lixeira fica fora da conta: parado, até ser restaurado (restaurarRascunhoDeRelato)
   const { results } = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ? AND descartado_em IS NULL').bind(memoriaId).all<Record<string, unknown>>();
   const relatos = results.map(lerRelato);
-  if (relatos.length === 0) return [];
+  if (relatos.length === 0) return { comandos: [], passaram: [] };
   const passaram: Relato[] = [];
   const comandos = relatos.flatMap((r) => {
     const novo = relatoDepoisDaMudanca(r, antes, depois, pedido.quemNaoEspera);
@@ -2003,8 +2011,7 @@ export async function ajustarRelatosAoPublico(
       ...comandosDosPedidos(r, novo, { memoriaId, de: pedido.de, paraQuem: pedido.paraQuem(novo.publicoConhecido) }),
     ];
   });
-  await db().batch(comandos);
-  return passaram;
+  return { comandos, passaram };
 }
 
 /** O relato por id, sem conferir quem vê: quem chama confere (podeLiberarRelato). */

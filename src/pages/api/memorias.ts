@@ -10,7 +10,7 @@ import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
-import { avisarQuemEstava, mudouQuemVe } from '../../lib/servidor/avisos';
+import { avisarQuemEstava, mudancaDeQuemVe } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, publicoMudou, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
@@ -297,22 +297,26 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const temas = pedido.temas === undefined ? undefined : await garantirTemas(lerTemas(pedido.temas), usuario);
   dados.temas = temas;
 
+  // Quem vê mudou numa memória publicada: ao ampliar, os relatos que já existiam esperam o sim de quem
+  // os registrou (docs/decisoes.md, "Ampliar quem vê uma memória com relatos"). Salvar sem mudar o
+  // público não toca em relato nenhum, e a mudança grava a memória, os relatos e os pedidos numa
+  // transação só (revisão Y do PR #160)
+  let esperam: { por: string }[] = [];
   let id: string;
   if (anterior) {
     id = anterior.id;
-    await atualizarMemoria(anterior, dados, usuario, removidas.map((f) => f.id));
+    const publicoAntes = { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos };
+    const publicoDepois = { visibilidade: dados.visibilidade, nucleos };
+    const mudanca =
+      anterior.situacao === 'publicada' && publicoMudou(publicoAntes, publicoDepois)
+        ? await mudancaDeQuemVe(id, publicoAntes, publicoDepois, usuario, anterior.criadaPor)
+        : { comandos: [], esperam: [] };
+    esperam = mudanca.esperam;
+    await atualizarMemoria(anterior, dados, usuario, removidas.map((f) => f.id), mudanca.comandos);
   } else {
     // Um código no endereço, e não o título: ver codigoNovo
     id = codigoNovo(await idsDeMemorias());
     await criarMemoria(id, dados, usuario);
-  }
-  // Quem vê mudou numa memória publicada: ao ampliar, os relatos que já existiam esperam o sim de quem
-  // os registrou (docs/decisoes.md, "Ampliar quem vê uma memória com relatos"). Salvar sem mudar o
-  // público não toca em relato nenhum (revisão Y do PR #160)
-  let esperam: { por: string }[] = [];
-  const publicoAntes = anterior ? { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos } : undefined;
-  if (anterior?.situacao === 'publicada' && publicoAntes && publicoMudou(publicoAntes, { visibilidade: dados.visibilidade, nucleos })) {
-    esperam = await mudouQuemVe(id, publicoAntes, { visibilidade: dados.visibilidade, nucleos }, usuario, anterior.criadaPor);
   }
   // Avisos: quem entrou agora em "Quem estava" de uma memória publicada (src/lib/avisos.ts)
   const antes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];

@@ -3,7 +3,7 @@
 import { quemRecebeQuemEstava, quemRecebeRelatoNovo, type Destinatarios } from '../avisos';
 import { pessoasComAcesso } from './acesso';
 import { podeVerMemoria, type AcessoDaMemoria, type Publico, type PublicoConhecido, type Usuario } from './permissoes';
-import { ajustarRelatosAoPublico, criarAvisos, listarIntegrantes, listarNucleos, quemJaEntrou, type Relato } from './repositorio';
+import { comandosDaMudancaDeQuemVe, criarAvisos, listarIntegrantes, listarNucleos, quemJaEntrou, type Comando, type Relato } from './repositorio';
 
 async function destinatarios(autor: string): Promise<Destinatarios> {
   const [comAcesso, jaEntraram] = await Promise.all([pessoasComAcesso(), quemJaEntrou()]);
@@ -52,19 +52,25 @@ export function paraQuemPassouAVer(antes: Publico, depois: Publico, nomes: { id:
 /**
  * Quem criou a memória mudou quem vê. Ao ampliar, o relato que o público novo nunca viu fica só para quem
  * já o viu, e quem o registrou recebe o pedido para liberar (vale mesmo antes do primeiro acesso), dizendo
- * para quem a memória passou a ser visível do ponto de vista do relato. O relato que já teve o público
- * novo volta a acompanhar a memória sem pedido (resposta do Gui à P3 do QA de 23/11/2026). Ao restringir,
- * nada é pedido, e as esperas que perderam o sentido se desfazem. Devolve os relatos publicados que
- * passaram a esperar.
+ * para quem a memória é nova agora, do ponto de vista do relato. O relato que já teve o público novo volta
+ * a acompanhar a memória sem pedido (resposta do Gui à P3 do QA de 23/11/2026). Ao restringir, nada é
+ * pedido, e as esperas que perderam o sentido se desfazem. Só lê: devolve os comandos, que a rota grava
+ * junto com a memória numa transação só (atualizarMemoria), e os relatos publicados que passam a esperar.
  */
-export async function mudouQuemVe(memoriaId: string, antes: Publico, depois: Publico, quem: Usuario, criadaPor: string): Promise<Relato[]> {
+export async function mudancaDeQuemVe(
+  memoriaId: string,
+  antes: Publico,
+  depois: Publico,
+  quem: Usuario,
+  criadaPor: string,
+): Promise<{ comandos: Comando[]; esperam: Relato[] }> {
   const nucleos = await listarNucleos();
-  const esperam = await ajustarRelatosAoPublico(memoriaId, antes, depois, {
+  const { comandos, passaram } = await comandosDaMudancaDeQuemVe(memoriaId, antes, depois, {
     // "Quem ampliou não espera" vale só para quem criou, a única pessoa que muda quem vê
     quemNaoEspera: quem.pessoa === criadaPor ? criadaPor : '',
     de: quem.pessoa,
     // O pedido diz o público de agora, do ponto de vista do relato (comandosDosPedidos)
     paraQuem: (conhecido) => paraQuemPassouAVer(comoPublicoAntigo(conhecido), depois, nucleos),
   });
-  return esperam.filter((r) => r.situacao === 'publicada');
+  return { comandos, esperam: passaram.filter((r) => r.situacao === 'publicada') };
 }
