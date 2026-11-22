@@ -153,4 +153,24 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(r.erro).toBe('A memória mudou, e o pedido também. Confira e responda de novo.');
     expect(impressao()).toBe(antes);
   });
+
+  it('/api/avisos: o pedido do rascunho de relato que está na lixeira não aceita resposta, nem pelo aviso nem pelo relato', async () => {
+    // Memória da Giovanna, só da Bayara Nascimento: o Gui escreve o relato do Aguilar em rascunho, a Elizete
+    // publica o dela, a Giovanna abre para todos (os dois esperam) e o Gui descarta o rascunho
+    const base = { titulo: 'Pedido na lixeira', ano: 2016, tipo, pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: ['bayara-nascimento'] };
+    const id = (await salvar(giovanna, base)).corpo.id as string;
+    banco.sqlite.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 'aguilar', 'gui', 'Rascunho do Gui.', 'rascunho')`).run(id);
+    banco.sqlite.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 'aguilar', 'elizete', 'Da Elizete.', 'publicada')`).run(id);
+    await salvar(giovanna, { ...base, id, visibilidade: 'todos' });
+    const rascunho = linha<{ id: number }>(`SELECT id FROM relatos WHERE memoria_id = ? AND registrado_por = 'gui'`, id).id;
+    const doRascunho = linha<{ id: number }>(`SELECT id FROM avisos WHERE relato_id = ? AND tipo = 'liberar-relato'`, rascunho).id;
+    await formulario(lixeira, '/api/lixeira', gui, { acao: 'descartar-relato', memoria: id, por: 'aguilar' });
+    const antes = impressao();
+    for (const campos of [{ aviso: String(doRascunho) }, { relato: String(rascunho) }]) {
+      for (const resposta of ['liberar', 'manter']) {
+        expect((await formulario(avisos, '/api/avisos', gui, { ...campos, resposta, publico: 'todos' })).status).toBe(404);
+      }
+    }
+    expect(impressao()).toBe(antes);
+  });
 });

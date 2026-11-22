@@ -33,8 +33,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Quem não vê a memória recebe o mesmo que para um relato que não existe
     const memoria = relato ? await obterMemoria(usuario, relato.memoriaId) : undefined;
     // Só quem registrou responde; para os outros, o relato responde como se não existisse, para não
-    // denunciar um relato que eles não veem (QA de 18/11/2026)
-    if (!relato || !memoria || relato.registradoPor !== usuario.pessoa) return { recusa: true as const };
+    // denunciar um relato que eles não veem (QA de 18/11/2026). O rascunho de relato que está na lixeira
+    // fica parado: o pedido dele também responde como se não existisse (revisão Y2 do PR #160)
+    if (!relato || !memoria || relato.registradoPor !== usuario.pessoa || relato.descartadoEm) return { recusa: true as const };
     const volta = campo(dados, 'volta', 300) || `/memorias/${memoria.id}`;
     // A resposta vale para o público que a pessoa leu no pedido. Se a memória mudou desde então (ou a página
     // é de antes de o formulário mandar o público), nada é liberado nem mantido: ela volta ao pedido de agora
