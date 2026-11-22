@@ -262,7 +262,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const desta = registro && anterior && registro.memoriaId === anterior.id;
     if (!solta && !desta) return erro(400, 'Uma das fotos não foi encontrada. Tente enviar de novo.');
   }
-  const fotos = pedidas.map((f) => ({ ...f }));
+  let fotos = pedidas.map((f) => ({ ...f }));
 
   // Só sai da memória a foto que a pessoa viu e tirou (Y3 do PR #160): a que a página mostrava e não está
   // mais na lista. A que entrou depois (por um relato, por "Acrescentar fotos") fica, no fim da ordem e como
@@ -273,9 +273,6 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const naoVistas = (anterior?.fotos ?? []).filter((f) => !mantidas.has(f.id) && !mostradas.has(f.id));
   const temPrincipal = fotos.some((f) => f.principal);
   for (const f of naoVistas) fotos.push({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal && !temPrincipal });
-  // Memória com foto sempre tem principal: sem nenhuma, a primeira vira a principal, também quando a pessoa
-  // tirou a única que via e ficou a que outra pessoa acrescentou (D8 da sessão Z)
-  if (fotos.length > 0 && !fotos.some((f) => f.principal)) fotos[0].principal = true;
 
   // O administrador que não criou a memória nem está nela corrige só os dados (decisão do Gui, 16/11/2026)
   if (anterior && alcanceDaCorrecao(usuario, anterior) === 'dados') {
@@ -283,7 +280,15 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const vistas = pedido.fotosMostradas ? anterior.fotos.filter((f) => mostradas.has(f.id)) : anterior.fotos;
     const conteudo = mudancaDeConteudo({ ...anterior, fotos: vistas }, { titulo: pedido.titulo, nucleos, fotos: pedidas });
     if (!conteudo.ok) return erro(403, conteudo.motivo);
+    // E ele não muda nem a principal nem a ordem, qualquer que seja a lista mandada (uma parte das fotos em
+    // "fotosMostradas", por pedido forjado ou pela página aberta antes de quem criou trocar a principal): as
+    // fotos ficam como estão no banco, sem as que ele tirou (D4 da sessão Z)
+    const tiradas = new Set(removidas.map((f) => f.id));
+    fotos = anterior.fotos.filter((f) => !tiradas.has(f.id)).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal }));
   }
+  // Memória com foto sempre tem principal: sem nenhuma, a primeira vira a principal, também quando a pessoa
+  // tirou a única que via e ficou a que outra pessoa acrescentou (D8 da sessão Z)
+  if (fotos.length > 0 && !fotos.some((f) => f.principal)) fotos[0].principal = true;
 
   // As fotos tiradas vão para a lixeira; quem tira é quem enviou ou um administrador
   for (const foto of removidas) {

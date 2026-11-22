@@ -293,5 +293,46 @@ describe.skipIf(!comSqlite)('Z: defeitos das revisões do PR #160', async () => 
       expect(fotosDa(id).filter((f) => !f.removida)).toEqual([{ id: daElizete, principal: 1, removida: 0 }]);
     });
   });
+
+  describe('D4: o administrador que só corrige os dados não mexe na principal nem na ordem', () => {
+    const gui = usuarioDe('gui');
+    it('o Gui é administrador e, nesta memória, só corrige os dados', () => {
+      expect(gui.admin).toBe(true);
+    });
+
+    it('mandando só uma parte das fotos, com outra principal: a principal e a ordem ficam como estão', async () => {
+      const { id, fotos, ficha } = await memoriaComFotos('Z: D4 uma parte', 3);
+      const antes = fotosDa(id);
+      for (const corpo of [
+        { fotos: [{ id: fotos[1], principal: true }], fotosMostradas: [fotos[1]] },
+        { fotos: [{ id: fotos[2] }], fotosMostradas: [fotos[2]] },
+        { fotos: [{ id: fotos[2], principal: true }], fotosMostradas: [fotos[2]] },
+      ]) {
+        const r = await pedir('memorias', gui, { ...ficha, lugar: 'Caeté', ...corpo });
+        expect(r.status).toBe(200);
+        expect(fotosDa(id)).toEqual(antes);
+      }
+    });
+
+    it('trocar a ordem das fotos que a página mostra continua recusado', async () => {
+      const { id, fotos, ficha } = await memoriaComFotos('Z: D4 a ordem', 3);
+      const antes = impressao();
+      const r = await pedir('memorias', gui, { ...ficha, fotos: [{ id: fotos[2] }, { id: fotos[1] }], fotosMostradas: [fotos[2], fotos[1]] });
+      expect(r.status).toBe(403);
+      expect(impressao()).toBe(antes);
+      expect(fotosDa(id).map((f) => f.id)).toEqual(fotos);
+    });
+
+    it('tirar a principal continua valendo: a seguinte toma o lugar dela, na mesma ordem', async () => {
+      const { id, fotos, ficha } = await memoriaComFotos('Z: D4 tirar a principal', 3);
+      const r = await pedir('memorias', gui, { ...ficha, fotos: [{ id: fotos[1] }, { id: fotos[2] }], fotosMostradas: fotos });
+      expect(r.status).toBe(200);
+      expect(fotosDa(id)).toEqual([
+        { id: fotos[0], principal: 1, removida: 1 },
+        { id: fotos[1], principal: 1, removida: 0 },
+        { id: fotos[2], principal: 0, removida: 0 },
+      ]);
+    });
+  });
 });
 
