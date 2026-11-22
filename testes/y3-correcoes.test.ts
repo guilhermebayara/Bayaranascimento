@@ -278,4 +278,51 @@ describe.skipIf(!comSqlite)('Y3: as correções', async () => {
       expect(linhas(`SELECT id FROM relatos WHERE memoria_id = ?`, id)).toEqual([]);
     });
   });
+
+  describe('item 4: o pedido para um público já recusado sai da lista', () => {
+    const BB = 'bayara-bracarense';
+    const relatoDe = (memoria: string) => linhas<{ id: number; so: string | null }>(`SELECT id, so_para_nucleos AS so FROM relatos WHERE memoria_id = ? AND por = 'elizete'`, memoria)[0];
+    const pedidos = (memoria: string) =>
+      linhas<{ resolvido: string | null; resposta: string | null }>(`SELECT resolvido_em AS resolvido, resposta FROM avisos WHERE tipo = 'liberar-relato' AND memoria_id = ? ORDER BY id`, memoria);
+    const responder = async (memoria: string, resposta: 'liberar' | 'manter') => {
+      const relato = (await repo.obterRelato(memoria, 'elizete', elizete))!;
+      await repo.responderPedidoDoRelato(relato, resposta, (await repo.obterMemoria(elizete, memoria))!);
+    };
+
+    it('manteve para a Bayara Bracarense, a memória abriu para todos e voltou para as duas famílias: o pedido aberto sai sem resposta', async () => {
+      const ficha = base('Y3: pedido para público já recusado');
+      const id = (await pedir('memorias', giovanna, ficha)).corpo.id as string;
+      await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Da Elizete, mantido.', publico: `nucleos:${BN}` });
+      await pedir('memorias', giovanna, { ...ficha, id, nucleos: [BN, BB] });
+      await responder(id, 'manter');
+      // Um público maior é outra pergunta: pedido novo
+      await pedir('memorias', giovanna, { ...ficha, id, visibilidade: 'todos' });
+      expect(pedidos(id).map((p) => p.resolvido === null)).toEqual([false, true]);
+      // Quem criou restringe para as duas famílias, o público que a Elizete já recusou: o pedido sai da lista
+      expect((await pedir('memorias', giovanna, { ...ficha, id, nucleos: [BN, BB] })).status).toBe(200);
+      const [primeiro, segundo] = pedidos(id);
+      expect(primeiro.resposta).toBe('manter');
+      expect(segundo).toMatchObject({ resposta: null });
+      expect(segundo.resolvido).not.toBeNull();
+      // O relato fica como ela escolheu: só para a Bayara Nascimento
+      expect(relatoDe(id).so).toBe(JSON.stringify([BN]));
+      expect((await repo.listarAvisos(elizete)).some((a) => a.memoriaId === id && a.tipo === 'liberar-relato')).toBe(false);
+    });
+
+    it('restringir para um público que não cabe no recusado deixa o pedido na lista', async () => {
+      // Uma terceira família para a Giovanna marcar, que a Elizete nunca respondeu
+      const outra = linhas<{ id: string }>(`SELECT id FROM nucleos WHERE id NOT IN (?, ?) ORDER BY id LIMIT 1`, BN, BB)[0].id;
+      banco.sqlite.prepare(`INSERT OR IGNORE INTO nucleo_membros (nucleo_id, integrante_id, papel) VALUES (?, 'giovanna', 'membro')`).run(outra);
+      const dona = usuarioDe('giovanna');
+      const ficha = base('Y3: restringe, mas não ao recusado');
+      const id = (await pedir('memorias', dona, ficha)).corpo.id as string;
+      await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Da Elizete, ainda perguntado.', publico: `nucleos:${BN}` });
+      await pedir('memorias', dona, { ...ficha, id, nucleos: [BN, BB] });
+      await responder(id, 'manter');
+      await pedir('memorias', dona, { ...ficha, id, visibilidade: 'todos' });
+      expect((await pedir('memorias', dona, { ...ficha, id, nucleos: [BN, BB, outra] })).status).toBe(200);
+      expect(pedidos(id).filter((p) => p.resolvido === null)).toHaveLength(1);
+      expect(relatoDe(id).so).toBe(JSON.stringify([BN]));
+    });
+  });
 });

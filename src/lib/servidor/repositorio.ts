@@ -1689,26 +1689,28 @@ export async function restaurarRascunhoDeRelato(relato: Relato, memoria: Publico
  * histórico guarda uma linha por ciclo de ampliar (decisão do Gui, 22/11/2026): o pedido aberto é o mesmo
  * até a resposta ou até a espera acabar, e o índice da migração 108 garante um só. Depois de "Manter como
  * estava", o relato que espera só ganha pedido novo quando o público é maior do que o perguntado
- * (`jaRecusou`, ver jaRecusouEstePublico, decisão do Gui de 22/11/2026).
+ * (`jaRecusou`, ver jaRecusouEstePublico, decisão do Gui de 22/11/2026); quando quem criou restringe para
+ * um público que cabe no recusado, o pedido aberto sai da lista sem resposta (Y3 do PR #160).
  */
 function comandosDosPedidos(
   relato: Relato,
   novo: { soParaNucleos: string[] | null },
   pedido: { memoriaId: string; de: string; paraQuem: string; jaRecusou: boolean },
 ) {
+  if (novo.soParaNucleos && pedido.jaRecusou) {
+    // O público de agora cabe num que a pessoa já respondeu com "Manter" (decisão do Gui, 22/11/2026): o
+    // pedido aberto, feito para um público maior, sai da lista sem resposta, e o relato fica como ela escolheu
+    return [db().prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(relato.id)];
+  }
   if (novo.soParaNucleos) {
     return [
       db()
         .prepare(`UPDATE avisos SET dados = json_set(COALESCE(dados, '{}'), '$.paraQuem', ?) WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`)
         .bind(pedido.paraQuem, relato.id),
-      ...(pedido.jaRecusou
-        ? []
-        : [
-            db()
-              // Um pedido aberto por relato, garantido pelo índice da migração 108: se já houver um, fica ele
-              .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, 'liberar-relato', ?, ?, ?, ?) ON CONFLICT DO NOTHING`)
-              .bind(relato.registradoPor, pedido.memoriaId, relato.id, pedido.de, JSON.stringify({ paraQuem: pedido.paraQuem })),
-          ]),
+      db()
+        // Um pedido aberto por relato, garantido pelo índice da migração 108: se já houver um, fica ele
+        .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, 'liberar-relato', ?, ?, ?, ?) ON CONFLICT DO NOTHING`)
+        .bind(relato.registradoPor, pedido.memoriaId, relato.id, pedido.de, JSON.stringify({ paraQuem: pedido.paraQuem })),
     ];
   }
   if (relato.soParaNucleos) {
