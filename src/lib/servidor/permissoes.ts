@@ -350,6 +350,25 @@ export function chaveDoPublico(publico: Publico): string {
   return publico.visibilidade === 'todos' ? 'todos' : `nucleos:${[...publico.nucleos].sort().join(',')}`;
 }
 
+/** A chave de chaveDoPublico de volta ao público. O que não for uma chave dá undefined. */
+export function publicoDaChave(chave: string): Publico | undefined {
+  if (chave === 'todos') return { visibilidade: 'todos', nucleos: [] };
+  const nucleos = /^nucleos:(.+)$/.exec(chave)?.[1].split(',').filter(Boolean);
+  return nucleos?.length ? { visibilidade: 'nucleos', nucleos } : undefined;
+}
+
+/**
+ * O relato que nasce depois de a memória abrir para mais gente do que a página mostrava (decisão do Gui,
+ * 22/11/2026, Y3 do PR #160): nasce só para o público que a página mostrava e espera o sim de quem
+ * escreveu, como os relatos que já existiam na ampliação. Quem criou a memória nunca espera, e o relato
+ * escrito com a página certa (ou com a memória restringida depois) acompanha a memória, como sempre.
+ */
+export function relatoQueNasce(paginaMostrava: Publico, memoria: Publico, quemEscreve: string, criadaPor: string): { soParaNucleos: string[] | null } {
+  if (quemEscreve === criadaPor || cabeNoConhecido(memoria, comoConhecido(paginaMostrava))) return { soParaNucleos: null };
+  // Aqui a página mostrava só algumas famílias: "todos" caberia em qualquer público
+  return { soParaNucleos: [...paginaMostrava.nucleos].sort() };
+}
+
 /**
  * O relato que espera o sim do autor depois de a memória ser ampliada fica só para quem já o viu: os
  * membros dos núcleos do público conhecido dele. Quem registrou sempre vê o que escreveu. Sem espera

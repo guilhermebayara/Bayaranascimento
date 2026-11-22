@@ -72,6 +72,8 @@ export function ligarAudioDaMensagem(caixa: HTMLElement): void {
 export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): ControleDaConversa {
   const aoVivo = raiz.dataset.modoDaJanela === 'ao-vivo';
   const memoria = raiz.dataset.memoria ?? '';
+  // Quem via a memória quando a página abriu: vai com cada gravação (Y3 do PR #160)
+  const publico = raiz.dataset.publico || undefined;
   const por = raiz.dataset.por ?? '';
   let publicado = raiz.dataset.publicado === 'true';
   const lista = raiz.querySelector<HTMLOListElement>('[data-mensagens]')!;
@@ -165,7 +167,7 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
       const resposta = await fetch('/api/relatos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memoria, por, situacao: situacaoPedida, mensagens: lidas }),
+        body: JSON.stringify({ memoria, por, publico, situacao: situacaoPedida, mensagens: lidas }),
       });
       const resultado = (await resposta.json()) as { erro?: string; situacao?: string; mensagens?: { id: number; tipo: TipoDeMensagem; audioId?: number; fotoId?: number }[] };
       if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');

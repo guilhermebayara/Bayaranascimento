@@ -13,7 +13,7 @@ import { enderecoDoRetrato } from '../../../lib/retratos';
 import { coresDasPessoas } from '../../../lib/familias';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { conversaDosRelatos } from '../../../lib/servidor/conversa';
-import { donoDoRelato, veORelato } from '../../../lib/servidor/permissoes';
+import { chaveDoPublico, donoDoRelato, veORelato } from '../../../lib/servidor/permissoes';
 import { situacaoDaTranscricaoAgora } from '../../../lib/servidor/transcricao';
 import {
   familiasDe,
@@ -123,7 +123,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
             )}
           </>
         ) : (
-          <Janela modo="ao-vivo" memoria={memoria.id} por={por} mensagens={minhas} publicado={publicado} transcricaoAutomatica={transcricaoAutomatica} comFotos citando={citando}>
+          <Janela modo="ao-vivo" memoria={memoria.id} publico={chaveDoPublico(memoria)} por={por} mensagens={minhas} publicado={publicado} transcricaoAutomatica={transcricaoAutomatica} comFotos citando={citando}>
             <p class="relato-conversa__acoes">
               {!publicado && (
                 <button type="submit" class="botao" name="situacao" value="publicada" data-publicar>

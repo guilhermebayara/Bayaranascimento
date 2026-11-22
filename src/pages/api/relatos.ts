@@ -3,9 +3,9 @@ import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto } from '../../lib/servidor/conteudo';
-import { avisarRelatoNovo } from '../../lib/servidor/avisos';
+import { avisarRelatoNovo, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeEscreverRelato, veORelato } from '../../lib/servidor/permissoes';
+import { podeEscreverRelato, publicoDaChave, relatoQueNasce, veORelato, type Publico, type Usuario } from '../../lib/servidor/permissoes';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, mensagensDerivadas, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import {
@@ -16,12 +16,18 @@ import {
   listarFotosDoRelato,
   listarIntegrantesQueVe,
   listarMensagensDosRelatos,
+  listarNucleos,
+  MemoriaMudou,
   obterMemoria,
   obterMensagem,
   obterRelato,
   obterRelatoRegistradoPor,
   pessoasQueONaoVe,
+  publicosQueAMemoriaJaTeve,
+  RECADO_MEMORIA_MUDOU,
+  refazerSeAMemoriaMudou,
   salvarRelato,
+  type Memoria,
 } from '../../lib/servidor/repositorio';
 
 const Pedido = z.object({
@@ -62,6 +68,9 @@ const Pedido = z.object({
   acrescentar: z.boolean().default(false),
   // Sem script, a mensagem nova pode citar uma mensagem de outra pessoa (o "Citar" da memória)
   cita: z.number().int().positive().optional(),
+  // Quem via a memória quando a página abriu (chaveDoPublico): o relato que nasce depois de ela abrir para
+  // mais gente nasce só para esse público e espera o sim de quem escreveu (Y3 do PR #160)
+  publico: z.string().max(2000).optional(),
 });
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -70,7 +79,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!(request.headers.get('Content-Type') ?? '').includes('application/json')) {
     const dados = await request.formData();
     const texto = (nome: string) => String(dados.get(nome) ?? '');
-    const resposta = await tratar(
+    const resposta = await tratarComAMemoriaDeAgora(
       {
         memoria: texto('memoria'),
         por: texto('por'),
@@ -78,6 +87,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         situacao: texto('situacao') || 'publicada',
         acrescentar: texto('acrescentar') === '1',
         ...(Number(texto('cita')) > 0 ? { cita: Number(texto('cita')) } : {}),
+        ...(texto('publico') ? { publico: texto('publico') } : {}),
       },
       locals,
     );
@@ -96,8 +106,32 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch {
     return erro(400, 'Envio inválido.');
   }
-  return tratar(bruto, locals);
+  return tratarComAMemoriaDeAgora(bruto, locals);
 };
+
+/**
+ * A gravação do relato confere a versão da memória, como os outros lotes (Y3 do PR #160): se a memória mudou
+ * entre a leitura e o lote (outro relato, uma mudança de quem vê), nada é gravado, e o pedido é tratado de
+ * novo, lendo a memória de agora. O lote do relato é a primeira gravação de tratar, então a nova tentativa
+ * nunca refaz o que já foi gravado. Depois de três tentativas, a pessoa recebe o recado.
+ */
+async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response> {
+  const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
+  return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
+}
+
+/**
+ * Quem via a memória quando a página do relato abriu. A página manda (chaveDoPublico). A página de antes,
+ * sem o campo, conta como o público mais fechado que a memória já teve desde que o relato começou: como a
+ * página não diz quando abriu, só dá para saber quando quem vê a memória nunca mudou; senão, conta como só
+ * a família de quem escreve (decisão do Gui, 22/11/2026).
+ */
+async function publicoQueAPaginaMostrava(chave: string | undefined, memoria: Memoria, usuario: Usuario): Promise<Publico> {
+  const daPagina = chave ? publicoDaChave(chave) : undefined;
+  if (daPagina) return daPagina;
+  if ((await publicosQueAMemoriaJaTeve(memoria)).size === 1) return memoria;
+  return { visibilidade: 'nucleos', nucleos: usuario.nucleos };
+}
 
 async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const { usuario } = locals;
@@ -144,7 +178,16 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // As mensagens de antes, para o histórico: só acrescentar no fim (voltar e contar mais) não guarda versão
   const antes = existente ? ((await listarMensagensDosRelatos([existente])).get(existente.id) ?? []) : [];
   const guardar = !mensagens || !soAcrescentou(antes, mensagens.map(paraMensagem));
-  await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) });
+  // O relato que nasce depois de a memória abrir para mais gente do que a página mostrava nasce só para esse
+  // público e espera o sim de quem escreveu, com o pedido de quem criou a memória (relatoQueNasce). O
+  // relato que já existia entrou na conta da ampliação
+  let nasce: { soParaNucleos: string[]; de: string; paraQuem: string } | undefined;
+  if (!existente && memoria.situacao === 'publicada') {
+    const mostrava = await publicoQueAPaginaMostrava(lido.data.publico, memoria, usuario);
+    const { soParaNucleos } = relatoQueNasce(mostrava, memoria, usuario.pessoa, memoria.criadaPor);
+    if (soParaNucleos) nasce = { soParaNucleos, de: memoria.criadaPor, paraQuem: paraQuemPassouAVer(comoPublicoAntigo(soParaNucleos), memoria, await listarNucleos()) };
+  }
+  await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce });
   const salvo = await obterRelatoRegistradoPor(memoriaId, por, usuario);
   if (salvo && audios) await ligarAudios(salvo.id, memoriaId, audios, usuario);
   // Fotos: sem a lista (o formulário sem script), as que já estavam com o relato continuam, e as que

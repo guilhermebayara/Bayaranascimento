@@ -18,6 +18,9 @@ import type { MensagemNaTela } from '../../lib/conversa';
 interface Props {
   modo: 'ao-vivo' | 'formulario';
   memoria: string;
+  /** quem via a memória quando a página abriu (chaveDoPublico): o relato que nasce depois de ela abrir para
+   * mais gente espera o sim de quem escreveu (Y3 do PR #160). Só no modo ao vivo */
+  publico?: string;
   por?: string;
   mensagens: MensagemNaTela[];
   publicado?: boolean;
@@ -31,7 +34,7 @@ interface Props {
   citando?: { id: number; quem: string; resumo: string } | null;
 }
 
-const { modo, memoria, por = '', mensagens, publicado = false, transcricaoAutomatica = 'desligada', comFotos = false, campo = 'texto', citando = null } = Astro.props;
+const { modo, memoria, publico = '', por = '', mensagens, publicado = false, transcricaoAutomatica = 'desligada', comFotos = false, campo = 'texto', citando = null } = Astro.props;
 const Caixa = modo === 'ao-vivo' ? 'form' : 'div';
 const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relatos' } : {};
 ---
@@ -41,6 +44,7 @@ const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relato
   data-conversa
   data-modo-da-janela={modo}
   data-memoria={memoria}
+  data-publico={publico}
   data-por={por}
   data-publicado={String(publicado)}
   data-transcricao-automatica={transcricaoAutomatica}
@@ -52,6 +56,7 @@ const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relato
         <input type="hidden" name="memoria" value={memoria} />
         <input type="hidden" name="por" value={por} />
         <input type="hidden" name="acrescentar" value="1" />
+        {publico && <input type="hidden" name="publico" value={publico} />}
       </>
     )
   }

@@ -23,6 +23,7 @@ import {
   veORelato,
   type AcessoDaMemoria,
   type Publico,
+  chaveDoPublico,
   type PublicoConhecido,
   type Usuario,
 } from './permissoes';
@@ -1741,8 +1742,42 @@ export async function salvarRelato(
   // O relato como conversa: só acrescentar mensagens no fim (voltar e contar mais) não guarda versão.
   // A versão leva junto as mensagens de antes, quando há (src/lib/conversa.ts)
   versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
+  // A rota do relato confere a versão da memória que leu, como os outros lotes (Y3 do PR #160): se a memória
+  // mudou depois da leitura, nada é gravado (MemoriaMudou), e a rota refaz a conta com a memória de agora.
+  // `nasce`: o relato novo que espera o sim de quem escreveu (relatoQueNasce), com o pedido
+  { conferir, nasce }: { conferir?: number; nasce?: RelatoQueNasceEsperando } = {},
 ): Promise<void> {
-  await db().batch(comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao));
+  if (conferir === undefined) {
+    await db().batch(comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce }));
+    return;
+  }
+  // Conferir a versão também a sobe: o relato novo dispensa a subida sem conferência
+  await loteDaMemoria([conferirVersao(memoriaId, conferir), ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false })]);
+}
+
+/** O relato novo que nasce esperando: só para estas famílias, com o pedido de quem criou a memória. */
+export interface RelatoQueNasceEsperando {
+  soParaNucleos: string[];
+  de: string;
+  paraQuem: string;
+}
+
+/**
+ * Os públicos que a memória já teve, do histórico e o de agora, como chaves (chaveDoPublico). Um só quer
+ * dizer que quem vê a memória nunca mudou.
+ */
+export async function publicosQueAMemoriaJaTeve(memoria: { id: string } & Publico): Promise<Set<string>> {
+  const { results } = await db()
+    .prepare(`SELECT json_extract(dados, '$.visibilidade') AS visibilidade, json_extract(dados, '$.nucleos') AS nucleos FROM versoes WHERE tipo = 'memoria' AND item_id = ?`)
+    .bind(memoria.id)
+    .all<{ visibilidade: string | null; nucleos: string | null }>();
+  const chaves = new Set([chaveDoPublico(memoria)]);
+  for (const v of results as { visibilidade: string | null; nucleos: string | null }[]) {
+    // A versão sem o público (de antes de ele entrar na ficha) não diz nada: conta como uma mudança
+    if (v.visibilidade !== 'todos' && v.visibilidade !== 'nucleos') chaves.add('desconhecido');
+    else chaves.add(chaveDoPublico({ visibilidade: v.visibilidade, nucleos: v.nucleos ? (JSON.parse(v.nucleos) as string[]) : [] }));
+  }
+  return chaves;
 }
 
 /**
@@ -1757,17 +1792,29 @@ export function comandosDoRelato(
   usuario: Usuario,
   anterior: Relato | undefined,
   versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
+  { nasce, subir = true }: { nasce?: RelatoQueNasceEsperando; subir?: boolean } = {},
 ): Comando[] {
   // A data de publicação é a da primeira vez que o relato sai do rascunho, e não muda depois
   const marcar = `UPDATE relatos SET publicado_em = datetime('now') WHERE situacao = 'publicada' AND publicado_em IS NULL`;
   if (!anterior) {
+    const esperando = nasce ? JSON.stringify(nasce.soParaNucleos) : null;
+    // O relato que nasce esperando (relatoQueNasce): só para o público que a página mostrava, que é também
+    // o único que o viu, e o pedido de sempre para quem o escreveu
+    const doRelato = `SELECT MAX(id) FROM relatos WHERE memoria_id = ?1 AND por = ?2 AND registrado_por = ?3 AND descartado_em IS NULL`;
     return [
       db()
-        .prepare('INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, ?, ?)')
-        .bind(memoriaId, por, usuario.pessoa, texto, situacao),
+        .prepare('INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, so_para_nucleos, publico_conhecido) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .bind(memoriaId, por, usuario.pessoa, texto, situacao, esperando, esperando),
       db().prepare(`${marcar} AND memoria_id = ? AND por = ? AND registrado_por = ?`).bind(memoriaId, por, usuario.pessoa),
+      ...(nasce
+        ? [
+            db()
+              .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?3, 'liberar-relato', ?1, (${doRelato}), ?4, ?5) ON CONFLICT DO NOTHING`)
+              .bind(memoriaId, por, usuario.pessoa, nasce.de, JSON.stringify({ paraQuem: nasce.paraQuem })),
+          ]
+        : []),
       // Um relato que nasce agora não estava na leitura de quem muda quem vê ao mesmo tempo: aquele lote volta e refaz a conta
-      subirVersao(memoriaId),
+      ...(subir ? [subirVersao(memoriaId)] : []),
     ];
   }
   return [
