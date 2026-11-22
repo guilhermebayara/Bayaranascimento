@@ -767,6 +767,66 @@ html:not(.com-troca) .filtros__acoes .so-com-troca {
   .palco__cena .palco__fotos {
     margin-block: var(--e-2);
   }
+  /* No celular, o modo TV continua como era antes da barra (decisão do Gui, 22/11/2026): os
+     controles são o nome escrito, sem o símbolo, com a cara de ação e de botão de sempre. Cada
+     controle é um botão de símbolo (BotaoDeSimbolo.astro) que também leva a classe de ação ou de
+     botão; aqui o desenho da peça é desfeito, e a ordem na tela continua "Anterior", "Próxima",
+     "Passar sozinho". A tela cheia e o ocultar só existem na barra. */
+  .palco .botao-simbolo {
+    display: inline-flex;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    color: inherit;
+  }
+  .palco .botao-simbolo .simbolo,
+  .palco .palco__na-barra {
+    display: none;
+  }
+  .palco .botao-simbolo__nome {
+    position: static;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    translate: none;
+    visibility: inherit;
+    opacity: 1;
+    transition: none;
+  }
+  .palco .botao-simbolo.acao {
+    text-decoration: underline solid currentColor var(--traco);
+  }
+  .palco .botao-simbolo.acao--quieta {
+    color: var(--tinta-suave);
+    font-weight: 450;
+    text-decoration: underline solid color-mix(in srgb, currentColor 50%, transparent) 1px;
+  }
+  .palco .botao-simbolo.botao {
+    gap: 0.75em;
+    min-height: 3.5rem;
+    padding: 0 1.75rem;
+    border-radius: var(--raio-pilula);
+    background: var(--tinta);
+    color: var(--papel);
+    font: 550 var(--t-corpo) / 1.2 var(--grotesca);
+  }
+  .palco .botao-simbolo.botao::after {
+    content: '→';
+  }
+  .palco .palco__ajustes > .botao-simbolo {
+    gap: 0.6em;
+    color: var(--tinta-suave);
+    font-size: var(--t-pequeno);
+  }
+  .palco .palco__passos .botao-simbolo:not(.botao-simbolo--cheio):hover,
+  .palco .palco__ajustes > .botao-simbolo:not(.botao-simbolo--cheio):hover {
+    background: none;
+  }
+  .palco .palco__sozinho {
+    order: 1;
+  }
 }
 /* A principal tem a largura que cabe na altura da tela; as outras se medem por ela */
 .palco__fotos {
@@ -1294,86 +1354,12 @@ html:not(.com-troca) .filtros__acoes .so-com-troca {
     justify-content: start;
     padding-top: var(--e-4);
   }
-  .palco__ajustes {
-    grid-area: 3 / 8 / 4 / -1;
-    align-self: start;
-    justify-self: start;
-    justify-items: start;
-  }
-  .palco__ajuste {
-    justify-items: start;
-  }
-  .palco__opcoes {
-    justify-content: start;
-  }
-  /* "Ajustes" aberto: as partes ficam lado a lado, numa faixa abaixo da cena, encostada à direita,
-     para a tela não precisar de rolagem (resposta do Gui à P50). A faixa sai do fluxo, e a cena
-     guarda o lugar dela embaixo. */
-  .palco:not([data-so-fotos]) .palco__cena:has(.palco__ajustes[open]) {
-    padding-bottom: var(--tv-faixa, 5.5rem);
-  }
-  .palco:not([data-so-fotos]) .palco__ajustes[open] .palco__partes {
-    position: absolute;
-    right: var(--margem);
-    bottom: 0;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0 var(--e-7);
-    max-width: calc(100% - 2 * var(--margem));
-  }
   .palco__titulo {
     font-size: calc(var(--t-titulo-1) * 0.62);
-  }
-  /* "Só as fotos": as fotos no meio da tela, grandes */
-  .palco[data-so-fotos] .palco__fotos {
-    --foto: min(34vw, (100svh - 8rem) / 1.5);
-    grid-area: 1 / 1 / 4 / -1;
-  }
-}
-
-/* Modo TV em 1280 × 720 (decisão do Gui, 17/11/2026): numa janela baixa, com "Ajustes" aberto, a
-   página não rola. O respiro de baixo encolhe e a faixa dos ajustes fica mais compacta, com o nome
-   de cada ajuste ao lado das opções. */
-@media (min-width: 62rem) and (max-height: 50rem) {
-  .palco--tv:not([data-so-fotos]):has(.palco__ajustes[open]) {
-    padding-bottom: var(--e-3);
-  }
-  .palco:not([data-so-fotos]) .palco__cena:has(.palco__ajustes[open]) {
-    row-gap: var(--e-3);
-    padding-bottom: calc(var(--toque) + var(--e-3));
-  }
-  .palco:not([data-so-fotos]) .palco__ajustes[open] .palco__ajuste {
-    grid-auto-flow: column;
-    align-items: center;
-    gap: var(--e-4);
-    padding-top: 0;
   }
 }
 
 @media (min-width: 100rem) {
-  /* Na TV, a três metros: o que se lê tem pelo menos 24 px, e os controles e os ajustes, 22 px.
-     O título e o trecho já são grandes (resposta do Gui à P48 do QA de design de 17/11/2026). */
-  .palco--tv {
-    --tv-leitura: 1.5rem;
-    --tv-controle: 1.375rem;
-    --tv-faixa: 6rem;
-  }
-  .palco--tv .palco__texto .carimbo,
-  .palco--tv .palco__texto > .ficha,
-  .palco--tv .palco__principal .polaroid__legenda,
-  .palco--tv .palco__aviso {
-    font-size: var(--tv-leitura);
-  }
-  .palco--tv .palco__topo :is(.rotulo, .acao),
-  .palco--tv .palco__texto .acao,
-  .palco--tv .palco__passos :is(.acao, .botao),
-  .palco--tv .palco__sozinho button,
-  .palco--tv .palco__ajustes summary,
-  .palco--tv .palco__ajuste .rotulo,
-  .palco--tv .palco__opcoes :is(a, button) {
-    font-size: var(--tv-controle);
-  }
   .mural,
   .mural[data-tamanho] {
     --colunas: 8;

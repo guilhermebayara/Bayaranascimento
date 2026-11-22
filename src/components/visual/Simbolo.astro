@@ -1,0 +1,14 @@
+---
+// Um símbolo de controle (src/visual/simbolos.ts), no traço dos rabiscos. É enfeite para o leitor de
+// tela: o nome vem de quem usa, de preferência pelo BotaoDeSimbolo.astro. O tamanho vem do
+// font-size de quem envolve e a cor, do color.
+import { simbolo, type IdDoSimbolo } from '../../visual/simbolos';
+
+interface Props {
+  id: IdDoSimbolo;
+}
+
+const { desenho } = simbolo(Astro.props.id);
+---
+
+<svg class="simbolo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-simbolo={Astro.props.id} set:html={desenho} />

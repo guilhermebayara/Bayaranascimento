@@ -256,16 +256,6 @@
   --sombra-foto: 0 1px 1px rgb(70 44 16 / 0.07), 0 6px 14px -4px rgb(70 44 16 / 0.16), 0 22px 44px -18px rgb(70 44 16 / 0.3);
   --sombra-bilhete: 0 1px 1px rgb(70 44 16 / 0.06), 0 10px 24px -14px rgb(70 44 16 / 0.24);
 
-  /* O vidro dos controles que flutuam sobre a foto, no modo TV (conceito da sessão X, 22/11/2026):
-     a moldura branca quase cheia, com o que está atrás desfocado. É cheio o bastante para o texto
-     passar de 4,5 para um sobre foto clara e sobre foto escura, mesmo sem o desfoque
-     (testes/tv-proporcional.test.ts). Sobre o vidro, o texto de apoio é --vidro-suave. */
-  --vidro: color-mix(in srgb, var(--branco) 78%, transparent);
-  --vidro-fio: color-mix(in srgb, var(--branco) 90%, transparent);
-  --vidro-suave: color-mix(in srgb, var(--tinta) 82%, var(--branco));
-  --vidro-toque: color-mix(in srgb, var(--tinta) 9%, transparent);
-  --vidro-desfoque: blur(1.25rem) saturate(1.6);
-
   /* Movimento: uma curva só, tempos curtos. Com movimento reduzido, nada se mexe (base.css). */
   --curva: cubic-bezier(0.2, 0.7, 0.2, 1);
   --tempo-curto: 0.2s;

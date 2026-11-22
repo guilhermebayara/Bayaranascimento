@@ -5,8 +5,14 @@
 // teclado e pelo controle da TV. Com script, o modo TV passa sem recarregar.
 //
 // A TV é superfície grande (decisões do Gui, 17/11/2026): a foto é uma foto revelada, como no resto
-// do site, e a memória com várias fotos espalha as outras em volta da principal. Os controles ficam
-// numa linha só; o tempo e a animação moram em "Ajustes".
+// do site, e a memória com várias fotos espalha as outras em volta da principal.
+//
+// A partir de 62rem, o modo TV é a barra (proposta A da sessão X, escolhida pelo Gui em 22/11/2026):
+// a tela não rola, tudo é proporcional à janela e os controles moram num cartão branco que flutua no
+// pé da tela, com os símbolos de TV e o nome de cada um no foco. O estilo está em telas/tv.css.
+// Abaixo de 62rem, o modo TV é o de antes: os mesmos controles, com o nome escrito no lugar do
+// símbolo (telas/explorar.css).
+import BotaoDeSimbolo from '../visual/BotaoDeSimbolo.astro';
 import Carimbo from '../visual/Carimbo.astro';
 import Polaroid from '../visual/Polaroid.astro';
 import Vazio from '../visual/Vazio.astro';
@@ -37,23 +43,16 @@ interface Props {
   movimento?: string;
   /** as animações, para quem está vendo escolher */
   movimentos?: { id: string; nome: string; href: string }[];
-  /**
-   * Modo TV proporcional, conceito da sessão X (22/11/2026): a proposta em teste, A (a barra) ou B
-   * (o trilho). Sem ela, o palco é o de hoje. O estilo está em src/visual/telas/tv.css, e só vale
-   * a partir de 62rem: abaixo disso, as duas propostas são o modo TV de hoje.
-   */
-  conceito?: 'a' | 'b';
-  /** as propostas, para alternar entre elas na prévia de teste */
-  conceitos?: { id: string; nome: string; href: string; atual: boolean }[];
 }
 
 /** Quantas fotos da memória, além da principal, cabem em volta dela */
 const EM_VOLTA = 4;
 
-const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, limpar, movimento, movimentos, conceito, conceitos } = Astro.props;
+const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, limpar, movimento, movimentos } = Astro.props;
 const [principal, ...outras] = memoria?.fotos ?? [];
 const emVolta = outras.slice(0, EM_VOLTA);
 const abrir = memoria ? `/memorias/${memoria.id}` : '';
+const tv = modo === 'tv';
 // "Passar sozinho", num toque só, liga no tempo padrão; os outros tempos estão em "Ajustes"
 const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0];
 ---
@@ -74,7 +73,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
 }
 {
   memoria && (
-    <article class:list={['palco', `palco--${modo}`, { 'palco--prop': conceito }]} style={estiloDoTipo(memoria.tipo)} data-conceito={conceito} data-palco data-movimento={modo === 'tv' ? movimento : undefined} data-passar={passar?.tempo ?? undefined} data-pausado={passar?.pausado ? '' : undefined}>
+    <article class:list={['palco', `palco--${modo}`]} style={estiloDoTipo(memoria.tipo)} data-palco data-movimento={modo === 'tv' ? movimento : undefined} data-passar={passar?.tempo ?? undefined} data-pausado={passar?.pausado ? '' : undefined}>
       {/* Com script, a animação só começa com as fotos prontas: até lá, elas esperam fora da tela.
           Fica antes de tudo, para valer já no primeiro desenho. Se algo falhar, a espera acaba sozinha. */}
       <script is:inline>
@@ -88,25 +87,14 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       </script>
       <header class="palco__topo miolo">
         <p class="rotulo">
-          {modo === 'tv' ? 'Modo TV' : 'Uma memória ao acaso'}
+          {tv ? 'Modo TV' : 'Uma memória ao acaso'}
           {posicao && <span> · {posicao}</span>}
         </p>
         <a class="acao acao--quieta" href={sair} data-palco-sair>
-          {modo === 'tv' ? 'Sair do modo TV' : 'Voltar ao Explorar'}
+          {tv ? 'Sair do modo TV' : 'Voltar ao Explorar'}
         </a>
         {/* Sem rede, a memória da tela fica e o aviso aparece aqui (o script escreve o texto) */}
-        {modo === 'tv' && <p class="palco__aviso ficha" role="status" data-palco-aviso />}
-        {/* Só na prévia de teste da sessão X: alternar entre as propostas. Sai com a escolha do Gui. */}
-        {conceitos && (
-          <nav class="palco__conceitos ficha" aria-label="Proposta em teste">
-            <span>Teste</span>
-            {conceitos.map((c) => (
-              <a href={c.href} aria-current={c.atual ? 'true' : undefined}>
-                {c.nome}
-              </a>
-            ))}
-          </nav>
-        )}
+        {tv && <p class="palco__aviso ficha" role="status" data-palco-aviso />}
       </header>
       <div class="palco__cena miolo">
         <div class:list={['palco__fotos', `palco__fotos--${emVolta.length}`]}>
@@ -117,7 +105,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
             </div>
           ))}
           {/* No modo TV, tocar na foto passa para a próxima; no "ao acaso", abre a memória */}
-          <a class="palco__principal" href={modo === 'tv' && depois ? depois : abrir} data-palco-leva={modo === 'tv' && depois ? '' : undefined} aria-label={modo === 'tv' && depois ? 'Próxima memória' : `Abrir a memória ${memoria.titulo}`} tabindex="-1">
+          <a class="palco__principal" href={tv && depois ? depois : abrir} data-palco-leva={tv && depois ? '' : undefined} aria-label={tv && depois ? 'Próxima memória' : `Abrir a memória ${memoria.titulo}`} tabindex="-1">
             <Polaroid id={memoria.id} fotos={principal ? [principal] : []} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} tipo={memoria.tipo} monte={false} cedo />
           </a>
         </div>
@@ -125,9 +113,11 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
           <p>
             <Carimbo itens={[carimboDaData(memoria), memoria.lugar]} />
           </p>
-          <h1 class="palco__titulo" data-degrau={conceito === 'a' ? degrauDoTitulo(memoria.titulo) : undefined}>{memoria.titulo}</h1>
+          {/* No modo TV, a memória longa desce na escala: o título em três degraus e o trecho em dois
+              (src/lib/explorar.ts). O limite de linhas é só a rede de proteção. */}
+          <h1 class="palco__titulo" data-degrau={tv ? degrauDoTitulo(memoria.titulo) : undefined}>{memoria.titulo}</h1>
           {trecho && (
-            <blockquote class="palco__trecho" data-degrau={conceito === 'a' ? degrauDoTrecho(trecho.texto) : undefined}>
+            <blockquote class="palco__trecho" data-degrau={tv ? degrauDoTrecho(trecho.texto) : undefined}>
               <p class="serifa t-abertura">“{trecho.texto}”</p>
               <footer>
                 <span class="mao">{trecho.por}</span>
@@ -135,142 +125,111 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
             </blockquote>
           )}
           {nomes.length > 0 && <p class="ficha suave">Com {listaCurta(nomes, 5)}</p>}
-          {/* Proposta B: o verso da foto. O texto da coluna tem um tamanho só e um limite de linhas; o
-              que não coube se lê aqui, inteiro, sem sair do modo TV. É um <details>: abre sem script. Fica
-              antes de "Abrir esta memória", que continua sendo o último filho (a grade do celular conta com isso). */}
-          {conceito === 'b' && (
-            <details class="palco__verso" data-palco-verso>
-              <summary>
-                <span class="palco__verso-abrir">Ver o verso</span>
-                <span class="palco__verso-fechar">Fechar o verso</span>
-              </summary>
-              <div class="palco__verso-cartao">
-                <p>
-                  <Carimbo itens={[carimboDaData(memoria), memoria.lugar]} />
-                </p>
-                <p class="palco__verso-titulo">{memoria.titulo}</p>
-                {trecho && (
-                  <blockquote class="palco__trecho">
-                    <p class="serifa t-abertura">“{trecho.texto}”</p>
-                    <footer>
-                      <span class="mao">{trecho.por}</span>
-                    </footer>
-                  </blockquote>
-                )}
-                {nomes.length > 0 && (
-                  <div class="palco__verso-nomes">
-                    <p class="rotulo suave">Quem estava</p>
-                    <p class="ficha">{listaCurta(nomes, nomes.length)}</p>
-                  </div>
-                )}
-                <p>
-                  <a class="acao" href={abrir}>
-                    Abrir esta memória
-                  </a>
-                </p>
-              </div>
-            </details>
-          )}
           <p>
             <a class="acao" href={abrir}>
               Abrir esta memória
             </a>
           </p>
         </div>
-        {/* Os controles ficam num grupo só: em "Só as fotos" eles somem juntos e voltam juntos, numa
-            barra no pé da tela, ao primeiro toque, clique, movimento do mouse ou tecla */}
+        {/* Os controles ficam num grupo só: a barra do pé da tela, a partir de 62rem. Em "Só as fotos"
+            eles somem juntos e voltam juntos; "Ocultar os controles" os tira da tela até a pessoa pedir. */}
         <div class="palco__controles" data-palco-controles>
-        <nav class="palco__passos" aria-label={modo === 'tv' ? 'Passar as memórias' : 'Outra memória'}>
-          {modo === 'tv' && (
-            <>
-              {/* O caminho de volta de "Só as fotos", em destaque. Só aparece nesse modo, com script. */}
-              <button type="button" class="botao palco__volta" data-palco-mostrar-texto hidden>
-                Mostrar o texto
-              </button>
-              <a class="acao" href={antes} aria-disabled={antes ? undefined : 'true'} rel="prev" data-palco-antes data-palco-leva>
-                Anterior
+          <nav class="palco__passos" aria-label={tv ? 'Passar as memórias' : 'Outra memória'}>
+            {tv && (
+              <>
+                {/* O caminho de volta de "Só as fotos", em destaque. Só aparece nesse modo, com script. */}
+                <button type="button" class="botao palco__volta" data-palco-mostrar-texto hidden>
+                  Mostrar o texto
+                </button>
+                {/* Os três do tocador, na ordem de todo controle: anterior, tocar ou pausar, próxima.
+                    "Próxima" é a ação cheia, e o foco começa nela. */}
+                <BotaoDeSimbolo elemento="a" simbolo="anterior" nome="Anterior" class="acao palco__anterior" href={antes} aria-disabled={antes ? undefined : 'true'} rel="prev" data-palco-antes data-palco-leva />
+                {/* "Passar sozinho" só existe com script: sem ele, nem aparece. Desligado, um toque liga;
+                    ligado, o mesmo lugar pausa e retoma, e o símbolo e o nome trocam juntos. O tempo e a
+                    animação ficam em "Ajustes". */}
+                {passar && ligar && (
+                  <span class="palco__sozinho" data-palco-passar hidden>
+                    {passar.tempo === null ? (
+                      <BotaoDeSimbolo elemento="a" simbolo="tocar" nome="Passar sozinho" class="acao acao--quieta" href={ligar.href} data-palco-tocar />
+                    ) : (
+                      <BotaoDeSimbolo simbolo={passar.pausado ? 'tocar' : 'pausar'} nome={passar.pausado ? 'Retomar' : 'Pausar'} class="acao" data-palco-pausa />
+                    )}
+                  </span>
+                )}
+                <BotaoDeSimbolo elemento="a" simbolo="proxima" nome="Próxima" cheio class="botao palco__proxima" href={depois} aria-disabled={depois ? undefined : 'true'} rel="next" data-palco-depois data-palco-leva />
+              </>
+            )}
+            {modo === 'acaso' && depois && (
+              <a class="botao" href={depois} data-palco-depois>
+                Me mostre outra
               </a>
-              <a class="botao" href={depois} aria-disabled={depois ? undefined : 'true'} rel="next" data-palco-depois data-palco-leva>
-                Próxima
-              </a>
-              {/* "Passar sozinho" só existe com script: sem ele, nem aparece. Desligado, um toque liga;
-                  ligado, o mesmo lugar pausa e retoma. O tempo e a animação ficam em "Ajustes". */}
-              {passar && ligar && (
-                <span class="palco__sozinho" data-palco-passar hidden>
-                  {passar.tempo === null ? (
-                    <a class="acao acao--quieta" href={ligar.href}>
-                      Passar sozinho
-                    </a>
-                  ) : (
-                    <button type="button" class="acao" data-palco-pausa aria-pressed={passar.pausado ? 'true' : 'false'}>
-                      {passar.pausado ? 'Retomar' : 'Pausar'}
+            )}
+          </nav>
+          {/* A tela cheia mora na barra, a partir de 62rem; abaixo disso, em "Ajustes". Só com script. */}
+          {tv && <BotaoDeSimbolo simbolo="tela-cheia" nome="Tela cheia" class="palco__na-barra" data-palco-cheia hidden />}
+          {tv && (passar || movimentos) && (
+            <details class="palco__ajustes" data-palco-ajustes>
+              <BotaoDeSimbolo elemento="summary" simbolo="ajustes" nome="Ajustes" />
+              {/* As partes ficam lado a lado quando há largura (resposta do Gui à P50, 17/11/2026) */}
+              <div class="palco__partes">
+                {passar && (
+                  <div class="palco__ajuste" role="group" aria-labelledby="ajuste-tempo" data-palco-passar hidden>
+                    <p class="rotulo suave" id="ajuste-tempo">
+                      Passar sozinho a cada
+                    </p>
+                    <p class="palco__opcoes">
+                      {passar.tempos.map((t) => (
+                        <a href={t.href} aria-current={t.segundos === passar.tempo ? 'true' : undefined} data-palco-leva>
+                          {t.segundos} segundos
+                        </a>
+                      ))}
+                      {passar.tempo !== null && <a href={passar.parar}>Parar de passar sozinho</a>}
+                    </p>
+                  </div>
+                )}
+                {/* Só as fotos, sem os textos, e a tela cheia: para deixar passando na sala. Só com script. */}
+                <div class="palco__ajuste" role="group" aria-labelledby="ajuste-tela" data-palco-tela hidden>
+                  <p class="rotulo suave" id="ajuste-tela">
+                    Tela
+                  </p>
+                  <p class="palco__opcoes">
+                    <button type="button" data-palco-so-fotos aria-pressed="false">
+                      Só as fotos
                     </button>
-                  )}
-                </span>
-              )}
-            </>
-          )}
-          {modo === 'acaso' && depois && (
-            <a class="botao" href={depois} data-palco-depois>
-              Me mostre outra
-            </a>
-          )}
-        </nav>
-        {modo === 'tv' && (passar || movimentos) && (
-          <details class="palco__ajustes" data-palco-ajustes>
-            <summary>
-              <span>Ajustes</span>
-            </summary>
-            {/* As partes ficam lado a lado quando há largura (resposta do Gui à P50, 17/11/2026) */}
-            <div class="palco__partes">
-            {passar && (
-              <div class="palco__ajuste" role="group" aria-labelledby="ajuste-tempo" data-palco-passar hidden>
-                <p class="rotulo suave" id="ajuste-tempo">
-                  Passar sozinho a cada
-                </p>
-                <p class="palco__opcoes">
-                  {passar.tempos.map((t) => (
-                    <a href={t.href} aria-current={t.segundos === passar.tempo ? 'true' : undefined} data-palco-leva>
-                      {t.segundos} segundos
-                    </a>
-                  ))}
-                  {passar.tempo !== null && <a href={passar.parar}>Parar de passar sozinho</a>}
-                </p>
+                    <button type="button" class="palco__fora-da-barra" data-palco-cheia aria-pressed="false" hidden>
+                      Tela cheia
+                    </button>
+                  </p>
+                </div>
+                {movimentos && (
+                  <div class="palco__ajuste" role="group" aria-labelledby="ajuste-animacao">
+                    <p class="rotulo suave" id="ajuste-animacao">
+                      Animação
+                    </p>
+                    <p class="palco__opcoes">
+                      {movimentos.map((m) => (
+                        <a href={m.href} aria-current={m.id === movimento ? 'true' : undefined} data-palco-movimento>
+                          {m.nome}
+                        </a>
+                      ))}
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-            {/* Só as fotos, sem os textos, e a tela cheia: para deixar passando na sala. Só com script. */}
-            <div class="palco__ajuste" role="group" aria-labelledby="ajuste-tela" data-palco-tela hidden>
-              <p class="rotulo suave" id="ajuste-tela">
-                Tela
-              </p>
-              <p class="palco__opcoes">
-                <button type="button" data-palco-so-fotos aria-pressed="false">
-                  Só as fotos
-                </button>
-                <button type="button" data-palco-cheia aria-pressed="false" hidden>
-                  Tela cheia
-                </button>
-              </p>
-            </div>
-            {movimentos && (
-              <div class="palco__ajuste" role="group" aria-labelledby="ajuste-animacao">
-                <p class="rotulo suave" id="ajuste-animacao">
-                  Animação
-                </p>
-                <p class="palco__opcoes">
-                  {movimentos.map((m) => (
-                    <a href={m.href} aria-current={m.id === movimento ? 'true' : undefined} data-palco-movimento>
-                      {m.nome}
-                    </a>
-                  ))}
-                </p>
-              </div>
-            )}
-            </div>
-          </details>
-        )}
+            </details>
+          )}
+          {/* Ocultar os controles: a barra sai da tela e deixa a memória sozinha, até a pessoa pedir de
+              volta (qualquer tecla, o ponteiro ou um toque). Só com script, a partir de 62rem. */}
+          {tv && <BotaoDeSimbolo simbolo="ocultar" nome="Ocultar os controles" class="palco__na-barra" data-palco-ocultar hidden />}
         </div>
       </div>
+      {/* Ao ocultar, o caminho de volta aparece escrito por alguns segundos, no lugar da barra
+          (pedido do Gui, 22/11/2026: "é preciso conseguir desocultar os controles de forma fácil") */}
+      {tv && (
+        <p class="palco__dica" role="status" data-palco-dica hidden>
+          Aperte qualquer tecla ou toque na tela para ver os controles
+        </p>
+      )}
     </article>
   )
 }
@@ -279,12 +238,16 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   // O modo TV passa de uma memória para a outra sem recarregar a página (correção pedida pelo Gui,
   // 17/11/2026: com a página recarregando, a animação acabava antes de a foto chegar). A página da
   // memória seguinte é buscada de antemão, com as fotos; ao passar, o palco é trocado com todas
-  // prontas, e é aí que a animação começa. As setas do teclado e do controle da TV passam, e o Esc
-  // sai. Nada espera uma animação acabar: passar no meio de uma chegada troca na hora.
-  // Sem script, "Anterior" e "Próxima" continuam sendo links, e "Passar sozinho" nem aparece.
-  import { AVISO_SEM_REDE, SEGUNDOS_ATE_TENTAR_DE_NOVO, SEGUNDOS_DOS_CONTROLES, falhaDeRede, reacaoEmSoFotos } from '../../lib/explorar';
+  // prontas, e é aí que a animação começa. As teclas seguem a lógica de interface de TV (teclaNaTv,
+  // em src/lib/explorar.ts). Nada espera uma animação acabar: passar no meio de uma chegada troca na hora.
+  // Sem script, "Anterior" e "Próxima" continuam sendo links, e "Passar sozinho", a tela cheia e
+  // "Ocultar os controles" nem aparecem.
+  import { AVISO_SEM_REDE, SEGUNDOS_ATE_TENTAR_DE_NOVO, SEGUNDOS_DOS_CONTROLES, falhaDeRede, reacaoEmSoFotos, teclaNaTv } from '../../lib/explorar';
+  import { simbolo, type IdDoSimbolo } from '../../visual/simbolos';
 
   const calmo = matchMedia('(prefers-reduced-motion: reduce)');
+  // A barra do pé da tela, com os símbolos, o ocultar e as setas que andam por ela, vale a partir de 62rem
+  const naBarra = matchMedia('(min-width: 62rem)');
   const palco = () => document.querySelector<HTMLElement>('[data-palco]');
   const link = (nome: string) => palco()?.querySelector<HTMLAnchorElement>(`[data-palco-${nome}]`) ?? null;
   const serve = (a: HTMLAnchorElement | null): a is HTMLAnchorElement => Boolean(a && a.getAttribute('href') && a.getAttribute('aria-disabled') !== 'true');
@@ -414,8 +377,10 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       const ajustes = novo.querySelector<HTMLDetailsElement>('[data-palco-ajustes]');
       if (ajustes) ajustes.open = atual.querySelector<HTMLDetailsElement>('[data-palco-ajustes]')?.open ?? false;
       const ativo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const focado = ['antes', 'depois', 'pausa', 'mostrar-texto'].find((nome) => ativo?.hasAttribute(`data-palco-${nome}`));
-      const noAjuste = ativo?.closest('[data-palco-ajustes]') ? ativo.textContent?.trim() : undefined;
+      // O foco fica no mesmo controle: quem estava em "Passar sozinho" segue em "Pausar", e o contrário
+      const focado = ['antes', 'depois', 'tocar', 'pausa', 'mostrar-texto', 'ocultar'].find((nome) => ativo?.hasAttribute(`data-palco-${nome}`));
+      const noAjuste = ativo?.closest('[data-palco-ajustes]') ? nomeDe(ativo) : undefined;
+      const naCheia = ativo?.matches('.palco__na-barra[data-palco-cheia]');
       const cor = getComputedStyle(atual).backgroundColor;
       // No Álbum, as fotos que estavam na tela saem pela lateral, empurradas pelas que chegam
       const saem = !mesma && !calmo.matches && novo.dataset.movimento === 'a' ? atual.querySelector<HTMLElement>('.palco__fotos') : null;
@@ -442,9 +407,11 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       history.replaceState(history.state, '', semPreferencias(href));
       document.title = pagina.title;
       preparar();
-      const noMesmoAjuste = noAjuste ? [...novo.querySelectorAll<HTMLElement>('[data-palco-ajustes] :is(a, button)')].find((e) => e.textContent?.trim() === noAjuste) : undefined;
-      // Em "Só as fotos", com os controles escondidos, o foco não vai para nenhum deles
-      if (!escondidos()) (noMesmoAjuste ?? (focado ? novo.querySelector<HTMLElement>(`[data-palco-${focado}]`) : null) ?? link('depois'))?.focus({ preventScroll: true });
+      const noMesmoAjuste = noAjuste ? [...novo.querySelectorAll<HTMLElement>('[data-palco-ajustes] :is(a, button, summary)')].find((e) => nomeDe(e) === noAjuste) : undefined;
+      const tocarOuPausar = focado === 'tocar' || focado === 'pausa' ? novo.querySelector<HTMLElement>('[data-palco-pausa], [data-palco-tocar]') : null;
+      const mesmo = naCheia ? novo.querySelector<HTMLElement>('.palco__na-barra[data-palco-cheia]') : focado ? novo.querySelector<HTMLElement>(`[data-palco-${focado}]`) : null;
+      // Em "Só as fotos", com os controles escondidos, e com eles ocultos, o foco não vai para nenhum deles
+      if (!escondidos()) (noMesmoAjuste ?? tocarOuPausar ?? mesmo ?? link('depois'))?.focus({ preventScroll: true });
     } catch (erro) {
       // Uma passagem mais nova já saiu: o erro desta não leva de volta à memória antiga
       // (achado do QA de código de 17/11/2026, como na troca do Explorar)
@@ -468,7 +435,10 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
           .catch(() => undefined);
       }
     }
-    for (const parte of atual.querySelectorAll<HTMLElement>('[data-palco-passar], [data-palco-tela]')) parte.hidden = false;
+    for (const parte of atual.querySelectorAll<HTMLElement>('[data-palco-passar], [data-palco-tela], [data-palco-ocultar]')) parte.hidden = false;
+    // Os controles ocultos pelo botão continuam ocultos de uma memória para a outra
+    atual.toggleAttribute('data-oculto', ocultos);
+    // A memória seguinte chega sem o aviso: ele é só para o momento de ocultar
     // "Só as fotos" é preferência guardada no aparelho; a tela cheia vale enquanto durar
     marcarTela(guardado('tv-so-fotos') === '1');
     // "Passar sozinho", num toque, liga no tempo que a pessoa escolheu da última vez
@@ -496,16 +466,73 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     // O caminho de volta em destaque, na linha de "Anterior" e "Próxima"
     const volta = atual.querySelector<HTMLButtonElement>('[data-palco-mostrar-texto]');
     if (volta) volta.hidden = !soFotos;
-    const cheia = atual.querySelector<HTMLButtonElement>('[data-palco-cheia]');
-    if (cheia) {
+    // A tela cheia: o símbolo na barra (a partir de 62rem) e o nome escrito em "Ajustes" (abaixo disso)
+    for (const cheia of atual.querySelectorAll<HTMLButtonElement>('[data-palco-cheia]')) {
       cheia.hidden = !document.fullscreenEnabled;
-      cheia.setAttribute('aria-pressed', String(Boolean(document.fullscreenElement)));
-      cheia.textContent = document.fullscreenElement ? 'Sair da tela cheia' : 'Tela cheia';
+      const nome = document.fullscreenElement ? 'Sair da tela cheia' : 'Tela cheia';
+      if (cheia.classList.contains('botao-simbolo')) trocarSimbolo(cheia, document.fullscreenElement ? 'sair-da-tela-cheia' : 'tela-cheia', nome);
+      else {
+        cheia.setAttribute('aria-pressed', String(Boolean(document.fullscreenElement)));
+        cheia.textContent = nome;
+      }
     }
   }
 
+  /** O nome de um controle: o aria-label do botão de símbolo ou o texto */
+  const nomeDe = (e: Element) => e.getAttribute('aria-label') ?? e.textContent?.trim() ?? '';
+  /** Troca o símbolo, o nome escrito e o nome acessível de um botão de símbolo, juntos */
+  function trocarSimbolo(botao: HTMLElement, id: IdDoSimbolo, nome: string) {
+    const desenho = botao.querySelector('svg');
+    if (desenho && desenho.dataset.simbolo !== id) {
+      desenho.innerHTML = simbolo(id).desenho;
+      desenho.dataset.simbolo = id;
+    }
+    botao.setAttribute('aria-label', nome);
+    const escrito = botao.querySelector('.botao-simbolo__nome');
+    if (escrito) escrito.textContent = nome;
+  }
+
   const soFotos = () => Boolean(palco()?.hasAttribute('data-so-fotos'));
-  const escondidos = () => soFotos() && !controles;
+  const escondidos = () => ocultos || (soFotos() && !controles);
+
+  // "Ocultar os controles" (pedido do Gui, 22/11/2026): a barra e o alto saem da tela, e a memória
+  // fica sozinha até a pessoa pedir de volta, com qualquer tecla, o ponteiro ou um toque. Diferente de
+  // "Só as fotos", em que eles somem sozinhos e voltam por alguns segundos, aqui ficam ocultos até o
+  // pedido. "Passar sozinho" continua passando. Não fica guardado: cada entrada começa com a barra.
+  let ocultos = false;
+  // Logo depois de ocultar, a mão ainda está no mouse: o primeiro segundo de movimento não conta
+  let ocultosDesde = 0;
+  // O aviso de como trazer os controles de volta fica na tela por alguns segundos depois de ocultar
+  const SEGUNDOS_DA_DICA = 5;
+  let relogioDaDica = 0;
+  function mostrarDica(mostrar: boolean) {
+    const dica = palco()?.querySelector<HTMLElement>('[data-palco-dica]');
+    if (dica) dica.hidden = !mostrar;
+  }
+  function ocultar() {
+    const atual = palco();
+    if (!atual) return;
+    ocultos = true;
+    ocultosDesde = performance.now();
+    atual.setAttribute('data-oculto', '');
+    mostrarDica(true);
+    clearTimeout(relogioDaDica);
+    relogioDaDica = window.setTimeout(() => mostrarDica(false), SEGUNDOS_DA_DICA * 1000);
+    // O foco do teclado nunca fica num controle escondido
+    const ativo = document.activeElement;
+    if (ativo instanceof HTMLElement && atual.contains(ativo)) ativo.blur();
+  }
+  /** A barra volta, e o foco volta para o botão de ocultar, de onde a pessoa saiu */
+  function reexibir() {
+    const atual = palco();
+    if (!atual || !ocultos) return;
+    ocultos = false;
+    atual.removeAttribute('data-oculto');
+    clearTimeout(relogioDaDica);
+    mostrarDica(false);
+    if (soFotos()) mostrarControles();
+    atual.querySelector<HTMLElement>('[data-palco-ocultar]')?.focus({ preventScroll: true });
+  }
 
   // Em "Só as fotos", os controles voltam por alguns segundos a cada gesto e somem de novo sozinhos.
   // O relógio recomeça a cada gesto, então eles não somem enquanto a pessoa está mexendo.
@@ -544,8 +571,6 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   // Ligado: a próxima entra sozinha depois do tempo escolhido. Com a aba escondida, espera.
   function armar() {
     clearTimeout(relogio);
-    // Proposta B: com o verso aberto, alguém está lendo. A memória espera, e segue quando ele fecha.
-    if (palco()?.querySelector('[data-palco-verso][open]')) return;
     const segundos = Number(palco()?.dataset.passar);
     if (segundos > 0 && !pausado && !document.hidden) relogio = window.setTimeout(() => passar(link('depois')), segundos * 1000);
   }
@@ -555,8 +580,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     const atual = palco();
     if (!atual) return;
     pausado = !pausado;
-    botao.textContent = pausado ? 'Retomar' : 'Pausar';
-    botao.setAttribute('aria-pressed', String(pausado));
+    // O símbolo e o nome trocam juntos, no mesmo botão: pausado, ele diz "Retomar", com o de tocar
+    trocarSimbolo(botao, pausado ? 'tocar' : 'pausar', pausado ? 'Retomar' : 'Pausar');
     atual.toggleAttribute('data-pausado', pausado);
     // Pausar enquanto se espera a rede desiste da passagem; retomar arma o relógio de novo
     if (pausado && aEspera) desistirDeEsperar();
@@ -571,9 +596,9 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     armar();
   }
 
-  // Nas propostas da sessão X, "Ajustes" e o verso flutuam por cima da cena: o Esc e o toque fora
-  // fecham o que estiver aberto, antes de qualquer outra coisa, e o foco volta para quem abriu.
-  const abertos = () => (palco()?.hasAttribute('data-conceito') ? [...palco()!.querySelectorAll<HTMLDetailsElement>(':is([data-palco-ajustes], [data-palco-verso])[open]')] : []);
+  // "Ajustes" aberto: o Esc e, na barra, o toque fora fecham a folha antes de qualquer outra coisa,
+  // e o foco volta para o botão que a abriu
+  const abertos = () => [...(palco()?.querySelectorAll<HTMLDetailsElement>('[data-palco-ajustes][open]') ?? [])];
   function fecharAbertos(fora?: Element | null) {
     const lista = abertos().filter((aberto) => !fora || !aberto.contains(fora));
     for (const aberto of lista) {
@@ -582,6 +607,41 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       if (!fora || tinhaFoco) aberto.querySelector<HTMLElement>('summary')?.focus({ preventScroll: true });
     }
     return lista.length > 0;
+  }
+
+  // A barra, pelas setas: os botões à vista, na ordem da tela. Com "Ajustes" aberto, a folha é uma
+  // fila à parte, em cima: as setas para cima e para baixo entram nela e voltam ao botão de "Ajustes".
+  const aVista = (e: HTMLElement) => !e.closest('[hidden]') && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const naFolha = (e: Element | null) => Boolean(e?.closest('.palco__partes'));
+  function botoesDaBarra(daFolha: boolean) {
+    const atual = palco();
+    if (!atual) return [];
+    return [...atual.querySelectorAll<HTMLElement>('.palco__controles :is(a[href], button, summary)')].filter((e) => aVista(e) && naFolha(e) === daFolha);
+  }
+  function andar(tecla: string) {
+    const ativo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!ativo) return;
+    const resumo = palco()?.querySelector<HTMLElement>('[data-palco-ajustes] > summary');
+    if (tecla === 'ArrowUp' || tecla === 'ArrowDown') {
+      if (tecla === 'ArrowUp' && !naFolha(ativo)) {
+        const folha = botoesDaBarra(true);
+        return (folha.find((e) => e.getAttribute('aria-current') === 'true') ?? folha[0])?.focus({ preventScroll: true });
+      }
+      if (tecla === 'ArrowDown' && naFolha(ativo)) resumo?.focus({ preventScroll: true });
+      return;
+    }
+    const fila = botoesDaBarra(naFolha(ativo));
+    const aqui = fila.indexOf(ativo);
+    // Nas pontas, o foco para: nada dá a volta, como no controle da TV
+    fila[aqui + (tecla === 'ArrowLeft' ? -1 : 1)]?.focus({ preventScroll: true });
+  }
+
+  /** O botão de tocar e pausar, pela tecla de mídia: liga o "Passar sozinho", pausa ou retoma */
+  function tocarOuPausar() {
+    const pausa = palco()?.querySelector<HTMLButtonElement>('[data-palco-pausa]');
+    if (pausa) return alternarPausa(pausa);
+    const tocar = palco()?.querySelector<HTMLAnchorElement>('[data-palco-tocar]');
+    if (tocar && !tocar.closest('[hidden]')) passar(tocar);
   }
 
   const primeiro = palco();
@@ -593,31 +653,71 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     });
     document.addEventListener('keydown', (evento) => {
       if (evento.metaKey || evento.ctrlKey || evento.altKey || !palco()) return;
-      if (evento.key === 'Escape' && fecharAbertos()) return evento.preventDefault();
-      // Em "Só as fotos" (reacaoEmSoFotos, em src/lib/explorar.ts): o Esc volta ao modo com texto,
-      // as setas para os lados passam sem mostrar os controles e qualquer outra tecla os traz de volta
-      if (soFotos()) {
-        const reacao = reacaoEmSoFotos({ tipo: 'tecla', tecla: evento.key }, controles);
-        if (reacao === 'voltar-ao-texto') {
+      const ativo = document.activeElement;
+      const reacao = teclaNaTv(evento.key, {
+        barra: naBarra.matches,
+        ajustesAbertos: abertos().length > 0,
+        ocultos,
+        soFotos: soFotos(),
+        controlesAVista: controles,
+        focoNaBarra: Boolean(ativo?.closest('[data-palco] .palco__controles')),
+      });
+      // Ocultos pelo botão: qualquer tecla traz a barra de volta, e a de mídia ainda faz o que diz
+      if (ocultos) {
+        evento.preventDefault();
+        reexibir();
+        if (reacao === 'reexibir') return;
+      }
+      // Em "Só as fotos", toda tecla mantém os controles à vista por mais alguns segundos
+      if (soFotos() && controles) mostrarControles();
+      switch (reacao) {
+        case 'fechar-ajustes':
           evento.preventDefault();
-          return trocarSoFotos(false);
-        }
-        if (reacao === 'mostrar-controles') {
+          return void fecharAbertos();
+        case 'mostrar-controles':
           // O Tab segue o caminho dele, já com os controles à vista; as outras teclas só mostram
           if (evento.key !== 'Tab') evento.preventDefault();
           return mostrarControles(evento.key !== 'Tab');
-        }
-        if (reacao === 'seguir') mostrarControles();
+        case 'voltar-ao-texto':
+          evento.preventDefault();
+          return trocarSoFotos(false);
+        case 'sair':
+          if (serve(link('sair'))) location.assign(link('sair')!.href);
+          return;
+        case 'andar':
+        case 'subir':
+        case 'descer':
+          evento.preventDefault();
+          return andar(evento.key);
+        case 'anterior':
+          evento.preventDefault();
+          return void passar(link('antes'), true);
+        case 'proxima':
+          evento.preventDefault();
+          return void passar(link('depois'));
+        case 'tocar-ou-pausar':
+          evento.preventDefault();
+          return tocarOuPausar();
+        case 'acionar':
+          // O espaço aciona o link com o foco, como o Enter; nos botões, o navegador já faz isso
+          if (ativo instanceof HTMLAnchorElement && ativo.closest('[data-palco]')) {
+            evento.preventDefault();
+            ativo.click();
+          }
+          return;
       }
-      if (evento.key === 'ArrowRight') passar(link('depois'));
-      else if (evento.key === 'ArrowLeft') passar(link('antes'), true);
-      else if (evento.key === 'Escape' && serve(link('sair'))) location.assign(link('sair')!.href);
     });
     // O toque e o clique, em "Só as fotos" com os controles escondidos, só trazem os controles: a
     // foto não passa de memória nesse primeiro toque. Na captura, antes de qualquer outro tratamento.
     document.addEventListener(
       'click',
       (evento) => {
+        // Ocultos pelo botão: o primeiro toque ou clique só traz a barra de volta
+        if (ocultos) {
+          evento.preventDefault();
+          evento.stopPropagation();
+          return reexibir();
+        }
         if (!soFotos()) return;
         if (reacaoEmSoFotos({ tipo: 'toque' }, controles) === 'mostrar-controles') {
           evento.preventDefault();
@@ -634,13 +734,19 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       if (onde === cursor) return;
       const primeiroSinal = cursor === '';
       cursor = onde;
-      if (!primeiroSinal && soFotos()) mostrarControles();
+      if (primeiroSinal) return;
+      if (ocultos) {
+        if (performance.now() - ocultosDesde > 1000) reexibir();
+        return;
+      }
+      if (soFotos()) mostrarControles();
     });
     document.addEventListener('click', (evento) => {
       const alvo = evento.target instanceof Element ? evento.target : null;
       const pausa = alvo?.closest<HTMLButtonElement>('[data-palco] [data-palco-pausa]');
       if (pausa) return alternarPausa(pausa);
       if (alvo?.closest('[data-palco] :is([data-palco-so-fotos], [data-palco-mostrar-texto])')) return trocarSoFotos(!soFotos());
+      if (alvo?.closest('[data-palco] [data-palco-ocultar]')) return ocultar();
       if (alvo?.closest('[data-palco] [data-palco-cheia]')) {
         const pedido = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
         return void pedido.catch(() => undefined);
@@ -656,10 +762,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       if (tempo) guardar('tv-tempo', tempo);
       passar(a, a.hasAttribute('data-palco-antes'));
     });
-    // O toque fora de "Ajustes" ou do verso fecha o que estava aberto
-    document.addEventListener('pointerdown', (evento) => void fecharAbertos(evento.target instanceof Element ? evento.target : null));
-    // O verso abre e fecha sem script; o relógio do "Passar sozinho" acompanha (toggle não sobe: captura)
-    document.addEventListener('toggle', (evento) => (evento.target instanceof Element && evento.target.matches('[data-palco-verso]') ? armar() : undefined), true);
+    // Na barra, o toque fora de "Ajustes" fecha a folha (abaixo de 62rem, ela abre no lugar e fica)
+    document.addEventListener('pointerdown', (evento) => void (naBarra.matches && fecharAbertos(evento.target instanceof Element ? evento.target : null)));
     document.addEventListener('visibilitychange', () => {
       if (!aEspera) armar();
     });
@@ -668,7 +772,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     // Sair da tela cheia pelo Esc do navegador não chega à página como tecla: os controles voltam aqui
     document.addEventListener('fullscreenchange', () => {
       marcarTela(soFotos());
-      mostrarControles();
+      if (ocultos) reexibir();
+      else mostrarControles();
     });
     preparar();
     // Quem entra com "Só as fotos" guardado vê os controles por alguns segundos, com o caminho de volta

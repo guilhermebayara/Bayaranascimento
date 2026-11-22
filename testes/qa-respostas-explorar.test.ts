@@ -135,11 +135,15 @@ describe('a legenda da foto (P40)', () => {
 
 describe('o modo TV (P48, P49, P50)', () => {
   it('na tela grande, o que se lê tem 24 px e os controles, 22 px', () => {
-    const tv = cssDoExplorar.slice(cssDoExplorar.indexOf('@media (min-width: 100rem)'));
-    expect(tv).toMatch(/--tv-leitura: 1\.5rem/);
-    expect(tv).toMatch(/--tv-controle: 1\.375rem/);
-    expect(tv).toMatch(/\.palco--tv \.palco__texto \.carimbo,[^{]*\{\s*font-size: var\(--tv-leitura\)/);
-    expect(tv).toMatch(/\.palco--tv \.palco__opcoes :is\(a, button\) \{\s*font-size: var\(--tv-controle\)/);
+    // Desde a barra (22/11/2026), o modo TV é proporcional: 1rem é 1/80 da largura ou 1/45 da
+    // altura, o que for menor, e em 1920 × 1080 isso dá 24 px
+    const tv = ler('src/visual/telas/tv.css');
+    expect(tv).toMatch(/html:has\(\.palco--tv\) \{\s*font-size: min\(100vw \/ 80, 100svh \/ 45\);/);
+    expect(Math.min(1920 / 80, 1080 / 45)).toBe(24);
+    expect(tv).toMatch(/--tv-leitura: 1rem;/);
+    expect(Math.round(24 * Number(/--tv-controle: ([\d.]+)rem;/.exec(tv)![1]))).toBe(22);
+    expect(tv).toMatch(/\.palco__texto > p:first-child \.carimbo \{\s*font-size: var\(--tv-leitura\)/);
+    expect(tv).toMatch(/\.palco__opcoes :is\(a, button\) \{\s*font-size: var\(--tv-controle\)/);
   });
   it('no celular, o carimbo e o título vêm antes das fotos, e o trecho depois dos controles', () => {
     expect(cssDoExplorar).toMatch(/grid-template-areas:\s*'carimbo'\s*'titulo'\s*'fotos'\s*'passos'\s*'ajustes'\s*'trecho'/);
@@ -147,7 +151,7 @@ describe('o modo TV (P48, P49, P50)', () => {
   });
   it('as partes de "Ajustes" ficam num grupo, lado a lado quando há largura', () => {
     expect(palco).toMatch(/<div class="palco__partes">/);
-    expect(cssDoExplorar).toMatch(/\.palco__ajustes\[open\] \.palco__partes \{[^}]*display: flex/);
+    expect(ler('src/visual/telas/tv.css')).toMatch(/\.palco__ajustes\[open\] \.palco__partes \{[^}]*display: grid;\s*grid-auto-flow: column;/);
     // Fora do fluxo, sem position: fixed nem sticky
     expect(cssDoExplorar).not.toMatch(/position\s*:\s*(fixed|sticky)/);
   });

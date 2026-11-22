@@ -390,7 +390,7 @@ describe('conceito', () => {
     expect(palco).not.toMatch(/animationend|transitionend|await [^;\n]*\.finished/);
     expect(palco.indexOf('atual.replaceWith(novo);')).toBeLessThan(palco.indexOf("saem.classList.add('palco__fotos--saindo');"));
     expect(ler('telas/explorar.css')).toMatch(/\.palco\[data-movimento='a'\]\[data-pronta\] \.palco__extra\s*\{\s*animation:\s*palco-chega/);
-    expect(palco).toMatch(/if \(evento\.key === 'ArrowRight'\) passar\(link\('depois'\)\);/);
+    expect(palco).toMatch(/case 'proxima':\s*evento\.preventDefault\(\);\s*return void passar\(link\('depois'\)\);/);
     // O modo TV passa sem recarregar (correção do Gui, 17/11/2026): a página seguinte é buscada de
     // antemão e o palco só troca com a foto pronta, que é quando o movimento começa
     expect(palco).toMatch(/await fotoPronta\([\s\S]*?atual\.replaceWith\(novo\);/);
@@ -409,11 +409,11 @@ describe('conceito', () => {
     expect(palco).toMatch(/<button type="button" class="botao palco__volta" data-palco-mostrar-texto hidden>\s*Mostrar o texto/);
     expect(palco).toMatch(/volta\.hidden = !soFotos;/);
     expect(palco).toMatch(/if \(focar\) atual\.querySelector<HTMLElement>\('\[data-palco-mostrar-texto\]'\)\?\.focus/);
-    // Teclado, toque e mouse passam pela mesma regra (reacaoEmSoFotos, testada em explorar.test.ts)
-    expect(palco).toMatch(/reacaoEmSoFotos\(\{ tipo: 'tecla', tecla: evento\.key \}, controles\)/);
+    // As teclas passam por teclaNaTv, e o toque e o mouse, por reacaoEmSoFotos (testadas em explorar.test.ts)
+    expect(palco).toMatch(/const reacao = teclaNaTv\(evento\.key, \{/);
     expect(palco).toMatch(/reacaoEmSoFotos\(\{ tipo: 'toque' \}, controles\)/);
     expect(palco).toMatch(/addEventListener\('mousemove'/);
-    expect(palco).toMatch(/if \(reacao === 'voltar-ao-texto'\) \{\s*evento\.preventDefault\(\);\s*return trocarSoFotos\(false\);/);
+    expect(palco).toMatch(/case 'voltar-ao-texto':\s*evento\.preventDefault\(\);\s*return trocarSoFotos\(false\);/);
     // Os controles somem sozinhos, e o foco do teclado nunca fica num controle escondido: escondidos,
     // eles saem da ordem do teclado (visibility) e quem tinha o foco o perde
     expect(palco).toMatch(/setTimeout\(esconderControles, SEGUNDOS_DOS_CONTROLES \* 1000\)/);
@@ -468,7 +468,7 @@ describe('conceito', () => {
     // docs/decisoes.md, "Explorar". Sem script, "Anterior" e "Próxima" continuam funcionando
     const palco = tela('explorar/Palco.astro');
     for (const nome of ['Anterior', 'Próxima', 'Passar sozinho', 'Parar de passar sozinho', 'Pausar', 'Retomar', 'Sair do modo TV', 'Me mostre outra']) expect(palco).toContain(nome);
-    expect(palco).toMatch(/<a class="botao" href=\{depois\}[^>]*rel="next"/);
+    expect(palco).toMatch(/<BotaoDeSimbolo elemento="a" simbolo="proxima" nome="Próxima" cheio class="botao palco__proxima" href=\{depois\}[^>]*rel="next"/);
     // Decisão do Gui, 17/11/2026: quem está vendo escolhe o tempo e pode pausar e retomar. O grupo só
     // aparece com script, o relógio só arma com um tempo escolhido e sem pausa, e a pausa vai no endereço
     expect(palco).toMatch(/data-palco-passar hidden>/);

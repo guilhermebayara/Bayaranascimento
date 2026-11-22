@@ -1,7 +1,7 @@
 // Explorar (docs/decisoes.md): cada filtro e cada ordem, as combinações, o sorteio só entre as
 // visíveis e a regra de quando os trilhos aparecem. Regras em src/lib/explorar.ts.
 import { describe, expect, it } from 'vitest';
-import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, periodoEmOrdem, SEM_FILTRO, soFiltrosConhecidos, sortear, temFiltro, type Contexto, type Filtros, SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos } from '../src/lib/explorar';
+import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, periodoEmOrdem, SEM_FILTRO, soFiltrosConhecidos, sortear, temFiltro, type Contexto, type Filtros, SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos, teclaNaTv, type EstadoDaTv } from '../src/lib/explorar';
 
 const m = (id: string, ano: number, o: Partial<{ mes: number; tipo: string; integrantes: string[]; nucleos: string[]; temas: string[]; fotos: number; relatos: number; criadaEm: string }> = {}) => ({
   id,
@@ -302,18 +302,18 @@ describe('formas de ver e endereço', async () => {
 });
 
 // Defeito achado pelo Gui em 17/11/2026: depois de "Só as fotos", no modo TV, não dava para voltar
-// ao texto nem chegar aos ajustes. A regra do que cada gesto faz está em reacaoEmSoFotos, e o
-// script do palco só obedece (testes/visual.test.ts confere a ligação).
+// ao texto nem chegar aos ajustes. A regra do toque e do mouse está em reacaoEmSoFotos, e a das
+// teclas, em teclaNaTv; o script do palco só obedece (testes/visual.test.ts confere a ligação).
 describe('"Só as fotos", no modo TV: sempre existe caminho de volta', () => {
-  const tecla = (t: string) => ({ tipo: 'tecla', tecla: t }) as const;
+  const soFotos = (controlesAVista: boolean) => ({ barra: true, ajustesAbertos: false, ocultos: false, soFotos: true, controlesAVista, focoNaBarra: controlesAVista });
 
-  it('pelo teclado: o Esc volta ao modo com texto, com os controles à vista ou escondidos', () => {
-    expect(reacaoEmSoFotos(tecla('Escape'), false)).toBe('voltar-ao-texto');
-    expect(reacaoEmSoFotos(tecla('Escape'), true)).toBe('voltar-ao-texto');
+  it('pelo teclado: o Esc mostra os controles escondidos e, com eles à vista, volta ao modo com texto', () => {
+    expect(teclaNaTv('Escape', soFotos(false))).toBe('mostrar-controles');
+    expect(teclaNaTv('Escape', soFotos(true))).toBe('voltar-ao-texto');
   });
 
   it('pelo teclado e pelo controle da TV: qualquer outra tecla traz os controles de volta', () => {
-    for (const t of ['Enter', 'ArrowUp', 'ArrowDown', ' ', 'Tab', 'MediaPlayPause', 'ContextMenu', 'a']) expect(reacaoEmSoFotos(tecla(t), false), t).toBe('mostrar-controles');
+    for (const t of ['Enter', 'ArrowUp', 'ArrowDown', ' ', 'Tab', 'ContextMenu', 'a']) expect(teclaNaTv(t, soFotos(false)), t).toBe('mostrar-controles');
   });
 
   it('pelo toque, pelo clique e pelo mouse: os controles voltam', () => {
@@ -321,27 +321,73 @@ describe('"Só as fotos", no modo TV: sempre existe caminho de volta', () => {
     expect(reacaoEmSoFotos({ tipo: 'mouse' }, false)).toBe('mostrar-controles');
   });
 
-  it('as setas para os lados continuam trocando de memória, sem mostrar os controles', () => {
-    for (const visiveis of [false, true]) {
-      expect(reacaoEmSoFotos(tecla('ArrowRight'), visiveis)).toBe('passar');
-      expect(reacaoEmSoFotos(tecla('ArrowLeft'), visiveis)).toBe('passar');
-    }
+  it('com os controles escondidos, as setas para os lados e as teclas de mídia passam sem mostrar a barra', () => {
+    expect(teclaNaTv('ArrowRight', soFotos(false))).toBe('proxima');
+    expect(teclaNaTv('ArrowLeft', soFotos(false))).toBe('anterior');
+    expect(teclaNaTv('MediaTrackNext', soFotos(false))).toBe('proxima');
   });
 
   it('com os controles à vista, o gesto faz o que sempre fez (o Enter aciona "Mostrar o texto")', () => {
-    expect(reacaoEmSoFotos(tecla('Enter'), true)).toBe('seguir');
+    expect(teclaNaTv('Enter', soFotos(true))).toBe('seguir');
     expect(reacaoEmSoFotos({ tipo: 'toque' }, true)).toBe('seguir');
   });
 
   it('nenhum gesto fica sem saída: de qualquer estado, em no máximo dois passos se volta ao texto', () => {
-    // Teclado: Enter mostra os controles com o foco em "Mostrar o texto", e o segundo Enter o aciona.
-    // Toque: o primeiro traz os controles, o segundo cai em "Mostrar o texto".
-    for (const gesto of [tecla('Enter'), { tipo: 'toque' } as const]) {
-      const primeiro = reacaoEmSoFotos(gesto, false);
-      expect(primeiro).toBe('mostrar-controles');
-      expect(reacaoEmSoFotos(gesto, true)).toBe('seguir');
-    }
+    // Teclado: o Esc mostra os controles e o segundo Esc volta ao texto. Toque: o primeiro traz os
+    // controles, o segundo cai em "Mostrar o texto".
+    expect(teclaNaTv('Escape', soFotos(false))).toBe('mostrar-controles');
+    expect(teclaNaTv('Escape', soFotos(true))).toBe('voltar-ao-texto');
+    expect(reacaoEmSoFotos({ tipo: 'toque' }, false)).toBe('mostrar-controles');
+    expect(reacaoEmSoFotos({ tipo: 'toque' }, true)).toBe('seguir');
     expect(SEGUNDOS_DOS_CONTROLES).toBeGreaterThanOrEqual(4);
+  });
+});
+
+// A lógica de interface de TV (decisão do Gui, 22/11/2026). A tabela das teclas está em
+// docs/visual.md, "O modo TV", e cada linha dela é um caso daqui.
+describe('as teclas do modo TV', () => {
+  const tv = (mais: Partial<EstadoDaTv> = {}): EstadoDaTv => ({ barra: true, ajustesAbertos: false, ocultos: false, soFotos: false, controlesAVista: false, focoNaBarra: true, ...mais });
+
+  it('as setas para os lados andam pela barra quando ela tem o foco, e fora dela trocam de memória', () => {
+    expect(teclaNaTv('ArrowRight', tv())).toBe('andar');
+    expect(teclaNaTv('ArrowLeft', tv())).toBe('andar');
+    expect(teclaNaTv('ArrowRight', tv({ focoNaBarra: false }))).toBe('proxima');
+    expect(teclaNaTv('ArrowLeft', tv({ focoNaBarra: false }))).toBe('anterior');
+    // Abaixo de 62rem não há barra: as setas trocam de memória, como antes
+    expect(teclaNaTv('ArrowRight', tv({ barra: false }))).toBe('proxima');
+  });
+
+  it('com "Ajustes" aberto, as setas para cima e para baixo entram na folha e voltam', () => {
+    expect(teclaNaTv('ArrowUp', tv({ ajustesAbertos: true }))).toBe('subir');
+    expect(teclaNaTv('ArrowDown', tv({ ajustesAbertos: true }))).toBe('descer');
+    expect(teclaNaTv('ArrowUp', tv())).toBe('seguir');
+  });
+
+  it('o Enter segue o caminho do navegador, e o espaço aciona também os links', () => {
+    expect(teclaNaTv('Enter', tv())).toBe('seguir');
+    expect(teclaNaTv(' ', tv())).toBe('acionar');
+  });
+
+  it('as teclas de mídia fazem o que dizem', () => {
+    expect(teclaNaTv('MediaPlayPause', tv())).toBe('tocar-ou-pausar');
+    expect(teclaNaTv('MediaTrackNext', tv())).toBe('proxima');
+    expect(teclaNaTv('MediaTrackPrevious', tv())).toBe('anterior');
+    expect(teclaNaTv('MediaTrackNext', tv({ focoNaBarra: false }))).toBe('proxima');
+  });
+
+  it('o Esc fecha primeiro "Ajustes", depois mostra os controles ocultos e só então sai', () => {
+    expect(teclaNaTv('Escape', tv({ ajustesAbertos: true }))).toBe('fechar-ajustes');
+    expect(teclaNaTv('Escape', tv({ ocultos: true }))).toBe('reexibir');
+    expect(teclaNaTv('Escape', tv())).toBe('sair');
+    // Em "Só as fotos": "Ajustes", os controles escondidos, o texto e só então a saída
+    expect(teclaNaTv('Escape', tv({ soFotos: true, ajustesAbertos: true, controlesAVista: true }))).toBe('fechar-ajustes');
+    expect(teclaNaTv('Escape', tv({ soFotos: true }))).toBe('mostrar-controles');
+    expect(teclaNaTv('Escape', tv({ soFotos: true, controlesAVista: true }))).toBe('voltar-ao-texto');
+  });
+
+  it('com os controles ocultos pelo botão, qualquer tecla os traz de volta, e a de mídia ainda age', () => {
+    for (const t of ['ArrowRight', 'ArrowLeft', 'Enter', ' ', 'Tab', 'Escape', 'a']) expect(teclaNaTv(t, tv({ ocultos: true, focoNaBarra: false })), t).toBe('reexibir');
+    expect(teclaNaTv('MediaPlayPause', tv({ ocultos: true }))).toBe('tocar-ou-pausar');
   });
 });
 

@@ -1452,3 +1452,99 @@ textarea.campo__entrada {
   justify-content: space-between;
   gap: var(--e-2);
 }
+
+/* --- O botão de símbolo (BotaoDeSimbolo.astro, src/visual/simbolos.ts) -----------------------------
+   Os sinais do controle da TV e do tocador (decisão do Gui, 22/11/2026). Um círculo de toque inteiro
+   com o símbolo no meio, no traço dos rabiscos. O nome nunca some: é o nome acessível e aparece
+   escrito junto do botão no foco do teclado e no ponteiro, numa etiqueta de tinta que não ocupa lugar
+   (por padrão embaixo; com --nome-acima, em cima). Quem usa garante o espaço livre onde a etiqueta
+   aparece, para ela não cobrir outra coisa. O cheio é a ação principal do grupo, como o botão cheio. */
+.botao-simbolo {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--toque);
+  height: var(--toque);
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: none;
+  color: var(--tinta);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-decoration: none;
+  list-style: none;
+  cursor: pointer;
+}
+.botao-simbolo[hidden] {
+  display: none;
+}
+.botao-simbolo::-webkit-details-marker {
+  display: none;
+}
+/* O botão cheio do sistema leva a seta depois do texto; aqui o símbolo já diz tudo */
+.botao-simbolo::after {
+  content: none;
+}
+.botao-simbolo .simbolo {
+  width: 1.5em;
+  height: 1.5em;
+}
+.botao-simbolo--cheio {
+  background: var(--tinta);
+  color: var(--branco);
+}
+.botao-simbolo[aria-disabled='true'] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .botao-simbolo:not(.botao-simbolo--cheio):hover {
+    background: var(--papel-recuo);
+  }
+}
+.botao-simbolo:focus-visible {
+  outline: var(--traco) solid var(--tinta);
+  outline-offset: 2px;
+  border-radius: var(--raio-pilula);
+}
+.botao-simbolo__nome {
+  position: absolute;
+  top: calc(100% + var(--e-1));
+  left: 50%;
+  z-index: 1;
+  padding: 0.3em 0.75em 0.35em;
+  border-radius: var(--raio-pilula);
+  background: var(--tinta);
+  color: var(--branco);
+  font-size: var(--t-pequeno);
+  font-weight: 550;
+  line-height: 1;
+  white-space: nowrap;
+  translate: -50% 0;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--tempo-curto) var(--curva),
+    visibility 0s linear var(--tempo-curto);
+}
+.botao-simbolo--nome-acima .botao-simbolo__nome {
+  top: auto;
+  bottom: calc(100% + var(--e-1));
+}
+.botao-simbolo:focus-visible .botao-simbolo__nome {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity var(--tempo-curto) var(--curva);
+}
+@media (hover: hover) {
+  .botao-simbolo:hover .botao-simbolo__nome {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity var(--tempo-curto) var(--curva);
+  }
+}

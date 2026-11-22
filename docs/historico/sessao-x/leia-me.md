@@ -1,5 +1,7 @@
 # Sessão X: modo TV sem rolagem, proporcional, com controles que flutuam (22/11/2026)
 
+**A proposta A, a barra, foi escolhida pelo Gui em 22/11/2026**, com o material do site (o cartão branco, sem o vidro), sem o verso e com dois pedidos novos: os símbolos de TV no lugar do texto e a opção de ocultar os controles. A construção (sessão X2) está em `docs/visual.md`, "O modo TV", e em `docs/decisoes.md`, "Explorar"; as capturas novas, em `docs/visual/modo-tv/`. Daqui para baixo, o conceito como foi apresentado.
+
 Conceito com parada. Duas propostas na prévia `tst-tv-proporcional`, trocadas por `conceito` no endereço, com a troca à vista no alto da tela ("Teste: A, a barra · B, o trilho · Como é hoje"). Nada foi para a `homologa`. O Gui escolhe olhando, e uma sessão constrói a vencedora.
 
 - A: https://tst-tv-proporcional.memorias.bayara.com.br/explorar?ver=tv&conceito=a
