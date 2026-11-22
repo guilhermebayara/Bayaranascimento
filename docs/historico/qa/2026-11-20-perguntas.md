@@ -2,6 +2,8 @@
 
 Rodada detalhista na branch `qa-2026-11-20`, nascida da `homologa` (`d1283aa`). O que está aqui é decisão. Nada disto foi mudado.
 
+**Respostas do Gui (registradas pela sessão U, 23/11/2026):** P1 A, os dados de exemplo ficam como estão (regra em "Capítulos e temas", em `docs/decisoes.md`). P2 entra no item "Espaço igual entre os itens dos controles Forma de ver e Mural", em "Decidido, a construir", que continua parado à espera da explicação do Gui. O relatório da rodada está em [`2026-11-20-relatorio.md`](2026-11-20-relatorio.md).
+
 As 17 perguntas que ficaram abertas nos PRs #39 e #40 já foram respondidas na rodada de 17/11/2026, em `docs/historico/qa/2026-11-17-perguntas.md`. Esta rodada não as reabre.
 
 **Como responder.** Cada pergunta tem um número e opções com letra. A primeira opção é a recomendada. Basta responder "P1 A". O que ficar sem resposta continua como está.
@@ -22,7 +24,7 @@ A que mais pesa é a P1: sem ela, a lista de capítulos que rola por dentro do t
 
 A coluna do tema, no computador com mouse, deixa a lista de capítulos rolar por dentro quando ela passa da altura da janela. Lista curta não chega ao teto e não rola. No acervo de exemplo o tema Natal tem um capítulo (Natais), e os outros temas também são curtos. A lista que rola por dentro não aparece em nenhuma prévia.
 
-- **A. Manter como está.** Os dados de exemplo continuam como estão. A regra fica no código e a lista longa aparece quando um tema de verdade tiver capítulos suficientes.
+- **A. Manter como está.** (Resposta do Gui.) Os dados de exemplo continuam como estão. A regra fica no código e a lista longa aparece quando um tema de verdade tiver capítulos suficientes.
 - **B. Acrescentar capítulos de exemplo num tema só,** para a lista interna aparecer na prévia e na gestalt.
 
 ### P2. No celular, "Lista" desce uma linha no tema e no capítulo? **Detalhe**
@@ -31,3 +33,5 @@ No Explorar, as opções que não cabem rolam para o lado, e a opção cortada n
 
 - **A. Manter como está.** As três opções continuam à vista, com "Lista" na linha de baixo.
 - **B. A linha rola para o lado,** como no Explorar, e "Lista" fica na mesma linha das outras.
+
+**Resposta do Gui:** entra no item "Espaço igual entre os itens dos controles Forma de ver e Mural", que continua parado à espera da explicação dele. O código não muda.

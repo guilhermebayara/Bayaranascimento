@@ -73,7 +73,7 @@ export const ofereceEntrar = (disseQueEstava: boolean, estaNaMemoria: boolean): 
 
 /**
  * Junta a preposição "em" com o que recebe a reação ("a memória", "o relato de Elizete", "a foto 1"),
- * sem "em a" nem "em o" (achado do QA de 20/11/2026).
+ * sem "em a" nem "em o" (achado do QA de 20/11/2026, docs/historico/qa/2026-11-20-relatorio.md).
  */
 export function emSobre(sobre: string): string {
   const t = sobre.trim();
