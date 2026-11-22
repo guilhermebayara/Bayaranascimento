@@ -1546,13 +1546,23 @@ export async function restaurarRascunhoDeRelato(relato: Relato, memoria: Publico
 
 /**
  * Os pedidos para liberar que acompanham a nova situação de um relato: o que passou a esperar ganha o
- * pedido; o que deixou de esperar tem o pedido aberto tirado da lista, sem resposta.
+ * pedido; o que deixou de esperar tem o pedido aberto tirado da lista, sem resposta; o que continua
+ * esperando tem o pedido aberto reescrito com o público de agora, porque "Liberar para quem passou a ver"
+ * libera para quem vê a memória agora (revisão Y do PR #160). O histórico guarda uma linha por ciclo de
+ * ampliar (decisão do Gui, 22/11/2026): o pedido aberto é o mesmo até a resposta ou até a espera acabar.
  */
 function comandosDosPedidos(
   relato: Relato,
   novo: { soParaNucleos: string[] | null },
   pedido: { memoriaId: string; de: string; paraQuem: string },
 ) {
+  if (novo.soParaNucleos && relato.soParaNucleos) {
+    return [
+      db()
+        .prepare(`UPDATE avisos SET dados = json_set(COALESCE(dados, '{}'), '$.paraQuem', ?) WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`)
+        .bind(pedido.paraQuem, relato.id),
+    ];
+  }
   if (novo.soParaNucleos && !relato.soParaNucleos) {
     return [
       db()
@@ -1972,22 +1982,25 @@ export async function abrirAvisosDaMemoria(usuario: Usuario, memoriaId: string):
  * lista sem resposta. O público conhecido de cada relato é gravado a cada mudança (migração 105).
  * Devolve os relatos que passaram a esperar agora.
  */
-export async function ajustarRelatosAoPublico(memoriaId: string, antes: Publico, depois: Publico, quemMudou: string): Promise<Relato[]> {
+export async function ajustarRelatosAoPublico(
+  memoriaId: string,
+  antes: Publico,
+  depois: Publico,
+  pedido: { quemNaoEspera: string; de: string; paraQuem: (conhecido: PublicoConhecido) => string },
+): Promise<Relato[]> {
   // O rascunho de relato na lixeira fica fora da conta: parado, até ser restaurado (restaurarRascunhoDeRelato)
   const { results } = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ? AND descartado_em IS NULL').bind(memoriaId).all<Record<string, unknown>>();
   const relatos = results.map(lerRelato);
   if (relatos.length === 0) return [];
   const passaram: Relato[] = [];
   const comandos = relatos.flatMap((r) => {
-    const novo = relatoDepoisDaMudanca(r, antes, depois, quemMudou);
+    const novo = relatoDepoisDaMudanca(r, antes, depois, pedido.quemNaoEspera);
     if (novo.soParaNucleos && !r.soParaNucleos) passaram.push({ ...r, ...novo });
     return [
       db()
         .prepare('UPDATE relatos SET so_para_nucleos = ?, publico_conhecido = ? WHERE id = ?')
         .bind(novo.soParaNucleos ? JSON.stringify(novo.soParaNucleos) : null, gravarPublicoConhecido(novo.publicoConhecido), r.id),
-      ...(r.soParaNucleos && !novo.soParaNucleos
-        ? [db().prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(r.id)]
-        : []),
+      ...comandosDosPedidos(r, novo, { memoriaId, de: pedido.de, paraQuem: pedido.paraQuem(novo.publicoConhecido) }),
     ];
   });
   await db().batch(comandos);

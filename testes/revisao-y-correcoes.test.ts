@@ -55,6 +55,22 @@ describe.skipIf(!comSqlite)('revisão Y: as correções', async () => {
   const descartar = (id: string) => pedir('lixeira', gui, { acao: 'descartar-relato', memoria: id, por: 'aguilar' }, true);
   const restaurar = (id: string) => pedir('lixeira', gui, { acao: 'restaurar-rascunho-de-relato', memoria: id, relato: rascunhoDoGui(id).id }, true);
 
+  it('o pedido diz o público de agora: ampliada para uma família, sem resposta, depois para todos, e liberar libera o que o texto diz', async () => {
+    const base = { titulo: 'Pedido de agora', ano: 2013, tipo: 'causo', pessoas: ['giovanna', 'elizete'], visibilidade: 'nucleos', nucleos: [BN] };
+    const id = (await pedir('memorias', giovanna, base)).corpo.id as string;
+    await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Da Elizete, para a família.' });
+    await pedir('memorias', giovanna, { ...base, id, nucleos: [BN, 'bayara-bracarense'] });
+    expect((await pedidosQueVe(elizete, id))[0].dados.paraQuem).toBe('a família Bayara Bracarense');
+    await pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' });
+    const pedidos = await pedidosQueVe(elizete, id);
+    expect(pedidos.length).toBe(1);
+    expect(pedidos[0].dados.paraQuem).toBe('toda a família');
+    // Liberar: quem passou a ver, toda a família, lê o relato
+    await pedir('avisos', elizete, { aviso: pedidos[0].id, resposta: 'liberar' }, true);
+    const lucio = usuarioDe('lucio');
+    expect((await repo.listarRelatos(lucio, id)).map((r) => r.texto)).toEqual(['Da Elizete, para a família.']);
+  });
+
   describe('o rascunho de relato na lixeira fica parado e volta com o que a regra dá a ele', () => {
     it('a memória foi aberta a todos enquanto ele estava na lixeira: ao restaurar, ele espera e o Gui recebe o pedido', async () => {
       const { id, base } = await comRascunhoQueFicou('Lixeira e ampliar');

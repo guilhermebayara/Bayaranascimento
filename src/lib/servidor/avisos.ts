@@ -58,12 +58,13 @@ export function paraQuemPassouAVer(antes: Publico, depois: Publico, nomes: { id:
  * passaram a esperar.
  */
 export async function mudouQuemVe(memoriaId: string, antes: Publico, depois: Publico, quem: Usuario, criadaPor: string): Promise<Relato[]> {
-  // "Quem ampliou não espera" vale só para quem criou, a única pessoa que muda quem vê
-  const esperam = await ajustarRelatosAoPublico(memoriaId, antes, depois, quem.pessoa === criadaPor ? criadaPor : '');
-  if (esperam.length === 0) return [];
   const nucleos = await listarNucleos();
-  await criarAvisos(
-    esperam.map((r) => ({ para: r.registradoPor, tipo: 'liberar-relato' as const, memoriaId, relatoId: r.id, de: quem.pessoa, dados: { paraQuem: paraQuemPassouAVer(comoPublicoAntigo(r.publicoConhecido), depois, nucleos) } })),
-  );
+  const esperam = await ajustarRelatosAoPublico(memoriaId, antes, depois, {
+    // "Quem ampliou não espera" vale só para quem criou, a única pessoa que muda quem vê
+    quemNaoEspera: quem.pessoa === criadaPor ? criadaPor : '',
+    de: quem.pessoa,
+    // O pedido diz o público de agora, do ponto de vista do relato (comandosDosPedidos)
+    paraQuem: (conhecido) => paraQuemPassouAVer(comoPublicoAntigo(conhecido), depois, nucleos),
+  });
   return esperam.filter((r) => r.situacao === 'publicada');
 }
