@@ -223,4 +223,32 @@ describe.skipIf(!comSqlite)('W3: o que sobrou da revisão Y2', async () => {
       }
     });
   });
+  describe('3: um relato tem no máximo um pedido aberto', () => {
+    it('o toque duplo sem script de quem criou, ao abrir a memória, deixa um pedido só', async () => {
+      const base = { titulo: 'Toque duplo', ano: 2021, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: [BN] };
+      const id = (await pedir('memorias', giovanna, base)).corpo.id as string;
+      await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Da Elizete, no toque duplo.' });
+      const formulario = { id, titulo: base.titulo, ano: base.ano, tipo: base.tipo, pessoas: base.pessoas, visibilidade: 'todos', nucleos: [BN] };
+      let segundo: Awaited<ReturnType<typeof pedir>> | undefined;
+      const primeiro = await cruzar(
+        () => pedir('memorias', giovanna, formulario, true),
+        async () => (segundo = await pedir('memorias', giovanna, formulario, true)),
+      );
+      expect(primeiro.erro).toBeNull();
+      expect(segundo?.erro).toBeNull();
+      expect(visibilidadeDa(id)).toBe('todos');
+      expect(pedidosAbertos(id)).toEqual(['elizete']);
+    });
+
+    it('o banco recusa um segundo pedido aberto para o mesmo relato', async () => {
+      const { id } = await memoriaQueEspera('Dois pedidos no banco');
+      const { id: relato } = relatoDe(id, 'elizete');
+      const inserir = () => banco.sqlite.prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de) VALUES ('elizete', 'liberar-relato', ?, ?, 'giovanna')`).run(id, relato);
+      expect(inserir).toThrow(/UNIQUE/);
+      // Respondido, o pedido sai da lista, e um novo pode entrar
+      banco.sqlite.prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ?`).run(relato);
+      expect(inserir).not.toThrow();
+      expect(pedidosAbertos(id)).toEqual(['elizete']);
+    });
+  });
 });

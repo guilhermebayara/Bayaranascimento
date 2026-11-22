@@ -981,6 +981,18 @@ export const MIGRACOES: Migracao[] = [
        BEGIN SELECT RAISE(ABORT, 'memoria-mudou'); END`,
     ],
   },
+  {
+    // Um relato tem no máximo um pedido para liberar na lista (revisão Y2 do PR #160): dois salvamentos
+    // iguais ao mesmo tempo não criam dois pedidos abertos. Se já houver mais de um, fica o mais novo, e os
+    // outros saem da lista sem resposta, como sai o pedido que perdeu o sentido.
+    id: '108-um-pedido-aberto-por-relato',
+    sql: [
+      `UPDATE avisos SET resolvido_em = datetime('now')
+       WHERE tipo = 'liberar-relato' AND resolvido_em IS NULL
+         AND id NOT IN (SELECT MAX(id) FROM avisos WHERE tipo = 'liberar-relato' AND resolvido_em IS NULL GROUP BY relato_id)`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS avisos_um_pedido_aberto ON avisos (relato_id) WHERE tipo = 'liberar-relato' AND resolvido_em IS NULL`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

@@ -1674,7 +1674,8 @@ function comandosDosPedidos(
   if (novo.soParaNucleos && !relato.soParaNucleos) {
     return [
       db()
-        .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, 'liberar-relato', ?, ?, ?, ?)`)
+        // Um pedido aberto por relato, garantido pelo índice da migração 108: se já houver um, fica ele
+        .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, 'liberar-relato', ?, ?, ?, ?) ON CONFLICT DO NOTHING`)
         .bind(relato.registradoPor, pedido.memoriaId, relato.id, pedido.de, JSON.stringify({ paraQuem: pedido.paraQuem })),
     ];
   }
