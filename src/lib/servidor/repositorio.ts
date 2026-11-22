@@ -1513,7 +1513,7 @@ export async function obterRascunhoQueFicou(memoriaId: string, por: string, usua
 
 /**
  * Descartar o rascunho que ficou para trás: vai para a lixeira de quem o escreveu, e nada é apagado. Na
- * lixeira ele fica parado, fora da conta da espera (ajustarRelatosAoPublico), e guarda o público que já
+ * lixeira ele fica parado, fora da conta da espera (comandosDaMudancaDeQuemVe), e guarda o público que já
  * teve até aqui, para voltar com o que a regra der a ele quando for restaurado (revisão Y do PR #160).
  */
 export async function descartarRascunhoDeRelato(relato: Relato, memoria: Publico): Promise<void> {
