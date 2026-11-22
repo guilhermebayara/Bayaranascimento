@@ -113,4 +113,95 @@ describe.skipIf(!comSqlite)('Z: defeitos das revisões do PR #160', async () => 
       expect(readFileSync('src/pages/api/memorias.ts', 'utf-8')).toContain('await audiosQueEntram(relatoId, id, audiosDoRelato, usuario)');
     });
   });
+
+  describe('D2: o código repetido entre a leitura e o lote', () => {
+    /** Na porta do primeiro lote que grava a memória, outro pedido usa os códigos que este leu */
+    async function comOutroPedidoNaPorta<T>(antesDoLote: () => void, fazer: () => Promise<T>): Promise<T> {
+      let naPorta = true;
+      banco.batch = async (comandos: ComandoDeTeste[]) => {
+        if (naPorta && comandos.some((c) => /^\s*INSERT INTO memorias/.test(c.sql))) {
+          naPorta = false;
+          antesDoLote();
+        }
+        return lote(comandos);
+      };
+      try {
+        return await fazer();
+      } finally {
+        banco.batch = lote;
+      }
+    }
+
+    it('a pessoa nova e o tema novo com o código que outro pedido acabou de usar: o site tenta de novo sozinho e grava', async () => {
+      const r = await comOutroPedidoNaPorta(
+        () => {
+          // Outro pedido cadastrou alguém com o mesmo código (outro nome, que esta pessoa não vê) e um tema
+          banco.sqlite.prepare(`INSERT INTO integrantes (id, nome, criado_por) VALUES ('fulana-zeta', 'Outra Fulana', 'gui')`).run();
+          banco.sqlite.prepare(`INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, privado) VALUES ('gui', 'fulana-zeta', 'amiga', 1)`).run();
+          banco.sqlite.prepare(`INSERT INTO temas (id, nome, criado_por) VALUES ('tema-zeta', 'tema-zeta', 'gui')`).run();
+        },
+        () => pedir('memorias', giovanna, { titulo: 'Z: D2 com pessoa e tema', ano: 2021, tipo: 'causo', pessoas: ['giovanna', 'nova:0'], novasPessoas: [{ nome: 'Fulana Zeta' }], temas: 'tema-zeta' }),
+      );
+      expect(r.status).toBe(201);
+      expect(linhas(`SELECT id FROM memorias WHERE titulo = 'Z: D2 com pessoa e tema'`)).toHaveLength(1);
+      // A pessoa nova ganhou outro código; o tema com o mesmo nome é o mesmo tema
+      expect(linhas<{ id: string }>(`SELECT id FROM integrantes WHERE nome = 'Fulana Zeta'`)).toEqual([{ id: 'fulana-zeta-2' }]);
+      expect(linhas<{ n: number }>(`SELECT COUNT(*) AS n FROM tema_memorias WHERE tema_id = 'tema-zeta' AND memoria_id = ?`, r.corpo.id as string)[0].n).toBe(1);
+    });
+
+    it('o código da memória que outro pedido acabou de usar: a memória nasce com outro código', async () => {
+      let usado = '';
+      banco.batch = async (comandos: ComandoDeTeste[]) => {
+        const insere = comandos.find((c) => /^\s*INSERT INTO memorias/.test(c.sql));
+        if (insere && !usado) {
+          // O código que este pedido sorteou: o primeiro valor do INSERT
+          usado = (insere as unknown as { valores: string[] }).valores[0]!;
+          banco.sqlite.prepare(`INSERT INTO memorias (id, titulo, ano, tipo, visibilidade, situacao, criada_por) VALUES (?, 'Do outro pedido', 2000, 'causo', 'todos', 'publicada', 'gui')`).run(usado);
+        }
+        return lote(comandos);
+      };
+      let r: Awaited<ReturnType<typeof pedir>>;
+      try {
+        r = await pedir('memorias', giovanna, { titulo: 'Z: D2 com o código', ano: 2021, tipo: 'causo', pessoas: ['giovanna'] });
+      } finally {
+        banco.batch = lote;
+      }
+      expect(r.status).toBe(201);
+      expect(usado).not.toBe('');
+      expect(r.corpo.id).not.toBe(usado);
+      expect(linhas<{ titulo: string }>('SELECT titulo FROM memorias WHERE id = ?', usado)).toEqual([{ titulo: 'Do outro pedido' }]);
+    });
+
+    it('se o código repete toda vez, nada fica, e a pessoa volta para a página com o recado e o que digitou', async () => {
+      banco.batch = async (comandos: ComandoDeTeste[]) => {
+        if (comandos.some((c) => /^\s*INSERT INTO memorias/.test(c.sql))) throw new Error('D1_ERROR: UNIQUE constraint failed: memorias.id: SQLITE_CONSTRAINT');
+        return lote(comandos);
+      };
+      try {
+        const antes = impressao();
+        const r = await pedir('memorias', giovanna, { titulo: 'Z: D2 sem sorte', ano: 2021, tipo: 'causo', pessoas: ['giovanna', 'nova:0'], novasPessoas: [{ nome: 'Beltrana Zeta' }], temas: 'tema-sem-sorte' });
+        expect(r.status).toBe(503);
+        expect(r.corpo.erro).toBe('Não consegui salvar.');
+        expect(impressao()).toBe(antes);
+        // Sem script: volta para a página do formulário, com o recado (o que foi digitado volta pela guarda do formulário)
+        const dados = new FormData();
+        for (const [k, v] of Object.entries({ titulo: 'Z: D2 sem sorte', ano: '2021', tipo: 'causo', pessoas: 'giovanna' })) dados.append(k, v);
+        const request = new Request('http://localhost/api/memorias', { method: 'POST', headers: { Origin: 'http://localhost' }, body: dados });
+        const resposta = await rotas.memorias.POST({ request, locals: { usuario: giovanna, tipos } } as never);
+        const destino = new URL(resposta.headers.get('Location') ?? '/', 'http://localhost');
+        expect(destino.pathname).toBe('/nova');
+        expect(destino.searchParams.get('erro')).toBe('Não consegui salvar.');
+        expect(impressao()).toBe(antes);
+      } finally {
+        banco.batch = lote;
+      }
+    });
+
+    it('só o código repetido tenta de novo: outra falha do banco continua sendo erro', () => {
+      expect(repo.codigoRepetido(new Error('D1_ERROR: UNIQUE constraint failed: integrantes.id: SQLITE_CONSTRAINT'))).toBe(true);
+      expect(repo.codigoRepetido(new Error('UNIQUE constraint failed: temas.id'))).toBe(true);
+      expect(repo.codigoRepetido(new Error('UNIQUE constraint failed: memoria_nucleos.memoria_id'))).toBe(false);
+      expect(repo.codigoRepetido(new Error('D1_ERROR: falha de teste'))).toBe(false);
+    });
+  });
 });

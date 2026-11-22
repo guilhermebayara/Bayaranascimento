@@ -92,6 +92,22 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(impressao()).toBe(antes);
   });
 
+  it('/api/memorias: o código que repete nas três tentativas recusa sem gravar nada (D2 da sessão Z)', async () => {
+    const lote = banco.batch.bind(banco);
+    banco.batch = async (comandos) => {
+      if (comandos.some((c) => /^\s*INSERT INTO memorias/.test(c.sql))) throw new Error('D1_ERROR: UNIQUE constraint failed: memorias.id: SQLITE_CONSTRAINT');
+      return lote(comandos);
+    };
+    try {
+      const antes = impressao();
+      const r = await salvar(elizete, { titulo: 'Recusada pelo código', ano: 2020, tipo, pessoas: ['nova:0'], novasPessoas: [{ nome: 'Pessoa do Código' }], temas: 'Tema do Código' });
+      expect(r.status).toBe(503);
+      expect(impressao()).toBe(antes);
+    } finally {
+      banco.batch = lote;
+    }
+  });
+
   it('o mesmo pedido, sem o que era recusado, grava tudo, e a mesma pessoa nova repetida vira uma só', async () => {
     const r = await salvar(elizete, { titulo: 'Aceita', ano: 2020, tipo, pessoas: ['nova:0', 'nova:1'], novasPessoas: [{ nome: 'Pessoa Aceita' }, { nome: 'Pessoa Aceita' }], temas: 'Tema Aceito', relato: { por: 'elizete', texto: 'O meu relato.' } });
     expect(r.status).toBe(201);

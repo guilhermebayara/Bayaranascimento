@@ -38,6 +38,7 @@ import {
   pessoasQueSoVoceVe,
   listarAudiosDosRelatos,
   listarMensagensDosRelatos,
+  codigoRepetido,
   MemoriaMudou,
   RECADO_MEMORIA_MUDOU,
   refazerSeAMemoriaMudou,
@@ -126,9 +127,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
  * sem script.
  */
 async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response> {
-  const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
-  return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
+  // O código da memória, da pessoa nova ou do tema novo que outro pedido usou no meio tempo: o lote voltou
+  // inteiro, e o site tenta de novo sozinho, com outro código. Se ainda assim falhar, a pessoa volta para a
+  // página com o recado e com o que digitou (D2 da sessão Z, 22/11/2026)
+  for (let vez = 1; ; vez++) {
+    try {
+      const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
+      return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
+    } catch (e) {
+      if (!codigoRepetido(e)) throw e;
+      if (vez >= TENTATIVAS_COM_CODIGO_NOVO) return erro(503, 'Não consegui salvar.');
+    }
+  }
 }
+const TENTATIVAS_COM_CODIGO_NOVO = 3;
 
 const mesmasFamilias = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((n) => b.includes(n));
 

@@ -179,6 +179,15 @@ export async function refazerSeAMemoriaMudou<T>(fazer: () => Promise<T>, tentati
     }
   }
 }
+/**
+ * O código novo (da memória, da pessoa nova, do tema novo) foi usado por outro pedido entre a leitura e o
+ * lote: o lote inteiro voltou, e o pedido pode ser tratado de novo, com um código lido do banco de agora
+ * (D2 da sessão Z, 22/11/2026).
+ */
+export function codigoRepetido(erro: unknown): boolean {
+  return /UNIQUE constraint failed: (memorias|integrantes|temas)\.id\b/.test(String((erro as Error)?.message ?? erro));
+}
+
 /** Um comando do banco, para gravar junto num lote (db.batch, uma transação). */
 export type Comando = ReturnType<ReturnType<typeof banco>['prepare']>;
 
