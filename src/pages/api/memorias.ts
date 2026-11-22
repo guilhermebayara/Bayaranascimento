@@ -120,9 +120,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
  * Mudar quem vê conta com os relatos que a rota leu. Se outro lote mudou a memória ou os relatos dela no
  * meio tempo (um relato novo, uma resposta ao pedido, outro salvamento), o lote volta sem gravar nada
  * (MemoriaMudou), e o pedido é tratado de novo, lendo o banco de agora: a espera sai de todo relato que
- * existe na hora do lote (revisão Y2 do PR #160, item 4b). Antes de gravar o lote, tratar só grava o que
- * não depende da corrida e que a segunda vez reaproveita (a pessoa nova, o tema). Depois de três
- * tentativas, a pessoa recebe o recado, com e sem script.
+ * existe na hora do lote (revisão Y2 do PR #160, item 4b). Tratar não grava nada antes do lote: a pessoa
+ * nova e o tema novo só ganham o id antes e são cadastrados no mesmo lote da memória, então a nova
+ * tentativa começa do zero (Y3 do PR #160). Depois de três tentativas, a pessoa recebe o recado, com e
+ * sem script.
  */
 async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response> {
   const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
