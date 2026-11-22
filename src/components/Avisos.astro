@@ -6,6 +6,7 @@ import { fraseDoAviso } from '../lib/avisos';
 import type { Aviso } from '../lib/servidor/repositorio';
 import { listarIntegrantes } from '../lib/servidor/repositorio';
 import { diaMesCurto } from '../lib/visual';
+import { chaveDoPublico } from '../lib/servidor/permissoes';
 
 interface Props {
   avisos: Aviso[];
@@ -53,6 +54,8 @@ const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
               {a.tipo === 'liberar-relato' && a.relato && (
                 <form class="aviso__resposta" method="post" action="/api/avisos" data-no-lugar={`avisos-${onde} retrato`}>
                   <input type="hidden" name="aviso" value={a.id} />
+                  {/* O público que a pessoa leu no pedido: se a memória mudar antes da resposta, a rota não faz nada e mostra o pedido de agora */}
+                  <input type="hidden" name="publico" value={chaveDoPublico(a.publico)} />
                   <input type="hidden" name="volta" value={volta} />
                   <button type="submit" class="acao" name="resposta" value="liberar">
                     Liberar para quem passou a ver

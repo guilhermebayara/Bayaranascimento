@@ -8,6 +8,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fraseDosRelatosQueEsperam } from '../src/lib/avisos';
 import { paraQuemPassouAVer } from '../src/lib/servidor/avisos';
+import { comPublicoDaPagina } from './apoio/pedido';
 import { cabeNoConhecido, estaNoPublicoDoRelato, juntarPublicos, publicoConhecidoAntes, publicoMudou, relatoDepoisDaMudanca, veORelato } from '../src/lib/servidor/permissoes';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 
@@ -114,7 +115,7 @@ describe.skipIf(!comSqlite)('ampliar quem vê, no banco e nas rotas', async () =
   };
   const responder = async (quem: Usuario, campos: Record<string, string>) => {
     const dados = new FormData();
-    for (const [k, v] of Object.entries(campos)) dados.set(k, v);
+    for (const [k, v] of Object.entries(comPublicoDaPagina(banco.sqlite, campos))) dados.set(k, String(v));
     const request = new Request('http://localhost/api/avisos', { method: 'POST', headers: { Origin: 'http://localhost' }, body: dados });
     const resposta = await avisos.POST({ request, locals: { usuario: quem, tipos } } as unknown as Parameters<typeof avisos.POST>[0]);
     return { status: resposta.status, local: resposta.headers.get('Location') ?? '' };

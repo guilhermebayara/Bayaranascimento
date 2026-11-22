@@ -341,6 +341,16 @@ export function publicoMudou(antes: Publico, depois: Publico): boolean {
 }
 
 /**
+ * O público da memória como o pedido para liberar o mostra, numa chave que a página manda junto com a
+ * resposta: "todos", ou "nucleos:" e as famílias em ordem. Se a de agora for outra, a memória mudou depois
+ * de a pessoa ler o pedido, e a resposta não vale (revisão Y2 do PR #160). Marcar ou tirar famílias numa
+ * memória aberta a todos não muda quem vê, e não muda a chave (como publicoMudou).
+ */
+export function chaveDoPublico(publico: Publico): string {
+  return publico.visibilidade === 'todos' ? 'todos' : `nucleos:${[...publico.nucleos].sort().join(',')}`;
+}
+
+/**
  * O relato que espera o sim do autor depois de a memória ser ampliada fica só para quem já o viu: os
  * membros dos núcleos do público conhecido dele. Quem registrou sempre vê o que escreveu. Sem espera
  * (soParaNucleos vazio), o relato acompanha a memória.

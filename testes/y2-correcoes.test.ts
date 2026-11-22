@@ -3,6 +3,7 @@
 // dois pedidos: o primeiro lê tudo e para na porta do lote que grava a ficha; o outro passa inteiro.
 import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type ComandoDeTeste, type D1DeTeste } from './apoio/d1';
+import { comPublicoDaPagina } from './apoio/pedido';
 
 const comSqlite = await temSqlite();
 const env = vi.hoisted(() => ({ AMBIENTE: 'previa' as string, DB: undefined as unknown, FOTOS: undefined as unknown }));
@@ -40,7 +41,7 @@ describe.skipIf(!comSqlite)('W3: o que sobrou da revisão Y2', async () => {
   /** Um pedido à rota: em JSON, ou como o formulário comum (sem script), que volta com o recado no endereço */
   const pedir = async (rota: keyof typeof rotas, quem: Usuario, corpo: Record<string, unknown>, comoFormulario = false) => {
     const dados = new FormData();
-    if (comoFormulario) for (const [k, v] of Object.entries(corpo)) for (const um of Array.isArray(v) ? v : [v]) dados.append(k, String(um));
+    if (comoFormulario) for (const [k, v] of Object.entries(rota === 'avisos' ? comPublicoDaPagina(banco.sqlite, corpo) : corpo)) for (const um of Array.isArray(v) ? v : [v]) dados.append(k, String(um));
     const request = new Request(`http://localhost/api/${rota}`, {
       method: 'POST',
       headers: comoFormulario ? { Origin: 'http://localhost' } : { 'Content-Type': 'application/json', Origin: 'http://localhost' },
@@ -249,6 +250,94 @@ describe.skipIf(!comSqlite)('W3: o que sobrou da revisão Y2', async () => {
       banco.sqlite.prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ?`).run(relato);
       expect(inserir).not.toThrow();
       expect(pedidosAbertos(id)).toEqual(['elizete']);
+    });
+  });
+  describe('4: a resposta ao pedido diz e faz a mesma coisa', () => {
+    const RECADO = 'A memória mudou, e o pedido também. Confira e responda de novo.';
+    /** Memória da Giovanna, aberta à Bayara Bracarense: o relato da Elizete espera por ela */
+    async function abertaABracarense(titulo: string) {
+      const base = { titulo, ano: 2022, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: [BN] };
+      const id = (await pedir('memorias', giovanna, base)).corpo.id as string;
+      await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: `Da Elizete, em ${titulo}.` });
+      expect((await pedir('memorias', giovanna, { ...base, id, nucleos: [BN, BB] })).corpo.esperam).toEqual(['elizete']);
+      const aviso = (await repo.listarAvisos(elizete)).find((a) => a.memoriaId === id && a.tipo === 'liberar-relato')!;
+      expect(aviso.dados.paraQuem).toBe('a família Bayara Bracarense');
+      return { id, base, aviso, relato: relatoDe(id, 'elizete').id, lido: `nucleos:${[BB, BN].join(',')}` };
+    }
+
+    it('pelo aviso: a memória foi aberta a todos depois de a Elizete ler o pedido; "Liberar" não libera nada e volta ao pedido de agora', async () => {
+      const { id, base, aviso, lido } = await abertaABracarense('Liberar o que leu');
+      await pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' });
+      const antes = impressao();
+      const r = await pedir('avisos', elizete, { aviso: aviso.id, resposta: 'liberar', publico: lido, volta: '/conta#avisos' }, true);
+      expect(r.erro).toBe(RECADO);
+      expect(r.destino).toBe('/conta#avisos');
+      expect(impressao()).toBe(antes);
+      expect(await textosQueVe(lucio, id)).toEqual([]);
+      // O pedido de agora diz toda a família, e a resposta com o público que ele diz vale
+      expect((await repo.listarAvisos(elizete)).find((a) => a.id === aviso.id)?.dados.paraQuem).toBe('toda a família');
+      expect((await pedir('avisos', elizete, { aviso: aviso.id, resposta: 'liberar', publico: 'todos' }, true)).ok).toBe('Relato liberado para quem passou a ver a memória.');
+      expect(await textosQueVe(lucio, id)).toEqual(['Da Elizete, em Liberar o que leu.']);
+    });
+
+    it('"Manter como estava" também não vale para um público que a pessoa não leu', async () => {
+      const { id, base, aviso, lido } = await abertaABracarense('Manter o que leu');
+      await pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' });
+      const antes = impressao();
+      expect((await pedir('avisos', elizete, { aviso: aviso.id, resposta: 'manter', publico: lido }, true)).erro).toBe(RECADO);
+      expect(impressao()).toBe(antes);
+      expect(pedidosAbertos(id)).toEqual(['elizete']);
+    });
+
+    it('pela linha do relato: liberar com o público que a linha mostrou antes de a memória mudar não libera', async () => {
+      const { id, base, relato, lido } = await abertaABracarense('Linha do relato');
+      await pedir('avisos', elizete, { relato, resposta: 'manter' }, true);
+      await pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' });
+      const antes = impressao();
+      const r = await pedir('avisos', elizete, { relato, resposta: 'liberar', publico: lido, volta: `/memorias/${id}#relato-${relato}` }, true);
+      expect(r.erro).toBe(RECADO);
+      expect(r.destino).toBe(`/memorias/${id}#relato-${relato}`);
+      expect(impressao()).toBe(antes);
+      expect(await textosQueVe(lucio, id)).toEqual([]);
+    });
+
+    it('a memória muda entre a leitura da rota e o lote da resposta: nada é liberado', async () => {
+      const { id, base, aviso, lido } = await abertaABracarense('Corrida da resposta');
+      const r = await cruzar(
+        () => pedir('avisos', elizete, { aviso: aviso.id, resposta: 'liberar', publico: lido }, true),
+        () => pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' }),
+        /resposta = \?/,
+      );
+      expect(r.erro).toBe(RECADO);
+      // Continua só para a família que já o via
+      expect(relatoDe(id, 'elizete').so).toBe(JSON.stringify([BN]));
+      expect(pedidosAbertos(id)).toEqual(['elizete']);
+      expect(await textosQueVe(lucio, id)).toEqual([]);
+    });
+
+    it('a página de antes, que não manda o público, também volta ao pedido de agora', async () => {
+      const { aviso } = await abertaABracarense('Página de antes');
+      const antes = impressao();
+      const dados = new FormData();
+      dados.set('aviso', String(aviso.id));
+      dados.set('resposta', 'liberar');
+      const request = new Request('http://localhost/api/avisos', { method: 'POST', headers: { Origin: 'http://localhost' }, body: dados });
+      const resposta = await rotas.avisos.POST({ request, locals: { usuario: elizete, tipos } } as never);
+      expect(new URL(resposta.headers.get('Location') ?? '/', 'http://localhost').searchParams.get('erro')).toBe(RECADO);
+      expect(impressao()).toBe(antes);
+    });
+
+    it('os dois formulários mandam o público lido, e a linha do relato diz para quem libera', async () => {
+      const { readFileSync } = await import('node:fs');
+      const aviso = readFileSync('src/components/Avisos.astro', 'utf8');
+      const memoria = readFileSync('src/pages/memorias/[id].astro', 'utf8');
+      expect(aviso).toContain('name="publico" value={chaveDoPublico(a.publico)}');
+      expect(memoria).toContain('name="publico" value={chaveDoPublico(memoria)}');
+      expect(memoria).toMatch(/Liberar para \{paraQuemPassouAVer\(comoPublicoAntigo\(relato\.publicoConhecido \?\? relato\.soParaNucleos\), memoria, nucleos\)\}/);
+      const { paraQuemPassouAVer, comoPublicoAntigo } = await import('../src/lib/servidor/avisos');
+      const nomes = [{ id: BN, nome: 'Bayara Nascimento' }, { id: BB, nome: 'Bayara Bracarense' }];
+      expect(paraQuemPassouAVer(comoPublicoAntigo([BN]), { visibilidade: 'todos', nucleos: [] }, nomes)).toBe('toda a família');
+      expect(paraQuemPassouAVer(comoPublicoAntigo([BN]), { visibilidade: 'nucleos', nucleos: [BN, BB] }, nomes)).toBe('a família Bayara Bracarense');
     });
   });
 });

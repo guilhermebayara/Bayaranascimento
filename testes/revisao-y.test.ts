@@ -2,6 +2,7 @@
 // banco SQLite em memória (testes/apoio/d1.ts), como testes/ampliar-relatos.test.ts.
 import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
+import { comPublicoDaPagina } from './apoio/pedido';
 
 const comSqlite = await temSqlite();
 const env = vi.hoisted(() => ({ AMBIENTE: 'previa' as string, DB: undefined as unknown, FOTOS: undefined as unknown }));
@@ -30,7 +31,7 @@ describe.skipIf(!comSqlite)('revisão Y: o que falha no PR #160', async () => {
 
   const pedir = async (rota: keyof typeof rotas, quem: Usuario, corpo: Record<string, unknown>, comoFormulario = false) => {
     const dados = new FormData();
-    if (comoFormulario) for (const [k, v] of Object.entries(corpo)) dados.set(k, String(v));
+    if (comoFormulario) for (const [k, v] of Object.entries(rota === 'avisos' ? comPublicoDaPagina(banco.sqlite, corpo) : corpo)) dados.set(k, String(v));
     const request = new Request(`http://localhost/api/${rota}`, {
       method: 'POST',
       headers: comoFormulario ? { Origin: 'http://localhost' } : { 'Content-Type': 'application/json', Origin: 'http://localhost' },

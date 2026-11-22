@@ -1997,6 +1997,8 @@ export interface Aviso {
   criadoEm: string;
   resolvidoEm: string | null;
   resposta: string | null;
+  /** quem vê a memória agora: o pedido para liberar manda a chave junto com a resposta (chaveDoPublico) */
+  publico: Publico;
 }
 
 export interface AvisoNovo {
@@ -2027,7 +2029,8 @@ export async function criarAvisos(avisos: AvisoNovo[]): Promise<void> {
 export async function listarAvisos(usuario: Usuario, { historico = false }: { historico?: boolean } = {}): Promise<Aviso[]> {
   const { results } = await db()
     .prepare(
-      `SELECT a.*, m.titulo, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.situacao AS relato_situacao, r.so_para_nucleos AS relato_so,
+      `SELECT a.*, m.titulo, m.visibilidade AS memoria_visibilidade,
+         (SELECT json_group_array(nucleo_id) FROM memoria_nucleos WHERE memoria_id = m.id) AS memoria_nucleos, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.situacao AS relato_situacao, r.so_para_nucleos AS relato_so,
          r.descartado_em AS relato_descartado
        FROM avisos a JOIN memorias m ON m.id = a.memoria_id
        LEFT JOIN relatos r ON r.id = a.relato_id
@@ -2064,6 +2067,7 @@ export async function listarAvisos(usuario: Usuario, { historico = false }: { hi
       criadoEm: a.criado_em as string,
       resolvidoEm: (a.resolvido_em as string | null) ?? null,
       resposta: (a.resposta as string | null) ?? null,
+      publico: { visibilidade: a.memoria_visibilidade as 'todos' | 'nucleos', nucleos: JSON.parse((a.memoria_nucleos as string | null) ?? '[]') as string[] },
     });
   }
   return avisos;

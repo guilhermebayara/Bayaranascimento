@@ -145,4 +145,12 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect((await formulario(sugestoes, '/api/sugestoes', lucio, { memoria: 'recusas', acao: 'aceitar', sugestao: String(sugestao) })).erro).not.toBeNull();
     expect(impressao()).toBe(antes);
   });
+
+  it('/api/avisos: responder com o público de antes de a memória mudar é recusado sem mudar nada', async () => {
+    // O pedido da Elizete na memória "recusas" foi lido com a memória só da Bayara Nascimento; hoje ela está aberta a todos
+    const antes = impressao();
+    const r = await formulario(avisos, '/api/avisos', elizete, { aviso: String(pedido), resposta: 'liberar', publico: 'nucleos:bayara-nascimento' });
+    expect(r.erro).toBe('A memória mudou, e o pedido também. Confira e responda de novo.');
+    expect(impressao()).toBe(antes);
+  });
 });
