@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Esboço C2: escrever vendo a memória</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&family=Nothing+You+Could+Do&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  .memoria { display: grid; grid-template-columns: 96px 1fr; gap: 16px; align-items: center; padding: 14px; border-radius: 18px; background: var(--lilas); }
+  .memoria .polaroid { transform: rotate(-2deg); width: 96px; padding: 5px 5px 16px; }
+  .memoria .titulo { font-size: 24px; }
+  .memoria p { margin: 4px 0 0; }
+  .com { font-family: var(--mono); font-size: 12px; color: var(--suave); }
+  .janela { margin-top: 18px; border-radius: 18px; background: var(--recuo); min-height: 130px; display: flex; align-items: flex-end; justify-content: flex-end; padding: 14px; }
+  .bolha { background: var(--manteiga-pastel); border-radius: 16px 16px 4px 16px; padding: 12px 14px; max-width: 80%; }
+  .caixa-msg { margin-top: 10px; display: flex; align-items: center; gap: 12px; border: 1px solid #dccbb5; background: var(--branco); border-radius: 999px; padding: 6px 6px 6px 18px; }
+  .caixa-msg span { flex: 1; color: var(--suave); }
+  .mic { width: 44px; height: 44px; border-radius: 50%; background: var(--manteiga-tinta); }
+  .dica { font-size: 13px; color: var(--suave); margin: 8px 0 18px; }
+  .inicio .titulo { font-size: 40px; }
+  .linha-rascunho { margin-top: 18px; padding: 14px 0; border-top: 1px solid #d9e6cf; }
+</style>
+</head>
+<body>
+<p class="aviso-esboco">Esboço da crítica C2, 22/11/2026. Mostra um caminho para dois pontos pequenos do relato; não é proposta acabada de tela. O tracejado coral marca o que muda.</p>
+<div class="quadros">
+
+  <section class="quadro">
+    <h2>A. Escrever meu relato, 390 px: a memória no alto</h2>
+    <div class="tela">
+      <p class="rotulo">Relato</p>
+      <p class="titulo" style="font-size:34px;margin:6px 0 16px">Meu relato</p>
+      <div class="memoria novo">
+        <span class="polaroid"><img src="/fotos/exemplos/karol-1.jpg" alt=""></span>
+        <div>
+          <p class="titulo">Jantar de casamento</p>
+          <p class="com">14 nov 2026 · Belo Horizonte</p>
+          <p class="com">Com Elizete, Giovanna, Gui e você</p>
+        </div>
+      </div>
+      <div class="janela"><div class="bolha">Lembro do brinde do Gui, que esqueceu o que ia falar no meio.</div></div>
+      <div class="caixa-msg"><span>+ &nbsp; Mensagem</span><i class="mic"></i></div>
+      <p class="dica">Só você vê até publicar.</p>
+      <a class="botao" href="#">Publicar relato →</a>
+      <p class="nota">Hoje a página mostra só o título da memória, como link, e uma caixa vazia que repete a frase de abertura. A foto, que é o que puxa a lembrança, ficou na página de antes. <b>Muda:</b> a foto-chave pequena, a data, o lugar e quem estava, num bloco na cor do tipo, logo abaixo do título. E “Publicar relato” leva de volta à memória, no relato que acabou de entrar, em vez de ficar nesta página com “Salvo na memória.” e “Relato publicado” lá embaixo, depois dos relatos dos outros.</p>
+    </div>
+  </section>
+
+  <section class="quadro">
+    <h2>B. Início: o rascunho diz de quê e para quem</h2>
+    <div class="tela inicio" style="background:#e3ecd6">
+      <p class="rotulo">Só você vê esta página</p>
+      <p class="titulo">Oi, Lucas Magno.</p>
+      <div class="linha-rascunho novo">
+        <p style="margin:0">Seu relato em <b>“Jantar de casamento”</b> ainda não foi publicado. Por enquanto, só você vê.</p>
+        <p style="margin:10px 0 0"><a class="acao" href="#">Continuar meu relato</a></p>
+      </div>
+      <p class="nota">Hoje a linha diz “Você tem um rascunho.” e “Continuar o rascunho”, sem dizer se é memória ou relato, de qual memória, nem que ninguém viu ainda. Na janela de conversa, enviar parece entregar (é o gesto do WhatsApp), e o relato pode ficar parado sem a pessoa saber. <b>Muda:</b> só o texto da linha, com um rascunho; com mais de um, continua “Você tem 2 rascunhos.”</p>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
