@@ -165,7 +165,7 @@ const relatoDeVolta =
               <strong>{p.nome}</strong>
               <span>{p.tipo === 'bicho' ? 'bichinho' : 'pessoa'}</span>
             </div>
-            <p class="dica">Excluída por {nome(p.excluidaPor)} em {formatarMomento(p.excluidaEm)}. Restaurar devolve a página, os laços e "Quem estava".</p>
+            <p class="dica">Excluída por {nome(p.excluidaPor)} em {formatarMomento(p.excluidaEm)}. Restaurar devolve a página, os laços e “Quem estava”.</p>
             <div class="lixeira__acoes">
               <form method="post" action="/api/pessoas-excluidas" class="em-linha">
                 <input type="hidden" name="acao" value="restaurar" />

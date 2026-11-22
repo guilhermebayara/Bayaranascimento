@@ -981,7 +981,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         etapas?.ir(etapaDaData);
         if (etapas?.atual() === etapaDaData) focarNaData();
         // Quem ainda não passou da primeira etapa fica nela, e o aviso diz onde o ano se informa
-        if (etapas && etapas.atual() !== etapaDaData) return avisar('Informe o ano, mesmo que seja aproximado, na etapa "Quando e onde".', 'erro');
+        if (etapas && etapas.atual() !== etapaDaData) return avisar('Informe o ano, mesmo que seja aproximado, na etapa “Quando e onde”.', 'erro');
         return avisar('Informe o ano, mesmo que seja aproximado.', 'erro');
       }
 

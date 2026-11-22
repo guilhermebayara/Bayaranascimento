@@ -58,14 +58,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!decisao.ok) return voltar(request, '/lixeira', { erro: decisao.motivo });
     const excluida = (await listarExcluidas(usuario)).find((m) => m.id === id && podeExcluirMemoria(usuario, m).ok);
     if (!excluida || !(await apagarMemoriaDeVez(id, usuario))) return voltar(request, '/lixeira', { erro: 'Memória não encontrada na lixeira.' });
-    return voltar(request, '/lixeira', { ok: `"${excluida.titulo}" foi apagada de vez.` });
+    return voltar(request, '/lixeira', { ok: `“${excluida.titulo}” foi apagada de vez.` });
   }
   if (acao === 'apagar-capitulo-de-vez') {
     const decisao = podeApagarDeVez(usuario, { naLixeira: true });
     if (!decisao.ok) return voltar(request, '/lixeira', { erro: decisao.motivo });
     const capitulo = (await listarCapitulosExcluidos(usuario)).find((c) => c.id === campo(dados, 'capitulo', 120));
     if (!capitulo || !(await apagarCapituloDeVez(capitulo.id, usuario))) return voltar(request, '/lixeira', { erro: 'Capítulo não encontrado na lixeira.' });
-    return voltar(request, '/lixeira', { ok: `O capítulo "${capitulo.titulo}" foi apagado de vez.` });
+    return voltar(request, '/lixeira', { ok: `O capítulo “${capitulo.titulo}” foi apagado de vez.` });
   }
 
   const memoria = await obterMemoria(usuario, id);
@@ -99,7 +99,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const rascunho = memoria.situacao === 'rascunho';
     // A página Rascunhos saiu (resposta do Gui à P150, 17/11/2026): os rascunhos e a lixeira moram em "Sua conta"
     return voltar(request, rascunho ? '/conta' : '/', {
-      ok: rascunho ? 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' : `"${memoria.titulo}" foi para a lixeira. Dá para restaurar pela lixeira, em Sua conta.`,
+      ok: rascunho ? 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' : `“${memoria.titulo}” foi para a lixeira. Dá para restaurar pela lixeira, em Sua conta.`,
     });
   }
 

@@ -148,7 +148,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const decisao = podeMudarLacoDoCoracao(usuario, laco);
     if (!decisao.ok) return falhar(decisao.motivo);
     const nomeDoLaco = campo(dados, 'nomeDoLaco', 40);
-    if (!nomeDoLaco) return falhar('Dê um nome ao laço, como "amigo-irmão" ou "afilhada".');
+    if (!nomeDoLaco) return falhar('Dê um nome ao laço, como “amigo-irmão” ou “afilhada”.');
     const papelBruto = campo(dados, 'papel', 12);
     if (papelBruto && !(papelBruto in PAPEIS)) return falhar('Papel desconhecido.');
     await mudarLacoDoCoracaoDeOutro(laco, { nome: nomeDoLaco, papel: (papelBruto as Papel) || null }, usuario);
@@ -160,7 +160,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!pessoa) return falhar('Escolha a pessoa.');
     if (pessoa.id === usuario.pessoa) return falhar('O laço do coração é entre você e outra pessoa.');
     const nomeDoLaco = campo(dados, 'nomeDoLaco', 40);
-    if (!nomeDoLaco) return falhar('Dê um nome ao laço, como "amigo-irmão" ou "afilhada".');
+    if (!nomeDoLaco) return falhar('Dê um nome ao laço, como “amigo-irmão” ou “afilhada”.');
     const papelBruto = campo(dados, 'papel', 12);
     if (papelBruto && !(papelBruto in PAPEIS)) return falhar('Papel desconhecido.');
     // A proximidade é o slider do círculo, do mais distante ao mais próximo (decisão do Gui, 18/11/2026).
@@ -198,7 +198,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     else if (papel === 'pai') pares = [[sujeito.id, outra.id]];
     else if (papel === 'irmao') {
       const pais = filiacoes.filter((f) => f.filho === sujeito.id && f.qualidade !== 'consideracao').map((f) => f.responsavel);
-      if (!pais.length) return falhar(`Para ${nome(outra.id)} ser irmão de consideração de ${nome(sujeito.id)}, cadastre antes o pai ou a mãe de ${nome(sujeito.id)}. Ou escolha "Só eu".`);
+      if (!pais.length) return falhar(`Para ${nome(outra.id)} ser irmão de consideração de ${nome(sujeito.id)}, cadastre antes o pai ou a mãe de ${nome(sujeito.id)}. Ou escolha “Só eu”.`);
       pares = pais.map((p) => [outra.id, p]);
     } else if (papel) {
       return falhar('Para a família toda reconhecer um tio, avô, primo ou sobrinho, cadastre o laço pela pessoa do meio. Um tio de consideração é irmão de consideração do seu pai ou da sua mãe: abra a página dele ou dela e adicione o laço lá.');

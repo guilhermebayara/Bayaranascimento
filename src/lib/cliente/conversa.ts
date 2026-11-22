@@ -273,7 +273,7 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
     });
     caixa.querySelector('[data-salvar-edicao]')!.addEventListener('click', () => {
       const novo = area.value.trim();
-      if (!novo) return avisar('A mensagem ficou vazia. Para tirar, use "Apagar".', 'erro');
+      if (!novo) return avisar('A mensagem ficou vazia. Para tirar, use “Apagar”.', 'erro');
       texto.textContent = novo;
       fechar();
       mudou();

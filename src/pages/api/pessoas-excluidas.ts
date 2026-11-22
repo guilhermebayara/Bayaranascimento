@@ -48,7 +48,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const pessoa = (await listarPessoasExcluidas()).find((p) => p.id === id);
     if (!pessoa || !(await restaurarPessoa(pessoa.id))) return voltar(request, '/lixeira', { erro: 'Pessoa não encontrada na lixeira.' });
     // Restaurar a pessoa leva à página dela, que voltou ("Excluir pessoa", em docs/decisoes.md; QA de 18/11/2026)
-    return voltar(request, `/pessoas/${encodeURIComponent(pessoa.id)}`, { ok: `${pessoa.nome} voltou ao acervo, com a página, os laços e "Quem estava".` });
+    return voltar(request, `/pessoas/${encodeURIComponent(pessoa.id)}`, { ok: `${pessoa.nome} voltou ao acervo, com a página, os laços e “Quem estava”.` });
   }
 
   if (acao === 'aprovar' || acao === 'recusar') {

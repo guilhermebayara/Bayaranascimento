@@ -113,6 +113,7 @@ Regra nova que nasce de um achado vira teste em `testes/` ou verificação na gu
 - Sem travessão, sem a construção "não é x, é y" e sem grupos de três para dar ritmo. Vale para o site, os documentos, os commits e as respostas ao Gui.
 - Texto que o Gui escreveu fica como ele escreveu, a menos que ele peça mudança.
 - Os textos do site falam com quem está usando, em frases simples: "sua avó", "seu amigo", "Nova memória". O botão diz o que acontece ao tocar nele.
+- O texto que o site mostra (recados, dicas, títulos) usa aspas curvas: “Festa”, nunca "Festa" (resposta do Gui à P8 do QA de 23/11/2026). `testes/aspas-curvas.test.ts` falha com aspas retas em volta de palavras fora de comentários, atributos e seletores; os dados de exemplo ficam de fora.
 
 ## Visual
 

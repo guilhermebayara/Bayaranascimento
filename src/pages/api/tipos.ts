@@ -26,7 +26,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!rotulo) return 'Dê um nome ao tipo.';
     if (!ehCorDaPaleta(cor)) return 'Escolha uma cor da lista.';
     if (!ehRabisco(icone)) return 'Escolha um desenho da lista.';
-    if (tipos.some((t) => t.rotulo.toLowerCase() === rotulo.toLowerCase())) return `Já existe um tipo chamado "${rotulo}".`;
+    if (tipos.some((t) => t.rotulo.toLowerCase() === rotulo.toLowerCase())) return `Já existe um tipo chamado “${rotulo}”.`;
     return undefined;
   };
   const criar = async (): Promise<string> => {
@@ -39,7 +39,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const problema = validarNovo();
     if (problema) return voltar(request, PAGINA, { erro: problema });
     await criar();
-    return voltar(request, PAGINA, { ok: `Tipo "${rotulo}" criado.` });
+    return voltar(request, PAGINA, { ok: `Tipo “${rotulo}” criado.` });
   }
 
   if (acao === 'editar') {
@@ -50,7 +50,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!ehCorDaPaleta(cor)) return voltar(request, PAGINA, { erro: 'Escolha uma cor da lista.' });
     if (!ehRabisco(icone)) return voltar(request, PAGINA, { erro: 'Escolha um desenho da lista.' });
     if (tipos.some((t) => t.id !== id && t.rotulo.toLowerCase() === rotulo.toLowerCase())) {
-      return voltar(request, PAGINA, { erro: `Já existe um tipo chamado "${rotulo}".` });
+      return voltar(request, PAGINA, { erro: `Já existe um tipo chamado “${rotulo}”.` });
     }
     // "Outro" é a saída de quem não achou o tipo: muda de cor, mas não de nome
     await atualizarTipo(id, id === TIPO_OUTRO ? atual.rotulo : rotulo, cor, icone);
@@ -73,7 +73,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await promoverTextoDeOutro(texto, destino, usuario);
     // Sem número: contar as memórias que o admin não vê entregaria que elas existem (decisão do Gui, 16/11/2026)
     const nomeDoTipo = tipos.find((t) => t.id === destino)?.rotulo ?? rotulo;
-    return voltar(request, PAGINA, { ok: `As memórias com "${texto}" passaram para ${nomeDoTipo}.` });
+    return voltar(request, PAGINA, { ok: `As memórias com “${texto}” passaram para ${nomeDoTipo}.` });
   }
 
   return voltar(request, PAGINA, { erro: 'Ação desconhecida.' });
