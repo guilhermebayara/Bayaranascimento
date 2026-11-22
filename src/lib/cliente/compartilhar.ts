@@ -287,6 +287,9 @@ export async function ligarCompartilhar(raiz: HTMLElement, d: DadosDaImagem): Pr
     const meu = raiz.querySelector<HTMLInputElement>('input[name="nomeNaImagem"][value="meu"]');
     if (meu) {
       meu.disabled = !relato.comOSeuApelido;
+      // Sem apelido próprio, a opção nem aparece (resposta do Gui à P7 do QA de 23/11/2026)
+      const opcao = meu.closest<HTMLElement>('[data-opcao-meu]');
+      if (opcao) opcao.hidden = meu.disabled;
       if (meu.disabled && meu.checked) raiz.querySelector<HTMLInputElement>('input[name="nomeNaImagem"][value="familia"]')!.checked = true;
     }
     const memoria = raiz.querySelector<HTMLElement>('[data-em-memoria]');

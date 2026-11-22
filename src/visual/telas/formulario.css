@@ -2928,6 +2928,10 @@
   font-size: var(--t-pequeno);
   cursor: pointer;
 }
+/* Sem apelido próprio, "O seu apelido" não aparece; sem quem faleceu, "em memória" também não (P7 do QA de 23/11/2026) */
+.pagina-de-formulario :is(.opcao-da-imagem, .marcar-na-imagem)[hidden] {
+  display: none;
+}
 @media (min-width: 62rem) {
   .pagina-de-formulario .estudio {
     grid-template-columns: auto minmax(0, 1fr);
