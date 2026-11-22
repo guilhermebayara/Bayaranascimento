@@ -2,6 +2,7 @@
 import type { APIRoute } from 'astro';
 import { mensagensDerivadas, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
+import { avisarQuemEstava } from '../../lib/servidor/avisos';
 import { alcanceDaCorrecao, podeApagarDeVez, podeEditarMemoria, podeExcluirMemoria, podeVerVersao } from '../../lib/servidor/permissoes';
 import {
   apagarCapituloDeVez,
@@ -108,6 +109,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       fotos: memoria.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
     };
     await atualizarMemoria(memoria, restaurada, usuario, []);
+    // Restaurar é uma correção: quem a versão devolve a "Quem estava" recebe o aviso (QA de 23/11/2026)
+    await avisarQuemEstava({ ...memoria, integrantes: restaurada.integrantes }, memoria.integrantes, usuario);
     return voltar(request, pagina, { ok: 'Versão restaurada. A versão que estava no ar foi para o histórico.' });
   }
 

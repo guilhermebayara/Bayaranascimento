@@ -41,9 +41,15 @@ export interface Sugestao {
  * corrigir a ficha: quem criou a memória e quem está nela, hoje, menos quem sugeriu. O recado vai só
  * para quem registrou o relato. O primeiro que responder resolve, e o aviso sai da lista dos outros.
  */
-export function destinatarios(s: Pick<Sugestao, 'tipo' | 'para' | 'de'>, memoria: { criadaPor: string; integrantes: readonly string[] }): string[] {
+export function destinatarios(
+  s: Pick<Sugestao, 'tipo' | 'para' | 'de'>,
+  memoria: { criadaPor: string; integrantes: readonly string[] },
+  comAcesso?: ReadonlySet<string>,
+): string[] {
   if (s.tipo === 'recado') return [s.para];
-  return [...new Set([memoria.criadaPor, ...memoria.integrantes])].filter((p) => p !== s.de);
+  // Só quem entra no site corrige a ficha: quem está na memória sem acesso (a Vó Bela, o Chico) não
+  // recebe a sugestão nem o aviso (QA de 23/11/2026). Quem criou sempre entra.
+  return [...new Set([memoria.criadaPor, ...memoria.integrantes])].filter((p) => p !== s.de && (!comAcesso || p === memoria.criadaPor || comAcesso.has(p)));
 }
 
 interface DadosAtuais {

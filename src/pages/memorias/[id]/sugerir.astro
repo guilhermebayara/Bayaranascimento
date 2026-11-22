@@ -8,6 +8,7 @@ import CampoAno from '../../../components/CampoAno.astro';
 import { formatarData } from '../../../lib/datas';
 import { destinatarios } from '../../../lib/sugestoes';
 import { podeSugerirDados } from '../../../lib/servidor/permissoes';
+import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { listarIntegrantesQueVe, obterMemoria, pessoasQueONaoVe, pessoasQueSoVoceVe } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -18,7 +19,7 @@ const nome = (id: string) => visiveis.find((i) => i.id === id)?.apelido ?? visiv
 const dados = podeSugerirDados(usuario, memoria).ok;
 const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id));
 // A sugestão de dados vai para quem criou e para quem está na memória (resposta do Gui à sessão F)
-const recebem = destinatarios({ tipo: 'dados', para: memoria.criadaPor, de: usuario.pessoa }, memoria).filter((id) => !naoVe.has(id)).map(nome);
+const recebem = destinatarios({ tipo: 'dados', para: memoria.criadaPor, de: usuario.pessoa }, memoria, await pessoasComAcesso()).filter((id) => !naoVe.has(id)).map(nome);
 const paraQuem = recebem.length > 1 ? `${recebem.slice(0, -1).join(', ')} e ${recebem[recebem.length - 1]}` : (recebem[0] ?? nome(memoria.criadaPor));
 // Quem pode entrar: quem quem sugere vê, que ainda não está, e que não existe só para ela
 const podemEntrar = visiveis.filter((i) => !memoria.integrantes.includes(i.id) && !soDela.has(i.id)).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));

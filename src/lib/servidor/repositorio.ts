@@ -2310,6 +2310,7 @@ export async function criarSugestao(
   s: { memoriaId: string; relatoId: number | null; para: string; tipo: TipoDeSugestao; proposta: Proposta | null; texto: string | null },
   usuario: Usuario,
   memoria: MemoriaDaSugestao,
+  comAcesso: ReadonlySet<string>,
 ): Promise<number> {
   const [r] = await db().batch([
     db()
@@ -2317,7 +2318,7 @@ export async function criarSugestao(
       .bind(s.memoriaId, s.relatoId, usuario.pessoa, s.para, s.tipo, s.proposta ? JSON.stringify(s.proposta) : null, s.texto),
   ]);
   const id = ((r as { results?: { id: number }[] }).results?.[0]?.id ?? 0) as number;
-  const recebem = destinatarios({ tipo: s.tipo, para: s.para, de: usuario.pessoa }, memoria);
+  const recebem = destinatarios({ tipo: s.tipo, para: s.para, de: usuario.pessoa }, memoria, comAcesso);
   await criarAvisos(recebem.map((para) => ({ para, tipo: 'sugestao' as const, memoriaId: s.memoriaId, relatoId: s.relatoId, de: usuario.pessoa, dados: { sugestao: id, recado: s.tipo === 'recado' } })));
   return id;
 }
