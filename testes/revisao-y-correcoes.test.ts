@@ -1,0 +1,94 @@
+// As correções da revisão Y do PR #160 (22/11/2026) além do gabarito (testes/revisao-y.test.ts): o rascunho
+// de relato na lixeira fica parado e volta com o público que a regra dá a ele, o pedido diz o público de
+// agora, "Sua conta" conta o rascunho de relato descartado e mudar quem vê grava tudo de uma vez. Pelas
+// rotas de verdade, sobre o banco SQLite em memória (testes/apoio/d1.ts).
+import { describe, expect, it, vi } from 'vitest';
+import { temSqlite, type D1DeTeste } from './apoio/d1';
+
+const comSqlite = await temSqlite();
+const env = vi.hoisted(() => ({ AMBIENTE: 'previa' as string, DB: undefined as unknown, FOTOS: undefined as unknown }));
+vi.mock('cloudflare:workers', () => ({ env }));
+env.FOTOS = { list: async () => ({ objects: [], truncated: false }), delete: async () => undefined, put: async () => undefined, get: async () => null, head: async () => null };
+
+describe.skipIf(!comSqlite)('revisão Y: as correções', async () => {
+  const { criarD1 } = await import('./apoio/d1');
+  const banco: D1DeTeste = await criarD1();
+  env.DB = banco;
+  await (await import('../src/lib/servidor/banco')).prepararBanco();
+  const repo = await import('../src/lib/servidor/repositorio');
+  const rotas = { memorias: await import('../src/pages/api/memorias'), relatos: await import('../src/pages/api/relatos'), avisos: await import('../src/pages/api/avisos'), lixeira: await import('../src/pages/api/lixeira') };
+  type Usuario = import('../src/lib/servidor/permissoes').Usuario;
+  const tipos = await repo.listarTipos();
+  const linhas = <T>(texto: string, ...valores: (string | number | null)[]) => banco.sqlite.prepare(texto).all(...valores) as T[];
+  const usuarioDe = (pessoa: string): Usuario => ({
+    pessoa,
+    nome: pessoa,
+    admin: Boolean(linhas<{ admin: number }>('SELECT admin FROM integrantes WHERE id = ?', pessoa)[0].admin),
+    nucleos: linhas<{ n: string }>(`SELECT nucleo_id AS n FROM nucleo_membros WHERE integrante_id = ? AND papel = 'membro'`, pessoa).map((l) => l.n),
+  });
+  const [gui, giovanna, elizete] = ['gui', 'giovanna', 'elizete'].map(usuarioDe);
+  const BN = 'bayara-nascimento';
+
+  const pedir = async (rota: keyof typeof rotas, quem: Usuario, corpo: Record<string, unknown>, comoFormulario = false) => {
+    const dados = new FormData();
+    if (comoFormulario) for (const [k, v] of Object.entries(corpo)) dados.set(k, String(v));
+    const request = new Request(`http://localhost/api/${rota}`, {
+      method: 'POST',
+      headers: comoFormulario ? { Origin: 'http://localhost' } : { 'Content-Type': 'application/json', Origin: 'http://localhost' },
+      body: comoFormulario ? dados : JSON.stringify(corpo),
+    });
+    const resposta = await rotas[rota].POST({ request, locals: { usuario: quem, tipos } } as never);
+    return { status: resposta.status, corpo: comoFormulario ? {} : ((await resposta.json()) as Record<string, unknown>) };
+  };
+  const pedidosAbertos = (memoria: string) => linhas<{ para: string; dados: string | null }>(`SELECT para, dados FROM avisos WHERE tipo = 'liberar-relato' AND memoria_id = ? AND resolvido_em IS NULL ORDER BY id`, memoria);
+  const pedidosQueVe = async (quem: Usuario, memoria: string) => (await repo.listarAvisos(quem)).filter((a) => a.memoriaId === memoria && a.tipo === 'liberar-relato');
+  const rascunhoDoGui = (memoria: string) => linhas<{ id: number; so: string | null }>(`SELECT id, so_para_nucleos AS so FROM relatos WHERE memoria_id = ? AND registrado_por = 'gui' AND situacao = 'rascunho'`, memoria)[0];
+
+  /** Memória da Giovanna, só da Bayara Nascimento, com o rascunho do Gui pelo Aguilar e o relato do Aguilar publicado pela Elizete */
+  async function comRascunhoQueFicou(titulo: string) {
+    const base = { titulo, ano: 2016, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: [BN] };
+    const id = (await pedir('memorias', giovanna, base)).corpo.id as string;
+    await pedir('relatos', gui, { memoria: id, por: 'aguilar', texto: 'Rascunho do Gui.', situacao: 'rascunho' });
+    await pedir('relatos', elizete, { memoria: id, por: 'aguilar', texto: 'Publicado pela Elizete.' });
+    return { id, base };
+  }
+  const descartar = (id: string) => pedir('lixeira', gui, { acao: 'descartar-relato', memoria: id, por: 'aguilar' }, true);
+  const restaurar = (id: string) => pedir('lixeira', gui, { acao: 'restaurar-rascunho-de-relato', memoria: id, relato: rascunhoDoGui(id).id }, true);
+
+  describe('o rascunho de relato na lixeira fica parado e volta com o que a regra dá a ele', () => {
+    it('a memória foi aberta a todos enquanto ele estava na lixeira: ao restaurar, ele espera e o Gui recebe o pedido', async () => {
+      const { id, base } = await comRascunhoQueFicou('Lixeira e ampliar');
+      await descartar(id);
+      await pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' });
+      expect(pedidosAbertos(id).map((p) => p.para)).toEqual(['elizete']);
+      await restaurar(id);
+      expect(rascunhoDoGui(id).so).toBe(JSON.stringify([BN]));
+      const pedidos = await pedidosQueVe(gui, id);
+      expect(pedidos.length).toBe(1);
+      expect(pedidos[0].de).toBe('giovanna');
+      expect(pedidos[0].dados.paraQuem).toBe('toda a família');
+    });
+
+    it('esperava ao ir para a lixeira, e a memória foi restringida: o pedido some e, ao restaurar, ele acompanha a memória', async () => {
+      const { id, base } = await comRascunhoQueFicou('Lixeira e restringir');
+      await pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' });
+      expect((await pedidosQueVe(gui, id)).length).toBe(1);
+      await descartar(id);
+      expect(await pedidosQueVe(gui, id)).toEqual([]);
+      await pedir('memorias', giovanna, { ...base, id });
+      await restaurar(id);
+      expect(rascunhoDoGui(id).so).toBeNull();
+      expect(pedidosAbertos(id).filter((p) => p.para === 'gui')).toEqual([]);
+    });
+
+    it('nada mudou enquanto ele estava na lixeira: volta como estava, com o mesmo pedido, sem outro', async () => {
+      const { id, base } = await comRascunhoQueFicou('Lixeira parada');
+      await pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' });
+      await descartar(id);
+      await restaurar(id);
+      expect(rascunhoDoGui(id).so).toBe(JSON.stringify([BN]));
+      expect(pedidosAbertos(id).filter((p) => p.para === 'gui').length).toBe(1);
+      expect((await pedidosQueVe(gui, id)).length).toBe(1);
+    });
+  });
+});

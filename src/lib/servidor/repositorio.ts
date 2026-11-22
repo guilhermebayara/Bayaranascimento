@@ -16,6 +16,7 @@ import {
   comExcluidas,
   pessoasQueNaoVe,
   podeVerRetrato,
+  publicoConhecidoAntes,
   publicoConhecidoAoLiberar,
   relatoDepoisDaMudanca,
   veORelato,
@@ -113,6 +114,8 @@ export interface Relato {
   soParaNucleos: string[] | null;
   /** O público mais amplo que o relato já teve (migração 105; ver relatoDepoisDaMudanca). Vazio: ainda sem registro. */
   publicoConhecido?: PublicoConhecido | null;
+  /** O rascunho de relato que foi para a lixeira: fica parado, fora da espera e dos pedidos, até ser restaurado. */
+  descartadoEm?: string | null;
 }
 
 /** A coluna so_para_nucleos (migração 025), em JSON, como lista. */
@@ -1427,6 +1430,7 @@ function lerRelato(r: Record<string, unknown>): Relato {
     situacao: r.situacao as 'rascunho' | 'publicada',
     soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos),
     publicoConhecido: lerPublicoConhecido(r.publico_conhecido),
+    descartadoEm: (r.descartado_em as string | null | undefined) ?? null,
   };
 }
 
@@ -1500,9 +1504,14 @@ export async function obterRascunhoQueFicou(memoriaId: string, por: string, usua
   return linha ? lerRelato(linha) : undefined;
 }
 
-/** Descartar o rascunho que ficou para trás: vai para a lixeira de quem o escreveu, e nada é apagado. */
-export async function descartarRascunhoDeRelato(relatoId: number): Promise<void> {
-  await db().prepare(`UPDATE relatos SET descartado_em = datetime('now') WHERE id = ? AND situacao = 'rascunho'`).bind(relatoId).run();
+/**
+ * Descartar o rascunho que ficou para trás: vai para a lixeira de quem o escreveu, e nada é apagado. Na
+ * lixeira ele fica parado, fora da conta da espera (ajustarRelatosAoPublico), e guarda o público que já
+ * teve até aqui, para voltar com o que a regra der a ele quando for restaurado (revisão Y do PR #160).
+ */
+export async function descartarRascunhoDeRelato(relato: Relato, memoria: Publico): Promise<void> {
+  const conhecido = gravarPublicoConhecido(publicoConhecidoAntes(relato, memoria));
+  await db().prepare(`UPDATE relatos SET descartado_em = datetime('now'), publico_conhecido = ? WHERE id = ? AND situacao = 'rascunho'`).bind(conhecido, relato.id).run();
 }
 
 /** Os rascunhos de relato que a pessoa descartou, em memórias que ela vê: a lixeira dela. */
@@ -1518,9 +1527,43 @@ export async function listarRascunhosDeRelatoDescartados(usuario: Usuario): Prom
   return results.map((r) => ({ ...lerRelato(r), titulo: r.titulo as string, descartadoEm: r.descartado_em as string }));
 }
 
-/** Restaurar o rascunho descartado: volta a ser de quem o escreveu, como estava. */
-export async function restaurarRascunhoDeRelato(relatoId: number): Promise<void> {
-  await db().prepare('UPDATE relatos SET descartado_em = NULL WHERE id = ?').bind(relatoId).run();
+/**
+ * Restaurar o rascunho descartado: volta a ser de quem o escreveu, com o público que a regra dá a ele
+ * agora, como um relato que ficou parado enquanto a memória mudava (relatoDepoisDaMudanca, a partir do
+ * público que ele guardou ao ir para a lixeira). Se passou a esperar, quem o escreveu recebe o pedido
+ * para liberar, de quem criou a memória; se a espera perdeu o sentido, o pedido sai da lista.
+ */
+export async function restaurarRascunhoDeRelato(relato: Relato, memoria: Publico & { criadaPor: string }, paraQuem: (conhecido: PublicoConhecido) => string): Promise<void> {
+  // Sem público antigo além do que ele guardou: a conta parte do público conhecido dele
+  const novo = relatoDepoisDaMudanca(relato, { visibilidade: 'nucleos', nucleos: [] }, memoria, memoria.criadaPor);
+  await db().batch([
+    db()
+      .prepare('UPDATE relatos SET descartado_em = NULL, so_para_nucleos = ?, publico_conhecido = ? WHERE id = ?')
+      .bind(novo.soParaNucleos ? JSON.stringify(novo.soParaNucleos) : null, gravarPublicoConhecido(novo.publicoConhecido), relato.id),
+    ...comandosDosPedidos(relato, novo, { memoriaId: relato.memoriaId, de: memoria.criadaPor, paraQuem: paraQuem(novo.publicoConhecido) }),
+  ]);
+}
+
+/**
+ * Os pedidos para liberar que acompanham a nova situação de um relato: o que passou a esperar ganha o
+ * pedido; o que deixou de esperar tem o pedido aberto tirado da lista, sem resposta.
+ */
+function comandosDosPedidos(
+  relato: Relato,
+  novo: { soParaNucleos: string[] | null },
+  pedido: { memoriaId: string; de: string; paraQuem: string },
+) {
+  if (novo.soParaNucleos && !relato.soParaNucleos) {
+    return [
+      db()
+        .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, 'liberar-relato', ?, ?, ?, ?)`)
+        .bind(relato.registradoPor, pedido.memoriaId, relato.id, pedido.de, JSON.stringify({ paraQuem: pedido.paraQuem })),
+    ];
+  }
+  if (relato.soParaNucleos && !novo.soParaNucleos) {
+    return [db().prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(relato.id)];
+  }
+  return [];
 }
 
 export async function salvarRelato(
@@ -1863,7 +1906,8 @@ export async function criarAvisos(avisos: AvisoNovo[]): Promise<void> {
 export async function listarAvisos(usuario: Usuario, { historico = false }: { historico?: boolean } = {}): Promise<Aviso[]> {
   const { results } = await db()
     .prepare(
-      `SELECT a.*, m.titulo, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.situacao AS relato_situacao, r.so_para_nucleos AS relato_so
+      `SELECT a.*, m.titulo, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.situacao AS relato_situacao, r.so_para_nucleos AS relato_so,
+         r.descartado_em AS relato_descartado
        FROM avisos a JOIN memorias m ON m.id = a.memoria_id
        LEFT JOIN relatos r ON r.id = a.relato_id
        WHERE a.para = ?1 AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL} ${historico ? '' : 'AND a.resolvido_em IS NULL'}
@@ -1879,6 +1923,8 @@ export async function listarAvisos(usuario: Usuario, { historico = false }: { hi
     if (a.relato_id !== null && a.relato_id !== undefined) {
       // O relato saiu (ou nunca chegou a quem recebe): o aviso some com ele
       if (!a.relato_por) continue;
+      // O rascunho de relato que está na lixeira fica parado: o pedido dele some até ele ser restaurado
+      if (a.relato_descartado) continue;
       relato = { id: a.relato_id as number, por: a.relato_por as string, registradoPor: a.relato_registrado_por as string, situacao: a.relato_situacao as 'rascunho' | 'publicada' };
       const meu = relato.registradoPor === usuario.pessoa;
       if (!meu && relato.situacao !== 'publicada') continue;
@@ -1927,7 +1973,8 @@ export async function abrirAvisosDaMemoria(usuario: Usuario, memoriaId: string):
  * Devolve os relatos que passaram a esperar agora.
  */
 export async function ajustarRelatosAoPublico(memoriaId: string, antes: Publico, depois: Publico, quemMudou: string): Promise<Relato[]> {
-  const { results } = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ?').bind(memoriaId).all<Record<string, unknown>>();
+  // O rascunho de relato na lixeira fica fora da conta: parado, até ser restaurado (restaurarRascunhoDeRelato)
+  const { results } = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ? AND descartado_em IS NULL').bind(memoriaId).all<Record<string, unknown>>();
   const relatos = results.map(lerRelato);
   if (relatos.length === 0) return [];
   const passaram: Relato[] = [];

@@ -2,7 +2,7 @@
 import type { APIRoute } from 'astro';
 import { mensagensDerivadas, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { avisarQuemEstava } from '../../lib/servidor/avisos';
+import { avisarQuemEstava, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
 import { alcanceDaCorrecao, podeApagarDeVez, podeEditarMemoria, podeExcluirMemoria, podeVerVersao } from '../../lib/servidor/permissoes';
 import {
   apagarCapituloDeVez,
@@ -17,6 +17,7 @@ import {
   idsDasPessoasExcluidas,
   listarExcluidas,
   listarIntegrantes,
+  listarNucleos,
   listarVersoes,
   descartarRascunhoDeRelato,
   listarRascunhosDeRelatoDescartados,
@@ -81,14 +82,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const rascunho = await obterRascunhoQueFicou(memoria.id, por, usuario);
     const relatoDele = `${pagina}/relato?por=${encodeURIComponent(por)}`;
     if (!rascunho) return voltar(request, relatoDele, { erro: 'Rascunho não encontrado.' });
-    await descartarRascunhoDeRelato(rascunho.id);
+    await descartarRascunhoDeRelato(rascunho, memoria);
     return voltar(request, relatoDele, { ok: 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' });
   }
   if (acao === 'restaurar-rascunho-de-relato') {
     const relatoId = Number(campo(dados, 'relato', 20));
     const rascunho = (await listarRascunhosDeRelatoDescartados(usuario)).find((r) => r.id === relatoId && r.memoriaId === memoria.id);
     if (!rascunho) return voltar(request, '/lixeira', { erro: 'Rascunho não encontrado na lixeira.' });
-    await restaurarRascunhoDeRelato(rascunho.id);
+    const nucleos = await listarNucleos();
+    await restaurarRascunhoDeRelato(rascunho, memoria, (conhecido) => paraQuemPassouAVer(comoPublicoAntigo(conhecido), memoria, nucleos));
     return voltar(request, `/lixeira?rascunho-de-relato=${rascunho.id}&memoria=${encodeURIComponent(memoria.id)}&por=${encodeURIComponent(rascunho.por)}`, { ok: 'Rascunho restaurado.' });
   }
 

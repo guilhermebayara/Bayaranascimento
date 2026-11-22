@@ -38,6 +38,9 @@ export async function avisarQuemEstava(memoria: AcessoDaMemoria & { id: string }
   await criarAvisos(para.map((p) => ({ para: p, tipo: 'quem-estava', memoriaId: memoria.id, de: autor.pessoa })));
 }
 
+/** O público que um relato já teve, como público de memória, para dizer o que é novo para ele. */
+export const comoPublicoAntigo = (conhecido: PublicoConhecido | null | undefined): Publico => ({ visibilidade: 'nucleos', nucleos: conhecido === 'todos' ? [] : [...(conhecido ?? [])] });
+
 /** Para quem a memória passou a ser visível, como o pedido diz: "toda a família", "a família Bracarense". */
 export function paraQuemPassouAVer(antes: Publico, depois: Publico, nomes: { id: string; nome: string }[]): string {
   if (depois.visibilidade === 'todos') return 'toda a família';
@@ -59,9 +62,8 @@ export async function mudouQuemVe(memoriaId: string, antes: Publico, depois: Pub
   const esperam = await ajustarRelatosAoPublico(memoriaId, antes, depois, quem.pessoa === criadaPor ? criadaPor : '');
   if (esperam.length === 0) return [];
   const nucleos = await listarNucleos();
-  const comoPublico = (conhecido: PublicoConhecido | null | undefined): Publico => ({ visibilidade: 'nucleos', nucleos: conhecido === 'todos' ? [] : [...(conhecido ?? [])] });
   await criarAvisos(
-    esperam.map((r) => ({ para: r.registradoPor, tipo: 'liberar-relato' as const, memoriaId, relatoId: r.id, de: quem.pessoa, dados: { paraQuem: paraQuemPassouAVer(comoPublico(r.publicoConhecido), depois, nucleos) } })),
+    esperam.map((r) => ({ para: r.registradoPor, tipo: 'liberar-relato' as const, memoriaId, relatoId: r.id, de: quem.pessoa, dados: { paraQuem: paraQuemPassouAVer(comoPublicoAntigo(r.publicoConhecido), depois, nucleos) } })),
   );
   return esperam.filter((r) => r.situacao === 'publicada');
 }
