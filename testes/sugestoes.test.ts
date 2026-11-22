@@ -138,7 +138,7 @@ describe.skipIf(!comSqlite)('a sugestão pela rota', async () => {
     expect(await pedir(elizete, [['acao', 'sugerir-dados'], ['memoria', 't-sug-bayara'], ['ano', '2000']])).toContain('Memória não encontrada');
   });
 
-  // QA de 23/11/2026: só quem entra no site corrige a ficha, então só quem tem acesso recebe a sugestão; e
+  // QA de 23/11/2026 (docs/historico/qa/2026-11-23-relatorio.md): só quem entra no site corrige a ficha, então só quem tem acesso recebe a sugestão; e
   // aceitar é uma correção, então quem entra em "Quem estava" por ela recebe o aviso
   it('quem está na memória sem acesso ao site não recebe a sugestão', async () => {
     const { destinatarios } = await import('../src/lib/sugestoes');

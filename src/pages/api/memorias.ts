@@ -182,7 +182,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // "nova" é o endereço do formulário de cadastro, então não pode ser id de ninguém
   const idsIntegrantes = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
   // As pessoas novas só ganham o id aqui: o cadastro é gravado depois de todas as conferências, para um
-  // pedido recusado não deixar ninguém cadastrado pela metade (QA de 23/11/2026)
+  // pedido recusado não deixar ninguém cadastrado pela metade (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)
   const idsNovas: string[] = [];
   const aCadastrar: { id: string; nome: string; tratamento: 'ela' | 'ele' | null }[] = [];
   for (const nova of pedido.novasPessoas) {
@@ -270,7 +270,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   if (pedido.relato && (textoDoRelato || audiosDoRelato?.length)) {
     relatoPor = resolver(pedido.relato.por);
     if (!relatoPor) return erro(400, 'Não encontrei a pessoa que contou o relato.');
-    // Conferido antes de salvar: o relato recusado não deixa a memória salva sem ele (QA de 23/11/2026)
+    // Conferido antes de salvar: o relato recusado não deixa a memória salva sem ele (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)
     const existente = anterior ? await obterRelato(anterior.id, relatoPor, usuario) : undefined;
     const decisao = podeEscreverRelato(usuario, relatoPor, existente, await pessoasComAcesso());
     if (!decisao.ok) return erro(403, decisao.motivo);

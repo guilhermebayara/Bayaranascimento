@@ -22,6 +22,7 @@ Leia também `docs/decisoes.md` (as regras combinadas e o que está em aberto), 
 - A Giovanna e o Magno não usam o Claude. Eles opinam olhando a homologação e comentando numa cópia do documento de estrutura no Google Docs do Gui ("Acervo da família: proposta de estrutura (cópia para comentários)", em `1_Documentos` da pasta do projeto). Essa cópia é a ponte dos dois com o projeto e é escrita para eles, com foco em colaborar. A parte técnica (como o trabalho acontece, os endereços, onde os dados ficam, cópias de segurança e custos) fica em outro documento na mesma pasta, "Acervo da família: parte técnica", linkado no alto da cópia. Quando algo mudar, os três documentos acompanham. Os comentários voltam para o documento principal pelo Gui, numa conversa com o Claude.
 - Prazo: Natal de 2026, quando o site é dado de presente. Até lá o Gui, a Giovanna e o Magno alimentam o acervo, e os outros acessos são liberados no dia.
 - Quando o trabalho fica em andamento e o Gui vai dormir ou sair, a última resposta diz tudo o que ele precisa ver quando voltar.
+- **Repensar a interface em vez de forçar uma decisão (decisão do Gui, 22/11/2026).** Quando uma decisão anterior faz algo travar, a sessão não força a decisão a funcionar: repensa a interface, mesmo que a mudança seja grande, como um designer resolvendo o problema. Uma transformação grande vem com uma pergunta ao Gui ou com duas versões numa prévia, para ele escolher olhando. O caso que deu origem à regra: o modo TV que cabia em 1280 × 720 à custa de cortar os controles (PR #157, fechado sem juntar).
 
 ## Pasta do projeto no Drive (do Gui)
 
@@ -103,6 +104,7 @@ O plano gratuito do GitHub não protege branches de repositório privado. As reg
 - `npm run gestalt` (`scripts/confere-gestalt.mjs`), a gestalt que se confere sozinha: abre as telas em 390 e 1280 px e falha quando um título ou rótulo de grupo tem acima menos que o dobro do espaço de baixo. Precisa do servidor local no ar (`npm run dev` e `npm run fotos-de-exemplo`); recebe o endereço, como `npm run gestalt -- http://localhost:4400`. Exceção de propósito entra na lista do script, com o motivo. A regra está em "Visual", em `docs/decisoes.md`.
 - `npm run build` roda os dois primeiros antes do build (`prebuild`); a gestalt fica fora, porque o build do Cloudflare não tem servidor nem navegador. O Cloudflare publica com `npm run build`: se algo falhar, nada vai ao ar e a versão anterior continua.
 - No GitHub, `.github/workflows/confere.yml` roda só a gestalt, e só no PR para a `main` e por disparo manual (aba Actions, "Run workflow"). Ele sobe o servidor local com o acervo de exemplo e abre o navegador, o que o build do Cloudflare não faz. A guarda e os testes não rodam no GitHub: ficam no build do Cloudflare, que já roda em todo push e trava a publicação. Nos PRs para a `homologa`, o GitHub não roda nada, e a gestalt da máquina da sessão, antes de cada push, é a única conferência dela nesse caminho. PR só de documento não dispara. Um push novo no PR, ou um novo disparo manual na mesma branch, cancela a rodada anterior. Falha vira marca vermelha no PR. O motivo (decisão do Gui, 20/11/2026): o repositório vira privado depois de 10/12/2026, e a cota mensal de Actions do plano gratuito é uma só para todos os repositórios privados da conta (ver "Infraestrutura", em `docs/decisoes.md`).
+- Toda rota que grava ganha um caso em `testes/pedido-recusado.test.ts` quando alguém mexer nela: o pedido recusado, com a impressão do banco inteiro (todas as tabelas) antes e depois, que precisa sair igual (proposta do QA de 23/11/2026, aceita pelo Gui em 22/11/2026).
 
 Regra nova que nasce de um achado vira teste em `testes/` ou verificação na guarda, no mesmo commit da correção, para continuar valendo sem depender de memória.
 
@@ -167,6 +169,8 @@ Uma sessão de QA por chat: cada rodada começa numa sessão nova do Claude Code
 ### O que QA não decide
 
 QA corrige defeito: algo quebrado, erro de build, comportamento diferente do combinado em `docs/decisoes.md`. Texto, layout, cor, regras de privacidade e de permissão, o arranjo da árvore e os dados de exemplo são decisões do Gui e da Giovanna: relate e espere. Na dúvida, trate como decisão. A direção visual está em `docs/visual.md`: o que fugir dela entra como observação, e o que ela ainda não cobre também.
+
+O QA continua sem mudar sozinho o que é decisão. Quando as opções de uma pergunta só remendam o que trava, a pergunta traz também uma opção que repensa a interface (ver "Repensar a interface em vez de forçar uma decisão", em "Como o trabalho acontece").
 
 As pendências conhecidas estão em "Em aberto" e nas questões de `docs/decisoes.md`. Não relate como defeito o que já está listado ali.
 

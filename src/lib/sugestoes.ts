@@ -48,7 +48,7 @@ export function destinatarios(
 ): string[] {
   if (s.tipo === 'recado') return [s.para];
   // Só quem entra no site corrige a ficha: quem está na memória sem acesso (a Vó Bela, o Chico) não
-  // recebe a sugestão nem o aviso (QA de 23/11/2026). Quem criou sempre entra.
+  // recebe a sugestão nem o aviso (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md). Quem criou sempre entra.
   return [...new Set([memoria.criadaPor, ...memoria.integrantes])].filter((p) => p !== s.de && (!comAcesso || p === memoria.criadaPor || comAcesso.has(p)));
 }
 

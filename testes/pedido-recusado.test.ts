@@ -1,4 +1,4 @@
-// Um pedido recusado não deixa nada gravado pela metade (QA de 23/11/2026, sessão U). Cada rota que grava
+// Um pedido recusado não deixa nada gravado pela metade (QA de 23/11/2026, sessão U, docs/historico/qa/2026-11-23-relatorio.md). Cada rota que grava
 // confere tudo antes de escrever no banco: a pessoa nova de "Quem estava", o tema novo e a memória com um
 // relato que não pode ser escrito só são gravados quando o pedido inteiro passa. Testado com as rotas de
 // verdade sobre o banco SQLite em memória (testes/apoio/d1.ts).

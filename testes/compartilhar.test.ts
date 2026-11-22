@@ -157,7 +157,7 @@ describe('o espaço de personalizar a imagem', async () => {
   });
 });
 
-describe('sem script (QA de 23/11/2026)', () => {
+describe('sem script (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)', () => {
   it('"Montando a imagem…" e a bandeja somem, e fica a explicação de que precisa de JavaScript', () => {
     const pagina = readFileSync('src/pages/memorias/[id]/compartilhar.astro', 'utf8');
     expect(pagina).toMatch(/<p class="dica" data-estado data-so-com-script>\s*Montando a imagem…/);

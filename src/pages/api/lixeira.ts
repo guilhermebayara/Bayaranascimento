@@ -109,7 +109,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       fotos: memoria.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
     };
     await atualizarMemoria(memoria, restaurada, usuario, []);
-    // Restaurar é uma correção: quem a versão devolve a "Quem estava" recebe o aviso (QA de 23/11/2026)
+    // Restaurar é uma correção: quem a versão devolve a "Quem estava" recebe o aviso (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)
     await avisarQuemEstava({ ...memoria, integrantes: restaurada.integrantes }, memoria.integrantes, usuario);
     return voltar(request, pagina, { ok: 'Versão restaurada. A versão que estava no ar foi para o histórico.' });
   }
