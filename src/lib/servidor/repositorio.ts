@@ -1756,15 +1756,31 @@ export async function salvarRelato(
   // A rota do relato confere a versão da memória que leu, como os outros lotes (Y3 do PR #160): se a memória
   // mudou depois da leitura, nada é gravado (MemoriaMudou), e a rota refaz a conta com a memória de agora.
   // `nasce`: o relato novo que espera o sim de quem escreveu (relatoQueNasce), com o pedido
-  { conferir, nasce }: { conferir?: number; nasce?: RelatoQueNasceEsperando } = {},
+  // `envio`: o código de envio único do formulário sem script (migração 109): repetido, nada é gravado (EnvioRepetido)
+  { conferir, nasce, envio }: { conferir?: number; nasce?: RelatoQueNasceEsperando; envio?: string } = {},
 ): Promise<void> {
-  if (conferir === undefined) {
-    await db().batch(comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce }));
-    return;
+  const doEnvio = envio ? comandosDoEnvio(envio) : [];
+  try {
+    if (conferir === undefined) {
+      await db().batch([...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce })]);
+      return;
+    }
+    // Conferir a versão também a sobe: o relato novo dispensa a subida sem conferência
+    await loteDaMemoria([conferirVersao(memoriaId, conferir), ...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false })]);
+  } catch (erro) {
+    if (/UNIQUE constraint failed: envios\.codigo\b/.test(String((erro as Error)?.message ?? erro))) throw new EnvioRepetido();
+    throw erro;
   }
-  // Conferir a versão também a sobe: o relato novo dispensa a subida sem conferência
-  await loteDaMemoria([conferirVersao(memoriaId, conferir), ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false })]);
 }
+
+/** O mesmo envio chegou de novo (o toque duplo sem script): o lote voltou, e nada foi gravado de novo. */
+export class EnvioRepetido extends Error {}
+
+/** Guarda o código do envio no lote e tira os de mais de dois dias (migração 109). */
+const comandosDoEnvio = (codigo: string): Comando[] => [
+  db().prepare(`DELETE FROM envios WHERE em < datetime('now', '-2 days')`),
+  db().prepare('INSERT INTO envios (codigo) VALUES (?)').bind(codigo),
+];
 
 /** O relato novo que nasce esperando: só para estas famílias, com o pedido de quem criou a memória. */
 export interface RelatoQueNasceEsperando {

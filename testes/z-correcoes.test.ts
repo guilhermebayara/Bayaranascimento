@@ -204,4 +204,48 @@ describe.skipIf(!comSqlite)('Z: defeitos das revisões do PR #160', async () => 
       expect(repo.codigoRepetido(new Error('D1_ERROR: falha de teste'))).toBe(false);
     });
   });
+
+  describe('D3: o toque duplo sem script em "Publicar relato"', () => {
+    /** A janela sem script, como o navegador manda: o código de envio vem da página */
+    const janela = async (quem: Usuario, campos: Record<string, string>) => {
+      const dados = new FormData();
+      for (const [k, v] of Object.entries(campos)) dados.append(k, v);
+      const request = new Request('http://localhost/api/relatos', { method: 'POST', headers: { Origin: 'http://localhost' }, body: dados });
+      const resposta = await rotas.relatos.POST({ request, locals: { usuario: quem, tipos } } as never);
+      return new URL(resposta.headers.get('Location') ?? '/', 'http://localhost');
+    };
+    const mensagensDe = (memoria: string, por: string) =>
+      linhas<{ texto: string }>('SELECT m.texto FROM relato_mensagens m JOIN relatos r ON r.id = m.relato_id WHERE r.memoria_id = ? AND r.por = ? ORDER BY m.ordem', memoria, por).map((m) => m.texto);
+
+    it('o segundo envio igual, com o mesmo código, não grava a mensagem de novo e responde como o primeiro', async () => {
+      const id = (await pedir('memorias', giovanna, { titulo: 'Z: D3 toque duplo', ano: 2021, tipo: 'causo', pessoas: ['giovanna'] })).corpo.id as string;
+      const envio = { memoria: id, por: 'elizete', acrescentar: '1', texto: 'Uma lembrança só.', situacao: 'publicada', envio: 'codigo-do-toque-duplo' };
+      const primeiro = await janela(elizete, envio);
+      const depoisDoPrimeiro = impressao();
+      const segundo = await janela(elizete, envio);
+      expect(mensagensDe(id, 'elizete')).toEqual(['Uma lembrança só.']);
+      expect(linhas<{ texto: string }>('SELECT texto FROM relatos WHERE memoria_id = ? AND por = ?', id, 'elizete')[0].texto).toBe('Uma lembrança só.');
+      expect(impressao()).toBe(depoisDoPrimeiro);
+      expect(segundo.pathname).toBe(primeiro.pathname);
+      expect(segundo.searchParams.get('ok')).toBe(primeiro.searchParams.get('ok'));
+      // Outra página, outro código: a mensagem nova entra
+      await janela(elizete, { ...envio, texto: 'E mais uma.', envio: 'outro-codigo' });
+      expect(mensagensDe(id, 'elizete')).toEqual(['Uma lembrança só.', 'E mais uma.']);
+    });
+
+    it('o pedido recusado não gasta o código: o mesmo envio, corrigido, grava', async () => {
+      const id = (await pedir('memorias', giovanna, { titulo: 'Z: D3 recusado', ano: 2021, tipo: 'causo', pessoas: ['giovanna'] })).corpo.id as string;
+      const antes = impressao();
+      const recusado = await janela(elizete, { memoria: id, por: 'ninguem-com-este-id', acrescentar: '1', texto: 'Por ninguém.', situacao: 'publicada', envio: 'codigo-recusado' });
+      expect(recusado.searchParams.get('erro')).not.toBeNull();
+      expect(impressao()).toBe(antes);
+      await janela(elizete, { memoria: id, por: 'elizete', acrescentar: '1', texto: 'Agora sim.', situacao: 'publicada', envio: 'codigo-recusado' });
+      expect(mensagensDe(id, 'elizete')).toEqual(['Agora sim.']);
+    });
+
+    it('a janela sem script leva um código novo a cada página', () => {
+      expect(readFileSync('src/components/conversa/Janela.astro', 'utf-8')).toContain('<input type="hidden" name="envio" value={crypto.randomUUID()} />');
+    });
+  });
 });
+

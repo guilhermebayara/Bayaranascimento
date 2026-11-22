@@ -17,6 +17,7 @@ import {
   listarIntegrantesQueVe,
   listarMensagensDosRelatos,
   listarNucleos,
+  EnvioRepetido,
   MemoriaMudou,
   obterMemoria,
   obterMensagem,
@@ -71,6 +72,8 @@ const Pedido = z.object({
   // Quem via a memória quando a página abriu (chaveDoPublico): o relato que nasce depois de ela abrir para
   // mais gente nasce só para esse público e espera o sim de quem escreveu (Y3 do PR #160)
   publico: z.string().max(2000).optional(),
+  // O código de envio único da janela sem script (D3 da sessão Z): o toque duplo não grava a mensagem duas vezes
+  envio: z.string().max(80).optional(),
 });
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -88,6 +91,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         acrescentar: texto('acrescentar') === '1',
         ...(Number(texto('cita')) > 0 ? { cita: Number(texto('cita')) } : {}),
         ...(texto('publico') ? { publico: texto('publico') } : {}),
+        ...(texto('envio') ? { envio: texto('envio') } : {}),
       },
       locals,
     );
@@ -187,7 +191,14 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const { soParaNucleos } = relatoQueNasce(mostrava, memoria, usuario.pessoa, memoria.criadaPor);
     if (soParaNucleos) nasce = { soParaNucleos, de: memoria.criadaPor, paraQuem: paraQuemPassouAVer(comoPublicoAntigo(soParaNucleos), memoria, await listarNucleos()) };
   }
-  await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce });
+  try {
+    await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce, envio: lido.data.envio });
+  } catch (e) {
+    // O mesmo envio de novo (o toque duplo sem script): o primeiro já gravou, e este responde como ele, sem gravar
+    if (!(e instanceof EnvioRepetido)) throw e;
+    const agora = await obterRelatoRegistradoPor(memoriaId, por, usuario);
+    return json({ url: `/memorias/${memoriaId}`, situacao: agora?.situacao ?? situacao, editado: true }, 200);
+  }
   const salvo = await obterRelatoRegistradoPor(memoriaId, por, usuario);
   if (salvo && audios) await ligarAudios(salvo.id, memoriaId, audios, usuario);
   // Fotos: sem a lista (o formulário sem script), as que já estavam com o relato continuam, e as que
