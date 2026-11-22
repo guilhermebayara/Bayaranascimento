@@ -16,7 +16,7 @@ import Carimbo from '../components/visual/Carimbo.astro';
 import Gente from '../components/visual/Gente.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
-import { ENDERECO_DA_ADMINISTRACAO, contaDePendencias, oComeco } from '../lib/conta';
+import { ENDERECO_DA_ADMINISTRACAO, contaDePendencias, enderecoDoRascunhoDeRelato, oComeco } from '../lib/conta';
 import { formatarData, jaFaleceu } from '../lib/datas';
 import { coresDasPessoas, familiaMaisRecente } from '../lib/familias';
 import { PROXIMIDADES, lacoParaODono } from '../lib/parentesco';
@@ -219,7 +219,7 @@ const erro = Astro.url.searchParams.get('erro');
               ))}
               {rascunhos.relatos.map((r) => (
                 <li>
-                  <a class="conta__item" href={`/memorias/${r.memoriaId}/relato`}>
+                  <a class="conta__item" href={enderecoDoRascunhoDeRelato(r, usuario.pessoa)}>
                     <strong>{titulo(r.memoriaId)}</strong>
                     <span class="ficha suave">{r.por === usuario.pessoa ? 'Relato em andamento' : `Relato de ${nome(r.por)}, em andamento`}</span>
                   </a>

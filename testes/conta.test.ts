@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   administracao,
+  enderecoDoRascunhoDeRelato,
   destinoDaAncoraAntiga,
   ENDERECO_DA_ADMINISTRACAO,
   gruposDaAdministracao,
@@ -377,5 +378,19 @@ describe('a Administração em página própria', () => {
   });
   it('quem chega pelo endereço de um grupo o encontra aberto', () => {
     expect(admin).toContain('if (doEndereco instanceof HTMLDetailsElement) doEndereco.open = true;');
+  });
+});
+
+describe('o rascunho de relato escrito por outra pessoa (QA de 23/11/2026)', () => {
+  it('abre a janela de quem está contando, com ?por=, e o próprio relato sem ele', () => {
+    expect(enderecoDoRascunhoDeRelato({ memoriaId: 'x6qcfqps', por: 'aguilar' }, 'gui')).toBe('/memorias/x6qcfqps/relato?por=aguilar');
+    expect(enderecoDoRascunhoDeRelato({ memoriaId: 'x6qcfqps', por: 'gui' }, 'gui')).toBe('/memorias/x6qcfqps/relato');
+  });
+  it('a conta e o Início usam o mesmo endereço, e nenhum dos dois monta o link à mão', () => {
+    for (const arquivo of ['src/pages/conta.astro', 'src/pages/index.astro']) {
+      const fonte = readFileSync(arquivo, 'utf8');
+      expect(fonte).toContain('enderecoDoRascunhoDeRelato(');
+      expect(fonte).not.toMatch(/memoriaId\}\/relato`/);
+    }
   });
 });

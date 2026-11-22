@@ -7,6 +7,7 @@ import Pagina from '../../../components/formularios/Pagina.astro';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { formatarMomento } from '../../../lib/datas';
 import { destinatarios, frasesDaProposta } from '../../../lib/sugestoes';
+import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { abrirAvisosDaMemoria, listarIntegrantes, listarSugestoes, obterMemoria, pessoasQueONaoVe } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
@@ -29,6 +30,7 @@ const quemRespondeu = (s: (typeof sugestoes)[number]) => (s.respondidaPor === us
 const enviadas = sugestoes.filter((s) => s.de === usuario.pessoa);
 const SITUACOES = { aberta: 'esperando resposta', aceita: 'aceita', recusada: 'recusada', respondida: 'respondida' } as const;
 const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>) => ({ ...p, entram: p.entram?.filter((id) => !naoVe.has(id)) });
+const comAcesso = await pessoasComAcesso();
 ---
 
 <Pagina titulo="Sugestões de correção" aba={`Sugestões em ${memoria.titulo}`} rotulo="Memória" nucleos={memoria.nucleos} secao="explorar" larga>
@@ -110,7 +112,7 @@ const propostaVisivel = (p: NonNullable<(typeof sugestoes)[number]['proposta']>)
           {enviadas.map((s) => (
             <li>
               <div>
-                <strong>{s.tipo === 'recado' ? `Recado para ${nome(s.para)}` : `Sugestão para ${listaDeNomes(destinatarios(s, memoria))}`}</strong>
+                <strong>{s.tipo === 'recado' ? `Recado para ${nome(s.para)}` : `Sugestão para ${listaDeNomes(destinatarios(s, memoria, comAcesso))}`}</strong>
                 <span>
                   {formatarMomento(s.criadaEm)} · {SITUACOES[s.situacao]}
                 </span>

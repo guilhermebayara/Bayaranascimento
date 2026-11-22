@@ -165,7 +165,7 @@ const TELAS = [
 
 // Exceções de propósito: { tela (opcional), seletor (texto exato ou expressão), motivo }.
 // O seletor é o que a conferência imprime na falha.
-// A exceção do título da entrada (div.entrada__texto > h3.entrada__titulo) saiu em 20/11/2026.
+// A exceção do título da entrada (div.entrada__texto > h3.entrada__titulo) saiu em 20/11/2026 (docs/historico/qa/2026-11-20-relatorio.md).
 // A gestalt avisava que ela não era usada, e os títulos passam sem ela.
 export const EXCECOES = [
   {

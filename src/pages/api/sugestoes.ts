@@ -4,6 +4,8 @@
 import type { APIRoute } from 'astro';
 import { destinatarios, limparProposta, propostaVazia, aplicarProposta, type Proposta } from '../../lib/sugestoes';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
+import { pessoasComAcesso } from '../../lib/servidor/acesso';
+import { avisarQuemEstava } from '../../lib/servidor/avisos';
 import { podeDeixarRecado, podeEditarMemoria, podeResponderSugestao, podeSugerirDados } from '../../lib/servidor/permissoes';
 import {
   atualizarMemoria,
@@ -49,7 +51,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (pedida.ano && (pedida.ano < 1800 || pedida.ano > anoAtual)) return voltar(request, sugerir, { erro: `O ano vai de 1800 a ${anoAtual}.` });
     const proposta = limparProposta(pedida, memoria, pode);
     if (propostaVazia(proposta) && !texto) return voltar(request, sugerir, { erro: 'Diga o que mudaria, ou escreva um recado.' });
-    await criarSugestao({ memoriaId: memoria.id, relatoId: null, para: memoria.criadaPor, tipo: 'dados', proposta: propostaVazia(proposta) ? null : proposta, texto }, usuario, memoria);
+    await criarSugestao({ memoriaId: memoria.id, relatoId: null, para: memoria.criadaPor, tipo: 'dados', proposta: propostaVazia(proposta) ? null : proposta, texto }, usuario, memoria, await pessoasComAcesso());
     return voltar(request, pagina, { ok: 'Sugestão enviada. Quem criou a memória e quem está nela recebem um aviso, e o primeiro que responder decide.' });
   }
 
@@ -59,14 +61,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // O recado tem página própria, que parte do menu do relato (observação do Gui, 18/11/2026)
     if (!relato || !decisao.ok) return voltar(request, pagina, { erro: decisao.ok ? 'Relato não encontrado.' : decisao.motivo });
     if (!texto) return voltar(request, `${pagina}/recado?relato=${relato.id}`, { erro: 'Escreva o recado.' });
-    await criarSugestao({ memoriaId: memoria.id, relatoId: relato.id, para: relato.registradoPor, tipo: 'recado', proposta: null, texto }, usuario, memoria);
+    await criarSugestao({ memoriaId: memoria.id, relatoId: relato.id, para: relato.registradoPor, tipo: 'recado', proposta: null, texto }, usuario, memoria, await pessoasComAcesso());
     return voltar(request, pagina, { ok: 'Recado enviado. Quem escreveu o relato recebe um aviso.' });
   }
 
   // Responder: só quem recebeu, e só a sugestão desta memória
   const sugestao = await obterSugestao(Number(campo(dados, 'sugestao', 12)));
   if (!sugestao || sugestao.memoriaId !== memoria.id) return voltar(request, sugestoes, { erro: 'Sugestão não encontrada.' });
-  const decisao = podeResponderSugestao(usuario, sugestao, destinatarios(sugestao, memoria));
+  const decisao = podeResponderSugestao(usuario, sugestao, destinatarios(sugestao, memoria, await pessoasComAcesso()));
   if (!decisao.ok) return voltar(request, sugestoes, { erro: decisao.motivo });
 
   if (acao === 'aceitar') {
@@ -93,6 +95,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       fotos: memoria.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
     };
     await atualizarMemoria(memoria, ficha, usuario, []);
+    // Aceitar é uma correção: quem entrou agora em "Quem estava" recebe o aviso (QA de 23/11/2026)
+    await avisarQuemEstava({ ...memoria, integrantes }, memoria.integrantes, usuario);
     await responderSugestao(sugestao, 'aceita', texto, usuario);
     return voltar(request, sugestoes, { ok: 'Sugestão aceita. A memória mudou, e a versão de antes ficou no histórico.' });
   }

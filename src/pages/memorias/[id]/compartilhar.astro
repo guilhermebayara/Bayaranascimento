@@ -106,7 +106,8 @@ const primeiro = relatos[0];
     ) : (
       <section class="compartilhar estudio" data-compartilhar-raiz>
         <div class="estudio__palco">
-          <p class="dica" data-estado>
+          {/* Sem script, a imagem não é montada: "Montando a imagem…" e a bandeja somem, e fica a explicação (QA de 23/11/2026) */}
+          <p class="dica" data-estado data-so-com-script>
             Montando a imagem…
           </p>
           <noscript>
@@ -116,7 +117,7 @@ const primeiro = relatos[0];
           <img class="compartilhar__previa" data-previa alt={`A imagem de “${memoria.titulo}” para compartilhar`} hidden />
         </div>
         <div class="estudio__lado">
-          <div class="bandeja" data-bandeja>
+          <div class="bandeja" data-bandeja data-so-com-script>
             <h2 class="bandeja__titulo">Personalizar</h2>
             {abas.length > 1 && <Segmentado rotulo="O que personalizar" nome="abaDaImagem" opcoes={abas.map((a, i) => ({ valor: a, texto: NOMES_DAS_ABAS[a], atual: i === 0 }))} />}
             {abas.includes('nome') && (

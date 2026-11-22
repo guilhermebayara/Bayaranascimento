@@ -156,3 +156,14 @@ describe('o espaço de personalizar a imagem', async () => {
     expect(desenho).toContain('const espacoDoNome = !d.autorDoTrecho ? 0 : retrato ? RETRATO.altura + 40 : 90;');
   });
 });
+
+describe('sem script (QA de 23/11/2026)', () => {
+  it('"Montando a imagem…" e a bandeja somem, e fica a explicação de que precisa de JavaScript', () => {
+    const pagina = readFileSync('src/pages/memorias/[id]/compartilhar.astro', 'utf8');
+    expect(pagina).toMatch(/<p class="dica" data-estado data-so-com-script>\s*Montando a imagem…/);
+    expect(pagina).toContain('<div class="bandeja" data-bandeja data-so-com-script>');
+    expect(pagina).toMatch(/<noscript>\s*<p class="dica">Para montar a imagem, o navegador precisa estar com o JavaScript ligado\.<\/p>/);
+    // A regra que esconde [data-so-com-script] sem script é a do esqueleto dos formulários
+    expect(readFileSync('src/components/formularios/Pagina.astro', 'utf8')).toContain('[data-so-com-script]');
+  });
+});

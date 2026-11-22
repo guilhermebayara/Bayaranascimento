@@ -24,7 +24,7 @@ import Rabisco from '../components/visual/Rabisco.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
 import { coresDasPessoas, familiaMaisRecente } from '../lib/familias';
-import { seusRascunhos } from '../lib/conta';
+import { enderecoDoRascunhoDeRelato, seusRascunhos } from '../lib/conta';
 import {
   TITULO_DA_PROXIMIDADE,
   aniversarios,
@@ -184,7 +184,7 @@ const decadas = [...new Set(recentes.map((m) => Math.floor(m.ano / 10) * 10))];
 // Uma linha na abertura, para continuar o que ficou pela metade (P6). A lista mora em "Sua conta".
 const rascunhos = seusRascunhos(usuario.pessoa, await listarMemorias(usuario, { rascunhos: true }), await listarRelatosRegistradosPor(usuario));
 const quantosRascunhos = rascunhos.memorias.length + rascunhos.relatos.length;
-const oRascunho = rascunhos.memorias[0] ? `/nova?id=${rascunhos.memorias[0].id}` : rascunhos.relatos[0] ? `/memorias/${rascunhos.relatos[0].memoriaId}/relato` : undefined;
+const oRascunho = rascunhos.memorias[0] ? `/nova?id=${rascunhos.memorias[0].id}` : rascunhos.relatos[0] ? enderecoDoRascunhoDeRelato(rascunhos.relatos[0], usuario.pessoa) : undefined;
 
 // --- Onde cada parte fica -----------------------------------------------------------------------
 const composicao = composicaoDoInicio({

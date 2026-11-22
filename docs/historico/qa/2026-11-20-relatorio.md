@@ -1,5 +1,7 @@
 # QA detalhista de 20/11/2026
 
+Relatório final da rodada, na versão da branch `qa2-2026-11-20` (commit `718724b`), trazido para o histórico pela sessão U, em 23/11/2026. As perguntas, com as respostas do Gui, estão em [`2026-11-20-perguntas.md`](2026-11-20-perguntas.md).
+
 Duas rodadas no mesmo dia. A primeira (`qa-2026-11-20`, PR #154) foi sobretudo fumaça: abriu telas, status, console, estouro e gestalt. A segunda (`qa2-2026-11-20`) nasce da `homologa` no commit `b497a50` (já com o #154) e confere **fluxos de ponta a ponta**: preencher, gravar e ver o efeito na página seguinte.
 
 Prévia desta rodada: `https://qa2-2026-11-20.memorias.bayara.com.br`.
@@ -19,7 +21,8 @@ Cada fluxo abaixo foi feito de verdade no servidor local, com o acervo de exempl
 ### Explorar
 - Filtro "com foto": 50 → 38 memórias; URL com `foto=1`.
 - Mural "Mostrar": Só as capas → Todas as fotos em Explorar, pessoa, capítulo e tema; URL com `fotos=todas`; contagens sobem.
-- Modo TV: seta troca a memória; Esc volta ao Explorar na âncora da memória. Com "Só as fotos", o primeiro Esc tira o modo só fotos e o segundo sai do TV.
+- Modo TV: seta troca a memória; Esc e "Sair do modo TV" voltam ao Explorar na âncora (reproduzidos no Playwright em 1280 e 390). Com "Só as fotos", o primeiro Esc tira o modo só fotos e o segundo sai do TV.
+- Em 1280 × 720 o palco do TV cabe na altura da janela (antes rolava ~823 px); com "Ajustes" aberto, idem.
 - Trocar linha / mural / lista: o `h1` não salta de lugar em 1280 px.
 
 ### Pessoa, tema e capítulo (forma de ver)
@@ -77,11 +80,15 @@ Cada fluxo abaixo foi feito de verdade no servidor local, com o acervo de exempl
 - Exceção morta `div.entrada__texto > h3.entrada__titulo` saiu de `scripts/confere-gestalt.mjs`.
 
 ### Rodada 2 (`qa2-2026-11-20`)
-- Rótulo das reações para o leitor de tela: "Coração em a memória" / "Reações em a foto 1" passaram a "Coração na memória" / "Reações na foto 1" (`emSobre` em `src/lib/reacoes.ts`, usado em `Reacoes.astro`). Teste em `testes/reacoes.test.ts`.
+- Rótulo das reações para o leitor de tela: "Coração em a memória" / "Reações em a foto 1" passaram a "Coração na memória" / "Reações na foto 1" (`emSobre` em `src/lib/reacoes.ts`, usado em `Reacoes.astro`). Teste em `testes/reacoes.test.ts`. Já na `homologa` pelo squash do PR #156.
+- Modo TV em janela baixa (1280 × 720): o palco passava da altura (~823 px) e a página rolava. Em `explorar.css`, no `@media (max-height: 50rem)`, o palco fica em `100svh`, a foto encolhe e o respiro cai. Vale com e sem "Ajustes" aberto. Teste em `testes/explorar-controles.test.ts`. O #156 fechou antes deste commit; o restante está no PR #157, no mesmo branch `qa2-2026-11-20`.
+
+### Conferência visual por coordenadas (descartada)
+Uma passagem pelo Chrome clicando por coordenadas (artefatos `qa2-inicio-1280.png` e afins) alegou que Esc e "Sair do modo TV" falhavam, que "Mostrar" do mural não trocava e que o menu da conta não abria. Reproduzido no Playwright por clique e por teclado, em 1280 e 390: os quatro funcionam. Foi falha da ferramenta (coordenadas / foco da janela do Chrome), não defeito do site. A barra de rolagem vertical no TV em 1280 × 720, quando o conteúdo passava da altura, era defeito de verdade e foi corrigida; se sobrar só a barra do sistema sem o documento rolar, descarta. "Lista" na linha de baixo no tema e no capítulo continua a P2, sem mudança.
 
 ## O que ficou para o Gui decidir
 
-Continua em `docs/qa/2026-11-20-perguntas.md` (da rodada 1):
+Continua em `docs/qa/2026-11-20-perguntas.md` (da rodada 1; hoje em `docs/historico/qa/2026-11-20-perguntas.md`, com as respostas):
 
 - **P1.** Acervo de exemplo sem tema com capítulos suficientes para a lista interna rolar.
 - **P2.** No celular, "Lista" desce uma linha no tema e no capítulo.
@@ -106,4 +113,5 @@ Nada novo de decisão nesta segunda rodada. O que já está em "Em aberto" e em 
 ## Testes ou verificações novas
 
 - Feito: `emSobre` em `testes/reacoes.test.ts`.
+- Feito: regras do TV em janela baixa em `testes/explorar-controles.test.ts`.
 - Proposta: um teste de fumaça de API (ou Playwright no CI) para o caminho rascunho → publicar → excluir, se o Gui quiser travar o fluxo além da guarda e dos testes de unidade. Fica fora desta PR.

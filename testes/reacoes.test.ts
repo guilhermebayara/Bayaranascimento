@@ -30,7 +30,7 @@ describe('os símbolos', () => {
     expect(ofereceEntrar(true, false)).toBe(true);
     expect(ofereceEntrar(true, true)).toBe(false);
   });
-  it('o rótulo junta "em" sem "em a" nem "em o" (QA de 20/11/2026)', () => {
+  it('o rótulo junta "em" sem "em a" nem "em o" (QA de 20/11/2026, docs/historico/qa/2026-11-20-relatorio.md)', () => {
     expect(emSobre('a memória')).toBe('na memória');
     expect(emSobre('a foto 1')).toBe('na foto 1');
     expect(emSobre('o relato de Elizete')).toBe('no relato de Elizete');

@@ -138,6 +138,46 @@ describe.skipIf(!comSqlite)('a sugestão pela rota', async () => {
     expect(await pedir(elizete, [['acao', 'sugerir-dados'], ['memoria', 't-sug-bayara'], ['ano', '2000']])).toContain('Memória não encontrada');
   });
 
+  // QA de 23/11/2026: só quem entra no site corrige a ficha, então só quem tem acesso recebe a sugestão; e
+  // aceitar é uma correção, então quem entra em "Quem estava" por ela recebe o aviso
+  it('quem está na memória sem acesso ao site não recebe a sugestão', async () => {
+    const { destinatarios } = await import('../src/lib/sugestoes');
+    const memoria = { criadaPor: 'gui', integrantes: ['gui', 'chico', 'elizete'] };
+    expect(destinatarios({ tipo: 'dados', para: 'gui', de: 'giovanna' }, memoria, new Set(['gui', 'giovanna', 'elizete']))).toEqual(['gui', 'elizete']);
+    sql(`INSERT INTO memorias (id, titulo, ano, tipo, situacao, criada_por, publicada_em) VALUES ('t-sug-acesso', 'Passeio', 2003, 'causo', 'publicada', 'gui', datetime('now'))`);
+    sql(`INSERT INTO memoria_integrantes VALUES ('t-sug-acesso', 'gui'), ('t-sug-acesso', 'aguilar')`);
+    expect(await pedir(elizete, [['acao', 'sugerir-dados'], ['memoria', 't-sug-acesso'], ['lugar', 'Sabará'], ['entram', 'giovanna']])).toContain('Sugestão enviada');
+    expect(linha(`SELECT para FROM avisos WHERE memoria_id = 't-sug-acesso' AND tipo = 'sugestao' AND para = 'aguilar'`)).toBeUndefined();
+    expect(linha(`SELECT para FROM avisos WHERE memoria_id = 't-sug-acesso' AND tipo = 'sugestao' AND para = 'gui'`)).toBeDefined();
+  });
+
+  it('aceitar a sugestão avisa quem entrou em "Quem estava"', async () => {
+    sql(`INSERT OR IGNORE INTO acessos (pessoa) VALUES ('giovanna')`);
+    const id = linha<{ id: number }>(`SELECT id FROM sugestoes WHERE memoria_id = 't-sug-acesso'`).id;
+    expect(await pedir(gui, [['acao', 'aceitar'], ['memoria', 't-sug-acesso'], ['sugestao', String(id)]])).toContain('Sugestão aceita');
+    expect(linha(`SELECT integrante_id FROM memoria_integrantes WHERE memoria_id = 't-sug-acesso' AND integrante_id = 'giovanna'`)).toBeDefined();
+    expect(linha(`SELECT de FROM avisos WHERE memoria_id = 't-sug-acesso' AND tipo = 'quem-estava' AND para = 'giovanna'`)).toEqual({ de: 'gui' });
+  });
+
+  it('restaurar uma versão avisa quem ela devolve a "Quem estava"', async () => {
+    const lixeira = await import('../src/pages/api/lixeira');
+    sql(`DELETE FROM memoria_integrantes WHERE memoria_id = 't-sug-acesso' AND integrante_id = 'giovanna'`);
+    sql(`DELETE FROM avisos WHERE memoria_id = 't-sug-acesso' AND tipo = 'quem-estava'`);
+    const versao = linha<{ id: number }>(`SELECT id FROM versoes WHERE tipo = 'memoria' AND item_id = 't-sug-acesso' ORDER BY id DESC`);
+    // A versão guardada ao aceitar é a de antes da sugestão, sem a Giovanna; guarda-se outra, com ela
+    const memoria = (await repo.obterMemoria(gui, 't-sug-acesso'))!;
+    await repo.atualizarMemoria(memoria, { titulo: memoria.titulo, ano: memoria.ano, tipo: memoria.tipo, aproximada: false, lugar: 'Sabará', visibilidade: 'todos', situacao: 'publicada', nucleos: [], integrantes: ['gui', 'aguilar', 'giovanna'], fotos: [] }, gui, []);
+    await repo.atualizarMemoria((await repo.obterMemoria(gui, 't-sug-acesso'))!, { titulo: memoria.titulo, ano: memoria.ano, tipo: memoria.tipo, aproximada: false, lugar: 'Sabará', visibilidade: 'todos', situacao: 'publicada', nucleos: [], integrantes: ['gui', 'aguilar'], fotos: [] }, gui, []);
+    const comGiovanna = linha<{ id: number }>(`SELECT id FROM versoes WHERE tipo = 'memoria' AND item_id = 't-sug-acesso' AND dados LIKE '%giovanna%' ORDER BY id DESC`);
+    expect(comGiovanna.id).toBeGreaterThan(versao.id);
+    const f = new FormData();
+    for (const [k, v] of [['acao', 'restaurar-versao'], ['memoria', 't-sug-acesso'], ['versao', String(comGiovanna.id)]]) f.append(k, v);
+    const request = new Request('http://localhost/api/lixeira', { method: 'POST', headers: { Origin: 'http://localhost' }, body: f });
+    const r = await lixeira.POST({ request, locals: { usuario: gui, tipos: [{ id: 'causo' }] } } as never);
+    expect(decodeURIComponent((r.headers.get('Location') ?? '').replace(/\+/g, ' '))).toContain('Versão restaurada');
+    expect(linha(`SELECT de FROM avisos WHERE memoria_id = 't-sug-acesso' AND tipo = 'quem-estava' AND para = 'giovanna'`)).toEqual({ de: 'gui' });
+  });
+
   it('o espelho e o apagar de vez levam as sugestões junto', async () => {
     const { TABELAS_APAGADAS } = await import('../src/lib/espelho');
     expect(TABELAS_APAGADAS.indexOf('sugestoes')).toBeLessThan(TABELAS_APAGADAS.indexOf('memorias'));
