@@ -10,7 +10,7 @@ export function lerListaDeSobrenomes(texto: string): { sobrenomes: string[] } | 
   for (const parte of texto.split(/[,;\n]/)) {
     const sobrenome = parte.trim().replace(/\s+/g, ' ');
     if (!sobrenome) continue;
-    if (sobrenome.length > 30 || !SOBRENOME.test(sobrenome)) return { erro: `"${sobrenome.slice(0, 30)}" não parece um sobrenome. Use só letras.` };
+    if (sobrenome.length > 30 || !SOBRENOME.test(sobrenome)) return { erro: `“${sobrenome.slice(0, 30)}” não parece um sobrenome. Use só letras.` };
     if (!sobrenomes.some((s) => s.toLowerCase() === sobrenome.toLowerCase())) sobrenomes.push(sobrenome);
   }
   if (!sobrenomes.length) return { erro: 'Escreva pelo menos um sobrenome.' };

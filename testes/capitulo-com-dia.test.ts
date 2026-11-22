@@ -74,7 +74,9 @@ describe.skipIf(!comSqlite)('a migração 104 e a gravação do dia', async () =
   const gui = { pessoa: 'gui', nome: 'Gui', admin: true, nucleos: ['bayara-nascimento'] };
 
   it('os capítulos de hoje passam pela migração sem perda, sem dia', async () => {
-    expect(antes.length).toBe(migracoes.length - 1);
+    // A 104 existe; as migrações que vieram depois dela rodam junto, em prepararBanco
+    expect(antes.length).toBeGreaterThan(0);
+    expect(antes.length).toBeLessThan(migracoes.length);
     banco.sqlite.exec(`CREATE TABLE _migracoes (id TEXT PRIMARY KEY, aplicada_em TEXT NOT NULL DEFAULT (datetime('now')))`);
     for (const m of antes) {
       for (const comando of m.sql) banco.sqlite.exec(comando);

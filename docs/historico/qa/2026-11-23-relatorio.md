@@ -1,6 +1,8 @@
 # QA de 23/11/2026 (sessão U)
 
-O que as rodadas de 20/11 não cobriram: as permissões de cada ação que grava e os fluxos que a qa2 não fez, de ponta a ponta. Branch `qa-2026-11-23`, nascida da `homologa` em `677f3d5` (com os PRs #156 e #158, sem o #157). Prévia: `https://qa-2026-11-23.memorias.bayara.com.br`. As perguntas estão em [`qa/2026-11-23-perguntas.md`](qa/2026-11-23-perguntas.md) e as capturas em `docs/visual/qa-2026-11-23/`.
+Relatório da rodada, trazido para o histórico na branch `tst-respostas-qa-2311` (22/11/2026), com as respostas do Gui às perguntas. O ajuste do PR #157 descrito abaixo não foi feito: o PR foi fechado sem juntar, e o modo TV vai ser repensado (ver as respostas à P1 e à P2).
+
+O que as rodadas de 20/11 não cobriram: as permissões de cada ação que grava e os fluxos que a qa2 não fez, de ponta a ponta. Branch `qa-2026-11-23`, nascida da `homologa` em `677f3d5` (com os PRs #156 e #158, sem o #157). Prévia: `https://qa-2026-11-23.memorias.bayara.com.br`. As perguntas, com as respostas do Gui, estão em [`2026-11-23-perguntas.md`](2026-11-23-perguntas.md) e as capturas em `docs/visual/qa-2026-11-23/`.
 
 Estado de partida: `npm test` com 1738 testes passando, `npm run build` sem erro, `tsc` com 169 erros (a mesma conta das rodadas de 20/11), gestalt com 665 títulos certos. No fim: 1748 testes, `tsc` com os mesmos 169.
 
@@ -64,7 +66,7 @@ Branch `qa-2026-11-23`, cada correção com teste:
 
 ## O que ficou para o Gui decidir
 
-Em [`qa/2026-11-23-perguntas.md`](qa/2026-11-23-perguntas.md): 8 perguntas. As que mais mudam a experiência: P1 (memória que não cabe na TV), P3 (relato que volta a esperar depois de restringir e reabrir) e P4 (rascunho paralelo preso quando outra pessoa publica o relato de quem não acessa o site).
+Em [`2026-11-23-perguntas.md`](2026-11-23-perguntas.md): 8 perguntas. As que mais mudam a experiência: P1 (memória que não cabe na TV), P3 (relato que volta a esperar depois de restringir e reabrir) e P4 (rascunho paralelo preso quando outra pessoa publica o relato de quem não acessa o site).
 
 Observações sem pergunta:
 
@@ -102,4 +104,4 @@ Observações sem pergunta:
 | Pedido para liberar relato (exemplo das prévias, como Giovanna) | https://qa-2026-11-23.memorias.bayara.com.br/ |
 | Modo TV em 1280 × 720 (o #157 ainda não está nesta branch) | https://qa-2026-11-23.memorias.bayara.com.br/explorar?ver=tv |
 | Capturas do veredito do #157 e de compartilhar | `docs/visual/qa-2026-11-23/` |
-| Perguntas desta rodada | `docs/qa/2026-11-23-perguntas.md` |
+| Perguntas desta rodada | `docs/historico/qa/2026-11-23-perguntas.md` |

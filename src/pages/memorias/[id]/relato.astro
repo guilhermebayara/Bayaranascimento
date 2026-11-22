@@ -13,7 +13,7 @@ import { enderecoDoRetrato } from '../../../lib/retratos';
 import { coresDasPessoas } from '../../../lib/familias';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { conversaDosRelatos } from '../../../lib/servidor/conversa';
-import { donoDoRelato, veORelato } from '../../../lib/servidor/permissoes';
+import { chaveDoPublico, donoDoRelato, veORelato } from '../../../lib/servidor/permissoes';
 import { situacaoDaTranscricaoAgora } from '../../../lib/servidor/transcricao';
 import {
   familiasDe,
@@ -26,6 +26,7 @@ import {
   nomesDasPessoasExcluidas,
   obterMemoria,
   obterMensagem,
+  obterRascunhoQueFicou,
   obterRelato,
   pessoasQueONaoVe,
 } from '../../../lib/servidor/repositorio';
@@ -57,9 +58,16 @@ const bloqueado = Boolean(existente) && donoDoRelato(existente!) !== usuario.pes
 const relatos = await listarRelatos(usuario, memoria.id);
 const quemRegistrou = bloqueado && relatos.some((r) => r.id === existente!.id) ? nome(donoDoRelato(existente!)) : undefined;
 const publicado = existente?.situacao === 'publicada' && !bloqueado;
+// O rascunho de quem não publicou primeiro (resposta do Gui à P4 do QA de 23/11/2026): só quem o escreveu
+// vê o texto, embaixo do recado, para copiar, com "Descartar este rascunho"
+const rascunhoQueFicou = bloqueado ? await obterRascunhoQueFicou(memoria.id, por, usuario) : undefined;
+const paragrafosDoRascunho = (rascunhoQueFicou?.texto ?? '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
 
-// Os relatos dos outros, publicados, como na memória (quem contou primeiro antes)
-const dosOutros = relatos.filter((r) => r.situacao === 'publicada' && r.id !== existente?.id);
+// Os relatos dos outros, publicados, como na memória (quem contou primeiro antes). O relato que outra
+// pessoa registrou em nome de "por" continua aqui, porque não é o de quem escreve
+const dosOutros = relatos.filter((r) => r.situacao === 'publicada' && (bloqueado || r.id !== existente?.id));
+// O título diz de quem é o relato (resposta do Gui à P5 do QA de 23/11/2026)
+const tituloDaPagina = por === usuario.pessoa ? 'Meu relato' : `Relato de ${nome(por)}`;
 const fotosDoMeu = existente && !bloqueado ? await listarFotosDoRelato(existente.id) : [];
 const fotos = [...memoria.fotos, ...fotosDoMeu.filter((f) => !memoria.fotos.some((m) => m.id === f.id))];
 const conversa = await conversaDosRelatos([...(existente && !bloqueado ? [existente] : []), ...dosOutros], fotos, nome, undefined, relatos);
@@ -77,7 +85,7 @@ if (pedidoDeCitacao && !bloqueado) {
 const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 ---
 
-<Pagina titulo="Meu relato" aba={`Relato: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar" larga>
+<Pagina titulo={tituloDaPagina} aba={`${por === usuario.pessoa ? 'Relato' : tituloDaPagina}: ${memoria.titulo}`} rotulo="Relato" nucleos={memoria.nucleos} secao="explorar" larga>
   <p slot="abertura">
     <a href={`/memorias/${memoria.id}`}>{memoria.titulo}</a>, {formatarData(memoria)}. Conte como você lembra desse momento: um texto, um áudio ou uma foto por vez, na ordem que vierem.
   </p>
@@ -88,9 +96,34 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 
       {
         bloqueado ? (
-          <p class="recado">Esse relato já foi registrado por {quemRegistrou ?? 'outra pessoa'}, e só quem registrou pode alterar.</p>
+          <>
+            <p class="recado">Esse relato já foi registrado por {quemRegistrou ?? 'outra pessoa'}, e só quem registrou pode alterar.</p>
+            {rascunhoQueFicou && (
+              <div class="rascunho-que-ficou" data-rascunho-que-ficou>
+                <h3 class="rotulo suave">O seu rascunho, só você vê</h3>
+                {paragrafosDoRascunho.length > 0 ? (
+                  <div class="rascunho-que-ficou__texto">
+                    {paragrafosDoRascunho.map((p) => (
+                      <p>{p}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <p class="dica">O rascunho não tem texto escrito, só áudio ou foto.</p>
+                )}
+                <p class="dica">Copie o que quiser guardar. Descartado, o rascunho vai para a lixeira, em Sua conta, e pode ser restaurado.</p>
+                <form method="post" action="/api/lixeira" class="em-linha">
+                  <input type="hidden" name="acao" value="descartar-relato" />
+                  <input type="hidden" name="memoria" value={memoria.id} />
+                  <input type="hidden" name="por" value={por} />
+                  <button class="acao" type="submit">
+                    Descartar este rascunho
+                  </button>
+                </form>
+              </div>
+            )}
+          </>
         ) : (
-          <Janela modo="ao-vivo" memoria={memoria.id} por={por} mensagens={minhas} publicado={publicado} transcricaoAutomatica={transcricaoAutomatica} comFotos citando={citando}>
+          <Janela modo="ao-vivo" memoria={memoria.id} publico={chaveDoPublico(memoria)} por={por} mensagens={minhas} publicado={publicado} transcricaoAutomatica={transcricaoAutomatica} comFotos citando={citando}>
             <p class="relato-conversa__acoes">
               {!publicado && (
                 <button type="submit" class="botao" name="situacao" value="publicada" data-publicar>
@@ -138,7 +171,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
           <h2 class="rotulo suave" id="titulo-na-memoria">
             Na memória
           </h2>
-          <p class="dica">Toque em "Citar" para responder a uma mensagem no seu relato. A citação fica no seu relato.</p>
+          {!bloqueado && <p class="dica">Toque em “Citar” para responder a uma mensagem no seu relato. A citação fica no seu relato.</p>}
           <div class="voz-fio">
             {dosOutros.map((r) => (
               <Voz nome={nome(r.por)} retrato={retratoDe(r.por)} familia={familiaDe(r.por)} falecido={Boolean(achar(r.por) && jaFaleceu(achar(r.por)!))} registradoPor={r.registradoPor !== r.por ? nome(r.registradoPor) : null} mensagens={conversa.get(r.id) ?? []} minha={r.por === usuario.pessoa} citarEm={bloqueado ? undefined : `/memorias/${memoria.id}/relato?${por !== usuario.pessoa ? `por=${por}&` : ''}cita=`} />

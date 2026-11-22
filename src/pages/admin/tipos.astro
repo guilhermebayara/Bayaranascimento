@@ -27,12 +27,12 @@ const corLivre = PALETA.find((c) => !emUso.has(c)) ?? PALETA[0];
 // Aprovados pelo Gui em 17/11/2026 (P163 do QA de design): os textos desta tela ("Cor", "Desenho", "Como fica", "Mudar a cor e o desenho", "em Viagem").
 // Depois de salvar, a página volta para a linha do tipo, com o recado ali (P161)
 const salvo = Astro.url.searchParams.get('salvo');
-const nomesEmOutro = textos.length === 1 ? 'Um nome escrito em "Outro"' : `${textos.length} nomes escritos em "Outro"`;
+const nomesEmOutro = textos.length === 1 ? 'Um nome escrito em “Outro”' : `${textos.length} nomes escritos em “Outro”`;
 ---
 
 <Pagina titulo="Tipos de momento" rotulo="Administração" secao="administracao" larga>
   <Fragment slot="abertura">
-    <p>A lista que aparece em "Que tipo de momento foi?". {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}</p>
+    <p>A lista que aparece em “Que tipo de momento foi?”. {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}</p>
     <p class="acoes">
       <a class="acao" href="/admin">Voltar para a Administração</a>
     </p>
@@ -68,7 +68,7 @@ const nomesEmOutro = textos.length === 1 ? 'Um nome escrito em "Outro"' : `${tex
                 <label class="campo">
                   <span>Nome</span>
                   <input type="text" name="rotulo" value={t.rotulo} maxlength="40" required readonly={t.id === TIPO_OUTRO} data-escolha-nome />
-                  {t.id === TIPO_OUTRO && <small class="dica">"Outro" é a saída de quem não achou o tipo: muda de cor e de desenho, mas não de nome.</small>}
+                  {t.id === TIPO_OUTRO && <small class="dica">“Outro” é a saída de quem não achou o tipo: muda de cor e de desenho, mas não de nome.</small>}
                 </label>
                 <EscolhaDoTipo chave={t.id} cor={corDoTipo(t.id)} icone={rabisco(iconeDoTipo(t.id)).id} rotulo={t.rotulo} emUso={emUso} />
                 <p class="acoes">
@@ -105,10 +105,10 @@ const nomesEmOutro = textos.length === 1 ? 'Um nome escrito em "Outro"' : `${tex
   </section>
 
   <section class="painel" id="outro">
-    <h2>O que a família escreveu em "Outro"</h2>
+    <h2>O que a família escreveu em “Outro”</h2>
     {
       textos.length === 0 ? (
-        <Vazio frase={'Ninguém usou "Outro" com um nome ainda. Quando usarem, os nomes aparecem aqui com a quantidade de memórias.'} />
+        <Vazio frase={'Ninguém usou “Outro” com um nome ainda. Quando usarem, os nomes aparecem aqui com a quantidade de memórias.'} />
       ) : (
         <>
           <p class="dica">Quando um nome se repete, vale virar um tipo da lista. As memórias com aquele nome mudam junto.</p>

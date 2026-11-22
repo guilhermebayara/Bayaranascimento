@@ -74,9 +74,14 @@ function ligar(form: HTMLFormElement): void {
         }
       }
       anunciar(erro ?? ok ?? 'Pronto.');
-      if (erro && document.contains(form)) {
-        form.querySelector('.recado-no-lugar')?.remove();
-        form.prepend(Object.assign(document.createElement('p'), { className: 'recado-no-lugar campo__erro', textContent: erro }));
+      // O recado de erro fica à vista no formulário. Se a troca levou o formulário embora (a resposta ao
+      // pedido para liberar, que volta com o pedido de agora), vai para o mesmo formulário na página nova,
+      // achado pela chave dele (data-chave)
+      const chave = form.dataset.chave;
+      const onde = document.contains(form) ? form : chave ? document.querySelector<HTMLFormElement>(`form[data-chave="${CSS.escape(chave)}"]`) : null;
+      if (erro && onde) {
+        onde.querySelector('.recado-no-lugar')?.remove();
+        onde.prepend(Object.assign(document.createElement('p'), { className: 'recado-no-lugar campo__erro', textContent: erro }));
       }
     } catch {
       // A reserva: o formulário comum, que recarrega

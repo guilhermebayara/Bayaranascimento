@@ -1488,6 +1488,24 @@ export async function semearAvisosDeExemplo(db: D1Database): Promise<void> {
   await db.batch(comandos);
 }
 
+// O rascunho que ficou para trás (resposta do Gui à P4 do QA de 23/11/2026): a Elizete começou o relato do
+// Aguilar em "Férias em Guarapari", que o Gui já publicou. No "Ver como" da Elizete, a página do relato do
+// Aguilar mostra o recado, o texto dela para copiar e "Descartar este rascunho".
+export async function semearRascunhoQueFicouDeExemplo(db: D1Database): Promise<void> {
+  const ja = await db.prepare(`SELECT 1 AS ok FROM relatos WHERE memoria_id = '1996-ferias-em-guarapari' AND por = 'aguilar' AND registrado_por = 'elizete' LIMIT 1`).first();
+  if (ja) return;
+  const publicado = await db
+    .prepare(`SELECT 1 AS ok FROM relatos WHERE memoria_id = '1996-ferias-em-guarapari' AND por = 'aguilar' AND situacao = 'publicada' AND registrado_por = 'gui'`)
+    .first();
+  if (!publicado) return;
+  await db
+    .prepare(
+      `INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES ('1996-ferias-em-guarapari', 'aguilar', 'elizete', ?, 'rascunho')`,
+    )
+    .bind('O Aguilar me contou que o peixe era do tamanho do braço dele.\n\nE que o Tio Paulo ajudou a puxar a linha.')
+    .run();
+}
+
 // Um pedido para liberar de exemplo (docs/decisoes.md, "Ampliar quem vê uma memória com relatos"): um
 // relato da Giovanna numa memória do Gui aberta a todos fica só para a família Bayara Nascimento, como
 // se o Gui tivesse acabado de abrir a memória. No "Ver como", a Giovanna vê o pedido, o Gui vê a frase

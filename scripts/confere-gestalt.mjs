@@ -106,6 +106,8 @@ const TELAS = [
   { nome: 'memoria-com-fotos', url: '/memorias/1994-festa-de-aniversario', como: 'giovanna' },
   { nome: 'memoria-sem-foto', url: '/memorias/2026-primeira-noite-em-casa', como: 'giovanna' },
   { nome: 'memoria-relato', url: '/memorias/2025-natal/relato' },
+  // O rascunho de quem não publicou primeiro (P4 do QA de 23/11/2026): o recado, o texto e a saída
+  { nome: 'memoria-relato-que-ficou', url: '/memorias/1996-ferias-em-guarapari/relato?por=aguilar', como: 'elizete' },
   { nome: 'memoria-historico', url: '/memorias/2025-natal/historico' },
   { nome: 'memoria-excluir', url: '/memorias/2025-natal/excluir' },
   { nome: 'memoria-fotos', url: '/memorias/2025-natal/fotos' },

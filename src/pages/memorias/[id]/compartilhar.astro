@@ -106,7 +106,7 @@ const primeiro = relatos[0];
     ) : (
       <section class="compartilhar estudio" data-compartilhar-raiz>
         <div class="estudio__palco">
-          {/* Sem script, a imagem não é montada: "Montando a imagem…" e a bandeja somem, e fica a explicação (QA de 23/11/2026) */}
+          {/* Sem script, a imagem não é montada: "Montando a imagem…" e a bandeja somem, e fica a explicação (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md) */}
           <p class="dica" data-estado data-so-com-script>
             Montando a imagem…
           </p>
@@ -133,7 +133,8 @@ const primeiro = relatos[0];
                     <small>Como a família toda conhece.</small>
                   </span>
                 </label>
-                <label class="opcao-da-imagem">
+                {/* Sem apelido próprio de quem olha, a opção nem aparece (resposta do Gui à P7 do QA de 23/11/2026) */}
+                <label class="opcao-da-imagem" data-opcao-meu hidden={!primeiro?.comOSeuApelido}>
                   <input type="radio" name="nomeNaImagem" value="meu" disabled={!primeiro?.comOSeuApelido} />
                   <span>
                     <strong>O seu apelido</strong>

@@ -89,7 +89,7 @@ describe('formulários sem JavaScript e depois de um erro', () => {
     for (const api of ['src/pages/api/memorias.ts', 'src/pages/api/relatos.ts']) {
       expect(fonte(api), api).toMatch(/if \(!\(request\.headers\.get\('Content-Type'\) \?\? ''\)\.includes\('application\/json'\)\) \{\s*const dados = await request\.formData\(\);/);
     }
-    // Sem JavaScript não há envio de fotos: as que a memória já tem ficam
-    expect(fonte('src/pages/api/memorias.ts')).toContain('fotos: (anterior?.fotos ?? []).map(');
+    // Sem JavaScript não há envio de fotos: as que a memória já tem ficam, lidas a cada tentativa (Y3 do PR #160)
+    expect(fonte('src/pages/api/memorias.ts')).toContain('const pedidas = pedido.fotos ?? (anterior?.fotos ?? []).map(');
   });
 });

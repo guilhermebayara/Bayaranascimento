@@ -330,23 +330,48 @@ export interface Publico {
 }
 
 /**
- * A memória passou a ser vista por mais gente? Só quando o público novo tem alguém que o antigo não
- * tinha: de núcleos para toda a família, ou com um núcleo a mais. Restringir não é ampliar.
+ * O público da memória mudou de fato: outra visibilidade, ou outras famílias numa memória restrita. Numa
+ * memória aberta a todos, marcar ou tirar famílias não muda quem vê (revisão Y do PR #160, 22/11/2026):
+ * só a mudança de público recalcula os relatos.
  */
-export function publicoAmpliado(antes: Publico, depois: Publico): boolean {
-  if (antes.visibilidade === 'todos') return false;
-  if (depois.visibilidade === 'todos') return true;
-  return depois.nucleos.some((n) => !antes.nucleos.includes(n));
-}
-
-/** O público da memória cabe inteiro no público antigo de um relato: a espera dele perdeu o sentido. */
-export function publicoDentroDe(publico: Publico, soParaNucleos: readonly string[]): boolean {
-  return publico.visibilidade === 'nucleos' && publico.nucleos.every((n) => soParaNucleos.includes(n));
+export function publicoMudou(antes: Publico, depois: Publico): boolean {
+  if (antes.visibilidade !== depois.visibilidade) return true;
+  if (depois.visibilidade === 'todos') return false;
+  return antes.nucleos.length !== depois.nucleos.length || antes.nucleos.some((n) => !depois.nucleos.includes(n));
 }
 
 /**
- * O relato que espera o sim do autor depois de a memória ser ampliada fica só para o público antigo:
- * os membros dos núcleos que viam a memória antes. Quem registrou sempre vê o que escreveu. Sem espera
+ * O público da memória como o pedido para liberar o mostra, numa chave que a página manda junto com a
+ * resposta: "todos", ou "nucleos:" e as famílias em ordem. Se a de agora for outra, a memória mudou depois
+ * de a pessoa ler o pedido, e a resposta não vale (revisão Y2 do PR #160). Marcar ou tirar famílias numa
+ * memória aberta a todos não muda quem vê, e não muda a chave (como publicoMudou).
+ */
+export function chaveDoPublico(publico: Publico): string {
+  return publico.visibilidade === 'todos' ? 'todos' : `nucleos:${[...publico.nucleos].sort().join(',')}`;
+}
+
+/** A chave de chaveDoPublico de volta ao público. O que não for uma chave dá undefined. */
+export function publicoDaChave(chave: string): Publico | undefined {
+  if (chave === 'todos') return { visibilidade: 'todos', nucleos: [] };
+  const nucleos = /^nucleos:(.+)$/.exec(chave)?.[1].split(',').filter(Boolean);
+  return nucleos?.length ? { visibilidade: 'nucleos', nucleos } : undefined;
+}
+
+/**
+ * O relato que nasce depois de a memória abrir para mais gente do que a página mostrava (decisão do Gui,
+ * 22/11/2026, Y3 do PR #160): nasce só para o público que a página mostrava e espera o sim de quem
+ * escreveu, como os relatos que já existiam na ampliação. Quem criou a memória nunca espera, e o relato
+ * escrito com a página certa (ou com a memória restringida depois) acompanha a memória, como sempre.
+ */
+export function relatoQueNasce(paginaMostrava: Publico, memoria: Publico, quemEscreve: string, criadaPor: string): { soParaNucleos: string[] | null } {
+  if (quemEscreve === criadaPor || cabeNoConhecido(memoria, comoConhecido(paginaMostrava))) return { soParaNucleos: null };
+  // Aqui a página mostrava só algumas famílias: "todos" caberia em qualquer público
+  return { soParaNucleos: [...paginaMostrava.nucleos].sort() };
+}
+
+/**
+ * O relato que espera o sim do autor depois de a memória ser ampliada fica só para quem já o viu: os
+ * membros dos núcleos do público conhecido dele. Quem registrou sempre vê o que escreveu. Sem espera
  * (soParaNucleos vazio), o relato acompanha a memória.
  */
 export function estaNoPublicoDoRelato(
@@ -356,6 +381,81 @@ export function estaNoPublicoDoRelato(
   if (!relato.soParaNucleos) return true;
   if (relato.registradoPor === usuario.pessoa) return true;
   return relato.soParaNucleos.some((n) => (usuario.nucleos ?? []).includes(n));
+}
+
+/**
+ * O público mais amplo que um relato já teve (migração 105; resposta do Gui à P3 do QA de 23/11/2026,
+ * docs/historico/qa/2026-11-23-perguntas.md): "todos", ou os núcleos cujos membros já o viram. Ao ampliar,
+ * o relato só espera por quem nunca o viu.
+ */
+export type PublicoConhecido = 'todos' | readonly string[];
+
+/** O público da memória como público conhecido: "todos", ou os núcleos dela. */
+const comoConhecido = (publico: Publico): PublicoConhecido => (publico.visibilidade === 'todos' ? 'todos' : [...publico.nucleos]);
+
+/** A soma de dois públicos conhecidos: quem viu num ou no outro. */
+export function juntarPublicos(a: PublicoConhecido, b: PublicoConhecido): PublicoConhecido {
+  if (a === 'todos' || b === 'todos') return 'todos';
+  return [...new Set([...a, ...b])].sort();
+}
+
+/** O público da memória cabe inteiro no que o relato já teve: ninguém ali o veria pela primeira vez. */
+export function cabeNoConhecido(publico: Publico, conhecido: PublicoConhecido): boolean {
+  if (conhecido === 'todos') return true;
+  return publico.visibilidade === 'nucleos' && publico.nucleos.every((n) => conhecido.includes(n));
+}
+
+/**
+ * O que um relato já teve, antes de uma mudança de quem vê a memória. Sem registro (relato de antes da
+ * migração 105, ou escrito depois da última mudança), vale o público de hoje, sem supor passado: o
+ * público antigo, se ele espera, ou o da memória antes da mudança. Um relato que acompanha a memória
+ * também já foi visto por quem a via antes.
+ */
+export function publicoConhecidoAntes(
+  relato: { soParaNucleos?: readonly string[] | null; publicoConhecido?: PublicoConhecido | null },
+  antes: Publico,
+): PublicoConhecido {
+  if (relato.soParaNucleos) return juntarPublicos(relato.publicoConhecido ?? relato.soParaNucleos, relato.soParaNucleos);
+  return juntarPublicos(relato.publicoConhecido ?? comoConhecido(antes), comoConhecido(antes));
+}
+
+/**
+ * Quem vê a memória mudou (ampliar ou restringir): como fica cada relato. O relato de quem mudou nunca
+ * espera. Os outros esperam só quando o público novo tem alguém que nunca os viu: ficam com o público
+ * conhecido até quem os registrou concordar. Quando o público novo cabe no que o relato já teve, ele
+ * acompanha a memória, sem pedido (restringir e reabrir não pede nada).
+ */
+export function relatoDepoisDaMudanca(
+  relato: { registradoPor: string; soParaNucleos?: readonly string[] | null; publicoConhecido?: PublicoConhecido | null },
+  antes: Publico,
+  depois: Publico,
+  quemMudou: string,
+): { soParaNucleos: string[] | null; publicoConhecido: PublicoConhecido } {
+  const conhecido = publicoConhecidoAntes(relato, antes);
+  if (relato.registradoPor === quemMudou || cabeNoConhecido(depois, conhecido)) {
+    return { soParaNucleos: null, publicoConhecido: juntarPublicos(conhecido, comoConhecido(depois)) };
+  }
+  // Aqui o conhecido não é "todos": todo público caberia nele
+  return { soParaNucleos: [...(conhecido as readonly string[])], publicoConhecido: conhecido };
+}
+
+/**
+ * "Manter como estava" vale para o público que foi perguntado (decisão do Gui, 22/11/2026): ampliar de
+ * novo para esse mesmo público, ou para parte dele, não pede de novo; um público maior é outra pergunta.
+ * `ultima` é a última resposta de quem registrou o relato, com o público que o pedido mostrava. Sem o
+ * público (respostas de antes de a resposta guardá-lo), pede de novo, que não revela nada a ninguém.
+ */
+export function jaRecusouEstePublico(depois: Publico, ultima: { resposta: string; publico?: Publico | null } | undefined): boolean {
+  if (ultima?.resposta !== 'manter' || !ultima.publico) return false;
+  return cabeNoConhecido(depois, comoConhecido(ultima.publico));
+}
+
+/** Liberar o relato: quem vê a memória agora passa a ter visto o relato. */
+export function publicoConhecidoAoLiberar(
+  relato: { soParaNucleos?: readonly string[] | null; publicoConhecido?: PublicoConhecido | null },
+  memoria: Publico,
+): PublicoConhecido {
+  return juntarPublicos(relato.publicoConhecido ?? relato.soParaNucleos ?? [], comoConhecido(memoria));
 }
 
 /** Responder ao pedido para liberar, ou liberar depois pela linha do relato: só quem registrou o relato. */

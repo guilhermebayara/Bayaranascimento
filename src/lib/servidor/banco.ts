@@ -6,7 +6,7 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearRascunhoQueFicouDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 import { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
 import { darMensagensAosRelatosDeAntes } from './mensagens-de-antes';
@@ -950,6 +950,49 @@ export const MIGRACOES: Migracao[] = [
     id: '104-dia-dos-capitulos',
     sql: [`ALTER TABLE capitulos ADD COLUMN inicio_dia INTEGER`, `ALTER TABLE capitulos ADD COLUMN fim_dia INTEGER`],
   },
+  {
+    // O público mais amplo que cada relato já teve (resposta do Gui à P3 do QA de 23/11/2026; regras em
+    // permissoes.ts, "relatoDepoisDaMudanca"). Ao ampliar quem vê a memória, o relato só espera por quem
+    // nunca o viu: restringir e reabrir não pede de novo. "todos" ou a lista de núcleos em JSON. Vazia nos
+    // relatos de hoje: o público conhecido deles é o de hoje, sem supor passado, e é gravado na primeira
+    // mudança de quem vê a memória.
+    id: '105-publico-conhecido-do-relato',
+    sql: [`ALTER TABLE relatos ADD COLUMN publico_conhecido TEXT`],
+  },
+  {
+    // O rascunho que ficou para trás quando outra pessoa publicou o relato de quem não acessa o site
+    // (resposta do Gui à P4 do QA de 23/11/2026): quem escreveu vê o texto, para copiar, e pode descartá-lo.
+    // Descartado, ele vai para a lixeira de quem escreveu, como os rascunhos de memória: some das listas e
+    // volta por "Restaurar". Nada é apagado.
+    id: '106-rascunho-de-relato-descartado',
+    sql: [`ALTER TABLE relatos ADD COLUMN descartado_em TEXT`],
+  },
+  {
+    // A versão da memória (revisão Y2 do PR #160, item 4b): todo lote que conta com o que leu dos relatos da
+    // memória (ampliar ou restringir, responder ao pedido, descartar ou restaurar o rascunho de relato) sobe a
+    // versão a partir da que leu, e um relato novo sobe a versão de qualquer jeito. O gatilho recusa a subida
+    // que não parte da versão de agora: o lote inteiro volta, e quem perdeu refaz a conta com o banco de agora
+    // (refazerSeAMemoriaMudou, em repositorio.ts).
+    id: '107-versao-da-memoria',
+    sql: [
+      `ALTER TABLE memorias ADD COLUMN versao INTEGER NOT NULL DEFAULT 0`,
+      `CREATE TRIGGER IF NOT EXISTS memorias_versao_confere BEFORE UPDATE OF versao ON memorias
+       WHEN NEW.versao <> OLD.versao + 1
+       BEGIN SELECT RAISE(ABORT, 'memoria-mudou'); END`,
+    ],
+  },
+  {
+    // Um relato tem no máximo um pedido para liberar na lista (revisão Y2 do PR #160): dois salvamentos
+    // iguais ao mesmo tempo não criam dois pedidos abertos. Se já houver mais de um, fica o mais novo, e os
+    // outros saem da lista sem resposta, como sai o pedido que perdeu o sentido.
+    id: '108-um-pedido-aberto-por-relato',
+    sql: [
+      `UPDATE avisos SET resolvido_em = datetime('now')
+       WHERE tipo = 'liberar-relato' AND resolvido_em IS NULL
+         AND id NOT IN (SELECT MAX(id) FROM avisos WHERE tipo = 'liberar-relato' AND resolvido_em IS NULL GROUP BY relato_id)`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS avisos_um_pedido_aberto ON avisos (relato_id) WHERE tipo = 'liberar-relato' AND resolvido_em IS NULL`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
@@ -1011,6 +1054,7 @@ async function migrar(db: D1Database): Promise<void> {
     // Avisos de exemplo, para o "Ver como" mostrar a lista, o número no retrato e a conta
     await semearAvisosDeExemplo(db);
     await semearPedidoDeExemplo(db);
+    await semearRascunhoQueFicouDeExemplo(db);
     await limparBucketDeTeste(db);
   }
 

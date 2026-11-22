@@ -338,7 +338,7 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
 /**
  * O endereço de um rascunho de relato, em "Sua conta" e no atalho do Início. O relato escrito por outra
  * pessoa (quem não acessa o site) abre com ?por=, senão a janela abria o relato de quem está logado
- * (QA de 23/11/2026).
+ * (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md).
  */
 export function enderecoDoRascunhoDeRelato(relato: { memoriaId: string; por: string }, pessoa: string): string {
   const base = `/memorias/${encodeURIComponent(relato.memoriaId)}/relato`;

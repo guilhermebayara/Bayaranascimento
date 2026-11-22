@@ -95,7 +95,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       fotos: memoria.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
     };
     await atualizarMemoria(memoria, ficha, usuario, []);
-    // Aceitar é uma correção: quem entrou agora em "Quem estava" recebe o aviso (QA de 23/11/2026)
+    // Aceitar é uma correção: quem entrou agora em "Quem estava" recebe o aviso (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)
     await avisarQuemEstava({ ...memoria, integrantes }, memoria.integrantes, usuario);
     await responderSugestao(sugestao, 'aceita', texto, usuario);
     return voltar(request, sugestoes, { ok: 'Sugestão aceita. A memória mudou, e a versão de antes ficou no histórico.' });

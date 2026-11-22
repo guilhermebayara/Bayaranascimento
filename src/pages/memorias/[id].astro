@@ -25,7 +25,8 @@ import { tipoDaMemoria } from '../../lib/tipos';
 import { formatarData, jaFaleceu } from '../../lib/datas';
 import { Familia, possessivo, type Tratamento } from '../../lib/parentesco';
 import { enderecoDoRetrato } from '../../lib/retratos';
-import { podeEditarMemoria, podeExcluirMemoria } from '../../lib/servidor/permissoes';
+import { chaveDoPublico, podeEditarMemoria, podeExcluirMemoria } from '../../lib/servidor/permissoes';
+import { comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
 import {
   familiasDe,
   listarAudiosDosRelatos,
@@ -367,13 +368,15 @@ const podeCitar = publicada && temPaginaNoAcervo;
                     <Fragment slot="antes">
                       {relato.situacao === 'rascunho' && <p class="selo bilhete__selo">Rascunho, só você vê</p>}
                       {relato.soParaNucleos && relato.registradoPor === usuario.pessoa && (
-                        <form class="bilhete__espera" method="post" action="/api/avisos" data-regiao={`liberar-${relato.id}`} data-no-lugar={`liberar-${relato.id} retrato`}>
+                        <form class="bilhete__espera" method="post" action="/api/avisos" data-regiao={`liberar-${relato.id}`} data-no-lugar={`liberar-${relato.id} retrato`} data-chave={`liberar-${relato.id}`}>
                           <input type="hidden" name="relato" value={relato.id} />
                           <input type="hidden" name="resposta" value="liberar" />
+                          {/* Liberar diz para quem libera, e a rota confere que é esse o público de agora (revisão Y2 do PR #160) */}
+                          <input type="hidden" name="publico" value={chaveDoPublico(memoria)} />
                           <input type="hidden" name="volta" value={`/memorias/${memoria.id}#relato-${relato.id}`} />
                           <span class="suave">Visível só para quem via antes.</span>
                           <button type="submit" class="acao acao--quieta">
-                            Liberar
+                            Liberar para {paraQuemPassouAVer(comoPublicoAntigo(relato.publicoConhecido ?? relato.soParaNucleos), memoria, nucleos)}
                           </button>
                         </form>
                       )}

@@ -381,7 +381,7 @@ describe('a Administração em página própria', () => {
   });
 });
 
-describe('o rascunho de relato escrito por outra pessoa (QA de 23/11/2026)', () => {
+describe('o rascunho de relato escrito por outra pessoa (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)', () => {
   it('abre a janela de quem está contando, com ?por=, e o próprio relato sem ele', () => {
     expect(enderecoDoRascunhoDeRelato({ memoriaId: 'x6qcfqps', por: 'aguilar' }, 'gui')).toBe('/memorias/x6qcfqps/relato?por=aguilar');
     expect(enderecoDoRascunhoDeRelato({ memoriaId: 'x6qcfqps', por: 'gui' }, 'gui')).toBe('/memorias/x6qcfqps/relato');

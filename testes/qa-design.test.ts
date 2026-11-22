@@ -117,7 +117,7 @@ describe('capítulos, árvore e pessoas', () => {
   });
   it('o capítulo vazio manda usar o botão com o nome que ele tem para quem está vendo', () => {
     const pagina = ler('src/pages/capitulos/[id]/index.astro');
-    expect(pagina).toMatch(/Use "\$\{podeEditar \? 'Escolher memórias e editar' : 'Escolher memórias'\}"/);
+    expect(pagina).toMatch(/Use “\$\{podeEditar \? 'Escolher memórias e editar' : 'Escolher memórias'\}”/);
   });
 });
 
