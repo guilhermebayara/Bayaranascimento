@@ -263,7 +263,6 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     if (!solta && !desta) return erro(400, 'Uma das fotos não foi encontrada. Tente enviar de novo.');
   }
   const fotos = pedidas.map((f) => ({ ...f }));
-  if (fotos.length > 0 && !fotos.some((f) => f.principal)) fotos[0].principal = true;
 
   // Só sai da memória a foto que a pessoa viu e tirou (Y3 do PR #160): a que a página mostrava e não está
   // mais na lista. A que entrou depois (por um relato, por "Acrescentar fotos") fica, no fim da ordem e como
@@ -274,6 +273,9 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const naoVistas = (anterior?.fotos ?? []).filter((f) => !mantidas.has(f.id) && !mostradas.has(f.id));
   const temPrincipal = fotos.some((f) => f.principal);
   for (const f of naoVistas) fotos.push({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal && !temPrincipal });
+  // Memória com foto sempre tem principal: sem nenhuma, a primeira vira a principal, também quando a pessoa
+  // tirou a única que via e ficou a que outra pessoa acrescentou (D8 da sessão Z)
+  if (fotos.length > 0 && !fotos.some((f) => f.principal)) fotos[0].principal = true;
 
   // O administrador que não criou a memória nem está nela corrige só os dados (decisão do Gui, 16/11/2026)
   if (anterior && alcanceDaCorrecao(usuario, anterior) === 'dados') {

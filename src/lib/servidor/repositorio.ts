@@ -943,8 +943,21 @@ function comandosDeLigacao(id: string, dados: DadosDaMemoria, quemVe: GravarQuem
         .bind(id, foto.legenda ?? null, foto.principal ? 1 : 0, ordem, foto.id),
     );
   });
+  comandos.push(comandoDaPrincipal(id));
   return comandos;
 }
+
+/**
+ * Memória com foto sempre tem principal (docs/decisoes.md): sem nenhuma, a primeira vira a principal. No fim
+ * do lote, para valer também com a foto que outra pessoa acrescentou entre a leitura e o lote (D8 da sessão Z).
+ */
+const comandoDaPrincipal = (memoriaId: string) =>
+  db()
+    .prepare(
+      `UPDATE fotos SET principal = 1 WHERE id = (SELECT id FROM fotos WHERE memoria_id = ?1 AND removida_em IS NULL ORDER BY ordem, id LIMIT 1)
+       AND NOT EXISTS (SELECT 1 FROM fotos WHERE memoria_id = ?1 AND removida_em IS NULL AND principal = 1)`,
+    )
+    .bind(memoriaId);
 
 /**
  * Cria a memória num lote só. `antes`: o que a ficha cita e ainda não existe (a pessoa nova, o tema novo,

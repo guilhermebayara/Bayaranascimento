@@ -247,5 +247,51 @@ describe.skipIf(!comSqlite)('Z: defeitos das revisões do PR #160', async () => 
       expect(readFileSync('src/components/conversa/Janela.astro', 'utf-8')).toContain('<input type="hidden" name="envio" value={crypto.randomUUID()} />');
     });
   });
+
+  /** Uma memória da Giovanna com fotos, na ordem, a primeira principal; devolve o id e os ids das fotos */
+  async function memoriaComFotos(titulo: string, quantas: number, extra: Record<string, unknown> = {}) {
+    const id = (await pedir('memorias', giovanna, { titulo, ano: 2021, tipo: 'causo', pessoas: ['giovanna'], ...extra })).corpo.id as string;
+    const fotos: number[] = [];
+    for (let n = 0; n < quantas; n++) {
+      banco.sqlite.prepare(`INSERT INTO fotos (memoria_id, chave, principal, ordem, enviada_por) VALUES (?, ?, ?, ?, 'giovanna')`).run(id, `teste/${id}-${n}.jpg`, n === 0 ? 1 : 0, n);
+      fotos.push(linhas<{ id: number }>('SELECT MAX(id) AS id FROM fotos')[0].id);
+    }
+    return { id, fotos, ficha: { id, titulo, ano: 2021, tipo: 'causo', pessoas: ['giovanna'], ...extra } };
+  }
+  const fotosDa = (memoria: string) =>
+    linhas<{ id: number; principal: number; removida: number }>('SELECT id, principal, removida_em IS NOT NULL AS removida FROM fotos WHERE memoria_id = ? ORDER BY ordem, id', memoria);
+  /** Uma foto que outra pessoa acrescentou à memória, no fim e sem ser a principal */
+  const acrescentada = (memoria: string) => {
+    banco.sqlite.prepare(`INSERT INTO fotos (memoria_id, chave, principal, ordem, enviada_por) VALUES (?, ?, 0, 9, 'elizete')`).run(memoria, `teste/${memoria}-da-elizete.jpg`);
+    return linhas<{ id: number }>('SELECT MAX(id) AS id FROM fotos')[0].id;
+  };
+
+  describe('D8: memória com foto sempre tem principal', () => {
+    it('tirar a única foto vista, com outra acrescentada depois de a página abrir: a que ficou vira a principal', async () => {
+      const { id, fotos, ficha } = await memoriaComFotos('Z: D8 a única vista', 1);
+      const daElizete = acrescentada(id);
+      const r = await pedir('memorias', giovanna, { ...ficha, fotos: [], fotosMostradas: fotos });
+      expect(r.status).toBe(200);
+      expect(fotosDa(id)).toEqual([
+        { id: fotos[0], principal: 1, removida: 1 },
+        { id: daElizete, principal: 1, removida: 0 },
+      ]);
+    });
+
+    it('a foto que outra pessoa acrescenta entre a leitura e o lote também vira a principal', async () => {
+      const { id, fotos, ficha } = await memoriaComFotos('Z: D8 na porta do lote', 1);
+      let daElizete = 0;
+      banco.batch = async (comandos: ComandoDeTeste[]) => {
+        if (!daElizete && comandos.some((c) => /^\s*UPDATE memorias SET titulo/.test(c.sql))) daElizete = acrescentada(id);
+        return lote(comandos);
+      };
+      try {
+        expect((await pedir('memorias', giovanna, { ...ficha, fotos: [], fotosMostradas: fotos })).status).toBe(200);
+      } finally {
+        banco.batch = lote;
+      }
+      expect(fotosDa(id).filter((f) => !f.removida)).toEqual([{ id: daElizete, principal: 1, removida: 0 }]);
+    });
+  });
 });
 
