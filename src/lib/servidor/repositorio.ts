@@ -264,8 +264,12 @@ export async function atualizarSobrenomesDoNucleo(id: string, sobrenomes: string
 
 /** Cadastro rápido, pelo nome digitado num laço ou numa memória. "Como se referir" vem junto, se a pessoa disse. */
 export async function criarIntegrante(id: string, nome: string, criadoPor: string, tratamento: Tratamento = null): Promise<void> {
-  await db().prepare(`INSERT INTO integrantes (id, nome, criado_por, tratamento) VALUES (?, ?, ?, ?)`).bind(id, nome, criadoPor, tratamento).run();
+  await comandoDeCriarIntegrante(id, nome, criadoPor, tratamento).run();
 }
+
+/** O cadastro rápido como comando, para gravar junto com a memória que cita a pessoa (um lote só). */
+export const comandoDeCriarIntegrante = (id: string, nome: string, criadoPor: string, tratamento: Tratamento = null): Comando =>
+  db().prepare(`INSERT INTO integrantes (id, nome, criado_por, tratamento) VALUES (?, ?, ?, ?)`).bind(id, nome, criadoPor, tratamento);
 
 export interface DadosDoIntegrante {
   nome: string;
@@ -932,8 +936,14 @@ function comandosDeLigacao(id: string, dados: DadosDaMemoria, quemVe: GravarQuem
   return comandos;
 }
 
-export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: Usuario): Promise<void> {
+/**
+ * Cria a memória num lote só. `antes`: o que a ficha cita e ainda não existe (a pessoa nova, o tema novo,
+ * o laço aberto), gravado no mesmo lote; `junto`: o que vem depois dela (o relato de quem publica, os
+ * avisos). Se um comando falha, nada fica (Y3 do PR #160).
+ */
+export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: Usuario, { antes = [], junto = [] }: { antes?: Comando[]; junto?: Comando[] } = {}): Promise<void> {
   await db().batch([
+    ...antes,
     db()
       .prepare(
         `INSERT INTO memorias (id, titulo, ano, mes, dia, aproximada, tipo, tipo_outro, lugar, visibilidade, situacao, criada_por)
@@ -942,6 +952,7 @@ export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: U
       .bind(id, dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.tipoOutro ?? null, dados.lugar ?? null, dados.visibilidade, dados.situacao, usuario.pessoa),
     marcarPublicacao(id),
     ...comandosDeLigacao(id, dados),
+    ...junto,
   ]);
 }
 
@@ -955,19 +966,23 @@ const marcarPublicacao = (id: string) =>
  * muda e o público fica como está no banco. "mudou" é só de quem criou.
  * `junto`: o que precisa gravar na mesma transação, como os relatos e os pedidos de uma mudança de quem vê
  * (comandosDaMudancaDeQuemVe): se um falhar, a memória continua com o público de antes (revisão Y do PR #160).
+ * `antes`: o que a ficha cita e ainda não existe (a pessoa nova, o tema novo, o laço aberto), no mesmo lote.
+ * `conferir`: o lote conta com a memória que leu (mudar quem vê, ou o relato que nasce junto): se ela mudou
+ * no meio tempo, nada é gravado (MemoriaMudou), nem o que vai em `antes` e `junto` (Y3 do PR #160).
  */
 export async function atualizarMemoria(
   anterior: Memoria,
   dados: DadosDaMemoria,
   usuario: Usuario,
   fotosRemovidas: number[],
-  { junto = [], quemVe = 'nao' }: { junto?: Comando[]; quemVe?: GravarQuemVe } = {},
+  { junto = [], antes = [], quemVe = 'nao', conferir = false }: { junto?: Comando[]; antes?: Comando[]; quemVe?: GravarQuemVe; conferir?: boolean } = {},
 ): Promise<void> {
   if (quemVe === 'mudou' && anterior.criadaPor !== usuario.pessoa) throw new Error('Só quem criou muda quem pode ver.');
   const visibilidade = quemVe === 'mudou' ? ', visibilidade = ?' : '';
   await loteDaMemoria([
     // Mudar quem vê conta com os relatos que leu: se um relato nasceu ou mudou no meio tempo, o lote volta
-    ...(quemVe === 'mudou' ? [conferirVersao(anterior.id, anterior.versao)] : []),
+    ...(quemVe === 'mudou' || conferir ? [conferirVersao(anterior.id, anterior.versao)] : []),
+    ...antes,
     db()
       .prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('memoria', ?, ?, ?)`)
       .bind(anterior.id, JSON.stringify(anterior), usuario.pessoa),
@@ -1022,10 +1037,22 @@ export async function listarTemasVisiveis(usuario: Usuario): Promise<Tema[]> {
 
 /** Devolve os ids dos temas com esses nomes, criando os que ainda não existem. */
 export async function garantirTemas(nomes: string[], usuario: Usuario): Promise<string[]> {
-  if (nomes.length === 0) return [];
+  const { ids, comandos } = await resolverTemas(nomes, usuario);
+  if (comandos.length > 0) await db().batch(comandos);
+  return ids;
+}
+
+/**
+ * Os ids dos temas com esses nomes, sem gravar nada: os que ainda não existem ganham o id aqui, e os
+ * comandos que os criam vão no lote de quem os usa. Assim, um salvamento que perde a corrida não deixa
+ * tema nenhum gravado (Y3 do PR #160).
+ */
+export async function resolverTemas(nomes: string[], usuario: Usuario): Promise<{ ids: string[]; comandos: Comando[] }> {
+  if (nomes.length === 0) return { ids: [], comandos: [] };
   const existentes = await listarTemas();
   const ids = new Set(existentes.map((t) => t.id));
   const resultado: string[] = [];
+  const comandos: Comando[] = [];
   for (const nome of nomes) {
     const igual = existentes.find((t) => t.nome.toLowerCase() === nome.toLowerCase() || t.id === criarSlug(nome));
     if (igual) {
@@ -1033,12 +1060,12 @@ export async function garantirTemas(nomes: string[], usuario: Usuario): Promise<
       continue;
     }
     const id = slugUnico(criarSlug(nome) || 'tema', ids);
-    await db().prepare('INSERT INTO temas (id, nome, criado_por) VALUES (?, ?, ?)').bind(id, nome, usuario.pessoa).run();
+    comandos.push(db().prepare('INSERT INTO temas (id, nome, criado_por) VALUES (?, ?, ?)').bind(id, nome, usuario.pessoa));
     ids.add(id);
     existentes.push({ id, nome });
     resultado.push(id);
   }
-  return [...new Set(resultado)];
+  return { ids: [...new Set(resultado)], comandos };
 }
 
 function lerCapitulo(c: Record<string, unknown>): Capitulo {
@@ -1715,26 +1742,41 @@ export async function salvarRelato(
   // A versão leva junto as mensagens de antes, quando há (src/lib/conversa.ts)
   versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
 ): Promise<void> {
+  await db().batch(comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao));
+}
+
+/**
+ * O relato como comandos: o que salvarRelato grava, para quem precisa gravar junto com outra coisa (a rota
+ * da memória grava o relato de quem publica no mesmo lote da ficha, Y3 do PR #160).
+ */
+export function comandosDoRelato(
+  memoriaId: string,
+  por: string,
+  texto: string,
+  situacao: 'rascunho' | 'publicada',
+  usuario: Usuario,
+  anterior: Relato | undefined,
+  versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
+): Comando[] {
   // A data de publicação é a da primeira vez que o relato sai do rascunho, e não muda depois
   const marcar = `UPDATE relatos SET publicado_em = datetime('now') WHERE situacao = 'publicada' AND publicado_em IS NULL`;
   if (!anterior) {
-    await db().batch([
+    return [
       db()
         .prepare('INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, ?, ?)')
         .bind(memoriaId, por, usuario.pessoa, texto, situacao),
       db().prepare(`${marcar} AND memoria_id = ? AND por = ? AND registrado_por = ?`).bind(memoriaId, por, usuario.pessoa),
       // Um relato que nasce agora não estava na leitura de quem muda quem vê ao mesmo tempo: aquele lote volta e refaz a conta
       subirVersao(memoriaId),
-    ]);
-    return;
+    ];
   }
-  await db().batch([
+  return [
     ...(versao.guardar
       ? [db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(versao.mensagens ? { ...anterior, mensagens: versao.mensagens } : anterior), usuario.pessoa)]
       : []),
     db().prepare(`UPDATE relatos SET texto = ?, situacao = ?, atualizado_em = datetime('now') WHERE id = ?`).bind(texto, situacao, anterior.id),
     db().prepare(`${marcar} AND id = ?`).bind(anterior.id),
-  ]);
+  ];
 }
 
 /** O relato que esta pessoa registrou em nome de "por" nesta memória: é nele que entram os áudios dela. */
@@ -2031,14 +2073,16 @@ export interface AvisoNovo {
 
 export async function criarAvisos(avisos: AvisoNovo[]): Promise<void> {
   if (avisos.length === 0) return;
-  await db().batch(
-    avisos.map((a) =>
-      db()
-        .prepare('INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, ?, ?, ?, ?, ?)')
-        .bind(a.para, a.tipo, a.memoriaId, a.relatoId ?? null, a.de, a.dados ? JSON.stringify(a.dados) : null),
-    ),
-  );
+  await db().batch(comandosDosAvisos(avisos));
 }
+
+/** Os avisos como comandos, para gravar junto com o que os fez nascer (um lote só). */
+export const comandosDosAvisos = (avisos: AvisoNovo[]): Comando[] =>
+  avisos.map((a) =>
+    db()
+      .prepare('INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(a.para, a.tipo, a.memoriaId, a.relatoId ?? null, a.de, a.dados ? JSON.stringify(a.dados) : null),
+  );
 
 /**
  * Os avisos da pessoa, do mais novo para o mais antigo: os que estão na lista (pendentes) e, com
@@ -2206,8 +2250,14 @@ export async function pessoasQueSoVoceVe(usuario: Usuario): Promise<Set<string>>
  */
 export async function abrirLacosPrivados(usuario: Usuario, pessoas: string[]): Promise<void> {
   if (pessoas.length === 0) return;
+  await db().batch(comandosDeAbrirLacosPrivados(usuario, pessoas));
+}
+
+/** "Abrir para todos" como comandos, para gravar junto com a memória que publica a pessoa (um lote só). */
+export function comandosDeAbrirLacosPrivados(usuario: Usuario, pessoas: string[]): Comando[] {
+  if (pessoas.length === 0) return [];
   const lista = JSON.stringify(pessoas);
-  await db().batch([
+  return [
     db()
       .prepare(
         `INSERT INTO versoes (tipo, item_id, dados, autor) SELECT 'laco-coracao', CAST(id AS TEXT), json_object('dono', dono_id, 'pessoa', pessoa_id, 'nome', nome, 'papel', papel, 'proximidade', proximidade, 'privado', privado), ?1
@@ -2215,7 +2265,7 @@ export async function abrirLacosPrivados(usuario: Usuario, pessoas: string[]): P
       )
       .bind(usuario.pessoa, lista),
     db().prepare('UPDATE lacos_coracao SET privado = 0 WHERE dono_id = ?1 AND privado = 1 AND pessoa_id IN (SELECT value FROM json_each(?2))').bind(usuario.pessoa, lista),
-  ]);
+  ];
 }
 
 // --- Acrescentar fotos (resposta do Gui ao PR #51, 17/11/2026) ---

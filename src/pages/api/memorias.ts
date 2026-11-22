@@ -10,14 +10,18 @@ import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
-import { avisarQuemEstava, mudancaDeQuemVe } from '../../lib/servidor/avisos';
+import { avisosDeQuemEstava, mudancaDeQuemVe } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, publicoMudou, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
   atualizarMemoria,
-  criarIntegrante,
+  comandoDeCriarIntegrante,
+  comandosDeAbrirLacosPrivados,
+  comandosDoRelato,
+  comandosDosAvisos,
   criarMemoria,
-  garantirTemas,
+  resolverTemas,
+  type Comando,
   listarCapitulos,
   idsDeMemorias,
   listarIntegrantes,
@@ -26,12 +30,10 @@ import {
   obterFotos,
   obterMemoria,
   obterRelato,
-  salvarRelato,
   type DadosDaMemoria,
   type Memoria,
   ligarAudios,
   obterRelatoRegistradoPor,
-  abrirLacosPrivados,
   pessoasQueSoVoceVe,
   gravarMensagens,
   listarAudiosDosRelatos,
@@ -297,11 +299,13 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // Memória com alguém que só você vê (docs/decisoes.md): o site nunca publica revelando por tabela uma
   // pessoa que só existe num laço "só eu vejo". Sem escolha, nada é salvo e a pessoa decide: abrir a
   // pessoa para todos, publicar sem citá-la ou continuar em rascunho (que salva sem esta conferência).
+  // "Abrir" entra no lote da memória: se ele perde, o laço continua "só eu vejo" (Y3 do PR #160)
+  let lacosAbertos: Comando[] = [];
   if (situacao === 'publicada') {
     const soMinhas = await pessoasQueSoVoceVe(usuario);
     const privadas = integrantes.filter((i) => soMinhas.has(i));
     if (privadas.length > 0) {
-      if (pedido.pessoasPrivadas === 'abrir') await abrirLacosPrivados(usuario, privadas);
+      if (pedido.pessoasPrivadas === 'abrir') lacosAbertos = comandosDeAbrirLacosPrivados(usuario, privadas);
       else if (pedido.pessoasPrivadas === 'sem-citar') for (const p of privadas) integrantes.splice(integrantes.indexOf(p), 1);
       else {
         const nomes = privadas.map((p) => integrantesAtuais.find((i) => i.id === p)?.nome ?? p);
@@ -310,19 +314,46 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     }
   }
 
-  // Tudo conferido: agora grava. Primeiro as pessoas novas e os temas, que a memória cita.
-  for (const nova of aCadastrar) await criarIntegrante(nova.id, nova.nome, usuario.pessoa, nova.tratamento);
-  const temas = pedido.temas === undefined ? undefined : await garantirTemas(lerTemas(pedido.temas), usuario);
-  dados.temas = temas;
+  // Tudo conferido. Nada é gravado antes do lote: as pessoas novas e os temas novos só ganham o id aqui, e o
+  // cadastro deles vai no mesmo lote da memória, junto com o laço aberto, o relato e os avisos. Se o lote
+  // perde a corrida (MemoriaMudou), nada fica, e a nova tentativa começa do zero (Y3 do PR #160)
+  const temasNovos = pedido.temas === undefined ? undefined : await resolverTemas(lerTemas(pedido.temas), usuario);
+  dados.temas = temasNovos?.ids;
+  const antesDaFicha: Comando[] = [...aCadastrar.map((nova) => comandoDeCriarIntegrante(nova.id, nova.nome, usuario.pessoa, nova.tratamento)), ...(temasNovos?.comandos ?? []), ...lacosAbertos];
+
+  let id = anterior?.id ?? '';
+  // Um código no endereço, e não o título: ver codigoNovo
+  if (!anterior) id = codigoNovo(await idsDeMemorias());
+  // Avisos: quem entrou agora em "Quem estava" de uma memória publicada (src/lib/avisos.ts)
+  const marcadosAntes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];
+  const avisos = comandosDosAvisos(await avisosDeQuemEstava({ id, situacao, visibilidade: dados.visibilidade, nucleos, integrantes, criadaPor: anterior?.criadaPor ?? usuario.pessoa }, marcadosAntes, usuario));
+
+  // Relato de quem está registrando: no mesmo lote. Relato já publicado continua publicado; os demais
+  // acompanham a situação da memória
+  let doRelato: { comandos: Comando[]; mensagens: Mensagem[]; nasce: boolean } | undefined;
+  if (relatoPor) {
+    const existente = anterior ? await obterRelato(id, relatoPor, usuario) : undefined;
+    const situacaoDoRelato = existente?.situacao === 'publicada' ? 'publicada' : situacao;
+    // As mensagens de antes, para o histórico e para o envio sem script, que acrescenta no fim
+    const antesDoRelato = existente ? ((await listarMensagensDosRelatos([existente])).get(existente.id) ?? []) : [];
+    const mensagens: Mensagem[] = pedido.relato?.mensagens
+      ? pedido.relato.mensagens.map((m) => ({ ...(m.id ? { id: m.id } : {}), tipo: m.tipo, ...(m.tipo === 'texto' ? { texto: arrumarTexto(m.texto ?? '') } : { audioId: m.audioId }) }))
+      : [...antesDoRelato, ...paragrafos(textoDoRelato).map((t) => ({ tipo: 'texto' as const, texto: t }))];
+    const texto = pedido.relato?.mensagens ? textoDasMensagens(mensagens) : textoDasMensagens(mensagens) || textoDoRelato;
+    doRelato = {
+      comandos: comandosDoRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato }),
+      mensagens,
+      nasce: !existente,
+    };
+  }
 
   // Quem vê mudou numa memória publicada: ao ampliar, os relatos que já existiam esperam o sim de quem
   // os registrou (docs/decisoes.md, "Ampliar quem vê uma memória com relatos"). Salvar sem mudar o
   // público não toca em relato nenhum, e a mudança grava a memória, os relatos e os pedidos numa
   // transação só (revisão Y do PR #160)
   let esperam: { por: string }[] = [];
-  let id: string;
+  const depoisDaFicha = [...(doRelato?.comandos ?? []), ...avisos];
   if (anterior) {
-    id = anterior.id;
     const publicoAntes = { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos };
     const publicoDepois = { visibilidade: dados.visibilidade, nucleos };
     // Só quem criou grava o público, e só quando ele mudou de fato. Numa memória aberta a todos, marcar ou
@@ -335,35 +366,25 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
         ? await mudancaDeQuemVe(id, publicoAntes, publicoDepois, usuario, anterior.criadaPor)
         : { comandos: [], esperam: [] };
     esperam = mudanca.esperam;
-    await atualizarMemoria(anterior, dados, usuario, removidas.map((f) => f.id), { junto: mudanca.comandos, quemVe: mudou ? 'mudou' : marcas ? 'marcas' : 'nao' });
+    // O relato que nasce junto conta com o público que a rota leu: se a memória mudou depois, o lote volta
+    await atualizarMemoria(anterior, dados, usuario, removidas.map((f) => f.id), {
+      antes: antesDaFicha,
+      junto: [...mudanca.comandos, ...depoisDaFicha],
+      quemVe: mudou ? 'mudou' : marcas ? 'marcas' : 'nao',
+      conferir: Boolean(doRelato?.nasce),
+    });
   } else {
-    // Um código no endereço, e não o título: ver codigoNovo
-    id = codigoNovo(await idsDeMemorias());
-    await criarMemoria(id, dados, usuario);
+    await criarMemoria(id, dados, usuario, { antes: antesDaFicha, junto: depoisDaFicha });
   }
-  // Avisos: quem entrou agora em "Quem estava" de uma memória publicada (src/lib/avisos.ts)
-  const antes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];
-  await avisarQuemEstava({ id, situacao, visibilidade: dados.visibilidade, nucleos, integrantes, criadaPor: anterior?.criadaPor ?? usuario.pessoa }, antes, usuario);
 
-  if (relatoPor) {
-    const existente = await obterRelato(id, relatoPor, usuario);
-    const decisao = podeEscreverRelato(usuario, relatoPor, existente, await pessoasComAcesso());
-    if (!decisao.ok) return erro(403, `A memória foi salva, mas o relato não: ${decisao.motivo}`);
-    // Relato já publicado continua publicado. Os demais acompanham a situação da memória.
-    const situacaoDoRelato = existente?.situacao === 'publicada' ? 'publicada' : situacao;
-    // As mensagens de antes, para o histórico e para o envio sem script, que acrescenta no fim
-    const antesDoRelato = existente ? ((await listarMensagensDosRelatos([existente])).get(existente.id) ?? []) : [];
-    const mensagens: Mensagem[] = pedido.relato?.mensagens
-      ? pedido.relato.mensagens.map((m) => ({ ...(m.id ? { id: m.id } : {}), tipo: m.tipo, ...(m.tipo === 'texto' ? { texto: arrumarTexto(m.texto ?? '') } : { audioId: m.audioId }) }))
-      : [...antesDoRelato, ...paragrafos(textoDoRelato).map((t) => ({ tipo: 'texto' as const, texto: t }))];
-    const texto = pedido.relato?.mensagens ? textoDasMensagens(mensagens) : textoDasMensagens(mensagens) || textoDoRelato;
-    await salvarRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato });
+  // Os áudios e as mensagens do relato apontam para ele: entram depois de o lote passar
+  if (relatoPor && doRelato) {
     const meu = await obterRelatoRegistradoPor(id, relatoPor, usuario);
     if (meu && audiosDoRelato) await ligarAudios(meu.id, id, audiosDoRelato, usuario);
     if (meu) {
       // Só as mensagens de áudio que ficaram mesmo no relato
       const ficaram = new Set(((await listarAudiosDosRelatos([meu.id])).get(meu.id) ?? []).map((a) => a.id));
-      await gravarMensagens(meu.id, mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim()))));
+      await gravarMensagens(meu.id, doRelato.mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim()))));
     }
   }
 

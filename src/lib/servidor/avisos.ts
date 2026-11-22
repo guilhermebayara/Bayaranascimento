@@ -3,7 +3,7 @@
 import { quemRecebeQuemEstava, quemRecebeRelatoNovo, type Destinatarios } from '../avisos';
 import { pessoasComAcesso } from './acesso';
 import { podeVerMemoria, type AcessoDaMemoria, type Publico, type PublicoConhecido, type Usuario } from './permissoes';
-import { comandosDaMudancaDeQuemVe, criarAvisos, listarIntegrantes, listarNucleos, quemJaEntrou, type Comando, type Relato } from './repositorio';
+import { comandosDaMudancaDeQuemVe, criarAvisos, listarIntegrantes, listarNucleos, quemJaEntrou, type AvisoNovo, type Comando, type Relato } from './repositorio';
 
 async function destinatarios(autor: string): Promise<Destinatarios> {
   const [comAcesso, jaEntraram] = await Promise.all([pessoasComAcesso(), quemJaEntrou()]);
@@ -33,9 +33,14 @@ export async function avisarRelatoNovo(memoria: AcessoDaMemoria & { id: string }
  * da versão publicada anterior; numa memória que acabou de sair do rascunho, ninguém.
  */
 export async function avisarQuemEstava(memoria: AcessoDaMemoria & { id: string }, antes: string[], autor: Usuario): Promise<void> {
-  if (memoria.situacao !== 'publicada') return;
+  await criarAvisos(await avisosDeQuemEstava(memoria, antes, autor));
+}
+
+/** Os avisos de quem entrou em "Quem estava", sem gravar: a rota da memória grava junto com a ficha, num lote só. */
+export async function avisosDeQuemEstava(memoria: AcessoDaMemoria & { id: string }, antes: string[], autor: Usuario): Promise<AvisoNovo[]> {
+  if (memoria.situacao !== 'publicada') return [];
   const para = await soQuemVe(quemRecebeQuemEstava(antes, memoria.integrantes, await destinatarios(autor.pessoa)), memoria);
-  await criarAvisos(para.map((p) => ({ para: p, tipo: 'quem-estava', memoriaId: memoria.id, de: autor.pessoa })));
+  return para.map((p) => ({ para: p, tipo: 'quem-estava' as const, memoriaId: memoria.id, de: autor.pessoa }));
 }
 
 /** O público que um relato já teve, como público de memória, para dizer o que é novo para ele. */
