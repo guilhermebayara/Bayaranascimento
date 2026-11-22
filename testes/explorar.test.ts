@@ -385,9 +385,16 @@ describe('as teclas do modo TV', () => {
     expect(teclaNaTv('Escape', tv({ soFotos: true, controlesAVista: true }))).toBe('voltar-ao-texto');
   });
 
-  it('com os controles ocultos pelo botão, qualquer tecla os traz de volta, e a de mídia ainda age', () => {
-    for (const t of ['ArrowRight', 'ArrowLeft', 'Enter', ' ', 'Tab', 'Escape', 'a']) expect(teclaNaTv(t, tv({ ocultos: true, focoNaBarra: false })), t).toBe('reexibir');
-    expect(teclaNaTv('MediaPlayPause', tv({ ocultos: true }))).toBe('tocar-ou-pausar');
+  it('com os controles ocultos pelo botão, as setas passam as memórias e só o Esc e o botão do canto os trazem de volta', () => {
+    const ocultos = tv({ ocultos: true, focoNaBarra: false });
+    expect(teclaNaTv('ArrowRight', ocultos)).toBe('proxima');
+    expect(teclaNaTv('ArrowLeft', ocultos)).toBe('anterior');
+    expect(teclaNaTv('MediaPlayPause', ocultos)).toBe('tocar-ou-pausar');
+    expect(teclaNaTv('Escape', ocultos)).toBe('reexibir');
+    // O Enter e o espaço acionam o botão do canto, que tem o foco; as outras teclas não fazem nada
+    expect(teclaNaTv('Enter', ocultos)).toBe('seguir');
+    expect(teclaNaTv(' ', ocultos)).toBe('acionar');
+    for (const t of ['a', 'ArrowUp', 'Tab']) expect(teclaNaTv(t, ocultos), t).toBe('seguir');
   });
 });
 

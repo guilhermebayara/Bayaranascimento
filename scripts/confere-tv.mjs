@@ -10,9 +10,9 @@
 //   4. nenhum texto fica cortado sem um caminho para ler ("Abrir esta memória");
 //   5. nenhum elemento cobre outro: nada por cima de um texto ou de um controle, e os textos não
 //      se sobrepõem. A folha de "Ajustes", que flutua de propósito, não conta como defeito;
-//   6. ocultar e reexibir: o botão tira a barra e o alto da tela e do teclado, o aviso de como trazer
-//      os controles de volta aparece, a memória seguinte chega com eles ocultos, qualquer tecla os
-//      traz de volta e o foco volta para o botão de ocultar;
+//   6. ocultar e reexibir: o botão tira a barra e o alto da tela e do teclado e põe o foco no botão
+//      do canto, que diz o nome; a seta passa para a memória seguinte, que chega com eles ocultos; o
+//      Enter no botão do canto os traz de volta, com o foco no botão de ocultar;
 //   7. as setas: com o foco na barra, andam pelos botões e não trocam de memória; o Esc fecha
 //      "Ajustes" e devolve o foco ao botão que a abriu.
 //
@@ -97,7 +97,9 @@ function medir(estado) {
   const controles = [...palco.querySelectorAll('a[href], button, summary')].filter((e) => visivel(e) && !e.closest('.palco__principal') && !e.classList.contains('palco__principal'));
   for (const e of palco.querySelectorAll('[data-confere]')) e.removeAttribute('data-confere');
   controles.forEach((c, n) => c.setAttribute('data-confere', String(n)));
-  if (ocultos && controles.length) falhas.push(`ocultos, mas à vista: ${controles.map(nome).join(' | ')}`);
+  const aVistaOcultos = controles.filter((c) => !c.hasAttribute('data-palco-reexibir'));
+  if (ocultos && aVistaOcultos.length) falhas.push(`ocultos, mas à vista: ${aVistaOcultos.map(nome).join(' | ')}`);
+  if (ocultos && aVistaOcultos.length === controles.length) falhas.push('ocultos, sem o botão do canto que os traz de volta');
   for (const c of controles) {
     if (ajustesAbertos && c.closest('.palco__texto')) continue;
     if (!dentro(c.getBoundingClientRect())) falhas.push(`fora da janela: ${nome(c)}`);
@@ -224,12 +226,6 @@ function estadoDaTv() {
     barraVisivel: getComputedStyle(palco.querySelector('.palco__controles')).visibility === 'visible',
     foco: ativo?.getAttribute('aria-label') ?? ativo?.textContent?.trim() ?? '',
     ajustes: Boolean(palco.querySelector('[data-palco-ajustes][open]')),
-    // O aviso de como trazer os controles de volta: à vista e dentro da janela
-    dica: (() => {
-      const dica = palco.querySelector('[data-palco-dica]');
-      const r = dica?.getBoundingClientRect();
-      return Boolean(dica && !dica.hidden && r.width > 0 && r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight);
-    })(),
   };
 }
 
@@ -313,21 +309,42 @@ for (const [largura, altura] of JANELAS) {
     estado = await pagina.evaluate(estadoDaTv);
     if (estado.ajustes || estado.foco !== 'Ajustes') mais.push(`o Esc não fechou "Ajustes" de volta ao botão (foco em ${estado.foco})`);
 
-    // Ocultar os controles e reexibir com uma tecla: o foco volta para o botão de ocultar
-    await pagina.click('[data-palco-ocultar]');
+    // Ocultar os controles: o foco vai para o botão do canto, que diz o nome; a seta passa para a
+    // memória seguinte sem trazer a barra; o Enter no botão do canto a traz, com o foco no ocultar.
+    // Pelo teclado, como no controle remoto
+    await pagina.focus('[data-palco-ocultar]');
+    await pagina.keyboard.press('Enter');
     await esperar();
     medida = await pagina.evaluate(medir, 'ocultos');
     estado = await pagina.evaluate(estadoDaTv);
     if (!estado.oculto || estado.barraVisivel) mais.push('o botão não ocultou os controles');
-    if (!estado.dica) mais.push('ao ocultar, o aviso de como trazer os controles de volta não apareceu na janela');
-    await pagina.keyboard.press('ArrowRight');
+    if (estado.foco !== 'Mostrar os controles') mais.push(`ao ocultar, o foco não foi para o botão do canto (foi para ${estado.foco})`);
+    const doCanto = await pagina.evaluate(medirONome);
+    if (doCanto) {
+      nomesVistos.add(doCanto.qual);
+      mais.push(...doCanto.falhas);
+    }
+    const temProxima = await pagina.evaluate(() => Boolean(document.querySelector('[data-palco-depois]')?.getAttribute('href')));
+    if (temProxima) {
+      await pagina.keyboard.press('ArrowRight');
+      await pagina.waitForFunction((antes) => new URL(location.href).searchParams.get('m') !== antes, id, { timeout: 5000 }).catch(() => undefined);
+      await esperar();
+      estado = await pagina.evaluate(estadoDaTv);
+      if (estado.m === id) mais.push('com os controles ocultos, a seta não passou para a memória seguinte');
+      if (!estado.oculto || estado.barraVisivel) mais.push('com os controles ocultos, a memória seguinte chegou com a barra');
+      if (estado.foco !== 'Mostrar os controles') mais.push(`na memória seguinte, o foco não ficou no botão do canto (foi para ${estado.foco})`);
+    }
+    await pagina.keyboard.press('Enter');
     await esperar();
     estado = await pagina.evaluate(estadoDaTv);
-    if (estado.oculto || !estado.barraVisivel) mais.push('a tecla não trouxe os controles de volta');
-    if (estado.dica) mais.push('com os controles de volta, o aviso continuou na tela');
-    if (estado.m !== id) mais.push('a tecla que reexibe trocou de memória');
+    if (estado.oculto || !estado.barraVisivel) mais.push('o botão do canto não trouxe os controles de volta');
     if (estado.foco !== 'Ocultar os controles') mais.push(`o foco não voltou para o ocultar (foi para ${estado.foco})`);
     anotar('ocultos', medida, null, mais);
+    if (temProxima) {
+      await pagina.goto(`${base}/explorar?ver=tv&m=${encodeURIComponent(id)}`, { waitUntil: 'load' });
+      await pagina.evaluate(() => document.fonts.ready);
+      await pagina.addStyleTag({ content: 'astro-dev-toolbar{display:none!important}' });
+    }
 
     // "Só as fotos", com os controles à vista (eles somem depois de 5 segundos sem gesto)
     await pagina.evaluate(() => document.querySelector('[data-palco-so-fotos]').click());

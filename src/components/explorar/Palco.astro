@@ -223,13 +223,10 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
           {tv && <BotaoDeSimbolo simbolo="ocultar" nome="Ocultar os controles" class="palco__na-barra" data-palco-ocultar hidden />}
         </div>
       </div>
-      {/* Ao ocultar, o caminho de volta aparece escrito por alguns segundos, no lugar da barra
-          (pedido do Gui, 22/11/2026: "é preciso conseguir desocultar os controles de forma fácil") */}
-      {tv && (
-        <p class="palco__dica" role="status" data-palco-dica hidden>
-          Aperte qualquer tecla ou toque na tela para ver os controles
-        </p>
-      )}
+      {/* Com os controles ocultos, o caminho de volta é um botão pequeno no canto, que fica com o
+          foco (pedido do Gui, 22/11/2026: tocar em qualquer lugar ou apertar qualquer tecla não pode
+          ser o comando de voltar, porque as setas continuam passando as memórias). Só a partir de 62rem. */}
+      {tv && <BotaoDeSimbolo simbolo="mostrar" nome="Mostrar os controles" nomeAcima class="palco__na-barra palco__reexibir" data-palco-reexibir hidden />}
     </article>
   )
 }
@@ -410,8 +407,10 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       const noMesmoAjuste = noAjuste ? [...novo.querySelectorAll<HTMLElement>('[data-palco-ajustes] :is(a, button, summary)')].find((e) => nomeDe(e) === noAjuste) : undefined;
       const tocarOuPausar = focado === 'tocar' || focado === 'pausa' ? novo.querySelector<HTMLElement>('[data-palco-pausa], [data-palco-tocar]') : null;
       const mesmo = naCheia ? novo.querySelector<HTMLElement>('.palco__na-barra[data-palco-cheia]') : focado ? novo.querySelector<HTMLElement>(`[data-palco-${focado}]`) : null;
-      // Em "Só as fotos", com os controles escondidos, e com eles ocultos, o foco não vai para nenhum deles
-      if (!escondidos()) (noMesmoAjuste ?? tocarOuPausar ?? mesmo ?? link('depois'))?.focus({ preventScroll: true });
+      // Em "Só as fotos", com os controles escondidos, o foco não vai para nenhum deles; com eles
+      // ocultos pelo botão, fica no botão do canto que os traz de volta
+      if (ocultos) novo.querySelector<HTMLElement>('[data-palco-reexibir]')?.focus({ preventScroll: true });
+      else if (!escondidos()) (noMesmoAjuste ?? tocarOuPausar ?? mesmo ?? link('depois'))?.focus({ preventScroll: true });
     } catch (erro) {
       // Uma passagem mais nova já saiu: o erro desta não leva de volta à memória antiga
       // (achado do QA de código de 17/11/2026, como na troca do Explorar)
@@ -435,10 +434,9 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
           .catch(() => undefined);
       }
     }
-    for (const parte of atual.querySelectorAll<HTMLElement>('[data-palco-passar], [data-palco-tela], [data-palco-ocultar]')) parte.hidden = false;
+    for (const parte of atual.querySelectorAll<HTMLElement>('[data-palco-passar], [data-palco-tela], [data-palco-ocultar], [data-palco-reexibir]')) parte.hidden = false;
     // Os controles ocultos pelo botão continuam ocultos de uma memória para a outra
     atual.toggleAttribute('data-oculto', ocultos);
-    // A memória seguinte chega sem o aviso: ele é só para o momento de ocultar
     // "Só as fotos" é preferência guardada no aparelho; a tela cheia vale enquanto durar
     marcarTela(guardado('tv-so-fotos') === '1');
     // "Passar sozinho", num toque, liga no tempo que a pessoa escolheu da última vez
@@ -495,32 +493,20 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   const soFotos = () => Boolean(palco()?.hasAttribute('data-so-fotos'));
   const escondidos = () => ocultos || (soFotos() && !controles);
 
-  // "Ocultar os controles" (pedido do Gui, 22/11/2026): a barra e o alto saem da tela, e a memória
-  // fica sozinha até a pessoa pedir de volta, com qualquer tecla, o ponteiro ou um toque. Diferente de
-  // "Só as fotos", em que eles somem sozinhos e voltam por alguns segundos, aqui ficam ocultos até o
-  // pedido. "Passar sozinho" continua passando. Não fica guardado: cada entrada começa com a barra.
+  // "Ocultar os controles" (pedidos do Gui, 22/11/2026): a barra e o alto saem da tela, e a memória
+  // fica sozinha, com um botão pequeno no canto que os traz de volta. Esse botão fica com o foco: o
+  // Enter (o OK do controle) e o Esc trazem a barra; as setas continuam passando as memórias, e o
+  // toque e o clique fazem o que sempre fizeram. Diferente de "Só as fotos", em que eles somem
+  // sozinhos e voltam a cada gesto, aqui ficam ocultos até a pessoa pedir. "Passar sozinho" continua
+  // passando. Não fica guardado: cada entrada começa com a barra.
   let ocultos = false;
-  // Logo depois de ocultar, a mão ainda está no mouse: o primeiro segundo de movimento não conta
-  let ocultosDesde = 0;
-  // O aviso de como trazer os controles de volta fica na tela por alguns segundos depois de ocultar
-  const SEGUNDOS_DA_DICA = 5;
-  let relogioDaDica = 0;
-  function mostrarDica(mostrar: boolean) {
-    const dica = palco()?.querySelector<HTMLElement>('[data-palco-dica]');
-    if (dica) dica.hidden = !mostrar;
-  }
   function ocultar() {
     const atual = palco();
     if (!atual) return;
     ocultos = true;
-    ocultosDesde = performance.now();
     atual.setAttribute('data-oculto', '');
-    mostrarDica(true);
-    clearTimeout(relogioDaDica);
-    relogioDaDica = window.setTimeout(() => mostrarDica(false), SEGUNDOS_DA_DICA * 1000);
-    // O foco do teclado nunca fica num controle escondido
-    const ativo = document.activeElement;
-    if (ativo instanceof HTMLElement && atual.contains(ativo)) ativo.blur();
+    // O foco do teclado nunca fica num controle escondido: vai para o botão do canto
+    atual.querySelector<HTMLElement>('[data-palco-reexibir]')?.focus({ preventScroll: true });
   }
   /** A barra volta, e o foco volta para o botão de ocultar, de onde a pessoa saiu */
   function reexibir() {
@@ -528,8 +514,6 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     if (!atual || !ocultos) return;
     ocultos = false;
     atual.removeAttribute('data-oculto');
-    clearTimeout(relogioDaDica);
-    mostrarDica(false);
     if (soFotos()) mostrarControles();
     atual.querySelector<HTMLElement>('[data-palco-ocultar]')?.focus({ preventScroll: true });
   }
@@ -538,7 +522,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   // O relógio recomeça a cada gesto, então eles não somem enquanto a pessoa está mexendo.
   function mostrarControles(focar = false) {
     const atual = palco();
-    if (!atual || !soFotos()) return;
+    // Com os controles ocultos pelo botão, só o botão do canto os traz de volta
+    if (!atual || !soFotos() || ocultos) return;
     controles = true;
     atual.setAttribute('data-controles', '');
     if (focar) atual.querySelector<HTMLElement>('[data-palco-mostrar-texto]')?.focus({ preventScroll: true });
@@ -662,15 +647,12 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
         controlesAVista: controles,
         focoNaBarra: Boolean(ativo?.closest('[data-palco] .palco__controles')),
       });
-      // Ocultos pelo botão: qualquer tecla traz a barra de volta, e a de mídia ainda faz o que diz
-      if (ocultos) {
-        evento.preventDefault();
-        reexibir();
-        if (reacao === 'reexibir') return;
-      }
       // Em "Só as fotos", toda tecla mantém os controles à vista por mais alguns segundos
       if (soFotos() && controles) mostrarControles();
       switch (reacao) {
+        case 'reexibir':
+          evento.preventDefault();
+          return reexibir();
         case 'fechar-ajustes':
           evento.preventDefault();
           return void fecharAbertos();
@@ -712,13 +694,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     document.addEventListener(
       'click',
       (evento) => {
-        // Ocultos pelo botão: o primeiro toque ou clique só traz a barra de volta
-        if (ocultos) {
-          evento.preventDefault();
-          evento.stopPropagation();
-          return reexibir();
-        }
-        if (!soFotos()) return;
+        // Com os controles ocultos pelo botão, o toque e o clique fazem o que sempre fizeram
+        if (!soFotos() || ocultos) return;
         if (reacaoEmSoFotos({ tipo: 'toque' }, controles) === 'mostrar-controles') {
           evento.preventDefault();
           evento.stopPropagation();
@@ -734,12 +711,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       if (onde === cursor) return;
       const primeiroSinal = cursor === '';
       cursor = onde;
-      if (primeiroSinal) return;
-      if (ocultos) {
-        if (performance.now() - ocultosDesde > 1000) reexibir();
-        return;
-      }
-      if (soFotos()) mostrarControles();
+      if (!primeiroSinal && soFotos()) mostrarControles();
     });
     document.addEventListener('click', (evento) => {
       const alvo = evento.target instanceof Element ? evento.target : null;
@@ -747,6 +719,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       if (pausa) return alternarPausa(pausa);
       if (alvo?.closest('[data-palco] :is([data-palco-so-fotos], [data-palco-mostrar-texto])')) return trocarSoFotos(!soFotos());
       if (alvo?.closest('[data-palco] [data-palco-ocultar]')) return ocultar();
+      if (alvo?.closest('[data-palco] [data-palco-reexibir]')) return reexibir();
       if (alvo?.closest('[data-palco] [data-palco-cheia]')) {
         const pedido = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
         return void pedido.catch(() => undefined);

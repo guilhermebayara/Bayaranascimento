@@ -8,5 +8,5 @@ As capturas têm o nome `<caso>-<janela>.jpg`, com movimento reduzido, em 1280 �
 - `estresse`: a memória longa (criada só no banco local: título de 119 letras, lugar de 121, o trecho máximo, onze pessoas e cinco fotos);
 - `ajustes`: "Ajustes" aberto pelo teclado, com o foco e o nome no botão;
 - `so-fotos`: "Só as fotos", com os controles à vista;
-- `ocultos`: os controles ocultos pelo botão, com o aviso de como trazê-los de volta, que fica 5 segundos na tela;
+- `ocultos`: os controles ocultos pelo teclado, com o foco no botão do canto, "Mostrar os controles", que os traz de volta;
 - `foco-nome`: o foco em "Passar sozinho", depois de uma seta para a esquerda a partir de "Próxima", com o nome embaixo.

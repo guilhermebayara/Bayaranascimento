@@ -351,31 +351,46 @@
     visibility: hidden;
     opacity: 0;
   }
-  .palco.palco--tv[data-palco][data-oculto],
-  .palco.palco--tv[data-palco][data-oculto] .palco__principal {
-    cursor: none;
-  }
   /* Sem rede, o aviso aparece mesmo com os controles ocultos */
   .palco.palco--tv[data-palco][data-sem-rede]:is([data-oculto], [data-so-fotos]) .palco__topo {
     visibility: visible;
     opacity: 1;
   }
 
-  /* O aviso de como trazer os controles de volta, no lugar da barra, por alguns segundos */
-  .palco.palco--tv[data-palco] .palco__dica:not([hidden]) {
+  /* Com os controles ocultos, o ponteiro continua à vista, para alcançar o botão do canto, mesmo em
+     "Só as fotos" */
+  .palco.palco--tv[data-palco][data-oculto] {
+    cursor: auto;
+  }
+  .palco.palco--tv[data-palco][data-oculto] .palco__principal {
+    cursor: pointer;
+  }
+  /* O botão do canto que traz os controles de volta: só existe com eles ocultos, pequeno, no canto
+     de baixo à direita, no cartão branco da barra. O nome aparece em cima, encostado à direita. */
+  .palco.palco--tv[data-palco] .palco__reexibir {
+    display: none;
+  }
+  .palco.palco--tv[data-palco][data-oculto] .palco__reexibir:not([hidden]) {
     position: absolute;
-    inset: auto auto calc(var(--tv-barra-pe) + var(--e-2)) 50%;
+    right: var(--margem);
+    bottom: var(--e-5);
     z-index: 4;
-    display: block;
-    padding: var(--e-3) var(--e-5);
+    display: inline-grid;
     border: 1px solid var(--fio);
-    border-radius: var(--raio-pilula);
     background: var(--branco);
     box-shadow: var(--sombra-bilhete);
     color: var(--tinta);
-    font-size: var(--tv-leitura);
-    white-space: nowrap;
-    translate: -50% 0;
+    font-size: var(--tv-controle);
+  }
+  .palco.palco--tv[data-palco] .palco__reexibir .simbolo {
+    width: 1.6em;
+    height: 1.6em;
+  }
+  .palco.palco--tv[data-palco] .palco__reexibir .botao-simbolo__nome {
+    left: auto;
+    right: 0;
+    font-size: var(--tv-controle);
+    translate: none;
   }
 
   /* --- "Só as fotos": as fotos no meio da tela, e os controles somem e voltam ----------------- */

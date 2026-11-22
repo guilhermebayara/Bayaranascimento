@@ -154,7 +154,7 @@ describe('os símbolos do modo TV', () => {
   const botao = ler('src/components/visual/BotaoDeSimbolo.astro');
 
   it('os controles com símbolo conhecido de TV são símbolos; sair e abrir continuam escritos', () => {
-    for (const [simbolo, nome] of [['anterior', 'Anterior'], ['proxima', 'Próxima'], ['tocar', 'Passar sozinho'], ['tela-cheia', 'Tela cheia'], ['ajustes', 'Ajustes'], ['ocultar', 'Ocultar os controles']])
+    for (const [simbolo, nome] of [['anterior', 'Anterior'], ['proxima', 'Próxima'], ['tocar', 'Passar sozinho'], ['tela-cheia', 'Tela cheia'], ['ajustes', 'Ajustes'], ['ocultar', 'Ocultar os controles'], ['mostrar', 'Mostrar os controles']])
       expect(palco).toMatch(new RegExp(`<BotaoDeSimbolo[^>]*simbolo="${simbolo}" nome="${nome}"`));
     // Tocar e pausar trocam no mesmo botão: o símbolo e o nome, juntos
     expect(palco).toContain("<BotaoDeSimbolo simbolo={passar.pausado ? 'tocar' : 'pausar'} nome={passar.pausado ? 'Retomar' : 'Pausar'} class=\"acao\" data-palco-pausa />");
@@ -191,30 +191,34 @@ describe('ocultar e reexibir os controles', () => {
 
   it('só com script e a partir de 62rem: sem script, a barra fica sempre à vista', () => {
     expect(palco).toContain('<BotaoDeSimbolo simbolo="ocultar" nome="Ocultar os controles" class="palco__na-barra" data-palco-ocultar hidden />');
-    expect(palco).toMatch(/querySelectorAll<HTMLElement>\('\[data-palco-passar\], \[data-palco-tela\], \[data-palco-ocultar\]'\)\) parte\.hidden = false;/);
+    expect(palco).toMatch(/querySelectorAll<HTMLElement>\('\[data-palco-passar\], \[data-palco-tela\], \[data-palco-ocultar\], \[data-palco-reexibir\]'\)\) parte\.hidden = false;/);
   });
 
-  it('oculta a barra, o alto e "Abrir esta memória", e tira o foco de lá', () => {
+  it('oculta a barra, o alto e "Abrir esta memória", e o foco vai para o botão do canto', () => {
     expect(tv).toMatch(/\.palco\.palco--tv\[data-palco\]:is\(\[data-oculto\], \[data-so-fotos\]:not\(\[data-controles\]\)\) :is\(\.palco__topo, \.palco__controles\) \{\s*visibility: hidden;/);
     expect(tv).toMatch(/\[data-oculto\] \.palco__texto > p:last-child \{\s*visibility: hidden;/);
-    expect(palco).toMatch(/function ocultar\(\) \{[\s\S]*?atual\.setAttribute\('data-oculto', ''\);[\s\S]*?ativo\.blur\(\);/);
+    expect(palco).toMatch(/function ocultar\(\) \{[\s\S]*?atual\.setAttribute\('data-oculto', ''\);[\s\S]*?querySelector<HTMLElement>\('\[data-palco-reexibir\]'\)\?\.focus/);
   });
 
-  it('volta com qualquer tecla, com o ponteiro ou com um toque, e o foco volta para o botão de ocultar', () => {
+  it('o caminho de volta é um botão pequeno no canto, com nome, e não qualquer toque ou tecla', () => {
+    // Pedido do Gui, 22/11/2026: as setas continuam passando as memórias com os controles ocultos
+    expect(palco).toContain('<BotaoDeSimbolo simbolo="mostrar" nome="Mostrar os controles" nomeAcima class="palco__na-barra palco__reexibir" data-palco-reexibir hidden />');
+    expect(tv).toMatch(/\[data-oculto\] \.palco__reexibir:not\(\[hidden\]\) \{\s*position: absolute;\s*right: var\(--margem\);\s*bottom: var\(--e-5\);/);
+    expect(palco).toMatch(/if \(alvo\?\.closest\('\[data-palco\] \[data-palco-reexibir\]'\)\) return reexibir\(\);/);
+    expect(palco).toMatch(/case 'reexibir':\s*evento\.preventDefault\(\);\s*return reexibir\(\);/);
+    // O toque, o clique e o mouse não trazem a barra de volta
+    expect(palco).toMatch(/if \(!soFotos\(\) \|\| ocultos\) return;/);
+    expect(palco).toMatch(/if \(!atual \|\| !soFotos\(\) \|\| ocultos\) return;/);
+    expect(palco).not.toMatch(/ocultosDesde|data-palco-dica/);
+  });
+
+  it('a barra volta com o foco no botão de ocultar', () => {
     expect(palco).toMatch(/function reexibir\(\) \{[\s\S]*?atual\.querySelector<HTMLElement>\('\[data-palco-ocultar\]'\)\?\.focus/);
-    expect(palco).toMatch(/if \(ocultos\) \{\s*evento\.preventDefault\(\);\s*reexibir\(\);/);
-    expect(palco).toMatch(/if \(ocultos\) \{\s*evento\.preventDefault\(\);\s*evento\.stopPropagation\(\);\s*return reexibir\(\);/);
-    expect(palco).toMatch(/if \(ocultos\) \{\s*if \(performance\.now\(\) - ocultosDesde > 1000\) reexibir\(\);/);
   });
 
-  it('ao ocultar, o caminho de volta aparece escrito por alguns segundos, no lugar da barra', () => {
-    expect(palco).toMatch(/<p class="palco__dica" role="status" data-palco-dica hidden>\s*Aperte qualquer tecla ou toque na tela para ver os controles/);
-    expect(palco).toMatch(/mostrarDica\(true\);\s*clearTimeout\(relogioDaDica\);\s*relogioDaDica = window\.setTimeout\(\(\) => mostrarDica\(false\), SEGUNDOS_DA_DICA \* 1000\);/);
-    expect(tv).toMatch(/\.palco__dica:not\(\[hidden\]\) \{\s*position: absolute;/);
-  });
-
-  it('"Passar sozinho" continua, a memória seguinte chega oculta, e a escolha não fica no aparelho', () => {
+  it('"Passar sozinho" continua, a memória seguinte chega oculta, com o foco no botão do canto, e a escolha não fica no aparelho', () => {
     expect(palco).toMatch(/atual\.toggleAttribute\('data-oculto', ocultos\);/);
+    expect(palco).toMatch(/if \(ocultos\) novo\.querySelector<HTMLElement>\('\[data-palco-reexibir\]'\)\?\.focus/);
     expect(palco).not.toMatch(/guardar\('tv-ocult/);
     // O relógio de "Passar sozinho" não olha para os controles
     expect(/function armar\(\) \{[\s\S]*?\n {2}\}/.exec(palco)![0]).not.toMatch(/ocult/);

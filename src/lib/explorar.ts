@@ -520,8 +520,9 @@ export function reacaoEmSoFotos(_gesto: GestoNoPalco, controlesAVista: boolean):
  * As teclas do modo TV, com a lógica de interface de TV (decisão do Gui, 22/11/2026). O script do
  * palco só obedece; a tabela está em docs/visual.md, "O modo TV".
  *
- * - Com os controles ocultos pelo botão, qualquer tecla os traz de volta, e a de mídia ainda faz o que
- *   diz (o script devolve a barra antes de agir).
+ * - Com os controles ocultos pelo botão, as setas para os lados e as teclas de mídia passam as
+ *   memórias sem trazer a barra (pedido do Gui, 22/11/2026: navegar entre as memórias pelo teclado).
+ *   O foco fica no botão do canto que traz a barra: o Enter o aciona, e o Esc também a traz.
  * - O Esc fecha primeiro "Ajustes"; depois mostra os controles escondidos; em "Só as fotos", volta ao
  *   texto; e só então sai do modo TV.
  * - As teclas de mídia, quando o navegador as entrega, fazem o que dizem.
@@ -550,14 +551,14 @@ const TECLAS_DE_MIDIA: Record<string, TeclaNaTv> = { MediaTrackNext: 'proxima', 
 
 export function teclaNaTv(tecla: string, e: EstadoDaTv): TeclaNaTv {
   const midia = TECLAS_DE_MIDIA[tecla];
-  if (e.ocultos) return midia ?? 'reexibir';
+  const lado = tecla === 'ArrowLeft' ? 'anterior' : tecla === 'ArrowRight' ? 'proxima' : undefined;
+  if (e.ocultos) return tecla === 'Escape' ? 'reexibir' : (midia ?? lado ?? (tecla === ' ' ? 'acionar' : 'seguir'));
   if (tecla === 'Escape') {
     if (e.ajustesAbertos) return 'fechar-ajustes';
     if (e.soFotos && !e.controlesAVista) return 'mostrar-controles';
     return e.soFotos ? 'voltar-ao-texto' : 'sair';
   }
   if (midia) return midia;
-  const lado = tecla === 'ArrowLeft' ? 'anterior' : tecla === 'ArrowRight' ? 'proxima' : undefined;
   if (e.soFotos && !e.controlesAVista) return lado ?? 'mostrar-controles';
   if (lado) return e.barra && e.focoNaBarra ? 'andar' : lado;
   if ((tecla === 'ArrowUp' || tecla === 'ArrowDown') && e.barra && e.ajustesAbertos && e.focoNaBarra) return tecla === 'ArrowUp' ? 'subir' : 'descer';

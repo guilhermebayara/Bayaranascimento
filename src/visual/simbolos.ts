@@ -31,6 +31,7 @@ export const SIMBOLOS = [
     desenho:
       '<path d="M10.3 5.3L10.7 3.1L13.3 3.1L13.7 5.3L15.6 6.1L17.4 4.8L19.2 6.6L17.9 8.4L18.7 10.3L20.9 10.7L20.9 13.3L18.7 13.7L17.9 15.6L19.2 17.4L17.4 19.2L15.6 17.9L13.7 18.7L13.3 20.9L10.7 20.9L10.3 18.7L8.4 17.9L6.6 19.2L4.8 17.4L6.1 15.6L5.3 13.7L3.1 13.3L3.1 10.7L5.3 10.3L6.1 8.4L4.8 6.6L6.6 4.8L8.4 6.1z"/><circle cx="12" cy="12" r="3"/>',
   },
+  { id: 'mostrar', nome: 'Mostrar', desenho: '<path d="M3 12c2.2-4 5.2-6 9-6s6.8 2 9 6c-2.2 4-5.2 6-9 6s-6.8-2-9-6z"/><circle cx="12" cy="12" r="2.6"/>' },
   { id: 'ocultar', nome: 'Ocultar', desenho: '<path d="M3 12c2.2-4 5.2-6 9-6s6.8 2 9 6c-2.2 4-5.2 6-9 6s-6.8-2-9-6z"/><circle cx="12" cy="12" r="2.6"/><path d="M4.5 4.5l15 15"/>' },
 ] as const satisfies readonly Simbolo[];
 
