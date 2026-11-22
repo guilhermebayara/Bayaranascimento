@@ -124,6 +124,15 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(impressao()).toBe(antes);
   });
 
+  it('/api/memorias: o relato numa memória publicada, que a tela não oferece, é recusado sem mudar nada (D6 da sessão Z)', async () => {
+    const antes = impressao();
+    // O Gui criou a memória e pode corrigi-la: a recusa é pelo relato, que a tela não oferece na memória publicada
+    const r = await salvar(gui, { id: 'recusas', titulo: 'Pedidos recusados', ano: 1991, tipo, pessoas: [], relato: { por: 'gui', texto: 'Pela ficha.' } });
+    expect(r.status).toBe(400);
+    expect(r.corpo.erro).toBe('Envio inválido.');
+    expect(impressao()).toBe(antes);
+  });
+
   it('o mesmo pedido, sem o que era recusado, grava tudo, e a mesma pessoa nova repetida vira uma só', async () => {
     const r = await salvar(elizete, { titulo: 'Aceita', ano: 2020, tipo, pessoas: ['nova:0', 'nova:1'], novasPessoas: [{ nome: 'Pessoa Aceita' }, { nome: 'Pessoa Aceita' }], temas: 'Tema Aceito', relato: { por: 'elizete', texto: 'O meu relato.' } });
     expect(r.status).toBe(201);

@@ -396,5 +396,33 @@ describe.skipIf(!comSqlite)('Z: defeitos das revisões do PR #160', async () => 
       expect(r.status).toBe(201);
     });
   });
+
+  describe('D6: o relato por /api/memorias numa memória publicada', () => {
+    it('quem não criou, sem o público, é recusado sem gravar nada; pela tela de relato, o mesmo relato entra', async () => {
+      const ficha = { titulo: 'Z: D6 relato pela memória', ano: 2021, tipo: 'causo', pessoas: ['giovanna', 'elizete'] };
+      const id = (await pedir('memorias', giovanna, ficha)).corpo.id as string;
+      const antes = impressao();
+      const r = await pedir('memorias', elizete, { ...ficha, id, relato: { por: 'elizete', texto: 'Pela ficha da memória.' } });
+      expect(r.status).toBe(400);
+      expect(r.corpo.erro).toBe('Envio inválido.');
+      expect(impressao()).toBe(antes);
+      // Também com áudio ou mensagens, e também para quem criou: a tela não oferece o relato na memória publicada
+      expect((await pedir('memorias', elizete, { ...ficha, id, relato: { por: 'elizete', texto: '', mensagens: [{ tipo: 'texto', texto: 'Só mensagem.' }] } })).status).toBe(400);
+      expect((await pedir('memorias', giovanna, { ...ficha, id, relato: { por: 'giovanna', texto: 'Da criadora.' } })).status).toBe(400);
+      expect(impressao()).toBe(antes);
+      // A correção da ficha sem relato continua
+      expect((await pedir('memorias', elizete, { ...ficha, id, lugar: 'Ouro Preto' })).status).toBe(200);
+      // E o relato pela tela de relato entra, com as regras dela
+      expect((await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Pela tela de relato.', publico: 'todos' })).status).toBe(201);
+    });
+
+    it('na memória nova e no rascunho de quem cria, o relato continua indo junto', async () => {
+      const ficha = { titulo: 'Z: D6 rascunho', ano: 2021, tipo: 'causo', pessoas: ['giovanna'], situacao: 'rascunho' };
+      const id = (await pedir('memorias', giovanna, ficha)).corpo.id as string;
+      const r = await pedir('memorias', giovanna, { ...ficha, id, situacao: 'publicada', relato: { por: 'giovanna', texto: 'Junto da publicação.' } });
+      expect(r.status).toBe(200);
+      expect(linhas('SELECT id FROM relatos WHERE memoria_id = ? AND por = ?', id, 'giovanna')).toHaveLength(1);
+    });
+  });
 });
 

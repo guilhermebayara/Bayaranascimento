@@ -190,6 +190,11 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const decisao = podeEditarMemoria(usuario, anterior);
     if (!decisao.ok) return erro(403, decisao.motivo);
   }
+  // Numa memória publicada, a tela não tem a etapa do relato: cada pessoa escreve o seu pela tela de relato,
+  // com as regras dela (o público que a página mostrava, o relato que nasce esperando, os avisos). O relato
+  // que chega por aqui, só por pedido forjado, é recusado (D6 da sessão Z)
+  const comRelato = Boolean(pedido.relato && (pedido.relato.texto.trim() || pedido.relato.audios?.length || pedido.relato.mensagens?.length));
+  if (anterior?.situacao === 'publicada' && comRelato) return erro(400, 'Envio inválido.');
   // Uma memória publicada não volta a ser rascunho
   const situacao = anterior?.situacao === 'publicada' ? 'publicada' : pedido.situacao;
   if (situacao === 'publicada' && !pedido.tipo) return erro(400, 'Escolha o tipo de momento.');
