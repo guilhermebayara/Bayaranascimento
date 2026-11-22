@@ -27,6 +27,9 @@ import {
   restaurarExcluida,
   restaurarFoto,
   restaurarRascunhoDeRelato,
+  refazerSeAMemoriaMudou,
+  MemoriaMudou,
+  RECADO_MEMORIA_MUDOU,
   salvarRelato,
   type DadosDaMemoria,
   type Memoria,
@@ -77,21 +80,35 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // O rascunho que ficou para trás quando outra pessoa publicou o relato de quem não acessa o site
   // (resposta do Gui à P4 do QA de 23/11/2026): só quem o escreveu descarta, e ele vai para a lixeira dela.
   // Quem não tem esse rascunho recebe o mesmo que para um rascunho que não existe.
+  // Os dois contam com o público da memória que leram: se ela mudou no meio tempo, leem de novo e refazem
+  // (refazerSeAMemoriaMudou, revisão Y2 do PR #160)
   if (acao === 'descartar-relato') {
     const por = campo(dados, 'por', 120);
-    const rascunho = await obterRascunhoQueFicou(memoria.id, por, usuario);
     const relatoDele = `${pagina}/relato?por=${encodeURIComponent(por)}`;
-    if (!rascunho) return voltar(request, relatoDele, { erro: 'Rascunho não encontrado.' });
-    await descartarRascunhoDeRelato(rascunho, memoria);
+    const feito = await refazerSeAMemoriaMudou(async () => {
+      const agora = await obterMemoria(usuario, id);
+      const rascunho = agora && (await obterRascunhoQueFicou(agora.id, por, usuario));
+      if (!agora || !rascunho) return false;
+      await descartarRascunhoDeRelato(rascunho, agora);
+      return true;
+    });
+    if (feito instanceof MemoriaMudou) return voltar(request, relatoDele, { erro: RECADO_MEMORIA_MUDOU });
+    if (!feito) return voltar(request, relatoDele, { erro: 'Rascunho não encontrado.' });
     return voltar(request, relatoDele, { ok: 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' });
   }
   if (acao === 'restaurar-rascunho-de-relato') {
     const relatoId = Number(campo(dados, 'relato', 20));
-    const rascunho = (await listarRascunhosDeRelatoDescartados(usuario)).find((r) => r.id === relatoId && r.memoriaId === memoria.id);
-    if (!rascunho) return voltar(request, '/lixeira', { erro: 'Rascunho não encontrado na lixeira.' });
     const nucleos = await listarNucleos();
-    await restaurarRascunhoDeRelato(rascunho, memoria, (conhecido) => paraQuemPassouAVer(comoPublicoAntigo(conhecido), memoria, nucleos));
-    return voltar(request, `/lixeira?rascunho-de-relato=${rascunho.id}&memoria=${encodeURIComponent(memoria.id)}&por=${encodeURIComponent(rascunho.por)}`, { ok: 'Rascunho restaurado.' });
+    const feito = await refazerSeAMemoriaMudou(async () => {
+      const agora = await obterMemoria(usuario, id);
+      const rascunho = agora && (await listarRascunhosDeRelatoDescartados(usuario)).find((r) => r.id === relatoId && r.memoriaId === agora.id);
+      if (!agora || !rascunho) return undefined;
+      await restaurarRascunhoDeRelato(rascunho, agora, (conhecido) => paraQuemPassouAVer(comoPublicoAntigo(conhecido), agora, nucleos));
+      return rascunho;
+    });
+    if (feito instanceof MemoriaMudou) return voltar(request, '/lixeira', { erro: RECADO_MEMORIA_MUDOU });
+    if (!feito) return voltar(request, '/lixeira', { erro: 'Rascunho não encontrado na lixeira.' });
+    return voltar(request, `/lixeira?rascunho-de-relato=${feito.id}&memoria=${encodeURIComponent(memoria.id)}&por=${encodeURIComponent(feito.por)}`, { ok: 'Rascunho restaurado.' });
   }
 
   if (acao === 'excluir') {

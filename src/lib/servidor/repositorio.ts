@@ -98,6 +98,8 @@ export interface Memoria extends AcessoDaMemoria {
   relatos: number;
   /** quando foi publicada (as de antes da migração 020, quando foram criadas); vazio no rascunho */
   publicadaEm: string;
+  /** a versão (migração 107): sobe a cada lote que conta com os relatos dela (ver conferirVersao) */
+  versao: number;
 }
 
 export interface Relato {
@@ -127,6 +129,54 @@ const lerPublicoConhecido = (valor: unknown): PublicoConhecido | null =>
 const gravarPublicoConhecido = (publico: PublicoConhecido): string => (publico === 'todos' ? 'todos' : JSON.stringify(publico));
 
 const db = () => banco();
+
+// --- A versão da memória (migração 107; revisão Y2 do PR #160, item 4b) ---
+
+/** O recado de quem perdeu a corrida mais de uma vez seguida: nada foi gravado. */
+export const RECADO_MEMORIA_MUDOU = 'Esta memória mudou enquanto você editava. Abra de novo para ver como ficou.';
+
+/** O lote contava com uma versão da memória que já não é a de agora: nada foi gravado. */
+export class MemoriaMudou extends Error {
+  constructor() {
+    super(RECADO_MEMORIA_MUDOU);
+  }
+}
+
+/**
+ * Sobe a versão a partir da que foi lida. Se outro lote subiu antes, o gatilho da migração 107 recusa, e o
+ * lote inteiro volta (MemoriaMudou). Vai junto de todo lote que grava a espera ou o público conhecido de um
+ * relato a partir do que leu.
+ */
+const conferirVersao = (memoriaId: string, lida: number) => db().prepare('UPDATE memorias SET versao = ? WHERE id = ?').bind(lida + 1, memoriaId);
+
+/** Sobe a versão sem conferir: um relato novo, que quem leu os relatos antes não viu. */
+const subirVersao = (memoriaId: string) => db().prepare('UPDATE memorias SET versao = versao + 1 WHERE id = ?').bind(memoriaId);
+
+/** O lote, com a recusa do gatilho traduzida em MemoriaMudou. */
+async function loteDaMemoria(comandos: Comando[]): Promise<void> {
+  try {
+    await db().batch(comandos);
+  } catch (erro) {
+    if (String((erro as Error)?.message ?? erro).includes('memoria-mudou')) throw new MemoriaMudou();
+    throw erro;
+  }
+}
+
+/**
+ * Faz de novo, lendo o banco de agora, quando o lote perdeu a corrida para outro (MemoriaMudou): a conta
+ * dos relatos sai do que existe na hora em que o lote grava. Depois de três tentativas, desiste, e quem
+ * chama recusa com RECADO_MEMORIA_MUDOU, sem nada gravado.
+ */
+export async function refazerSeAMemoriaMudou<T>(fazer: () => Promise<T>, tentativas = 3): Promise<T | MemoriaMudou> {
+  for (let vez = 1; ; vez++) {
+    try {
+      return await fazer();
+    } catch (erro) {
+      if (!(erro instanceof MemoriaMudou)) throw erro;
+      if (vez >= tentativas) return erro;
+    }
+  }
+}
 /** Um comando do banco, para gravar junto num lote (db.batch, uma transação). */
 export type Comando = ReturnType<ReturnType<typeof banco>['prepare']>;
 
@@ -675,6 +725,7 @@ function lerMemoria(linha: Record<string, unknown>): Memoria {
     temas: [],
     relatos: 0,
     publicadaEm: ((linha.publicada_em ?? (linha.situacao === 'publicada' ? linha.criada_em : '')) as string) ?? '',
+    versao: Number(linha.versao ?? 0),
   };
 }
 
@@ -913,7 +964,9 @@ export async function atualizarMemoria(
 ): Promise<void> {
   if (quemVe === 'mudou' && anterior.criadaPor !== usuario.pessoa) throw new Error('Só quem criou muda quem pode ver.');
   const visibilidade = quemVe === 'mudou' ? ', visibilidade = ?' : '';
-  await db().batch([
+  await loteDaMemoria([
+    // Mudar quem vê conta com os relatos que leu: se um relato nasceu ou mudou no meio tempo, o lote volta
+    ...(quemVe === 'mudou' ? [conferirVersao(anterior.id, anterior.versao)] : []),
     db()
       .prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('memoria', ?, ?, ?)`)
       .bind(anterior.id, JSON.stringify(anterior), usuario.pessoa),
@@ -1560,9 +1613,12 @@ export async function obterRascunhoQueFicou(memoriaId: string, por: string, usua
  * lixeira ele fica parado, fora da conta da espera (comandosDaMudancaDeQuemVe), e guarda o público que já
  * teve até aqui, para voltar com o que a regra der a ele quando for restaurado (revisão Y do PR #160).
  */
-export async function descartarRascunhoDeRelato(relato: Relato, memoria: Publico): Promise<void> {
+export async function descartarRascunhoDeRelato(relato: Relato, memoria: Publico & { versao: number }): Promise<void> {
   const conhecido = gravarPublicoConhecido(publicoConhecidoAntes(relato, memoria));
-  await db().prepare(`UPDATE relatos SET descartado_em = datetime('now'), publico_conhecido = ? WHERE id = ? AND situacao = 'rascunho'`).bind(conhecido, relato.id).run();
+  await loteDaMemoria([
+    conferirVersao(relato.memoriaId, memoria.versao),
+    db().prepare(`UPDATE relatos SET descartado_em = datetime('now'), publico_conhecido = ? WHERE id = ? AND situacao = 'rascunho'`).bind(conhecido, relato.id),
+  ]);
 }
 
 /** Os rascunhos de relato que a pessoa descartou, em memórias que ela vê: a lixeira dela. */
@@ -1584,10 +1640,11 @@ export async function listarRascunhosDeRelatoDescartados(usuario: Usuario): Prom
  * público que ele guardou ao ir para a lixeira). Se passou a esperar, quem o escreveu recebe o pedido
  * para liberar, de quem criou a memória; se a espera perdeu o sentido, o pedido sai da lista.
  */
-export async function restaurarRascunhoDeRelato(relato: Relato, memoria: Publico & { criadaPor: string }, paraQuem: (conhecido: PublicoConhecido) => string): Promise<void> {
+export async function restaurarRascunhoDeRelato(relato: Relato, memoria: Publico & { criadaPor: string; versao: number }, paraQuem: (conhecido: PublicoConhecido) => string): Promise<void> {
   // Sem público antigo além do que ele guardou: a conta parte do público conhecido dele
   const novo = relatoDepoisDaMudanca(relato, { visibilidade: 'nucleos', nucleos: [] }, memoria, memoria.criadaPor);
-  await db().batch([
+  await loteDaMemoria([
+    conferirVersao(relato.memoriaId, memoria.versao),
     db()
       .prepare('UPDATE relatos SET descartado_em = NULL, so_para_nucleos = ?, publico_conhecido = ? WHERE id = ?')
       .bind(novo.soParaNucleos ? JSON.stringify(novo.soParaNucleos) : null, gravarPublicoConhecido(novo.publicoConhecido), relato.id),
@@ -1646,6 +1703,8 @@ export async function salvarRelato(
         .prepare('INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, ?, ?)')
         .bind(memoriaId, por, usuario.pessoa, texto, situacao),
       db().prepare(`${marcar} AND memoria_id = ? AND por = ? AND registrado_por = ?`).bind(memoriaId, por, usuario.pessoa),
+      // Um relato que nasce agora não estava na leitura de quem muda quem vê ao mesmo tempo: aquele lote volta e refaz a conta
+      subirVersao(memoriaId),
     ]);
     return;
   }
@@ -2074,11 +2133,13 @@ export async function obterAviso(id: number, usuario: Usuario): Promise<{ id: nu
  * continua só para quem via antes, e a linha no próprio relato deixa liberar depois. Os dois tiram o
  * pedido da lista, com a resposta no histórico.
  */
-export async function responderPedidoDoRelato(relato: Relato, resposta: 'liberar' | 'manter', memoria: Publico): Promise<void> {
+export async function responderPedidoDoRelato(relato: Relato, resposta: 'liberar' | 'manter', memoria: Publico & { versao: number }): Promise<void> {
   const relatoId = relato.id;
   // Liberar: quem vê a memória agora passa a ter visto o relato (publicoConhecidoAoLiberar)
   const conhecido = gravarPublicoConhecido(publicoConhecidoAoLiberar(relato, memoria));
-  await db().batch([
+  await loteDaMemoria([
+    // A resposta conta com o público que leu: se a memória mudou no meio tempo, o lote volta
+    conferirVersao(relato.memoriaId, memoria.versao),
     ...(resposta === 'liberar' ? [db().prepare('UPDATE relatos SET so_para_nucleos = NULL, publico_conhecido = ? WHERE id = ?').bind(conhecido, relatoId)] : []),
     db().prepare(`UPDATE avisos SET resolvido_em = datetime('now'), resposta = ? WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(resposta, relatoId),
   ]);

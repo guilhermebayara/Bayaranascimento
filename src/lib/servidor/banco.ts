@@ -967,6 +967,20 @@ export const MIGRACOES: Migracao[] = [
     id: '106-rascunho-de-relato-descartado',
     sql: [`ALTER TABLE relatos ADD COLUMN descartado_em TEXT`],
   },
+  {
+    // A versão da memória (revisão Y2 do PR #160, item 4b): todo lote que conta com o que leu dos relatos da
+    // memória (ampliar ou restringir, responder ao pedido, descartar ou restaurar o rascunho de relato) sobe a
+    // versão a partir da que leu, e um relato novo sobe a versão de qualquer jeito. O gatilho recusa a subida
+    // que não parte da versão de agora: o lote inteiro volta, e quem perdeu refaz a conta com o banco de agora
+    // (refazerSeAMemoriaMudou, em repositorio.ts).
+    id: '107-versao-da-memoria',
+    sql: [
+      `ALTER TABLE memorias ADD COLUMN versao INTEGER NOT NULL DEFAULT 0`,
+      `CREATE TRIGGER IF NOT EXISTS memorias_versao_confere BEFORE UPDATE OF versao ON memorias
+       WHEN NEW.versao <> OLD.versao + 1
+       BEGIN SELECT RAISE(ABORT, 'memoria-mudou'); END`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

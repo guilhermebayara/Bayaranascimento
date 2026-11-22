@@ -36,6 +36,9 @@ import {
   gravarMensagens,
   listarAudiosDosRelatos,
   listarMensagensDosRelatos,
+  MemoriaMudou,
+  RECADO_MEMORIA_MUDOU,
+  refazerSeAMemoriaMudou,
 } from '../../lib/servidor/repositorio';
 
 const opcional = (maximo: number) => z.string().trim().max(maximo).optional();
@@ -92,7 +95,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const dados = await request.formData();
     const id = String(dados.get('id') ?? '') || undefined;
     const anterior = id ? await obterMemoria(locals.usuario, id) : undefined;
-    const resposta = await tratar(pedidoDoFormulario(dados, anterior), locals);
+    const resposta = await tratarComAMemoriaDeAgora(pedidoDoFormulario(dados, anterior), locals);
     const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string };
     if (!resposta.ok) return voltar(request, id ? `/nova?id=${id}` : '/nova', { erro: corpo.erro ?? 'Não consegui salvar.' });
     const recado = corpo.situacao === 'rascunho' ? 'Rascunho salvo.' : anterior?.situacao === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
@@ -104,8 +107,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch {
     return erro(400, 'Envio inválido.');
   }
-  return tratar(bruto, locals);
+  return tratarComAMemoriaDeAgora(bruto, locals);
 };
+
+/**
+ * Mudar quem vê conta com os relatos que a rota leu. Se outro lote mudou a memória ou os relatos dela no
+ * meio tempo (um relato novo, uma resposta ao pedido, outro salvamento), o lote volta sem gravar nada
+ * (MemoriaMudou), e o pedido é tratado de novo, lendo o banco de agora: a espera sai de todo relato que
+ * existe na hora do lote (revisão Y2 do PR #160, item 4b). Antes de gravar o lote, tratar só grava o que
+ * não depende da corrida e que a segunda vez reaproveita (a pessoa nova, o tema). Depois de três
+ * tentativas, a pessoa recebe o recado, com e sem script.
+ */
+async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response> {
+  const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
+  return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
+}
 
 const mesmasFamilias = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((n) => b.includes(n));
 

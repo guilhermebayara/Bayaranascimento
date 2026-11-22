@@ -162,4 +162,65 @@ describe.skipIf(!comSqlite)('W3: o que sobrou da revisão Y2', async () => {
     });
 
   });
+  describe('2: mudar quem vê conta com todo relato que existe na hora do lote', () => {
+    it('a autora libera o relato enquanto quem criou amplia ainda mais: a ampliação refaz a conta e pede de novo só pelo que é novo', async () => {
+      const base = { titulo: 'Liberar no meio', ano: 2020, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: [BN] };
+      const id = (await pedir('memorias', giovanna, base)).corpo.id as string;
+      await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Da Elizete, liberado no meio.' });
+      await pedir('memorias', giovanna, { ...base, id, nucleos: [BN, BB] });
+      const { id: relato } = relatoDe(id, 'elizete');
+      // A Giovanna abre para todos; depois de ela ler os relatos, a Elizete libera para a Bayara Bracarense
+      const ampliou = await cruzar(
+        () => pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' }),
+        () => pedir('avisos', elizete, { relato, resposta: 'liberar' }, true),
+      );
+      expect(ampliou.status).toBe(200);
+      expect(ampliou.corpo.esperam).toEqual(['elizete']);
+      // O relato já foi visto pelas duas famílias, espera só pelo resto, e o pedido está na lista
+      expect(relatoDe(id, 'elizete').so).toBe(JSON.stringify([BB, BN]));
+      expect(pedidosAbertos(id)).toEqual(['elizete']);
+      expect(await textosQueVe(lucio, id)).toEqual([]);
+    });
+
+    it('o rascunho descartado no meio da ampliação não ganha pedido', async () => {
+      const base = { titulo: 'Descartar no meio', ano: 2020, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: [BN] };
+      const id = (await pedir('memorias', giovanna, base)).corpo.id as string;
+      await pedir('relatos', gui, { memoria: id, por: 'aguilar', texto: 'Rascunho do Gui.', situacao: 'rascunho' });
+      await pedir('relatos', elizete, { memoria: id, por: 'aguilar', texto: 'Publicado pela Elizete.' });
+      await cruzar(
+        () => pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' }),
+        () => pedir('lixeira', gui, { acao: 'descartar-relato', memoria: id, por: 'aguilar' }, true),
+      );
+      expect(visibilidadeDa(id)).toBe('todos');
+      expect((await repo.listarRascunhosDeRelatoDescartados(gui)).filter((r) => r.memoriaId === id).length).toBe(1);
+      expect(linhas(`SELECT 1 FROM avisos WHERE tipo = 'liberar-relato' AND memoria_id = ? AND para = 'gui'`, id)).toEqual([]);
+      expect(pedidosAbertos(id)).toEqual(['elizete']);
+    });
+
+    it('quem perde a corrida três vezes seguidas recebe o recado, com e sem script, e nada é gravado', async () => {
+      const base = { titulo: 'Sempre mudando', ano: 2020, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: [BN] };
+      const id = (await pedir('memorias', giovanna, base)).corpo.id as string;
+      await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Da Elizete.' });
+      // Antes de cada lote que muda quem vê, um relato novo sobe a versão da memória
+      const lote = banco.batch;
+      banco.batch = async (comandos: ComandoDeTeste[]) => {
+        if (comandos.some((c) => /^\s*UPDATE memorias SET versao = \?/.test(c.sql))) banco.sqlite.prepare('UPDATE memorias SET versao = versao + 1 WHERE id = ?').run(id);
+        return lote(comandos);
+      };
+      try {
+        const antes = impressao();
+        const comScript = await pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' });
+        expect(comScript.status).toBe(409);
+        expect(comScript.corpo.erro).toBe('Esta memória mudou enquanto você editava. Abra de novo para ver como ficou.');
+        const semScript = await pedir('memorias', giovanna, { id, titulo: base.titulo, ano: base.ano, tipo: base.tipo, pessoas: base.pessoas, visibilidade: 'todos', nucleos: [BN] }, true);
+        expect(semScript.erro).toBe('Esta memória mudou enquanto você editava. Abra de novo para ver como ficou.');
+        // A impressão muda só na versão, que o teste subiu
+        const semVersao = (t: string) => t.replace(/"versao":\d+/g, '');
+        expect(semVersao(impressao())).toBe(semVersao(antes));
+        expect(visibilidadeDa(id)).toBe('nucleos');
+      } finally {
+        banco.batch = lote;
+      }
+    });
+  });
 });
