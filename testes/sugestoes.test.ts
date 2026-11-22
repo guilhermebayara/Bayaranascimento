@@ -1,6 +1,7 @@
 // Sugestão de correção (onda 2, decisão do Gui de 17/11/2026): de dados da memória, para quem criou, ou um
 // recado a quem registrou um relato. Quem recebe aceita, recusa ou responde. Só quem mandou e quem recebeu
 // veem a sugestão, e ela nunca revela uma pessoa que só quem sugere vê. Rota de verdade (api/sugestoes.ts).
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { aplicarProposta, frasesDaProposta, limparProposta } from '../src/lib/sugestoes';
 import { fraseDoAviso, saiAoAbrir } from '../src/lib/avisos';
@@ -21,6 +22,13 @@ describe('as regras da sugestão', () => {
   it('a proposta em frases e aplicada', () => {
     const p = { ano: 1998, mes: null, dia: null, entram: ['aguilar'], saem: ['elizete'] };
     expect(frasesDaProposta(p, atual, (id) => id.toUpperCase())).toEqual(['Data: 1998 (hoje: 1999)', 'Também estava: AGUILAR', 'Não estava: ELIZETE']);
+    // Respondida, só o que foi pedido, sem "(hoje: …)" (resposta do Gui à P6 do QA de 23/11/2026)
+    expect(frasesDaProposta(p, atual, (id) => id.toUpperCase(), true)).toEqual(['Data: 1998', 'Também estava: AGUILAR', 'Não estava: ELIZETE']);
+    expect(frasesDaProposta({ lugar: 'Ouro Preto' }, { ...atual, lugar: 'Ouro Preto' }, (id) => id, true)).toEqual(['Lugar: Ouro Preto']);
+    expect(frasesDaProposta({ lugar: 'Ouro Preto' }, { ...atual, lugar: 'Mariana' }, (id) => id)).toEqual(['Lugar: Ouro Preto (hoje: Mariana)']);
+    // A página passa se a sugestão já foi respondida, para quem recebeu e para quem mandou
+    const pagina = readFileSync('src/pages/memorias/[id]/sugestoes.astro', 'utf8');
+    expect(pagina.match(/frasesDaProposta\([^)]*\), memoria, nome, s\.situacao !== 'aberta'\)|frasesDaProposta\(s\.proposta, memoria, nome, s\.situacao !== 'aberta'\)/g)).toHaveLength(2);
     expect(aplicarProposta(p, atual)).toMatchObject({ ano: 1998, lugar: 'Contagem', integrantes: ['gui', 'aguilar'] });
   });
   it('o aviso da sugestão só sai com a resposta, e diz o que é', () => {

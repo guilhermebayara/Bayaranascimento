@@ -82,12 +82,17 @@ export function limparProposta(pedida: Proposta, atual: DadosAtuais, pode: (id: 
 
 export const propostaVazia = (p: Proposta | null | undefined): boolean => !p || Object.keys(p).length === 0;
 
-/** A proposta em frases, para quem recebe: "Data: 1998 (hoje: 1999)". `nome` dá o nome de cada pessoa. */
-export function frasesDaProposta(p: Proposta, atual: DadosAtuais, nome: (id: string) => string): string[] {
+/**
+ * A proposta em frases, para quem recebe: "Data: 1998 (hoje: 1999)". `nome` dá o nome de cada pessoa.
+ * Respondida, a sugestão mostra só o que foi pedido, sem "(hoje: …)": depois de aceita, o "hoje" já é o
+ * que foi sugerido (resposta do Gui à P6 do QA de 23/11/2026, docs/historico/qa/2026-11-23-perguntas.md).
+ */
+export function frasesDaProposta(p: Proposta, atual: DadosAtuais, nome: (id: string) => string, respondida = false): string[] {
   const frases: string[] = [];
   const data = (ano: number, mes: number | null, dia: number | null) => formatarData({ ano, mes, dia, aproximada: false });
-  if (p.ano) frases.push(`Data: ${data(p.ano, p.mes ?? null, p.dia ?? null)} (hoje: ${data(atual.ano, atual.mes, atual.dia)})`);
-  if (p.lugar) frases.push(`Lugar: ${p.lugar}${atual.lugar ? ` (hoje: ${atual.lugar})` : ''}`);
+  const hoje = (texto: string) => (respondida ? '' : ` (hoje: ${texto})`);
+  if (p.ano) frases.push(`Data: ${data(p.ano, p.mes ?? null, p.dia ?? null)}${hoje(data(atual.ano, atual.mes, atual.dia))}`);
+  if (p.lugar) frases.push(`Lugar: ${p.lugar}${atual.lugar ? hoje(atual.lugar) : ''}`);
   if (p.entram?.length) frases.push(`Também estava: ${p.entram.map(nome).join(', ')}`);
   if (p.saem?.length) frases.push(`Não estava: ${p.saem.map(nome).join(', ')}`);
   return frases;
