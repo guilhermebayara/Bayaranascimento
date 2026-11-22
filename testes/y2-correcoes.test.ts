@@ -379,4 +379,27 @@ describe.skipIf(!comSqlite)('W3: o que sobrou da revisão Y2', async () => {
       expect(JSON.parse(guardado).publico).toEqual({ visibilidade: 'todos', nucleos: [BN] });
     });
   });
+  describe('7: a frase da lixeira de quem administra conta o que a página da lixeira mostra', () => {
+    it('a pessoa excluída entra na conta, e a frase diz o mesmo número que a lixeira', async () => {
+      const { montarConta, itensDaLixeira } = await import('../src/lib/servidor/conta');
+      const quantasNaFrase = async () => {
+        const frase = (await montarConta(gui)).fraseDaLixeira;
+        return frase === 'Nada na lixeira.' ? 0 : frase === 'Uma coisa na lixeira.' ? 1 : Number(/^(\d+) coisas na lixeira\.$/.exec(frase)?.[1]);
+      };
+      const naPagina = async () => {
+        const { memorias, capitulos, pessoas, relatos } = await itensDaLixeira(gui);
+        return memorias.length + capitulos.length + pessoas.length + relatos.length;
+      };
+      const antes = await quantasNaFrase();
+      expect(antes).toBe(await naPagina());
+      // Uma pessoa de exemplo, que não acessa o site, vai para a lixeira
+      const alguem = linhas<{ id: string }>(`SELECT id FROM integrantes WHERE id LIKE 'ex-%' AND excluida_em IS NULL ORDER BY id LIMIT 1`)[0].id;
+      expect(await repo.excluirPessoa(alguem, gui)).toBe(true);
+      expect(await quantasNaFrase()).toBe(antes + 1);
+      expect(await quantasNaFrase()).toBe(await naPagina());
+      // Para quem não administra, nada muda: a pessoa excluída não está na lixeira dela, e a frase conta só o que é dela
+      expect((await itensDaLixeira(elizete)).pessoas).toEqual([]);
+      expect((await montarConta(elizete)).fraseDaLixeira).toMatch(/seu|suas/);
+    });
+  });
 });

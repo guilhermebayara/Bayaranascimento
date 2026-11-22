@@ -13,6 +13,7 @@ import { podeExcluirMemoria, type Usuario } from './permissoes';
 import {
   listarCapitulos,
   listarCapitulosExcluidos,
+  listarPessoasExcluidas,
   listarExcluidas,
   listarIntegrantes,
   listarIntegrantesQueVe,
@@ -79,19 +80,34 @@ function emailDe(pessoa: string): string | undefined {
   return undefined;
 }
 
+/**
+ * O que a página da lixeira mostra a cada pessoa (src/pages/lixeira.astro): para quem administra, as
+ * memórias excluídas que ela restauraria, os capítulos e as pessoas excluídos; para todos, os rascunhos de
+ * relato que a pessoa descartou. A frase da lixeira de "Sua conta" conta daqui, para dizer o mesmo que a
+ * página (achado da W2, revisão Y2 do PR #160: as pessoas excluídas ficavam fora da conta).
+ */
+export async function itensDaLixeira(usuario: Usuario) {
+  const [excluidas, capitulos, pessoas, relatos] = await Promise.all([
+    listarExcluidas(usuario),
+    usuario.admin ? listarCapitulosExcluidos(usuario) : Promise.resolve([]),
+    usuario.admin ? listarPessoasExcluidas() : Promise.resolve([]),
+    listarRascunhosDeRelatoDescartados(usuario),
+  ]);
+  return { memorias: excluidas.filter((m) => podeExcluirMemoria(usuario, m).ok), capitulos, pessoas, relatos, todasAsMemorias: excluidas };
+}
+
 export async function montarConta(usuario: Usuario) {
   const eu = usuario.pessoa;
-  const [publicadas, rascunhos, relatos, capitulos, lacos, excluidas, integrantes, relatosDescartados] = await Promise.all([
+  const [publicadas, rascunhos, relatos, capitulos, lacos, lixeira, integrantes] = await Promise.all([
     listarMemorias(usuario),
     listarMemorias(usuario, { rascunhos: true }),
     listarRelatosRegistradosPor(usuario),
     listarCapitulos(usuario),
     listarLacosDoCoracao(usuario),
-    listarExcluidas(usuario),
+    itensDaLixeira(usuario),
     listarIntegrantes(),
-    listarRascunhosDeRelatoDescartados(usuario),
   ]);
-  const minhaLixeira = suaLixeira(eu, excluidas);
+  const minhaLixeira = suaLixeira(eu, lixeira.todasAsMemorias);
   return {
     /** "Seus dados e sua página": editáveis em /pessoas/<id>/editar; a página como os outros veem, em /pessoas/<id> */
     dados: integrantes.find((i) => i.id === eu),
@@ -99,12 +115,13 @@ export async function montarConta(usuario: Usuario) {
     rascunhos: seusRascunhos(eu, rascunhos, relatos),
     lixeira: minhaLixeira,
     /**
-     * a frase da lixeira: quem administra lê a conta do que a página da lixeira mostra (src/pages/lixeira.astro); os demais, a do que é deles.
-     * Nos dois, o rascunho de relato que a pessoa descartou, que a lixeira mostra a ela (revisão Y do PR #160)
+     * a frase da lixeira: quem administra lê a conta do que a página da lixeira mostra (itensDaLixeira: memórias, capítulos e
+     * pessoas); os demais, a do que é deles. Nos dois, o rascunho de relato que a pessoa descartou, que a lixeira mostra a ela
+     * (revisão Y do PR #160)
      */
     fraseDaLixeira: fraseDaLixeira(
       usuario.admin,
-      (usuario.admin ? excluidas.filter((m) => podeExcluirMemoria(usuario, m).ok).length + (await listarCapitulosExcluidos(usuario)).length : minhaLixeira.length) + relatosDescartados.length,
+      (usuario.admin ? lixeira.memorias.length + lixeira.capitulos.length + lixeira.pessoas.length : minhaLixeira.length) + lixeira.relatos.length,
     ),
     criou: oQueVoceCriou(eu, { memorias: publicadas, relatos, capitulos }),
     lacos: seusLacos(eu, lacos),
