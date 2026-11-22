@@ -950,6 +950,15 @@ export const MIGRACOES: Migracao[] = [
     id: '104-dia-dos-capitulos',
     sql: [`ALTER TABLE capitulos ADD COLUMN inicio_dia INTEGER`, `ALTER TABLE capitulos ADD COLUMN fim_dia INTEGER`],
   },
+  {
+    // O público mais amplo que cada relato já teve (resposta do Gui à P3 do QA de 23/11/2026; regras em
+    // permissoes.ts, "relatoDepoisDaMudanca"). Ao ampliar quem vê a memória, o relato só espera por quem
+    // nunca o viu: restringir e reabrir não pede de novo. "todos" ou a lista de núcleos em JSON. Vazia nos
+    // relatos de hoje: o público conhecido deles é o de hoje, sem supor passado, e é gravado na primeira
+    // mudança de quem vê a memória.
+    id: '105-publico-conhecido-do-relato',
+    sql: [`ALTER TABLE relatos ADD COLUMN publico_conhecido TEXT`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

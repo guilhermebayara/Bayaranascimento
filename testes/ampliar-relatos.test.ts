@@ -1,11 +1,14 @@
 // Ampliar quem vê uma memória com relatos (docs/decisoes.md; decisão do Gui de 17/11/2026). Ao ampliar,
-// cada relato que já existia continua só para o público antigo até quem o registrou concordar. O teste
-// passa pelas rotas de verdade (api/memorias e api/avisos) e confere, consulta por consulta, que nada do
-// relato que espera chega a quem passou a ver: nem o texto, nem a contagem, nem os áudios, nem as fotos
-// que vieram com ele, nem as novidades. Restringir não pede nada.
+// cada relato que já existia continua só para quem já o viu até quem o registrou concordar; o relato que
+// já teve o público novo não espera (resposta do Gui à P3 do QA de 23/11/2026,
+// docs/historico/qa/2026-11-23-perguntas.md). O teste passa pelas rotas de verdade (api/memorias e
+// api/avisos) e confere, consulta por consulta, que nada do relato que espera chega a quem nunca o viu:
+// nem o texto, nem a contagem, nem os áudios, nem as fotos que vieram com ele, nem as novidades.
+// Restringir não pede nada.
 import { describe, expect, it, vi } from 'vitest';
 import { fraseDosRelatosQueEsperam } from '../src/lib/avisos';
-import { estaNoPublicoDoRelato, publicoAmpliado, publicoDentroDe, veORelato } from '../src/lib/servidor/permissoes';
+import { paraQuemPassouAVer } from '../src/lib/servidor/avisos';
+import { cabeNoConhecido, estaNoPublicoDoRelato, juntarPublicos, publicoConhecidoAntes, relatoDepoisDaMudanca, veORelato } from '../src/lib/servidor/permissoes';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 
 const comSqlite = await temSqlite();
@@ -18,18 +21,38 @@ describe('regras de ampliar quem vê', () => {
   const nucleos = (...n: string[]) => ({ visibilidade: 'nucleos' as const, nucleos: n });
   const todos = { visibilidade: 'todos' as const, nucleos: [] };
 
-  it('ampliar é dar a memória a alguém que não via; restringir não é', () => {
-    expect(publicoAmpliado(nucleos('a'), todos)).toBe(true);
-    expect(publicoAmpliado(nucleos('a'), nucleos('a', 'b'))).toBe(true);
-    expect(publicoAmpliado(nucleos('a', 'b'), nucleos('a'))).toBe(false);
-    expect(publicoAmpliado(todos, nucleos('a'))).toBe(false);
-    expect(publicoAmpliado(nucleos('a'), nucleos('a'))).toBe(false);
+  it('o público conhecido soma quem já viu; o público da memória cabe nele ou não', () => {
+    expect(juntarPublicos(['a'], ['b', 'a'])).toEqual(['a', 'b']);
+    expect(juntarPublicos(['a'], 'todos')).toBe('todos');
+    expect(cabeNoConhecido(nucleos('a'), ['a', 'b'])).toBe(true);
+    expect(cabeNoConhecido(nucleos('a', 'c'), ['a', 'b'])).toBe(false);
+    expect(cabeNoConhecido(todos, ['a'])).toBe(false);
+    expect(cabeNoConhecido(todos, 'todos')).toBe(true);
   });
 
-  it('a espera perde o sentido quando o público volta a caber no antigo', () => {
-    expect(publicoDentroDe(nucleos('a'), ['a', 'b'])).toBe(true);
-    expect(publicoDentroDe(nucleos('a', 'c'), ['a', 'b'])).toBe(false);
-    expect(publicoDentroDe(todos, ['a'])).toBe(false);
+  it('sem registro, o público conhecido é o de hoje, sem supor passado', () => {
+    // Acompanha a memória: quem a via antes da mudança
+    expect(publicoConhecidoAntes({ soParaNucleos: null }, nucleos('a'))).toEqual(['a']);
+    expect(publicoConhecidoAntes({ soParaNucleos: null }, todos)).toBe('todos');
+    // Espera: o público antigo dele
+    expect(publicoConhecidoAntes({ soParaNucleos: ['a'] }, todos)).toEqual(['a']);
+    // Com registro, soma o que a memória mostrava
+    expect(publicoConhecidoAntes({ soParaNucleos: null, publicoConhecido: 'todos' }, nucleos('a'))).toBe('todos');
+  });
+
+  it('ao mudar quem vê, o relato espera só por quem nunca o viu', () => {
+    const relato = (publicoConhecido: string[] | 'todos' | null, soParaNucleos: string[] | null = null) => ({ registradoPor: 'elizete', soParaNucleos, publicoConhecido });
+    // Escrito com a memória aberta a todos, restringida e reaberta: não espera
+    expect(relatoDepoisDaMudanca(relato(null), todos, nucleos('a'), 'gui')).toEqual({ soParaNucleos: null, publicoConhecido: 'todos' });
+    expect(relatoDepoisDaMudanca(relato('todos'), nucleos('a'), todos, 'gui')).toEqual({ soParaNucleos: null, publicoConhecido: 'todos' });
+    // Escrito com a memória restrita: ao abrir, espera
+    expect(relatoDepoisDaMudanca(relato(null), nucleos('a'), todos, 'gui')).toEqual({ soParaNucleos: ['a'], publicoConhecido: ['a'] });
+    // Em parte novo: fica para quem já via, espera só pelo que é novo
+    expect(relatoDepoisDaMudanca(relato(['a', 'b']), nucleos('a'), nucleos('a', 'b', 'c'), 'gui')).toEqual({ soParaNucleos: ['a', 'b'], publicoConhecido: ['a', 'b'] });
+    // Restringir para dentro do que ele já teve desfaz a espera
+    expect(relatoDepoisDaMudanca(relato(['a'], ['a']), todos, nucleos('a'), 'gui')).toEqual({ soParaNucleos: null, publicoConhecido: ['a'] });
+    // O relato de quem mudou não espera
+    expect(relatoDepoisDaMudanca({ ...relato(null), registradoPor: 'gui' }, nucleos('a'), todos, 'gui')).toEqual({ soParaNucleos: null, publicoConhecido: 'todos' });
   });
 
   it('o relato que espera fica com o público antigo; quem registrou sempre vê', () => {
@@ -213,5 +236,132 @@ describe.skipIf(!comSqlite)('ampliar quem vê, no banco e nas rotas', async () =
     expect((await repo.listarRelatos(magno, outra)).length).toBe(0);
     expect((await repo.obterMemoria(magno, outra))!.relatos).toBe(0);
     expect((await repo.listarRelatos(gui, outra)).map((r) => r.texto)).toEqual(['Da Elizete, para a família.']);
+  });
+  // Restringir e ampliar de novo (resposta do Gui à P3 do QA de 23/11/2026): o relato só espera por quem
+  // nunca o viu. Cada caso cria a própria memória, com relatos gravados direto no banco, e passa pelas rotas.
+  const [lucio] = ['lucio'].map(usuarioDe);
+  expect(lucio.nucleos).toEqual(['bracarense']);
+  const pedidosAbertos = (memoria: string) =>
+    (banco.sqlite.prepare(`SELECT para, relato_id AS relato FROM avisos WHERE tipo = 'liberar-relato' AND memoria_id = ? AND resolvido_em IS NULL ORDER BY para`).all(memoria) as { para: string; relato: number }[]);
+  const novaMemoria = async (quem: Usuario, base: Record<string, unknown>) => {
+    const { status, corpo } = await salvarMemoria(quem, base);
+    expect(status).toBe(201);
+    return corpo.id as string;
+  };
+  const relatoEm = (memoria: string, por: string, texto: string) => {
+    sql(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, publicado_em) VALUES (?, ?, ?, ?, 'publicada', datetime('now'))`, memoria, por, por, texto);
+    return linha<{ id: number }>('SELECT id FROM relatos WHERE memoria_id = ? AND por = ?', memoria, por).id;
+  };
+  const mudar = async (quem: Usuario, base: Record<string, unknown>, memoria: string, publico: Record<string, unknown>) => {
+    const { status, corpo } = await salvarMemoria(quem, { ...base, ...publico, id: memoria });
+    expect(status).toBe(200);
+    return ((corpo.esperam as string[] | undefined) ?? []).sort();
+  };
+  /** Tudo o que as telas leem de um relato, para quem nunca o viu */
+  async function oQueChegaDoRelato(quem: Usuario, memoria: string, autor: string, texto: string, chaves: { foto?: string; audio?: string } = {}) {
+    const vista = await repo.obterMemoria(quem, memoria);
+    const contexto = await contextoDoExplorar(quem, await repo.listarMemorias(quem));
+    return {
+      texto: vista ? (await repo.listarRelatos(quem, memoria)).some((r) => r.texto === texto) : false,
+      contado: [...(contexto.contaram.get(memoria) ?? [])].includes(autor),
+      foto: vista?.fotos.some((f) => f.chave === chaves.foto) ?? false,
+      podeVerFoto: chaves.foto ? await repo.podeVerFoto(quem, chaves.foto) : false,
+      ouve: chaves.audio ? await repo.podeOuvirAudio(quem, chaves.audio) : false,
+      comAudio: chaves.audio ? contexto.comAudio.has(memoria) : false,
+      voz: (await repo.listarAudiosDe(quem, autor)).some((a) => a.memoriaId === memoria),
+      novidade: (await repo.listarRelatosPublicadosDesde(quem, '2000-01-01 00:00:00')).some((r) => r.memoriaId === memoria && r.por === autor),
+      aviso: (await repo.listarAvisos(quem, { historico: true })).some((a) => a.memoriaId === memoria && a.relato?.por === autor),
+    };
+  }
+  const nadaChega = { texto: false, contado: false, foto: false, podeVerFoto: false, ouve: false, comAudio: false, voz: false, novidade: false, aviso: false };
+
+  it('relato escrito com a memória aberta a todos: restringir e reabrir não pede nada, e um autor volta a ver o do outro', async () => {
+    const base = { titulo: 'Aberta, fechada e aberta', ano: 2002, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'todos', nucleos: [] };
+    const memoria = await novaMemoria(giovanna, base);
+    relatoEm(memoria, 'elizete', 'A Elizete escreveu para todos.');
+    relatoEm(memoria, 'gui', 'O Gui escreveu para todos.');
+    expect(await mudar(giovanna, base, memoria, { visibilidade: 'nucleos', nucleos: ['bayara-bracarense'] })).toEqual([]);
+    expect(await repo.obterMemoria(elizete, memoria)).toBeUndefined();
+    expect(await mudar(giovanna, base, memoria, { visibilidade: 'todos', nucleos: [] })).toEqual([]);
+    expect(pedidosAbertos(memoria)).toEqual([]);
+    expect(linha<{ n: number }>('SELECT COUNT(*) AS n FROM relatos WHERE memoria_id = ? AND so_para_nucleos IS NOT NULL', memoria).n).toBe(0);
+    expect((await repo.listarRelatos(elizete, memoria)).map((r) => r.texto)).toContain('O Gui escreveu para todos.');
+    expect((await repo.listarRelatos(gui, memoria)).map((r) => r.texto)).toContain('A Elizete escreveu para todos.');
+    expect((await repo.listarRelatos(lucio, memoria)).length).toBe(2);
+  });
+
+  it('relato que o autor já liberou para um público: restringir e ampliar de novo para ele não pede nada', async () => {
+    // A Giovanna é da Bayara Nascimento e da Bayara Bracarense; a Elizete, só da primeira
+    const base = { titulo: 'Liberado antes', ano: 2003, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: ['bayara-nascimento'] };
+    const memoria = await novaMemoria(giovanna, base);
+    const daElizete = relatoEm(memoria, 'elizete', 'A Elizete liberou.');
+    expect(await mudar(giovanna, base, memoria, { nucleos: ['bayara-nascimento', 'bayara-bracarense'] })).toEqual(['elizete']);
+    await responder(elizete, { relato: String(daElizete), resposta: 'liberar' });
+    expect(await mudar(giovanna, base, memoria, { nucleos: ['bayara-nascimento'] })).toEqual([]);
+    expect(await mudar(giovanna, base, memoria, { nucleos: ['bayara-nascimento', 'bayara-bracarense'] })).toEqual([]);
+    expect(pedidosAbertos(memoria)).toEqual([]);
+    expect((await repo.listarRelatos(magno, memoria)).map((r) => r.texto)).toEqual(['A Elizete liberou.']);
+    // Para quem nunca viu (a família Bracarense), abrir a todos ainda pede
+    expect(await mudar(giovanna, base, memoria, { visibilidade: 'todos', nucleos: [] })).toEqual(['elizete']);
+    expect(await oQueChegaDoRelato(lucio, memoria, 'elizete', 'A Elizete liberou.')).toEqual(nadaChega);
+    expect((await repo.listarRelatos(magno, memoria)).map((r) => r.texto)).toEqual(['A Elizete liberou.']);
+  });
+
+  it('relato escrito com a memória restrita: ampliar, restringir e ampliar de novo sem resposta, e o pedido continua valendo', async () => {
+    const base = { titulo: 'Só da Bayara Bracarense', ano: 2004, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: ['bayara-bracarense'] };
+    const memoria = await novaMemoria(giovanna, base);
+    const doMagno = relatoEm(memoria, 'lucas-magno', 'O Magno contou para a família dele.');
+    sql(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, enviado_por) VALUES (?, ?, 'audios/teste-magno.m4a', 'audio/mp4', 10, 'lucas-magno')`, doMagno, memoria);
+    sql(`INSERT INTO fotos (memoria_id, relato_id, chave, principal, ordem, enviada_por) VALUES (?, ?, 'teste/foto-do-magno.jpg', 1, 0, 'lucas-magno')`, memoria, doMagno);
+    const comFoto = { ...base, fotos: [{ id: linha<{ id: number }>(`SELECT id FROM fotos WHERE chave = 'teste/foto-do-magno.jpg'`).id, principal: true }] };
+    const chaves = { foto: 'teste/foto-do-magno.jpg', audio: 'audios/teste-magno.m4a' };
+    expect(await mudar(giovanna, comFoto, memoria, { visibilidade: 'todos', nucleos: [] })).toEqual(['lucas-magno']);
+    expect(pedidosAbertos(memoria)).toEqual([{ para: 'lucas-magno', relato: doMagno }]);
+    // O Magno não respondeu; restringir tira o pedido da lista
+    expect(await mudar(giovanna, comFoto, memoria, { visibilidade: 'nucleos', nucleos: ['bayara-bracarense'] })).toEqual([]);
+    expect(pedidosAbertos(memoria)).toEqual([]);
+    // Ampliar de novo: o público novo nunca viu, e o pedido volta a valer, um só
+    expect(await mudar(giovanna, comFoto, memoria, { visibilidade: 'todos', nucleos: [] })).toEqual(['lucas-magno']);
+    expect(pedidosAbertos(memoria)).toEqual([{ para: 'lucas-magno', relato: doMagno }]);
+    expect((await repo.listarAvisos(magno)).find((a) => a.tipo === 'liberar-relato' && a.memoriaId === memoria)?.dados.paraQuem).toBe('toda a família');
+    expect(await oQueChegaDoRelato(gui, memoria, 'lucas-magno', 'O Magno contou para a família dele.', chaves)).toEqual(nadaChega);
+    expect(await oQueChegaDoRelato(lucio, memoria, 'lucas-magno', 'O Magno contou para a família dele.', chaves)).toEqual(nadaChega);
+    // Quem já via continua vendo tudo
+    const giovannaVe = await oQueChegaDoRelato(giovanna, memoria, 'lucas-magno', 'O Magno contou para a família dele.', chaves);
+    expect([giovannaVe.texto, giovannaVe.foto, giovannaVe.ouve]).toEqual([true, true, true]);
+  });
+
+  it('relato escrito durante o período restrito: ao reabrir, espera', async () => {
+    const base = { titulo: 'Escrito no meio', ano: 2005, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'todos', nucleos: [] };
+    const memoria = await novaMemoria(giovanna, base);
+    expect(await mudar(giovanna, base, memoria, { visibilidade: 'nucleos', nucleos: ['bayara-bracarense'] })).toEqual([]);
+    const doMagno = relatoEm(memoria, 'lucas-magno', 'O Magno escreveu enquanto era só da família.');
+    expect(await mudar(giovanna, base, memoria, { visibilidade: 'todos', nucleos: [] })).toEqual(['lucas-magno']);
+    expect(pedidosAbertos(memoria)).toEqual([{ para: 'lucas-magno', relato: doMagno }]);
+    expect(await oQueChegaDoRelato(gui, memoria, 'lucas-magno', 'O Magno escreveu enquanto era só da família.')).toEqual(nadaChega);
+  });
+
+  it('ampliar para um público em parte novo: o relato fica para quem já via e espera só pelo que é novo', async () => {
+    // O Magno é da Bayara Bracarense e da Bracarense; o Lúcio, só da Bracarense; a Giovanna, da Bayara
+    // Bracarense e da Bayara Nascimento; o Gui, só da Bayara Nascimento
+    const base = { titulo: 'Duas famílias', ano: 2006, tipo: 'causo', pessoas: ['lucas-magno'], visibilidade: 'nucleos', nucleos: ['bayara-bracarense', 'bracarense'] };
+    const memoria = await novaMemoria(magno, base);
+    const doLucio = relatoEm(memoria, 'lucio', 'O Lúcio escreveu para as duas famílias.');
+    expect(await mudar(magno, base, memoria, { nucleos: ['bracarense'] })).toEqual([]);
+    expect(await repo.obterMemoria(giovanna, memoria)).toBeUndefined();
+    expect(await mudar(magno, base, memoria, { visibilidade: 'todos', nucleos: [] })).toEqual(['lucio']);
+    expect(pedidosAbertos(memoria)).toEqual([{ para: 'lucio', relato: doLucio }]);
+    expect(linha<{ so: string }>('SELECT so_para_nucleos AS so FROM relatos WHERE id = ?', doLucio).so).toBe('["bayara-bracarense","bracarense"]');
+    // A Giovanna já via e volta a ver; o Gui nunca viu
+    expect((await repo.listarRelatos(giovanna, memoria)).map((r) => r.texto)).toEqual(['O Lúcio escreveu para as duas famílias.']);
+    expect(await oQueChegaDoRelato(gui, memoria, 'lucio', 'O Lúcio escreveu para as duas famílias.')).toEqual(nadaChega);
+    // Depois do sim, o Gui vê
+    await responder(lucio, { relato: String(doLucio), resposta: 'liberar' });
+    expect((await repo.listarRelatos(gui, memoria)).map((r) => r.texto)).toEqual(['O Lúcio escreveu para as duas famílias.']);
+  });
+
+  it('o pedido diz para quem a memória é nova do ponto de vista do relato', () => {
+    const familias = [{ id: 'a', nome: 'A' }, { id: 'b', nome: 'B' }, { id: 'c', nome: 'C' }];
+    expect(paraQuemPassouAVer({ visibilidade: 'nucleos', nucleos: ['a', 'b'] }, { visibilidade: 'nucleos', nucleos: ['a', 'b', 'c'] }, familias)).toBe('a família C');
   });
 });

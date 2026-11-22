@@ -12,7 +12,18 @@ import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '.
 import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, type TipoDeSugestao } from '../sugestoes';
 import type { SimboloDaReacao } from '../reacoes';
 import { mensagensDoRelato, type Mensagem } from '../conversa';
-import { comExcluidas, pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
+import {
+  comExcluidas,
+  pessoasQueNaoVe,
+  podeVerRetrato,
+  publicoConhecidoAoLiberar,
+  relatoDepoisDaMudanca,
+  veORelato,
+  type AcessoDaMemoria,
+  type Publico,
+  type PublicoConhecido,
+  type Usuario,
+} from './permissoes';
 
 export interface Integrante {
   id: string;
@@ -100,10 +111,17 @@ export interface Relato {
    * antes: os membros destes núcleos (ver estaNoPublicoDoRelato). Vazio: acompanha a memória.
    */
   soParaNucleos: string[] | null;
+  /** O público mais amplo que o relato já teve (migração 105; ver relatoDepoisDaMudanca). Vazio: ainda sem registro. */
+  publicoConhecido?: PublicoConhecido | null;
 }
 
 /** A coluna so_para_nucleos (migração 025), em JSON, como lista. */
 const lerNucleosDoRelato = (valor: unknown): string[] | null => (typeof valor === 'string' && valor ? (JSON.parse(valor) as string[]) : null);
+
+/** A coluna publico_conhecido (migração 105): "todos" ou a lista de núcleos em JSON. Vazia: ainda sem registro. */
+const lerPublicoConhecido = (valor: unknown): PublicoConhecido | null =>
+  valor === 'todos' ? 'todos' : typeof valor === 'string' && valor ? (JSON.parse(valor) as string[]) : null;
+const gravarPublicoConhecido = (publico: PublicoConhecido): string => (publico === 'todos' ? 'todos' : JSON.stringify(publico));
 
 const db = () => banco();
 
@@ -1408,6 +1426,7 @@ function lerRelato(r: Record<string, unknown>): Relato {
     texto: r.texto as string,
     situacao: r.situacao as 'rascunho' | 'publicada',
     soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos),
+    publicoConhecido: lerPublicoConhecido(r.publico_conhecido),
   };
 }
 
@@ -1863,35 +1882,31 @@ export async function abrirAvisosDaMemoria(usuario: Usuario, memoriaId: string):
 // --- Ampliar quem vê uma memória com relatos (migração 025; regras em permissoes.ts) ---
 
 /**
- * Quem criou a memória ampliou quem vê: cada relato que já existia (publicado ou em rascunho) e ainda
- * acompanhava a memória passa a ficar só para o público antigo, até quem o registrou concordar. O
- * relato de quem ampliou não espera: foi ela mesma que abriu. Devolve os relatos que passaram a esperar.
+ * Quem criou a memória mudou quem vê: cada relato da memória (publicado ou em rascunho) fica como manda
+ * relatoDepoisDaMudanca, em permissoes.ts. Ao ampliar, espera só o relato que o público novo nunca viu;
+ * quando o público novo cabe no que o relato já teve, ele volta a acompanhar a memória, e o pedido sai da
+ * lista sem resposta. O público conhecido de cada relato é gravado a cada mudança (migração 105).
+ * Devolve os relatos que passaram a esperar agora.
  */
-export async function guardarRelatosParaOPublicoAntigo(memoriaId: string, nucleosAntigos: readonly string[], quemAmpliou: string): Promise<Relato[]> {
-  const { results } = await db()
-    .prepare('SELECT * FROM relatos WHERE memoria_id = ? AND registrado_por <> ? AND so_para_nucleos IS NULL')
-    .bind(memoriaId, quemAmpliou)
-    .all<Record<string, unknown>>();
+export async function ajustarRelatosAoPublico(memoriaId: string, antes: Publico, depois: Publico, quemMudou: string): Promise<Relato[]> {
+  const { results } = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ?').bind(memoriaId).all<Record<string, unknown>>();
   const relatos = results.map(lerRelato);
   if (relatos.length === 0) return [];
-  await db().batch(relatos.map((r) => db().prepare('UPDATE relatos SET so_para_nucleos = ? WHERE id = ?').bind(JSON.stringify([...nucleosAntigos]), r.id)));
-  return relatos.map((r) => ({ ...r, soParaNucleos: [...nucleosAntigos] }));
-}
-
-/**
- * Restringir não pede nada: quando o público da memória volta a caber no público antigo de um relato,
- * a espera dele perde o sentido. O relato volta a acompanhar a memória, e o pedido sai da lista.
- */
-export async function soltarEsperasSemSentido(memoriaId: string, dentroDoPublico: (soParaNucleos: string[]) => boolean): Promise<void> {
-  const { results } = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ? AND so_para_nucleos IS NOT NULL').bind(memoriaId).all<Record<string, unknown>>();
-  const soltos = results.map(lerRelato).filter((r) => dentroDoPublico(r.soParaNucleos!));
-  if (soltos.length === 0) return;
-  await db().batch(
-    soltos.flatMap((r) => [
-      db().prepare('UPDATE relatos SET so_para_nucleos = NULL WHERE id = ?').bind(r.id),
-      db().prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(r.id),
-    ]),
-  );
+  const passaram: Relato[] = [];
+  const comandos = relatos.flatMap((r) => {
+    const novo = relatoDepoisDaMudanca(r, antes, depois, quemMudou);
+    if (novo.soParaNucleos && !r.soParaNucleos) passaram.push({ ...r, ...novo });
+    return [
+      db()
+        .prepare('UPDATE relatos SET so_para_nucleos = ?, publico_conhecido = ? WHERE id = ?')
+        .bind(novo.soParaNucleos ? JSON.stringify(novo.soParaNucleos) : null, gravarPublicoConhecido(novo.publicoConhecido), r.id),
+      ...(r.soParaNucleos && !novo.soParaNucleos
+        ? [db().prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(r.id)]
+        : []),
+    ];
+  });
+  await db().batch(comandos);
+  return passaram;
 }
 
 /** O relato por id, sem conferir quem vê: quem chama confere (podeLiberarRelato). */
@@ -1910,9 +1925,12 @@ export async function obterAviso(id: number, usuario: Usuario): Promise<{ id: nu
  * continua só para quem via antes, e a linha no próprio relato deixa liberar depois. Os dois tiram o
  * pedido da lista, com a resposta no histórico.
  */
-export async function responderPedidoDoRelato(relatoId: number, resposta: 'liberar' | 'manter'): Promise<void> {
+export async function responderPedidoDoRelato(relato: Relato, resposta: 'liberar' | 'manter', memoria: Publico): Promise<void> {
+  const relatoId = relato.id;
+  // Liberar: quem vê a memória agora passa a ter visto o relato (publicoConhecidoAoLiberar)
+  const conhecido = gravarPublicoConhecido(publicoConhecidoAoLiberar(relato, memoria));
   await db().batch([
-    ...(resposta === 'liberar' ? [db().prepare('UPDATE relatos SET so_para_nucleos = NULL WHERE id = ?').bind(relatoId)] : []),
+    ...(resposta === 'liberar' ? [db().prepare('UPDATE relatos SET so_para_nucleos = NULL, publico_conhecido = ? WHERE id = ?').bind(conhecido, relatoId)] : []),
     db().prepare(`UPDATE avisos SET resolvido_em = datetime('now'), resposta = ? WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(resposta, relatoId),
   ]);
 }

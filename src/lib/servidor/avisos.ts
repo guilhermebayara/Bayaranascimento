@@ -2,8 +2,8 @@
 // aqui elas encontram o banco: quem tem login, quem já entrou e quem vê a memória.
 import { quemRecebeQuemEstava, quemRecebeRelatoNovo, type Destinatarios } from '../avisos';
 import { pessoasComAcesso } from './acesso';
-import { podeVerMemoria, publicoAmpliado, publicoDentroDe, type AcessoDaMemoria, type Publico, type Usuario } from './permissoes';
-import { criarAvisos, guardarRelatosParaOPublicoAntigo, listarIntegrantes, listarNucleos, quemJaEntrou, soltarEsperasSemSentido, type Relato } from './repositorio';
+import { podeVerMemoria, type AcessoDaMemoria, type Publico, type PublicoConhecido, type Usuario } from './permissoes';
+import { ajustarRelatosAoPublico, criarAvisos, listarIntegrantes, listarNucleos, quemJaEntrou, type Relato } from './repositorio';
 
 async function destinatarios(autor: string): Promise<Destinatarios> {
   const [comAcesso, jaEntraram] = await Promise.all([pessoasComAcesso(), quemJaEntrou()]);
@@ -47,18 +47,20 @@ export function paraQuemPassouAVer(antes: Publico, depois: Publico, nomes: { id:
 }
 
 /**
- * Quem criou a memória mudou quem vê. Ao ampliar, cada relato que já existia fica só para quem via antes,
- * e quem o registrou recebe o pedido para liberar (vale mesmo antes do primeiro acesso). Ao restringir,
+ * Quem criou a memória mudou quem vê. Ao ampliar, o relato que o público novo nunca viu fica só para quem
+ * já o viu, e quem o registrou recebe o pedido para liberar (vale mesmo antes do primeiro acesso), dizendo
+ * para quem a memória passou a ser visível do ponto de vista do relato. O relato que já teve o público
+ * novo volta a acompanhar a memória sem pedido (resposta do Gui à P3 do QA de 23/11/2026). Ao restringir,
  * nada é pedido, e as esperas que perderam o sentido se desfazem. Devolve os relatos publicados que
  * passaram a esperar.
  */
 export async function mudouQuemVe(memoriaId: string, antes: Publico, depois: Publico, quem: Usuario): Promise<Relato[]> {
-  if (!publicoAmpliado(antes, depois)) {
-    await soltarEsperasSemSentido(memoriaId, (so) => publicoDentroDe(depois, so));
-    return [];
-  }
-  const esperam = await guardarRelatosParaOPublicoAntigo(memoriaId, antes.nucleos, quem.pessoa);
-  const paraQuem = paraQuemPassouAVer(antes, depois, await listarNucleos());
-  await criarAvisos(esperam.map((r) => ({ para: r.registradoPor, tipo: 'liberar-relato', memoriaId, relatoId: r.id, de: quem.pessoa, dados: { paraQuem } })));
+  const esperam = await ajustarRelatosAoPublico(memoriaId, antes, depois, quem.pessoa);
+  if (esperam.length === 0) return [];
+  const nucleos = await listarNucleos();
+  const comoPublico = (conhecido: PublicoConhecido | null | undefined): Publico => ({ visibilidade: 'nucleos', nucleos: conhecido === 'todos' ? [] : [...(conhecido ?? [])] });
+  await criarAvisos(
+    esperam.map((r) => ({ para: r.registradoPor, tipo: 'liberar-relato' as const, memoriaId, relatoId: r.id, de: quem.pessoa, dados: { paraQuem: paraQuemPassouAVer(comoPublico(r.publicoConhecido), depois, nucleos) } })),
+  );
   return esperam.filter((r) => r.situacao === 'publicada');
 }

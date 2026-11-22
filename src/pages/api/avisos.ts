@@ -32,9 +32,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const decisao = podeLiberarRelato(usuario, relato);
   if (!decisao.ok) {
     // O relato já acompanha a memória (liberado antes, ou a memória foi restringida): o pedido só sai da lista
-    await responderPedidoDoRelato(relato.id, resposta);
+    await responderPedidoDoRelato(relato, resposta, memoria);
     return voltar(request, volta, { ok: 'Este relato já aparece para todos que veem a memória.' });
   }
-  await responderPedidoDoRelato(relato.id, resposta);
+  await responderPedidoDoRelato(relato, resposta, memoria);
   return voltar(request, volta, { ok: RECADOS[resposta] });
 };
