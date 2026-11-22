@@ -18,10 +18,14 @@ import {
   listarExcluidas,
   listarIntegrantes,
   listarVersoes,
+  descartarRascunhoDeRelato,
+  listarRascunhosDeRelatoDescartados,
   obterMemoria,
+  obterRascunhoQueFicou,
   obterRelato,
   restaurarExcluida,
   restaurarFoto,
+  restaurarRascunhoDeRelato,
   salvarRelato,
   type DadosDaMemoria,
   type Memoria,
@@ -68,6 +72,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!memoria) return voltar(request, '/', { erro: 'Memória não encontrada.' });
   const pagina = `/memorias/${memoria.id}`;
   const historico = `${pagina}/historico`;
+
+  // O rascunho que ficou para trás quando outra pessoa publicou o relato de quem não acessa o site
+  // (resposta do Gui à P4 do QA de 23/11/2026): só quem o escreveu descarta, e ele vai para a lixeira dela.
+  // Quem não tem esse rascunho recebe o mesmo que para um rascunho que não existe.
+  if (acao === 'descartar-relato') {
+    const por = campo(dados, 'por', 120);
+    const rascunho = await obterRascunhoQueFicou(memoria.id, por, usuario);
+    const relatoDele = `${pagina}/relato?por=${encodeURIComponent(por)}`;
+    if (!rascunho) return voltar(request, relatoDele, { erro: 'Rascunho não encontrado.' });
+    await descartarRascunhoDeRelato(rascunho.id);
+    return voltar(request, relatoDele, { ok: 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' });
+  }
+  if (acao === 'restaurar-rascunho-de-relato') {
+    const relatoId = Number(campo(dados, 'relato', 20));
+    const rascunho = (await listarRascunhosDeRelatoDescartados(usuario)).find((r) => r.id === relatoId && r.memoriaId === memoria.id);
+    if (!rascunho) return voltar(request, '/lixeira', { erro: 'Rascunho não encontrado na lixeira.' });
+    await restaurarRascunhoDeRelato(rascunho.id);
+    return voltar(request, `/lixeira?rascunho-de-relato=${rascunho.id}&memoria=${encodeURIComponent(memoria.id)}&por=${encodeURIComponent(rascunho.por)}`, { ok: 'Rascunho restaurado.' });
+  }
 
   if (acao === 'excluir') {
     const decisao = podeExcluirMemoria(usuario, memoria);

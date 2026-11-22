@@ -472,6 +472,28 @@
   gap: var(--e-4) var(--e-5);
   margin: 0;
 }
+/* O rascunho que ficou para trás quando outra pessoa publicou o relato (resposta do Gui à P4 do QA de
+   23/11/2026): embaixo do recado, o texto para copiar e a saída. Um bloco recuado, como papel de rascunho */
+.rascunho-que-ficou {
+  display: grid;
+  gap: var(--e-3);
+  justify-items: start;
+  margin-top: var(--e-5);
+  padding: var(--e-4) var(--e-5);
+  background: var(--chao-1);
+  border-radius: var(--raio-moldura);
+}
+.rascunho-que-ficou > * {
+  margin: 0;
+}
+.rascunho-que-ficou__texto {
+  display: grid;
+  gap: var(--e-2);
+  user-select: text;
+}
+.rascunho-que-ficou__texto p {
+  margin: 0;
+}
 @media (min-width: 62rem) {
   .relato-conversa {
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);

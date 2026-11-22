@@ -1437,7 +1437,7 @@ function lerRelato(r: Record<string, unknown>): Relato {
 export async function listarRelatos(usuario: Usuario, memoriaId: string): Promise<Relato[]> {
   const [{ results }, naoVe] = await Promise.all([
     db()
-      .prepare(`SELECT * FROM relatos WHERE memoria_id = ?2 AND (situacao = 'publicada' OR registrado_por = ?1) ORDER BY criado_em, id`)
+      .prepare(`SELECT * FROM relatos WHERE memoria_id = ?2 AND (situacao = 'publicada' OR (registrado_por = ?1 AND descartado_em IS NULL)) ORDER BY criado_em, id`)
       .bind(usuario.pessoa, memoriaId)
       .all<Record<string, unknown>>(),
     pessoasQueONaoVe(usuario),
@@ -1452,7 +1452,7 @@ export async function listarRelatos(usuario: Usuario, memoriaId: string): Promis
 export async function obterRelato(memoriaId: string, por: string, usuario: Usuario): Promise<Relato | undefined> {
   const linha = await db()
     .prepare(
-      `SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND (situacao = 'publicada' OR registrado_por = ?)
+      `SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND (situacao = 'publicada' OR (registrado_por = ? AND descartado_em IS NULL))
        ORDER BY situacao = 'publicada' DESC LIMIT 1`,
     )
     .bind(memoriaId, por, usuario.pessoa)
@@ -1467,7 +1467,7 @@ export async function listarRelatosRegistradosPor(usuario: Usuario): Promise<(Re
   const { results } = await db()
     .prepare(
       `SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id
-       WHERE r.registrado_por = ?1 AND ${FILTRO_VISIVEL} ORDER BY r.atualizado_em DESC`,
+       WHERE r.registrado_por = ?1 AND r.descartado_em IS NULL AND ${FILTRO_VISIVEL} ORDER BY r.atualizado_em DESC`,
     )
     .bind(usuario.pessoa)
     .all<Record<string, unknown>>();
@@ -1478,11 +1478,49 @@ export async function listarRascunhosDeRelato(usuario: Usuario): Promise<(Relato
   const { results } = await db()
     .prepare(
       `SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id
-       WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL} ORDER BY r.atualizado_em DESC`,
+       WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND r.descartado_em IS NULL AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL} ORDER BY r.atualizado_em DESC`,
     )
     .bind(usuario.pessoa)
     .all<Record<string, unknown>>();
   return results.map((r) => ({ ...lerRelato(r), titulo: r.titulo as string }));
+}
+
+/**
+ * O rascunho que a pessoa escreveu em nome de "por" e que ficou para trás porque outra pessoa publicou o
+ * relato dele (resposta do Gui à P4 do QA de 23/11/2026). Só quem escreveu o rascunho o recebe.
+ */
+export async function obterRascunhoQueFicou(memoriaId: string, por: string, usuario: Usuario): Promise<Relato | undefined> {
+  const linha = await db()
+    .prepare(
+      `SELECT * FROM relatos r WHERE r.memoria_id = ?1 AND r.por = ?2 AND r.registrado_por = ?3 AND r.situacao = 'rascunho' AND r.descartado_em IS NULL
+       AND EXISTS (SELECT 1 FROM relatos p WHERE p.memoria_id = r.memoria_id AND p.por = r.por AND p.situacao = 'publicada' AND p.registrado_por <> r.registrado_por)`,
+    )
+    .bind(memoriaId, por, usuario.pessoa)
+    .first<Record<string, unknown>>();
+  return linha ? lerRelato(linha) : undefined;
+}
+
+/** Descartar o rascunho que ficou para trás: vai para a lixeira de quem o escreveu, e nada é apagado. */
+export async function descartarRascunhoDeRelato(relatoId: number): Promise<void> {
+  await db().prepare(`UPDATE relatos SET descartado_em = datetime('now') WHERE id = ? AND situacao = 'rascunho'`).bind(relatoId).run();
+}
+
+/** Os rascunhos de relato que a pessoa descartou, em memórias que ela vê: a lixeira dela. */
+export async function listarRascunhosDeRelatoDescartados(usuario: Usuario): Promise<(Relato & { titulo: string; descartadoEm: string })[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id
+       WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND r.descartado_em IS NOT NULL AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       ORDER BY r.descartado_em DESC`,
+    )
+    .bind(usuario.pessoa)
+    .all<Record<string, unknown>>();
+  return results.map((r) => ({ ...lerRelato(r), titulo: r.titulo as string, descartadoEm: r.descartado_em as string }));
+}
+
+/** Restaurar o rascunho descartado: volta a ser de quem o escreveu, como estava. */
+export async function restaurarRascunhoDeRelato(relatoId: number): Promise<void> {
+  await db().prepare('UPDATE relatos SET descartado_em = NULL WHERE id = ?').bind(relatoId).run();
 }
 
 export async function salvarRelato(
@@ -1519,7 +1557,7 @@ export async function salvarRelato(
 /** O relato que esta pessoa registrou em nome de "por" nesta memória: é nele que entram os áudios dela. */
 export async function obterRelatoRegistradoPor(memoriaId: string, por: string, usuario: Usuario): Promise<Relato | undefined> {
   const linha = await db()
-    .prepare('SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND registrado_por = ? LIMIT 1')
+    .prepare('SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND registrado_por = ? AND descartado_em IS NULL LIMIT 1')
     .bind(memoriaId, por, usuario.pessoa)
     .first<Record<string, unknown>>();
   return linha ? lerRelato(linha) : undefined;

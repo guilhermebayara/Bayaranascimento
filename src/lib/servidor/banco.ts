@@ -6,7 +6,7 @@
 // lista: nunca edite uma migração que já foi publicada.
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearRascunhoQueFicouDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 import { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
 import { darMensagensAosRelatosDeAntes } from './mensagens-de-antes';
@@ -959,6 +959,14 @@ export const MIGRACOES: Migracao[] = [
     id: '105-publico-conhecido-do-relato',
     sql: [`ALTER TABLE relatos ADD COLUMN publico_conhecido TEXT`],
   },
+  {
+    // O rascunho que ficou para trás quando outra pessoa publicou o relato de quem não acessa o site
+    // (resposta do Gui à P4 do QA de 23/11/2026): quem escreveu vê o texto, para copiar, e pode descartá-lo.
+    // Descartado, ele vai para a lixeira de quem escreveu, como os rascunhos de memória: some das listas e
+    // volta por "Restaurar". Nada é apagado.
+    id: '106-rascunho-de-relato-descartado',
+    sql: [`ALTER TABLE relatos ADD COLUMN descartado_em TEXT`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
@@ -1020,6 +1028,7 @@ async function migrar(db: D1Database): Promise<void> {
     // Avisos de exemplo, para o "Ver como" mostrar a lista, o número no retrato e a conta
     await semearAvisosDeExemplo(db);
     await semearPedidoDeExemplo(db);
+    await semearRascunhoQueFicouDeExemplo(db);
     await limparBucketDeTeste(db);
   }
 

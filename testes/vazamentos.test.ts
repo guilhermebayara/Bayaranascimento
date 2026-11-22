@@ -41,7 +41,8 @@ describe('vazamentos já corrigidos', () => {
     // Achado do QA de 15/11/2026 e decisão do Gui (16/11): cada um tem o seu rascunho, e só um é publicado
     const repositorio = doServidor('repositorio.ts');
     expect(repositorio).toMatch(/export async function obterRelato\(memoriaId: string, por: string, usuario: Usuario\)/);
-    expect(repositorio).toContain("AND (situacao = 'publicada' OR registrado_por = ?)");
+    // O rascunho descartado (resposta do Gui à P4 do QA de 23/11/2026) também não volta
+    expect(repositorio).toContain("AND (situacao = 'publicada' OR (registrado_por = ? AND descartado_em IS NULL))");
     const banco = doServidor('banco.ts');
     expect(banco).toContain('UNIQUE (memoria_id, por, registrado_por)');
     expect(banco).toContain("CREATE UNIQUE INDEX IF NOT EXISTS relatos_um_publicado ON relatos (memoria_id, por) WHERE situacao = 'publicada'");

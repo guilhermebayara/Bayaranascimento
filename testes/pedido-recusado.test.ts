@@ -2,6 +2,9 @@
 // confere tudo antes de escrever no banco: a pessoa nova de "Quem estava", o tema novo e a memória com um
 // relato que não pode ser escrito só são gravados quando o pedido inteiro passa. Testado com as rotas de
 // verdade sobre o banco SQLite em memória (testes/apoio/d1.ts).
+//
+// Regra do CLAUDE.md ("Conferências"): toda rota que grava ganha um caso aqui quando alguém mexer nela, com
+// a impressão do banco inteiro (todas as tabelas) antes e depois do pedido recusado, que precisa sair igual.
 import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 
@@ -18,6 +21,8 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
   const { prepararBanco } = await import('../src/lib/servidor/banco');
   await prepararBanco();
   const memorias = await import('../src/pages/api/memorias');
+  const avisos = await import('../src/pages/api/avisos');
+  const lixeira = await import('../src/pages/api/lixeira');
   type Usuario = import('../src/lib/servidor/permissoes').Usuario;
 
   const linha = <T>(texto: string, ...valores: (string | number | null)[]) => banco.sqlite.prepare(texto).get(...valores) as T;
@@ -39,6 +44,20 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
   const pessoasChamadas = (nome: string) => conta('SELECT COUNT(*) AS n FROM integrantes WHERE nome = ?', nome);
   const temasChamados = (nome: string) => conta('SELECT COUNT(*) AS n FROM temas WHERE nome = ?', nome);
   const memoriasChamadas = (titulo: string) => conta('SELECT COUNT(*) AS n FROM memorias WHERE titulo = ?', titulo);
+
+  /** A impressão do banco inteiro: todas as linhas de todas as tabelas, em ordem */
+  const impressao = () => {
+    const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
+    return JSON.stringify(tabelas.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
+  };
+  /** Um formulário comum para uma rota, como o navegador manda */
+  const formulario = async (rota: { POST: (contexto: never) => Promise<Response> | Response }, caminho: string, quem: Usuario, campos: Record<string, string>) => {
+    const dados = new FormData();
+    for (const [k, v] of Object.entries(campos)) dados.set(k, v);
+    const request = new Request(`http://localhost${caminho}`, { method: 'POST', headers: { Origin: 'http://localhost' }, body: dados });
+    const resposta = await rota.POST({ request, locals: { usuario: quem, tipos } } as never);
+    return { status: resposta.status, erro: new URL(resposta.headers.get('Location') ?? '/', 'http://localhost').searchParams.get('erro') };
+  };
 
   it('marcar alguém que não existe recusa sem cadastrar a pessoa nova nem o tema', async () => {
     const r = await salvar(elizete, { titulo: 'Recusada 1', ano: 2020, tipo, pessoas: ['nova:0', 'ninguem-com-este-id'], novasPessoas: [{ nome: 'Pessoa Recusada Um' }], temas: 'Tema Recusado Um' });
@@ -70,5 +89,40 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     const id = r.corpo.id as string;
     expect(conta('SELECT COUNT(*) AS n FROM memoria_integrantes WHERE memoria_id = ?', id)).toBe(1);
     expect(conta('SELECT COUNT(*) AS n FROM relatos WHERE memoria_id = ? AND por = ?', id, 'elizete')).toBe(1);
+  });
+
+  // Uma memória do Gui com um relato da Elizete que espera o sim dela (ampliar quem vê), e o rascunho que o
+  // Gui escreveu pelo Aguilar depois de a Elizete publicar o relato dele
+  const gui = usuarioDe('gui');
+  const giovanna = usuarioDe('giovanna');
+  banco.sqlite.prepare(`INSERT INTO memorias (id, titulo, ano, tipo, visibilidade, situacao, criada_por) VALUES ('recusas', 'Pedidos recusados', 1991, ?, 'todos', 'publicada', 'gui')`).run(tipo);
+  banco.sqlite.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, so_para_nucleos) VALUES ('recusas', 'elizete', 'elizete', 'Da Elizete, esperando.', 'publicada', '["bayara-nascimento"]')`).run();
+  const daElizete = linha<{ id: number }>(`SELECT id FROM relatos WHERE memoria_id = 'recusas' AND por = 'elizete'`).id;
+  banco.sqlite.prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de) VALUES ('elizete', 'liberar-relato', 'recusas', ?, 'gui')`).run(daElizete);
+  const pedido = linha<{ id: number }>(`SELECT id FROM avisos WHERE relato_id = ? AND tipo = 'liberar-relato'`, daElizete).id;
+  banco.sqlite.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES ('recusas', 'aguilar', 'elizete', 'O Aguilar, pela Elizete.', 'publicada')`).run();
+  banco.sqlite.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES ('recusas', 'aguilar', 'gui', 'O Aguilar, pelo Gui.', 'rascunho')`).run();
+  const doGui = linha<{ id: number }>(`SELECT id FROM relatos WHERE memoria_id = 'recusas' AND registrado_por = 'gui'`).id;
+
+  it('/api/avisos: liberar o relato de outra pessoa é recusado sem mudar nada', async () => {
+    const antes = impressao();
+    expect((await formulario(avisos, '/api/avisos', gui, { relato: String(daElizete), resposta: 'liberar' })).status).toBe(404);
+    expect((await formulario(avisos, '/api/avisos', gui, { aviso: String(pedido), resposta: 'liberar' })).status).toBe(404);
+    expect((await formulario(avisos, '/api/avisos', elizete, { relato: String(daElizete), resposta: 'talvez' })).status).toBe(400);
+    expect(impressao()).toBe(antes);
+  });
+
+  it('/api/lixeira: descartar ou restaurar o rascunho de outra pessoa é recusado sem mudar nada', async () => {
+    const antes = impressao();
+    expect((await formulario(lixeira, '/api/lixeira', giovanna, { acao: 'descartar-relato', memoria: 'recusas', por: 'aguilar' })).erro).toBe('Rascunho não encontrado.');
+    expect((await formulario(lixeira, '/api/lixeira', elizete, { acao: 'descartar-relato', memoria: 'recusas', por: 'aguilar' })).erro).toBe('Rascunho não encontrado.');
+    expect((await formulario(lixeira, '/api/lixeira', gui, { acao: 'restaurar-rascunho-de-relato', memoria: 'recusas', relato: String(doGui) })).erro).toBe('Rascunho não encontrado na lixeira.');
+    expect(impressao()).toBe(antes);
+    // Descartado pelo Gui, só ele restaura
+    await formulario(lixeira, '/api/lixeira', gui, { acao: 'descartar-relato', memoria: 'recusas', por: 'aguilar' });
+    const descartado = impressao();
+    expect(descartado).not.toBe(antes);
+    expect((await formulario(lixeira, '/api/lixeira', elizete, { acao: 'restaurar-rascunho-de-relato', memoria: 'recusas', relato: String(doGui) })).erro).toBe('Rascunho não encontrado na lixeira.');
+    expect(impressao()).toBe(descartado);
   });
 });

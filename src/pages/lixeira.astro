@@ -4,7 +4,16 @@ import Vazio from '../components/visual/Vazio.astro';
 import ConfirmarRemocao from '../components/ConfirmarRemocao.astro';
 import { formatarData, formatarMomento } from '../lib/datas';
 import { podeExcluirMemoria } from '../lib/servidor/permissoes';
-import { listarCapitulos, listarCapitulosExcluidos, listarExcluidas, listarIntegrantes, listarPessoasExcluidas, obterMemoria } from '../lib/servidor/repositorio';
+import {
+  listarCapitulos,
+  listarCapitulosExcluidos,
+  listarExcluidas,
+  listarIntegrantes,
+  listarPessoasExcluidas,
+  listarRascunhosDeRelatoDescartados,
+  obterMemoria,
+  obterRelatoRegistradoPor,
+} from '../lib/servidor/repositorio';
 
 // Cada pessoa vê na lixeira só o que poderia recuperar: admins, as memórias que
 // enxergavam; os demais, os próprios rascunhos descartados.
@@ -13,6 +22,8 @@ const excluidas = (await listarExcluidas(usuario)).filter((m) => podeExcluirMemo
 const capitulos = usuario.admin ? await listarCapitulosExcluidos(usuario) : [];
 // Excluir pessoa (decisão do Gui depois da sessão I): as pessoas na lixeira, só para os administradores
 const pessoas = usuario.admin ? await listarPessoasExcluidas() : [];
+// O rascunho de relato que ficou para trás e foi descartado (resposta do Gui à P4 do QA de 23/11/2026): só de quem o escreveu
+const relatos = await listarRascunhosDeRelatoDescartados(usuario);
 const integrantes = await listarIntegrantes();
 const nome = (id: string | null) => {
   const i = integrantes.find((x) => x.id === id);
@@ -24,6 +35,14 @@ const restaurada = Astro.url.searchParams.get('restaurada');
 const memoriaDeVolta = restaurada ? await obterMemoria(usuario, restaurada) : undefined;
 const restaurado = Astro.url.searchParams.get('restaurado');
 const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) => c.id === restaurado) : undefined;
+const relatoRestaurado = Number(Astro.url.searchParams.get('rascunho-de-relato')) || 0;
+// Já fora da lixeira: confere de novo que o rascunho é de quem olha, numa memória que ela vê
+const memoriaDoRelato = Astro.url.searchParams.get('memoria') ?? '';
+const porDoRelato = Astro.url.searchParams.get('por') ?? '';
+const relatoDeVolta =
+  relatoRestaurado && porDoRelato && (await obterMemoria(usuario, memoriaDoRelato))
+    ? await obterRelatoRegistradoPor(memoriaDoRelato, porDoRelato, usuario).then((r) => (r?.id === relatoRestaurado ? r : undefined))
+    : undefined;
 // Aprovado pelo Gui em 17/11/2026 (pergunta 8 do PR do grupo "formularios"): a linha pequena acima do título e os textos novos da abertura
 ---
 
@@ -47,6 +66,13 @@ const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) =
     )
   }
   {
+    relatoDeVolta && (
+      <p class="acoes">
+        <a class="acao" href={`/memorias/${relatoDeVolta.memoriaId}/relato?por=${relatoDeVolta.por}`}>Ver o rascunho</a>
+      </p>
+    )
+  }
+  {
     capituloDeVolta && (
       <p class="acoes">
         <a class="acao" href={`/capitulos/${capituloDeVolta.id}`}>Ver o capítulo</a>
@@ -54,7 +80,7 @@ const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) =
     )
   }
   {
-    excluidas.length + capitulos.length + pessoas.length === 0 ? (
+    excluidas.length + capitulos.length + pessoas.length + relatos.length === 0 ? (
       <Vazio frase="A lixeira está vazia." />
     ) : (
       <ul class="linhas linhas--com-acao">
@@ -88,6 +114,23 @@ const capituloDeVolta = restaurado ? (await listarCapitulos(usuario)).find((c) =
                   />
                 </form>
               )}
+            </div>
+          </li>
+        ))}
+        {relatos.map((r) => (
+          <li>
+            <div>
+              <strong>{r.por === usuario.pessoa ? 'Seu relato' : `Relato de ${nome(r.por)}`}</strong>
+              <span>em “{r.titulo}”, rascunho</span>
+            </div>
+            <p class="dica">Descartado por você em {formatarMomento(r.descartadoEm)}.</p>
+            <div class="lixeira__acoes">
+              <form method="post" action="/api/lixeira" class="em-linha">
+                <input type="hidden" name="acao" value="restaurar-rascunho-de-relato" />
+                <input type="hidden" name="memoria" value={r.memoriaId} />
+                <input type="hidden" name="relato" value={r.id} />
+                <button class="botao botao--leve" type="submit">Restaurar</button>
+              </form>
             </div>
           </li>
         ))}
