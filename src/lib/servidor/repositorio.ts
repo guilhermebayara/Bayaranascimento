@@ -19,6 +19,7 @@ import {
   publicoConhecidoAntes,
   publicoConhecidoAoLiberar,
   relatoDepoisDaMudanca,
+  jaRecusouEstePublico,
   veORelato,
   type AcessoDaMemoria,
   type Publico,
@@ -1643,46 +1644,63 @@ export async function listarRascunhosDeRelatoDescartados(usuario: Usuario): Prom
 export async function restaurarRascunhoDeRelato(relato: Relato, memoria: Publico & { criadaPor: string; versao: number }, paraQuem: (conhecido: PublicoConhecido) => string): Promise<void> {
   // Sem público antigo além do que ele guardou: a conta parte do público conhecido dele
   const novo = relatoDepoisDaMudanca(relato, { visibilidade: 'nucleos', nucleos: [] }, memoria, memoria.criadaPor);
+  const jaRecusou = jaRecusouEstePublico(memoria, (await ultimasRespostas([relato.id])).get(relato.id));
   await loteDaMemoria([
     conferirVersao(relato.memoriaId, memoria.versao),
     db()
       .prepare('UPDATE relatos SET descartado_em = NULL, so_para_nucleos = ?, publico_conhecido = ? WHERE id = ?')
       .bind(novo.soParaNucleos ? JSON.stringify(novo.soParaNucleos) : null, gravarPublicoConhecido(novo.publicoConhecido), relato.id),
-    ...comandosDosPedidos(relato, novo, { memoriaId: relato.memoriaId, de: memoria.criadaPor, paraQuem: paraQuem(novo.publicoConhecido) }),
+    ...comandosDosPedidos(relato, novo, { memoriaId: relato.memoriaId, de: memoria.criadaPor, paraQuem: paraQuem(novo.publicoConhecido), jaRecusou }),
   ]);
 }
 
 /**
- * Os pedidos para liberar que acompanham a nova situação de um relato: o que passou a esperar ganha o
- * pedido; o que deixou de esperar tem o pedido aberto tirado da lista, sem resposta; o que continua
- * esperando tem o pedido aberto reescrito com o público de agora, porque "Liberar para quem passou a ver"
- * libera para quem vê a memória agora (revisão Y do PR #160). O histórico guarda uma linha por ciclo de
- * ampliar (decisão do Gui, 22/11/2026): o pedido aberto é o mesmo até a resposta ou até a espera acabar.
+ * Os pedidos para liberar que acompanham a nova situação de um relato: o que espera tem um pedido na lista,
+ * com o público de agora, porque "Liberar para quem passou a ver" libera para quem vê a memória agora
+ * (revisão Y do PR #160); o que deixou de esperar tem o pedido aberto tirado da lista, sem resposta. O
+ * histórico guarda uma linha por ciclo de ampliar (decisão do Gui, 22/11/2026): o pedido aberto é o mesmo
+ * até a resposta ou até a espera acabar, e o índice da migração 108 garante um só. Depois de "Manter como
+ * estava", o relato que espera só ganha pedido novo quando o público é maior do que o perguntado
+ * (`jaRecusou`, ver jaRecusouEstePublico, decisão do Gui de 22/11/2026).
  */
 function comandosDosPedidos(
   relato: Relato,
   novo: { soParaNucleos: string[] | null },
-  pedido: { memoriaId: string; de: string; paraQuem: string },
+  pedido: { memoriaId: string; de: string; paraQuem: string; jaRecusou: boolean },
 ) {
-  if (novo.soParaNucleos && relato.soParaNucleos) {
+  if (novo.soParaNucleos) {
     return [
       db()
         .prepare(`UPDATE avisos SET dados = json_set(COALESCE(dados, '{}'), '$.paraQuem', ?) WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`)
         .bind(pedido.paraQuem, relato.id),
+      ...(pedido.jaRecusou
+        ? []
+        : [
+            db()
+              // Um pedido aberto por relato, garantido pelo índice da migração 108: se já houver um, fica ele
+              .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, 'liberar-relato', ?, ?, ?, ?) ON CONFLICT DO NOTHING`)
+              .bind(relato.registradoPor, pedido.memoriaId, relato.id, pedido.de, JSON.stringify({ paraQuem: pedido.paraQuem })),
+          ]),
     ];
   }
-  if (novo.soParaNucleos && !relato.soParaNucleos) {
-    return [
-      db()
-        // Um pedido aberto por relato, garantido pelo índice da migração 108: se já houver um, fica ele
-        .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, 'liberar-relato', ?, ?, ?, ?) ON CONFLICT DO NOTHING`)
-        .bind(relato.registradoPor, pedido.memoriaId, relato.id, pedido.de, JSON.stringify({ paraQuem: pedido.paraQuem })),
-    ];
-  }
-  if (relato.soParaNucleos && !novo.soParaNucleos) {
+  if (relato.soParaNucleos) {
     return [db().prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(relato.id)];
   }
   return [];
+}
+
+/** A última resposta ao pedido de cada relato, com o público que o pedido mostrava (ver jaRecusouEstePublico). */
+async function ultimasRespostas(relatoIds: number[]): Promise<Map<number, { resposta: string; publico: Publico | null }>> {
+  if (relatoIds.length === 0) return new Map();
+  const { results } = await db()
+    .prepare(
+      `SELECT relato_id, resposta, json_extract(dados, '$.publico') AS publico FROM avisos
+       WHERE tipo = 'liberar-relato' AND resposta IS NOT NULL AND relato_id IN (SELECT value FROM json_each(?)) ORDER BY id`,
+    )
+    .bind(JSON.stringify(relatoIds))
+    .all<{ relato_id: number; resposta: string; publico: string | null }>();
+  // Em ordem, a última de cada relato fica por cima
+  return new Map(results.map((r) => [Number(r.relato_id), { resposta: r.resposta, publico: r.publico ? (JSON.parse(r.publico) as Publico) : null }]));
 }
 
 export async function salvarRelato(
@@ -2108,6 +2126,7 @@ export async function comandosDaMudancaDeQuemVe(
   const { results } = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ? AND descartado_em IS NULL').bind(memoriaId).all<Record<string, unknown>>();
   const relatos = results.map(lerRelato);
   if (relatos.length === 0) return { comandos: [], passaram: [] };
+  const respostas = await ultimasRespostas(relatos.map((r) => r.id));
   const passaram: Relato[] = [];
   const comandos = relatos.flatMap((r) => {
     const novo = relatoDepoisDaMudanca(r, antes, depois, pedido.quemNaoEspera);
@@ -2116,7 +2135,7 @@ export async function comandosDaMudancaDeQuemVe(
       db()
         .prepare('UPDATE relatos SET so_para_nucleos = ?, publico_conhecido = ? WHERE id = ?')
         .bind(novo.soParaNucleos ? JSON.stringify(novo.soParaNucleos) : null, gravarPublicoConhecido(novo.publicoConhecido), r.id),
-      ...comandosDosPedidos(r, novo, { memoriaId, de: pedido.de, paraQuem: pedido.paraQuem(novo.publicoConhecido) }),
+      ...comandosDosPedidos(r, novo, { memoriaId, de: pedido.de, paraQuem: pedido.paraQuem(novo.publicoConhecido), jaRecusou: jaRecusouEstePublico(depois, respostas.get(r.id)) }),
     ];
   });
   return { comandos, passaram };
@@ -2146,7 +2165,13 @@ export async function responderPedidoDoRelato(relato: Relato, resposta: 'liberar
     // A resposta conta com o público que leu: se a memória mudou no meio tempo, o lote volta
     conferirVersao(relato.memoriaId, memoria.versao),
     ...(resposta === 'liberar' ? [db().prepare('UPDATE relatos SET so_para_nucleos = NULL, publico_conhecido = ? WHERE id = ?').bind(conhecido, relatoId)] : []),
-    db().prepare(`UPDATE avisos SET resolvido_em = datetime('now'), resposta = ? WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(resposta, relatoId),
+    // A resposta guarda o público que o pedido mostrava: "Manter" vale para ele (jaRecusouEstePublico)
+    db()
+      .prepare(
+        `UPDATE avisos SET resolvido_em = datetime('now'), resposta = ?, dados = json_set(COALESCE(dados, '{}'), '$.publico', json(?))
+         WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`,
+      )
+      .bind(resposta, JSON.stringify({ visibilidade: memoria.visibilidade, nucleos: [...memoria.nucleos].sort() }), relatoId),
   ]);
 }
 

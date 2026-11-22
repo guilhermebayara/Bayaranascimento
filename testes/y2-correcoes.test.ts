@@ -340,4 +340,43 @@ describe.skipIf(!comSqlite)('W3: o que sobrou da revisão Y2', async () => {
       expect(paraQuemPassouAVer(comoPublicoAntigo([BN]), { visibilidade: 'nucleos', nucleos: [BN, BB] }, nomes)).toBe('a família Bayara Bracarense');
     });
   });
+  describe('5: "Manter como estava" vale para o público que foi perguntado', () => {
+    it('depois de manter para a Bayara Bracarense, abrir a memória para todos pede de novo', async () => {
+      const base = { titulo: 'Manter e ampliar mais', ano: 2023, tipo: 'causo', pessoas: ['giovanna'], visibilidade: 'nucleos', nucleos: [BN] };
+      const id = (await pedir('memorias', giovanna, base)).corpo.id as string;
+      await pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Da Elizete, mantido.' });
+      await pedir('memorias', giovanna, { ...base, id, nucleos: [BN, BB] });
+      expect((await pedir('avisos', elizete, { relato: relatoDe(id, 'elizete').id, resposta: 'manter' }, true)).ok).toContain('continua só para quem via antes');
+      expect(pedidosAbertos(id)).toEqual([]);
+      // Um público maior é outra pergunta
+      expect((await pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' })).status).toBe(200);
+      expect(pedidosAbertos(id)).toEqual(['elizete']);
+      const pedido = (await repo.listarAvisos(elizete)).find((a) => a.memoriaId === id && a.tipo === 'liberar-relato');
+      expect(pedido?.dados.paraQuem).toBe('toda a família');
+      expect(await textosQueVe(lucio, id)).toEqual([]);
+    });
+
+    it('depois de manter, restringir e abrir de novo para o mesmo público não pede', async () => {
+      const { id, base } = await memoriaQueEspera('Manter e reabrir');
+      await pedir('avisos', elizete, { relato: relatoDe(id, 'elizete').id, resposta: 'manter' }, true);
+      // Restringir: o relato volta a acompanhar a memória
+      await pedir('memorias', giovanna, { ...base, id });
+      expect(relatoDe(id, 'elizete').so).toBeNull();
+      // Reabrir para todos, o público já recusado: o relato espera, sem pedido
+      expect((await pedir('memorias', giovanna, { ...base, id, visibilidade: 'todos' })).corpo.esperam).toEqual(['elizete']);
+      expect(relatoDe(id, 'elizete').so).toBe(JSON.stringify([BN]));
+      expect(pedidosAbertos(id)).toEqual([]);
+      expect(await textosQueVe(lucio, id)).toEqual([]);
+      // A linha do relato continua deixando liberar
+      expect((await pedir('avisos', elizete, { relato: relatoDe(id, 'elizete').id, resposta: 'liberar' }, true)).ok).toBe('Relato liberado para quem passou a ver a memória.');
+      expect(await textosQueVe(lucio, id)).toEqual(['Da Elizete, em Manter e reabrir.']);
+    });
+
+    it('a resposta guarda o público que o pedido mostrava', async () => {
+      const { id } = await memoriaQueEspera('Resposta com público');
+      await pedir('avisos', elizete, { relato: relatoDe(id, 'elizete').id, resposta: 'manter' }, true);
+      const guardado = linhas<{ d: string }>(`SELECT dados AS d FROM avisos WHERE tipo = 'liberar-relato' AND memoria_id = ? AND resposta = 'manter'`, id)[0].d;
+      expect(JSON.parse(guardado).publico).toEqual({ visibilidade: 'todos', nucleos: [BN] });
+    });
+  });
 });

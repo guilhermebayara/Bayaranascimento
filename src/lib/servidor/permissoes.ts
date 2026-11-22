@@ -420,6 +420,17 @@ export function relatoDepoisDaMudanca(
   return { soParaNucleos: [...(conhecido as readonly string[])], publicoConhecido: conhecido };
 }
 
+/**
+ * "Manter como estava" vale para o público que foi perguntado (decisão do Gui, 22/11/2026): ampliar de
+ * novo para esse mesmo público, ou para parte dele, não pede de novo; um público maior é outra pergunta.
+ * `ultima` é a última resposta de quem registrou o relato, com o público que o pedido mostrava. Sem o
+ * público (respostas de antes de a resposta guardá-lo), pede de novo, que não revela nada a ninguém.
+ */
+export function jaRecusouEstePublico(depois: Publico, ultima: { resposta: string; publico?: Publico | null } | undefined): boolean {
+  if (ultima?.resposta !== 'manter' || !ultima.publico) return false;
+  return cabeNoConhecido(depois, comoConhecido(ultima.publico));
+}
+
 /** Liberar o relato: quem vê a memória agora passa a ter visto o relato. */
 export function publicoConhecidoAoLiberar(
   relato: { soParaNucleos?: readonly string[] | null; publicoConhecido?: PublicoConhecido | null },
