@@ -107,6 +107,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   return tratar(bruto, locals);
 };
 
+const mesmasFamilias = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((n) => b.includes(n));
+
 /** O formulário comum, no formato do pedido em JSON. Fotos só se enviam com JavaScript: as que já estão ficam. */
 function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unknown {
   const texto = (nome: string) => String(dados.get(nome) ?? '').trim();
@@ -307,12 +309,17 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     id = anterior.id;
     const publicoAntes = { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos };
     const publicoDepois = { visibilidade: dados.visibilidade, nucleos };
+    // Só quem criou grava o público, e só quando ele mudou de fato. Numa memória aberta a todos, marcar ou
+    // tirar famílias grava só as marcas, se ela ainda estiver aberta na hora do lote. Quem não criou nunca
+    // regrava o público que leu: se quem criou o mudou no meio tempo, vale o de quem criou (revisão Y2 do PR #160)
+    const mudou = anterior.criadaPor === usuario.pessoa && publicoMudou(publicoAntes, publicoDepois);
+    const marcas = !mudou && anterior.visibilidade === 'todos' && dados.visibilidade === 'todos' && !mesmasFamilias(anterior.nucleos, nucleos);
     const mudanca =
-      anterior.situacao === 'publicada' && publicoMudou(publicoAntes, publicoDepois)
+      mudou && anterior.situacao === 'publicada'
         ? await mudancaDeQuemVe(id, publicoAntes, publicoDepois, usuario, anterior.criadaPor)
         : { comandos: [], esperam: [] };
     esperam = mudanca.esperam;
-    await atualizarMemoria(anterior, dados, usuario, removidas.map((f) => f.id), mudanca.comandos);
+    await atualizarMemoria(anterior, dados, usuario, removidas.map((f) => f.id), { junto: mudanca.comandos, quemVe: mudou ? 'mudou' : marcas ? 'marcas' : 'nao' });
   } else {
     // Um código no endereço, e não o título: ver codigoNovo
     id = codigoNovo(await idsDeMemorias());

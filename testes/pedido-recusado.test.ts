@@ -23,6 +23,8 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
   const memorias = await import('../src/pages/api/memorias');
   const avisos = await import('../src/pages/api/avisos');
   const lixeira = await import('../src/pages/api/lixeira');
+  const reacoes = await import('../src/pages/api/reacoes');
+  const sugestoes = await import('../src/pages/api/sugestoes');
   type Usuario = import('../src/lib/servidor/permissoes').Usuario;
 
   const linha = <T>(texto: string, ...valores: (string | number | null)[]) => banco.sqlite.prepare(texto).get(...valores) as T;
@@ -132,5 +134,15 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(descartado).not.toBe(antes);
     expect((await formulario(lixeira, '/api/lixeira', elizete, { acao: 'restaurar-rascunho-de-relato', memoria: 'recusas', relato: String(doGui) })).erro).toBe('Rascunho não encontrado na lixeira.');
     expect(impressao()).toBe(descartado);
+  });
+
+  it('/api/reacoes e /api/sugestoes: entrar sem ter dito "eu estava lá" e aceitar a sugestão de outra pessoa são recusados sem mudar nada', async () => {
+    const lucio = usuarioDe('lucio');
+    await formulario(sugestoes, '/api/sugestoes', giovanna, { memoria: 'recusas', acao: 'sugerir-dados', lugar: 'Caeté' });
+    const sugestao = linha<{ id: number }>(`SELECT id FROM sugestoes WHERE memoria_id = 'recusas'`).id;
+    const antes = impressao();
+    expect((await formulario(reacoes, '/api/reacoes', lucio, { memoria: 'recusas', acao: 'entrar' })).erro).toBe('Não foi possível entrar em Quem estava.');
+    expect((await formulario(sugestoes, '/api/sugestoes', lucio, { memoria: 'recusas', acao: 'aceitar', sugestao: String(sugestao) })).erro).not.toBeNull();
+    expect(impressao()).toBe(antes);
   });
 });

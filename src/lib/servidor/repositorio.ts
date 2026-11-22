@@ -833,13 +833,31 @@ export interface DadosDaMemoria {
   fotos: { id: number; legenda?: string; principal: boolean }[];
 }
 
-function comandosDeLigacao(id: string, dados: DadosDaMemoria): D1PreparedStatement[] {
-  const comandos = [
-    db().prepare('DELETE FROM memoria_nucleos WHERE memoria_id = ?').bind(id),
-    db().prepare('DELETE FROM memoria_integrantes WHERE memoria_id = ?').bind(id),
-  ];
-  for (const n of dados.nucleos) {
-    comandos.push(db().prepare('INSERT OR IGNORE INTO memoria_nucleos (memoria_id, nucleo_id) VALUES (?, ?)').bind(id, n));
+/**
+ * O que um lote faz com quem vê a memória (a visibilidade e as famílias). Só quem criou muda quem vê
+ * (podeMudarQuemVe), e só a rota da memória, quando o público mudou de fato: "mudou". Numa memória aberta
+ * a todos, quem pode corrigir marca ou tira famílias, que não restringem nada: "marcas", gravadas só se a
+ * memória ainda estiver aberta a todos na hora do lote. Fora isso, o lote não toca no público: quem não
+ * criou, ou quem salva por outro caminho (reações, sugestões, restaurar uma versão), grava a ficha e deixa
+ * o público como está no banco, mesmo que ele tenha mudado depois da leitura (revisão Y2 do PR #160).
+ */
+export type GravarQuemVe = 'mudou' | 'marcas' | 'nao';
+
+/** A memória ainda está aberta a todos na hora do lote: só então as marcas de família são gravadas. */
+const AINDA_ABERTA = `EXISTS (SELECT 1 FROM memorias WHERE id = ?1 AND visibilidade = 'todos')`;
+
+function comandosDeLigacao(id: string, dados: DadosDaMemoria, quemVe: GravarQuemVe = 'mudou'): D1PreparedStatement[] {
+  const comandos = [db().prepare('DELETE FROM memoria_integrantes WHERE memoria_id = ?').bind(id)];
+  if (quemVe === 'mudou') {
+    comandos.push(db().prepare('DELETE FROM memoria_nucleos WHERE memoria_id = ?').bind(id));
+    for (const n of dados.nucleos) {
+      comandos.push(db().prepare('INSERT OR IGNORE INTO memoria_nucleos (memoria_id, nucleo_id) VALUES (?, ?)').bind(id, n));
+    }
+  } else if (quemVe === 'marcas') {
+    comandos.push(db().prepare(`DELETE FROM memoria_nucleos WHERE memoria_id = ?1 AND ${AINDA_ABERTA}`).bind(id));
+    for (const n of dados.nucleos) {
+      comandos.push(db().prepare(`INSERT OR IGNORE INTO memoria_nucleos (memoria_id, nucleo_id) SELECT ?1, ?2 WHERE ${AINDA_ABERTA}`).bind(id, n));
+    }
   }
   for (const i of dados.integrantes) {
     comandos.push(db().prepare('INSERT OR IGNORE INTO memoria_integrantes (memoria_id, integrante_id) VALUES (?, ?)').bind(id, i));
@@ -881,10 +899,20 @@ const marcarPublicacao = (id: string) =>
 
 /**
  * Atualiza a ficha, guardando a versão anterior no histórico. Fotos que saíram da lista vão para a lixeira.
+ * `quemVe`: se o lote grava a visibilidade e as famílias (ver GravarQuemVe). Por padrão, não grava: a ficha
+ * muda e o público fica como está no banco. "mudou" é só de quem criou.
  * `junto`: o que precisa gravar na mesma transação, como os relatos e os pedidos de uma mudança de quem vê
  * (comandosDaMudancaDeQuemVe): se um falhar, a memória continua com o público de antes (revisão Y do PR #160).
  */
-export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria, usuario: Usuario, fotosRemovidas: number[], junto: Comando[] = []): Promise<void> {
+export async function atualizarMemoria(
+  anterior: Memoria,
+  dados: DadosDaMemoria,
+  usuario: Usuario,
+  fotosRemovidas: number[],
+  { junto = [], quemVe = 'nao' }: { junto?: Comando[]; quemVe?: GravarQuemVe } = {},
+): Promise<void> {
+  if (quemVe === 'mudou' && anterior.criadaPor !== usuario.pessoa) throw new Error('Só quem criou muda quem pode ver.');
+  const visibilidade = quemVe === 'mudou' ? ', visibilidade = ?' : '';
   await db().batch([
     db()
       .prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('memoria', ?, ?, ?)`)
@@ -892,12 +920,24 @@ export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria,
     db()
       .prepare(
         `UPDATE memorias SET titulo = ?, ano = ?, mes = ?, dia = ?, aproximada = ?, tipo = ?, tipo_outro = ?, lugar = ?,
-           visibilidade = ?, situacao = ?, atualizada_em = datetime('now') WHERE id = ?`,
+           situacao = ?${visibilidade}, atualizada_em = datetime('now') WHERE id = ?`,
       )
-      .bind(dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.tipoOutro ?? null, dados.lugar ?? null, dados.visibilidade, dados.situacao, anterior.id),
+      .bind(
+        dados.titulo,
+        dados.ano,
+        dados.mes ?? null,
+        dados.dia ?? null,
+        dados.aproximada ? 1 : 0,
+        dados.tipo,
+        dados.tipoOutro ?? null,
+        dados.lugar ?? null,
+        dados.situacao,
+        ...(quemVe === 'mudou' ? [dados.visibilidade] : []),
+        anterior.id,
+      ),
     marcarPublicacao(anterior.id),
     ...fotosRemovidas.map((id) => db().prepare(`UPDATE fotos SET removida_em = datetime('now'), removida_por = ? WHERE id = ?`).bind(usuario.pessoa, id)),
-    ...comandosDeLigacao(anterior.id, dados),
+    ...comandosDeLigacao(anterior.id, dados, quemVe),
     ...junto,
   ]);
 }
@@ -1442,13 +1482,17 @@ function lerRelato(r: Record<string, unknown>): Relato {
 }
 
 /**
- * Relatos de uma memória já conferida: os publicados, mais os rascunhos de quem pede. O de quem a pessoa
- * não vê fica de fora (ver veORelato).
+ * Relatos de uma memória: os publicados, mais os rascunhos de quem pede. O de quem a pessoa não vê fica de
+ * fora (ver veORelato), e a memória que ela não vê não entrega relato nenhum, mesmo a quem chama sem
+ * conferir antes (revisão Y2 do PR #160).
  */
 export async function listarRelatos(usuario: Usuario, memoriaId: string): Promise<Relato[]> {
   const [{ results }, naoVe] = await Promise.all([
     db()
-      .prepare(`SELECT * FROM relatos WHERE memoria_id = ?2 AND (situacao = 'publicada' OR (registrado_por = ?1 AND descartado_em IS NULL)) ORDER BY criado_em, id`)
+      .prepare(
+        `SELECT r.* FROM relatos r JOIN memorias m ON m.id = r.memoria_id
+         WHERE r.memoria_id = ?2 AND ${FILTRO_VISIVEL} AND (r.situacao = 'publicada' OR (r.registrado_por = ?1 AND r.descartado_em IS NULL)) ORDER BY r.criado_em, r.id`,
+      )
       .bind(usuario.pessoa, memoriaId)
       .all<Record<string, unknown>>(),
     pessoasQueONaoVe(usuario),
