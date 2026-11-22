@@ -584,3 +584,33 @@ export function quemNaLista(nomes: string[], maximo = 3): { nomes: string[]; mai
 
 /** A lista segue a linha do tempo no rascunho: quem escreveu vê o dela, levando ao formulário. */
 export const mostraRascunho = (forma: Forma) => forma === 'linha' || forma === 'lista';
+
+/**
+ * Modo TV proporcional (conceito da sessão X, 22/11/2026). As duas propostas, trocadas por
+ * `conceito` no endereço: A, a barra de vidro embaixo; B, o trilho de vidro à direita, com o verso.
+ * `hoje` mostra o modo TV como está na homologa, para comparar. Sem o parâmetro, vale a A.
+ */
+export const CONCEITOS_DA_TV = [
+  { id: 'a', nome: 'A, a barra' },
+  { id: 'b', nome: 'B, o trilho' },
+  { id: 'hoje', nome: 'Como é hoje' },
+] as const;
+export type ConceitoDaTv = (typeof CONCEITOS_DA_TV)[number]['id'];
+export function lerConceitoDaTv(p: URLSearchParams): ConceitoDaTv {
+  const pedido = p.get('conceito');
+  return CONCEITOS_DA_TV.find((c) => c.id === pedido)?.id ?? 'a';
+}
+
+/**
+ * Na proposta A, o título desce na escala conforme o tamanho, para caber sempre na coluna do texto:
+ * até 40 letras, o tamanho de capa; até 90, um degrau abaixo; daí em diante, o menor. O limite de
+ * linhas do CSS é só a rede de proteção do título que passa de 150 letras.
+ */
+export function degrauDoTitulo(titulo: string): 1 | 2 | 3 {
+  const letras = [...titulo.trim()].length;
+  return letras <= 40 ? 1 : letras <= 90 ? 2 : 3;
+}
+/** O trecho do relato faz o mesmo, em dois degraus: até 150 letras e daí até o máximo, 220 */
+export function degrauDoTrecho(texto: string): 1 | 2 {
+  return [...texto.trim()].length <= 150 ? 1 : 2;
+}

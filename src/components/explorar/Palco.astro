@@ -11,6 +11,7 @@ import Carimbo from '../visual/Carimbo.astro';
 import Polaroid from '../visual/Polaroid.astro';
 import Vazio from '../visual/Vazio.astro';
 import { carimboDaData, estiloDoTipo, legendaLugarAno, listaCurta } from '../../lib/visual';
+import { degrauDoTitulo, degrauDoTrecho } from '../../lib/explorar';
 
 interface Props {
   modo: 'tv' | 'acaso';
@@ -36,12 +37,20 @@ interface Props {
   movimento?: string;
   /** as animações, para quem está vendo escolher */
   movimentos?: { id: string; nome: string; href: string }[];
+  /**
+   * Modo TV proporcional, conceito da sessão X (22/11/2026): a proposta em teste, A (a barra) ou B
+   * (o trilho). Sem ela, o palco é o de hoje. O estilo está em src/visual/telas/tv.css, e só vale
+   * a partir de 62rem: abaixo disso, as duas propostas são o modo TV de hoje.
+   */
+  conceito?: 'a' | 'b';
+  /** as propostas, para alternar entre elas na prévia de teste */
+  conceitos?: { id: string; nome: string; href: string; atual: boolean }[];
 }
 
 /** Quantas fotos da memória, além da principal, cabem em volta dela */
 const EM_VOLTA = 4;
 
-const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, limpar, movimento, movimentos } = Astro.props;
+const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, limpar, movimento, movimentos, conceito, conceitos } = Astro.props;
 const [principal, ...outras] = memoria?.fotos ?? [];
 const emVolta = outras.slice(0, EM_VOLTA);
 const abrir = memoria ? `/memorias/${memoria.id}` : '';
@@ -65,7 +74,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
 }
 {
   memoria && (
-    <article class:list={['palco', `palco--${modo}`]} style={estiloDoTipo(memoria.tipo)} data-palco data-movimento={modo === 'tv' ? movimento : undefined} data-passar={passar?.tempo ?? undefined} data-pausado={passar?.pausado ? '' : undefined}>
+    <article class:list={['palco', `palco--${modo}`, { 'palco--prop': conceito }]} style={estiloDoTipo(memoria.tipo)} data-conceito={conceito} data-palco data-movimento={modo === 'tv' ? movimento : undefined} data-passar={passar?.tempo ?? undefined} data-pausado={passar?.pausado ? '' : undefined}>
       {/* Com script, a animação só começa com as fotos prontas: até lá, elas esperam fora da tela.
           Fica antes de tudo, para valer já no primeiro desenho. Se algo falhar, a espera acaba sozinha. */}
       <script is:inline>
@@ -87,6 +96,17 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
         </a>
         {/* Sem rede, a memória da tela fica e o aviso aparece aqui (o script escreve o texto) */}
         {modo === 'tv' && <p class="palco__aviso ficha" role="status" data-palco-aviso />}
+        {/* Só na prévia de teste da sessão X: alternar entre as propostas. Sai com a escolha do Gui. */}
+        {conceitos && (
+          <nav class="palco__conceitos ficha" aria-label="Proposta em teste">
+            <span>Teste</span>
+            {conceitos.map((c) => (
+              <a href={c.href} aria-current={c.atual ? 'true' : undefined}>
+                {c.nome}
+              </a>
+            ))}
+          </nav>
+        )}
       </header>
       <div class="palco__cena miolo">
         <div class:list={['palco__fotos', `palco__fotos--${emVolta.length}`]}>
@@ -105,9 +125,9 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
           <p>
             <Carimbo itens={[carimboDaData(memoria), memoria.lugar]} />
           </p>
-          <h1 class="palco__titulo">{memoria.titulo}</h1>
+          <h1 class="palco__titulo" data-degrau={conceito === 'a' ? degrauDoTitulo(memoria.titulo) : undefined}>{memoria.titulo}</h1>
           {trecho && (
-            <blockquote class="palco__trecho">
+            <blockquote class="palco__trecho" data-degrau={conceito === 'a' ? degrauDoTrecho(trecho.texto) : undefined}>
               <p class="serifa t-abertura">“{trecho.texto}”</p>
               <footer>
                 <span class="mao">{trecho.por}</span>
@@ -115,6 +135,42 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
             </blockquote>
           )}
           {nomes.length > 0 && <p class="ficha suave">Com {listaCurta(nomes, 5)}</p>}
+          {/* Proposta B: o verso da foto. O texto da coluna tem um tamanho só e um limite de linhas; o
+              que não coube se lê aqui, inteiro, sem sair do modo TV. É um <details>: abre sem script. Fica
+              antes de "Abrir esta memória", que continua sendo o último filho (a grade do celular conta com isso). */}
+          {conceito === 'b' && (
+            <details class="palco__verso" data-palco-verso>
+              <summary>
+                <span class="palco__verso-abrir">Ver o verso</span>
+                <span class="palco__verso-fechar">Fechar o verso</span>
+              </summary>
+              <div class="palco__verso-cartao">
+                <p>
+                  <Carimbo itens={[carimboDaData(memoria), memoria.lugar]} />
+                </p>
+                <p class="palco__verso-titulo">{memoria.titulo}</p>
+                {trecho && (
+                  <blockquote class="palco__trecho">
+                    <p class="serifa t-abertura">“{trecho.texto}”</p>
+                    <footer>
+                      <span class="mao">{trecho.por}</span>
+                    </footer>
+                  </blockquote>
+                )}
+                {nomes.length > 0 && (
+                  <div class="palco__verso-nomes">
+                    <p class="rotulo suave">Quem estava</p>
+                    <p class="ficha">{listaCurta(nomes, nomes.length)}</p>
+                  </div>
+                )}
+                <p>
+                  <a class="acao" href={abrir}>
+                    Abrir esta memória
+                  </a>
+                </p>
+              </div>
+            </details>
+          )}
           <p>
             <a class="acao" href={abrir}>
               Abrir esta memória
@@ -488,6 +544,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   // Ligado: a próxima entra sozinha depois do tempo escolhido. Com a aba escondida, espera.
   function armar() {
     clearTimeout(relogio);
+    // Proposta B: com o verso aberto, alguém está lendo. A memória espera, e segue quando ele fecha.
+    if (palco()?.querySelector('[data-palco-verso][open]')) return;
     const segundos = Number(palco()?.dataset.passar);
     if (segundos > 0 && !pausado && !document.hidden) relogio = window.setTimeout(() => passar(link('depois')), segundos * 1000);
   }
@@ -513,6 +571,19 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     armar();
   }
 
+  // Nas propostas da sessão X, "Ajustes" e o verso flutuam por cima da cena: o Esc e o toque fora
+  // fecham o que estiver aberto, antes de qualquer outra coisa, e o foco volta para quem abriu.
+  const abertos = () => (palco()?.hasAttribute('data-conceito') ? [...palco()!.querySelectorAll<HTMLDetailsElement>(':is([data-palco-ajustes], [data-palco-verso])[open]')] : []);
+  function fecharAbertos(fora?: Element | null) {
+    const lista = abertos().filter((aberto) => !fora || !aberto.contains(fora));
+    for (const aberto of lista) {
+      const tinhaFoco = aberto.contains(document.activeElement);
+      aberto.open = false;
+      if (!fora || tinhaFoco) aberto.querySelector<HTMLElement>('summary')?.focus({ preventScroll: true });
+    }
+    return lista.length > 0;
+  }
+
   const primeiro = palco();
   if (primeiro) {
     // Na chegada pela página, a animação espera as fotos: sem isso ela acabava antes de elas aparecerem
@@ -522,6 +593,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     });
     document.addEventListener('keydown', (evento) => {
       if (evento.metaKey || evento.ctrlKey || evento.altKey || !palco()) return;
+      if (evento.key === 'Escape' && fecharAbertos()) return evento.preventDefault();
       // Em "Só as fotos" (reacaoEmSoFotos, em src/lib/explorar.ts): o Esc volta ao modo com texto,
       // as setas para os lados passam sem mostrar os controles e qualquer outra tecla os traz de volta
       if (soFotos()) {
@@ -584,6 +656,10 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       if (tempo) guardar('tv-tempo', tempo);
       passar(a, a.hasAttribute('data-palco-antes'));
     });
+    // O toque fora de "Ajustes" ou do verso fecha o que estava aberto
+    document.addEventListener('pointerdown', (evento) => void fecharAbertos(evento.target instanceof Element ? evento.target : null));
+    // O verso abre e fecha sem script; o relógio do "Passar sozinho" acompanha (toggle não sobe: captura)
+    document.addEventListener('toggle', (evento) => (evento.target instanceof Element && evento.target.matches('[data-palco-verso]') ? armar() : undefined), true);
     document.addEventListener('visibilitychange', () => {
       if (!aEspera) armar();
     });

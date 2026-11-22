@@ -7,6 +7,7 @@
 // sorteio, o mural, o modo TV e as contagens saem todos de listarMemorias.
 import '../visual/telas/linha.css';
 import '../visual/telas/explorar.css';
+import '../visual/telas/tv.css';
 import '../visual/telas/lista.css';
 import Visual from '../layouts/Visual.astro';
 import Assinatura from '../components/visual/Assinatura.astro';
@@ -16,7 +17,7 @@ import Linha from '../components/explorar/Linha.astro';
 import Lista from '../components/explorar/Lista.astro';
 import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
-import { SEM_FILTRO, TEMPOS_DE_PASSAR, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, lerFotosDoMural, mostraRascunho, movimentoNoEndereco, passarNoEndereco, filtrosLigados, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo, vizinhasNaLista, type Passar } from '../lib/explorar';
+import { CONCEITOS_DA_TV, lerConceitoDaTv, SEM_FILTRO, TEMPOS_DE_PASSAR, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, lerFotosDoMural, mostraRascunho, movimentoNoEndereco, passarNoEndereco, filtrosLigados, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo, vizinhasNaLista, type Passar } from '../lib/explorar';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
@@ -73,8 +74,10 @@ const passar = lerPassar(parametros);
 const vizinhas = daVez ? vizinhasNaLista(publicadas, daVez.id) : undefined;
 // O movimento do modo TV: três versões para o Gui escolher, pela faixa do alto das prévias
 const movimento = lerMovimento(parametros);
-const naTv = (id: string | undefined, estado: Passar = passar, mov = movimento) =>
-  id ? enderecoDoExplorar(filtros, 'tv', { m: id, ...passarNoEndereco(estado), ...movimentoNoEndereco(mov) }) : undefined;
+// O conceito em teste (sessão X): segue de uma memória para a outra, no endereço
+const conceito = lerConceitoDaTv(parametros);
+const naTv = (id: string | undefined, estado: Passar = passar, mov = movimento, qual: string = conceito) =>
+  id ? enderecoDoExplorar(filtros, 'tv', { m: id, ...passarNoEndereco(estado), ...movimentoNoEndereco(mov), conceito: qual }) : undefined;
 // Com "Passar sozinho" ligado, a última leva de volta à primeira
 const seguinte = forma === 'tv' ? (vizinhas?.depois ?? (passar.tempo !== null && publicadas.length > 1 ? publicadas[0] : undefined)) : undefined;
 const relatoDaVez = daVez && noPalco ? (await listarRelatos(usuario, daVez.id)).find((r) => r.situacao === 'publicada' && r.texto.trim()) : undefined;
@@ -111,6 +114,8 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
         nomes={daVez?.integrantes.map(nomeDe).filter((n): n is string => Boolean(n))}
         posicao={forma === 'tv' && vizinhas ? `${vizinhas.posicao + 1} de ${publicadas.length}` : undefined}
         movimento={movimento}
+        conceito={forma === 'tv' && conceito !== 'hoje' ? conceito : undefined}
+        conceitos={forma === 'tv' && daVez ? CONCEITOS_DA_TV.map((c) => ({ ...c, href: naTv(daVez.id, passar, movimento, c.id)!, atual: c.id === conceito })) : undefined}
         movimentos={forma === 'tv' && daVez ? MOVIMENTOS.map((m) => ({ ...m, href: naTv(daVez.id, passar, m.id)! })) : undefined}
         antes={naTv(vizinhas?.antes?.id)}
         depois={forma === 'tv' ? naTv(seguinte?.id) : publicadas.length > 1 && daVez ? enderecoDoExplorar(filtros, 'acaso', { outra: daVez.id }) : undefined}

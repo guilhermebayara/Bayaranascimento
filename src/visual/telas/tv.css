@@ -1,0 +1,590 @@
+/*
+ * Modo TV proporcional: conceito da sessão X (22/11/2026). Duas propostas sobre a mesma marcação
+ * (src/components/explorar/Palco.astro), trocadas por `conceito` no endereço:
+ *
+ *   A, a barra: os controles numa barra de vidro que flutua no pé da tela, e "Ajustes" abre uma
+ *      folha por cima dela. A memória longa desce na escala (o título em três degraus, o trecho em
+ *      dois) e, no limite, é cortada com "Abrir esta memória" logo embaixo.
+ *   B, o trilho: os controles num cartão branco pousado na lateral direita, o material do bilhete e
+ *      do verso da foto, sem vidro. A foto fica com a altura inteira da tela. O texto tem um tamanho
+ *      só e um limite de linhas, e "Ver o verso" abre no lugar o cartão com tudo por inteiro.
+ *
+ * O que as duas têm em comum: a tela não rola (o palco tem a altura exata da janela) e tudo é
+ * proporcional à janela. Nenhuma regra aqui olha para a altura da janela em degraus.
+ *
+ * Só vale a partir de 62rem. Abaixo disso, as duas propostas são o modo TV de hoje, sem mudança.
+ * Nada é preso por fixed nem sticky: os controles são absolutos dentro de um palco que não rola.
+ *
+ * Este arquivo entra depois de explorar.css e mexe nas mesmas classes: os seletores levam o
+ * prefixo .palco--tv.palco--prop[data-conceito] para vencer as regras de lá.
+ */
+
+/* Fora das propostas e no celular, o verso não existe e a troca de proposta não aparece */
+.palco__verso,
+.palco__conceitos {
+  display: none;
+}
+
+@media (min-width: 62rem) {
+  /* A unidade. No modo TV, 1rem deixa de ser o do navegador e passa a ser um pedaço da janela:
+     1/80 da largura ou 1/45 da altura, o que for menor. Dá 16 px em 1280 × 720 e 24 px em
+     1920 × 1080. Tudo o que o sistema mede em rem (tokens, peças, toque) cresce junto, e a tela
+     desenhada para caber em 80 × 45rem cabe em qualquer janela. */
+  html:has(.palco--prop) {
+    font-size: min(100vw / 80, 100svh / 45);
+  }
+
+  /* A troca de proposta, só na prévia de teste */
+  .palco--tv .palco__conceitos {
+    order: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--e-4);
+    margin-inline: var(--e-6) auto;
+    color: var(--tinta-suave);
+  }
+  .palco--tv .palco__topo > [data-palco-sair] {
+    order: 2;
+  }
+  .palco__conceitos a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--toque);
+    text-decoration: none;
+  }
+  .palco__conceitos a[aria-current] {
+    color: var(--tinta);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.4em;
+  }
+
+  /* --- O palco: a altura exata da janela ------------------------------------------------------ */
+
+  .palco--tv.palco--prop[data-conceito] {
+    /* Na tela de 1920 × 1080, o que se lê tem 24 px e os controles, 22 px (resposta do Gui à P48) */
+    --tv-leitura: 1rem;
+    --tv-controle: 0.9167rem;
+    --tv-topo: 3.5rem;
+    --tv-pe: 0rem;
+    --tv-lado: 0rem;
+    --tv-respiro: 1.75rem;
+    --tv-foto-max: 24rem;
+    /* a altura da foto revelada, para a largura dela */
+    --tv-razao: 1.46;
+    position: relative;
+    grid-template-rows: var(--tv-topo) minmax(0, 1fr);
+    height: 100svh;
+    min-height: 0;
+    padding-bottom: 0;
+    overflow: clip;
+  }
+  .palco--tv.palco--prop[data-conceito]:not([data-so-fotos]):has(.palco__ajustes[open]) {
+    padding-bottom: 0;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__topo {
+    flex-wrap: nowrap;
+    min-height: 0;
+    padding-block: 0;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__topo :is(.rotulo, .acao, .palco__conceitos) {
+    font-size: var(--tv-controle);
+  }
+  /* Sem rede: o aviso flutua no alto, no meio, sem empurrar nada */
+  .palco--tv.palco--prop[data-conceito] .palco__aviso {
+    position: absolute;
+    z-index: 6;
+    top: var(--e-3);
+    left: 50%;
+    translate: -50% 0;
+    padding: var(--e-2) var(--e-4);
+    border-radius: var(--raio-pilula);
+    background: var(--branco);
+    box-shadow: var(--sombra-bilhete);
+    font-size: var(--tv-leitura);
+    white-space: nowrap;
+  }
+
+  /* --- A cena: as fotos à esquerda, o texto à direita ----------------------------------------- */
+
+  .palco--tv.palco--prop[data-conceito] .palco__cena,
+  .palco--tv.palco--prop[data-conceito]:not([data-so-fotos]) .palco__cena:has(.palco__ajustes[open]) {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    align-content: stretch;
+    align-items: center;
+    row-gap: 0;
+    min-height: 0;
+    padding-block: 0 var(--tv-pe);
+    padding-right: calc(var(--margem) + var(--tv-lado));
+  }
+  /* A foto principal tem a largura que cabe na altura que sobra, com folga para ela se aproximar */
+  .palco--tv.palco--prop[data-conceito] .palco__fotos {
+    --foto: min(var(--tv-foto-max), (100svh - var(--tv-topo) - var(--tv-pe) - var(--tv-respiro)) / var(--tv-razao));
+    grid-area: 1 / 1 / 2 / 8;
+    margin: 0;
+  }
+  /* A legenda da foto principal fica numa linha só, no meio da margem, e cresce com a foto (24 px
+     em 1920 × 1080). O lugar longo termina em reticências: inteiro, ele está na página da memória. */
+  .palco--tv.palco--prop[data-conceito] .palco__principal .polaroid__legenda {
+    display: block;
+    box-sizing: border-box;
+    height: 23cqi;
+    min-height: 0;
+    overflow: hidden;
+    font-size: 4.6cqi;
+    line-height: 18cqi;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__texto {
+    grid-area: 1 / 8 / 2 / -1;
+    align-self: center;
+    gap: var(--e-4);
+    min-width: 0;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__texto > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* O carimbo: a data e o lugar, cada um na sua linha quando não cabem juntos. O lugar longo
+     termina em reticências. */
+  .palco--tv.palco--prop[data-conceito] .palco__texto > p:first-child .carimbo {
+    font-size: var(--tv-leitura);
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__texto > p:first-child .carimbo > span {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  /* O título e o trecho têm limite de linhas. A folga em cima e embaixo guarda os acentos e as
+     pernas das letras, que o corte levaria. */
+  .palco--tv.palco--prop[data-conceito] .palco__titulo {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    margin-block: -0.1em;
+    padding-block: 0.1em;
+    overflow: hidden;
+    font-size: calc(var(--t-titulo-1) * 0.62);
+    line-height: 1;
+    overflow-wrap: anywhere;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__trecho {
+    max-width: none;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__trecho > p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    /* a aspa pendurada fica dentro da caixa, para o corte não a levar */
+    margin-left: -0.5em;
+    padding-left: 0.5em;
+    overflow: hidden;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__trecho footer {
+    margin-top: var(--e-2);
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__texto > .ficha {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: var(--tv-leitura);
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__texto .acao {
+    font-size: var(--tv-controle);
+  }
+
+  /* --- Os controles: um grupo só, que flutua -------------------------------------------------- */
+
+  .palco--tv.palco--prop[data-conceito] .palco__controles {
+    /* sobre o vidro e sobre o cartão, o texto de apoio precisa de mais tinta */
+    --tinta-suave: var(--vidro-suave);
+    position: absolute;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-items: stretch;
+    gap: var(--e-1);
+    width: max-content;
+    max-width: calc(100% - 2 * var(--margem));
+    max-height: none;
+    padding: var(--e-2);
+    background: none;
+    overflow: visible;
+  }
+  /* O fundo dos controles fica num elemento à parte: com o desfoque no próprio grupo, a folha de
+     "Ajustes", que mora dentro dele, deixaria de desfocar a foto que está atrás */
+  .palco--tv.palco--prop[data-conceito] .palco__controles::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__passos {
+    grid-area: auto;
+    align-self: auto;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    justify-self: auto;
+    gap: var(--e-1);
+    padding: 0;
+  }
+  /* Cada controle é um item do grupo: o nome escrito, sem traço embaixo, com o toque inteiro */
+  .palco--tv.palco--prop[data-conceito] .palco__passos > .acao,
+  .palco--tv.palco--prop[data-conceito] .palco__sozinho > :is(a, button),
+  .palco--tv.palco--prop[data-conceito] .palco__ajustes > summary,
+  .palco--tv.palco--prop[data-conceito][data-so-fotos] .palco__passos a.botao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--toque);
+    padding: 0 var(--e-4);
+    border-radius: var(--raio-pilula);
+    background: none;
+    color: var(--tinta);
+    font-size: var(--tv-controle);
+    font-weight: 550;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background var(--tempo-curto);
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__sozinho > .acao--quieta,
+  .palco--tv.palco--prop[data-conceito] .palco__ajustes > summary {
+    color: var(--tinta-suave);
+    font-weight: 450;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__passos > .acao:hover,
+  .palco--tv.palco--prop[data-conceito] .palco__sozinho > :is(a, button):hover,
+  .palco--tv.palco--prop[data-conceito] .palco__ajustes > summary:hover,
+  .palco--tv.palco--prop[data-conceito] .palco__ajustes[open] > summary,
+  .palco--tv.palco--prop[data-conceito][data-so-fotos] .palco__passos a.botao:hover {
+    background: var(--vidro-toque);
+    color: var(--tinta);
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__sozinho {
+    display: flex;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__passos > .botao {
+    min-height: var(--toque);
+    padding: 0 var(--e-5);
+    font-size: var(--tv-controle);
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__passos :is(.acao, .botao):focus-visible,
+  .palco--tv.palco--prop[data-conceito] .palco__sozinho :focus-visible,
+  .palco--tv.palco--prop[data-conceito] .palco__ajustes > summary:focus-visible {
+    border-radius: var(--raio-pilula);
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__ajustes {
+    grid-area: auto;
+    align-self: auto;
+    justify-self: auto;
+    display: block;
+    padding: 0;
+  }
+  /* "Ajustes" aberto: uma folha que sai do grupo dos controles e flutua por cima da cena */
+  .palco--tv.palco--prop[data-conceito] .palco__controles .palco__ajustes[open] .palco__partes {
+    position: absolute;
+    z-index: 1;
+    display: grid;
+    justify-content: start;
+    gap: var(--e-2) var(--e-7);
+    width: max-content;
+    max-width: calc(100vw - 2 * var(--margem));
+    padding: var(--e-4) var(--e-6);
+    border-radius: var(--raio-bloco);
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__controles .palco__ajustes[open] .palco__ajuste {
+    grid-auto-flow: row;
+    justify-items: start;
+    align-items: start;
+    gap: 0;
+    padding-top: 0;
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__controles .palco__opcoes {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 0 var(--e-5);
+  }
+  .palco--tv.palco--prop[data-conceito] .palco__ajuste .rotulo,
+  .palco--tv.palco--prop[data-conceito] .palco__opcoes :is(a, button) {
+    font-size: var(--tv-controle);
+  }
+
+  /* --- Proposta A: a barra de vidro, no pé da tela -------------------------------------------- */
+
+  .palco--tv.palco--prop[data-conceito='a'] {
+    --tv-pe: 6.5rem;
+  }
+  .palco--tv.palco--prop[data-conceito='a'] .palco__controles {
+    inset: auto auto var(--e-5) 50%;
+    translate: -50% 0;
+    border-radius: var(--raio-pilula);
+  }
+  .palco--tv.palco--prop[data-conceito='a'] .palco__controles::before,
+  .palco--tv.palco--prop[data-conceito='a'] .palco__controles .palco__ajustes[open] .palco__partes {
+    border: 1px solid var(--vidro-fio);
+    background: var(--vidro);
+    box-shadow: var(--sombra-bilhete);
+    -webkit-backdrop-filter: var(--vidro-desfoque);
+    backdrop-filter: var(--vidro-desfoque);
+  }
+  .palco--tv.palco--prop[data-conceito='a'] .palco__ajustes {
+    margin-left: var(--e-1);
+    padding-left: var(--e-2);
+    border-left: 1px solid var(--vidro-toque);
+  }
+  /* A folha sobe da barra, centrada nela, com os ajustes lado a lado */
+  .palco--tv.palco--prop[data-conceito='a'] .palco__controles .palco__ajustes[open] .palco__partes {
+    inset: auto auto calc(100% + var(--e-2)) 50%;
+    translate: -50% 0;
+    grid-auto-flow: column;
+  }
+  /* O título desce na escala conforme o tamanho (degrauDoTitulo, em src/lib/explorar.ts); o limite
+     de linhas é só a rede de proteção. O trecho faz o mesmo, em dois degraus. */
+  .palco--tv.palco--prop[data-conceito='a'] .palco__titulo[data-degrau='2'] {
+    -webkit-line-clamp: 4;
+    font-size: calc(var(--t-titulo-1) * 0.46);
+  }
+  .palco--tv.palco--prop[data-conceito='a'] .palco__titulo[data-degrau='3'] {
+    -webkit-line-clamp: 5;
+    font-size: calc(var(--t-titulo-1) * 0.36);
+    line-height: 1.04;
+  }
+  .palco--tv.palco--prop[data-conceito='a'] .palco__trecho[data-degrau='2'] > p {
+    -webkit-line-clamp: 5;
+    font-size: calc(var(--t-abertura) * 0.82);
+  }
+
+  /* --- Proposta B: o trilho, um cartão pousado na lateral ------------------------------------- */
+
+  .palco--tv.palco--prop[data-conceito='b'] {
+    --tv-topo: 0rem;
+    --tv-lado: 14rem;
+    --tv-trilho: 12.5rem;
+    --tv-respiro: 4.5rem;
+    --tv-foto-max: 23rem;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  /* Sem outras fotos em volta, a principal fica com a altura da tela. Com elas, o monte fica mais
+     junto, para caber entre a borda e o texto. */
+  .palco--tv.palco--prop[data-conceito='b'] .palco__fotos--0 {
+    --tv-foto-max: 27rem;
+  }
+  .palco--tv.palco--prop[data-conceito='b']:not([data-so-fotos]) .palco__extra:is([data-n='1'], [data-n='3']) {
+    left: -28%;
+  }
+  .palco--tv.palco--prop[data-conceito='b']:not([data-so-fotos]) .palco__extra:is([data-n='2'], [data-n='4']) {
+    right: -20%;
+  }
+  /* O alto deixa de ser uma linha: "Sair" fica no canto de cima do trilho e a conta, no de baixo */
+  .palco--tv.palco--prop[data-conceito='b'] .palco__topo {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    display: block;
+    padding: 0;
+    pointer-events: none;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__topo > * {
+    position: absolute;
+    pointer-events: auto;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__topo > .rotulo,
+  .palco--tv.palco--prop[data-conceito='b'] .palco__topo > [data-palco-sair] {
+    right: var(--e-5);
+    justify-content: center;
+    width: var(--tv-trilho);
+    text-align: center;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__topo > [data-palco-sair] {
+    top: var(--e-3);
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__topo > .rotulo {
+    bottom: var(--e-5);
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__topo > .palco__conceitos {
+    top: var(--e-3);
+    right: calc(var(--margem) + var(--tv-lado));
+    margin: 0;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__controles {
+    inset: 50% var(--e-5) auto auto;
+    translate: 0 -50%;
+    flex-direction: column;
+    align-items: stretch;
+    width: var(--tv-trilho);
+    border-radius: var(--raio-bloco);
+  }
+  /* O material é o do site: o branco do que está pousado no papel (o bilhete, o verso da foto) */
+  .palco--tv.palco--prop[data-conceito='b'] .palco__controles::before,
+  .palco--tv.palco--prop[data-conceito='b'] .palco__controles .palco__ajustes[open] .palco__partes {
+    background: var(--branco);
+    box-shadow: var(--sombra-bilhete);
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__passos {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__sozinho > :is(a, button) {
+    flex: 1;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__ajustes {
+    margin-top: var(--e-1);
+    padding-top: var(--e-1);
+    border-top: 1px solid var(--fio);
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__ajustes > summary {
+    display: flex;
+    width: 100%;
+  }
+  /* A folha desce de "Ajustes", o último item do trilho, e cresce para a esquerda, com cada ajuste
+     numa linha. Cobre o pé da cena, e não o título. */
+  .palco--tv.palco--prop[data-conceito='b'] .palco__controles .palco__ajustes[open] .palco__partes {
+    inset: calc(100% + var(--e-2)) 0 auto auto;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__controles .palco__ajustes[open] .palco__ajuste {
+    grid-template-columns: 15rem auto;
+    grid-auto-flow: column;
+    align-items: center;
+  }
+  /* O texto tem um tamanho só, com limite de linhas: o que não coube está no verso */
+  .palco--tv.palco--prop[data-conceito='b'] .palco__texto {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: var(--e-6);
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__texto > * {
+    grid-column: 1 / -1;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__texto > .palco__verso {
+    grid-column: 1;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__texto > .palco__verso + p {
+    grid-column: 2;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__titulo {
+    -webkit-line-clamp: 4;
+    font-size: calc(var(--t-titulo-1) * 0.5);
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__texto > .palco__trecho > p {
+    -webkit-line-clamp: 5;
+  }
+
+  /* O verso da foto: um cartão branco que abre por cima da cena, com tudo por inteiro */
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso {
+    display: block;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso > summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--toque);
+    list-style: none;
+    font-size: var(--tv-controle);
+    font-weight: 550;
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.32em;
+    cursor: pointer;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso > summary::-webkit-details-marker {
+    display: none;
+  }
+  .palco__verso .palco__verso-fechar,
+  .palco__verso[open] .palco__verso-abrir {
+    display: none;
+  }
+  .palco__verso[open] .palco__verso-fechar {
+    display: inline;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso-cartao {
+    position: absolute;
+    z-index: 5;
+    inset: var(--e-5) calc(var(--margem) + var(--tv-lado)) var(--e-5) auto;
+    display: grid;
+    grid-auto-rows: max-content;
+    align-content: center;
+    justify-items: start;
+    gap: var(--e-4);
+    width: 46rem;
+    padding: var(--e-7) var(--e-7) var(--e-5);
+    border-radius: var(--raio-moldura);
+    background: var(--branco);
+    box-shadow: var(--sombra-foto);
+    --tinta-suave: var(--vidro-suave);
+  }
+  /* Com o verso aberto, o "Abrir esta memória" da coluna fica embaixo do cartão: sai da tela e da
+     ordem do teclado, porque o cartão tem o dele. A troca de teste, que o cartão cobre, também. */
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso[open] + p,
+  .palco--tv.palco--prop[data-conceito='b']:has(.palco__verso[open]) .palco__conceitos {
+    visibility: hidden;
+  }
+  /* Aberto, "Fechar o verso" fica no canto de cima do cartão */
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso[open] > summary {
+    position: absolute;
+    z-index: 6;
+    top: calc(var(--e-5) + var(--e-2));
+    right: calc(var(--margem) + var(--tv-lado) + var(--e-6));
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso-cartao .carimbo {
+    font-size: var(--tv-leitura);
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso-titulo {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+    font-family: var(--serifa);
+    font-variation-settings: var(--serifa-ajustes);
+    font-weight: var(--serifa-peso);
+    font-size: calc(var(--t-titulo-1) * 0.36);
+    letter-spacing: var(--aperto-titulo);
+    line-height: 1.04;
+    overflow-wrap: anywhere;
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso-cartao .palco__trecho > p {
+    -webkit-line-clamp: 6;
+    font-size: calc(var(--t-abertura) * 0.8);
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso-nomes {
+    display: grid;
+    gap: var(--e-1);
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso-nomes .ficha {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+    font-size: var(--tv-leitura);
+  }
+  .palco--tv.palco--prop[data-conceito='b'] .palco__verso-nomes .rotulo {
+    font-size: var(--tv-controle);
+  }
+
+  /* --- "Só as fotos": as fotos no meio da tela, e os controles somem e voltam ----------------- */
+
+  .palco--tv.palco--prop[data-conceito][data-so-fotos] .palco__cena {
+    padding-right: var(--margem);
+    padding-bottom: 0;
+  }
+  .palco--tv.palco--prop[data-conceito][data-so-fotos] .palco__fotos {
+    --foto: min(28rem, (100svh - var(--tv-topo) - var(--tv-respiro) - 3rem) / var(--tv-razao));
+    grid-area: 1 / 1 / 2 / -1;
+  }
+  .palco--tv.palco--prop[data-conceito][data-so-fotos] :is(.palco__passos, .palco__ajustes) {
+    justify-items: stretch;
+  }
+  .palco--tv.palco--prop[data-conceito][data-so-fotos] :is(.palco__ajuste, .palco__opcoes) {
+    justify-items: start;
+    justify-content: start;
+  }
+  .palco--tv.palco--prop[data-conceito][data-so-fotos] .palco__passos a.botao {
+    transition: background var(--tempo-curto);
+  }
+}
