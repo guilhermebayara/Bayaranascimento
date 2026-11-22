@@ -158,12 +158,15 @@ const podeCitar = publicada && temPaginaNoAcervo;
 ---
 
 <Visual titulo={memoria.titulo} secao="explorar" nucleos={memoria.nucleos} familia={corDaTela}>
+  {/* A faixa de recados (data-recados): vazia e escondida sem recado, para o formulário no lugar achá-la */}
   {
-    (ok || erro || fraseDaEspera) && (
-      <div class="miolo memoria__recados">
+    ok || erro || fraseDaEspera ? (
+      <div class="miolo memoria__recados" data-recados>
         {(ok || erro) && <Recado erro={Boolean(erro)}>{erro ?? ok}</Recado>}
         {fraseDaEspera && <p class="memoria__espera suave">{fraseDaEspera}</p>}
       </div>
+    ) : (
+      <p data-recados hidden />
     )
   }
   <article class="memoria">
@@ -292,7 +295,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
         {
           // Depois de "eu estava lá" numa memória em que não está: um toque para entrar em Quem estava
           podeEntrarEmQuemEstava && (
-            <form class="entrar-em-quem-estava" method="post" action="/api/reacoes" data-entrar-em-quem-estava hidden={!ofereceQuemEstava} data-no-lugar="quem-estava">
+            <form class="entrar-em-quem-estava" method="post" action="/api/reacoes" data-entrar-em-quem-estava hidden={!ofereceQuemEstava} data-no-lugar="quem-estava" data-chave="quem-estava">
               <input type="hidden" name="acao" value="entrar" />
               <input type="hidden" name="memoria" value={memoria.id} />
               <span>Você disse que estava lá. Quer entrar em Quem estava?</span>

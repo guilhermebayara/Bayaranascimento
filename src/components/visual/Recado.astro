@@ -1,12 +1,15 @@
 ---
 // O recado do alto da página: o que acabou de acontecer ("Memória salva.") ou o que deu errado.
+// No alto da página, ele leva data-recados: é a faixa de recados, para onde o formulário no lugar manda o
+// recado quando o próprio formulário sumiu (src/lib/cliente/no-lugar.ts).
 interface Props {
   erro?: boolean;
+  [atributo: `data-${string}`]: unknown;
 }
 
-const { erro = false } = Astro.props;
+const { erro = false, ...resto } = Astro.props;
 ---
 
-<p class:list={['recado', { 'recado--erro': erro }]} role={erro ? 'alert' : 'status'}>
+<p class:list={['recado', { 'recado--erro': erro }]} role={erro ? 'alert' : 'status'} {...resto}>
   <slot />
 </p>

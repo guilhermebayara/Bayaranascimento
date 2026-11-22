@@ -52,8 +52,10 @@ const recadoErro = Astro.url.searchParams.get('erro');
         </header>
       )
     }
-    {recadoErro && <Recado erro>{recadoErro}</Recado>}
-    {recadoOk && <Recado>{recadoOk}</Recado>}
+    {/* A faixa de recados (data-recados): vazia e escondida sem recado, para o formulário no lugar achá-la */}
+    {recadoErro && <Recado erro data-recados>{recadoErro}</Recado>}
+    {recadoOk && <Recado data-recados>{recadoOk}</Recado>}
+    {!recadoErro && !recadoOk && <p data-recados hidden />}
     <slot />
   </div>
 </Visual>

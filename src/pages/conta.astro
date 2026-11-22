@@ -79,7 +79,8 @@ const erro = Astro.url.searchParams.get('erro');
 
 <Visual titulo="Sua conta" secao="conta" familia={cor} intimo>
   <div class="conta miolo" data-administra={admin ? '' : undefined}>
-    {(ok || erro) && <Recado erro={Boolean(erro)}>{erro ?? ok}</Recado>}
+    {/* A faixa de recados (data-recados): vazia e escondida sem recado, para o formulário no lugar achá-la */}
+    {ok || erro ? <Recado erro={Boolean(erro)} data-recados>{erro ?? ok}</Recado> : <p data-recados hidden />}
     <div class="conta__grade">
       <header class="conta__abre">
         <div class="conta__retrato">

@@ -54,6 +54,46 @@ describe('formulários no lugar', () => {
     expect(memoria).toContain('name="publico" value={chaveDoPublico(memoria)}');
     expect(memoria).toMatch(/Liberar para \{paraQuemPassouAVer\(comoPublicoAntigo\(relato\.publicoConhecido \?\? relato\.soParaNucleos\), memoria, nucleos\)\}/);
   });
+  it('sem formulário onde mostrar, o recado vai para a faixa de recados do alto (decisão do Gui, 22/11/2026)', () => {
+    // O recado só vai para o alto quando nem o formulário nem o mesmo formulário na página nova (data-chave) existem
+    expect(cliente).toContain('if ((erro || ok) && !onde) trocarRecados(nova);');
+    // A faixa de agora dá lugar à da página nova, a mesma que ela mostra depois de recarregar
+    expect(cliente).toMatch(/document\.querySelectorAll\('\[data-recados\]'\)/);
+    expect(cliente).toMatch(/nova\.querySelectorAll\('\[data-recados\]'\)/);
+    // O leitor de tela continua ouvindo o recado uma vez só: pelo anúncio, e não pela faixa nova
+    expect(cliente).toContain("comPapel.removeAttribute('role')");
+  });
+  it('o foco vai para a região que mudou, também quando ela não tem caixa (.regiao)', () => {
+    // display: contents não recebe foco: sem isto, o foco caía no body
+    expect(cliente).toContain("getComputedStyle(regiao).display === 'contents' ? regiao.querySelector<HTMLElement>(':scope > *') : regiao");
+  });
+  it('toda página com formulário no lugar tem a faixa de recados, mesmo vazia, e ela usa o recado de sempre', () => {
+    // As páginas que montam um formulário no lugar, direto ou por um componente
+    const componentes = fontes.filter(({ caminho, texto }) => caminho.includes('components') && texto.includes('data-no-lugar')).map(({ caminho }) => caminho.split(/[\\/]/).pop()!.replace('.astro', ''));
+    const paginas = fontes.filter(({ caminho, texto }) => caminho.includes('pages') && caminho.endsWith('.astro') && (texto.includes('data-no-lugar') || componentes.some((c) => new RegExp(`<${c}\\b`).test(texto))));
+    expect(paginas.length).toBeGreaterThan(5);
+    const pagina = readFileSync('src/components/formularios/Pagina.astro', 'utf-8');
+    for (const { caminho, texto } of paginas) {
+      const temFaixa = texto.includes('data-recados') || /<Pagina\b/.test(texto);
+      expect(temFaixa, caminho).toBe(true);
+      // Vazia, a faixa existe escondida, para o script achar onde ela mora
+      if (!/<Pagina\b/.test(texto)) expect(texto, caminho).toContain('<p data-recados hidden />');
+    }
+    expect(pagina).toContain('<p data-recados hidden />');
+    expect(pagina).toContain('<Recado erro data-recados>');
+    expect(readFileSync('src/components/visual/Recado.astro', 'utf-8')).toContain('{...resto}');
+  });
+  it('o formulário que fica na página nova é achado pela chave, e o recado de erro continua junto dele', () => {
+    // Os formulários de dentro de uma região trocada: sem a chave, o recado de erro iria para o alto
+    for (const [caminho, chave] of [
+      ['src/pages/memorias/[id]/sugestoes.astro', 'data-chave={`sugestao-${s.id}`}'],
+      ['src/pages/admin/duplicados/index.astro', 'data-chave={`duplicados-${a.id}-${b.id}`}'],
+      ['src/pages/memorias/[id].astro', 'data-chave="quem-estava"'],
+      ['src/pages/pessoas/[id]/index.astro', 'data-chave="como-chama"'],
+    ]) {
+      expect(readFileSync(caminho!, 'utf-8'), caminho).toContain(chave);
+    }
+  });
   it('a região não muda o desenho', () => {
     expect(readFileSync('src/visual/base.css', 'utf-8')).toMatch(/\.regiao \{\s*display: contents;/);
   });

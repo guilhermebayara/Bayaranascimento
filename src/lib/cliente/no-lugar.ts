@@ -38,6 +38,21 @@ function trocar(nomes: string[], nova: Document): Element[] {
   return trocadas;
 }
 
+/**
+ * A faixa de recados do alto (data-recados): o recado que a página nova mostra no alto toma o lugar da faixa
+ * de agora. Toda página com formulário no lugar tem a faixa, vazia e escondida quando não há recado. O
+ * leitor de tela já ouve o recado por anunciar: a faixa nova entra sem o papel de região viva, para não ser
+ * dita duas vezes.
+ */
+function trocarRecados(nova: Document): void {
+  const atuais = [...document.querySelectorAll('[data-recados]')];
+  const novas = [...nova.querySelectorAll('[data-recados]')].map((r) => document.importNode(r, true));
+  if (!atuais.length || !novas.length) return;
+  for (const recado of novas) for (const comPapel of [recado, ...recado.querySelectorAll('[role]')]) comPapel.removeAttribute('role');
+  atuais[0]!.replaceWith(...novas);
+  for (const sobra of atuais.slice(1)) sobra.remove();
+}
+
 function ligar(form: HTMLFormElement): void {
   if (form.dataset.noLugarLigado) return;
   form.dataset.noLugarLigado = '';
@@ -67,7 +82,9 @@ function ligar(form: HTMLFormElement): void {
         ligarMenus(regiao);
       }
       if (regiaoDoForm && !document.contains(form)) {
-        const alvo = document.querySelector<HTMLElement>(`[data-regiao="${regiaoDoForm}"]`);
+        const regiao = document.querySelector<HTMLElement>(`[data-regiao="${regiaoDoForm}"]`);
+        // A região sem caixa (.regiao, display: contents) não recebe foco: ele vai para o que ela embrulha
+        const alvo = regiao && getComputedStyle(regiao).display === 'contents' ? regiao.querySelector<HTMLElement>(':scope > *') : regiao;
         if (alvo) {
           alvo.tabIndex = -1;
           alvo.focus({ preventScroll: true });
@@ -83,6 +100,10 @@ function ligar(form: HTMLFormElement): void {
         onde.querySelector('.recado-no-lugar')?.remove();
         onde.prepend(Object.assign(document.createElement('p'), { className: 'recado-no-lugar campo__erro', textContent: erro }));
       }
+      // Sem formulário onde mostrar (o pedido respondido saiu da lista, a sugestão aceita sumiu), o recado vai
+      // para a faixa de recados do alto, o mesmo lugar onde a página o mostra depois de recarregar (decisão do
+      // Gui, 22/11/2026)
+      if ((erro || ok) && !onde) trocarRecados(nova);
     } catch {
       // A reserva: o formulário comum, que recarrega
       form.dataset.reserva = '';
