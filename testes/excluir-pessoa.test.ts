@@ -141,7 +141,9 @@ describe('as telas de excluir pessoa', () => {
   });
   it('a lixeira mostra as pessoas para os administradores, com "Restaurar"', () => {
     const lixeira = ler('src/pages/lixeira.astro');
-    expect(lixeira).toContain('const pessoas = usuario.admin ? await listarPessoasExcluidas() : [];');
+    // A página e a frase da lixeira de "Sua conta" leem a mesma lista (itensDaLixeira), com as pessoas só para quem administra
+    expect(lixeira).toContain('const { memorias: excluidas, capitulos, pessoas, relatos } = await itensDaLixeira(usuario);');
+    expect(ler('src/lib/servidor/conta.ts')).toContain('usuario.admin ? listarPessoasExcluidas() : Promise.resolve([])');
     expect(lixeira).toContain('<input type="hidden" name="acao" value="restaurar" />');
   });
   it('o relato de quem está na lixeira continua assinado, nas telas que mostram quem contou', () => {

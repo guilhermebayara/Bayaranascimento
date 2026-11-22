@@ -160,6 +160,8 @@ describe.skipIf(!comSqlite)('administradores, nas rotas e no banco', async () =>
       visibilidade: m.visibilidade,
       situacao: 'publicada',
       fotos: m.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
+      // As fotos que a página mostrava, como o formulário manda (Y3 do PR #160)
+      fotosMostradas: m.fotos.map((f) => f.id),
       ...mudar,
     };
   };

@@ -35,7 +35,7 @@ Como a árvore se desenha e se comporta é travado (ver "Árvore" no `CLAUDE.md`
 Um arquivo só, `docs/qa/AAAA-MM-DD-perguntas.md`, feito para o Gui decidir rápido. Fechada a rodada, com as respostas do Gui já nos documentos enxutos, o arquivo vai para `docs/historico/qa/`, e os comentários do código e dos testes que o citam passam a apontar para lá.
 
 - Agrupado por tela, na ordem do menu, e dentro de cada tela da mais importante para a menos.
-- Cada pergunta tem um número único (P1, P2...), uma marca de peso (**muda a experiência**, **ajuste**, **detalhe**), uma ou duas linhas de contexto, o que a sessão observou, e de duas a quatro opções, com a recomendada primeiro e a frase "manter como está" quando fizer sentido.
+- Cada pergunta tem um número único (P1, P2...), uma marca de peso (**muda a experiência**, **ajuste**, **detalhe**), uma ou duas linhas de contexto, o que a sessão observou, e de duas a quatro opções, com a recomendada primeiro e a frase "manter como está" quando fizer sentido. Quando as opções só remendam o que trava, uma delas repensa a interface (decisão do Gui, 22/11/2026; ver "Como o trabalho acontece", no `CLAUDE.md`).
 - Quando ajuda, o nome da captura que mostra o ponto (em `docs/visual/qa-AAAA-MM-DD/`).
 - No começo do arquivo, um resumo: quantas perguntas por peso e por tela, e as cinco que mais mudam a experiência.
 - As perguntas que ficaram abertas nos PRs #39 (dez) e #40 (sete) entram no mesmo arquivo, cada uma na sua tela, para o Gui responder tudo de uma vez.

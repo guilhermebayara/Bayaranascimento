@@ -157,7 +157,7 @@ describe('o espaço de personalizar a imagem', async () => {
   });
 });
 
-describe('sem script (QA de 23/11/2026)', () => {
+describe('sem script (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)', () => {
   it('"Montando a imagem…" e a bandeja somem, e fica a explicação de que precisa de JavaScript', () => {
     const pagina = readFileSync('src/pages/memorias/[id]/compartilhar.astro', 'utf8');
     expect(pagina).toMatch(/<p class="dica" data-estado data-so-com-script>\s*Montando a imagem…/);
@@ -167,3 +167,19 @@ describe('sem script (QA de 23/11/2026)', () => {
     expect(readFileSync('src/components/formularios/Pagina.astro', 'utf8')).toContain('[data-so-com-script]');
   });
 });
+
+describe('a aba "Nome" sem apelido próprio (resposta do Gui à P7 do QA de 23/11/2026)', () => {
+  const pagina = readFileSync('src/pages/memorias/[id]/compartilhar.astro', 'utf8');
+  const cliente = readFileSync('src/lib/cliente/compartilhar.ts', 'utf8');
+  const css = readFileSync('src/visual/telas/formulario.css', 'utf8');
+  it('"O seu apelido" só aparece quando quem olha deu um apelido a quem contou', () => {
+    expect(pagina).toContain('<label class="opcao-da-imagem" data-opcao-meu hidden={!primeiro?.comOSeuApelido}>');
+    // Trocar o relato na aba "Relato" mostra ou esconde a opção
+    expect(cliente).toContain("meu.closest<HTMLElement>('[data-opcao-meu]')");
+    expect(cliente).toContain('opcao.hidden = meu.disabled;');
+  });
+  it('o atributo hidden vale nas opções da imagem, que têm display próprio', () => {
+    expect(css).toContain('.pagina-de-formulario :is(.opcao-da-imagem, .marcar-na-imagem)[hidden] {\n  display: none;\n}');
+  });
+});
+

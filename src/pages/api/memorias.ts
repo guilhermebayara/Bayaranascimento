@@ -10,14 +10,18 @@ import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
-import { avisarQuemEstava, mudouQuemVe } from '../../lib/servidor/avisos';
+import { avisosDeQuemEstava, mudancaDeQuemVe } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, validarVisibilidade } from '../../lib/servidor/permissoes';
+import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, publicoMudou, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
   atualizarMemoria,
-  criarIntegrante,
+  comandoDeCriarIntegrante,
+  comandosDeAbrirLacosPrivados,
+  comandosDoRelato,
+  comandosDosAvisos,
   criarMemoria,
-  garantirTemas,
+  resolverTemas,
+  type Comando,
   listarCapitulos,
   idsDeMemorias,
   listarIntegrantes,
@@ -26,16 +30,17 @@ import {
   obterFotos,
   obterMemoria,
   obterRelato,
-  salvarRelato,
   type DadosDaMemoria,
   type Memoria,
   ligarAudios,
   obterRelatoRegistradoPor,
-  abrirLacosPrivados,
   pessoasQueSoVoceVe,
   gravarMensagens,
   listarAudiosDosRelatos,
   listarMensagensDosRelatos,
+  MemoriaMudou,
+  RECADO_MEMORIA_MUDOU,
+  refazerSeAMemoriaMudou,
 } from '../../lib/servidor/repositorio';
 
 const opcional = (maximo: number) => z.string().trim().max(maximo).optional();
@@ -59,7 +64,11 @@ const Pedido = z.object({
   situacao: z.enum(['rascunho', 'publicada']).default('publicada'),
   // Publicar com alguém que só você vê: a escolha da pessoa depois do aviso (ver mensagemDaPessoaPrivada)
   pessoasPrivadas: z.enum(['abrir', 'sem-citar']).optional(),
-  fotos: z.array(z.object({ id: z.number().int(), legenda: opcional(200), principal: z.boolean().default(false) })).max(30).default([]),
+  // As fotos que ficam, na ordem. Sem a lista (o formulário sem script), as fotos ficam como estão
+  fotos: z.array(z.object({ id: z.number().int(), legenda: opcional(200), principal: z.boolean().default(false) })).max(30).optional(),
+  // As fotos que a página mostrava quando abriu: só sai da memória a que está aqui e não está em "fotos"
+  // (Y3 do PR #160). A foto que entrou depois não está em nenhuma das duas, e fica
+  fotosMostradas: z.array(z.number().int()).max(60).optional(),
   // capítulos reunidos em que a memória entra, e temas como texto livre separado por vírgulas
   capitulos: z.array(z.string().max(120)).max(20).optional(),
   temas: z.string().max(500).optional(),
@@ -92,7 +101,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const dados = await request.formData();
     const id = String(dados.get('id') ?? '') || undefined;
     const anterior = id ? await obterMemoria(locals.usuario, id) : undefined;
-    const resposta = await tratar(pedidoDoFormulario(dados, anterior), locals);
+    const resposta = await tratarComAMemoriaDeAgora(pedidoDoFormulario(dados, anterior), locals);
     const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string };
     if (!resposta.ok) return voltar(request, id ? `/nova?id=${id}` : '/nova', { erro: corpo.erro ?? 'Não consegui salvar.' });
     const recado = corpo.situacao === 'rascunho' ? 'Rascunho salvo.' : anterior?.situacao === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
@@ -104,10 +113,28 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch {
     return erro(400, 'Envio inválido.');
   }
-  return tratar(bruto, locals);
+  return tratarComAMemoriaDeAgora(bruto, locals);
 };
 
-/** O formulário comum, no formato do pedido em JSON. Fotos só se enviam com JavaScript: as que já estão ficam. */
+/**
+ * Mudar quem vê conta com os relatos que a rota leu. Se outro lote mudou a memória ou os relatos dela no
+ * meio tempo (um relato novo, uma resposta ao pedido, outro salvamento), o lote volta sem gravar nada
+ * (MemoriaMudou), e o pedido é tratado de novo, lendo o banco de agora: a espera sai de todo relato que
+ * existe na hora do lote (revisão Y2 do PR #160, item 4b). Antes de gravar o lote, tratar só grava o que
+ * não depende da corrida e que a segunda vez reaproveita (a pessoa nova, o tema). Depois de três
+ * tentativas, a pessoa recebe o recado, com e sem script.
+ */
+async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response> {
+  const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
+  return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
+}
+
+const mesmasFamilias = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((n) => b.includes(n));
+
+/**
+ * O formulário comum, no formato do pedido em JSON. Fotos só se enviam e se tiram com JavaScript: sem a
+ * lista, as que a memória tem na hora de gravar ficam, lidas dentro de cada tentativa (Y3 do PR #160).
+ */
 function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unknown {
   const texto = (nome: string) => String(dados.get(nome) ?? '').trim();
   const numero = (nome: string) => (texto(nome) ? Number(texto(nome)) : undefined);
@@ -128,7 +155,7 @@ function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unk
     nucleos: dados.getAll('nucleos').map(String),
     visibilidade: texto('visibilidade') || 'todos',
     situacao: texto('situacao') === 'rascunho' ? 'rascunho' : 'publicada',
-    fotos: (anterior?.fotos ?? []).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
+    fotosMostradas: dados.getAll('fotosMostradas').map(Number).filter((n) => Number.isInteger(n) && n > 0),
     relato: relato ? { por: texto('relatoPor'), texto: relato } : undefined,
   };
 }
@@ -182,7 +209,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // "nova" é o endereço do formulário de cadastro, então não pode ser id de ninguém
   const idsIntegrantes = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
   // As pessoas novas só ganham o id aqui: o cadastro é gravado depois de todas as conferências, para um
-  // pedido recusado não deixar ninguém cadastrado pela metade (QA de 23/11/2026)
+  // pedido recusado não deixar ninguém cadastrado pela metade (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)
   const idsNovas: string[] = [];
   const aCadastrar: { id: string; nome: string; tratamento: 'ela' | 'ele' | null }[] = [];
   for (const nova of pedido.novasPessoas) {
@@ -211,27 +238,39 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // Numa edição, quem já estava marcado e a pessoa não vê continua: o formulário nem mostrou essa marca
   for (const id of anterior?.integrantes ?? []) if (!marcaveis.has(id) && !integrantes.includes(id)) integrantes.push(id);
 
-  // Fotos: entram as que a pessoa acabou de enviar e as que já eram desta memória
-  const fotosNoBanco = await obterFotos(pedido.fotos.map((f) => f.id));
-  for (const foto of pedido.fotos) {
+  // Fotos: entram as que a pessoa acabou de enviar e as que já eram desta memória. Sem a lista, ficam as que
+  // a memória tem agora, lidas nesta tentativa (anterior é lido de novo a cada vez)
+  const pedidas = pedido.fotos ?? (anterior?.fotos ?? []).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal }));
+  const fotosNoBanco = await obterFotos(pedidas.map((f) => f.id));
+  for (const foto of pedidas) {
     const registro = fotosNoBanco.find((f) => f.id === foto.id);
     // A foto presa a um relato em rascunho espera o relato: não entra pelo formulário da memória
     const solta = registro && registro.memoriaId === null && registro.relatoId === null && registro.enviadaPor === usuario.pessoa;
     const desta = registro && anterior && registro.memoriaId === anterior.id;
     if (!solta && !desta) return erro(400, 'Uma das fotos não foi encontrada. Tente enviar de novo.');
   }
-  const fotos = pedido.fotos.map((f) => ({ ...f }));
+  const fotos = pedidas.map((f) => ({ ...f }));
   if (fotos.length > 0 && !fotos.some((f) => f.principal)) fotos[0].principal = true;
+
+  // Só sai da memória a foto que a pessoa viu e tirou (Y3 do PR #160): a que a página mostrava e não está
+  // mais na lista. A que entrou depois (por um relato, por "Acrescentar fotos") fica, no fim da ordem e como
+  // estava. A página de antes, que não diz o que mostrava, não tira foto nenhuma
+  const mostradas = new Set(pedido.fotosMostradas ?? []);
+  const mantidas = new Set(fotos.map((f) => f.id));
+  const removidas = (anterior?.fotos ?? []).filter((f) => mostradas.has(f.id) && !mantidas.has(f.id));
+  const naoVistas = (anterior?.fotos ?? []).filter((f) => !mantidas.has(f.id) && !mostradas.has(f.id));
+  const temPrincipal = fotos.some((f) => f.principal);
+  for (const f of naoVistas) fotos.push({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal && !temPrincipal });
 
   // O administrador que não criou a memória nem está nela corrige só os dados (decisão do Gui, 16/11/2026)
   if (anterior && alcanceDaCorrecao(usuario, anterior) === 'dados') {
-    const conteudo = mudancaDeConteudo(anterior, { titulo: pedido.titulo, nucleos, fotos: pedido.fotos });
+    // As fotos que a página não mostrava ficam como estão: a conferência é só sobre as que a pessoa viu
+    const vistas = pedido.fotosMostradas ? anterior.fotos.filter((f) => mostradas.has(f.id)) : anterior.fotos;
+    const conteudo = mudancaDeConteudo({ ...anterior, fotos: vistas }, { titulo: pedido.titulo, nucleos, fotos: pedidas });
     if (!conteudo.ok) return erro(403, conteudo.motivo);
   }
 
-  // Fotos que saíram da lista vão para a lixeira; quem tira é quem enviou ou um administrador
-  const mantidas = new Set(fotos.map((f) => f.id));
-  const removidas = (anterior?.fotos ?? []).filter((f) => !mantidas.has(f.id));
+  // As fotos tiradas vão para a lixeira; quem tira é quem enviou ou um administrador
   for (const foto of removidas) {
     const decisao = podeRemoverFoto(usuario, foto.enviadaPor);
     if (!decisao.ok) return erro(403, decisao.motivo);
@@ -270,7 +309,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   if (pedido.relato && (textoDoRelato || audiosDoRelato?.length)) {
     relatoPor = resolver(pedido.relato.por);
     if (!relatoPor) return erro(400, 'Não encontrei a pessoa que contou o relato.');
-    // Conferido antes de salvar: o relato recusado não deixa a memória salva sem ele (QA de 23/11/2026)
+    // Conferido antes de salvar: o relato recusado não deixa a memória salva sem ele (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)
     const existente = anterior ? await obterRelato(anterior.id, relatoPor, usuario) : undefined;
     const decisao = podeEscreverRelato(usuario, relatoPor, existente, await pessoasComAcesso());
     if (!decisao.ok) return erro(403, decisao.motivo);
@@ -279,11 +318,13 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // Memória com alguém que só você vê (docs/decisoes.md): o site nunca publica revelando por tabela uma
   // pessoa que só existe num laço "só eu vejo". Sem escolha, nada é salvo e a pessoa decide: abrir a
   // pessoa para todos, publicar sem citá-la ou continuar em rascunho (que salva sem esta conferência).
+  // "Abrir" entra no lote da memória: se ele perde, o laço continua "só eu vejo" (Y3 do PR #160)
+  let lacosAbertos: Comando[] = [];
   if (situacao === 'publicada') {
     const soMinhas = await pessoasQueSoVoceVe(usuario);
     const privadas = integrantes.filter((i) => soMinhas.has(i));
     if (privadas.length > 0) {
-      if (pedido.pessoasPrivadas === 'abrir') await abrirLacosPrivados(usuario, privadas);
+      if (pedido.pessoasPrivadas === 'abrir') lacosAbertos = comandosDeAbrirLacosPrivados(usuario, privadas);
       else if (pedido.pessoasPrivadas === 'sem-citar') for (const p of privadas) integrantes.splice(integrantes.indexOf(p), 1);
       else {
         const nomes = privadas.map((p) => integrantesAtuais.find((i) => i.id === p)?.nome ?? p);
@@ -292,35 +333,25 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     }
   }
 
-  // Tudo conferido: agora grava. Primeiro as pessoas novas e os temas, que a memória cita.
-  for (const nova of aCadastrar) await criarIntegrante(nova.id, nova.nome, usuario.pessoa, nova.tratamento);
-  const temas = pedido.temas === undefined ? undefined : await garantirTemas(lerTemas(pedido.temas), usuario);
-  dados.temas = temas;
+  // Tudo conferido. Nada é gravado antes do lote: as pessoas novas e os temas novos só ganham o id aqui, e o
+  // cadastro deles vai no mesmo lote da memória, junto com o laço aberto, o relato e os avisos. Se o lote
+  // perde a corrida (MemoriaMudou), nada fica, e a nova tentativa começa do zero (Y3 do PR #160)
+  const temasNovos = pedido.temas === undefined ? undefined : await resolverTemas(lerTemas(pedido.temas), usuario);
+  dados.temas = temasNovos?.ids;
+  const antesDaFicha: Comando[] = [...aCadastrar.map((nova) => comandoDeCriarIntegrante(nova.id, nova.nome, usuario.pessoa, nova.tratamento)), ...(temasNovos?.comandos ?? []), ...lacosAbertos];
 
-  let id: string;
-  if (anterior) {
-    id = anterior.id;
-    await atualizarMemoria(anterior, dados, usuario, removidas.map((f) => f.id));
-  } else {
-    // Um código no endereço, e não o título: ver codigoNovo
-    id = codigoNovo(await idsDeMemorias());
-    await criarMemoria(id, dados, usuario);
-  }
-  // Quem vê mudou numa memória publicada: ao ampliar, os relatos que já existiam esperam o sim de quem
-  // os registrou (docs/decisoes.md, "Ampliar quem vê uma memória com relatos")
-  let esperam: { por: string }[] = [];
-  if (anterior?.situacao === 'publicada') {
-    esperam = await mudouQuemVe(id, { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos }, { visibilidade: dados.visibilidade, nucleos }, usuario);
-  }
+  let id = anterior?.id ?? '';
+  // Um código no endereço, e não o título: ver codigoNovo
+  if (!anterior) id = codigoNovo(await idsDeMemorias());
   // Avisos: quem entrou agora em "Quem estava" de uma memória publicada (src/lib/avisos.ts)
-  const antes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];
-  await avisarQuemEstava({ id, situacao, visibilidade: dados.visibilidade, nucleos, integrantes, criadaPor: anterior?.criadaPor ?? usuario.pessoa }, antes, usuario);
+  const marcadosAntes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];
+  const avisos = comandosDosAvisos(await avisosDeQuemEstava({ id, situacao, visibilidade: dados.visibilidade, nucleos, integrantes, criadaPor: anterior?.criadaPor ?? usuario.pessoa }, marcadosAntes, usuario));
 
+  // Relato de quem está registrando: no mesmo lote. Relato já publicado continua publicado; os demais
+  // acompanham a situação da memória
+  let doRelato: { comandos: Comando[]; mensagens: Mensagem[]; nasce: boolean } | undefined;
   if (relatoPor) {
-    const existente = await obterRelato(id, relatoPor, usuario);
-    const decisao = podeEscreverRelato(usuario, relatoPor, existente, await pessoasComAcesso());
-    if (!decisao.ok) return erro(403, `A memória foi salva, mas o relato não: ${decisao.motivo}`);
-    // Relato já publicado continua publicado. Os demais acompanham a situação da memória.
+    const existente = anterior ? await obterRelato(id, relatoPor, usuario) : undefined;
     const situacaoDoRelato = existente?.situacao === 'publicada' ? 'publicada' : situacao;
     // As mensagens de antes, para o histórico e para o envio sem script, que acrescenta no fim
     const antesDoRelato = existente ? ((await listarMensagensDosRelatos([existente])).get(existente.id) ?? []) : [];
@@ -328,13 +359,51 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
       ? pedido.relato.mensagens.map((m) => ({ ...(m.id ? { id: m.id } : {}), tipo: m.tipo, ...(m.tipo === 'texto' ? { texto: arrumarTexto(m.texto ?? '') } : { audioId: m.audioId }) }))
       : [...antesDoRelato, ...paragrafos(textoDoRelato).map((t) => ({ tipo: 'texto' as const, texto: t }))];
     const texto = pedido.relato?.mensagens ? textoDasMensagens(mensagens) : textoDasMensagens(mensagens) || textoDoRelato;
-    await salvarRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato });
+    doRelato = {
+      comandos: comandosDoRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato }),
+      mensagens,
+      nasce: !existente,
+    };
+  }
+
+  // Quem vê mudou numa memória publicada: ao ampliar, os relatos que já existiam esperam o sim de quem
+  // os registrou (docs/decisoes.md, "Ampliar quem vê uma memória com relatos"). Salvar sem mudar o
+  // público não toca em relato nenhum, e a mudança grava a memória, os relatos e os pedidos numa
+  // transação só (revisão Y do PR #160)
+  let esperam: { por: string }[] = [];
+  const depoisDaFicha = [...(doRelato?.comandos ?? []), ...avisos];
+  if (anterior) {
+    const publicoAntes = { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos };
+    const publicoDepois = { visibilidade: dados.visibilidade, nucleos };
+    // Só quem criou grava o público, e só quando ele mudou de fato. Numa memória aberta a todos, marcar ou
+    // tirar famílias grava só as marcas, se ela ainda estiver aberta na hora do lote. Quem não criou nunca
+    // regrava o público que leu: se quem criou o mudou no meio tempo, vale o de quem criou (revisão Y2 do PR #160)
+    const mudou = anterior.criadaPor === usuario.pessoa && publicoMudou(publicoAntes, publicoDepois);
+    const marcas = !mudou && anterior.visibilidade === 'todos' && dados.visibilidade === 'todos' && !mesmasFamilias(anterior.nucleos, nucleos);
+    const mudanca =
+      mudou && anterior.situacao === 'publicada'
+        ? await mudancaDeQuemVe(id, publicoAntes, publicoDepois, usuario, anterior.criadaPor)
+        : { comandos: [], esperam: [] };
+    esperam = mudanca.esperam;
+    // O relato que nasce junto conta com o público que a rota leu: se a memória mudou depois, o lote volta
+    await atualizarMemoria(anterior, dados, usuario, removidas.map((f) => f.id), {
+      antes: antesDaFicha,
+      junto: [...mudanca.comandos, ...depoisDaFicha],
+      quemVe: mudou ? 'mudou' : marcas ? 'marcas' : 'nao',
+      conferir: Boolean(doRelato?.nasce),
+    });
+  } else {
+    await criarMemoria(id, dados, usuario, { antes: antesDaFicha, junto: depoisDaFicha });
+  }
+
+  // Os áudios e as mensagens do relato apontam para ele: entram depois de o lote passar
+  if (relatoPor && doRelato) {
     const meu = await obterRelatoRegistradoPor(id, relatoPor, usuario);
     if (meu && audiosDoRelato) await ligarAudios(meu.id, id, audiosDoRelato, usuario);
     if (meu) {
       // Só as mensagens de áudio que ficaram mesmo no relato
       const ficaram = new Set(((await listarAudiosDosRelatos([meu.id])).get(meu.id) ?? []).map((a) => a.id));
-      await gravarMensagens(meu.id, mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim()))));
+      await gravarMensagens(meu.id, doRelato.mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim()))));
     }
   }
 

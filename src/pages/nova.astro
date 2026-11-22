@@ -249,7 +249,9 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       <ul class="fotos-enviadas" data-fotos>
         {
           (memoria?.fotos ?? []).map((foto) => (
-            <li class="foto-enviada" data-foto-id={foto.id}>
+            <li class="foto-enviada" data-foto-id={foto.id} data-mostrada>
+              {/* As fotos que a página mostrava: só sai da memória a que a pessoa viu e tirou (Y3 do PR #160) */}
+              <input type="hidden" name="fotosMostradas" value={foto.id} />
               <div class="foto__papel">{foto.chave ? <img src={`/fotos/${foto.chave}`} alt="" /> : <div class="foto__reserva">Foto de exemplo</div>}</div>
               <div class="foto-enviada__campos">
                 <label class="campo">
@@ -913,6 +915,10 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       });
     }
 
+    // As fotos que a página mostrava ao abrir: o servidor só tira da memória a que está aqui e saiu da lista,
+    // e a que outra pessoa acrescentou depois fica (Y3 do PR #160)
+    const fotosMostradas = [...listaFotos.querySelectorAll<HTMLElement>('[data-mostrada]')].map((item) => Number(item.dataset.fotoId));
+
     // Remover vale para fotos que já estavam e para as recém-enviadas
     listaFotos.addEventListener('click', (evento) => {
       const alvo = (evento.target as HTMLElement).closest('[data-remover]');
@@ -981,7 +987,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         etapas?.ir(etapaDaData);
         if (etapas?.atual() === etapaDaData) focarNaData();
         // Quem ainda não passou da primeira etapa fica nela, e o aviso diz onde o ano se informa
-        if (etapas && etapas.atual() !== etapaDaData) return avisar('Informe o ano, mesmo que seja aproximado, na etapa "Quando e onde".', 'erro');
+        if (etapas && etapas.atual() !== etapaDaData) return avisar('Informe o ano, mesmo que seja aproximado, na etapa “Quando e onde”.', 'erro');
         return avisar('Informe o ano, mesmo que seja aproximado.', 'erro');
       }
 
@@ -1017,6 +1023,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         nucleos: dados.getAll('nucleos').map(String),
         visibilidade: dados.get('visibilidade') ?? 'todos',
         situacao,
+        fotosMostradas,
         fotos: itens.map((item) => ({
           id: Number(item.dataset.fotoId),
           legenda: item.querySelector<HTMLInputElement>('[data-legenda]')?.value.trim() || undefined,

@@ -43,7 +43,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!atual) return voltar(request, '/capitulos', { erro: 'Capítulo não encontrado.' });
     if (!usuario.admin) return voltar(request, `/capitulos/${id}`, { erro: 'Só os administradores excluem capítulos.' });
     await excluirCapitulo(id, usuario);
-    return voltar(request, '/capitulos', { ok: `"${atual.titulo}" foi para a lixeira. As memórias dele continuam no acervo.` });
+    return voltar(request, '/capitulos', { ok: `“${atual.titulo}” foi para a lixeira. As memórias dele continuam no acervo.` });
   }
 
   if (acao === 'memorias') {
@@ -96,7 +96,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const escondidos = escolha === 'periodo' ? (atual?.pessoas ?? []).filter((p) => !marcaveis.has(p) && !lido.pessoas.includes(p)) : [];
   const deQuem = { ...lido, pessoas: [...lido.pessoas, ...escondidos] };
   if (escolha === 'periodo' && lido.pessoas.length + lido.familias.length === 0) {
-    return falhar('Marque de quem é este período. Se ele vale para a família inteira, escolha "Época".');
+    return falhar('Marque de quem é este período. Se ele vale para a família inteira, escolha “Época”.');
   }
 
   // Dentro de outro capítulo: no máximo dois níveis

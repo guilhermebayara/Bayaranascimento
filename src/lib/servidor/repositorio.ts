@@ -12,7 +12,21 @@ import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '.
 import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, type TipoDeSugestao } from '../sugestoes';
 import type { SimboloDaReacao } from '../reacoes';
 import { mensagensDoRelato, type Mensagem } from '../conversa';
-import { comExcluidas, pessoasQueNaoVe, podeVerRetrato, veORelato, type AcessoDaMemoria, type Usuario } from './permissoes';
+import {
+  comExcluidas,
+  pessoasQueNaoVe,
+  podeVerRetrato,
+  publicoConhecidoAntes,
+  publicoConhecidoAoLiberar,
+  relatoDepoisDaMudanca,
+  jaRecusouEstePublico,
+  veORelato,
+  type AcessoDaMemoria,
+  type Publico,
+  chaveDoPublico,
+  type PublicoConhecido,
+  type Usuario,
+} from './permissoes';
 
 export interface Integrante {
   id: string;
@@ -86,6 +100,8 @@ export interface Memoria extends AcessoDaMemoria {
   relatos: number;
   /** quando foi publicada (as de antes da migração 020, quando foram criadas); vazio no rascunho */
   publicadaEm: string;
+  /** a versão (migração 107): sobe a cada lote que conta com os relatos dela (ver conferirVersao) */
+  versao: number;
 }
 
 export interface Relato {
@@ -100,12 +116,71 @@ export interface Relato {
    * antes: os membros destes núcleos (ver estaNoPublicoDoRelato). Vazio: acompanha a memória.
    */
   soParaNucleos: string[] | null;
+  /** O público mais amplo que o relato já teve (migração 105; ver relatoDepoisDaMudanca). Vazio: ainda sem registro. */
+  publicoConhecido?: PublicoConhecido | null;
+  /** O rascunho de relato que foi para a lixeira: fica parado, fora da espera e dos pedidos, até ser restaurado. */
+  descartadoEm?: string | null;
 }
 
 /** A coluna so_para_nucleos (migração 025), em JSON, como lista. */
 const lerNucleosDoRelato = (valor: unknown): string[] | null => (typeof valor === 'string' && valor ? (JSON.parse(valor) as string[]) : null);
 
+/** A coluna publico_conhecido (migração 105): "todos" ou a lista de núcleos em JSON. Vazia: ainda sem registro. */
+const lerPublicoConhecido = (valor: unknown): PublicoConhecido | null =>
+  valor === 'todos' ? 'todos' : typeof valor === 'string' && valor ? (JSON.parse(valor) as string[]) : null;
+const gravarPublicoConhecido = (publico: PublicoConhecido): string => (publico === 'todos' ? 'todos' : JSON.stringify(publico));
+
 const db = () => banco();
+
+// --- A versão da memória (migração 107; revisão Y2 do PR #160, item 4b) ---
+
+/** O recado de quem perdeu a corrida mais de uma vez seguida: nada foi gravado. */
+export const RECADO_MEMORIA_MUDOU = 'Esta memória mudou enquanto você editava. Abra de novo para ver como ficou.';
+
+/** O lote contava com uma versão da memória que já não é a de agora: nada foi gravado. */
+export class MemoriaMudou extends Error {
+  constructor() {
+    super(RECADO_MEMORIA_MUDOU);
+  }
+}
+
+/**
+ * Sobe a versão a partir da que foi lida. Se outro lote subiu antes, o gatilho da migração 107 recusa, e o
+ * lote inteiro volta (MemoriaMudou). Vai junto de todo lote que grava a espera ou o público conhecido de um
+ * relato a partir do que leu.
+ */
+const conferirVersao = (memoriaId: string, lida: number) => db().prepare('UPDATE memorias SET versao = ? WHERE id = ?').bind(lida + 1, memoriaId);
+
+/** Sobe a versão sem conferir: um relato novo, que quem leu os relatos antes não viu. */
+const subirVersao = (memoriaId: string) => db().prepare('UPDATE memorias SET versao = versao + 1 WHERE id = ?').bind(memoriaId);
+
+/** O lote, com a recusa do gatilho traduzida em MemoriaMudou. */
+async function loteDaMemoria(comandos: Comando[]): Promise<void> {
+  try {
+    await db().batch(comandos);
+  } catch (erro) {
+    if (String((erro as Error)?.message ?? erro).includes('memoria-mudou')) throw new MemoriaMudou();
+    throw erro;
+  }
+}
+
+/**
+ * Faz de novo, lendo o banco de agora, quando o lote perdeu a corrida para outro (MemoriaMudou): a conta
+ * dos relatos sai do que existe na hora em que o lote grava. Depois de três tentativas, desiste, e quem
+ * chama recusa com RECADO_MEMORIA_MUDOU, sem nada gravado.
+ */
+export async function refazerSeAMemoriaMudou<T>(fazer: () => Promise<T>, tentativas = 3): Promise<T | MemoriaMudou> {
+  for (let vez = 1; ; vez++) {
+    try {
+      return await fazer();
+    } catch (erro) {
+      if (!(erro instanceof MemoriaMudou)) throw erro;
+      if (vez >= tentativas) return erro;
+    }
+  }
+}
+/** Um comando do banco, para gravar junto num lote (db.batch, uma transação). */
+export type Comando = ReturnType<ReturnType<typeof banco>['prepare']>;
 
 /**
  * Regra de visibilidade em SQL. ?1 é sempre o id do usuário.
@@ -190,8 +265,12 @@ export async function atualizarSobrenomesDoNucleo(id: string, sobrenomes: string
 
 /** Cadastro rápido, pelo nome digitado num laço ou numa memória. "Como se referir" vem junto, se a pessoa disse. */
 export async function criarIntegrante(id: string, nome: string, criadoPor: string, tratamento: Tratamento = null): Promise<void> {
-  await db().prepare(`INSERT INTO integrantes (id, nome, criado_por, tratamento) VALUES (?, ?, ?, ?)`).bind(id, nome, criadoPor, tratamento).run();
+  await comandoDeCriarIntegrante(id, nome, criadoPor, tratamento).run();
 }
+
+/** O cadastro rápido como comando, para gravar junto com a memória que cita a pessoa (um lote só). */
+export const comandoDeCriarIntegrante = (id: string, nome: string, criadoPor: string, tratamento: Tratamento = null): Comando =>
+  db().prepare(`INSERT INTO integrantes (id, nome, criado_por, tratamento) VALUES (?, ?, ?, ?)`).bind(id, nome, criadoPor, tratamento);
 
 export interface DadosDoIntegrante {
   nome: string;
@@ -652,6 +731,7 @@ function lerMemoria(linha: Record<string, unknown>): Memoria {
     temas: [],
     relatos: 0,
     publicadaEm: ((linha.publicada_em ?? (linha.situacao === 'publicada' ? linha.criada_em : '')) as string) ?? '',
+    versao: Number(linha.versao ?? 0),
   };
 }
 
@@ -810,13 +890,31 @@ export interface DadosDaMemoria {
   fotos: { id: number; legenda?: string; principal: boolean }[];
 }
 
-function comandosDeLigacao(id: string, dados: DadosDaMemoria): D1PreparedStatement[] {
-  const comandos = [
-    db().prepare('DELETE FROM memoria_nucleos WHERE memoria_id = ?').bind(id),
-    db().prepare('DELETE FROM memoria_integrantes WHERE memoria_id = ?').bind(id),
-  ];
-  for (const n of dados.nucleos) {
-    comandos.push(db().prepare('INSERT OR IGNORE INTO memoria_nucleos (memoria_id, nucleo_id) VALUES (?, ?)').bind(id, n));
+/**
+ * O que um lote faz com quem vê a memória (a visibilidade e as famílias). Só quem criou muda quem vê
+ * (podeMudarQuemVe), e só a rota da memória, quando o público mudou de fato: "mudou". Numa memória aberta
+ * a todos, quem pode corrigir marca ou tira famílias, que não restringem nada: "marcas", gravadas só se a
+ * memória ainda estiver aberta a todos na hora do lote. Fora isso, o lote não toca no público: quem não
+ * criou, ou quem salva por outro caminho (reações, sugestões, restaurar uma versão), grava a ficha e deixa
+ * o público como está no banco, mesmo que ele tenha mudado depois da leitura (revisão Y2 do PR #160).
+ */
+export type GravarQuemVe = 'mudou' | 'marcas' | 'nao';
+
+/** A memória ainda está aberta a todos na hora do lote: só então as marcas de família são gravadas. */
+const AINDA_ABERTA = `EXISTS (SELECT 1 FROM memorias WHERE id = ?1 AND visibilidade = 'todos')`;
+
+function comandosDeLigacao(id: string, dados: DadosDaMemoria, quemVe: GravarQuemVe = 'mudou'): D1PreparedStatement[] {
+  const comandos = [db().prepare('DELETE FROM memoria_integrantes WHERE memoria_id = ?').bind(id)];
+  if (quemVe === 'mudou') {
+    comandos.push(db().prepare('DELETE FROM memoria_nucleos WHERE memoria_id = ?').bind(id));
+    for (const n of dados.nucleos) {
+      comandos.push(db().prepare('INSERT OR IGNORE INTO memoria_nucleos (memoria_id, nucleo_id) VALUES (?, ?)').bind(id, n));
+    }
+  } else if (quemVe === 'marcas') {
+    comandos.push(db().prepare(`DELETE FROM memoria_nucleos WHERE memoria_id = ?1 AND ${AINDA_ABERTA}`).bind(id));
+    for (const n of dados.nucleos) {
+      comandos.push(db().prepare(`INSERT OR IGNORE INTO memoria_nucleos (memoria_id, nucleo_id) SELECT ?1, ?2 WHERE ${AINDA_ABERTA}`).bind(id, n));
+    }
   }
   for (const i of dados.integrantes) {
     comandos.push(db().prepare('INSERT OR IGNORE INTO memoria_integrantes (memoria_id, integrante_id) VALUES (?, ?)').bind(id, i));
@@ -839,8 +937,14 @@ function comandosDeLigacao(id: string, dados: DadosDaMemoria): D1PreparedStateme
   return comandos;
 }
 
-export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: Usuario): Promise<void> {
+/**
+ * Cria a memória num lote só. `antes`: o que a ficha cita e ainda não existe (a pessoa nova, o tema novo,
+ * o laço aberto), gravado no mesmo lote; `junto`: o que vem depois dela (o relato de quem publica, os
+ * avisos). Se um comando falha, nada fica (Y3 do PR #160).
+ */
+export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: Usuario, { antes = [], junto = [] }: { antes?: Comando[]; junto?: Comando[] } = {}): Promise<void> {
   await db().batch([
+    ...antes,
     db()
       .prepare(
         `INSERT INTO memorias (id, titulo, ano, mes, dia, aproximada, tipo, tipo_outro, lugar, visibilidade, situacao, criada_por)
@@ -849,6 +953,7 @@ export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: U
       .bind(id, dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.tipoOutro ?? null, dados.lugar ?? null, dados.visibilidade, dados.situacao, usuario.pessoa),
     marcarPublicacao(id),
     ...comandosDeLigacao(id, dados),
+    ...junto,
   ]);
 }
 
@@ -856,21 +961,54 @@ export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: U
 const marcarPublicacao = (id: string) =>
   db().prepare(`UPDATE memorias SET publicada_em = datetime('now') WHERE id = ? AND situacao = 'publicada' AND publicada_em IS NULL`).bind(id);
 
-/** Atualiza a ficha, guardando a versão anterior no histórico. Fotos que saíram da lista vão para a lixeira. */
-export async function atualizarMemoria(anterior: Memoria, dados: DadosDaMemoria, usuario: Usuario, fotosRemovidas: number[]): Promise<void> {
-  await db().batch([
+/**
+ * Atualiza a ficha, guardando a versão anterior no histórico. Fotos que saíram da lista vão para a lixeira.
+ * `quemVe`: se o lote grava a visibilidade e as famílias (ver GravarQuemVe). Por padrão, não grava: a ficha
+ * muda e o público fica como está no banco. "mudou" é só de quem criou.
+ * `junto`: o que precisa gravar na mesma transação, como os relatos e os pedidos de uma mudança de quem vê
+ * (comandosDaMudancaDeQuemVe): se um falhar, a memória continua com o público de antes (revisão Y do PR #160).
+ * `antes`: o que a ficha cita e ainda não existe (a pessoa nova, o tema novo, o laço aberto), no mesmo lote.
+ * `conferir`: o lote conta com a memória que leu (mudar quem vê, ou o relato que nasce junto): se ela mudou
+ * no meio tempo, nada é gravado (MemoriaMudou), nem o que vai em `antes` e `junto` (Y3 do PR #160).
+ */
+export async function atualizarMemoria(
+  anterior: Memoria,
+  dados: DadosDaMemoria,
+  usuario: Usuario,
+  fotosRemovidas: number[],
+  { junto = [], antes = [], quemVe = 'nao', conferir = false }: { junto?: Comando[]; antes?: Comando[]; quemVe?: GravarQuemVe; conferir?: boolean } = {},
+): Promise<void> {
+  if (quemVe === 'mudou' && anterior.criadaPor !== usuario.pessoa) throw new Error('Só quem criou muda quem pode ver.');
+  const visibilidade = quemVe === 'mudou' ? ', visibilidade = ?' : '';
+  await loteDaMemoria([
+    // Mudar quem vê conta com os relatos que leu: se um relato nasceu ou mudou no meio tempo, o lote volta
+    ...(quemVe === 'mudou' || conferir ? [conferirVersao(anterior.id, anterior.versao)] : []),
+    ...antes,
     db()
       .prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('memoria', ?, ?, ?)`)
       .bind(anterior.id, JSON.stringify(anterior), usuario.pessoa),
     db()
       .prepare(
         `UPDATE memorias SET titulo = ?, ano = ?, mes = ?, dia = ?, aproximada = ?, tipo = ?, tipo_outro = ?, lugar = ?,
-           visibilidade = ?, situacao = ?, atualizada_em = datetime('now') WHERE id = ?`,
+           situacao = ?${visibilidade}, atualizada_em = datetime('now') WHERE id = ?`,
       )
-      .bind(dados.titulo, dados.ano, dados.mes ?? null, dados.dia ?? null, dados.aproximada ? 1 : 0, dados.tipo, dados.tipoOutro ?? null, dados.lugar ?? null, dados.visibilidade, dados.situacao, anterior.id),
+      .bind(
+        dados.titulo,
+        dados.ano,
+        dados.mes ?? null,
+        dados.dia ?? null,
+        dados.aproximada ? 1 : 0,
+        dados.tipo,
+        dados.tipoOutro ?? null,
+        dados.lugar ?? null,
+        dados.situacao,
+        ...(quemVe === 'mudou' ? [dados.visibilidade] : []),
+        anterior.id,
+      ),
     marcarPublicacao(anterior.id),
     ...fotosRemovidas.map((id) => db().prepare(`UPDATE fotos SET removida_em = datetime('now'), removida_por = ? WHERE id = ?`).bind(usuario.pessoa, id)),
-    ...comandosDeLigacao(anterior.id, dados),
+    ...comandosDeLigacao(anterior.id, dados, quemVe),
+    ...junto,
   ]);
 }
 
@@ -900,10 +1038,22 @@ export async function listarTemasVisiveis(usuario: Usuario): Promise<Tema[]> {
 
 /** Devolve os ids dos temas com esses nomes, criando os que ainda não existem. */
 export async function garantirTemas(nomes: string[], usuario: Usuario): Promise<string[]> {
-  if (nomes.length === 0) return [];
+  const { ids, comandos } = await resolverTemas(nomes, usuario);
+  if (comandos.length > 0) await db().batch(comandos);
+  return ids;
+}
+
+/**
+ * Os ids dos temas com esses nomes, sem gravar nada: os que ainda não existem ganham o id aqui, e os
+ * comandos que os criam vão no lote de quem os usa. Assim, um salvamento que perde a corrida não deixa
+ * tema nenhum gravado (Y3 do PR #160).
+ */
+export async function resolverTemas(nomes: string[], usuario: Usuario): Promise<{ ids: string[]; comandos: Comando[] }> {
+  if (nomes.length === 0) return { ids: [], comandos: [] };
   const existentes = await listarTemas();
   const ids = new Set(existentes.map((t) => t.id));
   const resultado: string[] = [];
+  const comandos: Comando[] = [];
   for (const nome of nomes) {
     const igual = existentes.find((t) => t.nome.toLowerCase() === nome.toLowerCase() || t.id === criarSlug(nome));
     if (igual) {
@@ -911,12 +1061,12 @@ export async function garantirTemas(nomes: string[], usuario: Usuario): Promise<
       continue;
     }
     const id = slugUnico(criarSlug(nome) || 'tema', ids);
-    await db().prepare('INSERT INTO temas (id, nome, criado_por) VALUES (?, ?, ?)').bind(id, nome, usuario.pessoa).run();
+    comandos.push(db().prepare('INSERT INTO temas (id, nome, criado_por) VALUES (?, ?, ?)').bind(id, nome, usuario.pessoa));
     ids.add(id);
     existentes.push({ id, nome });
     resultado.push(id);
   }
-  return [...new Set(resultado)];
+  return { ids: [...new Set(resultado)], comandos };
 }
 
 function lerCapitulo(c: Record<string, unknown>): Capitulo {
@@ -1408,17 +1558,23 @@ function lerRelato(r: Record<string, unknown>): Relato {
     texto: r.texto as string,
     situacao: r.situacao as 'rascunho' | 'publicada',
     soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos),
+    publicoConhecido: lerPublicoConhecido(r.publico_conhecido),
+    descartadoEm: (r.descartado_em as string | null | undefined) ?? null,
   };
 }
 
 /**
- * Relatos de uma memória já conferida: os publicados, mais os rascunhos de quem pede. O de quem a pessoa
- * não vê fica de fora (ver veORelato).
+ * Relatos de uma memória: os publicados, mais os rascunhos de quem pede. O de quem a pessoa não vê fica de
+ * fora (ver veORelato), e a memória que ela não vê não entrega relato nenhum, mesmo a quem chama sem
+ * conferir antes (revisão Y2 do PR #160).
  */
 export async function listarRelatos(usuario: Usuario, memoriaId: string): Promise<Relato[]> {
   const [{ results }, naoVe] = await Promise.all([
     db()
-      .prepare(`SELECT * FROM relatos WHERE memoria_id = ?2 AND (situacao = 'publicada' OR registrado_por = ?1) ORDER BY criado_em, id`)
+      .prepare(
+        `SELECT r.* FROM relatos r JOIN memorias m ON m.id = r.memoria_id
+         WHERE r.memoria_id = ?2 AND ${FILTRO_VISIVEL} AND (r.situacao = 'publicada' OR (r.registrado_por = ?1 AND r.descartado_em IS NULL)) ORDER BY r.criado_em, r.id`,
+      )
       .bind(usuario.pessoa, memoriaId)
       .all<Record<string, unknown>>(),
     pessoasQueONaoVe(usuario),
@@ -1433,7 +1589,7 @@ export async function listarRelatos(usuario: Usuario, memoriaId: string): Promis
 export async function obterRelato(memoriaId: string, por: string, usuario: Usuario): Promise<Relato | undefined> {
   const linha = await db()
     .prepare(
-      `SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND (situacao = 'publicada' OR registrado_por = ?)
+      `SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND (situacao = 'publicada' OR (registrado_por = ? AND descartado_em IS NULL))
        ORDER BY situacao = 'publicada' DESC LIMIT 1`,
     )
     .bind(memoriaId, por, usuario.pessoa)
@@ -1448,7 +1604,7 @@ export async function listarRelatosRegistradosPor(usuario: Usuario): Promise<(Re
   const { results } = await db()
     .prepare(
       `SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id
-       WHERE r.registrado_por = ?1 AND ${FILTRO_VISIVEL} ORDER BY r.atualizado_em DESC`,
+       WHERE r.registrado_por = ?1 AND r.descartado_em IS NULL AND ${FILTRO_VISIVEL} ORDER BY r.atualizado_em DESC`,
     )
     .bind(usuario.pessoa)
     .all<Record<string, unknown>>();
@@ -1459,11 +1615,123 @@ export async function listarRascunhosDeRelato(usuario: Usuario): Promise<(Relato
   const { results } = await db()
     .prepare(
       `SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id
-       WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL} ORDER BY r.atualizado_em DESC`,
+       WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND r.descartado_em IS NULL AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL} ORDER BY r.atualizado_em DESC`,
     )
     .bind(usuario.pessoa)
     .all<Record<string, unknown>>();
   return results.map((r) => ({ ...lerRelato(r), titulo: r.titulo as string }));
+}
+
+/**
+ * O rascunho que a pessoa escreveu em nome de "por" e que ficou para trás porque outra pessoa publicou o
+ * relato dele (resposta do Gui à P4 do QA de 23/11/2026). Só quem escreveu o rascunho o recebe.
+ */
+export async function obterRascunhoQueFicou(memoriaId: string, por: string, usuario: Usuario): Promise<Relato | undefined> {
+  const linha = await db()
+    .prepare(
+      `SELECT * FROM relatos r WHERE r.memoria_id = ?1 AND r.por = ?2 AND r.registrado_por = ?3 AND r.situacao = 'rascunho' AND r.descartado_em IS NULL
+       AND EXISTS (SELECT 1 FROM relatos p WHERE p.memoria_id = r.memoria_id AND p.por = r.por AND p.situacao = 'publicada' AND p.registrado_por <> r.registrado_por)`,
+    )
+    .bind(memoriaId, por, usuario.pessoa)
+    .first<Record<string, unknown>>();
+  return linha ? lerRelato(linha) : undefined;
+}
+
+/**
+ * Descartar o rascunho que ficou para trás: vai para a lixeira de quem o escreveu, e nada é apagado. Na
+ * lixeira ele fica parado, fora da conta da espera (comandosDaMudancaDeQuemVe), e guarda o público que já
+ * teve até aqui, para voltar com o que a regra der a ele quando for restaurado (revisão Y do PR #160).
+ */
+export async function descartarRascunhoDeRelato(relato: Relato, memoria: Publico & { versao: number }): Promise<void> {
+  const conhecido = gravarPublicoConhecido(publicoConhecidoAntes(relato, memoria));
+  await loteDaMemoria([
+    conferirVersao(relato.memoriaId, memoria.versao),
+    db().prepare(`UPDATE relatos SET descartado_em = datetime('now'), publico_conhecido = ? WHERE id = ? AND situacao = 'rascunho'`).bind(conhecido, relato.id),
+  ]);
+}
+
+/** Os rascunhos de relato que a pessoa descartou, em memórias que ela vê: a lixeira dela. */
+export async function listarRascunhosDeRelatoDescartados(usuario: Usuario): Promise<(Relato & { titulo: string; descartadoEm: string })[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id
+       WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND r.descartado_em IS NOT NULL AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       ORDER BY r.descartado_em DESC`,
+    )
+    .bind(usuario.pessoa)
+    .all<Record<string, unknown>>();
+  return results.map((r) => ({ ...lerRelato(r), titulo: r.titulo as string, descartadoEm: r.descartado_em as string }));
+}
+
+/**
+ * Restaurar o rascunho descartado: volta a ser de quem o escreveu, com o público que a regra dá a ele
+ * agora, como um relato que ficou parado enquanto a memória mudava (relatoDepoisDaMudanca, a partir do
+ * público que ele guardou ao ir para a lixeira). Se passou a esperar, quem o escreveu recebe o pedido
+ * para liberar, de quem criou a memória; se a espera perdeu o sentido, o pedido sai da lista.
+ */
+export async function restaurarRascunhoDeRelato(relato: Relato, memoria: Publico & { criadaPor: string; versao: number }, paraQuem: (conhecido: PublicoConhecido) => string): Promise<void> {
+  // Sem público antigo além do que ele guardou: a conta parte do público conhecido dele
+  const novo = relatoDepoisDaMudanca(relato, { visibilidade: 'nucleos', nucleos: [] }, memoria, memoria.criadaPor);
+  const jaRecusou = jaRecusouEstePublico(memoria, (await ultimasRespostas([relato.id])).get(relato.id));
+  await loteDaMemoria([
+    conferirVersao(relato.memoriaId, memoria.versao),
+    db()
+      .prepare('UPDATE relatos SET descartado_em = NULL, so_para_nucleos = ?, publico_conhecido = ? WHERE id = ?')
+      .bind(novo.soParaNucleos ? JSON.stringify(novo.soParaNucleos) : null, gravarPublicoConhecido(novo.publicoConhecido), relato.id),
+    ...comandosDosPedidos(relato, novo, { memoriaId: relato.memoriaId, de: memoria.criadaPor, paraQuem: paraQuem(novo.publicoConhecido), jaRecusou }),
+  ]);
+}
+
+/**
+ * Os pedidos para liberar que acompanham a nova situação de um relato: o que espera tem um pedido na lista,
+ * com o público de agora, porque "Liberar para quem passou a ver" libera para quem vê a memória agora
+ * (revisão Y do PR #160); o que deixou de esperar tem o pedido aberto tirado da lista, sem resposta. O
+ * histórico guarda uma linha por ciclo de ampliar (decisão do Gui, 22/11/2026): o pedido aberto é o mesmo
+ * até a resposta ou até a espera acabar, e o índice da migração 108 garante um só. Depois de "Manter como
+ * estava", o relato que espera só ganha pedido novo quando o público é maior do que o perguntado
+ * (`jaRecusou`, ver jaRecusouEstePublico, decisão do Gui de 22/11/2026); quando quem criou restringe para
+ * um público que cabe no recusado, o pedido aberto sai da lista sem resposta (Y3 do PR #160).
+ */
+function comandosDosPedidos(
+  relato: Relato,
+  novo: { soParaNucleos: string[] | null },
+  pedido: { memoriaId: string; de: string; paraQuem: string; jaRecusou: boolean },
+) {
+  if (novo.soParaNucleos && pedido.jaRecusou) {
+    // O público de agora cabe num que a pessoa já respondeu com "Manter" (decisão do Gui, 22/11/2026): o
+    // pedido aberto, feito para um público maior, sai da lista sem resposta, e o relato fica como ela escolheu
+    return [db().prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(relato.id)];
+  }
+  if (novo.soParaNucleos) {
+    return [
+      db()
+        .prepare(`UPDATE avisos SET dados = json_set(COALESCE(dados, '{}'), '$.paraQuem', ?) WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`)
+        .bind(pedido.paraQuem, relato.id),
+      db()
+        // Um pedido aberto por relato, garantido pelo índice da migração 108: se já houver um, fica ele
+        .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, 'liberar-relato', ?, ?, ?, ?) ON CONFLICT DO NOTHING`)
+        .bind(relato.registradoPor, pedido.memoriaId, relato.id, pedido.de, JSON.stringify({ paraQuem: pedido.paraQuem })),
+    ];
+  }
+  if (relato.soParaNucleos) {
+    return [db().prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(relato.id)];
+  }
+  return [];
+}
+
+/** A última resposta ao pedido de cada relato, com o público que o pedido mostrava (ver jaRecusouEstePublico). */
+async function ultimasRespostas(relatoIds: number[]): Promise<Map<number, { resposta: string; publico: Publico | null }>> {
+  if (relatoIds.length === 0) return new Map();
+  const { results } = await db()
+    .prepare(
+      `SELECT relato_id, resposta, json_extract(dados, '$.publico') AS publico FROM avisos
+       WHERE tipo = 'liberar-relato' AND resposta IS NOT NULL AND relato_id IN (SELECT value FROM json_each(?)) ORDER BY id`,
+    )
+    .bind(JSON.stringify(relatoIds))
+    .all<{ relato_id: number; resposta: string; publico: string | null }>();
+  // Em ordem, a última de cada relato fica por cima
+  type Linha = { relato_id: number; resposta: string; publico: string | null };
+  return new Map((results as Linha[]).map((r) => [Number(r.relato_id), { resposta: r.resposta, publico: r.publico ? (JSON.parse(r.publico) as Publico) : null }]));
 }
 
 export async function salvarRelato(
@@ -1476,31 +1744,94 @@ export async function salvarRelato(
   // O relato como conversa: só acrescentar mensagens no fim (voltar e contar mais) não guarda versão.
   // A versão leva junto as mensagens de antes, quando há (src/lib/conversa.ts)
   versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
+  // A rota do relato confere a versão da memória que leu, como os outros lotes (Y3 do PR #160): se a memória
+  // mudou depois da leitura, nada é gravado (MemoriaMudou), e a rota refaz a conta com a memória de agora.
+  // `nasce`: o relato novo que espera o sim de quem escreveu (relatoQueNasce), com o pedido
+  { conferir, nasce }: { conferir?: number; nasce?: RelatoQueNasceEsperando } = {},
 ): Promise<void> {
+  if (conferir === undefined) {
+    await db().batch(comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce }));
+    return;
+  }
+  // Conferir a versão também a sobe: o relato novo dispensa a subida sem conferência
+  await loteDaMemoria([conferirVersao(memoriaId, conferir), ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false })]);
+}
+
+/** O relato novo que nasce esperando: só para estas famílias, com o pedido de quem criou a memória. */
+export interface RelatoQueNasceEsperando {
+  soParaNucleos: string[];
+  de: string;
+  paraQuem: string;
+}
+
+/**
+ * Os públicos que a memória já teve, do histórico e o de agora, como chaves (chaveDoPublico). Um só quer
+ * dizer que quem vê a memória nunca mudou.
+ */
+export async function publicosQueAMemoriaJaTeve(memoria: { id: string } & Publico): Promise<Set<string>> {
+  const { results } = await db()
+    .prepare(`SELECT json_extract(dados, '$.visibilidade') AS visibilidade, json_extract(dados, '$.nucleos') AS nucleos FROM versoes WHERE tipo = 'memoria' AND item_id = ?`)
+    .bind(memoria.id)
+    .all<{ visibilidade: string | null; nucleos: string | null }>();
+  const chaves = new Set([chaveDoPublico(memoria)]);
+  for (const v of results as { visibilidade: string | null; nucleos: string | null }[]) {
+    // A versão sem o público (de antes de ele entrar na ficha) não diz nada: conta como uma mudança
+    if (v.visibilidade !== 'todos' && v.visibilidade !== 'nucleos') chaves.add('desconhecido');
+    else chaves.add(chaveDoPublico({ visibilidade: v.visibilidade, nucleos: v.nucleos ? (JSON.parse(v.nucleos) as string[]) : [] }));
+  }
+  return chaves;
+}
+
+/**
+ * O relato como comandos: o que salvarRelato grava, para quem precisa gravar junto com outra coisa (a rota
+ * da memória grava o relato de quem publica no mesmo lote da ficha, Y3 do PR #160).
+ */
+export function comandosDoRelato(
+  memoriaId: string,
+  por: string,
+  texto: string,
+  situacao: 'rascunho' | 'publicada',
+  usuario: Usuario,
+  anterior: Relato | undefined,
+  versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
+  { nasce, subir = true }: { nasce?: RelatoQueNasceEsperando; subir?: boolean } = {},
+): Comando[] {
   // A data de publicação é a da primeira vez que o relato sai do rascunho, e não muda depois
   const marcar = `UPDATE relatos SET publicado_em = datetime('now') WHERE situacao = 'publicada' AND publicado_em IS NULL`;
   if (!anterior) {
-    await db().batch([
+    const esperando = nasce ? JSON.stringify(nasce.soParaNucleos) : null;
+    // O relato que nasce esperando (relatoQueNasce): só para o público que a página mostrava, que é também
+    // o único que o viu, e o pedido de sempre para quem o escreveu
+    const doRelato = `SELECT MAX(id) FROM relatos WHERE memoria_id = ?1 AND por = ?2 AND registrado_por = ?3 AND descartado_em IS NULL`;
+    return [
       db()
-        .prepare('INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, ?, ?)')
-        .bind(memoriaId, por, usuario.pessoa, texto, situacao),
+        .prepare('INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, so_para_nucleos, publico_conhecido) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .bind(memoriaId, por, usuario.pessoa, texto, situacao, esperando, esperando),
       db().prepare(`${marcar} AND memoria_id = ? AND por = ? AND registrado_por = ?`).bind(memoriaId, por, usuario.pessoa),
-    ]);
-    return;
+      ...(nasce
+        ? [
+            db()
+              .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?3, 'liberar-relato', ?1, (${doRelato}), ?4, ?5) ON CONFLICT DO NOTHING`)
+              .bind(memoriaId, por, usuario.pessoa, nasce.de, JSON.stringify({ paraQuem: nasce.paraQuem })),
+          ]
+        : []),
+      // Um relato que nasce agora não estava na leitura de quem muda quem vê ao mesmo tempo: aquele lote volta e refaz a conta
+      ...(subir ? [subirVersao(memoriaId)] : []),
+    ];
   }
-  await db().batch([
+  return [
     ...(versao.guardar
       ? [db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(versao.mensagens ? { ...anterior, mensagens: versao.mensagens } : anterior), usuario.pessoa)]
       : []),
     db().prepare(`UPDATE relatos SET texto = ?, situacao = ?, atualizado_em = datetime('now') WHERE id = ?`).bind(texto, situacao, anterior.id),
     db().prepare(`${marcar} AND id = ?`).bind(anterior.id),
-  ]);
+  ];
 }
 
 /** O relato que esta pessoa registrou em nome de "por" nesta memória: é nele que entram os áudios dela. */
 export async function obterRelatoRegistradoPor(memoriaId: string, por: string, usuario: Usuario): Promise<Relato | undefined> {
   const linha = await db()
-    .prepare('SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND registrado_por = ? LIMIT 1')
+    .prepare('SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND registrado_por = ? AND descartado_em IS NULL LIMIT 1')
     .bind(memoriaId, por, usuario.pessoa)
     .first<Record<string, unknown>>();
   return linha ? lerRelato(linha) : undefined;
@@ -1776,6 +2107,8 @@ export interface Aviso {
   criadoEm: string;
   resolvidoEm: string | null;
   resposta: string | null;
+  /** quem vê a memória agora: o pedido para liberar manda a chave junto com a resposta (chaveDoPublico) */
+  publico: Publico;
 }
 
 export interface AvisoNovo {
@@ -1789,14 +2122,16 @@ export interface AvisoNovo {
 
 export async function criarAvisos(avisos: AvisoNovo[]): Promise<void> {
   if (avisos.length === 0) return;
-  await db().batch(
-    avisos.map((a) =>
-      db()
-        .prepare('INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, ?, ?, ?, ?, ?)')
-        .bind(a.para, a.tipo, a.memoriaId, a.relatoId ?? null, a.de, a.dados ? JSON.stringify(a.dados) : null),
-    ),
-  );
+  await db().batch(comandosDosAvisos(avisos));
 }
+
+/** Os avisos como comandos, para gravar junto com o que os fez nascer (um lote só). */
+export const comandosDosAvisos = (avisos: AvisoNovo[]): Comando[] =>
+  avisos.map((a) =>
+    db()
+      .prepare('INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(a.para, a.tipo, a.memoriaId, a.relatoId ?? null, a.de, a.dados ? JSON.stringify(a.dados) : null),
+  );
 
 /**
  * Os avisos da pessoa, do mais novo para o mais antigo: os que estão na lista (pendentes) e, com
@@ -1806,7 +2141,9 @@ export async function criarAvisos(avisos: AvisoNovo[]): Promise<void> {
 export async function listarAvisos(usuario: Usuario, { historico = false }: { historico?: boolean } = {}): Promise<Aviso[]> {
   const { results } = await db()
     .prepare(
-      `SELECT a.*, m.titulo, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.situacao AS relato_situacao, r.so_para_nucleos AS relato_so
+      `SELECT a.*, m.titulo, m.visibilidade AS memoria_visibilidade,
+         (SELECT json_group_array(nucleo_id) FROM memoria_nucleos WHERE memoria_id = m.id) AS memoria_nucleos, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.situacao AS relato_situacao, r.so_para_nucleos AS relato_so,
+         r.descartado_em AS relato_descartado
        FROM avisos a JOIN memorias m ON m.id = a.memoria_id
        LEFT JOIN relatos r ON r.id = a.relato_id
        WHERE a.para = ?1 AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL} ${historico ? '' : 'AND a.resolvido_em IS NULL'}
@@ -1822,6 +2159,8 @@ export async function listarAvisos(usuario: Usuario, { historico = false }: { hi
     if (a.relato_id !== null && a.relato_id !== undefined) {
       // O relato saiu (ou nunca chegou a quem recebe): o aviso some com ele
       if (!a.relato_por) continue;
+      // O rascunho de relato que está na lixeira fica parado: o pedido dele some até ele ser restaurado
+      if (a.relato_descartado) continue;
       relato = { id: a.relato_id as number, por: a.relato_por as string, registradoPor: a.relato_registrado_por as string, situacao: a.relato_situacao as 'rascunho' | 'publicada' };
       const meu = relato.registradoPor === usuario.pessoa;
       if (!meu && relato.situacao !== 'publicada') continue;
@@ -1840,6 +2179,7 @@ export async function listarAvisos(usuario: Usuario, { historico = false }: { hi
       criadoEm: a.criado_em as string,
       resolvidoEm: (a.resolvido_em as string | null) ?? null,
       resposta: (a.resposta as string | null) ?? null,
+      publico: { visibilidade: a.memoria_visibilidade as 'todos' | 'nucleos', nucleos: JSON.parse((a.memoria_nucleos as string | null) ?? '[]') as string[] },
     });
   }
   return avisos;
@@ -1863,35 +2203,36 @@ export async function abrirAvisosDaMemoria(usuario: Usuario, memoriaId: string):
 // --- Ampliar quem vê uma memória com relatos (migração 025; regras em permissoes.ts) ---
 
 /**
- * Quem criou a memória ampliou quem vê: cada relato que já existia (publicado ou em rascunho) e ainda
- * acompanhava a memória passa a ficar só para o público antigo, até quem o registrou concordar. O
- * relato de quem ampliou não espera: foi ela mesma que abriu. Devolve os relatos que passaram a esperar.
+ * Quem criou a memória mudou quem vê: cada relato da memória (publicado ou em rascunho) fica como manda
+ * relatoDepoisDaMudanca, em permissoes.ts. Ao ampliar, espera só o relato que o público novo nunca viu;
+ * quando o público novo cabe no que o relato já teve, ele volta a acompanhar a memória, e o pedido sai da
+ * lista sem resposta. O público conhecido de cada relato é gravado a cada mudança (migração 105).
+ * Só lê: devolve os comandos, para quem chama gravá-los junto com a memória (atualizarMemoria), e os
+ * relatos que passam a esperar.
  */
-export async function guardarRelatosParaOPublicoAntigo(memoriaId: string, nucleosAntigos: readonly string[], quemAmpliou: string): Promise<Relato[]> {
-  const { results } = await db()
-    .prepare('SELECT * FROM relatos WHERE memoria_id = ? AND registrado_por <> ? AND so_para_nucleos IS NULL')
-    .bind(memoriaId, quemAmpliou)
-    .all<Record<string, unknown>>();
+export async function comandosDaMudancaDeQuemVe(
+  memoriaId: string,
+  antes: Publico,
+  depois: Publico,
+  pedido: { quemNaoEspera: string; de: string; paraQuem: (conhecido: PublicoConhecido) => string },
+): Promise<{ comandos: Comando[]; passaram: Relato[] }> {
+  // O rascunho de relato na lixeira fica fora da conta: parado, até ser restaurado (restaurarRascunhoDeRelato)
+  const { results } = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ? AND descartado_em IS NULL').bind(memoriaId).all<Record<string, unknown>>();
   const relatos = results.map(lerRelato);
-  if (relatos.length === 0) return [];
-  await db().batch(relatos.map((r) => db().prepare('UPDATE relatos SET so_para_nucleos = ? WHERE id = ?').bind(JSON.stringify([...nucleosAntigos]), r.id)));
-  return relatos.map((r) => ({ ...r, soParaNucleos: [...nucleosAntigos] }));
-}
-
-/**
- * Restringir não pede nada: quando o público da memória volta a caber no público antigo de um relato,
- * a espera dele perde o sentido. O relato volta a acompanhar a memória, e o pedido sai da lista.
- */
-export async function soltarEsperasSemSentido(memoriaId: string, dentroDoPublico: (soParaNucleos: string[]) => boolean): Promise<void> {
-  const { results } = await db().prepare('SELECT * FROM relatos WHERE memoria_id = ? AND so_para_nucleos IS NOT NULL').bind(memoriaId).all<Record<string, unknown>>();
-  const soltos = results.map(lerRelato).filter((r) => dentroDoPublico(r.soParaNucleos!));
-  if (soltos.length === 0) return;
-  await db().batch(
-    soltos.flatMap((r) => [
-      db().prepare('UPDATE relatos SET so_para_nucleos = NULL WHERE id = ?').bind(r.id),
-      db().prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(r.id),
-    ]),
-  );
+  if (relatos.length === 0) return { comandos: [], passaram: [] };
+  const respostas = await ultimasRespostas(relatos.map((r: Relato) => r.id));
+  const passaram: Relato[] = [];
+  const comandos = relatos.flatMap((r) => {
+    const novo = relatoDepoisDaMudanca(r, antes, depois, pedido.quemNaoEspera);
+    if (novo.soParaNucleos && !r.soParaNucleos) passaram.push({ ...r, ...novo });
+    return [
+      db()
+        .prepare('UPDATE relatos SET so_para_nucleos = ?, publico_conhecido = ? WHERE id = ?')
+        .bind(novo.soParaNucleos ? JSON.stringify(novo.soParaNucleos) : null, gravarPublicoConhecido(novo.publicoConhecido), r.id),
+      ...comandosDosPedidos(r, novo, { memoriaId, de: pedido.de, paraQuem: pedido.paraQuem(novo.publicoConhecido), jaRecusou: jaRecusouEstePublico(depois, respostas.get(r.id)) }),
+    ];
+  });
+  return { comandos, passaram };
 }
 
 /** O relato por id, sem conferir quem vê: quem chama confere (podeLiberarRelato). */
@@ -1910,10 +2251,21 @@ export async function obterAviso(id: number, usuario: Usuario): Promise<{ id: nu
  * continua só para quem via antes, e a linha no próprio relato deixa liberar depois. Os dois tiram o
  * pedido da lista, com a resposta no histórico.
  */
-export async function responderPedidoDoRelato(relatoId: number, resposta: 'liberar' | 'manter'): Promise<void> {
-  await db().batch([
-    ...(resposta === 'liberar' ? [db().prepare('UPDATE relatos SET so_para_nucleos = NULL WHERE id = ?').bind(relatoId)] : []),
-    db().prepare(`UPDATE avisos SET resolvido_em = datetime('now'), resposta = ? WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`).bind(resposta, relatoId),
+export async function responderPedidoDoRelato(relato: Relato, resposta: 'liberar' | 'manter', memoria: Publico & { versao: number }): Promise<void> {
+  const relatoId = relato.id;
+  // Liberar: quem vê a memória agora passa a ter visto o relato (publicoConhecidoAoLiberar)
+  const conhecido = gravarPublicoConhecido(publicoConhecidoAoLiberar(relato, memoria));
+  await loteDaMemoria([
+    // A resposta conta com o público que leu: se a memória mudou no meio tempo, o lote volta
+    conferirVersao(relato.memoriaId, memoria.versao),
+    ...(resposta === 'liberar' ? [db().prepare('UPDATE relatos SET so_para_nucleos = NULL, publico_conhecido = ? WHERE id = ?').bind(conhecido, relatoId)] : []),
+    // A resposta guarda o público que o pedido mostrava: "Manter" vale para ele (jaRecusouEstePublico)
+    db()
+      .prepare(
+        `UPDATE avisos SET resolvido_em = datetime('now'), resposta = ?, dados = json_set(COALESCE(dados, '{}'), '$.publico', json(?))
+         WHERE relato_id = ? AND tipo = 'liberar-relato' AND resolvido_em IS NULL`,
+      )
+      .bind(resposta, JSON.stringify({ visibilidade: memoria.visibilidade, nucleos: [...memoria.nucleos].sort() }), relatoId),
   ]);
 }
 
@@ -1947,8 +2299,14 @@ export async function pessoasQueSoVoceVe(usuario: Usuario): Promise<Set<string>>
  */
 export async function abrirLacosPrivados(usuario: Usuario, pessoas: string[]): Promise<void> {
   if (pessoas.length === 0) return;
+  await db().batch(comandosDeAbrirLacosPrivados(usuario, pessoas));
+}
+
+/** "Abrir para todos" como comandos, para gravar junto com a memória que publica a pessoa (um lote só). */
+export function comandosDeAbrirLacosPrivados(usuario: Usuario, pessoas: string[]): Comando[] {
+  if (pessoas.length === 0) return [];
   const lista = JSON.stringify(pessoas);
-  await db().batch([
+  return [
     db()
       .prepare(
         `INSERT INTO versoes (tipo, item_id, dados, autor) SELECT 'laco-coracao', CAST(id AS TEXT), json_object('dono', dono_id, 'pessoa', pessoa_id, 'nome', nome, 'papel', papel, 'proximidade', proximidade, 'privado', privado), ?1
@@ -1956,7 +2314,7 @@ export async function abrirLacosPrivados(usuario: Usuario, pessoas: string[]): P
       )
       .bind(usuario.pessoa, lista),
     db().prepare('UPDATE lacos_coracao SET privado = 0 WHERE dono_id = ?1 AND privado = 1 AND pessoa_id IN (SELECT value FROM json_each(?2))').bind(usuario.pessoa, lista),
-  ]);
+  ];
 }
 
 // --- Acrescentar fotos (resposta do Gui ao PR #51, 17/11/2026) ---

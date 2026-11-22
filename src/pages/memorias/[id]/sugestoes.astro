@@ -60,7 +60,7 @@ const comAcesso = await pessoasComAcesso();
               </div>
               {s.proposta && (
                 <ul class="sugestoes__mudancas">
-                  {frasesDaProposta(propostaVisivel(s.proposta), memoria, nome).map((f) => (
+                  {frasesDaProposta(propostaVisivel(s.proposta), memoria, nome, s.situacao !== 'aberta').map((f) => (
                     <li>{f}</li>
                   ))}
                 </ul>
@@ -119,7 +119,7 @@ const comAcesso = await pessoasComAcesso();
               </div>
               {s.proposta && (
                 <ul class="sugestoes__mudancas">
-                  {frasesDaProposta(s.proposta, memoria, nome).map((f) => (
+                  {frasesDaProposta(s.proposta, memoria, nome, s.situacao !== 'aberta').map((f) => (
                     <li>{f}</li>
                   ))}
                 </ul>

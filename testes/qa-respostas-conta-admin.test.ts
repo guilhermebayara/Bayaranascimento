@@ -113,7 +113,7 @@ describe('tipos de momento', () => {
   });
 
   it('P162: "Tipos da lista" vem primeiro, "Novo tipo" depois, e "Outro" por último, com a conta no alto', () => {
-    const [lista, novo, outro] = ['<h2>Tipos da lista</h2>', '<h2>Novo tipo</h2>', '<h2>O que a família escreveu em "Outro"</h2>'].map((t) => pagina.indexOf(t));
+    const [lista, novo, outro] = ['<h2>Tipos da lista</h2>', '<h2>Novo tipo</h2>', '<h2>O que a família escreveu em “Outro”</h2>'].map((t) => pagina.indexOf(t));
     expect(lista).toBeGreaterThan(-1);
     expect(novo).toBeGreaterThan(lista);
     expect(outro).toBeGreaterThan(novo);

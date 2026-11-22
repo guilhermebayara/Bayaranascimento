@@ -17,7 +17,7 @@ const outros = outrosAdmins(usuario.pessoa, await listarIntegrantes());
 <Pagina titulo="Famílias" rotulo="Administração" secao="administracao" larga>
   <Fragment slot="abertura">
     <p>
-      Os sobrenomes de que cada família é feita. É com eles que o site escreve a linha embaixo de "MEMÓRIAS" quando a tela mostra mais de uma família.{' '}
+      Os sobrenomes de que cada família é feita. É com eles que o site escreve a linha embaixo de “MEMÓRIAS” quando a tela mostra mais de uma família.{' '}
       {outros ? `Só você e ${outros} veem esta página.` : 'Só você vê esta página.'}
     </p>
     <p class="acoes">

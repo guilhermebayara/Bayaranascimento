@@ -390,7 +390,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                 <input type="checkbox" name="privado" />
                 <span>Só eu vejo este laço</span>
               </label>
-              <p class="dica">O laço é seu. Para a família toda reconhecer {chamar} como filho, irmão ou pai de consideração, use "Ver todos os tipos de laço".</p>
+              <p class="dica">O laço é seu. Para a família toda reconhecer {chamar} como filho, irmão ou pai de consideração, use “Ver todos os tipos de laço”.</p>
             </>
           ) : passo === 'parentes' ? (
             <>
@@ -1026,7 +1026,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
                       <span>Data da adoção <small>(se souber)</small></span>
                       <CampoData prefixo="adocao" id={`adocao-novo-${g.id}`} />
                     </div>
-                    <p class="dica">Para quem criou ou é tratado como filho sem ser de sangue nem adotado, use "Adicionar laço do coração" e escolha "A família toda".</p>
+                    <p class="dica">Para quem criou ou é tratado como filho sem ser de sangue nem adotado, use “Adicionar laço do coração” e escolha “A família toda”.</p>
                   </>
                 )}
 
@@ -1136,7 +1136,7 @@ const conta = (g: Grupo) => (g.id === 'casal' ? `${g.quantos} ${g.quantos === 1 
         ) : (
           <>
             <p>
-              {pessoa.nome} vai para a lixeira e some do site na hora. As memórias ficam, sem {pessoa.nome} em "Quem estava", e os relatos que {pessoa.tratamento === 'ela' ? 'ela' : pessoa.tratamento === 'ele' ? 'ele' : 'a pessoa'} contou continuam, com o nome.
+              {pessoa.nome} vai para a lixeira e some do site na hora. As memórias ficam, sem {pessoa.nome} em “Quem estava”, e os relatos que {pessoa.tratamento === 'ela' ? 'ela' : pessoa.tratamento === 'ele' ? 'ele' : 'a pessoa'} contou continuam, com o nome.
               {podeExcluir ? ' Um administrador pode restaurar tudo.' : ' Quem administra o acervo aprova ou recusa o pedido.'}
             </p>
             <a class="acao" href={`/pessoas/${pessoa.id}/excluir`}>{podeExcluir ? 'Excluir esta pessoa' : 'Pedir para excluir esta pessoa'}</a>

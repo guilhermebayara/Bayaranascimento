@@ -2,7 +2,7 @@
 import type { APIRoute } from 'astro';
 import { mensagensDerivadas, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { avisarQuemEstava } from '../../lib/servidor/avisos';
+import { avisarQuemEstava, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
 import { alcanceDaCorrecao, podeApagarDeVez, podeEditarMemoria, podeExcluirMemoria, podeVerVersao } from '../../lib/servidor/permissoes';
 import {
   apagarCapituloDeVez,
@@ -17,11 +17,19 @@ import {
   idsDasPessoasExcluidas,
   listarExcluidas,
   listarIntegrantes,
+  listarNucleos,
   listarVersoes,
+  descartarRascunhoDeRelato,
+  listarRascunhosDeRelatoDescartados,
   obterMemoria,
+  obterRascunhoQueFicou,
   obterRelato,
   restaurarExcluida,
   restaurarFoto,
+  restaurarRascunhoDeRelato,
+  refazerSeAMemoriaMudou,
+  MemoriaMudou,
+  RECADO_MEMORIA_MUDOU,
   salvarRelato,
   type DadosDaMemoria,
   type Memoria,
@@ -54,20 +62,54 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!decisao.ok) return voltar(request, '/lixeira', { erro: decisao.motivo });
     const excluida = (await listarExcluidas(usuario)).find((m) => m.id === id && podeExcluirMemoria(usuario, m).ok);
     if (!excluida || !(await apagarMemoriaDeVez(id, usuario))) return voltar(request, '/lixeira', { erro: 'Memória não encontrada na lixeira.' });
-    return voltar(request, '/lixeira', { ok: `"${excluida.titulo}" foi apagada de vez.` });
+    return voltar(request, '/lixeira', { ok: `“${excluida.titulo}” foi apagada de vez.` });
   }
   if (acao === 'apagar-capitulo-de-vez') {
     const decisao = podeApagarDeVez(usuario, { naLixeira: true });
     if (!decisao.ok) return voltar(request, '/lixeira', { erro: decisao.motivo });
     const capitulo = (await listarCapitulosExcluidos(usuario)).find((c) => c.id === campo(dados, 'capitulo', 120));
     if (!capitulo || !(await apagarCapituloDeVez(capitulo.id, usuario))) return voltar(request, '/lixeira', { erro: 'Capítulo não encontrado na lixeira.' });
-    return voltar(request, '/lixeira', { ok: `O capítulo "${capitulo.titulo}" foi apagado de vez.` });
+    return voltar(request, '/lixeira', { ok: `O capítulo “${capitulo.titulo}” foi apagado de vez.` });
   }
 
   const memoria = await obterMemoria(usuario, id);
   if (!memoria) return voltar(request, '/', { erro: 'Memória não encontrada.' });
   const pagina = `/memorias/${memoria.id}`;
   const historico = `${pagina}/historico`;
+
+  // O rascunho que ficou para trás quando outra pessoa publicou o relato de quem não acessa o site
+  // (resposta do Gui à P4 do QA de 23/11/2026): só quem o escreveu descarta, e ele vai para a lixeira dela.
+  // Quem não tem esse rascunho recebe o mesmo que para um rascunho que não existe.
+  // Os dois contam com o público da memória que leram: se ela mudou no meio tempo, leem de novo e refazem
+  // (refazerSeAMemoriaMudou, revisão Y2 do PR #160)
+  if (acao === 'descartar-relato') {
+    const por = campo(dados, 'por', 120);
+    const relatoDele = `${pagina}/relato?por=${encodeURIComponent(por)}`;
+    const feito = await refazerSeAMemoriaMudou(async () => {
+      const agora = await obterMemoria(usuario, id);
+      const rascunho = agora && (await obterRascunhoQueFicou(agora.id, por, usuario));
+      if (!agora || !rascunho) return false;
+      await descartarRascunhoDeRelato(rascunho, agora);
+      return true;
+    });
+    if (feito instanceof MemoriaMudou) return voltar(request, relatoDele, { erro: RECADO_MEMORIA_MUDOU });
+    if (!feito) return voltar(request, relatoDele, { erro: 'Rascunho não encontrado.' });
+    return voltar(request, relatoDele, { ok: 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' });
+  }
+  if (acao === 'restaurar-rascunho-de-relato') {
+    const relatoId = Number(campo(dados, 'relato', 20));
+    const nucleos = await listarNucleos();
+    const feito = await refazerSeAMemoriaMudou(async () => {
+      const agora = await obterMemoria(usuario, id);
+      const rascunho = agora && (await listarRascunhosDeRelatoDescartados(usuario)).find((r) => r.id === relatoId && r.memoriaId === agora.id);
+      if (!agora || !rascunho) return undefined;
+      await restaurarRascunhoDeRelato(rascunho, agora, (conhecido) => paraQuemPassouAVer(comoPublicoAntigo(conhecido), agora, nucleos));
+      return rascunho;
+    });
+    if (feito instanceof MemoriaMudou) return voltar(request, '/lixeira', { erro: RECADO_MEMORIA_MUDOU });
+    if (!feito) return voltar(request, '/lixeira', { erro: 'Rascunho não encontrado na lixeira.' });
+    return voltar(request, `/lixeira?rascunho-de-relato=${feito.id}&memoria=${encodeURIComponent(memoria.id)}&por=${encodeURIComponent(feito.por)}`, { ok: 'Rascunho restaurado.' });
+  }
 
   if (acao === 'excluir') {
     const decisao = podeExcluirMemoria(usuario, memoria);
@@ -76,7 +118,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const rascunho = memoria.situacao === 'rascunho';
     // A página Rascunhos saiu (resposta do Gui à P150, 17/11/2026): os rascunhos e a lixeira moram em "Sua conta"
     return voltar(request, rascunho ? '/conta' : '/', {
-      ok: rascunho ? 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' : `"${memoria.titulo}" foi para a lixeira. Dá para restaurar pela lixeira, em Sua conta.`,
+      ok: rascunho ? 'Rascunho descartado. Ele fica na lixeira e pode ser restaurado.' : `“${memoria.titulo}” foi para a lixeira. Dá para restaurar pela lixeira, em Sua conta.`,
     });
   }
 
@@ -109,7 +151,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       fotos: memoria.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
     };
     await atualizarMemoria(memoria, restaurada, usuario, []);
-    // Restaurar é uma correção: quem a versão devolve a "Quem estava" recebe o aviso (QA de 23/11/2026)
+    // Restaurar é uma correção: quem a versão devolve a "Quem estava" recebe o aviso (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)
     await avisarQuemEstava({ ...memoria, integrantes: restaurada.integrantes }, memoria.integrantes, usuario);
     return voltar(request, pagina, { ok: 'Versão restaurada. A versão que estava no ar foi para o histórico.' });
   }
