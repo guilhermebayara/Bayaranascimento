@@ -88,11 +88,16 @@
   font-size: var(--t-titulo-3);
 }
 
-/* Quem estava: retratos de álbum, com o parentesco de quem olha */
+/* Quem estava: retratos de álbum, com o parentesco de quem olha. Pequenos, para os relatos começarem
+   mais perto do alto (resposta do Gui à crítica C2, 22/11/2026): a voz de cada um é o que a memória tem
+   de único, e a ficha de quem estava é informação. */
 .quem {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--e-6) var(--calha);
+  gap: var(--e-5) var(--calha);
+}
+.quem .retrato {
+  width: min(100%, 4.75rem);
 }
 /* No celular, até seis retratos; "Ver todos os N" abre o resto no lugar. A classe é posta pelo
    script: sem ele, a lista vem inteira. */
@@ -473,7 +478,7 @@ html:has(.galeria[open]) {
 
 @media (min-width: 40rem) {
   .quem {
-    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
   }
   /* Com mais largura, todos os retratos ficam à vista e a ação some */
   .quem--recolhida li:nth-child(n + 7) {
@@ -586,7 +591,10 @@ html:has(.galeria[open]) {
     grid-template-columns: minmax(0, 1fr);
   }
   .quem {
-    grid-template-columns: repeat(auto-fill, minmax(clamp(8rem, 9.5vw, 12rem), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(clamp(6.5rem, 6.5vw, 8rem), 1fr));
+  }
+  .quem .retrato {
+    width: min(100%, 6.5rem);
   }
   .convite__mesa {
     margin-left: calc((100% + var(--calha)) / 12 * 4);

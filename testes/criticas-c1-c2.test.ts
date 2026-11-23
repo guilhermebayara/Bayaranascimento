@@ -36,4 +36,11 @@ describe('críticas C1 e C2: os pontos pequenos', () => {
     expect(pagina).toMatch(/parentesco: parentescos\.get\(i\.id\)/);
     expect(tela('components/explorar/Controles.astro')).toMatch(/<small class="escolha__parentesco suave">\{o\.parentesco\}<\/small>/);
   });
+
+  it('Memória: "Quem estava" com retratos menores, para os relatos começarem mais perto do alto', () => {
+    const css = tela('visual/telas/memoria.css');
+    expect(css).toMatch(/\.quem \.retrato \{\s*width: min\(100%, 4\.75rem\);/);
+    expect(css).toMatch(/\.quem \{\s*grid-template-columns: repeat\(auto-fill, minmax\(clamp\(6\.5rem, 6\.5vw, 8rem\), 1fr\)\);/);
+    expect(css).toMatch(/\.quem \.retrato \{\s*width: min\(100%, 6\.5rem\);/);
+  });
 });
