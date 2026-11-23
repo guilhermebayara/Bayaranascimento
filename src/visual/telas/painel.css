@@ -718,6 +718,14 @@
   .cartoes[data-faixa='sozinha'] > .outros-anos--faixa {
     grid-column: 1 / -1;
   }
+  /* Com a faixa, "Você no acervo" e os aniversários dividem a primeira linha, e a faixa desce para a
+     de baixo, ainda depois do convite para contar: "Você no acervo" continua vindo antes de contar */
+  .cartoes[data-faixa] > .voce {
+    order: -2;
+  }
+  .cartoes[data-faixa] > .aniversarios {
+    order: -1;
+  }
   /* Na faixa, os outros anos ficam lado a lado, cada um com a sua foto em cima */
   .outros-anos--faixa .outros-anos__lista {
     grid-auto-flow: column;
