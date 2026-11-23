@@ -25,7 +25,7 @@
 // 9. A página do sistema: fora das prévias de teste, só os administradores, sem ler o acervo.
 // 10. Nenhum arquivo é apagado do bucket das fotos de verdade: só a limpeza do bucket de teste apaga, e a
 //    foto sem memória há mais de 30 dias, que um administrador apaga em src/pages/api/fotos-soltas.ts,
-//    e o banco e o bucket são escolhidos só em ambiente.ts.
+//    junto com as cópias dela e só elas (sessão D1c), e o banco e o bucket são escolhidos só em ambiente.ts.
 // 11. O espelho da homologação leva a família de verdade (decisão do Gui, 18/11/2026): nomes, datas e
 //    laços passam; memórias, relatos, textos, retratos e fotos nunca passam. O espelho só lê da cópia as
 //    tabelas da família, o "Sobre" sai vazio, e só a homologação (ou o computador) grava o espelho.
@@ -39,9 +39,12 @@
 //    que confere de novo, foto por foto, quem vê a original e se ela já tem cópia. O nome da cópia nunca é
 //    o de uma original, e a rota das fotos entrega a cópia só depois da conferência da original. As cópias
 //    das fotos de exemplo ficam em exemplos/fotos/copias/, fora do pacote publicado.
+//    A cópia pequena dos retratos (sessão D1c) segue o mesmo caminho: gravada só no envio do retrato e no
+//    ajuste da Administração, com nome próprio, e entregue só depois da conferência do retrato.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
+import { apagamentosProibidos, copiasApagadasErradas } from './apagar-no-bucket.mjs';
 
 const PRODUCAO = { banco: 'bayara-memorias', bucket: 'bayara-memorias' };
 const DOMINIOS_DE_EXEMPLO = new Set(['exemplo.com', 'example.com', 'example.org', 'b.com']);
@@ -203,12 +206,12 @@ if (existsSync('src/pages/sistema.astro')) {
   }
 }
 
-const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';
 // 10. Nada se apaga do bucket das fotos de verdade: excluir nunca apaga na hora (docs/decisoes.md,
 // "Princípios"). O único lugar que apaga arquivo é a limpeza de 7 dias, e só no bucket de teste, por
 // bucketDeTesteParaGravar(), que recusa a produção e a homologação. A escolha do banco e do bucket
 // fica só em ambiente.ts: código que lê env.DB ou env.FOTOS direto passaria por cima dela.
-// Achado do QA de código de 17/11/2026.
+// Achado do QA de código de 17/11/2026. A regra mora em scripts/apagar-no-bucket.mjs, testada em
+// testes/guarda-apagar.test.ts. Desde a sessão D1c, a rota das fotos soltas apaga também as cópias da foto.
 {
   const fontes = existsSync('src') ? readdirSync('src', { recursive: true }).map((a) => `src/${String(a).replace(/\\/g, '/')}`).filter((a) => /\.(astro|ts|mjs|js)$/.test(a)) : [];
   for (const arquivo of fontes) {
@@ -216,20 +219,7 @@ const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';
     if (arquivo !== 'src/lib/servidor/ambiente.ts' && /\benv\.(DB|FOTOS)\w*/.test(texto)) {
       falhar(`${arquivo}: o banco e o bucket são escolhidos só em src/lib/servidor/ambiente.ts (banco(), bucketDeFotos()), nunca por env.DB ou env.FOTOS.`);
     }
-    for (const uso of texto.matchAll(/([\w.]*bucket\w*(?:\(\))?)\??\.delete\(/gi)) {
-      const quem = uso[1];
-      const doTeste = quem === 'bucketDeTesteParaGravar()' || (quem === 'bucket' && /const bucket = bucketDeTesteParaGravar\(\);/.test(texto) && !/\bbucket = (?!bucketDeTesteParaGravar)/.test(texto));
-      // A única exceção (onda 2): a foto sem memória há mais de 30 dias, que um administrador apaga em
-      // Administração. Só nesta rota, uma vez, e só a chave conferida de novo no banco por obterFotoSolta.
-      const fotoSolta =
-        arquivo === ROTA_DAS_FOTOS_SOLTAS &&
-        uso[0] === 'bucketDeFotos().delete(' &&
-        (texto.match(/\.delete\(/g) ?? []).length === 1 &&
-        /const foto = await obterFotoSolta\(/.test(texto) &&
-        /podeApagarFotoSolta\(locals\.usuario\)/.test(texto) &&
-        /await bucketDeFotos\(\)\.delete\(foto\.chave\);/.test(texto);
-      if (!doTeste && !fotoSolta) falhar(`${arquivo}: ${quem}.delete(...) apagaria arquivos. Só a limpeza do bucket de teste apaga, por bucketDeTesteParaGravar(), e a foto sem memória, por ${ROTA_DAS_FOTOS_SOLTAS}.`);
-    }
+    for (const mensagem of apagamentosProibidos(arquivo, texto)) falhar(mensagem);
   }
 }
 
@@ -242,6 +232,9 @@ const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';
     falhar('src/lib/servidor/repositorio.ts: FOTO_SOLTA precisa deixar de fora as fotos de exemplo e as presas a memória ou relato, e esperar 30 dias.');
   }
 }
+
+// 10c. As cópias que a rota das fotos soltas apaga são só as da foto (sessão D1c)
+for (const mensagem of copiasApagadasErradas(readFileSync('src/lib/copias-das-fotos.ts', 'utf8'))) falhar(mensagem);
 
 // 11. O espelho: só as tabelas da família passam, e o que alguém escreveu nunca
 {
@@ -319,6 +312,34 @@ if (existsSync('scripts/desempenho')) {
   const rota = readFileSync('src/pages/fotos/[...chave].ts', 'utf8');
   if (!naOrdem(rota, 'const acesso = await acessoAFoto(locals.usuario, chave);', 'if (!acesso) return naoEncontrada();', 'chaveDaCopia(chave, tamanho, formato)')) {
     falhar('src/pages/fotos/[...chave].ts: a cópia só é lida depois da conferência da original, com a chave da original.');
+  }
+  // A cópia pequena dos retratos (sessão D1c)
+  const ROTAS_DAS_COPIAS_DOS_RETRATOS = ['src/pages/api/integrantes.ts', 'src/pages/api/copias-dos-retratos.ts'];
+  for (const arquivo of fontes) {
+    const texto = readFileSync(arquivo, 'utf8');
+    for (const uso of texto.matchAll(/([\w.]*(?:\(\))?)\.put\(\s*`\$\{PASTA_DOS_RETRATOS\}\$\{chaveDaCopiaDoRetrato\(/g)) {
+      if (!ROTAS_DAS_COPIAS_DOS_RETRATOS.includes(arquivo)) falhar(`${arquivo}: a cópia do retrato só é gravada por ${ROTAS_DAS_COPIAS_DOS_RETRATOS.join(' e ')}.`);
+      else if (uso[1] !== 'bucketDeFotos()') falhar(`${arquivo}: a cópia do retrato é gravada no bucket das fotos deste ambiente, por bucketDeFotos(), e aqui por ${uso[1]}.`);
+    }
+    // O nome da cópia só é montado onde ela é gravada, na rota que a entrega e na peça que define o nome
+    if (/chaveDaCopiaDoRetrato\(/.test(texto) && ![...ROTAS_DAS_COPIAS_DOS_RETRATOS, 'src/pages/retratos/[...chave].ts', 'src/lib/retratos.ts'].includes(arquivo)) {
+      falhar(`${arquivo}: o nome da cópia do retrato só aparece onde ela é gravada (${ROTAS_DAS_COPIAS_DOS_RETRATOS.join(' e ')}) e na rota dos retratos.`);
+    }
+  }
+  const ajusteDosRetratos = readFileSync('src/pages/api/copias-dos-retratos.ts', 'utf8');
+  if (
+    (ajusteDosRetratos.match(/const decisao = podeFazerCopiasDasFotos\(locals\.usuario\);\n\s*if \(!decisao\.ok\) return erro\(403, decisao\.motivo\);/g) ?? []).length !== 2 ||
+    !naOrdem(ajusteDosRetratos, 'export const POST', "if (!(await acessoAoRetrato(locals.usuario, chave))) return erro(404, 'Retrato não encontrado.');", "if (await retratoTemCopia(chave)) return erro(409,", '.put(`${PASTA_DOS_RETRATOS}${chaveDaCopiaDoRetrato(')
+  ) {
+    falhar('src/pages/api/copias-dos-retratos.ts: o ajuste das cópias dos retratos é só dos administradores, e confere quem vê o retrato e se ele já tem cópia antes de gravar.');
+  }
+  const retratos = readFileSync('src/lib/retratos.ts', 'utf8');
+  if (!retratos.includes('return `${base}.pequeno.${formato}`;') || !retratos.includes('if (!base) throw new Error(`Chave de retrato inválida: ${chave}`);')) {
+    falhar('src/lib/retratos.ts: o nome da cópia do retrato é o da original com "pequeno" no meio, nunca o de uma original.');
+  }
+  const rotaDosRetratos = readFileSync('src/pages/retratos/[...chave].ts', 'utf8');
+  if (!naOrdem(rotaDosRetratos, 'const acesso = await acessoAoRetrato(locals.usuario, chave);', 'if (!acesso) return naoEncontrado();', 'chaveDaCopiaDoRetrato(chave, acesso.copia.formato)')) {
+    falhar('src/pages/retratos/[...chave].ts: a cópia do retrato só é lida depois da conferência do retrato, com a chave da original.');
   }
   // As cópias de exemplo: só os 22 arquivos, em exemplos/fotos/copias/, nunca no pacote publicado
   const deExemplo = existsSync('exemplos/fotos/copias') ? readdirSync('exemplos/fotos/copias') : [];

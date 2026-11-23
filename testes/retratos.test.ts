@@ -93,7 +93,7 @@ describe('quem vê o retrato', () => {
     const repositorio = fontes['src/lib/servidor/repositorio.ts'];
     const regra = repositorio.slice(repositorio.indexOf('export async function acessoAoRetrato'));
     expect(repositorio).toContain('return (await acessoAoRetrato(usuario, chave)) !== null;');
-    expect(regra).toContain("prepare('SELECT id, excluida_em FROM integrantes WHERE retrato = ?')");
+    expect(regra).toContain("FROM integrantes WHERE retrato = ?1')");
     expect(regra).toContain('.filter((dono) => podeVerRetrato(dono.id, naoVe));');
   });
 

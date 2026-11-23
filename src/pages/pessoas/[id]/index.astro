@@ -140,10 +140,10 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
               // Acender a foto (pedido do Gui, 18/11/2026): tocar no retrato grande acende, e ele fica aceso
               // enquanto se está na página. Com mouse e pelo teclado, acende também só de passar ou focar
               <button class="verbete__acender" type="button" data-acender aria-pressed="false" aria-label={`Acender a foto de ${chamar}`}>
-                <Retrato nome={chamar} foto={p.retrato} familia={p.familiaDaPessoa} falecido cedo />
+                <Retrato nome={chamar} foto={p.retrato} familia={p.familiaDaPessoa} falecido cedo grande />
               </button>
             ) : (
-              <Retrato nome={chamar} foto={p.retrato} familia={p.familiaDaPessoa} cedo />
+              <Retrato nome={chamar} foto={p.retrato} familia={p.familiaDaPessoa} cedo grande />
             )}
           </div>
         </div>

@@ -300,4 +300,103 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
       bucket.get = get;
     }
   });
+  it('/api/copias-dos-retratos: quem não administra, o retrato que não existe, o de exemplo, o que já tem cópia e a cópia errada são recusados sem mudar nada (sessão D1c)', async () => {
+    const ajuste = await import('../src/pages/api/copias-dos-retratos');
+    const gui = usuarioDe('gui');
+    const gravadas: string[] = [];
+    const bucket = env.FOTOS as { put: (chave: string) => Promise<unknown>; get: (chave: string) => Promise<unknown> };
+    const [put, get] = [bucket.put, bucket.get];
+    bucket.put = async (chave: string) => void gravadas.push(chave);
+    // A original guardada: um quadrado de 800 px (só o cabeçalho PNG, que é o que a conferência lê)
+    const png = new Uint8Array(40);
+    png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 3, 0x20, 0, 0, 3, 0x20]);
+    bucket.get = async () => ({ arrayBuffer: async () => png.buffer });
+    const webp = (lado: number) => {
+      const b = new Uint8Array(40);
+      b.set([...'RIFF'].map((c) => c.charCodeAt(0)), 0);
+      b.set([...'WEBPVP8X'].map((c) => c.charCodeAt(0)), 8);
+      b.set([(lado - 1) & 0xff, (lado - 1) >> 8, 0, (lado - 1) & 0xff, (lado - 1) >> 8, 0], 24);
+      return b;
+    };
+    const chaveDe = (n: number) => `d1c0aaaa-0000-4000-8000-${String(n).padStart(12, '0')}.jpg`;
+    banco.sqlite.prepare(`UPDATE integrantes SET retrato = ? WHERE id = 'elizete'`).run(chaveDe(1));
+    banco.sqlite.prepare(`INSERT INTO integrantes (id, nome, tipo, retrato) VALUES ('d1c-com-copia', 'Com Cópia', 'pessoa', ?)`).run(chaveDe(2));
+    banco.sqlite.prepare(`INSERT INTO retratos_enviados (chave, tamanho, copia) VALUES (?, 1000, '{"formato":"webp","lado":400,"bytes":1}')`).run(chaveDe(2));
+    const enviar = async (quem: Usuario, chave: string, copia = webp(400)) => {
+      const corpo = new FormData();
+      corpo.set('chave', chave);
+      corpo.set('pequeno', new Blob([copia]), 'pequeno.webp');
+      const request = new Request('http://localhost/api/copias-dos-retratos', { method: 'POST', headers: { Origin: 'http://localhost' }, body: corpo });
+      return (await ajuste.POST({ request, locals: { usuario: quem, tipos } } as never)).status;
+    };
+    try {
+      const antes = impressao();
+      expect(elizete.admin).toBe(false);
+      expect(await enviar(elizete, chaveDe(1))).toBe(403);
+      // O retrato que não é de ninguém recebe o mesmo que um que não existe
+      expect(await enviar(gui, chaveDe(99))).toBe(404);
+      expect(await enviar(gui, 'exemplos/chico-3.jpg')).toBe(404);
+      expect(await enviar(gui, chaveDe(2))).toBe(409);
+      // Do tamanho da original, ou que não é imagem
+      expect(await enviar(gui, chaveDe(1), webp(800))).toBe(400);
+      expect(await enviar(gui, chaveDe(1), new TextEncoder().encode('não é uma imagem, só um texto comprido o bastante'))).toBe(400);
+      expect(impressao()).toBe(antes);
+      expect(gravadas).toEqual([]);
+      expect(await enviar(gui, chaveDe(1))).toBe(201);
+      expect(gravadas).toEqual([`retratos/${chaveDe(1).replace('.jpg', '.pequeno.webp')}`]);
+    } finally {
+      bucket.put = put;
+      bucket.get = get;
+    }
+  });
+
+  it('/api/integrantes com retrato e cópia: a ficha recusada não grava o retrato, a cópia nem nada no banco (sessão D1c)', async () => {
+    const integrantes = await import('../src/pages/api/integrantes');
+    const gravadas: string[] = [];
+    const bucket = env.FOTOS as { put: (chave: string) => Promise<unknown> };
+    const put = bucket.put;
+    bucket.put = async (chave: string) => void gravadas.push(chave);
+    const jpeg = new Uint8Array(40);
+    jpeg.set([0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x03, 0x20, 0x03, 0x20]);
+    const enviar = async (campos: Record<string, string>, retrato: Uint8Array = jpeg) => {
+      const corpo = new FormData();
+      for (const [k, v] of Object.entries(campos)) corpo.set(k, v);
+      corpo.set('retrato', new File([retrato], 'retrato.jpg', { type: 'image/jpeg' }));
+      corpo.set('retratoPequeno', new File([new Uint8Array(40)], 'pequeno.webp', { type: 'image/webp' }));
+      const request = new Request('http://localhost/api/integrantes', { method: 'POST', headers: { Origin: 'http://localhost' }, body: corpo });
+      const r = await integrantes.POST({ request, locals: { usuario: elizete, tipos } } as never);
+      return new URL(r.headers.get('Location') ?? '/', 'http://localhost').searchParams.get('erro');
+    };
+    try {
+      const antes = impressao();
+      expect(await enviar({ nome: '' })).toBe('Escreva o nome.');
+      expect(await enviar({ nome: 'Retrato Recusado' }, new TextEncoder().encode('não é uma foto, só um texto comprido o bastante'))).toContain('Formato de foto não aceito');
+      expect(await enviar({ id: 'ninguem-com-este-id', nome: 'Retrato Recusado' })).toBe('Pessoa não encontrada.');
+      expect(impressao()).toBe(antes);
+      expect(gravadas).toEqual([]);
+    } finally {
+      bucket.put = put;
+    }
+  });
+
+  it('/api/fotos-soltas: quem não administra e a foto que não é solta são recusados sem apagar nada (sessão D1c)', async () => {
+    const soltas = await import('../src/pages/api/fotos-soltas');
+    const apagadas: string[] = [];
+    const bucket = env.FOTOS as { delete: (chave: string | string[]) => Promise<unknown> };
+    const apagar = bucket.delete;
+    bucket.delete = async (chave: string | string[]) => void apagadas.push(...[chave].flat());
+    banco.sqlite.prepare(`INSERT INTO fotos (memoria_id, chave, enviada_por, enviada_em) VALUES (NULL, '2025/d1c0bbbb-0000-4000-8000-000000000001.jpg', 'elizete', datetime('now', '-40 days'))`).run();
+    banco.sqlite.prepare(`INSERT INTO fotos (memoria_id, chave, enviada_por, enviada_em) VALUES (NULL, '2026/d1c0bbbb-0000-4000-8000-000000000002.jpg', 'elizete', datetime('now', '-2 days'))`).run();
+    const id = (chave: string) => String(linha<{ id: number }>('SELECT id FROM fotos WHERE chave = ?', chave).id);
+    try {
+      const antes = impressao();
+      expect((await formulario(soltas, '/api/fotos-soltas', elizete, { acao: 'apagar', foto: id('2025/d1c0bbbb-0000-4000-8000-000000000001.jpg') })).erro).toContain('Só os administradores');
+      expect((await formulario(soltas, '/api/fotos-soltas', usuarioDe('gui'), { acao: 'apagar', foto: id('2026/d1c0bbbb-0000-4000-8000-000000000002.jpg') })).erro).toContain('Foto não encontrada');
+      expect((await formulario(soltas, '/api/fotos-soltas', usuarioDe('gui'), { acao: 'outra', foto: id('2025/d1c0bbbb-0000-4000-8000-000000000001.jpg') })).erro).toBe('Ação desconhecida.');
+      expect(impressao()).toBe(antes);
+      expect(apagadas).toEqual([]);
+    } finally {
+      bucket.delete = apagar;
+    }
+  });
 });

@@ -14,6 +14,7 @@ import {
   recorteDaFoto,
   type Enquadramento,
 } from '../retratos';
+import { fazerCopiaDoRetrato } from './copia-do-retrato';
 
 const PASSO_DAS_SETAS = 12;
 
@@ -22,6 +23,7 @@ export function ligarRetrato(raiz: HTMLElement): void {
   const rotuloEscolher = raiz.querySelector<HTMLElement>('[data-escolher-retrato-texto]')!;
   const tirar = raiz.querySelector<HTMLButtonElement>('[data-tirar-retrato]')!;
   const arquivo = raiz.querySelector<HTMLInputElement>('[data-retrato-arquivo]')!;
+  const copia = raiz.querySelector<HTMLInputElement>('[data-retrato-copia]');
   const campoTirar = raiz.querySelector<HTMLInputElement>('[data-tirar-retrato-campo]')!;
   const atual = raiz.querySelector<HTMLElement>('[data-retrato-atual]')!;
   const recado = raiz.querySelector<HTMLElement>('[data-retrato-recado]')!;
@@ -197,6 +199,17 @@ export function ligarRetrato(raiz: HTMLElement): void {
       recado.textContent = 'Este navegador não conseguiu preparar a foto. Tente em outro navegador.';
       return;
     }
+    // A cópia pequena vai junto; sem ela, o campo fica vazio e o retrato sobe sozinho
+    if (copia) {
+      const pequena = await fazerCopiaDoRetrato(tela);
+      const transferencia = new DataTransfer();
+      if (pequena) transferencia.items.add(new File([pequena], pequena.type === 'image/webp' ? 'pequeno.webp' : 'pequeno.jpg', { type: pequena.type }));
+      try {
+        copia.files = transferencia.files;
+      } catch {
+        // O retrato sobe sem a cópia
+      }
+    }
     campoTirar.value = '';
     mostrar({ src: URL.createObjectURL(pronto) });
     recado.textContent = 'Assim vai ficar. A foto entra quando você salvar a página.';
@@ -208,6 +221,7 @@ export function ligarRetrato(raiz: HTMLElement): void {
   // e a que ainda não foi salva é esquecida
   tirar.addEventListener('click', () => {
     arquivo.value = '';
+    if (copia) copia.value = '';
     campoTirar.value = tinhaRetrato ? '1' : '';
     mostrar(null);
     recado.textContent = tinhaRetrato ? 'A foto sai quando você salvar a página.' : recadoInicial;

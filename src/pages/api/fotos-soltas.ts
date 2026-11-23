@@ -3,8 +3,12 @@
 // arquivo do bucket das fotos de verdade, e a guarda da produção (scripts/confere-producao.mjs) só
 // abre esta: a foto é conferida de novo no banco (sem memória, sem relato, há mais de 30 dias, fora
 // dos exemplos) antes de o arquivo sair. Teste em testes/fotos-soltas.test.ts.
+//
+// As cópias menores da foto (sessão D1b) saem junto, no mesmo pedido ao bucket, e só elas (sessão D1c:
+// antes ficavam no bucket sem uso).
 import type { APIRoute } from 'astro';
 import { bucketDeFotos } from '../../lib/servidor/ambiente';
+import { chavesDasCopias } from '../../lib/copias-das-fotos';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeApagarFotoSolta } from '../../lib/servidor/permissoes';
 import { esquecerFotoSolta, obterFotoSolta } from '../../lib/servidor/repositorio';
@@ -19,7 +23,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (campo(dados, 'acao', 20) !== 'apagar') return voltar(request, VOLTA, { erro: 'Ação desconhecida.' });
   const foto = await obterFotoSolta(Number(campo(dados, 'foto', 12)));
   if (!foto) return voltar(request, VOLTA, { erro: 'Foto não encontrada entre as fotos sem memória.' });
-  await bucketDeFotos().delete(foto.chave);
+  await bucketDeFotos().delete([foto.chave, ...chavesDasCopias(foto.chave)]);
   await esquecerFotoSolta(foto.id);
   return voltar(request, VOLTA, { ok: 'Foto apagada.' });
 };

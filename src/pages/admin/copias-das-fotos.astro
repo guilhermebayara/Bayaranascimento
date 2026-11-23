@@ -4,18 +4,23 @@
 // no navegador dele, uma foto por vez: baixa a original pela rota das fotos, reduz no aparelho e manda as
 // cópias por /api/copias-das-fotos. A original nunca muda. Se a página fechar, a lista que volta já deixa de
 // fora as fotos que ganharam cópia: continuar recomeça de onde parou. Só entram as fotos que ele vê.
+// Desde a sessão D1c, o mesmo botão faz também a cópia pequena dos retratos de antes, por
+// /api/copias-dos-retratos, com as mesmas regras.
 import Pagina from '../../components/formularios/Pagina.astro';
-import { listarFotosSemCopia } from '../../lib/servidor/repositorio';
+import { listarFotosSemCopia, listarRetratosSemCopia } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
-const faltam = (await listarFotosSemCopia(usuario)).length;
-const frase = (n: number) => (n === 0 ? 'Todas as fotos que você vê já têm as cópias.' : n === 1 ? 'Falta uma foto.' : `Faltam ${n} fotos.`);
+const faltamFotos = (await listarFotosSemCopia(usuario)).length;
+const faltamRetratos = (await listarRetratosSemCopia(usuario)).length;
+const faltam = faltamFotos + faltamRetratos;
+const partes = [faltamFotos === 0 ? '' : faltamFotos === 1 ? 'uma foto' : `${faltamFotos} fotos`, faltamRetratos === 0 ? '' : faltamRetratos === 1 ? 'um retrato' : `${faltamRetratos} retratos`].filter(Boolean);
+const frase = () => (faltam === 0 ? 'Todas as fotos e retratos que você vê já têm as cópias.' : `${faltam === 1 ? 'Falta' : 'Faltam'} ${partes.join(' e ')}.`);
 ---
 
 <Pagina titulo="Cópias menores das fotos" rotulo="Administração" secao="administracao">
   <Fragment slot="abertura">
-    <p>Cada foto ganha duas cópias menores, que deixam o mural, a linha do tempo e a memória mais rápidos no celular. As fotos novas já sobem com elas. As fotos de antes ganham as cópias aqui, uma por vez, feitas neste aparelho. A foto guardada não muda.</p>
+    <p>Cada foto ganha duas cópias menores, e cada retrato, uma, que deixam o mural, a linha do tempo, a memória e a lista de pessoas mais rápidos no celular. As fotos e os retratos novos já sobem com elas. Os de antes ganham as cópias aqui, um por vez, feitas neste aparelho. A foto guardada não muda.</p>
     <p class="acoes">
       <a class="acao" href="/admin">Voltar para a Administração</a>
     </p>
@@ -23,7 +28,7 @@ const frase = (n: number) => (n === 0 ? 'Todas as fotos que você vê já têm a
 
   <section class="painel" data-copias data-faltam={faltam}>
     <h2>Agora</h2>
-    <p data-copias-situacao aria-live="polite">{frase(faltam)}</p>
+    <p data-copias-situacao aria-live="polite">{frase()}</p>
     <p class="dica">Deixe esta página aberta enquanto as cópias são feitas. Se ela fechar, abra de novo e toque no botão: o trabalho continua de onde parou.</p>
     {
       faltam > 0 && (
@@ -42,6 +47,7 @@ const frase = (n: number) => (n === 0 ? 'Todas as fotos que você vê já têm a
 
 <script>
   import { fazerCopias } from '../../lib/cliente/fotos';
+  import { fazerCopiaDoRetrato } from '../../lib/cliente/copia-do-retrato';
 
   const caixa = document.querySelector<HTMLElement>('[data-copias]');
   const fazer = caixa?.querySelector<HTMLButtonElement>('[data-copias-fazer]');
@@ -66,35 +72,53 @@ const frase = (n: number) => (n === 0 ? 'Todas as fotos que você vê já têm a
     return envio.ok || envio.status === 409;
   }
 
+  /** Faz a cópia de um retrato. true: feita; false: ficou para depois. */
+  async function copiarRetrato(chave: string): Promise<boolean> {
+    const resposta = await fetch(`/retratos/${chave}`);
+    if (!resposta.ok) return false;
+    const imagem = await createImageBitmap(await resposta.blob());
+    // O retrato é sempre o quadrado do recorte; o que não for quadrado fica com a original
+    const copia = imagem.width === imagem.height ? await fazerCopiaDoRetrato(imagem) : null;
+    imagem.close();
+    if (!copia) return false;
+    const corpo = new FormData();
+    corpo.set('chave', chave);
+    corpo.set('pequeno', copia, copia.type === 'image/webp' ? 'pequeno.webp' : 'pequeno.jpg');
+    const envio = await fetch('/api/copias-dos-retratos', { method: 'POST', body: corpo });
+    // 409: o retrato já tinha a cópia (outro aparelho fez antes)
+    return envio.ok || envio.status === 409;
+  }
+
   fazer?.addEventListener('click', async () => {
     if (!situacao || !parar) return;
     parado = false;
     fazer.hidden = true;
     parar.hidden = false;
-    situacao.textContent = 'Buscando a lista das fotos…';
-    let chaves: string[] = [];
+    situacao.textContent = 'Buscando a lista das fotos e dos retratos…';
+    let tarefas: { chave: string; retrato: boolean }[] = [];
     try {
-      const resposta = await fetch('/api/copias-das-fotos', { cache: 'no-store' });
-      chaves = ((await resposta.json()) as { chaves?: string[] }).chaves ?? [];
+      const lista = async (endereco: string) => (((await (await fetch(endereco, { cache: 'no-store' })).json()) as { chaves?: string[] }).chaves ?? []);
+      const [fotos, retratos] = await Promise.all([lista('/api/copias-das-fotos'), lista('/api/copias-dos-retratos')]);
+      tarefas = [...fotos.map((chave) => ({ chave, retrato: false })), ...retratos.map((chave) => ({ chave, retrato: true }))];
     } catch {
-      situacao.textContent = 'Não consegui buscar a lista das fotos. Confira a internet e tente de novo.';
+      situacao.textContent = 'Não consegui buscar a lista das fotos e dos retratos. Confira a internet e tente de novo.';
       fazer.hidden = false;
       parar.hidden = true;
       return;
     }
     let feitas = 0;
     let falhas = 0;
-    for (const [n, chave] of chaves.entries()) {
+    for (const [n, { chave, retrato }] of tarefas.entries()) {
       if (parado) break;
-      situacao.textContent = `Fazendo a cópia ${n + 1} de ${chaves.length}`;
+      situacao.textContent = `Fazendo a cópia ${n + 1} de ${tarefas.length}`;
       try {
-        if (await copiar(chave)) feitas++;
+        if (await (retrato ? copiarRetrato(chave) : copiar(chave))) feitas++;
         else falhas++;
       } catch {
         falhas++;
       }
     }
-    const resumo = feitas === 1 ? 'Uma foto ganhou as cópias.' : `${feitas} fotos ganharam as cópias.`;
+    const resumo = feitas === 1 ? 'Uma foto ou retrato ganhou as cópias.' : `${feitas} fotos e retratos ganharam as cópias.`;
     const resto = falhas === 0 ? '' : falhas === 1 ? ' Uma não deu certo: tente de novo mais tarde.' : ` ${falhas} não deram certo: tente de novo mais tarde.`;
     situacao.textContent = parado ? `Parado. ${resumo} Toque no botão para continuar.` : `Pronto. ${resumo}${resto}`;
     parar.hidden = true;

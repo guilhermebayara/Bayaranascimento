@@ -102,7 +102,7 @@ const digitos = Math.max(2, String(marcos.length).length);
       <div class="laco-pagina__dois">
         {[a, b].map((i) => (
           <a class="pessoa" href={`/pessoas/${i.id}`}>
-            <Retrato nome={chamar(i)} foto={retratoDe(i)} familia={corDe(i.id)} falecido={jaFaleceu(i)} cedo />
+            <Retrato nome={chamar(i)} foto={retratoDe(i)} familia={corDe(i.id)} falecido={jaFaleceu(i)} cedo grande />
             <span class="pessoa__nome">{chamar(i)}</span>
             {jaFaleceu(i) && <span class="so-leitor">já faleceu</span>}
             {paraQuemOlha(i) && <span class="ficha suave">{paraQuemOlha(i)}</span>}

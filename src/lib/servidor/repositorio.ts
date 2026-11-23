@@ -13,6 +13,7 @@ import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, t
 import type { SimboloDaReacao } from '../reacoes';
 import { mensagensDoRelato, type Mensagem } from '../conversa';
 import { gravarCopias, lerCopias, type Copias } from '../copias-das-fotos';
+import { gravarCopiaDoRetrato, lerCopiaDoRetrato, type CopiaDoRetrato } from '../retratos';
 import {
   comExcluidas,
   pessoasQueNaoVe,
@@ -612,14 +613,18 @@ export async function podeVerRetratoDaChave(usuario: Usuario, chave: string): Pr
  * pode ficar guardado no aparelho por 7 dias (decisão 3 do Gui, 23/11/2026). O retrato de quem está na
  * lixeira continua sendo conferido a cada uso, como antes.
  */
-export async function acessoAoRetrato(usuario: Usuario, chave: string): Promise<{ guardar: boolean } | null> {
+export async function acessoAoRetrato(usuario: Usuario, chave: string): Promise<{ guardar: boolean; copia: CopiaDoRetrato | null } | null> {
   // Um retrato de exemplo é dividido por várias pessoas: basta a pessoa logada ver uma delas
-  const { results: donos } = await db().prepare('SELECT id, excluida_em FROM integrantes WHERE retrato = ?').bind(chave).all<{ id: string; excluida_em: string | null }>();
+  const { results: donos } = await db()
+    .prepare('SELECT id, excluida_em, (SELECT copia FROM retratos_enviados WHERE chave = ?1) AS copia FROM integrantes WHERE retrato = ?1')
+    .bind(chave)
+    .all<{ id: string; excluida_em: string | null; copia: string | null }>();
   if (donos.length === 0) return null;
   const naoVe = await pessoasQueONaoVe(usuario);
-  const visiveis = (donos as { id: string; excluida_em: string | null }[]).filter((dono) => podeVerRetrato(dono.id, naoVe));
+  const visiveis = (donos as { id: string; excluida_em: string | null; copia: string | null }[]).filter((dono) => podeVerRetrato(dono.id, naoVe));
   if (visiveis.length === 0) return null;
-  return { guardar: visiveis.some((dono) => !dono.excluida_em) };
+  // A cópia (sessão D1c) segue exatamente esta conferência: a rota da cópia chama esta função com a chave da original
+  return { guardar: visiveis.some((dono) => !dono.excluida_em), copia: lerCopiaDoRetrato(visiveis[0]!.copia) };
 }
 
 export async function salvarLacoDoCoracao(
@@ -1355,8 +1360,47 @@ export async function registrarFoto(chave: string, usuario: Usuario, tamanho: nu
 // --- Espaço das fotos e áudios (migração 070; regras em src/lib/espaco-dos-arquivos.ts) ---
 
 /** Anota o retrato enviado, com o tamanho. A chave é a de integrantes.retrato, sem "retratos/". */
-export async function registrarRetratoEnviado(chave: string, tamanho: number, usuario: Usuario): Promise<void> {
-  await db().prepare('INSERT OR IGNORE INTO retratos_enviados (chave, tamanho, enviado_por) VALUES (?, ?, ?)').bind(chave, tamanho, usuario.pessoa).run();
+export async function registrarRetratoEnviado(chave: string, tamanho: number, usuario: Usuario, copia: CopiaDoRetrato | null = null): Promise<void> {
+  await db()
+    .prepare('INSERT OR IGNORE INTO retratos_enviados (chave, tamanho, enviado_por, copia) VALUES (?, ?, ?, ?)')
+    .bind(chave, tamanho, usuario.pessoa, copia ? gravarCopiaDoRetrato(copia) : null)
+    .run();
+}
+
+/**
+ * Anota a cópia de um retrato de antes (o ajuste da Administração). O retrato de antes da contagem do espaço
+ * ainda não tem linha: ela nasce aqui, com o tamanho da original. Nunca troca uma cópia que já existe.
+ */
+export async function guardarCopiaDoRetrato(chave: string, tamanhoDaOriginal: number, copia: CopiaDoRetrato): Promise<number> {
+  const r = await db()
+    .prepare(
+      `INSERT INTO retratos_enviados (chave, tamanho, copia) VALUES (?1, ?2, ?3)
+       ON CONFLICT (chave) DO UPDATE SET copia = excluded.copia WHERE retratos_enviados.copia IS NULL`,
+    )
+    .bind(chave, tamanhoDaOriginal, gravarCopiaDoRetrato(copia))
+    .run();
+  return r.meta.changes ?? 0;
+}
+
+/** Este retrato já tem cópia? */
+export async function retratoTemCopia(chave: string): Promise<boolean> {
+  return Boolean(await db().prepare('SELECT 1 FROM retratos_enviados WHERE chave = ? AND copia IS NOT NULL').bind(chave).first());
+}
+
+/**
+ * Os retratos de agora sem cópia que o administrador vê (o ajuste da Administração). Os de exemplo ficam de
+ * fora: usam as cópias das fotos de exemplo. O retrato antigo, que já não é de ninguém, não aparece em tela.
+ */
+export async function listarRetratosSemCopia(usuario: Usuario): Promise<string[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT i.id, i.retrato FROM integrantes i WHERE i.retrato IS NOT NULL AND i.retrato NOT LIKE 'exemplos/%'
+         AND NOT EXISTS (SELECT 1 FROM retratos_enviados r WHERE r.chave = i.retrato AND r.copia IS NOT NULL)
+       ORDER BY i.id`,
+    )
+    .all<{ id: string; retrato: string }>();
+  const naoVe = await pessoasQueONaoVe(usuario);
+  return [...new Set((results as { id: string; retrato: string }[]).filter((r) => podeVerRetrato(r.id, naoVe)).map((r) => r.retrato))];
 }
 
 /**
@@ -1371,7 +1415,7 @@ export async function espacoDosArquivos(): Promise<{ bytes: number; semMedida: n
       `SELECT
         (SELECT COALESCE(SUM(tamanho), 0) + COALESCE(SUM(json_extract(copias, '$.bytes')), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') +
         (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exemplos/%') +
-        (SELECT COALESCE(SUM(tamanho), 0) FROM retratos_enviados WHERE chave NOT LIKE 'exemplos/%') AS bytes,
+        (SELECT COALESCE(SUM(tamanho), 0) + COALESCE(SUM(json_extract(copia, '$.bytes')), 0) FROM retratos_enviados WHERE chave NOT LIKE 'exemplos/%') AS bytes,
         (SELECT COUNT(*) FROM fotos WHERE tamanho IS NULL AND chave <> '' AND chave NOT LIKE 'exemplos/%') +
         (SELECT COUNT(DISTINCT retrato) FROM integrantes WHERE retrato IS NOT NULL AND retrato NOT LIKE 'exemplos/%'
           AND retrato NOT IN (SELECT chave FROM retratos_enviados)) AS sem_medida`,

@@ -10,14 +10,16 @@ const comSqlite = await temSqlite();
 const apagados: string[] = [];
 const env = vi.hoisted(() => ({ AMBIENTE: 'producao' as string, DB: undefined as unknown, FOTOS: undefined as unknown }));
 vi.mock('cloudflare:workers', () => ({ env }));
-env.FOTOS = { list: async () => ({ objects: [], truncated: false }), delete: async (chave: string) => void apagados.push(chave), put: async () => undefined, get: async () => null, head: async () => null };
+env.FOTOS = { list: async () => ({ objects: [], truncated: false }), delete: async (chave: string | string[]) => void apagados.push(...[chave].flat()), put: async () => undefined, get: async () => null, head: async () => null };
 
 describe('a guarda da produção abre só a rota das fotos soltas', () => {
   const guarda = readFileSync('scripts/confere-producao.mjs', 'utf-8');
   it('a exceção é um arquivo só, com a foto conferida de novo e só para administradores', () => {
-    expect(guarda).toContain("const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';");
-    expect(guarda).toContain("uso[0] === 'bucketDeFotos().delete('");
-    expect(guarda).toMatch(/podeApagarFotoSolta/);
+    const regra = readFileSync('scripts/apagar-no-bucket.mjs', 'utf-8');
+    expect(guarda).toContain('for (const mensagem of apagamentosProibidos(arquivo, texto)) falhar(mensagem);');
+    expect(regra).toContain("export const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';");
+    expect(regra).toContain("uso[0] === 'bucketDeFotos().delete('");
+    expect(regra).toMatch(/podeApagarFotoSolta/);
     const rota = readFileSync('src/pages/api/fotos-soltas.ts', 'utf-8');
     expect(rota.match(/\.delete\(/g)).toHaveLength(1);
   });
@@ -83,9 +85,11 @@ describe.skipIf(!comSqlite)('fotos sem memória no banco e na rota', async () =>
     expect(linha<{ n: number }>('SELECT COUNT(*) AS n FROM fotos').n).toBeGreaterThanOrEqual(4);
   });
 
-  it('o administrador apaga a foto solta: o arquivo sai do bucket e o registro some', async () => {
+  it('o administrador apaga a foto solta: a original e as cópias dela saem do bucket, e o registro some', async () => {
     expect(await pedir(gui, velha)).toContain('Foto apagada.');
-    expect(apagados).toEqual(['2025/aaaaaaaa-0000-0000-0000-000000000001.jpg']);
+    // A original e as cópias dela, e só elas (sessão D1c): os dois tamanhos, nos dois formatos
+    const base = '2025/aaaaaaaa-0000-0000-0000-000000000001';
+    expect(apagados.sort()).toEqual([`${base}.jpg`, `${base}.media.jpg`, `${base}.media.webp`, `${base}.pequena.jpg`, `${base}.pequena.webp`].sort());
     expect(linha('SELECT id FROM fotos WHERE id = ?', velha)).toBeUndefined();
   });
 });

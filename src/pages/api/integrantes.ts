@@ -5,7 +5,7 @@ import { arrumarTexto, criarSlug, slugUnico, validarData } from '../../lib/servi
 import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { podeEditarIntegrante, podeMudarRetrato, type Usuario } from '../../lib/servidor/permissoes';
-import { LIMITE_DO_RETRATO, PASTA_DOS_RETRATOS, formatoDoRetrato } from '../../lib/retratos';
+import { LIMITE_DO_RETRATO, PASTA_DOS_RETRATOS, chaveDaCopiaDoRetrato, conferirCopiaDoRetrato, formatoDoRetrato, type CopiaDoRetrato } from '../../lib/retratos';
 import { apelidoSoSeuDaFicha } from '../../lib/apelidos';
 import { atualizarIntegrante, criarIntegranteCompleto, registrarRetratoEnviado, definirParentes, guardarMeuApelido, listarIntegrantes, listarIntegrantesQueVe, listarMeusApelidos, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
 
@@ -24,25 +24,46 @@ function lerData(dados: FormData, prefixo: string, rotulo: string): { ano?: numb
  * A foto de retrato que veio com a ficha, já recortada e reduzida pelo navegador. Devolve o arquivo
  * conferido pelo conteúdo, ou o recado do problema. Sem arquivo, nada muda.
  */
-async function lerRetrato(dados: FormData): Promise<{ bytes?: Uint8Array; tipo?: string; extensao?: string; erro?: string }> {
+async function lerRetrato(dados: FormData): Promise<{ bytes?: Uint8Array; tipo?: string; extensao?: string; copia?: Uint8Array; erro?: string }> {
   const valor = dados.get('retrato');
   if (!(valor instanceof File) || valor.size === 0) return {};
   if (valor.size > LIMITE_DO_RETRATO) return { erro: 'A foto de retrato é grande demais. Escolha de novo, que o site reduz.' };
   const bytes = new Uint8Array(await valor.arrayBuffer());
   const formato = formatoDoRetrato(bytes);
   if (!formato) return { erro: 'Formato de foto não aceito. Envie JPG, PNG ou WebP.' };
-  return { bytes, ...formato };
+  // A cópia pequena que o navegador fez (sessão D1c). Sem ela, o retrato entra assim mesmo
+  const copia = dados.get('retratoPequeno');
+  return { bytes, ...formato, ...(copia instanceof File && copia.size > 0 ? { copia: new Uint8Array(await copia.arrayBuffer()) } : {}) };
 }
 
-/** Guarda o retrato no bucket das fotos, debaixo de "retratos/", com uma chave nova. Nada é sobrescrito. */
-async function guardarRetrato(retrato: { bytes: Uint8Array; tipo: string; extensao: string }, integrante: string, usuario: Usuario): Promise<string> {
+/**
+ * Guarda o retrato no bucket das fotos, debaixo de "retratos/", com uma chave nova. Nada é sobrescrito.
+ * A cópia pequena (sessão D1c, src/lib/retratos.ts), quando veio e passou na conferência, fica ao lado, com
+ * nome próprio. Cópia que não passa fica de fora, e o retrato entra assim mesmo: a rota entrega a original.
+ */
+async function guardarRetrato(retrato: { bytes: Uint8Array; tipo: string; extensao: string; copia?: Uint8Array }, integrante: string, usuario: Usuario): Promise<string> {
   const chave = `${crypto.randomUUID()}.${retrato.extensao}`;
   await bucketDeFotos().put(`${PASTA_DOS_RETRATOS}${chave}`, retrato.bytes, {
     httpMetadata: { contentType: retrato.tipo },
     customMetadata: { enviadoPor: usuario.pessoa, integrante },
   });
-  // O tamanho entra na conta do espaço das fotos e áudios (migração 070)
-  await registrarRetratoEnviado(chave, retrato.bytes.byteLength, usuario);
+  let copia: CopiaDoRetrato | null = null;
+  if (retrato.copia) {
+    try {
+      const conferida = conferirCopiaDoRetrato(retrato.bytes, retrato.copia);
+      if ('copia' in conferida) {
+        await bucketDeFotos().put(`${PASTA_DOS_RETRATOS}${chaveDaCopiaDoRetrato(chave, conferida.copia.formato)}`, retrato.copia, {
+          httpMetadata: { contentType: conferida.copia.formato === 'webp' ? 'image/webp' : 'image/jpeg' },
+          customMetadata: { copiaDe: chave },
+        });
+        copia = conferida.copia;
+      }
+    } catch (e) {
+      console.error('Não consegui guardar a cópia do retrato:', e);
+    }
+  }
+  // O tamanho entra na conta do espaço das fotos e áudios (migração 070), com o da cópia (migração 111)
+  await registrarRetratoEnviado(chave, retrato.bytes.byteLength, usuario, copia);
   return chave;
 }
 
