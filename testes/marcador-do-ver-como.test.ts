@@ -22,6 +22,8 @@ vi.mock('../src/lib/servidor/acesso', async (original) => {
   return {
     ...real,
     usuarioDoPedido: async (request: Request) => (env.AMBIENTE === 'producao' ? { pessoa: 'gui', nome: 'Gui', admin: true, nucleos: [] } : real.usuarioDoPedido(request)),
+    // O middleware da D1a pergunta primeiro quem pede e depois lê a pessoa no banco
+    pessoaQuePede: async (request: Request) => (env.AMBIENTE === 'producao' ? 'gui' : real.pessoaQuePede(request)),
   };
 });
 env.FOTOS = { list: async () => ({ objects: [], truncated: false }), delete: async () => undefined, put: async () => undefined, get: async () => null, head: async () => null };
