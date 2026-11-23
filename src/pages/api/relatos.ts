@@ -151,6 +151,18 @@ async function aPaginaPodeTerMostrado(chave: string, memoria: Memoria, usuario: 
   return (await publicosQueAMemoriaJaTeve(memoria)).has(chaveDoPublico(publico));
 }
 
+/**
+ * O que a tabela dos envios guarda (migração 109): o resumo do código da página junto com quem envia, o
+ * relato e o texto. Assim o código só vale para a mesma pessoa, o mesmo relato e o mesmo texto: o toque
+ * duplo repete tudo e não grava de novo, e a mesma página enviada outra vez com outro texto grava a mensagem
+ * nova, como antes de o código existir (revisão Z2, 23/11/2026). O resumo não se desfaz: nem o código nem o
+ * texto ficam na tabela.
+ */
+async function chaveDoEnvio(codigo: string, pessoa: string, memoriaId: string, por: string, texto: string): Promise<string> {
+  const resumo = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([codigo, pessoa, memoriaId, por, texto])));
+  return [...new Uint8Array(resumo)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const { usuario } = locals;
   const lido = Pedido.safeParse(bruto);
@@ -206,8 +218,9 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const { soParaNucleos } = relatoQueNasce(mostrava, memoria, usuario.pessoa, memoria.criadaPor);
     if (soParaNucleos) nasce = { soParaNucleos, de: memoria.criadaPor, paraQuem: paraQuemPassouAVer(comoPublicoAntigo(soParaNucleos), memoria, await listarNucleos()) };
   }
+  const envio = lido.data.envio ? await chaveDoEnvio(lido.data.envio, usuario.pessoa, memoriaId, por, lido.data.texto) : undefined;
   try {
-    await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce, envio: lido.data.envio });
+    await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce, envio });
   } catch (e) {
     // O mesmo envio de novo (o toque duplo sem script): o primeiro já gravou, e este responde como ele, sem gravar
     if (!(e instanceof EnvioRepetido)) throw e;

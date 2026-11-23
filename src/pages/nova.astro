@@ -470,7 +470,9 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 
   const form = document.querySelector<HTMLFormElement>('[data-formulario-memoria]');
   if (form) {
-    const situacaoEl = form.querySelector<HTMLElement>('[data-situacao]')!;
+    // A linha de avisos do formulário, e não a da janela do relato, que vem antes na página e mora numa etapa
+    // escondida: com ela, "Dê um título…" e "Não consegui salvar." ficavam fora da vista (revisão Z2)
+    const situacaoEl = form.querySelector<HTMLElement>(':scope > [data-situacao]')!;
     const listaFotos = form.querySelector<HTMLUListElement>('[data-fotos]')!;
     const novasPessoas = form.querySelector<HTMLElement>('[data-novas-pessoas]')!;
     const relatoPor = form.querySelector<HTMLSelectElement>('[data-relato-por]');
