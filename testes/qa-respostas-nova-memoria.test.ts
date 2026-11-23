@@ -35,7 +35,7 @@ describe('P132: o rascunho pode ser salvo só com o título', () => {
   });
   it('o formulário só pede o ano para publicar, e não mostra o ano guardado de um rascunho sem data', () => {
     expect(nova).toMatch(/if \(ano === undefined \? situacao === 'publicada' : !Number\.isInteger\(ano\)\) \{/);
-    expect(nova).toMatch(/<CampoData ano=\{memoria\?\.ano \|\| undefined\}/);
+    expect(nova).toMatch(/<CampoData ano=\{\(devolvida \? devolvida\.ano : memoria\?\.ano\) \|\| undefined\}/);
   });
 });
 

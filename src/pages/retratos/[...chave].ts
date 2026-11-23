@@ -33,7 +33,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
   objeto.writeHttpMetadata(headers);
   headers.set('ETag', objeto.httpEtag);
   // O retrato fica guardado no aparelho por 7 dias; o de quem está na lixeira é conferido a cada uso.
-  // Trocar o retrato grava um arquivo com nome novo (src/pages/api/integrantes.ts, guardarRetrato).
+  // Trocar o retrato grava um arquivo com nome novo (src/pages/api/integrantes.ts, enviarRetrato).
   for (const [nome, valor] of Object.entries(cabecalhoDeGuardar(acesso.guardar, semLogin()))) headers.set(nome, valor);
   headers.set('X-Content-Type-Options', 'nosniff');
 

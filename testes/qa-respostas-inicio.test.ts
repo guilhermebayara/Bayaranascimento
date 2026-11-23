@@ -46,9 +46,9 @@ describe('a composição do Início (P13, P16 a P19)', () => {
     expect(composicaoDoInicio({ ...nada, aniversarios: true }).mesa).toBe('vazia');
   });
 
-  it('contar vem antes de "Neste dia", que vem antes dos aniversários', () => {
+  it('"Você no acervo" vem primeiro (crítica C1), e contar vem antes de "Neste dia", que vem antes dos aniversários', () => {
     const c = composicaoDoInicio({ memoriasNovas: 2, relatosNovos: 0, outrosAnos: 2, contar: true, aniversarios: true, voce: true });
-    expect(c.cartoes).toEqual(['contar', 'outros-anos', 'aniversarios', 'voce']);
+    expect(c.cartoes).toEqual(['voce', 'contar', 'outros-anos', 'aniversarios']);
   });
 
   it('"Neste dia" com uma ou duas memórias é um cartão da fileira; com três ou quatro, uma faixa', () => {
@@ -115,7 +115,7 @@ describe('os textos do Início (P1, P6, P20, P23 a P28)', () => {
   });
 
   it('a abertura avisa do rascunho e não mostra a data de hoje', () => {
-    expect(inicio).toContain('Você tem um rascunho.');
+    expect(inicio).toContain('fraseDoRascunho(rascunhos, usuario.pessoa, nomeVisto)');
     expect(inicio).toContain('Continuar o rascunho');
     expect(inicio).toContain('seusRascunhos(usuario.pessoa');
     expect(inicio).not.toMatch(/diaMesCurto\(hoje\)/);

@@ -31,3 +31,16 @@ export function fichaJuntada(fica: Integrante, sai: Integrante, escolha: (campo:
   };
 }
 
+
+/**
+ * O recado de quando as duas fichas têm relato na mesma memória (decisão do Gui, 23/11/2026): os títulos que
+ * quem olha vê e, se houver outras, "e memórias que você não vê", sem título nem número. Vazio sem conflito.
+ */
+export function recadoDosConflitos(conflitos: { titulos: string[]; outras: boolean }[]): string {
+  const titulos = [...new Set(conflitos.flatMap((c) => c.titulos))].map((t) => `“${t}”`);
+  const outras = conflitos.some((c) => c.outras);
+  if (titulos.length === 0 && !outras) return '';
+  const partes = [...titulos, ...(outras ? ['memórias que você não vê'] : [])];
+  const lista = partes.length === 1 ? partes[0] : `${partes.slice(0, -1).join(', ')} e ${partes.at(-1)}`;
+  return `As duas fichas têm relato em ${lista}. Cada pessoa tem um relato por memória: deixe um só antes de juntar.`;
+}

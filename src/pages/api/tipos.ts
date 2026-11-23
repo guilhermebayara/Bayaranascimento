@@ -2,7 +2,7 @@
 import type { APIRoute } from 'astro';
 import { criarSlug, slugUnico } from '../../lib/servidor/conteudo';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { atualizarTipo, criarTipo, promoverTextoDeOutro } from '../../lib/servidor/repositorio';
+import { SEM_CODIGO, atualizarTipo, comCodigoNovo, criarTipo, listarTipos, promoverTextoDeOutro } from '../../lib/servidor/repositorio';
 import { TIPO_OUTRO } from '../../lib/tipos';
 import { ehCorDaPaleta } from '../../lib/visual';
 import { RABISCO_PADRAO, ehRabisco } from '../../visual/rabiscos';
@@ -29,16 +29,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (tipos.some((t) => t.rotulo.toLowerCase() === rotulo.toLowerCase())) return `Já existe um tipo chamado “${rotulo}”.`;
     return undefined;
   };
-  const criar = async (): Promise<string> => {
-    const id = slugUnico(criarSlug(rotulo), new Set(tipos.map((t) => t.id)));
-    await criarTipo(id, rotulo, cor, icone, usuario);
-    return id;
+  // O código que outro pedido usou no meio tempo: o site tenta de novo sozinho, com a lista de agora, e no fim
+  // volta com o recado, sem 500 (o D2 da sessão Z, estendido na sessão AA)
+  const criar = async (): Promise<string | { erro: string }> => {
+    const feito = await comCodigoNovo(async (vez) => {
+      const lista = vez === 1 ? tipos : await listarTipos();
+      if (vez > 1 && lista.some((t) => t.rotulo.toLowerCase() === rotulo.toLowerCase())) return { erro: `Já existe um tipo chamado “${rotulo}”.` };
+      const id = slugUnico(criarSlug(rotulo), new Set(lista.map((t) => t.id)));
+      await criarTipo(id, rotulo, cor, icone, usuario);
+      return id;
+    });
+    return feito === SEM_CODIGO ? { erro: 'Não consegui salvar.' } : feito;
   };
 
   if (acao === 'criar') {
     const problema = validarNovo();
     if (problema) return voltar(request, PAGINA, { erro: problema });
-    await criar();
+    const criado = await criar();
+    if (typeof criado !== 'string') return voltar(request, PAGINA, criado);
     return voltar(request, PAGINA, { ok: `Tipo “${rotulo}” criado.` });
   }
 
@@ -68,7 +76,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     } else {
       const problema = validarNovo();
       if (problema) return voltar(request, PAGINA, { erro: problema });
-      destino = await criar();
+      const criado = await criar();
+      if (typeof criado !== 'string') return voltar(request, PAGINA, criado);
+      destino = criado;
     }
     await promoverTextoDeOutro(texto, destino, usuario);
     // Sem número: contar as memórias que o admin não vê entregaria que elas existem (decisão do Gui, 16/11/2026)
