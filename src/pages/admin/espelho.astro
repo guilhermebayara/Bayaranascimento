@@ -22,8 +22,8 @@ if (!usuario.admin || !podeEspelhar()) return new Response('Página não encontr
   <section class="painel">
     <h2>Refazer o espelho</h2>
     <ol class="passos">
-      <li>No site de verdade, em memorias.bayara.com.br, abra “Administração”, no menu do retrato, e use “Baixar cópia do acervo”, em “Espaço e cópias”.</li>
-      <li>Envie o arquivo aqui.</li>
+      <li>No site de verdade, em memorias.bayara.com.br, abra “Administração”, no menu do retrato, e use “Baixar cópia para o espelho”, em “Espaço e cópias”.</li>
+      <li>Envie o arquivo aqui. A cópia inteira do acervo não serve: ela leva memórias e textos que não vêm para cá.</li>
     </ol>
     <p class="dica">
       Passam as pessoas com os nomes e as datas, quem é de cada família, os laços de árvore, os casais com as fases e os laços do
@@ -32,7 +32,7 @@ if (!usuario.admin || !podeEspelhar()) return new Response('Página não encontr
     </p>
     <form class="formulario" method="post" action="/api/espelho" enctype="multipart/form-data">
       <label class="campo">
-        <span>Cópia do acervo (arquivo .json)</span>
+        <span>Cópia para o espelho (arquivo .json)</span>
         <input type="file" name="copia" accept="application/json,.json" required />
       </label>
       {/* O espelho apaga tudo o que está na homologação: o primeiro toque abre a pergunta, e só o segundo envia, como nos laços (resposta do Gui à P169, 17/11/2026) */}

@@ -723,13 +723,13 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       // A cópia leva todas as tabelas do banco, como antes
       const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY name`).map((t) => t.name);
       expect(Object.keys(montada.tabelas).sort()).toEqual(tabelas);
-      // O que o script do Drive confere (scripts/copia-no-drive.gs): resposta 200 com "tabelas" no texto
-      const resposta = await copia.respostaDaCopia();
-      const corpo = await resposta.text();
-      expect(resposta.status).toBe(200);
-      expect(corpo.indexOf('"tabelas"')).not.toBe(-1);
-      expect(readFileSync('scripts/copia-no-drive.gs', 'utf-8')).toContain(`texto.indexOf('"tabelas"') === -1`);
-      expect((JSON.parse(corpo) as typeof montada).tabelas.envios.length).toBeGreaterThan(0);
+      // Desde a sessão D1e, a cópia vem em partes (testes/copia-em-partes.test.ts): a tabela entra no índice e na parte dela
+      const indice = JSON.parse(await (await copia.respostaDaCopia(new URL('http://localhost/api/copia'))).resposta.text()) as { indice: { tabela: string; linhas: number }[] };
+      expect(indice.indice.find((t) => t.tabela === 'envios')!.linhas).toBeGreaterThan(0);
+      const parte = await copia.respostaDaCopia(new URL('http://localhost/api/copia?tabela=envios'));
+      expect(parte.resposta.status).toBe(200);
+      expect((JSON.parse(await parte.resposta.text()) as { colunas: string[] }).colunas.sort()).toEqual(['codigo', 'em']);
+      expect(montada.tabelas.envios.length).toBeGreaterThan(0);
     });
 
     it('a tabela fica fora do espelho da produção: ele não a lê, não a leva e continua gravando com ela no banco', async () => {

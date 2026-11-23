@@ -25,7 +25,13 @@
 //
 // E então:
 //
-//   node scripts/desempenho/medir-cpu.mjs --estado ESTADO --saida PASTA [--fase paginas,pesadas,gravacoes,espelho,comeco] [--repeticoes 5]
+//   node scripts/desempenho/medir-cpu.mjs --estado ESTADO --saida PASTA [--fase paginas,pesadas,gravacoes,espelho,copias,comeco] [--repeticoes 5]
+//
+// A fase "copias" (sessão D1e) mede a cópia em partes (o índice e cada parte, como administrador e com o
+// token de serviço) e a cópia para o espelho; a fase "espelho-familia", depois dela, o espelho recebendo essa
+// cópia e recusando a inteira. As fases "pesadas" e "espelho" são as
+// da M2, de antes da cópia em partes: no código de depois, "pesadas" baixa o índice, e "espelho" recusa o
+// arquivo.
 //
 // A fase "comeco" pede, no meio, a preparação do banco (preparar-comeco.mjs) e deixa os relatos da carga
 // sem mensagens até o servidor refazê-las; rode por último.
@@ -394,6 +400,121 @@ async function faseEspelho() {
   guarda();
 }
 
+// A cópia em partes, a cópia para o espelho e o espelho recebendo ela (sessão D1e, 23/11/2026; relatório em
+// docs/desempenho/2026-11-23-d1e.md). Cada parte é um pedido; a tabela traz a pior delas.
+const resumoDaMedida = (r) => ({
+  nome: r.nome,
+  cpu_primeira_ms: r.cpu_primeira_ms,
+  cpu_mediana_ms: r.cpu_mediana_ms,
+  cpu_min_ms: r.cpu_min_ms,
+  cpu_pior_ms: r.cpu_pior_ms,
+  sem_banco_local_mediana_ms: r.sem_banco_local_mediana_ms,
+  sem_banco_local_pior_ms: r.sem_banco_local_pior_ms,
+  bytes: r.bytes,
+  alocado_mb: r.memoria?.alocado_no_pedido_mb ?? null,
+  pilha_maior_lida_mb: r.memoria?.pilha_maior_lida_mb ?? null,
+  fora_da_pilha_maior_mb: r.memoria?.fora_da_pilha_maior_mb ?? null,
+  onde_vai_o_tempo: r.onde_vai_o_tempo,
+});
+async function faseCopias() {
+  const copias = { partes: [], mensal: [] };
+  await subir('scripts/desempenho/wrangler-cpu.jsonc');
+  await pedir('/');
+  copias.indice = resumoDaMedida(await mede('Cópia em partes: o índice (GET /api/copia, Gui)', async () => so(await pedir('/api/copia')), { vezes: 5 }));
+  const indice = JSON.parse((await pedir('/api/copia')).buffer.toString());
+  const enderecos = [];
+  for (const { tabela } of indice.indice) {
+    let depois = null;
+    for (;;) {
+      const caminho = `/api/copia?tabela=${encodeURIComponent(tabela)}${depois === null ? '' : `&depois=${depois}`}`;
+      enderecos.push(caminho);
+      let ultima;
+      const r = await mede(`Cópia em partes: ${tabela}${depois === null ? '' : ` depois de ${depois}`}`, async () => {
+        ultima = await pedir(caminho);
+        if (ultima.status !== 200) throw new Error(`${caminho}: ${ultima.status}`);
+        return so(ultima);
+      }, { vezes: 5 });
+      copias.partes.push({ tabela, depois, ...resumoDaMedida(r) });
+      const parte = JSON.parse(ultima.buffer.toString());
+      if (parte.proxima === null) break;
+      depois = parte.proxima;
+    }
+  }
+  let familia;
+  copias.familia = resumoDaMedida(
+    await mede('Baixar cópia para o espelho (GET /api/copia-para-o-espelho, Gui)', async () => {
+      const r = await pedir('/api/copia-para-o-espelho');
+      familia = r.buffer;
+      return so(r);
+    }),
+  );
+  writeFileSync(join(saida, 'copia-para-o-espelho.json'), familia);
+  resultado.copias = copias;
+  guarda();
+  // A cópia mensal, com o token de serviço simulado (medidor-copia.mjs): o índice e cada parte, uma vez cada
+  const { jwks, privateKey } = chavesDoToken();
+  const clientId = 'medicao-local.access';
+  await subir('scripts/desempenho/wrangler-cpu-copia.jsonc', ['--var', `MEDICAO_JWKS:${jwks}`, '--var', `COPIA_CLIENT_ID:${clientId}`]);
+  await pedir('/');
+  for (const caminho of ['/api/copia', ...enderecos]) {
+    const r = await mede(`Cópia mensal, token de serviço: ${caminho}`, async () => {
+      const resposta = await fetch(`${BASE}${caminho}`, { headers: { 'Cf-Access-Jwt-Assertion': token(privateKey, clientId) } });
+      const b = Buffer.from(await resposta.arrayBuffer());
+      if (resposta.status !== 200 || !b.toString('utf8', 0, 60).includes('"acervo"')) throw new Error(`A parte da cópia mensal simulada não veio: ${resposta.status} ${b.toString('utf8', 0, 200)}`);
+      return { status: resposta.status, bytes: b.length };
+    }, { vezes: 1, fria: false });
+    copias.mensal.push({ caminho, ...resumoDaMedida(r) });
+  }
+  const pior = (lista) => lista.reduce((a, b) => (b.cpu_pior_ms > a.cpu_pior_ms ? b : a));
+  copias.resumo = {
+    partes: copias.partes.length,
+    parte_mais_pesada: pior(copias.partes),
+    parte_mais_pesada_sem_banco_local: copias.partes.reduce((a, b) => (b.sem_banco_local_pior_ms > a.sem_banco_local_pior_ms ? b : a)),
+    bytes_somados: copias.partes.reduce((s, p) => s + (p.bytes ?? 0), 0),
+    mensal_pior: pior(copias.mensal),
+  };
+  resultado.copias = copias;
+  guarda();
+}
+
+// O espelho na homologação simulada, recebendo a cópia para o espelho que a fase "copias" baixou, e recusando a
+// cópia inteira que a fase "pesadas" do código de antes baixou (se estiver na pasta)
+async function faseEspelhoDaFamilia() {
+  const familia = readFileSync(join(saida, 'copia-para-o-espelho.json'));
+  const copias = resultado.copias ?? {};
+  await subir('scripts/desempenho/wrangler-cpu-homologa.jsonc', ['--local-upstream', 'homologa.memorias.bayara.com.br']);
+  const origem = 'http://homologa.memorias.bayara.com.br';
+  const pedirNaHomologacao = async (caminho, opcoes = {}) => {
+    const r = await fetch(`${BASE}${caminho}`, { redirect: 'manual', ...opcoes, headers: { cookie: 'como=gui', Origin: origem, ...(opcoes.headers ?? {}) } });
+    return { status: r.status, bytes: (await r.arrayBuffer()).byteLength, local: r.headers.get('location') };
+  };
+  await pedirNaHomologacao('/');
+  copias.espelho = resumoDaMedida(
+    await mede(`Espelho da produção (POST /api/espelho, cópia para o espelho de ${Math.round(familia.length / 100) / 10} KB)`, async () => {
+      const corpo = new FormData();
+      corpo.append('copia', new Blob([familia], { type: 'application/json' }), 'acervo-familia.json');
+      const r = await pedirNaHomologacao('/api/espelho', { method: 'POST', body: corpo });
+      if (!/ok=/.test(decodeURIComponent(r.local ?? ''))) throw new Error(`O espelho não foi gravado: ${r.status} ${decodeURIComponent(r.local ?? '')}`);
+      return { status: r.status, bytes: familia.length };
+    }, { vezes: 3 }),
+  );
+  // A cópia inteira (a de antes, montada das partes) é recusada pelo espelho, sem ler o arquivo
+  const inteira = existsSync(join(saida, 'copia-do-acervo.json')) ? readFileSync(join(saida, 'copia-do-acervo.json')) : null;
+  if (inteira) {
+    copias.espelho_recusa_a_inteira = resumoDaMedida(
+      await mede(`Espelho recusando a cópia inteira (${Math.round(inteira.length / 1e5) / 10} MB)`, async () => {
+        const corpo = new FormData();
+        corpo.append('copia', new Blob([inteira], { type: 'application/json' }), 'acervo.json');
+        const r = await pedirNaHomologacao('/api/espelho', { method: 'POST', body: corpo });
+        if (!/erro=/.test(r.local ?? '')) throw new Error(`O espelho não recusou a cópia inteira: ${r.status} ${r.local}`);
+        return { status: r.status, bytes: inteira.length };
+      }, { vezes: 3 }),
+    );
+  }
+  resultado.copias = copias;
+  guarda();
+}
+
 // As fotos e os áudios das gravações: a foto da carga (2400 px), as duas cópias que o celular faria, e os
 // áudios de exemplo
 async function arquivosDeGravacao() {
@@ -667,6 +788,8 @@ try {
   if (fases.includes('pesadas')) await fasePesadas();
   if (fases.includes('gravacoes')) await faseGravacoes();
   if (fases.includes('espelho')) await faseEspelho();
+  if (fases.includes('copias')) await faseCopias();
+  if (fases.includes('espelho-familia')) await faseEspelhoDaFamilia();
   if (fases.includes('comeco')) await faseComeco();
   console.log(`Resultado em ${join(saida, 'cpu.json')}`);
 } finally {

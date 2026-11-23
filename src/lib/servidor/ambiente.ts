@@ -32,11 +32,16 @@ interface Pedido {
   embrulho?: { de: Banco; banco: Banco };
 }
 
-/** O que um pedido fez no banco: consultas (cada comando, também os de um lote), idas (cada viagem ao banco) e o tempo. */
+/**
+ * O que um pedido fez no banco: consultas (cada comando, também os de um lote), idas (cada viagem ao banco),
+ * as linhas que o banco devolveu (as que o Worker converte em objetos; a leitura guardada não conta de novo)
+ * e o tempo.
+ */
 export interface MedidaDoPedido {
   inicio: number;
   consultas: number;
   idas: number;
+  linhas: number;
   msNoBanco: number;
 }
 
@@ -90,7 +95,7 @@ export function verComoDoPedido(): string | undefined {
 /** Roda o tratamento de um pedido sabendo se ele é da homologação. Cada pedido começa com a guarda vazia. */
 export function noPedido<T>(request: Request, tratar: () => T): T {
   const homologa = new URL(request.url).hostname === ENDERECO_DA_HOMOLOGACAO && Boolean(env.DB_HOMOLOGA && env.FOTOS_HOMOLOGA);
-  return doPedido.run({ homologa, guardadas: new Map(), medida: { inicio: Date.now(), consultas: 0, idas: 0, msNoBanco: 0 } }, tratar);
+  return doPedido.run({ homologa, guardadas: new Map(), medida: { inicio: Date.now(), consultas: 0, idas: 0, linhas: 0, msNoBanco: 0 } }, tratar);
 }
 
 /**
@@ -108,13 +113,14 @@ export function medidaDoPedido(): MedidaDoPedido | undefined {
 }
 
 /**
- * O cabeçalho Server-Timing do pedido: o tempo do servidor e o que ele fez no D1 (consultas e idas), para
- * medir a produção de verdade (causa 1e da medição M1, docs/desempenho/). Só números: nada do acervo.
+ * O cabeçalho Server-Timing do pedido: o tempo do servidor e o que ele fez no D1 (consultas, idas e linhas
+ * devolvidas), para medir a produção de verdade (causa 1e da medição M1 e seção 8 da M2, docs/desempenho/).
+ * Só números: nada do acervo.
  */
 export function servidorTiming(agora = Date.now()): string | undefined {
   const medida = medidaDoPedido();
   if (!medida) return undefined;
-  return `servidor;dur=${agora - medida.inicio}, d1;dur=${medida.msNoBanco};desc="consultas=${medida.consultas} idas=${medida.idas}"`;
+  return `servidor;dur=${agora - medida.inicio}, d1;dur=${medida.msNoBanco};desc="consultas=${medida.consultas} idas=${medida.idas} linhas=${medida.linhas}"`;
 }
 
 export function ehHomologacao(): boolean {
@@ -280,13 +286,28 @@ function comOQueOsGatilhosGravam(gravadas: readonly string[]): string[] | undefi
   return [...todas];
 }
 
+/**
+ * Quantas linhas uma resposta do banco trouxe: o resultado de um comando (`results`), o de um lote (a soma) ou o
+ * de `raw()` (as linhas, menos a dos nomes das colunas quando pedida).
+ */
+export function linhasDevolvidas(resposta: unknown, comNomesDasColunas = false): number {
+  if (Array.isArray(resposta)) {
+    if (resposta.every((r) => r && typeof r === 'object' && !Array.isArray(r) && 'results' in r)) return resposta.reduce((soma, r) => soma + linhasDevolvidas(r), 0);
+    return Math.max(0, resposta.length - (comNomesDasColunas ? 1 : 0));
+  }
+  const linhas = (resposta as { results?: unknown } | null)?.results;
+  return Array.isArray(linhas) ? linhas.length : 0;
+}
+
 /** Uma ida ao banco, contada para o Server-Timing. */
-async function ida<T>(pedido: Pedido, consultas: number, fazer: () => Promise<T>): Promise<T> {
+async function ida<T>(pedido: Pedido, consultas: number, fazer: () => Promise<T>, contar: (r: T) => number = linhasDevolvidas): Promise<T> {
   const inicio = Date.now();
   pedido.medida.consultas += consultas;
   pedido.medida.idas += 1;
   try {
-    return await fazer();
+    const resposta = await fazer();
+    pedido.medida.linhas += contar(resposta);
+    return resposta;
   } finally {
     pedido.medida.msNoBanco += Date.now() - inicio;
   }
@@ -337,7 +358,8 @@ function embrulhar(real: Banco, pedido: Pedido): Banco {
         if (linha === null) return null;
         return coluna === undefined ? { ...linha } : (linha[coluna] ?? null);
       },
-      raw: (opcoes?: { columnNames?: boolean }) => (ehLeitura(c.sql) ? ida(pedido, 1, () => c.real.raw(opcoes)) : gravar([c.sql], 1, () => c.real.raw(opcoes))),
+      raw: (opcoes?: { columnNames?: boolean }) =>
+        ehLeitura(c.sql) ? ida(pedido, 1, () => c.real.raw(opcoes), (r) => linhasDevolvidas(r, Boolean(opcoes?.columnNames))) : gravar([c.sql], 1, () => c.real.raw(opcoes)),
     } as unknown as ComandoDoBanco;
     deVerdade.set(embrulhado, c);
     return embrulhado;

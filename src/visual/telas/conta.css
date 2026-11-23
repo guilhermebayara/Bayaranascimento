@@ -514,6 +514,21 @@
 .conta__copias .acao {
   min-height: var(--toque);
 }
+/* Cada cópia é um grupo: o botão, o andamento ao lado ("Baixando 3 de 14") e a frase dela embaixo, colada.
+   Entre uma cópia e outra, o espaço maior (proximidade) */
+.conta__copia {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-3);
+}
+.conta__copia + .conta__copia {
+  margin-top: var(--e-4);
+}
+.conta__copia-frase {
+  flex-basis: 100%;
+}
 
 @media (min-width: 62rem) {
   .conta {

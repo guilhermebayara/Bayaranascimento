@@ -1,11 +1,14 @@
 // Um banco D1 de mentira, sobre o SQLite do próprio Node (node:sqlite), para os testes rodarem as
 // consultas de verdade de src/lib/servidor/repositorio.ts sem o Cloudflare. Faz só o que o site usa:
-// prepare, bind, all, first, run e batch. Os parâmetros numerados (?1, ?2) são do próprio SQLite.
+// prepare, bind, all, first, run, raw e batch. Os parâmetros numerados (?1, ?2) são do próprio SQLite.
 
 // O pedaço do node:sqlite que o banco de teste usa. Declarado aqui porque o projeto não tem os tipos do
 // Node (o tsc acusaria o import, como já acusa node:fs nos outros testes).
 interface StatementSync {
   all(...valores: Valor[]): unknown[];
+  /** As colunas do resultado e as linhas como listas (para o raw() do D1) */
+  columns?(): { name: string }[];
+  setReturnArrays?(ligar: boolean): void;
   get(...valores: Valor[]): unknown;
   run(...valores: Valor[]): { changes: number | bigint; lastInsertRowid: number | bigint };
 }
@@ -50,6 +53,14 @@ export class ComandoDeTeste {
   }
   async run() {
     return this.executar();
+  }
+  /** Como o raw() do D1: as linhas como listas de valores e, com columnNames, os nomes das colunas antes */
+  async raw(opcoes?: { columnNames?: boolean }) {
+    const comando = this.comando();
+    if (!comando.setReturnArrays || !comando.columns) throw new Error('Este Node não tem o raw() do node:sqlite.');
+    comando.setReturnArrays(true);
+    const linhas = comando.all(...this.valores) as unknown[][];
+    return opcoes?.columnNames ? [comando.columns().map((c) => c.name), ...linhas] : linhas;
   }
   async first(coluna?: string) {
     const linha = (this.comando().get(...this.valores) as Record<string, unknown> | undefined) ?? null;

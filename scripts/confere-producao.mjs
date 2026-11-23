@@ -28,7 +28,9 @@
 //    junto com as cópias dela e só elas (sessão D1c), e o banco e o bucket são escolhidos só em ambiente.ts.
 // 11. O espelho da homologação leva a família de verdade (decisão do Gui, 18/11/2026): nomes, datas e
 //    laços passam; memórias, relatos, textos, retratos e fotos nunca passam. O espelho só lê da cópia as
-//    tabelas da família, o "Sobre" sai vazio, e só a homologação (ou o computador) grava o espelho.
+//    tabelas da família, o "Sobre" sai vazio, e só a homologação (ou o computador) grava o espelho. Desde a
+//    sessão D1e, o espelho só aceita a cópia para o espelho, que só lê as tabelas da família, coluna por
+//    coluna, sem texto escrito nem arquivo (scripts/copia-para-o-espelho.mjs).
 //    Nenhum arquivo da produção chega à homologação: o retrato é uma foto de exemplo, a cópia não lê o
 //    bucket e o espelho não grava em bucket nenhum.
 // 12. Os scripts de medição de desempenho (scripts/desempenho/) não tocam prévia, homologação ou produção
@@ -50,6 +52,15 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
 import { apagamentosProibidos, copiasApagadasErradas } from './apagar-no-bucket.mjs';
 import { copiasErradas } from './copias-no-bucket.mjs';
+import {
+  GRAVAR_O_ESPELHO,
+  LISTA as LISTA_DA_COPIA_PARA_O_ESPELHO,
+  MONTAGEM as MONTAGEM_DA_COPIA_PARA_O_ESPELHO,
+  ROTA as ROTA_DA_COPIA_PARA_O_ESPELHO,
+  ROTA_DO_ESPELHO,
+  TABELAS_DA_FAMILIA,
+  copiaParaOEspelhoErrada,
+} from './copia-para-o-espelho.mjs';
 
 const PRODUCAO = { banco: 'bayara-memorias', bucket: 'bayara-memorias' };
 const DOMINIOS_DE_EXEMPLO = new Set(['exemplo.com', 'example.com', 'example.org', 'b.com']);
@@ -260,6 +271,11 @@ for (const mensagem of copiasApagadasErradas(readFileSync('src/lib/copias-das-fo
   }
   if (/bucket|\.put\(/i.test(soCodigo(servidor))) falhar('src/lib/servidor/espelho.ts: o espelho grava só o banco; nenhum arquivo vai para o bucket da homologação.');
   if (/bucket/i.test(soCodigo(readFileSync('src/lib/servidor/copia.ts', 'utf8')))) falhar('src/lib/servidor/copia.ts: a cópia do acervo leva só o banco; ela não lê fotos nem retratos do bucket.');
+  // A cópia para o espelho (sessão D1e): só as tabelas da família, coluna por coluna, e o espelho só aceita ela.
+  // A regra mora em scripts/copia-para-o-espelho.mjs, testada em testes/guarda-copia-para-o-espelho.test.ts.
+  const fontesDaCopia = [LISTA_DA_COPIA_PARA_O_ESPELHO, MONTAGEM_DA_COPIA_PARA_O_ESPELHO, ROTA_DA_COPIA_PARA_O_ESPELHO, ROTA_DO_ESPELHO, GRAVAR_O_ESPELHO];
+  for (const mensagem of copiaParaOEspelhoErrada(Object.fromEntries(fontesDaCopia.filter((a) => existsSync(a)).map((a) => [a, readFileSync(a, 'utf8')])))) falhar(mensagem);
+  for (const tabela of TABELAS_DA_FAMILIA) if (!PODE_LER.has(tabela)) falhar(`scripts/copia-para-o-espelho.mjs: "${tabela}" não é uma das tabelas que o espelho pode ler.`);
 }
 
 // 12. Os scripts de medição de desempenho (docs/desempenho/) nunca tocam prévia, homologação ou produção

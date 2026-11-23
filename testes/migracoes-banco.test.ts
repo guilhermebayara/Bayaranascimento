@@ -63,15 +63,21 @@ describe.skipIf(!comSqlite)('migrações novas sobre um banco que já existia', 
     banco.sqlite.prepare(`INSERT INTO capitulo_pessoas (capitulo_id, integrante_id) VALUES ('epoca-antiga', 'gui')`).run();
     banco.sqlite.prepare(`INSERT INTO capitulo_familias (capitulo_id, nucleo_id) VALUES ('epoca-antiga', 'bayara-nascimento')`).run();
     const { montarCopia } = await import('../src/lib/servidor/copia');
+    const { montarCopiaParaOEspelho } = await import('../src/lib/servidor/copia-para-o-espelho');
     const { gravarEspelho } = await import('../src/lib/servidor/espelho');
     const { noPedido } = await import('../src/lib/servidor/ambiente');
-    const copia = await montarCopia();
-    expect(copia.tabelas.capitulo_pessoas!.length).toBeGreaterThan(0);
+    const inteira = await montarCopia();
+    expect(inteira.tabelas.capitulo_pessoas!.length).toBeGreaterThan(0);
+    // Desde a sessão D1e, o espelho só recebe a cópia para o espelho, só com as tabelas da família
+    const copia = await montarCopiaParaOEspelho();
+    expect(Object.keys(copia.tabelas)).not.toContain('capitulo_pessoas');
     // Fora da homologação, o espelho é recusado
     await expect(gravarEspelho(copia as never)).rejects.toThrow('só pode ser gravado na homologação');
     // Na homologação, o banco dela é este mesmo, para o teste ler o resultado
     env.DB_HOMOLOGA = banco;
     env.FOTOS_HOMOLOGA = env.FOTOS;
+    // A cópia inteira do acervo é recusada, com o recado de qual arquivo usar
+    await expect(noPedido(new Request('https://homologa.memorias.bayara.com.br/admin/espelho'), () => gravarEspelho(inteira as never))).rejects.toThrow('Baixar cópia para o espelho');
     const resumo = await noPedido(new Request('https://homologa.memorias.bayara.com.br/admin/espelho'), () => gravarEspelho(copia as never));
     expect(resumo.memorias).toBeGreaterThan(0);
     const conta = (tabela: string) => (banco.sqlite.prepare(`SELECT COUNT(*) AS n FROM ${tabela}`).get() as { n: number }).n;

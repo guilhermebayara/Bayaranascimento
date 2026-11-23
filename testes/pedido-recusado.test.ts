@@ -455,4 +455,27 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
       bucket.delete = apagar;
     }
   });
+
+  it('/api/espelho: quem não administra, a cópia inteira do acervo, o arquivo grande demais e o que não é a cópia para o espelho são recusados sem mudar nada (sessão D1e)', async () => {
+    const espelho = await import('../src/pages/api/espelho');
+    const { montarCopia } = await import('../src/lib/servidor/copia');
+    const { montarCopiaParaOEspelho } = await import('../src/lib/servidor/copia-para-o-espelho');
+    const { RECADO_DA_COPIA_INTEIRA, LIMITE_DA_COPIA_PARA_O_ESPELHO } = await import('../src/lib/copia-para-o-espelho');
+    const enviar = async (quem: Usuario, texto: string) => {
+      const corpo = new FormData();
+      corpo.set('copia', new File([texto], 'copia.json', { type: 'application/json' }));
+      const request = new Request('http://localhost/api/espelho', { method: 'POST', headers: { Origin: 'http://localhost' }, body: corpo });
+      const r = await espelho.POST({ request, locals: { usuario: quem, tipos } } as never);
+      return new URL(r.headers.get('Location') ?? '/', 'http://localhost').searchParams.get('erro');
+    };
+    const inteira = JSON.stringify(await montarCopia());
+    const familia = await montarCopiaParaOEspelho();
+    const antes = impressao();
+    expect(await enviar(elizete, JSON.stringify(familia))).toContain('Só os administradores');
+    expect(await enviar(usuarioDe('gui'), inteira)).toBe(RECADO_DA_COPIA_INTEIRA);
+    expect(await enviar(usuarioDe('gui'), ' '.repeat(LIMITE_DA_COPIA_PARA_O_ESPELHO + 1))).toBe(RECADO_DA_COPIA_INTEIRA);
+    expect(await enviar(usuarioDe('gui'), '{ não é json')).toContain('Não consegui ler o arquivo');
+    expect(await enviar(usuarioDe('gui'), JSON.stringify({ ...familia, tabelas: { ...familia.tabelas, relatos: [] } }))).toContain('não é a cópia para o espelho');
+    expect(impressao()).toBe(antes);
+  });
 });
