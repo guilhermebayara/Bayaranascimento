@@ -1,0 +1,2899 @@
+{
+  "rotulo": "exemplo",
+  "base": "https://127.0.0.1:4443",
+  "quando": "2026-11-23T01:26:11.903Z",
+  "redes": {
+    "4g-lento": {
+      "latencia": 150,
+      "desce": 1600000,
+      "sobe": 750000
+    },
+    "3g": {
+      "latencia": 300,
+      "desce": 750000,
+      "sobe": 250000
+    },
+    "wifi": {
+      "latencia": 40,
+      "desce": 20000000,
+      "sobe": 5000000
+    }
+  },
+  "perfis": {
+    "celular-4g": {
+      "largura": 390,
+      "altura": 844,
+      "escala": 3,
+      "celular": true,
+      "rede": "4g-lento",
+      "cpu": 4
+    },
+    "celular-3g": {
+      "largura": 390,
+      "altura": 844,
+      "escala": 3,
+      "celular": true,
+      "rede": "3g",
+      "cpu": 4
+    },
+    "tv-1920": {
+      "largura": 1920,
+      "altura": 1080,
+      "escala": 1,
+      "celular": false,
+      "rede": "wifi",
+      "cpu": 1
+    }
+  },
+  "resultados": [
+    {
+      "perfil": "celular-4g",
+      "nome": "Início",
+      "caminho": "/",
+      "erro": null,
+      "carregou": 7340,
+      "ttfb": 158,
+      "fcp": 668,
+      "lcp": 668,
+      "lcpEl": "span.aviso__frase Giovanna marcou você em “Jantar de casam",
+      "cls": 0.001,
+      "dcl": 1008,
+      "load": 7337,
+      "tarefasLongas": 1,
+      "maiorTarefa": 111,
+      "bloqueio": 61,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 5601
+        },
+        "css": {
+          "pedidos": 2,
+          "bytes": 14729
+        },
+        "fotos": {
+          "pedidos": 8,
+          "bytes": 1295057
+        },
+        "js": {
+          "pedidos": 4,
+          "bytes": 4477
+        },
+        "fontes": {
+          "pedidos": 3,
+          "bytes": 77396
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 5601,
+        "css": 14729,
+        "js": 2020
+      },
+      "antesDoLcp": {
+        "html": 5601,
+        "css": 14729,
+        "js": 2020
+      },
+      "totalBytes": 1397260,
+      "pedidos": 18,
+      "imgs": 13,
+      "fotos": {
+        "total": 7,
+        "carregadas": 7,
+        "preguicosas": 6,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 39.5,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              0,
+              0
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": null
+          },
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              308,
+              404
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 15.4
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              194,
+              258
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": 38.4
+          }
+        ]
+      },
+      "alturaDaPagina": 2915,
+      "nos": 258
+    },
+    {
+      "perfil": "celular-4g",
+      "nome": "Explorar, linha do tempo",
+      "caminho": "/explorar",
+      "erro": null,
+      "carregou": 4302,
+      "ttfb": 155,
+      "fcp": 928,
+      "lcp": 928,
+      "lcpEl": "span.assinatura__memorias MEMÓRIAS",
+      "cls": 0.003,
+      "dcl": 1523,
+      "load": 4300,
+      "tarefasLongas": 3,
+      "maiorTarefa": 277,
+      "bloqueio": 493,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 12978
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 4,
+          "bytes": 649892
+        },
+        "js": {
+          "pedidos": 9,
+          "bytes": 11800
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 12978,
+        "css": 23743,
+        "js": 7908
+      },
+      "antesDoLcp": {
+        "html": 12978,
+        "css": 23743,
+        "js": 7908
+      },
+      "totalBytes": 791097,
+      "pedidos": 22,
+      "imgs": 70,
+      "fotos": {
+        "total": 69,
+        "carregadas": 3,
+        "preguicosas": 68,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 4.6,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              557,
+              732
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 4.7
+          },
+          {
+            "src": "/fotos/exemplos/karol-5.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              587,
+              753
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 180797,
+            "excesso": 4.3
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              563,
+              736
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": 4.6
+          }
+        ]
+      },
+      "alturaDaPagina": 34630,
+      "nos": 2472
+    },
+    {
+      "perfil": "celular-4g",
+      "nome": "Explorar, mural",
+      "caminho": "/explorar?ver=mural",
+      "erro": null,
+      "carregou": 8036,
+      "ttfb": 156,
+      "fcp": 1060,
+      "lcp": 1060,
+      "lcpEl": "span.assinatura__memorias MEMÓRIAS",
+      "cls": 0.002,
+      "dcl": 2093,
+      "load": 8034,
+      "tarefasLongas": 1,
+      "maiorTarefa": 159,
+      "bloqueio": 109,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 9732
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 9,
+          "bytes": 1381024
+        },
+        "js": {
+          "pedidos": 8,
+          "bytes": 9935
+        },
+        "fontes": {
+          "pedidos": 5,
+          "bytes": 109080
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 9732,
+        "css": 23743,
+        "js": 1126
+      },
+      "antesDoLcp": {
+        "html": 9732,
+        "css": 23743,
+        "js": 1126
+      },
+      "totalBytes": 1533514,
+      "pedidos": 27,
+      "imgs": 39,
+      "fotos": {
+        "total": 38,
+        "carregadas": 9,
+        "preguicosas": 31,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 7.6,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              438,
+              576
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 7.6
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              443,
+              580
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": 7.5
+          },
+          {
+            "src": "/fotos/exemplos/karol-1.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              443,
+              580
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 197616,
+            "excesso": 5.6
+          }
+        ]
+      },
+      "alturaDaPagina": 8572,
+      "nos": 1122
+    },
+    {
+      "perfil": "celular-4g",
+      "nome": "Explorar, lista",
+      "caminho": "/explorar?ver=lista",
+      "erro": null,
+      "carregou": 1446,
+      "ttfb": 156,
+      "fcp": 720,
+      "lcp": 720,
+      "lcpEl": "span.assinatura__memorias MEMÓRIAS",
+      "cls": 0.008,
+      "dcl": 1109,
+      "load": 1443,
+      "tarefasLongas": 2,
+      "maiorTarefa": 151,
+      "bloqueio": 115,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 10932
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 1,
+          "bytes": 98876
+        },
+        "js": {
+          "pedidos": 8,
+          "bytes": 9935
+        },
+        "fontes": {
+          "pedidos": 3,
+          "bytes": 77396
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 10932,
+        "css": 23743,
+        "js": 6043
+      },
+      "antesDoLcp": {
+        "html": 10932,
+        "css": 23743,
+        "js": 6043
+      },
+      "totalBytes": 220882,
+      "pedidos": 17,
+      "imgs": 39,
+      "fotos": {
+        "total": 0,
+        "carregadas": 0,
+        "preguicosas": 0,
+        "naPrimeiraTela": 0,
+        "excessoMediano": null,
+        "exemplos": []
+      },
+      "alturaDaPagina": 9849,
+      "nos": 1971
+    },
+    {
+      "perfil": "celular-4g",
+      "nome": "Memória",
+      "caminho": "/memorias/1992-chegada-do-gui",
+      "erro": null,
+      "carregou": 6924,
+      "ttfb": 156,
+      "fcp": 856,
+      "lcp": 5044,
+      "lcpEl": "img /fotos/exemplos/chico-5.jpg",
+      "cls": 0.001,
+      "dcl": 1166,
+      "load": 6921,
+      "tarefasLongas": 1,
+      "maiorTarefa": 255,
+      "bloqueio": 205,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 7041
+        },
+        "css": {
+          "pedidos": 3,
+          "bytes": 17109
+        },
+        "fotos": {
+          "pedidos": 8,
+          "bytes": 1139368
+        },
+        "js": {
+          "pedidos": 7,
+          "bytes": 12458
+        },
+        "fontes": {
+          "pedidos": 6,
+          "bytes": 133952
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 7041,
+        "css": 17109,
+        "js": 11086
+      },
+      "antesDoLcp": {
+        "html": 7041,
+        "css": 17109,
+        "fotos": 372134,
+        "js": 12458,
+        "fontes": 133952
+      },
+      "totalBytes": 1309928,
+      "pedidos": 25,
+      "imgs": 18,
+      "fotos": {
+        "total": 9,
+        "carregadas": 3,
+        "preguicosas": 8,
+        "naPrimeiraTela": 3,
+        "excessoMediano": 2.1,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/chico-4.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              734,
+              942
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 85414,
+            "excesso": 2.1
+          },
+          {
+            "src": "/fotos/exemplos/chico-5.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              748,
+              952
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 98576,
+            "excesso": 2
+          },
+          {
+            "src": "/fotos/exemplos/chico-3.jpg",
+            "natural": [
+              1600,
+              900
+            ],
+            "mostrada": [
+              697,
+              916
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 88368,
+            "excesso": 2.3
+          }
+        ]
+      },
+      "alturaDaPagina": 4565,
+      "nos": 622
+    },
+    {
+      "perfil": "celular-4g",
+      "nome": "Pessoa",
+      "caminho": "/pessoas/gui",
+      "erro": null,
+      "carregou": 4590,
+      "ttfb": 158,
+      "fcp": 756,
+      "lcp": 2204,
+      "lcpEl": "img /retratos/exemplos/chico-5.jpg",
+      "cls": 0.019,
+      "dcl": 1212,
+      "load": 4588,
+      "tarefasLongas": 1,
+      "maiorTarefa": 170,
+      "bloqueio": 120,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 9578
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 25205
+        },
+        "fotos": {
+          "pedidos": 4,
+          "bytes": 676161
+        },
+        "js": {
+          "pedidos": 11,
+          "bytes": 17398
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        },
+        "busca": {
+          "pedidos": 2,
+          "bytes": 22075
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 9578,
+        "css": 25205,
+        "js": 12134
+      },
+      "antesDoLcp": {
+        "html": 9578,
+        "css": 25205,
+        "fotos": 98876,
+        "js": 17398,
+        "fontes": 55452,
+        "busca": 22075
+      },
+      "totalBytes": 843101,
+      "pedidos": 26,
+      "imgs": 54,
+      "fotos": {
+        "total": 29,
+        "carregadas": 0,
+        "preguicosas": 29,
+        "naPrimeiraTela": 0,
+        "excessoMediano": null,
+        "exemplos": []
+      },
+      "alturaDaPagina": 9207,
+      "nos": 971
+    },
+    {
+      "perfil": "celular-4g",
+      "nome": "Pessoas",
+      "caminho": "/pessoas",
+      "erro": null,
+      "carregou": 8851,
+      "ttfb": 156,
+      "fcp": 616,
+      "lcp": 616,
+      "lcpEl": "p.pessoas-pagina__frase Quem aparece nas memórias da família, po",
+      "cls": 0,
+      "dcl": 959,
+      "load": 8850,
+      "tarefasLongas": 1,
+      "maiorTarefa": 112,
+      "bloqueio": 62,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 5321
+        },
+        "css": {
+          "pedidos": 2,
+          "bytes": 13224
+        },
+        "fotos": {
+          "pedidos": 9,
+          "bytes": 1594863
+        },
+        "js": {
+          "pedidos": 6,
+          "bytes": 6810
+        },
+        "fontes": {
+          "pedidos": 3,
+          "bytes": 77396
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 5321,
+        "css": 13224,
+        "js": 4353
+      },
+      "antesDoLcp": {
+        "html": 5321,
+        "css": 13224,
+        "js": 4353
+      },
+      "totalBytes": 1697614,
+      "pedidos": 21,
+      "imgs": 41,
+      "fotos": {
+        "total": 0,
+        "carregadas": 0,
+        "preguicosas": 0,
+        "naPrimeiraTela": 0,
+        "excessoMediano": null,
+        "exemplos": []
+      },
+      "alturaDaPagina": 5083,
+      "nos": 505
+    },
+    {
+      "perfil": "celular-4g",
+      "nome": "Árvore",
+      "caminho": "/arvore",
+      "erro": null,
+      "carregou": 1555,
+      "ttfb": 157,
+      "fcp": 640,
+      "lcp": 640,
+      "lcpEl": "span Fontes C, vendo como Gui. Trocar",
+      "cls": 0,
+      "dcl": 1164,
+      "load": 1553,
+      "tarefasLongas": 2,
+      "maiorTarefa": 277,
+      "bloqueio": 239,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 6447
+        },
+        "css": {
+          "pedidos": 2,
+          "bytes": 15518
+        },
+        "fotos": {
+          "pedidos": 1,
+          "bytes": 98876
+        },
+        "js": {
+          "pedidos": 7,
+          "bytes": 25117
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 6447,
+        "css": 15518,
+        "js": 19107
+      },
+      "antesDoLcp": {
+        "html": 6447,
+        "css": 15518,
+        "js": 19107
+      },
+      "totalBytes": 238642,
+      "pedidos": 15,
+      "imgs": 1,
+      "fotos": {
+        "total": 0,
+        "carregadas": 0,
+        "preguicosas": 0,
+        "naPrimeiraTela": 0,
+        "excessoMediano": null,
+        "exemplos": []
+      },
+      "alturaDaPagina": 844,
+      "nos": 371
+    },
+    {
+      "perfil": "celular-4g",
+      "nome": "Modo TV",
+      "caminho": "/explorar?ver=tv",
+      "erro": null,
+      "carregou": 4003,
+      "ttfb": 155,
+      "fcp": 656,
+      "lcp": 656,
+      "lcpEl": "p.serifa “Memória de exemplo que pertence a três ",
+      "cls": 0.001,
+      "dcl": 994,
+      "load": 3998,
+      "tarefasLongas": 0,
+      "maiorTarefa": 0,
+      "bloqueio": 0,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 2964
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 3,
+          "bytes": 551016
+        },
+        "js": {
+          "pedidos": 5,
+          "bytes": 10067
+        },
+        "fontes": {
+          "pedidos": 6,
+          "bytes": 133952
+        },
+        "busca": {
+          "pedidos": 1,
+          "bytes": 3033
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 2964,
+        "css": 23743,
+        "js": 4962
+      },
+      "antesDoLcp": {
+        "html": 2964,
+        "css": 23743,
+        "js": 4962
+      },
+      "totalBytes": 724775,
+      "pedidos": 20,
+      "imgs": 1,
+      "fotos": {
+        "total": 1,
+        "carregadas": 1,
+        "preguicosas": 0,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 3.2,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              679,
+              893
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 3.2
+          }
+        ]
+      },
+      "alturaDaPagina": 991,
+      "nos": 108
+    },
+    {
+      "perfil": "celular-4g",
+      "nome": "Capítulo",
+      "caminho": "/capitulos/natais",
+      "erro": null,
+      "carregou": 3850,
+      "ttfb": 155,
+      "fcp": 704,
+      "lcp": 704,
+      "lcpEl": "p Todo ano a mesma mesa, nunca a mesma his",
+      "cls": 0.001,
+      "dcl": 1165,
+      "load": 3848,
+      "tarefasLongas": 1,
+      "maiorTarefa": 136,
+      "bloqueio": 86,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 5170
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "js": {
+          "pedidos": 8,
+          "bytes": 10135
+        },
+        "fotos": {
+          "pedidos": 4,
+          "bytes": 563774
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 5170,
+        "css": 23743,
+        "js": 6243
+      },
+      "antesDoLcp": {
+        "html": 5170,
+        "css": 23743,
+        "js": 6243
+      },
+      "totalBytes": 695506,
+      "pedidos": 21,
+      "imgs": 12,
+      "fotos": {
+        "total": 5,
+        "carregadas": 3,
+        "preguicosas": 5,
+        "naPrimeiraTela": 0,
+        "excessoMediano": 20.2,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-1.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              240,
+              314
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 197616,
+            "excesso": 19.1
+          },
+          {
+            "src": "/fotos/exemplos/chico-4.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              232,
+              308
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 85414,
+            "excesso": 20.2
+          },
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              230,
+              306
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 180968,
+            "excesso": 27.3
+          }
+        ]
+      },
+      "alturaDaPagina": 3381,
+      "nos": 314
+    },
+    {
+      "perfil": "celular-3g",
+      "nome": "Início",
+      "caminho": "/",
+      "erro": null,
+      "carregou": 15538,
+      "ttfb": 306,
+      "fcp": 1148,
+      "lcp": 1148,
+      "lcpEl": "span.aviso__frase Giovanna marcou você em “Jantar de casam",
+      "cls": 0.001,
+      "dcl": 1843,
+      "load": 15537,
+      "tarefasLongas": 1,
+      "maiorTarefa": 121,
+      "bloqueio": 71,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 5601
+        },
+        "css": {
+          "pedidos": 2,
+          "bytes": 14729
+        },
+        "fotos": {
+          "pedidos": 8,
+          "bytes": 1295057
+        },
+        "js": {
+          "pedidos": 4,
+          "bytes": 4477
+        },
+        "fontes": {
+          "pedidos": 3,
+          "bytes": 77396
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 5601,
+        "css": 14729,
+        "js": 2020
+      },
+      "antesDoLcp": {
+        "html": 5601,
+        "css": 14729,
+        "js": 2020
+      },
+      "totalBytes": 1397260,
+      "pedidos": 18,
+      "imgs": 13,
+      "fotos": {
+        "total": 7,
+        "carregadas": 7,
+        "preguicosas": 6,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 39.5,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              0,
+              0
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": null
+          },
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              308,
+              404
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 15.4
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              194,
+              258
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": 38.4
+          }
+        ]
+      },
+      "alturaDaPagina": 2915,
+      "nos": 258
+    },
+    {
+      "perfil": "celular-3g",
+      "nome": "Explorar, linha do tempo",
+      "caminho": "/explorar",
+      "erro": null,
+      "carregou": 13165,
+      "ttfb": 307,
+      "fcp": 1556,
+      "lcp": 1556,
+      "lcpEl": "span.assinatura__memorias MEMÓRIAS",
+      "cls": 0.003,
+      "dcl": 2710,
+      "load": 13163,
+      "tarefasLongas": 3,
+      "maiorTarefa": 315,
+      "bloqueio": 454,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 12978
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 7,
+          "bytes": 1032398
+        },
+        "js": {
+          "pedidos": 9,
+          "bytes": 11800
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 12978,
+        "css": 23743,
+        "js": 7908
+      },
+      "antesDoLcp": {
+        "html": 12978,
+        "css": 23743,
+        "js": 7908
+      },
+      "totalBytes": 1173603,
+      "pedidos": 25,
+      "imgs": 70,
+      "fotos": {
+        "total": 69,
+        "carregadas": 8,
+        "preguicosas": 68,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 3.5,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              557,
+              732
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 4.7
+          },
+          {
+            "src": "/fotos/exemplos/karol-5.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              587,
+              753
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 180797,
+            "excesso": 4.3
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              563,
+              736
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": 4.6
+          }
+        ]
+      },
+      "alturaDaPagina": 34630,
+      "nos": 2472
+    },
+    {
+      "perfil": "celular-3g",
+      "nome": "Explorar, mural",
+      "caminho": "/explorar?ver=mural",
+      "erro": null,
+      "carregou": 20489,
+      "ttfb": 305,
+      "fcp": 1968,
+      "lcp": 1968,
+      "lcpEl": "span.assinatura__memorias MEMÓRIAS",
+      "cls": 0.002,
+      "dcl": 4280,
+      "load": 20487,
+      "tarefasLongas": 1,
+      "maiorTarefa": 184,
+      "bloqueio": 134,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 9732
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 11,
+          "bytes": 1703204
+        },
+        "js": {
+          "pedidos": 8,
+          "bytes": 9935
+        },
+        "fontes": {
+          "pedidos": 5,
+          "bytes": 109080
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 9732,
+        "css": 23743,
+        "js": 1126
+      },
+      "antesDoLcp": {
+        "html": 9732,
+        "css": 23743,
+        "js": 1126
+      },
+      "totalBytes": 1855694,
+      "pedidos": 29,
+      "imgs": 39,
+      "fotos": {
+        "total": 38,
+        "carregadas": 14,
+        "preguicosas": 31,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 7.6,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              438,
+              576
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 7.6
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              443,
+              580
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": 7.5
+          },
+          {
+            "src": "/fotos/exemplos/karol-1.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              443,
+              580
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 197616,
+            "excesso": 5.6
+          }
+        ]
+      },
+      "alturaDaPagina": 8572,
+      "nos": 1122
+    },
+    {
+      "perfil": "celular-3g",
+      "nome": "Explorar, lista",
+      "caminho": "/explorar?ver=lista",
+      "erro": null,
+      "carregou": 2994,
+      "ttfb": 305,
+      "fcp": 1244,
+      "lcp": 1244,
+      "lcpEl": "span.assinatura__memorias MEMÓRIAS",
+      "cls": 0.008,
+      "dcl": 2026,
+      "load": 2993,
+      "tarefasLongas": 1,
+      "maiorTarefa": 147,
+      "bloqueio": 97,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 10932
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 1,
+          "bytes": 98876
+        },
+        "js": {
+          "pedidos": 8,
+          "bytes": 9935
+        },
+        "fontes": {
+          "pedidos": 3,
+          "bytes": 77396
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 10932,
+        "css": 23743,
+        "js": 2373
+      },
+      "antesDoLcp": {
+        "html": 10932,
+        "css": 23743,
+        "js": 2373
+      },
+      "totalBytes": 220882,
+      "pedidos": 17,
+      "imgs": 39,
+      "fotos": {
+        "total": 0,
+        "carregadas": 0,
+        "preguicosas": 0,
+        "naPrimeiraTela": 0,
+        "excessoMediano": null,
+        "exemplos": []
+      },
+      "alturaDaPagina": 9849,
+      "nos": 1971
+    },
+    {
+      "perfil": "celular-3g",
+      "nome": "Memória",
+      "caminho": "/memorias/1992-chegada-do-gui",
+      "erro": null,
+      "carregou": 14646,
+      "ttfb": 305,
+      "fcp": 1288,
+      "lcp": 10632,
+      "lcpEl": "img /fotos/exemplos/chico-5.jpg",
+      "cls": 0.001,
+      "dcl": 1915,
+      "load": 14645,
+      "tarefasLongas": 1,
+      "maiorTarefa": 141,
+      "bloqueio": 91,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 7041
+        },
+        "css": {
+          "pedidos": 3,
+          "bytes": 17109
+        },
+        "fotos": {
+          "pedidos": 8,
+          "bytes": 1139368
+        },
+        "js": {
+          "pedidos": 7,
+          "bytes": 12458
+        },
+        "fontes": {
+          "pedidos": 6,
+          "bytes": 133952
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 7041,
+        "css": 17109,
+        "js": 5726
+      },
+      "antesDoLcp": {
+        "html": 7041,
+        "css": 17109,
+        "fotos": 372134,
+        "js": 12458,
+        "fontes": 133952
+      },
+      "totalBytes": 1309928,
+      "pedidos": 25,
+      "imgs": 18,
+      "fotos": {
+        "total": 9,
+        "carregadas": 6,
+        "preguicosas": 8,
+        "naPrimeiraTela": 3,
+        "excessoMediano": 5.6,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/chico-4.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              734,
+              942
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 85414,
+            "excesso": 2.1
+          },
+          {
+            "src": "/fotos/exemplos/chico-5.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              748,
+              952
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 98576,
+            "excesso": 2
+          },
+          {
+            "src": "/fotos/exemplos/chico-3.jpg",
+            "natural": [
+              1600,
+              900
+            ],
+            "mostrada": [
+              697,
+              916
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 88368,
+            "excesso": 2.3
+          }
+        ]
+      },
+      "alturaDaPagina": 4565,
+      "nos": 622
+    },
+    {
+      "perfil": "celular-3g",
+      "nome": "Pessoa",
+      "caminho": "/pessoas/gui",
+      "erro": null,
+      "carregou": 19435,
+      "ttfb": 309,
+      "fcp": 1284,
+      "lcp": 8868,
+      "lcpEl": "img /retratos/exemplos/chico-5.jpg",
+      "cls": 0.019,
+      "dcl": 2425,
+      "load": 19433,
+      "tarefasLongas": 1,
+      "maiorTarefa": 165,
+      "bloqueio": 115,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 9578
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 25205
+        },
+        "fotos": {
+          "pedidos": 10,
+          "bytes": 1588148
+        },
+        "js": {
+          "pedidos": 11,
+          "bytes": 17398
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        },
+        "busca": {
+          "pedidos": 2,
+          "bytes": 22075
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 9578,
+        "css": 25205,
+        "js": 3104
+      },
+      "antesDoLcp": {
+        "html": 9578,
+        "css": 25205,
+        "fotos": 98876,
+        "js": 17398,
+        "fontes": 92684,
+        "busca": 22075
+      },
+      "totalBytes": 1755088,
+      "pedidos": 32,
+      "imgs": 54,
+      "fotos": {
+        "total": 29,
+        "carregadas": 6,
+        "preguicosas": 29,
+        "naPrimeiraTela": 0,
+        "excessoMediano": 60.9,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              153,
+              206
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 180968,
+            "excesso": 60.9
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              153,
+              206
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": 60.9
+          },
+          {
+            "src": "/fotos/exemplos/karol-1.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              153,
+              206
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 197616,
+            "excesso": 45.7
+          }
+        ]
+      },
+      "alturaDaPagina": 9207,
+      "nos": 971
+    },
+    {
+      "perfil": "celular-3g",
+      "nome": "Pessoas",
+      "caminho": "/pessoas",
+      "erro": null,
+      "carregou": 19741,
+      "ttfb": 306,
+      "fcp": 1100,
+      "lcp": 1100,
+      "lcpEl": "p.pessoas-pagina__frase Quem aparece nas memórias da família, po",
+      "cls": 0.171,
+      "dcl": 1881,
+      "load": 19739,
+      "tarefasLongas": 1,
+      "maiorTarefa": 124,
+      "bloqueio": 74,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 5321
+        },
+        "css": {
+          "pedidos": 2,
+          "bytes": 13224
+        },
+        "fotos": {
+          "pedidos": 10,
+          "bytes": 1683531
+        },
+        "js": {
+          "pedidos": 6,
+          "bytes": 6810
+        },
+        "fontes": {
+          "pedidos": 3,
+          "bytes": 77396
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 5321,
+        "css": 13224,
+        "js": 4353
+      },
+      "antesDoLcp": {
+        "html": 5321,
+        "css": 13224,
+        "js": 4353
+      },
+      "totalBytes": 1786282,
+      "pedidos": 22,
+      "imgs": 41,
+      "fotos": {
+        "total": 0,
+        "carregadas": 0,
+        "preguicosas": 0,
+        "naPrimeiraTela": 0,
+        "excessoMediano": null,
+        "exemplos": []
+      },
+      "alturaDaPagina": 5083,
+      "nos": 505
+    },
+    {
+      "perfil": "celular-3g",
+      "nome": "Árvore",
+      "caminho": "/arvore",
+      "erro": null,
+      "carregou": 3205,
+      "ttfb": 305,
+      "fcp": 1116,
+      "lcp": 1116,
+      "lcpEl": "span Fontes C, vendo como Gui. Trocar",
+      "cls": 0,
+      "dcl": 2173,
+      "load": 3203,
+      "tarefasLongas": 2,
+      "maiorTarefa": 443,
+      "bloqueio": 393,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 6447
+        },
+        "css": {
+          "pedidos": 2,
+          "bytes": 15518
+        },
+        "fotos": {
+          "pedidos": 1,
+          "bytes": 98876
+        },
+        "js": {
+          "pedidos": 7,
+          "bytes": 25117
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 6447,
+        "css": 15518,
+        "js": 2020
+      },
+      "antesDoLcp": {
+        "html": 6447,
+        "css": 15518,
+        "js": 2020
+      },
+      "totalBytes": 238642,
+      "pedidos": 15,
+      "imgs": 1,
+      "fotos": {
+        "total": 0,
+        "carregadas": 0,
+        "preguicosas": 0,
+        "naPrimeiraTela": 0,
+        "excessoMediano": null,
+        "exemplos": []
+      },
+      "alturaDaPagina": 844,
+      "nos": 371
+    },
+    {
+      "perfil": "celular-3g",
+      "nome": "Modo TV",
+      "caminho": "/explorar?ver=tv",
+      "erro": null,
+      "carregou": 8435,
+      "ttfb": 305,
+      "fcp": 1172,
+      "lcp": 7056,
+      "lcpEl": "img /fotos/exemplos/karol-4.jpg",
+      "cls": 0.01,
+      "dcl": 1924,
+      "load": 8433,
+      "tarefasLongas": 0,
+      "maiorTarefa": 0,
+      "bloqueio": 0,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 2964
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "js": {
+          "pedidos": 5,
+          "bytes": 10067
+        },
+        "fotos": {
+          "pedidos": 3,
+          "bytes": 551016
+        },
+        "fontes": {
+          "pedidos": 6,
+          "bytes": 133952
+        },
+        "busca": {
+          "pedidos": 1,
+          "bytes": 3033
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 2964,
+        "css": 23743,
+        "js": 4962
+      },
+      "antesDoLcp": {
+        "html": 2964,
+        "css": 23743,
+        "js": 10067,
+        "fotos": 181268,
+        "fontes": 133952,
+        "busca": 3033
+      },
+      "totalBytes": 724775,
+      "pedidos": 20,
+      "imgs": 1,
+      "fotos": {
+        "total": 1,
+        "carregadas": 1,
+        "preguicosas": 0,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 3.2,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              681,
+              895
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 3.2
+          }
+        ]
+      },
+      "alturaDaPagina": 991,
+      "nos": 108
+    },
+    {
+      "perfil": "celular-3g",
+      "nome": "Capítulo",
+      "caminho": "/capitulos/natais",
+      "erro": null,
+      "carregou": 11074,
+      "ttfb": 305,
+      "fcp": 1164,
+      "lcp": 1164,
+      "lcpEl": "p Todo ano a mesma mesa, nunca a mesma his",
+      "cls": 0.001,
+      "dcl": 2166,
+      "load": 11072,
+      "tarefasLongas": 1,
+      "maiorTarefa": 90,
+      "bloqueio": 40,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 5170
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 6,
+          "bytes": 841093
+        },
+        "js": {
+          "pedidos": 8,
+          "bytes": 10135
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 5170,
+        "css": 23743,
+        "js": 2573
+      },
+      "antesDoLcp": {
+        "html": 5170,
+        "css": 23743,
+        "js": 2573
+      },
+      "totalBytes": 972825,
+      "pedidos": 23,
+      "imgs": 12,
+      "fotos": {
+        "total": 5,
+        "carregadas": 5,
+        "preguicosas": 5,
+        "naPrimeiraTela": 0,
+        "excessoMediano": 20.5,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-1.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              240,
+              314
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 197616,
+            "excesso": 19.1
+          },
+          {
+            "src": "/fotos/exemplos/chico-4.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              232,
+              308
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 85414,
+            "excesso": 20.2
+          },
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              230,
+              306
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 180968,
+            "excesso": 27.3
+          }
+        ]
+      },
+      "alturaDaPagina": 3381,
+      "nos": 314
+    },
+    {
+      "perfil": "tv-1920",
+      "nome": "Início",
+      "caminho": "/",
+      "erro": null,
+      "carregou": 702,
+      "ttfb": 87,
+      "fcp": 228,
+      "lcp": 444,
+      "lcpEl": "img /fotos/exemplos/karol-6.jpg",
+      "cls": 0.001,
+      "dcl": 275,
+      "load": 700,
+      "tarefasLongas": 0,
+      "maiorTarefa": 0,
+      "bloqueio": 0,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 5601
+        },
+        "css": {
+          "pedidos": 2,
+          "bytes": 14729
+        },
+        "fotos": {
+          "pedidos": 8,
+          "bytes": 1295057
+        },
+        "js": {
+          "pedidos": 4,
+          "bytes": 4477
+        },
+        "fontes": {
+          "pedidos": 3,
+          "bytes": 77396
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 5601,
+        "css": 14729,
+        "fotos": 98876,
+        "js": 2020
+      },
+      "antesDoLcp": {
+        "html": 5601,
+        "css": 14729,
+        "fotos": 287527,
+        "js": 4477,
+        "fontes": 77396
+      },
+      "totalBytes": 1397260,
+      "pedidos": 18,
+      "imgs": 13,
+      "fotos": {
+        "total": 7,
+        "carregadas": 6,
+        "preguicosas": 6,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 351.6,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              317,
+              423
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 188351,
+            "excesso": 14.3
+          },
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              178,
+              235
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 180968,
+            "excesso": 45.9
+          },
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              65,
+              65
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 180968,
+            "excesso": 454.4
+          }
+        ]
+      },
+      "alturaDaPagina": 3173,
+      "nos": 258
+    },
+    {
+      "perfil": "tv-1920",
+      "nome": "Explorar, linha do tempo",
+      "caminho": "/explorar",
+      "erro": null,
+      "carregou": 478,
+      "ttfb": 85,
+      "fcp": 272,
+      "lcp": 272,
+      "lcpEl": "h2.ano__numero 2026",
+      "cls": 0.005,
+      "dcl": 408,
+      "load": 477,
+      "tarefasLongas": 1,
+      "maiorTarefa": 77,
+      "bloqueio": 27,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 12978
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 4,
+          "bytes": 649892
+        },
+        "js": {
+          "pedidos": 9,
+          "bytes": 11800
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 12978,
+        "css": 23743,
+        "fotos": 98876,
+        "js": 2991
+      },
+      "antesDoLcp": {
+        "html": 12978,
+        "css": 23743,
+        "fotos": 98876,
+        "js": 2991
+      },
+      "totalBytes": 791097,
+      "pedidos": 22,
+      "imgs": 70,
+      "fotos": {
+        "total": 69,
+        "carregadas": 3,
+        "preguicosas": 68,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 14.4,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              316,
+              415
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 14.6
+          },
+          {
+            "src": "/fotos/exemplos/karol-5.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              332,
+              427
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 180797,
+            "excesso": 13.5
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              319,
+              417
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": 14.4
+          }
+        ]
+      },
+      "alturaDaPagina": 42976,
+      "nos": 2472
+    },
+    {
+      "perfil": "tv-1920",
+      "nome": "Explorar, mural",
+      "caminho": "/explorar?ver=mural",
+      "erro": null,
+      "carregou": 945,
+      "ttfb": 67,
+      "fcp": 236,
+      "lcp": 236,
+      "lcpEl": "span.assinatura__memorias MEMÓRIAS",
+      "cls": 0.001,
+      "dcl": 433,
+      "load": 943,
+      "tarefasLongas": 1,
+      "maiorTarefa": 51,
+      "bloqueio": 1,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 9732
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 12,
+          "bytes": 1868121
+        },
+        "js": {
+          "pedidos": 8,
+          "bytes": 9935
+        },
+        "fontes": {
+          "pedidos": 5,
+          "bytes": 109080
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 9732,
+        "css": 23743,
+        "js": 1126
+      },
+      "antesDoLcp": {
+        "html": 9732,
+        "css": 23743,
+        "js": 1126
+      },
+      "totalBytes": 2020611,
+      "pedidos": 30,
+      "imgs": 39,
+      "fotos": {
+        "total": 38,
+        "carregadas": 23,
+        "preguicosas": 31,
+        "naPrimeiraTela": 6,
+        "excessoMediano": 47.7,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              175,
+              230
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 47.7
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              177,
+              231
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 188351,
+            "excesso": 47
+          },
+          {
+            "src": "/fotos/exemplos/karol-1.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              177,
+              231
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 197616,
+            "excesso": 35.2
+          }
+        ]
+      },
+      "alturaDaPagina": 4625,
+      "nos": 1122
+    },
+    {
+      "perfil": "tv-1920",
+      "nome": "Explorar, lista",
+      "caminho": "/explorar?ver=lista",
+      "erro": null,
+      "carregou": 626,
+      "ttfb": 64,
+      "fcp": 200,
+      "lcp": 200,
+      "lcpEl": "span.assinatura__memorias MEMÓRIAS",
+      "cls": 0.002,
+      "dcl": 301,
+      "load": 624,
+      "tarefasLongas": 0,
+      "maiorTarefa": 0,
+      "bloqueio": 0,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 10932
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "fotos": {
+          "pedidos": 7,
+          "bytes": 1022190
+        },
+        "js": {
+          "pedidos": 8,
+          "bytes": 9935
+        },
+        "fontes": {
+          "pedidos": 3,
+          "bytes": 77396
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 10932,
+        "css": 23743,
+        "fotos": 98876,
+        "js": 6043
+      },
+      "antesDoLcp": {
+        "html": 10932,
+        "css": 23743,
+        "fotos": 98876,
+        "js": 6043
+      },
+      "totalBytes": 1144196,
+      "pedidos": 23,
+      "imgs": 39,
+      "fotos": {
+        "total": 25,
+        "carregadas": 7,
+        "preguicosas": 25,
+        "naPrimeiraTela": 3,
+        "excessoMediano": 48.1,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              173,
+              227
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 48.9
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              175,
+              228
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 188351,
+            "excesso": 48.1
+          },
+          {
+            "src": "/fotos/exemplos/karol-1.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              175,
+              228
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 197616,
+            "excesso": 36.1
+          }
+        ]
+      },
+      "alturaDaPagina": 13599,
+      "nos": 1971
+    },
+    {
+      "perfil": "tv-1920",
+      "nome": "Memória",
+      "caminho": "/memorias/1992-chegada-do-gui",
+      "erro": null,
+      "carregou": 652,
+      "ttfb": 64,
+      "fcp": 216,
+      "lcp": 396,
+      "lcpEl": "img /fotos/exemplos/chico-4.jpg",
+      "cls": 0.001,
+      "dcl": 256,
+      "load": 650,
+      "tarefasLongas": 0,
+      "maiorTarefa": 0,
+      "bloqueio": 0,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 7041
+        },
+        "css": {
+          "pedidos": 3,
+          "bytes": 17109
+        },
+        "fotos": {
+          "pedidos": 8,
+          "bytes": 1139368
+        },
+        "js": {
+          "pedidos": 7,
+          "bytes": 12458
+        },
+        "fontes": {
+          "pedidos": 6,
+          "bytes": 133952
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 7041,
+        "css": 17109,
+        "fotos": 187544,
+        "js": 11086
+      },
+      "antesDoLcp": {
+        "html": 7041,
+        "css": 17109,
+        "fotos": 273258,
+        "js": 12458,
+        "fontes": 133952
+      },
+      "totalBytes": 1309928,
+      "pedidos": 25,
+      "imgs": 18,
+      "fotos": {
+        "total": 9,
+        "carregadas": 3,
+        "preguicosas": 8,
+        "naPrimeiraTela": 3,
+        "excessoMediano": 5.6,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/chico-4.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              463,
+              575
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 85414,
+            "excesso": 5.4
+          },
+          {
+            "src": "/fotos/exemplos/chico-5.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              455,
+              570
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 98576,
+            "excesso": 5.6
+          },
+          {
+            "src": "/fotos/exemplos/chico-3.jpg",
+            "natural": [
+              1600,
+              900
+            ],
+            "mostrada": [
+              409,
+              537
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 88368,
+            "excesso": 6.6
+          }
+        ]
+      },
+      "alturaDaPagina": 5008,
+      "nos": 622
+    },
+    {
+      "perfil": "tv-1920",
+      "nome": "Pessoa",
+      "caminho": "/pessoas/gui",
+      "erro": null,
+      "carregou": 832,
+      "ttfb": 81,
+      "fcp": 216,
+      "lcp": 228,
+      "lcpEl": "img /retratos/exemplos/chico-5.jpg",
+      "cls": 0.002,
+      "dcl": 314,
+      "load": 831,
+      "tarefasLongas": 0,
+      "maiorTarefa": 0,
+      "bloqueio": 0,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 9578
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 25205
+        },
+        "fotos": {
+          "pedidos": 9,
+          "bytes": 1418378
+        },
+        "js": {
+          "pedidos": 11,
+          "bytes": 17398
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        },
+        "busca": {
+          "pedidos": 2,
+          "bytes": 22075
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 9578,
+        "css": 25205,
+        "fotos": 98876,
+        "js": 12134
+      },
+      "antesDoLcp": {
+        "html": 9578,
+        "css": 25205,
+        "fotos": 98876,
+        "js": 12134
+      },
+      "totalBytes": 1585318,
+      "pedidos": 31,
+      "imgs": 54,
+      "fotos": {
+        "total": 29,
+        "carregadas": 5,
+        "preguicosas": 29,
+        "naPrimeiraTela": 0,
+        "excessoMediano": 159.6,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              82,
+              110
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 180968,
+            "excesso": 212.9
+          },
+          {
+            "src": "/fotos/exemplos/karol-6.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              82,
+              110
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 188351,
+            "excesso": 212.9
+          },
+          {
+            "src": "/fotos/exemplos/karol-1.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              82,
+              110
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 197616,
+            "excesso": 159.6
+          }
+        ]
+      },
+      "alturaDaPagina": 7760,
+      "nos": 971
+    },
+    {
+      "perfil": "tv-1920",
+      "nome": "Pessoas",
+      "caminho": "/pessoas",
+      "erro": null,
+      "carregou": 927,
+      "ttfb": 48,
+      "fcp": 176,
+      "lcp": 176,
+      "lcpEl": "p.pessoas-pagina__frase Quem aparece nas memórias da família, po",
+      "cls": 0,
+      "dcl": 250,
+      "load": 925,
+      "tarefasLongas": 0,
+      "maiorTarefa": 0,
+      "bloqueio": 0,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 5321
+        },
+        "css": {
+          "pedidos": 2,
+          "bytes": 13224
+        },
+        "js": {
+          "pedidos": 6,
+          "bytes": 6810
+        },
+        "fotos": {
+          "pedidos": 11,
+          "bytes": 1769245
+        },
+        "fontes": {
+          "pedidos": 3,
+          "bytes": 77396
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 5321,
+        "css": 13224,
+        "js": 4353,
+        "fotos": 98876
+      },
+      "antesDoLcp": {
+        "html": 5321,
+        "css": 13224,
+        "js": 4353,
+        "fotos": 98876
+      },
+      "totalBytes": 1871996,
+      "pedidos": 23,
+      "imgs": 41,
+      "fotos": {
+        "total": 0,
+        "carregadas": 0,
+        "preguicosas": 0,
+        "naPrimeiraTela": 0,
+        "excessoMediano": null,
+        "exemplos": []
+      },
+      "alturaDaPagina": 3381,
+      "nos": 505
+    },
+    {
+      "perfil": "tv-1920",
+      "nome": "Árvore",
+      "caminho": "/arvore",
+      "erro": null,
+      "carregou": 297,
+      "ttfb": 44,
+      "fcp": 164,
+      "lcp": 164,
+      "lcpEl": "h1.serifa Árvore",
+      "cls": 0,
+      "dcl": 243,
+      "load": 296,
+      "tarefasLongas": 1,
+      "maiorTarefa": 55,
+      "bloqueio": 5,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 6447
+        },
+        "css": {
+          "pedidos": 2,
+          "bytes": 15518
+        },
+        "fotos": {
+          "pedidos": 1,
+          "bytes": 98876
+        },
+        "js": {
+          "pedidos": 7,
+          "bytes": 25117
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 6447,
+        "css": 15518,
+        "fotos": 98876,
+        "js": 19107
+      },
+      "antesDoLcp": {
+        "html": 6447,
+        "css": 15518,
+        "fotos": 98876,
+        "js": 19107
+      },
+      "totalBytes": 238642,
+      "pedidos": 15,
+      "imgs": 1,
+      "fotos": {
+        "total": 0,
+        "carregadas": 0,
+        "preguicosas": 0,
+        "naPrimeiraTela": 0,
+        "excessoMediano": null,
+        "exemplos": []
+      },
+      "alturaDaPagina": 1080,
+      "nos": 371
+    },
+    {
+      "perfil": "tv-1920",
+      "nome": "Modo TV",
+      "caminho": "/explorar?ver=tv",
+      "erro": null,
+      "carregou": 245,
+      "ttfb": 44,
+      "fcp": 156,
+      "lcp": 156,
+      "lcpEl": "p.serifa “Memória de exemplo que pertence a três ",
+      "cls": 0.004,
+      "dcl": 217,
+      "load": 244,
+      "tarefasLongas": 0,
+      "maiorTarefa": 0,
+      "bloqueio": 0,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 2964
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "js": {
+          "pedidos": 5,
+          "bytes": 10067
+        },
+        "fotos": {
+          "pedidos": 3,
+          "bytes": 551016
+        },
+        "fontes": {
+          "pedidos": 6,
+          "bytes": 133952
+        },
+        "busca": {
+          "pedidos": 1,
+          "bytes": 3033
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 2964,
+        "css": 23743,
+        "js": 4962
+      },
+      "antesDoLcp": {
+        "html": 2964,
+        "css": 23743,
+        "js": 4962
+      },
+      "totalBytes": 724775,
+      "pedidos": 20,
+      "imgs": 1,
+      "fotos": {
+        "total": 1,
+        "carregadas": 1,
+        "preguicosas": 0,
+        "naPrimeiraTela": 1,
+        "excessoMediano": 5.9,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              498,
+              654
+            ],
+            "loading": "eager",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 180968,
+            "excesso": 5.9
+          }
+        ]
+      },
+      "alturaDaPagina": 1080,
+      "nos": 108
+    },
+    {
+      "perfil": "tv-1920",
+      "nome": "Capítulo",
+      "caminho": "/capitulos/natais",
+      "erro": null,
+      "carregou": 736,
+      "ttfb": 47,
+      "fcp": 172,
+      "lcp": 740,
+      "lcpEl": "img /fotos/exemplos/karol-1.jpg",
+      "cls": 0.001,
+      "dcl": 298,
+      "load": 733,
+      "tarefasLongas": 0,
+      "maiorTarefa": 0,
+      "bloqueio": 0,
+      "porTipo": {
+        "html": {
+          "pedidos": 1,
+          "bytes": 5170
+        },
+        "css": {
+          "pedidos": 4,
+          "bytes": 23743
+        },
+        "js": {
+          "pedidos": 8,
+          "bytes": 10135
+        },
+        "fotos": {
+          "pedidos": 8,
+          "bytes": 1262726
+        },
+        "fontes": {
+          "pedidos": 4,
+          "bytes": 92684
+        }
+      },
+      "antesDaPrimeiraTela": {
+        "html": 5170,
+        "css": 23743,
+        "js": 6243,
+        "fotos": 98876
+      },
+      "antesDoLcp": {
+        "html": 5170,
+        "css": 23743,
+        "js": 10135,
+        "fotos": 1262726,
+        "fontes": 92684
+      },
+      "totalBytes": 1394458,
+      "pedidos": 25,
+      "imgs": 12,
+      "fotos": {
+        "total": 5,
+        "carregadas": 4,
+        "preguicosas": 5,
+        "naPrimeiraTela": 2,
+        "excessoMediano": 28.4,
+        "exemplos": [
+          {
+            "src": "/fotos/exemplos/karol-1.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              204,
+              266
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 197616,
+            "excesso": 26.5
+          },
+          {
+            "src": "/fotos/exemplos/chico-4.jpg",
+            "natural": [
+              900,
+              1600
+            ],
+            "mostrada": [
+              197,
+              262
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": true,
+            "bytes": 85414,
+            "excesso": 27.9
+          },
+          {
+            "src": "/fotos/exemplos/karol-4.jpg",
+            "natural": [
+              1200,
+              1600
+            ],
+            "mostrada": [
+              195,
+              260
+            ],
+            "loading": "lazy",
+            "completa": true,
+            "naPrimeiraTela": false,
+            "bytes": 180968,
+            "excesso": 37.9
+          }
+        ]
+      },
+      "alturaDaPagina": 4313,
+      "nos": 314
+    }
+  ]
+}

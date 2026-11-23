@@ -31,6 +31,9 @@
 //    tabelas da família, o "Sobre" sai vazio, e só a homologação (ou o computador) grava o espelho.
 //    Nenhum arquivo da produção chega à homologação: o retrato é uma foto de exemplo, a cópia não lê o
 //    bucket e o espelho não grava em bucket nenhum.
+// 12. Os scripts de medição de desempenho (scripts/desempenho/) não tocam prévia, homologação ou produção
+//    com dados de carga: a carga só grava no servidor local, pela Local Explorer, num banco com o acervo
+//    de exemplo; a medição no navegador recusa a produção e a homologação; o site não os importa.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
@@ -254,6 +257,31 @@ const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';
   }
   if (/bucket|\.put\(/i.test(soCodigo(servidor))) falhar('src/lib/servidor/espelho.ts: o espelho grava só o banco; nenhum arquivo vai para o bucket da homologação.');
   if (/bucket/i.test(soCodigo(readFileSync('src/lib/servidor/copia.ts', 'utf8')))) falhar('src/lib/servidor/copia.ts: a cópia do acervo leva só o banco; ela não lê fotos nem retratos do bucket.');
+}
+
+// 12. Os scripts de medição de desempenho (docs/desempenho/) nunca tocam prévia, homologação ou produção
+// com dados de carga. O de carga só fala com o servidor local do computador, pela Local Explorer do
+// Wrangler, e só num banco com o acervo de exemplo; os que abrem o site recusam a produção e a
+// homologação; e nenhum deles entra no site publicado.
+if (existsSync('scripts/desempenho')) {
+  const pasta = readdirSync('scripts/desempenho').filter((a) => /\.(mjs|js|ts)$/.test(a));
+  const soCodigo = (texto) => texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  for (const nome of pasta) {
+    const arquivo = `scripts/desempenho/${nome}`;
+    const codigo = soCodigo(readFileSync(arquivo, 'utf8'));
+    if (/--remote|wrangler\s+(d1|r2|deploy)|api\.cloudflare\.com/.test(codigo)) falhar(`${arquivo}: medição não usa o Wrangler nem a API do Cloudflare para chegar a um banco ou bucket remoto.`);
+    if (/\/d1\/database|\/r2\/buckets/.test(codigo)) {
+      // Quem grava no banco ou no bucket: só o servidor local, e só o acervo de exemplo
+      const local = codigo.includes("const ENDERECOS_LOCAIS = new Set(['127.0.0.1', 'localhost', '[::1]']);") && /if \(endereco\.protocol !== 'http:' \|\| !ENDERECOS_LOCAIS\.has\(endereco\.hostname\)\) \{[^}]*process\.exit\(1\);/.test(codigo) && codigo.includes("const API = new URL('/cdn-cgi/local/explorer/api', endereco).href;");
+      const soExemplo = /FROM integrantes WHERE id LIKE 'ex-%'/.test(codigo) && /if \(!exemplos\) \{[^}]*process\.exit\(1\);/.test(codigo);
+      if (!local || !soExemplo) falhar(`${arquivo}: a carga só grava no servidor local (127.0.0.1, pela Local Explorer) e só num banco com o acervo de exemplo.`);
+    }
+    if (/chromium|fetch\(/.test(codigo) && !/\/d1\/database|\/r2\/buckets/.test(codigo) && !/const BASE = 'http:\/\/127\.0\.0\.1:4321';/.test(codigo) && !/new Error\('O proxy só repassa para o servidor local\.'\)/.test(codigo)) {
+      if (!codigo.includes("if (/^(memorias|homologa\\.memorias)\\.bayara\\.com\\.br$/.test(new URL(BASE).hostname)) {")) falhar(`${arquivo}: a medição no navegador recusa a produção e a homologação.`);
+    }
+  }
+  const fontes = existsSync('src') ? readdirSync('src', { recursive: true }).map((a) => `src/${String(a).replace(/\\/g, '/')}`).filter((a) => /\.(astro|ts|mjs|js)$/.test(a)) : [];
+  for (const arquivo of fontes) if (/scripts\/desempenho/.test(readFileSync(arquivo, 'utf8'))) falhar(`${arquivo}: o site não usa os scripts de medição (scripts/desempenho/).`);
 }
 
 // 6. Migrações que apagariam dados por cascata

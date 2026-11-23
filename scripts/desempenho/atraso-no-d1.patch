@@ -1,0 +1,42 @@
+diff --git a/src/lib/servidor/ambiente.ts b/src/lib/servidor/ambiente.ts
+index b064b22..14c1a0e 100644
+--- a/src/lib/servidor/ambiente.ts
++++ b/src/lib/servidor/ambiente.ts
+@@ -61,7 +61,36 @@ export function ambiente(): Ambiente {
+ }
+ 
+ export function banco(): D1Database {
+-  return ehHomologacao() ? env.DB_HOMOLOGA! : env.DB;
++  return comAtraso(ehHomologacao() ? env.DB_HOMOLOGA! : env.DB);
++}
++
++// MEDIÇÃO M1 (scripts/desempenho/atraso-no-d1.patch, nunca vai para a homologa): cada ida ao D1 espera
++// ATRASO_D1 milissegundos, como a viagem da borda do Cloudflare ao banco. Com isso, o tempo a mais de uma
++// página dividido pelo atraso dá quantas idas ao banco ela faz uma depois da outra.
++const ATRASO_D1 = 50;
++const originais = new WeakMap<object, object>();
++const esperar = () => new Promise((ok) => setTimeout(ok, ATRASO_D1));
++function comAtraso(db: D1Database): D1Database {
++  const envolver = (st: object): object => {
++    const p = new Proxy(st, {
++      get(alvo, nome) {
++        const v = Reflect.get(alvo, nome);
++        if (nome === 'bind') return (...a: unknown[]) => envolver(v.apply(alvo, a));
++        if (nome === 'all' || nome === 'first' || nome === 'run' || nome === 'raw') return async (...a: unknown[]) => { await esperar(); return v.apply(alvo, a); };
++        return typeof v === 'function' ? v.bind(alvo) : v;
++      },
++    });
++    originais.set(p, st);
++    return p;
++  };
++  return new Proxy(db, {
++    get(alvo, nome) {
++      const v = Reflect.get(alvo, nome);
++      if (nome === 'prepare') return (sql: string) => envolver(v.call(alvo, sql));
++      if (nome === 'batch') return async (lista: object[]) => { await esperar(); return v.call(alvo, lista.map((s) => originais.get(s) ?? s)); };
++      return typeof v === 'function' ? v.bind(alvo) : v;
++    },
++  }) as D1Database;
+ }
+ 
+ export function bucketDeFotos(): R2Bucket {
