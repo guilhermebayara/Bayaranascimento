@@ -7,6 +7,7 @@ import type { Aviso } from '../lib/servidor/repositorio';
 import { listarIntegrantes } from '../lib/servidor/repositorio';
 import { diaMesCurto } from '../lib/visual';
 import { chaveDoPublico } from '../lib/servidor/permissoes';
+import { pedidosDosRelatos } from '../lib/servidor/pedido-do-relato';
 
 interface Props {
   avisos: Aviso[];
@@ -29,6 +30,12 @@ const quando = (a: Aviso) => {
   const [ano, mes, dia] = a.criadoEm.slice(0, 10).split('-').map(Number);
   return `${diaMesCurto({ dia, mes })} ${ano}`;
 };
+// O pedido para liberar com o relato à vista (crítica C2): o começo do relato, os nomes de quem passa a
+// ler (só de quem a pessoa vê) e a ação com o mesmo nome da linha do relato, na memória
+const pedidos = await pedidosDosRelatos(
+  usuario,
+  avisos.filter((a) => a.tipo === 'liberar-relato' && a.relato).map((a) => ({ relatoId: a.relato!.id, publico: a.publico })),
+);
 const RESPOSTAS: Record<string, string> = { liberar: 'Você liberou.', manter: 'Você manteve como estava.', aceita: 'Você aceitou.', recusada: 'Você recusou.', respondida: 'Você respondeu.' };
 const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
 ---
@@ -52,18 +59,35 @@ const volta = Astro.url.pathname + (onde === 'conta' ? '#avisos' : '');
                 <span class="aviso__quando ficha suave">{quando(a)}</span>
               </a>
               {a.tipo === 'liberar-relato' && a.relato && (
-                <form class="aviso__resposta" method="post" action="/api/avisos" data-no-lugar={`avisos-${onde} retrato`} data-chave={`aviso-${a.id}`}>
-                  <input type="hidden" name="aviso" value={a.id} />
-                  {/* O público que a pessoa leu no pedido: se a memória mudar antes da resposta, a rota não faz nada e mostra o pedido de agora */}
-                  <input type="hidden" name="publico" value={chaveDoPublico(a.publico)} />
-                  <input type="hidden" name="volta" value={volta} />
-                  <button type="submit" class="acao" name="resposta" value="liberar">
-                    Liberar para quem passou a ver
-                  </button>
-                  <button type="submit" class="acao acao--quieta" name="resposta" value="manter">
-                    Manter como estava
-                  </button>
-                </form>
+                <div class="aviso__pedido">
+                  {/* O começo do relato, como a pessoa escreveu: ela decide vendo o que libera. Sem o pedido (o
+                      relato já acompanha a memória), sobra a resposta, que só tira o aviso da lista */}
+                  {pedidos.get(a.relato.id) && (
+                    <blockquote class="aviso__relato">
+                      <span class="mao">{nome(a.relato.por)}</span>
+                      <span>{pedidos.get(a.relato.id)!.comeco}</span>
+                    </blockquote>
+                  )}
+                  {pedidos.get(a.relato.id)?.leitores && (
+                    <p class="aviso__leitores">
+                      Se liberar, passam a ler: <strong>{pedidos.get(a.relato.id)?.leitores}</strong>.
+                    </p>
+                  )}
+                  <form class="aviso__resposta" method="post" action="/api/avisos" data-no-lugar={`avisos-${onde} retrato`} data-chave={`aviso-${a.id}`}>
+                    <input type="hidden" name="aviso" value={a.id} />
+                    {/* O público que a pessoa leu no pedido: se a memória mudar antes da resposta, a rota não faz nada e mostra o pedido de agora */}
+                    <input type="hidden" name="publico" value={chaveDoPublico(a.publico)} />
+                    <input type="hidden" name="volta" value={volta} />
+                    {/* As duas respostas têm o mesmo peso: nenhuma empurra a outra */}
+                    <button type="submit" class="acao" name="resposta" value="liberar">
+                      {pedidos.get(a.relato.id)?.acao ?? 'Liberar para quem passou a ver'}
+                    </button>
+                    <button type="submit" class="acao" name="resposta" value="manter">
+                      Manter como estava
+                    </button>
+                  </form>
+                  <p class="aviso__sem-volta ficha suave">Liberar não tem volta.</p>
+                </div>
               )}
             </li>
           ))}

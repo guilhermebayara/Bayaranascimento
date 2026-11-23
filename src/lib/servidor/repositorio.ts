@@ -186,7 +186,27 @@ export async function refazerSeAMemoriaMudou<T>(fazer: () => Promise<T>, tentati
  * (D2 da sessão Z, 22/11/2026).
  */
 export function codigoRepetido(erro: unknown): boolean {
-  return /UNIQUE constraint failed: (memorias|integrantes|temas)\.id\b/.test(String((erro as Error)?.message ?? erro));
+  return /UNIQUE constraint failed: (memorias|integrantes|temas|capitulos|tipos)\.id\b/.test(String((erro as Error)?.message ?? erro));
+}
+
+/** As tentativas com código novo acabaram: quem chama volta para a página com o recado e o que foi digitado. */
+export const SEM_CODIGO = Symbol('sem-codigo');
+
+/**
+ * O mesmo caminho do D2 da sessão Z nas outras rotas que geram código para gravar (sessão AA): se outro pedido
+ * usou o código no meio tempo, o lote volta inteiro, e `fazer` roda de novo, com o número da vez, para ler os
+ * códigos do banco de agora. Depois de três tentativas, devolve SEM_CODIGO, e a rota responde com o recado,
+ * sem 500.
+ */
+export async function comCodigoNovo<T>(fazer: (vez: number) => Promise<T>, tentativas = 3): Promise<T | typeof SEM_CODIGO> {
+  for (let vez = 1; ; vez++) {
+    try {
+      return await fazer(vez);
+    } catch (erro) {
+      if (!codigoRepetido(erro)) throw erro;
+      if (vez >= tentativas) return SEM_CODIGO;
+    }
+  }
 }
 
 /** Um comando do banco, para gravar junto num lote (db.batch, uma transação). */
@@ -1019,7 +1039,7 @@ const comandoDaPrincipal = (memoriaId: string) =>
  * avisos). Se um comando falha, nada fica (Y3 do PR #160).
  */
 export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: Usuario, { antes = [], junto = [] }: { antes?: Comando[]; junto?: Comando[] } = {}): Promise<void> {
-  await db().batch([
+  await loteDaMemoria([
     ...antes,
     db()
       .prepare(
@@ -1112,13 +1132,6 @@ export async function listarTemasVisiveis(usuario: Usuario): Promise<Tema[]> {
   return todos.filter((t: Tema) => visiveis.has(t.id));
 }
 
-/** Devolve os ids dos temas com esses nomes, criando os que ainda não existem. */
-export async function garantirTemas(nomes: string[], usuario: Usuario): Promise<string[]> {
-  const { ids, comandos } = await resolverTemas(nomes, usuario);
-  if (comandos.length > 0) await db().batch(comandos);
-  return ids;
-}
-
 /**
  * Os ids dos temas com esses nomes, sem gravar nada: os que ainda não existem ganham o id aqui, e os
  * comandos que os criam vão no lote de quem os usa. Assim, um salvamento que perde a corrida não deixa
@@ -1207,7 +1220,7 @@ export interface DadosDoCapitulo {
   familias: string[];
 }
 
-export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario: Usuario, novo: boolean): Promise<void> {
+export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario: Usuario, novo: boolean, antes: Comando[] = []): Promise<void> {
   const valores = [
     dados.titulo,
     dados.abertura ?? null,
@@ -1222,6 +1235,8 @@ export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario
     dados.visibilidade,
   ];
   const comandos: D1PreparedStatement[] = [
+    // Os temas novos do capítulo, no mesmo lote: se ele volta, nenhum tema fica gravado (sessão AA)
+    ...antes,
     novo
       ? db()
           .prepare(
@@ -1841,16 +1856,18 @@ export async function salvarRelato(
   // `nasce`: o relato novo que espera o sim de quem escreveu (relatoQueNasce), com o pedido
   // `envio`: a chave do envio único do formulário sem script (migração 109; a rota a faz do código da página, de
   // quem envia, do relato e do texto): repetida, nada é gravado (EnvioRepetido)
-  { conferir, nasce, envio }: { conferir?: number; nasce?: RelatoQueNasceEsperando; envio?: string } = {},
+  // `junto`: o que grava no mesmo lote do relato, depois dele (as mensagens do envio sem script, para a falha
+  // não deixar a mensagem só no texto do relato com o código do envio já gasto; fila da revisão Z2, sessão AA)
+  { conferir, nasce, envio, junto = [] }: { conferir?: number; nasce?: RelatoQueNasceEsperando; envio?: string; junto?: Comando[] } = {},
 ): Promise<void> {
   const doEnvio = envio ? comandosDoEnvio(envio) : [];
   try {
     if (conferir === undefined) {
-      await db().batch([...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce })]);
+      await db().batch([...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce }), ...junto]);
       return;
     }
     // Conferir a versão também a sobe: o relato novo dispensa a subida sem conferência
-    await loteDaMemoria([conferirVersao(memoriaId, conferir), ...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false })]);
+    await loteDaMemoria([conferirVersao(memoriaId, conferir), ...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false }), ...junto]);
   } catch (erro) {
     if (/UNIQUE constraint failed: envios\.codigo\b/.test(String((erro as Error)?.message ?? erro))) throw new EnvioRepetido();
     throw erro;
@@ -1860,8 +1877,25 @@ export async function salvarRelato(
 /** O mesmo envio chegou de novo (o toque duplo sem script): o lote voltou, e nada foi gravado de novo. */
 export class EnvioRepetido extends Error {}
 
+/**
+ * A chave de um envio único (migração 109): o resumo do código da página junto com o que mais identifica o
+ * envio (quem envia, o quê, o conteúdo). O resumo não se desfaz: nem o código nem o conteúdo ficam na tabela.
+ */
+export async function chaveDoEnvioUnico(...partes: unknown[]): Promise<string> {
+  const resumo = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(partes)));
+  return [...new Uint8Array(resumo)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** O envio com esta chave já foi gravado: o toque duplo responde como o primeiro, sem gravar. */
+export async function envioJaGravado(chave: string): Promise<boolean> {
+  return Boolean(await db().prepare('SELECT 1 AS ja FROM envios WHERE codigo = ?').bind(chave).first());
+}
+
+/** O lote voltou porque a chave do envio já estava na tabela (outro toque igual gravou antes). */
+export const envioRepetidoNoLote = (erro: unknown): boolean => /UNIQUE constraint failed: envios\.codigo\b/.test(String((erro as Error)?.message ?? erro));
+
 /** Guarda a chave do envio no lote e tira as de mais de dois dias (migração 109). */
-const comandosDoEnvio = (codigo: string): Comando[] => [
+export const comandosDoEnvio = (codigo: string): Comando[] => [
   db().prepare(`DELETE FROM envios WHERE em < datetime('now', '-2 days')`),
   db().prepare('INSERT INTO envios (codigo) VALUES (?)').bind(codigo),
 ];
@@ -2042,6 +2076,21 @@ export async function audiosQueEntram(relatoId: number | null, memoriaId: string
 export function comandosDosAudios(relato: RelatoNoLote, memoriaId: string, aceitos: { id: number; transcricao?: string }[]): Comando[] {
   const r = relatoNoLote(relato);
   return [
+    // A conferência na hora do lote (fila da revisão Z2, sessão AA): se um áudio da lista já não está solto
+    // nem neste relato (outro pedido igual o levou para a memória dele no meio tempo), a versão sobe dois
+    // degraus, o gatilho da migração 107 recusa, e o lote inteiro volta (MemoriaMudou). A nova tentativa lê o
+    // banco de agora: o áudio fica preso a uma memória só, e nenhuma mensagem aponta para um áudio que não é
+    // do relato
+    ...(aceitos.length
+      ? [
+          db()
+            .prepare(
+              `UPDATE memorias SET versao = versao + 2 WHERE id = ? AND EXISTS (SELECT 1 FROM audios WHERE id IN (${aceitos.map(() => '?').join(', ')})
+               AND NOT (removido_em IS NULL AND (memoria_id IS NULL OR memoria_id = ?) AND (relato_id IS NULL OR relato_id = ${r.sql})))`,
+            )
+            .bind(memoriaId, ...aceitos.map((i) => i.id), memoriaId, ...r.valores),
+        ]
+      : []),
     db()
       // Sem nenhum áudio que fica, a lista some: "id NOT IN (NULL)" nunca é verdadeiro e o último áudio não saía
       .prepare(`UPDATE audios SET removido_em = datetime('now') WHERE relato_id = ${r.sql} AND removido_em IS NULL${aceitos.length ? ` AND id NOT IN (${aceitos.map(() => '?').join(', ')})` : ''}`)
@@ -2060,9 +2109,17 @@ export function comandosDosAudios(relato: RelatoNoLote, memoriaId: string, aceit
  * Devolve quantos da lista foram aceitos.
  */
 export async function ligarAudios(relatoId: number, memoriaId: string, itens: { id: number; transcricao?: string }[], usuario: Usuario): Promise<number> {
-  const validos = await audiosQueEntram(relatoId, memoriaId, itens, usuario);
-  await db().batch(comandosDosAudios(relatoId, memoriaId, validos));
-  return validos.length;
+  // Um áudio que outro pedido levou no meio tempo recusa o lote (comandosDosAudios): a lista é lida de novo,
+  // já sem ele
+  for (let vez = 1; ; vez++) {
+    const validos = await audiosQueEntram(relatoId, memoriaId, itens, usuario);
+    try {
+      await loteDaMemoria(comandosDosAudios(relatoId, memoriaId, validos));
+      return validos.length;
+    } catch (erro) {
+      if (!(erro instanceof MemoriaMudou) || vez >= 3) throw erro;
+    }
+  }
 }
 
 /**
@@ -2680,15 +2737,31 @@ export async function restaurarLacoDoCoracao(dados: { dono: string; pessoa: stri
  * As memórias em que as duas fichas têm relato e que impedem juntar: um relato por pessoa em cada
  * memória. Quem administra resolve antes (um dos dois relatos sai), e junta depois.
  */
-export async function conflitosAoJuntar(fica: string, sai: string): Promise<string[]> {
+export async function conflitosAoJuntar(fica: string, sai: string, usuario: Usuario): Promise<ConflitosAoJuntar> {
+  // Quem olha só lê o título das memórias que vê (decisão do Gui, 23/11/2026): as outras entram só como
+  // "memórias que você não vê", sem título nem número. A recusa continua igual, veja ou não as memórias.
+  // O título só aparece quando os dois relatos do conflito estão publicados e liberados: o conflito num
+  // rascunho ou num relato que espera liberação entra nas "memórias que você não vê" (fila da revisão AA2).
+  // Uma memória com um conflito à vista é citada pelo título, mesmo que tenha outro que não esteja
   const { results } = await db()
     .prepare(
-      `SELECT DISTINCT m.titulo FROM relatos rs JOIN relatos rf ON rf.memoria_id = rs.memoria_id AND rf.por = ?1 JOIN memorias m ON m.id = rs.memoria_id
-       WHERE rs.por = ?2 AND (rf.registrado_por = rs.registrado_por OR (rf.situacao = 'publicada' AND rs.situacao = 'publicada'))`,
+      `SELECT m.id, m.titulo,
+         MAX(CASE WHEN ${FILTRO_VISIVEL} AND rs.situacao = 'publicada' AND rf.situacao = 'publicada'
+           AND rs.so_para_nucleos IS NULL AND rf.so_para_nucleos IS NULL THEN 1 ELSE 0 END) AS ve
+       FROM relatos rs JOIN relatos rf ON rf.memoria_id = rs.memoria_id AND rf.por = ?2 JOIN memorias m ON m.id = rs.memoria_id
+       WHERE rs.por = ?3 AND (rf.registrado_por = rs.registrado_por OR (rf.situacao = 'publicada' AND rs.situacao = 'publicada'))
+       GROUP BY m.id, m.titulo`,
     )
-    .bind(fica, sai)
-    .all<{ titulo: string }>();
-  return results.map((r: { titulo: string }) => r.titulo);
+    .bind(usuario.pessoa, fica, sai)
+    .all<{ id: string; titulo: string; ve: number }>();
+  const linhas = results as { id: string; titulo: string; ve: number }[];
+  return { titulos: linhas.filter((r) => r.ve).map((r) => r.titulo), outras: linhas.some((r) => !r.ve) };
+}
+
+/** As memórias em que as duas fichas têm relato: os títulos que quem olha vê, e se há outras que não vê. */
+export interface ConflitosAoJuntar {
+  titulos: string[];
+  outras: boolean;
 }
 
 /**
@@ -2932,6 +3005,16 @@ export async function audioParaTranscrever(id: number, usuario: Usuario): Promis
 // --- Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026; migração 102-excluir-pessoa) ---
 // A pessoa excluída vai para a lixeira: some do site na hora (listarIntegrantes, os laços e
 // pessoasQueONaoVe deixam de vê-la), e as linhas dela ficam no banco, para restaurar devolver tudo.
+
+/**
+ * Os códigos de todas as pessoas, inclusive as que estão na lixeira, mais "nova" (o endereço do formulário de
+ * cadastro). Só servem para o código de uma pessoa nova não repetir: a pessoa na lixeira continua com a linha
+ * no banco, e o mesmo código daria colisão (revisão AA2, 23/11/2026).
+ */
+export async function codigosOcupadosDePessoas(): Promise<Set<string>> {
+  const { results } = await db().prepare('SELECT id FROM integrantes').all<{ id: string }>();
+  return new Set([...results.map((r: { id: string }) => r.id), 'nova']);
+}
 
 /** Quem está na lixeira. */
 export async function idsDasPessoasExcluidas(): Promise<Set<string>> {

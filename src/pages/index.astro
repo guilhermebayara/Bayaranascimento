@@ -24,7 +24,7 @@ import Rabisco from '../components/visual/Rabisco.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
 import { coresDasPessoas, familiaMaisRecente } from '../lib/familias';
-import { enderecoDoRascunhoDeRelato, seusRascunhos } from '../lib/conta';
+import { enderecoDoRascunhoDeRelato, fraseDoRascunho, seusRascunhos } from '../lib/conta';
 import {
   TITULO_DA_PROXIMIDADE,
   aniversarios,
@@ -257,7 +257,7 @@ const erro = Astro.url.searchParams.get('erro');
           <Avisos avisos={avisos} onde="inicio" />
           {quantosRascunhos > 0 && (
             <p class="novo__rascunho">
-              <span>{quantosRascunhos === 1 ? 'Você tem um rascunho.' : `Você tem ${quantosRascunhos} rascunhos.`}</span>
+              <span>{fraseDoRascunho(rascunhos, usuario.pessoa, nomeVisto)}</span>
               <a class="acao" href={quantosRascunhos === 1 && oRascunho ? oRascunho : '/conta#rascunhos'}>
                 {quantosRascunhos === 1 ? 'Continuar o rascunho' : 'Ver seus rascunhos'}
               </a>
@@ -350,7 +350,42 @@ const erro = Astro.url.searchParams.get('erro');
   {
     !cartaNoAlto && (
       <div class="cartoes miolo" data-colunas={composicao.naFileira} data-faixa={composicao.outrosAnosEmFaixa ? (paraContar ? 'com-contar' : 'sozinha') : undefined}>
-        {/* Contar vem logo depois das novidades, antes de "Neste dia" (P16) */}
+        {eu && minhas.length > 0 && (
+          // Proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): o retrato vira a assinatura do
+          // cartão, o corpo é uma frase com o número grande, e as fotos das memórias mais recentes em que a
+          // pessoa aparece ficam embaixo, pequenas, como fotos soltas da caixa
+          <section class="cartao voce" aria-labelledby="voce">
+            <h2 class="voce__alto" id="voce">
+              <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={corDoPainel} redondo />
+              <span class="rotulo">Você no acervo</span>
+            </h2>
+            <p class="voce__frase serifa">
+              Você aparece em <span class="voce__numero">{acervo.quantas}</span> {acervo.quantas === 1 ? 'memória' : 'memórias'}
+              {acervo.de && <span class="voce__anos">, de {acervo.de} a {acervo.ate}</span>}.
+            </p>
+            {acervo.comFoto.length > 0 && (
+              <ul class="voce__fotos" aria-label="As mais recentes em que você aparece">
+                {acervo.comFoto.map((m) => (
+                  <li>
+                    <a href={`/memorias/${m.id}`} aria-label={m.titulo}>
+                      <img src={`/fotos/${(m.fotos.find((f) => f.principal) ?? m.fotos[0])!.chave}`} alt="" loading="lazy" decoding="async" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p class="voce__links">
+              <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
+                Ver sua página
+              </a>
+              <a class="acao" href={`/arvore?centro=${usuario.pessoa}`}>
+                Ver a árvore a partir de você
+              </a>
+            </p>
+          </section>
+        )}
+
+        {/* Contar vem depois de "Você no acervo" (crítica C1) e antes de "Neste dia" (P16) */}
         {composicao.mesa !== 'contar' && paraContar && <Contar memoria={paraContar} />}
 
         {outrosAnos && (
@@ -427,40 +462,6 @@ const erro = Astro.url.searchParams.get('erro');
           </section>
         )}
 
-        {eu && minhas.length > 0 && (
-          // Proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): o retrato vira a assinatura do
-          // cartão, o corpo é uma frase com o número grande, e as fotos das memórias mais recentes em que a
-          // pessoa aparece ficam embaixo, pequenas, como fotos soltas da caixa
-          <section class="cartao voce" aria-labelledby="voce">
-            <h2 class="voce__alto" id="voce">
-              <Retrato nome={usuario.nome} foto={retratoDe(usuario.pessoa)} familia={corDoPainel} redondo />
-              <span class="rotulo">Você no acervo</span>
-            </h2>
-            <p class="voce__frase serifa">
-              Você aparece em <span class="voce__numero">{acervo.quantas}</span> {acervo.quantas === 1 ? 'memória' : 'memórias'}
-              {acervo.de && <span class="voce__anos">, de {acervo.de} a {acervo.ate}</span>}.
-            </p>
-            {acervo.comFoto.length > 0 && (
-              <ul class="voce__fotos" aria-label="As mais recentes em que você aparece">
-                {acervo.comFoto.map((m) => (
-                  <li>
-                    <a href={`/memorias/${m.id}`} aria-label={m.titulo}>
-                      <img src={`/fotos/${(m.fotos.find((f) => f.principal) ?? m.fotos[0])!.chave}`} alt="" loading="lazy" decoding="async" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p class="voce__links">
-              <a class="acao" href={`/pessoas/${usuario.pessoa}`}>
-                Ver sua página
-              </a>
-              <a class="acao" href={`/arvore?centro=${usuario.pessoa}`}>
-                Ver a árvore a partir de você
-              </a>
-            </p>
-          </section>
-        )}
       </div>
     )
   }

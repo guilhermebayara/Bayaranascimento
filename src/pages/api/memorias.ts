@@ -1,6 +1,7 @@
 // Cria ou atualiza uma memória: a ficha, as fotos já enviadas, pessoas novas,
 // núcleos, visibilidade e, se houver, o relato de quem está registrando.
 import type { APIRoute } from 'astro';
+import { memoriaDevolvida } from '../../lib/formulario-devolvido';
 import { z } from 'astro/zod';
 import { lerTemas } from '../../lib/capitulos';
 import { SEM_ANO } from '../../lib/datas';
@@ -24,7 +25,7 @@ import {
   type Comando,
   listarCapitulos,
   idsDeMemorias,
-  listarIntegrantes,
+  codigosOcupadosDePessoas,
   listarIntegrantesQueVe,
   listarNucleos,
   obterFotos,
@@ -38,7 +39,11 @@ import {
   pessoasQueSoVoceVe,
   listarAudiosDosRelatos,
   listarMensagensDosRelatos,
+  chaveDoEnvioUnico,
   codigoRepetido,
+  comandosDoEnvio,
+  envioJaGravado,
+  envioRepetidoNoLote,
   MemoriaMudou,
   RECADO_MEMORIA_MUDOU,
   refazerSeAMemoriaMudou,
@@ -95,16 +100,46 @@ const Pedido = z.object({
     .optional(),
 });
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request, locals, rewrite }) => {
   if (!mesmaOrigem(request)) return erro(403, 'Pedido recusado.');
   // Sem JavaScript, o formulário chega como formulário comum: vira o mesmo pedido, e a resposta vira página
   if (!(request.headers.get('Content-Type') ?? '').includes('application/json')) {
     const dados = await request.formData();
     const id = String(dados.get('id') ?? '') || undefined;
     const anterior = id ? await obterMemoria(locals.usuario, id) : undefined;
-    const resposta = await tratarComAMemoriaDeAgora(pedidoDoFormulario(dados, anterior), locals);
-    const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string };
-    if (!resposta.ok) return voltar(request, id ? `/nova?id=${id}` : '/nova', { erro: corpo.erro ?? 'Não consegui salvar.' });
+    const pedido = pedidoDoFormulario(dados, anterior);
+    // O código de envio único da página (o toque duplo sem script em "Publicar memória", fila da revisão Z2,
+    // sessão AA): a chave junta o código, quem envia, a memória e o que foi digitado. O segundo toque igual não
+    // grava de novo e responde como o primeiro, como no "Publicar relato". Só para a memória que já existe: a
+    // página da memória nova não tem para onde levar o segundo toque
+    const codigo = String(dados.get('envio') ?? '').slice(0, 80);
+    const envio = id && anterior && codigo ? await chaveDoEnvioUnico(codigo, locals.usuario.pessoa, id, pedido) : undefined;
+    const repetido = async () => {
+      const agora = (await obterMemoria(locals.usuario, id!))!;
+      const publicada = agora.situacao === 'publicada';
+      const recado = !publicada ? 'Rascunho salvo.' : String(dados.get('pagina')) === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
+      return voltar(request, publicada ? `/memorias/${id}` : `/nova?id=${id}`, { ok: recado });
+    };
+    let resposta: Response;
+    try {
+      resposta = await tratarComAMemoriaDeAgora(pedido, locals, envio);
+    } catch (e) {
+      // Os dois toques passaram juntos pela conferência: o lote do segundo voltou na chave do envio
+      if (envio && envioRepetidoNoLote(e)) return repetido();
+      throw e;
+    }
+    const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string; repetido?: boolean };
+    if (corpo.repetido) return repetido();
+    if (!resposta.ok) {
+      const recado = corpo.erro ?? 'Não consegui salvar.';
+      // A página do formulário volta com o recado e com o que a pessoa tinha digitado (a regra "Quando o servidor
+      // recusa", sem script; fila da revisão Z2, sessão AA): a resposta é a própria página, preenchida, sem nada
+      // guardado no servidor. Sem a reescrita (os testes das rotas), volta como antes, com o recado
+      const destino = `/nova?${new URLSearchParams({ ...(id ? { id } : {}), erro: recado })}`;
+      if (!rewrite) return voltar(request, destino);
+      locals.memoriaDevolvida = memoriaDevolvida(dados);
+      return rewrite(new Request(new URL(destino, request.url), { method: 'GET', headers: request.headers }));
+    }
     const recado = corpo.situacao === 'rascunho' ? 'Rascunho salvo.' : anterior?.situacao === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
     return voltar(request, corpo.url!, { ok: recado });
   }
@@ -126,13 +161,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
  * tentativa começa do zero (Y3 do PR #160). Depois de três tentativas, a pessoa recebe o recado, com e
  * sem script.
  */
-async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response> {
+async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals, envio?: string): Promise<Response> {
   // O código da memória, da pessoa nova ou do tema novo que outro pedido usou no meio tempo: o lote voltou
   // inteiro, e o site tenta de novo sozinho, com outro código. Se ainda assim falhar, a pessoa volta para a
   // página com o recado e com o que digitou (D2 da sessão Z, 22/11/2026)
   for (let vez = 1; ; vez++) {
     try {
-      const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
+      const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals, envio));
       return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
     } catch (e) {
       if (!codigoRepetido(e)) throw e;
@@ -173,8 +208,11 @@ function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unk
   };
 }
 
-async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
+async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promise<Response> {
   const { usuario } = locals;
+  // O mesmo envio sem script já gravou (o primeiro toque, ou o outro que ganhou a corrida enquanto esta tentativa
+  // esperava): nada é conferido nem gravado, e quem chama responde como o primeiro
+  if (envio && (await envioJaGravado(envio))) return json({ repetido: true }, 200);
   const lido = Pedido.safeParse(bruto);
   if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
   const pedido = lido.data;
@@ -224,8 +262,9 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // nem reaproveitado pelo nome (C1, 17/11/2026). Os ids de todos só servem para o id novo não repetir.
   const integrantesAtuais = await listarIntegrantesQueVe(usuario);
   const marcaveis = new Set(integrantesAtuais.map((i) => i.id));
-  // "nova" é o endereço do formulário de cadastro, então não pode ser id de ninguém
-  const idsIntegrantes = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
+  // "nova" é o endereço do formulário de cadastro, então não pode ser id de ninguém, e quem está na lixeira
+  // continua com o código (revisão AA2)
+  const idsIntegrantes = await codigosOcupadosDePessoas();
   // As pessoas novas só ganham o id aqui: o cadastro é gravado depois de todas as conferências, para um
   // pedido recusado não deixar ninguém cadastrado pela metade (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)
   const idsNovas: string[] = [];
@@ -374,7 +413,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // perde a corrida (MemoriaMudou), nada fica, e a nova tentativa começa do zero (Y3 do PR #160)
   const temasNovos = pedido.temas === undefined ? undefined : await resolverTemas(lerTemas(pedido.temas), usuario);
   dados.temas = temasNovos?.ids;
-  const antesDaFicha: Comando[] = [...aCadastrar.map((nova) => comandoDeCriarIntegrante(nova.id, nova.nome, usuario.pessoa, nova.tratamento)), ...(temasNovos?.comandos ?? []), ...lacosAbertos];
+  const antesDaFicha: Comando[] = [...(envio ? comandosDoEnvio(envio) : []), ...aCadastrar.map((nova) => comandoDeCriarIntegrante(nova.id, nova.nome, usuario.pessoa, nova.tratamento)), ...(temasNovos?.comandos ?? []), ...lacosAbertos];
 
   let id = anterior?.id ?? '';
   // Um código no endereço, e não o título: ver codigoNovo
@@ -406,7 +445,9 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const ficaram = new Set(aceitos ? aceitos.map((a) => a.id) : relatoId ? ((await listarAudiosDosRelatos([relatoId])).get(relatoId) ?? []).map((a) => a.id) : []);
     // Só as mensagens de áudio que ficaram mesmo no relato
     const validas = mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim())));
-    doRelato = {
+    // O relato que nasce sem nada que fique (só o áudio, que outro pedido igual levou no meio tempo) não nasce
+    // vazio: a memória é gravada sem ele (fila da revisão Z2, sessão AA)
+    if (existente || validas.length > 0) doRelato = {
       comandos: [
         ...comandosDoRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato }),
         ...(meu && aceitos ? comandosDosAudios(meu, id, aceitos) : []),

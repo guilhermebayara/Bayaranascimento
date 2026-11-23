@@ -43,6 +43,8 @@ import { corDoNucleo, estiloDoTipo } from '../../lib/visual';
 interface Opcao {
   id: string;
   nome: string;
+  /** em "Quem estava junto": o que a pessoa é para quem olha ("sua mãe") */
+  parentesco?: string;
 }
 
 interface Props {
@@ -194,7 +196,14 @@ const rapidos = [
                     <label class="escolha">
                       <input type="checkbox" name={g.campo} value={o.id} checked={g.marcados.includes(o.id)} />
                       {g.icone && <IconeDoTipo tipo={o.id} />}
-                      <span>{o.nome}</span>
+                      {o.parentesco ? (
+                        <span class="escolha__nome">
+                          {o.nome}
+                          <small class="escolha__parentesco suave">{o.parentesco}</small>
+                        </span>
+                      ) : (
+                        <span>{o.nome}</span>
+                      )}
                     </label>
                   </li>
                 ))}

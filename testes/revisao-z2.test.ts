@@ -254,9 +254,10 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       ]);
     });
 
-    it('fila: na corrida entre dois pedidos iguais com o mesmo áudio solto, o áudio vai para a memória do segundo e a primeira fica com a mensagem sem áudio', async () => {
-      // Já era assim antes da Z (ligarAudios lia e gravava em dois passos). O lote não confere de novo se o
-      // áudio ainda está solto: o UPDATE dos áudios não tem essa condição
+    it('na corrida entre dois pedidos iguais com o mesmo áudio solto, o áudio fica preso a uma memória só, e a outra não fica com mensagem apontando para ele (sessão AA)', async () => {
+      // Era um defeito da fila: o lote não conferia de novo se o áudio ainda estava solto, e o áudio saía da
+      // memória do outro pedido. Agora a conferência vai no lote (comandosDosAudios): quem perde a corrida
+      // volta inteiro e é tratado de novo, já sem o áudio
       const audio = await audioSolto(elizete);
       const ficha = { titulo: 'Z2: dois toques com áudio', ano: 2018, tipo: 'causo', pessoas: ['elizete'], relato: { por: 'elizete', texto: '', audios: [{ id: audio }], mensagens: [{ tipo: 'audio', audioId: audio }] } };
       let doOutro = '';
@@ -271,9 +272,32 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       );
       expect(r.status).toBe(201);
       expect(memoriasChamadas('Z2: dois toques com áudio')).toHaveLength(2);
-      // Hoje: o áudio saiu da memória do outro pedido e foi para a deste
-      expect(audioDe(audio).memoria_id).toBe(r.corpo.id);
-      expect(mensagensDo(relatosDa(doOutro)[0].id)).toEqual([{ tipo: 'audio', texto: null, audio_id: audio }]);
+      // O áudio ficou com a memória do outro pedido, no relato dele, com a mensagem dele
+      const doOutroRelato = relatosDa(doOutro)[0].id;
+      expect(audioDe(audio)).toEqual({ relato_id: doOutroRelato, memoria_id: doOutro, removido_em: null });
+      expect(mensagensDo(doOutroRelato)).toEqual([{ tipo: 'audio', texto: null, audio_id: audio }]);
+      // A memória deste pedido não tem relato vazio nem mensagem nenhuma apontando para o áudio
+      expect(r.corpo.id).not.toBe(doOutro);
+      expect(relatosDa(r.corpo.id as string)).toEqual([]);
+      expect(linhas('SELECT id FROM relato_mensagens WHERE audio_id = ? AND relato_id <> ?', audio, doOutroRelato)).toEqual([]);
+    });
+
+    it('sessão AA: na corrida com o mesmo áudio e um texto, a memória que perde fica com o texto e sem o áudio', async () => {
+      const audio = await audioSolto(elizete);
+      const ficha = { titulo: 'Z2: dois toques com áudio e texto', ano: 2018, tipo: 'causo', pessoas: ['elizete'], relato: { por: 'elizete', texto: '', audios: [{ id: audio }], mensagens: [{ tipo: 'audio', audioId: audio }, { tipo: 'texto', texto: 'E um texto.' }] } };
+      let doOutro = '';
+      const r = await comOutroPedidoNaPorta(
+        /^\s*INSERT INTO memorias/,
+        async () => {
+          banco.batch = lote;
+          doOutro = (await pedir('memorias', elizete, ficha)).corpo.id as string;
+        },
+        () => pedir('memorias', elizete, ficha),
+      );
+      expect(r.status).toBe(201);
+      expect(audioDe(audio).memoria_id).toBe(doOutro);
+      const [relato] = relatosDa(r.corpo.id as string);
+      expect(mensagensDo(relato!.id)).toEqual([{ tipo: 'texto', texto: 'E um texto.', audio_id: null }]);
     });
 
     it('o lote único de uma memória no limite dos campos fica dentro dos limites do D1 por comando, e a rota faz poucas chamadas ao banco', async () => {
@@ -567,6 +591,21 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       expect(segundo.ok).toBe('Relato publicado.');
     });
 
+    it('sessão AA: "Publicar relato" sem script, com o texto que ficou na caixa, leva à memória, no relato, também no toque duplo', async () => {
+      const id = await novaMemoria('AA: publicar com o texto na caixa');
+      await janela(elizete, { memoria: id, texto: 'Em rascunho, antes.', situacao: 'rascunho', envio: 'aa-publicar-a' });
+      // O botão "Publicar relato" manda publicar=1, sem a situação
+      const publicar = { memoria: id, texto: 'E o que ficou na caixa.', situacao: '', publicar: '1', envio: 'aa-publicar-b' };
+      const primeiro = await janela(elizete, publicar);
+      const relato = relatosDa(id)[0];
+      expect(relato.situacao).toBe('publicada');
+      expect([primeiro.caminho, primeiro.ok, primeiro.destino.hash]).toEqual([`/memorias/${id}`, 'Relato publicado.', `#relato-${relato.id}`]);
+      expect(textos(id, 'elizete')).toEqual(['Em rascunho, antes.', 'E o que ficou na caixa.']);
+      const segundo = await janela(elizete, publicar);
+      expect([segundo.status, segundo.caminho, segundo.ok, segundo.destino.hash]).toEqual([primeiro.status, primeiro.caminho, primeiro.ok, primeiro.destino.hash]);
+      expect(textos(id, 'elizete')).toEqual(['Em rascunho, antes.', 'E o que ficou na caixa.']);
+    });
+
     it('dois envios diferentes e legítimos seguidos, cada um da sua página: os dois gravam, na ordem', async () => {
       const id = await novaMemoria('Z2: dois envios legítimos');
       await janela(elizete, { memoria: id, texto: 'A primeira mensagem.', envio: 'z2-legitimo-1' });
@@ -655,11 +694,12 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       expect(impressao()).toBe(depois);
     });
 
-    it('fila: se o banco falha depois do lote do relato (ao gravar as mensagens), tentar de novo com o mesmo código não conserta mais: a mensagem fica só no texto do relato', async () => {
-      // Antes da Z, o segundo envio regravava as mensagens. Agora ele é tratado como toque duplo. Precisa de
-      // uma falha do banco entre dois lotes da mesma rota, sem script
+    it('se o banco falha ao gravar as mensagens do envio sem script, nada fica pela metade, e a nova tentativa com o mesmo código grava a mensagem (sessão AA)', async () => {
+      // Era um defeito da fila: as mensagens iam num lote depois do relato e do código, e a nova tentativa era
+      // tratada como toque duplo, com a mensagem só no texto do relato. Agora vão no mesmo lote
       const id = await novaMemoria('Z2: falha depois do lote');
       await janela(elizete, { memoria: id, texto: 'A primeira, inteira.', envio: 'z2-falha-0' });
+      const antes = impressao();
       const envio = { memoria: id, texto: 'A segunda, que falhou no meio.', envio: 'z2-falha-1' };
       const falhou = await comLote(
         async (lista) => {
@@ -669,11 +709,24 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
         () => janela(elizete, envio).catch((e: Error) => e),
       );
       expect(falhou).toBeInstanceOf(Error);
+      // Nada ficou: nem o texto do relato, nem o código do envio
+      expect(impressao()).toBe(antes);
       const deNovo = await janela(elizete, envio);
       expect(deNovo.ok).toBe('Mensagem enviada. Ela já está na memória.');
-      // O texto do relato tem a segunda mensagem; a conversa, que é o que a página mostra, não
       expect(relatosDa(id)[0].texto).toContain('A segunda, que falhou no meio.');
-      expect(textos(id, 'elizete')).toEqual(['A primeira, inteira.']);
+      expect(textos(id, 'elizete')).toEqual(['A primeira, inteira.', 'A segunda, que falhou no meio.']);
+      // E o toque duplo depois disso continua sem repetir
+      const depois = impressao();
+      await janela(elizete, envio);
+      expect(impressao()).toBe(depois);
+    });
+
+    it('sessão AA: o envio sem script com citação grava a citação no mesmo lote, e o relato novo nasce com a mensagem', async () => {
+      const id = await novaMemoria('AA: citação no lote', giovanna);
+      await janela(giovanna, { memoria: id, texto: 'O que a Giovanna contou.', envio: 'aa-cita-0' });
+      const citada = uma<{ id: number }>(`SELECT m.id FROM relato_mensagens m JOIN relatos r ON r.id = m.relato_id WHERE r.memoria_id = ? AND r.por = 'giovanna'`, id).id;
+      await janela(elizete, { memoria: id, texto: 'Respondendo a ela.', cita: String(citada), envio: 'aa-cita-1' });
+      expect(linhas<{ texto: string; cita: number | null }>(`SELECT m.texto, m.cita_id AS cita FROM relato_mensagens m JOIN relatos r ON r.id = m.relato_id WHERE r.memoria_id = ? AND r.por = 'elizete'`, id)).toEqual([{ texto: 'Respondendo a ela.', cita: citada }]);
     });
   });
 
@@ -1024,18 +1077,66 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       expect(relatosDa(semScriptId).map((r) => [r.texto, r.situacao])).toEqual([['Pelo formulário comum.', 'publicada']]);
     });
 
-    it('fila: sem script, o toque duplo em "Publicar memória" num rascunho com relato publica uma vez só, mas a segunda resposta é a página com "Envio inválido."', async () => {
-      // Antes da Z o segundo envio repetia o texto no relato. Agora o relato fica certo, e o que sobra é o
-      // recado: a pessoa publicou e vê uma página de erro
+    it('sem script, o toque duplo em "Publicar memória" num rascunho com relato publica uma vez só, e a segunda resposta é a mesma da primeira (sessão AA)', async () => {
+      // Era um defeito da fila: o segundo toque chegava com a memória já publicada e o relato no formulário, e
+      // a resposta era a página com "Envio inválido.". Agora a página manda um código de envio, como a janela
+      // do relato, e o segundo toque igual responde como o primeiro, sem gravar
       const id = (await pedir('memorias', giovanna, { titulo: 'Z2: D6 toque duplo', ano: 2017, tipo: 'causo', pessoas: ['giovanna'], situacao: 'rascunho' })).corpo.id as string;
-      const campos = { id, titulo: 'Z2: D6 toque duplo', ano: '2017', tipo: 'causo', pessoas: 'giovanna', situacao: 'publicada', relato: 'Uma vez só.', relatoPor: 'giovanna' };
+      const campos = { id, titulo: 'Z2: D6 toque duplo', ano: '2017', tipo: 'causo', pessoas: 'giovanna', situacao: 'publicada', relato: 'Uma vez só.', relatoPor: 'giovanna', envio: 'aa-toque-duplo', pagina: 'rascunho' };
       const primeiro = await semScript('memorias', giovanna, campos);
-      expect(primeiro.ok).toBe('Memória publicada.');
+      expect([primeiro.caminho, primeiro.ok]).toEqual([`/memorias/${id}`, 'Memória publicada.']);
       const depois = impressao();
       const segundo = await semScript('memorias', giovanna, campos);
       expect(impressao()).toBe(depois);
       expect(relatosDa(id).map((r) => r.texto)).toEqual(['Uma vez só.']);
-      expect([segundo.caminho, segundo.erro]).toEqual(['/nova', 'Envio inválido.']);
+      expect([segundo.status, segundo.caminho, segundo.ok, segundo.erro]).toEqual([primeiro.status, primeiro.caminho, primeiro.ok, primeiro.erro]);
+    });
+
+    it('sessão AA: os dois toques juntos, antes de qualquer um gravar, também gravam uma vez e respondem igual', async () => {
+      const id = (await pedir('memorias', giovanna, { titulo: 'AA: toques juntos', ano: 2017, tipo: 'causo', pessoas: ['giovanna'], situacao: 'rascunho' })).corpo.id as string;
+      const campos = { id, titulo: 'AA: toques juntos', ano: '2017', tipo: 'causo', pessoas: 'giovanna', situacao: 'publicada', relato: 'Juntos.', relatoPor: 'giovanna', envio: 'aa-toques-juntos', pagina: 'rascunho' };
+      let segundo: Awaited<ReturnType<typeof semScript>> | undefined;
+      // O segundo toque passa pela conferência enquanto o primeiro espera na porta do lote, e grava antes dele
+      const primeiro = await comOutroPedidoNaPorta(
+        /INSERT INTO envios/,
+        async () => {
+          banco.batch = lote;
+          segundo = await semScript('memorias', giovanna, campos);
+        },
+        () => semScript('memorias', giovanna, campos),
+      );
+      expect(relatosDa(id).map((r) => r.texto)).toEqual(['Juntos.']);
+      expect([primeiro.caminho, primeiro.ok]).toEqual([`/memorias/${id}`, 'Memória publicada.']);
+      expect([segundo!.caminho, segundo!.ok]).toEqual([primeiro.caminho, primeiro.ok]);
+    });
+
+    it('sessão AA: sem script, a recusa responde com a própria página do formulário, preenchida com o que chegou', async () => {
+      const dados = new FormData();
+      for (const [k, v] of Object.entries({ titulo: 'AA: recusada sem script', ano: '1700', tipo: 'causo', pessoas: 'giovanna', lugar: 'Sabará', temas: 'Quintal', relato: 'O que não pode sumir.', relatoPor: 'giovanna', situacao: 'publicada' })) dados.append(k, v);
+      const request = new Request('http://localhost/api/memorias', { method: 'POST', headers: { Origin: 'http://localhost' }, body: dados });
+      const locals = { usuario: giovanna, tipos } as Record<string, unknown>;
+      let pedida: Request | undefined;
+      const resposta = await rotas.memorias.POST({ request, locals, rewrite: async (r: Request) => ((pedida = r), new Response('a página')) } as never);
+      expect(await resposta.text()).toBe('a página');
+      // A página do formulário, com o recado, pedida com GET, e nada gravado
+      expect(pedida!.method).toBe('GET');
+      expect(new URL(pedida!.url).pathname).toBe('/nova');
+      expect(new URL(pedida!.url).searchParams.get('erro')).toBeTruthy();
+      expect(memoriasChamadas('AA: recusada sem script')).toEqual([]);
+      expect(locals.memoriaDevolvida).toMatchObject({ titulo: 'AA: recusada sem script', ano: 1700, lugar: 'Sabará', pessoas: ['giovanna'], temas: 'Quintal', relato: 'O que não pode sumir.', relatoPor: 'giovanna' });
+      // E a página usa o que voltou em cada campo
+      const nova = readFileSync('src/pages/nova.astro', 'utf-8');
+      for (const campo of ['titulo', 'tipoOutro', 'lugar', 'temas']) expect(nova, campo).toContain(`devolvida?.${campo}`);
+      expect(nova).toContain('valor={devolvida?.relato}');
+      expect(nova).toContain('devolvida?.nucleos ?? memoria?.nucleos');
+    });
+
+    it('sessão AA: a mesma página enviada de novo com outra coisa digitada não é toque duplo', async () => {
+      const id = (await pedir('memorias', giovanna, { titulo: 'AA: mesma página', ano: 2017, tipo: 'causo', pessoas: ['giovanna'], situacao: 'rascunho' })).corpo.id as string;
+      const campos = { id, titulo: 'AA: mesma página', ano: '2017', tipo: 'causo', pessoas: 'giovanna', situacao: 'rascunho', envio: 'aa-mesma-pagina', pagina: 'rascunho' };
+      expect((await semScript('memorias', giovanna, campos)).ok).toBe('Rascunho salvo.');
+      expect((await semScript('memorias', giovanna, { ...campos, lugar: 'Sabará' })).ok).toBe('Rascunho salvo.');
+      expect(uma<{ lugar: string }>('SELECT lugar FROM memorias WHERE id = ?', id).lugar).toBe('Sabará');
     });
   });
 
@@ -1273,8 +1374,8 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
         'sugestoes: O ano vai de 1800 a ${anoAtual}.',
         // a e b vêm de listarIntegrantesQueVe: quem o administrador não vê responde "Pessoa não encontrada."
         'duplicados: ${a.nome} e ${b.nome} saíram da lista.',
-        // A comparação de duas fichas não é formulário no lugar: ver o caso seguinte. O trecho para na crase de dentro
-        'duplicados: As duas fichas têm relato em ${conflitos.map((t) => ',
+        // O recado dos conflitos ao juntar saiu daqui para recadoDosConflitos (src/lib/juntar.ts), que só cita
+        // os títulos que o administrador vê (sessão AA): ver o caso "o recado de Juntar", abaixo
         'duplicados: Fichas juntadas. Tudo o que era de ${sai.nome} passou para ${ficha.nome}, e as duas fichas de antes ficaram no histórico.',
         // O apelido que a própria pessoa acabou de escrever
         'apelidos: Pronto. Para você, aparece como ${lido.apelido} no site inteiro.',
@@ -1283,9 +1384,8 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       ]);
     });
 
-    it('fora da Z, já na homologa: o recado de "Juntar" cita o título de uma memória que o administrador não vê', async () => {
-      // Não passa pelo recado no alto (a comparação de fichas recarrega a página) e não foi tocado pela Z:
-      // conflitosAoJuntar lê o título sem conferir quem vê. Vai para o Gui como achado à parte
+    it('o recado de "Juntar" cita só os títulos que o administrador vê, e "memórias que você não vê" para as outras (decisão do Gui, 23/11/2026)', async () => {
+      // Era um achado fora da Z: conflitosAoJuntar lia o título sem conferir quem vê. A recusa continua igual
       sql.prepare(`INSERT INTO integrantes (id, nome, criado_por) VALUES ('duplo-um-da-z2', 'Duplo da Z2', 'gui'), ('duplo-dois-da-z2', 'Duplo da Z2', 'gui')`).run();
       const id = (await pedir('memorias', elizete, { titulo: 'Título que o Magno não vê', ano: 2009, tipo: 'causo', pessoas: ['elizete'], visibilidade: 'nucleos', nucleos: ['bayara-nascimento'] })).corpo.id as string;
       expect(await repo.obterMemoria(magno, id)).toBeUndefined();
@@ -1293,8 +1393,20 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       const antes = impressao();
       const volta = await semScript('duplicados', magno, { acao: 'juntar', fica: 'duplo-um-da-z2', sai: 'duplo-dois-da-z2' });
       expect(impressao()).toBe(antes);
-      // Hoje: o título aparece para quem não vê a memória
-      expect(volta.erro).toContain('“Título que o Magno não vê”');
+      expect(volta.erro).not.toContain('Título que o Magno não vê');
+      expect(volta.erro).toBe('As duas fichas têm relato em memórias que você não vê. Cada pessoa tem um relato por memória: deixe um só antes de juntar.');
+      // Com uma memória que ele vê, o título dela aparece, e a outra continua sem título nem número
+      const vista = (await pedir('memorias', magno, { titulo: 'Título que o Magno vê', ano: 2010, tipo: 'causo', pessoas: ['lucas-magno'] })).corpo.id as string;
+      sql.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 'duplo-um-da-z2', 'lucas-magno', 'Um.', 'publicada'), (?, 'duplo-dois-da-z2', 'gui', 'Dois.', 'publicada')`).run(vista, vista);
+      const depois = impressao();
+      const deNovo = await semScript('duplicados', magno, { acao: 'juntar', fica: 'duplo-um-da-z2', sai: 'duplo-dois-da-z2' });
+      expect(impressao()).toBe(depois);
+      expect(deNovo.erro).toBe('As duas fichas têm relato em “Título que o Magno vê” e memórias que você não vê. Cada pessoa tem um relato por memória: deixe um só antes de juntar.');
+      // Quem vê as duas lê os dois títulos
+      const doGui = await semScript('duplicados', gui, { acao: 'juntar', fica: 'duplo-um-da-z2', sai: 'duplo-dois-da-z2' });
+      expect(doGui.erro).toContain('“Título que o Magno não vê”');
+      expect(doGui.erro).toContain('“Título que o Magno vê”');
+      expect(doGui.erro).not.toContain('memórias que você não vê');
     });
   });
 

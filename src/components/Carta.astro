@@ -72,7 +72,7 @@ const naOrdemDoFoco = [...comLugar.filter((f) => f.lugar === 'frente'), ...comLu
         <div class="carta__fotos">
           {naOrdemDoFoco.map(({ m, lugar }) => (
             <a class={`carta__foto carta__foto--${lugar}`} href={`/memorias/${m.id}`} aria-label={`${m.titulo}, ${legendaLugarAno(m.lugar, m.ano)}`}>
-              <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} cedo />
+              <Polaroid id={m.id} fotos={m.fotos} titulo={m.titulo} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} cedo />
             </a>
           ))}
         </div>

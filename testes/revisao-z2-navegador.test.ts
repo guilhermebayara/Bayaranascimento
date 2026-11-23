@@ -228,8 +228,29 @@ describe.skipIf(!B)('Z2 no navegador', () => {
       expect(r.faixa).toMatchObject({ visivel: true, erro: false, papeis: [] });
       expect(r.faixa!.texto).toBe('Relato liberado para quem passou a ver a memória.');
       ditoUmaVez(r, r.faixa!.texto);
-      // Ponto 4: aqui a própria região some. Hoje o foco cai no corpo da página
-      expect(r.foco).toMatchObject({ noCorpo: true });
+      // A própria região some: o foco vai para o recado no alto (sessão AA; antes caía no corpo da página)
+      expect(r.foco).toMatchObject({ noCorpo: false, visivel: true });
+      expect(await pagina.evaluate(() => Boolean(document.activeElement?.closest('[data-recados]')))).toBe(true);
+    }, 60_000);
+
+    it('sessão AA: o "Liberar" do bilhete sem recado na resposta: o foco vai para o título da seção onde a região estava', async () => {
+      const [gio, eli] = [await como('giovanna'), await como('elizete')];
+      const { id } = await pedidoParaLiberar(gio, eli);
+      const pagina = await eli.abrir(`/memorias/${id}`);
+      // A resposta da rota sem o recado: a página da memória, de volta no relato
+      await pagina.route('**/api/avisos', async (rota: any) => {
+        const resposta = await rota.fetch({ maxRedirects: 0 });
+        const destino = new URL(resposta.headers().location, B);
+        destino.searchParams.delete('ok');
+        await rota.fulfill({ status: 303, headers: { Location: destino.pathname + destino.search + destino.hash } });
+      });
+      const r = await tocar(pagina, 'form[data-chave^="liberar-"] button');
+      expect(r.recarregou).toBe(false);
+      expect(await pagina.locator('form[data-chave^="liberar-"]').count()).toBe(0);
+      expect(r.faixa).toMatchObject({ visivel: false });
+      // O título do bilhete: o nome de quem contou
+      expect(r.foco).toMatchObject({ noCorpo: false, visivel: true });
+      expect(await pagina.evaluate(() => document.activeElement?.matches('.voz__quem'))).toBe(true);
     }, 60_000);
 
     it('o bilhete com o pedido que mudou: o recado de erro aparece no mesmo formulário da página nova', async () => {
@@ -501,16 +522,23 @@ describe.skipIf(!B)('Z2 no navegador', () => {
       expect(pagina.envios).toEqual([]);
     }, 60_000);
 
-    it('fila: sem script, a falha final volta para o formulário com o recado no alto, mas vazio: o que foi digitado só volta pelo "Voltar" do navegador', async () => {
+    it('sem script, a falha final volta para o formulário com o recado no alto e com o que foi digitado (sessão AA)', async () => {
+      // Era um defeito da fila: o formulário voltava vazio. Agora a rota responde com a própria página,
+      // preenchida com o que chegou no pedido (context.rewrite), sem guardar nada no servidor
       const gio = await como('giovanna', { script: false });
       const pagina = await gio.abrir('/nova');
       await pagina.locator('input[name="titulo"]').fill('Z2 navegador: sem script e sem sorte');
-      await pagina.route('**/api/memorias', (rota: any) => rota.fulfill({ status: 303, headers: { Location: '/nova?erro=N%C3%A3o+consegui+salvar.' } }));
+      await pagina.locator('input[name="lugar"]').fill('Sabará');
+      await pagina.locator('textarea[name="relato"]').fill('O que eu escrevi e não pode sumir.');
+      // O ano fora do intervalo: o servidor recusa
+      await pagina.locator('input[name="ano"]').fill('1700');
       await pagina.locator('button[data-salvar="rascunho"]').click();
-      await pagina.waitForURL(/\/nova\?erro=/, { timeout: 15_000 });
-      expect((await pagina.locator('[data-recados]').textContent())!.trim()).toBe('Não consegui salvar.');
-      // Hoje: o campo volta vazio (a guarda do que foi digitado é do script)
-      expect(await pagina.locator('input[name="titulo"]').inputValue()).toBe('');
+      await pagina.waitForLoadState('load');
+      expect((await pagina.locator('[data-recados]').textContent())!.trim()).not.toBe('');
+      expect(await pagina.locator('input[name="titulo"]').inputValue()).toBe('Z2 navegador: sem script e sem sorte');
+      expect(await pagina.locator('input[name="lugar"]').inputValue()).toBe('Sabará');
+      expect(await pagina.locator('textarea[name="relato"]').inputValue()).toBe('O que eu escrevi e não pode sumir.');
+      expect(await pagina.locator('input[name="ano"]').inputValue()).toBe('1700');
     }, 60_000);
   });
 
@@ -549,7 +577,8 @@ describe.skipIf(!B)('Z2 no navegador', () => {
       // "Publicar relato" duas vezes, com o código da página
       const publicar = { memoria: id, por: 'elizete', acrescentar: '1', publico: terceira.publico, envio: terceira.envio, texto: '', situacao: 'publicada' };
       const [p1, p2] = [await eli.formulario('relatos', publicar), await eli.formulario('relatos', publicar)];
-      expect(p1.para).toBe(`/memorias/${id}?ok=Relato publicado.`);
+      // Publicar leva à memória, no relato de quem publicou (crítica C1, sessão AA)
+      expect(p1.para).toMatch(new RegExp(`^/memorias/${id}\\?ok=Relato publicado\\.#relato-\\d+$`));
       expect(p2).toEqual(p1);
       // Publicado uma vez, com as duas mensagens, cada uma uma vez só
       await pagina.goto(`${B}/memorias/${id}/relato`);
