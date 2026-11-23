@@ -34,6 +34,11 @@
 // 12. Os scripts de medição de desempenho (scripts/desempenho/) não tocam prévia, homologação ou produção
 //    com dados de carga: a carga só grava no servidor local, pela Local Explorer, num banco com o acervo
 //    de exemplo; a medição no navegador recusa a produção e a homologação; o site não os importa.
+// 13. As cópias menores das fotos (sessão D1b, 23/11/2026; src/lib/copias-das-fotos.ts) só são gravadas pelas
+//    rotas do site: a do envio da foto e a do ajuste da Administração, que só os administradores usam e
+//    que confere de novo, foto por foto, quem vê a original e se ela já tem cópia. O nome da cópia nunca é
+//    o de uma original, e a rota das fotos entrega a cópia só depois da conferência da original. As cópias
+//    das fotos de exemplo ficam em exemplos/fotos/copias/, fora do pacote publicado.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
@@ -282,6 +287,44 @@ if (existsSync('scripts/desempenho')) {
   }
   const fontes = existsSync('src') ? readdirSync('src', { recursive: true }).map((a) => `src/${String(a).replace(/\\/g, '/')}`).filter((a) => /\.(astro|ts|mjs|js)$/.test(a)) : [];
   for (const arquivo of fontes) if (/scripts\/desempenho/.test(readFileSync(arquivo, 'utf8'))) falhar(`${arquivo}: o site não usa os scripts de medição (scripts/desempenho/).`);
+}
+
+// 13. As cópias menores das fotos: gravadas só pelas rotas do site, com nome próprio, e entregues só depois
+// da conferência da original (sessão D1b, 23/11/2026)
+{
+  const ROTAS_DAS_COPIAS = ['src/pages/api/fotos.ts', 'src/pages/api/copias-das-fotos.ts'];
+  const fontes = existsSync('src') ? readdirSync('src', { recursive: true }).map((a) => `src/${String(a).replace(/\\/g, '/')}`).filter((a) => /\.(astro|ts|mjs|js)$/.test(a)) : [];
+  for (const arquivo of fontes) {
+    const texto = readFileSync(arquivo, 'utf8');
+    if (/\.put\(\s*chaveDaCopia\(/.test(texto) && !ROTAS_DAS_COPIAS.includes(arquivo)) falhar(`${arquivo}: as cópias das fotos só são gravadas por ${ROTAS_DAS_COPIAS.join(' e ')}.`);
+  }
+  for (const arquivo of ROTAS_DAS_COPIAS) {
+    const texto = readFileSync(arquivo, 'utf8');
+    for (const uso of texto.matchAll(/([\w.]*(?:\(\))?)\.put\(\s*chaveDaCopia\(/g)) {
+      if (uso[1] !== 'bucketDeFotos()') falhar(`${arquivo}: a cópia é gravada no bucket das fotos deste ambiente, por bucketDeFotos(), e aqui por ${uso[1]}.`);
+    }
+  }
+  const ajuste = readFileSync('src/pages/api/copias-das-fotos.ts', 'utf8');
+  const naOrdem = (texto, ...trechos) => trechos.every((t, i) => texto.indexOf(t) >= 0 && (i === 0 || texto.indexOf(t) > texto.indexOf(trechos[i - 1])));
+  if (
+    (ajuste.match(/const decisao = podeFazerCopiasDasFotos\(locals\.usuario\);\n\s*if \(!decisao\.ok\) return erro\(403, decisao\.motivo\);/g) ?? []).length !== 2 ||
+    !naOrdem(ajuste, 'export const POST', "if (!(await acessoAFoto(locals.usuario, chave))) return erro(404, 'Foto não encontrada.');", "if (await temCopias(chave)) return erro(409,", '.put(chaveDaCopia(')
+  ) {
+    falhar('src/pages/api/copias-das-fotos.ts: o ajuste das cópias é só dos administradores, e confere quem vê a original e se ela já tem cópia antes de gravar.');
+  }
+  const regra = readFileSync('src/lib/servidor/permissoes.ts', 'utf8');
+  if (!/export function podeFazerCopiasDasFotos\(usuario: Usuario\): Decisao \{\n\s*return usuario\.admin \? sim : nao\(/.test(regra)) falhar('src/lib/servidor/permissoes.ts: só os administradores fazem as cópias das fotos de antes.');
+  const copias = readFileSync('src/lib/copias-das-fotos.ts', 'utf8');
+  if (!copias.includes('return `${base}.${tamanho}.${formato}`;')) falhar('src/lib/copias-das-fotos.ts: o nome da cópia é o da original com o tamanho no meio, nunca o de uma original.');
+  const rota = readFileSync('src/pages/fotos/[...chave].ts', 'utf8');
+  if (!naOrdem(rota, 'const acesso = await acessoAFoto(locals.usuario, chave);', 'if (!acesso) return naoEncontrada();', 'chaveDaCopia(chave, tamanho, formato)')) {
+    falhar('src/pages/fotos/[...chave].ts: a cópia só é lida depois da conferência da original, com a chave da original.');
+  }
+  // As cópias de exemplo: só os 22 arquivos, em exemplos/fotos/copias/, nunca no pacote publicado
+  const deExemplo = existsSync('exemplos/fotos/copias') ? readdirSync('exemplos/fotos/copias') : [];
+  if (deExemplo.length !== 22 || deExemplo.some((n) => !/^(chico|karol)-\d+\.(pequena|media)\.webp$/.test(n))) falhar('exemplos/fotos/copias/: são as 22 cópias das fotos de exemplo, a pequena e a média de cada uma.');
+  const pacote = ['src', 'public'].flatMap((pasta) => (existsSync(pasta) ? readdirSync(pasta, { recursive: true }).map((a) => `${pasta}/${String(a).replace(/\\/g, '/')}`) : []));
+  for (const arquivo of pacote) if (/(^|\/)(chico|karol)-\d+\.(pequena|media)\.\w+$/i.test(arquivo)) falhar(`${arquivo}: as cópias das fotos de exemplo ficam em exemplos/fotos/copias/, fora do pacote publicado.`);
 }
 
 // 6. Migrações que apagariam dados por cascata
