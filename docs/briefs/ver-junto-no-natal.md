@@ -74,3 +74,14 @@ As duas resolvem a janela deitada e o áudio, porque são o mesmo problema nas d
 - A tabela "O quê | Onde ver", com o endereço completo de cada tela na prévia.
 - E para. A escolha vira sessão de aplicação; se a proposta escolhida for grande, ela pode passar antes por uma crítica (`claude/critica-design.md`, no Projeto).
 
+
+## A escolha do Gui (22/11/2026, depois da exploração)
+
+A exploração está na branch `tst-ver-junto` (relatório em `docs/visual/exploracao-e1/leia-me.md`, commit `76ebeb0`). O Gui escolheu a **proposta B, o modo TV como porta**, com estas mudanças. É isto que a sessão de aplicação constrói:
+
+- **Fora do Natal, o modo TV segue os filtros de onde foi aberto.** Aberto da linha do tempo sem filtro, mostra tudo o que a pessoa vê; filtrado por uma família, só aquela família; o mesmo para os outros filtros e para as páginas que abrem o modo TV (capítulo, tema, pessoa). A regra da prévia da B, de mostrar só o aberto a toda a família o ano todo, sai.
+- **No Natal, a porta "A carta e os Natais" mostra tudo o que é aberto a toda a família**, sem escolher quem está na sala. O que é restrito a uma ou mais famílias não aparece na TV da sala (decisão de 22/11 mantida, confirmada depois da exploração). Escolher as pessoas da sala, da proposta A, fica de fora: no Natal é a família toda, e no resto do ano os filtros dão conta.
+- **A carta é a da proposta A:** "Oi, família,", um parágrafo por vez, no tamanho de capa, com as assinaturas à mão, sem contar como a primeira vez de ninguém.
+- **Das duas propostas, ficam:** o modo TV no celular deitado (abaixo de 62rem, a janela mais larga que alta usa a barra e não rola) e a voz de quem contou, com o botão de som na barra e "Passar sozinho" esperando a voz terminar.
+- **Decidido pelo chat, pela recomendação das sessões** (o Gui pode trocar): a porta aparece no Início de 24 a 26 de dezembro; o som começa desligado e liga no símbolo do som, como na B. Se a aplicação achar um gesto mais óbvio para ligar o som logo na primeira tela, ela propõe.
+- A aplicação usa a peça de feedback de estado do sistema (carregando, pronto, falhou), que entra antes dela, e tem revisão contra lista fechada de outro modelo (a E1 foi construída no Opus).

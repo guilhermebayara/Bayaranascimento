@@ -65,3 +65,15 @@ Sugestão de partida; a sessão pode trocar por duas mais distintas, explicando 
 - As perguntas que sobrarem, poucas por vez, e a tabela "O quê | Onde ver" com os endereços na prévia.
 - E para. A escolha vira sessão de aplicação, com a revisão de outro modelo.
 
+
+## A escolha do Gui (22/11/2026, depois da exploração)
+
+A exploração está na branch `tst-busca` (relatório em `docs/visual/exploracao-e2/leia-me.md`). O Gui escolheu a **proposta B, a busca como porta do site**: a lupa no topo de todas as páginas, a busca por cima da página com o resultado agrupado (pessoas, memórias, capítulos e temas), a página `/busca` sem script e o Explorar mais compacto. "Ver no Explorar" liga o `q` da proposta A, que fica como filtro do Explorar. É isto que a sessão de aplicação constrói, com estas respostas:
+
+- **A legenda das fotos também é achada**, com a mesma regra de quem vê o quê.
+- **O relato que espera segue a regra da página da memória** (`veORelato`): quem já pode lê-lo acha por ele; quem ainda espera, não acha, nem por trecho nem por transcrição. Era isso que o brief queria dizer com "nunca aparece".
+- **As saídas do Explorar no celular ficam numa linha só,** sem a segunda linha do esboço, para a primeira foto subir 44 px (vale também para a sessão AA).
+- **Feedback de estado na busca** (observação do Gui na prévia: apertou Enter e ficou sem saber se vinha resultado ou se tinha falhado). A busca mostra que está procurando, que achou ou que não achou, e que falhou, com a peça de feedback de estado do sistema, que entra antes da aplicação.
+- **Defeitos da prévia para a aplicação:** o voltar do aparelho com a folha aberta precisa fechar a folha, e não sair da página; conferir a folha no Safari do iPhone (a banda atrás das barras e a altura com o teclado aberto); a lupa e o ícone de fechar entram na página `/sistema`.
+- **A consulta** passa a usar uma tabela de busca com o texto normalizado ou o FTS5 do D1 (`unicode61 remove_diacritics 2`), mantida ao gravar, e o código continua decidindo quem vê o quê sobre os candidatos. É migração nova.
+- A revisão de outro modelo confere a lista fechada de dez itens do relatório, mais a legenda (a E2 foi construída no Opus).
