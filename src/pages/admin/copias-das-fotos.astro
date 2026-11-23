@@ -48,6 +48,8 @@ const frase = () => (faltam === 0 ? 'Todas as fotos e retratos que você vê já
 <script>
   import { fazerCopias } from '../../lib/cliente/fotos';
   import { fazerCopiaDoRetrato } from '../../lib/cliente/copia-do-retrato';
+  import { enderecoDaFoto } from '../../lib/copias-das-fotos';
+  import { enderecoDoRetratoInteiro } from '../../lib/retratos';
 
   const caixa = document.querySelector<HTMLElement>('[data-copias]');
   const fazer = caixa?.querySelector<HTMLButtonElement>('[data-copias-fazer]');
@@ -57,7 +59,7 @@ const frase = () => (faltam === 0 ? 'Todas as fotos e retratos que você vê já
 
   /** Faz as cópias de uma foto. true: feitas; false: ficou para depois. */
   async function copiar(chave: string): Promise<boolean> {
-    const resposta = await fetch(`/fotos/${chave}`);
+    const resposta = await fetch(enderecoDaFoto(chave));
     if (!resposta.ok) return false;
     const imagem = await createImageBitmap(await resposta.blob());
     const copias = await fazerCopias(imagem);
@@ -74,7 +76,7 @@ const frase = () => (faltam === 0 ? 'Todas as fotos e retratos que você vê já
 
   /** Faz a cópia de um retrato. true: feita; false: ficou para depois. */
   async function copiarRetrato(chave: string): Promise<boolean> {
-    const resposta = await fetch(`/retratos/${chave}`);
+    const resposta = await fetch(enderecoDoRetratoInteiro(chave));
     if (!resposta.ok) return false;
     const imagem = await createImageBitmap(await resposta.blob());
     // O retrato é sempre o quadrado do recorte; o que não for quadrado fica com a original

@@ -10,7 +10,7 @@
 // memória e a do palco do modo TV), que também ganha prioridade alta.
 import IconeDoTipo from './IconeDoTipo.astro';
 import { formaDoId, giroDoId } from '../../lib/visual';
-import { fontesDaFoto, type Copias } from '../../lib/copias-das-fotos';
+import { enderecoDaFoto, fontesDaFoto, type Copias } from '../../lib/copias-das-fotos';
 
 interface Props {
   /** id da memória: decide a inclinação */
@@ -86,7 +86,7 @@ const prioridade = ehPrincipal ? { fetchpriority: 'high' as const, loading: 'eag
       {atras.map((foto, n) =>
         galeria ? (
           // Pelo teclado, a galeria abre na foto principal e segue dali: estas ficam fora da ordem do Tab
-          <a class="monte__atras" data-atras={n + 1} href={`/fotos/${foto.chave}`} data-galeria={n + 1} tabindex="-1" aria-hidden="true">
+          <a class="monte__atras" data-atras={n + 1} href={enderecoDaFoto(foto.chave)} data-galeria={n + 1} tabindex="-1" aria-hidden="true">
             <span>
               <img {...deTras(foto)} alt="" loading="lazy" decoding="async" />
             </span>
@@ -101,7 +101,7 @@ const prioridade = ehPrincipal ? { fetchpriority: 'high' as const, loading: 'eag
       )}
       <figure class="polaroid" style={`--giro: ${giro}deg`}>
         {galeria ? (
-          <a class="polaroid__foto" href={`/fotos/${principal.chave}`} data-galeria="0" aria-label={fotos.length > 1 ? `Ver as ${fotos.length} fotos` : 'Ver a foto inteira'}>
+          <a class="polaroid__foto" href={enderecoDaFoto(principal.chave)} data-galeria="0" aria-label={fotos.length > 1 ? `Ver as ${fotos.length} fotos` : 'Ver a foto inteira'}>
             <img {...daFrente} alt={alt ?? principal.legenda ?? ''} {...prioridade} decoding="async" />
           </a>
         ) : (

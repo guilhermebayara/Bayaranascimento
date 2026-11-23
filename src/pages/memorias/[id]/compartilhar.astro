@@ -11,6 +11,7 @@ import Segmentado from '../../../components/visual/Segmentado.astro';
 import { CORES_DA_IMAGEM, abasDoEstudio, avisoAntesDeCompartilhar, nomeNaImagem, trechoDoRelato, type AbaDoEstudio, type NomesDeQuemAparece, type RelatoDaImagem } from '../../../lib/compartilhar';
 import type { DadosDaImagem } from '../../../lib/cliente/compartilhar';
 import { formatarData, jaFaleceu } from '../../../lib/datas';
+import { enderecoDaFoto } from '../../../lib/copias-das-fotos';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { FONTES_DO_SITE, estiloDoTipo } from '../../../lib/visual';
 import { MONOGRAMAS } from '../../../visual/monograma';
@@ -55,7 +56,7 @@ const relatos: RelatoDaImagem[] = naOrdem.map((r) => {
   };
 });
 // A foto principal primeiro: é o padrão
-const fotos = [...memoria.fotos.filter((f) => f.principal), ...memoria.fotos.filter((f) => !f.principal)].map((f) => `/fotos/${f.chave}`);
+const fotos = [...memoria.fotos.filter((f) => f.principal), ...memoria.fotos.filter((f) => !f.principal)].map((f) => enderecoDaFoto(f.chave));
 const dados: DadosDaImagem | null = confirmado
   ? {
       titulo: memoria.titulo,

@@ -11,7 +11,7 @@ import type { Tipo } from '../tipos';
 
 export const ENDERECO_DA_HOMOLOGACAO = 'homologa.memorias.bayara.com.br';
 
-const doPedido = new AsyncLocalStorage<{ homologa: boolean; tipos?: readonly Tipo[]; apelidos?: ReadonlyMap<string, string> }>();
+const doPedido = new AsyncLocalStorage<{ homologa: boolean; tipos?: readonly Tipo[]; apelidos?: ReadonlyMap<string, string>; verComo?: string }>();
 
 /**
  * Os tipos de momento do pedido em curso, com a cor e o rabisco que os administradores escolheram.
@@ -38,6 +38,19 @@ export function guardarApelidosDoPedido(apelidos: ReadonlyMap<string, string>): 
 }
 export function apelidosDoPedido(): ReadonlyMap<string, string> | undefined {
   return doPedido.getStore()?.apelidos;
+}
+
+/**
+ * A pessoa vista pelo "Ver como", para o marcador nos endereços das fotos e dos retratos
+ * (src/lib/marcador-do-ver-como.ts). O middleware guarda aqui só onde existe o "Ver como" (semLogin); na
+ * produção fica vazia, e os endereços ficam como sempre foram.
+ */
+export function guardarVerComoDoPedido(pessoa: string): void {
+  const pedido = doPedido.getStore();
+  if (pedido) pedido.verComo = pessoa;
+}
+export function verComoDoPedido(): string | undefined {
+  return doPedido.getStore()?.verComo;
 }
 
 /** Roda o tratamento de um pedido sabendo se ele é da homologação. */
