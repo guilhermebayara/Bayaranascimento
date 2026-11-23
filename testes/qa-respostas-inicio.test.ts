@@ -115,7 +115,7 @@ describe('os textos do Início (P1, P6, P20, P23 a P28)', () => {
   });
 
   it('a abertura avisa do rascunho e não mostra a data de hoje', () => {
-    expect(inicio).toContain('Você tem um rascunho.');
+    expect(inicio).toContain('fraseDoRascunho(rascunhos, usuario.pessoa, nomeVisto)');
     expect(inicio).toContain('Continuar o rascunho');
     expect(inicio).toContain('seusRascunhos(usuario.pessoa');
     expect(inicio).not.toMatch(/diaMesCurto\(hoje\)/);

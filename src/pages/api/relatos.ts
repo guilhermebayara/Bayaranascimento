@@ -97,7 +97,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
     const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string };
     if (!resposta.ok) return voltar(request, `/memorias/${encodeURIComponent(texto('memoria'))}/relato`, { erro: corpo.erro ?? 'Não consegui salvar.' });
-    // A janela sem script: mandou uma mensagem, continua escrevendo; publicou, vai para a memória
+    // A janela sem script: mandou uma mensagem, continua escrevendo; publicou, vai para a memória, no relato
+    // de quem publicou (crítica C1). "Publicar relato" se diz pelo nome do botão, para o texto que ficou na
+    // caixa ir junto e a pessoa ir à memória do mesmo jeito, também no toque duplo
+    if (texto('publicar') === '1') return voltar(request, corpo.url!, { ok: corpo.situacao === 'rascunho' ? 'Rascunho do relato salvo. Só você vê.' : 'Relato publicado.' });
     if (texto('acrescentar') === '1' && (texto('texto').trim() || texto('situacao') !== 'publicada')) {
       const volta = `/memorias/${encodeURIComponent(texto('memoria'))}/relato${texto('por') !== locals.usuario.pessoa ? `?por=${encodeURIComponent(texto('por'))}` : ''}`;
       return voltar(request, volta, { ok: corpo.situacao === 'rascunho' ? 'Mensagem guardada no rascunho. Só você vê até publicar.' : 'Mensagem enviada. Ela já está na memória.' });
@@ -225,7 +228,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     // O mesmo envio de novo (o toque duplo sem script): o primeiro já gravou, e este responde como ele, sem gravar
     if (!(e instanceof EnvioRepetido)) throw e;
     const agora = await obterRelatoRegistradoPor(memoriaId, por, usuario);
-    return json({ url: `/memorias/${memoriaId}`, situacao: agora?.situacao ?? situacao, editado: true }, 200);
+    return json({ url: noRelato(memoriaId, agora?.id), situacao: agora?.situacao ?? situacao, editado: true }, 200);
   }
   const salvo = await obterRelatoRegistradoPor(memoriaId, por, usuario);
   if (salvo && audios) await ligarAudios(salvo.id, memoriaId, audios, usuario);
@@ -263,8 +266,11 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   }
   // Avisos: o relato acabou de ser publicado (src/lib/avisos.ts). Editar um relato publicado não avisa ninguém.
   if (salvo && situacao === 'publicada' && existente?.situacao !== 'publicada') await avisarRelatoNovo(memoria, salvo, usuario);
-  return json({ url: `/memorias/${memoriaId}`, situacao, editado: Boolean(existente), ...(gravadas ? { mensagens: gravadas } : {}) }, existente ? 200 : 201);
+  return json({ url: noRelato(memoriaId, salvo?.id), situacao, editado: Boolean(existente), ...(gravadas ? { mensagens: gravadas } : {}) }, existente ? 200 : 201);
 }
+
+/** A memória, no relato que acabou de ser gravado: publicar leva a ele (crítica C1, resposta do Gui de 22/11/2026) */
+const noRelato = (memoriaId: string, relatoId: number | undefined) => `/memorias/${memoriaId}${relatoId ? `#relato-${relatoId}` : ''}`;
 
 /** A mensagem como o banco guarda, sem a transcrição e a legenda, que moram no áudio e na foto */
 function paraMensagem(m: { id?: number; tipo: Mensagem['tipo']; texto?: string; audioId?: number; fotoId?: number; citaId?: number | null }): Mensagem {

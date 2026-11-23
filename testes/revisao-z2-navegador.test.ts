@@ -549,7 +549,8 @@ describe.skipIf(!B)('Z2 no navegador', () => {
       // "Publicar relato" duas vezes, com o código da página
       const publicar = { memoria: id, por: 'elizete', acrescentar: '1', publico: terceira.publico, envio: terceira.envio, texto: '', situacao: 'publicada' };
       const [p1, p2] = [await eli.formulario('relatos', publicar), await eli.formulario('relatos', publicar)];
-      expect(p1.para).toBe(`/memorias/${id}?ok=Relato publicado.`);
+      // Publicar leva à memória, no relato de quem publicou (crítica C1, sessão AA)
+      expect(p1.para).toMatch(new RegExp(`^/memorias/${id}\\?ok=Relato publicado\\.#relato-\\d+$`));
       expect(p2).toEqual(p1);
       // Publicado uma vez, com as duas mensagens, cada uma uma vez só
       await pagina.goto(`${B}/memorias/${id}/relato`);

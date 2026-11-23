@@ -2,6 +2,7 @@
 // puras têm teste próprio (o "Neste dia" no Natal em testes/painel.test.ts, a ordem do Início em
 // testes/qa-respostas-inicio.test.ts); aqui ficam as que moram nas telas.
 import { describe, expect, it } from 'vitest';
+import { fraseDoRascunho } from '../src/lib/conta';
 
 // O projeto não tem os tipos do Node: o módulo entra assim para o tsc não acusar o import (como em apoio/d1.ts)
 const NODE_FS = 'node:fs';
@@ -42,5 +43,24 @@ describe('críticas C1 e C2: os pontos pequenos', () => {
     expect(css).toMatch(/\.quem \.retrato \{\s*width: min\(100%, 4\.75rem\);/);
     expect(css).toMatch(/\.quem \{\s*grid-template-columns: repeat\(auto-fill, minmax\(clamp\(6\.5rem, 6\.5vw, 8rem\), 1fr\)\);/);
     expect(css).toMatch(/\.quem \.retrato \{\s*width: min\(100%, 6\.5rem\);/);
+  });
+
+  it('Início: a linha do rascunho de relato diz de qual memória ele é e que ninguém viu ainda', () => {
+    const nome = (id: string) => ({ 'vo-bela': 'Vó Bela' })[id] ?? id;
+    expect(fraseDoRascunho({ memorias: [], relatos: [{ por: 'lucas-magno', titulo: 'Jantar de casamento' }] }, 'lucas-magno', nome)).toBe('Seu relato em “Jantar de casamento” é um rascunho: ninguém viu ainda.');
+    expect(fraseDoRascunho({ memorias: [], relatos: [{ por: 'vo-bela', titulo: 'A canja' }] }, 'gui', nome)).toBe('O relato de Vó Bela em “A canja” é um rascunho: ninguém viu ainda.');
+    // Uma memória em rascunho, ou mais de um rascunho: a linha conta, como antes
+    expect(fraseDoRascunho({ memorias: [{}], relatos: [] }, 'gui', nome)).toBe('Você tem um rascunho.');
+    expect(fraseDoRascunho({ memorias: [{}], relatos: [{ por: 'gui', titulo: 'X' }] }, 'gui', nome)).toBe('Você tem 2 rascunhos.');
+  });
+
+  it('Relato: publicar leva à memória, no relato de quem publicou, com e sem script', () => {
+    const rota = readFileSync(new URL('../src/pages/api/relatos.ts', import.meta.url), 'utf8');
+    expect(rota).toContain("const noRelato = (memoriaId: string, relatoId: number | undefined) => `/memorias/${memoriaId}${relatoId ? `#relato-${relatoId}` : ''}`;");
+    expect(rota).toMatch(/if \(texto\('publicar'\) === '1'\) return voltar\(request, corpo\.url!/);
+    const pagina = tela('pages/memorias/[id]/relato.astro');
+    expect(pagina).toContain('name="publicar" value="1" data-publicar');
+    expect(pagina).toMatch(/ir\.searchParams\.set\('ok', 'Relato publicado\.'\);\s*location\.assign\(ir\);/);
+    expect(pagina).not.toContain('data-confirmacao');
   });
 });

@@ -567,6 +567,21 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       expect(segundo.ok).toBe('Relato publicado.');
     });
 
+    it('sessão AA: "Publicar relato" sem script, com o texto que ficou na caixa, leva à memória, no relato, também no toque duplo', async () => {
+      const id = await novaMemoria('AA: publicar com o texto na caixa');
+      await janela(elizete, { memoria: id, texto: 'Em rascunho, antes.', situacao: 'rascunho', envio: 'aa-publicar-a' });
+      // O botão "Publicar relato" manda publicar=1, sem a situação
+      const publicar = { memoria: id, texto: 'E o que ficou na caixa.', situacao: '', publicar: '1', envio: 'aa-publicar-b' };
+      const primeiro = await janela(elizete, publicar);
+      const relato = relatosDa(id)[0];
+      expect(relato.situacao).toBe('publicada');
+      expect([primeiro.caminho, primeiro.ok, primeiro.destino.hash]).toEqual([`/memorias/${id}`, 'Relato publicado.', `#relato-${relato.id}`]);
+      expect(textos(id, 'elizete')).toEqual(['Em rascunho, antes.', 'E o que ficou na caixa.']);
+      const segundo = await janela(elizete, publicar);
+      expect([segundo.status, segundo.caminho, segundo.ok, segundo.destino.hash]).toEqual([primeiro.status, primeiro.caminho, primeiro.ok, primeiro.destino.hash]);
+      expect(textos(id, 'elizete')).toEqual(['Em rascunho, antes.', 'E o que ficou na caixa.']);
+    });
+
     it('dois envios diferentes e legítimos seguidos, cada um da sua página: os dois gravam, na ordem', async () => {
       const id = await novaMemoria('Z2: dois envios legítimos');
       await janela(elizete, { memoria: id, texto: 'A primeira mensagem.', envio: 'z2-legitimo-1' });

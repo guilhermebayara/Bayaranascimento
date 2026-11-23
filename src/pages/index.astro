@@ -24,7 +24,7 @@ import Rabisco from '../components/visual/Rabisco.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
 import { coresDasPessoas, familiaMaisRecente } from '../lib/familias';
-import { enderecoDoRascunhoDeRelato, seusRascunhos } from '../lib/conta';
+import { enderecoDoRascunhoDeRelato, fraseDoRascunho, seusRascunhos } from '../lib/conta';
 import {
   TITULO_DA_PROXIMIDADE,
   aniversarios,
@@ -242,7 +242,7 @@ const erro = Astro.url.searchParams.get('erro');
           <Avisos avisos={avisos} onde="inicio" />
           {quantosRascunhos > 0 && (
             <p class="novo__rascunho">
-              <span>{quantosRascunhos === 1 ? 'Você tem um rascunho.' : `Você tem ${quantosRascunhos} rascunhos.`}</span>
+              <span>{fraseDoRascunho(rascunhos, usuario.pessoa, nomeVisto)}</span>
               <a class="acao" href={quantosRascunhos === 1 && oRascunho ? oRascunho : '/conta#rascunhos'}>
                 {quantosRascunhos === 1 ? 'Continuar o rascunho' : 'Ver seus rascunhos'}
               </a>
