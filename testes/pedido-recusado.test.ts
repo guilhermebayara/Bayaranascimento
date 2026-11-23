@@ -361,7 +361,7 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     const enviar = async (campos: Record<string, string>, retrato: Uint8Array = jpeg) => {
       const corpo = new FormData();
       for (const [k, v] of Object.entries(campos)) corpo.set(k, v);
-      corpo.set('retrato', new File([retrato], 'retrato.jpg', { type: 'image/jpeg' }));
+      corpo.set('retrato', new File([retrato as BlobPart], 'retrato.jpg', { type: 'image/jpeg' }));
       corpo.set('retratoPequeno', new File([new Uint8Array(40)], 'pequeno.webp', { type: 'image/webp' }));
       const request = new Request('http://localhost/api/integrantes', { method: 'POST', headers: { Origin: 'http://localhost' }, body: corpo });
       const r = await integrantes.POST({ request, locals: { usuario: elizete, tipos } } as never);

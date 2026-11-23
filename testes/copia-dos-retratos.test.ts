@@ -207,7 +207,7 @@ describe.skipIf(!comSqlite)('a cópia do retrato responde igual ao retrato, para
     const enviar = async (quem: Usuario, chave: string, arquivo: Uint8Array) => {
       const f = new FormData();
       f.set('chave', chave);
-      f.set('pequeno', new File([arquivo], 'pequeno.webp', { type: 'image/webp' }));
+      f.set('pequeno', new File([arquivo as BlobPart], 'pequeno.webp', { type: 'image/webp' }));
       const request = new Request('http://localhost/api/copias-dos-retratos', { method: 'POST', headers: { Origin: 'http://localhost' }, body: f });
       return (await ajuste.POST({ request, locals: { usuario: quem } } as never)).status;
     };
@@ -232,7 +232,7 @@ describe.skipIf(!comSqlite)('a cópia do retrato responde igual ao retrato, para
       corpo.set('id', 'vo-bela');
       corpo.set('nome', linha<{ nome: string }>(`SELECT nome FROM integrantes WHERE id = 'vo-bela'`).nome);
       corpo.set('retrato', new File([jpeg(800, 800)], 'retrato.jpg', { type: 'image/jpeg' }));
-      corpo.set('retratoPequeno', new File([copia], 'pequeno.webp', { type: 'image/webp' }));
+      corpo.set('retratoPequeno', new File([copia as BlobPart], 'pequeno.webp', { type: 'image/webp' }));
       const request = new Request('http://localhost/api/integrantes', { method: 'POST', headers: { Origin: 'http://localhost' }, body: corpo });
       await integrantes.POST({ request, locals: { usuario: usuarioDe('gui') } } as never);
       return linha<{ retrato: string }>(`SELECT retrato FROM integrantes WHERE id = 'vo-bela'`).retrato;

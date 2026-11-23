@@ -109,7 +109,7 @@ describe.skipIf(!comSqlite)('os áudios guardados por 7 dias', async () => {
     let recusados = 0;
     for (const quem of pessoas) {
       for (const n of [1, 2, 3, 4, 5, 6, 99]) {
-        for (const cabecalhos of [{}, { Range: 'bytes=0-1' }]) {
+        for (const cabecalhos of [{}, { Range: 'bytes=0-1' }] as Record<string, string>[]) {
           const r = await pedir(quem, n, cabecalhos);
           if (r.status === 404) {
             recusados++;
