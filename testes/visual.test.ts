@@ -206,8 +206,8 @@ describe('conceito', () => {
     // docs/decisoes.md, "Início (painel pessoal)". A tela não refaz as regras.
     const painel = tela('pages/index.astro');
     for (const regra of ['chegarAoPainel', 'novidades', 'aniversarios', 'memoriaParaContar', 'emOutrosAnos']) expect(painel).toContain(`${regra}(`);
-    expect(painel).toContain('listarMemorias(usuario)');
-    expect(painel).toMatch(/todas\.filter\(\(m\) => m\.situacao === 'publicada'\)/);
+    expect(painel).toContain('listarMemorias(usuario, { comRascunhos: true })');
+    expect(painel).toMatch(/const memorias = comRascunhos\.filter\(\(m\) => m\.situacao === 'publicada'\)/);
     expect(painel).toMatch(/<Visual titulo="Início" secao="painel" familia=\{corDoPainel\} intimo>/);
     // O dia trocado pelo endereço só vale fora da produção
     expect(painel).toMatch(/const m = semLogin\(\) \? /);

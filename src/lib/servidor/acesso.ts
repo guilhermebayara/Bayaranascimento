@@ -143,17 +143,26 @@ function lerCookie(request: Request, nome: string): string | null {
 
 /** Quem está fazendo o pedido. undefined quando não há login válido ou o e-mail não está ligado a ninguém. */
 export async function usuarioDoPedido(request: Request): Promise<Usuario | undefined> {
-  let pessoaId: string | undefined;
+  const pessoaId = await pessoaQuePede(request);
+  return pessoaId ? usuarioDaPessoa(pessoaId) : undefined;
+}
 
+/**
+ * Quem diz estar pedindo, antes de olhar o banco: a pessoa ligada ao e-mail do login ou, sem login, a do
+ * "Ver como". O middleware usa para a chave da guarda por pedido e para ler o começo do pedido num lote só;
+ * usuarioDaPessoa confere no banco se ela existe.
+ */
+export async function pessoaQuePede(request: Request): Promise<string | undefined> {
   if (semLogin()) {
     const escolhida = lerCookie(request, 'como');
-    pessoaId = escolhida && PESSOAS_DE_TESTE.includes(escolhida) ? escolhida : 'gui';
-  } else {
-    const email = await emailDoToken(tokenDoPedido(request));
-    if (email) pessoaId = lerAcessos().get(email);
+    return escolhida && PESSOAS_DE_TESTE.includes(escolhida) ? escolhida : 'gui';
   }
-  if (!pessoaId) return undefined;
+  const email = await emailDoToken(tokenDoPedido(request));
+  return email ? lerAcessos().get(email) : undefined;
+}
 
+/** O usuário desta pessoa, como o banco diz, ou undefined se ela não existe (ou está na lixeira). */
+export async function usuarioDaPessoa(pessoaId: string): Promise<Usuario | undefined> {
   const integrante = (await listarIntegrantes()).find((i) => i.id === pessoaId);
   if (!integrante) return undefined;
   return {

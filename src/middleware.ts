@@ -1,12 +1,13 @@
 // Roda antes de toda página e de toda rota: prepara o banco e descobre quem está pedindo.
 // Sem pessoa identificada, nada do acervo é entregue.
 import { defineMiddleware } from 'astro:middleware';
-import { ehServicoDeCopia, enderecoDeSaida, semLogin, usuarioDoPedido } from './lib/servidor/acesso';
-import { ambiente, guardarApelidosDoPedido, guardarTiposDoPedido, guardarVerComoDoPedido, noPedido, tiposDoPedido, verComoDoPedido } from './lib/servidor/ambiente';
+import { ehServicoDeCopia, enderecoDeSaida, pessoaQuePede, semLogin, usuarioDaPessoa } from './lib/servidor/acesso';
+import { ambiente, definirPessoaDoPedido, guardarApelidosDoPedido, guardarTiposDoPedido, guardarVerComoDoPedido, noPedido, servidorTiming, tiposDoPedido, verComoDoPedido } from './lib/servidor/ambiente';
 import { ehNaoEncontradaSemPagina } from './lib/servidor/http';
 import { prepararBanco } from './lib/servidor/banco';
 import { respostaDaCopia } from './lib/servidor/copia';
-import { anotarCopiaMensal, listarMeusApelidos, listarTipos, registrarAcesso } from './lib/servidor/repositorio';
+import { anotarCopiaMensal, aquecerOPedido, listarMeusApelidos, listarTipos, registrarAcesso } from './lib/servidor/repositorio';
+import { comecoDoPedido, usaApelidosDeQuemOlha } from './lib/servidor/comeco-do-pedido';
 import { lerEscolhasDe } from './lib/visual';
 import { lerMarcadorDe } from './lib/marcador-do-ver-como';
 
@@ -28,7 +29,8 @@ const recado = () => `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><m
 // por processo, e no banco só na primeira vez de todas (INSERT OR IGNORE)
 const acessosAnotados = new Set<string>();
 
-// Cada pedido roda sabendo se é da homologação, que tem banco e fotos próprios
+// Cada pedido roda sabendo se é da homologação, que tem banco e fotos próprios, e com a guarda por pedido
+// vazia (src/lib/servidor/ambiente.ts)
 export const onRequest = defineMiddleware((contexto, proximo) => noPedido(contexto.request, () => tratar(contexto, proximo)));
 
 const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo) => {
@@ -46,7 +48,14 @@ const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo)
     return resposta;
   }
 
-  const usuario = await usuarioDoPedido(contexto.request);
+  // Quem pede entra na chave da guarda por pedido, e o que quase todo pedido lê vem num lote só
+  const caminho = contexto.url.pathname;
+  const comeco = comecoDoPedido(caminho);
+  const apelidos = usaApelidosDeQuemOlha(caminho);
+  const quem = await pessoaQuePede(contexto.request);
+  definirPessoaDoPedido(quem);
+  if (quem) await aquecerOPedido(quem, comeco, { apelidos });
+  const usuario = quem ? await usuarioDaPessoa(quem) : undefined;
   if (!usuario) {
     const querJson = contexto.url.pathname.startsWith('/api/');
     return new Response(querJson ? JSON.stringify({ erro: 'Não foi possível identificar quem está pedindo.' }) : recado(), {
@@ -62,15 +71,28 @@ const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo)
     await registrarAcesso(usuario.pessoa);
     acessosAnotados.add(acesso);
   }
-  contexto.locals.tipos = await listarTipos();
-  guardarTiposDoPedido(contexto.locals.tipos);
+  // Os tipos e os apelidos são das páginas e das rotas: as rotas de arquivo não leem (causa 3a)
+  if (comeco !== 'arquivo') {
+    contexto.locals.tipos = await listarTipos();
+    guardarTiposDoPedido(contexto.locals.tipos);
+  }
   // "Como você chama": nas páginas, as pessoas aparecem com os apelidos que quem olha deu. As rotas de
   // /api e a administração ficam com os de sempre, para nenhum apelido privado ser gravado como da família
-  if (!/^\/(api|admin)(\/|$)/.test(contexto.url.pathname)) guardarApelidosDoPedido(await listarMeusApelidos(usuario.pessoa));
+  if (apelidos) guardarApelidosDoPedido(await listarMeusApelidos(usuario.pessoa));
   const resposta = await proximo();
   // Uma página que responde "não encontrada" em texto puro vira a página de erro do site, com menu e volta
   if (ehNaoEncontradaSemPagina(contexto.url.pathname, resposta)) return contexto.rewrite('/404');
   // Nada do acervo deve ficar guardado em servidores intermediários
   if (!resposta.headers.has('Cache-Control')) resposta.headers.set('Cache-Control', 'private, no-store');
+  // O tempo do servidor e as consultas ao D1, para medir a produção de verdade (causa 1e). O que o
+  // esqueleto ainda ler depois deste ponto não entra: ele lê quase tudo do começo do pedido, já guardado.
+  const tempo = servidorTiming();
+  if (tempo) {
+    try {
+      resposta.headers.set('Server-Timing', tempo);
+    } catch {
+      // Uma resposta com cabeçalhos que não mudam segue sem a medida
+    }
+  }
   return resposta;
 };

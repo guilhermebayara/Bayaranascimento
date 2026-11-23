@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Esboço C2: o pedido para liberar mostra o relato</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&family=Nothing+You+Could+Do&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  .tela { background: #f6dde8; }
+  .titulo-grande { font-size: 40px; }
+  .avisos { margin-top: 18px; }
+  .aviso { padding: 14px 0; border-top: 1px solid #e6c9d6; }
+  .aviso p { margin: 0; }
+  .data { font-family: var(--mono); font-size: 12px; color: var(--suave); margin-top: 4px !important; }
+  .pedido { background: var(--branco); border-radius: 18px; padding: 18px; box-shadow: var(--sombra-bilhete); margin: 6px 0 4px; }
+  .citado { margin: 14px 0; padding: 12px 14px; border-radius: 14px 14px 14px 4px; background: #f3e9df; }
+  .citado .mao { font-family: var(--mao); font-size: 20px; display: block; margin-bottom: 4px; }
+  .quem { font-size: 14px; }
+  .quem b { font-weight: 600; }
+  .respostas { display: grid; gap: 12px; margin-top: 16px; }
+  .respostas .botao { justify-content: center; }
+  .botao.contorno { background: transparent; color: var(--tinta); border: 1.5px solid var(--tinta); }
+  .sem-volta { font-size: 13px; color: var(--suave); margin: 0; }
+</style>
+</head>
+<body>
+<p class="aviso-esboco">Esboço da crítica C2, 22/11/2026. Mostra um caminho pequeno para o pedido para liberar; não é proposta acabada. O tracejado coral marca o que muda.</p>
+<div class="quadros">
+  <section class="quadro">
+    <h2>Início da Giovanna, 390 px: o pedido entre os avisos</h2>
+    <div class="tela">
+      <p class="rotulo">Só você vê esta página</p>
+      <p class="titulo titulo-grande">Oi, Giovanna.</p>
+      <div class="avisos">
+        <p class="rotulo">3 avisos para você</p>
+        <div class="aviso">
+          <div class="pedido">
+            <p>Gui abriu <b>“Casamento da Prima Carol”</b> para toda a família. Por enquanto, o seu relato continua só para quem via antes.</p>
+            <div class="citado novo"><span class="mao">Giovanna</span>Peguei o buquê com treze anos e virei piada da família por uma década.</div>
+            <p class="quem novo">Se liberar, passam a ler: <b>Ana Candida, Lúcio, Prima Júlia e mais 4.</b></p>
+            <div class="respostas">
+              <a class="botao contorno novo" href="#">Liberar para toda a família</a>
+              <a class="botao contorno" href="#">Manter como estava</a>
+              <p class="sem-volta novo">Liberar não tem volta.</p>
+            </div>
+          </div>
+          <p class="data">22 nov 2026</p>
+        </div>
+        <div class="aviso"><p>Gui marcou você em “Natal de 2025”.</p><p class="data">22 nov 2026</p></div>
+      </div>
+    </div>
+    <p class="nota">Hoje o pedido é uma linha de aviso com duas ações de texto de mesmo peso, e não mostra o relato (que pode ter sido escrito meses antes) nem quem passa a ver. Liberar não tem volta pela tela, e nada na tela diz isso. Na memória, a mesma ação se chama “Liberar para toda a família”, e no aviso, “Liberar para quem passou a ver”. <b>Muda:</b> o começo do relato, os nomes de quem passa a ler, um nome só para a ação nos dois lugares, a frase de que não tem volta e as duas respostas com o mesmo peso, como botões (nenhuma empurra a outra). A regra de quem vê fica como está.</p>
+  </section>
+</div>
+</body>
+</html>

@@ -24,6 +24,9 @@ import {
   listarRelatosRegistradosPor,
   listarTipos,
   espacoDosArquivos,
+  espacoDosArquivosGuardado,
+  guardarEspacoDosArquivos,
+  haFotoSolta,
   lerAjuste,
   contarFotosSoltas,
   medirArquivosDeAntes,
@@ -37,20 +40,27 @@ import {
  * O que gera as pendências da administração: a carta, o banco e a cópia mensal. Só a produção recebe a
  * cópia do script do Drive, e só lá ela é conferida. As fotos soltas e os cadastros duplicados entram
  * quando as listas existirem (onda 2): até lá, null.
+ *
+ * `leve` é a conta do número do retrato, em toda página de quem administra (causa 1c da medição M1): as
+ * mesmas pendências, sem somar o tamanho de todos os arquivos (vale a soma guardada pela última conta
+ * inteira, de até HORAS_DO_ESPACO_GUARDADO atrás) e sem contar as fotos sem memória (basta saber se há
+ * uma). A conta inteira fica na página da Administração, que guarda a soma de novo.
  */
-async function situacaoDasPendencias(usuario: Usuario): Promise<Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados' | 'exclusoes'>> {
+async function situacaoDasPendencias(usuario: Usuario, { leve = false }: { leve?: boolean } = {}): Promise<Pick<SituacaoDaAdministracao, 'carta' | 'banco' | 'espaco' | 'copiaMensal' | 'fotosSoltas' | 'duplicados' | 'exclusoes'>> {
   const conferida = ambiente() === 'producao';
   const [carta, bytes, ultima, arquivos, fotosSoltas, integrantes, naoSao, pedidos] = await Promise.all([
     obterCarta(),
     tamanhoDoBanco(),
     conferida ? ultimaCopiaMensal() : Promise.resolve(null),
-    espacoDosArquivos(),
-    contarFotosSoltas(),
+    leve ? espacoDosArquivosGuardado() : espacoDosArquivos(),
+    leve ? haFotoSolta().then((ha) => (ha ? 1 : 0)) : contarFotosSoltas(),
     // Só quem o administrador vê: a conta nunca denuncia quem está num laço privado de outra pessoa
     listarIntegrantesQueVe(usuario),
     lerAjuste(AJUSTE_DOS_NAO_DUPLICADOS),
     listarPedidosDeExclusao(),
   ]);
+  // A conta inteira guarda a soma para o número do retrato das próximas páginas
+  if (!leve) await guardarEspacoDosArquivos(arquivos).catch(() => undefined);
   // Os possíveis cadastros duplicados, pelas comparações baratas (src/lib/nomes-parecidos.ts)
   const duplicados = possiveisDuplicados(integrantes, new Set(Array.isArray(naoSao) ? (naoSao as string[]) : [])).length;
   const banco = situacaoDoBanco(bytes);
@@ -67,10 +77,13 @@ async function situacaoDasPendencias(usuario: Usuario): Promise<Pick<SituacaoDaA
   };
 }
 
-/** Quantas pendências da administração somam no número do retrato do topo: só para quem administra. */
+/**
+ * Quantas pendências da administração somam no número do retrato do topo: só para quem administra. Pela
+ * conta leve, que diz as mesmas pendências sem ler o acervo inteiro (ver situacaoDasPendencias).
+ */
 export async function contarPendenciasDaAdministracao(usuario: Usuario): Promise<number> {
   if (!usuario.admin) return 0;
-  return pendenciasDaAdministracao(await situacaoDasPendencias(usuario), new Date()).length;
+  return pendenciasDaAdministracao(await situacaoDasPendencias(usuario, { leve: true }), new Date()).length;
 }
 
 /** O e-mail com que a pessoa entra. Fora da produção não há login, e não há e-mail. Só os administradores mudam. */
@@ -98,15 +111,19 @@ export async function itensDaLixeira(usuario: Usuario) {
 
 export async function montarConta(usuario: Usuario) {
   const eu = usuario.pessoa;
-  const [publicadas, rascunhos, relatos, capitulos, lacos, lixeira, integrantes] = await Promise.all([
-    listarMemorias(usuario),
-    listarMemorias(usuario, { rascunhos: true }),
+  // As publicadas e os rascunhos de quem pede numa leitura só (comRascunhos), separados aqui: a mesma ordem,
+  // e um lote a menos para completar as memórias (causa 1 da medição M1)
+  const [comRascunhos, relatos, capitulos, lacos, lixeira, integrantes, pendencias] = await Promise.all([
+    listarMemorias(usuario, { comRascunhos: true }),
     listarRelatosRegistradosPor(usuario),
     listarCapitulos(usuario),
     listarLacosDoCoracao(usuario),
     itensDaLixeira(usuario),
     listarIntegrantes(),
+    contarPendenciasDaAdministracao(usuario),
   ]);
+  const publicadas = comRascunhos.filter((m) => m.situacao === 'publicada');
+  const rascunhos = comRascunhos.filter((m) => m.situacao === 'rascunho');
   const minhaLixeira = suaLixeira(eu, lixeira.todasAsMemorias);
   return {
     /** "Seus dados e sua página": editáveis em /pessoas/<id>/editar; a página como os outros veem, em /pessoas/<id> */
@@ -128,7 +145,7 @@ export async function montarConta(usuario: Usuario) {
     /** quem administra vê o atalho para a Administração (src/pages/admin/index.astro) */
     administra: usuario.admin,
     /** quantas pendências a administração tem, para o atalho de quem administra (0 para os outros) */
-    pendenciasDaAdministracao: usuario.admin ? await contarPendenciasDaAdministracao(usuario) : 0,
+    pendenciasDaAdministracao: pendencias,
     /** o título de cada memória que a pessoa vê, para dizer de qual memória é um relato */
     titulos: new Map([...publicadas, ...rascunhos].map((m) => [m.id, m.titulo])),
     integrantes,

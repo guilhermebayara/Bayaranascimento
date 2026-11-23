@@ -4,7 +4,7 @@
 // Cada migração roda uma única vez, dentro de uma transação, e fica anotada
 // na tabela _migracoes. Para mudar a estrutura, acrescente um item no fim da
 // lista: nunca edite uma migração que já foi publicada.
-import { AMBIENTES_COM_EXEMPLOS, ambiente, banco } from './ambiente';
+import { AMBIENTES_COM_EXEMPLOS, ambiente, banco, cobrirGatilhosQueGravam } from './ambiente';
 import { NUCLEO_INICIAL } from '../familias';
 import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearRascunhoQueFicouDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
@@ -1029,6 +1029,9 @@ export const MIGRACOES: Migracao[] = [
     ],
   },
 ];
+
+// A guarda por pedido conhece os gatilhos que gravam pelo SQL das migrações (ver ambiente.ts)
+cobrirGatilhosQueGravam(MIGRACOES.flatMap((m) => m.sql));
 
 // Uma preparação por banco: a homologação tem o dela
 const prontos = new Map<string, Promise<void>>();
