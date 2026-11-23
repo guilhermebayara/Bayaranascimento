@@ -950,6 +950,7 @@ function comandosDeLigacao(id: string, dados: DadosDaMemoria, quemVe: GravarQuem
 /**
  * Memória com foto sempre tem principal (docs/decisoes.md): sem nenhuma, a primeira vira a principal. No fim
  * do lote, para valer também com a foto que outra pessoa acrescentou entre a leitura e o lote (D8 da sessão Z).
+ * Vai no lote da ficha, no de "Acrescentar fotos" e no das fotos pelo relato (Z2): a corrida tem dois lados.
  */
 const comandoDaPrincipal = (memoriaId: string) =>
   db()
@@ -1484,6 +1485,9 @@ export async function ligarFotosDoRelato(
         .prepare('UPDATE fotos SET relato_id = ?, memoria_id = ?, legenda = ?, ordem = ?, principal = ? WHERE id = ?')
         .bind(relato.id, relato.memoriaId, legenda, ordem++, principal, item.id);
     }),
+    // A principal é conferida no fim do lote, no banco: a foto que sai daqui pode ser a principal, e a única
+    // foto da memória pode ter sido tirada entre a leitura e o lote (Z2, o outro lado da corrida do D8)
+    comandoDaPrincipal(relato.memoriaId),
   ]);
   return validos.length;
 }
@@ -1769,7 +1773,8 @@ export async function salvarRelato(
   // A rota do relato confere a versão da memória que leu, como os outros lotes (Y3 do PR #160): se a memória
   // mudou depois da leitura, nada é gravado (MemoriaMudou), e a rota refaz a conta com a memória de agora.
   // `nasce`: o relato novo que espera o sim de quem escreveu (relatoQueNasce), com o pedido
-  // `envio`: o código de envio único do formulário sem script (migração 109): repetido, nada é gravado (EnvioRepetido)
+  // `envio`: a chave do envio único do formulário sem script (migração 109; a rota a faz do código da página, de
+  // quem envia, do relato e do texto): repetida, nada é gravado (EnvioRepetido)
   { conferir, nasce, envio }: { conferir?: number; nasce?: RelatoQueNasceEsperando; envio?: string } = {},
 ): Promise<void> {
   const doEnvio = envio ? comandosDoEnvio(envio) : [];
@@ -1789,7 +1794,7 @@ export async function salvarRelato(
 /** O mesmo envio chegou de novo (o toque duplo sem script): o lote voltou, e nada foi gravado de novo. */
 export class EnvioRepetido extends Error {}
 
-/** Guarda o código do envio no lote e tira os de mais de dois dias (migração 109). */
+/** Guarda a chave do envio no lote e tira as de mais de dois dias (migração 109). */
 const comandosDoEnvio = (codigo: string): Comando[] => [
   db().prepare(`DELETE FROM envios WHERE em < datetime('now', '-2 days')`),
   db().prepare('INSERT INTO envios (codigo) VALUES (?)').bind(codigo),
@@ -2414,15 +2419,18 @@ export async function acrescentarFotos(memoriaId: string, itens: { id: number; l
     .first<{ ordem: number | null; principal: number | null }>();
   let ordem = (ultima?.ordem ?? -1) + 1;
   let semPrincipal = !ultima?.principal;
-  await db().batch(
-    validos.map((item) => {
+  await db().batch([
+    ...validos.map((item) => {
       const principal = semPrincipal ? 1 : 0;
       semPrincipal = false;
       return db()
         .prepare('UPDATE fotos SET memoria_id = ?, legenda = ?, ordem = ?, principal = ? WHERE id = ?')
         .bind(memoriaId, item.legenda?.trim() || null, ordem++, principal, item.id);
     }),
-  );
+    // A principal é conferida no fim do lote, no banco: a única foto da memória pode ter sido tirada entre a
+    // leitura e o lote (Z2, o outro lado da corrida do D8)
+    comandoDaPrincipal(memoriaId),
+  ]);
   return validos.length;
 }
 

@@ -54,7 +54,9 @@ function trocarRecados(nova: Document): void {
 }
 
 function ligar(form: HTMLFormElement): void {
-  if (form.dataset.noLugarLigado) return;
+  // Ligado uma vez só: a página da pessoa chama ligarNoLugar de novo, e com dois ouvintes cada toque mandava
+  // o pedido duas vezes e dizia o recado duas vezes (a marca vazia contava como "não ligado"; revisão Z2)
+  if (form.dataset.noLugarLigado !== undefined) return;
   form.dataset.noLugarLigado = '';
   form.addEventListener('submit', async (evento) => {
     if (form.dataset.reserva) return;
@@ -99,6 +101,10 @@ function ligar(form: HTMLFormElement): void {
       if (erro && onde) {
         onde.querySelector('.recado-no-lugar')?.remove();
         onde.prepend(Object.assign(document.createElement('p'), { className: 'recado-no-lugar campo__erro', textContent: erro }));
+        // O formulário que mora num bloco que abre e fecha ("Como você chama") volta fechado na página nova:
+        // o bloco abre, para o recado ficar à vista (revisão Z2)
+        const bloco = onde.closest('details');
+        if (bloco) bloco.open = true;
       }
       // Sem formulário onde mostrar (o pedido respondido saiu da lista, a sugestão aceita sumiu), o recado vai
       // para a faixa de recados do alto, o mesmo lugar onde a página o mostra depois de recarregar (decisão do
