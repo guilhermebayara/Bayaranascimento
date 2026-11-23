@@ -139,13 +139,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (retrato.bytes) ficha.retrato = await guardarRetrato(retrato as Required<typeof retrato>, novoId, usuario);
   // O endereço que outro pedido usou no meio tempo: o site tenta de novo sozinho, com o banco de agora, e no fim
   // volta com o recado e o que foi digitado, sem 500 (o D2 da sessão Z, estendido na sessão AA). Se quem
-  // entrou no meio tempo tem o mesmo nome, vale o aviso de sempre
+  // entrou no meio tempo tem o mesmo nome, vale o aviso de sempre, com a mesma regra da primeira vez: só quem
+  // cadastra vê pode ser citado pelo nome (revisão AA2, 23/11/2026). Os ids de todos continuam só para o endereço
   const criado = await comCodigoNovo(async (vez) => {
     if (vez > 1) {
-      const agora = await listarIntegrantes();
-      const ja = agora.find((i) => criarSlug(i.nome) === base || (i.apelido && criarSlug(i.apelido) === base));
+      const queVe = await listarIntegrantesQueVe(usuario);
+      const ja = queVe.find((i) => criarSlug(i.nome) === base || (i.apelido && criarSlug(i.apelido) === base));
       if (ja && dados.get('outra') !== 'on') return `Já existe ${ja.nome} no acervo. Se for outra pessoa com o mesmo nome, marque a opção no fim do formulário e salve de novo.`;
-      novoId = slugUnico(base, new Set([...agora.map((i) => i.id), 'nova']));
+      novoId = slugUnico(base, new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']));
     }
     await criarIntegranteCompleto(novoId, ficha, usuario);
     return undefined;

@@ -942,7 +942,7 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
       }
     });
 
-    it('bloqueia: integrantes na nova tentativa após colisão usa listarIntegrantes() e vaza o nome de pessoa em laço privado de outro dono', async () => {
+    it('integrantes: a nova tentativa após colisão cita só quem cadastra vê, e não o nome de pessoa em laço privado de outro dono', async () => {
       // Giovanna tem uma pessoa que SÓ existe no laço "só eu vejo" dela, com apelido "Tia Zuzu AA2" e nome real "Segredo Privado AA2"
       const privId = uid('segredo-privado-aa2');
       criarPessoaPrivada('giovanna', privId, 'Segredo Privado AA2', { apelido: 'Tia Zuzu AA2' });
@@ -960,10 +960,33 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
       };
       try {
         const r = await semScript('integrantes', gui, { nome: 'Tia Zuzu AA2', tipo: 'pessoa', tratamento: 'ela' });
-        // DEFEITO BLOQUEADOR REPRODUZIDO: na vez 2, src/pages/api/integrantes.ts:145 chama listarIntegrantes()
-        // em vez de listarIntegrantesQueVe(usuario) e devolve o nome real da pessoa privada da Giovanna ao Gui!
+        // A vez 2 usa a mesma regra da primeira (listarIntegrantesQueVe): a pessoa da Giovanna não existe para o Gui,
+        // e o cadastro segue com um endereço novo, sem citar ninguém
+        expect(colidiu).toBe(true);
         expect(r.status).toBe(303);
-        expect(r.erro).toContain('Segredo Privado AA2');
+        expect(r.erro).toBeNull();
+        expect(r.destino?.toString() ?? '').not.toContain('Segredo');
+        expect(r.caminho).toBe('/pessoas/tia-zuzu-aa2/editar');
+        expect(linhas('SELECT id FROM integrantes WHERE nome = ?', 'Tia Zuzu AA2')).toHaveLength(1);
+      } finally {
+        ComandoDeTeste.prototype.run = runOriginal;
+      }
+
+      // Quem vê a pessoa (a dona do laço) continua recebendo o aviso de sempre na nova tentativa
+      colidiu = false;
+      ComandoDeTeste.prototype.run = async function (this: ComandoDeTeste) {
+        if (/INSERT INTO integrantes/.test(this.sql) && !colidiu) {
+          colidiu = true;
+          // Outro pedido cadastra, no meio tempo, alguém com o mesmo nome que a Giovanna vê
+          sql.prepare(`INSERT INTO integrantes (id, nome, tipo, criado_por) VALUES ('prima-meio-tempo-aa2', 'Prima Meio Tempo AA2', 'pessoa', 'gui')`).run();
+          throw new Error('UNIQUE constraint failed: integrantes.id');
+        }
+        return runOriginal.call(this);
+      };
+      try {
+        const r = await semScript('integrantes', giovanna, { nome: 'Prima Meio Tempo AA2', tipo: 'pessoa', tratamento: 'ela' });
+        expect(r.status).toBe(303);
+        expect(r.erro).toContain('Já existe Prima Meio Tempo AA2 no acervo');
       } finally {
         ComandoDeTeste.prototype.run = runOriginal;
       }
