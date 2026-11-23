@@ -3,11 +3,14 @@
 // ele pede aqui a lista dos retratos sem cópia que vê, baixa cada original pela rota dos retratos, reduz no
 // aparelho e manda a cópia para cá. Nada da original muda: a cópia tem nome próprio no bucket
 // (chaveDaCopiaDoRetrato), e o retrato que já tem cópia é recusado, sem trocar nada.
+//
+// Revisão R-D1 (sessão D1d): como a rota das cópias das fotos, aceita só os retratos que o ajuste lista
+// (retratoEstaNoAjuste) e reserva o retrato no banco antes de gravar no bucket (reservarCopias).
 import type { APIRoute } from 'astro';
 import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { erro, json, mesmaOrigem } from '../../lib/servidor/http';
 import { podeFazerCopiasDasFotos } from '../../lib/servidor/permissoes';
-import { acessoAoRetrato, guardarCopiaDoRetrato, listarRetratosSemCopia, retratoTemCopia } from '../../lib/servidor/repositorio';
+import { acessoAoRetrato, alvoDoRetrato, guardarCopiaDoRetrato, listarRetratosSemCopia, reservarCopias, retratoEstaNoAjuste, retratoTemCopia, soltarReserva } from '../../lib/servidor/repositorio';
 import { CHAVE_DE_RETRATO, LIMITE_DA_COPIA_DO_RETRATO, PASTA_DOS_RETRATOS, chaveDaCopiaDoRetrato, conferirCopiaDoRetrato } from '../../lib/retratos';
 
 /** Os retratos sem cópia que o administrador vê, um por chave. */
@@ -40,6 +43,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Quem não vê o retrato recebe o mesmo que para um retrato que não existe
   if (!(await acessoAoRetrato(locals.usuario, chave))) return erro(404, 'Retrato não encontrado.');
   if (await retratoTemCopia(chave)) return erro(409, 'Este retrato já tem a cópia.');
+  if (!(await retratoEstaNoAjuste(locals.usuario, chave))) return erro(404, 'Retrato não encontrado.');
 
   // O lado da cópia é conferido com o da original guardada
   const original = await bucketDeFotos().get(`${PASTA_DOS_RETRATOS}${chave}`);
@@ -49,8 +53,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const conferida = conferirCopiaDoRetrato(bytesDaOriginal, bytes);
   if ('erro' in conferida) return erro(400, conferida.erro);
 
-  const tipo = conferida.copia.formato === 'webp' ? 'image/webp' : 'image/jpeg';
-  await bucketDeFotos().put(`${PASTA_DOS_RETRATOS}${chaveDaCopiaDoRetrato(chave, conferida.copia.formato)}`, bytes, { httpMetadata: { contentType: tipo }, customMetadata: { copiaDe: chave, feitaPor: locals.usuario.pessoa } });
-  const linhas = await guardarCopiaDoRetrato(chave, bytesDaOriginal.byteLength, conferida.copia);
-  return json({ chave, linhas }, linhas ? 201 : 409);
+  // Só um pedido grava: o que perde a reserva não grava nada
+  const reserva = await reservarCopias(alvoDoRetrato(chave));
+  if (!reserva) return erro(409, 'A cópia deste retrato já está sendo feita.');
+  let guardada = false;
+  try {
+    if (await retratoTemCopia(chave)) return erro(409, 'Este retrato já tem a cópia.');
+    const tipo = conferida.copia.formato === 'webp' ? 'image/webp' : 'image/jpeg';
+    await bucketDeFotos().put(`${PASTA_DOS_RETRATOS}${chaveDaCopiaDoRetrato(chave, conferida.copia.formato)}`, bytes, { httpMetadata: { contentType: tipo }, customMetadata: { copiaDe: chave, feitaPor: locals.usuario.pessoa } });
+    const linhas = await guardarCopiaDoRetrato(chave, bytesDaOriginal.byteLength, conferida.copia, reserva);
+    guardada = true;
+    return json({ chave, linhas }, linhas ? 201 : 409);
+  } finally {
+    if (!guardada) await soltarReserva(alvoDoRetrato(chave), reserva);
+  }
 };

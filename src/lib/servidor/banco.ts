@@ -1014,6 +1014,20 @@ export const MIGRACOES: Migracao[] = [
     id: '111-copia-dos-retratos',
     sql: [`ALTER TABLE retratos_enviados ADD COLUMN copia TEXT`],
   },
+  {
+    // A reserva das cópias (item 13 da revisão R-D1, sessão D1d): antes de gravar as cópias de uma foto ou de
+    // um retrato no bucket, o pedido reserva o alvo ("foto:<chave>" ou "retrato:<chave>"). Só um pedido grava;
+    // o outro recebe 409 sem gravar nada. A reserva de um pedido que morreu no meio vence sozinha
+    // (MINUTOS_DA_RESERVA_DAS_COPIAS, em repositorio.ts), e a que terminou sai da tabela.
+    id: '112-reserva-das-copias',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS reservas_das_copias (
+        alvo TEXT PRIMARY KEY,
+        codigo TEXT NOT NULL,
+        em TEXT NOT NULL DEFAULT (datetime('now'))
+      )`,
+    ],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela
