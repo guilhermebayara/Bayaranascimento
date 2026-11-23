@@ -271,7 +271,7 @@ const erro = Astro.url.searchParams.get('erro');
                 {naMesa.map((m) => (
                   <li class="novidade novidade--memoria" style={estiloDoTipo(m.tipo)}>
                     <a href={`/memorias/${m.id}`}>
-                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo forma tipo={m.tipo} largura="(min-width: 1600px) 350px, 230px" />
+                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo forma tipo={m.tipo} largura="(min-width: 1600px) 350px, (min-width: 1000px) 230px, 160px" />
                       <span class="novidade__sobre rotulo">
                         <IconeDoTipo tipo={m.tipo} />
                         Memória nova · {nomeVisto(m.criadaPor)} adicionou
@@ -300,7 +300,7 @@ const erro = Astro.url.searchParams.get('erro');
                 {outrosAnos.itens.slice(0, 2).map((m) => (
                   <li class="novidade novidade--memoria" style={estiloDoTipo(m.tipo)}>
                     <a href={`/memorias/${m.id}`}>
-                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo forma tipo={m.tipo} largura="(min-width: 1600px) 350px, 230px" />
+                      <Polaroid id={m.id} fotos={m.fotos} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" cedo forma tipo={m.tipo} largura="(min-width: 1600px) 350px, (min-width: 1000px) 230px, 160px" />
                       <span class="novidade__sobre rotulo">
                         <IconeDoTipo tipo={m.tipo} />
                         Em {m.ano}

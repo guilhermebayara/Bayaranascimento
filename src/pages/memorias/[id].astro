@@ -236,7 +236,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
         memoria.fotos.length > 0 && (
           // Com mais de uma foto e espaço, as de trás se abrem em leque. Cada foto abre a galeria nela.
           <div class:list={['abre__foto', outrasFotos && `abre__foto--leque abre__foto--${Math.min(memoria.fotos.length, 3)}`]}>
-            <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} cedo galeria principal largura="(min-width: 1600px) 470px, (min-width: 1000px) 310px, 250px" />
+            <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} cedo galeria principal largura="(min-width: 1600px) 470px, (min-width: 1000px) 310px, 160px" />
           </div>
         )
       }

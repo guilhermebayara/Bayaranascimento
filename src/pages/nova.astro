@@ -253,7 +253,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
             <li class="foto-enviada" data-foto-id={foto.id} data-mostrada>
               {/* As fotos que a página mostrava: só sai da memória a que a pessoa viu e tirou (Y3 do PR #160) */}
               <input type="hidden" name="fotosMostradas" value={foto.id} />
-              <div class="foto__papel">{foto.chave ? <img {...fontesDaFoto(foto, 'pequena', '200px')} alt="" /> : <div class="foto__reserva">Foto de exemplo</div>}</div>
+              <div class="foto__papel">{foto.chave ? <img {...fontesDaFoto(foto, 'pequena', '160px')} alt="" /> : <div class="foto__reserva">Foto de exemplo</div>}</div>
               <div class="foto-enviada__campos">
                 <label class="campo">
                   <span>Legenda</span>

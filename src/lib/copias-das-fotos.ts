@@ -168,6 +168,14 @@ export interface Fontes {
 }
 
 /**
+ * A largura que as telas dizem ao navegador (`sizes`) para as fotos de lista, no celular, fica em 160 px no
+ * máximo: o navegador pega a menor cópia que cobre a densidade da tela, e num celular de densidade 3,
+ * 160 × 3 = 480 ainda é a pequena. A foto aparece com densidade de 2,4 a 2,6, nítida no celular. O mural
+ * "Grandes" diz a largura de verdade e leva a média.
+ */
+export const LARGURA_MAXIMA_NO_CELULAR = 160;
+
+/**
  * Como a foto é usada na tela:
  * - "pequena": as fotos de lista (mural, linha do tempo, lista, Início, pessoa, capítulo, as de trás da
  *   pilha). A pequena, e a média para quando a caixa é grande; `sizes` diz a largura da caixa na tela.

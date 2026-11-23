@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   LADO_MENOR,
+  LARGURA_MAXIMA_NO_CELULAR,
   chaveDaCopia,
   conferirCopias,
   enderecoDaFoto,
@@ -176,6 +177,26 @@ describe('o cabeçalho das fotos e dos retratos', () => {
       expect(cabecalhoDeGuardar(guardar, true)['Cache-Control']).toMatch(/^private, /);
       expect(cabecalhoDeGuardar(guardar, true).Vary).toBe('Cookie');
       expect(cabecalhoDeGuardar(guardar, false).Vary).toBeUndefined();
+    }
+  });
+});
+
+describe('a largura dita ao navegador', () => {
+  const telas: Record<string, string> = Object.fromEntries(
+    Object.entries(import.meta.glob<string>('../src/**/*.astro', { query: '?raw', import: 'default', eager: true })).map(([k, v]) => [k.replace('../', ''), v]),
+  );
+  it('no celular, as fotos de lista dizem 160 px ou menos, para ficar na cópia pequena (o mural "Grandes" à parte)', () => {
+    const larguras: [string, string][] = [];
+    for (const [arquivo, texto] of Object.entries(telas)) {
+      for (const m of texto.matchAll(/largura="([^"]+)"/g)) larguras.push([arquivo, m[1]!]);
+      for (const m of texto.matchAll(/fontesDaFoto\([^)]*'pequena', '([^']+)'\)/g)) larguras.push([arquivo, m[1]!]);
+      for (const m of texto.matchAll(/(pequenas|medias): '([^']+)'/g)) larguras.push([arquivo, m[2]!]);
+    }
+    expect(larguras.length).toBeGreaterThan(10);
+    for (const [arquivo, sizes] of larguras) {
+      // A última largura é a que vale sem media query: a do celular
+      const reserva = Number(/(\d+)px\s*$/.exec(sizes)?.[1]);
+      expect(reserva, `${arquivo}: ${sizes}`).toBeLessThanOrEqual(LARGURA_MAXIMA_NO_CELULAR);
     }
   });
 });
