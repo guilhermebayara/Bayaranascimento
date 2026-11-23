@@ -122,4 +122,11 @@ describe('o que está dentro de uma região', () => {
       expect(css, classe).not.toMatch(pulando);
     }
   });
+  it('o foco não se perde quando a própria região some: o recado no alto ou o título da seção (sessão AA)', () => {
+    expect(cliente).toContain('const titulo = tituloDaSecao(regiaoDoForm ?? form);');
+    expect(cliente).toMatch(/if \(regiaoSumiu\) \{[\s\S]*?const alvo = recado \?\? \(titulo && document\.contains\(titulo\) \? titulo : null\);/);
+    // O título é guardado antes da troca, e o recado só depois de a faixa do alto ser trocada
+    expect(cliente.indexOf('tituloDaSecao(regiaoDoForm')).toBeLessThan(cliente.indexOf('const trocadas = trocar('));
+    expect(cliente.indexOf('trocarRecados(nova);')).toBeLessThan(cliente.indexOf('if (regiaoSumiu) {'));
+  });
 });

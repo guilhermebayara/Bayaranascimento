@@ -228,8 +228,29 @@ describe.skipIf(!B)('Z2 no navegador', () => {
       expect(r.faixa).toMatchObject({ visivel: true, erro: false, papeis: [] });
       expect(r.faixa!.texto).toBe('Relato liberado para quem passou a ver a memória.');
       ditoUmaVez(r, r.faixa!.texto);
-      // Ponto 4: aqui a própria região some. Hoje o foco cai no corpo da página
-      expect(r.foco).toMatchObject({ noCorpo: true });
+      // A própria região some: o foco vai para o recado no alto (sessão AA; antes caía no corpo da página)
+      expect(r.foco).toMatchObject({ noCorpo: false, visivel: true });
+      expect(await pagina.evaluate(() => Boolean(document.activeElement?.closest('[data-recados]')))).toBe(true);
+    }, 60_000);
+
+    it('sessão AA: o "Liberar" do bilhete sem recado na resposta: o foco vai para o título da seção onde a região estava', async () => {
+      const [gio, eli] = [await como('giovanna'), await como('elizete')];
+      const { id } = await pedidoParaLiberar(gio, eli);
+      const pagina = await eli.abrir(`/memorias/${id}`);
+      // A resposta da rota sem o recado: a página da memória, de volta no relato
+      await pagina.route('**/api/avisos', async (rota: any) => {
+        const resposta = await rota.fetch({ maxRedirects: 0 });
+        const destino = new URL(resposta.headers().location, B);
+        destino.searchParams.delete('ok');
+        await rota.fulfill({ status: 303, headers: { Location: destino.pathname + destino.search + destino.hash } });
+      });
+      const r = await tocar(pagina, 'form[data-chave^="liberar-"] button');
+      expect(r.recarregou).toBe(false);
+      expect(await pagina.locator('form[data-chave^="liberar-"]').count()).toBe(0);
+      expect(r.faixa).toMatchObject({ visivel: false });
+      // O título do bilhete: o nome de quem contou
+      expect(r.foco).toMatchObject({ noCorpo: false, visivel: true });
+      expect(await pagina.evaluate(() => document.activeElement?.matches('.voz__quem'))).toBe(true);
     }, 60_000);
 
     it('o bilhete com o pedido que mudou: o recado de erro aparece no mesmo formulário da página nova', async () => {
