@@ -3,6 +3,7 @@
 // do site passam para ele grupo a grupo: o menu já aponta para os endereços de verdade.
 // Não importa nada de src/styles/global.css: o estilo inteiro vem de src/visual/sistema.ts.
 import '../visual/sistema';
+import { fontesParaPedirAntes } from '../visual/fontes-da-primeira-tela';
 import Assinatura from '../components/visual/Assinatura.astro';
 import Monograma from '../components/visual/Monograma.astro';
 import Retrato from '../components/visual/Retrato.astro';
@@ -113,6 +114,8 @@ const telas = [
     <link rel="icon" href={`${icones}/favicon.svg`} type="image/svg+xml" />
     <link rel="icon" href={`${icones}/favicon-48.png`} type="image/png" sizes="48x48" />
     <link rel="apple-touch-icon" href={`${icones}/apple-touch-icon.png`} />
+    {/* A serifa da assinatura e a grotesca do texto chegam antes, sem esperar o CSS (causa 7 da medição M1) */}
+    {fontesParaPedirAntes(fontes).map((arquivo) => <link rel="preload" href={arquivo} as="font" type="font/woff2" crossorigin />)}
     <title>{tituloPagina}</title>
     <script is:inline>
       // Aparelho de toque. No iPhone com iOS 26, o Safari desenha uma banda sólida atrás das suas
