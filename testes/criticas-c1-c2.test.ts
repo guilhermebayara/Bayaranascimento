@@ -17,4 +17,23 @@ describe('críticas C1 e C2: os pontos pequenos', () => {
     expect(polaroid.match(/\{titulo && <span class="polaroid__titulo">\{titulo\}<\/span>\}\s*\{legenda\}/g)).toHaveLength(2);
     expect(tela('visual/pecas.css')).toMatch(/\.polaroid__titulo\s*\{[^}]*text-transform:\s*none/);
   });
+
+  it('Explorar no celular: as saídas ficam à vista numa linha própria, fora da fila das abas que rola', () => {
+    const css = tela('visual/telas/explorar.css');
+    const celular = css.slice(css.indexOf('@media (max-width: 61.99rem) {\n  .controles__formas {'));
+    const bloco = celular.slice(0, celular.indexOf('\n}\n'));
+    // O fio fica embaixo das abas, e só as abas rolam; as saídas ocupam a linha delas, uma linha só
+    expect(bloco).toMatch(/\.controles__formas \.controle__linha \{[^}]*flex-wrap: wrap[^}]*overflow: visible/);
+    expect(bloco).toMatch(/\.controles__formas \.abas \{[^}]*flex: 1 0 100%[^}]*border-bottom[^}]*overflow-x: auto/);
+    expect(bloco).toMatch(/\.controles__formas \.controle__saidas \{[^}]*flex: 1 0 100%/);
+    // Sem a segunda linha do esboço (escolha do Gui na E2): as saídas continuam só com o nome
+    expect(tela('components/explorar/Controles.astro')).toMatch(/<a class="acao acao--quieta saida" href=\{enderecoDoExplorar\(filtros, f\)\}>\s*\{NOMES_DAS_FORMAS\[f\]\}\s*<\/a>/);
+  });
+
+  it('Explorar: no filtro "Quem estava junto", cada nome traz o parentesco de quem olha', () => {
+    const pagina = tela('pages/explorar.astro');
+    expect(pagina).toContain('const parentescos = await parentescosDeQuemOlha(usuario, naLista);');
+    expect(pagina).toMatch(/parentesco: parentescos\.get\(i\.id\)/);
+    expect(tela('components/explorar/Controles.astro')).toMatch(/<small class="escolha__parentesco suave">\{o\.parentesco\}<\/small>/);
+  });
 });
