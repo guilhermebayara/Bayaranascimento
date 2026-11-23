@@ -102,7 +102,7 @@ describe('relato em nome de quem só existe num laço privado', () => {
   });
   it('as consultas que mostram ou contam relatos passam pela regra', () => {
     const repositorio = ler('src/lib/servidor/repositorio.ts');
-    for (const consulta of ['completar', 'memoriasComAudio', 'quemContouEmCadaMemoria', 'listarRelatos', 'podeOuvirAudio', 'listarAudiosDe', 'listarRelatosPublicadosDesde']) {
+    for (const consulta of ['completar', 'memoriasComAudio', 'quemContouEmCadaMemoria', 'listarRelatos', 'acessoAoAudio', 'listarAudiosDe', 'listarRelatosPublicadosDesde']) {
       const inicio = repositorio.search(new RegExp(`(export )?async function ${consulta}\\(`));
       expect(inicio, consulta).toBeGreaterThan(-1);
       const corpo = repositorio.slice(inicio, repositorio.indexOf('\n}\n', inicio));

@@ -2132,10 +2132,25 @@ export async function ligarAudios(relatoId: number, memoriaId: string, itens: { 
  * rascunho de quem registrou) numa memória que vê; o removido, só quem enviou.
  */
 export async function podeOuvirAudio(usuario: Usuario, chave: string): Promise<boolean> {
+  return (await acessoAoAudio(usuario, chave)) !== null;
+}
+
+/**
+ * podeOuvirAudio com o que a rota precisa: nada, para quem não pode ouvir (a mesma resposta de um áudio que
+ * não existe), e, para quem pode, se o áudio pode ficar guardado no aparelho por 7 dias (decisão do Gui,
+ * 23/11/2026, a mesma regra das fotos): é de um relato publicado numa memória publicada, fora da lixeira, e
+ * não foi tirado do relato. Solto, de rascunho ou removido: o navegador confere a cada uso, como antes.
+ */
+export async function acessoAoAudio(usuario: Usuario, chave: string): Promise<{ guardar: boolean } | null> {
   // O áudio do relato de quem a pessoa não vê também fica de fora (ver veORelato)
   const { results } = await db()
     .prepare(
-      `SELECT r.por, r.registrado_por, r.so_para_nucleos FROM audios a LEFT JOIN relatos r ON r.id = a.relato_id WHERE a.chave = ?2 AND (
+      `SELECT r.por, r.registrado_por, r.so_para_nucleos,
+         (a.removido_em IS NULL AND EXISTS (
+           SELECT 1 FROM relatos r3 JOIN memorias m3 ON m3.id = r3.memoria_id
+           WHERE r3.id = a.relato_id AND r3.situacao = 'publicada' AND m3.situacao = 'publicada' AND m3.excluida_em IS NULL
+         )) AS guardar
+       FROM audios a LEFT JOIN relatos r ON r.id = a.relato_id WHERE a.chave = ?2 AND (
          (a.relato_id IS NULL AND a.enviado_por = ?1)
          OR (
            (a.removido_em IS NULL OR a.enviado_por = ?1)
@@ -2147,13 +2162,18 @@ export async function podeOuvirAudio(usuario: Usuario, chave: string): Promise<b
        )`,
     )
     .bind(usuario.pessoa, chave)
-    .all<{ por: string | null; registrado_por: string | null; so_para_nucleos: string | null }>();
-  if (results.length === 0) return false;
+    .all<{ por: string | null; registrado_por: string | null; so_para_nucleos: string | null; guardar: number }>();
+  type Linha = { por: string | null; registrado_por: string | null; so_para_nucleos: string | null; guardar: number };
+  let linhas = results as Linha[];
+  if (linhas.length === 0) return null;
   // O áudio solto não tem relato
-  type Linha = { por: string | null; registrado_por: string | null; so_para_nucleos: string | null };
-  if ((results as Linha[]).some((r) => r.por === null)) return true;
-  const naoVe = await pessoasQueONaoVe(usuario);
-  return (results as Linha[]).some((r) => veORelato({ por: r.por!, registradoPor: r.registrado_por!, soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) }, usuario, naoVe));
+  if (!linhas.some((r) => r.por === null)) {
+    const naoVe = await pessoasQueONaoVe(usuario);
+    linhas = linhas.filter((r) => veORelato({ por: r.por!, registradoPor: r.registrado_por!, soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) }, usuario, naoVe));
+    if (linhas.length === 0) return null;
+  }
+  // Um áudio de exemplo é dividido por vários relatos: basta um publicado que a pessoa ouve para guardar
+  return { guardar: linhas.some((r) => Boolean(r.guardar)) };
 }
 
 /** Os áudios em que uma pessoa fala (os dos relatos dela), entre as memórias que quem pede vê. */

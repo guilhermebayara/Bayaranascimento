@@ -64,7 +64,7 @@ describe('as regras das fotos de exemplo', () => {
     expect(rota).toContain('const deExemplo = temAcervoDeExemplo() && ehChaveDeAudioDeExemplo(chave);');
     expect(rota).toContain('if (!CHAVE_DE_AUDIO.test(chave) && !deExemplo) return naoEncontrado();');
     // E continua conferindo quem pode ouvir, como para qualquer áudio
-    expect(rota.indexOf('podeOuvirAudio(')).toBeGreaterThan(rota.indexOf('const deExemplo'));
+    expect(rota.indexOf('acessoAoAudio(')).toBeGreaterThan(rota.indexOf('const deExemplo'));
   });
 
   it('o envio só aceita os arquivos de exemplos/audios/, pelo SHA-256, e só nas prévias de teste', () => {
