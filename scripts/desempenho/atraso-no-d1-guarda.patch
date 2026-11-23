@@ -1,0 +1,23 @@
+# Atraso de 50 ms em cada ida ao D1, para medir a fila (sessão D1a, 23/11/2026). Igual ao atraso-no-d1.patch
+# da M1, mas no embrulho da guarda por pedido (src/lib/servidor/ambiente.ts), onde cada ida ao banco passa.
+# Só para medir, no computador: git apply scripts/desempenho/atraso-no-d1-guarda.patch, medir, e git apply -R.
+--- a/src/lib/servidor/ambiente.ts
++++ b/src/lib/servidor/ambiente.ts
+@@ -186,12 +186,17 @@
+   for (const [chave, guardada] of pedido.guardadas) if (lida.test(guardada.sql)) pedido.guardadas.delete(chave);
+ }
+ 
++const ATRASO_D1 = 50;
++
+ /** Uma ida ao banco, contada para o Server-Timing. */
+ async function ida<T>(pedido: Pedido, consultas: number, fazer: () => Promise<T>): Promise<T> {
+   const inicio = Date.now();
+   pedido.medida.consultas += consultas;
+   pedido.medida.idas += 1;
+   try {
++    // MEDIÇÃO (scripts/desempenho/atraso-no-d1-guarda.patch, nunca vai para o repositório): cada ida ao D1
++    // espera ATRASO_D1 ms, como a viagem até o banco. O tempo a mais dividido pelo atraso dá a fila.
++    await new Promise((ok) => setTimeout(ok, ATRASO_D1));
+     return await fazer();
+   } finally {
+     pedido.medida.msNoBanco += Date.now() - inicio;

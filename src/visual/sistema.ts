@@ -2,24 +2,11 @@
 // importa este arquivo e mais nada de estilo; cada tela soma o CSS dela, de src/visual/telas/.
 // Nada aqui vem de src/styles/global.css.
 //
-// As três combinações de fontes entram juntas: o site usa a C (decisão do Gui, 17/11/2026), e a
-// página do sistema troca as fontes dos exemplos dela entre as três, para comparar. O navegador só
-// baixa os arquivos das fontes que a página usa. Qual está em uso é uma linha: FONTES_DO_SITE, em
-// src/lib/visual.ts.
+// O site carrega só a combinação C, a que ele usa (decisão do Gui, 17/11/2026). As combinações A e B
+// ficam em src/visual/fontes-para-comparar.ts, que só a página do sistema e a das fontes importam, para
+// continuarem comparando as três (causa 7 da medição M1, docs/desempenho/). O navegador só baixa os
+// arquivos das fontes que a página usa. Qual está em uso é uma linha: FONTES_DO_SITE, em src/lib/visual.ts.
 
-// A · Macia
-import '@fontsource-variable/fraunces/full.css';
-import '@fontsource-variable/fraunces/full-italic.css';
-import '@fontsource-variable/geist/wght.css';
-import '@fontsource-variable/geist-mono/wght.css';
-import '@fontsource/oooh-baby/400.css';
-// B · Editorial
-import '@fontsource/instrument-serif/400.css';
-import '@fontsource/instrument-serif/400-italic.css';
-import '@fontsource-variable/instrument-sans/wght.css';
-import '@fontsource/ibm-plex-mono/400.css';
-import '@fontsource/ibm-plex-mono/500.css';
-import '@fontsource/reenie-beanie/400.css';
 // C · De cartaz
 import '@fontsource/dm-serif-display/400.css';
 import '@fontsource/dm-serif-display/400-italic.css';
