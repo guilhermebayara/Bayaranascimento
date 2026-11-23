@@ -1796,8 +1796,25 @@ export async function salvarRelato(
 /** O mesmo envio chegou de novo (o toque duplo sem script): o lote voltou, e nada foi gravado de novo. */
 export class EnvioRepetido extends Error {}
 
+/**
+ * A chave de um envio único (migração 109): o resumo do código da página junto com o que mais identifica o
+ * envio (quem envia, o quê, o conteúdo). O resumo não se desfaz: nem o código nem o conteúdo ficam na tabela.
+ */
+export async function chaveDoEnvioUnico(...partes: unknown[]): Promise<string> {
+  const resumo = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(partes)));
+  return [...new Uint8Array(resumo)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** O envio com esta chave já foi gravado: o toque duplo responde como o primeiro, sem gravar. */
+export async function envioJaGravado(chave: string): Promise<boolean> {
+  return Boolean(await db().prepare('SELECT 1 AS ja FROM envios WHERE codigo = ?').bind(chave).first());
+}
+
+/** O lote voltou porque a chave do envio já estava na tabela (outro toque igual gravou antes). */
+export const envioRepetidoNoLote = (erro: unknown): boolean => /UNIQUE constraint failed: envios\.codigo\b/.test(String((erro as Error)?.message ?? erro));
+
 /** Guarda a chave do envio no lote e tira as de mais de dois dias (migração 109). */
-const comandosDoEnvio = (codigo: string): Comando[] => [
+export const comandosDoEnvio = (codigo: string): Comando[] => [
   db().prepare(`DELETE FROM envios WHERE em < datetime('now', '-2 days')`),
   db().prepare('INSERT INTO envios (codigo) VALUES (?)').bind(codigo),
 ];

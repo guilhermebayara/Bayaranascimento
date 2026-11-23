@@ -126,6 +126,10 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
   </header>
   <form class="formulario em-frase" method="post" action="/api/memorias" data-formulario-memoria data-id={memoria?.id ?? ''} data-publicada={publicada ? '' : undefined} novalidate>
     {memoria && <input type="hidden" name="id" value={memoria.id} />}
+    {/* Sem script, o toque duplo em "Publicar memória" grava uma vez e responde como o primeiro: um código por
+        página, e o que ela era quando abriu, para o recado do segundo toque (fila da revisão Z2, sessão AA) */}
+    {memoria && <input type="hidden" name="envio" value={crypto.randomUUID()} />}
+    {memoria && <input type="hidden" name="pagina" value={publicada ? 'publicada' : 'rascunho'} />}
     {
       (soDados || publicada) && (
         <p class="dica em-frase__nota" data-so-na-primeira>

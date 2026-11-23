@@ -38,7 +38,11 @@ import {
   pessoasQueSoVoceVe,
   listarAudiosDosRelatos,
   listarMensagensDosRelatos,
+  chaveDoEnvioUnico,
   codigoRepetido,
+  comandosDoEnvio,
+  envioJaGravado,
+  envioRepetidoNoLote,
   MemoriaMudou,
   RECADO_MEMORIA_MUDOU,
   refazerSeAMemoriaMudou,
@@ -102,8 +106,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const dados = await request.formData();
     const id = String(dados.get('id') ?? '') || undefined;
     const anterior = id ? await obterMemoria(locals.usuario, id) : undefined;
-    const resposta = await tratarComAMemoriaDeAgora(pedidoDoFormulario(dados, anterior), locals);
-    const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string };
+    const pedido = pedidoDoFormulario(dados, anterior);
+    // O código de envio único da página (o toque duplo sem script em "Publicar memória", fila da revisão Z2,
+    // sessão AA): a chave junta o código, quem envia, a memória e o que foi digitado. O segundo toque igual não
+    // grava de novo e responde como o primeiro, como no "Publicar relato". Só para a memória que já existe: a
+    // página da memória nova não tem para onde levar o segundo toque
+    const codigo = String(dados.get('envio') ?? '').slice(0, 80);
+    const envio = id && anterior && codigo ? await chaveDoEnvioUnico(codigo, locals.usuario.pessoa, id, pedido) : undefined;
+    const repetido = async () => {
+      const agora = (await obterMemoria(locals.usuario, id!))!;
+      const publicada = agora.situacao === 'publicada';
+      const recado = !publicada ? 'Rascunho salvo.' : String(dados.get('pagina')) === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
+      return voltar(request, publicada ? `/memorias/${id}` : `/nova?id=${id}`, { ok: recado });
+    };
+    let resposta: Response;
+    try {
+      resposta = await tratarComAMemoriaDeAgora(pedido, locals, envio);
+    } catch (e) {
+      // Os dois toques passaram juntos pela conferência: o lote do segundo voltou na chave do envio
+      if (envio && envioRepetidoNoLote(e)) return repetido();
+      throw e;
+    }
+    const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string; repetido?: boolean };
+    if (corpo.repetido) return repetido();
     if (!resposta.ok) return voltar(request, id ? `/nova?id=${id}` : '/nova', { erro: corpo.erro ?? 'Não consegui salvar.' });
     const recado = corpo.situacao === 'rascunho' ? 'Rascunho salvo.' : anterior?.situacao === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
     return voltar(request, corpo.url!, { ok: recado });
@@ -126,13 +151,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
  * tentativa começa do zero (Y3 do PR #160). Depois de três tentativas, a pessoa recebe o recado, com e
  * sem script.
  */
-async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response> {
+async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals, envio?: string): Promise<Response> {
   // O código da memória, da pessoa nova ou do tema novo que outro pedido usou no meio tempo: o lote voltou
   // inteiro, e o site tenta de novo sozinho, com outro código. Se ainda assim falhar, a pessoa volta para a
   // página com o recado e com o que digitou (D2 da sessão Z, 22/11/2026)
   for (let vez = 1; ; vez++) {
     try {
-      const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
+      const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals, envio));
       return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
     } catch (e) {
       if (!codigoRepetido(e)) throw e;
@@ -173,8 +198,11 @@ function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unk
   };
 }
 
-async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
+async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promise<Response> {
   const { usuario } = locals;
+  // O mesmo envio sem script já gravou (o primeiro toque, ou o outro que ganhou a corrida enquanto esta tentativa
+  // esperava): nada é conferido nem gravado, e quem chama responde como o primeiro
+  if (envio && (await envioJaGravado(envio))) return json({ repetido: true }, 200);
   const lido = Pedido.safeParse(bruto);
   if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
   const pedido = lido.data;
@@ -374,7 +402,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // perde a corrida (MemoriaMudou), nada fica, e a nova tentativa começa do zero (Y3 do PR #160)
   const temasNovos = pedido.temas === undefined ? undefined : await resolverTemas(lerTemas(pedido.temas), usuario);
   dados.temas = temasNovos?.ids;
-  const antesDaFicha: Comando[] = [...aCadastrar.map((nova) => comandoDeCriarIntegrante(nova.id, nova.nome, usuario.pessoa, nova.tratamento)), ...(temasNovos?.comandos ?? []), ...lacosAbertos];
+  const antesDaFicha: Comando[] = [...(envio ? comandosDoEnvio(envio) : []), ...aCadastrar.map((nova) => comandoDeCriarIntegrante(nova.id, nova.nome, usuario.pessoa, nova.tratamento)), ...(temasNovos?.comandos ?? []), ...lacosAbertos];
 
   let id = anterior?.id ?? '';
   // Um código no endereço, e não o título: ver codigoNovo

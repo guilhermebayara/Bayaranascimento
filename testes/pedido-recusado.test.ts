@@ -136,6 +136,17 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     }
   });
 
+  it('/api/memorias: o formulário sem script recusado não guarda o código de envio nem nada mais (sessão AA)', async () => {
+    const giovanna = usuarioDe('giovanna');
+    const r0 = await salvar(giovanna, { titulo: 'Rascunho para recusar', ano: 2020, tipo, pessoas: ['giovanna'], situacao: 'rascunho' });
+    const id = r0.corpo.id as string;
+    const antes = impressao();
+    // O relato em nome de quem acessa o site é recusado: nem a memória muda, nem o código fica
+    const r = await formulario(memorias, '/api/memorias', giovanna, { id, titulo: 'Rascunho para recusar', ano: '2020', tipo, pessoas: 'giovanna', situacao: 'publicada', relato: 'No lugar do Gui.', relatoPor: 'gui', envio: 'codigo-recusado-da-memoria', pagina: 'rascunho' });
+    expect(r.erro).toBeTruthy();
+    expect(impressao()).toBe(antes);
+  });
+
   it('/api/relatos: o envio sem script recusado não guarda o código de envio nem nada mais (D3 da sessão Z)', async () => {
     const relatos = await import('../src/pages/api/relatos');
     const antes = impressao();

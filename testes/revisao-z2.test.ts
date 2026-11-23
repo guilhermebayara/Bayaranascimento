@@ -1077,18 +1077,45 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       expect(relatosDa(semScriptId).map((r) => [r.texto, r.situacao])).toEqual([['Pelo formulário comum.', 'publicada']]);
     });
 
-    it('fila: sem script, o toque duplo em "Publicar memória" num rascunho com relato publica uma vez só, mas a segunda resposta é a página com "Envio inválido."', async () => {
-      // Antes da Z o segundo envio repetia o texto no relato. Agora o relato fica certo, e o que sobra é o
-      // recado: a pessoa publicou e vê uma página de erro
+    it('sem script, o toque duplo em "Publicar memória" num rascunho com relato publica uma vez só, e a segunda resposta é a mesma da primeira (sessão AA)', async () => {
+      // Era um defeito da fila: o segundo toque chegava com a memória já publicada e o relato no formulário, e
+      // a resposta era a página com "Envio inválido.". Agora a página manda um código de envio, como a janela
+      // do relato, e o segundo toque igual responde como o primeiro, sem gravar
       const id = (await pedir('memorias', giovanna, { titulo: 'Z2: D6 toque duplo', ano: 2017, tipo: 'causo', pessoas: ['giovanna'], situacao: 'rascunho' })).corpo.id as string;
-      const campos = { id, titulo: 'Z2: D6 toque duplo', ano: '2017', tipo: 'causo', pessoas: 'giovanna', situacao: 'publicada', relato: 'Uma vez só.', relatoPor: 'giovanna' };
+      const campos = { id, titulo: 'Z2: D6 toque duplo', ano: '2017', tipo: 'causo', pessoas: 'giovanna', situacao: 'publicada', relato: 'Uma vez só.', relatoPor: 'giovanna', envio: 'aa-toque-duplo', pagina: 'rascunho' };
       const primeiro = await semScript('memorias', giovanna, campos);
-      expect(primeiro.ok).toBe('Memória publicada.');
+      expect([primeiro.caminho, primeiro.ok]).toEqual([`/memorias/${id}`, 'Memória publicada.']);
       const depois = impressao();
       const segundo = await semScript('memorias', giovanna, campos);
       expect(impressao()).toBe(depois);
       expect(relatosDa(id).map((r) => r.texto)).toEqual(['Uma vez só.']);
-      expect([segundo.caminho, segundo.erro]).toEqual(['/nova', 'Envio inválido.']);
+      expect([segundo.status, segundo.caminho, segundo.ok, segundo.erro]).toEqual([primeiro.status, primeiro.caminho, primeiro.ok, primeiro.erro]);
+    });
+
+    it('sessão AA: os dois toques juntos, antes de qualquer um gravar, também gravam uma vez e respondem igual', async () => {
+      const id = (await pedir('memorias', giovanna, { titulo: 'AA: toques juntos', ano: 2017, tipo: 'causo', pessoas: ['giovanna'], situacao: 'rascunho' })).corpo.id as string;
+      const campos = { id, titulo: 'AA: toques juntos', ano: '2017', tipo: 'causo', pessoas: 'giovanna', situacao: 'publicada', relato: 'Juntos.', relatoPor: 'giovanna', envio: 'aa-toques-juntos', pagina: 'rascunho' };
+      let segundo: Awaited<ReturnType<typeof semScript>> | undefined;
+      // O segundo toque passa pela conferência enquanto o primeiro espera na porta do lote, e grava antes dele
+      const primeiro = await comOutroPedidoNaPorta(
+        /INSERT INTO envios/,
+        async () => {
+          banco.batch = lote;
+          segundo = await semScript('memorias', giovanna, campos);
+        },
+        () => semScript('memorias', giovanna, campos),
+      );
+      expect(relatosDa(id).map((r) => r.texto)).toEqual(['Juntos.']);
+      expect([primeiro.caminho, primeiro.ok]).toEqual([`/memorias/${id}`, 'Memória publicada.']);
+      expect([segundo!.caminho, segundo!.ok]).toEqual([primeiro.caminho, primeiro.ok]);
+    });
+
+    it('sessão AA: a mesma página enviada de novo com outra coisa digitada não é toque duplo', async () => {
+      const id = (await pedir('memorias', giovanna, { titulo: 'AA: mesma página', ano: 2017, tipo: 'causo', pessoas: ['giovanna'], situacao: 'rascunho' })).corpo.id as string;
+      const campos = { id, titulo: 'AA: mesma página', ano: '2017', tipo: 'causo', pessoas: 'giovanna', situacao: 'rascunho', envio: 'aa-mesma-pagina', pagina: 'rascunho' };
+      expect((await semScript('memorias', giovanna, campos)).ok).toBe('Rascunho salvo.');
+      expect((await semScript('memorias', giovanna, { ...campos, lugar: 'Sabará' })).ok).toBe('Rascunho salvo.');
+      expect(uma<{ lugar: string }>('SELECT lugar FROM memorias WHERE id = ?', id).lugar).toBe('Sabará');
     });
   });
 
