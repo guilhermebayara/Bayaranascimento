@@ -992,23 +992,42 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
       }
     });
 
-    it('fila: integrantes grava o retrato (retratos_enviados) antes do comCodigoNovo, deixando linha no banco na falha final', async () => {
+    it('integrantes: o retrato só entra em retratos_enviados depois que a pessoa entrou; na falha final, nada fica no banco', async () => {
       const antes = impressao();
       // PNG mínimo válido (cabeçalho de 8 bytes)
-      const png = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])], 'retrato.png', { type: 'image/png' });
+      const png = () => new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])], 'retrato.png', { type: 'image/png' });
+      const postos: string[] = [];
+      const putOriginal = (env.FOTOS as { put: (chave: string) => Promise<unknown> }).put;
+      (env.FOTOS as { put: (chave: string) => Promise<unknown> }).put = async (chave: string) => {
+        postos.push(chave);
+        return undefined;
+      };
       const runOriginal = ComandoDeTeste.prototype.run;
       ComandoDeTeste.prototype.run = async function (this: ComandoDeTeste) {
         if (/INSERT INTO integrantes/.test(this.sql)) throw new Error('UNIQUE constraint failed: integrantes.id');
         return runOriginal.call(this);
       };
       try {
-        const r = await semScript('integrantes', gui, { nome: 'Com Retrato Sem Código', tipo: 'pessoa', retrato: png });
+        const r = await semScript('integrantes', gui, { nome: 'Com Retrato Sem Código', tipo: 'pessoa', retrato: png() });
         expect(r.status).toBe(303);
         expect(r.erro).toBe('Não consegui salvar.');
-        // Hoje retratos_enviados ganha uma linha antes do comCodigoNovo falhar
-        expect(impressao()).not.toBe(antes);
+        // Nada no banco: nem a pessoa, nem a linha do tamanho do retrato
+        expect(impressao()).toBe(antes);
+        // O arquivo foi posto uma vez só (não um por tentativa) e fica sem dono no bucket, como o retrato trocado
+        expect(postos).toHaveLength(1);
       } finally {
         ComandoDeTeste.prototype.run = runOriginal;
+      }
+
+      // Com o cadastro dando certo, a linha do tamanho aparece com a chave que ficou na pessoa
+      try {
+        const r = await semScript('integrantes', gui, { nome: 'Com Retrato AA2', tipo: 'pessoa', retrato: png() });
+        expect(r.erro).toBeNull();
+        const pessoa = uma<{ retrato: string }>('SELECT retrato FROM integrantes WHERE nome = ?', 'Com Retrato AA2');
+        expect(pessoa.retrato).toBeTruthy();
+        expect(linhas('SELECT chave FROM retratos_enviados WHERE chave = ?', pessoa.retrato)).toHaveLength(1);
+      } finally {
+        (env.FOTOS as { put: (chave: string) => Promise<unknown> }).put = putOriginal;
       }
     });
 

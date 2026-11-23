@@ -53,7 +53,7 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     return JSON.stringify(tabelas.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
   /** Um formulário comum para uma rota, como o navegador manda */
-  const formulario = async (rota: { POST: (contexto: never) => Promise<Response> | Response }, caminho: string, quem: Usuario, campos: Record<string, string>) => {
+  const formulario = async (rota: { POST: (contexto: never) => Promise<Response> | Response }, caminho: string, quem: Usuario, campos: Record<string, string | File>) => {
     const dados = new FormData();
     for (const [k, v] of Object.entries(campos)) dados.set(k, v);
     const request = new Request(`http://localhost${caminho}`, { method: 'POST', headers: { Origin: 'http://localhost' }, body: dados });
@@ -172,6 +172,29 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect((await formulario(await rota('capitulos'), '/api/capitulos', gui, { titulo: '', modo: 'reunido', temas: 'Tema Recusado' })).erro).toBe('Dê um título ao capítulo.');
     // O tipo de quem não administra
     expect((await formulario(await rota('tipos'), '/api/tipos', elizete, { acao: 'criar', rotulo: 'Tipo Recusado', cor: 'verde', icone: 'viagem' })).erro).toBe('Só os administradores cuidam da lista de tipos.');
+    expect(impressao()).toBe(antes);
+  });
+
+  it('/api/integrantes: o cadastro com retrato recusado não grava a pessoa nem a linha do retrato, nem na recusa comum nem quando o código novo não sai (revisão AA2)', async () => {
+    const gui = usuarioDe('gui');
+    const integrantes = (await import('../src/pages/api/integrantes')) as { POST: (contexto: never) => Promise<Response> };
+    const png = () => new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])], 'retrato.png', { type: 'image/png' });
+    const antes = impressao();
+    // A data que não existe
+    expect((await formulario(integrantes, '/api/integrantes', gui, { nome: 'Retrato Recusado', tipo: 'pessoa', nascimentoAno: '2000', nascimentoMes: '13', retrato: png() })).erro).toBe('Confira o mês de nascimento.');
+    expect(impressao()).toBe(antes);
+    // As três tentativas de código novo esbarram em outro pedido: volta com o recado, sem a pessoa e sem retratos_enviados
+    const { ComandoDeTeste } = await import('./apoio/d1');
+    const runOriginal = ComandoDeTeste.prototype.run;
+    ComandoDeTeste.prototype.run = async function (this: InstanceType<typeof ComandoDeTeste>) {
+      if (/INSERT INTO integrantes/.test(this.sql)) throw new Error('UNIQUE constraint failed: integrantes.id');
+      return runOriginal.call(this);
+    };
+    try {
+      expect((await formulario(integrantes, '/api/integrantes', gui, { nome: 'Retrato Sem Código', tipo: 'pessoa', retrato: png() })).erro).toBe('Não consegui salvar.');
+    } finally {
+      ComandoDeTeste.prototype.run = runOriginal;
+    }
     expect(impressao()).toBe(antes);
   });
 

@@ -34,15 +34,18 @@ async function lerRetrato(dados: FormData): Promise<{ bytes?: Uint8Array; tipo?:
   return { bytes, ...formato };
 }
 
-/** Guarda o retrato no bucket das fotos, debaixo de "retratos/", com uma chave nova. Nada é sobrescrito. */
-async function guardarRetrato(retrato: { bytes: Uint8Array; tipo: string; extensao: string }, integrante: string, usuario: Usuario): Promise<string> {
+/**
+ * Põe o retrato no bucket das fotos, debaixo de "retratos/", com uma chave nova. Nada é sobrescrito. Só o
+ * arquivo: o registro do tamanho (registrarRetratoEnviado) vem depois que a ficha foi gravada, para um
+ * cadastro que não deu certo não deixar linha no banco (revisão AA2, 23/11/2026). O arquivo que sobra sem
+ * dono fica no bucket, como o retrato trocado.
+ */
+async function enviarRetrato(retrato: { bytes: Uint8Array; tipo: string; extensao: string }, integrante: string, usuario: Usuario): Promise<string> {
   const chave = `${crypto.randomUUID()}.${retrato.extensao}`;
   await bucketDeFotos().put(`${PASTA_DOS_RETRATOS}${chave}`, retrato.bytes, {
     httpMetadata: { contentType: retrato.tipo },
     customMetadata: { enviadoPor: usuario.pessoa, integrante },
   });
-  // O tamanho entra na conta do espaço das fotos e áudios (migração 070)
-  await registrarRetratoEnviado(chave, retrato.bytes.byteLength, usuario);
   return chave;
 }
 
@@ -109,9 +112,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const pode = podeMudarRetrato(usuario, anterior, comAcesso);
       if (!pode.ok) return voltar(request, `/pessoas/${id}`, { erro: pode.motivo });
       // Trocar ou tirar não apaga o arquivo antigo: a chave anterior fica na versão guardada do cadastro
-      ficha.retrato = retrato.bytes ? await guardarRetrato(retrato as Required<typeof retrato>, id, usuario) : null;
+      ficha.retrato = retrato.bytes ? await enviarRetrato(retrato as Required<typeof retrato>, id, usuario) : null;
     }
     await atualizarIntegrante(anterior, ficha, usuario);
+    // O tamanho entra na conta do espaço das fotos e áudios (migração 070)
+    if (retrato.bytes && ficha.retrato) await registrarRetratoEnviado(ficha.retrato, retrato.bytes.byteLength, usuario);
     // Quem chegou à ficha vê a pessoa (anterior saiu de listarIntegrantesQueVe): pode dar apelido a ela
     if (meuApelido.guardar && ((await listarMeusApelidos(usuario.pessoa)).get(id) ?? null) !== meuApelido.apelido) {
       await guardarMeuApelido(usuario.pessoa, id, meuApelido.apelido);
@@ -136,7 +141,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // "nova" é o endereço deste formulário, então não pode ser id de ninguém
   let novoId = slugUnico(base, todosOsIds);
   // Quem cadastra pode editar a página, então pode pôr o retrato
-  if (retrato.bytes) ficha.retrato = await guardarRetrato(retrato as Required<typeof retrato>, novoId, usuario);
+  if (retrato.bytes) ficha.retrato = await enviarRetrato(retrato as Required<typeof retrato>, novoId, usuario);
   // O endereço que outro pedido usou no meio tempo: o site tenta de novo sozinho, com o banco de agora, e no fim
   // volta com o recado e o que foi digitado, sem 500 (o D2 da sessão Z, estendido na sessão AA). Se quem
   // entrou no meio tempo tem o mesmo nome, vale o aviso de sempre, com a mesma regra da primeira vez: só quem
@@ -153,6 +158,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   });
   if (criado === SEM_CODIGO) return voltar(request, origem, { erro: 'Não consegui salvar.' });
   if (criado) return voltar(request, origem, { erro: criado });
+  // A pessoa entrou: só agora o tamanho do retrato entra na conta do espaço (migração 070)
+  if (retrato.bytes && ficha.retrato) await registrarRetratoEnviado(ficha.retrato, retrato.bytes.byteLength, usuario);
   if (meuApelido.guardar && meuApelido.apelido) await guardarMeuApelido(usuario.pessoa, novoId, meuApelido.apelido);
   return voltar(request, `/pessoas/${novoId}/editar?novo=1`, { ok: `${nome} entrou no acervo. Agora, os laços.` });
 };

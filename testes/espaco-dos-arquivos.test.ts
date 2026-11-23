@@ -44,7 +44,7 @@ describe('a conta do espaço', () => {
     const pagina = readFileSync('src/pages/admin/index.astro', 'utf-8');
     expect(pagina).toContain('<strong>Fotos e áudios</strong>');
     expect(readFileSync('src/pages/api/fotos.ts', 'utf-8')).toContain('registrarFoto(chave, locals.usuario, dados.byteLength)');
-    expect(readFileSync('src/pages/api/integrantes.ts', 'utf-8')).toContain('registrarRetratoEnviado(chave, retrato.bytes.byteLength, usuario)');
+    expect(readFileSync('src/pages/api/integrantes.ts', 'utf-8')).toContain('registrarRetratoEnviado(ficha.retrato, retrato.bytes.byteLength, usuario)');
   });
 });
 
