@@ -5,7 +5,7 @@ import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto } from '../../lib/servidor/conteudo';
 import { avisarRelatoNovo, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
-import { podeEscreverRelato, publicoDaChave, relatoQueNasce, veORelato, type Publico, type Usuario } from '../../lib/servidor/permissoes';
+import { chaveDoPublico, podeEscreverRelato, publicoDaChave, relatoQueNasce, veORelato, type Publico, type Usuario } from '../../lib/servidor/permissoes';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, mensagensDerivadas, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import {
@@ -17,6 +17,7 @@ import {
   listarIntegrantesQueVe,
   listarMensagensDosRelatos,
   listarNucleos,
+  EnvioRepetido,
   MemoriaMudou,
   obterMemoria,
   obterMensagem,
@@ -71,6 +72,8 @@ const Pedido = z.object({
   // Quem via a memória quando a página abriu (chaveDoPublico): o relato que nasce depois de ela abrir para
   // mais gente nasce só para esse público e espera o sim de quem escreveu (Y3 do PR #160)
   publico: z.string().max(2000).optional(),
+  // O código de envio único da janela sem script (D3 da sessão Z): o toque duplo não grava a mensagem duas vezes
+  envio: z.string().max(80).optional(),
 });
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -88,6 +91,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         acrescentar: texto('acrescentar') === '1',
         ...(Number(texto('cita')) > 0 ? { cita: Number(texto('cita')) } : {}),
         ...(texto('publico') ? { publico: texto('publico') } : {}),
+        ...(texto('envio') ? { envio: texto('envio') } : {}),
       },
       locals,
     );
@@ -133,6 +137,32 @@ async function publicoQueAPaginaMostrava(chave: string | undefined, memoria: Mem
   return { visibilidade: 'nucleos', nucleos: usuario.nucleos };
 }
 
+/**
+ * O público que a página mandou precisa ser um que ela pode ter mostrado (D5 da sessão Z): todos, famílias
+ * da memória ou de quem escreve, ou um público que a memória já teve (a página aberta antes de quem criou
+ * mudar quem vê). O que a tela não oferece é recusado.
+ */
+async function aPaginaPodeTerMostrado(chave: string, memoria: Memoria, usuario: Usuario): Promise<boolean> {
+  const publico = publicoDaChave(chave);
+  if (!publico) return false;
+  if (publico.visibilidade === 'todos') return true;
+  const conhecidas = new Set([...memoria.nucleos, ...usuario.nucleos]);
+  if (publico.nucleos.every((n) => conhecidas.has(n))) return true;
+  return (await publicosQueAMemoriaJaTeve(memoria)).has(chaveDoPublico(publico));
+}
+
+/**
+ * O que a tabela dos envios guarda (migração 109): o resumo do código da página junto com quem envia, o
+ * relato e o texto. Assim o código só vale para a mesma pessoa, o mesmo relato e o mesmo texto: o toque
+ * duplo repete tudo e não grava de novo, e a mesma página enviada outra vez com outro texto grava a mensagem
+ * nova, como antes de o código existir (revisão Z2, 23/11/2026). O resumo não se desfaz: nem o código nem o
+ * texto ficam na tabela.
+ */
+async function chaveDoEnvio(codigo: string, pessoa: string, memoriaId: string, por: string, texto: string): Promise<string> {
+  const resumo = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([codigo, pessoa, memoriaId, por, texto])));
+  return [...new Uint8Array(resumo)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const { usuario } = locals;
   const lido = Pedido.safeParse(bruto);
@@ -158,6 +188,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const memoria = await obterMemoria(usuario, memoriaId);
   if (!memoria) return erro(404, 'Memória não encontrada.');
   if (!(await listarIntegrantesQueVe(usuario)).some((i) => i.id === por)) return erro(400, 'Pessoa não encontrada.');
+  if (lido.data.publico !== undefined && !(await aPaginaPodeTerMostrado(lido.data.publico, memoria, usuario))) return erro(400, 'Envio inválido.');
 
   const existente = await obterRelato(memoriaId, por, usuario);
   const decisao = podeEscreverRelato(usuario, por, existente, await pessoasComAcesso());
@@ -187,7 +218,15 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const { soParaNucleos } = relatoQueNasce(mostrava, memoria, usuario.pessoa, memoria.criadaPor);
     if (soParaNucleos) nasce = { soParaNucleos, de: memoria.criadaPor, paraQuem: paraQuemPassouAVer(comoPublicoAntigo(soParaNucleos), memoria, await listarNucleos()) };
   }
-  await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce });
+  const envio = lido.data.envio ? await chaveDoEnvio(lido.data.envio, usuario.pessoa, memoriaId, por, lido.data.texto) : undefined;
+  try {
+    await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce, envio });
+  } catch (e) {
+    // O mesmo envio de novo (o toque duplo sem script): o primeiro já gravou, e este responde como ele, sem gravar
+    if (!(e instanceof EnvioRepetido)) throw e;
+    const agora = await obterRelatoRegistradoPor(memoriaId, por, usuario);
+    return json({ url: `/memorias/${memoriaId}`, situacao: agora?.situacao ?? situacao, editado: true }, 200);
+  }
   const salvo = await obterRelatoRegistradoPor(memoriaId, por, usuario);
   if (salvo && audios) await ligarAudios(salvo.id, memoriaId, audios, usuario);
   // Fotos: sem a lista (o formulário sem script), as que já estavam com o relato continuam, e as que

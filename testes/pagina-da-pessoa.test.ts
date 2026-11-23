@@ -77,7 +77,7 @@ describe('a página, depois das observações do Gui (18/11/2026)', () => {
     expect(pagina).toMatch(/<div class="dados__data" data-falecimento hidden=\{!p\.mostrarDatas\}>/);
     expect(pagina).toMatch(/falecimento\.hidden = !falecimento\.hidden;/);
     expect(pagina).toMatch(/history\.replaceState\(history\.state, '', endereco\);/);
-    expect(pagina).toMatch(/<form class="como-chama__form" method="post" action="\/api\/apelidos" data-no-lugar="abertura">/);
+    expect(pagina).toMatch(/<form class="como-chama__form" method="post" action="\/api\/apelidos" data-no-lugar="abertura" data-chave="como-chama">/);
     expect(pagina).toMatch(/<div class="regiao" data-regiao="abertura">/);
   });
   it('as outras formas de ver são buscadas antes, para a troca ser imediata', () => {

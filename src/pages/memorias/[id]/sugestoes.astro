@@ -73,7 +73,7 @@ const comAcesso = await pessoasComAcesso();
               )}
               {s.resposta && s.respondidaPor === usuario.pessoa && <p class="dica">Sua resposta: {s.resposta}</p>}
               {s.situacao === 'aberta' && (
-                <form class="formulario sugestoes__responder" method="post" action="/api/sugestoes" data-no-lugar="sugestoes retrato">
+                <form class="formulario sugestoes__responder" method="post" action="/api/sugestoes" data-no-lugar="sugestoes retrato" data-chave={`sugestao-${s.id}`}>
                   <input type="hidden" name="memoria" value={memoria.id} />
                   <input type="hidden" name="sugestao" value={s.id} />
                   <label class="campo">

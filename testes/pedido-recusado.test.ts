@@ -83,6 +83,56 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(temasChamados('Tema Recusado Três')).toBe(0);
   });
 
+  it('/api/memorias: com áudio no relato, o pedido recusado não prende o áudio nem grava a memória (D1 da sessão Z)', async () => {
+    const repo = await import('../src/lib/servidor/repositorio');
+    const audio = await repo.registrarAudio({ chave: 'teste/recusado-com-audio.m4a', tipo: 'audio/mp4', tamanho: 10, duracao: 2, memoriaId: null }, elizete);
+    const antes = impressao();
+    const r = await salvar(elizete, { titulo: 'Recusada com áudio', ano: 2020, tipo, pessoas: ['elizete'], relato: { por: 'gui', texto: 'No lugar do Gui.', audios: [{ id: audio }] } });
+    expect(r.status).toBe(403);
+    expect(impressao()).toBe(antes);
+  });
+
+  it('/api/memorias: o código que repete nas três tentativas recusa sem gravar nada (D2 da sessão Z)', async () => {
+    const lote = banco.batch.bind(banco);
+    banco.batch = async (comandos) => {
+      if (comandos.some((c) => /^\s*INSERT INTO memorias/.test(c.sql))) throw new Error('D1_ERROR: UNIQUE constraint failed: memorias.id: SQLITE_CONSTRAINT');
+      return lote(comandos);
+    };
+    try {
+      const antes = impressao();
+      const r = await salvar(elizete, { titulo: 'Recusada pelo código', ano: 2020, tipo, pessoas: ['nova:0'], novasPessoas: [{ nome: 'Pessoa do Código' }], temas: 'Tema do Código' });
+      expect(r.status).toBe(503);
+      expect(impressao()).toBe(antes);
+    } finally {
+      banco.batch = lote;
+    }
+  });
+
+  it('/api/relatos: o envio sem script recusado não guarda o código de envio nem nada mais (D3 da sessão Z)', async () => {
+    const relatos = await import('../src/pages/api/relatos');
+    const antes = impressao();
+    const r = await formulario(relatos, '/api/relatos', elizete, { memoria: 'ninguem-tem-esta', por: 'elizete', acrescentar: '1', texto: 'Nada.', situacao: 'publicada', envio: 'codigo-de-envio-recusado' });
+    expect(r.erro).toBe('Memória não encontrada.');
+    expect(impressao()).toBe(antes);
+  });
+
+  it('/api/relatos: o público que a tela não oferece é recusado sem mudar nada (D5 da sessão Z)', async () => {
+    const relatos = await import('../src/pages/api/relatos');
+    const antes = impressao();
+    const r = await formulario(relatos, '/api/relatos', elizete, { memoria: 'recusas', por: 'aguilar', acrescentar: '1', texto: 'Forjado.', situacao: 'publicada', publico: 'nucleos:bracarense' });
+    expect(r.erro).toBe('Envio inválido.');
+    expect(impressao()).toBe(antes);
+  });
+
+  it('/api/memorias: o relato numa memória publicada, que a tela não oferece, é recusado sem mudar nada (D6 da sessão Z)', async () => {
+    const antes = impressao();
+    // O Gui criou a memória e pode corrigi-la: a recusa é pelo relato, que a tela não oferece na memória publicada
+    const r = await salvar(gui, { id: 'recusas', titulo: 'Pedidos recusados', ano: 1991, tipo, pessoas: [], relato: { por: 'gui', texto: 'Pela ficha.' } });
+    expect(r.status).toBe(400);
+    expect(r.corpo.erro).toBe('Envio inválido.');
+    expect(impressao()).toBe(antes);
+  });
+
   it('o mesmo pedido, sem o que era recusado, grava tudo, e a mesma pessoa nova repetida vira uma só', async () => {
     const r = await salvar(elizete, { titulo: 'Aceita', ano: 2020, tipo, pessoas: ['nova:0', 'nova:1'], novasPessoas: [{ nome: 'Pessoa Aceita' }, { nome: 'Pessoa Aceita' }], temas: 'Tema Aceito', relato: { por: 'elizete', texto: 'O meu relato.' } });
     expect(r.status).toBe(201);

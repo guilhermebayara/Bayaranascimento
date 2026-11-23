@@ -57,6 +57,8 @@ const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relato
         <input type="hidden" name="por" value={por} />
         <input type="hidden" name="acrescentar" value="1" />
         {publico && <input type="hidden" name="publico" value={publico} />}
+        {/* Sem script, o toque duplo em "Publicar relato" não grava a mensagem duas vezes: um código por página (D3 da sessão Z) */}
+        <input type="hidden" name="envio" value={crypto.randomUUID()} />
       </>
     )
   }

@@ -993,6 +993,14 @@ export const MIGRACOES: Migracao[] = [
       `CREATE UNIQUE INDEX IF NOT EXISTS avisos_um_pedido_aberto ON avisos (relato_id) WHERE tipo = 'liberar-relato' AND resolvido_em IS NULL`,
     ],
   },
+  {
+    // O código de envio único do formulário sem script (D3 da sessão Z, 22/11/2026): a janela de escrever
+    // o relato leva um código novo a cada página, gravado no mesmo lote do relato. O segundo envio com o
+    // mesmo código (o toque duplo em "Publicar relato") faz o lote voltar inteiro, e nada é gravado de novo.
+    // Só o código e a hora: os de mais de dois dias saem no próximo envio.
+    id: '109-envios-unicos',
+    sql: [`CREATE TABLE IF NOT EXISTS envios (codigo TEXT PRIMARY KEY, em TEXT NOT NULL DEFAULT (datetime('now')))`],
+  },
 ];
 
 // Uma preparação por banco: a homologação tem o dela

@@ -204,11 +204,14 @@ const erro = Astro.url.searchParams.get('erro');
 ---
 
 <Visual titulo="Início" secao="painel" familia={corDoPainel} intimo>
+  {/* A faixa de recados (data-recados): vazia e escondida sem recado, para o formulário no lugar achá-la */}
   {
-    (ok || erro) && (
-      <div class="miolo painel__recado">
+    ok || erro ? (
+      <div class="miolo painel__recado" data-recados>
         <Recado erro={Boolean(erro)}>{erro ?? ok}</Recado>
       </div>
+    ) : (
+      <p data-recados hidden />
     )
   }
   {

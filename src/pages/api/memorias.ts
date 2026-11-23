@@ -32,12 +32,13 @@ import {
   obterRelato,
   type DadosDaMemoria,
   type Memoria,
-  ligarAudios,
-  obterRelatoRegistradoPor,
+  audiosQueEntram,
+  comandosDasMensagens,
+  comandosDosAudios,
   pessoasQueSoVoceVe,
-  gravarMensagens,
   listarAudiosDosRelatos,
   listarMensagensDosRelatos,
+  codigoRepetido,
   MemoriaMudou,
   RECADO_MEMORIA_MUDOU,
   refazerSeAMemoriaMudou,
@@ -120,14 +121,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
  * Mudar quem vê conta com os relatos que a rota leu. Se outro lote mudou a memória ou os relatos dela no
  * meio tempo (um relato novo, uma resposta ao pedido, outro salvamento), o lote volta sem gravar nada
  * (MemoriaMudou), e o pedido é tratado de novo, lendo o banco de agora: a espera sai de todo relato que
- * existe na hora do lote (revisão Y2 do PR #160, item 4b). Antes de gravar o lote, tratar só grava o que
- * não depende da corrida e que a segunda vez reaproveita (a pessoa nova, o tema). Depois de três
- * tentativas, a pessoa recebe o recado, com e sem script.
+ * existe na hora do lote (revisão Y2 do PR #160, item 4b). Tratar não grava nada antes do lote: a pessoa
+ * nova e o tema novo só ganham o id antes e são cadastrados no mesmo lote da memória, então a nova
+ * tentativa começa do zero (Y3 do PR #160). Depois de três tentativas, a pessoa recebe o recado, com e
+ * sem script.
  */
 async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response> {
-  const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
-  return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
+  // O código da memória, da pessoa nova ou do tema novo que outro pedido usou no meio tempo: o lote voltou
+  // inteiro, e o site tenta de novo sozinho, com outro código. Se ainda assim falhar, a pessoa volta para a
+  // página com o recado e com o que digitou (D2 da sessão Z, 22/11/2026)
+  for (let vez = 1; ; vez++) {
+    try {
+      const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
+      return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
+    } catch (e) {
+      if (!codigoRepetido(e)) throw e;
+      if (vez >= TENTATIVAS_COM_CODIGO_NOVO) return erro(503, 'Não consegui salvar.');
+    }
+  }
 }
+const TENTATIVAS_COM_CODIGO_NOVO = 3;
 
 const mesmasFamilias = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((n) => b.includes(n));
 
@@ -177,6 +190,11 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const decisao = podeEditarMemoria(usuario, anterior);
     if (!decisao.ok) return erro(403, decisao.motivo);
   }
+  // Numa memória publicada, a tela não tem a etapa do relato: cada pessoa escreve o seu pela tela de relato,
+  // com as regras dela (o público que a página mostrava, o relato que nasce esperando, os avisos). O relato
+  // que chega por aqui, só por pedido forjado, é recusado (D6 da sessão Z)
+  const comRelato = Boolean(pedido.relato && (pedido.relato.texto.trim() || pedido.relato.audios?.length || pedido.relato.mensagens?.length));
+  if (anterior?.situacao === 'publicada' && comRelato) return erro(400, 'Envio inválido.');
   // Uma memória publicada não volta a ser rascunho
   const situacao = anterior?.situacao === 'publicada' ? 'publicada' : pedido.situacao;
   if (situacao === 'publicada' && !pedido.tipo) return erro(400, 'Escolha o tipo de momento.');
@@ -249,12 +267,11 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const desta = registro && anterior && registro.memoriaId === anterior.id;
     if (!solta && !desta) return erro(400, 'Uma das fotos não foi encontrada. Tente enviar de novo.');
   }
-  const fotos = pedidas.map((f) => ({ ...f }));
-  if (fotos.length > 0 && !fotos.some((f) => f.principal)) fotos[0].principal = true;
+  let fotos = pedidas.map((f) => ({ ...f }));
 
   // Só sai da memória a foto que a pessoa viu e tirou (Y3 do PR #160): a que a página mostrava e não está
   // mais na lista. A que entrou depois (por um relato, por "Acrescentar fotos") fica, no fim da ordem e como
-  // estava. A página de antes, que não diz o que mostrava, não tira foto nenhuma
+  // estava. A página de antes, que não diz o que mostrava, não tira foto nenhuma (e não mexe nas outras, D7)
   const mostradas = new Set(pedido.fotosMostradas ?? []);
   const mantidas = new Set(fotos.map((f) => f.id));
   const removidas = (anterior?.fotos ?? []).filter((f) => mostradas.has(f.id) && !mantidas.has(f.id));
@@ -268,7 +285,26 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const vistas = pedido.fotosMostradas ? anterior.fotos.filter((f) => mostradas.has(f.id)) : anterior.fotos;
     const conteudo = mudancaDeConteudo({ ...anterior, fotos: vistas }, { titulo: pedido.titulo, nucleos, fotos: pedidas });
     if (!conteudo.ok) return erro(403, conteudo.motivo);
+    // E ele não muda nem a principal nem a ordem, qualquer que seja a lista mandada (uma parte das fotos em
+    // "fotosMostradas", por pedido forjado ou pela página aberta antes de quem criou trocar a principal): as
+    // fotos ficam como estão no banco, sem as que ele tirou (D4 da sessão Z)
+    const tiradas = new Set(removidas.map((f) => f.id));
+    fotos = anterior.fotos.filter((f) => !tiradas.has(f.id)).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal }));
   }
+  // A página de antes, que não diz o que mostrava (o pedido em JSON sem "fotosMostradas"), não mexe nas fotos
+  // da memória: elas ficam como estão no banco, sem tirar nenhuma e sem mudar ordem, legenda ou principal, e
+  // só entram as novas que a pessoa enviou, no fim. Assim "Memória atualizada" não promete o que não foi
+  // feito com as fotos (D7 da sessão Z)
+  if (anterior && !pedido.fotosMostradas) {
+    const daMemoria = new Set(anterior.fotos.map((f) => f.id));
+    fotos = [
+      ...anterior.fotos.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined, principal: f.principal })),
+      ...pedidas.filter((f) => !daMemoria.has(f.id)).map((f) => ({ ...f, principal: false })),
+    ];
+  }
+  // Memória com foto sempre tem principal: sem nenhuma, a primeira vira a principal, também quando a pessoa
+  // tirou a única que via e ficou a que outra pessoa acrescentou (D8 da sessão Z)
+  if (fotos.length > 0 && !fotos.some((f) => f.principal)) fotos[0].principal = true;
 
   // As fotos tiradas vão para a lixeira; quem tira é quem enviou ou um administrador
   for (const foto of removidas) {
@@ -347,9 +383,10 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const marcadosAntes = anterior?.situacao === 'publicada' ? anterior.integrantes : [];
   const avisos = comandosDosAvisos(await avisosDeQuemEstava({ id, situacao, visibilidade: dados.visibilidade, nucleos, integrantes, criadaPor: anterior?.criadaPor ?? usuario.pessoa }, marcadosAntes, usuario));
 
-  // Relato de quem está registrando: no mesmo lote. Relato já publicado continua publicado; os demais
-  // acompanham a situação da memória
-  let doRelato: { comandos: Comando[]; mensagens: Mensagem[]; nasce: boolean } | undefined;
+  // Relato de quem está registrando: no mesmo lote, com os áudios e as mensagens dele. Relato já publicado
+  // continua publicado; os demais acompanham a situação da memória. Um lote só: se ele falha, nada fica, o
+  // áudio continua solto e a nova tentativa cria a memória uma vez (D1, revisões do PR #160)
+  let doRelato: { comandos: Comando[]; nasce: boolean } | undefined;
   if (relatoPor) {
     const existente = anterior ? await obterRelato(id, relatoPor, usuario) : undefined;
     const situacaoDoRelato = existente?.situacao === 'publicada' ? 'publicada' : situacao;
@@ -359,9 +396,22 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
       ? pedido.relato.mensagens.map((m) => ({ ...(m.id ? { id: m.id } : {}), tipo: m.tipo, ...(m.tipo === 'texto' ? { texto: arrumarTexto(m.texto ?? '') } : { audioId: m.audioId }) }))
       : [...antesDoRelato, ...paragrafos(textoDoRelato).map((t) => ({ tipo: 'texto' as const, texto: t }))];
     const texto = pedido.relato?.mensagens ? textoDasMensagens(mensagens) : textoDasMensagens(mensagens) || textoDoRelato;
+    // O relato de quem registra: o id, se já existe, ou a consulta que o acha no lote em que nasce. O relato
+    // registrado por outra pessoa não recebe os áudios nem as mensagens de quem salva
+    const meu = !existente ? { memoriaId: id, por: relatoPor, registradoPor: usuario.pessoa } : existente.registradoPor === usuario.pessoa ? existente.id : undefined;
+    const relatoId = typeof meu === 'number' ? meu : null;
+    // Os áudios: só os que a pessoa enviou para esta memória e ainda estão soltos ou neste relato. Sem a
+    // lista, os do relato ficam como estão
+    const aceitos = meu && audiosDoRelato ? await audiosQueEntram(relatoId, id, audiosDoRelato, usuario) : undefined;
+    const ficaram = new Set(aceitos ? aceitos.map((a) => a.id) : relatoId ? ((await listarAudiosDosRelatos([relatoId])).get(relatoId) ?? []).map((a) => a.id) : []);
+    // Só as mensagens de áudio que ficaram mesmo no relato
+    const validas = mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim())));
     doRelato = {
-      comandos: comandosDoRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato }),
-      mensagens,
+      comandos: [
+        ...comandosDoRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato }),
+        ...(meu && aceitos ? comandosDosAudios(meu, id, aceitos) : []),
+        ...(meu ? await comandosDasMensagens(meu, validas) : []),
+      ],
       nasce: !existente,
     };
   }
@@ -394,17 +444,6 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     });
   } else {
     await criarMemoria(id, dados, usuario, { antes: antesDaFicha, junto: depoisDaFicha });
-  }
-
-  // Os áudios e as mensagens do relato apontam para ele: entram depois de o lote passar
-  if (relatoPor && doRelato) {
-    const meu = await obterRelatoRegistradoPor(id, relatoPor, usuario);
-    if (meu && audiosDoRelato) await ligarAudios(meu.id, id, audiosDoRelato, usuario);
-    if (meu) {
-      // Só as mensagens de áudio que ficaram mesmo no relato
-      const ficaram = new Set(((await listarAudiosDosRelatos([meu.id])).get(meu.id) ?? []).map((a) => a.id));
-      await gravarMensagens(meu.id, doRelato.mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim()))));
-    }
   }
 
   // "esperam": de quem são os relatos que passaram a esperar, para quem ampliou ver ao salvar

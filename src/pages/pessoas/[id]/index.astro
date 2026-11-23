@@ -62,10 +62,13 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
 ---
 <Visual titulo={pessoa.nome} secao="pessoas" nucleos={p.familiasDaPessoa.map((f) => f.id)} familia={p.familiaDaPessoa}>
   <article class="verbete">
-    {recado && (
-      <div class="miolo verbete__recado">
+    {/* A faixa de recados (data-recados): vazia e escondida sem recado, para o formulário no lugar achá-la */}
+    {recado ? (
+      <div class="miolo verbete__recado" data-recados>
         <Recado erro={Boolean(Astro.url.searchParams.get('erro'))}>{recado}</Recado>
       </div>
+    ) : (
+      <p data-recados hidden />
     )}
     <div class="verbete__alto miolo grade">
       {/* A abertura é uma região: "Como você chama" troca o nome no lugar, sem recarregar (no-lugar.ts) */}
@@ -105,7 +108,7 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
           {!p.ehMinha && (
             <details class="como-chama" id="como-voce-chama">
               <summary class="acao acao--quieta">{p.meuApelido ? `Você chama de ${p.meuApelido}` : `Como você chama ${pessoa.nome}?`}</summary>
-              <form class="como-chama__form" method="post" action="/api/apelidos" data-no-lugar="abertura">
+              <form class="como-chama__form" method="post" action="/api/apelidos" data-no-lugar="abertura" data-chave="como-chama">
                 <input type="hidden" name="pessoa" value={pessoa.id} />
                 <label class="campo">
                   <span class="so-leitor">Como você chama {pessoa.nome}?</span>

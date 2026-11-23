@@ -629,7 +629,7 @@ describe('grupo formularios', () => {
     expect(pagina).toContain("import { guardarFormularios } from '../../lib/cliente/guardar-formulario';");
     expect(pagina).toContain('marcarEnvios()');
     // O recado que volta do servidor é a peça do sistema
-    expect(pagina).toContain('{recadoErro && <Recado erro>{recadoErro}</Recado>}');
+    expect(pagina).toContain('{recadoErro && <Recado erro data-recados>{recadoErro}</Recado>}');
   });
 
 

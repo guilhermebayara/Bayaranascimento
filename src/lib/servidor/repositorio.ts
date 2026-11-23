@@ -179,6 +179,15 @@ export async function refazerSeAMemoriaMudou<T>(fazer: () => Promise<T>, tentati
     }
   }
 }
+/**
+ * O código novo (da memória, da pessoa nova, do tema novo) foi usado por outro pedido entre a leitura e o
+ * lote: o lote inteiro voltou, e o pedido pode ser tratado de novo, com um código lido do banco de agora
+ * (D2 da sessão Z, 22/11/2026).
+ */
+export function codigoRepetido(erro: unknown): boolean {
+  return /UNIQUE constraint failed: (memorias|integrantes|temas)\.id\b/.test(String((erro as Error)?.message ?? erro));
+}
+
 /** Um comando do banco, para gravar junto num lote (db.batch, uma transação). */
 export type Comando = ReturnType<ReturnType<typeof banco>['prepare']>;
 
@@ -934,8 +943,22 @@ function comandosDeLigacao(id: string, dados: DadosDaMemoria, quemVe: GravarQuem
         .bind(id, foto.legenda ?? null, foto.principal ? 1 : 0, ordem, foto.id),
     );
   });
+  comandos.push(comandoDaPrincipal(id));
   return comandos;
 }
+
+/**
+ * Memória com foto sempre tem principal (docs/decisoes.md): sem nenhuma, a primeira vira a principal. No fim
+ * do lote, para valer também com a foto que outra pessoa acrescentou entre a leitura e o lote (D8 da sessão Z).
+ * Vai no lote da ficha, no de "Acrescentar fotos" e no das fotos pelo relato (Z2): a corrida tem dois lados.
+ */
+const comandoDaPrincipal = (memoriaId: string) =>
+  db()
+    .prepare(
+      `UPDATE fotos SET principal = 1 WHERE id = (SELECT id FROM fotos WHERE memoria_id = ?1 AND removida_em IS NULL ORDER BY ordem, id LIMIT 1)
+       AND NOT EXISTS (SELECT 1 FROM fotos WHERE memoria_id = ?1 AND removida_em IS NULL AND principal = 1)`,
+    )
+    .bind(memoriaId);
 
 /**
  * Cria a memória num lote só. `antes`: o que a ficha cita e ainda não existe (a pessoa nova, o tema novo,
@@ -1462,6 +1485,9 @@ export async function ligarFotosDoRelato(
         .prepare('UPDATE fotos SET relato_id = ?, memoria_id = ?, legenda = ?, ordem = ?, principal = ? WHERE id = ?')
         .bind(relato.id, relato.memoriaId, legenda, ordem++, principal, item.id);
     }),
+    // A principal é conferida no fim do lote, no banco: a foto que sai daqui pode ser a principal, e a única
+    // foto da memória pode ter sido tirada entre a leitura e o lote (Z2, o outro lado da corrida do D8)
+    comandoDaPrincipal(relato.memoriaId),
   ]);
   return validos.length;
 }
@@ -1747,15 +1773,32 @@ export async function salvarRelato(
   // A rota do relato confere a versão da memória que leu, como os outros lotes (Y3 do PR #160): se a memória
   // mudou depois da leitura, nada é gravado (MemoriaMudou), e a rota refaz a conta com a memória de agora.
   // `nasce`: o relato novo que espera o sim de quem escreveu (relatoQueNasce), com o pedido
-  { conferir, nasce }: { conferir?: number; nasce?: RelatoQueNasceEsperando } = {},
+  // `envio`: a chave do envio único do formulário sem script (migração 109; a rota a faz do código da página, de
+  // quem envia, do relato e do texto): repetida, nada é gravado (EnvioRepetido)
+  { conferir, nasce, envio }: { conferir?: number; nasce?: RelatoQueNasceEsperando; envio?: string } = {},
 ): Promise<void> {
-  if (conferir === undefined) {
-    await db().batch(comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce }));
-    return;
+  const doEnvio = envio ? comandosDoEnvio(envio) : [];
+  try {
+    if (conferir === undefined) {
+      await db().batch([...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce })]);
+      return;
+    }
+    // Conferir a versão também a sobe: o relato novo dispensa a subida sem conferência
+    await loteDaMemoria([conferirVersao(memoriaId, conferir), ...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false })]);
+  } catch (erro) {
+    if (/UNIQUE constraint failed: envios\.codigo\b/.test(String((erro as Error)?.message ?? erro))) throw new EnvioRepetido();
+    throw erro;
   }
-  // Conferir a versão também a sobe: o relato novo dispensa a subida sem conferência
-  await loteDaMemoria([conferirVersao(memoriaId, conferir), ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false })]);
 }
+
+/** O mesmo envio chegou de novo (o toque duplo sem script): o lote voltou, e nada foi gravado de novo. */
+export class EnvioRepetido extends Error {}
+
+/** Guarda a chave do envio no lote e tira as de mais de dois dias (migração 109). */
+const comandosDoEnvio = (codigo: string): Comando[] => [
+  db().prepare(`DELETE FROM envios WHERE em < datetime('now', '-2 days')`),
+  db().prepare('INSERT INTO envios (codigo) VALUES (?)').bind(codigo),
+];
 
 /** O relato novo que nasce esperando: só para estas famílias, com o pedido de quem criou a memória. */
 export interface RelatoQueNasceEsperando {
@@ -1895,11 +1938,25 @@ export async function listarAudiosDosRelatos(relatoIds: number[]): Promise<Map<n
 }
 
 /**
- * Liga ao relato os áudios da lista, na ordem dela e com a transcrição de cada um, e marca como removidos
- * os que eram do relato e saíram da lista. Só entram áudios que a própria pessoa enviou para esta memória.
- * Devolve quantos da lista foram aceitos.
+ * O relato num lote: o id, quando ele já existe, ou a consulta que o acha no próprio lote em que nasce (o
+ * relato que esta pessoa registrou em nome de "por" nesta memória, como obterRelatoRegistradoPor). Assim a
+ * rota da memória grava o relato, os áudios e as mensagens dele no mesmo lote da ficha (D1, revisões do
+ * PR #160): se o lote falha, nada fica, e o áudio continua solto para a nova tentativa.
  */
-export async function ligarAudios(relatoId: number, memoriaId: string, itens: { id: number; transcricao?: string }[], usuario: Usuario): Promise<number> {
+export type RelatoNoLote = number | { memoriaId: string; por: string; registradoPor: string };
+function relatoNoLote(relato: RelatoNoLote): { sql: string; valores: (string | number)[] } {
+  if (typeof relato === 'number') return { sql: '?', valores: [relato] };
+  return {
+    sql: '(SELECT MAX(id) FROM relatos WHERE memoria_id = ? AND por = ? AND registrado_por = ? AND descartado_em IS NULL)',
+    valores: [relato.memoriaId, relato.por, relato.registradoPor],
+  };
+}
+
+/**
+ * Os áudios da lista que podem entrar no relato, na ordem dela: só os que a própria pessoa enviou para esta
+ * memória (ou ainda soltos), e que não são de outro relato. `relatoId` vazio: o relato ainda vai nascer.
+ */
+export async function audiosQueEntram(relatoId: number | null, memoriaId: string, itens: { id: number; transcricao?: string }[], usuario: Usuario): Promise<{ id: number; transcricao?: string }[]> {
   const ids = itens.map((i) => i.id);
   const { results } = await db()
     .prepare(
@@ -1909,18 +1966,36 @@ export async function ligarAudios(relatoId: number, memoriaId: string, itens: { 
     .bind(usuario.pessoa, memoriaId, relatoId, ...ids)
     .all<{ id: number }>();
   const aceitos = new Set(results.map((r: { id: number }) => r.id));
-  const validos = itens.filter((i) => aceitos.has(i.id));
-  await db().batch([
+  return itens.filter((i) => aceitos.has(i.id));
+}
+
+/**
+ * Os comandos que ligam ao relato os áudios aceitos (audiosQueEntram), na ordem e com a transcrição de cada
+ * um, e marcam como removidos os que eram do relato e saíram da lista.
+ */
+export function comandosDosAudios(relato: RelatoNoLote, memoriaId: string, aceitos: { id: number; transcricao?: string }[]): Comando[] {
+  const r = relatoNoLote(relato);
+  return [
     db()
       // Sem nenhum áudio que fica, a lista some: "id NOT IN (NULL)" nunca é verdadeiro e o último áudio não saía
-      .prepare(`UPDATE audios SET removido_em = datetime('now') WHERE relato_id = ? AND removido_em IS NULL${validos.length ? ` AND id NOT IN (${validos.map(() => '?').join(', ')})` : ''}`)
-      .bind(relatoId, ...validos.map((i) => i.id)),
-    ...validos.map((item, ordem) =>
+      .prepare(`UPDATE audios SET removido_em = datetime('now') WHERE relato_id = ${r.sql} AND removido_em IS NULL${aceitos.length ? ` AND id NOT IN (${aceitos.map(() => '?').join(', ')})` : ''}`)
+      .bind(...r.valores, ...aceitos.map((i) => i.id)),
+    ...aceitos.map((item, ordem) =>
       db()
-        .prepare('UPDATE audios SET relato_id = ?, memoria_id = ?, ordem = ?, transcricao = ? WHERE id = ?')
-        .bind(relatoId, memoriaId, ordem, item.transcricao?.trim() || null, item.id),
+        .prepare(`UPDATE audios SET relato_id = ${r.sql}, memoria_id = ?, ordem = ?, transcricao = ? WHERE id = ?`)
+        .bind(...r.valores, memoriaId, ordem, item.transcricao?.trim() || null, item.id),
     ),
-  ]);
+  ];
+}
+
+/**
+ * Liga ao relato os áudios da lista, na ordem dela e com a transcrição de cada um, e marca como removidos
+ * os que eram do relato e saíram da lista. Só entram áudios que a própria pessoa enviou para esta memória.
+ * Devolve quantos da lista foram aceitos.
+ */
+export async function ligarAudios(relatoId: number, memoriaId: string, itens: { id: number; transcricao?: string }[], usuario: Usuario): Promise<number> {
+  const validos = await audiosQueEntram(relatoId, memoriaId, itens, usuario);
+  await db().batch(comandosDosAudios(relatoId, memoriaId, validos));
   return validos.length;
 }
 
@@ -2344,15 +2419,18 @@ export async function acrescentarFotos(memoriaId: string, itens: { id: number; l
     .first<{ ordem: number | null; principal: number | null }>();
   let ordem = (ultima?.ordem ?? -1) + 1;
   let semPrincipal = !ultima?.principal;
-  await db().batch(
-    validos.map((item) => {
+  await db().batch([
+    ...validos.map((item) => {
       const principal = semPrincipal ? 1 : 0;
       semPrincipal = false;
       return db()
         .prepare('UPDATE fotos SET memoria_id = ?, legenda = ?, ordem = ?, principal = ? WHERE id = ?')
         .bind(memoriaId, item.legenda?.trim() || null, ordem++, principal, item.id);
     }),
-  );
+    // A principal é conferida no fim do lote, no banco: a única foto da memória pode ter sido tirada entre a
+    // leitura e o lote (Z2, o outro lado da corrida do D8)
+    comandoDaPrincipal(memoriaId),
+  ]);
   return validos.length;
 }
 
@@ -2944,26 +3022,35 @@ export async function listarMensagensDosRelatos(relatos: Pick<Relato, 'id' | 'te
 }
 
 /**
- * Grava as mensagens do relato, na ordem dada. A que tem id e é deste relato é atualizada no lugar
- * (guarda a hora em que foi enviada e o id, para quem a cita); a nova entra com a hora de agora; a que
- * saiu da lista é apagada. Devolve as mensagens gravadas, com os ids.
+ * Os comandos que gravam as mensagens do relato, na ordem dada. A que tem id e é deste relato é atualizada
+ * no lugar (guarda a hora em que foi enviada e o id, para quem a cita); a nova entra com a hora de agora; a
+ * que saiu da lista é apagada. O relato que nasce no mesmo lote ainda não tem mensagem nenhuma.
  */
-export async function gravarMensagens(relatoId: number, mensagens: Mensagem[]): Promise<Mensagem[]> {
-  const antes = (await listarMensagensGravadas([relatoId])).get(relatoId) ?? [];
+export async function comandosDasMensagens(relato: RelatoNoLote, mensagens: Mensagem[]): Promise<Comando[]> {
+  const antes = typeof relato === 'number' ? ((await listarMensagensGravadas([relato])).get(relato) ?? []) : [];
   const deste = new Set(antes.map((m) => m.id));
   const ficam = new Set(mensagens.filter((m) => m.id !== undefined && deste.has(m.id)).map((m) => m.id));
-  const comandos = [
+  const r = relatoNoLote(relato);
+  return [
     ...antes.filter((m) => !ficam.has(m.id)).map((m) => db().prepare('DELETE FROM relato_mensagens WHERE id = ?').bind(m.id)),
     ...mensagens.map((m, ordem) =>
       m.id !== undefined && deste.has(m.id)
         ? db()
             .prepare('UPDATE relato_mensagens SET ordem = ?, tipo = ?, texto = ?, audio_id = ?, foto_id = ?, cita_id = ? WHERE id = ? AND relato_id = ?')
-            .bind(ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null, m.id, relatoId)
+            .bind(ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null, m.id, relato)
         : db()
-            .prepare('INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto, audio_id, foto_id, cita_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
-            .bind(relatoId, ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null),
+            .prepare(`INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto, audio_id, foto_id, cita_id) VALUES (${r.sql}, ?, ?, ?, ?, ?, ?)`)
+            .bind(...r.valores, ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null),
     ),
   ];
+}
+
+/**
+ * Grava as mensagens do relato, na ordem dada (comandosDasMensagens). Devolve as mensagens gravadas, com
+ * os ids.
+ */
+export async function gravarMensagens(relatoId: number, mensagens: Mensagem[]): Promise<Mensagem[]> {
+  const comandos = await comandosDasMensagens(relatoId, mensagens);
   if (comandos.length) await db().batch(comandos);
   return (await listarMensagensGravadas([relatoId])).get(relatoId) ?? [];
 }
