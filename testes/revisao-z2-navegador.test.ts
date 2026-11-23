@@ -501,16 +501,23 @@ describe.skipIf(!B)('Z2 no navegador', () => {
       expect(pagina.envios).toEqual([]);
     }, 60_000);
 
-    it('fila: sem script, a falha final volta para o formulário com o recado no alto, mas vazio: o que foi digitado só volta pelo "Voltar" do navegador', async () => {
+    it('sem script, a falha final volta para o formulário com o recado no alto e com o que foi digitado (sessão AA)', async () => {
+      // Era um defeito da fila: o formulário voltava vazio. Agora a rota responde com a própria página,
+      // preenchida com o que chegou no pedido (context.rewrite), sem guardar nada no servidor
       const gio = await como('giovanna', { script: false });
       const pagina = await gio.abrir('/nova');
       await pagina.locator('input[name="titulo"]').fill('Z2 navegador: sem script e sem sorte');
-      await pagina.route('**/api/memorias', (rota: any) => rota.fulfill({ status: 303, headers: { Location: '/nova?erro=N%C3%A3o+consegui+salvar.' } }));
+      await pagina.locator('input[name="lugar"]').fill('Sabará');
+      await pagina.locator('textarea[name="relato"]').fill('O que eu escrevi e não pode sumir.');
+      // O ano fora do intervalo: o servidor recusa
+      await pagina.locator('input[name="ano"]').fill('1700');
       await pagina.locator('button[data-salvar="rascunho"]').click();
-      await pagina.waitForURL(/\/nova\?erro=/, { timeout: 15_000 });
-      expect((await pagina.locator('[data-recados]').textContent())!.trim()).toBe('Não consegui salvar.');
-      // Hoje: o campo volta vazio (a guarda do que foi digitado é do script)
-      expect(await pagina.locator('input[name="titulo"]').inputValue()).toBe('');
+      await pagina.waitForLoadState('load');
+      expect((await pagina.locator('[data-recados]').textContent())!.trim()).not.toBe('');
+      expect(await pagina.locator('input[name="titulo"]').inputValue()).toBe('Z2 navegador: sem script e sem sorte');
+      expect(await pagina.locator('input[name="lugar"]').inputValue()).toBe('Sabará');
+      expect(await pagina.locator('textarea[name="relato"]').inputValue()).toBe('O que eu escrevi e não pode sumir.');
+      expect(await pagina.locator('input[name="ano"]').inputValue()).toBe('1700');
     }, 60_000);
   });
 

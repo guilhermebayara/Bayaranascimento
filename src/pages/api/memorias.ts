@@ -1,6 +1,7 @@
 // Cria ou atualiza uma memória: a ficha, as fotos já enviadas, pessoas novas,
 // núcleos, visibilidade e, se houver, o relato de quem está registrando.
 import type { APIRoute } from 'astro';
+import { memoriaDevolvida } from '../../lib/formulario-devolvido';
 import { z } from 'astro/zod';
 import { lerTemas } from '../../lib/capitulos';
 import { SEM_ANO } from '../../lib/datas';
@@ -99,7 +100,7 @@ const Pedido = z.object({
     .optional(),
 });
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request, locals, rewrite }) => {
   if (!mesmaOrigem(request)) return erro(403, 'Pedido recusado.');
   // Sem JavaScript, o formulário chega como formulário comum: vira o mesmo pedido, e a resposta vira página
   if (!(request.headers.get('Content-Type') ?? '').includes('application/json')) {
@@ -129,7 +130,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
     const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string; repetido?: boolean };
     if (corpo.repetido) return repetido();
-    if (!resposta.ok) return voltar(request, id ? `/nova?id=${id}` : '/nova', { erro: corpo.erro ?? 'Não consegui salvar.' });
+    if (!resposta.ok) {
+      const recado = corpo.erro ?? 'Não consegui salvar.';
+      // A página do formulário volta com o recado e com o que a pessoa tinha digitado (a regra "Quando o servidor
+      // recusa", sem script; fila da revisão Z2, sessão AA): a resposta é a própria página, preenchida, sem nada
+      // guardado no servidor. Sem a reescrita (os testes das rotas), volta como antes, com o recado
+      const destino = `/nova?${new URLSearchParams({ ...(id ? { id } : {}), erro: recado })}`;
+      if (!rewrite) return voltar(request, destino);
+      locals.memoriaDevolvida = memoriaDevolvida(dados);
+      return rewrite(new Request(new URL(destino, request.url), { method: 'GET', headers: request.headers }));
+    }
     const recado = corpo.situacao === 'rascunho' ? 'Rascunho salvo.' : anterior?.situacao === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
     return voltar(request, corpo.url!, { ok: recado });
   }

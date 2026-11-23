@@ -1110,6 +1110,27 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       expect([segundo!.caminho, segundo!.ok]).toEqual([primeiro.caminho, primeiro.ok]);
     });
 
+    it('sessão AA: sem script, a recusa responde com a própria página do formulário, preenchida com o que chegou', async () => {
+      const dados = new FormData();
+      for (const [k, v] of Object.entries({ titulo: 'AA: recusada sem script', ano: '1700', tipo: 'causo', pessoas: 'giovanna', lugar: 'Sabará', temas: 'Quintal', relato: 'O que não pode sumir.', relatoPor: 'giovanna', situacao: 'publicada' })) dados.append(k, v);
+      const request = new Request('http://localhost/api/memorias', { method: 'POST', headers: { Origin: 'http://localhost' }, body: dados });
+      const locals = { usuario: giovanna, tipos } as Record<string, unknown>;
+      let pedida: Request | undefined;
+      const resposta = await rotas.memorias.POST({ request, locals, rewrite: async (r: Request) => ((pedida = r), new Response('a página')) } as never);
+      expect(await resposta.text()).toBe('a página');
+      // A página do formulário, com o recado, pedida com GET, e nada gravado
+      expect(pedida!.method).toBe('GET');
+      expect(new URL(pedida!.url).pathname).toBe('/nova');
+      expect(new URL(pedida!.url).searchParams.get('erro')).toBeTruthy();
+      expect(memoriasChamadas('AA: recusada sem script')).toEqual([]);
+      expect(locals.memoriaDevolvida).toMatchObject({ titulo: 'AA: recusada sem script', ano: 1700, lugar: 'Sabará', pessoas: ['giovanna'], temas: 'Quintal', relato: 'O que não pode sumir.', relatoPor: 'giovanna' });
+      // E a página usa o que voltou em cada campo
+      const nova = readFileSync('src/pages/nova.astro', 'utf-8');
+      for (const campo of ['titulo', 'tipoOutro', 'lugar', 'temas']) expect(nova, campo).toContain(`devolvida?.${campo}`);
+      expect(nova).toContain('valor={devolvida?.relato}');
+      expect(nova).toContain('devolvida?.nucleos ?? memoria?.nucleos');
+    });
+
     it('sessão AA: a mesma página enviada de novo com outra coisa digitada não é toque duplo', async () => {
       const id = (await pedir('memorias', giovanna, { titulo: 'AA: mesma página', ano: 2017, tipo: 'causo', pessoas: ['giovanna'], situacao: 'rascunho' })).corpo.id as string;
       const campos = { id, titulo: 'AA: mesma página', ano: '2017', tipo: 'causo', pessoas: 'giovanna', situacao: 'rascunho', envio: 'aa-mesma-pagina', pagina: 'rascunho' };
