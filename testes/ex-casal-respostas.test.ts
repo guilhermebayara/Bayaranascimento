@@ -120,7 +120,7 @@ describe('ex "Fora" que é pai ou mãe vale como "Discreto"', () => {
 describe('ex discreto ou fora sai dos aniversários', () => {
   it('o Início passa os exes de quem olha como quem não entra nos aniversários', () => {
     const inicio = readFileSync('src/pages/index.astro', 'utf8');
-    expect(inicio).toContain('const exesQueSaem = await comoOsExesAparecem(usuario);');
+    expect(inicio).toMatch(/const \[[^\]]*\bexesQueSaem\b[^\]]*\] = await Promise\.all\(\[[\s\S]*?comoOsExesAparecem\(usuario\),/);
     expect(inicio).toContain('aniversarios(integrantes, hoje, new Set([...naoVe, ...exesQueSaem.keys()]), usuario.pessoa)');
   });
 });

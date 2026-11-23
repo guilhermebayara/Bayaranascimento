@@ -32,6 +32,7 @@ import {
   familiasDe,
   listarAudiosDosRelatos,
   listarFotosDoRelato,
+  listarMensagensDosRelatos,
   listarCapitulos,
   comoOsExesAparecem,
   contarSugestoesAbertas,
@@ -40,13 +41,12 @@ import {
   listarCasais,
   listarFiliacoes,
   listarIntegrantes,
-  listarMemorias,
   listarNucleos,
   listarRelatos,
   listarTemas,
   obterMemoria,
   pessoasQueONaoVe,
-  abrirAvisosDaMemoria, nomesDasPessoasExcluidas } from '../../lib/servidor/repositorio';
+  abrirAvisosDaMemoria, nomesDasPessoasExcluidas, vizinhasDaMemoria } from '../../lib/servidor/repositorio';
 import { conversaDosRelatos } from '../../lib/servidor/conversa';
 import { carimboDaData, estiloDoTipo, giroDoId, legendaLugarAno, trechoDoRelato } from '../../lib/visual';
 import { coresDasPessoas } from '../../lib/familias';
@@ -56,36 +56,59 @@ const memoria = await obterMemoria(usuario, Astro.params.id ?? '');
 // Rascunho se edita no formulário. Memória que a pessoa não vê é como se não existisse.
 if (!memoria) return new Response('Memória não encontrada', { status: 404 });
 if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.id}`);
-// Abrir a memória tira da lista os avisos que apontam para ela (menos o pedido para liberar um relato)
-await abrirAvisosDaMemoria(usuario, memoria.id);
-
-const integrantes = await listarIntegrantes();
-const nucleos = await listarNucleos();
+// O que a página lê vai junto, numa ida só (causa 1b da medição M1, docs/desempenho/): as pessoas, as
+// famílias e os laços já vêm guardados do começo do pedido; o resto é desta memória.
+const publicada = memoria.situacao === 'publicada';
+const temQuemEstava = memoria.integrantes.length > 0;
+const [, integrantes, nucleos, relatos, nomesNaLixeira, naoVe, casais, modosDosExes, filiacoes, todosOsCapitulos, todosOsTemas, vizinhas, eleDisseQueEstava, sugestoesAbertas] = await Promise.all([
+  // Abrir a memória tira da lista os avisos que apontam para ela (menos o pedido para liberar um relato)
+  abrirAvisosDaMemoria(usuario, memoria.id),
+  listarIntegrantes(),
+  listarNucleos(),
+  listarRelatos(usuario, memoria.id),
+  // Quem está na lixeira (excluir pessoa) some do site, mas o relato que contou continua com o nome
+  nomesDasPessoasExcluidas(),
+  temQuemEstava ? pessoasQueONaoVe(usuario) : new Set<string>(),
+  listarCasais(usuario),
+  temQuemEstava ? comoOsExesAparecem(usuario) : new Map<string, 'discreto' | 'fora'>(),
+  listarFiliacoes(),
+  listarCapitulos(usuario),
+  listarTemas(),
+  // Vizinhas na linha do tempo, entre as que a pessoa vê: por uma consulta própria, sem ler o acervo inteiro
+  vizinhasDaMemoria(usuario, memoria),
+  publicada && !memoria.integrantes.includes(usuario.pessoa) ? disseQueEstava(memoria.id, usuario) : false,
+  publicada ? contarSugestoesAbertas(memoria, usuario) : 0,
+]);
 const ordemDosNucleos = nucleos.map((n) => n.id);
-const relatos = await listarRelatos(usuario, memoria.id);
-const audiosDosRelatos = await listarAudiosDosRelatos(relatos.map((r) => r.id));
+// Reações (onda 2): só nos relatos publicados e nas fotos que a pessoa vê, e só com quem ela vê
+const alvosDasReacoes = new Set(['memoria:0', ...relatos.filter((r) => r.situacao === 'publicada').map((r) => `relato:${r.id}`), ...memoria.fotos.map((f) => `foto:${f.id}`)]);
+// As fotos do meu relato em rascunho ainda não são da memória: entram à parte na conversa, sem galeria
+const meuEmRascunho = relatos.find((r) => r.situacao === 'rascunho' && r.registradoPor === usuario.pessoa);
+// O que depende dos relatos, numa segunda ida. As mensagens ficam guardadas para a conversa, mais abaixo.
+const [audiosDosRelatos, , reacoes, fotosDoRascunho] = await Promise.all([
+  listarAudiosDosRelatos(relatos.map((r) => r.id)),
+  listarMensagensDosRelatos(relatos).then(() => undefined),
+  publicada ? listarReacoes(memoria.id, usuario, alvosDasReacoes) : new Map(),
+  meuEmRascunho ? listarFotosDoRelato(meuEmRascunho.id) : [],
+]);
 const achar = (id: string) => integrantes.find((i) => i.id === id);
-// Quem está na lixeira (excluir pessoa) some do site, mas o relato que contou continua com o nome
-const nomesNaLixeira = await nomesDasPessoasExcluidas();
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? nomesNaLixeira.get(id) ?? id;
 const faleceu = (id: string) => Boolean(achar(id) && jaFaleceu(achar(id)!));
 
 // Retratos em "Quem estava": só de quem a pessoa vê. Sem retrato, as iniciais sobre a cor da família.
-const naoVe = memoria.integrantes.length ? await pessoasQueONaoVe(usuario) : new Set<string>();
 const retratoDe = (id: string) => {
   const pessoa = achar(id);
   return pessoa?.retrato && !naoVe.has(id) ? enderecoDoRetrato(pessoa.retrato) : null;
 };
-const corDe = coresDasPessoas(integrantes, await listarCasais(usuario), ordemDosNucleos);
+const corDe = coresDasPessoas(integrantes, casais, ordemDosNucleos);
 const familiaDe = (id: string) => corDe(id);
-// Como os exes aparecem para quem olha (src/lib/ex-casal.ts)
-const modosDosExes = memoria.integrantes.length ? await comoOsExesAparecem(usuario) : new Map<string, 'discreto' | 'fora'>();
+// Como os exes aparecem para quem olha (src/lib/ex-casal.ts): modosDosExes
 // Quem só existe num laço privado de outra pessoa não aparece em "Quem estava" (C1, 17/11/2026)
 // O ex que quem olha deixou fora sai de "Quem estava"; o discreto fica, com a tarja (naListaDeQuemOlha)
 const quemEstava = memoria.integrantes.filter((id) => !naoVe.has(id) && naListaDeQuemOlha(modosDosExes.get(id)) !== 'fora');
 // O parentesco do ponto de vista de quem olha: "sua avó"
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
-const familia = new Familia(await listarFiliacoes(), await listarCasais(usuario), tratamentos);
+const familia = new Familia(filiacoes, casais, tratamentos);
 const paraVoce = (id: string) => {
   if (id === usuario.pessoa) return 'você';
   const relacao = familia.relacao(usuario.pessoa, id);
@@ -96,18 +119,13 @@ const tipo = tipoDaMemoria(tipos, memoria);
 const dosNucleos = memoria.nucleos.map((id) => nucleos.find((n) => n.id === id)?.nome).filter((n): n is string => Boolean(n));
 const podeEditar = podeEditarMemoria(usuario, memoria).ok;
 const podeExcluir = podeExcluirMemoria(usuario, memoria).ok;
-// Reações (onda 2): só nos relatos publicados e nas fotos que a pessoa vê, e só com quem ela vê
-const publicada = memoria.situacao === 'publicada';
-const alvosDasReacoes = new Set(['memoria:0', ...relatos.filter((r) => r.situacao === 'publicada').map((r) => `relato:${r.id}`), ...memoria.fotos.map((f) => `foto:${f.id}`)]);
-const reacoes = publicada ? await listarReacoes(memoria.id, usuario, alvosDasReacoes) : new Map();
 const temPaginaNoAcervo = integrantes.some((i) => i.id === usuario.pessoa);
 // A oferta fica na página, escondida, para aparecer no lugar logo depois do "eu estava lá" (sem recarregar)
 const podeEntrarEmQuemEstava = publicada && temPaginaNoAcervo && !memoria.integrantes.includes(usuario.pessoa);
-const ofereceQuemEstava = podeEntrarEmQuemEstava && ofereceEntrar(await disseQueEstava(memoria.id, usuario), false);
-const sugestoesAbertas = memoria.situacao === 'publicada' ? await contarSugestoesAbertas(memoria, usuario) : 0;
+const ofereceQuemEstava = podeEntrarEmQuemEstava && ofereceEntrar(eleDisseQueEstava, false);
 // Capítulos: os reunidos em que foi colocada e os por período em que a data cai, se forem de quem está nela
-const capitulos = (await listarCapitulos(usuario)).filter((c) => memoriaDoCapitulo(memoria, c));
-const temas = (await listarTemas()).filter((t) => memoria.temas.includes(t.id));
+const capitulos = todosOsCapitulos.filter((c) => memoriaDoCapitulo(memoria, c));
+const temas = todosOsTemas.filter((t) => memoria.temas.includes(t.id));
 const meuRelato = relatos.find((r) => r.por === usuario.pessoa);
 const temMeuRelato = Boolean(meuRelato);
 // Com o relato ainda em rascunho, a linha e a ação dizem isso (resposta do Gui à 45-N8, 17/11/2026,
@@ -125,11 +143,7 @@ const relatoSoNaAbertura = !relatos.some((r) => r.soParaNucleos && r.registradoP
 // No celular, até seis retratos em "Quem estava"; o resto abre no lugar (P51)
 const recolheQuem = recolheQuemEstava(quemEstava.length);
 
-// Vizinhas na linha do tempo, entre as que a pessoa vê
-const todas = await listarMemorias(usuario);
-const posicao = todas.findIndex((m) => m.id === memoria.id);
-const antes = todas[posicao - 1];
-const depois = todas[posicao + 1];
+const { antes, depois } = vizinhas;
 
 // A cor e a assinatura acompanham os núcleos da memória; aberta a todos, as famílias juntas
 const corDaTela = memoria.visibilidade === 'nucleos' ? undefined : 'tudo';
@@ -147,9 +161,7 @@ const erro = Astro.url.searchParams.get('erro');
 
 // O relato como conversa: as mensagens de cada relato, com os áudios, as fotos (que abrem a galeria da
 // memória) e as citações resolvidas para quem olha. As fotos do meu relato em rascunho ainda não são da
-// memória: entram à parte, sem galeria.
-const meuEmRascunho = relatos.find((r) => r.situacao === 'rascunho' && r.registradoPor === usuario.pessoa);
-const fotosDoRascunho = meuEmRascunho ? await listarFotosDoRelato(meuEmRascunho.id) : [];
+// memória: entram à parte, sem galeria (meuEmRascunho e fotosDoRascunho, no alto).
 const conversa = await conversaDosRelatos(relatos, [...memoria.fotos, ...fotosDoRascunho.filter((f) => !memoria.fotos.some((m) => m.id === f.id))], nome, (fotoId) => {
   const n = memoria.fotos.findIndex((f) => f.id === fotoId);
   return n >= 0 ? n : undefined;
