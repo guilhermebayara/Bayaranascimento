@@ -22,7 +22,7 @@ describe('formulários', () => {
     // Antes, só voltava o relato da própria pessoa, e o da Vó Bela ficava em rascunho depois de publicar
     const nova = fonte('src/pages/nova.astro');
     expect(nova).toMatch(/filter\(\(r\) => r\.registradoPor === usuario\.pessoa\)/);
-    expect(nova).toMatch(/selected=\{meuRelato\?\.por === p\.id\}/);
+    expect(nova).toMatch(/selected=\{\(devolvida\?\.relatoPor \?\? meuRelato\?\.por\) === p\.id\}/);
   });
 
   it('nenhuma rolagem animada ignora o movimento reduzido', () => {

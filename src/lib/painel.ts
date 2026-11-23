@@ -9,9 +9,10 @@ export interface Dia {
 }
 
 /** O quão perto de hoje, em outros anos, a memória aconteceu. */
-export type Proximidade = 'dia' | 'semana' | 'mes';
+export type Proximidade = 'natal' | 'dia' | 'semana' | 'mes';
 
 export const TITULO_DA_PROXIMIDADE: Record<Proximidade, string> = {
+  natal: 'No Natal, em outros anos',
   dia: 'Neste dia, em outros anos',
   semana: 'Nesta semana, em outros anos',
   mes: 'Neste mês, em outros anos',
@@ -26,16 +27,23 @@ function distancia(a: { mes: number; dia: number }, b: { mes: number; dia: numbe
   return Math.min(d, 366 - d);
 }
 
+/** Os dias do Natal, de 24 a 26 de dezembro (resposta do Gui à crítica C1, 22/11/2026). */
+export const noNatal = (hoje: { mes: number; dia: number }): boolean => hoje.mes === 12 && hoje.dia >= 24 && hoje.dia <= 26;
+
 /**
  * "Neste dia, em 1994" (ideia do Gui, 16/11/2026). Das memórias que a pessoa vê, as de outros anos
  * que aconteceram no mesmo dia e mês de hoje. Sem nenhuma, as da mesma semana (até três dias antes
  * ou depois). Sem nenhuma ainda, as do mesmo mês, e aí entram as que só têm mês e ano.
  * Data aproximada e memória deste ano ficam de fora. Devolve as mais recentes primeiro.
+ * No Natal, de 24 a 26 de dezembro, vêm antes as memórias de 24 e de 25 de dezembro de todos os
+ * outros anos (resposta do Gui à crítica C1, 22/11/2026): no dia 25, a família quer os Natais, e o
+ * de 24/12 ficava de fora porque o dia 25 tinha uma memória. Sem nenhuma, vale a regra de sempre.
  */
 export function emOutrosAnos<T extends DataFlexivel>(memorias: T[], hoje: Dia, maximo = 4): { proximidade: Proximidade; itens: T[] } | undefined {
   const candidatas = memorias.filter((m) => m.ano < hoje.ano && !m.aproximada && m.mes);
   const comDia = candidatas.filter((m) => m.dia);
   const niveis: [Proximidade, T[]][] = [
+    ['natal', noNatal(hoje) ? comDia.filter((m) => m.mes === 12 && (m.dia === 24 || m.dia === 25)) : []],
     ['dia', comDia.filter((m) => m.mes === hoje.mes && m.dia === hoje.dia)],
     ['semana', comDia.filter((m) => distancia({ mes: m.mes!, dia: m.dia! }, hoje) <= 3)],
     ['mes', candidatas.filter((m) => m.mes === hoje.mes)],
@@ -328,7 +336,7 @@ export interface ComposicaoDoInicio {
   envelope: boolean;
   /** o relato e "E mais N" numa fileira de largura inteira, embaixo da abertura e das fotos (P18) */
   filaInteira: boolean;
-  /** os cartões, na ordem da página: contar vem antes de "Neste dia" (P16) */
+  /** os cartões, na ordem da página: "Você no acervo" primeiro (crítica C1), e contar antes de "Neste dia" (P16) */
   cartoes: CartaoDoInicio[];
   /** "Neste dia" com três ou quatro memórias ocupa uma faixa; com uma ou duas, é um cartão da fileira (P19) */
   outrosAnosEmFaixa: boolean;
@@ -343,10 +351,12 @@ export function composicaoDoInicio(ha: { memoriasNovas: number; relatosNovos: nu
   const naMesa = Math.min(ha.memoriasNovas, 2);
   const foraDaMesa = ha.memoriasNovas - naMesa + Math.max(ha.relatosNovos - 1, 0);
   const cartoes: CartaoDoInicio[] = [];
+  // "Você no acervo" vem antes do convite para contar (resposta do Gui à crítica C1, 22/11/2026): no
+  // primeiro dia, a vontade é se ver; contar fica para depois
+  if (ha.voce) cartoes.push('voce');
   if (ha.contar) cartoes.push('contar');
   if (ha.outrosAnos > 0) cartoes.push('outros-anos');
   if (ha.aniversarios) cartoes.push('aniversarios');
-  if (ha.voce) cartoes.push('voce');
   const outrosAnosEmFaixa = mesa !== 'outros-anos' && ha.outrosAnos > 2;
   const foraDaFileira = (c: CartaoDoInicio) => c === mesa || (c === 'outros-anos' && outrosAnosEmFaixa) || (c === 'contar' && outrosAnosEmFaixa);
   return {

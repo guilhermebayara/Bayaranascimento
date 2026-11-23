@@ -64,6 +64,41 @@
   outline: 3px solid var(--tinta);
   outline-offset: -3px;
 }
+/* No celular, as saídas ("Me mostre uma memória" e "Modo TV") ficam à vista, numa linha só, embaixo
+   das abas, fora da fila que rola para o lado (resposta do Gui às críticas C1 e C2, 22/11/2026; sem a
+   segunda linha do esboço, para a primeira foto subir). O fio fica embaixo das abas, colado nelas, e
+   só as abas rolam para o lado quando não cabem. No computador nada muda: as saídas seguem ao lado. */
+@media (max-width: 61.99rem) {
+  .controles__formas {
+    border-bottom: 0;
+  }
+  .controles__formas .controle__linha {
+    flex-wrap: wrap;
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+  }
+  .controles__formas .abas {
+    flex: 1 0 100%;
+    margin-inline: calc(-1 * var(--margem));
+    padding-inline: var(--margem);
+    border-bottom: var(--traco) solid var(--tinta);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .controles__formas .abas::-webkit-scrollbar {
+    display: none;
+  }
+  .controles__formas .controle__saidas {
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    gap: 0 var(--e-6);
+    margin-top: var(--e-2);
+  }
+  .controles__formas .saida {
+    min-height: var(--toque);
+  }
+}
 /* "Filtros" à esquerda e a ordem à direita, na mesma linha; o cartão dos filtros abre embaixo dos dois */
 .controles__ferramentas {
   order: 3;
@@ -221,6 +256,15 @@
 }
 .filtros__lista .escolha {
   font-size: var(--t-pequeno);
+}
+/* Em "Quem estava junto", o parentesco de quem olha embaixo do nome ("sua mãe"), menor e suave */
+.escolha__nome {
+  display: flex;
+  flex-direction: column;
+}
+.escolha__parentesco {
+  font-size: var(--t-ficha);
+  line-height: 1.3;
 }
 .filtros__lista .icone {
   flex: none;

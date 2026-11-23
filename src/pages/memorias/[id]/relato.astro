@@ -1,5 +1,5 @@
 ---
-// Escrever meu relato, como conversa (escolha do Gui depois da sessão I, 18/11/2026; regras em
+// "Contar como foi" (o relato), como conversa (escolha do Gui depois da sessão I, 18/11/2026; regras em
 // src/lib/conversa.ts). À esquerda, a janela de escrever: cada envio vira uma mensagem, gravada na hora.
 // O relato nasce rascunho e entra na memória com "Publicar relato"; depois, cada mensagem nova entra na
 // hora. Ao lado, no computador (embaixo, no celular), os relatos dos outros, como estão na memória, com
@@ -126,7 +126,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
           <Janela modo="ao-vivo" memoria={memoria.id} publico={chaveDoPublico(memoria)} por={por} mensagens={minhas} publicado={publicado} transcricaoAutomatica={transcricaoAutomatica} comFotos citando={citando}>
             <p class="relato-conversa__acoes">
               {!publicado && (
-                <button type="submit" class="botao" name="situacao" value="publicada" data-publicar>
+                <button type="submit" class="botao" name="publicar" value="1" data-publicar>
                   Publicar relato
                 </button>
               )}
@@ -182,13 +182,6 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
     }
   </div>
 
-  <div class="confirmacao" data-confirmacao hidden>
-    <h2>Relato publicado</h2>
-    <p>Ele já aparece na página da memória. Se lembrar de mais alguma coisa, é só voltar e mandar.</p>
-    <p>
-      <a class="botao" href={`/memorias/${memoria.id}`} data-ir-para-memoria>Voltar para a memória</a>
-    </p>
-  </div>
 </Pagina>
 
 <script>
@@ -233,14 +226,15 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       }
       publicar.disabled = true;
       const destino = await conversa.publicar();
-      publicar.disabled = false;
-      if (!destino) return;
-      publicar.remove();
-      const confirmacao = document.querySelector<HTMLElement>('[data-confirmacao]')!;
-      confirmacao.hidden = false;
-      const titulo = confirmacao.querySelector<HTMLElement>('h2')!;
-      titulo.setAttribute('tabindex', '-1');
-      titulo.focus();
+      if (!destino) {
+        publicar.disabled = false;
+        return;
+      }
+      // Publicar leva à memória, no relato de quem escreve, com o recado no alto (crítica C1): ver a
+      // própria voz entrando na conversa é a recompensa do gesto
+      const ir = new URL(destino, location.href);
+      ir.searchParams.set('ok', 'Relato publicado.');
+      location.assign(ir);
     });
   }
 </script>
