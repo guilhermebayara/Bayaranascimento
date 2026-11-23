@@ -694,11 +694,12 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       expect(impressao()).toBe(depois);
     });
 
-    it('fila: se o banco falha depois do lote do relato (ao gravar as mensagens), tentar de novo com o mesmo código não conserta mais: a mensagem fica só no texto do relato', async () => {
-      // Antes da Z, o segundo envio regravava as mensagens. Agora ele é tratado como toque duplo. Precisa de
-      // uma falha do banco entre dois lotes da mesma rota, sem script
+    it('se o banco falha ao gravar as mensagens do envio sem script, nada fica pela metade, e a nova tentativa com o mesmo código grava a mensagem (sessão AA)', async () => {
+      // Era um defeito da fila: as mensagens iam num lote depois do relato e do código, e a nova tentativa era
+      // tratada como toque duplo, com a mensagem só no texto do relato. Agora vão no mesmo lote
       const id = await novaMemoria('Z2: falha depois do lote');
       await janela(elizete, { memoria: id, texto: 'A primeira, inteira.', envio: 'z2-falha-0' });
+      const antes = impressao();
       const envio = { memoria: id, texto: 'A segunda, que falhou no meio.', envio: 'z2-falha-1' };
       const falhou = await comLote(
         async (lista) => {
@@ -708,11 +709,24 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
         () => janela(elizete, envio).catch((e: Error) => e),
       );
       expect(falhou).toBeInstanceOf(Error);
+      // Nada ficou: nem o texto do relato, nem o código do envio
+      expect(impressao()).toBe(antes);
       const deNovo = await janela(elizete, envio);
       expect(deNovo.ok).toBe('Mensagem enviada. Ela já está na memória.');
-      // O texto do relato tem a segunda mensagem; a conversa, que é o que a página mostra, não
       expect(relatosDa(id)[0].texto).toContain('A segunda, que falhou no meio.');
-      expect(textos(id, 'elizete')).toEqual(['A primeira, inteira.']);
+      expect(textos(id, 'elizete')).toEqual(['A primeira, inteira.', 'A segunda, que falhou no meio.']);
+      // E o toque duplo depois disso continua sem repetir
+      const depois = impressao();
+      await janela(elizete, envio);
+      expect(impressao()).toBe(depois);
+    });
+
+    it('sessão AA: o envio sem script com citação grava a citação no mesmo lote, e o relato novo nasce com a mensagem', async () => {
+      const id = await novaMemoria('AA: citação no lote', giovanna);
+      await janela(giovanna, { memoria: id, texto: 'O que a Giovanna contou.', envio: 'aa-cita-0' });
+      const citada = uma<{ id: number }>(`SELECT m.id FROM relato_mensagens m JOIN relatos r ON r.id = m.relato_id WHERE r.memoria_id = ? AND r.por = 'giovanna'`, id).id;
+      await janela(elizete, { memoria: id, texto: 'Respondendo a ela.', cita: String(citada), envio: 'aa-cita-1' });
+      expect(linhas<{ texto: string; cita: number | null }>(`SELECT m.texto, m.cita_id AS cita FROM relato_mensagens m JOIN relatos r ON r.id = m.relato_id WHERE r.memoria_id = ? AND r.por = 'elizete'`, id)).toEqual([{ texto: 'Respondendo a ela.', cita: citada }]);
     });
   });
 

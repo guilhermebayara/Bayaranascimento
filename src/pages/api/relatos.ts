@@ -9,6 +9,7 @@ import { chaveDoPublico, podeEscreverRelato, publicoDaChave, relatoQueNasce, veO
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, mensagensDerivadas, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import {
+  comandosDasMensagens,
   gravarMensagens,
   ligarAudios,
   ligarFotosDoRelato,
@@ -222,8 +223,13 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     if (soParaNucleos) nasce = { soParaNucleos, de: memoria.criadaPor, paraQuem: paraQuemPassouAVer(comoPublicoAntigo(soParaNucleos), memoria, await listarNucleos()) };
   }
   const envio = lido.data.envio ? await chaveDoEnvio(lido.data.envio, usuario.pessoa, memoriaId, por, lido.data.texto) : undefined;
+  // O envio sem script (com o código) grava as mensagens no mesmo lote do relato e do código: se o banco falha,
+  // nada fica, e a nova tentativa com o mesmo código grava tudo (fila da revisão Z2, sessão AA). As mensagens
+  // dele são as do relato, que já estão nele, e as de texto novas: dá para conferir antes do lote
+  const mensagensNoLote = envio && mensagens ? await mensagensValidas(mensagens, existente?.id, memoriaId, usuario) : undefined;
+  const junto = mensagensNoLote ? await comandosDasMensagens(existente && existente.registradoPor === usuario.pessoa ? existente.id : { memoriaId, por, registradoPor: usuario.pessoa }, mensagensNoLote) : [];
   try {
-    await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce, envio });
+    await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce, envio, junto });
   } catch (e) {
     // O mesmo envio de novo (o toque duplo sem script): o primeiro já gravou, e este responde como ele, sem gravar
     if (!(e instanceof EnvioRepetido)) throw e;
@@ -242,22 +248,8 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // uma mensagem publicada de outra pessoa, nesta memória, que quem escreve vê
   let gravadas: Mensagem[] | undefined;
   if (salvo && mensagens) {
-    const [doRelato, fotosDoRelato, naoVe] = await Promise.all([listarAudiosDosRelatos([salvo.id]), listarFotosDoRelato(salvo.id), pessoasQueONaoVe(usuario)]);
-    const audiosFicaram = new Set((doRelato.get(salvo.id) ?? []).map((a) => a.id));
-    const fotosFicaram = new Set(fotosDoRelato.map((f) => f.id));
-    const citaveis = new Map<number, boolean>();
-    for (const id of new Set(mensagens.map((m) => m.citaId).filter((c): c is number => Boolean(c)))) {
-      const citada = await obterMensagem(id);
-      citaveis.set(
-        id,
-        Boolean(citada && citada.memoriaId === memoriaId && citada.relatoId !== salvo.id && citada.situacao === 'publicada' && veORelato(citada, usuario, naoVe)),
-      );
-    }
-    const validas = mensagens
-      .map(paraMensagem)
-      .filter((m) => (m.tipo === 'audio' ? audiosFicaram.has(m.audioId!) : m.tipo === 'foto' ? fotosFicaram.has(m.fotoId!) : Boolean(m.texto?.trim())))
-      .map((m) => ({ ...m, citaId: m.tipo === 'texto' && m.citaId && citaveis.get(m.citaId) ? m.citaId : null }));
-    gravadas = await gravarMensagens(salvo.id, validas);
+    // As do envio sem script já foram no lote do relato
+    gravadas = mensagensNoLote ? ((await listarMensagensDosRelatos([salvo])).get(salvo.id) ?? []) : await gravarMensagens(salvo.id, await mensagensValidas(mensagens, salvo.id, memoriaId, usuario));
   } else if (salvo) {
     // Sem a lista de mensagens (um envio de antes da conversa), a conversa é refeita do texto, dos áudios e
     // das fotos que ficaram, para não ficar velha
@@ -271,6 +263,35 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
 
 /** A memória, no relato que acabou de ser gravado: publicar leva a ele (crítica C1, resposta do Gui de 22/11/2026) */
 const noRelato = (memoriaId: string, relatoId: number | undefined) => `/memorias/${memoriaId}${relatoId ? `#relato-${relatoId}` : ''}`;
+
+/**
+ * As mensagens que ficam: só as que apontam para um áudio ou uma foto que está mesmo no relato, e a citação
+ * só de uma mensagem publicada de outra pessoa, nesta memória, que quem escreve vê. `relatoId` vazio: o
+ * relato ainda vai nascer, e não tem áudio nem foto.
+ */
+async function mensagensValidas(
+  mensagens: { id?: number; tipo: Mensagem['tipo']; texto?: string; audioId?: number; fotoId?: number; citaId?: number | null }[],
+  relatoId: number | undefined,
+  memoriaId: string,
+  usuario: Usuario,
+): Promise<Mensagem[]> {
+  const [doRelato, fotosDoRelato, naoVe] = await Promise.all([
+    relatoId ? listarAudiosDosRelatos([relatoId]) : new Map<number, { id: number }[]>(),
+    relatoId ? listarFotosDoRelato(relatoId) : [],
+    pessoasQueONaoVe(usuario),
+  ]);
+  const audiosFicaram = new Set((relatoId ? (doRelato.get(relatoId) ?? []) : []).map((a) => a.id));
+  const fotosFicaram = new Set(fotosDoRelato.map((f) => f.id));
+  const citaveis = new Map<number, boolean>();
+  for (const id of new Set(mensagens.map((m) => m.citaId).filter((c): c is number => Boolean(c)))) {
+    const citada = await obterMensagem(id);
+    citaveis.set(id, Boolean(citada && citada.memoriaId === memoriaId && citada.relatoId !== relatoId && citada.situacao === 'publicada' && veORelato(citada, usuario, naoVe)));
+  }
+  return mensagens
+    .map(paraMensagem)
+    .filter((m) => (m.tipo === 'audio' ? audiosFicaram.has(m.audioId!) : m.tipo === 'foto' ? fotosFicaram.has(m.fotoId!) : Boolean(m.texto?.trim())))
+    .map((m) => ({ ...m, citaId: m.tipo === 'texto' && m.citaId && citaveis.get(m.citaId) ? m.citaId : null }));
+}
 
 /** A mensagem como o banco guarda, sem a transcrição e a legenda, que moram no áudio e na foto */
 function paraMensagem(m: { id?: number; tipo: Mensagem['tipo']; texto?: string; audioId?: number; fotoId?: number; citaId?: number | null }): Mensagem {

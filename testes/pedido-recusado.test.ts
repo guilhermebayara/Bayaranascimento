@@ -144,6 +144,23 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(impressao()).toBe(antes);
   });
 
+  it('/api/relatos: o envio sem script que falha ao gravar as mensagens não deixa o relato nem o código pela metade (sessão AA)', async () => {
+    const relatos = await import('../src/pages/api/relatos');
+    const lote = banco.batch.bind(banco);
+    banco.batch = async (comandos) => {
+      if (comandos.some((c) => /INSERT INTO relato_mensagens/.test(c.sql))) throw new Error('D1_ERROR: falha de teste');
+      return lote(comandos);
+    };
+    try {
+      const antes = impressao();
+      const r = await formulario(relatos, '/api/relatos', elizete, { memoria: '2025-natal', por: 'elizete', acrescentar: '1', texto: 'Não entra.', situacao: 'rascunho', envio: 'codigo-que-falha-no-meio' }).catch((e: Error) => e);
+      expect(r).toBeInstanceOf(Error);
+      expect(impressao()).toBe(antes);
+    } finally {
+      banco.batch = lote;
+    }
+  });
+
   it('/api/relatos: o público que a tela não oferece é recusado sem mudar nada (D5 da sessão Z)', async () => {
     const relatos = await import('../src/pages/api/relatos');
     const antes = impressao();

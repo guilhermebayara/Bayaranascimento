@@ -1775,16 +1775,18 @@ export async function salvarRelato(
   // `nasce`: o relato novo que espera o sim de quem escreveu (relatoQueNasce), com o pedido
   // `envio`: a chave do envio único do formulário sem script (migração 109; a rota a faz do código da página, de
   // quem envia, do relato e do texto): repetida, nada é gravado (EnvioRepetido)
-  { conferir, nasce, envio }: { conferir?: number; nasce?: RelatoQueNasceEsperando; envio?: string } = {},
+  // `junto`: o que grava no mesmo lote do relato, depois dele (as mensagens do envio sem script, para a falha
+  // não deixar a mensagem só no texto do relato com o código do envio já gasto; fila da revisão Z2, sessão AA)
+  { conferir, nasce, envio, junto = [] }: { conferir?: number; nasce?: RelatoQueNasceEsperando; envio?: string; junto?: Comando[] } = {},
 ): Promise<void> {
   const doEnvio = envio ? comandosDoEnvio(envio) : [];
   try {
     if (conferir === undefined) {
-      await db().batch([...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce })]);
+      await db().batch([...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce }), ...junto]);
       return;
     }
     // Conferir a versão também a sobe: o relato novo dispensa a subida sem conferência
-    await loteDaMemoria([conferirVersao(memoriaId, conferir), ...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false })]);
+    await loteDaMemoria([conferirVersao(memoriaId, conferir), ...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false }), ...junto]);
   } catch (erro) {
     if (/UNIQUE constraint failed: envios\.codigo\b/.test(String((erro as Error)?.message ?? erro))) throw new EnvioRepetido();
     throw erro;
