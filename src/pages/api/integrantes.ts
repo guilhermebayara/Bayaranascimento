@@ -7,7 +7,7 @@ import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { podeEditarIntegrante, podeMudarRetrato, type Usuario } from '../../lib/servidor/permissoes';
 import { LIMITE_DO_RETRATO, PASTA_DOS_RETRATOS, formatoDoRetrato } from '../../lib/retratos';
 import { apelidoSoSeuDaFicha } from '../../lib/apelidos';
-import { SEM_CODIGO, atualizarIntegrante, comCodigoNovo, criarIntegranteCompleto, registrarRetratoEnviado, definirParentes, guardarMeuApelido, listarIntegrantes, listarIntegrantesQueVe, listarMeusApelidos, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
+import { SEM_CODIGO, atualizarIntegrante, codigosOcupadosDePessoas, comCodigoNovo, criarIntegranteCompleto, registrarRetratoEnviado, definirParentes, guardarMeuApelido, listarIntegrantesQueVe, listarMeusApelidos, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
 
 function lerData(dados: FormData, prefixo: string, rotulo: string): { ano?: number; mes?: number; dia?: number; erro?: string } {
   const ano = campoNumero(dados, `${prefixo}Ano`);
@@ -98,9 +98,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const tirarRetrato = dados.get('tirarRetrato') === '1';
 
   // Quem só existe num laço privado de outra pessoa responde como quem não existe (C1, 17/11/2026).
-  // Os ids de todos só servem para o endereço novo não repetir o de ninguém.
   const integrantes = await listarIntegrantesQueVe(usuario);
-  const todosOsIds = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
 
   if (id) {
     const anterior = integrantes.find((i) => i.id === id);
@@ -138,20 +136,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
       erro: `Já existe ${parecida.nome} no acervo. Se for outra pessoa com o mesmo nome, marque a opção no fim do formulário e salve de novo.`,
     });
   }
-  // "nova" é o endereço deste formulário, então não pode ser id de ninguém
-  let novoId = slugUnico(base, todosOsIds);
+  // Os códigos de todos, inclusive de quem está na lixeira, só servem para o endereço novo não repetir o de
+  // ninguém. "nova" é o endereço deste formulário, então não pode ser id de ninguém
+  let novoId = slugUnico(base, await codigosOcupadosDePessoas());
   // Quem cadastra pode editar a página, então pode pôr o retrato
   if (retrato.bytes) ficha.retrato = await enviarRetrato(retrato as Required<typeof retrato>, novoId, usuario);
   // O endereço que outro pedido usou no meio tempo: o site tenta de novo sozinho, com o banco de agora, e no fim
   // volta com o recado e o que foi digitado, sem 500 (o D2 da sessão Z, estendido na sessão AA). Se quem
   // entrou no meio tempo tem o mesmo nome, vale o aviso de sempre, com a mesma regra da primeira vez: só quem
-  // cadastra vê pode ser citado pelo nome (revisão AA2, 23/11/2026). Os ids de todos continuam só para o endereço
+  // cadastra vê pode ser citado pelo nome (revisão AA2, 23/11/2026). Os códigos de todos continuam só para o endereço
   const criado = await comCodigoNovo(async (vez) => {
     if (vez > 1) {
       const queVe = await listarIntegrantesQueVe(usuario);
       const ja = queVe.find((i) => criarSlug(i.nome) === base || (i.apelido && criarSlug(i.apelido) === base));
       if (ja && dados.get('outra') !== 'on') return `Já existe ${ja.nome} no acervo. Se for outra pessoa com o mesmo nome, marque a opção no fim do formulário e salve de novo.`;
-      novoId = slugUnico(base, new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']));
+      novoId = slugUnico(base, await codigosOcupadosDePessoas());
     }
     await criarIntegranteCompleto(novoId, ficha, usuario);
     return undefined;

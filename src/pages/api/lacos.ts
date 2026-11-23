@@ -11,6 +11,7 @@ import { podeEscolherComoOExAparece, podeMexerEmLaco, podeMudarLacoDoCoracao, po
 import { sugerirFamilias, type LacoNovo } from '../../lib/familias';
 import {
   SEM_CODIGO,
+  codigosOcupadosDePessoas,
   comCodigoNovo,
   criarIntegrante,
   definirParentes,
@@ -20,7 +21,6 @@ import {
   listarLacosResumidos,
   removerLacoResumido,
   salvarLacoResumido,
-  listarIntegrantes,
   listarIntegrantesQueVe,
   removerLacoDoCoracao,
   listarLacosDoCoracao,
@@ -61,9 +61,10 @@ async function tratar(request: Request, locals: App.Locals, dados: FormData): Pr
   const falhar = (erro: string) => voltar(request, volta, { erro });
 
   // Quem só existe num laço privado de outra pessoa não pode ser escolhido nem achado pelo nome (C1, 17/11/2026).
-  // O dono do laço continua vendo a pessoa. Os ids de todos só servem para o endereço novo não repetir.
+  // O dono do laço continua vendo a pessoa. Os códigos de todos, inclusive de quem está na lixeira, só servem
+  // para o endereço novo não repetir.
   let integrantes = await listarIntegrantesQueVe(usuario);
-  const todosOsIds = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
+  const todosOsIds = await codigosOcupadosDePessoas();
   let pendente: { id: string; nome: string; tratamento: 'ela' | 'ele' | null } | undefined;
   const cadastrarPendente = async () => {
     if (pendente) await criarIntegrante(pendente.id, pendente.nome, usuario.pessoa, pendente.tratamento);

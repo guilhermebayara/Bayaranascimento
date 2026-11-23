@@ -1046,6 +1046,51 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
       }
     });
 
+    it('o código novo de pessoa confere também quem está na lixeira: cadastrar alguém com o mesmo nome dá certo pela ficha, pelo laço e pela memória', async () => {
+      // Três pessoas na lixeira, cada uma com o nome que vai ser cadastrado de novo
+      for (const [id, nome] of [
+        ['lixeira-ficha-aa2', 'Lixeira Ficha AA2'],
+        ['lixeira-laco-aa2', 'Lixeira Laço AA2'],
+        ['lixeira-memoria-aa2', 'Lixeira Memória AA2'],
+      ]) {
+        sql.prepare(`INSERT INTO integrantes (id, nome, tipo, criado_por) VALUES (?, ?, 'pessoa', 'gui')`).run(id, nome);
+        expect(await repo.excluirPessoa(id, gui)).toBe(true);
+      }
+
+      // Pela ficha: a pessoa nova ganha outro código, e a da lixeira continua lá, intacta
+      const ficha = await semScript('integrantes', gui, { nome: 'Lixeira Ficha AA2', tipo: 'pessoa', tratamento: 'ela' });
+      expect(ficha.erro).toBeNull();
+      expect(ficha.caminho).toBe('/pessoas/lixeira-ficha-aa2-2/editar');
+      expect(uma<{ excluida_em: string | null }>('SELECT excluida_em FROM integrantes WHERE id = ?', 'lixeira-ficha-aa2').excluida_em).not.toBeNull();
+
+      // Pelo laço, com o nome novo
+      const laco = await semScript('lacos', gui, {
+        acao: 'adicionar',
+        laco: 'coracao',
+        sujeito: 'gui',
+        nomeNovo: 'Lixeira Laço AA2',
+        tratamentoNovo: 'ele',
+        nomeDoLaco: 'amigo',
+        volta: '/pessoas/gui/editar',
+      });
+      expect(laco.erro).toBeNull();
+      expect(linhas(`SELECT 1 FROM lacos_coracao WHERE dono_id = 'gui' AND pessoa_id = 'lixeira-laco-aa2-2'`)).toHaveLength(1);
+
+      // Pela memória, em "Quem estava"
+      const mem = await pedirJson('memorias', gui, {
+        titulo: 'AA2: memória com pessoa nova',
+        ano: 2022,
+        tipo: 'causo',
+        visibilidade: 'todos',
+        situacao: 'publicada',
+        pessoas: ['nova:0'],
+        novasPessoas: [{ nome: 'Lixeira Memória AA2' }],
+      });
+      expect(mem.status).toBe(201);
+      expect(linhas('SELECT 1 FROM memoria_integrantes WHERE memoria_id = ? AND integrante_id = ?', mem.corpo.id as string, 'lixeira-memoria-aa2-2')).toHaveLength(1);
+      expect(linhas('SELECT 1 FROM memoria_integrantes WHERE integrante_id = ?', 'lixeira-memoria-aa2')).toHaveLength(0);
+    });
+
     it('laços: colisão na pessoa nova pelo nome recupera sem 500 e sem duplicar; falha final volta com banco igual', async () => {
       const runOriginal = ComandoDeTeste.prototype.run;
       // Colisão isolada: outro pedido usa o slug com outro nome -> retry cria pessoa-2 e salva o laço uma vez

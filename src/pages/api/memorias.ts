@@ -25,7 +25,7 @@ import {
   type Comando,
   listarCapitulos,
   idsDeMemorias,
-  listarIntegrantes,
+  codigosOcupadosDePessoas,
   listarIntegrantesQueVe,
   listarNucleos,
   obterFotos,
@@ -262,8 +262,9 @@ async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promi
   // nem reaproveitado pelo nome (C1, 17/11/2026). Os ids de todos só servem para o id novo não repetir.
   const integrantesAtuais = await listarIntegrantesQueVe(usuario);
   const marcaveis = new Set(integrantesAtuais.map((i) => i.id));
-  // "nova" é o endereço do formulário de cadastro, então não pode ser id de ninguém
-  const idsIntegrantes = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
+  // "nova" é o endereço do formulário de cadastro, então não pode ser id de ninguém, e quem está na lixeira
+  // continua com o código (revisão AA2)
+  const idsIntegrantes = await codigosOcupadosDePessoas();
   // As pessoas novas só ganham o id aqui: o cadastro é gravado depois de todas as conferências, para um
   // pedido recusado não deixar ninguém cadastrado pela metade (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)
   const idsNovas: string[] = [];

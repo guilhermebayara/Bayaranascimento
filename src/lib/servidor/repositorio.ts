@@ -2935,6 +2935,16 @@ export async function audioParaTranscrever(id: number, usuario: Usuario): Promis
 // A pessoa excluída vai para a lixeira: some do site na hora (listarIntegrantes, os laços e
 // pessoasQueONaoVe deixam de vê-la), e as linhas dela ficam no banco, para restaurar devolver tudo.
 
+/**
+ * Os códigos de todas as pessoas, inclusive as que estão na lixeira, mais "nova" (o endereço do formulário de
+ * cadastro). Só servem para o código de uma pessoa nova não repetir: a pessoa na lixeira continua com a linha
+ * no banco, e o mesmo código daria colisão (revisão AA2, 23/11/2026).
+ */
+export async function codigosOcupadosDePessoas(): Promise<Set<string>> {
+  const { results } = await db().prepare('SELECT id FROM integrantes').all<{ id: string }>();
+  return new Set([...results.map((r: { id: string }) => r.id), 'nova']);
+}
+
 /** Quem está na lixeira. */
 export async function idsDasPessoasExcluidas(): Promise<Set<string>> {
   const { results } = await db().prepare('SELECT id FROM integrantes WHERE excluida_em IS NOT NULL').all<{ id: string }>();

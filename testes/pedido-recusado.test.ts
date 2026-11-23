@@ -198,6 +198,19 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(impressao()).toBe(antes);
   });
 
+  it('/api/integrantes, /api/lacos e /api/memorias: com alguém de mesmo nome na lixeira, o pedido recusado não cadastra a pessoa nova nem mexe na da lixeira (revisão AA2)', async () => {
+    const gui = usuarioDe('gui');
+    banco.sqlite.prepare(`INSERT INTO integrantes (id, nome, tipo, criado_por, excluida_em, excluida_por) VALUES ('na-lixeira-recusa', 'Na Lixeira Recusa', 'pessoa', 'gui', datetime('now'), 'gui')`).run();
+    const integrantes = (await import('../src/pages/api/integrantes')) as { POST: (contexto: never) => Promise<Response> };
+    const lacos = (await import('../src/pages/api/lacos')) as { POST: (contexto: never) => Promise<Response> };
+    const antes = impressao();
+    expect((await formulario(integrantes, '/api/integrantes', gui, { nome: 'Na Lixeira Recusa', tipo: 'pessoa', falecido: 'on', nascimentoAno: '2000', falecimentoAno: '1990' })).erro).toBe('O falecimento não pode ser antes do nascimento.');
+    expect((await formulario(lacos, '/api/lacos', gui, { acao: 'adicionar', laco: 'pai-de', sujeito: 'gui', nomeNovo: 'Na Lixeira Recusa', qualidade: 'nenhuma', volta: '/pessoas/gui/editar' })).erro).toBe('Escolha o tipo de filiação.');
+    const r = await salvar(gui, { titulo: 'Recusada lixeira', ano: 2020, tipo, pessoas: ['nova:0', 'ninguem-com-este-id'], novasPessoas: [{ nome: 'Na Lixeira Recusa' }] });
+    expect(r.status).toBe(400);
+    expect(impressao()).toBe(antes);
+  });
+
   it('/api/relatos: o envio sem script recusado não guarda o código de envio nem nada mais (D3 da sessão Z)', async () => {
     const relatos = await import('../src/pages/api/relatos');
     const antes = impressao();
