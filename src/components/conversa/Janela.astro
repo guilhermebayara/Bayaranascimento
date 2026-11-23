@@ -6,7 +6,7 @@
 // Shift e Enter muda de linha. Cada mensagem tem os três pontos: editar o texto, a transcrição do áudio,
 // subir, descer e apagar.
 //
-// Dois modos. "ao-vivo" (Escrever meu relato): cada mudança é gravada na hora, em /api/relatos; o relato
+// Dois modos. "ao-vivo" (Contar como foi): cada mudança é gravada na hora, em /api/relatos; o relato
 // nasce rascunho e entra na memória com "Publicar relato", e depois de publicado cada mensagem nova entra
 // na hora. Sem script, a janela é um formulário que acrescenta a mensagem no fim. "formulario" (a etapa do
 // relato da memória nova): as mensagens vão junto com a memória, e sem script o campo é o texto do relato.
@@ -26,7 +26,7 @@ interface Props {
   publicado?: boolean;
   /** "ligada" quando a transcrição automática está ligada em Administração */
   transcricaoAutomatica?: string;
-  /** a foto pelo "+": só em "Escrever meu relato" (a memória nova tem a etapa das fotos) */
+  /** a foto pelo "+": só em "Contar como foi" (a memória nova tem a etapa das fotos) */
   comFotos?: boolean;
   /** o nome do campo de texto sem script: "texto" no relato, "relato" na memória nova */
   campo?: string;

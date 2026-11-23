@@ -63,4 +63,11 @@ describe('críticas C1 e C2: os pontos pequenos', () => {
     expect(pagina).toMatch(/ir\.searchParams\.set\('ok', 'Relato publicado\.'\);\s*location\.assign\(ir\);/);
     expect(pagina).not.toContain('data-confirmacao');
   });
+
+  it('o botão de contar diz "Contar como foi" em todo lugar: "Escrever meu relato" não aparece mais no site', () => {
+    const fontes = import.meta.glob<string>('../src/**/*.{astro,ts}', { query: '?raw', import: 'default', eager: true });
+    for (const [arquivo, texto] of Object.entries(fontes)) expect(texto, arquivo).not.toContain('Escrever meu relato');
+    expect(tela('components/painel/Contar.astro')).toMatch(/<a class="botao" href=\{`\/memorias\/\$\{memoria\.id\}\/relato`\}>\s*Contar como foi/);
+    expect(tela('pages/memorias/[id].astro')).toContain(": temMeuRelato ? 'Editar meu relato' : 'Contar como foi';");
+  });
 });

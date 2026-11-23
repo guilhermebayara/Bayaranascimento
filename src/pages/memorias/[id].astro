@@ -112,7 +112,7 @@ const temMeuRelato = Boolean(meuRelato);
 // Com o relato ainda em rascunho, a linha e a ação dizem isso (resposta do Gui à 45-N8, 17/11/2026,
 // confirmada depois do PR #48: o botão do alto continua "Continuar meu relato")
 const meuRelatoEmRascunho = meuRelato?.situacao === 'rascunho';
-const textoDaAcao = meuRelatoEmRascunho ? 'Continuar meu relato' : temMeuRelato ? 'Editar meu relato' : 'Escrever meu relato';
+const textoDaAcao = meuRelatoEmRascunho ? 'Continuar meu relato' : temMeuRelato ? 'Editar meu relato' : 'Contar como foi';
 
 // O trecho da abertura vem do primeiro relato publicado que tem texto
 const relatoDaAbertura = relatos.find((r) => r.situacao === 'publicada' && r.texto.trim());
@@ -486,7 +486,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
                   <Rabisco desenho="sublinha" />
                 </span>
                 <a class="botao" href={`/memorias/${memoria.id}/relato`}>
-                  Escrever meu relato
+                  Contar como foi
                 </a>
               </p>
             </div>
