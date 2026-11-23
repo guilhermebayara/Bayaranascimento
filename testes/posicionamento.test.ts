@@ -2,8 +2,10 @@
 // Cloudflare roda o servidor perto do banco quando a página vai muitas vezes a ele. Vale na produção e nas
 // prévias, para a prévia medir o que a produção vai ter. Fica num teste, e não na guarda, porque a guarda
 // (scripts/confere-producao.mjs) é dividida com a sessão das fotos. O npm test roda antes de todo build.
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+
+const fs = 'node:fs';
+const { readFileSync } = (await import(/* @vite-ignore */ fs)) as { readFileSync: (caminho: string, codificacao: string) => string };
 
 const config = JSON.parse(
   readFileSync('wrangler.jsonc', 'utf8')

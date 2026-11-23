@@ -3175,9 +3175,11 @@ export async function espacoDosArquivosGuardado(agora = Date.now()): Promise<{ b
 
 /**
  * Que leituras o começo do pedido faz num lote só:
- * - 'arquivo': as rotas de fotos, áudios e retratos. Só o que a conferência de quem vê usa: as pessoas, os
- *   núcleos de cada uma, quem está na lixeira e quem só existe num laço privado de outra pessoa.
- * - 'rota': as rotas de /api, que gravam. Mais os tipos.
+ * - 'arquivo': as rotas de fotos, áudios e retratos. Só as pessoas e os núcleos de cada uma, para saber
+ *   quem pede: a conferência de quem vê lê o resto só quando precisa (a foto que veio com um relato, o
+ *   retrato), para cada foto ler o mínimo.
+ * - 'rota': as rotas de /api, que gravam. Mais quem está na lixeira, quem só existe num laço privado de
+ *   outra pessoa e os tipos.
  * - 'pagina': as páginas. Mais o que o esqueleto (src/layouts/Visual.astro) e quase toda página leem: as
  *   famílias, os laços da árvore, os apelidos de quem olha (fora da administração), os exes, os avisos e,
  *   para quem administra, o que as pendências do retrato leem.
@@ -3185,9 +3187,9 @@ export async function espacoDosArquivosGuardado(agora = Date.now()): Promise<{ b
 export type ComecoDoPedido = 'arquivo' | 'rota' | 'pagina';
 
 function leiturasDoComeco(pessoa: string, comeco: ComecoDoPedido, { admin, apelidos }: { admin: boolean; apelidos: boolean }): Comando[] {
-  const lista = [db().prepare(SQL.integrantes), db().prepare(SQL.membros), db().prepare(SQL.pessoasExcluidas), db().prepare(SQL.emPrivadosDeOutros).bind(pessoa)];
+  const lista = [db().prepare(SQL.integrantes), db().prepare(SQL.membros)];
   if (comeco === 'arquivo') return lista;
-  lista.push(db().prepare(SQL.tipos));
+  lista.push(db().prepare(SQL.pessoasExcluidas), db().prepare(SQL.emPrivadosDeOutros).bind(pessoa), db().prepare(SQL.tipos));
   if (comeco === 'rota') return lista;
   lista.push(
     db().prepare(SQL.nucleos),

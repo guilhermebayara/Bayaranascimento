@@ -139,7 +139,7 @@ describe.skipIf(!comSqlite)('guarda por pedido', async () => {
   it('as rotas de arquivo leem só o que a conferência de quem vê usa: nem tipos nem apelidos', async () => {
     await pedido('gui', async () => {
       const lidos = await contar(() => repositorio.aquecerOPedido('gui', 'arquivo', { apelidos: false }));
-      expect(lidos).toBe(4);
+      expect(lidos).toBe(2);
       expect(await contar(() => repositorio.listarIntegrantes())).toBe(0);
       expect(await contar(() => repositorio.listarTipos())).toBe(1);
     });
