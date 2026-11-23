@@ -425,6 +425,45 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
       expect(impressao()).toBe(antes3);
       expect(juntar.recadoDosConflitos([{ titulos: [], outras: false }])).toBe('');
     });
+
+    it('numa memória que o administrador vê, o título só aparece com os dois relatos publicados e liberados; rascunho de outra pessoa e relato que espera liberação entram em "memórias que você não vê"', async () => {
+      const f1 = uid('dup-c');
+      const f2 = uid('dup-d');
+      sql.prepare(`INSERT INTO integrantes (id, nome, tipo, criado_por) VALUES (?, 'Tia Conflito', 'pessoa', 'gui')`).run(f1);
+      sql.prepare(`INSERT INTO integrantes (id, nome, tipo, criado_por) VALUES (?, 'Tia Conflito B', 'pessoa', 'gui')`).run(f2);
+      const recado = async () => (await semScript('duplicados', gui, { acao: 'juntar', fica: f1, sai: f2 })).erro;
+      const SO_NAO_VE = 'As duas fichas têm relato em memórias que você não vê. Cada pessoa tem um relato por memória: deixe um só antes de juntar.';
+
+      // 1) Rascunhos do Magno nas duas fichas, numa memória aberta a todos que o Gui vê
+      const idRasc = (await pedirJson('memorias', magno, { titulo: 'Memória Aberta Com Rascunho', ano: 2018, tipo: 'causo', visibilidade: 'todos', situacao: 'publicada' })).corpo.id as string;
+      expect(await repo.obterMemoria(gui, idRasc)).toBeDefined();
+      sql.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, 'lucas-magno', 'Rascunho um', 'rascunho'), (?, ?, 'lucas-magno', 'Rascunho dois', 'rascunho')`).run(idRasc, f1, idRasc, f2);
+      const antes1 = impressao();
+      expect(await recado()).toBe(SO_NAO_VE);
+      expect(impressao()).toBe(antes1);
+      sql.prepare('DELETE FROM relatos WHERE memoria_id = ?').run(idRasc);
+
+      // 2) Dois relatos publicados, um deles esperando liberação (só para a família de quem registrou)
+      const idEspera = (await pedirJson('memorias', magno, { titulo: 'Memória Aberta Com Relato Esperando', ano: 2017, tipo: 'causo', visibilidade: 'todos', situacao: 'publicada' })).corpo.id as string;
+      sql.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, so_para_nucleos) VALUES (?, ?, 'lucas-magno', 'Esperando', 'publicada', '["bracarense"]')`).run(idEspera, f1);
+      sql.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, 'gui', 'Liberado', 'publicada')`).run(idEspera, f2);
+      const antes2 = impressao();
+      const r2 = await recado();
+      expect(r2).toBe(SO_NAO_VE);
+      expect(r2).not.toContain('Relato Esperando');
+      expect(impressao()).toBe(antes2);
+
+      // 3) Liberado o relato, o título aparece, sem "memórias que você não vê"
+      sql.prepare('UPDATE relatos SET so_para_nucleos = NULL WHERE memoria_id = ?').run(idEspera);
+      const r3 = await recado();
+      expect(r3).toBe('As duas fichas têm relato em “Memória Aberta Com Relato Esperando”. Cada pessoa tem um relato por memória: deixe um só antes de juntar.');
+
+      // 4) Com o rascunho de volta noutra memória, as duas aparecem: uma pelo título, a outra sem título
+      sql.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, 'lucas-magno', 'Rascunho um', 'rascunho'), (?, ?, 'lucas-magno', 'Rascunho dois', 'rascunho')`).run(idRasc, f1, idRasc, f2);
+      const r4 = await recado();
+      expect(r4).toBe('As duas fichas têm relato em “Memória Aberta Com Relato Esperando” e memórias que você não vê. Cada pessoa tem um relato por memória: deixe um só antes de juntar.');
+      expect(r4).not.toContain('Com Rascunho');
+    });
   });
 
   // ---------------------------------------------------------------------------------------------------

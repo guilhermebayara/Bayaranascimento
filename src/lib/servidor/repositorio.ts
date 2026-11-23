@@ -2674,12 +2674,18 @@ export async function restaurarLacoDoCoracao(dados: { dono: string; pessoa: stri
  */
 export async function conflitosAoJuntar(fica: string, sai: string, usuario: Usuario): Promise<ConflitosAoJuntar> {
   // Quem olha só lê o título das memórias que vê (decisão do Gui, 23/11/2026): as outras entram só como
-  // "memórias que você não vê", sem título nem número. A recusa continua igual, veja ou não as memórias
+  // "memórias que você não vê", sem título nem número. A recusa continua igual, veja ou não as memórias.
+  // O título só aparece quando os dois relatos do conflito estão publicados e liberados: o conflito num
+  // rascunho ou num relato que espera liberação entra nas "memórias que você não vê" (fila da revisão AA2).
+  // Uma memória com um conflito à vista é citada pelo título, mesmo que tenha outro que não esteja
   const { results } = await db()
     .prepare(
-      `SELECT DISTINCT m.id, m.titulo, CASE WHEN ${FILTRO_VISIVEL} THEN 1 ELSE 0 END AS ve
+      `SELECT m.id, m.titulo,
+         MAX(CASE WHEN ${FILTRO_VISIVEL} AND rs.situacao = 'publicada' AND rf.situacao = 'publicada'
+           AND rs.so_para_nucleos IS NULL AND rf.so_para_nucleos IS NULL THEN 1 ELSE 0 END) AS ve
        FROM relatos rs JOIN relatos rf ON rf.memoria_id = rs.memoria_id AND rf.por = ?2 JOIN memorias m ON m.id = rs.memoria_id
-       WHERE rs.por = ?3 AND (rf.registrado_por = rs.registrado_por OR (rf.situacao = 'publicada' AND rs.situacao = 'publicada'))`,
+       WHERE rs.por = ?3 AND (rf.registrado_por = rs.registrado_por OR (rf.situacao = 'publicada' AND rs.situacao = 'publicada'))
+       GROUP BY m.id, m.titulo`,
     )
     .bind(usuario.pessoa, fica, sai)
     .all<{ id: string; titulo: string; ve: number }>();
