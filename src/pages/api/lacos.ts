@@ -10,6 +10,9 @@ import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeEscolherComoOExAparece, podeMexerEmLaco, podeMudarLacoDoCoracao, podeMudarQuemVeOCasal } from '../../lib/servidor/permissoes';
 import { sugerirFamilias, type LacoNovo } from '../../lib/familias';
 import {
+  SEM_CODIGO,
+  codigosOcupadosDePessoas,
+  comCodigoNovo,
   criarIntegrante,
   definirParentes,
   familiasDe,
@@ -18,7 +21,6 @@ import {
   listarLacosResumidos,
   removerLacoResumido,
   salvarLacoResumido,
-  listarIntegrantes,
   listarIntegrantesQueVe,
   removerLacoDoCoracao,
   listarLacosDoCoracao,
@@ -38,16 +40,31 @@ import {
 
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!mesmaOrigem(request)) return new Response('Pedido recusado.', { status: 403 });
+  const recebido = await request.formData();
+  // A pessoa nova cadastrada pelo nome ("Cadastrar Fulano") ganha um endereço tirado dos que existem. Se outro
+  // pedido o usou no meio tempo, nada foi gravado (a pessoa é a primeira gravação), e o pedido é tratado de novo,
+  // lendo o banco de agora; no fim, volta com o recado e o que foi digitado, sem 500 (o D2 da sessão Z,
+  // estendido na sessão AA). Cada tentativa recebe uma cópia do formulário, que o tratamento muda
+  const feito = await comCodigoNovo(() => {
+    const dados = new FormData();
+    for (const [nome, valor] of recebido) dados.append(nome, valor);
+    return tratar(request, locals, dados);
+  });
+  if (feito === SEM_CODIGO) return voltar(request, campo(recebido, 'volta', 200) || '/pessoas', { erro: 'Não consegui salvar.' });
+  return feito;
+};
+
+async function tratar(request: Request, locals: App.Locals, dados: FormData): Promise<Response> {
   const { usuario } = locals;
-  const dados = await request.formData();
   let acao = campo(dados, 'acao', 30);
   const volta = campo(dados, 'volta', 200) || '/pessoas';
   const falhar = (erro: string) => voltar(request, volta, { erro });
 
   // Quem só existe num laço privado de outra pessoa não pode ser escolhido nem achado pelo nome (C1, 17/11/2026).
-  // O dono do laço continua vendo a pessoa. Os ids de todos só servem para o endereço novo não repetir.
+  // O dono do laço continua vendo a pessoa. Os códigos de todos, inclusive de quem está na lixeira, só servem
+  // para o endereço novo não repetir.
   let integrantes = await listarIntegrantesQueVe(usuario);
-  const todosOsIds = new Set([...(await listarIntegrantes()).map((i) => i.id), 'nova']);
+  const todosOsIds = await codigosOcupadosDePessoas();
   let pendente: { id: string; nome: string; tratamento: 'ela' | 'ele' | null } | undefined;
   const cadastrarPendente = async () => {
     if (pendente) await criarIntegrante(pendente.id, pendente.nome, usuario.pessoa, pendente.tratamento);
@@ -364,4 +381,4 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   return falhar('Ação desconhecida.');
-};
+}

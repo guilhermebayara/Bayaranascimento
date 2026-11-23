@@ -49,7 +49,7 @@ describe('quem pode pôr e trocar o retrato', () => {
     const api = fontes['src/pages/api/integrantes.ts'];
     const edicao = api.slice(api.indexOf('if (id) {'));
     expect(edicao.indexOf('podeMudarRetrato(usuario, anterior, comAcesso)')).toBeGreaterThan(0);
-    expect(edicao.indexOf('podeMudarRetrato(usuario, anterior, comAcesso)')).toBeLessThan(edicao.indexOf('await guardarRetrato('));
+    expect(edicao.indexOf('podeMudarRetrato(usuario, anterior, comAcesso)')).toBeLessThan(edicao.indexOf('await enviarRetrato('));
     // Cada retrato ganha uma chave nova debaixo de retratos/
     expect(api).toContain('const chave = `${crypto.randomUUID()}.${retrato.extensao}`;');
     expect(api).toContain('`${PASTA_DOS_RETRATOS}${chave}`');

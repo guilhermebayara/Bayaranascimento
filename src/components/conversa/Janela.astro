@@ -6,7 +6,7 @@
 // Shift e Enter muda de linha. Cada mensagem tem os três pontos: editar o texto, a transcrição do áudio,
 // subir, descer e apagar.
 //
-// Dois modos. "ao-vivo" (Escrever meu relato): cada mudança é gravada na hora, em /api/relatos; o relato
+// Dois modos. "ao-vivo" (Contar como foi): cada mudança é gravada na hora, em /api/relatos; o relato
 // nasce rascunho e entra na memória com "Publicar relato", e depois de publicado cada mensagem nova entra
 // na hora. Sem script, a janela é um formulário que acrescenta a mensagem no fim. "formulario" (a etapa do
 // relato da memória nova): as mensagens vão junto com a memória, e sem script o campo é o texto do relato.
@@ -26,15 +26,17 @@ interface Props {
   publicado?: boolean;
   /** "ligada" quando a transcrição automática está ligada em Administração */
   transcricaoAutomatica?: string;
-  /** a foto pelo "+": só em "Escrever meu relato" (a memória nova tem a etapa das fotos) */
+  /** a foto pelo "+": só em "Contar como foi" (a memória nova tem a etapa das fotos) */
   comFotos?: boolean;
   /** o nome do campo de texto sem script: "texto" no relato, "relato" na memória nova */
   campo?: string;
   /** a mensagem que já chega citada (pela memória, "Citar") */
   citando?: { id: number; quem: string; resumo: string } | null;
+  /** o que já estava escrito na caixa: o formulário que o servidor recusou sem script volta com ele */
+  valor?: string;
 }
 
-const { modo, memoria, publico = '', por = '', mensagens, publicado = false, transcricaoAutomatica = 'desligada', comFotos = false, campo = 'texto', citando = null } = Astro.props;
+const { modo, memoria, publico = '', por = '', mensagens, publicado = false, transcricaoAutomatica = 'desligada', comFotos = false, campo = 'texto', citando = null, valor = '' } = Astro.props;
 const Caixa = modo === 'ao-vivo' ? 'form' : 'div';
 const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relatos' } : {};
 ---
@@ -85,7 +87,7 @@ const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relato
     <input type="file" accept="image/*" multiple hidden data-arquivo="foto" />
     <input type="file" accept="audio/*,.m4a,.mp3,.ogg,.opus,.webm,.wav" multiple hidden data-arquivo="audio" />
     <label class="so-leitor" for={`janela-${modo}`}>Mensagem</label>
-    <textarea id={`janela-${modo}`} class="janela__campo" name={campo} rows="1" maxlength="20000" placeholder="Mensagem" data-campo></textarea>
+    <textarea id={`janela-${modo}`} class="janela__campo" name={campo} rows="1" maxlength="20000" placeholder="Mensagem" data-campo>{valor}</textarea>
     <span class="janela__gravando" data-gravando hidden>Gravando <span data-relogio>0:00</span></span>
     <button type="button" class="janela__cancelar" data-cancelar hidden>Cancelar</button>
     <button

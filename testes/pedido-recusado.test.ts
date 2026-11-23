@@ -56,7 +56,7 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     return JSON.stringify(tabelas.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
   /** Um formulário comum para uma rota, como o navegador manda */
-  const formulario = async (rota: { POST: (contexto: never) => Promise<Response> | Response }, caminho: string, quem: Usuario, campos: Record<string, string>) => {
+  const formulario = async (rota: { POST: (contexto: never) => Promise<Response> | Response }, caminho: string, quem: Usuario, campos: Record<string, string | File>) => {
     const dados = new FormData();
     for (const [k, v] of Object.entries(campos)) dados.set(k, v);
     const request = new Request(`http://localhost${caminho}`, { method: 'POST', headers: { Origin: 'http://localhost' }, body: dados });
@@ -111,12 +111,132 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     }
   });
 
+  it('/api/memorias: o áudio que outro pedido levou recusa o lote inteiro, sem gravar nada; nas três tentativas, o recado (sessão AA)', async () => {
+    const repo = await import('../src/lib/servidor/repositorio');
+    const audio = await repo.registrarAudio({ chave: 'teste/levado-por-outro.m4a', tipo: 'audio/mp4', tamanho: 10, duracao: 2, memoriaId: null }, elizete);
+    const lote = banco.batch.bind(banco);
+    // A cada lote da memória, outro pedido leva o áudio para outra memória logo antes; depois do lote, ele
+    // volta a ficar solto, para a tentativa seguinte ler e perder de novo
+    let tentativas = 0;
+    banco.batch = async (comandos) => {
+      if (!comandos.some((c) => /^\s*INSERT INTO memorias/.test(c.sql))) return lote(comandos);
+      tentativas++;
+      banco.sqlite.prepare(`UPDATE audios SET memoria_id = '2025-natal' WHERE id = ?`).run(audio);
+      try {
+        return await lote(comandos);
+      } finally {
+        banco.sqlite.prepare('UPDATE audios SET memoria_id = NULL WHERE id = ?').run(audio);
+      }
+    };
+    try {
+      const antes = impressao();
+      const r = await salvar(elizete, { titulo: 'Recusada pelo áudio levado', ano: 2020, tipo, pessoas: ['elizete'], relato: { por: 'elizete', texto: '', audios: [{ id: audio }], mensagens: [{ tipo: 'audio', audioId: audio }] } });
+      expect(tentativas).toBe(3);
+      expect(r.status).toBe(409);
+      expect(impressao()).toBe(antes);
+    } finally {
+      banco.batch = lote;
+    }
+  });
+
+  it('/api/memorias: o formulário sem script recusado não guarda o código de envio nem nada mais (sessão AA)', async () => {
+    const giovanna = usuarioDe('giovanna');
+    const r0 = await salvar(giovanna, { titulo: 'Rascunho para recusar', ano: 2020, tipo, pessoas: ['giovanna'], situacao: 'rascunho' });
+    const id = r0.corpo.id as string;
+    const antes = impressao();
+    // O relato em nome de quem acessa o site é recusado: nem a memória muda, nem o código fica
+    const r = await formulario(memorias, '/api/memorias', giovanna, { id, titulo: 'Rascunho para recusar', ano: '2020', tipo, pessoas: 'giovanna', situacao: 'publicada', relato: 'No lugar do Gui.', relatoPor: 'gui', envio: 'codigo-recusado-da-memoria', pagina: 'rascunho' });
+    expect(r.erro).toBeTruthy();
+    expect(impressao()).toBe(antes);
+  });
+
+  it('/api/duplicados: juntar duas fichas com relato na mesma memória é recusado sem mudar nada, com o recado só do que o administrador vê (sessão AA)', async () => {
+    const duplicados = await import('../src/pages/api/duplicados');
+    const magno = usuarioDe('lucas-magno');
+    banco.sqlite.prepare(`INSERT INTO integrantes (id, nome, criado_por) VALUES ('recusa-um', 'Recusa Dupla', 'gui'), ('recusa-dois', 'Recusa Dupla', 'gui')`).run();
+    const id = (await salvar(elizete, { titulo: 'Recusa que o Magno não vê', ano: 2009, tipo, pessoas: ['elizete'], visibilidade: 'nucleos', nucleos: ['bayara-nascimento'] })).corpo.id as string;
+    banco.sqlite.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 'recusa-um', 'elizete', 'Um.', 'publicada'), (?, 'recusa-dois', 'gui', 'Dois.', 'publicada')`).run(id, id);
+    const antes = impressao();
+    const r = await formulario(duplicados, '/api/duplicados', magno, { acao: 'juntar', fica: 'recusa-um', sai: 'recusa-dois' });
+    expect(r.erro).toContain('memórias que você não vê');
+    expect(r.erro).not.toContain('Recusa que o Magno não vê');
+    expect(impressao()).toBe(antes);
+  });
+
+  it('/api/integrantes, /api/lacos, /api/capitulos e /api/tipos: o pedido recusado não grava nada, nem a pessoa nova, nem o tema novo (sessão AA, código novo)', async () => {
+    const gui = usuarioDe('gui');
+    const rota = async (nome: string) => (await import(`../src/pages/api/${nome}.ts`)) as { POST: (contexto: never) => Promise<Response> };
+    const antes = impressao();
+    // O cadastro sem nome
+    expect((await formulario(await rota('integrantes'), '/api/integrantes', gui, { nome: '', tipo: 'pessoa' })).erro).toBe('Escreva o nome.');
+    // A pessoa nova pelo laço, com o tipo de filiação que não existe: a pessoa não é cadastrada
+    expect((await formulario(await rota('lacos'), '/api/lacos', gui, { acao: 'adicionar', laco: 'pai-de', sujeito: 'gui', nomeNovo: 'Filho Recusado', qualidade: 'nenhuma', volta: '/pessoas/gui/editar' })).erro).toBe('Escolha o tipo de filiação.');
+    // O capítulo sem título, com tema novo: o tema não é cadastrado
+    expect((await formulario(await rota('capitulos'), '/api/capitulos', gui, { titulo: '', modo: 'reunido', temas: 'Tema Recusado' })).erro).toBe('Dê um título ao capítulo.');
+    // O tipo de quem não administra
+    expect((await formulario(await rota('tipos'), '/api/tipos', elizete, { acao: 'criar', rotulo: 'Tipo Recusado', cor: 'verde', icone: 'viagem' })).erro).toBe('Só os administradores cuidam da lista de tipos.');
+    expect(impressao()).toBe(antes);
+  });
+
+  it('/api/integrantes: o cadastro com retrato recusado não grava a pessoa nem a linha do retrato, nem na recusa comum nem quando o código novo não sai (revisão AA2)', async () => {
+    const gui = usuarioDe('gui');
+    const integrantes = (await import('../src/pages/api/integrantes')) as { POST: (contexto: never) => Promise<Response> };
+    const png = () => new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])], 'retrato.png', { type: 'image/png' });
+    const antes = impressao();
+    // A data que não existe
+    expect((await formulario(integrantes, '/api/integrantes', gui, { nome: 'Retrato Recusado', tipo: 'pessoa', nascimentoAno: '2000', nascimentoMes: '13', retrato: png() })).erro).toBe('Confira o mês de nascimento.');
+    expect(impressao()).toBe(antes);
+    // As três tentativas de código novo esbarram em outro pedido: volta com o recado, sem a pessoa e sem retratos_enviados
+    const { ComandoDeTeste } = await import('./apoio/d1');
+    const runOriginal = ComandoDeTeste.prototype.run;
+    ComandoDeTeste.prototype.run = async function (this: InstanceType<typeof ComandoDeTeste>) {
+      if (/INSERT INTO integrantes/.test(this.sql)) throw new Error('UNIQUE constraint failed: integrantes.id');
+      return runOriginal.call(this);
+    };
+    try {
+      expect((await formulario(integrantes, '/api/integrantes', gui, { nome: 'Retrato Sem Código', tipo: 'pessoa', retrato: png() })).erro).toBe('Não consegui salvar.');
+    } finally {
+      ComandoDeTeste.prototype.run = runOriginal;
+    }
+    expect(impressao()).toBe(antes);
+  });
+
+  it('/api/integrantes, /api/lacos e /api/memorias: com alguém de mesmo nome na lixeira, o pedido recusado não cadastra a pessoa nova nem mexe na da lixeira (revisão AA2)', async () => {
+    const gui = usuarioDe('gui');
+    banco.sqlite.prepare(`INSERT INTO integrantes (id, nome, tipo, criado_por, excluida_em, excluida_por) VALUES ('na-lixeira-recusa', 'Na Lixeira Recusa', 'pessoa', 'gui', datetime('now'), 'gui')`).run();
+    const integrantes = (await import('../src/pages/api/integrantes')) as { POST: (contexto: never) => Promise<Response> };
+    const lacos = (await import('../src/pages/api/lacos')) as { POST: (contexto: never) => Promise<Response> };
+    const antes = impressao();
+    expect((await formulario(integrantes, '/api/integrantes', gui, { nome: 'Na Lixeira Recusa', tipo: 'pessoa', falecido: 'on', nascimentoAno: '2000', falecimentoAno: '1990' })).erro).toBe('O falecimento não pode ser antes do nascimento.');
+    expect((await formulario(lacos, '/api/lacos', gui, { acao: 'adicionar', laco: 'pai-de', sujeito: 'gui', nomeNovo: 'Na Lixeira Recusa', qualidade: 'nenhuma', volta: '/pessoas/gui/editar' })).erro).toBe('Escolha o tipo de filiação.');
+    const r = await salvar(gui, { titulo: 'Recusada lixeira', ano: 2020, tipo, pessoas: ['nova:0', 'ninguem-com-este-id'], novasPessoas: [{ nome: 'Na Lixeira Recusa' }] });
+    expect(r.status).toBe(400);
+    expect(impressao()).toBe(antes);
+  });
+
   it('/api/relatos: o envio sem script recusado não guarda o código de envio nem nada mais (D3 da sessão Z)', async () => {
     const relatos = await import('../src/pages/api/relatos');
     const antes = impressao();
     const r = await formulario(relatos, '/api/relatos', elizete, { memoria: 'ninguem-tem-esta', por: 'elizete', acrescentar: '1', texto: 'Nada.', situacao: 'publicada', envio: 'codigo-de-envio-recusado' });
     expect(r.erro).toBe('Memória não encontrada.');
     expect(impressao()).toBe(antes);
+  });
+
+  it('/api/relatos: o envio sem script que falha ao gravar as mensagens não deixa o relato nem o código pela metade (sessão AA)', async () => {
+    const relatos = await import('../src/pages/api/relatos');
+    const lote = banco.batch.bind(banco);
+    banco.batch = async (comandos) => {
+      if (comandos.some((c) => /INSERT INTO relato_mensagens/.test(c.sql))) throw new Error('D1_ERROR: falha de teste');
+      return lote(comandos);
+    };
+    try {
+      const antes = impressao();
+      const r = await formulario(relatos, '/api/relatos', elizete, { memoria: '2025-natal', por: 'elizete', acrescentar: '1', texto: 'Não entra.', situacao: 'rascunho', envio: 'codigo-que-falha-no-meio' }).catch((e: Error) => e);
+      expect(r).toBeInstanceOf(Error);
+      expect(impressao()).toBe(antes);
+    } finally {
+      banco.batch = lote;
+    }
   });
 
   it('/api/relatos: o público que a tela não oferece é recusado sem mudar nada (D5 da sessão Z)', async () => {

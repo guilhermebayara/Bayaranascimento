@@ -718,6 +718,14 @@
   .cartoes[data-faixa='sozinha'] > .outros-anos--faixa {
     grid-column: 1 / -1;
   }
+  /* Com a faixa, "Você no acervo" e os aniversários dividem a primeira linha, e a faixa desce para a
+     de baixo, ainda depois do convite para contar: "Você no acervo" continua vindo antes de contar */
+  .cartoes[data-faixa] > .voce {
+    order: -2;
+  }
+  .cartoes[data-faixa] > .aniversarios {
+    order: -1;
+  }
   /* Na faixa, os outros anos ficam lado a lado, cada um com a sua foto em cima */
   .outros-anos--faixa .outros-anos__lista {
     grid-auto-flow: column;
@@ -778,12 +786,37 @@
     text-underline-offset: 0.2em;
   }
 }
+/* O pedido para liberar, com o relato à vista (crítica C2): o começo do relato, quem passa a ler, as duas
+   respostas com o mesmo peso e a frase de que liberar não tem volta, colados na frase do aviso */
+.aviso__pedido {
+  display: grid;
+  gap: var(--e-2);
+  margin-top: calc(var(--e-2) * -1);
+  padding-bottom: var(--e-3);
+}
+.aviso__relato {
+  display: grid;
+  gap: var(--e-1);
+  margin: 0;
+  padding: var(--e-3) var(--e-4);
+  border-left: var(--traco) solid var(--fio);
+  background: var(--branco);
+  line-height: 1.4;
+}
+.aviso__relato .mao {
+  font-size: 1.15em;
+}
+.aviso__leitores {
+  margin: 0;
+  line-height: 1.4;
+}
 .aviso__resposta {
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--e-5);
-  margin-top: calc(var(--e-2) * -1);
-  padding-bottom: var(--e-2);
+}
+.aviso__sem-volta {
+  margin: 0;
 }
 .avisos__historico {
   margin-top: var(--e-3);

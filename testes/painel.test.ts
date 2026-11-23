@@ -21,9 +21,11 @@ const ids = (r: ReturnType<typeof emOutrosAnos>) => r?.itens.map((i) => (i as { 
 
 describe('neste dia, em outros anos', () => {
   it('no mesmo dia e mês, as mais recentes primeiro, sem as deste ano nem as de data aproximada', () => {
-    const r = emOutrosAnos(memorias, { ano: 2026, mes: 12, dia: 24 });
+    const r = emOutrosAnos(memorias, { ano: 2026, mes: 12, dia: 17 });
     expect(r?.proximidade).toBe('dia');
-    expect(ids(r)).toEqual(['natal-2025', 'natal-2016', 'natal-1994']);
+    expect(ids(r)).toEqual(['formatura-2021']);
+    // No dia 24, as mesmas memórias, pela regra do Natal (abaixo)
+    expect(ids(emOutrosAnos(memorias, { ano: 2026, mes: 12, dia: 24 }))).toEqual(['natal-2025', 'natal-2016', 'natal-1994']);
   });
 
   it('sem nenhuma no dia, vale a semana: até três dias antes ou depois', () => {
@@ -44,6 +46,22 @@ describe('neste dia, em outros anos', () => {
     expect(r?.proximidade).toBe('mes');
     expect(ids(r)).toEqual(['toto-2009']);
     expect(ids(emOutrosAnos(memorias, { ano: 2026, mes: 12, dia: 5 }))).toContain('dezembro-2016');
+  });
+
+  it('no Natal, de 24 a 26 de dezembro, vêm as memórias de 24 e de 25 de dezembro de outros anos', () => {
+    const natal = [...memorias, m('natal-com-os-primos-1998', 1998, 12, 25), m('natal-de-hoje', 2026, 12, 25), m('aproximado', 2003, 12, 25, true)];
+    // O dia 25 tem uma memória, e a de 24/12 entra junto: antes ficava de fora
+    for (const dia of [24, 25, 26]) {
+      const r = emOutrosAnos(natal, { ano: 2026, mes: 12, dia });
+      expect(r?.proximidade, `dia ${dia}`).toBe('natal');
+      expect(ids(r), `dia ${dia}`).toEqual(['natal-2025', 'natal-2016', 'natal-com-os-primos-1998', 'natal-1994']);
+    }
+    // Fora dos três dias, a regra de sempre: no dia 23, a semana
+    expect(emOutrosAnos(natal, { ano: 2026, mes: 12, dia: 23 })?.proximidade).toBe('semana');
+    expect(emOutrosAnos(natal, { ano: 2026, mes: 12, dia: 27 })?.proximidade).toBe('semana');
+    // No Natal sem nenhuma memória de 24 ou 25 de dezembro, vale a regra de sempre
+    expect(emOutrosAnos([m('virada-1999', 1999, 12, 31), m('so-dezembro', 2010, 12)], { ano: 2026, mes: 12, dia: 26 })?.proximidade).toBe('mes');
+    expect(emOutrosAnos([m('dia-26', 2010, 12, 26)], { ano: 2026, mes: 12, dia: 26 })?.proximidade).toBe('dia');
   });
 
   it('sem nada no mês, não aparece; e o tamanho tem limite', () => {

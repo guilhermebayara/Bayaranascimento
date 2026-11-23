@@ -455,7 +455,7 @@
   justify-content: flex-start;
 }
 
-/* "Escrever meu relato": a janela e, ao lado no computador, a memória como está, com as vozes dos outros */
+/* "Contar como foi": a janela e, ao lado no computador, a memória como está, com as vozes dos outros */
 .relato-conversa {
   display: grid;
   gap: var(--e-7);

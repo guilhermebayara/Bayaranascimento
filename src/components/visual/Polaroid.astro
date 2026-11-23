@@ -17,6 +17,8 @@ interface Props {
   id: string;
   fotos: { chave: string; legenda: string | null; copias?: Copias | null }[];
   legenda: string;
+  /** o título da memória, numa linha acima de lugar e ano (as fotos da carta, crítica C2) */
+  titulo?: string;
   /** texto alternativo da foto principal */
   alt?: string;
   /** o monte só aparece onde há espaço para ele */
@@ -48,7 +50,7 @@ interface Props {
   largura?: string;
 }
 
-const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false, forma = false, tipo = 'outro', galeria = false, soOnde, rabisco, principal: ehPrincipal = false, largura = '240px' } = Astro.props;
+const { id, fotos, legenda, titulo, alt, monte = true, cedo = false, reta = false, forma = false, tipo = 'outro', galeria = false, soOnde, rabisco, principal: ehPrincipal = false, largura = '240px' } = Astro.props;
 // Um ponto transparente: o que o navegador mostra onde a foto não é para ser baixada
 const VAZIA = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const [principal, ...outras] = fotos;
@@ -74,7 +76,10 @@ const prioridade = ehPrincipal ? { fetchpriority: 'high' as const, loading: 'eag
         <span class="polaroid__foto" aria-hidden="true">
           <IconeDoTipo tipo={tipo} rabisco={rabisco} />
         </span>
-        <figcaption class="polaroid__legenda">{legenda}</figcaption>
+        <figcaption class:list={['polaroid__legenda', { 'polaroid__legenda--com-titulo': titulo }]}>
+          {titulo && <span class="polaroid__titulo">{titulo}</span>}
+          {legenda}
+        </figcaption>
       </figure>
     </div>
   )
@@ -115,7 +120,10 @@ const prioridade = ehPrincipal ? { fetchpriority: 'high' as const, loading: 'eag
             )}
           </span>
         )}
-        <figcaption class="polaroid__legenda">{legenda}</figcaption>
+        <figcaption class:list={['polaroid__legenda', { 'polaroid__legenda--com-titulo': titulo }]}>
+          {titulo && <span class="polaroid__titulo">{titulo}</span>}
+          {legenda}
+        </figcaption>
       </figure>
     </div>
   )

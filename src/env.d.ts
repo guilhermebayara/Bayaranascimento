@@ -30,6 +30,8 @@ declare namespace App {
     usuario: import('./lib/servidor/permissoes').Usuario;
     /** tipos de momento, lidos uma vez por pedido */
     tipos: import('./lib/tipos').Tipo[];
+    /** o formulário da memória que o servidor recusou sem script, para a página voltar preenchida (formulario-devolvido.ts) */
+    memoriaDevolvida?: import('./lib/formulario-devolvido').MemoriaDevolvida;
   }
 }
 

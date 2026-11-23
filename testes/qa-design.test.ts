@@ -86,7 +86,7 @@ describe('formulários em etapas', () => {
     // O relato como conversa: as mensagens que já existem vêm na janela, e a caixa manda a próxima
     const relato = ler('src/pages/memorias/[id]/relato.astro');
     expect(ler('src/components/conversa/Janela.astro')).toContain('{mensagens.map((m) => <Mensagem mensagem={m} minha />)}');
-    expect(relato).toMatch(/\{!publicado && \(\s*<button type="submit" class="botao" name="situacao" value="publicada" data-publicar>\s*Publicar relato/);
+    expect(relato).toMatch(/\{!publicado && \(\s*<button type="submit" class="botao" name="publicar" value="1" data-publicar>\s*Publicar relato/);
   });
   it('o recado de rascunho salvo fica no alto da coluna da pergunta', () => {
     expect(ler('src/pages/nova.astro')).toContain('form.prepend(recado);');

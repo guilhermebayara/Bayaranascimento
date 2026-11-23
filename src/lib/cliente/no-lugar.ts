@@ -53,6 +53,25 @@ function trocarRecados(nova: Document): void {
   for (const sobra of atuais.slice(1)) sobra.remove();
 }
 
+/** Põe o foco num elemento que não é de foco, sem rolar a página. */
+function focar(alvo: HTMLElement): void {
+  if (!alvo.matches('a[href], button, input, select, textarea, [tabindex]')) alvo.tabIndex = -1;
+  alvo.focus({ preventScroll: true });
+}
+
+/**
+ * O título da seção onde um elemento está: o primeiro título (h1 a h6) que é filho direto, ou filho do
+ * cabeçalho, do contêiner mais próximo que tem um, subindo a partir do pai do elemento. No bilhete do relato,
+ * o nome de quem contou; fora dele, o título da parte da página ("Relatos").
+ */
+function tituloDaSecao(de: Element): HTMLElement | null {
+  for (let pai = de.parentElement; pai; pai = pai.parentElement) {
+    const titulo = pai.querySelector<HTMLElement>(':scope > :is(h1, h2, h3, h4, h5, h6), :scope > header :is(h1, h2, h3, h4, h5, h6)');
+    if (titulo && !de.contains(titulo)) return titulo;
+  }
+  return null;
+}
+
 function ligar(form: HTMLFormElement): void {
   // Ligado uma vez só: a página da pessoa chama ligarNoLugar de novo, e com dois ouvintes cada toque mandava
   // o pedido duas vezes e dizia o recado duas vezes (a marca vazia contava como "não ligado"; revisão Z2)
@@ -76,21 +95,24 @@ function ligar(form: HTMLFormElement): void {
       const ok = endereco.searchParams.get('ok');
       const nova = new DOMParser().parseFromString(await resposta.text(), 'text/html');
       // O foco volta para a região que mudou: o botão tocado pode ter saído da tela
-      const regiaoDoForm = form.closest('[data-regiao]')?.getAttribute('data-regiao');
+      const regiaoDoForm = form.closest('[data-regiao]');
+      const nomeDaRegiao = regiaoDoForm?.getAttribute('data-regiao');
+      // O título da seção onde a região estava, guardado antes da troca: se a região inteira sair, o foco vai
+      // para ele (ou para o recado no alto, abaixo)
+      const titulo = tituloDaSecao(regiaoDoForm ?? form);
       const trocadas = trocar((form.dataset.noLugar ?? '').split(/\s+/).filter(Boolean), nova);
       for (const regiao of trocadas) {
         ligarNoLugar(regiao);
         ligarReacoes(regiao);
         ligarMenus(regiao);
       }
-      if (regiaoDoForm && !document.contains(form)) {
-        const regiao = document.querySelector<HTMLElement>(`[data-regiao="${regiaoDoForm}"]`);
+      let regiaoSumiu = false;
+      if (nomeDaRegiao && !document.contains(form)) {
+        const regiao = document.querySelector<HTMLElement>(`[data-regiao="${nomeDaRegiao}"]`);
         // A região sem caixa (.regiao, display: contents) não recebe foco: ele vai para o que ela embrulha
         const alvo = regiao && getComputedStyle(regiao).display === 'contents' ? regiao.querySelector<HTMLElement>(':scope > *') : regiao;
-        if (alvo) {
-          alvo.tabIndex = -1;
-          alvo.focus({ preventScroll: true });
-        }
+        if (alvo) focar(alvo);
+        else regiaoSumiu = true;
       }
       anunciar(erro ?? ok ?? 'Pronto.');
       // O recado de erro fica à vista no formulário. Se a troca levou o formulário embora (a resposta ao
@@ -110,6 +132,14 @@ function ligar(form: HTMLFormElement): void {
       // para a faixa de recados do alto, o mesmo lugar onde a página o mostra depois de recarregar (decisão do
       // Gui, 22/11/2026)
       if ((erro || ok) && !onde) trocarRecados(nova);
+      // A troca levou embora a região inteira em que estava o botão tocado (o "Liberar" no bilhete): o foco não
+      // fica perdido no corpo da página. Vai para o recado no alto, quando há recado; senão, para o título da
+      // seção onde a região estava ("Sem recarregar", em docs/decisoes.md; sessão AA)
+      if (regiaoSumiu) {
+        const recado = [...document.querySelectorAll<HTMLElement>('[data-recados]')].find((r) => !r.hidden && r.textContent?.trim());
+        const alvo = recado ?? (titulo && document.contains(titulo) ? titulo : null);
+        if (alvo) focar(alvo);
+      }
     } catch {
       // A reserva: o formulário comum, que recarrega
       form.dataset.reserva = '';

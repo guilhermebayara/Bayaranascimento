@@ -52,7 +52,9 @@ describe('formulários no lugar', () => {
     const memoria = readFileSync('src/pages/memorias/[id].astro', 'utf-8');
     expect(readFileSync('src/components/Avisos.astro', 'utf-8')).toContain('name="publico" value={chaveDoPublico(a.publico)}');
     expect(memoria).toContain('name="publico" value={chaveDoPublico(memoria)}');
-    expect(memoria).toMatch(/Liberar para \{paraQuemPassouAVer\(comoPublicoAntigo\(relato\.publicoConhecido \?\? relato\.soParaNucleos\), memoria, nucleos\)\}/);
+    // A ação tem o mesmo nome do aviso (pedidosDosRelatos, crítica C2), com a mesma conta de para quem libera
+    expect(memoria).toMatch(/Liberar para \$\{paraQuemPassouAVer\(comoPublicoAntigo\(relato\.publicoConhecido \?\? relato\.soParaNucleos\), memoria, nucleos\)\}/);
+    expect(readFileSync('src/lib/servidor/pedido-do-relato.ts', 'utf-8')).toContain('paraQuemPassouAVer(comoPublicoAntigo(relato.publicoConhecido ?? relato.soParaNucleos), publico, nucleos)');
   });
   it('sem formulário onde mostrar, o recado vai para a faixa de recados do alto (decisão do Gui, 22/11/2026)', () => {
     // O recado só vai para o alto quando nem o formulário nem o mesmo formulário na página nova (data-chave) existem
@@ -119,5 +121,12 @@ describe('o que está dentro de uma região', () => {
       const pulando = new RegExp(`(?<!\\.regiao\\s*)>\\s*(?::is\\([^)]*)?\\.${classe}(?:--[\\w-]+)?\\b`);
       expect(css, classe).not.toMatch(pulando);
     }
+  });
+  it('o foco não se perde quando a própria região some: o recado no alto ou o título da seção (sessão AA)', () => {
+    expect(cliente).toContain('const titulo = tituloDaSecao(regiaoDoForm ?? form);');
+    expect(cliente).toMatch(/if \(regiaoSumiu\) \{[\s\S]*?const alvo = recado \?\? \(titulo && document\.contains\(titulo\) \? titulo : null\);/);
+    // O título é guardado antes da troca, e o recado só depois de a faixa do alto ser trocada
+    expect(cliente.indexOf('tituloDaSecao(regiaoDoForm')).toBeLessThan(cliente.indexOf('const trocadas = trocar('));
+    expect(cliente.indexOf('trocarRecados(nova);')).toBeLessThan(cliente.indexOf('if (regiaoSumiu) {'));
   });
 });
