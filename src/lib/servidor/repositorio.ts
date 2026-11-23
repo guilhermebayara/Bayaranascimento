@@ -185,7 +185,27 @@ export async function refazerSeAMemoriaMudou<T>(fazer: () => Promise<T>, tentati
  * (D2 da sessão Z, 22/11/2026).
  */
 export function codigoRepetido(erro: unknown): boolean {
-  return /UNIQUE constraint failed: (memorias|integrantes|temas)\.id\b/.test(String((erro as Error)?.message ?? erro));
+  return /UNIQUE constraint failed: (memorias|integrantes|temas|capitulos|tipos)\.id\b/.test(String((erro as Error)?.message ?? erro));
+}
+
+/** As tentativas com código novo acabaram: quem chama volta para a página com o recado e o que foi digitado. */
+export const SEM_CODIGO = Symbol('sem-codigo');
+
+/**
+ * O mesmo caminho do D2 da sessão Z nas outras rotas que geram código para gravar (sessão AA): se outro pedido
+ * usou o código no meio tempo, o lote volta inteiro, e `fazer` roda de novo, com o número da vez, para ler os
+ * códigos do banco de agora. Depois de três tentativas, devolve SEM_CODIGO, e a rota responde com o recado,
+ * sem 500.
+ */
+export async function comCodigoNovo<T>(fazer: (vez: number) => Promise<T>, tentativas = 3): Promise<T | typeof SEM_CODIGO> {
+  for (let vez = 1; ; vez++) {
+    try {
+      return await fazer(vez);
+    } catch (erro) {
+      if (!codigoRepetido(erro)) throw erro;
+      if (vez >= tentativas) return SEM_CODIGO;
+    }
+  }
 }
 
 /** Um comando do banco, para gravar junto num lote (db.batch, uma transação). */
@@ -1059,13 +1079,6 @@ export async function listarTemasVisiveis(usuario: Usuario): Promise<Tema[]> {
   return todos.filter((t: Tema) => visiveis.has(t.id));
 }
 
-/** Devolve os ids dos temas com esses nomes, criando os que ainda não existem. */
-export async function garantirTemas(nomes: string[], usuario: Usuario): Promise<string[]> {
-  const { ids, comandos } = await resolverTemas(nomes, usuario);
-  if (comandos.length > 0) await db().batch(comandos);
-  return ids;
-}
-
 /**
  * Os ids dos temas com esses nomes, sem gravar nada: os que ainda não existem ganham o id aqui, e os
  * comandos que os criam vão no lote de quem os usa. Assim, um salvamento que perde a corrida não deixa
@@ -1154,7 +1167,7 @@ export interface DadosDoCapitulo {
   familias: string[];
 }
 
-export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario: Usuario, novo: boolean): Promise<void> {
+export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario: Usuario, novo: boolean, antes: Comando[] = []): Promise<void> {
   const valores = [
     dados.titulo,
     dados.abertura ?? null,
@@ -1169,6 +1182,8 @@ export async function salvarCapitulo(id: string, dados: DadosDoCapitulo, usuario
     dados.visibilidade,
   ];
   const comandos: D1PreparedStatement[] = [
+    // Os temas novos do capítulo, no mesmo lote: se ele volta, nenhum tema fica gravado (sessão AA)
+    ...antes,
     novo
       ? db()
           .prepare(

@@ -7,7 +7,7 @@ import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { podeEditarIntegrante, podeMudarRetrato, type Usuario } from '../../lib/servidor/permissoes';
 import { LIMITE_DO_RETRATO, PASTA_DOS_RETRATOS, formatoDoRetrato } from '../../lib/retratos';
 import { apelidoSoSeuDaFicha } from '../../lib/apelidos';
-import { atualizarIntegrante, criarIntegranteCompleto, registrarRetratoEnviado, definirParentes, guardarMeuApelido, listarIntegrantes, listarIntegrantesQueVe, listarMeusApelidos, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
+import { SEM_CODIGO, atualizarIntegrante, comCodigoNovo, criarIntegranteCompleto, registrarRetratoEnviado, definirParentes, guardarMeuApelido, listarIntegrantes, listarIntegrantesQueVe, listarMeusApelidos, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
 
 function lerData(dados: FormData, prefixo: string, rotulo: string): { ano?: number; mes?: number; dia?: number; erro?: string } {
   const ano = campoNumero(dados, `${prefixo}Ano`);
@@ -134,10 +134,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   }
   // "nova" é o endereço deste formulário, então não pode ser id de ninguém
-  const novoId = slugUnico(base, todosOsIds);
+  let novoId = slugUnico(base, todosOsIds);
   // Quem cadastra pode editar a página, então pode pôr o retrato
   if (retrato.bytes) ficha.retrato = await guardarRetrato(retrato as Required<typeof retrato>, novoId, usuario);
-  await criarIntegranteCompleto(novoId, ficha, usuario);
+  // O endereço que outro pedido usou no meio tempo: o site tenta de novo sozinho, com o banco de agora, e no fim
+  // volta com o recado e o que foi digitado, sem 500 (o D2 da sessão Z, estendido na sessão AA). Se quem
+  // entrou no meio tempo tem o mesmo nome, vale o aviso de sempre
+  const criado = await comCodigoNovo(async (vez) => {
+    if (vez > 1) {
+      const agora = await listarIntegrantes();
+      const ja = agora.find((i) => criarSlug(i.nome) === base || (i.apelido && criarSlug(i.apelido) === base));
+      if (ja && dados.get('outra') !== 'on') return `Já existe ${ja.nome} no acervo. Se for outra pessoa com o mesmo nome, marque a opção no fim do formulário e salve de novo.`;
+      novoId = slugUnico(base, new Set([...agora.map((i) => i.id), 'nova']));
+    }
+    await criarIntegranteCompleto(novoId, ficha, usuario);
+    return undefined;
+  });
+  if (criado === SEM_CODIGO) return voltar(request, origem, { erro: 'Não consegui salvar.' });
+  if (criado) return voltar(request, origem, { erro: criado });
   if (meuApelido.guardar && meuApelido.apelido) await guardarMeuApelido(usuario.pessoa, novoId, meuApelido.apelido);
   return voltar(request, `/pessoas/${novoId}/editar?novo=1`, { ok: `${nome} entrou no acervo. Agora, os laços.` });
 };

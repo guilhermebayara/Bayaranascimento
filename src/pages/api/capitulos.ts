@@ -8,7 +8,9 @@ import {
   excluirCapitulo,
   listarMemorias,
   mudarMemoriasDoCapitulo,
-  garantirTemas,
+  SEM_CODIGO,
+  comCodigoNovo,
+  resolverTemas,
   idsDeCapitulos,
   listarCapitulos,
   listarCapitulosExcluidos,
@@ -128,14 +130,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
     dentroDe,
     visibilidade,
     nucleos: visibilidade === 'nucleos' ? nucleos : [],
-    temas: await garantirTemas(lerTemas(campo(dados, 'temas', 500)), usuario),
+    temas: [],
     pessoas: deQuem.pessoas,
     familias: deQuem.familias,
   };
 
   // "novo" e "editar" são endereços, então não podem ser id de capítulo
   // Um código no endereço, e não o título: ver codigoNovo
-  const idFinal = atual?.id ?? codigoNovo(new Set([...(await idsDeCapitulos()), 'novo']));
-  await salvarCapitulo(idFinal, ficha, usuario, !atual);
+  // O código do capítulo ou do tema novo que outro pedido usou no meio tempo: os temas novos vão no lote do
+  // capítulo, e o site tenta de novo sozinho, com os códigos do banco de agora; no fim, volta com o recado e o
+  // que foi digitado, sem 500 (o D2 da sessão Z, estendido na sessão AA)
+  const nomesDosTemas = lerTemas(campo(dados, 'temas', 500));
+  const salvo = await comCodigoNovo(async () => {
+    const temas = await resolverTemas(nomesDosTemas, usuario);
+    const id = atual?.id ?? codigoNovo(new Set([...(await idsDeCapitulos()), 'novo']));
+    await salvarCapitulo(id, { ...ficha, temas: temas.ids }, usuario, !atual, temas.comandos);
+    return id;
+  });
+  if (salvo === SEM_CODIGO) return falhar('Não consegui salvar.');
+  const idFinal = salvo;
   return voltar(request, `/capitulos/${idFinal}`, { ok: atual ? 'Capítulo atualizado.' : escolha === 'epoca' ? 'Época criada. Tudo o que aconteceu no período entra sozinho.' : escolha === 'periodo' ? 'Capítulo criado. As memórias do período entram sozinhas.' : 'Capítulo criado. Agora é só colocar as memórias nele.' });
 };

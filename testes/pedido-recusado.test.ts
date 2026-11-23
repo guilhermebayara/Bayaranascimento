@@ -160,6 +160,21 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(impressao()).toBe(antes);
   });
 
+  it('/api/integrantes, /api/lacos, /api/capitulos e /api/tipos: o pedido recusado não grava nada, nem a pessoa nova, nem o tema novo (sessão AA, código novo)', async () => {
+    const gui = usuarioDe('gui');
+    const rota = async (nome: string) => (await import(`../src/pages/api/${nome}.ts`)) as { POST: (contexto: never) => Promise<Response> };
+    const antes = impressao();
+    // O cadastro sem nome
+    expect((await formulario(await rota('integrantes'), '/api/integrantes', gui, { nome: '', tipo: 'pessoa' })).erro).toBe('Escreva o nome.');
+    // A pessoa nova pelo laço, com o tipo de filiação que não existe: a pessoa não é cadastrada
+    expect((await formulario(await rota('lacos'), '/api/lacos', gui, { acao: 'adicionar', laco: 'pai-de', sujeito: 'gui', nomeNovo: 'Filho Recusado', qualidade: 'nenhuma', volta: '/pessoas/gui/editar' })).erro).toBe('Escolha o tipo de filiação.');
+    // O capítulo sem título, com tema novo: o tema não é cadastrado
+    expect((await formulario(await rota('capitulos'), '/api/capitulos', gui, { titulo: '', modo: 'reunido', temas: 'Tema Recusado' })).erro).toBe('Dê um título ao capítulo.');
+    // O tipo de quem não administra
+    expect((await formulario(await rota('tipos'), '/api/tipos', elizete, { acao: 'criar', rotulo: 'Tipo Recusado', cor: 'verde', icone: 'viagem' })).erro).toBe('Só os administradores cuidam da lista de tipos.');
+    expect(impressao()).toBe(antes);
+  });
+
   it('/api/relatos: o envio sem script recusado não guarda o código de envio nem nada mais (D3 da sessão Z)', async () => {
     const relatos = await import('../src/pages/api/relatos');
     const antes = impressao();
