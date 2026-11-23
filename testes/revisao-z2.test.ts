@@ -254,9 +254,10 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       ]);
     });
 
-    it('fila: na corrida entre dois pedidos iguais com o mesmo áudio solto, o áudio vai para a memória do segundo e a primeira fica com a mensagem sem áudio', async () => {
-      // Já era assim antes da Z (ligarAudios lia e gravava em dois passos). O lote não confere de novo se o
-      // áudio ainda está solto: o UPDATE dos áudios não tem essa condição
+    it('na corrida entre dois pedidos iguais com o mesmo áudio solto, o áudio fica preso a uma memória só, e a outra não fica com mensagem apontando para ele (sessão AA)', async () => {
+      // Era um defeito da fila: o lote não conferia de novo se o áudio ainda estava solto, e o áudio saía da
+      // memória do outro pedido. Agora a conferência vai no lote (comandosDosAudios): quem perde a corrida
+      // volta inteiro e é tratado de novo, já sem o áudio
       const audio = await audioSolto(elizete);
       const ficha = { titulo: 'Z2: dois toques com áudio', ano: 2018, tipo: 'causo', pessoas: ['elizete'], relato: { por: 'elizete', texto: '', audios: [{ id: audio }], mensagens: [{ tipo: 'audio', audioId: audio }] } };
       let doOutro = '';
@@ -271,9 +272,32 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       );
       expect(r.status).toBe(201);
       expect(memoriasChamadas('Z2: dois toques com áudio')).toHaveLength(2);
-      // Hoje: o áudio saiu da memória do outro pedido e foi para a deste
-      expect(audioDe(audio).memoria_id).toBe(r.corpo.id);
-      expect(mensagensDo(relatosDa(doOutro)[0].id)).toEqual([{ tipo: 'audio', texto: null, audio_id: audio }]);
+      // O áudio ficou com a memória do outro pedido, no relato dele, com a mensagem dele
+      const doOutroRelato = relatosDa(doOutro)[0].id;
+      expect(audioDe(audio)).toEqual({ relato_id: doOutroRelato, memoria_id: doOutro, removido_em: null });
+      expect(mensagensDo(doOutroRelato)).toEqual([{ tipo: 'audio', texto: null, audio_id: audio }]);
+      // A memória deste pedido não tem relato vazio nem mensagem nenhuma apontando para o áudio
+      expect(r.corpo.id).not.toBe(doOutro);
+      expect(relatosDa(r.corpo.id as string)).toEqual([]);
+      expect(linhas('SELECT id FROM relato_mensagens WHERE audio_id = ? AND relato_id <> ?', audio, doOutroRelato)).toEqual([]);
+    });
+
+    it('sessão AA: na corrida com o mesmo áudio e um texto, a memória que perde fica com o texto e sem o áudio', async () => {
+      const audio = await audioSolto(elizete);
+      const ficha = { titulo: 'Z2: dois toques com áudio e texto', ano: 2018, tipo: 'causo', pessoas: ['elizete'], relato: { por: 'elizete', texto: '', audios: [{ id: audio }], mensagens: [{ tipo: 'audio', audioId: audio }, { tipo: 'texto', texto: 'E um texto.' }] } };
+      let doOutro = '';
+      const r = await comOutroPedidoNaPorta(
+        /^\s*INSERT INTO memorias/,
+        async () => {
+          banco.batch = lote;
+          doOutro = (await pedir('memorias', elizete, ficha)).corpo.id as string;
+        },
+        () => pedir('memorias', elizete, ficha),
+      );
+      expect(r.status).toBe(201);
+      expect(audioDe(audio).memoria_id).toBe(doOutro);
+      const [relato] = relatosDa(r.corpo.id as string);
+      expect(mensagensDo(relato!.id)).toEqual([{ tipo: 'texto', texto: 'E um texto.', audio_id: null }]);
     });
 
     it('o lote único de uma memória no limite dos campos fica dentro dos limites do D1 por comando, e a rota faz poucas chamadas ao banco', async () => {

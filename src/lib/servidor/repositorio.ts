@@ -966,7 +966,7 @@ const comandoDaPrincipal = (memoriaId: string) =>
  * avisos). Se um comando falha, nada fica (Y3 do PR #160).
  */
 export async function criarMemoria(id: string, dados: DadosDaMemoria, usuario: Usuario, { antes = [], junto = [] }: { antes?: Comando[]; junto?: Comando[] } = {}): Promise<void> {
-  await db().batch([
+  await loteDaMemoria([
     ...antes,
     db()
       .prepare(
@@ -1976,6 +1976,21 @@ export async function audiosQueEntram(relatoId: number | null, memoriaId: string
 export function comandosDosAudios(relato: RelatoNoLote, memoriaId: string, aceitos: { id: number; transcricao?: string }[]): Comando[] {
   const r = relatoNoLote(relato);
   return [
+    // A conferência na hora do lote (fila da revisão Z2, sessão AA): se um áudio da lista já não está solto
+    // nem neste relato (outro pedido igual o levou para a memória dele no meio tempo), a versão sobe dois
+    // degraus, o gatilho da migração 107 recusa, e o lote inteiro volta (MemoriaMudou). A nova tentativa lê o
+    // banco de agora: o áudio fica preso a uma memória só, e nenhuma mensagem aponta para um áudio que não é
+    // do relato
+    ...(aceitos.length
+      ? [
+          db()
+            .prepare(
+              `UPDATE memorias SET versao = versao + 2 WHERE id = ? AND EXISTS (SELECT 1 FROM audios WHERE id IN (${aceitos.map(() => '?').join(', ')})
+               AND NOT (removido_em IS NULL AND (memoria_id IS NULL OR memoria_id = ?) AND (relato_id IS NULL OR relato_id = ${r.sql})))`,
+            )
+            .bind(memoriaId, ...aceitos.map((i) => i.id), memoriaId, ...r.valores),
+        ]
+      : []),
     db()
       // Sem nenhum áudio que fica, a lista some: "id NOT IN (NULL)" nunca é verdadeiro e o último áudio não saía
       .prepare(`UPDATE audios SET removido_em = datetime('now') WHERE relato_id = ${r.sql} AND removido_em IS NULL${aceitos.length ? ` AND id NOT IN (${aceitos.map(() => '?').join(', ')})` : ''}`)
@@ -1994,9 +2009,17 @@ export function comandosDosAudios(relato: RelatoNoLote, memoriaId: string, aceit
  * Devolve quantos da lista foram aceitos.
  */
 export async function ligarAudios(relatoId: number, memoriaId: string, itens: { id: number; transcricao?: string }[], usuario: Usuario): Promise<number> {
-  const validos = await audiosQueEntram(relatoId, memoriaId, itens, usuario);
-  await db().batch(comandosDosAudios(relatoId, memoriaId, validos));
-  return validos.length;
+  // Um áudio que outro pedido levou no meio tempo recusa o lote (comandosDosAudios): a lista é lida de novo,
+  // já sem ele
+  for (let vez = 1; ; vez++) {
+    const validos = await audiosQueEntram(relatoId, memoriaId, itens, usuario);
+    try {
+      await loteDaMemoria(comandosDosAudios(relatoId, memoriaId, validos));
+      return validos.length;
+    } catch (erro) {
+      if (!(erro instanceof MemoriaMudou) || vez >= 3) throw erro;
+    }
+  }
 }
 
 /**

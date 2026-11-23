@@ -108,6 +108,34 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     }
   });
 
+  it('/api/memorias: o áudio que outro pedido levou recusa o lote inteiro, sem gravar nada; nas três tentativas, o recado (sessão AA)', async () => {
+    const repo = await import('../src/lib/servidor/repositorio');
+    const audio = await repo.registrarAudio({ chave: 'teste/levado-por-outro.m4a', tipo: 'audio/mp4', tamanho: 10, duracao: 2, memoriaId: null }, elizete);
+    const lote = banco.batch.bind(banco);
+    // A cada lote da memória, outro pedido leva o áudio para outra memória logo antes; depois do lote, ele
+    // volta a ficar solto, para a tentativa seguinte ler e perder de novo
+    let tentativas = 0;
+    banco.batch = async (comandos) => {
+      if (!comandos.some((c) => /^\s*INSERT INTO memorias/.test(c.sql))) return lote(comandos);
+      tentativas++;
+      banco.sqlite.prepare(`UPDATE audios SET memoria_id = '2025-natal' WHERE id = ?`).run(audio);
+      try {
+        return await lote(comandos);
+      } finally {
+        banco.sqlite.prepare('UPDATE audios SET memoria_id = NULL WHERE id = ?').run(audio);
+      }
+    };
+    try {
+      const antes = impressao();
+      const r = await salvar(elizete, { titulo: 'Recusada pelo áudio levado', ano: 2020, tipo, pessoas: ['elizete'], relato: { por: 'elizete', texto: '', audios: [{ id: audio }], mensagens: [{ tipo: 'audio', audioId: audio }] } });
+      expect(tentativas).toBe(3);
+      expect(r.status).toBe(409);
+      expect(impressao()).toBe(antes);
+    } finally {
+      banco.batch = lote;
+    }
+  });
+
   it('/api/relatos: o envio sem script recusado não guarda o código de envio nem nada mais (D3 da sessão Z)', async () => {
     const relatos = await import('../src/pages/api/relatos');
     const antes = impressao();

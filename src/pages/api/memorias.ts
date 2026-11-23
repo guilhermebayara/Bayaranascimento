@@ -406,7 +406,9 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     const ficaram = new Set(aceitos ? aceitos.map((a) => a.id) : relatoId ? ((await listarAudiosDosRelatos([relatoId])).get(relatoId) ?? []).map((a) => a.id) : []);
     // Só as mensagens de áudio que ficaram mesmo no relato
     const validas = mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim())));
-    doRelato = {
+    // O relato que nasce sem nada que fique (só o áudio, que outro pedido igual levou no meio tempo) não nasce
+    // vazio: a memória é gravada sem ele (fila da revisão Z2, sessão AA)
+    if (existente || validas.length > 0) doRelato = {
       comandos: [
         ...comandosDoRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato }),
         ...(meu && aceitos ? comandosDosAudios(meu, id, aceitos) : []),
