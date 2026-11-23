@@ -49,7 +49,15 @@ const { titulo, nucleos = [], secao, intimo = false, palco = false, mapa = false
 const rodape = Astro.props.rodape ?? (secao === 'conta' || secao === 'administracao' ? 'metade' : 'inteiro');
 const { usuario } = Astro.locals;
 const tituloPagina = titulo ? `${titulo} | Memórias Bayara e Bracarense` : 'Memórias Bayara e Bracarense';
-const assinatura = assinaturaDaTela(nucleos, await listarNucleos());
+// O que o esqueleto lê vai junto, sem fila (causa 1b da medição M1). As pessoas e as famílias já vêm do
+// começo do pedido, guardadas (aquecerOPedido); os avisos e as pendências, numa ida só.
+const [todosOsNucleos, integrantes, avisosPendentes, pendenciasDaAdministracao] = await Promise.all([
+  listarNucleos(),
+  listarIntegrantes(),
+  palco ? 0 : contarAvisosPendentes(usuario),
+  palco ? 0 : contarPendenciasDaAdministracao(usuario),
+]);
+const assinatura = assinaturaDaTela(nucleos, todosOsNucleos);
 const familia = Astro.props.familia ?? assinatura.familia;
 // As fontes do site (FONTES_DO_SITE). Nas prévias, a faixa de teste pode trocar a combinação.
 const fontes = fontesDoPedido(Astro.request);
@@ -61,14 +69,11 @@ const teste = semLogin();
 const homologa = ehHomologacao();
 // "Sair" só aparece onde há o login do Cloudflare Access (P4 do QA de design, 17/11/2026)
 const saida = temLogin() ? enderecoDeSaida() : undefined;
-const integrantes = await listarIntegrantes();
 const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
 // "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo.
 const meuRetrato = integrantes.find((i) => i.id === usuario.pessoa)?.retrato;
 // O número discreto de avisos no retrato, em qualquer tela (docs/decisoes.md, "Avisos")
 // Para quem administra, somam as pendências da administração (a marca delas fica em "Sua conta")
-const avisosPendentes = palco ? 0 : await contarAvisosPendentes(usuario);
-const pendenciasDaAdministracao = palco ? 0 : await contarPendenciasDaAdministracao(usuario);
 const numeroDeAvisos = numeroDoRetrato(somaDoRetrato(avisosPendentes, pendenciasDaAdministracao));
 // "Sua página" e "Seu círculo" só para quem tem página de pessoa no acervo
 const temPagina = integrantes.some((i) => i.id === usuario.pessoa);

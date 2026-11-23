@@ -11,7 +11,39 @@ import type { Tipo } from '../tipos';
 
 export const ENDERECO_DA_HOMOLOGACAO = 'homologa.memorias.bayara.com.br';
 
-const doPedido = new AsyncLocalStorage<{ homologa: boolean; tipos?: readonly Tipo[]; apelidos?: ReadonlyMap<string, string> }>();
+// Os tipos do D1 vêm da configuração do Worker (src/env.d.ts)
+type Banco = Cloudflare.Env['DB'];
+type ComandoDoBanco = ReturnType<Banco['prepare']>;
+type Resultado = Awaited<ReturnType<ComandoDoBanco['all']>>;
+
+interface Pedido {
+  homologa: boolean;
+  tipos?: readonly Tipo[];
+  apelidos?: ReadonlyMap<string, string>;
+  /** Quem pede (definirPessoaDoPedido). Entra na chave de tudo o que o pedido guarda. */
+  pessoa?: string;
+  /** As leituras do banco guardadas durante o pedido (a guarda por pedido, ver guardarLeitura) */
+  guardadas: Map<string, Guardada>;
+  /** O que o pedido fez no banco, para o cabeçalho Server-Timing */
+  medida: MedidaDoPedido;
+  /** O banco do pedido, embrulhado uma vez só */
+  embrulho?: { de: Banco; banco: Banco };
+}
+
+/** O que um pedido fez no banco: consultas (cada comando, também os de um lote), idas (cada viagem ao banco) e o tempo. */
+export interface MedidaDoPedido {
+  inicio: number;
+  consultas: number;
+  idas: number;
+  msNoBanco: number;
+}
+
+interface Guardada {
+  sql: string;
+  resultado: Promise<Resultado>;
+}
+
+const doPedido = new AsyncLocalStorage<Pedido>();
 
 /**
  * Os tipos de momento do pedido em curso, com a cor e o rabisco que os administradores escolheram.
@@ -40,10 +72,34 @@ export function apelidosDoPedido(): ReadonlyMap<string, string> | undefined {
   return doPedido.getStore()?.apelidos;
 }
 
-/** Roda o tratamento de um pedido sabendo se ele é da homologação. */
+/** Roda o tratamento de um pedido sabendo se ele é da homologação. Cada pedido começa com a guarda vazia. */
 export function noPedido<T>(request: Request, tratar: () => T): T {
   const homologa = new URL(request.url).hostname === ENDERECO_DA_HOMOLOGACAO && Boolean(env.DB_HOMOLOGA && env.FOTOS_HOMOLOGA);
-  return doPedido.run({ homologa }, tratar);
+  return doPedido.run({ homologa, guardadas: new Map(), medida: { inicio: Date.now(), consultas: 0, idas: 0, msNoBanco: 0 } }, tratar);
+}
+
+/**
+ * Quem pede: a pessoa do login ou, nas prévias, a do "Ver como". Ela entra na chave de toda leitura guardada,
+ * para o que foi lido como uma pessoa nunca servir a outra. Trocar a pessoa no meio do pedido faz ler de novo.
+ */
+export function definirPessoaDoPedido(pessoa: string | undefined): void {
+  const pedido = doPedido.getStore();
+  if (pedido) pedido.pessoa = pessoa;
+}
+
+/** O que o pedido em curso fez no banco até agora. */
+export function medidaDoPedido(): MedidaDoPedido | undefined {
+  return doPedido.getStore()?.medida;
+}
+
+/**
+ * O cabeçalho Server-Timing do pedido: o tempo do servidor e o que ele fez no D1 (consultas e idas), para
+ * medir a produção de verdade (causa 1e da medição M1, docs/desempenho/). Só números: nada do acervo.
+ */
+export function servidorTiming(agora = Date.now()): string | undefined {
+  const medida = medidaDoPedido();
+  if (!medida) return undefined;
+  return `servidor;dur=${agora - medida.inicio}, d1;dur=${medida.msNoBanco};desc="consultas=${medida.consultas} idas=${medida.idas}"`;
 }
 
 export function ehHomologacao(): boolean {
@@ -60,8 +116,168 @@ export function ambiente(): Ambiente {
   return env.AMBIENTE;
 }
 
-export function banco(): D1Database {
+/**
+ * O banco do pedido. Dentro de um pedido, vem embrulhado pela guarda por pedido (guardarLeitura): o que já
+ * foi lido no mesmo pedido, pela mesma pessoa, não vai ao banco de novo. Fora de um pedido (testes,
+ * scripts), é o banco como está.
+ */
+export function banco(): Banco {
+  const real = bancoDoAmbiente();
+  const pedido = doPedido.getStore();
+  if (!pedido) return real;
+  const ja = pedido.embrulho;
+  if (ja && ja.de === real) return ja.banco;
+  const embrulhado = embrulhar(real, pedido);
+  pedido.embrulho = { de: real, banco: embrulhado };
+  return embrulhado;
+}
+
+function bancoDoAmbiente(): Banco {
   return ehHomologacao() ? env.DB_HOMOLOGA! : env.DB;
+}
+
+// --- A guarda por pedido (causa 1a da medição M1, docs/desempenho/2026-11-22-medicao.md) ---
+//
+// Uma página lia a mesma coisa do banco muitas vezes: numa memória, as pessoas excluídas 14 vezes, os
+// casais 8, as filiações 7. Agora cada leitura fica guardada durante o pedido, com a chave feita da pessoa
+// do pedido, do SQL e dos valores. Regras:
+// - A guarda vive no pedido (AsyncLocalStorage), nunca numa variável do módulo: o Worker reaproveita o
+//   processo entre pedidos, e um pedido nunca recebe o que outro leu.
+// - A pessoa do pedido está na chave: com o "Ver como", o que foi lido como uma pessoa nunca serve a outra.
+// - Uma gravação no mesmo pedido faz ler de novo o que pode ter mudado: o que lê a tabela gravada
+//   (INSERT e UPDATE) ou tudo (DELETE, que pode apagar em cascata, e qualquer outra coisa).
+// - Um lote de leituras guarda cada leitura dele; a leitura que já está guardada não vai ao banco.
+
+type Valor = string | number | boolean | null;
+interface Comando {
+  real: ComandoDoBanco;
+  sql: string;
+  valores: unknown[];
+}
+
+const LEITURA = /^\s*(SELECT|WITH)\b/i;
+const GRAVA = /\b(INSERT|UPDATE|DELETE|REPLACE)\b/i;
+/** A tabela que um INSERT ou UPDATE grava. Fora desses dois, vazio: tudo é lido de novo. */
+const TABELA_GRAVADA = /^\s*(?:INSERT\s+(?:OR\s+(?:IGNORE|ABORT|FAIL|ROLLBACK)\s+)?INTO|UPDATE\s+(?:OR\s+(?:IGNORE|ABORT|FAIL|ROLLBACK)\s+)?)\s*["`[]?(\w+)/i;
+
+const ehLeitura = (sql: string) => LEITURA.test(sql) && !GRAVA.test(sql);
+
+/** A chave da leitura, ou vazio quando ela não pode ser guardada (sorteio, valores que não são simples). */
+function chaveDaLeitura(pedido: Pedido, c: Comando): string | undefined {
+  if (!ehLeitura(c.sql) || /\bRANDOM\s*\(/i.test(c.sql)) return undefined;
+  if (!c.valores.every((v): v is Valor => v === null || ['string', 'number', 'boolean'].includes(typeof v))) return undefined;
+  return `${pedido.pessoa ?? ''}\u0001${c.sql}\u0001${JSON.stringify(c.valores)}`;
+}
+
+/** Esquece o que a gravação pode ter mudado. */
+function esquecerDepoisDeGravar(pedido: Pedido, sqls: string[]): void {
+  const tabelas: string[] = [];
+  for (const sql of sqls) {
+    if (ehLeitura(sql)) continue;
+    const tabela = TABELA_GRAVADA.exec(sql)?.[1];
+    if (!tabela) {
+      pedido.guardadas.clear();
+      return;
+    }
+    tabelas.push(tabela);
+  }
+  if (tabelas.length === 0) return;
+  const lida = new RegExp(`\\b(${tabelas.join('|')})\\b`, 'i');
+  for (const [chave, guardada] of pedido.guardadas) if (lida.test(guardada.sql)) pedido.guardadas.delete(chave);
+}
+
+/** Uma ida ao banco, contada para o Server-Timing. */
+async function ida<T>(pedido: Pedido, consultas: number, fazer: () => Promise<T>): Promise<T> {
+  const inicio = Date.now();
+  pedido.medida.consultas += consultas;
+  pedido.medida.idas += 1;
+  try {
+    return await fazer();
+  } finally {
+    pedido.medida.msNoBanco += Date.now() - inicio;
+  }
+}
+
+/** Uma cópia do resultado guardado, para quem chama poder mexer na lista sem mudar a guardada. */
+const copia = (r: Resultado): Resultado => ({ ...r, results: [...(r.results ?? [])] });
+
+function embrulhar(real: Banco, pedido: Pedido): Banco {
+  const deVerdade = new WeakMap<object, Comando>();
+
+  /** A leitura guardada, ou a ida ao banco que a guarda. */
+  const ler = (c: Comando, ir: () => Promise<Resultado>): Promise<Resultado> => {
+    const chave = chaveDaLeitura(pedido, c);
+    if (!chave) return ida(pedido, 1, ir);
+    const ja = pedido.guardadas.get(chave);
+    if (ja) return ja.resultado;
+    const resultado = ida(pedido, 1, ir);
+    guardar(chave, c.sql, resultado);
+    return resultado;
+  };
+  const guardar = (chave: string, sql: string, resultado: Promise<Resultado>) => {
+    const guardada = { sql, resultado };
+    pedido.guardadas.set(chave, guardada);
+    // Uma leitura que falhou não fica guardada: quem pedir de novo tenta de novo
+    resultado.catch(() => {
+      if (pedido.guardadas.get(chave) === guardada) pedido.guardadas.delete(chave);
+    });
+  };
+  /** Uma gravação: esquece o que ela pode mudar antes e depois, porque uma leitura pode ter começado no meio. */
+  const gravar = async <T>(sqls: string[], consultas: number, fazer: () => Promise<T>): Promise<T> => {
+    esquecerDepoisDeGravar(pedido, sqls);
+    try {
+      return await ida(pedido, consultas, fazer);
+    } finally {
+      esquecerDepoisDeGravar(pedido, sqls);
+    }
+  };
+
+  const comando = (c: Comando): ComandoDoBanco => {
+    const embrulhado = {
+      bind: (...valores: unknown[]) => comando({ real: c.real.bind(...valores), sql: c.sql, valores }),
+      all: async () => (ehLeitura(c.sql) ? copia(await ler(c, () => c.real.all())) : gravar([c.sql], 1, () => c.real.all())),
+      run: async () => (ehLeitura(c.sql) ? copia(await ler(c, () => c.real.all())) : gravar([c.sql], 1, () => c.real.run())),
+      first: async (coluna?: string) => {
+        if (!ehLeitura(c.sql)) return gravar([c.sql], 1, () => (coluna ? c.real.first(coluna) : c.real.first()));
+        const linha = ((await ler(c, () => c.real.all())).results?.[0] ?? null) as Record<string, unknown> | null;
+        if (linha === null) return null;
+        return coluna === undefined ? { ...linha } : (linha[coluna] ?? null);
+      },
+      raw: (opcoes?: { columnNames?: boolean }) => (ehLeitura(c.sql) ? ida(pedido, 1, () => c.real.raw(opcoes)) : gravar([c.sql], 1, () => c.real.raw(opcoes))),
+    } as unknown as ComandoDoBanco;
+    deVerdade.set(embrulhado, c);
+    return embrulhado;
+  };
+
+  const lote = async (lista: ComandoDoBanco[]): Promise<Resultado[]> => {
+    const comandos = lista.map((s) => deVerdade.get(s) ?? { real: s, sql: '', valores: [] });
+    // Com gravação no meio, o lote vai inteiro, como uma transação, e esquece o que pode ter mudado
+    if (!comandos.every((c) => ehLeitura(c.sql))) return gravar(comandos.map((c) => c.sql), comandos.length, () => real.batch(comandos.map((c) => c.real)));
+    // Só leituras: vão ao banco, num lote só, as que ainda não estão guardadas
+    const chaves = comandos.map((c) => chaveDaLeitura(pedido, c));
+    const resultados: (Promise<Resultado> | undefined)[] = chaves.map((chave) => (chave ? pedido.guardadas.get(chave)?.resultado : undefined));
+    const faltam = comandos.map((_, i) => i).filter((i) => !resultados[i]);
+    if (faltam.length > 0) {
+      const doLote: Promise<Resultado[]> = ida(pedido, faltam.length, () => real.batch(faltam.map((i) => comandos[i].real)));
+      faltam.forEach((i, posicao) => {
+        const resultado: Promise<Resultado> = doLote.then((r: Resultado[]) => r[posicao]);
+        resultados[i] = resultado;
+        const chave = chaves[i];
+        if (chave) guardar(chave, comandos[i].sql, resultado);
+      });
+    }
+    return (await Promise.all(resultados as Promise<Resultado>[])).map(copia);
+  };
+
+  return new Proxy(real, {
+    get(alvo, nome) {
+      if (nome === 'prepare') return (sql: string) => comando({ real: alvo.prepare(sql), sql, valores: [] });
+      if (nome === 'batch') return lote;
+      if (nome === 'exec') return (sql: string) => gravar([''], 1, () => alvo.exec(sql));
+      const valor = Reflect.get(alvo, nome);
+      return typeof valor === 'function' ? valor.bind(alvo) : valor;
+    },
+  });
 }
 
 export function bucketDeFotos(): R2Bucket {

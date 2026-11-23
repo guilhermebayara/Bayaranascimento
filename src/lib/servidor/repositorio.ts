@@ -1,6 +1,6 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
-import { apelidosDoPedido, banco } from './ambiente';
+import { ambiente, apelidosDoPedido, banco } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
 import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
@@ -12,6 +12,7 @@ import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '.
 import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, type TipoDeSugestao } from '../sugestoes';
 import type { SimboloDaReacao } from '../reacoes';
 import { mensagensDoRelato, type Mensagem } from '../conversa';
+import { AJUSTE_DOS_NAO_DUPLICADOS } from '../juntar';
 import {
   comExcluidas,
   pessoasQueNaoVe,
@@ -210,6 +211,28 @@ const FILTRO_SEM_LIXEIRA = `(
 /** O que aparece no site: o que a pessoa pode ver e não está na lixeira. */
 const FILTRO_VISIVEL = `(m.excluida_em IS NULL AND ${FILTRO_SEM_LIXEIRA})`;
 
+// --- O que quase todo pedido lê (a guarda por pedido, src/lib/servidor/ambiente.ts) ---
+//
+// Cada leitura tem o SQL num lugar só, para o começo do pedido (aquecerOPedido) ler tudo num lote e as
+// funções abaixo acharem a leitura já guardada: o mesmo SQL com os mesmos valores, para a mesma pessoa.
+const SQL = {
+  integrantes: 'SELECT * FROM integrantes WHERE excluida_em IS NULL ORDER BY ordem, nome',
+  membros: 'SELECT nucleo_id, integrante_id, papel FROM nucleo_membros',
+  nucleos: 'SELECT id, nome, sobrenomes FROM nucleos ORDER BY ordem, nome',
+  tipos: 'SELECT id, rotulo, cor, cor_da_paleta AS corDaPaleta, icone FROM tipos ORDER BY ordem, rotulo',
+  apelidos: 'SELECT pessoa_id, apelido FROM apelidos_meus WHERE dono_id = ?',
+  pessoasExcluidas: 'SELECT id, nome, tipo, excluida_em, excluida_por FROM integrantes WHERE excluida_em IS NOT NULL ORDER BY excluida_em DESC, nome',
+  emPrivadosDeOutros: 'SELECT DISTINCT pessoa_id FROM lacos_coracao WHERE privado = 1 AND dono_id <> ?',
+  casais: 'SELECT * FROM casais ORDER BY id',
+  fases: 'SELECT * FROM casal_fases ORDER BY casal_id, ordem, id',
+  familiasDosCasais: 'SELECT casal_id, nucleo_id FROM casal_nucleos ORDER BY nucleo_id',
+  exParaMim: 'SELECT pessoa_id, modo FROM ex_para_mim WHERE dono_id = ?',
+  carta: 'SELECT * FROM cartas ORDER BY id DESC LIMIT 1',
+  tamanhoDoBanco: 'SELECT 1',
+  copiaMensal: 'SELECT feita_em FROM copias_mensais ORDER BY id DESC LIMIT 1',
+  ajuste: 'SELECT valor FROM ajustes WHERE chave = ?',
+} as const;
+
 // --- Integrantes e núcleos ---
 
 /**
@@ -220,8 +243,8 @@ const ativa = (coluna: string) => `${coluna} NOT IN (SELECT id FROM integrantes 
 
 export async function listarIntegrantes(): Promise<Integrante[]> {
   const [integrantes, membros] = await db().batch<Record<string, unknown>>([
-    db().prepare('SELECT * FROM integrantes WHERE excluida_em IS NULL ORDER BY ordem, nome'),
-    db().prepare('SELECT nucleo_id, integrante_id, papel FROM nucleo_membros'),
+    db().prepare(SQL.integrantes),
+    db().prepare(SQL.membros),
   ]);
   const linhas = membros.results as Record<string, unknown>[];
   const daPessoa = (id: string, papel: 'membro' | 'parente') =>
@@ -252,7 +275,7 @@ export async function listarIntegrantes(): Promise<Integrante[]> {
 }
 
 export async function listarNucleos(): Promise<Nucleo[]> {
-  const { results } = await db().prepare('SELECT id, nome, sobrenomes FROM nucleos ORDER BY ordem, nome').all<{ id: string; nome: string; sobrenomes: string | null }>();
+  const { results } = await db().prepare(SQL.nucleos).all<{ id: string; nome: string; sobrenomes: string | null }>();
   return results.map((n: { id: string; nome: string; sobrenomes: string | null }) => ({ id: n.id, nome: n.nome, sobrenomes: lerSobrenomes(n.sobrenomes) }));
 }
 
@@ -394,8 +417,10 @@ export async function removerLacoResumido(id: number, usuario: Usuario): Promise
 
 // --- Laços de árvore ---
 
+const SQL_FILIACOES = `SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE ${ativa('filho_id')} AND ${ativa('responsavel_id')}`;
+
 export async function listarFiliacoes(): Promise<Filiacao[]> {
-  const { results } = await db().prepare(`SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE ${ativa('filho_id')} AND ${ativa('responsavel_id')}`).all<Record<string, unknown>>();
+  const { results } = await db().prepare(SQL_FILIACOES).all<Record<string, unknown>>();
   return results.map((r) => ({
     filho: r.filho_id as string,
     responsavel: r.responsavel_id as string,
@@ -433,9 +458,9 @@ export async function removerFiliacao(filho: string, responsavel: string, usuari
 /** Todos os casais, sem filtro de visibilidade. Para conferências internas, nunca para mostrar. */
 async function lerCasais(): Promise<Casal[]> {
   const [casais, fases, familias] = await db().batch<Record<string, unknown>>([
-    db().prepare('SELECT * FROM casais ORDER BY id'),
-    db().prepare('SELECT * FROM casal_fases ORDER BY casal_id, ordem, id'),
-    db().prepare('SELECT casal_id, nucleo_id FROM casal_nucleos ORDER BY nucleo_id'),
+    db().prepare(SQL.casais),
+    db().prepare(SQL.fases),
+    db().prepare(SQL.familiasDosCasais),
   ]);
   return casais.results.map((c) => ({
     id: c.id as number,
@@ -544,8 +569,10 @@ export async function removerCasal(casal: Casal, usuario: Usuario): Promise<void
 // --- Laços do coração ---
 
 /** Laços do coração que o usuário pode ver. A proximidade só acompanha os laços dele. */
+const SQL_LACOS_DO_CORACAO = `SELECT * FROM lacos_coracao WHERE ${ativa('dono_id')} AND ${ativa('pessoa_id')} ORDER BY COALESCE(proximidade, 9), nome`;
+
 export async function listarLacosDoCoracao(usuario: Usuario): Promise<LacoDoCoracao[]> {
-  const { results } = await db().prepare(`SELECT * FROM lacos_coracao WHERE ${ativa('dono_id')} AND ${ativa('pessoa_id')} ORDER BY COALESCE(proximidade, 9), nome`).all<Record<string, unknown>>();
+  const { results } = await db().prepare(SQL_LACOS_DO_CORACAO).all<Record<string, unknown>>();
   return results
     .map((l) => ({
       id: l.id as number,
@@ -562,7 +589,7 @@ export async function listarLacosDoCoracao(usuario: Usuario): Promise<LacoDoCora
 /** Pessoas que aparecem em laços privados de outras pessoas (o laço em si fica escondido). */
 export async function pessoasEmLacosPrivadosDeOutros(usuario: Usuario): Promise<Set<string>> {
   const { results } = await db()
-    .prepare('SELECT DISTINCT pessoa_id FROM lacos_coracao WHERE privado = 1 AND dono_id <> ?')
+    .prepare(SQL.emPrivadosDeOutros)
     .bind(usuario.pessoa)
     .all<{ pessoa_id: string }>();
   return new Set(results.map((r) => r.pessoa_id));
@@ -650,7 +677,7 @@ export async function mudarLacoDoCoracaoDeOutro(laco: LacoDoCoracao, dados: { no
 // --- Tipos de momento ---
 
 export async function listarTipos(): Promise<Tipo[]> {
-  const { results } = await db().prepare('SELECT id, rotulo, cor, cor_da_paleta AS corDaPaleta, icone FROM tipos ORDER BY ordem, rotulo').all<Tipo>();
+  const { results } = await db().prepare(SQL.tipos).all<Tipo>();
   return results;
 }
 
@@ -857,10 +884,36 @@ export async function listarMemorias(usuario: Usuario, filtro: FiltroDeMemorias 
     condicoes.push(`EXISTS (SELECT 1 FROM tema_memorias tm WHERE tm.memoria_id = m.id AND tm.tema_id = ?${valores.length})`);
   }
   const { results } = await db()
-    .prepare(`SELECT m.* FROM memorias m WHERE ${condicoes.join(' AND ')} ORDER BY m.ano, COALESCE(m.mes, 0), COALESCE(m.dia, 0), m.criada_em`)
+    .prepare(`SELECT m.* FROM memorias m WHERE ${condicoes.join(' AND ')} ORDER BY ${ORDEM_DA_LINHA}`)
     .bind(...valores)
     .all<Record<string, unknown>>();
   return completar(results.map(lerMemoria), usuario);
+}
+
+/**
+ * A ordem da linha do tempo: pela data e, na mesma data, por quando entrou no acervo. O rowid desempata o
+ * que entrou no mesmo instante (as memórias de exemplo), para a ordem ser sempre a mesma: a da linha do
+ * tempo e a de "Antes" e "Depois" na página da memória (vizinhasDaMemoria).
+ */
+const ORDEM_DA_LINHA = 'm.ano, COALESCE(m.mes, 0), COALESCE(m.dia, 0), m.criada_em, m.rowid';
+
+/**
+ * A memória de antes e a de depois na linha do tempo, entre as publicadas que a pessoa vê: a mesma ordem de
+ * listarMemorias, sem ler o acervo inteiro (causa 4 da medição M1: a página da memória lia todas as
+ * memórias, com fotos, pessoas e relatos, só para achar as duas). Cada lado para na primeira que acha,
+ * começando pelo índice da data (memorias_por_data). Sem mês ou sem dia vem antes, como em COALESCE(..., 0).
+ */
+export async function vizinhasDaMemoria(usuario: Usuario, memoria: Pick<Memoria, 'id' | 'ano' | 'mes' | 'dia' | 'criadaEm'>): Promise<{ antes?: Memoria; depois?: Memoria }> {
+  const daqui = `(${ORDEM_DA_LINHA})`;
+  const desta = '(?3, ?4, ?5, ?6, (SELECT rowid FROM memorias WHERE id = ?2))';
+  const publicadas = `SELECT m.* FROM memorias m WHERE ${FILTRO_VISIVEL} AND m.situacao = 'publicada' AND m.id <> ?2`;
+  const valores = [usuario.pessoa, memoria.id, memoria.ano, memoria.mes ?? 0, memoria.dia ?? 0, memoria.criadaEm];
+  const [antes, depois] = await db().batch<Record<string, unknown>>([
+    db().prepare(`${publicadas} AND m.ano <= ?3 AND ${daqui} < ${desta} ORDER BY m.ano DESC, m.mes DESC, m.dia DESC, m.criada_em DESC, m.rowid DESC LIMIT 1`).bind(...valores),
+    db().prepare(`${publicadas} AND m.ano >= ?3 AND ${daqui} > ${desta} ORDER BY m.ano, m.mes, m.dia, m.criada_em, m.rowid LIMIT 1`).bind(...valores),
+  ]);
+  const ler = (r: { results: Record<string, unknown>[] }) => (r.results[0] ? lerMemoria(r.results[0]) : undefined);
+  return { antes: ler(antes), depois: ler(depois) };
 }
 
 /** Uma memória, se o usuário puder vê-la. Quem não pode recebe o mesmo que para uma memória inexistente. */
@@ -1553,6 +1606,19 @@ export async function listarFotosSoltas(): Promise<FotoSolta[]> {
   return results.map((r: Record<string, unknown>) => ({ id: r.id as number, chave: r.chave as string, enviadaPor: r.enviada_por as string, enviadaEm: r.enviada_em as string, tamanho: (r.tamanho as number | null) ?? null }));
 }
 
+// O "+" diante de f.relato_id faz o SQLite começar pelo índice das fotos sem memória, que são poucas, e
+// não pelo das fotos sem relato, que são quase todas (3.079 linhas lidas no acervo cheio, contra nenhuma)
+const SQL_ALGUMA_FOTO_SOLTA = `SELECT 1 AS ok FROM fotos f WHERE ${FOTO_SOLTA.replace('f.relato_id IS NULL', '+f.relato_id IS NULL')} LIMIT 1`;
+
+/**
+ * Se há alguma foto sem memória, sem contar todas: o número do retrato só precisa saber se a pendência
+ * existe. Barato: a busca começa pelo índice das fotos sem memória (fotos_da_memoria) e para na primeira.
+ * O mesmo filtro de FOTO_SOLTA; só a ordem da busca muda.
+ */
+export async function haFotoSolta(): Promise<boolean> {
+  return Boolean(await db().prepare(SQL_ALGUMA_FOTO_SOLTA).first());
+}
+
 export async function contarFotosSoltas(): Promise<number> {
   const linha = await db().prepare(`SELECT COUNT(*) AS n FROM fotos f WHERE ${FOTO_SOLTA}`).first<{ n: number }>();
   return linha?.n ?? 0;
@@ -2071,7 +2137,7 @@ export async function listarRelatosDe(usuario: Usuario, pessoaId: string): Promi
  */
 export async function tamanhoDoBanco(): Promise<number | null> {
   try {
-    const resultado = await db().prepare('SELECT 1').run();
+    const resultado = await db().prepare(SQL.tamanhoDoBanco).run();
     const tamanho = (resultado.meta as { size_after?: number } | undefined)?.size_after;
     return typeof tamanho === 'number' ? tamanho : null;
   } catch {
@@ -2132,7 +2198,7 @@ export interface Carta {
 
 /** A carta de Natal: a versão mais recente. */
 export async function obterCarta(): Promise<Carta | undefined> {
-  const r = await db().prepare('SELECT * FROM cartas ORDER BY id DESC LIMIT 1').first<Record<string, string>>();
+  const r = await db().prepare(SQL.carta).first<Record<string, string>>();
   return r ? { texto: r.texto!, assinatura: r.assinatura!, escritaPor: r.escrita_por!, escritaEm: r.escrita_em! } : undefined;
 }
 
@@ -2145,7 +2211,7 @@ export async function anotarCopiaMensal(): Promise<void> {
 
 /** Quando o script do Drive baixou a cópia pela última vez ("AAAA-MM-DD HH:MM:SS", em UTC), ou null se nunca. */
 export async function ultimaCopiaMensal(): Promise<string | null> {
-  const r = await db().prepare('SELECT feita_em FROM copias_mensais ORDER BY id DESC LIMIT 1').first<{ feita_em: string }>();
+  const r = await db().prepare(SQL.copiaMensal).first<{ feita_em: string }>();
   return r?.feita_em ?? null;
 }
 
@@ -2208,19 +2274,17 @@ export const comandosDosAvisos = (avisos: AvisoNovo[]): Comando[] =>
  * `historico`, também os que já saíram. Só entra o que ela vê agora: a memória publicada, fora da
  * lixeira, e o relato, quando o aviso é de um (ver veORelato). O que ela deixou de ver some daqui.
  */
-export async function listarAvisos(usuario: Usuario, { historico = false }: { historico?: boolean } = {}): Promise<Aviso[]> {
-  const { results } = await db()
-    .prepare(
-      `SELECT a.*, m.titulo, m.visibilidade AS memoria_visibilidade,
+/** Os avisos de uma pessoa, do banco: os da lista ou, com `historico`, também os já abertos. */
+const sqlDosAvisos = (historico: boolean) => `SELECT a.*, m.titulo, m.visibilidade AS memoria_visibilidade,
          (SELECT json_group_array(nucleo_id) FROM memoria_nucleos WHERE memoria_id = m.id) AS memoria_nucleos, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.situacao AS relato_situacao, r.so_para_nucleos AS relato_so,
          r.descartado_em AS relato_descartado
        FROM avisos a JOIN memorias m ON m.id = a.memoria_id
        LEFT JOIN relatos r ON r.id = a.relato_id
        WHERE a.para = ?1 AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL} ${historico ? '' : 'AND a.resolvido_em IS NULL'}
-       ORDER BY a.id DESC LIMIT 60`,
-    )
-    .bind(usuario.pessoa)
-    .all<Record<string, unknown>>();
+       ORDER BY a.id DESC LIMIT 60`;
+
+export async function listarAvisos(usuario: Usuario, { historico = false }: { historico?: boolean } = {}): Promise<Aviso[]> {
+  const { results } = await db().prepare(sqlDosAvisos(historico)).bind(usuario.pessoa).all<Record<string, unknown>>();
   if (results.length === 0) return [];
   const naoVe = await pessoasQueONaoVe(usuario);
   const avisos: Aviso[] = [];
@@ -2255,10 +2319,11 @@ export async function listarAvisos(usuario: Usuario, { historico = false }: { hi
   return avisos;
 }
 
-/** Quantos avisos estão na lista: o número do retrato. Barato quando não há nenhum. */
+/**
+ * Quantos avisos estão na lista: o número do retrato. A lista vem do começo do pedido (aquecerOPedido),
+ * já guardada: barata quando não há nenhum (o índice avisos_de_quem), e poucas linhas quando há.
+ */
 export async function contarAvisosPendentes(usuario: Usuario): Promise<number> {
-  const algum = await db().prepare('SELECT 1 AS ok FROM avisos WHERE para = ? AND resolvido_em IS NULL LIMIT 1').bind(usuario.pessoa).first();
-  if (!algum) return 0;
   return (await listarAvisos(usuario)).length;
 }
 
@@ -2438,7 +2503,7 @@ export interface Proximidade {
 
 /** Os apelidos que uma pessoa deu. Só o dono lê os dele: ninguém mais vê. */
 export async function listarMeusApelidos(dono: string): Promise<Map<string, string>> {
-  const { results } = await db().prepare('SELECT pessoa_id, apelido FROM apelidos_meus WHERE dono_id = ?').bind(dono).all<{ pessoa_id: string; apelido: string }>();
+  const { results } = await db().prepare(SQL.apelidos).bind(dono).all<{ pessoa_id: string; apelido: string }>();
   return new Map(results.map((r: { pessoa_id: string; apelido: string }) => [r.pessoa_id, r.apelido]));
 }
 
@@ -2490,7 +2555,7 @@ export async function removerProximidade(dono: string, pessoa: string): Promise<
  * desfeito que ela vê. Ninguém mais lê estas linhas: não há rota de leitura.
  */
 export async function comoOsExesAparecem(usuario: Usuario): Promise<Map<string, Exclude<ModoDoEx, 'presente'>>> {
-  const { results } = await db().prepare('SELECT pessoa_id, modo FROM ex_para_mim WHERE dono_id = ?').bind(usuario.pessoa).all<{ pessoa_id: string; modo: ModoDoEx }>();
+  const { results } = await db().prepare(SQL.exParaMim).bind(usuario.pessoa).all<{ pessoa_id: string; modo: ModoDoEx }>();
   if (results.length === 0) return new Map();
   const exes = exesDe(usuario.pessoa, await listarCasais(usuario));
   const valem = modosQueValem(new Map(results.map((r: { pessoa_id: string; modo: ModoDoEx }) => [r.pessoa_id, r.modo])), exes);
@@ -2516,7 +2581,7 @@ export async function salvarComoOExAparece(usuario: Usuario, pessoa: string, mod
 
 /** O valor de um ajuste, já lido do JSON, ou nada. */
 export async function lerAjuste(chave: string): Promise<unknown> {
-  const linha = await db().prepare('SELECT valor FROM ajustes WHERE chave = ?').bind(chave).first<{ valor: string }>();
+  const linha = await db().prepare(SQL.ajuste).bind(chave).first<{ valor: string }>();
   if (!linha) return undefined;
   try {
     return JSON.parse(linha.valor);
@@ -2862,7 +2927,8 @@ export async function audioParaTranscrever(id: number, usuario: Usuario): Promis
 
 /** Quem está na lixeira. */
 export async function idsDasPessoasExcluidas(): Promise<Set<string>> {
-  const { results } = await db().prepare('SELECT id FROM integrantes WHERE excluida_em IS NOT NULL').all<{ id: string }>();
+  // A mesma leitura da lista das excluídas: uma consulta a menos por pedido, com as mesmas pessoas
+  const { results } = await db().prepare(SQL.pessoasExcluidas).all<{ id: string }>();
   return new Set(results.map((r: { id: string }) => r.id));
 }
 
@@ -2877,7 +2943,7 @@ export interface PessoaExcluida {
 /** Quem está na lixeira, das excluídas mais recentes para as mais antigas. */
 export async function listarPessoasExcluidas(): Promise<PessoaExcluida[]> {
   const { results } = await db()
-    .prepare('SELECT id, nome, tipo, excluida_em, excluida_por FROM integrantes WHERE excluida_em IS NOT NULL ORDER BY excluida_em DESC, nome')
+    .prepare(SQL.pessoasExcluidas)
     .all<Record<string, unknown>>();
   return results.map((r: Record<string, unknown>) => ({
     id: r.id as string,
@@ -2922,14 +2988,12 @@ export interface PedidoDeExclusao {
 }
 
 /** Os pedidos abertos, dos mais antigos aos mais novos. Só de quem ainda não está na lixeira. */
-export async function listarPedidosDeExclusao(): Promise<PedidoDeExclusao[]> {
-  const { results } = await db()
-    .prepare(
-      `SELECT p.id, p.pessoa_id, p.pedido_por, p.motivo, p.criado_em FROM pedidos_de_exclusao p
+const SQL_PEDIDOS_DE_EXCLUSAO = `SELECT p.id, p.pessoa_id, p.pedido_por, p.motivo, p.criado_em FROM pedidos_de_exclusao p
        JOIN integrantes i ON i.id = p.pessoa_id AND i.excluida_em IS NULL
-       WHERE p.resolvido_em IS NULL ORDER BY p.criado_em, p.id`,
-    )
-    .all<Record<string, unknown>>();
+       WHERE p.resolvido_em IS NULL ORDER BY p.criado_em, p.id`;
+
+export async function listarPedidosDeExclusao(): Promise<PedidoDeExclusao[]> {
+  const { results } = await db().prepare(SQL_PEDIDOS_DE_EXCLUSAO).all<Record<string, unknown>>();
   return results.map((r: Record<string, unknown>) => ({
     id: r.id as number,
     pessoa: r.pessoa_id as string,
@@ -3064,4 +3128,106 @@ export async function obterMensagem(id: number): Promise<(Mensagem & { relatoId:
     soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) ?? null,
     situacao: r.situacao as string,
   };
+}
+
+// --- O espaço das fotos e áudios, guardado para o número do retrato (causa 1c da medição M1) ---
+
+/**
+ * Somar o tamanho de todas as fotos, retratos e áudios lê o acervo inteiro (6.400 linhas no acervo cheio).
+ * A soma inteira é feita na página da Administração, que guarda o resultado aqui. O número do retrato, em
+ * toda página de quem administra, lê o que foi guardado; passadas algumas horas, a próxima página refaz a
+ * soma e guarda de novo. O espaço só cresce aos poucos, e o aviso é a partir de 7 GB.
+ */
+export const AJUSTE_DO_ESPACO_GUARDADO = 'espaco-dos-arquivos-guardado';
+export const HORAS_DO_ESPACO_GUARDADO = 6;
+
+interface EspacoGuardado {
+  bytes: number;
+  semMedida: number;
+  em: string;
+}
+
+export async function guardarEspacoDosArquivos(espaco: { bytes: number; semMedida: number }): Promise<void> {
+  const valor: EspacoGuardado = { bytes: espaco.bytes, semMedida: espaco.semMedida, em: new Date().toISOString() };
+  await db()
+    .prepare(`INSERT INTO ajustes (chave, valor, mudado_por) VALUES (?, ?, NULL) ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor, mudado_em = datetime('now')`)
+    .bind(AJUSTE_DO_ESPACO_GUARDADO, JSON.stringify(valor))
+    .run();
+}
+
+/** O espaço guardado pela última soma, ou a soma de agora (guardada) quando a última passou do prazo. */
+export async function espacoDosArquivosGuardado(agora = Date.now()): Promise<{ bytes: number; semMedida: number }> {
+  const guardado = (await lerAjuste(AJUSTE_DO_ESPACO_GUARDADO)) as Partial<EspacoGuardado> | undefined;
+  const em = typeof guardado?.em === 'string' ? Date.parse(guardado.em) : NaN;
+  if (guardado && typeof guardado.bytes === 'number' && typeof guardado.semMedida === 'number' && agora - em < HORAS_DO_ESPACO_GUARDADO * 3_600_000 && em <= agora) {
+    return { bytes: guardado.bytes, semMedida: guardado.semMedida };
+  }
+  const espaco = await espacoDosArquivos();
+  try {
+    await guardarEspacoDosArquivos(espaco);
+  } catch {
+    // Guardar é um extra: sem ele, a próxima página soma de novo
+  }
+  return espaco;
+}
+
+// --- O começo de cada pedido (causa 1a e 1b da medição M1) ---
+
+/**
+ * Que leituras o começo do pedido faz num lote só:
+ * - 'arquivo': as rotas de fotos, áudios e retratos. Só o que a conferência de quem vê usa: as pessoas, os
+ *   núcleos de cada uma, quem está na lixeira e quem só existe num laço privado de outra pessoa.
+ * - 'rota': as rotas de /api, que gravam. Mais os tipos.
+ * - 'pagina': as páginas. Mais o que o esqueleto (src/layouts/Visual.astro) e quase toda página leem: as
+ *   famílias, os laços da árvore, os apelidos de quem olha (fora da administração), os exes, os avisos e,
+ *   para quem administra, o que as pendências do retrato leem.
+ */
+export type ComecoDoPedido = 'arquivo' | 'rota' | 'pagina';
+
+function leiturasDoComeco(pessoa: string, comeco: ComecoDoPedido, { admin, apelidos }: { admin: boolean; apelidos: boolean }): Comando[] {
+  const lista = [db().prepare(SQL.integrantes), db().prepare(SQL.membros), db().prepare(SQL.pessoasExcluidas), db().prepare(SQL.emPrivadosDeOutros).bind(pessoa)];
+  if (comeco === 'arquivo') return lista;
+  lista.push(db().prepare(SQL.tipos));
+  if (comeco === 'rota') return lista;
+  lista.push(
+    db().prepare(SQL.nucleos),
+    db().prepare(SQL_FILIACOES),
+    db().prepare(SQL.casais),
+    db().prepare(SQL.fases),
+    db().prepare(SQL.familiasDosCasais),
+    db().prepare(SQL_LACOS_DO_CORACAO),
+    db().prepare(SQL.exParaMim).bind(pessoa),
+    // A lista dos avisos, para o número do retrato: poucas linhas, e o esqueleto não lê nada depois de a página responder
+    db().prepare(sqlDosAvisos(false)).bind(pessoa),
+  );
+  if (apelidos) lista.push(db().prepare(SQL.apelidos).bind(pessoa));
+  if (admin) {
+    lista.push(
+      db().prepare(SQL.carta),
+      db().prepare(SQL.tamanhoDoBanco),
+      // A cópia mensal só é conferida na produção (situacaoDasPendencias, em conta.ts)
+      ...(ambiente() === 'producao' ? [db().prepare(SQL.copiaMensal)] : []),
+      db().prepare(SQL.ajuste).bind(AJUSTE_DOS_NAO_DUPLICADOS),
+      db().prepare(SQL.ajuste).bind(AJUSTE_DO_ESPACO_GUARDADO),
+      db().prepare(SQL_PEDIDOS_DE_EXCLUSAO),
+      db().prepare(SQL_ALGUMA_FOTO_SOLTA),
+    );
+  }
+  return lista;
+}
+
+/**
+ * Lê num lote só, no começo do pedido, o que ele vai ler muitas vezes. A guarda por pedido fica com cada
+ * leitura, e as funções deste arquivo acham a leitura guardada em vez de ir ao banco de novo. Quem pede
+ * ainda não foi conferido: `admin` diz o que o banco diz da pessoa, e só muda o que é lido.
+ */
+export async function aquecerOPedido(pessoa: string, comeco: ComecoDoPedido, { apelidos }: { apelidos: boolean }): Promise<void> {
+  // Saber se a pessoa administra pede as pessoas: vêm no mesmo lote, e as pendências, num segundo, só para ela
+  const primeiro = leiturasDoComeco(pessoa, comeco, { admin: false, apelidos });
+  await db().batch(primeiro);
+  if (comeco !== 'pagina') return;
+  const eu = (await listarIntegrantes()).find((i) => i.id === pessoa);
+  // As pendências só aparecem no esqueleto, depois da página: o lote vai sem esperar, junto com o que a
+  // página lê. Quem chega antes dele encontra a leitura a caminho, guardada; um erro aqui só faz ler de novo.
+  if (eu?.admin) db().batch(leiturasDoComeco(pessoa, comeco, { admin: true, apelidos })).catch(() => undefined);
 }

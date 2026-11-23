@@ -168,7 +168,8 @@ describe('a página da pessoa', () => {
 
   it('os áudios só aparecem, e só contam, os que quem olha pode ouvir (P102)', () => {
     // A conta do quadro e a lista de "Nas palavras de" saem da mesma consulta, que já filtra pelo que a pessoa vê
-    expect(pagina).toMatch(/const audios = \(await listarAudiosDe\(usuario, pessoa\.id\)\)/);
+    expect(pagina).toMatch(/const audios = audiosDela\.map/);
+    expect(pagina).toMatch(/\baudiosDela\b[^\]]*\] = await Promise\.all\(\[[\s\S]*?listarAudiosDe\(usuario, pessoa\.id\),/);
     // Os áudios são mensagens dos relatos dela, em "Nas palavras de", e o quadro conta quantos são
     expect(pagina).toMatch(/<strong>\{p\.audios\.length\}<\/strong>/);
     expect(pagina).toMatch(/<ol class="palavras__relatos" id="audios">/);

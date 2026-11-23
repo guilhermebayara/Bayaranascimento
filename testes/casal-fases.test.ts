@@ -239,7 +239,7 @@ describe('aniversário de casamento no Início', () => {
     expect(inicio).toContain('const sai = (id: string) => naoVe.has(id) || exesQueSaem.has(id) || !achar(id) || jaFaleceu(achar(id)!);');
     expect(inicio).toContain('const casamentos = aniversariosDeCasamento(casais, hoje, sai);');
     // Os casais chegam de listarCasais: só os que a pessoa vê
-    expect(inicio).toContain('const casais = await listarCasais(usuario);');
+    expect(inicio).toMatch(/const \[[^\]]*\bcasais\b[^\]]*\] = await Promise\.all\(\[[\s\S]*?listarCasais\(usuario\),/);
   });
   it('sem o ano, entra sem a conta; o casamento que ainda vai acontecer não é aniversário', () => {
     const semAno = casal('a', 'b', [fase('casamento', null, { inicioMes: 12, inicioDia: 1 })]);
