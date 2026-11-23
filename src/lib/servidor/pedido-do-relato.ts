@@ -7,7 +7,7 @@
 // conta ("e mais N"), para a frase não denunciar quem a pessoa não vê.
 import { paraQuemPassouAVer, comoPublicoAntigo } from './avisos';
 import { estaNoPublicoDoRelato, type Publico, type Usuario } from './permissoes';
-import { listarIntegrantes, listarMensagensDosRelatos, listarNucleos, obterRelatoPorId, pessoasQueONaoVe } from './repositorio';
+import { listarIntegrantes, listarMensagensDosRelatos, listarNucleos, obterMemoria, obterRelatoPorId, pessoasQueONaoVe } from './repositorio';
 import { resumoDaMensagem } from '../conversa';
 import { jaFaleceu } from '../datas';
 import { listaCurta, trechoDoRelato } from '../visual';
@@ -53,8 +53,11 @@ export async function pedidosDosRelatos(quemOlha: Usuario, pedidos: { relatoId: 
   };
   for (const { relatoId, publico } of pedidos) {
     const relato = await obterRelatoPorId(relatoId);
-    // Só quem registrou lê o pedido do próprio relato
-    if (!relato || relato.registradoPor !== quemOlha.pessoa || !relato.soParaNucleos) continue;
+    // Só quem registrou lê o pedido do próprio relato, e só de relato que não foi descartado, numa memória que
+    // quem registrou ainda vê (fora da lixeira). A função confere sozinha, sem depender da tela que a chama
+    // (fila da revisão AA2, 23/11/2026)
+    if (!relato || relato.registradoPor !== quemOlha.pessoa || !relato.soParaNucleos || relato.descartadoEm) continue;
+    if (!(await obterMemoria(quemOlha, relato.memoriaId))) continue;
     const texto = relato.texto.trim();
     const comeco = texto ? trechoDoRelato(texto) : resumoDaMensagem((await listarMensagensDosRelatos([relato])).get(relato.id)?.[0] ?? { tipo: 'texto', texto: '' });
     const paraQuem = paraQuemPassouAVer(comoPublicoAntigo(relato.publicoConhecido ?? relato.soParaNucleos), publico, nucleos);

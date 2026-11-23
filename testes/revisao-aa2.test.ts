@@ -311,9 +311,9 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
       expect(rDepois.publico_conhecido).toBe('todos');
     });
 
-    it('fila: pedidosDosRelatos chamado direto sem listarAvisos não confere se quem registrou ainda vê a memória ou se o relato está na lixeira', async () => {
+    it('pedidosDosRelatos chamado direto, sem listarAvisos, confere sozinha que quem registrou vê a memória e que o relato não foi descartado', async () => {
       // Na tela, Avisos.astro usa listarAvisos e [id].astro usa obterMemoria+listarRelatos, que já filtram.
-      // Mas pedidosDosRelatos sozinho só checa registradoPor e soParaNucleos.
+      // A função confere o mesmo por conta própria.
       const mem = await pedirJson('memorias', gui, {
         titulo: 'AA2: memória que vai para lixeira',
         ano: 2020,
@@ -334,13 +334,28 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
         nucleos: ['bayara-nascimento'],
         situacao: 'publicada',
       });
-      // Admin manda a memória para a lixeira: listarAvisos some com o aviso
+      const pedir = () => pedidoDoRelato.pedidosDosRelatos(elizete, [{ relatoId: relato.id, publico: { visibilidade: 'todos', nucleos: [] } }]);
+      // Controle: com a memória à vista e o relato de pé, o pedido aparece
+      expect((await pedir()).has(relato.id)).toBe(true);
+
+      // Relato descartado: o pedido some
+      sql.prepare(`UPDATE relatos SET descartado_em = datetime('now') WHERE id = ?`).run(relato.id);
+      expect((await pedir()).has(relato.id)).toBe(false);
+      sql.prepare('UPDATE relatos SET descartado_em = NULL WHERE id = ?').run(relato.id);
+
+      // Memória que quem registrou deixou de ver (só para uma família da qual a Elizete não é): o pedido some
+      sql.prepare(`UPDATE memorias SET visibilidade = 'nucleos' WHERE id = ?`).run(memId);
+      sql.prepare(`DELETE FROM memoria_nucleos WHERE memoria_id = ?`).run(memId);
+      sql.prepare(`INSERT INTO memoria_nucleos (memoria_id, nucleo_id) VALUES (?, 'bracarense')`).run(memId);
+      expect((await pedir()).has(relato.id)).toBe(false);
+      sql.prepare(`UPDATE memorias SET visibilidade = 'todos' WHERE id = ?`).run(memId);
+      expect((await pedir()).has(relato.id)).toBe(true);
+
+      // Admin manda a memória para a lixeira: listarAvisos some com o aviso, e a chamada direta também
       await repo.excluirMemoria(memId, gui);
       const avisosElizete = await repo.listarAvisos(elizete);
       expect(avisosElizete.some((a) => a.memoriaId === memId)).toBe(false);
-      // Chamada direta a pedidosDosRelatos ainda devolve o começo (é o texto da própria Elizete, não vaza de outro)
-      const direto = await pedidoDoRelato.pedidosDosRelatos(elizete, [{ relatoId: relato.id, publico: { visibilidade: 'todos', nucleos: [] } }]);
-      expect(direto.has(relato.id)).toBe(true);
+      expect((await pedir()).has(relato.id)).toBe(false);
     });
   });
 
