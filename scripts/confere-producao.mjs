@@ -41,10 +41,15 @@
 //    das fotos de exemplo ficam em exemplos/fotos/copias/, fora do pacote publicado.
 //    A cópia pequena dos retratos (sessão D1c) segue o mesmo caminho: gravada só no envio do retrato e no
 //    ajuste da Administração, com nome próprio, e entregue só depois da conferência do retrato.
+//    Desde a sessão D1d (item 14 da revisão R-D1), a regra lê o código sem os comentários, em todos os
+//    arquivos de src/: o nome da cópia montado à mão ou numa variável fora das rotas, guardarCopias fora
+//    do ajuste, a gravação antes da reserva e a leitura da cópia antes da conferência são recusados, e a
+//    cópia só é apagada junto da original, na rota das fotos soltas.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
 import { apagamentosProibidos, copiasApagadasErradas } from './apagar-no-bucket.mjs';
+import { copiasErradas } from './copias-no-bucket.mjs';
 
 const PRODUCAO = { banco: 'bayara-memorias', bucket: 'bayara-memorias' };
 const DOMINIOS_DE_EXEMPLO = new Set(['exemplo.com', 'example.com', 'example.org', 'b.com']);
@@ -283,64 +288,11 @@ if (existsSync('scripts/desempenho')) {
 }
 
 // 13. As cópias menores das fotos: gravadas só pelas rotas do site, com nome próprio, e entregues só depois
-// da conferência da original (sessão D1b, 23/11/2026)
+// da conferência da original (sessão D1b, 23/11/2026). A regra mora em scripts/copias-no-bucket.mjs, testada
+// em testes/guarda-copias.test.ts, e lê o código sem os comentários (sessão D1d, item 14 da revisão R-D1).
 {
-  const ROTAS_DAS_COPIAS = ['src/pages/api/fotos.ts', 'src/pages/api/copias-das-fotos.ts'];
   const fontes = existsSync('src') ? readdirSync('src', { recursive: true }).map((a) => `src/${String(a).replace(/\\/g, '/')}`).filter((a) => /\.(astro|ts|mjs|js)$/.test(a)) : [];
-  for (const arquivo of fontes) {
-    const texto = readFileSync(arquivo, 'utf8');
-    if (/\.put\(\s*chaveDaCopia\(/.test(texto) && !ROTAS_DAS_COPIAS.includes(arquivo)) falhar(`${arquivo}: as cópias das fotos só são gravadas por ${ROTAS_DAS_COPIAS.join(' e ')}.`);
-  }
-  for (const arquivo of ROTAS_DAS_COPIAS) {
-    const texto = readFileSync(arquivo, 'utf8');
-    for (const uso of texto.matchAll(/([\w.]*(?:\(\))?)\.put\(\s*chaveDaCopia\(/g)) {
-      if (uso[1] !== 'bucketDeFotos()') falhar(`${arquivo}: a cópia é gravada no bucket das fotos deste ambiente, por bucketDeFotos(), e aqui por ${uso[1]}.`);
-    }
-  }
-  const ajuste = readFileSync('src/pages/api/copias-das-fotos.ts', 'utf8');
-  const naOrdem = (texto, ...trechos) => trechos.every((t, i) => texto.indexOf(t) >= 0 && (i === 0 || texto.indexOf(t) > texto.indexOf(trechos[i - 1])));
-  if (
-    (ajuste.match(/const decisao = podeFazerCopiasDasFotos\(locals\.usuario\);\n\s*if \(!decisao\.ok\) return erro\(403, decisao\.motivo\);/g) ?? []).length !== 2 ||
-    !naOrdem(ajuste, 'export const POST', "if (!(await acessoAFoto(locals.usuario, chave))) return erro(404, 'Foto não encontrada.');", "if (await temCopias(chave)) return erro(409,", '.put(chaveDaCopia(')
-  ) {
-    falhar('src/pages/api/copias-das-fotos.ts: o ajuste das cópias é só dos administradores, e confere quem vê a original e se ela já tem cópia antes de gravar.');
-  }
-  const regra = readFileSync('src/lib/servidor/permissoes.ts', 'utf8');
-  if (!/export function podeFazerCopiasDasFotos\(usuario: Usuario\): Decisao \{\n\s*return usuario\.admin \? sim : nao\(/.test(regra)) falhar('src/lib/servidor/permissoes.ts: só os administradores fazem as cópias das fotos de antes.');
-  const copias = readFileSync('src/lib/copias-das-fotos.ts', 'utf8');
-  if (!copias.includes('return `${base}.${tamanho}.${formato}`;')) falhar('src/lib/copias-das-fotos.ts: o nome da cópia é o da original com o tamanho no meio, nunca o de uma original.');
-  const rota = readFileSync('src/pages/fotos/[...chave].ts', 'utf8');
-  if (!naOrdem(rota, 'const acesso = await acessoAFoto(locals.usuario, chave);', 'if (!acesso) return naoEncontrada();', 'chaveDaCopia(chave, tamanho, formato)')) {
-    falhar('src/pages/fotos/[...chave].ts: a cópia só é lida depois da conferência da original, com a chave da original.');
-  }
-  // A cópia pequena dos retratos (sessão D1c)
-  const ROTAS_DAS_COPIAS_DOS_RETRATOS = ['src/pages/api/integrantes.ts', 'src/pages/api/copias-dos-retratos.ts'];
-  for (const arquivo of fontes) {
-    const texto = readFileSync(arquivo, 'utf8');
-    for (const uso of texto.matchAll(/([\w.]*(?:\(\))?)\.put\(\s*`\$\{PASTA_DOS_RETRATOS\}\$\{chaveDaCopiaDoRetrato\(/g)) {
-      if (!ROTAS_DAS_COPIAS_DOS_RETRATOS.includes(arquivo)) falhar(`${arquivo}: a cópia do retrato só é gravada por ${ROTAS_DAS_COPIAS_DOS_RETRATOS.join(' e ')}.`);
-      else if (uso[1] !== 'bucketDeFotos()') falhar(`${arquivo}: a cópia do retrato é gravada no bucket das fotos deste ambiente, por bucketDeFotos(), e aqui por ${uso[1]}.`);
-    }
-    // O nome da cópia só é montado onde ela é gravada, na rota que a entrega e na peça que define o nome
-    if (/chaveDaCopiaDoRetrato\(/.test(texto) && ![...ROTAS_DAS_COPIAS_DOS_RETRATOS, 'src/pages/retratos/[...chave].ts', 'src/lib/retratos.ts'].includes(arquivo)) {
-      falhar(`${arquivo}: o nome da cópia do retrato só aparece onde ela é gravada (${ROTAS_DAS_COPIAS_DOS_RETRATOS.join(' e ')}) e na rota dos retratos.`);
-    }
-  }
-  const ajusteDosRetratos = readFileSync('src/pages/api/copias-dos-retratos.ts', 'utf8');
-  if (
-    (ajusteDosRetratos.match(/const decisao = podeFazerCopiasDasFotos\(locals\.usuario\);\n\s*if \(!decisao\.ok\) return erro\(403, decisao\.motivo\);/g) ?? []).length !== 2 ||
-    !naOrdem(ajusteDosRetratos, 'export const POST', "if (!(await acessoAoRetrato(locals.usuario, chave))) return erro(404, 'Retrato não encontrado.');", "if (await retratoTemCopia(chave)) return erro(409,", '.put(`${PASTA_DOS_RETRATOS}${chaveDaCopiaDoRetrato(')
-  ) {
-    falhar('src/pages/api/copias-dos-retratos.ts: o ajuste das cópias dos retratos é só dos administradores, e confere quem vê o retrato e se ele já tem cópia antes de gravar.');
-  }
-  const retratos = readFileSync('src/lib/retratos.ts', 'utf8');
-  if (!retratos.includes('return `${base}.pequeno.${formato}`;') || !retratos.includes('if (!base) throw new Error(`Chave de retrato inválida: ${chave}`);')) {
-    falhar('src/lib/retratos.ts: o nome da cópia do retrato é o da original com "pequeno" no meio, nunca o de uma original.');
-  }
-  const rotaDosRetratos = readFileSync('src/pages/retratos/[...chave].ts', 'utf8');
-  if (!naOrdem(rotaDosRetratos, 'const acesso = await acessoAoRetrato(locals.usuario, chave);', 'if (!acesso) return naoEncontrado();', 'chaveDaCopiaDoRetrato(chave, acesso.copia.formato)')) {
-    falhar('src/pages/retratos/[...chave].ts: a cópia do retrato só é lida depois da conferência do retrato, com a chave da original.');
-  }
+  for (const mensagem of copiasErradas(Object.fromEntries(fontes.map((a) => [a, readFileSync(a, 'utf8')])))) falhar(mensagem);
   // As cópias de exemplo: só os 22 arquivos, em exemplos/fotos/copias/, nunca no pacote publicado
   const deExemplo = existsSync('exemplos/fotos/copias') ? readdirSync('exemplos/fotos/copias') : [];
   if (deExemplo.length !== 22 || deExemplo.some((n) => !/^(chico|karol)-\d+\.(pequena|media)\.webp$/.test(n))) falhar('exemplos/fotos/copias/: são as 22 cópias das fotos de exemplo, a pequena e a média de cada uma.');
