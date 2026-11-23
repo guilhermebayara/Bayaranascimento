@@ -17,7 +17,7 @@ describe('formulário de memória', () => {
   it('o tipo de momento começa sem marcação e é obrigatório', () => {
     const nova = fonte('src/pages/nova.astro');
     expect(nova).not.toMatch(/TIPO_PADRAO/);
-    expect(nova).toMatch(/name="tipo" value=\{tipo\.id\} checked=\{tipo\.id === memoria\?\.tipo\} required/);
+    expect(nova).toMatch(/name="tipo" value=\{tipo\.id\} checked=\{tipo\.id === \(devolvida\?\.tipo \?\? memoria\?\.tipo\)\} required/);
   });
 
   it('"Quem pode ver?" pergunta primeiro todos ou núcleos, depois quais núcleos', () => {
@@ -312,7 +312,7 @@ describe('tipos de momento', () => {
     expect(nova).toContain('const A_VISTA = 6;');
     expect(nova).toContain('Ver mais tipos');
     // O tipo já escolhido nunca fica escondido
-    expect(nova).toContain('open={tiposRecolhidos.some((t) => t.id === memoria?.tipo)}');
+    expect(nova).toContain('open={tiposRecolhidos.some((t) => t.id === (devolvida?.tipo ?? memoria?.tipo))}');
   });
 });
 

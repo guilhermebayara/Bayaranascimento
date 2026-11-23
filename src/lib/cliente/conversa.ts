@@ -150,6 +150,8 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
   let gravandoLista = false;
   let deNovo = false;
   let situacaoPedida: 'rascunho' | 'publicada' = publicado ? 'publicada' : 'rascunho';
+  // Para onde publicar leva: a memória, no relato de quem escreve (o servidor diz o endereço)
+  let destino = `/memorias/${memoria}`;
   const gravarLista = async (): Promise<boolean> => {
     if (!aoVivo) return true;
     if (gravandoLista) {
@@ -169,7 +171,7 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ memoria, por, publico, situacao: situacaoPedida, mensagens: lidas }),
       });
-      const resultado = (await resposta.json()) as { erro?: string; situacao?: string; mensagens?: { id: number; tipo: TipoDeMensagem; audioId?: number; fotoId?: number }[] };
+      const resultado = (await resposta.json()) as { erro?: string; situacao?: string; url?: string; mensagens?: { id: number; tipo: TipoDeMensagem; audioId?: number; fotoId?: number }[] };
       if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');
       // Os ids das mensagens novas, na ordem: cada mensagem da tela fica com o id da gravada do mesmo tipo
       const gravadas = [...(resultado.mensagens ?? [])];
@@ -181,6 +183,7 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
         gravadas.splice(0, i + 1);
       }
       publicado = resultado.situacao === 'publicada';
+      if (resultado.url) destino = resultado.url;
       raiz.dataset.publicado = String(publicado);
       dica.firstChild!.textContent = publicado ? 'Seu relato já está na memória. Cada mensagem nova entra na hora.' : 'Só você vê até publicar.';
       avisar(publicado ? 'Salvo na memória.' : 'Rascunho salvo. Só você vê.');
@@ -534,7 +537,7 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
       situacaoPedida = 'publicada';
       const ok = await gravarLista();
       if (!ok) situacaoPedida = publicado ? 'publicada' : 'rascunho';
-      return ok ? `/memorias/${memoria}` : undefined;
+      return ok ? destino : undefined;
     },
   };
 }

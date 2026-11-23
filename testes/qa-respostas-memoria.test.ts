@@ -80,12 +80,12 @@ describe('P54: quem já contou', () => {
     expect(linha).toContain('Você já contou esse dia.');
     // O texto do link é o da ação do alto: "Editar meu relato", ou "Continuar meu relato" no rascunho (45-N8)
     expect(linha).toMatch(/<a class="acao" href=\{`\/memorias\/\$\{memoria\.id\}\/relato`\}>\s*\{textoDaAcao\}/);
-    expect(pagina).toContain(": temMeuRelato ? 'Editar meu relato' : 'Escrever meu relato';");
+    expect(pagina).toContain(": temMeuRelato ? 'Editar meu relato' : 'Contar como foi';");
     expect(linha).not.toContain('class="botao"');
     expect(pagina).toMatch(/!temMeuRelato && \(\s*<section class="convite miolo"/);
     // Um só botão cheio na página, e ele é o de escrever
     expect(pagina.match(/class="botao"/g)).toHaveLength(1);
-    expect(pagina).toMatch(/<a class="botao" href=\{`\/memorias\/\$\{memoria\.id\}\/relato`\}>\s*Escrever meu relato/);
+    expect(pagina).toMatch(/<a class="botao" href=\{`\/memorias\/\$\{memoria\.id\}\/relato`\}>\s*Contar como foi/);
   });
 });
 

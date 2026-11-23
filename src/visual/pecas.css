@@ -74,6 +74,26 @@
   text-transform: uppercase;
   color: var(--tinta-suave);
 }
+/* Com o título da memória (as fotos da carta): o título numa linha acima de lugar e ano, sem
+   caixa-alta, e cortado em duas linhas para a margem não crescer demais */
+.polaroid__legenda--com-titulo {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.15em;
+}
+.polaroid__titulo {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-family: var(--serifa);
+  font-size: 1.3em;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--tinta);
+}
 /* Na foto pequena, de miniatura, a legenda não cabe: fica só a margem em branco */
 @container (max-width: 7.5rem) {
   .polaroid__legenda {
