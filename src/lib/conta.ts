@@ -78,6 +78,22 @@ export function seusRascunhos<M extends MemoriaDaConta, R extends RelatoDaConta>
   };
 }
 
+/**
+ * A linha do rascunho no Início (crítica C1, resposta do Gui de 22/11/2026): com um rascunho de relato só,
+ * ela diz de qual memória ele é e que ninguém viu ainda, para o relato que a pessoa acha que contou não
+ * ficar parado sem ela saber. Com outro rascunho ou mais de um, a linha conta quantos são, como antes.
+ * `nome` é o nome de quem conta, quando a pessoa registra o relato de outra.
+ */
+export function fraseDoRascunho(rascunhos: { memorias: unknown[]; relatos: { por: string; titulo: string }[] }, eu: string, nome: (id: string) => string): string {
+  const quantos = rascunhos.memorias.length + rascunhos.relatos.length;
+  const [relato] = rascunhos.relatos;
+  if (quantos === 1 && relato) {
+    const de = relato.por === eu ? 'Seu relato' : `O relato de ${nome(relato.por)}`;
+    return `${de} em “${relato.titulo}” é um rascunho: ninguém viu ainda.`;
+  }
+  return quantos === 1 ? 'Você tem um rascunho.' : `Você tem ${quantos} rascunhos.`;
+}
+
 /** "Lixeira": o que a pessoa mesma mandou para a lixeira, para recuperar. Quem restaura o quê não muda. */
 export function suaLixeira<E extends { excluidaPor: string | null }>(eu: string, excluidas: E[]): E[] {
   return excluidas.filter((m) => m.excluidaPor === eu);

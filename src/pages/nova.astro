@@ -25,6 +25,9 @@ if (id && !memoria) return new Response('Memória não encontrada', { status: 40
 if (memoria && !podeEditarMemoria(usuario, memoria).ok) return Astro.redirect(`/memorias/${memoria.id}`);
 
 const publicada = memoria?.situacao === 'publicada';
+// O que a pessoa tinha digitado, quando o servidor recusou o formulário sem script (formulario-devolvido.ts):
+// os campos voltam com isso, e não com o que está no banco
+const devolvida = Astro.locals.memoriaDevolvida;
 const podeExcluir = Boolean(memoria) && podeExcluirMemoria(usuario, memoria!).ok;
 // Quem só existe num laço privado de outra pessoa não é oferecido nem aparece marcado (C1, 17/11/2026).
 // A API mantém essa marca numa edição, e quem criou continua achado na lista inteira.
@@ -58,7 +61,7 @@ const proximos = Object.fromEntries(
 const familiasPorPessoa = Object.fromEntries(integrantes.map((i) => [i.id, familiasDe(i)]));
 // A pessoa marca os próprios núcleos. Numa edição, os que já estavam aparecem também.
 const nucleosDisponiveis = nucleos.filter((n) => usuario.nucleos.includes(n.id) || memoria?.nucleos.includes(n.id));
-const nucleosMarcados = memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usuario.nucleos : []);
+const nucleosMarcados = devolvida?.nucleos ?? memoria?.nucleos ?? (usuario.nucleos.length === 1 ? usuario.nucleos : []);
 // O relato só entra aqui enquanto a memória não foi publicada. Depois, cada um edita o seu na própria página.
 // Pode ser o relato da própria pessoa ou o de alguém que não acessa o site, registrado por ela.
 const doRascunho = memoria && !publicada ? (await listarRelatos(usuario, memoria.id)).filter((r) => r.registradoPor === usuario.pessoa) : [];
@@ -88,7 +91,7 @@ const temasDaMemoria = (memoria?.temas ?? []).map((id) => todosOsTemas.find((t) 
 const comPessoa = !memoria ? integrantes.find((i) => i.id === Astro.url.searchParams.get('com'))?.id : undefined;
 const noCapitulo = !memoria ? capitulosReunidos.find((c) => c.id === Astro.url.searchParams.get('capitulo'))?.id : undefined;
 // "Quem pode ver?": o que cada escolha quer dizer, colado no seletor
-const soFamilias = memoria?.visibilidade === 'nucleos';
+const soFamilias = (devolvida && !travaQuemVe ? devolvida.visibilidade : memoria?.visibilidade) === 'nucleos';
 const EXPLICA_QUEM_VE = {
   todos: 'Todo mundo que entra no acervo vê esta memória. Dá para mudar depois.',
   nucleos: 'Só quem é das famílias escolhidas abaixo vê. Quem não pode ver não fica sabendo que a memória existe.',
@@ -126,6 +129,10 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
   </header>
   <form class="formulario em-frase" method="post" action="/api/memorias" data-formulario-memoria data-id={memoria?.id ?? ''} data-publicada={publicada ? '' : undefined} novalidate>
     {memoria && <input type="hidden" name="id" value={memoria.id} />}
+    {/* Sem script, o toque duplo em "Publicar memória" grava uma vez e responde como o primeiro: um código por
+        página, e o que ela era quando abriu, para o recado do segundo toque (fila da revisão Z2, sessão AA) */}
+    {memoria && <input type="hidden" name="envio" value={crypto.randomUUID()} />}
+    {memoria && <input type="hidden" name="pagina" value={publicada ? 'publicada' : 'rascunho'} />}
     {
       (soDados || publicada) && (
         <p class="dica em-frase__nota" data-so-na-primeira>
@@ -141,7 +148,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       <legend>O que aconteceu?</legend>
       <label class="campo">
         <span>Título</span>
-        <input type="text" name="titulo" required maxlength="120" autocomplete="off" value={memoria?.titulo ?? ''} placeholder="Ex.: Casamento da Giovanna" readonly={soDados} aria-describedby={soDados ? 'titulo-so-dados' : undefined} />
+        <input type="text" name="titulo" required maxlength="120" autocomplete="off" value={devolvida?.titulo ?? memoria?.titulo ?? ''} placeholder="Ex.: Casamento da Giovanna" readonly={soDados} aria-describedby={soDados ? 'titulo-so-dados' : undefined} />
       </label>
       {soDados && <p class="dica" id="titulo-so-dados">O título fica com quem criou e com quem estava na memória.</p>}
       <div class="campo">
@@ -153,7 +160,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
             {
               tiposAVista.map((tipo) => (
                 <label class="opcao" style={estiloDoTipo(tipo.id)}>
-                  <input type="radio" name="tipo" value={tipo.id} checked={tipo.id === memoria?.tipo} required />
+                  <input type="radio" name="tipo" value={tipo.id} checked={tipo.id === (devolvida?.tipo ?? memoria?.tipo)} required />
                   <span class="tipo">{tipo.rotulo}</span>
                 </label>
               ))
@@ -161,12 +168,12 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
           </div>
           {
             tiposRecolhidos.length > 0 && (
-              <details class="mais-opcoes" open={tiposRecolhidos.some((t) => t.id === memoria?.tipo)}>
+              <details class="mais-opcoes" open={tiposRecolhidos.some((t) => t.id === (devolvida?.tipo ?? memoria?.tipo))}>
                 <summary>Ver mais tipos ({tiposRecolhidos.length})</summary>
                 <div class="opcoes">
                   {tiposRecolhidos.map((tipo) => (
                     <label class="opcao" style={estiloDoTipo(tipo.id)}>
-                      <input type="radio" name="tipo" value={tipo.id} checked={tipo.id === memoria?.tipo} required />
+                      <input type="radio" name="tipo" value={tipo.id} checked={tipo.id === (devolvida?.tipo ?? memoria?.tipo)} required />
                       <span class="tipo">{tipo.rotulo}</span>
                     </label>
                   ))}
@@ -176,9 +183,9 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
           }
         </div>
       </div>
-      <label class="campo" data-tipo-outro hidden={memoria?.tipo !== TIPO_OUTRO}>
+      <label class="campo" data-tipo-outro hidden={(devolvida?.tipo ?? memoria?.tipo) !== TIPO_OUTRO}>
         <span>O que foi? <small>(opcional)</small></span>
-        <input type="text" name="tipoOutro" maxlength="40" autocomplete="off" value={memoria?.tipoOutro ?? ''} placeholder="Ex.: Formatura" />
+        <input type="text" name="tipoOutro" maxlength="40" autocomplete="off" value={devolvida?.tipoOutro ?? memoria?.tipoOutro ?? ''} placeholder="Ex.: Formatura" />
         <span class="dica">Uma ou duas palavras. Se outras memórias usarem o mesmo nome, ele pode virar um tipo da lista.</span>
       </label>
     </fieldset>
@@ -207,13 +214,13 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         </div>
       </div>
       <div class="campos-da-data" data-data-sem-script>
-        <CampoData ano={memoria?.ano || undefined} mes={memoria?.mes} dia={memoria?.dia} obrigatorio />
+        <CampoData ano={(devolvida ? devolvida.ano : memoria?.ano) || undefined} mes={devolvida ? devolvida.mes : memoria?.mes} dia={devolvida ? devolvida.dia : memoria?.dia} obrigatorio />
       </div>
       <p class="campo__erro grade-data__erro" data-erro-da-data role="alert" hidden></p>
       <div class="grade-data__ajudas">
         <button type="button" class="botao botao--leve" data-hoje>Foi hoje</button>
         <label class="marcar">
-          <input type="checkbox" name="aproximada" checked={memoria?.aproximada} />
+          <input type="checkbox" name="aproximada" checked={devolvida ? devolvida.aproximada : memoria?.aproximada} />
           <span>Não tenho certeza da data</span>
         </label>
       </div>
@@ -222,13 +229,13 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       <legend>Onde foi?</legend>
       <label class="campo">
         <span>Lugar <small>(opcional)</small></span>
-        <input type="text" name="lugar" maxlength="120" value={memoria?.lugar ?? ''} placeholder="Ex.: Belo Horizonte" />
+        <input type="text" name="lugar" maxlength="120" value={devolvida?.lugar ?? memoria?.lugar ?? ''} placeholder="Ex.: Belo Horizonte" />
       </label>
     </fieldset>
     </section>
 
     <section data-etapa="Quem estava" data-opcional>
-      <QuemEstava integrantes={integrantes} marcados={memoria?.integrantes.filter((p) => integrantes.some((i) => i.id === p)) ?? (comPessoa ? [comPessoa] : [])} grupos={gruposDePessoas} proximos={proximos} eu={usuario.pessoa} />
+      <QuemEstava integrantes={integrantes} marcados={(devolvida?.pessoas ?? memoria?.integrantes)?.filter((p) => integrantes.some((i) => i.id === p)) ?? (comPessoa ? [comPessoa] : [])} grupos={gruposDePessoas} proximos={proximos} eu={usuario.pessoa} />
     </section>
 
     <section data-etapa="Fotos" data-opcional>
@@ -285,17 +292,17 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
             {/* O relato como conversa (escolha do Gui depois da sessão I): a mesma janela de "Escrever meu
                 relato". As mensagens vão junto com a memória; os áudios ficam soltos até ela ser salva (ver
                 api/audios.ts). Sem script, o campo é o texto do relato. */}
-            <Janela modo="formulario" memoria={memoria?.id ?? ''} mensagens={mensagensDoRascunho} campo="relato" transcricaoAutomatica={transcricaoAutomatica} />
+            <Janela modo="formulario" memoria={memoria?.id ?? ''} mensagens={mensagensDoRascunho} campo="relato" transcricaoAutomatica={transcricaoAutomatica} valor={devolvida?.relato} />
             {/* Quase sempre quem conta é quem escreve: "Quem está contando" deixou de ser o primeiro
                 campo e fica numa linha recolhida, depois do texto, que abre a busca (resposta do Gui à
                 P137 do QA de design, 17/11/2026). Fechar a linha volta para "Eu". */}
-            <details class="mais-opcoes" data-outra-pessoa open={Boolean(meuRelato) && meuRelato!.por !== usuario.pessoa}>
+            <details class="mais-opcoes" data-outra-pessoa open={Boolean(devolvida?.relatoPor ?? meuRelato) && (devolvida?.relatoPor ?? meuRelato!.por) !== usuario.pessoa}>
               <summary>Estou escrevendo por outra pessoa</summary>
               <label class="campo">
                 <span>Quem está contando</span>
                 <select name="relatoPor" data-relato-por>
                   <option value={usuario.pessoa}>Eu, {usuario.nome}</option>
-                  {semAcesso.map((p) => <option value={p.id} selected={meuRelato?.por === p.id}>{p.nome}, e eu estou escrevendo</option>)}
+                  {semAcesso.map((p) => <option value={p.id} selected={(devolvida?.relatoPor ?? meuRelato?.por) === p.id}>{p.nome}, e eu estou escrevendo</option>)}
                 </select>
               </label>
             </details>
@@ -315,7 +322,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
               <div class="opcoes" role="group" aria-labelledby="rotulo-capitulos">
                 {capitulosReunidos.map((c) => (
                   <label class="opcao">
-                    <input type="checkbox" name="capitulos" value={c.id} checked={memoria ? memoria.capitulos.includes(c.id) : c.id === noCapitulo} />
+                    <input type="checkbox" name="capitulos" value={c.id} checked={devolvida ? devolvida.capitulos.includes(c.id) : memoria ? memoria.capitulos.includes(c.id) : c.id === noCapitulo} />
                     <span>{c.titulo}</span>
                   </label>
                 ))}
@@ -330,7 +337,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         </p>
         <label class="campo">
           <span>Temas</span>
-          <input type="text" name="temas" maxlength="500" autocomplete="off" list="lista-de-temas" value={temasDaMemoria} placeholder="Ex.: viagens, casas onde moramos" />
+          <input type="text" name="temas" maxlength="500" autocomplete="off" list="lista-de-temas" value={devolvida?.temas ?? temasDaMemoria} placeholder="Ex.: viagens, casas onde moramos" />
           <span class="dica">Etiquetas livres, separadas por vírgula. Cada tema tem uma página que junta tudo o que o usa.</span>
         </label>
         <datalist id="lista-de-temas">

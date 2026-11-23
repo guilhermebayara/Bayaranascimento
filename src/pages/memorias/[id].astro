@@ -21,6 +21,7 @@ import Polaroid from '../../components/visual/Polaroid.astro';
 import Rabisco from '../../components/visual/Rabisco.astro';
 import { memoriaDoCapitulo } from '../../lib/capitulos';
 import { recolheQuemEstava, relatoJaEstaNaAbertura } from '../../lib/memoria';
+import { pedidosDosRelatos } from '../../lib/servidor/pedido-do-relato';
 import { tipoDaMemoria } from '../../lib/tipos';
 import { formatarData, jaFaleceu } from '../../lib/datas';
 import { Familia, possessivo, type Tratamento } from '../../lib/parentesco';
@@ -112,7 +113,7 @@ const temMeuRelato = Boolean(meuRelato);
 // Com o relato ainda em rascunho, a linha e a ação dizem isso (resposta do Gui à 45-N8, 17/11/2026,
 // confirmada depois do PR #48: o botão do alto continua "Continuar meu relato")
 const meuRelatoEmRascunho = meuRelato?.situacao === 'rascunho';
-const textoDaAcao = meuRelatoEmRascunho ? 'Continuar meu relato' : temMeuRelato ? 'Editar meu relato' : 'Escrever meu relato';
+const textoDaAcao = meuRelatoEmRascunho ? 'Continuar meu relato' : temMeuRelato ? 'Editar meu relato' : 'Contar como foi';
 
 // O trecho da abertura vem do primeiro relato publicado que tem texto
 const relatoDaAbertura = relatos.find((r) => r.situacao === 'publicada' && r.texto.trim());
@@ -143,6 +144,11 @@ const esperam = memoria.criadaPor === usuario.pessoa ? relatos.filter((r) => r.s
 const fraseDaEspera = fraseDosRelatosQueEsperam(esperam.map((r) => ({ nome: nome(r.por), tratamento: achar(r.por)?.tratamento ?? null })));
 const ok = Astro.url.searchParams.get('ok');
 const erro = Astro.url.searchParams.get('erro');
+// Os relatos de quem olha que esperam o sim dele: a ação com o mesmo nome do aviso (crítica C2)
+const pedidosDaPagina = await pedidosDosRelatos(
+  usuario,
+  relatos.filter((r) => r.soParaNucleos && r.registradoPor === usuario.pessoa).map((r) => ({ relatoId: r.id, publico: memoria })),
+);
 
 // O relato como conversa: as mensagens de cada relato, com os áudios, as fotos (que abrem a galeria da
 // memória) e as citações resolvidas para quem olha. As fotos do meu relato em rascunho ainda não são da
@@ -378,9 +384,11 @@ const podeCitar = publicada && temPaginaNoAcervo;
                           <input type="hidden" name="publico" value={chaveDoPublico(memoria)} />
                           <input type="hidden" name="volta" value={`/memorias/${memoria.id}#relato-${relato.id}`} />
                           <span class="suave">Visível só para quem via antes.</span>
+                          {/* A ação tem o mesmo nome no aviso e aqui (pedidosDosRelatos, crítica C2) */}
                           <button type="submit" class="acao acao--quieta">
-                            Liberar para {paraQuemPassouAVer(comoPublicoAntigo(relato.publicoConhecido ?? relato.soParaNucleos), memoria, nucleos)}
+                            {pedidosDaPagina.get(relato.id)?.acao ?? `Liberar para ${paraQuemPassouAVer(comoPublicoAntigo(relato.publicoConhecido ?? relato.soParaNucleos), memoria, nucleos)}`}
                           </button>
+                          <span class="bilhete__sem-volta ficha suave">Liberar não tem volta.</span>
                         </form>
                       )}
                     </Fragment>
@@ -486,7 +494,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
                   <Rabisco desenho="sublinha" />
                 </span>
                 <a class="botao" href={`/memorias/${memoria.id}/relato`}>
-                  Escrever meu relato
+                  Contar como foi
                 </a>
               </p>
             </div>

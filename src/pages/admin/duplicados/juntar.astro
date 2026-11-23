@@ -5,7 +5,7 @@
 import Pagina from '../../../components/formularios/Pagina.astro';
 import Retrato from '../../../components/visual/Retrato.astro';
 import { formatarData } from '../../../lib/datas';
-import { CAMPOS_DA_JUNCAO } from '../../../lib/juntar';
+import { CAMPOS_DA_JUNCAO, recadoDosConflitos } from '../../../lib/juntar';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { conflitosAoJuntar, listarIntegrantesQueVe, listarMemorias, type Integrante } from '../../../lib/servidor/repositorio';
@@ -23,7 +23,8 @@ const quantas = (id: string) => memorias.filter((m) => m.integrantes.includes(id
 const [fica, sai] = comAcesso.has(y.id) || (!comAcesso.has(x.id) && quantas(y.id) > quantas(x.id)) ? [y, x] : [x, y];
 const travada = comAcesso.has(fica.id);
 const ambasComAcesso = comAcesso.has(fica.id) && comAcesso.has(sai.id);
-const conflitos = [...(await conflitosAoJuntar(fica.id, sai.id)), ...(await conflitosAoJuntar(sai.id, fica.id))];
+// Os títulos que quem olha vê, e "memórias que você não vê" para as outras (decisão do Gui, 23/11/2026)
+const conflitos = recadoDosConflitos([await conflitosAoJuntar(fica.id, sai.id, usuario), await conflitosAoJuntar(sai.id, fica.id, usuario)]);
 
 const data = (ano: number | null, mes: number | null, dia: number | null) => (ano ? formatarData({ ano, mes, dia, aproximada: false }) : '');
 const valor = (i: Integrante, campo: (typeof CAMPOS_DA_JUNCAO)[number]): string => {
@@ -73,7 +74,7 @@ const retratoDe = (i: Integrante) => (i.retrato ? enderecoDoRetrato(i.retrato) :
   </Fragment>
 
   {ambasComAcesso && <p class="recado recado--erro">As duas fichas são de quem acessa o site: não dá para juntar.</p>}
-  {conflitos.length > 0 && <p class="recado recado--erro">As duas fichas têm relato em {conflitos.map((t) => `“${t}”`).join(', ')}. Cada pessoa tem um relato por memória: deixe um só antes de juntar.</p>}
+  {conflitos && <p class="recado recado--erro">{conflitos}</p>}
 
   <form class="formulario juntar" method="post" action="/api/duplicados">
     <input type="hidden" name="acao" value="juntar" />
@@ -108,7 +109,7 @@ const retratoDe = (i: Integrante) => (i.retrato ? enderecoDoRetrato(i.retrato) :
       ))
     )}
     <div class="acoes">
-      <button class="botao" type="submit" disabled={ambasComAcesso || conflitos.length > 0}>
+      <button class="botao" type="submit" disabled={ambasComAcesso || Boolean(conflitos)}>
         Juntar as duas fichas
       </button>
     </div>
