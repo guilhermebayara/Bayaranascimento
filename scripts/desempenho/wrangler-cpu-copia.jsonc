@@ -1,0 +1,24 @@
+// Configuração só local da medição M2: a cópia mensal com o token de serviço simulado. O mesmo build e o
+// mesmo estado local de wrangler-cpu.jsonc, com o envoltório medidor-copia.mjs na frente, que responde às
+// chaves públicas do Access com a chave fictícia da rodada. Aqui o Wrangler empacota o envoltório e o build
+// num arquivo só (sem no_bundle). Tudo local, com nomes e ids fictícios.
+{
+  "name": "bayara-medicao-cpu-local-copia",
+  "main": "medidor-copia.mjs",
+  "compatibility_date": "2026-11-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": { "binding": "ASSETS", "directory": "../../dist/client" },
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "medicao-local.invalid",
+    "ACCESS_AUD": "medicao-local",
+    "AMBIENTE": "previa",
+  },
+  "r2_buckets": [
+    { "binding": "FOTOS", "bucket_name": "medicao-local-fotos" },
+  ],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "medicao-local", "database_id": "00000000-0000-4000-8000-0000000000a1" },
+  ],
+}

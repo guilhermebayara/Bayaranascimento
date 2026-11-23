@@ -1,0 +1,32 @@
+// Configuração só local da medição de CPU e memória (sessão M2, 23/11/2026; relatório em
+// docs/desempenho/2026-11-23-m2-cpu.md). Usada por scripts/desempenho/medir-cpu.mjs com `wrangler dev`.
+//
+// Roda o build de publicação (dist/server/entry.mjs, de `npx astro build`) sem mudança nenhuma, para o
+// perfil de CPU ser o do código que vai para a produção. O banco e os buckets são locais, com nomes e
+// ids fictícios: este arquivo não serve para publicar nem para falar com banco ou bucket remoto.
+//
+// AMBIENTE "previa": sem login e com o "Ver como" (cookie `como`), como as prévias de teste. Um banco e
+// um bucket só, como o `npm run dev`, para a carga (carga-local.mjs) achar o banco certo. O envio do
+// espelho na homologação simulada usa wrangler-cpu-homologa.jsonc, com o mesmo estado local.
+{
+  "name": "bayara-medicao-cpu-local",
+  "main": "../../dist/server/entry.mjs",
+  "compatibility_date": "2026-11-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "no_bundle": true,
+  "rules": [{ "type": "ESModule", "globs": ["**/*.js", "**/*.mjs"] }],
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": { "binding": "ASSETS", "directory": "../../dist/client" },
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "medicao-local.invalid",
+    "ACCESS_AUD": "medicao-local",
+    "AMBIENTE": "previa",
+  },
+  "r2_buckets": [
+    { "binding": "FOTOS", "bucket_name": "medicao-local-fotos" },
+  ],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "medicao-local", "database_id": "00000000-0000-4000-8000-0000000000a1" },
+  ],
+}
