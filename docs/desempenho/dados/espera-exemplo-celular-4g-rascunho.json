@@ -1,0 +1,20 @@
+{
+  "rotulo": "exemplo-rascunho",
+  "base": "https://127.0.0.1:4443",
+  "perfil": "celular-4g",
+  "quando": "2026-11-23T01:45:07.992Z",
+  "resultados": [
+    {
+      "familia": 2,
+      "nome": "Nova memória: salvar rascunho",
+      "onde": "/nova",
+      "falha": null,
+      "primeira": 499,
+      "fim": 764,
+      "oQue": "a página nova inteira (navegação)",
+      "urlFinal": "/nova?id=ba7grest",
+      "textoDeErro": "Continuar em rascunho",
+      "paginaDeErroDoNavegador": false
+    }
+  ]
+}

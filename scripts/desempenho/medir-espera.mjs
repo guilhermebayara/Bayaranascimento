@@ -39,6 +39,8 @@ const PERFIS = {
   'celular-4g': { largura: 390, altura: 844, escala: 3, celular: true, rede: '4g-lento', cpu: 4 },
   'celular-3g': { largura: 390, altura: 844, escala: 3, celular: true, rede: '3g', cpu: 4 },
   'tv-1920': { largura: 1920, altura: 1080, escala: 1, celular: false, rede: 'wifi', cpu: 1 },
+  // Para as falhas, que não dependem da velocidade: a tela do celular, com a rede rápida
+  'celular-wifi': { largura: 390, altura: 844, escala: 3, celular: true, rede: 'wifi', cpu: 4 },
 };
 
 // O que a página anota: o toque, a primeira mudança que se vê, o fim, as buscas, as tarefas longas,
@@ -71,7 +73,7 @@ const ANOTAR = () => {
       if (texto && a.falas.at(-1)?.texto !== texto) a.falas.push({ quando: Math.round(agora() - a.t0), texto });
     }
   }).observe(document, { subtree: true, childList: true, characterData: true });
-  addEventListener('explorar:trocou', () => (a.fim ??= agora()));
+  document.addEventListener('explorar:trocou', () => (a.fim ??= agora()));
   // As buscas da página (fetch), com o começo e o fim
   const buscar = window.fetch;
   window.fetch = function (...args) {
@@ -131,13 +133,16 @@ const ACOES = [
   { familia: 1, nome: 'Modo TV: próxima logo em seguida', onde: '/explorar?ver=tv', esperaAntes: 6000, antes: async (p) => { const chegou = novoPalco(p); await p.locator('[data-palco-depois]').first().click(); await chegou; }, fazer: (p) => p.locator('[data-palco-depois]').first().click(), fim: 'palco' },
   { familia: 1, nome: 'Reagir (coração)', onde: MEMORIA, fazer: (p) => p.locator('[data-reacao-principal]').first().click(), fim: 'busca:/api/reacoes' },
   { familia: 1, nome: 'Pessoas: digitar na busca', onde: '/pessoas', fazer: async (p) => { const c = p.locator('input[role="combobox"]').first(); await c.click(); await c.pressSequentially('gio', { delay: 120 }); }, fim: 'primeira' },
-  { familia: 1, nome: 'Pessoa: "Mostrar datas"', onde: '/pessoas/vo-bela', fazer: (p) => p.locator('[data-mostrar-datas]').click(), fim: 'primeira', seExistir: '[data-mostrar-datas]' },
+  { familia: 1, nome: 'Pessoa: "Mostrar datas"', onde: '/pessoas/ex-vo-tonho', fazer: (p) => p.locator('[data-mostrar-datas]').click(), fim: 'primeira', seExistir: '[data-mostrar-datas]' },
   { familia: 1, nome: 'Pessoa: trocar a forma de ver', onde: '/pessoas/gui', fazer: (p) => p.locator('[data-explorar] .controles nav a[data-opcao]:not([aria-current])').first().click(), fim: 'trocou' },
-  { familia: 2, nome: 'Responder o pedido para liberar (Início)', como: 'giovanna', onde: '/', fazer: (p) => p.locator('form[data-no-lugar] button').first().click(), fim: 'busca:.', seExistir: 'form[data-no-lugar] button', falha: true },
-  { familia: 2, nome: 'Nova memória: salvar rascunho', onde: '/nova', antes: (p) => p.locator('input[name="titulo"]').fill('Medição de espera'), fazer: (p) => p.getByRole('button', { name: /Salvar rascunho/ }).first().click(), fim: 'busca:/api/memorias', falha: true },
+  // A busca por digitação da exploração E2, só na prévia tst-busca: o tempo é contado da última letra
+  { familia: 1, nome: 'Busca, proposta B: digitar "natal"', so: 'tst-busca', onde: '/explorar?proposta=b', fazer: async (p) => { await p.locator('[data-abrir-busca]').first().click(); const c = p.locator('dialog.folha-busca input[name="q"]'); await c.pressSequentially('nata', { delay: 150 }); await p.waitForTimeout(2500); await zerar(p); await c.press('l'); }, fim: 'busca:/busca\\?q=natal$' },
+  { familia: 1, nome: 'Busca, proposta A: digitar "natal"', so: 'tst-busca', onde: '/explorar?proposta=a', fazer: async (p) => { const c = p.locator('form[data-caixa-busca="explorar"] input[name="q"]'); await c.click(); await c.pressSequentially('nata', { delay: 150 }); await p.waitForFunction(() => window.__espera.fim !== null, null, { timeout: 90_000 }); await p.waitForTimeout(1500); await zerar(p); await c.press('l'); }, fim: 'trocou' },
+  { familia: 2, nome: 'Responder o pedido para liberar (Início)', como: 'giovanna', onde: '/', fazer: (p) => p.locator('form.aviso__resposta button[value="manter"]').first().click(), fim: 'busca:/api/avisos', seExistir: 'form.aviso__resposta', falha: true },
+  { familia: 2, nome: 'Nova memória: salvar rascunho', onde: '/nova', antes: (p) => p.locator('input[name="titulo"]').fill('Medição de espera'), fazer: (p) => p.getByRole('button', { name: /Salvar rascunho/ }).first().click(), fim: process.env.FALHA ? 'busca:/api/memorias' : 'navegacao', falha: true },
   { familia: 2, nome: 'Nova memória: enviar uma foto', onde: '/nova', fazer: (p) => p.locator('[data-escolher-fotos]').setInputFiles(FOTO_GRANDE ?? 'exemplos/fotos/karol-1.jpg'), fim: 'busca:/api/fotos', falha: true, semToque: true },
   { familia: 2, nome: 'Relato: enviar uma mensagem', onde: `${MEMORIA}/relato`, antes: (p) => p.locator('[data-campo]').fill('Uma mensagem de teste da medição.'), fazer: (p) => p.locator('[data-botao]').click(), fim: 'busca:/api/relatos', falha: true },
-  { familia: 2, nome: 'Pessoa: salvar "Como você chama"', onde: '/pessoas/vo-bela', antes: (p) => p.locator('form[data-no-lugar] input[type="text"]').first().fill('Vozinha'), fazer: (p) => p.locator('form[data-no-lugar] button[type="submit"], form[data-no-lugar] button:not([type])').first().click(), fim: 'busca:.', seExistir: 'form[data-no-lugar] input[type="text"]', falha: true },
+  { familia: 2, nome: 'Pessoa: salvar "Como você chama"', onde: '/pessoas/vo-bela', antes: async (p) => { await p.locator('details.como-chama > summary').click(); await p.locator('form.como-chama__form input[name="apelido"]').fill('Vozinha'); }, fazer: (p) => p.locator('form.como-chama__form button[type="submit"]').first().click(), fim: 'busca:/api/apelidos', seExistir: 'details.como-chama', falha: true },
 ];
 
 async function rodar(navegador, acao, falha = null) {
@@ -207,7 +212,8 @@ const navegador = await chromium.launch({ args: ['--use-fake-ui-for-media-stream
 const saida = [];
 for (const acao of ACOES) {
   if (SO && !SO.test(acao.nome)) continue;
-  const casos = [null, ...(process.env.FALHA && acao.falha ? ['sem rede', 'erro no servidor'] : [])];
+  if (acao.so && !BASE.includes(acao.so) && !process.env.COM_BUSCA) continue;
+  const casos = process.env.FALHA ? (acao.falha ? ['sem rede', 'erro no servidor'] : []) : [null];
   for (const falha of casos) {
     const r = await rodar(navegador, acao, falha);
     saida.push(r);

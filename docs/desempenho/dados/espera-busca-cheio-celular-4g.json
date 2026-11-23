@@ -1,0 +1,60 @@
+{
+  "rotulo": "busca-cheio",
+  "base": "https://127.0.0.1:4443",
+  "perfil": "celular-4g",
+  "quando": "2026-11-23T02:14:54.648Z",
+  "resultados": [
+    {
+      "familia": 1,
+      "nome": "Busca, proposta B: digitar \"natal\"",
+      "onde": "/explorar?proposta=b",
+      "falha": null,
+      "primeira": 745,
+      "oQue": "childList em div.folha-busca__cartao",
+      "fim": 745,
+      "buscas": [
+        {
+          "url": "/busca?q=natal",
+          "ms": 452,
+          "status": 200
+        }
+      ],
+      "inp": 56,
+      "tarefasLongas": [
+        66,
+        81,
+        70,
+        63
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?proposta=b",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Busca, proposta A: digitar \"natal\"",
+      "onde": "/explorar?proposta=a",
+      "falha": null,
+      "primeira": 1633,
+      "oQue": "childList em span.polaroid__foto",
+      "fim": 1464,
+      "buscas": [
+        {
+          "url": "/explorar?q=natal",
+          "ms": 1424,
+          "status": 200
+        }
+      ],
+      "inp": 24,
+      "tarefasLongas": [
+        444,
+        73
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?q=natal",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    }
+  ]
+}

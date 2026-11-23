@@ -1,0 +1,808 @@
+{
+  "rotulo": "exemplo-atraso50",
+  "quando": "2026-11-23T01:57:51.965Z",
+  "vezes": 3,
+  "como": "gui",
+  "resultados": [
+    {
+      "nome": "Início",
+      "caminho": "/",
+      "status": 200,
+      "total": 2009,
+      "servidor": 1999,
+      "consultas": 68,
+      "linhasLidas": 5327,
+      "msNoD1": 110,
+      "r2": 0,
+      "html": 17593,
+      "htmlGzip": 5539,
+      "imgs": 13,
+      "fotos": 7,
+      "fotosDistintas": 4,
+      "retratos": 6,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1307,
+          "ms": 3,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 3,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, linha do tempo",
+      "caminho": "/explorar",
+      "status": 200,
+      "total": 988,
+      "servidor": 980,
+      "consultas": 61,
+      "linhasLidas": 5006,
+      "msNoD1": 76,
+      "r2": 0,
+      "html": 172779,
+      "htmlGzip": 15959,
+      "imgs": 70,
+      "fotos": 69,
+      "fotosDistintas": 11,
+      "retratos": 1,
+      "memoriasNaPagina": 49,
+      "caras": [
+        {
+          "linhas": 1325,
+          "ms": 5,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, mural",
+      "caminho": "/explorar?ver=mural",
+      "status": 200,
+      "total": 977,
+      "servidor": 970,
+      "consultas": 61,
+      "linhasLidas": 5006,
+      "msNoD1": 74,
+      "r2": 0,
+      "html": 65613,
+      "htmlGzip": 10265,
+      "imgs": 39,
+      "fotos": 38,
+      "fotosDistintas": 11,
+      "retratos": 1,
+      "memoriasNaPagina": 48,
+      "caras": [
+        {
+          "linhas": 1325,
+          "ms": 2,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, mural, todas as fotos",
+      "caminho": "/explorar?ver=mural&fotos=todas",
+      "status": 200,
+      "total": 985,
+      "servidor": 976,
+      "consultas": 61,
+      "linhasLidas": 5006,
+      "msNoD1": 81,
+      "r2": 0,
+      "html": 90398,
+      "htmlGzip": 11847,
+      "imgs": 76,
+      "fotos": 75,
+      "fotosDistintas": 11,
+      "retratos": 1,
+      "memoriasNaPagina": 48,
+      "caras": [
+        {
+          "linhas": 1325,
+          "ms": 5,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 0,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, lista",
+      "caminho": "/explorar?ver=lista",
+      "status": 200,
+      "total": 987,
+      "servidor": 978,
+      "consultas": 61,
+      "linhasLidas": 5006,
+      "msNoD1": 83,
+      "r2": 0,
+      "html": 116732,
+      "htmlGzip": 12403,
+      "imgs": 39,
+      "fotos": 38,
+      "fotosDistintas": 11,
+      "retratos": 1,
+      "memoriasNaPagina": 49,
+      "caras": [
+        {
+          "linhas": 1325,
+          "ms": 3,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, filtro de família",
+      "caminho": "/explorar?nucleo=bracarense",
+      "status": 200,
+      "total": 970,
+      "servidor": 964,
+      "consultas": 61,
+      "linhasLidas": 5006,
+      "msNoD1": 75,
+      "r2": 0,
+      "html": 38870,
+      "htmlGzip": 8064,
+      "imgs": 5,
+      "fotos": 4,
+      "fotosDistintas": 4,
+      "retratos": 1,
+      "memoriasNaPagina": 4,
+      "caras": [
+        {
+          "linhas": 1325,
+          "ms": 3,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 0,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, filtro de tipo",
+      "caminho": "/explorar?tipo=festa",
+      "status": 200,
+      "total": 985,
+      "servidor": 978,
+      "consultas": 61,
+      "linhasLidas": 5006,
+      "msNoD1": 82,
+      "r2": 0,
+      "html": 48346,
+      "htmlGzip": 8588,
+      "imgs": 13,
+      "fotos": 12,
+      "fotosDistintas": 8,
+      "retratos": 1,
+      "memoriasNaPagina": 7,
+      "caras": [
+        {
+          "linhas": 1325,
+          "ms": 3,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Modo TV",
+      "caminho": "/explorar?ver=tv",
+      "status": 200,
+      "total": 742,
+      "servidor": 737,
+      "consultas": 47,
+      "linhasLidas": 4185,
+      "msNoD1": 52,
+      "r2": 0,
+      "html": 9152,
+      "htmlGzip": 2848,
+      "imgs": 1,
+      "fotos": 1,
+      "fotosDistintas": 1,
+      "retratos": 0,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1325,
+          "ms": 2,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Me mostre uma memória",
+      "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+      "status": 200,
+      "total": 1083,
+      "servidor": 1068,
+      "consultas": 68,
+      "linhasLidas": 5428,
+      "msNoD1": 66,
+      "r2": 0,
+      "html": 11068,
+      "htmlGzip": 4062,
+      "imgs": 4,
+      "fotos": 3,
+      "fotosDistintas": 3,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1325,
+          "ms": 2,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Memória (exemplo)",
+      "caminho": "/memorias/1992-chegada-do-gui",
+      "status": 200,
+      "total": 2218,
+      "servidor": 2210,
+      "consultas": 81,
+      "linhasLidas": 5590,
+      "msNoD1": 110,
+      "r2": 0,
+      "html": 46278,
+      "htmlGzip": 7263,
+      "imgs": 18,
+      "fotos": 9,
+      "fotosDistintas": 3,
+      "retratos": 9,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1307,
+          "ms": 2,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 0,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Memória (cheia)",
+      "caminho": "/memorias/1992-chegada-do-gui",
+      "status": 200,
+      "total": 2215,
+      "servidor": 2207,
+      "consultas": 81,
+      "linhasLidas": 5590,
+      "msNoD1": 104,
+      "r2": 0,
+      "html": 46278,
+      "htmlGzip": 7263,
+      "imgs": 18,
+      "fotos": 9,
+      "fotosDistintas": 3,
+      "retratos": 9,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1307,
+          "ms": 3,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 0,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Pessoa",
+      "caminho": "/pessoas/gui",
+      "status": 200,
+      "total": 1898,
+      "servidor": 1891,
+      "consultas": 74,
+      "linhasLidas": 5598,
+      "msNoD1": 89,
+      "r2": 0,
+      "html": 59073,
+      "htmlGzip": 10034,
+      "imgs": 54,
+      "fotos": 29,
+      "fotosDistintas": 11,
+      "retratos": 25,
+      "memoriasNaPagina": 38,
+      "caras": [
+        {
+          "linhas": 1062,
+          "ms": 2,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Pessoa, linha do tempo",
+      "caminho": "/pessoas/gui?ver=linha",
+      "status": 200,
+      "total": 1877,
+      "servidor": 1868,
+      "consultas": 75,
+      "linhasLidas": 5628,
+      "msNoD1": 83,
+      "r2": 0,
+      "html": 139815,
+      "htmlGzip": 14229,
+      "imgs": 82,
+      "fotos": 57,
+      "fotosDistintas": 11,
+      "retratos": 25,
+      "memoriasNaPagina": 38,
+      "caras": [
+        {
+          "linhas": 1062,
+          "ms": 2,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Pessoas",
+      "caminho": "/pessoas",
+      "status": 200,
+      "total": 1345,
+      "servidor": 1339,
+      "consultas": 53,
+      "linhasLidas": 4631,
+      "msNoD1": 70,
+      "r2": 0,
+      "html": 25938,
+      "htmlGzip": 5294,
+      "imgs": 41,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 41,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1307,
+          "ms": 2,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Árvore",
+      "caminho": "/arvore",
+      "status": 200,
+      "total": 1098,
+      "servidor": 1094,
+      "consultas": 36,
+      "linhasLidas": 1986,
+      "msNoD1": 47,
+      "r2": 0,
+      "html": 25906,
+      "htmlGzip": 6453,
+      "imgs": 1,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Capítulo reunido",
+      "caminho": "/capitulos/natais",
+      "status": 200,
+      "total": 1283,
+      "servidor": 1275,
+      "consultas": 52,
+      "linhasLidas": 4388,
+      "msNoD1": 64,
+      "r2": 0,
+      "html": 19061,
+      "htmlGzip": 5121,
+      "imgs": 12,
+      "fotos": 5,
+      "fotosDistintas": 5,
+      "retratos": 7,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1307,
+          "ms": 4,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Capítulo época",
+      "caminho": "/capitulos/os-anos-90",
+      "status": 200,
+      "total": 1276,
+      "servidor": 1268,
+      "consultas": 52,
+      "linhasLidas": 4388,
+      "msNoD1": 56,
+      "r2": 0,
+      "html": 22745,
+      "htmlGzip": 5480,
+      "imgs": 16,
+      "fotos": 9,
+      "fotosDistintas": 5,
+      "retratos": 7,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1307,
+          "ms": 3,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Capítulos",
+      "caminho": "/capitulos",
+      "status": 200,
+      "total": 946,
+      "servidor": 941,
+      "consultas": 38,
+      "linhasLidas": 3453,
+      "msNoD1": 47,
+      "r2": 0,
+      "html": 11869,
+      "htmlGzip": 3975,
+      "imgs": 1,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1307,
+          "ms": 3,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Nova memória",
+      "caminho": "/nova",
+      "status": 200,
+      "total": 1393,
+      "servidor": 1387,
+      "consultas": 52,
+      "linhasLidas": 4465,
+      "msNoD1": 72,
+      "r2": 0,
+      "html": 40163,
+      "htmlGzip": 9693,
+      "imgs": 1,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1307,
+          "ms": 4,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Sua conta",
+      "caminho": "/conta",
+      "status": 200,
+      "total": 1467,
+      "servidor": 1458,
+      "consultas": 85,
+      "linhasLidas": 6418,
+      "msNoD1": 89,
+      "r2": 0,
+      "html": 19305,
+      "htmlGzip": 5393,
+      "imgs": 15,
+      "fotos": 10,
+      "fotosDistintas": 8,
+      "retratos": 5,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 1307,
+          "ms": 2,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 203,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 203,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    }
+  ]
+}

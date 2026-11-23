@@ -1,0 +1,54 @@
+{
+  "rotulo": "tst-busca",
+  "base": "https://tst-busca.memorias.bayara.com.br",
+  "perfil": "celular-4g",
+  "quando": "2026-11-23T02:10:23.740Z",
+  "resultados": [
+    {
+      "familia": 1,
+      "nome": "Busca, proposta B: digitar \"natal\"",
+      "onde": "/explorar?proposta=b",
+      "falha": null,
+      "primeira": 861,
+      "oQue": "childList em div.folha-busca__cartao",
+      "fim": 861,
+      "buscas": [
+        {
+          "url": "/busca?q=natal",
+          "ms": 579,
+          "status": 200
+        }
+      ],
+      "inp": 16,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/explorar?proposta=b",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Busca, proposta A: digitar \"natal\"",
+      "onde": "/explorar?proposta=a",
+      "falha": null,
+      "primeira": 980,
+      "oQue": "childList em span.polaroid__foto",
+      "fim": 967,
+      "buscas": [
+        {
+          "url": "/explorar?q=natal",
+          "ms": 694,
+          "status": 200
+        }
+      ],
+      "inp": 16,
+      "tarefasLongas": [
+        50
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?q=natal",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# Falhas simuladas, acervo de exemplo, 390 x 844 (23/11/2026)
+# caso | ação | onde a pessoa termina | o que a tela mostra
+sem rede | Como você chama | chrome-error://chromewebdata/ | 
+sem rede | Reagir | chrome-error://chromewebdata/ | 
+erro no servidor | Como você chama | https://127.0.0.1:4443/api/apelidos | Erro
+erro no servidor | Reagir | https://127.0.0.1:4443/api/reacoes | Erro
+sem rede | Explorar: família | chrome-error://chromewebdata/ | 
+sem rede | Me mostre outra | chrome-error://chromewebdata/ | 
+sem rede | Modo TV: próxima | /explorar?ver=tv&m=2026-pao-de-queijo-da-vo-bela | Pular para o conteúdo MODO TV · 2 DE 48 Sair do modo TV O CADERNO DE RECEITAS BELO HORIZONTE (2026) MAR 2026 BELO HORIZO
+erro no servidor | Explorar: família | /explorar?nucleo=bracarense | Erro
+erro no servidor | Me mostre outra | /explorar?ver=acaso&outra=1992-chegada-do-gui | Erro
+erro no servidor | Modo TV: próxima | /explorar?ver=tv&m=2026-pao-de-queijo-da-vo-bela | Pular para o conteúdo MODO TV · 2 DE 48 Sair do modo TV O CADERNO DE RECEITAS BELO HORIZONTE (2026) MAR 2026 BELO HORIZO

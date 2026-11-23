@@ -1,0 +1,808 @@
+{
+  "rotulo": "cheio-atraso50",
+  "quando": "2026-11-23T02:00:41.823Z",
+  "vezes": 3,
+  "como": "gui",
+  "resultados": [
+    {
+      "nome": "Início",
+      "caminho": "/",
+      "status": 200,
+      "total": 2018,
+      "servidor": 2010,
+      "consultas": 68,
+      "linhasLidas": 39341,
+      "msNoD1": 127,
+      "r2": 0,
+      "html": 17919,
+      "htmlGzip": 5637,
+      "imgs": 14,
+      "fotos": 8,
+      "fotosDistintas": 6,
+      "retratos": 6,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 24,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 1724,
+          "ms": 3,
+          "sql": "SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id WHERE r.registrado_por = ?1 AND r.descartado_em IS NULL AND (m.excluida_em IS NULL AN"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, linha do tempo",
+      "caminho": "/explorar",
+      "status": 200,
+      "total": 1030,
+      "servidor": 1013,
+      "consultas": 61,
+      "linhasLidas": 40210,
+      "msNoD1": 88,
+      "r2": 0,
+      "html": 1605004,
+      "htmlGzip": 89878,
+      "imgs": 1462,
+      "fotos": 1461,
+      "fotosDistintas": 22,
+      "retratos": 1,
+      "memoriasNaPagina": 608,
+      "caras": [
+        {
+          "linhas": 21023,
+          "ms": 19,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 3022,
+          "ms": 2,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, mural",
+      "caminho": "/explorar?ver=mural",
+      "status": 200,
+      "total": 1002,
+      "servidor": 993,
+      "consultas": 61,
+      "linhasLidas": 40210,
+      "msNoD1": 90,
+      "r2": 0,
+      "html": 425357,
+      "htmlGzip": 28814,
+      "imgs": 527,
+      "fotos": 526,
+      "fotosDistintas": 22,
+      "retratos": 1,
+      "memoriasNaPagina": 586,
+      "caras": [
+        {
+          "linhas": 21023,
+          "ms": 20,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 0,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 3022,
+          "ms": 1,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, mural, todas as fotos",
+      "caminho": "/explorar?ver=mural&fotos=todas",
+      "status": 200,
+      "total": 1033,
+      "servidor": 1019,
+      "consultas": 61,
+      "linhasLidas": 40210,
+      "msNoD1": 89,
+      "r2": 0,
+      "html": 1885612,
+      "htmlGzip": 71662,
+      "imgs": 2797,
+      "fotos": 2796,
+      "fotosDistintas": 22,
+      "retratos": 1,
+      "memoriasNaPagina": 586,
+      "caras": [
+        {
+          "linhas": 21023,
+          "ms": 19,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 3022,
+          "ms": 2,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, lista",
+      "caminho": "/explorar?ver=lista",
+      "status": 200,
+      "total": 1017,
+      "servidor": 1003,
+      "consultas": 61,
+      "linhasLidas": 40210,
+      "msNoD1": 94,
+      "r2": 0,
+      "html": 1074471,
+      "htmlGzip": 60777,
+      "imgs": 544,
+      "fotos": 543,
+      "fotosDistintas": 22,
+      "retratos": 1,
+      "memoriasNaPagina": 608,
+      "caras": [
+        {
+          "linhas": 21023,
+          "ms": 20,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 3022,
+          "ms": 2,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, filtro de família",
+      "caminho": "/explorar?nucleo=bracarense",
+      "status": 200,
+      "total": 998,
+      "servidor": 989,
+      "consultas": 61,
+      "linhasLidas": 40210,
+      "msNoD1": 85,
+      "r2": 0,
+      "html": 749924,
+      "htmlGzip": 44459,
+      "imgs": 682,
+      "fotos": 681,
+      "fotosDistintas": 15,
+      "retratos": 1,
+      "memoriasNaPagina": 274,
+      "caras": [
+        {
+          "linhas": 21023,
+          "ms": 19,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 3022,
+          "ms": 1,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, filtro de tipo",
+      "caminho": "/explorar?tipo=festa",
+      "status": 200,
+      "total": 1017,
+      "servidor": 1009,
+      "consultas": 61,
+      "linhasLidas": 40210,
+      "msNoD1": 106,
+      "r2": 0,
+      "html": 159798,
+      "htmlGzip": 13722,
+      "imgs": 105,
+      "fotos": 104,
+      "fotosDistintas": 19,
+      "retratos": 1,
+      "memoriasNaPagina": 45,
+      "caras": [
+        {
+          "linhas": 21023,
+          "ms": 21,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 3022,
+          "ms": 2,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        }
+      ]
+    },
+    {
+      "nome": "Modo TV",
+      "caminho": "/explorar?ver=tv",
+      "status": 200,
+      "total": 760,
+      "servidor": 755,
+      "consultas": 47,
+      "linhasLidas": 30189,
+      "msNoD1": 73,
+      "r2": 0,
+      "html": 9153,
+      "htmlGzip": 2849,
+      "imgs": 1,
+      "fotos": 1,
+      "fotosDistintas": 1,
+      "retratos": 0,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 21023,
+          "ms": 22,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3022,
+          "ms": 2,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        },
+        {
+          "linhas": 1493,
+          "ms": 4,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 1410,
+          "ms": 3,
+          "sql": "SELECT memoria_id, por, registrado_por, so_para_nucleos FROM relatos WHERE situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Me mostre uma memória",
+      "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+      "status": 200,
+      "total": 1123,
+      "servidor": 1116,
+      "consultas": 68,
+      "linhasLidas": 40632,
+      "msNoD1": 112,
+      "r2": 0,
+      "html": 11068,
+      "htmlGzip": 4062,
+      "imgs": 4,
+      "fotos": 3,
+      "fotosDistintas": 3,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 21023,
+          "ms": 21,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 3022,
+          "ms": 2,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        }
+      ]
+    },
+    {
+      "nome": "Memória (exemplo)",
+      "caminho": "/memorias/1992-chegada-do-gui",
+      "status": 200,
+      "total": 2256,
+      "servidor": 2248,
+      "consultas": 81,
+      "linhasLidas": 35236,
+      "msNoD1": 150,
+      "r2": 0,
+      "html": 46219,
+      "htmlGzip": 7250,
+      "imgs": 18,
+      "fotos": 9,
+      "fotosDistintas": 3,
+      "retratos": 9,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 36,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 1471,
+          "ms": 6,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    },
+    {
+      "nome": "Memória (cheia)",
+      "caminho": "/memorias/carga-0478",
+      "status": 200,
+      "total": 2264,
+      "servidor": 2257,
+      "consultas": 81,
+      "linhasLidas": 35299,
+      "msNoD1": 147,
+      "r2": 0,
+      "html": 107041,
+      "htmlGzip": 9903,
+      "imgs": 38,
+      "fotos": 23,
+      "fotosDistintas": 6,
+      "retratos": 15,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 20,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 2,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 1471,
+          "ms": 5,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    },
+    {
+      "nome": "Pessoa",
+      "caminho": "/pessoas/gui",
+      "status": 200,
+      "total": 1924,
+      "servidor": 1914,
+      "consultas": 74,
+      "linhasLidas": 20024,
+      "msNoD1": 109,
+      "r2": 0,
+      "html": 153430,
+      "htmlGzip": 16778,
+      "imgs": 111,
+      "fotos": 86,
+      "fotosDistintas": 22,
+      "retratos": 25,
+      "memoriasNaPagina": 102,
+      "caras": [
+        {
+          "linhas": 6403,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3379,
+          "ms": 7,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3080,
+          "ms": 2,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 1089,
+          "ms": 4,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    },
+    {
+      "nome": "Pessoa, linha do tempo",
+      "caminho": "/pessoas/gui?ver=linha",
+      "status": 200,
+      "total": 1928,
+      "servidor": 1918,
+      "consultas": 75,
+      "linhasLidas": 20054,
+      "msNoD1": 104,
+      "r2": 0,
+      "html": 335086,
+      "htmlGzip": 27115,
+      "imgs": 240,
+      "fotos": 215,
+      "fotosDistintas": 22,
+      "retratos": 25,
+      "memoriasNaPagina": 102,
+      "caras": [
+        {
+          "linhas": 6403,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3379,
+          "ms": 6,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 1089,
+          "ms": 3,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    },
+    {
+      "nome": "Pessoas",
+      "caminho": "/pessoas",
+      "status": 200,
+      "total": 1368,
+      "servidor": 1362,
+      "consultas": 53,
+      "linhasLidas": 34275,
+      "msNoD1": 95,
+      "r2": 0,
+      "html": 26418,
+      "htmlGzip": 5346,
+      "imgs": 41,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 41,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 34,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 1471,
+          "ms": 6,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    },
+    {
+      "nome": "Árvore",
+      "caminho": "/arvore",
+      "status": 200,
+      "total": 1104,
+      "servidor": 1099,
+      "consultas": 36,
+      "linhasLidas": 11186,
+      "msNoD1": 50,
+      "r2": 0,
+      "html": 25906,
+      "htmlGzip": 6453,
+      "imgs": 1,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 6403,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Capítulo reunido",
+      "caminho": "/capitulos/natais",
+      "status": 200,
+      "total": 1346,
+      "servidor": 1339,
+      "consultas": 52,
+      "linhasLidas": 34032,
+      "msNoD1": 120,
+      "r2": 0,
+      "html": 59904,
+      "htmlGzip": 8305,
+      "imgs": 46,
+      "fotos": 39,
+      "fotosDistintas": 16,
+      "retratos": 7,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 37,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 2,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 1471,
+          "ms": 4,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    },
+    {
+      "nome": "Capítulo época",
+      "caminho": "/capitulos/os-anos-90",
+      "status": 200,
+      "total": 1347,
+      "servidor": 1342,
+      "consultas": 52,
+      "linhasLidas": 34032,
+      "msNoD1": 117,
+      "r2": 0,
+      "html": 84931,
+      "htmlGzip": 9827,
+      "imgs": 79,
+      "fotos": 72,
+      "fotosDistintas": 16,
+      "retratos": 7,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 37,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 2,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 1471,
+          "ms": 8,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    },
+    {
+      "nome": "Capítulos",
+      "caminho": "/capitulos",
+      "status": 200,
+      "total": 1001,
+      "servidor": 993,
+      "consultas": 38,
+      "linhasLidas": 33729,
+      "msNoD1": 92,
+      "r2": 0,
+      "html": 11875,
+      "htmlGzip": 3996,
+      "imgs": 1,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 35,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 2,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 1471,
+          "ms": 7,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    },
+    {
+      "nome": "Nova memória",
+      "caminho": "/nova",
+      "status": 200,
+      "total": 1428,
+      "servidor": 1421,
+      "consultas": 52,
+      "linhasLidas": 34741,
+      "msNoD1": 100,
+      "r2": 0,
+      "html": 40163,
+      "htmlGzip": 9693,
+      "imgs": 1,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 21,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 2,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        },
+        {
+          "linhas": 1471,
+          "ms": 4,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    },
+    {
+      "nome": "Sua conta",
+      "caminho": "/conta",
+      "status": 200,
+      "total": 1480,
+      "servidor": 1473,
+      "consultas": 85,
+      "linhasLidas": 50232,
+      "msNoD1": 114,
+      "r2": 0,
+      "html": 22904,
+      "htmlGzip": 5778,
+      "imgs": 15,
+      "fotos": 10,
+      "fotosDistintas": 9,
+      "retratos": 5,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 17,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 6403,
+          "ms": 1,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 6403,
+          "ms": 2,
+          "sql": "SELECT (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') + (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exe"
+        },
+        {
+          "linhas": 3080,
+          "ms": 1,
+          "sql": "SELECT COUNT(*) AS n FROM fotos f WHERE (f.memoria_id IS NULL AND f.relato_id IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%' AND f.enviada_em < dat"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "rotulo": "tst-busca com o acervo cheio, servidor local",
+  "resultados": [
+    {
+      "caminho": "/busca?q=natal",
+      "servidor_ms": 282,
+      "consultas": 61,
+      "linhas": 36876,
+      "html": 13539
+    },
+    {
+      "caminho": "/busca?q=natal%20casa%20v%C3%B3",
+      "servidor_ms": 263,
+      "consultas": 61,
+      "linhas": 36876,
+      "html": 13151
+    },
+    {
+      "caminho": "/explorar?q=natal",
+      "servidor_ms": 268,
+      "consultas": 85,
+      "linhas": 44053,
+      "html": 327089
+    },
+    {
+      "caminho": "/explorar?q=natal&ver=lista",
+      "servidor_ms": 278,
+      "consultas": 85,
+      "linhas": 44053,
+      "html": 241744
+    }
+  ]
+}

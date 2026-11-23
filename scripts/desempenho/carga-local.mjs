@@ -181,10 +181,12 @@ const FOTOS = 3000;
 const RELATOS = 1500;
 const AUDIOS = 200;
 
+// A Local Explorer só aceita parâmetros em texto: os valores vão escritos na consulta, com as aspas escapadas
+const literal = (v) => (v === null || v === undefined ? 'NULL' : typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
 const comandos = [];
 const ins = (tabela, linha) => {
   const colunas = Object.keys(linha);
-  comandos.push({ sql: `INSERT INTO ${tabela} (${colunas.join(', ')}) VALUES (${colunas.map(() => '?').join(', ')})`, params: Object.values(linha) });
+  comandos.push({ sql: `INSERT INTO ${tabela} (${colunas.join(', ')}) VALUES (${Object.values(linha).map(literal).join(', ')})` });
 };
 
 // Quantas fotos e relatos cada memória tem: 1 em 10 sem foto, as outras de 1 a 14
@@ -270,7 +272,7 @@ for (let i = 0; i < 2500; i++) {
   const chave = `${memoria}|${pessoa}|${simbolo}`;
   if (vistas.has(chave)) continue;
   vistas.add(chave);
-  comandos.push({ sql: `INSERT INTO reacoes (memoria_id, alvo, alvo_id, pessoa, simbolo) SELECT ?, 'memoria', 0, ?, ? WHERE EXISTS (SELECT 1 FROM memorias WHERE id = ? AND situacao = 'publicada')`, params: [memoria, pessoa, simbolo, memoria] });
+  comandos.push({ sql: `INSERT INTO reacoes (memoria_id, alvo, alvo_id, pessoa, simbolo) SELECT ${literal(memoria)}, 'memoria', 0, ${literal(pessoa)}, ${literal(simbolo)} WHERE EXISTS (SELECT 1 FROM memorias WHERE id = ${literal(memoria)} AND situacao = 'publicada')` });
 }
 
 console.log(`Gravando ${comandos.length} linhas no banco local…`);

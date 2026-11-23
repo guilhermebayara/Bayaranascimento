@@ -1,0 +1,808 @@
+{
+  "rotulo": "cheio-elizete",
+  "quando": "2026-11-23T02:01:34.296Z",
+  "vezes": 3,
+  "como": "elizete",
+  "resultados": [
+    {
+      "nome": "Início",
+      "caminho": "/",
+      "status": 200,
+      "total": 74,
+      "servidor": 65,
+      "consultas": 48,
+      "linhasLidas": 28257,
+      "msNoD1": 89,
+      "r2": 0,
+      "html": 17892,
+      "htmlGzip": 5615,
+      "imgs": 14,
+      "fotos": 8,
+      "fotosDistintas": 6,
+      "retratos": 6,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 17,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1727,
+          "ms": 3,
+          "sql": "SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id WHERE r.registrado_por = ?1 AND r.descartado_em IS NULL AND (m.excluida_em IS NULL AN"
+        },
+        {
+          "linhas": 1553,
+          "ms": 1,
+          "sql": "SELECT DISTINCT memoria_id FROM relatos WHERE por = ?"
+        },
+        {
+          "linhas": 1471,
+          "ms": 4,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, linha do tempo",
+      "caminho": "/explorar",
+      "status": 200,
+      "total": 92,
+      "servidor": 81,
+      "consultas": 48,
+      "linhasLidas": 29537,
+      "msNoD1": 249,
+      "r2": 0,
+      "html": 1550713,
+      "htmlGzip": 86110,
+      "imgs": 1422,
+      "fotos": 1421,
+      "fotosDistintas": 22,
+      "retratos": 1,
+      "memoriasNaPagina": 586,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 18,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3022,
+          "ms": 12,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        },
+        {
+          "linhas": 1471,
+          "ms": 8,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 1410,
+          "ms": 12,
+          "sql": "SELECT memoria_id, por, registrado_por, so_para_nucleos FROM relatos WHERE situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, mural",
+      "caminho": "/explorar?ver=mural",
+      "status": 200,
+      "total": 93,
+      "servidor": 77,
+      "consultas": 48,
+      "linhasLidas": 29537,
+      "msNoD1": 298,
+      "r2": 0,
+      "html": 425342,
+      "htmlGzip": 28791,
+      "imgs": 527,
+      "fotos": 526,
+      "fotosDistintas": 22,
+      "retratos": 1,
+      "memoriasNaPagina": 586,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 18,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3022,
+          "ms": 5,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        },
+        {
+          "linhas": 1471,
+          "ms": 7,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 1410,
+          "ms": 6,
+          "sql": "SELECT memoria_id, por, registrado_por, so_para_nucleos FROM relatos WHERE situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, mural, todas as fotos",
+      "caminho": "/explorar?ver=mural&fotos=todas",
+      "status": 200,
+      "total": 103,
+      "servidor": 85,
+      "consultas": 48,
+      "linhasLidas": 29537,
+      "msNoD1": 232,
+      "r2": 0,
+      "html": 1885597,
+      "htmlGzip": 71645,
+      "imgs": 2797,
+      "fotos": 2796,
+      "fotosDistintas": 22,
+      "retratos": 1,
+      "memoriasNaPagina": 586,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 17,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3022,
+          "ms": 6,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        },
+        {
+          "linhas": 1471,
+          "ms": 8,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 1410,
+          "ms": 6,
+          "sql": "SELECT memoria_id, por, registrado_por, so_para_nucleos FROM relatos WHERE situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, lista",
+      "caminho": "/explorar?ver=lista",
+      "status": 200,
+      "total": 97,
+      "servidor": 84,
+      "consultas": 48,
+      "linhasLidas": 29537,
+      "msNoD1": 266,
+      "r2": 0,
+      "html": 1039413,
+      "htmlGzip": 59008,
+      "imgs": 527,
+      "fotos": 526,
+      "fotosDistintas": 22,
+      "retratos": 1,
+      "memoriasNaPagina": 586,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 17,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3022,
+          "ms": 5,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        },
+        {
+          "linhas": 1471,
+          "ms": 7,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 1410,
+          "ms": 6,
+          "sql": "SELECT memoria_id, por, registrado_por, so_para_nucleos FROM relatos WHERE situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, filtro de família",
+      "caminho": "/explorar?nucleo=bracarense",
+      "status": 200,
+      "total": 85,
+      "servidor": 77,
+      "consultas": 48,
+      "linhasLidas": 29537,
+      "msNoD1": 212,
+      "r2": 0,
+      "html": 723404,
+      "htmlGzip": 42486,
+      "imgs": 661,
+      "fotos": 660,
+      "fotosDistintas": 15,
+      "retratos": 1,
+      "memoriasNaPagina": 263,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 29,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3022,
+          "ms": 10,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        },
+        {
+          "linhas": 1471,
+          "ms": 14,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 1410,
+          "ms": 11,
+          "sql": "SELECT memoria_id, por, registrado_por, so_para_nucleos FROM relatos WHERE situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Explorar, filtro de tipo",
+      "caminho": "/explorar?tipo=festa",
+      "status": 200,
+      "total": 71,
+      "servidor": 61,
+      "consultas": 48,
+      "linhasLidas": 29537,
+      "msNoD1": 203,
+      "r2": 0,
+      "html": 150970,
+      "htmlGzip": 13352,
+      "imgs": 103,
+      "fotos": 102,
+      "fotosDistintas": 19,
+      "retratos": 1,
+      "memoriasNaPagina": 43,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 25,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3022,
+          "ms": 5,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        },
+        {
+          "linhas": 1471,
+          "ms": 7,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 1410,
+          "ms": 6,
+          "sql": "SELECT memoria_id, por, registrado_por, so_para_nucleos FROM relatos WHERE situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Modo TV",
+      "caminho": "/explorar?ver=tv",
+      "status": 200,
+      "total": 61,
+      "servidor": 54,
+      "consultas": 47,
+      "linhasLidas": 29527,
+      "msNoD1": 206,
+      "r2": 0,
+      "html": 9153,
+      "htmlGzip": 2849,
+      "imgs": 1,
+      "fotos": 1,
+      "fotosDistintas": 1,
+      "retratos": 0,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 17,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3022,
+          "ms": 6,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        },
+        {
+          "linhas": 1471,
+          "ms": 7,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 1410,
+          "ms": 6,
+          "sql": "SELECT memoria_id, por, registrado_por, so_para_nucleos FROM relatos WHERE situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Me mostre uma memória",
+      "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+      "status": 200,
+      "total": 77,
+      "servidor": 71,
+      "consultas": 55,
+      "linhasLidas": 29958,
+      "msNoD1": 227,
+      "r2": 0,
+      "html": 11053,
+      "htmlGzip": 4047,
+      "imgs": 4,
+      "fotos": 3,
+      "fotosDistintas": 3,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 19,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 3022,
+          "ms": 5,
+          "sql": "SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE a.removido_em IS NULL AND r.si"
+        },
+        {
+          "linhas": 1471,
+          "ms": 8,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 1410,
+          "ms": 6,
+          "sql": "SELECT memoria_id, por, registrado_por, so_para_nucleos FROM relatos WHERE situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Memória (exemplo)",
+      "caminho": "/memorias/1992-chegada-do-gui",
+      "status": 200,
+      "total": 78,
+      "servidor": 72,
+      "consultas": 67,
+      "linhasLidas": 25215,
+      "msNoD1": 126,
+      "r2": 0,
+      "html": 45622,
+      "htmlGzip": 7117,
+      "imgs": 17,
+      "fotos": 9,
+      "fotosDistintas": 3,
+      "retratos": 8,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 17,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1471,
+          "ms": 4,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 183,
+          "ms": 3,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 3,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Memória (cheia)",
+      "caminho": "/memorias/carga-0478",
+      "status": 200,
+      "total": 91,
+      "servidor": 76,
+      "consultas": 68,
+      "linhasLidas": 25287,
+      "msNoD1": 121,
+      "r2": 0,
+      "html": 106824,
+      "htmlGzip": 9858,
+      "imgs": 38,
+      "fotos": 23,
+      "fotosDistintas": 6,
+      "retratos": 15,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 18,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1471,
+          "ms": 4,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Pessoa",
+      "caminho": "/pessoas/gui",
+      "status": 200,
+      "total": 71,
+      "servidor": 63,
+      "consultas": 80,
+      "linhasLidas": 11303,
+      "msNoD1": 176,
+      "r2": 0,
+      "html": 153292,
+      "htmlGzip": 17048,
+      "imgs": 111,
+      "fotos": 86,
+      "fotosDistintas": 22,
+      "retratos": 25,
+      "memoriasNaPagina": 101,
+      "caras": [
+        {
+          "linhas": 3361,
+          "ms": 4,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1087,
+          "ms": 3,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 937,
+          "ms": 2,
+          "sql": "SELECT a.*, m.id AS memoria, m.titulo AS memoria_titulo, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.so_para_nucleos AS relato_so FROM aud"
+        },
+        {
+          "linhas": 928,
+          "ms": 2,
+          "sql": "SELECT r.*, m.titulo AS memoria_titulo, m.ano AS memoria_ano FROM relatos r JOIN memorias m ON m.id = r.memoria_id WHERE r.por = ?2 AND r.situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Pessoa, linha do tempo",
+      "caminho": "/pessoas/gui?ver=linha",
+      "status": 200,
+      "total": 75,
+      "servidor": 66,
+      "consultas": 81,
+      "linhasLidas": 11333,
+      "msNoD1": 178,
+      "r2": 0,
+      "html": 333904,
+      "htmlGzip": 27300,
+      "imgs": 240,
+      "fotos": 215,
+      "fotosDistintas": 22,
+      "retratos": 25,
+      "memoriasNaPagina": 101,
+      "caras": [
+        {
+          "linhas": 3361,
+          "ms": 4,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1087,
+          "ms": 2,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 937,
+          "ms": 1,
+          "sql": "SELECT a.*, m.id AS memoria, m.titulo AS memoria_titulo, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.so_para_nucleos AS relato_so FROM aud"
+        },
+        {
+          "linhas": 928,
+          "ms": 1,
+          "sql": "SELECT r.*, m.titulo AS memoria_titulo, m.ano AS memoria_ano FROM relatos r JOIN memorias m ON m.id = r.memoria_id WHERE r.por = ?2 AND r.situacao = 'publicada'"
+        }
+      ]
+    },
+    {
+      "nome": "Pessoas",
+      "caminho": "/pessoas",
+      "status": 200,
+      "total": 67,
+      "servidor": 61,
+      "consultas": 40,
+      "linhasLidas": 24263,
+      "msNoD1": 88,
+      "r2": 0,
+      "html": 26055,
+      "htmlGzip": 5335,
+      "imgs": 41,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 41,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 17,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1471,
+          "ms": 4,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Árvore",
+      "caminho": "/arvore",
+      "status": 200,
+      "total": 26,
+      "servidor": 21,
+      "consultas": 23,
+      "linhasLidas": 1174,
+      "msNoD1": 28,
+      "r2": 0,
+      "html": 25836,
+      "htmlGzip": 6451,
+      "imgs": 1,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 183,
+          "ms": 1,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 110,
+          "ms": 1,
+          "sql": "SELECT * FROM integrantes WHERE excluida_em IS NULL ORDER BY ordem, nome SELECT nucleo_id, integrante_id, papel FROM nucleo_membros"
+        },
+        {
+          "linhas": 110,
+          "ms": 1,
+          "sql": "SELECT * FROM integrantes WHERE excluida_em IS NULL ORDER BY ordem, nome SELECT nucleo_id, integrante_id, papel FROM nucleo_membros"
+        }
+      ]
+    },
+    {
+      "nome": "Capítulo reunido",
+      "caminho": "/capitulos/natais",
+      "status": 200,
+      "total": 59,
+      "servidor": 54,
+      "consultas": 39,
+      "linhasLidas": 24020,
+      "msNoD1": 85,
+      "r2": 0,
+      "html": 59885,
+      "htmlGzip": 8278,
+      "imgs": 46,
+      "fotos": 39,
+      "fotosDistintas": 16,
+      "retratos": 7,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 18,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1471,
+          "ms": 4,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 3,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Capítulo época",
+      "caminho": "/capitulos/os-anos-90",
+      "status": 200,
+      "total": 73,
+      "servidor": 68,
+      "consultas": 39,
+      "linhasLidas": 24020,
+      "msNoD1": 100,
+      "r2": 0,
+      "html": 84817,
+      "htmlGzip": 9775,
+      "imgs": 79,
+      "fotos": 72,
+      "fotosDistintas": 16,
+      "retratos": 7,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 22,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1471,
+          "ms": 5,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 183,
+          "ms": 3,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        },
+        {
+          "linhas": 183,
+          "ms": 3,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Capítulos",
+      "caminho": "/capitulos",
+      "status": 200,
+      "total": 60,
+      "servidor": 55,
+      "consultas": 25,
+      "linhasLidas": 23717,
+      "msNoD1": 72,
+      "r2": 0,
+      "html": 11859,
+      "htmlGzip": 3983,
+      "imgs": 1,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 18,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1471,
+          "ms": 5,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 690,
+          "ms": 3,
+          "sql": "SELECT DISTINCT tm.tema_id AS id FROM tema_memorias tm JOIN memorias m ON m.id = tm.memoria_id WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Nova memória",
+      "caminho": "/nova",
+      "status": 200,
+      "total": 61,
+      "servidor": 56,
+      "consultas": 39,
+      "linhasLidas": 24729,
+      "msNoD1": 83,
+      "r2": 0,
+      "html": 40154,
+      "htmlGzip": 9671,
+      "imgs": 1,
+      "fotos": 0,
+      "fotosDistintas": 0,
+      "retratos": 1,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 18,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1471,
+          "ms": 4,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        },
+        {
+          "linhas": 690,
+          "ms": 2,
+          "sql": "SELECT DISTINCT tm.tema_id AS id FROM tema_memorias tm JOIN memorias m ON m.id = tm.memoria_id WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m"
+        },
+        {
+          "linhas": 183,
+          "ms": 2,
+          "sql": "SELECT filho_id, responsavel_id, qualidade, adocao_ano, adocao_mes, adocao_dia FROM filiacoes WHERE filho_id NOT IN (SELECT id FROM integrantes WHERE excluida_e"
+        }
+      ]
+    },
+    {
+      "nome": "Sua conta",
+      "caminho": "/conta",
+      "status": 200,
+      "total": 116,
+      "servidor": 108,
+      "consultas": 49,
+      "linhasLidas": 29068,
+      "msNoD1": 336,
+      "r2": 0,
+      "html": 18588,
+      "htmlGzip": 5360,
+      "imgs": 14,
+      "fotos": 10,
+      "fotosDistintas": 7,
+      "retratos": 4,
+      "memoriasNaPagina": 0,
+      "caras": [
+        {
+          "linhas": 20384,
+          "ms": 20,
+          "sql": "SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id IN (SELECT value FROM json_each(?)) SELECT memoria_id, integrante_id FROM memoria_integrantes"
+        },
+        {
+          "linhas": 1727,
+          "ms": 10,
+          "sql": "SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id WHERE r.registrado_por = ?1 AND r.descartado_em IS NULL AND (m.excluida_em IS NULL AN"
+        },
+        {
+          "linhas": 1554,
+          "ms": 10,
+          "sql": "SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND r.descartado_em IS NOT NU"
+        },
+        {
+          "linhas": 1471,
+          "ms": 10,
+          "sql": "SELECT m.* FROM memorias m WHERE (m.excluida_em IS NULL AND ( (m.situacao = 'rascunho' AND m.criada_por = ?1) OR (m.situacao = 'publicada' AND ( m.visibilidade "
+        }
+      ]
+    }
+  ]
+}

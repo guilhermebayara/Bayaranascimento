@@ -1,0 +1,470 @@
+{
+  "rotulo": "cheio",
+  "base": "https://127.0.0.1:4443",
+  "perfil": "celular-4g",
+  "quando": "2026-11-23T02:13:56.268Z",
+  "resultados": [
+    {
+      "familia": 1,
+      "nome": "Explorar: tocar numa família",
+      "onde": "/explorar",
+      "falha": null,
+      "primeira": 1908,
+      "oQue": "childList em span.polaroid__foto",
+      "fim": 1400,
+      "buscas": [
+        {
+          "url": "/explorar?nucleo=bracarense",
+          "ms": 2155,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        1647,
+        157
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?nucleo=bracarense",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Explorar: linha do tempo para mural",
+      "onde": "/explorar",
+      "falha": null,
+      "primeira": 990,
+      "oQue": "childList em span.polaroid__foto",
+      "fim": 953,
+      "buscas": [
+        {
+          "url": "/explorar?ver=mural",
+          "ms": 1311,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        792,
+        226
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?ver=mural",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Explorar: mural para lista",
+      "onde": "/explorar?ver=mural",
+      "falha": null,
+      "primeira": 949,
+      "oQue": "childList em main",
+      "fim": 921,
+      "buscas": [
+        {
+          "url": "/explorar?ver=lista",
+          "ms": 1192,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        633,
+        196
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?ver=lista",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Explorar: ordem \"Mais antigas\"",
+      "onde": "/explorar",
+      "falha": null,
+      "primeira": 42,
+      "oQue": "attributes open em details.ordenar",
+      "fim": 1807,
+      "buscas": [
+        {
+          "url": "/explorar?ordem=antigas",
+          "ms": 3102,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        54,
+        77,
+        51,
+        2258,
+        307
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?ordem=antigas",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Explorar: filtro \"com foto\"",
+      "onde": "/explorar",
+      "falha": null,
+      "primeira": 2498,
+      "oQue": "childList em span.polaroid__foto",
+      "fim": 1712,
+      "buscas": [
+        {
+          "url": "/explorar?foto=1",
+          "ms": 2677,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        61,
+        56,
+        54,
+        78,
+        1922,
+        280
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?foto=1",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Explorar: abrir \"Filtros\"",
+      "onde": "/explorar",
+      "falha": null,
+      "primeira": 369,
+      "oQue": "attributes open em details.filtros",
+      "fim": 369,
+      "buscas": [],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/explorar",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Explorar: tamanho das fotos",
+      "onde": "/explorar?ver=mural",
+      "falha": null,
+      "primeira": 409,
+      "oQue": "attributes data-tamanho em ul.mural",
+      "fim": 409,
+      "buscas": [
+        {
+          "url": "/explorar?ver=mural",
+          "ms": 608,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/explorar?ver=mural",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Explorar: voltar do navegador",
+      "onde": "/explorar",
+      "falha": null,
+      "primeira": 2781,
+      "oQue": "childList em main",
+      "fim": 1767,
+      "buscas": [
+        {
+          "url": "/explorar",
+          "ms": 3190,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        80,
+        2279,
+        417
+      ],
+      "falas": [],
+      "urlFinal": "/explorar",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Me mostre outra",
+      "onde": "/explorar?ver=acaso&m=carga-0478",
+      "falha": null,
+      "primeira": 586,
+      "fim": 8950,
+      "oQue": "a página nova inteira (navegação)",
+      "urlFinal": "/explorar?ver=acaso&m=carga-0389",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Modo TV: próxima, depois da busca de antemão",
+      "onde": "/explorar?ver=tv",
+      "falha": null,
+      "primeira": 26,
+      "oQue": "childList em main",
+      "fim": 26,
+      "buscas": [
+        {
+          "url": "/explorar?ver=tv&m=2025-natal",
+          "ms": 176,
+          "status": 200
+        },
+        {
+          "url": "/explorar?ver=tv&m=2026-jantar-de-casamento",
+          "ms": 186,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/explorar?ver=tv&m=2026-pao-de-queijo-da-vo-bela",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Modo TV: próxima logo em seguida",
+      "onde": "/explorar?ver=tv",
+      "falha": null,
+      "primeira": 338,
+      "oQue": "childList em div.palco__cena",
+      "fim": 2252,
+      "buscas": [
+        {
+          "url": "/explorar?ver=tv&m=carga-0577",
+          "ms": 169,
+          "status": 200
+        }
+      ],
+      "inp": 24,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/explorar?ver=tv&m=2025-natal",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Reagir (coração)",
+      "onde": "/memorias/carga-0478",
+      "falha": null,
+      "primeira": 17,
+      "oQue": "attributes aria-pressed em button.reacao",
+      "fim": 202,
+      "buscas": [
+        {
+          "url": "/api/reacoes",
+          "ms": 188,
+          "status": 200
+        }
+      ],
+      "inp": 40,
+      "tarefasLongas": [],
+      "falas": [
+        {
+          "quando": 202,
+          "texto": "Você marcou Coração."
+        }
+      ],
+      "urlFinal": "/memorias/carga-0478",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Pessoas: digitar na busca",
+      "onde": "/pessoas",
+      "falha": null,
+      "primeira": 6,
+      "oQue": "childList em ul.busca__lista",
+      "fim": 6,
+      "buscas": [],
+      "inp": 32,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/pessoas",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Pessoa: \"Mostrar datas\"",
+      "onde": "/pessoas/ex-vo-tonho",
+      "falha": null,
+      "primeira": 11,
+      "oQue": "attributes hidden em div.dados__data",
+      "fim": 11,
+      "buscas": [],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/pessoas/ex-vo-tonho?datas=1",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Pessoa: trocar a forma de ver",
+      "onde": "/pessoas/gui",
+      "falha": null,
+      "primeira": 393,
+      "oQue": "childList em div.verbete__alto",
+      "fim": 379,
+      "buscas": [],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/pessoas/gui?ver=linha",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Responder o pedido para liberar (Início)",
+      "onde": "/",
+      "falha": null,
+      "primeira": 11,
+      "oQue": "attributes disabled em button.acao",
+      "fim": 359,
+      "buscas": [
+        {
+          "url": "/api/avisos",
+          "ms": 352,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [
+        {
+          "quando": 410,
+          "texto": "Seu relato continua só para quem via antes. Dá para liberar depois, no próprio relato."
+        }
+      ],
+      "urlFinal": "/",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Nova memória: salvar rascunho",
+      "onde": "/nova",
+      "falha": null,
+      "primeira": 488,
+      "fim": 809,
+      "oQue": "a página nova inteira (navegação)",
+      "urlFinal": "/nova?id=zgvgd4yx",
+      "textoDeErro": "Continuar em rascunho",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Nova memória: enviar uma foto",
+      "onde": "/nova",
+      "falha": null,
+      "primeira": 67,
+      "oQue": "childList em button.botao",
+      "fim": 6333,
+      "buscas": [
+        {
+          "url": "/api/fotos",
+          "ms": 5855,
+          "status": 201
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        114
+      ],
+      "falas": [],
+      "urlFinal": "/nova",
+      "textoDeErro": "Continuar em rascunho",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Relato: enviar uma mensagem",
+      "onde": "/memorias/carga-0478/relato",
+      "falha": null,
+      "primeira": 17,
+      "oQue": "childList em ol.janela__mensagens",
+      "fim": 185,
+      "buscas": [
+        {
+          "url": "/api/relatos",
+          "ms": 171,
+          "status": 201
+        }
+      ],
+      "inp": 40,
+      "tarefasLongas": [],
+      "falas": [
+        {
+          "quando": 17,
+          "texto": "Conte como foi. Mande um texto, um áudio ou uma foto, quantos quiser e na ordem que vierem.Uma mensagem de teste da medi"
+        },
+        {
+          "quando": 17,
+          "texto": "Salvando…"
+        },
+        {
+          "quando": 184,
+          "texto": "Rascunho salvo. Só você vê."
+        }
+      ],
+      "urlFinal": "/memorias/carga-0478/relato",
+      "textoDeErro": "Rascunho salvo. Só você vê.",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Pessoa: salvar \"Como você chama\"",
+      "onde": "/pessoas/vo-bela",
+      "falha": null,
+      "primeira": 11,
+      "oQue": "attributes disabled em button.acao",
+      "fim": 429,
+      "buscas": [
+        {
+          "url": "/api/apelidos",
+          "ms": 419,
+          "status": 200
+        },
+        {
+          "url": "/api/apelidos",
+          "ms": 561,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [
+        {
+          "quando": 480,
+          "texto": "Pronto. Para você, aparece como Vozinha no site inteiro."
+        }
+      ],
+      "urlFinal": "/pessoas/vo-bela",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    }
+  ]
+}

@@ -1,0 +1,216 @@
+{
+  "rotulo": "exemplo",
+  "base": "https://127.0.0.1:4443",
+  "perfil": "celular-wifi",
+  "quando": "2026-11-23T01:52:16.017Z",
+  "resultados": [
+    {
+      "familia": 2,
+      "nome": "Responder o pedido para liberar (Início)",
+      "onde": "/",
+      "falha": "sem rede",
+      "erro": "TimeoutError: page.waitForFunction: Timeout 90000ms exceeded."
+    },
+    {
+      "familia": 2,
+      "nome": "Responder o pedido para liberar (Início)",
+      "onde": "/",
+      "falha": "erro no servidor",
+      "erro": "TimeoutError: page.waitForFunction: Timeout 90000ms exceeded."
+    },
+    {
+      "familia": 2,
+      "nome": "Nova memória: salvar rascunho",
+      "onde": "/nova",
+      "falha": "sem rede",
+      "primeira": 3,
+      "oQue": "childList em button.botao",
+      "fim": 26,
+      "buscas": [
+        {
+          "url": "/api/memorias",
+          "ms": 15,
+          "status": "falhou"
+        }
+      ],
+      "inp": 32,
+      "tarefasLongas": [],
+      "falas": [
+        {
+          "quando": 13,
+          "texto": "Salvando rascunho…"
+        },
+        {
+          "quando": 27,
+          "texto": "Failed to fetch"
+        }
+      ],
+      "urlFinal": "/nova",
+      "textoDeErro": "Failed to fetch | Continuar em rascunho",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Nova memória: salvar rascunho",
+      "onde": "/nova",
+      "falha": "erro no servidor",
+      "primeira": 4,
+      "oQue": "childList em button.botao",
+      "fim": 32,
+      "buscas": [
+        {
+          "url": "/api/memorias",
+          "ms": 21,
+          "status": 500
+        }
+      ],
+      "inp": 32,
+      "tarefasLongas": [],
+      "falas": [
+        {
+          "quando": 14,
+          "texto": "Salvando rascunho…"
+        },
+        {
+          "quando": 31,
+          "texto": "Unexpected token 'E', \"Erro\" is not valid JSON"
+        }
+      ],
+      "urlFinal": "/nova",
+      "textoDeErro": "Unexpected token 'E', \"Erro\" is not valid JSON | Continuar em rascunho",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Nova memória: enviar uma foto",
+      "onde": "/nova",
+      "falha": "sem rede",
+      "primeira": 75,
+      "oQue": "childList em button.botao",
+      "fim": 495,
+      "buscas": [
+        {
+          "url": "/api/fotos",
+          "ms": 11,
+          "status": "falhou"
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        115
+      ],
+      "falas": [],
+      "urlFinal": "/nova",
+      "textoDeErro": "Não foi possível enviar. Failed to fetch | Continuar em rascunho",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Nova memória: enviar uma foto",
+      "onde": "/nova",
+      "falha": "erro no servidor",
+      "primeira": 67,
+      "oQue": "childList em button.botao",
+      "fim": 566,
+      "buscas": [
+        {
+          "url": "/api/fotos",
+          "ms": 33,
+          "status": 500
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        119
+      ],
+      "falas": [],
+      "urlFinal": "/nova",
+      "textoDeErro": "Não foi possível enviar. Unexpected token 'E', \"Erro\" is not valid JSON | Continuar em rascunho",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Relato: enviar uma mensagem",
+      "onde": "/memorias/1992-chegada-do-gui/relato",
+      "falha": "sem rede",
+      "primeira": 16,
+      "oQue": "childList em ol.janela__mensagens",
+      "fim": 30,
+      "buscas": [
+        {
+          "url": "/api/relatos",
+          "ms": 17,
+          "status": "falhou"
+        }
+      ],
+      "inp": 32,
+      "tarefasLongas": [],
+      "falas": [
+        {
+          "quando": 16,
+          "texto": "Conte como foi. Mande um texto, um áudio ou uma foto, quantos quiser e na ordem que vierem.Uma mensagem de teste da medi"
+        },
+        {
+          "quando": 16,
+          "texto": "Salvando…"
+        },
+        {
+          "quando": 30,
+          "texto": "Failed to fetch"
+        }
+      ],
+      "urlFinal": "/memorias/1992-chegada-do-gui/relato",
+      "textoDeErro": "Failed to fetch",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Relato: enviar uma mensagem",
+      "onde": "/memorias/1992-chegada-do-gui/relato",
+      "falha": "erro no servidor",
+      "primeira": 20,
+      "oQue": "childList em ol.janela__mensagens",
+      "fim": 47,
+      "buscas": [
+        {
+          "url": "/api/relatos",
+          "ms": 32,
+          "status": 500
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [
+        {
+          "quando": 21,
+          "texto": "Conte como foi. Mande um texto, um áudio ou uma foto, quantos quiser e na ordem que vierem.Uma mensagem de teste da medi"
+        },
+        {
+          "quando": 21,
+          "texto": "Salvando…"
+        },
+        {
+          "quando": 46,
+          "texto": "Unexpected token 'E', \"Erro\" is not valid JSON"
+        }
+      ],
+      "urlFinal": "/memorias/1992-chegada-do-gui/relato",
+      "textoDeErro": "Unexpected token 'E', \"Erro\" is not valid JSON",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 2,
+      "nome": "Pessoa: salvar \"Como você chama\"",
+      "onde": "/pessoas/vo-bela",
+      "falha": "sem rede",
+      "erro": "TimeoutError: page.waitForFunction: Timeout 90000ms exceeded."
+    },
+    {
+      "familia": 2,
+      "nome": "Pessoa: salvar \"Como você chama\"",
+      "onde": "/pessoas/vo-bela",
+      "falha": "erro no servidor",
+      "erro": "TimeoutError: page.waitForFunction: Timeout 90000ms exceeded."
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "rotulo": "previa",
+  "base": "https://tst-desempenho.memorias.bayara.com.br",
+  "perfil": "celular-4g",
+  "quando": "2026-11-23T02:08:08.016Z",
+  "resultados": [
+    {
+      "familia": 1,
+      "nome": "Explorar: tocar numa família",
+      "onde": "/explorar",
+      "falha": null,
+      "primeira": 904,
+      "oQue": "childList em span.polaroid__foto",
+      "fim": 867,
+      "buscas": [
+        {
+          "url": "/explorar?nucleo=bracarense",
+          "ms": 938,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        100
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?nucleo=bracarense",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Explorar: linha do tempo para mural",
+      "onde": "/explorar",
+      "falha": null,
+      "primeira": 809,
+      "oQue": "childList em span.polaroid__foto",
+      "fim": 801,
+      "buscas": [
+        {
+          "url": "/explorar?ver=mural",
+          "ms": 846,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        135
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?ver=mural",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Explorar: filtro \"com foto\"",
+      "onde": "/explorar",
+      "falha": null,
+      "primeira": 1043,
+      "oQue": "childList em span.polaroid__foto",
+      "fim": 918,
+      "buscas": [
+        {
+          "url": "/explorar?foto=1",
+          "ms": 1041,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        325
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?foto=1",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Me mostre outra",
+      "onde": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+      "falha": null,
+      "primeira": 1088,
+      "fim": 1323,
+      "oQue": "a página nova inteira (navegação)",
+      "urlFinal": "/explorar?ver=acaso&m=2000-um-ano-da-giovanna",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Modo TV: próxima, depois da busca de antemão",
+      "onde": "/explorar?ver=tv",
+      "falha": null,
+      "primeira": 46,
+      "oQue": "childList em main",
+      "fim": 46,
+      "buscas": [
+        {
+          "url": "/explorar?ver=tv&m=2025-natal",
+          "ms": 527,
+          "status": 200
+        },
+        {
+          "url": "/explorar?ver=tv&m=2026-jantar-de-casamento",
+          "ms": 572,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/explorar?ver=tv&m=2026-pao-de-queijo-da-vo-bela",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Modo TV: próxima logo em seguida",
+      "onde": "/explorar?ver=tv",
+      "falha": null,
+      "primeira": 357,
+      "oQue": "childList em div.palco__cena",
+      "fim": 2678,
+      "buscas": [
+        {
+          "url": "/explorar?ver=tv&m=2025-festa-junina",
+          "ms": 457,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/explorar?ver=tv&m=2025-natal",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    }
+  ]
+}

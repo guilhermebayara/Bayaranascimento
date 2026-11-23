@@ -27,6 +27,9 @@ const servidor = createSecureServer({ key: readFileSync(join(pasta, 'chave.pem')
   try {
     const cabecalhos = {};
     for (const [nome, valor] of Object.entries(pedido.headers)) if (!nome.startsWith(':') && !SEM_REPASSE.has(nome) && nome !== 'accept-encoding') cabecalhos[nome] = valor;
+    // O site confere a origem de quem grava (mesmaOrigem): para ele, o pedido vem dele mesmo
+    if (cabecalhos.origin) cabecalhos.origin = destino.origin;
+    if (cabecalhos.referer) cabecalhos.referer = String(cabecalhos.referer).replace(/^https:\/\/127\.0\.0\.1:\d+/, destino.origin);
     const corpo = ['GET', 'HEAD'].includes(pedido.method) ? undefined : await new Promise((ok) => {
       const partes = [];
       pedido.on('data', (p) => partes.push(p));
@@ -36,7 +39,7 @@ const servidor = createSecureServer({ key: readFileSync(join(pasta, 'chave.pem')
     const r = await fetch(origem, { method: pedido.method, headers: { ...cabecalhos, host: destino.host }, body: corpo, redirect: 'manual' });
     const saida = {};
     r.headers.forEach((valor, nome) => {
-      if (!SEM_REPASSE.has(nome) && nome !== 'set-cookie') saida[nome] = valor;
+      if (!SEM_REPASSE.has(nome) && nome !== 'set-cookie') saida[nome] = nome === 'location' ? valor.replace(destino.origin, '') : valor;
     });
     const cookies = r.headers.getSetCookie?.() ?? [];
     if (cookies.length) saida['set-cookie'] = cookies;
