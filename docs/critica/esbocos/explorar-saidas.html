@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Esboço C2: saídas à vista e parentesco no filtro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono&family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&family=Nothing+You+Could+Do&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  .assinatura { font-family: var(--serifa); line-height: .9; }
+  .assinatura b { display: block; font-weight: 400; font-size: 56px; letter-spacing: -.02em; }
+  .assinatura span { display: block; font-size: 30px; margin-top: 4px; }
+  .pilulas { display: flex; gap: 8px; margin-top: 14px; overflow: hidden; white-space: nowrap; }
+  .pilula { border: 1px solid #dccbb5; border-radius: 999px; padding: 9px 14px; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
+  .pilula.marcada { background: var(--manteiga-pastel); border-color: transparent; font-weight: 500; }
+  .ponto { width: 9px; height: 9px; border-radius: 50%; }
+  .abas { display: flex; gap: 22px; margin-top: 36px; border-bottom: 1px solid var(--tinta); font-size: 17px; }
+  .abas span { padding-bottom: 10px; color: var(--suave); }
+  .abas span.marcada { color: var(--tinta); font-weight: 500; border-bottom: 4px solid var(--tinta); margin-bottom: -2px; }
+  .saidas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .saida { display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 14px; background: var(--branco); box-shadow: var(--sombra-bilhete); text-decoration: none; color: var(--tinta); min-height: 44px; }
+  .saida strong { font-weight: 500; }
+  .saida small { color: var(--suave); font-size: 13px; }
+  .linha-filtros { display: flex; justify-content: space-between; margin-top: 18px; font-size: 15px; }
+  .cartao { background: var(--branco); border-radius: 18px; padding: 20px; box-shadow: var(--sombra-bilhete); margin-top: 16px; }
+  .grupo-titulo { display: flex; justify-content: space-between; font-weight: 500; padding: 12px 0; border-top: 1px solid #eadfcd; }
+  .pessoas { display: grid; gap: 2px; }
+  .pessoa { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+  .caixa { width: 22px; height: 22px; border: 1.5px solid var(--tinta); border-radius: 4px; flex: none; }
+  .caixa.marcada { background: var(--tinta); }
+  .pessoa img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+  .pessoa small { display: block; font-family: var(--mono); font-size: 12px; color: var(--suave); }
+  .subrotulo { margin: 14px 0 6px; }
+  .inicio-fim { margin-top: 28px; }
+  .inicio-fim .titulo { font-size: 34px; }
+  .decadas { font-family: var(--serifa); font-size: 22px; color: var(--suave); display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 14px; }
+</style>
+</head>
+<body>
+<p class="aviso-esboco">Esboço da crítica C2, 22/11/2026. Mostra um caminho para três pontos pequenos; não é proposta acabada de tela. O tracejado coral marca o que muda.</p>
+<div class="quadros">
+
+  <section class="quadro">
+    <h2>A. Explorar, 390 px: as saídas fora da fila que rola</h2>
+    <div class="tela">
+      <div class="assinatura"><b>MEMÓRIAS</b><span>Bayara &amp; Bracarense</span></div>
+      <div class="pilulas">
+        <span class="pilula marcada"><i class="ponto" style="background:var(--manteiga-vivo)"></i>Família completa</span>
+        <span class="pilula"><i class="ponto" style="background:var(--verde-vivo)"></i>Bayara</span>
+        <span class="pilula"><i class="ponto" style="background:#b84cc4"></i>Bayara Bra…</span>
+      </div>
+      <div class="abas"><span class="marcada">Linha do tempo</span><span>Mural de fotos</span><span>Lista</span></div>
+      <div class="saidas novo">
+        <a class="saida" href="#"><strong>Me mostre uma memória →</strong><small>Uma por vez, ao acaso</small></a>
+        <a class="saida" href="#"><strong>Modo TV →</strong><small>Para ver junto, na tela grande</small></a>
+      </div>
+      <div class="linha-filtros"><span>Filtros +</span><span><span class="rotulo">Ordem</span> <u>Mais recentes primeiro</u></span></div>
+    </div>
+    <p class="nota">Hoje as duas saídas ficam no fim da fila das abas, que rola para o lado, e em 390 px só aparece um “M” cortado. <b>Muda:</b> a fila das abas fica só com as três formas de ver, que cabem na largura, e as saídas ganham a linha delas, à vista. No computador nada muda.</p>
+  </section>
+
+  <section class="quadro">
+    <h2>B. Início, o convite do fim: a porta mais fácil também ali</h2>
+    <div class="tela">
+      <p class="rotulo">48 memórias · de 1958 a 2026</p>
+      <div class="inicio-fim">
+        <p class="titulo"><u>Explorar todas as memórias</u> →</p>
+        <div class="decadas"><span>Anos 2020</span><span>Anos 2010</span><span>Anos 2000</span><span>Anos 90</span><span>Anos 60</span><span>Anos 50</span></div>
+      </div>
+      <p style="margin-top:28px" class="novo"><a class="botao" href="#">Me mostre uma memória →</a></p>
+      <p class="nota" style="margin-top:28px">O Início termina hoje só com “Explorar todas as memórias”. <b>Muda:</b> “Me mostre uma memória” entra ali, como ação de um toque, para quem não sabe o que procurar. Pode ser ação de texto, se a tela já tiver o seu botão cheio.</p>
+    </div>
+  </section>
+
+  <section class="quadro">
+    <h2>C. Filtro “Quem estava junto”: o nome e o que a pessoa é para quem olha</h2>
+    <div class="tela">
+      <div class="cartao">
+        <div class="grupo-titulo" style="border-top:0"><span>Quem estava junto</span><span>×</span></div>
+        <p class="rotulo subrotulo novo">Mais perto de você</p>
+        <div class="pessoas novo">
+          <label class="pessoa"><i class="caixa marcada"></i><img src="/retratos/exemplos/chico-3.jpg" alt=""><span>Vó Vivica<small>sua mãe</small></span></label>
+          <label class="pessoa"><i class="caixa"></i><img src="/retratos/exemplos/karol-2.jpg" alt=""><span>Gui<small>seu filho</small></span></label>
+          <label class="pessoa"><i class="caixa"></i><img src="/retratos/exemplos/karol-5.jpg" alt=""><span>Giovanna<small>sua filha</small></span></label>
+          <label class="pessoa"><i class="caixa"></i><img src="/retratos/exemplos/chico-1.jpg" alt=""><span>Lourdes<small>sua irmã</small></span></label>
+        </div>
+        <p class="rotulo subrotulo">Todos, de A a Z</p>
+        <div class="pessoas">
+          <label class="pessoa"><i class="caixa"></i><span>Aguilar<small>seu ex-marido</small></span></label>
+          <label class="pessoa"><i class="caixa"></i><span>Ana Candida</span></label>
+          <label class="pessoa"><i class="caixa"></i><span>Ben<small>seu neto</small></span></label>
+        </div>
+      </div>
+      <p class="nota">Hoje a lista é só de nomes, em ordem alfabética, sem retrato: a mãe da Elizete é “Vó Vivica”, perto do fim, a 1.355 px do alto. O site já sabe dizer “sua mãe” em todo lugar. <b>Muda:</b> o parentesco embaixo de cada nome e, no alto, as pessoas mais próximas de quem olha (as mesmas sugestões que “Quem estava?” da nova memória já faz).</p>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
