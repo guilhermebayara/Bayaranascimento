@@ -4,13 +4,18 @@
 // pelo id, sempre a mesma. Com mais de uma foto, as outras aparecem atrás: o monte já diz que
 // há mais. A forma de cor atrás leva a cor do tipo de momento (--tipo-cor, posta por quem usa).
 // Memória sem foto ganha o mesmo cartão, com a cor e o ícone do tipo no lugar da imagem.
+//
+// As fotos vêm das cópias menores quando elas existem (sessão D1b, src/lib/copias-das-fotos.ts): a
+// pequena, com `largura` dizendo ao navegador o tamanho da caixa, e a média na foto `principal` (a da
+// memória e a do palco do modo TV), que também ganha prioridade alta.
 import IconeDoTipo from './IconeDoTipo.astro';
 import { formaDoId, giroDoId } from '../../lib/visual';
+import { fontesDaFoto, type Copias } from '../../lib/copias-das-fotos';
 
 interface Props {
   /** id da memória: decide a inclinação */
   id: string;
-  fotos: { chave: string; legenda: string | null }[];
+  fotos: { chave: string; legenda: string | null; copias?: Copias | null }[];
   legenda: string;
   /** texto alternativo da foto principal */
   alt?: string;
@@ -29,18 +34,34 @@ interface Props {
   /** na página da memória: cada foto do monte é um link que abre a galeria naquela foto */
   galeria?: boolean;
   /**
-   * Uma media query: a foto só é baixada onde ela vale. Para a foto que só existe com mouse (a lista
-   * do Explorar): no celular, o navegador fica com uma imagem vazia e não busca o arquivo.
+   * Uma media query: a foto só é baixada onde ela vale, e só quando aparece. Para a foto que só existe
+   * com mouse (a lista do Explorar): no celular, o navegador fica com uma imagem vazia e não busca o
+   * arquivo; no computador, ela é buscada quando o mouse ou o foco chega à linha (ligarFotoAoPassar).
    */
   soOnde?: string;
+  /**
+   * A foto principal da memória e a do palco: vai a cópia média, logo e com prioridade alta, e as fotos de
+   * trás da pilha esperam por ela.
+   */
+  principal?: boolean;
+  /** A largura da foto na tela (o `sizes` do navegador), para ele escolher a cópia certa. */
+  largura?: string;
 }
 
-const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false, forma = false, tipo = 'outro', galeria = false, soOnde, rabisco } = Astro.props;
+const { id, fotos, legenda, alt, monte = true, cedo = false, reta = false, forma = false, tipo = 'outro', galeria = false, soOnde, rabisco, principal: ehPrincipal = false, largura = '240px' } = Astro.props;
 // Um ponto transparente: o que o navegador mostra onde a foto não é para ser baixada
 const VAZIA = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const [principal, ...outras] = fotos;
 const atras = monte ? outras.slice(0, 2) : [];
 const giro = reta ? 0 : giroDoId(id);
+const daFrente = principal ? fontesDaFoto(principal, ehPrincipal ? 'media' : 'pequena', largura) : undefined;
+// As de trás nunca disputam a rede com a foto principal: com ela, as fontes ficam em data-* e só vão para o
+// <img> quando a principal termina de chegar (o script abaixo). Sem script, ficam só o papel e a moldura.
+const deTras = (foto: (typeof fotos)[number]) => {
+  const f = fontesDaFoto(foto, 'pequena', largura);
+  return ehPrincipal ? { src: VAZIA, 'data-depois': '', 'data-src': f.src, 'data-srcset': f.srcset, 'data-sizes': f.sizes } : f;
+};
+const prioridade = ehPrincipal ? { fetchpriority: 'high' as const, loading: 'eager' as const } : { loading: cedo ? ('eager' as const) : ('lazy' as const) };
 ---
 
 {
@@ -67,13 +88,13 @@ const giro = reta ? 0 : giroDoId(id);
           // Pelo teclado, a galeria abre na foto principal e segue dali: estas ficam fora da ordem do Tab
           <a class="monte__atras" data-atras={n + 1} href={`/fotos/${foto.chave}`} data-galeria={n + 1} tabindex="-1" aria-hidden="true">
             <span>
-              <img src={`/fotos/${foto.chave}`} alt="" loading="lazy" decoding="async" />
+              <img {...deTras(foto)} alt="" loading="lazy" decoding="async" />
             </span>
           </a>
         ) : (
           <div class="monte__atras" data-atras={n + 1} aria-hidden="true">
             <span>
-              <img src={`/fotos/${foto.chave}`} alt="" loading="lazy" decoding="async" />
+              <img {...deTras(foto)} alt="" loading="lazy" decoding="async" />
             </span>
           </div>
         ),
@@ -81,22 +102,47 @@ const giro = reta ? 0 : giroDoId(id);
       <figure class="polaroid" style={`--giro: ${giro}deg`}>
         {galeria ? (
           <a class="polaroid__foto" href={`/fotos/${principal.chave}`} data-galeria="0" aria-label={fotos.length > 1 ? `Ver as ${fotos.length} fotos` : 'Ver a foto inteira'}>
-            <img src={`/fotos/${principal.chave}`} alt={alt ?? principal.legenda ?? ''} loading={cedo ? 'eager' : 'lazy'} decoding="async" />
+            <img {...daFrente} alt={alt ?? principal.legenda ?? ''} {...prioridade} decoding="async" />
           </a>
         ) : (
           <span class="polaroid__foto">
             {soOnde ? (
-              <picture>
-                <source media={soOnde} srcset={`/fotos/${principal.chave}`} />
-                <img src={VAZIA} alt={alt ?? principal.legenda ?? ''} loading="lazy" decoding="async" />
-              </picture>
+              // A foto só é baixada quando aparece: o script de quem usa (a lista do Explorar) passa as
+              // fontes de data-* para o <img> quando o mouse ou o foco chega à linha, e só onde soOnde vale
+              <img src={VAZIA} data-so-onde={soOnde} data-src={daFrente!.src} data-srcset={daFrente!.srcset} data-sizes={daFrente!.sizes} alt={alt ?? principal.legenda ?? ''} decoding="async" />
             ) : (
-              <img src={`/fotos/${principal.chave}`} alt={alt ?? principal.legenda ?? ''} loading={cedo ? 'eager' : 'lazy'} decoding="async" />
+              <img {...daFrente} alt={alt ?? principal.legenda ?? ''} {...prioridade} decoding="async" />
             )}
           </span>
         )}
         <figcaption class="polaroid__legenda">{legenda}</figcaption>
       </figure>
     </div>
+  )
+}
+{
+  // As fotos de trás da pilha esperam a principal chegar (sessão D1b): no celular, no 4G, elas dividiam a
+  // rede com a foto que a pessoa espera ver primeiro. Só onde há foto principal com fotos atrás.
+  principal && ehPrincipal && atras.length > 0 && (
+    <script is:inline>
+      (function () {
+        var monte = document.currentScript.previousElementSibling;
+        var frente = monte && monte.querySelector('.polaroid__foto img');
+        if (!frente) return;
+        var soltar = function () {
+          monte.querySelectorAll('img[data-depois]').forEach(function (img) {
+            if (img.dataset.sizes) img.sizes = img.dataset.sizes;
+            if (img.dataset.srcset) img.srcset = img.dataset.srcset;
+            if (img.dataset.src) img.src = img.dataset.src;
+            delete img.dataset.depois;
+          });
+        };
+        if (frente.complete) soltar();
+        else {
+          frente.addEventListener('load', soltar, { once: true });
+          frente.addEventListener('error', soltar, { once: true });
+        }
+      })();
+    </script>
   )
 }

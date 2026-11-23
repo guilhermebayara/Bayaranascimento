@@ -9,6 +9,7 @@
 // de tela); no desktop, a grade põe a administração e a carta no alto.
 // As listas vêm de montarConta (src/lib/servidor/conta.ts), com as regras em src/lib/conta.ts.
 import '../visual/telas/painel.css';
+import { fontesDaFoto } from '../lib/copias-das-fotos';
 import '../visual/telas/conta.css';
 import Visual from '../layouts/Visual.astro';
 import Avisos from '../components/Avisos.astro';
@@ -167,7 +168,7 @@ const erro = Astro.url.searchParams.get('erro');
                       {fotosCriadas.mostra.map(({ memoria, foto }) => (
                         <li>
                           <a href={`/memorias/${memoria.id}`} aria-label={`Foto em ${memoria.titulo}`}>
-                            <img src={`/fotos/${foto.chave}`} alt="" loading="lazy" decoding="async" />
+                            <img {...fontesDaFoto(foto, 'pequena', '80px')} alt="" loading="lazy" decoding="async" />
                           </a>
                         </li>
                       ))}

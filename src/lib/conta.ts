@@ -322,6 +322,7 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
       pendencia: Boolean(situacao?.exclusoes),
     },
     { tema: 'ferramentas', rotulo: 'Transcrição automática', href: '/admin/transcricao', situacao: situacao && (situacao.transcricao === 'ligada' ? 'ligada' : 'desligada') },
+    { tema: 'ferramentas', rotulo: 'Cópias menores das fotos', href: '/admin/copias-das-fotos', situacao: situacao && 'para as fotos de antes' },
     { tema: 'ferramentas', rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },
     { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
     ...(onde.podeEspelhar ? [{ tema: 'ferramentas', rotulo: 'Espelho da produção', href: '/admin/espelho', situacao: situacao && 'só na homologação' }] : []),

@@ -8,7 +8,7 @@
 // "formulario": nada é gravado aqui; a página pega a lista em mensagens() e manda junto com a memória.
 import { BITS_POR_SEGUNDO, duracaoEmTexto, LIMITE_POR_ARQUIVO, MINUTOS_POR_GRAVACAO } from '../audios';
 import { resumoDaMensagem, type TipoDeMensagem } from '../conversa';
-import { prepararFoto } from './fotos';
+import { enviarFoto } from './fotos';
 import { ligarMenus } from './menus';
 
 /** O que vai para /api/relatos (e, na memória nova, para /api/memorias) */
@@ -447,12 +447,7 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
     enviando++;
     avisar('Enviando a foto…');
     try {
-      const pronta = await prepararFoto(arquivo);
-      const corpo = new FormData();
-      corpo.set('foto', pronta, 'foto');
-      const resposta = await fetch('/api/fotos', { method: 'POST', body: corpo });
-      const r = (await resposta.json()) as { id: number; src: string; erro?: string };
-      if (!resposta.ok) throw new Error(r.erro ?? 'Não consegui enviar a foto.');
+      const r = await enviarFoto(arquivo, 'Não consegui enviar a foto.');
       novaFoto(r.id, r.src);
     } catch (e) {
       avisar(e instanceof Error ? e.message : 'Não consegui enviar a foto.', 'erro');

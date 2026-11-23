@@ -182,7 +182,7 @@ const digitos = Math.max(2, String(marcos.length).length);
                   </div>
                   {/* A foto vai sem legenda: o lugar e o ano já estão no carimbo ao lado */}
                   <a class="marco__foto" href={`/memorias/${m.id}`} tabindex="-1" aria-hidden="true">
-                    <Polaroid id={m.id} fotos={m.fotos} legenda="" tipo={m.tipo} monte={false} alt="" />
+                    <Polaroid id={m.id} fotos={m.fotos} legenda="" tipo={m.tipo} monte={false} alt="" largura="(min-width: 1600px) 210px, (min-width: 1000px) 135px, 80px" />
                   </a>
                 </li>
               );

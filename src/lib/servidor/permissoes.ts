@@ -541,6 +541,14 @@ export function podeApagarFotoSolta(usuario: Usuario): Decisao {
   return usuario.admin ? sim : nao('Só os administradores apagam fotos sem memória.');
 }
 
+/**
+ * Fazer as cópias menores das fotos que já existem (sessão D1b, 23/11/2026): só os administradores, e só
+ * das fotos que eles veem (a rota confere de novo, foto por foto).
+ */
+export function podeFazerCopiasDasFotos(usuario: Usuario): Decisao {
+  return usuario.admin ? sim : nao('Só os administradores fazem as cópias das fotos.');
+}
+
 /** Os ajustes do acervo (os centros da árvore): só os administradores (onda 2, 17/11/2026). */
 export function podeMudarAjustes(usuario: Usuario): Decisao {
   return usuario.admin ? sim : nao('Só os administradores mudam os ajustes do acervo.');

@@ -46,6 +46,13 @@ const peloTempo = ordem === 'recentes' || ordem === 'antigas';
 const decadaDe = (ano: number) => Math.floor(ano / 10) * 10;
 const naDecada = (decada: number) => memorias.filter((m) => decadaDe(m.ano) === decada).length;
 const cedo = new Set(memorias.slice(0, 8).map((m) => m.id));
+// A largura de cada foto na tela, para o navegador escolher a cópia certa (sessão D1b): ela muda com o
+// tamanho escolhido. O tamanho guardado no aparelho troca também esta largura, no script logo abaixo.
+const LARGURA_NO_MURAL: Record<Tamanho, string> = {
+  pequenas: '(min-width: 1600px) 135px, (min-width: 1000px) 115px, 100px',
+  medias: '(min-width: 1600px) 180px, 160px',
+  grandes: '(min-width: 1600px) 300px, 270px',
+};
 // A capa da primeira memória de cada ano leva a aba; a primeira de cada década vem depois do cartão dela
 const aberturas = new Map(
   memorias.map((m, n) => {
@@ -68,7 +75,7 @@ const itens = itensDoMural(memorias, fotos).map(({ m, foto, n }) => ({
 }));
 ---
 
-<ul class="mural miolo" aria-label="Fotos das memórias" data-mural data-resultado data-tamanho={tamanho} data-fotos={fotos}>
+<ul class="mural miolo" aria-label="Fotos das memórias" data-mural data-resultado data-tamanho={tamanho} data-fotos={fotos} data-largura-pequenas={LARGURA_NO_MURAL.pequenas} data-largura-medias={LARGURA_NO_MURAL.medias} data-largura-grandes={LARGURA_NO_MURAL.grandes}>
   {
     itens.map(({ m, foto, n, abreAno, abreDecada }) => (
       <>
@@ -90,7 +97,7 @@ const itens = itensDoMural(memorias, fotos).map(({ m, foto, n }) => ({
             </span>
           )}
           <a href={`/memorias/${m.id}`}>
-            <Polaroid id={m.id} fotos={foto ? [foto] : []} legenda={m.titulo} alt={n === 0 ? '' : (foto?.legenda ?? '')} monte={false} cedo={n === 0 && cedo.has(m.id)} tipo={m.tipo} />
+            <Polaroid id={m.id} fotos={foto ? [foto] : []} legenda={m.titulo} alt={n === 0 ? '' : (foto?.legenda ?? '')} monte={false} cedo={n === 0 && cedo.has(m.id)} tipo={m.tipo} largura={LARGURA_NO_MURAL[tamanho]} />
             <span class="mural__verso">
               <span class="so-leitor">, </span>
               {/* No canto que aparece só cabe a data: o dia e o mês numa linha, o ano na outra */}
@@ -110,7 +117,14 @@ const itens = itensDoMural(memorias, fotos).map(({ m, foto, n }) => ({
     try {
       var tamanho = localStorage.getItem('mural-tamanho');
       var mural = document.currentScript.previousElementSibling;
-      if (mural && ['pequenas', 'medias', 'grandes'].indexOf(tamanho) >= 0) mural.setAttribute('data-tamanho', tamanho);
+      if (mural && ['pequenas', 'medias', 'grandes'].indexOf(tamanho) >= 0 && mural.getAttribute('data-tamanho') !== tamanho) {
+        mural.setAttribute('data-tamanho', tamanho);
+        // E a largura das fotos para o navegador escolher a cópia (sessão D1b), antes de elas serem buscadas
+        var largura = mural.getAttribute('data-largura-' + tamanho);
+        mural.querySelectorAll('img[sizes]').forEach(function (img) {
+          img.sizes = largura;
+        });
+      }
     } catch (e) {}
   })();
 </script>

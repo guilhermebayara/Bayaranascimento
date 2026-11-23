@@ -1,0 +1,108 @@
+---
+// "Cópias menores das fotos" (sessão D1b, 23/11/2026; decisão 4 do Gui em docs/briefs/desempenho.md). As
+// fotos novas já sobem com as duas cópias. Aqui o administrador faz as cópias das fotos de antes: tudo roda
+// no navegador dele, uma foto por vez: baixa a original pela rota das fotos, reduz no aparelho e manda as
+// cópias por /api/copias-das-fotos. A original nunca muda. Se a página fechar, a lista que volta já deixa de
+// fora as fotos que ganharam cópia: continuar recomeça de onde parou. Só entram as fotos que ele vê.
+import Pagina from '../../components/formularios/Pagina.astro';
+import { listarFotosSemCopia } from '../../lib/servidor/repositorio';
+
+const { usuario } = Astro.locals;
+if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
+const faltam = (await listarFotosSemCopia(usuario)).length;
+const frase = (n: number) => (n === 0 ? 'Todas as fotos que você vê já têm as cópias.' : n === 1 ? 'Falta uma foto.' : `Faltam ${n} fotos.`);
+---
+
+<Pagina titulo="Cópias menores das fotos" rotulo="Administração" secao="administracao">
+  <Fragment slot="abertura">
+    <p>Cada foto ganha duas cópias menores, que deixam o mural, a linha do tempo e a memória mais rápidos no celular. As fotos novas já sobem com elas. As fotos de antes ganham as cópias aqui, uma por vez, feitas neste aparelho. A foto guardada não muda.</p>
+    <p class="acoes">
+      <a class="acao" href="/admin">Voltar para a Administração</a>
+    </p>
+  </Fragment>
+
+  <section class="painel" data-copias data-faltam={faltam}>
+    <h2>Agora</h2>
+    <p data-copias-situacao aria-live="polite">{frase(faltam)}</p>
+    <p class="dica">Deixe esta página aberta enquanto as cópias são feitas. Se ela fechar, abra de novo e toque no botão: o trabalho continua de onde parou.</p>
+    {
+      faltam > 0 && (
+        <p class="acoes">
+          <button class="botao" type="button" data-copias-fazer>
+            Fazer as cópias das fotos que já existem
+          </button>
+          <button class="botao botao--leve" type="button" data-copias-parar hidden>
+            Parar
+          </button>
+        </p>
+      )
+    }
+  </section>
+</Pagina>
+
+<script>
+  import { fazerCopias } from '../../lib/cliente/fotos';
+
+  const caixa = document.querySelector<HTMLElement>('[data-copias]');
+  const fazer = caixa?.querySelector<HTMLButtonElement>('[data-copias-fazer]');
+  const parar = caixa?.querySelector<HTMLButtonElement>('[data-copias-parar]');
+  const situacao = caixa?.querySelector<HTMLElement>('[data-copias-situacao]');
+  let parado = false;
+
+  /** Faz as cópias de uma foto. true: feitas; false: ficou para depois. */
+  async function copiar(chave: string): Promise<boolean> {
+    const resposta = await fetch(`/fotos/${chave}`);
+    if (!resposta.ok) return false;
+    const imagem = await createImageBitmap(await resposta.blob());
+    const copias = await fazerCopias(imagem);
+    imagem.close();
+    if (!copias) return false;
+    const corpo = new FormData();
+    corpo.set('chave', chave);
+    corpo.set('pequena', copias.pequena, `pequena.${copias.formato}`);
+    corpo.set('media', copias.media, `media.${copias.formato}`);
+    const envio = await fetch('/api/copias-das-fotos', { method: 'POST', body: corpo });
+    // 409: a foto já tinha as cópias (outro aparelho fez antes)
+    return envio.ok || envio.status === 409;
+  }
+
+  fazer?.addEventListener('click', async () => {
+    if (!situacao || !parar) return;
+    parado = false;
+    fazer.hidden = true;
+    parar.hidden = false;
+    situacao.textContent = 'Buscando a lista das fotos…';
+    let chaves: string[] = [];
+    try {
+      const resposta = await fetch('/api/copias-das-fotos', { cache: 'no-store' });
+      chaves = ((await resposta.json()) as { chaves?: string[] }).chaves ?? [];
+    } catch {
+      situacao.textContent = 'Não consegui buscar a lista das fotos. Confira a internet e tente de novo.';
+      fazer.hidden = false;
+      parar.hidden = true;
+      return;
+    }
+    let feitas = 0;
+    let falhas = 0;
+    for (const [n, chave] of chaves.entries()) {
+      if (parado) break;
+      situacao.textContent = `Fazendo a cópia ${n + 1} de ${chaves.length}`;
+      try {
+        if (await copiar(chave)) feitas++;
+        else falhas++;
+      } catch {
+        falhas++;
+      }
+    }
+    const resumo = feitas === 1 ? 'Uma foto ganhou as cópias.' : `${feitas} fotos ganharam as cópias.`;
+    const resto = falhas === 0 ? '' : falhas === 1 ? ' Uma não deu certo: tente de novo mais tarde.' : ` ${falhas} não deram certo: tente de novo mais tarde.`;
+    situacao.textContent = parado ? `Parado. ${resumo} Toque no botão para continuar.` : `Pronto. ${resumo}${resto}`;
+    parar.hidden = true;
+    fazer.hidden = !parado && falhas === 0;
+  });
+
+  parar?.addEventListener('click', () => {
+    parado = true;
+    if (situacao) situacao.textContent = 'Parando depois desta foto…';
+  });
+</script>

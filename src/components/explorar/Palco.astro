@@ -101,12 +101,12 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
           {/* As outras fotos da memória, espalhadas em volta da principal */}
           {emVolta.map((foto, n) => (
             <div class="palco__extra" data-n={n + 1} aria-hidden="true">
-              <Polaroid id={`${memoria.id}-${n + 1}`} fotos={[foto]} legenda={foto.legenda ?? ''} alt="" monte={false} cedo />
+              <Polaroid id={`${memoria.id}-${n + 1}`} fotos={[foto]} legenda={foto.legenda ?? ''} alt="" monte={false} cedo largura="(min-width: 1600px) 320px, 220px" />
             </div>
           ))}
           {/* No modo TV, tocar na foto passa para a próxima; no "ao acaso", abre a memória */}
           <a class="palco__principal" href={tv && depois ? depois : abrir} data-palco-leva={tv && depois ? '' : undefined} aria-label={tv && depois ? 'Próxima memória' : `Abrir a memória ${memoria.titulo}`} tabindex="-1">
-            <Polaroid id={memoria.id} fotos={principal ? [principal] : []} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} tipo={memoria.tipo} monte={false} cedo />
+            <Polaroid id={memoria.id} fotos={principal ? [principal] : []} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} tipo={memoria.tipo} monte={false} cedo principal />
           </a>
         </div>
         <div class="palco__texto">
@@ -264,9 +264,15 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   };
   // Uma foto pronta: já baixada e aberta, do tamanho certo desde o primeiro desenho. Sem rede, a
   // foto que não chegou segura a passagem: a memória seguinte não entra pela metade.
-  const fotoPronta = async (endereco: string) => {
+  // As fontes vêm da foto da página (src, e srcset e sizes das cópias menores, src/lib/copias-das-fotos.ts)
+  const fotoPronta = async (img: HTMLImageElement) => {
     const foto = new Image();
     foto.decoding = 'sync';
+    const endereco = img.getAttribute('src') ?? '';
+    for (const nome of ['sizes', 'srcset', 'fetchpriority']) {
+      const valor = img.getAttribute(nome);
+      if (valor) foto.setAttribute(nome, valor);
+    }
     foto.src = endereco;
     await foto.decode().catch(() => {
       if (endereco && !navigator.onLine) throw new TypeError('sem rede');
@@ -278,7 +284,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   const aprontar = (raiz: ParentNode) =>
     Promise.all(
       fotosDe(raiz).map(async (img) => {
-        const pronta = await fotoPronta(img.getAttribute('src') ?? '');
+        const pronta = await fotoPronta(img);
         pronta.alt = img.alt;
         img.replaceWith(pronta);
       }),
@@ -430,7 +436,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
         const vizinha = link(nome);
         if (!serve(vizinha)) continue;
         buscar(vizinha.href)
-          .then((pagina) => Promise.all(fotosDe(pagina).map((img) => fotoPronta(img.getAttribute('src') ?? ''))))
+          .then((pagina) => Promise.all(fotosDe(pagina).map((img) => fotoPronta(img))))
           .catch(() => undefined);
       }
     }

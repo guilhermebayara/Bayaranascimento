@@ -4,10 +4,11 @@
 // (listarRelatos passa por veORelato), e a citação de uma mensagem fora deles some.
 import { mensagensNaTela, resumoDaMensagem, type Mensagem, type MensagemNaTela } from '../conversa';
 import { listarAudiosDosRelatos, listarMensagensDosRelatos, type Relato } from './repositorio';
+import type { Copias } from '../copias-das-fotos';
 
 export async function conversaDosRelatos(
   relatos: Pick<Relato, 'id' | 'texto' | 'por'>[],
-  fotos: readonly { id: number; chave: string; legenda: string | null; relatoId?: number | null }[],
+  fotos: readonly { id: number; chave: string; legenda: string | null; relatoId?: number | null; copias?: Copias | null }[],
   nome: (id: string) => string,
   /** para a foto abrir a galeria da memória: a posição dela entre as fotos da memória */
   galeriaDe?: (fotoId: number) => number | undefined,
@@ -23,6 +24,6 @@ export async function conversaDosRelatos(
     return c ? { quem: nome(c.por), resumo: resumoDaMensagem(c.m) } : undefined;
   };
   const audiosPorId = new Map([...audios.values()].flat().map((a) => [a.id, { chave: a.chave, duracao: a.duracao, transcricao: a.transcricao }]));
-  const fotosPorId = new Map(fotos.map((f) => [f.id, { chave: f.chave, legenda: f.legenda, ...(galeriaDe?.(f.id) !== undefined ? { galeria: galeriaDe(f.id) } : {}) }]));
+  const fotosPorId = new Map(fotos.map((f) => [f.id, { chave: f.chave, legenda: f.legenda, copias: f.copias ?? null, ...(galeriaDe?.(f.id) !== undefined ? { galeria: galeriaDe(f.id) } : {}) }]));
   return new Map(relatos.map((r) => [r.id, mensagensNaTela(mensagens.get(r.id) ?? [], audiosPorId, fotosPorId, citada)]));
 }

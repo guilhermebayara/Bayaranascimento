@@ -118,7 +118,7 @@ describe('administração', () => {
 
   it('para os administradores, com o espelho só onde ele existe', () => {
     const naProducao = administracao({ admin: true }, { podeEspelhar: false }).map((i) => i.rotulo);
-    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal', 'Fotos sem memória', 'Cadastros duplicados', 'Pedidos para excluir', 'Transcrição automática', 'Sistema visual', 'Baixar cópia do acervo']);
+    expect(naProducao).toEqual(['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal', 'Fotos sem memória', 'Cadastros duplicados', 'Pedidos para excluir', 'Transcrição automática', 'Cópias menores das fotos', 'Sistema visual', 'Baixar cópia do acervo']);
     expect(administracao({ admin: true }, { podeEspelhar: true }).map((i) => i.rotulo)).toContain('Espelho da produção');
   });
 
@@ -154,6 +154,7 @@ describe('administração: situação e pendências', () => {
       ['Cadastros duplicados', 'nenhum à vista'],
       ['Pedidos para excluir', 'nenhum'],
       ['Transcrição automática', 'desligada'],
+      ['Cópias menores das fotos', 'para as fotos de antes'],
       ['Sistema visual', 'tokens e peças'],
       ['Baixar cópia do acervo', undefined],
       ['Espelho da produção', 'só na homologação'],
@@ -236,7 +237,7 @@ describe('grupos da administração', () => {
     expect(grupos.map((g) => [g.titulo, g.itens.map((i) => i.rotulo)])).toEqual([
       ['Do acervo', ['Tipos de momento', 'Famílias', 'Centros da árvore', 'Carta de Natal']],
       ['Para arrumar', ['Fotos sem memória', 'Cadastros duplicados', 'Pedidos para excluir']],
-      ['Ferramentas', ['Transcrição automática', 'Sistema visual', 'Espelho da produção']],
+      ['Ferramentas', ['Transcrição automática', 'Cópias menores das fotos', 'Sistema visual', 'Espelho da produção']],
     ]);
     expect(itens.filter((i) => !i.baixar).every((i) => i.tema)).toBe(true);
   });
