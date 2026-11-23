@@ -52,7 +52,9 @@ describe('formulários no lugar', () => {
     const memoria = readFileSync('src/pages/memorias/[id].astro', 'utf-8');
     expect(readFileSync('src/components/Avisos.astro', 'utf-8')).toContain('name="publico" value={chaveDoPublico(a.publico)}');
     expect(memoria).toContain('name="publico" value={chaveDoPublico(memoria)}');
-    expect(memoria).toMatch(/Liberar para \{paraQuemPassouAVer\(comoPublicoAntigo\(relato\.publicoConhecido \?\? relato\.soParaNucleos\), memoria, nucleos\)\}/);
+    // A ação tem o mesmo nome do aviso (pedidosDosRelatos, crítica C2), com a mesma conta de para quem libera
+    expect(memoria).toMatch(/Liberar para \$\{paraQuemPassouAVer\(comoPublicoAntigo\(relato\.publicoConhecido \?\? relato\.soParaNucleos\), memoria, nucleos\)\}/);
+    expect(readFileSync('src/lib/servidor/pedido-do-relato.ts', 'utf-8')).toContain('paraQuemPassouAVer(comoPublicoAntigo(relato.publicoConhecido ?? relato.soParaNucleos), publico, nucleos)');
   });
   it('sem formulário onde mostrar, o recado vai para a faixa de recados do alto (decisão do Gui, 22/11/2026)', () => {
     // O recado só vai para o alto quando nem o formulário nem o mesmo formulário na página nova (data-chave) existem

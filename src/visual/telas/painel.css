@@ -786,12 +786,37 @@
     text-underline-offset: 0.2em;
   }
 }
+/* O pedido para liberar, com o relato à vista (crítica C2): o começo do relato, quem passa a ler, as duas
+   respostas com o mesmo peso e a frase de que liberar não tem volta, colados na frase do aviso */
+.aviso__pedido {
+  display: grid;
+  gap: var(--e-2);
+  margin-top: calc(var(--e-2) * -1);
+  padding-bottom: var(--e-3);
+}
+.aviso__relato {
+  display: grid;
+  gap: var(--e-1);
+  margin: 0;
+  padding: var(--e-3) var(--e-4);
+  border-left: var(--traco) solid var(--fio);
+  background: var(--branco);
+  line-height: 1.4;
+}
+.aviso__relato .mao {
+  font-size: 1.15em;
+}
+.aviso__leitores {
+  margin: 0;
+  line-height: 1.4;
+}
 .aviso__resposta {
   display: flex;
   flex-wrap: wrap;
   gap: 0 var(--e-5);
-  margin-top: calc(var(--e-2) * -1);
-  padding-bottom: var(--e-2);
+}
+.aviso__sem-volta {
+  margin: 0;
 }
 .avisos__historico {
   margin-top: var(--e-3);
