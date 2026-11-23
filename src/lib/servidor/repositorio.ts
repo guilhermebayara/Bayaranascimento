@@ -2657,15 +2657,25 @@ export async function restaurarLacoDoCoracao(dados: { dono: string; pessoa: stri
  * As memórias em que as duas fichas têm relato e que impedem juntar: um relato por pessoa em cada
  * memória. Quem administra resolve antes (um dos dois relatos sai), e junta depois.
  */
-export async function conflitosAoJuntar(fica: string, sai: string): Promise<string[]> {
+export async function conflitosAoJuntar(fica: string, sai: string, usuario: Usuario): Promise<ConflitosAoJuntar> {
+  // Quem olha só lê o título das memórias que vê (decisão do Gui, 23/11/2026): as outras entram só como
+  // "memórias que você não vê", sem título nem número. A recusa continua igual, veja ou não as memórias
   const { results } = await db()
     .prepare(
-      `SELECT DISTINCT m.titulo FROM relatos rs JOIN relatos rf ON rf.memoria_id = rs.memoria_id AND rf.por = ?1 JOIN memorias m ON m.id = rs.memoria_id
-       WHERE rs.por = ?2 AND (rf.registrado_por = rs.registrado_por OR (rf.situacao = 'publicada' AND rs.situacao = 'publicada'))`,
+      `SELECT DISTINCT m.id, m.titulo, CASE WHEN ${FILTRO_VISIVEL} THEN 1 ELSE 0 END AS ve
+       FROM relatos rs JOIN relatos rf ON rf.memoria_id = rs.memoria_id AND rf.por = ?2 JOIN memorias m ON m.id = rs.memoria_id
+       WHERE rs.por = ?3 AND (rf.registrado_por = rs.registrado_por OR (rf.situacao = 'publicada' AND rs.situacao = 'publicada'))`,
     )
-    .bind(fica, sai)
-    .all<{ titulo: string }>();
-  return results.map((r: { titulo: string }) => r.titulo);
+    .bind(usuario.pessoa, fica, sai)
+    .all<{ id: string; titulo: string; ve: number }>();
+  const linhas = results as { id: string; titulo: string; ve: number }[];
+  return { titulos: linhas.filter((r) => r.ve).map((r) => r.titulo), outras: linhas.some((r) => !r.ve) };
+}
+
+/** As memórias em que as duas fichas têm relato: os títulos que quem olha vê, e se há outras que não vê. */
+export interface ConflitosAoJuntar {
+  titulos: string[];
+  outras: boolean;
 }
 
 /**

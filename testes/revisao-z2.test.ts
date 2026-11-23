@@ -1374,8 +1374,8 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
         'sugestoes: O ano vai de 1800 a ${anoAtual}.',
         // a e b vêm de listarIntegrantesQueVe: quem o administrador não vê responde "Pessoa não encontrada."
         'duplicados: ${a.nome} e ${b.nome} saíram da lista.',
-        // A comparação de duas fichas não é formulário no lugar: ver o caso seguinte. O trecho para na crase de dentro
-        'duplicados: As duas fichas têm relato em ${conflitos.map((t) => ',
+        // O recado dos conflitos ao juntar saiu daqui para recadoDosConflitos (src/lib/juntar.ts), que só cita
+        // os títulos que o administrador vê (sessão AA): ver o caso "o recado de Juntar", abaixo
         'duplicados: Fichas juntadas. Tudo o que era de ${sai.nome} passou para ${ficha.nome}, e as duas fichas de antes ficaram no histórico.',
         // O apelido que a própria pessoa acabou de escrever
         'apelidos: Pronto. Para você, aparece como ${lido.apelido} no site inteiro.',
@@ -1384,9 +1384,8 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       ]);
     });
 
-    it('fora da Z, já na homologa: o recado de "Juntar" cita o título de uma memória que o administrador não vê', async () => {
-      // Não passa pelo recado no alto (a comparação de fichas recarrega a página) e não foi tocado pela Z:
-      // conflitosAoJuntar lê o título sem conferir quem vê. Vai para o Gui como achado à parte
+    it('o recado de "Juntar" cita só os títulos que o administrador vê, e "memórias que você não vê" para as outras (decisão do Gui, 23/11/2026)', async () => {
+      // Era um achado fora da Z: conflitosAoJuntar lia o título sem conferir quem vê. A recusa continua igual
       sql.prepare(`INSERT INTO integrantes (id, nome, criado_por) VALUES ('duplo-um-da-z2', 'Duplo da Z2', 'gui'), ('duplo-dois-da-z2', 'Duplo da Z2', 'gui')`).run();
       const id = (await pedir('memorias', elizete, { titulo: 'Título que o Magno não vê', ano: 2009, tipo: 'causo', pessoas: ['elizete'], visibilidade: 'nucleos', nucleos: ['bayara-nascimento'] })).corpo.id as string;
       expect(await repo.obterMemoria(magno, id)).toBeUndefined();
@@ -1394,8 +1393,20 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       const antes = impressao();
       const volta = await semScript('duplicados', magno, { acao: 'juntar', fica: 'duplo-um-da-z2', sai: 'duplo-dois-da-z2' });
       expect(impressao()).toBe(antes);
-      // Hoje: o título aparece para quem não vê a memória
-      expect(volta.erro).toContain('“Título que o Magno não vê”');
+      expect(volta.erro).not.toContain('Título que o Magno não vê');
+      expect(volta.erro).toBe('As duas fichas têm relato em memórias que você não vê. Cada pessoa tem um relato por memória: deixe um só antes de juntar.');
+      // Com uma memória que ele vê, o título dela aparece, e a outra continua sem título nem número
+      const vista = (await pedir('memorias', magno, { titulo: 'Título que o Magno vê', ano: 2010, tipo: 'causo', pessoas: ['lucas-magno'] })).corpo.id as string;
+      sql.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 'duplo-um-da-z2', 'lucas-magno', 'Um.', 'publicada'), (?, 'duplo-dois-da-z2', 'gui', 'Dois.', 'publicada')`).run(vista, vista);
+      const depois = impressao();
+      const deNovo = await semScript('duplicados', magno, { acao: 'juntar', fica: 'duplo-um-da-z2', sai: 'duplo-dois-da-z2' });
+      expect(impressao()).toBe(depois);
+      expect(deNovo.erro).toBe('As duas fichas têm relato em “Título que o Magno vê” e memórias que você não vê. Cada pessoa tem um relato por memória: deixe um só antes de juntar.');
+      // Quem vê as duas lê os dois títulos
+      const doGui = await semScript('duplicados', gui, { acao: 'juntar', fica: 'duplo-um-da-z2', sai: 'duplo-dois-da-z2' });
+      expect(doGui.erro).toContain('“Título que o Magno não vê”');
+      expect(doGui.erro).toContain('“Título que o Magno vê”');
+      expect(doGui.erro).not.toContain('memórias que você não vê');
     });
   });
 

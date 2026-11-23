@@ -147,6 +147,19 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(impressao()).toBe(antes);
   });
 
+  it('/api/duplicados: juntar duas fichas com relato na mesma memória é recusado sem mudar nada, com o recado só do que o administrador vê (sessão AA)', async () => {
+    const duplicados = await import('../src/pages/api/duplicados');
+    const magno = usuarioDe('lucas-magno');
+    banco.sqlite.prepare(`INSERT INTO integrantes (id, nome, criado_por) VALUES ('recusa-um', 'Recusa Dupla', 'gui'), ('recusa-dois', 'Recusa Dupla', 'gui')`).run();
+    const id = (await salvar(elizete, { titulo: 'Recusa que o Magno não vê', ano: 2009, tipo, pessoas: ['elizete'], visibilidade: 'nucleos', nucleos: ['bayara-nascimento'] })).corpo.id as string;
+    banco.sqlite.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 'recusa-um', 'elizete', 'Um.', 'publicada'), (?, 'recusa-dois', 'gui', 'Dois.', 'publicada')`).run(id, id);
+    const antes = impressao();
+    const r = await formulario(duplicados, '/api/duplicados', magno, { acao: 'juntar', fica: 'recusa-um', sai: 'recusa-dois' });
+    expect(r.erro).toContain('memórias que você não vê');
+    expect(r.erro).not.toContain('Recusa que o Magno não vê');
+    expect(impressao()).toBe(antes);
+  });
+
   it('/api/relatos: o envio sem script recusado não guarda o código de envio nem nada mais (D3 da sessão Z)', async () => {
     const relatos = await import('../src/pages/api/relatos');
     const antes = impressao();
