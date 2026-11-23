@@ -171,7 +171,7 @@ function chaveDaLeitura(pedido: Pedido, c: Comando): string | undefined {
 
 /** Esquece o que a gravação pode ter mudado. */
 function esquecerDepoisDeGravar(pedido: Pedido, sqls: string[]): void {
-  const tabelas: string[] = [];
+  const gravadas: string[] = [];
   for (const sql of sqls) {
     if (ehLeitura(sql)) continue;
     const tabela = TABELA_GRAVADA.exec(sql)?.[1];
@@ -179,11 +179,90 @@ function esquecerDepoisDeGravar(pedido: Pedido, sqls: string[]): void {
       pedido.guardadas.clear();
       return;
     }
-    tabelas.push(tabela);
+    gravadas.push(tabela);
   }
-  if (tabelas.length === 0) return;
+  if (gravadas.length === 0) return;
+  // Um gatilho da tabela gravada pode gravar em outras: elas também são lidas de novo
+  const tabelas = comOQueOsGatilhosGravam(gravadas);
+  if (!tabelas) {
+    pedido.guardadas.clear();
+    return;
+  }
   const lida = new RegExp(`\\b(${tabelas.join('|')})\\b`, 'i');
   for (const [chave, guardada] of pedido.guardadas) if (lida.test(guardada.sql)) pedido.guardadas.delete(chave);
+}
+
+// --- Os gatilhos que gravam (item 3 da revisão R-D1, sessão D1d) ---
+//
+// Um gatilho que grava em outra tabela muda essa outra sem que a instrução diga. A guarda conhece os gatilhos
+// pelo próprio SQL das migrações: banco.ts passa a lista MIGRACOES inteira para cobrirGatilhosQueGravam ao
+// carregar, e nenhuma lista precisa ser lembrada à mão. Gravar na tabela de origem esquece também as de
+// destino, e as que os gatilhos delas gravam. Um gatilho que apaga (DELETE ou REPLACE, que podem apagar em
+// cascata) ou cujo destino não se lê esquece a guarda inteira. testes/guarda-gatilhos.test.ts confere o
+// esquema de verdade contra o que a guarda conhece: um gatilho que grava sem estar coberto faz o teste falhar.
+// A cobertura fica no módulo porque vem do código das migrações, igual para todos os bancos e pedidos.
+
+/** Qualquer tabela: a gravação esquece a guarda inteira. */
+const TODAS = '*';
+const GATILHO = /\bCREATE\s+(?:TEMP(?:ORARY)?\s+)?TRIGGER\b[\s\S]*?\bON\s+["`[]?(\w+)[\s\S]*?\bBEGIN\b([\s\S]*)$/i;
+const GRAVA_NO_CORPO = /\b(INSERT|UPDATE|DELETE|REPLACE)\b/gi;
+const DESTINO_NO_CORPO = /\b(?:INSERT\s+(?:OR\s+\w+\s+)?INTO|UPDATE\s+(?:OR\s+\w+\s+)?)\s*["`[]?(\w+)/gi;
+/** De cada tabela de origem, as tabelas em que os gatilhos dela gravam. */
+const gatilhosCobertos = new Map<string, Set<string>>();
+
+/** Os gatilhos que gravam, lidos de uma lista de SQL: de cada tabela de origem, as tabelas de destino. */
+export function gatilhosQueGravam(sqls: readonly string[]): Map<string, Set<string>> {
+  const mapa = new Map<string, Set<string>>();
+  for (const sql of sqls) {
+    const achado = GATILHO.exec(sql);
+    if (!achado) continue;
+    const origem = achado[1].toLowerCase();
+    const corpo = achado[2];
+    const gravacoes = corpo.match(GRAVA_NO_CORPO) ?? [];
+    if (gravacoes.length === 0) continue;
+    const destinos = mapa.get(origem) ?? new Set<string>();
+    const lidos = [...corpo.matchAll(DESTINO_NO_CORPO)].map((d) => d[1].toLowerCase());
+    // Apagar, ou gravar sem o destino legível: tudo
+    if (gravacoes.some((g) => /DELETE|REPLACE/i.test(g)) || lidos.length < gravacoes.length) destinos.add(TODAS);
+    for (const d of lidos) destinos.add(d);
+    mapa.set(origem, destinos);
+  }
+  return mapa;
+}
+
+/** Faz a guarda conhecer os gatilhos que gravam (chamado por banco.ts com o SQL de todas as migrações). */
+export function cobrirGatilhosQueGravam(sqls: readonly string[]): void {
+  for (const [origem, destinos] of gatilhosQueGravam(sqls)) {
+    const ja = gatilhosCobertos.get(origem) ?? new Set<string>();
+    for (const d of destinos) ja.add(d);
+    gatilhosCobertos.set(origem, ja);
+  }
+}
+
+/** Os gatilhos que gravam e que a guarda não conhece, entre os SQL dados (o esquema de verdade, nos testes). */
+export function gatilhosSemCobertura(sqls: readonly string[]): string[] {
+  const faltam: string[] = [];
+  for (const [origem, destinos] of gatilhosQueGravam(sqls)) {
+    const cobertos = gatilhosCobertos.get(origem);
+    for (const d of destinos) if (!cobertos?.has(d)) faltam.push(`${origem} -> ${d}`);
+  }
+  return faltam;
+}
+
+/** As tabelas gravadas e as que os gatilhos delas gravam, em cadeia; vazio quando é preciso esquecer tudo. */
+function comOQueOsGatilhosGravam(gravadas: readonly string[]): string[] | undefined {
+  const todas = new Set(gravadas.map((t) => t.toLowerCase()));
+  const fila = [...todas];
+  while (fila.length > 0) {
+    for (const destino of gatilhosCobertos.get(fila.pop()!) ?? []) {
+      if (destino === TODAS) return undefined;
+      if (!todas.has(destino)) {
+        todas.add(destino);
+        fila.push(destino);
+      }
+    }
+  }
+  return [...todas];
 }
 
 /** Uma ida ao banco, contada para o Server-Timing. */
