@@ -59,11 +59,20 @@ describe.skipIf(!comSqlite)('a rede no fim da cópia e a cópia mensal que só c
   // --- O banco por baixo das rotas, com ganchos para os casos ---
   const prepararDeVerdade = banco.prepare.bind(banco);
   let marcaDesligada = false;
+  let pragmaComoTabelaRecusada = false;
+  let durantePragmas: (() => void) | null = null;
   let depoisDosGatilhos: (() => void) | null = null;
   const GARANTIR = `SELECT type, name FROM sqlite_master WHERE type IN ('table', 'trigger')`;
   banco.prepare = ((sql: string) => {
     // A marca desligada: o índice e as partes leem sempre zero, e só a rede pode pegar o arquivo errado
-    if (marcaDesligada) sql = sql.replace(`SELECT valor FROM marca_da_copia WHERE id = 1`, 'SELECT 0 AS valor').replace(`'marca:' || m.valor`, `'marca:' || 0`);
+    if (marcaDesligada) sql = sql.replace(/^SELECT valor, \(/, 'SELECT 0 AS valor, (').replace(`'marca:' || m.valor`, `'marca:' || 0`);
+    // O caminho alternativo das pragmas: a pragma como tabela é recusada, como num D1 que não a aceite
+    if (pragmaComoTabelaRecusada && /JOIN pragma_table_info\(m\.name\)/.test(sql)) sql = sql.replace('pragma_table_info(m.name)', 'pragma_recusada(m.name)');
+    if (durantePragmas && /^PRAGMA table_info\(/.test(sql)) {
+      const fazer = durantePragmas;
+      durantePragmas = null;
+      fazer();
+    }
     const comando = prepararDeVerdade(sql);
     // O caso b: algo acontece logo depois de o índice ler o esquema, fora do lote: na leitura dos gatilhos
     // (garantirGatilhosDaMarca) ou na lista das tabelas, a que vier primeiro
@@ -263,6 +272,76 @@ describe.skipIf(!comSqlite)('a rede no fim da cópia e a cópia mensal que só c
         expect((await peloMiddleware(`${ENDERECO}?confirmar=${encodeURIComponent(errada)}`)).status, errada).toBe(400);
       }
       expect(anotacoes()).toBe(antes);
+    });
+  });
+
+  // --- D1f4 (1): a tabela refeita no meio da cópia, com o índice único parcial fora da régua ---
+  describe('D1f4 (1) avisos refeita depois da primeira página, com um pedido aberto trocado por outro do mesmo relato', () => {
+    const ultimo = (banco.sqlite.prepare('SELECT COALESCE(MAX(relato_id), 0) AS n FROM avisos').get() as { n: number }).n;
+    const memoria = (banco.sqlite.prepare('SELECT id FROM memorias ORDER BY id LIMIT 1').get() as { id: string }).id;
+    const inserir = banco.sqlite.prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de) VALUES ('gui', 'liberar-relato', ?, ?, 'elizete')`);
+    for (let i = 1; i <= 501; i++) inserir.run(memoria, ultimo + 1000 + i);
+    /** Entre a primeira e a segunda parte de avisos: a tabela é refeita (sem os gatilhos da marca) e um pedido já lido é trocado */
+    const refazer = () => {
+      let feito = false;
+      return ((endereco: string) => {
+        if (feito || !ehASegunda('avisos', endereco)) return;
+        feito = true;
+        const sqlDaTabela = (banco.sqlite.prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'avisos'`).get() as { sql: string }).sql;
+        const indices = (banco.sqlite.prepare(`SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'avisos' AND sql IS NOT NULL`).all() as { sql: string }[]).map((i) => i.sql);
+        banco.sqlite.exec('BEGIN');
+        banco.sqlite.exec(sqlDaTabela.replace(/CREATE TABLE ("?)avisos\1/, 'CREATE TABLE avisos_refeita'));
+        banco.sqlite.exec('INSERT INTO avisos_refeita SELECT * FROM avisos');
+        banco.sqlite.exec('DROP TABLE avisos');
+        banco.sqlite.exec('ALTER TABLE avisos_refeita RENAME TO avisos');
+        for (const sql of indices) banco.sqlite.exec(sql);
+        // O pedido aberto de menor id (lido na primeira página) é resolvido, e outro do mesmo relato nasce depois do cursor
+        const lido = banco.sqlite.prepare(`SELECT id, relato_id FROM avisos WHERE tipo = 'liberar-relato' AND resolvido_em IS NULL AND relato_id > ? ORDER BY id LIMIT 1`).get(ultimo + 1000) as { id: number; relato_id: number };
+        banco.sqlite.prepare(`UPDATE avisos SET resolvido_em = datetime('now') WHERE id = ?`).run(lido.id);
+        banco.sqlite.prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de) VALUES ('gui', 'liberar-relato', ?, ?, 'elizete')`).run(memoria, lido.relato_id);
+        banco.sqlite.exec('COMMIT');
+      }) as Antes;
+    };
+    for (const fluxo of ['no botão', 'no script'] as const) {
+      it(`${fluxo}: a marca do esquema descarta a passada, e o arquivo restaura com o índice parcial`, async () => {
+        const antes = refazer();
+        const r = fluxo === 'no botão' ? { ...(await peloBotao(antes)), arquivo: null, erro: null } : { ...(await peloScript(antes)), copia: null };
+        expect(r.erro).toBeNull();
+        const arquivo = (r.copia ?? r.arquivo) as { tabelas: Tabelas };
+        expect(await restaurarCopia(banco.sqlite, arquivo)).toBeNull();
+        expect(r.indices).toBeGreaterThan(1);
+      });
+    }
+  });
+
+  // --- D1f4 (2) e o caminho alternativo das pragmas ---
+  describe('D1f4: a confirmação repetida e o caminho alternativo das pragmas', () => {
+    it('a mesma gerada_em, confirmada várias vezes, anota uma vez só', async () => {
+      const antes = anotacoes();
+      const geradaEm = new Date().toISOString();
+      const respostas = [];
+      for (let i = 0; i < 3; i++) respostas.push(JSON.parse((await peloMiddleware(`${ENDERECO}?confirmar=${encodeURIComponent(geradaEm)}`)).texto) as { anotada: boolean; nova: boolean });
+      expect(respostas.map((r) => r.nova)).toEqual([true, false, false]);
+      expect(respostas.every((r) => r.anotada)).toBe(true);
+      expect(anotacoes()).toBe(antes + 1);
+      expect(banco.sqlite.prepare('SELECT COUNT(*) AS n FROM copias_mensais WHERE gerada_em = ?').get(geradaEm)).toEqual({ n: 1 });
+    });
+    it('sem a pragma como tabela, uma gravação entre o lote e as pragmas faz o índice ler de novo: a marca entregue é a de agora', async () => {
+      pragmaComoTabelaRecusada = true;
+      durantePragmas = gravarMemoriaComRelato;
+      try {
+        const indice = (await pedir('/api/copia')) as IndiceDaCopia;
+        expect(durantePragmas).toBeNull();
+        const agora = (banco.sqlite.prepare('SELECT valor FROM marca_da_copia WHERE id = 1').get() as { valor: number }).valor;
+        expect(indice.marca).toBe(agora);
+        // E a régua do caminho alternativo é a mesma do caminho de sempre
+        pragmaComoTabelaRecusada = false;
+        const deSempre = (await pedir('/api/copia')) as IndiceDaCopia;
+        expect(indice.esquema).toEqual(deSempre.esquema);
+      } finally {
+        pragmaComoTabelaRecusada = false;
+        durantePragmas = null;
+      }
     });
   });
 

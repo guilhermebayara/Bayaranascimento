@@ -1,6 +1,8 @@
 // Cópia mensal do acervo no Google Drive.
 //
-// ===== O que mudou em 24/11/2026, na D1f3, e o que fazer (cole depois de a mudança chegar à main) =====
+// ===== O que mudou em 24/11/2026, nas D1f3 e D1f4, e o que fazer (cole depois de a mudança chegar à main) =====
+// - D1f4: o índice e cada parte trazem também a marca do esquema; uma tabela criada ou refeita no meio da
+//   cópia descarta a tentativa, como quando o acervo muda. A confirmação repetida anota uma vez só.
 // - Antes de gravar no Drive, o script confere o arquivo montado contra o esquema do banco, que vem no índice:
 //   nenhuma chave repetida e nenhuma linha apontando para outra que não está no arquivo. Se a conferência
 //   falhar, a cópia inteira é refeita, dentro das mesmas 4 tentativas; nas 4, nada é gravado e o Google manda
@@ -141,6 +143,11 @@ function umaPassada(cabecalhos) {
       }
       if (comMarca && parte.marca !== indice.marca) {
         ultimoProblema = 'a marca mudou no meio.';
+        return null;
+      }
+      // Uma tabela criada, refeita ou mudada depois do índice: esta passada também não vale (D1f4)
+      if (typeof indice.marca_do_esquema === 'string' && parte.marca_do_esquema !== indice.marca_do_esquema) {
+        ultimoProblema = 'o esquema mudou no meio.';
         return null;
       }
       parte.linhas.forEach(function (valores) {

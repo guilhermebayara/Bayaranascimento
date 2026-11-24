@@ -2498,9 +2498,14 @@ export async function obterCarta(): Promise<Carta | undefined> {
 
 // --- Cópia mensal (migração 060; regras em src/lib/conta.ts, copiaAtrasada) ---
 
-/** O script do Drive baixou a cópia com o token de serviço: anota o momento. */
-export async function anotarCopiaMensal(): Promise<void> {
-  await db().prepare('INSERT INTO copias_mensais DEFAULT VALUES').run();
+/** O script do Drive gravou a cópia no Drive e confirmou: anota o momento e a gerada_em do índice. Diz se anotou. */
+export async function anotarCopiaMensal(geradaEm: string): Promise<boolean> {
+  // Num comando só: a mesma gerada_em anota uma vez, por mais que a confirmação seja repetida (D1f4)
+  const r = await db()
+    .prepare('INSERT INTO copias_mensais (gerada_em) SELECT ?1 WHERE NOT EXISTS (SELECT 1 FROM copias_mensais WHERE gerada_em = ?1)')
+    .bind(geradaEm)
+    .run();
+  return (r.meta.changes ?? 0) > 0;
 }
 
 /** Quando o script do Drive baixou a cópia pela última vez ("AAAA-MM-DD HH:MM:SS", em UTC), ou null se nunca. */

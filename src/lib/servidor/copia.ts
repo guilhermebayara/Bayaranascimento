@@ -36,6 +36,14 @@ const PRIMARIAS = `SELECT m.name AS t, p.name AS c, p.pk AS o FROM sqlite_master
 const UNICAS = `SELECT m.name AS t, i.name AS i, c.name AS c, c.seqno AS o FROM sqlite_master m JOIN pragma_index_list(m.name) i JOIN pragma_index_info(i.name) c
      WHERE m.type = 'table' AND i."unique" = 1 AND i.partial = 0`;
 const ESTRANGEIRAS = `SELECT m.name AS t, f.id AS i, f.seq AS o, f."table" AS para, f."from" AS de, f."to" AS ate FROM sqlite_master m JOIN pragma_foreign_key_list(m.name) f WHERE m.type = 'table'`;
+/**
+ * A marca do esquema (D1f4): um resumo do sqlite_master, que muda quando uma tabela, um índice ou um gatilho é
+ * criado, mudado, apagado ou refeito. O D1 não deixa ler `PRAGMA schema_version` (nem como tabela: "not
+ * authorized"), mas deixa ler o sqlite_master. Uma tabela refeita com o mesmo SQL ganha outra rootpage, e as
+ * somas com a rootpage mudam. Vai no índice e em toda parte, lida na mesma consulta das linhas.
+ */
+export const MARCA_DO_ESQUEMA = `SELECT count(*) || '-' || total(rootpage) || '-' || total(rootpage * rootpage) || '-' || total(length(sql)) || '-' || total(rootpage * length(sql)) FROM sqlite_master`;
+
 const GATILHOS = `SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE '${TABELA_DA_MARCA}\\_%' ESCAPE '\\'`;
 
 type Linha = Record<string, unknown>;
@@ -105,7 +113,7 @@ export async function montarIndice(): Promise<IndiceDaCopia> {
     const nomes = await nomesDasTabelas();
     const comandos = [
       banco().prepare(TABELAS_DA_COPIA),
-      banco().prepare(`SELECT valor FROM ${TABELA_DA_MARCA} WHERE id = 1`),
+      banco().prepare(`SELECT valor, (${MARCA_DO_ESQUEMA}) AS esquema FROM ${TABELA_DA_MARCA} WHERE id = 1`),
       banco().prepare(GATILHOS),
       ...nomes.map((nome) => banco().prepare(`SELECT COUNT(*) AS n FROM ${entreAspas(nome)}`)),
     ];
@@ -119,13 +127,20 @@ export async function montarIndice(): Promise<IndiceDaCopia> {
       const [p, u, e] = resultados.slice(comandos.length);
       regua = { primarias: linhasDe(p), unicas: linhasDe(u), estrangeiras: linhasDe(e) };
     } catch {
-      // Sem a pragma como tabela: o lote sem elas, e as pragmas uma a uma, conferidas por uma segunda leitura da marca
+      // Sem a pragma como tabela: o lote sem elas, e as pragmas uma a uma, fora do lote. Depois delas, a marca e a
+      // marca do esquema são lidas de novo: se alguma mudou entre o lote e as pragmas, a tentativa não vale (D1f4;
+      // antes, este caminho prometia a segunda leitura e não fazia)
       resultados = await banco().batch(comandos);
       regua = await pragmasUmaAUma(nomes);
+      esquecerAsLeiturasDoPedido();
+      const deNovo = linhasDe(await banco().prepare(`SELECT valor, (${MARCA_DO_ESQUEMA}) AS esquema FROM ${TABELA_DA_MARCA} WHERE id = 1`).all())[0];
+      const antes = linhasDe(resultados[1])[0];
+      if (!deNovo || !antes || deNovo.valor !== antes.valor || deNovo.esquema !== antes.esquema) continue;
     }
     const [lista, marca, gatilhos, ...contagens] = resultados;
     const listadas = linhasDe(lista).map((l) => String(l.name));
     const valor = (linhasDe(marca)[0] as { valor?: number } | undefined)?.valor;
+    const doEsquema = String((linhasDe(marca)[0] as { esquema?: string } | undefined)?.esquema ?? '');
     if (typeof valor !== 'number') throw new CopiaSemMarca('A marca de mudança do acervo não existe.');
     const existentes = new Set(linhasDe(gatilhos).map((g) => String(g.name)));
     const OPERACOES = ['INSERT', 'UPDATE', 'DELETE'] as const;
@@ -139,6 +154,7 @@ export async function montarIndice(): Promise<IndiceDaCopia> {
       acervo: MARCA_DO_ACERVO,
       gerada_em: new Date().toISOString(),
       marca: valor,
+      marca_do_esquema: doEsquema,
       banco: {
         tamanho_em_bytes: situacao?.bytes ?? null,
         aviso_a_partir_de: AVISO_A_PARTIR_DE,
@@ -163,12 +179,15 @@ export async function montarParte(tabela: string, depois: number | null, nomes?:
   const t = entreAspas(tabela);
   const comando = banco().prepare(
     `SELECT * FROM (SELECT rowid AS "__linha_da_copia", * FROM ${t}${depois === null ? '' : ' WHERE rowid > ?1'} ORDER BY rowid LIMIT ${tamanho + 1})
-     UNION ALL SELECT 'marca:' || m.valor, x.* FROM ${TABELA_DA_MARCA} m LEFT JOIN ${t} x ON 0 WHERE m.id = 1`,
+     UNION ALL SELECT 'marca:' || m.valor || ':' || (${MARCA_DO_ESQUEMA}), x.* FROM ${TABELA_DA_MARCA} m LEFT JOIN ${t} x ON 0 WHERE m.id = 1`,
   );
   const [cabecalho, ...todas] = (await (depois === null ? comando : comando.bind(depois)).raw({ columnNames: true })) as [string[], ...unknown[][]];
   const linhaDaMarca = todas.findIndex((l) => typeof l[0] === 'string' && l[0].startsWith('marca:'));
   if (linhaDaMarca < 0) throw new CopiaSemMarca('A marca de mudança do acervo não existe.');
-  const marca = Number((todas[linhaDaMarca]![0] as string).slice('marca:'.length));
+  // "marca:<marca de mudança>:<marca do esquema>"
+  const [, textoDaMarca, ...doEsquema] = (todas[linhaDaMarca]![0] as string).split(':');
+  const marca = Number(textoDaMarca);
+  const marcaDoEsquema = doEsquema.join(':');
   const linhas = todas.filter((_, i) => i !== linhaDaMarca);
   // Em ordem de rowid, como a página pediu (a união não muda a ordem; conferido sem custo)
   for (let i = 1; i < linhas.length; i++) if (Number(linhas[i]![0]) < Number(linhas[i - 1]![0])) linhas.sort((a, b) => Number(a[0]) - Number(b[0]));
@@ -178,6 +197,7 @@ export async function montarParte(tabela: string, depois: number | null, nomes?:
     acervo: MARCA_DO_ACERVO,
     tabela,
     marca,
+    marca_do_esquema: marcaDoEsquema,
     colunas: (cabecalho ?? []).slice(1),
     linhas: pagina.map((l) => l.slice(1)),
     proxima: continua ? Number(pagina[pagina.length - 1]![0]) : null,
@@ -230,13 +250,16 @@ export async function respostaDaCopia(url: URL): Promise<Response> {
 /**
  * A confirmação da cópia mensal (D1f3): o script do Drive, depois de gravar o arquivo, pede
  * `/api/copia?confirmar=<gerada_em do índice>` com o token de serviço, e só então a cópia é anotada em
- * copias_mensais. Uma passada descartada nunca chega aqui. Vale só uma data de cópia das últimas 24 horas.
+ * copias_mensais. Uma passada descartada nunca chega aqui. Vale só uma data de cópia das últimas 24 horas, e a
+ * mesma data anota uma vez só (D1f4). Quem tem o token pode forjar uma data: risco aceito, porque esse token já
+ * lê o acervo inteiro, e a confirmação só mexe no lembrete de cópia atrasada (docs/decisoes.md).
  */
-export async function respostaDaConfirmacao(url: URL, anotar: () => Promise<void>): Promise<Response> {
+export async function respostaDaConfirmacao(url: URL, anotar: (geradaEm: string) => Promise<boolean>): Promise<Response> {
   const texto = url.searchParams.get('confirmar') ?? '';
   const quando = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/.test(texto) ? Date.parse(texto) : NaN;
   const agora = Date.now();
   if (!Number.isFinite(quando) || quando > agora + 5 * 60_000 || quando < agora - 24 * 60 * 60_000) return json({ erro: 'A confirmação não vale para esta cópia.' }, 400);
-  await anotar();
-  return json({ acervo: MARCA_DO_ACERVO, anotada: true, gerada_em: texto });
+  // Idempotente: a mesma gerada_em, confirmada de novo, não anota outra vez (e responde que já estava)
+  const nova = await anotar(texto);
+  return json({ acervo: MARCA_DO_ACERVO, anotada: true, nova, gerada_em: texto });
 }

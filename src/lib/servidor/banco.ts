@@ -1040,6 +1040,13 @@ export const MIGRACOES: Migracao[] = [
       `INSERT OR IGNORE INTO ${TABELA_DA_MARCA} (id, valor) VALUES (1, 0)`,
     ],
   },
+  {
+    // A confirmação da cópia mensal é idempotente (D1f4, 24/11/2026): cada anotação guarda a gerada_em do índice
+    // que ela confirma, e a mesma gerada_em anota uma vez só (anotarCopiaMensal). Sem chave única, para a tabela
+    // continuar no critério das tabelas de registro (marca-da-copia.ts); a conferência é feita no próprio INSERT.
+    id: '114-copia-mensal-confirmada',
+    sql: [`ALTER TABLE copias_mensais ADD COLUMN gerada_em TEXT`],
+  },
 ];
 
 // A guarda por pedido conhece os gatilhos que gravam pelo SQL das migrações (ver ambiente.ts)

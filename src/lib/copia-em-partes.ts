@@ -37,6 +37,8 @@ export interface IndiceDaCopia {
   gerada_em: string;
   /** A marca de mudança do banco na hora do índice */
   marca: number;
+  /** A marca do esquema: um resumo do sqlite_master, que muda quando uma tabela é criada ou refeita (D1f4) */
+  marca_do_esquema: string;
   banco: SituacaoDoBancoNaCopia;
   indice: { tabela: string; linhas: number }[];
   /** A régua da conferência do arquivo montado, tirada das pragmas do banco no mesmo lote (D1f3) */
@@ -60,6 +62,8 @@ export interface ParteDaCopia {
   tabela: string;
   /** A marca de mudança do banco na hora desta página, lida na mesma consulta das linhas */
   marca: number;
+  /** A marca do esquema na hora desta página, lida na mesma consulta (D1f4) */
+  marca_do_esquema: string;
   colunas: string[];
   linhas: unknown[][];
   proxima: number | null;
@@ -92,7 +96,7 @@ export function linhasComoObjetos(parte: Pick<ParteDaCopia, 'colunas' | 'linhas'
 }
 
 /** Junta o índice e as partes (na ordem em que chegaram) na cópia inteira. */
-export function juntarPartes(indice: Omit<IndiceDaCopia, 'marca' | 'esquema'>, partes: Omit<ParteDaCopia, 'marca'>[]): CopiaDoAcervoInteira {
+export function juntarPartes(indice: Omit<IndiceDaCopia, 'marca' | 'marca_do_esquema' | 'esquema'>, partes: Omit<ParteDaCopia, 'marca' | 'marca_do_esquema'>[]): CopiaDoAcervoInteira {
   const tabelas: CopiaDoAcervoInteira['tabelas'] = {};
   for (const { tabela } of indice.indice) tabelas[tabela] = [];
   for (const parte of partes) {
@@ -226,7 +230,7 @@ export async function baixarCopiaEmPartes(
   /** Uma passada inteira; nada se a marca mudou no meio ou se o arquivo montado não restauraria. */
   const umaPassada = async (): Promise<CopiaDoAcervoInteira | null> => {
     const indice = await tentar<IndiceDaCopia>(ENDERECO_DA_COPIA);
-    if (indice?.acervo !== MARCA_DO_ACERVO || !Array.isArray(indice.indice) || typeof indice.marca !== 'number' || !indice.esquema || typeof indice.esquema !== 'object') throw new Error('O índice da cópia não veio.');
+    if (indice?.acervo !== MARCA_DO_ACERVO || !Array.isArray(indice.indice) || typeof indice.marca !== 'number' || typeof indice.marca_do_esquema !== 'string' || !indice.esquema || typeof indice.esquema !== 'object') throw new Error('O índice da cópia não veio.');
     let total = partesPrevistas(indice, linhasPorParte);
     let feitas = 0;
     aoAndar(feitas, total);
@@ -239,6 +243,11 @@ export async function baixarCopiaEmPartes(
         // Algo foi gravado depois do índice: esta passada não vale (o atalho para recomeçar cedo)
         if (parte.marca !== indice.marca) {
           ultimoProblema = 'a marca mudou no meio.';
+          return null;
+        }
+        // Uma tabela criada, refeita ou mudada depois do índice: esta passada também não vale (D1f4)
+        if (parte.marca_do_esquema !== indice.marca_do_esquema) {
+          ultimoProblema = 'o esquema mudou no meio.';
           return null;
         }
         partes.push(parte);

@@ -123,7 +123,7 @@ describe.skipIf(!comSqlite)('a cópia do acervo em partes', async () => {
     expect(r.status).toBe(200);
     expect(r.texto).not.toContain('"tabelas"');
     const indice = JSON.parse(r.texto) as IndiceDaCopia;
-    expect(Object.keys(indice)).toEqual(['acervo', 'gerada_em', 'marca', 'banco', 'indice', 'esquema']);
+    expect(Object.keys(indice)).toEqual(['acervo', 'gerada_em', 'marca', 'marca_do_esquema', 'banco', 'indice', 'esquema']);
     expect(typeof indice.marca).toBe('number');
     for (const item of indice.indice) expect(Object.keys(item)).toEqual(['tabela', 'linhas']);
     expect(indice.indice.map((t) => t.tabela)).toEqual(Object.keys(copiaDeAntes()));
