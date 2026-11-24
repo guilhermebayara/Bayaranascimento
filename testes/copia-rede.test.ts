@@ -133,7 +133,7 @@ describe.skipIf(!comSqlite)('a rede no fim da cópia e a cópia mensal que só c
     return respostas;
   };
   const peloScript = async (antes: Antes, passadas = 4) => {
-    const lista = [];
+    const lista: Map<string, { status: number; texto: string }>[] = [];
     for (let i = 0; i < passadas; i++) lista.push(await umaPassada(antes));
     const arquivos: { texto: string }[] = [];
     const confirmacoes: string[] = [];
