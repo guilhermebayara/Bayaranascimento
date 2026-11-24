@@ -4,7 +4,8 @@
 // Cada migração roda uma única vez, dentro de uma transação, e fica anotada
 // na tabela _migracoes. Para mudar a estrutura, acrescente um item no fim da
 // lista: nunca edite uma migração que já foi publicada.
-import { AMBIENTES_COM_EXEMPLOS, ambiente, banco, cobrirGatilhosQueGravam } from './ambiente';
+import { AMBIENTES_COM_EXEMPLOS, ambiente, banco, cobrirGatilhosQueGravam, cobrirGravacaoEmTodaTabela } from './ambiente';
+import { TABELA_DA_MARCA, garantirGatilhosDaMarca } from './marca-da-copia';
 import { NUCLEO_INICIAL } from '../familias';
 import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearRascunhoQueFicouDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
@@ -1028,10 +1029,23 @@ export const MIGRACOES: Migracao[] = [
       )`,
     ],
   },
+  {
+    // A marca de mudança do acervo (item 1 da revisão D1f, 24/11/2026; src/lib/servidor/marca-da-copia.ts): um
+    // número que sobe a cada gravação, para a cópia em partes saber se algo foi gravado no meio dela. Os
+    // gatilhos de cada tabela são criados por garantirGatilhosDaMarca, ao fim de migrar, porque as tabelas de
+    // cada banco não são as mesmas (as prévias têm limpezas_do_teste).
+    id: '113-marca-da-copia',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS ${TABELA_DA_MARCA} (id INTEGER PRIMARY KEY CHECK (id = 1), valor INTEGER NOT NULL)`,
+      `INSERT OR IGNORE INTO ${TABELA_DA_MARCA} (id, valor) VALUES (1, 0)`,
+    ],
+  },
 ];
 
 // A guarda por pedido conhece os gatilhos que gravam pelo SQL das migrações (ver ambiente.ts)
 cobrirGatilhosQueGravam(MIGRACOES.flatMap((m) => m.sql));
+// E sabe que os gatilhos da marca da cópia, criados fora das migrações, gravam nela a partir de toda tabela
+cobrirGravacaoEmTodaTabela(TABELA_DA_MARCA);
 
 // Uma preparação por banco: a homologação tem o dela
 const prontos = new Map<string, Promise<void>>();
@@ -1095,6 +1109,9 @@ async function migrar(db: D1Database): Promise<void> {
     await semearRascunhoQueFicouDeExemplo(db);
     await limparBucketDeTeste(db);
   }
+
+  // Os gatilhos da marca da cópia em toda tabela, inclusive as criadas agora pelos exemplos (marca-da-copia.ts)
+  await garantirGatilhosDaMarca(db);
 
   // O relato como conversa: os relatos sem mensagens ganham as derivadas deles, sem perda (ver
   // mensagens-de-antes.ts). Depois das migrações e dos exemplos, para pegar também os semeados agora.

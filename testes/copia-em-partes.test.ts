@@ -68,7 +68,8 @@ describe.skipIf(!comSqlite)('a cópia do acervo em partes', async () => {
 
   /** A cópia de antes: SELECT * de cada tabela, do jeito que montarCopia fazia num lote só */
   const copiaDeAntes = () => {
-    const nomes = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
+    // A marca da cópia (item 1 da revisão D1f) não faz parte do acervo: fica fora, e o arquivo tem as tabelas de antes
+    const nomes = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> 'marca_da_copia' ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
     return Object.fromEntries(nomes.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}"`).all() as Record<string, unknown>[]]));
   };
   /** As linhas de uma tabela, em ordem fixa, para comparar sem depender da ordem de leitura */
@@ -121,7 +122,8 @@ describe.skipIf(!comSqlite)('a cópia do acervo em partes', async () => {
     expect(r.status).toBe(200);
     expect(r.texto).not.toContain('"tabelas"');
     const indice = JSON.parse(r.texto) as IndiceDaCopia;
-    expect(Object.keys(indice)).toEqual(['acervo', 'gerada_em', 'banco', 'indice']);
+    expect(Object.keys(indice)).toEqual(['acervo', 'gerada_em', 'marca', 'banco', 'indice']);
+    expect(typeof indice.marca).toBe('number');
     for (const item of indice.indice) expect(Object.keys(item)).toEqual(['tabela', 'linhas']);
     expect(indice.indice.map((t) => t.tabela)).toEqual(Object.keys(copiaDeAntes()));
   });

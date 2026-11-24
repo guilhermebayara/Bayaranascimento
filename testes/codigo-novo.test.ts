@@ -35,7 +35,7 @@ describe.skipIf(!comSqlite)('código novo quando outro pedido usou o mesmo', asy
   const gui = usuarioDe('gui');
   const tipos = await repo.listarTipos();
   const impressao = () => {
-    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).map((t) => t.name);
+    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
     return JSON.stringify(tabelas.map((t) => [t, sql.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
   /** O formulário comum, como o navegador manda: para onde a rota mandou voltar, e o recado */

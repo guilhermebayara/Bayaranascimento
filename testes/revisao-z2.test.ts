@@ -65,7 +65,7 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
   };
   /** A impressão do banco inteiro: todas as linhas de todas as tabelas, em ordem */
   const impressao = () => {
-    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).map((t) => t.name);
+    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
     return JSON.stringify(tabelas.map((t) => [t, sql.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
   const grava = (comandos: ComandoDeTeste[]) => comandos.some((c) => /^\s*(INSERT|UPDATE|DELETE)/.test(c.sql));
@@ -774,7 +774,7 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       expect(Object.keys(montada.tabelas)).toContain('envios');
       expect(Object.keys(montada.tabelas.envios[0]!).sort()).toEqual(['codigo', 'em']);
       // A cópia leva todas as tabelas do banco, como antes
-      const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY name`).map((t) => t.name);
+      const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
       expect(Object.keys(montada.tabelas).sort()).toEqual(tabelas);
       // Desde a sessão D1e, a cópia vem em partes (testes/copia-em-partes.test.ts): a tabela entra no índice e na parte dela
       const indice = JSON.parse(await (await copia.respostaDaCopia(new URL('http://localhost/api/copia'))).resposta.text()) as { indice: { tabela: string; linhas: number }[] };
@@ -1418,7 +1418,9 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
     const daImpressao = casos.filter((c) => /const antes = impressao\(\);/.test(c.corpo) && /expect\(impressao\(\)\)\.toBe\(antes\);/.test(c.corpo));
 
     it('a impressão é do banco inteiro: todas as tabelas, todas as linhas', () => {
-      expect(recusado).toContain(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`);
+      // Só a marca da cópia fica de fora (item 1 da revisão D1f): ela conta toda gravação, inclusive a do
+      // concorrente que o teste simula, e não é acervo; uma gravação de verdade aparece na tabela dela
+      expect(recusado).toContain(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`);
       expect(recusado).toMatch(/SELECT \* FROM "\$\{t\}" ORDER BY rowid/);
     });
 

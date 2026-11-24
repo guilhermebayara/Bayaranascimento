@@ -11,6 +11,11 @@
 //
 // O índice não tem a chave "tabelas": o script antigo do Drive procurava "tabelas" na resposta, e assim ele
 // falha com o e-mail do Google em vez de guardar o índice como se fosse a cópia.
+//
+// A marca de mudança (item 1 da revisão D1f, 24/11/2026; src/lib/servidor/marca-da-copia.ts): o índice e
+// cada parte trazem `marca`, um número que sobe a cada gravação no banco. Quem junta só aceita a sequência em
+// que a marca de toda parte é a do índice: nada foi gravado no meio, e o arquivo restaura. Se mudou, a
+// sequência inteira é refeita, até TENTATIVAS_DA_COPIA vezes; depois disso, falha sem devolver nada.
 
 /** A marca dentro do arquivo: o script e o espelho encontram a cópia por ela (ver "O nome do site", em docs/decisoes.md). */
 export const MARCA_DO_ACERVO = 'Bayara Nascimento';
@@ -29,6 +34,8 @@ export interface SituacaoDoBancoNaCopia {
 export interface IndiceDaCopia {
   acervo: typeof MARCA_DO_ACERVO;
   gerada_em: string;
+  /** A marca de mudança do banco na hora do índice */
+  marca: number;
   banco: SituacaoDoBancoNaCopia;
   indice: { tabela: string; linhas: number }[];
 }
@@ -40,6 +47,8 @@ export interface IndiceDaCopia {
 export interface ParteDaCopia {
   acervo: typeof MARCA_DO_ACERVO;
   tabela: string;
+  /** A marca de mudança do banco na hora desta página, lida na mesma consulta das linhas */
+  marca: number;
   colunas: string[];
   linhas: unknown[][];
   proxima: number | null;
@@ -72,7 +81,7 @@ export function linhasComoObjetos(parte: Pick<ParteDaCopia, 'colunas' | 'linhas'
 }
 
 /** Junta o índice e as partes (na ordem em que chegaram) na cópia inteira. */
-export function juntarPartes(indice: IndiceDaCopia, partes: ParteDaCopia[]): CopiaDoAcervoInteira {
+export function juntarPartes(indice: Omit<IndiceDaCopia, 'marca'>, partes: Omit<ParteDaCopia, 'marca'>[]): CopiaDoAcervoInteira {
   const tabelas: CopiaDoAcervoInteira['tabelas'] = {};
   for (const { tabela } of indice.indice) tabelas[tabela] = [];
   for (const parte of partes) {
@@ -119,10 +128,21 @@ export function linhasPorParte(tabela: string): number {
 /** Quantas vezes cada parte é pedida antes de desistir, e a espera entre uma e outra. */
 export const TENTATIVAS_POR_PARTE = 3;
 
+/** Quantas vezes a sequência inteira é feita quando o acervo muda no meio dela (a marca). */
+export const TENTATIVAS_DA_COPIA = 4;
+
+/** O erro de quando o acervo mudou no meio de todas as tentativas: a tela diz para tentar de novo depois. */
+export class AcervoMudouNaCopia extends Error {
+  constructor() {
+    super(`O acervo mudou durante a cópia nas ${TENTATIVAS_DA_COPIA} tentativas.`);
+  }
+}
+
 /**
  * Pede o índice e as partes e devolve a cópia inteira. `buscar` faz o pedido (no navegador, o fetch; nos
  * testes, a rota de verdade) e devolve o JSON; `aoAndar` diz o andamento ("Baixando 3 de 14"). Uma parte que
- * falha é pedida de novo até TENTATIVAS_POR_PARTE vezes; se ainda falhar, nada é devolvido pela metade.
+ * falha é pedida de novo até TENTATIVAS_POR_PARTE vezes; se ainda falhar, nada é devolvido pela metade. Uma
+ * parte com a marca diferente da do índice recomeça a sequência, até TENTATIVAS_DA_COPIA vezes.
  */
 export async function baixarCopiaEmPartes(
   buscar: (endereco: string) => Promise<unknown>,
@@ -139,25 +159,35 @@ export async function baixarCopiaEmPartes(
       }
     }
   };
-  const indice = await tentar<IndiceDaCopia>(ENDERECO_DA_COPIA);
-  if (indice?.acervo !== MARCA_DO_ACERVO || !Array.isArray(indice.indice)) throw new Error('O índice da cópia não veio.');
-  let total = partesPrevistas(indice, linhasPorParte);
-  let feitas = 0;
-  aoAndar(feitas, total);
-  const partes: ParteDaCopia[] = [];
-  for (const { tabela } of indice.indice) {
-    let depois: number | null = null;
-    for (;;) {
-      const parte: ParteDaCopia = await tentar<ParteDaCopia>(enderecoDaParte(tabela, depois));
-      if (parte?.tabela !== tabela || !Array.isArray(parte.linhas) || !Array.isArray(parte.colunas)) throw new Error(`A parte da tabela ${tabela} não veio.`);
-      partes.push(parte);
-      feitas++;
-      // Linhas gravadas durante a cópia podem pedir uma página a mais que o previsto
-      total = Math.max(total, feitas + (parte.proxima === null ? 0 : 1));
-      aoAndar(feitas, total);
-      if (parte.proxima === null) break;
-      depois = parte.proxima;
+  /** Uma passada inteira; nada se a marca mudou no meio. */
+  const umaPassada = async (): Promise<CopiaDoAcervoInteira | null> => {
+    const indice = await tentar<IndiceDaCopia>(ENDERECO_DA_COPIA);
+    if (indice?.acervo !== MARCA_DO_ACERVO || !Array.isArray(indice.indice) || typeof indice.marca !== 'number') throw new Error('O índice da cópia não veio.');
+    let total = partesPrevistas(indice, linhasPorParte);
+    let feitas = 0;
+    aoAndar(feitas, total);
+    const partes: ParteDaCopia[] = [];
+    for (const { tabela } of indice.indice) {
+      let depois: number | null = null;
+      for (;;) {
+        const parte: ParteDaCopia = await tentar<ParteDaCopia>(enderecoDaParte(tabela, depois));
+        if (parte?.tabela !== tabela || !Array.isArray(parte.linhas) || !Array.isArray(parte.colunas) || typeof parte.marca !== 'number') throw new Error(`A parte da tabela ${tabela} não veio.`);
+        // Algo foi gravado depois do índice: esta passada não vale
+        if (parte.marca !== indice.marca) return null;
+        partes.push(parte);
+        feitas++;
+        total = Math.max(total, feitas + (parte.proxima === null ? 0 : 1));
+        aoAndar(feitas, total);
+        if (parte.proxima === null) break;
+        depois = parte.proxima;
+      }
     }
+    return juntarPartes(indice, partes);
+  };
+  for (let passada = 1; ; passada++) {
+    const copia = await umaPassada();
+    if (copia) return copia;
+    if (passada >= TENTATIVAS_DA_COPIA) throw new AcervoMudouNaCopia();
+    await esperar(2000 * passada);
   }
-  return juntarPartes(indice, partes);
 }

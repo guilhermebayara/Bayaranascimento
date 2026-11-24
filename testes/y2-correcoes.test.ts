@@ -61,7 +61,7 @@ describe.skipIf(!comSqlite)('W3: o que sobrou da revisão Y2', async () => {
   const relatoDe = (memoria: string, por: string) => linhas<{ id: number; so: string | null }>('SELECT id, so_para_nucleos AS so FROM relatos WHERE memoria_id = ? AND por = ?', memoria, por)[0];
   /** A impressão do banco inteiro: todas as linhas de todas as tabelas, em ordem */
   const impressao = () => {
-    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).map((t) => t.name);
+    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
     return JSON.stringify(tabelas.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
 

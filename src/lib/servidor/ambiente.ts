@@ -260,19 +260,28 @@ export function cobrirGatilhosQueGravam(sqls: readonly string[]): void {
   }
 }
 
+/**
+ * As tabelas em que os gatilhos de toda tabela gravam: a marca da cópia (marca-da-copia.ts), cujos gatilhos são
+ * criados fora das migrações, em cada tabela que existe. Gravar em qualquer tabela esquece o que leu a marca.
+ */
+const gravadasDeTodaTabela = new Set<string>();
+export function cobrirGravacaoEmTodaTabela(destino: string): void {
+  gravadasDeTodaTabela.add(destino.toLowerCase());
+}
+
 /** Os gatilhos que gravam e que a guarda não conhece, entre os SQL dados (o esquema de verdade, nos testes). */
 export function gatilhosSemCobertura(sqls: readonly string[]): string[] {
   const faltam: string[] = [];
   for (const [origem, destinos] of gatilhosQueGravam(sqls)) {
     const cobertos = gatilhosCobertos.get(origem);
-    for (const d of destinos) if (!cobertos?.has(d)) faltam.push(`${origem} -> ${d}`);
+    for (const d of destinos) if (!cobertos?.has(d) && !gravadasDeTodaTabela.has(d)) faltam.push(`${origem} -> ${d}`);
   }
   return faltam;
 }
 
 /** As tabelas gravadas e as que os gatilhos delas gravam, em cadeia; vazio quando é preciso esquecer tudo. */
 function comOQueOsGatilhosGravam(gravadas: readonly string[]): string[] | undefined {
-  const todas = new Set(gravadas.map((t) => t.toLowerCase()));
+  const todas = new Set([...gravadas.map((t) => t.toLowerCase()), ...gravadasDeTodaTabela]);
   const fila = [...todas];
   while (fila.length > 0) {
     for (const destino of gatilhosCobertos.get(fila.pop()!) ?? []) {

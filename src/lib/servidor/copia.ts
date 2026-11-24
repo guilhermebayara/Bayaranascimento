@@ -8,33 +8,45 @@
 // Cada pedido lê uma página de uma tabela só, em ordem de rowid, a partir da última linha da página anterior,
 // e entrega as linhas como listas de valores (`raw`), sem recuo: assim cada pedido fica abaixo de 10 ms de CPU
 // com o acervo cheio. O índice só diz as tabelas e quantas linhas cada uma tem, o que a cópia inteira já diz.
+//
+// A marca de mudança (item 1 da revisão D1f; marca-da-copia.ts): o índice e cada parte trazem `marca`, lida na
+// mesma consulta das linhas. Quem junta só aceita a sequência em que ela não mudou, e a refaz se mudou.
 import { banco } from './ambiente';
 import { tamanhoDoBanco } from './repositorio';
+import { TABELAS_DA_COPIA, TABELA_DA_MARCA, garantirGatilhosDaMarca } from './marca-da-copia';
 import { AVISO_A_PARTIR_DE, LIMITE_DO_PLANO, situacaoDoBanco } from '../tamanho-do-banco';
-import { MARCA_DO_ACERVO, juntarPartes, linhasPorParte, type CopiaDoAcervoInteira, type IndiceDaCopia, type ParteDaCopia } from '../copia-em-partes';
+import { MARCA_DO_ACERVO, baixarCopiaEmPartes, linhasPorParte, type CopiaDoAcervoInteira, type IndiceDaCopia, type ParteDaCopia } from '../copia-em-partes';
 
 export type Copia = CopiaDoAcervoInteira;
 
-const TABELAS = `SELECT name FROM sqlite_master
-     WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'
-     ORDER BY name`;
-
-/** As tabelas do banco, em ordem de nome: as mesmas da cópia inteira de antes. */
+/** As tabelas do banco, em ordem de nome: as mesmas da cópia inteira de antes (a da marca fica de fora). */
 async function nomesDasTabelas(): Promise<string[]> {
-  const { results } = await banco().prepare(TABELAS).all<{ name: string }>();
+  const { results } = await banco().prepare(TABELAS_DA_COPIA).all<{ name: string }>();
   return results.map((t: { name: string }) => t.name);
 }
 
 const entreAspas = (nome: string) => `"${nome.replace(/"/g, '""')}"`;
 
-/** O primeiro pedido: as tabelas, quantas linhas cada uma tem e o tamanho do banco. */
+/** Sem a linha da marca, a cópia não tem como saber se algo foi gravado no meio: recusa em vez de arriscar. */
+export class CopiaSemMarca extends Error {}
+
+/** O primeiro pedido: as tabelas, quantas linhas cada uma tem, a marca e o tamanho do banco. */
 export async function montarIndice(): Promise<IndiceDaCopia> {
+  // Uma tabela nova sem os gatilhos da marca ganha agora, antes de a marca ser lida
+  await garantirGatilhosDaMarca(banco());
   const nomes = await nomesDasTabelas();
-  const contagens = nomes.length ? await banco().batch(nomes.map((nome) => banco().prepare(`SELECT COUNT(*) AS n FROM ${entreAspas(nome)}`))) : [];
+  // Num lote só, que é uma transação: as contagens e a marca do mesmo instante
+  const [marca, ...contagens] = await banco().batch([
+    banco().prepare(`SELECT valor FROM ${TABELA_DA_MARCA} WHERE id = 1`),
+    ...nomes.map((nome) => banco().prepare(`SELECT COUNT(*) AS n FROM ${entreAspas(nome)}`)),
+  ]);
+  const valor = (marca?.results?.[0] as { valor?: number } | undefined)?.valor;
+  if (typeof valor !== 'number') throw new CopiaSemMarca('A marca de mudança do acervo não existe.');
   const situacao = situacaoDoBanco(await tamanhoDoBanco());
   return {
     acervo: MARCA_DO_ACERVO,
     gerada_em: new Date().toISOString(),
+    marca: valor,
     banco: {
       tamanho_em_bytes: situacao?.bytes ?? null,
       aviso_a_partir_de: AVISO_A_PARTIR_DE,
@@ -50,19 +62,27 @@ export async function montarParte(tabela: string, depois: number | null, nomes?:
   // O nome entra no SQL: só vale o de uma tabela que está no índice
   if (!(nomes ?? (await nomesDasTabelas())).includes(tabela)) return null;
   const tamanho = linhasPorParte(tabela);
-  // Uma linha a mais, só para saber se a tabela continua; o rowid vem na primeira coluna e sai da parte
+  // Uma consulta só, para a marca e as linhas serem do mesmo instante. A marca vem na primeira coluna de toda
+  // linha, e o rowid na segunda; as duas saem da parte. A junção à esquerda dá uma linha mesmo com a página
+  // vazia (o rowid vem nulo), para a marca chegar. Uma linha a mais, só para saber se a tabela continua.
   const comando = banco().prepare(
-    `SELECT rowid AS "__linha_da_copia", * FROM ${entreAspas(tabela)}${depois === null ? '' : ' WHERE rowid > ?1'} ORDER BY rowid LIMIT ${tamanho + 1}`,
+    `SELECT m.valor AS "__marca_da_copia", p.* FROM ${TABELA_DA_MARCA} m LEFT JOIN (
+       SELECT rowid AS "__linha_da_copia", * FROM ${entreAspas(tabela)}${depois === null ? '' : ' WHERE rowid > ?1'} ORDER BY rowid LIMIT ${tamanho + 1}
+     ) p ON 1 WHERE m.id = 1 ORDER BY p."__linha_da_copia"`,
   );
-  const [cabecalho, ...linhas] = (await (depois === null ? comando : comando.bind(depois)).raw({ columnNames: true })) as [string[], ...unknown[][]];
+  const [cabecalho, ...todas] = (await (depois === null ? comando : comando.bind(depois)).raw({ columnNames: true })) as [string[], ...unknown[][]];
+  if (todas.length === 0) throw new CopiaSemMarca('A marca de mudança do acervo não existe.');
+  const marca = Number(todas[0]![0]);
+  const linhas = todas[0]![1] === null ? [] : todas;
   const continua = linhas.length > tamanho;
   const pagina = continua ? linhas.slice(0, tamanho) : linhas;
   return {
     acervo: MARCA_DO_ACERVO,
     tabela,
-    colunas: (cabecalho ?? []).slice(1),
-    linhas: pagina.map((l) => l.slice(1)),
-    proxima: continua ? Number(pagina[pagina.length - 1]![0]) : null,
+    marca,
+    colunas: (cabecalho ?? []).slice(2),
+    linhas: pagina.map((l) => l.slice(2)),
+    proxima: continua ? Number(pagina[pagina.length - 1]![1]) : null,
   };
 }
 
@@ -71,19 +91,18 @@ export async function montarParte(tabela: string, depois: number | null, nomes?:
  * (seria o pedido pesado de antes): fica para os testes e para quem precisa da cópia dentro do servidor.
  */
 export async function montarCopia(): Promise<Copia> {
-  const indice = await montarIndice();
-  const nomes = indice.indice.map((t) => t.tabela);
-  const partes: ParteDaCopia[] = [];
-  for (const tabela of nomes) {
-    let depois: number | null = null;
-    for (;;) {
-      const parte: ParteDaCopia = (await montarParte(tabela, depois, nomes))!;
-      partes.push(parte);
-      if (parte.proxima === null) break;
-      depois = parte.proxima;
-    }
-  }
-  return juntarPartes(indice, partes);
+  // As mesmas regras de quem junta, com a marca conferida: as partes são lidas aqui mesmo, sem pedido
+  return baixarCopiaEmPartes(
+    async (endereco) => {
+      const busca = new URL(endereco, 'http://copia').searchParams;
+      const tabela = busca.get('tabela');
+      if (tabela === null) return montarIndice();
+      const depois = busca.get('depois');
+      return montarParte(tabela, depois === null ? null : Number(depois));
+    },
+    undefined,
+    async () => undefined,
+  );
 }
 
 const json = (dados: unknown, status = 200) =>
@@ -95,12 +114,17 @@ const json = (dados: unknown, status = 200) =>
  * Quem pode pedir é conferido antes, igual para o índice e para cada parte.
  */
 export async function respostaDaCopia(url: URL): Promise<{ resposta: Response; terminou: boolean }> {
-  const tabela = url.searchParams.get('tabela');
-  if (tabela === null) return { resposta: json(await montarIndice()), terminou: false };
-  const textoDepois = url.searchParams.get('depois');
-  if (textoDepois !== null && !/^-?\d{1,18}$/.test(textoDepois)) return { resposta: json({ erro: 'A parte pedida não existe.' }, 400), terminou: false };
-  const nomes = await nomesDasTabelas();
-  const parte = await montarParte(tabela, textoDepois === null ? null : Number(textoDepois), nomes);
-  if (!parte) return { resposta: json({ erro: 'A parte pedida não existe.' }, 404), terminou: false };
-  return { resposta: json(parte), terminou: parte.proxima === null && tabela === nomes[nomes.length - 1] };
+  try {
+    const tabela = url.searchParams.get('tabela');
+    if (tabela === null) return { resposta: json(await montarIndice()), terminou: false };
+    const textoDepois = url.searchParams.get('depois');
+    if (textoDepois !== null && !/^-?\d{1,18}$/.test(textoDepois)) return { resposta: json({ erro: 'A parte pedida não existe.' }, 400), terminou: false };
+    const nomes = await nomesDasTabelas();
+    const parte = await montarParte(tabela, textoDepois === null ? null : Number(textoDepois), nomes);
+    if (!parte) return { resposta: json({ erro: 'A parte pedida não existe.' }, 404), terminou: false };
+    return { resposta: json(parte), terminou: parte.proxima === null && tabela === nomes[nomes.length - 1] };
+  } catch (erro) {
+    if (erro instanceof CopiaSemMarca) return { resposta: json({ erro: 'A cópia não pode conferir se o acervo mudou no meio dela.' }, 500), terminou: false };
+    throw erro;
+  }
 }
