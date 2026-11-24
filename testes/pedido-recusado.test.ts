@@ -15,6 +15,7 @@ const { readFileSync } = (await import(/* @vite-ignore */ fs)) as { readFileSync
 
 const env = vi.hoisted(() => ({ AMBIENTE: 'previa' as string, DB: undefined as unknown, FOTOS: undefined as unknown }));
 vi.mock('cloudflare:workers', () => ({ env }));
+vi.mock('astro:middleware', () => ({ defineMiddleware: <T>(f: T) => f }));
 env.FOTOS = { list: async () => ({ objects: [], truncated: false }), delete: async () => undefined, put: async () => undefined, get: async () => null, head: async () => null };
 
 describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () => {
@@ -597,5 +598,90 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(await enviar(usuarioDe('gui'), '{ não é json')).toContain('Não consegui ler o arquivo');
     expect(await enviar(usuarioDe('gui'), JSON.stringify({ ...familia, tabelas: { ...familia.tabelas, relatos: [] } }))).toContain('não é a cópia para o espelho');
     expect(impressao()).toBe(antes);
+  });
+
+  // Item 6 da revisão D1f (decisão do chat, 24/11/2026): o pedido recusado atravessa o middleware de verdade,
+  // como chega ao site. O middleware anota o primeiro acesso de quem entrou antes de a rota responder, e essa
+  // linha fica mesmo quando a rota recusa: o registro é da pessoa que entrou (docs/decisoes.md, "Avisos").
+  // Fora ela (e a marca da cópia, que sobe uma vez com essa linha), o banco inteiro sai igual.
+  describe('pelo middleware: as rotas da cópia e do espelho, com o primeiro acesso de quem pede', async () => {
+    const { onRequest } = await import('../src/middleware');
+    const rotas: Record<string, Record<string, (contexto: never) => Promise<Response> | Response>> = {
+      '/api/copia': (await import('../src/pages/api/copia')) as never,
+      '/api/copia-para-o-espelho': (await import('../src/pages/api/copia-para-o-espelho')) as never,
+      '/api/espelho': (await import('../src/pages/api/espelho')) as never,
+    };
+    /** Um pedido como o navegador manda, com "Ver como" pelo cookie, passando pelo middleware até a rota */
+    const peloMiddleware = async (caminho: string, como: string, corpo?: FormData) => {
+      const request = new Request(`http://localhost${caminho}`, { method: corpo ? 'POST' : 'GET', headers: { Origin: 'http://localhost', Cookie: `como=${como}` }, body: corpo });
+      const url = new URL(request.url);
+      const contexto = { request, url, isPrerendered: false, locals: {} as Record<string, unknown>, rewrite: () => new Response(''), params: {} };
+      const rota = rotas[url.pathname]![request.method]!;
+      const resposta = await (onRequest as unknown as (c: typeof contexto, p: () => Promise<Response>) => Promise<Response>)(contexto, async () => rota(contexto as never));
+      return { status: resposta.status, local: new URL(resposta.headers.get('Location') ?? '/', 'http://localhost').searchParams.get('erro'), texto: await resposta.text() };
+    };
+    const marca = () => linha<{ valor: number }>('SELECT valor FROM marca_da_copia WHERE id = 1').valor;
+    /** O banco inteiro, inclusive a marca, sem a linha de primeiro acesso de quem pede */
+    const semOPrimeiroAcesso = (pessoa: string, marcaAntes?: number) => {
+      const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
+      return JSON.stringify(
+        tabelas.map((t) => {
+          let linhas = banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all() as Record<string, unknown>[];
+          if (t === 'acessos') linhas = linhas.filter((l) => l.pessoa !== pessoa);
+          // A marca sobe uma vez, com a linha do primeiro acesso (o gatilho da tabela acessos)
+          if (t === 'marca_da_copia' && marcaAntes !== undefined) linhas = linhas.map((l) => ({ ...l, valor: Number(l.valor) === marcaAntes + 1 ? marcaAntes : l.valor }));
+          return [t, linhas];
+        }),
+      );
+    };
+    const arquivo = (texto: string) => {
+      const corpo = new FormData();
+      corpo.set('copia', new File([texto], 'copia.json', { type: 'application/json' }));
+      return corpo;
+    };
+    /** Roda os pedidos de `pessoa` como o primeiro acesso dela, e confere a exceção e o resto do banco */
+    const comoPrimeiroAcesso = async (pessoa: string, pedidos: () => Promise<void>) => {
+      banco.sqlite.prepare('DELETE FROM acessos WHERE pessoa = ?').run(pessoa);
+      const antes = semOPrimeiroAcesso(pessoa);
+      const marcaAntes = marca();
+      await pedidos();
+      expect(linha<{ n: number }>('SELECT COUNT(*) AS n FROM acessos WHERE pessoa = ?', pessoa).n, `o primeiro acesso de ${pessoa}`).toBe(1);
+      expect(marca()).toBe(marcaAntes + 1);
+      expect(semOPrimeiroAcesso(pessoa, marcaAntes)).toBe(antes);
+    };
+
+    it('quem não administra: /api/copia no índice e em cada parte, /api/copia-para-o-espelho e /api/espelho são recusados; só fica o primeiro acesso', async () => {
+      const { montarCopiaParaOEspelho } = await import('../src/lib/servidor/copia-para-o-espelho');
+      const familia = await montarCopiaParaOEspelho();
+      await comoPrimeiroAcesso('elizete', async () => {
+        const indice = await peloMiddleware('/api/copia', 'elizete');
+        expect(indice.status).toBe(403);
+        expect(indice.texto).not.toContain('"indice"');
+        for (const caminho of ['/api/copia?tabela=integrantes', '/api/copia?tabela=relatos&depois=0', '/api/copia?tabela=nao_existe']) {
+          const parte = await peloMiddleware(caminho, 'elizete');
+          expect(parte.status, caminho).toBe(403);
+          expect(parte.texto).not.toContain('"colunas"');
+        }
+        const espelho = await peloMiddleware('/api/copia-para-o-espelho', 'elizete');
+        expect(espelho.status).toBe(403);
+        expect(espelho.texto).not.toContain('"tabelas"');
+        expect((await peloMiddleware('/api/espelho', 'elizete', arquivo(JSON.stringify(familia)))).local).toContain('Só os administradores');
+      });
+    });
+
+    it('o administrador, no espelho: a cópia inteira, o arquivo grande demais, o que não é JSON e o que não é a cópia para o espelho; só fica o primeiro acesso', async () => {
+      const { montarCopia } = await import('../src/lib/servidor/copia');
+      const { montarCopiaParaOEspelho } = await import('../src/lib/servidor/copia-para-o-espelho');
+      const { RECADO_DA_COPIA_INTEIRA, LIMITE_DA_COPIA_PARA_O_ESPELHO } = await import('../src/lib/copia-para-o-espelho');
+      const inteira = JSON.stringify(await montarCopia());
+      const familia = await montarCopiaParaOEspelho();
+      expect(usuarioDe('giovanna').admin).toBe(true);
+      await comoPrimeiroAcesso('giovanna', async () => {
+        expect((await peloMiddleware('/api/espelho', 'giovanna', arquivo(inteira))).local).toBe(RECADO_DA_COPIA_INTEIRA);
+        expect((await peloMiddleware('/api/espelho', 'giovanna', arquivo(' '.repeat(LIMITE_DA_COPIA_PARA_O_ESPELHO + 1)))).local).toBe(RECADO_DA_COPIA_INTEIRA);
+        expect((await peloMiddleware('/api/espelho', 'giovanna', arquivo('{ não é json'))).local).toContain('Não consegui ler o arquivo');
+        expect((await peloMiddleware('/api/espelho', 'giovanna', arquivo(JSON.stringify({ ...familia, tabelas: { ...familia.tabelas, relatos: [] } })))).local).toContain('não é a cópia para o espelho');
+      });
+    });
   });
 });
