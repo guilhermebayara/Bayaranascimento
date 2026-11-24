@@ -270,8 +270,8 @@ export function copiasErradas(fontes) {
 
   // Os ajustes da Administração: só administradores, e nesta ordem antes de gravar
   const ajustes = [
-    [AJUSTE_DAS_FOTOS, 'Foto não encontrada.', 'acessoAFoto', 'temCopias', 'fotoEstaNoAjuste', 'alvoDaFoto', 'guardarCopias(chave, conferidas.copias, reserva)', 'guardadas'],
-    [AJUSTE_DOS_RETRATOS, 'Retrato não encontrado.', 'acessoAoRetrato', 'retratoTemCopia', 'retratoEstaNoAjuste', 'alvoDoRetrato', 'guardarCopiaDoRetrato(chave, bytesDaOriginal.byteLength, conferida.copia, reserva)', 'guardada'],
+    [AJUSTE_DAS_FOTOS, 'Foto não encontrada.', 'acessoAFoto', 'temCopias', 'fotoEstaNoAjuste', 'alvoDaFoto', 'guardarCopias(chave, conferidas.copias, reserva.codigo)', 'guardadas'],
+    [AJUSTE_DOS_RETRATOS, 'Retrato não encontrado.', 'acessoAoRetrato', 'retratoTemCopia', 'retratoEstaNoAjuste', 'alvoDoRetrato', 'guardarCopiaDoRetrato(chave, bytesDaOriginal.byteLength, conferida.copia, reserva.codigo)', 'guardada'],
   ];
   for (const [arquivo, recusa, acesso, temCopia, noAjuste, alvo, guardar, guardou] of ajustes) {
     if (!(arquivo in fontes)) {
@@ -288,7 +288,7 @@ export function copiasErradas(fontes) {
       `if (await ${temCopia}(chave)) return erro(409,`,
       `if (!(await ${noAjuste}(locals.usuario, chave))) return erro(404, '${recusa}');`,
       `const reserva = await reservarCopias(${alvo}(chave));`,
-      'if (!reserva) return erro(409,',
+      "if ('recusa' in reserva) return erro(409,",
     ];
     const conferido = naOrdem(codigo, ...ordem);
     if (
@@ -297,7 +297,7 @@ export function copiasErradas(fontes) {
       conferido < 0 ||
       primeiraGravacao < conferido ||
       codigo.indexOf(guardar, primeiraGravacao) < 0 ||
-      !codigo.includes(`if (!${guardou}) await soltarReserva(${alvo}(chave), reserva);`)
+      !codigo.includes(`if (!${guardou}) await soltarReserva(${alvo}(chave), reserva.codigo);`)
     ) {
       falhar(`${arquivo}: o ajuste das cópias é só dos administradores, e confere quem vê a original, se ela já tem cópia, se está no que o ajuste lista e a reserva antes de gravar; e solta a reserva no fim.`);
     }

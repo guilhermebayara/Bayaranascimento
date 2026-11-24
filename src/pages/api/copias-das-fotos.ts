@@ -58,22 +58,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const conferidas = conferirCopias(new Uint8Array(await original.arrayBuffer()), bytes.pequena, bytes.media);
   if ('erro' in conferidas) return erro(400, conferidas.erro);
 
-  // Só um pedido grava: o que perde a reserva não grava nada
+  // Só um pedido grava: a reserva só é tomada se a cópia ainda não existe, numa operação só no banco, e quem
+  // não a toma não grava nada (item 2 da revisão D1f: outro pedido pode ter terminado depois da conferência acima)
   const reserva = await reservarCopias(alvoDaFoto(chave));
-  if (!reserva) return erro(409, 'As cópias desta foto já estão sendo feitas.');
+  if ('recusa' in reserva) return erro(409, reserva.recusa === 'feita' ? 'Esta foto já tem as cópias.' : 'As cópias desta foto já estão sendo feitas.');
   let guardadas = false;
   try {
-    // Outro pedido pode ter terminado entre a primeira conferência e a reserva
-    if (await temCopias(chave)) return erro(409, 'Esta foto já tem as cópias.');
     const tipo = conferidas.copias.formato === 'webp' ? 'image/webp' : 'image/jpeg';
     for (const t of ['pequena', 'media'] as const) {
       await bucketDeFotos().put(chaveDaCopia(chave, t, conferidas.copias.formato), bytes[t], { httpMetadata: { contentType: tipo }, customMetadata: { copiaDe: chave, feitaPor: locals.usuario.pessoa } });
     }
-    const linhas = await guardarCopias(chave, conferidas.copias, reserva);
+    const linhas = await guardarCopias(chave, conferidas.copias, reserva.codigo);
     guardadas = true;
     return json({ chave, linhas }, linhas ? 201 : 409);
   } finally {
     // guardarCopias solta a reserva no mesmo lote; fora dele (recusa ou falha no meio), ela sai aqui
-    if (!guardadas) await soltarReserva(alvoDaFoto(chave), reserva);
+    if (!guardadas) await soltarReserva(alvoDaFoto(chave), reserva.codigo);
   }
 };

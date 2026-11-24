@@ -90,15 +90,15 @@ describe('a regra 13 da guarda: as cópias no bucket', () => {
     expect(recusa(trocar(AJUSTE_DAS_FOTOS, "if (!(await fotoEstaNoAjuste(locals.usuario, chave))) return erro(404, 'Foto não encontrada.');", ''))).toBe(true);
     expect(recusa(trocar(AJUSTE_DOS_RETRATOS, "if (!(await retratoEstaNoAjuste(locals.usuario, chave))) return erro(404, 'Retrato não encontrado.');", ''))).toBe(true);
     // Sem a reserva, ou ignorando a recusa dela
-    expect(recusa(trocar(AJUSTE_DAS_FOTOS, "if (!reserva) return erro(409, 'As cópias desta foto já estão sendo feitas.');", ''))).toBe(true);
-    expect(recusa(trocar(AJUSTE_DAS_FOTOS, 'const reserva = await reservarCopias(alvoDaFoto(chave));', "const reserva = 'qualquer';"))).toBe(true);
+    expect(recusa(trocar(AJUSTE_DAS_FOTOS, "if ('recusa' in reserva) return erro(409, reserva.recusa === 'feita' ? 'Esta foto já tem as cópias.' : 'As cópias desta foto já estão sendo feitas.');", ''))).toBe(true);
+    expect(recusa(trocar(AJUSTE_DAS_FOTOS, 'const reserva = await reservarCopias(alvoDaFoto(chave));', "const reserva = { codigo: 'qualquer' };"))).toBe(true);
     // Gravando antes da reserva
-    const antes = ajuste.replace('  // Só um pedido grava: o que perde a reserva não grava nada\n', `  await bucketDeFotos().put(chaveDaCopia(chave, 'pequena', conferidas.copias.formato), bytes.pequena);\n`);
+    const antes = ajuste.replace('  // Só um pedido grava: a reserva só é tomada se a cópia ainda não existe, numa operação só no banco, e quem\n', `  await bucketDeFotos().put(chaveDaCopia(chave, 'pequena', conferidas.copias.formato), bytes.pequena);\n`);
     expect(antes).not.toBe(ajuste);
     expect(recusa(com(AJUSTE_DAS_FOTOS, antes))).toBe(true);
     // Sem soltar a reserva no fim, ou sem a reserva na anotação
-    expect(recusa(trocar(AJUSTE_DAS_FOTOS, 'if (!guardadas) await soltarReserva(alvoDaFoto(chave), reserva);', ''))).toBe(true);
-    expect(recusa(trocar(AJUSTE_DAS_FOTOS, 'guardarCopias(chave, conferidas.copias, reserva)', "guardarCopias(chave, conferidas.copias, 'outra')"))).toBe(true);
+    expect(recusa(trocar(AJUSTE_DAS_FOTOS, 'if (!guardadas) await soltarReserva(alvoDaFoto(chave), reserva.codigo);', ''))).toBe(true);
+    expect(recusa(trocar(AJUSTE_DAS_FOTOS, 'guardarCopias(chave, conferidas.copias, reserva.codigo)', "guardarCopias(chave, conferidas.copias, 'outra')"))).toBe(true);
     // Sem a permissão de administrador
     expect(recusa(trocar(AJUSTE_DOS_RETRATOS, 'if (!decisao.ok) return erro(403, decisao.motivo);\n  if (Number', 'if (Number'))).toBe(true);
   });

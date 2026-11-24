@@ -37,6 +37,7 @@ const gravadas: string[] = [];
 let demora = 0;
 let falharAoGravar = false;
 const esperar = () => new Promise((r) => setTimeout(r, demora));
+let segurarLeitura: (() => Promise<void>) | null = null;
 /** Um bucket de mentira que demora: cada leitura e cada gravação esperam, e cada gravação fica anotada */
 const bucket = {
   list: async () => ({ objects: [], truncated: false }),
@@ -48,6 +49,10 @@ const bucket = {
     gravadas.push(chave);
   },
   get: async (chave: string) => {
+    // Para segurar um pedido parado na leitura da original (item 2 da revisão D1f)
+    const segurar = segurarLeitura;
+    segurarLeitura = null;
+    if (segurar) await segurar();
     await esperar();
     return { arrayBuffer: async () => (chave.startsWith('retratos/') ? png(800, 800) : png(...ORIGINAL)).buffer };
   },
@@ -86,7 +91,8 @@ describe.skipIf(!comSqlite)('a reserva e o escopo das rotas das cópias', async 
   sql(`INSERT INTO fotos (memoria_id, chave, enviada_por, removida_em, removida_por) VALUES ('d1d-de-todos', ?, 'gui', datetime('now'), 'gui')`, chaveDe(5));
   // A foto solta antiga, enviada por outra pessoa: os administradores a veem para conferir antes de apagar
   sql(`INSERT INTO fotos (chave, enviada_por, enviada_em) VALUES (?, 'elizete', datetime('now', '-40 days'))`, chaveDe(6));
-  for (const n of [1, 2]) sql(`INSERT INTO integrantes (id, nome, tipo, retrato) VALUES (?, 'Retrato D1d', 'pessoa', ?)`, `d1d-retrato-${n}`, retratoDe(n));
+  for (const n of [1, 2, 3]) sql(`INSERT INTO integrantes (id, nome, tipo, retrato) VALUES (?, 'Retrato D1d', 'pessoa', ?)`, `d1d-retrato-${n}`, retratoDe(n));
+  sql(`INSERT INTO fotos (memoria_id, chave, enviada_por) VALUES ('d1d-de-todos', ?, 'gui')`, chaveDe(7));
 
   const enviarFoto = async (chave: string, formato: typeof webp = webp) => {
     const corpo = new FormData();
@@ -133,6 +139,49 @@ describe.skipIf(!comSqlite)('a reserva e o escopo das rotas das cópias', async 
     demora = 0;
     expect(status.sort()).toEqual([201, 409]);
     expect(gravadas).toEqual([`retratos/${retratoDe(1).replace('.jpg', '.pequeno.webp')}`]);
+    expect(reservas()).toBe(0);
+  });
+
+  // Item 2 da revisão D1f: dentro de um pedido de verdade (com a guarda por pedido), o primeiro pedido para
+  // na leitura da original; o segundo termina inteiro e solta a reserva; o primeiro segue. Antes, a segunda
+  // conferência do primeiro reaproveitava o "não tem cópia" guardado no começo do pedido, ele pegava a reserva
+  // livre, gravava no bucket e só depois recebia 409.
+  const { noPedido, definirPessoaDoPedido } = await import('../src/lib/servidor/ambiente');
+  const noPedidoDoGui = <T>(fazer: () => Promise<T>) =>
+    noPedido(new Request('http://localhost/'), () => {
+      definirPessoaDoPedido('gui');
+      return fazer();
+    });
+  const intercalados = async (enviar: () => Promise<number>) => {
+    let soltar = () => undefined as void;
+    let chegou = () => undefined as void;
+    const parado = new Promise<void>((r) => (soltar = r));
+    const chegouNaLeitura = new Promise<void>((r) => (chegou = r));
+    segurarLeitura = async () => {
+      chegou();
+      await parado;
+    };
+    gravadas.length = 0;
+    const primeiro = noPedidoDoGui(enviar);
+    await chegouNaLeitura;
+    const segundo = await noPedidoDoGui(enviar);
+    soltar();
+    return { primeiro: await primeiro, segundo };
+  };
+
+  it('foto: o primeiro parado na leitura da original, o segundo termina e solta a reserva; o bucket recebe uma gravação por cópia', async () => {
+    const { primeiro, segundo } = await intercalados(() => enviarFoto(chaveDe(7)));
+    expect(segundo).toBe(201);
+    expect(primeiro).toBe(409);
+    expect(gravadas.sort()).toEqual([chaveDe(7).replace('.jpg', '.media.webp'), chaveDe(7).replace('.jpg', '.pequena.webp')]);
+    expect(reservas()).toBe(0);
+  });
+
+  it('retrato: o primeiro parado na leitura da original, o segundo termina e solta a reserva; o bucket recebe uma gravação só', async () => {
+    const { primeiro, segundo } = await intercalados(() => enviarRetrato(retratoDe(3)));
+    expect(segundo).toBe(201);
+    expect(primeiro).toBe(409);
+    expect(gravadas).toEqual([`retratos/${retratoDe(3).replace('.jpg', '.pequeno.webp')}`]);
     expect(reservas()).toBe(0);
   });
 
