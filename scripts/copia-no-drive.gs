@@ -2,10 +2,11 @@
 //
 // ===== O que mudou em 24/11/2026 (sessão D1f) e o que fazer =====
 // A cópia agora confere se o acervo mudou no meio dela. O índice e cada parte trazem a "marca", um número que
-// sobe a cada gravação no banco. Se a marca de uma parte for diferente da do índice, alguém gravou algo
-// enquanto a cópia era feita, e o arquivo juntado poderia não restaurar (um relato sem a memória dele, por
-// exemplo). Então o script recomeça a cópia inteira, até 4 vezes, com uma espera entre elas. Se o acervo mudar
-// em todas, nada é gravado e o script falha com o e-mail do Google, como numa parte que não veio.
+// sobe a cada gravação no acervo (as de registro, como a visita ao abrir o Início, não contam). Se a marca de
+// uma parte for diferente da do índice, alguém gravou algo enquanto a cópia era feita, e o arquivo juntado
+// poderia não restaurar (um relato sem a memória dele, por exemplo). Então o script recomeça a cópia inteira,
+// até 4 vezes, com uma espera entre elas. Se o acervo mudar em todas, nada é gravado e o script falha com o
+// e-mail do Google, como numa parte que não veio.
 // - Nada muda no token, nas propriedades (CLIENT_ID e CLIENT_SECRET), no agendamento, na pasta, no nome nem
 //   no formato do arquivo.
 // - Para atualizar: abra o projeto "Cópia do acervo" em script.google.com, troque todo o conteúdo de

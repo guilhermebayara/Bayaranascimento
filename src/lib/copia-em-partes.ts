@@ -12,10 +12,11 @@
 // O índice não tem a chave "tabelas": o script antigo do Drive procurava "tabelas" na resposta, e assim ele
 // falha com o e-mail do Google em vez de guardar o índice como se fosse a cópia.
 //
-// A marca de mudança (item 1 da revisão D1f, 24/11/2026; src/lib/servidor/marca-da-copia.ts): o índice e
-// cada parte trazem `marca`, um número que sobe a cada gravação no banco. Quem junta só aceita a sequência em
-// que a marca de toda parte é a do índice: nada foi gravado no meio, e o arquivo restaura. Se mudou, a
-// sequência inteira é refeita, até TENTATIVAS_DA_COPIA vezes; depois disso, falha sem devolver nada.
+// A marca de mudança (item 1 da revisão D1f, 24/11/2026; src/lib/servidor/marca-da-copia.ts): o índice e cada
+// parte trazem `marca`, um número que sobe a cada gravação no acervo (as tabelas de registro não contam,
+// D1f2). Quem junta só aceita a sequência em que a marca de toda parte é a do índice: nada foi gravado no
+// meio, e o arquivo restaura. Se mudou, a sequência inteira é refeita, até TENTATIVAS_DA_COPIA vezes; depois
+// disso, falha sem devolver nada.
 
 /** A marca dentro do arquivo: o script e o espelho encontram a cópia por ela (ver "O nome do site", em docs/decisoes.md). */
 export const MARCA_DO_ACERVO = 'Bayara Nascimento';

@@ -603,7 +603,7 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
   // Item 6 da revisão D1f (decisão do chat, 24/11/2026): o pedido recusado atravessa o middleware de verdade,
   // como chega ao site. O middleware anota o primeiro acesso de quem entrou antes de a rota responder, e essa
   // linha fica mesmo quando a rota recusa: o registro é da pessoa que entrou (docs/decisoes.md, "Avisos").
-  // Fora ela (e a marca da cópia, que sobe uma vez com essa linha), o banco inteiro sai igual.
+  // Fora ela, o banco inteiro sai igual, inclusive a marca da cópia (acessos é tabela de registro, D1f2).
   describe('pelo middleware: as rotas da cópia e do espelho, com o primeiro acesso de quem pede', async () => {
     const { onRequest } = await import('../src/middleware');
     const rotas: Record<string, Record<string, (contexto: never) => Promise<Response> | Response>> = {
@@ -622,14 +622,12 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     };
     const marca = () => linha<{ valor: number }>('SELECT valor FROM marca_da_copia WHERE id = 1').valor;
     /** O banco inteiro, inclusive a marca, sem a linha de primeiro acesso de quem pede */
-    const semOPrimeiroAcesso = (pessoa: string, marcaAntes?: number) => {
+    const semOPrimeiroAcesso = (pessoa: string) => {
       const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
       return JSON.stringify(
         tabelas.map((t) => {
           let linhas = banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all() as Record<string, unknown>[];
           if (t === 'acessos') linhas = linhas.filter((l) => l.pessoa !== pessoa);
-          // A marca sobe uma vez, com a linha do primeiro acesso (o gatilho da tabela acessos)
-          if (t === 'marca_da_copia' && marcaAntes !== undefined) linhas = linhas.map((l) => ({ ...l, valor: Number(l.valor) === marcaAntes + 1 ? marcaAntes : l.valor }));
           return [t, linhas];
         }),
       );
@@ -646,8 +644,8 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
       const marcaAntes = marca();
       await pedidos();
       expect(linha<{ n: number }>('SELECT COUNT(*) AS n FROM acessos WHERE pessoa = ?', pessoa).n, `o primeiro acesso de ${pessoa}`).toBe(1);
-      expect(marca()).toBe(marcaAntes + 1);
-      expect(semOPrimeiroAcesso(pessoa, marcaAntes)).toBe(antes);
+      expect(marca()).toBe(marcaAntes);
+      expect(semOPrimeiroAcesso(pessoa)).toBe(antes);
     };
 
     it('quem não administra: /api/copia no índice e em cada parte, /api/copia-para-o-espelho e /api/espelho são recusados; só fica o primeiro acesso', async () => {

@@ -14,7 +14,7 @@ No plano gratuito da Cloudflare, cada pedido ao site tem 10 ms de processador. A
 
 ## De um instante só (desde 24/11/2026, sessão D1f)
 
-O índice e cada parte trazem a `marca`, um número que sobe a cada gravação no banco. Se a marca de uma parte for diferente da do índice, algo foi gravado no meio da cópia, e o arquivo juntado poderia não restaurar (um relato sem a memória dele, por exemplo). Então quem junta recomeça a cópia inteira, até 4 vezes, com uma espera entre elas. Se o acervo mudar nas 4, nada é gravado: o script falha e o Google manda o e-mail ("o acervo mudou durante a cópia"); o botão da Administração diz para tentar de novo daqui a pouco. Basta rodar `fazerCopia` de novo mais tarde.
+O índice e cada parte trazem a `marca`, um número que sobe a cada gravação no acervo. As gravações de registro, que anotam o uso do site (a visita ao abrir o Início, o primeiro acesso, a anotação da cópia mensal), não sobem a marca: num dia de uso, a cópia não recomeça por causa delas. Se a marca de uma parte for diferente da do índice, algo foi gravado no meio da cópia, e o arquivo juntado poderia não restaurar (um relato sem a memória dele, por exemplo). Então quem junta recomeça a cópia inteira, até 4 vezes, com uma espera entre elas. Se o acervo mudar nas 4, nada é gravado: o script falha e o Google manda o e-mail ("o acervo mudou durante a cópia"); o botão da Administração diz para tentar de novo daqui a pouco. Basta rodar `fazerCopia` de novo mais tarde.
 
 - O arquivo continua o mesmo: as mesmas tabelas, o mesmo nome e o mesmo formato. A tabela da marca não entra nele.
 - O script novo funciona com o site de antes (sem a marca), juntando sem conferir. A conferência só vale com os dois atualizados.

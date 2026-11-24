@@ -13,6 +13,8 @@ import { temSqlite, type D1DeTeste } from './apoio/d1';
 import { restaurarCopia } from './apoio/restaurar';
 import { baixarCopiaEmPartes, type IndiceDaCopia, type ParteDaCopia } from '../src/lib/copia-em-partes';
 import { espelhar } from '../src/lib/espelho';
+import { chegarAoPainel } from '../src/lib/painel';
+import { TABELAS_DE_REGISTRO } from '../src/lib/servidor/marca-da-copia';
 
 const comSqlite = await temSqlite();
 const fs = 'node:fs';
@@ -60,6 +62,23 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
     return memoria;
   };
 
+  // D1f2: o uso do site entre as partes. Abrir o Início grava a visita (como src/pages/index.astro), e o primeiro
+  // acesso de alguém é anotado (como o middleware); a reserva e o código de envio também gravam registro
+  const repositorio = await import('../src/lib/servidor/repositorio');
+  const abrirOInicio = async (pessoa: string) => {
+    const chegada = chegarAoPainel(await noPedido(new Request('http://localhost/'), () => repositorio.obterVisitas(pessoa)), new Date(), false);
+    await noPedido(new Request('http://localhost/'), () => repositorio.salvarVisitas(pessoa, chegada.registro));
+  };
+  let usos = 0;
+  const usoDoSite = async () => {
+    usos++;
+    const pessoa = ['gui', 'giovanna', 'elizete', 'lucas-magno'][usos % 4]!;
+    await abrirOInicio(pessoa);
+    banco.sqlite.prepare('DELETE FROM acessos WHERE pessoa = ?').run(pessoa);
+    await noPedido(new Request('http://localhost/'), () => repositorio.registrarAcesso(pessoa));
+    banco.sqlite.prepare(`INSERT INTO envios (codigo) VALUES (?)`).run(`d1f2-uso-${usos}`);
+  };
+
   // O momento do caso da revisão: depois da última parte de memorias, antes da primeira de relatos
   const ehAPrimeiraDeRelatos = (endereco: string) => /[?&]tabela=relatos(&|$)/.test(endereco) && !/[?&]depois=/.test(endereco);
 
@@ -73,21 +92,85 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
       return { status: r.status, corpo: (await r.json()) as IndiceDaCopia & { erro?: string } };
     };
 
-    it('toda tabela da cópia tem os três gatilhos, inclusive a das prévias criada fora das migrações', () => {
+    it('toda tabela da cópia que não é de registro tem os três gatilhos, inclusive a das prévias criada fora das migrações; as de registro, nenhum', () => {
       expect(tabelasDaCopia()).toContain('limpezas_do_teste');
-      for (const tabela of tabelasDaCopia()) expect(gatilhosDe(tabela), tabela).toBe(3);
+      for (const tabela of tabelasDaCopia()) expect(gatilhosDe(tabela), tabela).toBe(Object.hasOwn(TABELAS_DE_REGISTRO, tabela) ? 0 : 3);
     });
 
-    it('gravar, mudar ou apagar em qualquer tabela sobe a marca; uma leitura não', () => {
+    it('gravar, mudar ou apagar numa tabela do acervo sobe a marca; uma leitura não', () => {
       const antes = marca();
-      banco.sqlite.prepare(`INSERT INTO envios (codigo) VALUES ('d1f-marca')`).run();
+      banco.sqlite.prepare(`INSERT INTO temas (id, nome) VALUES ('d1f-marca', 'Tema da marca')`).run();
       expect(marca()).toBe(antes + 1);
-      banco.sqlite.prepare(`UPDATE envios SET em = datetime('now') WHERE codigo = 'd1f-marca'`).run();
+      banco.sqlite.prepare(`UPDATE temas SET nome = 'Tema da marca, mudado' WHERE id = 'd1f-marca'`).run();
       expect(marca()).toBe(antes + 2);
-      banco.sqlite.prepare(`DELETE FROM envios WHERE codigo = 'd1f-marca'`).run();
+      banco.sqlite.prepare(`DELETE FROM temas WHERE id = 'd1f-marca'`).run();
       expect(marca()).toBe(antes + 3);
-      banco.sqlite.prepare('SELECT * FROM envios').all();
+      banco.sqlite.prepare('SELECT * FROM temas').all();
       expect(marca()).toBe(antes + 3);
+    });
+
+    // D1f2: as tabelas de registro anotam o uso do site, e gravar nelas não faz a cópia recomeçar
+    it('gravar nas tabelas de registro não sobe a marca', async () => {
+      const antes = marca();
+      for (let i = 0; i < 3; i++) await abrirOInicio(['gui', 'giovanna', 'elizete'][i]!);
+      banco.sqlite.prepare(`INSERT INTO envios (codigo) VALUES ('d1f2-envio')`).run();
+      banco.sqlite.prepare(`DELETE FROM envios WHERE codigo = 'd1f2-envio'`).run();
+      banco.sqlite.prepare(`INSERT INTO reservas_das_copias (alvo, codigo) VALUES ('foto:d1f2', 'x')`).run();
+      banco.sqlite.prepare(`DELETE FROM reservas_das_copias WHERE alvo = 'foto:d1f2'`).run();
+      banco.sqlite.prepare('INSERT INTO copias_mensais DEFAULT VALUES').run();
+      expect(marca()).toBe(antes);
+    });
+
+    // D1f2, o critério de docs/decisoes.md e de marca-da-copia.ts, conferido no esquema de verdade: uma tabela
+    // de registro nova que crie dependência quebra este teste
+    it('cada tabela de registro cumpre o critério no esquema de verdade', async () => {
+      const chaves = banco.sqlite.prepare(`SELECT m.name AS de, f."table" AS para FROM sqlite_master m, pragma_foreign_key_list(m.name) f WHERE m.type = 'table'`).all() as { de: string; para: string }[];
+      const registro = Object.keys(TABELAS_DE_REGISTRO);
+      const existem = registro.filter((t) => tabelasDaCopia().includes(t));
+      // As de hoje existem todas nas prévias (limpezas_do_teste só existe nelas)
+      expect(existem.sort()).toEqual([...registro].sort());
+      const { readFileSync, readdirSync } = (await import(/* @vite-ignore */ fs)) as { readFileSync: (c: string, e: string) => string; readdirSync: (c: string, o: { recursive: boolean }) => string[] };
+      const codigo = readdirSync('src', { recursive: true })
+        .filter((a) => /\.(ts|astro|mjs)$/.test(String(a)))
+        .map((a) => readFileSync(`src/${a}`, 'utf8'))
+        .join('\n');
+      for (const t of existem) {
+        // 1. Nenhuma outra tabela aponta para ela
+        expect(chaves.filter((c) => c.para === t).map((c) => c.de), `${t}: ninguém aponta para uma tabela de registro`).toEqual([]);
+        // 2. As chaves dela só apontam para tabelas que sobem a marca
+        for (const c of chaves.filter((x) => x.de === t)) {
+          expect(registro, `${t} aponta para ${c.para}, que não sobe a marca`).not.toContain(c.para);
+          expect(gatilhosDe(c.para), `${t} aponta para ${c.para}, que precisa dos gatilhos`).toBe(3);
+        }
+        // 3. Nenhuma chave única além da primária, e nenhuma gravação com REPLACE
+        const unicas = banco.sqlite.prepare(`SELECT name, origin FROM pragma_index_list(?) WHERE "unique" = 1 AND origin <> 'pk'`).all(t) as { name: string }[];
+        expect(unicas.map((u) => u.name), `${t}: só a chave primária é única`).toEqual([]);
+        expect(codigo, `${t}: nunca gravada com REPLACE`).not.toMatch(new RegExp(`(REPLACE\\s+INTO|INSERT\\s+OR\\s+REPLACE\\s+INTO)\\s+["\`]?${t}\\b`, 'i'));
+      }
+      // E a regra pega um registro que passe a ser apontado: uma tabela que aponta para visitas
+      banco.sqlite.exec('CREATE TABLE d1f2_aponta (pessoa TEXT REFERENCES visitas(pessoa))');
+      const depois = banco.sqlite.prepare(`SELECT m.name AS de FROM sqlite_master m, pragma_foreign_key_list(m.name) f WHERE m.type = 'table' AND f."table" = 'visitas'`).all();
+      expect(depois).toEqual([{ de: 'd1f2_aponta' }]);
+      banco.sqlite.exec('DROP TABLE d1f2_aponta');
+    });
+
+    it('os gatilhos que existirem numa tabela de registro saem ao preparar o banco e no índice', async () => {
+      const { gatilhosDaMarca, garantirGatilhosDaMarca } = await import('../src/lib/servidor/marca-da-copia');
+      // Como a primeira versão da migração 113 deixou o banco: com os gatilhos nas tabelas de registro
+      for (const sql of [...gatilhosDaMarca('visitas'), ...gatilhosDaMarca('acessos')]) banco.sqlite.exec(sql);
+      expect(gatilhosDe('visitas')).toBe(3);
+      const antes = marca();
+      await abrirOInicio('gui');
+      expect(marca()).toBe(antes + 1);
+      expect(await garantirGatilhosDaMarca(banco as never)).toBe(6);
+      expect(gatilhosDe('visitas') + gatilhosDe('acessos')).toBe(0);
+      await abrirOInicio('gui');
+      expect(marca()).toBe(antes + 1);
+      // E o índice também tira, se algum voltar
+      banco.sqlite.exec(gatilhosDaMarca('visitas')[0]!);
+      expect((await pedirIndice()).status).toBe(200);
+      expect(gatilhosDe('visitas')).toBe(0);
+      expect(await garantirGatilhosDaMarca(banco as never)).toBe(0);
     });
 
     it('uma tabela nova, ou refeita sem os gatilhos, ganha os dela no índice, antes de a marca ser lida', async () => {
@@ -147,6 +230,29 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
       expect(() => espelhar(juntada as never)).not.toThrow();
     });
 
+    it('D1f2: com o Início aberto e primeiros acessos entre todas as partes, a cópia termina na primeira passada e restaura', async () => {
+      let indices = 0;
+      let partes = 0;
+      const antes = usos;
+      const juntada = await baixarCopiaEmPartes(
+        async (endereco) => {
+          if (endereco === '/api/copia') indices++;
+          else partes++;
+          await usoDoSite();
+          return pedir(endereco);
+        },
+        undefined,
+        async () => undefined,
+      );
+      expect(indices).toBe(1);
+      expect(usos - antes).toBe(partes + 1);
+      expect(partes).toBeGreaterThan(40);
+      expect(await restaurarCopia(banco.sqlite, juntada)).toBeNull();
+      // As tabelas de registro vão inteiras na cópia
+      expect(juntada.tabelas.visitas!.length).toBeGreaterThan(0);
+      expect(juntada.tabelas.acessos!.length).toBeGreaterThan(0);
+    });
+
     it('com gravação em todas as tentativas, nada é devolvido pela metade', async () => {
       let tentativas = 0;
       await expect(
@@ -180,8 +286,9 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
      * As respostas de uma passada inteira, na ordem em que o script pede (o Apps Script pede de forma síncrona,
      * então elas são pedidas antes). `noMeio` roda entre a última parte de memorias e a primeira de relatos.
      */
-    const umaPassada = async (noMeio?: () => void) => {
+    const umaPassada = async (noMeio?: () => void, entreTodas?: () => Promise<void>) => {
       const respostas = new Map<string, { status: number; texto: string }>();
+      if (entreTodas) await entreTodas();
       const indice = await peloMiddleware(ENDERECO);
       respostas.set(ENDERECO, indice);
       for (const { tabela } of (JSON.parse(indice.texto) as IndiceDaCopia).indice) {
@@ -189,6 +296,7 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
         for (;;) {
           const endereco = `${ENDERECO}?tabela=${encodeURIComponent(tabela)}${depois === null ? '' : `&depois=${depois}`}`;
           if (noMeio && ehAPrimeiraDeRelatos(endereco)) noMeio();
+          if (entreTodas) await entreTodas();
           const r = await peloMiddleware(endereco);
           respostas.set(endereco, r);
           const parte = JSON.parse(r.texto) as ParteDaCopia;
@@ -238,6 +346,19 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
       expect(await restaurarCopia(banco.sqlite, gravada)).toBeNull();
       expect(juntosOuNenhum(gravada.tabelas, id)).toBe(true);
       expect(() => espelhar(gravada as never)).not.toThrow();
+    });
+
+    it('D1f2: com o Início aberto e primeiros acessos entre todas as partes, a cópia termina na primeira passada e o arquivo restaura', async () => {
+      const antes = usos;
+      const primeira = await umaPassada(undefined, usoDoSite);
+      const { arquivos, erro, passadas } = rodarScript([primeira]);
+      expect(erro).toBeNull();
+      expect(passadas).toBe(1);
+      expect(usos - antes).toBe(primeira.size);
+      expect(arquivos).toHaveLength(1);
+      const gravada = JSON.parse(arquivos[0]!.texto) as { tabelas: Record<string, Record<string, unknown>[]> };
+      expect(await restaurarCopia(banco.sqlite, gravada)).toBeNull();
+      expect(gravada.tabelas.visitas!.length).toBeGreaterThan(0);
     });
 
     it('com gravação em todas as tentativas, nada é gravado e o script falha com o aviso de sempre', async () => {
