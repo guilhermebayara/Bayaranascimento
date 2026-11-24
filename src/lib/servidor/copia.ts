@@ -98,9 +98,10 @@ async function pragmasUmaAUma(nomes: string[]): Promise<{ primarias: Linha[]; un
  */
 export async function montarIndice(): Promise<IndiceDaCopia> {
   for (let tentativa = 1; tentativa <= 3; tentativa++) {
-    // Cada tentativa lê o banco de novo, e não o que a anterior guardou no pedido
+    // Cada tentativa lê o banco de novo, e não o que a anterior guardou no pedido. Os gatilhos só são garantidos
+    // quando o lote anterior achou algum faltando ou sobrando: no caminho de sempre, o esquema é lido uma vez só
     esquecerAsLeiturasDoPedido();
-    await garantirGatilhosDaMarca(banco());
+    if (tentativa > 1) await garantirGatilhosDaMarca(banco());
     const nomes = await nomesDasTabelas();
     const comandos = [
       banco().prepare(TABELAS_DA_COPIA),
@@ -111,6 +112,8 @@ export async function montarIndice(): Promise<IndiceDaCopia> {
     const pragmas = [banco().prepare(PRIMARIAS), banco().prepare(UNICAS), banco().prepare(ESTRANGEIRAS)];
     let resultados: unknown[];
     let regua: { primarias: Linha[]; unicas: Linha[]; estrangeiras: Linha[] };
+    // O lote lê tudo do banco, e não a lista guardada pela leitura de cima: é ela que ele confere
+    esquecerAsLeiturasDoPedido();
     try {
       resultados = await banco().batch([...comandos, ...pragmas]);
       const [p, u, e] = resultados.slice(comandos.length);
@@ -125,9 +128,12 @@ export async function montarIndice(): Promise<IndiceDaCopia> {
     const valor = (linhasDe(marca)[0] as { valor?: number } | undefined)?.valor;
     if (typeof valor !== 'number') throw new CopiaSemMarca('A marca de mudança do acervo não existe.');
     const existentes = new Set(linhasDe(gatilhos).map((g) => String(g.name)));
-    const semGatilho = listadas.filter((t) => precisaDosGatilhos(t) && ['INSERT', 'UPDATE', 'DELETE'].some((op) => !existentes.has(nomeDoGatilho(t, op as 'INSERT'))));
+    const OPERACOES = ['INSERT', 'UPDATE', 'DELETE'] as const;
+    const semGatilho = listadas.filter((t) => precisaDosGatilhos(t) && OPERACOES.some((op) => !existentes.has(nomeDoGatilho(t, op))));
+    // Um gatilho que não deveria existir (numa tabela de registro) também faz garantir, que o apaga
+    const sobrando = listadas.filter((t) => !precisaDosGatilhos(t) && OPERACOES.some((op) => existentes.has(nomeDoGatilho(t, op))));
     // Uma tabela nova ou refeita no meio: garante os gatilhos e lê tudo de novo
-    if (listadas.join('\u0000') !== nomes.join('\u0000') || semGatilho.length > 0) continue;
+    if (listadas.join('\u0000') !== nomes.join('\u0000') || semGatilho.length > 0 || sobrando.length > 0) continue;
     const situacao = situacaoDoBanco(await tamanhoDoBanco());
     return {
       acervo: MARCA_DO_ACERVO,

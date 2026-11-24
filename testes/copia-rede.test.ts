@@ -12,6 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 import { restaurarCopia } from './apoio/restaurar';
 import { AcervoMudouNaCopia, baixarCopiaEmPartes, conferirCopia, type IndiceDaCopia, type ParteDaCopia } from '../src/lib/copia-em-partes';
+import { TABELAS_DA_COPIA } from '../src/lib/servidor/marca-da-copia';
 
 const comSqlite = await temSqlite();
 const fs = 'node:fs';
@@ -64,8 +65,9 @@ describe.skipIf(!comSqlite)('a rede no fim da cópia e a cópia mensal que só c
     // A marca desligada: o índice e as partes leem sempre zero, e só a rede pode pegar o arquivo errado
     if (marcaDesligada) sql = sql.replace(`SELECT valor FROM marca_da_copia WHERE id = 1`, 'SELECT 0 AS valor').replace(`'marca:' || m.valor`, `'marca:' || 0`);
     const comando = prepararDeVerdade(sql);
-    // O caso b: algo acontece logo depois de garantirGatilhosDaMarca ler o esquema
-    if (sql === GARANTIR && depoisDosGatilhos) {
+    // O caso b: algo acontece logo depois de o índice ler o esquema, fora do lote: na leitura dos gatilhos
+    // (garantirGatilhosDaMarca) ou na lista das tabelas, a que vier primeiro
+    if ((sql === GARANTIR || sql === TABELAS_DA_COPIA) && depoisDosGatilhos) {
       const fazer = depoisDosGatilhos;
       depoisDosGatilhos = null;
       return Object.assign(Object.create(Object.getPrototypeOf(comando)), comando, {
