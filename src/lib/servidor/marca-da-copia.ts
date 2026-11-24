@@ -26,13 +26,30 @@
 //    apaga e volta a gravar a mesma chave é visitas ("Voltar à primeira visita", só para testar), com uma linha
 //    por pessoa, menos que uma parte: ela vem numa consulta só.
 // Um registro que passe a ser apontado por outra tabela, ou a apontar para uma tabela de registro, sai da lista.
+//
+// Duas tabelas nem vão na cópia (D1f3, 24/11/2026): reservas_das_copias, a trava de uns minutos enquanto um
+// pedido grava as cópias de uma foto no bucket, e limpezas_do_teste, a faxina diária das prévias. Não são
+// acervo, e uma reserva solta e retomada no meio da cópia saía duas vezes no arquivo. Restaurar sem elas só
+// perde travas que venceriam sozinhas em 5 minutos e o dia da última faxina das prévias (a faxina roda de novo
+// no próximo pedido, o que é inofensivo). Nenhuma tabela aponta para elas, e nenhum código lê delas algo que
+// precise sobreviver a uma restauração.
+//
+// A marca é o atalho para recomeçar cedo. A rede está no fim: quem junta confere o arquivo montado contra o
+// esquema do banco (src/lib/copia-em-partes.ts, conferirCopia), que vem no índice, lido das pragmas.
 
 /** A tabela da marca: uma linha só, fora da cópia (ela não faz parte do acervo). */
 export const TABELA_DA_MARCA = 'marca_da_copia';
 
-/** As tabelas que a cópia leva: todas, menos as do próprio SQLite, as da Cloudflare e a da marca. */
+/** As tabelas que não vão na cópia, além da marca: travas e faxinas passageiras, que não são acervo (D1f3). */
+export const TABELAS_FORA_DA_COPIA: Readonly<Record<string, string>> = {
+  reservas_das_copias: 'a reserva das cópias das fotos e dos retratos, que vence sozinha em 5 minutos',
+  limpezas_do_teste: 'o dia da limpeza de 7 dias do bucket de teste, só nas prévias',
+};
+const FORA = [TABELA_DA_MARCA, ...Object.keys(TABELAS_FORA_DA_COPIA)].map((t) => `'${t}'`).join(', ');
+
+/** As tabelas que a cópia leva: todas, menos as do próprio SQLite, as da Cloudflare, a da marca e as de fora. */
 export const TABELAS_DA_COPIA = `SELECT name FROM sqlite_master
-     WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> '${TABELA_DA_MARCA}'
+     WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT IN (${FORA})
      ORDER BY name`;
 
 const OPERACOES = ['INSERT', 'UPDATE', 'DELETE'] as const;
@@ -51,15 +68,17 @@ export function gatilhosDaMarca(tabela: string): string[] {
 export const TABELAS_DE_REGISTRO: Readonly<Record<string, string>> = {
   visitas: 'a visita de cada pessoa, gravada a cada abertura do Início (salvarVisitas)',
   acessos: 'o primeiro acesso de cada pessoa, anotado pelo middleware (registrarAcesso)',
-  copias_mensais: 'a data de cada cópia mensal, anotada no fim da última parte (anotarCopiaMensal)',
-  reservas_das_copias: 'a reserva das cópias das fotos e dos retratos enquanto o pedido grava no bucket',
+  copias_mensais: 'a data de cada cópia mensal, anotada quando o script confirma que gravou no Drive (anotarCopiaMensal)',
   envios: 'o código de cada envio sem script, só para recusar o mesmo envio repetido',
-  limpezas_do_teste: 'o dia da limpeza de 7 dias do bucket de teste, só nas prévias',
 };
 const ehDeRegistro = (tabela: string) => Object.hasOwn(TABELAS_DE_REGISTRO, tabela);
 
 /** A tabela entra na cópia (a mesma regra de TABELAS_DA_COPIA)? */
-export const tabelaDaCopia = (nome: string) => !/^sqlite_/i.test(nome) && !/^_cf_/i.test(nome) && nome !== TABELA_DA_MARCA;
+export const tabelaDaCopia = (nome: string) => !/^sqlite_/i.test(nome) && !/^_cf_/i.test(nome) && nome !== TABELA_DA_MARCA && !Object.hasOwn(TABELAS_FORA_DA_COPIA, nome);
+
+/** As tabelas que precisam dos três gatilhos: as da cópia que não são de registro. */
+export const precisaDosGatilhos = (tabela: string) => tabelaDaCopia(tabela) && !ehDeRegistro(tabela);
+export { nomeDoGatilho };
 
 interface BancoParaAMarca {
   prepare(sql: string): { all<T>(): Promise<{ results: T[] }> };
@@ -77,11 +96,12 @@ export async function garantirGatilhosDaMarca(db: BancoParaAMarca): Promise<numb
   if (!linhas.some((l) => l.type === 'table' && l.name === TABELA_DA_MARCA)) return 0;
   const existentes = new Set(linhas.filter((l) => l.type === 'trigger').map((l) => l.name));
   const faltam: string[] = [];
-  for (const { name: tabela } of linhas.filter((l) => l.type === 'table' && tabelaDaCopia(l.name))) {
+  // Toda tabela: as que precisam ganham os que faltam; as de registro e as de fora da cópia perdem os que tiverem
+  for (const { name: tabela } of linhas.filter((l) => l.type === 'table' && l.name !== TABELA_DA_MARCA && !/^(sqlite_|_cf_)/i.test(l.name))) {
     const sqls = gatilhosDaMarca(tabela);
     OPERACOES.forEach((operacao, i) => {
       const nome = nomeDoGatilho(tabela, operacao);
-      if (ehDeRegistro(tabela)) {
+      if (!precisaDosGatilhos(tabela)) {
         if (existentes.has(nome)) faltam.push(`DROP TRIGGER IF EXISTS ${entreAspas(nome)}`);
       } else if (!existentes.has(nome)) faltam.push(sqls[i]!);
     });

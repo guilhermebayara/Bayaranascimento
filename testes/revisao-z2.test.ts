@@ -774,14 +774,14 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       expect(Object.keys(montada.tabelas)).toContain('envios');
       expect(Object.keys(montada.tabelas.envios[0]!).sort()).toEqual(['codigo', 'em']);
       // A cópia leva todas as tabelas do banco, como antes
-      const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
+      const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT IN ('marca_da_copia', 'reservas_das_copias', 'limpezas_do_teste') ORDER BY name`).map((t) => t.name);
       expect(Object.keys(montada.tabelas).sort()).toEqual(tabelas);
       // Desde a sessão D1e, a cópia vem em partes (testes/copia-em-partes.test.ts): a tabela entra no índice e na parte dela
-      const indice = JSON.parse(await (await copia.respostaDaCopia(new URL('http://localhost/api/copia'))).resposta.text()) as { indice: { tabela: string; linhas: number }[] };
+      const indice = JSON.parse(await (await copia.respostaDaCopia(new URL('http://localhost/api/copia'))).text()) as { indice: { tabela: string; linhas: number }[] };
       expect(indice.indice.find((t) => t.tabela === 'envios')!.linhas).toBeGreaterThan(0);
       const parte = await copia.respostaDaCopia(new URL('http://localhost/api/copia?tabela=envios'));
-      expect(parte.resposta.status).toBe(200);
-      expect((JSON.parse(await parte.resposta.text()) as { colunas: string[] }).colunas.sort()).toEqual(['codigo', 'em']);
+      expect(parte.status).toBe(200);
+      expect((JSON.parse(await parte.text()) as { colunas: string[] }).colunas.sort()).toEqual(['codigo', 'em']);
       expect(montada.tabelas.envios.length).toBeGreaterThan(0);
     });
 

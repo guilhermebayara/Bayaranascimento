@@ -5,7 +5,7 @@ import { ehServicoDeCopia, enderecoDeSaida, pessoaQuePede, semLogin, usuarioDaPe
 import { ambiente, definirPessoaDoPedido, guardarApelidosDoPedido, guardarTiposDoPedido, guardarVerComoDoPedido, noPedido, servidorTiming, tiposDoPedido, verComoDoPedido } from './lib/servidor/ambiente';
 import { ehNaoEncontradaSemPagina } from './lib/servidor/http';
 import { prepararBanco } from './lib/servidor/banco';
-import { respostaDaCopia } from './lib/servidor/copia';
+import { respostaDaConfirmacao, respostaDaCopia } from './lib/servidor/copia';
 import { anotarCopiaMensal, aquecerOPedido, listarMeusApelidos, listarTipos, registrarAcesso } from './lib/servidor/repositorio';
 import { comecoDoPedido, usaApelidosDeQuemOlha } from './lib/servidor/comeco-do-pedido';
 import { lerEscolhasDe } from './lib/visual';
@@ -41,11 +41,10 @@ const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo)
 
   // A cópia mensal no Google Drive entra com um token de serviço, sem pessoa, no índice e em cada parte
   if (contexto.url.pathname === '/api/copia' && contexto.request.method === 'GET' && (await ehServicoDeCopia(contexto.request))) {
-    const { resposta, terminou } = await respostaDaCopia(contexto.url);
-    // A data da última cópia mensal, para a pendência "cópia mensal atrasada" em "Sua conta": anotada quando
-    // o script pede a última parte. Anotar não pode impedir a cópia de chegar ao Drive.
-    if (terminou) await anotarCopiaMensal().catch(() => undefined);
-    return resposta;
+    // A data da última cópia mensal, para a pendência "cópia mensal atrasada" em "Sua conta": anotada só quando
+    // o script confirma que gravou o arquivo no Drive (D1f3), e nunca por uma passada descartada
+    if (contexto.url.searchParams.has('confirmar')) return respostaDaConfirmacao(contexto.url, anotarCopiaMensal);
+    return respostaDaCopia(contexto.url);
   }
 
   // Quem pede entra na chave da guarda por pedido, e o que quase todo pedido lê vem num lote só

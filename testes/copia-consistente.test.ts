@@ -14,7 +14,7 @@ import { restaurarCopia } from './apoio/restaurar';
 import { baixarCopiaEmPartes, type IndiceDaCopia, type ParteDaCopia } from '../src/lib/copia-em-partes';
 import { espelhar } from '../src/lib/espelho';
 import { chegarAoPainel } from '../src/lib/painel';
-import { TABELAS_DE_REGISTRO } from '../src/lib/servidor/marca-da-copia';
+import { TABELAS_DE_REGISTRO, TABELAS_FORA_DA_COPIA } from '../src/lib/servidor/marca-da-copia';
 
 const comSqlite = await temSqlite();
 const fs = 'node:fs';
@@ -83,7 +83,7 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
   const ehAPrimeiraDeRelatos = (endereco: string) => /[?&]tabela=relatos(&|$)/.test(endereco) && !/[?&]depois=/.test(endereco);
 
   describe('a marca de mudança (src/lib/servidor/marca-da-copia.ts)', () => {
-    const tabelasDaCopia = () => (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia'`).all() as { name: string }[]).map((t) => t.name);
+    const tabelasDaCopia = () => (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('marca_da_copia', 'reservas_das_copias', 'limpezas_do_teste')`).all() as { name: string }[]).map((t) => t.name);
     const gatilhosDe = (tabela: string) => (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = ? AND name LIKE 'marca\\_da\\_copia\\_%' ESCAPE '\\'`).all(tabela) as { name: string }[]).length;
     const marca = () => (banco.sqlite.prepare('SELECT valor FROM marca_da_copia WHERE id = 1').get() as { valor: number }).valor;
     const pedirIndice = async () => {
@@ -92,9 +92,10 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
       return { status: r.status, corpo: (await r.json()) as IndiceDaCopia & { erro?: string } };
     };
 
-    it('toda tabela da cópia que não é de registro tem os três gatilhos, inclusive a das prévias criada fora das migrações; as de registro, nenhum', () => {
-      expect(tabelasDaCopia()).toContain('limpezas_do_teste');
-      for (const tabela of tabelasDaCopia()) expect(gatilhosDe(tabela), tabela).toBe(Object.hasOwn(TABELAS_DE_REGISTRO, tabela) ? 0 : 3);
+    it('toda tabela da cópia que não é de registro tem os três gatilhos; as de registro e as de fora da cópia, nenhum', () => {
+      const todas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia'`).all() as { name: string }[]).map((t) => t.name);
+      expect(todas).toContain('limpezas_do_teste');
+      for (const tabela of todas) expect(gatilhosDe(tabela), tabela).toBe(Object.hasOwn(TABELAS_DE_REGISTRO, tabela) || Object.hasOwn(TABELAS_FORA_DA_COPIA, tabela) ? 0 : 3);
     });
 
     it('gravar, mudar ou apagar numa tabela do acervo sobe a marca; uma leitura não', () => {
@@ -309,12 +310,17 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
 
     /** Roda o script; cada pedido do índice começa a passada seguinte da lista */
     const rodarScript = (passadas: Map<string, { status: number; texto: string }>[]) => {
+      const confirmacoes: string[] = [];
       const arquivos: { nome: string; texto: string }[] = [];
       let passada = -1;
       const caixa = {
         PropertiesService: { getScriptProperties: () => ({ getProperty: (nome: string) => ({ CLIENT_ID: 'servico-de-teste', CLIENT_SECRET: 'segredo-de-teste' })[nome] ?? null }) },
         UrlFetchApp: {
           fetch: (endereco: string) => {
+            if (endereco.includes('?confirmar=')) {
+              confirmacoes.push(endereco);
+              return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ acervo: 'Bayara Nascimento', anotada: true }) };
+            }
             if (endereco === ENDERECO) passada++;
             const r = passadas[passada]?.get(endereco) ?? { status: 404, texto: '' };
             return { getResponseCode: () => r.status, getContentText: () => r.texto };
@@ -330,7 +336,7 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
       } catch (e) {
         erro = e;
       }
-      return { arquivos, erro, passadas: passada + 1 };
+      return { arquivos, erro, passadas: passada + 1, confirmacoes };
     };
 
     it('uma memória e o relato gravados entre memorias e relatos: o arquivo gravado restaura e leva os dois', async () => {

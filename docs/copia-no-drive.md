@@ -12,11 +12,12 @@ No plano gratuito da Cloudflare, cada pedido ao site tem 10 ms de processador. A
 - O script novo funciona também com o site de antes, que mandava a cópia inteira de uma vez. O script de antes, com o site novo, falha (o índice não é a cópia) e manda o e-mail.
 - O token, as propriedades e o agendamento não mudam.
 
-## De um instante só (desde 24/11/2026, sessão D1f)
+## De um instante só (desde 24/11/2026, sessões D1f e D1f3)
 
 O índice e cada parte trazem a `marca`, um número que sobe a cada gravação no acervo. As gravações de registro, que anotam o uso do site (a visita ao abrir o Início, o primeiro acesso, a anotação da cópia mensal), não sobem a marca: num dia de uso, a cópia não recomeça por causa delas. Se a marca de uma parte for diferente da do índice, algo foi gravado no meio da cópia, e o arquivo juntado poderia não restaurar (um relato sem a memória dele, por exemplo). Então quem junta recomeça a cópia inteira, até 4 vezes, com uma espera entre elas. Se o acervo mudar nas 4, nada é gravado: o script falha e o Google manda o e-mail ("o acervo mudou durante a cópia"); o botão da Administração diz para tentar de novo daqui a pouco. Basta rodar `fazerCopia` de novo mais tarde.
 
-- O arquivo continua o mesmo: as mesmas tabelas, o mesmo nome e o mesmo formato. A tabela da marca não entra nele.
+- Antes de gravar, o script confere o arquivo montado contra o esquema do banco, que vem no índice: nenhuma chave repetida e nenhuma linha apontando para outra que não está no arquivo. Se não conferir, a cópia é refeita, nas mesmas 4 tentativas.
+- O arquivo continua com o mesmo nome e o mesmo formato. Ficam fora dele a tabela da marca e, desde a D1f3, `reservas_das_copias` (travas de minutos) e `limpezas_do_teste` (a faxina das prévias).
 - O script novo funciona com o site de antes (sem a marca), juntando sem conferir. A conferência só vale com os dois atualizados.
 
 O Cloudflare também guarda o histórico do banco por conta própria (Time Travel do D1), o que permite voltar o banco a um momento dos últimos dias em caso de erro grave. A cópia no Drive cobre o resto: um lugar fora do Cloudflare, com um arquivo por mês.
@@ -30,7 +31,7 @@ O site é fechado pelo Cloudflare Access, então o script entra com um **token d
 
 O token pode ser revogado a qualquer momento no Zero Trust, e a cópia para na hora.
 
-Cada vez que o script baixa a cópia, o site anota a data (tabela `copias_mensais`), quando ele pede a última parte. Em "Sua conta", os administradores veem a data da última cópia mensal, e ela vira pendência quando passa de 35 dias ou nunca foi feita. O script não precisou mudar para isso.
+Cada vez que o script grava a cópia no Drive, ele confirma ao site (`/api/copia?confirmar=...`, com o mesmo token), e só então o site anota a data (tabela `copias_mensais`). Uma tentativa descartada não anota nada. Em "Sua conta", os administradores veem a data da última cópia mensal, e ela vira pendência quando passa de 35 dias ou nunca foi feita. O script não precisou mudar para isso.
 
 ## Instalação
 

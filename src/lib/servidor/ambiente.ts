@@ -142,6 +142,14 @@ export function ambiente(): Ambiente {
  * foi lido no mesmo pedido, pela mesma pessoa, não vai ao banco de novo. Fora de um pedido (testes,
  * scripts), é o banco como está.
  */
+/**
+ * Esquece o que o pedido já leu: a leitura seguinte vai ao banco. Para quem lê de novo de propósito, no mesmo
+ * pedido, porque o banco pode ter mudado por fora dele (o índice da cópia, quando uma tabela nasce no meio).
+ */
+export function esquecerAsLeiturasDoPedido(): void {
+  doPedido.getStore()?.guardadas.clear();
+}
+
 export function banco(): Banco {
   const real = bancoDoAmbiente();
   const pedido = doPedido.getStore();
