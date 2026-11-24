@@ -1008,6 +1008,12 @@ export const MIGRACOES: Migracao[] = [
     id: '110-copias-das-fotos',
     sql: [`ALTER TABLE fotos ADD COLUMN copias TEXT`],
   },
+  {
+    // A cópia pequena de cada retrato (sessão D1c, decisão do Gui de 23/11/2026; src/lib/retratos.ts): o
+    // formato, o lado e os bytes, para a rota achar a cópia e a conta do espaço somar. Sem cópia, a original.
+    id: '111-copia-dos-retratos',
+    sql: [`ALTER TABLE retratos_enviados ADD COLUMN copia TEXT`],
+  },
 ];
 
 // A guarda por pedido conhece os gatilhos que gravam pelo SQL das migrações (ver ambiente.ts)

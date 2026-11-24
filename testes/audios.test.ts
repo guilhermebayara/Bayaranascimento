@@ -71,7 +71,7 @@ describe('duração', () => {
 describe('quem ouve', () => {
   const repositorio = fontes['src/lib/servidor/repositorio.ts'];
   it('áudio solto, só quem enviou; do relato, quem vê o relato numa memória que vê', () => {
-    const regra = repositorio.slice(repositorio.indexOf('export async function podeOuvirAudio'));
+    const regra = repositorio.slice(repositorio.indexOf('export async function acessoAoAudio'));
     expect(regra).toContain('(a.relato_id IS NULL AND a.enviado_por = ?1)');
     expect(regra).toContain("(r2.situacao = 'publicada' OR r2.registrado_por = ?1) AND ${FILTRO_VISIVEL}");
     // O relato de quem a pessoa não vê também fica de fora (decisão do Gui, 17/11/2026)
@@ -80,7 +80,7 @@ describe('quem ouve', () => {
 
   it('a rota responde igual para áudio que não existe e áudio que a pessoa não pode ouvir', () => {
     const rota = fontes['src/pages/audios/[...chave].ts'];
-    expect(rota).toMatch(/if \(!\(await podeOuvirAudio\(locals\.usuario, chave\)\)\) return naoEncontrado\(\);/);
+    expect(rota).toContain('const acesso = await acessoAoAudio(locals.usuario, chave);\n  if (!acesso) return naoEncontrado();');
     expect(rota).toContain("'Accept-Ranges', 'bytes'");
   });
 

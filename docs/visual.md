@@ -252,7 +252,7 @@ As serifas trazem os próprios acertos (`--escala-serifa`, `--aperto-titulo`, `-
 | C, De cartaz (a do site) | DM Serif Display | DM Sans | DM Mono | Nothing You Could Do | Pesada, de cartaz |
 
 - A página `/sistema` tem o seletor "Fontes dos exemplos" (`?fontes=a`, `b` ou `c`), que põe os quatro atributos só no bloco dos exemplos (`.sis__exemplos`), para comparar se a decisão mudar. `/conceito/sobre` mostra as três lado a lado nas prévias.
-- Nas prévias de teste e no computador, a faixa do alto troca a combinação por um cookie. Na produção e na homologação o cookie não vale. `npm run capturas` tira as capturas com a C.
+- A faixa do alto das prévias não troca mais a combinação (decisão do Gui, 23/11/2026): a fonte do site está escolhida, e a comparação fica em `/sistema`. Quem ainda tem uma combinação guardada de antes (o cookie `fontes`, que só vale nas prévias de teste e no computador) vê um recado na faixa, com o link de volta à do site. `npm run capturas` tira as capturas com a C.
 - Fonte nova, fora das três: instalar pelo Fontsource, acrescentar a opção em cada papel de `fontes.css` (a serifa pede `--assinatura-em`, `--sobrenomes` e `--ano-em`, medidos na tela até "MEMÓRIAS" e "Bayara & Bracarense" fecharem na mesma largura), acrescentar em `scripts/monograma.mjs` e rodar `npm run monograma`.
 
 ### Assinatura do nome
@@ -350,7 +350,7 @@ A regra de cada tela como ela é hoje. O comportamento (o que aparece, para quem
 ### Topo e menu
 
 - O menu do celular é uma sanfona. O retrato de quem está logado abre o menu da conta; no celular, ao lado de "Menu", ficam "Nova memória" e o retrato.
-- A faixa de teste do alto (telas, fontes, "Ver como") só existe fora da produção.
+- A faixa de teste do alto (telas e "Ver como") só existe fora da produção.
 
 ### Início
 

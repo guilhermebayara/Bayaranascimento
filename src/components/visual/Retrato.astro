@@ -1,7 +1,7 @@
 ---
 // O retrato de foto de álbum (docs/visual.md): um retângulo reto com cantoneiras nos quatro cantos.
 // Quem não tem foto aparece com as iniciais sobre a cor da família. É enfeite: o nome da pessoa está sempre escrito ao lado.
-import { iniciais } from '../../lib/retratos';
+import { fontesDoRetrato, iniciais } from '../../lib/retratos';
 
 interface Props {
   nome: string;
@@ -18,11 +18,17 @@ interface Props {
    * cima e com o foco do teclado. Quem usa o retrato escreve "em memória" perto do nome.
    */
   falecido?: boolean;
+  /**
+   * O retrato grande, de até 300 px de altura (a página da pessoa, a do laço e "Sua conta"): o navegador
+   * escolhe entre a cópia pequena e a original (fontesDoRetrato). Os outros usam só a cópia.
+   */
+  grande?: boolean;
 }
 
-const { nome, foto, familia, redondo = false, cedo = false, falecido = false } = Astro.props;
+const { nome, foto, familia, redondo = false, cedo = false, falecido = false, grande = false } = Astro.props;
+const fontes = foto ? fontesDoRetrato(foto, grande) : null;
 ---
 
 <span class:list={['retrato', { 'retrato--redondo': redondo, 'retrato--falecido': falecido }]} data-familia={familia}>
-  {foto ? <img src={foto} alt="" loading={cedo ? undefined : 'lazy'} decoding={cedo ? undefined : 'async'} /> : <span aria-hidden="true">{iniciais(nome)}</span>}
+  {fontes ? <img src={fontes.src} srcset={fontes.srcset} sizes={fontes.sizes} alt="" loading={cedo ? undefined : 'lazy'} decoding={cedo ? undefined : 'async'} /> : <span aria-hidden="true">{iniciais(nome)}</span>}
 </span>

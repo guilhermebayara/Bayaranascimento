@@ -58,6 +58,15 @@ export function chaveDaCopia(chave: string, tamanho: Tamanho, formato: FormatoDa
   return `${base}.${tamanho}.${formato}`;
 }
 
+/**
+ * Os nomes de todas as cópias que uma foto pode ter no bucket: os dois tamanhos, nos dois formatos. A rota
+ * das fotos sem memória (src/pages/api/fotos-soltas.ts) apaga a original e estas, e só estas: nomes que não
+ * existem no bucket não fazem nada.
+ */
+export function chavesDasCopias(chave: string): string[] {
+  return TAMANHOS.flatMap((tamanho) => (['webp', 'jpg'] as const).map((formato) => chaveDaCopia(chave, tamanho, formato)));
+}
+
 /** O endereço da foto no site: a original, ou a cópia, pela mesma rota. */
 export const enderecoDaFoto = (chave: string, tamanho?: Tamanho) => (tamanho ? `/fotos/${tamanho}/${chave}` : `/fotos/${chave}`);
 

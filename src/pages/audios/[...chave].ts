@@ -1,10 +1,16 @@
 // Entrega os áudios do bucket, que é privado. Cada pedido confere se a pessoa pode ouvir.
 // Atende pedidos de trecho (Range): o Safari só toca áudio assim.
+//
+// O áudio de relato publicado numa memória publicada fica guardado no aparelho por 7 dias (decisão do Gui,
+// 23/11/2026, a mesma regra das fotos): o cabeçalho sai igual na resposta inteira, no trecho e no 304. Solto,
+// de rascunho ou removido: o navegador confere a cada uso, como antes. A recusa não leva prazo nenhum.
 import type { APIRoute } from 'astro';
 import { CHAVE_DE_AUDIO } from '../../lib/audios';
 import { ehChaveDeAudioDeExemplo } from '../../lib/audios-de-exemplo';
 import { bucketDeFotos, temAcervoDeExemplo } from '../../lib/servidor/ambiente';
-import { podeOuvirAudio } from '../../lib/servidor/repositorio';
+import { semLogin } from '../../lib/servidor/acesso';
+import { cabecalhoDeGuardar } from '../../lib/servidor/http';
+import { acessoAoAudio } from '../../lib/servidor/repositorio';
 
 const naoEncontrado = () => new Response('Áudio não encontrado', { status: 404 });
 
@@ -14,7 +20,8 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
   const deExemplo = temAcervoDeExemplo() && ehChaveDeAudioDeExemplo(chave);
   if (!CHAVE_DE_AUDIO.test(chave) && !deExemplo) return naoEncontrado();
   // Quem não pode ouvir recebe a mesma resposta de um áudio que não existe
-  if (!(await podeOuvirAudio(locals.usuario, chave))) return naoEncontrado();
+  const acesso = await acessoAoAudio(locals.usuario, chave);
+  if (!acesso) return naoEncontrado();
 
   const pedeTrecho = request.headers.has('Range');
   const objeto = await bucketDeFotos().get(`audios/${chave}`, pedeTrecho ? { range: request.headers } : { onlyIf: request.headers });
@@ -24,7 +31,8 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
   objeto.writeHttpMetadata(headers);
   headers.set('ETag', objeto.httpEtag);
   headers.set('Accept-Ranges', 'bytes');
-  headers.set('Cache-Control', 'private, no-cache');
+  // O nome de cada áudio nunca muda de conteúdo: cada gravação ganha um nome novo
+  for (const [nome, valor] of Object.entries(cabecalhoDeGuardar(acesso.guardar, semLogin()))) headers.set(nome, valor);
   headers.set('X-Content-Type-Options', 'nosniff');
 
   if (!('body' in objeto)) return new Response(null, { status: 304, headers });

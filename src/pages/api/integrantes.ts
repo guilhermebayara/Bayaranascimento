@@ -5,7 +5,7 @@ import { arrumarTexto, criarSlug, slugUnico, validarData } from '../../lib/servi
 import { campo, campoNumero, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { podeEditarIntegrante, podeMudarRetrato, type Usuario } from '../../lib/servidor/permissoes';
-import { LIMITE_DO_RETRATO, PASTA_DOS_RETRATOS, formatoDoRetrato } from '../../lib/retratos';
+import { LIMITE_DO_RETRATO, PASTA_DOS_RETRATOS, chaveDaCopiaDoRetrato, conferirCopiaDoRetrato, formatoDoRetrato, type CopiaDoRetrato } from '../../lib/retratos';
 import { apelidoSoSeuDaFicha } from '../../lib/apelidos';
 import { SEM_CODIGO, atualizarIntegrante, codigosOcupadosDePessoas, comCodigoNovo, criarIntegranteCompleto, registrarRetratoEnviado, definirParentes, guardarMeuApelido, listarIntegrantesQueVe, listarMeusApelidos, listarNucleos, type DadosDoIntegrante } from '../../lib/servidor/repositorio';
 
@@ -24,29 +24,49 @@ function lerData(dados: FormData, prefixo: string, rotulo: string): { ano?: numb
  * A foto de retrato que veio com a ficha, já recortada e reduzida pelo navegador. Devolve o arquivo
  * conferido pelo conteúdo, ou o recado do problema. Sem arquivo, nada muda.
  */
-async function lerRetrato(dados: FormData): Promise<{ bytes?: Uint8Array; tipo?: string; extensao?: string; erro?: string }> {
+async function lerRetrato(dados: FormData): Promise<{ bytes?: Uint8Array; tipo?: string; extensao?: string; copia?: Uint8Array; erro?: string }> {
   const valor = dados.get('retrato');
   if (!(valor instanceof File) || valor.size === 0) return {};
   if (valor.size > LIMITE_DO_RETRATO) return { erro: 'A foto de retrato é grande demais. Escolha de novo, que o site reduz.' };
   const bytes = new Uint8Array(await valor.arrayBuffer());
   const formato = formatoDoRetrato(bytes);
   if (!formato) return { erro: 'Formato de foto não aceito. Envie JPG, PNG ou WebP.' };
-  return { bytes, ...formato };
+  // A cópia pequena que o navegador fez (sessão D1c). Sem ela, o retrato entra assim mesmo
+  const copia = dados.get('retratoPequeno');
+  return { bytes, ...formato, ...(copia instanceof File && copia.size > 0 ? { copia: new Uint8Array(await copia.arrayBuffer()) } : {}) };
 }
 
 /**
- * Põe o retrato no bucket das fotos, debaixo de "retratos/", com uma chave nova. Nada é sobrescrito. Só o
- * arquivo: o registro do tamanho (registrarRetratoEnviado) vem depois que a ficha foi gravada, para um
- * cadastro que não deu certo não deixar linha no banco (revisão AA2, 23/11/2026). O arquivo que sobra sem
- * dono fica no bucket, como o retrato trocado.
+/**
+ * Põe o retrato no bucket das fotos, debaixo de "retratos/", com uma chave nova. Nada é sobrescrito. A cópia
+ * pequena (sessão D1c, src/lib/retratos.ts), quando veio e passou na conferência, fica ao lado, com nome
+ * próprio; cópia que não passa fica de fora, e o retrato entra assim mesmo (a rota entrega a original). Só os
+ * arquivos: o registro do tamanho (registrarRetratoEnviado), com o da cópia, vem depois que a ficha foi
+ * gravada, para um cadastro que não deu certo não deixar linha no banco (revisão AA2, 23/11/2026). O arquivo
+ * que sobra sem dono fica no bucket, como o retrato trocado.
  */
-async function enviarRetrato(retrato: { bytes: Uint8Array; tipo: string; extensao: string }, integrante: string, usuario: Usuario): Promise<string> {
+async function enviarRetrato(retrato: { bytes: Uint8Array; tipo: string; extensao: string; copia?: Uint8Array }, integrante: string, usuario: Usuario): Promise<{ chave: string; copia: CopiaDoRetrato | null }> {
   const chave = `${crypto.randomUUID()}.${retrato.extensao}`;
   await bucketDeFotos().put(`${PASTA_DOS_RETRATOS}${chave}`, retrato.bytes, {
     httpMetadata: { contentType: retrato.tipo },
     customMetadata: { enviadoPor: usuario.pessoa, integrante },
   });
-  return chave;
+  let copia: CopiaDoRetrato | null = null;
+  if (retrato.copia) {
+    try {
+      const conferida = conferirCopiaDoRetrato(retrato.bytes, retrato.copia);
+      if ('copia' in conferida) {
+        await bucketDeFotos().put(`${PASTA_DOS_RETRATOS}${chaveDaCopiaDoRetrato(chave, conferida.copia.formato)}`, retrato.copia, {
+          httpMetadata: { contentType: conferida.copia.formato === 'webp' ? 'image/webp' : 'image/jpeg' },
+          customMetadata: { copiaDe: chave },
+        });
+        copia = conferida.copia;
+      }
+    } catch (e) {
+      console.error('Não consegui guardar a cópia do retrato:', e);
+    }
+  }
+  return { chave, copia };
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -106,15 +126,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const comAcesso = await pessoasComAcesso();
     const decisao = podeEditarIntegrante(usuario, anterior, comAcesso);
     if (!decisao.ok) return voltar(request, `/pessoas/${id}`, { erro: decisao.motivo });
+    let enviado: { chave: string; copia: CopiaDoRetrato | null } | null = null;
     if (retrato.bytes || tirarRetrato) {
       const pode = podeMudarRetrato(usuario, anterior, comAcesso);
       if (!pode.ok) return voltar(request, `/pessoas/${id}`, { erro: pode.motivo });
       // Trocar ou tirar não apaga o arquivo antigo: a chave anterior fica na versão guardada do cadastro
-      ficha.retrato = retrato.bytes ? await enviarRetrato(retrato as Required<typeof retrato>, id, usuario) : null;
+      enviado = retrato.bytes ? await enviarRetrato(retrato as Required<typeof retrato>, id, usuario) : null;
+      ficha.retrato = enviado?.chave ?? null;
     }
     await atualizarIntegrante(anterior, ficha, usuario);
     // O tamanho entra na conta do espaço das fotos e áudios (migração 070)
-    if (retrato.bytes && ficha.retrato) await registrarRetratoEnviado(ficha.retrato, retrato.bytes.byteLength, usuario);
+    if (retrato.bytes && enviado) await registrarRetratoEnviado(enviado.chave, retrato.bytes.byteLength, usuario, enviado.copia);
     // Quem chegou à ficha vê a pessoa (anterior saiu de listarIntegrantesQueVe): pode dar apelido a ela
     if (meuApelido.guardar && ((await listarMeusApelidos(usuario.pessoa)).get(id) ?? null) !== meuApelido.apelido) {
       await guardarMeuApelido(usuario.pessoa, id, meuApelido.apelido);
@@ -140,7 +162,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // ninguém. "nova" é o endereço deste formulário, então não pode ser id de ninguém
   let novoId = slugUnico(base, await codigosOcupadosDePessoas());
   // Quem cadastra pode editar a página, então pode pôr o retrato
-  if (retrato.bytes) ficha.retrato = await enviarRetrato(retrato as Required<typeof retrato>, novoId, usuario);
+  const enviado = retrato.bytes ? await enviarRetrato(retrato as Required<typeof retrato>, novoId, usuario) : null;
+  if (enviado) ficha.retrato = enviado.chave;
   // O endereço que outro pedido usou no meio tempo: o site tenta de novo sozinho, com o banco de agora, e no fim
   // volta com o recado e o que foi digitado, sem 500 (o D2 da sessão Z, estendido na sessão AA). Se quem
   // entrou no meio tempo tem o mesmo nome, vale o aviso de sempre, com a mesma regra da primeira vez: só quem
@@ -158,7 +181,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (criado === SEM_CODIGO) return voltar(request, origem, { erro: 'Não consegui salvar.' });
   if (criado) return voltar(request, origem, { erro: criado });
   // A pessoa entrou: só agora o tamanho do retrato entra na conta do espaço (migração 070)
-  if (retrato.bytes && ficha.retrato) await registrarRetratoEnviado(ficha.retrato, retrato.bytes.byteLength, usuario);
+  if (retrato.bytes && enviado) await registrarRetratoEnviado(enviado.chave, retrato.bytes.byteLength, usuario, enviado.copia);
   if (meuApelido.guardar && meuApelido.apelido) await guardarMeuApelido(usuario.pessoa, novoId, meuApelido.apelido);
   return voltar(request, `/pessoas/${novoId}/editar?novo=1`, { ok: `${nome} entrou no acervo. Agora, os laços.` });
 };

@@ -15,7 +15,7 @@ import { numeroDoRetrato, rotuloDoRetrato, somaDoRetrato } from '../lib/avisos';
 import { ENDERECO_DA_ADMINISTRACAO, contaDePendencias } from '../lib/conta';
 import { contarPendenciasDaAdministracao } from '../lib/servidor/conta';
 import { contarAvisosPendentes, listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
-import { COMBINACOES_DE_FONTES, assinaturaDaTela, atributosDasFontes, combinacaoDe } from '../lib/visual';
+import { FONTES_DO_SITE, assinaturaDaTela, atributosDasFontes, combinacaoDe } from '../lib/visual';
 
 interface Props {
   titulo?: string;
@@ -60,9 +60,11 @@ const [todosOsNucleos, integrantes, avisosPendentes, pendenciasDaAdministracao] 
 ]);
 const assinatura = assinaturaDaTela(nucleos, todosOsNucleos);
 const familia = Astro.props.familia ?? assinatura.familia;
-// As fontes do site (FONTES_DO_SITE). Nas prévias, a faixa de teste pode trocar a combinação.
+// As fontes do site (FONTES_DO_SITE). Nas prévias, uma combinação guardada de antes ainda vale, e a faixa de teste leva de volta à do site.
 const fontes = fontesDoPedido(Astro.request);
 const combinacaoEmUso = combinacaoDe(fontes);
+const combinacaoDoSite = combinacaoDe(FONTES_DO_SITE);
+const fontesDiferentes = Boolean(combinacaoDoSite) && combinacaoEmUso !== combinacaoDoSite;
 const icones = `/icones/${fontes.serifa}`;
 const teste = semLogin();
 // Na homologação a família é a de verdade: a faixa fica bem marcada, como símbolo do ambiente, para
@@ -143,7 +145,7 @@ const telas = [
               <span>Visual novo, com o acervo de exemplo.</span>
             )}
             <span>
-              Fontes {combinacaoEmUso?.toUpperCase() ?? 'misturadas'}, vendo como {usuario.nome}. <u>Trocar</u>
+              Vendo como {usuario.nome}. <u>Trocar</u>
             </span>
           </summary>
           <div class="teste__corpo">
@@ -155,14 +157,15 @@ const telas = [
                 </a>
               ))}
             </p>
-            <p>
-              <span>Fontes:</span>
-              {COMBINACOES_DE_FONTES.map((c) => (
-                <a href={`/conceito/fontes/${c.id}?volta=${volta}`} aria-current={c.id === combinacaoEmUso ? 'true' : undefined}>
-                  {c.id.toUpperCase()} {c.nome}
-                </a>
-              ))}
-            </p>
+            {/* A linha das fontes saiu (decisão do Gui, 23/11/2026): a fonte do site está escolhida, e a
+                comparação das combinações fica na página do sistema. Quem ainda tem outra combinação guardada
+                de antes vê o recado e volta para a do site. */}
+            {fontesDiferentes && (
+              <p>
+                <span>Esta aba está com outras fontes ({combinacaoEmUso?.toUpperCase() ?? 'misturadas'}).</span>
+                <a href={`/conceito/fontes/${combinacaoDoSite}?volta=${volta}`}>Voltar às fontes do site</a>
+              </p>
+            )}
             <p>
               <span>Ver como:</span>
               {pessoasDeTeste.map((p) => (

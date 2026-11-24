@@ -3,7 +3,8 @@
 // acervo de exemplo, as três respostas saem iguais (a mesma recusa para quem não vê), inclusive na memória
 // restrita a famílias, no rascunho, na lixeira, na foto removida, na foto solta e na foto de um relato em
 // rascunho. E o cabeçalho de 7 dias só onde o Gui decidiu (decisão 3, docs/briefs/desempenho.md): foto de
-// memória publicada e retrato de quem não está na lixeira. Rascunho, lixeira e áudio continuam como antes.
+// memória publicada e retrato de quem não está na lixeira. Rascunho e lixeira continuam como antes; os
+// áudios, desde a sessão D1c, em testes/audios-guardados.test.ts.
 // Testado com as rotas de verdade sobre o banco SQLite em memória (testes/apoio/d1.ts).
 import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
@@ -179,21 +180,4 @@ describe.skipIf(!comSqlite)('a cópia responde igual à original, para cada pess
   });
 });
 
-describe('os áudios ficam como estão', () => {
-  const fontes: Record<string, string> = Object.fromEntries(
-    Object.entries(import.meta.glob<string>('../src/pages/**/*.ts', { query: '?raw', import: 'default', eager: true })).map(([k, v]) => [k.replace('../', ''), v]),
-  );
-  it('a rota dos áudios continua conferindo a cada uso, até o Gui decidir', () => {
-    const rota = fontes['src/pages/audios/[...chave].ts']!;
-    expect(rota).toContain("headers.set('Cache-Control', 'private, no-cache');");
-    expect(rota).not.toContain('max-age');
-    expect(rota).not.toContain('cabecalhoDeGuardar');
-  });
-  it('só as rotas de fotos e de retratos guardam por 7 dias', () => {
-    const quem = Object.entries(fontes)
-      .filter(([, texto]) => texto.includes('cabecalhoDeGuardar(') || texto.includes('max-age'))
-      .map(([caminho]) => caminho)
-      .sort();
-    expect(quem).toEqual(['src/pages/fotos/[...chave].ts', 'src/pages/retratos/[...chave].ts']);
-  });
-});
+// Os áudios guardados por 7 dias (sessão D1c) estão em testes/audios-guardados.test.ts.
