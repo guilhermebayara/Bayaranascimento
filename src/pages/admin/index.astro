@@ -9,7 +9,7 @@
 import '../../visual/telas/painel.css';
 import '../../visual/telas/conta.css';
 import Visual from '../../layouts/Visual.astro';
-import { FRASE_DA_COPIA_DO_ACERVO, GRUPO_DO_ESPACO, contaDePendencias, grupoDaPendencia, gruposDaAdministracao, fraseDaCopiaMensal, idDoGrupo, porcentoDoBanco, resumoDoGrupo } from '../../lib/conta';
+import { FRASE_DA_COPIA_DO_ACERVO, FRASE_DA_COPIA_PARA_O_ESPELHO, GRUPO_DO_ESPACO, contaDePendencias, grupoDaPendencia, gruposDaAdministracao, fraseDaCopiaMensal, idDoGrupo, porcentoDoBanco, resumoDoGrupo } from '../../lib/conta';
 import { LIMITE_DO_PLANO } from '../../lib/tamanho-do-banco';
 import { comArtigo, juntarNomes } from '../../lib/servidor/conteudo';
 import { montarAdministracao } from '../../lib/servidor/conta';
@@ -123,12 +123,27 @@ const copiaMensal = fraseDaCopiaMensal(situacao.copiaMensal, adm.hoje);
               </div>
               <div class="conta__copias">
                 {copiaMensal && <p class:list={['conta__nota', 'ficha', { conta__pendente: Boolean(pendenciaDo('copia')) }]}>{copiaMensal}</p>}
+                {/* A cópia do acervo vem em partes, que o navegador pede e junta num arquivo só (sessão D1e); a cópia para o espelho é pequena e vem de uma vez. Cada uma fica junto da frase dela */}
                 {copias.map((copia) => (
-                  <a class="acao" href={copia.href} download>
-                    {copia.rotulo}
-                  </a>
+                  <div class="conta__copia" data-copia-em-partes={copia.emPartes ? '' : undefined}>
+                    {copia.emPartes ? (
+                      <button type="button" class="acao" data-copia-baixar>
+                        {copia.rotulo}
+                      </button>
+                    ) : (
+                      <a class="acao" href={copia.href} download>
+                        {copia.rotulo}
+                      </a>
+                    )}
+                    {copia.emPartes && <span class="conta__nota ficha" data-copia-andamento role="status" aria-live="polite" />}
+                    {copia.emPartes && (
+                      <noscript>
+                        <span class="conta__nota">Para baixar a cópia, o navegador precisa estar com o JavaScript ligado.</span>
+                      </noscript>
+                    )}
+                    <p class="conta__nota conta__copia-frase">{copia.emPartes ? FRASE_DA_COPIA_DO_ACERVO : FRASE_DA_COPIA_PARA_O_ESPELHO}</p>
+                  </div>
                 ))}
-                {copias.length > 0 && <p class="conta__nota">{FRASE_DA_COPIA_DO_ACERVO}</p>}
               </div>
             </div>
           </details>
@@ -141,7 +156,41 @@ const copiaMensal = fraseDaCopiaMensal(situacao.copiaMensal, adm.hoje);
 <script>
   // O balão das pendências (Esc, toque fora) e a pendência sem página própria, que abre o grupo dela
   import { ligarMenus } from '../../lib/cliente/menus';
+  import { baixarCopiaEmPartes, nomeDoArquivoDaCopia } from '../../lib/copia-em-partes';
   ligarMenus();
+
+  // "Baixar cópia do acervo": o navegador pede o índice e cada parte, com o andamento à vista, e monta o
+  // arquivo de sempre no aparelho (src/lib/copia-em-partes.ts)
+  for (const caixa of document.querySelectorAll<HTMLElement>('[data-copia-em-partes]')) {
+    const botao = caixa.querySelector<HTMLButtonElement>('[data-copia-baixar]')!;
+    const andamento = caixa.querySelector<HTMLElement>('[data-copia-andamento]')!;
+    botao.addEventListener('click', async () => {
+      botao.disabled = true;
+      andamento.textContent = 'Começando a cópia…';
+      try {
+        const buscar = async (endereco: string) => {
+          const resposta = await fetch(endereco, { cache: 'no-store' });
+          if (!resposta.ok) throw new Error(`Resposta ${resposta.status}`);
+          return resposta.json();
+        };
+        const copia = await baixarCopiaEmPartes(buscar, (feitas, total) => {
+          andamento.textContent = `Baixando ${Math.min(feitas + 1, total)} de ${total}`;
+        });
+        const nome = nomeDoArquivoDaCopia(copia.gerada_em);
+        const endereco = URL.createObjectURL(new Blob([JSON.stringify(copia)], { type: 'application/json' }));
+        const link = Object.assign(document.createElement('a'), { href: endereco, download: nome });
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(endereco), 60_000);
+        andamento.textContent = `Cópia baixada: ${nome}`;
+      } catch {
+        andamento.textContent = 'Não consegui baixar a cópia. Confira a internet e tente de novo.';
+      } finally {
+        botao.disabled = false;
+      }
+    });
+  }
   // Quem chega pelo endereço de um grupo (/admin#espaco-e-copias, ou uma âncora antiga de "Sua conta") o encontra aberto
   const doEndereco = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
   if (doEndereco instanceof HTMLDetailsElement) doEndereco.open = true;

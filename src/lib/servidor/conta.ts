@@ -7,7 +7,7 @@ import { AJUSTE_DOS_NAO_DUPLICADOS } from '../juntar';
 import { possiveisDuplicados } from '../nomes-parecidos';
 import { fraseDoEspaco, notaDosSemMedida, situacaoDoEspaco } from '../espaco-dos-arquivos';
 import { lerAcessos, semLogin } from './acesso';
-import { ambiente, bucketDeFotos } from './ambiente';
+import { ambiente, bucketDeFotos, ehHomologacao } from './ambiente';
 import { podeEspelhar } from './espelho';
 import { podeExcluirMemoria, type Usuario } from './permissoes';
 import {
@@ -177,7 +177,7 @@ export async function montarAdministracao(usuario: Usuario) {
   const espaco = situacaoDoEspaco(arquivos.bytes, arquivos.semMedida);
   const hoje = new Date();
   return {
-    administracao: administracao(usuario, { podeEspelhar: podeEspelhar() }, situacao),
+    administracao: administracao(usuario, { podeEspelhar: podeEspelhar(), copiaParaOEspelho: !ehHomologacao() }, situacao),
     /** a situação do acervo para a administração, e o que dela pede ação (src/lib/conta.ts) */
     situacao,
     pendencias: pendenciasDaAdministracao(situacao, hoje),

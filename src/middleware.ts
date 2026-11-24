@@ -39,12 +39,12 @@ const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo)
 
   await prepararBanco();
 
-  // A cópia mensal no Google Drive entra com um token de serviço, sem pessoa
+  // A cópia mensal no Google Drive entra com um token de serviço, sem pessoa, no índice e em cada parte
   if (contexto.url.pathname === '/api/copia' && contexto.request.method === 'GET' && (await ehServicoDeCopia(contexto.request))) {
-    const resposta = await respostaDaCopia();
-    // A data da última cópia mensal, para a pendência "cópia mensal atrasada" em "Sua conta".
-    // Anotar não pode impedir a cópia de chegar ao Drive.
-    await anotarCopiaMensal().catch(() => undefined);
+    const { resposta, terminou } = await respostaDaCopia(contexto.url);
+    // A data da última cópia mensal, para a pendência "cópia mensal atrasada" em "Sua conta": anotada quando
+    // o script pede a última parte. Anotar não pode impedir a cópia de chegar ao Drive.
+    if (terminou) await anotarCopiaMensal().catch(() => undefined);
     return resposta;
   }
 

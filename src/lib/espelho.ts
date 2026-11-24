@@ -1,7 +1,7 @@
 // O espelho da produção, para a homologação.
 //
-// Recebe a cópia do acervo (a mesma do Google Drive e do botão "Baixar cópia do acervo") e devolve um
-// acervo para a homologação com a família de verdade e as memórias de exemplo (decisão do Gui, 18/11/2026).
+// Recebe a cópia para o espelho ("Baixar cópia para o espelho", na Administração da produção, só com as
+// tabelas da família; src/lib/copia-para-o-espelho.ts) e devolve um acervo para a homologação com a família de verdade e as memórias de exemplo (decisão do Gui, 18/11/2026).
 //
 // A regra: nomes, datas e laços passam; memórias, relatos, textos, retratos e fotos nunca passam.
 // - Passam, como estão na produção: as pessoas (id, nome, apelido, tipo, espécie, como se referir, as

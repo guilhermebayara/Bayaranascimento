@@ -122,10 +122,15 @@ describe('administração', () => {
     expect(administracao({ admin: true }, { podeEspelhar: true }).map((i) => i.rotulo)).toContain('Espelho da produção');
   });
 
-  it('só há uma cópia para baixar, a do acervo: a cópia com os retratos para o espelho saiu (observação do Gui, 18/11/2026)', () => {
+  it('a cópia do acervo, em partes; a cópia com os retratos para o espelho saiu (observação do Gui, 18/11/2026) e a cópia só da família entrou fora da homologação (sessão D1e)', () => {
+    const doAcervo = { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true, emPartes: true };
+    const paraOEspelho = { rotulo: 'Baixar cópia para o espelho', href: '/api/copia-para-o-espelho', baixar: true };
     for (const podeEspelhar of [true, false]) {
-      expect(administracao({ admin: true }, { podeEspelhar }).filter((i) => i.baixar)).toEqual([{ rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true }]);
+      // Na homologação, não: é a produção que manda a família para lá
+      expect(administracao({ admin: true }, { podeEspelhar }).filter((i) => i.baixar)).toEqual([doAcervo]);
+      expect(administracao({ admin: true }, { podeEspelhar, copiaParaOEspelho: true }).filter((i) => i.baixar)).toEqual([doAcervo, paraOEspelho]);
     }
+    expect(administracao({ admin: false }, { podeEspelhar: false, copiaParaOEspelho: true })).toEqual([]);
   });
 });
 
@@ -259,8 +264,9 @@ describe('a data da cópia mensal', () => {
   });
   it('o middleware anota só no pedido do serviço de cópia, depois de montar a resposta, sem deixar a falha passar', () => {
     const middleware = ler('src/middleware.ts');
-    const trecho = middleware.slice(middleware.indexOf('ehServicoDeCopia(contexto.request)'), middleware.indexOf('usuarioDoPedido(contexto.request)'));
-    expect(trecho).toMatch(/const resposta = await respostaDaCopia\(\);\s*[\s\S]*?await anotarCopiaMensal\(\)\.catch\(\(\) => undefined\);\s*return resposta;/);
+    const trecho = middleware.slice(middleware.indexOf('ehServicoDeCopia(contexto.request)'), middleware.indexOf('pessoaQuePede(contexto.request)'));
+    // Desde a sessão D1e, a cópia vem em partes: a anotação é feita na última parte da última tabela
+    expect(trecho).toMatch(/const \{ resposta, terminou \} = await respostaDaCopia\(contexto\.url\);\s*[\s\S]*?if \(terminou\) await anotarCopiaMensal\(\)\.catch\(\(\) => undefined\);\s*return resposta;/);
     expect(middleware.match(/anotarCopiaMensal\(\)/g)).toHaveLength(1);
   });
   it('a cópia mensal só é conferida na produção', () => {
@@ -337,7 +343,8 @@ describe('pedidos para excluir pessoa', () => {
 describe('a cópia do acervo (decisão do Gui depois do QA de 18/11/2026)', () => {
   it('a página diz numa frase que a cópia leva tudo, inclusive o que o administrador não vê', () => {
     expect(FRASE_DA_COPIA_DO_ACERVO).toContain('inclusive o que você não vê no site');
-    expect(readFileSync('src/pages/admin/index.astro', 'utf-8')).toContain('{copias.length > 0 && <p class="conta__nota">{FRASE_DA_COPIA_DO_ACERVO}</p>}');
+    // Desde a sessão D1e, cada cópia fica junto da frase dela: a do acervo e a para o espelho
+    expect(readFileSync('src/pages/admin/index.astro', 'utf-8')).toContain('<p class="conta__nota conta__copia-frase">{copia.emPartes ? FRASE_DA_COPIA_DO_ACERVO : FRASE_DA_COPIA_PARA_O_ESPELHO}</p>');
   });
 });
 

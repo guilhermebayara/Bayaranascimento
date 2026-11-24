@@ -185,12 +185,18 @@ describe.skipIf(!comSqlite)('guarda por pedido', async () => {
   it('o Server-Timing conta cada comando e cada ida ao banco', async () => {
     await pedido('gui', async () => {
       await repositorio.listarIntegrantes();
-      await repositorio.listarIntegrantes();
-      await repositorio.listarTipos();
+      // As linhas devolvidas pelo banco (seção 8 da M2, sessão D1e): a segunda leitura, guardada, não conta de novo
       const medida = ambiente.medidaDoPedido()!;
+      const daPrimeira = medida.linhas;
+      expect(daPrimeira).toBeGreaterThan(0);
+      await repositorio.listarIntegrantes();
+      expect(medida.linhas).toBe(daPrimeira);
+      await repositorio.listarTipos();
       expect(medida.consultas).toBe(3);
       expect(medida.idas).toBe(2);
-      expect(ambiente.servidorTiming()).toMatch(/^servidor;dur=\d+, d1;dur=\d+;desc="consultas=3 idas=2"$/);
+      const tipos = (banco.sqlite.prepare('SELECT COUNT(*) AS n FROM tipos').get() as { n: number }).n;
+      expect(medida.linhas).toBe(daPrimeira + tipos);
+      expect(ambiente.servidorTiming()).toMatch(new RegExp(`^servidor;dur=\\d+, d1;dur=\\d+;desc="consultas=3 idas=2 linhas=${daPrimeira + tipos}"$`));
     });
     expect(ambiente.servidorTiming()).toBeUndefined();
   });

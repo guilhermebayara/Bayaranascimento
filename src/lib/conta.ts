@@ -124,6 +124,8 @@ export interface ItemDeAdministracao {
   href: string;
   /** link de baixar arquivo */
   baixar?: boolean;
+  /** o arquivo é montado no aparelho, das partes que o navegador pede (a cópia do acervo, sessão D1e) */
+  emPartes?: boolean;
   /** a situação do item, em mono, embaixo do nome ("14 tipos", "escrita em 2026") */
   situacao?: string;
   /** o item pede uma ação de quem administra: ganha o ponto na cor de alerta */
@@ -205,6 +207,12 @@ export function diaDaCopia(ultima: string): string {
  * tudo, inclusive o que o administrador não vê no site, porque é ela que restaura o acervo inteiro.
  */
 export const FRASE_DA_COPIA_DO_ACERVO = 'A cópia leva o acervo inteiro, inclusive o que você não vê no site, porque é ela que restaura tudo.';
+
+/**
+ * A frase ao lado de "Baixar cópia para o espelho" (sessão D1e): o que ela leva e para que serve. O botão só
+ * aparece fora da homologação, porque é a produção que manda a família para lá.
+ */
+export const FRASE_DA_COPIA_PARA_O_ESPELHO = 'A cópia para o espelho leva só as pessoas, as famílias e os laços, para refazer o espelho na homologação.';
 
 /** A frase da cópia mensal no cartão, ao lado do banco. */
 export function fraseDaCopiaMensal(copia: SituacaoDaAdministracao['copiaMensal'], hoje: Date): string {
@@ -297,12 +305,12 @@ export function gruposDaAdministracao(itens: ItemDeAdministracao[]): { titulo: s
 
 /**
  * "Administração", só para os administradores: tipos de momento, famílias, a carta de Natal, a página
- * do sistema visual, "Baixar cópia do acervo" e, onde o espelho existe (na homologação e no
- * computador), o espelho da produção. Com a situação do acervo, cada item diz a dele, e a carta por
+ * do sistema visual, "Baixar cópia do acervo", "Baixar cópia para o espelho" (fora da homologação) e, onde o
+ * espelho existe (na homologação e no computador), o espelho da produção. Com a situação do acervo, cada item diz a dele, e a carta por
  * escrever ganha a marca de pendência. O banco e a cópia mensal ficam à parte, no pé do cartão. Para
  * quem não é administrador, nada.
  */
-export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar: boolean }, situacao?: SituacaoDaAdministracao): ItemDeAdministracao[] {
+export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar: boolean; copiaParaOEspelho?: boolean }, situacao?: SituacaoDaAdministracao): ItemDeAdministracao[] {
   if (!usuario.admin) return [];
   const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
   return [
@@ -340,12 +348,14 @@ export function administracao(usuario: { admin: boolean }, onde: { podeEspelhar:
     { tema: 'ferramentas', rotulo: 'Transcrição automática', href: '/admin/transcricao', situacao: situacao && (situacao.transcricao === 'ligada' ? 'ligada' : 'desligada') },
     { tema: 'ferramentas', rotulo: 'Cópias menores das fotos', href: '/admin/copias-das-fotos', situacao: situacao && 'para as fotos de antes' },
     { tema: 'ferramentas', rotulo: 'Sistema visual', href: '/sistema', situacao: situacao && 'tokens e peças' },
-    { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true },
+    { rotulo: 'Baixar cópia do acervo', href: '/api/copia', baixar: true, emPartes: true },
+    ...(onde.copiaParaOEspelho ? [{ rotulo: 'Baixar cópia para o espelho', href: '/api/copia-para-o-espelho', baixar: true }] : []),
     ...(onde.podeEspelhar ? [{ tema: 'ferramentas', rotulo: 'Espelho da produção', href: '/admin/espelho', situacao: situacao && 'só na homologação' }] : []),
   ].map((item) => {
     const limpo: ItemDeAdministracao = { rotulo: item.rotulo, href: item.href };
     if ('tema' in item && item.tema) limpo.tema = item.tema as TemaDaAdministracao;
     if ('baixar' in item && item.baixar) limpo.baixar = true;
+    if ('emPartes' in item && item.emPartes) limpo.emPartes = true;
     if (item.situacao) limpo.situacao = item.situacao;
     if ('pendencia' in item && item.pendencia) limpo.pendencia = true;
     return limpo;
