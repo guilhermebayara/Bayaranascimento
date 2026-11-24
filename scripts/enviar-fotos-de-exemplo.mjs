@@ -1,4 +1,4 @@
-// Leva as 11 fotos de exemplo (exemplos/fotos/) e os áudios de exemplo de voz sintetizada
+// Leva as 11 fotos de exemplo (exemplos/fotos/), as cópias menores delas (exemplos/fotos/copias/) e os áudios de exemplo de voz sintetizada
 // (exemplos/audios/) ao bucket de teste, pela rota /api/fotos-de-exemplo de uma prévia ou do computador.
 // Basta uma vez: as prévias dividem o bucket de teste, e a homologação lê dele as fotos. O site só aceita
 // esses arquivos, conferidos pelo SHA-256, e só nas prévias e no computador.
@@ -16,6 +16,10 @@ const rota = new URL('/api/fotos-de-exemplo', endereco);
 const corpo = new FormData();
 for (const nome of readdirSync('exemplos/fotos').filter((n) => n.endsWith('.jpg')).sort()) {
   corpo.append('foto', new Blob([readFileSync(`exemplos/fotos/${nome}`)], { type: 'image/jpeg' }), nome);
+}
+// As cópias menores das fotos (sessão D1b), feitas por scripts/copias-das-fotos-de-exemplo.mjs
+for (const nome of readdirSync('exemplos/fotos/copias').filter((n) => n.endsWith('.webp')).sort()) {
+  corpo.append('copia', new Blob([readFileSync(`exemplos/fotos/copias/${nome}`)], { type: 'image/webp' }), nome);
 }
 for (const nome of readdirSync('exemplos/audios').filter((n) => n.endsWith('.m4a')).sort()) {
   corpo.append('audio', new Blob([readFileSync(`exemplos/audios/${nome}`)], { type: 'audio/mp4' }), nome);

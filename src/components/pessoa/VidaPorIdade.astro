@@ -47,7 +47,7 @@ const plural = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
               <li style={estiloDoTipo(m.tipo)} data-chave={`m:${m.id}`} data-ano={m.ano}>
                 <a class="vida__memoria" href={`/memorias/${m.id}`}>
                   <span class="vida__foto">
-                    <Polaroid id={m.id} fotos={m.fotos} legenda="" tipo={m.tipo} monte={false} reta />
+                    <Polaroid id={m.id} fotos={m.fotos} legenda="" tipo={m.tipo} monte={false} reta largura="(min-width: 1600px) 90px, 70px" />
                   </span>
                   <span class="vida__texto">
                     <span class="ficha suave">

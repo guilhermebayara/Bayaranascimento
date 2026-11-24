@@ -74,10 +74,10 @@ const idDaMensagem = m.id ? `mensagem-${m.id}` : undefined;
         <figure class="msg__foto" data-foto data-foto-id={m.foto.id} data-legenda={m.foto.legenda ?? undefined}>
           {m.foto.galeria !== undefined ? (
             <a href={m.foto.src} data-galeria={m.foto.galeria} aria-label={`Ver a foto inteira${m.foto.legenda ? `: ${m.foto.legenda}` : ''}`}>
-              <img src={m.foto.src} alt={m.foto.legenda ?? ''} loading="lazy" decoding="async" />
+              <img src={m.foto.mostrar ?? m.foto.src} alt={m.foto.legenda ?? ''} loading="lazy" decoding="async" />
             </a>
           ) : (
-            <img src={m.foto.src} alt={m.foto.legenda ?? ''} loading="lazy" decoding="async" />
+            <img src={m.foto.mostrar ?? m.foto.src} alt={m.foto.legenda ?? ''} loading="lazy" decoding="async" />
           )}
           {m.foto.legenda && <figcaption class="ficha suave">{m.foto.legenda}</figcaption>}
         </figure>

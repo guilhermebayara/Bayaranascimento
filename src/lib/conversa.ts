@@ -10,6 +10,7 @@
 // - A data de uma mensagem só aparece quando muda o dia ("Contou mais em 3 de dezembro de 2026").
 // - Responder citando: no relato próprio, citar uma mensagem de outra pessoa da mesma memória. A citação
 //   fica no relato de quem cita, e ninguém mexe no relato do outro.
+import { fontesDaFoto, type Copias } from './copias-das-fotos';
 
 export type TipoDeMensagem = 'texto' | 'audio' | 'foto';
 
@@ -140,7 +141,8 @@ export interface MensagemNaTela {
   tipo: TipoDeMensagem;
   texto?: string;
   audio?: { id: number; src: string; duracao: number | null; transcricao: string | null };
-  foto?: { id: number; src: string; legenda: string | null; galeria?: number };
+  /** src abre a foto inteira; mostrar é o que aparece na conversa (a cópia pequena, quando existe) */
+  foto?: { id: number; src: string; mostrar?: string; legenda: string | null; galeria?: number };
   citaId?: number | null;
   citacao?: { quem: string; resumo: string } | null;
   /** a linha "Contou mais em ..." antes desta mensagem */
@@ -154,7 +156,7 @@ export interface MensagemNaTela {
 export function mensagensNaTela(
   mensagens: readonly Mensagem[],
   audios: ReadonlyMap<number, { chave: string; duracao: number | null; transcricao: string | null }>,
-  fotos: ReadonlyMap<number, { chave: string; legenda: string | null; galeria?: number }>,
+  fotos: ReadonlyMap<number, { chave: string; legenda: string | null; galeria?: number; copias?: Copias | null }>,
   citada: (id: number) => { quem: string; resumo: string } | undefined,
 ): MensagemNaTela[] {
   const quebras = quebrasDeDia(mensagens);
@@ -166,7 +168,10 @@ export function mensagensNaTela(
     }
     if (m.tipo === 'foto') {
       const f = fotos.get(m.fotoId!);
-      return f ? [{ ...base, foto: { id: m.fotoId!, src: `/fotos/${f.chave}`, legenda: f.legenda, ...(f.galeria !== undefined ? { galeria: f.galeria } : {}) } }] : [];
+      if (!f) return [];
+      const mostrar = fontesDaFoto(f, 'pequena').src;
+      const src = `/fotos/${f.chave}`;
+      return [{ ...base, foto: { id: m.fotoId!, src, ...(mostrar !== src ? { mostrar } : {}), legenda: f.legenda, ...(f.galeria !== undefined ? { galeria: f.galeria } : {}) } }];
     }
     const citacao = m.citaId ? (citada(m.citaId) ?? null) : null;
     return [{ ...base, texto: m.texto ?? '', citaId: citacao ? m.citaId : null, citacao }];

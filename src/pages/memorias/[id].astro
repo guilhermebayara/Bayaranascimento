@@ -18,6 +18,7 @@ import TarjaDoDiscreto from '../../components/visual/TarjaDoDiscreto.astro';
 import Recado from '../../components/visual/Recado.astro';
 import { fraseDosRelatosQueEsperam } from '../../lib/avisos';
 import Polaroid from '../../components/visual/Polaroid.astro';
+import { fontesDaFoto } from '../../lib/copias-das-fotos';
 import Rabisco from '../../components/visual/Rabisco.astro';
 import { memoriaDoCapitulo } from '../../lib/capitulos';
 import { recolheQuemEstava, relatoJaEstaNaAbertura } from '../../lib/memoria';
@@ -253,7 +254,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
         memoria.fotos.length > 0 && (
           // Com mais de uma foto e espaço, as de trás se abrem em leque. Cada foto abre a galeria nela.
           <div class:list={['abre__foto', outrasFotos && `abre__foto--leque abre__foto--${Math.min(memoria.fotos.length, 3)}`]}>
-            <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} cedo galeria />
+            <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} cedo galeria principal largura="(min-width: 1600px) 470px, (min-width: 1000px) 310px, 160px" />
           </div>
         )
       }
@@ -443,7 +444,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
                     <a class="monte" href={`/fotos/${foto.chave}`} data-galeria={n} aria-label={`Ver a foto inteira${foto.legenda ? `: ${foto.legenda}` : ''}`}>
                       <figure class="polaroid" style={`--giro: ${giroDoId(`${memoria.id}-${n}`)}deg`}>
                         <span class="polaroid__foto">
-                          <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
+                          <img {...fontesDaFoto(foto, 'pequena', '(min-width: 1600px) 250px, (min-width: 1000px) 220px, 150px')} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
                         </span>
                         <figcaption class="polaroid__legenda">{foto.legenda ?? ''}</figcaption>
                       </figure>
@@ -532,7 +533,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
           {memoria.fotos.map((foto, n) => (
             <li class="galeria__quadro">
               <figure>
-                <img src={`/fotos/${foto.chave}`} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
+                <img {...fontesDaFoto(foto, 'inteira')} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
                 <figcaption>
                   <span class="galeria__legenda">{foto.legenda ?? ''}</span>
                 </figcaption>

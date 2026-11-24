@@ -18,7 +18,7 @@ const { memoria } = Astro.props;
   <div class="contar__miolo">
     {/* A foto leva à memória, como o título ao lado. Para o teclado e o leitor de tela, o link é o do título */}
     <a class="contar__foto" href={`/memorias/${memoria.id}`} tabindex="-1" aria-hidden="true">
-      <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} alt="" monte={false} tipo={memoria.tipo} />
+      <Polaroid id={memoria.id} fotos={memoria.fotos} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} alt="" monte={false} tipo={memoria.tipo} largura="(min-width: 1600px) 180px, 110px" />
     </a>
     <div class="contar__texto">
       <p class="contar__titulo serifa t-3" id="contar">

@@ -84,15 +84,17 @@ describe('quem vê o retrato', () => {
   it('a rota responde igual para retrato que não existe e retrato que a pessoa não vê', () => {
     const rota = fontes['src/pages/retratos/[...chave].ts'];
     expect(rota).toMatch(/if \(!CHAVE_DE_RETRATO\.test\(chave\) && !exemplo\) return naoEncontrado\(\);/);
-    expect(rota).toMatch(/if \(!\(await podeVerRetratoDaChave\(locals\.usuario, chave\)\)\) return naoEncontrado\(\);/);
-    expect(rota).toContain("'Cache-Control', 'private, no-cache'");
+    expect(rota).toContain('const acesso = await acessoAoRetrato(locals.usuario, chave);\n  if (!acesso) return naoEncontrado();');
+    // Guardado no aparelho por 7 dias só o que pode (sessão D1b; o cabeçalho é testado em cache-das-fotos.test.ts)
+    expect(rota).toContain('cabecalhoDeGuardar(acesso.guardar, semLogin())');
   });
 
   it('só o retrato atual é entregue, e passa pela mesma regra de quem a pessoa vê', () => {
     const repositorio = fontes['src/lib/servidor/repositorio.ts'];
-    const regra = repositorio.slice(repositorio.indexOf('export async function podeVerRetratoDaChave'));
-    expect(regra).toContain("prepare('SELECT id FROM integrantes WHERE retrato = ?')");
-    expect(regra).toContain('return donos.some((dono) => podeVerRetrato(dono.id, naoVe));');
+    const regra = repositorio.slice(repositorio.indexOf('export async function acessoAoRetrato'));
+    expect(repositorio).toContain('return (await acessoAoRetrato(usuario, chave)) !== null;');
+    expect(regra).toContain("prepare('SELECT id, excluida_em FROM integrantes WHERE retrato = ?')");
+    expect(regra).toContain('.filter((dono) => podeVerRetrato(dono.id, naoVe));');
   });
 
   it('as páginas só mostram o retrato de quem a pessoa vê', () => {

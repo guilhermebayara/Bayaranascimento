@@ -121,7 +121,8 @@ describe('leitura das fotos de exemplo', () => {
   it('as rotas de fotos e de retratos leem as 11 do bucket de teste, só para ler', () => {
     for (const rota of ['src/pages/fotos/[...chave].ts', 'src/pages/retratos/[...chave].ts']) {
       expect(fontes[rota]).toContain('const exemplo = ehChaveDeExemplo(chave);');
-      expect(fontes[rota]).toMatch(/await bucketDosExemplos\(\)\?\.get\(chave, \{ onlyIf: request\.headers \}\)/);
+      // A rota das fotos lê também as cópias de exemplo (sessão D1b), pela mesma leitura
+      expect(fontes[rota]).toMatch(/bucketDosExemplos\(\)\?\.get\((chave|k), \{ onlyIf: request\.headers \}\)/);
     }
   });
 

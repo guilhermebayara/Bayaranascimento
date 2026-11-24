@@ -731,8 +731,10 @@ describe('ajustes: lista, formas de ver da pessoa, quem aparece e o link do tít
     // O arquivo da foto só é pedido onde a mesma regra vale: no celular o navegador nem o baixa
     const lista = fonte('components/explorar/Lista.astro');
     expect(lista).toContain("const COM_MOUSE = '(min-width: 62rem) and (hover: hover) and (pointer: fine)';");
-    expect(lista).toMatch(/<Polaroid [^>]*soOnde=\{COM_MOUSE\} \/>/);
-    expect(fonte('components/visual/Polaroid.astro')).toMatch(/<source media=\{soOnde\} srcset=/);
+    expect(lista).toMatch(/<Polaroid [^>]*soOnde=\{COM_MOUSE\}[^>]*\/>/);
+    // E só quando a linha é apontada (sessão D1b): as fontes ficam em data-* até o mouse ou o foco chegar
+    expect(fonte('components/visual/Polaroid.astro')).toMatch(/<img src=\{VAZIA\} data-so-onde=\{soOnde\} data-src=/);
+    expect(fonte('lib/cliente/foto-ao-passar.ts')).toContain('if (!matchMedia(img.dataset.soOnde!).matches) continue;');
     // Só essa regra a mostra, e nada na lista fica preso à tela
     expect([...css.matchAll(/\.lista__foto\s*\{[^}]*display:\s*block/g)]).toHaveLength(1);
     expect(css).not.toMatch(/position\s*:\s*(fixed|sticky)/);

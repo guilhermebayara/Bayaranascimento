@@ -3,6 +3,7 @@
 // formulário abandonado, ou soltas por "Apagar de vez", ficam no bucket sem uso. Nada se apaga
 // sozinho: o administrador confere cada uma, com quem enviou, e apaga. A rota é /api/fotos-soltas.
 import Pagina from '../../components/formularios/Pagina.astro';
+import { fontesDaFoto } from '../../lib/copias-das-fotos';
 import ConfirmarRemocao from '../../components/ConfirmarRemocao.astro';
 import Vazio from '../../components/visual/Vazio.astro';
 import { formatarMomento } from '../../lib/datas';
@@ -42,7 +43,7 @@ const total = fotos.reduce((soma, f) => soma + (f.tamanho ?? 0), 0);
         <ul class="linhas soltas">
           {fotos.map((f) => (
             <li>
-              <img src={`/fotos/${f.chave}`} alt="" loading="lazy" width="72" height="72" />
+              <img {...fontesDaFoto(f, 'pequena', '72px')} alt="" loading="lazy" width="72" height="72" />
               <div class="soltas__quem">
                 <strong>Enviada por {nome(f.enviadaPor)}</strong>
                 <span class="ficha suave">{formatarMomento(f.enviadaEm)}{f.tamanho ? ` · ${emGigabytes(f.tamanho)}` : ''}</span>

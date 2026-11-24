@@ -9,6 +9,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 
 const comSqlite = await temSqlite();
+// O nome do módulo fica numa variável porque o projeto não tem os tipos do Node
+const fs = 'node:fs';
+const { readFileSync } = (await import(/* @vite-ignore */ fs)) as { readFileSync: (caminho: URL) => Uint8Array };
 
 const env = vi.hoisted(() => ({ AMBIENTE: 'previa' as string, DB: undefined as unknown, FOTOS: undefined as unknown }));
 vi.mock('cloudflare:workers', () => ({ env }));
@@ -343,5 +346,78 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
       }
     }
     expect(impressao()).toBe(antes);
+  });
+
+  // As cópias menores das fotos (sessão D1b): o envio da foto com as cópias e o ajuste da Administração
+  it('/api/fotos: o envio recusado não grava a foto nem as cópias (sessão D1b)', async () => {
+    const fotos = await import('../src/pages/api/fotos');
+    const gravadas: string[] = [];
+    const bucket = env.FOTOS as { put: (chave: string) => Promise<unknown> };
+    const put = bucket.put;
+    bucket.put = async (chave: string) => void gravadas.push(chave);
+    try {
+      const antes = impressao();
+      const corpo = new FormData();
+      corpo.set('foto', new Blob([new TextEncoder().encode('não é uma foto')]), 'foto');
+      corpo.set('pequena', new Blob([new Uint8Array(40)]), 'pequena.webp');
+      corpo.set('media', new Blob([new Uint8Array(40)]), 'media.webp');
+      const request = new Request('http://localhost/api/fotos', { method: 'POST', headers: { Origin: 'http://localhost' }, body: corpo });
+      const r = await fotos.POST({ request, locals: { usuario: elizete, tipos } } as never);
+      expect(r.status).toBe(415);
+      expect(impressao()).toBe(antes);
+      expect(gravadas).toEqual([]);
+    } finally {
+      bucket.put = put;
+    }
+  });
+
+  it('/api/copias-das-fotos: quem não administra, a foto que não se vê, a que já tem cópia e a cópia errada são recusados sem mudar nada (sessão D1b)', async () => {
+    const copias = await import('../src/pages/api/copias-das-fotos');
+    const gui = usuarioDe('gui');
+    const leitura = (nome: string) => new Uint8Array(readFileSync(new URL(`../exemplos/fotos/${nome}`, import.meta.url)));
+    const gravadas: string[] = [];
+    const bucket = env.FOTOS as { put: (chave: string) => Promise<unknown>; get: (chave: string) => Promise<unknown> };
+    const [put, get] = [bucket.put, bucket.get];
+    bucket.put = async (chave: string) => void gravadas.push(chave);
+    // A original guardada é a chico-3 de exemplo, para a proporção conferir
+    bucket.get = async () => ({ arrayBuffer: async () => leitura('chico-3.jpg').buffer });
+    const chaveDe = (n: number) => `2026/d1b0aaaa-0000-4000-8000-${String(n).padStart(12, '0')}.jpg`;
+    banco.sqlite.prepare(`INSERT INTO memorias (id, titulo, ano, tipo, situacao, criada_por) VALUES ('d1b-rascunho-da-elizete', 'Rascunho', 2001, ?, 'rascunho', 'elizete')`).run(tipo);
+    banco.sqlite.prepare(`INSERT INTO memorias (id, titulo, ano, tipo, criada_por) VALUES ('d1b-de-todos', 'De todos', 2001, ?, 'gui')`).run(tipo);
+    banco.sqlite.prepare(`INSERT INTO fotos (memoria_id, chave, enviada_por) VALUES ('d1b-rascunho-da-elizete', ?, 'elizete')`).run(chaveDe(1));
+    banco.sqlite.prepare(`INSERT INTO fotos (memoria_id, chave, enviada_por, copias) VALUES ('d1b-de-todos', ?, 'gui', '{"formato":"webp","pequena":[853,480],"media":[1600,900],"bytes":1}')`).run(chaveDe(2));
+    banco.sqlite.prepare(`INSERT INTO fotos (memoria_id, chave, enviada_por) VALUES ('d1b-de-todos', ?, 'gui')`).run(chaveDe(3));
+    const enviar = async (quem: Usuario, chave: string, pequena = 'copias/chico-3.pequena.webp', media = 'copias/chico-3.media.webp') => {
+      const corpo = new FormData();
+      corpo.set('chave', chave);
+      corpo.set('pequena', new Blob([leitura(pequena)]), 'pequena.webp');
+      corpo.set('media', new Blob([leitura(media)]), 'media.webp');
+      const request = new Request('http://localhost/api/copias-das-fotos', { method: 'POST', headers: { Origin: 'http://localhost' }, body: corpo });
+      return (await copias.POST({ request, locals: { usuario: quem, tipos } } as never)).status;
+    };
+    try {
+      const antes = impressao();
+      expect(elizete.admin).toBe(false);
+      expect(await enviar(elizete, chaveDe(3))).toBe(403);
+      // O rascunho da Elizete: o Gui não vê, e recebe o mesmo que para uma foto que não existe
+      expect(await enviar(gui, chaveDe(1))).toBe(404);
+      expect(await enviar(gui, chaveDe(99))).toBe(404);
+      expect(await enviar(gui, 'exemplos/chico-3.jpg')).toBe(404);
+      // Já tem cópia: nada é trocado
+      expect(await enviar(gui, chaveDe(2))).toBe(409);
+      // A cópia de outra foto, ou os tamanhos trocados
+      expect(await enviar(gui, chaveDe(3), 'copias/karol-2.pequena.webp')).toBe(400);
+      expect(await enviar(gui, chaveDe(3), 'copias/chico-3.media.webp', 'copias/chico-3.pequena.webp')).toBe(400);
+      expect(impressao()).toBe(antes);
+      expect(gravadas).toEqual([]);
+      // O pedido certo grava as duas cópias, com nome próprio, e anota no banco
+      expect(await enviar(gui, chaveDe(3))).toBe(201);
+      expect(gravadas).toEqual([chaveDe(3).replace('.jpg', '.pequena.webp'), chaveDe(3).replace('.jpg', '.media.webp')]);
+      expect(banco.sqlite.prepare('SELECT copias FROM fotos WHERE chave = ?').get(chaveDe(3))).toMatchObject({ copias: expect.stringContaining('"formato":"webp"') });
+      expect(await enviar(gui, chaveDe(3))).toBe(409);
+    } finally {
+      bucket.put = put;
+      bucket.get = get;
+    }
   });
 });

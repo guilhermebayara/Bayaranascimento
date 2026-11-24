@@ -63,3 +63,21 @@ export function ehNaoEncontradaSemPagina(caminho: string, resposta: { status: nu
   if (/^\/(api|fotos|audios|retratos)\//.test(caminho)) return false;
   return (resposta.headers.get('Content-Type') ?? '').startsWith('text/plain');
 }
+
+/** Sete dias, em segundos: quanto uma foto ou um retrato fica guardado no aparelho. */
+export const SETE_DIAS = 7 * 24 * 60 * 60;
+
+/**
+ * O cabeçalho de cache de uma foto ou de um retrato (decisão 3 do Gui, 23/11/2026, em
+ * docs/briefs/desempenho.md). O que pode ser guardado fica no aparelho por 7 dias, sem o navegador
+ * perguntar de novo; o resto (rascunho, lixeira, foto solta ou removida) continua como antes: o navegador
+ * guarda, mas confere a permissão a cada uso. Sempre "private": nada fica num cache compartilhado.
+ * Onde existe o "Ver como" (prévias, homologação e computador), a resposta depende do cookie: trocar de
+ * pessoa não reaproveita a foto guardada para outra.
+ */
+export function cabecalhoDeGuardar(guardar: boolean, comVerComo: boolean): Record<string, string> {
+  return {
+    'Cache-Control': guardar ? `private, max-age=${SETE_DIAS}` : 'private, no-cache',
+    ...(comVerComo ? { Vary: 'Cookie' } : {}),
+  };
+}

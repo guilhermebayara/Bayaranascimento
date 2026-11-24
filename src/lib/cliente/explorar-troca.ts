@@ -10,6 +10,7 @@
 // Foi a escolha no lugar das View Transitions com um nome por memória porque funciona em todo
 // Safari do iPhone, anima só o que está perto da tela e deixa cada item seguir o próprio caminho.
 // Com movimento reduzido, a troca é direta: só a rolagem é devolvida.
+import { ligarFotoAoPassar } from './foto-ao-passar';
 import { anoMaisProximo } from '../explorar';
 
 const REGIAO = '[data-explorar]';
@@ -289,13 +290,16 @@ export function aplicarTamanho(tamanho = tamanhoGuardado()) {
   const mural = document.querySelector<HTMLElement>(`${REGIAO} [data-mural]`);
   if (!mural || !tamanho) return;
   mural.dataset.tamanho = tamanho;
+  // A largura das fotos acompanha o tamanho, para o navegador usar a cópia certa (sessão D1b)
+  const largura = mural.getAttribute(`data-largura-${tamanho}`);
+  if (largura) for (const img of mural.querySelectorAll<HTMLImageElement>('img[sizes]')) if (img.sizes !== largura) img.sizes = largura;
   for (const opcao of document.querySelectorAll<HTMLElement>(`${REGIAO} [data-tamanho-das-fotos]`)) {
     if (opcao.dataset.tamanhoDasFotos === tamanho) opcao.setAttribute('aria-current', 'page');
     else opcao.removeAttribute('aria-current');
   }
 }
 
-/** Troca o tamanho das fotos no lugar: as fotos vão ao tamanho e ao lugar novos, sem buscar nada. */
+/** Troca o tamanho das fotos no lugar: as fotos vão ao tamanho e ao lugar novos, sem buscar a página (só a cópia maior, quando o tamanho cresce). */
 function trocarTamanho(opcao: HTMLElement) {
   const regiao = document.querySelector<HTMLElement>(REGIAO);
   const tamanho = opcao.dataset.tamanhoDasFotos;
@@ -344,6 +348,8 @@ function verOResultado(botao: HTMLElement) {
 
 /** Liga a troca sem recarregar: os links dos controles, o formulário dos filtros e o histórico. */
 export function ligarTroca() {
+  // Na lista do computador, a foto de cada linha só é baixada quando o mouse ou o foco chega a ela
+  ligarFotoAoPassar();
   // A região troca dentro da mesma página: o Explorar e, com as mesmas formas de ver, a página da pessoa
   const daRegiao = (endereco: URL) => endereco.origin === location.origin && endereco.pathname === location.pathname && ['linha', 'mural', 'lista', null].includes(endereco.searchParams.get('ver'));
 

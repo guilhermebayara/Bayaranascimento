@@ -12,6 +12,7 @@ import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '.
 import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, type TipoDeSugestao } from '../sugestoes';
 import type { SimboloDaReacao } from '../reacoes';
 import { mensagensDoRelato, type Mensagem } from '../conversa';
+import { gravarCopias, lerCopias, type Copias } from '../copias-das-fotos';
 import { AJUSTE_DOS_NAO_DUPLICADOS } from '../juntar';
 import {
   comExcluidas,
@@ -76,6 +77,8 @@ export interface Foto {
   enviadaPor: string;
   /** O relato com que a foto veio ("Fotos pelo relato", migração 022). Vazio: veio pelo formulário da memória. */
   relatoId: number | null;
+  /** As cópias menores (migração 110, src/lib/copias-das-fotos.ts). Vazio: a tela usa a original. */
+  copias: Copias | null;
 }
 
 export interface Memoria extends AcessoDaMemoria {
@@ -648,11 +651,22 @@ export async function listarIntegrantesQueVe(usuario: Usuario): Promise<Integran
  * retrato trocado ou tirado não é entregue a ninguém: o arquivo fica no bucket, e a chave, nas versões.
  */
 export async function podeVerRetratoDaChave(usuario: Usuario, chave: string): Promise<boolean> {
+  return (await acessoAoRetrato(usuario, chave)) !== null;
+}
+
+/**
+ * podeVerRetratoDaChave com o que a rota precisa: nada, para quem não vê, e, para quem vê, se o retrato
+ * pode ficar guardado no aparelho por 7 dias (decisão 3 do Gui, 23/11/2026). O retrato de quem está na
+ * lixeira continua sendo conferido a cada uso, como antes.
+ */
+export async function acessoAoRetrato(usuario: Usuario, chave: string): Promise<{ guardar: boolean } | null> {
   // Um retrato de exemplo é dividido por várias pessoas: basta a pessoa logada ver uma delas
-  const { results: donos } = await db().prepare('SELECT id FROM integrantes WHERE retrato = ?').bind(chave).all<{ id: string }>();
-  if (donos.length === 0) return false;
+  const { results: donos } = await db().prepare('SELECT id, excluida_em FROM integrantes WHERE retrato = ?').bind(chave).all<{ id: string; excluida_em: string | null }>();
+  if (donos.length === 0) return null;
   const naoVe = await pessoasQueONaoVe(usuario);
-  return donos.some((dono) => podeVerRetrato(dono.id, naoVe));
+  const visiveis = (donos as { id: string; excluida_em: string | null }[]).filter((dono) => podeVerRetrato(dono.id, naoVe));
+  if (visiveis.length === 0) return null;
+  return { guardar: visiveis.some((dono) => !dono.excluida_em) };
 }
 
 export async function salvarLacoDoCoracao(
@@ -831,6 +845,7 @@ async function completar(memorias: Memoria[], usuario: Usuario): Promise<Memoria
       principal: Boolean(f.principal),
       enviadaPor: f.enviada_por as string,
       relatoId: (f.relato_id as number | null) ?? null,
+      copias: lerCopias(f.copias),
     });
   }
   for (const c of capitulos.results) porId.get(c.memoria_id as string)?.capitulos.push(c.capitulo_id as string);
@@ -1380,6 +1395,7 @@ export async function listarFotosRemovidas(memoriaId: string): Promise<(Foto & {
     principal: false,
     enviadaPor: f.enviada_por as string,
     relatoId: (f.relato_id as number | null) ?? null,
+    copias: lerCopias(f.copias),
     removidaEm: f.removida_em as string,
     removidaPor: (f.removida_por as string | null) ?? (f.enviada_por as string),
   }));
@@ -1397,8 +1413,11 @@ export async function restaurarFoto(id: number, memoriaId: string, usuario: Usua
 // --- Fotos ---
 
 /** A foto nasce solta, com o tamanho do arquivo, que entra na conta do espaço (migração 070). */
-export async function registrarFoto(chave: string, usuario: Usuario, tamanho: number | null = null): Promise<number> {
-  const resultado = await db().prepare('INSERT INTO fotos (chave, enviada_por, tamanho) VALUES (?, ?, ?)').bind(chave, usuario.pessoa, tamanho).run();
+export async function registrarFoto(chave: string, usuario: Usuario, tamanho: number | null = null, copias: Copias | null = null): Promise<number> {
+  const resultado = await db()
+    .prepare('INSERT INTO fotos (chave, enviada_por, tamanho, copias) VALUES (?, ?, ?, ?)')
+    .bind(chave, usuario.pessoa, tamanho, copias ? gravarCopias(copias) : null)
+    .run();
   return resultado.meta.last_row_id;
 }
 
@@ -1419,7 +1438,7 @@ export async function espacoDosArquivos(): Promise<{ bytes: number; semMedida: n
   const linha = await db()
     .prepare(
       `SELECT
-        (SELECT COALESCE(SUM(tamanho), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') +
+        (SELECT COALESCE(SUM(tamanho), 0) + COALESCE(SUM(json_extract(copias, '$.bytes')), 0) FROM fotos WHERE chave NOT LIKE 'exemplos/%') +
         (SELECT COALESCE(SUM(tamanho), 0) FROM audios WHERE chave NOT LIKE 'exemplos/%') +
         (SELECT COALESCE(SUM(tamanho), 0) FROM retratos_enviados WHERE chave NOT LIKE 'exemplos/%') AS bytes,
         (SELECT COUNT(*) FROM fotos WHERE tamanho IS NULL AND chave <> '' AND chave NOT LIKE 'exemplos/%') +
@@ -1496,6 +1515,7 @@ export async function listarFotosDoRelato(relatoId: number): Promise<Foto[]> {
     principal: Boolean(f.principal),
     enviadaPor: f.enviada_por as string,
     relatoId,
+    copias: lerCopias(f.copias),
   }));
 }
 
@@ -1566,9 +1586,34 @@ export async function ligarFotosDoRelato(
  * relato em nome de quem a pessoa não vê também fica de fora.
  */
 export async function podeVerFoto(usuario: Usuario, chave: string): Promise<boolean> {
+  return (await acessoAFoto(usuario, chave)) !== null;
+}
+
+/** O que a rota das fotos precisa saber de uma foto que a pessoa vê. */
+export interface AcessoAFoto {
+  /**
+   * A foto pode ficar guardada no aparelho por 7 dias (decisão 3 do Gui, 23/11/2026): é de uma memória
+   * publicada, fora da lixeira, não foi tirada da memória e não espera um relato em rascunho. Solta, de
+   * rascunho, da lixeira ou removida: o navegador confere a permissão a cada uso, como antes.
+   */
+  guardar: boolean;
+  /** As cópias menores, quando já existem (migração 110) */
+  copias: Copias | null;
+}
+
+/**
+ * podeVerFoto com o que a rota precisa: nada, para quem não vê (a mesma resposta de uma foto que não
+ * existe), e, para quem vê, se a foto pode ficar guardada no aparelho e as cópias dela. As cópias seguem
+ * exatamente a mesma conferência: a rota da cópia chama esta função com a chave da original.
+ */
+export async function acessoAFoto(usuario: Usuario, chave: string): Promise<AcessoAFoto | null> {
   const { results } = await db()
     .prepare(
-      `SELECT r.por, r.registrado_por, r.so_para_nucleos FROM fotos f LEFT JOIN relatos r ON r.id = f.relato_id WHERE f.chave = ?2 AND (
+      `SELECT r.por, r.registrado_por, r.so_para_nucleos, f.copias,
+         (f.removida_em IS NULL AND (f.relato_id IS NULL OR r.situacao = 'publicada') AND EXISTS (
+           SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND m.situacao = 'publicada' AND m.excluida_em IS NULL
+         )) AS guardar
+       FROM fotos f LEFT JOIN relatos r ON r.id = f.relato_id WHERE f.chave = ?2 AND (
          (f.memoria_id IS NULL AND f.enviada_por = ?1 AND f.removida_em IS NULL)
          -- foto sem memória há mais de 30 dias: os administradores conferem antes de apagar (onda 2)
          OR (?3 = 1 AND ${FOTO_SOLTA})
@@ -1588,14 +1633,58 @@ export async function podeVerFoto(usuario: Usuario, chave: string): Promise<bool
        )`,
     )
     .bind(usuario.pessoa, chave, usuario.admin ? 1 : 0)
-    .all<{ por: string | null; registrado_por: string | null; so_para_nucleos: string | null }>();
-  type Linha = { por: string | null; registrado_por: string | null; so_para_nucleos: string | null };
-  const linhas = results as Linha[];
-  if (linhas.length === 0) return false;
+    .all<{ por: string | null; registrado_por: string | null; so_para_nucleos: string | null; copias: string | null; guardar: number }>();
+  type Linha = { por: string | null; registrado_por: string | null; so_para_nucleos: string | null; copias: string | null; guardar: number };
+  let linhas = results as Linha[];
+  if (linhas.length === 0) return null;
   // A foto sem relato não depende de quem contou
-  if (linhas.some((r) => r.por === null)) return true;
+  if (!linhas.some((r) => r.por === null)) {
+    const naoVe = await pessoasQueONaoVe(usuario);
+    linhas = linhas.filter((r) => veORelato({ por: r.por!, registradoPor: r.registrado_por!, soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) }, usuario, naoVe));
+    if (linhas.length === 0) return null;
+  }
+  // Uma foto de exemplo é dividida por várias memórias: basta uma publicada que a pessoa vê para guardar
+  return { guardar: linhas.some((r) => Boolean(r.guardar)), copias: linhas.map((r) => lerCopias(r.copias)).find(Boolean) ?? null };
+}
+
+// --- As cópias menores das fotos que já existem (sessão D1b, 23/11/2026) ---
+
+/**
+ * As fotos sem cópia que o administrador vê, para o ajuste "Fazer as cópias das fotos que já existem":
+ * uma por chave, das memórias que ele vê (as publicadas e os rascunhos dele), sem as removidas e sem as de
+ * exemplo. Cada uma é conferida de novo pela rota das fotos ao baixar e pela rota das cópias ao enviar.
+ */
+export async function listarFotosSemCopia(usuario: Usuario): Promise<string[]> {
+  const { results } = await db()
+    .prepare(
+      `SELECT f.chave, r.por, r.registrado_por, r.so_para_nucleos FROM fotos f LEFT JOIN relatos r ON r.id = f.relato_id
+       WHERE f.copias IS NULL AND f.removida_em IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%'
+         AND EXISTS (SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND ${FILTRO_VISIVEL})
+       ORDER BY f.id`,
+    )
+    .bind(usuario.pessoa)
+    .all<{ chave: string; por: string | null; registrado_por: string | null; so_para_nucleos: string | null }>();
   const naoVe = await pessoasQueONaoVe(usuario);
-  return linhas.some((r) => veORelato({ por: r.por!, registradoPor: r.registrado_por!, soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) }, usuario, naoVe));
+  const chaves = new Set<string>();
+  for (const r of results as { chave: string; por: string | null; registrado_por: string | null; so_para_nucleos: string | null }[]) {
+    if (r.por !== null && !veORelato({ por: r.por, registradoPor: r.registrado_por!, soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) }, usuario, naoVe)) continue;
+    chaves.add(r.chave);
+  }
+  return [...chaves];
+}
+
+/**
+ * Anota as cópias de uma foto, em todas as linhas com essa chave que ainda não têm cópia. Nunca troca
+ * cópias que já existem: devolve quantas linhas mudaram (zero, se outra pessoa chegou antes).
+ */
+export async function guardarCopias(chave: string, copias: Copias): Promise<number> {
+  const r = await db().prepare('UPDATE fotos SET copias = ? WHERE chave = ? AND copias IS NULL').bind(gravarCopias(copias), chave).run();
+  return r.meta.changes ?? 0;
+}
+
+/** Esta foto já tem cópias? */
+export async function temCopias(chave: string): Promise<boolean> {
+  return Boolean(await db().prepare('SELECT 1 FROM fotos WHERE chave = ? AND copias IS NOT NULL LIMIT 1').bind(chave).first());
 }
 
 // --- Fotos sem memória (onda 2, decisão do Gui de 17/11/2026) ---

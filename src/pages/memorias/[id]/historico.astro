@@ -1,6 +1,7 @@
 ---
 // O que já mudou numa memória, com a opção de voltar atrás.
 import Pagina from '../../../components/formularios/Pagina.astro';
+import { fontesDaFoto } from '../../../lib/copias-das-fotos';
 import Vazio from '../../../components/visual/Vazio.astro';
 import { formatarData, formatarMomento } from '../../../lib/datas';
 import { alcanceDaCorrecao, podeRestaurarFoto, podeVerVersao } from '../../../lib/servidor/permissoes';
@@ -136,7 +137,7 @@ const vazio = linhas.length === 0 && relatos.every((r) => r.versoes.length === 0
         <ul class="linhas linhas--fotos">
           {minhasFotos.map((f) => (
             <li>
-              <img src={`/fotos/${f.chave}`} alt={f.legenda ?? ''} loading="lazy" />
+              <img {...fontesDaFoto(f, 'pequena', '120px')} alt={f.legenda ?? ''} loading="lazy" />
               <div>
                 <strong>{f.legenda ?? 'Sem legenda'}</strong>
                 <span>

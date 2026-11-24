@@ -1001,6 +1001,13 @@ export const MIGRACOES: Migracao[] = [
     id: '109-envios-unicos',
     sql: [`CREATE TABLE IF NOT EXISTS envios (codigo TEXT PRIMARY KEY, em TEXT NOT NULL DEFAULT (datetime('now')))`],
   },
+  {
+    // As duas cópias menores de cada foto (sessão D1b, decisão 4 do Gui em docs/briefs/desempenho.md): o
+    // formato, a medida de cada uma e os bytes das duas, em JSON (src/lib/copias-das-fotos.ts, "Copias").
+    // Vazia nas fotos de hoje: a tela usa a original até o ajuste da Administração fazer as cópias.
+    id: '110-copias-das-fotos',
+    sql: [`ALTER TABLE fotos ADD COLUMN copias TEXT`],
+  },
 ];
 
 // A guarda por pedido conhece os gatilhos que gravam pelo SQL das migrações (ver ambiente.ts)

@@ -120,7 +120,7 @@ const capitulosDe = new Map(montagem.linhas.map((l) => [l.id, l.capitulos.map((i
                   {/* A foto-chave, só onde há mouse: no toque ela não é desenhada nem baixada */}
                   {m.fotos.length > 0 && (
                     <div class="lista__foto" aria-hidden="true">
-                      <Polaroid id={m.id} fotos={m.fotos.slice(0, 1)} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} tipo={m.tipo} soOnde={COM_MOUSE} />
+                      <Polaroid id={m.id} fotos={m.fotos.slice(0, 1)} legenda={legendaLugarAno(m.lugar, m.ano)} alt="" monte={false} tipo={m.tipo} soOnde={COM_MOUSE} largura="(min-width: 1600px) 175px, 125px" />
                     </div>
                   )}
                 </a>

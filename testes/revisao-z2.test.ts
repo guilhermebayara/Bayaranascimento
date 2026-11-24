@@ -738,7 +738,8 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
 
     it('a tabela nova tem só o código e a hora, e nenhum texto do relato chega a ela', async () => {
       expect(linhas<{ name: string }>(`PRAGMA table_info(envios)`).map((c) => c.name)).toEqual(['codigo', 'em']);
-      const migracao = MIGRACOES.at(-1)!;
+      // Pelo nome: as migrações da pilha do desempenho (110 a 112) vêm depois dela
+      const migracao = MIGRACOES.find((m) => m.id === '109-envios-unicos')!;
       expect(migracao.id).toBe('109-envios-unicos');
       expect(migracao.sql).toHaveLength(1);
       const id = (await pedir('memorias', giovanna, { titulo: 'Z2: o que o envio guarda', ano: 2013, tipo: 'causo', pessoas: ['giovanna'] })).corpo.id as string;
