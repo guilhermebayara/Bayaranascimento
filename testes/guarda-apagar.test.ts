@@ -2,7 +2,7 @@
 // original com as cópias dela (sessão D1c, 23/11/2026: antes, as cópias ficavam no bucket sem uso). Cada
 // violação nova é dada à regra (scripts/apagar-no-bucket.mjs) e precisa ser recusada.
 import { describe, expect, it } from 'vitest';
-import { APAGAR_A_FOTO_SOLTA, ROTA_DAS_FOTOS_SOLTAS, apagamentosProibidos, copiasApagadasErradas } from '../scripts/apagar-no-bucket.mjs';
+import { APAGAR_A_FOTO_SOLTA, ROTA_DAS_FOTOS_SOLTAS, apagamentosProibidos, apagamentosProibidosNoProjeto, copiasApagadasErradas } from '../scripts/apagar-no-bucket.mjs';
 import { chaveDaCopia, chavesDasCopias, TAMANHOS } from '../src/lib/copias-das-fotos';
 
 const fontes: Record<string, string> = Object.fromEntries(
@@ -49,6 +49,53 @@ describe('a regra de apagar da guarda', () => {
     expect(recusa('src/pages/api/fotos.ts', rota)).toBe(true);
     expect(recusa('src/pages/api/copias-das-fotos.ts', 'await bucketDeFotos().delete(chaveDaCopia(chave, "pequena", "webp"));')).toBe(true);
     expect(recusa('src/pages/api/integrantes.ts', 'await bucketDeFotos().delete(`retratos/${chaveDaCopiaDoRetrato(chave, "webp")}`);')).toBe(true);
+  });
+
+  // Item 3 da revisão D1f: a regra dependia de o nome de quem chama .delete conter "bucket". Agora segue o
+  // objeto até a origem (bucketDeFotos e os outros de ambiente.ts, ou o env), com qualquer nome no meio
+  describe('o bucket com qualquer nome, seguido até a origem', () => {
+    const arquivo = 'src/pages/api/audios.ts';
+    const ambiente = "import { bucketDeFotos } from '../../lib/servidor/ambiente';\n";
+    it('numa variável de outro nome, por apelido na importação ou por uma função do arquivo', () => {
+      expect(recusa(arquivo, `${ambiente}const armazenamento = bucketDeFotos();\nawait armazenamento.delete(chave);`)).toBe(true);
+      expect(recusa(arquivo, `${ambiente}let armazenamento;\narmazenamento = bucketDeFotos();\nawait armazenamento?.delete(chave);`)).toBe(true);
+      expect(recusa(arquivo, "import { bucketDeFotos as guardar } from '../../lib/servidor/ambiente';\nawait guardar().delete(chave);")).toBe(true);
+      expect(recusa(arquivo, "import * as ambiente from '../../lib/servidor/ambiente';\nconst a = ambiente.bucketDeFotos();\nawait a.delete(chave);")).toBe(true);
+      expect(recusa(arquivo, `${ambiente}const pegar = bucketDeFotos;\nconst a = pegar();\nawait a.delete(chave);`)).toBe(true);
+      expect(recusa(arquivo, `${ambiente}const pegar = () => bucketDeFotos();\nawait pegar().delete(chave);`)).toBe(true);
+      expect(recusa(arquivo, `${ambiente}const { delete: apagar } = bucketDeFotos();\nawait apagar(chave);`)).toBe(true);
+      expect(recusa(arquivo, `${ambiente}const a = bucketDeFotos();\nawait a['delete'](chave);`)).toBe(true);
+      expect(recusa(arquivo, `${ambiente}const a = bucketDeFotos();\nconst apagar = a.delete.bind(a);\nawait apagar(chave);`)).toBe(true);
+      // Com as cópias, e chavesDasCopias com outro nome
+      expect(recusa(arquivo, `${ambiente}import { chavesDasCopias as nomes } from '../../lib/copias-das-fotos';\nconst armazenamento = bucketDeFotos();\nawait armazenamento.delete(nomes(chave));`)).toBe(true);
+    });
+    it('pelo env, passado a uma função, ou vindo de outro arquivo', () => {
+      expect(recusa(arquivo, "import { env } from 'cloudflare:workers';\nconst { FOTOS: armazenamento } = env;\nawait armazenamento.delete(chave);")).toBe(true);
+      expect(recusa(arquivo, "import { env } from 'cloudflare:workers';\nconst e = env;\nawait e.FOTOS.delete(chave);")).toBe(true);
+      expect(recusa(arquivo, `${ambiente}const apagar = (b: R2Bucket, k: string) => b.delete(k);\nawait apagar(bucketDeFotos(), chave);`)).toBe(true);
+      expect(recusa(arquivo, `${ambiente}function apagar(b, k) { return b.delete(k); }\nawait apagar(bucketDeFotos(), chave);`)).toBe(true);
+      expect(recusa(arquivo, `${ambiente}[bucketDeFotos()].forEach((b) => b.delete(chave));`)).toBe(true);
+      const projeto = {
+        'src/lib/servidor/pegar.ts': "import { bucketDeFotos } from './ambiente';\nexport const armazenamento = () => bucketDeFotos();\nexport function apagarTudo(b: unknown, k: string) { return (b as R2Bucket).delete(k); }",
+        [arquivo]: "import { armazenamento } from '../../lib/servidor/pegar';\nawait armazenamento().delete(chave);",
+      };
+      expect(apagamentosProibidosNoProjeto(projeto).length).toBeGreaterThan(0);
+      expect(apagamentosProibidosNoProjeto(projeto).some((m: string) => m.startsWith(arquivo))).toBe(true);
+      const reexportado = {
+        'src/lib/servidor/pegar.ts': "export { bucketDeFotos as armazenamento } from './ambiente';",
+        [arquivo]: "import { armazenamento } from '../../lib/servidor/pegar';\nconst a = armazenamento();\nawait a.delete(chave);",
+      };
+      expect(apagamentosProibidosNoProjeto(reexportado).some((m: string) => m.startsWith(arquivo))).toBe(true);
+      const passado = {
+        'src/lib/servidor/pegar.ts': 'export function apagar(b, k) { return b.delete(k); }',
+        [arquivo]: `${ambiente}import { apagar } from '../../lib/servidor/pegar';\nawait apagar(bucketDeFotos(), chave);`,
+      };
+      expect(apagamentosProibidosNoProjeto(passado).some((m: string) => m.startsWith('src/lib/servidor/pegar.ts'))).toBe(true);
+    });
+    it('o Map e o Set de sempre continuam podendo apagar, e o bucket de teste também', () => {
+      expect(recusa(arquivo, 'const m = new Map();\nm.delete(chave);\nconst guardados = new Set();\nguardados.delete(chave);')).toBe(false);
+      expect(recusa(arquivo, "import { bucketDeTesteParaGravar } from '../../lib/servidor/ambiente';\nconst b = bucketDeTesteParaGravar();\nawait b.delete(chave);")).toBe(false);
+    });
   });
 
   it('mudar chavesDasCopias, os tamanhos ou o nome da cópia é recusado', () => {

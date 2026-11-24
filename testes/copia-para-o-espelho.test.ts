@@ -140,7 +140,7 @@ describe.skipIf(!comSqlite)('a cópia para o espelho', async () => {
       return { status: resposta.status, ok: local.searchParams.get('ok'), erro: local.searchParams.get('erro') };
     };
     const impressao = () => {
-      const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
+      const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
       return JSON.stringify(tabelas.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
     };
 

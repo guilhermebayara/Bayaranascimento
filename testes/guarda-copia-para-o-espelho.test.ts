@@ -48,6 +48,23 @@ describe('a regra 11 da guarda: a cópia para o espelho', () => {
     expect(recusa(trocar(MONTAGEM, 'TABELAS_PARA_O_ESPELHO.map((tabela) =>', "[...TABELAS_PARA_O_ESPELHO, 'fotos'].map((tabela) =>"))).toBe(true);
   });
 
+  // Item 5 da revisão D1f: a guarda via só a importação com aspas simples. Agora lê a árvore do código: toda
+  // importação conta, com aspas simples ou duplas, reexportada, dinâmica ou por require
+  it('recusa a dependência fora da lista, escrita de qualquer jeito', () => {
+    const base = "import { banco } from './ambiente';";
+    expect(recusa(trocar(MONTAGEM, base, `${base}\nimport { listarMemorias } from "./repositorio";`))).toBe(true);
+    expect(recusa(trocar(MONTAGEM, base, `${base}\nimport * as repositorio from "./repositorio";`))).toBe(true);
+    expect(recusa(trocar(MONTAGEM, base, `${base}\nimport "./repositorio";`))).toBe(true);
+    expect(recusa(trocar(MONTAGEM, base, `${base}\nexport { listarMemorias } from "./repositorio";`))).toBe(true);
+    expect(recusa(trocar(MONTAGEM, base, `${base}\nexport * from './repositorio';`))).toBe(true);
+    expect(recusa(trocar(MONTAGEM, base, `${base}\nconst repositorio = await import("./repositorio");`))).toBe(true);
+    expect(recusa(trocar(MONTAGEM, base, `${base}\nconst qual = './repositorio';\nconst repositorio = await import(qual);`))).toBe(true);
+    expect(recusa(trocar(MONTAGEM, base, `${base}\nconst repositorio = require("./repositorio");`))).toBe(true);
+    expect(recusa(trocar(MONTAGEM, base, 'import { banco } from "./ambiente";\nimport { listarMemorias } from "./repositorio";'))).toBe(true);
+    // A mesma importação permitida, com aspas duplas, continua aceita
+    expect(recusa(trocar(MONTAGEM, base, 'import { banco } from "./ambiente";'))).toBe(false);
+  });
+
   it('um comentário não engana a guarda', () => {
     const lista = fontes[LISTA]!;
     // A mesma lista, com uma tabela proibida escondida num comentário: passa, porque comentário não conta

@@ -156,7 +156,7 @@ const copiaMensal = fraseDaCopiaMensal(situacao.copiaMensal, adm.hoje);
 <script>
   // O balão das pendências (Esc, toque fora) e a pendência sem página própria, que abre o grupo dela
   import { ligarMenus } from '../../lib/cliente/menus';
-  import { baixarCopiaEmPartes, nomeDoArquivoDaCopia } from '../../lib/copia-em-partes';
+  import { AcervoMudouNaCopia, baixarCopiaEmPartes, nomeDoArquivoDaCopia } from '../../lib/copia-em-partes';
   ligarMenus();
 
   // "Baixar cópia do acervo": o navegador pede o índice e cada parte, com o andamento à vista, e monta o
@@ -184,8 +184,12 @@ const copiaMensal = fraseDaCopiaMensal(situacao.copiaMensal, adm.hoje);
         link.remove();
         setTimeout(() => URL.revokeObjectURL(endereco), 60_000);
         andamento.textContent = `Cópia baixada: ${nome}`;
-      } catch {
-        andamento.textContent = 'Não consegui baixar a cópia. Confira a internet e tente de novo.';
+      } catch (erro) {
+        // O acervo mudou no meio de todas as tentativas: a cópia não sai pela metade, e dá para tentar depois
+        andamento.textContent =
+          erro instanceof AcervoMudouNaCopia
+            ? 'O acervo mudou enquanto a cópia era feita. Tente de novo daqui a pouco.'
+            : 'Não consegui baixar a cópia. Confira a internet e tente de novo.';
       } finally {
         botao.disabled = false;
       }

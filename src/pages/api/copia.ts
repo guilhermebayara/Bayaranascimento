@@ -6,5 +6,5 @@ import { erro } from '../../lib/servidor/http';
 
 export const GET: APIRoute = async ({ locals, url }) => {
   if (!locals.usuario.admin) return erro(403, 'Só os administradores baixam a cópia do acervo.');
-  return (await respostaDaCopia(url)).resposta;
+  return respostaDaCopia(url);
 };

@@ -100,7 +100,7 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
   };
 
   const impressao = () => {
-    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).map((t) => t.name);
+    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
     return JSON.stringify(tabelas.map((t) => [t, sql.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
 

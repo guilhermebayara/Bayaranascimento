@@ -11,6 +11,12 @@
 //
 // O índice não tem a chave "tabelas": o script antigo do Drive procurava "tabelas" na resposta, e assim ele
 // falha com o e-mail do Google em vez de guardar o índice como se fosse a cópia.
+//
+// A marca de mudança (item 1 da revisão D1f, 24/11/2026; src/lib/servidor/marca-da-copia.ts): o índice e cada
+// parte trazem `marca`, um número que sobe a cada gravação no acervo (as tabelas de registro não contam,
+// D1f2). Quem junta só aceita a sequência em que a marca de toda parte é a do índice: nada foi gravado no
+// meio, e o arquivo restaura. Se mudou, a sequência inteira é refeita, até TENTATIVAS_DA_COPIA vezes; depois
+// disso, falha sem devolver nada.
 
 /** A marca dentro do arquivo: o script e o espelho encontram a cópia por ela (ver "O nome do site", em docs/decisoes.md). */
 export const MARCA_DO_ACERVO = 'Bayara Nascimento';
@@ -29,9 +35,23 @@ export interface SituacaoDoBancoNaCopia {
 export interface IndiceDaCopia {
   acervo: typeof MARCA_DO_ACERVO;
   gerada_em: string;
+  /** A marca de mudança do banco na hora do índice */
+  marca: number;
+  /** A marca do esquema: um resumo do sqlite_master, que muda quando uma tabela é criada ou refeita (D1f4) */
+  marca_do_esquema: string;
   banco: SituacaoDoBancoNaCopia;
   indice: { tabela: string; linhas: number }[];
+  /** A régua da conferência do arquivo montado, tirada das pragmas do banco no mesmo lote (D1f3) */
+  esquema: EsquemaDaCopia;
 }
+
+/**
+ * As chaves de cada tabela, como o banco as declara: as únicas (a primária e os índices únicos sem condição) e
+ * as estrangeiras, com as colunas de cá e as de lá. Vem no índice, lido das pragmas, e nunca de uma lista
+ * escrita à mão. Os índices únicos com condição (WHERE) ficam de fora: a conferência não tem como avaliar a
+ * condição; eles estão todos em tabelas do acervo, que a marca cobre.
+ */
+export type EsquemaDaCopia = Record<string, { unicas: string[][]; estrangeiras: { colunas: string[]; tabela: string; referencias: string[] }[] }>;
 
 /**
  * Uma página de uma tabela, compacta: os nomes das colunas uma vez só e as linhas como listas de valores.
@@ -40,6 +60,10 @@ export interface IndiceDaCopia {
 export interface ParteDaCopia {
   acervo: typeof MARCA_DO_ACERVO;
   tabela: string;
+  /** A marca de mudança do banco na hora desta página, lida na mesma consulta das linhas */
+  marca: number;
+  /** A marca do esquema na hora desta página, lida na mesma consulta (D1f4) */
+  marca_do_esquema: string;
   colunas: string[];
   linhas: unknown[][];
   proxima: number | null;
@@ -72,7 +96,7 @@ export function linhasComoObjetos(parte: Pick<ParteDaCopia, 'colunas' | 'linhas'
 }
 
 /** Junta o índice e as partes (na ordem em que chegaram) na cópia inteira. */
-export function juntarPartes(indice: IndiceDaCopia, partes: ParteDaCopia[]): CopiaDoAcervoInteira {
+export function juntarPartes(indice: Omit<IndiceDaCopia, 'marca' | 'marca_do_esquema' | 'esquema'>, partes: Omit<ParteDaCopia, 'marca' | 'marca_do_esquema'>[]): CopiaDoAcervoInteira {
   const tabelas: CopiaDoAcervoInteira['tabelas'] = {};
   for (const { tabela } of indice.indice) tabelas[tabela] = [];
   for (const parte of partes) {
@@ -119,10 +143,73 @@ export function linhasPorParte(tabela: string): number {
 /** Quantas vezes cada parte é pedida antes de desistir, e a espera entre uma e outra. */
 export const TENTATIVAS_POR_PARTE = 3;
 
+/** Quantas vezes a sequência inteira é feita quando o acervo muda no meio dela (a marca). */
+export const TENTATIVAS_DA_COPIA = 4;
+
+/** O erro de quando o acervo mudou no meio de todas as tentativas: a tela diz para tentar de novo depois. */
+export class AcervoMudouNaCopia extends Error {
+  constructor(motivo = '') {
+    super(`O acervo mudou durante a cópia nas ${TENTATIVAS_DA_COPIA} tentativas.${motivo ? ` A última: ${motivo}` : ''}`);
+  }
+}
+
+/** Um valor como chave: número e texto iguais valem o mesmo, como na comparação das chaves no SQLite. */
+const comoChave = (valores: unknown[]) => JSON.stringify(valores.map((v) => (typeof v === 'number' || typeof v === 'bigint' ? String(v) : v)));
+
+/**
+ * A rede no fim (D1f3): o arquivo montado restaura? Nenhuma chave primária ou única repetida e nenhuma chave
+ * estrangeira sem o alvo, pela régua que veio do banco. Devolve o primeiro problema, ou nada. A mesma conta
+ * está escrita à mão em scripts/copia-no-drive.gs (conferirArquivo), porque o Apps Script não importa este
+ * arquivo; testes/copia-consistente.test.ts roda os mesmos casos nos dois.
+ */
+export function conferirCopia(copia: Pick<CopiaDoAcervoInteira, 'tabelas'>, esquema: EsquemaDaCopia): string | null {
+  const conjuntos = new Map<string, Set<string>>();
+  /** As chaves de uma tabela pelas colunas dadas (as linhas com alguma coluna vazia não contam) */
+  const chavesDe = (tabela: string, colunas: string[]) => {
+    const id = `${tabela}\u0000${colunas.join('\u0000')}`;
+    let conjunto = conjuntos.get(id);
+    if (!conjunto) {
+      conjunto = new Set();
+      for (const linha of copia.tabelas[tabela] ?? []) {
+        const valores = colunas.map((c) => linha[c]);
+        if (valores.every((v) => v !== null && v !== undefined)) conjunto.add(comoChave(valores));
+      }
+      conjuntos.set(id, conjunto);
+    }
+    return conjunto;
+  };
+  for (const [tabela, regua] of Object.entries(esquema)) {
+    const linhas = copia.tabelas[tabela];
+    if (!linhas) continue;
+    for (const colunas of regua.unicas) {
+      const vistas = new Set<string>();
+      for (const linha of linhas) {
+        const valores = colunas.map((c) => linha[c]);
+        if (valores.some((v) => v === null || v === undefined)) continue;
+        const chave = comoChave(valores);
+        if (vistas.has(chave)) return `${tabela}: a chave (${colunas.join(', ')}) = ${chave} aparece duas vezes.`;
+        vistas.add(chave);
+      }
+    }
+    for (const fk of regua.estrangeiras) {
+      if (!copia.tabelas[fk.tabela]) return `${tabela}: aponta para ${fk.tabela}, que não está no arquivo.`;
+      const alvos = chavesDe(fk.tabela, fk.referencias);
+      for (const linha of linhas) {
+        const valores = fk.colunas.map((c) => linha[c]);
+        if (valores.some((v) => v === null || v === undefined)) continue;
+        if (!alvos.has(comoChave(valores))) return `${tabela}: (${fk.colunas.join(', ')}) = ${comoChave(valores)} aponta para ${fk.tabela}, que não tem essa linha.`;
+      }
+    }
+  }
+  return null;
+}
+
 /**
  * Pede o índice e as partes e devolve a cópia inteira. `buscar` faz o pedido (no navegador, o fetch; nos
  * testes, a rota de verdade) e devolve o JSON; `aoAndar` diz o andamento ("Baixando 3 de 14"). Uma parte que
- * falha é pedida de novo até TENTATIVAS_POR_PARTE vezes; se ainda falhar, nada é devolvido pela metade.
+ * falha é pedida de novo até TENTATIVAS_POR_PARTE vezes; se ainda falhar, nada é devolvido pela metade. Uma
+ * parte com a marca diferente da do índice, ou um arquivo montado que não confere com o esquema (conferirCopia,
+ * a rede da D1f3), recomeça a sequência, até TENTATIVAS_DA_COPIA vezes.
  */
 export async function baixarCopiaEmPartes(
   buscar: (endereco: string) => Promise<unknown>,
@@ -139,25 +226,51 @@ export async function baixarCopiaEmPartes(
       }
     }
   };
-  const indice = await tentar<IndiceDaCopia>(ENDERECO_DA_COPIA);
-  if (indice?.acervo !== MARCA_DO_ACERVO || !Array.isArray(indice.indice)) throw new Error('O índice da cópia não veio.');
-  let total = partesPrevistas(indice, linhasPorParte);
-  let feitas = 0;
-  aoAndar(feitas, total);
-  const partes: ParteDaCopia[] = [];
-  for (const { tabela } of indice.indice) {
-    let depois: number | null = null;
-    for (;;) {
-      const parte: ParteDaCopia = await tentar<ParteDaCopia>(enderecoDaParte(tabela, depois));
-      if (parte?.tabela !== tabela || !Array.isArray(parte.linhas) || !Array.isArray(parte.colunas)) throw new Error(`A parte da tabela ${tabela} não veio.`);
-      partes.push(parte);
-      feitas++;
-      // Linhas gravadas durante a cópia podem pedir uma página a mais que o previsto
-      total = Math.max(total, feitas + (parte.proxima === null ? 0 : 1));
-      aoAndar(feitas, total);
-      if (parte.proxima === null) break;
-      depois = parte.proxima;
+  let ultimoProblema = '';
+  /** Uma passada inteira; nada se a marca mudou no meio ou se o arquivo montado não restauraria. */
+  const umaPassada = async (): Promise<CopiaDoAcervoInteira | null> => {
+    const indice = await tentar<IndiceDaCopia>(ENDERECO_DA_COPIA);
+    if (indice?.acervo !== MARCA_DO_ACERVO || !Array.isArray(indice.indice) || typeof indice.marca !== 'number' || typeof indice.marca_do_esquema !== 'string' || !indice.esquema || typeof indice.esquema !== 'object') throw new Error('O índice da cópia não veio.');
+    let total = partesPrevistas(indice, linhasPorParte);
+    let feitas = 0;
+    aoAndar(feitas, total);
+    const partes: ParteDaCopia[] = [];
+    for (const { tabela } of indice.indice) {
+      let depois: number | null = null;
+      for (;;) {
+        const parte: ParteDaCopia = await tentar<ParteDaCopia>(enderecoDaParte(tabela, depois));
+        if (parte?.tabela !== tabela || !Array.isArray(parte.linhas) || !Array.isArray(parte.colunas) || typeof parte.marca !== 'number') throw new Error(`A parte da tabela ${tabela} não veio.`);
+        // Algo foi gravado depois do índice: esta passada não vale (o atalho para recomeçar cedo)
+        if (parte.marca !== indice.marca) {
+          ultimoProblema = 'a marca mudou no meio.';
+          return null;
+        }
+        // Uma tabela criada, refeita ou mudada depois do índice: esta passada também não vale (D1f4)
+        if (parte.marca_do_esquema !== indice.marca_do_esquema) {
+          ultimoProblema = 'o esquema mudou no meio.';
+          return null;
+        }
+        partes.push(parte);
+        feitas++;
+        total = Math.max(total, feitas + (parte.proxima === null ? 0 : 1));
+        aoAndar(feitas, total);
+        if (parte.proxima === null) break;
+        depois = parte.proxima;
+      }
     }
+    const copia = juntarPartes(indice, partes);
+    // A rede: o arquivo montado é conferido contra o esquema antes de ser entregue
+    const problema = conferirCopia(copia, indice.esquema);
+    if (problema) {
+      ultimoProblema = problema;
+      return null;
+    }
+    return copia;
+  };
+  for (let passada = 1; ; passada++) {
+    const copia = await umaPassada();
+    if (copia) return copia;
+    if (passada >= TENTATIVAS_DA_COPIA) throw new AcervoMudouNaCopia(ultimoProblema);
+    await esperar(2000 * passada);
   }
-  return juntarPartes(indice, partes);
 }

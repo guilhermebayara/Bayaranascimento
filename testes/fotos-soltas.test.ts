@@ -16,7 +16,8 @@ describe('a guarda da produção abre só a rota das fotos soltas', () => {
   const guarda = readFileSync('scripts/confere-producao.mjs', 'utf-8');
   it('a exceção é um arquivo só, com a foto conferida de novo e só para administradores', () => {
     const regra = readFileSync('scripts/apagar-no-bucket.mjs', 'utf-8');
-    expect(guarda).toContain('for (const mensagem of apagamentosProibidos(arquivo, texto)) falhar(mensagem);');
+    // O projeto inteiro de uma vez, com o bucket seguido até a origem (item 3 da revisão D1f)
+    expect(guarda).toContain('for (const mensagem of apagamentosProibidosNoProjeto(');
     expect(regra).toContain("export const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';");
     expect(regra).toContain("uso[0] === 'bucketDeFotos().delete('");
     expect(regra).toMatch(/podeApagarFotoSolta/);

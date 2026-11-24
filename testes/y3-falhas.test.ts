@@ -33,7 +33,7 @@ describe.skipIf(!comSqlite)('Y3: o que falha', async () => {
   };
   /** A impressão do banco inteiro, sem a versão da memória, que as provas sobem de propósito */
   const impressao = () => {
-    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).map((t) => t.name);
+    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
     return JSON.stringify(tabelas.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()])).replace(/"versao":\d+/g, '');
   };
   const lote = banco.batch.bind(banco);

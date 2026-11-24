@@ -1766,18 +1766,38 @@ export const MINUTOS_DA_RESERVA_DAS_COPIAS = 5;
 export const alvoDaFoto = (chave: string) => `foto:${chave}`;
 export const alvoDoRetrato = (chave: string) => `retrato:${chave}`;
 
-/** Reserva o alvo para gravar as cópias: devolve o código da reserva, ou nada se outro pedido já reservou. */
-export async function reservarCopias(alvo: string): Promise<string | null> {
+/** A reserva tomada (o código dela), ou por que não: a cópia já existe, ou outro pedido está fazendo. */
+export type ReservaDasCopias = { codigo: string } | { recusa: 'feita' | 'reservada' };
+
+/** A cópia deste alvo já existe? O SQL que a reserva confere, no mesmo lote em que reserva. */
+function copiaJaFeita(alvo: string): { sql: string; chave: string } {
+  if (alvo.startsWith('foto:')) return { sql: 'SELECT 1 FROM fotos WHERE chave = ?3 AND copias IS NOT NULL', chave: alvo.slice('foto:'.length) };
+  if (alvo.startsWith('retrato:')) return { sql: 'SELECT 1 FROM retratos_enviados WHERE chave = ?3 AND copia IS NOT NULL', chave: alvo.slice('retrato:'.length) };
+  throw new Error(`Alvo de reserva desconhecido: ${alvo}`);
+}
+
+/**
+ * Reserva o alvo para gravar as cópias, se a cópia ainda não existe e ninguém está fazendo (item 2 da revisão
+ * D1f, 24/11/2026). A conferência e a reserva são uma operação só no banco: o INSERT só entra se a cópia não
+ * existe, e o lote é uma transação, lida sem a guarda por pedido (um lote com gravação vai inteiro ao banco).
+ * Antes, a conferência "ainda não tem cópia" reaproveitava a leitura guardada no começo do pedido, e um pedido
+ * parado na leitura da original pegava a reserva que outro, já terminado, soltou, e gravava de novo no bucket.
+ */
+export async function reservarCopias(alvo: string): Promise<ReservaDasCopias> {
   const codigo = crypto.randomUUID();
-  const r = await db()
-    .prepare(
-      `INSERT INTO reservas_das_copias (alvo, codigo) VALUES (?1, ?2)
-       ON CONFLICT (alvo) DO UPDATE SET codigo = excluded.codigo, em = excluded.em
-       WHERE reservas_das_copias.em < datetime('now', '-${MINUTOS_DA_RESERVA_DAS_COPIAS} minutes')`,
-    )
-    .bind(alvo, codigo)
-    .run();
-  return (r.meta.changes ?? 0) > 0 ? codigo : null;
+  const feita = copiaJaFeita(alvo);
+  const [reserva, existe] = await db().batch([
+    db()
+      .prepare(
+        `INSERT INTO reservas_das_copias (alvo, codigo) SELECT ?1, ?2 WHERE NOT EXISTS (${feita.sql})
+         ON CONFLICT (alvo) DO UPDATE SET codigo = excluded.codigo, em = excluded.em
+         WHERE reservas_das_copias.em < datetime('now', '-${MINUTOS_DA_RESERVA_DAS_COPIAS} minutes')`,
+      )
+      .bind(alvo, codigo, feita.chave),
+    db().prepare(`SELECT EXISTS (${feita.sql.replace('?3', '?1')}) AS feita`).bind(feita.chave),
+  ]);
+  if ((reserva.meta.changes ?? 0) > 0) return { codigo };
+  return { recusa: (existe.results?.[0] as { feita?: number } | undefined)?.feita ? 'feita' : 'reservada' };
 }
 
 /** Solta a reserva, se ainda for deste pedido. */
@@ -2478,9 +2498,14 @@ export async function obterCarta(): Promise<Carta | undefined> {
 
 // --- Cópia mensal (migração 060; regras em src/lib/conta.ts, copiaAtrasada) ---
 
-/** O script do Drive baixou a cópia com o token de serviço: anota o momento. */
-export async function anotarCopiaMensal(): Promise<void> {
-  await db().prepare('INSERT INTO copias_mensais DEFAULT VALUES').run();
+/** O script do Drive gravou a cópia no Drive e confirmou: anota o momento e a gerada_em do índice. Diz se anotou. */
+export async function anotarCopiaMensal(geradaEm: string): Promise<boolean> {
+  // Num comando só: a mesma gerada_em anota uma vez, por mais que a confirmação seja repetida (D1f4)
+  const r = await db()
+    .prepare('INSERT INTO copias_mensais (gerada_em) SELECT ?1 WHERE NOT EXISTS (SELECT 1 FROM copias_mensais WHERE gerada_em = ?1)')
+    .bind(geradaEm)
+    .run();
+  return (r.meta.changes ?? 0) > 0;
 }
 
 /** Quando o script do Drive baixou a cópia pela última vez ("AAAA-MM-DD HH:MM:SS", em UTC), ou null se nunca. */

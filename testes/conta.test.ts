@@ -262,12 +262,13 @@ describe('a data da cópia mensal', () => {
     expect(sql).toMatch(/CREATE TABLE IF NOT EXISTS copias_mensais/);
     expect(sql.slice(0, sql.indexOf('],'))).not.toMatch(/REFERENCES|CASCADE|DROP TABLE/);
   });
-  it('o middleware anota só no pedido do serviço de cópia, depois de montar a resposta, sem deixar a falha passar', () => {
+  it('o middleware anota só no pedido do serviço de cópia, e só pela confirmação depois de gravar no Drive (D1f3)', () => {
     const middleware = ler('src/middleware.ts');
     const trecho = middleware.slice(middleware.indexOf('ehServicoDeCopia(contexto.request)'), middleware.indexOf('pessoaQuePede(contexto.request)'));
-    // Desde a sessão D1e, a cópia vem em partes: a anotação é feita na última parte da última tabela
-    expect(trecho).toMatch(/const \{ resposta, terminou \} = await respostaDaCopia\(contexto\.url\);\s*[\s\S]*?if \(terminou\) await anotarCopiaMensal\(\)\.catch\(\(\) => undefined\);\s*return resposta;/);
-    expect(middleware.match(/anotarCopiaMensal\(\)/g)).toHaveLength(1);
+    // A última parte não anota mais: só o pedido de confirmação que o script faz depois de gravar o arquivo
+    expect(trecho).toMatch(/if \(contexto\.url\.searchParams\.has\('confirmar'\)\) return respostaDaConfirmacao\(contexto\.url, anotarCopiaMensal\);\s*return respostaDaCopia\(contexto\.url\);/);
+    expect(middleware.match(/anotarCopiaMensal/g)).toHaveLength(2); // a importação e a confirmação
+    expect(middleware).not.toMatch(/terminou/);
   });
   it('a cópia mensal só é conferida na produção', () => {
     expect(ler('src/lib/servidor/conta.ts')).toContain("const conferida = ambiente() === 'producao';");

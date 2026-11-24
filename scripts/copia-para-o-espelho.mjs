@@ -11,7 +11,11 @@
 // - a rota (src/pages/api/copia-para-o-espelho.ts) é só dos administradores e só entrega a montagem;
 // - o espelho da homologação (a rota e gravarEspelho) recusa o que não for a cópia para o espelho antes de ler.
 // Os comentários não contam: o código é lido sem eles (separar, de scripts/copias-no-bucket.mjs).
+// Desde a revisão D1f (item 5, 24/11/2026), as dependências da montagem são lidas da árvore do código
+// (scripts/codigo-lido.mjs): toda importação conta, com aspas simples ou duplas, `import * as`, só pelo efeito,
+// reexportada, dinâmica ou por require. Antes, a guarda só via `from '...'` com aspas simples.
 import { separar } from './copias-no-bucket.mjs';
+import { importacoesDe } from './codigo-lido.mjs';
 
 /** As tabelas da família, as únicas que o espelho lê da cópia (a mesma lista da regra 11). */
 export const TABELAS_DA_FAMILIA = ['integrantes', 'nucleo_membros', 'filiacoes', 'casais', 'casal_nucleos', 'casal_fases', 'lacos_coracao', 'lacos_resumidos'];
@@ -79,8 +83,15 @@ export function copiaParaOEspelhoErrada(fontes) {
     }
     if ((codigo.match(/\.prepare\(/g) ?? []).length !== 1 || /\.exec\(|\.raw\(|\.first\(/.test(codigo)) falhar(`${MONTAGEM}: a cópia para o espelho tem uma leitura só, a da lista.`);
     if (/bucket|\.put\(|\.get\(/i.test(codigo)) falhar(`${MONTAGEM}: a cópia para o espelho leva só o banco; ela não lê nem grava arquivo.`);
-    const imports = [...codigo.matchAll(/from\s+'([^']+)'/g)].map((m) => m[1]);
-    for (const modulo of imports) if (!['./ambiente', '../copia-em-partes', '../copia-para-o-espelho'].includes(modulo)) falhar(`${MONTAGEM}: importa "${modulo}"; a cópia para o espelho só usa o banco e a lista.`);
+    const PERMITIDOS = ['./ambiente', '../copia-em-partes', '../copia-para-o-espelho'];
+    // Pelo texto, como antes, e pela árvore do código
+    const pelaArvore = importacoesDe(MONTAGEM, montagem);
+    if (!pelaArvore.lido) falhar(`${MONTAGEM}: não consegui ler o código para conferir as importações.`);
+    const imports = [...new Set([...[...codigo.matchAll(/from\s+'([^']+)'/g)].map((m) => m[1]), ...pelaArvore.importacoes])];
+    for (const modulo of imports) {
+      if (modulo === null) falhar(`${MONTAGEM}: importa um módulo que só se sabe na hora (import() ou require com um nome calculado); a cópia para o espelho só usa o banco e a lista.`);
+      else if (!PERMITIDOS.includes(modulo)) falhar(`${MONTAGEM}: importa "${modulo}"; a cópia para o espelho só usa o banco e a lista.`);
+    }
     for (const l of literais) if (/^\w+$/.test(l) && /^(memorias|relatos|relato_mensagens|fotos|audios|capitulos|cartas|versoes|proximidades|apelidos_meus|ex_para_mim|avisos|sugestoes|reacoes|retratos_enviados)$/.test(l)) falhar(`${MONTAGEM}: cita a tabela "${l}"; a cópia para o espelho só lê pela lista.`);
   }
 
