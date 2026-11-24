@@ -27,3 +27,7 @@ No celular da família, no 4G, o site é lento hoje e fica bem mais lento com o 
 ## Medida de pronto
 
 No celular, no 4G lento, com o acervo cheio: tocar num controle do Explorar muda a tela em menos de 100 ms, e o INP fica abaixo de 200 ms; nenhuma página passa de 50 consultas ao D1; a conferência das linhas do dia de Natal fica abaixo de 3 milhões; e a foto principal da memória aparece bem antes dos 9,6 s de hoje (a sessão diz o número).
+
+**Feito na D1a** (23/11/2026, branch `tst-d1-servidor`; números em `docs/desempenho/2026-11-23-d1a.md`): causa 1 (guarda por pedido, o começo do pedido num lote só, as páginas e o esqueleto sem fila, as pendências do retrato sem somar os arquivos, o posicionamento inteligente e o Server-Timing), causa 3a, causa 7 e a anterior e a seguinte da memória por consulta própria. Com o acervo cheio, nenhuma página passa de 44 consultas e a fila caiu de 15 a 41 para 3 a 7; a estimativa do dia 25 caiu de 15,4 para 13,1 milhões de linhas, das quais 10,2 milhões são do modo TV (causa 6) e quase 2 milhões do Explorar (D2). As conferências `scripts/desempenho/conferir-consultas.mjs` e `estimar-natal.mjs` ficam para refazer.
+
+**Feito na D1d** (23/11/2026, branch `tst-d1-servidor`; correção do item 3 da revisão R-D1): a guarda por pedido conhece os gatilhos que gravam pelo SQL das migrações, e gravar na tabela de origem faz ler de novo as de destino. Teste em `testes/guarda-gatilhos.test.ts`, com o caso da revisão e a conferência do esquema.

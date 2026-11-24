@@ -48,7 +48,9 @@
       { "binding": "DB_HOMOLOGA", "database_name": "bayara-memorias-homologa", "database_id": "004a27d4-df4b-4127-baa4-fe6b1cf32c34" }
     ],
     // As prévias e a homologação também têm o Workers AI: o Gui liga a transcrição primeiro na homologação
-    "ai": { "binding": "AI" }
+    "ai": { "binding": "AI" },
+    // O mesmo posicionamento inteligente da produção, para a prévia medir o que a produção vai ter
+    "placement": { "mode": "smart" }
   },
 
   // Workers AI, para a transcrição automática dos áudios (resposta do Gui à sessão F, 18/11/2026). A conta
@@ -56,7 +58,13 @@
   // desligada até um administrador ligar em Administração, "Transcrição automática".
   "ai": { "binding": "AI" },
 
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+
+  // Posicionamento inteligente (causa 1d da medição M1, docs/desempenho/): o Cloudflare roda o servidor
+  // perto do banco quando uma página vai muitas vezes a ele, em vez de rodar perto de quem pede. Vale em
+  // todos os planos, sem custo. Ele precisa de tráfego, de mais de um lugar, e de até 15 minutos para
+  // decidir; o cabeçalho cf-placement da resposta diz o que ele escolheu.
+  "placement": { "mode": "smart" }
 
   // Segredo, configurado pelo painel ou com `wrangler secret put`:
   //   ACESSOS       JSON ligando e-mail de login a integrante, ex.: {"a@b.com":"gui"}

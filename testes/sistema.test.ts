@@ -328,3 +328,29 @@ describe('tokens e peças', () => {
     }
   });
 });
+
+describe('as fontes da primeira tela (causa 7 da medição M1, sessão D1a)', () => {
+  it('o site carrega só a combinação C; A e B ficam nas páginas que comparam as três', () => {
+    const sistema = texto('src/visual/sistema.ts');
+    expect(sistema).toMatch(/@fontsource\/dm-serif-display\/400\.css/);
+    expect(sistema).not.toMatch(/fraunces|geist|instrument|ibm-plex|oooh-baby|reenie-beanie/);
+    const comparar = texto('src/visual/fontes-para-comparar.ts');
+    for (const fonte of ['fraunces', 'geist', 'instrument-serif', 'ibm-plex-mono', 'oooh-baby', 'reenie-beanie']) expect(comparar).toContain(fonte);
+    const todos = import.meta.glob<string>(['../src/**/*.astro', '../src/**/*.ts'], { query: '?raw', import: 'default', eager: true });
+    const quemImporta = Object.entries(todos)
+      .filter(([, fonte]) => /^import '[^']*fontes-para-comparar';$/m.test(fonte))
+      .map(([caminho]) => caminho.replace('../', ''));
+    expect(quemImporta.sort()).toEqual(['src/pages/conceito/sobre.astro', 'src/pages/sistema.astro']);
+  });
+
+  it('o esqueleto pede antes a serifa da assinatura e a grotesca do texto, da combinação em uso', () => {
+    const esqueleto = texto('src/layouts/Visual.astro');
+    expect(esqueleto).toMatch(/fontesParaPedirAntes\(fontes\)\.map\(\(arquivo\) => <link rel="preload" href=\{arquivo\} as="font" type="font\/woff2" crossorigin \/>\)/);
+    const primeira = texto('src/visual/fontes-da-primeira-tela.ts');
+    expect(primeira).toContain("'@fontsource/dm-serif-display/files/dm-serif-display-latin-400-normal.woff2?url'");
+    expect(primeira).toContain("'@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2?url'");
+    // Os mesmos arquivos que o CSS das fontes usa: o preload não baixa uma fonte a mais
+    expect(texto('node_modules/@fontsource/dm-serif-display/400.css')).toContain('dm-serif-display-latin-400-normal.woff2');
+    expect(texto('node_modules/@fontsource-variable/dm-sans/wght.css')).toContain('dm-sans-latin-wght-normal.woff2');
+  });
+});

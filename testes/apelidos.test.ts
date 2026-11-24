@@ -32,7 +32,10 @@ describe('como você chama, só seu', () => {
     expect(ler('src/components/FichaDoIntegrante.astro')).toContain('i.apelidoDaFamilia !== undefined ? i.apelidoDaFamilia : i?.apelido');
   });
   it('as rotas de /api e a administração leem os de sempre: nenhum apelido privado vira o da família', () => {
-    expect(ler('src/middleware.ts')).toContain("if (!/^\\/(api|admin)(\\/|$)/.test(contexto.url.pathname)) guardarApelidosDoPedido(await listarMeusApelidos(usuario.pessoa));");
+    // A escolha mora em usaApelidosDeQuemOlha (src/lib/servidor/comeco-do-pedido.ts): fora de /api, /admin e das rotas de arquivo
+    expect(ler('src/middleware.ts')).toContain('if (apelidos) guardarApelidosDoPedido(await listarMeusApelidos(usuario.pessoa));');
+    expect(ler('src/middleware.ts')).toContain('const apelidos = usaApelidosDeQuemOlha(caminho);');
+    expect(ler('src/lib/servidor/comeco-do-pedido.ts')).toContain("!/^\\/(api|admin)(\\/|$)/.test(caminho)");
   });
   it('não passa pelo espelho, e juntar duplicados leva os apelidos para a ficha que fica', () => {
     expect(TABELAS_APAGADAS).toContain('apelidos_meus');

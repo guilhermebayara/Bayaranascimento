@@ -71,26 +71,42 @@ if ([...Astro.url.searchParams.keys()].some((k) => !DO_PAINEL.includes(k))) retu
 
 const { usuario } = Astro.locals;
 const agora = new Date();
-const carta = await obterCarta();
-const chegada = chegarAoPainel(await obterVisitas(usuario.pessoa), agora, Boolean(carta));
-await salvarVisitas(usuario.pessoa, chegada.registro);
+// O que o painel lê vai junto, sem fila (causa 1b da medição M1, docs/desempenho/): as pessoas, as famílias
+// e os laços já vêm guardados do começo do pedido.
+const [carta, visitas, integrantes, nucleos, nomesNaLixeira, naoVe, filiacoes, casais, comRascunhos, exesQueSaem, comRelatoMeu, relatosQueRegistrei, avisosDaLista] = await Promise.all([
+  obterCarta(),
+  obterVisitas(usuario.pessoa),
+  listarIntegrantes(),
+  listarNucleos(),
+  // Quem está na lixeira (excluir pessoa) some do site, mas o relato que contou continua com o nome
+  nomesDasPessoasExcluidas(),
+  pessoasQueONaoVe(usuario),
+  listarFiliacoes(),
+  listarCasais(usuario),
+  // Só o que a pessoa pode ver, da mais antiga para a mais nova, com os rascunhos dela numa leitura só
+  listarMemorias(usuario, { comRascunhos: true }),
+  // Ex discreto ou fora sai dos aniversários de quem escolheu (resposta do Gui à sessão F, 18/11/2026)
+  comoOsExesAparecem(usuario),
+  memoriasComRelatoDe(usuario.pessoa),
+  listarRelatosRegistradosPor(usuario),
+  listarAvisos(usuario),
+]);
+const chegada = chegarAoPainel(visitas, agora, Boolean(carta));
+// A visita de agora é gravada junto com os relatos que entraram desde a anterior: nenhuma leitura daqui depende dela
+const [, relatosDesde] = await Promise.all([
+  salvarVisitas(usuario.pessoa, chegada.registro),
+  chegada.novidadesDesde ? listarRelatosPublicadosDesde(usuario, chegada.novidadesDesde) : Promise.resolve([]),
+]);
 
-const integrantes = await listarIntegrantes();
-const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
 const achar = (id: string) => integrantes.find((i) => i.id === id);
-// Quem está na lixeira (excluir pessoa) some do site, mas o relato que contou continua com o nome
-const nomesNaLixeira = await nomesDasPessoasExcluidas();
 const nome = (id: string) => achar(id)?.apelido ?? achar(id)?.nome ?? nomesNaLixeira.get(id) ?? id;
 const eu = achar(usuario.pessoa);
-const naoVe = await pessoasQueONaoVe(usuario);
 const retratoDe = (id: string) => {
   const pessoa = achar(id);
   return pessoa?.retrato && !naoVe.has(id) ? enderecoDoRetrato(pessoa.retrato) : null;
 };
 const tratamentos = new Map<string, Tratamento>(integrantes.map((i) => [i.id, i.tratamento]));
-const filiacoes = await listarFiliacoes();
-const casais = await listarCasais(usuario);
 const corDe = coresDasPessoas(integrantes, casais, ordemDosNucleos);
 const familiaDe = (id: string) => corDe(id);
 const familia = new Familia(filiacoes, casais, tratamentos);
@@ -108,9 +124,9 @@ const paraQuemOlha = (id: string) => {
 };
 const nomeVisto = (id: string) => paraQuemOlha(id).nome;
 
-// Só o que a pessoa pode ver, da mais antiga para a mais nova. No painel, só o que foi publicado.
-const todas = await listarMemorias(usuario);
-const memorias = todas.filter((m) => m.situacao === 'publicada');
+// No painel, só o que foi publicado. Os rascunhos da pessoa vão para a linha de rascunhos, abaixo.
+const memorias = comRascunhos.filter((m) => m.situacao === 'publicada');
+const meusRascunhos = comRascunhos.filter((m) => m.situacao === 'rascunho');
 const porId = new Map(memorias.map((m) => [m.id, m]));
 const recentes = [...memorias].reverse();
 const minhas = recentes.filter((m) => m.integrantes.includes(usuario.pessoa));
@@ -118,7 +134,7 @@ const acervo = voceNoAcervo(minhas);
 
 // --- O que entrou de novo -------------------------------------------------------------------
 const novo = chegada.novidadesDesde
-  ? novidades(memorias, await listarRelatosPublicadosDesde(usuario, chegada.novidadesDesde), chegada.novidadesDesde, usuario.pessoa)
+  ? novidades(memorias, relatosDesde, chegada.novidadesDesde, usuario.pessoa)
   : { memorias: [], relatos: [] };
 // Aprovado pelo Gui em 17/11/2026 (pergunta 3 do PR do grupo "pessoal"): na mesa cabem duas memórias e um relato, como
 // no conceito. O resto fica numa linha, com o caminho para "Entraram por último", no Explorar.
@@ -155,8 +171,7 @@ const hoje = diaPedido() ?? hojeNoBrasil(agora);
 const ultimaVisita = chegada.novidadesDesde ? hojeNoBrasil(new Date(`${chegada.novidadesDesde.replace(' ', 'T')}Z`)) : undefined;
 
 // --- Os próximos aniversários (30 dias) ------------------------------------------------------------
-// Ex discreto ou fora sai dos aniversários de quem escolheu (resposta do Gui à sessão F, 18/11/2026)
-const exesQueSaem = await comoOsExesAparecem(usuario);
+// Ex discreto ou fora sai dos aniversários de quem escolheu: exesQueSaem
 const proximos = aniversarios(integrantes, hoje, new Set([...naoVe, ...exesQueSaem.keys()]), usuario.pessoa);
 // Os aniversários de casamento dos casais de hoje (decisão do Gui, 18/11/2026), na mesma lista: só de quem
 // a pessoa vê, sem o ex discreto ou fora e sem casal em que alguém já faleceu (aniversariosDeCasamento)
@@ -171,7 +186,7 @@ const quando = (emDias: number, dia: number, mes: number) => (emDias === 0 ? 'Ho
 
 // --- A pessoa no acervo e uma memória para contar ---------------------------------------------
 // Nunca a mesma memória que já está entre as novidades
-const paraContar = memoriaParaContar(memorias, await memoriasComRelatoDe(usuario.pessoa), usuario.pessoa, new Set(novo.memorias.map((m) => m.id)));
+const paraContar = memoriaParaContar(memorias, comRelatoMeu, usuario.pessoa, new Set(novo.memorias.map((m) => m.id)));
 
 // --- Neste dia, em outros anos ------------------------------------------------------------------
 const outrosAnos = emOutrosAnos(memorias, hoje);
@@ -182,7 +197,7 @@ const decadas = [...new Set(recentes.map((m) => Math.floor(m.ano / 10) * 10))];
 
 // --- Os rascunhos da pessoa -------------------------------------------------------------------
 // Uma linha na abertura, para continuar o que ficou pela metade (P6). A lista mora em "Sua conta".
-const rascunhos = seusRascunhos(usuario.pessoa, await listarMemorias(usuario, { rascunhos: true }), await listarRelatosRegistradosPor(usuario));
+const rascunhos = seusRascunhos(usuario.pessoa, meusRascunhos, relatosQueRegistrei);
 const quantosRascunhos = rascunhos.memorias.length + rascunhos.relatos.length;
 const oRascunho = rascunhos.memorias[0] ? `/nova?id=${rascunhos.memorias[0].id}` : rascunhos.relatos[0] ? enderecoDoRascunhoDeRelato(rascunhos.relatos[0], usuario.pessoa) : undefined;
 
@@ -198,7 +213,7 @@ const composicao = composicaoDoInicio({
 
 const cartaNoAlto = chegada.cartaNoAlto && carta && eu;
 // Os avisos ficam no alto, junto das novidades (docs/decisoes.md, "Avisos")
-const avisos = cartaNoAlto ? [] : await listarAvisos(usuario);
+const avisos = cartaNoAlto ? [] : avisosDaLista;
 const ok = Astro.url.searchParams.get('ok');
 const erro = Astro.url.searchParams.get('erro');
 ---
