@@ -62,27 +62,30 @@ export async function montarParte(tabela: string, depois: number | null, nomes?:
   // O nome entra no SQL: só vale o de uma tabela que está no índice
   if (!(nomes ?? (await nomesDasTabelas())).includes(tabela)) return null;
   const tamanho = linhasPorParte(tabela);
-  // Uma consulta só, para a marca e as linhas serem do mesmo instante. A marca vem na primeira coluna de toda
-  // linha, e o rowid na segunda; as duas saem da parte. A junção à esquerda dá uma linha mesmo com a página
-  // vazia (o rowid vem nulo), para a marca chegar. Uma linha a mais, só para saber se a tabela continua.
+  // Uma consulta só, para a marca e as linhas serem do mesmo instante: a página (com uma linha a mais, só para
+  // saber se a tabela continua) e, no fim, uma linha a mais com a marca no lugar do rowid ("marca:<n>") e as
+  // colunas vazias. A marca vai uma vez, e não em toda linha: a parte custa o mesmo que antes.
+  const t = entreAspas(tabela);
   const comando = banco().prepare(
-    `SELECT m.valor AS "__marca_da_copia", p.* FROM ${TABELA_DA_MARCA} m LEFT JOIN (
-       SELECT rowid AS "__linha_da_copia", * FROM ${entreAspas(tabela)}${depois === null ? '' : ' WHERE rowid > ?1'} ORDER BY rowid LIMIT ${tamanho + 1}
-     ) p ON 1 WHERE m.id = 1 ORDER BY p."__linha_da_copia"`,
+    `SELECT * FROM (SELECT rowid AS "__linha_da_copia", * FROM ${t}${depois === null ? '' : ' WHERE rowid > ?1'} ORDER BY rowid LIMIT ${tamanho + 1})
+     UNION ALL SELECT 'marca:' || m.valor, x.* FROM ${TABELA_DA_MARCA} m LEFT JOIN ${t} x ON 0 WHERE m.id = 1`,
   );
   const [cabecalho, ...todas] = (await (depois === null ? comando : comando.bind(depois)).raw({ columnNames: true })) as [string[], ...unknown[][]];
-  if (todas.length === 0) throw new CopiaSemMarca('A marca de mudança do acervo não existe.');
-  const marca = Number(todas[0]![0]);
-  const linhas = todas[0]![1] === null ? [] : todas;
+  const linhaDaMarca = todas.findIndex((l) => typeof l[0] === 'string' && l[0].startsWith('marca:'));
+  if (linhaDaMarca < 0) throw new CopiaSemMarca('A marca de mudança do acervo não existe.');
+  const marca = Number((todas[linhaDaMarca]![0] as string).slice('marca:'.length));
+  const linhas = todas.filter((_, i) => i !== linhaDaMarca);
+  // Em ordem de rowid, como a página pediu (a união não muda a ordem; conferido sem custo)
+  for (let i = 1; i < linhas.length; i++) if (Number(linhas[i]![0]) < Number(linhas[i - 1]![0])) linhas.sort((a, b) => Number(a[0]) - Number(b[0]));
   const continua = linhas.length > tamanho;
   const pagina = continua ? linhas.slice(0, tamanho) : linhas;
   return {
     acervo: MARCA_DO_ACERVO,
     tabela,
     marca,
-    colunas: (cabecalho ?? []).slice(2),
-    linhas: pagina.map((l) => l.slice(2)),
-    proxima: continua ? Number(pagina[pagina.length - 1]![1]) : null,
+    colunas: (cabecalho ?? []).slice(1),
+    linhas: pagina.map((l) => l.slice(1)),
+    proxima: continua ? Number(pagina[pagina.length - 1]![0]) : null,
   };
 }
 
