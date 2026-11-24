@@ -178,6 +178,36 @@ describe.skipIf(!comSqlite)('a cópia responde igual à original, para cada pess
     if (naLixeira.status === 200) expect(naLixeira.cache).toBe('private, no-cache');
     else expect(naLixeira.status).toBe(404);
   });
+
+  // Item 15 da revisão R-D1 (sessão D1d): com a mesma chave em mais de uma linha, o guardar vale só pelas
+  // linhas que a pessoa vê de fato
+  it('a mesma foto de exemplo num rascunho da Elizete e num relato de pessoa que ela não vê: sai no-cache', async () => {
+    const elizete = usuarioDe('elizete');
+    // Uma pessoa que só existe num laço do coração privado do Gui: a Elizete não a vê
+    sql(`INSERT INTO integrantes (id, nome, tipo) VALUES ('d1d-privada', 'Pessoa Privada', 'pessoa')`);
+    sql(`INSERT INTO lacos_coracao (dono_id, pessoa_id, nome, privado) VALUES ('gui', 'd1d-privada', 'Amiga', 1)`);
+    const { pessoasQueONaoVe } = await import('../src/lib/servidor/repositorio');
+    expect((await pessoasQueONaoVe(elizete)).has('d1d-privada')).toBe(true);
+    memoria('d1d-rascunho-da-elizete', { situacao: 'rascunho', criadaPor: 'elizete' });
+    memoria('d1d-publicada', { criadaPor: 'gui' });
+    sql(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES ('d1d-publicada', 'd1d-privada', 'gui', 'Contado pela pessoa privada', 'publicada')`);
+    const relato = linha<{ id: number }>(`SELECT id FROM relatos WHERE memoria_id = 'd1d-publicada' AND por = 'd1d-privada'`).id;
+    const exemplo = 'exemplos/karol-6.jpg';
+    // No acervo de exemplo, a karol-6 está também em memórias publicadas: ficam de lado durante o caso
+    const outras = (banco.sqlite.prepare('SELECT id FROM fotos WHERE chave = ?').all(exemplo) as { id: number }[]).map((f) => f.id);
+    for (const id of outras) sql(`UPDATE fotos SET chave = 'fora-do-caso' WHERE id = ?`, id);
+    sql(`INSERT INTO fotos (memoria_id, chave, enviada_por) VALUES ('d1d-rascunho-da-elizete', ?, 'elizete')`, exemplo);
+    sql(`INSERT INTO fotos (memoria_id, chave, enviada_por, relato_id) VALUES ('d1d-publicada', ?, 'gui', ?)`, exemplo, relato);
+    try {
+      // A Elizete vê a foto pelo rascunho dela, e o rascunho não fica guardado no aparelho
+      expect(await pedir(elizete, exemplo)).toEqual({ status: 200, cache: 'private, no-cache' });
+      // O Gui vê o relato publicado: para ele a foto fica 7 dias
+      expect(await pedir(usuarioDe('gui'), exemplo)).toEqual({ status: 200, cache: 'private, max-age=604800' });
+    } finally {
+      sql(`DELETE FROM fotos WHERE chave = ? AND memoria_id IN ('d1d-rascunho-da-elizete', 'd1d-publicada')`, exemplo);
+      for (const id of outras) sql('UPDATE fotos SET chave = ? WHERE id = ?', exemplo, id);
+    }
+  });
 });
 
 // Os áudios guardados por 7 dias (sessão D1c) estão em testes/audios-guardados.test.ts.

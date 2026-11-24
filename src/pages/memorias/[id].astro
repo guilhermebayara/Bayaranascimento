@@ -18,7 +18,7 @@ import TarjaDoDiscreto from '../../components/visual/TarjaDoDiscreto.astro';
 import Recado from '../../components/visual/Recado.astro';
 import { fraseDosRelatosQueEsperam } from '../../lib/avisos';
 import Polaroid from '../../components/visual/Polaroid.astro';
-import { fontesDaFoto } from '../../lib/copias-das-fotos';
+import { enderecoDaFoto, fontesDaFoto } from '../../lib/copias-das-fotos';
 import Rabisco from '../../components/visual/Rabisco.astro';
 import { memoriaDoCapitulo } from '../../lib/capitulos';
 import { recolheQuemEstava, relatoJaEstaNaAbertura } from '../../lib/memoria';
@@ -441,7 +441,7 @@ const podeCitar = publicada && temPaginaNoAcervo;
               <ul class="parede">
                 {memoria.fotos.map((foto, n) => (
                   <li id={`foto-${foto.id}`}>
-                    <a class="monte" href={`/fotos/${foto.chave}`} data-galeria={n} aria-label={`Ver a foto inteira${foto.legenda ? `: ${foto.legenda}` : ''}`}>
+                    <a class="monte" href={enderecoDaFoto(foto.chave)} data-galeria={n} aria-label={`Ver a foto inteira${foto.legenda ? `: ${foto.legenda}` : ''}`}>
                       <figure class="polaroid" style={`--giro: ${giroDoId(`${memoria.id}-${n}`)}deg`}>
                         <span class="polaroid__foto">
                           <img {...fontesDaFoto(foto, 'pequena', '(min-width: 1600px) 250px, (min-width: 1000px) 220px, 150px')} alt={foto.legenda ?? ''} loading="lazy" decoding="async" />
@@ -453,10 +453,10 @@ const podeCitar = publicada && temPaginaNoAcervo;
                       <div class="acoes-do-item">
                         <Reacoes memoria={memoria.id} alvo="foto" alvoId={foto.id} marcas={reacoes.get(`foto:${foto.id}`)} eu={usuario.pessoa} nome={nome} volta={`/memorias/${memoria.id}#foto-${foto.id}`} sobre={`a foto ${n + 1}`} />
                         <MenuDeAcoes rotulo={`Mais ações da foto ${n + 1}`}>
-                          <a class="menu-acoes__item" href={`/fotos/${foto.chave}`} target="_blank" rel="noopener">
+                          <a class="menu-acoes__item" href={enderecoDaFoto(foto.chave)} target="_blank" rel="noopener">
                             Ver a foto inteira
                           </a>
-                          <a class="menu-acoes__item" href={`/fotos/${foto.chave}`} download>
+                          <a class="menu-acoes__item" href={enderecoDaFoto(foto.chave)} download>
                             Baixar a foto
                           </a>
                         </MenuDeAcoes>

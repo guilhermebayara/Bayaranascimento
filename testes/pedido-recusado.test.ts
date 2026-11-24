@@ -420,6 +420,62 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
       bucket.get = get;
     }
   });
+  it('/api/copias-das-fotos e /api/copias-dos-retratos: o que o ajuste não lista e a reserva de outro pedido são recusados sem mudar nada (sessão D1d)', async () => {
+    const copias = await import('../src/pages/api/copias-das-fotos');
+    const ajuste = await import('../src/pages/api/copias-dos-retratos');
+    const gui = usuarioDe('gui');
+    const leitura = (nome: string) => new Uint8Array(readFileSync(new URL(`../exemplos/fotos/${nome}`, import.meta.url)));
+    const gravadas: string[] = [];
+    const bucket = env.FOTOS as { put: (chave: string) => Promise<unknown>; get: (chave: string) => Promise<unknown> };
+    const [put, get] = [bucket.put, bucket.get];
+    bucket.put = async (chave: string) => void gravadas.push(chave);
+    const png = new Uint8Array(40);
+    png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 3, 0x20, 0, 0, 3, 0x20]);
+    bucket.get = async (chave: string) => ({ arrayBuffer: async () => (chave.startsWith('retratos/') ? png.buffer : leitura('chico-3.jpg').buffer) });
+    const chaveDe = (n: number) => `2026/d1d0dddd-0000-4000-8000-${String(n).padStart(12, '0')}.jpg`;
+    const retrato = 'd1d0dddd-0000-4000-8000-000000000009.jpg';
+    banco.sqlite.prepare(`INSERT INTO memorias (id, titulo, ano, tipo, criada_por) VALUES ('d1d-recusas', 'Recusas', 2001, ?, 'gui')`).run(tipo);
+    banco.sqlite.prepare(`INSERT INTO fotos (memoria_id, chave, enviada_por, removida_em, removida_por) VALUES ('d1d-recusas', ?, 'gui', datetime('now'), 'gui')`).run(chaveDe(1));
+    banco.sqlite.prepare(`INSERT INTO fotos (chave, enviada_por, enviada_em) VALUES (?, 'elizete', datetime('now', '-40 days'))`).run(chaveDe(2));
+    banco.sqlite.prepare(`INSERT INTO fotos (memoria_id, chave, enviada_por) VALUES ('d1d-recusas', ?, 'gui')`).run(chaveDe(3));
+    banco.sqlite.prepare(`INSERT INTO integrantes (id, nome, tipo, retrato) VALUES ('d1d-recusas', 'Recusas', 'pessoa', ?)`).run(retrato);
+    // Outro pedido está gravando a foto 3 e o retrato agora
+    banco.sqlite.prepare(`INSERT INTO reservas_das_copias (alvo, codigo) VALUES (?, 'outro'), (?, 'outro')`).run(`foto:${chaveDe(3)}`, `retrato:${retrato}`);
+    const enviar = async (chave: string) => {
+      const corpo = new FormData();
+      corpo.set('chave', chave);
+      corpo.set('pequena', new Blob([leitura('copias/chico-3.pequena.webp')]), 'pequena.webp');
+      corpo.set('media', new Blob([leitura('copias/chico-3.media.webp')]), 'media.webp');
+      const request = new Request('http://localhost/api/copias-das-fotos', { method: 'POST', headers: { Origin: 'http://localhost' }, body: corpo });
+      return (await copias.POST({ request, locals: { usuario: gui, tipos } } as never)).status;
+    };
+    const enviarRetrato = async (chave: string) => {
+      const corpo = new FormData();
+      corpo.set('chave', chave);
+      const webp = new Uint8Array(40);
+      webp.set([...'RIFF'].map((c) => c.charCodeAt(0)), 0);
+      webp.set([...'WEBPVP8X'].map((c) => c.charCodeAt(0)), 8);
+      webp.set([0x8f, 0x01, 0, 0x8f, 0x01, 0], 24);
+      corpo.set('pequeno', new Blob([webp]), 'pequeno.webp');
+      const request = new Request('http://localhost/api/copias-dos-retratos', { method: 'POST', headers: { Origin: 'http://localhost' }, body: corpo });
+      return (await ajuste.POST({ request, locals: { usuario: gui, tipos } } as never)).status;
+    };
+    try {
+      const antes = impressao();
+      // A foto removida e a solta antiga: o Gui as vê, mas o ajuste não as lista
+      expect(await enviar(chaveDe(1))).toBe(404);
+      expect(await enviar(chaveDe(2))).toBe(404);
+      // A reserva de outro pedido: 409, sem gravar nada
+      expect(await enviar(chaveDe(3))).toBe(409);
+      expect(await enviarRetrato(retrato)).toBe(409);
+      expect(impressao()).toBe(antes);
+      expect(gravadas).toEqual([]);
+    } finally {
+      bucket.put = put;
+      bucket.get = get;
+    }
+  });
+
   it('/api/copias-dos-retratos: quem não administra, o retrato que não existe, o de exemplo, o que já tem cópia e a cópia errada são recusados sem mudar nada (sessão D1c)', async () => {
     const ajuste = await import('../src/pages/api/copias-dos-retratos');
     const gui = usuarioDe('gui');

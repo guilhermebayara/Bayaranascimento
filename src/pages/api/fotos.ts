@@ -9,7 +9,7 @@ import type { APIRoute } from 'astro';
 import { bucketDeFotos } from '../../lib/servidor/ambiente';
 import { erro, json, mesmaOrigem } from '../../lib/servidor/http';
 import { registrarFoto } from '../../lib/servidor/repositorio';
-import { LIMITE_DA_COPIA, chaveDaCopia, conferirCopias, type Copias } from '../../lib/copias-das-fotos';
+import { LIMITE_DA_COPIA, chaveDaCopia, conferirCopias, enderecoDaFoto, type Copias } from '../../lib/copias-das-fotos';
 
 const LIMITE = 15 * 1024 * 1024;
 
@@ -73,5 +73,5 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
   }
   const id = await registrarFoto(chave, locals.usuario, dados.byteLength, copias);
-  return json({ id, src: `/fotos/${chave}`, copias: Boolean(copias) }, 201);
+  return json({ id, src: enderecoDaFoto(chave), copias: Boolean(copias) }, 201);
 };

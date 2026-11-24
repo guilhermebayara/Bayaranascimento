@@ -20,6 +20,8 @@ interface Pedido {
   homologa: boolean;
   tipos?: readonly Tipo[];
   apelidos?: ReadonlyMap<string, string>;
+  /** A pessoa vista pelo "Ver como", só onde ele existe (guardarVerComoDoPedido) */
+  verComo?: string;
   /** Quem pede (definirPessoaDoPedido). Entra na chave de tudo o que o pedido guarda. */
   pessoa?: string;
   /** As leituras do banco guardadas durante o pedido (a guarda por pedido, ver guardarLeitura) */
@@ -70,6 +72,19 @@ export function guardarApelidosDoPedido(apelidos: ReadonlyMap<string, string>): 
 }
 export function apelidosDoPedido(): ReadonlyMap<string, string> | undefined {
   return doPedido.getStore()?.apelidos;
+}
+
+/**
+ * A pessoa vista pelo "Ver como", para o marcador nos endereços das fotos e dos retratos
+ * (src/lib/marcador-do-ver-como.ts). O middleware guarda aqui só onde existe o "Ver como" (semLogin); na
+ * produção fica vazia, e os endereços ficam como sempre foram.
+ */
+export function guardarVerComoDoPedido(pessoa: string): void {
+  const pedido = doPedido.getStore();
+  if (pedido) pedido.verComo = pessoa;
+}
+export function verComoDoPedido(): string | undefined {
+  return doPedido.getStore()?.verComo;
 }
 
 /** Roda o tratamento de um pedido sabendo se ele é da homologação. Cada pedido começa com a guarda vazia. */

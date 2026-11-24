@@ -512,7 +512,7 @@ describe('conceito', () => {
     // Pedido do Gui, 16/11/2026: tocar na foto abria a imagem solta, fora da página
     const pagina = tela('memorias/[id].astro');
     expect(pagina).toContain('<dialog class="galeria"');
-    for (const link of pagina.matchAll(/<a class="monte"[^>]*>/g)) expect(link[0]).toMatch(/href=\{`\/fotos\/\$\{foto\.chave\}`\} data-galeria=\{n\}/);
+    for (const link of pagina.matchAll(/<a class="monte"[^>]*>/g)) expect(link[0]).toMatch(/href=\{enderecoDaFoto\(foto\.chave\)\} data-galeria=\{n\}/);
     // O voltar do aparelho fecha a galeria em vez de sair da página
     expect(pagina).toMatch(/history\.pushState[\s\S]*popstate/);
     // Passar de foto é a rolagem do próprio aparelho, com encaixe: a foto acompanha o dedo (pedido do

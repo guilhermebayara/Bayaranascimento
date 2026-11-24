@@ -10,7 +10,7 @@
 // - A data de uma mensagem só aparece quando muda o dia ("Contou mais em 3 de dezembro de 2026").
 // - Responder citando: no relato próprio, citar uma mensagem de outra pessoa da mesma memória. A citação
 //   fica no relato de quem cita, e ninguém mexe no relato do outro.
-import { fontesDaFoto, type Copias } from './copias-das-fotos';
+import { enderecoDaFoto, fontesDaFoto, type Copias } from './copias-das-fotos';
 
 export type TipoDeMensagem = 'texto' | 'audio' | 'foto';
 
@@ -170,7 +170,7 @@ export function mensagensNaTela(
       const f = fotos.get(m.fotoId!);
       if (!f) return [];
       const mostrar = fontesDaFoto(f, 'pequena').src;
-      const src = `/fotos/${f.chave}`;
+      const src = enderecoDaFoto(f.chave);
       return [{ ...base, foto: { id: m.fotoId!, src, ...(mostrar !== src ? { mostrar } : {}), legenda: f.legenda, ...(f.galeria !== undefined ? { galeria: f.galeria } : {}) } }];
     }
     const citacao = m.citaId ? (citada(m.citaId) ?? null) : null;

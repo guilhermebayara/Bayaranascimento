@@ -5,7 +5,7 @@
 // e reduz para LADO_DO_RETRATO antes de enviar. O arquivo fica no bucket das fotos, debaixo de
 // "retratos/", e a chave fica em integrantes.retrato (migração 016). Trocar ou tirar não apaga o
 // arquivo antigo: a chave anterior fica nas versões guardadas do cadastro.
-
+import { comMarcador } from './marcador-do-ver-como';
 import { formatoDaCopia, medidaDaImagem } from './copias-das-fotos';
 
 /** Lado do quadrado enviado, em pixels: sobra para a página da pessoa em tela grande. */
@@ -47,10 +47,13 @@ export interface CopiaDoRetrato {
   bytes: number;
 }
 
-/** O endereço do retrato nas telas: a cópia pequena, que a rota troca pela original quando não há cópia. */
-export const enderecoDoRetrato = (chave: string) => `/retratos/pequeno/${chave}`;
+/**
+ * O endereço do retrato nas telas: a cópia pequena, que a rota troca pela original quando não há cópia. Onde
+ * existe o "Ver como", com o marcador da pessoa vista (src/lib/marcador-do-ver-como.ts), como as fotos.
+ */
+export const enderecoDoRetrato = (chave: string) => comMarcador(`/retratos/pequeno/${chave}`);
 /** O endereço da original: o ajuste da Administração e os retratos grandes, quando a cópia não basta. */
-export const enderecoDoRetratoInteiro = (chave: string) => `/retratos/${chave}`;
+export const enderecoDoRetratoInteiro = (chave: string) => comMarcador(`/retratos/${chave}`);
 
 /** Lê o caminho depois de /retratos/: "pequeno/<chave>" é a cópia de "<chave>". */
 export function lerCaminhoDoRetrato(caminho: string): { chave: string; pequeno: boolean } {

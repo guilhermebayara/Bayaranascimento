@@ -11,7 +11,7 @@
 // "2026/<código>.pequena.webp" e "2026/<código>.media.webp". Ela é entregue pela mesma rota da original
 // (/fotos/pequena/2026/<código>.jpg), que confere a permissão da original: quem não vê a foto não vê a
 // cópia. Sem cópia, a tela usa a original, e a rota da cópia também cai na original: nunca uma foto quebrada.
-
+import { comMarcador } from './marcador-do-ver-como';
 import { copiasDeExemplo } from './fotos-de-exemplo';
 
 export type Tamanho = 'pequena' | 'media';
@@ -67,8 +67,11 @@ export function chavesDasCopias(chave: string): string[] {
   return TAMANHOS.flatMap((tamanho) => (['webp', 'jpg'] as const).map((formato) => chaveDaCopia(chave, tamanho, formato)));
 }
 
-/** O endereço da foto no site: a original, ou a cópia, pela mesma rota. */
-export const enderecoDaFoto = (chave: string, tamanho?: Tamanho) => (tamanho ? `/fotos/${tamanho}/${chave}` : `/fotos/${chave}`);
+/**
+ * O endereço da foto no site: a original, ou a cópia, pela mesma rota. Onde existe o "Ver como", com o
+ * marcador da pessoa vista (src/lib/marcador-do-ver-como.ts). Todo endereço de foto passa por aqui.
+ */
+export const enderecoDaFoto = (chave: string, tamanho?: Tamanho) => comMarcador(tamanho ? `/fotos/${tamanho}/${chave}` : `/fotos/${chave}`);
 
 /** Lê o caminho depois de /fotos/: "pequena/2026/x.jpg" é a cópia pequena de "2026/x.jpg". */
 export function lerCaminhoDaFoto(caminho: string): { chave: string; tamanho?: Tamanho } {

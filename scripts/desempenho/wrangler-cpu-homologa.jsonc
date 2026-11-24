@@ -1,0 +1,29 @@
+// Configuração só local da medição de CPU (sessão M2): a homologação simulada, para medir o envio do
+// espelho. O mesmo build e o mesmo estado local de wrangler-cpu.jsonc, mais o banco e o bucket locais
+// da homologação. medir-cpu.mjs sobe com --local-upstream no endereço da homologação, e o site escolhe
+// DB_HOMOLOGA e FOTOS_HOMOLOGA pelo endereço do pedido (ambiente.ts), como na prévia da homologa.
+// Tudo local, com nomes e ids fictícios.
+{
+  "name": "bayara-medicao-cpu-local-homologa",
+  "main": "../../dist/server/entry.mjs",
+  "compatibility_date": "2026-11-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "no_bundle": true,
+  "rules": [{ "type": "ESModule", "globs": ["**/*.js", "**/*.mjs"] }],
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": { "binding": "ASSETS", "directory": "../../dist/client" },
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "medicao-local.invalid",
+    "ACCESS_AUD": "medicao-local",
+    "AMBIENTE": "previa",
+  },
+  "r2_buckets": [
+    { "binding": "FOTOS", "bucket_name": "medicao-local-fotos" },
+    { "binding": "FOTOS_HOMOLOGA", "bucket_name": "medicao-local-fotos-homologa" },
+  ],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "medicao-local", "database_id": "00000000-0000-4000-8000-0000000000a1" },
+    { "binding": "DB_HOMOLOGA", "database_name": "medicao-local-homologa", "database_id": "00000000-0000-4000-8000-0000000000a2" },
+  ],
+}

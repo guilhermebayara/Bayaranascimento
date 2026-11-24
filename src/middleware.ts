@@ -1,18 +1,21 @@
 // Roda antes de toda página e de toda rota: prepara o banco e descobre quem está pedindo.
 // Sem pessoa identificada, nada do acervo é entregue.
 import { defineMiddleware } from 'astro:middleware';
-import { ehServicoDeCopia, enderecoDeSaida, pessoaQuePede, usuarioDaPessoa } from './lib/servidor/acesso';
-import { ambiente, definirPessoaDoPedido, guardarApelidosDoPedido, guardarTiposDoPedido, noPedido, servidorTiming, tiposDoPedido } from './lib/servidor/ambiente';
+import { ehServicoDeCopia, enderecoDeSaida, pessoaQuePede, semLogin, usuarioDaPessoa } from './lib/servidor/acesso';
+import { ambiente, definirPessoaDoPedido, guardarApelidosDoPedido, guardarTiposDoPedido, guardarVerComoDoPedido, noPedido, servidorTiming, tiposDoPedido, verComoDoPedido } from './lib/servidor/ambiente';
 import { ehNaoEncontradaSemPagina } from './lib/servidor/http';
 import { prepararBanco } from './lib/servidor/banco';
 import { respostaDaCopia } from './lib/servidor/copia';
 import { anotarCopiaMensal, aquecerOPedido, listarMeusApelidos, listarTipos, registrarAcesso } from './lib/servidor/repositorio';
 import { comecoDoPedido, usaApelidosDeQuemOlha } from './lib/servidor/comeco-do-pedido';
 import { lerEscolhasDe } from './lib/visual';
+import { lerMarcadorDe } from './lib/marcador-do-ver-como';
 
 // A tela de quem entrou mas não está ligado a ninguém tem "Sair", para entrar com outro e-mail (pedido do Gui, 19/11/2026)
 // A cor e o rabisco de cada tipo, escolhidos em /admin/tipos, valem em toda tela do pedido
 lerEscolhasDe(tiposDoPedido);
+// Onde existe o "Ver como", os endereços das fotos e dos retratos levam a pessoa vista (src/lib/marcador-do-ver-como.ts)
+lerMarcadorDe(verComoDoPedido);
 
 const recado = () => `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Memórias Bayara e Bracarense</title><body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 15vh auto; padding: 0 1.5rem; line-height: 1.5">
@@ -61,6 +64,8 @@ const tratar: Parameters<typeof defineMiddleware>[0] = async (contexto, proximo)
     });
   }
   contexto.locals.usuario = usuario;
+  // Só onde existe o "Ver como": na produção, nenhum endereço muda
+  if (semLogin()) guardarVerComoDoPedido(usuario.pessoa);
   const acesso = `${ambiente()}:${usuario.pessoa}`;
   if (!acessosAnotados.has(acesso)) {
     await registrarAcesso(usuario.pessoa);

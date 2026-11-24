@@ -1440,15 +1440,24 @@ export async function registrarRetratoEnviado(chave: string, tamanho: number, us
  * Anota a cópia de um retrato de antes (o ajuste da Administração). O retrato de antes da contagem do espaço
  * ainda não tem linha: ela nasce aqui, com o tamanho da original. Nunca troca uma cópia que já existe.
  */
-export async function guardarCopiaDoRetrato(chave: string, tamanhoDaOriginal: number, copia: CopiaDoRetrato): Promise<number> {
-  const r = await db()
-    .prepare(
-      `INSERT INTO retratos_enviados (chave, tamanho, copia) VALUES (?1, ?2, ?3)
-       ON CONFLICT (chave) DO UPDATE SET copia = excluded.copia WHERE retratos_enviados.copia IS NULL`,
-    )
-    .bind(chave, tamanhoDaOriginal, gravarCopiaDoRetrato(copia))
-    .run();
+export async function guardarCopiaDoRetrato(chave: string, tamanhoDaOriginal: number, copia: CopiaDoRetrato, reserva: string): Promise<number> {
+  // Só com a reserva ainda deste pedido (reservarCopias), e a reserva sai no mesmo lote
+  const [r] = await db().batch([
+    db()
+      .prepare(
+        `INSERT INTO retratos_enviados (chave, tamanho, copia)
+         SELECT ?1, ?2, ?3 WHERE EXISTS (SELECT 1 FROM reservas_das_copias WHERE alvo = ?4 AND codigo = ?5)
+         ON CONFLICT (chave) DO UPDATE SET copia = excluded.copia WHERE retratos_enviados.copia IS NULL`,
+      )
+      .bind(chave, tamanhoDaOriginal, gravarCopiaDoRetrato(copia), alvoDoRetrato(chave), reserva),
+    db().prepare('DELETE FROM reservas_das_copias WHERE alvo = ? AND codigo = ?').bind(alvoDoRetrato(chave), reserva),
+  ]);
   return r.meta.changes ?? 0;
+}
+
+/** O retrato está no ajuste? A rota das cópias só aceita o que o ajuste lista (como fotoEstaNoAjuste). */
+export async function retratoEstaNoAjuste(usuario: Usuario, chave: string): Promise<boolean> {
+  return (await listarRetratosSemCopia(usuario, chave)).includes(chave);
 }
 
 /** Este retrato já tem cópia? */
@@ -1460,13 +1469,15 @@ export async function retratoTemCopia(chave: string): Promise<boolean> {
  * Os retratos de agora sem cópia que o administrador vê (o ajuste da Administração). Os de exemplo ficam de
  * fora: usam as cópias das fotos de exemplo. O retrato antigo, que já não é de ninguém, não aparece em tela.
  */
-export async function listarRetratosSemCopia(usuario: Usuario): Promise<string[]> {
+export async function listarRetratosSemCopia(usuario: Usuario, soEste: string | null = null): Promise<string[]> {
   const { results } = await db()
     .prepare(
       `SELECT i.id, i.retrato FROM integrantes i WHERE i.retrato IS NOT NULL AND i.retrato NOT LIKE 'exemplos/%'
+         AND (?1 IS NULL OR i.retrato = ?1)
          AND NOT EXISTS (SELECT 1 FROM retratos_enviados r WHERE r.chave = i.retrato AND r.copia IS NOT NULL)
        ORDER BY i.id`,
     )
+    .bind(soEste)
     .all<{ id: string; retrato: string }>();
   const naoVe = await pessoasQueONaoVe(usuario);
   return [...new Set((results as { id: string; retrato: string }[]).filter((r) => podeVerRetrato(r.id, naoVe)).map((r) => r.retrato))];
@@ -1681,10 +1692,12 @@ export async function acessoAFoto(usuario: Usuario, chave: string): Promise<Aces
   type Linha = { por: string | null; registrado_por: string | null; so_para_nucleos: string | null; copias: string | null; guardar: number };
   let linhas = results as Linha[];
   if (linhas.length === 0) return null;
-  // A foto sem relato não depende de quem contou
-  if (!linhas.some((r) => r.por === null)) {
+  // A foto sem relato não depende de quem contou. A de relato fica só se a pessoa vê o relato: com a mesma
+  // chave em mais de uma linha (as fotos de exemplo, nas prévias e na homologação), o guardar e as cópias
+  // valem só pelas linhas que ela vê de fato (item 15 da revisão R-D1, sessão D1d)
+  if (linhas.some((r) => r.por !== null)) {
     const naoVe = await pessoasQueONaoVe(usuario);
-    linhas = linhas.filter((r) => veORelato({ por: r.por!, registradoPor: r.registrado_por!, soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) }, usuario, naoVe));
+    linhas = linhas.filter((r) => r.por === null || veORelato({ por: r.por, registradoPor: r.registrado_por!, soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) }, usuario, naoVe));
     if (linhas.length === 0) return null;
   }
   // Uma foto de exemplo é dividida por várias memórias: basta uma publicada que a pessoa vê para guardar
@@ -1698,15 +1711,16 @@ export async function acessoAFoto(usuario: Usuario, chave: string): Promise<Aces
  * uma por chave, das memórias que ele vê (as publicadas e os rascunhos dele), sem as removidas e sem as de
  * exemplo. Cada uma é conferida de novo pela rota das fotos ao baixar e pela rota das cópias ao enviar.
  */
-export async function listarFotosSemCopia(usuario: Usuario): Promise<string[]> {
+export async function listarFotosSemCopia(usuario: Usuario, soEsta: string | null = null): Promise<string[]> {
   const { results } = await db()
     .prepare(
       `SELECT f.chave, r.por, r.registrado_por, r.so_para_nucleos FROM fotos f LEFT JOIN relatos r ON r.id = f.relato_id
        WHERE f.copias IS NULL AND f.removida_em IS NULL AND f.chave <> '' AND f.chave NOT LIKE 'exemplos/%'
+         AND (?2 IS NULL OR f.chave = ?2)
          AND EXISTS (SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND ${FILTRO_VISIVEL})
        ORDER BY f.id`,
     )
-    .bind(usuario.pessoa)
+    .bind(usuario.pessoa, soEsta)
     .all<{ chave: string; por: string | null; registrado_por: string | null; so_para_nucleos: string | null }>();
   const naoVe = await pessoasQueONaoVe(usuario);
   const chaves = new Set<string>();
@@ -1718,12 +1732,57 @@ export async function listarFotosSemCopia(usuario: Usuario): Promise<string[]> {
 }
 
 /**
- * Anota as cópias de uma foto, em todas as linhas com essa chave que ainda não têm cópia. Nunca troca
- * cópias que já existem: devolve quantas linhas mudaram (zero, se outra pessoa chegou antes).
+ * A foto está no ajuste (item 13b da revisão R-D1)? A rota das cópias só aceita o que o ajuste lista: foto de
+ * memória que o administrador vê, fora da lixeira, não removida, sem cópia e fora dos exemplos. A foto solta
+ * antiga e a removida, que acessoAFoto libera ao administrador para ele conferir, ficam de fora.
  */
-export async function guardarCopias(chave: string, copias: Copias): Promise<number> {
-  const r = await db().prepare('UPDATE fotos SET copias = ? WHERE chave = ? AND copias IS NULL').bind(gravarCopias(copias), chave).run();
+export async function fotoEstaNoAjuste(usuario: Usuario, chave: string): Promise<boolean> {
+  return (await listarFotosSemCopia(usuario, chave)).includes(chave);
+}
+
+/**
+ * Anota as cópias de uma foto, em todas as linhas com essa chave que ainda não têm cópia, e solta a reserva,
+ * num lote só. Só anota com a reserva ainda deste pedido (reservarCopias). Nunca troca cópias que já existem:
+ * devolve quantas linhas mudaram (zero, se outra pessoa chegou antes).
+ */
+export async function guardarCopias(chave: string, copias: Copias, reserva: string): Promise<number> {
+  const [r] = await db().batch([
+    db()
+      .prepare('UPDATE fotos SET copias = ?1 WHERE chave = ?2 AND copias IS NULL AND EXISTS (SELECT 1 FROM reservas_das_copias WHERE alvo = ?3 AND codigo = ?4)')
+      .bind(gravarCopias(copias), chave, alvoDaFoto(chave), reserva),
+    db().prepare('DELETE FROM reservas_das_copias WHERE alvo = ? AND codigo = ?').bind(alvoDaFoto(chave), reserva),
+  ]);
   return r.meta.changes ?? 0;
+}
+
+// --- A reserva das cópias (item 13a da revisão R-D1, sessão D1d; migração 112) ---
+//
+// Dois envios ao mesmo tempo para a mesma foto passavam juntos pela conferência e os dois gravavam no bucket.
+// Agora a rota reserva o alvo antes de gravar: só um pedido grava, e o outro recebe 409 sem gravar nada. A
+// reserva de um pedido que morreu no meio vence sozinha depois de alguns minutos.
+
+/** Os minutos que uma reserva vale. Um envio de cópias leva segundos. */
+export const MINUTOS_DA_RESERVA_DAS_COPIAS = 5;
+export const alvoDaFoto = (chave: string) => `foto:${chave}`;
+export const alvoDoRetrato = (chave: string) => `retrato:${chave}`;
+
+/** Reserva o alvo para gravar as cópias: devolve o código da reserva, ou nada se outro pedido já reservou. */
+export async function reservarCopias(alvo: string): Promise<string | null> {
+  const codigo = crypto.randomUUID();
+  const r = await db()
+    .prepare(
+      `INSERT INTO reservas_das_copias (alvo, codigo) VALUES (?1, ?2)
+       ON CONFLICT (alvo) DO UPDATE SET codigo = excluded.codigo, em = excluded.em
+       WHERE reservas_das_copias.em < datetime('now', '-${MINUTOS_DA_RESERVA_DAS_COPIAS} minutes')`,
+    )
+    .bind(alvo, codigo)
+    .run();
+  return (r.meta.changes ?? 0) > 0 ? codigo : null;
+}
+
+/** Solta a reserva, se ainda for deste pedido. */
+export async function soltarReserva(alvo: string, codigo: string): Promise<void> {
+  await db().prepare('DELETE FROM reservas_das_copias WHERE alvo = ? AND codigo = ?').bind(alvo, codigo).run();
 }
 
 /** Esta foto já tem cópias? */
