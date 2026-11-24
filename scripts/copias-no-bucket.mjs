@@ -17,7 +17,14 @@
 //   recusado, também com o bucket numa variável.
 // Os comentários não contam: o código é lido sem eles (soCodigo), com os textos entre aspas no lugar.
 
+//
+// Desde a revisão D1f (item 4, 24/11/2026), a regra também lê a árvore do código (scripts/codigo-lido.mjs):
+// chaveDaCopia, chaveDaCopiaDoRetrato, chavesDasCopias e guardarCopias são reconhecidas pela origem, com qualquer
+// nome local (importadas com outro nome, por `import * as`, guardadas numa variável, ou embrulhadas numa função
+// de outro arquivo que devolve o nome da cópia), e o bucket é seguido até bucketDeFotos ou o env. As recusas pelo
+// texto, de antes, continuam somadas: nenhum caso antigo deixa de ser recusado.
 import { APAGAR_A_FOTO_SOLTA, ROTA_DAS_FOTOS_SOLTAS } from './apagar-no-bucket.mjs';
+import { FUNCOES_DE_NOME_DE_COPIA, lerProjeto } from './codigo-lido.mjs';
 
 export const ROTAS_DAS_COPIAS_DAS_FOTOS = ['src/pages/api/fotos.ts', 'src/pages/api/copias-das-fotos.ts'];
 export const ROTAS_DAS_COPIAS_DOS_RETRATOS = ['src/pages/api/integrantes.ts', 'src/pages/api/copias-dos-retratos.ts'];
@@ -38,7 +45,16 @@ export const LEITORES = {
  * comentário), e cada comentário vira espaço, com as quebras de linha. Em `literais`, o conteúdo de cada
  * texto entre aspas e das partes fixas de cada template.
  */
+const separados = new Map();
 export function separar(texto) {
+  // A mesma leitura serve às regras que leem o mesmo arquivo (guardada pelo texto)
+  if (separados.has(texto)) return separados.get(texto);
+  const r = separarSemLembrar(texto);
+  if (separados.size > 2000) separados.clear();
+  separados.set(texto, r);
+  return r;
+}
+function separarSemLembrar(texto) {
   let codigo = '';
   const literais = [];
   let i = 0;
@@ -84,8 +100,10 @@ export function separar(texto) {
     const c = texto[i];
     const d = texto[i + 1];
     if (c === '/' && d === '/') {
+      // Do mesmo tamanho, para as posições baterem com as da árvore do código (codigo-lido.mjs)
+      const inicio = i;
       while (i < n && texto[i] !== '\n') i++;
-      codigo += ' ';
+      codigo += ' '.repeat(i - inicio);
       continue;
     }
     if (c === '/' && d === '*') {
@@ -131,7 +149,7 @@ export function separar(texto) {
       }
       chaves--;
     }
-    if (c === '/' && (ultimo === '' || /[(,=:[!&|?{};+\-*%<>~^]/.test(ultimo) || /\b(return|typeof|case|in|of|void|throw|new|else|do|await|yield)\s*$/.test(codigo))) {
+    if (c === '/' && (ultimo === '' || /[(,=:[!&|?{};+\-*%<>~^]/.test(ultimo) || /\b(return|typeof|case|in|of|void|throw|new|else|do|await|yield)\s*$/.test(codigo.slice(-24)))) {
       // Um regex: pulado inteiro, para as aspas de dentro não abrirem texto. Fica no código.
       let j = i + 1;
       let classe = false;
@@ -178,8 +196,18 @@ const NOME_DE_COPIA = /\bchaveDaCopia(DoRetrato)?\(|\bchavesDasCopias\(/;
 /** Cada .put( do código: quem grava e o primeiro argumento. */
 function gravacoes(codigo) {
   const lista = [];
-  for (const uso of codigo.matchAll(/([\w$.]*(?:\(\))?)\s*\??\.put\(/g)) {
-    let j = uso.index + uso[0].length;
+  for (const achado of codigo.matchAll(/\??\.put\(/g)) {
+    // Quem grava: para trás, os espaços, um "()" e o nome com pontos (o mesmo que /([\w$.]*(?:\(\))?)\s*\??\.put\(/)
+    let i = achado.index;
+    while (i > 0 && /\s/.test(codigo[i - 1])) i--;
+    let fimDoNome = i;
+    if (codigo[i - 1] === ')' && codigo[i - 2] === '(') i -= 2;
+    const comParenteses = i !== fimDoNome;
+    fimDoNome = i;
+    while (i > 0 && /[\w$.]/.test(codigo[i - 1])) i--;
+    const quem = codigo.slice(i, fimDoNome) + (comParenteses ? '()' : '');
+    const uso = { index: i, 0: codigo.slice(i, achado.index + achado[0].length), 1: quem };
+    let j = achado.index + achado[0].length;
     let profundidade = 0;
     let primeiro = '';
     for (; j < codigo.length; j++) {
@@ -198,9 +226,115 @@ function gravacoes(codigo) {
 
 /**
  * Tudo o que está errado com as cópias nos arquivos dados ({ caminho: texto }, todos os de src/). Lista vazia:
- * nada de errado.
+ * nada de errado. Soma o que a leitura pelo texto e a leitura pela árvore do código recusam.
  */
 export function copiasErradas(fontes) {
+  return [...new Set([...copiasErradasPeloTexto(fontes), ...copiasErradasPelaArvore(fontes)])];
+}
+
+const REPOSITORIO = 'src/lib/servidor/repositorio.ts';
+const GUARDAR = { [`${REPOSITORIO}#guardarCopias`]: AJUSTE_DAS_FOTOS, [`${REPOSITORIO}#guardarCopiaDoRetrato`]: AJUSTE_DOS_RETRATOS };
+const PASTA = 'src/lib/retratos.ts#PASTA_DOS_RETRATOS';
+
+/** Pela árvore do código: cada função e cada bucket pela origem, com qualquer nome local. */
+function copiasErradasPelaArvore(fontes) {
+  const falhas = [];
+  const falhar = (m) => falhas.push(m);
+  const ROTAS = [...ROTAS_DAS_COPIAS_DAS_FOTOS, ...ROTAS_DAS_COPIAS_DOS_RETRATOS];
+  const doSrc = Object.fromEntries(Object.entries(fontes).filter(([a]) => a.startsWith('src/')));
+  const projeto = lerProjeto(doSrc);
+  const { avaliar, trecho, desembrulhar } = projeto;
+  const origens = (valores) => valores.filter((v) => v.tipo === 'funcao').map((v) => v.origem);
+  const nomes = (valores) => valores.filter((v) => v.tipo === 'nomeDeCopia').map((v) => v.qual);
+
+  for (const [arquivo, info] of projeto.arquivos) {
+    const { codigo } = separar(fontes[arquivo]);
+    const ehTs = !arquivo.endsWith('.astro');
+    // Onde o arquivo usa uma função que monta nome de cópia, com qualquer nome, ou chama uma que devolve um
+    const usos = [];
+    for (const { parte, no } of info.identificadores) {
+      const o = origens(avaliar(info, parte, no)).filter((x) => FUNCOES_DE_NOME_DE_COPIA[x]);
+      if (o.length) usos.push({ onde: no.start, qual: FUNCOES_DE_NOME_DE_COPIA[o[0]], parte });
+    }
+    for (const { parte, no } of info.chamadas) {
+      if (NOMES_DAS_COPIAS.includes(arquivo)) break;
+      const n = nomes(avaliar(info, parte, no));
+      if (n.length) usos.push({ onde: no.start, qual: n[0], parte });
+    }
+    const montaNome = usos.length > 0;
+
+    // As gravações e os apagamentos no bucket, seguidos até a origem
+    const chamados = new Set();
+    for (const { parte, no } of info.chamadas) {
+      chamados.add(desembrulhar(no.callee));
+      const metodo = avaliar(info, parte, no.callee);
+      const grava = metodo.filter((v) => v.tipo === 'gravarNoBucket').map((v) => v.qual);
+      const apaga = metodo.filter((v) => v.tipo === 'apagarDoBucket').map((v) => v.qual);
+      if (grava.length && !grava.every((q) => q === 'bucketDeTesteParaGravar')) {
+        const chave = no.arguments[0];
+        const tipos = chave ? nomes(avaliar(info, parte, chave)) : [];
+        const daFoto = tipos.includes('foto') || tipos.includes('fotos');
+        const doRetrato = tipos.includes('retrato');
+        const texto = chave ? trecho(parte, chave) : '';
+        if (daFoto || doRetrato) {
+          const rotas = daFoto ? ROTAS_DAS_COPIAS_DAS_FOTOS : ROTAS_DAS_COPIAS_DOS_RETRATOS;
+          if (!rotas.includes(arquivo)) falhar(`${arquivo}: as cópias ${daFoto ? 'das fotos' : 'dos retratos'} só são gravadas por ${rotas.join(' e ')} (aqui, .put(${texto})).`);
+          else if (!grava.every((q) => q === 'bucketDeFotos')) falhar(`${arquivo}: a cópia é gravada no bucket das fotos deste ambiente, por bucketDeFotos().`);
+          const k = desembrulhar(chave);
+          const direta = daFoto
+            ? k?.type === 'CallExpression' && origens(avaliar(info, parte, k.callee)).some((o) => FUNCOES_DE_NOME_DE_COPIA[o] === 'foto')
+            : k?.type === 'TemplateLiteral' &&
+              k.expressions.length === 2 &&
+              k.quasis.every((q) => q.value.cooked === '') &&
+              origens(avaliar(info, parte, k.expressions[0])).includes(PASTA) &&
+              k.expressions[1].type === 'CallExpression' &&
+              origens(avaliar(info, parte, k.expressions[1].callee)).some((o) => FUNCOES_DE_NOME_DE_COPIA[o] === 'retrato');
+          if (rotas.includes(arquivo) && !direta) falhar(`${arquivo}: a chave da cópia vai direto na gravação, com chaveDaCopia ou \`\${PASTA_DOS_RETRATOS}\${chaveDaCopiaDoRetrato(...)}\` (aqui, .put(${texto})).`);
+        } else if (montaNome && !ROTAS.includes(arquivo)) {
+          falhar(`${arquivo}: este arquivo monta nome de cópia e grava no bucket (.put(${texto})); as cópias só são gravadas pelas rotas das cópias.`);
+        }
+      }
+      if (apaga.length && !apaga.every((q) => q === 'bucketDeTesteParaGravar')) {
+        const levaCopia = no.arguments.some((a) => nomes(avaliar(info, parte, a.type === 'SpreadElement' ? a.argument : a)).length > 0);
+        const aCombinada = arquivo === ROTA_DAS_FOTOS_SOLTAS && `await ${trecho(parte, no)};` === APAGAR_A_FOTO_SOLTA && apaga.every((q) => q === 'bucketDeFotos');
+        if ((montaNome || levaCopia) && !aCombinada) falhar(`${arquivo}: uma cópia só é apagada junto da original, em ${ROTA_DAS_FOTOS_SOLTAS} (${APAGAR_A_FOTO_SOLTA}).`);
+      }
+    }
+    // O .delete de um bucket guardado para chamar depois, num arquivo que monta nome de cópia
+    if (montaNome) {
+      for (const { parte, no } of info.membros) {
+        if (chamados.has(no)) continue;
+        if (avaliar(info, parte, no).some((v) => v.tipo === 'apagarDoBucket' && v.qual !== 'bucketDeTesteParaGravar')) falhar(`${arquivo}: uma cópia só é apagada junto da original, em ${ROTA_DAS_FOTOS_SOLTAS} (${APAGAR_A_FOTO_SOLTA}).`);
+      }
+    }
+
+    // chavesDasCopias, com qualquer nome, só na rota das fotos soltas
+    if (usos.some((u) => u.qual === 'fotos') && ![ROTA_DAS_FOTOS_SOLTAS, 'src/lib/copias-das-fotos.ts'].includes(arquivo)) {
+      falhar(`${arquivo}: chavesDasCopias só serve para apagar a foto solta com as cópias dela, em ${ROTA_DAS_FOTOS_SOLTAS}.`);
+    }
+
+    // guardarCopias e guardarCopiaDoRetrato, com qualquer nome, só pelo ajuste de cada uma
+    for (const { parte, no } of info.chamadas) {
+      for (const o of origens(avaliar(info, parte, no.callee))) {
+        if (GUARDAR[o] && arquivo !== GUARDAR[o] && arquivo !== REPOSITORIO) falhar(`${arquivo}: ${o.split('#')[1]} só é chamada por ${GUARDAR[o]}.`);
+      }
+    }
+
+    // Toda rota que lê uma cópia monta o nome dela só depois da conferência da original
+    if (montaNome && !NOMES_DAS_COPIAS.includes(arquivo) && !ROTAS.includes(arquivo) && arquivo !== ROTA_DAS_FOTOS_SOLTAS) {
+      const antes = LEITORES[arquivo];
+      if (!antes || !ehTs) falhar(`${arquivo}: só as rotas das fotos e dos retratos leem cópias, depois de conferir a original (${Object.keys(LEITORES).join(' e ')}).`);
+      else {
+        const conferido = naOrdem(codigo, ...antes);
+        if (conferido < 0 || usos.some((u) => u.onde < conferido)) falhar(`${arquivo}: a cópia só é lida depois da conferência da original, com a chave da original.`);
+      }
+    }
+  }
+  return falhas;
+}
+
+/** Pela leitura do texto, como antes da revisão D1f. */
+function copiasErradasPeloTexto(fontes) {
   const falhas = [];
   const falhar = (m) => falhas.push(m);
   const ROTAS = [...ROTAS_DAS_COPIAS_DAS_FOTOS, ...ROTAS_DAS_COPIAS_DOS_RETRATOS];

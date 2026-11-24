@@ -50,7 +50,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
-import { apagamentosProibidos, copiasApagadasErradas } from './apagar-no-bucket.mjs';
+import { apagamentosProibidosNoProjeto, copiasApagadasErradas } from './apagar-no-bucket.mjs';
 import { copiasErradas } from './copias-no-bucket.mjs';
 import {
   GRAVAR_O_ESPELHO,
@@ -235,8 +235,9 @@ if (existsSync('src/pages/sistema.astro')) {
     if (arquivo !== 'src/lib/servidor/ambiente.ts' && /\benv\.(DB|FOTOS)\w*/.test(texto)) {
       falhar(`${arquivo}: o banco e o bucket são escolhidos só em src/lib/servidor/ambiente.ts (banco(), bucketDeFotos()), nunca por env.DB ou env.FOTOS.`);
     }
-    for (const mensagem of apagamentosProibidos(arquivo, texto)) falhar(mensagem);
   }
+  // O bucket seguido até a origem pelo projeto inteiro (item 3 da revisão D1f): com qualquer nome no meio
+  for (const mensagem of apagamentosProibidosNoProjeto(Object.fromEntries(fontes.map((a) => [a, readFileSync(a, 'utf8')])))) falhar(mensagem);
 }
 
 // 10b. A foto sem memória que a rota acima apaga: nunca uma de exemplo (as prévias dividem os 11

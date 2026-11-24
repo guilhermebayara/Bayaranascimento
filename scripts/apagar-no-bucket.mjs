@@ -7,6 +7,13 @@
 // src/pages/api/fotos-soltas.ts. Nessa rota saem, no mesmo pedido, a original e as cópias dela (sessão D1c,
 // 23/11/2026), e só elas: os nomes vêm de chavesDasCopias, que só monta os nomes das cópias da foto.
 
+//
+// Desde a revisão D1f (item 3, 24/11/2026), a regra também lê a árvore do código (scripts/codigo-lido.mjs): o
+// bucket é seguido até a origem (bucketDeFotos e os outros de ambiente.ts, ou um `.FOTOS` do env), com qualquer
+// nome no meio, numa variável, desestruturado, devolvido por uma função do projeto ou passado a ela. Antes, o
+// nome de quem chamava .delete precisava conter "bucket". As recusas pelo texto, de antes, continuam somadas.
+import { lerProjeto } from './codigo-lido.mjs';
+
 export const ROTA_DAS_FOTOS_SOLTAS = 'src/pages/api/fotos-soltas.ts';
 
 /** O único jeito de apagar aceito na rota das fotos soltas: a original e as cópias dela, num pedido só. */
@@ -14,8 +21,72 @@ export const APAGAR_A_FOTO_SOLTA = 'await bucketDeFotos().delete([foto.chave, ..
 
 const naOrdem = (texto, ...trechos) => trechos.every((t, i) => texto.indexOf(t) >= 0 && (i === 0 || texto.indexOf(t) > texto.indexOf(trechos[i - 1])));
 
-/** O que este arquivo apaga sem poder. Lista vazia: nada de errado. */
+/** O que este arquivo apaga sem poder, lido sozinho. Lista vazia: nada de errado. */
 export function apagamentosProibidos(arquivo, texto) {
+  return apagamentosProibidosNoProjeto({ [arquivo]: texto });
+}
+
+/** As condições da rota das fotos soltas, lidas no texto (iguais às de antes da revisão D1f). */
+const condicoesDaFotoSolta = (arquivo, texto) =>
+  arquivo === ROTA_DAS_FOTOS_SOLTAS &&
+  (texto.match(/\.delete\(/g) ?? []).length === 1 &&
+  texto.includes("import { chavesDasCopias } from '../../lib/copias-das-fotos';") &&
+  naOrdem(texto, 'const decisao = podeApagarFotoSolta(locals.usuario);', 'if (!decisao.ok) return', 'const foto = await obterFotoSolta(', 'if (!foto) return', APAGAR_A_FOTO_SOLTA);
+
+/** O que os arquivos dados ({ caminho: texto }) apagam sem poder, com o bucket seguido até a origem. */
+export function apagamentosProibidosNoProjeto(fontes) {
+  const falhas = [];
+  for (const [arquivo, texto] of Object.entries(fontes)) falhas.push(...apagamentosPeloTexto(arquivo, texto));
+  falhas.push(...apagamentosPelaArvore(fontes));
+  return [...new Set(falhas)];
+}
+
+const MENSAGEM = (arquivo, quem) =>
+  `${arquivo}: ${quem}.delete(...) apagaria arquivos. Só a limpeza do bucket de teste apaga, por bucketDeTesteParaGravar(), e a foto sem memória com as cópias dela, por ${ROTA_DAS_FOTOS_SOLTAS}.`;
+
+/** Pela árvore: todo .delete de um bucket, chamado ou guardado para chamar depois, seguido até a origem. */
+function apagamentosPelaArvore(fontes) {
+  const falhas = [];
+  const projeto = lerProjeto(fontes);
+  for (const [arquivo, info] of projeto.arquivos) {
+    const texto = fontes[arquivo];
+    const usos = [];
+    const chamados = new Set();
+    for (const { parte, no } of info.chamadas) {
+      chamados.add(projeto.desembrulhar(no.callee));
+      const quais = projeto.avaliar(info, parte, no.callee).filter((v) => v.tipo === 'apagarDoBucket').map((v) => v.qual);
+      if (quais.length) usos.push({ parte, no, quais, chamada: true });
+    }
+    for (const { parte, no } of info.membros) {
+      if (chamados.has(no)) continue;
+      const quais = projeto.avaliar(info, parte, no).filter((v) => v.tipo === 'apagarDoBucket').map((v) => v.qual);
+      if (quais.length) usos.push({ parte, no, quais, chamada: false });
+    }
+    for (const uso of usos) {
+      // A limpeza do bucket de teste: só ele, por bucketDeTesteParaGravar()
+      if (uso.quais.every((q) => q === 'bucketDeTesteParaGravar')) continue;
+      // A foto sem memória: a única chamada do arquivo, exatamente a combinada, no bucket das fotos
+      const fotoSolta =
+        uso.chamada &&
+        usos.length === 1 &&
+        uso.quais.every((q) => q === 'bucketDeFotos') &&
+        `await ${projeto.trecho(uso.parte, uso.no)};` === APAGAR_A_FOTO_SOLTA &&
+        condicoesDaFotoSolta(arquivo, texto);
+      if (fotoSolta) continue;
+      const callee = uso.chamada ? projeto.desembrulhar(uso.no.callee) : uso.no;
+      const quem = callee?.type === 'MemberExpression' ? projeto.trecho(uso.parte, callee.object) : projeto.trecho(uso.parte, callee);
+      falhas.push(MENSAGEM(arquivo, quem));
+    }
+    // O que não deu para ler como código (a marcação de um .astro, um arquivo que não abre): pelo texto
+    for (const resto of info.naoLidas) {
+      if (/\.delete\s*\(/.test(resto) && !arquivo.endsWith('.astro')) falhas.push(`${arquivo}: não consegui ler o código, e ele chama .delete(...); a guarda recusa o que não consegue conferir.`);
+    }
+  }
+  return falhas;
+}
+
+/** Pelo texto, como antes da revisão D1f: o .delete de quem tem "bucket" no nome. */
+function apagamentosPeloTexto(arquivo, texto) {
   const falhas = [];
   for (const uso of texto.matchAll(/([\w.]*bucket\w*(?:\(\))?)\??\.delete\(/gi)) {
     const quem = uso[1];
@@ -23,13 +94,8 @@ export function apagamentosProibidos(arquivo, texto) {
     // A única exceção (onda 2): a foto sem memória há mais de 30 dias, que um administrador apaga em
     // Administração. Só nesta rota, uma vez, só a chave conferida de novo no banco por obterFotoSolta, depois
     // da permissão, e só ela com as cópias dela.
-    const fotoSolta =
-      arquivo === ROTA_DAS_FOTOS_SOLTAS &&
-      uso[0] === 'bucketDeFotos().delete(' &&
-      (texto.match(/\.delete\(/g) ?? []).length === 1 &&
-      texto.includes("import { chavesDasCopias } from '../../lib/copias-das-fotos';") &&
-      naOrdem(texto, 'const decisao = podeApagarFotoSolta(locals.usuario);', 'if (!decisao.ok) return', 'const foto = await obterFotoSolta(', 'if (!foto) return', APAGAR_A_FOTO_SOLTA);
-    if (!doTeste && !fotoSolta) falhar(`${arquivo}: ${quem}.delete(...) apagaria arquivos. Só a limpeza do bucket de teste apaga, por bucketDeTesteParaGravar(), e a foto sem memória com as cópias dela, por ${ROTA_DAS_FOTOS_SOLTAS}.`);
+    const fotoSolta = uso[0] === 'bucketDeFotos().delete(' && condicoesDaFotoSolta(arquivo, texto);
+    if (!doTeste && !fotoSolta) falhar(MENSAGEM(arquivo, quem));
   }
   return falhas;
   function falhar(mensagem) {
