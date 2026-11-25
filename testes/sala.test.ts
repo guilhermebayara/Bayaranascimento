@@ -549,6 +549,15 @@ describe.skipIf(!comSqlite)('o modo TV no banco: a ordem, a rota de uma memória
     } finally {
       sql(`UPDATE relatos SET so_para_nucleos = NULL, situacao = 'publicada' WHERE id = ?`, alvo.id);
     }
+    // Toda memória da sala tem "Ler tudo", o caminho de todo texto cortado: o título inteiro e "Com…" com todos os nomes
+    for (const id of (await ordemDoModoTv(giovanna, p('ver=tv&sala=1'), tipos)).ordem.slice(0, 12)) {
+      const palco = await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&m=${id}`) });
+      expect(palco?.ler, id).toBeDefined();
+      const primeira = await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&m=${id}&ler=1`) });
+      expect(primeira?.leitura?.titulo).toBe(palco!.memoria!.titulo);
+      const textos = primeira!.leitura!.trechos.flatMap((t) => t.paragrafos).join(' ');
+      for (const nome of palco!.nomes) expect(textos, `${id} · ${nome}`).toContain(nome);
+    }
     // A memória restrita não tem "Ler tudo" na sala, nem pedindo a parte pelo endereço
     expect(await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&m=${CEIA}&ler=1`) })).toBeUndefined();
     // Fora da sala, "Ler tudo" não existe: o "ler" do endereço não muda nada, e "Abrir esta memória" fica

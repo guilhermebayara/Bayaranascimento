@@ -284,7 +284,12 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
   // "Ler tudo", só na sala (decisão do Gui, 25/11/2026): o texto inteiro dos relatos que passam em relatoNaTv,
   // em partes, no próprio modo TV. Fora da sala, "Abrir esta memória" continua levando à página da memória.
   const textoDe = (r: (typeof naTela)[number]) => r.texto.trim() || (audios.get(r.id) ?? [])[0]?.transcricao?.trim() || '';
-  const partes = sala ? partesDaLeitura(naTela.filter((r) => textoDe(r)).map((r) => ({ por: nome(r.por) ?? '', texto: textoDe(r) }))) : [];
+  // "Ler tudo" é o caminho para todo texto que a memória corta na tela: o título inteiro (à esquerda) e, na primeira
+  // parte, "Com…" com todos os nomes, antes dos relatos. Toda memória da sala tem "Ler tudo", mesmo sem relato
+  const nomesNaTv = comNaTv(memoria.integrantes, nome, modosDosExes);
+  const com = nomesNaTv.length > 1 ? `Com ${nomesNaTv.slice(0, -1).join(', ')} e ${nomesNaTv.at(-1)}.` : nomesNaTv.length ? `Com ${nomesNaTv[0]}.` : '';
+  const partes = sala ? partesDaLeitura([...(com ? [{ por: '', texto: com }] : []), ...naTela.filter((r) => textoDe(r)).map((r) => ({ por: nome(r.por) ?? '', texto: textoDe(r) }))]) : [];
+  if (sala && partes.length === 0) partes.push([]);
   const ler = partes.length > 0 ? naTv(id, passar, movimento, { ler: '1' }) : undefined;
   const parte = sala ? parteDaLeitura(parametros.get('ler')) : undefined;
   if (parte) {
@@ -316,7 +321,7 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
     memoria,
     trecho: texto ? { texto: trechoDoRelato(texto, 220), por } : undefined,
     voz: daVoz.length > 0 ? { por, audios: daVoz.map((a) => ({ src: `/audios/${a.chave}`, duracao: a.duracao })) } : undefined,
-    nomes: comNaTv(memoria.integrantes, nome, modosDosExes),
+    nomes: nomesNaTv,
     linha: linhaDoAlto({ sala, posicao: pedido.posicao?.posicao, de: pedido.posicao?.de }) || undefined,
     sair: sala ? sair : `${sair}#${ancoraDaMemoria(memoria.id)}`,
     ler,
