@@ -194,15 +194,20 @@ describe.skipIf(!B)('a TV da sala no navegador (revisão R-AB)', () => {
     await expect.poll(() => new URL(pagina.url()).searchParams.get('m'), { timeout: 10_000 }).not.toBe('1999-chegada-da-giovanna');
   }, 60_000);
 
-  // --- O portão da voz (correção 1 da revisão R-AB3) ------------------------------------------------
+  // --- O portão da voz (correção 1 da revisão R-AB3; defeitos de uso da R-AB4) ------------------------
+  // As esperas são por sinais do próprio palco (a voz andando, a resposta da rota chegando), e não por tempo: a
+  // primeira página depois de mudar o código demora a compilar no servidor local, e uma espera fixa falhava aí.
   const CASAMENTO = '1958-casamento-vivica-tonho';
-  const SEGUNDO = '/audios/exemplos/vo-vivica-chuva.m4a?segundo=1';
+  const VOZ = '/audios/exemplos/vo-vivica-chuva.m4a';
+  const SEGUNDO = `${VOZ}?segundo=1`;
+  type Rota = 'real' | 'sem-voz' | 'recusa' | 'so-o-segundo';
   /**
    * Uma página com o som ligado de antes, o relógio do Playwright e cada .play() anotado (a fonte e de onde ele
-   * começa). `rota` decide, a cada pedido da memória, o que a rota responde: 'real', 'sem-voz' (200 sem a lista de
-   * vozes, como depois de o relato passar a esperar), 'recusa' (404) ou 'so-o-segundo'; `duas` põe um segundo áudio.
+   * começa). A rota de cada memória (por id, ou '*' para todas) responde 'real', 'sem-voz' (200 sem a lista de vozes,
+   * como depois de o relato passar a esperar), 'recusa' (404) ou 'so-o-segundo'. `duas` põe um segundo áudio no
+   * casamento; `todas` põe uma voz em toda memória; `atrasoDoAudio` segura cada áudio antes de chegar.
    */
-  async function comVoz(pessoa: string, caminho: string, { duas = false } = {}) {
+  async function comVoz(pessoa: string, caminho: string, { duas = false, todas = false, atrasoDoAudio = 0 } = {}) {
     const ctx = await navegador.newContext({ viewport: { width: 1280, height: 720 } });
     abertos.push(ctx);
     await ctx.addCookies([{ name: 'como', value: pessoa, url: B }]);
@@ -220,23 +225,37 @@ describe.skipIf(!B)('a TV da sala no navegador (revisão R-AB)', () => {
     await pagina.clock.install();
     pagina.pedidos = [] as string[];
     pagina.on('request', (pedido: any) => pagina.pedidos.push(pedido.url()));
-    const estado = { rota: 'real' as 'real' | 'sem-voz' | 'recusa' | 'so-o-segundo', atraso: 0 };
+    const estado = { rota: {} as Record<string, Rota>, atraso: {} as Record<string, number>, respondidas: {} as Record<string, number> };
+    const regra = (m: string) => ({ rota: estado.rota[m] ?? estado.rota['*'] ?? 'real', atraso: estado.atraso[m] ?? estado.atraso['*'] ?? 0 });
+    if (atrasoDoAudio) await pagina.route((url: URL) => url.pathname.startsWith('/audios/'), async (rota: any) => {
+      await new Promise((ok) => setTimeout(ok, atrasoDoAudio));
+      return rota.continue();
+    });
     await pagina.route(
-      (url: URL) => url.pathname.startsWith('/explorar') && url.searchParams.get('m') === CASAMENTO,
+      (url: URL) => url.pathname.startsWith('/explorar') && url.searchParams.get('ver') === 'tv' && (todas || url.searchParams.get('m') === CASAMENTO),
       async (rota: any) => {
-        const peca = rota.request().url().includes('/explorar/palco');
-        if (peca && estado.atraso) await new Promise((ok) => setTimeout(ok, estado.atraso));
-        if (peca && estado.rota === 'recusa') return rota.fulfill({ status: 404, body: 'Não encontrada.' });
+        const url = new URL(rota.request().url());
+        const m = url.searchParams.get('m') ?? '';
+        const peca = url.pathname === '/explorar/palco';
+        const { rota: como, atraso } = regra(m);
+        if (peca && atraso) await new Promise((ok) => setTimeout(ok, atraso));
+        const contar = () => peca && (estado.respondidas[m] = (estado.respondidas[m] ?? 0) + 1);
+        if (peca && como === 'recusa') {
+          await rota.fulfill({ status: 404, body: 'Não encontrada.' });
+          return void contar();
+        }
         const resposta = await rota.fetch();
         let html = await resposta.text();
-        if (duas || estado.rota === 'so-o-segundo')
+        if (todas && !/<article\b[^>]*\sdata-voz=/.test(html)) html = html.replace(/(<article\b[^>]*?)\sdata-palco(?=[\s>])/, `$1 data-palco data-voz="${JSON.stringify([{ src: VOZ, duracao: 11 }]).replaceAll('"', '&quot;')}"`);
+        if (duas || como === 'so-o-segundo')
           html = html.replace(/data-voz="([^"]*)"/, (_: string, valor: string) => {
             const audios = JSON.parse(valor.replaceAll('&quot;', '"'));
-            const lista = peca && estado.rota === 'so-o-segundo' ? [{ src: SEGUNDO, duracao: 11 }] : [...audios, { src: SEGUNDO, duracao: 11 }];
+            const lista = peca && como === 'so-o-segundo' ? [{ src: SEGUNDO, duracao: 11 }] : [...audios, { src: SEGUNDO, duracao: 11 }];
             return `data-voz="${JSON.stringify(lista).replaceAll('"', '&quot;')}"`;
           });
-        if (peca && estado.rota === 'sem-voz') html = html.replace(/ data-voz="[^"]*"/, '').replace(/<p class="palco__voz"[\s\S]*?<\/p>/, '');
-        return rota.fulfill({ response: resposta, body: html });
+        if (peca && como === 'sem-voz') html = html.replace(/ data-voz="[^"]*"/, '').replace(/<p class="palco__voz"[\s\S]*?<\/p>/, '');
+        await rota.fulfill({ response: resposta, body: html });
+        contar();
       },
     );
     await pagina.goto(B + caminho);
@@ -249,71 +268,80 @@ describe.skipIf(!B)('a TV da sala no navegador (revisão R-AB)', () => {
       await pagina.locator('[data-palco-som]').click();
       await pagina.locator('[data-palco-som]').click();
     };
-    return { pagina, estado, marcar, vozes, ligarOSom };
+    /** Espera a rota responder mais uma vez pela memória `m` (contando de `desde`) */
+    const respondeu = (m: string, desde: number) => expect.poll(() => estado.respondidas[m] ?? 0, { timeout: 30_000 }).toBeGreaterThan(desde);
+    return { pagina, estado, marcar, vozes, ligarOSom, respondeu };
   }
+  /** A voz está tocando de verdade: o fio do palco andou (timeupdate) */
+  const andando = (pagina: Pagina) => pagina.waitForFunction(() => parseFloat((document.querySelector('[data-palco-ouvido]') as HTMLElement | null)?.style.width || '0') > 0, null, { timeout: 15_000 });
   const tocando = (pagina: Pagina, ms = 4000) =>
     pagina
       .waitForSelector('[data-palco][data-ouvindo]', { timeout: ms })
       .then(() => true)
       .catch(() => false);
+  /** Nada mudou no palco por um instante (para afirmar que algo não aconteceu, depois de um sinal positivo) */
+  const instante = (pagina: Pagina) => pagina.waitForTimeout(800);
 
   it('R-AB3 1: fechar "Ler tudo" depois de o relato passar a esperar não retoma a voz pausada', async () => {
     for (const restringido of [false, true]) {
-      const { pagina, estado, marcar, vozes, ligarOSom } = await comVoz('giovanna', `/explorar?ver=tv&sala=1&m=${CASAMENTO}`);
+      const { pagina, estado, marcar, vozes, ligarOSom, respondeu } = await comVoz('giovanna', `/explorar?ver=tv&sala=1&m=${CASAMENTO}`);
       await ligarOSom();
-      expect(await tocando(pagina), 'a voz começa').toBe(true);
+      await andando(pagina);
       await pagina.locator('[data-palco-ler]').click();
       await pagina.waitForSelector('[data-palco][data-lendo]');
       expect(await pagina.locator('[data-palco][data-ouvindo]').count(), 'lendo, a voz pausa').toBe(0);
-      if (restringido) estado.rota = 'sem-voz';
+      if (restringido) estado.rota['*'] = 'sem-voz';
       await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
       const marca = await marcar();
+      const antes = estado.respondidas[CASAMENTO] ?? 0;
       await pagina.locator('[data-palco-voltar-da-leitura]').click();
       await pagina.waitForFunction(() => !document.querySelector('[data-palco][data-lendo]'));
-      const ouviu = await tocando(pagina, 3000);
+      await respondeu(CASAMENTO, antes);
       if (restringido) {
-        expect(ouviu, 'a voz do relato que passou a esperar não retoma').toBe(false);
+        await instante(pagina);
+        expect(await pagina.locator('[data-palco][data-ouvindo]').count(), 'a voz do relato que passou a esperar não retoma').toBe(0);
         expect(await vozes(marca)).toEqual([]);
         expect(await pagina.locator('[data-palco-voz]').count(), 'a linha "A voz de …" sai').toBe(0);
       } else {
-        expect(ouviu, 'com a voz ainda na lista, ela retoma').toBe(true);
+        expect(await tocando(pagina), 'com a voz ainda na lista, ela retoma').toBe(true);
         expect((await vozes(marca))[0]?.t, 'retoma de onde parou').toBeGreaterThan(0);
       }
     }
   }, 120_000);
 
   it('R-AB3 1: pausar enquanto a fila renova não faz o primeiro áudio recomeçar ao retomar', async () => {
-    const { pagina, estado, marcar, vozes, ligarOSom } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}&passar=15`, { duas: true });
+    const { pagina, estado, marcar, vozes, ligarOSom, respondeu } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}&passar=15`, { duas: true });
     await ligarOSom();
-    expect(await tocando(pagina)).toBe(true);
+    await andando(pagina);
     const primeiro = (await vozes(0))[0]!.src;
     // A janela vence durante o primeiro; a resposta pedida quando ele termina demora e lista só o segundo
     await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
-    estado.rota = 'so-o-segundo';
-    estado.atraso = 4000;
+    estado.rota['*'] = 'so-o-segundo';
+    estado.atraso['*'] = 4000;
     const pedidosAntes = pedidosDoPedaco(pagina, CASAMENTO).length;
+    const antes = estado.respondidas[CASAMENTO] ?? 0;
     // O primeiro termina (uns 11 segundos de verdade), e a renovação sai
     await expect.poll(() => pedidosDoPedaco(pagina, CASAMENTO).length, { timeout: 20_000 }).toBeGreaterThan(pedidosAntes);
     // "Pausar" no meio da espera
     await pagina.locator('[data-palco-pausa]').click();
-    await pagina.waitForTimeout(5000);
+    await respondeu(CASAMENTO, antes);
     const marca = await marcar();
     await pagina.locator('[data-palco-pausa]').click();
-    await pagina.waitForTimeout(2000);
-    const depois = await vozes(marca);
-    expect(depois.some((x) => x.src === primeiro), 'o primeiro não recomeça').toBe(false);
-    expect(depois.some((x) => x.src.endsWith(SEGUNDO)), 'o segundo, que continua na lista, toca').toBe(true);
+    await expect.poll(async () => (await vozes(marca)).some((x) => x.src.endsWith(SEGUNDO)), { timeout: 10_000 }).toBe(true);
+    expect((await vozes(marca)).some((x) => x.src === primeiro), 'o primeiro não recomeça').toBe(false);
   }, 120_000);
 
   it('R-AB3 1: ligar o som com uma voz que saiu da lista não toca nada, e a linha sai', async () => {
-    const { pagina, estado, marcar, vozes, ligarOSom } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}`);
+    const { pagina, estado, marcar, vozes, ligarOSom, respondeu } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}`);
     // Sem gesto, a primeira tentativa não toca; a página fica parada além da janela, e o relato passa a esperar
     await pagina.clock.runFor(2500);
     await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
-    estado.rota = 'sem-voz';
+    estado.rota['*'] = 'sem-voz';
     const marca = await marcar();
+    const antes = estado.respondidas[CASAMENTO] ?? 0;
     await ligarOSom();
-    await pagina.waitForTimeout(2500);
+    await respondeu(CASAMENTO, antes);
+    await instante(pagina);
     expect(await vozes(marca), 'nenhuma voz toca').toEqual([]);
     expect(await pagina.locator('[data-palco-voz]').count()).toBe(0);
     expect(await pagina.locator('[data-palco][data-voz]').count()).toBe(0);
@@ -321,28 +349,136 @@ describe.skipIf(!B)('a TV da sala no navegador (revisão R-AB)', () => {
 
   it('R-AB3 1: retomar depois de vencer passa pela rota: com a voz na lista, continua de onde parou; fora dela, não toca', async () => {
     for (const restringido of [false, true]) {
-      const { pagina, estado, marcar, vozes, ligarOSom } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}&passar=15`);
+      const { pagina, estado, marcar, vozes, ligarOSom, respondeu } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}&passar=15`);
       await ligarOSom();
-      expect(await tocando(pagina)).toBe(true);
-      await pagina.waitForTimeout(1500);
+      await andando(pagina);
       await pagina.locator('[data-palco-pausa]').click();
       await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
-      if (restringido) estado.rota = 'sem-voz';
-      const pedidosAntes = pedidosDoPedaco(pagina, CASAMENTO).length;
+      if (restringido) estado.rota['*'] = 'sem-voz';
+      const antes = estado.respondidas[CASAMENTO] ?? 0;
       const marca = await marcar();
       await pagina.locator('[data-palco-pausa]').click();
-      await pagina.waitForTimeout(2500);
-      expect(pedidosDoPedaco(pagina, CASAMENTO).length, 'a rota confirma antes de retomar').toBeGreaterThan(pedidosAntes);
-      const depois = await vozes(marca);
+      await respondeu(CASAMENTO, antes);
       if (restringido) {
-        expect(depois, 'fora da lista, nada toca').toEqual([]);
+        await instante(pagina);
+        expect(await vozes(marca), 'fora da lista, nada toca').toEqual([]);
         expect(await pagina.locator('[data-palco-voz]').count()).toBe(0);
       } else {
-        expect(depois.length).toBeGreaterThan(0);
-        expect(depois[0]!.t, 'continua de onde parou').toBeGreaterThan(0.5);
+        await expect.poll(async () => (await vozes(marca)).length).toBeGreaterThan(0);
+        expect((await vozes(marca))[0]!.t, 'continua de onde parou').toBeGreaterThan(0);
       }
     }
   }, 120_000);
+
+  // --- Os defeitos de uso da R-AB4 ------------------------------------------------------------------------
+
+  it('R-AB4 1: "Ler tudo" aberto com o áudio ainda chegando (o play() interrompido) retoma a voz ao fechar', async () => {
+    const { pagina, marcar, vozes, ligarOSom } = await comVoz('giovanna', `/explorar?ver=tv&sala=1&m=${CASAMENTO}`, { atrasoDoAudio: 2500 });
+    await ligarOSom();
+    // O palco marca a voz no pedido; o áudio ainda não chegou quando "Ler tudo" abre
+    await pagina.waitForSelector('[data-palco][data-ouvindo]');
+    await pagina.locator('[data-palco-ler]').click();
+    await pagina.waitForSelector('[data-palco][data-lendo]');
+    const marca = await marcar();
+    await pagina.locator('[data-palco-voltar-da-leitura]').click();
+    await pagina.waitForFunction(() => !document.querySelector('[data-palco][data-lendo]'));
+    await expect.poll(async () => (await vozes(marca)).length, { timeout: 10_000 }).toBeGreaterThan(0);
+    await andando(pagina);
+  }, 60_000);
+
+  it('R-AB4 1: pausar com o áudio ainda chegando e retomar toca a voz', async () => {
+    const { pagina, marcar, vozes, ligarOSom } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}&passar=15`, { atrasoDoAudio: 2500 });
+    await ligarOSom();
+    await pagina.waitForSelector('[data-palco][data-ouvindo]');
+    await pagina.locator('[data-palco-pausa]').click();
+    // O áudio chega pausado
+    await pagina.waitForLoadState('networkidle');
+    const marca = await marcar();
+    await pagina.locator('[data-palco-pausa]').click();
+    await expect.poll(async () => (await vozes(marca)).length, { timeout: 10_000 }).toBeGreaterThan(0);
+    await andando(pagina);
+  }, 60_000);
+
+  it('R-AB4 2: a renovação atrasada da memória que saiu não cala a voz da memória que entrou', async () => {
+    const { pagina, estado, marcar, vozes, ligarOSom, respondeu } = await comVoz('elizete', '/explorar?ver=tv&ordem=antigas', { todas: true });
+    const [primeira, segunda] = await ordemDe(pagina);
+    // A primeira fica parada além da janela; a renovação dela demora e volta dizendo que não tem voz
+    estado.atraso[primeira!] = 5000;
+    estado.rota[primeira!] = 'sem-voz';
+    await pagina.clock.runFor(2500);
+    await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+    const antes = estado.respondidas[primeira!] ?? 0;
+    await ligarOSom();
+    await expect.poll(() => pedidosDoPedaco(pagina, primeira!).length).toBeGreaterThan(0);
+    // Antes de ela voltar, a pessoa passa para a segunda, que começa a falar
+    await pagina.locator('[data-palco-depois]').first().click();
+    await expect.poll(() => new URL(pagina.url()).searchParams.get('m')).toBe(segunda);
+    const marca = await marcar();
+    await pagina.clock.runFor(1500);
+    // A voz da segunda (posta pelo teste, sem a linha "A voz de …") começa
+    await expect.poll(async () => (await vozes(marca)).length, { timeout: 10_000 }).toBeGreaterThan(0);
+    expect(await tocando(pagina)).toBe(true);
+    await respondeu(primeira!, antes);
+    await instante(pagina);
+    expect(new URL(pagina.url()).searchParams.get('m')).toBe(segunda);
+    expect(await pagina.locator('[data-palco][data-ouvindo]').count(), 'a voz da segunda continua').toBe(1);
+    expect(await pagina.locator('[data-palco][data-voz]').count(), 'a lista da segunda continua').toBe(1);
+  }, 90_000);
+
+  it('R-AB4 2: duas renovações sobrepostas: a primeira que volta não solta "Passar sozinho" antes da hora', async () => {
+    const { pagina, estado, respondeu } = await comVoz('elizete', '/explorar?ver=tv&ordem=antigas&passar=15&pausa=1', { todas: true });
+    const [primeira, segunda] = await ordemDe(pagina);
+    // Pausada, a primeira fica além da janela; a renovação dela (Y) volta em 3 s
+    await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+    estado.atraso[primeira!] = 3000;
+    const antesY = estado.respondidas[primeira!] ?? 0;
+    await pagina.locator('[data-palco-pausa]').click();
+    await pagina.clock.runFor(1500);
+    await expect.poll(() => pedidosDoPedaco(pagina, primeira!).length).toBeGreaterThan(0);
+    // Antes de Y voltar, a pessoa passa para a segunda, que também vence; a renovação dela (X) demora 12 s
+    await pagina.locator('[data-palco-depois]').first().click();
+    await expect.poll(() => new URL(pagina.url()).searchParams.get('m')).toBe(segunda);
+    estado.atraso[segunda!] = 12_000;
+    await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+    await expect.poll(() => pedidosDoPedaco(pagina, segunda!).length).toBeGreaterThan(1);
+    // Y volta com X ainda pendente: "Passar sozinho" continua esperando a voz da segunda
+    await respondeu(primeira!, antesY);
+    await pagina.clock.fastForward(16_000);
+    await instante(pagina);
+    expect(new URL(pagina.url()).searchParams.get('m'), 'a segunda não passa antes de a voz dela ser confirmada').toBe(segunda);
+  }, 90_000);
+
+  it('R-AB4 3: retomar durante a renovação do próximo áudio não recomeça o que já terminou', async () => {
+    const { pagina, estado, marcar, vozes, ligarOSom, respondeu } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}&passar=15`, { duas: true });
+    await ligarOSom();
+    await andando(pagina);
+    const primeiro = (await vozes(0))[0]!.src;
+    // A janela vence durante o primeiro; a renovação pedida quando ele termina demora e lista os dois
+    await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+    estado.atraso['*'] = 4000;
+    const pedidosAntes = pedidosDoPedaco(pagina, CASAMENTO).length;
+    const antes = estado.respondidas[CASAMENTO] ?? 0;
+    await expect.poll(() => pedidosDoPedaco(pagina, CASAMENTO).length, { timeout: 20_000 }).toBeGreaterThan(pedidosAntes);
+    await pagina.locator('[data-palco-pausa]').click();
+    await respondeu(CASAMENTO, antes);
+    const marca = await marcar();
+    await pagina.locator('[data-palco-pausa]').click();
+    await expect.poll(async () => (await vozes(marca)).some((x) => x.src.endsWith(SEGUNDO)), { timeout: 10_000 }).toBe(true);
+    expect((await vozes(marca)).some((x) => x.src === primeiro), 'o primeiro, que terminou, não volta').toBe(false);
+  }, 120_000);
+
+  it('R-AB4 4: a primeira tecla não cancela uma renovação em andamento', async () => {
+    const { pagina, estado, respondeu } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}`);
+    // A página fica parada além da janela; a primeira tentativa da voz pede a renovação, que demora
+    estado.atraso['*'] = 3000;
+    const antes = estado.respondidas[CASAMENTO] ?? 0;
+    await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+    await expect.poll(() => pedidosDoPedaco(pagina, CASAMENTO).length).toBeGreaterThan(0);
+    // A primeira tecla (o gesto que destrava o som) chega no meio da renovação
+    await pagina.keyboard.press('Shift');
+    await respondeu(CASAMENTO, antes);
+    expect(await tocando(pagina, 6000), 'a voz toca quando a rota confirma').toBe(true);
+  }, 60_000);
 
   it('R-AB3 2: a parte de "Ler tudo" buscada de antemão e vencida é pedida de novo, e a recusa não mostra a parte', async () => {
     const MEMORIA = '1999-chegada-da-giovanna';

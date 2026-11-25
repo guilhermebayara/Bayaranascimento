@@ -224,7 +224,8 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
   // A carta, um parágrafo por vez: só na porta da sala que a traz na frente
   const numero = passoDaCarta(id);
   if (numero) {
-    if (!cartaNaFrente) return undefined;
+    // Na carta, qualquer "ler" responde como o que não existe: "Ler tudo" é só das memórias (correção 5 da R-AB4)
+    if (!cartaNaFrente || parametros.has('ler')) return undefined;
     const carta = await obterCarta();
     const paragrafos = carta ? paragrafosDaCarta(carta.texto) : [];
     const paragrafo = paragrafos[numero - 1];

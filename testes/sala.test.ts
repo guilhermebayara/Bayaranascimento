@@ -241,8 +241,42 @@ describe('a carta e a voz na TV', () => {
     // A voz passa pelo portão, que confere a validade do pedaço confirmado (R-AB3 1)
     expect(palco).toMatch(/const vale = \(\) => Boolean\(confirmado && confirmado\.passo === atual\.dataset\.passo && !pedacoVencido\(confirmado\.em, performance\.now\(\)\)\);/);
   });
-  it('R-AB3 1: todo começo e toda retomada de áudio do modo TV passam pelo portão (o único que chama .play())', () => {
-    const semComentarios = (texto: string) => texto.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' ')).replace(/\/\/[^\n]*/g, (c) => ' '.repeat(c.length)).replace(/\{\/\*[\s\S]*?\*\/\}/g, (c) => c.replace(/[^\n]/g, ' '));
+  // A guarda da voz (R-AB3 1, ampliada na R-AB4 6): no código do modo TV, tocar, criar áudio e mudar a fonte ou o
+  // ponto de um áudio só dentro de portaoDaVoz, e nada de `autoplay` nem de `<audio`
+  const semComentarios = (texto: string) => texto.replace(/\{\/\*[\s\S]*?\*\/\}/g, (c) => c.replace(/[^\n]/g, ' ')).replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' ')).replace(/\/\/[^\n]*/g, (c) => ' '.repeat(c.length));
+  function violacoesDaVoz(arquivo: string, texto: string): string[] {
+    const codigo = semComentarios(texto);
+    const falhas: string[] = [];
+    // O corpo de portaoDaVoz, pelas chaves (só em Palco.astro)
+    let abre = -1;
+    let fim = -1;
+    const cabeca = codigo.indexOf('async function portaoDaVoz(');
+    if (arquivo === 'src/components/explorar/Palco.astro' && cabeca >= 0) {
+      abre = codigo.indexOf('{', codigo.indexOf(')', codigo.indexOf('{ retomar = false, gesto = false } = {}', cabeca)));
+      let fundo = 0;
+      for (let i = abre; i < codigo.length; i++) {
+        if (codigo[i] === '{') fundo++;
+        else if (codigo[i] === '}' && --fundo === 0) {
+          fim = i;
+          break;
+        }
+      }
+    }
+    const noPortao = (i: number) => i > abre && i < fim;
+    // As imagens que o palco apronta (`const foto = new Image()`) podem ganhar fonte; o áudio, não
+    const imagens = new Set([...codigo.matchAll(/(?:const|let|var)\s+(\w+)\s*=\s*new\s+Image\s*\(/g)].map((m) => m[1]!));
+    const formas: [string, RegExp, (m: RegExpMatchArray) => boolean][] = [
+      ['.play()', /[.'"`]play\b/g, () => true],
+      ['new Audio', /\bnew\s+Audio\b/g, () => true],
+      ['currentTime =', /\.currentTime\s*(?:=(?!=)|\+=|-=)/g, () => true],
+      ['src =', /(\w+)\s*!?\s*\??\.\s*src\s*=(?!=)|\[\s*['"`]src['"`]\s*\]\s*=(?!=)|setAttribute\(\s*['"`]src['"`]/g, (m) => !(m[1] && imagens.has(m[1]))],
+    ];
+    for (const [nome, regex, conta] of formas)
+      for (const m of codigo.matchAll(regex)) if (conta(m) && !noPortao(m.index!)) falhas.push(`${arquivo}: ${nome} fora do portão: ${codigo.slice(Math.max(0, m.index! - 30), m.index! + 20).replace(/\s+/g, ' ')}`);
+    for (const [nome, regex] of [['autoplay', /\bautoplay\b/gi], ['<audio', /<audio\b/gi]] as const) for (const m of codigo.matchAll(regex)) falhas.push(`${arquivo}: ${nome}: ${codigo.slice(Math.max(0, m.index! - 30), m.index! + 20)}`);
+    return falhas;
+  }
+  it('R-AB3 1: todo começo e toda retomada de áudio do modo TV passam pelo portão (o único que toca, cria áudio e muda a fonte)', () => {
     // O código do modo TV: os componentes do palco, as páginas do Explorar e as regras da sala
     const arquivos = [
       ...readdirSync(new URL('../src/components/explorar/', import.meta.url)).map((f) => `src/components/explorar/${f}`),
@@ -251,30 +285,33 @@ describe('a carta e a voz na TV', () => {
       'src/lib/sala.ts',
       'src/lib/servidor/tv.ts',
     ];
-    const tocar = /[.'"`]play\b/g;
-    for (const arquivo of arquivos) {
-      const codigo = semComentarios(ler(arquivo));
-      const achados = [...codigo.matchAll(tocar)].map((m) => m.index!);
-      if (arquivo !== 'src/components/explorar/Palco.astro') {
-        expect(achados, arquivo).toEqual([]);
-        continue;
-      }
-      // O corpo de portaoDaVoz, pelas chaves
-      const inicio = codigo.indexOf('async function portaoDaVoz(');
-      expect(inicio).toBeGreaterThan(0);
-      const abre = codigo.indexOf('{', codigo.indexOf(')', codigo.indexOf('{ retomar = false, gesto = false } = {}')));
-      let fundo = 0;
-      let fim = abre;
-      for (let i = abre; i < codigo.length; i++) {
-        if (codigo[i] === '{') fundo++;
-        else if (codigo[i] === '}' && --fundo === 0) {
-          fim = i;
-          break;
-        }
-      }
-      expect(achados.length).toBeGreaterThan(0);
-      for (const i of achados) expect(i > abre && i < fim, `um .play() fora do portão, em ${arquivo}: ${codigo.slice(i - 40, i + 10)}`).toBe(true);
-    }
+    for (const arquivo of arquivos) expect(violacoesDaVoz(arquivo, ler(arquivo)), arquivo).toEqual([]);
+    // O portão existe e toca
+    const palco = semComentarios(ler('src/components/explorar/Palco.astro'));
+    expect(palco).toMatch(/async function portaoDaVoz\(/);
+    expect(palco.match(/\.play\(/g)?.length).toBeGreaterThan(0);
+  });
+  it('R-AB4 6: a guarda da voz recusa cada forma fora do portão (um caso sintético por forma)', () => {
+    const palco = ler('src/components/explorar/Palco.astro');
+    const onde = '  function destravar() {';
+    expect(palco).toContain(onde);
+    const com = (trecho: string) => violacoesDaVoz('src/components/explorar/Palco.astro', palco.replace(onde, `  function sintetico() { ${trecho} }\n${onde}`));
+    for (const trecho of [
+      'voz?.play();',
+      "voz['play']();",
+      'const outro = new Audio("x.m4a");',
+      'tocador.currentTime = 0;',
+      'voz.currentTime += 5;',
+      'voz.src = "/audios/x.m4a";',
+      'voz!.src = alvo;',
+      "voz['src'] = alvo;",
+      "voz.setAttribute('src', alvo);",
+      'voz.autoplay = true;',
+    ]) expect(com(trecho), trecho).not.toEqual([]);
+    expect(violacoesDaVoz('src/components/explorar/Outro.astro', '<audio src="/audios/x.m4a" controls></audio>'), '<audio').not.toEqual([]);
+    expect(violacoesDaVoz('src/components/explorar/Outro.astro', '<video autoplay muted></video>'), 'autoplay').not.toEqual([]);
+    // A foto pronta do palco continua podendo ganhar fonte
+    expect(com('const outra = new Image(); outra.src = "/fotos/x.jpg";')).toEqual([]);
   });
   it('o tema de Natal pelo nome', () => {
     expect(['Natal', 'natais', 'NATAL '].every(nomeDeNatal)).toBe(true);
@@ -620,6 +657,9 @@ describe.skipIf(!comSqlite)('o modo TV no banco: a ordem, a rota de uma memória
     }
     // Sem o "ler", a memória de sempre
     expect((await palcoDaTv({ usuario: giovanna, parametros: p(base) }))?.memoria?.id).toBe(MEMORIA);
+    // Na carta, qualquer "ler" responde como o que não existe (R-AB4 5)
+    expect((await palcoDaTv({ usuario: giovanna, parametros: p('ver=tv&sala=1&carta=1&m=carta-1') }))?.carta).toBeDefined();
+    for (const valor of ['1', 'abc', '0', '']) expect(await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&carta=1&m=carta-1&ler=${valor}`) }), `carta com ler=${valor}`).toBeUndefined();
     // Fora da sala, "Ler tudo" não existe, e o "ler" do endereço não muda nada
     expect((await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&m=${MEMORIA}&ler=abc`) }))?.memoria?.id).toBe(MEMORIA);
   });
