@@ -254,7 +254,7 @@ export function partesDaLeitura(relatos: readonly { por: string; texto: string }
 }
 
 /** A parte de "Ler tudo" pedida no endereço (`ler=2`), ou nada. */
-export const parteDaLeitura = (valor: string | null | undefined): number | undefined => (valor && /^[1-9]\d{0,3}$/.test(valor) ? Number(valor) : undefined);
+export const parteDaLeitura = (valor: string | null | undefined): number | undefined => (valor && /^[1-9]\d{0,4}$/.test(valor) ? Number(valor) : undefined);
 
 // --- A voz de quem contou ------------------------------------------------------------------------
 

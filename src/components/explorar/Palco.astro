@@ -386,8 +386,6 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     paginas.set(alvo, pedaco);
     return pedaco;
   };
-  /** O pedaço do palco já na tela venceu: a voz dele não toca sem ser pedida de novo */
-  const vencido = (p: HTMLElement) => pedacoVencido(buscadoEm.get(p) ?? 0, performance.now());
   /** O endereço da memória da tela, com o "m" do passo (a primeira página pode ter chegado sem ele) */
   const enderecoDaVez = (p: HTMLElement) => {
     const url = new URL(location.href);
@@ -557,6 +555,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
         pararVoz();
       }
       atual.replaceWith(novo);
+      // A lista de vozes do pedaço que chegou vale para o portão (a mesma memória ou a seguinte)
+      confirmar(novo, pedaco.em);
       const cena = novo.querySelector<HTMLElement>('.palco__cena');
       if (saem && saemDe && cena) {
         const base = cena.getBoundingClientRect();
@@ -630,7 +630,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     // Os controles ocultos pelo botão continuam ocultos de uma memória para a outra
     atual.toggleAttribute('data-oculto', ocultos);
     // "Só as fotos" é preferência guardada no aparelho; a tela cheia vale enquanto durar
-    marcarTela(guardado('tv-so-fotos') === '1');
+    // Com "Ler tudo" aberto, "Só as fotos" não vale: o texto é o que se lê ali (correção 2 da revisão R-AB3)
+    marcarTela(!atual.hasAttribute('data-lendo') && guardado('tv-so-fotos') === '1');
     // "Passar sozinho", num toque, liga no tempo que a pessoa escolheu da última vez
     const tempo = guardado('tv-tempo');
     const noTempo = [...atual.querySelectorAll<HTMLAnchorElement>('.palco__ajuste[data-palco-passar] a[data-palco-leva]')].find((a) => new URL(a.href).searchParams.get('passar') === tempo);
@@ -799,51 +800,108 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       return [];
     }
   };
-  function destravar() {
-    if (destravado) return;
-    destravado = true;
-    if (falando) return;
-    voz.src = SILENCIO;
-    voz.play().catch(() => undefined);
-  }
+  const absoluto = (src: string) => new URL(src, location.href).href;
   function marcarOuvindo(sim: boolean) {
     palco()?.toggleAttribute('data-ouvindo', sim);
   }
-  function pararVoz() {
-    clearTimeout(relogioDaVoz);
-    relogioDaVoz = 0;
-    fila = [];
-    falando = false;
-    voz.pause();
-    marcarOuvindo(false);
-  }
-  function proximaDaFila() {
-    relogioDaVoz = 0;
-    // Cada áudio da fila confere o pedaço antes de começar (correção 1 da revisão R-AB2): vencido, a rota de uma
-    // memória confirma de novo, e só tocam os áudios que ela ainda mandar. Se ela recusar, a voz para. O áudio
-    // que já estava tocando termina: é o risco que a janela aceita.
-    const atual = palco();
-    if (fila.length > 0 && atual && vencido(atual)) {
-      renovando = true;
-      void renovarVoz(atual).then(() => {
-        renovando = false;
-        if (palco() !== atual) return;
-        const valem = new Set(vozesDe(atual).map((v) => v.src));
-        fila = vencido(atual) ? [] : fila.filter((v) => valem.has(v.src));
-        // Pausado enquanto a rota respondia: a fila espera o "Retomar"
-        if (pausado && fila.length > 0) return;
-        proximaDaFila();
-      });
-      return;
-    }
-    const proxima = fila.shift();
-    if (!proxima) {
+
+  // --- O portão da voz (correção 1 da revisão R-AB3) ---------------------------------------------------
+  // Nas rodadas da revisão, cada caminho que tocava a voz conferia por conta própria, e a cada rodada um deles
+  // esquecia. Agora todo começo e toda retomada de áudio passam por portaoDaVoz, o único lugar que chama
+  // `voz.play()` (a guarda do teste confere: testes/sala.test.ts). Ele toca uma fonte só se ela está na lista
+  // de vozes do pedaço confirmado mais recente da memória que está na tela (`confirmado`), dentro da validade.
+  // Vencido, ele pede o pedaço de novo à rota de uma memória antes; fora da lista, nada toca e a linha "A voz
+  // de …" sai. Quem chama: a primeira voz (tocarVozDaVez), a próxima da fila (proximaDaFila), ligar o som pelo
+  // símbolo ou pela ação escrita da carta (alternarSom), retomar depois da pausa (alternarPausa), voltar de "Ler tudo"
+  // (prepararSom) e o instante de silêncio do primeiro gesto (destravar).
+  // Toda chegada de um pedaço da memória da tela (a passagem, "Ler tudo", a renovação) passa por confirmar, que
+  // guarda a lista mais nova e para o que está tocando ou pausado e saiu dela.
+  let confirmado: { passo: string; vozes: Set<string>; em: number } | null = null;
+  /** Muda a cada pedido de voz, a cada pausa e a cada passagem: a resposta que chega depois não toca mais nada */
+  let vez = 0;
+
+  /** Um pedaço da memória da tela chegou: a lista dele vale, se for o mais novo dessa memória */
+  function confirmar(p: HTMLElement, em: number) {
+    const passo = p.dataset.passo ?? '';
+    if (confirmado && confirmado.passo === passo && confirmado.em > em) return;
+    confirmado = { passo, vozes: new Set(vozesDe(p).map((v) => absoluto(v.src))), em };
+    const lista = confirmado.vozes;
+    // O que está tocando ou pausado e saiu da lista para, e a fila fica só com o que continua nela
+    if (falando && !lista.has(voz.src)) {
+      voz.pause();
       falando = false;
       marcarOuvindo(false);
-      armar();
-      return;
     }
-    voz.src = proxima.src;
+    fila = fila.filter((v) => lista.has(absoluto(v.src)));
+    const naTela = palco();
+    if (naTela?.dataset.passo === passo && lista.size === 0) {
+      delete naTela.dataset.voz;
+      naTela.querySelector('[data-palco-voz]')?.remove();
+    }
+  }
+  /** O pedaço da memória da tela, de novo, à rota de uma memória: o que ela mandar vale; sem resposta, nenhuma voz */
+  async function renovarPedaco(atual: HTMLElement) {
+    const pedaco = buscar(enderecoDaVez(atual));
+    let lista: string | undefined;
+    try {
+      const chegou = (await pedaco.pagina).querySelector<HTMLElement>('[data-palco]');
+      if (chegou?.dataset.passo === atual.dataset.passo) lista = chegou.dataset.voz;
+    } catch {
+      // A memória não entra mais, ou a rede caiu: nada toca
+    }
+    if (lista) atual.dataset.voz = lista;
+    else delete atual.dataset.voz;
+    buscadoEm.set(atual, pedaco.em);
+    // Só se pede de novo um pedaço vencido, e o guardado só volta dentro da validade: o que chega é sempre o mais novo
+    confirmar(atual, pedaco.em);
+  }
+  /** A voz para e sai: nada toca, e a linha "A voz de …" deixa a tela */
+  function calarVoz() {
+    pararVoz();
+    vozSuspensa = false;
+    const naTela = palco();
+    if (naTela) {
+      delete naTela.dataset.voz;
+      naTela.querySelector('[data-palco-voz]')?.remove();
+    }
+  }
+  /**
+   * O portão: o único lugar que toca. `fonte` nula só destrava o som com o instante de silêncio (o gesto que o
+   * Safari do iPhone pede). `retomar`: continua de onde o áudio parou, se ele ainda vale. `gesto`: a chamada veio
+   * de um toque ou tecla, e o silêncio destrava o som antes de qualquer espera.
+   */
+  async function portaoDaVoz(fonte: string | null, { retomar = false, gesto = false } = {}) {
+    const minha = ++vez;
+    const atual = palco();
+    if (!atual) return;
+    if (gesto && !falando) {
+      destravado = true;
+      voz.src = SILENCIO;
+      voz.play().catch(() => undefined);
+    }
+    if (fonte === null) return;
+    const alvo = absoluto(fonte);
+    const vale = () => Boolean(confirmado && confirmado.passo === atual.dataset.passo && !pedacoVencido(confirmado.em, performance.now()));
+    if (!vale()) {
+      // Vencido: a rota confirma de novo antes. Até lá, "Passar sozinho" espera
+      clearTimeout(relogio);
+      renovando = true;
+      await renovarPedaco(atual);
+      renovando = false;
+      if (minha !== vez || palco() !== atual) return void armar();
+    }
+    if (!somLigado || pausado || atual.hasAttribute('data-lendo')) return void armar();
+    if (!vale() || !confirmado!.vozes.has(alvo)) {
+      calarVoz();
+      return void armar();
+    }
+    // A fonte sai da fila quando começa
+    const n = fila.findIndex((v) => absoluto(v.src) === alvo);
+    if (n >= 0) fila.splice(n, 1);
+    if (!(retomar && voz.src === alvo)) voz.src = alvo;
+    // Enquanto a voz toca, "Passar sozinho" espera: quem arma de novo é o fim dela (ligar o som com o relógio já
+    // armado deixava a memória passar no meio da voz)
+    clearTimeout(relogio);
     falando = true;
     falou = true;
     marcarOuvindo(true);
@@ -854,49 +912,40 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       armar();
     });
   }
-  /**
-   * O pedaço da tela venceu (correção 1 da revisão R-AB): a voz dele só toca depois de a rota de uma memória
-   * confirmar que a memória ainda entra, e com a voz que ela mandar agora. Sem resposta, a memória segue sem voz.
-   */
-  async function renovarVoz(atual: HTMLElement) {
-    const pedaco = buscar(enderecoDaVez(atual));
-    let voz: string | undefined;
-    try {
-      const chegou = (await pedaco.pagina).querySelector<HTMLElement>('[data-palco]');
-      if (chegou?.dataset.passo === atual.dataset.passo) voz = chegou.dataset.voz;
-    } catch {
-      // A memória não entra mais, ou a rede caiu: nada toca
+
+  function destravar() {
+    if (destravado) return;
+    destravado = true;
+    if (falando) return;
+    void portaoDaVoz(null, { gesto: true });
+  }
+  function pararVoz() {
+    vez++;
+    clearTimeout(relogioDaVoz);
+    relogioDaVoz = 0;
+    fila = [];
+    falando = false;
+    voz.pause();
+    marcarOuvindo(false);
+  }
+  /** A próxima da fila, pelo portão; sem nenhuma, a memória pode passar */
+  function proximaDaFila(gesto = false) {
+    relogioDaVoz = 0;
+    const proxima = fila[0];
+    if (!proxima) {
+      falando = false;
+      marcarOuvindo(false);
+      armar();
+      return;
     }
-    if (voz) atual.dataset.voz = voz;
-    else delete atual.dataset.voz;
-    // Sem voz, a linha "A voz de …" sai da tela
-    if (!voz) atual.querySelector<HTMLElement>('[data-palco-voz]')?.remove();
-    buscadoEm.set(atual, pedaco.em);
+    void portaoDaVoz(proxima.src, { gesto });
   }
   /** A voz da memória da tela, do começo. `logo`: no gesto de ligar o som, sem esperar. */
   function tocarVozDaVez(logo = false) {
     pararVoz();
-    const atual = palco();
-    if (atual && somLigado && !pausado && vozesDe(atual).length > 0 && vencido(atual)) {
-      // O gesto destrava o som agora, com o instante de silêncio; a voz entra quando a rota responder. Até lá,
-      // "Passar sozinho" espera
-      if (logo) {
-        destravado = true;
-        voz.src = SILENCIO;
-        voz.play().catch(() => undefined);
-      }
-      clearTimeout(relogio);
-      renovando = true;
-      void renovarVoz(atual).then(() => {
-        renovando = false;
-        if (palco() === atual && !vencido(atual)) tocarVozDaVez(logo);
-        armar();
-      });
-      return;
-    }
     fila = vozesDe(palco());
     if (!somLigado || fila.length === 0 || pausado) return void (fila = []);
-    if (logo) return proximaDaFila();
+    if (logo) return proximaDaFila(true);
     // A voz entra depois de a memória chegar; com movimento reduzido, quase na hora
     relogioDaVoz = window.setTimeout(proximaDaFila, calmo.matches ? 300 : 1400);
   }
@@ -917,23 +966,21 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     const voltou = voltouDaLeitura;
     voltouDaLeitura = false;
     if (voltou) {
-      // A voz que "Ler tudo" pausou retoma de onde estava, se o pedaço não venceu; vencido, começa de novo
-      // depois de a rota confirmar. A que já tinha acabado não toca de novo.
+      // A voz que "Ler tudo" pausou retoma de onde estava, pelo portão: só se ela continua na lista mais nova da
+      // memória, dentro da validade. A que já tinha acabado não toca de novo.
       const suspensa = vozSuspensa;
       vozSuspensa = false;
-      if (suspensa && falando && !vencido(atual) && !pausado) {
-        marcarOuvindo(true);
-        voz.play().catch(() => undefined);
-        return;
-      }
-      if (!suspensa && falou) return;
+      if (suspensa && falando && !pausado) return void portaoDaVoz(voz.src, { retomar: true });
+      if (suspensa && fila.length > 0 && !pausado) return proximaDaFila();
+      if (falou || suspensa) return;
     }
     falou = false;
     tocarVozDaVez();
   }
   /** "Ler tudo" abriu: a voz pausa como na pausa, e a fila fica para quando a pessoa voltar */
   function suspenderVoz() {
-    vozSuspensa = falando || Boolean(relogioDaVoz);
+    vez++;
+    vozSuspensa = falando || Boolean(relogioDaVoz) || fila.length > 0;
     clearTimeout(relogioDaVoz);
     relogioDaVoz = 0;
     if (falando) voz.pause();
@@ -954,11 +1001,9 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     guardar('tv-som', somLigado ? '1' : '0');
     marcarSom(botao);
     if (somLigado) {
-      // Este toque é o gesto: a voz da memória da tela começa já, ou o som fica destravado
-      if (vozesDe(palco()).length > 0) {
-        destravado = true;
-        tocarVozDaVez(true);
-      } else destravar();
+      // Este toque é o gesto: a voz da memória da tela começa já, pelo portão, ou o som fica destravado
+      if (vozesDe(palco()).length > 0) tocarVozDaVez(true);
+      else destravar();
     } else {
       pararVoz();
       armar();
@@ -972,12 +1017,16 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     pausado = !pausado;
     // A voz pausa e retoma junto
     if (pausado) {
+      vez++;
       clearTimeout(relogioDaVoz);
       relogioDaVoz = 0;
       voz.pause();
-    } else if (falando && !vencido(atual)) voz.play().catch(() => undefined);
-    // A voz que ficou pausada além da janela começa de novo, depois de a rota confirmar a memória
-    else if (falando || !falou) tocarVozDaVez();
+    }
+    // Retomar passa pelo portão: o áudio pausado continua só se ainda está na lista confirmada, dentro da
+    // validade (vencido, a rota confirma antes); a fila segue com o que ficou nela
+    else if (falando) void portaoDaVoz(voz.src, { retomar: true });
+    else if (fila.length > 0) proximaDaFila();
+    else if (!falou) tocarVozDaVez();
     // O símbolo e o nome trocam juntos, no mesmo botão: pausado, ele diz "Retomar", com o de tocar
     trocarSimbolo(botao, pausado ? 'tocar' : 'pausar', pausado ? 'Retomar' : 'Pausar');
     atual.toggleAttribute('data-pausado', pausado);
@@ -1051,6 +1100,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     // antes, o navegador ainda pede um gesto depois de abrir a página: a primeira tecla ou o primeiro toque
     // destrava a voz, e até lá a memória passa sem ela
     somLigado = guardado('tv-som') === '1';
+    // O pedaço da primeira página, pedido com ela
+    confirmar(primeiro, 0);
     // Qualquer tecla também é gesto: com o som ligado, ela destrava a voz
     document.addEventListener('keydown', () => void (somLigado && destravar()), { capture: true });
     // Na chegada pela página, a animação espera as fotos: sem isso ela acabava antes de elas aparecerem
@@ -1060,6 +1111,14 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     });
     document.addEventListener('keydown', (evento) => {
       if (evento.metaKey || evento.ctrlKey || evento.altKey || !palco()) return;
+      // Com "Ler tudo" aberto, o Esc volta à memória antes de qualquer outra coisa, com "Só as fotos" guardado ou
+      // não (correção 2 da revisão R-AB3)
+      const daLeitura = evento.key === 'Escape' && palco()!.hasAttribute('data-lendo') ? palco()!.querySelector<HTMLAnchorElement>('[data-palco-voltar-da-leitura]') : null;
+      if (serve(daLeitura)) {
+        evento.preventDefault();
+        if (ocultos) reexibir();
+        return void passar(daLeitura, true);
+      }
       const ativo = document.activeElement;
       const reacao = teclaNaTv(evento.key, {
         barra: naBarra.matches,
@@ -1085,16 +1144,9 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
         case 'voltar-ao-texto':
           evento.preventDefault();
           return trocarSoFotos(false);
-        case 'sair': {
-          // Em "Ler tudo", o Esc volta à memória (decisão do Gui, 25/11/2026); só de lá ele sai do modo TV
-          const daLeitura = palco()?.hasAttribute('data-lendo') ? palco()!.querySelector<HTMLAnchorElement>('[data-palco-voltar-da-leitura]') : null;
-          if (serve(daLeitura)) {
-            evento.preventDefault();
-            return void passar(daLeitura, true);
-          }
+        case 'sair':
           if (serve(link('sair'))) location.assign(link('sair')!.href);
           return;
-        }
         case 'andar':
         case 'subir':
         case 'descer':

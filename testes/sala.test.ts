@@ -3,7 +3,7 @@
 // data recusado na produção, a ordem com filtros e com a regra da sala, a rota de uma memória, a voz, as
 // contagens do alto da sala e a carta da sala sem gravar visita. Os casos de banco rodam sobre o SQLite em
 // memória com o acervo de exemplo semeado pelas próprias migrações (testes/apoio/d1.ts).
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 import {
@@ -238,7 +238,43 @@ describe('a carta e a voz na TV', () => {
     // O que vai à tela e a voz passam pela janela; o comportamento no navegador está em testes/sala-navegador.test.ts
     expect(palco).toMatch(/if \(guardado && !pedacoVencido\(guardado\.em, performance\.now\(\), validade\)\) return guardado;/);
     expect(palco).toMatch(/if \(!novo \|\| !pedaco \|\| !pagina \|\| pedacoVencido\(pedaco\.em, performance\.now\(\)\)\) throw/);
-    expect(palco).toMatch(/vozesDe\(atual\)\.length > 0 && vencido\(atual\)\) \{/);
+    // A voz passa pelo portão, que confere a validade do pedaço confirmado (R-AB3 1)
+    expect(palco).toMatch(/const vale = \(\) => Boolean\(confirmado && confirmado\.passo === atual\.dataset\.passo && !pedacoVencido\(confirmado\.em, performance\.now\(\)\)\);/);
+  });
+  it('R-AB3 1: todo começo e toda retomada de áudio do modo TV passam pelo portão (o único que chama .play())', () => {
+    const semComentarios = (texto: string) => texto.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' ')).replace(/\/\/[^\n]*/g, (c) => ' '.repeat(c.length)).replace(/\{\/\*[\s\S]*?\*\/\}/g, (c) => c.replace(/[^\n]/g, ' '));
+    // O código do modo TV: os componentes do palco, as páginas do Explorar e as regras da sala
+    const arquivos = [
+      ...readdirSync(new URL('../src/components/explorar/', import.meta.url)).map((f) => `src/components/explorar/${f}`),
+      'src/pages/explorar.astro',
+      'src/pages/explorar/palco.astro',
+      'src/lib/sala.ts',
+      'src/lib/servidor/tv.ts',
+    ];
+    const tocar = /[.'"`]play\b/g;
+    for (const arquivo of arquivos) {
+      const codigo = semComentarios(ler(arquivo));
+      const achados = [...codigo.matchAll(tocar)].map((m) => m.index!);
+      if (arquivo !== 'src/components/explorar/Palco.astro') {
+        expect(achados, arquivo).toEqual([]);
+        continue;
+      }
+      // O corpo de portaoDaVoz, pelas chaves
+      const inicio = codigo.indexOf('async function portaoDaVoz(');
+      expect(inicio).toBeGreaterThan(0);
+      const abre = codigo.indexOf('{', codigo.indexOf(')', codigo.indexOf('{ retomar = false, gesto = false } = {}')));
+      let fundo = 0;
+      let fim = abre;
+      for (let i = abre; i < codigo.length; i++) {
+        if (codigo[i] === '{') fundo++;
+        else if (codigo[i] === '}' && --fundo === 0) {
+          fim = i;
+          break;
+        }
+      }
+      expect(achados.length).toBeGreaterThan(0);
+      for (const i of achados) expect(i > abre && i < fim, `um .play() fora do portão, em ${arquivo}: ${codigo.slice(i - 40, i + 10)}`).toBe(true);
+    }
   });
   it('o tema de Natal pelo nome', () => {
     expect(['Natal', 'natais', 'NATAL '].every(nomeDeNatal)).toBe(true);
@@ -570,6 +606,22 @@ describe.skipIf(!comSqlite)('o modo TV no banco: a ordem, a rota de uma memória
     expect(parte?.leitura).toBeDefined();
     expect(parte?.passar).toBeUndefined();
     expect(new URL(parte!.leitura!.voltar, 'http://x').searchParams.get('passar')).toBe('10');
+  });
+
+  it('R-AB3 2: todo "ler" que não seja uma parte que existe responde como o que não existe', async () => {
+    const MEMORIA = '1999-chegada-da-giovanna';
+    const base = `ver=tv&sala=1&m=${MEMORIA}`;
+    const primeira = await palcoDaTv({ usuario: giovanna, parametros: p(`${base}&ler=1`) });
+    expect(primeira?.leitura).toBeDefined();
+    const de = primeira!.leitura!.de;
+    expect((await palcoDaTv({ usuario: giovanna, parametros: p(`${base}&ler=${de}`) }))?.leitura?.numero).toBe(de);
+    for (const valor of ['0', '-1', 'abc', '', '1.5', ' 1', String(de + 1), '9999', '99999', '999999', '01']) {
+      expect(await palcoDaTv({ usuario: giovanna, parametros: p(`${base}&ler=${encodeURIComponent(valor)}`) }), `ler=${valor}`).toBeUndefined();
+    }
+    // Sem o "ler", a memória de sempre
+    expect((await palcoDaTv({ usuario: giovanna, parametros: p(base) }))?.memoria?.id).toBe(MEMORIA);
+    // Fora da sala, "Ler tudo" não existe, e o "ler" do endereço não muda nada
+    expect((await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&m=${MEMORIA}&ler=abc`) }))?.memoria?.id).toBe(MEMORIA);
   });
 
   it('R-AB2 2: as partes de "Ler tudo" nunca passam do limite e dizem quem contou só no começo de cada relato', async () => {

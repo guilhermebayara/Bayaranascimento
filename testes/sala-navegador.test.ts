@@ -194,6 +194,187 @@ describe.skipIf(!B)('a TV da sala no navegador (revisão R-AB)', () => {
     await expect.poll(() => new URL(pagina.url()).searchParams.get('m'), { timeout: 10_000 }).not.toBe('1999-chegada-da-giovanna');
   }, 60_000);
 
+  // --- O portão da voz (correção 1 da revisão R-AB3) ------------------------------------------------
+  const CASAMENTO = '1958-casamento-vivica-tonho';
+  const SEGUNDO = '/audios/exemplos/vo-vivica-chuva.m4a?segundo=1';
+  /**
+   * Uma página com o som ligado de antes, o relógio do Playwright e cada .play() anotado (a fonte e de onde ele
+   * começa). `rota` decide, a cada pedido da memória, o que a rota responde: 'real', 'sem-voz' (200 sem a lista de
+   * vozes, como depois de o relato passar a esperar), 'recusa' (404) ou 'so-o-segundo'; `duas` põe um segundo áudio.
+   */
+  async function comVoz(pessoa: string, caminho: string, { duas = false } = {}) {
+    const ctx = await navegador.newContext({ viewport: { width: 1280, height: 720 } });
+    abertos.push(ctx);
+    await ctx.addCookies([{ name: 'como', value: pessoa, url: B }]);
+    await ctx.addInitScript(() => {
+      localStorage.setItem('tv-som', '1');
+      const w = window as unknown as { __tocou: { src: string; t: number }[] };
+      w.__tocou = [];
+      const original = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () {
+        w.__tocou.push({ src: this.src, t: this.currentTime });
+        return original.call(this);
+      };
+    });
+    const pagina: Pagina = await ctx.newPage();
+    await pagina.clock.install();
+    pagina.pedidos = [] as string[];
+    pagina.on('request', (pedido: any) => pagina.pedidos.push(pedido.url()));
+    const estado = { rota: 'real' as 'real' | 'sem-voz' | 'recusa' | 'so-o-segundo', atraso: 0 };
+    await pagina.route(
+      (url: URL) => url.pathname.startsWith('/explorar') && url.searchParams.get('m') === CASAMENTO,
+      async (rota: any) => {
+        const peca = rota.request().url().includes('/explorar/palco');
+        if (peca && estado.atraso) await new Promise((ok) => setTimeout(ok, estado.atraso));
+        if (peca && estado.rota === 'recusa') return rota.fulfill({ status: 404, body: 'Não encontrada.' });
+        const resposta = await rota.fetch();
+        let html = await resposta.text();
+        if (duas || estado.rota === 'so-o-segundo')
+          html = html.replace(/data-voz="([^"]*)"/, (_: string, valor: string) => {
+            const audios = JSON.parse(valor.replaceAll('&quot;', '"'));
+            const lista = peca && estado.rota === 'so-o-segundo' ? [{ src: SEGUNDO, duracao: 11 }] : [...audios, { src: SEGUNDO, duracao: 11 }];
+            return `data-voz="${JSON.stringify(lista).replaceAll('"', '&quot;')}"`;
+          });
+        if (peca && estado.rota === 'sem-voz') html = html.replace(/ data-voz="[^"]*"/, '').replace(/<p class="palco__voz"[\s\S]*?<\/p>/, '');
+        return rota.fulfill({ response: resposta, body: html });
+      },
+    );
+    await pagina.goto(B + caminho);
+    await pagina.waitForSelector('[data-palco]');
+    const tocou = async (): Promise<{ src: string; t: number }[]> => pagina.evaluate(() => (window as unknown as { __tocou: { src: string; t: number }[] }).__tocou);
+    const marcar = async () => (await tocou()).length;
+    const vozes = async (desde: number) => (await tocou()).slice(desde).filter((x) => !x.src.startsWith('data:'));
+    /** O gesto que liga o som: desligar e ligar no símbolo */
+    const ligarOSom = async () => {
+      await pagina.locator('[data-palco-som]').click();
+      await pagina.locator('[data-palco-som]').click();
+    };
+    return { pagina, estado, marcar, vozes, ligarOSom };
+  }
+  const tocando = (pagina: Pagina, ms = 4000) =>
+    pagina
+      .waitForSelector('[data-palco][data-ouvindo]', { timeout: ms })
+      .then(() => true)
+      .catch(() => false);
+
+  it('R-AB3 1: fechar "Ler tudo" depois de o relato passar a esperar não retoma a voz pausada', async () => {
+    for (const restringido of [false, true]) {
+      const { pagina, estado, marcar, vozes, ligarOSom } = await comVoz('giovanna', `/explorar?ver=tv&sala=1&m=${CASAMENTO}`);
+      await ligarOSom();
+      expect(await tocando(pagina), 'a voz começa').toBe(true);
+      await pagina.locator('[data-palco-ler]').click();
+      await pagina.waitForSelector('[data-palco][data-lendo]');
+      expect(await pagina.locator('[data-palco][data-ouvindo]').count(), 'lendo, a voz pausa').toBe(0);
+      if (restringido) estado.rota = 'sem-voz';
+      await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+      const marca = await marcar();
+      await pagina.locator('[data-palco-voltar-da-leitura]').click();
+      await pagina.waitForFunction(() => !document.querySelector('[data-palco][data-lendo]'));
+      const ouviu = await tocando(pagina, 3000);
+      if (restringido) {
+        expect(ouviu, 'a voz do relato que passou a esperar não retoma').toBe(false);
+        expect(await vozes(marca)).toEqual([]);
+        expect(await pagina.locator('[data-palco-voz]').count(), 'a linha "A voz de …" sai').toBe(0);
+      } else {
+        expect(ouviu, 'com a voz ainda na lista, ela retoma').toBe(true);
+        expect((await vozes(marca))[0]?.t, 'retoma de onde parou').toBeGreaterThan(0);
+      }
+    }
+  }, 120_000);
+
+  it('R-AB3 1: pausar enquanto a fila renova não faz o primeiro áudio recomeçar ao retomar', async () => {
+    const { pagina, estado, marcar, vozes, ligarOSom } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}&passar=15`, { duas: true });
+    await ligarOSom();
+    expect(await tocando(pagina)).toBe(true);
+    const primeiro = (await vozes(0))[0]!.src;
+    // A janela vence durante o primeiro; a resposta pedida quando ele termina demora e lista só o segundo
+    await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+    estado.rota = 'so-o-segundo';
+    estado.atraso = 4000;
+    const pedidosAntes = pedidosDoPedaco(pagina, CASAMENTO).length;
+    // O primeiro termina (uns 11 segundos de verdade), e a renovação sai
+    await expect.poll(() => pedidosDoPedaco(pagina, CASAMENTO).length, { timeout: 20_000 }).toBeGreaterThan(pedidosAntes);
+    // "Pausar" no meio da espera
+    await pagina.locator('[data-palco-pausa]').click();
+    await pagina.waitForTimeout(5000);
+    const marca = await marcar();
+    await pagina.locator('[data-palco-pausa]').click();
+    await pagina.waitForTimeout(2000);
+    const depois = await vozes(marca);
+    expect(depois.some((x) => x.src === primeiro), 'o primeiro não recomeça').toBe(false);
+    expect(depois.some((x) => x.src.endsWith(SEGUNDO)), 'o segundo, que continua na lista, toca').toBe(true);
+  }, 120_000);
+
+  it('R-AB3 1: ligar o som com uma voz que saiu da lista não toca nada, e a linha sai', async () => {
+    const { pagina, estado, marcar, vozes, ligarOSom } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}`);
+    // Sem gesto, a primeira tentativa não toca; a página fica parada além da janela, e o relato passa a esperar
+    await pagina.clock.runFor(2500);
+    await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+    estado.rota = 'sem-voz';
+    const marca = await marcar();
+    await ligarOSom();
+    await pagina.waitForTimeout(2500);
+    expect(await vozes(marca), 'nenhuma voz toca').toEqual([]);
+    expect(await pagina.locator('[data-palco-voz]').count()).toBe(0);
+    expect(await pagina.locator('[data-palco][data-voz]').count()).toBe(0);
+  }, 60_000);
+
+  it('R-AB3 1: retomar depois de vencer passa pela rota: com a voz na lista, continua de onde parou; fora dela, não toca', async () => {
+    for (const restringido of [false, true]) {
+      const { pagina, estado, marcar, vozes, ligarOSom } = await comVoz('elizete', `/explorar?ver=tv&m=${CASAMENTO}&passar=15`);
+      await ligarOSom();
+      expect(await tocando(pagina)).toBe(true);
+      await pagina.waitForTimeout(1500);
+      await pagina.locator('[data-palco-pausa]').click();
+      await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+      if (restringido) estado.rota = 'sem-voz';
+      const pedidosAntes = pedidosDoPedaco(pagina, CASAMENTO).length;
+      const marca = await marcar();
+      await pagina.locator('[data-palco-pausa]').click();
+      await pagina.waitForTimeout(2500);
+      expect(pedidosDoPedaco(pagina, CASAMENTO).length, 'a rota confirma antes de retomar').toBeGreaterThan(pedidosAntes);
+      const depois = await vozes(marca);
+      if (restringido) {
+        expect(depois, 'fora da lista, nada toca').toEqual([]);
+        expect(await pagina.locator('[data-palco-voz]').count()).toBe(0);
+      } else {
+        expect(depois.length).toBeGreaterThan(0);
+        expect(depois[0]!.t, 'continua de onde parou').toBeGreaterThan(0.5);
+      }
+    }
+  }, 120_000);
+
+  it('R-AB3 2: a parte de "Ler tudo" buscada de antemão e vencida é pedida de novo, e a recusa não mostra a parte', async () => {
+    const MEMORIA = '1999-chegada-da-giovanna';
+    const pagina = await abrir('giovanna', `/explorar?ver=tv&sala=1&m=${MEMORIA}&ler=1`);
+    await pagina.waitForSelector('.cena-da-leitura[data-parte="1"]');
+    // A parte 2 foi buscada de antemão
+    await expect.poll(() => pagina.pedidos.filter((u: string) => u.includes('/explorar/palco') && new URL(u).searchParams.get('ler') === '2').length, { timeout: 15_000 }).toBeGreaterThan(0);
+    await pagina.waitForLoadState('networkidle');
+    const antes = pagina.pedidos.filter((u: string) => new URL(u).searchParams.get('ler') === '2').length;
+    await recusar(pagina, MEMORIA);
+    await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+    await pagina.locator('[data-palco-depois]').first().click();
+    await expect.poll(() => pagina.pedidos.filter((u: string) => new URL(u).searchParams.get('ler') === '2').length).toBeGreaterThan(antes);
+    await pagina.waitForTimeout(1500);
+    expect(await pagina.locator('.cena-da-leitura[data-parte="2"]').count(), 'a parte 2 da memória restringida não aparece').toBe(0);
+  }, 60_000);
+
+  it('R-AB3 2: com "Ler tudo" aberto, o Esc volta à memória mesmo com "Só as fotos" guardado', async () => {
+    const ctx = await navegador.newContext({ viewport: { width: 1280, height: 720 } });
+    abertos.push(ctx);
+    await ctx.addCookies([{ name: 'como', value: 'giovanna', url: B }]);
+    await ctx.addInitScript(() => localStorage.setItem('tv-so-fotos', '1'));
+    const pagina = await ctx.newPage();
+    await pagina.goto(`${B}/explorar?ver=tv&sala=1&m=1999-chegada-da-giovanna&ler=1`);
+    await pagina.waitForSelector('[data-palco][data-lendo]');
+    expect(await pagina.locator('[data-palco][data-so-fotos]').count(), 'lendo, "Só as fotos" não vale').toBe(0);
+    await pagina.keyboard.press('Escape');
+    await pagina.waitForFunction(() => !document.querySelector('[data-palco][data-lendo]'), null, { timeout: 5000 });
+    expect(new URL(pagina.url()).searchParams.get('ler')).toBeNull();
+    expect(new URL(pagina.url()).searchParams.get('m')).toBe('1999-chegada-da-giovanna');
+  }, 60_000);
+
   it('2: na sala, "Limpar filtros" continua na sala', async () => {
     const pagina = await abrir('giovanna', '/explorar?ver=tv&sala=1&de=1800&ate=1800', { palco: false });
     const limpar = pagina.getByRole('link', { name: 'Limpar filtros' });

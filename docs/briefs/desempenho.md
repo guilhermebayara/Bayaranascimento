@@ -61,6 +61,8 @@ O LCP da memória: as três fotos da pilha têm o mesmo tamanho, e as de trás g
 
 **Feito na AB3** (25/11/2026, a segunda rodada da revisão, mesma branch): cada áudio da fila confere o pedaço, e "Ler tudo" na sala pede a parte à rota de uma memória. Com o acervo cheio, a passagem logo em seguida, no celular e no 4G lento, continua em 44 a 50 ms; uma passagem lê de 575 a 588 linhas, com 29 / 23 consultas (na sala, 30 / 24), como antes.
 
+**Feito na AB4** (25/11/2026, a terceira rodada da revisão): a voz passa por um portão só. A passagem logo em seguida, com o acervo cheio, no celular e no 4G lento, continua no número de antes: de 34 a 66 ms em três rodadas (na AB3, 44 a 50; na AB2, 43 a 60).
+
 **Respostas do Gui à M2** (23/11/2026; relatório em `docs/desempenho/2026-11-23-m2-cpu.md`, o limite de 10 ms de CPU e 128 MB por pedido do plano gratuito):
 
 - **O Explorar até a D2:** fica como está. A D2 resolve para quem tem script e decide o que quem está sem script vê; a medida de pronto da D2 passa a incluir CPU.

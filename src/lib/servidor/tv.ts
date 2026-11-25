@@ -291,7 +291,11 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
   const partes = sala ? partesDaLeitura([...(com ? [{ por: '', texto: com }] : []), ...naTela.filter((r) => textoDe(r)).map((r) => ({ por: nome(r.por) ?? '', texto: textoDe(r) }))]) : [];
   if (sala && partes.length === 0) partes.push([]);
   const ler = partes.length > 0 ? naTv(id, passar, movimento, { ler: '1' }) : undefined;
-  const parte = sala ? parteDaLeitura(parametros.get('ler')) : undefined;
+  // Todo "ler" que não seja uma parte que existe responde como o que não existe (correção 2 da revisão R-AB3)
+  const pedeLeitura = parametros.has('ler');
+  const parte = sala && pedeLeitura ? parteDaLeitura(parametros.get('ler')) : undefined;
+  if (sala && pedeLeitura && !parte) return undefined;
+  const vozDaMemoria = daVoz.length > 0 ? { por, audios: daVoz.map((a) => ({ src: `/audios/${a.chave}`, duracao: a.duracao })) } : undefined;
   if (parte) {
     const trechos = partes[parte - 1];
     if (!trechos) return undefined;
@@ -300,6 +304,9 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
       ...base,
       // Com "Ler tudo" aberto, "Passar sozinho" espera: a parte não tem o relógio nem os Ajustes
       passar: undefined,
+      // A lista das vozes da memória vai junto (sem a linha "A voz de …"): o portão da voz, no navegador, confere
+      // nela o que está pausado (correção 1 da revisão R-AB3)
+      voz: vozDaMemoria,
       movimentos: [],
       antes: parte > 1 ? naParte(parte - 1) : undefined,
       depois: parte < partes.length ? naParte(parte + 1) : undefined,
@@ -320,7 +327,7 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
     ...base,
     memoria,
     trecho: texto ? { texto: trechoDoRelato(texto, 220), por } : undefined,
-    voz: daVoz.length > 0 ? { por, audios: daVoz.map((a) => ({ src: `/audios/${a.chave}`, duracao: a.duracao })) } : undefined,
+    voz: vozDaMemoria,
     nomes: nomesNaTv,
     linha: linhaDoAlto({ sala, posicao: pedido.posicao?.posicao, de: pedido.posicao?.de }) || undefined,
     sair: sala ? sair : `${sair}#${ancoraDaMemoria(memoria.id)}`,
