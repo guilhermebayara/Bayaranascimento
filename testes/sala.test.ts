@@ -169,6 +169,22 @@ describe('a carta e a voz na TV', () => {
       expect(ler(arquivo), arquivo).not.toMatch(/salvarVisitas|chegarAoPainel/);
     }
   });
+  it('o tema e a pessoa abrem o modo TV com o filtro que o Explorar já aceita, como o capítulo, sem marcador da sala', () => {
+    expect(ler('src/pages/temas/[id].astro')).toMatch(/href=\{`\/explorar\?tema=\$\{tema\.id\}&ver=tv`\}>\s*Passar no modo TV/);
+    expect(ler('src/pages/pessoas/[id]/index.astro')).toMatch(/href=\{`\/explorar\?pessoa=\$\{pessoa\.id\}&ver=tv`\}>\s*Passar no modo TV/);
+    for (const arquivo of ['src/pages/temas/[id].astro', 'src/pages/pessoas/[id]/index.astro']) expect(ler(arquivo), arquivo).not.toMatch(/sala=1/);
+  });
+  it('"Ouvir as vozes" só existe na carta da sala, e liga o mesmo som do símbolo da barra', () => {
+    const fontes = ['src/pages/explorar.astro', 'src/pages/explorar/palco.astro', 'src/pages/index.astro', 'src/pages/carta.astro', 'src/components/explorar/PalcoDaTv.astro', 'src/components/explorar/Palco.astro', 'src/lib/servidor/tv.ts'];
+    for (const arquivo of fontes) expect(ler(arquivo), arquivo).not.toMatch(/Ouvir as vozes/);
+    expect(ler('src/components/explorar/CartaNaTv.astro')).toMatch(/data-palco-vozes data-ligar="Ouvir as vozes" data-desligar="Desligar as vozes" hidden>/);
+    // A carta só é desenhada quando palcoDaTv a montou, e ela só existe com o marcador da sala (caso de banco abaixo)
+    expect(ler('src/components/explorar/PalcoDaTv.astro')).toMatch(/\{palco\.carta && <CartaNaTv /);
+    const palco = ler('src/components/explorar/Palco.astro');
+    // O toque passa pelo mesmo alternarSom do símbolo: a mesma escolha guardada no aparelho, o mesmo destravar
+    expect(palco).toMatch(/closest\('\[data-palco\] \[data-palco-vozes\]'\) \? palco\(\)\?\.querySelector<HTMLElement>\('\[data-palco-som\]'\) : null;\s*if \(barra\) return alternarSom\(barra\);/);
+    expect(palco).toMatch(/guardar\('tv-som', somLigado \? '1' : '0'\)/);
+  });
   it('a rota de uma memória responde igual para tudo o que não entra, e só desenha o que palcoDaTv decidiu', () => {
     const rota = ler('src/pages/explorar/palco.astro');
     expect(rota).toMatch(/export const partial = true;/);
@@ -323,6 +339,31 @@ describe.skipIf(!comSqlite)('o modo TV no banco: a ordem, a rota de uma memória
     // A carta só existe na porta da sala, e não depois do último parágrafo
     expect(await palcoDaTv({ usuario: giovanna, parametros: p('ver=tv&m=carta-1') })).toBeUndefined();
     expect(await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&carta=1&m=carta-${naSala.paragrafos.length + 1}`) })).toBeUndefined();
+  });
+
+  it('o modo TV a partir do tema e da pessoa: as mesmas memórias publicadas da página, para cada login, e nada que o login não veja', async () => {
+    const { montarPaginaDaPessoa } = await import('../src/lib/servidor/pagina-da-pessoa');
+    const lucas = usuarioDe('lucas-magno');
+    // A Giovanna, o Lucas Magno e a Elizete veem famílias diferentes; a Giovanna está na Ceia restrita
+    for (const quem of [giovanna, elizete, lucas]) {
+      const ve = new Set((await repo.listarMemorias(quem)).map((m) => m.id));
+      for (const tema of ['natal', ...(await repo.listarTemasVisiveis(quem)).map((t) => t.id).slice(0, 3)]) {
+        const ordem = (await ordemDoModoTv(quem, p(`ver=tv&tema=${tema}`), tipos)).ordem;
+        const pagina = (await repo.listarMemorias(quem, { tema })).filter((m) => m.situacao === 'publicada').map((m) => m.id);
+        expect(new Set(ordem), `${quem.pessoa} · ${tema}`).toEqual(new Set(pagina));
+        expect(ordem.every((id) => ve.has(id))).toBe(true);
+      }
+      for (const pessoa of ['giovanna', 'vo-vivica', 'vo-bela', 'chico', 'elizete']) {
+        const ordem = (await ordemDoModoTv(quem, p(`ver=tv&pessoa=${pessoa}`), tipos)).ordem;
+        const pagina = await montarPaginaDaPessoa(quem, pessoa, false);
+        expect(new Set(ordem), `${quem.pessoa} · ${pessoa}`).toEqual(new Set(pagina?.publicadas.map((m) => m.id) ?? []));
+        expect(ordem.every((id) => ve.has(id))).toBe(true);
+      }
+    }
+    // A Ceia restrita entra no modo TV da Giovanna a partir da página dela, e não no da Elizete
+    expect((await ordemDoModoTv(giovanna, p('ver=tv&pessoa=giovanna'), tipos)).ordem).toContain(CEIA);
+    expect((await ordemDoModoTv(elizete, p('ver=tv&pessoa=giovanna'), tipos)).ordem).not.toContain(CEIA);
+    expect((await ordemDoModoTv(elizete, p('ver=tv&tema=natal'), tipos)).ordem).not.toContain(CEIA);
   });
 
   it('os nomes de "Com…" na sala são os que todo mundo vê, com o apelido da família', async () => {

@@ -3,7 +3,8 @@
 // parágrafo por vez, com os pontos de quantos faltam, e as assinaturas à mão no último. O texto e as
 // assinaturas são os da carta de /admin/carta; só a saudação muda. As fotos, no primeiro parágrafo, são de
 // memórias abertas a toda a família (palcoDaTv, em src/lib/servidor/tv.ts). Ver a carta na TV não conta
-// como a primeira vez de ninguém: nada aqui grava visita. O estilo está em telas/tv.css.
+// como a primeira vez de ninguém: nada aqui grava visita. "Ouvir as vozes", ao lado dos pontos, liga o som
+// da TV. O estilo está em telas/explorar.css e, na barra, em telas/tv.css.
 import Carimbo from '../visual/Carimbo.astro';
 import Polaroid from '../visual/Polaroid.astro';
 import Rabisco from '../visual/Rabisco.astro';
@@ -47,8 +48,17 @@ const LUGARES = ['esquerda', 'frente', 'direita'];
         </p>
       )
     }
-    <ol class="cena-da-carta__pontos" aria-label={`Parágrafo ${carta.numero} de ${carta.de}`}>
-      {Array.from({ length: carta.de }, (_, n) => <li aria-current={n + 1 === carta.numero ? 'step' : undefined} />)}
-    </ol>
+    <div class="cena-da-carta__pe">
+      <ol class="cena-da-carta__pontos" aria-label={`Parágrafo ${carta.numero} de ${carta.de}`}>
+        {Array.from({ length: carta.de }, (_, n) => <li aria-current={n + 1 === carta.numero ? 'step' : undefined} />)}
+      </ol>
+      {/* O gesto do som, escrito, ao lado dos pontos (resposta do Gui à pergunta 3 do PR #174): o toque liga
+          o som com a mesma escolha do símbolo da barra, é o gesto que o navegador pede, e as vozes das
+          memórias seguintes tocam sozinhas. Com o som ligado, vira "Desligar as vozes". Só com script
+          (Palco.astro, marcarSom). */}
+      <button type="button" class="acao acao--quieta cena-da-carta__vozes" data-palco-vozes data-ligar="Ouvir as vozes" data-desligar="Desligar as vozes" hidden>
+        Ouvir as vozes
+      </button>
+    </div>
   </div>
 </div>

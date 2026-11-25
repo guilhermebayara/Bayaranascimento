@@ -466,7 +466,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       if (ajustes) ajustes.open = atual.querySelector<HTMLDetailsElement>('[data-palco-ajustes]')?.open ?? false;
       const ativo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       // O foco fica no mesmo controle: quem estava em "Passar sozinho" segue em "Pausar", e o contrário
-      const focado = ['antes', 'depois', 'tocar', 'pausa', 'mostrar-texto', 'ocultar', 'som'].find((nome) => ativo?.hasAttribute(`data-palco-${nome}`));
+      const focado = ['antes', 'depois', 'tocar', 'pausa', 'mostrar-texto', 'ocultar', 'som', 'vozes'].find((nome) => ativo?.hasAttribute(`data-palco-${nome}`));
       const noAjuste = ativo?.closest('[data-palco-ajustes]') ? nomeDe(ativo) : undefined;
       const naCheia = ativo?.matches('.palco__na-barra[data-palco-cheia]');
       const cor = getComputedStyle(atual).backgroundColor;
@@ -760,10 +760,16 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     marcarSom(botao);
     tocarVozDaVez();
   }
-  /** O símbolo, o nome e a marca do som ligado, juntos (o ponto na cor viva sai com o som ligado, telas/tv.css) */
+  /** O símbolo, o nome e a marca do som ligado, juntos (o ponto na cor viva sai com o som ligado, telas/tv.css).
+      Na carta da sala, a ação escrita ao lado dos pontos acompanha a mesma escolha (CartaNaTv.astro). */
   function marcarSom(botao: HTMLElement) {
     trocarSimbolo(botao, somLigado ? 'som' : 'sem-som', somLigado ? 'Desligar o som' : 'Ligar o som');
     botao.toggleAttribute('data-ligado', somLigado);
+    const vozes = botao.closest('[data-palco]')?.querySelector<HTMLButtonElement>('[data-palco-vozes]');
+    if (!vozes) return;
+    vozes.hidden = false;
+    vozes.textContent = (somLigado ? vozes.dataset.desligar : vozes.dataset.ligar) ?? '';
+    vozes.toggleAttribute('data-ligado', somLigado);
   }
   function alternarSom(botao: HTMLElement) {
     somLigado = !somLigado;
@@ -955,6 +961,9 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       if (alvo?.closest('[data-palco] [data-palco-ocultar]')) return ocultar();
       const som = alvo?.closest<HTMLElement>('[data-palco] [data-palco-som]');
       if (som) return alternarSom(som);
+      // A ação escrita da carta da sala (data-palco-vozes) é o mesmo gesto do símbolo da barra
+      const barra = alvo?.closest('[data-palco] [data-palco-vozes]') ? palco()?.querySelector<HTMLElement>('[data-palco-som]') : null;
+      if (barra) return alternarSom(barra);
       if (alvo?.closest('[data-palco] [data-palco-reexibir]')) return reexibir();
       if (alvo?.closest('[data-palco] [data-palco-cheia]')) {
         const pedido = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();

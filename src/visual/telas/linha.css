@@ -37,6 +37,10 @@
 .controle {
   display: grid;
 }
+/* "Passar no modo TV", no capítulo, no tema e na pessoa: o modo TV com o filtro da página */
+.controles__tv {
+  margin: 0;
+}
 .controle__nome {
   margin-bottom: calc(-1 * var(--e-2));
 }

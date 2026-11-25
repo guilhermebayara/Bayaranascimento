@@ -26,7 +26,7 @@ No celular da família, no 4G, o site é lento hoje e fica bem mais lento com o 
 
 ## Medida de pronto
 
-No celular, no 4G lento, com o acervo cheio: tocar num controle do Explorar muda a tela em menos de 100 ms, e o INP fica abaixo de 200 ms; nenhuma página passa de 50 consultas ao D1; a conferência das linhas do dia de Natal fica abaixo de 3 milhões; e a foto principal da memória aparece bem antes dos 9,6 s de hoje (a sessão diz o número).
+No celular, no 4G lento, com o acervo cheio: tocar num controle do Explorar muda a tela em menos de 100 ms, e o INP fica abaixo de 200 ms; nenhuma página passa de 50 consultas ao D1; a conferência das linhas do dia de Natal fica abaixo de 3 milhões; e a foto principal da memória aparece bem antes dos 9,6 s de hoje (a sessão diz o número). Para a memória, vale o tempo da foto principal, e não o LCP (resposta do Gui, 25/11/2026): as fotos de trás da pilha giram mais que a principal, então o navegador mede uma delas como o maior elemento, e elas chegam depois de propósito, para não disputar a rede com a principal.
 
 **Feito na D1a** (23/11/2026, branch `tst-d1-servidor`; números em `docs/desempenho/2026-11-23-d1a.md`): causa 1 (guarda por pedido, o começo do pedido num lote só, as páginas e o esqueleto sem fila, as pendências do retrato sem somar os arquivos, o posicionamento inteligente e o Server-Timing), causa 3a, causa 7 e a anterior e a seguinte da memória por consulta própria. Com o acervo cheio, nenhuma página passa de 44 consultas e a fila caiu de 15 a 41 para 3 a 7; a estimativa do dia 25 caiu de 15,4 para 13,1 milhões de linhas, das quais 10,2 milhões são do modo TV (causa 6) e quase 2 milhões do Explorar (D2). As conferências `scripts/desempenho/conferir-consultas.mjs` e `estimar-natal.mjs` ficam para refazer.
 
@@ -51,11 +51,11 @@ Feito na D1d (23/11/2026, branch `tst-d1-correcoes`, sobre a `tst-d1-retratos`; 
 | Passagem logo em seguida, celular, 4G lento | 370 ms até a primeira mudança, 810 ms até a memória | 33 ms (buscando duas à frente; só a causa 6 dava 805 ms) |
 | Uma hora de modo TV no dia 25 | 10.213.200 linhas | 395.852 linhas (a primeira página, 360 passagens, uma foto e um terço de voz por passagem) |
 | O dia 25 inteiro (`estimar-natal.mjs`) | 13.156.568 linhas | 3.355.796 linhas |
-| LCP da memória, celular, 4G lento | 2,2 a 2,35 s (a foto de trás da pilha; a principal chega em 1,45 s) | igual, à espera da pergunta da pilha |
+| LCP da memória, celular, 4G lento | 2,2 a 2,35 s (a foto de trás da pilha; a principal chega em 1,45 s) | igual: a pilha fica como está (resposta do Gui, 25/11/2026) |
 
 O dia 25 ainda passa dos 3 milhões por uns 356 mil: o que pesa são as páginas que leem o acervo inteiro, o Explorar (umas 28 mil linhas por visita, 10 de 20 páginas por pessoa, da D2) e o Início e Pessoas (D3). A voz do modo TV soma uns 113 mil por hora (a rota de um áudio lê umas 940 linhas, pela conferência de quem vê). A CPU de uma passagem fica perto do piso de qualquer pedido neste computador (uns 8 a 10 ms); a primeira página do modo TV continua perto de 50 ms, uma vez por entrada.
 
-O LCP da memória: as três fotos da pilha têm o mesmo tamanho, e as de trás giram mais (5° a 9°, contra 2,5° da principal), então o retângulo que o navegador mede é maior, e o LCP é sempre uma delas. Trazer as de trás mais cedo melhora o número e atrasa a principal (de 1,45 s para 1,75 s com prioridade baixa; para 2,0 s sem ela). Com as de trás a 94% do tamanho, a principal vira o LCP no celular (2,32 s para 1,6 s), mas a pilha muda à vista: virou pergunta ao Gui, com as capturas em `docs/visual/aplicacao-e1/`.
+O LCP da memória: as três fotos da pilha têm o mesmo tamanho, e as de trás giram mais (5° a 9°, contra 2,5° da principal), então o retângulo que o navegador mede é maior, e o LCP é sempre uma delas. Trazer as de trás mais cedo melhora o número e atrasa a principal (de 1,45 s para 1,75 s com prioridade baixa; para 2,0 s sem ela). Com as de trás a 94% do tamanho, a principal vira o LCP no celular (2,32 s para 1,6 s), mas a pilha muda à vista (capturas em `docs/visual/aplicacao-e1/`). **Resposta do Gui (25/11/2026): a pilha fica como está.** A principal aparece em 1,45 s; o LCP de 2,3 s é o das fotos de trás, que chegam depois de propósito. Daqui em diante, a medida de pronto da memória é o tempo da foto principal (ver "Medida de pronto").
 
 **Respostas do Gui à M2** (23/11/2026; relatório em `docs/desempenho/2026-11-23-m2-cpu.md`, o limite de 10 ms de CPU e 128 MB por pedido do plano gratuito):
 
