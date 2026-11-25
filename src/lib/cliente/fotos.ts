@@ -6,6 +6,7 @@
 // pequena e a média, em WebP onde o navegador sabe gerar e em JPEG onde não sabe (o Safari do iPhone).
 // Elas sobem junto com a foto. Se algo der errado com as cópias, a foto sobe sozinha e a tela usa a original.
 import { QUALIDADE_DA_COPIA, TAMANHOS, medidaDaCopia, type FormatoDaCopia, type Tamanho } from '../copias-das-fotos';
+import { criarFila, enviarArquivo, linhaDe, type Fila } from './estado';
 
 const LADO_MAXIMO = 2400;
 const QUALIDADE = 0.85;
@@ -91,6 +92,60 @@ export async function enviarFoto(arquivo: File, recadoDaFalha = 'Falha no envio'
   return { id: dados.id, src: dados.src, pronta: foto };
 }
 
+/**
+ * Como enviarFoto, contando quanto já subiu (peça de estado, E4): aoAndar recebe de 0 a 1. A falha sai em
+ * português (Falha), nunca o recado do navegador.
+ */
+export async function enviarFotoComProgresso(arquivo: File, aoAndar: (fracao: number) => void): Promise<{ id: number; src: string; pronta: Blob }> {
+  const { foto, copias } = await prepararFotoComCopias(arquivo);
+  const corpo = new FormData();
+  corpo.set('foto', foto, 'foto');
+  if (copias) {
+    corpo.set('pequena', copias.pequena, `pequena.${copias.formato}`);
+    corpo.set('media', copias.media, `media.${copias.formato}`);
+  }
+  const dados = await enviarArquivo<{ id: number; src: string }>('/api/fotos', corpo, aoAndar);
+  return { id: dados.id, src: dados.src, pronta: foto };
+}
+
+/** A fila das fotos de um formulário: uma por vez, com "Enviando a foto 3 de 10" na linha do resumo. */
+export function filaDeFotos(resumo: HTMLElement | null, aoMudar?: () => void): Fila {
+  return criarFila(resumo ? linhaDe(resumo) : null, { um: 'foto', artigo: 'a', plural: 'fotos' }, aoMudar);
+}
+
+/**
+ * Põe uma foto escolhida na lista na hora, com a imagem do próprio aparelho, e na fila. O item leva
+ * data-estado (enviando, pronta, erro), que o formulário confere antes de salvar.
+ */
+export function porNaFila(fila: Fila, li: HTMLElement, arquivo: File, aoFicarPronta?: (id: number) => void): void {
+  li.dataset.estado = 'enviando';
+  const papel = li.querySelector('.foto__papel')!;
+  const previa = new Image();
+  previa.alt = '';
+  previa.src = URL.createObjectURL(arquivo);
+  papel.replaceChildren(previa);
+  const campos = li.querySelector('.foto-enviada__campos') ?? li;
+  const linhaEl = Object.assign(document.createElement('p'), { hidden: true });
+  linhaEl.dataset.linhaDeEstado = 'foto';
+  campos.prepend(linhaEl);
+  fila.por({
+    linha: linhaDe(linhaEl),
+    enviar: async (aoAndar) => {
+      li.dataset.estado = 'enviando';
+      try {
+        const { id, pronta } = await enviarFotoComProgresso(arquivo, aoAndar);
+        li.dataset.fotoId = String(id);
+        li.dataset.estado = 'pronta';
+        previa.src = URL.createObjectURL(pronta);
+        aoFicarPronta?.(id);
+      } catch (erro) {
+        li.dataset.estado = 'erro';
+        throw erro;
+      }
+    },
+  });
+}
+
 /** Uma foto na lista do formulário: o id dela no banco, a legenda e o endereço para mostrar. */
 export interface FotoNoFormulario {
   id: number;
@@ -131,29 +186,21 @@ export function ligarFotos(caixa: HTMLElement, aoMudar: () => void = () => {}) {
     const alvo = (evento.target as HTMLElement).closest('[data-remover]');
     if (!alvo) return;
     alvo.closest('.foto-enviada')?.remove();
-    if (situacao) situacao.textContent = 'Foto removida. Ela sai da memória quando você salvar.';
+    if (situacao) linhaDe(situacao).mostrar('feito', 'Foto removida. Ela sai da memória quando você salvar.');
     aoMudar();
   });
 
-  entrada.addEventListener('change', async () => {
+  // Peça de estado (E4): as fotos aparecem na hora e sobem uma por vez, com quanto falta
+  const fila = filaDeFotos(situacao, aoMudar);
+  entrada.addEventListener('change', () => {
     const arquivos = [...(entrada.files ?? [])];
     entrada.value = '';
     for (const arquivo of arquivos) {
       const li = item(null);
-      li.dataset.estado = 'enviando';
       lista.append(li);
-      aoMudar();
-      try {
-        const { id, pronta } = await enviarFoto(arquivo);
-        li.dataset.fotoId = String(id);
-        li.dataset.estado = 'pronta';
-        mostrar(li, URL.createObjectURL(pronta));
-      } catch (e) {
-        li.dataset.estado = 'erro';
-        li.querySelector('.foto__reserva')!.textContent = `Não foi possível enviar. ${e instanceof Error ? e.message : ''}`;
-      }
-      aoMudar();
+      porNaFila(fila, li, arquivo);
     }
+    aoMudar();
   });
 
   return {
@@ -168,7 +215,7 @@ export function ligarFotos(caixa: HTMLElement, aoMudar: () => void = () => {}) {
           return li;
         }),
       );
-      if (situacao) situacao.textContent = '';
+      if (situacao) linhaDe(situacao).limpar();
     },
     /** As fotos prontas, na ordem, com a legenda: o que vai para /api/relatos. */
     lista() {

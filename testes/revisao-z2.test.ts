@@ -1469,10 +1469,11 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
 
     it('os avisos do formulário da memória vão para a linha do próprio formulário, e não para a da janela do relato', () => {
       // A janela do relato tem a linha dela, e vem antes na página, dentro da etapa "Relato"
-      expect(readFileSync('src/components/conversa/Janela.astro', 'utf-8')).toContain('<p class="situacao" data-situacao role="status" aria-live="polite"></p>');
-      expect(nova.indexOf('<Janela modo="formulario"')).toBeLessThan(nova.indexOf('<p class="situacao" data-situacao role="status" aria-live="polite"></p>'));
-      // A do formulário é filha direta dele, logo depois da última etapa
-      expect(nova).toMatch(/\n    <\/section>\n\n    <p class="situacao" data-situacao role="status" aria-live="polite"><\/p>/);
+      // Exploração E4: a linha não é mais região viva (a voz da página é uma só)
+      expect(readFileSync('src/components/conversa/Janela.astro', 'utf-8')).toContain('<p class="situacao" data-situacao></p>');
+      expect(nova.indexOf('<Janela modo="formulario"')).toBeLessThan(nova.indexOf('<p class="situacao" data-situacao></p>'));
+      // A do formulário é filha direta dele, logo depois da última etapa (e da linha das fotos que sobem)
+      expect(nova).toMatch(/\n    <\/section>\n\n(?:    .*\n)*?    <p class="situacao" data-situacao><\/p>/);
       expect(nova).toContain(`const situacaoEl = form.querySelector<HTMLElement>(':scope > [data-situacao]')!;`);
       expect(nova).not.toContain(`form.querySelector<HTMLElement>('[data-situacao]')`);
     });

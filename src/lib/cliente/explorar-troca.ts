@@ -11,6 +11,7 @@
 // Safari do iPhone, anima só o que está perto da tela e deixa cada item seguir o próprio caminho.
 // Com movimento reduzido, a troca é direta: só a rolagem é devolvida.
 import { ligarFotoAoPassar } from './foto-ao-passar';
+import { FRASES, Falha, agir, dizer, linhaDe } from './estado';
 import { anoMaisProximo } from '../explorar';
 
 const REGIAO = '[data-explorar]';
@@ -161,6 +162,74 @@ export interface Troca {
   foco?: string;
   /** o endereço entra no histórico (não, quando a troca veio do voltar ou do avançar) */
   empurrar: boolean;
+  /** o tocado já marcado na hora; desfaz a marca quando a troca falha (peça de estado, E4) */
+  desfazer?: () => void;
+}
+
+// --- O tocado (peça de estado, E4) --------------------------------------------------------------------
+// O controle tocado fica marcado no mesmo instante, antes de a página nova chegar. Cada função marca e devolve
+// como desfazer, para a falha voltar ao estado de antes (proposta A) ou para tirar a marca que ficou de pé (B).
+
+function guardarMarcas(nav: Element) {
+  const marcados = [...nav.querySelectorAll<HTMLElement>('[aria-current]')].map((el) => [el, el.getAttribute('aria-current')!] as const);
+  return () => {
+    for (const el of nav.querySelectorAll('[aria-current]')) el.removeAttribute('aria-current');
+    for (const [el, valor] of marcados) el.setAttribute('aria-current', valor);
+  };
+}
+
+function carimbar(el: HTMLElement) {
+  el.dataset.tocado = '';
+  setTimeout(() => delete el.dataset.tocado, 400);
+}
+
+/** Marca a opção tocada na própria linha: aba, ordem e etiqueta de família. */
+export function marcarOpcao(link: HTMLAnchorElement): () => void {
+  const nav = link.closest('nav');
+  if (!nav) return () => {};
+  const desfazer = guardarMarcas(nav);
+  carimbar(link);
+  if (nav.classList.contains('linha__opcoes--etiquetas')) {
+    // As famílias: tocar numa liga ou desliga ela; "Família completa" desliga as outras; as três voltam a ela
+    const tudo = nav.querySelector<HTMLElement>('[data-familia="tudo"]');
+    const familias = [...nav.querySelectorAll<HTMLElement>('a[data-opcao]:not([data-familia="tudo"])')];
+    if (link === tudo) {
+      for (const f of familias) f.removeAttribute('aria-current');
+      tudo.setAttribute('aria-current', 'page');
+    } else {
+      tudo?.removeAttribute('aria-current');
+      link.toggleAttribute('aria-current');
+      if (link.hasAttribute('aria-current')) link.setAttribute('aria-current', 'true');
+      const ligadas = familias.filter((f) => f.hasAttribute('aria-current'));
+      if (!ligadas.length || ligadas.length === familias.length) {
+        for (const f of familias) f.removeAttribute('aria-current');
+        tudo?.setAttribute('aria-current', 'page');
+      }
+    }
+    return desfazer;
+  }
+  for (const el of nav.querySelectorAll('[aria-current]')) el.removeAttribute('aria-current');
+  link.setAttribute('aria-current', 'page');
+  // A ordem: o seletor fechado já diz a escolha
+  const atual = link.closest('details[data-menu]')?.querySelector<HTMLElement>('.ordenar__atual');
+  if (!atual) return desfazer;
+  const texto = atual.textContent;
+  atual.textContent = link.textContent?.trim() ?? texto;
+  return () => {
+    desfazer();
+    atual.textContent = texto;
+  };
+}
+
+/** A caixa de marcar do filtro já marca sozinha; a falha devolve como estava. */
+function marcarCampo(campo: Element): (() => void) | undefined {
+  if (!(campo instanceof HTMLInputElement) || (campo.type !== 'checkbox' && campo.type !== 'radio')) return undefined;
+  const marcado = campo.checked;
+  const grupo = campo.type === 'radio' ? [...document.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${CSS.escape(campo.name)}"]`)].map((r) => [r, r.checked] as const) : [];
+  return () => {
+    if (grupo.length) for (const [r, v] of grupo) r.checked = v;
+    else campo.checked = !marcado;
+  };
 }
 
 let pedido = 0;
@@ -212,61 +281,76 @@ async function buscarPagina(endereco: URL): Promise<string> {
  * Busca a página do endereço e troca só a região do Explorar, com o movimento. Qualquer problema
  * cai na navegação comum.
  */
-export async function trocar(endereco: URL, { foco, empurrar }: Troca) {
+export async function trocar(endereco: URL, { foco, empurrar, desfazer }: Troca) {
   const regiao = document.querySelector<HTMLElement>(REGIAO);
   if (!regiao) return location.assign(endereco);
   const meu = ++pedido;
   regiao.setAttribute('aria-busy', 'true');
-  try {
-    const texto = await buscarPagina(endereco);
-    const pagina = new DOMParser().parseFromString(texto, 'text/html');
-    const nova = pagina.querySelector<HTMLElement>(REGIAO);
-    if (!nova) throw new Error('sem a região');
-    // Uma escolha mais nova já saiu: esta resposta chegou atrasada
-    if (meu !== pedido) return;
+  // A conta das memórias é a linha de estado do Explorar: muda no lugar, sem mudar de altura
+  const conta = regiao.querySelector<HTMLElement>('.linha__conta');
+  await agir(
+    {
+      linha: conta ? linhaDe(conta) : null,
+      demorando: 'Buscando as memórias…',
+      leve: true,
+      vale: () => meu === pedido,
+      fazer: async () => {
+        const texto = await buscarPagina(endereco);
+        const pagina = new DOMParser().parseFromString(texto, 'text/html');
+        if (!pagina.querySelector(REGIAO)) throw new Falha('servidor', FRASES.servidor);
+        // Uma escolha mais nova já saiu: esta resposta chegou atrasada
+        if (meu !== pedido) return;
+        mostrarTroca(pagina, endereco, { foco, empurrar });
+      },
+    },
+    desfazer,
+  );
+  if (meu === pedido) document.querySelector(REGIAO)?.removeAttribute('aria-busy');
+}
 
-    // Quem usou um controle fica com ele no mesmo ponto da tela. Sem controle (o voltar e o avançar
-    // do navegador), a rolagem fica presa à memória que estava no alto.
-    const controle = foco ? regiao.querySelector<HTMLElement>(foco) : null;
-    const controleEm = controle?.getClientRects().length ? controle.getBoundingClientRect().top : null;
-    const ancora = controleEm === null ? acharAncora(regiao) : null;
-    const antes = calmo() ? new Map<string, Medida>() : medir(regiao);
-    manterFotos(antes, nova);
-    // O que estava aberto continua aberto: os filtros não fecham sozinhos a cada escolha
-    const abertos = [...regiao.querySelectorAll<HTMLDetailsElement>('.controles details')].map((d) => d.open);
-    nova.querySelectorAll<HTMLDetailsElement>('.controles details').forEach((d, i) => {
-      if (abertos[i] !== undefined) d.open = abertos[i]!;
-    });
-    // No celular as opções de um controle rolam para o lado: a linha continua onde a pessoa deixou
-    const rolagens = [...regiao.querySelectorAll<HTMLElement>('.controle__linha')].map((l) => l.scrollLeft);
-    regiao.replaceWith(nova);
-    nova.querySelectorAll<HTMLElement>('.controle__linha').forEach((l, i) => {
-      if (rolagens[i]) l.scrollLeft = rolagens[i]!;
-    });
-    // A cor da tela e a assinatura do rodapé acompanham as famílias escolhidas
-    const familia = pagina.documentElement.dataset.familia;
-    if (familia) document.documentElement.dataset.familia = familia;
-    const rodape = pagina.querySelector('footer.rodape');
-    if (rodape) document.querySelector('footer.rodape')?.replaceWith(rodape);
-    document.title = pagina.title;
-    // A rolagem das trocas é nossa: o navegador não a devolve por conta própria ao voltar. Vale para
-    // a entrada do histórico em que se está e para a que nasce agora.
-    history.scrollRestoration = 'manual';
-    if (empurrar) history.pushState({ explorar: true }, '', endereco);
-    history.scrollRestoration = 'manual';
-    const controleNovo = foco ? nova.querySelector<HTMLElement>(foco) : null;
-    if (controleEm !== null && controleNovo?.getClientRects().length) scrollBy({ top: controleNovo.getBoundingClientRect().top - controleEm, behavior: 'instant' });
-    else devolverRolagem(nova, ancora);
-    aplicarTamanho();
-    document.dispatchEvent(new CustomEvent('explorar:trocou'));
-    if (!calmo()) animar(antes, nova);
-    controleNovo?.focus({ preventScroll: true });
-  } catch {
-    // Uma escolha mais nova já saiu: o erro desta não pode levar a pessoa de volta ao endereço antigo
-    // (achado do QA de código de 17/11/2026, testes/explorar-troca.test.ts)
-    if (meu !== pedido) return;
-    location.assign(endereco);
-  }
+/** Troca a região do Explorar pela da página nova, com o movimento. */
+function mostrarTroca(pagina: Document, endereco: URL, { foco, empurrar }: Troca) {
+  const regiao = document.querySelector<HTMLElement>(REGIAO)!;
+  const nova = pagina.querySelector<HTMLElement>(REGIAO)!;
+  // Quem usou um controle fica com ele no mesmo ponto da tela. Sem controle (o voltar e o avançar
+  // do navegador), a rolagem fica presa à memória que estava no alto.
+  const controle = foco ? regiao.querySelector<HTMLElement>(foco) : null;
+  const controleEm = controle?.getClientRects().length ? controle.getBoundingClientRect().top : null;
+  const ancora = controleEm === null ? acharAncora(regiao) : null;
+  const antes = calmo() ? new Map<string, Medida>() : medir(regiao);
+  manterFotos(antes, nova);
+  // O que estava aberto continua aberto: os filtros não fecham sozinhos a cada escolha
+  const abertos = [...regiao.querySelectorAll<HTMLDetailsElement>('.controles details')].map((d) => d.open);
+  nova.querySelectorAll<HTMLDetailsElement>('.controles details').forEach((d, i) => {
+    if (abertos[i] !== undefined) d.open = abertos[i]!;
+  });
+  // No celular as opções de um controle rolam para o lado: a linha continua onde a pessoa deixou
+  const rolagens = [...regiao.querySelectorAll<HTMLElement>('.controle__linha')].map((l) => l.scrollLeft);
+  regiao.replaceWith(nova);
+  nova.querySelectorAll<HTMLElement>('.controle__linha').forEach((l, i) => {
+    if (rolagens[i]) l.scrollLeft = rolagens[i]!;
+  });
+  // A cor da tela e a assinatura do rodapé acompanham as famílias escolhidas
+  const familia = pagina.documentElement.dataset.familia;
+  if (familia) document.documentElement.dataset.familia = familia;
+  const rodape = pagina.querySelector('footer.rodape');
+  if (rodape) document.querySelector('footer.rodape')?.replaceWith(rodape);
+  document.title = pagina.title;
+  // A rolagem das trocas é nossa: o navegador não a devolve por conta própria ao voltar. Vale para
+  // a entrada do histórico em que se está e para a que nasce agora.
+  history.scrollRestoration = 'manual';
+  if (empurrar) history.pushState({ explorar: true }, '', endereco);
+  history.scrollRestoration = 'manual';
+  const controleNovo = foco ? nova.querySelector<HTMLElement>(foco) : null;
+  if (controleEm !== null && controleNovo?.getClientRects().length) scrollBy({ top: controleNovo.getBoundingClientRect().top - controleEm, behavior: 'instant' });
+  else devolverRolagem(nova, ancora);
+  aplicarTamanho();
+  document.dispatchEvent(new CustomEvent('explorar:trocou'));
+  if (!calmo()) animar(antes, nova);
+  controleNovo?.focus({ preventScroll: true });
+  // A conta nova é dita pela voz da página: a região viva que chega pronta não seria lida
+  const conta = nova.querySelector('.linha__conta')?.textContent?.trim();
+  if (conta) dizer(conta);
 }
 
 // --- O tamanho das fotos do mural ---------------------------------------------------------------
@@ -377,11 +461,12 @@ export function ligarTroca() {
     // A mesma opção, no mesmo controle: é o nome dela que não muda de uma página para a outra
     const controle = link.closest('nav')?.getAttribute('aria-labelledby') ?? '';
     const opcao = link.dataset.opcao ?? '';
+    const desfazer = marcarOpcao(link);
     if (menu) {
       menu.open = false;
-      return trocar(endereco, { empurrar: true, foco: '.controles details[data-menu] > summary' });
+      return trocar(endereco, { empurrar: true, foco: '.controles details[data-menu] > summary', desfazer });
     }
-    trocar(endereco, { empurrar: true, foco: `.controles nav[aria-labelledby="${CSS.escape(controle)}"] a[data-opcao="${CSS.escape(opcao)}"]` });
+    trocar(endereco, { empurrar: true, foco: `.controles nav[aria-labelledby="${CSS.escape(controle)}"] a[data-opcao="${CSS.escape(opcao)}"]`, desfazer });
   });
 
   // A página de uma opção é buscada antes do toque, para a troca ser imediata
@@ -439,7 +524,7 @@ export function ligarTroca() {
     const endereco = enderecoDoFormulario(formulario);
     if (!daRegiao(endereco)) return;
     const marcavel = campo instanceof HTMLInputElement && (campo.type === 'checkbox' || campo.type === 'radio');
-    trocar(endereco, { empurrar: true, foco: `[data-filtros] [name="${CSS.escape(campo.name)}"]${marcavel ? `[value="${CSS.escape(campo.value)}"]` : ''}` });
+    trocar(endereco, { empurrar: true, foco: `[data-filtros] [name="${CSS.escape(campo.name)}"]${marcavel ? `[value="${CSS.escape(campo.value)}"]` : ''}`, desfazer: marcarCampo(campo) });
   });
 
   document.addEventListener('submit', (evento) => {

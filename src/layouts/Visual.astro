@@ -130,9 +130,32 @@ const telas = [
         if (window.matchMedia('(hover: none) and (pointer: coarse)').matches && window.CSS && CSS.supports('animation-timeline: view()')) raiz.classList.add('pino-novo');
       })();
     </script>
+    {
+      teste && (
+        <script is:inline>
+          // Exploração E4, só na tst-feedback e no computador: a proposta da peça de estado (A ou B), lida
+          // antes de desenhar, do endereço (?proposta=b) ou da escolha guardada na faixa de teste
+          (function () {
+            if (!/^tst-feedback\./.test(location.hostname) && ['localhost', '127.0.0.1'].indexOf(location.hostname) < 0) return;
+            var pedida = new URLSearchParams(location.search).get('proposta');
+            var rede = new URLSearchParams(location.search).get('rede');
+            var guardada = null;
+            try {
+              if (pedida === 'a' || pedida === 'b') localStorage.setItem('proposta', pedida);
+              // A rede simulada também é lida aqui, antes de a página limpar o endereço (o Explorar tira o que não conhece)
+              if (rede) localStorage.setItem('sim-rede', rede);
+              guardada = localStorage.getItem('proposta');
+            } catch (e) {}
+            document.documentElement.dataset.proposta = pedida === 'a' || pedida === 'b' ? pedida : guardada === 'b' ? 'b' : 'a';
+          })();
+        </script>
+      )
+    }
   </head>
   <body>
     <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+    {/* A voz da página (peça de estado, E4): a região viva, uma só, que já existe antes de qualquer mudança */}
+    <p class="so-leitor" aria-live="polite" data-voz></p>
     {
       teste && !palco && (
         <details class:list={['teste', { 'teste--homologa': homologa }]}>
@@ -147,6 +170,7 @@ const telas = [
             <span>
               Vendo como {usuario.nome}. <u>Trocar</u>
             </span>
+            <span data-simulador data-simulador-resumo hidden></span>
           </summary>
           <div class="teste__corpo">
             <p>
@@ -176,6 +200,21 @@ const telas = [
             </p>
             <p>
               <a href="/">Início do site</a>
+            </p>
+            {/* Exploração E4: a escolha da proposta e o simulador de rede, só na tst-feedback */}
+            <p class="teste__sim" data-simulador hidden>
+              <span>Proposta:</span>
+              <button type="button" data-sim-proposta="a">A, na voz do álbum</button>
+              <button type="button" data-sim-proposta="b">B, o sinal</button>
+            </p>
+            <p class="teste__sim" data-simulador hidden>
+              <span>Simular a rede:</span>
+              <button type="button" data-sim-rede="normal">Normal</button>
+              <button type="button" data-sim-rede="lenta">Lenta</button>
+              <button type="button" data-sim-rede="sem-rede">Sem rede</button>
+              <button type="button" data-sim-rede="servidor-fora">Servidor fora</button>
+              <button type="button" data-sim-rede="recusa">Recusa</button>
+              <button type="button" data-sim-rede="instavel">Instável</button>
             </p>
           </div>
         </details>
@@ -241,6 +280,9 @@ const telas = [
           </nav>
         </details>
       </div>
+      {/* A rede, num lugar só da página (peça de estado, E4): pousada logo abaixo do topo, por cima da página,
+          para nada saltar quando ela aparece. Anda com a página (nada preso na borda da tela). */}
+      <div class="rede" data-rede hidden />
       <details class="menu">
         <summary><span>Menu</span></summary>
         <nav class="menu__lista" aria-label="Seções">
@@ -286,6 +328,15 @@ const telas = [
     </footer>
       )
     }
+    <script>
+      // A peça de estado (exploração E4): a rede da página e os links que esperam, em toda tela, inclusive no palco.
+      // O simulador de rede só existe na tst-feedback (a faixa de teste traz o painel dele).
+      import { ligarLinksQueEsperam, ligarRede } from '../lib/cliente/estado';
+      import { ligarSimulador, simuladorLigado } from '../lib/cliente/simulador';
+      if (simuladorLigado() && document.documentElement.dataset.proposta) ligarSimulador();
+      ligarRede();
+      ligarLinksQueEsperam();
+    </script>
     {
       !palco && (
         <script>

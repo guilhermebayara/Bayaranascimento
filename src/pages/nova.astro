@@ -254,6 +254,8 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         Escolher fotos
         <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" disabled={soDados} />
       </label>
+      {/* As fotos que sobem (peça de estado, E4): "Enviando a foto 3 de 10", logo abaixo de onde se escolhe */}
+      <p data-linha-de-estado="fotos" hidden></p>
       <ul class="fotos-enviadas" data-fotos>
         {
           (memoria?.fotos ?? []).map((foto) => (
@@ -415,7 +417,7 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       </div>
     </section>
 
-    <p class="situacao" data-situacao role="status" aria-live="polite"></p>
+    <p class="situacao" data-situacao></p>
     {/* Publicar com alguém que só você vê (docs/decisoes.md): o servidor recusa e a pessoa escolhe aqui.
         O texto e os botões são preenchidos pelo script com o nome de quem é só dela. */}
     <div class="privada" data-privada role="alert" hidden>
@@ -470,7 +472,8 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
   import { ligarDatas } from '../lib/cliente/datas';
   import { MESES } from '../lib/datas';
   import { PARTES_DA_FRASE, fraseDaMemoria, oQueFicouSem, type ParteDaFrase, type PreenchidoDaMemoria } from '../lib/frase-da-memoria';
-  import { enviarFoto } from '../lib/cliente/fotos';
+  import { filaDeFotos, porNaFila } from '../lib/cliente/fotos';
+  import { FRASES, Falha, agir, dizer, linhaDe, paraFalha } from '../lib/cliente/estado';
   import { buscaDePessoa } from '../lib/cliente/busca-pessoa';
   import { ligarQuemEstava } from '../lib/cliente/quem-estava';
   import { ligarConversa } from '../lib/cliente/conversa';
@@ -842,9 +845,13 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       });
     }
 
+    // A linha de avisos é a linha de estado do formulário (peça de estado, E4); a voz da página diz o aviso
+    const linhaDoForm = linhaDe(situacaoEl);
     const avisar = (texto: string, tipo: 'normal' | 'erro' = 'normal') => {
+      linhaDoForm.limpar();
       situacaoEl.textContent = texto;
       situacaoEl.dataset.tipo = tipo;
+      if (texto) dizer(texto);
     };
 
     // Numa memória nova, o texto digitado fica guardado no aparelho até ser salvo no site
@@ -936,8 +943,27 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       form.dispatchEvent(new Event('change'));
     });
 
-    // Fotos: reduz no aparelho e envia uma a uma
-    form.querySelector<HTMLInputElement>('[data-escolher-fotos]')!.addEventListener('change', async (evento) => {
+    // Fotos: aparecem na hora, com a imagem do aparelho, e sobem uma a uma, contando quanto falta (peça de
+    // estado, E4). Dá para seguir preenchendo e sair da etapa enquanto sobem: a conta fica acima dos botões.
+    // Fora da etapa das fotos, a linha de avisos do formulário conta o que ainda sobe
+    let contandoNaLinha = false;
+    const contarForaDaEtapa = () => {
+      const resumo = fila.resumo();
+      const naEtapa = !listaFotos.closest<HTMLElement>('[data-etapa]')?.hidden;
+      if (resumo && !naEtapa) {
+        contandoNaLinha = true;
+        avisar(`As fotos continuam subindo. ${resumo}`);
+      } else if (contandoNaLinha) {
+        contandoNaLinha = false;
+        avisar(resumo ? '' : 'As fotos terminaram de subir.');
+      }
+    };
+    const fila = filaDeFotos(form.querySelector<HTMLElement>('[data-linha-de-estado="fotos"]'), () => {
+      form.dispatchEvent(new Event('change'));
+      contarForaDaEtapa();
+    });
+    document.addEventListener('click', () => setTimeout(contarForaDaEtapa, 50));
+    form.querySelector<HTMLInputElement>('[data-escolher-fotos]')!.addEventListener('change', (evento) => {
       const entrada = evento.target as HTMLInputElement;
       const arquivos = [...(entrada.files ?? [])];
       entrada.value = '';
@@ -945,32 +971,20 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
         const marca = `nova-${proximaFoto++}`;
         const item = document.createElement('li');
         item.className = 'foto-enviada';
-        item.dataset.estado = 'enviando';
         item.innerHTML = `
-          <div class="foto__papel"><div class="foto__reserva">Enviando…</div></div>
+          <div class="foto__papel"></div>
           <div class="foto-enviada__campos">
             <label class="campo"><span>Legenda</span><input type="text" data-legenda maxlength="200" /></label>
             <label class="marcar"><input type="radio" name="fotoPrincipal" value="${marca}" /><span>Usar na linha do tempo</span></label>
             <button type="button" class="botao botao--leve" data-remover>Remover foto</button>
           </div>`;
         listaFotos.append(item);
-        form.dispatchEvent(new Event('change'));
         if (!form.querySelector('input[name="fotoPrincipal"]:checked')) {
           item.querySelector<HTMLInputElement>('input[type="radio"]')!.checked = true;
         }
-        try {
-          const { id, pronta } = await enviarFoto(arquivo);
-          item.dataset.fotoId = String(id);
-          item.dataset.estado = 'pronta';
-          const imagem = new Image();
-          imagem.alt = '';
-          imagem.src = URL.createObjectURL(pronta);
-          item.querySelector('.foto__reserva')!.replaceWith(imagem);
-        } catch (e) {
-          item.dataset.estado = 'erro';
-          item.querySelector('.foto__reserva')!.textContent = `Não foi possível enviar. ${e instanceof Error ? e.message : ''}`;
-        }
+        porNaFila(fila, item, arquivo);
       }
+      form.dispatchEvent(new Event('change'));
     });
 
     form.addEventListener('submit', async (evento) => {
@@ -997,9 +1011,9 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
       }
 
       const itens = [...listaFotos.querySelectorAll<HTMLElement>('.foto-enviada')];
-      if (itens.some((i) => i.dataset.estado === 'enviando')) return avisar('Espere as fotos terminarem de enviar.', 'erro');
+      if (itens.some((i) => i.dataset.estado === 'enviando')) return avisar(`Espere as fotos terminarem de enviar. ${fila.resumo()}`.trim(), 'erro');
       if (conversa?.ocupado()) return avisar('Espere o áudio ou a foto terminar de gravar e de enviar.', 'erro');
-      if (itens.some((i) => i.dataset.estado === 'erro')) return avisar('Uma foto não foi enviada. Remova ou escolha de novo.', 'erro');
+      if (itens.some((i) => i.dataset.estado === 'erro')) return avisar('Uma foto não foi enviada. Toque em “Tentar de novo” nela ou remova.', 'erro');
 
       const novas = [...novasPessoas.querySelectorAll<HTMLElement>('[data-nova-pessoa]')].map((linha) => ({
         nome: linha.querySelector<HTMLInputElement>('[data-nome]')!.value.trim(),
@@ -1082,44 +1096,65 @@ const transcricaoAutomatica = await situacaoDaTranscricaoAgora();
 
     async function enviar(pedido: Record<string, unknown>) {
       const situacao = pedido.situacao;
-      for (const b of botoes) b.disabled = true;
-      avisar(situacao === 'rascunho' ? 'Salvando rascunho…' : form.dataset.publicada !== undefined ? 'Salvando…' : 'Publicando…');
-      try {
-        const resposta = await fetch('/api/memorias', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(pedido),
-        });
-        const resultado = await resposta.json();
-        if (resposta.status === 409 && resultado.codigo === 'pessoa-privada') return mostrarPrivada(resultado, pedido);
-        if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');
-        try {
-          localStorage.removeItem(RASCUNHO_LOCAL);
-        } catch {
-          // sem armazenamento, nada a limpar
-        }
-        if (resultado.situacao === 'rascunho') {
-          // Recarrega já ligada ao rascunho salvo no site, com as pessoas novas na lista, e volta
-          // para a etapa em que a pessoa estava
+      delete situacaoEl.dataset.tipo;
+      // O tocado: os botões travam e a linha diz na hora o que acontece. Na falha, tudo o que foi escrito fica.
+      await agir({
+        linha: linhaDoForm,
+        marcar: () => {
+          for (const b of botoes) b.disabled = true;
+          return () => {
+            for (const b of botoes) b.disabled = false;
+          };
+        },
+        tocado: situacao === 'rascunho' ? 'Salvando rascunho…' : form!.dataset.publicada !== undefined ? 'Salvando…' : 'Publicando…',
+        fazer: async () => {
+          let resposta: Response;
           try {
-            sessionStorage.setItem('rascunho-salvo', String(etapas?.atual() ?? 0));
-          } catch {
-            // sem armazenamento, a página volta na primeira etapa
+            resposta = await fetch('/api/memorias', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(pedido),
+            });
+          } catch (erro) {
+            throw paraFalha(erro);
           }
-          return location.replace(resultado.url);
-        }
-        form.hidden = true;
-        for (const parte of document.querySelectorAll<HTMLElement>('[data-zona-de-perigo], [data-frase-da-memoria], [data-passo-feito], [data-contagem]')) parte.hidden = true;
-        const confirmacao = document.querySelector<HTMLElement>('[data-confirmacao]')!;
-        confirmacao.querySelector<HTMLAnchorElement>('[data-confirmacao-link]')!.href = resultado.url;
-        confirmacao.hidden = false;
-        const tituloEl = confirmacao.querySelector<HTMLElement>('h2')!;
-        tituloEl.setAttribute('tabindex', '-1');
-        tituloEl.focus();
-      } catch (e) {
-        avisar(e instanceof Error ? e.message : 'Não consegui salvar.', 'erro');
-        for (const b of botoes) b.disabled = false;
-      }
+          let resultado: { erro?: string; codigo?: string; situacao?: string; url?: string };
+          try {
+            resultado = await resposta.json();
+          } catch {
+            throw new Falha('servidor', FRASES.servidor);
+          }
+          if (resposta.status === 409 && resultado.codigo === 'pessoa-privada') {
+            for (const b of botoes) b.disabled = false;
+            return mostrarPrivada(resultado, pedido);
+          }
+          if (resposta.status >= 500) throw new Falha('servidor', FRASES.servidor);
+          if (!resposta.ok) throw new Falha('recusa', resultado.erro ?? 'Não consegui salvar.');
+          try {
+            localStorage.removeItem(RASCUNHO_LOCAL);
+          } catch {
+            // sem armazenamento, nada a limpar
+          }
+          if (resultado.situacao === 'rascunho') {
+            // Recarrega já ligada ao rascunho salvo no site, com as pessoas novas na lista, e volta
+            // para a etapa em que a pessoa estava
+            try {
+              sessionStorage.setItem('rascunho-salvo', String(etapas?.atual() ?? 0));
+            } catch {
+              // sem armazenamento, a página volta na primeira etapa
+            }
+            return location.replace(resultado.url!);
+          }
+          form!.hidden = true;
+          for (const parte of document.querySelectorAll<HTMLElement>('[data-zona-de-perigo], [data-frase-da-memoria], [data-passo-feito], [data-contagem]')) parte.hidden = true;
+          const confirmacao = document.querySelector<HTMLElement>('[data-confirmacao]')!;
+          confirmacao.querySelector<HTMLAnchorElement>('[data-confirmacao-link]')!.href = resultado.url!;
+          confirmacao.hidden = false;
+          const tituloEl = confirmacao.querySelector<HTMLElement>('h2')!;
+          tituloEl.setAttribute('tabindex', '-1');
+          tituloEl.focus();
+        },
+      });
     }
 
     if (voltouDoRascunho) {

@@ -64,7 +64,7 @@ const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relato
       </>
     )
   }
-  <ol class="janela__mensagens" data-mensagens aria-live="polite" aria-label="Seu relato, mensagem por mensagem">
+  <ol class="janela__mensagens" data-mensagens aria-label="Seu relato, mensagem por mensagem">
     <li class="janela__vazio" data-vazio hidden={mensagens.length > 0}>Conte como foi. Mande um texto, um áudio ou uma foto, quantos quiser e na ordem que vierem.</li>
     {mensagens.map((m) => <Mensagem mensagem={m} minha />)}
   </ol>
@@ -112,6 +112,6 @@ const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relato
     }
     <span data-so-com-script hidden> Enter envia; Shift e Enter muda de linha.</span>
   </p>
-  <p class="situacao" data-situacao role="status" aria-live="polite"></p>
+  <p class="situacao" data-situacao></p>
   <slot />
 </Caixa>

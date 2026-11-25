@@ -74,7 +74,9 @@ describe('a peça no padrão das redes', () => {
     expect(cliente).toContain("headers: { Accept: 'application/json' }");
     expect(cliente).toContain("e.pointerType !== 'touch'");
     expect(cliente).toContain("e.pointerType !== 'mouse'");
-    expect(cliente).toContain('form.submit();');
+    // Exploração E4: a falha fica na página, pela peça de estado
+    expect(cliente).not.toContain('form.submit();');
+    expect(cliente).toContain('await agir(');
     expect(pagina).toContain('ligarReacoes();');
   });
   it('com movimento reduzido, o toque não anima', () => {

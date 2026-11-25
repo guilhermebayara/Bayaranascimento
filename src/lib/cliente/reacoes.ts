@@ -1,8 +1,10 @@
 // As reações no lugar, sem recarregar (src/components/visual/Reacoes.astro; observação do Gui, 18/11/2026).
 // - O toque marca na hora (a tela muda antes da resposta) e a resposta da rota acerta a conta e os nomes.
 // - Segurar o coração (no toque) ou parar o mouse em cima abre os quatro símbolos. Esc fecha.
-// - Se o pedido falhar, o formulário segue como formulário comum, que recarrega: é a reserva de sempre.
+// - Se o pedido falhar, a pessoa fica na página, com a frase da peça de estado (exploração E4). O formulário
+//   comum continua sendo a reserva de quem está sem script.
 import type { ResumoDasReacoes } from '../reacoes';
+import { agir, linhaDepois, pedirJson } from './estado';
 
 const SEGURAR = 450;
 const MOUSE_ABRE = 350;
@@ -23,7 +25,6 @@ function ligar(caixa: HTMLElement): void {
   const principal = form.querySelector<HTMLButtonElement>('[data-reacao-principal]')!;
   const mais = form.querySelector<HTMLDetailsElement>('[data-reacoes-mais]')!;
   const recebidas = caixa.querySelector<HTMLDetailsElement>('[data-reacoes-recebidas]')!;
-  const anuncio = caixa.querySelector<HTMLElement>('[data-reacoes-anuncio]')!;
   const botoes = (simbolo: string) => [...form.querySelectorAll<HTMLButtonElement>(`[data-reacao="${simbolo}"]`)];
   const desenho = (simbolo: string) => form.querySelector(`.reacao--paleta[data-reacao="${simbolo}"] svg`)?.innerHTML ?? '';
   const nomeDe = (simbolo: string) => form.querySelector(`.reacao--paleta[data-reacao="${simbolo}"] .reacao__nome`)?.textContent ?? simbolo;
@@ -86,21 +87,24 @@ function ligar(caixa: HTMLElement): void {
     fecharMais(botao !== principal);
     const dados = new FormData(form);
     dados.set('simbolo', simbolo);
-    try {
-      const r = await fetch(form.action, { method: 'POST', body: dados, headers: { Accept: 'application/json' } });
-      const json = (await r.json()) as Resposta;
-      if (!r.ok || !json.resumo) throw new Error(json.erro ?? 'falhou');
-      desenhar(json.resumo);
-      anuncio.textContent = `${json.marcou ? 'Você marcou' : 'Você desmarcou'} ${nomeDe(simbolo)}.`;
-      // Depois de "eu estava lá": a oferta de entrar em Quem estava aparece no lugar
-      if (json.ofereceEntrar) document.querySelector<HTMLElement>('[data-entrar-em-quem-estava]')?.removeAttribute('hidden');
-    } catch {
-      // A reserva: o formulário comum, que recarrega e volta para o mesmo ponto da página
-      marcar(simbolo, estava);
-      const escondido = Object.assign(document.createElement('input'), { type: 'hidden', name: 'simbolo', value: simbolo });
-      form.append(escondido);
-      form.submit();
-    }
+    // A marca já mudou (o tocado). Na falha, volta ao que estava (A) ou fica de pé e vai quando a rede voltar (B)
+    await agir(
+      {
+        linha: linhaDepois(form, 'reacao'),
+        controle: botao,
+        leve: true,
+        fazer: async () => {
+          const json = await pedirJson<Resposta>(form.action, { method: 'POST', body: dados, headers: { Accept: 'application/json' } });
+          if (!json.resumo) throw new Error('sem resumo');
+          desenhar(json.resumo);
+          // Depois de "eu estava lá": a oferta de entrar em Quem estava aparece no lugar
+          if (json.ofereceEntrar) document.querySelector<HTMLElement>('[data-entrar-em-quem-estava]')?.removeAttribute('hidden');
+          return json;
+        },
+        dizerFeito: (json) => `${json.marcou ? 'Você marcou' : 'Você desmarcou'} ${nomeDe(simbolo)}.`,
+      },
+      () => marcar(simbolo, estava),
+    );
   });
 
   // Segurar o coração, no toque, abre os quatro (e o toque não marca)

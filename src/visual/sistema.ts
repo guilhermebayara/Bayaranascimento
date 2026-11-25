@@ -20,3 +20,4 @@ import './fontes.css';
 import './base.css';
 import './pecas.css';
 import './estrutura.css';
+import './estado.css';

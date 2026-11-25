@@ -27,7 +27,7 @@ if (memoria.situacao === 'rascunho') return Astro.redirect(`/nova?id=${memoria.i
         <input type="file" accept="image/*" multiple data-escolher-fotos class="oculto-visualmente" />
       </label>
       <ul class="fotos-enviadas" data-fotos></ul>
-      <p class="situacao" data-situacao-fotos role="status" aria-live="polite"></p>
+      <p class="situacao" data-situacao-fotos></p>
       <noscript>
         <p class="recado">Para enviar fotos, o navegador precisa estar com o JavaScript ligado.</p>
       </noscript>

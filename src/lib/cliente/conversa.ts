@@ -8,7 +8,8 @@
 // "formulario": nada é gravado aqui; a página pega a lista em mensagens() e manda junto com a memória.
 import { BITS_POR_SEGUNDO, duracaoEmTexto, LIMITE_POR_ARQUIVO, MINUTOS_POR_GRAVACAO } from '../audios';
 import { resumoDaMensagem, type TipoDeMensagem } from '../conversa';
-import { enviarFoto } from './fotos';
+import { enviarFotoComProgresso } from './fotos';
+import { FRASES, dizer, enviarArquivo, linhaDe, paraFalha, pedirJson, proposta, quandoVoltar, semRede, type Falha } from './estado';
 import { ligarMenus } from './menus';
 
 /** O que vai para /api/relatos (e, na memória nova, para /api/memorias) */
@@ -94,10 +95,50 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
   botao.removeAttribute('name');
   ligarMenus(raiz);
 
+  // A linha de avisos da janela é a linha de estado do relato (peça de estado, E4); a voz da página diz
+  const linha = linhaDe(situacao);
   const avisar = (texto: string, tipo: 'normal' | 'erro' = 'normal') => {
+    linha.limpar();
     situacao.textContent = texto;
     situacao.dataset.tipo = tipo;
+    if (texto) dizer(texto);
   };
+  /**
+   * A falha de um envio do relato: sem rede, na B, espera e vai sozinho; na A, e com o servidor fora, a
+   * frase e "Tentar de novo". A recusa traz a frase da rota.
+   */
+  const falhou = (falha: Falha, deNovo: () => void, oQue = '') => {
+    delete situacao.dataset.tipo;
+    if (falha.tipo === 'recusa') return linha.mostrar('recusado', falha.frase);
+    if (falha.tipo === 'sem-rede') semRede();
+    if (falha.tipo === 'sem-rede' && proposta() === 'b') {
+      const desistir = quandoVoltar(deNovo);
+      return linha.mostrar('sem-rede', `${oQue}${FRASES.semRedeEspera}`, { tentar: () => (desistir(), deNovo()) });
+    }
+    linha.mostrar('falhou', `${oQue}${falha.tipo === 'sem-rede' ? FRASES.semRedeTente : falha.frase}`, { tentar: deNovo });
+  };
+
+  // O que ficou escrito na caixa é guardado na aba a cada letra, e o que não foi salvo também: se a página
+  // for aberta de novo nesta aba, volta para a caixa, com o aviso (peça de estado, E4)
+  const GUARDA = `relato-nao-salvo:${memoria}:${por}`;
+  const guardarNaAba = (texto: string) => {
+    try {
+      if (texto.trim()) sessionStorage.setItem(GUARDA, texto);
+      else sessionStorage.removeItem(GUARDA);
+    } catch {
+      // sem armazenamento, o texto fica só na tela
+    }
+  };
+  try {
+    const guardado = sessionStorage.getItem(GUARDA);
+    if (guardado && !campo.value.trim()) {
+      campo.value = guardado;
+      queueMicrotask(() => linha.mostrar('falhou', 'Isto não foi salvo da outra vez. Confira e envie.', { dizer: false }));
+    }
+  } catch {
+    // sem armazenamento, segue vazio
+  }
+  campo.addEventListener('input', () => guardarNaAba(campo.value));
 
   // --- A citação: a mensagem nova de texto cita a mensagem escolhida ---
   let citaId: number | null = Number(new URLSearchParams(location.search).get('cita')) || null;
@@ -164,15 +205,14 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
       return false;
     }
     gravandoLista = true;
-    avisar('Salvando…');
+    delete situacao.dataset.tipo;
+    linha.mostrar('tocado', 'Salvando…');
     try {
-      const resposta = await fetch('/api/relatos', {
+      const resultado = await pedirJson<{ erro?: string; situacao?: string; url?: string; mensagens?: { id: number; tipo: TipoDeMensagem; audioId?: number; fotoId?: number }[] }>('/api/relatos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ memoria, por, publico, situacao: situacaoPedida, mensagens: lidas }),
       });
-      const resultado = (await resposta.json()) as { erro?: string; situacao?: string; url?: string; mensagens?: { id: number; tipo: TipoDeMensagem; audioId?: number; fotoId?: number }[] };
-      if (!resposta.ok) throw new Error(resultado.erro ?? 'Não consegui salvar.');
       // Os ids das mensagens novas, na ordem: cada mensagem da tela fica com o id da gravada do mesmo tipo
       const gravadas = [...(resultado.mensagens ?? [])];
       for (const li of mensagensDaLista()) {
@@ -180,16 +220,25 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
         if (i < 0) continue;
         li.dataset.id = String(gravadas[i].id);
         li.id = `mensagem-${gravadas[i].id}`;
+        delete li.dataset.naoSalva;
         gravadas.splice(0, i + 1);
       }
       publicado = resultado.situacao === 'publicada';
       if (resultado.url) destino = resultado.url;
       raiz.dataset.publicado = String(publicado);
       dica.firstChild!.textContent = publicado ? 'Seu relato já está na memória. Cada mensagem nova entra na hora.' : 'Só você vê até publicar.';
-      avisar(publicado ? 'Salvo na memória.' : 'Rascunho salvo. Só você vê.');
+      linha.mostrar('feito', publicado ? 'Salvo na memória.' : 'Rascunho salvo. Só você vê.');
+      guardarNaAba(campo.value);
       return true;
     } catch (e) {
-      avisar(e instanceof Error ? e.message : 'Não consegui salvar.', 'erro');
+      const falha = paraFalha(e);
+      // A mensagem continua na conversa, marcada como não salva, e o texto dela fica guardado na aba
+      for (const li of mensagensDaLista()) if (!li.dataset.id) li.dataset.naoSalva = '';
+      const naoSalvas = mensagensDaLista()
+        .filter((li) => li.dataset.naoSalva !== undefined && li.dataset.tipo === 'texto')
+        .map((li) => li.querySelector('[data-texto]')?.textContent ?? '');
+      guardarNaAba([...naoSalvas, campo.value].filter((t) => t.trim()).join('\n\n'));
+      falhou(falha, () => void gravarLista(), falha.tipo === 'recusa' ? '' : 'A mensagem não foi salva. ');
       return false;
     } finally {
       gravandoLista = false;
@@ -321,7 +370,8 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
           nota.textContent = 'Transcrição automática: confira e corrija. Ela é salva quando você sai da caixa.';
           area.focus();
         } catch (e) {
-          nota.textContent = e instanceof Error ? e.message : 'Não consegui transcrever agora.';
+          // Nenhum recado técnico na tela (peça de estado, E4): sem rede e resposta quebrada viram frase
+          nota.textContent = e instanceof TypeError ? FRASES.semRedeTente : e instanceof SyntaxError ? FRASES.servidor : e instanceof Error ? e.message : 'Não consegui transcrever agora.';
         } finally {
           auto.disabled = false;
         }
@@ -380,6 +430,7 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
     corpo.append(p);
     nova('texto', corpo, extra);
     campo.value = '';
+    guardarNaAba('');
     atualizarBotao();
     mudou();
   };
@@ -426,34 +477,39 @@ export function ligarConversa(raiz: HTMLElement, aoMudar?: () => void): Controle
     }
   });
 
-  const subirAudio = async (arquivo: Blob, duracao: number | null, nome = 'gravacao') => {
+  const subirAudio = async (arquivo: Blob, duracao: number | null, nome = 'gravacao'): Promise<void> => {
     if (arquivo.size > LIMITE_POR_ARQUIVO) return avisar('Esse áudio passa de 25 MB. Envie um trecho menor.', 'erro');
     enviando++;
-    avisar('Enviando o áudio…');
+    delete situacao.dataset.tipo;
+    linha.mostrar('enviando', 'Enviando o áudio', { andou: 0 });
     try {
       const dados = new FormData();
       dados.append('audio', arquivo, nome);
       if (memoria) dados.append('memoria', memoria);
       if (duracao) dados.append('duracao', String(duracao));
-      const resposta = await fetch('/api/audios', { method: 'POST', body: dados });
-      const r = (await resposta.json()) as { id: number; src: string; duracao?: number; erro?: string };
-      if (!resposta.ok) throw new Error(r.erro ?? 'Não consegui enviar o áudio.');
+      const r = await enviarArquivo<{ id: number; src: string; duracao?: number }>('/api/audios', dados, (fracao) =>
+        linha.mostrar('enviando', `Enviando o áudio · ${Math.round(fracao * 100)}%`, { andou: fracao }),
+      );
+      linha.limpar();
       novoAudio(r.id, r.src, r.duracao ?? duracao);
       if (!aoVivo) avisar('Áudio guardado. Ele entra no relato quando você salvar a memória.');
     } catch (e) {
-      avisar(e instanceof Error ? e.message : 'Não consegui enviar o áudio.', 'erro');
+      // O áudio continua no aparelho: tentar de novo manda o mesmo, sem gravar outra vez
+      falhou(paraFalha(e), () => void subirAudio(arquivo, duracao, nome), 'O áudio não foi enviado. ');
     } finally {
       enviando--;
     }
   };
-  const subirFoto = async (arquivo: File) => {
+  const subirFoto = async (arquivo: File): Promise<void> => {
     enviando++;
-    avisar('Enviando a foto…');
+    delete situacao.dataset.tipo;
+    linha.mostrar('enviando', 'Enviando a foto', { andou: 0 });
     try {
-      const r = await enviarFoto(arquivo, 'Não consegui enviar a foto.');
+      const r = await enviarFotoComProgresso(arquivo, (fracao) => linha.mostrar('enviando', `Enviando a foto · ${Math.round(fracao * 100)}%`, { andou: fracao }));
+      linha.limpar();
       novaFoto(r.id, r.src);
     } catch (e) {
-      avisar(e instanceof Error ? e.message : 'Não consegui enviar a foto.', 'erro');
+      falhou(paraFalha(e), () => void subirFoto(arquivo), 'A foto não foi enviada. ');
     } finally {
       enviando--;
     }

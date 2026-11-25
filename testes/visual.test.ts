@@ -348,8 +348,9 @@ describe('conceito', () => {
     // Com movimento reduzido, a troca é direta: nada é medido para animar
     expect(troca).toMatch(/const antes = calmo\(\) \? new Map<string, Medida>\(\) : medir\(regiao\);/);
     expect(troca).toMatch(/if \(!calmo\(\)\) animar\(antes, nova\);/);
-    // Erro de rede cai na navegação comum, menos quando uma escolha mais nova já saiu (testes/explorar-troca.test.ts)
-    expect(troca).toMatch(/catch \{\s*(?:\/\/[^\n]*\n\s*)*if \(meu !== pedido\) return;\s*location\.assign\(endereco\);/);
+    // Exploração E4: a falha fica na página, pela peça de estado, e a escolha antiga não vale mais quando uma
+    // mais nova já saiu (testes/explorar-troca.test.ts)
+    expect(troca).toMatch(/vale: \(\) => meu === pedido,/);
     // Mudar um filtro nunca muda a rolagem (correção do Gui, 17/11/2026): o controle usado fica no
     // mesmo ponto da tela, os filtros continuam abertos e cada escolha vale na hora
     expect(troca).toMatch(/scrollBy\(\{ top: controleNovo\.getBoundingClientRect\(\)\.top - controleEm, behavior: 'instant' \}\)/);

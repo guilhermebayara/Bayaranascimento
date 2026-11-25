@@ -160,7 +160,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
               </>
             )}
             {modo === 'acaso' && depois && (
-              <a class="botao" href={depois} data-palco-depois>
+              <a class="botao" href={depois} data-palco-depois data-espera="Sorteando…" data-espera-longa="Sorteando outra memória…">
                 Me mostre outra
               </a>
             )}

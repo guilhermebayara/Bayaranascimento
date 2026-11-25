@@ -5,6 +5,11 @@
 //
 // O botão não recebe "disabled": um botão desabilitado sai dos dados do formulário,
 // e vários formulários usam o name e o value do botão para saber a ação.
+//
+// Exploração E4 (peça de estado): sem rede no aparelho, o envio comum levaria à página de erro do navegador.
+// Ele não sai: a pessoa fica no formulário, com o que escreveu, e a frase da falta de rede. Quando a espera
+// passa de uns segundos, a linha diz que não precisa tocar de novo.
+import { ESPERA_CURTA_MS, FRASES, aparelhoSemRede, dizer, linhaDepois, semRede } from './estado';
 
 const VERBOS: [RegExp, string][] = [
   [/^salvar/i, 'Salvando…'],
@@ -20,6 +25,9 @@ const VERBOS: [RegExp, string][] = [
   [/^juntar/i, 'Juntando…'],
   [/^trocar/i, 'Trocando…'],
   [/^refazer/i, 'Refazendo…'],
+  [/^liberar/i, 'Liberando…'],
+  [/^manter/i, 'Respondendo…'],
+  [/^voltar a/i, 'Voltando…'],
 ];
 
 export function textoEnviando(rotulo: string): string {
@@ -35,8 +43,19 @@ export function marcarEnvios(): void {
       evento.preventDefault();
       return;
     }
-    form.dataset.enviando = '';
     const botao = (evento as SubmitEvent).submitter as HTMLButtonElement | null;
+    const lugar = botao?.closest('.acoes, p, div') ?? botao ?? form.lastElementChild;
+    if (aparelhoSemRede()) {
+      evento.preventDefault();
+      semRede();
+      if (lugar) linhaDepois(lugar, 'envio').mostrar('falhou', `${FRASES.semRedeTente} ${FRASES.guardado}`, { tentar: () => form.requestSubmit(botao ?? undefined) });
+      return;
+    }
+    form.dataset.enviando = '';
+    if (lugar) linhaDepois(lugar, 'envio').limpar();
+    // A espera longa: o sinal ao lado do botão; depois de uns segundos, a voz diz que não precisa tocar de novo
+    setTimeout(() => form.dataset.enviando !== undefined && botao?.setAttribute('data-demorando', ''), ESPERA_CURTA_MS);
+    setTimeout(() => form.dataset.enviando !== undefined && dizer(FRASES.naoPrecisa), 3000);
     if (botao && botao.matches('.botao')) {
       botao.dataset.rotulo = botao.textContent ?? '';
       botao.textContent = botao.dataset.enviando ?? textoEnviando(botao.textContent ?? '');
@@ -50,5 +69,6 @@ export function marcarEnvios(): void {
       botao.textContent = botao.dataset.rotulo ?? botao.textContent;
       botao.removeAttribute('aria-disabled');
     }
+    for (const el of document.querySelectorAll('[data-demorando]')) el.removeAttribute('data-demorando');
   });
 }

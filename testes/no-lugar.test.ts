@@ -35,9 +35,10 @@ describe('formulários no lugar', () => {
   it('o esqueleto liga os formulários no lugar em toda página', () => {
     expect(readFileSync('src/layouts/Visual.astro', 'utf-8')).toContain('ligarNoLugar();');
   });
-  it('sem script é o formulário comum; com o script falhando, também', () => {
+  it('sem script é o formulário comum; com o script falhando, a pessoa fica na página (peça de estado, E4)', () => {
     expect(cliente).toContain('evento.preventDefault();');
-    expect(cliente).toContain('form.submit();');
+    expect(cliente).not.toContain('form.submit();');
+    expect(cliente).toContain('await agir(');
     // Depois de trocar, as regiões novas são ligadas de novo e o recado é dito ao leitor de tela
     expect(cliente).toContain('ligarReacoes(regiao);');
     expect(cliente).toContain("anunciar(erro ?? ok ?? 'Pronto.');");
