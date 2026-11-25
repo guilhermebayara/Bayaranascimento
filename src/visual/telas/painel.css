@@ -37,29 +37,6 @@
   margin-top: 1em;
 }
 /* As duas assinaturas, cada uma com a sua mão */
-.carta__assina {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--e-2) var(--e-6);
-  margin-top: var(--e-6);
-}
-.carta__assina .mao {
-  font-size: calc(2.75rem * var(--escala-mao));
-  rotate: -4deg;
-}
-.carta__assina .mao + .mao {
-  rotate: -1deg;
-  translate: 0 0.15em;
-}
-.carta__assina .mao + .mao + .mao {
-  rotate: -5deg;
-  translate: 0 -0.05em;
-}
-.carta__assina .rabisco {
-  align-self: center;
-  rotate: 8deg;
-}
 .carta__acao {
   margin-top: var(--e-7);
 }
