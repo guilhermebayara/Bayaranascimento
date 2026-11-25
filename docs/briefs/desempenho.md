@@ -40,6 +40,23 @@ Feito na D1d (23/11/2026, branch `tst-d1-correcoes`, sobre a `tst-d1-retratos`; 
 
 **Feito na D1e** (23/11/2026, branch `tst-d1-copias`, sobre a `tst-d1-correcoes`; números em `docs/desempenho/2026-11-23-d1e.md`): a cópia do acervo em partes (o índice e cada tabela em páginas, sem recuo), juntada num arquivo só pelo script do Drive e pelo "Baixar cópia do acervo", com o andamento à vista; a cópia para o espelho, só com as tabelas e colunas da família, num botão novo da Administração, e o espelho aceitando só ela, com o limite do arquivo de 20 MB para 1 MB; a guarda conferindo a cópia para o espelho; e, da seção 8 da M2, as linhas devolvidas pelo banco no Server-Timing e os tetos de linhas devolvidas e de tamanho do HTML em `scripts/desempenho/conferir-consultas.mjs`, com os números de hoje (os da D2 ficam para ela definir). O item 1 da seção 8 (`medir-cpu.mjs --conferir`) ficou de fora: o teto local depende da razão entre o computador e a produção, que só a pergunta 1 da M2 dá. Com o acervo cheio, no mesmo computador da M2: a cópia saiu de um pedido de 156 a 178 ms de CPU (mediana; uns 90 sem o banco local) e 23 MB para 74 pedidos com mediana de 10 ms (8 sem o banco local), o pior em 17,6 ms (13 sem o banco local), todos no piso de qualquer pedido mais 2 a 3 ms, e o arquivo de 7,3 MB para 5,6 MB; o espelho, de 92 ms (64 sem o banco local) e uns 51 MB com o arquivo de 7,3 MB para 36 ms (13 sem o banco local) e 2,6 MB com os 26 KB da família. Se a produção mostrar o piso de um pedido acima de 10 ms (pergunta 1 da M2), é o middleware que precisa cair.
 
+**Feito na AB** (25/11/2026, branch `tst-aplicacao-e1`, a aplicação da E1): a causa 6 e o LCP da pilha. O palco recebe a ordem das memórias uma vez, só com os ids, já com os filtros, quem vê o quê e a regra da sala, e cada passagem pede só o pedaço do palco de uma memória à rota `/explorar/palco`, que confere tudo de novo; a busca de antemão pega também a memória depois da seguinte. Acervo cheio (653 memórias), no computador da sessão, antes e depois:
+
+| Medida | Antes | Depois |
+| --- | --- | --- |
+| Linhas lidas por passagem do modo TV (como o Gui) | 28.226 | 571 a 588 (a rota de uma memória) |
+| Consultas por passagem (Gui / Elizete) | 37 / 31 | 29 / 23 (na sala, 30 / 24) |
+| CPU por passagem, mediana (Gui / Elizete; sem o banco local) | 49,3 / 39,3 ms (27,9 / 20,5) | 12,4 / 10,3 ms (11,4 / 9,0); na sala, 12,7 / 17,9 ms |
+| Primeira página do modo TV (uma vez por entrada) | 28.226 linhas, 9 KB | 25.652 a 28.001 linhas, 11 a 18 KB (leva a ordem) |
+| Passagem logo em seguida, celular, 4G lento | 370 ms até a primeira mudança, 810 ms até a memória | 33 ms (buscando duas à frente; só a causa 6 dava 805 ms) |
+| Uma hora de modo TV no dia 25 | 10.213.200 linhas | 395.852 linhas (a primeira página, 360 passagens, uma foto e um terço de voz por passagem) |
+| O dia 25 inteiro (`estimar-natal.mjs`) | 13.156.568 linhas | 3.355.796 linhas |
+| LCP da memória, celular, 4G lento | 2,2 a 2,35 s (a foto de trás da pilha; a principal chega em 1,45 s) | igual, à espera da pergunta da pilha |
+
+O dia 25 ainda passa dos 3 milhões por uns 356 mil: o que pesa são as páginas que leem o acervo inteiro, o Explorar (umas 28 mil linhas por visita, 10 de 20 páginas por pessoa, da D2) e o Início e Pessoas (D3). A voz do modo TV soma uns 113 mil por hora (a rota de um áudio lê umas 940 linhas, pela conferência de quem vê). A CPU de uma passagem fica perto do piso de qualquer pedido neste computador (uns 8 a 10 ms); a primeira página do modo TV continua perto de 50 ms, uma vez por entrada.
+
+O LCP da memória: as três fotos da pilha têm o mesmo tamanho, e as de trás giram mais (5° a 9°, contra 2,5° da principal), então o retângulo que o navegador mede é maior, e o LCP é sempre uma delas. Trazer as de trás mais cedo melhora o número e atrasa a principal (de 1,45 s para 1,75 s com prioridade baixa; para 2,0 s sem ela). Com as de trás a 94% do tamanho, a principal vira o LCP no celular (2,32 s para 1,6 s), mas a pilha muda à vista: virou pergunta ao Gui, com as capturas em `docs/visual/aplicacao-e1/`.
+
 **Respostas do Gui à M2** (23/11/2026; relatório em `docs/desempenho/2026-11-23-m2-cpu.md`, o limite de 10 ms de CPU e 128 MB por pedido do plano gratuito):
 
 - **O Explorar até a D2:** fica como está. A D2 resolve para quem tem script e decide o que quem está sem script vê; a medida de pronto da D2 passa a incluir CPU.
