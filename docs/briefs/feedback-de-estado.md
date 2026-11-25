@@ -87,3 +87,12 @@ As duas cobrem os oito estados nos mesmos fluxos, e as duas resolvem a falta de 
 ## O mínimo, se o prazo apertar
 
 Se o prazo de 10/12 apertar, cai primeiro esta exploração, e fica só o que o brief de desempenho já decidiu: o controle tocado marcado na hora e a falta de rede com recado em português, sem a pessoa ir para a página de erro do navegador. Essas duas coisas entram de todo jeito antes do Natal.
+
+## A escolha do Gui (24/11/2026, depois da exploração)
+
+A exploração está na branch `tst-feedback` (relatório em `docs/visual/e4-feedback/leia-me.md`, commit `bdb8390`). A sessão de aplicação parte dela: aproveita o módulo `src/lib/cliente/estado.ts`, a marcação e as frases, e deixa o simulador de fora.
+
+- **O desenho da proposta A com a regra da falha da proposta B.** O ponto de cor e o texto em mono, com o fio do progresso, sem o anel. Quando falha, a escolha fica de pé, e o que é leve vai sozinho quando a rede volta (a lista do que é leve está no relatório), com "Tentar de novo" sempre à vista. Salvar e publicar a memória, os formulários de trabalho e o que falhou com o servidor fora pedem a pessoa, como nas duas propostas. As frases são as da tabela do relatório que valem para a regra da B ("Sem conexão. Vai sozinho quando a internet voltar." na ação leve), com o aviso da página no texto da A ajustado para dizer que o que a pessoa fizer vai quando a internet voltar. Na foto que cai no meio de dez: ela volta sozinha para o fim da fila uma vez e, se cair de novo, fica com "Tentar de novo".
+- **Link comum sem rede: nenhuma saída por agora.** Nem service worker nem guarda dos links. O link sem rede continua levando à página de erro do navegador. As medidas das duas saídas ficam no relatório, para quando o Gui quiser voltar ao assunto.
+- **O aviso de "Sem conexão" da página fica por cima** do começo da página, pousado logo abaixo do topo, sem empurrar o conteúdo.
+- **A aplicação entra depois das aplicações de E1 e de E2.** Ela segue a ordem sugerida pela exploração, sem o item 3 (a pergunta do link, respondida acima): primeiro o mínimo com a fila das fotos e o texto guardado; o modo TV já com as frases do módulo, porque a E1 terá entrado; e as esperas do Explorar ajustadas junto da D2. Se o prazo de 10/12 apertar, vale "O mínimo, se o prazo apertar".
