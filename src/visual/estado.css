@@ -198,9 +198,26 @@
 .linha__conta.estado {
   display: flex;
 }
-:root:not([data-proposta='b']) .linha__conta.estado[data-estado] .estado__texto {
+:root:not([data-proposta='b']) .linha__conta.estado[data-estado='demorando'] .estado__texto {
   text-transform: uppercase;
   letter-spacing: 0.09em;
+}
+/* A falha na conta se escreve por extenso, na letra do texto, nas duas propostas */
+.linha__conta.estado:is([data-estado='falhou'], [data-estado='recusado'], [data-estado='sem-rede']) .estado__texto {
+  flex: 1 1 6rem;
+  font-family: var(--grotesca);
+  font-size: var(--t-pequeno);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.linha__conta.estado:is([data-estado='falhou'], [data-estado='recusado'], [data-estado='sem-rede']) {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.linha__conta .estado__tentar {
+  font-family: var(--grotesca);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* A rede, num lugar só da página: pousada logo abaixo do topo, por cima do começo da página. Ela não empurra
@@ -251,8 +268,9 @@
   outline: var(--traco) dashed var(--alerta);
   outline-offset: 3px;
 }
-/* A linha de cada foto, no alto dos campos dela */
+/* A linha de cada foto, no alto dos campos dela, na largura da coluna (o sinal na mesma linha do texto) */
 .foto-enviada [data-linha-de-estado] {
+  justify-self: stretch;
   margin-top: 0;
 }
 

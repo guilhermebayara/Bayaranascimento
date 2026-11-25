@@ -1,6 +1,6 @@
 # A peça de feedback de estado (exploração E4)
 
-Situação: escrito no chat e aprovado pelo Gui em 24/11/2026. Vira a sessão de exploração E4: duas propostas numa prévia `tst-feedback`, e a sessão para até o Gui escolher. Prazo: antes de 10/12/2026. Se o prazo apertar, vale "O mínimo, se o prazo apertar", no fim.
+Situação: escrito no chat e aprovado pelo Gui em 24/11/2026. A exploração foi feita em 25/11/2026: as duas propostas estão na prévia `tst-feedback`, e o relato, as frases, a medida das saídas sem rede e o custo de aplicar estão em `docs/visual/e4-feedback/leia-me.md` (só na branch `tst-feedback`). Espera a escolha do Gui. Vira a sessão de exploração E4: duas propostas numa prévia `tst-feedback`, e a sessão para até o Gui escolher. Prazo: antes de 10/12/2026. Se o prazo apertar, vale "O mínimo, se o prazo apertar", no fim.
 
 ## De onde vem
 
