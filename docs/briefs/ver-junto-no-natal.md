@@ -85,3 +85,9 @@ A exploração está na branch `tst-ver-junto` (relatório em `docs/visual/explo
 - **Das duas propostas, ficam:** o modo TV no celular deitado (abaixo de 62rem, a janela mais larga que alta usa a barra e não rola) e a voz de quem contou, com o botão de som na barra e "Passar sozinho" esperando a voz terminar.
 - **Decidido pelo chat, pela recomendação das sessões** (o Gui pode trocar): a porta aparece no Início de 24 a 26 de dezembro; o som começa desligado e liga no símbolo do som, como na B. Se a aplicação achar um gesto mais óbvio para ligar o som logo na primeira tela, ela propõe.
 - A aplicação usa a peça de feedback de estado do sistema (carregando, pronto, falhou), que entra antes dela, e tem revisão contra lista fechada de outro modelo (a E1 foi construída no Opus).
+
+### Respostas do Gui de 24/11/2026, ao preparar a aplicação
+
+- **O cartão "Na TV da sala" do Início segue inteiro a regra da sala.** As duas entradas, "A carta e os Natais" e "Todas as memórias", mostram só o que é aberto a toda a família, seja qual for o login. "Todas as memórias" é o modo TV com todas as memórias abertas a todos, e não o modo TV sem filtro de quem logou.
+- **A memória de exemplo "Ceia só nossa, no apartamento novo" fica** (24/12/2024, restrita à família Bayara Bracarense, com a Giovanna, o Lucas Magno e o Chico). Vira exemplo permanente da regra da sala na semente das prévias: aparece no Explorar da Giovanna e nunca na sala.
+- **Junto da aplicação vão a causa 6 e o LCP da pilha de fotos da memória** (`docs/briefs/desempenho.md` e a D1c): o modo TV lê uma memória só por passagem, e a foto que é o LCP da memória deixa de esperar a principal.
