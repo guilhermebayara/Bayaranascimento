@@ -15,7 +15,12 @@
 //   e `Object.entries` dele, `Array.from` e `[...]` dele, por variável), e `{ hoje }` desestruturado dele;
 // - a comparação com "hoje" (`=== 'hoje'`, `case 'hoje'`), o jeito de achar o valor percorrendo os parâmetros;
 // - importar diaSimulado (com qualquer nome local, ou por `import * as`) fora de dia-do-pedido.ts.
-// O que não deu para ler como árvore (a marcação dos .astro) é lido como texto, com a regra de antes.
+// Na marcação dos .astro, cada expressão entre chaves também é lida como árvore (correção 5 da revisão R-AB2); o
+// que mesmo assim não deu para ler é lido como texto, com a regra de antes. Com as quatro formas da R-AB2 (o
+// método por colchete, o modelo de texto com interpolação, `url['searchParams']` e a marcação), a regra para
+// aqui (decisão do chat): ela protege contra o engano de quem escreve o código, e não contra quem quer
+// escondê-la de propósito.
+import { parseAst } from 'rolldown/parseAst';
 import { partes } from './codigo-lido.mjs';
 
 const SO_CODIGO = (texto) => texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -52,7 +57,16 @@ function contexto(ast) {
     no = desembrulhar(no);
     if (!no) return undefined;
     if (no.type === 'Literal' && typeof no.value === 'string') return no.value;
-    if (no.type === 'TemplateLiteral') return no.expressions.length === 0 ? no.quasis[0].value.cooked : undefined;
+    if (no.type === 'TemplateLiteral') {
+      // O modelo de texto com interpolação (`${'ho'}je`): cada pedaço precisa ser conhecido
+      let junto = no.quasis[0].value.cooked;
+      for (let i = 0; i < no.expressions.length; i++) {
+        const meio = texto(no.expressions[i], vistos);
+        if (meio === undefined) return undefined;
+        junto += meio + no.quasis[i + 1].value.cooked;
+      }
+      return junto;
+    }
     if (no.type === 'BinaryExpression' && no.operator === '+') {
       const a = texto(no.left, vistos);
       const b = texto(no.right, vistos);
@@ -65,29 +79,30 @@ function contexto(ast) {
   const doEndereco = (no, vistos = new Set()) => {
     no = desembrulhar(no);
     if (!no) return false;
-    if (no.type === 'MemberExpression') return nomeDaPropriedade(no) === 'searchParams' || doEndereco(no.object, vistos);
+    if (no.type === 'MemberExpression') return propriedade(no) === 'searchParams' || doEndereco(no.object, vistos);
     if (no.type === 'NewExpression') return no.callee?.type === 'Identifier' && no.callee.name === 'URLSearchParams';
     if (no.type === 'CallExpression') return no.arguments.some((a) => doEndereco(a.type === 'SpreadElement' ? a.argument : a, vistos)) || (no.callee.type === 'MemberExpression' && doEndereco(no.callee.object, vistos));
     if (no.type === 'ArrayExpression') return no.elements.some((e) => e && doEndereco(e.type === 'SpreadElement' ? e.argument : e, vistos));
     if (no.type === 'Identifier') return iniciais.has(no.name) && !vistos.has(no.name) && doEndereco(iniciais.get(no.name), new Set([...vistos, no.name]));
     return false;
   };
-  return { texto, doEndereco };
+  /** O nome de uma propriedade, também a calculada com um texto conhecido (`a['get']`) */
+  const propriedade = (m) => (m.computed ? texto(m.property) : m.property?.name);
+  return { texto, doEndereco, propriedade };
 }
 
 /** As leituras de "hoje" do endereço e as importações de diaSimulado num trecho lido como árvore. */
 function leiturasNaArvore(ast) {
-  const { texto, doEndereco } = contexto(ast);
+  const { texto, doEndereco, propriedade } = contexto(ast);
   const achados = [];
   const modulosDaRegra = (fonte) => typeof fonte === 'string' && /(^|\/)sala(\.ts)?$/.test(fonte);
   const todosDaRegra = new Set();
   for (const no of percorrer(ast)) {
     if (no.type === 'CallExpression') {
       const quem = desembrulhar(no.callee);
-      if (quem?.type === 'MemberExpression' && ['get', 'getAll', 'has'].includes(nomeDaPropriedade(quem)) && texto(no.arguments[0]) === NOME) achados.push(`.${nomeDaPropriedade(quem)}('hoje')`);
+      if (quem?.type === 'MemberExpression' && ['get', 'getAll', 'has'].includes(propriedade(quem)) && texto(no.arguments[0]) === NOME) achados.push(`.${propriedade(quem)}('hoje')`);
     } else if (no.type === 'MemberExpression') {
-      const nome = no.computed ? texto(no.property) : nomeDaPropriedade(no);
-      if (nome === NOME && doEndereco(no.object)) achados.push('o "hoje" de algo que veio do endereço');
+      if (propriedade(no) === NOME && doEndereco(no.object)) achados.push('o "hoje" de algo que veio do endereço');
       if (nomeDaPropriedade(no) === 'diaSimulado' && no.object?.type === 'Identifier' && todosDaRegra.has(no.object.name)) achados.push('diaSimulado');
     } else if (no.type === 'VariableDeclarator' && no.id?.type === 'ObjectPattern' && doEndereco(no.init)) {
       if (no.id.properties.some((p) => p.type === 'Property' && (p.computed ? texto(p.key) : (p.key?.name ?? p.key?.value)) === NOME)) achados.push('{ hoje } do endereço');
@@ -110,6 +125,30 @@ function leiturasNaArvore(ast) {
   return achados;
 }
 
+/** As expressões da marcação de um .astro (`{...}`), com as chaves equilibradas, para ler como árvore. */
+function expressoesDaMarcacao(texto) {
+  const achadas = [];
+  for (let i = 0; i < texto.length; i++) {
+    if (texto[i] !== '{') continue;
+    let fundo = 0;
+    for (let j = i; j < texto.length; j++) {
+      if (texto[j] === '{') fundo++;
+      else if (texto[j] === '}' && --fundo === 0) {
+        achadas.push(texto.slice(i + 1, j));
+        break;
+      }
+    }
+  }
+  return achadas;
+}
+const lerExpressao = (codigo) => {
+  try {
+    return parseAst(`(${codigo});`, { lang: 'tsx', sourceType: 'module' });
+  } catch {
+    return null;
+  }
+};
+
 /** O que quebra a regra, em frases para a guarda. `ler` lê um arquivo do repositório; `arquivos`, os versionados. */
 export function problemasDoSimuladorDeData(ler, arquivos) {
   const problemas = [];
@@ -124,8 +163,11 @@ export function problemasDoSimuladorDeData(ler, arquivos) {
   for (const arquivo of arquivos.filter((a) => /^src\/.*\.(ts|astro|mjs|js)$/.test(a) && a !== ARQUIVO_DO_PEDIDO)) {
     const { lidas, naoLidas } = partes(arquivo, ler(arquivo));
     const achados = new Set(lidas.flatMap(({ ast }) => leiturasNaArvore(ast)));
-    // A marcação e o que não deu para ler: pelo texto
-    for (const resto of naoLidas.map(SO_CODIGO)) {
+    // A marcação: cada expressão entre chaves, lida como árvore (`{Object.fromEntries(url.searchParams).hoje}`)
+    const naMarcacao = naoLidas.flatMap((resto) => expressoesDaMarcacao(resto).map(lerExpressao).filter(Boolean).flatMap((ast) => leiturasNaArvore(ast)));
+    for (const a of naMarcacao) achados.add(a);
+    // E o que não deu para ler, pelo texto (só quando a árvore não achou nada, para não contar duas vezes)
+    for (const resto of naMarcacao.length ? [] : naoLidas.map(SO_CODIGO)) {
       if (/\.(get|getAll|has)\(\s*['"`]hoje['"`]\s*\)|\[\s*['"`]hoje['"`]\s*\]/.test(resto)) achados.add("o 'hoje' do endereço");
       if (/\bdiaSimulado\(/.test(resto)) achados.add('diaSimulado');
     }

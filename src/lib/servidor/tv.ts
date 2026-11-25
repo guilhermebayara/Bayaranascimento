@@ -11,11 +11,11 @@
 // logado vê. E, por cima, cada memória da sala ainda passa por entraNaSala e cada relato por relatoNaTv.
 import { ancoraDaMemoria, enderecoDoExplorar, explorar, lerFiltros, lerMovimento, lerPassar, MOVIMENTOS, movimentoNoEndereco, passarNoEndereco, SEM_FILTRO, soFiltrosConhecidos, temFiltro, TEMPOS_DE_PASSAR, type Filtros, type Passar } from '../explorar';
 import { naListaDeQuemOlha } from '../ex-casal';
-import { entraNaSala, ID_DO_VISITANTE_DA_SALA, idValido, linhaDoAlto, naSala, nomeDeNatal, ordemDaTv, SAUDACAO_DA_SALA, paragrafosDaCarta, passoDaCarta, quemAssina, relatoDaVez, relatoNaTv, segundosDoParagrafo } from '../sala';
-import { legendaLugarAno, trechoDoRelato } from '../visual';
+import { entraNaSala, ID_DO_VISITANTE_DA_SALA, idValido, parteDaLeitura, partesDaLeitura, type TrechoDaLeitura, linhaDoAlto, naSala, nomeDeNatal, ordemDaTv, SAUDACAO_DA_SALA, paragrafosDaCarta, passoDaCarta, quemAssina, relatoDaVez, relatoNaTv, segundosDoParagrafo } from '../sala';
+import { carimboDaData, legendaLugarAno, trechoDoRelato } from '../visual';
 import { contextoDoExplorar } from './explorar';
 import type { Usuario } from './permissoes';
-import { comoOsExesAparecem, listarAudiosDosRelatos, listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis, obterCarta, obterMemoria, type Integrante, type Memoria } from './repositorio';
+import { comoOsExesAparecem, memoriasComAudioNaTv, relatosQueVaoATv, listarAudiosDosRelatos, listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis, obterCarta, obterMemoria, type Integrante, type Memoria } from './repositorio';
 import type { Tipo } from '../tipos';
 
 /**
@@ -98,7 +98,13 @@ export async function ordemDoModoTv(usuario: Usuario, parametros: URLSearchParam
     capitulos: new Set(capitulos.map((c) => c.id)),
     temas: new Set(temas.map((t) => t.id)),
   });
-  const resultado = explorar(todas, filtros, await contextoDoExplorar(quem, todas));
+  // No modo TV, os filtros "com foto" e "com áudio" contam só o que vai à TV (correção 4 da revisão R-AB2): a foto
+  // e a voz de um relato que espera, de um rascunho ou de um descartado não fazem a memória entrar na ordem
+  const contexto = await contextoDoExplorar(quem, todas);
+  const fotosDeRelato = filtros.comFoto ? [...new Set(todas.flatMap((m) => m.fotos.map((f) => f.relatoId).filter((r): r is number => r !== null)))] : [];
+  const [vaoATv, comVozNaTv] = await Promise.all([relatosQueVaoATv(fotosDeRelato), filtros.comAudio ? memoriasComAudioNaTv(quem) : Promise.resolve(undefined)]);
+  const paraOsFiltros = filtros.comFoto ? todas.map((m) => ({ ...m, fotos: m.fotos.filter((f) => f.relatoId === null || vaoATv.has(f.relatoId)) })) : todas;
+  const resultado = explorar(paraOsFiltros, filtros, comVozNaTv ? { ...contexto, comAudio: new Set([...contexto.comAudio].filter((id) => comVozNaTv.has(id))) } : contexto);
   const memorias = resultado.memorias.filter((m) => m.situacao === 'publicada' && (!sala || entraNaSala(m)));
   const paragrafos = carta ? paragrafosDaCarta(carta.texto) : [];
   return { filtros, memorias, ordem: ordemDaTv(memorias.map((m) => m.id), paragrafos.length), paragrafos };
@@ -158,6 +164,21 @@ export interface PalcoDaTv {
   passar?: Passar & { tempos: { segundos: number; href: string }[]; parar: string };
   tempoMinimo?: number;
   tituloDaPagina: string;
+  /** na sala, "Ler tudo": o endereço da primeira parte, quando a memória tem texto */
+  ler?: string;
+  /** "Ler tudo" aberto: a parte da vez, no lugar da memória */
+  leitura?: LeituraNoPalco;
+}
+
+export interface LeituraNoPalco {
+  titulo: string;
+  carimbo: string[];
+  trechos: TrechoDaLeitura[];
+  /** 1 é a primeira */
+  numero: number;
+  de: number;
+  /** a memória, de volta, sem "Ler tudo" */
+  voltar: string;
 }
 
 const TITULO_DA_PAGINA = 'Modo TV | Memórias Bayara e Bracarense';
@@ -176,8 +197,8 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
   const movimento = lerMovimento(parametros);
   const cartaNaFrente = sala && parametros.get('carta') === '1';
   const marcas = { sala: sala ? '1' : undefined, carta: cartaNaFrente ? '1' : undefined };
-  const naTv = (id: string | null | undefined, estado: Passar = passar, mov = movimento) =>
-    idValido(id) ? enderecoDoExplorar(filtros, 'tv', { m: id, ...passarNoEndereco(estado), ...movimentoNoEndereco(mov), ...marcas }) : undefined;
+  const naTv = (id: string | null | undefined, estado: Passar = passar, mov = movimento, mais: Record<string, string> = {}) =>
+    idValido(id) ? enderecoDoExplorar(filtros, 'tv', { m: id, ...passarNoEndereco(estado), ...movimentoNoEndereco(mov), ...marcas, ...mais }) : undefined;
   const id = pedido.memoria?.id ?? pedido.id ?? parametros.get('m');
   if (!idValido(id)) return undefined;
   const { sair, limpar } = saidasDoModoTv(filtros, sala);
@@ -212,12 +233,14 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
     // sempre o de Natal, seja qual for o tema do endereço (correção 4 da revisão R-AB)
     const tema = numero === 1 ? await temaDeNatal() : undefined;
     const natais = tema ? await listarMemorias(VISITANTE_DA_SALA as Usuario, { tema }) : [];
+    // Só foto da memória, sem as que vieram com um relato; a escolha é entre as memórias que têm uma, até
+    // completar três ou acabar (correção 3 da revisão R-AB2)
     const fotos = natais
-      .filter((m) => entraNaSala(m) && m.fotos.length > 0)
-      .reverse()
-      .slice(0, 3)
+      .filter(entraNaSala)
       .map((m) => ({ id: m.id, fotos: m.fotos.filter((f) => f.relatoId === null).slice(0, 1), legenda: legendaLugarAno(m.lugar, m.ano) }))
-      .filter((m) => m.fotos.length > 0);
+      .filter((m) => m.fotos.length > 0)
+      .reverse()
+      .slice(0, 3);
     return {
       ...base,
       carta: {
@@ -257,6 +280,37 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
   const daVoz = relato ? (audios.get(relato.id) ?? []) : [];
   const texto = relato ? relato.texto.trim() || daVoz[0]?.transcricao?.trim() || '' : '';
   const por = relato ? (nome(relato.por) ?? '') : '';
+
+  // "Ler tudo", só na sala (decisão do Gui, 25/11/2026): o texto inteiro dos relatos que passam em relatoNaTv,
+  // em partes, no próprio modo TV. Fora da sala, "Abrir esta memória" continua levando à página da memória.
+  const textoDe = (r: (typeof naTela)[number]) => r.texto.trim() || (audios.get(r.id) ?? [])[0]?.transcricao?.trim() || '';
+  const partes = sala ? partesDaLeitura(naTela.filter((r) => textoDe(r)).map((r) => ({ por: nome(r.por) ?? '', texto: textoDe(r) }))) : [];
+  const ler = partes.length > 0 ? naTv(id, passar, movimento, { ler: '1' }) : undefined;
+  const parte = sala ? parteDaLeitura(parametros.get('ler')) : undefined;
+  if (parte) {
+    const trechos = partes[parte - 1];
+    if (!trechos) return undefined;
+    const naParte = (n: number) => naTv(id, passar, movimento, { ler: String(n) });
+    return {
+      ...base,
+      // Com "Ler tudo" aberto, "Passar sozinho" espera: a parte não tem o relógio nem os Ajustes
+      passar: undefined,
+      movimentos: [],
+      antes: parte > 1 ? naParte(parte - 1) : undefined,
+      depois: parte < partes.length ? naParte(parte + 1) : undefined,
+      leitura: {
+        titulo: memoria.titulo,
+        carimbo: [carimboDaData(memoria), memoria.lugar].filter((x): x is string => Boolean(x)),
+        trechos,
+        numero: parte,
+        de: partes.length,
+        voltar: naTv(id)!,
+      },
+      nomes: [],
+      linha: linhaDoAlto({ sala, posicao: pedido.posicao?.posicao, de: pedido.posicao?.de }) || undefined,
+      sair,
+    };
+  }
   return {
     ...base,
     memoria,
@@ -265,6 +319,7 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
     nomes: comNaTv(memoria.integrantes, nome, modosDosExes),
     linha: linhaDoAlto({ sala, posicao: pedido.posicao?.posicao, de: pedido.posicao?.de }) || undefined,
     sair: sala ? sair : `${sair}#${ancoraDaMemoria(memoria.id)}`,
+    ler,
   };
 }
 

@@ -469,6 +469,33 @@
     width: 0.6rem;
     height: 0.6rem;
   }
+  /* "Ler tudo": o título à esquerda, a parte do texto à direita, acima da barra, como a carta */
+  .palco.palco--tv[data-palco] .cena-da-leitura {
+    grid-area: 1 / 1 / 2 / -1;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--calha);
+    align-items: center;
+    align-self: stretch;
+    min-height: 0;
+  }
+  .palco.palco--tv[data-palco] .cena-da-leitura__frente {
+    grid-column: 1 / 5;
+  }
+  .palco.palco--tv[data-palco] .cena-da-leitura__verso {
+    grid-column: 5 / -1;
+    gap: var(--e-6);
+  }
+  .palco.palco--tv[data-palco] .cena-da-leitura__titulo {
+    font-size: 3rem;
+  }
+  .palco.palco--tv[data-palco] .cena-da-leitura__paragrafo {
+    max-width: none;
+    font-size: 1.9rem;
+    line-height: 1.3;
+  }
+  .palco.palco--tv[data-palco] .cena-da-leitura__por {
+    font-size: calc(2rem * var(--escala-mao));
+  }
 }
 
 /* --- A janela deitada abaixo de 62rem (aplicação da E1) -------------------------------------------
@@ -571,5 +598,18 @@
   }
   .palco.palco--tv[data-palco] .cena-da-carta__assina .mao {
     font-size: calc(1.5rem * var(--escala-mao));
+  }
+  /* "Ler tudo", um degrau abaixo: a parte (LETRAS_POR_PARTE, em src/lib/sala.ts) cabe em 667 × 375 */
+  .palco.palco--tv[data-palco] .cena-da-leitura__titulo {
+    font-size: 2rem;
+  }
+  .palco.palco--tv[data-palco] .cena-da-leitura__paragrafo {
+    font-size: 1.3rem;
+  }
+  .palco.palco--tv[data-palco] .cena-da-leitura__por {
+    font-size: calc(1.4rem * var(--escala-mao));
+  }
+  .palco.palco--tv[data-palco] .cena-da-leitura__verso {
+    gap: var(--e-4);
   }
 }

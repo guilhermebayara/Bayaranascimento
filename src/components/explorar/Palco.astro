@@ -61,12 +61,16 @@ interface Props {
   passo?: string;
   /** na sala (o marcador no endereço): o palco escreve a linha do alto com o que entra */
   sala?: boolean;
+  /** na sala, "Ler tudo" no lugar de "Abrir esta memória": o endereço da primeira parte */
+  ler?: string;
+  /** "Ler tudo" aberto (a cena é a leitura): "Passar sozinho" espera, e o Esc volta à memória */
+  lendo?: boolean;
 }
 
 /** Quantas fotos da memória, além da principal, cabem em volta dela */
 const EM_VOLTA = 4;
 
-const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, limpar, movimento, movimentos, voz, linha, tempoMinimo, tituloDaPagina, comCena = false, passo, sala = false } = Astro.props;
+const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, limpar, movimento, movimentos, voz, linha, tempoMinimo, tituloDaPagina, comCena = false, passo, sala = false, ler, lendo = false } = Astro.props;
 // A tela que não é uma memória (a carta na sala) vem pronta, no lugar das fotos e do texto
 const cena = comCena && Astro.slots.has('cena');
 const tv = modo === 'tv';
@@ -108,6 +112,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       data-titulo={tituloDaPagina}
       data-passo={passo}
       data-sala={sala ? '' : undefined}
+      data-lendo={lendo ? '' : undefined}
     >
       {/* Com script, a animação só começa com as fotos prontas: até lá, elas esperam fora da tela.
           Fica antes de tudo, para valer já no primeiro desenho. Se algo falhar, a espera acaba sozinha. */}
@@ -183,11 +188,23 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
                 </p>
               )}
               {nomes.length > 0 && <p class="ficha suave">Com {listaCurta(nomes, 5)}</p>}
-              <p>
-                <a class="acao" href={abrir}>
-                  Abrir esta memória
-                </a>
-              </p>
+              {/* Na sala, ninguém sai para a página da memória, que mostra o que o login vê: "Ler tudo" mostra o
+                  texto inteiro aqui, só com o que entra na sala (decisão do Gui, 25/11/2026) */}
+              {sala ? (
+                ler && (
+                  <p>
+                    <a class="acao" href={ler} data-palco-ler data-palco-leva>
+                      Ler tudo
+                    </a>
+                  </p>
+                )
+              ) : (
+                <p>
+                  <a class="acao" href={abrir}>
+                    Abrir esta memória
+                  </a>
+                </p>
+              )}
             </div>
           </>
         )}
@@ -231,7 +248,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
           </nav>
           {/* A tela cheia mora na barra, a partir de 62rem; abaixo disso, em "Ajustes". Só com script. */}
           {tv && <BotaoDeSimbolo simbolo="tela-cheia" nome="Tela cheia" class="palco__na-barra" data-palco-cheia hidden />}
-          {tv && (passar || movimentos) && (
+          {tv && (passar || (movimentos && movimentos.length > 0)) && (
             <details class="palco__ajustes" data-palco-ajustes>
               <BotaoDeSimbolo elemento="summary" simbolo="ajustes" nome="Ajustes" />
               {/* As partes ficam lado a lado quando há largura (resposta do Gui à P50, 17/11/2026) */}
@@ -442,6 +459,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
 
   let pedido = 0;
   let relogio = 0;
+  /** A passagem que acabou de sair de "Ler tudo" para a mesma memória (prepararSom retoma a voz) */
+  let voltouDaLeitura = false;
   let pausado = false;
   // Sem rede (C3 do QA de código de 17/11/2026): a passagem que não saiu espera aqui. A memória da
   // tela fica, o aviso aparece, e a mesma passagem é tentada de novo de tempos em tempos e assim
@@ -526,8 +545,17 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       const saemDe = saem?.getBoundingClientRect();
       // A passagem saiu: quem esperava a rede não espera mais (o palco novo chega sem o aviso)
       aEspera = null;
-      // A voz da memória que sai para junto com ela
-      pararVoz();
+      // A voz da memória que sai para junto com ela. "Ler tudo" da mesma memória vale como a pausa: a voz
+      // pausa ao abrir e retoma ao voltar (decisão do Gui, 25/11/2026)
+      const mesmoPasso = Boolean(novo.dataset.passo) && novo.dataset.passo === atual.dataset.passo;
+      const indoLer = mesmoPasso && novo.hasAttribute('data-lendo');
+      voltouDaLeitura = mesmoPasso && atual.hasAttribute('data-lendo') && !novo.hasAttribute('data-lendo');
+      if (indoLer) {
+        if (!atual.hasAttribute('data-lendo')) suspenderVoz();
+      } else if (!voltouDaLeitura) {
+        vozSuspensa = false;
+        pararVoz();
+      }
       atual.replaceWith(novo);
       const cena = novo.querySelector<HTMLElement>('.palco__cena');
       if (saem && saemDe && cena) {
@@ -547,6 +575,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       // Passar de memória não enche o histórico: o voltar do aparelho sai do modo TV de uma vez
       history.replaceState(history.state, '', semPreferencias(href));
       document.title = novo.dataset.titulo ?? pagina.title;
+      const deVoltaDaLeitura = voltouDaLeitura;
       preparar();
       const noMesmoAjuste = noAjuste ? [...novo.querySelectorAll<HTMLElement>('[data-palco-ajustes] :is(a, button, summary)')].find((e) => nomeDe(e) === noAjuste) : undefined;
       const tocarOuPausar = focado === 'tocar' || focado === 'pausa' ? novo.querySelector<HTMLElement>('[data-palco-pausa], [data-palco-tocar]') : null;
@@ -554,7 +583,13 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       // Em "Só as fotos", com os controles escondidos, o foco não vai para nenhum deles; com eles
       // ocultos pelo botão, fica no botão do canto que os traz de volta
       if (ocultos) novo.querySelector<HTMLElement>('[data-palco-reexibir]')?.focus({ preventScroll: true });
-      else if (!escondidos()) (noMesmoAjuste ?? tocarOuPausar ?? mesmo ?? link('depois'))?.focus({ preventScroll: true });
+      // Em "Ler tudo", o foco começa na próxima parte (ou em "Voltar à memória", na última); de volta, em "Ler tudo"
+      const daLeitura = deVoltaDaLeitura
+        ? novo.querySelector<HTMLElement>('[data-palco-ler]')
+        : novo.hasAttribute('data-lendo') && !serve(novo.querySelector<HTMLAnchorElement>('[data-palco-depois]'))
+          ? novo.querySelector<HTMLElement>('[data-palco-voltar-da-leitura]')
+          : null;
+      if (!escondidos()) (noMesmoAjuste ?? daLeitura ?? tocarOuPausar ?? mesmo ?? link('depois'))?.focus({ preventScroll: true });
     } catch (erro) {
       // Uma passagem mais nova já saiu: o erro desta não leva de volta à memória antiga
       // (achado do QA de código de 17/11/2026, como na troca do Explorar)
@@ -754,6 +789,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   let falou = false;
   let relogioDaVoz = 0;
   let renovando = false;
+  let vozSuspensa = false;
   let chegouEm = 0;
   let fila: { src: string; duracao: number | null }[] = [];
   const vozesDe = (p: HTMLElement | null): { src: string; duracao: number | null }[] => {
@@ -783,6 +819,23 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   }
   function proximaDaFila() {
     relogioDaVoz = 0;
+    // Cada áudio da fila confere o pedaço antes de começar (correção 1 da revisão R-AB2): vencido, a rota de uma
+    // memória confirma de novo, e só tocam os áudios que ela ainda mandar. Se ela recusar, a voz para. O áudio
+    // que já estava tocando termina: é o risco que a janela aceita.
+    const atual = palco();
+    if (fila.length > 0 && atual && vencido(atual)) {
+      renovando = true;
+      void renovarVoz(atual).then(() => {
+        renovando = false;
+        if (palco() !== atual) return;
+        const valem = new Set(vozesDe(atual).map((v) => v.src));
+        fila = vencido(atual) ? [] : fila.filter((v) => valem.has(v.src));
+        // Pausado enquanto a rota respondia: a fila espera o "Retomar"
+        if (pausado && fila.length > 0) return;
+        proximaDaFila();
+      });
+      return;
+    }
     const proxima = fila.shift();
     if (!proxima) {
       falando = false;
@@ -855,12 +908,35 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     if (ouvido && falando && voz.duration) ouvido.style.width = `${Math.min(100, (voz.currentTime / voz.duration) * 100)}%`;
   });
   function prepararSom(atual: HTMLElement) {
-    falou = false;
     const botao = atual.querySelector<HTMLButtonElement>('[data-palco-som]');
     if (!botao) return pararVoz();
     botao.hidden = false;
     marcarSom(botao);
+    // Com "Ler tudo" aberto, a voz fica pausada
+    if (atual.hasAttribute('data-lendo')) return;
+    const voltou = voltouDaLeitura;
+    voltouDaLeitura = false;
+    if (voltou) {
+      // A voz que "Ler tudo" pausou retoma de onde estava, se o pedaço não venceu; vencido, começa de novo
+      // depois de a rota confirmar. A que já tinha acabado não toca de novo.
+      const suspensa = vozSuspensa;
+      vozSuspensa = false;
+      if (suspensa && falando && !vencido(atual) && !pausado) {
+        marcarOuvindo(true);
+        voz.play().catch(() => undefined);
+        return;
+      }
+      if (!suspensa && falou) return;
+    }
+    falou = false;
     tocarVozDaVez();
+  }
+  /** "Ler tudo" abriu: a voz pausa como na pausa, e a fila fica para quando a pessoa voltar */
+  function suspenderVoz() {
+    vozSuspensa = falando || Boolean(relogioDaVoz);
+    clearTimeout(relogioDaVoz);
+    relogioDaVoz = 0;
+    if (falando) voz.pause();
   }
   /** O símbolo, o nome e a marca do som ligado, juntos (o ponto na cor viva sai com o som ligado, telas/tv.css).
       Na carta da sala, a ação escrita ao lado dos pontos acompanha a mesma escolha (CartaNaTv.astro). */
@@ -1009,9 +1085,16 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
         case 'voltar-ao-texto':
           evento.preventDefault();
           return trocarSoFotos(false);
-        case 'sair':
+        case 'sair': {
+          // Em "Ler tudo", o Esc volta à memória (decisão do Gui, 25/11/2026); só de lá ele sai do modo TV
+          const daLeitura = palco()?.hasAttribute('data-lendo') ? palco()!.querySelector<HTMLAnchorElement>('[data-palco-voltar-da-leitura]') : null;
+          if (serve(daLeitura)) {
+            evento.preventDefault();
+            return void passar(daLeitura, true);
+          }
           if (serve(link('sair'))) location.assign(link('sair')!.href);
           return;
+        }
         case 'andar':
         case 'subir':
         case 'descer':

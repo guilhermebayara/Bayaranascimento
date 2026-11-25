@@ -99,6 +99,9 @@ const TELAS = [
   { nome: 'inicio-na-tv-da-sala', url: '/?hoje=2026-12-25', como: 'giovanna' },
   { nome: 'carta-da-sala', url: '/explorar?ver=tv&sala=1&tema=natal&ordem=antigas&carta=1&m=carta-1', como: 'giovanna' },
   { nome: 'carta-da-sala-assinada', url: '/explorar?ver=tv&sala=1&tema=natal&ordem=antigas&carta=1&m=carta-4', como: 'giovanna' },
+  // "Ler tudo" na sala (correção 2 da revisão R-AB2): a primeira e a última parte de uma memória com dois relatos
+  { nome: 'ler-tudo', url: '/explorar?ver=tv&sala=1&m=1999-chegada-da-giovanna&ler=1', como: 'giovanna' },
+  { nome: 'ler-tudo-fim', url: '/explorar?ver=tv&sala=1&m=1994-festa-de-aniversario&ler=2', como: 'giovanna' },
   { nome: 'modo-tv-com-voz', url: '/explorar?ver=tv&sala=1&m=1958-casamento-vivica-tonho', como: 'giovanna' },
   { nome: 'tudo', url: '/tudo' },
   { nome: 'pessoas', url: '/pessoas', como: 'giovanna' },

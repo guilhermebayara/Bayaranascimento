@@ -1,0 +1,50 @@
+---
+// "Ler tudo" na TV da sala (decisão do Gui, 25/11/2026, pergunta 4 do PR #174): o texto inteiro da memória, no
+// próprio modo TV, só com o que entra na sala (palcoDaTv, em src/lib/servidor/tv.ts: os relatos que passam em
+// relatoNaTv). Nada rola: uma parte por vez, como a carta, com os pontos de quantas faltam. "Anterior" e
+// "Próxima", na barra, andam pelas partes; "Voltar à memória" (e o Esc) fecha. O estilo está em
+// telas/explorar.css e, na barra, em telas/tv.css.
+import Carimbo from '../visual/Carimbo.astro';
+import type { LeituraNoPalco } from '../../lib/servidor/tv';
+
+interface Props {
+  leitura: LeituraNoPalco;
+}
+
+const { leitura } = Astro.props;
+---
+
+<div class="cena-da-leitura" data-parte={leitura.numero}>
+  <div class="cena-da-leitura__frente">
+    <p>
+      <Carimbo itens={leitura.carimbo} />
+    </p>
+    <h1 class="cena-da-leitura__titulo">{leitura.titulo}</h1>
+  </div>
+  <div class="cena-da-leitura__verso">
+    {
+      leitura.trechos.map((t) => (
+        <div class="cena-da-leitura__trecho">
+          {t.por && <p class="cena-da-leitura__por mao">{t.por}</p>}
+          {t.paragrafos.map((p) => (
+            <p class="cena-da-leitura__paragrafo serifa">{p}</p>
+          ))}
+        </div>
+      ))
+    }
+    <div class="cena-da-leitura__pe">
+      {
+        leitura.de > 1 && (
+          <ol class="cena-da-carta__pontos" aria-label={`Parte ${leitura.numero} de ${leitura.de}`}>
+            {Array.from({ length: leitura.de }, (_, n) => (
+              <li aria-current={n + 1 === leitura.numero ? 'step' : undefined} />
+            ))}
+          </ol>
+        )
+      }
+      <a class="acao acao--quieta" href={leitura.voltar} data-palco-voltar-da-leitura data-palco-leva>
+        Voltar à memória
+      </a>
+    </div>
+  </div>
+</div>

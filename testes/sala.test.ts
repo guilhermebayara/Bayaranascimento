@@ -125,6 +125,11 @@ describe('o simulador de data nunca vale na produção', () => {
     ['switch', "for (const [k, v] of p) switch (k) { case 'hoje': usar(v); }"],
     ['diaSimulado com outro nome', "import { diaSimulado as simular } from '../lib/sala';\nsimular(x, 'previa');"],
     ['diaSimulado por import * as', "import * as regra from '../../lib/sala';\nregra.diaSimulado(x, 'producao');"],
+    // Correção 5 da revisão R-AB2
+    ['o método por colchete', "const dia = url.searchParams['get']('hoje');"],
+    ['o modelo de texto com interpolação', "const dia = url.searchParams.get(`${'ho'}je`);"],
+    ['o modelo de texto com uma constante', "const FIM = 'je';\nconst dia = p.get(`ho${FIM}`);"],
+    ["url['searchParams']", "const dia = Object.fromEntries(url['searchParams']).hoje;"],
   ];
   for (const [forma, codigo] of formasDeLerOHoje) {
     it(`a regra 14 recusa ler o "hoje" do endereço fora de dia-do-pedido.ts: ${forma}`, () => {
@@ -141,6 +146,24 @@ describe('o simulador de data nunca vale na produção', () => {
       expect(guarda({ 'src/components/Outra.astro': `<p>oi</p>\n<script>\n${codigo}\n</script>` }), 'num <script> de um .astro').toHaveLength(1);
     });
   }
+  it('a regra 14 recusa o "hoje" do endereço na marcação de um .astro (correção 5 da revisão R-AB2)', () => {
+    const lidos = new Map([
+      ['src/lib/sala.ts', ler('src/lib/sala.ts')],
+      ['src/lib/servidor/dia-do-pedido.ts', ler('src/lib/servidor/dia-do-pedido.ts')],
+    ]);
+    const guarda = (extra: Record<string, string>) => {
+      const todos = new Map([...lidos, ...Object.entries(extra)]);
+      return problemasDoSimuladorDeData((c: string) => todos.get(c) ?? '', [...todos.keys()]);
+    };
+    for (const marcacao of [
+      '<p>{Object.fromEntries(Astro.url.searchParams).hoje}</p>',
+      '<p data-dia={Object.fromEntries(new URLSearchParams(Astro.url.search))["hoje"]}>oi</p>',
+      '<p>{Astro.url.searchParams.get(`hoje`)}</p>',
+    ]) {
+      expect(guarda({ 'src/pages/outra.astro': `---\nconst x = 1;\n---\n${marcacao}` }), marcacao).toHaveLength(1);
+    }
+    expect(guarda({ 'src/pages/outra.astro': '---\nconst adm = { hoje: 1 };\n---\n<p>{adm.hoje}</p>' })).toEqual([]);
+  });
   it('a regra 14 não pega o que não lê o "hoje" do endereço', () => {
     const lidos = new Map([
       ['src/lib/sala.ts', ler('src/lib/sala.ts')],
@@ -436,7 +459,7 @@ describe.skipIf(!comSqlite)('o modo TV no banco: a ordem, a rota de uma memória
 
   /** Os links que o palco monta, do jeito que Palco.astro os desenha (o teste de baixo confere a lista) */
   const linksDoPalco = (palco: NonNullable<Awaited<ReturnType<typeof palcoDaTv>>>) =>
-    [palco.antes, palco.depois, palco.limpar, ...palco.movimentos.map((m) => m.href), ...(palco.passar?.tempos.map((t) => t.href) ?? []), palco.passar?.parar].filter((h): h is string => Boolean(h));
+    [palco.antes, palco.depois, palco.limpar, palco.ler, palco.leitura?.voltar, ...palco.movimentos.map((m) => m.href), ...(palco.passar?.tempos.map((t) => t.href) ?? []), palco.passar?.parar].filter((h): h is string => Boolean(h));
 
   it('R-AB 2: na sala, todo link e controle do modo TV mantém o marcador, menos "Sair do modo TV"', async () => {
     const { saidasDoModoTv } = await import('../src/lib/servidor/tv');
@@ -450,11 +473,23 @@ describe.skipIf(!comSqlite)('o modo TV no banco: a ordem, a rota de uma memória
         const palco = await palcoDaTv({ usuario: giovanna, parametros: p(entrada), id, antes: vizinhas.antes, depois: vizinhas.depois });
         expect(palco, `${entrada} · ${id}`).toBeDefined();
         expect(palco!.sair).toBe('/');
-        for (const link of linksDoPalco(palco!)) {
-          const url = new URL(link, 'http://x');
-          expect(url.searchParams.get('sala'), `${entrada} · ${id} · ${link}`).toBe('1');
-          expect(url.searchParams.get('ver'), link).toBe('tv');
-          conferidos++;
+        // E cada parte de "Ler tudo" (R-AB2 2), que também é do modo TV
+        const partes = [];
+        for (let n = 1; palco!.ler && n < 20; n++) {
+          const parte = await palcoDaTv({ usuario: giovanna, parametros: p(`${entrada}&m=${id}&ler=${n}`), id, antes: vizinhas.antes, depois: vizinhas.depois });
+          if (!parte) break;
+          expect(parte.leitura?.numero).toBe(n);
+          partes.push(parte);
+        }
+        if (palco!.ler) expect(partes.length).toBeGreaterThan(0);
+        for (const umPalco of [palco!, ...partes]) {
+          expect(umPalco.sair).toBe('/');
+          for (const link of linksDoPalco(umPalco)) {
+            const url = new URL(link, 'http://x');
+            expect(url.searchParams.get('sala'), `${entrada} · ${id} · ${link}`).toBe('1');
+            expect(url.searchParams.get('ver'), link).toBe('tv');
+            conferidos++;
+          }
         }
       }
     }
@@ -474,12 +509,74 @@ describe.skipIf(!comSqlite)('o modo TV no banco: a ordem, a rota de uma memória
     const hrefs = [...new Set([...palco.matchAll(/href=\{([^}]+)\}/g)].map((m) => m[1]!.trim()))].sort();
     // "sair" e "abrir" (a página da memória) saem do modo TV; os outros são os de linksDoPalco ("depois" também
     // no "Me mostre outra", que não é do modo TV)
-    expect(hrefs).toEqual(['abrir', 'antes', 'depois', 'ligar.href', 'limpar', 'm.href', 'passar.parar', 'sair', 't.href', 'tv && depois ? depois : abrir'].sort());
+    expect(hrefs).toEqual(['abrir', 'antes', 'depois', 'ler', 'ligar.href', 'limpar', 'm.href', 'passar.parar', 'sair', 't.href', 'tv && depois ? depois : abrir'].sort());
     expect(ler('src/components/explorar/CartaNaTv.astro')).not.toMatch(/href=/);
+    // "Ler tudo" só leva de volta à memória, pelo endereço que palcoDaTv montou (leitura.voltar, conferido acima)
+    expect([...ler('src/components/explorar/LeituraNaTv.astro').matchAll(/href=\{([^}]+)\}/g)].map((m) => m[1])).toEqual(['leitura.voltar']);
+    // Na sala, nenhum link leva à página da memória: "Abrir esta memória" só fora dela, e a foto sem a próxima não é link
+    expect(palco).toMatch(/\{sala \? \(\s*ler && \(\s*<p>\s*<a class="acao" href=\{ler\} data-palco-ler data-palco-leva>\s*Ler tudo/);
+    expect(palco).toMatch(/\) : \(\s*<p>\s*<a class="acao" href=\{abrir\}>\s*Abrir esta memória/);
     // Na sala, sem a próxima, a foto não é link
     expect(palco).toMatch(/\{sala && !depois \? \(\s*<div class="palco__principal">/);
     // A página do Explorar usa as mesmas saídas, com o marcador
     expect(ler('src/pages/explorar.astro')).toMatch(/const \{ sair, limpar \} = saidasDoModoTv\(filtros, naSala\(parametros\)\);/);
+  });
+
+  it('R-AB2 2: "Ler tudo" na sala mostra só os relatos que vão à TV, sem o que espera, e fora da sala não existe', async () => {
+    const CASAMENTO = '1958-casamento-vivica-tonho';
+    const textoDe = async (usuario: Usuario, busca: string) => {
+      const textos: string[] = [];
+      for (let n = 1; n < 30; n++) {
+        const parte = await palcoDaTv({ usuario, parametros: p(`${busca}&ler=${n}`) });
+        if (!parte?.leitura) break;
+        textos.push(parte.leitura.titulo, ...parte.leitura.trechos.flatMap((t) => [t.por ?? '', ...t.paragrafos]));
+      }
+      return textos.join('\n');
+    };
+    const relatos = todas<{ id: number; texto: string }>(`SELECT id, texto FROM relatos WHERE memoria_id = ? AND situacao = 'publicada' AND texto <> '' ORDER BY id`, CASAMENTO);
+    expect(relatos.length).toBeGreaterThan(0);
+    const alvo = relatos[0]!;
+    const trecho = alvo.texto.trim().split(/\n/)[0]!.slice(0, 40);
+    expect(await textoDe(giovanna, `ver=tv&sala=1&m=${CASAMENTO}`)).toContain(trecho);
+    // O relato passa a esperar o sim, restrito à família da Giovanna: ela o vê na memória, e "Ler tudo" não o mostra
+    sql('UPDATE relatos SET so_para_nucleos = ? WHERE id = ?', JSON.stringify(giovanna.nucleos.slice(0, 1)), alvo.id);
+    try {
+      expect((await repo.listarRelatos(giovanna, CASAMENTO)).some((r) => r.id === alvo.id)).toBe(true);
+      expect(await textoDe(giovanna, `ver=tv&sala=1&m=${CASAMENTO}`)).not.toContain(trecho);
+      // Rascunho também não
+      sql(`UPDATE relatos SET so_para_nucleos = NULL, situacao = 'rascunho' WHERE id = ?`, alvo.id);
+      expect(await textoDe(usuarioDe(uma<{ r: string }>('SELECT registrado_por AS r FROM relatos WHERE id = ?', alvo.id).r), `ver=tv&sala=1&m=${CASAMENTO}`)).not.toContain(trecho);
+    } finally {
+      sql(`UPDATE relatos SET so_para_nucleos = NULL, situacao = 'publicada' WHERE id = ?`, alvo.id);
+    }
+    // A memória restrita não tem "Ler tudo" na sala, nem pedindo a parte pelo endereço
+    expect(await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&m=${CEIA}&ler=1`) })).toBeUndefined();
+    // Fora da sala, "Ler tudo" não existe: o "ler" do endereço não muda nada, e "Abrir esta memória" fica
+    const fora = await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&m=${CASAMENTO}&ler=1`) });
+    expect(fora?.leitura).toBeUndefined();
+    expect(fora?.ler).toBeUndefined();
+    expect(fora?.memoria?.id).toBe(CASAMENTO);
+    // Com "Ler tudo" aberto, "Passar sozinho" espera: a parte não tem o relógio
+    const parte = await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&passar=10&m=${CASAMENTO}&ler=1`) });
+    expect(parte?.leitura).toBeDefined();
+    expect(parte?.passar).toBeUndefined();
+    expect(new URL(parte!.leitura!.voltar, 'http://x').searchParams.get('passar')).toBe('10');
+  });
+
+  it('R-AB2 2: as partes de "Ler tudo" nunca passam do limite e dizem quem contou só no começo de cada relato', async () => {
+    const { partesDaLeitura, LETRAS_POR_PARTE } = await import('../src/lib/sala');
+    const longo = Array.from({ length: 9 }, (_, i) => `Frase ${i + 1} de um parágrafo comprido, com vírgulas, pausas e uma lembrança no meio.`).join(' ');
+    const partes = partesDaLeitura([
+      { por: 'Vó Bela', texto: `${longo}\n\nOutro parágrafo, curto.` },
+      { por: 'Gui', texto: 'Um relato pequeno.' },
+      { por: 'Elizete', texto: 'x'.repeat(1200) },
+    ]);
+    const custo = (parte: (typeof partes)[number]) => parte.reduce((soma, t) => soma + (t.por ? 50 : 0) + t.paragrafos.reduce((s2, p2) => s2 + p2.length + 30, 0), 0);
+    for (const parte of partes) expect(custo(parte)).toBeLessThanOrEqual(LETRAS_POR_PARTE);
+    const comQuem = partes.flat().filter((t) => t.por).map((t) => t.por);
+    expect(comQuem).toEqual(['Vó Bela', 'Gui', 'Elizete']);
+    // Nada se perde: o texto todo, na ordem (a palavra cortada no meio ganha uma quebra)
+    expect(partes.flat().flatMap((t) => t.paragrafos).join('').replace(/\s+/g, '')).toBe(`${longo} Outro parágrafo, curto. Um relato pequeno. ${'x'.repeat(1200)}`.replace(/\s+/g, ''));
   });
 
   it('R-AB 3: a foto que veio com um relato que espera não vai à TV, dentro e fora da sala (a do casamento da Vó Vivica)', async () => {
@@ -541,6 +638,62 @@ describe.skipIf(!comSqlite)('o modo TV no banco: a ordem, a rota de uma memória
         expect(natal, `${busca} · ${f.id}`).toContain(f.id);
         expect(restritas.has(f.id)).toBe(false);
       }
+    }
+  });
+
+  it('R-AB2 3: a carta fica com três fotos mesmo quando um Natal só tem fotos de relato (o de 2025)', async () => {
+    const NATAL = '2025-natal';
+    const relato = uma<{ id: number } | undefined>(`SELECT id FROM relatos WHERE memoria_id = ? AND situacao = 'publicada' ORDER BY id LIMIT 1`, NATAL);
+    expect(relato).toBeDefined();
+    const fotos = todas<{ id: number }>('SELECT id FROM fotos WHERE memoria_id = ? AND removida_em IS NULL', NATAL);
+    expect(fotos.length).toBeGreaterThan(0);
+    const antes = await palcoDaTv({ usuario: giovanna, parametros: p('ver=tv&sala=1&carta=1&m=carta-1') });
+    expect(antes?.carta?.fotos.map((f) => f.id)).toContain(NATAL);
+    for (const f of fotos) sql('UPDATE fotos SET relato_id = ? WHERE id = ?', relato!.id, f.id);
+    try {
+      const depois = await palcoDaTv({ usuario: giovanna, parametros: p('ver=tv&sala=1&carta=1&m=carta-1') });
+      expect(depois?.carta?.fotos).toHaveLength(3);
+      expect(depois!.carta!.fotos.map((f) => f.id)).not.toContain(NATAL);
+      expect(depois!.carta!.fotos.every((f) => f.fotos.length === 1 && f.fotos[0]!.relatoId === null)).toBe(true);
+    } finally {
+      for (const f of fotos) sql('UPDATE fotos SET relato_id = NULL WHERE id = ?', f.id);
+    }
+  });
+
+  it('R-AB2 4: no modo TV, "com foto" e "com áudio" contam só a foto e a voz que vão à TV; o Explorar fica como está', async () => {
+    const { explorar, lerFiltros } = await import('../src/lib/explorar');
+    const { contextoDoExplorar } = await import('../src/lib/servidor/explorar');
+    const comAudio = uma<{ memoria_id: string; relato_id: number }>(
+      `SELECT r.memoria_id, r.id AS relato_id FROM audios a JOIN relatos r ON r.id = a.relato_id JOIN memorias m ON m.id = r.memoria_id
+       WHERE a.removido_em IS NULL AND r.situacao = 'publicada' AND m.visibilidade = 'todos'
+         AND (SELECT COUNT(DISTINCT a2.relato_id) FROM audios a2 JOIN relatos r2 ON r2.id = a2.relato_id WHERE r2.memoria_id = r.memoria_id AND a2.removido_em IS NULL) = 1 LIMIT 1`,
+    );
+    const MEMORIA = comAudio.memoria_id;
+    const fotos = todas<{ id: number }>('SELECT id FROM fotos WHERE memoria_id = ? AND removida_em IS NULL', MEMORIA);
+    expect(fotos.length).toBeGreaterThan(0);
+    const naTv = async (busca: string) => (await ordemDoModoTv(elizete, p(`ver=tv&${busca}`), tipos)).ordem;
+    const noExplorar = async (busca: string) => {
+      const memorias = await repo.listarMemorias(elizete);
+      return explorar(memorias, lerFiltros(p(busca)), await contextoDoExplorar(elizete, memorias)).memorias.map((m) => m.id);
+    };
+    expect(await naTv('foto=1')).toContain(MEMORIA);
+    expect(await naTv('audio=1')).toContain(MEMORIA);
+    // A única foto e a única voz passam a ser de um relato que espera, só para uma família da Elizete
+    for (const f of fotos) sql('UPDATE fotos SET relato_id = ? WHERE id = ?', comAudio.relato_id, f.id);
+    sql('UPDATE relatos SET so_para_nucleos = ? WHERE id = ?', JSON.stringify(elizete.nucleos), comAudio.relato_id);
+    try {
+      expect(await naTv('foto=1'), 'com foto, no modo TV').not.toContain(MEMORIA);
+      expect(await naTv('audio=1'), 'com áudio, no modo TV').not.toContain(MEMORIA);
+      expect(await naTv('sala=1&foto=1'), 'com foto, na sala').not.toContain(MEMORIA);
+      expect(await naTv('sala=1&audio=1'), 'com áudio, na sala').not.toContain(MEMORIA);
+      // Sem o filtro, a memória continua no modo TV (sem a foto e sem a voz, que o palco esconde)
+      expect(await naTv('')).toContain(MEMORIA);
+      // O Explorar fora do modo TV fica como está: a Elizete vê o relato, a foto e a voz
+      expect(await noExplorar('foto=1')).toContain(MEMORIA);
+      expect(await noExplorar('audio=1')).toContain(MEMORIA);
+    } finally {
+      sql('UPDATE relatos SET so_para_nucleos = NULL WHERE id = ?', comAudio.relato_id);
+      for (const f of fotos) sql('UPDATE fotos SET relato_id = NULL WHERE id = ?', f.id);
     }
   });
 

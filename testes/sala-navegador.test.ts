@@ -103,7 +103,9 @@ describe.skipIf(!B)('a TV da sala no navegador (revisão R-AB)', () => {
       const pagina = await abrir('elizete', `/explorar?ver=tv&m=${MEMORIA}`, { som: true });
       expect(await pagina.locator('[data-palco][data-voz]').count()).toBe(1);
       await pagina.waitForLoadState('networkidle');
-      // O som ligado de antes ainda pede um gesto: até lá, a página fica parada além da janela
+      // O som ligado de antes ainda pede um gesto: a primeira tentativa, sem gesto, não toca. Depois, a página
+      // fica parada além da janela
+      await pagina.clock.runFor(2500);
       await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
       if (recusada) await recusar(pagina, MEMORIA);
       const marca = pagina.pedidos.length;
@@ -124,6 +126,73 @@ describe.skipIf(!B)('a TV da sala no navegador (revisão R-AB)', () => {
       } else expect(ouviu, 'com a rota confirmando, a voz toca').toBe(true);
     }
   }, 90_000);
+
+  it('R-AB2 1: o segundo áudio da fila só toca depois de a rota confirmar o pedaço vencido, e nunca com a recusa', async () => {
+    const MEMORIA = '1958-casamento-vivica-tonho';
+    const SEGUNDO = '/audios/exemplos/vo-vivica-chuva.m4a?segundo=1';
+    for (const recusada of [false, true]) {
+      const ctx = await navegador.newContext({ viewport: { width: 1280, height: 720 } });
+      abertos.push(ctx);
+      await ctx.addCookies([{ name: 'como', value: 'elizete', url: B }]);
+      await ctx.addInitScript(() => localStorage.setItem('tv-som', '1'));
+      const pagina: Pagina = await ctx.newPage();
+      await pagina.clock.install();
+      pagina.pedidos = [] as string[];
+      pagina.on('request', (pedido: any) => pagina.pedidos.push(pedido.url()));
+      let recusar = false;
+      // Um relato com dois áudios: o palco (a página e a rota de uma memória) passa a listar um segundo áudio
+      await pagina.route(
+        (url: URL) => url.pathname.startsWith('/explorar') && url.searchParams.get('m') === MEMORIA,
+        async (rota: any) => {
+          if (recusar && rota.request().url().includes('/explorar/palco')) return rota.fulfill({ status: 404, body: 'Não encontrada.' });
+          const resposta = await rota.fetch();
+          const html = (await resposta.text()).replace(/data-voz="([^"]*)"/, (_: string, valor: string) => {
+            const audios = JSON.parse(valor.replaceAll('&quot;', '"'));
+            return `data-voz="${JSON.stringify([...audios, { src: SEGUNDO, duracao: 11 }]).replaceAll('"', '&quot;')}"`;
+          });
+          return rota.fulfill({ response: resposta, body: html });
+        },
+      );
+      await pagina.goto(`${B}/explorar?ver=tv&m=${MEMORIA}`);
+      await pagina.waitForSelector('[data-palco][data-voz]');
+      // O gesto liga o som: o primeiro áudio começa
+      await pagina.locator('[data-palco-som]').click();
+      await pagina.locator('[data-palco-som]').click();
+      await pagina.waitForSelector('[data-palco][data-ouvindo]', { timeout: 8000 });
+      // Enquanto ele toca, a janela vence e a memória é restringida
+      await pagina.clock.fastForward(VALIDADE_DO_PEDACO + 1000);
+      recusar = recusada;
+      const marca = pagina.pedidos.length;
+      // O primeiro áudio termina (uns 11 segundos de verdade)
+      await pagina.waitForFunction(() => !document.querySelector('[data-palco][data-ouvindo]') || false, null, { timeout: 20_000 }).catch(() => undefined);
+      await pagina.waitForTimeout(1500);
+      const depois = pagina.pedidos.slice(marca);
+      expect(depois.some((u: string) => u.includes('/explorar/palco') && new URL(u).searchParams.get('m') === MEMORIA), 'o pedaço foi pedido de novo antes do segundo áudio').toBe(true);
+      const segundo = pagina.pedidos.some((u: string) => u.endsWith(SEGUNDO));
+      if (recusada) {
+        expect(segundo, 'com a recusa, o segundo áudio não toca').toBe(false);
+        expect(await pagina.locator('[data-palco][data-ouvindo]').count()).toBe(0);
+        expect(await pagina.locator('[data-palco][data-voz]').count()).toBe(0);
+      } else expect(segundo, 'com a rota confirmando, o segundo áudio toca').toBe(true);
+    }
+  }, 120_000);
+
+  it('R-AB2 2: com "Ler tudo" aberto, "Passar sozinho" espera, e o Esc volta à memória com o foco em "Ler tudo"', async () => {
+    const pagina = await abrir('giovanna', '/explorar?ver=tv&sala=1&m=1999-chegada-da-giovanna&passar=8');
+    expect(await pagina.locator('.palco__texto a[href^="/memorias/"]').count()).toBe(0);
+    await pagina.locator('[data-palco-ler]').click();
+    await pagina.waitForSelector('[data-palco][data-lendo]');
+    await pagina.clock.fastForward(20_000);
+    await pagina.waitForTimeout(500);
+    expect(await pagina.locator('[data-palco][data-lendo]').count(), 'lendo, a memória não passa sozinha').toBe(1);
+    expect(new URL(pagina.url()).searchParams.get('m')).toBe('1999-chegada-da-giovanna');
+    await pagina.keyboard.press('Escape');
+    await pagina.waitForFunction(() => !document.querySelector('[data-palco][data-lendo]'));
+    expect(await pagina.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Ler tudo');
+    // De volta à memória, "Passar sozinho" volta a passar
+    await pagina.clock.fastForward(9000);
+    await expect.poll(() => new URL(pagina.url()).searchParams.get('m'), { timeout: 10_000 }).not.toBe('1999-chegada-da-giovanna');
+  }, 60_000);
 
   it('2: na sala, "Limpar filtros" continua na sala', async () => {
     const pagina = await abrir('giovanna', '/explorar?ver=tv&sala=1&de=1800&ate=1800', { palco: false });

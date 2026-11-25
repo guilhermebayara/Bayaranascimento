@@ -4,6 +4,7 @@
 // passagem (src/pages/explorar/palco.astro). Aqui só se desenha o que o servidor já decidiu.
 import Palco from './Palco.astro';
 import CartaNaTv from './CartaNaTv.astro';
+import LeituraNaTv from './LeituraNaTv.astro';
 import type { PalcoDaTv } from '../../lib/servidor/tv';
 
 interface Props {
@@ -29,9 +30,12 @@ const { palco } = Astro.props;
   limpar={palco.limpar}
   tempoMinimo={palco.tempoMinimo}
   tituloDaPagina={palco.tituloDaPagina}
-  comCena={Boolean(palco.carta)}
+  comCena={Boolean(palco.carta || palco.leitura)}
   passo={palco.passo}
   sala={palco.sala}
+  ler={palco.ler}
+  lendo={Boolean(palco.leitura)}
 >
   {palco.carta && <CartaNaTv slot="cena" carta={palco.carta} />}
+  {palco.leitura && <LeituraNaTv slot="cena" leitura={palco.leitura} />}
 </Palco>

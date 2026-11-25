@@ -1038,6 +1038,55 @@ html:not(.com-troca) .filtros__acoes .so-com-troca {
 .cena-da-carta__pontos li[aria-current='step'] {
   background: var(--tinta);
 }
+/* "Ler tudo" na sala (LeituraNaTv.astro): o título à esquerda e uma parte do texto por vez, com quem contou à
+   mão e os pontos de quantas faltam, como a carta. Aqui, o celular em pé; na barra, telas/tv.css. */
+.cena-da-leitura {
+  grid-area: cena;
+  display: grid;
+  gap: var(--e-5);
+  min-width: 0;
+}
+.cena-da-leitura__frente,
+.cena-da-leitura__verso {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: var(--e-3);
+  min-width: 0;
+}
+/* Entre um relato e o seguinte, bem mais espaço que entre quem contou e o texto (proximidade) */
+.cena-da-leitura__verso {
+  gap: var(--e-5);
+}
+.cena-da-leitura__titulo {
+  margin: 0;
+  font-family: var(--serifa);
+  font-size: var(--t-titulo-2);
+  line-height: 1.05;
+}
+.cena-da-leitura__trecho {
+  display: grid;
+  gap: var(--e-1);
+}
+.cena-da-leitura__por {
+  margin: 0;
+  font-size: calc(1.5rem * var(--escala-mao));
+}
+.cena-da-leitura__paragrafo {
+  margin: 0;
+  max-width: 34ch;
+  font-size: var(--t-abertura);
+  line-height: 1.3;
+}
+.cena-da-leitura__pe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--e-5);
+}
+.cena-da-leitura__pe .cena-da-carta__pontos {
+  margin: 0;
+}
 /* As fotos em leque, como as da carta do Início */
 .cena-da-carta__fotos {
   display: grid;

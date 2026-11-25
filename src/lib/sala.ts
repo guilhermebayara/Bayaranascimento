@@ -164,6 +164,98 @@ export function linhaDoAlto({ sala, carta, posicao, de }: { sala: boolean; carta
   return partes.join(' · ');
 }
 
+// --- "Ler tudo" na sala ---------------------------------------------------------------------------
+//
+// Na sala, "Abrir esta memória" levaria à página da memória, com o que o login vê (decisão do Gui, 25/11/2026,
+// pergunta 4 do PR #174). No lugar, "Ler tudo" mostra o texto inteiro no próprio modo TV, só com o que entra na
+// sala: os relatos que passam em relatoNaTv, cada um com quem contou. Nada rola: o texto vai em partes, como a
+// carta, com os pontos de quantas faltam. Cada parte cabe na menor janela deitada (667 × 375) no tamanho da
+// leitura de telas/tv.css; quem confere é a `npm run tv`.
+
+/** Quantas letras cabem numa parte de "Ler tudo" (cada parágrafo e cada "quem contou" contam um pouco a mais). */
+export const LETRAS_POR_PARTE = 480;
+const CUSTO_DO_PARAGRAFO = 30;
+const CUSTO_DE_QUEM_CONTOU = 50;
+
+export interface TrechoDaLeitura {
+  /** quem contou, só no começo do relato */
+  por?: string;
+  paragrafos: string[];
+}
+
+/** Um texto longo demais para uma parte, cortado em frases e, se preciso, em palavras. */
+function emPedacos(texto: string, limite: number): string[] {
+  if (texto.length <= limite) return [texto];
+  const frases = texto.match(/[^.!?…]+[.!?…]+["”»)]*\s*|[^.!?…]+$/g)?.map((f) => f.trim()).filter(Boolean) ?? [texto];
+  const unidades = frases.flatMap((f) => {
+    if (f.length <= limite) return [f];
+    // A palavra maior que a parte (um endereço, uma risada comprida) é cortada no meio
+    const palavras = f.split(/\s+/).flatMap((p) => (p.length <= limite ? [p] : (p.match(new RegExp(`.{1,${limite}}`, 'gu')) ?? [p])));
+    const linhas: string[] = [];
+    let atual = '';
+    for (const p of palavras) {
+      if (atual && (atual + ' ' + p).length > limite) {
+        linhas.push(atual);
+        atual = p;
+      } else atual = atual ? `${atual} ${p}` : p;
+    }
+    if (atual) linhas.push(atual);
+    return linhas;
+  });
+  const pedacos: string[] = [];
+  let atual = '';
+  for (const u of unidades) {
+    if (atual && (atual + ' ' + u).length > limite) {
+      pedacos.push(atual);
+      atual = u;
+    } else atual = atual ? `${atual} ${u}` : u;
+  }
+  if (atual) pedacos.push(atual);
+  return pedacos;
+}
+
+/**
+ * O texto de "Ler tudo" em partes. Cada relato começa com quem contou; os parágrafos seguem a ordem, e o
+ * parágrafo que não cabe numa parte é cortado em frases. Uma parte nunca passa de `limite` letras, contando
+ * os parágrafos e quem contou.
+ */
+export function partesDaLeitura(relatos: readonly { por: string; texto: string }[], limite = LETRAS_POR_PARTE): TrechoDaLeitura[][] {
+  const partes: TrechoDaLeitura[][] = [];
+  let parte: TrechoDaLeitura[] = [];
+  let usado = 0;
+  const fechar = () => {
+    if (parte.length) partes.push(parte);
+    parte = [];
+    usado = 0;
+  };
+  for (const relato of relatos) {
+    const paragrafos = relato.texto
+      .split(/\n\s*\n|\n/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    let primeiro = true;
+    for (const paragrafo of paragrafos) {
+      const cabecalho = primeiro ? CUSTO_DE_QUEM_CONTOU : 0;
+      for (const pedaco of emPedacos(paragrafo, limite - CUSTO_DO_PARAGRAFO - CUSTO_DE_QUEM_CONTOU)) {
+        const custo = pedaco.length + CUSTO_DO_PARAGRAFO + (primeiro ? cabecalho : 0);
+        if (usado + custo > limite) fechar();
+        const ultimo = parte[parte.length - 1];
+        // O relato que continua numa parte nova não repete quem contou
+        if (primeiro) parte.push({ por: relato.por, paragrafos: [pedaco] });
+        else if (ultimo && usado > 0) ultimo.paragrafos.push(pedaco);
+        else parte.push({ paragrafos: [pedaco] });
+        usado += custo;
+        primeiro = false;
+      }
+    }
+  }
+  fechar();
+  return partes;
+}
+
+/** A parte de "Ler tudo" pedida no endereço (`ler=2`), ou nada. */
+export const parteDaLeitura = (valor: string | null | undefined): number | undefined => (valor && /^[1-9]\d{0,3}$/.test(valor) ? Number(valor) : undefined);
+
 // --- A voz de quem contou ------------------------------------------------------------------------
 
 export interface RelatoComVoz {
