@@ -23,7 +23,7 @@ import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { parentescosDeQuemOlha } from '../lib/servidor/parentesco-de-quem-olha';
 import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
-import { ordemDoModoTv, palcoDaTv } from '../lib/servidor/tv';
+import { ordemDoModoTv, palcoDaTv, saidasDoModoTv } from '../lib/servidor/tv';
 import { naSala, posicaoNaOrdem, vizinhasNaOrdem } from '../lib/sala';
 
 const { usuario, tipos } = Astro.locals;
@@ -40,14 +40,16 @@ const modoTv =
   forma === 'tv'
     ? await (async () => {
         const { filtros, memorias, ordem } = await ordemDoModoTv(usuario, parametros, tipos);
+        // Sem "m" no endereço, ou com um que não está na ordem, a página abre no primeiro passo (o primeiro
+        // parágrafo da carta, na porta "A carta e os Natais"), e o palco põe o "m" no endereço
         const pedida = parametros.get('m');
         const id = pedida && ordem.includes(pedida) ? pedida : ordem[0];
         const vizinhas = id ? vizinhasNaOrdem(ordem, id, lerPassar(parametros).tempo !== null) : undefined;
         const palco = id
-          ? await palcoDaTv({ usuario, parametros, filtros, memoria: memorias.find((m) => m.id === id), antes: vizinhas?.antes, depois: vizinhas?.depois, posicao: posicaoNaOrdem(ordem, id) })
+          ? await palcoDaTv({ usuario, parametros, filtros, id, memoria: memorias.find((m) => m.id === id), antes: vizinhas?.antes, depois: vizinhas?.depois, posicao: posicaoNaOrdem(ordem, id) })
           : undefined;
-        const voltar = naSala(parametros) ? '/' : enderecoDoExplorar(filtros);
-        return { ordem, palco, voltar, limpar: temFiltro(filtros) ? enderecoDoExplorar({ ...SEM_FILTRO, ordem: filtros.ordem }, 'tv') : voltar };
+        const { sair, limpar } = saidasDoModoTv(filtros, naSala(parametros));
+        return { ordem, palco, voltar: sair, limpar };
       })()
     : undefined;
 

@@ -9,12 +9,13 @@
 // (VISITANTE_DA_SALA): as mesmas regras de quem vê o quê de todo o site, para alguém que não é membro de
 // núcleo nenhum, não escreveu nada e não tem laço privado. O que ele vê é sempre parte do que quem está
 // logado vê. E, por cima, cada memória da sala ainda passa por entraNaSala e cada relato por relatoNaTv.
-import { ancoraDaMemoria, enderecoDoExplorar, explorar, lerFiltros, lerMovimento, lerPassar, MOVIMENTOS, movimentoNoEndereco, passarNoEndereco, soFiltrosConhecidos, TEMPOS_DE_PASSAR, type Filtros, type Passar } from '../explorar';
-import { entraNaSala, idValido, linhaDoAlto, naSala, nomeDeNatal, ordemDaTv, SAUDACAO_DA_SALA, paragrafosDaCarta, passoDaCarta, quemAssina, relatoDaVez, relatoNaTv, segundosDoParagrafo } from '../sala';
+import { ancoraDaMemoria, enderecoDoExplorar, explorar, lerFiltros, lerMovimento, lerPassar, MOVIMENTOS, movimentoNoEndereco, passarNoEndereco, SEM_FILTRO, soFiltrosConhecidos, temFiltro, TEMPOS_DE_PASSAR, type Filtros, type Passar } from '../explorar';
+import { naListaDeQuemOlha } from '../ex-casal';
+import { entraNaSala, ID_DO_VISITANTE_DA_SALA, idValido, linhaDoAlto, naSala, nomeDeNatal, ordemDaTv, SAUDACAO_DA_SALA, paragrafosDaCarta, passoDaCarta, quemAssina, relatoDaVez, relatoNaTv, segundosDoParagrafo } from '../sala';
 import { legendaLugarAno, trechoDoRelato } from '../visual';
 import { contextoDoExplorar } from './explorar';
 import type { Usuario } from './permissoes';
-import { listarAudiosDosRelatos, listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis, obterCarta, obterMemoria, type Integrante, type Memoria } from './repositorio';
+import { comoOsExesAparecem, listarAudiosDosRelatos, listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis, obterCarta, obterMemoria, type Integrante, type Memoria } from './repositorio';
 import type { Tipo } from '../tipos';
 
 /**
@@ -23,7 +24,7 @@ import type { Tipo } from '../tipos';
  * laço privado (só vê as pessoas que todo mundo vê). O id não pode ser de ninguém: nenhum id de pessoa tem
  * dois-pontos (criarSlug, em src/lib/servidor/conteudo.ts).
  */
-export const VISITANTE_DA_SALA: Readonly<Usuario> = Object.freeze({ pessoa: ':sala', nome: '', admin: false, nucleos: [] as string[] });
+export const VISITANTE_DA_SALA: Readonly<Usuario> = Object.freeze({ pessoa: ID_DO_VISITANTE_DA_SALA, nome: '', admin: false, nucleos: [] as string[] });
 
 /** Quem o servidor usa para ler o que vai à TV: o visitante, na sala; quem está logado, fora dela. */
 export const quemOlhaNaTv = (usuario: Usuario, sala: boolean): Usuario => (sala ? (VISITANTE_DA_SALA as Usuario) : usuario);
@@ -33,6 +34,29 @@ const nomeNaTv = (integrantes: readonly Integrante[], sala: boolean) => (id: str
   const i = integrantes.find((x) => x.id === id);
   return i ? ((sala ? i.apelidoDaFamilia : i.apelido) ?? i.nome) : undefined;
 };
+
+/**
+ * "Com…" segue a regra de "Quem estava" na página da memória (correção 6 da revisão R-AB; docs/decisoes.md,
+ * "Ex-casal"): quem quem olha deixou "Fora" sai. O "Discreto", que em "Quem estava" fica com o nome borrado,
+ * também sai daqui: "Com…" é uma linha de nomes, sem lugar para a tarja. Na sala, o visitante não tem ex, e
+ * a regra não tira ninguém.
+ */
+export const comNaTv = (integrantesDaMemoria: readonly string[], nome: (id: string) => string | undefined, modosDosExes: ReadonlyMap<string, string>): string[] =>
+  integrantesDaMemoria
+    .filter((id) => naListaDeQuemOlha(modosDosExes.get(id) as Parameters<typeof naListaDeQuemOlha>[0]) === 'normal')
+    .map(nome)
+    .filter((n): n is string => Boolean(n));
+
+/**
+ * As saídas do modo TV: "Sair do modo TV" e "Limpar filtros". Na sala, sair volta ao Início e limpar continua
+ * na sala, com o marcador (correção 2 da revisão R-AB): todo link que o modo TV monta mantém o marcador, menos
+ * o de sair. Fora da sala, sair volta ao Explorar com os filtros e limpar abre o modo TV sem eles.
+ */
+export function saidasDoModoTv(filtros: Filtros, sala: boolean): { sair: string; limpar: string } {
+  if (sala) return { sair: '/', limpar: enderecoDoExplorar({ ...SEM_FILTRO, ordem: filtros.ordem }, 'tv', { sala: '1' }) };
+  const sair = enderecoDoExplorar(filtros);
+  return { sair, limpar: temFiltro(filtros) ? enderecoDoExplorar({ ...SEM_FILTRO, ordem: filtros.ordem }, 'tv') : sair };
+}
 
 // --- A ordem ------------------------------------------------------------------------------------
 
@@ -87,9 +111,15 @@ export interface PedidoDoPalco {
   parametros: URLSearchParams;
   /** a memória já lida pela página (da lista da ordem); a rota de uma memória lê de novo */
   memoria?: Memoria;
-  /** as vizinhas na ordem e a posição, que a página tira da ordem e a rota recebe do navegador */
+  /** o passo que a página escolheu na ordem (sem "m" no endereço, o primeiro); a rota lê o "m" do endereço */
+  id?: string;
+  /** as vizinhas na ordem, que a página tira da ordem e a rota recebe do navegador (só viram links) */
   antes?: string | null;
   depois?: string | null;
+  /**
+   * "3 de 48": só a página, da ordem que o servidor montou. A rota não recebe a posição do navegador (correção 5
+   * da revisão R-AB): quem escreve o "3 de 48" depois de uma passagem é o palco, da ordem que a página mandou.
+   */
   posicao?: { posicao: number; de: number };
   /** os filtros já conferidos pela página; a rota lê do endereço (só para os links) */
   filtros?: Filtros;
@@ -109,6 +139,10 @@ export interface CartaNoPalco {
 }
 
 export interface PalcoDaTv {
+  /** o passo da ordem: o id da memória ou "carta-2" */
+  passo: string;
+  /** na sala: para o palco escrever o "3 de 48" com o que entra */
+  sala: boolean;
   memoria?: Memoria;
   carta?: CartaNoPalco;
   trecho?: { texto: string; por: string };
@@ -144,9 +178,9 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
   const marcas = { sala: sala ? '1' : undefined, carta: cartaNaFrente ? '1' : undefined };
   const naTv = (id: string | null | undefined, estado: Passar = passar, mov = movimento) =>
     idValido(id) ? enderecoDoExplorar(filtros, 'tv', { m: id, ...passarNoEndereco(estado), ...movimentoNoEndereco(mov), ...marcas }) : undefined;
-  const id = pedido.memoria?.id ?? parametros.get('m');
+  const id = pedido.memoria?.id ?? pedido.id ?? parametros.get('m');
   if (!idValido(id)) return undefined;
-  const voltar = enderecoDoExplorar(filtros);
+  const { sair, limpar } = saidasDoModoTv(filtros, sala);
   const comVizinhas = Boolean(idValido(pedido.antes) || idValido(pedido.depois));
   const base = {
     antes: naTv(pedido.antes),
@@ -160,7 +194,9 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
           parar: naTv(id, { tempo: null, pausado: false })!,
         }
       : undefined,
-    limpar: voltar,
+    limpar,
+    passo: id,
+    sala,
     tituloDaPagina: TITULO_DA_PAGINA,
   };
 
@@ -172,14 +208,16 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
     const paragrafos = carta ? paragrafosDaCarta(carta.texto) : [];
     const paragrafo = paragrafos[numero - 1];
     if (!carta || !paragrafo) return undefined;
-    // As fotos, só no primeiro parágrafo: os Natais abertos a todos, do mais novo para o mais antigo
-    const tema = filtros.temas[0];
-    const natais = numero === 1 && tema ? await listarMemorias(VISITANTE_DA_SALA as Usuario, { tema }) : [];
+    // As fotos, só no primeiro parágrafo: os Natais abertos a todos, do mais novo para o mais antigo. O tema é
+    // sempre o de Natal, seja qual for o tema do endereço (correção 4 da revisão R-AB)
+    const tema = numero === 1 ? await temaDeNatal() : undefined;
+    const natais = tema ? await listarMemorias(VISITANTE_DA_SALA as Usuario, { tema }) : [];
     const fotos = natais
       .filter((m) => entraNaSala(m) && m.fotos.length > 0)
       .reverse()
       .slice(0, 3)
-      .map((m) => ({ id: m.id, fotos: m.fotos.slice(0, 1), legenda: legendaLugarAno(m.lugar, m.ano) }));
+      .map((m) => ({ id: m.id, fotos: m.fotos.filter((f) => f.relatoId === null).slice(0, 1), legenda: legendaLugarAno(m.lugar, m.ano) }))
+      .filter((m) => m.fotos.length > 0);
     return {
       ...base,
       carta: {
@@ -193,16 +231,25 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
       },
       nomes: [],
       linha: linhaDoAlto({ sala, carta: true }),
-      sair: '/',
+      sair,
       tempoMinimo: segundosDoParagrafo(paragrafo),
     };
   }
 
   // A memória: a que a página já leu, ou lida de novo, para quem olha
-  const memoria = pedido.memoria ?? (await obterMemoria(quem, id));
-  if (!memoria || memoria.situacao !== 'publicada' || (sala && !entraNaSala(memoria))) return undefined;
-  const [relatos, integrantes] = await Promise.all([listarRelatos(quem, memoria.id), listarIntegrantesQueVe(quem)]);
+  const lida = pedido.memoria ?? (await obterMemoria(quem, id));
+  if (!lida || lida.situacao !== 'publicada' || (sala && !entraNaSala(lida))) return undefined;
+  const [relatos, integrantes, modosDosExes] = await Promise.all([
+    listarRelatos(quem, lida.id),
+    listarIntegrantesQueVe(quem),
+    // Como os exes aparecem é escolha de quem olha; o visitante da sala não tem ex
+    !sala && lida.integrantes.length > 0 ? comoOsExesAparecem(quem) : new Map<string, 'discreto' | 'fora'>(),
+  ]);
   const naTela = relatos.filter(relatoNaTv);
+  // A foto que veio com um relato só vai à TV com ele (correção 3 da revisão R-AB): a do relato que espera, a
+  // do rascunho e a do descartado ficam de fora, pela mesma regra do trecho e da voz (relatoNaTv)
+  const relatosNaTela = new Set(naTela.map((r) => r.id));
+  const memoria = { ...lida, fotos: lida.fotos.filter((f) => f.relatoId === null || relatosNaTela.has(f.relatoId)) };
   const audios = await listarAudiosDosRelatos(naTela.map((r) => r.id));
   const comVoz = new Set([...audios].filter(([, lista]) => lista.length > 0).map(([relatoId]) => relatoId));
   const relato = relatoDaVez(naTela, comVoz);
@@ -215,9 +262,9 @@ export async function palcoDaTv(pedido: PedidoDoPalco): Promise<PalcoDaTv | unde
     memoria,
     trecho: texto ? { texto: trechoDoRelato(texto, 220), por } : undefined,
     voz: daVoz.length > 0 ? { por, audios: daVoz.map((a) => ({ src: `/audios/${a.chave}`, duracao: a.duracao })) } : undefined,
-    nomes: memoria.integrantes.map(nome).filter((n): n is string => Boolean(n)),
+    nomes: comNaTv(memoria.integrantes, nome, modosDosExes),
     linha: linhaDoAlto({ sala, posicao: pedido.posicao?.posicao, de: pedido.posicao?.de }) || undefined,
-    sair: sala ? '/' : `${voltar}#${ancoraDaMemoria(memoria.id)}`,
+    sair: sala ? sair : `${sair}#${ancoraDaMemoria(memoria.id)}`,
   };
 }
 

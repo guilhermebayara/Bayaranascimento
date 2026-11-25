@@ -103,7 +103,7 @@ const primeira = await linhasDe(MODO_TV, 'gui');
 const pagina = await (await fetch(`${BASE}${MODO_TV}`, { headers: { cookie: 'como=gui' } })).text();
 const ordem = JSON.parse(/data-ordem-da-tv>([^<]*)</.exec(pagina)?.[1] ?? '[]');
 const meio = Math.floor(ordem.length / 2);
-const passagem = `/explorar/palco?ver=tv&sala=1&m=${ordem[meio]}&antes=${ordem[meio - 1]}&depois=${ordem[meio + 1]}&pos=${meio + 1}&de=${ordem.length}`;
+const passagem = `/explorar/palco?ver=tv&sala=1&m=${ordem[meio]}&antes=${ordem[meio - 1]}&depois=${ordem[meio + 1]}`;
 const porPassagem = ordem.length > 2 ? await linhasDe(passagem, 'gui') : primeira;
 const { foto } = await arquivos('gui');
 const fotoDaTv = foto ? await linhasDe(foto, 'gui') : 0;

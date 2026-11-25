@@ -106,6 +106,51 @@ describe('o simulador de data nunca vale na produção', () => {
     expect(guarda({ 'src/pages/outra.astro': "const dia = Astro.url.searchParams.get('hoje');" })).toHaveLength(1);
     expect(guarda({ 'src/pages/outra.astro': "diaSimulado(x, 'previa')" })).toHaveLength(1);
   });
+  // Correção 8 da revisão R-AB: a regra lê a árvore do código, e cada forma de ler o "hoje" do endereço é recusada
+  const formasDeLerOHoje: [string, string][] = [
+    ['.get', "const dia = url.searchParams.get('hoje');"],
+    ['.get com aspas duplas', 'const dia = url.searchParams.get("hoje");'],
+    ['.getAll', "const [dia] = Astro.url.searchParams.getAll('hoje');"],
+    ['.has', "if (p.has('hoje')) mostrar();"],
+    ['o nome numa constante', "const NOME = 'hoje';\nconst dia = p.get(NOME);"],
+    ['o nome montado', "const dia = p.get('ho' + 'je');"],
+    ['o nome num modelo de texto', 'const dia = p.get(`hoje`);'],
+    ['Object.fromEntries(...).hoje', 'const dia = Object.fromEntries(url.searchParams).hoje;'],
+    ["Object.fromEntries(...)['hoje']", "const dia = Object.fromEntries(Astro.url.searchParams)['hoje'];"],
+    ['por variável', 'const tudo = Object.fromEntries(new URLSearchParams(location.search));\nconst dia = tudo.hoje;'],
+    ['desestruturado', 'const { hoje } = Object.fromEntries(url.searchParams);'],
+    ['desestruturado com outro nome', 'const { hoje: dia } = Object.fromEntries([...url.searchParams]);'],
+    ['percorrendo os parâmetros', "for (const [nome, valor] of url.searchParams) if (nome === 'hoje') usar(valor);"],
+    ['find nos pares', "const par = [...url.searchParams].find(([k]) => k === 'hoje');"],
+    ['switch', "for (const [k, v] of p) switch (k) { case 'hoje': usar(v); }"],
+    ['diaSimulado com outro nome', "import { diaSimulado as simular } from '../lib/sala';\nsimular(x, 'previa');"],
+    ['diaSimulado por import * as', "import * as regra from '../../lib/sala';\nregra.diaSimulado(x, 'producao');"],
+  ];
+  for (const [forma, codigo] of formasDeLerOHoje) {
+    it(`a regra 14 recusa ler o "hoje" do endereço fora de dia-do-pedido.ts: ${forma}`, () => {
+      const lidos = new Map([
+        ['src/lib/sala.ts', ler('src/lib/sala.ts')],
+        ['src/lib/servidor/dia-do-pedido.ts', ler('src/lib/servidor/dia-do-pedido.ts')],
+      ]);
+      const guarda = (extra: Record<string, string>) => {
+        const todos = new Map([...lidos, ...Object.entries(extra)]);
+        return problemasDoSimuladorDeData((c: string) => todos.get(c) ?? '', [...todos.keys()]);
+      };
+      expect(guarda({ 'src/lib/outra.ts': codigo }), 'num .ts').toHaveLength(1);
+      expect(guarda({ 'src/pages/outra.astro': `---\n${codigo}\n---\n<p>oi</p>` }), 'no cabeçalho de um .astro').toHaveLength(1);
+      expect(guarda({ 'src/components/Outra.astro': `<p>oi</p>\n<script>\n${codigo}\n</script>` }), 'num <script> de um .astro').toHaveLength(1);
+    });
+  }
+  it('a regra 14 não pega o que não lê o "hoje" do endereço', () => {
+    const lidos = new Map([
+      ['src/lib/sala.ts', ler('src/lib/sala.ts')],
+      ['src/lib/servidor/dia-do-pedido.ts', ler('src/lib/servidor/dia-do-pedido.ts')],
+      ['src/pages/admin/index.astro', ler('src/pages/admin/index.astro')],
+      ['src/pages/index.astro', ler('src/pages/index.astro')],
+      ['src/lib/outra.ts', "const frase = adm.hoje;\nconst DO_PAINEL = ['ok', 'erro', 'hoje'];\nconst x = mapa.get('ontem');"],
+    ]);
+    expect(problemasDoSimuladorDeData((c: string) => lidos.get(c) ?? '', [...lidos.keys()])).toEqual([]);
+  });
   it('o Início usa o simulador do pedido, e não lê o "hoje" do endereço por conta própria', () => {
     const inicio = ler('src/pages/index.astro');
     expect(inicio).toMatch(/const hoje = diaSimuladoDoPedido\(Astro\.url\) \?\? hojeNoBrasil\(agora\);/);
@@ -159,6 +204,18 @@ describe('a carta e a voz na TV', () => {
     expect(esperaDaMemoria(10, 11.2)).toBe(15);
     expect(tempoDaVoz(11.4)).toBe('0:11');
     expect(tempoDaVoz(75)).toBe('1:15');
+  });
+  it('R-AB 1: o pedaço buscado de antemão vale por uma janela curta, e a seguinte é buscada de novo antes de vencer', async () => {
+    const { VALIDADE_DO_PEDACO, ANTECEDENCIA_DO_PEDACO, pedacoVencido } = await import('../src/lib/sala');
+    expect(VALIDADE_DO_PEDACO).toBeLessThanOrEqual(30_000);
+    expect(ANTECEDENCIA_DO_PEDACO).toBeLessThan(VALIDADE_DO_PEDACO);
+    expect(pedacoVencido(0, VALIDADE_DO_PEDACO)).toBe(false);
+    expect(pedacoVencido(0, VALIDADE_DO_PEDACO + 1)).toBe(true);
+    const palco = ler('src/components/explorar/Palco.astro');
+    // O que vai à tela e a voz passam pela janela; o comportamento no navegador está em testes/sala-navegador.test.ts
+    expect(palco).toMatch(/if \(guardado && !pedacoVencido\(guardado\.em, performance\.now\(\), validade\)\) return guardado;/);
+    expect(palco).toMatch(/if \(!novo \|\| !pedaco \|\| !pagina \|\| pedacoVencido\(pedaco\.em, performance\.now\(\)\)\) throw/);
+    expect(palco).toMatch(/vozesDe\(atual\)\.length > 0 && vencido\(atual\)\) \{/);
   });
   it('o tema de Natal pelo nome', () => {
     expect(['Natal', 'natais', 'NATAL '].every(nomeDeNatal)).toBe(true);
@@ -373,5 +430,234 @@ describe.skipIf(!comSqlite)('o modo TV no banco: a ordem, a rota de uma memória
       const palco = await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&m=${id}`) });
       for (const nome of palco?.nomes ?? []) expect(visiveis.has(nome), nome).toBe(true);
     }
+  });
+
+  // --- Correções da revisão R-AB ---------------------------------------------------------------------
+
+  /** Os links que o palco monta, do jeito que Palco.astro os desenha (o teste de baixo confere a lista) */
+  const linksDoPalco = (palco: NonNullable<Awaited<ReturnType<typeof palcoDaTv>>>) =>
+    [palco.antes, palco.depois, palco.limpar, ...palco.movimentos.map((m) => m.href), ...(palco.passar?.tempos.map((t) => t.href) ?? []), palco.passar?.parar].filter((h): h is string => Boolean(h));
+
+  it('R-AB 2: na sala, todo link e controle do modo TV mantém o marcador, menos "Sair do modo TV"', async () => {
+    const { saidasDoModoTv } = await import('../src/lib/servidor/tv');
+    const { lerFiltros } = await import('../src/lib/explorar');
+    const entradas = [new URL((await enderecosDaSala()).natais, 'http://x').searchParams.toString(), 'ver=tv&sala=1', 'ver=tv&sala=1&passar=10', 'ver=tv&sala=1&de=1990&ate=2010&ordem=antigas'];
+    let conferidos = 0;
+    for (const entrada of entradas) {
+      const ordem = (await ordemDoModoTv(giovanna, p(entrada), tipos)).ordem;
+      for (const id of ordem.slice(0, 4)) {
+        const vizinhas = vizinhasNaOrdem(ordem, id, p(entrada).has('passar'));
+        const palco = await palcoDaTv({ usuario: giovanna, parametros: p(entrada), id, antes: vizinhas.antes, depois: vizinhas.depois });
+        expect(palco, `${entrada} · ${id}`).toBeDefined();
+        expect(palco!.sair).toBe('/');
+        for (const link of linksDoPalco(palco!)) {
+          const url = new URL(link, 'http://x');
+          expect(url.searchParams.get('sala'), `${entrada} · ${id} · ${link}`).toBe('1');
+          expect(url.searchParams.get('ver'), link).toBe('tv');
+          conferidos++;
+        }
+      }
+    }
+    expect(conferidos).toBeGreaterThan(40);
+    // "Limpar filtros" da página sem memória nenhuma: continua na sala
+    const vazia = saidasDoModoTv(lerFiltros(p('ver=tv&sala=1&de=1800&ate=1800')), true);
+    expect(new URL(vazia.limpar, 'http://x').searchParams.get('sala')).toBe('1');
+    expect(vazia.sair).toBe('/');
+    expect((await ordemDoModoTv(giovanna, p('ver=tv&sala=1&de=1800&ate=1800'), tipos)).ordem).toEqual([]);
+    // Fora da sala, nada leva o marcador
+    const fora = await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&m=${CEIA}`), depois: 'outra' });
+    expect(linksDoPalco(fora!).every((l) => !new URL(l, 'http://x').searchParams.has('sala'))).toBe(true);
+  });
+
+  it('R-AB 2: os links que Palco.astro desenha são só os que a função acima confere, mais as duas saídas', () => {
+    const palco = ler('src/components/explorar/Palco.astro');
+    const hrefs = [...new Set([...palco.matchAll(/href=\{([^}]+)\}/g)].map((m) => m[1]!.trim()))].sort();
+    // "sair" e "abrir" (a página da memória) saem do modo TV; os outros são os de linksDoPalco ("depois" também
+    // no "Me mostre outra", que não é do modo TV)
+    expect(hrefs).toEqual(['abrir', 'antes', 'depois', 'ligar.href', 'limpar', 'm.href', 'passar.parar', 'sair', 't.href', 'tv && depois ? depois : abrir'].sort());
+    expect(ler('src/components/explorar/CartaNaTv.astro')).not.toMatch(/href=/);
+    // Na sala, sem a próxima, a foto não é link
+    expect(palco).toMatch(/\{sala && !depois \? \(\s*<div class="palco__principal">/);
+    // A página do Explorar usa as mesmas saídas, com o marcador
+    expect(ler('src/pages/explorar.astro')).toMatch(/const \{ sair, limpar \} = saidasDoModoTv\(filtros, naSala\(parametros\)\);/);
+  });
+
+  it('R-AB 3: a foto que veio com um relato que espera não vai à TV, dentro e fora da sala (a do casamento da Vó Vivica)', async () => {
+    const CASAMENTO = '1958-casamento-vivica-tonho';
+    const foto = uma<{ id: number }>('SELECT id FROM fotos WHERE memoria_id = ? AND removida_em IS NULL ORDER BY principal DESC, ordem, id LIMIT 1', CASAMENTO);
+    const relato = uma<{ id: number }>(`SELECT id FROM relatos WHERE memoria_id = ? AND situacao = 'publicada' ORDER BY id LIMIT 1`, CASAMENTO);
+    expect(foto && relato).toBeTruthy();
+    const antes = await palcoDaTv({ usuario: elizete, parametros: p(`ver=tv&m=${CASAMENTO}`) });
+    expect(antes?.memoria?.fotos.some((f) => f.id === foto.id)).toBe(true);
+    // A foto veio com o relato, e o relato passa a esperar o sim, só para uma família da Elizete
+    sql('UPDATE fotos SET relato_id = ? WHERE id = ?', relato.id, foto.id);
+    sql('UPDATE relatos SET so_para_nucleos = ? WHERE id = ?', JSON.stringify(elizete.nucleos), relato.id);
+    try {
+      // A Elizete ainda vê o relato e a foto na página da memória
+      expect((await repo.obterMemoria(elizete, CASAMENTO))?.fotos.some((f) => f.id === foto.id)).toBe(true);
+      for (const parametros of [p(`ver=tv&m=${CASAMENTO}`), p(`ver=tv&sala=1&m=${CASAMENTO}`)]) {
+        const palco = await palcoDaTv({ usuario: elizete, parametros });
+        expect(palco?.memoria, parametros.toString()).toBeDefined();
+        expect(palco!.memoria!.fotos.some((f) => f.id === foto.id), parametros.toString()).toBe(false);
+      }
+      // Pela primeira página (a memória já lida pela ordem) também
+      const ordem = await ordemDoModoTv(elizete, p('ver=tv'), tipos);
+      const daOrdem = ordem.memorias.find((m) => m.id === CASAMENTO);
+      expect(daOrdem?.fotos.some((f) => f.id === foto.id)).toBe(true);
+      const pelaPagina = await palcoDaTv({ usuario: elizete, parametros: p('ver=tv'), memoria: daOrdem });
+      expect(pelaPagina!.memoria!.fotos.some((f) => f.id === foto.id)).toBe(false);
+      // O rascunho de relato também não leva foto à TV
+      sql(`UPDATE relatos SET so_para_nucleos = NULL, situacao = 'rascunho' WHERE id = ?`, relato.id);
+      expect((await palcoDaTv({ usuario: elizete, parametros: p(`ver=tv&m=${CASAMENTO}`) }))!.memoria!.fotos.some((f) => f.id === foto.id)).toBe(false);
+    } finally {
+      sql(`UPDATE relatos SET so_para_nucleos = NULL, situacao = 'publicada' WHERE id = ?`, relato.id);
+      sql('UPDATE fotos SET relato_id = NULL WHERE id = ?', foto.id);
+    }
+  });
+
+  it('R-AB 4: sem "m", a página abre no primeiro passo, e a carta da sala abre no primeiro parágrafo', async () => {
+    const entrada = new URL((await enderecosDaSala()).natais, 'http://x').searchParams;
+    entrada.delete('m');
+    const naSala = await ordemDoModoTv(giovanna, entrada, tipos);
+    expect(naSala.ordem[0]).toBe('carta-1');
+    // A página passa o passo que escolheu (explorar.astro, `id`), sem "m" no endereço
+    const palco = await palcoDaTv({ usuario: giovanna, parametros: entrada, id: naSala.ordem[0], depois: naSala.ordem[1] });
+    expect(palco?.carta?.numero).toBe(1);
+    expect(palco?.passo).toBe('carta-1');
+    expect(ler('src/pages/explorar.astro')).toMatch(/await palcoDaTv\(\{ usuario, parametros, filtros, id, /);
+    // Sem "m", fora da sala, a primeira memória da ordem
+    const fora = await ordemDoModoTv(elizete, p('ver=tv'), tipos);
+    expect((await palcoDaTv({ usuario: elizete, parametros: p('ver=tv'), id: fora.ordem[0] }))?.memoria?.id).toBe(fora.ordem[0]);
+  });
+
+  it('R-AB 4: as fotos da carta são sempre de Natais abertos a todos, seja qual for o tema do endereço', async () => {
+    const natal = todas<{ id: string }>(`SELECT tm.memoria_id AS id FROM tema_memorias tm JOIN temas t ON t.id = tm.tema_id WHERE t.id = 'natal'`).map((m) => m.id);
+    const outroTema = uma<{ id: string }>(`SELECT id FROM temas WHERE id <> 'natal' LIMIT 1`).id;
+    for (const tema of ['natal', outroTema, '']) {
+      const busca = `ver=tv&sala=1&carta=1&ordem=antigas&m=carta-1${tema ? `&tema=${tema}` : ''}`;
+      const palco = await palcoDaTv({ usuario: giovanna, parametros: p(busca) });
+      expect(palco?.carta?.fotos.length, busca).toBeGreaterThan(0);
+      for (const f of palco!.carta!.fotos) {
+        expect(natal, `${busca} · ${f.id}`).toContain(f.id);
+        expect(restritas.has(f.id)).toBe(false);
+      }
+    }
+  });
+
+  it('R-AB 4: a carta aceita todos os parágrafos que /admin/carta deixa salvar', async () => {
+    const original = uma<{ id: number; texto: string }>('SELECT id, texto FROM cartas ORDER BY id DESC LIMIT 1');
+    expect(ler('src/pages/admin/carta.astro')).toMatch(/maxlength="10000"/);
+    try {
+      for (const paragrafos of [120, 3334]) {
+        const texto = Array.from({ length: paragrafos }, (_, n) => (paragrafos > 1000 ? 'a' : `Parágrafo ${n + 1}.`)).join('\n\n');
+        expect(texto.length).toBeLessThanOrEqual(10000);
+        sql('UPDATE cartas SET texto = ? WHERE id = ?', texto, original.id);
+        const entrada = new URL((await enderecosDaSala()).natais, 'http://x').searchParams;
+        const naSala = await ordemDoModoTv(giovanna, entrada, tipos);
+        expect(naSala.paragrafos).toHaveLength(paragrafos);
+        expect(naSala.ordem).toContain(`carta-${paragrafos}`);
+        const ultimo = await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&carta=1&m=carta-${paragrafos}`) });
+        expect(ultimo?.carta?.numero, String(paragrafos)).toBe(paragrafos);
+        expect(ultimo?.carta?.assinam.length).toBeGreaterThan(0);
+        expect(await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&carta=1&m=carta-${paragrafos + 1}`) })).toBeUndefined();
+      }
+    } finally {
+      sql('UPDATE cartas SET texto = ? WHERE id = ?', original.texto, original.id);
+    }
+  });
+
+  it('R-AB 5: o "de" do ano passa de memória em memória, e a posição não vem do navegador', async () => {
+    const ordem = (await ordemDoModoTv(elizete, p('ver=tv&de=1990&ordem=antigas'), tipos)).ordem;
+    expect(ordem.length).toBeGreaterThan(2);
+    const [primeira, segunda, terceira] = ordem;
+    // A rota recebe só o id e as vizinhas; os links seguem com o ano inicial do filtro
+    const palco = await palcoDaTv({ usuario: elizete, parametros: p(`ver=tv&de=1990&ordem=antigas&m=${segunda}`), antes: primeira, depois: terceira });
+    // ("Limpar filtros" tira o ano, de propósito)
+    for (const link of linksDoPalco(palco!).filter((l) => l !== palco!.limpar)) expect(new URL(link, 'http://x').searchParams.get('de'), link).toBe('1990');
+    expect(palco!.linha).toBeUndefined();
+    // A rota não lê posição nem total do endereço: "3 de 99999" não tem por onde entrar
+    const rota = ler('src/pages/explorar/palco.astro');
+    expect(rota).not.toMatch(/get\('(pos|de|total)'\)/);
+    expect(rota).not.toMatch(/posicao:/);
+    // O palco não manda posição nem total à rota, e escreve o "3 de 48" da ordem que a página mandou
+    const cliente = ler('src/components/explorar/Palco.astro');
+    expect(cliente).not.toMatch(/searchParams\.set\('(pos|de)'/);
+    expect(cliente).toMatch(/const posicao = p\.dataset\.passo \? posicaoNaOrdem\(ordem, p\.dataset\.passo\) : undefined;/);
+    // Na primeira página, a posição sai da ordem do servidor
+    const pagina = await palcoDaTv({ usuario: elizete, parametros: p(`ver=tv&de=1990&ordem=antigas&m=${segunda}`), posicao: posicaoNaOrdem(ordem, segunda!) });
+    expect(pagina!.linha).toBe(`2 de ${ordem.length}`);
+  });
+
+  it('R-AB 6: "Com…" segue "Quem estava": o ex que quem olha deixou Fora sai, e o Discreto também', async () => {
+    const memoria = (await repo.listarMemorias(giovanna)).find((m) => m.visibilidade === 'todos' && m.integrantes.length > 0)!;
+    const nomeDoJean = uma<{ nome: string }>(`SELECT nome FROM integrantes WHERE id = 'ex-jean'`).nome;
+    sql('INSERT INTO memoria_integrantes (memoria_id, integrante_id) VALUES (?, ?)', memoria.id, 'ex-jean');
+    try {
+      const comJean = async (usuario: Usuario, sala = false) => (await palcoDaTv({ usuario, parametros: p(`ver=tv${sala ? '&sala=1' : ''}&m=${memoria.id}`) }))!.nomes.includes(nomeDoJean);
+      expect(await comJean(giovanna)).toBe(true);
+      for (const modo of ['fora', 'discreto']) {
+        sql('INSERT OR REPLACE INTO ex_para_mim (dono_id, pessoa_id, modo) VALUES (?, ?, ?)', 'giovanna', 'ex-jean', modo);
+        expect(await comJean(giovanna), modo).toBe(false);
+        // A escolha é só da Giovanna: os outros e a sala continuam vendo
+        expect(await comJean(usuarioDe('gui')), modo).toBe(true);
+      }
+      sql(`DELETE FROM ex_para_mim WHERE dono_id = 'giovanna' AND pessoa_id = 'ex-jean'`);
+      expect(await comJean(giovanna)).toBe(true);
+    } finally {
+      sql(`DELETE FROM ex_para_mim WHERE dono_id = 'giovanna' AND pessoa_id = 'ex-jean'`);
+      sql('DELETE FROM memoria_integrantes WHERE memoria_id = ? AND integrante_id = ?', memoria.id, 'ex-jean');
+    }
+  });
+
+  it('R-AB 9: com um ":sala" membro de família no banco, a ordem e a rota ainda recusam a restrita (entraNaSala, cada uma)', async () => {
+    // O visitante passa a ler a Ceia: só entraNaSala segura a ordem e a rota
+    sql(`INSERT INTO integrantes (id, nome) VALUES (':sala', 'Sala')`);
+    sql(`INSERT INTO nucleo_membros (nucleo_id, integrante_id, papel) VALUES ('bayara-bracarense', ':sala', 'membro')`);
+    try {
+      expect((await repo.listarMemorias(VISITANTE_DA_SALA as Usuario)).some((m) => m.id === CEIA)).toBe(true);
+      for (const busca of ['ver=tv&sala=1', 'ver=tv&sala=1&tema=natal&ordem=antigas']) expect((await ordemDoModoTv(giovanna, p(busca), tipos)).ordem, busca).not.toContain(CEIA);
+      expect(await palcoDaTv({ usuario: giovanna, parametros: p(`ver=tv&sala=1&m=${CEIA}`) })).toBeUndefined();
+      // A memória que a página já leu também passa por entraNaSala
+      const ceia = await repo.obterMemoria(giovanna, CEIA);
+      expect(await palcoDaTv({ usuario: giovanna, parametros: p('ver=tv&sala=1'), memoria: ceia })).toBeUndefined();
+    } finally {
+      sql(`DELETE FROM nucleo_membros WHERE integrante_id = ':sala'`);
+      sql(`DELETE FROM integrantes WHERE id = ':sala'`);
+    }
+  });
+
+  it('R-AB 9: o áudio do relato que espera nem é pedido ao banco (relatoNaTv antes da consulta dos áudios)', async () => {
+    const comAudio = uma<{ memoria_id: string; relato_id: number }>(
+      `SELECT r.memoria_id, r.id AS relato_id FROM audios a JOIN relatos r ON r.id = a.relato_id JOIN memorias m ON m.id = r.memoria_id
+       WHERE a.removido_em IS NULL AND r.situacao = 'publicada' AND m.visibilidade = 'todos' LIMIT 1`,
+    );
+    const pedidos: unknown[][] = [];
+    const prepare = banco.prepare.bind(banco);
+    banco.prepare = ((texto: string) => {
+      const comando = prepare(texto);
+      if (/FROM audios WHERE removido_em IS NULL AND relato_id IN/.test(texto)) {
+        const bind = comando.bind.bind(comando);
+        comando.bind = ((...valores: unknown[]) => {
+          pedidos.push(valores);
+          return bind(...valores);
+        }) as typeof comando.bind;
+      }
+      return comando;
+    }) as typeof banco.prepare;
+    sql('UPDATE relatos SET so_para_nucleos = ? WHERE id = ?', JSON.stringify(elizete.nucleos), comAudio.relato_id);
+    try {
+      await palcoDaTv({ usuario: elizete, parametros: p(`ver=tv&m=${comAudio.memoria_id}`) });
+      expect(pedidos.flat()).not.toContain(comAudio.relato_id);
+    } finally {
+      banco.prepare = prepare;
+      sql('UPDATE relatos SET so_para_nucleos = NULL WHERE id = ?', comAudio.relato_id);
+    }
+  });
+
+  it('R-AB 7: o espelho recusa um arquivo com uma pessoa ":sala", com recado, e não grava nada', async () => {
+    const { espelhar } = await import('../src/lib/espelho');
+    const copia = { acervo: 'Bayara Nascimento', tabelas: { integrantes: [{ id: 'gui', nome: 'Gui' }, { id: ':sala', nome: 'Sala' }], nucleo_membros: [{ nucleo_id: 'bayara-bracarense', integrante_id: ':sala', papel: 'membro' }] } };
+    expect(() => espelhar(copia as never)).toThrow(/“:sala”, que é reservado para a TV da sala/);
+    expect(() => espelhar({ ...copia, tabelas: { ...copia.tabelas, integrantes: [{ id: 'gui', nome: 'Gui' }] } } as never)).not.toThrow();
   });
 });

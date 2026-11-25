@@ -7,7 +7,8 @@
 // precisa estar entre as publicadas que a pessoa vê e, com o marcador da sala, ser aberta a toda a família;
 // o trecho e a voz só saem de relato publicado que não espera ninguém. A memória que não entra recebe a mesma
 // resposta que a que não existe. O navegador manda só o id da vez e, da ordem que o servidor já mandou, as
-// vizinhas e a posição, que viram links e o "3 de 48" do alto: links que, seguidos, são conferidos de novo.
+// vizinhas, que viram links: links que, seguidos, são conferidos de novo. A posição ("3 de 48") não vem do
+// navegador (correção 5 da revisão R-AB): quem a escreve é o palco, da ordem que a página mandou.
 //
 // Sem script, ou abrindo o endereço de uma memória, vale a página do Explorar (`/explorar?ver=tv&m=...`).
 import PalcoDaTv from '../../components/explorar/PalcoDaTv.astro';
@@ -18,15 +19,11 @@ export const partial = true;
 
 const { usuario } = Astro.locals;
 const p = Astro.url.searchParams;
-const numero = (valor: string | null) => (valor && /^[1-9]\d{0,4}$/.test(valor) ? Number(valor) : undefined);
-const pos = numero(p.get('pos'));
-const de = numero(p.get('de'));
 const palco = await palcoDaTv({
   usuario,
   parametros: p,
   antes: idValido(p.get('antes')) ? p.get('antes') : undefined,
   depois: idValido(p.get('depois')) ? p.get('depois') : undefined,
-  posicao: pos && de && pos <= de ? { posicao: pos, de } : undefined,
 });
 if (!palco) return new Response('Não encontrada.', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' } });
 ---

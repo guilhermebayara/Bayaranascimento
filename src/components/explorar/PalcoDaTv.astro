@@ -30,6 +30,8 @@ const { palco } = Astro.props;
   tempoMinimo={palco.tempoMinimo}
   tituloDaPagina={palco.tituloDaPagina}
   comCena={Boolean(palco.carta)}
+  passo={palco.passo}
+  sala={palco.sala}
 >
   {palco.carta && <CartaNaTv slot="cena" carta={palco.carta} />}
 </Palco>

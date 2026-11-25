@@ -15,6 +15,13 @@ import type { Dia } from './painel';
 export const MARCADOR_DA_SALA = 'sala';
 export const naSala = (p: URLSearchParams): boolean => p.get(MARCADOR_DA_SALA) === '1';
 
+/**
+ * O id de quem olha na sala (VISITANTE_DA_SALA, em src/lib/servidor/tv.ts): ninguém pode ter esse id. As pessoas
+ * novas não têm dois-pontos no id (criarSlug), e o espelho da produção recusa um arquivo que traga esse id
+ * (correção 7 da revisão R-AB): uma pessoa com ele seria membro de família no lugar da sala.
+ */
+export const ID_DO_VISITANTE_DA_SALA = ':sala';
+
 /** A memória entra na sala: publicada e aberta a toda a família. */
 export const entraNaSala = (m: { situacao: 'rascunho' | 'publicada'; visibilidade: 'todos' | 'nucleos' }): boolean => m.situacao === 'publicada' && m.visibilidade === 'todos';
 
@@ -93,7 +100,8 @@ export const segundosDoParagrafo = (paragrafo: string): number => Math.min(30, 6
 // memória da vez, por uma rota que lê uma memória só e confere tudo de novo (src/pages/explorar/palco.astro).
 // Na porta "A carta e os Natais", a carta vem antes, um passo por parágrafo: "carta-1", "carta-2"...
 
-const PASSO_DA_CARTA = /^carta-([1-9]\d?)$/;
+// Todos os parágrafos que /admin/carta deixa salvar (10 mil letras dão no máximo uns 3.300 parágrafos)
+const PASSO_DA_CARTA = /^carta-([1-9]\d{0,4})$/;
 
 /**
  * O parágrafo da carta de um passo ("carta-2" é o segundo), ou nada. Nenhuma memória tem esse id: as novas
@@ -138,6 +146,16 @@ export function posicaoNaOrdem(ordem: readonly string[], id: string): { posicao:
   const n = memorias.indexOf(id);
   return n < 0 ? undefined : { posicao: n + 1, de: memorias.length };
 }
+
+/**
+ * Quanto tempo o pedaço do palco buscado de antemão vale (correção 1 da revisão R-AB): passada a janela, ele
+ * não vai à tela nem toca a voz dele; é pedido de novo à rota de uma memória, que confere tudo de novo. Com
+ * "Passar sozinho", a seguinte é buscada de novo um pouco antes de entrar (ANTECEDENCIA_DO_PEDACO), para a
+ * passagem continuar sem esperar a rede.
+ */
+export const VALIDADE_DO_PEDACO = 30_000;
+export const ANTECEDENCIA_DO_PEDACO = 4_000;
+export const pedacoVencido = (buscadoEm: number, agora: number, validade = VALIDADE_DO_PEDACO): boolean => agora - buscadoEm > validade;
 
 /** A linha do alto do modo TV. Na sala, ela diz o que entra; fora, a de sempre. */
 export function linhaDoAlto({ sala, carta, posicao, de }: { sala: boolean; carta?: boolean; posicao?: number; de?: number }): string {

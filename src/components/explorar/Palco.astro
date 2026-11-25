@@ -57,12 +57,16 @@ interface Props {
   tituloDaPagina?: string;
   /** a tela traz uma cena pronta no slot "cena" (a carta na sala), no lugar da memória */
   comCena?: boolean;
+  /** o passo da ordem do modo TV (o id da memória ou "carta-2"), para o palco escrever o endereço e o "3 de 48" */
+  passo?: string;
+  /** na sala (o marcador no endereço): o palco escreve a linha do alto com o que entra */
+  sala?: boolean;
 }
 
 /** Quantas fotos da memória, além da principal, cabem em volta dela */
 const EM_VOLTA = 4;
 
-const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, limpar, movimento, movimentos, voz, linha, tempoMinimo, tituloDaPagina, comCena = false } = Astro.props;
+const { modo, memoria, trecho, nomes = [], posicao, antes, depois, sair, passar, limpar, movimento, movimentos, voz, linha, tempoMinimo, tituloDaPagina, comCena = false, passo, sala = false } = Astro.props;
 // A tela que não é uma memória (a carta na sala) vem pronta, no lugar das fotos e do texto
 const cena = comCena && Astro.slots.has('cena');
 const tv = modo === 'tv';
@@ -83,7 +87,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
           Limpar filtros
         </a>
         <a class="acao acao--quieta" href={sair}>
-          Voltar ao Explorar
+          {tv ? 'Sair do modo TV' : 'Voltar ao Explorar'}
         </a>
       </Vazio>
     </div>
@@ -102,6 +106,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       data-voz={comVoz ? JSON.stringify(voz!.audios) : undefined}
       data-tempo={tempoMinimo}
       data-titulo={tituloDaPagina}
+      data-passo={passo}
+      data-sala={sala ? '' : undefined}
     >
       {/* Com script, a animação só começa com as fotos prontas: até lá, elas esperam fora da tela.
           Fica antes de tudo, para valer já no primeiro desenho. Se algo falhar, a espera acaba sozinha. */}
@@ -117,7 +123,8 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       <header class="palco__topo miolo">
         <p class="rotulo">
           {tv ? 'Modo TV' : 'Uma memória ao acaso'}
-          {(linha ?? posicao) && <span> · {linha ?? posicao}</span>}
+          {/* No modo TV, depois de uma passagem, o palco escreve aqui o "3 de 48" da ordem que a página mandou */}
+          {tv ? <span data-palco-linha>{(linha ?? posicao) && ` · ${linha ?? posicao}`}</span> : (linha ?? posicao) && <span> · {linha ?? posicao}</span>}
         </p>
         <a class="acao acao--quieta" href={sair} data-palco-sair>
           {tv ? 'Sair do modo TV' : 'Voltar ao Explorar'}
@@ -136,10 +143,17 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
                   <Polaroid id={`${memoria.id}-${n + 1}`} fotos={[foto]} legenda={foto.legenda ?? ''} alt="" monte={false} cedo largura="(min-width: 1600px) 320px, 160px" />
                 </div>
               ))}
-              {/* No modo TV, tocar na foto passa para a próxima; no "ao acaso", abre a memória */}
-              <a class="palco__principal" href={tv && depois ? depois : abrir} data-palco-leva={tv && depois ? '' : undefined} aria-label={tv && depois ? 'Próxima memória' : `Abrir a memória ${memoria.titulo}`} tabindex="-1">
-                <Polaroid id={memoria.id} fotos={principal ? [principal] : []} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} tipo={memoria.tipo} monte={false} cedo principal />
-              </a>
+              {/* No modo TV, tocar na foto passa para a próxima; no "ao acaso", abre a memória. Na sala, sem a
+                  próxima, a foto não leva a lugar nenhum: um toque sem querer não tira ninguém da sala. */}
+              {sala && !depois ? (
+                <div class="palco__principal">
+                  <Polaroid id={memoria.id} fotos={principal ? [principal] : []} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} tipo={memoria.tipo} monte={false} cedo principal />
+                </div>
+              ) : (
+                <a class="palco__principal" href={tv && depois ? depois : abrir} data-palco-leva={tv && depois ? '' : undefined} aria-label={tv && depois ? 'Próxima memória' : `Abrir a memória ${memoria.titulo}`} tabindex="-1">
+                  <Polaroid id={memoria.id} fotos={principal ? [principal] : []} legenda={legendaLugarAno(memoria.lugar, memoria.ano)} tipo={memoria.tipo} monte={false} cedo principal />
+                </a>
+              )}
             </div>
             <div class="palco__texto">
               <p>
@@ -291,7 +305,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   // "Ocultar os controles" nem aparecem.
   import { AVISO_SEM_REDE, SEGUNDOS_ATE_TENTAR_DE_NOVO, SEGUNDOS_DOS_CONTROLES, falhaDeRede, reacaoEmSoFotos, teclaNaTv } from '../../lib/explorar';
   import { simbolo, type IdDoSimbolo } from '../../visual/simbolos';
-  import { RESPIRO_DEPOIS_DA_VOZ, posicaoNaOrdem, vizinhasNaOrdem } from '../../lib/sala';
+  import { ANTECEDENCIA_DO_PEDACO, RESPIRO_DEPOIS_DA_VOZ, VALIDADE_DO_PEDACO, linhaDoAlto, pedacoVencido, posicaoNaOrdem, vizinhasNaOrdem } from '../../lib/sala';
 
   const calmo = matchMedia('(prefers-reduced-motion: reduce)');
   // A barra do pé da tela, com os símbolos, o ocultar e as setas que andam por ela, vale a partir de 62rem
@@ -323,28 +337,54 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     url.pathname = '/explorar/palco';
     if (vizinhas.antes) url.searchParams.set('antes', vizinhas.antes);
     if (vizinhas.depois) url.searchParams.set('depois', vizinhas.depois);
-    const posicao = posicaoNaOrdem(ordem, m);
-    if (posicao) {
-      url.searchParams.set('pos', String(posicao.posicao));
-      url.searchParams.set('de', String(posicao.de));
-    }
+    // A posição ("3 de 48") não vai: a rota não a recebe do navegador (correção 5 da revisão R-AB), e o palco a
+    // escreve ao chegar, da ordem que o servidor mandou (escreverLinha)
     return url.href;
   }
 
-  // As memórias já buscadas: a de antes e a de depois ficam prontas enquanto a memória está na tela
-  const paginas = new Map<string, Promise<Document>>();
-  const buscar = (href: string) => {
+  // As memórias já buscadas: a de antes e a de depois ficam prontas enquanto a memória está na tela. Cada
+  // pedaço vale por pouco tempo (VALIDADE_DO_PEDACO, em src/lib/sala.ts; correção 1 da revisão R-AB): vencido,
+  // ele não vai à tela nem toca a voz dele, e é pedido de novo à rota de uma memória, que confere tudo de novo.
+  // A idade conta do pedido, e não da resposta: o que a rota decidiu vale do momento em que foi pedido.
+  interface Pedaco {
+    pagina: Promise<Document>;
+    em: number;
+  }
+  const paginas = new Map<string, Pedaco>();
+  /** Quando foi pedido o pedaço de cada palco que está ou esteve na tela; o da primeira página, no começo */
+  const buscadoEm = new WeakMap<HTMLElement, number>();
+  const buscar = (href: string, validade = VALIDADE_DO_PEDACO): Pedaco => {
     const alvo = enderecoDoPedaco(href) ?? href;
-    if (!paginas.has(alvo)) {
-      if (paginas.size > 24) paginas.clear();
-      const pagina = fetch(alvo, { headers: { Accept: 'text/html' } })
-        .then((resposta) => (resposta.ok ? resposta.text() : Promise.reject(new Error(String(resposta.status)))))
-        .then((texto) => new DOMParser().parseFromString(texto, 'text/html'));
-      pagina.catch(() => paginas.delete(alvo));
-      paginas.set(alvo, pagina);
-    }
-    return paginas.get(alvo)!;
+    const guardado = paginas.get(alvo);
+    if (guardado && !pedacoVencido(guardado.em, performance.now(), validade)) return guardado;
+    if (paginas.size > 24) paginas.clear();
+    const em = performance.now();
+    const pagina = fetch(alvo, { headers: { Accept: 'text/html' }, cache: 'no-store' })
+      .then((resposta) => (resposta.ok ? resposta.text() : Promise.reject(new Error(String(resposta.status)))))
+      .then((texto) => new DOMParser().parseFromString(texto, 'text/html'));
+    const pedaco = { pagina, em };
+    pagina.catch(() => {
+      if (paginas.get(alvo) === pedaco) paginas.delete(alvo);
+    });
+    paginas.set(alvo, pedaco);
+    return pedaco;
   };
+  /** O pedaço do palco já na tela venceu: a voz dele não toca sem ser pedida de novo */
+  const vencido = (p: HTMLElement) => pedacoVencido(buscadoEm.get(p) ?? 0, performance.now());
+  /** O endereço da memória da tela, com o "m" do passo (a primeira página pode ter chegado sem ele) */
+  const enderecoDaVez = (p: HTMLElement) => {
+    const url = new URL(location.href);
+    if (p.dataset.passo) url.searchParams.set('m', p.dataset.passo);
+    return url.href;
+  };
+  /** O "3 de 48" do alto, da ordem que o servidor mandou; a rota de uma memória não o escreve */
+  function escreverLinha(p: HTMLElement) {
+    const linha = p.querySelector<HTMLElement>('[data-palco-linha]');
+    const posicao = p.dataset.passo ? posicaoNaOrdem(ordem, p.dataset.passo) : undefined;
+    if (!linha || !posicao) return;
+    const texto = linhaDoAlto({ sala: p.hasAttribute('data-sala'), posicao: posicao.posicao, de: posicao.de });
+    linha.textContent = texto ? ` · ${texto}` : '';
+  }
   // Uma foto pronta: já baixada e aberta, do tamanho certo desde o primeiro desenho. Sem rede, a
   // foto que não chegou segura a passagem: a memória seguinte não entra pela metade.
   // As fontes vêm da foto da página (src, e srcset e sizes das cópias menores, src/lib/copias-das-fotos.ts)
@@ -448,12 +488,23 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     clearTimeout(relogio);
     clearTimeout(relogioDaRede);
     try {
-      const pagina = await buscar(href);
-      const chegou = pagina.querySelector<HTMLElement>('[data-palco]');
-      if (!chegou) throw new Error('sem o palco');
-      const novo = document.importNode(chegou, true);
-      novo.querySelector('script')?.remove();
-      await aprontar(novo);
+      // O pedaço que demorou a ficar pronto (as fotos sem rede) e venceu no caminho é pedido de novo
+      let novo: HTMLElement | undefined;
+      let pedaco: Pedaco | undefined;
+      let pagina: Document | undefined;
+      for (let vez = 0; vez < 3 && (!pedaco || pedacoVencido(pedaco.em, performance.now())); vez++) {
+        pedaco = buscar(href);
+        pagina = await pedaco.pagina;
+        const chegou = pagina.querySelector<HTMLElement>('[data-palco]');
+        if (!chegou) throw new Error('sem o palco');
+        novo = document.importNode(chegou, true);
+        novo.querySelector('script')?.remove();
+        await aprontar(novo);
+        if (meu !== pedido) return;
+      }
+      if (!novo || !pedaco || !pagina || pedacoVencido(pedaco.em, performance.now())) throw new Error('o pedaço venceu');
+      buscadoEm.set(novo, pedaco.em);
+      escreverLinha(novo);
       // Uma passagem mais nova já saiu: esta chegou atrasada
       if (meu !== pedido) return;
       novo.toggleAttribute('data-de-tras', deTras);
@@ -521,17 +572,20 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     if (atual.classList.contains('palco--tv')) {
       // A busca de antemão: a seguinte e a anterior, com as fotos. Com a ordem na mão, também a memória
       // depois da seguinte, só o pedaço do palco e, quando a seguinte já chegou, as fotos dela: quem passa
-      // duas vezes seguidas não espera a rede na segunda.
+      // duas vezes seguidas não espera a rede na segunda, e as fotos dela têm duas passagens para chegar no 4G
+      // lento. Se o pedaço dela vencer antes de entrar, "Passar sozinho" o pede de novo um pouco antes (armar), e
+      // as fotos já estão no aparelho. A anterior é buscada só se ainda não foi: vencida, ela é pedida de novo
+      // se a pessoa voltar.
       const comFotos = (pagina: Promise<Document>) => pagina.then((doc) => Promise.all(fotosDe(doc).map((img) => fotoPronta(img))).then(() => doc));
       for (const nome of ['depois', 'antes']) {
         const vizinha = link(nome);
         if (!serve(vizinha)) continue;
-        const pronta = comFotos(buscar(vizinha.href));
+        const pronta = comFotos(buscar(vizinha.href, nome === 'antes' ? Infinity : VALIDADE_DO_PEDACO).pagina);
         if (nome === 'depois' && ordem.length > 0)
           pronta
             .then((doc) => {
               const adiante = doc.querySelector<HTMLAnchorElement>('[data-palco] [data-palco-depois]');
-              if (serve(adiante) && memoriaDe(adiante.href) !== memoriaDe(location.href)) return comFotos(buscar(adiante.href));
+              if (serve(adiante) && memoriaDe(adiante.href) !== memoriaDe(location.href)) return comFotos(buscar(adiante.href).pagina);
             })
             .catch(() => undefined);
         else pronta.catch(() => undefined);
@@ -666,13 +720,23 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
     const atual = palco();
     const segundos = Number(atual?.dataset.passar);
     if (!(segundos > 0) || pausado || document.hidden) return;
-    // A voz vai tocar ou está tocando: quem arma de novo é o fim dela
-    if (falando || relogioDaVoz) return;
+    // A voz vai tocar ou está tocando, ou a rota confirma a voz de um pedaço vencido: quem arma de novo é o fim dela
+    if (falando || relogioDaVoz || renovando) return;
     const base = Math.max(segundos, Number(atual?.dataset.tempo) || 0) * 1000;
     const passou = performance.now() - chegouEm;
     const espera = falou ? Math.max(base - passou, RESPIRO_DEPOIS_DA_VOZ * 1000) : base;
     relogio = window.setTimeout(() => passar(link('depois')), espera);
+    // A seguinte, buscada de novo um pouco antes de entrar se até lá tiver vencido: a passagem continua sem
+    // esperar a rede, e nada mais velho que a janela vai à tela (correção 1 da revisão R-AB)
+    clearTimeout(relogioDoPedaco);
+    const depois = link('depois');
+    if (serve(depois))
+      relogioDoPedaco = window.setTimeout(
+        () => void buscar(depois.href, VALIDADE_DO_PEDACO - ANTECEDENCIA_DO_PEDACO).pagina.then((doc) => Promise.all(fotosDe(doc).map((img) => fotoPronta(img)))).catch(() => undefined),
+        Math.max(0, espera - ANTECEDENCIA_DO_PEDACO),
+      );
   }
+  let relogioDoPedaco = 0;
 
   // --- A voz de quem contou ----------------------------------------------------------------------
   // Um tocador só, fora do palco, que fica de uma memória para a outra: depois que a pessoa liga o som, o
@@ -689,6 +753,7 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
   let falando = false;
   let falou = false;
   let relogioDaVoz = 0;
+  let renovando = false;
   let chegouEm = 0;
   let fila: { src: string; duracao: number | null }[] = [];
   const vozesDe = (p: HTMLElement | null): { src: string; duracao: number | null }[] => {
@@ -736,9 +801,46 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       armar();
     });
   }
+  /**
+   * O pedaço da tela venceu (correção 1 da revisão R-AB): a voz dele só toca depois de a rota de uma memória
+   * confirmar que a memória ainda entra, e com a voz que ela mandar agora. Sem resposta, a memória segue sem voz.
+   */
+  async function renovarVoz(atual: HTMLElement) {
+    const pedaco = buscar(enderecoDaVez(atual));
+    let voz: string | undefined;
+    try {
+      const chegou = (await pedaco.pagina).querySelector<HTMLElement>('[data-palco]');
+      if (chegou?.dataset.passo === atual.dataset.passo) voz = chegou.dataset.voz;
+    } catch {
+      // A memória não entra mais, ou a rede caiu: nada toca
+    }
+    if (voz) atual.dataset.voz = voz;
+    else delete atual.dataset.voz;
+    // Sem voz, a linha "A voz de …" sai da tela
+    if (!voz) atual.querySelector<HTMLElement>('[data-palco-voz]')?.remove();
+    buscadoEm.set(atual, pedaco.em);
+  }
   /** A voz da memória da tela, do começo. `logo`: no gesto de ligar o som, sem esperar. */
   function tocarVozDaVez(logo = false) {
     pararVoz();
+    const atual = palco();
+    if (atual && somLigado && !pausado && vozesDe(atual).length > 0 && vencido(atual)) {
+      // O gesto destrava o som agora, com o instante de silêncio; a voz entra quando a rota responder. Até lá,
+      // "Passar sozinho" espera
+      if (logo) {
+        destravado = true;
+        voz.src = SILENCIO;
+        voz.play().catch(() => undefined);
+      }
+      clearTimeout(relogio);
+      renovando = true;
+      void renovarVoz(atual).then(() => {
+        renovando = false;
+        if (palco() === atual && !vencido(atual)) tocarVozDaVez(logo);
+        armar();
+      });
+      return;
+    }
     fila = vozesDe(palco());
     if (!somLigado || fila.length === 0 || pausado) return void (fila = []);
     if (logo) return proximaDaFila();
@@ -797,8 +899,9 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
       clearTimeout(relogioDaVoz);
       relogioDaVoz = 0;
       voz.pause();
-    } else if (falando) voz.play().catch(() => undefined);
-    else if (!falou) tocarVozDaVez();
+    } else if (falando && !vencido(atual)) voz.play().catch(() => undefined);
+    // A voz que ficou pausada além da janela começa de novo, depois de a rota confirmar a memória
+    else if (falando || !falou) tocarVozDaVez();
     // O símbolo e o nome trocam juntos, no mesmo botão: pausado, ele diz "Retomar", com o de tocar
     trocarSimbolo(botao, pausado ? 'tocar' : 'pausar', pausado ? 'Retomar' : 'Pausar');
     atual.toggleAttribute('data-pausado', pausado);
@@ -865,6 +968,9 @@ const ligar = passar?.tempos.find((t) => t.segundos === 10) ?? passar?.tempos[0]
 
   const primeiro = palco();
   if (primeiro) {
+    // Sem "m" no endereço (a porta da sala), a página abriu no passo que o servidor escolheu: ele vai para o
+    // endereço, para o voltar e a busca de antemão saberem onde estão (correção 4 da revisão R-AB)
+    if (primeiro.dataset.passo && !new URL(location.href).searchParams.has('m')) history.replaceState(history.state, '', semPreferencias(enderecoDaVez(primeiro)));
     // O som começa como a pessoa deixou da última vez neste aparelho; sem escolha, desligado. Ligado de
     // antes, o navegador ainda pede um gesto depois de abrir a página: a primeira tecla ou o primeiro toque
     // destrava a voz, e até lá a memória passa sem ela

@@ -298,8 +298,8 @@ const TELAS = [
   ['Modo TV, uma passagem', `/explorar?ver=tv&m=${MEMORIA_CHEIA}`],
   // Desde a aplicação da E1 (causa 6), a primeira página do modo TV leva a ordem, e cada passagem pede só a
   // rota de uma memória, com as vizinhas e a posição da ordem
-  ['Modo TV, a rota de uma memória', `/explorar/palco?ver=tv&m=${MEMORIA_CHEIA}&antes=1992-chegada-do-gui&depois=1994-natal-na-vo-vivica&pos=2&de=3`],
-  ['Modo TV da sala, a rota de uma memória', `/explorar/palco?ver=tv&sala=1&m=1994-natal-na-vo-vivica&antes=1958-casamento-vivica-tonho&depois=1998-natal-com-os-primos&pos=2&de=3`],
+  ['Modo TV, a rota de uma memória', `/explorar/palco?ver=tv&m=${MEMORIA_CHEIA}&antes=1992-chegada-do-gui&depois=1994-natal-na-vo-vivica`],
+  ['Modo TV da sala, a rota de uma memória', `/explorar/palco?ver=tv&sala=1&m=1994-natal-na-vo-vivica&antes=1958-casamento-vivica-tonho&depois=1998-natal-com-os-primos`],
   ['Memória cheia (10 fotos, 6 relatos, 2 áudios)', `/memorias/${MEMORIA_CHEIA}`],
   ['Pessoa (Gui)', '/pessoas/gui'],
   ['Pessoa, linha do tempo', '/pessoas/gui?ver=linha'],
