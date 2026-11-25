@@ -1,0 +1,54 @@
+---
+// A carta na TV da sala (aplicação da E1, a carta da proposta A): "Oi, família," em tamanho de capa, um
+// parágrafo por vez, com os pontos de quantos faltam, e as assinaturas à mão no último. O texto e as
+// assinaturas são os da carta de /admin/carta; só a saudação muda. As fotos, no primeiro parágrafo, são de
+// memórias abertas a toda a família (palcoDaTv, em src/lib/servidor/tv.ts). Ver a carta na TV não conta
+// como a primeira vez de ninguém: nada aqui grava visita. O estilo está em telas/tv.css.
+import Carimbo from '../visual/Carimbo.astro';
+import Polaroid from '../visual/Polaroid.astro';
+import Rabisco from '../visual/Rabisco.astro';
+import type { CartaNoPalco } from '../../lib/servidor/tv';
+
+interface Props {
+  carta: CartaNoPalco;
+}
+
+const { carta } = Astro.props;
+const LUGARES = ['esquerda', 'frente', 'direita'];
+---
+
+<div class="cena-da-carta" data-paragrafo={carta.numero}>
+  <div class="cena-da-carta__frente">
+    <p>
+      <Carimbo itens={[`Natal de ${carta.ano}`]} />
+    </p>
+    <h1 class="cena-da-carta__saudacao">{carta.saudacao}</h1>
+    {
+      carta.fotos.length > 0 && (
+        <div class="cena-da-carta__fotos" aria-hidden="true">
+          {carta.fotos.map((m, n) => (
+            <span class={`cena-da-carta__foto cena-da-carta__foto--${LUGARES[n]}`}>
+              <Polaroid id={m.id} fotos={m.fotos} legenda={m.legenda} alt="" monte={false} cedo largura="(min-width: 1600px) 300px, (min-width: 62rem) 220px, 160px" />
+            </span>
+          ))}
+        </div>
+      )
+    }
+  </div>
+  <div class="cena-da-carta__verso">
+    <p class:list={['cena-da-carta__paragrafo serifa', { 'cena-da-carta__paragrafo--longo': carta.paragrafo.length > 160 }]}>{carta.paragrafo}</p>
+    {
+      carta.assinam.length > 0 && (
+        <p class="carta__assina cena-da-carta__assina">
+          {carta.assinam.map((n) => (
+            <span class="mao">{n}</span>
+          ))}
+          <Rabisco desenho="coracao" />
+        </p>
+      )
+    }
+    <ol class="cena-da-carta__pontos" aria-label={`Parágrafo ${carta.numero} de ${carta.de}`}>
+      {Array.from({ length: carta.de }, (_, n) => <li aria-current={n + 1 === carta.numero ? 'step' : undefined} />)}
+    </ol>
+  </div>
+</div>

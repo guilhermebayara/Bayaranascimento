@@ -1529,3 +1529,34 @@ export async function semearPedidoDeExemplo(db: D1Database): Promise<void> {
       .bind(relato.memoria_id, relato.id),
   ]);
 }
+
+// A regra da sala (aplicação da E1, decisão do Gui de 24/11/2026: exemplo permanente). Um Natal restrito à
+// família da Giovanna e do Magno: vendo como a Giovanna ou o Lucas Magno, ele aparece no Explorar e no tema
+// Natal de lá, e nunca na TV da sala ("na sala, só o que é aberto a toda a família"). Nasceu na exploração E1
+// (semearNatalRestritoDaExploracao, na prévia tst-ver-junto), e as prévias dividem o banco: por isso entra
+// uma vez só, protegido pela existência da memória, com o mesmo conteúdo de lá, inclusive o texto do relato.
+// A data de cadastro é antiga, para não virar novidade no Início de ninguém. A foto vazia vira uma das fotos
+// de exemplo, como as outras.
+export async function semearCeiaRestritaDeExemplo(db: D1Database): Promise<void> {
+  const id = '2024-ceia-so-nossa';
+  const ja = await db.prepare(`SELECT 1 AS ok FROM memorias WHERE id = ?`).bind(id).first();
+  if (ja) return;
+  await db.batch([
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO memorias (id, titulo, ano, mes, dia, aproximada, tipo, lugar, visibilidade, situacao, exemplo, criada_por, criada_em, atualizada_em)
+         VALUES (?, 'Ceia só nossa, no apartamento novo', 2024, 12, 24, 0, 'festa', 'Belo Horizonte', 'nucleos', 'publicada', 1, 'giovanna', datetime('now', '-90 days'), datetime('now', '-90 days'))`,
+      )
+      .bind(id),
+    db.prepare(`INSERT OR IGNORE INTO memoria_nucleos (memoria_id, nucleo_id) VALUES (?, 'bayara-bracarense')`).bind(id),
+    ...['giovanna', 'lucas-magno', 'chico'].map((i) => db.prepare('INSERT OR IGNORE INTO memoria_integrantes (memoria_id, integrante_id) VALUES (?, ?)').bind(id, i)),
+    db.prepare(`INSERT INTO fotos (memoria_id, chave, legenda, principal, ordem, enviada_por) VALUES (?, '', 'A mesa posta para dois', 1, 0, 'giovanna')`).bind(id),
+    db.prepare(`INSERT OR IGNORE INTO tema_memorias (tema_id, memoria_id) VALUES ('natal', ?)`).bind(id),
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO relatos (memoria_id, por, registrado_por, texto, situacao, criado_em, atualizado_em, publicado_em)
+         VALUES (?, 'giovanna', 'giovanna', ?, 'publicada', datetime('now', '-90 days'), datetime('now', '-90 days'), datetime('now', '-90 days'))`,
+      )
+      .bind(id, 'Memória de exemplo da exploração E1, restrita à família Bayara Bracarense: aparece no Explorar de quem é dela e nunca na sala.'),
+  ]);
+}

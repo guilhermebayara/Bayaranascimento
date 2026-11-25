@@ -821,3 +821,34 @@
 .avisos__historico {
   margin-top: var(--e-3);
 }
+
+/* --- O cartão "Na TV da sala" (aplicação da E1), de 24 a 26 de dezembro ---------------------------------
+   Um cartão quieto, antes do resto do Início, com as duas entradas diretas no modo TV. É um grupo à parte:
+   o Início começa depois de um espaço de grupo. */
+.porta-da-sala {
+  padding-top: var(--e-6);
+  margin-bottom: var(--e-8);
+}
+.porta-da-sala__cartao {
+  display: grid;
+  gap: var(--e-3);
+}
+.porta-da-sala__entradas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.porta-da-sala__entradas .acao {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  font-family: var(--serifa);
+  font-size: var(--t-abertura);
+}
+.porta-da-sala__entradas .acao::after {
+  content: ' →';
+  white-space: pre;
+}

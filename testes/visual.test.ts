@@ -174,7 +174,8 @@ describe('conceito', () => {
     const pagina = tela('pages/explorar.astro');
     // O rascunho de quem escreveu entra na linha do tempo e na lista (QA de 18/11/2026)
     expect(pagina).toContain('listarMemorias(usuario, { comRascunhos: true })');
-    expect(pagina).toMatch(/const contexto = await contextoDoExplorar\(usuario, todas\);\s*const resultado = explorar\(todas, filtros, contexto\);/);
+    // O modo TV tem a ordem dele (ordemDoModoTv, em src/lib/servidor/tv.ts), com a mesma regra
+    expect(pagina).toMatch(/const contexto = (modoTv \? [^\n]+ : )?await contextoDoExplorar\(usuario, todas\);\s*const resultado = explorar\(todas, filtros, contexto\);/);
     expect(pagina).not.toMatch(/usuario\.nucleos\.includes|obterMemoria/);
     // O mural, o modo TV e o sorteio usam o mesmo resultado, sem os rascunhos
     expect(pagina).toMatch(/const publicadas = resultado\.memorias\.filter/);
@@ -209,8 +210,8 @@ describe('conceito', () => {
     expect(painel).toContain('listarMemorias(usuario, { comRascunhos: true })');
     expect(painel).toMatch(/const memorias = comRascunhos\.filter\(\(m\) => m\.situacao === 'publicada'\)/);
     expect(painel).toMatch(/<Visual titulo="Início" secao="painel" familia=\{corDoPainel\} intimo>/);
-    // O dia trocado pelo endereço só vale fora da produção
-    expect(painel).toMatch(/const m = semLogin\(\) \? /);
+    // O dia trocado pelo endereço só vale fora da produção (o simulador de data, src/lib/servidor/dia-do-pedido.ts)
+    expect(painel).toMatch(/const hoje = diaSimuladoDoPedido\(Astro\.url\) \?\? hojeNoBrasil\(agora\);/);
     // A carta no alto e a de /carta são a mesma peça, com o texto do banco
     expect(painel).toContain('<Carta para=');
     expect(tela('pages/carta.astro')).toContain('<Carta para=');
@@ -434,7 +435,7 @@ describe('conceito', () => {
     expect(antes).not.toMatch(/animation(-delay)?:/);
     // A escolha da animação fica com quem está vendo, em "Ajustes", em qualquer ambiente (decisão
     // do Gui, 17/11/2026), e trocar a animação mostra de novo a chegada
-    expect(tela('pages/explorar.astro')).toMatch(/movimentos=\{forma === 'tv' && daVez \? MOVIMENTOS\.map/);
+    expect(readFileSync(new URL('../src/lib/servidor/tv.ts', import.meta.url), 'utf8')).toMatch(/movimentos: MOVIMENTOS\.map\(\(m\) => \(\{ \.\.\.m, href: naTv\(id, passar, m\.id\)! \}\)\)/);
     expect(palco).toMatch(/<details class="palco__ajustes" data-palco-ajustes>/);
     expect(palco).toMatch(/aria-current=\{m\.id === movimento \? 'true' : undefined\} data-palco-movimento/);
     // A animação só começa com as fotos prontas, na chegada pela página e em cada passagem
@@ -473,7 +474,9 @@ describe('conceito', () => {
     // aparece com script, o relógio só arma com um tempo escolhido e sem pausa, e a pausa vai no endereço
     expect(palco).toMatch(/data-palco-passar hidden>/);
     expect(palco).toMatch(/passar\.tempos\.map\(\(t\) => \(\s*<a href=\{t\.href\}/);
-    expect(palco).toMatch(/if \(segundos > 0 && !pausado && !document\.hidden\) relogio = window\.setTimeout\(\(\) => passar\(link\('depois'\)\), segundos \* 1000\)/);
+    // O relógio espera a voz de quem contou acabar (esperaDaMemoria, em src/lib/sala.ts)
+    expect(palco).toMatch(/if \(!\(segundos > 0\) \|\| pausado \|\| document\.hidden\) return;/);
+    expect(palco).toMatch(/relogio = window\.setTimeout\(\(\) => passar\(link\('depois'\)\), espera\)/);
     expect(palco).toMatch(/url\.searchParams\.set\('pausa', '1'\)/);
     // Com movimento reduzido, a troca é sem animação
     const css = ler('telas/explorar.css');
@@ -677,7 +680,8 @@ describe('grupo formularios', () => {
     // Toda página do site usa o esqueleto novo, direto ou pela página de formulário
     const paginas = Object.entries(import.meta.glob<string>('../src/pages/**/*.astro', { query: '?raw', import: 'default', eager: true }));
     expect(paginas.length).toBeGreaterThan(20);
-    for (const [caminho, texto] of paginas) expect(texto, caminho).toMatch(/layouts\/Visual\.astro'|components\/formularios\/Pagina\.astro'|Astro\.redirect\(/);
+    // A rota de uma memória do modo TV é um pedaço do palco, sem esqueleto (export const partial)
+    for (const [caminho, texto] of paginas) expect(texto, caminho).toMatch(/layouts\/Visual\.astro'|components\/formularios\/Pagina\.astro'|Astro\.redirect\(|export const partial = true;/);
   });
 
   it('as telas utilitárias e de pessoa usam as peças do sistema para o estado vazio', () => {

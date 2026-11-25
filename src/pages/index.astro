@@ -24,6 +24,10 @@ import { fontesDaFoto } from '../lib/copias-das-fotos';
 import Rabisco from '../components/visual/Rabisco.astro';
 import Recado from '../components/visual/Recado.astro';
 import Retrato from '../components/visual/Retrato.astro';
+import PortaDaSala from '../components/painel/PortaDaSala.astro';
+import { ehDiaDaSala } from '../lib/sala';
+import { diaSimuladoDoPedido } from '../lib/servidor/dia-do-pedido';
+import { enderecosDaSala } from '../lib/servidor/tv';
 import { coresDasPessoas, familiaMaisRecente } from '../lib/familias';
 import { enderecoDoRascunhoDeRelato, fraseDoRascunho, seusRascunhos } from '../lib/conta';
 import {
@@ -163,12 +167,9 @@ const verbo = novo.memorias.length + novo.relatos.length > 1 ? 'Entraram' : 'Ent
 
 // --- O dia de hoje ----------------------------------------------------------------------------
 // Fora da produção, "?hoje=2026-12-24" mostra o painel como num outro dia, para conferir os
-// aniversários e o "Neste dia, em outros anos" (e para as capturas saírem sempre iguais).
-function diaPedido(): Dia | undefined {
-  const m = semLogin() ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(Astro.url.searchParams.get('hoje') ?? '') : null;
-  return m ? { ano: Number(m[1]), mes: Number(m[2]), dia: Number(m[3]) } : undefined;
-}
-const hoje = diaPedido() ?? hojeNoBrasil(agora);
+// aniversários, o "Neste dia, em outros anos" e o cartão "Na TV da sala" (e para as capturas saírem
+// sempre iguais). Na produção, o simulador nunca responde (diaSimuladoDoPedido).
+const hoje = diaSimuladoDoPedido(Astro.url) ?? hojeNoBrasil(agora);
 const ultimaVisita = chegada.novidadesDesde ? hojeNoBrasil(new Date(`${chegada.novidadesDesde.replace(' ', 'T')}Z`)) : undefined;
 
 // --- Os próximos aniversários (30 dias) ------------------------------------------------------------
@@ -213,6 +214,12 @@ const composicao = composicaoDoInicio({
 });
 
 const cartaNoAlto = chegada.cartaNoAlto && carta && eu;
+
+// --- A TV da sala (aplicação da E1) --------------------------------------------------------------
+// De 24 a 26 de dezembro, no fuso de São Paulo, o cartão "Na TV da sala", com as duas entradas no modo TV;
+// a carta ganha "Ver na TV" o ano todo. As duas seguem a regra da sala (enderecosDaSala).
+const sala = await enderecosDaSala();
+const diaDaSala = ehDiaDaSala(hoje);
 // Os avisos ficam no alto, junto das novidades (docs/decisoes.md, "Avisos")
 const avisos = cartaNoAlto ? [] : avisosDaLista;
 const ok = Astro.url.searchParams.get('ok');
@@ -232,8 +239,15 @@ const erro = Astro.url.searchParams.get('erro');
   }
   {
     // Na primeira visita, só a carta. "Abrir o acervo" traz ao Início normal, e a carta vira o link discreto (P14, P15)
-    cartaNoAlto && <Carta para={usuario.nome} carta={carta} fotos={minhas.filter((m) => m.fotos.length > 0)} acao={{ href: '/', texto: 'Abrir o acervo' }} />
+    cartaNoAlto && (
+      <Carta para={usuario.nome} carta={carta} fotos={minhas.filter((m) => m.fotos.length > 0)} acao={{ href: '/', texto: 'Abrir o acervo' }}>
+        <a class="acao" href={sala.natais}>
+          Ver na TV
+        </a>
+      </Carta>
+    )
   }
+  {!cartaNoAlto && diaDaSala && <PortaDaSala natais={sala.natais} todas={sala.todas} />}
   {
     !cartaNoAlto && (
       <section class="novo miolo grade" aria-labelledby="ola">

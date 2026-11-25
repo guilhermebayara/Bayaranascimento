@@ -17,18 +17,41 @@ import Linha from '../components/explorar/Linha.astro';
 import Lista from '../components/explorar/Lista.astro';
 import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
-import { SEM_FILTRO, TEMPOS_DE_PASSAR, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, MOVIMENTOS, lerForma, lerMovimento, lerPassar, lerTamanho, lerFotosDoMural, mostraRascunho, movimentoNoEndereco, passarNoEndereco, filtrosLigados, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo, vizinhasNaLista, type Passar } from '../lib/explorar';
+import PalcoDaTv from '../components/explorar/PalcoDaTv.astro';
+import { SEM_FILTRO, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, lerForma, lerPassar, lerTamanho, lerFotosDoMural, mostraRascunho, filtrosLigados, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo } from '../lib/explorar';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { parentescosDeQuemOlha } from '../lib/servidor/parentesco-de-quem-olha';
 import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
 import { assinaturaDaTela, trechoDoRelato } from '../lib/visual';
+import { ordemDoModoTv, palcoDaTv } from '../lib/servidor/tv';
+import { naSala, posicaoNaOrdem, vizinhasNaOrdem } from '../lib/sala';
 
 const { usuario, tipos } = Astro.locals;
 const parametros = Astro.url.searchParams;
 const forma = lerForma(parametros);
 const tamanho = lerTamanho(parametros);
 const fotosDoMural = lerFotosDoMural(parametros);
-const [nucleos, todas, integrantes, capitulos, temas] = await Promise.all([
+
+// O modo TV (aplicação da E1 e causa 6 da medição M1): a primeira página lê a ordem uma vez, só com o que
+// entra (os filtros, quem vê o quê e, com o marcador da sala, só o que é aberto a toda a família), e manda
+// os ids junto com o palco da memória da vez. As passagens seguintes pedem uma memória só à rota do palco
+// (src/pages/explorar/palco.astro). Abrir o endereço de uma memória direto continua funcionando por aqui.
+const modoTv =
+  forma === 'tv'
+    ? await (async () => {
+        const { filtros, memorias, ordem } = await ordemDoModoTv(usuario, parametros, tipos);
+        const pedida = parametros.get('m');
+        const id = pedida && ordem.includes(pedida) ? pedida : ordem[0];
+        const vizinhas = id ? vizinhasNaOrdem(ordem, id, lerPassar(parametros).tempo !== null) : undefined;
+        const palco = id
+          ? await palcoDaTv({ usuario, parametros, filtros, memoria: memorias.find((m) => m.id === id), antes: vizinhas?.antes, depois: vizinhas?.depois, posicao: posicaoNaOrdem(ordem, id) })
+          : undefined;
+        const voltar = naSala(parametros) ? '/' : enderecoDoExplorar(filtros);
+        return { ordem, palco, voltar, limpar: temFiltro(filtros) ? enderecoDoExplorar({ ...SEM_FILTRO, ordem: filtros.ordem }, 'tv') : voltar };
+      })()
+    : undefined;
+
+const [nucleos, todas, integrantes, capitulos, temas] = modoTv ? [[], [], [], [], []] : await Promise.all([
   listarNucleos(),
   // O rascunho de quem escreveu entra na linha do tempo e na lista; o mural, o modo TV e o sorteio usam
   // só as publicadas (abaixo)
@@ -49,7 +72,7 @@ const filtros = soFiltrosConhecidos(lerFiltros(parametros), {
   capitulos: new Set(capitulos.map((c) => c.id)),
   temas: new Set(temas.map((t) => t.id)),
 });
-const contexto = await contextoDoExplorar(usuario, todas);
+const contexto = modoTv ? { eu: usuario.pessoa, doCapitulo: () => false, comAudio: new Set<string>(), contaram: new Map() } : await contextoDoExplorar(usuario, todas);
 const resultado = explorar(todas, filtros, contexto);
 const nomeDe = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome;
 
@@ -68,18 +91,9 @@ if (forma === 'acaso' && publicadas.length > 0 && (!daVez || parametros.has('out
   const sorteada = sortear(publicadas, parametros.get('outra'))!;
   return Astro.redirect(enderecoDoExplorar(filtros, 'acaso', { m: sorteada.id }), 302);
 }
-if (forma === 'tv') daVez ??= publicadas[0];
 const noPalco = forma === 'tv' || forma === 'acaso';
-// "Passar sozinho": o tempo escolhido e a pausa ficam no endereço e seguem de uma memória para a outra
-const passar = lerPassar(parametros);
-const vizinhas = daVez ? vizinhasNaLista(publicadas, daVez.id) : undefined;
-// O movimento do modo TV: três versões para o Gui escolher, pela faixa do alto das prévias
-const movimento = lerMovimento(parametros);
-const naTv = (id: string | undefined, estado: Passar = passar, mov = movimento) =>
-  id ? enderecoDoExplorar(filtros, 'tv', { m: id, ...passarNoEndereco(estado), ...movimentoNoEndereco(mov) }) : undefined;
-// Com "Passar sozinho" ligado, a última leva de volta à primeira
-const seguinte = forma === 'tv' ? (vizinhas?.depois ?? (passar.tempo !== null && publicadas.length > 1 ? publicadas[0] : undefined)) : undefined;
-const relatoDaVez = daVez && noPalco ? (await listarRelatos(usuario, daVez.id)).find((r) => r.situacao === 'publicada' && r.texto.trim()) : undefined;
+// O "ao acaso" mostra o trecho do primeiro relato publicado com texto; o modo TV monta o dele em palcoDaTv
+const relatoDaVez = daVez && forma === 'acaso' ? (await listarRelatos(usuario, daVez.id)).find((r) => r.situacao === 'publicada' && r.texto.trim()) : undefined;
 
 // As opções dos filtros: só o que existe no que a pessoa vê
 const decadaDe = (ano: number) => Math.floor(ano / 10) * 10;
@@ -87,7 +101,7 @@ const tiposPresentes = tipos.filter((t) => todas.some((m) => m.tipo === t.id)).m
 const presentes = new Set(todas.flatMap((m) => m.integrantes));
 const naLista = integrantes.filter((i) => presentes.has(i.id));
 // Cada nome com o que a pessoa é para quem olha ("sua mãe"), pela regra de Pessoas (críticas C1 e C2)
-const parentescos = await parentescosDeQuemOlha(usuario, naLista);
+const parentescos = modoTv ? new Map<string, string>() : await parentescosDeQuemOlha(usuario, naLista);
 const pessoas = naLista.map((i) => ({ id: i.id, nome: i.apelido ?? i.nome, parentesco: parentescos.get(i.id) })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 const ligados = filtrosLigados(filtros, {
   tipo: (id) => tipos.find((t) => t.id === id)?.rotulo,
@@ -105,27 +119,23 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
 
 <Visual titulo={titulo} secao="explorar" nucleos={filtros.familias} palco={forma === 'tv'}>
   {
-    noPalco && (
+    modoTv && (
+      <>
+        {modoTv.palco ? <PalcoDaTv palco={modoTv.palco} /> : <Palco modo="tv" sair={modoTv.voltar} limpar={modoTv.limpar} />}
+        {/* A ordem do modo TV, só os ids, para o palco passar sem pedir a lista de novo */}
+        <script type="application/json" data-ordem-da-tv set:html={JSON.stringify(modoTv.ordem).replace(/</g, '\\u003c')} />
+      </>
+    )
+  }
+  {
+    forma === 'acaso' && (
       <Palco
-        modo={forma === 'tv' ? 'tv' : 'acaso'}
+        modo="acaso"
         memoria={daVez}
-        trecho={relatoDaVez && { texto: trechoDoRelato(relatoDaVez.texto, forma === 'tv' ? 220 : 150), por: nomeDe(relatoDaVez.por) ?? '' }}
+        trecho={relatoDaVez && { texto: trechoDoRelato(relatoDaVez.texto, 150), por: nomeDe(relatoDaVez.por) ?? '' }}
         nomes={daVez?.integrantes.map(nomeDe).filter((n): n is string => Boolean(n))}
-        posicao={forma === 'tv' && vizinhas ? `${vizinhas.posicao + 1} de ${publicadas.length}` : undefined}
-        movimento={movimento}
-        movimentos={forma === 'tv' && daVez ? MOVIMENTOS.map((m) => ({ ...m, href: naTv(daVez.id, passar, m.id)! })) : undefined}
-        antes={naTv(vizinhas?.antes?.id)}
-        depois={forma === 'tv' ? naTv(seguinte?.id) : publicadas.length > 1 && daVez ? enderecoDoExplorar(filtros, 'acaso', { outra: daVez.id }) : undefined}
+        depois={publicadas.length > 1 && daVez ? enderecoDoExplorar(filtros, 'acaso', { outra: daVez.id }) : undefined}
         sair={daVez ? `${voltar}#${ancoraDaMemoria(daVez.id)}` : voltar}
-        passar={
-          forma === 'tv' && daVez && publicadas.length > 1
-            ? {
-                ...passar,
-                tempos: TEMPOS_DE_PASSAR.map((segundos) => ({ segundos, href: naTv(daVez.id, { tempo: segundos, pausado: false })! })),
-                parar: naTv(daVez.id, { tempo: null, pausado: false })!,
-              }
-            : undefined
-        }
         limpar={limpar ?? voltar}
       />
     )

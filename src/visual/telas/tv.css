@@ -1,8 +1,9 @@
 /*
- * O modo TV a partir de 62rem: a barra (proposta A da sessão X, escolhida pelo Gui em 22/11/2026,
- * com as respostas do mesmo dia: o material do site, o cartão branco, e a lógica de interface de TV).
- * A marcação é a de src/components/explorar/Palco.astro; abaixo de 62rem, o modo TV é o de antes,
- * em telas/explorar.css.
+ * O modo TV a partir de 62rem e em toda janela deitada: a barra (proposta A da sessão X, escolhida pelo
+ * Gui em 22/11/2026, com as respostas do mesmo dia: o material do site, o cartão branco, e a lógica de
+ * interface de TV). A janela deitada abaixo de 62rem (o celular espelhado na TV ou virado para mostrar)
+ * entrou na aplicação da E1, com a unidade própria no fim deste arquivo. A marcação é a de
+ * src/components/explorar/Palco.astro; abaixo de 62rem, em pé, o modo TV é o de antes, em telas/explorar.css.
  *
  * - A tela não rola: o palco tem a altura exata da janela, e os controles são absolutos dentro dele,
  *   sem fixed nem sticky.
@@ -20,7 +21,9 @@
  * seletores levam o prefixo .palco.palco--tv[data-palco] para vencer as regras de lá e as das peças.
  */
 
-@media (min-width: 62rem) {
+/* A barra vale também na janela deitada abaixo de 62rem. Ali a unidade é outra (no fim deste arquivo),
+   para o toque continuar com 44 px. */
+@media (min-width: 62rem), (orientation: landscape) {
   /* A unidade. No modo TV, 1rem deixa de ser o do navegador e passa a ser um pedaço da janela:
      1/80 da largura ou 1/45 da altura, o que for menor. Dá 16 px em 1280 × 720 e 24 px em
      1920 × 1080. Tudo o que o sistema mede em rem (tokens, peças, toque) cresce junto, e a tela
@@ -419,5 +422,154 @@
   .palco.palco--tv[data-palco][data-so-fotos] :is(.palco__ajuste, .palco__opcoes) {
     justify-items: start;
     justify-content: start;
+  }
+
+  /* --- A voz e a carta da sala (aplicação da E1) ------------------------------------------------ */
+
+  .palco.palco--tv[data-palco] .palco__voz {
+    font-size: var(--tv-leitura);
+  }
+  /* A carta: a saudação e as fotos à esquerda, o parágrafo à direita, grande, acima da barra */
+  .palco.palco--tv[data-palco] .palco__cena--especial {
+    grid-template-areas: none;
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta {
+    grid-area: 1 / 1 / 2 / -1;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--calha);
+    align-items: center;
+    align-self: stretch;
+    min-height: 0;
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__frente {
+    grid-column: 1 / 7;
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__verso {
+    grid-column: 7 / -1;
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__saudacao {
+    font-size: 6.5rem;
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__fotos {
+    width: min(100%, 22rem);
+    margin-top: var(--e-4);
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__paragrafo {
+    max-width: none;
+    font-size: 2.2rem;
+    line-height: 1.22;
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__paragrafo--longo {
+    font-size: 1.75rem;
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__assina .mao {
+    font-size: calc(2.4rem * var(--escala-mao));
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__pontos li {
+    width: 0.6rem;
+    height: 0.6rem;
+  }
+}
+
+/* --- A janela deitada abaixo de 62rem (aplicação da E1) -------------------------------------------
+   O celular deitado (844 × 390) e toda janela mais larga que alta abaixo de 62rem usam a barra, com a
+   tela que não rola. A unidade é 1/52 da largura ou 1/24 da altura, o que for menor: 16,2 px em
+   844 × 390, para o toque continuar com 44 px (--toque, 2,75rem). A tela desenhada para 80 × 45rem
+   passa a caber em 52 × 24rem: o alto e o pé encolhem, a foto desce de tamanho e o texto um degrau. */
+@media (max-width: 61.99rem) and (orientation: landscape) {
+  html:has(.palco--tv) {
+    font-size: min(100vw / 52, 100svh / 24);
+  }
+  .palco.palco--tv[data-palco] {
+    --tv-topo: 2.75rem;
+    --tv-respiro: 1rem;
+    --tv-leitura: 0.95rem;
+    --tv-controle: 0.85rem;
+  }
+  /* A barra fica embaixo da foto, à esquerda, e o texto ganha a altura inteira da coluna dele. A folha
+     de "Ajustes" sobe da ponta esquerda da barra, e o botão que traz os controles de volta fica no
+     mesmo canto, para o nome dele não cobrir o texto. A carta da sala continua acima da barra. */
+  .palco.palco--tv[data-palco] .palco__cena {
+    padding-bottom: var(--e-3);
+  }
+  .palco.palco--tv[data-palco] .palco__cena--especial {
+    padding-bottom: var(--tv-pe);
+  }
+  .palco.palco--tv[data-palco] .palco__fotos {
+    align-self: start;
+    margin-top: var(--e-1);
+  }
+  .palco.palco--tv[data-palco] .palco__controles {
+    inset: auto auto var(--tv-barra-pe) var(--margem);
+    translate: none;
+  }
+  .palco.palco--tv[data-palco] .palco__controles .palco__ajustes[open] .palco__partes {
+    inset: auto auto calc(100% + var(--e-2)) 0;
+    translate: none;
+  }
+  .palco.palco--tv[data-palco][data-oculto] .palco__reexibir:not([hidden]) {
+    right: auto;
+    left: var(--margem);
+  }
+  .palco.palco--tv[data-palco] .palco__reexibir .botao-simbolo__nome {
+    left: 0;
+    right: auto;
+  }
+  /* O texto cabe entre o alto e o pé: o título em até duas linhas, o trecho em até duas, quem
+     estava numa só. Com a voz de alguém, ela fica no lugar de "Com…", que está na página da memória. */
+  .palco.palco--tv[data-palco] .palco__texto {
+    gap: var(--e-2);
+  }
+  .palco.palco--tv[data-palco] .palco__texto > p:first-child .carimbo {
+    font-size: var(--tv-controle);
+  }
+  .palco.palco--tv[data-palco] .palco__titulo {
+    -webkit-line-clamp: 2;
+    font-size: 2.15rem;
+  }
+  .palco.palco--tv[data-palco] .palco__titulo[data-degrau='2'] {
+    -webkit-line-clamp: 2;
+    font-size: 1.7rem;
+  }
+  .palco.palco--tv[data-palco] .palco__titulo[data-degrau='3'] {
+    -webkit-line-clamp: 3;
+    font-size: 1.3rem;
+  }
+  .palco.palco--tv[data-palco] .palco__trecho > p,
+  .palco.palco--tv[data-palco] .palco__trecho[data-degrau='2'] > p {
+    -webkit-line-clamp: 2;
+    font-size: 1.05rem;
+  }
+  .palco.palco--tv[data-palco] .palco__trecho footer {
+    margin-top: 0;
+  }
+  .palco.palco--tv[data-palco] .palco__trecho .mao {
+    font-size: 1.25rem;
+  }
+  .palco.palco--tv[data-palco] .palco__texto > .ficha {
+    -webkit-line-clamp: 1;
+  }
+  .palco.palco--tv[data-palco] .palco__texto:has(.palco__voz) > .ficha.suave {
+    display: none;
+  }
+  /* A carta: um degrau abaixo, para caber sem rolar. Em 667 × 375, o parágrafo grande ainda cabe em seis
+     linhas; a carta numa tela só, a reserva da exploração, não foi preciso. */
+  .palco.palco--tv[data-palco] .cena-da-carta__saudacao {
+    font-size: 4rem;
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__paragrafo {
+    font-size: 1.4rem;
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__paragrafo--longo {
+    font-size: 1.15rem;
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__fotos {
+    width: min(100%, 10rem);
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta :is(.cena-da-carta__verso, .cena-da-carta__frente) {
+    gap: var(--e-2);
+  }
+  .palco.palco--tv[data-palco] .cena-da-carta__assina .mao {
+    font-size: calc(1.5rem * var(--escala-mao));
   }
 }

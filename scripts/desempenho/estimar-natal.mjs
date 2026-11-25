@@ -16,9 +16,11 @@
 // - Cada pessoa vê 150 fotos e 20 retratos diferentes no dia, cada um uma vez: as fotos ficam guardadas
 //   no aparelho por 7 dias (decisão do Gui de 23/11, da sessão D1b). Sem essa guarda, cada foto vista de
 //   novo voltaria ao servidor.
-// - Uma hora de modo TV na sala, passando sozinho a cada 10 segundos: 360 memórias, cada uma uma página do
-//   modo TV (a busca de antemão pede a seguinte, que é a próxima a passar) e as fotos dela (uma por passagem,
-//   em média, já que as outras ficam guardadas na TV), como quem liga a TV, que é uma das 7.
+// - Uma hora de modo TV na sala, passando sozinho a cada 10 segundos: 360 memórias, como quem liga a TV, que é
+//   uma das 7. Desde a aplicação da E1 (causa 6), a TV da sala abre uma vez a página do modo TV com a ordem
+//   (`sala=1`) e cada passagem pede só a rota de uma memória (/explorar/palco, a busca de antemão pede a
+//   seguinte, que é a próxima a passar), mais as fotos dela (uma por passagem, em média, já que as outras
+//   ficam guardadas na TV) e, numa de cada três passagens, a voz de quem contou (VOZES_POR_PASSAGEM).
 // - O que não entra: o começo de cada processo do servidor (migrações e exemplos, causa 9), gravações (as
 //   linhas lidas por quem grava memória, relato ou reação no dia) e o "Ver como" das prévias.
 const BASE = 'http://127.0.0.1:4321';
@@ -43,7 +45,8 @@ const PAGINAS_POR_PESSOA = [
 const FOTOS_POR_PESSOA = 150;
 const RETRATOS_POR_PESSOA = 20;
 const PASSAGENS_DO_MODO_TV = 360;
-const MODO_TV = '/explorar?ver=tv';
+const MODO_TV = '/explorar?ver=tv&sala=1';
+const VOZES_POR_PASSAGEM = 1 / 3;
 
 async function consultar(sql, params) {
   const r = await fetch(`${API}/local/observability/query`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sql, params }) });
@@ -95,11 +98,19 @@ for (const { como, quantas, quem } of PESSOAS) {
   partes.push({ parte: `Páginas de ${quantas} ${quem}`, linhas: paginas * quantas });
   partes.push({ parte: `Fotos e retratos de ${quantas} ${quem}`, linhas: (porFoto * FOTOS_POR_PESSOA + porRetrato * RETRATOS_POR_PESSOA) * quantas });
 }
-const porPassagem = await linhasDe(MODO_TV, 'gui');
+// A primeira página do modo TV da sala, com a ordem, e uma passagem do meio da ordem pela rota de uma memória
+const primeira = await linhasDe(MODO_TV, 'gui');
+const pagina = await (await fetch(`${BASE}${MODO_TV}`, { headers: { cookie: 'como=gui' } })).text();
+const ordem = JSON.parse(/data-ordem-da-tv>([^<]*)</.exec(pagina)?.[1] ?? '[]');
+const meio = Math.floor(ordem.length / 2);
+const passagem = `/explorar/palco?ver=tv&sala=1&m=${ordem[meio]}&antes=${ordem[meio - 1]}&depois=${ordem[meio + 1]}&pos=${meio + 1}&de=${ordem.length}`;
+const porPassagem = ordem.length > 2 ? await linhasDe(passagem, 'gui') : primeira;
 const { foto } = await arquivos('gui');
 const fotoDaTv = foto ? await linhasDe(foto, 'gui') : 0;
-console.log(`  gui      ${'modo TV, uma passagem'.padEnd(30)} ${formatar(porPassagem).padStart(8)} linhas + uma foto (${formatar(fotoDaTv)}) × ${PASSAGENS_DO_MODO_TV}`);
-partes.push({ parte: `Uma hora de modo TV (${PASSAGENS_DO_MODO_TV} passagens)`, linhas: (porPassagem + fotoDaTv) * PASSAGENS_DO_MODO_TV });
+const vozDaTv = await linhasDe('/audios/exemplos/vo-bela-canja.m4a', 'gui');
+console.log(`  gui      ${'modo TV, a primeira página'.padEnd(30)} ${formatar(primeira).padStart(8)} linhas × 1`);
+console.log(`  gui      ${'modo TV, uma passagem'.padEnd(30)} ${formatar(porPassagem).padStart(8)} linhas + uma foto (${formatar(fotoDaTv)}) + 1/3 de voz (${formatar(vozDaTv)}) × ${PASSAGENS_DO_MODO_TV}`);
+partes.push({ parte: `Uma hora de modo TV (${PASSAGENS_DO_MODO_TV} passagens)`, linhas: primeira + (porPassagem + fotoDaTv + vozDaTv * VOZES_POR_PASSAGEM) * PASSAGENS_DO_MODO_TV });
 
 const total = partes.reduce((s, p) => s + p.linhas, 0);
 console.log('\nO dia 25, com o acervo cheio:');

@@ -1,6 +1,7 @@
 // A conferência do modo TV a partir de 62rem: a barra (proposta A da sessão X, escolhida pelo Gui em
 // 22/11/2026, com os símbolos de TV e o ocultar). Abre todas as memórias que o modo TV mostra, mais
-// as que vierem em TV_MAIS (a de estresse, criada só no banco local), em cinco janelas, com "Ajustes"
+// as que vierem em TV_MAIS (a de estresse, criada só no banco local), em cinco janelas e nas três
+// deitadas do celular (aplicação da E1), com "Ajustes"
 // fechado e aberto, com "Só as fotos" e com os controles ocultos. Em cada estado confere:
 //
 //   1. a página não rola;
@@ -37,7 +38,8 @@ function playwright() {
 }
 
 const base = (process.argv[2] ?? 'http://localhost:4400').replace(/\/$/, '');
-const JANELAS = (process.env.TV_JANELAS ?? '1280x720,1280x800,1366x768,1440x900,1920x1080').split(',').map((j) => j.split('x').map(Number));
+// As janelas deitadas abaixo de 62rem (o celular espelhado na TV) entram na conferência
+const JANELAS = (process.env.TV_JANELAS ?? '1280x720,1280x800,1366x768,1440x900,1920x1080,844x390,932x430,667x375').split(',').map((j) => j.split('x').map(Number));
 const MAIS = (process.env.TV_MAIS ?? '').split(',').filter(Boolean);
 const SO = (process.env.TV_SO ?? '').split(',').filter(Boolean);
 

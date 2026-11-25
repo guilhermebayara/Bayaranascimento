@@ -5,6 +5,7 @@ import Visual from '../layouts/Visual.astro';
 import Carta from '../components/Carta.astro';
 import Vazio from '../components/visual/Vazio.astro';
 import { listarIntegrantes, listarMemorias, obterCarta } from '../lib/servidor/repositorio';
+import { enderecosDaSala } from '../lib/servidor/tv';
 
 const { usuario } = Astro.locals;
 const carta = await obterCarta();
@@ -13,12 +14,17 @@ const eu = (await listarIntegrantes()).find((i) => i.id === usuario.pessoa);
 const fotos = carta
   ? (await listarMemorias(usuario)).filter((m) => m.situacao === 'publicada' && m.integrantes.includes(usuario.pessoa) && m.fotos.length > 0).reverse().slice(0, 3)
   : [];
+// "Ver na TV" (aplicação da E1): a mesma entrada "A carta e os Natais" do cartão do Início, com a regra da sala
+const naTv = carta ? (await enderecosDaSala()).natais : undefined;
 ---
 
 <Visual titulo="Carta de Natal" secao="painel" familia="tudo">
   {
     carta && eu ? (
       <Carta para={usuario.nome} carta={carta} fotos={fotos} acao={{ href: '/', texto: 'Voltar ao início', quieta: true }}>
+        <a class="acao" href={naTv}>
+          Ver na TV
+        </a>
         {usuario.admin && (
           <a class="acao acao--quieta" href="/admin/carta">
             Editar a carta

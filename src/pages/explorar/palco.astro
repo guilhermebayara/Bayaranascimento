@@ -1,0 +1,34 @@
+---
+// A rota de uma memória do modo TV (causa 6 da medição M1; aplicação da E1). A cada passagem, o palco pede
+// aqui o pedaço do palco de uma memória só, em vez de montar o Explorar inteiro: lê a memória, os relatos e
+// os áudios dela, e nada do resto do acervo.
+//
+// O que entra é decidido de novo aqui, a cada pedido (palcoDaTv, em src/lib/servidor/tv.ts): a memória
+// precisa estar entre as publicadas que a pessoa vê e, com o marcador da sala, ser aberta a toda a família;
+// o trecho e a voz só saem de relato publicado que não espera ninguém. A memória que não entra recebe a mesma
+// resposta que a que não existe. O navegador manda só o id da vez e, da ordem que o servidor já mandou, as
+// vizinhas e a posição, que viram links e o "3 de 48" do alto: links que, seguidos, são conferidos de novo.
+//
+// Sem script, ou abrindo o endereço de uma memória, vale a página do Explorar (`/explorar?ver=tv&m=...`).
+import PalcoDaTv from '../../components/explorar/PalcoDaTv.astro';
+import { idValido } from '../../lib/sala';
+import { palcoDaTv } from '../../lib/servidor/tv';
+
+export const partial = true;
+
+const { usuario } = Astro.locals;
+const p = Astro.url.searchParams;
+const numero = (valor: string | null) => (valor && /^[1-9]\d{0,4}$/.test(valor) ? Number(valor) : undefined);
+const pos = numero(p.get('pos'));
+const de = numero(p.get('de'));
+const palco = await palcoDaTv({
+  usuario,
+  parametros: p,
+  antes: idValido(p.get('antes')) ? p.get('antes') : undefined,
+  depois: idValido(p.get('depois')) ? p.get('depois') : undefined,
+  posicao: pos && de && pos <= de ? { posicao: pos, de } : undefined,
+});
+if (!palco) return new Response('Não encontrada.', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store' } });
+---
+
+<PalcoDaTv palco={palco} />

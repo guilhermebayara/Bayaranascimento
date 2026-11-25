@@ -33,7 +33,8 @@ describe('críticas C1 e C2: os pontos pequenos', () => {
 
   it('Explorar: no filtro "Quem estava junto", cada nome traz o parentesco de quem olha', () => {
     const pagina = tela('pages/explorar.astro');
-    expect(pagina).toContain('const parentescos = await parentescosDeQuemOlha(usuario, naLista);');
+    // O modo TV não mostra os filtros: ali, nada é lido
+    expect(pagina).toMatch(/const parentescos = (modoTv \? new Map<string, string>\(\) : )?await parentescosDeQuemOlha\(usuario, naLista\);/);
     expect(pagina).toMatch(/parentesco: parentescos\.get\(i\.id\)/);
     expect(tela('components/explorar/Controles.astro')).toMatch(/<small class="escolha__parentesco suave">\{o\.parentesco\}<\/small>/);
   });

@@ -33,6 +33,9 @@ export const SIMBOLOS = [
   },
   { id: 'mostrar', nome: 'Mostrar', desenho: '<path d="M3 12c2.2-4 5.2-6 9-6s6.8 2 9 6c-2.2 4-5.2 6-9 6s-6.8-2-9-6z"/><circle cx="12" cy="12" r="2.6"/>' },
   { id: 'ocultar', nome: 'Ocultar', desenho: '<path d="M3 12c2.2-4 5.2-6 9-6s6.8 2 9 6c-2.2 4-5.2 6-9 6s-6.8-2-9-6z"/><circle cx="12" cy="12" r="2.6"/><path d="M4.5 4.5l15 15"/>' },
+  // O som da voz de quem contou, no modo TV (aplicação da E1)
+  { id: 'som', nome: 'Som', desenho: '<path d="M3.5 9.5h3.5l5-4v13l-5-4H3.5z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>' },
+  { id: 'sem-som', nome: 'Sem som', desenho: '<path d="M3.5 9.5h3.5l5-4v13l-5-4H3.5z"/><path d="M15.5 9.5l5 5"/><path d="M20.5 9.5l-5 5"/>' },
 ] as const satisfies readonly Simbolo[];
 
 export type IdDoSimbolo = (typeof SIMBOLOS)[number]['id'];

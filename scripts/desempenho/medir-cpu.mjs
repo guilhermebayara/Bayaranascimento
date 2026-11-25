@@ -65,6 +65,8 @@ const fases = arg('--fase', 'paginas,pesadas,gravacoes,espelho,comeco').split(',
 const PORTA_DO_INSPETOR = 9231;
 const PESSOAS = arg('--pessoas', 'gui,giovanna,lucas-magno,elizete').split(',');
 const MEMORIA_CHEIA = arg('--memoria', 'carga-0478');
+// --so "Modo TV": só as telas cujo nome passa na expressão (sessão AB, para medir uma tela só)
+const SO = arg('--so') ? new RegExp(arg('--so')) : null;
 
 // --- O servidor e o inspetor ---
 
@@ -294,6 +296,10 @@ const TELAS = [
   ['Explorar, filtro de tipo', '/explorar?tipo=festa'],
   ['Me mostre uma memória', `/explorar?ver=acaso&m=${MEMORIA_CHEIA}`],
   ['Modo TV, uma passagem', `/explorar?ver=tv&m=${MEMORIA_CHEIA}`],
+  // Desde a aplicação da E1 (causa 6), a primeira página do modo TV leva a ordem, e cada passagem pede só a
+  // rota de uma memória, com as vizinhas e a posição da ordem
+  ['Modo TV, a rota de uma memória', `/explorar/palco?ver=tv&m=${MEMORIA_CHEIA}&antes=1992-chegada-do-gui&depois=1994-natal-na-vo-vivica&pos=2&de=3`],
+  ['Modo TV da sala, a rota de uma memória', `/explorar/palco?ver=tv&sala=1&m=1994-natal-na-vo-vivica&antes=1958-casamento-vivica-tonho&depois=1998-natal-com-os-primos&pos=2&de=3`],
   ['Memória cheia (10 fotos, 6 relatos, 2 áudios)', `/memorias/${MEMORIA_CHEIA}`],
   ['Pessoa (Gui)', '/pessoas/gui'],
   ['Pessoa, linha do tempo', '/pessoas/gui?ver=linha'],
@@ -314,7 +320,7 @@ async function fasePaginas() {
   console.log(`Primeiro pedido do servidor (prévia, banco já preparado antes): ${r1(comeco.cpu_ms)} ms`);
   const paginas = [];
   for (const pessoa of PESSOAS) {
-    for (const [nome, caminho] of TELAS) paginas.push({ pessoa, caminho, ...(await mede(`${pessoa}: ${nome}`, async () => so(await pedir(caminho, { como: pessoa })))) });
+    for (const [nome, caminho] of TELAS.filter(([nome]) => !SO || SO.test(nome))) paginas.push({ pessoa, caminho, ...(await mede(`${pessoa}: ${nome}`, async () => so(await pedir(caminho, { como: pessoa })))) });
   }
   // Os arquivos: cada foto e cada retrato que a tela mostra também é um pedido ao Worker
   const memoria = (await pedir(`/memorias/${MEMORIA_CHEIA}`)).buffer.toString();

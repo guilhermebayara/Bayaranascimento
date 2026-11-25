@@ -17,7 +17,7 @@ describe('a carta na primeira visita (P14, P15)', () => {
     expect(primeira.cartaNoAlto).toBe(true);
     expect(chegarAoPainel(primeira.registro, new Date(natal.getTime() + 60 * 1000), true).cartaNoAlto).toBe(false);
     const inicio = ler('src/pages/index.astro');
-    expect(inicio).toMatch(/cartaNoAlto && <Carta .*acao=\{\{ href: '\/', texto: 'Abrir o acervo' \}\}/);
+    expect(inicio).toMatch(/cartaNoAlto && \(?\s*<Carta .*acao=\{\{ href: '\/', texto: 'Abrir o acervo' \}\}/);
     // Com a carta na tela, o painel não vem embaixo
     expect(inicio.match(/!cartaNoAlto && \(/g)?.length).toBe(3);
   });

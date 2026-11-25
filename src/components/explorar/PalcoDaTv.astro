@@ -1,0 +1,35 @@
+---
+// O palco do modo TV montado no servidor (palcoDaTv, em src/lib/servidor/tv.ts): o mesmo para a primeira
+// página do modo TV (src/pages/explorar.astro) e para a rota de uma memória, que o navegador pede a cada
+// passagem (src/pages/explorar/palco.astro). Aqui só se desenha o que o servidor já decidiu.
+import Palco from './Palco.astro';
+import CartaNaTv from './CartaNaTv.astro';
+import type { PalcoDaTv } from '../../lib/servidor/tv';
+
+interface Props {
+  palco: PalcoDaTv;
+}
+
+const { palco } = Astro.props;
+---
+
+<Palco
+  modo="tv"
+  memoria={palco.memoria}
+  trecho={palco.trecho}
+  voz={palco.voz}
+  nomes={palco.nomes}
+  linha={palco.linha}
+  movimento={palco.movimento}
+  movimentos={palco.movimentos}
+  antes={palco.antes}
+  depois={palco.depois}
+  sair={palco.sair}
+  passar={palco.passar}
+  limpar={palco.limpar}
+  tempoMinimo={palco.tempoMinimo}
+  tituloDaPagina={palco.tituloDaPagina}
+  comCena={Boolean(palco.carta)}
+>
+  {palco.carta && <CartaNaTv slot="cena" carta={palco.carta} />}
+</Palco>

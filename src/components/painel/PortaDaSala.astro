@@ -1,0 +1,27 @@
+---
+// O cartão "Na TV da sala" do Início (aplicação da E1, o modo TV como porta), de 24 a 26 de dezembro
+// (ehDiaDaSala, em src/lib/sala.ts). Duas entradas diretas no modo TV, as duas com a regra da sala: só o que
+// é aberto a toda a família, seja qual for o login (resposta do Gui de 24/11/2026). O cartão não mostra
+// foto, contagem nem nome: só os dois caminhos (enderecosDaSala, em src/lib/servidor/tv.ts).
+interface Props {
+  natais: string;
+  todas: string;
+}
+
+const { natais, todas } = Astro.props;
+---
+
+<section class="porta-da-sala miolo" aria-labelledby="porta-da-sala">
+  <div class="porta-da-sala__cartao cartao">
+    <h2 class="cartao__titulo rotulo" id="porta-da-sala">Na TV da sala</h2>
+    <ul class="porta-da-sala__entradas">
+      <li>
+        <a class="acao" href={natais}>A carta e os Natais</a>
+      </li>
+      <li>
+        <a class="acao" href={todas}>Todas as memórias</a>
+      </li>
+    </ul>
+    <p class="ficha suave">Na TV entra só o que é aberto a toda a família.</p>
+  </div>
+</section>
