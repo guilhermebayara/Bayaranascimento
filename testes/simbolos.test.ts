@@ -9,7 +9,7 @@ const ler = (caminho: string) => readFileSync(new URL(`../src/${caminho}`, impor
 
 describe('os símbolos', () => {
   it('estão os do tocador e da TV, sem repetir id, nome ou desenho', () => {
-    expect(SIMBOLOS.map((s) => s.id)).toEqual(['anterior', 'proxima', 'tocar', 'pausar', 'tela-cheia', 'sair-da-tela-cheia', 'ajustes', 'mostrar', 'ocultar']);
+    expect(SIMBOLOS.map((s) => s.id)).toEqual(['anterior', 'proxima', 'tocar', 'pausar', 'tela-cheia', 'sair-da-tela-cheia', 'ajustes', 'mostrar', 'ocultar', 'som', 'sem-som']);
     for (const campo of ['id', 'nome', 'desenho'] as const) expect(new Set(SIMBOLOS.map((s) => s[campo])).size, campo).toBe(SIMBOLOS.length);
   });
 

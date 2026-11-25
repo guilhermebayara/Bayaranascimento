@@ -435,6 +435,15 @@ const recado = Astro.url.searchParams.get('erro') ?? Astro.url.searchParams.get(
                 </nav>
               </div>
               {forma === 'mural' && <QuaisFotos atual={fotosDoMural} endereco={(f) => `${enderecoDaVida(pessoa.id, forma, fotosDoMuralNoEndereco(f))}#memorias-com`} />}
+              {/* O modo TV com o filtro da pessoa, como no capítulo (resposta do Gui à pergunta 2 do PR #174).
+                  O filtro "pessoa" do Explorar dá as mesmas memórias desta página: memoria_integrantes */}
+              {p.publicadas.length > 0 && (
+                <p class="controles__tv">
+                  <a class="acao acao--quieta" href={`/explorar?pessoa=${pessoa.id}&ver=tv`}>
+                    Passar no modo TV
+                  </a>
+                </p>
+              )}
             </div>
           )}
         </header>

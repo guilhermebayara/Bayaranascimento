@@ -22,6 +22,7 @@
 // Nada daqui vai para o repositório: o espelho é gravado direto no banco da homologação.
 import { NUCLEO_INICIAL } from './familias';
 import { fotoDeMemoriaDeExemplo, quantasFotosNoEspelho, retratoDeExemplo } from './fotos-de-exemplo';
+import { ID_DO_VISITANTE_DA_SALA } from './sala';
 
 type Linha = Record<string, unknown>;
 
@@ -129,6 +130,11 @@ export function espelhar(copia: CopiaDoAcervo, opcoes: { semente?: number; agora
     throw new Error('Este arquivo não parece uma cópia do acervo.');
   }
   const t = (nome: string) => copia.tabelas[nome] ?? [];
+  // O id de quem olha na TV da sala não é de ninguém: um arquivo que o traga numa pessoa é recusado inteiro,
+  // para ninguém virar membro de família no lugar da sala (correção 7 da revisão R-AB)
+  if (t('integrantes').some((p) => String(p.id) === ID_DO_VISITANTE_DA_SALA)) {
+    throw new Error(`Este arquivo traz uma pessoa com o id “${ID_DO_VISITANTE_DA_SALA}”, que é reservado para a TV da sala. Nada foi gravado: confira o arquivo.`);
+  }
   const agora = opcoes.agora ?? new Date();
   const anoAtual = agora.getFullYear();
   const s = sorteador(opcoes.semente ?? Math.floor(agora.getTime() / 1000));

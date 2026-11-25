@@ -1,13 +1,14 @@
 // A conferência do modo TV a partir de 62rem: a barra (proposta A da sessão X, escolhida pelo Gui em
 // 22/11/2026, com os símbolos de TV e o ocultar). Abre todas as memórias que o modo TV mostra, mais
-// as que vierem em TV_MAIS (a de estresse, criada só no banco local), em cinco janelas, com "Ajustes"
+// as que vierem em TV_MAIS (a de estresse, criada só no banco local), em cinco janelas e nas três
+// deitadas do celular (aplicação da E1), com "Ajustes"
 // fechado e aberto, com "Só as fotos" e com os controles ocultos. Em cada estado confere:
 //
 //   1. a página não rola;
 //   2. todo controle está dentro da janela e é alcançado pelo teclado (Tab), com o foco à vista;
 //   3. todo botão de símbolo tem nome acessível, e o nome escrito aparece no foco, dentro da janela,
 //      sem cobrir a memória nem outro controle;
-//   4. nenhum texto fica cortado sem um caminho para ler ("Abrir esta memória");
+//   4. nenhum texto fica cortado sem um caminho para ler ("Abrir esta memória"; na sala, "Ler tudo");
 //   5. nenhum elemento cobre outro: nada por cima de um texto ou de um controle, e os textos não
 //      se sobrepõem. A folha de "Ajustes", que flutua de propósito, não conta como defeito;
 //   6. ocultar e reexibir: o botão tira a barra e o alto da tela e do teclado e põe o foco no botão
@@ -22,7 +23,13 @@
 //   npm run dev -- --port 4400     (e npm run fotos-de-exemplo, uma vez por banco local)
 //   npm run tv -- http://localhost:4400
 //
-// TV_MAIS=id1,id2 soma memórias; TV_JANELAS=1280x720 limita as janelas; TV_SO=id1,id2 limita as memórias.
+// Depois, a rodada da sala (correção 2 da revisão R-AB2): cada memória da TV da sala, fechada, com "Ler tudo"
+// como o caminho do texto cortado, e cada parte de "Ler tudo": nada rola, o texto inteiro na janela, sem nada
+// por cima e sem cortar, os controles no teclado, a seta para a direita passa de parte, e o Esc volta à memória,
+// com o foco em "Ler tudo".
+//
+// TV_MAIS=id1,id2 soma memórias; TV_JANELAS=1280x720 limita as janelas; TV_SO=id1,id2 limita as memórias;
+// TV_SALA=0 pula a rodada da sala.
 import { execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
@@ -37,17 +44,18 @@ function playwright() {
 }
 
 const base = (process.argv[2] ?? 'http://localhost:4400').replace(/\/$/, '');
-const JANELAS = (process.env.TV_JANELAS ?? '1280x720,1280x800,1366x768,1440x900,1920x1080').split(',').map((j) => j.split('x').map(Number));
+// As janelas deitadas abaixo de 62rem (o celular espelhado na TV) entram na conferência
+const JANELAS = (process.env.TV_JANELAS ?? '1280x720,1280x800,1366x768,1440x900,1920x1080,844x390,932x430,667x375').split(',').map((j) => j.split('x').map(Number));
 const MAIS = (process.env.TV_MAIS ?? '').split(',').filter(Boolean);
 const SO = (process.env.TV_SO ?? '').split(',').filter(Boolean);
 
 /** Os ids das memórias, na ordem do modo TV: segue "Próxima" a partir da primeira */
-async function memoriasDaTv() {
+async function memoriasDaTv(sala = false) {
   const ids = [];
-  let endereco = `${base}/explorar?ver=tv`;
+  let endereco = `${base}/explorar?ver=tv${sala ? '&sala=1' : ''}`;
   while (endereco && ids.length < 500) {
     const html = await (await fetch(endereco)).text();
-    const daVez = /href="\/memorias\/([^"/?#]+)"/.exec(html)?.[1];
+    const daVez = /data-passo="([^"]+)"/.exec(html)?.[1];
     if (!daVez || ids.includes(daVez)) break;
     ids.push(daVez);
     const proxima = /<a\b[^>]*data-palco-depois[^>]*>/.exec(html)?.[0];
@@ -123,13 +131,21 @@ function medir(estado) {
   };
   const cortados = textos.filter(cortado);
   if (cortados.length) {
-    const caminhos = [...palco.querySelectorAll('.palco__texto > p > a[href^="/memorias/"]')].filter(visivel);
+    const caminhos = [...palco.querySelectorAll('.palco__texto > p > a[href^="/memorias/"], .palco__texto > p > a[data-palco-ler]')].filter(visivel);
     if (!ajustesAbertos && !caminhos.some((c) => dentro(c.getBoundingClientRect()) && coberto(c).length === 0)) falhas.push(`cortado sem caminho: ${cortados.map(nome).join(' | ')}`);
+  }
+
+  // 4b. "Ler tudo": o texto da parte inteiro na janela, sem cortar e sem nada por cima (não há caminho além dele)
+  for (const e of [...palco.querySelectorAll('.cena-da-leitura__titulo, .cena-da-leitura__por, .cena-da-leitura__paragrafo')].filter(visivel)) {
+    if (!dentro(e.getBoundingClientRect())) falhas.push(`leitura fora da janela: ${nome(e)}`);
+    if (cortado(e)) falhas.push(`leitura cortada: ${nome(e)}`);
+    const por = coberto(e);
+    if (por.length) falhas.push(`leitura coberta: ${nome(e)} por ${por.map((p) => p.className || p.tagName).join(', ')}`);
   }
 
   // 5. Nada por cima dos textos, e os textos não se sobrepõem
   if (!ajustesAbertos) {
-    const blocos = [...palco.querySelectorAll('.palco__texto > *, .palco__topo > *')].filter(visivel);
+    const blocos = [...palco.querySelectorAll('.palco__texto > *, .palco__topo > *, .cena-da-leitura__frente > *, .cena-da-leitura__trecho > *, .cena-da-leitura__pe > *')].filter(visivel);
     for (const b of blocos) {
       if (!dentro(b.getBoundingClientRect()) && !b.matches('p:has(.carimbo)')) falhas.push(`fora da janela: ${nome(b)}`);
       const por = coberto(b);
@@ -232,7 +248,8 @@ function estadoDaTv() {
 const { chromium } = playwright();
 const navegador = await chromium.launch();
 const ids = SO.length ? SO : [...(await memoriasDaTv()), ...MAIS];
-console.log(`${ids.length} memórias (${MAIS.length} a mais: ${MAIS.join(', ') || 'nenhuma'})`);
+const idsDaSala = process.env.TV_SALA === '0' ? [] : SO.length ? SO : await memoriasDaTv(true);
+console.log(`${ids.length} memórias (${MAIS.length} a mais: ${MAIS.join(', ') || 'nenhuma'}); na sala, ${idsDaSala.length}`);
 
 const todas = [];
 const nomesVistos = new Set();
@@ -389,6 +406,59 @@ for (const [largura, altura] of JANELAS) {
     const depois = await pagina.evaluate(estadoDaTv);
     if (depois.m === ids[0] || !depois.oculto || depois.barraVisivel) todas.push({ janela: linha.janela, estado: 'ocultos', id: ids[0], falhas: [`passando sozinho, a memória seguinte não chegou com os controles ocultos (${JSON.stringify(depois)})`] });
   }
+
+  // A rodada da sala: a memória fechada, com "Ler tudo" como caminho, e cada parte de "Ler tudo"
+  const naSala = { memorias: 0, partes: 0, defeitos: 0 };
+  for (const id of process.env.TV_SALA === '0' ? [] : idsDaSala) {
+    const falhar = (estado, falhas) => {
+      if (!falhas.length) return;
+      naSala.defeitos++;
+      todas.push({ janela: linha.janela, estado: `sala ${estado}`, id, falhas });
+    };
+    await pagina.goto(`${base}/explorar?ver=tv&sala=1&m=${encodeURIComponent(id)}`, { waitUntil: 'load' });
+    await pagina.evaluate(() => document.fonts.ready);
+    await pagina.addStyleTag({ content: 'astro-dev-toolbar{display:none!important}' });
+    naSala.memorias++;
+    let medida = await pagina.evaluate(medir, 'fechado');
+    const teclado = await peloTeclado(pagina);
+    const semFoco = medida.controles.filter((_, n) => !teclado.vistos.includes(n));
+    falhar('fechada', [...medida.falhas, ...(semFoco.length ? [`sem alcance pelo teclado: ${semFoco.join(' | ')}`] : [])]);
+    if (await pagina.locator('.palco__texto a[href^="/memorias/"]').count()) falhar('fechada', ['na sala, um link leva à página da memória']);
+    if (!(await pagina.locator('[data-palco-ler]').count())) continue;
+    // Abre pelo teclado, como no controle remoto
+    await pagina.focus('[data-palco-ler]');
+    await pagina.keyboard.press('Enter');
+    await pagina.waitForSelector('[data-palco][data-lendo]', { timeout: 5000 }).catch(() => undefined);
+    for (let parte = 1; parte < 50; parte++) {
+      if (!(await pagina.locator('[data-palco][data-lendo]').count())) {
+        falhar('ler tudo', ['"Ler tudo" não abriu']);
+        break;
+      }
+      naSala.partes++;
+      await pagina.evaluate(() => document.fonts.ready);
+      medida = await pagina.evaluate(medir, 'fechado');
+      const doTeclado = await peloTeclado(pagina);
+      const semAlcance = medida.controles.filter((_, n) => !doTeclado.vistos.includes(n));
+      falhar(`ler tudo, parte ${parte}`, [...medida.falhas, ...(semAlcance.length ? [`sem alcance pelo teclado: ${semAlcance.join(' | ')}`] : [])]);
+      const temProxima = await pagina.evaluate(() => {
+        const a = document.querySelector('[data-palco-depois]');
+        return Boolean(a?.getAttribute('href') && a.getAttribute('aria-disabled') !== 'true');
+      });
+      if (!temProxima) break;
+      await pagina.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());
+      await pagina.keyboard.press('ArrowRight');
+      await pagina.waitForFunction((n) => document.querySelector('.cena-da-leitura')?.getAttribute('data-parte') === String(n), parte + 1, { timeout: 5000 }).catch(() => falhar(`ler tudo, parte ${parte}`, ['a seta para a direita não passou de parte']));
+    }
+    // O Esc volta à memória, com o foco em "Ler tudo"
+    await pagina.keyboard.press('Escape');
+    await pagina.waitForFunction(() => !document.querySelector('[data-palco][data-lendo]'), null, { timeout: 5000 }).catch(() => undefined);
+    const volta = await pagina.evaluate(() => ({ m: new URL(location.href).searchParams.get('m'), ler: new URL(location.href).searchParams.get('ler'), lendo: Boolean(document.querySelector('[data-palco][data-lendo]')), foco: document.activeElement?.textContent?.trim() }));
+    const naVolta = [];
+    if (volta.lendo || volta.ler || volta.m !== id) naVolta.push(`o Esc não voltou à memória (${JSON.stringify(volta)})`);
+    else if (volta.foco !== 'Ler tudo') naVolta.push(`de volta, o foco não ficou em "Ler tudo" (foi para ${volta.foco})`);
+    falhar('ler tudo, Esc', naVolta);
+  }
+  if (idsDaSala.length && process.env.TV_SALA !== '0') console.log(`${linha.janela}, na sala: ${naSala.memorias} memórias, ${naSala.partes} partes de "Ler tudo", ${naSala.defeitos} com defeito`);
 
   if (erros.length) todas.push({ janela: linha.janela, estado: 'script', id: '', falhas: [...new Set(erros)] });
   console.log(`${linha.janela}: fechado ${linha.fechado}, ajustes ${linha.ajustes}, ocultos ${linha.ocultos}, só as fotos ${linha.sofotos} com defeito; ${linha.cortadas} com texto cortado na coluna; foto de ${linha.foto} px`);

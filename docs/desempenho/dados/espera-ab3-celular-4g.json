@@ -1,0 +1,53 @@
+{
+  "rotulo": "ab3",
+  "base": "https://127.0.0.1:4443",
+  "perfil": "celular-4g",
+  "quando": "2026-11-25T15:41:30.527Z",
+  "resultados": [
+    {
+      "familia": 1,
+      "nome": "Modo TV: próxima, depois da busca de antemão",
+      "onde": "/explorar?ver=tv",
+      "falha": null,
+      "primeira": 175,
+      "oQue": "childList em main",
+      "fim": 180,
+      "buscas": [
+        {
+          "url": "/explorar/palco?ver=tv&m=2026-jantar-de-casamento&depois=2026-pao-de-queijo-da-vo-bela",
+          "ms": 177,
+          "status": 200
+        },
+        {
+          "url": "/explorar/palco?ver=tv&m=carga-0577&antes=2025-natal&depois=carga-0037",
+          "ms": 181,
+          "status": 200
+        }
+      ],
+      "inp": 0,
+      "tarefasLongas": [
+        127
+      ],
+      "falas": [],
+      "urlFinal": "/explorar?ver=tv&m=2026-pao-de-queijo-da-vo-bela",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    },
+    {
+      "familia": 1,
+      "nome": "Modo TV: próxima logo em seguida",
+      "onde": "/explorar?ver=tv",
+      "falha": null,
+      "primeira": 47,
+      "oQue": "childList em main",
+      "fim": 48,
+      "buscas": [],
+      "inp": 0,
+      "tarefasLongas": [],
+      "falas": [],
+      "urlFinal": "/explorar?ver=tv&m=2025-natal",
+      "textoDeErro": "",
+      "paginaDeErroDoNavegador": false
+    }
+  ]
+}

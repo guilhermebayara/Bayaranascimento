@@ -7,7 +7,7 @@
 import { AMBIENTES_COM_EXEMPLOS, ambiente, banco, cobrirGatilhosQueGravam, cobrirGravacaoEmTodaTabela } from './ambiente';
 import { TABELA_DA_MARCA, garantirGatilhosDaMarca } from './marca-da-copia';
 import { NUCLEO_INICIAL } from '../familias';
-import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearRascunhoQueFicouDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo } from './semente';
+import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearRascunhoQueFicouDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo, semearCeiaRestritaDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 import { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
 import { darMensagensAosRelatosDeAntes } from './mensagens-de-antes';
@@ -1104,6 +1104,8 @@ async function migrar(db: D1Database): Promise<void> {
     await semearNascimentoDaElizeteDeExemplo(db);
     await semearCartaDeExemplo(db);
     await semearTiposDeExemplo(db);
+    // A regra da sala (aplicação da E1): um Natal restrito a uma família, que a TV da sala nunca mostra
+    await semearCeiaRestritaDeExemplo(db);
     // Os exemplos entram como membros (é o padrão da tabela), mas ninguém deles acessa o site: são parentes
     await db.prepare(`UPDATE nucleo_membros SET papel = 'parente' WHERE papel = 'membro' AND integrante_id LIKE 'ex-%'`).run();
     // Fotos e retratos de exemplo: o Chico e a Karol. E a limpeza do que as prévias enviaram há mais de 7 dias.

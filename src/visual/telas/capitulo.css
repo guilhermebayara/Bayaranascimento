@@ -242,9 +242,6 @@
   padding-block: 0 var(--e-3);
   border-top: 0;
 }
-.capitulo__tv {
-  margin: 0;
-}
 /* O mural e a lista são do Explorar e trazem a própria margem: no celular eles vão de ponta a ponta.
    Na tela grande moram na coluna do corpo, no mesmo lugar da linha do tempo, e a margem some. */
 .capitulo__explorar {

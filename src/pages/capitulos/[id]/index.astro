@@ -322,7 +322,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
               </nav>
             </div>
             {forma === 'mural' && <QuaisFotos atual={fotosDoMural} endereco={(f) => `${enderecoDoCapitulo(capitulo.id, 'mural', fotosDoMuralNoEndereco(f))}#marcos`} />}
-            <p class="capitulo__tv">
+            <p class="controles__tv">
               <a class="acao acao--quieta" href={`/explorar?capitulo=${capitulo.id}&ver=tv`}>
                 Passar no modo TV
               </a>

@@ -147,7 +147,7 @@ describe('o modo TV (P48, P49, P50)', () => {
   });
   it('no celular, o carimbo e o título vêm antes das fotos, e o trecho depois dos controles', () => {
     expect(cssDoExplorar).toMatch(/grid-template-areas:\s*'carimbo'\s*'titulo'\s*'fotos'\s*'passos'\s*'ajustes'\s*'trecho'/);
-    expect(cssDoExplorar).toMatch(/@media \(max-width: 61\.99rem\) \{\s*\.palco__cena > \.palco__texto \{\s*display: contents/);
+    expect(cssDoExplorar).toMatch(/@media \(max-width: 61\.99rem\) and \(orientation: portrait\) \{\s*\.palco__cena > \.palco__texto \{\s*display: contents/);
   });
   it('as partes de "Ajustes" ficam num grupo, lado a lado quando há largura', () => {
     expect(palco).toMatch(/<div class="palco__partes">/);

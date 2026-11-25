@@ -95,6 +95,14 @@ const TELAS = [
   // celular, "Animação" tem 8 px acima e 13,5 px abaixo, como antes da barra (22/11/2026); a decisão
   // é do Gui, e o modo TV abaixo de 62rem não muda até lá
   { nome: 'modo-tv', url: '/explorar?ver=tv&m=2012-casamento-carol-davi', como: 'giovanna' },
+  // A TV da sala (aplicação da E1): o cartão do Início com a data simulada, a carta da sala e uma memória com voz
+  { nome: 'inicio-na-tv-da-sala', url: '/?hoje=2026-12-25', como: 'giovanna' },
+  { nome: 'carta-da-sala', url: '/explorar?ver=tv&sala=1&tema=natal&ordem=antigas&carta=1&m=carta-1', como: 'giovanna' },
+  { nome: 'carta-da-sala-assinada', url: '/explorar?ver=tv&sala=1&tema=natal&ordem=antigas&carta=1&m=carta-4', como: 'giovanna' },
+  // "Ler tudo" na sala (correção 2 da revisão R-AB2): a primeira e a última parte de uma memória com dois relatos
+  { nome: 'ler-tudo', url: '/explorar?ver=tv&sala=1&m=1999-chegada-da-giovanna&ler=1', como: 'giovanna' },
+  { nome: 'ler-tudo-fim', url: '/explorar?ver=tv&sala=1&m=1994-festa-de-aniversario&ler=2', como: 'giovanna' },
+  { nome: 'modo-tv-com-voz', url: '/explorar?ver=tv&sala=1&m=1958-casamento-vivica-tonho', como: 'giovanna' },
   { nome: 'tudo', url: '/tudo' },
   { nome: 'pessoas', url: '/pessoas', como: 'giovanna' },
   { nome: 'pessoa-voce', url: '/pessoas/giovanna', como: 'giovanna' },

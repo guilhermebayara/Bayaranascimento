@@ -1,5 +1,6 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
+import { relatoNaTv } from '../sala';
 import { ambiente, apelidosDoPedido, banco } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
@@ -882,6 +883,42 @@ export async function memoriasComAudio(usuario: Usuario): Promise<Set<string>> {
     pessoasQueONaoVe(usuario),
   ]);
   return new Set((results as LinhaDeRelato[]).filter((r) => veORelato(relatoDaLinha(r), usuario, naoVe)).map((r) => r.memoria_id));
+}
+
+/**
+ * As memórias com voz que vai à TV (correção 4 da revisão R-AB2): áudio de relato que a pessoa vê e que passa em
+ * relatoNaTv (publicado, sem esperar o sim de ninguém, não descartado). O filtro "com áudio" do modo TV usa esta,
+ * e não memoriasComAudio, para não pôr na ordem uma memória cuja única voz a TV esconde.
+ */
+export async function memoriasComAudioNaTv(usuario: Usuario): Promise<Set<string>> {
+  const [{ results }, naoVe] = await Promise.all([
+    db()
+      .prepare(
+        `SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id
+         WHERE a.removido_em IS NULL AND r.situacao = 'publicada' AND r.descartado_em IS NULL AND (r.so_para_nucleos IS NULL OR r.so_para_nucleos IN ('', '[]'))`,
+      )
+      .all<LinhaDeRelato>(),
+    pessoasQueONaoVe(usuario),
+  ]);
+  return new Set(
+    (results as LinhaDeRelato[])
+      .filter((r) => relatoNaTv({ situacao: 'publicada', soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos) }) && veORelato(relatoDaLinha(r), usuario, naoVe))
+      .map((r) => r.memoria_id),
+  );
+}
+
+/** Dos relatos de onde vieram fotos, os que vão à TV (relatoNaTv): a foto deles vai junto; a dos outros, não. */
+export async function relatosQueVaoATv(relatoIds: readonly number[]): Promise<Set<number>> {
+  if (relatoIds.length === 0) return new Set();
+  const { results } = await db()
+    .prepare(`SELECT id, situacao, so_para_nucleos, descartado_em FROM relatos WHERE id IN (SELECT value FROM json_each(?))`)
+    .bind(JSON.stringify(relatoIds))
+    .all<{ id: number; situacao: 'rascunho' | 'publicada'; so_para_nucleos: string | null; descartado_em: string | null }>();
+  return new Set(
+    (results as { id: number; situacao: 'rascunho' | 'publicada'; so_para_nucleos: string | null; descartado_em: string | null }[])
+      .filter((r) => relatoNaTv({ situacao: r.situacao, soParaNucleos: lerNucleosDoRelato(r.so_para_nucleos), descartadoEm: r.descartado_em }))
+      .map((r) => Number(r.id)),
+  );
 }
 
 /**

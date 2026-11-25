@@ -68,14 +68,16 @@ describe('o modo TV a partir de 62rem: a barra', () => {
   const tv = ler('src/visual/telas/tv.css');
   const palco = ler('src/components/explorar/Palco.astro');
   const pagina = ler('src/pages/explorar.astro');
-  const bloco = tv.slice(tv.indexOf('@media (min-width: 62rem) {'));
+  // A barra vale também na janela deitada abaixo de 62rem, com a unidade dela no fim de tv.css
+  const bloco = tv.slice(tv.indexOf('@media (min-width: 62rem), (orientation: landscape) {'));
 
   it('só vale a partir de 62rem: abaixo disso, o modo TV é o de antes', () => {
-    const fora = tv.slice(0, tv.indexOf('@media (min-width: 62rem) {')).replace(/\/\*[\s\S]*?\*\//g, '');
+    const fora = tv.slice(0, tv.indexOf('@media (min-width: 62rem), (orientation: landscape) {')).replace(/\/\*[\s\S]*?\*\//g, '');
     expect(fora.trim()).toBe('');
-    expect(tv.match(/@media/g)).toHaveLength(1);
+    expect(tv.match(/@media/g)).toHaveLength(2);
+    expect(tv).toMatch(/@media \(max-width: 61\.99rem\) and \(orientation: landscape\) \{\s*html:has\(\.palco--tv\) \{\s*font-size: min\(100vw \/ 52, 100svh \/ 24\);/);
     // O celular desfaz o desenho dos símbolos e continua com o nome escrito, na ordem de antes
-    expect(css).toMatch(/@media \(max-width: 61\.99rem\) \{[\s\S]*?\.palco \.botao-simbolo \.simbolo,\s*\.palco \.palco__na-barra \{\s*display: none;/);
+    expect(css).toMatch(/@media \(max-width: 61\.99rem\) and \(orientation: portrait\) \{[\s\S]*?\.palco \.botao-simbolo \.simbolo,\s*\.palco \.palco__na-barra \{\s*display: none;/);
     expect(css).toMatch(/\.palco \.palco__sozinho \{\s*order: 1;/);
   });
 

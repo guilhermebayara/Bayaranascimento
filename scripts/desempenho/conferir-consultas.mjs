@@ -41,7 +41,12 @@ export const TETOS = {
   'Explorar, mural, todas as fotos': { linhas: 11730, kb: 2070 },
   'Explorar, lista': { linhas: 11730, kb: 1150 },
   'Explorar, filtro de família': { linhas: 11730, kb: 815 },
-  'Modo TV (uma memória)': { linhas: 11730, kb: 10 },
+  // A primeira página do modo TV leva a ordem (só os ids, uns 8 KB no acervo cheio) desde a aplicação da E1;
+  // as passagens seguintes pedem só a rota de uma memória (causa 6)
+  'Modo TV (uma memória)': { linhas: 11730, kb: 20 },
+  'Modo TV da sala, com a carta': { linhas: 11200, kb: 15 },
+  'Modo TV, uma passagem': { linhas: 210, kb: 12 },
+  'Modo TV da sala, uma passagem': { linhas: 215, kb: 12 },
   'Me mostre uma memória': { linhas: 11730, kb: 15 },
   'Memória': { linhas: 250, kb: 55 },
   'Pessoa (Gui)': { linhas: 1960, kb: 175 },
@@ -63,6 +68,10 @@ export const TELAS = [
   ['Explorar, lista', '/explorar?ver=lista'],
   ['Explorar, filtro de família', '/explorar?nucleo=bracarense'],
   ['Modo TV (uma memória)', '/explorar?ver=tv'],
+  // A aplicação da E1 (causa 6): a TV da sala, com a ordem, e a rota de uma memória, que cada passagem pede
+  ['Modo TV da sala, com a carta', '/explorar?ver=tv&sala=1&tema=natal&ordem=antigas&carta=1&m=carta-1'],
+  ['Modo TV, uma passagem', '/explorar/palco?ver=tv&m=1992-chegada-do-gui&antes=1958-casamento-vivica-tonho&depois=1994-natal-na-vo-vivica'],
+  ['Modo TV da sala, uma passagem', '/explorar/palco?ver=tv&sala=1&m=1994-natal-na-vo-vivica&antes=1958-casamento-vivica-tonho&depois=1998-natal-com-os-primos'],
   ['Me mostre uma memória', '/explorar?ver=acaso&m=1992-chegada-do-gui'],
   ['Memória', '/memorias/1992-chegada-do-gui'],
   ['Pessoa (Gui)', '/pessoas/gui'],

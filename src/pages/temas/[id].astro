@@ -41,6 +41,8 @@ const cores = coresDosCapitulos(
   [...acervo].reverse(),
   todos.map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c)),
 );
+// O modo TV passa só as publicadas
+const publicadas = todasDoTema.filter((m) => m.situacao !== 'rascunho').length;
 const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
 ---
 
@@ -101,6 +103,14 @@ const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
               </nav>
             </div>
             {forma === 'mural' && <QuaisFotos atual={fotosDoMural} endereco={(f) => `${enderecoDoTema('mural', fotosDoMuralNoEndereco(f))}#memorias-do-tema`} />}
+            {/* O modo TV com o filtro do tema, como no capítulo (resposta do Gui à pergunta 2 do PR #174) */}
+            {publicadas > 0 && (
+              <p class="controles__tv">
+                <a class="acao acao--quieta" href={`/explorar?tema=${tema.id}&ver=tv`}>
+                  Passar no modo TV
+                </a>
+              </p>
+            )}
           </div>
         )}
         {memorias.length === 0 ? (

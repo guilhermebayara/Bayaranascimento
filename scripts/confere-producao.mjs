@@ -47,6 +47,7 @@
 //    arquivos de src/: o nome da cópia montado à mão ou numa variável fora das rotas, guardarCopias fora
 //    do ajuste, a gravação antes da reserva e a leitura da cópia antes da conferência são recusados, e a
 //    cópia só é apagada junto da original, na rota das fotos soltas.
+import { problemasDoSimuladorDeData } from './simulador-de-data.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
@@ -319,6 +320,12 @@ if (existsSync('scripts/desempenho')) {
 
 // 6. Migrações que apagariam dados por cascata
 for (const problema of cascatasPerigosas(readFileSync('src/lib/servidor/banco.ts', 'utf8'))) falhar(`src/lib/servidor/banco.ts, migração ${problema}`);
+
+// 14. O simulador de data (aplicação da E1): "?hoje=AAAA-MM-DD" mostra o Início como num outro dia, para ver o
+// cartão "Na TV da sala" antes do Natal. Ele nunca vale na produção: diaSimulado (src/lib/sala.ts) recusa a
+// produção logo no começo, e só src/lib/servidor/dia-do-pedido.ts lê o "hoje" do endereço, passando o ambiente
+// do pedido. As regras estão em scripts/simulador-de-data.mjs, com teste em testes/sala.test.ts.
+for (const problema of problemasDoSimuladorDeData((caminho) => readFileSync(caminho, 'utf8'), versionados)) falhar(problema);
 
 if (falhas.length) {
   console.error('Guarda da produção: algo que protege o acervo real foi quebrado.\n');
