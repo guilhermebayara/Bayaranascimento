@@ -1,4 +1,4 @@
-// "Sua conta" (docs/decisoes.md, "Sua conta"): as listas de cada seção, sem tela. A tela é desenhada
+// "Sua conta" (docs/regras/conta.md, "Sua conta"): as listas de cada seção, sem tela. A tela é desenhada
 // na revisão visual (fase 3); estas regras ficam prontas e testadas antes.
 //
 // Quem chama entrega o que a pessoa vê (as memórias de listarMemorias, os capítulos de

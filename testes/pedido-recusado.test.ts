@@ -602,7 +602,7 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
 
   // Item 6 da revisão D1f (decisão do chat, 24/11/2026): o pedido recusado atravessa o middleware de verdade,
   // como chega ao site. O middleware anota o primeiro acesso de quem entrou antes de a rota responder, e essa
-  // linha fica mesmo quando a rota recusa: o registro é da pessoa que entrou (docs/decisoes.md, "Avisos").
+  // linha fica mesmo quando a rota recusa: o registro é da pessoa que entrou (docs/regras/conta.md, "Avisos").
   // Fora ela, o banco inteiro sai igual, inclusive a marca da cópia (acessos é tabela de registro, D1f2).
   describe('pelo middleware: as rotas da cópia e do espelho, com o primeiro acesso de quem pede', async () => {
     const { onRequest } = await import('../src/middleware');

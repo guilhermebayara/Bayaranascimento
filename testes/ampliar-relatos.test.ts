@@ -1,4 +1,4 @@
-// Ampliar quem vê uma memória com relatos (docs/decisoes.md; decisão do Gui de 17/11/2026). Ao ampliar,
+// Ampliar quem vê uma memória com relatos (docs/regras/ampliar.md; decisão do Gui de 17/11/2026). Ao ampliar,
 // cada relato que já existia continua só para quem já o viu até quem o registrou concordar; o relato que
 // já teve o público novo não espera (resposta do Gui à P3 do QA de 23/11/2026,
 // docs/historico/qa/2026-11-23-perguntas.md). O teste passa pelas rotas de verdade (api/memorias e

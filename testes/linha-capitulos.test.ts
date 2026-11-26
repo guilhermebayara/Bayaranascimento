@@ -1,4 +1,4 @@
-// Capítulos na linha do tempo: a montagem dos trilhos, sem tela (docs/decisoes.md).
+// Capítulos na linha do tempo: a montagem dos trilhos, sem tela (docs/regras/capitulos.md).
 import { describe, expect, it } from 'vitest';
 import { CABEM, capitulosNosTrilhos, chaoDaEpoca, comoAparece, montarTrilhos, trilhosNaEpoca, trilhosNaMarca, type CapituloDaLinha, type MemoriaDaLinha, coresDosCapitulos } from '../src/lib/linha-capitulos';
 

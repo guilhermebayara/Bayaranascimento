@@ -1,4 +1,4 @@
-// O círculo (docs/decisoes.md, "Círculo", decisões do Gui de 17 e 18/11/2026): as contas da
+// O círculo (docs/regras/circulo.md, "Círculo", decisões do Gui de 17 e 18/11/2026): as contas da
 // proximidade contínua, a faixa de quem não declarou nada, o desenho em anéis, e as regras que não
 // podem falhar: só o dono lê e grava o círculo dele, e só de quem ele vê.
 import { describe, expect, it } from 'vitest';

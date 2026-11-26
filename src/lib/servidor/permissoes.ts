@@ -1,4 +1,4 @@
-// Regras de quem vê e quem pode o quê. Espelham docs/decisoes.md.
+// Regras de quem vê e quem pode o quê. Espelham docs/regras/permissoes.md.
 // Funções puras, sem acesso a rede nem a banco, para serem fáceis de testar.
 // A regra de "quem vê" existe também em SQL, em repositorio.ts (FILTRO_VISIVEL):
 // as duas precisam mudar juntas.

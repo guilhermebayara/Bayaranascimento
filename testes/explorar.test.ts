@@ -1,4 +1,4 @@
-// Explorar (docs/decisoes.md): cada filtro e cada ordem, as combinações, o sorteio só entre as
+// Explorar (docs/regras/explorar.md): cada filtro e cada ordem, as combinações, o sorteio só entre as
 // visíveis e a regra de quando os trilhos aparecem. Regras em src/lib/explorar.ts.
 import { describe, expect, it } from 'vitest';
 import { explorar, lerFiltros, mostraTrilhos, ordenar, paraEndereco, periodoEmOrdem, SEM_FILTRO, soFiltrosConhecidos, sortear, temFiltro, type Contexto, type Filtros, SEGUNDOS_DOS_CONTROLES, reacaoEmSoFotos, teclaNaTv, type EstadoDaTv } from '../src/lib/explorar';

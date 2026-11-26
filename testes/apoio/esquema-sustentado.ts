@@ -1,4 +1,4 @@
-// O esquema que a cópia sustenta (D1f4, 24/11/2026; regra em docs/decisoes.md, "A rede no fim da cópia").
+// O esquema que a cópia sustenta (D1f4, 24/11/2026; regra em docs/copia-no-drive.md, "A rede no fim da cópia").
 //
 // A rede no fim da cópia (conferirCopia, em src/lib/copia-em-partes.ts, e conferirArquivo, em
 // scripts/copia-no-drive.gs) compara as chaves valor a valor, sem collation, e só pelas colunas; e o arquivo
@@ -41,4 +41,4 @@ export function esquemaQueACopiaNaoSustenta(banco: DatabaseSync, fora: readonly 
 
 /** O recado do teste: o que fazer quando o esquema muda assim. */
 export const RECADO_DO_ESQUEMA =
-  'O esquema passou a ter algo que a cópia não sustenta. Ajuste a cópia junto: a régua (montarEsquema, em src/lib/servidor/copia.ts), a conferência (conferirCopia, em src/lib/copia-em-partes.ts, e conferirArquivo, em scripts/copia-no-drive.gs) e a restauração; ou troque o esquema. Regra em docs/decisoes.md, "A rede no fim da cópia".';
+  'O esquema passou a ter algo que a cópia não sustenta. Ajuste a cópia junto: a régua (montarEsquema, em src/lib/servidor/copia.ts), a conferência (conferirCopia, em src/lib/copia-em-partes.ts, e conferirArquivo, em scripts/copia-no-drive.gs) e a restauração; ou troque o esquema. Regra em docs/copia-no-drive.md, "A rede no fim da cópia".';

@@ -1078,7 +1078,7 @@ function comandosDeLigacao(id: string, dados: DadosDaMemoria, quemVe: GravarQuem
 }
 
 /**
- * Memória com foto sempre tem principal (docs/decisoes.md): sem nenhuma, a primeira vira a principal. No fim
+ * Memória com foto sempre tem principal (docs/regras/formularios.md): sem nenhuma, a primeira vira a principal. No fim
  * do lote, para valer também com a foto que outra pessoa acrescentou entre a leitura e o lote (D8 da sessão Z).
  * Vai no lote da ficha, no de "Acrescentar fotos" e no das fotos pelo relato (Z2): a corrida tem dois lados.
  */
@@ -1612,7 +1612,7 @@ export async function listarFotosDoRelato(relatoId: number): Promise<Foto[]> {
 }
 
 /**
- * Fotos pelo relato (docs/decisoes.md): prende ao relato as fotos da lista e, com o relato publicado, à
+ * Fotos pelo relato (docs/regras/relatos.md): prende ao relato as fotos da lista e, com o relato publicado, à
  * memória dele. Só entram as fotos soltas que a própria pessoa enviou e as que já eram deste relato:
  * ninguém prende foto de outra pessoa, nem foto que já é de outra memória ou de outro relato. Quem chama
  * já conferiu que a pessoa vê a memória e pode escrever o relato. As que chegam à memória vão para o

@@ -61,7 +61,7 @@ describe.skipIf(!comSqlite)('Y3: o que falha', async () => {
     );
     expect(r.status).toBe(409);
     expect(r.corpo.erro).toBe(RECADO);
-    // "Nada é gravado" (docs/decisoes.md) e a regra do pedido recusado (CLAUDE.md, "Conferências")
+    // "Nada é gravado" (docs/regras/integrantes.md) e a regra do pedido recusado (CLAUDE.md, "Conferências")
     expect(linhas(`SELECT id FROM integrantes WHERE nome = 'Fulana Ypsilon'`)).toEqual([]);
     expect(linhas(`SELECT id FROM temas WHERE nome = 'tema-ypsilon'`)).toEqual([]);
     expect(impressao()).toBe(antes);

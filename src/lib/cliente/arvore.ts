@@ -187,7 +187,7 @@ export function montarArvore(raiz: HTMLElement, dados: DadosDaArvore, alem: Extr
     vista.y = ajuste(caixa.y, caixa.h, livre.y, livre.y + livre.h, vista.y);
     aplicarVista(true);
   };
-  // O quadro do mapa (docs/decisoes.md, "A página como mapa", em "Árvore"): o painel pousado sobre o mapa
+  // O quadro do mapa (docs/regras/arvore.md, "A página como mapa", em "Árvore"): o painel pousado sobre o mapa
   // ocupa um lado dele (tela grande) ou uma faixa no alto (celular), e a árvore é enquadrada no que
   // sobra, acima da barra de baixo.
   const quadro = raiz.querySelector<HTMLElement>('[data-quadro]');

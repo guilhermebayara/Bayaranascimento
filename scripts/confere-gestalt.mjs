@@ -1,7 +1,7 @@
 // A gestalt que se confere sozinha: abre as telas do site em 390 e 1280 px e, para cada título e
 // rótulo de grupo, mede o espaço acima (até o que vem antes) e o espaço abaixo (até o próprio
 // conteúdo). Falha quando o de cima não for pelo menos o dobro do de baixo. O princípio está em
-// "Gestalt em toda tela", em docs/visual.md; a regra, em "Visual", em docs/decisoes.md.
+// "Gestalt em toda tela", em docs/visual.md; a regra, em "Visual", em docs/regras/telas.md.
 //
 //   npm run gestalt                         confere o servidor local em http://localhost:4321
 //   npm run gestalt -- http://localhost:4400   confere outro servidor local

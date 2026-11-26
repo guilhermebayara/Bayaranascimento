@@ -225,8 +225,8 @@ if (existsSync('src/pages/sistema.astro')) {
   }
 }
 
-// 10. Nada se apaga do bucket das fotos de verdade: excluir nunca apaga na hora (docs/decisoes.md,
-// "Princípios"). O único lugar que apaga arquivo é a limpeza de 7 dias, e só no bucket de teste, por
+// 10. Nada se apaga do bucket das fotos de verdade: excluir nunca apaga na hora (docs/regras/site.md,
+// "Estrutura e princípios"). O único lugar que apaga arquivo é a limpeza de 7 dias, e só no bucket de teste, por
 // bucketDeTesteParaGravar(), que recusa a produção e a homologação. A escolha do banco e do bucket
 // fica só em ambiente.ts: código que lê env.DB ou env.FOTOS direto passaria por cima dela.
 // Achado do QA de código de 17/11/2026. A regra mora em scripts/apagar-no-bucket.mjs, testada em

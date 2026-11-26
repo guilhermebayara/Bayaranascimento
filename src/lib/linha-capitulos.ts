@@ -1,4 +1,4 @@
-// Capítulos na linha do tempo (docs/decisoes.md, "Capítulos na linha do tempo"): a montagem dos
+// Capítulos na linha do tempo (docs/regras/capitulos.md, "Capítulos na linha do tempo"): a montagem dos
 // trilhos, sem tela, como a da árvore. Cada capítulo é um trilho vertical à esquerda das memórias,
 // do começo ao fim dele. As memórias do capítulo se prendem ao trilho; uma memória de fora, no
 // meio, fica no lugar dela na ordem do tempo e o trilho segue tracejado nesse trecho.

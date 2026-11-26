@@ -1,6 +1,6 @@
 # Busca por digitação no Explorar (exploração E2)
 
-Situação: escrito no chat e aprovado pelo Gui em 22/11/2026. Vira a sessão de exploração E2: duas propostas numa prévia `tst-busca`, e a sessão para até o Gui escolher. Prazo: antes de 10/12/2026.
+Situação: escrito no chat e aprovado pelo Gui em 22/11/2026. A exploração E2 foi feita (duas propostas na prévia `tst-busca`), e o Gui escolheu a proposta B em 22/11/2026: ver "A escolha do Gui", no fim. Falta a sessão de aplicação. Prazo: antes de 10/12/2026.
 
 ## De onde vem
 

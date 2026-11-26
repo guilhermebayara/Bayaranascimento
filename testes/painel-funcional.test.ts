@@ -1,4 +1,4 @@
-// Início, o painel pessoal (docs/decisoes.md, "Início (painel pessoal)"): a carta, as visitas, o que entrou de novo,
+// Início, o painel pessoal (docs/regras/inicio.md, "Início (painel pessoal)"): a carta, as visitas, o que entrou de novo,
 // os aniversários e a memória para contar. As regras ficam em src/lib/painel.ts.
 import { describe, expect, it } from 'vitest';
 import { aniversarios, chegarAoPainel, comParentesco, hojeNoBrasil, memoriaParaContar, novidades, PAUSA_ENTRE_VISITAS, saudacao, voceNoAcervo } from '../src/lib/painel';

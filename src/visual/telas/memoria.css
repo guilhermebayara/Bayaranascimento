@@ -643,7 +643,7 @@ html:has(.galeria[open]) {
   }
 }
 
-/* Ampliar quem vê com relatos (docs/decisoes.md): o recado do alto, a frase para quem ampliou e a
+/* Ampliar quem vê com relatos (docs/regras/ampliar.md): o recado do alto, a frase para quem ampliou e a
    linha discreta no relato que espera o sim de quem o registrou */
 .memoria__recados {
   display: grid;

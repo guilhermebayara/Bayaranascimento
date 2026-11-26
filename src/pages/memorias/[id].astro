@@ -150,10 +150,10 @@ const { antes, depois } = vizinhas;
 const corDaTela = memoria.visibilidade === 'nucleos' ? undefined : 'tudo';
 const outrasFotos = memoria.fotos.length > 1;
 
-// A foto que veio com um relato ("Fotos pelo relato", em docs/decisoes.md) é da memória: aparece na
+// A foto que veio com um relato ("Fotos pelo relato", em docs/regras/relatos.md) é da memória: aparece na
 // parede e na galeria com as outras e, pequena, no bilhete do relato que a trouxe (.bilhete__fotos,
 // em src/visual/telas/memoria.css). Tocar nela abre a galeria nela.
-// Ampliar quem vê com relatos (docs/decisoes.md): quem criou a memória vê de quem são os relatos que
+// Ampliar quem vê com relatos (docs/regras/ampliar.md): quem criou a memória vê de quem são os relatos que
 // esperam o sim do autor; quem registrou um relato que espera vê a linha discreta para liberar
 const esperam = memoria.criadaPor === usuario.pessoa ? relatos.filter((r) => r.situacao === 'publicada' && r.soParaNucleos && r.registradoPor !== usuario.pessoa) : [];
 const fraseDaEspera = fraseDosRelatosQueEsperam(esperam.map((r) => ({ nome: nome(r.por), tratamento: achar(r.por)?.tratamento ?? null })));

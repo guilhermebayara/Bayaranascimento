@@ -36,7 +36,7 @@ const nomeNaTv = (integrantes: readonly Integrante[], sala: boolean) => (id: str
 };
 
 /**
- * "Com…" segue a regra de "Quem estava" na página da memória (correção 6 da revisão R-AB; docs/decisoes.md,
+ * "Com…" segue a regra de "Quem estava" na página da memória (correção 6 da revisão R-AB; docs/regras/integrantes.md,
  * "Ex-casal"): quem quem olha deixou "Fora" sai. O "Discreto", que em "Quem estava" fica com o nome borrado,
  * também sai daqui: "Com…" é uma linha de nomes, sem lugar para a tarja. Na sala, o visitante não tem ex, e
  * a regra não tira ninguém.

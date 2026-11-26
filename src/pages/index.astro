@@ -1,5 +1,5 @@
 ---
-// Painel pessoal, a página inicial (docs/decisoes.md, "Início (painel pessoal)").
+// Painel pessoal, a página inicial (docs/regras/inicio.md, "Início (painel pessoal)").
 // A ideia da tela (docs/visual.md): na primeira visita, a carta de Natal assinada à mão. Depois, o
 // que entrou de novo, como o envelope do laboratório que chega com fotos que a pessoa ainda não
 // viu. Aniversários e atalhos, em segundo plano.
@@ -220,7 +220,7 @@ const cartaNoAlto = chegada.cartaNoAlto && carta && eu;
 // a carta ganha "Ver na TV" o ano todo. As duas seguem a regra da sala (enderecosDaSala).
 const sala = await enderecosDaSala();
 const diaDaSala = ehDiaDaSala(hoje);
-// Os avisos ficam no alto, junto das novidades (docs/decisoes.md, "Avisos")
+// Os avisos ficam no alto, junto das novidades (docs/regras/conta.md, "Avisos")
 const avisos = cartaNoAlto ? [] : avisosDaLista;
 const ok = Astro.url.searchParams.get('ok');
 const erro = Astro.url.searchParams.get('erro');

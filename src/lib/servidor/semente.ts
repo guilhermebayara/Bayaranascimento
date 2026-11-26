@@ -1453,7 +1453,7 @@ export async function semearAudiosDeExemplo(db: D1Database): Promise<void> {
   if (comandos.length) await db.batch(comandos);
 }
 
-// Avisos de exemplo (docs/decisoes.md, "Avisos"): para o "Ver como" das prévias mostrar a lista do Início,
+// Avisos de exemplo (docs/regras/conta.md, "Avisos"): para o "Ver como" das prévias mostrar a lista do Início,
 // o número no retrato e "Sua conta" sem precisar de duas pessoas. Um relato novo e uma marcação em
 // "Quem estava" para cada pessoa do "Ver como", tirados de memórias abertas a todos. Abrir a memória
 // tira o aviso da lista, como de verdade. Marcados em "dados" para não se confundirem com os reais.
@@ -1506,7 +1506,7 @@ export async function semearRascunhoQueFicouDeExemplo(db: D1Database): Promise<v
     .run();
 }
 
-// Um pedido para liberar de exemplo (docs/decisoes.md, "Ampliar quem vê uma memória com relatos"): um
+// Um pedido para liberar de exemplo (docs/regras/ampliar.md, "Ampliar quem vê uma memória com relatos"): um
 // relato da Giovanna numa memória do Gui aberta a todos fica só para a família Bayara Nascimento, como
 // se o Gui tivesse acabado de abrir a memória. No "Ver como", a Giovanna vê o pedido, o Gui vê a frase
 // de quem ampliou e o Magno não vê o relato até ela liberar.

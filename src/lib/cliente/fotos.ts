@@ -96,7 +96,7 @@ export interface FotoNoFormulario {
 
 /**
  * O passo "Fotos" de um formulário que não é o da memória (hoje, o do relato: "Fotos pelo relato", em
- * docs/decisoes.md). Escolher, ver cada foto, escrever a legenda e remover antes de salvar. Cada foto é
+ * docs/regras/relatos.md). Escolher, ver cada foto, escrever a legenda e remover antes de salvar. Cada foto é
  * reduzida no aparelho, com as cópias, e sobe na hora por /api/fotos, solta; quem prende à memória é quem salva.
  */
 export function ligarFotos(caixa: HTMLElement, aoMudar: () => void = () => {}) {

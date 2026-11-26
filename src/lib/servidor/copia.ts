@@ -252,7 +252,7 @@ export async function respostaDaCopia(url: URL): Promise<Response> {
  * `/api/copia?confirmar=<gerada_em do índice>` com o token de serviço, e só então a cópia é anotada em
  * copias_mensais. Uma passada descartada nunca chega aqui. Vale só uma data de cópia das últimas 24 horas, e a
  * mesma data anota uma vez só (D1f4). Quem tem o token pode forjar uma data: risco aceito, porque esse token já
- * lê o acervo inteiro, e a confirmação só mexe no lembrete de cópia atrasada (docs/decisoes.md).
+ * lê o acervo inteiro, e a confirmação só mexe no lembrete de cópia atrasada (docs/copia-no-drive.md).
  */
 export async function respostaDaConfirmacao(url: URL, anotar: (geradaEm: string) => Promise<boolean>): Promise<Response> {
   const texto = url.searchParams.get('confirmar') ?? '';

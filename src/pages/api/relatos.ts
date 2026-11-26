@@ -43,7 +43,7 @@ const Pedido = z.object({
     .array(z.object({ id: z.number().int().positive(), transcricao: z.string().max(20000).optional() }))
     .max(AUDIOS_POR_RELATO, `Um relato pode ter até ${AUDIOS_POR_RELATO} áudios.`)
     .optional(),
-  // Fotos pelo relato (docs/decisoes.md): as que a pessoa enviou neste formulário e as que já vieram
+  // Fotos pelo relato (docs/regras/relatos.md): as que a pessoa enviou neste formulário e as que já vieram
   // com o relato, na ordem. Só o formulário com script manda a lista; sem ela, as fotos ficam como estão.
   fotos: z
     .array(z.object({ id: z.number().int().positive(), legenda: z.string().max(200).optional() }))

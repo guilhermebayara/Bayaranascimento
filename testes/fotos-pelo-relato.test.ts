@@ -1,4 +1,4 @@
-// Fotos pelo relato (docs/decisoes.md): quem escreve um relato pode acrescentar fotos à memória no mesmo
+// Fotos pelo relato (docs/regras/relatos.md): quem escreve um relato pode acrescentar fotos à memória no mesmo
 // formulário. Testado com as consultas de verdade (src/lib/servidor/repositorio.ts) e a rota do relato
 // (src/pages/api/relatos.ts), sobre o banco SQLite em memória (testes/apoio/d1.ts).
 import { describe, expect, it, vi } from 'vitest';

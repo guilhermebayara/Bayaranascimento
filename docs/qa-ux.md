@@ -1,12 +1,12 @@
-# QA de UX: padrões para a troca de visual
+# QA de UX: fluxos e padrões
 
 Sessão do Claude Code aberta de propósito, quando o Gui pedir. Não é recorrente como o QA de código. A rodada de 16/11/2026, feita antes da revisão visual, está em `docs/historico/ux/`; uma rodada nova escreve os arquivos de novo em `docs/ux/`. Fechada a rodada, com as decisões do Gui já nos documentos enxutos, os arquivos vão para `docs/historico/ux/`, e os comentários do código que os citam passam a apontar para lá.
 
 ## Para que serve
 
-A direção visual ainda não existe. Quando ela chegar, a interface atual vai trocar de pele: cores, tipografia, tamanhos, cantos, espaçamentos. Essa troca é barata se o site já repete poucos padrões bem nomeados, e cara se cada página resolve o mesmo problema do seu jeito.
+A direção visual existe e está em `docs/visual.md`: a direção, o sistema (as peças em `src/components/visual/` e os tokens em `src/visual/`) e o desenho de cada tela. O visual continua mudando em partes (os efeitos da fase 4, o QA no celular de verdade, os redesenhos que o Gui pedir), e cada mudança é barata se o site repete poucos padrões bem nomeados, e cara se cada página resolve o mesmo problema do seu jeito.
 
-O objetivo da sessão é deixar a interface atual organizada em padrões, para que a troca de visual seja feita mexendo em poucos lugares. Ela não julga a aparência. Cor, fonte, raio e tamanho de hoje são provisórios e não entram como defeito.
+O objetivo da sessão é deixar a interface organizada nos padrões do sistema, para que uma mudança de visual seja feita mexendo em poucos lugares. Ela não julga a aparência: cor, fonte, raio e tamanho seguem `docs/visual.md`. O que fugir de `docs/visual.md` entra como observação, e não como defeito; o que `docs/visual.md` ainda não cobre também.
 
 A sessão olha duas camadas, e as duas valem para qualquer visual que vier:
 
@@ -16,8 +16,8 @@ A sessão olha duas camadas, e as duas valem para qualquer visual que vier:
 ### Padrões de interface
 
 - **Componentes:** o mesmo papel resolvido sempre pelo mesmo componente. Botão principal, botão leve, link de ação, campo, grupo de opções, aviso, recado de sucesso e de erro, cartão, lista, ficha, estado vazio.
-- **Tokens:** todo valor de cor, espaço, tamanho de texto, raio, sombra, altura de toque e tempo de animação vem de uma variável com nome de papel (`--espaco-2`, `--toque-minimo`), nunca escrito solto no CSS. A troca de visual passa a ser trocar os valores das variáveis.
-- **Tamanhos que dependem do visual:** área de toque, altura de campo, largura de leitura, tamanho mínimo de texto. Eles viram tokens com o valor de hoje, para o visual final ajustar num lugar só. A área de toque nunca fica abaixo de 44 px, em qualquer visual.
+- **Tokens:** todo valor de cor, espaço, tamanho de texto, raio, sombra, altura de toque e tempo de animação vem de uma variável com nome de papel (`--e-2`, `--toque`), nunca escrito solto no CSS. Uma mudança de visual passa a ser trocar os valores das variáveis.
+- **Tamanhos que dependem do visual:** área de toque, altura de campo, largura de leitura, tamanho mínimo de texto. Eles viram tokens com o valor de hoje, para o visual ajustar num lugar só. A área de toque nunca fica abaixo de 44 px, em qualquer visual.
 - **Estados:** cada componente tem os estados combinados: normal, foco visível pelo teclado, pressionado, desabilitado, carregando, com erro. Um estado que falta é achado.
 - **Estrutura da página:** a mesma ordem e hierarquia para páginas do mesmo tipo (lista, página de pessoa, página de memória, formulário em etapas, edição). Título, ação principal, conteúdo, ações secundárias.
 - **Textos de interface:** a mesma ação com o mesmo nome no site inteiro, o botão dizendo o que acontece, o recado usando o mesmo verbo do botão ("Publicar" → "Publicada"). As regras de escrita do `CLAUDE.md` continuam valendo.
@@ -74,9 +74,9 @@ Na ordem:
 3. O padrão proposto, em resumo: quantos tokens e quantos componentes, com o link para `docs/ux/padroes.md`.
 4. O que foi arrumado sem mudança visual, com o commit, a branch e o resultado da comparação de capturas.
 5. As decisões para o Gui, em lista curta, cada uma com a opção recomendada e o que muda na tela.
-6. O que fica para quando o visual for definido (por exemplo, o tamanho do botão principal no celular).
+6. O que depende de uma decisão visual do Gui (por exemplo, o tamanho do botão principal no celular).
 7. O que não deu para conferir e por quê.
 
 ## Prompt para abrir a sessão
 
-> Sessão de QA de UX do site de memórias. Leia o `CLAUDE.md` e o `docs/qa-ux.md` e siga o `docs/qa-ux.md`. A direção visual ainda não foi definida: não julgue aparência. O foco é avaliar os fluxos (ordem dos formulários de pessoa e de memória, tipo de controle de cada escolha, onde fica o histórico, ordem da linha do tempo) e deixar a interface atual em padrões (tokens, componentes, estados, estrutura de página e textos de interface), para que a troca para o visual final seja feita em poucos lugares. Trabalhe com o acervo de exemplo, a partir da `homologa`. Termine com o relatório no formato do `docs/qa-ux.md`.
+> Sessão de QA de UX do site de memórias. Leia o `CLAUDE.md` e o `docs/qa-ux.md` e siga o `docs/qa-ux.md`. A direção visual está em `docs/visual.md`: não julgue aparência, e o que fugir dela entra como observação. O foco é avaliar os fluxos (ordem dos formulários de pessoa e de memória, tipo de controle de cada escolha, onde fica o histórico, ordem da linha do tempo) e deixar a interface atual em padrões (tokens, componentes, estados, estrutura de página e textos de interface), para que uma mudança de visual seja feita em poucos lugares. Trabalhe com o acervo de exemplo, a partir da `homologa`. Termine com o relatório no formato do `docs/qa-ux.md`.

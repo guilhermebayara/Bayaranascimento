@@ -1,4 +1,4 @@
-// Explorar (docs/decisoes.md, "Explorar"): os filtros e as ordens, sem tela. A tela (linha do tempo,
+// Explorar (docs/regras/explorar.md, "Explorar"): os filtros e as ordens, sem tela. A tela (linha do tempo,
 // mural, modo TV e ao acaso) é da revisão visual; ela lê o endereço com lerFiltros, chama explorar e
 // escreve o endereço com paraEndereco, para guardar ou mandar o link.
 //

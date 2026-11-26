@@ -1,7 +1,7 @@
 // Regras 10 e 10c da guarda da produção (scripts/confere-producao.mjs), à parte para os testes poderem dar a
 // elas um código errado e ver a recusa (testes/guarda-apagar.test.ts).
 //
-// Nada se apaga do bucket das fotos de verdade: excluir nunca apaga na hora (docs/decisoes.md, "Princípios").
+// Nada se apaga do bucket das fotos de verdade: excluir nunca apaga na hora (docs/regras/site.md, "Estrutura e princípios").
 // Só apagam a limpeza de 7 dias, e só no bucket de teste, por bucketDeTesteParaGravar(), que recusa a produção
 // e a homologação; e a foto sem memória há mais de 30 dias, que um administrador apaga em
 // src/pages/api/fotos-soltas.ts. Nessa rota saem, no mesmo pedido, a original e as cópias dela (sessão D1c,

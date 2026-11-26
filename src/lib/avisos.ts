@@ -1,4 +1,4 @@
-// Avisos dentro do site (docs/decisoes.md, "Avisos"; decisões do Gui de 17/11/2026). Sem e-mail e sem
+// Avisos dentro do site (docs/regras/conta.md, "Avisos"; decisões do Gui de 17/11/2026). Sem e-mail e sem
 // notificação no celular: ficam no alto do Início, num número discreto no retrato do topo e, com o
 // histórico, em "Sua conta". As regras ficam aqui, sem tela e sem banco; as consultas, em
 // src/lib/servidor/repositorio.ts ("Avisos").

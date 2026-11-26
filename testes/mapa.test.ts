@@ -1,4 +1,4 @@
-// O quadro do mapa (docs/decisoes.md, "A página como mapa", em "Árvore"): proposta A, escolhida pelo Gui em
+// O quadro do mapa (docs/regras/arvore.md, "A página como mapa", em "Árvore"): proposta A, escolhida pelo Gui em
 // 17/11/2026. O mapa na janela inteira, o painel flutuante, o enquadramento pela altura e a busca
 // por nome. O arranjo e as linhas da árvore continuam em testes/arvore-*.test.ts.
 import { describe, expect, it } from 'vitest';

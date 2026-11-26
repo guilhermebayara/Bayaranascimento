@@ -2,14 +2,9 @@
 
 ## Ambientes
 
-| Ambiente | Endereço | Dados | Login |
-| --- | --- | --- | --- |
-| Produção | memorias.bayara.com.br | Banco e bucket `bayara-memorias` | Cloudflare Access |
-| Homologação (branch `homologa`) | homologa.memorias.bayara.com.br | Banco e bucket `bayara-memorias-homologa`, com o espelho da produção | Cloudflare Access (aplicação "memorias homologa", política "Homologação"), com troca de pessoa no topo |
-| Prévia de branch | `<branch>.memorias.bayara.com.br` (ex.: `tst-arvore.memorias.bayara.com.br`) | Banco e bucket `bayara-memorias-teste`, só exemplos | Sem login, com troca de pessoa no topo |
-| Computador | localhost | Banco local, só exemplos | Sem login, com troca de pessoa no topo |
+A tabela dos ambientes (produção, homologação, prévias e computador) está no `CLAUDE.md`, "Branches e publicação".
 
-O branch `main` é a produção. Qualquer outro branch vira uma prévia. A homologação é a prévia da branch `homologa`: o site reconhece o endereço dela e usa o banco e o bucket próprios (`DB_HOMOLOGA` e `FOTOS_HOMOLOGA`, ligados no bloco `previews` do `wrangler.jsonc`). O login dela é uma aplicação própria no Access, só com o Gui e a Giovanna.
+O branch `main` é a produção. Qualquer outro branch vira uma prévia. A homologação é a prévia da branch `homologa`: o site reconhece o endereço dela e usa o banco e o bucket próprios (`DB_HOMOLOGA` e `FOTOS_HOMOLOGA`, ligados no bloco `previews` do `wrangler.jsonc`). O login dela é uma aplicação própria no Access ("memorias homologa", política "Homologação"), só com o Gui, a Giovanna e o Magno.
 
 ## Configuração no Cloudflare
 
@@ -30,7 +25,7 @@ Para dar acesso a mais alguém: acrescentar o e-mail na política do Access e no
 
 ### Duração do login
 
-Quanto tempo a pessoa fica logada é do Cloudflare Access, fora do site. O Gui quer o máximo (17/11/2026), para a família não precisar pedir código toda hora. No painel Zero Trust, em Access → Applications, abra a aplicação da produção, depois a "memorias homologa", e em "Session Duration" escolha o maior valor da lista (um mês). Se a conta tiver um limite geral de sessão (em Settings → Authentication), ele também precisa ser o máximo. Não gera custo.
+Quanto tempo a pessoa fica logada é do Cloudflare Access, fora do site. O Gui quer o máximo (Gui, 17/11), para a família não precisar pedir código toda hora. No painel Zero Trust, em Access → Applications, abra a aplicação da produção, depois a "memorias homologa", e em "Session Duration" escolha o maior valor da lista (um mês). Se a conta tiver um limite geral de sessão (em Settings → Authentication), ele também precisa ser o máximo. Não gera custo.
 
 ## Rodar no computador
 
@@ -45,4 +40,4 @@ O banco local nasce com as memórias de exemplo, mesmo sem o `.dev.vars`: no com
 
 ## Mudar a estrutura do banco
 
-Acrescente uma migração no fim da lista em `src/lib/servidor/banco.ts`. Nunca edite uma migração já publicada. O site aplica a nova estrutura sozinho na primeira visita depois da publicação.
+As regras estão no `CLAUDE.md`, "Banco de dados".
