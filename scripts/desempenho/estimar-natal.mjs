@@ -21,6 +21,10 @@
 //   (`sala=1`) e cada passagem pede só a rota de uma memória (/explorar/palco, a busca de antemão pede a
 //   seguinte, que é a próxima a passar), mais as fotos dela (uma por passagem, em média, já que as outras
 //   ficam guardadas na TV) e, numa de cada três passagens, a voz de quem contou (VOZES_POR_PASSAGEM).
+// - A busca (aplicação da E2): cada pessoa procura 3 vezes no dia (BUSCAS_POR_PESSOA). Cada busca pede o resultado
+//   4 vezes enquanto se digita (PEDIDOS_POR_BUSCA, uma a cada pausa na digitação), pela rota sem o esqueleto
+//   (/busca/resultado), e abre uma vez o Explorar com a busca ("Ver no Explorar"). As linhas de cada pedido são
+//   a média de quatro buscas de verdade (BUSCAS), da palavra solta à frase.
 // - O que não entra: o começo de cada processo do servidor (migrações e exemplos, causa 9), gravações (as
 //   linhas lidas por quem grava memória, relato ou reação no dia) e o "Ver como" das prévias.
 const BASE = 'http://127.0.0.1:4321';
@@ -47,6 +51,9 @@ const RETRATOS_POR_PESSOA = 20;
 const PASSAGENS_DO_MODO_TV = 360;
 const MODO_TV = '/explorar?ver=tv&sala=1';
 const VOZES_POR_PASSAGEM = 1 / 3;
+const BUSCAS_POR_PESSOA = 3;
+const PEDIDOS_POR_BUSCA = 4;
+const BUSCAS = ['natal', 'natal casa vó', 'minha mãe', 'sabará'];
 
 async function consultar(sql, params) {
   const r = await fetch(`${API}/local/observability/query`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sql, params }) });
@@ -96,6 +103,16 @@ for (const { como, quantas, quem } of PESSOAS) {
   console.log(`  ${como.padEnd(8)} ${'uma foto'.padEnd(30)} ${formatar(porFoto).padStart(8)} linhas × ${FOTOS_POR_PESSOA}`);
   console.log(`  ${como.padEnd(8)} ${'um retrato'.padEnd(30)} ${formatar(porRetrato).padStart(8)} linhas × ${RETRATOS_POR_PESSOA}`);
   partes.push({ parte: `Páginas de ${quantas} ${quem}`, linhas: paginas * quantas });
+  // A busca: a média das buscas de exemplo, na rota do resultado e no Explorar com a busca
+  let porResultado = 0;
+  let porExplorar = 0;
+  for (const b of BUSCAS) {
+    porResultado += (await linhasDe(`/busca/resultado?q=${encodeURIComponent(b)}`, como)) / BUSCAS.length;
+    porExplorar += (await linhasDe(`/explorar?q=${encodeURIComponent(b)}`, como)) / BUSCAS.length;
+  }
+  console.log(`  ${como.padEnd(8)} ${'busca, o resultado'.padEnd(30)} ${formatar(porResultado).padStart(8)} linhas × ${BUSCAS_POR_PESSOA * PEDIDOS_POR_BUSCA}`);
+  console.log(`  ${como.padEnd(8)} ${'busca, "Ver no Explorar"'.padEnd(30)} ${formatar(porExplorar).padStart(8)} linhas × ${BUSCAS_POR_PESSOA}`);
+  partes.push({ parte: `A busca de ${quantas} ${quem}`, linhas: (porResultado * PEDIDOS_POR_BUSCA + porExplorar) * BUSCAS_POR_PESSOA * quantas });
   partes.push({ parte: `Fotos e retratos de ${quantas} ${quem}`, linhas: (porFoto * FOTOS_POR_PESSOA + porRetrato * RETRATOS_POR_PESSOA) * quantas });
 }
 // A primeira página do modo TV da sala, com a ordem, e uma passagem do meio da ordem pela rota de uma memória

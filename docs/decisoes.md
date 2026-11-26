@@ -25,7 +25,7 @@ A sessão de construção lê o `CLAUDE.md`, este índice com a fila e os arquiv
 | [`regras/conta.md`](regras/conta.md) | "Sua conta", a Administração com as pendências e os avisos |
 | [`regras/memoria.md`](regras/memoria.md) | As ações na memória: sugestão de correção, reações, o botão de menu e compartilhar como imagem |
 | [`regras/ampliar.md`](regras/ampliar.md) | Ampliar quem vê uma memória que já tem relatos: o sim de quem registrou |
-| [`regras/explorar.md`](regras/explorar.md) | O Explorar (controles, filtros, ordem, mural), o modo TV (a barra, as teclas, a TV da sala, a voz, uma memória por passagem) e o endereço dos filtros |
+| [`regras/explorar.md`](regras/explorar.md) | O Explorar (controles, filtros, ordem, mural), a busca (a lupa, a folha, o `q` e quem vê o quê), o modo TV (a barra, as teclas, a TV da sala, a voz, uma memória por passagem) e o endereço dos filtros |
 | [`regras/conferencias.md`](regras/conferencias.md) | O que a guarda da produção, os testes, as conferências com o servidor local e o build conferem, regra por regra |
 | [`regras/telas.md`](regras/telas.md) | As regras de trabalho das telas: conferir em 390, 1280 e 1920 px, aspas curvas, nada salta, a gestalt que se confere sozinha e o conceito primeiro, com parada |
 
@@ -52,7 +52,6 @@ O que o Gui decidiu no chat e ainda não existe no site. É daqui que uma sessã
     - **A foto no alto da página de escrever** espera a exploração "A memória como lugar de ler e contar" (E3).
 
   Pontos que pedem solução nova, cada um com brief e a escolha do Gui:
-    - **Busca por digitação no Explorar** (E2): escolhida a proposta B, a busca como porta do site; falta a aplicação. Brief em [`briefs/busca-no-explorar.md`](briefs/busca-no-explorar.md).
     - **A memória como lugar de ler e contar** (E3): ainda sem exploração. Brief em [`briefs/memoria-ler-e-contar.md`](briefs/memoria-ler-e-contar.md).
 - **A peça de feedback de estado** (Gui, 24/11): os oito estados da seção 5 da M1 numa peça só, com o controle tocado marcado na hora e a falta de rede em português, sem levar a pessoa à página de erro do navegador. A exploração E4 foi feita, e a escolha do Gui está no brief; falta a aplicação. Brief em [`briefs/feedback-de-estado.md`](briefs/feedback-de-estado.md).
 - **Desempenho antes do Natal** (M1, decisões do Gui de 23/11/2026): o plano gratuito com folga no dia 25, o Explorar respondendo no próprio celular, as fotos guardadas no aparelho por 7 dias e as cópias menores no envio. A D1 (D1a a D1f) e a causa 6 estão no site; faltam a D2 e a D3. Brief em [`briefs/desempenho.md`](briefs/desempenho.md).

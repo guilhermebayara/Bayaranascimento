@@ -31,14 +31,14 @@ describe('a guarda da busca (regra 15)', () => {
   });
 
   it('SQL de quem vê o quê na consulta da busca é recusado; ler a coluna para o código decidir, não', () => {
-    const comFiltro = (sql: string) => (t: string) => t.replace('FROM memorias WHERE id ${dentro}`', `FROM memorias WHERE id \${dentro} AND ${sql}\``);
+    const comFiltro = (sql: string) => (t: string) => t.replace('FROM memorias m WHERE m.id ${dentro}`', `FROM memorias m WHERE m.id \${dentro} AND ${sql}\``);
     for (const sql of ["situacao = 'publicada'", "visibilidade = 'todos'", 'excluida_em IS NULL']) {
       expect(problemas({ 'src/lib/servidor/busca.ts': comFiltro(sql) }).join(), sql).toContain('SQL de quem vê o quê');
     }
     expect(problemas({ 'src/lib/servidor/busca.ts': (t) => t.replace(/WHERE memoria_id \$\{dentro\} ORDER BY principal/, 'WHERE removida_em IS NULL AND memoria_id ${dentro} ORDER BY principal') }).join()).toContain('SQL de quem vê o quê');
     expect(problemas({ 'src/lib/servidor/busca.ts': (t) => `${t}\nconst x = \`SELECT * FROM memorias m WHERE \${FILTRO_VISIVEL}\`;` }).join()).toContain('SQL de quem vê o quê');
     // A consulta de hoje lê situacao e visibilidade no SELECT, para podeVerMemoria decidir: passa (o primeiro caso)
-    expect(deVerdade['src/lib/servidor/busca.ts']).toMatch(/SELECT id, titulo, [^`]*situacao, visibilidade/);
+    expect(deVerdade['src/lib/servidor/busca.ts']).toMatch(/SELECT m\.id, m\.titulo, [^`]*m\.situacao, m\.visibilidade/);
   });
 
   it('a busca sem podeVerMemoria ou sem veORelato é recusada', () => {

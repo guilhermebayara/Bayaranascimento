@@ -27,7 +27,7 @@ Toda casa tem uma, com fotos reveladas, um envelope do laboratório e, no verso 
 | Tela | A ideia | O que fica quieto |
 | --- | --- | --- |
 | Painel (página inicial) | Na primeira visita, a carta de Natal assinada à mão pelo Gui, pela Giovanna e pelo Magno. Depois, o que entrou de novo, como quem abre a caixa e acha fotos que não estavam lá | Aniversários e atalhos, em segundo plano |
-| Explorar na linha do tempo e famílias | A assinatura ("MEMÓRIAS" e os sobrenomes) grande, e logo o ano mais recente abrindo a lista | Menu e filtros pequenos |
+| Explorar na linha do tempo e famílias | Memórias na primeira tela: a assinatura compacta ("MEMÓRIAS" e os sobrenomes numa linha só no celular, menor e com as famílias na mesma linha no computador), e logo o ano mais recente abrindo a lista (aplicação da E2) | Menu e filtros pequenos |
 | Linha do tempo | O ano grande como divisória e as fotos-chave como polaroids | A ficha de cada memória em uma linha mono |
 | Explorar, mural e modo TV | No mural, só as fotos, como a caixa aberta na mesa. No modo TV, uma memória por vez, grande, para ver junto | Filtros e ordem recolhidos numa linha |
 | Memória | A foto e o verso: a imagem grande, a ficha como carimbo, os relatos como conversa, cada pessoa uma voz | Corrigir, histórico |
@@ -343,6 +343,18 @@ A regra de cada tela como ela é hoje. O comportamento (o que aparece, para quem
 
 - O menu do celular é uma sanfona. O retrato de quem está logado abre o menu da conta; no celular, ao lado de "Menu", ficam "Nova memória" e o retrato.
 - A faixa de teste do alto (telas e "Ver como") só existe fora da produção.
+- A lupa "Procurar" (aplicação da E2): no celular, só o desenho da lupa, ao lado do monograma; no computador, a pílula branca com a palavra e a sombra de bilhete, antes do retrato. Em toda página, menos no modo TV. Ver "A busca".
+
+### A busca
+
+`src/components/busca/` (`CaixaDeBusca.astro`, `ResultadoDaBusca.astro`, `PorqueAchou.astro`, `SemResultado.astro`), `src/pages/busca.astro`, `telas/busca.css`; a folha está em `src/layouts/Visual.astro`. As regras em `docs/regras/explorar.md`, "A busca". Capturas em `docs/visual/aplicacao-e2/`.
+
+- **A caixa** é a que todo mundo conhece, desenhada com o material do site: o cartão branco pousado no papel (`--sombra-bilhete`, `--raio-bloco`), a lupa à esquerda, a busca na serifa das perguntas (`--t-titulo-3`) e o xis do site para limpar (o do navegador sai). Sem script, o botão "Procurar" envia; com script, ele some e o resultado vem enquanto se digita.
+- **A folha,** por cima da página (um `<dialog>`): no celular, a tela inteira, como a busca dos aplicativos, com a caixa e "Fechar" no alto; no computador, um cartão que desce do alto, centrado, com o fundo esmaecido. A página embaixo não rola, e a folha rola por dentro. Nada fica preso na borda da tela: a folha é o `<dialog>` do navegador, e o que fica no Safari do iPhone (a banda atrás das barras e a altura com o teclado aberto) só se confere lá.
+- **O resultado agrupado:** o resumo em mono ("6 memórias e 1 pessoa com “natal”"), depois os grupos, cada um com o rótulo em mono colado nele: as pessoas com o retrato, o parentesco e a conta; as memórias com a foto pequena em moldura (ou o ícone do tipo, sem foto), o título em serifa, o carimbo e o porquê em mono, com o trecho e a palavra marcada no pastel; os capítulos e temas em linhas com o nome e o que é. "Ver as N memórias no Explorar" fecha o grupo das memórias. Antes de digitar, os exemplos são fichas de canto reto, de papel.
+- **O estado** fica numa linha abaixo da caixa, fora da região que troca: o ponto de cor (`--vivo`) e o texto em mono, quietos; "Procurando…" só depois de 400 ms, com o ponto pulsando (sem pulso com movimento reduzido); na falha, o ponto em tinta, a frase e "Tentar de novo". É o desenho da proposta A da E4, que a peça de feedback de estado vai assumir.
+- **A página `/busca`** tem o título "Procurar", "Fechar" (volta para onde a pessoa estava), a mesma caixa e o mesmo resultado, com o endereço acompanhando a busca.
+- **Na página do sistema,** a lupa, o fechar e a caixa ficam em "Peças".
 
 ### Início
 
@@ -378,6 +390,7 @@ A regra de cada tela como ela é hoje. O comportamento (o que aparece, para quem
 
 **Os controles: cada coisa no seu lugar** (Gui, 18/11; capturas do conceito em `docs/visual/conceitos/sessao-d/`, as `explorar-a-*`). O alto da página é uma grade, e os controles entram nela peça por peça (`.controles` com `display: contents`), na ordem: a assinatura, as famílias, as abas, "Filtros" e "Ordem", as fichas ligadas, o tamanho das fotos (no mural) e, no celular, a conta. Cada coisa tem uma cara só: a família é pílula redonda com o ponto da cor, a forma de ver é aba de texto, o filtro é ficha de canto reto.
 
+- **O alto compacto** (aplicação da E2, para a primeira tela mostrar memórias): no celular, a assinatura numa linha só, "MEMÓRIAS" e os sobrenomes lado a lado, como cabeçalho de revista, e as abas a `--e-5` das famílias; no computador, a assinatura menor, em quatro colunas, com as famílias subindo para a linha dela, à direita, e as abas a `--e-7`. Continua dizendo de quem é o que está filtrado. A classe é `.linha__capa--compacta`, em `telas/busca.css`.
 - **Família:** pílulas logo abaixo da assinatura, a `--e-3` dela. Cada opção tem o ponto na cor da família e acende inteira no pastel dela quando está marcada. Cada toque liga ou desliga só aquela família (`alternarFamilia`), "Família completa" desliga todas, e marcar todas volta sozinho à família completa. A cor da tela e a assinatura do topo e do rodapé acompanham. No celular, a fila rola para o lado. As famílias e as abas reservam a largura do negrito, para nenhuma opção mudar de lugar quando outra é marcada.
 - **As abas** (`.abas`): "Linha do tempo", "Mural de fotos" e "Lista", a `--e-7` das famílias e coladas no conteúdo, com o fio de tinta embaixo; a marcada em negrito com o traço grosso. "Modo TV" e "Me mostre uma memória" vêm logo depois, como saídas com seta. No computador, a conta das memórias fica na linha das abas, à direita.
 - **Filtros:** fechado, "Filtros" com o número dos ligados numa bolinha de tinta e o sinal de mais; embaixo, cada filtro ligado é uma ficha escura com o xis (`.ficha-ligada`), que leva ao endereço sem ele. Aberto, um cartão branco (`.filtros__cartao`): "Só as memórias" com as fichas de um toque (`.ficha-de-filtro`, de papel, escuras quando ligadas) e os grupos em linhas com fio entre elas, que abrem no lugar (`.filtros__grupo`). No computador, as fichas e a saída à esquerda (colunas 1 a 4) e os grupos à direita (6 a 12), com as opções em três colunas; no celular, tudo em sequência, com as opções em duas colunas fixas. Com script, cada escolha vale na hora e o cartão continua aberto; o botão "Mostrar memórias" fica só para quem está sem script. Tudo é link ou formulário comum: funciona sem script e fica no endereço.

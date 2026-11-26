@@ -27,6 +27,7 @@ import {
   listarCasais,
   listarNucleos,
   listarIntegrantesQueVe,
+  listarTemas,
   listarTemasVisiveis,
   nomesDasPessoasExcluidas,
   pessoasQueONaoVe,
@@ -121,21 +122,24 @@ const vistaNaBusca = (usuario: Usuario, m: MemoriaDaBusca) => !m.excluida && m.s
  */
 async function lerMemorias(ids: string[]): Promise<Map<string, MemoriaDaBusca>> {
   if (ids.length === 0) return new Map();
-  const lista = JSON.stringify(ids);
-  const [linhas, nucleos, integrantes, capitulos, temas] = await db().batch<Record<string, unknown>>([
-    db().prepare(`SELECT id, titulo, ano, mes, dia, aproximada, lugar, tipo, tipo_outro, situacao, visibilidade, criada_por, excluida_em FROM memorias WHERE id ${dentro}`).bind(lista),
-    db().prepare(`SELECT memoria_id, nucleo_id FROM memoria_nucleos WHERE memoria_id ${dentro}`).bind(lista),
-    db().prepare(`SELECT memoria_id, integrante_id FROM memoria_integrantes WHERE memoria_id ${dentro}`).bind(lista),
-    db().prepare(`SELECT memoria_id, capitulo_id FROM capitulo_memorias WHERE memoria_id ${dentro}`).bind(lista),
-    db().prepare(`SELECT memoria_id, tema_id FROM tema_memorias WHERE memoria_id ${dentro}`).bind(lista),
-  ]);
-  type Linhas = { results: Record<string, unknown>[] };
-  const porId = new Map<string, MemoriaDaBusca>((linhas as Linhas).results.map((r: Record<string, unknown>) => [r.id as string, daLinha(r)]));
-  for (const r of (nucleos as Linhas).results) porId.get(r.memoria_id as string)?.nucleos.push(r.nucleo_id as string);
-  for (const r of (integrantes as Linhas).results) porId.get(r.memoria_id as string)?.integrantes.push(r.integrante_id as string);
-  for (const r of (capitulos as Linhas).results) porId.get(r.memoria_id as string)?.capitulos.push(r.capitulo_id as string);
-  for (const r of (temas as Linhas).results) porId.get(r.memoria_id as string)?.temas.push(r.tema_id as string);
-  return porId;
+  // Uma consulta só, com as ligações de cada memória em subconsultas pelo índice: a lista de ids é lida uma vez,
+  // e não uma vez por tabela (com o acervo cheio, 1.600 linhas em vez de 2.500 para 115 memórias)
+  const lista = (tabela: string, coluna: string) => `(SELECT json_group_array(${coluna}) FROM ${tabela} x WHERE x.memoria_id = m.id) AS ${tabela}`;
+  const { results } = await db()
+    .prepare(
+      `SELECT m.id, m.titulo, m.ano, m.mes, m.dia, m.aproximada, m.lugar, m.tipo, m.tipo_outro, m.situacao, m.visibilidade, m.criada_por, m.excluida_em,
+        ${lista('memoria_nucleos', 'nucleo_id')}, ${lista('memoria_integrantes', 'integrante_id')}, ${lista('capitulo_memorias', 'capitulo_id')}, ${lista('tema_memorias', 'tema_id')}
+       FROM memorias m WHERE m.id ${dentro}`,
+    )
+    .bind(JSON.stringify(ids))
+    .all<Record<string, unknown>>();
+  const ler = (valor: unknown) => (typeof valor === 'string' ? (JSON.parse(valor) as string[]) : []);
+  return new Map(
+    (results as Record<string, unknown>[]).map((r) => {
+      const m = daLinha(r);
+      return [m.id, { ...m, nucleos: ler(r.memoria_nucleos), integrantes: ler(r.memoria_integrantes), capitulos: ler(r.capitulo_memorias), temas: ler(r.tema_memorias) }];
+    }),
+  );
 }
 
 /** A memória que a página já leu (listarMemorias, só o que a pessoa vê), no jeito da busca. */
@@ -247,7 +251,9 @@ export async function buscarNoAcervo(usuario: Usuario, tipos: readonly Tipo[], b
     listarIntegrantesQueVe(usuario),
     comoOsExesAparecem(usuario),
     listarCapitulos(usuario),
-    listarTemasVisiveis(usuario),
+    // Com as memórias da página, os temas que ela vê (a página já leu); sem elas, todos, e o grupo "Capítulos e
+    // temas" mostra só os que têm uma memória que a pessoa vê ou estão num capítulo que ela vê
+    vistas ? listarTemasVisiveis(usuario) : listarTemas(),
     nomesDasPessoasExcluidas(),
     acertosDoIndice(procurados),
   ]);
@@ -295,54 +301,58 @@ export async function buscarNoAcervo(usuario: Usuario, tipos: readonly Tipo[], b
   } else {
     const todasAsPessoas = [...new Set([...fora.flatMap((f) => f.pessoas), ...pessoasAchadas.map((p) => p.id)])];
     const reunidosAchados = [...new Set(fora.flatMap((f) => f.capitulos.filter((c) => c.modo !== 'epoca').flatMap((c) => [...reunidos(c)])))];
-    const porPeriodo = fora.flatMap((f) => f.capitulos.filter((c) => c.modo === 'epoca' && c.inicio));
-    const anos = porPeriodo.map((c) => [c.inicio!.ano, c.fim?.ano ?? 9999] as const);
-    // Só as consultas que têm o que procurar: uma lista vazia não lê nada, e a de tipo e a de ano nem vão
-    const temas = [...new Set(fora.flatMap((f) => f.temas))];
+    const porPeriodo = [...new Set(fora.flatMap((f) => f.capitulos.filter((c) => c.modo === 'epoca' && c.inicio)))];
+    const temasAchados = [...new Set(fora.flatMap((f) => f.temas))];
     const tiposAchados = [...new Set(fora.flatMap((f) => f.tipos))];
     const anosAchados = [...new Set(fora.map((f) => f.ano).filter((a): a is number => a !== undefined))];
-    const nada = { results: [] as Record<string, unknown>[] };
-    const consultas: [string, unknown[]][] = [
-      ...(todasAsPessoas.length ? [[`SELECT memoria_id, integrante_id FROM memoria_integrantes WHERE integrante_id ${dentro}`, [JSON.stringify(todasAsPessoas)]] as [string, unknown[]]] : []),
-      ...(reunidosAchados.length ? [[`SELECT memoria_id, capitulo_id FROM capitulo_memorias WHERE capitulo_id ${dentro}`, [JSON.stringify(reunidosAchados)]] as [string, unknown[]]] : []),
-      ...(temas.length ? [[`SELECT memoria_id, tema_id FROM tema_memorias WHERE tema_id ${dentro}`, [JSON.stringify(temas)]] as [string, unknown[]]] : []),
-      ...(tiposAchados.length ? [[`SELECT id, tipo FROM memorias WHERE tipo ${dentro}`, [JSON.stringify(tiposAchados)]] as [string, unknown[]]] : []),
-      // O ano procurado e os anos dos capítulos por período achados pelo nome (a regra fina é memoriaDoCapitulo)
-      ...anosAchados.map((a) => [`SELECT id, ano FROM memorias WHERE ano = ?`, [a]] as [string, unknown[]]),
-      ...anos.map(([de, ate]) => [`SELECT id, ano FROM memorias WHERE ano BETWEEN ? AND ?`, [de, ate]] as [string, unknown[]]),
+    // Primeiro, só os ids: as memórias de cada pessoa, capítulo, tema, tipo e ano achados. Só as consultas que têm
+    // o que procurar vão ao banco; o capítulo por período entra pelo intervalo de anos (a regra fina vem depois)
+    type Linhas = { results: Record<string, unknown>[] };
+    const consultas: { chave: string; sql: string; valores: unknown[] }[] = [
+      ...(todasAsPessoas.length ? [{ chave: 'pessoas', sql: `SELECT memoria_id, integrante_id FROM memoria_integrantes WHERE integrante_id ${dentro}`, valores: [JSON.stringify(todasAsPessoas)] }] : []),
+      ...(reunidosAchados.length ? [{ chave: 'capitulos', sql: `SELECT memoria_id, capitulo_id FROM capitulo_memorias WHERE capitulo_id ${dentro}`, valores: [JSON.stringify(reunidosAchados)] }] : []),
+      ...(temasAchados.length ? [{ chave: 'temas', sql: `SELECT memoria_id, tema_id FROM tema_memorias WHERE tema_id ${dentro}`, valores: [JSON.stringify(temasAchados)] }] : []),
+      ...(tiposAchados.length ? [{ chave: 'tipos', sql: `SELECT id, tipo FROM memorias WHERE tipo ${dentro}`, valores: [JSON.stringify(tiposAchados)] }] : []),
+      ...anosAchados.map((a) => ({ chave: `ano:${a}`, sql: `SELECT id FROM memorias WHERE ano = ?`, valores: [a] })),
+      ...porPeriodo.map((c) => ({ chave: `periodo:${c.id}`, sql: `SELECT id FROM memorias WHERE ano BETWEEN ? AND ?`, valores: [c.inicio!.ano, c.fim?.ano ?? 9999] })),
     ];
-    const respostas: { results: Record<string, unknown>[] }[] = consultas.length ? await db().batch<Record<string, unknown>>(consultas.map(([sql, valores]) => db().prepare(sql).bind(...valores))) : [];
-    let n = 0;
-    const proxima = (tem: boolean) => (tem ? respostas[n++]! : nada);
-    const dasPessoas = proxima(todasAsPessoas.length > 0);
-    const dosCapitulos = proxima(reunidosAchados.length > 0);
-    const dosTemas = proxima(temas.length > 0);
-    const dosTipos = proxima(tiposAchados.length > 0);
-    const dosAnos = { results: respostas.slice(n).flatMap((r: { results: Record<string, unknown>[] }) => r.results) };
-    const ligadas = (r: { results: Record<string, unknown>[] }, coluna: string, valores: readonly string[]) =>
-      r.results.filter((l) => valores.includes(l[coluna] as string)).map((l) => (l.memoria_id ?? l.id) as string);
-    const porAno = dosAnos.results.map((l) => l.id as string);
-    // Primeiro, todas as memórias que podem entrar, para ler os dados e as ligações delas de uma vez
-    const possiveis = new Set<string>([
-      ...porTermo.flat().map((a) => a.memoria),
-      ...dasPessoas.results.map((l) => l.memoria_id as string),
-      ...dosCapitulos.results.map((l) => l.memoria_id as string),
-      ...dosTemas.results.map((l) => l.memoria_id as string),
-      ...dosTipos.results.map((l) => l.id as string),
-      ...porAno,
-    ]);
-    memorias = await lerMemorias([...possiveis]);
-    for (const [id, m] of memorias) if (!vistaNaBusca(usuario, m)) memorias.delete(id);
-    candidatasPorTermo = fora.map((f, i) => {
-      const ids = new Set(porTermo[i]!.map((a) => a.memoria));
-      for (const id of ligadas(dasPessoas, 'integrante_id', f.pessoas)) ids.add(id);
-      for (const id of ligadas(dosTemas, 'tema_id', f.temas)) ids.add(id);
-      for (const id of ligadas(dosTipos, 'tipo', f.tipos)) ids.add(id);
-      for (const c of f.capitulos) for (const m of memorias.values()) if (doCapitulo(m, c)) ids.add(m.id);
-      if (f.ano !== undefined) for (const m of memorias.values()) if (m.ano === f.ano) ids.add(m.id);
-      return ids;
+    const respostas: Linhas[] = consultas.length ? await db().batch<Record<string, unknown>>(consultas.map((c) => db().prepare(c.sql).bind(...c.valores))) : [];
+    const resposta = new Map(consultas.map((c, n) => [c.chave, respostas[n]!.results]));
+    const ligadas = (chave: string, coluna: string, valores: readonly string[]) =>
+      (resposta.get(chave) ?? []).filter((l) => valores.includes(l[coluna] as string)).map((l) => (l.memoria_id ?? l.id) as string);
+    const ids = (chave: string) => (resposta.get(chave) ?? []).map((l) => l.id as string);
+    // As que podem responder a cada termo (a mais, nunca a menos: o período ainda sem a regra fina)
+    const largasPorTermo = fora.map((f, i) => {
+      const daqui = new Set(porTermo[i]!.map((a) => a.memoria));
+      for (const id of ligadas('pessoas', 'integrante_id', f.pessoas)) daqui.add(id);
+      for (const c of f.capitulos) {
+        if (c.modo === 'epoca') for (const id of ids(`periodo:${c.id}`)) daqui.add(id);
+        else for (const id of ligadas('capitulos', 'capitulo_id', [...reunidos(c)])) daqui.add(id);
+      }
+      for (const id of ligadas('temas', 'tema_id', f.temas)) daqui.add(id);
+      for (const id of ligadas('tipos', 'tipo', f.tipos)) daqui.add(id);
+      if (f.ano !== undefined) for (const id of ids(`ano:${f.ano}`)) daqui.add(id);
+      return daqui;
     });
-    comPessoa = new Map(pessoasAchadas.map((p) => [p.id, new Set(ligadas(dasPessoas, 'integrante_id', [p.id]))]));
+    // Depois, os dados e as ligações só das que podem responder a todas as palavras, e das memórias das
+    // pessoas achadas (para a conta delas)
+    const deTodas = [...largasPorTermo[0]!].filter((id) => largasPorTermo.every((l) => l.has(id)));
+    const dasPessoasAchadas = new Map(pessoasAchadas.map((p) => [p.id, new Set(ligadas('pessoas', 'integrante_id', [p.id]))]));
+    memorias = await lerMemorias([...new Set([...deTodas, ...[...dasPessoasAchadas.values()].flatMap((m) => [...m])])]);
+    for (const [id, m] of memorias) if (!vistaNaBusca(usuario, m)) memorias.delete(id);
+    // A regra fina, com as ligações lidas: o capítulo por período pela data e de quem é (memoriaDoCapitulo)
+    candidatasPorTermo = fora.map((f, i) => {
+      const daqui = new Set([...largasPorTermo[i]!].filter((id) => !f.capitulos.some((c) => c.modo === 'epoca') || porTermo[i]!.some((a) => a.memoria === id)));
+      for (const id of largasPorTermo[i]!) {
+        const m = memorias.get(id);
+        if (!m) continue;
+        const pelaRegra =
+          m.integrantes.some((p) => f.pessoas.includes(p)) || f.capitulos.some((c) => doCapitulo(m, c)) || m.temas.some((t) => f.temas.includes(t)) || f.tipos.includes(m.tipo) || m.ano === f.ano;
+        if (pelaRegra) daqui.add(id);
+      }
+      return daqui;
+    });
+    comPessoa = dasPessoasAchadas;
   }
 
   // As memórias que podem responder a todas as palavras, entre as que a pessoa vê
@@ -375,8 +385,9 @@ export async function buscarNoAcervo(usuario: Usuario, tipos: readonly Tipo[], b
     };
   });
   const achados = buscar(docs, busca);
-  // As que a pessoa vê, entre as lidas, para a conta de cada pessoa achada
+  // As que a pessoa vê, entre as lidas, para a conta de cada pessoa achada e os temas que ela vê
   const visiveis = new Set(memorias.keys());
+  const memoriasLidas = new Map(memorias);
   const achadas = new Set(achados.map((a) => a.id));
   for (const id of [...memorias.keys()]) if (!achadas.has(id)) memorias.delete(id);
   return {
@@ -391,7 +402,10 @@ export async function buscarNoAcervo(usuario: Usuario, tipos: readonly Tipo[], b
       .filter((p) => p.memorias > 0)
       .sort((a, b) => b.memorias - a.memorias || a.nome.localeCompare(b.nome, 'pt-BR')),
     capitulos: capitulos.filter((c) => procurados.every((t) => achaEm(t, c.titulo))).map((c) => ({ id: c.id, nome: c.titulo })),
-    temas: temas.filter((t) => procurados.every((x) => achaEm(x, t.nome))).map((t) => ({ id: t.id, nome: t.nome })),
+    temas: temas
+      .filter((t) => procurados.every((x) => achaEm(x, t.nome)))
+      .filter((t) => vistas || [...visiveis].some((id) => memoriasLidas.get(id)?.temas.includes(t.id)) || capitulos.some((c) => c.temas.includes(t.id)))
+      .map((t) => ({ id: t.id, nome: t.nome })),
   };
 }
 

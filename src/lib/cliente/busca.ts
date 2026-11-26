@@ -220,7 +220,13 @@ export function ligarFolhaDeBusca() {
     evento.preventDefault();
     folha.close();
   });
-  // O toque fora do cartão (no fundo da folha) fecha, como o Esc
+  // O Esc fecha a folha mesmo com o texto escrito: no campo de busca, o navegador só apagaria o texto
+  campo.addEventListener('keydown', (evento) => {
+    if (evento.key !== 'Escape') return;
+    evento.preventDefault();
+    folha.close();
+  });
+    // O toque fora do cartão (no fundo da folha) fecha, como o Esc
   folha.addEventListener('click', (evento) => {
     if (evento.target === folha) folha.close();
   });

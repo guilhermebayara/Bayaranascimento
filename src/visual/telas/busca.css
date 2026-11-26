@@ -343,9 +343,29 @@
   padding: 0;
   list-style: none;
 }
-.resultado-busca__exemplos a {
+/* Os exemplos de antes de digitar: o desenho da ficha de filtro (canto reto, papel branco), que escreve na caixa */
+.exemplo-de-busca {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  padding: 0 var(--e-3);
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-carimbo);
+  background: var(--branco);
+  color: var(--tinta);
+  font-size: var(--t-pequeno);
+  line-height: 1.2;
   text-decoration: none;
-  color: inherit;
+  white-space: nowrap;
+}
+.exemplo-de-busca:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .exemplo-de-busca:hover {
+    border-color: var(--tinta);
+  }
 }
 .resultado-busca__grupo {
   margin-top: var(--e-7);

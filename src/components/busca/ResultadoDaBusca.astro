@@ -28,14 +28,15 @@ const explorar = total > 0 ? enderecoDoExplorar({ ...SEM_FILTRO, busca }) : unde
 ---
 
 <div class="resultado-busca" data-busca-resultado data-resumo={resumo}>
-  <p class="resultado-busca__resumo ficha suave">{busca ? resumo : 'Procure por uma palavra, um lugar, um ano ou alguém.'}</p>
+  {/* No vazio, a frase grande já diz o que foi procurado: o resumo não se repete */}
+  {!nada && <p class="resultado-busca__resumo ficha suave">{busca ? resumo : 'Procure por uma palavra, um lugar, um ano ou alguém.'}</p>}
 
   {
     !busca && (
       <ul class="resultado-busca__exemplos" aria-label="Exemplos">
         {EXEMPLOS.map((e) => (
           <li>
-            <a class="ficha-de-filtro" href={`/busca?q=${encodeURIComponent(e)}`} data-exemplo={e}>
+            <a class="exemplo-de-busca" href={`/busca?q=${encodeURIComponent(e)}`} data-exemplo={e}>
               {e}
             </a>
           </li>
