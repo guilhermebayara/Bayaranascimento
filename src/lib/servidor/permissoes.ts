@@ -1,7 +1,9 @@
 // Regras de quem vê e quem pode o quê. Espelham docs/regras/permissoes.md.
 // Funções puras, sem acesso a rede nem a banco, para serem fáceis de testar.
-// A regra de "quem vê" existe também em SQL, em repositorio.ts (FILTRO_VISIVEL):
-// as duas precisam mudar juntas.
+// As regras de quem vê o quê moram em src/lib/servidor/quem-ve.ts, em par com o SQL; as daqui que têm o
+// mesmo nome de antes (podeVerMemoria, veORelato, estaNoPublicoDoRelato, pessoasQueNaoVe, comExcluidas)
+// apontam para lá.
+import { alcanca, comExcluidas, estaNoPublicoDoRelato, excluidasDe, pessoasQueNaoVe, relatoEspera, veMemoria, veORelato, type Publico } from './quem-ve';
 import { ehEpoca, podeVerCapitulo, type Capitulo, type ModoDoFormulario } from '../capitulos';
 import { casalDesfeito, ehEx } from '../ex-casal';
 import type { Casal } from '../parentesco';
@@ -41,9 +43,8 @@ const nao = (motivo: string): Decisao => ({ ok: false, motivo });
  *   e administrador não tem visão especial.
  */
 export function podeVerMemoria(usuario: Usuario, m: AcessoDaMemoria): boolean {
-  if (m.situacao === 'rascunho') return m.criadaPor === usuario.pessoa;
-  if (m.visibilidade === 'todos') return true;
-  return m.nucleos.some((n) => usuario.nucleos.includes(n));
+  // A lixeira fica com quem chama, como sempre: a memória que chega aqui já foi achada no lugar certo
+  return veMemoria(usuario, m, { lixeira: 'qualquer' });
 }
 
 /**
@@ -110,7 +111,7 @@ export function validarVisibilidade(usuario: Usuario, visibilidade: 'todos' | 'n
   if (visibilidade === 'todos') return sim;
   const [o, um] = doQue === 'capitulo' ? ['o capítulo', 'um capítulo'] : ['a memória', 'uma memória'];
   if (nucleos.length === 0) return nao(`Escolha pelo menos um núcleo que pode ver ${o}.`);
-  if (!nucleos.some((n) => usuario.nucleos.includes(n))) {
+  if (!alcanca({ visibilidade: 'nucleos', nucleos }, usuario.nucleos)) {
     return nao(`Você só pode restringir ${um} a núcleos de que faz parte.`);
   }
   return sim;
@@ -249,46 +250,9 @@ export function podeMudarQuemVe(
   return sim;
 }
 
-/**
- * Quem a pessoa logada não vê: quem só existe num laço do coração privado de outra pessoa, sem nenhum
- * laço que ela veja (filiação, casal que ela vê ou laço do coração dela ou aberto). Nem o nome aparece,
- * na árvore, e nem o retrato é entregue.
- */
-export function pessoasQueNaoVe(emPrivadosDeOutros: ReadonlySet<string>, comLacoVisivel: ReadonlySet<string>): Set<string> {
-  return new Set([...emPrivadosDeOutros].filter((id) => !comLacoVisivel.has(id)));
-}
-
-/**
- * Ver um relato de quem a pessoa logada não vê (decisão do Gui, 17/11/2026): o relato registrado em nome
- * de quem só existe num laço do coração privado de outra pessoa some inteiro, como se não existisse, da
- * página da memória, da contagem de relatos, dos áudios e de "A voz de Fulano". Quem registrou continua
- * vendo. O dono do laço vê a pessoa e, por isso, vê o relato. A memória em si não muda.
- */
-export function veORelato(
-  relato: { por: string; registradoPor: string; soParaNucleos?: readonly string[] | null },
-  usuario: Pick<Usuario, 'pessoa'> & Partial<Pick<Usuario, 'nucleos'>>,
-  naoVe: ReadonlySet<string>,
-): boolean {
-  if (relato.registradoPor === usuario.pessoa) return true;
-  // Quem está na lixeira (excluir pessoa) some do site, mas o relato que ela escreveu fica, com o nome
-  const naLixeira = excluidasDe(naoVe).has(relato.por);
-  return (naLixeira || !naoVe.has(relato.por)) && estaNoPublicoDoRelato(relato, usuario);
-}
-
-// --- Excluir pessoa (decisão do Gui depois da sessão I, 18/11/2026) ---
-
-const EXCLUIDAS = Symbol('excluidas');
-type ComExcluidas = ReadonlySet<string> & { [EXCLUIDAS]?: ReadonlySet<string> };
-
-/**
- * Marca, no conjunto de quem a pessoa logada não vê, quem está ali por estar na lixeira. Para as telas,
- * as duas coisas são iguais (a pessoa some); só o relato distingue: o de quem está na lixeira fica.
- */
-export function comExcluidas<T extends Set<string>>(naoVe: T, excluidas: ReadonlySet<string>): T {
-  Object.defineProperty(naoVe, EXCLUIDAS, { value: excluidas, enumerable: false });
-  return naoVe;
-}
-export const excluidasDe = (naoVe: ReadonlySet<string>): ReadonlySet<string> => (naoVe as ComExcluidas)[EXCLUIDAS] ?? new Set();
+// Quem a pessoa logada não vê, ver um relato e quem está na lixeira (excluir pessoa, decisão do Gui depois
+// da sessão I, 18/11/2026): as regras moram em quem-ve.ts.
+export { comExcluidas, excluidasDe, pessoasQueNaoVe, veORelato };
 
 /** A pessoa que alguém quer excluir: quem acessa o site não sai por aqui, nem a própria pessoa. */
 export interface AlvoDaExclusao {
@@ -323,11 +287,8 @@ export function podeCuidarDaExclusao(usuario: Usuario): Decisao {
 
 // --- Ampliar quem vê uma memória com relatos (decisão do Gui, 17/11/2026) ---
 
-/** Quem vê uma memória: toda a família, ou só quem é membro de um dos núcleos. */
-export interface Publico {
-  visibilidade: 'todos' | 'nucleos';
-  nucleos: readonly string[];
-}
+/** Quem vê uma memória: toda a família, ou só quem é membro de um dos núcleos (em quem-ve.ts). */
+export type { Publico };
 
 /**
  * O público da memória mudou de fato: outra visibilidade, ou outras famílias numa memória restrita. Numa
@@ -369,19 +330,8 @@ export function relatoQueNasce(paginaMostrava: Publico, memoria: Publico, quemEs
   return { soParaNucleos: [...paginaMostrava.nucleos].sort() };
 }
 
-/**
- * O relato que espera o sim do autor depois de a memória ser ampliada fica só para quem já o viu: os
- * membros dos núcleos do público conhecido dele. Quem registrou sempre vê o que escreveu. Sem espera
- * (soParaNucleos vazio), o relato acompanha a memória.
- */
-export function estaNoPublicoDoRelato(
-  relato: { registradoPor: string; soParaNucleos?: readonly string[] | null },
-  usuario: Pick<Usuario, 'pessoa'> & Partial<Pick<Usuario, 'nucleos'>>,
-): boolean {
-  if (!relato.soParaNucleos) return true;
-  if (relato.registradoPor === usuario.pessoa) return true;
-  return relato.soParaNucleos.some((n) => (usuario.nucleos ?? []).includes(n));
-}
+/** O relato que espera o sim do autor fica só para quem já o viu: a regra mora em quem-ve.ts. */
+export { estaNoPublicoDoRelato };
 
 /**
  * O público mais amplo que um relato já teve (migração 105; resposta do Gui à P3 do QA de 23/11/2026,
@@ -415,7 +365,7 @@ export function publicoConhecidoAntes(
   relato: { soParaNucleos?: readonly string[] | null; publicoConhecido?: PublicoConhecido | null },
   antes: Publico,
 ): PublicoConhecido {
-  if (relato.soParaNucleos) return juntarPublicos(relato.publicoConhecido ?? relato.soParaNucleos, relato.soParaNucleos);
+  if (relatoEspera(relato.soParaNucleos)) return juntarPublicos(relato.publicoConhecido ?? relato.soParaNucleos!, relato.soParaNucleos!);
   return juntarPublicos(relato.publicoConhecido ?? comoConhecido(antes), comoConhecido(antes));
 }
 
@@ -461,7 +411,7 @@ export function publicoConhecidoAoLiberar(
 /** Responder ao pedido para liberar, ou liberar depois pela linha do relato: só quem registrou o relato. */
 export function podeLiberarRelato(usuario: Usuario, relato: { registradoPor: string; soParaNucleos?: readonly string[] | null }): Decisao {
   if (relato.registradoPor !== usuario.pessoa) return nao('Só quem escreveu ou registrou o relato decide quem passa a vê-lo.');
-  if (!relato.soParaNucleos) return nao('Este relato já aparece para todos que veem a memória.');
+  if (!relatoEspera(relato.soParaNucleos)) return nao('Este relato já aparece para todos que veem a memória.');
   return sim;
 }
 

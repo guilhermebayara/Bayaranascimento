@@ -1,9 +1,14 @@
 // Regras que nasceram das respostas do Gui ao QA de design de 17/11/2026, na lista de Pessoas e na
 // página da pessoa (P98 a P108 de docs/historico/qa/2026-11-17-perguntas.md).
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { temSqlite } from './apoio/d1';
 import { apelidoAoLado, buscaAcha, enderecoDePessoas, familiaPedida, gruposDaFamilia, nomeComApelido, ordemPedida, ordenarPessoas, type PessoaDaLista } from '../src/lib/ordem-das-pessoas';
 import { calcularGeracoes } from '../src/lib/parentesco';
 import { vidaSemRotulo } from '../src/lib/datas';
+
+const comSqlite = await temSqlite();
+const env = vi.hoisted(() => ({ AMBIENTE: 'previa' as string, DB: undefined as unknown, FOTOS: undefined as unknown }));
+vi.mock('cloudflare:workers', () => ({ env }));
 
 // A leitura de arquivos segue o jeito de testes/visual.test.ts, que não pede os tipos do Node
 const fs = 'node:fs';
@@ -176,10 +181,11 @@ describe('a página da pessoa', () => {
     expect(pagina).toMatch(/<Mensagem mensagem=\{m\} de=\{chamar\} \/>/);
     const consulta = ler('src/lib/servidor/repositorio.ts');
     const audios = consulta.slice(consulta.indexOf('export async function listarAudiosDe'), consulta.indexOf('export async function listarRelatosDe'));
-    expect(audios).toMatch(/a\.removido_em IS NULL AND r\.por = \?2 AND r\.situacao = 'publicada' AND m\.situacao = 'publicada' AND \$\{FILTRO_VISIVEL\}/);
+    // A memória publicada que quem olha vê: FILTRO_PUBLICADA, o fragmento de src/lib/servidor/quem-ve.ts (AC3)
+    expect(audios).toMatch(/a\.removido_em IS NULL AND r\.por = \?2 AND r\.situacao = 'publicada' AND \$\{FILTRO_PUBLICADA\}/);
     // Os relatos dela passam pela mesma regra
     const relatos = consulta.slice(consulta.indexOf('export async function listarRelatosDe'), consulta.indexOf('// --- Tamanho do banco'));
-    expect(relatos).toMatch(/r\.por = \?2 AND r\.situacao = 'publicada' AND m\.situacao = 'publicada' AND \$\{FILTRO_VISIVEL\}/);
+    expect(relatos).toMatch(/r\.por = \?2 AND r\.situacao = 'publicada' AND \$\{FILTRO_PUBLICADA\}/);
     expect(relatos).toMatch(/\.filter\(\(r: Relato\) => veORelato\(r, usuario, naoVe\)\)/);
   });
   it('o botão cheio é a memória nova; editar é texto, e a árvore mora no quadro (P104)', () => {
@@ -240,5 +246,24 @@ describe('a lista de Pessoas com o apelido ao lado do nome', () => {
     expect(pagina).toContain('listarIntegrantesQueVe(usuario)');
     // O retrato continua com as iniciais do nome, e o apelido fica ao lado, na mesma linha
     expect(ler('src/components/visual/Gente.astro')).toContain('<Retrato nome={nome}');
+  });
+});
+
+// "Nas palavras de Fulano", pela consulta de verdade (revisão MEM-2 da AC3): só relato publicado de memória
+// publicada que quem olha vê. O rascunho de memória de quem olha não entra, mesmo com relato publicado nele
+describe.skipIf(!comSqlite)('os áudios e os relatos da pessoa, pelo banco', async () => {
+  const { abrirBancoDeExemplo } = await import('./apoio/banco-de-exemplo');
+  const { repo, sql, usuarioDe, memoriaAberta, ultimoRelato } = await abrirBancoDeExemplo(env);
+  sql(`INSERT INTO integrantes (id, nome) VALUES ('t-palavras', 'Pessoa das Palavras')`);
+  sql(`INSERT INTO memorias (id, titulo, ano, tipo, visibilidade, situacao, criada_por) VALUES ('t-rascunho-do-gui', 'Rascunho do Gui', 2001, 'outro', 'todos', 'rascunho', 'gui')`);
+  for (const memoria of ['t-rascunho-do-gui', memoriaAberta()]) {
+    sql(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, publicado_em) VALUES (?, 't-palavras', 'gui', 'Palavras', 'publicada', datetime('now'))`, memoria);
+    sql(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, enviado_por) VALUES (?, ?, ?, 'audio/webm', 10, 'gui')`, ultimoRelato(), memoria, `t-palavras-${memoria}.webm`);
+  }
+  const gui = usuarioDe('gui');
+
+  it('o rascunho de memória de quem olha fica de fora dos áudios e dos relatos dela', async () => {
+    expect((await repo.listarAudiosDe(gui, 't-palavras')).map((a) => a.memoriaId)).toEqual([memoriaAberta()]);
+    expect((await repo.listarRelatosDe(gui, 't-palavras')).map((r) => r.memoriaId)).toEqual([memoriaAberta()]);
   });
 });

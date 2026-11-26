@@ -22,16 +22,12 @@ export const naSala = (p: URLSearchParams): boolean => p.get(MARCADOR_DA_SALA) =
  */
 export const ID_DO_VISITANTE_DA_SALA = ':sala';
 
-/** A memória entra na sala: publicada e aberta a toda a família. */
-export const entraNaSala = (m: { situacao: 'rascunho' | 'publicada'; visibilidade: 'todos' | 'nucleos' }): boolean => m.situacao === 'publicada' && m.visibilidade === 'todos';
-
 /**
- * O relato vai à TV: publicado e sem esperar o sim de ninguém. O relato que espera (depois de a memória ser
- * ampliada, só para quem via antes) nunca vai à TV, nem o texto nem a voz, na sala ou fora dela: a TV é uma
- * tela que outras pessoas olham.
+ * A memória entra na sala (publicada e aberta a toda a família) e o relato vai à TV (publicado, sem esperar o
+ * sim de ninguém e não descartado): as duas regras moram em src/lib/servidor/quem-ve.ts, em par com o SQL.
  */
-export const relatoNaTv = (r: { situacao: 'rascunho' | 'publicada'; soParaNucleos: readonly string[] | null; descartadoEm?: string | null }): boolean =>
-  r.situacao === 'publicada' && !(r.soParaNucleos && r.soParaNucleos.length > 0) && !r.descartadoEm;
+import { entraNaSala, relatoNaTv } from './servidor/quem-ve';
+export { entraNaSala, relatoNaTv };
 
 // --- Os dias da porta ------------------------------------------------------------------------------
 

@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { NUCLEO_INICIAL, coresDasPessoas, familiaDeOrigem, familiaFormada, familiaMaisRecente, sugerirFamilias, type DadosDasFamilias } from '../src/lib/familias';
 import { podeEditarIntegrante, podeMexerEmLaco, type Usuario } from '../src/lib/servidor/permissoes';
+import { sqlVeMemoria } from '../src/lib/servidor/quem-ve';
 import repositorio from '../src/lib/servidor/repositorio.ts?raw';
 import banco from '../src/lib/servidor/banco.ts?raw';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -137,7 +138,9 @@ describe('quem cuida de um parente', () => {
 
 describe('parente não vê o que é restrito ao núcleo', () => {
   it('a regra de visibilidade em SQL só conta quem é membro', () => {
-    expect(repositorio).toMatch(/JOIN nucleo_membros nm ON nm\.nucleo_id = mn\.nucleo_id\s+WHERE mn\.memoria_id = m\.id AND nm\.integrante_id = \?1 AND nm\.papel = 'membro'/);
+    // A regra mora em src/lib/servidor/quem-ve.ts desde a AC3; repositorio.ts usa o fragmento de lá
+    expect(sqlVeMemoria()).toMatch(/JOIN nucleo_membros nm ON nm\.nucleo_id = mn\.nucleo_id\s+WHERE mn\.memoria_id = m\.id AND nm\.integrante_id = \?1 AND nm\.papel = 'membro'/);
+    expect(repositorio).toContain('const FILTRO_VISIVEL = sqlVeMemoria();');
   });
 
   it('quem entra na sessão leva só os núcleos de que é membro', () => {
