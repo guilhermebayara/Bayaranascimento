@@ -2,10 +2,10 @@
 //
 //   npm run monograma
 //
-// Lê o M de cada uma das três serifas do sistema, direto dos arquivos do Fontsource, e grava:
-//   src/visual/monograma.ts            o desenho de cada serifa, em dois cortes (normal e pequeno)
+// Lê o M da serifa do sistema, direto do arquivo do Fontsource, e grava:
+//   src/visual/monograma.ts            o desenho da serifa, em dois cortes (normal e pequeno)
 //   src/visual/medidas-das-serifas.ts  a largura de cada letra, para a assinatura caber na página
-//   public/icones/<serifa>/            o ícone do site de cada serifa (SVG e PNG)
+//   public/icones/<serifa>/            o ícone do site da serifa (SVG e PNG)
 //
 // O resultado fica versionado: só rode de novo se uma serifa mudar ou entrar outra. As cores dos
 // ícones saem de src/visual/tokens.css, que continua sendo o único lugar onde cor é escrita.
@@ -22,24 +22,10 @@ import sharp from 'sharp';
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 const arquivo = (caminho) => readFileSync(join(raiz, 'node_modules', caminho));
 
-// As serifas das três combinações (src/visual/fontes.css). "normal" é o desenho de título; "pequeno"
-// é o mesmo M engrossado para ler em 16 px: na Fraunces, o desenho ótico de texto e um peso acima;
-// nas outras, que não têm eixos, um contorno por fora das hastes finas.
+// A serifa da combinação do site (src/visual/fontes.css). "normal" é o desenho de título; "pequeno"
+// é o mesmo M engrossado para ler em 16 px: um contorno por fora das hastes finas. A Fraunces, que já
+// foi a A, tinha eixos, e o script ainda sabe aplicá-los (ver "pontosDoGlifo").
 const SERIFAS = [
-  {
-    id: 'a',
-    nome: 'Fraunces',
-    arquivo: '@fontsource-variable/fraunces/files/fraunces-latin-full-normal.woff2',
-    normal: { eixos: { opsz: 144, wght: 400, SOFT: 100, WONK: 0 } },
-    pequeno: { eixos: { opsz: 9, wght: 560, SOFT: 100, WONK: 0 } },
-  },
-  {
-    id: 'b',
-    nome: 'Instrument Serif',
-    arquivo: '@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2',
-    normal: {},
-    pequeno: { engrossa: 0.034 },
-  },
   {
     id: 'c',
     nome: 'DM Serif Display',
@@ -212,13 +198,13 @@ export interface CorteDoMonograma {
   traco: number;
 }
 
-export const MONOGRAMAS: Record<'a' | 'b' | 'c', { normal: CorteDoMonograma; pequeno: CorteDoMonograma }> = ${JSON.stringify(monogramas, null, 2)};
+export const MONOGRAMAS: Record<'c', { normal: CorteDoMonograma; pequeno: CorteDoMonograma }> = ${JSON.stringify(monogramas, null, 2)};
 `,
 );
 writeFileSync(
   join(raiz, 'src/visual/medidas-das-serifas.ts'),
   `${aviso}// A largura de cada letra, em em, em cada serifa do sistema. A assinatura usa para saber quanto uma
 // linha de sobrenomes é mais larga que "Bayara & Bracarense" (src/lib/visual.ts, "encolheDaAssinatura").
-export const LARGURAS_DAS_LETRAS: Record<'a' | 'b' | 'c', Record<string, number>> = ${JSON.stringify(medidas)};
+export const LARGURAS_DAS_LETRAS: Record<'c', Record<string, number>> = ${JSON.stringify(medidas)};
 `,
 );

@@ -3,9 +3,8 @@
 // Nada aqui vem de src/styles/global.css.
 //
 // O site carrega só a combinação C, a que ele usa (decisão do Gui, 17/11/2026). As combinações A e B
-// ficam em src/visual/fontes-para-comparar.ts, que só a página do sistema e a das fontes importam, para
-// continuarem comparando as três (causa 7 da medição M1, docs/desempenho/). O navegador só baixa os
-// arquivos das fontes que a página usa. Qual está em uso é uma linha: FONTES_DO_SITE, em src/lib/visual.ts.
+// saíram do pacote em 26/11/2026 (sessão AC1). Qual está em uso é uma linha: FONTES_DO_SITE, em
+// src/lib/visual.ts.
 
 // C · De cartaz
 import '@fontsource/dm-serif-display/400.css';

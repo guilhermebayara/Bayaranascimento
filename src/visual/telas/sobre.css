@@ -1,4 +1,4 @@
-/* Página de apoio do conceito: fontes, assinatura, cores e peças. Não é uma tela do site. */
+/* Página de apoio do sistema: fontes, assinatura, cores e peças. Não é uma tela do site. */
 
 .sobre {
   padding-top: var(--e-6);
@@ -23,71 +23,12 @@
   font-size: var(--t-titulo-2);
 }
 
-.especimes,
 .assinaturas,
 .pecas {
   display: grid;
   gap: var(--e-8) calc(var(--calha) * 2);
   margin-top: var(--e-7);
 }
-.especime {
-  display: grid;
-  align-content: start;
-  gap: var(--e-4);
-  min-width: 0;
-  font-family: var(--grotesca);
-}
-.especime .rotulo,
-.especime__ficha {
-  font-family: var(--mono);
-}
-.especime .assinatura {
-  margin-top: var(--e-3);
-}
-.especime__ano,
-.especime__titulo,
-.especime__trecho {
-  font-family: var(--serifa);
-  font-variation-settings: var(--serifa-ajustes);
-  font-weight: var(--serifa-peso);
-}
-.especime__ano {
-  font-size: calc(6.5rem * var(--escala-serifa));
-  font-variation-settings: var(--serifa-ajustes-capa);
-  font-weight: var(--serifa-peso-capa);
-  letter-spacing: var(--aperto-capa);
-  line-height: 0.85;
-}
-.especime__titulo {
-  font-size: calc(2.25rem * var(--escala-serifa));
-  letter-spacing: var(--aperto-titulo);
-  line-height: 1.04;
-}
-.especime__trecho {
-  font-size: calc(1.5rem * var(--escala-serifa));
-  font-style: italic;
-  line-height: 1.2;
-}
-.especime__mao {
-  font-family: var(--mao);
-  font-size: calc(2.5rem * var(--escala-mao));
-  line-height: 1;
-  rotate: -3deg;
-  transform-origin: left;
-}
-.especime__texto {
-  font-size: 1.0625rem;
-  line-height: 1.55;
-}
-.especime__ficha {
-  font-size: 0.75rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-.especime__fontes {
-  font-size: var(--t-pequeno);
-}
-
 .assinaturas .ficha {
   margin-top: var(--e-3);
 }
@@ -144,17 +85,8 @@
 }
 
 @media (min-width: 62rem) {
-  .especimes,
   .assinaturas,
   .pecas {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-}
-
-/* A página de passagem de "Sua conta": só os caminhos, sem desenho próprio */
-.conta__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--e-6);
-  margin-top: var(--e-5);
 }

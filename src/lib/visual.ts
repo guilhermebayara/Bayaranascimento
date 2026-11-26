@@ -274,7 +274,7 @@ export function larguraNaSerifa(texto: string, serifa: Fontes): number {
  */
 export function encolheDaAssinatura(sobrenomes: string): Record<Fontes, number> {
   const de = (serifa: Fontes) => Math.min(1, Math.round((larguraNaSerifa(SOBRENOMES_DE_REFERENCIA, serifa) / larguraNaSerifa(sobrenomes, serifa)) * 1000) / 1000);
-  return { a: de('a'), b: de('b'), c: de('c') };
+  return { c: de('c') };
 }
 
 /** O primeiro trecho de um relato, para a abertura da memória: até o fim da primeira ou da segunda frase. */
@@ -292,13 +292,12 @@ export function trechoDoRelato(texto: string, maximo = 150): string {
 }
 
 /**
- * As fontes do sistema. São três combinações de licença livre (docs/visual.md), e cada uma tem as
- * quatro famílias de tipo do site, uma por papel: serifa nos títulos, grotesca no texto, mono nas
- * fichas e manuscrita na assinatura dos relatos. Os acertos de cada uma estão em src/visual/fontes.css.
+ * As fontes do sistema: a combinação C, de licença livre (docs/visual.md), com as quatro famílias de
+ * tipo do site, uma por papel: serifa nos títulos, grotesca no texto, mono nas fichas e manuscrita na
+ * assinatura dos relatos. Os acertos dela estão em src/visual/fontes.css. As combinações A e B, que o
+ * Gui descartou, saíram do site em 26/11/2026 (sessão AC1).
  */
 export const COMBINACOES_DE_FONTES = [
-  { id: 'a', nome: 'Macia', serifa: 'Fraunces', grotesca: 'Geist', mono: 'Geist Mono', mao: 'Oooh Baby' },
-  { id: 'b', nome: 'Editorial', serifa: 'Instrument Serif', grotesca: 'Instrument Sans', mono: 'IBM Plex Mono', mao: 'Reenie Beanie' },
   { id: 'c', nome: 'De cartaz', serifa: 'DM Serif Display', grotesca: 'DM Sans', mono: 'DM Mono', mao: 'Nothing You Could Do' },
 ] as const;
 
@@ -319,19 +318,11 @@ export function combinacao(id: Fontes): FontesDoSite {
 /**
  * A FONTE DO SITE. Trocar é mudar esta linha, e mais nada.
  *
- * Uma combinação inteira: combinacao('a'), combinacao('b') ou combinacao('c').
- * Misturando: { ...combinacao('a'), mao: 'b' } usa a manuscrita da B com o resto da A.
- *
- * O Gui escolheu a C, De cartaz (17/11/2026). As três combinações continuam no sistema: a página
- * /sistema tem um seletor que troca as fontes só nos exemplos dela, para comparar se a decisão
- * mudar. O monograma, o ícone do site e a largura da assinatura acompanham a serifa sozinhos.
+ * O Gui escolheu a C, De cartaz (17/11/2026). Outra combinação entra como mais um item de
+ * COMBINACOES_DE_FONTES, com os acertos dela em src/visual/fontes.css. O monograma, o ícone do site e a
+ * largura da assinatura acompanham a serifa sozinhos.
  */
 export const FONTES_DO_SITE: FontesDoSite = combinacao('c');
-
-/** A combinação pedida na faixa de teste ou no seletor da página do sistema, se for uma das três. */
-export function combinacaoValida(valor: string | null | undefined): Fontes | null {
-  return COMBINACOES_DE_FONTES.find((c) => c.id === valor)?.id ?? null;
-}
 
 /** A combinação a que estas fontes correspondem, quando os quatro papéis vêm da mesma. */
 export function combinacaoDe(fontes: FontesDoSite): Fontes | null {
@@ -343,7 +334,7 @@ export function atributosDasFontes(fontes: FontesDoSite): Record<`data-${PapelDa
   return { 'data-serifa': fontes.serifa, 'data-grotesca': fontes.grotesca, 'data-mono': fontes.mono, 'data-mao': fontes.mao };
 }
 
-/** Como as fontes se chamam, para mostrar: "Fraunces, Geist, Geist Mono e Oooh Baby". */
+/** Como as fontes se chamam, para mostrar: "DM Serif Display, DM Sans, DM Mono e Nothing You Could Do". */
 export function nomesDasFontes(fontes: FontesDoSite): string {
   const de = (papel: PapelDaFonte) => COMBINACOES_DE_FONTES.find((c) => c.id === fontes[papel])![papel];
   return `${de('serifa')}, ${de('grotesca')}, ${de('mono')} e ${de('mao')}`;

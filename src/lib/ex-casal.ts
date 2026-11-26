@@ -126,9 +126,6 @@ export function foraQueEPaiViraDiscreto(
   return valem;
 }
 
-/** Sai da página e do círculo de quem escolheu: discreto ou fora. */
-export const saiDaMinhaPagina = (modo: ModoDoEx | undefined): boolean => modo === 'discreto' || modo === 'fora';
-
 /**
  * Em Pessoas e em "Quem estava" (decisão do Gui depois do QA de 18/11/2026): o discreto continua, com a
  * tarja "assunto encerrado" no lugar do nome, sem retrato e sem link; quem escolheu "Fora" quer que ele

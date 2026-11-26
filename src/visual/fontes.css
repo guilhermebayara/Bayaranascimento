@@ -1,14 +1,14 @@
 /*
- * As fontes do sistema: três combinações de licença livre, pelo Fontsource (docs/visual.md).
+ * As fontes do sistema: uma combinação de licença livre, pelo Fontsource (docs/visual.md).
  * Qual delas o site usa é uma linha só: FONTES_DO_SITE, em src/lib/visual.ts. O esqueleto leva
  * a escolha à página em quatro atributos, um por papel do tipo (data-serifa, data-grotesca,
- * data-mono e data-mao), para a manuscrita de uma combinação poder andar com a serifa de outra.
+ * data-mono e data-mao).
  *
  * O resto do CSS só conhece --serifa, --grotesca, --mono e --mao. Família de fonte escrita fora
  * daqui não passa no teste (testes/visual.test.ts).
  *
- * Cada serifa traz os acertos que ela pede: tamanho aparente, peso e espaçamento.
- * --assinatura-em é a largura de "MEMÓRIAS" em em, medida em cada serifa: é com ela que a
+ * A serifa traz os acertos que ela pede: tamanho aparente, peso e espaçamento.
+ * --assinatura-em é a largura de "MEMÓRIAS" em em, medida na serifa: é com ela que a
  * assinatura ocupa a largura inteira da página. --sobrenomes é quanto os sobrenomes medem em
  * relação a "MEMÓRIAS" para "Bayara & Bracarense" fechar na mesma largura, como no rascunho
  * do Gui (docs/visual/assinatura-hierarquia.png). --ano-em é a largura de um ano de quatro
@@ -17,51 +17,8 @@
 
 /* --- Serifa: títulos e frase de abertura --------------------------------------------------- */
 
-/* A · Fraunces */
-[data-serifa='a'] {
-  /* O monograma desta serifa é o que aparece (pecas.css) */
-  --m-a: block;
-  --m-b: none;
-  --m-c: none;
-  --serifa: 'Fraunces Variable', 'Iowan Old Style', Georgia, serif;
-  --serifa-ajustes: 'SOFT' 100, 'WONK' 0;
-  /* No tamanho de capa o desenho é sempre o de título: sem isso, a largura muda com o tamanho */
-  --serifa-ajustes-capa: 'SOFT' 100, 'WONK' 0, 'opsz' 144;
-  --serifa-peso: 400;
-  --serifa-peso-capa: 380;
-  --escala-serifa: 1;
-  --aperto-titulo: -0.022em;
-  --aperto-capa: -0.035em;
-  --assinatura-em: 5.03;
-  --sobrenomes: 0.613;
-  --ano-em: 2.2;
-}
-
-/* B · Instrument Serif */
-[data-serifa='b'] {
-  /* O monograma desta serifa é o que aparece (pecas.css) */
-  --m-a: none;
-  --m-b: block;
-  --m-c: none;
-  --serifa: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
-  --serifa-ajustes: normal;
-  --serifa-ajustes-capa: normal;
-  --serifa-peso: 400;
-  --serifa-peso-capa: 400;
-  --escala-serifa: 1.14;
-  --aperto-titulo: -0.012em;
-  --aperto-capa: -0.02em;
-  --assinatura-em: 3.88;
-  --sobrenomes: 0.555;
-  --ano-em: 1.67;
-}
-
 /* C · DM Serif Display */
 [data-serifa='c'] {
-  /* O monograma desta serifa é o que aparece (pecas.css) */
-  --m-a: none;
-  --m-b: none;
-  --m-c: block;
   --serifa: 'DM Serif Display', 'Iowan Old Style', Georgia, serif;
   --serifa-ajustes: normal;
   --serifa-ajustes-capa: normal;
@@ -76,29 +33,15 @@
 }
 
 /*
- * Uma linha de sobrenomes mais longa que "Bayara & Bracarense" encolhe para caber. Quanto, em
- * cada serifa, quem diz é a própria assinatura (--encolhe-a, -b e -c, em Assinatura.astro).
+ * Uma linha de sobrenomes mais longa que "Bayara & Bracarense" encolhe para caber. Quanto, na
+ * serifa, quem diz é a própria assinatura (--encolhe-c, em Assinatura.astro).
  */
-[data-serifa='a'] .assinatura {
-  --encolhe: var(--encolhe-a, 1);
-}
-[data-serifa='b'] .assinatura {
-  --encolhe: var(--encolhe-b, 1);
-}
 [data-serifa='c'] .assinatura {
   --encolhe: var(--encolhe-c, 1);
 }
 
 /* --- Grotesca: o texto ---------------------------------------------------------------------- */
 
-/* A · Geist */
-[data-grotesca='a'] {
-  --grotesca: 'Geist Variable', 'Helvetica Neue', Arial, sans-serif;
-}
-/* B · Instrument Sans, a mesma do bayara.design */
-[data-grotesca='b'] {
-  --grotesca: 'Instrument Sans Variable', 'Helvetica Neue', Arial, sans-serif;
-}
 /* C · DM Sans */
 [data-grotesca='c'] {
   --grotesca: 'DM Sans Variable', 'Helvetica Neue', Arial, sans-serif;
@@ -106,31 +49,13 @@
 
 /* --- Mono: fichas, legendas e carimbos ------------------------------------------------------- */
 
-/* A · Geist Mono */
-[data-mono='a'] {
-  --mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
-}
-/* B · IBM Plex Mono */
-[data-mono='b'] {
-  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-}
 /* C · DM Mono */
 [data-mono='c'] {
   --mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
-/* --- Manuscrita: só assina. --escala-mao acerta o tamanho aparente de cada uma. -------------- */
+/* --- Manuscrita: só assina. --escala-mao acerta o tamanho aparente. -------------- */
 
-/* A · Oooh Baby */
-[data-mao='a'] {
-  --mao: 'Oooh Baby', 'Bradley Hand', cursive;
-  --escala-mao: 1;
-}
-/* B · Reenie Beanie */
-[data-mao='b'] {
-  --mao: 'Reenie Beanie', 'Bradley Hand', cursive;
-  --escala-mao: 1.3;
-}
 /* C · Nothing You Could Do */
 [data-mao='c'] {
   --mao: 'Nothing You Could Do', 'Bradley Hand', cursive;

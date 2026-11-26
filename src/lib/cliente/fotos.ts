@@ -68,10 +68,6 @@ export async function prepararFotoComCopias(arquivo: Blob): Promise<{ foto: Blob
   return { foto: arquivo, copias: null };
 }
 
-export async function prepararFoto(arquivo: File): Promise<Blob> {
-  return (await prepararFotoComCopias(arquivo)).foto;
-}
-
 /**
  * Reduz a foto, faz as cópias e manda tudo para /api/fotos. Usada por todo lugar que envia foto: a nova
  * memória, "Acrescentar fotos" e a foto no relato. Devolve o que o site respondeu e a foto reduzida, para a

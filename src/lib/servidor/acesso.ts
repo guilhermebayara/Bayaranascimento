@@ -96,7 +96,9 @@ export function lerAcessos(): Map<string, string> {
 
 /** Fora da produção não há login: dá para navegar como qualquer pessoa, para testar o que cada uma vê. */
 export function semLogin(): boolean {
-  // A homologação também: ela fica atrás do login do Cloudflare Access, e os dados são inventados.
+  // A homologação também: ela fica atrás do login do Cloudflare Access (só o Gui, a Giovanna e o Magno entram) e
+  // tem a família de verdade, espelhada da produção, com memórias de exemplo. Ali o "Ver como" é decisão deles,
+  // para ver o site pelos olhos de cada pessoa.
   return import.meta.env.DEV || ambiente() === 'previa' || ambiente() === 'homologa';
 }
 

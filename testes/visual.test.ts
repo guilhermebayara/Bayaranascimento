@@ -1,5 +1,5 @@
 // O visual novo (docs/visual.md): as funções puras das telas do conceito e as regras do CSS novo.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   CORES,
@@ -151,8 +151,6 @@ describe('CSS do visual novo', () => {
 });
 
 describe('conceito', () => {
-  const paginas = import.meta.glob<string>('../src/pages/conceito/**/*.{astro,ts}', { query: '?raw', import: 'default', eager: true });
-
   // As telas que já passaram para o visual novo (fase 3), com os componentes de cada uma
   const telas = import.meta.glob<string>(['../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/pages/capitulos/index.astro', '../src/pages/capitulos/[[]id]/index.astro', '../src/pages/temas/[[]id].astro', '../src/pages/pessoas/index.astro', '../src/pages/arvore.astro', '../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/pages/pessoas/nova.astro', '../src/pages/pessoas/[[]id]/editar.astro', '../src/pages/memorias/[[]id]/historico.astro', '../src/pages/memorias/[[]id]/excluir.astro', '../src/pages/capitulos/[[]id]/excluir.astro', '../src/pages/lixeira.astro', '../src/pages/admin/*.astro', '../src/components/FichaDoIntegrante.astro', '../src/components/CampoRetrato.astro', '../src/components/ConfirmarRemocao.astro', '../src/components/ComoSeReferir.astro', '../src/components/formularios/*.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/capitulos/*.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro'], {
     query: '?raw',
@@ -161,11 +159,9 @@ describe('conceito', () => {
   });
   const tela = (fim: string) => Object.entries(telas).find(([caminho]) => caminho.endsWith(fim))![1];
 
-  it('toda rota do conceito responde 404 onde não há acervo de exemplo', () => {
-    const rotas = Object.entries(paginas);
-    // Do conceito ficou a página das fontes, com a rota que troca a combinação, até a escolha
-    expect(rotas.length).toBeGreaterThanOrEqual(2);
-    for (const [caminho, fonte] of rotas) expect(fonte, caminho).toMatch(/if \(!conceitoDisponivel\(\)[^\n]*return naoEncontrado\(\);/);
+  it('a rota do conceito saiu junto com as fontes A e B (sessão AC1, 26/11/2026)', () => {
+    expect(existsSync(new URL('../src/pages/conceito', import.meta.url))).toBe(false);
+    expect(existsSync(new URL('../src/lib/servidor/conceito.ts', import.meta.url))).toBe(false);
   });
 
   it('o Explorar deixa filtrar por qualquer família, sem mudar quem vê o quê', () => {
@@ -529,7 +525,7 @@ describe('conceito', () => {
   });
 
   it('as telas novas não levam o CSS antigo', () => {
-    const fontes = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro', '../src/visual/*.ts'], {
+    const fontes = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/visual/*.ts'], {
       query: '?raw',
       import: 'default',
       eager: true,

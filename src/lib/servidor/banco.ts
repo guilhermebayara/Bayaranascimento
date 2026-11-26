@@ -145,6 +145,9 @@ export const MIGRACOES: Migracao[] = [
   {
     // Os tipos de momento saem do código e passam a ser uma lista que os admins cuidam.
     // "Outro" recebe um texto livre; quando um texto se repete, vira tipo oficial.
+    // A coluna "cor" ficou com dois sentidos: hexadecimal nos tipos desta migração; nos criados depois da 021,
+    // o nome de uma cor da paleta. O site não lê dela (a cor de um tipo vem da coluna que a 021 acrescenta) e
+    // só a grava, por causa do NOT NULL (auditoria AC, 4.2 e 5).
     id: '003-tipos',
     sql: [
       `CREATE TABLE IF NOT EXISTS tipos (
@@ -661,6 +664,8 @@ export const MIGRACOES: Migracao[] = [
     // conceito da sessão E, 17/11/2026). Cada vez que o script do Drive (scripts/copia-no-drive.gs)
     // baixa a cópia com o token de serviço, o site anota o momento. Só o site grava, no middleware;
     // ninguém edita. A conta lê a mais recente (src/lib/conta.ts, copiaAtrasada).
+    // Desde a 114, "feita_em" quer dizer "confirmada em": a anotação só entra quando o script confirma que
+    // gravou a cópia no Drive (anotarCopiaMensal), e não quando ele a baixou. O nome da coluna ficou o de antes.
     id: '060-copias-mensais',
     sql: [
       `CREATE TABLE IF NOT EXISTS copias_mensais (
@@ -1046,6 +1051,13 @@ export const MIGRACOES: Migracao[] = [
     // continuar no critério das tabelas de registro (marca-da-copia.ts); a conferência é feita no próprio INSERT.
     id: '114-copia-mensal-confirmada',
     sql: [`ALTER TABLE copias_mensais ADD COLUMN gerada_em TEXT`],
+  },
+  {
+    // Dois índices que nenhuma consulta usa (auditoria AC, B-1, sessão AC1, 26/11/2026): nenhuma consulta filtra
+    // sugestoes por "para", e reacoes_da_memoria é o prefixo da chave única de reacoes desde a 081. Cada um custava
+    // uma gravação a mais por sugestão e por reação.
+    id: '115-sem-indices-sem-uso',
+    sql: [`DROP INDEX IF EXISTS sugestoes_para`, `DROP INDEX IF EXISTS reacoes_da_memoria`],
   },
 ];
 

@@ -2545,7 +2545,7 @@ export async function anotarCopiaMensal(geradaEm: string): Promise<boolean> {
   return (r.meta.changes ?? 0) > 0;
 }
 
-/** Quando o script do Drive baixou a cópia pela última vez ("AAAA-MM-DD HH:MM:SS", em UTC), ou null se nunca. */
+/** Quando o script do Drive confirmou que gravou a cópia no Drive pela última vez ("AAAA-MM-DD HH:MM:SS", em UTC), ou null se nunca. */
 export async function ultimaCopiaMensal(): Promise<string | null> {
   const r = await db().prepare(SQL.copiaMensal).first<{ feita_em: string }>();
   return r?.feita_em ?? null;
@@ -2766,14 +2766,9 @@ export async function pessoasQueSoVoceVe(usuario: Usuario): Promise<Set<string>>
 
 /**
  * "Abrir para todos": os laços "só eu vejo" da pessoa logada com estas pessoas passam a ser vistos pela
- * família toda, com a versão de antes no histórico. A proximidade continua só do dono.
+ * família toda, com a versão de antes no histórico. A proximidade continua só do dono. Vem como
+ * comandos, para gravar junto com a memória que publica a pessoa (um lote só).
  */
-export async function abrirLacosPrivados(usuario: Usuario, pessoas: string[]): Promise<void> {
-  if (pessoas.length === 0) return;
-  await db().batch(comandosDeAbrirLacosPrivados(usuario, pessoas));
-}
-
-/** "Abrir para todos" como comandos, para gravar junto com a memória que publica a pessoa (um lote só). */
 export function comandosDeAbrirLacosPrivados(usuario: Usuario, pessoas: string[]): Comando[] {
   if (pessoas.length === 0) return [];
   const lista = JSON.stringify(pessoas);

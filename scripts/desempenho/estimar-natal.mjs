@@ -8,7 +8,7 @@
 //
 // Como a estimativa é montada:
 // - As linhas de cada página são medidas agora, no servidor local, pelos rastros que ele guarda de cada
-//   pedido (Local Explorer, como medir-servidor.mjs), como o Gui (administra) e como a Elizete (não).
+//   pedido (Local Explorer, como scripts/historico/medir-servidor.mjs), como o Gui (administra) e como a Elizete (não).
 // - 7 pessoas no dia: 3 que administram (contadas como o Gui) e 4 que não (como a Elizete).
 // - Cada pessoa abre 20 páginas no dia, nesta mistura (PAGINAS_POR_PESSOA): Início 3, Explorar na linha do
 //   tempo 3, no mural 2, na lista 1, filtrado por família 2, "Me mostre uma memória" 2, memória 4, pessoa 1,

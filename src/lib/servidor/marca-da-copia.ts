@@ -47,9 +47,14 @@ export const TABELAS_FORA_DA_COPIA: Readonly<Record<string, string>> = {
 };
 const FORA = [TABELA_DA_MARCA, ...Object.keys(TABELAS_FORA_DA_COPIA)].map((t) => `'${t}'`).join(', ');
 
-/** As tabelas que a cópia leva: todas, menos as do próprio SQLite, as da Cloudflare, a da marca e as de fora. */
+/**
+ * As tabelas que a cópia leva: todas, menos as do próprio SQLite, as da Cloudflare, a da marca e as de fora.
+ * No LIKE, o "_" vale qualquer letra: sem o ESCAPE, "_cf_%" deixaria de fora uma tabela como "acfb_x", e
+ * "sqlite_%" uma como "sqlitezinho", e a cópia perderia os dados delas sem avisar. Hoje nenhuma tabela cai na
+ * diferença (testes/tabelas-da-copia.test.ts).
+ */
 export const TABELAS_DA_COPIA = `SELECT name FROM sqlite_master
-     WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT IN (${FORA})
+     WHERE type = 'table' AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' AND name NOT LIKE '\\_cf\\_%' ESCAPE '\\' AND name NOT IN (${FORA})
      ORDER BY name`;
 
 const OPERACOES = ['INSERT', 'UPDATE', 'DELETE'] as const;

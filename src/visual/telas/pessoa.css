@@ -31,9 +31,6 @@
   margin-top: var(--e-2);
   overflow-wrap: anywhere;
 }
-.verbete__em-memoria {
-  margin-top: var(--e-2);
-}
 .verbete__abre {
   min-width: 0;
 }

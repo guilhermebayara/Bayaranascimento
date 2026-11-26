@@ -1,9 +1,9 @@
 // Explorar: o que os filtros precisam do banco, só sobre as memórias que a pessoa vê.
 // As regras ficam em src/lib/explorar.ts. Sem tela: a tela do Explorar é da revisão visual.
 import { memoriaDoCapitulo } from '../capitulos';
-import { explorar, lerFiltros, type Contexto } from '../explorar';
+import type { Contexto } from '../explorar';
 import type { Usuario } from './permissoes';
-import { listarCapitulos, listarMemorias, memoriasComAudio, quemContouEmCadaMemoria, type Memoria } from './repositorio';
+import { listarCapitulos, memoriasComAudio, quemContouEmCadaMemoria, type Memoria } from './repositorio';
 
 export async function contextoDoExplorar(usuario: Usuario, memorias: Memoria[]): Promise<Contexto> {
   const vistas = new Map(memorias.map((m) => [m.id, m]));
@@ -26,11 +26,4 @@ export async function contextoDoExplorar(usuario: Usuario, memorias: Memoria[]):
     comAudio: new Set([...audio].filter((id) => vistas.has(id))),
     contaram: new Map([...contaram].filter(([id]) => vistas.has(id))),
   };
-}
-
-/** O Explorar inteiro a partir do endereço: as memórias que a pessoa vê, filtradas e na ordem pedida. */
-export async function explorarMemorias(usuario: Usuario, parametros: URLSearchParams) {
-  const filtros = lerFiltros(parametros);
-  const memorias = await listarMemorias(usuario);
-  return { filtros, ...explorar(memorias, filtros, await contextoDoExplorar(usuario, memorias)) };
 }

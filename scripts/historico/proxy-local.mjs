@@ -3,7 +3,7 @@
 // isso, o navegador mediria o servidor local em HTTP/1.1 e sem compressão, o que dá outro carregamento.
 // Só escuta em 127.0.0.1 e só repassa para o servidor local.
 //
-//   node scripts/desempenho/proxy-local.mjs [porta=4443] [destino=http://127.0.0.1:4321]
+//   node scripts/historico/proxy-local.mjs [porta=4443] [destino=http://127.0.0.1:4321]
 //
 // O certificado é gerado na hora, numa pasta temporária, e não fica no repositório.
 import { execFileSync } from 'node:child_process';
