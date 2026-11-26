@@ -1,5 +1,10 @@
 // Conferências no código das páginas, para vazamentos achados no QA não voltarem.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { temSqlite } from './apoio/d1';
+
+const comSqlite = await temSqlite();
+const env = vi.hoisted(() => ({ AMBIENTE: 'previa' as string, DB: undefined as unknown, FOTOS: undefined as unknown }));
+vi.mock('cloudflare:workers', () => ({ env }));
 
 const fontes = import.meta.glob<string>(['../src/pages/**/*.{astro,ts}', '../src/components/**/*.astro'], { query: '?raw', import: 'default', eager: true });
 const paginas = Object.entries(fontes).map(([caminho, texto]) => ({ caminho, texto }));
@@ -68,5 +73,25 @@ describe('recados de permissão', () => {
     for (const { caminho, texto } of paginas) {
       expect(texto, caminho).not.toMatch(/['"`]Só o Gui e a Giovanna/);
     }
+  });
+});
+
+// O relato que vale para quem escreve, pela consulta de verdade (revisão MEM-2 da AC3): o publicado, ou o
+// rascunho da própria pessoa que não foi descartado. O descartado e o rascunho de outra pessoa não voltam
+describe.skipIf(!comSqlite)('obterRelato, pelo banco', async () => {
+  const { abrirBancoDeExemplo } = await import('./apoio/banco-de-exemplo');
+  const { repo, sql, usuarioDe, memoriaAberta } = await abrirBancoDeExemplo(env);
+  const memoria = memoriaAberta();
+  sql(`INSERT INTO integrantes (id, nome) VALUES ('t-descartado', 'Descartado'), ('t-rascunho', 'Rascunho')`);
+  sql(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, descartado_em) VALUES (?, 't-descartado', 'gui', 'Descartado', 'rascunho', '2026-11-20 10:00:00')`, memoria);
+  sql(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 't-rascunho', 'gui', 'Rascunho', 'rascunho')`, memoria);
+  const [gui, giovanna] = ['gui', 'giovanna'].map(usuarioDe);
+
+  it('o rascunho descartado não volta, nem para quem o escreveu', async () => {
+    expect(await repo.obterRelato(memoria, 't-descartado', gui)).toBeUndefined();
+  });
+  it('o rascunho que não foi descartado volta só para quem o escreveu', async () => {
+    expect((await repo.obterRelato(memoria, 't-rascunho', gui))?.texto).toBe('Rascunho');
+    expect(await repo.obterRelato(memoria, 't-rascunho', giovanna)).toBeUndefined();
   });
 });

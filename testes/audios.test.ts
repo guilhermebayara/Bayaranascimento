@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 // Áudios nos relatos: formatos aceitos, limites de espaço e regras de quem ouve
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { temSqlite } from './apoio/d1';
 import { AUDIOS_POR_RELATO, cabeNoLimite, CHAVE_DE_AUDIO, duracaoEmTexto, formatoDoAudio, limiteTotal, LIMITE_POR_ARQUIVO, LIMITE_TOTAL } from '../src/lib/audios';
+
+const comSqlite = await temSqlite();
+const env = vi.hoisted(() => ({ AMBIENTE: 'previa' as string, DB: undefined as unknown, FOTOS: undefined as unknown }));
+vi.mock('cloudflare:workers', () => ({ env }));
 
 const fontes: Record<string, string> = Object.fromEntries(
   Object.entries(import.meta.glob<string>('../src/**/*.{astro,ts}', { query: '?raw', import: 'default', eager: true })).map(([k, v]) => [k.replace('../', ''), v]),
@@ -119,5 +124,28 @@ describe('gravar na janela da conversa', () => {
   });
   it('cada áudio é uma mensagem com tocar, a onda e a duração; a transcrição mora no menu dela', () => {
     for (const marca of ['data-tocar', 'data-andou', 'data-tempo', 'data-transcrever', 'data-transcricao-campo']) expect(cliente).toContain(marca);
+  });
+});
+
+// Quem ouve, pela consulta de verdade (revisão MEM-2 da AC3): o rascunho de relato é só de quem o registrou, com
+// o áudio dele, e o publicado é de quem vê a memória. A conferência do texto, acima, não pega uma inversão
+describe.skipIf(!comSqlite)('quem ouve, pelo banco', async () => {
+  const { abrirBancoDeExemplo } = await import('./apoio/banco-de-exemplo');
+  const { repo, sql, usuarioDe, memoriaAberta, ultimoRelato } = await abrirBancoDeExemplo(env);
+  const memoria = memoriaAberta();
+  sql(`INSERT INTO integrantes (id, nome) VALUES ('t-ouve-rascunho', 'Rascunho'), ('t-ouve-publicado', 'Publicado')`);
+  sql(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 't-ouve-rascunho', 'gui', 'Rascunho do Gui', 'rascunho')`, memoria);
+  sql(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, enviado_por) VALUES (?, ?, 't-ouve-rascunho.webm', 'audio/webm', 10, 'gui')`, ultimoRelato(), memoria);
+  sql(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, publicado_em) VALUES (?, 't-ouve-publicado', 'gui', 'Publicado do Gui', 'publicada', datetime('now'))`, memoria);
+  sql(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, enviado_por) VALUES (?, ?, 't-ouve-publicado.webm', 'audio/webm', 10, 'gui')`, ultimoRelato(), memoria);
+  const [gui, giovanna] = ['gui', 'giovanna'].map(usuarioDe);
+
+  it('o áudio do rascunho, só quem registrou ouve', async () => {
+    expect(await repo.podeOuvirAudio(gui, 't-ouve-rascunho.webm')).toBe(true);
+    expect(await repo.podeOuvirAudio(giovanna, 't-ouve-rascunho.webm')).toBe(false);
+  });
+  it('o áudio do relato publicado, quem vê a memória ouve', async () => {
+    expect(await repo.podeOuvirAudio(gui, 't-ouve-publicado.webm')).toBe(true);
+    expect(await repo.podeOuvirAudio(giovanna, 't-ouve-publicado.webm')).toBe(true);
   });
 });
