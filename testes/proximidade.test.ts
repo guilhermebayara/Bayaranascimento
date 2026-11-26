@@ -1,5 +1,5 @@
-// A proximidade em todo lugar (decisões do Gui, 18/11/2026; docs/decisoes.md, "Círculo" e "Formulários de
-// pessoa e laço"): o slider vai do mais distante, à esquerda, ao mais próximo, à direita, no círculo, na
+// A proximidade em todo lugar (decisões do Gui, 18/11/2026; docs/regras/circulo.md, "Círculo", e docs/regras/integrantes.md,
+// "Formulários de pessoa e laço"): o slider vai do mais distante, à esquerda, ao mais próximo, à direita, no círculo, na
 // ficha e nos formulários; o laço do coração usa o mesmo slider; e a edição dos laços ajusta a proximidade
 // de todo laço de quem está logado, que só ele vê. As contas, o texto das telas e as rotas de verdade sobre
 // o banco SQLite em memória.

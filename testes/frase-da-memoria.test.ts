@@ -1,4 +1,4 @@
-// A frase da Nova memória (docs/decisoes.md, "A frase é a trilha", em "Nova memória"): uma frase só, que cresce a
+// A frase da Nova memória (docs/regras/formularios.md, "A frase é a trilha", em "Nova memória"): uma frase só, que cresce a
 // cada etapa e nunca pergunta o que ainda não é a hora de responder.
 import { describe, expect, it } from 'vitest';
 import { fraseDaMemoria, oQueFicouSem, type PreenchidoDaMemoria } from '../src/lib/frase-da-memoria';

@@ -299,7 +299,7 @@
 }
 
 /* O índice acompanha a lista só onde há mouse: no toque, nada fica preso (a banda do Safari no
-   iPhone, ver CLAUDE.md). E só quando ele cabe inteiro na altura da janela
+   iPhone, ver docs/visual.md). E só quando ele cabe inteiro na altura da janela
    (com cinco famílias ele tem uns 790 px). */
 @media (min-width: 62rem) and (hover: hover) and (pointer: fine) and (min-height: 54rem) {
   .pessoas-pagina__indice {

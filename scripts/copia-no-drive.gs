@@ -215,7 +215,7 @@ function fazerCopia() {
   }
 
   // Aviso de tamanho do banco: a cópia já foi salva; o erro aqui só serve para o Google mandar o e-mail.
-  // O limite do plano gratuito é 500 MB por banco, e o aviso começa em 300 MB (docs/decisoes.md).
+  // O limite do plano gratuito é 500 MB por banco, e o aviso começa em 300 MB (docs/regras/infraestrutura.md).
   const banco = copia.banco;
   if (banco && banco.passou_do_aviso === true && typeof banco.tamanho_em_bytes === 'number') {
     const mb = Math.round(banco.tamanho_em_bytes / 1000000);

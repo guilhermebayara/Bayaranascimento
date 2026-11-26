@@ -1,5 +1,5 @@
 ---
-// "Sua conta" (docs/decisoes.md): a página de cada pessoa para cuidar do que é dela. O painel é o
+// "Sua conta" (docs/regras/conta.md): a página de cada pessoa para cuidar do que é dela. O painel é o
 // lugar de chegar e ver o que é novo; a conta, o de cuidar das próprias coisas. Composição da
 // proposta A do conceito da sessão E (escolha do Gui, 17/11/2026; docs/visual.md, "Sua conta"): no
 // desktop, para quem administra, o cartão da administração ao lado do nome, com a carta de Natal no
@@ -70,7 +70,7 @@ const dados = [nascimento, chamado, conta.email && `e-mail de acesso: ${conta.em
 // A Administração tem página própria (decisão do Gui, 18/11/2026). Aqui, para quem administra, só o
 // atalho para ela, ao lado das ações do alto, com as pendências que ela tem
 const admin = conta.administra;
-// Os avisos: a lista e o histórico (docs/decisoes.md, "Avisos")
+// Os avisos: a lista e o histórico (docs/regras/conta.md, "Avisos")
 const todosOsAvisos = await listarAvisos(usuario, { historico: true });
 const avisosPendentes = todosOsAvisos.filter((a) => !a.resolvidoEm);
 const avisosVistos = todosOsAvisos.filter((a) => a.resolvidoEm).slice(0, 20);

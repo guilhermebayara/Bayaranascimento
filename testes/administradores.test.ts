@@ -1,4 +1,4 @@
-// Administradores podem mais (docs/decisoes.md, decisões do Gui de 16/11/2026): um teste para cada linha
+// Administradores podem mais (docs/regras/permissoes.md, decisões do Gui de 16/11/2026): um teste para cada linha
 // de "Quem pode o quê" que mudou, as regras de src/lib/servidor/permissoes.ts e, sobre o banco SQLite em
 // memória (testes/apoio/d1.ts), as rotas de verdade e o histórico com o nome de quem fez.
 import { describe, expect, it, vi } from 'vitest';

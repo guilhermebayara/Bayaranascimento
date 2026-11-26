@@ -1,4 +1,4 @@
-// Quando nasce um aviso (docs/decisoes.md, "Avisos"). As regras de quem recebe estão em src/lib/avisos.ts;
+// Quando nasce um aviso (docs/regras/conta.md, "Avisos"). As regras de quem recebe estão em src/lib/avisos.ts;
 // aqui elas encontram o banco: quem tem login, quem já entrou e quem vê a memória.
 import { quemRecebeQuemEstava, quemRecebeRelatoNovo, type Destinatarios } from '../avisos';
 import { pessoasComAcesso } from './acesso';

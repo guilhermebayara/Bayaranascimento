@@ -15,7 +15,7 @@ declare namespace Cloudflare {
     /**
      * Workers AI, para a transcrição automática dos áudios (onda 2). Ligado no wrangler.jsonc desde
      * 18/11/2026; a transcrição continua desligada até um administrador ligar em Administração
-     * (docs/decisoes.md, "Transcrição automática"). Pode faltar no computador.
+     * (docs/regras/relatos.md, "Transcrição automática"). Pode faltar no computador.
      */
     AI?: { run(modelo: string, entrada: Record<string, unknown>): Promise<unknown> };
   }

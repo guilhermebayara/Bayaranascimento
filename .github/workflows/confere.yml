@@ -5,7 +5,7 @@
 # O motivo: o repositório vira privado depois de 10/12/2026, e no plano gratuito a cota mensal de Actions
 # é uma só para todos os repositórios privados da conta, sem proteção de branch. A estimativa era de 800 a
 # 1.300 minutos por mês antes e de 50 a 70 depois (decisão do Gui, 20/11/2026).
-# Mudança só de documento não dispara nada. Ver CLAUDE.md, "Conferências".
+# Mudança só de documento não dispara nada. Ver docs/regras/conferencias.md.
 name: Confere o site
 
 on:
@@ -25,7 +25,7 @@ permissions:
   contents: read
 
 jobs:
-  # A gestalt que se confere sozinha (npm run gestalt, ver CLAUDE.md, "Conferências"). Precisa do
+  # A gestalt que se confere sozinha (npm run gestalt, ver docs/regras/conferencias.md). Precisa do
   # servidor local com o acervo de exemplo e de um navegador, que o build do Cloudflare não tem: por
   # isso roda aqui, num trabalho à parte. Não usa segredo nenhum: o servidor local não fala com o
   # Cloudflare (remoteBindings: false em astro.config.mjs) e o banco e as fotos são os locais.

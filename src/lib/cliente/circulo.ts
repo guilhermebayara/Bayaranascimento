@@ -1,4 +1,4 @@
-// O círculo no navegador (docs/decisoes.md, "Círculo"). Tocar em alguém abre a ficha, com o slider de
+// O círculo no navegador (docs/regras/circulo.md, "Círculo"). Tocar em alguém abre a ficha, com o slider de
 // proximidade, do mais distante (à esquerda) ao mais próximo (à direita); arrastar a pessoa muda o mesmo valor, na tela grande (para perto ou longe do centro) e
 // no celular (de uma faixa para outra). O slider é o caminho pelo teclado. A ponta esquerda do slider,
 // ou soltar a pessoa além da borda, é "Fora do círculo": ela sai do desenho e vai para a lista do

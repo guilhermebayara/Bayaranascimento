@@ -1,5 +1,5 @@
 // O formulário da memória que o servidor recusou, sem script (fila da revisão Z2, sessão AA; regra "Quando o
-// servidor recusa", em docs/decisoes.md). Com script, o que foi digitado fica na sessão da aba
+// servidor recusa", em docs/regras/formularios.md). Com script, o que foi digitado fica na sessão da aba
 // (src/lib/cliente/guardar-formulario.ts). Sem script, a rota responde com a própria página do formulário,
 // já preenchida com o que chegou no pedido (context.rewrite): nada é guardado no servidor, e o que foi
 // digitado só existe na página que a pessoa tem aberta.

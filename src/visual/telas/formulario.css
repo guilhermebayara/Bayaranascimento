@@ -2475,7 +2475,7 @@
   }
 }
 /* Parado à vista só onde há mouse: no toque, um elemento preso faz o Safari do iPhone desenhar uma
-   banda atrás das barras dele (CLAUDE.md, "Banda do Safari no iPhone") */
+   banda atrás das barras dele (docs/visual.md, "Safari do iPhone e peças paradas") */
 @media (min-width: 62rem) and (hover: hover) and (pointer: fine) {
   .pagina-de-formulario .indice-lacos {
     position: sticky;
@@ -2671,7 +2671,7 @@
   }
 }
 
-/* Publicar com alguém que só você vê (docs/decisoes.md): o aviso e as três escolhas, logo acima das
+/* Publicar com alguém que só você vê (docs/regras/integrantes.md): o aviso e as três escolhas, logo acima das
    ações. Os botões ficam um embaixo do outro no celular e lado a lado quando cabem. */
 .privada {
   display: grid;

@@ -1,4 +1,4 @@
-// "Sua conta" (docs/decisoes.md): as listas trazem só o que é da pessoa e o que ela vê, e a seção de
+// "Sua conta" (docs/regras/conta.md): as listas trazem só o que é da pessoa e o que ela vê, e a seção de
 // administração não aparece para quem não é administrador. Regras em src/lib/conta.ts.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

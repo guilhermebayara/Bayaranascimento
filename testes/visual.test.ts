@@ -194,7 +194,7 @@ describe('conceito', () => {
   });
 
   it('o topo leva à conta pelo retrato de quem está logado, e "Rascunhos" não está no menu', () => {
-    // Decisão do Gui, 16/11/2026 ("Sua conta", em docs/decisoes.md)
+    // Decisão do Gui, 16/11/2026 ("Sua conta", em docs/regras/conta.md)
     const topo = Object.values(import.meta.glob<string>('../src/layouts/Visual.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
     // O retrato abre o menu da conta, que leva a "Sua conta" (decisão do Gui, 17/11/2026)
     expect(topo.slice(topo.indexOf('<details class="conta-menu">'))).toMatch(/<a href="\/conta"[^>]*>\s*Sua conta/);
@@ -204,7 +204,7 @@ describe('conceito', () => {
   });
 
   it('o painel é só de quem olha: lê as regras de src/lib/painel.ts e só memória publicada', () => {
-    // docs/decisoes.md, "Início (painel pessoal)". A tela não refaz as regras.
+    // docs/regras/inicio.md, "Início (painel pessoal)". A tela não refaz as regras.
     const painel = tela('pages/index.astro');
     for (const regra of ['chegarAoPainel', 'novidades', 'aniversarios', 'memoriaParaContar', 'emOutrosAnos']) expect(painel).toContain(`${regra}(`);
     expect(painel).toContain('listarMemorias(usuario, { comRascunhos: true })');
@@ -282,7 +282,7 @@ describe('conceito', () => {
   });
 
   it('os trilhos, as épocas e a faixa de décadas só aparecem quando a regra do Explorar deixa', () => {
-    // docs/decisoes.md, "Explorar": fora disso, o capítulo vem escrito em cada memória
+    // docs/regras/explorar.md, "Explorar": fora disso, o capítulo vem escrito em cada memória
     const linha = tela('explorar/Linha.astro');
     expect(linha).toMatch(/data-filtrando=\{trilhos \? undefined : ''\}/);
     expect(linha).toMatch(/trilhos && decadas\.length > 1 &&/);
@@ -466,7 +466,7 @@ describe('conceito', () => {
   });
 
   it('o modo TV passa as memórias por links, e só passa sozinho quando a pessoa liga', () => {
-    // docs/decisoes.md, "Explorar". Sem script, "Anterior" e "Próxima" continuam funcionando
+    // docs/regras/explorar.md, "Explorar". Sem script, "Anterior" e "Próxima" continuam funcionando
     const palco = tela('explorar/Palco.astro');
     for (const nome of ['Anterior', 'Próxima', 'Passar sozinho', 'Parar de passar sozinho', 'Pausar', 'Retomar', 'Sair do modo TV', 'Me mostre outra']) expect(palco).toContain(nome);
     expect(palco).toMatch(/<BotaoDeSimbolo elemento="a" simbolo="proxima" nome="Próxima" cheio class="botao palco__proxima" href=\{depois\}[^>]*rel="next"/);

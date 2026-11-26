@@ -1,4 +1,4 @@
-// O círculo (docs/decisoes.md, "Círculo"): a pessoa no centro e três faixas, Muito próximo, Próximo e
+// O círculo (docs/regras/circulo.md, "Círculo"): a pessoa no centro e três faixas, Muito próximo, Próximo e
 // Conhecido. A proximidade é contínua, de 0 (colado no centro) a 99 (a borda do círculo); 100 é
 // "Fora do círculo". Aqui ficam só as contas, sem tela e sem banco, para ter teste.
 

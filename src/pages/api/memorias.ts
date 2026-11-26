@@ -390,7 +390,7 @@ async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promi
     if (!decisao.ok) return erro(403, decisao.motivo);
   }
 
-  // Memória com alguém que só você vê (docs/decisoes.md): o site nunca publica revelando por tabela uma
+  // Memória com alguém que só você vê (docs/regras/integrantes.md): o site nunca publica revelando por tabela uma
   // pessoa que só existe num laço "só eu vejo". Sem escolha, nada é salvo e a pessoa decide: abrir a
   // pessoa para todos, publicar sem citá-la ou continuar em rascunho (que salva sem esta conferência).
   // "Abrir" entra no lote da memória: se ele perde, o laço continua "só eu vejo" (Y3 do PR #160)
@@ -458,7 +458,7 @@ async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promi
   }
 
   // Quem vê mudou numa memória publicada: ao ampliar, os relatos que já existiam esperam o sim de quem
-  // os registrou (docs/decisoes.md, "Ampliar quem vê uma memória com relatos"). Salvar sem mudar o
+  // os registrou (docs/regras/ampliar.md, "Ampliar quem vê uma memória com relatos"). Salvar sem mudar o
   // público não toca em relato nenhum, e a mudança grava a memória, os relatos e os pedidos numa
   // transação só (revisão Y do PR #160)
   let esperam: { por: string }[] = [];

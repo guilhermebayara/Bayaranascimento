@@ -1,4 +1,4 @@
-// Editar pessoa e laços, proposta A do conceito da sessão E (escolha do Gui, 18/11/2026; docs/decisoes.md,
+// Editar pessoa e laços, proposta A do conceito da sessão E (escolha do Gui, 18/11/2026; docs/regras/integrantes.md,
 // "Formulários de pessoa e laço"): uma página só, com o índice, a ficha num resumo que abre no lugar e
 // cada grupo de laços num cartão com o seu próprio "Adicionar", já no tipo certo.
 import { describe, expect, it } from 'vitest';

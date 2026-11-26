@@ -1,4 +1,4 @@
-// Avisos dentro do site (docs/decisoes.md, "Avisos"; regras em src/lib/avisos.ts). Testado com as rotas de
+// Avisos dentro do site (docs/regras/conta.md, "Avisos"; regras em src/lib/avisos.ts). Testado com as rotas de
 // verdade (src/pages/api/memorias.ts e src/pages/api/relatos.ts) e as consultas do repositório, sobre o
 // banco SQLite em memória com o acervo de exemplo (testes/apoio/d1.ts). O que importa aqui é que nenhum
 // aviso conte a alguém o que ela não vê: nem a memória, nem o relato, nem quem fez.

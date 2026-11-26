@@ -1,4 +1,4 @@
-// O círculo de quem está logado (docs/decisoes.md, "Círculo"): quem aparece, com que laço e a que
+// O círculo de quem está logado (docs/regras/circulo.md, "Círculo"): quem aparece, com que laço e a que
 // distância. É montado só para o dono: ninguém mais vê o círculo nem os valores. A página e a rota
 // que grava usam esta mesma lista, para ninguém gravar proximidade de quem não está no círculo dele.
 import { FORA_DO_CIRCULO, distribuir, faixaDoValor, proximidadePadrao, valorDoNivel } from '../circulo';
@@ -97,7 +97,7 @@ export async function montarCirculo(usuario: Usuario): Promise<Circulo | null> {
 
 /**
  * A proximidade de cada pessoa do círculo de quem está logado, para a edição dos laços mostrar o mesmo
- * valor do círculo (docs/decisoes.md, "Círculo"). Só do dono, como o círculo: ninguém mais lê.
+ * valor do círculo (docs/regras/circulo.md, "Círculo"). Só do dono, como o círculo: ninguém mais lê.
  */
 export async function proximidadesDoCirculo(usuario: Usuario): Promise<Map<string, PessoaDoCirculo>> {
   const circulo = await montarCirculo(usuario);

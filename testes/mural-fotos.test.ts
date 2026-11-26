@@ -1,4 +1,4 @@
-// Mural de fotos: só as capas ou todas as fotos (pedido do Gui, 18/11/2026, docs/decisoes.md, "Explorar").
+// Mural de fotos: só as capas ou todas as fotos (pedido do Gui, 18/11/2026, docs/regras/explorar.md, "Explorar").
 // A regra está em src/lib/explorar.ts; o desenho, em src/components/explorar/Mural.astro.
 import { globSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';

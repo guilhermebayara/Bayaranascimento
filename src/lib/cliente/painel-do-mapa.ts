@@ -1,4 +1,4 @@
-// O painel do quadro do mapa (docs/decisoes.md, "A página como mapa", em "Árvore"): no celular ele fica
+// O painel do quadro do mapa (docs/regras/arvore.md, "A página como mapa", em "Árvore"): no celular ele fica
 // recolhido numa linha, e o botão abre os ajustes e a legenda. Esc fecha e devolve o foco ao botão.
 // O painel também diz ao mapa quanto ocupa, para o que mora embaixo dele saber onde começa.
 

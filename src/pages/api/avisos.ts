@@ -1,4 +1,4 @@
-// A resposta ao pedido para liberar um relato (docs/decisoes.md, "Ampliar quem vê uma memória com
+// A resposta ao pedido para liberar um relato (docs/regras/ampliar.md, "Ampliar quem vê uma memória com
 // relatos"). Chega pelo aviso, com "Liberar para quem passou a ver" ou "Manter como estava", ou depois,
 // pela linha discreta no próprio relato ("Visível só para quem via antes. Liberar para toda a família"). É
 // um formulário comum, que funciona sem script, e volta para a página de onde veio com o recado. O

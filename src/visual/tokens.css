@@ -260,7 +260,7 @@
   --curva: cubic-bezier(0.2, 0.7, 0.2, 1);
   --tempo-curto: 0.2s;
   --tempo-medio: 0.45s;
-  /* Só para a foto de quem faleceu, que acende devagar (docs/decisoes.md, "Quem já faleceu") */
+  /* Só para a foto de quem faleceu, que acende devagar (docs/regras/pessoa.md, "Quem já faleceu") */
   --tempo-lento: 1.4s;
 }
 

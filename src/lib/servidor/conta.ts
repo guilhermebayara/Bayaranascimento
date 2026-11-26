@@ -183,7 +183,7 @@ export async function montarAdministracao(usuario: Usuario) {
     pendencias: pendenciasDaAdministracao(situacao, hoje),
     hoje,
     banco: banco && `${banco.texto} de ${emMegabytes(LIMITE_DO_PLANO)}`,
-    /** o banco passou do tamanho de aviso (docs/decisoes.md, "Aviso de tamanho do banco") */
+    /** o banco passou do tamanho de aviso (docs/regras/infraestrutura.md, "Aviso de tamanho do banco") */
     bancoEmAviso: Boolean(banco?.passouDoAviso),
     /** o espaço das fotos e áudios: a medida, a porcentagem, o aviso a partir de 7 GB e o que falta medir */
     espaco: espaco && { frase: fraseDoEspaco(espaco), porcento: espaco.porcento, emAviso: espaco.passouDoAviso, nota: notaDosSemMedida(espaco.semMedida) },

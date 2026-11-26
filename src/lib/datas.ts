@@ -32,7 +32,7 @@ export function formatarData(d: DataFlexivel): string {
 }
 
 /**
- * A data dentro da frase da Nova memória (docs/decisoes.md, "A frase é a trilha", em "Nova memória"):
+ * A data dentro da frase da Nova memória (docs/regras/formularios.md, "A frase é a trilha", em "Nova memória"):
  * como o site já escreve, com a preposição que a frase pede. "em 24 de dezembro de 2025",
  * "em dezembro de 2025", "em 2025", "por volta de 1994". Sem ano, a pergunta que a lacuna faz.
  */

@@ -73,9 +73,9 @@ const homologa = ehHomologacao();
 // "Sair" só aparece onde há o login do Cloudflare Access (P4 do QA de design, 17/11/2026)
 const saida = temLogin() ? enderecoDeSaida() : undefined;
 const pessoasDeTeste = teste ? integrantes.filter((i) => PESSOAS_DE_TESTE.includes(i.id)) : [];
-// "Sua conta" (docs/decisoes.md): abre pelo retrato ou nome de quem está logado, no topo.
+// "Sua conta" (docs/regras/conta.md): abre pelo retrato ou nome de quem está logado, no topo.
 const meuRetrato = integrantes.find((i) => i.id === usuario.pessoa)?.retrato;
-// O número discreto de avisos no retrato, em qualquer tela (docs/decisoes.md, "Avisos")
+// O número discreto de avisos no retrato, em qualquer tela (docs/regras/conta.md, "Avisos")
 // Para quem administra, somam as pendências da administração (a marca delas fica em "Sua conta")
 const numeroDeAvisos = numeroDoRetrato(somaDoRetrato(avisosPendentes, pendenciasDaAdministracao));
 // "Sua página" e "Seu círculo" só para quem tem página de pessoa no acervo

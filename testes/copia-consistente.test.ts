@@ -122,7 +122,7 @@ describe.skipIf(!comSqlite)('a cópia do acervo restaura mesmo com gravações n
       expect(marca()).toBe(antes);
     });
 
-    // D1f2, o critério de docs/decisoes.md e de marca-da-copia.ts, conferido no esquema de verdade: uma tabela
+    // D1f2, o critério de docs/copia-no-drive.md e de marca-da-copia.ts, conferido no esquema de verdade: uma tabela
     // de registro nova que crie dependência quebra este teste
     it('cada tabela de registro cumpre o critério no esquema de verdade', async () => {
       const chaves = banco.sqlite.prepare(`SELECT m.name AS de, f."table" AS para FROM sqlite_master m, pragma_foreign_key_list(m.name) f WHERE m.type = 'table'`).all() as { de: string; para: string }[];

@@ -134,7 +134,7 @@ function ligar(form: HTMLFormElement): void {
       if ((erro || ok) && !onde) trocarRecados(nova);
       // A troca levou embora a região inteira em que estava o botão tocado (o "Liberar" no bilhete): o foco não
       // fica perdido no corpo da página. Vai para o recado no alto, quando há recado; senão, para o título da
-      // seção onde a região estava ("Sem recarregar", em docs/decisoes.md; sessão AA)
+      // seção onde a região estava ("Sem recarregar", em docs/regras/formularios.md; sessão AA)
       if (regiaoSumiu) {
         const recado = [...document.querySelectorAll<HTMLElement>('[data-recados]')].find((r) => !r.hidden && r.textContent?.trim());
         const alvo = recado ?? (titulo && document.contains(titulo) ? titulo : null);

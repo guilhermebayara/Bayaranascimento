@@ -1,4 +1,4 @@
-// Publicar memória com alguém que só você vê (documento de estrutura e docs/decisoes.md; decisão do Gui
+// Publicar memória com alguém que só você vê (documento de estrutura e docs/regras/integrantes.md; decisão do Gui
 // de 17/11/2026). Uma pessoa que só existe num laço "só eu vejo" de quem escreve deixa a memória em
 // rascunho: ao publicar, o site recusa e oferece abrir a pessoa para todos, publicar sem citá-la ou
 // continuar em rascunho. Nunca publica revelando por tabela uma pessoa privada. Testado com a rota de

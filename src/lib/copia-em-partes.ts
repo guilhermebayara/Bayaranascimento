@@ -18,7 +18,7 @@
 // meio, e o arquivo restaura. Se mudou, a sequência inteira é refeita, até TENTATIVAS_DA_COPIA vezes; depois
 // disso, falha sem devolver nada.
 
-/** A marca dentro do arquivo: o script e o espelho encontram a cópia por ela (ver "O nome do site", em docs/decisoes.md). */
+/** A marca dentro do arquivo: o script e o espelho encontram a cópia por ela (ver "O nome do site", em docs/regras/familias.md). */
 export const MARCA_DO_ACERVO = 'Bayara Nascimento';
 
 /** O endereço da cópia: o índice sem parâmetros, cada parte com `tabela` e, da segunda página em diante, `depois`. */
