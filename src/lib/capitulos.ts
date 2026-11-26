@@ -10,6 +10,7 @@
 // a pandemia: entra tudo o que aconteceu no período.
 
 import { problemaNaData } from './datas';
+import { alcanca } from './servidor/quem-ve';
 
 export interface DataSolta {
   ano: number;
@@ -194,7 +195,7 @@ export interface QuemOlha {
 
 /** O capítulo tem visibilidade própria, que vale para título e abertura. As memórias mantêm cada uma a sua. */
 export function podeVerCapitulo(usuario: QuemOlha, c: Pick<Capitulo, 'visibilidade' | 'nucleos'>): boolean {
-  return c.visibilidade === 'todos' || c.nucleos.some((n) => usuario.nucleos.includes(n));
+  return alcanca(c, usuario.nucleos);
 }
 
 /**

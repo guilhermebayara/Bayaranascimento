@@ -7,6 +7,7 @@
 // conta ("e mais N"), para a frase não denunciar quem a pessoa não vê.
 import { paraQuemPassouAVer, comoPublicoAntigo } from './avisos';
 import { estaNoPublicoDoRelato, type Publico, type Usuario } from './permissoes';
+import { alcanca } from './quem-ve';
 import { listarIntegrantes, listarMensagensDosRelatos, listarNucleos, obterMemoria, obterRelatoPorId, pessoasQueONaoVe } from './repositorio';
 import { resumoDaMensagem } from '../conversa';
 import { jaFaleceu } from '../datas';
@@ -36,7 +37,7 @@ export async function quemPassaALer(relato: { registradoPor: string; soParaNucle
     // Os membros das famílias (o que vira Usuario.nucleos ao entrar); quem só é parente não lê pela família
     const { nucleos } = i;
     if (!nucleos.length || i.id === relato.registradoPor || naoVe.has(i.id) || jaFaleceu(i)) continue;
-    const veAMemoria = publico.visibilidade === 'todos' || publico.nucleos.some((n) => nucleos.includes(n));
+    const veAMemoria = alcanca(publico, nucleos);
     if (veAMemoria && !estaNoPublicoDoRelato(relato, { pessoa: i.id, nucleos })) saida.push(i.id);
   }
   return saida;
