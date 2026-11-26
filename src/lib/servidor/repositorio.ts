@@ -883,18 +883,20 @@ export async function memoriasComAudio(usuario: Usuario): Promise<Set<string>> {
 }
 
 /**
+ * As vozes que podem ir à TV, no banco: cada áudio de relato que passa em relatoNaTv. Exportada para o teste de
+ * equivalência conferir o que o SQL devolve antes do filtro em TS (revisão MEM-2 da AC3), áudio por áudio.
+ */
+export const SQL_DAS_VOZES_NA_TV = `SELECT a.id AS audio, r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id
+  WHERE a.removido_em IS NULL AND ${sqlRelatoNaTv('r')}`;
+
+/**
  * As memórias com voz que vai à TV (correção 4 da revisão R-AB2): áudio de relato que a pessoa vê e que passa em
  * relatoNaTv (publicado, sem esperar o sim de ninguém, não descartado). O filtro "com áudio" do modo TV usa esta,
  * e não memoriasComAudio, para não pôr na ordem uma memória cuja única voz a TV esconde.
  */
 export async function memoriasComAudioNaTv(usuario: Usuario): Promise<Set<string>> {
   const [{ results }, naoVe] = await Promise.all([
-    db()
-      .prepare(
-        `SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id
-         WHERE a.removido_em IS NULL AND ${sqlRelatoNaTv('r')}`,
-      )
-      .all<LinhaDeRelato>(),
+    db().prepare(SQL_DAS_VOZES_NA_TV).all<LinhaDeRelato>(),
     pessoasQueONaoVe(usuario),
   ]);
   return new Set(
@@ -1696,24 +1698,7 @@ export interface AcessoAFoto {
  */
 export async function acessoAFoto(usuario: Usuario, chave: string): Promise<AcessoAFoto | null> {
   const { results } = await db()
-    .prepare(
-      `SELECT r.por, r.registrado_por, r.so_para_nucleos, f.copias,
-         (f.removida_em IS NULL AND (f.relato_id IS NULL OR r.situacao = 'publicada') AND EXISTS (
-           SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND m.situacao = 'publicada' AND m.excluida_em IS NULL
-         )) AS guardar
-       FROM fotos f LEFT JOIN relatos r ON r.id = f.relato_id WHERE f.chave = ?2 AND (
-         (f.memoria_id IS NULL AND f.enviada_por = ?1 AND f.removida_em IS NULL)
-         -- foto sem memória há mais de 30 dias: os administradores conferem antes de apagar (onda 2)
-         OR (?3 = 1 AND ${FOTO_SOLTA})
-         OR (
-           -- foto removida: só quem enviou e quem removeu ainda veem, para poder devolvê-la à memória
-           (f.removida_em IS NULL OR f.enviada_por = ?1 OR f.removida_por = ?1)
-           AND EXISTS (SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND ${FILTRO_VISIVEL})
-           -- a foto que veio com um relato que espera o sim do autor fica com o público antigo dele
-           AND NOT EXISTS (SELECT 1 FROM relatos r WHERE r.id = f.relato_id AND NOT ${sqlEstaNoPublicoDoRelato('r', '?1')})
-         )
-       )`,
-    )
+    .prepare(sqlDoAcessoAFoto())
     .bind(usuario.pessoa, chave, usuario.admin ? 1 : 0)
     .all<{ por: string | null; registrado_por: string | null; so_para_nucleos: string | null; copias: string | null; guardar: number }>();
   type Linha = { por: string | null; registrado_por: string | null; so_para_nucleos: string | null; copias: string | null; guardar: number };
@@ -1730,6 +1715,28 @@ export async function acessoAFoto(usuario: Usuario, chave: string): Promise<Aces
   // Uma foto de exemplo é dividida por várias memórias: basta uma publicada que a pessoa vê para guardar
   return { guardar: linhas.some((r) => Boolean(r.guardar)), copias: linhas.map((r) => lerCopias(r.copias)).find(Boolean) ?? null };
 }
+
+/**
+ * A consulta de acessoAFoto: ?1 é quem olha, ?2 a chave e ?3 se quem olha administra. Exportada para o teste de
+ * equivalência conferir o que o SQL devolve antes do filtro em TS (revisão MEM-2 da AC3), foto por foto.
+ */
+export const sqlDoAcessoAFoto = (): string =>
+      `SELECT f.id AS foto, r.por, r.registrado_por, r.so_para_nucleos, f.copias,
+         (f.removida_em IS NULL AND (f.relato_id IS NULL OR r.situacao = 'publicada') AND EXISTS (
+           SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND m.situacao = 'publicada' AND m.excluida_em IS NULL
+         )) AS guardar
+       FROM fotos f LEFT JOIN relatos r ON r.id = f.relato_id WHERE f.chave = ?2 AND (
+         (f.memoria_id IS NULL AND f.enviada_por = ?1 AND f.removida_em IS NULL)
+         -- foto sem memória há mais de 30 dias: os administradores conferem antes de apagar (onda 2)
+         OR (?3 = 1 AND ${FOTO_SOLTA})
+         OR (
+           -- foto removida: só quem enviou e quem removeu ainda veem, para poder devolvê-la à memória
+           (f.removida_em IS NULL OR f.enviada_por = ?1 OR f.removida_por = ?1)
+           AND EXISTS (SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND ${FILTRO_VISIVEL})
+           -- a foto que veio com um relato que espera o sim do autor fica com o público antigo dele
+           AND NOT EXISTS (SELECT 1 FROM relatos r WHERE r.id = f.relato_id AND NOT ${sqlEstaNoPublicoDoRelato('r', '?1')})
+         )
+       )`;
 
 // --- As cópias menores das fotos que já existem (sessão D1b, 23/11/2026) ---
 
