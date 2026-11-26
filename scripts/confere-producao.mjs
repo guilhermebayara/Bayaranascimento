@@ -1,4 +1,5 @@
-// Guarda da produção. Roda antes de todo build (prebuild) e no GitHub a cada push.
+// Guarda da produção. Roda antes de todo build (prebuild), tanto no do Cloudflare, a cada push, quanto no da máquina.
+// No GitHub ela não roda desde 20/11/2026: lá só roda a gestalt (.github/workflows/confere.yml).
 // O plano gratuito do GitHub não protege branches de repositório privado, então as regras
 // que não podem falhar ficam aqui e travam a publicação quando são quebradas:
 //
@@ -21,7 +22,8 @@
 //    ambiente e a rota /audios/ só serve a chave de um deles onde há acervo de exemplo. O espelho da
 //    homologação nunca os usa.
 // 8. As telas do conceito da revisão visual (/conceito) trazem dados fixos de exemplo.
-//    Só respondem onde há acervo de exemplo: na produção e na homologação, 404.
+//    Só respondem onde há acervo de exemplo: na produção e na homologação, 404. A rota saiu em 26/11/2026
+//    (sessão AC1); se voltar, precisa da trava de src/lib/servidor/conceito.ts, que a regra confere.
 // 9. A página do sistema: fora das prévias de teste, só os administradores, sem ler o acervo.
 // 10. Nenhum arquivo é apagado do bucket das fotos de verdade: só a limpeza do bucket de teste apaga, e a
 //    foto sem memória há mais de 30 dias, que um administrador apaga em src/pages/api/fotos-soltas.ts,
@@ -280,7 +282,7 @@ for (const mensagem of copiasApagadasErradas(readFileSync('src/lib/copias-das-fo
   for (const tabela of TABELAS_DA_FAMILIA) if (!PODE_LER.has(tabela)) falhar(`scripts/copia-para-o-espelho.mjs: "${tabela}" não é uma das tabelas que o espelho pode ler.`);
 }
 
-// 12. Os scripts de medição de desempenho (docs/desempenho/) nunca tocam prévia, homologação ou produção
+// 12. Os scripts de medição de desempenho (scripts/desempenho/) nunca tocam prévia, homologação ou produção
 // com dados de carga. O de carga só fala com o servidor local do computador, pela Local Explorer do
 // Wrangler, e só num banco com o acervo de exemplo; os que abrem o site recusam a produção e a
 // homologação; e nenhum deles entra no site publicado.

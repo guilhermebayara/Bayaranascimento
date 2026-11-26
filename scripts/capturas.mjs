@@ -120,7 +120,6 @@ const focoNoTitulo = async (pagina) => {
   await pagina.keyboard.press('Tab');
 };
 const PAGINAS = [
-  // Conceito da revisão visual: as mesmas telas em cada combinação de fontes, nas três larguras.
   // A carta é vista como Elizete, que a recebe. O painel, a linha do tempo e a memória, como Giovanna,
   // que está em duas famílias, vê todos os capítulos e ainda não contou o Natal de 2025.
   // "corte" limita a altura da captura da linha do tempo, que é muito longa, e "desde" começa a
@@ -203,9 +202,8 @@ const PAGINAS = [
   { nome: 'ajustes-6-capitulo-editar-zona', url: '/capitulos/natais/editar', larguras: TODAS },
   { nome: 'ajustes-6-pessoa-editar-laco', url: '/pessoas/vo-bela/editar', larguras: TODAS, antes: abrirLaco },
   { nome: 'ajustes-7-titulo-em-foco', url: '/explorar', como: 'giovanna', larguras: TODAS, corte: 1300, depois: focoNoTitulo },
-  { nome: 'conceito-fontes-e-pecas', url: '/conceito/sobre', larguras: TODAS },
-  // O sistema (fase 2): a marca, as fontes, os tokens e as peças, em cada combinação de fontes
-  ...['a', 'b', 'c'].map((fontes) => ({ nome: `sistema-${fontes}`, url: '/sistema', fontes, larguras: TODAS })),
+  // O sistema (fase 2): a marca, as fontes, os tokens e as peças
+  { nome: 'sistema-c', url: '/sistema', larguras: TODAS },
   // Fase 3, grupo "formularios", primeira metade: a Nova memória etapa a etapa, o relato e o capítulo.
   // Para tirar só elas: CAPTURAS_SO=^formularios npm run capturas -- tirar <pasta>
   { nome: 'formularios-1-nova-1-o-que-aconteceu', url: '/nova', larguras: TODAS },
@@ -291,7 +289,6 @@ async function tirar(pasta) {
     for (const p of PAGINAS) {
       if (filtro && !filtro.test(p.nome)) continue;
       if (!(p.larguras ?? PADRAO).includes(largura.nome)) continue;
-      await contexto.addCookies([{ name: 'fontes', value: p.fontes ?? 'c', url: BASE }]);
       if (p.visita) await prepararVisita(p.como ?? 'gui', p.visita === 'primeira' ? 'primeira' : 'seguinte', p.visita === 'seguinte');
       const endereco = `${BASE}/como/${p.como ?? 'gui'}?volta=${encodeURIComponent(p.url)}`;
       // A primeira visita a uma página no servidor local pode demorar enquanto ele compila

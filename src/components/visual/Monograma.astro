@@ -1,39 +1,27 @@
 ---
 // O monograma: o M de Memórias, que não muda enquanto os sobrenomes mudam com a tela
 // (docs/visual.md, "Monograma"). Sai da serifa dos títulos e é desenhado em SVG, numa cor só:
-// a do texto em volta. O desenho de cada serifa é gerado por "npm run monograma".
-//
-// A página traz o M das três serifas e o CSS mostra o da serifa em uso (pecas.css), para o
-// monograma acompanhar a fonte sem precisar saber qual foi escolhida.
+// a do texto em volta. O desenho é gerado por "npm run monograma".
 import { MONOGRAMAS } from '../../visual/monograma';
+import { FONTES_DO_SITE } from '../../lib/visual';
 
 interface Props {
   /** "pequeno" é o M engrossado para ler em 16 px; "normal", o desenho de título */
   corte?: 'normal' | 'pequeno';
-  /** só uma serifa, quando quem usa precisa mostrar uma em particular */
-  serifa?: keyof typeof MONOGRAMAS;
   class?: string;
 }
 
-const { corte = 'normal', serifa, class: classe } = Astro.props;
-const serifas = (serifa ? [serifa] : Object.keys(MONOGRAMAS)) as (keyof typeof MONOGRAMAS)[];
+const { corte = 'normal', class: classe } = Astro.props;
+const m = MONOGRAMAS[FONTES_DO_SITE.serifa][corte];
 ---
 
-{
-  serifas.map((id) => {
-    const m = MONOGRAMAS[id][corte];
-    return (
-      <svg
-        class:list={['monograma', classe]}
-        data-da-serifa={serifa ? undefined : id}
-        viewBox={`0 0 ${m.largura} ${m.altura}`}
-        style={`--monograma-proporcao: ${m.largura / m.altura}`}
-        fill="currentColor"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path d={m.d} stroke={m.traco ? 'currentColor' : undefined} stroke-width={m.traco || undefined} stroke-linejoin={m.traco ? 'round' : undefined} />
-      </svg>
-    );
-  })
-}
+<svg
+  class:list={['monograma', classe]}
+  viewBox={`0 0 ${m.largura} ${m.altura}`}
+  style={`--monograma-proporcao: ${m.largura / m.altura}`}
+  fill="currentColor"
+  aria-hidden="true"
+  focusable="false"
+>
+  <path d={m.d} stroke={m.traco ? 'currentColor' : undefined} stroke-width={m.traco || undefined} stroke-linejoin={m.traco ? 'round' : undefined} />
+</svg>

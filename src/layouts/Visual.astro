@@ -9,13 +9,12 @@ import Monograma from '../components/visual/Monograma.astro';
 import Retrato from '../components/visual/Retrato.astro';
 import { PESSOAS_DE_TESTE, enderecoDeSaida, semLogin, temLogin } from '../lib/servidor/acesso';
 import { ehHomologacao } from '../lib/servidor/ambiente';
-import { fontesDoPedido } from '../lib/servidor/conceito';
 import { enderecoDoRetrato } from '../lib/retratos';
 import { numeroDoRetrato, rotuloDoRetrato, somaDoRetrato } from '../lib/avisos';
 import { ENDERECO_DA_ADMINISTRACAO, contaDePendencias } from '../lib/conta';
 import { contarPendenciasDaAdministracao } from '../lib/servidor/conta';
 import { contarAvisosPendentes, listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
-import { FONTES_DO_SITE, assinaturaDaTela, atributosDasFontes, combinacaoDe } from '../lib/visual';
+import { FONTES_DO_SITE, assinaturaDaTela, atributosDasFontes } from '../lib/visual';
 
 interface Props {
   titulo?: string;
@@ -60,12 +59,8 @@ const [todosOsNucleos, integrantes, avisosPendentes, pendenciasDaAdministracao] 
 ]);
 const assinatura = assinaturaDaTela(nucleos, todosOsNucleos);
 const familia = Astro.props.familia ?? assinatura.familia;
-// As fontes do site (FONTES_DO_SITE). Nas prévias, uma combinação guardada de antes ainda vale, e a faixa de teste leva de volta à do site.
-const fontes = fontesDoPedido(Astro.request);
-const combinacaoEmUso = combinacaoDe(fontes);
-const combinacaoDoSite = combinacaoDe(FONTES_DO_SITE);
-const fontesDiferentes = Boolean(combinacaoDoSite) && combinacaoEmUso !== combinacaoDoSite;
-const icones = `/icones/${fontes.serifa}`;
+// As fontes do site (FONTES_DO_SITE)
+const icones = `/icones/${FONTES_DO_SITE.serifa}`;
 const teste = semLogin();
 // Na homologação a família é a de verdade: a faixa fica bem marcada, como símbolo do ambiente, para
 // ninguém confundir com o site de verdade (decisão do Gui, 18/11/2026)
@@ -82,7 +77,6 @@ const numeroDeAvisos = numeroDoRetrato(somaDoRetrato(avisosPendentes, pendencias
 const temPagina = integrantes.some((i) => i.id === usuario.pessoa);
 const aqui = Astro.url.pathname + Astro.url.search;
 const volta = encodeURIComponent(aqui);
-const caminho = Astro.url.pathname.replace(/\/$/, '');
 
 // "Memórias", no alto, leva ao início, mas o menu também diz "Início": quem tem menos familiaridade
 // com sites não precisa adivinhar (pedido do Gui, 16/11/2026)
@@ -93,20 +87,10 @@ const menu = [
   { href: '/arvore', texto: 'Árvore', atual: secao === 'arvore' },
   { href: '/pessoas', texto: 'Pessoas', atual: secao === 'pessoas' },
 ];
-const telas = [
-  { href: '/', texto: 'Painel', atual: caminho === '' },
-  { href: '/carta', texto: 'Carta', atual: caminho === '/carta' },
-  { href: '/explorar', texto: 'Explorar', atual: caminho === '/explorar' },
-  { href: '/memorias/2025-natal', texto: 'Memória', atual: caminho.startsWith('/memorias') },
-  { href: '/pessoas/vo-bela', texto: 'Pessoa', atual: caminho.startsWith('/pessoas/') },
-  { href: '/conta', texto: 'Conta', atual: caminho === '/conta' },
-  { href: '/conceito/sobre', texto: 'Fontes', atual: caminho === '/conceito/sobre' },
-  { href: '/sistema', texto: 'Sistema', atual: caminho === '/sistema' },
-];
 ---
 
 <!doctype html>
-<html lang="pt-BR" id="alto" {...atributosDasFontes(fontes)} data-familia={familia} data-intimo={intimo ? '' : undefined} data-tela-de-mapa={mapa ? '' : undefined} data-ver-como={teste ? usuario.pessoa : undefined}>
+<html lang="pt-BR" id="alto" {...atributosDasFontes(FONTES_DO_SITE)} data-familia={familia} data-intimo={intimo ? '' : undefined} data-tela-de-mapa={mapa ? '' : undefined} data-ver-como={teste ? usuario.pessoa : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -117,7 +101,7 @@ const telas = [
     <link rel="icon" href={`${icones}/favicon-48.png`} type="image/png" sizes="48x48" />
     <link rel="apple-touch-icon" href={`${icones}/apple-touch-icon.png`} />
     {/* A serifa da assinatura e a grotesca do texto chegam antes, sem esperar o CSS (causa 7 da medição M1) */}
-    {fontesParaPedirAntes(fontes).map((arquivo) => <link rel="preload" href={arquivo} as="font" type="font/woff2" crossorigin />)}
+    {fontesParaPedirAntes().map((arquivo) => <link rel="preload" href={arquivo} as="font" type="font/woff2" crossorigin />)}
     <title>{tituloPagina}</title>
     <script is:inline>
       // Aparelho de toque. No iPhone com iOS 26, o Safari desenha uma banda sólida atrás das suas
@@ -149,23 +133,6 @@ const telas = [
             </span>
           </summary>
           <div class="teste__corpo">
-            <p>
-              <span>Telas:</span>
-              {telas.map((t) => (
-                <a href={t.href} aria-current={t.atual ? 'page' : undefined}>
-                  {t.texto}
-                </a>
-              ))}
-            </p>
-            {/* A linha das fontes saiu (decisão do Gui, 23/11/2026): a fonte do site está escolhida, e a
-                comparação das combinações fica na página do sistema. Quem ainda tem outra combinação guardada
-                de antes vê o recado e volta para a do site. */}
-            {fontesDiferentes && (
-              <p>
-                <span>Esta aba está com outras fontes ({combinacaoEmUso?.toUpperCase() ?? 'misturadas'}).</span>
-                <a href={`/conceito/fontes/${combinacaoDoSite}?volta=${volta}`}>Voltar às fontes do site</a>
-              </p>
-            )}
             <p>
               <span>Ver como:</span>
               {pessoasDeTeste.map((p) => (

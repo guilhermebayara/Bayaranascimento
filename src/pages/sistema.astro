@@ -7,13 +7,10 @@
 // 404. Nas prévias de teste e no computador, abre para todos. O conteúdo é fixo, da própria página:
 // nada vem do acervo. Só onde há acervo de exemplo a foto revelada usa uma memória de exemplo (o
 // Chico e a Karol); fora dali, o cartão é desenhado. A guarda da produção confere as duas travas.
-// As combinações A e B, só nas páginas que comparam as três (src/visual/fontes-para-comparar.ts)
-import '../visual/fontes-para-comparar';
 import '../visual/telas/sobre.css';
 import '../visual/telas/sistema.css';
 import Visual from '../layouts/Visual.astro';
 import Assinatura from '../components/visual/Assinatura.astro';
-import Audio from '../components/visual/Audio.astro';
 import Bilhete from '../components/visual/Bilhete.astro';
 import Carimbo from '../components/visual/Carimbo.astro';
 import TarjaDoDiscreto from '../components/visual/TarjaDoDiscreto.astro';
@@ -40,24 +37,19 @@ import SinalDoCapitulo from '../components/visual/SinalDoCapitulo.astro';
 import Vazio from '../components/visual/Vazio.astro';
 import ZonaDePerigo from '../components/visual/ZonaDePerigo.astro';
 import { temAcervoDeExemplo } from '../lib/servidor/ambiente';
-import { conceitoDisponivel, fontesDoPedido, naoEncontrado } from '../lib/servidor/conceito';
+import Voz from '../components/conversa/Voz.astro';
 import { listarMemorias, listarNucleos } from '../lib/servidor/repositorio';
 import tokens from '../visual/tokens.css?raw';
 import { contraste, coresDosTokens, neutroDosTokens } from '../lib/contraste';
 import { RABISCOS, rabiscosPorAssunto } from '../visual/rabiscos';
 import { SIMBOLOS } from '../visual/simbolos';
-import { COMBINACOES_DE_FONTES, CORES, CORES_MAIS_NOVAS, CORES_NOVAS, NOMES_DAS_CORES, PALETA, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, atributosDasFontes, combinacao, combinacaoDe, combinacaoValida, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../lib/visual';
+import { COMBINACOES_DE_FONTES, CORES, CORES_MAIS_NOVAS, CORES_NOVAS, NOMES_DAS_CORES, PALETA, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, atributosDasFontes, combinacaoDe, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../lib/visual';
 
 const { usuario, tipos } = Astro.locals;
+const naoEncontrado = () => new Response('Não encontrado', { status: 404 });
 const comExemplos = temAcervoDeExemplo();
 if (!comExemplos && !usuario.admin) return naoEncontrado();
 
-const fontes = fontesDoPedido(Astro.request);
-// O seletor do alto troca as fontes só nos exemplos desta página (decisão do Gui, 17/11/2026): o
-// topo, o menu e o rodapé continuam na fonte do site. Vem pelo endereço (?fontes=b), sem script.
-const fontesPedidas = combinacaoValida(Astro.url.searchParams.get('fontes'));
-const fontesDosExemplos = fontesPedidas ? combinacao(fontesPedidas) : fontes;
-const exemplosEm = combinacaoDe(fontesDosExemplos);
 const doSite = combinacaoDe(FONTES_DO_SITE);
 const nomeDa = (id: string | null) => COMBINACOES_DE_FONTES.find((c) => c.id === id);
 const nucleos = await listarNucleos();
@@ -104,26 +96,15 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
         O que o conceito aprovado usa, arrumado para as outras telas usarem igual: a marca, as fontes, as cores, as medidas e as peças. As telas do conceito já
         são montadas com estas peças e continuam como foram aprovadas.
       </p>
-      <nav class="sis__fontes" aria-label="Fontes dos exemplos">
-        <span class="rotulo suave">Fontes dos exemplos</span>
-        {
-          COMBINACOES_DE_FONTES.map((c) => (
-            <a class="acao acao--quieta" href={`/sistema?fontes=${c.id}`} aria-current={c.id === exemplosEm ? 'true' : undefined}>
-              {c.id.toUpperCase()}, {c.nome}
-              {c.id === doSite && <span class="suave">{' (a do site)'}</span>}
-            </a>
-          ))
-        }
-      </nav>
     </header>
 
-    <div class="sis__exemplos" {...atributosDasFontes(fontesDosExemplos)}>
+    <div class="sis__exemplos" {...atributosDasFontes(FONTES_DO_SITE)}>
 
     <section aria-labelledby="marca">
       <h2 class="sobre__titulo" id="marca">Monograma</h2>
       <p class="sobre__texto">
         O M de Memórias, tirado da serifa dos títulos e desenhado em SVG. Tem dois cortes: o de título e um mais firme, para ler pequeno. É o ícone do site e, no
-        celular, fica no lugar da assinatura. Acompanha a serifa escolhida.
+        celular, fica no lugar da assinatura. Acompanha a serifa do site.
       </p>
       <div class="sis__monogramas">
         {
@@ -136,13 +117,13 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
               <p class="sis__tamanhos" aria-hidden="true">
                 {[16, 24, 32].map((px) => (
                   <span style={`font-size: ${px}px`}>
-                    <Monograma serifa={c.id} corte="pequeno" />
+                    <Monograma corte="pequeno" />
                     <small>{px}</small>
                   </span>
                 ))}
                 {[64, 112].map((px) => (
                   <span style={`font-size: ${px}px`}>
-                    <Monograma serifa={c.id} />
+                    <Monograma />
                     <small>{px}</small>
                   </span>
                 ))}
@@ -193,16 +174,15 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
     <section aria-labelledby="fontes">
       <h2 class="sobre__titulo" id="fontes">Fontes</h2>
       <p class="sobre__texto">
-        {doSite ? `A fonte do site é a combinação ${doSite.toUpperCase()}, ${nomeDa(doSite)!.nome}` : 'A fonte do site mistura combinações'}: {nomesDasFontes(FONTES_DO_SITE)}.
-        {exemplosEm !== doSite && ` Os exemplos desta página estão ${exemplosEm ? `na ${exemplosEm.toUpperCase()}, ${nomeDa(exemplosEm)!.nome}` : 'em fontes misturadas'}: ${nomesDasFontes(fontesDosExemplos)}.`} Trocar a
-        fonte do site é mudar uma linha do código. {conceitoDisponivel() && <a href="/conceito/sobre">Ver as três combinações lado a lado</a>}
+        {doSite ? `A fonte do site é a combinação ${doSite.toUpperCase()}, ${nomeDa(doSite)!.nome}` : 'A fonte do site mistura combinações'}: {nomesDasFontes(FONTES_DO_SITE)}. Trocar a
+        fonte do site é mudar uma linha do código.
       </p>
       <dl class="sis__papeis">
         {
           PAPEIS_DAS_FONTES.map((papel) => (
             <div>
               <dt class="rotulo suave">{papeis[papel]}</dt>
-              <dd class={`sis__papel sis__papel--${papel}`}>{COMBINACOES_DE_FONTES.find((c) => c.id === fontesDosExemplos[papel])![papel]}</dd>
+              <dd class={`sis__papel sis__papel--${papel}`}>{COMBINACOES_DE_FONTES.find((c) => c.id === FONTES_DO_SITE[papel])![papel]}</dd>
             </div>
           ))
         }
@@ -522,15 +502,27 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
         </article>
 
         <article class="sis__peca sis__peca--larga">
-          <h3 class="rotulo">Bilhete, bloco de áudio e nome manuscrito</h3>
+          <h3 class="rotulo">Bilhete e nome manuscrito</h3>
           <Bilhete por="Elizete" registradoPor="Gui">
-            {/* FIXO: o acervo de exemplo não tem áudio. O bloco usa o tocador do próprio aparelho. */}
-            <Audio rotulo="Áudio · 2 min 14 s" transcricao="Eu fiz o bolo na véspera e quase não dormi." />
             <div class="bilhete__texto">
               <p>Eu fiz o bolo na véspera e quase não dormi.</p>
             </div>
           </Bilhete>
           <p class="ficha suave">O relato de uma pessoa. A manuscrita só aparece aqui, no nome de quem conta.</p>
+        </article>
+
+        <article class="sis__peca sis__peca--larga">
+          <h3 class="rotulo">Voz da conversa, com áudio</h3>
+          {/* FIXO: o acervo de exemplo não tem áudio. A mensagem usa o tocador do próprio aparelho, sem arquivo. */}
+          <Voz
+            nome="Elizete"
+            familia="0"
+            mensagens={[
+              { tipo: 'audio', audio: { id: 0, src: '', duracao: 134, transcricao: 'Eu fiz o bolo na véspera e quase não dormi.' } },
+              { tipo: 'texto', texto: 'Eu fiz o bolo na véspera e quase não dormi.' },
+            ]}
+          />
+          <p class="ficha suave">O relato como conversa, na página da memória: o retrato e o nome no começo, e um balão para cada mensagem, de texto ou de áudio.</p>
         </article>
 
         <article class="sis__peca">

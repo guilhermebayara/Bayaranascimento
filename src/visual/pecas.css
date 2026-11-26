@@ -362,28 +362,6 @@ a.polaroid__foto {
   padding-right: 0.3em;
 }
 
-/* --- Bloco de áudio ------------------------------------------------------------------------ */
-
-.audio {
-  display: grid;
-  gap: var(--e-3);
-  margin-bottom: var(--e-5);
-  padding-bottom: var(--e-5);
-  border-bottom: 1px solid var(--fio);
-}
-.audio audio {
-  width: 100%;
-  height: var(--toque);
-}
-.audio details summary {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--toque);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
 /* --- Bloco de cor: quando um trecho precisa se destacar, o fundo é a cor da família -------- */
 
 .bloco {
@@ -436,8 +414,8 @@ a.polaroid__foto {
 }
 
 /* --- Monograma: o M de Memórias, na serifa em uso ------------------------------------------------
-   A página traz o M das três serifas (Monograma.astro) e cada serifa acende o dela (--m-a, --m-b
-   e --m-c, em fontes.css). A altura é a da letra: quem usa diz o tamanho em font-size ou height. */
+   O desenho é o da serifa do site (Monograma.astro). A altura é a da letra: quem usa diz o tamanho em
+   font-size ou height. */
 
 .monograma {
   flex: none;
@@ -445,15 +423,6 @@ a.polaroid__foto {
   width: auto;
   aspect-ratio: var(--monograma-proporcao);
   overflow: visible;
-}
-.monograma[data-da-serifa='a'] {
-  display: var(--m-a, none);
-}
-.monograma[data-da-serifa='b'] {
-  display: var(--m-b, none);
-}
-.monograma[data-da-serifa='c'] {
-  display: var(--m-c, none);
 }
 
 /* --- Ficha em mono: o verso da foto ---------------------------------------------------------------
