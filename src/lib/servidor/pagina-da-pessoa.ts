@@ -252,5 +252,3 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
     nomeDeQuemOlha: nome(usuario.pessoa),
   };
 }
-
-export type PaginaDaPessoa = NonNullable<Awaited<ReturnType<typeof montarPaginaDaPessoa>>>;

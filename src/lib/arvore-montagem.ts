@@ -258,5 +258,4 @@ export function montarDesenho(dados: DadosDaArvore, estado: Estado, ladoDe = lad
   return { desenho, principal, coracao, coracaoDosRamos, lacosDe, ramos, abertos, filiacoesVisiveis, casaisVisiveis, geracoes, agregados, noNucleo, visiveis };
 }
 
-export type Montagem = ReturnType<typeof montarDesenho>;
 export type { Ramo };

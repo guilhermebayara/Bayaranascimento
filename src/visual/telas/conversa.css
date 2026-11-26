@@ -310,13 +310,6 @@
 .janela__dica {
   margin: 0;
 }
-.janela__acoes {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--e-4) var(--e-5);
-  margin-top: var(--e-4);
-}
 
 /* Na memória: cada pessoa é uma voz, com o retrato e o nome à mão no começo das mensagens */
 .relato-conversa__memoria {
