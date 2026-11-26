@@ -73,6 +73,20 @@ describe('paraOLeitor: a memória como pode sair do servidor (para a D2)', () =>
     expect(paraOLeitor({ ...entrada, fotos: [entrada.fotos[0]!] }, visto).fotoChave).toBeNull();
   });
 
+  it('as cópias da foto-chave saem só com os campos de Copias, mesmo quando o banco traz mais', () => {
+    const copias = { formato: 'webp' as const, pequena: [400, 300] as [number, number], media: [1600, 1200] as [number, number], original: [4000, 3000] as [number, number], bytes: 250000, donaDaFoto: 'criadora-escondida', relatoQueEspera: 'Texto do relato que espera' };
+    const fotos = [{ id: 9, chave: '2026/com-copias.jpg', legenda: null, principal: true, enviadaPor: 'gui', relatoId: null, copias }];
+    const saida = paraOLeitor({ ...entrada, fotos }, visto).fotoChave!.copias!;
+    expect(Object.keys(saida).sort()).toEqual(['bytes', 'formato', 'media', 'original', 'pequena']);
+    expect(saida).toEqual({ formato: 'webp', pequena: [400, 300], media: [1600, 1200], original: [4000, 3000], bytes: 250000 });
+    expect(saida.pequena).not.toBe(copias.pequena);
+    expect(JSON.stringify(saida)).not.toContain('escondida');
+    // Sem a medida da original, o campo não sai
+    const { original: _semOriginal, ...semOriginal } = copias;
+    const sem = paraOLeitor({ ...entrada, fotos: [{ ...fotos[0]!, copias: semOriginal }] }, visto).fotoChave!.copias!;
+    expect(Object.keys(sem).sort()).toEqual(['bytes', 'formato', 'media', 'pequena']);
+  });
+
   it('não muda a memória que recebeu', () => {
     paraOLeitor(entrada, { naoVe: new Set(['gui']), capitulosQueVe: new Set(), temasQueVe: new Set() });
     expect(entrada.integrantes).toHaveLength(4);

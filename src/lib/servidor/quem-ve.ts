@@ -301,6 +301,22 @@ export interface VistoPeloLeitor {
 }
 
 /**
+ * As cópias da foto-chave, campo a campo como Copias as lista (rodada 2 da revisão MEM-2): o que mais vier no
+ * objeto do banco fica no servidor. As medidas saem como listas novas, e a da original só quando existe.
+ */
+function projetarCopias(copias: Copias | null): Copias | null {
+  if (!copias) return null;
+  const medida = (m: readonly [number, number]): [number, number] => [m[0], m[1]];
+  return {
+    formato: copias.formato,
+    pequena: medida(copias.pequena),
+    media: medida(copias.media),
+    ...(copias.original ? { original: medida(copias.original) } : {}),
+    bytes: copias.bytes,
+  };
+}
+
+/**
  * A memória como pode sair do servidor para quem olha: uma projeção campo a campo (revisão MEM-2 da AC3), e
  * não a memória inteira com filtros. Sai só o que MemoriaParaOLeitor lista, sem as pessoas que ele não vê
  * (quem só existe num laço privado de outra pessoa, quem está na lixeira), sem os capítulos e os temas que
@@ -320,7 +336,7 @@ export function paraOLeitor(m: MemoriaDeEntrada, visto: VistoPeloLeitor): Memori
     lugar: m.lugar,
     tipo: m.tipo,
     tipoOutro: m.tipoOutro,
-    fotoChave: chave ? { chave: chave.chave, legenda: chave.legenda, copias: chave.copias } : null,
+    fotoChave: chave ? { chave: chave.chave, legenda: chave.legenda, copias: projetarCopias(chave.copias) } : null,
     integrantes: m.integrantes.filter((id) => !visto.naoVe.has(id)),
     capitulos: m.capitulos.filter((id) => visto.capitulosQueVe.has(id)),
     temas: m.temas.filter((id) => visto.temasQueVe.has(id)),
