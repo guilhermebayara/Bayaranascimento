@@ -35,6 +35,10 @@ export async function semearFotosDeExemplo(db: D1Database): Promise<void> {
  * depois de 7 dias, e o registro passa a apontar para uma foto de exemplo, pelo mesmo sorteio. Nunca
  * apaga nada de exemplos/, nem os áudios (que têm o teto deles). Roda no máximo uma vez por dia, no
  * primeiro acesso a uma prévia, e um erro aqui nunca derruba o site.
+ *
+ * Por que 7 dias: o plano gratuito do R2 vai até 10 GB, somando a produção, a homologação e todas as
+ * prévias, e cada prévia de teste é descartável. Sem a faxina, as fotos enviadas ao testar ocupariam a cota
+ * que é da família.
  */
 export async function limparBucketDeTeste(db: D1Database, agora = new Date()): Promise<void> {
   if (!soNoTeste()) return;

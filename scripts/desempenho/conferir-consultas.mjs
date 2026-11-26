@@ -11,7 +11,7 @@
 // conta, de cada pedido:
 // - pelo cabeçalho Server-Timing (src/lib/servidor/ambiente.ts): as consultas (cada comando, também os de
 //   um lote) e as idas ao banco até a página começar a ser entregue;
-// - pelos rastros que o servidor local guarda (Local Explorer, como medir-servidor.mjs): todas as idas,
+// - pelos rastros que o servidor local guarda (Local Explorer, como scripts/historico/medir-servidor.mjs): todas as idas,
 //   também as que o esqueleto fizer depois do cabeçalho, e as linhas lidas.
 // O que foi ao banco depois do cabeçalho entra na conta das consultas pelo texto do rastro (cada comando de
 // um lote começa numa linha com SELECT, INSERT, UPDATE, DELETE ou WITH).

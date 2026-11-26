@@ -3,8 +3,8 @@
 // antes do toque e com o servidor respondendo erro 500. Diz onde a pessoa termina e o que a tela mostra.
 // As ações dos formulários com script (nova memória, relato, fotos) estão em medir-espera.mjs, com FALHA=1.
 //
-//   node scripts/desempenho/proxy-local.mjs &
-//   node scripts/desempenho/medir-falhas.mjs [https://127.0.0.1:4443] > docs/desempenho/dados/falhas-exemplo.txt
+//   node scripts/historico/proxy-local.mjs &
+//   node scripts/historico/medir-falhas.mjs [https://127.0.0.1:4443] > docs/desempenho/dados/falhas-exemplo.txt
 import { execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';

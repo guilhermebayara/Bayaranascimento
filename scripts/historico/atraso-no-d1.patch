@@ -10,7 +10,7 @@ index b064b22..14c1a0e 100644
 +  return comAtraso(ehHomologacao() ? env.DB_HOMOLOGA! : env.DB);
 +}
 +
-+// MEDIÇÃO M1 (scripts/desempenho/atraso-no-d1.patch, nunca vai para a homologa): cada ida ao D1 espera
++// MEDIÇÃO M1 (scripts/historico/atraso-no-d1.patch, nunca vai para a homologa): cada ida ao D1 espera
 +// ATRASO_D1 milissegundos, como a viagem da borda do Cloudflare ao banco. Com isso, o tempo a mais de uma
 +// página dividido pelo atraso dá quantas idas ao banco ela faz uma depois da outra.
 +const ATRASO_D1 = 50;
