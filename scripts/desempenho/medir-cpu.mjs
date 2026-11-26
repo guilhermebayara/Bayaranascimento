@@ -311,6 +311,12 @@ const TELAS = [
   ['Carta', '/carta'],
   ['Nova memória', '/nova'],
   ['Sua conta', '/conta'],
+  // A busca (aplicação da E2): o resultado que a folha pede enquanto se digita, a página /busca e o Explorar com a busca
+  ['Busca, o resultado de “natal”', '/busca/resultado?q=natal'],
+  ['Busca, o resultado de “natal casa vó”', '/busca/resultado?q=natal%20casa%20v%C3%B3'],
+  ['Busca, o resultado de “minha mãe”', '/busca/resultado?q=minha%20m%C3%A3e'],
+  ['Busca, a página de “sabará”', '/busca?q=sabar%C3%A1'],
+  ['Explorar com a busca “natal”', '/explorar?q=natal'],
 ];
 
 async function fasePaginas() {

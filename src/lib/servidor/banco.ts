@@ -1059,6 +1059,106 @@ export const MIGRACOES: Migracao[] = [
     id: '115-sem-indices-sem-uso',
     sql: [`DROP INDEX IF EXISTS sugestoes_para`, `DROP INDEX IF EXISTS reacoes_da_memoria`],
   },
+  {
+    // O índice da busca (aplicação da E2, 26/11/2026; docs/regras/explorar.md, "A busca"). Os textos das memórias
+    // que a busca procura, um por linha (busca_textos), e o FTS5 do D1 por cima deles (busca_indice), que tira
+    // acento e maiúscula ao indexar. Derivado do acervo, sempre: os gatilhos de memorias, relatos, audios e fotos
+    // mantêm as linhas a cada gravação, de qualquer caminho (o site, os exemplos, a carga de desempenho, a
+    // restauração), e o fim desta migração preenche com o que já existe. Fica fora da cópia do acervo e do
+    // espelho (TABELAS_FORA_DA_COPIA): refaz-se sozinho a partir das tabelas de verdade.
+    //
+    // O que entra: o título e o lugar de toda memória; o texto do relato publicado; a transcrição do áudio que não
+    // foi removido, de relato publicado; a legenda da foto que não foi removida e já está na memória. O índice só
+    // acha candidatos: quem vê o quê é decidido pelo código, sobre eles (src/lib/servidor/busca.ts).
+    id: '116-indice-da-busca',
+    sql: [
+      `CREATE TABLE IF NOT EXISTS busca_textos (
+        id INTEGER PRIMARY KEY,
+        memoria_id TEXT NOT NULL,
+        campo TEXT NOT NULL CHECK (campo IN ('titulo', 'lugar', 'relato', 'audio', 'legenda')),
+        ref INTEGER,
+        texto TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS busca_textos_da_memoria ON busca_textos (memoria_id, campo)`,
+      `CREATE INDEX IF NOT EXISTS busca_textos_do_item ON busca_textos (campo, ref)`,
+      `CREATE VIRTUAL TABLE IF NOT EXISTS busca_indice USING fts5(texto, content='busca_textos', content_rowid='id', tokenize='unicode61 remove_diacritics 2')`,
+      `CREATE TRIGGER IF NOT EXISTS busca_textos_entra AFTER INSERT ON busca_textos BEGIN
+        INSERT INTO busca_indice (rowid, texto) VALUES (new.id, new.texto);
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS busca_textos_sai AFTER DELETE ON busca_textos BEGIN
+        INSERT INTO busca_indice (busca_indice, rowid, texto) VALUES ('delete', old.id, old.texto);
+      END`,
+      // A memória: o título e o lugar
+      `CREATE TRIGGER IF NOT EXISTS busca_memoria_entra AFTER INSERT ON memorias BEGIN
+        INSERT INTO busca_textos (memoria_id, campo, texto) SELECT new.id, 'titulo', new.titulo WHERE TRIM(new.titulo) <> '';
+        INSERT INTO busca_textos (memoria_id, campo, texto) SELECT new.id, 'lugar', new.lugar WHERE TRIM(COALESCE(new.lugar, '')) <> '';
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS busca_memoria_muda AFTER UPDATE OF id, titulo, lugar ON memorias BEGIN
+        DELETE FROM busca_textos WHERE memoria_id = old.id AND campo IN ('titulo', 'lugar');
+        INSERT INTO busca_textos (memoria_id, campo, texto) SELECT new.id, 'titulo', new.titulo WHERE TRIM(new.titulo) <> '';
+        INSERT INTO busca_textos (memoria_id, campo, texto) SELECT new.id, 'lugar', new.lugar WHERE TRIM(COALESCE(new.lugar, '')) <> '';
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS busca_memoria_sai AFTER DELETE ON memorias BEGIN
+        DELETE FROM busca_textos WHERE memoria_id = old.id;
+      END`,
+      // O relato: o texto, só publicado; com ele, as transcrições dos áudios dele
+      `CREATE TRIGGER IF NOT EXISTS busca_relato_entra AFTER INSERT ON relatos BEGIN
+        INSERT INTO busca_textos (memoria_id, campo, ref, texto) SELECT new.memoria_id, 'relato', new.id, new.texto WHERE new.situacao = 'publicada' AND TRIM(new.texto) <> '';
+        INSERT INTO busca_textos (memoria_id, campo, ref, texto)
+          SELECT new.memoria_id, 'audio', a.id, a.transcricao FROM audios a
+          WHERE a.relato_id = new.id AND new.situacao = 'publicada' AND a.removido_em IS NULL AND TRIM(COALESCE(a.transcricao, '')) <> '';
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS busca_relato_muda AFTER UPDATE OF id, memoria_id, texto, situacao ON relatos BEGIN
+        DELETE FROM busca_textos WHERE campo = 'relato' AND ref = old.id;
+        DELETE FROM busca_textos WHERE campo = 'audio' AND ref IN (SELECT id FROM audios WHERE relato_id IN (old.id, new.id));
+        INSERT INTO busca_textos (memoria_id, campo, ref, texto) SELECT new.memoria_id, 'relato', new.id, new.texto WHERE new.situacao = 'publicada' AND TRIM(new.texto) <> '';
+        INSERT INTO busca_textos (memoria_id, campo, ref, texto)
+          SELECT new.memoria_id, 'audio', a.id, a.transcricao FROM audios a
+          WHERE a.relato_id = new.id AND new.situacao = 'publicada' AND a.removido_em IS NULL AND TRIM(COALESCE(a.transcricao, '')) <> '';
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS busca_relato_sai AFTER DELETE ON relatos BEGIN
+        DELETE FROM busca_textos WHERE campo = 'relato' AND ref = old.id;
+        DELETE FROM busca_textos WHERE campo = 'audio' AND ref IN (SELECT id FROM audios WHERE relato_id = old.id);
+      END`,
+      // O áudio: a transcrição, de relato publicado, enquanto não for removido
+      `CREATE TRIGGER IF NOT EXISTS busca_audio_entra AFTER INSERT ON audios BEGIN
+        INSERT INTO busca_textos (memoria_id, campo, ref, texto)
+          SELECT r.memoria_id, 'audio', new.id, new.transcricao FROM relatos r
+          WHERE r.id = new.relato_id AND r.situacao = 'publicada' AND new.removido_em IS NULL AND TRIM(COALESCE(new.transcricao, '')) <> '';
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS busca_audio_muda AFTER UPDATE OF id, relato_id, transcricao, removido_em ON audios BEGIN
+        DELETE FROM busca_textos WHERE campo = 'audio' AND ref = old.id;
+        INSERT INTO busca_textos (memoria_id, campo, ref, texto)
+          SELECT r.memoria_id, 'audio', new.id, new.transcricao FROM relatos r
+          WHERE r.id = new.relato_id AND r.situacao = 'publicada' AND new.removido_em IS NULL AND TRIM(COALESCE(new.transcricao, '')) <> '';
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS busca_audio_sai AFTER DELETE ON audios BEGIN
+        DELETE FROM busca_textos WHERE campo = 'audio' AND ref = old.id;
+      END`,
+      // A foto: a legenda, enquanto estiver na memória e não for removida
+      `CREATE TRIGGER IF NOT EXISTS busca_foto_entra AFTER INSERT ON fotos BEGIN
+        INSERT INTO busca_textos (memoria_id, campo, ref, texto)
+          SELECT new.memoria_id, 'legenda', new.id, new.legenda WHERE new.memoria_id IS NOT NULL AND new.removida_em IS NULL AND TRIM(COALESCE(new.legenda, '')) <> '';
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS busca_foto_muda AFTER UPDATE OF id, memoria_id, legenda, removida_em ON fotos BEGIN
+        DELETE FROM busca_textos WHERE campo = 'legenda' AND ref = old.id;
+        INSERT INTO busca_textos (memoria_id, campo, ref, texto)
+          SELECT new.memoria_id, 'legenda', new.id, new.legenda WHERE new.memoria_id IS NOT NULL AND new.removida_em IS NULL AND TRIM(COALESCE(new.legenda, '')) <> '';
+      END`,
+      `CREATE TRIGGER IF NOT EXISTS busca_foto_sai AFTER DELETE ON fotos BEGIN
+        DELETE FROM busca_textos WHERE campo = 'legenda' AND ref = old.id;
+      END`,
+      // O que já existe
+      `INSERT INTO busca_textos (memoria_id, campo, texto) SELECT id, 'titulo', titulo FROM memorias WHERE TRIM(titulo) <> ''`,
+      `INSERT INTO busca_textos (memoria_id, campo, texto) SELECT id, 'lugar', lugar FROM memorias WHERE TRIM(COALESCE(lugar, '')) <> ''`,
+      `INSERT INTO busca_textos (memoria_id, campo, ref, texto) SELECT memoria_id, 'relato', id, texto FROM relatos WHERE situacao = 'publicada' AND TRIM(texto) <> ''`,
+      `INSERT INTO busca_textos (memoria_id, campo, ref, texto)
+        SELECT r.memoria_id, 'audio', a.id, a.transcricao FROM audios a JOIN relatos r ON r.id = a.relato_id
+        WHERE r.situacao = 'publicada' AND a.removido_em IS NULL AND TRIM(COALESCE(a.transcricao, '')) <> ''`,
+      `INSERT INTO busca_textos (memoria_id, campo, ref, texto)
+        SELECT memoria_id, 'legenda', id, legenda FROM fotos WHERE memoria_id IS NOT NULL AND removida_em IS NULL AND TRIM(COALESCE(legenda, '')) <> ''`,
+    ],
+  },
 ];
 
 // A guarda por pedido conhece os gatilhos que gravam pelo SQL das migrações (ver ambiente.ts)

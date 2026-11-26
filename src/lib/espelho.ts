@@ -44,6 +44,9 @@ export const IDS_COM_ACESSO = ['gui', 'giovanna', 'elizete', 'lucas-magno'];
 export const TABELAS_APAGADAS = [
   // Os avisos apontam para memórias e relatos da produção: o espelho não leva nenhum
   'avisos',
+  // O índice da busca (migração 116) tem os textos das memórias, dos relatos, dos áudios e das legendas: o
+  // espelho não leva nenhum, e os gatilhos refazem o índice com as memórias de exemplo que ele grava
+  'busca_textos',
   // Os pedidos para excluir pessoa trazem o motivo escrito: o espelho não leva nenhum (migração 102)
   'pedidos_de_exclusao',
   // As sugestões de correção apontam para memórias e relatos da produção (migração 074)

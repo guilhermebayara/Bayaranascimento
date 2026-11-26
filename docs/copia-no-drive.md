@@ -123,11 +123,13 @@ No código: `testes/esquema-da-copia.test.ts`, com a conta em `testes/apoio/esqu
 
 A rede compara as chaves valor a valor, sem collation, e só pelas colunas. Por isso, nas tabelas da cópia, o esquema não tem coluna gerada (a restauração não grava nela), índice único por expressão (fora da régua) nem collation diferente da BINARY numa coluna de chave, inclusive a coluna de lá de uma chave estrangeira. Também não tem tabela `WITHOUT ROWID`: a cópia pagina cada tabela por rowid (`montarParte`, em `src/lib/servidor/copia.ts`), e sem ele não acha onde recomeçar a próxima parte. O teste confere isso no esquema de verdade, depois de todas as migrações e dos exemplos, e falha com o recado para ajustar a cópia junto (a régua, `conferirCopia`, `conferirArquivo` e a restauração) ou trocar o esquema. Índice único com condição continua aceito: a marca cobre as tabelas do acervo onde eles estão.
 
-### Duas tabelas não vão na cópia
+### As tabelas que não vão na cópia
 
 No código: `TABELAS_FORA_DA_COPIA`, em `marca-da-copia.ts`.
 
 São `reservas_das_copias`, a trava de uns minutos enquanto um pedido grava as cópias de uma foto no bucket, e `limpezas_do_teste`, a faxina diária das prévias. Não são acervo, e uma reserva solta e retomada no meio da cópia saía duas vezes no arquivo. Restaurar sem elas só perde travas que venceriam sozinhas em 5 minutos e o dia da última faxina das prévias, que roda de novo no pedido seguinte sem estrago. Nenhuma tabela aponta para elas, e nada depende delas depois de uma restauração. Os gatilhos da marca que existirem nelas saem com `garantirGatilhosDaMarca`.
+
+O índice da busca (migração `116-indice-da-busca`) também fica fora: `busca_textos`, os textos que a busca procura, e `busca_indice`, o FTS5 por cima deles, com as tabelas de sombra que o SQLite cria para ele (`busca_indice_data`, `_idx`, `_docsize` e `_config`). Ele é derivado do acervo: os gatilhos de `memorias`, `relatos`, `audios` e `fotos` mantêm as linhas a cada gravação, por qualquer caminho. Numa restauração em que o site cria a estrutura (as migrações) e depois as linhas entram com `INSERT`, os gatilhos refazem o índice sozinhos; se as linhas entrarem antes da estrutura da busca, a própria migração 116 preenche o índice com o que já existe. O espelho também não leva nada dele (`busca_textos` está em `TABELAS_APAGADAS`), e os gatilhos refazem o índice da homologação com as memórias de exemplo.
 
 ### A cópia mensal só conta no Drive
 

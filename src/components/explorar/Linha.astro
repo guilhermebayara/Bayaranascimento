@@ -18,6 +18,8 @@ import { ehEpoca, type Capitulo } from '../../lib/capitulos';
 import { ancoraDaMemoria, type Ordem } from '../../lib/explorar';
 import { tipoDaMemoria } from '../../lib/tipos';
 import type { Integrante, Memoria, Nucleo } from '../../lib/servidor/repositorio';
+import type { Motivo } from '../../lib/busca';
+import PorqueAchou from '../busca/PorqueAchou.astro';
 import { carimboDaData, diaMesCurto, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../lib/visual';
 
 interface Props {
@@ -37,9 +39,11 @@ interface Props {
    * "Aqui começa o acervo." só aparece quando é verdade (terminaNoComecoDoAcervo, em src/lib/explorar.ts).
    */
   fecho?: { comecoDoAcervo: boolean };
+  /** por que cada memória foi achada, quando há busca (src/lib/busca.ts) */
+  motivos?: Map<string, Motivo[]>;
 }
 
-const { memorias, integrantes, nucleos, ordem, trilhos, limpar } = Astro.props;
+const { memorias, integrantes, nucleos, ordem, trilhos, limpar, motivos } = Astro.props;
 const { tipos } = Astro.locals;
 const { fecho } = Astro.props;
 const nomeDe = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome;
@@ -126,7 +130,8 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
     {
       memorias.length === 0 && (
         <div class="miolo">
-          <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
+          <slot name="vazio" />
+          {!Astro.slots.has('vazio') && <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
             {limpar ? (
               <a class="acao" href={limpar}>
                 Limpar filtros
@@ -136,7 +141,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                 Nova memória
               </a>
             )}
-          </Vazio>
+          </Vazio>}
         </div>
       )
     }
@@ -250,6 +255,7 @@ const primeiraMemoria = anos[0]?.itens[0]?.id;
                         {m.situacao === 'rascunho' && <span>rascunho</span>}
                         {m.exemplo && <span>exemplo</span>}
                       </p>
+                      <PorqueAchou motivos={motivos?.get(m.id)} />
                       {/* O sinal de cada capítulo da memória: a mesma parada do trilho, na cor dele, com o nome */}
                       {linha.capitulos.length > 0 && (
                         <p class="entrada__capitulos ficha">

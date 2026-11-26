@@ -18,6 +18,8 @@ import { dataNaLista, nomeCurto, quemNaLista, type Ordem } from '../../lib/explo
 import { montarTrilhos } from '../../lib/linha-capitulos';
 import { tipoDaMemoria } from '../../lib/tipos';
 import type { Integrante, Memoria } from '../../lib/servidor/repositorio';
+import type { Motivo } from '../../lib/busca';
+import PorqueAchou from '../busca/PorqueAchou.astro';
 import { estiloDoCapitulo, estiloDoTipo, legendaLugarAno } from '../../lib/visual';
 
 interface Props {
@@ -29,9 +31,11 @@ interface Props {
   ordem: Ordem;
   /** as memórias com áudio em algum relato publicado (memoriasComAudio) */
   comAudio: Set<string>;
+  /** por que cada memória foi achada, quando há busca (src/lib/busca.ts) */
+  motivos?: Map<string, Motivo[]>;
 }
 
-const { memorias, integrantes, ordem, comAudio } = Astro.props;
+const { memorias, integrantes, ordem, comAudio, motivos } = Astro.props;
 const { tipos } = Astro.locals;
 const pessoaDe = new Map(integrantes.map((i) => [i.id, i]));
 const peloTempo = ordem === 'recentes' || ordem === 'antigas';
@@ -117,6 +121,11 @@ const capitulosDe = new Map(montagem.linhas.map((l) => [l.id, l.capitulos.map((i
                       )}
                     </span>
                   </span>
+                  {motivos?.get(m.id) && (
+                    <span class="lista__achou">
+                      <PorqueAchou motivos={motivos.get(m.id)} emLinha />
+                    </span>
+                  )}
                   {/* A foto-chave, só onde há mouse: no toque ela não é desenhada nem baixada */}
                   {m.fotos.length > 0 && (
                     <div class="lista__foto" aria-hidden="true">

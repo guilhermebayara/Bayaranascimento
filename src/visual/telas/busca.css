@@ -1,0 +1,577 @@
+/*
+ * A busca do site (a busca como porta, escolhida pelo Gui na exploração E2; docs/visual.md, "A busca"). A lupa,
+ * em toda tela, abre a busca por cima da página (a folha), com o resultado agrupado que leva ao Explorar
+ * filtrado. Sem script, a lupa leva à página /busca, que faz o mesmo recarregando. O alto do Explorar fica
+ * mais compacto, para a primeira tela mostrar memórias.
+ */
+
+/* --- A caixa de busca: o cartão branco pousado no papel, com a lupa e a serifa das perguntas ------ */
+
+.caixa-busca {
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  min-height: 3.5rem;
+  padding-inline: var(--e-4) var(--e-1);
+  border-radius: var(--raio-bloco);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+.caixa-busca:focus-within {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+.caixa-busca__lupa {
+  display: flex;
+  flex: none;
+  font-size: 1.5rem;
+  color: var(--tinta);
+}
+.caixa-busca .simbolo {
+  display: block;
+  width: 1em;
+  height: 1em;
+}
+.caixa-busca__campo {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--toque);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tinta);
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-3);
+  line-height: 1.2;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.caixa-busca__campo::placeholder {
+  color: var(--tinta-suave);
+  opacity: 1;
+}
+.caixa-busca__campo:focus {
+  outline: none;
+}
+/* O xis do próprio navegador sai: o "Limpar a busca" é do site, do mesmo tamanho em todo aparelho */
+.caixa-busca__campo::-webkit-search-cancel-button,
+.caixa-busca__campo::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.caixa-busca__limpar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--toque);
+  height: var(--toque);
+  border-radius: var(--raio-pilula);
+  color: var(--tinta-suave);
+  font-size: 1rem;
+}
+.caixa-busca__limpar[hidden] {
+  display: none;
+}
+.caixa-busca__limpar:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: -3px;
+}
+@media (hover: hover) {
+  .caixa-busca__limpar:hover {
+    color: var(--tinta);
+  }
+}
+/* Sem script, "Procurar" envia; com script, o resultado vem enquanto se digita, e o botão sai */
+.caixa-busca__ir {
+  flex: none;
+  min-height: var(--toque);
+  padding-inline: var(--e-3);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: var(--tinta);
+  color: var(--papel);
+  font: inherit;
+  font-size: var(--t-pequeno);
+  font-weight: 600;
+}
+.com-busca .caixa-busca__ir {
+  display: none;
+}
+
+/* --- Por que a memória foi achada --------------------------------------------------------------- */
+
+.achou {
+  display: block;
+  margin-top: var(--e-2);
+}
+.achou__onde {
+  display: block;
+  color: var(--tinta-suave);
+}
+.achou__trecho {
+  display: block;
+  margin-top: var(--e-1);
+  max-width: var(--medida);
+  font-size: var(--t-pequeno);
+  line-height: 1.45;
+}
+.achou mark {
+  padding-inline: 0.12em;
+  border-radius: var(--raio-carimbo);
+  background: var(--pastel);
+  color: inherit;
+  font-weight: 600;
+}
+.lista__achou {
+  grid-column: 2 / -1;
+}
+
+/* --- Quando a busca não acha nada ---------------------------------------------------------------- */
+
+.sem-resultado__dica {
+  margin-top: var(--e-2);
+  max-width: var(--medida);
+  color: var(--tinta-suave);
+}
+.sem-resultado__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-5);
+  margin-top: var(--e-5);
+}
+
+/* --- O alto do Explorar mais compacto ------------------------------------------------------------ */
+
+/* No celular, a assinatura numa linha só, como um cabeçalho de revista: "MEMÓRIAS" e os sobrenomes
+   lado a lado, com a mesma largura cada um. Continua dizendo de quem é o que está filtrado. */
+.linha__capa--compacta .assinatura {
+  width: 46%;
+  white-space: nowrap;
+}
+.linha__capa--compacta .assinatura > span {
+  display: inline-block;
+  vertical-align: baseline;
+}
+.linha__capa--compacta .assinatura__memorias {
+  padding-top: 0.2em;
+}
+.linha__capa--compacta .assinatura__sobrenomes {
+  margin: 0 0 0 0.6em;
+}
+
+/* As abas um pouco mais perto das famílias: continua o espaço entre grupos, e a primeira foto sobe */
+.linha__capa--compacta .controles__formas {
+  margin-top: var(--e-5);
+}
+
+@media (min-width: 62rem) {
+  .lista__achou {
+    grid-column: 3 / -1;
+    grid-row: 3;
+  }
+  /* No computador: a assinatura em duas linhas de novo, menor, e as famílias sobem para a linha dela, à direita */
+  .linha__capa--compacta .assinatura {
+    grid-column: 1 / span 4;
+    width: 100%;
+  }
+  .linha__capa--compacta .assinatura > span {
+    display: block;
+  }
+  .linha__capa--compacta .assinatura__sobrenomes {
+    margin: 0.08em 0 0;
+  }
+  .linha__capa--compacta .controles__familias {
+    grid-row: 1;
+    grid-column: 5 / -1;
+    align-self: end;
+    justify-self: end;
+    margin: 0 0 var(--e-2);
+  }
+  /* No computador, as abas voltam à distância de hoje das famílias: a conta, na linha delas, fica com o
+     dobro do espaço acima (gestalt), e a primeira foto ainda sobe, porque as famílias foram para o alto */
+  .linha__capa--compacta .controles__formas {
+    grid-row: 2;
+    margin-top: var(--e-7);
+  }
+  .linha__capa--compacta .linha__conta {
+    grid-row: 2;
+  }
+  .linha__capa--compacta .controles__ferramentas {
+    grid-row: 3;
+  }
+  .linha__capa--compacta .controles__ligados {
+    grid-row: 4;
+  }
+  .linha__capa--compacta .controles__tamanho {
+    grid-row: 5;
+  }
+}
+
+/* --- A lupa no topo ------------------------------------------------------------------- */
+
+.topo__procurar {
+  grid-area: 1 / 1;
+  justify-self: start;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-2);
+  min-width: var(--toque);
+  height: var(--topo-h);
+  margin-left: calc(var(--toque) + var(--e-1));
+  color: var(--tinta);
+  font-size: var(--t-menu);
+  text-decoration: none;
+}
+.topo__procurar .simbolo {
+  width: 1.5em;
+  height: 1.5em;
+}
+.topo__procurar-nome {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.topo__procurar:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: -3px;
+}
+@media (min-width: 62rem) {
+  .topo:has(.topo__procurar) {
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+  }
+  .topo:has(.topo__procurar) .topo__conta {
+    grid-area: 1 / 4;
+  }
+  .topo__procurar {
+    grid-area: 1 / 3;
+    justify-self: auto;
+    height: auto;
+    min-height: var(--toque);
+    margin-left: 0;
+    padding-inline: var(--e-3) var(--e-4);
+    border-radius: var(--raio-pilula);
+    background: var(--branco);
+    box-shadow: var(--sombra-bilhete);
+  }
+  .topo__procurar .simbolo {
+    width: 1.25em;
+    height: 1.25em;
+  }
+  .topo__procurar-nome {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+}
+
+/* --- A folha da busca, por cima da página --------------------------------------------
+   No celular, a tela inteira, como a busca dos aplicativos. No computador, um cartão que desce do alto,
+   centrado. A página embaixo não rola; a folha rola por dentro quando o resultado é longo. */
+
+.folha-busca {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--papel);
+  color: var(--tinta);
+}
+.folha-busca::backdrop {
+  background: color-mix(in srgb, var(--tinta) 40%, transparent);
+}
+.folha-busca__cartao {
+  min-height: 100%;
+  padding: var(--e-4) var(--margem) var(--e-8);
+}
+.folha-busca__alto {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+}
+.folha-busca__alto .caixa-busca {
+  flex: 1;
+  min-width: 0;
+}
+.folha-busca__fechar {
+  flex: none;
+  min-height: var(--toque);
+}
+.folha-busca .resultado-busca {
+  margin-top: var(--e-5);
+}
+@media (min-width: 62rem) {
+  .folha-busca {
+    width: min(46rem, calc(100% - 2 * var(--margem)));
+    height: auto;
+    max-height: calc(100dvh - 2 * var(--e-8));
+    margin: var(--e-8) auto auto;
+    border-radius: var(--raio-bloco);
+    box-shadow: var(--sombra-bilhete);
+    overflow: auto;
+  }
+  .folha-busca__cartao {
+    min-height: 0;
+    padding: var(--e-5) var(--e-6) var(--e-6);
+  }
+}
+
+/* --- O resultado agrupado: pessoas, memórias, capítulos e temas -------------------------------- */
+
+.resultado-busca {
+  display: grid;
+}
+.resultado-busca__resumo {
+  margin: 0;
+}
+.resultado-busca__exemplos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+  margin: var(--e-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* Os exemplos de antes de digitar: o desenho da ficha de filtro (canto reto, papel branco), que escreve na caixa */
+.exemplo-de-busca {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--toque);
+  padding: 0 var(--e-3);
+  border: var(--traco) solid var(--fio);
+  border-radius: var(--raio-carimbo);
+  background: var(--branco);
+  color: var(--tinta);
+  font-size: var(--t-pequeno);
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.exemplo-de-busca:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .exemplo-de-busca:hover {
+    border-color: var(--tinta);
+  }
+}
+.resultado-busca__grupo {
+  margin-top: var(--e-7);
+}
+.resultado-busca__titulo {
+  margin: 0 0 var(--e-2);
+}
+.resultado-busca__memorias,
+.resultado-busca__pessoas,
+.resultado-busca__nomes {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.resultado-busca__memorias > li + li,
+.resultado-busca__pessoas > li + li,
+.resultado-busca__nomes > li + li {
+  border-top: 1px solid var(--fio);
+}
+.resultado-busca__mais {
+  margin-top: var(--e-3);
+}
+.resultado-busca__nada {
+  margin-top: var(--e-5);
+}
+.resultado-busca__frase {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-3);
+  line-height: 1.2;
+}
+
+.memoria-achada {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--e-3);
+  padding-block: var(--e-3);
+  color: inherit;
+  text-decoration: none;
+}
+.memoria-achada__foto {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 46 / 62;
+  padding: 0.15rem 0.15rem 0.5rem;
+  border-radius: var(--raio-moldura);
+  background: var(--branco);
+  box-shadow: var(--sombra-foto);
+  font-size: 1.5rem;
+}
+.memoria-achada__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--raio-foto);
+}
+.memoria-achada__foto:not(:has(img)) {
+  background: var(--tipo-pastel);
+  color: var(--tipo-tinta);
+}
+.memoria-achada__texto {
+  display: grid;
+  gap: var(--e-1);
+}
+.memoria-achada__titulo {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-3);
+  line-height: 1.15;
+}
+.memoria-achada .achou {
+  margin-top: 0;
+}
+.memoria-achada:focus-visible,
+.pessoa-achada:focus-visible,
+.nome-achado:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .memoria-achada:hover .memoria-achada__titulo,
+  .pessoa-achada:hover .pessoa-achada__nome,
+  .nome-achado:hover > span:first-child {
+    text-decoration: underline;
+    text-decoration-thickness: var(--traco);
+    text-underline-offset: 0.2em;
+  }
+}
+
+.pessoa-achada {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--e-3);
+  min-height: var(--toque);
+  padding-block: var(--e-2);
+  color: inherit;
+  text-decoration: none;
+}
+.pessoa-achada .retrato {
+  font-size: 0.6rem;
+}
+.pessoa-achada__texto {
+  display: grid;
+  gap: var(--e-1);
+}
+.pessoa-achada__nome {
+  font-weight: 600;
+}
+
+.nome-achado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--e-3);
+  min-height: var(--toque);
+  padding-block: var(--e-2);
+  color: inherit;
+  text-decoration: none;
+}
+
+/* --- A página /busca (sem script, ou pelo endereço) ------------------------------------------------ */
+
+.pagina-busca {
+  max-width: 46rem;
+  padding-top: var(--e-5);
+  padding-bottom: var(--e-8);
+}
+.pagina-busca__alto {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--e-3);
+  margin-bottom: var(--e-3);
+}
+.pagina-busca__titulo {
+  font-family: var(--serifa);
+  font-variation-settings: var(--serifa-ajustes);
+  font-weight: var(--serifa-peso);
+  font-size: var(--t-titulo-2);
+  line-height: 1.1;
+}
+.pagina-busca .resultado-busca {
+  margin-top: var(--e-5);
+}
+
+/* --- O estado da busca: procurando, sem conexão, o site não respondeu ------------------------------
+   No jeito da peça de feedback de estado (E4, proposta A): o ponto de cor e o texto em mono, quietos, sem
+   esmaecer a tela. A espera curta não aparece. Quando a E4 entrar, esta linha passa a ser a dela. */
+
+.busca-estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-1) var(--e-3);
+  margin-top: var(--e-3);
+  color: var(--tinta-suave);
+  font-family: var(--mono);
+  font-size: var(--t-pequeno);
+}
+.busca-estado[hidden] {
+  display: none;
+}
+.busca-estado .estado__sinal {
+  flex: none;
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: var(--raio-pilula);
+  background: var(--vivo);
+}
+.busca-estado[data-estado='sem-rede'] .estado__sinal,
+.busca-estado[data-estado='falhou'] .estado__sinal {
+  background: var(--tinta);
+}
+.busca-estado .estado__tentar {
+  font-family: var(--grotesca);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .busca-estado[data-estado='esperando'] .estado__sinal {
+    animation: busca-pulsa 1.2s ease-in-out infinite;
+  }
+}
+@keyframes busca-pulsa {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Na página do sistema, a lupa aparece como no computador, fora do topo */
+.sis__lupa.topo__procurar {
+  height: auto;
+  min-height: var(--toque);
+  margin-left: 0;
+  padding-inline: var(--e-3) var(--e-4);
+  border-radius: var(--raio-pilula);
+  background: var(--branco);
+  box-shadow: var(--sombra-bilhete);
+}
+.sis__lupa .topo__procurar-nome {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+}

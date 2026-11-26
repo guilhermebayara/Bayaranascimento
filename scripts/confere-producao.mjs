@@ -45,11 +45,14 @@
 //    das fotos de exemplo ficam em exemplos/fotos/copias/, fora do pacote publicado.
 //    A cópia pequena dos retratos (sessão D1c) segue o mesmo caminho: gravada só no envio do retrato e no
 //    ajuste da Administração, com nome próprio, e entregue só depois da conferência do retrato.
+// 15. A busca (aplicação da E2): não existe no modo TV nem na TV da sala, toda tela que lê os filtros diz se ela
+//    existe ali, e src/lib/servidor/busca.ts não escreve SQL de quem vê o quê (scripts/busca.mjs).
 //    Desde a sessão D1d (item 14 da revisão R-D1), a regra lê o código sem os comentários, em todos os
 //    arquivos de src/: o nome da cópia montado à mão ou numa variável fora das rotas, guardarCopias fora
 //    do ajuste, a gravação antes da reserva e a leitura da cópia antes da conferência são recusados, e a
 //    cópia só é apagada junto da original, na rota das fotos soltas.
 import { problemasDoSimuladorDeData } from './simulador-de-data.mjs';
+import { problemasDaBusca } from './busca.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { cascatasPerigosas } from './migracoes.mjs';
@@ -328,6 +331,12 @@ for (const problema of cascatasPerigosas(readFileSync('src/lib/servidor/banco.ts
 // produção logo no começo, e só src/lib/servidor/dia-do-pedido.ts lê o "hoje" do endereço, passando o ambiente
 // do pedido. As regras estão em scripts/simulador-de-data.mjs, com teste em testes/sala.test.ts.
 for (const problema of problemasDoSimuladorDeData((caminho) => readFileSync(caminho, 'utf8'), versionados)) falhar(problema);
+
+// 15. A busca (aplicação da E2; a regra 8b da exploração, trazida): onde ela não existe (o modo TV e a TV da sala),
+// o `q` não vale e a lupa e a folha não aparecem; toda chamada de soFiltrosConhecidos diz se ela existe ali; e
+// src/lib/servidor/busca.ts não escreve SQL de quem vê o quê. As regras estão em scripts/busca.mjs, com teste
+// em testes/guarda-busca.test.ts.
+for (const problema of problemasDaBusca((caminho) => readFileSync(caminho, 'utf8'), versionados)) falhar(problema);
 
 if (falhas.length) {
   console.error('Guarda da produção: algo que protege o acervo real foi quebrado.\n');

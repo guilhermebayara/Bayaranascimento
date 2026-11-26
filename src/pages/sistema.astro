@@ -43,6 +43,8 @@ import tokens from '../visual/tokens.css?raw';
 import { contraste, coresDosTokens, neutroDosTokens } from '../lib/contraste';
 import { RABISCOS, rabiscosPorAssunto } from '../visual/rabiscos';
 import { SIMBOLOS } from '../visual/simbolos';
+import '../visual/telas/busca.css';
+import CaixaDeBusca from '../components/busca/CaixaDeBusca.astro';
 import { COMBINACOES_DE_FONTES, CORES, CORES_MAIS_NOVAS, CORES_NOVAS, NOMES_DAS_CORES, PALETA, FONTES_DO_SITE, PAPEIS_DAS_FONTES, assinaturaDaTela, atributosDasFontes, combinacaoDe, estiloDoTipo, legendaLugarAno, nomesDasFontes } from '../lib/visual';
 
 const { usuario, tipos } = Astro.locals;
@@ -597,6 +599,21 @@ const razao = (a: string, b: string) => contraste(a, b).toFixed(1).replace('.', 
           </p>
           <p class="ficha suave">
             Os sinais do controle da TV e do tocador, no traço dos rabiscos. Nasceram no modo TV e ficam para a navegação. Símbolo nunca fica sozinho: o nome é o nome acessível e aparece escrito embaixo do botão no foco e no ponteiro (passe o mouse ou use o Tab). O cheio é a ação principal do grupo.
+          </p>
+        </article>
+
+        <article class="sis__peca sis__peca--larga">
+          <h3 class="rotulo">A busca: a lupa, a caixa e o fechar · nova</h3>
+          <p class="sis__linha">
+            <a class="topo__procurar sis__lupa" href="/busca">
+              <Simbolo id="procurar" />
+              <span class="topo__procurar-nome">Procurar</span>
+            </a>
+            <BotaoDeSimbolo simbolo="fechar" nome="Fechar" />
+          </p>
+          <CaixaDeBusca id="busca-do-sistema" onde="pagina" valor="natal casa vó" />
+          <p class="ficha suave">
+            A lupa fica no topo de toda tela, menos no modo TV: no celular, só o desenho, ao lado do monograma; no computador, a pílula branca com a palavra, antes do retrato. Ela abre a busca por cima da página (a folha), com a caixa que todo mundo conhece, no cartão branco e na serifa das perguntas. Sem script, a lupa leva à página /busca. O xis da caixa limpa a busca; “Fechar” fecha a folha, com o Esc, o toque fora e o voltar do aparelho.
           </p>
         </article>
 

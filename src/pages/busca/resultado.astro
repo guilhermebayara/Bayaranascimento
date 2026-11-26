@@ -1,0 +1,16 @@
+---
+// Só o resultado da busca, sem o esqueleto da página (docs/regras/explorar.md, "A busca"): é o que a folha e a
+// página /busca pedem enquanto se digita (src/lib/cliente/busca.ts). Sem o esqueleto, cada pedido lê só o que
+// a busca precisa. A mesma regra de quem vê o quê da página /busca (folhaDaBusca).
+import ResultadoDaBusca from '../../components/busca/ResultadoDaBusca.astro';
+import { lerBusca } from '../../lib/busca';
+import { folhaDaBusca } from '../../lib/servidor/busca';
+
+export const partial = true;
+
+const { usuario, tipos } = Astro.locals;
+const busca = lerBusca(Astro.url.searchParams);
+const folha = busca ? await folhaDaBusca(usuario, tipos, busca) : undefined;
+---
+
+<ResultadoDaBusca folha={folha} />

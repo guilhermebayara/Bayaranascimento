@@ -91,6 +91,13 @@ const TELAS = [
   { nome: 'explorar-lista', url: '/explorar?ver=lista', como: 'giovanna' },
   { nome: 'explorar-filtros', url: '/explorar', como: 'giovanna', antes: (p) => p.locator('.filtros > summary').click() },
   { nome: 'explorar-sem-resultado', url: '/explorar?tipo=viagem&decada=1950', como: 'giovanna' },
+  // A busca (aplicação da E2): a página /busca, a folha aberta pela lupa e o Explorar procurado
+  { nome: 'busca', url: '/busca', como: 'elizete' },
+  { nome: 'busca-minha-mae', url: '/busca?q=minha+m%C3%A3e', como: 'elizete' },
+  { nome: 'busca-sem-resultado', url: '/busca?q=bicicleta+vermelha', como: 'elizete' },
+  { nome: 'busca-na-folha', url: '/', como: 'elizete', antes: async (p) => { await p.locator('[data-abrir-busca]').click(); await p.locator('#busca-na-folha').fill('natal'); await p.waitForTimeout(1200); } },
+  { nome: 'explorar-procurado', url: '/explorar?ver=lista&q=natal', como: 'elizete' },
+  { nome: 'explorar-procurado-sem-resultado', url: '/explorar?q=bicicleta+vermelha', como: 'elizete' },
   // O modo TV: a barra a partir de 62rem e o de antes no celular. "Ajustes" aberto fica de fora: no
   // celular, "Animação" tem 8 px acima e 13,5 px abaixo, como antes da barra (22/11/2026); a decisão
   // é do Gui, e o modo TV abaixo de 62rem não muda até lá

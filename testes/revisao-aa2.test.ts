@@ -5,6 +5,7 @@
 // Os casos com o nome começando por "bloqueia:" ou "fila:" registram defeitos reproduzidos nesta revisão
 // (o que acontece hoje), para provar o caso sem alterar o código da branch testada.
 import { describe, expect, it, vi } from 'vitest';
+import { foraDoIndiceDaBusca } from './apoio/indice-da-busca';
 import { ComandoDeTeste, temSqlite, type D1DeTeste } from './apoio/d1';
 
 const NODE_FS = 'node:fs';
@@ -100,7 +101,7 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
   };
 
   const impressao = () => {
-    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
+    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name).filter(foraDoIndiceDaBusca);
     return JSON.stringify(tabelas.map((t) => [t, sql.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
 

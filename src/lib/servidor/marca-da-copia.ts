@@ -44,6 +44,15 @@ export const TABELA_DA_MARCA = 'marca_da_copia';
 export const TABELAS_FORA_DA_COPIA: Readonly<Record<string, string>> = {
   reservas_das_copias: 'a reserva das cópias das fotos e dos retratos, que vence sozinha em 5 minutos',
   limpezas_do_teste: 'o dia da limpeza de 7 dias do bucket de teste, só nas prévias',
+  // O índice da busca (migração 116): derivado do acervo, refeito pelos gatilhos de memorias, relatos, audios e
+  // fotos a cada linha gravada, também na restauração. O FTS5 guarda o índice em tabelas do próprio SQLite
+  // (as de sombra, busca_indice_*), que a cópia não sabe ler nem restaurar.
+  busca_textos: 'os textos que a busca procura, tirados das memórias, dos relatos, dos áudios e das fotos pelos gatilhos',
+  busca_indice: 'o índice de texto (FTS5) por cima de busca_textos',
+  busca_indice_data: 'tabela de sombra do FTS5 de busca_indice',
+  busca_indice_idx: 'tabela de sombra do FTS5 de busca_indice',
+  busca_indice_docsize: 'tabela de sombra do FTS5 de busca_indice',
+  busca_indice_config: 'tabela de sombra do FTS5 de busca_indice',
 };
 const FORA = [TABELA_DA_MARCA, ...Object.keys(TABELAS_FORA_DA_COPIA)].map((t) => `'${t}'`).join(', ');
 

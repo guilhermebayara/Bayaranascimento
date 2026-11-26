@@ -14,6 +14,7 @@ import { naListaDeQuemOlha } from '../ex-casal';
 import { entraNaSala, ID_DO_VISITANTE_DA_SALA, idValido, parteDaLeitura, partesDaLeitura, type TrechoDaLeitura, linhaDoAlto, naSala, nomeDeNatal, ordemDaTv, SAUDACAO_DA_SALA, paragrafosDaCarta, passoDaCarta, quemAssina, relatoDaVez, relatoNaTv, segundosDoParagrafo } from '../sala';
 import { carimboDaData, legendaLugarAno, trechoDoRelato } from '../visual';
 import { contextoDoExplorar } from './explorar';
+import { buscarNoAcervo } from './busca';
 import type { Usuario } from './permissoes';
 import { comoOsExesAparecem, memoriasComAudioNaTv, relatosQueVaoATv, listarAudiosDosRelatos, listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis, obterCarta, obterMemoria, type Integrante, type Memoria } from './repositorio';
 import type { Tipo } from '../tipos';
@@ -97,14 +98,17 @@ export async function ordemDoModoTv(usuario: Usuario, parametros: URLSearchParam
     familias: new Set(nucleos.map((n) => n.id)),
     capitulos: new Set(capitulos.map((c) => c.id)),
     temas: new Set(temas.map((t) => t.id)),
+    // A busca segue o modo TV aberto de um Explorar procurado; na TV da sala, não existe
+    busca: !sala,
   });
   // No modo TV, os filtros "com foto" e "com áudio" contam só o que vai à TV (correção 4 da revisão R-AB2): a foto
   // e a voz de um relato que espera, de um rascunho ou de um descartado não fazem a memória entrar na ordem
-  const contexto = await contextoDoExplorar(quem, todas);
+  const [contexto, achados] = await Promise.all([contextoDoExplorar(quem, todas), filtros.busca ? buscarNoAcervo(quem, tipos, filtros.busca, todas) : Promise.resolve(undefined)]);
+  const busca = achados ? new Set(achados.achados.map((a) => a.id)) : undefined;
   const fotosDeRelato = filtros.comFoto ? [...new Set(todas.flatMap((m) => m.fotos.map((f) => f.relatoId).filter((r): r is number => r !== null)))] : [];
   const [vaoATv, comVozNaTv] = await Promise.all([relatosQueVaoATv(fotosDeRelato), filtros.comAudio ? memoriasComAudioNaTv(quem) : Promise.resolve(undefined)]);
   const paraOsFiltros = filtros.comFoto ? todas.map((m) => ({ ...m, fotos: m.fotos.filter((f) => f.relatoId === null || vaoATv.has(f.relatoId)) })) : todas;
-  const resultado = explorar(paraOsFiltros, filtros, comVozNaTv ? { ...contexto, comAudio: new Set([...contexto.comAudio].filter((id) => comVozNaTv.has(id))) } : contexto);
+  const resultado = explorar(paraOsFiltros, filtros, { ...(comVozNaTv ? { ...contexto, comAudio: new Set([...contexto.comAudio].filter((id) => comVozNaTv.has(id))) } : contexto), busca });
   const memorias = resultado.memorias.filter((m) => m.situacao === 'publicada' && (!sala || entraNaSala(m)));
   const paragrafos = carta ? paragrafosDaCarta(carta.texto) : [];
   return { filtros, memorias, ordem: ordemDaTv(memorias.map((m) => m.id), paragrafos.length), paragrafos };

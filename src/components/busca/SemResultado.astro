@@ -1,0 +1,43 @@
+---
+// Quando a busca não acha nada no Explorar (docs/regras/explorar.md, "A busca"): o que a tela diz e para onde leva. A frase diz o que foi
+// procurado, como foi escrito; a dica lembra onde a busca procura; as saídas tiram a busca, tiram os
+// outros filtros (quando há) ou mostram uma memória ao acaso. Vale igual para o que não existe e para o
+// que a pessoa não vê: a frase nunca diz que há algo escondido.
+import Vazio from '../visual/Vazio.astro';
+import { buscaEntreAspas } from '../../lib/busca';
+
+interface Props {
+  busca: string;
+  /** o endereço sem a busca */
+  semBusca: string;
+  /** o endereço só com a busca, sem os outros filtros, quando há outros filtros ligados */
+  semOsOutros?: string;
+  /** "Me mostre uma memória" */
+  acaso?: string;
+}
+
+const { busca, semBusca, semOsOutros, acaso } = Astro.props;
+---
+
+<Vazio frase={`Nenhuma memória com ${buscaEntreAspas(busca)}${semOsOutros ? ' nesses filtros' : ''}.`}>
+  <p class="sem-resultado__dica">Confira a escrita, ou procure por um lugar, um ano ou alguém: “Sabará”, “1994”, “minha mãe”.</p>
+  <p class="sem-resultado__acoes">
+    {
+      semOsOutros && (
+        <a class="acao" href={semOsOutros}>
+          Procurar em todas as memórias
+        </a>
+      )
+    }
+    <a class="acao" href={semBusca}>
+      Limpar a busca
+    </a>
+    {
+      acaso && (
+        <a class="acao acao--quieta" href={acaso}>
+          Me mostre uma memória
+        </a>
+      )
+    }
+  </p>
+</Vazio>

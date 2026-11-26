@@ -8,6 +8,7 @@
 // - o espelho da homologação recusa a cópia inteira do acervo, com recado claro, e o arquivo maior que o limite.
 // Roda as rotas de verdade, num SQLite em memória (testes/apoio/d1.ts).
 import { describe, expect, it, vi } from 'vitest';
+import { foraDoIndiceDaBusca } from './apoio/indice-da-busca';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 import {
   COLUNAS_PARA_O_ESPELHO,
@@ -140,7 +141,7 @@ describe.skipIf(!comSqlite)('a cópia para o espelho', async () => {
       return { status: resposta.status, ok: local.searchParams.get('ok'), erro: local.searchParams.get('erro') };
     };
     const impressao = () => {
-      const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
+      const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).all() as { name: string }[]).map((t) => t.name).filter(foraDoIndiceDaBusca);
       return JSON.stringify(tabelas.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
     };
 

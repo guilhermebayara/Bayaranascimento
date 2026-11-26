@@ -1,0 +1,42 @@
+---
+// A caixa de busca (docs/visual.md, "A busca"): a caixa que todo mundo conhece, com a lupa, desenhada com o
+// material do site (o cartão branco pousado no papel, a serifa das perguntas). Funciona sem script: é um
+// formulário comum, que vai para /busca com a busca no endereço (`q`). Com script, o resultado vem enquanto
+// se digita (src/lib/cliente/busca.ts).
+import Simbolo from '../visual/Simbolo.astro';
+
+interface Props {
+  id: string;
+  valor?: string;
+  /** na folha por cima da página ou na página /busca */
+  onde: 'folha' | 'pagina';
+}
+
+const { id, valor = '', onde } = Astro.props;
+const acao = '/busca';
+---
+
+<form class:list={['caixa-busca', `caixa-busca--${onde}`]} role="search" method="get" action={acao} data-caixa-busca={onde}>
+  <label class="so-leitor" for={id}>Procurar nas memórias</label>
+  <span class="caixa-busca__lupa" aria-hidden="true"><Simbolo id="procurar" /></span>
+  <input
+    class="caixa-busca__campo"
+    id={id}
+    type="search"
+    name="q"
+    value={valor}
+    placeholder="Natal, Sabará, sua mãe…"
+    autocomplete="off"
+    autocapitalize="off"
+    spellcheck="false"
+    enterkeyhint="search"
+    maxlength="80"
+    aria-describedby={`${id}-dica`}
+  />
+  <span class="so-leitor" id={`${id}-dica`}>Procura no título, no lugar, nas pessoas, nos capítulos, nos temas, nas legendas das fotos e no que cada um contou.</span>
+  <a class="caixa-busca__limpar" href={acao} hidden={!valor} data-limpar-busca>
+    <Simbolo id="fechar" />
+    <span class="so-leitor">Limpar a busca</span>
+  </a>
+  <button class="caixa-busca__ir" type="submit">Procurar</button>
+</form>

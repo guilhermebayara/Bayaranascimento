@@ -13,7 +13,11 @@ export async function restaurarCopia(origem: DatabaseSync, copia: { tabelas: Rec
   const estrutura = origem
     .prepare(`SELECT type, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 ELSE 2 END, rowid`)
     .all() as { type: string; sql: string }[];
-  for (const { sql } of estrutura) novo.exec(sql);
+  // As tabelas de sombra de um FTS5 (o índice da busca, busca_indice_*) nascem com a tabela virtual: criar as duas
+  // daria "já existe"
+  const virtuais = estrutura.filter((e) => /^CREATE VIRTUAL TABLE/i.test(e.sql)).map((e) => /^CREATE VIRTUAL TABLE\s+(?:IF NOT EXISTS\s+)?["'`]?(\w+)/i.exec(e.sql)?.[1]);
+  const ehSombra = (sql: string) => virtuais.some((v) => v && new RegExp(`^CREATE TABLE\\s+["'\`]?${v}_(data|idx|content|docsize|config)\\b`, 'i').test(sql));
+  for (const { sql } of estrutura) if (!ehSombra(sql)) novo.exec(sql);
   try {
     novo.exec('BEGIN');
     // A ordem das tabelas não importa: as chaves estrangeiras são conferidas no fim
