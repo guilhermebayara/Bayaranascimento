@@ -17,7 +17,7 @@ Origem: [histórico, "Estrutura"](../historico/decisoes-ate-2026-11-17.md#estrut
 ## Como o site funciona
 
 - Toda página é montada para a pessoa logada, e é isso que esconde o que é restrito a um núcleo. Por isso as páginas com conteúdo restrito não podem ser estáticas.
-- A regra de quem vê está em `src/lib/servidor/permissoes.ts` e, em SQL, em `src/lib/servidor/repositorio.ts`. As duas mudam juntas.
+- A regra de quem vê mora em `src/lib/servidor/quem-ve.ts`, em par, o TS e o SQL lado a lado, e `testes/quem-ve-equivalencia.test.ts` confere que os dois dizem o mesmo (ver ["Quem vê o quê mora num ponto só"](permissoes.md#quem-pode-o-quê)).
 - A estrutura do banco está em `src/lib/servidor/banco.ts`. O site aplica as mudanças sozinho na primeira visita depois de publicado.
 - Prévias de branch usam o banco e o bucket `bayara-memorias-teste`, só com exemplos, e por isso funcionam sem login.
 - A proposta completa de estrutura (laços, árvore, capítulos, temas) está no documento "Acervo da família: proposta de estrutura".
