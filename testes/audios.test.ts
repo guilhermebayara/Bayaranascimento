@@ -73,7 +73,8 @@ describe('quem ouve', () => {
   it('áudio solto, só quem enviou; do relato, quem vê o relato numa memória que vê', () => {
     const regra = repositorio.slice(repositorio.indexOf('export async function acessoAoAudio'));
     expect(regra).toContain('(a.relato_id IS NULL AND a.enviado_por = ?1)');
-    expect(regra).toContain("(r2.situacao = 'publicada' OR r2.registrado_por = ?1) AND ${FILTRO_VISIVEL}");
+    // O relato à vista mora em src/lib/servidor/quem-ve.ts (AC3); o áudio ainda deixa ouvir o rascunho descartado (V-3, na fila)
+    expect(regra).toContain("${sqlRelatoAberto('r2', '?1', { descartadoTambem: true })} AND ${FILTRO_VISIVEL}");
     // O relato de quem a pessoa não vê também fica de fora (decisão do Gui, 17/11/2026)
     expect(regra.slice(0, regra.indexOf('\n}\n'))).toContain('veORelato(');
   });

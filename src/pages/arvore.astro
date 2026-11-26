@@ -19,7 +19,7 @@ import { cantoReto } from '../lib/arvore-desenho';
 import { aplicarComoOsExesAparecem, comLacoDeArvore } from '../lib/arvore-montagem';
 import { comoOCasalAparece, rotuloDoCasalDoCoracao, separarAmizades } from '../lib/ex-casal';
 import { AJUSTE_DOS_CENTROS, centrosDaArvore } from '../lib/centros-da-arvore';
-import { pessoasQueNaoVe } from '../lib/servidor/permissoes';
+import { quemNaoVe } from '../lib/servidor/quem-ve';
 import { enderecoDoRetrato, iniciais } from '../lib/retratos';
 import { comoOsExesAparecem, familiasDe, lerAjuste, listarCasais, listarFiliacoes, listarIntegrantes, listarLacosDoCoracao, listarLacosResumidos, listarNucleos, pessoasEmLacosPrivadosDeOutros } from '../lib/servidor/repositorio';
 
@@ -38,8 +38,8 @@ const casais = await listarCasais(usuario);
 const lacos = await listarLacosDoCoracao(usuario);
 // Quem só existe num laço privado de outra pessoa não aparece: nem o laço, nem o nome
 const soEmPrivados = await pessoasEmLacosPrivadosDeOutros(usuario);
-const temLacoVisivel = new Set<string>([usuario.pessoa, ...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
-const naoVe = pessoasQueNaoVe(soEmPrivados, temLacoVisivel);
+// A mesma conta de pessoasQueONaoVe (src/lib/servidor/quem-ve.ts)
+const naoVe = quemNaoVe(soEmPrivados, { filiacoes, casais, lacosDoCoracao: lacos }, usuario.pessoa);
 const integrantes = todos.filter((i) => !naoVe.has(i.id));
 const resumidos = (await listarLacosResumidos()).filter((r) => integrantes.some((i) => i.id === r.a) && integrantes.some((i) => i.id === r.b));
 // Só serve de centro quem quem olha vê e tem laço de árvore

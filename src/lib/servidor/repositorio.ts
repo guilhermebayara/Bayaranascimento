@@ -1,6 +1,6 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
-import { relatoNaTv } from '../sala';
+import { gravarEspera, lerEspera, quemNaoVe, relatoAberto, relatoNaTv, sqlEstaNoPublicoDoRelato, sqlRelatoAberto, sqlRelatoNaTv, sqlCasalAberto, sqlRelatoNaoEspera, sqlVeMemoria } from './quem-ve';
 import { ambiente, apelidosDoPedido, banco } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
@@ -108,6 +108,8 @@ export interface Memoria extends AcessoDaMemoria {
   publicadaEm: string;
   /** a versão (migração 107): sobe a cada lote que conta com os relatos dela (ver conferirVersao) */
   versao: number;
+  /** quando foi para a lixeira; vazio, fora dela */
+  excluidaEm: string | null;
 }
 
 export interface Relato {
@@ -128,8 +130,8 @@ export interface Relato {
   descartadoEm?: string | null;
 }
 
-/** A coluna so_para_nucleos (migração 025), em JSON, como lista. */
-const lerNucleosDoRelato = (valor: unknown): string[] | null => (typeof valor === 'string' && valor ? (JSON.parse(valor) as string[]) : null);
+/** A coluna so_para_nucleos (migração 025), em JSON, como lista: a leitura mora em quem-ve.ts (lerEspera). */
+const lerNucleosDoRelato = lerEspera;
 
 /** A coluna publico_conhecido (migração 105): "todos" ou a lista de núcleos em JSON. Vazia: ainda sem registro. */
 const lerPublicoConhecido = (valor: unknown): PublicoConhecido | null =>
@@ -217,24 +219,18 @@ export async function comCodigoNovo<T>(fazer: (vez: number) => Promise<T>, tenta
 /** Um comando do banco, para gravar junto num lote (db.batch, uma transação). */
 export type Comando = ReturnType<ReturnType<typeof banco>['prepare']>;
 
-/**
- * Regra de visibilidade em SQL. ?1 é sempre o id do usuário.
- * Precisa dizer o mesmo que podeVerMemoria, em permissoes.ts.
- */
-const FILTRO_SEM_LIXEIRA = `(
-  (m.situacao = 'rascunho' AND m.criada_por = ?1)
-  OR (m.situacao = 'publicada' AND (
-    m.visibilidade = 'todos'
-    OR EXISTS (
-      SELECT 1 FROM memoria_nucleos mn
-      JOIN nucleo_membros nm ON nm.nucleo_id = mn.nucleo_id
-      WHERE mn.memoria_id = m.id AND nm.integrante_id = ?1 AND nm.papel = 'membro'
-    )
-  ))
-)`;
+// --- Quem vê o quê, em SQL: os fragmentos de src/lib/servidor/quem-ve.ts, em par com o TS ---
+// ?1 é sempre o id de quem olha. A regra não se escreve aqui: testes/quem-ve-equivalencia.test.ts confere que
+// o SQL e o TS dizem o mesmo e recusa uma terceira cópia neste arquivo.
+
+/** A memória que a pessoa pode ver, dentro ou fora da lixeira (a lixeira de quem pede). */
+const FILTRO_SEM_LIXEIRA = sqlVeMemoria({ lixeira: 'qualquer' });
 
 /** O que aparece no site: o que a pessoa pode ver e não está na lixeira. */
-const FILTRO_VISIVEL = `(m.excluida_em IS NULL AND ${FILTRO_SEM_LIXEIRA})`;
+const FILTRO_VISIVEL = sqlVeMemoria();
+
+/** O que aparece no site, só a memória publicada (sem o rascunho de quem escreve). */
+const FILTRO_PUBLICADA = sqlVeMemoria({ so: 'publicada' });
 
 // --- O que quase todo pedido lê (a guarda por pedido, src/lib/servidor/ambiente.ts) ---
 //
@@ -633,9 +629,8 @@ export async function pessoasQueONaoVe(usuario: Usuario): Promise<Set<string>> {
 
 async function pessoasQueONaoVeEmPrivados(usuario: Usuario, emPrivados: Set<string>): Promise<Set<string>> {
   const [filiacoes, casais, lacos] = await Promise.all([listarFiliacoes(), listarCasais(usuario), listarLacosDoCoracao(usuario)]);
-  // A pessoa logada sempre se vê, mesmo sem laço nenhum além do privado de outra pessoa
-  const comLaco = new Set([usuario.pessoa, ...filiacoes.flatMap((f) => [f.filho, f.responsavel]), ...casais.flatMap((c) => [c.a, c.b]), ...lacos.flatMap((l) => [l.dono, l.pessoa])]);
-  return pessoasQueNaoVe(emPrivados, comLaco);
+  // A conta mora em quem-ve.ts (a mesma da árvore): a pessoa logada sempre se vê
+  return quemNaoVe(emPrivados, { filiacoes, casais, lacosDoCoracao: lacos }, usuario.pessoa);
 }
 
 /**
@@ -748,7 +743,7 @@ export async function listarTextosDeOutro(usuario: Usuario): Promise<{ texto: st
   const { results } = await db()
     .prepare(
       `SELECT MIN(TRIM(m.tipo_outro)) AS texto, COUNT(*) AS memorias FROM memorias m
-       WHERE m.tipo = 'outro' AND TRIM(COALESCE(m.tipo_outro, '')) <> '' AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       WHERE m.tipo = 'outro' AND TRIM(COALESCE(m.tipo_outro, '')) <> '' AND ${FILTRO_PUBLICADA}
        GROUP BY LOWER(TRIM(m.tipo_outro)) ORDER BY memorias DESC, texto`,
     )
     .bind(usuario.pessoa)
@@ -808,6 +803,8 @@ function lerMemoria(linha: Record<string, unknown>): Memoria {
     relatos: 0,
     publicadaEm: ((linha.publicada_em ?? (linha.situacao === 'publicada' ? linha.criada_em : '')) as string) ?? '',
     versao: Number(linha.versao ?? 0),
+    // Para o TS refazer o filtro de quem vê (veMemoria, em quem-ve.ts)
+    excluidaEm: (linha.excluida_em as string | null | undefined) ?? null,
   };
 }
 
@@ -895,7 +892,7 @@ export async function memoriasComAudioNaTv(usuario: Usuario): Promise<Set<string
     db()
       .prepare(
         `SELECT DISTINCT r.memoria_id, r.por, r.registrado_por, r.so_para_nucleos FROM audios a JOIN relatos r ON r.id = a.relato_id
-         WHERE a.removido_em IS NULL AND r.situacao = 'publicada' AND r.descartado_em IS NULL AND (r.so_para_nucleos IS NULL OR r.so_para_nucleos IN ('', '[]'))`,
+         WHERE a.removido_em IS NULL AND ${sqlRelatoNaTv('r')}`,
       )
       .all<LinhaDeRelato>(),
     pessoasQueONaoVe(usuario),
@@ -941,8 +938,7 @@ export async function quemContouEmCadaMemoria(usuario: Usuario): Promise<Map<str
 /** Memórias que o usuário pode ver, da mais antiga para a mais recente. Rascunhos ficam de fora, salvo pedido. */
 export async function listarMemorias(usuario: Usuario, filtro: FiltroDeMemorias = {}): Promise<Memoria[]> {
   // O rascunho só passa por FILTRO_VISIVEL para quem o criou
-  const situacao = filtro.rascunhos ? `m.situacao = 'rascunho'` : filtro.comRascunhos ? `m.situacao IN ('publicada', 'rascunho')` : `m.situacao = 'publicada'`;
-  const condicoes = [FILTRO_VISIVEL, situacao];
+  const condicoes = filtro.rascunhos ? [FILTRO_VISIVEL, `m.situacao = 'rascunho'`] : filtro.comRascunhos ? [FILTRO_VISIVEL, `m.situacao IN ('publicada', 'rascunho')`] : [FILTRO_PUBLICADA];
   const valores: unknown[] = [usuario.pessoa];
   if (filtro.integrante) {
     valores.push(filtro.integrante);
@@ -983,7 +979,7 @@ const ORDEM_DA_LINHA = 'm.ano, COALESCE(m.mes, 0), COALESCE(m.dia, 0), m.criada_
 export async function vizinhasDaMemoria(usuario: Usuario, memoria: Pick<Memoria, 'id' | 'ano' | 'mes' | 'dia' | 'criadaEm'>): Promise<{ antes?: Memoria; depois?: Memoria }> {
   const daqui = `(${ORDEM_DA_LINHA})`;
   const desta = '(?3, ?4, ?5, ?6, (SELECT rowid FROM memorias WHERE id = ?2))';
-  const publicadas = `SELECT m.* FROM memorias m WHERE ${FILTRO_VISIVEL} AND m.situacao = 'publicada' AND m.id <> ?2`;
+  const publicadas = `SELECT m.* FROM memorias m WHERE ${FILTRO_PUBLICADA} AND m.id <> ?2`;
   const valores = [usuario.pessoa, memoria.id, memoria.ano, memoria.mes ?? 0, memoria.dia ?? 0, memoria.criadaEm];
   const [antes, depois] = await db().batch<Record<string, unknown>>([
     db().prepare(`${publicadas} AND m.ano <= ?3 AND ${daqui} < ${desta} ORDER BY m.ano DESC, m.mes DESC, m.dia DESC, m.criada_em DESC, m.rowid DESC LIMIT 1`).bind(...valores),
@@ -1714,13 +1710,7 @@ export async function acessoAFoto(usuario: Usuario, chave: string): Promise<Aces
            (f.removida_em IS NULL OR f.enviada_por = ?1 OR f.removida_por = ?1)
            AND EXISTS (SELECT 1 FROM memorias m WHERE m.id = f.memoria_id AND ${FILTRO_VISIVEL})
            -- a foto que veio com um relato que espera o sim do autor fica com o público antigo dele
-           AND NOT EXISTS (
-             SELECT 1 FROM relatos r WHERE r.id = f.relato_id AND r.so_para_nucleos IS NOT NULL AND r.registrado_por <> ?1
-               AND NOT EXISTS (
-                 SELECT 1 FROM json_each(r.so_para_nucleos) j JOIN nucleo_membros nm ON nm.nucleo_id = j.value
-                 WHERE nm.integrante_id = ?1 AND nm.papel = 'membro'
-               )
-           )
+           AND NOT EXISTS (SELECT 1 FROM relatos r WHERE r.id = f.relato_id AND NOT ${sqlEstaNoPublicoDoRelato('r', '?1')})
          )
        )`,
     )
@@ -1929,7 +1919,7 @@ export async function listarRelatos(usuario: Usuario, memoriaId: string): Promis
     db()
       .prepare(
         `SELECT r.* FROM relatos r JOIN memorias m ON m.id = r.memoria_id
-         WHERE r.memoria_id = ?2 AND ${FILTRO_VISIVEL} AND (r.situacao = 'publicada' OR (r.registrado_por = ?1 AND r.descartado_em IS NULL)) ORDER BY r.criado_em, r.id`,
+         WHERE r.memoria_id = ?2 AND ${FILTRO_VISIVEL} AND ${sqlRelatoAberto('r', '?1')} ORDER BY r.criado_em, r.id`,
       )
       .bind(usuario.pessoa, memoriaId)
       .all<Record<string, unknown>>(),
@@ -1945,7 +1935,7 @@ export async function listarRelatos(usuario: Usuario, memoriaId: string): Promis
 export async function obterRelato(memoriaId: string, por: string, usuario: Usuario): Promise<Relato | undefined> {
   const linha = await db()
     .prepare(
-      `SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND (situacao = 'publicada' OR (registrado_por = ? AND descartado_em IS NULL))
+      `SELECT * FROM relatos WHERE memoria_id = ? AND por = ? AND ${sqlRelatoAberto('', '?')}
        ORDER BY situacao = 'publicada' DESC LIMIT 1`,
     )
     .bind(memoriaId, por, usuario.pessoa)
@@ -1971,7 +1961,7 @@ export async function listarRascunhosDeRelato(usuario: Usuario): Promise<(Relato
   const { results } = await db()
     .prepare(
       `SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id
-       WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND r.descartado_em IS NULL AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL} ORDER BY r.atualizado_em DESC`,
+       WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND r.descartado_em IS NULL AND ${FILTRO_PUBLICADA} ORDER BY r.atualizado_em DESC`,
     )
     .bind(usuario.pessoa)
     .all<Record<string, unknown>>();
@@ -2011,7 +2001,7 @@ export async function listarRascunhosDeRelatoDescartados(usuario: Usuario): Prom
   const { results } = await db()
     .prepare(
       `SELECT r.*, m.titulo FROM relatos r JOIN memorias m ON m.id = r.memoria_id
-       WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND r.descartado_em IS NOT NULL AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND r.descartado_em IS NOT NULL AND ${FILTRO_PUBLICADA}
        ORDER BY r.descartado_em DESC`,
     )
     .bind(usuario.pessoa)
@@ -2033,7 +2023,7 @@ export async function restaurarRascunhoDeRelato(relato: Relato, memoria: Publico
     conferirVersao(relato.memoriaId, memoria.versao),
     db()
       .prepare('UPDATE relatos SET descartado_em = NULL, so_para_nucleos = ?, publico_conhecido = ? WHERE id = ?')
-      .bind(novo.soParaNucleos ? JSON.stringify(novo.soParaNucleos) : null, gravarPublicoConhecido(novo.publicoConhecido), relato.id),
+      .bind(gravarEspera(novo.soParaNucleos), gravarPublicoConhecido(novo.publicoConhecido), relato.id),
     ...comandosDosPedidos(relato, novo, { memoriaId: relato.memoriaId, de: memoria.criadaPor, paraQuem: paraQuem(novo.publicoConhecido), jaRecusou }),
   ]);
 }
@@ -2191,7 +2181,7 @@ export function comandosDoRelato(
   // A data de publicação é a da primeira vez que o relato sai do rascunho, e não muda depois
   const marcar = `UPDATE relatos SET publicado_em = datetime('now') WHERE situacao = 'publicada' AND publicado_em IS NULL`;
   if (!anterior) {
-    const esperando = nasce ? JSON.stringify(nasce.soParaNucleos) : null;
+    const esperando = gravarEspera(nasce?.soParaNucleos);
     // O relato que nasce esperando (relatoQueNasce): só para o público que a página mostrava, que é também
     // o único que o viu, e o pedido de sempre para quem o escreveu
     const doRelato = `SELECT MAX(id) FROM relatos WHERE memoria_id = ?1 AND por = ?2 AND registrado_por = ?3 AND descartado_em IS NULL`;
@@ -2400,7 +2390,7 @@ export async function acessoAoAudio(usuario: Usuario, chave: string): Promise<{ 
            (a.removido_em IS NULL OR a.enviado_por = ?1)
            AND EXISTS (
              SELECT 1 FROM relatos r2 JOIN memorias m ON m.id = r2.memoria_id
-             WHERE r2.id = a.relato_id AND (r2.situacao = 'publicada' OR r2.registrado_por = ?1) AND ${FILTRO_VISIVEL}
+             WHERE r2.id = a.relato_id AND ${sqlRelatoAberto('r2', '?1', { descartadoTambem: true })} AND ${FILTRO_VISIVEL}
            )
          )
        )`,
@@ -2427,7 +2417,7 @@ export async function listarAudiosDe(usuario: Usuario, pessoaId: string): Promis
       `SELECT a.*, m.id AS memoria, m.titulo AS memoria_titulo, r.por AS relato_por, r.registrado_por AS relato_registrado_por, r.so_para_nucleos AS relato_so FROM audios a
        JOIN relatos r ON r.id = a.relato_id
        JOIN memorias m ON m.id = r.memoria_id
-       WHERE a.removido_em IS NULL AND r.por = ?2 AND r.situacao = 'publicada' AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       WHERE a.removido_em IS NULL AND r.por = ?2 AND r.situacao = 'publicada' AND ${FILTRO_PUBLICADA}
        ORDER BY m.ano, m.mes, m.dia, a.ordem, a.id`,
     )
     .bind(usuario.pessoa, pessoaId)
@@ -2449,7 +2439,7 @@ export async function listarRelatosDe(usuario: Usuario, pessoaId: string): Promi
     .prepare(
       `SELECT r.*, m.titulo AS memoria_titulo, m.ano AS memoria_ano FROM relatos r
        JOIN memorias m ON m.id = r.memoria_id
-       WHERE r.por = ?2 AND r.situacao = 'publicada' AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       WHERE r.por = ?2 AND r.situacao = 'publicada' AND ${FILTRO_PUBLICADA}
        ORDER BY m.ano DESC, m.mes DESC, m.dia DESC`,
     )
     .bind(usuario.pessoa, pessoaId)
@@ -2483,7 +2473,7 @@ export async function listarRelatosPublicadosDesde(usuario: Usuario, desde: stri
   const { results } = await db()
     .prepare(
       `SELECT r.*, COALESCE(r.publicado_em, r.criado_em) AS publicado FROM relatos r JOIN memorias m ON m.id = r.memoria_id
-       WHERE r.situacao = 'publicada' AND COALESCE(r.publicado_em, r.criado_em) > ?2 AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL}
+       WHERE r.situacao = 'publicada' AND COALESCE(r.publicado_em, r.criado_em) > ?2 AND ${FILTRO_PUBLICADA}
        ORDER BY publicado DESC LIMIT 50`,
     )
     .bind(usuario.pessoa, desde)
@@ -2616,7 +2606,7 @@ const sqlDosAvisos = (historico: boolean) => `SELECT a.*, m.titulo, m.visibilida
          r.descartado_em AS relato_descartado
        FROM avisos a JOIN memorias m ON m.id = a.memoria_id
        LEFT JOIN relatos r ON r.id = a.relato_id
-       WHERE a.para = ?1 AND m.situacao = 'publicada' AND ${FILTRO_VISIVEL} ${historico ? '' : 'AND a.resolvido_em IS NULL'}
+       WHERE a.para = ?1 AND ${FILTRO_PUBLICADA} ${historico ? '' : 'AND a.resolvido_em IS NULL'}
        ORDER BY a.id DESC LIMIT 60`;
 
 export async function listarAvisos(usuario: Usuario, { historico = false }: { historico?: boolean } = {}): Promise<Aviso[]> {
@@ -2632,8 +2622,8 @@ export async function listarAvisos(usuario: Usuario, { historico = false }: { hi
       // O rascunho de relato que está na lixeira fica parado: o pedido dele some até ele ser restaurado
       if (a.relato_descartado) continue;
       relato = { id: a.relato_id as number, por: a.relato_por as string, registradoPor: a.relato_registrado_por as string, situacao: a.relato_situacao as 'rascunho' | 'publicada' };
-      const meu = relato.registradoPor === usuario.pessoa;
-      if (!meu && relato.situacao !== 'publicada') continue;
+      // O rascunho de outra pessoa não aparece (relatoAberto, em quem-ve.ts)
+      if (!relatoAberto(relato, usuario)) continue;
       if (!veORelato({ ...relato, soParaNucleos: lerNucleosDoRelato(a.relato_so) }, usuario, naoVe)) continue;
     }
     // Quem fez a ação também precisa ser alguém que a pessoa vê
@@ -2699,7 +2689,7 @@ export async function comandosDaMudancaDeQuemVe(
     return [
       db()
         .prepare('UPDATE relatos SET so_para_nucleos = ?, publico_conhecido = ? WHERE id = ?')
-        .bind(novo.soParaNucleos ? JSON.stringify(novo.soParaNucleos) : null, gravarPublicoConhecido(novo.publicoConhecido), r.id),
+        .bind(gravarEspera(novo.soParaNucleos), gravarPublicoConhecido(novo.publicoConhecido), r.id),
       ...comandosDosPedidos(r, novo, { memoriaId, de: pedido.de, paraQuem: pedido.paraQuem(novo.publicoConhecido), jaRecusou: jaRecusouEstePublico(depois, respostas.get(r.id)) }),
     ];
   });
@@ -2752,8 +2742,10 @@ export async function pessoasQueSoVoceVe(usuario: Usuario): Promise<Set<string>>
   if (meus.length === 0) return new Set();
   const [filiacoes, casais, abertos] = await Promise.all([
     listarFiliacoes(),
-    db().prepare(`SELECT a_id, b_id FROM casais WHERE visibilidade = 'todos'`).all<{ a_id: string; b_id: string }>(),
-    db().prepare('SELECT dono_id, pessoa_id FROM lacos_coracao WHERE privado = 0').all<{ dono_id: string; pessoa_id: string }>(),
+    // O laço aberto com quem está na lixeira não conta (V-1 da auditoria AC): para os outros, a pessoa da
+    // lixeira some, e o laço com ela também (como em listarCasais e listarLacosDoCoracao)
+    db().prepare(`SELECT a_id, b_id FROM casais WHERE ${sqlCasalAberto()} AND ${ativa('a_id')} AND ${ativa('b_id')}`).all<{ a_id: string; b_id: string }>(),
+    db().prepare(`SELECT dono_id, pessoa_id FROM lacos_coracao WHERE privado = 0 AND ${ativa('dono_id')} AND ${ativa('pessoa_id')}`).all<{ dono_id: string; pessoa_id: string }>(),
   ]);
   const comLacoAberto = new Set([
     ...filiacoes.flatMap((f) => [f.filho, f.responsavel]),
@@ -3016,7 +3008,7 @@ export async function conflitosAoJuntar(fica: string, sai: string, usuario: Usua
     .prepare(
       `SELECT m.id, m.titulo,
          MAX(CASE WHEN ${FILTRO_VISIVEL} AND rs.situacao = 'publicada' AND rf.situacao = 'publicada'
-           AND rs.so_para_nucleos IS NULL AND rf.so_para_nucleos IS NULL THEN 1 ELSE 0 END) AS ve
+           AND ${sqlRelatoNaoEspera('rs')} AND ${sqlRelatoNaoEspera('rf')} THEN 1 ELSE 0 END) AS ve
        FROM relatos rs JOIN relatos rf ON rf.memoria_id = rs.memoria_id AND rf.por = ?2 JOIN memorias m ON m.id = rs.memoria_id
        WHERE rs.por = ?3 AND (rf.registrado_por = rs.registrado_por OR (rf.situacao = 'publicada' AND rs.situacao = 'publicada'))
        GROUP BY m.id, m.titulo`,

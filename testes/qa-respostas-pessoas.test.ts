@@ -176,10 +176,11 @@ describe('a página da pessoa', () => {
     expect(pagina).toMatch(/<Mensagem mensagem=\{m\} de=\{chamar\} \/>/);
     const consulta = ler('src/lib/servidor/repositorio.ts');
     const audios = consulta.slice(consulta.indexOf('export async function listarAudiosDe'), consulta.indexOf('export async function listarRelatosDe'));
-    expect(audios).toMatch(/a\.removido_em IS NULL AND r\.por = \?2 AND r\.situacao = 'publicada' AND m\.situacao = 'publicada' AND \$\{FILTRO_VISIVEL\}/);
+    // A memória publicada que quem olha vê: FILTRO_PUBLICADA, o fragmento de src/lib/servidor/quem-ve.ts (AC3)
+    expect(audios).toMatch(/a\.removido_em IS NULL AND r\.por = \?2 AND r\.situacao = 'publicada' AND \$\{FILTRO_PUBLICADA\}/);
     // Os relatos dela passam pela mesma regra
     const relatos = consulta.slice(consulta.indexOf('export async function listarRelatosDe'), consulta.indexOf('// --- Tamanho do banco'));
-    expect(relatos).toMatch(/r\.por = \?2 AND r\.situacao = 'publicada' AND m\.situacao = 'publicada' AND \$\{FILTRO_VISIVEL\}/);
+    expect(relatos).toMatch(/r\.por = \?2 AND r\.situacao = 'publicada' AND \$\{FILTRO_PUBLICADA\}/);
     expect(relatos).toMatch(/\.filter\(\(r: Relato\) => veORelato\(r, usuario, naoVe\)\)/);
   });
   it('o botão cheio é a memória nova; editar é texto, e a árvore mora no quadro (P104)', () => {

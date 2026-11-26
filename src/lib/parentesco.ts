@@ -2,6 +2,8 @@
 // filiação (de quem alguém é filho) e casal (com suas fases). Todo o resto,
 // de avó a cunhado, sai daqui. Funções puras, sem banco, para serem testadas.
 
+import { alcanca, casalAberto } from './servidor/quem-ve';
+
 export type Qualidade = 'biologica' | 'adotiva' | 'consideracao';
 export type TipoDeFase = 'namoro' | 'noivado' | 'casamento' | 'uniao' | 'separacao' | 'amizade';
 export type Tratamento = 'ela' | 'ele' | null;
@@ -123,8 +125,8 @@ export function auge(casal: Pick<Casal, 'fases'>): TipoDeFase {
  * que a pessoa é membro.
  */
 export function podeVerCasal(pessoa: string, casal: Casal, nucleosDeQuemOlha: readonly string[] = []): boolean {
-  if (casal.visibilidade === 'todos' || casal.a === pessoa || casal.b === pessoa || casal.criadoPor === pessoa) return true;
-  return casal.visibilidade === 'nucleos' && (casal.nucleos ?? []).some((n) => nucleosDeQuemOlha.includes(n));
+  if (casalAberto(casal) || casal.a === pessoa || casal.b === pessoa || casal.criadoPor === pessoa) return true;
+  return casal.visibilidade === 'nucleos' && alcanca({ visibilidade: 'nucleos', nucleos: casal.nucleos ?? [] }, nucleosDeQuemOlha);
 }
 
 export interface Camadas {

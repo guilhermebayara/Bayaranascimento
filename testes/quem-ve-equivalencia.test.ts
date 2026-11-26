@@ -18,31 +18,13 @@ vi.mock('cloudflare:workers', () => ({ env }));
 env.FOTOS = { list: async () => ({ objects: [], truncated: false }), delete: async () => undefined, put: async () => undefined, get: async () => null, head: async () => null };
 
 /**
- * As divergências que o teste espera achar. Antes do ponto único (src/lib/servidor/quem-ve.ts), eram V-1 e
- * V-2 da auditoria; depois dele, nenhuma.
+ * As divergências que o teste espera achar: nenhuma. Antes do ponto único (src/lib/servidor/quem-ve.ts), o
+ * teste rodado contra o código de então (commit 77d8928) achava três, todas corrigidas aqui:
+ * - V-1: pessoasQueSoVoceVe contava o laço aberto com quem está na lixeira;
+ * - V-2: a lista vazia ('[]') ia à TV (relatoNaTv) e esperava o sim (estaNoPublicoDoRelato) ao mesmo tempo;
+ * - V-2 com '': a consulta das fotos lia '' como espera e quebrava no json_each(''), e o TS lia como sem espera.
  */
-const DIVERGENCIAS_CONHECIDAS: string[] = [
-  // V-2, com '': a consulta das fotos lê '' como espera (IS NOT NULL) e quebra no json_each(''); o TS lê como sem espera
-  'foto (gui): só o SQL aceita 2026/zz-so-vazio.jpg (a consulta falhou)',
-  'foto (gui): só o TS aceita 2026/zz-so-vazio.jpg guardar=true',
-  'foto (elizete): só o SQL aceita 2026/zz-so-vazio.jpg (a consulta falhou)',
-  'foto (elizete): só o TS aceita 2026/zz-so-vazio.jpg guardar=true',
-  'foto (lucas-magno): só o SQL aceita 2026/zz-so-vazio.jpg (a consulta falhou)',
-  'foto (lucas-magno): só o TS aceita 2026/zz-so-vazio.jpg guardar=true',
-  'foto (lucio): só o SQL aceita 2026/zz-so-vazio.jpg (a consulta falhou)',
-  'foto (lucio): só o TS aceita 2026/zz-so-vazio.jpg guardar=true',
-  'foto (zz-sem-familia): só o SQL aceita 2026/zz-so-vazio.jpg (a consulta falhou)',
-  'foto (zz-sem-familia): só o TS aceita 2026/zz-so-vazio.jpg guardar=true',
-  'foto (zz-parente): só o SQL aceita 2026/zz-so-vazio.jpg (a consulta falhou)',
-  'foto (zz-parente): só o TS aceita 2026/zz-so-vazio.jpg guardar=true',
-  'foto (:sala): só o SQL aceita 2026/zz-so-vazio.jpg (a consulta falhou)',
-  'foto (:sala): só o TS aceita 2026/zz-so-vazio.jpg guardar=true',
-  // V-2: a lista vazia vai à TV (relatoNaTv) e espera o sim (estaNoPublicoDoRelato)
-  'espera: relato com so_para_nucleos "[]" vai à TV e espera o sim ao mesmo tempo',
-  // V-1: pessoasQueSoVoceVe conta o laço aberto com quem está na lixeira
-  'só você vê (gui): só o TS aceita zz-v1-casal',
-  'só você vê (gui): só o TS aceita zz-v1-laco',
-];
+const DIVERGENCIAS_CONHECIDAS: string[] = [];
 
 describe.skipIf(!comSqlite)('quem vê o quê: o SQL e o TS dizem o mesmo', async () => {
   const { criarD1 } = await import('./apoio/d1');
@@ -53,6 +35,7 @@ describe.skipIf(!comSqlite)('quem vê o quê: o SQL e o TS dizem o mesmo', async
   const permissoes = await import('../src/lib/servidor/permissoes');
   const { relatoNaTv } = await import('../src/lib/sala');
   const { VISITANTE_DA_SALA } = await import('../src/lib/servidor/tv');
+  const qv = await import('../src/lib/servidor/quem-ve');
   type Usuario = import('../src/lib/servidor/permissoes').Usuario;
 
   const sqlite = () => banco.sqlite;
@@ -260,5 +243,94 @@ describe.skipIf(!comSqlite)('quem vê o quê: o SQL e o TS dizem o mesmo', async
       achados.push(...diferencas(`só você vê (${u.pessoa})`, await repo.pessoasQueSoVoceVe(u), meus.filter((p) => !aberto.has(p))));
     }
     expect(achados).toEqual(DIVERGENCIAS_CONHECIDAS.filter((d) => d.startsWith('só você vê')));
+  });
+
+  // --- Os pares de src/lib/servidor/quem-ve.ts, direto: cada fragmento SQL contra o predicado em TS ---
+
+  const ids = (texto: string, ...valores: (string | number | null)[]) => todas<{ id: string | number }>(texto, ...valores).map((r) => String(r.id));
+  const memoriaParaVer = (m: LinhaDeMemoria) => ({ situacao: m.situacao, visibilidade: m.visibilidade, criadaPor: m.criada_por, nucleos: nucleosDa(m.id), excluidaEm: m.excluida_em });
+
+  it('quem-ve: sqlVeMemoria e veMemoria, com cada opção', () => {
+    const achados: string[] = [];
+    const opcoes = [{}, { lixeira: 'qualquer' as const }, { so: 'publicada' as const }, { lixeira: 'qualquer' as const, so: 'publicada' as const }];
+    for (const u of leitores) {
+      for (const o of opcoes) {
+        const sqlDiz = ids(`SELECT m.id FROM memorias m WHERE ${qv.sqlVeMemoria(o)}`, u.pessoa);
+        const tsDiz = memorias().filter((m) => qv.veMemoria(u, memoriaParaVer(m), o)).map((m) => m.id);
+        achados.push(...diferencas(`veMemoria ${JSON.stringify(o)} (${u.pessoa})`, sqlDiz, tsDiz));
+      }
+      // O apelido da tabela e o parâmetro de quem olha mudam de lugar sem mudar a regra
+      const comOutroNome = ids(`SELECT x.id FROM memorias x WHERE ${qv.sqlVeMemoria({ m: 'x', pessoa: '?2' })}`, 'ninguem', u.pessoa);
+      achados.push(...diferencas(`veMemoria com outro apelido (${u.pessoa})`, comOutroNome, memorias().filter((m) => qv.veMemoria(u, memoriaParaVer(m))).map((m) => m.id)));
+      // podeVerMemoria, de permissoes.ts, é a mesma regra sem olhar a lixeira
+      for (const m of memorias()) if (permissoes.podeVerMemoria(u, { ...memoriaParaVer(m), integrantes: [] }) !== qv.veMemoria(u, memoriaParaVer(m), { lixeira: 'qualquer' })) achados.push(`podeVerMemoria (${u.pessoa}) ${m.id}`);
+    }
+    expect(achados).toEqual([]);
+  });
+
+  it('quem-ve: o relato que espera, o público do relato, ver o relato e o relato à vista', async () => {
+    const achados: string[] = [];
+    const linhas = relatos();
+    // A espera não depende de quem olha
+    achados.push(...diferencas('relatoEspera', ids(`SELECT r.id FROM relatos r WHERE ${qv.sqlRelatoEspera('r')}`), linhas.filter((r) => qv.relatoEspera(qv.lerEspera(r.so_para_nucleos))).map((r) => String(r.id))));
+    achados.push(...diferencas('relato sem espera', ids(`SELECT r.id FROM relatos r WHERE ${qv.sqlRelatoNaoEspera('r')}`), linhas.filter((r) => !qv.relatoEspera(qv.lerEspera(r.so_para_nucleos))).map((r) => String(r.id))));
+    achados.push(...diferencas('relatoNaTv', ids(`SELECT r.id FROM relatos r WHERE ${qv.sqlRelatoNaTv('r')}`), linhas.filter((r) => qv.relatoNaTv({ situacao: r.situacao, soParaNucleos: qv.lerEspera(r.so_para_nucleos), descartadoEm: r.descartado_em })).map((r) => String(r.id))));
+    for (const u of leitores) {
+      const naoVe = await repo.pessoasQueONaoVe(u);
+      const { naoVe: listaNaoVe, excluidas } = qv.naoVeParaSql(naoVe);
+      achados.push(...diferencas(`estaNoPublicoDoRelato (${u.pessoa})`, ids(`SELECT r.id FROM relatos r WHERE ${qv.sqlEstaNoPublicoDoRelato('r', '?1')}`, u.pessoa), linhas.filter((r) => qv.estaNoPublicoDoRelato(doRelato(r), u)).map((r) => String(r.id))));
+      achados.push(...diferencas(`veORelato (${u.pessoa})`, ids(`SELECT r.id FROM relatos r WHERE ${qv.sqlVeORelato('r', '?1', '?2', '?3')}`, u.pessoa, listaNaoVe, excluidas), linhas.filter((r) => qv.veORelato(doRelato(r), u, naoVe)).map((r) => String(r.id))));
+      for (const descartadoTambem of [false, true]) {
+        const tsDiz = linhas.filter((r) => qv.relatoAberto({ situacao: r.situacao, registradoPor: r.registrado_por, descartadoEm: r.descartado_em }, u, { descartadoTambem })).map((r) => String(r.id));
+        achados.push(...diferencas(`relatoAberto ${descartadoTambem} (${u.pessoa})`, ids(`SELECT r.id FROM relatos r WHERE ${qv.sqlRelatoAberto('r', '?1', { descartadoTambem })}`, u.pessoa), tsDiz));
+        achados.push(...diferencas(`relatoAberto sem apelido ${descartadoTambem} (${u.pessoa})`, ids(`SELECT id FROM relatos WHERE ${qv.sqlRelatoAberto('', '?', { descartadoTambem })}`, u.pessoa), tsDiz));
+      }
+    }
+    expect(achados).toEqual([]);
+  });
+
+  it('quem-ve: a sala e os casais abertos', () => {
+    const achados = [
+      ...diferencas('entraNaSala', ids(`SELECT m.id FROM memorias m WHERE ${qv.sqlEntraNaSala('m')}`), memorias().filter((m) => qv.entraNaSala(m)).map((m) => m.id)),
+      ...diferencas('casalAberto', ids(`SELECT id FROM casais WHERE ${qv.sqlCasalAberto()}`), todas<{ id: number; visibilidade: 'todos' | 'nucleos' | 'privado' }>('SELECT id, visibilidade FROM casais').filter(qv.casalAberto).map((c) => String(c.id))),
+    ];
+    expect(achados).toEqual([]);
+    // A sala, pela regra das duas portas: o visitante da sala só vê o que entra nela
+    const sala = VISITANTE_DA_SALA as Usuario;
+    const publicadasDaSala = memorias().filter((m) => qv.veMemoria(sala, memoriaParaVer(m), { so: 'publicada' }));
+    expect(publicadasDaSala.length).toBeGreaterThan(0);
+    expect(publicadasDaSala.every((m) => qv.entraNaSala(m))).toBe(true);
+  });
+
+  it('quem-ve: quemNaoVe é a conta de pessoasQueONaoVe, mais a lixeira', async () => {
+    for (const u of leitores) {
+      const emPrivados = await repo.pessoasEmLacosPrivadosDeOutros(u);
+      const conta = qv.quemNaoVe(emPrivados, { filiacoes: await repo.listarFiliacoes(), casais: await repo.listarCasais(u), lacosDoCoracao: await repo.listarLacosDoCoracao(u) }, u.pessoa);
+      const excluidas = new Set(todas<{ id: string }>('SELECT id FROM integrantes WHERE excluida_em IS NOT NULL').map((i) => i.id));
+      expect([...(await repo.pessoasQueONaoVe(u))].sort(), u.pessoa).toEqual([...new Set([...conta, ...excluidas])].sort());
+    }
+  });
+});
+
+// --- Guarda contra a terceira cópia ---------------------------------------------------------------------
+//
+// As formas conhecidas da regra em SQL só podem aparecer em src/lib/servidor/quem-ve.ts. Em repositorio.ts
+// (e na busca da E2, src/lib/servidor/busca.ts, quando existir) ficam só as gravações desta lista, cada uma
+// com o motivo.
+describe('quem vê o quê: nenhuma terceira cópia da regra', () => {
+  const FORMAS = [/memoria_nucleos mn\b/, /nucleo_membros nm\b/, /so_para_nucleos IS\b/, /visibilidade = 'todos'/];
+  const GRAVACOES: { trecho: string; motivo: string }[] = [
+    { trecho: "const AINDA_ABERTA = `EXISTS (SELECT 1 FROM memorias WHERE id = ?1 AND visibilidade = 'todos')`;", motivo: 'gravação: as marcas de família só entram se a memória continua aberta na hora do lote' },
+  ];
+  const fontes = import.meta.glob<string>(['../src/lib/servidor/repositorio.ts', '../src/lib/servidor/busca.ts'], { query: '?raw', import: 'default', eager: true });
+  for (const [caminho, texto] of Object.entries(fontes)) {
+    it(caminho.replace('../', ''), () => {
+      const linhas = texto.split('\n');
+      const achadas = linhas.flatMap((linha, i) => (FORMAS.some((f) => f.test(linha)) && !GRAVACOES.some((g) => linha.includes(g.trecho)) ? [`${i + 1}: ${linha.trim()}`] : []));
+      expect(achadas, 'Use os fragmentos de src/lib/servidor/quem-ve.ts no lugar de escrever a regra de novo').toEqual([]);
+    });
+  }
+  it('cada gravação da lista ainda existe', () => {
+    for (const g of GRAVACOES) expect(fontes['../src/lib/servidor/repositorio.ts'], g.motivo).toContain(g.trecho);
   });
 });
