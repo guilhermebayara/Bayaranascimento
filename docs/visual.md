@@ -169,7 +169,7 @@ O CSS está em `src/visual/` e os componentes em `src/components/visual/`. A pá
 | Uma pessoa numa lista de laços | `Gente.astro` | `href`, `nome`, `foto`, `familia`, `laco` ("sua avó") e `detalhe`, em mono. Para listas de pessoas e de laços |
 | Um relato, na memória | `conversa/Voz.astro` | O relato como conversa: o retrato e o nome à mão no começo, as mensagens (`conversa/Mensagem.astro`) e, pelos slots, o selo de rascunho, a linha para liberar, as reações e o menu. Com `minha`, à direita, no pastel da família. `Bilhete.astro` continua no cartão de "relato novo" do Início |
 | Escrever um relato | `conversa/Janela.astro` | A janela da conversa: as mensagens, "Citando", e a caixa com o "+", o texto que cresce e o botão redondo (na cor viva quando grava, `--vivo-tinta`). Estilo em `src/visual/telas/conversa.css` |
-| Um áudio | `Audio.astro` | `rotulo`, `src`, `transcricao`. Usa o tocador do aparelho |
+| Um áudio | `conversa/Voz.astro`, com `conversa/Mensagem.astro` | A mensagem de áudio da conversa, com o tocar próprio do balão e o tocador do aparelho como reserva sem script |
 | O capítulo de uma memória | `SinalDoCapitulo.astro`, `Trilhos.astro` | `id`, `titulo` e `cor` (a posição dada pela montagem, `src/lib/linha-capitulos.ts`) |
 | Reagir a uma memória, um relato ou uma foto | `Reacoes.astro` | `memoria`, `alvo` (`memoria`, `relato` ou `foto`), `alvoId`, `marcas`, `eu`, `nome`, `volta` e `sobre` ("o relato de Elizete", para o leitor de tela). O coração à vista, os quatro numa paleta que abre ao segurar ou passar o mouse, e o número que abre quem marcou. A página chama `ligarReacoes()`, de `src/lib/cliente/reacoes.ts`, para tudo acontecer no lugar |
 | As ações secundárias de um item | `MenuDeAcoes.astro` | `rotulo` ("Mais ações do relato de Elizete") e as ações dentro, cada uma `<a class="menu-acoes__item">` ou `<button class="menu-acoes__item">`. Ao lado das reações, numa linha `acoes-do-item`. A página chama `ligarMenus()`, de `src/lib/cliente/menus.ts` |
@@ -298,6 +298,7 @@ A regra de quem escolhe está em ["Tipos de momento"](regras/formularios.md#tipo
 - Na produção e na homologação, só os administradores abrem (para os outros, 404), com um link na página da Administração. Nas prévias e no computador, abre para todos.
 - Mostra o sistema com conteúdo fixo da própria página, nunca com dados do acervo. Fora das prévias, onde a peça pede foto, a página usa um quadro desenhado; nas prévias pode usar o Chico e a Karol. A trava está em `temAcervoDeExemplo()` (`src/lib/servidor/ambiente.ts`), conferida em `testes/sistema.test.ts` e na guarda da produção.
 - Ela acompanha o sistema: toda peça, token ou regra nova entra nela no mesmo PR, e `testes/sistema.test.ts` falha se uma peça de `src/components/visual/` não aparecer na página.
+- O áudio aparece numa voz da conversa (`conversa/Voz.astro`), com uma mensagem de áudio e uma de texto, sem arquivo: o acervo de exemplo não tem áudio, e a mensagem usa o tocador do próprio aparelho.
 - No celular, a paleta ampliada mostra duas cores por linha, com o nome de gente e o do código ("Limão · limao"). A tabela do contraste não rola de lado: os três números de cada cor ficam numa linha abaixo do nome, cada um com o nome da coluna em cima.
 
 ### O que ficou de fora do sistema, de propósito

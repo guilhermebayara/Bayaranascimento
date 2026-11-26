@@ -70,14 +70,14 @@ As regras em vigor moram em `docs/regras/`, um arquivo por assunto. `docs/deciso
 
 - A estrutura do banco muda pela lista `MIGRACOES` em `src/lib/servidor/banco.ts`. O próprio site aplica as migrações novas no primeiro acesso, na produção e nas prévias.
 - Uma migração já publicada nunca é editada. Mudança nova é uma migração nova, com o número seguinte.
-- O SQLite não altera um `CHECK` no lugar: a tabela é refeita com os mesmos dados (ver `010-papel-pai`). Se outra tabela depende dela com `ON DELETE CASCADE`, refaça a dependente antes de apagar a antiga (ver `012-casal-publico-a-parte`); a guarda da produção recusa a ordem errada.
+- O SQLite não altera um `CHECK` no lugar: a tabela é refeita com os mesmos dados (ver `010-papel-pai`). Se outra tabela depende dela com `ON DELETE CASCADE`, `SET NULL` ou `SET DEFAULT` (também pela chave posta por `ALTER TABLE ... ADD COLUMN`), refaça a dependente antes de apagar a antiga (ver `012-casal-publico-a-parte`); a guarda da produção recusa a ordem errada.
 - Os exemplos ficam em `src/lib/servidor/semente.ts`. O banco de teste já foi semeado, então exemplo novo entra numa função própria, protegida pela existência de um dos registros novos, chamada dentro da proteção da produção em `banco.ts`.
 
 ## Conferências
 
 O que cada uma confere, regra por regra, está em `docs/regras/conferencias.md`.
 
-- `npm run confere` (`scripts/confere-producao.mjs`), a guarda da produção: separa a produção, a homologação e as prévias, guarda os exemplos, os e-mails, os segredos e o que se apaga do bucket, as migrações, o espelho, as cópias das fotos, os scripts de desempenho, o simulador de data, as telas do conceito (regra 8) e a página do sistema (regra 9).
+- `npm run confere` (`scripts/confere-producao.mjs`), a guarda da produção: separa a produção, a homologação e as prévias, guarda os exemplos, os e-mails, os segredos e o que se apaga do bucket, as migrações, o espelho, as cópias das fotos, os scripts de desempenho, o simulador de data, a trava das telas do conceito, se elas voltarem (regra 8) e a página do sistema (regra 9).
 - `npm test`: os testes de `testes/`, que cobrem quase todo o site.
 - `npm run build` roda os dois primeiros antes do build (`prebuild`). O Cloudflare publica com `npm run build`: se algo falhar, nada vai ao ar e a versão anterior continua.
 - Com o servidor local no ar, fora do build: `npm run gestalt` (a proximidade dos títulos, em 390 e 1280 px; antes de cada push para a `homologa`, é a única conferência dela nesse caminho), `npm run tv` (o modo TV em oito janelas) e, com o acervo cheio, `node scripts/desempenho/conferir-consultas.mjs` e `node scripts/desempenho/estimar-natal.mjs`.

@@ -121,7 +121,7 @@ O índice e cada parte trazem também `marca_do_esquema`, um resumo do `sqlite_m
 
 No código: `testes/esquema-da-copia.test.ts`, com a conta em `testes/apoio/esquema-sustentado.ts`.
 
-A rede compara as chaves valor a valor, sem collation, e só pelas colunas. Por isso, nas tabelas da cópia, o esquema não tem coluna gerada (a restauração não grava nela), índice único por expressão (fora da régua) nem collation diferente da BINARY numa coluna de chave, inclusive a coluna de lá de uma chave estrangeira. O teste confere isso no esquema de verdade, depois de todas as migrações e dos exemplos, e falha com o recado para ajustar a cópia junto (a régua, `conferirCopia`, `conferirArquivo` e a restauração) ou trocar o esquema. Índice único com condição continua aceito: a marca cobre as tabelas do acervo onde eles estão.
+A rede compara as chaves valor a valor, sem collation, e só pelas colunas. Por isso, nas tabelas da cópia, o esquema não tem coluna gerada (a restauração não grava nela), índice único por expressão (fora da régua) nem collation diferente da BINARY numa coluna de chave, inclusive a coluna de lá de uma chave estrangeira. Também não tem tabela `WITHOUT ROWID`: a cópia pagina cada tabela por rowid (`montarParte`, em `src/lib/servidor/copia.ts`), e sem ele não acha onde recomeçar a próxima parte. O teste confere isso no esquema de verdade, depois de todas as migrações e dos exemplos, e falha com o recado para ajustar a cópia junto (a régua, `conferirCopia`, `conferirArquivo` e a restauração) ou trocar o esquema. Índice único com condição continua aceito: a marca cobre as tabelas do acervo onde eles estão.
 
 ### Duas tabelas não vão na cópia
 

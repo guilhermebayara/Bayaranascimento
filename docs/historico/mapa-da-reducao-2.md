@@ -530,7 +530,7 @@ As contradições corrigidas pelo código (C-1 a C-7 do relatório da auditoria 
 | 726 | Restringir não pede nada. Quando o público da memória … | igual, em `regras/ampliar.md`, "Ampliar quem vê uma memória com relatos" |
 | 727 | A resposta é um formulário comum (/api/avisos), que funciona … | igual, em `regras/ampliar.md`, "Ampliar quem vê uma memória com relatos" |
 | 728 | As prévias têm um pedido de exemplo: um relato … | igual, em `regras/ampliar.md`, "Ampliar quem vê uma memória com relatos" |
-| 734 | /explorar: uma tela só. Os controles seguem a proposta … | regras/explorar.md, Explorar; a origem (proposta A da sessão D) no histórico; marca (Gui, 18/11) |
+| 734 | /explorar: uma tela só. Os controles seguem a proposta … | regras/explorar.md, Explorar; a origem (proposta A da sessão D) no histórico; marca (Gui, 18/11); explorarMemorias, que a AC1 tirou, virou contextoDoExplorar |
 | 736 | No alto, nesta ordem: as famílias, em pílula, logo … | igual, em `regras/explorar.md`, "Explorar" |
 | 737 | "Filtros" é uma ferramenta só. Fechado, diz quantos filtros … | igual, em `regras/explorar.md`, "Explorar" |
 | 738 | A ordem não é filtro: fica à parte, num … | igual, em `regras/explorar.md`, "Explorar" |
@@ -714,7 +714,7 @@ As contradições corrigidas pelo código (C-1 a C-7 do relatório da auditoria 
 | 169 | Uma pessoa numa lista de laços Gente.astro href, nome, … | igual, em `docs/visual.md`, "As peças e como usar" |
 | 170 | Um relato, na memória conversa/Voz.astro O relato como conversa: … | igual, em `docs/visual.md`, "As peças e como usar" |
 | 171 | Escrever um relato conversa/Janela.astro A janela da conversa: as … | igual, em `docs/visual.md`, "As peças e como usar" |
-| 172 | Um áudio Audio.astro rotulo, src, transcricao. Usa o tocador … | igual, em `docs/visual.md`, "As peças e como usar" |
+| 172 | Um áudio Audio.astro rotulo, src, transcricao. Usa o tocador … | docs/visual.md, "As peças e como usar"; Audio.astro saiu na AC1, e a linha passou a apontar para conversa/Voz.astro com conversa/Mensagem.astro |
 | 173 | O capítulo de uma memória SinalDoCapitulo.astro, Trilhos.astro id, titulo … | igual, em `docs/visual.md`, "As peças e como usar" |
 | 174 | Reagir a uma memória, um relato ou uma foto … | igual, em `docs/visual.md`, "As peças e como usar" |
 | 175 | As ações secundárias de um item MenuDeAcoes.astro rotulo ("Mais … | igual, em `docs/visual.md`, "As peças e como usar" |

@@ -411,3 +411,14 @@ O `CLAUDE.md` passou de 31 KB para uns 15 KB em 26/11/2026 (sessão AC2, auditor
 - **O mínimo de recarregamentos** (linha 818): "(sessão L)".
 - **Revisão visual: movimento, detalhes e o aparelho** (linhas 819 a 822): "e o tocador de áudio próprio" saiu da fase 4, porque já está no site (`docs/visual.md`; auditoria AC, C-6); "Quando a revisão terminar, `docs/ux/revisao-visual.md`, `docs/ux/padroes.md` e `docs/ux/capturas/` saem de cena (já movidos para `docs/historico/ux/` em 18/11/2026)."
 
+
+## Depois da AC1
+
+A AC1 (#176, juntada na `homologa` em 26/11/2026) mudou código que os documentos citavam. Ao trazer a `homologa`, os documentos acompanharam:
+
+- `docs/regras/explorar.md`, abertura: a consulta citada era `explorarMemorias`, que a AC1 tirou por não ter uso; a citação passou a `contextoDoExplorar`, o que os filtros leem do banco.
+- `docs/visual.md`, "As peças e como usar": a linha "Um áudio" apontava para `Audio.astro`, que a AC1 tirou; passou a apontar para a voz da conversa. Em "A página do sistema fica", entrou a voz da conversa no lugar do bloco de áudio.
+- A guarda das migrações recusa também `ON DELETE SET NULL` e `SET DEFAULT` e a chave posta por `ALTER TABLE ... ADD COLUMN` (`docs/regras/conferencias.md` e `CLAUDE.md`, "Banco de dados"); o teste do esquema da cópia recusa tabela `WITHOUT ROWID` (`docs/copia-no-drive.md`, "O esquema que a cópia sustenta", e `docs/regras/conferencias.md`).
+- `npm run tv` recusa a produção e a homologação (`docs/regras/conferencias.md` e `docs/regras/explorar.md`).
+- A regra 8 da guarda passou a dizer que a rota do conceito não existe e que, se voltar, precisa da trava.
+- Os motivos que a auditoria pedia escritos (6.4): o dos registros do Workers (`observability`) em `docs/regras/infraestrutura.md`, e o dos 7 dias da limpeza do bucket de teste em `docs/regras/exemplos.md`, como a AC1 escreveu no código.
