@@ -19,11 +19,11 @@ describe.skipIf(!comSqlite)('o esquema que a cópia sustenta', async () => {
   await prepararBanco();
   const { TABELA_DA_MARCA, TABELAS_FORA_DA_COPIA } = await import('../src/lib/servidor/marca-da-copia');
 
-  it('o esquema de verdade não tem coluna gerada, índice único por expressão nem collation diferente da BINARY em chave', () => {
+  it('o esquema de verdade não tem coluna gerada, índice único por expressão, collation diferente da BINARY em chave nem tabela WITHOUT ROWID', () => {
     expect(esquemaQueACopiaNaoSustenta(banco.sqlite, [TABELA_DA_MARCA, ...Object.keys(TABELAS_FORA_DA_COPIA)]), RECADO_DO_ESQUEMA).toEqual([]);
   });
 
-  it('um esquema de exemplo com os três é pego, um a um', async () => {
+  it('um esquema de exemplo com os quatro é pego, um a um', async () => {
     const exemplo = await criarD1();
     exemplo.sqlite.exec(`CREATE TABLE pessoas (id TEXT PRIMARY KEY COLLATE NOCASE, nome TEXT)`);
     exemplo.sqlite.exec(`CREATE TABLE fotos (id INTEGER PRIMARY KEY, dona TEXT REFERENCES pessoas(id), chave TEXT, grande INTEGER GENERATED ALWAYS AS (length(chave) > 10) VIRTUAL)`);
@@ -32,12 +32,14 @@ describe.skipIf(!comSqlite)('o esquema que a cópia sustenta', async () => {
     // Um índice único com condição continua aceito: está nas tabelas do acervo, que a marca cobre
     exemplo.sqlite.exec(`CREATE TABLE pedidos (id INTEGER PRIMARY KEY, relato INTEGER, aberto INTEGER)`);
     exemplo.sqlite.exec(`CREATE UNIQUE INDEX pedidos_um_aberto ON pedidos (relato) WHERE aberto = 1`);
+    exemplo.sqlite.exec(`CREATE TABLE sem_rowid (chave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID`);
     const problemas = esquemaQueACopiaNaoSustenta(exemplo.sqlite);
     expect(problemas.some((p) => p.startsWith('fotos.grande: coluna gerada'))).toBe(true);
     expect(problemas.some((p) => p.includes('fotos_chave_sem_caixa é por expressão'))).toBe(true);
     expect(problemas.some((p) => p.startsWith('pessoas.id: a chave usa a collation NOCASE'))).toBe(true);
     expect(problemas.some((p) => p.startsWith('apelidos.apelido: a chave usa a collation NOCASE'))).toBe(true);
     expect(problemas.some((p) => p.startsWith('fotos → pessoas.id: a chave estrangeira usa a collation NOCASE'))).toBe(true);
-    expect(problemas.some((p) => p.includes('pedidos'))).toBe(false);
+    expect(problemas.some((p) => p.startsWith('sem_rowid: tabela WITHOUT ROWID'))).toBe(true);
+    expect(problemas.some((p) => p.startsWith('pedidos') || p.startsWith('fotos: tabela') || p.startsWith('pessoas: tabela'))).toBe(false);
   });
 });

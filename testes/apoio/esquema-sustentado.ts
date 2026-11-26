@@ -2,11 +2,13 @@
 //
 // A rede no fim da cópia (conferirCopia, em src/lib/copia-em-partes.ts, e conferirArquivo, em
 // scripts/copia-no-drive.gs) compara as chaves valor a valor, sem collation, e só pelas colunas; e o arquivo
-// guarda cada coluna como veio. Três coisas no esquema escapariam dela:
+// guarda cada coluna como veio. Quatro coisas no esquema escapariam dela:
 // - uma coluna gerada (a restauração falha com "cannot INSERT into generated column");
 // - um índice único por expressão (fica fora da régua);
 // - uma collation diferente da BINARY numa coluna de chave (a régua compara sem ela: "A" e "a" seriam diferentes
-//   para a régua e iguais para o banco, ou o contrário, e as quatro passadas seriam descartadas).
+//   para a régua e iguais para o banco, ou o contrário, e as quatro passadas seriam descartadas);
+// - uma tabela WITHOUT ROWID (montarParte pagina por rowid, em src/lib/servidor/copia.ts: sem ele, a cópia não
+//   acha onde recomeçar a próxima parte; sessão AC1, 26/11/2026, B-2 da auditoria AC).
 // Esta função acha cada uma, nas tabelas da cópia. Lista vazia: a cópia sustenta o esquema.
 import type { DatabaseSync } from './d1';
 
@@ -16,6 +18,8 @@ export function esquemaQueACopiaNaoSustenta(banco: DatabaseSync, fora: readonly 
     .map((t) => t.name)
     .filter((t) => !fora.includes(t));
   for (const t of tabelas) {
+    const semRowid = banco.prepare(`SELECT wr FROM pragma_table_list WHERE name = ? AND schema = 'main'`).get(t) as { wr: number } | undefined;
+    if (semRowid?.wr === 1) problemas.push(`${t}: tabela WITHOUT ROWID; a cópia pagina por rowid e não a lê.`);
     for (const c of banco.prepare(`SELECT name, hidden FROM pragma_table_xinfo(?) WHERE hidden IN (2, 3)`).all(t) as { name: string }[]) {
       problemas.push(`${t}.${c.name}: coluna gerada; a restauração não aceita gravar nela.`);
     }
