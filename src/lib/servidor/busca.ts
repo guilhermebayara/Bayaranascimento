@@ -1,17 +1,18 @@
 // A busca do site (docs/regras/explorar.md, "A busca"): o que ela acha, só com o que a pessoa vê. A regra de
 // achar fica em src/lib/busca.ts; o índice dos textos, na migração 116 (busca_textos e o FTS5 busca_indice).
 //
-// O índice só acha candidatos. Quem vê o quê é decidido aqui, pelo código, sobre eles, com as regras de
-// sempre (src/lib/servidor/permissoes.ts):
-// - memória: só a publicada que a pessoa vê (podeVerMemoria) e que não está na lixeira;
+// O índice só acha candidatos. Quem vê o quê segue as regras de sempre, de src/lib/servidor/quem-ve.ts:
+// - memória: só a publicada que a pessoa vê, fora da lixeira (sqlVeMemoria, na leitura das candidatas);
 // - pessoa: só quem a pessoa vê (listarIntegrantesQueVe), sem o ex que ela deixou discreto ou fora;
-// - relato: só o publicado que ela lê na página da memória (veORelato), o que tira o relato que espera de quem
-//   ainda não pode lê-lo e o de quem só existe num laço privado de outra pessoa;
+// - relato: só o publicado que ela lê na página da memória (veORelato, sobre o relato lido junto do acerto), o que tira o
+//   relato que espera de quem ainda não pode lê-lo (também a lista vazia, '[]', que espera como qualquer lista)
+//   e o de quem só existe num laço privado de outra pessoa;
 // - áudio: só a transcrição que não foi removida, de um relato desses;
 // - legenda: só a da foto que não foi removida, que está na memória e, quando veio com um relato, desse relato.
 // O que fica de fora não acha nada, não vira trecho, sugestão nem contagem, e o vazio responde igual ao que
-// não existe. Este arquivo não escreve SQL de quem vê o quê: as consultas só leem linhas pelo id ou pelo
-// índice, e a decisão é das funções exportadas por permissoes.ts (a sessão AC3 junta essas regras).
+// não existe. A regra da memória entra no SQL pelo fragmento importado de quem-ve.ts (a regra da AC3); a do
+// relato é decidida no código, com o predicado de lá. Este arquivo não escreve condição de quem vê o quê à mão
+// (a guarda confere, regra 15).
 import { memoriaDoCapitulo, type Capitulo } from '../capitulos';
 import { acha, buscar, normalizar, palavras, termos, consultaDoIndice, type Achado, type DocumentoDaBusca, type Motivo, type PessoaAchada, type TextoDaBusca } from '../busca';
 import { tipoDaMemoria, type Tipo } from '../tipos';
@@ -20,7 +21,8 @@ import { coresDasPessoas } from '../familias';
 import { enderecoDoRetrato } from '../retratos';
 import { banco } from './ambiente';
 import { parentescosDeQuemOlha } from './parentesco-de-quem-olha';
-import { podeVerMemoria, veORelato, type Usuario } from './permissoes';
+import type { Usuario } from './permissoes';
+import { lerEspera, sqlVeMemoria, veORelato } from './quem-ve';
 import {
   comoOsExesAparecem,
   listarCapitulos,
@@ -37,6 +39,11 @@ import {
 
 const db = () => banco();
 const dentro = `IN (SELECT value FROM json_each(?))`;
+/**
+ * A lista de ids lida pela junção com json_each, e não por `IN (SELECT ...)`: o IN monta uma tabela temporária a
+ * cada consulta, e com centenas de ids a junção lê perto de 30% menos (medido com o acervo cheio).
+ */
+const lidaDaLista = (apelido: string, parametro = '?') => `json_each(${parametro}) ${apelido}`;
 
 /** Uma memória como a busca a conhece: o que ela mostra e o que decide quem a vê. */
 export interface MemoriaDaBusca {
@@ -81,16 +88,6 @@ const palavrasDoParentesco = (parentesco: string) => {
 };
 const achaEm = (termo: string, texto: string | null | undefined) => Boolean(texto) && palavrasDe(texto!).some((p) => acha(termo, p));
 
-const nucleosDoRelato = (valor: unknown): string[] | null => {
-  if (typeof valor !== 'string' || !valor) return null;
-  try {
-    const lista = JSON.parse(valor);
-    return Array.isArray(lista) && lista.length ? (lista as string[]) : null;
-  } catch {
-    return null;
-  }
-};
-
 /** A memória de uma linha do banco, sem as ligações. */
 function daLinha(r: Record<string, unknown>): MemoriaDaBusca {
   return {
@@ -114,32 +111,38 @@ function daLinha(r: Record<string, unknown>): MemoriaDaBusca {
   };
 }
 
-/** A memória que a busca pode mostrar: publicada, fora da lixeira e que a pessoa vê (podeVerMemoria). */
-const vistaNaBusca = (usuario: Usuario, m: MemoriaDaBusca) => !m.excluida && m.situacao === 'publicada' && podeVerMemoria(usuario, m);
-
 /**
- * Lê as memórias pelo id, com as ligações que a busca usa. Só lê: quem decide se a pessoa vê é vistaNaBusca.
+ * Lê, pelo id, as memórias que a pessoa vê, só com o que a busca mostra (sem as ligações): a regra de quem vê
+ * é o fragmento de quem-ve.ts, só publicada e fora da lixeira. As ligações que contam para a busca (as pessoas,
+ * os capítulos e os temas achados) já vêm das consultas por pessoa, capítulo e tema.
  */
-async function lerMemorias(ids: string[]): Promise<Map<string, MemoriaDaBusca>> {
-  if (ids.length === 0) return new Map();
-  // Uma consulta só, com as ligações de cada memória em subconsultas pelo índice: a lista de ids é lida uma vez,
-  // e não uma vez por tabela (com o acervo cheio, 1.600 linhas em vez de 2.500 para 115 memórias)
-  const lista = (tabela: string, coluna: string) => `(SELECT json_group_array(${coluna}) FROM ${tabela} x WHERE x.memoria_id = m.id) AS ${tabela}`;
+async function lerMemoriasQueVe(usuario: Usuario, lista: string[]): Promise<Map<string, MemoriaDaBusca>> {
+  if (lista.length === 0) return new Map();
   const { results } = await db()
     .prepare(
-      `SELECT m.id, m.titulo, m.ano, m.mes, m.dia, m.aproximada, m.lugar, m.tipo, m.tipo_outro, m.situacao, m.visibilidade, m.criada_por, m.excluida_em,
-        ${lista('memoria_nucleos', 'nucleo_id')}, ${lista('memoria_integrantes', 'integrante_id')}, ${lista('capitulo_memorias', 'capitulo_id')}, ${lista('tema_memorias', 'tema_id')}
-       FROM memorias m WHERE m.id ${dentro}`,
+      `SELECT m.id, m.titulo, m.ano, m.mes, m.dia, m.aproximada, m.lugar, m.tipo, m.tipo_outro, m.situacao, m.visibilidade, m.criada_por, m.excluida_em
+       FROM ${lidaDaLista('j', '?1')} JOIN memorias m ON m.id = j.value WHERE ${sqlVeMemoria({ so: 'publicada', pessoa: '?2' })}`,
     )
-    .bind(JSON.stringify(ids))
+    .bind(JSON.stringify(lista), usuario.pessoa)
     .all<Record<string, unknown>>();
-  const ler = (valor: unknown) => (typeof valor === 'string' ? (JSON.parse(valor) as string[]) : []);
-  return new Map(
-    (results as Record<string, unknown>[]).map((r) => {
-      const m = daLinha(r);
-      return [m.id, { ...m, nucleos: ler(r.memoria_nucleos), integrantes: ler(r.memoria_integrantes), capitulos: ler(r.capitulo_memorias), temas: ler(r.tema_memorias) }];
-    }),
-  );
+  return new Map((results as Record<string, unknown>[]).map((r) => [r.id as string, daLinha(r)]));
+}
+
+/**
+ * As ligações inteiras (pessoas e famílias) das memórias: só quando um capítulo por período com pessoas ou
+ * famílias foi achado pelo nome, para memoriaDoCapitulo decidir.
+ */
+async function lerLigacoes(lista: string[]): Promise<Map<string, { integrantes: string[]; nucleos: string[] }>> {
+  if (lista.length === 0) return new Map();
+  const [integrantes, nucleos] = await db().batch<Record<string, unknown>>([
+    db().prepare(`SELECT x.memoria_id, x.integrante_id FROM ${lidaDaLista('j')} JOIN memoria_integrantes x ON x.memoria_id = j.value ORDER BY x.memoria_id, x.integrante_id`).bind(JSON.stringify(lista)),
+    db().prepare(`SELECT x.memoria_id, x.nucleo_id FROM ${lidaDaLista('j')} JOIN memoria_nucleos x ON x.memoria_id = j.value ORDER BY x.memoria_id, x.nucleo_id`).bind(JSON.stringify(lista)),
+  ]);
+  type Linhas = { results: Record<string, unknown>[] };
+  const mapa = new Map(lista.map((id) => [id, { integrantes: [] as string[], nucleos: [] as string[] }]));
+  for (const r of (integrantes as Linhas).results) mapa.get(r.memoria_id as string)?.integrantes.push(r.integrante_id as string);
+  for (const r of (nucleos as Linhas).results) mapa.get(r.memoria_id as string)?.nucleos.push(r.nucleo_id as string);
+  return mapa;
 }
 
 /** A memória que a página já leu (listarMemorias, só o que a pessoa vê), no jeito da busca. */
@@ -166,75 +169,86 @@ const daPagina = (m: Memoria): MemoriaDaBusca => ({
 interface Acerto {
   memoria: string;
   campo: TextoDaBusca['campo'] | 'titulo' | 'lugar';
-  ref: number | null;
   id: number;
+  /** o texto achado, para o trecho (no relato, no áudio e na legenda) */
+  texto: string;
+  /** quem contou, no relato e no áudio */
+  por: string | null;
 }
 
-/** Os acertos do índice para cada termo: as linhas de busca_textos que o FTS5 acha. */
-async function acertosDoIndice(procurados: string[]): Promise<Acerto[][]> {
-  const respostas = await db().batch<{ id: number; memoria_id: string; campo: Acerto['campo']; ref: number | null }>(
-    procurados.map((t) =>
-      db()
-        .prepare(`SELECT t.id, t.memoria_id, t.campo, t.ref FROM busca_indice JOIN busca_textos t ON t.id = busca_indice.rowid WHERE busca_indice MATCH ?`)
-        .bind(consultaDoIndice(t)),
-    ),
-  );
-  type Linha = { id: number; memoria_id: string; campo: Acerto['campo']; ref: number | null };
-  return (respostas as { results: Linha[] }[]).map((r) => r.results.map((l: Linha) => ({ memoria: l.memoria_id, campo: l.campo, ref: l.ref, id: l.id })));
-}
+/** A consulta dos detalhes de um acerto: o texto e a regra do relato, do áudio e da foto. */
+const DETALHES = `t.id, t.memoria_id, t.campo, t.texto, r.id AS relato, r.memoria_id AS memoria_do_relato, r.por, r.registrado_por, r.so_para_nucleos, r.situacao AS situacao_do_relato,
+  a.removido_em AS audio_removido, f.memoria_id AS memoria_da_foto, f.relato_id AS relato_da_foto, f.removida_em AS foto_removida`;
+const JUNCOES = `LEFT JOIN audios a ON a.id = (CASE WHEN t.campo = 'audio' THEN t.ref END)
+  LEFT JOIN fotos f ON f.id = (CASE WHEN t.campo = 'legenda' THEN t.ref END)
+  LEFT JOIN relatos r ON r.id = (CASE t.campo WHEN 'relato' THEN t.ref WHEN 'audio' THEN a.relato_id WHEN 'legenda' THEN f.relato_id END)`;
 
 /**
- * Os textos achados que a pessoa vê, por memória: o relato que ela lê na página da memória (veORelato), a
- * transcrição de um áudio dele que não foi removido e a legenda de uma foto que ela vê.
+ * O acerto que a pessoa pode ler. O SQL só lê; quem decide é o código, aqui, linha por linha, com a regra de
+ * quem-ve.ts: o relato pela regra da página da memória (veORelato, com a espera lida por lerEspera, que mantém
+ * '[]' como espera), publicado e desta memória; o áudio não removido de um relato desses; a legenda da foto não
+ * removida, desta memória e, quando veio com um relato, de um relato desses.
  */
-async function textosQueVe(usuario: Usuario, acertos: Acerto[], nomeDe: (id: string) => string): Promise<Map<string, TextoDaBusca[]>> {
-  const deTexto = acertos.filter((a) => a.campo === 'relato' || a.campo === 'audio' || a.campo === 'legenda');
-  const porTexto = new Map<string, TextoDaBusca[]>();
-  if (deTexto.length === 0) return porTexto;
-  const ids = (campo: Acerto['campo']) => JSON.stringify([...new Set(deTexto.filter((a) => a.campo === campo).map((a) => a.ref))]);
-  const [linhas, audios, fotos] = await db().batch<Record<string, unknown>>([
-    db().prepare(`SELECT id, memoria_id, campo, ref, texto FROM busca_textos WHERE id ${dentro}`).bind(JSON.stringify([...new Set(deTexto.map((a) => a.id))])),
-    db().prepare(`SELECT id, relato_id, removido_em FROM audios WHERE id ${dentro}`).bind(ids('audio')),
-    db().prepare(`SELECT id, memoria_id, relato_id, removida_em FROM fotos WHERE id ${dentro}`).bind(ids('legenda')),
-  ]);
-  type Linhas = { results: Record<string, unknown>[] };
-  const audioPorId = new Map((audios as Linhas).results.map((a: Record<string, unknown>) => [a.id as number, a]));
-  const fotoPorId = new Map((fotos as Linhas).results.map((f: Record<string, unknown>) => [f.id as number, f]));
-  const relatoIds = new Set<number>(deTexto.filter((a) => a.campo === 'relato').map((a) => a.ref as number));
-  for (const a of (audios as Linhas).results) if (a.relato_id != null) relatoIds.add(a.relato_id as number);
-  for (const f of (fotos as Linhas).results) if (f.relato_id != null) relatoIds.add(f.relato_id as number);
-  const [relatos, naoVe] = await Promise.all([
-    relatoIds.size
-      ? db()
-          .prepare(`SELECT id, memoria_id, por, registrado_por, so_para_nucleos, situacao FROM relatos WHERE id ${dentro}`)
-          .bind(JSON.stringify([...relatoIds]))
-          .all<Record<string, unknown>>()
-      : Promise.resolve({ results: [] as Record<string, unknown>[] }),
+function quemPodeLer(usuario: Usuario, naoVe: ReadonlySet<string>) {
+  return (l: Record<string, unknown>): boolean => {
+    if (l.campo === 'titulo' || l.campo === 'lugar') return true;
+    const relatoLido =
+      l.relato != null &&
+      l.situacao_do_relato === 'publicada' &&
+      l.memoria_do_relato === l.memoria_id &&
+      veORelato({ por: l.por as string, registradoPor: l.registrado_por as string, soParaNucleos: lerEspera(l.so_para_nucleos) }, usuario, naoVe);
+    if (l.campo === 'relato') return relatoLido;
+    if (l.campo === 'audio') return relatoLido && l.audio_removido == null;
+    return l.foto_removida == null && l.memoria_da_foto === l.memoria_id && (l.relato_da_foto == null || relatoLido);
+  };
+}
+const paraAcerto = (l: Record<string, unknown>): Acerto => ({ memoria: l.memoria_id as string, campo: l.campo as Acerto['campo'], id: l.id as number, texto: l.texto as string, por: (l.por as string | null) ?? null });
+
+/**
+ * Os acertos do índice para cada termo. Com uma palavra, já com o texto e só os que a pessoa pode ler (o
+ * relato do texto, do áudio ou da foto vem na mesma consulta, e quemPodeLer decide), e `detalhados` é verdade.
+ * A regra do relato fica no código: o fragmento SQL dela (sqlVeORelato) lê uma linha a mais por acerto, no
+ * `NOT IN` de quem a pessoa não vê, e a palavra comum acha centenas de relatos. Com mais de uma, só o lugar de cada acerto (o id e a memória), a mais e nunca a menos:
+ * a palavra comum ("vó", "eu") acha centenas de textos, e os detalhes só valem para as memórias que respondem a
+ * todas as palavras (detalharAcertos). O título e o lugar acompanham a memória, conferida na leitura das
+ * candidatas (sqlVeMemoria). O áudio e a foto entram pelo id só no campo deles (o CASE no ON): com a condição
+ * do campo fora do ON, cada acerto lia também o áudio e a foto de mesmo número.
+ */
+async function acertosDoIndice(usuario: Usuario, procurados: string[]): Promise<{ porTermo: Acerto[][]; detalhados: boolean }> {
+  const indice = `busca_indice JOIN busca_textos t ON t.id = busca_indice.rowid`;
+  if (procurados.length === 1) {
+    const [{ results }, naoVe] = await Promise.all([
+      db().prepare(`SELECT ${DETALHES} FROM ${indice} ${JUNCOES} WHERE busca_indice MATCH ?`).bind(consultaDoIndice(procurados[0]!)).all<Record<string, unknown>>(),
+      pessoasQueONaoVe(usuario),
+    ]);
+    return { porTermo: [(results as Record<string, unknown>[]).filter(quemPodeLer(usuario, naoVe)).map(paraAcerto).sort((a, b) => a.id - b.id)], detalhados: true };
+  }
+  const respostas = await db().batch<Record<string, unknown>>(procurados.map((t) => db().prepare(`SELECT t.id, t.memoria_id, t.campo FROM ${indice} WHERE busca_indice MATCH ?`).bind(consultaDoIndice(t))));
+  const porTermo = (respostas as { results: Record<string, unknown>[] }[]).map((r) =>
+    r.results.map((l) => ({ memoria: l.memoria_id as string, campo: l.campo as Acerto['campo'], id: l.id as number, texto: '', por: null })).sort((a, b) => a.id - b.id),
+  );
+  return { porTermo, detalhados: false };
+}
+
+/** Os detalhes dos acertos dados, só os que a pessoa pode ler (a mesma regra da consulta de uma palavra). */
+async function detalharAcertos(usuario: Usuario, lista: number[]): Promise<Acerto[]> {
+  if (lista.length === 0) return [];
+  const [{ results }, naoVe] = await Promise.all([
+    db().prepare(`SELECT ${DETALHES} FROM ${lidaDaLista('j')} JOIN busca_textos t ON t.id = j.value ${JUNCOES}`).bind(JSON.stringify(lista)).all<Record<string, unknown>>(),
     pessoasQueONaoVe(usuario),
   ]);
-  const relatoPorId = new Map((relatos as Linhas).results.map((r: Record<string, unknown>) => [r.id as number, r]));
-  /** O relato que a pessoa lê na página da memória: publicado e pela regra de veORelato */
-  const relatoQueLe = (id: unknown, memoria: string) => {
-    const r = relatoPorId.get(id as number);
-    if (!r || r.situacao !== 'publicada' || r.memoria_id !== memoria) return undefined;
-    return veORelato({ por: r.por as string, registradoPor: r.registrado_por as string, soParaNucleos: nucleosDoRelato(r.so_para_nucleos) }, usuario, naoVe) ? r : undefined;
-  };
-  for (const l of (linhas as Linhas).results) {
-    const memoria = l.memoria_id as string;
-    let texto: TextoDaBusca | undefined;
-    if (l.campo === 'relato') {
-      const r = relatoQueLe(l.ref, memoria);
-      if (r) texto = { campo: 'relato', por: nomeDe(r.por as string), texto: l.texto as string };
-    } else if (l.campo === 'audio') {
-      const a = audioPorId.get(l.ref as number);
-      const r = a && a.removido_em == null ? relatoQueLe(a.relato_id, memoria) : undefined;
-      if (r) texto = { campo: 'audio', por: nomeDe(r.por as string), texto: l.texto as string };
-    } else {
-      const f = fotoPorId.get(l.ref as number);
-      const daMemoria = f && f.removida_em == null && f.memoria_id === memoria;
-      if (daMemoria && (f.relato_id == null || relatoQueLe(f.relato_id, memoria))) texto = { campo: 'legenda', por: '', texto: l.texto as string };
-    }
-    if (texto) porTexto.set(memoria, [...(porTexto.get(memoria) ?? []), texto]);
+  return (results as Record<string, unknown>[]).filter(quemPodeLer(usuario, naoVe)).map(paraAcerto);
+}
+
+/** Os textos achados de cada memória (o relato, o áudio e a legenda), na ordem do índice, sem repetir. */
+function textosDosAcertos(acertos: Acerto[], memorias: ReadonlySet<string>, nomeDe: (id: string) => string): Map<string, TextoDaBusca[]> {
+  const porTexto = new Map<string, TextoDaBusca[]>();
+  const vistos = new Set<number>();
+  for (const a of [...acertos].sort((x, y) => x.id - y.id)) {
+    if (a.campo === 'titulo' || a.campo === 'lugar' || !memorias.has(a.memoria) || vistos.has(a.id)) continue;
+    vistos.add(a.id);
+    const texto: TextoDaBusca = { campo: a.campo, por: a.campo === 'legenda' ? '' : nomeDe(a.por ?? ''), texto: a.texto };
+    porTexto.set(a.memoria, [...(porTexto.get(a.memoria) ?? []), texto]);
   }
   return porTexto;
 }
@@ -247,7 +261,7 @@ async function textosQueVe(usuario: Usuario, acertos: Acerto[], nomeDe: (id: str
 export async function buscarNoAcervo(usuario: Usuario, tipos: readonly Tipo[], busca: string, vistas?: Memoria[]): Promise<ResultadoDaBusca> {
   const procurados = termos(busca);
   if (procurados.length === 0) return VAZIO;
-  const [integrantes, exes, capitulos, temas, excluidas, porTermo] = await Promise.all([
+  const [integrantes, exes, capitulos, temas, excluidas, doIndice] = await Promise.all([
     listarIntegrantesQueVe(usuario),
     comoOsExesAparecem(usuario),
     listarCapitulos(usuario),
@@ -255,8 +269,9 @@ export async function buscarNoAcervo(usuario: Usuario, tipos: readonly Tipo[], b
     // temas" mostra só os que têm uma memória que a pessoa vê ou estão num capítulo que ela vê
     vistas ? listarTemasVisiveis(usuario) : listarTemas(),
     nomesDasPessoasExcluidas(),
-    acertosDoIndice(procurados),
+    acertosDoIndice(usuario, procurados),
   ]);
+  const porTermo = doIndice.porTermo;
   // O ex que quem procura deixou discreto ou fora não é achado pelo nome (docs/regras/integrantes.md, "Ex-casal")
   const pessoas = integrantes.filter((i) => !exes.has(i.id));
   const parentescos = await parentescosDeQuemOlha(usuario, pessoas);
@@ -309,9 +324,9 @@ export async function buscarNoAcervo(usuario: Usuario, tipos: readonly Tipo[], b
     // o que procurar vão ao banco; o capítulo por período entra pelo intervalo de anos (a regra fina vem depois)
     type Linhas = { results: Record<string, unknown>[] };
     const consultas: { chave: string; sql: string; valores: unknown[] }[] = [
-      ...(todasAsPessoas.length ? [{ chave: 'pessoas', sql: `SELECT memoria_id, integrante_id FROM memoria_integrantes WHERE integrante_id ${dentro}`, valores: [JSON.stringify(todasAsPessoas)] }] : []),
-      ...(reunidosAchados.length ? [{ chave: 'capitulos', sql: `SELECT memoria_id, capitulo_id FROM capitulo_memorias WHERE capitulo_id ${dentro}`, valores: [JSON.stringify(reunidosAchados)] }] : []),
-      ...(temasAchados.length ? [{ chave: 'temas', sql: `SELECT memoria_id, tema_id FROM tema_memorias WHERE tema_id ${dentro}`, valores: [JSON.stringify(temasAchados)] }] : []),
+      ...(todasAsPessoas.length ? [{ chave: 'pessoas', sql: `SELECT x.memoria_id, x.integrante_id FROM ${lidaDaLista('j')} JOIN memoria_integrantes x ON x.integrante_id = j.value`, valores: [JSON.stringify(todasAsPessoas)] }] : []),
+      ...(reunidosAchados.length ? [{ chave: 'capitulos', sql: `SELECT x.memoria_id, x.capitulo_id FROM ${lidaDaLista('j')} JOIN capitulo_memorias x ON x.capitulo_id = j.value`, valores: [JSON.stringify(reunidosAchados)] }] : []),
+      ...(temasAchados.length ? [{ chave: 'temas', sql: `SELECT x.rowid AS ordem, x.memoria_id, x.tema_id FROM ${lidaDaLista('j')} JOIN tema_memorias x ON x.tema_id = j.value`, valores: [JSON.stringify(temasAchados)] }] : []),
       ...(tiposAchados.length ? [{ chave: 'tipos', sql: `SELECT id, tipo FROM memorias WHERE tipo ${dentro}`, valores: [JSON.stringify(tiposAchados)] }] : []),
       ...anosAchados.map((a) => ({ chave: `ano:${a}`, sql: `SELECT id FROM memorias WHERE ano = ?`, valores: [a] })),
       ...porPeriodo.map((c) => ({ chave: `periodo:${c.id}`, sql: `SELECT id FROM memorias WHERE ano BETWEEN ? AND ?`, valores: [c.inicio!.ano, c.fim?.ano ?? 9999] })),
@@ -338,8 +353,25 @@ export async function buscarNoAcervo(usuario: Usuario, tipos: readonly Tipo[], b
     // pessoas achadas (para a conta delas)
     const deTodas = [...largasPorTermo[0]!].filter((id) => largasPorTermo.every((l) => l.has(id)));
     const dasPessoasAchadas = new Map(pessoasAchadas.map((p) => [p.id, new Set(ligadas('pessoas', 'integrante_id', [p.id]))]));
-    memorias = await lerMemorias([...new Set([...deTodas, ...[...dasPessoasAchadas.values()].flatMap((m) => [...m])])]);
-    for (const [id, m] of memorias) if (!vistaNaBusca(usuario, m)) memorias.delete(id);
+    // As memórias são lidas leves, só as que a pessoa vê (sqlVeMemoria). Das ligações, a memória leva as que contam
+    // para a busca, que já vieram das consultas acima: as pessoas, os capítulos reunidos e os temas achados, na
+    // ordem em que a página da memória as lê (a pessoa pelo id, o tema pela ordem de entrada)
+    memorias = await lerMemoriasQueVe(usuario, [...new Set([...deTodas, ...[...dasPessoasAchadas.values()].flatMap((m) => [...m])])]);
+    const pessoasDe = new Map<string, string[]>();
+    for (const l of resposta.get('pessoas') ?? []) pessoasDe.set(l.memoria_id as string, [...(pessoasDe.get(l.memoria_id as string) ?? []), l.integrante_id as string]);
+    const capitulosDe = new Map<string, string[]>();
+    for (const l of resposta.get('capitulos') ?? []) capitulosDe.set(l.memoria_id as string, [...(capitulosDe.get(l.memoria_id as string) ?? []), l.capitulo_id as string]);
+    const temasDe = new Map<string, Record<string, unknown>[]>();
+    for (const l of resposta.get('temas') ?? []) temasDe.set(l.memoria_id as string, [...(temasDe.get(l.memoria_id as string) ?? []), l]);
+    // O capítulo por período com pessoas ou famílias precisa das ligações inteiras (memoriaDoCapitulo)
+    const precisaDasLigacoes = porPeriodo.some((c) => c.pessoas.length > 0 || c.familias.length > 0);
+    const inteiras = precisaDasLigacoes ? await lerLigacoes(deTodas.filter((id) => memorias.has(id))) : new Map<string, { integrantes: string[]; nucleos: string[] }>();
+    for (const m of memorias.values()) {
+      m.integrantes = inteiras.get(m.id)?.integrantes ?? [...(pessoasDe.get(m.id) ?? [])].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+      m.nucleos = inteiras.get(m.id)?.nucleos ?? [];
+      m.capitulos = capitulosDe.get(m.id) ?? [];
+      m.temas = (temasDe.get(m.id) ?? []).sort((a, b) => (a.ordem as number) - (b.ordem as number)).map((l) => l.tema_id as string);
+    }
     // A regra fina, com as ligações lidas: o capítulo por período pela data e de quem é (memoriaDoCapitulo)
     candidatasPorTermo = fora.map((f, i) => {
       const daqui = new Set([...largasPorTermo[i]!].filter((id) => !f.capitulos.some((c) => c.modo === 'epoca') || porTermo[i]!.some((a) => a.memoria === id)));
@@ -355,13 +387,15 @@ export async function buscarNoAcervo(usuario: Usuario, tipos: readonly Tipo[], b
     comPessoa = dasPessoasAchadas;
   }
 
-  // As memórias que podem responder a todas as palavras, entre as que a pessoa vê
-  const candidatas = [...memorias.keys()].filter((id) => candidatasPorTermo.every((ids) => ids.has(id)));
-  const textos = await textosQueVe(
-    usuario,
-    porTermo.flat().filter((a) => candidatas.includes(a.memoria)),
-    nomeDe,
-  );
+  // As memórias que podem responder a todas as palavras, entre as que a pessoa vê, pelo id: no empate de pontos,
+  // a ordem do resultado é a do id, nos dois caminhos
+  const candidatas = [...memorias.keys()].filter((id) => candidatasPorTermo.every((ids) => ids.has(id))).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  // Com mais de uma palavra, os detalhes (o texto e a regra) só dos acertos das memórias que podem responder
+  const dasCandidatas = new Set(candidatas);
+  const acertos = doIndice.detalhados
+    ? porTermo.flat()
+    : await detalharAcertos(usuario, [...new Set(porTermo.flat().filter((a) => a.campo !== 'titulo' && a.campo !== 'lugar' && dasCandidatas.has(a.memoria)).map((a) => a.id))]);
+  const textos = textosDosAcertos(acertos, dasCandidatas, nomeDe);
   const nomeDoCapitulo = (m: MemoriaDaBusca) => capitulos.filter((c) => doCapitulo(m, c)).map((c) => c.titulo);
   const nomeDoTema = new Map(temas.map((t) => [t.id, t.nome]));
   const docs: DocumentoDaBusca[] = candidatas.map((id) => {
@@ -472,7 +506,7 @@ export async function folhaDaBusca(usuario: Usuario, tipos: readonly Tipo[], bus
     : { results: [] };
   const relatoQueLe = new Set(
     relatos.results
-      .filter((x) => x.situacao === 'publicada' && veORelato({ por: x.por as string, registradoPor: x.registrado_por as string, soParaNucleos: nucleosDoRelato(x.so_para_nucleos) }, usuario, naoVe))
+      .filter((x) => x.situacao === 'publicada' && veORelato({ por: x.por as string, registradoPor: x.registrado_por as string, soParaNucleos: lerEspera(x.so_para_nucleos) }, usuario, naoVe))
       .map((x) => x.id as number),
   );
   const fotoDe = new Map<string, Fontes>();

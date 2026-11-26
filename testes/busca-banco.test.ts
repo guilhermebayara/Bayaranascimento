@@ -22,7 +22,7 @@ describe.skipIf(!comSqlite)('busca: quem vê o quê', async () => {
   env.DB = banco;
   const { prepararBanco } = await import('../src/lib/servidor/banco');
   const repo = await import('../src/lib/servidor/repositorio');
-  const { buscarNoAcervo } = await import('../src/lib/servidor/busca');
+  const { buscarNoAcervo, folhaDaBusca } = await import('../src/lib/servidor/busca');
   type Usuario = import('../src/lib/servidor/permissoes').Usuario;
 
   const usuarioDe = (pessoa: string): Usuario => {
@@ -276,5 +276,54 @@ describe.skipIf(!comSqlite)('busca: quem vê o quê', async () => {
     } finally {
       banco.sqlite.exec(`DROP TABLE prova_do_indice`);
     }
+  });
+
+  describe('o relato que espera com a lista vazia (MEM-3, defeito 1; docs/regras/permissoes.md)', () => {
+    // O relato da Vó Bela em "A chegada do Gui", com o áudio da "panela", e uma foto que veio com ele
+    const relato = () => banco.sqlite.prepare(`SELECT r.id, r.texto, r.registrado_por, r.so_para_nucleos FROM relatos r JOIN audios a ON a.relato_id = r.id WHERE a.transcricao LIKE '%panela%'`).get() as { id: number; texto: string; registrado_por: string; so_para_nucleos: string | null };
+    /** As três rotas: a folha e /busca (folhaDaBusca, as duas) e o Explorar com q (busca compara a folha com ele) */
+    const tudo = async (quem: string, texto: string) => {
+      const r = await busca(quem, texto);
+      const folha = await folhaDaBusca(usuarioDe(quem), await repo.listarTipos(), texto);
+      return { ids: r.achados.map((a) => a.id), naFolha: folha.memorias.map((m) => m.id), total: folha.total, mostra: JSON.stringify({ ...folha, busca: '' }) + JSON.stringify(r.achados) };
+    };
+    const comEspera = async (valor: string | null, conferir: () => Promise<void>) => {
+      const antes = relato();
+      sql(`UPDATE relatos SET texto = ?, so_para_nucleos = ? WHERE id = ?`, `${antes.texto} Zabumbeiro de festa junina.`, valor, antes.id);
+      sql(`INSERT INTO fotos (memoria_id, chave, legenda, principal, ordem, enviada_por, relato_id) VALUES ('1992-chegada-do-gui', '', 'Caldeirão de alumínio areado', 0, 9, ?, ?)`, antes.registrado_por, antes.id);
+      try {
+        await conferir();
+      } finally {
+        sql(`DELETE FROM fotos WHERE legenda = 'Caldeirão de alumínio areado'`);
+        sql(`UPDATE relatos SET texto = ?, so_para_nucleos = ? WHERE id = ?`, antes.texto, antes.so_para_nucleos, antes.id);
+      }
+    };
+    const PALAVRAS = { texto: 'zabumbeiro', transcricao: 'panela', legenda: 'caldeirão areado' };
+
+    it("com '[]', só quem registrou acha pelo texto, pela transcrição e pela legenda; os outros não acham nada, nem trecho", async () => {
+      const quem = relato().registrado_por;
+      const outros = ['gui', 'giovanna', 'elizete', 'lucas-magno'].filter((p) => p !== quem);
+      expect(outros.length).toBeGreaterThan(0);
+      await comEspera('[]', async () => {
+        for (const [campo, palavra] of Object.entries(PALAVRAS)) {
+          expect((await tudo(quem, palavra)).ids, `${quem}, ${campo}`).toEqual(['1992-chegada-do-gui']);
+          for (const outro of outros) {
+            const r = await tudo(outro, palavra);
+            expect(r.ids, `${outro}, ${campo}`).toEqual([]);
+            expect(r.naFolha, `${outro}, ${campo}, na folha`).toEqual([]);
+            expect(r.total).toBe(0);
+            expect(r.mostra, `${outro}, ${campo}`).not.toMatch(/Zabumbeiro|panela|Caldeirão/);
+          }
+        }
+      });
+    });
+
+    it("com '' (sem espera), o relato segue a memória: todo mundo que vê a memória acha pelos três", async () => {
+      await comEspera('', async () => {
+        for (const quem of ['gui', 'giovanna', 'elizete', 'lucas-magno']) {
+          for (const [campo, palavra] of Object.entries(PALAVRAS)) expect((await tudo(quem, palavra)).ids, `${quem}, ${campo}`).toEqual(['1992-chegada-do-gui']);
+        }
+      });
+    });
   });
 });

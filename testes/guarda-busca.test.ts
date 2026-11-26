@@ -30,18 +30,35 @@ describe('a guarda da busca (regra 15)', () => {
     expect(problemas({ 'src/pages/explorar.astro': (t) => t.replace(/\n\s*\/\/ A busca \(`q`[^\n]*\n\s*busca: true,/, '') }).join()).toContain('src/pages/explorar.astro: soFiltrosConhecidos sem dizer');
   });
 
-  it('SQL de quem vê o quê na consulta da busca é recusado; ler a coluna para o código decidir, não', () => {
-    const comFiltro = (sql: string) => (t: string) => t.replace('FROM memorias m WHERE m.id ${dentro}`', `FROM memorias m WHERE m.id \${dentro} AND ${sql}\``);
-    for (const sql of ["situacao = 'publicada'", "visibilidade = 'todos'", 'excluida_em IS NULL']) {
+  it('SQL de quem vê o quê escrito à mão na consulta da busca é recusado; ler a coluna para o código decidir, não', () => {
+    const ancora = 'WHERE ${sqlVeMemoria({ so: ';
+    expect(deVerdade['src/lib/servidor/busca.ts']).toContain(ancora);
+    const comFiltro = (sql: string) => (t: string) => t.replace(ancora, `WHERE ${sql} ${ancora.slice(6)}`);
+    for (const sql of ["m.situacao = 'publicada' AND", "m.visibilidade = 'todos' AND", 'm.excluida_em IS NULL AND', "r.so_para_nucleos <> '[]' AND", 'EXISTS (SELECT 1 FROM memoria_nucleos mn WHERE mn.memoria_id = m.id) AND']) {
       expect(problemas({ 'src/lib/servidor/busca.ts': comFiltro(sql) }).join(), sql).toContain('SQL de quem vê o quê');
     }
     expect(problemas({ 'src/lib/servidor/busca.ts': (t) => t.replace(/WHERE memoria_id \$\{dentro\} ORDER BY principal/, 'WHERE removida_em IS NULL AND memoria_id ${dentro} ORDER BY principal') }).join()).toContain('SQL de quem vê o quê');
     expect(problemas({ 'src/lib/servidor/busca.ts': (t) => `${t}\nconst x = \`SELECT * FROM memorias m WHERE \${FILTRO_VISIVEL}\`;` }).join()).toContain('SQL de quem vê o quê');
-    // A consulta de hoje lê situacao e visibilidade no SELECT, para podeVerMemoria decidir: passa (o primeiro caso)
-    expect(deVerdade['src/lib/servidor/busca.ts']).toMatch(/SELECT m\.id, m\.titulo, [^`]*m\.situacao, m\.visibilidade/);
+    // A consulta do índice lê a situação do relato e a remoção no SELECT, para o código conferir: passa
+    expect(deVerdade['src/lib/servidor/busca.ts']).toMatch(/r\.situacao AS situacao_do_relato/);
   });
 
-  it('a busca sem podeVerMemoria ou sem veORelato é recusada', () => {
-    expect(problemas({ 'src/lib/servidor/busca.ts': (t) => t.replaceAll('podeVerMemoria', 'algumaOutra') }).join()).toContain('podeVerMemoria e veORelato');
+  it('a regra entra no SQL só pelos fragmentos importados de quem-ve.ts', () => {
+    const importacao = "import { lerEspera, sqlVeMemoria, veORelato } from './quem-ve';";
+    expect(deVerdade['src/lib/servidor/busca.ts']).toContain(importacao);
+    // Um fragmento escrito no próprio arquivo, com o nome de um de lá ou não, é recusado
+    const local = (t: string) => t.replace(importacao, "import { lerEspera, veORelato } from './quem-ve';\nconst sqlVeMemoria = (..._: unknown[]) => '1';");
+    expect(problemas({ 'src/lib/servidor/busca.ts': local }).join()).toContain('o fragmento sqlVeMemoria não vem de quem-ve.ts');
+    expect(problemas({ 'src/lib/servidor/busca.ts': (t) => t.replace('${sqlVeMemoria({', '${sqlMinhaRegra({') }).join()).toContain('o fragmento sqlMinhaRegra não vem de quem-ve.ts');
+    // Sem a regra da memória no SQL, também
+    expect(problemas({ 'src/lib/servidor/busca.ts': (t) => t.replace(/ WHERE \$\{sqlVeMemoria\(\{ so: 'publicada', pessoa: '\?2' \}\)\}/, '') }).join()).toContain('passa pela regra de quem-ve.ts (sqlVeMemoria)');
+  });
+
+  it('o relato passa por veORelato de quem-ve.ts, e a espera só por lerEspera (o defeito 1 da MEM-3)', () => {
+    expect(problemas({ 'src/lib/servidor/busca.ts': (t) => t.replaceAll('veORelato(', 'outraRegra(') }).join()).toContain('o relato que a busca lê passa pela regra de quem-ve.ts');
+    // A leitura própria da espera, a que tratava '[]' como sem espera, é recusada
+    const propria = (t: string) => t.replaceAll('lerEspera(l.so_para_nucleos)', 'nucleosDoRelato(l.so_para_nucleos)').replaceAll('lerEspera(x.so_para_nucleos)', 'nucleosDoRelato(x.so_para_nucleos)');
+    expect(problemas({ 'src/lib/servidor/busca.ts': propria }).join()).toContain('a espera do relato é lida por lerEspera');
+    expect(problemas({ 'src/lib/servidor/busca.ts': (t) => `${t}\nconst e = (l: Record<string, unknown>) => JSON.parse(l.so_para_nucleos as string);` }).join()).toContain('não é lida à mão');
   });
 });

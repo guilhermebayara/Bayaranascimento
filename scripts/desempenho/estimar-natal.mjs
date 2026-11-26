@@ -24,7 +24,8 @@
 // - A busca (aplicação da E2): cada pessoa procura 3 vezes no dia (BUSCAS_POR_PESSOA). Cada busca pede o resultado
 //   4 vezes enquanto se digita (PEDIDOS_POR_BUSCA, uma a cada pausa na digitação), pela rota sem o esqueleto
 //   (/busca/resultado), e abre uma vez o Explorar com a busca ("Ver no Explorar"). As linhas de cada pedido são
-//   a média de quatro buscas de verdade (BUSCAS), da palavra solta à frase.
+//   a média de seis buscas (BUSCAS), da palavra solta à frase, com as duas palavras comuns que mais leem ("vó" e
+//   "eu", que acham centenas de relatos: a revisão MEM-3 mediu o pior caso com elas).
 // - O que não entra: o começo de cada processo do servidor (migrações e exemplos, causa 9), gravações (as
 //   linhas lidas por quem grava memória, relato ou reação no dia) e o "Ver como" das prévias.
 const BASE = 'http://127.0.0.1:4321';
@@ -53,7 +54,7 @@ const MODO_TV = '/explorar?ver=tv&sala=1';
 const VOZES_POR_PASSAGEM = 1 / 3;
 const BUSCAS_POR_PESSOA = 3;
 const PEDIDOS_POR_BUSCA = 4;
-const BUSCAS = ['natal', 'natal casa vó', 'minha mãe', 'sabará'];
+const BUSCAS = ['natal', 'natal casa vó', 'minha mãe', 'sabará', 'vó', 'eu'];
 
 async function consultar(sql, params) {
   const r = await fetch(`${API}/local/observability/query`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sql, params }) });
