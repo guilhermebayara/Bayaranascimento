@@ -87,17 +87,28 @@ for (const [nomeDosDados, dados] of [['prévia', base], ['prévia com o tio do e
   }
 }
 
+// Cada caso é montado uma vez só, para os três testes (a montagem é o que pesa), e cada teste junta os defeitos
+// numa lista com um expect só: um expect por trecho e por caixa eram uns 230 mil, cada um montando a mensagem.
+const montados = new Map<Estado, ReturnType<typeof montarDesenho>>();
+const montagem = (dados: DadosDaArvore, e: Estado) => {
+  if (!montados.has(e)) montados.set(e, montarDesenho(dados, e));
+  return montados.get(e)!;
+};
+
 describe('linhas que contornam as caixas', () => {
   it.each(casos)('nenhuma linha de coração ou de consideração passa por cima de alguém (%s)', (_, dados, e) => {
-    const { desenho } = montarDesenho(dados, e);
+    const { desenho } = montagem(dados, e);
+    const defeitos: string[] = [];
     for (const l of desenho.linhas.filter((x) => x.tipo === 'coracao' || x.tipo === 'consideracao' || x.tipo === 'resumido')) {
-      for (const t of trechos(l.d).todos) for (const p of desenho.pessoas) expect(atravessa(t, p), `${l.de.join('/')} por cima de ${p.id}`).toBe(false);
+      for (const t of trechos(l.d).todos) for (const p of desenho.pessoas) if (atravessa(t, p)) defeitos.push(`${l.de.join('/')} por cima de ${p.id}`);
     }
+    expect(defeitos).toEqual([]);
   });
 
   it.each(casos)('nenhum tracejado repete trecho de outra linha (%s)', (_, dados, e) => {
-    const { desenho } = montarDesenho(dados, e);
+    const { desenho } = montagem(dados, e);
     const todas = desenho.linhas.filter((l) => l.tipo !== 'ponto').map((l) => ({ l, retos: trechos(l.d).retos }));
+    const defeitos: string[] = [];
     for (const [i, a] of todas.entries()) {
       if (!tracejada(a.l)) continue;
       for (const [j, b] of todas.entries()) {
@@ -107,24 +118,28 @@ describe('linhas que contornam as caixas', () => {
         for (const [p, ta] of a.retos.entries()) {
           for (const [q, tb] of b.retos.entries()) {
             if (i === j && q <= p) continue;
-            expect(juntos(ta, tb), `${a.l.tipo} ${a.l.de.join('/')} com ${b.l.tipo} ${b.l.de.join('/')}`).toBeLessThanOrEqual(1);
+            if (juntos(ta, tb) > 1) defeitos.push(`${a.l.tipo} ${a.l.de.join('/')} com ${b.l.tipo} ${b.l.de.join('/')}`);
           }
         }
       }
     }
+    expect(defeitos).toEqual([]);
   });
 });
 
 describe('um raio só para todas as curvas (achado do Gui, 16/11/2026)', () => {
   // Curva é bifurcação ou junção, ângulo reto é cruzamento: com raios diferentes, a diferença some
   it.each(casos)('toda curva tem o mesmo raio, bem visível (%s)', (_, dados, e) => {
-    const { desenho } = montarDesenho(dados, e);
+    const { desenho } = montagem(dados, e);
+    const defeitos: string[] = [];
     for (const l of desenho.linhas.filter((x) => x.tipo !== 'ponto')) {
       for (const q of l.d.matchAll(/Q (\S+) (\S+) (\S+) (\S+)/g)) {
         const raio = Math.max(Math.abs(Number(q[1]) - Number(q[3])), Math.abs(Number(q[2]) - Number(q[4])));
-        expect(raio, `${l.tipo} ${l.de.join('/')}: ${q[0]}`).toBeCloseTo(20, 6);
+        // O mesmo que toBeCloseTo(20, 6)
+        if (!(Math.abs(raio - 20) < 5e-7)) defeitos.push(`${l.tipo} ${l.de.join('/')}: ${q[0]} (raio ${raio})`);
       }
     }
+    expect(defeitos).toEqual([]);
   });
 });
 

@@ -3,7 +3,7 @@
 // conferências, e só são apagadas junto da original. Fortalecida na sessão D1d (item 14 da revisão R-D1,
 // 23/11/2026): cada violação que a revisão descreveu é dada à regra e precisa ser recusada.
 import { describe, expect, it } from 'vitest';
-import { AJUSTE_DAS_FOTOS, AJUSTE_DOS_RETRATOS, copiasErradas, separar } from '../scripts/copias-no-bucket.mjs';
+import { AJUSTE_DAS_FOTOS, AJUSTE_DOS_RETRATOS, LEITORES, NOMES_DAS_COPIAS, ROTAS_DAS_COPIAS_DAS_FOTOS, ROTAS_DAS_COPIAS_DOS_RETRATOS, copiasErradas, separar } from '../scripts/copias-no-bucket.mjs';
 import { APAGAR_A_FOTO_SOLTA, ROTA_DAS_FOTOS_SOLTAS } from '../scripts/apagar-no-bucket.mjs';
 
 const fontes: Record<string, string> = Object.fromEntries(
@@ -16,13 +16,31 @@ const trocar = (arquivo: string, de: string, para: string) => {
   expect(texto, `${arquivo} precisa ter: ${de}`).toContain(de);
   return com(arquivo, texto.replace(de, para));
 };
-const recusa = (f: Record<string, string>) => (copiasErradas(f) as string[]).length > 0;
+// A regra só olha os arquivos que ela nomeia: as rotas, as peças que definem o nome da cópia, as duas rotas
+// que entregam cópias, a das fotos soltas e a permissão. De onde vêm repositorio.ts e ambiente.ts ela segue pela
+// importação, sem ler o arquivo. Cada recusa recebe só esses, mais o que o caso trocou ou criou: ler o src inteiro
+// a cada uma levava a suíte a uns 8 s (auditoria AC, G-1, sessão AC1). "O código de hoje passa" continua lendo o
+// src inteiro, e CONFERIR_REDUCAO=1 compara cada recusa com a leitura do src inteiro, para quem mexer na regra.
+const DA_REGRA = [
+  ...ROTAS_DAS_COPIAS_DAS_FOTOS,
+  ...ROTAS_DAS_COPIAS_DOS_RETRATOS,
+  ...NOMES_DAS_COPIAS,
+  ...Object.keys(LEITORES),
+  ROTA_DAS_FOTOS_SOLTAS,
+  'src/lib/servidor/permissoes.ts',
+  'src/pages/api/audios.ts',
+];
+const soAsDaRegra = (f: Record<string, string>) => Object.fromEntries(Object.entries(f).filter(([arquivo, texto]) => DA_REGRA.includes(arquivo) || fontes[arquivo] !== texto));
+const recusa = (f: Record<string, string>) => {
+  const reduzida = (copiasErradas(soAsDaRegra(f)) as string[]).length > 0;
+  if (process.env.CONFERIR_REDUCAO) expect(reduzida).toBe((copiasErradas(f) as string[]).length > 0);
+  return reduzida;
+};
 
 const ajuste = fontes[AJUSTE_DAS_FOTOS]!;
 const CONFERE_ACESSO = "if (!(await acessoAFoto(locals.usuario, chave))) return erro(404, 'Foto não encontrada.');";
 const GRAVA_A_COPIA = 'await bucketDeFotos().put(chaveDaCopia(chave, t, conferidas.copias.formato), bytes[t],';
 
-// Cada recusa lê o projeto inteiro pela árvore do código: os casos com muitas variantes levam alguns segundos
 describe('a regra 13 da guarda: as cópias no bucket', { timeout: 60_000 }, () => {
   it('o código de hoje passa', () => {
     expect(Object.keys(fontes).length).toBeGreaterThan(100);
