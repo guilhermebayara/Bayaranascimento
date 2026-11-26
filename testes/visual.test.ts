@@ -171,7 +171,9 @@ describe('conceito', () => {
     // O rascunho de quem escreveu entra na linha do tempo e na lista (QA de 18/11/2026)
     expect(pagina).toContain('listarMemorias(usuario, { comRascunhos: true })');
     // O modo TV tem a ordem dele (ordemDoModoTv, em src/lib/servidor/tv.ts), com a mesma regra
-    expect(pagina).toMatch(/const contexto = (modoTv \? [^\n]+ : )?await contextoDoExplorar\(usuario, todas\);\s*const resultado = explorar\(todas, filtros, contexto\);/);
+    // Com a busca (`q`), o contexto leva junto as memórias que ela achou, procuradas só entre as que a pessoa vê (todas)
+    expect(pagina).toMatch(/await Promise\.all\(\[contextoDoExplorar\(usuario, todas\), filtros\.busca \? buscarNoAcervo\(usuario, tipos, filtros\.busca, todas\)/);
+    expect(pagina).toMatch(/const contexto = \{ \.\.\.contextoSemBusca, busca: [^\n]+\};\s*const motivos = [^\n]+\s*const resultado = explorar\(todas, filtros, contexto\);/);
     expect(pagina).not.toMatch(/usuario\.nucleos\.includes|obterMemoria/);
     // O mural, o modo TV e o sorteio usam o mesmo resultado, sem os rascunhos
     expect(pagina).toMatch(/const publicadas = resultado\.memorias\.filter/);

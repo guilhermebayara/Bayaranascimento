@@ -6,6 +6,7 @@
 // Regra do CLAUDE.md ("Conferências"): toda rota que grava ganha um caso aqui quando alguém mexer nela, com
 // a impressão do banco inteiro (todas as tabelas) antes e depois do pedido recusado, que precisa sair igual.
 import { describe, expect, it, vi } from 'vitest';
+import { foraDoIndiceDaBusca } from './apoio/indice-da-busca';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
 
 const comSqlite = await temSqlite();
@@ -53,7 +54,7 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
 
   /** A impressão do banco inteiro: todas as linhas de todas as tabelas, em ordem */
   const impressao = () => {
-    const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
+    const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).all() as { name: string }[]).map((t) => t.name).filter(foraDoIndiceDaBusca);
     return JSON.stringify(tabelas.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
   /** Um formulário comum para uma rota, como o navegador manda */
@@ -623,7 +624,7 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     const marca = () => linha<{ valor: number }>('SELECT valor FROM marca_da_copia WHERE id = 1').valor;
     /** O banco inteiro, inclusive a marca, sem a linha de primeiro acesso de quem pede */
     const semOPrimeiroAcesso = (pessoa: string) => {
-      const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
+      const tabelas = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`).all() as { name: string }[]).map((t) => t.name).filter(foraDoIndiceDaBusca);
       return JSON.stringify(
         tabelas.map((t) => {
           let linhas = banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all() as Record<string, unknown>[];

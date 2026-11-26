@@ -1,6 +1,7 @@
 // Sessão Z (22/11/2026): os defeitos achados nas revisões Y a Y4 do PR #160 que não o bloquearam. Pelas
 // rotas de verdade, sobre o SQLite em memória (testes/apoio/d1.ts), como testes/y3-falhas.test.ts.
 import { readFileSync } from 'node:fs';
+import { foraDoIndiceDaBusca } from './apoio/indice-da-busca';
 import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type ComandoDeTeste, type D1DeTeste } from './apoio/d1';
 
@@ -33,7 +34,7 @@ describe.skipIf(!comSqlite)('Z: defeitos das revisões do PR #160', async () => 
   };
   /** A impressão do banco inteiro: todas as linhas de todas as tabelas, em ordem */
   const impressao = () => {
-    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
+    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name).filter(foraDoIndiceDaBusca);
     return JSON.stringify(tabelas.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
   const lote = banco.batch.bind(banco);

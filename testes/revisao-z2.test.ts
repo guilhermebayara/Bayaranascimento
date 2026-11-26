@@ -6,6 +6,7 @@
 // Os casos com o nome começando por "fila:" guardam um defeito que não bloqueia (regra de parada do Gui,
 // 22/11/2026): o teste descreve o que acontece hoje. Quem corrigir o defeito troca o que o teste espera.
 import { describe, expect, it, vi } from 'vitest';
+import { foraDoIndiceDaBusca } from './apoio/indice-da-busca';
 import { ComandoDeTeste, temSqlite, type D1DeTeste } from './apoio/d1';
 
 // O projeto não tem os tipos do Node: o módulo entra assim para o tsc não acusar o import (como em apoio/d1.ts)
@@ -65,7 +66,7 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
   };
   /** A impressão do banco inteiro: todas as linhas de todas as tabelas, em ordem */
   const impressao = () => {
-    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
+    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name).filter(foraDoIndiceDaBusca);
     return JSON.stringify(tabelas.map((t) => [t, sql.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
   const grava = (comandos: ComandoDeTeste[]) => comandos.some((c) => /^\s*(INSERT|UPDATE|DELETE)/.test(c.sql));
@@ -774,7 +775,7 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
       expect(Object.keys(montada.tabelas)).toContain('envios');
       expect(Object.keys(montada.tabelas.envios[0]!).sort()).toEqual(['codigo', 'em']);
       // A cópia leva todas as tabelas do banco, como antes
-      const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT IN ('marca_da_copia', 'reservas_das_copias', 'limpezas_do_teste') ORDER BY name`).map((t) => t.name);
+      const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT IN ('marca_da_copia', 'reservas_das_copias', 'limpezas_do_teste') ORDER BY name`).map((t) => t.name).filter(foraDoIndiceDaBusca).filter((t) => t !== 'busca_textos');
       expect(Object.keys(montada.tabelas).sort()).toEqual(tabelas);
       // Desde a sessão D1e, a cópia vem em partes (testes/copia-em-partes.test.ts): a tabela entra no índice e na parte dela
       const indice = JSON.parse(await (await copia.respostaDaCopia(new URL('http://localhost/api/copia'))).text()) as { indice: { tabela: string; linhas: number }[] };

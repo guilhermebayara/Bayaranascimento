@@ -8,6 +8,7 @@
 // Entre filtros diferentes vale o "e". Dentro de um mesmo filtro, vale o "ou" (este tipo ou aquele,
 // esta família ou aquela), menos nas pessoas, que são "pessoas juntas": a memória precisa ter todas.
 
+import { lerBusca } from './busca';
 import type { DataFlexivel } from './datas';
 import { carimboDaData, diaMesCurto } from './visual';
 
@@ -41,6 +42,11 @@ export interface Filtros {
   contou: boolean;
   /** as memórias em que quem está olhando estava e ainda não contou */
   falta: boolean;
+  /**
+   * A busca (`q` no endereço, docs/regras/explorar.md, "A busca"): as memórias que respondem a ela. Fora de onde
+   * a busca existe (a TV da sala), soFiltrosConhecidos a apaga.
+   */
+  busca: string;
   ordem: Ordem;
 }
 
@@ -57,6 +63,7 @@ export const SEM_FILTRO: Filtros = {
   comFoto: false,
   contou: false,
   falta: false,
+  busca: '',
   ordem: ORDEM_PADRAO,
 };
 
@@ -96,6 +103,7 @@ export function lerFiltros(p: URLSearchParams): Filtros {
     // Valem só para quem está olhando (decisão do Gui, 16/11/2026): "contou=giovanna" vira o próprio
     contou: p.has('contou'),
     falta: p.has('falta'),
+    busca: lerBusca(p),
     ordem: ORDENS.includes(ordem as Ordem) ? (ordem as Ordem) : ORDEM_PADRAO,
   };
 }
@@ -110,6 +118,8 @@ export interface FiltrosConhecidos {
   capitulos: ReadonlySet<string>;
   /** os temas que a pessoa vê */
   temas: ReadonlySet<string>;
+  /** a busca existe aqui? Na TV da sala, não: o `q` do endereço é ignorado */
+  busca: boolean;
 }
 
 /**
@@ -127,6 +137,7 @@ export function soFiltrosConhecidos(f: Filtros, conhecidos: FiltrosConhecidos): 
     familias: f.familias.filter((id) => conhecidos.familias.has(id)),
     capitulos: f.capitulos.filter((id) => conhecidos.capitulos.has(id)),
     temas: f.temas.filter((id) => conhecidos.temas.has(id)),
+    busca: conhecidos.busca ? f.busca : '',
   };
 }
 
@@ -145,6 +156,7 @@ export function paraEndereco(f: Filtros): URLSearchParams {
   if (f.comFoto) p.set('foto', '1');
   if (f.contou) p.set('contou', '1');
   if (f.falta) p.set('falta', '1');
+  if (f.busca) p.set('q', f.busca);
   if (f.ordem !== ORDEM_PADRAO) p.set('ordem', f.ordem);
   return p;
 }
@@ -175,6 +187,8 @@ export interface Contexto {
   comAudio: Set<string>;
   /** quem já contou algo (relato publicado) em cada memória */
   contaram: Map<string, Set<string>>;
+  /** as memórias que respondem à busca, quando há busca (src/lib/servidor/busca.ts) */
+  busca?: ReadonlySet<string>;
 }
 
 export function passa(m: MemoriaDoExplorar, f: Filtros, ctx: Contexto): boolean {
@@ -190,6 +204,8 @@ export function passa(m: MemoriaDoExplorar, f: Filtros, ctx: Contexto): boolean 
   if (f.comFoto && m.fotos.length === 0) return false;
   if (f.contou && !ctx.contaram.get(m.id)?.has(ctx.eu)) return false;
   if (f.falta && (!m.integrantes.includes(ctx.eu) || ctx.contaram.get(m.id)?.has(ctx.eu))) return false;
+  // Com busca, só as memórias que respondem a ela; sem o resultado dela, nenhuma (nunca tudo por engano)
+  if (f.busca && !ctx.busca?.has(m.id)) return false;
   return true;
 }
 
@@ -217,7 +233,7 @@ export function ordenar<M extends MemoriaDoExplorar>(memorias: M[], ordem: Ordem
 export function mostraTrilhos(f: Filtros): boolean {
   const pelaDataDaMemoria = f.ordem === 'recentes' || f.ordem === 'antigas';
   // Pessoas juntas, como família, capítulo e tema, não quebra (decisão do Gui, 16/11/2026)
-  const quebra = f.tipos.length > 0 || f.comAudio || f.comFoto || f.contou || f.falta;
+  const quebra = f.tipos.length > 0 || f.comAudio || f.comFoto || f.contou || f.falta || f.busca !== '';
   return pelaDataDaMemoria && !quebra;
 }
 
@@ -473,6 +489,8 @@ export interface NomesDosFiltros {
 export function filtrosLigados(f: Filtros, nomes: NomesDosFiltros): { texto: string; sem: Filtros }[] {
   const sem = (lista: string[], id: string) => lista.filter((x) => x !== id);
   const fichas: { texto: string; sem: Filtros }[] = [];
+  // A busca vem primeiro, entre aspas, como foi escrita
+  if (f.busca) fichas.push({ texto: `“${f.busca}”`, sem: { ...f, busca: '' } });
   const cada = (ids: string[], nome: (id: string) => string | undefined, texto: (n: string) => string, tirar: (id: string) => Filtros) => {
     for (const id of ids) {
       const n = nome(id);

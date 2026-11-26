@@ -1,0 +1,36 @@
+---
+// A página da busca (docs/regras/explorar.md, "A busca"). Com script, a lupa do topo abre a mesma busca por cima
+// da página, e o resultado vem de /busca/resultado enquanto se digita; sem script, a lupa leva a esta página, e
+// o formulário recarrega com a busca no endereço.
+import '../visual/telas/busca.css';
+import Visual from '../layouts/Visual.astro';
+import CaixaDeBusca from '../components/busca/CaixaDeBusca.astro';
+import ResultadoDaBusca from '../components/busca/ResultadoDaBusca.astro';
+import { buscaEntreAspas, lerBusca } from '../lib/busca';
+import { folhaDaBusca } from '../lib/servidor/busca';
+
+const { usuario, tipos } = Astro.locals;
+const busca = lerBusca(Astro.url.searchParams);
+const volta = Astro.url.searchParams.get('volta');
+// "Fechar" volta para onde a pessoa estava; sem isso, ou com um endereço de fora do site, para o Início
+const fechar = volta && volta.startsWith('/') && !volta.startsWith('//') && !volta.startsWith('/busca') ? volta : '/';
+const folha = busca ? await folhaDaBusca(usuario, tipos, busca) : undefined;
+---
+
+<Visual titulo={busca ? `${buscaEntreAspas(busca)} · Procurar` : 'Procurar'} rodape="metade">
+  <div class="pagina-busca miolo" data-pagina-de-busca>
+    <header class="pagina-busca__alto">
+      <h1 class="pagina-busca__titulo">Procurar</h1>
+      <a class="acao acao--quieta" href={fechar}>Fechar</a>
+    </header>
+    <CaixaDeBusca id="busca-na-pagina" onde="pagina" valor={busca} />
+    <p class="busca-estado" data-estado-da-busca hidden></p>
+    <p class="so-leitor" data-voz-da-busca aria-live="polite"></p>
+    <ResultadoDaBusca folha={folha} />
+  </div>
+</Visual>
+
+<script>
+  import { ligarPaginaDeBusca } from '../lib/cliente/busca';
+  ligarPaginaDeBusca();
+</script>

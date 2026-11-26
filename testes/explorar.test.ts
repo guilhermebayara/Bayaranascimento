@@ -465,6 +465,7 @@ describe('filtros do endereço que não existem ou a pessoa não vê', () => {
     familias: new Set(['bayara-nascimento']),
     capitulos: new Set(['natais']),
     temas: new Set(['natal']),
+    busca: true,
   };
   const lidos = lerFiltros(
     new URLSearchParams('tipo=festa&tipo=inventado&pessoa=gui&pessoa=so-num-laco-privado&nucleo=nao-existe&capitulo=natais&capitulo=restrito&tema=natal&tema=de-memoria-restrita&decada=1990'),

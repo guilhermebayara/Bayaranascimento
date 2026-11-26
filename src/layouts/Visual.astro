@@ -15,6 +15,10 @@ import { ENDERECO_DA_ADMINISTRACAO, contaDePendencias } from '../lib/conta';
 import { contarPendenciasDaAdministracao } from '../lib/servidor/conta';
 import { contarAvisosPendentes, listarIntegrantes, listarNucleos } from '../lib/servidor/repositorio';
 import { FONTES_DO_SITE, assinaturaDaTela, atributosDasFontes } from '../lib/visual';
+import '../visual/telas/busca.css';
+import Simbolo from '../components/visual/Simbolo.astro';
+import CaixaDeBusca from '../components/busca/CaixaDeBusca.astro';
+import ResultadoDaBusca from '../components/busca/ResultadoDaBusca.astro';
 
 interface Props {
   titulo?: string;
@@ -77,6 +81,10 @@ const numeroDeAvisos = numeroDoRetrato(somaDoRetrato(avisosPendentes, pendencias
 const temPagina = integrantes.some((i) => i.id === usuario.pessoa);
 const aqui = Astro.url.pathname + Astro.url.search;
 const volta = encodeURIComponent(aqui);
+const caminho = Astro.url.pathname.replace(/\/$/, '');
+// A busca (docs/regras/explorar.md, "A busca"): a lupa no topo de toda tela abre a busca por cima da página. Sem
+// script, leva à página /busca. O modo TV (o palco) não tem topo, e por isso não tem lupa nem folha.
+const comBusca = !palco;
 
 // "Memórias", no alto, leva ao início, mas o menu também diz "Início": quem tem menos familiaridade
 // com sites não precisa adivinhar (pedido do Gui, 16/11/2026)
@@ -169,6 +177,15 @@ const menu = [
           Nova memória
         </a>
       </nav>
+      {/* A lupa: no celular, só o desenho, ao lado do monograma; no computador, a pílula com a palavra, antes do retrato */}
+      {
+        comBusca && (
+          <a class="topo__procurar" href={`/busca?volta=${volta}`} data-abrir-busca aria-current={caminho === '/busca' ? 'page' : undefined}>
+            <Simbolo id="procurar" />
+            <span class="topo__procurar-nome">Procurar</span>
+          </a>
+        )
+      }
       {/* No celular, "Nova memória" fica à vista na barra, entre a marca e o retrato, e não no fim do menu (P2 do QA de design, 17/11/2026) */}
       <a class="topo__nova" href="/nova" aria-current={secao === 'nova' ? 'page' : undefined}>
         Nova memória
@@ -228,6 +245,23 @@ const menu = [
       <slot />
     </main>
     {
+      comBusca && caminho !== '/busca' && (
+        <dialog class="folha-busca" aria-label="Procurar nas memórias">
+          <div class="folha-busca__cartao">
+            <div class="folha-busca__alto">
+              <CaixaDeBusca id="busca-na-folha" onde="folha" />
+              <button class="folha-busca__fechar acao acao--quieta" type="button" data-fechar-busca>
+                Fechar
+              </button>
+            </div>
+            <p class="busca-estado" data-estado-da-busca hidden></p>
+            <p class="so-leitor" data-voz-da-busca aria-live="polite"></p>
+            <ResultadoDaBusca />
+          </div>
+        </dialog>
+      )
+    }
+    {
       !palco && !mapa && (
     <footer class="rodape" data-assinatura={rodape === 'metade' ? 'metade' : undefined}>
       {/* O topo não acompanha a rolagem: no fim da página, o menu de novo e a volta ao alto (P3 do QA de design, 17/11/2026) */}
@@ -257,8 +291,11 @@ const menu = [
       !palco && (
         <script>
           import { ligarNoLugar } from '../lib/cliente/no-lugar';
+          import { ligarFolhaDeBusca } from '../lib/cliente/busca';
           // Os formulários do dia a dia que mudam a tela no lugar, sem recarregar (data-no-lugar)
           ligarNoLugar();
+          // A lupa do topo abre a busca por cima da página
+          ligarFolhaDeBusca();
           // O menu do celular fecha com Esc e com o toque fora dele (P9 do QA de design, 17/11/2026).
           // Sem script, continua fechando só pelo "Menu".
           // O menu da conta, no retrato, segue o mesmo jeito; abrir um fecha o outro.

@@ -9,6 +9,7 @@ import '../visual/telas/linha.css';
 import '../visual/telas/explorar.css';
 import '../visual/telas/tv.css';
 import '../visual/telas/lista.css';
+import '../visual/telas/busca.css';
 import Visual from '../layouts/Visual.astro';
 import Assinatura from '../components/visual/Assinatura.astro';
 import Vazio from '../components/visual/Vazio.astro';
@@ -18,6 +19,9 @@ import Lista from '../components/explorar/Lista.astro';
 import Mural from '../components/explorar/Mural.astro';
 import Palco from '../components/explorar/Palco.astro';
 import PalcoDaTv from '../components/explorar/PalcoDaTv.astro';
+import SemResultado from '../components/busca/SemResultado.astro';
+import { buscaEntreAspas, type Motivo } from '../lib/busca';
+import { buscarNoAcervo } from '../lib/servidor/busca';
 import { SEM_FILTRO, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, lerForma, lerPassar, lerTamanho, lerFotosDoMural, mostraRascunho, filtrosLigados, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo } from '../lib/explorar';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { parentescosDeQuemOlha } from '../lib/servidor/parentesco-de-quem-olha';
@@ -73,8 +77,15 @@ const filtros = soFiltrosConhecidos(lerFiltros(parametros), {
   familias: new Set(nucleos.map((n) => n.id)),
   capitulos: new Set(capitulos.map((c) => c.id)),
   temas: new Set(temas.map((t) => t.id)),
+  // A busca (`q`, docs/regras/explorar.md, "A busca"), destino de "Ver no Explorar"
+  busca: true,
 });
-const contexto = modoTv ? { eu: usuario.pessoa, doCapitulo: () => false, comAudio: new Set<string>(), contaram: new Map() } : await contextoDoExplorar(usuario, todas);
+const [contextoSemBusca, achadosDaBusca] = modoTv
+  ? [{ eu: usuario.pessoa, doCapitulo: () => false, comAudio: new Set<string>(), contaram: new Map() }, undefined]
+  : await Promise.all([contextoDoExplorar(usuario, todas), filtros.busca ? buscarNoAcervo(usuario, tipos, filtros.busca, todas) : Promise.resolve(undefined)]);
+// Só o que a busca achou, entre as memórias que a pessoa vê, com o porquê de cada uma
+const contexto = { ...contextoSemBusca, busca: achadosDaBusca && new Set(achadosDaBusca.achados.map((a) => a.id)) };
+const motivos = achadosDaBusca ? new Map<string, Motivo[]>(achadosDaBusca.achados.map((a) => [a.id, a.motivos])) : undefined;
 const resultado = explorar(todas, filtros, contexto);
 const nomeDe = (id: string) => integrantes.find((i) => i.id === id)?.apelido ?? integrantes.find((i) => i.id === id)?.nome;
 
@@ -116,7 +127,18 @@ const ligados = filtrosLigados(filtros, {
 const { sobrenomes } = assinaturaDaTela(filtros.familias, nucleos);
 const umaFamilia = filtros.familias.length === 1 ? nucleos.find((n) => n.id === filtros.familias[0]) : undefined;
 const conta = contaDoExplorar(memorias.map((m) => m.ano));
-const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
+const titulo = forma === 'tv' ? 'Modo TV' : filtros.busca ? `${buscaEntreAspas(filtros.busca)} · Explorar` : (umaFamilia?.nome ?? 'Explorar');
+
+// Quando a busca não acha nada: a frase, a dica e as saídas (tirar a busca, tirar os outros filtros, ao acaso)
+const outrosFiltros = temFiltro({ ...filtros, busca: '' });
+const semResultado = filtros.busca
+  ? {
+      busca: filtros.busca,
+      semBusca: enderecoDoExplorar({ ...filtros, busca: '' }, forma),
+      semOsOutros: outrosFiltros ? enderecoDoExplorar({ ...SEM_FILTRO, busca: filtros.busca, ordem: filtros.ordem }, forma) : undefined,
+      acaso: enderecoDoExplorar(SEM_FILTRO, 'acaso'),
+    }
+  : undefined;
 ---
 
 <Visual titulo={titulo} secao="explorar" nucleos={filtros.familias} palco={forma === 'tv'}>
@@ -156,8 +178,10 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
         trilhos={resultado.trilhos}
         limpar={limpar}
         fecho={memorias.length > 0 ? { comecoDoAcervo: terminaNoComecoDoAcervo(memorias, todas, filtros.ordem) } : undefined}
+        motivos={motivos}
       >
-        <header class="linha__capa linha__capa--explorar miolo" slot="capa">
+        {semResultado && <div slot="vazio"><SemResultado {...semResultado} /></div>}
+        <header class="linha__capa linha__capa--explorar linha__capa--compacta miolo" slot="capa">
           <Assinatura titulo sobrenomes={sobrenomes} />
           <p class="linha__conta rotulo" aria-live="polite">{conta}</p>
           <Controles
@@ -179,7 +203,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
   {
     forma === 'mural' && (
       <div class="linha linha--mural">
-        <header class="linha__capa linha__capa--explorar miolo">
+        <header class="linha__capa linha__capa--explorar linha__capa--compacta miolo">
           <Assinatura titulo sobrenomes={sobrenomes} />
           <p class="linha__conta rotulo" aria-live="polite">{conta}</p>
           <Controles
@@ -200,7 +224,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
           <Mural memorias={memorias} ordem={filtros.ordem} tamanho={tamanho} fotos={fotosDoMural} />
         ) : (
           <div class="miolo">
-            <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
+            {semResultado ? <SemResultado {...semResultado} /> : <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
               {limpar ? (
                 <a class="acao" href={limpar}>
                   Limpar filtros
@@ -210,7 +234,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
                   Nova memória
                 </a>
               )}
-            </Vazio>
+            </Vazio>}
           </div>
         )}
       </div>
@@ -219,7 +243,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
   {
     forma === 'lista' && (
       <div class="linha linha--lista">
-        <header class="linha__capa linha__capa--explorar miolo">
+        <header class="linha__capa linha__capa--explorar linha__capa--compacta miolo">
           <Assinatura titulo sobrenomes={sobrenomes} />
           <p class="linha__conta rotulo" aria-live="polite">{conta}</p>
           <Controles
@@ -235,10 +259,10 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
           />
         </header>
         {memorias.length > 0 ? (
-          <Lista memorias={memorias} capitulos={capitulos} integrantes={integrantes} ordem={filtros.ordem} comAudio={contexto.comAudio} />
+          <Lista memorias={memorias} capitulos={capitulos} integrantes={integrantes} ordem={filtros.ordem} comAudio={contexto.comAudio} motivos={motivos} />
         ) : (
           <div class="miolo">
-            <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
+            {semResultado ? <SemResultado {...semResultado} /> : <Vazio frase={limpar ? 'Nenhuma memória passa nesses filtros.' : 'Ainda não há memórias aqui.'}>
               {limpar ? (
                 <a class="acao" href={limpar}>
                   Limpar filtros
@@ -248,7 +272,7 @@ const titulo = forma === 'tv' ? 'Modo TV' : (umaFamilia?.nome ?? 'Explorar');
                   Nova memória
                 </a>
               )}
-            </Vazio>
+            </Vazio>}
           </div>
         )}
       </div>

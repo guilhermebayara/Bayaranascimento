@@ -11,6 +11,7 @@
 // Roda as rotas e o middleware de verdade, num SQLite em memória (testes/apoio/d1.ts).
 import { describe, expect, it, vi } from 'vitest';
 import { temSqlite, type D1DeTeste } from './apoio/d1';
+import { foraDoIndiceDaBusca } from './apoio/indice-da-busca';
 import { baixarCopiaEmPartes, juntarPartes, linhasPorParte, nomeDoArquivoDaCopia, partesPrevistas, type IndiceDaCopia, type ParteDaCopia } from '../src/lib/copia-em-partes';
 
 const comSqlite = await temSqlite();
@@ -70,7 +71,7 @@ describe.skipIf(!comSqlite)('a cópia do acervo em partes', async () => {
   const copiaDeAntes = () => {
     // A marca da cópia (item 1 da revisão D1f) não faz parte do acervo, nem a reserva das cópias e a faxina das
     // prévias (D1f3): ficam fora, e o arquivo tem as outras tabelas de antes
-    const nomes = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT IN ('marca_da_copia', 'reservas_das_copias', 'limpezas_do_teste') ORDER BY name`).all() as { name: string }[]).map((t) => t.name);
+    const nomes = (banco.sqlite.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name NOT IN ('marca_da_copia', 'reservas_das_copias', 'limpezas_do_teste') ORDER BY name`).all() as { name: string }[]).map((t) => t.name).filter((t) => foraDoIndiceDaBusca(t) && t !== 'busca_textos');
     return Object.fromEntries(nomes.map((t) => [t, banco.sqlite.prepare(`SELECT * FROM "${t}"`).all() as Record<string, unknown>[]]));
   };
   /** As linhas de uma tabela, em ordem fixa, para comparar sem depender da ordem de leitura */

@@ -1,0 +1,32 @@
+---
+// Por que a memória foi achada, quando o título não basta: "com Vó Vivica, sua mãe", "em Sabará", e o
+// trecho do relato, do áudio ou da legenda com a palavra marcada. Os motivos saem de src/lib/busca.ts, só
+// com o que quem procura vê.
+import { textoDoMotivo, type Motivo } from '../../lib/busca';
+
+interface Props {
+  motivos?: Motivo[];
+  /** dentro de um link de linha (a lista), tudo em `span` */
+  emLinha?: boolean;
+}
+
+const motivos = Astro.props.motivos ?? [];
+const Elemento = Astro.props.emLinha ? 'span' : 'p';
+const doTexto = motivos.find((m): m is Extract<Motivo, { campo: 'relato' | 'audio' | 'legenda' }> => m.campo === 'relato' || m.campo === 'audio' || m.campo === 'legenda');
+const onde = motivos.map(textoDoMotivo).join(' · ');
+---
+
+{
+  motivos.length > 0 && (
+    <Elemento class="achou">
+      <span class="achou__onde ficha">{onde}</span>
+      {doTexto && (
+        <span class="achou__trecho">
+          {doTexto.trecho.antes}
+          <mark>{doTexto.trecho.achado}</mark>
+          {doTexto.trecho.depois}
+        </span>
+      )}
+    </Elemento>
+  )
+}

@@ -4,6 +4,7 @@
 // nova pelo laço (/api/lacos), capítulo com tema novo (/api/capitulos) e tipo de momento (/api/tipos). A
 // memória, a pessoa nova e o tema novo pela memória já tinham o caminho (testes/z-correcoes.test.ts).
 import { describe, expect, it, vi } from 'vitest';
+import { foraDoIndiceDaBusca } from './apoio/indice-da-busca';
 import { ComandoDeTeste, temSqlite, type D1DeTeste } from './apoio/d1';
 
 const comSqlite = await temSqlite();
@@ -35,7 +36,7 @@ describe.skipIf(!comSqlite)('código novo quando outro pedido usou o mesmo', asy
   const gui = usuarioDe('gui');
   const tipos = await repo.listarTipos();
   const impressao = () => {
-    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name);
+    const tabelas = linhas<{ name: string }>(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'marca_da_copia' ORDER BY name`).map((t) => t.name).filter(foraDoIndiceDaBusca);
     return JSON.stringify(tabelas.map((t) => [t, sql.prepare(`SELECT * FROM "${t}" ORDER BY rowid`).all()]));
   };
   /** O formulário comum, como o navegador manda: para onde a rota mandou voltar, e o recado */

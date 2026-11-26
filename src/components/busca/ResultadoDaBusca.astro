@@ -1,0 +1,137 @@
+---
+// O resultado agrupado da busca (docs/visual.md, "A busca"): as pessoas primeiro (são poucas, e quem procura
+// "minha mãe" quer achar a mãe), depois as memórias e os capítulos e temas que respondem, cada grupo levando
+// ao Explorar filtrado. Antes de digitar, os exemplos do que se pode procurar, que escrevem na caixa. Tudo sai
+// só do que quem procura vê (folhaDaBusca, em src/lib/servidor/busca.ts).
+//
+// É a região que troca enquanto se digita (`data-busca-resultado`), na folha por cima da página e na página
+// /busca. O estado da busca (procurando, achou, não achou, falhou) fica fora dela, na linha de estado.
+import Carimbo from '../visual/Carimbo.astro';
+import IconeDoTipo from '../visual/IconeDoTipo.astro';
+import Retrato from '../visual/Retrato.astro';
+import PorqueAchou from './PorqueAchou.astro';
+import { buscaEntreAspas, resumoDaBusca } from '../../lib/busca';
+import { SEM_FILTRO, enderecoDoExplorar } from '../../lib/explorar';
+import { carimboDaData, estiloDoTipo } from '../../lib/visual';
+import type { Folha } from '../../lib/servidor/busca';
+
+interface Props {
+  folha?: Folha;
+}
+
+const vazia: Folha = { busca: '', memorias: [], total: 0, pessoas: [], capitulos: [], temas: [] };
+const { busca, memorias, total, pessoas, capitulos, temas } = Astro.props.folha ?? vazia;
+const EXEMPLOS = ['Natal', 'Sabará', '1994', 'minha mãe', 'faltou luz'];
+const nada = Boolean(busca) && total === 0 && pessoas.length === 0 && capitulos.length === 0 && temas.length === 0;
+const resumo = resumoDaBusca({ busca, memorias: total, pessoas: pessoas.length, nomes: capitulos.length + temas.length });
+const explorar = total > 0 ? enderecoDoExplorar({ ...SEM_FILTRO, busca }) : undefined;
+---
+
+<div class="resultado-busca" data-busca-resultado data-resumo={resumo}>
+  <p class="resultado-busca__resumo ficha suave">{busca ? resumo : 'Procure por uma palavra, um lugar, um ano ou alguém.'}</p>
+
+  {
+    !busca && (
+      <ul class="resultado-busca__exemplos" aria-label="Exemplos">
+        {EXEMPLOS.map((e) => (
+          <li>
+            <a class="ficha-de-filtro" href={`/busca?q=${encodeURIComponent(e)}`} data-exemplo={e}>
+              {e}
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  {
+    nada && (
+      <div class="resultado-busca__nada">
+        <p class="resultado-busca__frase">Nenhuma memória com {buscaEntreAspas(busca)}.</p>
+        <p class="sem-resultado__dica">Confira a escrita, ou procure por um lugar, um ano ou alguém: “Sabará”, “1994”, “minha mãe”.</p>
+        <p class="sem-resultado__acoes">
+          <a class="acao" href="/explorar?ver=acaso">Me mostre uma memória</a>
+          <a class="acao acao--quieta" href="/explorar">Explorar todas as memórias</a>
+        </p>
+      </div>
+    )
+  }
+
+  {
+    pessoas.length > 0 && (
+      <section class="resultado-busca__grupo" aria-labelledby="busca-pessoas">
+        <h2 class="resultado-busca__titulo rotulo" id="busca-pessoas">Pessoas</h2>
+        <ul class="resultado-busca__pessoas">
+          {pessoas.map((p) => (
+            <li>
+              <a class="pessoa-achada" href={enderecoDoExplorar({ ...SEM_FILTRO, pessoas: [p.id] })}>
+                <Retrato nome={p.nome} foto={p.retrato} familia={p.familia} falecido={p.falecido} />
+                <span class="pessoa-achada__texto">
+                  <span class="pessoa-achada__nome">{p.nome}</span>
+                  <span class="ficha suave">{[p.parentesco, p.memorias === 1 ? '1 memória' : `${p.memorias} memórias`].filter(Boolean).join(' · ')}</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    memorias.length > 0 && (
+      <section class="resultado-busca__grupo" aria-labelledby="busca-memorias">
+        <h2 class="resultado-busca__titulo rotulo" id="busca-memorias">Memórias</h2>
+        <ul class="resultado-busca__memorias">
+          {memorias.map((m) => (
+            <li style={estiloDoTipo(m.tipo)}>
+              <a class="memoria-achada" href={`/memorias/${m.id}`}>
+                <span class="memoria-achada__foto" aria-hidden="true">
+                  {m.foto ? <img src={m.foto.src} srcset={m.foto.srcset} sizes={m.foto.sizes} alt="" loading="lazy" decoding="async" /> : <IconeDoTipo tipo={m.tipo} />}
+                </span>
+                <span class="memoria-achada__texto">
+                  <span class="memoria-achada__titulo">{m.titulo}</span>
+                  <Carimbo itens={[carimboDaData(m), m.lugar]} />
+                  <PorqueAchou motivos={m.motivos} emLinha />
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        {explorar && (
+          <p class="resultado-busca__mais">
+            <a class="acao" href={explorar}>
+              {total === 1 ? 'Ver no Explorar' : `Ver as ${total} memórias no Explorar`}
+            </a>
+          </p>
+        )}
+      </section>
+    )
+  }
+
+  {
+    capitulos.length + temas.length > 0 && (
+      <section class="resultado-busca__grupo" aria-labelledby="busca-capitulos">
+        <h2 class="resultado-busca__titulo rotulo" id="busca-capitulos">Capítulos e temas</h2>
+        <ul class="resultado-busca__nomes">
+          {capitulos.map((c) => (
+            <li>
+              <a class="nome-achado" href={enderecoDoExplorar({ ...SEM_FILTRO, capitulos: [c.id] })}>
+                <span>{c.nome}</span>
+                <span class="ficha suave">capítulo</span>
+              </a>
+            </li>
+          ))}
+          {temas.map((t) => (
+            <li>
+              <a class="nome-achado" href={enderecoDoExplorar({ ...SEM_FILTRO, temas: [t.id] })}>
+                <span>{t.nome}</span>
+                <span class="ficha suave">tema</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+</div>
