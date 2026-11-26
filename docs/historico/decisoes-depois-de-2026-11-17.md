@@ -422,3 +422,11 @@ A AC1 (#176, juntada na `homologa` em 26/11/2026) mudou código que os documento
 - `npm run tv` recusa a produção e a homologação (`docs/regras/conferencias.md` e `docs/regras/explorar.md`).
 - A regra 8 da guarda passou a dizer que a rota do conceito não existe e que, se voltar, precisa da trava.
 - Os motivos que a auditoria pedia escritos (6.4): o dos registros do Workers (`observability`) em `docs/regras/infraestrutura.md`, e o dos 7 dias da limpeza do bucket de teste em `docs/regras/exemplos.md`, como a AC1 escreveu no código.
+
+## Revisão R-AC2
+
+A revisão da AC2 (Grok e Codex) fechou com três correções de texto, sem mudar o sentido de nenhuma regra:
+
+- `docs/regras/arvore.md`, "Linhas": voltou a regra geral do `CLAUDE.md` antigo (linha 139 de `1c7a642`), "Linhas que andam juntas são desenhadas uma vez só, para o tracejado não virar linha cheia.", ao lado da regra de curva e ângulo reto. Ela tinha sido dada como juntada com o item dos troncos dos laços do coração, que só cobre esse caso.
+- `docs/regras/memoria.md`, "Reações": voltou "Não há mais o link "Quem marcou"." (linha 669 de `1c7a642`), que tinha saído como processo. O item "As recebidas" de "Reações", acima, registrava a saída.
+- `docs/visual.md`, "O que falta", "Da fase 4": o tocador de áudio próprio saiu da lista, porque já existe (`conversa/Mensagem.astro`), como na fila de `docs/decisoes.md` (C-6).

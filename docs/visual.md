@@ -613,7 +613,7 @@ Origem: [histórico, "Linha do tempo, capítulo e laço"](historico/visual-ate-2
 
 **Da fase 4 (movimento e detalhes)**
 
-- A frase que acende palavra por palavra, a foto que amplia no lugar e o tocador de áudio próprio ("O que ficou de fora do sistema, de propósito").
+- A frase que acende palavra por palavra e a foto que amplia no lugar ("O que ficou de fora do sistema, de propósito").
 
 **Da fase 5 (QA visual no aparelho)**
 

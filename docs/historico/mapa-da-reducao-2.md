@@ -245,7 +245,7 @@ As contradições corrigidas pelo código (C-1 a C-7 do relatório da auditoria 
 | 306 | Marca do ramo recolhido: ocupa o lugar de mais … | igual, em `regras/arvore.md`, "Árvore" |
 | 307 | Ramo aberto: abre num cartão por cima, sem título … | regras/arvore.md; defeito do QA no histórico |
 | 309 | Linhas | igual, em `regras/arvore.md`, "Árvore" |
-| 311 | Curva mostra direção e bifurcação; ângulo reto fica para … | igual, em `regras/arvore.md`, "Árvore" |
+| 311 | Curva mostra direção e bifurcação; ângulo reto fica para … | regras/arvore.md, "Linhas"; ganhou, depois da primeira frase, a regra geral do CLAUDE.md antigo (linha 139): "Linhas que andam juntas são desenhadas uma vez só, para o tracejado não virar linha cheia." (revisão R-AC2) |
 | 312 | Linhas dos laços do coração em tronco: os laços … | igual, em `regras/arvore.md`, "Árvore" |
 | 313 | Linhas contornam as caixas: nenhuma linha de coração ou … | igual, em `regras/arvore.md`, "Árvore" |
 | 314 | Laço entra por cima de quem tem filhos embaixo: … | igual, em `regras/arvore.md`, "Árvore" |
@@ -488,7 +488,7 @@ As contradições corrigidas pelo código (C-1 a C-7 do relatório da auditoria 
 | 666 | Onde: na memória inteira (logo abaixo das ações do … | igual, em `regras/memoria.md`, "Reações" |
 | 667 | Os quatro símbolos, desenhados com os rabiscos do site, … | regras/memoria.md; "a versão final de 18/11/2026" no histórico |
 | 668 | Como nas redes: o coração fica à vista, e … | igual, em `regras/memoria.md`, "Reações" |
-| 669 | As recebidas, ao lado: até três símbolos encostados e … | regras/memoria.md; "Não há mais o link Quem marcou" no histórico |
+| 669 | As recebidas, ao lado: até três símbolos encostados e … | igual, em `regras/memoria.md`, "Reações": a frase "Não há mais o link Quem marcou" saiu e voltou na revisão R-AC2 |
 | 670 | Sem script, tudo funciona: cada toque é um formulário … | igual, em `regras/memoria.md`, "Reações" |
 | 671 | "Eu estava lá" numa memória em que a pessoa … | igual, em `regras/memoria.md`, "Reações" |
 | 672 | Privacidade: só reage quem vê a memória, o relato … | igual, em `regras/memoria.md`, "Reações" |
@@ -1032,7 +1032,7 @@ As contradições corrigidas pelo código (C-1 a C-7 do relatório da auditoria 
 | 626 | Administração: tipos de momento (ver "Tipos: paleta e ícones"), … | igual, em `docs/visual.md`, "Formulários" |
 | 632 | Nada anotado no momento. A página do laço, que … | visual.md; "A página do laço, que estava aqui, foi feita" no histórico |
 | 638 | Da fase 4 (movimento e detalhes) | igual, em `docs/visual.md`, "O que falta" |
-| 640 | A frase que acende palavra por palavra, a foto … | igual, em `docs/visual.md`, "O que falta" |
+| 640 | A frase que acende palavra por palavra, a foto … | docs/visual.md, "O que falta", "Da fase 4"; o tocador de áudio próprio saiu da lista, porque já existe (conversa/Mensagem.astro, em "O que ficou de fora do sistema, de propósito"), como na fila do decisoes.md (C-6, revisão R-AC2) |
 | 642 | Da fase 5 (QA visual no aparelho) | igual, em `docs/visual.md`, "O que falta" |
 | 644 | No iPhone de verdade: os controles do Explorar (as … | igual, em `docs/visual.md`, "O que falta" |
 | 645 | Numa TV de verdade, com controle: o modo TV … | igual, em `docs/visual.md`, "O que falta" |
@@ -1135,7 +1135,7 @@ As contradições corrigidas pelo código (C-1 a C-7 do relatório da auditoria 
 | 136 | A montagem fica em src/lib/arvore-montagem.ts (sem tela, testável) e … | regras/arvore.md, "Como trabalhar na árvore", igual |
 | 137 | A árvore abre na linha direta de quem os … | juntada com regras/arvore.md, "Os centros da árvore", que já tinha o mesmo texto |
 | 138 | O Gui desenha os ajustes no Figma, no time … | regras/arvore.md, "Como trabalhar na árvore"; "em docs/decisoes.md" virou "neste arquivo" |
-| 139 | Nas linhas, curva mostra direção e bifurcação, e ângulo … | juntada com regras/arvore.md, "Linhas" (o primeiro e o segundo item) |
+| 139 | Nas linhas, curva mostra direção e bifurcação, e ângulo … | regras/arvore.md, "Linhas", primeiro item: a curva e o ângulo reto já estavam lá, e "Linhas que andam juntas são desenhadas uma vez só, para o tracejado não virar linha cheia" entrou como regra geral ao lado deles (revisão R-AC2); antes ela só aparecia no item dos troncos dos laços do coração |
 | 143 | Formato que o Gui escolheu (18/11/2026): além do relatório, … | CLAUDE.md; "(18/11/2026)" virou "(18/11)" |
 | 147 | Vale para sessões abertas só para conferir o site. … | docs/qa.md, abertura; "lê tudo" ganhou a lista do que é tudo |
 | 151 | O QA confere a homologa com o acervo de … | docs/qa.md, igual |
