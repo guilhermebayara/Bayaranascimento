@@ -12,18 +12,71 @@ vi.mock('cloudflare:workers', () => ({ env }));
 env.FOTOS = { list: async () => ({ objects: [], truncated: false }), delete: async () => undefined, put: async () => undefined, get: async () => null, head: async () => null };
 
 describe('paraOLeitor: a memória como pode sair do servidor (para a D2)', () => {
-  const memoria = { id: 'm', titulo: 'Festa', integrantes: ['gui', 'escondida', 'na-lixeira', 'giovanna'], capitulos: ['natais', 'restrito', 'na-lixeira'] };
-  it('tira as pessoas que quem olha não vê e os capítulos que ela não vê, e deixa o resto como está', () => {
-    const saida = paraOLeitor(memoria, new Set(['escondida', 'na-lixeira']), new Set(['natais']));
-    expect(saida).toEqual({ id: 'm', titulo: 'Festa', integrantes: ['gui', 'giovanna'], capitulos: ['natais'] });
+  // A entrada traz tudo o que a memória completa tem, e mais: o relato que espera, o nome de quem o leitor não
+  // vê, os núcleos da memória restrita, a foto que veio com o relato e quem criou
+  const entrada = {
+    id: 'm-restrita',
+    titulo: 'Festa da família',
+    ano: 1998,
+    mes: 12,
+    dia: 24,
+    aproximada: false,
+    lugar: 'Sabará',
+    tipo: 'outro',
+    tipoOutro: 'Ceia',
+    situacao: 'publicada' as const,
+    visibilidade: 'nucleos' as const,
+    nucleos: ['bracarense-restrita'],
+    criadaPor: 'criadora-escondida',
+    integrantes: ['gui', 'nome-privado', 'na-lixeira', 'giovanna'],
+    capitulos: ['natais', 'capitulo-restrito'],
+    temas: ['ceia', 'tema-restrito'],
+    fotos: [
+      { id: 1, chave: '2026/do-relato-que-espera.jpg', legenda: 'Do relato que espera', principal: true, enviadaPor: 'giovanna', relatoId: 7, copias: null },
+      { id: 2, chave: '2026/da-memoria.jpg', legenda: 'A mesa', principal: false, enviadaPor: 'gui', relatoId: null, copias: null },
+    ],
+    relatos: 2,
+    relatosQueEsperam: [{ id: 7, texto: 'Texto do relato que espera', soParaNucleos: ['bracarense-restrita'] }],
+  };
+  const visto = { naoVe: new Set(['nome-privado', 'na-lixeira']), capitulosQueVe: new Set(['natais']), temasQueVe: new Set(['ceia']) };
+
+  it('sai só a lista de campos, sem núcleos, sem relatos e sem quem criou', () => {
+    const saida = paraOLeitor(entrada, visto);
+    expect(Object.keys(saida).sort()).toEqual(['ano', 'aproximada', 'capitulos', 'dia', 'fotoChave', 'id', 'integrantes', 'lugar', 'mes', 'temas', 'tipo', 'tipoOutro', 'titulo'].sort());
+    expect(saida).toEqual({
+      id: 'm-restrita',
+      titulo: 'Festa da família',
+      ano: 1998,
+      mes: 12,
+      dia: 24,
+      aproximada: false,
+      lugar: 'Sabará',
+      tipo: 'outro',
+      tipoOutro: 'Ceia',
+      fotoChave: { chave: '2026/da-memoria.jpg', legenda: 'A mesa', copias: null },
+      integrantes: ['gui', 'giovanna'],
+      capitulos: ['natais'],
+      temas: ['ceia'],
+    });
   });
+
+  it('nada do relato que espera, do nome privado nem dos núcleos restritos chega à saída', () => {
+    const texto = JSON.stringify(paraOLeitor(entrada, visto));
+    for (const escondido of ['Texto do relato que espera', 'do-relato-que-espera', 'nome-privado', 'na-lixeira', 'bracarense-restrita', 'criadora-escondida', 'capitulo-restrito', 'tema-restrito', 'nucleos', 'relatos']) {
+      expect(texto, escondido).not.toContain(escondido);
+    }
+  });
+
+  it('a foto-chave é a principal da memória; sem foto da memória, nenhuma', () => {
+    const comPrincipal = { ...entrada, fotos: [...entrada.fotos, { id: 3, chave: '2026/principal.jpg', legenda: null, principal: true, enviadaPor: 'gui', relatoId: null, copias: null }] };
+    expect(paraOLeitor(comPrincipal, visto).fotoChave?.chave).toBe('2026/principal.jpg');
+    expect(paraOLeitor({ ...entrada, fotos: [entrada.fotos[0]!] }, visto).fotoChave).toBeNull();
+  });
+
   it('não muda a memória que recebeu', () => {
-    paraOLeitor(memoria, new Set(['gui']), new Set());
-    expect(memoria.integrantes).toHaveLength(4);
-    expect(memoria.capitulos).toHaveLength(3);
-  });
-  it('sem nada escondido, sai igual', () => {
-    expect(paraOLeitor(memoria, new Set(), new Set(memoria.capitulos))).toEqual(memoria);
+    paraOLeitor(entrada, { naoVe: new Set(['gui']), capitulosQueVe: new Set(), temasQueVe: new Set() });
+    expect(entrada.integrantes).toHaveLength(4);
+    expect(entrada.capitulos).toHaveLength(2);
   });
 });
 

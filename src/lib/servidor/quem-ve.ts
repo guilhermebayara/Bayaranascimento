@@ -14,6 +14,8 @@
 // Os fragmentos SQL recebem o apelido da tabela (m para memorias, r para relatos) e o parâmetro com o id de
 // quem olha (?1 quase sempre). Um apelido vazio usa a coluna sem prefixo.
 
+import type { Copias } from '../copias-das-fotos';
+
 /** Quem olha: o id e os núcleos de que é membro (parente não conta). */
 export interface Leitor {
   pessoa: string;
@@ -27,6 +29,13 @@ export interface Publico {
 }
 
 const coluna = (apelido: string, nome: string) => (apelido ? `${apelido}.${nome}` : nome);
+
+/**
+ * Uma data do banco (a da lixeira, a do descarte) como o SQL a lê: só NULL, ou a ausência, é "sem data".
+ * Qualquer texto, '' incluído, é data, o lado mais fechado (revisão MEM-2 da AC3): o TS não lê a data pela
+ * verdade do valor, para '' não ser "sem data" aqui e "com data" no SQL (IS NULL).
+ */
+const temData = (valor: string | null | undefined): boolean => valor != null;
 
 // --- Membro de um núcleo ----------------------------------------------------------------------------
 
@@ -64,7 +73,7 @@ export const sqlCasalAberto = (c = ''): string => `${coluna(c, 'visibilidade')} 
 export interface MemoriaParaVer extends Publico {
   situacao: 'rascunho' | 'publicada';
   criadaPor: string;
-  /** quando foi para a lixeira; vazio, fora dela */
+  /** quando foi para a lixeira; null ou ausente, fora dela ('' conta como data, como no SQL) */
   excluidaEm?: string | null;
 }
 
@@ -82,7 +91,7 @@ export interface OpcoesDaMemoria {
  * - Na lixeira: ninguém, salvo com `lixeira: 'qualquer'` (a lixeira de quem pede, a restauração).
  */
 export function veMemoria(leitor: Leitor, m: MemoriaParaVer, opcoes: OpcoesDaMemoria = {}): boolean {
-  if ((opcoes.lixeira ?? 'fora') === 'fora' && m.excluidaEm) return false;
+  if ((opcoes.lixeira ?? 'fora') === 'fora' && temData(m.excluidaEm)) return false;
   if (m.situacao === 'rascunho') return opcoes.so !== 'publicada' && m.criadaPor === leitor.pessoa;
   return alcanca(m, leitor.nucleos);
 }
@@ -207,7 +216,7 @@ export const sqlVeORelato = (r = 'r', pessoa = '?1', naoVe = '?2', excluidas = '
  * do rascunho que descartou.
  */
 export function relatoAberto(relato: { situacao: 'rascunho' | 'publicada'; registradoPor: string; descartadoEm?: string | null }, leitor: Leitor, opcoes: { descartadoTambem?: boolean } = {}): boolean {
-  return relato.situacao === 'publicada' || (relato.registradoPor === leitor.pessoa && (Boolean(opcoes.descartadoTambem) || !relato.descartadoEm));
+  return relato.situacao === 'publicada' || (relato.registradoPor === leitor.pessoa && (Boolean(opcoes.descartadoTambem) || !temData(relato.descartadoEm)));
 }
 
 /** relatoAberto, em SQL. */
@@ -221,7 +230,7 @@ export const sqlRelatoAberto = (r = 'r', pessoa = '?1', opcoes: { descartadoTamb
  * à TV, nem o texto nem a voz, na sala ou fora dela: a TV é uma tela que outras pessoas olham.
  */
 export const relatoNaTv = (r: { situacao: 'rascunho' | 'publicada'; soParaNucleos: readonly string[] | null; descartadoEm?: string | null }): boolean =>
-  r.situacao === 'publicada' && !relatoEspera(r.soParaNucleos) && !r.descartadoEm;
+  r.situacao === 'publicada' && !relatoEspera(r.soParaNucleos) && !temData(r.descartadoEm);
 
 /** relatoNaTv, em SQL. */
 export const sqlRelatoNaTv = (r = 'r'): string => `(${coluna(r, 'situacao')} = 'publicada' AND ${sqlRelatoNaoEspera(r)} AND ${coluna(r, 'descartado_em')} IS NULL)`;
@@ -234,12 +243,86 @@ export const sqlEntraNaSala = (m = 'm'): string => `(${coluna(m, 'situacao')} = 
 
 // --- A memória para quem olha (para a D2) -------------------------------------------------------------
 
+/** A foto que paraOLeitor lê: a da memória (sem relato) pode virar a foto-chave. */
+interface FotoDeEntrada {
+  chave: string;
+  legenda: string | null;
+  principal: boolean;
+  relatoId: number | null;
+  copias: Copias | null;
+}
+
+/** A memória que paraOLeitor lê: a Memoria de repositorio.ts serve, com o que mais tiver. */
+export interface MemoriaDeEntrada {
+  id: string;
+  titulo: string;
+  ano: number;
+  mes: number | null;
+  dia: number | null;
+  aproximada: boolean;
+  lugar: string | null;
+  tipo: string;
+  tipoOutro: string | null;
+  fotos: readonly FotoDeEntrada[];
+  integrantes: readonly string[];
+  capitulos: readonly string[];
+  temas: readonly string[];
+}
+
 /**
- * A memória como pode sair do servidor para quem olha: sem as pessoas que ele não vê (quem só existe num
- * laço privado de outra pessoa, quem está na lixeira) e sem os capítulos que ele não vê (restritos a
- * famílias de que não é membro, ou na lixeira). Hoje as telas tiram cada coisa por conta própria; a lista
- * leve da D2 nasce daqui, para não levar ao celular o que as telas escondem.
+ * O que pode sair do servidor para quem olha, numa lista leve: só os campos desta lista. Sem núcleos, sem
+ * relatos, sem quem criou e sem as outras fotos. A D2 acrescenta campo aqui de propósito, se precisar.
  */
-export function paraOLeitor<M extends { integrantes: readonly string[]; capitulos: readonly string[] }>(m: M, naoVe: ReadonlySet<string>, capitulosQueVe: ReadonlySet<string>): M {
-  return { ...m, integrantes: m.integrantes.filter((id) => !naoVe.has(id)), capitulos: m.capitulos.filter((id) => capitulosQueVe.has(id)) };
+export interface MemoriaParaOLeitor {
+  id: string;
+  titulo: string;
+  ano: number;
+  mes: number | null;
+  dia: number | null;
+  aproximada: boolean;
+  lugar: string | null;
+  tipo: string;
+  tipoOutro: string | null;
+  /** a foto principal da memória, nunca uma que veio com um relato */
+  fotoChave: { chave: string; legenda: string | null; copias: Copias | null } | null;
+  /** quem estava, sem quem o leitor não vê */
+  integrantes: string[];
+  /** os capítulos que o leitor vê */
+  capitulos: string[];
+  /** os temas que o leitor vê */
+  temas: string[];
+}
+
+/** O que o leitor vê, para paraOLeitor: quem ele não vê (pessoasQueONaoVe) e os capítulos e temas que vê. */
+export interface VistoPeloLeitor {
+  naoVe: ReadonlySet<string>;
+  capitulosQueVe: ReadonlySet<string>;
+  temasQueVe: ReadonlySet<string>;
+}
+
+/**
+ * A memória como pode sair do servidor para quem olha: uma projeção campo a campo (revisão MEM-2 da AC3), e
+ * não a memória inteira com filtros. Sai só o que MemoriaParaOLeitor lista, sem as pessoas que ele não vê
+ * (quem só existe num laço privado de outra pessoa, quem está na lixeira), sem os capítulos e os temas que
+ * ele não vê e sem as fotos que vieram com um relato. Hoje as telas tiram cada coisa por conta própria; a
+ * lista leve da D2 nasce daqui, para não levar ao celular o que as telas escondem.
+ */
+export function paraOLeitor(m: MemoriaDeEntrada, visto: VistoPeloLeitor): MemoriaParaOLeitor {
+  const daMemoria = m.fotos.filter((f) => f.relatoId === null);
+  const chave = daMemoria.find((f) => f.principal) ?? daMemoria[0];
+  return {
+    id: m.id,
+    titulo: m.titulo,
+    ano: m.ano,
+    mes: m.mes,
+    dia: m.dia,
+    aproximada: m.aproximada,
+    lugar: m.lugar,
+    tipo: m.tipo,
+    tipoOutro: m.tipoOutro,
+    fotoChave: chave ? { chave: chave.chave, legenda: chave.legenda, copias: chave.copias } : null,
+    integrantes: m.integrantes.filter((id) => !visto.naoVe.has(id)),
+    capitulos: m.capitulos.filter((id) => visto.capitulosQueVe.has(id)),
+    temas: m.temas.filter((id) => visto.temasQueVe.has(id)),
+  };
 }
