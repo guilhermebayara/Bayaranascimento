@@ -44,6 +44,12 @@ function playwright() {
 }
 
 const base = (process.argv[2] ?? 'http://localhost:4400').replace(/\/$/, '');
+// Nunca na produção nem na homologação: só o computador e as prévias de teste (a conferência abre todas as
+// memórias e entra como outra pessoa pelo "Ver como", que não existe onde há login)
+if (/^(memorias|homologa\.memorias)\.bayara\.com\.br$/.test(new URL(base).hostname)) {
+  console.error('A conferência da TV roda no computador ou numa prévia de teste. Produção e homologação nunca.');
+  process.exit(1);
+}
 // As janelas deitadas abaixo de 62rem (o celular espelhado na TV) entram na conferência
 const JANELAS = (process.env.TV_JANELAS ?? '1280x720,1280x800,1366x768,1440x900,1920x1080,844x390,932x430,667x375').split(',').map((j) => j.split('x').map(Number));
 const MAIS = (process.env.TV_MAIS ?? '').split(',').filter(Boolean);

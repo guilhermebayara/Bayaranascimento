@@ -388,14 +388,6 @@ export function possessivo(relacao: Relacao, tratamento: Tratamento): string {
   return `${tratamento === 'ela' ? 'sua' : 'seu'} ${relacao.texto}`;
 }
 
-/** Período de uma fase em texto: "2015 a 2019", "desde 2020", ou vazio sem datas. */
-export function periodoDaFase(fase: Fase): string {
-  if (fase.inicioAno && fase.fimAno) return fase.inicioAno === fase.fimAno ? String(fase.inicioAno) : `${fase.inicioAno} a ${fase.fimAno}`;
-  if (fase.inicioAno) return `desde ${fase.inicioAno}`;
-  if (fase.fimAno) return `até ${fase.fimAno}`;
-  return '';
-}
-
 /**
  * O período de cada fase de um casal, lido na sequência: uma fase sem fim informado acaba quando a
  * seguinte começa (o namoro acaba quando o noivado começa). Só a última, a de hoje, fica "desde".

@@ -12,7 +12,6 @@ import {
   atributosDasFontes,
   combinacao,
   combinacaoDe,
-  combinacaoValida,
   corDaPessoa,
   corDoNucleo,
   encolheDaAssinatura,
@@ -34,75 +33,57 @@ const semComentarios = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const pastaDoCss = new URL('src/visual/', raiz);
 const arquivosCss = [...readdirSync(pastaDoCss).filter((a) => a.endsWith('.css')), ...readdirSync(new URL('telas/', pastaDoCss)).map((a) => `telas/${a}`)];
 const css = (nome: string) => semComentarios(texto(`src/visual/${nome}`));
-const SERIFAS = ['a', 'b', 'c'] as const;
+const SERIFAS = ['c'] as const;
 
 describe('a fonte do site', () => {
-  it('é escolhida numa linha só, entre as três combinações, para cada papel do tipo', () => {
+  it('é escolhida numa linha só, entre as combinações do pacote, para cada papel do tipo', () => {
     const fonte = texto('src/lib/visual.ts');
     expect(fonte.match(/^export const FONTES_DO_SITE: FontesDoSite = .+;$/gm)).toHaveLength(1);
     for (const papel of PAPEIS_DAS_FONTES) expect(COMBINACOES_DE_FONTES.map((c) => c.id)).toContain(FONTES_DO_SITE[papel]);
   });
 
-  it('é a combinação C, De cartaz (decisão do Gui, 17/11/2026), e as três continuam no sistema', () => {
+  it('é a combinação C, De cartaz (decisão do Gui, 17/11/2026), a única do pacote: A e B saíram em 26/11/2026', () => {
     expect(FONTES_DO_SITE).toEqual(combinacao('c'));
     expect(nomesDasFontes(FONTES_DO_SITE)).toBe('DM Serif Display, DM Sans, DM Mono e Nothing You Could Do');
-    expect(COMBINACOES_DE_FONTES.map((c) => c.id)).toEqual(['a', 'b', 'c']);
-    for (const id of SERIFAS) expect(existsSync(new URL(`public/icones/${id}/favicon.svg`, raiz)), id).toBe(true);
+    expect(COMBINACOES_DE_FONTES.map((c) => c.id)).toEqual(['c']);
+    expect(existsSync(new URL('public/icones/c/favicon.svg', raiz))).toBe(true);
+    for (const id of ['a', 'b']) expect(existsSync(new URL(`public/icones/${id}`, raiz)), id).toBe(false);
   });
 
-  it('o seletor da página do sistema troca as fontes só nos exemplos dela, pelo endereço', () => {
+  it('a página do sistema mostra só as fontes do site, sem seletor e sem pedido pelo endereço', () => {
     const pagina = texto('src/pages/sistema.astro');
-    expect(pagina).toMatch(/const fontesPedidas = combinacaoValida\(Astro\.url\.searchParams\.get\('fontes'\)\);/);
-    // O seletor fica no alto, antes dos exemplos; o topo, o menu e o rodapé seguem a fonte do site
-    const seletor = pagina.indexOf('<nav class="sis__fontes"');
-    const exemplos = pagina.indexOf('<div class="sis__exemplos" {...atributosDasFontes(fontesDosExemplos)}>');
-    expect(seletor).toBeGreaterThan(0);
-    expect(exemplos).toBeGreaterThan(seletor);
-    expect(pagina).toMatch(/COMBINACOES_DE_FONTES\.map\(\(c\) => \(\n\s*<a class="acao acao--quieta" href=\{`\/sistema\?fontes=\$\{c\.id\}`\}/);
-    // O texto corrido dos exemplos também troca, e não só os títulos
+    expect(pagina).toContain('<div class="sis__exemplos" {...atributosDasFontes(FONTES_DO_SITE)}>');
+    expect(pagina).not.toMatch(/sis__fontes|\?fontes=|searchParams\.get\('fontes'\)/);
+    // O texto corrido dos exemplos também leva a fonte, e não só os títulos
     expect(css('telas/sistema.css')).toMatch(/\.sis__exemplos\s*\{\s*font-family:\s*var\(--grotesca\);/);
-    // O seletor não mexe na fonte do resto do site
-    expect(texto('src/layouts/Visual.astro')).not.toMatch(/searchParams\.get\('fontes'\)/);
   });
 
-  it('uma combinação inteira leva os quatro papéis, e dá para misturar', () => {
-    expect(combinacao('b')).toEqual({ serifa: 'b', grotesca: 'b', mono: 'b', mao: 'b' });
+  it('uma combinação inteira leva os quatro papéis', () => {
+    expect(combinacao('c')).toEqual({ serifa: 'c', grotesca: 'c', mono: 'c', mao: 'c' });
     expect(combinacaoDe(combinacao('c'))).toBe('c');
-    const mistura = { ...combinacao('a'), mao: 'b' as const };
-    expect(combinacaoDe(mistura)).toBeNull();
-    expect(atributosDasFontes(mistura)).toEqual({ 'data-serifa': 'a', 'data-grotesca': 'a', 'data-mono': 'a', 'data-mao': 'b' });
-    expect(nomesDasFontes(mistura)).toBe('Fraunces, Geist, Geist Mono e Reenie Beanie');
+    expect(atributosDasFontes(combinacao('c'))).toEqual({ 'data-serifa': 'c', 'data-grotesca': 'c', 'data-mono': 'c', 'data-mao': 'c' });
   });
 
-  it('a faixa de teste só aceita as três combinações', () => {
-    expect(combinacaoValida('b')).toBe('b');
-    expect(combinacaoValida('z')).toBeNull();
-    expect(combinacaoValida(undefined)).toBeNull();
+  it('nada troca a fonte por pedido: sem rota do conceito, sem cookie, sem faixa de fontes', () => {
+    expect(existsSync(new URL('src/pages/conceito', raiz))).toBe(false);
+    expect(existsSync(new URL('src/lib/servidor/conceito.ts', raiz))).toBe(false);
+    expect(texto('src/layouts/Visual.astro')).not.toMatch(/fontesDoPedido|Cookie|searchParams\.get\('fontes'\)/);
   });
 
-  it('fora das prévias de teste, o cookie da faixa não troca a fonte', () => {
-    const conceito = texto('src/lib/servidor/conceito.ts');
-    expect(conceito).toMatch(/export function fontesDoPedido[\s\S]*if \(!conceitoDisponivel\(\)\) return FONTES_DO_SITE;/);
-  });
-
-  it('cada papel tem as três opções em fontes.css, com as mesmas variáveis', () => {
+  it('cada papel tem a opção C em fontes.css, com a variável do papel', () => {
     const fontes = css('fontes.css');
     for (const papel of PAPEIS_DAS_FONTES) {
-      const variaveis = SERIFAS.map((id) => {
-        const bloco = new RegExp(`\\[data-${papel}='${id}'\\]\\s*\\{([^}]*)\\}`).exec(fontes);
-        expect(bloco, `${papel} ${id}`).not.toBeNull();
-        return [...bloco![1]!.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]).sort();
-      });
-      expect(variaveis[1], papel).toEqual(variaveis[0]);
-      expect(variaveis[2], papel).toEqual(variaveis[0]);
-      expect(variaveis[0]).toContain(`--${papel}`);
+      const bloco = new RegExp(`\\[data-${papel}='c'\\]\\s*\\{([^}]*)\\}`).exec(fontes);
+      expect(bloco, papel).not.toBeNull();
+      expect([...bloco![1]!.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1])).toContain(`--${papel}`);
+      for (const outra of ['a', 'b']) expect(fontes, `${papel} ${outra}`).not.toContain(`[data-${papel}='${outra}']`);
     }
   });
 
-  it('o esqueleto leva as fontes e o ícone da serifa em uso, sem nome de fonte escrito', () => {
+  it('o esqueleto leva as fontes e o ícone da serifa do site, sem nome de fonte escrito', () => {
     const esqueleto = texto('src/layouts/Visual.astro');
-    expect(esqueleto).toContain('{...atributosDasFontes(fontes)}');
-    expect(esqueleto).toContain('const icones = `/icones/${fontes.serifa}`;');
+    expect(esqueleto).toContain('{...atributosDasFontes(FONTES_DO_SITE)}');
+    expect(esqueleto).toContain('const icones = `/icones/${FONTES_DO_SITE.serifa}`;');
     expect(esqueleto).toMatch(/^import '\.\.\/visual\/sistema';$/m);
     expect(esqueleto).not.toMatch(/@fontsource|data-fontes/);
   });
@@ -157,7 +138,7 @@ describe('assinatura do nome', () => {
     }
   });
 
-  it('a tabela de larguras cobre as letras dos sobrenomes de hoje, nas três serifas', () => {
+  it('a tabela de larguras cobre as letras dos sobrenomes de hoje', () => {
     for (const serifa of SERIFAS) for (const letra of 'Bayara, Bracarense & Silva-ÁÉÍÓÚÃÕÇáéíóúãõç') expect(LARGURAS_DAS_LETRAS[serifa][letra], `${serifa} ${letra}`).toBeGreaterThan(0);
   });
 
@@ -207,7 +188,7 @@ describe('cor da família', () => {
 });
 
 describe('monograma', () => {
-  it('existe para as três serifas, nos dois cortes, numa caixa de altura 100 e num caminho só', () => {
+  it('existe para a serifa do site, nos dois cortes, numa caixa de altura 100 e num caminho só', () => {
     for (const serifa of SERIFAS) {
       for (const corte of ['normal', 'pequeno'] as const) {
         const m = MONOGRAMAS[serifa][corte];
@@ -218,7 +199,7 @@ describe('monograma', () => {
         expect(m.largura).toBeGreaterThan(70);
         expect(m.largura).toBeLessThan(140);
       }
-      // O corte pequeno é mais firme que o de título: na Fraunces pelo desenho, nas outras pelo contorno
+      // O corte pequeno é mais firme que o de título: pelo contorno ou pelo desenho
       expect(MONOGRAMAS[serifa].pequeno.traco > 0 || MONOGRAMAS[serifa].pequeno.d !== MONOGRAMAS[serifa].normal.d).toBe(true);
     }
   });
@@ -240,14 +221,15 @@ describe('monograma', () => {
   it('no topo, o celular mostra o monograma desenhado, e não a letra da fonte', () => {
     const esqueleto = texto('src/layouts/Visual.astro');
     expect(esqueleto).toMatch(/<span class="topo__monograma" aria-hidden="true">\s*<Monograma \/>\s*<\/span>/);
-    // Cada serifa acende o monograma dela
-    const fontes = css('fontes.css');
-    for (const serifa of SERIFAS) expect(fontes).toMatch(new RegExp(`\\[data-serifa='${serifa}'\\]\\s*\\{[^}]*--m-${serifa}: block;`));
+    // Um M só, o da serifa do site: nada de três desenhos escondidos por CSS
+    expect(texto('src/components/visual/Monograma.astro')).toContain('MONOGRAMAS[FONTES_DO_SITE.serifa][corte]');
+    expect(Object.keys(MONOGRAMAS)).toEqual(['c']);
+    expect(css('fontes.css') + css('pecas.css')).not.toMatch(/--m-[abc]|data-da-serifa/);
   });
 });
 
 describe('tokens e peças', () => {
-  const fontesDasTelas = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/conceito/**/*.astro', '../src/pages/sistema.astro', '../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/pages/capitulos/index.astro', '../src/pages/capitulos/[[]id]/index.astro', '../src/pages/temas/[[]id].astro', '../src/pages/pessoas/index.astro', '../src/pages/arvore.astro', '../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/pages/pessoas/nova.astro', '../src/pages/pessoas/[[]id]/editar.astro', '../src/pages/memorias/[[]id]/historico.astro', '../src/pages/memorias/[[]id]/excluir.astro', '../src/pages/capitulos/[[]id]/excluir.astro', '../src/pages/lixeira.astro', '../src/pages/admin/*.astro', '../src/components/FichaDoIntegrante.astro', '../src/components/CampoRetrato.astro', '../src/components/ConfirmarRemocao.astro', '../src/components/ComoSeReferir.astro', '../src/components/formularios/*.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/capitulos/*.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro', '../src/lib/visual.ts'], {
+  const fontesDasTelas = import.meta.glob<string>(['../src/layouts/Visual.astro', '../src/components/visual/*.astro', '../src/pages/sistema.astro', '../src/pages/explorar.astro', '../src/pages/memorias/[[]id].astro', '../src/pages/index.astro', '../src/pages/carta.astro', '../src/pages/conta.astro', '../src/pages/pessoas/[[]id]/index.astro', '../src/pages/capitulos/index.astro', '../src/pages/capitulos/[[]id]/index.astro', '../src/pages/temas/[[]id].astro', '../src/pages/pessoas/index.astro', '../src/pages/arvore.astro', '../src/pages/nova.astro', '../src/pages/memorias/[[]id]/relato.astro', '../src/pages/capitulos/novo.astro', '../src/pages/capitulos/[[]id]/editar.astro', '../src/pages/pessoas/nova.astro', '../src/pages/pessoas/[[]id]/editar.astro', '../src/pages/memorias/[[]id]/historico.astro', '../src/pages/memorias/[[]id]/excluir.astro', '../src/pages/capitulos/[[]id]/excluir.astro', '../src/pages/lixeira.astro', '../src/pages/admin/*.astro', '../src/components/FichaDoIntegrante.astro', '../src/components/CampoRetrato.astro', '../src/components/ConfirmarRemocao.astro', '../src/components/ComoSeReferir.astro', '../src/components/formularios/*.astro', '../src/components/FichaDoCapitulo.astro', '../src/components/capitulos/*.astro', '../src/components/Carta.astro', '../src/components/explorar/*.astro', '../src/lib/visual.ts'], {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -258,7 +240,7 @@ describe('tokens e peças', () => {
     const definidas = new Set([...tudo.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
     // As que o script da linha do tempo põe na página, as que a assinatura põe em si mesma e o
     // progresso da frase da nova memória
-    const postasPorScript = ['--alt', '--barra-alt', '--encolhe-a', '--encolhe-b', '--encolhe-c', '--retrato-cor', '--feito', '--letras'];
+    const postasPorScript = ['--alt', '--barra-alt', '--encolhe-c', '--retrato-cor', '--feito', '--letras'];
     const usadas = new Set([...tudo.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]!).filter((v) => !v.endsWith('-')));
     const soltas = [...usadas].filter((v) => !definidas.has(v) && !postasPorScript.includes(v));
     expect(soltas).toEqual([]);
@@ -279,7 +261,7 @@ describe('tokens e peças', () => {
 
   it('cada peça de docs/visual.md tem o seu componente', () => {
     const componentes = readdirSync(new URL('src/components/visual/', raiz));
-    for (const peca of ['Assinatura', 'Monograma', 'Polaroid', 'Carimbo', 'Etiqueta', 'Pilula', 'Ficha', 'Dado', 'Retrato', 'Gente', 'Bilhete', 'Audio', 'Sanfona', 'SinalDoCapitulo', 'Recado', 'Vazio', 'IconeDoTipo', 'Rabisco', 'Trilhos']) {
+    for (const peca of ['Assinatura', 'Monograma', 'Polaroid', 'Carimbo', 'Etiqueta', 'Pilula', 'Ficha', 'Dado', 'Retrato', 'Gente', 'Bilhete', 'Sanfona', 'SinalDoCapitulo', 'Recado', 'Vazio', 'IconeDoTipo', 'Rabisco', 'Trilhos']) {
       expect(componentes, peca).toContain(`${peca}.astro`);
     }
   });
@@ -330,22 +312,20 @@ describe('tokens e peças', () => {
 });
 
 describe('as fontes da primeira tela (causa 7 da medição M1, sessão D1a)', () => {
-  it('o site carrega só a combinação C; A e B ficam nas páginas que comparam as três', () => {
+  it('o pacote carrega só a combinação C: as fontes de A e B saíram do código e do package.json', () => {
     const sistema = texto('src/visual/sistema.ts');
     expect(sistema).toMatch(/@fontsource\/dm-serif-display\/400\.css/);
-    expect(sistema).not.toMatch(/fraunces|geist|instrument|ibm-plex|oooh-baby|reenie-beanie/);
-    const comparar = texto('src/visual/fontes-para-comparar.ts');
-    for (const fonte of ['fraunces', 'geist', 'instrument-serif', 'ibm-plex-mono', 'oooh-baby', 'reenie-beanie']) expect(comparar).toContain(fonte);
-    const todos = import.meta.glob<string>(['../src/**/*.astro', '../src/**/*.ts'], { query: '?raw', import: 'default', eager: true });
-    const quemImporta = Object.entries(todos)
-      .filter(([, fonte]) => /^import '[^']*fontes-para-comparar';$/m.test(fonte))
-      .map(([caminho]) => caminho.replace('../', ''));
-    expect(quemImporta.sort()).toEqual(['src/pages/conceito/sobre.astro', 'src/pages/sistema.astro']);
+    const fontesFora = /fraunces|geist|instrument|ibm-plex|oooh-baby|reenie-beanie|bricolage|literata/;
+    expect(sistema).not.toMatch(fontesFora);
+    expect(texto('package.json')).not.toMatch(fontesFora);
+    expect(existsSync(new URL('src/visual/fontes-para-comparar.ts', raiz))).toBe(false);
+    const todos = import.meta.glob<string>(['../src/**/*.astro', '../src/**/*.ts', '../src/**/*.css'], { query: '?raw', import: 'default', eager: true });
+    for (const [caminho, fonte] of Object.entries(todos)) expect(fonte, caminho).not.toMatch(/@fontsource[^'"]*\/(fraunces|geist|instrument|ibm-plex|oooh-baby|reenie-beanie|bricolage|literata)/);
   });
 
-  it('o esqueleto pede antes a serifa da assinatura e a grotesca do texto, da combinação em uso', () => {
+  it('o esqueleto pede antes a serifa da assinatura e a grotesca do texto', () => {
     const esqueleto = texto('src/layouts/Visual.astro');
-    expect(esqueleto).toMatch(/fontesParaPedirAntes\(fontes\)\.map\(\(arquivo\) => <link rel="preload" href=\{arquivo\} as="font" type="font\/woff2" crossorigin \/>\)/);
+    expect(esqueleto).toMatch(/fontesParaPedirAntes\(\)\.map\(\(arquivo\) => <link rel="preload" href=\{arquivo\} as="font" type="font\/woff2" crossorigin \/>\)/);
     const primeira = texto('src/visual/fontes-da-primeira-tela.ts');
     expect(primeira).toContain("'@fontsource/dm-serif-display/files/dm-serif-display-latin-400-normal.woff2?url'");
     expect(primeira).toContain("'@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2?url'");

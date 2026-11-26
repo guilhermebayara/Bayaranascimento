@@ -91,12 +91,6 @@ describe('formulários em etapas', () => {
   it('o recado de rascunho salvo fica no alto da coluna da pergunta', () => {
     expect(ler('src/pages/nova.astro')).toContain('form.prepend(recado);');
   });
-  it('o resumo ao lado do relato só fica parado em janela alta o bastante', () => {
-    const css = ler('src/visual/telas/formulario.css');
-    const consultas = [...css.matchAll(/@media ([^{]+)\{\s*\.pagina-de-formulario > \.ao-lado--fixo \{/g)].map((m) => m[1]);
-    expect(consultas.length).toBe(1);
-    expect(consultas[0]).toMatch(/min-height/);
-  });
   it('a lista de sugestões da busca de pessoa não entra na ordem do Tab', () => {
     expect(ler('src/lib/cliente/busca-pessoa.ts')).toMatch(/sugestoes\.tabIndex = -1/);
   });

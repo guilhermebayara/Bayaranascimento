@@ -3,8 +3,8 @@
 // para cada foto, o tamanho servido contra o tamanho mostrado. Usa o Chromium do Playwright, com a rede
 // e o processador do celular simulados pelo próprio Chrome (DevTools Protocol).
 //
-//   node scripts/desempenho/proxy-local.mjs &                 # HTTP/2 e Brotli na frente do servidor local
-//   node scripts/desempenho/medir-navegador.mjs exemplo [https://127.0.0.1:4443]
+//   node scripts/historico/proxy-local.mjs &                 # HTTP/2 e Brotli na frente do servidor local
+//   node scripts/historico/medir-navegador.mjs exemplo [https://127.0.0.1:4443]
 //
 // Contra uma prévia de teste: passe o endereço dela (sem login). Escreve docs/desempenho/dados/navegador-<rotulo>.json.
 import { mkdirSync, writeFileSync } from 'node:fs';

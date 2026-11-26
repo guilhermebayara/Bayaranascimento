@@ -58,6 +58,9 @@
   // desligada até um administrador ligar em Administração, "Transcrição automática".
   "ai": { "binding": "AI" },
 
+  // Registros do Workers: guardam a CPU de cada pedido, para uma olhada por mês no painel (Metrics, CPU time, e
+  // Invocation Statuses, "Exceeded CPU Time Limits") pegar o que escapar das medições do computador (M2,
+  // docs/desempenho/2026-11-23-m2-cpu.md). Gastam a cota de registros do plano gratuito, e só isso.
   "observability": { "enabled": true },
 
   // Posicionamento inteligente (causa 1d da medição M1, docs/desempenho/): o Cloudflare roda o servidor

@@ -351,10 +351,6 @@ html.pino-novo .parada__ano[data-vazia] {
   scroll-margin-top: 3rem;
 }
 
-.linha__vazio {
-  padding-block: var(--e-8);
-}
-
 /* --- O ano: a divisória ---------------------------------------------------------------------- */
 
 .ano {

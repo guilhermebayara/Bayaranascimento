@@ -3,8 +3,8 @@
 // o resultado completo, a interação como o navegador a mede (INP), o que foi buscado no servidor, o que
 // a tela mostra (esperando, deu certo, falhou) e o que chega ao leitor de tela (regiões aria-live).
 //
-//   node scripts/desempenho/proxy-local.mjs &
-//   node scripts/desempenho/medir-espera.mjs exemplo [https://127.0.0.1:4443]
+//   node scripts/historico/proxy-local.mjs &
+//   node scripts/historico/medir-espera.mjs exemplo [https://127.0.0.1:4443]
 //
 // Perfil: celular, 390 × 844, processador 4× mais lento, 4G lento (PERFIL=celular-3g ou tv-1920 muda).
 // Falhas: FALHA=1 refaz as ações da segunda família sem rede e com o servidor respondendo erro.

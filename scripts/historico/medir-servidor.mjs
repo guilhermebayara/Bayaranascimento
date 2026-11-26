@@ -3,7 +3,7 @@
 // local guarda de cada pedido (Local Explorer, /cdn-cgi/local/explorer/api/local/observability/query).
 // Não muda nada no site nem no banco. Só roda contra o servidor local.
 //
-//   node scripts/desempenho/medir-servidor.mjs [rotulo] [vezes]      # ex.: exemplo 5
+//   node scripts/historico/medir-servidor.mjs [rotulo] [vezes]      # ex.: exemplo 5
 //
 // Escreve docs/desempenho/dados/servidor-<rotulo>.json e mostra a tabela.
 import { mkdirSync, writeFileSync } from 'node:fs';
