@@ -175,11 +175,12 @@ export async function montarParte(tabela: string, depois: number | null, nomes?:
   const tamanho = linhasPorParte(tabela);
   // Uma consulta só, para a marca e as linhas serem do mesmo instante: a página (com uma linha a mais, só para
   // saber se a tabela continua) e, no fim, uma linha a mais com a marca no lugar do rowid ("marca:<n>") e as
-  // colunas vazias. A marca vai uma vez, e não em toda linha: a parte custa o mesmo que antes.
+  // colunas vazias. LIMIT 0 fornece essas colunas sem ler a tabela: o LEFT JOIN direto, mesmo com ON 0,
+  // percorria a tabela inteira de novo a cada parte.
   const t = entreAspas(tabela);
   const comando = banco().prepare(
     `SELECT * FROM (SELECT rowid AS "__linha_da_copia", * FROM ${t}${depois === null ? '' : ' WHERE rowid > ?1'} ORDER BY rowid LIMIT ${tamanho + 1})
-     UNION ALL SELECT 'marca:' || m.valor || ':' || (${MARCA_DO_ESQUEMA}), x.* FROM ${TABELA_DA_MARCA} m LEFT JOIN ${t} x ON 0 WHERE m.id = 1`,
+     UNION ALL SELECT 'marca:' || m.valor || ':' || (${MARCA_DO_ESQUEMA}), x.* FROM ${TABELA_DA_MARCA} m LEFT JOIN (SELECT * FROM ${t} LIMIT 0) x ON 0 WHERE m.id = 1`,
   );
   const [cabecalho, ...todas] = (await (depois === null ? comando : comando.bind(depois)).raw({ columnNames: true })) as [string[], ...unknown[][]];
   const linhaDaMarca = todas.findIndex((l) => typeof l[0] === 'string' && l[0].startsWith('marca:'));
