@@ -1120,6 +1120,8 @@ export async function memoriasDoInicio(usuario: Usuario, desde: string | null, h
 
 /** Uma consulta de tamanho constante: os capítulos e os filhos são dados no parâmetro JSON.
  * Os vínculos e as datas produzem linhas, nunca novos termos SQL por capítulo ou filho.
+ * A faixa de um capítulo por período só conta se houver trilho. Conferir isso no GROUP BY
+ * evita expandir outra vez a cadeia das memórias próprias em uma subconsulta.
  */
 async function agregadosDosCapitulos(usuario: Usuario, capitulos: Capitulo[]) {
   if (!capitulos.length) return { resumos: new Map(), cores: new Map<string, number>() };
@@ -1151,13 +1153,11 @@ async function agregadosDosCapitulos(usuario: Usuario, capitulos: Capitulo[]) {
       FROM membros p JOIN visiveis m ON m.id = p.id),
     resumos AS (SELECT capitulo, COUNT(*) AS n, MAX(data) FILTER (WHERE primeira = 1) AS inicio,
       MAX(data) FILTER (WHERE ultima = 1) AS fim FROM datas GROUP BY capitulo),
-    do_trilho AS MATERIALIZED (SELECT c.id AS capitulo, m.posicao FROM cs c JOIN cs fonte ON fonte.id = c.id OR fonte.dentro = c.id
-      JOIN proprias p ON p.capitulo = fonte.id JOIN visiveis m ON m.id = p.id WHERE NOT c.epoca AND NOT fonte.epoca),
-    faixas AS (SELECT capitulo, posicao FROM do_trilho
-      UNION ALL SELECT c.id, m.posicao FROM cs c JOIN visiveis m WHERE NOT c.epoca AND c.modo = 'epoca'
-        AND EXISTS (SELECT 1 FROM do_trilho t WHERE t.capitulo = c.id)
+    faixas AS (SELECT c.id AS capitulo, m.posicao, 1 AS tem_trilho FROM cs c JOIN cs fonte ON fonte.id = c.id OR fonte.dentro = c.id
+      JOIN proprias p ON p.capitulo = fonte.id JOIN visiveis m ON m.id = p.id WHERE NOT c.epoca AND NOT fonte.epoca
+      UNION ALL SELECT c.id, m.posicao, 0 FROM cs c JOIN visiveis m WHERE NOT c.epoca AND c.modo = 'epoca'
         AND ${sqlMemoriaDoCapitulo('m', `json_set(c.dados, '$.pessoas', json('[]'), '$.familias', json('[]'))`, "'[]'",'epoca')}),
-    pontas AS (SELECT capitulo, MIN(posicao) AS primeira, MAX(posicao) AS ultima FROM faixas GROUP BY capitulo)
+    pontas AS (SELECT capitulo, MIN(posicao) AS primeira, MAX(posicao) AS ultima FROM faixas GROUP BY capitulo HAVING MAX(tem_trilho))
     SELECT c.id AS capitulo, COALESCE(r.n,0) AS n, r.inicio, r.fim, p.primeira, p.ultima
       FROM cs c LEFT JOIN resumos r ON r.capitulo = c.id LEFT JOIN pontas p ON p.capitulo = c.id`)
     .bind(...valores).all<{ capitulo: string; n: number; inicio: string | null; fim: string | null; primeira: number | null; ultima: number | null }>();
