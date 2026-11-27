@@ -3,7 +3,7 @@ import { textoDasMensagens, type Mensagem } from '../src/lib/conversa';
 import { baixarCopiaEmPartes, type IndiceDaCopia } from '../src/lib/copia-em-partes';
 import { arrumarTexto } from '../src/lib/servidor/conteudo';
 import { abrirBancoDeExemplo } from './apoio/banco-de-exemplo';
-import { temSqlite, type DatabaseSync } from './apoio/d1';
+import { ComandoDeTeste, temSqlite, type DatabaseSync } from './apoio/d1';
 import { restaurarCopia } from './apoio/restaurar';
 
 const env = vi.hoisted(() => ({ AMBIENTE: 'previa', DB: undefined as unknown, FOTOS: undefined as unknown }));
@@ -45,7 +45,7 @@ describe.skipIf(!(await temSqlite()))('Relato como conversa em um lote', async (
       method: 'POST', headers: { Origin: 'http://localhost', ...(form ? {} : { 'Content-Type': 'application/json' }) },
       body: form ? corpo : JSON.stringify(corpo),
     });
-    return rota.POST({ request, locals: { usuario, tipos } } as never);
+    return noPedido(request, () => rota.POST({ request, locals: { usuario, tipos } } as never));
   }
 
   function conferirRelatos(db: DatabaseSync, id: string) {
@@ -60,22 +60,28 @@ describe.skipIf(!(await temSqlite()))('Relato como conversa em um lote', async (
       expect(m.filter((f) => f.tipo === 'foto').every((f) => f.foto === 1)).toBe(true);
     }
   }
-  async function conferirCadaLote(id: string | (() => string), fazer: () => Promise<Response>) {
+  const grava = (sql: string) => /\b(INSERT INTO|UPDATE|DELETE FROM)\b/i.test(sql);
+  async function conferirCadaLote(id: string | (() => string | undefined), fazer: () => Promise<Response>) {
     let escritas = 0;
+    const avulsas = (['all', 'first', 'run', 'raw'] as const).map((metodo) => vi.spyOn(ComandoDeTeste.prototype, metodo));
+    const exec = vi.spyOn(banco, 'exec');
     banco.batch = async (comandos) => {
       const resultado = await lote(comandos);
-      if (comandos.some((c) => /\b(INSERT INTO|UPDATE|DELETE FROM)\b/i.test(c.sql))) {
-        escritas++;
-        conferirRelatos(banco.sqlite, typeof id === 'function' ? id() : id);
-      }
+      if (comandos.some((c) => grava(c.sql))) escritas++;
+      const atual = typeof id === 'function' ? id() : id;
+      if (atual) conferirRelatos(banco.sqlite, atual);
       return resultado;
     };
     try {
       const resultado = await fazer();
       expect(escritas).toBe(1);
+      for (const metodo of avulsas) expect(metodo.mock.contexts.some((c) => grava((c as ComandoDeTeste).sql))).toBe(false);
+      expect(exec).not.toHaveBeenCalled();
       return resultado;
     } finally {
       banco.batch = lote;
+      for (const metodo of avulsas) metodo.mockRestore();
+      exec.mockRestore();
     }
   }
   const salvar = (id: string, campos: Record<string, unknown>) => postar(relatos, '/api/relatos', { memoria: id, por: 'elizete', ...campos });
@@ -160,13 +166,13 @@ describe.skipIf(!(await temSqlite()))('Relato como conversa em um lote', async (
 
   it('confere cada lote da memória nova com relato', async () => {
     const { audio } = midias();
-    const id = () => linha<{ id: string }>("SELECT id FROM memorias WHERE titulo = 'Com relato no lote'").id;
+    const id = () => linha<{ id: string } | undefined>("SELECT id FROM memorias WHERE titulo = 'Com relato no lote'")?.id;
     const resp = await conferirCadaLote(id, () => postar(memorias, '/api/memorias', {
       titulo: 'Com relato no lote', ano: 2001, tipo: 'cotidiano', pessoas: ['elizete'],
       relato: { por: 'elizete', texto: 'Na memória nova.', audios: [{ id: audio.audioId }], mensagens: [texto('Na memória nova.'), audio] },
     }));
     expect(resp.status).toBe(201);
-    expect(mensagens(relato(id()).id).map((m) => m.tipo)).toEqual(['texto', 'audio']);
+    expect(mensagens(relato(id()!).id).map((m) => m.tipo)).toEqual(['texto', 'audio']);
   });
 
   it('restaura a cópia oficial com citações, anexos e relatos de 80, 81 e 200 mensagens', async () => {
@@ -199,16 +205,22 @@ describe.skipIf(!(await temSqlite()))('Relato como conversa em um lote', async (
 
   async function conferirCopia(id: string, noMeio?: () => Promise<void>) {
     let indices = 0;
+    let editou = false;
     const acervo = await baixarCopiaEmPartes(async (endereco) => {
       const url = new URL(endereco, 'http://localhost');
       const request = new Request(url);
       const resposta = await noPedido(request, () => copia.GET({ url, request, locals: { usuario: gui } } as never));
       expect(resposta.status).toBe(200);
       const parte = await resposta.json();
-      if ((parte as IndiceDaCopia).indice && ++indices === 1) await noMeio?.();
+      if ((parte as IndiceDaCopia).indice) indices++;
+      if (noMeio && !editou && parte.tabela === 'relatos' && parte.proxima === null) {
+        editou = true;
+        await noMeio();
+      }
       return parte;
     }, undefined, async () => undefined);
     expect(indices).toBe(noMeio ? 2 : 1);
+    expect(editou).toBe(Boolean(noMeio));
     for (const tabela of ['relatos', 'relato_mensagens']) {
       expect(acervo.tabelas[tabela]).toEqual(banco.sqlite.prepare(`SELECT * FROM ${tabela} ORDER BY rowid`).all());
     }
@@ -220,7 +232,27 @@ describe.skipIf(!(await temSqlite()))('Relato como conversa em um lote', async (
     })).toBeNull();
   }
 
-  it('reinicia a cópia quando há edição depois do índice e restaura a segunda sequência', async () => {
+  it('restaura a cópia oficial tirada no primeiro instante visível da gravação', async () => {
+    const id = memoria('mem8-copia-no-lote');
+    const { audio, foto } = midias();
+    let copiou = false;
+    banco.batch = async (comandos) => {
+      const resultado = await lote(comandos);
+      if (!copiou && comandos.some((c) => /^INSERT INTO relatos\b/.test(c.sql))) {
+        copiou = true;
+        await conferirCopia(id);
+      }
+      return resultado;
+    };
+    try {
+      expect((await salvar(id, { mensagens: [texto('Tudo junto.'), audio, foto] })).status).toBe(201);
+      expect(copiou).toBe(true);
+    } finally {
+      banco.batch = lote;
+    }
+  });
+
+  it('reinicia a cópia depois de ler os relatos e restaura a segunda sequência', async () => {
     const id = memoria('mem8-copia-edicao');
     const [antes] = await gravar(id, [texto('Primeiro instante.')]);
     await conferirCopia(id);
