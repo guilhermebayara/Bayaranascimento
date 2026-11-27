@@ -1804,9 +1804,9 @@ export const alvoDoRetrato = (chave: string) => `retrato:${chave}`;
 export type ReservaDasCopias = { codigo: string } | { recusa: 'feita' | 'reservada' };
 
 /** A cópia deste alvo já existe? O SQL que a reserva confere, no mesmo lote em que reserva. */
-function copiaJaFeita(alvo: string): { sql: string; chave: string } {
-  if (alvo.startsWith('foto:')) return { sql: 'SELECT 1 FROM fotos WHERE chave = ?3 AND copias IS NOT NULL', chave: alvo.slice('foto:'.length) };
-  if (alvo.startsWith('retrato:')) return { sql: 'SELECT 1 FROM retratos_enviados WHERE chave = ?3 AND copia IS NOT NULL', chave: alvo.slice('retrato:'.length) };
+function copiaJaFeita(alvo: string, parametro: 1 | 3): { sql: string; chave: string } {
+  if (alvo.startsWith('foto:')) return { sql: `SELECT 1 FROM fotos WHERE chave = ?${parametro} AND copias IS NOT NULL`, chave: alvo.slice('foto:'.length) };
+  if (alvo.startsWith('retrato:')) return { sql: `SELECT 1 FROM retratos_enviados WHERE chave = ?${parametro} AND copia IS NOT NULL`, chave: alvo.slice('retrato:'.length) };
   throw new Error(`Alvo de reserva desconhecido: ${alvo}`);
 }
 
@@ -1819,7 +1819,8 @@ function copiaJaFeita(alvo: string): { sql: string; chave: string } {
  */
 export async function reservarCopias(alvo: string): Promise<ReservaDasCopias> {
   const codigo = crypto.randomUUID();
-  const feita = copiaJaFeita(alvo);
+  const feita = copiaJaFeita(alvo, 3);
+  const conferencia = copiaJaFeita(alvo, 1);
   const [reserva, existe] = await db().batch([
     db()
       .prepare(
@@ -1828,7 +1829,7 @@ export async function reservarCopias(alvo: string): Promise<ReservaDasCopias> {
          WHERE reservas_das_copias.em < datetime('now', '-${MINUTOS_DA_RESERVA_DAS_COPIAS} minutes')`,
       )
       .bind(alvo, codigo, feita.chave),
-    db().prepare(`SELECT EXISTS (${feita.sql.replace('?3', '?1')}) AS feita`).bind(feita.chave),
+    db().prepare(`SELECT EXISTS (${conferencia.sql}) AS feita`).bind(conferencia.chave),
   ]);
   if ((reserva.meta.changes ?? 0) > 0) return { codigo };
   return { recusa: (existe.results?.[0] as { feita?: number } | undefined)?.feita ? 'feita' : 'reservada' };
