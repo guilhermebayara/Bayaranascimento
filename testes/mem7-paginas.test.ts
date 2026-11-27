@@ -25,4 +25,28 @@ describe.skipIf(!(await temSqlite()))('MEM-7: HTML real das páginas',async()=>{
         await expect(html).toMatchFileSnapshot(`amostras/mem7-historico-${campo}.html`);
       }finally{d1.sqlite.exec('ROLLBACK TO historico; RELEASE historico');}
   });
+  it.each(['memoria','foto'])('Sua conta: descarta o par quando a %s sai entre as leituras',async(alvo)=>{
+    const pagina=await paginaAstro('src/pages/conta.astro',env);
+    d1.sqlite.exec('SAVEPOINT conta');
+    try{
+      d1.sqlite.prepare("INSERT INTO memorias (id,titulo,ano,tipo,criada_por,situacao) VALUES ('mem7-corrida','Corrida da conta',2025,'outro','gui','publicada')").run();
+      const foto=d1.sqlite.prepare("INSERT INTO fotos (memoria_id,chave,enviada_por) VALUES ('mem7-corrida','exemplos/corrida.jpg','gui')").run().lastInsertRowid;
+      const lote=d1.batch.bind(d1);let interrompeu=false;
+      const espiao=vi.spyOn(d1,'batch').mockImplementation(async cs=>{
+        const resultado=await lote(cs);
+        if(cs.some(c=>c.sql.includes('SELECT m.id AS memoria, f.id FROM fotos'))){
+          interrompeu=true;
+          if(alvo==='memoria') d1.sqlite.prepare("UPDATE memorias SET excluida_em = datetime('now') WHERE id = 'mem7-corrida'").run();
+          else d1.sqlite.prepare("UPDATE fotos SET removida_em = datetime('now') WHERE id = ?").run(foto);
+        }
+        return resultado;
+      });
+      const html=await pagina.render({locals:{usuario:gui,tipos:await repo.listarTipos()},request:new Request('http://localhost/conta')});
+      expect(interrompeu).toBe(true);
+      expect(html).toContain('Sua conta');
+      expect(html).not.toContain('src="/fotos/pequena/exemplos/corrida.jpg"');
+      espiao.mockRestore();
+    }finally{vi.restoreAllMocks();d1.sqlite.exec('ROLLBACK TO conta; RELEASE conta');}
+  });
+
 });

@@ -6,7 +6,7 @@ import { resolve, join } from 'node:path';
 import { build } from 'esbuild';
 import { transform } from '@astrojs/compiler-rs';
 import { experimental_AstroContainer } from 'astro/container';
-export async function paginaAstro(arquivo: string, env: unknown, raiz = process.cwd()) {
+export async function paginaAstro(arquivo: string, env: unknown, raiz = process.env.MEM7_REFERENCIA ?? process.cwd()) {
   raiz = await realpath(raiz);
   const pasta = await mkdtemp(join(tmpdir(), 'mem7-pagina-'));
   await symlink(resolve('node_modules'), join(pasta, 'node_modules'));

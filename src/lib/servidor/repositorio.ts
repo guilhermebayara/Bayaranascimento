@@ -2193,7 +2193,12 @@ export async function memoriasDaConta(usuario: Usuario) {
     totais: contas.results[0] as unknown as { memorias: number; fotos: number },
     criadas: memorias.filter((m) => criadasIds.has(m.id)),
     rascunhos: memorias.filter((m) => rascunhosIds.has(m.id)),
-    fotos: fotos.results.map((f) => ({ memoria: porId.get(f.memoria as string)!, foto: porId.get(f.memoria as string)!.fotos.find((x) => x.id === f.id)! })).reverse(),
+    // A lixeira pode mudar entre a seleção dos ids e completar. Só desenha pares que ainda existem.
+    fotos: fotos.results.flatMap((f) => {
+      const memoria = porId.get(f.memoria as string);
+      const foto = memoria?.fotos.find((x) => x.id === f.id);
+      return memoria && foto ? [{ memoria, foto }] : [];
+    }).reverse(),
   };
 }
 
