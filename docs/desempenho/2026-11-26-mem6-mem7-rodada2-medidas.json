@@ -1,0 +1,1485 @@
+{
+  "revisado": "12f4271",
+  "codigo": "1037ba8",
+  "referenciaDoConserto": "e2b478e",
+  "restaurados": {
+    "src/lib/servidor/mensagens-de-antes.ts": {
+      "igualByteAByte": true,
+      "sha256": "aee46ac9770aaeb1c441ac667f3a41b52cc91e96c72f0a48c84f0d942805e35f"
+    },
+    "src/lib/servidor/espelho.ts": {
+      "igualByteAByte": true,
+      "sha256": "b6ca34d7d21c02969d3f581261dd3cd776e23d957a5555b180442bc68ec86a0e"
+    }
+  },
+  "ocorrenciasDaChaveForaDosDocumentos": 0,
+  "b3": "Primeiro batch do preparo e garantia dos gatilhos sobre o esquema novo quando há migração pendente; banco.ts e marca-da-copia.ts iguais a 12f4271.",
+  "gabarito": {
+    "referencia": "e2b478e",
+    "casos46": [
+      {
+        "leitor": "gui",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26569,
+        "sha256": "ccbe4dad829a8ff14ad39f100d003c00252d0577e0c354b6b4f266c4c876e2c1",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27294,
+        "sha256": "3f054bfc281c9c1ee79eede1b11317914c20f6db1da83a6df04ee9629b96f494",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12238,
+        "sha256": "25b85b18ca105a9bcc3c214a88e0017723ca3b4e870e0f315756b453b0c3db4c",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 70446,
+        "sha256": "7d3ad3643d8d2351187b38bca357a2f37489a71187dfd3514c304136cfe9c955",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11780,
+        "sha256": "da36916fbcf0b767ee64a4ea276c5f54eab1cb71fe4c7d9fb694c464445a228c",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40567,
+        "sha256": "0da287a18f80758436e402438832e2ee20274ee3485270845bea4428ca99ea21",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 25127,
+        "sha256": "33c2d405c0f530a47c15663b0dffade17c35b687b97ea195da496f6c68b1e434",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11688,
+        "sha256": "242dbf96b3197def5448b89d1929747e3e0e2c8e91d259de5c3dfb1a319ba5dc",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 104072,
+        "sha256": "6c9f66a26b086cea041af7639753b87ad8b87d365b61d913f870a99e044902fb",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 42734,
+        "sha256": "c908418ec73a94419fd5820675d2c746cef0851c1e9fe032a49d75ecdbf417bc",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 41794,
+        "sha256": "5c61f27eb8b365ce4a486bfed2d2a14159f9979fac3e92d673ee1eb26421d723",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 119120,
+        "sha256": "aa4a007ed68a8c4d149bddc71ec9f80e517ebe36f5d6e6259431639b6d718e2a",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 57697,
+        "sha256": "af4fd1f4b60400453c071e562334bf48750e611bc1f146f9c4b6247ab630c346",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12178,
+        "sha256": "85412b325fcf8dc009f9ff180716a7d24f65ff7a7a8cb65e98d0ecfb3c77296a",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22080,
+        "sha256": "2bb19097081534fc9182044649d0fae4671ba0021477ca10fcc4e8f217cfbde1",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26647,
+        "sha256": "768bcb9fb35615f569117d3811a0bbbae53c2bbca72f8e1a7e92eadf297c24ed",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27155,
+        "sha256": "91f72e9e2cb2f7be2625d1d46666fe9bf057c0a9ff621bf2e606aa15d054c319",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12230,
+        "sha256": "9ce944f4788061a1756dc46586b08b9d47a315e79d153e4084f24d68c9134056",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 71005,
+        "sha256": "66e37ba90e9e9155fc44b63ddd61cd51bc629f71fe1b8968ec460eb959283916",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11664,
+        "sha256": "ca815ec3e2102d245d7aaaf2a608e59054a127995bbcec4f88c4b45c9da7aa3d",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40571,
+        "sha256": "507ad2fb24a6a72d9bdaac5b08ac4a1d30928bbda1df4ddf12e95be087944443",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 20414,
+        "sha256": "719724392dc4b998fff9d3e59ae9bcbd7a8463189331067a4e4bd6ae33d2e98c",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11708,
+        "sha256": "31d74fc77ee04b463d7bdad1667f3ef368b86838ad773bc2fde9ae216cd506b4",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 104924,
+        "sha256": "89e5bb1c52ac070f53d9d576a8f8c5dcb182d36c1d19e3e9d9ac30c3aed11ebb",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 42901,
+        "sha256": "f9e480f2836b6b4d529017408125de92dfcdf188ea66e5ce6ac3d95a0102607e",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 42101,
+        "sha256": "5a275ceac91d2e62c26c22237d3e402a3674087adf4301de594e09886af0336b",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 119679,
+        "sha256": "8130b34ad59c311b43debe6b1295faf592c3b9ebd4ff1fbea11fd8290294e1db",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 58256,
+        "sha256": "6c9f9ef1f2b3fa5febf7c4267b815d2356e34f2f911c2f137e9a7e49dad56712",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12133,
+        "sha256": "96b73e218f96c6c8ae43676839a17b03e9501d4e9502680cffa2962fae31f4dc",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22194,
+        "sha256": "163d0fab9d57020d29f427ecdf8521d7737ea85b09e811879814136935ca4554",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26776,
+        "sha256": "4e8914a38b40c4b8cac11b9c36dab3e5e4414bf97052e6d709cf3f35f8c909ed",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27246,
+        "sha256": "fc098d1aac7de9486d502d01979d366a4b7c370aed39521422ca7abb15ee8903",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12735,
+        "sha256": "71c046a4289122958343452c7745f77652838553986f34d484b2e1461e031205",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 71565,
+        "sha256": "dfb22739615e4de7b8f461525af605073203c8cbc90119772b494a039eefc143",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11835,
+        "sha256": "509ad4c90e90969429d580dd737d750c33c1dfa03826c8f2081f7a9284112364",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40875,
+        "sha256": "40c2475b79bb334bf3ae2a7f5aa1a26f88cd51736b16fce216068a306f925b8c",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 19911,
+        "sha256": "e0b20fe4d644631802a1a310d1b72dcbc3ce31a51091e0476dcb417c376c6667",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11800,
+        "sha256": "cdff82ab40ade40c4e2bd381d3e00a94a70e7b57de45f628aec8207392d18554",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 110232,
+        "sha256": "bdb742eaf4a2cc03d49a5f6e4f6240bfd0424d1a2ca5c1178c29a22db03891c9",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 44369,
+        "sha256": "ccb4ef338df2a436fa974455a68faa920cb08a7a081d69583f1fdb4c37ba05f7",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 42496,
+        "sha256": "5ef7028c56510f12c1ea00d5c65929d7129f6ca04ea10a06bc1762795e9845e0",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 120394,
+        "sha256": "52f9b762064ce541a2e5d8886f7078066bf946c54fecc5ba49ae2698a15838c6",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 58915,
+        "sha256": "e905a3ffa052ce5d7c23cba911cc58fea9926f8823821339527f9fbfee7a283c",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12241,
+        "sha256": "1fecd382cf10f352ffbf7c96c92b86ca07d056bc82118a3705c14adc9d317f77",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22480,
+        "sha256": "deaf9bc2cce9fc494441196d0648bafc997476e9618c8c52b094b550ecd5fdce",
+        "medidas": []
+      },
+      {
+        "leitor": "visitante",
+        "nome": "sala",
+        "bytes": 17826,
+        "sha256": "a5afe704d8c93a720f3a3a2493e20a4f4a431b9eacf848b8c15257b94e3e5122"
+      }
+    ],
+    "paiComCincoFilhos6": [
+      {
+        "leitor": "gui",
+        "nome": "lista",
+        "bytes": 14660,
+        "sha256": "3d35b2169b71703b9b657dad5b3648957c710d8b6f9d4ea06c4d7ba99307518b"
+      },
+      {
+        "leitor": "gui",
+        "nome": "pai",
+        "bytes": 21047,
+        "sha256": "7db5ff1140c33d0df267a3437076c7a4532694bce952569af2808664013b29ff"
+      },
+      {
+        "leitor": "elizete",
+        "nome": "lista",
+        "bytes": 14652,
+        "sha256": "48e5e164d24c918133ef7f79c3c9104e63ce270d120fb0c72fbe0eca77f4af11"
+      },
+      {
+        "leitor": "elizete",
+        "nome": "pai",
+        "bytes": 21102,
+        "sha256": "70563c824fa65439ae00c9f1c6ed60e63dd0dad49ab77d6e16173f312986fa25"
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "lista",
+        "bytes": 15151,
+        "sha256": "c9ff1cdf793c4aad34ac806b250beb321ce7f549938b4933c7401a7eea23579b"
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "pai",
+        "bytes": 21241,
+        "sha256": "ebd27d68d3d815b52b9bb7629757603d0116595da916e842965a43d1e208ffc1"
+      }
+    ]
+  },
+  "natal": {
+    "calendarioComparavel": "2026-11-26",
+    "padrao": {
+      "partes": [
+        {
+          "parte": "Páginas de 3 quem administra (como o Gui)",
+          "linhas": 857256
+        },
+        {
+          "parte": "A busca de 3 quem administra (como o Gui)",
+          "linhas": 377885.99999999994
+        },
+        {
+          "parte": "Fotos e retratos de 3 quem administra (como o Gui)",
+          "linhas": 94260
+        },
+        {
+          "parte": "Páginas de 4 quem não administra (como a Elizete)",
+          "linhas": 1121768
+        },
+        {
+          "parte": "A busca de 4 quem não administra (como a Elizete)",
+          "linhas": 494166
+        },
+        {
+          "parte": "Fotos e retratos de 4 quem não administra (como a Elizete)",
+          "linhas": 125680
+        },
+        {
+          "parte": "Uma hora de modo TV (360 passagens)",
+          "linhas": 395852
+        }
+      ],
+      "total": 3466868,
+      "rows_written": 21,
+      "gravacoes": [
+        {
+          "caminho": "/?hoje=2026-11-26",
+          "como": "gui",
+          "peso": 9,
+          "rows_written": 1
+        },
+        {
+          "caminho": "/explorar",
+          "como": "gui",
+          "peso": 9,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=mural",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=lista",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?nucleo=bracarense",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/memorias/1992-chegada-do-gui",
+          "como": "gui",
+          "peso": 12,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas/gui",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/arvore",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=gui",
+          "como": "gui",
+          "peso": 450,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/retratos/pequeno/exemplos/chico-5.jpg?v=gui",
+          "como": "gui",
+          "peso": 60,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal%20casa%20v%C3%B3",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal%20casa%20v%C3%B3",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=minha%20m%C3%A3e",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=minha%20m%C3%A3e",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=sabar%C3%A1",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=sabar%C3%A1",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=v%C3%B3",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=v%C3%B3",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=eu",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=eu",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/?hoje=2026-11-26",
+          "como": "elizete",
+          "peso": 12,
+          "rows_written": 1
+        },
+        {
+          "caminho": "/explorar",
+          "como": "elizete",
+          "peso": 12,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=mural",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=lista",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?nucleo=bracarense",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/memorias/1992-chegada-do-gui",
+          "como": "elizete",
+          "peso": 16,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas/gui",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/arvore",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=elizete",
+          "como": "elizete",
+          "peso": 600,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/retratos/pequeno/exemplos/karol-3.jpg?v=elizete",
+          "como": "elizete",
+          "peso": 80,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal%20casa%20v%C3%B3",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal%20casa%20v%C3%B3",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=minha%20m%C3%A3e",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=minha%20m%C3%A3e",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=sabar%C3%A1",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=sabar%C3%A1",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=v%C3%B3",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=v%C3%B3",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=eu",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=eu",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=tv&sala=1",
+          "como": "gui",
+          "peso": 1,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar/palco?ver=tv&sala=1&m=carga-0493&antes=carga-0117&depois=2005-primeiro-dia-de-aula-giovanna",
+          "como": "gui",
+          "peso": 360,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=gui",
+          "como": "gui",
+          "peso": 360,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/audios/exemplos/vo-bela-canja.m4a",
+          "como": "gui",
+          "peso": 120,
+          "rows_written": 0
+        }
+      ]
+    },
+    "fotosDeExemplo": {
+      "partes": [
+        {
+          "parte": "Páginas de 3 quem administra (como o Gui)",
+          "linhas": 850671
+        },
+        {
+          "parte": "A busca de 3 quem administra (como o Gui)",
+          "linhas": 377122.5
+        },
+        {
+          "parte": "Fotos e retratos de 3 quem administra (como o Gui)",
+          "linhas": 537060
+        },
+        {
+          "parte": "Páginas de 4 quem não administra (como a Elizete)",
+          "linhas": 1106184
+        },
+        {
+          "parte": "A busca de 4 quem não administra (como a Elizete)",
+          "linhas": 491210.00000000006
+        },
+        {
+          "parte": "Fotos e retratos de 4 quem não administra (como a Elizete)",
+          "linhas": 706480
+        },
+        {
+          "parte": "Uma hora de modo TV (360 passagens)",
+          "linhas": 753490
+        }
+      ],
+      "total": 4822217.5,
+      "rows_written": 21,
+      "gravacoes": [
+        {
+          "caminho": "/",
+          "como": "gui",
+          "peso": 9,
+          "rows_written": 1
+        },
+        {
+          "caminho": "/explorar",
+          "como": "gui",
+          "peso": 9,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=mural",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=lista",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?nucleo=bracarense",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/memorias/1992-chegada-do-gui",
+          "como": "gui",
+          "peso": 12,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas/gui",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/arvore",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=gui",
+          "como": "gui",
+          "peso": 450,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/retratos/pequeno/exemplos/chico-5.jpg?v=gui",
+          "como": "gui",
+          "peso": 60,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal%20casa%20v%C3%B3",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal%20casa%20v%C3%B3",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=minha%20m%C3%A3e",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=minha%20m%C3%A3e",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=sabar%C3%A1",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=sabar%C3%A1",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=v%C3%B3",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=v%C3%B3",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=eu",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=eu",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/",
+          "como": "elizete",
+          "peso": 12,
+          "rows_written": 1
+        },
+        {
+          "caminho": "/explorar",
+          "como": "elizete",
+          "peso": 12,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=mural",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=lista",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?nucleo=bracarense",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/memorias/1992-chegada-do-gui",
+          "como": "elizete",
+          "peso": 16,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas/gui",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/arvore",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=elizete",
+          "como": "elizete",
+          "peso": 600,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/retratos/pequeno/exemplos/karol-3.jpg?v=elizete",
+          "como": "elizete",
+          "peso": 80,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal%20casa%20v%C3%B3",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal%20casa%20v%C3%B3",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=minha%20m%C3%A3e",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=minha%20m%C3%A3e",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=sabar%C3%A1",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=sabar%C3%A1",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=v%C3%B3",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=v%C3%B3",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=eu",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=eu",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=tv&sala=1",
+          "como": "gui",
+          "peso": 1,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar/palco?ver=tv&sala=1&m=carga-0473&antes=carga-0155&depois=carga-0489",
+          "como": "gui",
+          "peso": 360,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=gui",
+          "como": "gui",
+          "peso": 360,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/audios/exemplos/vo-bela-canja.m4a",
+          "como": "gui",
+          "peso": 120,
+          "rows_written": 0
+        }
+      ]
+    },
+    "padraoSemFixarDiaEm27": {
+      "partes": [
+        {
+          "parte": "Páginas de 3 quem administra (como o Gui)",
+          "linhas": 856617
+        },
+        {
+          "parte": "A busca de 3 quem administra (como o Gui)",
+          "linhas": 377885.99999999994
+        },
+        {
+          "parte": "Fotos e retratos de 3 quem administra (como o Gui)",
+          "linhas": 94260
+        },
+        {
+          "parte": "Páginas de 4 quem não administra (como a Elizete)",
+          "linhas": 1120916
+        },
+        {
+          "parte": "A busca de 4 quem não administra (como a Elizete)",
+          "linhas": 494166
+        },
+        {
+          "parte": "Fotos e retratos de 4 quem não administra (como a Elizete)",
+          "linhas": 125680
+        },
+        {
+          "parte": "Uma hora de modo TV (360 passagens)",
+          "linhas": 395852
+        }
+      ],
+      "total": 3465377,
+      "rows_written": 21,
+      "gravacoes": [
+        {
+          "caminho": "/",
+          "como": "gui",
+          "peso": 9,
+          "rows_written": 1
+        },
+        {
+          "caminho": "/explorar",
+          "como": "gui",
+          "peso": 9,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=mural",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=lista",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?nucleo=bracarense",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/memorias/1992-chegada-do-gui",
+          "como": "gui",
+          "peso": 12,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas/gui",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/arvore",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=gui",
+          "como": "gui",
+          "peso": 450,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/retratos/pequeno/exemplos/chico-5.jpg?v=gui",
+          "como": "gui",
+          "peso": 60,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal%20casa%20v%C3%B3",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal%20casa%20v%C3%B3",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=minha%20m%C3%A3e",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=minha%20m%C3%A3e",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=sabar%C3%A1",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=sabar%C3%A1",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=v%C3%B3",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=v%C3%B3",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=eu",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=eu",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/",
+          "como": "elizete",
+          "peso": 12,
+          "rows_written": 1
+        },
+        {
+          "caminho": "/explorar",
+          "como": "elizete",
+          "peso": 12,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=mural",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=lista",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?nucleo=bracarense",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/memorias/1992-chegada-do-gui",
+          "como": "elizete",
+          "peso": 16,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas/gui",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/arvore",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=elizete",
+          "como": "elizete",
+          "peso": 600,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/retratos/pequeno/exemplos/karol-3.jpg?v=elizete",
+          "como": "elizete",
+          "peso": 80,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal%20casa%20v%C3%B3",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal%20casa%20v%C3%B3",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=minha%20m%C3%A3e",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=minha%20m%C3%A3e",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=sabar%C3%A1",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=sabar%C3%A1",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=v%C3%B3",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=v%C3%B3",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=eu",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=eu",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=tv&sala=1",
+          "como": "gui",
+          "peso": 1,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar/palco?ver=tv&sala=1&m=carga-0493&antes=carga-0117&depois=2005-primeiro-dia-de-aula-giovanna",
+          "como": "gui",
+          "peso": 360,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=gui",
+          "como": "gui",
+          "peso": 360,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/audios/exemplos/vo-bela-canja.m4a",
+          "como": "gui",
+          "peso": 120,
+          "rows_written": 0
+        }
+      ]
+    },
+    "controleDaData": "Cópia temporária de estimar-natal.mjs com somente a entrada ['Início', '/', 3] trocada por ['Início', '/?hoje=2026-11-26', 3]. O script no repositório permanece intacto."
+  },
+  "conferencias": {
+    "confere": "verde",
+    "testesPassaram": 2485,
+    "ignorados": 41,
+    "arquivosAprovados": 151,
+    "arquivosIgnorados": 2,
+    "segundosTestes": 27.75,
+    "segundosBuildServidor": 0.624,
+    "workers": 1
+  },
+  "cpu": "Não medida nesta rodada; está na fila."
+}
