@@ -100,12 +100,17 @@ export function memoriaDoCapitulo(
  * memoriaDoCapitulo em SQL. `capitulo` contém o capítulo em JSON e `filhos` a lista JSON dos ids
  * de dentro que o leitor vê. Lista vazia é comFilhos=false. A visibilidade da memória vem de quem-ve.ts.
  */
-export function sqlMemoriaDoCapitulo(m = 'm', capitulo = '?2', filhos = "'[]'", modo?: Capitulo['modo']): string {
+export function sqlMemoriaDoCapitulo(m = 'm', capitulo = '?2', filhos = "'[]'", modo?: Capitulo['modo'], vinculo?: string): string {
   const c = (campo: string) => `json_extract(${capitulo}, '$.${campo}')`;
   const ordem = (data: string, fim: boolean) => `COALESCE(${data}.ano, 0) * 10000 + COALESCE(${data}.mes, ${fim ? 12 : 1}) * 100 + COALESCE(${data}.dia, ${fim ? 31 : 1})`;
   const dataC = (campo: string, fim: boolean) => `${c(`${campo}.ano`)} * 10000 + COALESCE(${c(`${campo}.mes`)}, ${fim ? 12 : 1}) * 100 + COALESCE(${c(`${campo}.dia`)}, ${fim ? 31 : 1})`;
-  const reunido = `${m}.id IN (SELECT cm.memoria_id FROM capitulo_memorias cm JOIN capitulos ativo ON ativo.id = cm.capitulo_id
-    WHERE ativo.excluido_em IS NULL AND (cm.capitulo_id = ${c('id')} OR cm.capitulo_id IN (SELECT value FROM json_each(${filhos}))))`;
+  const pertence = (v: string) => `(${v}.capitulo_id = ${c('id')} OR ${v}.capitulo_id IN (SELECT value FROM json_each(${filhos})))`;
+  // Quando a consulta já juntou os vínculos, confere a mesma regra nessa linha, sem remontar
+  // o conjunto inteiro para cada memória. O DISTINCT de quem chama reúne os vínculos repetidos.
+  const reunido = vinculo
+    ? `${vinculo}.memoria_id = ${m}.id AND ${pertence(vinculo)} AND EXISTS (SELECT 1 FROM capitulos ativo WHERE ativo.id = ${vinculo}.capitulo_id AND ativo.excluido_em IS NULL)`
+    : `${m}.id IN (SELECT cm.memoria_id FROM capitulo_memorias cm JOIN capitulos ativo ON ativo.id = cm.capitulo_id
+      WHERE ativo.excluido_em IS NULL AND ${pertence('cm')})`;
   const periodo = `${c('inicio.ano')} IS NOT NULL
     AND (${ordem(m, true)}) >= (${dataC('inicio', false)})
     AND (${c('fim.ano')} IS NULL OR (${ordem(m, false)}) <= (${dataC('fim', true)}))

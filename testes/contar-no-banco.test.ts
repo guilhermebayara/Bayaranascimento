@@ -55,6 +55,11 @@ describe.skipIf(!(await temSqlite()))('MEM-6: contar e escolher preserva a regra
       const sql = (d1.sqlite.prepare(`SELECT m.id FROM memorias m WHERE ${sqlMemoriaDoCapitulo('m', '?1', '?2')}`).all(JSON.stringify(capitulo), JSON.stringify(filhos)) as { id: string }[]).map((r) => r.id).sort();
       const otimizado = (d1.sqlite.prepare(`SELECT m.id FROM memorias m WHERE ${sqlMemoriaDoCapitulo('m', '?1', '?2', capitulo.modo)}`).all(JSON.stringify(capitulo), ...(capitulo.modo === 'reunido' ? [JSON.stringify(filhos)] : [])) as { id: string }[]).map((r) => r.id).sort();
       expect(otimizado).toEqual(sql);
+      if (capitulo.modo === 'reunido') {
+        const pelosVinculos = (d1.sqlite.prepare(`SELECT DISTINCT m.id FROM memorias m JOIN capitulo_memorias cm ON cm.memoria_id = m.id
+          WHERE ${sqlMemoriaDoCapitulo('m', '?1', '?2', 'reunido', 'cm')}`).all(JSON.stringify(capitulo), JSON.stringify(filhos)) as {id:string}[]).map(r=>r.id).sort();
+        expect(pelosVinculos).toEqual(sql);
+      }
       const ts = memorias.filter((m) => memoriaDoCapitulo(m, capitulo, filhos)).map((m) => m.id).sort();
       expect(sql, `${capitulo.id}, filhos=${comFilhos}`).toEqual(ts);
     }

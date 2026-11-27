@@ -1132,13 +1132,13 @@ async function agregadosDosCapitulos(usuario: Usuario, capitulos: Capitulo[]) {
       ROW_NUMBER() OVER (ORDER BY ${ORDEM_INVERSA}) - 1 AS posicao FROM memorias m WHERE ${FILTRO_PUBLICADA}),
     proprias AS MATERIALIZED (
       SELECT DISTINCT c.id AS capitulo, m.id FROM cs c JOIN capitulo_memorias cm ON cm.capitulo_id = c.id
-      JOIN visiveis m ON m.id = cm.memoria_id WHERE c.modo = 'reunido' AND ${sqlMemoriaDoCapitulo('m','c.dados',"'[]'",'reunido')}
+      JOIN visiveis m ON m.id = cm.memoria_id WHERE c.modo = 'reunido' AND ${sqlMemoriaDoCapitulo('m','c.dados',"'[]'",'reunido','cm')}
       UNION ALL SELECT c.id, m.id FROM cs c JOIN visiveis m WHERE c.modo = 'epoca' AND ${sqlMemoriaDoCapitulo('m','c.dados',"'[]'",'epoca')}),
     alcances AS MATERIALIZED (SELECT c.id AS capitulo, j.value AS vinculo FROM cs c JOIN json_each(json_insert(c.filhos, '$[#]', c.id)) j WHERE c.modo = 'reunido'),
     membros AS MATERIALIZED (
       SELECT DISTINCT c.id AS capitulo, m.id FROM alcances a JOIN cs c ON c.id = a.capitulo
         JOIN capitulo_memorias cm ON cm.capitulo_id = a.vinculo JOIN visiveis m ON m.id = cm.memoria_id
-        WHERE ${sqlMemoriaDoCapitulo('m','c.dados','c.filhos','reunido')}
+        WHERE ${sqlMemoriaDoCapitulo('m','c.dados','c.filhos','reunido','cm')}
       UNION ALL SELECT p.capitulo, p.id FROM proprias p JOIN cs c ON c.id = p.capitulo WHERE c.modo = 'epoca'),
     datas AS MATERIALIZED (SELECT p.capitulo, json_object('ano',m.ano,'mes',m.mes,'dia',m.dia) AS data,
       ROW_NUMBER() OVER (PARTITION BY p.capitulo ORDER BY ${antes}) AS primeira,
