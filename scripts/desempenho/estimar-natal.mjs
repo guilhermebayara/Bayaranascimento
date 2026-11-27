@@ -28,7 +28,15 @@
 //   "eu", que acham centenas de relatos: a revisão MEM-3 mediu o pior caso com elas).
 // - O que não entra: o começo de cada processo do servidor (migrações e exemplos, causa 9), gravações (as
 //   linhas lidas por quem grava memória, relato ou reação no dia) e o "Ver como" das prévias.
-const BASE = 'http://127.0.0.1:4321';
+const ENDERECOS_LOCAIS = new Set(['127.0.0.1', 'localhost', '[::1]']);
+const endereco = new URL(process.argv.includes('--base') ? process.argv[process.argv.indexOf('--base') + 1] : 'http://127.0.0.1:4321');
+if (endereco.protocol !== 'http:' || !ENDERECOS_LOCAIS.has(endereco.hostname)) {
+  process.exit(1);
+}
+const BASE = endereco.origin;
+if (/^(memorias|homologa\.memorias)\.bayara\.com\.br$/.test(new URL(BASE).hostname)) {
+  throw new Error('A estimativa só roda no servidor local.');
+}
 const API = `${BASE}/cdn-cgi/local/explorer/api`;
 const LIMITE = 3_000_000;
 const PESSOAS = [
@@ -63,22 +71,27 @@ async function consultar(sql, params) {
 }
 
 /** As linhas lidas por um pedido a este endereço, pelo rastro dele (a mediana de 3 pedidos). */
-async function linhasDe(caminho, como) {
+async function linhasDe(caminho, como, peso = 0) {
   const url = `${BASE}${caminho}`;
   await (await fetch(url, { headers: { cookie: `como=${como}` } })).arrayBuffer();
   const medidas = [];
+  const escritas = [];
   for (let vez = 0; vez < 3; vez++) {
+    const [anterior] = await consultar(`SELECT trace_id FROM spans WHERE parent_id IS NULL AND json_extract(attributes, '$."url.full"') = ? AND duration_ms IS NOT NULL ORDER BY start_ms DESC LIMIT 1`, [url]);
     await (await fetch(url, { headers: { cookie: `como=${como}` }, redirect: 'manual' })).arrayBuffer();
     let linhas = null;
-    for (let tentativa = 0; tentativa < 30 && linhas === null; tentativa++) {
+    for (let tentativa = 0; tentativa < 80 && linhas === null; tentativa++) {
       const [raiz] = await consultar(`SELECT trace_id FROM spans WHERE parent_id IS NULL AND json_extract(attributes, '$."url.full"') = ? AND duration_ms IS NOT NULL ORDER BY start_ms DESC LIMIT 1`, [url]);
-      if (raiz) {
-        const [soma] = await consultar(`SELECT COALESCE(SUM(json_extract(attributes, '$."cloudflare.d1.response.rows_read"')), 0) AS linhas FROM spans WHERE trace_id = ? AND kind = 'd1'`, [raiz.trace_id]);
+      if (raiz && raiz.trace_id !== anterior?.trace_id) {
+        const [soma] = await consultar(`SELECT COALESCE(SUM(json_extract(attributes, '$."cloudflare.d1.response.rows_read"')), 0) AS linhas, COALESCE(SUM(json_extract(attributes, '$."cloudflare.d1.response.rows_written"')), 0) AS escritas FROM spans WHERE trace_id = ? AND kind = 'd1'`, [raiz.trace_id]);
         linhas = soma.linhas;
+        escritas.push(soma.escritas);
       } else await new Promise((ok) => setTimeout(ok, 150));
     }
-    medidas.push(linhas ?? 0);
+    if (linhas === null) throw new Error(`Sem rastro novo: ${url}`);
+    medidas.push(linhas);
   }
+  gravacoes.push({ caminho, como, peso, rows_written: escritas.sort((a, b) => a - b)[1] });
   return medidas.sort((a, b) => a - b)[1];
 }
 
@@ -91,16 +104,17 @@ async function arquivos(como) {
 
 const formatar = (n) => Math.round(n).toLocaleString('pt-BR');
 const partes = [];
+const gravacoes = [];
 for (const { como, quantas, quem } of PESSOAS) {
   let paginas = 0;
   for (const [nome, caminho, vezes] of PAGINAS_POR_PESSOA) {
-    const linhas = await linhasDe(caminho, como);
+    const linhas = await linhasDe(caminho, como, vezes * quantas);
     paginas += linhas * vezes;
     console.log(`  ${como.padEnd(8)} ${nome.padEnd(30)} ${formatar(linhas).padStart(8)} linhas × ${vezes}`);
   }
   const { foto, retrato } = await arquivos(como);
-  const porFoto = foto ? await linhasDe(foto, como) : 0;
-  const porRetrato = retrato ? await linhasDe(retrato, como) : 0;
+  const porFoto = foto ? await linhasDe(foto, como, FOTOS_POR_PESSOA * quantas) : 0;
+  const porRetrato = retrato ? await linhasDe(retrato, como, RETRATOS_POR_PESSOA * quantas) : 0;
   console.log(`  ${como.padEnd(8)} ${'uma foto'.padEnd(30)} ${formatar(porFoto).padStart(8)} linhas × ${FOTOS_POR_PESSOA}`);
   console.log(`  ${como.padEnd(8)} ${'um retrato'.padEnd(30)} ${formatar(porRetrato).padStart(8)} linhas × ${RETRATOS_POR_PESSOA}`);
   partes.push({ parte: `Páginas de ${quantas} ${quem}`, linhas: paginas * quantas });
@@ -108,8 +122,8 @@ for (const { como, quantas, quem } of PESSOAS) {
   let porResultado = 0;
   let porExplorar = 0;
   for (const b of BUSCAS) {
-    porResultado += (await linhasDe(`/busca/resultado?q=${encodeURIComponent(b)}`, como)) / BUSCAS.length;
-    porExplorar += (await linhasDe(`/explorar?q=${encodeURIComponent(b)}`, como)) / BUSCAS.length;
+    porResultado += (await linhasDe(`/busca/resultado?q=${encodeURIComponent(b)}`, como, BUSCAS_POR_PESSOA * quantas / BUSCAS.length * PEDIDOS_POR_BUSCA)) / BUSCAS.length;
+    porExplorar += (await linhasDe(`/explorar?q=${encodeURIComponent(b)}`, como, BUSCAS_POR_PESSOA * quantas / BUSCAS.length)) / BUSCAS.length;
   }
   console.log(`  ${como.padEnd(8)} ${'busca, o resultado'.padEnd(30)} ${formatar(porResultado).padStart(8)} linhas × ${BUSCAS_POR_PESSOA * PEDIDOS_POR_BUSCA}`);
   console.log(`  ${como.padEnd(8)} ${'busca, "Ver no Explorar"'.padEnd(30)} ${formatar(porExplorar).padStart(8)} linhas × ${BUSCAS_POR_PESSOA}`);
@@ -117,15 +131,15 @@ for (const { como, quantas, quem } of PESSOAS) {
   partes.push({ parte: `Fotos e retratos de ${quantas} ${quem}`, linhas: (porFoto * FOTOS_POR_PESSOA + porRetrato * RETRATOS_POR_PESSOA) * quantas });
 }
 // A primeira página do modo TV da sala, com a ordem, e uma passagem do meio da ordem pela rota de uma memória
-const primeira = await linhasDe(MODO_TV, 'gui');
+const primeira = await linhasDe(MODO_TV, 'gui', 1);
 const pagina = await (await fetch(`${BASE}${MODO_TV}`, { headers: { cookie: 'como=gui' } })).text();
 const ordem = JSON.parse(/data-ordem-da-tv>([^<]*)</.exec(pagina)?.[1] ?? '[]');
 const meio = Math.floor(ordem.length / 2);
 const passagem = `/explorar/palco?ver=tv&sala=1&m=${ordem[meio]}&antes=${ordem[meio - 1]}&depois=${ordem[meio + 1]}`;
-const porPassagem = ordem.length > 2 ? await linhasDe(passagem, 'gui') : primeira;
+const porPassagem = ordem.length > 2 ? await linhasDe(passagem, 'gui', PASSAGENS_DO_MODO_TV) : primeira;
 const { foto } = await arquivos('gui');
-const fotoDaTv = foto ? await linhasDe(foto, 'gui') : 0;
-const vozDaTv = await linhasDe('/audios/exemplos/vo-bela-canja.m4a', 'gui');
+const fotoDaTv = foto ? await linhasDe(foto, 'gui', PASSAGENS_DO_MODO_TV) : 0;
+const vozDaTv = await linhasDe('/audios/exemplos/vo-bela-canja.m4a', 'gui', PASSAGENS_DO_MODO_TV * VOZES_POR_PASSAGEM);
 console.log(`  gui      ${'modo TV, a primeira página'.padEnd(30)} ${formatar(primeira).padStart(8)} linhas × 1`);
 console.log(`  gui      ${'modo TV, uma passagem'.padEnd(30)} ${formatar(porPassagem).padStart(8)} linhas + uma foto (${formatar(fotoDaTv)}) + 1/3 de voz (${formatar(vozDaTv)}) × ${PASSAGENS_DO_MODO_TV}`);
 partes.push({ parte: `Uma hora de modo TV (${PASSAGENS_DO_MODO_TV} passagens)`, linhas: primeira + (porPassagem + fotoDaTv + vozDaTv * VOZES_POR_PASSAGEM) * PASSAGENS_DO_MODO_TV });
@@ -134,7 +148,9 @@ const total = partes.reduce((s, p) => s + p.linhas, 0);
 console.log('\nO dia 25, com o acervo cheio:');
 for (const p of partes) console.log(`  ${p.parte.padEnd(58)} ${formatar(p.linhas).padStart(12)}`);
 console.log(`  ${'Total'.padEnd(58)} ${formatar(total).padStart(12)}   (limite da conferência: ${formatar(LIMITE)}; do plano: 5.000.000)`);
-if (process.argv.includes('--json')) console.log(JSON.stringify({ partes, total }, null, 2));
+const rows_written = gravacoes.reduce((s, g) => s + g.rows_written * g.peso, 0);
+console.log(`Gravações no mesmo cenário: ${formatar(rows_written)} rows_written (${(rows_written / 1000).toFixed(2)}% das 100.000/dia). Não inclui criação de conteúdo, como a estimativa de leituras.`);
+if (process.argv.includes('--json')) console.log(JSON.stringify({ partes, total, rows_written, gravacoes }, null, 2));
 if (total > LIMITE) {
   console.error(`\nPassa de ${formatar(LIMITE)} linhas lidas: faltam ${formatar(total - LIMITE)}.`);
   process.exit(1);
