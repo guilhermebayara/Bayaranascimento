@@ -492,6 +492,7 @@ async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<t
       junto: [...mudanca.comandos, ...depoisDaFicha],
       quemVe: mudou ? 'mudou' : marcas ? 'marcas' : 'nao',
       conferir: comRelato,
+      conferirLegendas: true,
     });
   } else {
     await criarMemoria(id, dados, usuario, { antes: antesDaFicha, junto: depoisDaFicha });

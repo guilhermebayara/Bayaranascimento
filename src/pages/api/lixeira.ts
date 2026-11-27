@@ -187,8 +187,13 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
   }
 
   if (acao === 'restaurar-foto') {
-    const devolvida = await restaurarFoto(Number(campo(dados, 'foto', 12)), memoria.id, usuario);
-    return devolvida ? voltar(request, pagina, { ok: 'Foto restaurada.' }) : voltar(request, historico, { erro: 'Só quem enviou a foto e quem a removeu podem restaurá-la.' });
+    try {
+      const devolvida = await restaurarFoto(Number(campo(dados, 'foto', 12)), memoria, usuario);
+      return devolvida ? voltar(request, pagina, { ok: 'Foto restaurada.' }) : voltar(request, historico, { erro: 'Só quem enviou a foto e quem a removeu podem restaurá-la.' });
+    } catch (erro) {
+      if (!(erro instanceof MemoriaMudou)) throw erro;
+      return conflitoNoFormulario(request, rewrite, historico, RECADO_MEMORIA_MUDOU);
+    }
   }
 
   return voltar(request, pagina, { erro: 'Ação desconhecida.' });

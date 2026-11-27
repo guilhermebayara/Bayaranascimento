@@ -85,11 +85,92 @@ describe.skipIf(!(await temSqlite()))('Relato como conversa em um lote', async (
     }
   }
   const salvar = (id: string, campos: Record<string, unknown>) => postar(relatos, '/api/relatos', { memoria: id, por: 'elizete', ...campos });
+  const versaoDaMemoria = (id: string) => linha<{ versao: number }>('SELECT versao FROM memorias WHERE id = ?', id).versao;
   async function gravar(id: string, mensagens: Mensagem[], situacao = 'publicada') {
     const resp = await conferirCadaLote(id, () => salvar(id, { mensagens, situacao }));
     expect([200, 201]).toContain(resp.status);
     return ((await resp.json()) as { mensagens: Mensagem[] }).mensagens;
   }
+
+  it('uma pessoa salva a ficha com foto sem relato e depois grava seu relato', async () => {
+    const id = memoria('mem11-ficha-e-relato');
+    const foto = Number(sql("INSERT INTO fotos (memoria_id, chave, enviada_por) VALUES (?, 'teste/ficha.jpg', 'gui')", id).lastInsertRowid);
+    const ficha = { id, titulo: 'Memória de teste', ano: 2001, tipo: 'cotidiano', fotosMostradas: [foto], fotos: [{ id: foto, legenda: 'Foto da ficha.' }] };
+    expect((await postar(memorias, '/api/memorias', ficha, gui)).status).toBe(200);
+    expect(versaoDaMemoria(id)).toBe(0);
+    expect((await postar(relatos, '/api/relatos', { memoria: id, por: 'gui', mensagens: [texto('O relato da ficha.')] }, gui)).status).toBe(201);
+    expect(versaoDaMemoria(id)).toBe(1);
+    conferirRelatos(banco.sqlite, id);
+  });
+
+  it('uma pessoa envia o áudio solto e o liga ao salvar seu relato', async () => {
+    const id = memoria('mem11-audio-e-relato');
+    const audio = await import('../src/pages/api/audios');
+    const dados = new FormData();
+    dados.set('memoria', id);
+    dados.set('audio', new File(['RIFF1234WAVE'], 'voz.wav', { type: 'audio/wav' }));
+    const request = new Request('http://localhost/api/audios', { method: 'POST', headers: { Origin: 'http://localhost' }, body: dados });
+    const upload = await noPedido(request, () => audio.POST({ request, locals: { usuario: elizete, tipos } } as never));
+    expect(upload.status).toBe(201);
+    expect(versaoDaMemoria(id)).toBe(0);
+    const { id: audioId } = await upload.json() as { id: number };
+    expect((await salvar(id, { mensagens: [texto('Com áudio.'), { tipo: 'audio', audioId }] })).status).toBe(201);
+    expect(versaoDaMemoria(id)).toBe(1);
+    conferirRelatos(banco.sqlite, id);
+  });
+
+  it('uma pessoa tira uma foto pela janela do relato e salva de novo', async () => {
+    const id = memoria('mem11-tira-e-salva');
+    const { foto } = midias();
+    const [base] = await gravar(id, [texto('Com foto.'), foto]);
+    for (const versao of [2, 3]) {
+      expect((await salvar(id, { mensagens: [base] })).status).toBe(200);
+      expect(versaoDaMemoria(id)).toBe(versao);
+      conferirRelatos(banco.sqlite, id);
+    }
+    expect(linha<{ removida_em: string }>('SELECT removida_em FROM fotos WHERE id = ?', foto.fotoId).removida_em).toBeTruthy();
+  });
+
+  it('uma pessoa salva duas vezes o mesmo rascunho com relato pela ficha', async () => {
+    const id = memoria('mem11-mesmo-rascunho');
+    sql("UPDATE memorias SET situacao = 'rascunho' WHERE id = ?", id);
+    const ficha = { id, titulo: 'Memória de teste', ano: 2001, tipo: 'cotidiano', situacao: 'rascunho', relato: { por: 'gui', texto: 'Base.', mensagens: [texto('Base.')] } };
+    expect((await postar(memorias, '/api/memorias', ficha, gui)).status).toBe(200);
+    expect(versaoDaMemoria(id)).toBe(1);
+    const [base] = mensagens(relato(id, 'gui').id);
+    const segunda = { ...ficha, relato: { ...ficha.relato, mensagens: [{ ...texto('Base.'), id: base.id }] } };
+    expect((await postar(memorias, '/api/memorias', segunda, gui)).status).toBe(200);
+    expect(versaoDaMemoria(id)).toBe(2);
+    conferirRelatos(banco.sqlite, id);
+  });
+
+  it('uma pessoa troca a legenda pela ficha e salva o relato logo depois', async () => {
+    const id = memoria('mem11-ficha-legenda');
+    const fotoId = Number(sql("INSERT INTO fotos (chave, enviada_por) VALUES ('teste/legenda.jpg', 'gui')").lastInsertRowid);
+    const salvarDoGui = (mensagens: unknown[]) => postar(relatos, '/api/relatos', { memoria: id, por: 'gui', mensagens }, gui);
+    const primeiro = await salvarDoGui([texto('Base.'), { tipo: 'foto', fotoId, legenda: 'A' }]);
+    expect(primeiro.status).toBe(201);
+    const { mensagens: [base, foto] } = await primeiro.json() as { mensagens: Mensagem[] };
+    const ficha = { id, titulo: 'Memória de teste', ano: 2001, tipo: 'cotidiano', fotosMostradas: [fotoId], fotos: [{ id: fotoId, legenda: 'B' }] };
+    expect((await postar(memorias, '/api/memorias', ficha, gui)).status).toBe(200);
+    expect(versaoDaMemoria(id)).toBe(2);
+    expect((await salvarDoGui([base, { ...foto, legenda: 'B' }])).status).toBe(200);
+    expect(versaoDaMemoria(id)).toBe(3);
+    expect(linha('SELECT legenda FROM fotos WHERE id = ?', fotoId)).toEqual({ legenda: 'B' });
+    conferirRelatos(banco.sqlite, id);
+    const novaLegenda = { ...ficha, visibilidade: 'nucleos', nucleos: ['bayara-nascimento'], fotos: [{ id: fotoId, legenda: 'C' }] };
+    expect((await postar(memorias, '/api/memorias', novaLegenda, gui)).status).toBe(200);
+    expect(versaoDaMemoria(id)).toBe(4);
+  });
+
+  it('restaurar pela lixeira uma foto sem relato conserva a versão da memória', async () => {
+    const id = memoria('mem11-restaurar-foto-solta-do-relato');
+    const foto = Number(sql("INSERT INTO fotos (memoria_id, chave, enviada_por, removida_em) VALUES (?, 'teste/ficha.jpg', 'gui', datetime('now'))", id).lastInsertRowid);
+    const campos = new URLSearchParams({ acao: 'restaurar-foto', memoria: id, foto: String(foto) });
+    expect((await postar(lixeira, '/api/lixeira', campos, gui)).status).toBe(303);
+    expect(linha('SELECT removida_em FROM fotos WHERE id = ?', foto)).toEqual({ removida_em: null });
+    expect(versaoDaMemoria(id)).toBe(0);
+  });
 
   it('confere cada lote ao criar, publicar, editar, mover, apagar e acrescentar', async () => {
     const id = memoria('mem8-passos');

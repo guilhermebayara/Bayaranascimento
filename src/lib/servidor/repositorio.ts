@@ -162,15 +162,18 @@ export class RelatoMudou extends MemoriaMudou {}
  * lote inteiro volta (MemoriaMudou). Vai junto de todo lote que grava a espera ou o público conhecido de um
  * relato a partir do que leu.
  */
-const conferirVersao = (memoriaId: string, lida: number) => db().prepare('UPDATE memorias SET versao = ? WHERE id = ?').bind(lida + 1, memoriaId);
+function conferirVersao(memoriaId: string, lida: number, quando?: { sql: string; valores: (string | number)[] }): Comando {
+  const condicao = quando ? ` AND EXISTS (${quando.sql})` : '';
+  return db().prepare(`UPDATE memorias SET versao = ? WHERE id = ?${condicao}`).bind(lida + 1, memoriaId, ...(quando?.valores ?? []));
+}
 
 /** Sobe a versão sem conferir: um relato novo, que quem leu os relatos antes não viu. */
 const subirVersao = (memoriaId: string) => db().prepare('UPDATE memorias SET versao = versao + 1 WHERE id = ?').bind(memoriaId);
 
 /** O lote, com a recusa do gatilho traduzida em MemoriaMudou. */
-async function loteDaMemoria(comandos: Comando[]): Promise<void> {
+async function loteDaMemoria(comandos: Comando[]) {
   try {
-    await db().batch(comandos);
+    return await db().batch(comandos);
   } catch (erro) {
     if (String((erro as Error)?.message ?? erro).includes('memoria-mudou')) throw new MemoriaMudou();
     throw erro;
@@ -1338,19 +1341,28 @@ const marcarPublicacao = (id: string) =>
  * `antes`: o que a ficha cita e ainda não existe (a pessoa nova, o tema novo, o laço aberto), no mesmo lote.
  * `conferir`: o lote conta com a memória que leu (mudar quem vê ou gravar o relato junto): se ela mudou
  * no meio tempo, nada é gravado (MemoriaMudou), nem o que vai em `antes` e `junto` (Y3 do PR #160).
+ * `conferirLegendas`: na ficha, a legenda de uma foto do relato também conta para a versão.
  */
 export async function atualizarMemoria(
   anterior: Memoria,
   dados: DadosDaMemoria,
   usuario: Usuario,
   fotosRemovidas: number[],
-  { junto = [], antes = [], quemVe = 'nao', conferir = false }: { junto?: Comando[]; antes?: Comando[]; quemVe?: GravarQuemVe; conferir?: boolean } = {},
+  {
+    junto = [], antes = [], quemVe = 'nao', conferir = false, conferirLegendas = false,
+  }: { junto?: Comando[]; antes?: Comando[]; quemVe?: GravarQuemVe; conferir?: boolean; conferirLegendas?: boolean } = {},
 ): Promise<void> {
   if (quemVe === 'mudou' && anterior.criadaPor !== usuario.pessoa) throw new Error('Só quem criou muda quem pode ver.');
   const visibilidade = quemVe === 'mudou' ? ', visibilidade = ?' : '';
+  const precisaConferir = quemVe === 'mudou' || conferir || (conferirLegendas && dados.fotos.length > 0);
+  // Se a conferência já é obrigatória, ela vale também para as legendas no mesmo lote.
+  const soPelasLegendas = quemVe !== 'mudou' && !conferir;
   await loteDaMemoria([
-    // Mudar quem vê conta com os relatos que leu: se um relato nasceu ou mudou no meio tempo, o lote volta
-    ...(quemVe === 'mudou' || conferir ? [conferirVersao(anterior.id, anterior.versao)] : []),
+    ...(precisaConferir ? [conferirVersao(anterior.id, anterior.versao, soPelasLegendas ? {
+      sql: `SELECT 1 FROM json_each(?) j JOIN fotos f ON f.id = json_extract(j.value, '$[0]')
+        WHERE f.relato_id IS NOT NULL AND f.legenda IS NOT json_extract(j.value, '$[1]')`,
+      valores: [JSON.stringify(dados.fotos.map((f) => [f.id, f.legenda ?? null]))],
+    } : undefined)] : []),
     ...antes,
     db()
       .prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('memoria', ?, ?, ?)`)
@@ -1658,12 +1670,14 @@ export async function listarFotosRemovidas(memoriaId: string): Promise<(Foto & {
   }));
 }
 
-/** Devolve a foto à memória: quem enviou e quem a removeu (podeRestaurarFoto). Nas antigas, quem removeu foi quem enviou. */
-export async function restaurarFoto(id: number, memoriaId: string, usuario: Usuario): Promise<boolean> {
-  const resultado = await db()
-    .prepare('UPDATE fotos SET removida_em = NULL, removida_por = NULL, principal = 0 WHERE id = ?1 AND memoria_id = ?2 AND (enviada_por = ?3 OR removida_por = ?3) AND removida_em IS NOT NULL')
-    .bind(id, memoriaId, usuario.pessoa)
-    .run();
+/** Confere a versão no mesmo lote quando a foto que volta é de um relato. */
+export async function restaurarFoto(id: number, memoria: Pick<Memoria, 'id' | 'versao'>, usuario: Usuario): Promise<boolean> {
+  const autorizada = 'id = ? AND memoria_id = ? AND (enviada_por = ? OR removida_por = ?) AND removida_em IS NOT NULL';
+  const valores = [id, memoria.id, usuario.pessoa, usuario.pessoa];
+  const [, resultado] = await loteDaMemoria([
+    conferirVersao(memoria.id, memoria.versao, { sql: `SELECT 1 FROM fotos WHERE ${autorizada} AND relato_id IS NOT NULL`, valores }),
+    db().prepare(`UPDATE fotos SET removida_em = NULL, removida_por = NULL, principal = 0 WHERE ${autorizada}`).bind(...valores),
+  ]);
   return (resultado.meta.changes ?? 0) > 0;
 }
 
