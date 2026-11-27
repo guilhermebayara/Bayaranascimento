@@ -1,53 +1,58 @@
-// O relato como conversa (migração 103-mensagens-do-relato): os relatos gravados antes da conversa, ou que
-// chegam sem mensagens (o espelho da produção, os exemplos semeados depois das migrações), ganham as
-// mensagens derivadas deles, sem perda: os áudios, cada parágrafo e as fotos (mensagensDerivadas, em
-// src/lib/conversa.ts). Assim toda mensagem tem id, e qualquer uma pode ser citada. Só acrescenta linhas
-// na tabela das mensagens: o relato, o texto, os áudios e as fotos não mudam. Roda no começo do servidor,
-// depois das migrações e dos exemplos, e depois disso uma marca em ajustes dispensa a varredura. O espelho refaz a marca depois de trocar os relatos. Um erro aqui nunca
-// derruba o site: tenta de novo no próximo começo.
+// O relato como conversa: conserto dos relatos antigos e das cópias anteriores à conversa.
+// A versão da marca distingue as cópias que podiam levar um relato sem as mensagens. Relatos novos
+// invalidam a marca no próprio lote de gravação. Não altera os gatilhos nem o formato da cópia.
 import { mensagensDerivadas } from '../conversa';
 import type { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
-
-// O tipo do banco vem do conserto vizinho: os tipos do D1 não estão no tsc das sessões (erros antigos)
 type Banco = Parameters<typeof consertarRetratosDaHomologacao>[0];
-
 export const MARCA_DAS_MENSAGENS_DE_ANTES = 'mensagens-dos-relatos-de-antes';
 
-export async function darMensagensAosRelatosDeAntes(db: Banco, { refazer = false } = {}): Promise<number> {
+export async function darMensagensAosRelatosDeAntes(db: Banco, { refazer = false, estrito = false } = {}): Promise<number> {
   try {
     if (refazer) await db.prepare('DELETE FROM ajustes WHERE chave = ?').bind(MARCA_DAS_MENSAGENS_DE_ANTES).run();
-    const feita = await db.prepare('SELECT 1 FROM ajustes WHERE chave = ?').bind(MARCA_DAS_MENSAGENS_DE_ANTES).first();
+    const feita = await db.prepare("SELECT 1 FROM ajustes WHERE chave = ? AND json_extract(valor, '$.versao') = 2").bind(MARCA_DAS_MENSAGENS_DE_ANTES).first();
     if (feita) return 0;
-    let total = 0;
-    let depois = 0;
+    // A marca antiga não atesta a conclusão, inclusive quando veio numa restauração.
+    await db.prepare('DELETE FROM ajustes WHERE chave = ?').bind(MARCA_DAS_MENSAGENS_DE_ANTES).run();
+    let total = 0, depois = 0;
     while (true) {
-      const { results: relatos } = await db
-        .prepare(`SELECT id, texto, atualizado_em, criado_em FROM relatos r WHERE r.id > ? AND NOT EXISTS (SELECT 1 FROM relato_mensagens m WHERE m.relato_id = r.id) ORDER BY r.id LIMIT 500`).bind(depois)
-        .all<{ id: number; texto: string; atualizado_em: string | null; criado_em: string }>();
+      const { results: relatos } = await db.prepare('SELECT id, texto, criado_em FROM relatos WHERE id > ? ORDER BY id LIMIT 500').bind(depois)
+        .all<{ id: number; texto: string; criado_em: string }>();
       if (!relatos.length) break;
       depois = relatos.at(-1)!.id;
-      const ids = relatos.map((r: { id: number }) => r.id);
-      const lista = 'SELECT value FROM json_each(?)';
-      const [audios, fotos] = await db.batch<{ id: number; relato_id: number }>([
-        db.prepare(`SELECT id, relato_id FROM audios WHERE removido_em IS NULL AND relato_id IN (${lista}) ORDER BY ordem, id`).bind(JSON.stringify(ids)),
-        db.prepare(`SELECT id, relato_id FROM fotos WHERE removida_em IS NULL AND relato_id IN (${lista}) ORDER BY memoria_id IS NULL, ordem, id`).bind(JSON.stringify(ids)),
+      const ids = JSON.stringify(relatos.map((r) => r.id));
+      const [audios, fotos, mensagens] = await db.batch<Record<string, unknown>>([
+        db.prepare('SELECT id, relato_id FROM audios WHERE removido_em IS NULL AND relato_id IN (SELECT value FROM json_each(?)) ORDER BY ordem, id').bind(ids),
+        db.prepare('SELECT id, relato_id FROM fotos WHERE removida_em IS NULL AND relato_id IN (SELECT value FROM json_each(?)) ORDER BY memoria_id IS NULL, ordem, id').bind(ids),
+        db.prepare('SELECT relato_id, ordem, tipo, texto, audio_id, foto_id FROM relato_mensagens WHERE relato_id IN (SELECT value FROM json_each(?)) ORDER BY ordem, id').bind(ids),
       ]);
-      const de = (linhas: { id: number; relato_id: number }[], relato: number) => linhas.filter((l) => l.relato_id === relato).map((l) => l.id);
-      const comandos = relatos.flatMap((r: { id: number; texto: string; criado_em: string }) =>
-        mensagensDerivadas(r.texto ?? '', de(audios.results, r.id), de(fotos.results, r.id)).map((m, ordem) =>
-          db
-            .prepare('INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto, audio_id, foto_id, enviada_em) VALUES (?, ?, ?, ?, ?, ?, ?)')
-            // A hora de cada mensagem de antes é a do relato: tudo contado de uma vez, sem "Contou mais em"
-            .bind(r.id, ordem, m.tipo, m.texto ?? null, m.audioId ?? null, m.fotoId ?? null, r.criado_em),
-        ),
-      );
-      for (let i = 0; i < comandos.length; i += 80) await db.batch(comandos.slice(i, i + 80));
-      total += relatos.length;
+      const de = (linhas: Record<string, unknown>[], id: number) => linhas.filter((l) => l.relato_id === id).map((l) => Number(l.id));
+      for (const r of relatos) {
+        const derivadas = mensagensDerivadas(r.texto ?? '', de(audios.results, r.id), de(fotos.results, r.id));
+        const existentes = mensagens.results.filter((m) => m.relato_id === r.id);
+        // Uma conversa já editada pertence à pessoa. Só retoma o prefixo exato que o conserto antigo
+        // deixou ao falhar entre lotes; mantém os ids existentes e as citações deles.
+        const prefixo = existentes.every((m, i) => {
+          const d = derivadas[i];
+          return d && m.ordem === i && m.tipo === d.tipo && m.texto === (d.texto ?? null) && m.audio_id === (d.audioId ?? null) && m.foto_id === (d.fotoId ?? null);
+        });
+        if (!prefixo || existentes.length >= derivadas.length) continue;
+        // Um comando é atômico também para relatos com mais de 80 parágrafos. A guarda evita duplicar
+        // mensagens se outra gravação alterou o relato depois da leitura.
+        await db.prepare(`INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto, audio_id, foto_id, enviada_em)
+          SELECT ?1, CAST(j.key AS INTEGER), json_extract(j.value, '$.tipo'), json_extract(j.value, '$.texto'),
+            json_extract(j.value, '$.audioId'), json_extract(j.value, '$.fotoId'), ?2 FROM json_each(?3) j
+          WHERE CAST(j.key AS INTEGER) >= ?4 AND (SELECT COUNT(*) FROM relato_mensagens WHERE relato_id = ?1) = ?4
+          AND EXISTS (SELECT 1 FROM relatos WHERE id = ?1 AND COALESCE(texto, '') = ?5)`)
+          .bind(r.id, r.criado_em, JSON.stringify(derivadas), existentes.length, r.texto ?? '').run();
+        total++;
+      }
     }
-    // Só marca depois de percorrer todos os lotes sem erro, inclusive os relatos vazios sem mensagem derivável.
-    await db.prepare('INSERT OR REPLACE INTO ajustes (chave, valor) VALUES (?, ?)').bind(MARCA_DAS_MENSAGENS_DE_ANTES, JSON.stringify({ relatos: total })).run();
+    // Se nasceu outro relato durante a passada, a próxima abertura ainda precisa conferir.
+    await db.prepare(`INSERT OR REPLACE INTO ajustes (chave, valor) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM relatos WHERE id > ?)`)
+      .bind(MARCA_DAS_MENSAGENS_DE_ANTES, JSON.stringify({ versao: 2, relatos: total }), depois).run();
     return total;
   } catch (erro) {
+    if (estrito) throw erro;
     console.error('Não consegui dar mensagens aos relatos de antes:', erro);
     return 0;
   }
