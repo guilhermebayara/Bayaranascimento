@@ -140,7 +140,10 @@ describe.skipIf(!(await temSqlite()))('MEM-6: contar e escolher preserva a regra
         const f = lerFiltros(new URLSearchParams(parametro));
         const busca = f.busca ? (await buscarNoAcervo(u, await repo.listarTipos(), f.busca, todas)).achados.map((a) => a.id) : [];
         const esperadas = explorar(todas, f, { ...ctx, busca: new Set(busca) }).memorias.filter((m) => m.situacao === 'publicada');
-        const consulta = await repo.consultaDasCandidatasAoAcaso(u, f, capitulos, busca);
+        const buscaNoBanco = f.busca ? (await buscarNoAcervo(u, await repo.listarTipos(), f.busca)).achados.map((a) => a.id) : [];
+        const publicadas = new Set(todas.filter((m) => m.situacao === 'publicada').map((m) => m.id));
+        expect(buscaNoBanco.filter((id) => publicadas.has(id)).sort()).toEqual(busca.filter((id) => publicadas.has(id)).sort());
+        const consulta = await repo.consultaDasCandidatasAoAcaso(u, f, capitulos, buscaNoBanco);
         const ids = (d1.sqlite.prepare(`SELECT m.id ${consulta.sql}`).all(...consulta.valores) as { id: string }[]).map((m) => m.id);
         expect(ids.sort(), `${u.pessoa}: ${parametro}`).toEqual(esperadas.map((m) => m.id).sort());
         expect(new Set(ids).size).toBe(ids.length);
