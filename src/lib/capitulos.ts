@@ -111,7 +111,7 @@ export function sqlMemoriaDoCapitulo(m = 'm', capitulo = '?2', filhos = "'[]'"):
   ) ELSE ${c('inicio.ano')} IS NOT NULL
     AND (${ordem(m, true)}) >= (${dataC('inicio', false)})
     AND (${c('fim.ano')} IS NULL OR (${ordem(m, false)}) <= (${dataC('fim', true)}))
-    AND (json_array_length(${c('pessoas')}) + json_array_length(${c('familias')}) = 0
+    AND (COALESCE(json_array_length(${c('pessoas')}), 0) + COALESCE(json_array_length(${c('familias')}), 0) = 0
       OR EXISTS (SELECT 1 FROM memoria_integrantes mi WHERE mi.memoria_id = ${m}.id AND mi.integrante_id IN (SELECT value FROM json_each(${c('pessoas')})))
       OR EXISTS (SELECT 1 FROM memoria_nucleos mn2 WHERE mn2.memoria_id = ${m}.id AND mn2.nucleo_id IN (SELECT value FROM json_each(${c('familias')})))) END)`;
 }

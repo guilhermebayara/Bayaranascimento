@@ -199,7 +199,7 @@ describe('a página do tema', () => {
   });
   it('P83: a linha de cada capítulo é igual à do sumário, com o período e a conta', () => {
     expect(tema).toMatch(/<Entrada href=\{`\/capitulos\/\$\{c\.id\}`\} titulo=\{c\.titulo\} selo=\{nomeDoModo\(c\)\} periodo=\{r\.periodo\} detalhe=\{contar\(r\.memorias\)\}/);
-    expect(ler('src/pages/capitulos/index.astro')).toContain('resumoDoCapitulo(c, capitulos, todas)');
+    expect(ler('src/pages/capitulos/index.astro')).toContain('resumosDosCapitulos(usuario, capitulos)');
     const natais = capitulo({ id: 'natais' });
     const dentro = capitulo({ id: 'na-vo', dentroDe: 'natais' });
     const memorias = [

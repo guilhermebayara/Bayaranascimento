@@ -3,6 +3,8 @@ import { temSqlite } from './apoio/d1';
 import { acrescentarEscondido } from './apoio/casos-escondidos';
 import { memoriaDoCapitulo, resumoDoCapitulo, sqlMemoriaDoCapitulo, type Capitulo } from '../src/lib/capitulos';
 import { emOutrosAnos, memoriaParaContar, novidades, voceNoAcervo } from '../src/lib/painel';
+import { oQueVoceCriou } from '../src/lib/conta';
+import { explorar, lerFiltros } from '../src/lib/explorar';
 
 const env = vi.hoisted(() => ({ AMBIENTE: 'previa', DB: undefined as unknown, FOTOS: undefined as unknown }));
 vi.mock('cloudflare:workers', () => ({ env }));
@@ -24,6 +26,10 @@ describe.skipIf(!(await temSqlite()))('MEM-6: contar e escolher preserva a regra
       sql.prepare(`INSERT INTO memorias (id, titulo, ano, mes, dia, tipo, criada_por) VALUES (?, ?, ?, ?, ?, 'outro', 'gui')`).run(`mem6-${id}`, id, ano, mes, dia);
     }
     sql.prepare(`INSERT INTO capitulo_memorias (capitulo_id, memoria_id) VALUES ('natais-na-vo-vivica', 'mem6-ano')`).run();
+    for (let n = 0; n < 12; n++) {
+      sql.prepare(`INSERT INTO memorias (id, titulo, ano, tipo, criada_por, situacao) VALUES (?, ?, 2020, 'outro', 'gui', 'publicada')`).run(`mem6-lista-${n}`, `Memória ${n}`);
+      for (let ordem = 0; ordem < 2; ordem++) sql.prepare(`INSERT INTO fotos (memoria_id, chave, enviada_por, ordem, principal) VALUES (?, 'exemplos/carga.jpg', 'gui', ?, ?)`).run(`mem6-lista-${n}`, ordem, ordem);
+    }
     for (const pessoa of ['gui', 'elizete', 'lucas-magno']) {
       const i = (await repo.listarIntegrantes()).find((i) => i.id === pessoa)!;
       leitores.push({ pessoa, nome: i.nome, admin: i.admin, nucleos: i.nucleos });
@@ -96,6 +102,51 @@ describe.skipIf(!(await temSqlite()))('MEM-6: contar e escolher preserva a regra
         expect(dados.rascunhos.total).toBe(comRascunhos.filter((m) => m.situacao === 'rascunho').length);
         expect(dados.paraContar).toEqual(memoriaParaContar(memorias, await repo.memoriasComRelatoDe(u.pessoa), u.pessoa, new Set(novo.memorias.map((m) => m.id))));
         expect(dados.outrosAnos).toEqual(emOutrosAnos(memorias, hoje));
+      }
+    }
+  });
+
+  it('Sua conta conta tudo e completa só as dez memórias/fotos da lista e os rascunhos', async () => {
+    for (const u of leitores) {
+      const memorias = await repo.listarMemorias(u);
+      const relatos = await repo.listarRelatosRegistradosPor(u);
+      const capitulos = await repo.listarCapitulos(u);
+      const antes = oQueVoceCriou(u.pessoa, { memorias, relatos, capitulos });
+      const depois = await repo.memoriasDaConta(u);
+      const relatosDepois = await repo.relatosDaConta(u);
+      expect(depois.totais).toEqual({ memorias: antes.memorias.length, fotos: antes.fotos.length });
+      expect(depois.criadas).toEqual(antes.memorias.slice(-10));
+      expect(depois.fotos).toEqual(antes.fotos.slice(-10));
+      expect(relatosDepois.total).toBe(antes.relatos.length);
+      expect(relatosDepois.publicados).toEqual(antes.relatos.slice(0, 10).map(({ emNomeDe, ...r }) => r));
+      expect(depois.rascunhos).toEqual(await repo.listarMemorias(u, { rascunhos: true }));
+    }
+  });
+
+  it('o conjunto do sorteio é o mesmo de explorar+sortear, sem duplicação ou peso, com todos os filtros', async () => {
+    const { contextoDoExplorar } = await import('../src/lib/servidor/explorar');
+    const { buscarNoAcervo } = await import('../src/lib/servidor/busca');
+    const filtros = ['', 'tipo=festa', 'pessoa=gui', 'pessoa=gui&pessoa=elizete', 'nucleo=bayara-nascimento',
+      'capitulo=natais', 'capitulo=os-anos-90', 'capitulo=infancia-da-giovanna', 'tema=comida', 'de=1990&ate=2000',
+      'decada=1990', 'audio=1', 'foto=1', 'contou=1', 'falta=1', 'tipo=festa&nucleo=bracarense&foto=1', 'q=natal', 'q=vó', 'q=eu'];
+    for (const u of leitores) {
+      const todas = await repo.listarMemorias(u, { comRascunhos: true });
+      const ctx = await contextoDoExplorar(u, todas), capitulos = await repo.listarCapitulos(u);
+      for (const parametro of filtros) {
+        const f = lerFiltros(new URLSearchParams(parametro));
+        const busca = f.busca ? (await buscarNoAcervo(u, await repo.listarTipos(), f.busca, todas)).achados.map((a) => a.id) : [];
+        const esperadas = explorar(todas, f, { ...ctx, busca: new Set(busca) }).memorias.filter((m) => m.situacao === 'publicada');
+        const consulta = await repo.consultaDasCandidatasAoAcaso(u, f, capitulos, busca);
+        const ids = (d1.sqlite.prepare(`SELECT m.id ${consulta.sql}`).all(...consulta.valores) as { id: string }[]).map((m) => m.id);
+        expect(ids.sort(), `${u.pessoa}: ${parametro}`).toEqual(esperadas.map((m) => m.id).sort());
+        expect(new Set(ids).size).toBe(ids.length);
+        const pedida = ids[0] ?? null;
+        const mantida = await repo.escolherMemoriaAoAcaso(u, f, capitulos, { id: pedida, outra: false, anterior: null, busca });
+        expect(mantida.total).toBe(ids.length);
+        expect(mantida.id ?? null).toBe(pedida);
+        const outra = await repo.escolherMemoriaAoAcaso(u, f, capitulos, { id: pedida, outra: true, anterior: pedida, busca });
+        if (ids.length) expect(ids).toContain(outra.id);
+        if (ids.length > 1) expect(outra.id).not.toBe(pedida);
       }
     }
   });

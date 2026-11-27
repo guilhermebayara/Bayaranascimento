@@ -8,6 +8,7 @@ import { sqlMemoriaDoCapitulo, formatarPeriodo, podeVerCapitulo, type Capitulo, 
 import type { Dia, RegistroDeVisitas } from '../painel';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
+import type { Filtros } from '../explorar';
 import type { TipoDeAviso } from '../avisos';
 import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '../ex-casal';
 import { destinatarios, type Proposta, type SituacaoDaSugestao, type Sugestao, type TipoDeSugestao } from '../sugestoes';
@@ -237,7 +238,7 @@ const FILTRO_PUBLICADA = sqlVeMemoria({ so: 'publicada' });
 // Cada leitura tem o SQL num lugar só, para o começo do pedido (aquecerOPedido) ler tudo num lote e as
 // funções abaixo acharem a leitura já guardada: o mesmo SQL com os mesmos valores, para a mesma pessoa.
 const SQL = {
-  integrantes: 'SELECT * FROM integrantes WHERE excluida_em IS NULL ORDER BY ordem, nome',
+  integrantes: 'SELECT id, nome, apelido, tipo, especie, tratamento, nascimento_ano, nascimento_mes, nascimento_dia, falecimento_ano, falecimento_mes, falecimento_dia, retrato, admin, criado_por, falecido FROM integrantes WHERE excluida_em IS NULL ORDER BY ordem, nome',
   membros: 'SELECT nucleo_id, integrante_id, papel FROM nucleo_membros',
   nucleos: 'SELECT id, nome, sobrenomes FROM nucleos ORDER BY ordem, nome',
   tipos: 'SELECT id, rotulo, cor, cor_da_paleta AS corDaPaleta, icone FROM tipos ORDER BY ordem, rotulo',
@@ -285,7 +286,7 @@ export async function listarIntegrantes(): Promise<Integrante[]> {
     falecimentoAno: i.falecimento_ano as number | null,
     falecimentoMes: (i.falecimento_mes as number | null) ?? null,
     falecimentoDia: (i.falecimento_dia as number | null) ?? null,
-    sobre: i.sobre as string | null,
+    sobre: null, // O texto só é lido pela ficha da pessoa (lerSobreDaPessoa).
     retrato: (i.retrato as string | null) ?? null,
     admin: Boolean(i.admin),
     criadoPor: (i.criado_por as string | null) ?? null,
@@ -293,6 +294,12 @@ export async function listarIntegrantes(): Promise<Integrante[]> {
     nucleos: daPessoa(i.id as string, 'membro'),
     parenteDe: daPessoa(i.id as string, 'parente'),
   }));
+}
+
+/** Completa só o texto da pessoa cuja ficha já foi autorizada, sem repetir a lista do aquecimento. */
+export async function lerSobreDaPessoa(pessoa: Integrante): Promise<void> {
+  const r = await db().prepare('SELECT sobre FROM integrantes WHERE id = ? AND excluida_em IS NULL').bind(pessoa.id).first<{ sobre: string | null }>();
+  pessoa.sobre = r?.sobre ?? null;
 }
 
 export async function listarNucleos(): Promise<Nucleo[]> {
@@ -375,6 +382,7 @@ export async function criarIntegranteCompleto(id: string, dados: DadosDoIntegran
  * outros campos: a chave anterior fica guardada, e o arquivo continua no bucket.
  */
 export async function atualizarIntegrante(anterior: Integrante, dados: DadosDoIntegrante, usuario: Usuario): Promise<void> {
+  await lerSobreDaPessoa(anterior);
   const retrato = dados.retrato === undefined ? anterior.retrato : dados.retrato;
   await db().batch([
     db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('integrante', ?, ?, ?)`).bind(anterior.id, JSON.stringify(anterior), usuario.pessoa),
@@ -987,6 +995,46 @@ export async function contarMemoriasPorTipo(usuario: Usuario): Promise<Map<strin
   return new Map(results.map((r) => [r.id, r.n]));
 }
 
+/** O conjunto do sorteio, sem ordem nem peso: uma linha por memória elegível. Exportado para equivalência. */
+export async function consultaDasCandidatasAoAcaso(usuario: Usuario, f: Filtros, capitulos: Capitulo[], busca: readonly string[] = []) {
+  const { naoVe, excluidas } = naoVeParaSql(await pessoasQueONaoVe(usuario));
+  const valores: unknown[] = f.comFoto || f.comAudio || f.contou || f.falta ? [usuario.pessoa, naoVe, excluidas] : [usuario.pessoa];
+  const parametro = (v: unknown) => { valores.push(v); return `?${valores.length}`; };
+  const lista = (v: readonly string[]) => `SELECT value FROM json_each(${parametro(JSON.stringify(v))})`;
+  const condicoes = [FILTRO_PUBLICADA];
+  if (f.tipos.length) condicoes.push(`m.tipo IN (${lista(f.tipos)})`);
+  for (const pessoa of f.pessoas) condicoes.push(`EXISTS (SELECT 1 FROM memoria_integrantes mi WHERE mi.memoria_id = m.id AND mi.integrante_id = ${parametro(pessoa)})`);
+  if (f.familias.length) condicoes.push(`EXISTS (SELECT 1 FROM memoria_nucleos mn2 WHERE mn2.memoria_id = m.id AND mn2.nucleo_id IN (${lista(f.familias)}))`);
+  if (f.temas.length) condicoes.push(`EXISTS (SELECT 1 FROM tema_memorias tm WHERE tm.memoria_id = m.id AND tm.tema_id IN (${lista(f.temas)}))`);
+  if (f.capitulos.length) {
+    const escolhidos = capitulos.filter((c) => f.capitulos.includes(c.id)).map((c) => ({ ...c, filhos: comFilhos(c, capitulos) }));
+    condicoes.push(`EXISTS (SELECT 1 FROM json_each(${parametro(JSON.stringify(escolhidos))}) c WHERE ${sqlMemoriaDoCapitulo('m', 'c.value', `json_extract(c.value, '$.filhos')`)})`);
+  }
+  if (f.de !== null) condicoes.push(`m.ano >= ${parametro(f.de)}`);
+  if (f.ate !== null) condicoes.push(`m.ano <= ${parametro(f.ate)}`);
+  if (f.decada !== null) condicoes.push(`m.ano BETWEEN ${parametro(f.decada)} AND ${parametro(f.decada + 9)}`);
+  if (f.comFoto) condicoes.push(TEM_FOTO_VISIVEL);
+  if (f.comAudio) condicoes.push(`EXISTS (SELECT 1 FROM audios a JOIN relatos r ON r.id = a.relato_id WHERE r.memoria_id = m.id AND a.removido_em IS NULL AND r.situacao = 'publicada' AND ${sqlVeORelato()})`);
+  const contou = `EXISTS (SELECT 1 FROM relatos r WHERE r.memoria_id = m.id AND r.por = ?1 AND r.situacao = 'publicada' AND ${sqlVeORelato()})`;
+  if (f.contou) condicoes.push(contou);
+  if (f.falta) condicoes.push(`EXISTS (SELECT 1 FROM memoria_integrantes mi WHERE mi.memoria_id = m.id AND mi.integrante_id = ?1) AND NOT ${contou}`);
+  if (f.busca) condicoes.push(`m.id IN (${lista(busca)})`);
+  return { sql: `FROM memorias m WHERE ${condicoes.join(' AND ')}`, valores };
+}
+
+/** RANDOM() recebe uma linha por memória, como sortear em TS. A guarda por pedido nunca guarda RANDOM(). */
+export async function escolherMemoriaAoAcaso(usuario: Usuario, f: Filtros, capitulos: Capitulo[], pedido: { id: string | null; outra: boolean; anterior: string | null; busca?: readonly string[] }) {
+  const { sql, valores } = await consultaDasCandidatasAoAcaso(usuario, f, capitulos, pedido.busca);
+  const conta = await db().prepare(`SELECT COUNT(*) AS total, MAX(CASE WHEN m.id = ?${valores.length + 1} THEN m.id END) AS pedida ${sql}`)
+    .bind(...valores, pedido.id).first<{ total: number; pedida: string | null }>();
+  if (!conta?.total) return { total: 0, id: undefined, redirecionar: false };
+  if (conta.pedida && !pedido.outra) return { total: conta.total, id: conta.pedida, redirecionar: false };
+  const excluir = conta.total > 1 && pedido.anterior;
+  const escolhida = await db().prepare(`SELECT m.id ${sql}${excluir ? ` AND m.id <> ?${valores.length + 1}` : ''} ORDER BY RANDOM() LIMIT 1`)
+    .bind(...valores, ...(excluir ? [pedido.anterior] : [])).first<{ id: string }>();
+  return { total: conta.total, id: escolhida?.id, redirecionar: true };
+}
+
 /** Só títulos, para o relato da conta e o bilhete do Início. Nenhum anexo é necessário. */
 export async function titulosDasMemorias(usuario: Usuario, ids: readonly string[]): Promise<Map<string, string>> {
   if (!ids.length) return new Map();
@@ -1084,7 +1132,7 @@ export async function resumosDosCapitulos(usuario: Usuario, capitulos: Capitulo[
         ROW_NUMBER() OVER (PARTITION BY c.key ORDER BY COALESCE(m.ano, 0) * 10000 + COALESCE(m.mes, 1) * 100 + COALESCE(m.dia, 1), ${ORDEM_DA_LINHA}) AS pos,
         COUNT(m.id) OVER (PARTITION BY c.key) AS n
       FROM json_each(?2) c LEFT JOIN memorias m ON ${FILTRO_PUBLICADA}
-        AND ${sqlMemoriaDoCapitulo('m', 'c.value', "json_extract(c.value, '$.filhos')")})
+        AND ${sqlMemoriaDoCapitulo('m', 'c.value', `json_extract(c.value, '$.filhos')`)})
     SELECT capitulo, MAX(n) AS n,
       MAX(CASE WHEN pos = 1 THEN json_object('ano', ano, 'mes', mes, 'dia', dia) END) AS inicio,
       MAX(CASE WHEN pos = n THEN json_object('ano', ano, 'mes', mes, 'dia', dia) END) AS fim
@@ -2077,6 +2125,47 @@ export async function obterRelato(memoriaId: string, por: string, usuario: Usuar
 }
 
 // --- Sua conta ---
+
+/** A conta mostra dez itens de cada lista. Contagens inteiras ficam no SQL; só os itens mostrados são completados. */
+export async function memoriasDaConta(usuario: Usuario) {
+  const { naoVe, excluidas } = naoVeParaSql(await pessoasQueONaoVe(usuario));
+  const foto = `f.enviada_por = ?1 AND f.removida_em IS NULL AND NOT EXISTS (
+    SELECT 1 FROM relatos r WHERE r.id = f.relato_id AND r.situacao = 'publicada' AND NOT ${sqlVeORelato()})`;
+  const valores = [usuario.pessoa, naoVe, excluidas];
+  const [contas, criadas, fotos, rascunhos] = await db().batch<Record<string, unknown>>([
+    db().prepare(`SELECT (SELECT COUNT(*) FROM memorias m WHERE ${FILTRO_PUBLICADA} AND m.criada_por = ?1) AS memorias,
+      (SELECT COUNT(*) FROM fotos f JOIN memorias m ON m.id = f.memoria_id WHERE ${FILTRO_PUBLICADA} AND ${foto}) AS fotos`).bind(...valores),
+    db().prepare(`SELECT m.id FROM memorias m WHERE ${FILTRO_PUBLICADA} AND m.criada_por = ?1 ORDER BY ${ORDEM_INVERSA} LIMIT 10`).bind(usuario.pessoa),
+    db().prepare(`SELECT m.id AS memoria, f.id FROM fotos f JOIN memorias m ON m.id = f.memoria_id WHERE ${FILTRO_PUBLICADA} AND ${foto}
+      ORDER BY ${ORDEM_INVERSA}, f.principal, f.ordem DESC, f.id DESC LIMIT 10`).bind(...valores),
+    db().prepare(`SELECT m.id FROM memorias m WHERE ${FILTRO_VISIVEL} AND m.situacao = 'rascunho' ORDER BY ${ORDEM_DA_LINHA}`).bind(usuario.pessoa),
+  ]);
+  const ids = [...new Set([...criadas.results.map((r) => r.id), ...fotos.results.map((r) => r.memoria), ...rascunhos.results.map((r) => r.id)])];
+  const { results } = await db().prepare(`SELECT m.* FROM memorias m WHERE ${FILTRO_VISIVEL}
+    AND m.id IN (SELECT value FROM json_each(?2)) ORDER BY ${ORDEM_DA_LINHA}`).bind(usuario.pessoa, JSON.stringify(ids)).all<Record<string, unknown>>();
+  const memorias = await completar(results.map(lerMemoria), usuario);
+  const porId = new Map(memorias.map((m) => [m.id, m]));
+  const de = (lista: Record<string, unknown>[]) => new Set(lista.map((r) => r.id));
+  const criadasIds = de(criadas.results), rascunhosIds = de(rascunhos.results);
+  return {
+    totais: contas.results[0] as unknown as { memorias: number; fotos: number },
+    criadas: memorias.filter((m) => criadasIds.has(m.id)),
+    rascunhos: memorias.filter((m) => rascunhosIds.has(m.id)),
+    fotos: fotos.results.map((f) => ({ memoria: porId.get(f.memoria as string)!, foto: porId.get(f.memoria as string)!.fotos.find((x) => x.id === f.id)! })).reverse(),
+  };
+}
+
+export async function relatosDaConta(usuario: Usuario) {
+  const base = `FROM relatos r JOIN memorias m ON m.id = r.memoria_id WHERE r.registrado_por = ?1
+    AND r.descartado_em IS NULL AND ${FILTRO_VISIVEL} AND ${sqlVeORelato('r', '?1', "'[]'", "'[]'")}`;
+  const [conta, publicados, rascunhos] = await db().batch<Record<string, unknown>>([
+    db().prepare(`SELECT COUNT(*) AS n ${base} AND r.situacao = 'publicada' AND m.situacao = 'publicada'`).bind(usuario.pessoa),
+    db().prepare(`SELECT r.*, m.titulo ${base} AND r.situacao = 'publicada' AND m.situacao = 'publicada' ORDER BY r.atualizado_em DESC, r.id LIMIT 10`).bind(usuario.pessoa),
+    db().prepare(`SELECT r.*, m.titulo ${base} AND r.situacao = 'rascunho' ORDER BY r.atualizado_em DESC, r.id`).bind(usuario.pessoa),
+  ]);
+  const ler = (r: Record<string, unknown>) => ({ ...lerRelato(r), titulo: r.titulo as string });
+  return { total: Number(conta.results[0].n), publicados: publicados.results.map(ler), rascunhos: rascunhos.results.map(ler) };
+}
 
 /** Os relatos que a pessoa registrou (os dela e os que escreveu por outra pessoa), em memórias que ela vê. */
 export async function listarRelatosRegistradosPor(usuario: Usuario): Promise<(Relato & { titulo: string })[]> {
@@ -3165,6 +3254,7 @@ export interface ConflitosAoJuntar {
  * lote só: ou entra tudo, ou nada. Quem chama já conferiu a permissão e os conflitos.
  */
 export async function juntarIntegrantes(fica: Integrante, sai: Integrante, ficha: DadosDoIntegrante, usuario: Usuario): Promise<void> {
+  await Promise.all([lerSobreDaPessoa(fica), lerSobreDaPessoa(sai)]);
   const [A, B] = [fica.id, sai.id];
   const c: D1PreparedStatement[] = [];
   const q = (sql: string, ...v: unknown[]) => c.push(db().prepare(sql).bind(...v));

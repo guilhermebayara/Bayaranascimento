@@ -18,7 +18,8 @@ import {
   listarIntegrantes,
   listarIntegrantesQueVe,
   listarLacosDoCoracao,
-  listarMemorias,
+  memoriasDaConta,
+  relatosDaConta,
   listarNucleos,
   listarRascunhosDeRelatoDescartados,
   listarRelatosRegistradosPor,
@@ -113,17 +114,18 @@ export async function montarConta(usuario: Usuario) {
   const eu = usuario.pessoa;
   // As publicadas e os rascunhos de quem pede numa leitura só (comRascunhos), separados aqui: a mesma ordem,
   // e um lote a menos para completar as memórias (causa 1 da medição M1)
-  const [comRascunhos, relatos, capitulos, lacos, lixeira, integrantes, pendencias] = await Promise.all([
-    listarMemorias(usuario, { comRascunhos: true }),
-    listarRelatosRegistradosPor(usuario),
+  const [memorias, relatosDaPessoa, capitulos, lacos, lixeira, integrantes, pendencias] = await Promise.all([
+    memoriasDaConta(usuario),
+    relatosDaConta(usuario),
     listarCapitulos(usuario),
     listarLacosDoCoracao(usuario),
     itensDaLixeira(usuario),
     listarIntegrantes(),
     contarPendenciasDaAdministracao(usuario),
   ]);
-  const publicadas = comRascunhos.filter((m) => m.situacao === 'publicada');
-  const rascunhos = comRascunhos.filter((m) => m.situacao === 'rascunho');
+  const publicadas = memorias.criadas;
+  const rascunhos = memorias.rascunhos;
+  const relatos = [...relatosDaPessoa.publicados, ...relatosDaPessoa.rascunhos];
   const minhaLixeira = suaLixeira(eu, lixeira.todasAsMemorias);
   return {
     /** "Seus dados e sua página": editáveis em /pessoas/<id>/editar; a página como os outros veem, em /pessoas/<id> */
@@ -140,14 +142,20 @@ export async function montarConta(usuario: Usuario) {
       usuario.admin,
       (usuario.admin ? lixeira.memorias.length + lixeira.capitulos.length + lixeira.pessoas.length : minhaLixeira.length) + lixeira.relatos.length,
     ),
-    criou: oQueVoceCriou(eu, { memorias: publicadas, relatos, capitulos }),
+    criou: {
+      memorias: publicadas,
+      relatos: relatosDaPessoa.publicados.map((r) => ({ ...r, emNomeDe: r.por === eu ? null : r.por })),
+      fotos: memorias.fotos,
+      capitulos: capitulos.filter((c) => c.criadoPor === eu),
+    },
+    totais: { ...memorias.totais, relatos: relatosDaPessoa.total },
     lacos: seusLacos(eu, lacos),
     /** quem administra vê o atalho para a Administração (src/pages/admin/index.astro) */
     administra: usuario.admin,
     /** quantas pendências a administração tem, para o atalho de quem administra (0 para os outros) */
     pendenciasDaAdministracao: pendencias,
     /** o título de cada memória que a pessoa vê, para dizer de qual memória é um relato */
-    titulos: new Map([...publicadas, ...rascunhos].map((m) => [m.id, m.titulo])),
+    titulos: new Map([...publicadas, ...rascunhos, ...relatos.map((r) => ({ id: r.memoriaId, titulo: r.titulo }))].map((m) => [m.id, m.titulo])),
     integrantes,
   };
 }

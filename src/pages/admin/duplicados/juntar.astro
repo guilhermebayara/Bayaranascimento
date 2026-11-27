@@ -8,7 +8,7 @@ import { formatarData } from '../../../lib/datas';
 import { CAMPOS_DA_JUNCAO, recadoDosConflitos } from '../../../lib/juntar';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
-import { conflitosAoJuntar, listarIntegrantesQueVe, listarMemorias, type Integrante } from '../../../lib/servidor/repositorio';
+import { lerSobreDaPessoa, conflitosAoJuntar, listarIntegrantesQueVe, listarMemorias, type Integrante } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 if (!usuario.admin) return new Response('Página não encontrada', { status: 404 });
@@ -16,6 +16,7 @@ const visiveis = await listarIntegrantesQueVe(usuario);
 const [x, y] = [Astro.url.searchParams.get('a'), Astro.url.searchParams.get('b')].map((id) => visiveis.find((i) => i.id === id));
 if (!x || !y || x.id === y.id) return Astro.redirect('/admin/duplicados?erro=' + encodeURIComponent('Escolha duas fichas diferentes.'));
 
+await Promise.all([lerSobreDaPessoa(x), lerSobreDaPessoa(y)]);
 const comAcesso = await pessoasComAcesso();
 // Fica, por padrão, a de quem acessa o site; depois, a que aparece em mais memórias
 const memorias = await listarMemorias(usuario);

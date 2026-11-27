@@ -177,7 +177,7 @@ describe('conceito', () => {
     expect(pagina).not.toMatch(/usuario\.nucleos\.includes|obterMemoria/);
     // O mural, o modo TV e o sorteio usam o mesmo resultado, sem os rascunhos
     expect(pagina).toMatch(/const publicadas = resultado\.memorias\.filter/);
-    expect(pagina).toMatch(/sortear\(publicadas,/);
+    expect(pagina).toContain('await palcoAoAcaso(usuario, parametros, tipos)');
   });
 
   it('memória sem foto ganha o cartão com o ícone do tipo, na linha do tempo e no painel', () => {
@@ -204,9 +204,10 @@ describe('conceito', () => {
   it('o painel é só de quem olha: lê as regras de src/lib/painel.ts e só memória publicada', () => {
     // docs/regras/inicio.md, "Início (painel pessoal)". A tela não refaz as regras.
     const painel = tela('pages/index.astro');
-    for (const regra of ['chegarAoPainel', 'novidades', 'aniversarios', 'memoriaParaContar', 'emOutrosAnos']) expect(painel).toContain(`${regra}(`);
-    expect(painel).toContain('listarMemorias(usuario, { comRascunhos: true })');
-    expect(painel).toMatch(/const memorias = comRascunhos\.filter\(\(m\) => m\.situacao === 'publicada'\)/);
+    for (const regra of ['chegarAoPainel', 'aniversarios', 'memoriasDoInicio']) expect(painel).toContain(`${regra}(`);
+    expect(painel).not.toContain('listarMemorias(');
+    // A equivalência dos cartões e das contagens com a regra TS é testada em contar-no-banco.test.ts.
+    expect(painel).toContain('const naMesa = inicio.naMesa;');
     expect(painel).toMatch(/<Visual titulo="Início" secao="painel" familia=\{corDoPainel\} intimo>/);
     // O dia trocado pelo endereço só vale fora da produção (o simulador de data, src/lib/servidor/dia-do-pedido.ts)
     expect(painel).toMatch(/const hoje = diaSimuladoDoPedido\(Astro\.url\) \?\? hojeNoBrasil\(agora\);/);

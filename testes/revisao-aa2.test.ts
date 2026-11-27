@@ -590,6 +590,7 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
 
       // Mesmo critério de src/pages/carta.astro e src/pages/index.astro
       const fotosDaCartaDoGui = (await repo.listarMemorias(gui)).filter((m) => m.situacao === 'publicada' && m.integrantes.includes(gui.pessoa) && m.fotos.length > 0);
+      expect(await repo.fotosDaCarta(gui)).toEqual([...fotosDaCartaDoGui].reverse().slice(0, 3));
       const ids = fotosDaCartaDoGui.map((m) => m.id);
       expect(ids).toContain(mVis);
       expect(ids).not.toContain(mRestrita);
@@ -600,7 +601,7 @@ describe.skipIf(!comSqlite)('AA2: revisão da Sessão AA contra a lista fechada'
       const cartaAstro = readFileSync('src/components/Carta.astro', 'utf-8');
       expect(cartaAstro).toContain('<Polaroid id={m.id} fotos={m.fotos} titulo={m.titulo}');
       const pagCarta = readFileSync('src/pages/carta.astro', 'utf-8');
-      expect(pagCarta).toContain(`(await listarMemorias(usuario)).filter((m) => m.situacao === 'publicada'`);
+      expect(pagCarta).toContain('await fotosDaCarta(usuario)');
     });
   });
 

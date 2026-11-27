@@ -26,6 +26,7 @@ import {
   listarCasais,
   listarFiliacoes,
   listarIntegrantesQueVe,
+  lerSobreDaPessoa,
   listarLacosDoCoracao,
   listarLacosResumidos,
   listarMemorias,
@@ -57,6 +58,7 @@ export async function montarPaginaDaPessoa(usuario: Usuario, pessoaId: string, m
   const integrantes = await listarIntegrantesQueVe(usuario);
   const pessoa = integrantes.find((i) => i.id === pessoaId);
   if (!pessoa) return null;
+  await lerSobreDaPessoa(pessoa);
 
   const ehMinha = pessoa.id === usuario.pessoa;
   // O que a página lê vai junto, sem fila (causa 1b da medição M1, docs/desempenho/): as pessoas, as famílias

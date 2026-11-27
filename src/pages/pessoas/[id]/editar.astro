@@ -24,13 +24,14 @@ import { casalDesfeito, ehEx, opcoesDeQuemVe, opcoesDoModo, situacaoDoCasal } fr
 import { enderecoDoLaco } from '../../../lib/pagina-do-laco';
 import { nomeDaProximidade, proximidadePadrao } from '../../../lib/circulo';
 import { proximidadesDoCirculo } from '../../../lib/servidor/circulo';
-import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos, listarNucleos, pedidoAbertoDeExclusao } from '../../../lib/servidor/repositorio';
+import { comoOsExesAparecem, familiasDe, lerSobreDaPessoa, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarLacosResumidos, listarNucleos, pedidoAbertoDeExclusao } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 // Quem só existe num laço privado de outra pessoa não é editado nem oferecido nos laços (C1)
 const integrantes = await listarIntegrantesQueVe(usuario);
 const pessoa = integrantes.find((i) => i.id === Astro.params.id);
 if (!pessoa) return new Response('Pessoa não encontrada', { status: 404 });
+await lerSobreDaPessoa(pessoa);
 
 const comAcesso = await pessoasComAcesso();
 // Quem não acessa o site não cuida da própria ficha (regra em podeEditarIntegrante): o texto diz quem cuida
