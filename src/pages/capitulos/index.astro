@@ -5,15 +5,14 @@ import '../../visual/telas/capitulo.css';
 import Visual from '../../layouts/Visual.astro';
 import Entrada from '../../components/capitulos/Entrada.astro';
 import Vazio from '../../components/visual/Vazio.astro';
-import { ehEpoca, nomeDoModo, resumoDoCapitulo, type Capitulo } from '../../lib/capitulos';
-import { coresDosCapitulos } from '../../lib/linha-capitulos';
-import { listarCapitulos, listarMemorias, listarTemasVisiveis } from '../../lib/servidor/repositorio';
+import { ehEpoca, nomeDoModo, type Capitulo } from '../../lib/capitulos';
+import { listarCapitulos, coresDosCapitulosNoBanco, resumosDosCapitulos, listarTemasVisiveis } from '../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const capitulos = await listarCapitulos(usuario);
-const todas = await listarMemorias(usuario);
+const [cores, resumos] = await Promise.all([coresDosCapitulosNoBanco(usuario, capitulos), resumosDosCapitulos(usuario, capitulos)]);
 // O período e a conta de cada linha: a mesma regra da página do tema
-const resumo = (c: Capitulo) => resumoDoCapitulo(c, capitulos, todas);
+const resumo = (c: Capitulo) => resumos.get(c.id)!;
 // Capítulos de dentro aparecem sob o maior. Os demais, do mais antigo para o mais recente.
 const soltos = capitulos
   .filter((c) => !c.dentroDe || !capitulos.some((x) => x.id === c.dentroDe))
@@ -22,10 +21,7 @@ const soltos = capitulos
 const temas = await listarTemasVisiveis(usuario);
 const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
 // A cor de cada capítulo é a do trilho dele na linha do tempo; a época é o chão e fica sem cor
-const cores = coresDosCapitulos(
-  [...todas].reverse(),
-  capitulos.map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c)),
-);
+
 ---
 
 <Visual titulo="Capítulos" secao="capitulos">

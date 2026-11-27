@@ -104,8 +104,8 @@ interface BancoParaAMarca {
  * registro (os que a primeira versão da migração 113 criou nelas). Uma leitura só quando nada muda; devolve
  * quantos gatilhos foram criados ou apagados. Sem a tabela da marca (antes da migração 113), não faz nada.
  */
-export async function garantirGatilhosDaMarca(db: BancoParaAMarca): Promise<number> {
-  const { results } = await db.prepare(`SELECT type, name FROM sqlite_master WHERE type IN ('table', 'trigger')`).all<{ type: string; name: string }>();
+export async function garantirGatilhosDaMarca(db: BancoParaAMarca, esquema?: { type: string; name: string }[]): Promise<number> {
+  const results = esquema ?? (await db.prepare(`SELECT type, name FROM sqlite_master WHERE type IN ('table', 'trigger')`).all<{ type: string; name: string }>()).results;
   const linhas = results as { type: string; name: string }[];
   if (!linhas.some((l) => l.type === 'table' && l.name === TABELA_DA_MARCA)) return 0;
   const existentes = new Set(linhas.filter((l) => l.type === 'trigger').map((l) => l.name));

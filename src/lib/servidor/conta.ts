@@ -1,5 +1,5 @@
 // "Sua conta": junta, para quem está logado, as listas de src/lib/conta.ts. A tela é src/pages/conta.astro.
-import { administracao, fraseDaLixeira, oQueVoceCriou, pendenciasDaAdministracao, seusLacos, seusRascunhos, suaLixeira, type SituacaoDaAdministracao } from '../conta';
+import { administracao, fraseDaLixeira, pendenciasDaAdministracao, seusLacos, seusRascunhos, type SituacaoDaAdministracao } from '../conta';
 import { emMegabytes, LIMITE_DO_PLANO, situacaoDoBanco } from '../tamanho-do-banco';
 import { AJUSTE_DOS_CENTROS } from '../centros-da-arvore';
 import { situacaoDaTranscricaoAgora } from './transcricao';
@@ -18,10 +18,11 @@ import {
   listarIntegrantes,
   listarIntegrantesQueVe,
   listarLacosDoCoracao,
-  listarMemorias,
+  memoriasDaConta,
+  relatosDaConta,
+  resumoDaLixeira,
   listarNucleos,
   listarRascunhosDeRelatoDescartados,
-  listarRelatosRegistradosPor,
   listarTipos,
   espacoDosArquivos,
   espacoDosArquivosGuardado,
@@ -111,20 +112,22 @@ export async function itensDaLixeira(usuario: Usuario) {
 
 export async function montarConta(usuario: Usuario) {
   const eu = usuario.pessoa;
-  // As publicadas e os rascunhos de quem pede numa leitura só (comRascunhos), separados aqui: a mesma ordem,
-  // e um lote a menos para completar as memórias (causa 1 da medição M1)
-  const [comRascunhos, relatos, capitulos, lacos, lixeira, integrantes, pendencias] = await Promise.all([
-    listarMemorias(usuario, { comRascunhos: true }),
-    listarRelatosRegistradosPor(usuario),
+  // Contagens no banco e só o começo de cada lista, mantendo a ordem e todos os rascunhos de quem pede.
+  const [memorias, relatosDaPessoa, capitulos, lacos, lixeira, integrantes, pendencias, capitulosNaLixeira, pessoasNaLixeira] = await Promise.all([
+    memoriasDaConta(usuario),
+    relatosDaConta(usuario),
     listarCapitulos(usuario),
     listarLacosDoCoracao(usuario),
-    itensDaLixeira(usuario),
+    resumoDaLixeira(usuario),
     listarIntegrantes(),
     contarPendenciasDaAdministracao(usuario),
+    usuario.admin ? listarCapitulosExcluidos(usuario) : Promise.resolve([]),
+    usuario.admin ? listarPessoasExcluidas() : Promise.resolve([]),
   ]);
-  const publicadas = comRascunhos.filter((m) => m.situacao === 'publicada');
-  const rascunhos = comRascunhos.filter((m) => m.situacao === 'rascunho');
-  const minhaLixeira = suaLixeira(eu, lixeira.todasAsMemorias);
+  const publicadas = memorias.criadas;
+  const rascunhos = memorias.rascunhos;
+  const relatos = [...relatosDaPessoa.publicados, ...relatosDaPessoa.rascunhos];
+  const minhaLixeira = lixeira.minhas;
   return {
     /** "Seus dados e sua página": editáveis em /pessoas/<id>/editar; a página como os outros veem, em /pessoas/<id> */
     dados: integrantes.find((i) => i.id === eu),
@@ -138,16 +141,22 @@ export async function montarConta(usuario: Usuario) {
      */
     fraseDaLixeira: fraseDaLixeira(
       usuario.admin,
-      (usuario.admin ? lixeira.memorias.length + lixeira.capitulos.length + lixeira.pessoas.length : minhaLixeira.length) + lixeira.relatos.length,
+      (usuario.admin ? lixeira.memorias + capitulosNaLixeira.length + pessoasNaLixeira.length : minhaLixeira.length) + lixeira.relatos,
     ),
-    criou: oQueVoceCriou(eu, { memorias: publicadas, relatos, capitulos }),
+    criou: {
+      memorias: publicadas,
+      relatos: relatosDaPessoa.publicados.map((r) => ({ ...r, emNomeDe: r.por === eu ? null : r.por })),
+      fotos: memorias.fotos,
+      capitulos: capitulos.filter((c) => c.criadoPor === eu),
+    },
+    totais: { ...memorias.totais, relatos: relatosDaPessoa.total },
     lacos: seusLacos(eu, lacos),
     /** quem administra vê o atalho para a Administração (src/pages/admin/index.astro) */
     administra: usuario.admin,
     /** quantas pendências a administração tem, para o atalho de quem administra (0 para os outros) */
     pendenciasDaAdministracao: pendencias,
     /** o título de cada memória que a pessoa vê, para dizer de qual memória é um relato */
-    titulos: new Map([...publicadas, ...rascunhos].map((m) => [m.id, m.titulo])),
+    titulos: new Map([...publicadas, ...rascunhos, ...relatos.map((r) => ({ id: r.memoriaId, titulo: r.titulo }))].map((m) => [m.id, m.titulo])),
     integrantes,
   };
 }

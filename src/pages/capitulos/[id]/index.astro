@@ -24,9 +24,7 @@ import {
   enderecoDoCapitulo,
   formatarPeriodo,
   lerFormaDoCapitulo,
-  memoriaDoCapitulo,
   nomeDoModo,
-  periodoDasMemorias,
   sobreposicao,
   tituloDasMemorias,
   type Capitulo,
@@ -34,10 +32,9 @@ import {
 import { TAMANHO_PADRAO, fotosDoMuralNoEndereco, lerFotosDoMural } from '../../../lib/explorar';
 import QuaisFotos from '../../../components/explorar/QuaisFotos.astro';
 import { jaFaleceu, maisRecentesPrimeiro } from '../../../lib/datas';
-import { coresDosCapitulos } from '../../../lib/linha-capitulos';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { podeEditarCapitulo } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarCapitulos, listarCasais, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
+import { familiasDe, listarCapitulos, listarCasais, listarIntegrantesQueVe, memoriasDoCapitulo, coresDosCapitulosNoBanco, resumosDosCapitulos, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe } from '../../../lib/servidor/repositorio';
 import { coresDasPessoas } from '../../../lib/familias';
 import { carimboDaData, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
 
@@ -47,18 +44,11 @@ const capitulo = capitulos.find((c) => c.id === Astro.params.id);
 // Capítulo que a pessoa não pode ver é como se não existisse
 if (!capitulo) return new Response('Capítulo não encontrado', { status: 404 });
 
-const todas = await listarMemorias(usuario);
+const [cores, resumos, memorias] = await Promise.all([
+  coresDosCapitulosNoBanco(usuario, capitulos), resumosDosCapitulos(usuario, capitulos), memoriasDoCapitulo(usuario, capitulo, capitulos),
+]);
 const dentro = capitulos.filter((c) => c.dentroDe === capitulo.id);
-// As memórias de um capítulo, só entre as que a pessoa pode ver
-const memoriasDe = (c: Capitulo, comFilhos = true): Memoria[] => {
-  // Por período: as do período e, se o capítulo for de alguém, só as dessas pessoas ou famílias
-  if (c.modo === 'epoca') return todas.filter((m) => memoriaDoCapitulo(m, c));
-  const ids = new Set([c.id, ...(comFilhos ? capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id) : [])]);
-  return todas.filter((m) => m.capitulos.some((id) => ids.has(id)));
-};
-const periodoDe = (c: Capitulo) => (c.modo === 'epoca' ? (c.inicio ? { inicio: c.inicio, fim: c.fim } : null) : periodoDasMemorias(memoriasDe(c)));
-
-const memorias = memoriasDe(capitulo);
+const periodoDe = (c: Capitulo) => resumos.get(c.id)!.datas;
 const periodo = periodoDe(capitulo);
 const textoDoPeriodo = periodo ? formatarPeriodo(periodo.inicio, periodo.fim, capitulo.modo === 'epoca', capitulo.modo === 'epoca') : '';
 const maior = capitulo.dentroDe ? capitulos.find((c) => c.id === capitulo.dentroDe) : undefined;
@@ -99,10 +89,7 @@ const podeEditar = podeEditarCapitulo(usuario, capitulo).ok;
 const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
 
 // A cor do capítulo é a do trilho dele na linha do tempo; a época é o chão e fica na cor da tela
-const cores = coresDosCapitulos(
-  [...todas].reverse(),
-  capitulos.map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c)),
-);
+
 const cor = cores.get(capitulo.id);
 
 // Os marcos: as memórias do capítulo, das mais recentes para as mais antigas, como em toda linha do
@@ -269,7 +256,7 @@ const familiasDaTela = [...new Set([...(capitulo.visibilidade === 'nucleos' ? ca
                 const p = periodoDe(c);
                 return (
                   <li>
-                    <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} periodo={p ? formatarPeriodo(p.inicio, p.fim, false, c.modo === 'epoca') : undefined} detalhe={contar(memoriasDe(c).length)} cor={cores.get(c.id)} dentro />
+                    <Entrada href={`/capitulos/${c.id}`} titulo={c.titulo} periodo={p ? formatarPeriodo(p.inicio, p.fim, false, c.modo === 'epoca') : undefined} detalhe={contar(resumos.get(c.id)!.memorias)} cor={cores.get(c.id)} dentro />
                   </li>
                 );
               })}

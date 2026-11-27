@@ -16,9 +16,7 @@ export async function contextoDoExplorar(usuario: Usuario, memorias: Memoria[]):
     const c = porId.get(capituloId);
     const m = vistas.get(memoriaId);
     if (!c || !m) return false;
-    if (c.modo === 'epoca') return memoriaDoCapitulo(m, c);
-    const ids = new Set([c.id, ...capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id)]);
-    return m.capitulos.some((x) => ids.has(x));
+    return memoriaDoCapitulo(m, c, capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id));
   };
   return {
     eu: usuario.pessoa,

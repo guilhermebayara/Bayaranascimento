@@ -4,7 +4,7 @@ import '../visual/telas/painel.css';
 import Visual from '../layouts/Visual.astro';
 import Carta from '../components/Carta.astro';
 import Vazio from '../components/visual/Vazio.astro';
-import { listarIntegrantes, listarMemorias, obterCarta } from '../lib/servidor/repositorio';
+import { listarIntegrantes, fotosDaCarta, obterCarta } from '../lib/servidor/repositorio';
 import { enderecosDaSala } from '../lib/servidor/tv';
 
 const { usuario } = Astro.locals;
@@ -12,7 +12,7 @@ const carta = await obterCarta();
 const eu = (await listarIntegrantes()).find((i) => i.id === usuario.pessoa);
 // As fotos que acompanham a carta: as mais recentes em que a pessoa aparece, entre as que ela vê
 const fotos = carta
-  ? (await listarMemorias(usuario)).filter((m) => m.situacao === 'publicada' && m.integrantes.includes(usuario.pessoa) && m.fotos.length > 0).reverse().slice(0, 3)
+  ? await fotosDaCarta(usuario)
   : [];
 // "Ver na TV" (aplicação da E1): a mesma entrada "A carta e os Natais" do cartão do Início, com a regra da sala
 const naTv = carta ? (await enderecosDaSala()).natais : undefined;

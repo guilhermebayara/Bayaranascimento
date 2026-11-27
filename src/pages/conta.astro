@@ -51,18 +51,18 @@ const titulo = (id: string) => conta.titulos.get(id) ?? 'uma memória';
 // Respostas do Gui de 17/11/2026: na tela grande as contas ficam numa linha só, com o nome curto (P148),
 // e a lista aberta mostra o começo, com o caminho para o resto (P151)
 const criados = [
-  { id: 'memorias', quantas: criou.memorias.length, um: 'memória que você criou', varios: 'memórias que você criou', curto: ['memória', 'memórias'], resto: 'As', todas: 'Ver todas no Explorar', onde: '/explorar' },
-  { id: 'relatos', quantas: criou.relatos.length, um: 'relato que você escreveu', varios: 'relatos que você escreveu', curto: ['relato', 'relatos'], resto: 'Os', todas: 'Ver todos no Explorar', onde: '/explorar' },
-  { id: 'fotos', quantas: criou.fotos.length, um: 'foto que você enviou', varios: 'fotos que você enviou', curto: ['foto', 'fotos'], resto: 'As', todas: 'Ver todas no Explorar', onde: '/explorar' },
+  { id: 'memorias', quantas: conta.totais.memorias, um: 'memória que você criou', varios: 'memórias que você criou', curto: ['memória', 'memórias'], resto: 'As', todas: 'Ver todas no Explorar', onde: '/explorar' },
+  { id: 'relatos', quantas: conta.totais.relatos, um: 'relato que você escreveu', varios: 'relatos que você escreveu', curto: ['relato', 'relatos'], resto: 'Os', todas: 'Ver todos no Explorar', onde: '/explorar' },
+  { id: 'fotos', quantas: conta.totais.fotos, um: 'foto que você enviou', varios: 'fotos que você enviou', curto: ['foto', 'fotos'], resto: 'As', todas: 'Ver todas no Explorar', onde: '/explorar' },
   { id: 'capitulos', quantas: criou.capitulos.length, um: 'capítulo que você criou', varios: 'capítulos que você criou', curto: ['capítulo', 'capítulos'], resto: 'Os', todas: 'Ver todos em Capítulos', onde: '/capitulos' },
 ].filter((c) => c.quantas > 0);
 // A carta de Natal mora também aqui, para todos, e a saída da conta fica no fim, onde há login
 // (respostas do Gui às P5 e P4 do QA de design, 17/11/2026)
 const carta = await obterCarta();
 // As memórias e as fotos chegam da mais antiga para a mais nova; os relatos, do mais recente para o mais antigo
-const memoriasCriadas = oComeco([...criou.memorias].reverse());
-const relatosCriados = oComeco(criou.relatos);
-const fotosCriadas = oComeco([...criou.fotos].reverse());
+const memoriasCriadas = { mostra: [...criou.memorias].reverse(), total: conta.totais.memorias, haMais: conta.totais.memorias > criou.memorias.length };
+const relatosCriados = { mostra: criou.relatos, total: conta.totais.relatos, haMais: conta.totais.relatos > criou.relatos.length };
+const fotosCriadas = { mostra: [...criou.fotos].reverse(), total: conta.totais.fotos, haMais: conta.totais.fotos > criou.fotos.length };
 const capitulosCriados = oComeco(criou.capitulos);
 // Os dados sobem para o alto, numa linha, e só entra o que existe (P149)
 const chamado = eu?.apelido && eu.apelido !== eu.nome ? `${eu.tratamento === 'ela' ? 'chamada' : 'chamado'} de ${eu.apelido}` : undefined;

@@ -4,7 +4,7 @@
 // filtros e a ordem num lugar só. Tudo o que foi escolhido fica no endereço.
 //
 // As regras estão em src/lib/explorar.ts. Aqui só entram memórias que a pessoa vê: o resultado, o
-// sorteio, o mural, o modo TV e as contagens saem todos de listarMemorias.
+// mural, modo TV e contagens saem de listarMemorias; o sorteio usa consultas próprias no banco.
 import '../visual/telas/linha.css';
 import '../visual/telas/explorar.css';
 import '../visual/telas/tv.css';
@@ -22,7 +22,8 @@ import PalcoDaTv from '../components/explorar/PalcoDaTv.astro';
 import SemResultado from '../components/busca/SemResultado.astro';
 import { buscaEntreAspas, type Motivo } from '../lib/busca';
 import { buscarNoAcervo } from '../lib/servidor/busca';
-import { SEM_FILTRO, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, lerForma, lerPassar, lerTamanho, lerFotosDoMural, mostraRascunho, filtrosLigados, soFiltrosConhecidos, sortear, temFiltro, terminaNoComecoDoAcervo } from '../lib/explorar';
+import { SEM_FILTRO, ancoraDaMemoria, contaDoExplorar, enderecoDoExplorar, explorar, lerFiltros, lerForma, lerPassar, lerTamanho, lerFotosDoMural, mostraRascunho, filtrosLigados, soFiltrosConhecidos, temFiltro, terminaNoComecoDoAcervo } from '../lib/explorar';
+import { palcoAoAcaso } from '../lib/servidor/ao-acaso';
 import { contextoDoExplorar } from '../lib/servidor/explorar';
 import { parentescosDeQuemOlha } from '../lib/servidor/parentesco-de-quem-olha';
 import { listarCapitulos, listarIntegrantesQueVe, listarMemorias, listarNucleos, listarRelatos, listarTemasVisiveis } from '../lib/servidor/repositorio';
@@ -57,7 +58,11 @@ const modoTv =
       })()
     : undefined;
 
-const [nucleos, todas, integrantes, capitulos, temas] = modoTv ? [[], [], [], [], []] : await Promise.all([
+const acaso = forma === 'acaso' ? await palcoAoAcaso(usuario, parametros, tipos) : undefined;
+if (acaso?.redirecionar && acaso.id) return Astro.redirect(enderecoDoExplorar(acaso.filtros, 'acaso', { m: acaso.id }), 302);
+const [nucleos, todas, integrantes, capitulos, temas] = acaso
+  ? [acaso.nucleos, [], acaso.integrantes, acaso.capitulos, acaso.temas]
+  : modoTv ? [[], [], [], [], []] : await Promise.all([
   listarNucleos(),
   // O rascunho de quem escreveu entra na linha do tempo e na lista; o mural, o modo TV e o sorteio usam
   // só as publicadas (abaixo)
@@ -71,7 +76,7 @@ const [nucleos, todas, integrantes, capitulos, temas] = modoTv ? [[], [], [], []
 // quem vê o quê: listarMemorias só devolve o que a pessoa pode ver, e de uma família de que ela
 // não é membro isso é o que foi aberto a todos. Família que não existe é ignorada, assim como o
 // tipo, a pessoa, o capítulo e o tema que não existem ou que a pessoa não vê (soFiltrosConhecidos).
-const filtros = soFiltrosConhecidos(lerFiltros(parametros), {
+const filtros = acaso?.filtros ?? soFiltrosConhecidos(lerFiltros(parametros), {
   tipos: new Set(tipos.map((t) => t.id)),
   pessoas: new Set(integrantes.map((i) => i.id)),
   familias: new Set(nucleos.map((n) => n.id)),
@@ -80,7 +85,7 @@ const filtros = soFiltrosConhecidos(lerFiltros(parametros), {
   // A busca (`q`, docs/regras/explorar.md, "A busca"), destino de "Ver no Explorar"
   busca: true,
 });
-const [contextoSemBusca, achadosDaBusca] = modoTv
+const [contextoSemBusca, achadosDaBusca] = modoTv || acaso
   ? [{ eu: usuario.pessoa, doCapitulo: () => false, comAudio: new Set<string>(), contaram: new Map() }, undefined]
   : await Promise.all([contextoDoExplorar(usuario, todas), filtros.busca ? buscarNoAcervo(usuario, tipos, filtros.busca, todas) : Promise.resolve(undefined)]);
 // Só o que a busca achou, entre as memórias que a pessoa vê, com o porquê de cada uma
@@ -98,12 +103,7 @@ const voltar = enderecoDoExplorar(filtros);
 
 // O palco: a memória da vez vai no endereço ("m"), para o voltar do aparelho e o link funcionarem
 const pedida = parametros.get('m');
-let daVez = publicadas.find((m) => m.id === pedida);
-if (forma === 'acaso' && publicadas.length > 0 && (!daVez || parametros.has('outra'))) {
-  // "Me mostre outra": sorteia entre as que passam nos filtros, sem repetir a que estava na tela
-  const sorteada = sortear(publicadas, parametros.get('outra'))!;
-  return Astro.redirect(enderecoDoExplorar(filtros, 'acaso', { m: sorteada.id }), 302);
-}
+let daVez = acaso?.memoria ?? publicadas.find((m) => m.id === pedida);
 const noPalco = forma === 'tv' || forma === 'acaso';
 // O "ao acaso" mostra o trecho do primeiro relato publicado com texto; o modo TV monta o dele em palcoDaTv
 const relatoDaVez = daVez && forma === 'acaso' ? (await listarRelatos(usuario, daVez.id)).find((r) => r.situacao === 'publicada' && r.texto.trim()) : undefined;
@@ -114,7 +114,7 @@ const tiposPresentes = tipos.filter((t) => todas.some((m) => m.tipo === t.id)).m
 const presentes = new Set(todas.flatMap((m) => m.integrantes));
 const naLista = integrantes.filter((i) => presentes.has(i.id));
 // Cada nome com o que a pessoa é para quem olha ("sua mãe"), pela regra de Pessoas (críticas C1 e C2)
-const parentescos = modoTv ? new Map<string, string>() : await parentescosDeQuemOlha(usuario, naLista);
+const parentescos = modoTv || acaso ? new Map<string, string>() : await parentescosDeQuemOlha(usuario, naLista);
 const pessoas = naLista.map((i) => ({ id: i.id, nome: i.apelido ?? i.nome, parentesco: parentescos.get(i.id) })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 const ligados = filtrosLigados(filtros, {
   tipo: (id) => tipos.find((t) => t.id === id)?.rotulo,
@@ -158,7 +158,7 @@ const semResultado = filtros.busca
         memoria={daVez}
         trecho={relatoDaVez && { texto: trechoDoRelato(relatoDaVez.texto, 150), por: nomeDe(relatoDaVez.por) ?? '' }}
         nomes={daVez?.integrantes.map(nomeDe).filter((n): n is string => Boolean(n))}
-        depois={publicadas.length > 1 && daVez ? enderecoDoExplorar(filtros, 'acaso', { outra: daVez.id }) : undefined}
+        depois={(acaso?.total ?? publicadas.length) > 1 && daVez ? enderecoDoExplorar(filtros, 'acaso', { outra: daVez.id }) : undefined}
         sair={daVez ? `${voltar}#${ancoraDaMemoria(daVez.id)}` : voltar}
         limpar={limpar ?? voltar}
       />

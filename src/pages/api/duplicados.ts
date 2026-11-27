@@ -7,7 +7,7 @@ import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { podeJuntarCadastros } from '../../lib/servidor/permissoes';
 import { AJUSTE_DOS_NAO_DUPLICADOS, fichaJuntada, recadoDosConflitos } from '../../lib/juntar';
-import { conflitosAoJuntar, juntarIntegrantes, lerAjuste, listarIntegrantesQueVe, salvarAjuste } from '../../lib/servidor/repositorio';
+import { lerSobreDaPessoa, conflitosAoJuntar, juntarIntegrantes, lerAjuste, listarIntegrantesQueVe, salvarAjuste } from '../../lib/servidor/repositorio';
 
 const LISTA = '/admin/duplicados';
 
@@ -38,6 +38,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!decisao.ok) return voltar(request, voltaDaComparacao, { erro: decisao.motivo });
     const conflitos = recadoDosConflitos([await conflitosAoJuntar(fica.id, sai.id, usuario)]);
     if (conflitos) return voltar(request, voltaDaComparacao, { erro: conflitos });
+    await Promise.all([lerSobreDaPessoa(fica), lerSobreDaPessoa(sai)]);
     const ficha = fichaJuntada(fica, sai, (c) => (campo(dados, `campo-${c}`, 4) === 'sai' ? 'sai' : 'fica'));
     await juntarIntegrantes(fica, sai, ficha, usuario);
     return voltar(request, `/pessoas/${fica.id}`, { ok: `Fichas juntadas. Tudo o que era de ${sai.nome} passou para ${ficha.nome}, e as duas fichas de antes ficaram no histórico.` });

@@ -1184,11 +1184,14 @@ export function prepararBanco(): Promise<void> {
 }
 
 async function migrar(db: D1Database): Promise<void> {
-  await db
-    .prepare(`CREATE TABLE IF NOT EXISTS _migracoes (id TEXT PRIMARY KEY, aplicada_em TEXT NOT NULL DEFAULT (datetime('now')))`)
-    .run();
-  const { results } = await db.prepare('SELECT id FROM _migracoes').all<{ id: string }>();
-  const aplicadas = new Set(results.map((r) => r.id));
+  // As três primeiras leituras/idas da produção vão na mesma transação, inclusive num banco vazio.
+  const [, migracoes, esquema] = await db.batch<{ id: string; type: string; name: string }>([
+    db.prepare(`CREATE TABLE IF NOT EXISTS _migracoes (id TEXT PRIMARY KEY, aplicada_em TEXT NOT NULL DEFAULT (datetime('now')))`),
+    db.prepare('SELECT id FROM _migracoes'),
+    db.prepare(`SELECT type, name FROM sqlite_master WHERE type IN ('table', 'trigger')`),
+  ]);
+  const aplicadas = new Set(migracoes.results.map((r) => r.id));
+  const mudouEsquema = MIGRACOES.some((m) => !aplicadas.has(m.id));
 
   for (const migracao of MIGRACOES) {
     if (aplicadas.has(migracao.id)) continue;
@@ -1232,7 +1235,7 @@ async function migrar(db: D1Database): Promise<void> {
   }
 
   // Os gatilhos da marca da cópia em toda tabela, inclusive as criadas agora pelos exemplos (marca-da-copia.ts)
-  await garantirGatilhosDaMarca(db);
+  await garantirGatilhosDaMarca(db, mudouEsquema || AMBIENTES_COM_EXEMPLOS.includes(ambiente()) ? undefined : esquema.results);
 
   // O relato como conversa: os relatos sem mensagens ganham as derivadas deles, sem perda (ver
   // mensagens-de-antes.ts). Depois das migrações e dos exemplos, para pegar também os semeados agora.

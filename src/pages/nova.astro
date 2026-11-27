@@ -15,7 +15,7 @@ import { pessoasComAcesso } from '../lib/servidor/acesso';
 import { alcanceDaCorrecao, podeEditarMemoria, podeExcluirMemoria, podeRemoverFoto } from '../lib/servidor/permissoes';
 import ZonaDePerigo from '../components/visual/ZonaDePerigo.astro';
 import Segmentado from '../components/visual/Segmentado.astro';
-import { familiasDe, listarAudiosDosRelatos, listarCapitulos, listarCasais, listarMemorias, listarFiliacoes, listarIntegrantes, listarIntegrantesQueVe, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
+import { familiasDe, listarAudiosDosRelatos, listarCapitulos, listarCasais, contarMemoriasPorTipo, listarFiliacoes, listarIntegrantes, listarIntegrantesQueVe, listarNucleos, listarRelatos, listarTemasVisiveis, obterMemoria } from '../lib/servidor/repositorio';
 
 // Esta página serve para três coisas: registrar uma memória nova, continuar
 // um rascunho e corrigir uma memória já publicada (?id=...).
@@ -76,8 +76,7 @@ const capitulosReunidos = (await listarCapitulos(usuario)).filter((c) => c.modo 
 // (na ordem da lista dos admins), e o resto em "Ver mais tipos". Com poucos, todos à vista.
 const LIMITE_DE_TIPOS = 8;
 const A_VISTA = 6;
-const usoDosTipos = new Map<string, number>();
-for (const m of await listarMemorias(usuario)) usoDosTipos.set(m.tipo, (usoDosTipos.get(m.tipo) ?? 0) + 1);
+const usoDosTipos = await contarMemoriasPorTipo(usuario);
 const todosOsTipos = Astro.locals.tipos;
 const maisUsados = new Set(
   todosOsTipos.length <= LIMITE_DE_TIPOS

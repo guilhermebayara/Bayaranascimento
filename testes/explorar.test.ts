@@ -486,7 +486,7 @@ describe('filtros do endereço que não existem ou a pessoa não vê', () => {
 
   it('o Explorar confere os filtros antes de usar', () => {
     const pagina = Object.values(import.meta.glob<string>('../src/pages/explorar.astro', { query: '?raw', import: 'default', eager: true }))[0]!;
-    expect(pagina).toMatch(/const filtros = soFiltrosConhecidos\(lerFiltros\(parametros\)/);
+    expect(pagina).toMatch(/const filtros = acaso\?\.filtros \?\? soFiltrosConhecidos\(lerFiltros\(parametros\)/);
     // A lista já vem sem quem só existe num laço privado de outra pessoa (C1)
     expect(pagina).toMatch(/listarIntegrantesQueVe\(usuario\)/);
     expect(pagina).toMatch(/pessoas: new Set\(integrantes\.map\(\(i\) => i\.id\)\)/);
