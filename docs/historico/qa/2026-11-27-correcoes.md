@@ -40,3 +40,7 @@ Quando a ficha tem o código de uma memória que já foi para a lixeira, o formu
 ## Repetição do envio no limite (E2)
 
 O formulário confere o código do envio já gravado antes de contar os parágrafos novos. O lote continua protegendo dois envios que cheguem juntos. A prova envia 199 mensagens, completa as 200, repete o envio e faz outro com texto novo e o mesmo código da página. O primeiro caso repete o sucesso. O segundo é recusado e o banco fica igual.
+
+## Texto recusado na janela do relato (N1)
+
+A rota sem script devolve a própria janela com o recado e o texto que chegou no pedido, tanto no limite de mensagens quanto nas outras recusas em que o formulário ainda existe. O texto fica só no pedido que devolve a página. O navegador recebe o código HTTP da recusa. Se a memória saiu do alcance de quem escrevia, ou a autoria ficou bloqueada enquanto a pessoa escrevia, a página já não oferece a caixa daquele relato. Devolver o texto nesses casos exige uma decisão sobre onde mostrá-lo.

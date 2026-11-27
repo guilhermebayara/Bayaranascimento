@@ -4,7 +4,7 @@ import { z } from 'astro/zod';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto } from '../../lib/servidor/conteudo';
 import { avisosDeRelatoNovo, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
-import { conflitoNoFormulario, erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
+import { erro, json, mesmaOrigem, pedeJson, voltar } from '../../lib/servidor/http';
 import { chaveDoPublico, podeEscreverRelato, publicoDaChave, relatoQueNasce, veORelato, type Publico, type Usuario } from '../../lib/servidor/permissoes';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, mensagensDerivadas, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
@@ -101,17 +101,31 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
       },
       locals,
     );
-    if (resposta instanceof RelatoMudou) {
-      return conflitoNoFormulario(request, rewrite, `/memorias/${encodeURIComponent(texto('memoria'))}/relato`, RECADO_MEMORIA_MUDOU);
+    const destino = `/memorias/${encodeURIComponent(texto('memoria'))}/relato`;
+    if (resposta instanceof RelatoMudou || !resposta.ok) {
+      const conflito = resposta instanceof RelatoMudou;
+      const status = conflito ? 409 : resposta.status;
+      const recado = conflito ? RECADO_MEMORIA_MUDOU : (await resposta.json() as { erro?: string }).erro ?? 'Não consegui salvar.';
+      if (pedeJson(request) || (!rewrite && conflito)) return erro(status, recado);
+      const volta = new URL(destino, request.url);
+      if (texto('por') !== locals.usuario.pessoa) volta.searchParams.set('por', texto('por'));
+      if (Number(texto('cita')) > 0) volta.searchParams.set('cita', texto('cita'));
+      volta.searchParams.set('erro', recado);
+      if (!rewrite) return voltar(request, volta.href);
+
+      // Devolve a caixa preenchida neste pedido. O texto não vai para o endereço nem para o banco.
+      locals.textoDoRelatoDevolvido = texto('texto');
+      const pagina = await rewrite(new Request(volta, { method: 'GET', headers: request.headers }));
+      if (pagina.headers.has('Location')) return pagina;
+      return new Response(pagina.body, { status, headers: pagina.headers });
     }
-    const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string };
-    if (!resposta.ok) return voltar(request, `/memorias/${encodeURIComponent(texto('memoria'))}/relato`, { erro: corpo.erro ?? 'Não consegui salvar.' });
+    const corpo = (await resposta.json()) as { url?: string; situacao?: string };
     // A janela sem script: mandou uma mensagem, continua escrevendo; publicou, vai para a memória, no relato
     // de quem publicou (crítica C1). "Publicar relato" se diz pelo nome do botão, para o texto que ficou na
     // caixa ir junto e a pessoa ir à memória do mesmo jeito, também no toque duplo
     if (texto('publicar') === '1') return voltar(request, corpo.url!, { ok: corpo.situacao === 'rascunho' ? 'Rascunho do relato salvo. Só você vê.' : 'Relato publicado.' });
     if (texto('acrescentar') === '1' && (texto('texto').trim() || texto('situacao') !== 'publicada')) {
-      const volta = `/memorias/${encodeURIComponent(texto('memoria'))}/relato${texto('por') !== locals.usuario.pessoa ? `?por=${encodeURIComponent(texto('por'))}` : ''}`;
+      const volta = `${destino}${texto('por') !== locals.usuario.pessoa ? `?por=${encodeURIComponent(texto('por'))}` : ''}`;
       return voltar(request, volta, { ok: corpo.situacao === 'rascunho' ? 'Mensagem guardada no rascunho. Só você vê até publicar.' : 'Mensagem enviada. Ela já está na memória.' });
     }
     return voltar(request, corpo.url!, { ok: corpo.situacao === 'rascunho' ? 'Rascunho do relato salvo. Só você vê.' : 'Relato publicado.' });

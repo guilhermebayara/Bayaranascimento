@@ -552,6 +552,43 @@ describe.skipIf(!B)('Z2 no navegador', () => {
         recado: document.querySelector('[data-recados]')?.textContent?.trim() ?? '',
       }));
 
+    it('devolve na caixa o texto recusado como 201ª mensagem, sem JavaScript', async () => {
+      const eli = await como('elizete', { script: false });
+      const ficha = await eli.json('memorias', { titulo: `Z2 navegador: limite do relato ${++serie}`, ano: 2015, tipo: 'causo' });
+      expect(ficha.status).toBe(201);
+      const id = ficha.corpo.id as string;
+      const mensagens = Array.from({ length: 200 }, (_, i) => ({ tipo: 'texto', texto: `Parágrafo ${i + 1}.` }));
+      expect((await eli.json('relatos', { memoria: id, por: 'elizete', situacao: 'rascunho', mensagens })).status).toBe(201);
+      const pagina = await eli.abrir(`/memorias/${id}/relato`);
+      const caixa = pagina.locator('textarea[data-campo]');
+      const digitado = '\n  A lembrança <de hoje> & outra.\n\nA continuação.  ';
+      await caixa.fill(digitado);
+      const [recusa] = await Promise.all([
+        pagina.waitForResponse((r: any) => new URL(r.url()).pathname === '/api/relatos' && r.request().method() === 'POST'),
+        pagina.locator('form.janela button[data-botao]').click(),
+      ]);
+      expect(recusa.status()).toBe(400);
+      expect(await caixa.inputValue()).toBe(digitado);
+      expect(await janela(pagina)).toMatchObject({ recado: 'Um relato pode ter até 200 mensagens.', mensagens: mensagens.map((m) => m.texto) });
+      expect(pagina.url()).not.toContain('?');
+    });
+
+    it('devolve na caixa o texto recusado por público inválido, sem JavaScript', async () => {
+      const eli = await como('elizete', { script: false });
+      const ficha = await eli.json('memorias', { titulo: `Z2 navegador: público inválido ${++serie}`, ano: 2015, tipo: 'causo' });
+      expect(ficha.status).toBe(201);
+      const pagina = await eli.abrir(`/memorias/${ficha.corpo.id}/relato`);
+      const caixa = pagina.locator('textarea[data-campo]');
+      const botao = pagina.locator('form.janela button[data-botao]');
+      await caixa.fill('Quero guardar este texto.');
+      await pagina.locator('form.janela input[name="publico"]').evaluate((campo: HTMLInputElement) => { campo.value = 'publico-invalido'; });
+      await botao.click();
+      expect(await caixa.inputValue()).toBe('Quero guardar este texto.');
+      expect(await janela(pagina)).toMatchObject({ recado: 'Envio inválido.', mensagens: [] });
+      await botao.click();
+      expect(await janela(pagina)).toMatchObject({ mensagens: ['Quero guardar este texto.'] });
+    });
+
     it('cada página leva um código novo; o mesmo envio duas vezes grava uma mensagem só; "Publicar relato" duas vezes publica uma vez', async () => {
       const [gio, eli] = [await como('giovanna'), await como('elizete', { script: false })];
       const id = (await gio.json('memorias', { titulo: `Z2 navegador: toque duplo ${++serie}`, ano: 2015, tipo: 'causo', pessoas: ['giovanna'] })).corpo.id as string;

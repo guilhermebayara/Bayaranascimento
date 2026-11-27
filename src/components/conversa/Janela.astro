@@ -87,7 +87,7 @@ const doFormulario = modo === 'ao-vivo' ? { method: 'post', action: '/api/relato
     <input type="file" accept="image/*" multiple hidden data-arquivo="foto" />
     <input type="file" accept="audio/*,.m4a,.mp3,.ogg,.opus,.webm,.wav" multiple hidden data-arquivo="audio" />
     <label class="so-leitor" for={`janela-${modo}`}>Mensagem</label>
-    <textarea id={`janela-${modo}`} class="janela__campo" name={campo} rows="1" maxlength="20000" placeholder="Mensagem" data-campo>{valor}</textarea>
+    <textarea id={`janela-${modo}`} class="janela__campo" name={campo} rows="1" maxlength="20000" placeholder="Mensagem" data-campo>{/^[\r\n]/.test(valor) ? `\n${valor}` : valor}</textarea>
     <span class="janela__gravando" data-gravando hidden>Gravando <span data-relogio>0:00</span></span>
     <button type="button" class="janela__cancelar" data-cancelar hidden>Cancelar</button>
     <button

@@ -32,6 +32,8 @@ declare namespace App {
     tipos: import('./lib/tipos').Tipo[];
     /** o formulário da memória que o servidor recusou sem script, para a página voltar preenchida (formulario-devolvido.ts) */
     memoriaDevolvida?: import('./lib/formulario-devolvido').MemoriaDevolvida;
+    /** O texto recusado pela janela do relato sem script, só durante a reescrita da página. */
+    textoDoRelatoDevolvido?: string;
   }
 }
 
