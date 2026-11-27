@@ -1112,44 +1112,49 @@ export async function memoriasDoInicio(usuario: Usuario, desde: string | null, h
   };
 }
 
-/** Os resumos e as cores usam a mesma consulta, guardada pelo SQL no pedido.
- * Cada capítulo é um parâmetro constante. Isso evita repetir json_extract(c.value) e subconsultas
- * correlacionadas para cada par capítulo/memória, e conserva os intervalos entre as pontas dos trilhos.
+/** Uma consulta de tamanho constante: os capítulos e os filhos são dados no parâmetro JSON.
+ * Os vínculos e as datas produzem linhas, nunca novos termos SQL por capítulo ou filho.
  */
 async function agregadosDosCapitulos(usuario: Usuario, capitulos: Capitulo[]) {
-  const valores: unknown[] = [usuario.pessoa, JSON.stringify(capitulos.map((c) => ({
-    capitulo: { id: c.id, modo: c.modo, inicio: c.inicio, fim: c.fim, pessoas: c.pessoas, familias: c.familias }, filhos: comFilhos(c, capitulos),
+  if (!capitulos.length) return { resumos: new Map(), cores: new Map<string, number>() };
+  const valores = [usuario.pessoa, JSON.stringify(capitulos.map(c => ({
+    capitulo: { id:c.id, modo:c.modo, inicio:c.inicio, fim:c.fim, pessoas:c.pessoas, familias:c.familias },
+    filhos:comFilhos(c,capitulos), dentro:c.dentroDe, epoca:ehEpoca(c),
   })))];
-  const ctes = [`visiveis AS MATERIALIZED (SELECT m.id, m.ano, m.mes, m.dia, m.criada_em, m.rowid AS desempate,
-    ROW_NUMBER() OVER (ORDER BY ${ORDEM_INVERSA}) - 1 AS posicao FROM memorias m WHERE ${FILTRO_PUBLICADA})`];
-  const selecoes: { n: string; inicio: string; fim: string; primeira: string; ultima: string }[] = [];
-  const indices = new Map(capitulos.map((c, i) => [c.id, i]));
-  const parametros = capitulos.map((c, i) => ({ capitulo: `json_extract(?2, '$[${i}].capitulo')`, filhos: `json_extract(?2, '$[${i}].filhos')` }));
   const ordem = 'm.ano * 10000 + COALESCE(m.mes, 1) * 100 + COALESCE(m.dia, 1)';
   const antes = `${ordem}, m.ano, COALESCE(m.mes, 0), COALESCE(m.dia, 0), m.criada_em, m.desempate`;
   const depois = `${ordem} DESC, m.ano DESC, COALESCE(m.mes, 0) DESC, COALESCE(m.dia, 0) DESC, m.criada_em DESC, m.desempate DESC`;
-  capitulos.forEach((c, i) => {
-    const { capitulo, filhos } = parametros[i];
-    ctes.push(`p${i} AS MATERIALIZED (SELECT m.* FROM visiveis m WHERE ${sqlMemoriaDoCapitulo('m', capitulo, "'[]'", c.modo)})`);
-    ctes.push(c.modo === 'epoca' || !comFilhos(c, capitulos).length
-      ? `d${i} AS MATERIALIZED (SELECT * FROM p${i})`
-      : `d${i} AS MATERIALIZED (SELECT m.* FROM visiveis m WHERE ${sqlMemoriaDoCapitulo('m', capitulo, filhos, c.modo)})`);
-    const pontas = (sentido: string) => `(SELECT json_object('ano', m.ano, 'mes', m.mes, 'dia', m.dia) FROM d${i} m ORDER BY ${sentido} LIMIT 1)`;
-    let primeira = 'NULL', ultima = 'NULL';
-    if (!ehEpoca(c)) {
-      const fontes = [i, ...capitulos.filter((x) => x.dentroDe === c.id && !ehEpoca(x)).map((x) => indices.get(x.id)!)];
-      ctes.push(`t${i} AS MATERIALIZED (${fontes.map((n) => `SELECT posicao FROM p${n}`).join(' UNION ')})`);
-      const periodo = c.modo === 'epoca' ? ` UNION ALL SELECT m.posicao FROM visiveis m WHERE ${sqlMemoriaDoCapitulo('m', `json_set(${capitulo}, '$.pessoas', json('[]'), '$.familias', json('[]'))`, "'[]'", 'epoca')}` : '';
-      const faixa = `FROM (SELECT posicao FROM t${i}${periodo}) WHERE EXISTS (SELECT 1 FROM t${i})`;
-      primeira = `(SELECT MIN(posicao) ${faixa})`;
-      ultima = `(SELECT MAX(posicao) ${faixa})`;
-    }
-    selecoes.push({ n: `(SELECT COUNT(*) FROM d${i})`, inicio: pontas(antes), fim: pontas(depois), primeira, ultima });
-  });
-  if (!capitulos.length) return { resumos: new Map(), cores: new Map<string, number>() };
-  const campo = (nome: keyof typeof selecoes[number]) => `CASE CAST(j.key AS INTEGER) ${selecoes.map((c, i) => `WHEN ${i} THEN ${c[nome]}`).join(' ')} END AS ${nome}`;
-  const { results } = await db().prepare(`WITH ${ctes.join(', ')} SELECT json_extract(j.value, '$.capitulo.id') AS capitulo,
-    ${(['n', 'inicio', 'fim', 'primeira', 'ultima'] as const).map(campo).join(', ')} FROM json_each(?2) j`)
+  const { results } = await db().prepare(`WITH
+    cs AS MATERIALIZED (SELECT json_extract(value, '$.capitulo') AS dados, json_extract(value, '$.capitulo.id') AS id,
+      json_extract(value, '$.capitulo.modo') AS modo, json_extract(value, '$.filhos') AS filhos,
+      json_extract(value, '$.dentro') AS dentro, json_extract(value, '$.epoca') AS epoca FROM json_each(?2)),
+    visiveis AS MATERIALIZED (SELECT m.id, m.ano, m.mes, m.dia, m.criada_em, m.rowid AS desempate,
+      ROW_NUMBER() OVER (ORDER BY ${ORDEM_INVERSA}) - 1 AS posicao FROM memorias m WHERE ${FILTRO_PUBLICADA}),
+    proprias AS MATERIALIZED (
+      SELECT DISTINCT c.id AS capitulo, m.id FROM cs c JOIN capitulo_memorias cm ON cm.capitulo_id = c.id
+      JOIN visiveis m ON m.id = cm.memoria_id WHERE c.modo = 'reunido' AND ${sqlMemoriaDoCapitulo('m','c.dados',"'[]'",'reunido')}
+      UNION ALL SELECT c.id, m.id FROM cs c JOIN visiveis m WHERE c.modo = 'epoca' AND ${sqlMemoriaDoCapitulo('m','c.dados',"'[]'",'epoca')}),
+    alcances AS MATERIALIZED (SELECT c.id AS capitulo, j.value AS vinculo FROM cs c JOIN json_each(json_insert(c.filhos, '$[#]', c.id)) j WHERE c.modo = 'reunido'),
+    membros AS MATERIALIZED (
+      SELECT DISTINCT c.id AS capitulo, m.id FROM alcances a JOIN cs c ON c.id = a.capitulo
+        JOIN capitulo_memorias cm ON cm.capitulo_id = a.vinculo JOIN visiveis m ON m.id = cm.memoria_id
+        WHERE ${sqlMemoriaDoCapitulo('m','c.dados','c.filhos','reunido')}
+      UNION ALL SELECT p.capitulo, p.id FROM proprias p JOIN cs c ON c.id = p.capitulo WHERE c.modo = 'epoca'),
+    datas AS MATERIALIZED (SELECT p.capitulo, json_object('ano',m.ano,'mes',m.mes,'dia',m.dia) AS data,
+      ROW_NUMBER() OVER (PARTITION BY p.capitulo ORDER BY ${antes}) AS primeira,
+      ROW_NUMBER() OVER (PARTITION BY p.capitulo ORDER BY ${depois}) AS ultima
+      FROM membros p JOIN visiveis m ON m.id = p.id),
+    resumos AS (SELECT capitulo, COUNT(*) AS n, MAX(data) FILTER (WHERE primeira = 1) AS inicio,
+      MAX(data) FILTER (WHERE ultima = 1) AS fim FROM datas GROUP BY capitulo),
+    do_trilho AS MATERIALIZED (SELECT c.id AS capitulo, m.posicao FROM cs c JOIN cs fonte ON fonte.id = c.id OR fonte.dentro = c.id
+      JOIN proprias p ON p.capitulo = fonte.id JOIN visiveis m ON m.id = p.id WHERE NOT c.epoca AND NOT fonte.epoca),
+    faixas AS (SELECT capitulo, posicao FROM do_trilho
+      UNION ALL SELECT c.id, m.posicao FROM cs c JOIN visiveis m WHERE NOT c.epoca AND c.modo = 'epoca'
+        AND EXISTS (SELECT 1 FROM do_trilho t WHERE t.capitulo = c.id)
+        AND ${sqlMemoriaDoCapitulo('m', "json_set(c.dados, '$.pessoas', json('[]'), '$.familias', json('[]'))", "'[]'",'epoca')}),
+    pontas AS (SELECT capitulo, MIN(posicao) AS primeira, MAX(posicao) AS ultima FROM faixas GROUP BY capitulo)
+    SELECT c.id AS capitulo, COALESCE(r.n,0) AS n, r.inicio, r.fim, p.primeira, p.ultima
+      FROM cs c LEFT JOIN resumos r ON r.capitulo = c.id LEFT JOIN pontas p ON p.capitulo = c.id`)
     .bind(...valores).all<{ capitulo: string; n: number; inicio: string | null; fim: string | null; primeira: number | null; ultima: number | null }>();
   const trechos = capitulos.flatMap((c) => {
     const r = results.find((r) => r.capitulo === c.id)!;
