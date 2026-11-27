@@ -1,0 +1,4041 @@
+{
+  "base": "e2b478e",
+  "codigo": "9e76667",
+  "acervo": {
+    "memorias": 654,
+    "fotos": 3080,
+    "relatos": 1553,
+    "audios": 203,
+    "reacoes": 2220
+  },
+  "cpu": {
+    "antes": [
+      {
+        "leitor": "gui",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26569,
+        "sha256": "ccbe4dad829a8ff14ad39f100d003c00252d0577e0c354b6b4f266c4c876e2c1",
+        "medidas": [
+          {
+            "cpu": 25.332,
+            "semBanco": 15.132,
+            "timing": "servidor;dur=23, d1;dur=40;desc=\"consultas=39 idas=12 linhas=9184\""
+          },
+          {
+            "cpu": 24.999,
+            "semBanco": 13.022,
+            "timing": "servidor;dur=22, d1;dur=41;desc=\"consultas=39 idas=12 linhas=9184\""
+          },
+          {
+            "cpu": 24.405,
+            "semBanco": 14.096,
+            "timing": "servidor;dur=23, d1;dur=34;desc=\"consultas=39 idas=12 linhas=9184\""
+          },
+          {
+            "cpu": 22.569,
+            "semBanco": 13.214,
+            "timing": "servidor;dur=22, d1;dur=35;desc=\"consultas=39 idas=12 linhas=9184\""
+          },
+          {
+            "cpu": 23.063,
+            "semBanco": 12.798,
+            "timing": "servidor;dur=21, d1;dur=34;desc=\"consultas=39 idas=12 linhas=9184\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27294,
+        "sha256": "3f054bfc281c9c1ee79eede1b11317914c20f6db1da83a6df04ee9629b96f494",
+        "medidas": [
+          {
+            "cpu": 15.769,
+            "semBanco": 6.541,
+            "timing": "servidor;dur=15, d1;dur=14;desc=\"consultas=27 idas=4 linhas=8635\""
+          },
+          {
+            "cpu": 21.992,
+            "semBanco": 13.068,
+            "timing": "servidor;dur=16, d1;dur=15;desc=\"consultas=27 idas=4 linhas=8635\""
+          },
+          {
+            "cpu": 17.4,
+            "semBanco": 7.855,
+            "timing": "servidor;dur=16, d1;dur=15;desc=\"consultas=27 idas=4 linhas=8635\""
+          },
+          {
+            "cpu": 19.696,
+            "semBanco": 10.058,
+            "timing": "servidor;dur=15, d1;dur=16;desc=\"consultas=27 idas=4 linhas=8635\""
+          },
+          {
+            "cpu": 17.802,
+            "semBanco": 6.19,
+            "timing": "servidor;dur=16, d1;dur=16;desc=\"consultas=27 idas=4 linhas=8635\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12238,
+        "sha256": "25b85b18ca105a9bcc3c214a88e0017723ca3b4e870e0f315756b453b0c3db4c",
+        "medidas": [
+          {
+            "cpu": 17.931,
+            "semBanco": 8.686,
+            "timing": "servidor;dur=16, d1;dur=17;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "cpu": 18.365,
+            "semBanco": 10.887,
+            "timing": "servidor;dur=17, d1;dur=16;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "cpu": 16.761,
+            "semBanco": 7.204,
+            "timing": "servidor;dur=16, d1;dur=13;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "cpu": 23.109,
+            "semBanco": 13.018,
+            "timing": "servidor;dur=22, d1;dur=26;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "cpu": 18.327,
+            "semBanco": 9.831,
+            "timing": "servidor;dur=16, d1;dur=15;desc=\"consultas=34 idas=7 linhas=8672\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 70446,
+        "sha256": "7d3ad3643d8d2351187b38bca357a2f37489a71187dfd3514c304136cfe9c955",
+        "medidas": [
+          {
+            "cpu": 18.906,
+            "semBanco": 11.276,
+            "timing": "servidor;dur=17, d1;dur=14;desc=\"consultas=33 idas=6 linhas=8664\""
+          },
+          {
+            "cpu": 25.148,
+            "semBanco": 15.22,
+            "timing": "servidor;dur=20, d1;dur=19;desc=\"consultas=33 idas=6 linhas=8664\""
+          },
+          {
+            "cpu": 19.517,
+            "semBanco": 8.929,
+            "timing": "servidor;dur=18, d1;dur=16;desc=\"consultas=33 idas=6 linhas=8664\""
+          },
+          {
+            "cpu": 17.739,
+            "semBanco": 8.622,
+            "timing": "servidor;dur=16, d1;dur=14;desc=\"consultas=33 idas=6 linhas=8664\""
+          },
+          {
+            "cpu": 18.578,
+            "semBanco": 9.28,
+            "timing": "servidor;dur=17, d1;dur=15;desc=\"consultas=33 idas=6 linhas=8664\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11780,
+        "sha256": "da36916fbcf0b767ee64a4ea276c5f54eab1cb71fe4c7d9fb694c464445a228c",
+        "medidas": [
+          {
+            "cpu": 9.967,
+            "semBanco": 7.9,
+            "timing": "servidor;dur=15, d1;dur=16;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "cpu": 17.316,
+            "semBanco": 7.619,
+            "timing": "servidor;dur=16, d1;dur=15;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "cpu": 17.198,
+            "semBanco": 8.331,
+            "timing": "servidor;dur=16, d1;dur=17;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "cpu": 22.431,
+            "semBanco": 12.889,
+            "timing": "servidor;dur=21, d1;dur=28;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "cpu": 16.923,
+            "semBanco": 7.138,
+            "timing": "servidor;dur=15, d1;dur=14;desc=\"consultas=34 idas=7 linhas=8672\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40567,
+        "sha256": "0da287a18f80758436e402438832e2ee20274ee3485270845bea4428ca99ea21",
+        "medidas": [
+          {
+            "cpu": 18.077,
+            "semBanco": 8.008,
+            "timing": "servidor;dur=16, d1;dur=13;desc=\"consultas=35 idas=8 linhas=8672\""
+          },
+          {
+            "cpu": 21.056,
+            "semBanco": 13.184,
+            "timing": "servidor;dur=20, d1;dur=26;desc=\"consultas=35 idas=8 linhas=8672\""
+          },
+          {
+            "cpu": 17.08,
+            "semBanco": 8.102,
+            "timing": "servidor;dur=16, d1;dur=15;desc=\"consultas=35 idas=8 linhas=8672\""
+          },
+          {
+            "cpu": 18.071,
+            "semBanco": 8.497,
+            "timing": "servidor;dur=16, d1;dur=14;desc=\"consultas=35 idas=8 linhas=8672\""
+          },
+          {
+            "cpu": 19.135,
+            "semBanco": 10.703,
+            "timing": "servidor;dur=16, d1;dur=16;desc=\"consultas=35 idas=8 linhas=8672\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 25127,
+        "sha256": "33c2d405c0f530a47c15663b0dffade17c35b687b97ea195da496f6c68b1e434",
+        "medidas": [
+          {
+            "cpu": 17.19,
+            "semBanco": 8.402,
+            "timing": "servidor;dur=19, d1;dur=66;desc=\"consultas=44 idas=12 linhas=9060\""
+          },
+          {
+            "cpu": 19.315,
+            "semBanco": 17.77,
+            "timing": "servidor;dur=19, d1;dur=71;desc=\"consultas=44 idas=12 linhas=9060\""
+          },
+          {
+            "cpu": 21.707,
+            "semBanco": 8.762,
+            "timing": "servidor;dur=19, d1;dur=71;desc=\"consultas=44 idas=12 linhas=9060\""
+          },
+          {
+            "cpu": 25.781,
+            "semBanco": 16.833,
+            "timing": "servidor;dur=23, d1;dur=94;desc=\"consultas=44 idas=12 linhas=9060\""
+          },
+          {
+            "cpu": 15.042,
+            "semBanco": 6.679,
+            "timing": "servidor;dur=19, d1;dur=71;desc=\"consultas=44 idas=12 linhas=9060\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11688,
+        "sha256": "242dbf96b3197def5448b89d1929747e3e0e2c8e91d259de5c3dfb1a319ba5dc",
+        "medidas": [
+          {
+            "cpu": 24.464,
+            "semBanco": 15.813,
+            "timing": "servidor;dur=24, d1;dur=39;desc=\"consultas=37 idas=10 linhas=10638\""
+          },
+          {
+            "cpu": 20.556,
+            "semBanco": 9.665,
+            "timing": "servidor;dur=19, d1;dur=31;desc=\"consultas=37 idas=10 linhas=10638\""
+          },
+          {
+            "cpu": 21.755,
+            "semBanco": 12.892,
+            "timing": "servidor;dur=19, d1;dur=29;desc=\"consultas=37 idas=10 linhas=10638\""
+          },
+          {
+            "cpu": 23.33,
+            "semBanco": 14.96,
+            "timing": "servidor;dur=24, d1;dur=38;desc=\"consultas=37 idas=10 linhas=10638\""
+          },
+          {
+            "cpu": 20.968,
+            "semBanco": 12.703,
+            "timing": "servidor;dur=19, d1;dur=31;desc=\"consultas=37 idas=10 linhas=10638\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 104072,
+        "sha256": "6c9f66a26b086cea041af7639753b87ad8b87d365b61d913f870a99e044902fb",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 42734,
+        "sha256": "c908418ec73a94419fd5820675d2c746cef0851c1e9fe032a49d75ecdbf417bc",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 41794,
+        "sha256": "5c61f27eb8b365ce4a486bfed2d2a14159f9979fac3e92d673ee1eb26421d723",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 119120,
+        "sha256": "aa4a007ed68a8c4d149bddc71ec9f80e517ebe36f5d6e6259431639b6d718e2a",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 57697,
+        "sha256": "af4fd1f4b60400453c071e562334bf48750e611bc1f146f9c4b6247ab630c346",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12178,
+        "sha256": "85412b325fcf8dc009f9ff180716a7d24f65ff7a7a8cb65e98d0ecfb3c77296a",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22080,
+        "sha256": "2bb19097081534fc9182044649d0fae4671ba0021477ca10fcc4e8f217cfbde1",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26647,
+        "sha256": "768bcb9fb35615f569117d3811a0bbbae53c2bbca72f8e1a7e92eadf297c24ed",
+        "medidas": [
+          {
+            "cpu": 21.346,
+            "semBanco": 12.853,
+            "timing": "servidor;dur=19, d1;dur=34;desc=\"consultas=34 idas=12 linhas=8854\""
+          },
+          {
+            "cpu": 20.418,
+            "semBanco": 7.692,
+            "timing": "servidor;dur=19, d1;dur=31;desc=\"consultas=34 idas=12 linhas=8854\""
+          },
+          {
+            "cpu": 20.601,
+            "semBanco": 8.517,
+            "timing": "servidor;dur=18, d1;dur=35;desc=\"consultas=34 idas=12 linhas=8854\""
+          },
+          {
+            "cpu": 24.253,
+            "semBanco": 14.725,
+            "timing": "servidor;dur=23, d1;dur=40;desc=\"consultas=34 idas=12 linhas=8854\""
+          },
+          {
+            "cpu": 20.523,
+            "semBanco": 7.725,
+            "timing": "servidor;dur=18, d1;dur=35;desc=\"consultas=34 idas=12 linhas=8854\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27155,
+        "sha256": "91f72e9e2cb2f7be2625d1d46666fe9bf057c0a9ff621bf2e606aa15d054c319",
+        "medidas": [
+          {
+            "cpu": 22.639,
+            "semBanco": 12.961,
+            "timing": "servidor;dur=15, d1;dur=13;desc=\"consultas=21 idas=3 linhas=8632\""
+          },
+          {
+            "cpu": 17.733,
+            "semBanco": 7.66,
+            "timing": "servidor;dur=16, d1;dur=14;desc=\"consultas=21 idas=3 linhas=8632\""
+          },
+          {
+            "cpu": 16.475,
+            "semBanco": 8.626,
+            "timing": "servidor;dur=15, d1;dur=13;desc=\"consultas=21 idas=3 linhas=8632\""
+          },
+          {
+            "cpu": 16.824,
+            "semBanco": 7.151,
+            "timing": "servidor;dur=15, d1;dur=13;desc=\"consultas=21 idas=3 linhas=8632\""
+          },
+          {
+            "cpu": 21.853,
+            "semBanco": 21.474,
+            "timing": "servidor;dur=15, d1;dur=13;desc=\"consultas=21 idas=3 linhas=8632\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12230,
+        "sha256": "9ce944f4788061a1756dc46586b08b9d47a315e79d153e4084f24d68c9134056",
+        "medidas": [
+          {
+            "cpu": 16.635,
+            "semBanco": 15.742,
+            "timing": "servidor;dur=17, d1;dur=16;desc=\"consultas=28 idas=6 linhas=8669\""
+          },
+          {
+            "cpu": 17.402,
+            "semBanco": 7.742,
+            "timing": "servidor;dur=16, d1;dur=16;desc=\"consultas=28 idas=6 linhas=8669\""
+          },
+          {
+            "cpu": 21.65,
+            "semBanco": 11.963,
+            "timing": "servidor;dur=20, d1;dur=23;desc=\"consultas=28 idas=6 linhas=8669\""
+          },
+          {
+            "cpu": 17.035,
+            "semBanco": 7.514,
+            "timing": "servidor;dur=15, d1;dur=13;desc=\"consultas=28 idas=6 linhas=8669\""
+          },
+          {
+            "cpu": 17.306,
+            "semBanco": 8.264,
+            "timing": "servidor;dur=15, d1;dur=15;desc=\"consultas=28 idas=6 linhas=8669\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 71005,
+        "sha256": "66e37ba90e9e9155fc44b63ddd61cd51bc629f71fe1b8968ec460eb959283916",
+        "medidas": [
+          {
+            "cpu": 21.654,
+            "semBanco": 12.373,
+            "timing": "servidor;dur=19, d1;dur=17;desc=\"consultas=27 idas=5 linhas=8661\""
+          },
+          {
+            "cpu": 16.567,
+            "semBanco": 8.43,
+            "timing": "servidor;dur=15, d1;dur=13;desc=\"consultas=27 idas=5 linhas=8661\""
+          },
+          {
+            "cpu": 17.15,
+            "semBanco": 8.158,
+            "timing": "servidor;dur=15, d1;dur=13;desc=\"consultas=27 idas=5 linhas=8661\""
+          },
+          {
+            "cpu": 21.179,
+            "semBanco": 12.78,
+            "timing": "servidor;dur=15, d1;dur=13;desc=\"consultas=27 idas=5 linhas=8661\""
+          },
+          {
+            "cpu": 17.702,
+            "semBanco": 7.724,
+            "timing": "servidor;dur=16, d1;dur=12;desc=\"consultas=27 idas=5 linhas=8661\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11664,
+        "sha256": "ca815ec3e2102d245d7aaaf2a608e59054a127995bbcec4f88c4b45c9da7aa3d",
+        "medidas": [
+          {
+            "cpu": 16.462,
+            "semBanco": 7.782,
+            "timing": "servidor;dur=15, d1;dur=13;desc=\"consultas=29 idas=7 linhas=8670\""
+          },
+          {
+            "cpu": 16.51,
+            "semBanco": 8.039,
+            "timing": "servidor;dur=15, d1;dur=13;desc=\"consultas=29 idas=7 linhas=8670\""
+          },
+          {
+            "cpu": 21.222,
+            "semBanco": 11.795,
+            "timing": "servidor;dur=20, d1;dur=22;desc=\"consultas=29 idas=7 linhas=8670\""
+          },
+          {
+            "cpu": 17.663,
+            "semBanco": 9.056,
+            "timing": "servidor;dur=16, d1;dur=14;desc=\"consultas=29 idas=7 linhas=8670\""
+          },
+          {
+            "cpu": 16.657,
+            "semBanco": 5.872,
+            "timing": "servidor;dur=15, d1;dur=15;desc=\"consultas=29 idas=7 linhas=8670\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40571,
+        "sha256": "507ad2fb24a6a72d9bdaac5b08ac4a1d30928bbda1df4ddf12e95be087944443",
+        "medidas": [
+          {
+            "cpu": 22.189,
+            "semBanco": 14.071,
+            "timing": "servidor;dur=20, d1;dur=21;desc=\"consultas=29 idas=7 linhas=8669\""
+          },
+          {
+            "cpu": 16.906,
+            "semBanco": 7.87,
+            "timing": "servidor;dur=15, d1;dur=14;desc=\"consultas=29 idas=7 linhas=8669\""
+          },
+          {
+            "cpu": 42.211,
+            "semBanco": 23.472,
+            "timing": "servidor;dur=34, d1;dur=34;desc=\"consultas=29 idas=7 linhas=8669\""
+          },
+          {
+            "cpu": 17.844,
+            "semBanco": 4.592,
+            "timing": "servidor;dur=16, d1;dur=16;desc=\"consultas=29 idas=7 linhas=8669\""
+          },
+          {
+            "cpu": 29.907,
+            "semBanco": 20.788,
+            "timing": "servidor;dur=27, d1;dur=19;desc=\"consultas=29 idas=7 linhas=8669\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 20414,
+        "sha256": "719724392dc4b998fff9d3e59ae9bcbd7a8463189331067a4e4bd6ae33d2e98c",
+        "medidas": [
+          {
+            "cpu": 12.284,
+            "semBanco": 11.648,
+            "timing": "servidor;dur=18, d1;dur=47;desc=\"consultas=37 idas=10 linhas=8743\""
+          },
+          {
+            "cpu": 21.628,
+            "semBanco": 8.328,
+            "timing": "servidor;dur=20, d1;dur=49;desc=\"consultas=37 idas=10 linhas=8743\""
+          },
+          {
+            "cpu": 20.194,
+            "semBanco": 8.426,
+            "timing": "servidor;dur=18, d1;dur=48;desc=\"consultas=37 idas=10 linhas=8743\""
+          },
+          {
+            "cpu": 23.56,
+            "semBanco": 11.395,
+            "timing": "servidor;dur=22, d1;dur=49;desc=\"consultas=37 idas=10 linhas=8743\""
+          },
+          {
+            "cpu": 17.896,
+            "semBanco": 6.177,
+            "timing": "servidor;dur=18, d1;dur=42;desc=\"consultas=37 idas=10 linhas=8743\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11708,
+        "sha256": "31d74fc77ee04b463d7bdad1667f3ef368b86838ad773bc2fde9ae216cd506b4",
+        "medidas": [
+          {
+            "cpu": 21.452,
+            "semBanco": 10.39,
+            "timing": "servidor;dur=19, d1;dur=29;desc=\"consultas=31 idas=9 linhas=10311\""
+          },
+          {
+            "cpu": 27.365,
+            "semBanco": 26.722,
+            "timing": "servidor;dur=25, d1;dur=49;desc=\"consultas=31 idas=9 linhas=10311\""
+          },
+          {
+            "cpu": 20.1,
+            "semBanco": 12.044,
+            "timing": "servidor;dur=19, d1;dur=26;desc=\"consultas=31 idas=9 linhas=10311\""
+          },
+          {
+            "cpu": 19.929,
+            "semBanco": 9.595,
+            "timing": "servidor;dur=19, d1;dur=25;desc=\"consultas=31 idas=9 linhas=10311\""
+          },
+          {
+            "cpu": 26.142,
+            "semBanco": 16.432,
+            "timing": "servidor;dur=25, d1;dur=37;desc=\"consultas=31 idas=9 linhas=10311\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 104924,
+        "sha256": "89e5bb1c52ac070f53d9d576a8f8c5dcb182d36c1d19e3e9d9ac30c3aed11ebb",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 42901,
+        "sha256": "f9e480f2836b6b4d529017408125de92dfcdf188ea66e5ce6ac3d95a0102607e",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 42101,
+        "sha256": "5a275ceac91d2e62c26c22237d3e402a3674087adf4301de594e09886af0336b",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 119679,
+        "sha256": "8130b34ad59c311b43debe6b1295faf592c3b9ebd4ff1fbea11fd8290294e1db",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 58256,
+        "sha256": "6c9f9ef1f2b3fa5febf7c4267b815d2356e34f2f911c2f137e9a7e49dad56712",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12133,
+        "sha256": "96b73e218f96c6c8ae43676839a17b03e9501d4e9502680cffa2962fae31f4dc",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22194,
+        "sha256": "163d0fab9d57020d29f427ecdf8521d7737ea85b09e811879814136935ca4554",
+        "medidas": []
+      },
+      {
+        "leitor": "visitante",
+        "nome": "sala",
+        "bytes": 17826,
+        "sha256": "a5afe704d8c93a720f3a3a2493e20a4f4a431b9eacf848b8c15257b94e3e5122"
+      }
+    ],
+    "depois": [
+      {
+        "leitor": "gui",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26569,
+        "sha256": "ccbe4dad829a8ff14ad39f100d003c00252d0577e0c354b6b4f266c4c876e2c1",
+        "medidas": [
+          {
+            "cpu": 14.821,
+            "semBanco": 13.554,
+            "timing": "servidor;dur=12, d1;dur=15;desc=\"consultas=45 idas=12 linhas=420\""
+          },
+          {
+            "cpu": 11.111,
+            "semBanco": 9.691,
+            "timing": "servidor;dur=9, d1;dur=17;desc=\"consultas=45 idas=12 linhas=420\""
+          },
+          {
+            "cpu": 8.824,
+            "semBanco": 8.439,
+            "timing": "servidor;dur=9, d1;dur=14;desc=\"consultas=45 idas=12 linhas=420\""
+          },
+          {
+            "cpu": 10.912,
+            "semBanco": 7.046,
+            "timing": "servidor;dur=9, d1;dur=12;desc=\"consultas=45 idas=12 linhas=420\""
+          },
+          {
+            "cpu": 12.301,
+            "semBanco": 10.874,
+            "timing": "servidor;dur=9, d1;dur=15;desc=\"consultas=45 idas=12 linhas=420\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27294,
+        "sha256": "3f054bfc281c9c1ee79eede1b11317914c20f6db1da83a6df04ee9629b96f494",
+        "medidas": [
+          {
+            "cpu": 6.366,
+            "semBanco": 5.602,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "cpu": 6.515,
+            "semBanco": 6.515,
+            "timing": "servidor;dur=4, d1;dur=3;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "cpu": 4.957,
+            "semBanco": 4.957,
+            "timing": "servidor;dur=4, d1;dur=7;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "cpu": 5.696,
+            "semBanco": 4.499,
+            "timing": "servidor;dur=5, d1;dur=6;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "cpu": 11.462,
+            "semBanco": 6.84,
+            "timing": "servidor;dur=11, d1;dur=13;desc=\"consultas=21 idas=3 linhas=213\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12238,
+        "sha256": "25b85b18ca105a9bcc3c214a88e0017723ca3b4e870e0f315756b453b0c3db4c",
+        "medidas": [
+          {
+            "cpu": 9.446,
+            "semBanco": 9.446,
+            "timing": "servidor;dur=7, d1;dur=9;desc=\"consultas=28 idas=6 linhas=218\""
+          },
+          {
+            "cpu": 10.584,
+            "semBanco": 10.456,
+            "timing": "servidor;dur=8, d1;dur=9;desc=\"consultas=28 idas=6 linhas=218\""
+          },
+          {
+            "cpu": 8.593,
+            "semBanco": 8.593,
+            "timing": "servidor;dur=6, d1;dur=6;desc=\"consultas=28 idas=6 linhas=218\""
+          },
+          {
+            "cpu": 8.204,
+            "semBanco": 7.437,
+            "timing": "servidor;dur=6, d1;dur=7;desc=\"consultas=28 idas=6 linhas=218\""
+          },
+          {
+            "cpu": 8.286,
+            "semBanco": 8.286,
+            "timing": "servidor;dur=6, d1;dur=6;desc=\"consultas=28 idas=6 linhas=218\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 70446,
+        "sha256": "7d3ad3643d8d2351187b38bca357a2f37489a71187dfd3514c304136cfe9c955",
+        "medidas": [
+          {
+            "cpu": 11.99,
+            "semBanco": 11.862,
+            "timing": "servidor;dur=10, d1;dur=12;desc=\"consultas=34 idas=7 linhas=969\""
+          },
+          {
+            "cpu": 9.307,
+            "semBanco": 8.92,
+            "timing": "servidor;dur=8, d1;dur=11;desc=\"consultas=34 idas=7 linhas=969\""
+          },
+          {
+            "cpu": 8.66,
+            "semBanco": 8.149,
+            "timing": "servidor;dur=7, d1;dur=10;desc=\"consultas=34 idas=7 linhas=969\""
+          },
+          {
+            "cpu": 12.116,
+            "semBanco": 10.689,
+            "timing": "servidor;dur=10, d1;dur=15;desc=\"consultas=34 idas=7 linhas=969\""
+          },
+          {
+            "cpu": 9.723,
+            "semBanco": 9.723,
+            "timing": "servidor;dur=8, d1;dur=11;desc=\"consultas=34 idas=7 linhas=969\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11780,
+        "sha256": "da36916fbcf0b767ee64a4ea276c5f54eab1cb71fe4c7d9fb694c464445a228c",
+        "medidas": [
+          {
+            "cpu": 6.249,
+            "semBanco": 6.249,
+            "timing": "servidor;dur=3, d1;dur=4;desc=\"consultas=34 idas=7 linhas=251\""
+          },
+          {
+            "cpu": 5.356,
+            "semBanco": 5.356,
+            "timing": "servidor;dur=4, d1;dur=4;desc=\"consultas=34 idas=7 linhas=251\""
+          },
+          {
+            "cpu": 24.99,
+            "semBanco": 23.426,
+            "timing": "servidor;dur=16, d1;dur=38;desc=\"consultas=34 idas=7 linhas=251\""
+          },
+          {
+            "cpu": 5.856,
+            "semBanco": 5.729,
+            "timing": "servidor;dur=4, d1;dur=5;desc=\"consultas=34 idas=7 linhas=251\""
+          },
+          {
+            "cpu": 6.15,
+            "semBanco": 5.244,
+            "timing": "servidor;dur=4, d1;dur=5;desc=\"consultas=34 idas=7 linhas=251\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40567,
+        "sha256": "0da287a18f80758436e402438832e2ee20274ee3485270845bea4428ca99ea21",
+        "medidas": [
+          {
+            "cpu": 6.067,
+            "semBanco": 6.067,
+            "timing": "servidor;dur=3, d1;dur=4;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "cpu": 4.89,
+            "semBanco": 3.214,
+            "timing": "servidor;dur=2, d1;dur=1;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "cpu": 5.598,
+            "semBanco": 5.341,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "cpu": 6.128,
+            "semBanco": 5.228,
+            "timing": "servidor;dur=4, d1;dur=7;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "cpu": 4.425,
+            "semBanco": 2.828,
+            "timing": "servidor;dur=2, d1;dur=2;desc=\"consultas=29 idas=7 linhas=225\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 25127,
+        "sha256": "33c2d405c0f530a47c15663b0dffade17c35b687b97ea195da496f6c68b1e434",
+        "medidas": [
+          {
+            "cpu": 9.898,
+            "semBanco": 4.969,
+            "timing": "servidor;dur=8, d1;dur=28;desc=\"consultas=44 idas=11 linhas=736\""
+          },
+          {
+            "cpu": 8.681,
+            "semBanco": 8.544,
+            "timing": "servidor;dur=7, d1;dur=27;desc=\"consultas=44 idas=11 linhas=736\""
+          },
+          {
+            "cpu": 11.031,
+            "semBanco": 6.374,
+            "timing": "servidor;dur=9, d1;dur=40;desc=\"consultas=44 idas=11 linhas=736\""
+          },
+          {
+            "cpu": 10.313,
+            "semBanco": 10.313,
+            "timing": "servidor;dur=8, d1;dur=26;desc=\"consultas=44 idas=11 linhas=736\""
+          },
+          {
+            "cpu": 9.094,
+            "semBanco": 9.094,
+            "timing": "servidor;dur=7, d1;dur=28;desc=\"consultas=44 idas=11 linhas=736\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11688,
+        "sha256": "242dbf96b3197def5448b89d1929747e3e0e2c8e91d259de5c3dfb1a319ba5dc",
+        "medidas": [
+          {
+            "cpu": 4.442,
+            "semBanco": 4.442,
+            "timing": "servidor;dur=3, d1;dur=6;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "cpu": 4.946,
+            "semBanco": 4.691,
+            "timing": "servidor;dur=4, d1;dur=6;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "cpu": 5.989,
+            "semBanco": 3.223,
+            "timing": "servidor;dur=3, d1;dur=6;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "cpu": 4.931,
+            "semBanco": 4.673,
+            "timing": "servidor;dur=3, d1;dur=6;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "cpu": 5.038,
+            "semBanco": 4.263,
+            "timing": "servidor;dur=4, d1;dur=3;desc=\"consultas=36 idas=9 linhas=226\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 104072,
+        "sha256": "6c9f66a26b086cea041af7639753b87ad8b87d365b61d913f870a99e044902fb",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 42734,
+        "sha256": "c908418ec73a94419fd5820675d2c746cef0851c1e9fe032a49d75ecdbf417bc",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 41794,
+        "sha256": "5c61f27eb8b365ce4a486bfed2d2a14159f9979fac3e92d673ee1eb26421d723",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 119120,
+        "sha256": "aa4a007ed68a8c4d149bddc71ec9f80e517ebe36f5d6e6259431639b6d718e2a",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 57697,
+        "sha256": "af4fd1f4b60400453c071e562334bf48750e611bc1f146f9c4b6247ab630c346",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12178,
+        "sha256": "85412b325fcf8dc009f9ff180716a7d24f65ff7a7a8cb65e98d0ecfb3c77296a",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22080,
+        "sha256": "2bb19097081534fc9182044649d0fae4671ba0021477ca10fcc4e8f217cfbde1",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26647,
+        "sha256": "768bcb9fb35615f569117d3811a0bbbae53c2bbca72f8e1a7e92eadf297c24ed",
+        "medidas": [
+          {
+            "cpu": 8.512,
+            "semBanco": 7.741,
+            "timing": "servidor;dur=8, d1;dur=13;desc=\"consultas=40 idas=12 linhas=446\""
+          },
+          {
+            "cpu": 9.661,
+            "semBanco": 7.615,
+            "timing": "servidor;dur=8, d1;dur=9;desc=\"consultas=40 idas=12 linhas=446\""
+          },
+          {
+            "cpu": 13.457,
+            "semBanco": 12.299,
+            "timing": "servidor;dur=11, d1;dur=17;desc=\"consultas=40 idas=12 linhas=446\""
+          },
+          {
+            "cpu": 9.698,
+            "semBanco": 8.024,
+            "timing": "servidor;dur=8, d1;dur=14;desc=\"consultas=40 idas=12 linhas=446\""
+          },
+          {
+            "cpu": 8.54,
+            "semBanco": 8.54,
+            "timing": "servidor;dur=8, d1;dur=13;desc=\"consultas=40 idas=12 linhas=446\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27155,
+        "sha256": "91f72e9e2cb2f7be2625d1d46666fe9bf057c0a9ff621bf2e606aa15d054c319",
+        "medidas": [
+          {
+            "cpu": 4.819,
+            "semBanco": 4.819,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=15 idas=2 linhas=210\""
+          },
+          {
+            "cpu": 4.94,
+            "semBanco": 2.639,
+            "timing": "servidor;dur=3, d1;dur=2;desc=\"consultas=15 idas=2 linhas=210\""
+          },
+          {
+            "cpu": 3.347,
+            "semBanco": 2.581,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=15 idas=2 linhas=210\""
+          },
+          {
+            "cpu": 3.334,
+            "semBanco": 3.334,
+            "timing": "servidor;dur=3, d1;dur=1;desc=\"consultas=15 idas=2 linhas=210\""
+          },
+          {
+            "cpu": 5.057,
+            "semBanco": 3.626,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=15 idas=2 linhas=210\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12230,
+        "sha256": "9ce944f4788061a1756dc46586b08b9d47a315e79d153e4084f24d68c9134056",
+        "medidas": [
+          {
+            "cpu": 6.36,
+            "semBanco": 6.36,
+            "timing": "servidor;dur=6, d1;dur=6;desc=\"consultas=22 idas=5 linhas=215\""
+          },
+          {
+            "cpu": 4.53,
+            "semBanco": 4.53,
+            "timing": "servidor;dur=7, d1;dur=7;desc=\"consultas=22 idas=5 linhas=215\""
+          },
+          {
+            "cpu": 7.618,
+            "semBanco": 6.456,
+            "timing": "servidor;dur=9, d1;dur=10;desc=\"consultas=22 idas=5 linhas=215\""
+          },
+          {
+            "cpu": 5.844,
+            "semBanco": 5.844,
+            "timing": "servidor;dur=6, d1;dur=7;desc=\"consultas=22 idas=5 linhas=215\""
+          },
+          {
+            "cpu": 7.357,
+            "semBanco": 7.097,
+            "timing": "servidor;dur=6, d1;dur=5;desc=\"consultas=22 idas=5 linhas=215\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 71005,
+        "sha256": "66e37ba90e9e9155fc44b63ddd61cd51bc629f71fe1b8968ec460eb959283916",
+        "medidas": [
+          {
+            "cpu": 9.812,
+            "semBanco": 8.913,
+            "timing": "servidor;dur=7, d1;dur=10;desc=\"consultas=28 idas=6 linhas=966\""
+          },
+          {
+            "cpu": 9.734,
+            "semBanco": 4.591,
+            "timing": "servidor;dur=7, d1;dur=8;desc=\"consultas=28 idas=6 linhas=966\""
+          },
+          {
+            "cpu": 9.217,
+            "semBanco": 7.414,
+            "timing": "servidor;dur=7, d1;dur=9;desc=\"consultas=28 idas=6 linhas=966\""
+          },
+          {
+            "cpu": 9.224,
+            "semBanco": 9.098,
+            "timing": "servidor;dur=7, d1;dur=8;desc=\"consultas=28 idas=6 linhas=966\""
+          },
+          {
+            "cpu": 11.66,
+            "semBanco": 11.275,
+            "timing": "servidor;dur=7, d1;dur=9;desc=\"consultas=28 idas=6 linhas=966\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11664,
+        "sha256": "ca815ec3e2102d245d7aaaf2a608e59054a127995bbcec4f88c4b45c9da7aa3d",
+        "medidas": [
+          {
+            "cpu": 5.086,
+            "semBanco": 4.958,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=29 idas=7 linhas=265\""
+          },
+          {
+            "cpu": 4.578,
+            "semBanco": 4.578,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=29 idas=7 linhas=265\""
+          },
+          {
+            "cpu": 4.87,
+            "semBanco": 4.87,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=29 idas=7 linhas=265\""
+          },
+          {
+            "cpu": 4.679,
+            "semBanco": 4.679,
+            "timing": "servidor;dur=4, d1;dur=2;desc=\"consultas=29 idas=7 linhas=265\""
+          },
+          {
+            "cpu": 4.545,
+            "semBanco": 4.415,
+            "timing": "servidor;dur=2, d1;dur=1;desc=\"consultas=29 idas=7 linhas=265\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40571,
+        "sha256": "507ad2fb24a6a72d9bdaac5b08ac4a1d30928bbda1df4ddf12e95be087944443",
+        "medidas": [
+          {
+            "cpu": 4.31,
+            "semBanco": 4.056,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=23 idas=6 linhas=222\""
+          },
+          {
+            "cpu": 4.936,
+            "semBanco": 4.936,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=23 idas=6 linhas=222\""
+          },
+          {
+            "cpu": 4.557,
+            "semBanco": 2.822,
+            "timing": "servidor;dur=2, d1;dur=2;desc=\"consultas=23 idas=6 linhas=222\""
+          },
+          {
+            "cpu": 4.833,
+            "semBanco": 4.33,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=23 idas=6 linhas=222\""
+          },
+          {
+            "cpu": 5.2,
+            "semBanco": 5.2,
+            "timing": "servidor;dur=3, d1;dur=2;desc=\"consultas=23 idas=6 linhas=222\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 20414,
+        "sha256": "719724392dc4b998fff9d3e59ae9bcbd7a8463189331067a4e4bd6ae33d2e98c",
+        "medidas": [
+          {
+            "cpu": 34.314,
+            "semBanco": 34.314,
+            "timing": "servidor;dur=26, d1;dur=78;desc=\"consultas=37 idas=9 linhas=364\""
+          },
+          {
+            "cpu": 7.65,
+            "semBanco": 6.193,
+            "timing": "servidor;dur=6, d1;dur=18;desc=\"consultas=37 idas=9 linhas=364\""
+          },
+          {
+            "cpu": 6.974,
+            "semBanco": 6.974,
+            "timing": "servidor;dur=7, d1;dur=18;desc=\"consultas=37 idas=9 linhas=364\""
+          },
+          {
+            "cpu": 11.041,
+            "semBanco": 7.854,
+            "timing": "servidor;dur=9, d1;dur=18;desc=\"consultas=37 idas=9 linhas=364\""
+          },
+          {
+            "cpu": 7.56,
+            "semBanco": 7.302,
+            "timing": "servidor;dur=6, d1;dur=17;desc=\"consultas=37 idas=9 linhas=364\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11708,
+        "sha256": "31d74fc77ee04b463d7bdad1667f3ef368b86838ad773bc2fde9ae216cd506b4",
+        "medidas": [
+          {
+            "cpu": 4.551,
+            "semBanco": 2.872,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=30 idas=8 linhas=223\""
+          },
+          {
+            "cpu": 3.201,
+            "semBanco": 3.072,
+            "timing": "servidor;dur=3, d1;dur=4;desc=\"consultas=30 idas=8 linhas=223\""
+          },
+          {
+            "cpu": 4.283,
+            "semBanco": 4.283,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=30 idas=8 linhas=223\""
+          },
+          {
+            "cpu": 5.065,
+            "semBanco": 5.065,
+            "timing": "servidor;dur=4, d1;dur=6;desc=\"consultas=30 idas=8 linhas=223\""
+          },
+          {
+            "cpu": 4.729,
+            "semBanco": 4.474,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=30 idas=8 linhas=223\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 104924,
+        "sha256": "89e5bb1c52ac070f53d9d576a8f8c5dcb182d36c1d19e3e9d9ac30c3aed11ebb",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 42901,
+        "sha256": "f9e480f2836b6b4d529017408125de92dfcdf188ea66e5ce6ac3d95a0102607e",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 42101,
+        "sha256": "5a275ceac91d2e62c26c22237d3e402a3674087adf4301de594e09886af0336b",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 119679,
+        "sha256": "8130b34ad59c311b43debe6b1295faf592c3b9ebd4ff1fbea11fd8290294e1db",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 58256,
+        "sha256": "6c9f9ef1f2b3fa5febf7c4267b815d2356e34f2f911c2f137e9a7e49dad56712",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12133,
+        "sha256": "96b73e218f96c6c8ae43676839a17b03e9501d4e9502680cffa2962fae31f4dc",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22194,
+        "sha256": "163d0fab9d57020d29f427ecdf8521d7737ea85b09e811879814136935ca4554",
+        "medidas": []
+      },
+      {
+        "leitor": "visitante",
+        "nome": "sala",
+        "bytes": 17826,
+        "sha256": "a5afe704d8c93a720f3a3a2493e20a4f4a431b9eacf848b8c15257b94e3e5122"
+      }
+    ]
+  },
+  "leituras": {
+    "antes": [
+      {
+        "leitor": "gui",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26569,
+        "sha256": "ccbe4dad829a8ff14ad39f100d003c00252d0577e0c354b6b4f266c4c876e2c1",
+        "medidas": [
+          {
+            "rows_read": 30509,
+            "rows_written": 1,
+            "timing": "servidor;dur=131, d1;dur=195;desc=\"consultas=39 idas=12 linhas=9184\""
+          },
+          {
+            "rows_read": 30509,
+            "rows_written": 1,
+            "timing": "servidor;dur=87, d1;dur=144;desc=\"consultas=39 idas=12 linhas=9184\""
+          },
+          {
+            "rows_read": 30509,
+            "rows_written": 1,
+            "timing": "servidor;dur=144, d1;dur=253;desc=\"consultas=39 idas=12 linhas=9184\""
+          },
+          {
+            "rows_read": 30509,
+            "rows_written": 1,
+            "timing": "servidor;dur=86, d1;dur=164;desc=\"consultas=39 idas=12 linhas=9184\""
+          },
+          {
+            "rows_read": 30509,
+            "rows_written": 1,
+            "timing": "servidor;dur=76, d1;dur=151;desc=\"consultas=39 idas=12 linhas=9184\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27294,
+        "sha256": "3f054bfc281c9c1ee79eede1b11317914c20f6db1da83a6df04ee9629b96f494",
+        "medidas": [
+          {
+            "rows_read": 22121,
+            "rows_written": 0,
+            "timing": "servidor;dur=60, d1;dur=55;desc=\"consultas=27 idas=4 linhas=8635\""
+          },
+          {
+            "rows_read": 22121,
+            "rows_written": 0,
+            "timing": "servidor;dur=53, d1;dur=50;desc=\"consultas=27 idas=4 linhas=8635\""
+          },
+          {
+            "rows_read": 22121,
+            "rows_written": 0,
+            "timing": "servidor;dur=64, d1;dur=66;desc=\"consultas=27 idas=4 linhas=8635\""
+          },
+          {
+            "rows_read": 22121,
+            "rows_written": 0,
+            "timing": "servidor;dur=59, d1;dur=59;desc=\"consultas=27 idas=4 linhas=8635\""
+          },
+          {
+            "rows_read": 22121,
+            "rows_written": 0,
+            "timing": "servidor;dur=109, d1;dur=66;desc=\"consultas=27 idas=4 linhas=8635\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12238,
+        "sha256": "25b85b18ca105a9bcc3c214a88e0017723ca3b4e870e0f315756b453b0c3db4c",
+        "medidas": [
+          {
+            "rows_read": 22804,
+            "rows_written": 0,
+            "timing": "servidor;dur=61, d1;dur=58;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "rows_read": 22804,
+            "rows_written": 0,
+            "timing": "servidor;dur=57, d1;dur=55;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "rows_read": 22804,
+            "rows_written": 0,
+            "timing": "servidor;dur=71, d1;dur=79;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "rows_read": 22804,
+            "rows_written": 0,
+            "timing": "servidor;dur=67, d1;dur=64;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "rows_read": 22804,
+            "rows_written": 0,
+            "timing": "servidor;dur=65, d1;dur=63;desc=\"consultas=34 idas=7 linhas=8672\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 70446,
+        "sha256": "7d3ad3643d8d2351187b38bca357a2f37489a71187dfd3514c304136cfe9c955",
+        "medidas": [
+          {
+            "rows_read": 22167,
+            "rows_written": 0,
+            "timing": "servidor;dur=93, d1;dur=66;desc=\"consultas=33 idas=6 linhas=8664\""
+          },
+          {
+            "rows_read": 22167,
+            "rows_written": 0,
+            "timing": "servidor;dur=101, d1;dur=88;desc=\"consultas=33 idas=6 linhas=8664\""
+          },
+          {
+            "rows_read": 22167,
+            "rows_written": 0,
+            "timing": "servidor;dur=59, d1;dur=55;desc=\"consultas=33 idas=6 linhas=8664\""
+          },
+          {
+            "rows_read": 22167,
+            "rows_written": 0,
+            "timing": "servidor;dur=74, d1;dur=69;desc=\"consultas=33 idas=6 linhas=8664\""
+          },
+          {
+            "rows_read": 22167,
+            "rows_written": 0,
+            "timing": "servidor;dur=59, d1;dur=57;desc=\"consultas=33 idas=6 linhas=8664\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11780,
+        "sha256": "da36916fbcf0b767ee64a4ea276c5f54eab1cb71fe4c7d9fb694c464445a228c",
+        "medidas": [
+          {
+            "rows_read": 22809,
+            "rows_written": 0,
+            "timing": "servidor;dur=71, d1;dur=95;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "rows_read": 22809,
+            "rows_written": 0,
+            "timing": "servidor;dur=65, d1;dur=63;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "rows_read": 22809,
+            "rows_written": 0,
+            "timing": "servidor;dur=80, d1;dur=85;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "rows_read": 22809,
+            "rows_written": 0,
+            "timing": "servidor;dur=52, d1;dur=55;desc=\"consultas=34 idas=7 linhas=8672\""
+          },
+          {
+            "rows_read": 22809,
+            "rows_written": 0,
+            "timing": "servidor;dur=51, d1;dur=54;desc=\"consultas=34 idas=7 linhas=8672\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40567,
+        "sha256": "0da287a18f80758436e402438832e2ee20274ee3485270845bea4428ca99ea21",
+        "medidas": [
+          {
+            "rows_read": 22804,
+            "rows_written": 0,
+            "timing": "servidor;dur=56, d1;dur=54;desc=\"consultas=35 idas=8 linhas=8672\""
+          },
+          {
+            "rows_read": 22804,
+            "rows_written": 0,
+            "timing": "servidor;dur=48, d1;dur=49;desc=\"consultas=35 idas=8 linhas=8672\""
+          },
+          {
+            "rows_read": 22804,
+            "rows_written": 0,
+            "timing": "servidor;dur=55, d1;dur=56;desc=\"consultas=35 idas=8 linhas=8672\""
+          },
+          {
+            "rows_read": 22804,
+            "rows_written": 0,
+            "timing": "servidor;dur=94, d1;dur=85;desc=\"consultas=35 idas=8 linhas=8672\""
+          },
+          {
+            "rows_read": 22804,
+            "rows_written": 0,
+            "timing": "servidor;dur=103, d1;dur=98;desc=\"consultas=35 idas=8 linhas=8672\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 25127,
+        "sha256": "33c2d405c0f530a47c15663b0dffade17c35b687b97ea195da496f6c68b1e434",
+        "medidas": [
+          {
+            "rows_read": 27001,
+            "rows_written": 0,
+            "timing": "servidor;dur=109, d1;dur=362;desc=\"consultas=44 idas=12 linhas=9060\""
+          },
+          {
+            "rows_read": 27001,
+            "rows_written": 0,
+            "timing": "servidor;dur=68, d1;dur=235;desc=\"consultas=44 idas=12 linhas=9060\""
+          },
+          {
+            "rows_read": 27001,
+            "rows_written": 0,
+            "timing": "servidor;dur=71, d1;dur=263;desc=\"consultas=44 idas=12 linhas=9060\""
+          },
+          {
+            "rows_read": 27001,
+            "rows_written": 0,
+            "timing": "servidor;dur=59, d1;dur=215;desc=\"consultas=44 idas=12 linhas=9060\""
+          },
+          {
+            "rows_read": 27001,
+            "rows_written": 0,
+            "timing": "servidor;dur=81, d1;dur=267;desc=\"consultas=44 idas=12 linhas=9060\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11688,
+        "sha256": "242dbf96b3197def5448b89d1929747e3e0e2c8e91d259de5c3dfb1a319ba5dc",
+        "medidas": [
+          {
+            "rows_read": 28181,
+            "rows_written": 0,
+            "timing": "servidor;dur=65, d1;dur=111;desc=\"consultas=37 idas=10 linhas=10638\""
+          },
+          {
+            "rows_read": 28181,
+            "rows_written": 0,
+            "timing": "servidor;dur=79, d1;dur=118;desc=\"consultas=37 idas=10 linhas=10638\""
+          },
+          {
+            "rows_read": 28181,
+            "rows_written": 0,
+            "timing": "servidor;dur=62, d1;dur=107;desc=\"consultas=37 idas=10 linhas=10638\""
+          },
+          {
+            "rows_read": 28181,
+            "rows_written": 0,
+            "timing": "servidor;dur=69, d1;dur=122;desc=\"consultas=37 idas=10 linhas=10638\""
+          },
+          {
+            "rows_read": 28181,
+            "rows_written": 0,
+            "timing": "servidor;dur=62, d1;dur=107;desc=\"consultas=37 idas=10 linhas=10638\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 104072,
+        "sha256": "6c9f66a26b086cea041af7639753b87ad8b87d365b61d913f870a99e044902fb",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 42734,
+        "sha256": "c908418ec73a94419fd5820675d2c746cef0851c1e9fe032a49d75ecdbf417bc",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 41794,
+        "sha256": "5c61f27eb8b365ce4a486bfed2d2a14159f9979fac3e92d673ee1eb26421d723",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 119120,
+        "sha256": "aa4a007ed68a8c4d149bddc71ec9f80e517ebe36f5d6e6259431639b6d718e2a",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 57697,
+        "sha256": "af4fd1f4b60400453c071e562334bf48750e611bc1f146f9c4b6247ab630c346",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12178,
+        "sha256": "85412b325fcf8dc009f9ff180716a7d24f65ff7a7a8cb65e98d0ecfb3c77296a",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22080,
+        "sha256": "2bb19097081534fc9182044649d0fae4671ba0021477ca10fcc4e8f217cfbde1",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26647,
+        "sha256": "768bcb9fb35615f569117d3811a0bbbae53c2bbca72f8e1a7e92eadf297c24ed",
+        "medidas": [
+          {
+            "rows_read": 29658,
+            "rows_written": 1,
+            "timing": "servidor;dur=93, d1;dur=191;desc=\"consultas=34 idas=12 linhas=8854\""
+          },
+          {
+            "rows_read": 29658,
+            "rows_written": 1,
+            "timing": "servidor;dur=77, d1;dur=153;desc=\"consultas=34 idas=12 linhas=8854\""
+          },
+          {
+            "rows_read": 29658,
+            "rows_written": 1,
+            "timing": "servidor;dur=66, d1;dur=108;desc=\"consultas=34 idas=12 linhas=8854\""
+          },
+          {
+            "rows_read": 29658,
+            "rows_written": 1,
+            "timing": "servidor;dur=96, d1;dur=181;desc=\"consultas=34 idas=12 linhas=8854\""
+          },
+          {
+            "rows_read": 29658,
+            "rows_written": 1,
+            "timing": "servidor;dur=67, d1;dur=111;desc=\"consultas=34 idas=12 linhas=8854\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27155,
+        "sha256": "91f72e9e2cb2f7be2625d1d46666fe9bf057c0a9ff621bf2e606aa15d054c319",
+        "medidas": [
+          {
+            "rows_read": 22116,
+            "rows_written": 0,
+            "timing": "servidor;dur=48, d1;dur=41;desc=\"consultas=21 idas=3 linhas=8632\""
+          },
+          {
+            "rows_read": 22116,
+            "rows_written": 0,
+            "timing": "servidor;dur=51, d1;dur=43;desc=\"consultas=21 idas=3 linhas=8632\""
+          },
+          {
+            "rows_read": 22116,
+            "rows_written": 0,
+            "timing": "servidor;dur=48, d1;dur=39;desc=\"consultas=21 idas=3 linhas=8632\""
+          },
+          {
+            "rows_read": 22116,
+            "rows_written": 0,
+            "timing": "servidor;dur=51, d1;dur=45;desc=\"consultas=21 idas=3 linhas=8632\""
+          },
+          {
+            "rows_read": 22116,
+            "rows_written": 0,
+            "timing": "servidor;dur=51, d1;dur=42;desc=\"consultas=21 idas=3 linhas=8632\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12230,
+        "sha256": "9ce944f4788061a1756dc46586b08b9d47a315e79d153e4084f24d68c9134056",
+        "medidas": [
+          {
+            "rows_read": 22799,
+            "rows_written": 0,
+            "timing": "servidor;dur=51, d1;dur=49;desc=\"consultas=28 idas=6 linhas=8669\""
+          },
+          {
+            "rows_read": 22799,
+            "rows_written": 0,
+            "timing": "servidor;dur=50, d1;dur=46;desc=\"consultas=28 idas=6 linhas=8669\""
+          },
+          {
+            "rows_read": 22799,
+            "rows_written": 0,
+            "timing": "servidor;dur=56, d1;dur=53;desc=\"consultas=28 idas=6 linhas=8669\""
+          },
+          {
+            "rows_read": 22799,
+            "rows_written": 0,
+            "timing": "servidor;dur=73, d1;dur=90;desc=\"consultas=28 idas=6 linhas=8669\""
+          },
+          {
+            "rows_read": 22799,
+            "rows_written": 0,
+            "timing": "servidor;dur=55, d1;dur=51;desc=\"consultas=28 idas=6 linhas=8669\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 71005,
+        "sha256": "66e37ba90e9e9155fc44b63ddd61cd51bc629f71fe1b8968ec460eb959283916",
+        "medidas": [
+          {
+            "rows_read": 22162,
+            "rows_written": 0,
+            "timing": "servidor;dur=48, d1;dur=41;desc=\"consultas=27 idas=5 linhas=8661\""
+          },
+          {
+            "rows_read": 22162,
+            "rows_written": 0,
+            "timing": "servidor;dur=65, d1;dur=58;desc=\"consultas=27 idas=5 linhas=8661\""
+          },
+          {
+            "rows_read": 22162,
+            "rows_written": 0,
+            "timing": "servidor;dur=63, d1;dur=46;desc=\"consultas=27 idas=5 linhas=8661\""
+          },
+          {
+            "rows_read": 22162,
+            "rows_written": 0,
+            "timing": "servidor;dur=55, d1;dur=49;desc=\"consultas=27 idas=5 linhas=8661\""
+          },
+          {
+            "rows_read": 22162,
+            "rows_written": 0,
+            "timing": "servidor;dur=163, d1;dur=158;desc=\"consultas=27 idas=5 linhas=8661\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11664,
+        "sha256": "ca815ec3e2102d245d7aaaf2a608e59054a127995bbcec4f88c4b45c9da7aa3d",
+        "medidas": [
+          {
+            "rows_read": 22805,
+            "rows_written": 0,
+            "timing": "servidor;dur=53, d1;dur=56;desc=\"consultas=29 idas=7 linhas=8670\""
+          },
+          {
+            "rows_read": 22805,
+            "rows_written": 0,
+            "timing": "servidor;dur=48, d1;dur=50;desc=\"consultas=29 idas=7 linhas=8670\""
+          },
+          {
+            "rows_read": 22805,
+            "rows_written": 0,
+            "timing": "servidor;dur=55, d1;dur=59;desc=\"consultas=29 idas=7 linhas=8670\""
+          },
+          {
+            "rows_read": 22805,
+            "rows_written": 0,
+            "timing": "servidor;dur=68, d1;dur=101;desc=\"consultas=29 idas=7 linhas=8670\""
+          },
+          {
+            "rows_read": 22805,
+            "rows_written": 0,
+            "timing": "servidor;dur=48, d1;dur=52;desc=\"consultas=29 idas=7 linhas=8670\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40571,
+        "sha256": "507ad2fb24a6a72d9bdaac5b08ac4a1d30928bbda1df4ddf12e95be087944443",
+        "medidas": [
+          {
+            "rows_read": 22799,
+            "rows_written": 0,
+            "timing": "servidor;dur=47, d1;dur=45;desc=\"consultas=29 idas=7 linhas=8669\""
+          },
+          {
+            "rows_read": 22799,
+            "rows_written": 0,
+            "timing": "servidor;dur=55, d1;dur=52;desc=\"consultas=29 idas=7 linhas=8669\""
+          },
+          {
+            "rows_read": 22799,
+            "rows_written": 0,
+            "timing": "servidor;dur=56, d1;dur=54;desc=\"consultas=29 idas=7 linhas=8669\""
+          },
+          {
+            "rows_read": 22799,
+            "rows_written": 0,
+            "timing": "servidor;dur=64, d1;dur=72;desc=\"consultas=29 idas=7 linhas=8669\""
+          },
+          {
+            "rows_read": 22799,
+            "rows_written": 0,
+            "timing": "servidor;dur=142, d1;dur=137;desc=\"consultas=29 idas=7 linhas=8669\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 20414,
+        "sha256": "719724392dc4b998fff9d3e59ae9bcbd7a8463189331067a4e4bd6ae33d2e98c",
+        "medidas": [
+          {
+            "rows_read": 26133,
+            "rows_written": 0,
+            "timing": "servidor;dur=62, d1;dur=160;desc=\"consultas=37 idas=10 linhas=8743\""
+          },
+          {
+            "rows_read": 26133,
+            "rows_written": 0,
+            "timing": "servidor;dur=75, d1;dur=170;desc=\"consultas=37 idas=10 linhas=8743\""
+          },
+          {
+            "rows_read": 26133,
+            "rows_written": 0,
+            "timing": "servidor;dur=53, d1;dur=138;desc=\"consultas=37 idas=10 linhas=8743\""
+          },
+          {
+            "rows_read": 26133,
+            "rows_written": 0,
+            "timing": "servidor;dur=49, d1;dur=124;desc=\"consultas=37 idas=10 linhas=8743\""
+          },
+          {
+            "rows_read": 26133,
+            "rows_written": 0,
+            "timing": "servidor;dur=49, d1;dur=124;desc=\"consultas=37 idas=10 linhas=8743\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11708,
+        "sha256": "31d74fc77ee04b463d7bdad1667f3ef368b86838ad773bc2fde9ae216cd506b4",
+        "medidas": [
+          {
+            "rows_read": 27318,
+            "rows_written": 0,
+            "timing": "servidor;dur=60, d1;dur=95;desc=\"consultas=31 idas=9 linhas=10311\""
+          },
+          {
+            "rows_read": 27318,
+            "rows_written": 0,
+            "timing": "servidor;dur=63, d1;dur=94;desc=\"consultas=31 idas=9 linhas=10311\""
+          },
+          {
+            "rows_read": 27318,
+            "rows_written": 0,
+            "timing": "servidor;dur=60, d1;dur=94;desc=\"consultas=31 idas=9 linhas=10311\""
+          },
+          {
+            "rows_read": 27318,
+            "rows_written": 0,
+            "timing": "servidor;dur=72, d1;dur=106;desc=\"consultas=31 idas=9 linhas=10311\""
+          },
+          {
+            "rows_read": 27318,
+            "rows_written": 0,
+            "timing": "servidor;dur=50, d1;dur=76;desc=\"consultas=31 idas=9 linhas=10311\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 104924,
+        "sha256": "89e5bb1c52ac070f53d9d576a8f8c5dcb182d36c1d19e3e9d9ac30c3aed11ebb",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 42901,
+        "sha256": "f9e480f2836b6b4d529017408125de92dfcdf188ea66e5ce6ac3d95a0102607e",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 42101,
+        "sha256": "5a275ceac91d2e62c26c22237d3e402a3674087adf4301de594e09886af0336b",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 119679,
+        "sha256": "8130b34ad59c311b43debe6b1295faf592c3b9ebd4ff1fbea11fd8290294e1db",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 58256,
+        "sha256": "6c9f9ef1f2b3fa5febf7c4267b815d2356e34f2f911c2f137e9a7e49dad56712",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12133,
+        "sha256": "96b73e218f96c6c8ae43676839a17b03e9501d4e9502680cffa2962fae31f4dc",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22194,
+        "sha256": "163d0fab9d57020d29f427ecdf8521d7737ea85b09e811879814136935ca4554",
+        "medidas": []
+      },
+      {
+        "leitor": "visitante",
+        "nome": "sala",
+        "bytes": 17826,
+        "sha256": "a5afe704d8c93a720f3a3a2493e20a4f4a431b9eacf848b8c15257b94e3e5122"
+      }
+    ],
+    "depois": [
+      {
+        "leitor": "gui",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26569,
+        "sha256": "ccbe4dad829a8ff14ad39f100d003c00252d0577e0c354b6b4f266c4c876e2c1",
+        "medidas": [
+          {
+            "rows_read": 15804,
+            "rows_written": 1,
+            "timing": "servidor;dur=10, d1;dur=17;desc=\"consultas=45 idas=12 linhas=420\""
+          },
+          {
+            "rows_read": 15804,
+            "rows_written": 1,
+            "timing": "servidor;dur=11, d1;dur=14;desc=\"consultas=45 idas=12 linhas=420\""
+          },
+          {
+            "rows_read": 15804,
+            "rows_written": 1,
+            "timing": "servidor;dur=9, d1;dur=14;desc=\"consultas=45 idas=12 linhas=420\""
+          },
+          {
+            "rows_read": 15804,
+            "rows_written": 1,
+            "timing": "servidor;dur=9, d1;dur=15;desc=\"consultas=45 idas=12 linhas=420\""
+          },
+          {
+            "rows_read": 15804,
+            "rows_written": 1,
+            "timing": "servidor;dur=10, d1;dur=14;desc=\"consultas=45 idas=12 linhas=420\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27294,
+        "sha256": "3f054bfc281c9c1ee79eede1b11317914c20f6db1da83a6df04ee9629b96f494",
+        "medidas": [
+          {
+            "rows_read": 7113,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=5;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "rows_read": 7113,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=4;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "rows_read": 7113,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "rows_read": 7113,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "rows_read": 7113,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=4;desc=\"consultas=21 idas=3 linhas=213\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12238,
+        "sha256": "25b85b18ca105a9bcc3c214a88e0017723ca3b4e870e0f315756b453b0c3db4c",
+        "medidas": [
+          {
+            "rows_read": 12304,
+            "rows_written": 0,
+            "timing": "servidor;dur=6, d1;dur=8;desc=\"consultas=28 idas=6 linhas=218\""
+          },
+          {
+            "rows_read": 12304,
+            "rows_written": 0,
+            "timing": "servidor;dur=7, d1;dur=7;desc=\"consultas=28 idas=6 linhas=218\""
+          },
+          {
+            "rows_read": 12304,
+            "rows_written": 0,
+            "timing": "servidor;dur=5, d1;dur=5;desc=\"consultas=28 idas=6 linhas=218\""
+          },
+          {
+            "rows_read": 12304,
+            "rows_written": 0,
+            "timing": "servidor;dur=6, d1;dur=8;desc=\"consultas=28 idas=6 linhas=218\""
+          },
+          {
+            "rows_read": 12304,
+            "rows_written": 0,
+            "timing": "servidor;dur=6, d1;dur=6;desc=\"consultas=28 idas=6 linhas=218\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 70446,
+        "sha256": "7d3ad3643d8d2351187b38bca357a2f37489a71187dfd3514c304136cfe9c955",
+        "medidas": [
+          {
+            "rows_read": 13786,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=9;desc=\"consultas=34 idas=7 linhas=969\""
+          },
+          {
+            "rows_read": 13786,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=12;desc=\"consultas=34 idas=7 linhas=969\""
+          },
+          {
+            "rows_read": 13786,
+            "rows_written": 0,
+            "timing": "servidor;dur=7, d1;dur=11;desc=\"consultas=34 idas=7 linhas=969\""
+          },
+          {
+            "rows_read": 13786,
+            "rows_written": 0,
+            "timing": "servidor;dur=7, d1;dur=10;desc=\"consultas=34 idas=7 linhas=969\""
+          },
+          {
+            "rows_read": 13786,
+            "rows_written": 0,
+            "timing": "servidor;dur=7, d1;dur=11;desc=\"consultas=34 idas=7 linhas=969\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11780,
+        "sha256": "da36916fbcf0b767ee64a4ea276c5f54eab1cb71fe4c7d9fb694c464445a228c",
+        "medidas": [
+          {
+            "rows_read": 2998,
+            "rows_written": 0,
+            "timing": "servidor;dur=5, d1;dur=3;desc=\"consultas=34 idas=7 linhas=251\""
+          },
+          {
+            "rows_read": 2998,
+            "rows_written": 0,
+            "timing": "servidor;dur=5, d1;dur=9;desc=\"consultas=34 idas=7 linhas=251\""
+          },
+          {
+            "rows_read": 2998,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=34 idas=7 linhas=251\""
+          },
+          {
+            "rows_read": 2998,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=34 idas=7 linhas=251\""
+          },
+          {
+            "rows_read": 2998,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=3;desc=\"consultas=34 idas=7 linhas=251\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40567,
+        "sha256": "0da287a18f80758436e402438832e2ee20274ee3485270845bea4428ca99ea21",
+        "medidas": [
+          {
+            "rows_read": 2656,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=4;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "rows_read": 2656,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=5;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "rows_read": 2656,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "rows_read": 2656,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=7;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "rows_read": 2656,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=1;desc=\"consultas=29 idas=7 linhas=225\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 25127,
+        "sha256": "33c2d405c0f530a47c15663b0dffade17c35b687b97ea195da496f6c68b1e434",
+        "medidas": [
+          {
+            "rows_read": 18832,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=32;desc=\"consultas=44 idas=11 linhas=736\""
+          },
+          {
+            "rows_read": 18832,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=28;desc=\"consultas=44 idas=11 linhas=736\""
+          },
+          {
+            "rows_read": 18832,
+            "rows_written": 0,
+            "timing": "servidor;dur=10, d1;dur=41;desc=\"consultas=44 idas=11 linhas=736\""
+          },
+          {
+            "rows_read": 18832,
+            "rows_written": 0,
+            "timing": "servidor;dur=10, d1;dur=31;desc=\"consultas=44 idas=11 linhas=736\""
+          },
+          {
+            "rows_read": 18832,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=34;desc=\"consultas=44 idas=11 linhas=736\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11688,
+        "sha256": "242dbf96b3197def5448b89d1929747e3e0e2c8e91d259de5c3dfb1a319ba5dc",
+        "medidas": [
+          {
+            "rows_read": 2112,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=5;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "rows_read": 2112,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=7;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "rows_read": 2112,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=7;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "rows_read": 2112,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=7;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "rows_read": 2112,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=7;desc=\"consultas=36 idas=9 linhas=226\""
+          }
+        ]
+      },
+      {
+        "leitor": "gui",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 104072,
+        "sha256": "6c9f66a26b086cea041af7639753b87ad8b87d365b61d913f870a99e044902fb",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 42734,
+        "sha256": "c908418ec73a94419fd5820675d2c746cef0851c1e9fe032a49d75ecdbf417bc",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 41794,
+        "sha256": "5c61f27eb8b365ce4a486bfed2d2a14159f9979fac3e92d673ee1eb26421d723",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 119120,
+        "sha256": "aa4a007ed68a8c4d149bddc71ec9f80e517ebe36f5d6e6259431639b6d718e2a",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 57697,
+        "sha256": "af4fd1f4b60400453c071e562334bf48750e611bc1f146f9c4b6247ab630c346",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12178,
+        "sha256": "85412b325fcf8dc009f9ff180716a7d24f65ff7a7a8cb65e98d0ecfb3c77296a",
+        "medidas": []
+      },
+      {
+        "leitor": "gui",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22080,
+        "sha256": "2bb19097081534fc9182044649d0fae4671ba0021477ca10fcc4e8f217cfbde1",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26647,
+        "sha256": "768bcb9fb35615f569117d3811a0bbbae53c2bbca72f8e1a7e92eadf297c24ed",
+        "medidas": [
+          {
+            "rows_read": 15844,
+            "rows_written": 1,
+            "timing": "servidor;dur=10, d1;dur=13;desc=\"consultas=40 idas=12 linhas=446\""
+          },
+          {
+            "rows_read": 15844,
+            "rows_written": 1,
+            "timing": "servidor;dur=13, d1;dur=20;desc=\"consultas=40 idas=12 linhas=446\""
+          },
+          {
+            "rows_read": 15844,
+            "rows_written": 1,
+            "timing": "servidor;dur=12, d1;dur=20;desc=\"consultas=40 idas=12 linhas=446\""
+          },
+          {
+            "rows_read": 15844,
+            "rows_written": 1,
+            "timing": "servidor;dur=10, d1;dur=10;desc=\"consultas=40 idas=12 linhas=446\""
+          },
+          {
+            "rows_read": 15844,
+            "rows_written": 1,
+            "timing": "servidor;dur=9, d1;dur=14;desc=\"consultas=40 idas=12 linhas=446\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27155,
+        "sha256": "91f72e9e2cb2f7be2625d1d46666fe9bf057c0a9ff621bf2e606aa15d054c319",
+        "medidas": [
+          {
+            "rows_read": 7108,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=2;desc=\"consultas=15 idas=2 linhas=210\""
+          },
+          {
+            "rows_read": 7108,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=2;desc=\"consultas=15 idas=2 linhas=210\""
+          },
+          {
+            "rows_read": 7108,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=2;desc=\"consultas=15 idas=2 linhas=210\""
+          },
+          {
+            "rows_read": 7108,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=15 idas=2 linhas=210\""
+          },
+          {
+            "rows_read": 7108,
+            "rows_written": 0,
+            "timing": "servidor;dur=2, d1;dur=1;desc=\"consultas=15 idas=2 linhas=210\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12230,
+        "sha256": "9ce944f4788061a1756dc46586b08b9d47a315e79d153e4084f24d68c9134056",
+        "medidas": [
+          {
+            "rows_read": 12299,
+            "rows_written": 0,
+            "timing": "servidor;dur=5, d1;dur=5;desc=\"consultas=22 idas=5 linhas=215\""
+          },
+          {
+            "rows_read": 12299,
+            "rows_written": 0,
+            "timing": "servidor;dur=5, d1;dur=5;desc=\"consultas=22 idas=5 linhas=215\""
+          },
+          {
+            "rows_read": 12299,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=7;desc=\"consultas=22 idas=5 linhas=215\""
+          },
+          {
+            "rows_read": 12299,
+            "rows_written": 0,
+            "timing": "servidor;dur=9, d1;dur=9;desc=\"consultas=22 idas=5 linhas=215\""
+          },
+          {
+            "rows_read": 12299,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=8;desc=\"consultas=22 idas=5 linhas=215\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 71005,
+        "sha256": "66e37ba90e9e9155fc44b63ddd61cd51bc629f71fe1b8968ec460eb959283916",
+        "medidas": [
+          {
+            "rows_read": 13781,
+            "rows_written": 0,
+            "timing": "servidor;dur=9, d1;dur=13;desc=\"consultas=28 idas=6 linhas=966\""
+          },
+          {
+            "rows_read": 13781,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=10;desc=\"consultas=28 idas=6 linhas=966\""
+          },
+          {
+            "rows_read": 13781,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=12;desc=\"consultas=28 idas=6 linhas=966\""
+          },
+          {
+            "rows_read": 13781,
+            "rows_written": 0,
+            "timing": "servidor;dur=7, d1;dur=10;desc=\"consultas=28 idas=6 linhas=966\""
+          },
+          {
+            "rows_read": 13781,
+            "rows_written": 0,
+            "timing": "servidor;dur=11, d1;dur=13;desc=\"consultas=28 idas=6 linhas=966\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11664,
+        "sha256": "ca815ec3e2102d245d7aaaf2a608e59054a127995bbcec4f88c4b45c9da7aa3d",
+        "medidas": [
+          {
+            "rows_read": 3028,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=3;desc=\"consultas=29 idas=7 linhas=265\""
+          },
+          {
+            "rows_read": 3028,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=29 idas=7 linhas=265\""
+          },
+          {
+            "rows_read": 3028,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=29 idas=7 linhas=265\""
+          },
+          {
+            "rows_read": 3028,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=29 idas=7 linhas=265\""
+          },
+          {
+            "rows_read": 3028,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=29 idas=7 linhas=265\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40571,
+        "sha256": "507ad2fb24a6a72d9bdaac5b08ac4a1d30928bbda1df4ddf12e95be087944443",
+        "medidas": [
+          {
+            "rows_read": 2651,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=23 idas=6 linhas=222\""
+          },
+          {
+            "rows_read": 2651,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=5;desc=\"consultas=23 idas=6 linhas=222\""
+          },
+          {
+            "rows_read": 2651,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=4;desc=\"consultas=23 idas=6 linhas=222\""
+          },
+          {
+            "rows_read": 2651,
+            "rows_written": 0,
+            "timing": "servidor;dur=2, d1;dur=2;desc=\"consultas=23 idas=6 linhas=222\""
+          },
+          {
+            "rows_read": 2651,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=1;desc=\"consultas=23 idas=6 linhas=222\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 20414,
+        "sha256": "719724392dc4b998fff9d3e59ae9bcbd7a8463189331067a4e4bd6ae33d2e98c",
+        "medidas": [
+          {
+            "rows_read": 17980,
+            "rows_written": 0,
+            "timing": "servidor;dur=6, d1;dur=17;desc=\"consultas=37 idas=9 linhas=364\""
+          },
+          {
+            "rows_read": 17980,
+            "rows_written": 0,
+            "timing": "servidor;dur=7, d1;dur=19;desc=\"consultas=37 idas=9 linhas=364\""
+          },
+          {
+            "rows_read": 17980,
+            "rows_written": 0,
+            "timing": "servidor;dur=7, d1;dur=19;desc=\"consultas=37 idas=9 linhas=364\""
+          },
+          {
+            "rows_read": 17980,
+            "rows_written": 0,
+            "timing": "servidor;dur=10, d1;dur=28;desc=\"consultas=37 idas=9 linhas=364\""
+          },
+          {
+            "rows_read": 17980,
+            "rows_written": 0,
+            "timing": "servidor;dur=7, d1;dur=18;desc=\"consultas=37 idas=9 linhas=364\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11708,
+        "sha256": "31d74fc77ee04b463d7bdad1667f3ef368b86838ad773bc2fde9ae216cd506b4",
+        "medidas": [
+          {
+            "rows_read": 2107,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=30 idas=8 linhas=223\""
+          },
+          {
+            "rows_read": 2107,
+            "rows_written": 0,
+            "timing": "servidor;dur=2, d1;dur=2;desc=\"consultas=30 idas=8 linhas=223\""
+          },
+          {
+            "rows_read": 2107,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=30 idas=8 linhas=223\""
+          },
+          {
+            "rows_read": 2107,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=6;desc=\"consultas=30 idas=8 linhas=223\""
+          },
+          {
+            "rows_read": 2107,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=30 idas=8 linhas=223\""
+          }
+        ]
+      },
+      {
+        "leitor": "elizete",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 104924,
+        "sha256": "89e5bb1c52ac070f53d9d576a8f8c5dcb182d36c1d19e3e9d9ac30c3aed11ebb",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 42901,
+        "sha256": "f9e480f2836b6b4d529017408125de92dfcdf188ea66e5ce6ac3d95a0102607e",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 42101,
+        "sha256": "5a275ceac91d2e62c26c22237d3e402a3674087adf4301de594e09886af0336b",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 119679,
+        "sha256": "8130b34ad59c311b43debe6b1295faf592c3b9ebd4ff1fbea11fd8290294e1db",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 58256,
+        "sha256": "6c9f9ef1f2b3fa5febf7c4267b815d2356e34f2f911c2f137e9a7e49dad56712",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12133,
+        "sha256": "96b73e218f96c6c8ae43676839a17b03e9501d4e9502680cffa2962fae31f4dc",
+        "medidas": []
+      },
+      {
+        "leitor": "elizete",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22194,
+        "sha256": "163d0fab9d57020d29f427ecdf8521d7737ea85b09e811879814136935ca4554",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "inicio",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 26776,
+        "sha256": "4e8914a38b40c4b8cac11b9c36dab3e5e4414bf97052e6d709cf3f35f8c909ed",
+        "medidas": [
+          {
+            "rows_read": 15785,
+            "rows_written": 1,
+            "timing": "servidor;dur=8, d1;dur=14;desc=\"consultas=45 idas=12 linhas=441\""
+          },
+          {
+            "rows_read": 15785,
+            "rows_written": 1,
+            "timing": "servidor;dur=9, d1;dur=18;desc=\"consultas=45 idas=12 linhas=441\""
+          },
+          {
+            "rows_read": 15785,
+            "rows_written": 1,
+            "timing": "servidor;dur=8, d1;dur=15;desc=\"consultas=45 idas=12 linhas=441\""
+          },
+          {
+            "rows_read": 15785,
+            "rows_written": 1,
+            "timing": "servidor;dur=8, d1;dur=10;desc=\"consultas=45 idas=12 linhas=441\""
+          },
+          {
+            "rows_read": 15785,
+            "rows_written": 1,
+            "timing": "servidor;dur=8, d1;dur=13;desc=\"consultas=45 idas=12 linhas=441\""
+          }
+        ]
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "pessoas",
+        "caminho": "/pessoas",
+        "bytes": 27246,
+        "sha256": "fc098d1aac7de9486d502d01979d366a4b7c370aed39521422ca7abb15ee8903",
+        "medidas": [
+          {
+            "rows_read": 7094,
+            "rows_written": 0,
+            "timing": "servidor;dur=5, d1;dur=6;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "rows_read": 7094,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=4;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "rows_read": 7094,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=4;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "rows_read": 7094,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=21 idas=3 linhas=213\""
+          },
+          {
+            "rows_read": 7094,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=5;desc=\"consultas=21 idas=3 linhas=213\""
+          }
+        ]
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "capitulos",
+        "caminho": "/capitulos",
+        "bytes": 12735,
+        "sha256": "71c046a4289122958343452c7745f77652838553986f34d484b2e1461e031205",
+        "medidas": [
+          {
+            "rows_read": 14072,
+            "rows_written": 0,
+            "timing": "servidor;dur=6, d1;dur=6;desc=\"consultas=28 idas=6 linhas=219\""
+          },
+          {
+            "rows_read": 14072,
+            "rows_written": 0,
+            "timing": "servidor;dur=5, d1;dur=4;desc=\"consultas=28 idas=6 linhas=219\""
+          },
+          {
+            "rows_read": 14072,
+            "rows_written": 0,
+            "timing": "servidor;dur=6, d1;dur=6;desc=\"consultas=28 idas=6 linhas=219\""
+          },
+          {
+            "rows_read": 14072,
+            "rows_written": 0,
+            "timing": "servidor;dur=6, d1;dur=7;desc=\"consultas=28 idas=6 linhas=219\""
+          },
+          {
+            "rows_read": 14072,
+            "rows_written": 0,
+            "timing": "servidor;dur=6, d1;dur=8;desc=\"consultas=28 idas=6 linhas=219\""
+          }
+        ]
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "capitulo",
+        "caminho": "/capitulos/natais",
+        "bytes": 71565,
+        "sha256": "dfb22739615e4de7b8f461525af605073203c8cbc90119772b494a039eefc143",
+        "medidas": [
+          {
+            "rows_read": 15567,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=13;desc=\"consultas=34 idas=7 linhas=972\""
+          },
+          {
+            "rows_read": 15567,
+            "rows_written": 0,
+            "timing": "servidor;dur=9, d1;dur=14;desc=\"consultas=34 idas=7 linhas=972\""
+          },
+          {
+            "rows_read": 15567,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=13;desc=\"consultas=34 idas=7 linhas=972\""
+          },
+          {
+            "rows_read": 15567,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=10;desc=\"consultas=34 idas=7 linhas=972\""
+          },
+          {
+            "rows_read": 15567,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=13;desc=\"consultas=34 idas=7 linhas=972\""
+          }
+        ]
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "carta",
+        "caminho": "/carta",
+        "bytes": 11835,
+        "sha256": "509ad4c90e90969429d580dd737d750c33c1dfa03826c8f2081f7a9284112364",
+        "medidas": [
+          {
+            "rows_read": 3093,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=6;desc=\"consultas=34 idas=7 linhas=267\""
+          },
+          {
+            "rows_read": 3093,
+            "rows_written": 0,
+            "timing": "servidor;dur=9, d1;dur=11;desc=\"consultas=34 idas=7 linhas=267\""
+          },
+          {
+            "rows_read": 3093,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=3;desc=\"consultas=34 idas=7 linhas=267\""
+          },
+          {
+            "rows_read": 3093,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=4;desc=\"consultas=34 idas=7 linhas=267\""
+          },
+          {
+            "rows_read": 3093,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=3;desc=\"consultas=34 idas=7 linhas=267\""
+          }
+        ]
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "nova",
+        "caminho": "/nova",
+        "bytes": 40875,
+        "sha256": "40c2475b79bb334bf3ae2a7f5aa1a26f88cd51736b16fce216068a306f925b8c",
+        "medidas": [
+          {
+            "rows_read": 2672,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=7;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "rows_read": 2672,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=3;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "rows_read": 2672,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=3;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "rows_read": 2672,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=29 idas=7 linhas=225\""
+          },
+          {
+            "rows_read": 2672,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=5;desc=\"consultas=29 idas=7 linhas=225\""
+          }
+        ]
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "conta",
+        "caminho": "/conta",
+        "bytes": 19911,
+        "sha256": "e0b20fe4d644631802a1a310d1b72dcbc3ce31a51091e0476dcb417c376c6667",
+        "medidas": [
+          {
+            "rows_read": 17308,
+            "rows_written": 0,
+            "timing": "servidor;dur=7, d1;dur=27;desc=\"consultas=44 idas=11 linhas=369\""
+          },
+          {
+            "rows_read": 17308,
+            "rows_written": 0,
+            "timing": "servidor;dur=7, d1;dur=30;desc=\"consultas=44 idas=11 linhas=369\""
+          },
+          {
+            "rows_read": 17308,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=34;desc=\"consultas=44 idas=11 linhas=369\""
+          },
+          {
+            "rows_read": 17308,
+            "rows_written": 0,
+            "timing": "servidor;dur=8, d1;dur=29;desc=\"consultas=44 idas=11 linhas=369\""
+          },
+          {
+            "rows_read": 17308,
+            "rows_written": 0,
+            "timing": "servidor;dur=9, d1;dur=33;desc=\"consultas=44 idas=11 linhas=369\""
+          }
+        ]
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "acaso",
+        "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+        "bytes": 11800,
+        "sha256": "cdff82ab40ade40c4e2bd381d3e00a94a70e7b57de45f628aec8207392d18554",
+        "medidas": [
+          {
+            "rows_read": 2098,
+            "rows_written": 0,
+            "timing": "servidor;dur=5, d1;dur=13;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "rows_read": 2098,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=6;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "rows_read": 2098,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=6;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "rows_read": 2098,
+            "rows_written": 0,
+            "timing": "servidor;dur=4, d1;dur=7;desc=\"consultas=36 idas=9 linhas=226\""
+          },
+          {
+            "rows_read": 2098,
+            "rows_written": 0,
+            "timing": "servidor;dur=3, d1;dur=6;desc=\"consultas=36 idas=9 linhas=226\""
+          }
+        ]
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "epoca",
+        "caminho": "/capitulos/os-anos-90",
+        "bytes": 110232,
+        "sha256": "bdb742eaf4a2cc03d49a5f6e4f6240bfd0424d1a2ca5c1178c29a22db03891c9",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "periodo",
+        "caminho": "/capitulos/infancia-da-giovanna",
+        "bytes": 44369,
+        "sha256": "ccb4ef338df2a436fa974455a68faa920cb08a7a081d69583f1fdb4c37ba05f7",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "filho",
+        "caminho": "/capitulos/natais-na-vo-vivica",
+        "bytes": 42496,
+        "sha256": "5ef7028c56510f12c1ea00d5c65929d7129f6ca04ea10a06bc1762795e9845e0",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "capitulo-lista",
+        "caminho": "/capitulos/natais?ver=lista",
+        "bytes": 120394,
+        "sha256": "52f9b762064ce541a2e5d8886f7078066bf946c54fecc5ba49ae2698a15838c6",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "capitulo-mural",
+        "caminho": "/capitulos/natais?ver=mural",
+        "bytes": 58915,
+        "sha256": "e905a3ffa052ce5d7c23cba911cc58fea9926f8823821339527f9fbfee7a283c",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "inicio-primeira",
+        "caminho": "/?hoje=2026-12-25",
+        "bytes": 12241,
+        "sha256": "1fecd382cf10f352ffbf7c96c92b86ca07d056bc82118a3705c14adc9d317f77",
+        "medidas": []
+      },
+      {
+        "leitor": "lucas-magno",
+        "nome": "inicio-sem-novo",
+        "caminho": "/?hoje=2026-11-26",
+        "bytes": 22480,
+        "sha256": "deaf9bc2cce9fc494441196d0648bafc997476e9618c8c52b094b550ecd5fdce",
+        "medidas": []
+      },
+      {
+        "leitor": "visitante",
+        "nome": "sala",
+        "bytes": 17826,
+        "sha256": "a5afe704d8c93a720f3a3a2493e20a4f4a431b9eacf848b8c15257b94e3e5122"
+      }
+    ]
+  },
+  "gabarito": {
+    "casos": 46,
+    "iguais": 46,
+    "hashes": [
+      {
+        "leitor": "gui",
+        "pagina": "inicio",
+        "bytes": 26569,
+        "sha256": "ccbe4dad829a8ff14ad39f100d003c00252d0577e0c354b6b4f266c4c876e2c1"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "pessoas",
+        "bytes": 27294,
+        "sha256": "3f054bfc281c9c1ee79eede1b11317914c20f6db1da83a6df04ee9629b96f494"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "capitulos",
+        "bytes": 12238,
+        "sha256": "25b85b18ca105a9bcc3c214a88e0017723ca3b4e870e0f315756b453b0c3db4c"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "capitulo",
+        "bytes": 70446,
+        "sha256": "7d3ad3643d8d2351187b38bca357a2f37489a71187dfd3514c304136cfe9c955"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "carta",
+        "bytes": 11780,
+        "sha256": "da36916fbcf0b767ee64a4ea276c5f54eab1cb71fe4c7d9fb694c464445a228c"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "nova",
+        "bytes": 40567,
+        "sha256": "0da287a18f80758436e402438832e2ee20274ee3485270845bea4428ca99ea21"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "conta",
+        "bytes": 25127,
+        "sha256": "33c2d405c0f530a47c15663b0dffade17c35b687b97ea195da496f6c68b1e434"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "acaso",
+        "bytes": 11688,
+        "sha256": "242dbf96b3197def5448b89d1929747e3e0e2c8e91d259de5c3dfb1a319ba5dc"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "epoca",
+        "bytes": 104072,
+        "sha256": "6c9f66a26b086cea041af7639753b87ad8b87d365b61d913f870a99e044902fb"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "periodo",
+        "bytes": 42734,
+        "sha256": "c908418ec73a94419fd5820675d2c746cef0851c1e9fe032a49d75ecdbf417bc"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "filho",
+        "bytes": 41794,
+        "sha256": "5c61f27eb8b365ce4a486bfed2d2a14159f9979fac3e92d673ee1eb26421d723"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "capitulo-lista",
+        "bytes": 119120,
+        "sha256": "aa4a007ed68a8c4d149bddc71ec9f80e517ebe36f5d6e6259431639b6d718e2a"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "capitulo-mural",
+        "bytes": 57697,
+        "sha256": "af4fd1f4b60400453c071e562334bf48750e611bc1f146f9c4b6247ab630c346"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "inicio-primeira",
+        "bytes": 12178,
+        "sha256": "85412b325fcf8dc009f9ff180716a7d24f65ff7a7a8cb65e98d0ecfb3c77296a"
+      },
+      {
+        "leitor": "gui",
+        "pagina": "inicio-sem-novo",
+        "bytes": 22080,
+        "sha256": "2bb19097081534fc9182044649d0fae4671ba0021477ca10fcc4e8f217cfbde1"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "inicio",
+        "bytes": 26647,
+        "sha256": "768bcb9fb35615f569117d3811a0bbbae53c2bbca72f8e1a7e92eadf297c24ed"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "pessoas",
+        "bytes": 27155,
+        "sha256": "91f72e9e2cb2f7be2625d1d46666fe9bf057c0a9ff621bf2e606aa15d054c319"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "capitulos",
+        "bytes": 12230,
+        "sha256": "9ce944f4788061a1756dc46586b08b9d47a315e79d153e4084f24d68c9134056"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "capitulo",
+        "bytes": 71005,
+        "sha256": "66e37ba90e9e9155fc44b63ddd61cd51bc629f71fe1b8968ec460eb959283916"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "carta",
+        "bytes": 11664,
+        "sha256": "ca815ec3e2102d245d7aaaf2a608e59054a127995bbcec4f88c4b45c9da7aa3d"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "nova",
+        "bytes": 40571,
+        "sha256": "507ad2fb24a6a72d9bdaac5b08ac4a1d30928bbda1df4ddf12e95be087944443"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "conta",
+        "bytes": 20414,
+        "sha256": "719724392dc4b998fff9d3e59ae9bcbd7a8463189331067a4e4bd6ae33d2e98c"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "acaso",
+        "bytes": 11708,
+        "sha256": "31d74fc77ee04b463d7bdad1667f3ef368b86838ad773bc2fde9ae216cd506b4"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "epoca",
+        "bytes": 104924,
+        "sha256": "89e5bb1c52ac070f53d9d576a8f8c5dcb182d36c1d19e3e9d9ac30c3aed11ebb"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "periodo",
+        "bytes": 42901,
+        "sha256": "f9e480f2836b6b4d529017408125de92dfcdf188ea66e5ce6ac3d95a0102607e"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "filho",
+        "bytes": 42101,
+        "sha256": "5a275ceac91d2e62c26c22237d3e402a3674087adf4301de594e09886af0336b"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "capitulo-lista",
+        "bytes": 119679,
+        "sha256": "8130b34ad59c311b43debe6b1295faf592c3b9ebd4ff1fbea11fd8290294e1db"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "capitulo-mural",
+        "bytes": 58256,
+        "sha256": "6c9f9ef1f2b3fa5febf7c4267b815d2356e34f2f911c2f137e9a7e49dad56712"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "inicio-primeira",
+        "bytes": 12133,
+        "sha256": "96b73e218f96c6c8ae43676839a17b03e9501d4e9502680cffa2962fae31f4dc"
+      },
+      {
+        "leitor": "elizete",
+        "pagina": "inicio-sem-novo",
+        "bytes": 22194,
+        "sha256": "163d0fab9d57020d29f427ecdf8521d7737ea85b09e811879814136935ca4554"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "inicio",
+        "bytes": 26776,
+        "sha256": "4e8914a38b40c4b8cac11b9c36dab3e5e4414bf97052e6d709cf3f35f8c909ed"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "pessoas",
+        "bytes": 27246,
+        "sha256": "fc098d1aac7de9486d502d01979d366a4b7c370aed39521422ca7abb15ee8903"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "capitulos",
+        "bytes": 12735,
+        "sha256": "71c046a4289122958343452c7745f77652838553986f34d484b2e1461e031205"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "capitulo",
+        "bytes": 71565,
+        "sha256": "dfb22739615e4de7b8f461525af605073203c8cbc90119772b494a039eefc143"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "carta",
+        "bytes": 11835,
+        "sha256": "509ad4c90e90969429d580dd737d750c33c1dfa03826c8f2081f7a9284112364"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "nova",
+        "bytes": 40875,
+        "sha256": "40c2475b79bb334bf3ae2a7f5aa1a26f88cd51736b16fce216068a306f925b8c"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "conta",
+        "bytes": 19911,
+        "sha256": "e0b20fe4d644631802a1a310d1b72dcbc3ce31a51091e0476dcb417c376c6667"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "acaso",
+        "bytes": 11800,
+        "sha256": "cdff82ab40ade40c4e2bd381d3e00a94a70e7b57de45f628aec8207392d18554"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "epoca",
+        "bytes": 110232,
+        "sha256": "bdb742eaf4a2cc03d49a5f6e4f6240bfd0424d1a2ca5c1178c29a22db03891c9"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "periodo",
+        "bytes": 44369,
+        "sha256": "ccb4ef338df2a436fa974455a68faa920cb08a7a081d69583f1fdb4c37ba05f7"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "filho",
+        "bytes": 42496,
+        "sha256": "5ef7028c56510f12c1ea00d5c65929d7129f6ca04ea10a06bc1762795e9845e0"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "capitulo-lista",
+        "bytes": 120394,
+        "sha256": "52f9b762064ce541a2e5d8886f7078066bf946c54fecc5ba49ae2698a15838c6"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "capitulo-mural",
+        "bytes": 58915,
+        "sha256": "e905a3ffa052ce5d7c23cba911cc58fea9926f8823821339527f9fbfee7a283c"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "inicio-primeira",
+        "bytes": 12241,
+        "sha256": "1fecd382cf10f352ffbf7c96c92b86ca07d056bc82118a3705c14adc9d317f77"
+      },
+      {
+        "leitor": "lucas-magno",
+        "pagina": "inicio-sem-novo",
+        "bytes": 22480,
+        "sha256": "deaf9bc2cce9fc494441196d0648bafc997476e9618c8c52b094b550ecd5fdce"
+      },
+      {
+        "leitor": "visitante",
+        "pagina": "sala",
+        "bytes": 17826,
+        "sha256": "a5afe704d8c93a720f3a3a2493e20a4f4a431b9eacf848b8c15257b94e3e5122"
+      }
+    ]
+  },
+  "natal": {
+    "antes": {
+      "partes": [
+        {
+          "parte": "Páginas de 3 quem administra (como o Gui)",
+          "linhas": 1185117
+        },
+        {
+          "parte": "A busca de 3 quem administra (como o Gui)",
+          "linhas": 377122.5
+        },
+        {
+          "parte": "Fotos e retratos de 3 quem administra (como o Gui)",
+          "linhas": 537060
+        },
+        {
+          "parte": "Páginas de 4 quem não administra (como a Elizete)",
+          "linhas": 1534916
+        },
+        {
+          "parte": "A busca de 4 quem não administra (como a Elizete)",
+          "linhas": 491210.00000000006
+        },
+        {
+          "parte": "Fotos e retratos de 4 quem não administra (como a Elizete)",
+          "linhas": 706480
+        },
+        {
+          "parte": "Uma hora de modo TV (360 passagens)",
+          "linhas": 753490
+        }
+      ],
+      "total": 5585395.5,
+      "rows_written": 21,
+      "gravacoes": [
+        {
+          "caminho": "/",
+          "como": "gui",
+          "peso": 9,
+          "rows_written": 1
+        },
+        {
+          "caminho": "/explorar",
+          "como": "gui",
+          "peso": 9,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=mural",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=lista",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?nucleo=bracarense",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/memorias/1992-chegada-do-gui",
+          "como": "gui",
+          "peso": 12,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas/gui",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/arvore",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=gui",
+          "como": "gui",
+          "peso": 450,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/retratos/pequeno/exemplos/chico-5.jpg?v=gui",
+          "como": "gui",
+          "peso": 60,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal%20casa%20v%C3%B3",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal%20casa%20v%C3%B3",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=minha%20m%C3%A3e",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=minha%20m%C3%A3e",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=sabar%C3%A1",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=sabar%C3%A1",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=v%C3%B3",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=v%C3%B3",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=eu",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=eu",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/",
+          "como": "elizete",
+          "peso": 12,
+          "rows_written": 1
+        },
+        {
+          "caminho": "/explorar",
+          "como": "elizete",
+          "peso": 12,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=mural",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=lista",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?nucleo=bracarense",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/memorias/1992-chegada-do-gui",
+          "como": "elizete",
+          "peso": 16,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas/gui",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/arvore",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=elizete",
+          "como": "elizete",
+          "peso": 600,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/retratos/pequeno/exemplos/karol-3.jpg?v=elizete",
+          "como": "elizete",
+          "peso": 80,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal%20casa%20v%C3%B3",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal%20casa%20v%C3%B3",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=minha%20m%C3%A3e",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=minha%20m%C3%A3e",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=sabar%C3%A1",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=sabar%C3%A1",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=v%C3%B3",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=v%C3%B3",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=eu",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=eu",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=tv&sala=1",
+          "como": "gui",
+          "peso": 1,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar/palco?ver=tv&sala=1&m=carga-0473&antes=carga-0155&depois=carga-0489",
+          "como": "gui",
+          "peso": 360,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=gui",
+          "como": "gui",
+          "peso": 360,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/audios/exemplos/vo-bela-canja.m4a",
+          "como": "gui",
+          "peso": 120,
+          "rows_written": 0
+        }
+      ]
+    },
+    "depois": {
+      "partes": [
+        {
+          "parte": "Páginas de 3 quem administra (como o Gui)",
+          "linhas": 850671
+        },
+        {
+          "parte": "A busca de 3 quem administra (como o Gui)",
+          "linhas": 377122.5
+        },
+        {
+          "parte": "Fotos e retratos de 3 quem administra (como o Gui)",
+          "linhas": 537060
+        },
+        {
+          "parte": "Páginas de 4 quem não administra (como a Elizete)",
+          "linhas": 1106184
+        },
+        {
+          "parte": "A busca de 4 quem não administra (como a Elizete)",
+          "linhas": 491210.00000000006
+        },
+        {
+          "parte": "Fotos e retratos de 4 quem não administra (como a Elizete)",
+          "linhas": 706480
+        },
+        {
+          "parte": "Uma hora de modo TV (360 passagens)",
+          "linhas": 753490
+        }
+      ],
+      "total": 4822217.5,
+      "rows_written": 21,
+      "gravacoes": [
+        {
+          "caminho": "/",
+          "como": "gui",
+          "peso": 9,
+          "rows_written": 1
+        },
+        {
+          "caminho": "/explorar",
+          "como": "gui",
+          "peso": 9,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=mural",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=lista",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?nucleo=bracarense",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/memorias/1992-chegada-do-gui",
+          "como": "gui",
+          "peso": 12,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas/gui",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/arvore",
+          "como": "gui",
+          "peso": 3,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=gui",
+          "como": "gui",
+          "peso": 450,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/retratos/pequeno/exemplos/chico-5.jpg?v=gui",
+          "como": "gui",
+          "peso": 60,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal%20casa%20v%C3%B3",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal%20casa%20v%C3%B3",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=minha%20m%C3%A3e",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=minha%20m%C3%A3e",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=sabar%C3%A1",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=sabar%C3%A1",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=v%C3%B3",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=v%C3%B3",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=eu",
+          "como": "gui",
+          "peso": 6,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=eu",
+          "como": "gui",
+          "peso": 1.5,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/",
+          "como": "elizete",
+          "peso": 12,
+          "rows_written": 1
+        },
+        {
+          "caminho": "/explorar",
+          "como": "elizete",
+          "peso": 12,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=mural",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=lista",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?nucleo=bracarense",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=acaso&m=1992-chegada-do-gui",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/memorias/1992-chegada-do-gui",
+          "como": "elizete",
+          "peso": 16,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas/gui",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/pessoas",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/arvore",
+          "como": "elizete",
+          "peso": 4,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=elizete",
+          "como": "elizete",
+          "peso": 600,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/retratos/pequeno/exemplos/karol-3.jpg?v=elizete",
+          "como": "elizete",
+          "peso": 80,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=natal%20casa%20v%C3%B3",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=natal%20casa%20v%C3%B3",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=minha%20m%C3%A3e",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=minha%20m%C3%A3e",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=sabar%C3%A1",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=sabar%C3%A1",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=v%C3%B3",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=v%C3%B3",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/busca/resultado?q=eu",
+          "como": "elizete",
+          "peso": 8,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?q=eu",
+          "como": "elizete",
+          "peso": 2,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar?ver=tv&sala=1",
+          "como": "gui",
+          "peso": 1,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/explorar/palco?ver=tv&sala=1&m=carga-0473&antes=carga-0155&depois=carga-0489",
+          "como": "gui",
+          "peso": 360,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/fotos/pequena/exemplos/chico-4.jpg?v=gui",
+          "como": "gui",
+          "peso": 360,
+          "rows_written": 0
+        },
+        {
+          "caminho": "/audios/exemplos/vo-bela-canja.m4a",
+          "como": "gui",
+          "peso": 120,
+          "rows_written": 0
+        }
+      ]
+    }
+  },
+  "espelho": {
+    "memoriasAntes": 654,
+    "bytes": 26445,
+    "status": 303,
+    "local": "/admin/espelho?ok=Espelho+refeito:+39+pessoas,+35+filiações,+14+casais,+7+laços+do+coração+e+41+memórias+de+exemplo.",
+    "comandos": 9,
+    "rows_written": 43566,
+    "rows_read": 68040,
+    "percentualDoPlano": 43.566,
+    "passouDe50Mil": false
+  },
+  "restrita": {
+    "memoria": {
+      "id": "carga-0195",
+      "titulo": "Réveillon 2021",
+      "pessoa": "aguilar"
+    },
+    "pessoaContada": "Aguilar",
+    "familia": "bayara-nascimento",
+    "capitulo": "natais",
+    "leitores": [
+      {
+        "pessoa": "gui",
+        "pessoas": {
+          "com": 65,
+          "sem": 64
+        },
+        "capitulo": {
+          "com": 50,
+          "sem": 49
+        },
+        "diferencaPessoas": 1,
+        "diferencaCapitulo": 1
+      },
+      {
+        "pessoa": "elizete",
+        "pessoas": {
+          "com": 65,
+          "sem": 64
+        },
+        "capitulo": {
+          "com": 50,
+          "sem": 49
+        },
+        "diferencaPessoas": 1,
+        "diferencaCapitulo": 1
+      },
+      {
+        "pessoa": "lucas-magno",
+        "pessoas": {
+          "com": 70,
+          "sem": 70
+        },
+        "capitulo": {
+          "com": 50,
+          "sem": 50
+        },
+        "diferencaPessoas": 0,
+        "diferencaCapitulo": 0
+      }
+    ]
+  }
+}
