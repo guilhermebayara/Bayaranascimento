@@ -32,3 +32,7 @@ No Wrangler 4.160, na base com semente limpa, os pedidos quentes falharam em 19 
 O build em modo produção já ocultava a mensagem interna. [`provar-erro-500.mjs`](../../../scripts/provar-erro-500.mjs) testa isso com um banco local vazio e descartável. O teste força um erro do D1 no preparo do banco. A página `/capitulos` e a API `/api/copia` devolvem HTTP 500 sem o texto que aparece no log do servidor. Para repetir, inicie o Wrangler local com `--var AMBIENTE:producao` e `--persist-to` apontando para uma pasta nova.
 
 O conserto por si só baixou o agregado de 13.934 para 13.482 linhas lidas para Gui e Elizete, e de 14.595 para 14.120 para Lucas Magno. O SQL ficou com 6.395 bytes no `medir-capitulos-mem8.mjs --exigir-uma-leitura`. Testei também iniciar os cruzamentos do período pelos capítulos filtrados. Os 52 HTMLs passaram, mas a economia adicional foi de 1.162 linhas por página para Gui e Elizete e de 1.222 para Lucas Magno. A auditoria mediu 1.347 na consulta anterior, com outra carga de teste. Deixei o cruzamento como estava porque a medição da variante não repetiu as 1.347 linhas.
+
+## Ficha antiga de memória na lixeira (E1)
+
+Quando a ficha tem o código de uma memória que já foi para a lixeira, o formulário responde HTTP 404 com “Memória não encontrada.”, como o JSON. O teste envia a ficha nos dois formatos depois de excluir a memória e confere a impressão do banco inteiro.

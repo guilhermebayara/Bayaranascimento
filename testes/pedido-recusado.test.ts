@@ -141,6 +141,29 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     }
   });
 
+  it('/api/memorias: a ficha aberta antes de excluir recusa a edição em JSON e pelo formulário', async () => {
+    const gui = usuarioDe('gui');
+    const ficha = { titulo: 'Ficha aberta antes de excluir', ano: 2020, tipo, situacao: 'publicada' };
+    const criada = await salvar(gui, ficha);
+    expect(criada.status).toBe(201);
+    const id = criada.corpo.id as string;
+    expect((await formulario(lixeira, '/api/lixeira', gui, { acao: 'excluir', memoria: id })).erro).toBeNull();
+    expect(linha<{ excluida_em: string }>('SELECT excluida_em FROM memorias WHERE id = ?', id).excluida_em).toBeTruthy();
+    const antes = impressao();
+
+    expect(await salvar(gui, { ...ficha, id, titulo: 'Alteração atrasada' })).toEqual({ status: 404, corpo: { erro: 'Memória não encontrada.' } });
+    const resposta = await memorias.POST({
+      request: new Request('http://localhost/api/memorias', {
+        method: 'POST', headers: { Origin: 'http://localhost' },
+        body: new URLSearchParams({ ...ficha, ano: String(ficha.ano), id, titulo: 'Alteração atrasada', pagina: 'publicada', envio: 'ficha-atrasada' }),
+      }),
+      locals: { usuario: gui, tipos },
+    } as never);
+    expect(resposta.status).toBe(404);
+    expect(await resposta.text()).toBe('Memória não encontrada.');
+    expect(impressao()).toBe(antes);
+  });
+
   it('/api/memorias: o formulário sem script recusado não guarda o código de envio nem nada mais (sessão AA)', async () => {
     const giovanna = usuarioDe('giovanna');
     const r0 = await salvar(giovanna, { titulo: 'Rascunho para recusar', ano: 2020, tipo, pessoas: ['giovanna'], situacao: 'rascunho' });

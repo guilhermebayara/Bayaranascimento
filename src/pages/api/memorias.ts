@@ -51,6 +51,8 @@ import {
 } from '../../lib/servidor/repositorio';
 
 const opcional = (maximo: number) => z.string().trim().max(maximo).optional();
+const MEMORIA_NAO_ENCONTRADA = 'Memória não encontrada.';
+const fichaNaoEncontrada = () => new Response(MEMORIA_NAO_ENCONTRADA, { status: 404, headers: { 'Cache-Control': 'no-store' } });
 
 const Pedido = z.object({
   id: z.string().max(120).optional(),
@@ -108,7 +110,8 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
     const dados = await request.formData();
     const id = String(dados.get('id') ?? '') || undefined;
     const anterior = id ? await obterMemoria(locals.usuario, id) : undefined;
-    const pedido = pedidoDoFormulario(dados, anterior);
+    if (id && !anterior) return fichaNaoEncontrada();
+    const pedido = pedidoDoFormulario(dados, id);
     // O código de envio único da página (o toque duplo sem script em "Publicar memória", fila da revisão Z2,
     // sessão AA): a chave junta o código, quem envia, a memória e o que foi digitado. O segundo toque igual não
     // grava de novo e responde como o primeiro, como no "Publicar relato". Só para a memória que já existe: a
@@ -116,7 +119,8 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
     const codigo = String(dados.get('envio') ?? '').slice(0, 80);
     const envio = id && anterior && codigo ? await chaveDoEnvioUnico(codigo, locals.usuario.pessoa, id, pedido) : undefined;
     const repetido = async () => {
-      const agora = (await obterMemoria(locals.usuario, id!))!;
+      const agora = await obterMemoria(locals.usuario, id!);
+      if (!agora) return fichaNaoEncontrada();
       const publicada = agora.situacao === 'publicada';
       const recado = !publicada ? 'Rascunho salvo.' : String(dados.get('pagina')) === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
       return voltar(request, publicada ? `/memorias/${id}` : `/nova?id=${id}`, { ok: recado });
@@ -134,6 +138,7 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
       const destino = id ? `/nova?${new URLSearchParams({ id })}` : '/nova';
       return conflitoNoFormulario(request, rewrite, destino, RECADO_MEMORIA_MUDOU);
     }
+    if (resposta.status === 404) return fichaNaoEncontrada();
     const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string; repetido?: boolean };
     if (corpo.repetido) return repetido();
     if (!resposta.ok) {
@@ -192,12 +197,12 @@ const mesmasFamilias = (a: readonly string[], b: readonly string[]) => a.length 
  * O formulário comum, no formato do pedido em JSON. Fotos só se enviam e se tiram com JavaScript: sem a
  * lista, as que a memória tem na hora de gravar ficam, lidas dentro de cada tentativa (Y3 do PR #160).
  */
-function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unknown {
+function pedidoDoFormulario(dados: FormData, id: string | undefined): unknown {
   const texto = (nome: string) => String(dados.get(nome) ?? '').trim();
   const numero = (nome: string) => (texto(nome) ? Number(texto(nome)) : undefined);
   const relato = texto('relato');
   return {
-    id: anterior?.id,
+    id,
     titulo: texto('titulo'),
     ano: numero('ano'),
     mes: numero('mes'),
@@ -232,7 +237,7 @@ async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<t
 
   // Edição: a memória precisa existir, ser visível para a pessoa e poder ser alterada por ela
   const anterior = pedido.id ? await obterMemoria(usuario, pedido.id) : undefined;
-  if (pedido.id && !anterior) return erro(404, 'Memória não encontrada.');
+  if (pedido.id && !anterior) return erro(404, MEMORIA_NAO_ENCONTRADA);
   if (anterior) {
     const decisao = podeEditarMemoria(usuario, anterior);
     if (!decisao.ok) return erro(403, decisao.motivo);
