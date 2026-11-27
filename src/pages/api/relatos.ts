@@ -5,6 +5,7 @@ import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto } from '../../lib/servidor/conteudo';
 import { avisosDeRelatoNovo, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
 import { erro, json, mesmaOrigem, pedeJson, voltar } from '../../lib/servidor/http';
+import { recadoDaValidacao, recadoDoTetoDoRelato } from '../../lib/servidor/recados-de-validacao';
 import { chaveDoPublico, podeEscreverRelato, publicoDaChave, relatoQueNasce, veORelato, type Publico, type Usuario } from '../../lib/servidor/permissoes';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, mensagensDerivadas, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
@@ -46,13 +47,13 @@ const Pedido = z.object({
   // Só o formulário com script manda a lista. Sem ela, os áudios do relato ficam como estão.
   audios: z
     .array(z.object({ id: z.number().int().positive(), transcricao: z.string().max(20000).optional() }))
-    .max(AUDIOS_POR_RELATO, `Um relato pode ter até ${AUDIOS_POR_RELATO} áudios.`)
+    .max(AUDIOS_POR_RELATO)
     .optional(),
   // Fotos pelo relato (docs/regras/relatos.md): as que a pessoa enviou neste formulário e as que já vieram
   // com o relato, na ordem. Só o formulário com script manda a lista; sem ela, as fotos ficam como estão.
   fotos: z
     .array(z.object({ id: z.number().int().positive(), legenda: z.string().max(200).optional() }))
-    .max(30, 'Um relato pode trazer até 30 fotos.')
+    .max(30)
     .optional(),
   // O relato como conversa (src/lib/conversa.ts): as mensagens, na ordem. Com elas, o texto, os áudios e as
   // fotos saem delas, e o que veio à parte não vale. Só a janela de escrever com script manda.
@@ -69,7 +70,7 @@ const Pedido = z.object({
         legenda: z.string().max(200).optional(),
       }),
     )
-    .max(MENSAGENS_POR_RELATO, `Um relato pode ter até ${MENSAGENS_POR_RELATO} mensagens.`)
+    .max(MENSAGENS_POR_RELATO)
     .optional(),
   // Sem script, a janela de escrever manda só a mensagem nova: ela entra no fim da conversa
   acrescentar: z.boolean().default(false),
@@ -193,7 +194,7 @@ async function chaveDoEnvio(codigo: string, pessoa: string, memoriaId: string, p
 async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<typeof acompanharConversa>): Promise<Response> {
   const { usuario } = locals;
   const lido = Pedido.safeParse(bruto);
-  if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
+  if (!lido.success) return erro(400, recadoDaValidacao(lido.error.issues[0], 'relato'));
   const { memoria: memoriaId, por } = lido.data;
   // A versão precisa ser lida antes das mensagens, inclusive quando o formulário acrescenta no fim.
   const memoria = await obterMemoria(usuario, memoriaId);
@@ -204,7 +205,7 @@ async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<t
     ? mensagens.filter((m) => m.tipo === 'audio' && m.audioId).map((m) => ({ id: m.audioId!, ...(m.transcricao?.trim() ? { transcricao: m.transcricao } : {}) }))
     : acrescentar ? undefined : lido.data.audios;
   const fotos = mensagens ? mensagens.filter((m) => m.tipo === 'foto' && m.fotoId).map((m) => ({ id: m.fotoId!, ...(m.legenda?.trim() ? { legenda: m.legenda } : {}) })) : acrescentar ? undefined : lido.data.fotos;
-  const limiteDeAudios = `Um relato pode ter até ${AUDIOS_POR_RELATO} áudios.`;
+  const limiteDeAudios = recadoDoTetoDoRelato('audios', AUDIOS_POR_RELATO);
   if (audios && audios.length > AUDIOS_POR_RELATO) return erro(400, limiteDeAudios);
 
   // Quem não vê a memória recebe o mesmo que para uma memória inexistente
@@ -229,7 +230,7 @@ async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<t
   if (envio && await envioJaGravado(envio)) return repetirResposta();
   if (acrescentar) {
     mensagens = [...antes, ...paragrafos(lido.data.texto).map((t, i) => ({ tipo: 'texto' as const, texto: t, citaId: i === 0 ? (lido.data.cita ?? null) : null }))];
-    if (mensagens.length > MENSAGENS_POR_RELATO) return erro(400, `Um relato pode ter até ${MENSAGENS_POR_RELATO} mensagens.`);
+    if (mensagens.length > MENSAGENS_POR_RELATO) return erro(400, recadoDoTetoDoRelato('mensagens', MENSAGENS_POR_RELATO));
     if (mensagens.filter((m) => m.tipo === 'audio').length > AUDIOS_POR_RELATO) return erro(400, limiteDeAudios);
   }
   const texto = mensagens ? textoDasMensagens(mensagens) : lido.data.texto;

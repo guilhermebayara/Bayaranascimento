@@ -25,7 +25,7 @@ Mediana de cinco pedidos locais quentes do Gui, do início até o fim da respost
 | Wrangler 4.162, correção | 42 / 42 | 49 / 53 |
 | Astro, correção | 210 / 219 | 216 / 300 |
 
-No Wrangler 4.160, na base com semente limpa, os pedidos quentes falharam em 19 a 49 ms. O log confirmou erro de SQL. Na homologação, a consulta de Workers Observability para o intervalo de 15h35 a 15h50 encontrou `/capitulos` às 15h38min30s com HTTP 200, 1.736 ms de tempo de parede e 43 ms de CPU, com resultado `ok`. A consulta de invocações de 15h39 a 15h45 veio vazia. O pedido que o Gui viu falhar por volta das 15h40 ficou sem causa confirmada. Os registros disponíveis deixam em aberto SQL, tempo e CPU para aquele pedido.
+No Wrangler 4.160, na base com semente limpa, os pedidos quentes falharam em 19 a 49 ms. O log confirmou erro de SQL. Na homologação, Gui confirmou às 15h54 que a página abriu e que a observação era a demora. O Workers Observability registrou `/capitulos` às 15h38min30s com HTTP 200, 1.736 ms de tempo de parede e 43 ms de CPU, com resultado `ok`. Esse registro é compatível com a demora relatada. A reprodução do L1 é local.
 
 ### Resposta de erro e leitura do período
 
@@ -44,3 +44,7 @@ O formulário confere o código do envio já gravado antes de contar os parágra
 ## Texto recusado na janela do relato (N1)
 
 A rota sem script devolve a própria janela com o recado e o texto que chegou no pedido, tanto no limite de mensagens quanto nas outras recusas em que o formulário ainda existe. O texto fica só no pedido que devolve a página. O navegador recebe o código HTTP da recusa. Se a memória saiu do alcance de quem escrevia, ou a autoria ficou bloqueada enquanto a pessoa escrevia, a página já não oferece a caixa daquele relato. Devolver o texto nesses casos exige uma decisão sobre onde mostrá-lo.
+
+## Recados de limite (E4)
+
+Memórias, relatos e “Acrescentar fotos” usam os mesmos nomes de campos e recados de limite. O número vem do esquema da rota. A prova de cada campo em `pedido-recusado.test.ts` confere HTTP 400, o recado em português e o banco intacto. A ficha e a janela sem JavaScript também devolvem HTTP 400 com o recado na página.

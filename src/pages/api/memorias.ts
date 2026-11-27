@@ -13,6 +13,7 @@ import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { avisosDeQuemEstava, mudancaDeQuemVe } from '../../lib/servidor/avisos';
 import { conflitoNoFormulario, erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
+import { recadoDaValidacao } from '../../lib/servidor/recados-de-validacao';
 import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, publicoMudou, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
   acompanharConversa,
@@ -56,7 +57,7 @@ const fichaNaoEncontrada = () => new Response(MEMORIA_NAO_ENCONTRADA, { status: 
 
 const Pedido = z.object({
   id: z.string().max(120).optional(),
-  titulo: z.string().trim().min(1, 'Dê um título para a memória.').max(120),
+  titulo: z.string().trim().min(1).max(120),
   // Sem ano, só o rascunho (ver SEM_ANO, em src/lib/datas.ts)
   ano: z.number().int().nullable().optional(),
   mes: z.number().int().min(1).max(12).optional(),
@@ -149,7 +150,9 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
       const destino = `/nova?${new URLSearchParams({ ...(id ? { id } : {}), erro: recado })}`;
       if (!rewrite) return voltar(request, destino);
       locals.memoriaDevolvida = memoriaDevolvida(dados);
-      return rewrite(new Request(new URL(destino, request.url), { method: 'GET', headers: request.headers }));
+      const pagina = await rewrite(new Request(new URL(destino, request.url), { method: 'GET', headers: request.headers }));
+      if (pagina.headers.has('Location')) return pagina;
+      return new Response(pagina.body, { status: resposta.status, headers: pagina.headers });
     }
     const recado = corpo.situacao === 'rascunho' ? 'Rascunho salvo.' : anterior?.situacao === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
     return voltar(request, corpo.url!, { ok: recado });
@@ -228,7 +231,7 @@ async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<t
   // esperava): nada é conferido nem gravado, e quem chama responde como o primeiro
   if (envio && (await envioJaGravado(envio))) return json({ repetido: true }, 200);
   const lido = Pedido.safeParse(bruto);
-  if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
+  if (!lido.success) return erro(400, recadoDaValidacao(lido.error.issues[0], 'memoria'));
   const pedido = lido.data;
 
   // O tipo começa sem marcação no formulário. Um rascunho pode ser salvo sem ele; para publicar, é obrigatório.

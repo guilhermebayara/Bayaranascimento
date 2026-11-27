@@ -66,6 +66,119 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     return { status: resposta.status, erro: new URL(resposta.headers.get('Location') ?? '/', 'http://localhost').searchParams.get('erro') };
   };
 
+  describe('limites em português', async () => {
+    const longo = (limite: number) => 'x'.repeat(limite + 1);
+    const mais = <T>(limite: number, valor: T) => Array.from({ length: limite + 1 }, () => valor);
+    const texto = { tipo: 'texto', texto: 'Uma lembrança.' };
+    const relato = { por: 'elizete', texto: texto.texto };
+    const ficha = { titulo: 'Uma memória de teste', ano: 2020, tipo };
+    const publicar = { ...relato, memoria: '2025-natal' };
+    const fotos = { memoria: publicar.memoria, fotos: [{ id: 1 }] };
+    const casos: Record<'memorias' | 'relatos' | 'acrescentar-fotos', [string, Record<string, unknown>, string][]> = {
+      memorias: [
+        ['id', { id: longo(120) }, 'O código da memória pode ter até 120 caracteres.'],
+        ['titulo', { titulo: longo(120) }, 'O título pode ter até 120 caracteres.'],
+        ['titulo vazio', { titulo: '' }, 'Dê um título para a memória.'],
+        ['mes inicial', { mes: 0 }, 'O mês precisa ser pelo menos 1.'],
+        ['mes final', { mes: 13 }, 'O mês vai até 12.'],
+        ['dia inicial', { dia: 0 }, 'O dia precisa ser pelo menos 1.'],
+        ['dia final', { dia: 32 }, 'O dia vai até 31.'],
+        ['tipo', { tipo: longo(60) }, 'O código do tipo de momento pode ter até 60 caracteres.'],
+        ['tipoOutro', { tipoOutro: longo(40) }, 'O nome do tipo de momento pode ter até 40 caracteres.'],
+        ['pessoas', { pessoas: mais(60, 'elizete') }, 'Dá para marcar até 60 pessoas.'],
+        ['pessoas.*', { pessoas: [longo(80)] }, 'O código da pessoa pode ter até 80 caracteres.'],
+        ['novasPessoas', { novasPessoas: mais(20, { nome: 'Alguém' }) }, 'Dá para cadastrar até 20 pessoas novas de cada vez.'],
+        ['novasPessoas.*.nome', { novasPessoas: [{ nome: longo(80) }] }, 'O nome da pessoa pode ter até 80 caracteres.'],
+        ['novasPessoas.*.nome vazio', { novasPessoas: [{ nome: '' }] }, 'Escreva o nome da pessoa.'],
+        ['lugar', { lugar: longo(120) }, 'O lugar pode ter até 120 caracteres.'],
+        ['nucleos', { nucleos: mais(20, 'bayara-nascimento') }, 'Dá para marcar até 20 famílias.'],
+        ['nucleos.*', { nucleos: [longo(80)] }, 'O código da família pode ter até 80 caracteres.'],
+        ['fotos', { fotos: mais(30, { id: 1 }) }, 'Uma memória pode ter até 30 fotos.'],
+        ['fotos.*.legenda', { fotos: [{ id: 1, legenda: longo(200) }] }, 'A legenda da foto pode ter até 200 caracteres.'],
+        ['fotosMostradas', { fotosMostradas: mais(60, 1) }, 'A lista de fotos mostradas pode ter até 60 fotos.'],
+        ['capitulos', { capitulos: mais(20, 'natais') }, 'Dá para marcar até 20 capítulos.'],
+        ['capitulos.*', { capitulos: [longo(120)] }, 'O código do capítulo pode ter até 120 caracteres.'],
+        ['temas', { temas: longo(500) }, 'O campo de temas pode ter até 500 caracteres.'],
+        ['relato.por', { relato: { ...relato, por: longo(80) } }, 'O código de quem contou pode ter até 80 caracteres.'],
+        ['relato.texto', { relato: { ...relato, texto: longo(20000) } }, 'O texto do relato pode ter até 20.000 caracteres.'],
+        ['relato.audios', { relato: { ...relato, audios: mais(20, { id: 1 }) } }, 'Um relato pode ter até 20 áudios.'],
+        ['relato.audios.*.id', { relato: { ...relato, audios: [{ id: 0 }] } }, 'O código do áudio precisa ser maior que 0.'],
+        ['relato.audios.*.transcricao', { relato: { ...relato, audios: [{ id: 1, transcricao: longo(20000) }] } }, 'A transcrição do áudio pode ter até 20.000 caracteres.'],
+        ['relato.mensagens', { relato: { ...relato, mensagens: mais(200, texto) } }, 'Um relato pode ter até 200 mensagens.'],
+        ['relato.mensagens.*.id', { relato: { ...relato, mensagens: [{ ...texto, id: 0 }] } }, 'O código da mensagem precisa ser maior que 0.'],
+        ['relato.mensagens.*.texto', { relato: { ...relato, mensagens: [{ ...texto, texto: longo(20000) }] } }, 'O texto da mensagem pode ter até 20.000 caracteres.'],
+        ['relato.mensagens.*.audioId', { relato: { ...relato, mensagens: [{ tipo: 'audio', audioId: 0 }] } }, 'O código do áudio precisa ser maior que 0.'],
+      ],
+      relatos: [
+        ['memoria', { memoria: longo(120) }, 'O código da memória pode ter até 120 caracteres.'],
+        ['por', { por: longo(80) }, 'O código de quem contou pode ter até 80 caracteres.'],
+        ['texto', { texto: longo(20000) }, 'O texto do relato pode ter até 20.000 caracteres.'],
+        ['audios', { audios: mais(20, { id: 1 }) }, 'Um relato pode ter até 20 áudios.'],
+        ['audios.*.id', { audios: [{ id: 0 }] }, 'O código do áudio precisa ser maior que 0.'],
+        ['audios.*.transcricao', { audios: [{ id: 1, transcricao: longo(20000) }] }, 'A transcrição do áudio pode ter até 20.000 caracteres.'],
+        ['fotos', { fotos: mais(30, { id: 1 }) }, 'Um relato pode trazer até 30 fotos.'],
+        ['fotos.*.id', { fotos: [{ id: 0 }] }, 'O código da foto precisa ser maior que 0.'],
+        ['fotos.*.legenda', { fotos: [{ id: 1, legenda: longo(200) }] }, 'A legenda da foto pode ter até 200 caracteres.'],
+        ['mensagens', { mensagens: mais(200, texto) }, 'Um relato pode ter até 200 mensagens.'],
+        ['mensagens.*.id', { mensagens: [{ ...texto, id: 0 }] }, 'O código da mensagem precisa ser maior que 0.'],
+        ['mensagens.*.audioId', { mensagens: [{ tipo: 'audio', audioId: 0 }] }, 'O código do áudio precisa ser maior que 0.'],
+        ['mensagens.*.fotoId', { mensagens: [{ tipo: 'foto', fotoId: 0 }] }, 'O código da foto precisa ser maior que 0.'],
+        ['mensagens.*.citaId', { mensagens: [{ ...texto, citaId: 0 }] }, 'O código da mensagem citada precisa ser maior que 0.'],
+        ['mensagens.*.texto', { mensagens: [{ ...texto, texto: longo(20000) }] }, 'O texto da mensagem pode ter até 20.000 caracteres.'],
+        ['mensagens.*.transcricao', { mensagens: [{ tipo: 'audio', audioId: 1, transcricao: longo(20000) }] }, 'A transcrição do áudio pode ter até 20.000 caracteres.'],
+        ['mensagens.*.legenda', { mensagens: [{ tipo: 'foto', fotoId: 1, legenda: longo(200) }] }, 'A legenda da foto pode ter até 200 caracteres.'],
+        ['cita', { cita: 0 }, 'O código da mensagem citada precisa ser maior que 0.'],
+        ['publico', { publico: longo(2000) }, 'O campo de quem vê o relato pode ter até 2.000 caracteres.'],
+        ['envio', { envio: longo(80) }, 'O código do envio pode ter até 80 caracteres.'],
+      ],
+      'acrescentar-fotos': [
+        ['memoria', { memoria: longo(120) }, 'O código da memória pode ter até 120 caracteres.'],
+        ['fotos vazias', { fotos: [] }, 'Escolha pelo menos uma foto.'],
+        ['fotos', { fotos: mais(30, { id: 1 }) }, 'Dá para acrescentar até 30 fotos de cada vez.'],
+        ['fotos.*.id', { fotos: [{ id: 0 }] }, 'O código da foto precisa ser maior que 0.'],
+        ['fotos.*.legenda', { fotos: [{ id: 1, legenda: longo(200) }] }, 'A legenda da foto pode ter até 200 caracteres.'],
+      ],
+    };
+    const rotas = {
+      memorias: { rota: memorias, base: ficha },
+      relatos: { rota: await import('../src/pages/api/relatos'), base: publicar },
+      'acrescentar-fotos': { rota: await import('../src/pages/api/acrescentar-fotos'), base: fotos },
+    };
+    for (const nome of ['memorias', 'relatos', 'acrescentar-fotos'] as const) {
+      it.each(casos[nome])(`/api/${nome}: %s dá 400 com o recado do campo`, async (_campo, alteracao, recado) => {
+        const { rota, base } = rotas[nome];
+        const antes = impressao();
+        const resposta = await rota.POST({
+          request: new Request(`http://localhost/api/${nome}`, {
+            method: 'POST', headers: { Origin: 'http://localhost', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...base, ...alteracao }),
+          }),
+          locals: { usuario: elizete, tipos },
+        } as never);
+        expect(resposta.status).toBe(400);
+        expect(await resposta.json()).toEqual({ erro: recado });
+        expect(impressao()).toBe(antes);
+      });
+    }
+
+    it.each([
+      ['memorias', { titulo: longo(120), ano: '2020', tipo }, 'O título pode ter até 120 caracteres.'],
+      ['relatos', { memoria: publicar.memoria, por: relato.por, texto: longo(20000) }, 'O texto do relato pode ter até 20.000 caracteres.'],
+    ] as const)('/api/%s: o formulário também devolve 400 e o recado em português', async (nome, campos, recado) => {
+      const antes = impressao();
+      const resposta = await rotas[nome].rota.POST({
+        request: new Request(`http://localhost/api/${nome}`, {
+          method: 'POST', headers: { Origin: 'http://localhost' }, body: new URLSearchParams({ ...campos }),
+        }),
+        locals: { usuario: elizete, tipos },
+        rewrite: async (r: Request) => new Response(new URL(r.url).searchParams.get('erro')),
+      } as never);
+      expect(resposta.status).toBe(400);
+      expect(await resposta.text()).toBe(recado);
+      expect(impressao()).toBe(antes);
+    });
+  });
+
   it('marcar alguém que não existe recusa sem cadastrar a pessoa nova nem o tema', async () => {
     const r = await salvar(elizete, { titulo: 'Recusada 1', ano: 2020, tipo, pessoas: ['nova:0', 'ninguem-com-este-id'], novasPessoas: [{ nome: 'Pessoa Recusada Um' }], temas: 'Tema Recusado Um' });
     expect(r.status).toBe(400);

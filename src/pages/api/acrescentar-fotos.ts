@@ -4,14 +4,15 @@
 import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import { erro, json, mesmaOrigem } from '../../lib/servidor/http';
+import { recadoDaValidacao } from '../../lib/servidor/recados-de-validacao';
 import { acrescentarFotos, obterMemoria } from '../../lib/servidor/repositorio';
 
 const Pedido = z.object({
   memoria: z.string().max(120),
   fotos: z
     .array(z.object({ id: z.number().int().positive(), legenda: z.string().max(200).optional() }))
-    .min(1, 'Escolha pelo menos uma foto.')
-    .max(30, 'Dá para acrescentar até 30 fotos de cada vez.'),
+    .min(1)
+    .max(30),
 });
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -23,7 +24,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return erro(400, 'Envio inválido.');
   }
   const lido = Pedido.safeParse(bruto);
-  if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira as fotos.');
+  if (!lido.success) return erro(400, recadoDaValidacao(lido.error.issues[0], 'acrescentar-fotos'));
   // Quem não vê a memória recebe o mesmo que para uma memória que não existe. Rascunho é do formulário da memória.
   const memoria = await obterMemoria(locals.usuario, lido.data.memoria);
   if (!memoria || memoria.situacao !== 'publicada') return erro(404, 'Memória não encontrada.');
