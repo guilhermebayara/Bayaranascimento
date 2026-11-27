@@ -1151,7 +1151,7 @@ async function agregadosDosCapitulos(usuario: Usuario, capitulos: Capitulo[]) {
     faixas AS (SELECT capitulo, posicao FROM do_trilho
       UNION ALL SELECT c.id, m.posicao FROM cs c JOIN visiveis m WHERE NOT c.epoca AND c.modo = 'epoca'
         AND EXISTS (SELECT 1 FROM do_trilho t WHERE t.capitulo = c.id)
-        AND ${sqlMemoriaDoCapitulo('m', "json_set(c.dados, '$.pessoas', json('[]'), '$.familias', json('[]'))", "'[]'",'epoca')}),
+        AND ${sqlMemoriaDoCapitulo('m', `json_set(c.dados, '$.pessoas', json('[]'), '$.familias', json('[]'))`, "'[]'",'epoca')}),
     pontas AS (SELECT capitulo, MIN(posicao) AS primeira, MAX(posicao) AS ultima FROM faixas GROUP BY capitulo)
     SELECT c.id AS capitulo, COALESCE(r.n,0) AS n, r.inicio, r.fim, p.primeira, p.ultima
       FROM cs c LEFT JOIN resumos r ON r.capitulo = c.id LEFT JOIN pontas p ON p.capitulo = c.id`)
