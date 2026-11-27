@@ -124,8 +124,7 @@ const nomeVisto = (id: string) => paraQuemOlha(id).nome;
 
 // As contagens e as escolhas ficam no banco; só as memórias dos cartões são completadas.
 const hoje = diaSimuladoDoPedido(Astro.url) ?? hojeNoBrasil(agora);
-const inicio = await memoriasDoInicio(usuario, chegada.novidadesDesde, hoje);
-const titulos = await titulosDasMemorias(usuario, relatosDesde.map((r) => r.memoriaId));
+const inicio = await memoriasDoInicio(usuario, chegada.novidadesDesde, hoje, { soCarta: Boolean(chegada.cartaNoAlto && carta && eu) });
 const acervo = { quantas: inicio.minhas, comFoto: inicio.fotos, ...(inicio.minhaDe !== inicio.minhaAte ? { de: inicio.minhaDe, ate: inicio.minhaAte } : {}) };
 const novo = {
   memorias: { length: inicio.novas },
@@ -135,6 +134,7 @@ const novo = {
 // no conceito. O resto fica numa linha, com o caminho para "Entraram por último", no Explorar.
 const naMesa = inicio.naMesa;
 const relatoNaMesa = novo.relatos[0];
+const titulos = await titulosDasMemorias(usuario, relatoNaMesa ? [relatoNaMesa.memoriaId] : []);
 // O bilhete do relato novo: o rótulo diz só "Relato novo" e o título da memória vem numa linha própria (P24)
 const relatoDaFila = relatoNaMesa && {
   memoriaId: relatoNaMesa.memoriaId,

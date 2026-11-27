@@ -1,8 +1,9 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { temSqlite } from './apoio/d1';
 import { acrescentarEscondido } from './apoio/casos-escondidos';
-import { memoriaDoCapitulo, resumoDoCapitulo, sqlMemoriaDoCapitulo, type Capitulo } from '../src/lib/capitulos';
+import { ehEpoca, memoriaDoCapitulo, resumoDoCapitulo, sqlMemoriaDoCapitulo, type Capitulo } from '../src/lib/capitulos';
 import { emOutrosAnos, memoriaParaContar, novidades, voceNoAcervo } from '../src/lib/painel';
+import { coresDosCapitulos } from '../src/lib/linha-capitulos';
 import { oQueVoceCriou } from '../src/lib/conta';
 import { explorar, lerFiltros } from '../src/lib/explorar';
 
@@ -52,6 +53,8 @@ describe.skipIf(!(await temSqlite()))('MEM-6: contar e escolher preserva a regra
     for (const capitulo of casos) for (const comFilhos of [false, true]) {
       const filhos = comFilhos ? capitulos.filter((c) => c.dentroDe === capitulo.id).map((c) => c.id) : [];
       const sql = (d1.sqlite.prepare(`SELECT m.id FROM memorias m WHERE ${sqlMemoriaDoCapitulo('m', '?1', '?2')}`).all(JSON.stringify(capitulo), JSON.stringify(filhos)) as { id: string }[]).map((r) => r.id).sort();
+      const otimizado = (d1.sqlite.prepare(`SELECT m.id FROM memorias m WHERE ${sqlMemoriaDoCapitulo('m', '?1', '?2', capitulo.modo)}`).all(JSON.stringify(capitulo), ...(capitulo.modo === 'reunido' ? [JSON.stringify(filhos)] : [])) as { id: string }[]).map((r) => r.id).sort();
+      expect(otimizado).toEqual(sql);
       const ts = memorias.filter((m) => memoriaDoCapitulo(m, capitulo, filhos)).map((m) => m.id).sort();
       expect(sql, `${capitulo.id}, filhos=${comFilhos}`).toEqual(ts);
     }
@@ -76,6 +79,7 @@ describe.skipIf(!(await temSqlite()))('MEM-6: contar e escolher preserva a regra
       expect(await repo.contarMemoriasPorTipo(u), u.pessoa).toEqual(tipos);
       expect(await repo.fotosDaCarta(u), u.pessoa).toEqual(memorias.filter((m) => m.integrantes.includes(u.pessoa) && m.fotos.length).reverse().slice(0, 3));
       const capitulos = await repo.listarCapitulos(u), resumos = await repo.resumosDosCapitulos(u, capitulos);
+      expect(await repo.coresDosCapitulosNoBanco(u, capitulos)).toEqual(coresDosCapitulos([...memorias].reverse(), capitulos.map((c) => ({ ...c, deTodos: ehEpoca(c) }))));
       for (const c of capitulos) {
         const { datas, ...resumo } = resumos.get(c.id)!;
         expect(resumo, `${u.pessoa} ${c.id}`).toEqual(resumoDoCapitulo(c, capitulos, memorias));

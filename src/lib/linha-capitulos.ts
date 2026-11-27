@@ -135,52 +135,11 @@ export function montarTrilhos(memorias: MemoriaDaLinha[], todos: CapituloDaLinha
 
   // Capítulo sem nenhuma memória nesta linha do tempo não aparece
   const ativos = capitulos.filter((c) => membros.get(c.id)!.size > 0);
-  const ativo = new Set(ativos.map((c) => c.id));
-  const paiDe = (c: CapituloDaLinha) => (c.dentroDe && ativo.has(c.dentroDe) ? c.dentroDe : null);
-  // O trilho do capítulo reunido vai da primeira à última memória dele. O do capítulo por período vai
-  // do começo ao fim do período, mesmo que as memórias das pontas sejam de fora.
-  const trecho = (c: CapituloDaLinha) => {
+  const postos = trilhosDosTrechos(ativos.map((c) => {
     const posicoes = [...membros.get(c.id)!, ...(c.modo === 'epoca' ? noPeriodo(c) : [])];
-    return { primeira: Math.min(...posicoes), ultima: Math.max(...posicoes) };
-  };
-  // O mais longo primeiro; no empate, o que começa mais no alto, e depois o título
-  const porTamanho = (a: CapituloDaLinha, b: CapituloDaLinha) => {
-    const [ta, tb] = [trecho(a), trecho(b)];
-    return tb.ultima - tb.primeira - (ta.ultima - ta.primeira) || ta.primeira - tb.primeira || a.titulo.localeCompare(b.titulo, 'pt-BR');
-  };
-
-  // Trilhos lado a lado: o mais longo ou de fora mais à esquerda. Cada capítulo fica no primeiro
-  // trilho livre no trecho dele; o de dentro vem logo depois do de fora, sempre à direita dele.
-  const postos: TrilhoDoCapitulo[] = [];
-  const convivem = (a: { primeira: number; ultima: number }, b: { primeira: number; ultima: number }) => a.primeira <= b.ultima && b.primeira <= a.ultima;
-  const colocar = (c: CapituloDaLinha, aPartirDe: number) => {
-    const t = trecho(c);
-    let trilho = aPartirDe;
-    while (postos.some((p) => p.trilho === trilho && convivem(p, t))) trilho++;
-    postos.push({ id: c.id, titulo: c.titulo, periodo: periodoDoCapitulo(c, [...membros.get(c.id)!].map((i) => memorias[i]!)), trilho, ...t, dentroDe: paiDe(c), cor: 0 });
-    return trilho;
-  };
-  for (const c of ativos.filter((x) => !paiDe(x)).sort(porTamanho)) {
-    const trilho = colocar(c, 0);
-    for (const filho of ativos.filter((x) => paiDe(x) === c.id).sort(porTamanho)) colocar(filho, trilho + 1);
-  }
-
-  // A cor de cada capítulo, na ordem em que aparecem na tela: a primeira que nenhum capítulo que
-  // convive com ele usa. Assim dois trilhos lado a lado nunca têm a mesma cor.
-  const coloridos: TrilhoDoCapitulo[] = [];
-  for (const p of [...postos].sort((a, b) => a.primeira - b.primeira || a.trilho - b.trilho)) {
-    const usadas = new Set(coloridos.filter((outro) => convivem(outro, p)).map((outro) => outro.cor));
-    let cor = coloridos.length;
-    for (let tentativa = 0; tentativa <= usadas.size; tentativa++) {
-      if (!usadas.has(tentativa)) {
-        cor = tentativa;
-        break;
-      }
-    }
-    p.cor = cor;
-    coloridos.push(p);
-  }
-
+    return { id: c.id, titulo: c.titulo, dentroDe: c.dentroDe, periodo: periodoDoCapitulo(c, [...membros.get(c.id)!].map((i) => memorias[i]!)),
+      primeira: Math.min(...posicoes), ultima: Math.max(...posicoes) };
+  }));
   const quantos = postos.reduce((n, p) => Math.max(n, p.trilho + 1), 0);
   const linhas = memorias.map((m, i): LinhaDaMemoria => {
     const trilhos: (Estado | null)[] = Array(quantos).fill(null);
@@ -206,6 +165,52 @@ export function montarTrilhos(memorias: MemoriaDaLinha[], todos: CapituloDaLinha
   });
 
   return { capitulos: postos.sort((a, b) => a.trilho - b.trilho || a.primeira - b.primeira), epocas, linhas, quantos };
+}
+
+/** Só as pontas dos trilhos são necessárias para escolher as cores do sumário. */
+export type TrechoDoCapitulo = Pick<TrilhoDoCapitulo, 'id' | 'titulo' | 'periodo' | 'dentroDe' | 'primeira' | 'ultima'>;
+
+export function trilhosDosTrechos(ativos: TrechoDoCapitulo[]): TrilhoDoCapitulo[] {
+  const ativo = new Set(ativos.map((c) => c.id));
+  const paiDe = (c: TrechoDoCapitulo) => (c.dentroDe && ativo.has(c.dentroDe) ? c.dentroDe : null);
+  // O mais longo primeiro; no empate, o que começa mais no alto, e depois o título
+  const porTamanho = (a: TrechoDoCapitulo, b: TrechoDoCapitulo) => {
+    const [ta, tb] = [a, b];
+    return tb.ultima - tb.primeira - (ta.ultima - ta.primeira) || ta.primeira - tb.primeira || a.titulo.localeCompare(b.titulo, 'pt-BR');
+  };
+
+  // Trilhos lado a lado: o mais longo ou de fora mais à esquerda. Cada capítulo fica no primeiro
+  // trilho livre no trecho dele; o de dentro vem logo depois do de fora, sempre à direita dele.
+  const postos: TrilhoDoCapitulo[] = [];
+  const convivem = (a: { primeira: number; ultima: number }, b: { primeira: number; ultima: number }) => a.primeira <= b.ultima && b.primeira <= a.ultima;
+  const colocar = (c: TrechoDoCapitulo, aPartirDe: number) => {
+    let trilho = aPartirDe;
+    while (postos.some((p) => p.trilho === trilho && convivem(p, c))) trilho++;
+    postos.push({ ...c, trilho, dentroDe: paiDe(c), cor: 0 });
+    return trilho;
+  };
+  for (const c of ativos.filter((x) => !paiDe(x)).sort(porTamanho)) {
+    const trilho = colocar(c, 0);
+    for (const filho of ativos.filter((x) => paiDe(x) === c.id).sort(porTamanho)) colocar(filho, trilho + 1);
+  }
+
+  // A cor de cada capítulo, na ordem em que aparecem na tela: a primeira que nenhum capítulo que
+  // convive com ele usa. Assim dois trilhos lado a lado nunca têm a mesma cor.
+  const coloridos: TrilhoDoCapitulo[] = [];
+  for (const p of [...postos].sort((a, b) => a.primeira - b.primeira || a.trilho - b.trilho)) {
+    const usadas = new Set(coloridos.filter((outro) => convivem(outro, p)).map((outro) => outro.cor));
+    let cor = coloridos.length;
+    for (let tentativa = 0; tentativa <= usadas.size; tentativa++) {
+      if (!usadas.has(tentativa)) {
+        cor = tentativa;
+        break;
+      }
+    }
+    p.cor = cor;
+    coloridos.push(p);
+  }
+
+  return postos;
 }
 
 /** O período escrito no alto do trilho: o do capítulo por período; no reunido, da primeira à última memória. */
@@ -276,7 +281,11 @@ export function chaoDaEpoca(montagem: Trilhos, posicao: number, epoca: string, a
  */
 export function coresDosCapitulos(memoriasDasRecentes: MemoriaDaLinha[], todos: CapituloDaLinha[]): Map<string, number> {
   const montagem = montarTrilhos(memoriasDasRecentes, todos);
-  const cores = new Map(montagem.capitulos.map((c) => [c.id, c.cor]));
+  return coresDosTrilhos(montagem.capitulos, todos);
+}
+
+export function coresDosTrilhos(trilhos: TrilhoDoCapitulo[], todos: CapituloDaLinha[]): Map<string, number> {
+  const cores = new Map(trilhos.map((c) => [c.id, c.cor]));
   todos.forEach((c, n) => {
     if (!cores.has(c.id) && !c.deTodos) cores.set(c.id, n);
   });

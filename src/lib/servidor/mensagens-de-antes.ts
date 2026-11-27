@@ -27,10 +27,10 @@ export async function darMensagensAosRelatosDeAntes(db: Banco, { refazer = false
       if (!relatos.length) break;
       depois = relatos.at(-1)!.id;
       const ids = relatos.map((r: { id: number }) => r.id);
-      const lista = ids.map(() => '?').join(', ');
+      const lista = 'SELECT value FROM json_each(?)';
       const [audios, fotos] = await db.batch<{ id: number; relato_id: number }>([
-        db.prepare(`SELECT id, relato_id FROM audios WHERE removido_em IS NULL AND relato_id IN (${lista}) ORDER BY ordem, id`).bind(...ids),
-        db.prepare(`SELECT id, relato_id FROM fotos WHERE removida_em IS NULL AND relato_id IN (${lista}) ORDER BY memoria_id IS NULL, ordem, id`).bind(...ids),
+        db.prepare(`SELECT id, relato_id FROM audios WHERE removido_em IS NULL AND relato_id IN (${lista}) ORDER BY ordem, id`).bind(JSON.stringify(ids)),
+        db.prepare(`SELECT id, relato_id FROM fotos WHERE removida_em IS NULL AND relato_id IN (${lista}) ORDER BY memoria_id IS NULL, ordem, id`).bind(JSON.stringify(ids)),
       ]);
       const de = (linhas: { id: number; relato_id: number }[], relato: number) => linhas.filter((l) => l.relato_id === relato).map((l) => l.id);
       const comandos = relatos.flatMap((r: { id: number; texto: string; criado_em: string }) =>

@@ -25,7 +25,6 @@ import {
   formatarPeriodo,
   lerFormaDoCapitulo,
   nomeDoModo,
-  periodoDasMemorias,
   sobreposicao,
   tituloDasMemorias,
   type Capitulo,
@@ -33,10 +32,9 @@ import {
 import { TAMANHO_PADRAO, fotosDoMuralNoEndereco, lerFotosDoMural } from '../../../lib/explorar';
 import QuaisFotos from '../../../components/explorar/QuaisFotos.astro';
 import { jaFaleceu, maisRecentesPrimeiro } from '../../../lib/datas';
-import { coresDosCapitulos } from '../../../lib/linha-capitulos';
 import { enderecoDoRetrato } from '../../../lib/retratos';
 import { podeEditarCapitulo } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarCapitulos, listarCasais, listarIntegrantesQueVe, memoriasDoCapitulo, memoriasParaCores, resumosDosCapitulos, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe, type Memoria } from '../../../lib/servidor/repositorio';
+import { familiasDe, listarCapitulos, listarCasais, listarIntegrantesQueVe, memoriasDoCapitulo, coresDosCapitulosNoBanco, resumosDosCapitulos, listarNucleos, listarTemas, memoriasComAudio, pessoasQueONaoVe } from '../../../lib/servidor/repositorio';
 import { coresDasPessoas } from '../../../lib/familias';
 import { carimboDaData, estiloDoCapitulo, estiloDoTipo, legendaLugarAno, listaCurta } from '../../../lib/visual';
 
@@ -46,8 +44,8 @@ const capitulo = capitulos.find((c) => c.id === Astro.params.id);
 // Capítulo que a pessoa não pode ver é como se não existisse
 if (!capitulo) return new Response('Capítulo não encontrado', { status: 404 });
 
-const [todas, resumos, memorias] = await Promise.all([
-  memoriasParaCores(usuario), resumosDosCapitulos(usuario, capitulos), memoriasDoCapitulo(usuario, capitulo, capitulos),
+const [cores, resumos, memorias] = await Promise.all([
+  coresDosCapitulosNoBanco(usuario, capitulos), resumosDosCapitulos(usuario, capitulos), memoriasDoCapitulo(usuario, capitulo, capitulos),
 ]);
 const dentro = capitulos.filter((c) => c.dentroDe === capitulo.id);
 const periodoDe = (c: Capitulo) => resumos.get(c.id)!.datas;
@@ -91,10 +89,7 @@ const podeEditar = podeEditarCapitulo(usuario, capitulo).ok;
 const contar = (n: number) => `${n} ${n === 1 ? 'memória' : 'memórias'}`;
 
 // A cor do capítulo é a do trilho dele na linha do tempo; a época é o chão e fica na cor da tela
-const cores = coresDosCapitulos(
-  [...todas].reverse(),
-  capitulos.map((c) => (ehEpoca(c) ? { ...c, deTodos: true } : c)),
-);
+
 const cor = cores.get(capitulo.id);
 
 // Os marcos: as memórias do capítulo, das mais recentes para as mais antigas, como em toda linha do

@@ -1,6 +1,8 @@
 // MEM-6: HTML bruto, sem normalização, e cinco pedidos quentes no build de publicação.
 // Antes de mudar as páginas: carga-local.mjs --fotos=exemplo, depois este script --gravar.
-// Depois: mesmo estado local, mesmo build/configuração e este script --comparar.
+// Depois: mesmo estado local/configuração e este script --comparar. REINICIE o Wrangler a cada build:
+// no_bundle pode continuar servindo os módulos anteriores mesmo quando dist/ já contém o build novo.
+// Para CPU, X_LOCAL_OBSERVABILITY=false no servidor, como na M2. Use --inspetor 9231 (padrão).
 // Os HTMLs ficam fora do repositório. --saida /tmp/mem6-gabarito (padrão).
 // O visitante só é aceito pela porta da sala; o cookie não permite assumir esse id nas outras páginas.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -17,6 +19,7 @@ const API = new URL('/cdn-cgi/local/explorer/api', endereco).href;
 const saida = resolve(arg('--saida', '/tmp/mem6-gabarito'));
 const comparar = process.argv.includes('--comparar');
 const cpu = process.argv.includes('--cpu');
+const leituras = process.argv.includes('--leituras');
 mkdirSync(saida, { recursive: true });
 const chamar = async (caminho, dados) => {
   const r = await fetch(`${API}${caminho}`, dados && { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(dados) });
@@ -37,9 +40,25 @@ if (!exemplos) {
   process.exit(1);
 }
 const visitas = await sql('SELECT * FROM visitas');
+const observar = async (sql, params = []) => {
+  const r = await chamar('/local/observability/query', { sql, params });
+  return r.rows.map((l) => Object.fromEntries(r.columns.map((c, i) => [c, l[i]])));
+};
+const ultimoRastro = async (url) => (await observar(`SELECT trace_id FROM spans WHERE parent_id IS NULL AND json_extract(attributes, '$."url.full"') = ? AND duration_ms IS NOT NULL ORDER BY start_ms DESC LIMIT 1`, [url]))[0]?.trace_id;
+const medirRastro = async (url, anterior) => {
+  for (let i = 0; i < 100; i++) {
+    const trace = await ultimoRastro(url);
+    if (trace && trace !== anterior) {
+      const [r] = await observar(`SELECT SUM(json_extract(attributes, '$."cloudflare.d1.response.rows_read"')) AS rows_read, SUM(json_extract(attributes, '$."cloudflare.d1.response.rows_written"')) AS rows_written FROM spans WHERE trace_id = ? AND kind = 'd1'`, [trace]);
+      if (r?.rows_read != null) return r;
+    }
+    await new Promise((ok) => setTimeout(ok, 150));
+  }
+  throw new Error(`Sem rastro novo: ${url}`);
+};
 let insp;
 if (cpu) {
-  const [alvo] = await (await fetch('http://127.0.0.1:9231/json')).json();
+  const [alvo] = await (await fetch(`http://127.0.0.1:${Number(arg('--inspetor', 9231))}/json`)).json();
   const ws = new WebSocket(alvo.webSocketDebuggerUrl, { headers: { Origin: 'http://127.0.0.1' } });
   await new Promise((ok, falha) => { ws.onopen = ok; ws.onerror = falha; });
   let id = 0;
@@ -82,6 +101,7 @@ const leitores = arg('--leitores', 'gui,elizete,lucas-magno').split(',');
 const resultado = [];
 try {
   for (const leitor of leitores) for (const [nome, caminho] of telas) {
+    if (arg('--so', '') && !new RegExp(arg('--so', '')).test(nome)) continue;
     const preparar = async () => {
       if (!nome.startsWith('inicio')) return;
       // Os campos que aparecem na página são constantes; ultima_em impede a abertura de nova visita.
@@ -106,13 +126,18 @@ try {
       }
     } else writeFileSync(arquivo, html);
     const medidas = [];
-    if (cpu && !['epoca', 'periodo', 'filho', 'capitulo-lista', 'capitulo-mural', 'inicio-primeira', 'inicio-sem-novo'].includes(nome)) {
+    if ((cpu || leituras) && !['epoca', 'periodo', 'filho', 'capitulo-lista', 'capitulo-mural', 'inicio-primeira', 'inicio-sem-novo'].includes(nome)) {
       for (let i = 0; i < 5; i++) {
         await preparar();
-        await insp.envia('Profiler.start');
+        const url = new URL(caminho, endereco).href;
+        const anterior = leituras ? await ultimoRastro(url) : undefined;
+        if (cpu) await insp.envia('Profiler.start');
         const r = await pedir();
-        const p = (await insp.envia('Profiler.stop')).result.profile;
-        medidas.push({ ...tempos(p), timing: r.timing });
+        const perfil = cpu ? (await insp.envia('Profiler.stop')).result.profile : undefined;
+        if (perfil && process.argv.includes('--perfis')) writeFileSync(`${saida}/${comparar ? 'depois' : 'antes'}-${leitor}-${nome}-${i}.cpuprofile`, JSON.stringify(perfil));
+        const tempo = perfil ? tempos(perfil) : {};
+        const linhas = leituras ? await medirRastro(url, anterior) : {};
+        medidas.push({ ...tempo, ...linhas, timing: r.timing });
       }
     }
     resultado.push({ leitor, nome, caminho, bytes: html.length, sha256: createHash('sha256').update(html).digest('hex'), medidas });
@@ -126,9 +151,11 @@ try {
   if (comparar && !readFileSync(arquivo).equals(html)) { writeFileSync(`${arquivo}.depois`, html); throw new Error('HTML diferente na sala.'); }
   if (!comparar) writeFileSync(arquivo, html);
   resultado.push({ leitor: 'visitante', nome: 'sala', bytes: html.length, sha256: createHash('sha256').update(html).digest('hex') });
-  writeFileSync(`${saida}/${comparar ? 'depois' : 'antes'}.json`, JSON.stringify(resultado, null, 2));
+  writeFileSync(`${saida}/${comparar ? 'depois' : 'antes'}${leituras ? '-leituras' : ''}.json`, JSON.stringify(resultado, null, 2));
 } finally {
   insp?.ws.close();
   await sql('DELETE FROM visitas');
   for (const valores of visitas.results.rows) await sql(`INSERT INTO visitas (${visitas.results.columns.join(',')}) VALUES (${valores.map(() => '?').join(',')})`, valores);
 }
+// O inspetor do Wrangler pode manter o WebSocket em fechamento. Todas as gravações acima já terminaram.
+process.exit(0);

@@ -100,20 +100,19 @@ export function memoriaDoCapitulo(
  * memoriaDoCapitulo em SQL. `capitulo` contém o capítulo em JSON e `filhos` a lista JSON dos ids
  * de dentro que o leitor vê. Lista vazia é comFilhos=false. A visibilidade da memória vem de quem-ve.ts.
  */
-export function sqlMemoriaDoCapitulo(m = 'm', capitulo = '?2', filhos = "'[]'"): string {
+export function sqlMemoriaDoCapitulo(m = 'm', capitulo = '?2', filhos = "'[]'", modo?: Capitulo['modo']): string {
   const c = (campo: string) => `json_extract(${capitulo}, '$.${campo}')`;
   const ordem = (data: string, fim: boolean) => `COALESCE(${data}.ano, 0) * 10000 + COALESCE(${data}.mes, ${fim ? 12 : 1}) * 100 + COALESCE(${data}.dia, ${fim ? 31 : 1})`;
   const dataC = (campo: string, fim: boolean) => `${c(`${campo}.ano`)} * 10000 + COALESCE(${c(`${campo}.mes`)}, ${fim ? 12 : 1}) * 100 + COALESCE(${c(`${campo}.dia`)}, ${fim ? 31 : 1})`;
-  return `(CASE WHEN ${c('modo')} = 'reunido' THEN EXISTS (
-    SELECT 1 FROM capitulo_memorias cm JOIN capitulos ativo ON ativo.id = cm.capitulo_id
-    WHERE cm.memoria_id = ${m}.id AND ativo.excluido_em IS NULL
-      AND (cm.capitulo_id = ${c('id')} OR cm.capitulo_id IN (SELECT value FROM json_each(${filhos})))
-  ) ELSE ${c('inicio.ano')} IS NOT NULL
+  const reunido = `${m}.id IN (SELECT cm.memoria_id FROM capitulo_memorias cm JOIN capitulos ativo ON ativo.id = cm.capitulo_id
+    WHERE ativo.excluido_em IS NULL AND (cm.capitulo_id = ${c('id')} OR cm.capitulo_id IN (SELECT value FROM json_each(${filhos}))))`;
+  const periodo = `${c('inicio.ano')} IS NOT NULL
     AND (${ordem(m, true)}) >= (${dataC('inicio', false)})
     AND (${c('fim.ano')} IS NULL OR (${ordem(m, false)}) <= (${dataC('fim', true)}))
     AND (COALESCE(json_array_length(${c('pessoas')}), 0) + COALESCE(json_array_length(${c('familias')}), 0) = 0
       OR EXISTS (SELECT 1 FROM memoria_integrantes mi WHERE mi.memoria_id = ${m}.id AND mi.integrante_id IN (SELECT value FROM json_each(${c('pessoas')})))
-      OR EXISTS (SELECT 1 FROM memoria_nucleos mn2 WHERE mn2.memoria_id = ${m}.id AND mn2.nucleo_id IN (SELECT value FROM json_each(${c('familias')})))) END)`;
+      OR EXISTS (SELECT 1 FROM memoria_nucleos mn2 WHERE mn2.memoria_id = ${m}.id AND mn2.nucleo_id IN (SELECT value FROM json_each(${c('familias')}))))`;
+  return modo === 'reunido' ? reunido : modo === 'epoca' ? periodo : `(CASE WHEN ${c('modo')} = 'reunido' THEN ${reunido} ELSE ${periodo} END)`;
 }
 
 /**

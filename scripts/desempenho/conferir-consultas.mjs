@@ -22,7 +22,15 @@
 // inteiro) e o tamanho da resposta (o HTML, nas páginas). Eles pegam a volta de uma causa sem o ruído da CPU.
 // O item 1 da seção 8 (medir-cpu.mjs --conferir) não entrou: o teto local de CPU depende da razão entre este
 // computador e a produção, que só a pergunta 1 da M2 dá.
-const BASE = 'http://127.0.0.1:4321';
+const ENDERECOS_LOCAIS = new Set(['127.0.0.1', 'localhost', '[::1]']);
+const endereco = new URL(process.argv.includes('--base') ? process.argv[process.argv.indexOf('--base') + 1] : 'http://127.0.0.1:4321');
+if (endereco.protocol !== 'http:' || !ENDERECOS_LOCAIS.has(endereco.hostname)) {
+  process.exit(1);
+}
+const BASE = endereco.origin;
+if (/^(memorias|homologa\.memorias)\.bayara\.com\.br$/.test(new URL(BASE).hostname)) {
+  throw new Error('A conferência só roda no servidor local.');
+}
 const API = `${BASE}/cdn-cgi/local/explorer/api`;
 const LIMITE = 50;
 const PESSOAS = (process.env.COMO ?? 'gui,elizete').split(',');

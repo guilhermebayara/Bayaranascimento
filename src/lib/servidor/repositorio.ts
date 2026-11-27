@@ -4,10 +4,11 @@ import { gravarEspera, lerEspera, quemNaoVe, relatoAberto, relatoNaTv, sqlEstaNo
 import { ambiente, apelidosDoPedido, banco } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
-import { sqlMemoriaDoCapitulo, formatarPeriodo, podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
+import { sqlMemoriaDoCapitulo, ehEpoca, formatarPeriodo, podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
 import type { Dia, RegistroDeVisitas } from '../painel';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
+import { coresDosTrilhos, trilhosDosTrechos } from '../linha-capitulos';
 import type { Filtros } from '../explorar';
 import type { TipoDeAviso } from '../avisos';
 import { exesDe, foraQueEPaiViraDiscreto, modosQueValem, type ModoDoEx } from '../ex-casal';
@@ -1058,7 +1059,12 @@ export async function fotosDaCarta(usuario: Usuario): Promise<Memoria[]> {
 }
 
 /** Os agregados e até onze memórias dos cartões. A lista inteira nunca sai do banco. */
-export async function memoriasDoInicio(usuario: Usuario, desde: string | null, hoje: Dia) {
+export async function memoriasDoInicio(usuario: Usuario, desde: string | null, hoje: Dia, { soCarta = false } = {}) {
+  if (soCarta) return {
+    total: 0, de: 0, ate: 0, minhas: 0, minhaDe: 0, minhaAte: 0, novas: 0, novasIds: new Set<string>(), decadas: [] as number[],
+    fotos: await fotosDaCarta(usuario), naMesa: [] as Memoria[], paraContar: undefined, outrosAnos: undefined,
+    rascunhos: { total: 0, primeiro: null, ids: [] as string[] },
+  };
   const { naoVe, excluidas } = naoVeParaSql(await pessoasQueONaoVe(usuario));
   const minha = `EXISTS (SELECT 1 FROM memoria_integrantes mi WHERE mi.memoria_id = m.id AND mi.integrante_id = ?1)`;
   const nova = `COALESCE(m.publicada_em, m.criada_em, '') > ?4 AND m.criada_por <> ?1`;
@@ -1069,12 +1075,12 @@ export async function memoriasDoInicio(usuario: Usuario, desde: string | null, h
   };
   const distancia = `ABS(julianday(printf('2000-%02d-%02d', m.mes, m.dia)) - julianday(printf('2000-%02d-%02d', ?6, ?7)))`;
   const [conta, decadas, minhasFotos, novas, contar, outros, rascunhos] = await db().batch<Record<string, unknown>>([
-    preparar(`SELECT COUNT(*) AS total, MIN(m.ano) AS de, MAX(m.ano) AS ate,
-      COUNT(CASE WHEN ${minha} THEN 1 END) AS minhas,
-      MIN(CASE WHEN ${minha} THEN m.ano END) AS minhaDe, MAX(CASE WHEN ${minha} THEN m.ano END) AS minhaAte,
-      COUNT(CASE WHEN ${nova} THEN 1 END) AS novas,
-      json_group_array(m.id) FILTER (WHERE ${nova}) AS novasIds
-      FROM memorias m WHERE ${FILTRO_PUBLICADA}`),
+    preparar(`WITH vistas AS MATERIALIZED (SELECT m.id, m.ano, (${minha}) AS minha, (${nova}) AS nova
+      FROM memorias m WHERE ${FILTRO_PUBLICADA})
+      SELECT COUNT(*) AS total, MIN(ano) AS de, MAX(ano) AS ate,
+      COUNT(CASE WHEN minha THEN 1 END) AS minhas,
+      MIN(CASE WHEN minha THEN ano END) AS minhaDe, MAX(CASE WHEN minha THEN ano END) AS minhaAte,
+      COUNT(CASE WHEN nova THEN 1 END) AS novas, json_group_array(id) FILTER (WHERE nova) AS novasIds FROM vistas`),
     preparar(`SELECT CAST(m.ano / 10 AS INTEGER) * 10 AS decada FROM memorias m WHERE ${FILTRO_PUBLICADA} GROUP BY decada ORDER BY decada DESC`),
     preparar(`SELECT m.* FROM memorias m WHERE ${FILTRO_PUBLICADA} AND ${minha} AND ${TEM_FOTO_VISIVEL} ORDER BY ${ORDEM_INVERSA} LIMIT 4`),
     preparar(`SELECT m.* FROM memorias m WHERE ${FILTRO_PUBLICADA} AND ${nova}
@@ -1105,44 +1111,74 @@ export async function memoriasDoInicio(usuario: Usuario, desde: string | null, h
   };
 }
 
-/** Só a projeção que a montagem das cores lê: sem fotos, relatos, textos nem completar. */
-export async function memoriasParaCores(usuario: Usuario) {
-  const { results } = await db().prepare(`SELECT m.id, m.ano, m.mes, m.dia,
-    (SELECT json_group_array(cm.capitulo_id) FROM capitulo_memorias cm JOIN capitulos c ON c.id = cm.capitulo_id WHERE cm.memoria_id = m.id AND c.excluido_em IS NULL) AS capitulos,
-    (SELECT json_group_array(mi.integrante_id) FROM memoria_integrantes mi WHERE mi.memoria_id = m.id) AS integrantes,
-    (SELECT json_group_array(mn2.nucleo_id) FROM memoria_nucleos mn2 WHERE mn2.memoria_id = m.id) AS nucleos
-    FROM memorias m WHERE ${FILTRO_PUBLICADA} ORDER BY ${ORDEM_DA_LINHA}`).bind(usuario.pessoa).all<{ id: string; ano: number; mes: number | null; dia: number | null; capitulos: string; integrantes: string; nucleos: string }>();
-  return results.map((r) => ({ ...r, capitulos: JSON.parse(r.capitulos) as string[], integrantes: JSON.parse(r.integrantes) as string[], nucleos: JSON.parse(r.nucleos) as string[] }));
+/** Os resumos e as cores usam a mesma consulta, guardada pelo SQL no pedido.
+ * Cada capítulo é um parâmetro constante. Isso evita repetir json_extract(c.value) e subconsultas
+ * correlacionadas para cada par capítulo/memória, e conserva os intervalos entre as pontas dos trilhos.
+ */
+async function agregadosDosCapitulos(usuario: Usuario, capitulos: Capitulo[]) {
+  const valores: unknown[] = [usuario.pessoa, JSON.stringify(capitulos.map((c) => ({
+    capitulo: { id: c.id, modo: c.modo, inicio: c.inicio, fim: c.fim, pessoas: c.pessoas, familias: c.familias }, filhos: comFilhos(c, capitulos),
+  })))];
+  const ctes = [`visiveis AS MATERIALIZED (SELECT m.id, m.ano, m.mes, m.dia, m.criada_em, m.rowid AS desempate,
+    ROW_NUMBER() OVER (ORDER BY ${ORDEM_INVERSA}) - 1 AS posicao FROM memorias m WHERE ${FILTRO_PUBLICADA})`];
+  const selecoes: { n: string; inicio: string; fim: string; primeira: string; ultima: string }[] = [];
+  const indices = new Map(capitulos.map((c, i) => [c.id, i]));
+  const parametros = capitulos.map((c, i) => ({ capitulo: `json_extract(?2, '$[${i}].capitulo')`, filhos: `json_extract(?2, '$[${i}].filhos')` }));
+  const ordem = 'm.ano * 10000 + COALESCE(m.mes, 1) * 100 + COALESCE(m.dia, 1)';
+  const antes = `${ordem}, m.ano, COALESCE(m.mes, 0), COALESCE(m.dia, 0), m.criada_em, m.desempate`;
+  const depois = `${ordem} DESC, m.ano DESC, COALESCE(m.mes, 0) DESC, COALESCE(m.dia, 0) DESC, m.criada_em DESC, m.desempate DESC`;
+  capitulos.forEach((c, i) => {
+    const { capitulo, filhos } = parametros[i];
+    ctes.push(`p${i} AS MATERIALIZED (SELECT m.* FROM visiveis m WHERE ${sqlMemoriaDoCapitulo('m', capitulo, "'[]'", c.modo)})`);
+    ctes.push(c.modo === 'epoca' || !comFilhos(c, capitulos).length
+      ? `d${i} AS MATERIALIZED (SELECT * FROM p${i})`
+      : `d${i} AS MATERIALIZED (SELECT m.* FROM visiveis m WHERE ${sqlMemoriaDoCapitulo('m', capitulo, filhos, c.modo)})`);
+    const pontas = (sentido: string) => `(SELECT json_object('ano', m.ano, 'mes', m.mes, 'dia', m.dia) FROM d${i} m ORDER BY ${sentido} LIMIT 1)`;
+    let primeira = 'NULL', ultima = 'NULL';
+    if (!ehEpoca(c)) {
+      const fontes = [i, ...capitulos.filter((x) => x.dentroDe === c.id && !ehEpoca(x)).map((x) => indices.get(x.id)!)];
+      ctes.push(`t${i} AS MATERIALIZED (${fontes.map((n) => `SELECT posicao FROM p${n}`).join(' UNION ')})`);
+      const periodo = c.modo === 'epoca' ? ` UNION ALL SELECT m.posicao FROM visiveis m WHERE ${sqlMemoriaDoCapitulo('m', `json_set(${capitulo}, '$.pessoas', json('[]'), '$.familias', json('[]'))`, "'[]'", 'epoca')}` : '';
+      const faixa = `FROM (SELECT posicao FROM t${i}${periodo}) WHERE EXISTS (SELECT 1 FROM t${i})`;
+      primeira = `(SELECT MIN(posicao) ${faixa})`;
+      ultima = `(SELECT MAX(posicao) ${faixa})`;
+    }
+    selecoes.push({ n: `(SELECT COUNT(*) FROM d${i})`, inicio: pontas(antes), fim: pontas(depois), primeira, ultima });
+  });
+  if (!capitulos.length) return { resumos: new Map(), cores: new Map<string, number>() };
+  const campo = (nome: keyof typeof selecoes[number]) => `CASE CAST(j.key AS INTEGER) ${selecoes.map((c, i) => `WHEN ${i} THEN ${c[nome]}`).join(' ')} END AS ${nome}`;
+  const { results } = await db().prepare(`WITH ${ctes.join(', ')} SELECT json_extract(j.value, '$.capitulo.id') AS capitulo,
+    ${(['n', 'inicio', 'fim', 'primeira', 'ultima'] as const).map(campo).join(', ')} FROM json_each(?2) j`)
+    .bind(...valores).all<{ capitulo: string; n: number; inicio: string | null; fim: string | null; primeira: number | null; ultima: number | null }>();
+  const trechos = capitulos.flatMap((c) => {
+    const r = results.find((r) => r.capitulo === c.id)!;
+    return r.primeira === null ? [] : [{ id: c.id, titulo: c.titulo, dentroDe: c.dentroDe, periodo: '', primeira: r.primeira, ultima: r.ultima! }];
+  });
+  const resumos = new Map(capitulos.map((c) => {
+    const r = results.find((r) => r.capitulo === c.id)!;
+    const p = c.modo === 'epoca' ? c.inicio && { inicio: c.inicio, fim: c.fim } : r.n ? { inicio: JSON.parse(r.inicio!), fim: JSON.parse(r.fim!) } : null;
+    return [c.id, { memorias: r.n, datas: p, periodo: p ? formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca', c.modo === 'epoca') : '',
+      ordem: p ? p.inicio.ano * 100 + (p.inicio.mes ?? 0) + (c.modo === 'epoca' && p.inicio.mes ? (p.inicio.dia ?? 0) / 100 : 0) : 999999 }];
+  }));
+  return { resumos, cores: coresDosTrilhos(trilhosDosTrechos(trechos), capitulos.map((c) => ({ ...c, deTodos: ehEpoca(c) }))) };
+}
+
+export async function coresDosCapitulosNoBanco(usuario: Usuario, capitulos: Capitulo[]) {
+  return (await agregadosDosCapitulos(usuario, capitulos)).cores;
 }
 
 const comFilhos = (c: Capitulo, capitulos: Capitulo[], incluir = true) => incluir ? capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id) : [];
 
 export async function memoriasDoCapitulo(usuario: Usuario, c: Capitulo, capitulos: Capitulo[], incluirFilhos = true): Promise<Memoria[]> {
   const { results } = await db().prepare(`SELECT m.* FROM memorias m WHERE ${FILTRO_PUBLICADA}
-    AND ${sqlMemoriaDoCapitulo('m', '?2', '?3')} ORDER BY ${ORDEM_DA_LINHA}`)
-    .bind(usuario.pessoa, JSON.stringify(c), JSON.stringify(comFilhos(c, capitulos, incluirFilhos))).all<Record<string, unknown>>();
+    AND ${sqlMemoriaDoCapitulo('m', '?2', '?3', c.modo)} ORDER BY ${ORDEM_DA_LINHA}`)
+    .bind(usuario.pessoa, JSON.stringify(c), ...(c.modo === 'reunido' ? [JSON.stringify(comFilhos(c, capitulos, incluirFilhos))] : [])).all<Record<string, unknown>>();
   return completar(results.map(lerMemoria), usuario);
 }
 
 /** Uma linha por capítulo: COUNT e as duas datas das pontas, sem completar nenhuma memória. */
 export async function resumosDosCapitulos(usuario: Usuario, capitulos: Capitulo[]) {
-  const dados = capitulos.map((c) => ({ ...c, filhos: comFilhos(c, capitulos) }));
-  const { results } = await db().prepare(`WITH membros AS (
-      SELECT json_extract(c.value, '$.id') AS capitulo, m.id, m.ano, m.mes, m.dia,
-        ROW_NUMBER() OVER (PARTITION BY c.key ORDER BY COALESCE(m.ano, 0) * 10000 + COALESCE(m.mes, 1) * 100 + COALESCE(m.dia, 1), ${ORDEM_DA_LINHA}) AS pos,
-        COUNT(m.id) OVER (PARTITION BY c.key) AS n
-      FROM json_each(?2) c LEFT JOIN memorias m ON ${FILTRO_PUBLICADA}
-        AND ${sqlMemoriaDoCapitulo('m', 'c.value', `json_extract(c.value, '$.filhos')`)})
-    SELECT capitulo, MAX(n) AS n,
-      MAX(CASE WHEN pos = 1 THEN json_object('ano', ano, 'mes', mes, 'dia', dia) END) AS inicio,
-      MAX(CASE WHEN pos = n THEN json_object('ano', ano, 'mes', mes, 'dia', dia) END) AS fim
-      FROM membros GROUP BY capitulo`).bind(usuario.pessoa, JSON.stringify(dados)).all<{ capitulo: string; n: number; inicio: string; fim: string | null }>();
-  return new Map(results.map((r) => {
-    const c = capitulos.find((c) => c.id === r.capitulo)!;
-    const p = c.modo === 'epoca' ? c.inicio && { inicio: c.inicio, fim: c.fim } : r.n ? { inicio: JSON.parse(r.inicio), fim: JSON.parse(r.fim!) } : null;
-    return [c.id, { memorias: r.n, datas: p, periodo: p ? formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca', c.modo === 'epoca') : '',
-      ordem: p ? p.inicio.ano * 100 + (p.inicio.mes ?? 0) + (c.modo === 'epoca' && p.inicio.mes ? (p.inicio.dia ?? 0) / 100 : 0) : 999999 }];
-  }));
+  return (await agregadosDosCapitulos(usuario, capitulos)).resumos;
 }
 
 /**
@@ -2165,6 +2201,19 @@ export async function relatosDaConta(usuario: Usuario) {
   ]);
   const ler = (r: Record<string, unknown>) => ({ ...lerRelato(r), titulo: r.titulo as string });
   return { total: Number(conta.results[0].n), publicados: publicados.results.map(ler), rascunhos: rascunhos.results.map(ler) };
+}
+
+/** A conta só mostra a frase da lixeira. A página da lixeira mantém sua leitura completa. */
+export async function resumoDaLixeira(usuario: Usuario) {
+  const [memorias, relatos] = await db().batch<{ n: number; minhas: string }>([
+    db().prepare(`SELECT COUNT(*) AS n, json_group_array(m.id) FILTER (WHERE m.excluida_por = ?1) AS minhas
+      FROM memorias m WHERE m.excluida_em IS NOT NULL AND ${FILTRO_SEM_LIXEIRA}`).bind(usuario.pessoa),
+    db().prepare(`SELECT COUNT(*) AS n FROM relatos r JOIN memorias m ON m.id = r.memoria_id
+      WHERE r.situacao = 'rascunho' AND r.registrado_por = ?1 AND r.descartado_em IS NOT NULL
+      AND ${FILTRO_PUBLICADA} AND ${sqlVeORelato('r', '?1', "'[]'", "'[]'")}`).bind(usuario.pessoa),
+  ]);
+  const minhas = (JSON.parse(memorias.results[0].minhas) as string[]).map((id) => ({ id }));
+  return { memorias: memorias.results[0].n, relatos: relatos.results[0].n, minhas };
 }
 
 /** Os relatos que a pessoa registrou (os dela e os que escreveu por outra pessoa), em memórias que ela vê. */

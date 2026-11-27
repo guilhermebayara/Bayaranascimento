@@ -1,5 +1,5 @@
 // "Sua conta": junta, para quem está logado, as listas de src/lib/conta.ts. A tela é src/pages/conta.astro.
-import { administracao, fraseDaLixeira, oQueVoceCriou, pendenciasDaAdministracao, seusLacos, seusRascunhos, suaLixeira, type SituacaoDaAdministracao } from '../conta';
+import { administracao, fraseDaLixeira, pendenciasDaAdministracao, seusLacos, seusRascunhos, type SituacaoDaAdministracao } from '../conta';
 import { emMegabytes, LIMITE_DO_PLANO, situacaoDoBanco } from '../tamanho-do-banco';
 import { AJUSTE_DOS_CENTROS } from '../centros-da-arvore';
 import { situacaoDaTranscricaoAgora } from './transcricao';
@@ -20,9 +20,9 @@ import {
   listarLacosDoCoracao,
   memoriasDaConta,
   relatosDaConta,
+  resumoDaLixeira,
   listarNucleos,
   listarRascunhosDeRelatoDescartados,
-  listarRelatosRegistradosPor,
   listarTipos,
   espacoDosArquivos,
   espacoDosArquivosGuardado,
@@ -112,21 +112,22 @@ export async function itensDaLixeira(usuario: Usuario) {
 
 export async function montarConta(usuario: Usuario) {
   const eu = usuario.pessoa;
-  // As publicadas e os rascunhos de quem pede numa leitura só (comRascunhos), separados aqui: a mesma ordem,
-  // e um lote a menos para completar as memórias (causa 1 da medição M1)
-  const [memorias, relatosDaPessoa, capitulos, lacos, lixeira, integrantes, pendencias] = await Promise.all([
+  // Contagens no banco e só o começo de cada lista, mantendo a ordem e todos os rascunhos de quem pede.
+  const [memorias, relatosDaPessoa, capitulos, lacos, lixeira, integrantes, pendencias, capitulosNaLixeira, pessoasNaLixeira] = await Promise.all([
     memoriasDaConta(usuario),
     relatosDaConta(usuario),
     listarCapitulos(usuario),
     listarLacosDoCoracao(usuario),
-    itensDaLixeira(usuario),
+    resumoDaLixeira(usuario),
     listarIntegrantes(),
     contarPendenciasDaAdministracao(usuario),
+    usuario.admin ? listarCapitulosExcluidos(usuario) : Promise.resolve([]),
+    usuario.admin ? listarPessoasExcluidas() : Promise.resolve([]),
   ]);
   const publicadas = memorias.criadas;
   const rascunhos = memorias.rascunhos;
   const relatos = [...relatosDaPessoa.publicados, ...relatosDaPessoa.rascunhos];
-  const minhaLixeira = suaLixeira(eu, lixeira.todasAsMemorias);
+  const minhaLixeira = lixeira.minhas;
   return {
     /** "Seus dados e sua página": editáveis em /pessoas/<id>/editar; a página como os outros veem, em /pessoas/<id> */
     dados: integrantes.find((i) => i.id === eu),
@@ -140,7 +141,7 @@ export async function montarConta(usuario: Usuario) {
      */
     fraseDaLixeira: fraseDaLixeira(
       usuario.admin,
-      (usuario.admin ? lixeira.memorias.length + lixeira.capitulos.length + lixeira.pessoas.length : minhaLixeira.length) + lixeira.relatos.length,
+      (usuario.admin ? lixeira.memorias + capitulosNaLixeira.length + pessoasNaLixeira.length : minhaLixeira.length) + lixeira.relatos,
     ),
     criou: {
       memorias: publicadas,
