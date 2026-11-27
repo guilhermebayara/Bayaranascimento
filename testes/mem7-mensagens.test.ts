@@ -84,7 +84,7 @@ describe.skipIf(!(await temSqlite()))('MEM-7: a marca só atesta mensagens concl
     expect(d1.sqlite.prepare('SELECT id FROM relato_mensagens WHERE relato_id = ? ORDER BY ordem LIMIT 80').all(id)).toEqual(antes);
   });
 
-  it('a cópia oficial entre o relato e as mensagens restaura sem atestar o relato incompleto', async () => {
+  it.each(['novo','vazio'])('a cópia oficial entre os commits do relato %s restaura sem atestar o incompleto', async (caso) => {
     marcar();
     const { GET } = await import('../src/pages/api/copia');
     const { POST } = await import('../src/pages/api/relatos');
@@ -92,7 +92,7 @@ describe.skipIf(!(await temSqlite()))('MEM-7: a marca só atesta mensagens concl
     const lote = d1.batch.bind(d1);
     vi.spyOn(d1, 'batch').mockImplementation(async cs => {
       const resultado = await lote(cs);
-      if (cs.some(c => c.sql.includes('INSERT INTO relatos'))) {
+      if (cs.some(c => c.sql.includes('INSERT INTO relatos') || c.sql.startsWith('UPDATE relatos SET texto'))) {
         copia = await baixarCopiaEmPartes(async caminho => {
           const url = new URL(caminho, 'http://localhost'); const request = new Request(url);
           const r = await noPedido(request, () => GET({ request, url, locals: { usuario: gui } } as never));
@@ -103,9 +103,10 @@ describe.skipIf(!(await temSqlite()))('MEM-7: a marca só atesta mensagens concl
     });
     // Um POST real sem a lista de mensagens: o arquivo é tirado após o lote do relato e antes do das mensagens.
     d1.sqlite.prepare("DELETE FROM relatos WHERE memoria_id = '1992-chegada-do-gui' AND por = 'gui'").run();
+    if (caso === 'vazio') novo('');
     const request = new Request('http://localhost/api/relatos', { method: 'POST', headers: { Origin: 'http://localhost', 'Content-Type': 'application/json' }, body: JSON.stringify({ memoria: '1992-chegada-do-gui', por: 'gui', texto: 'Entre os dois commits.', situacao: 'rascunho' }) });
     const resposta = await noPedido(request, () => POST({request, locals: {usuario:gui}} as never));
-    expect(resposta.status).toBe(201);
+    expect(resposta.status).toBe(caso === 'novo' ? 201 : 200);
     expect(copia).toBeDefined();
     // Restauração num banco vazio, com as tabelas na ordem do arquivo oficial.
     const restaurado = await criarD1();

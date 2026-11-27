@@ -2486,6 +2486,7 @@ export function comandosDoRelato(
     ];
   }
   return [
+    db().prepare('DELETE FROM ajustes WHERE chave = ?').bind(MARCA_DAS_MENSAGENS_DE_ANTES),
     ...(versao.guardar
       ? [db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(versao.mensagens ? { ...anterior, mensagens: versao.mensagens } : anterior), usuario.pessoa)]
       : []),
