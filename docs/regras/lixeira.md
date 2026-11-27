@@ -3,6 +3,7 @@
 ## Lixeira e histórico
 
 - Excluir uma memória publicada é com os admins, passa por uma página de confirmação e manda para a lixeira (`/lixeira`). A memória some do site com fotos e relatos, mas nada é apagado. Excluir um capítulo passa pela mesma confirmação (`/capitulos/<id>/excluir`).
+- Se a ficha da memória estava aberta quando ela foi para a lixeira, salvar devolve “Memória não encontrada.” com HTTP 404. A memória continua na lixeira.
 - **A página de confirmação** abre só com "Confira antes de confirmar." na memória publicada e no capítulo, porque o cartão logo abaixo já começa com "Nada é apagado de vez". No rascunho, que o cartão não explica, a abertura fica inteira ("Confira antes de confirmar. Nada é apagado de vez."). O cartão diz quem pode restaurar, do ponto de vista de quem exclui: "você, a Giovanna ou o Lucas Magno podem restaurar tudo como estava" na memória e "… podem restaurar como estava" no capítulo; com um só outro administrador, "você ou a Giovanna" (`voceOuOsOutrosAdmins`, em `src/lib/servidor/conteudo.ts`).
 - A lixeira mora em "Sua conta", no cartão "Rascunhos e lixeira", junto dos rascunhos. Não há página de rascunhos à parte: descartar um rascunho volta para a conta.
 - Rascunho é de quem escreve: a própria pessoa descarta, e ele também vai para a lixeira.

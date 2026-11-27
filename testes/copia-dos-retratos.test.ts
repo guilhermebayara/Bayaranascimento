@@ -148,20 +148,18 @@ describe.skipIf(!comSqlite)('a cópia do retrato responde igual ao retrato, para
     return { status: resposta.status, cache: resposta.headers.get('Cache-Control'), vary: resposta.headers.get('Vary') };
   };
 
-  it('para cada pessoa e cada retrato, a cópia responde como a original', async () => {
+  it.each(pessoas)('para $pessoa, a cópia de cada retrato responde como a original', async (quem) => {
     let vistos = 0;
     let recusados = 0;
-    for (const quem of pessoas) {
-      for (const chave of chaves) {
-        const original = await pedir(quem, chave);
-        expect(await pedir(quem, `pequeno/${chave}`), `${quem.pessoa}, ${chave}`).toEqual(original);
-        if (original.status === 200) vistos++;
-        else recusados++;
-      }
+    for (const chave of chaves) {
+      const original = await pedir(quem, chave);
+      expect(await pedir(quem, `pequeno/${chave}`), `${quem.pessoa}, ${chave}`).toEqual(original);
+      if (original.status === 200) vistos++;
+      else recusados++;
     }
-    // O teste só vale se houver dos dois: retratos vistos e retratos recusados
-    expect(vistos).toBeGreaterThan(pessoas.length);
-    expect(recusados).toBeGreaterThanOrEqual(pessoas.length);
+    // A pessoa precisa ter retratos vistos e recusados para o caso cobrir as duas respostas.
+    expect(vistos).toBeGreaterThan(1);
+    expect(recusados).toBeGreaterThanOrEqual(1);
   });
 
   it('quem está na lixeira: a cópia, como a original, é conferida a cada uso; o retrato antigo não é entregue', async () => {

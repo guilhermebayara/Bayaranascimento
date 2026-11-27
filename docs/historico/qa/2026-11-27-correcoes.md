@@ -27,6 +27,21 @@ Mediana de cinco pedidos locais quentes do Gui, do início até o fim da respost
 
 No Wrangler 4.160, na base com semente limpa, os pedidos quentes falharam em 19 a 49 ms. O log confirmou erro de SQL. Na homologação, Gui confirmou às 15h54 que a página abriu e que a observação era a demora. O Workers Observability registrou `/capitulos` às 15h38min30s com HTTP 200, 1.736 ms de tempo de parede e 43 ms de CPU, com resultado `ok`. Esse registro é compatível com a demora relatada. A reprodução do L1 é local.
 
+O perfil de CPU usou o build do Worker no Wrangler 4.162, com cinco pedidos quentes por combinação. Cada célula traz **tempo até o fim do corpo / CPU amostrada / tempo D1 do `Server-Timing`**, em milissegundos. O tempo do D1 soma operações que podem acontecer em paralelo. O perfil pelo inspetor também acrescenta trabalho. Os pedidos todos responderam 200.
+
+| Perfil | Página | Base limpa | Base com carga | Correção limpa | Correção com carga |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Gui | `/capitulos` | 46,7 / 40,1 / 31 | 58,3 / 54,2 / 44 | 53,6 / 37,2 / 36 | 50,4 / 37,6 / 42 |
+| Gui | `/capitulos/natais` | 61,8 / 51,0 / 48 | 72,7 / 58,8 / 68 | 70,6 / 58,5 / 45 | 79,2 / 43,3 / 77 |
+| Elizete | `/capitulos` | 56,9 / 34,0 / 34 | 46,8 / 39,4 / 38 | 173,7 / 156,4 / 130 | 52,1 / 47,5 / 42 |
+| Elizete | `/capitulos/natais` | 40,5 / 41,8 / 37 | 69,1 / 65,7 / 76 | 185,0 / 78,5 / 82 | 67,0 / 52,8 / 70 |
+| Giovanna | `/capitulos` | 60,2 / 47,6 / 36 | 40,1 / 36,2 / 33 | 39,9 / 28,1 / 32 | 50,4 / 47,6 / 48 |
+| Giovanna | `/capitulos/natais` | 52,4 / 41,7 / 45 | 59,6 / 56,5 / 62 | 53,4 / 37,3 / 40 | 83,6 / 48,4 / 93 |
+| Lucas Magno | `/capitulos` | 42,1 / 38,9 / 32 | 43,6 / 38,8 / 38 | 31,0 / 23,0 / 24 | 62,1 / 56,0 / 55 |
+| Lucas Magno | `/capitulos/natais` | 57,2 / 33,6 / 38 | 57,8 / 53,5 / 61 | 35,4 / 19,4 / 34 | 75,1 / 53,5 / 77 |
+
+O perfil segue [`medir-cpu.mjs`](../../../scripts/desempenho/medir-cpu.mjs), com `--fase paginas --so '^(Capítulos|Capítulo reunido)' --pessoas gui,elizete,giovanna,lucas-magno --repeticoes 5`. A rodada também leu `d1;dur` do cabeçalho de cada resposta. Os tempos locais variaram entre rodadas. A amostra de homologação mede o percurso real da requisição, com mais de um segundo de tempo de parede e 43 ms de CPU. A origem da espera restante segue em aberto.
+
 ### Resposta de erro e leitura do período
 
 O build em modo produção já ocultava a mensagem interna. [`provar-erro-500.mjs`](../../../scripts/provar-erro-500.mjs) testa isso com um banco local vazio e descartável. O teste força um erro do D1 no preparo do banco. A página `/capitulos` e a API `/api/copia` devolvem HTTP 500 sem o texto que aparece no log do servidor. Para repetir, inicie o Wrangler local com `--var AMBIENTE:producao` e `--persist-to` apontando para uma pasta nova.
@@ -48,3 +63,20 @@ A rota sem script devolve a própria janela com o recado e o texto que chegou no
 ## Recados de limite (E4)
 
 Memórias, relatos e “Acrescentar fotos” usam os mesmos nomes de campos e recados de limite. O número vem do esquema da rota. A prova de cada campo em `pedido-recusado.test.ts` confere HTTP 400, o recado em português e o banco intacto. A ficha e a janela sem JavaScript também devolvem HTTP 400 com o recado na página.
+
+## Testes acima de cinco segundos
+
+A matriz da árvore de meio-irmãos agora tem um caso por centro, com os mesmos 16 subconjuntos de laços em cada um. A cópia oficial restaura separadamente os relatos de 80, 81 e 200 mensagens. A prova que leva o mesmo relato de 80 a 81 e depois a 200, recusando 201, também faz uma viagem completa pela cópia após a recusa. Continuam as provas de hora do envio, citação, ordem, texto e anexos restaurados.
+
+A execução padrão também encontrou dois timeouts além dos apontados na auditoria. A prova do namoro na árvore foi dividida por combinação de laços abertos. A equivalência da cópia de retrato passou a ter um caso por leitor, com as mesmas chaves e a conferência de respostas permitidas e recusadas. Os limites dos testes e a configuração de workers seguem os do projeto.
+
+| Caso | Antes | Depois |
+| --- | ---: | --- |
+| Meio-irmãos | 12,752 s, timeout | Padrão 3,292 s, Gui 1,139 s, Giovanna 1,092 s, Lucas Magno 0,170 s, Elizete 1,094 s |
+| Cópia com citações e anexos | 7,242 s, timeout | 80 mensagens 0,982 s, 81 mensagens 0,664 s, 200 mensagens 0,743 s, transição e recusa 0,937 s |
+| Namoro na árvore | 7,104 s, timeout | Cinco casos entre 0,172 s e 0,697 s |
+| Equivalência da cópia do retrato | 10,921 s, timeout | 39 casos, até 0,194 s por leitor |
+
+`npm test` com os workers padrão levou 34,21 s. Foram **2.668 testes, 2.625 aprovados, zero falhas e 43 ignorados**. Os ignorados são os testes de navegador que exigem um servidor local. As duas novas provas da caixa de relato foram executadas à parte no Chromium sem JavaScript.
+
+`npm run confere` e `npm run build` passaram. O prebuild repetiu a suíte padrão com o mesmo resultado. A execução dos dois gabaritos no build completo confirmou 46 de 46 no primeiro roteiro e 6 de 6 no complemento de Capítulos.
