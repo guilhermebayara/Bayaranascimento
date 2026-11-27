@@ -239,6 +239,38 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     expect(impressao()).toBe(antes);
   });
 
+  it('/api/relatos: repete o sucesso da 200ª mensagem e recusa uma mensagem nova no mesmo formulário', async () => {
+    const relatos = await import('../src/pages/api/relatos');
+    const criada = await salvar(elizete, { titulo: 'Relato no limite', ano: 2020, tipo });
+    expect(criada.status).toBe(201);
+    const memoria = criada.corpo.id as string;
+    const enviar = async (texto: string, envio: string) => {
+      const resposta = await relatos.POST({
+        request: new Request('http://localhost/api/relatos', {
+          method: 'POST', headers: { Origin: 'http://localhost' },
+          body: new URLSearchParams({ memoria, por: 'elizete', acrescentar: '1', situacao: 'rascunho', texto, envio }),
+        }),
+        locals: { usuario: elizete, tipos },
+      } as never);
+      return { status: resposta.status, url: new URL(resposta.headers.get('Location')!, 'http://localhost') };
+    };
+    expect((await enviar(Array.from({ length: 199 }, (_, i) => `Parágrafo ${i + 1}.`).join('\n\n'), 'primeiras')).status).toBe(303);
+    const ultima = 'A última mensagem.';
+    const primeiro = await enviar(ultima, 'ultima');
+    expect(primeiro.status).toBe(303);
+    expect(primeiro.url.searchParams.get('ok')).toBe('Mensagem guardada no rascunho. Só você vê até publicar.');
+    const antes = impressao();
+
+    expect(await enviar(ultima, 'ultima')).toEqual(primeiro);
+    const novo = await enviar('Uma mensagem nova.', 'ultima');
+    expect(novo.status).toBe(303);
+    expect(novo.url.searchParams.get('erro')).toBe('Um relato pode ter até 200 mensagens.');
+    const mensagem = 'SELECT COUNT(*) AS n FROM relato_mensagens m JOIN relatos r ON r.id = m.relato_id WHERE r.memoria_id = ?';
+    expect(conta(mensagem, memoria)).toBe(200);
+    expect(conta(`${mensagem} AND m.texto = ?`, memoria, ultima)).toBe(1);
+    expect(impressao()).toBe(antes);
+  });
+
   it('/api/relatos: o envio sem script recusado não guarda o código de envio nem nada mais (D3 da sessão Z)', async () => {
     const relatos = await import('../src/pages/api/relatos');
     const antes = impressao();

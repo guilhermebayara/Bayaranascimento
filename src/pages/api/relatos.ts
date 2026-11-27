@@ -20,6 +20,7 @@ import {
   listarMensagensDosRelatos,
   listarMensagensGravadas,
   listarNucleos,
+  envioJaGravado,
   EnvioRepetido,
   MemoriaMudou,
   obterMemoria,
@@ -200,7 +201,18 @@ async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<t
   const existente = await obterRelato(memoriaId, por, usuario);
   const decisao = podeEscreverRelato(usuario, por, existente, await pessoasComAcesso());
   if (!decisao.ok) return erro(403, decisao.motivo);
+  // Em memória ainda em rascunho, o relato também fica em rascunho. Relato publicado não volta atrás.
+  let situacao = lido.data.situacao;
+  if (memoria.situacao === 'rascunho') situacao = 'rascunho';
+  if (existente?.situacao === 'publicada') situacao = 'publicada';
+  const envio = lido.data.envio ? await chaveDoEnvio(lido.data.envio, usuario.pessoa, memoriaId, por, lido.data.texto) : undefined;
+  const repetirResposta = async () => {
+    const agora = await obterRelatoRegistradoPor(memoriaId, por, usuario);
+    return json({ url: noRelato(memoriaId, agora?.id), situacao: agora?.situacao ?? situacao, editado: true }, 200);
+  };
   const { mensagens: antes, audios: audiosAtuais } = await conversa.ler(existente, acrescentar);
+  // Se a leitura já trouxe a mensagem que completou a conversa, o código que gravou junto com ela também existe.
+  if (envio && await envioJaGravado(envio)) return repetirResposta();
   if (acrescentar) {
     mensagens = [...antes, ...paragrafos(lido.data.texto).map((t, i) => ({ tipo: 'texto' as const, texto: t, citaId: i === 0 ? (lido.data.cita ?? null) : null }))];
     if (mensagens.length > MENSAGENS_POR_RELATO) return erro(400, `Um relato pode ter até ${MENSAGENS_POR_RELATO} mensagens.`);
@@ -215,11 +227,6 @@ async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<t
     if (!texto.trim() && !temAudio) return erro(400, 'Escreva o relato ou grave um áudio antes de salvar.');
   }
 
-  // Em memória ainda em rascunho, o relato também fica em rascunho. Relato publicado não volta atrás.
-  let situacao = lido.data.situacao;
-  if (memoria.situacao === 'rascunho') situacao = 'rascunho';
-  if (existente?.situacao === 'publicada') situacao = 'publicada';
-
   // As mensagens de antes, para o histórico: só acrescentar no fim (voltar e contar mais) não guarda versão
   const guardar = !mensagens || !soAcrescentou(antes, mensagens.map(paraMensagem));
   // O relato que nasce depois de a memória abrir para mais gente do que a página mostrava nasce só para esse
@@ -231,7 +238,6 @@ async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<t
     const { soParaNucleos } = relatoQueNasce(mostrava, memoria, usuario.pessoa, memoria.criadaPor);
     if (soParaNucleos) nasce = { soParaNucleos, de: memoria.criadaPor, paraQuem: paraQuemPassouAVer(comoPublicoAntigo(soParaNucleos), memoria, await listarNucleos()) };
   }
-  const envio = lido.data.envio ? await chaveDoEnvio(lido.data.envio, usuario.pessoa, memoriaId, por, lido.data.texto) : undefined;
   const id = existente?.id ?? null;
   const relato: RelatoNoLote = id ?? { memoriaId, por, registradoPor: usuario.pessoa };
   const [audiosAceitos, fotosDoRelato] = await Promise.all([
@@ -259,8 +265,7 @@ async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<t
   } catch (e) {
     // O mesmo envio de novo (o toque duplo sem script): o primeiro já gravou, e este responde como ele, sem gravar
     if (!(e instanceof EnvioRepetido)) throw e;
-    const agora = await obterRelatoRegistradoPor(memoriaId, por, usuario);
-    return json({ url: noRelato(memoriaId, agora?.id), situacao: agora?.situacao ?? situacao, editado: true }, 200);
+    return repetirResposta();
   }
   const salvo = await obterRelatoRegistradoPor(memoriaId, por, usuario);
   const gravadas = salvo && mensagens

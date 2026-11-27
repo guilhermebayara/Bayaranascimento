@@ -36,3 +36,7 @@ O conserto por si só baixou o agregado de 13.934 para 13.482 linhas lidas para 
 ## Ficha antiga de memória na lixeira (E1)
 
 Quando a ficha tem o código de uma memória que já foi para a lixeira, o formulário responde HTTP 404 com “Memória não encontrada.”, como o JSON. O teste envia a ficha nos dois formatos depois de excluir a memória e confere a impressão do banco inteiro.
+
+## Repetição do envio no limite (E2)
+
+O formulário confere o código do envio já gravado antes de contar os parágrafos novos. O lote continua protegendo dois envios que cheguem juntos. A prova envia 199 mensagens, completa as 200, repete o envio e faz outro com texto novo e o mesmo código da página. O primeiro caso repete o sucesso. O segundo é recusado e o banco fica igual.
