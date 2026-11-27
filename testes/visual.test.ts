@@ -206,7 +206,7 @@ describe('conceito', () => {
     const painel = tela('pages/index.astro');
     for (const regra of ['chegarAoPainel', 'aniversarios', 'memoriasDoInicio']) expect(painel).toContain(`${regra}(`);
     expect(painel).not.toContain('listarMemorias(');
-    // A equivalência dos cartões e das contagens com a regra TS é testada em contar-no-banco.test.ts.
+    // contar-no-banco compara a regra; mem7-inicio desenha a página com o banco e exige cada cartão no HTML.
     expect(painel).toContain('const naMesa = inicio.naMesa;');
     expect(painel).toMatch(/<Visual titulo="Início" secao="painel" familia=\{corDoPainel\} intimo>/);
     // O dia trocado pelo endereço só vale fora da produção (o simulador de data, src/lib/servidor/dia-do-pedido.ts)
