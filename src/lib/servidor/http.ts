@@ -1,3 +1,5 @@
+import type { APIContext } from 'astro';
+
 export function json(dados: unknown, status = 200): Response {
   return new Response(JSON.stringify(dados), {
     status,
@@ -31,6 +33,15 @@ export function voltar(request: Request, destino: string, recado: { ok?: string;
  * a página", em docs/visual.md). Sem script, o mesmo formulário chega como formulário comum.
  */
 export const pedeJson = (request: Request): boolean => (request.headers.get('Accept') ?? '').includes('application/json');
+
+/** Devolve o conflito no formulário que já mostra o recado da página. */
+export async function conflitoNoFormulario(request: Request, rewrite: APIContext['rewrite'] | undefined, destino: string, recado: string): Promise<Response> {
+  if (!rewrite || pedeJson(request)) return erro(409, recado);
+  const url = new URL(destino, request.url);
+  url.searchParams.set('erro', recado);
+  const pagina = await rewrite(new Request(url, { method: 'GET', headers: request.headers }));
+  return new Response(pagina.body, { status: 409, headers: pagina.headers });
+}
 
 /**
  * Responde a um formulário: ao script, em JSON, com o recado e o que ele precisa para redesenhar; sem

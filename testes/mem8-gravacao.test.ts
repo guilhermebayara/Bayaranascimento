@@ -152,6 +152,126 @@ describe.skipIf(!(await temSqlite()))('Relato como conversa em um lote', async (
     }
   });
 
+  it('refaz o relato se só a memória mudou e mantém a nova foto como principal', async () => {
+    const id = memoria('mem10-so-memoria');
+    const [base] = await gravar(id, [texto('Base.')]);
+    const original = Number(sql("INSERT INTO fotos (chave, enviada_por, memoria_id, principal) VALUES ('teste/principal.jpg', 'gui', ?, 1)", id).lastInsertRowid);
+    const { foto } = midias();
+    let tentativas = 0;
+    banco.batch = async (comandos) => {
+      if (comandos.some((c) => /^UPDATE relatos SET texto\b/.test(c.sql)) && ++tentativas === 1) {
+        const r = await postar(memorias, '/api/memorias', {
+          id, titulo: 'Memória de teste', ano: 2001, tipo: 'cotidiano',
+          fotosMostradas: [original], fotos: [], visibilidade: 'nucleos', nucleos: ['bayara-nascimento'],
+        }, gui);
+        expect(r.status).toBe(200);
+        expect(relato(id).texto).toBe('Base.');
+        conferirRelatos(banco.sqlite, id);
+        expect(banco.sqlite.prepare('SELECT id FROM fotos WHERE memoria_id = ? AND removida_em IS NULL').all(id)).toEqual([]);
+      }
+      return lote(comandos);
+    };
+    try {
+      expect((await salvar(id, { mensagens: [base, foto] })).status).toBe(200);
+      expect(tentativas).toBe(2);
+      expect(banco.sqlite.prepare('SELECT id, principal FROM fotos WHERE memoria_id = ? AND removida_em IS NULL').all(id)).toEqual([{ id: foto.fotoId, principal: 1 }]);
+      conferirRelatos(banco.sqlite, id);
+    } finally {
+      banco.batch = lote;
+    }
+  });
+
+  it('sem script, refaz o acréscimo no fim depois que outra gravação põe texto e mídias', async () => {
+    const id = memoria('mem10-acrescentar');
+    const [base] = await gravar(id, [texto('Base.')]);
+    const { audio, foto } = midias();
+    const campos = new URLSearchParams({ memoria: id, por: 'elizete', texto: 'Depois, sem script.', acrescentar: '1', envio: 'mem10-acrescentar', situacao: 'publicada' });
+    let tentativas = 0;
+    banco.batch = async (comandos) => {
+      if (comandos.some((c) => /^INSERT INTO envios\b/.test(c.sql)) && ++tentativas === 1) {
+        const r = await salvar(id, { mensagens: [base, texto('A primeira gravação.'), { ...audio, transcricao: 'A fala.' }, { ...foto, legenda: 'A imagem.' }] });
+        expect(r.status).toBe(200);
+        conferirRelatos(banco.sqlite, id);
+      }
+      return lote(comandos);
+    };
+    try {
+      const r = await postar(relatos, '/api/relatos', campos);
+      expect(r.status).toBe(303);
+      expect(new URL(r.headers.get('location')!, 'http://localhost').searchParams.get('ok')).toBe('Mensagem enviada. Ela já está na memória.');
+      expect(tentativas).toBe(2);
+      expect(mensagens(relato(id).id).map((m) => m.texto ?? m.tipo)).toEqual(['Base.', 'A primeira gravação.', 'audio', 'foto', 'Depois, sem script.']);
+      expect(linha('SELECT transcricao, removido_em FROM audios WHERE id = ?', audio.audioId)).toEqual({ transcricao: 'A fala.', removido_em: null });
+      expect(linha('SELECT legenda, removida_em FROM fotos WHERE id = ?', foto.fotoId)).toEqual({ legenda: 'A imagem.', removida_em: null });
+      conferirRelatos(banco.sqlite, id);
+    } finally {
+      banco.batch = lote;
+    }
+  });
+
+  it('sem script, acrescentar um parágrafo e publicar preservam a transcrição e a legenda', async () => {
+    const id = memoria('mem10-legendas');
+    const { audio, foto } = midias();
+    expect((await salvar(id, { situacao: 'rascunho', mensagens: [texto('Base.'), { ...audio, transcricao: 'A voz anotada.' }, { ...foto, legenda: 'O retrato.' }] })).status).toBe(201);
+    const campos = new URLSearchParams({ memoria: id, por: 'elizete', acrescentar: '1', texto: 'Mais um parágrafo.', situacao: 'rascunho' });
+    expect((await conferirCadaLote(id, () => postar(relatos, '/api/relatos', campos))).status).toBe(303);
+    campos.set('texto', '');
+    campos.set('situacao', 'publicada');
+    campos.set('publicar', '1');
+    expect((await conferirCadaLote(id, () => postar(relatos, '/api/relatos', campos))).status).toBe(303);
+    expect(linha('SELECT transcricao FROM audios WHERE id = ?', audio.audioId)).toEqual({ transcricao: 'A voz anotada.' });
+    expect(linha('SELECT memoria_id, legenda FROM fotos WHERE id = ?', foto.fotoId)).toEqual({ memoria_id: id, legenda: 'O retrato.' });
+    expect(relato(id).texto).toBe('Base.\n\nMais um parágrafo.');
+  });
+
+  it('o lote de 200 mensagens com as mídias e 61 avisos cabe nos limites do D1', async () => {
+    const { PESSOAS_DE_TESTE } = await import('../src/lib/servidor/acesso');
+    const acessos = PESSOAS_DE_TESTE.length;
+    const destinatarios = Array.from({ length: 60 }, (_, i) => `mem10-pessoa-${i}`);
+    const medidas: { comandos: number; parametros: number; bytes: number }[] = [];
+    try {
+      PESSOAS_DE_TESTE.push(...destinatarios);
+      sql("INSERT INTO acessos (pessoa) VALUES ('gui') ON CONFLICT DO NOTHING");
+      for (const pessoa of destinatarios) {
+        sql("INSERT INTO integrantes (id, nome) VALUES (?, 'Pessoa de teste')", pessoa);
+        sql('INSERT INTO acessos (pessoa) VALUES (?)', pessoa);
+      }
+      for (const caso of ['publicar', 'nascer']) {
+        const id = memoria(`mem10-limites-${caso}`);
+        for (const pessoa of destinatarios) sql('INSERT INTO memoria_integrantes (memoria_id, integrante_id) VALUES (?, ?)', id, pessoa);
+        const anexos = Array.from({ length: 179 }, () => midias());
+        const entrada = [texto('Base.'), ...anexos.slice(0, 20).map((a) => a.audio), ...anexos.map((a) => a.foto)];
+        const lista = caso === 'publicar' ? await gravar(id, entrada, 'rascunho') : entrada;
+        const antes = linha<{ versao: number }>('SELECT versao FROM memorias WHERE id = ?', id).versao;
+        banco.batch = async (comandos) => {
+          if (comandos.some((c) => /^INSERT INTO avisos\b/.test(c.sql))) {
+            expect(comandos.filter((c) => /^INSERT INTO avisos\b/.test(c.sql))).toHaveLength(61);
+            medidas.push({
+              comandos: comandos.length,
+              parametros: Math.max(...comandos.map((c) => (c as unknown as { valores: unknown[] }).valores.length)),
+              bytes: Math.max(...comandos.map((c) => Buffer.byteLength(c.sql))),
+            });
+          }
+          return lote(comandos);
+        };
+        expect((await salvar(id, { mensagens: [{ ...lista[0], texto: 'Versão publicada.' }, ...lista.slice(1)] })).status).toBe(caso === 'publicar' ? 200 : 201);
+        expect(linha('SELECT versao FROM memorias WHERE id = ?', id)).toEqual({ versao: antes + 1 });
+        expect(mensagens(relato(id).id)).toHaveLength(200);
+        expect((await salvar(id, { acrescentar: true, texto: 'A 201ª.' })).status).toBe(400);
+        conferirRelatos(banco.sqlite, id);
+      }
+      expect(medidas).toHaveLength(2);
+      for (const medida of medidas) {
+        expect(medida.parametros).toBeLessThanOrEqual(100);
+        expect(medida.bytes).toBeLessThanOrEqual(100_000);
+      }
+      console.log('D1 com 200 mensagens, 20 áudios, 179 fotos e 61 avisos', medidas);
+    } finally {
+      banco.batch = lote;
+      PESSOAS_DE_TESTE.length = acessos;
+    }
+  });
+
   it('confere cada lote ao restaurar pela lixeira', async () => {
     const id = memoria('mem8-lixeira');
     const { audio, foto } = midias();

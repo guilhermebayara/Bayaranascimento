@@ -4,18 +4,18 @@ import { z } from 'astro/zod';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto } from '../../lib/servidor/conteudo';
 import { avisosDeRelatoNovo, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
-import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
+import { conflitoNoFormulario, erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { chaveDoPublico, podeEscreverRelato, publicoDaChave, relatoQueNasce, veORelato, type Publico, type Usuario } from '../../lib/servidor/permissoes';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, mensagensDerivadas, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import {
+  acompanharConversa,
   audiosQueEntram,
   comandosDasFotosDoRelato,
   comandosDasMensagens,
   comandosDosAudios,
   comandosDosAvisos,
   fotosQueEntram,
-  listarAudiosDosRelatos,
   listarIntegrantesQueVe,
   listarMensagensDosRelatos,
   listarMensagensGravadas,
@@ -29,6 +29,7 @@ import {
   pessoasQueONaoVe,
   publicosQueAMemoriaJaTeve,
   RECADO_MEMORIA_MUDOU,
+  RelatoMudou,
   refazerSeAMemoriaMudou,
   salvarRelato,
   type Memoria,
@@ -80,7 +81,7 @@ const Pedido = z.object({
   envio: z.string().max(80).optional(),
 });
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request, locals, rewrite }) => {
   if (!mesmaOrigem(request)) return erro(403, 'Pedido recusado.');
   // Sem JavaScript, o formulário chega como formulário comum, e a resposta vira página com recado
   if (!(request.headers.get('Content-Type') ?? '').includes('application/json')) {
@@ -99,6 +100,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
       locals,
     );
+    if (resposta instanceof RelatoMudou) {
+      return conflitoNoFormulario(request, rewrite, `/memorias/${encodeURIComponent(texto('memoria'))}/relato`, RECADO_MEMORIA_MUDOU);
+    }
     const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string };
     if (!resposta.ok) return voltar(request, `/memorias/${encodeURIComponent(texto('memoria'))}/relato`, { erro: corpo.erro ?? 'Não consegui salvar.' });
     // A janela sem script: mandou uma mensagem, continua escrevendo; publicou, vai para a memória, no relato
@@ -117,17 +121,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch {
     return erro(400, 'Envio inválido.');
   }
-  return tratarComAMemoriaDeAgora(bruto, locals);
+  const resposta = await tratarComAMemoriaDeAgora(bruto, locals);
+  return resposta instanceof RelatoMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
 };
 
 /**
- * A gravação do relato confere a versão da memória, como os outros lotes (Y3 do PR #160): se a memória mudou
- * entre a leitura e o lote (outro relato, uma mudança de quem vê), nada é gravado, e o pedido é tratado de
- * novo, lendo a memória de agora. O lote do relato é a primeira gravação de tratar, então a nova tentativa
- * nunca refaz o que já foi gravado. Depois de três tentativas, a pessoa recebe o recado.
+ * A versão da memória é conferida no lote. Ao refazer a conta, a conversa lida no primeiro pedido
+ * protege a edição. O envio que só acrescenta relê a conversa para escrever no fim.
  */
-async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response> {
-  const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
+async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response | RelatoMudou> {
+  const conversa = acompanharConversa();
+  const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals, conversa));
+  if (resposta instanceof RelatoMudou) return resposta;
   return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
 }
 
@@ -170,7 +175,7 @@ async function chaveDoEnvio(codigo: string, pessoa: string, memoriaId: string, p
   return [...new Uint8Array(resumo)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
+async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<typeof acompanharConversa>): Promise<Response> {
   const { usuario } = locals;
   const lido = Pedido.safeParse(bruto);
   if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
@@ -178,20 +183,14 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   // A versão precisa ser lida antes das mensagens, inclusive quando o formulário acrescenta no fim.
   const memoria = await obterMemoria(usuario, memoriaId);
   let mensagens = lido.data.mensagens;
-  // Sem script: a mensagem nova (cada parágrafo, uma mensagem) entra no fim das que o relato já tem.
-  // Sem texto novo, é só publicar o que já está lá.
-  if (lido.data.acrescentar && !mensagens) {
-    const ja = await obterRelato(memoriaId, por, usuario);
-    const atuais = ja ? ((await listarMensagensDosRelatos([ja])).get(ja.id) ?? []) : [];
-    mensagens = [...atuais, ...paragrafos(lido.data.texto).map((t, i) => ({ tipo: 'texto' as const, texto: t, citaId: i === 0 ? (lido.data.cita ?? null) : null }))];
-  }
-  // Com as mensagens, o texto, os áudios e as fotos saem delas, na ordem da conversa
-  const texto = mensagens ? textoDasMensagens(mensagens) : lido.data.texto;
+  const acrescentar = lido.data.acrescentar && !mensagens;
+  // Uma lista do formulário com script pode editar as mídias. Acrescentar só usa as que já estão ligadas.
   const audios = mensagens
     ? mensagens.filter((m) => m.tipo === 'audio' && m.audioId).map((m) => ({ id: m.audioId!, ...(m.transcricao?.trim() ? { transcricao: m.transcricao } : {}) }))
-    : lido.data.audios;
-  const fotos = mensagens ? mensagens.filter((m) => m.tipo === 'foto' && m.fotoId).map((m) => ({ id: m.fotoId!, ...(m.legenda?.trim() ? { legenda: m.legenda } : {}) })) : lido.data.fotos;
-  if (audios && audios.length > AUDIOS_POR_RELATO) return erro(400, `Um relato pode ter até ${AUDIOS_POR_RELATO} áudios.`);
+    : acrescentar ? undefined : lido.data.audios;
+  const fotos = mensagens ? mensagens.filter((m) => m.tipo === 'foto' && m.fotoId).map((m) => ({ id: m.fotoId!, ...(m.legenda?.trim() ? { legenda: m.legenda } : {}) })) : acrescentar ? undefined : lido.data.fotos;
+  const limiteDeAudios = `Um relato pode ter até ${AUDIOS_POR_RELATO} áudios.`;
+  if (audios && audios.length > AUDIOS_POR_RELATO) return erro(400, limiteDeAudios);
 
   // Quem não vê a memória recebe o mesmo que para uma memória inexistente
   if (!memoria) return erro(404, 'Memória não encontrada.');
@@ -201,11 +200,18 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const existente = await obterRelato(memoriaId, por, usuario);
   const decisao = podeEscreverRelato(usuario, por, existente, await pessoasComAcesso());
   if (!decisao.ok) return erro(403, decisao.motivo);
+  const { mensagens: antes, audios: audiosAtuais } = await conversa.ler(existente, acrescentar);
+  if (acrescentar) {
+    mensagens = [...antes, ...paragrafos(lido.data.texto).map((t, i) => ({ tipo: 'texto' as const, texto: t, citaId: i === 0 ? (lido.data.cita ?? null) : null }))];
+    if (mensagens.length > MENSAGENS_POR_RELATO) return erro(400, `Um relato pode ter até ${MENSAGENS_POR_RELATO} mensagens.`);
+    if (mensagens.filter((m) => m.tipo === 'audio').length > AUDIOS_POR_RELATO) return erro(400, limiteDeAudios);
+  }
+  const texto = mensagens ? textoDasMensagens(mensagens) : lido.data.texto;
   // O relato precisa de texto ou de pelo menos um áudio; na conversa, de pelo menos uma mensagem
   if (mensagens) {
     if (!mensagens.some((m) => (m.tipo === 'texto' ? m.texto?.trim() : true))) return erro(400, 'Mande pelo menos uma mensagem: um texto, um áudio ou uma foto.');
   } else {
-    const temAudio = audios ? audios.length > 0 : Boolean(existente && (await listarAudiosDosRelatos([existente.id])).get(existente.id)?.length);
+    const temAudio = (audios ?? audiosAtuais).length > 0;
     if (!texto.trim() && !temAudio) return erro(400, 'Escreva o relato ou grave um áudio antes de salvar.');
   }
 
@@ -215,7 +221,6 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   if (existente?.situacao === 'publicada') situacao = 'publicada';
 
   // As mensagens de antes, para o histórico: só acrescentar no fim (voltar e contar mais) não guarda versão
-  const antes = existente ? ((await listarMensagensDosRelatos([existente])).get(existente.id) ?? []) : [];
   const guardar = !mensagens || !soAcrescentou(antes, mensagens.map(paraMensagem));
   // O relato que nasce depois de a memória abrir para mais gente do que a página mostrava nasce só para esse
   // público e espera o sim de quem escreveu, com o pedido de quem criou a memória (relatoQueNasce). O
@@ -233,7 +238,7 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     audios ? audiosQueEntram(id, memoriaId, audios, usuario) : undefined,
     fotosQueEntram(id, memoriaId, situacao, fotos, usuario),
   ]);
-  const audiosDoRelato = audiosAceitos ?? (id === null ? [] : (await listarAudiosDosRelatos([id])).get(id) ?? []);
+  const audiosDoRelato = audiosAceitos ?? audiosAtuais;
   // Cada áudio fica com a ordem da última vez em que aparece na lista.
   const audiosQueFicam = [...new Set(audiosDoRelato.map((a) => a.id).reverse())].reverse();
   const textoArrumado = arrumarTexto(texto);

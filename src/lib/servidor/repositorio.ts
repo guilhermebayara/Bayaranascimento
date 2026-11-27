@@ -1,7 +1,7 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
 import { gravarEspera, lerEspera, quemNaoVe, relatoAberto, relatoNaTv, sqlEstaNoPublicoDoRelato, sqlRelatoAberto, sqlRelatoNaTv, sqlCasalAberto, sqlRelatoNaoEspera, sqlVeMemoria, sqlVeORelato, naoVeParaSql } from './quem-ve';
-import { ambiente, apelidosDoPedido, banco } from './ambiente';
+import { ambiente, apelidosDoPedido, banco, esquecerAsLeiturasDoPedido } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
 import { sqlMemoriaDoCapitulo, ehEpoca, formatarPeriodo, podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
@@ -144,7 +144,7 @@ const db = () => banco();
 
 // --- A versão da memória (migração 107; revisão Y2 do PR #160, item 4b) ---
 
-/** O recado de quem perdeu a corrida mais de uma vez seguida: nada foi gravado. */
+/** O recado de quem perdeu a corrida de gravação. */
 export const RECADO_MEMORIA_MUDOU = 'Esta memória mudou enquanto você editava. Abra de novo para ver como ficou.';
 
 /** O lote contava com uma versão da memória que já não é a de agora: nada foi gravado. */
@@ -153,6 +153,9 @@ export class MemoriaMudou extends Error {
     super(RECADO_MEMORIA_MUDOU);
   }
 }
+
+/** O relato mudou desde que o pedido leu a conversa. Repetir aplicaria a lista antiga sobre a nova. */
+export class RelatoMudou extends MemoriaMudou {}
 
 /**
  * Sobe a versão a partir da que foi lida. Se outro lote subiu antes, o gatilho da migração 107 recusa, e o
@@ -185,7 +188,8 @@ export async function refazerSeAMemoriaMudou<T>(fazer: () => Promise<T>, tentati
       return await fazer();
     } catch (erro) {
       if (!(erro instanceof MemoriaMudou)) throw erro;
-      if (vez >= tentativas) return erro;
+      if (erro instanceof RelatoMudou || vez >= tentativas) return erro;
+      esquecerAsLeiturasDoPedido();
     }
   }
 }
@@ -1332,7 +1336,7 @@ const marcarPublicacao = (id: string) =>
  * `junto`: o que precisa gravar na mesma transação, como os relatos e os pedidos de uma mudança de quem vê
  * (comandosDaMudancaDeQuemVe): se um falhar, a memória continua com o público de antes (revisão Y do PR #160).
  * `antes`: o que a ficha cita e ainda não existe (a pessoa nova, o tema novo, o laço aberto), no mesmo lote.
- * `conferir`: o lote conta com a memória que leu (mudar quem vê, ou o relato que nasce junto): se ela mudou
+ * `conferir`: o lote conta com a memória que leu (mudar quem vê ou gravar o relato junto): se ela mudou
  * no meio tempo, nada é gravado (MemoriaMudou), nem o que vai em `antes` e `junto` (Y3 do PR #160).
  */
 export async function atualizarMemoria(
@@ -1842,12 +1846,12 @@ export async function fotosQueEntram(
     .bind(relatoId, usuario.pessoa, JSON.stringify(itens?.map((i) => i.id) ?? []))
     .all<FotoDoRelato>();
   const candidatas = new Map(results.map((f) => [f.id, f]));
-  const lista = itens ?? results.map((f) => ({ id: f.id, legenda: f.legenda ?? undefined }));
-  const aceitas = new Map<number, { foto: FotoDoRelato; legenda?: string }>();
+  const lista: { id: number; legenda?: string }[] = itens ?? results.map((f) => ({ id: f.id }));
+  const aceitas = new Map<number, { foto: FotoDoRelato; legenda: string | null }>();
   for (const item of lista) {
     const foto = candidatas.get(item.id);
     if (foto && foto.enviada_por === usuario.pessoa && (foto.memoria_id === null || foto.memoria_id === memoriaId) && !aceitas.has(item.id)) {
-      aceitas.set(item.id, { foto, legenda: item.legenda });
+      aceitas.set(item.id, { foto, legenda: itens ? (item.legenda?.trim() || null) : foto.legenda });
     }
   }
   const acrescentadas = situacao === 'publicada' ? [...aceitas.values()].filter(({ foto }) => foto.memoria_id === null).map(({ foto }) => foto.id) : [];
@@ -1880,14 +1884,13 @@ export function comandosDasFotosDoRelato(
         .bind(memoriaId, ids, usuario.pessoa, ...r.valores, memoriaId),
     ] : []),
     ...aceitas.map(({ foto, legenda }) => {
-      const texto = legenda?.trim() || null;
-      if (foto.memoria_id !== null) return db().prepare('UPDATE fotos SET legenda = ? WHERE id = ?').bind(texto, foto.id);
-      if (situacao === 'rascunho') return db().prepare(`UPDATE fotos SET relato_id = ${r.sql}, legenda = ? WHERE id = ?`).bind(...r.valores, texto, foto.id);
+      if (foto.memoria_id !== null) return db().prepare('UPDATE fotos SET legenda = ? WHERE id = ?').bind(legenda, foto.id);
+      if (situacao === 'rascunho') return db().prepare(`UPDATE fotos SET relato_id = ${r.sql}, legenda = ? WHERE id = ?`).bind(...r.valores, legenda, foto.id);
       return db()
         .prepare(`UPDATE fotos SET relato_id = ${r.sql}, memoria_id = ?, legenda = ?,
           principal = NOT EXISTS (SELECT 1 FROM fotos WHERE memoria_id = ? AND removida_em IS NULL AND principal = 1),
           ordem = (SELECT COALESCE(MAX(ordem), -1) + 1 FROM fotos WHERE memoria_id = ? AND removida_em IS NULL) WHERE id = ?`)
-        .bind(...r.valores, memoriaId, texto, memoriaId, memoriaId, foto.id);
+        .bind(...r.valores, memoriaId, legenda, memoriaId, memoriaId, foto.id);
     }),
     db()
       .prepare(`UPDATE fotos SET removida_em = datetime('now'), removida_por = ? WHERE relato_id = ${r.sql} AND removida_em IS NULL AND enviada_por = ?
@@ -2383,21 +2386,16 @@ export async function salvarRelato(
   anterior: Relato | undefined,
   // O relato como conversa: só acrescentar mensagens no fim (voltar e contar mais) não guarda versão.
   // A versão leva junto as mensagens de antes, quando há (src/lib/conversa.ts)
-  versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
-  // A rota do relato confere a versão da memória que leu, como os outros lotes (Y3 do PR #160): se a memória
-  // mudou depois da leitura, nada é gravado (MemoriaMudou), e a rota refaz a conta com a memória de agora.
+  versao: { guardar: boolean; mensagens?: Mensagem[] },
+  // A rota confere a versão que leu. Se a memória mudou, o lote volta por inteiro (MemoriaMudou).
   // `nasce`: o relato novo que espera o sim de quem escreveu (relatoQueNasce), com o pedido
   // `envio`: a chave do envio único do formulário sem script (migração 109; a rota a faz do código da página, de
   // quem envia, do relato e do texto): repetida, nada é gravado (EnvioRepetido)
   // `junto`: os vínculos e as mensagens que gravam no mesmo lote do relato, depois dele
-  { conferir, nasce, envio, junto = [] }: { conferir?: number; nasce?: RelatoQueNasceEsperando; envio?: string; junto?: Comando[] } = {},
+  { conferir, nasce, envio, junto = [] }: { conferir: number; nasce?: RelatoQueNasceEsperando; envio?: string; junto?: Comando[] },
 ): Promise<void> {
   const doEnvio = envio ? comandosDoEnvio(envio) : [];
   try {
-    if (conferir === undefined) {
-      await db().batch([...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce }), ...junto]);
-      return;
-    }
     // Conferir a versão também a sobe: o relato novo dispensa a subida sem conferência
     await loteDaMemoria([conferirVersao(memoriaId, conferir), ...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false }), ...junto]);
   } catch (erro) {
@@ -3725,6 +3723,34 @@ export async function listarMensagensDosRelatos(relatos: Pick<Relato, 'id' | 'te
   );
 }
 
+/** Guarda o que o pedido leu antes de tentar gravar. As regras de visibilidade são relidas a cada tentativa. */
+export function acompanharConversa() {
+  let primeira: string | undefined;
+  return {
+    get jaLeu() { return primeira !== undefined; },
+    async ler(relato: Relato | undefined, acrescentar = false) {
+      const id = relato?.id;
+      const [gravadas, audios, fotos] = id === undefined ? [[], [], []] as const : await Promise.all([
+        listarMensagensGravadas([id]).then((m) => m.get(id) ?? []),
+        listarAudiosDosRelatos([id]).then((a) => a.get(id) ?? []),
+        listarFotosDoRelato(id),
+      ]);
+      const sons = audios.map((a) => a.id);
+      const imagens = fotos.map((f) => f.id);
+      if (!acrescentar) {
+        const atual = JSON.stringify([
+          id, relato?.texto, relato?.situacao, gravadas,
+          audios.map((a) => [a.id, a.transcricao]),
+          fotos.slice().sort((a, b) => a.id - b.id).map((f) => [f.id, f.legenda]),
+        ]);
+        if (primeira !== undefined && primeira !== atual) throw new RelatoMudou();
+        primeira = atual;
+      }
+      return { audios, fotos, mensagens: mensagensDoRelato(gravadas, relato?.texto ?? '', sons, imagens) };
+    },
+  };
+}
+
 /**
  * Os comandos que gravam as mensagens do relato, na ordem dada. A que tem id e é deste relato é atualizada
  * no lugar (guarda a hora em que foi enviada e o id, para quem a cita); a nova entra com a hora de agora; a
@@ -3748,7 +3774,10 @@ export async function comandosDasMensagens(relato: RelatoNoLote, mensagens: Mens
             WHERE f.relato_id IS NOT (SELECT id FROM alvo) OR f.removida_em IS NOT NULL))`)
         .bind(...r.valores, JSON.stringify(audios), JSON.stringify(fotos)),
     ] : []),
-    ...antes.filter((m) => !ficam.has(m.id)).map((m) => db().prepare('DELETE FROM relato_mensagens WHERE id = ?').bind(m.id)),
+    ...(typeof relato === 'number' ? [
+      db().prepare('DELETE FROM relato_mensagens WHERE relato_id = ? AND id NOT IN (SELECT value FROM json_each(?))')
+        .bind(relato, JSON.stringify([...ficam])),
+    ] : []),
     ...mensagens.map((m, ordem) =>
       m.id !== undefined && deste.has(m.id)
         ? db()

@@ -1,19 +1,17 @@
 // Excluir e recuperar: memórias na lixeira, versões anteriores e fotos removidas.
 import type { APIRoute } from 'astro';
 import { mensagensDerivadas, textoDasMensagens, type Mensagem } from '../../lib/conversa';
-import { campo, mesmaOrigem, voltar } from '../../lib/servidor/http';
+import { campo, conflitoNoFormulario, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { avisarQuemEstava, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
 import { alcanceDaCorrecao, podeApagarDeVez, podeEditarMemoria, podeExcluirMemoria, podeVerVersao } from '../../lib/servidor/permissoes';
 import {
+  acompanharConversa,
   apagarCapituloDeVez,
   apagarMemoriaDeVez,
   atualizarMemoria,
   listarCapitulosExcluidos,
   excluirMemoria,
   comandosDasMensagens,
-  listarAudiosDosRelatos,
-  listarFotosDoRelato,
-  listarMensagensDosRelatos,
   idsDasPessoasExcluidas,
   listarExcluidas,
   listarIntegrantes,
@@ -30,13 +28,14 @@ import {
   refazerSeAMemoriaMudou,
   MemoriaMudou,
   RECADO_MEMORIA_MUDOU,
+  RelatoMudou,
   salvarRelato,
   type DadosDaMemoria,
   type Memoria,
   type Relato,
 } from '../../lib/servidor/repositorio';
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request, locals, rewrite }) => {
   if (!mesmaOrigem(request)) return new Response('Pedido recusado.', { status: 403 });
   const { usuario, tipos } = locals;
   const dados = await request.formData();
@@ -159,18 +158,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (acao === 'restaurar-relato') {
     // Cada pessoa só mexe no relato que escreveu ou registrou
     const por = campo(dados, 'por', 80);
+    const conversa = acompanharConversa();
+    let destinoDoConflito = historico;
     const resultado = await refazerSeAMemoriaMudou(async () => {
       const agora = await obterMemoria(usuario, id);
       if (!agora) return voltar(request, '/', { erro: 'Memória não encontrada.' });
+      destinoDoConflito = agora.situacao === 'rascunho' ? `/nova?${new URLSearchParams({ id })}` : historico;
       const relato = await obterRelato(agora.id, por, usuario);
       if (!relato || relato.registradoPor !== usuario.pessoa) return voltar(request, historico, { erro: 'Só quem escreveu o relato pode restaurar uma versão dele.' });
+      const { mensagens: hoje, audios: audiosAtuais, fotos: fotosAtuais } = await conversa.ler(relato);
       const versao = (await listarVersoes<Relato & { mensagens?: Mensagem[] }>('relato', String(relato.id))).find((v) => v.id === Number(campo(dados, 'versao', 12)));
       if (!versao) return voltar(request, historico, { erro: 'Versão não encontrada.' });
       // A versão traz os textos e a ordem. Dos áudios e fotos, só voltam os que ainda são do relato.
-      const hoje = (await listarMensagensDosRelatos([relato])).get(relato.id) ?? [];
       const antigas = versao.dados.mensagens ?? mensagensDerivadas(versao.dados.texto, [], []);
-      const audios = new Set((await listarAudiosDosRelatos([relato.id])).get(relato.id)?.map((a) => a.id) ?? []);
-      const fotos = new Set((await listarFotosDoRelato(relato.id)).map((f) => f.id));
+      const audios = new Set(audiosAtuais.map((a) => a.id));
+      const fotos = new Set(fotosAtuais.map((f) => f.id));
       const voltam = [
         ...antigas.filter((m) => (m.tipo === 'audio' ? audios.has(m.audioId!) : m.tipo === 'foto' ? fotos.has(m.fotoId!) : Boolean(m.texto?.trim()))),
         // Áudio ou foto de hoje que a versão não tinha continua, no fim.
@@ -180,6 +182,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       await salvarRelato(agora.id, por, textoDasMensagens(voltam), relato.situacao, usuario, relato, { guardar: true, mensagens: hoje }, { junto, conferir: agora.versao });
       return voltar(request, pagina, { ok: 'Texto do relato restaurado.' });
     });
+    if (resultado instanceof RelatoMudou) return conflitoNoFormulario(request, rewrite, destinoDoConflito, RECADO_MEMORIA_MUDOU);
     return resultado instanceof MemoriaMudou ? voltar(request, historico, { erro: RECADO_MEMORIA_MUDOU }) : resultado;
   }
 
