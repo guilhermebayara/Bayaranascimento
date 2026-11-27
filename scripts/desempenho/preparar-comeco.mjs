@@ -1,13 +1,11 @@
-// Prepara o banco LOCAL para medir o primeiro pedido depois das migrações (sessão M2, 23/11/2026; relatório
-// em docs/desempenho/2026-11-23-m2-cpu.md). Tira as mensagens dos relatos da carga (carga-local.mjs), para
-// eles ficarem como os relatos gravados antes da conversa (migração 103). No próximo começo do servidor,
-// darMensagensAosRelatosDeAntes (src/lib/servidor/mensagens-de-antes.ts) refaz as mensagens, até 500 relatos
-// por começo, e medir-cpu.mjs mede quanto isso custa de CPU.
+// Mede o preparo no primeiro pedido de um build local novo, com o acervo de exemplo cheio.
+// Sem --medir, tira as mensagens dos relatos da carga para simular uma cópia antiga, como na M2.
 //
 // Só roda no computador, contra o servidor local, pela Local Explorer do Wrangler, e só num banco com o
 // acervo de exemplo, como a carga. Nunca toca prévia, homologação ou produção (regra 12 da guarda).
 //
 //   node scripts/desempenho/preparar-comeco.mjs               # tira as mensagens dos relatos da carga
+//   node scripts/desempenho/preparar-comeco.mjs --medir       # build recém-iniciado com AMBIENTE:producao
 const ENDERECOS_LOCAIS = new Set(['127.0.0.1', 'localhost', '[::1]']);
 const PRIMEIRO_ID = 900000;
 const ARGS = process.argv.slice(2);
@@ -46,6 +44,44 @@ if (!relatos) {
   console.error('O banco não tem a carga. Rode antes scripts/desempenho/carga-local.mjs.');
   process.exit(1);
 }
-await consultar(`DELETE FROM relato_mensagens WHERE relato_id >= ${PRIMEIRO_ID}`);
-const [{ sem }] = await consultar(`SELECT count(*) AS sem FROM relatos r WHERE NOT EXISTS (SELECT 1 FROM relato_mensagens m WHERE m.relato_id = r.id)`);
-console.log(`Relatos sem mensagens agora: ${sem} (de ${relatos} da carga). O próximo começo do servidor refaz até 500.`);
+if (!ARGS.includes('--medir')) {
+  await consultar(`DELETE FROM relato_mensagens WHERE relato_id >= ${PRIMEIRO_ID}`);
+  const [{ sem }] = await consultar(`SELECT count(*) AS sem FROM relatos r WHERE NOT EXISTS (SELECT 1 FROM relato_mensagens m WHERE m.relato_id = r.id)`);
+  console.log(`Relatos sem mensagens agora: ${sem} (de ${relatos} da carga).`);
+} else {
+  const [{ total }] = await consultar('SELECT count(*) AS total FROM relatos');
+  const pedido = new URL(`/?medicao-comeco=${crypto.randomUUID()}`, endereco).href;
+  const resposta = await fetch(pedido);
+  await resposta.arrayBuffer();
+  if (resposta.status !== 401) throw new Error('Esperava só o preparo, seguido da resposta 401 do servidor local sem login.');
+  const observar = async (sql, params) => {
+    const r = await chamar('/local/observability/query', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sql, params }),
+    });
+    return r.rows.map((linha) => Object.fromEntries(r.columns.map((c, i) => [c, linha[i]])));
+  };
+  for (let i = 0; i < 100; i++) {
+    const [rastro] = await observar(`SELECT trace_id FROM spans WHERE parent_id IS NULL AND
+      json_extract(attributes, '$."url.full"') = ? AND duration_ms IS NOT NULL`, [pedido]);
+    if (rastro) {
+      const idas = await observar(`SELECT name AS tipo, json_extract(attributes, '$."db.query.text"') AS sql,
+        json_extract(attributes, '$."cloudflare.d1.response.rows_read"') AS lidas,
+        json_extract(attributes, '$."cloudflare.d1.response.rows_written"') AS escritas
+        FROM spans WHERE trace_id = ? AND kind = 'd1' ORDER BY start_ms`, [rastro.trace_id]);
+      if (idas.length) {
+        const lerRelatos = idas.filter((ida) => /\b(?:FROM|JOIN)\s+(?:relatos|relato_mensagens)\b/i.test(ida.sql ?? ''));
+        console.log(JSON.stringify({
+          relatos: total,
+          idas: idas.length,
+          linhasLidas: idas.reduce((soma, ida) => soma + (ida.lidas ?? 0), 0),
+          linhasEscritas: idas.reduce((soma, ida) => soma + (ida.escritas ?? 0), 0),
+          idasQueLeemRelatos: lerRelatos.length,
+          linhasDasIdasQueLeemRelatos: lerRelatos.reduce((soma, ida) => soma + (ida.lidas ?? 0), 0),
+        }, null, 2));
+        process.exit(0);
+      }
+    }
+    await new Promise((ok) => setTimeout(ok, 150));
+  }
+  throw new Error('Não encontrei o rastro do preparo. Confira se o primeiro pedido foi neste processo e se os rastros locais estão ligados.');
+}

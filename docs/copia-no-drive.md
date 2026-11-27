@@ -58,6 +58,8 @@ O arquivo é um JSON com `tabelas`, cada uma com suas linhas, como objetos. Os a
 
 Os arquivos de 24/11/2026 em diante são o banco de um instante só (ver "A cópia é de um instante só", em "Por dentro"): nada gravado no meio da cópia entra pela metade. Nos de antes, o que alguém gravou enquanto a cópia era feita pode ter entrado ou não; se a restauração de um desses falhar numa chave estrangeira, apague a linha que aponta para o que falta.
 
+Numa cópia antiga restaurada, um relato sem mensagens gravadas continua legível. Ao abrir a conversa, o site deriva as mensagens do texto e das mídias do relato.
+
 ## O espelho da produção
 
 A homologação usa a família de verdade (Gui, 18/11): **nomes, datas e laços passam; memórias, relatos, textos, retratos e fotos nunca passam.** O que passa, coluna por coluna, está em "Espelho da produção", abaixo.

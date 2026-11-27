@@ -10,7 +10,6 @@ import { NUCLEO_INICIAL } from '../familias';
 import { semearAcervoDeExemplo, semearAniversariosDeExemplo, semearAvisosDeExemplo, semearPedidoDeExemplo, semearRascunhoQueFicouDeExemplo, semearAudiosDeExemplo, semearCartaDeExemplo, semearCasaisDoCoracaoDeExemplo, semearConsideracoesDeExemplo, semearDeQuemDeExemplo, semearDiaDosCapitulosDeExemplo, semearExemplos, semearNascimentoDaElizeteDeExemplo, semearParentesDeExemplo, semearTiposDeExemplo, semearCeiaRestritaDeExemplo } from './semente';
 import { limparBucketDeTeste, semearFotosDeExemplo } from './fotos-de-exemplo';
 import { consertarRetratosDaHomologacao } from './retratos-da-homologacao';
-import { darMensagensAosRelatosDeAntes } from './mensagens-de-antes';
 
 interface Migracao {
   id: string;
@@ -1236,8 +1235,4 @@ async function migrar(db: D1Database): Promise<void> {
 
   // Os gatilhos da marca da cópia em toda tabela, inclusive as criadas agora pelos exemplos (marca-da-copia.ts)
   await garantirGatilhosDaMarca(db, mudouEsquema || AMBIENTES_COM_EXEMPLOS.includes(ambiente()) ? undefined : esquema.results);
-
-  // O relato como conversa: os relatos sem mensagens ganham as derivadas deles, sem perda (ver
-  // mensagens-de-antes.ts). Depois das migrações e dos exemplos, para pegar também os semeados agora.
-  await darMensagensAosRelatosDeAntes(db);
 }

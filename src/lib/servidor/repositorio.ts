@@ -1,7 +1,7 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
 import { gravarEspera, lerEspera, quemNaoVe, relatoAberto, relatoNaTv, sqlEstaNoPublicoDoRelato, sqlRelatoAberto, sqlRelatoNaTv, sqlCasalAberto, sqlRelatoNaoEspera, sqlVeMemoria, sqlVeORelato, naoVeParaSql } from './quem-ve';
-import { ambiente, apelidosDoPedido, banco } from './ambiente';
+import { ambiente, apelidosDoPedido, banco, esquecerAsLeiturasDoPedido } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
 import { sqlMemoriaDoCapitulo, ehEpoca, formatarPeriodo, podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
@@ -144,7 +144,7 @@ const db = () => banco();
 
 // --- A versão da memória (migração 107; revisão Y2 do PR #160, item 4b) ---
 
-/** O recado de quem perdeu a corrida mais de uma vez seguida: nada foi gravado. */
+/** O recado de quem perdeu a corrida de gravação. */
 export const RECADO_MEMORIA_MUDOU = 'Esta memória mudou enquanto você editava. Abra de novo para ver como ficou.';
 
 /** O lote contava com uma versão da memória que já não é a de agora: nada foi gravado. */
@@ -154,20 +154,26 @@ export class MemoriaMudou extends Error {
   }
 }
 
+/** O relato mudou desde que o pedido leu a conversa. Repetir aplicaria a lista antiga sobre a nova. */
+export class RelatoMudou extends MemoriaMudou {}
+
 /**
  * Sobe a versão a partir da que foi lida. Se outro lote subiu antes, o gatilho da migração 107 recusa, e o
  * lote inteiro volta (MemoriaMudou). Vai junto de todo lote que grava a espera ou o público conhecido de um
  * relato a partir do que leu.
  */
-const conferirVersao = (memoriaId: string, lida: number) => db().prepare('UPDATE memorias SET versao = ? WHERE id = ?').bind(lida + 1, memoriaId);
+function conferirVersao(memoriaId: string, lida: number, quando?: { sql: string; valores: (string | number)[] }): Comando {
+  const condicao = quando ? ` AND EXISTS (${quando.sql})` : '';
+  return db().prepare(`UPDATE memorias SET versao = ? WHERE id = ?${condicao}`).bind(lida + 1, memoriaId, ...(quando?.valores ?? []));
+}
 
 /** Sobe a versão sem conferir: um relato novo, que quem leu os relatos antes não viu. */
 const subirVersao = (memoriaId: string) => db().prepare('UPDATE memorias SET versao = versao + 1 WHERE id = ?').bind(memoriaId);
 
 /** O lote, com a recusa do gatilho traduzida em MemoriaMudou. */
-async function loteDaMemoria(comandos: Comando[]): Promise<void> {
+async function loteDaMemoria(comandos: Comando[]) {
   try {
-    await db().batch(comandos);
+    return await db().batch(comandos);
   } catch (erro) {
     if (String((erro as Error)?.message ?? erro).includes('memoria-mudou')) throw new MemoriaMudou();
     throw erro;
@@ -185,7 +191,8 @@ export async function refazerSeAMemoriaMudou<T>(fazer: () => Promise<T>, tentati
       return await fazer();
     } catch (erro) {
       if (!(erro instanceof MemoriaMudou)) throw erro;
-      if (vez >= tentativas) return erro;
+      if (erro instanceof RelatoMudou || vez >= tentativas) return erro;
+      esquecerAsLeiturasDoPedido();
     }
   }
 }
@@ -1129,15 +1136,14 @@ async function agregadosDosCapitulos(usuario: Usuario, capitulos: Capitulo[]) {
       json_extract(value, '$.dentro') AS dentro, json_extract(value, '$.epoca') AS epoca FROM json_each(?2)),
     visiveis AS MATERIALIZED (SELECT m.id, m.ano, m.mes, m.dia, m.criada_em, m.rowid AS desempate,
       ROW_NUMBER() OVER (ORDER BY ${ORDEM_INVERSA}) - 1 AS posicao FROM memorias m WHERE ${FILTRO_PUBLICADA}),
-    proprias AS MATERIALIZED (
+    vinculadas AS MATERIALIZED (
       SELECT DISTINCT c.id AS capitulo, m.id FROM cs c JOIN capitulo_memorias cm ON cm.capitulo_id = c.id
-      JOIN visiveis m ON m.id = cm.memoria_id WHERE c.modo = 'reunido' AND ${sqlMemoriaDoCapitulo('m','c.dados',"'[]'",'reunido','cm')}
+      JOIN visiveis m ON m.id = cm.memoria_id WHERE ${sqlMemoriaDoCapitulo('m','c.dados',"'[]'",'reunido','cm')}),
+    proprias AS MATERIALIZED (SELECT v.capitulo, v.id FROM vinculadas v JOIN cs c ON c.id = v.capitulo WHERE c.modo = 'reunido'
       UNION ALL SELECT c.id, m.id FROM cs c JOIN visiveis m WHERE c.modo = 'epoca' AND ${sqlMemoriaDoCapitulo('m','c.dados',"'[]'",'epoca')}),
     alcances AS MATERIALIZED (SELECT c.id AS capitulo, j.value AS vinculo FROM cs c JOIN json_each(json_insert(c.filhos, '$[#]', c.id)) j WHERE c.modo = 'reunido'),
     membros AS MATERIALIZED (
-      SELECT DISTINCT c.id AS capitulo, m.id FROM alcances a JOIN cs c ON c.id = a.capitulo
-        JOIN capitulo_memorias cm ON cm.capitulo_id = a.vinculo JOIN visiveis m ON m.id = cm.memoria_id
-        WHERE ${sqlMemoriaDoCapitulo('m','c.dados','c.filhos','reunido','cm')}
+      SELECT DISTINCT a.capitulo, v.id FROM alcances a JOIN vinculadas v ON v.capitulo = a.vinculo
       UNION ALL SELECT p.capitulo, p.id FROM proprias p JOIN cs c ON c.id = p.capitulo WHERE c.modo = 'epoca'),
     datas AS MATERIALIZED (SELECT p.capitulo, json_object('ano',m.ano,'mes',m.mes,'dia',m.dia) AS data,
       ROW_NUMBER() OVER (PARTITION BY p.capitulo ORDER BY ${antes}) AS primeira,
@@ -1333,21 +1339,30 @@ const marcarPublicacao = (id: string) =>
  * `junto`: o que precisa gravar na mesma transação, como os relatos e os pedidos de uma mudança de quem vê
  * (comandosDaMudancaDeQuemVe): se um falhar, a memória continua com o público de antes (revisão Y do PR #160).
  * `antes`: o que a ficha cita e ainda não existe (a pessoa nova, o tema novo, o laço aberto), no mesmo lote.
- * `conferir`: o lote conta com a memória que leu (mudar quem vê, ou o relato que nasce junto): se ela mudou
+ * `conferir`: o lote conta com a memória que leu (mudar quem vê ou gravar o relato junto): se ela mudou
  * no meio tempo, nada é gravado (MemoriaMudou), nem o que vai em `antes` e `junto` (Y3 do PR #160).
+ * `conferirLegendas`: na ficha, a legenda de uma foto do relato também conta para a versão.
  */
 export async function atualizarMemoria(
   anterior: Memoria,
   dados: DadosDaMemoria,
   usuario: Usuario,
   fotosRemovidas: number[],
-  { junto = [], antes = [], quemVe = 'nao', conferir = false }: { junto?: Comando[]; antes?: Comando[]; quemVe?: GravarQuemVe; conferir?: boolean } = {},
+  {
+    junto = [], antes = [], quemVe = 'nao', conferir = false, conferirLegendas = false,
+  }: { junto?: Comando[]; antes?: Comando[]; quemVe?: GravarQuemVe; conferir?: boolean; conferirLegendas?: boolean } = {},
 ): Promise<void> {
   if (quemVe === 'mudou' && anterior.criadaPor !== usuario.pessoa) throw new Error('Só quem criou muda quem pode ver.');
   const visibilidade = quemVe === 'mudou' ? ', visibilidade = ?' : '';
+  const precisaConferir = quemVe === 'mudou' || conferir || (conferirLegendas && dados.fotos.length > 0);
+  // Se a conferência já é obrigatória, ela vale também para as legendas no mesmo lote.
+  const soPelasLegendas = quemVe !== 'mudou' && !conferir;
   await loteDaMemoria([
-    // Mudar quem vê conta com os relatos que leu: se um relato nasceu ou mudou no meio tempo, o lote volta
-    ...(quemVe === 'mudou' || conferir ? [conferirVersao(anterior.id, anterior.versao)] : []),
+    ...(precisaConferir ? [conferirVersao(anterior.id, anterior.versao, soPelasLegendas ? {
+      sql: `SELECT 1 FROM json_each(?) j JOIN fotos f ON f.id = json_extract(j.value, '$[0]')
+        WHERE f.relato_id IS NOT NULL AND f.legenda IS NOT json_extract(j.value, '$[1]')`,
+      valores: [JSON.stringify(dados.fotos.map((f) => [f.id, f.legenda ?? null]))],
+    } : undefined)] : []),
     ...antes,
     db()
       .prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('memoria', ?, ?, ?)`)
@@ -1655,12 +1670,14 @@ export async function listarFotosRemovidas(memoriaId: string): Promise<(Foto & {
   }));
 }
 
-/** Devolve a foto à memória: quem enviou e quem a removeu (podeRestaurarFoto). Nas antigas, quem removeu foi quem enviou. */
-export async function restaurarFoto(id: number, memoriaId: string, usuario: Usuario): Promise<boolean> {
-  const resultado = await db()
-    .prepare('UPDATE fotos SET removida_em = NULL, removida_por = NULL, principal = 0 WHERE id = ?1 AND memoria_id = ?2 AND (enviada_por = ?3 OR removida_por = ?3) AND removida_em IS NOT NULL')
-    .bind(id, memoriaId, usuario.pessoa)
-    .run();
+/** Confere a versão no mesmo lote quando a foto que volta é de um relato. */
+export async function restaurarFoto(id: number, memoria: Pick<Memoria, 'id' | 'versao'>, usuario: Usuario): Promise<boolean> {
+  const autorizada = 'id = ? AND memoria_id = ? AND (enviada_por = ? OR removida_por = ?) AND removida_em IS NOT NULL';
+  const valores = [id, memoria.id, usuario.pessoa, usuario.pessoa];
+  const [, resultado] = await loteDaMemoria([
+    conferirVersao(memoria.id, memoria.versao, { sql: `SELECT 1 FROM fotos WHERE ${autorizada} AND relato_id IS NOT NULL`, valores }),
+    db().prepare(`UPDATE fotos SET removida_em = NULL, removida_por = NULL, principal = 0 WHERE ${autorizada}`).bind(...valores),
+  ]);
   return (resultado.meta.changes ?? 0) > 0;
 }
 
@@ -1823,65 +1840,78 @@ export async function listarFotosDoRelato(relatoId: number): Promise<Foto[]> {
   }));
 }
 
-/**
- * Fotos pelo relato (docs/regras/relatos.md): prende ao relato as fotos da lista e, com o relato publicado, à
- * memória dele. Só entram as fotos soltas que a própria pessoa enviou e as que já eram deste relato:
- * ninguém prende foto de outra pessoa, nem foto que já é de outra memória ou de outro relato. Quem chama
- * já conferiu que a pessoa vê a memória e pode escrever o relato. As que chegam à memória vão para o
- * fim da ordem, sem mexer na principal; se a memória não tiver nenhuma, a primeira vira a principal.
- * As fotos do relato que saíram da lista vão para a lixeira da memória, e só as que a pessoa enviou.
- * Devolve quantas fotos ficaram no relato.
- */
-export async function ligarFotosDoRelato(
-  relato: { id: number; memoriaId: string; situacao: 'rascunho' | 'publicada' },
-  itens: { id: number; legenda?: string }[],
+type FotoDoRelato = { id: number; memoria_id: string | null; relato_id: number | null; enviada_por: string; legenda: string | null };
+
+/** Fotos que podem entrar e as que ficam, na ordem da memória, inclusive as que só outra pessoa pode tirar. */
+export async function fotosQueEntram(
+  relatoId: number | null,
+  memoriaId: string,
+  situacao: 'rascunho' | 'publicada',
+  itens: { id: number; legenda?: string }[] | undefined,
   usuario: Usuario,
-): Promise<number> {
-  const ids = itens.map((i) => i.id);
+) {
+  if (relatoId === null && !itens?.length) return { aceitas: [], ficam: [], ligar: Boolean(itens) };
   const { results } = await db()
     .prepare(
-      `SELECT id, memoria_id FROM fotos WHERE removida_em IS NULL AND enviada_por = ?
-       AND (relato_id = ? OR (relato_id IS NULL AND memoria_id IS NULL))
-       AND (memoria_id IS NULL OR memoria_id = ?)
-       AND id IN (SELECT value FROM json_each(?))`,
+      `SELECT id, memoria_id, relato_id, enviada_por, legenda FROM fotos WHERE removida_em IS NULL
+       AND (relato_id = ? OR (relato_id IS NULL AND memoria_id IS NULL AND enviada_por = ? AND id IN (SELECT value FROM json_each(?))))
+       ORDER BY memoria_id IS NULL, ordem, id`,
     )
-    .bind(usuario.pessoa, relato.id, relato.memoriaId, JSON.stringify(ids))
-    .all<{ id: number; memoria_id: string | null }>();
-  const naMemoria = new Map(results.map((r: { id: number; memoria_id: string | null }) => [r.id, r.memoria_id]));
-  const validos = itens.filter((i, n) => naMemoria.has(i.id) && ids.indexOf(i.id) === n);
+    .bind(relatoId, usuario.pessoa, JSON.stringify(itens?.map((i) => i.id) ?? []))
+    .all<FotoDoRelato>();
+  const candidatas = new Map(results.map((f) => [f.id, f]));
+  const lista: { id: number; legenda?: string }[] = itens ?? results.map((f) => ({ id: f.id }));
+  const aceitas = new Map<number, { foto: FotoDoRelato; legenda: string | null }>();
+  for (const item of lista) {
+    const foto = candidatas.get(item.id);
+    if (foto && foto.enviada_por === usuario.pessoa && (foto.memoria_id === null || foto.memoria_id === memoriaId) && !aceitas.has(item.id)) {
+      aceitas.set(item.id, { foto, legenda: itens ? (item.legenda?.trim() || null) : foto.legenda });
+    }
+  }
+  const acrescentadas = situacao === 'publicada' ? [...aceitas.values()].filter(({ foto }) => foto.memoria_id === null).map(({ foto }) => foto.id) : [];
+  const noFim = new Set(acrescentadas);
+  const ficam = results
+    .filter((f) => !noFim.has(f.id) && (aceitas.has(f.id) || (f.relato_id !== null && f.enviada_por !== usuario.pessoa)))
+    .map((f) => f.id)
+    .concat(acrescentadas);
+  return { aceitas: [...aceitas.values()], ficam, ligar: Boolean(itens || results.length) };
+}
 
-  const ultima = await db()
-    .prepare('SELECT MAX(ordem) AS ordem, MAX(principal) AS principal FROM fotos WHERE memoria_id = ? AND removida_em IS NULL')
-    .bind(relato.memoriaId)
-    .first<{ ordem: number | null; principal: number | null }>();
-  let ordem = (ultima?.ordem ?? -1) + 1;
-  let semPrincipal = !ultima?.principal;
-  const publicado = relato.situacao === 'publicada';
-
-  await db().batch([
-    db()
-      .prepare(
-        `UPDATE fotos SET removida_em = datetime('now'), removida_por = ?2 WHERE relato_id = ?1 AND removida_em IS NULL AND enviada_por = ?2
-         AND id NOT IN (SELECT value FROM json_each(?3))`,
-      )
-      .bind(relato.id, usuario.pessoa, JSON.stringify(validos.map((i) => i.id))),
-    ...validos.map((item) => {
-      const legenda = item.legenda?.trim() || null;
-      // Já é da memória: muda só a legenda, sem sair do lugar
-      if (naMemoria.get(item.id)) return db().prepare('UPDATE fotos SET legenda = ? WHERE id = ?').bind(legenda, item.id);
-      // Relato em rascunho: a foto espera, presa a ele, e só quem enviou a vê
-      if (!publicado) return db().prepare('UPDATE fotos SET relato_id = ?, legenda = ? WHERE id = ?').bind(relato.id, legenda, item.id);
-      const principal = semPrincipal ? 1 : 0;
-      semPrincipal = false;
+/** Liga as fotos aceitas ao relato. Ao publicar, as novas vão para o fim da memória. */
+export function comandosDasFotosDoRelato(
+  relato: RelatoNoLote,
+  memoriaId: string,
+  situacao: 'rascunho' | 'publicada',
+  aceitas: Awaited<ReturnType<typeof fotosQueEntram>>['aceitas'],
+  usuario: Usuario,
+): Comando[] {
+  const r = relatoNoLote(relato);
+  const ids = JSON.stringify(aceitas.map(({ foto }) => foto.id));
+  return [
+    // Outra gravação pode levar ou remover uma foto desde a leitura. O gatilho da versão devolve o lote.
+    ...(aceitas.length ? [
+      db().prepare(`UPDATE memorias SET versao = versao + 2 WHERE id = ? AND EXISTS (
+        SELECT 1 FROM json_each(?) j LEFT JOIN fotos f ON f.id = j.value
+        WHERE f.id IS NULL OR f.removida_em IS NOT NULL OR f.enviada_por <> ?
+          OR NOT (f.relato_id IS ${r.sql} OR (f.relato_id IS NULL AND f.memoria_id IS NULL))
+          OR (f.memoria_id IS NOT NULL AND f.memoria_id <> ?))`)
+        .bind(memoriaId, ids, usuario.pessoa, ...r.valores, memoriaId),
+    ] : []),
+    ...aceitas.map(({ foto, legenda }) => {
+      if (foto.memoria_id !== null) return db().prepare('UPDATE fotos SET legenda = ? WHERE id = ?').bind(legenda, foto.id);
+      if (situacao === 'rascunho') return db().prepare(`UPDATE fotos SET relato_id = ${r.sql}, legenda = ? WHERE id = ?`).bind(...r.valores, legenda, foto.id);
       return db()
-        .prepare('UPDATE fotos SET relato_id = ?, memoria_id = ?, legenda = ?, ordem = ?, principal = ? WHERE id = ?')
-        .bind(relato.id, relato.memoriaId, legenda, ordem++, principal, item.id);
+        .prepare(`UPDATE fotos SET relato_id = ${r.sql}, memoria_id = ?, legenda = ?,
+          principal = NOT EXISTS (SELECT 1 FROM fotos WHERE memoria_id = ? AND removida_em IS NULL AND principal = 1),
+          ordem = (SELECT COALESCE(MAX(ordem), -1) + 1 FROM fotos WHERE memoria_id = ? AND removida_em IS NULL) WHERE id = ?`)
+        .bind(...r.valores, memoriaId, legenda, memoriaId, memoriaId, foto.id);
     }),
-    // A principal é conferida no fim do lote, no banco: a foto que sai daqui pode ser a principal, e a única
-    // foto da memória pode ter sido tirada entre a leitura e o lote (Z2, o outro lado da corrida do D8)
-    comandoDaPrincipal(relato.memoriaId),
-  ]);
-  return validos.length;
+    db()
+      .prepare(`UPDATE fotos SET removida_em = datetime('now'), removida_por = ? WHERE relato_id = ${r.sql} AND removida_em IS NULL AND enviada_por = ?
+        AND id NOT IN (SELECT value FROM json_each(?))`)
+      .bind(usuario.pessoa, ...r.valores, usuario.pessoa, ids),
+    comandoDaPrincipal(memoriaId),
+  ];
 }
 
 /**
@@ -2370,22 +2400,16 @@ export async function salvarRelato(
   anterior: Relato | undefined,
   // O relato como conversa: só acrescentar mensagens no fim (voltar e contar mais) não guarda versão.
   // A versão leva junto as mensagens de antes, quando há (src/lib/conversa.ts)
-  versao: { guardar: boolean; mensagens?: Mensagem[] } = { guardar: true },
-  // A rota do relato confere a versão da memória que leu, como os outros lotes (Y3 do PR #160): se a memória
-  // mudou depois da leitura, nada é gravado (MemoriaMudou), e a rota refaz a conta com a memória de agora.
+  versao: { guardar: boolean; mensagens?: Mensagem[] },
+  // A rota confere a versão que leu. Se a memória mudou, o lote volta por inteiro (MemoriaMudou).
   // `nasce`: o relato novo que espera o sim de quem escreveu (relatoQueNasce), com o pedido
   // `envio`: a chave do envio único do formulário sem script (migração 109; a rota a faz do código da página, de
   // quem envia, do relato e do texto): repetida, nada é gravado (EnvioRepetido)
-  // `junto`: o que grava no mesmo lote do relato, depois dele (as mensagens do envio sem script, para a falha
-  // não deixar a mensagem só no texto do relato com o código do envio já gasto; fila da revisão Z2, sessão AA)
-  { conferir, nasce, envio, junto = [] }: { conferir?: number; nasce?: RelatoQueNasceEsperando; envio?: string; junto?: Comando[] } = {},
+  // `junto`: os vínculos e as mensagens que gravam no mesmo lote do relato, depois dele
+  { conferir, nasce, envio, junto = [] }: { conferir: number; nasce?: RelatoQueNasceEsperando; envio?: string; junto?: Comando[] },
 ): Promise<void> {
   const doEnvio = envio ? comandosDoEnvio(envio) : [];
   try {
-    if (conferir === undefined) {
-      await db().batch([...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce }), ...junto]);
-      return;
-    }
     // Conferir a versão também a sobe: o relato novo dispensa a subida sem conferência
     await loteDaMemoria([conferirVersao(memoriaId, conferir), ...doEnvio, ...comandosDoRelato(memoriaId, por, texto, situacao, usuario, anterior, versao, { nasce, subir: false }), ...junto]);
   } catch (erro) {
@@ -2869,12 +2893,14 @@ export async function criarAvisos(avisos: AvisoNovo[]): Promise<void> {
 }
 
 /** Os avisos como comandos, para gravar junto com o que os fez nascer (um lote só). */
-export const comandosDosAvisos = (avisos: AvisoNovo[]): Comando[] =>
-  avisos.map((a) =>
+export function comandosDosAvisos(avisos: AvisoNovo[], relato?: RelatoNoLote): Comando[] {
+  const r = relato === undefined ? undefined : relatoNoLote(relato);
+  return avisos.map((a) =>
     db()
-      .prepare('INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(a.para, a.tipo, a.memoriaId, a.relatoId ?? null, a.de, a.dados ? JSON.stringify(a.dados) : null),
+      .prepare(`INSERT INTO avisos (para, tipo, memoria_id, relato_id, de, dados) VALUES (?, ?, ?, ${r?.sql ?? '?'}, ?, ?)`)
+      .bind(a.para, a.tipo, a.memoriaId, ...(r?.valores ?? [a.relatoId ?? null]), a.de, a.dados ? JSON.stringify(a.dados) : null),
   );
+}
 
 /**
  * Os avisos da pessoa, do mais novo para o mais antigo: os que estão na lista (pendentes) e, com
@@ -3711,6 +3737,34 @@ export async function listarMensagensDosRelatos(relatos: Pick<Relato, 'id' | 'te
   );
 }
 
+/** Guarda o que o pedido leu antes de tentar gravar. As regras de visibilidade são relidas a cada tentativa. */
+export function acompanharConversa() {
+  let primeira: string | undefined;
+  return {
+    get jaLeu() { return primeira !== undefined; },
+    async ler(relato: Relato | undefined, acrescentar = false) {
+      const id = relato?.id;
+      const [gravadas, audios, fotos] = id === undefined ? [[], [], []] as const : await Promise.all([
+        listarMensagensGravadas([id]).then((m) => m.get(id) ?? []),
+        listarAudiosDosRelatos([id]).then((a) => a.get(id) ?? []),
+        listarFotosDoRelato(id),
+      ]);
+      const sons = audios.map((a) => a.id);
+      const imagens = fotos.map((f) => f.id);
+      if (!acrescentar) {
+        const atual = JSON.stringify([
+          id, relato?.texto, relato?.situacao, gravadas,
+          audios.map((a) => [a.id, a.transcricao]),
+          fotos.slice().sort((a, b) => a.id - b.id).map((f) => [f.id, f.legenda]),
+        ]);
+        if (primeira !== undefined && primeira !== atual) throw new RelatoMudou();
+        primeira = atual;
+      }
+      return { audios, fotos, mensagens: mensagensDoRelato(gravadas, relato?.texto ?? '', sons, imagens) };
+    },
+  };
+}
+
 /**
  * Os comandos que gravam as mensagens do relato, na ordem dada. A que tem id e é deste relato é atualizada
  * no lugar (guarda a hora em que foi enviada e o id, para quem a cita); a nova entra com a hora de agora; a
@@ -3721,8 +3775,23 @@ export async function comandosDasMensagens(relato: RelatoNoLote, mensagens: Mens
   const deste = new Set(antes.map((m) => m.id));
   const ficam = new Set(mensagens.filter((m) => m.id !== undefined && deste.has(m.id)).map((m) => m.id));
   const r = relatoNoLote(relato);
+  const audios = mensagens.filter((m) => m.tipo === 'audio').map((m) => m.audioId);
+  const fotos = mensagens.filter((m) => m.tipo === 'foto').map((m) => m.fotoId);
   return [
-    ...antes.filter((m) => !ficam.has(m.id)).map((m) => db().prepare('DELETE FROM relato_mensagens WHERE id = ?').bind(m.id)),
+    // Uma mídia que saiu depois da leitura faz o lote voltar antes de gravar sua mensagem.
+    ...(audios.length || fotos.length ? [
+      db().prepare(`WITH alvo AS (SELECT id, memoria_id FROM relatos WHERE id = ${r.sql})
+        UPDATE memorias SET versao = versao + 2 WHERE id = (SELECT memoria_id FROM alvo) AND (
+          EXISTS (SELECT 1 FROM json_each(?) j LEFT JOIN audios a ON a.id = j.value
+            WHERE a.relato_id IS NOT (SELECT id FROM alvo) OR a.removido_em IS NOT NULL)
+          OR EXISTS (SELECT 1 FROM json_each(?) j LEFT JOIN fotos f ON f.id = j.value
+            WHERE f.relato_id IS NOT (SELECT id FROM alvo) OR f.removida_em IS NOT NULL))`)
+        .bind(...r.valores, JSON.stringify(audios), JSON.stringify(fotos)),
+    ] : []),
+    ...(typeof relato === 'number' ? [
+      db().prepare('DELETE FROM relato_mensagens WHERE relato_id = ? AND id NOT IN (SELECT value FROM json_each(?))')
+        .bind(relato, JSON.stringify([...ficam])),
+    ] : []),
     ...mensagens.map((m, ordem) =>
       m.id !== undefined && deste.has(m.id)
         ? db()
@@ -3733,16 +3802,6 @@ export async function comandosDasMensagens(relato: RelatoNoLote, mensagens: Mens
             .bind(...r.valores, ordem, m.tipo, m.tipo === 'texto' ? (m.texto ?? '') : null, m.audioId ?? null, m.fotoId ?? null, m.citaId ?? null),
     ),
   ];
-}
-
-/**
- * Grava as mensagens do relato, na ordem dada (comandosDasMensagens). Devolve as mensagens gravadas, com
- * os ids.
- */
-export async function gravarMensagens(relatoId: number, mensagens: Mensagem[]): Promise<Mensagem[]> {
-  const comandos = await comandosDasMensagens(relatoId, mensagens);
-  if (comandos.length) await db().batch(comandos);
-  return (await listarMensagensGravadas([relatoId])).get(relatoId) ?? [];
 }
 
 /** Uma mensagem gravada, com a memória e o relato dela, para conferir uma citação. */

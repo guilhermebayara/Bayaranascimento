@@ -1291,15 +1291,20 @@ describe.skipIf(!comSqlite)('Z2: a Sessão Z contra a lista fechada', async () =
     it('a mesma corrida pela foto que chega com um relato: a foto nova é a principal', async () => {
       const { id, fotos, ficha } = await memoriaComFotos('Z2: D8 pelo relato', giovanna, 1);
       const nova = fotoSolta(elizete);
+      let retirou = false;
       const r = await comOutroPedidoNaPorta(
-        /^\s*UPDATE fotos SET relato_id = \?, memoria_id = \?/,
+        /^\s*INSERT INTO relatos\b/,
         async () => {
+          // A retirada passa pela rota da memória antes de o lote do relato entrar.
           banco.batch = lote;
           expect((await pedir('memorias', giovanna, { ...ficha, fotosMostradas: fotos, fotos: [] })).status).toBe(200);
+          expect(principais(id)).toEqual({ fotos: [], principais: [] });
+          retirou = true;
         },
         () => pedir('relatos', elizete, { memoria: id, por: 'elizete', texto: 'Com foto.', publico: 'todos', fotos: [{ id: nova }] }),
       );
       expect(r.status).toBe(201);
+      expect(retirou).toBe(true);
       expect(principais(id)).toEqual({ fotos: [nova], principais: [nova] });
     });
   });

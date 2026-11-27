@@ -21,11 +21,11 @@ async function soQuemVe(pessoas: string[], memoria: AcessoDaMemoria): Promise<st
   });
 }
 
-/** Um relato acabou de ser publicado numa memória publicada: avisa quem criou a memória e quem estava nela. */
-export async function avisarRelatoNovo(memoria: AcessoDaMemoria & { id: string }, relato: { id: number; por: string; registradoPor: string }, autor: Usuario): Promise<void> {
-  if (memoria.situacao !== 'publicada') return;
+/** Quem recebe o aviso quando um relato é publicado, para gravar junto com ele. */
+export async function avisosDeRelatoNovo(memoria: AcessoDaMemoria & { id: string }, relato: { por: string; registradoPor: string }, autor: Usuario): Promise<AvisoNovo[]> {
+  if (memoria.situacao !== 'publicada') return [];
   const para = await soQuemVe(quemRecebeRelatoNovo(memoria, relato, await destinatarios(autor.pessoa)), memoria);
-  await criarAvisos(para.map((p) => ({ para: p, tipo: 'relato-novo', memoriaId: memoria.id, relatoId: relato.id, de: autor.pessoa })));
+  return para.map((p) => ({ para: p, tipo: 'relato-novo', memoriaId: memoria.id, de: autor.pessoa }));
 }
 
 /**

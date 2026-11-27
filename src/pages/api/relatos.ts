@@ -3,20 +3,22 @@ import type { APIRoute } from 'astro';
 import { z } from 'astro/zod';
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto } from '../../lib/servidor/conteudo';
-import { avisarRelatoNovo, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
-import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
+import { avisosDeRelatoNovo, comoPublicoAntigo, paraQuemPassouAVer } from '../../lib/servidor/avisos';
+import { conflitoNoFormulario, erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { chaveDoPublico, podeEscreverRelato, publicoDaChave, relatoQueNasce, veORelato, type Publico, type Usuario } from '../../lib/servidor/permissoes';
 import { AUDIOS_POR_RELATO } from '../../lib/audios';
 import { MENSAGENS_POR_RELATO, mensagensDerivadas, paragrafos, soAcrescentou, textoDasMensagens, type Mensagem } from '../../lib/conversa';
 import {
+  acompanharConversa,
+  audiosQueEntram,
+  comandosDasFotosDoRelato,
   comandosDasMensagens,
-  gravarMensagens,
-  ligarAudios,
-  ligarFotosDoRelato,
-  listarAudiosDosRelatos,
-  listarFotosDoRelato,
+  comandosDosAudios,
+  comandosDosAvisos,
+  fotosQueEntram,
   listarIntegrantesQueVe,
   listarMensagensDosRelatos,
+  listarMensagensGravadas,
   listarNucleos,
   EnvioRepetido,
   MemoriaMudou,
@@ -27,9 +29,11 @@ import {
   pessoasQueONaoVe,
   publicosQueAMemoriaJaTeve,
   RECADO_MEMORIA_MUDOU,
+  RelatoMudou,
   refazerSeAMemoriaMudou,
   salvarRelato,
   type Memoria,
+  type RelatoNoLote,
 } from '../../lib/servidor/repositorio';
 
 const Pedido = z.object({
@@ -77,7 +81,7 @@ const Pedido = z.object({
   envio: z.string().max(80).optional(),
 });
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request, locals, rewrite }) => {
   if (!mesmaOrigem(request)) return erro(403, 'Pedido recusado.');
   // Sem JavaScript, o formulário chega como formulário comum, e a resposta vira página com recado
   if (!(request.headers.get('Content-Type') ?? '').includes('application/json')) {
@@ -96,6 +100,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
       locals,
     );
+    if (resposta instanceof RelatoMudou) {
+      return conflitoNoFormulario(request, rewrite, `/memorias/${encodeURIComponent(texto('memoria'))}/relato`, RECADO_MEMORIA_MUDOU);
+    }
     const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string };
     if (!resposta.ok) return voltar(request, `/memorias/${encodeURIComponent(texto('memoria'))}/relato`, { erro: corpo.erro ?? 'Não consegui salvar.' });
     // A janela sem script: mandou uma mensagem, continua escrevendo; publicou, vai para a memória, no relato
@@ -114,17 +121,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch {
     return erro(400, 'Envio inválido.');
   }
-  return tratarComAMemoriaDeAgora(bruto, locals);
+  const resposta = await tratarComAMemoriaDeAgora(bruto, locals);
+  return resposta instanceof RelatoMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
 };
 
 /**
- * A gravação do relato confere a versão da memória, como os outros lotes (Y3 do PR #160): se a memória mudou
- * entre a leitura e o lote (outro relato, uma mudança de quem vê), nada é gravado, e o pedido é tratado de
- * novo, lendo a memória de agora. O lote do relato é a primeira gravação de tratar, então a nova tentativa
- * nunca refaz o que já foi gravado. Depois de três tentativas, a pessoa recebe o recado.
+ * A versão da memória é conferida no lote. Ao refazer a conta, a conversa lida no primeiro pedido
+ * protege a edição. O envio que só acrescenta relê a conversa para escrever no fim.
  */
-async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response> {
-  const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals));
+async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals): Promise<Response | RelatoMudou> {
+  const conversa = acompanharConversa();
+  const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals, conversa));
+  if (resposta instanceof RelatoMudou) return resposta;
   return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
 }
 
@@ -167,29 +175,24 @@ async function chaveDoEnvio(codigo: string, pessoa: string, memoriaId: string, p
   return [...new Uint8Array(resumo)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
+async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<typeof acompanharConversa>): Promise<Response> {
   const { usuario } = locals;
   const lido = Pedido.safeParse(bruto);
   if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
   const { memoria: memoriaId, por } = lido.data;
+  // A versão precisa ser lida antes das mensagens, inclusive quando o formulário acrescenta no fim.
+  const memoria = await obterMemoria(usuario, memoriaId);
   let mensagens = lido.data.mensagens;
-  // Sem script: a mensagem nova (cada parágrafo, uma mensagem) entra no fim das que o relato já tem.
-  // Sem texto novo, é só publicar o que já está lá.
-  if (lido.data.acrescentar && !mensagens) {
-    const ja = await obterRelato(memoriaId, por, usuario);
-    const atuais = ja ? ((await listarMensagensDosRelatos([ja])).get(ja.id) ?? []) : [];
-    mensagens = [...atuais, ...paragrafos(lido.data.texto).map((t, i) => ({ tipo: 'texto' as const, texto: t, citaId: i === 0 ? (lido.data.cita ?? null) : null }))];
-  }
-  // Com as mensagens, o texto, os áudios e as fotos saem delas, na ordem da conversa
-  const texto = mensagens ? textoDasMensagens(mensagens) : lido.data.texto;
+  const acrescentar = lido.data.acrescentar && !mensagens;
+  // Uma lista do formulário com script pode editar as mídias. Acrescentar só usa as que já estão ligadas.
   const audios = mensagens
     ? mensagens.filter((m) => m.tipo === 'audio' && m.audioId).map((m) => ({ id: m.audioId!, ...(m.transcricao?.trim() ? { transcricao: m.transcricao } : {}) }))
-    : lido.data.audios;
-  const fotos = mensagens ? mensagens.filter((m) => m.tipo === 'foto' && m.fotoId).map((m) => ({ id: m.fotoId!, ...(m.legenda?.trim() ? { legenda: m.legenda } : {}) })) : lido.data.fotos;
-  if (audios && audios.length > AUDIOS_POR_RELATO) return erro(400, `Um relato pode ter até ${AUDIOS_POR_RELATO} áudios.`);
+    : acrescentar ? undefined : lido.data.audios;
+  const fotos = mensagens ? mensagens.filter((m) => m.tipo === 'foto' && m.fotoId).map((m) => ({ id: m.fotoId!, ...(m.legenda?.trim() ? { legenda: m.legenda } : {}) })) : acrescentar ? undefined : lido.data.fotos;
+  const limiteDeAudios = `Um relato pode ter até ${AUDIOS_POR_RELATO} áudios.`;
+  if (audios && audios.length > AUDIOS_POR_RELATO) return erro(400, limiteDeAudios);
 
   // Quem não vê a memória recebe o mesmo que para uma memória inexistente
-  const memoria = await obterMemoria(usuario, memoriaId);
   if (!memoria) return erro(404, 'Memória não encontrada.');
   if (!(await listarIntegrantesQueVe(usuario)).some((i) => i.id === por)) return erro(400, 'Pessoa não encontrada.');
   if (lido.data.publico !== undefined && !(await aPaginaPodeTerMostrado(lido.data.publico, memoria, usuario))) return erro(400, 'Envio inválido.');
@@ -197,11 +200,18 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   const existente = await obterRelato(memoriaId, por, usuario);
   const decisao = podeEscreverRelato(usuario, por, existente, await pessoasComAcesso());
   if (!decisao.ok) return erro(403, decisao.motivo);
+  const { mensagens: antes, audios: audiosAtuais } = await conversa.ler(existente, acrescentar);
+  if (acrescentar) {
+    mensagens = [...antes, ...paragrafos(lido.data.texto).map((t, i) => ({ tipo: 'texto' as const, texto: t, citaId: i === 0 ? (lido.data.cita ?? null) : null }))];
+    if (mensagens.length > MENSAGENS_POR_RELATO) return erro(400, `Um relato pode ter até ${MENSAGENS_POR_RELATO} mensagens.`);
+    if (mensagens.filter((m) => m.tipo === 'audio').length > AUDIOS_POR_RELATO) return erro(400, limiteDeAudios);
+  }
+  const texto = mensagens ? textoDasMensagens(mensagens) : lido.data.texto;
   // O relato precisa de texto ou de pelo menos um áudio; na conversa, de pelo menos uma mensagem
   if (mensagens) {
     if (!mensagens.some((m) => (m.tipo === 'texto' ? m.texto?.trim() : true))) return erro(400, 'Mande pelo menos uma mensagem: um texto, um áudio ou uma foto.');
   } else {
-    const temAudio = audios ? audios.length > 0 : Boolean(existente && (await listarAudiosDosRelatos([existente.id])).get(existente.id)?.length);
+    const temAudio = (audios ?? audiosAtuais).length > 0;
     if (!texto.trim() && !temAudio) return erro(400, 'Escreva o relato ou grave um áudio antes de salvar.');
   }
 
@@ -211,7 +221,6 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
   if (existente?.situacao === 'publicada') situacao = 'publicada';
 
   // As mensagens de antes, para o histórico: só acrescentar no fim (voltar e contar mais) não guarda versão
-  const antes = existente ? ((await listarMensagensDosRelatos([existente])).get(existente.id) ?? []) : [];
   const guardar = !mensagens || !soAcrescentou(antes, mensagens.map(paraMensagem));
   // O relato que nasce depois de a memória abrir para mais gente do que a página mostrava nasce só para esse
   // público e espera o sim de quem escreveu, com o pedido de quem criou a memória (relatoQueNasce). O
@@ -223,13 +232,30 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     if (soParaNucleos) nasce = { soParaNucleos, de: memoria.criadaPor, paraQuem: paraQuemPassouAVer(comoPublicoAntigo(soParaNucleos), memoria, await listarNucleos()) };
   }
   const envio = lido.data.envio ? await chaveDoEnvio(lido.data.envio, usuario.pessoa, memoriaId, por, lido.data.texto) : undefined;
-  // O envio sem script (com o código) grava as mensagens no mesmo lote do relato e do código: se o banco falha,
-  // nada fica, e a nova tentativa com o mesmo código grava tudo (fila da revisão Z2, sessão AA). As mensagens
-  // dele são as do relato, que já estão nele, e as de texto novas: dá para conferir antes do lote
-  const mensagensNoLote = envio && mensagens ? await mensagensValidas(mensagens, existente?.id, memoriaId, usuario) : undefined;
-  const junto = mensagensNoLote ? await comandosDasMensagens(existente && existente.registradoPor === usuario.pessoa ? existente.id : { memoriaId, por, registradoPor: usuario.pessoa }, mensagensNoLote) : [];
+  const id = existente?.id ?? null;
+  const relato: RelatoNoLote = id ?? { memoriaId, por, registradoPor: usuario.pessoa };
+  const [audiosAceitos, fotosDoRelato] = await Promise.all([
+    audios ? audiosQueEntram(id, memoriaId, audios, usuario) : undefined,
+    fotosQueEntram(id, memoriaId, situacao, fotos, usuario),
+  ]);
+  const audiosDoRelato = audiosAceitos ?? audiosAtuais;
+  // Cada áudio fica com a ordem da última vez em que aparece na lista.
+  const audiosQueFicam = [...new Set(audiosDoRelato.map((a) => a.id).reverse())].reverse();
+  const textoArrumado = arrumarTexto(texto);
+  const validas = mensagens
+    ? await mensagensValidas(mensagens, existente?.id, memoriaId, usuario, new Set(audiosQueFicam), new Set(fotosDoRelato.ficam))
+    : mensagensDerivadas(textoArrumado, audiosQueFicam, fotosDoRelato.ficam);
+  const avisos = situacao === 'publicada' && existente?.situacao !== 'publicada'
+    ? await avisosDeRelatoNovo(memoria, { por, registradoPor: usuario.pessoa }, usuario)
+    : [];
+  const junto = [
+    ...(audiosAceitos ? comandosDosAudios(relato, memoriaId, audiosAceitos) : []),
+    ...(fotosDoRelato.ligar ? comandosDasFotosDoRelato(relato, memoriaId, situacao, fotosDoRelato.aceitas, usuario) : []),
+    ...await comandosDasMensagens(relato, validas),
+    ...comandosDosAvisos(avisos, relato),
+  ];
   try {
-    await salvarRelato(memoriaId, por, arrumarTexto(texto), situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce, envio, junto });
+    await salvarRelato(memoriaId, por, textoArrumado, situacao, usuario, existente, { guardar, ...(mensagens ? { mensagens: antes } : {}) }, { conferir: memoria.versao, nasce, envio, junto });
   } catch (e) {
     // O mesmo envio de novo (o toque duplo sem script): o primeiro já gravou, e este responde como ele, sem gravar
     if (!(e instanceof EnvioRepetido)) throw e;
@@ -237,27 +263,9 @@ async function tratar(bruto: unknown, locals: App.Locals): Promise<Response> {
     return json({ url: noRelato(memoriaId, agora?.id), situacao: agora?.situacao ?? situacao, editado: true }, 200);
   }
   const salvo = await obterRelatoRegistradoPor(memoriaId, por, usuario);
-  if (salvo && audios) await ligarAudios(salvo.id, memoriaId, audios, usuario);
-  // Fotos: sem a lista (o formulário sem script), as que já estavam com o relato continuam, e as que
-  // esperavam o rascunho entram na memória quando ele é publicado
-  if (salvo) {
-    const lista = fotos ?? (await listarFotosDoRelato(salvo.id)).map((f) => ({ id: f.id, legenda: f.legenda ?? undefined }));
-    if (fotos || lista.length) await ligarFotosDoRelato({ id: salvo.id, memoriaId, situacao }, lista, usuario);
-  }
-  // As mensagens: só as que apontam para um áudio ou uma foto que ficou mesmo no relato, e a citação só de
-  // uma mensagem publicada de outra pessoa, nesta memória, que quem escreve vê
-  let gravadas: Mensagem[] | undefined;
-  if (salvo && mensagens) {
-    // As do envio sem script já foram no lote do relato
-    gravadas = mensagensNoLote ? ((await listarMensagensDosRelatos([salvo])).get(salvo.id) ?? []) : await gravarMensagens(salvo.id, await mensagensValidas(mensagens, salvo.id, memoriaId, usuario));
-  } else if (salvo) {
-    // Sem a lista de mensagens (um envio de antes da conversa), a conversa é refeita do texto, dos áudios e
-    // das fotos que ficaram, para não ficar velha
-    const [doRelato, fotosDoRelato] = await Promise.all([listarAudiosDosRelatos([salvo.id]), listarFotosDoRelato(salvo.id)]);
-    await gravarMensagens(salvo.id, mensagensDerivadas(arrumarTexto(texto), (doRelato.get(salvo.id) ?? []).map((a) => a.id), fotosDoRelato.map((f) => f.id)));
-  }
-  // Avisos: o relato acabou de ser publicado (src/lib/avisos.ts). Editar um relato publicado não avisa ninguém.
-  if (salvo && situacao === 'publicada' && existente?.situacao !== 'publicada') await avisarRelatoNovo(memoria, salvo, usuario);
+  const gravadas = salvo && mensagens
+    ? ((envio ? await listarMensagensDosRelatos([salvo]) : await listarMensagensGravadas([salvo.id])).get(salvo.id) ?? [])
+    : undefined;
   return json({ url: noRelato(memoriaId, salvo?.id), situacao, editado: Boolean(existente), ...(gravadas ? { mensagens: gravadas } : {}) }, existente ? 200 : 201);
 }
 
@@ -266,22 +274,17 @@ const noRelato = (memoriaId: string, relatoId: number | undefined) => `/memorias
 
 /**
  * As mensagens que ficam: só as que apontam para um áudio ou uma foto que está mesmo no relato, e a citação
- * só de uma mensagem publicada de outra pessoa, nesta memória, que quem escreve vê. `relatoId` vazio: o
- * relato ainda vai nascer, e não tem áudio nem foto.
+ * só de uma mensagem publicada de outra pessoa, nesta memória, que quem escreve vê.
  */
 async function mensagensValidas(
   mensagens: { id?: number; tipo: Mensagem['tipo']; texto?: string; audioId?: number; fotoId?: number; citaId?: number | null }[],
   relatoId: number | undefined,
   memoriaId: string,
   usuario: Usuario,
+  audiosFicaram: ReadonlySet<number>,
+  fotosFicaram: ReadonlySet<number>,
 ): Promise<Mensagem[]> {
-  const [doRelato, fotosDoRelato, naoVe] = await Promise.all([
-    relatoId ? listarAudiosDosRelatos([relatoId]) : new Map<number, { id: number }[]>(),
-    relatoId ? listarFotosDoRelato(relatoId) : [],
-    pessoasQueONaoVe(usuario),
-  ]);
-  const audiosFicaram = new Set((relatoId ? (doRelato.get(relatoId) ?? []) : []).map((a) => a.id));
-  const fotosFicaram = new Set(fotosDoRelato.map((f) => f.id));
+  const naoVe = await pessoasQueONaoVe(usuario);
   const citaveis = new Map<number, boolean>();
   for (const id of new Set(mensagens.map((m) => m.citaId).filter((c): c is number => Boolean(c)))) {
     const citada = await obterMensagem(id);

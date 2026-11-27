@@ -241,6 +241,220 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     }
   });
 
+  it('/api/relatos: a falha no meio do lote volta até a versão da memória e a nova tentativa grava o relato com as mídias', async () => {
+    const relatos = await import('../src/pages/api/relatos');
+    const id = 'mem8-falha-atomica';
+    banco.sqlite.prepare("INSERT INTO memorias (id, titulo, ano, tipo, criada_por) VALUES (?, 'Teste do lote', 2001, ?, 'gui')").run(id, tipo);
+    const audioId = Number(banco.sqlite.prepare("INSERT INTO audios (chave, tipo, tamanho, enviado_por) VALUES ('teste/mem8.m4a', 'audio/mp4', 10, 'elizete')").run().lastInsertRowid);
+    const fotoId = Number(banco.sqlite.prepare("INSERT INTO fotos (chave, enviada_por) VALUES ('teste/mem8.jpg', 'elizete')").run().lastInsertRowid);
+    const pedido = { memoria: id, por: 'elizete', mensagens: [{ tipo: 'texto', texto: 'Tente de novo.' }, { tipo: 'audio', audioId }, { tipo: 'foto', fotoId }] };
+    const enviar = () => relatos.POST({
+      request: new Request('http://localhost/api/relatos', { method: 'POST', headers: { Origin: 'http://localhost', 'Content-Type': 'application/json' }, body: JSON.stringify(pedido) }),
+      locals: { usuario: elizete, tipos },
+    } as never);
+    banco.sqlite.exec(`CREATE TRIGGER mem8_teste BEFORE INSERT ON relato_mensagens WHEN NEW.foto_id = ${fotoId}
+      BEGIN SELECT RAISE(ABORT, 'memoria-mudou'); END`);
+    const antes = impressao();
+    const tabelas = () => JSON.stringify(banco.sqlite.prepare('SELECT * FROM marca_da_copia').all());
+    const marca = tabelas();
+    const lote = banco.batch.bind(banco);
+    let perdas = 0;
+    banco.batch = async (comandos) => {
+      try {
+        return await lote(comandos);
+      } catch (erro) {
+        expect(String(erro)).toContain('memoria-mudou');
+        expect(impressao()).toBe(antes);
+        expect(tabelas()).toBe(marca);
+        perdas++;
+        banco.sqlite.exec('DROP TRIGGER mem8_teste');
+        throw erro;
+      }
+    };
+    try {
+      expect((await enviar()).status).toBe(201);
+      expect(perdas).toBe(1);
+      const relato = linha<{ id: number }>('SELECT id FROM relatos WHERE memoria_id = ?', id);
+      expect(conta('SELECT COUNT(*) AS n FROM relato_mensagens WHERE relato_id = ?', relato.id)).toBe(3);
+      expect(conta('SELECT COUNT(*) AS n FROM audios WHERE relato_id = ? AND id = ?', relato.id, audioId)).toBe(1);
+      expect(conta('SELECT COUNT(*) AS n FROM fotos WHERE relato_id = ? AND id = ?', relato.id, fotoId)).toBe(1);
+    } finally {
+      banco.batch = lote;
+      banco.sqlite.exec('DROP TRIGGER IF EXISTS mem8_teste');
+    }
+  });
+
+  it('/api/lixeira: a mensagem recusada também devolve o texto e o histórico da restauração', async () => {
+    const id = 'mem8-restauracao-recusada';
+    banco.sqlite.prepare("INSERT INTO memorias (id, titulo, ano, tipo, criada_por) VALUES (?, 'Teste de restauração', 2001, ?, 'gui')").run(id, tipo);
+    const r = Number(banco.sqlite.prepare("INSERT INTO relatos (memoria_id, por, registrado_por, texto) VALUES (?, 'elizete', 'elizete', 'Hoje.')").run(id).lastInsertRowid);
+    banco.sqlite.prepare("INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto) VALUES (?, 0, 'texto', 'Hoje.')").run(r);
+    const v = Number(banco.sqlite.prepare("INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, 'elizete')").run(String(r), JSON.stringify({ texto: 'Antes.' })).lastInsertRowid);
+    const pedido = { acao: 'restaurar-relato', memoria: id, por: 'elizete', versao: String(v) };
+    banco.sqlite.exec(`CREATE TRIGGER mem8_restaurar BEFORE INSERT ON relato_mensagens WHEN NEW.relato_id = ${r}
+      BEGIN SELECT RAISE(ABORT, 'falha de teste'); END`);
+    const antes = impressao();
+    const marca = linha('SELECT * FROM marca_da_copia');
+    try {
+      await expect(formulario(lixeira, '/api/lixeira', elizete, pedido)).rejects.toThrow('falha de teste');
+      expect(impressao()).toBe(antes);
+      expect(linha('SELECT * FROM marca_da_copia')).toEqual(marca);
+    } finally {
+      banco.sqlite.exec('DROP TRIGGER mem8_restaurar');
+    }
+    expect((await formulario(lixeira, '/api/lixeira', elizete, pedido)).erro).toBeNull();
+    expect(linha("SELECT r.texto, m.texto AS mensagem FROM relatos r JOIN relato_mensagens m ON m.relato_id = r.id WHERE r.id = ?", r)).toEqual({ texto: 'Antes.', mensagem: 'Antes.' });
+  });
+
+  const todosOsDados = () => {
+    const tabelas = banco.sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all() as { name: string }[];
+    return JSON.stringify(tabelas.map(({ name }) => [
+      name, banco.sqlite.prepare(`SELECT * FROM "${name}"`).all().map((r) => JSON.stringify(r)).sort(),
+    ]));
+  };
+
+  describe('MEM-10: quem perde a corrida pelo mesmo relato conserva a primeira gravação', () => {
+    it.each([
+      ['relatos', 'memorias'],
+      ['memorias', 'relatos'],
+      ['lixeira', 'memorias'],
+      ['memorias', 'lixeira'],
+      ['relatos', 'relatos'],
+      ['lixeira', 'memorias', 'formulário'],
+    ] as const)('recusa %s depois de %s gravar', async (perde, ganha, modo?) => {
+      const relatos = await import('../src/pages/api/relatos');
+      const { noPedido } = await import('../src/lib/servidor/ambiente');
+      const { RECADO_MEMORIA_MUDOU } = await import('../src/lib/servidor/repositorio');
+      const id = `mem10-${perde}-${ganha}${modo ? '-formulario' : ''}`;
+      const rewrite = vi.fn(async (_request: Request) => new Response('Página do formulário', { headers: { 'Content-Type': 'text/html' } }));
+      banco.sqlite.prepare("INSERT INTO memorias (id, titulo, ano, tipo, criada_por, situacao) VALUES (?, 'Corrida pelo relato', 2001, ?, 'elizete', 'rascunho')").run(id, tipo);
+      const r = Number(banco.sqlite.prepare("INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 'elizete', 'elizete', 'Um.', 'rascunho')").run(id).lastInsertRowid);
+      const base = Number(banco.sqlite.prepare("INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto) VALUES (?, 0, 'texto', 'Um.')").run(r).lastInsertRowid);
+      const v = Number(banco.sqlite.prepare("INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, 'elizete')").run(String(r), JSON.stringify({ texto: 'Da restauração.' })).lastInsertRowid);
+      const audioId = Number(banco.sqlite.prepare("INSERT INTO audios (chave, tipo, tamanho, enviado_por) VALUES ('teste/mem10.m4a', 'audio/mp4', 10, 'elizete')").run().lastInsertRowid);
+      const fotoId = Number(banco.sqlite.prepare("INSERT INTO fotos (chave, enviada_por) VALUES ('teste/mem10.jpg', 'elizete')").run().lastInsertRowid);
+      const rotas = { relatos, memorias, lixeira };
+      const postar = (rota: keyof typeof rotas, primeira: boolean) => {
+        const palavra = primeira ? 'Dois.' : 'Três.';
+        const mensagens: { id?: number; tipo: string; texto?: string; audioId?: number; fotoId?: number }[] = [
+          { id: base, tipo: 'texto', texto: 'Um.' }, { tipo: 'texto', texto: palavra },
+        ];
+        if (rota === 'relatos' && primeira && perde === 'relatos') mensagens.push({ tipo: 'audio', audioId }, { tipo: 'foto', fotoId });
+        const parametros = { por: 'elizete', texto: `Um.\n\n${palavra}`, mensagens };
+        const corpo = rota === 'lixeira' ? new URLSearchParams({ acao: 'restaurar-relato', memoria: id, por: 'elizete', versao: String(v) })
+          : JSON.stringify(rota === 'memorias' ? { id, titulo: 'Corrida pelo relato', ano: 2001, tipo, situacao: 'rascunho', relato: parametros }
+            : { memoria: id, situacao: 'rascunho', ...parametros });
+        const request = new Request(`http://localhost/api/${rota}`, {
+          method: 'POST', body: corpo, headers: {
+            Origin: 'http://localhost', ...(typeof corpo === 'string' ? { 'Content-Type': 'application/json' } : { Accept: modo ? 'text/html' : 'application/json' }),
+          },
+        });
+        return noPedido(request, () => rotas[rota].POST({ request, locals: { usuario: elizete, tipos }, ...(modo ? { rewrite } : {}) } as never));
+      };
+      const conferirTexto = (esperado: string) => {
+        const textos = banco.sqlite.prepare("SELECT texto FROM relato_mensagens WHERE relato_id = ? AND tipo = 'texto' ORDER BY ordem, id").all(r) as { texto: string }[];
+        expect(textos.map((m) => m.texto).join('\n\n')).toBe(esperado);
+        expect(linha('SELECT texto FROM relatos WHERE id = ?', r)).toEqual({ texto: esperado });
+      };
+      const lote = banco.batch.bind(banco);
+      let primeiraGravacao: string | undefined;
+      let gravandoPrimeiro = false;
+      let lotesDoPerdedor = 0;
+      banco.batch = async (comandos) => {
+        if (!gravandoPrimeiro && comandos.some((c) => /^UPDATE relatos SET texto\b/.test(c.sql))) {
+          lotesDoPerdedor++;
+          if (primeiraGravacao === undefined) {
+            gravandoPrimeiro = true;
+            try {
+              expect((await postar(ganha, true)).status).toBe(ganha === 'lixeira' ? 303 : 200);
+              conferirTexto(ganha === 'lixeira' ? 'Da restauração.' : 'Um.\n\nDois.');
+              expect(linha('SELECT versao FROM memorias WHERE id = ?', id)).toEqual({ versao: 1 });
+              primeiraGravacao = todosOsDados();
+            } finally {
+              gravandoPrimeiro = false;
+            }
+          }
+        }
+        return lote(comandos);
+      };
+      try {
+        const resposta = await postar(perde, false);
+        expect(resposta.status).toBe(409);
+        if (modo) {
+          expect(await resposta.text()).toBe('Página do formulário');
+          expect(rewrite).toHaveBeenCalledTimes(1);
+          const destino = new URL(rewrite.mock.calls[0]![0].url);
+          expect(destino.pathname).toBe('/nova');
+          expect(destino.searchParams.get('id')).toBe(id);
+          expect(destino.searchParams.get('erro')).toBe(RECADO_MEMORIA_MUDOU);
+        } else {
+          expect(await resposta.json()).toEqual({ erro: RECADO_MEMORIA_MUDOU });
+        }
+        expect(lotesDoPerdedor).toBe(1);
+        expect(todosOsDados()).toBe(primeiraGravacao);
+        if (perde === 'relatos' && ganha === 'relatos') {
+          expect(linha('SELECT relato_id, removido_em FROM audios WHERE id = ?', audioId)).toEqual({ relato_id: r, removido_em: null });
+          expect(linha('SELECT relato_id, removida_em FROM fotos WHERE id = ?', fotoId)).toEqual({ relato_id: r, removida_em: null });
+        }
+      } finally {
+        banco.batch = lote;
+      }
+    });
+  });
+
+  describe('MEM-11: a conversa muda fora da janela do relato', () => {
+    it.each(['legenda pela ficha', 'restauração pela lixeira'] as const)('recusa a gravação do relato depois de %s', async (caso) => {
+      const relatos = await import('../src/pages/api/relatos');
+      const { noPedido } = await import('../src/lib/servidor/ambiente');
+      const { RECADO_MEMORIA_MUDOU } = await import('../src/lib/servidor/repositorio');
+      const legenda = caso === 'legenda pela ficha';
+      const id = legenda ? 'mem11-legenda' : 'mem11-restaurar';
+      banco.sqlite.prepare("INSERT INTO memorias (id, titulo, ano, tipo, criada_por, situacao) VALUES (?, 'Foto do relato', 2001, ?, 'gui', 'publicada')").run(id, tipo);
+      const r = Number(banco.sqlite.prepare("INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 'elizete', 'elizete', 'Base.', 'publicada')").run(id).lastInsertRowid);
+      const m = Number(banco.sqlite.prepare("INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto) VALUES (?, 0, 'texto', 'Base.')").run(r).lastInsertRowid);
+      const f = Number(banco.sqlite.prepare("INSERT INTO fotos (memoria_id, relato_id, chave, legenda, enviada_por, removida_em) VALUES (?, ?, 'teste/mem11.jpg', 'A', 'elizete', ?)").run(id, r, legenda ? null : '2026-11-27 10:00:00').lastInsertRowid);
+      const midias: Record<string, unknown>[] = [];
+      if (legenda) {
+        const foto = Number(banco.sqlite.prepare("INSERT INTO relato_mensagens (relato_id, ordem, tipo, foto_id) VALUES (?, 1, 'foto', ?)").run(r, f).lastInsertRowid);
+        midias.push({ id: foto, tipo: 'foto', fotoId: f, legenda: 'A' });
+      }
+      const request = new Request('http://localhost/api/relatos', {
+        method: 'POST', headers: { Origin: 'http://localhost', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memoria: id, por: 'elizete', mensagens: [{ id: m, tipo: 'texto', texto: 'Base editada.' }, ...midias] }),
+      });
+      const lote = banco.batch.bind(banco);
+      let depoisDaPrimeira: string | undefined;
+      let tentativas = 0;
+      banco.batch = async (comandos) => {
+        if (comandos.some((c) => /^UPDATE relatos SET texto\b/.test(c.sql))) {
+          tentativas++;
+          if (tentativas === 1) {
+            if (legenda) {
+              const ficha = await salvar(usuarioDe('gui'), { id, titulo: 'Foto do relato', ano: 2001, tipo, fotosMostradas: [f], fotos: [{ id: f, legenda: 'B', principal: true }] });
+              expect(ficha.status).toBe(200);
+            } else {
+              const restauracao = await formulario(lixeira, '/api/lixeira', elizete, { acao: 'restaurar-foto', memoria: id, foto: String(f) });
+              expect(restauracao).toEqual({ status: 303, erro: null });
+            }
+            depoisDaPrimeira = todosOsDados();
+          }
+        }
+        return lote(comandos);
+      };
+      try {
+        const resposta = await noPedido(request, () => relatos.POST({ request, locals: { usuario: elizete, tipos } } as never));
+        expect(resposta.status).toBe(409);
+        expect(await resposta.json()).toEqual({ erro: RECADO_MEMORIA_MUDOU });
+        expect(tentativas).toBe(1);
+        expect(todosOsDados()).toBe(depoisDaPrimeira);
+        expect(linha('SELECT versao FROM memorias WHERE id = ?', id)).toEqual({ versao: 1 });
+        expect(linha('SELECT legenda, removida_em FROM fotos WHERE id = ?', f)).toEqual({ legenda: legenda ? 'B' : 'A', removida_em: null });
+      } finally {
+        banco.batch = lote;
+      }
+    });
+  });
+
   it('/api/relatos: o público que a tela não oferece é recusado sem mudar nada (D5 da sessão Z)', async () => {
     const relatos = await import('../src/pages/api/relatos');
     const antes = impressao();

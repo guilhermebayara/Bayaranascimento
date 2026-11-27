@@ -8,7 +8,7 @@ const raiz=process.cwd(), pasta=mkdtempSync(join(tmpdir(),'mem7-provas-'));
 execFileSync('git',['archive','--output',join(pasta,'referencia.tar'),'40c7e33']);
 execFileSync('tar',['-xf',join(pasta,'referencia.tar'),'-C',pasta]);
 symlinkSync(resolve('node_modules'),join(pasta,'node_modules'));
-for(const p of ['testes/mem7-mensagens.test.ts','testes/mem7-capitulos.test.ts','testes/mem7-paginas.test.ts','testes/mem7-inicio.test.ts','testes/apoio/pagina-astro.ts','testes/amostras/mem7-historico-nome.html','testes/amostras/mem7-historico-sobre.html']){
+for(const p of ['testes/mem7-capitulos.test.ts','testes/mem7-paginas.test.ts','testes/mem7-inicio.test.ts','testes/apoio/pagina-astro.ts','testes/amostras/mem7-historico-nome.html','testes/amostras/mem7-historico-sobre.html']){
   mkdirSync(resolve(pasta,p,'..'),{recursive:true});cpSync(resolve(p),resolve(pasta,p));
 }
 const resultados=[];
@@ -20,7 +20,6 @@ function prova(nome,arquivo,filtro,deveFalhar=true){
   console.log(`${certa?'OK':'FALHOU'} ${nome}: saída ${r.status}`);
   if(!certa) console.error(log.slice(-4000));
 }
-prova('mensagens-como-e2b478e','mem7-mensagens');
 prova('ponto-2-e-4','mem7-paginas');
 prova('ponto-3','mem7-capitulos');
 prova('ponto-5-sem-mutacao','mem7-inicio',undefined,false);

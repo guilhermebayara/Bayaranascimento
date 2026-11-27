@@ -12,9 +12,10 @@ import { MENSAGENS_POR_RELATO, paragrafos, soAcrescentou, textoDasMensagens, typ
 import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { avisosDeQuemEstava, mudancaDeQuemVe } from '../../lib/servidor/avisos';
-import { erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
+import { conflitoNoFormulario, erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
 import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, publicoMudou, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
+  acompanharConversa,
   atualizarMemoria,
   comandoDeCriarIntegrante,
   comandosDeAbrirLacosPrivados,
@@ -33,12 +34,11 @@ import {
   obterRelato,
   type DadosDaMemoria,
   type Memoria,
+  type Relato,
   audiosQueEntram,
   comandosDasMensagens,
   comandosDosAudios,
   pessoasQueSoVoceVe,
-  listarAudiosDosRelatos,
-  listarMensagensDosRelatos,
   chaveDoEnvioUnico,
   codigoRepetido,
   comandosDoEnvio,
@@ -46,6 +46,7 @@ import {
   envioRepetidoNoLote,
   MemoriaMudou,
   RECADO_MEMORIA_MUDOU,
+  RelatoMudou,
   refazerSeAMemoriaMudou,
 } from '../../lib/servidor/repositorio';
 
@@ -120,13 +121,18 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
       const recado = !publicada ? 'Rascunho salvo.' : String(dados.get('pagina')) === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
       return voltar(request, publicada ? `/memorias/${id}` : `/nova?id=${id}`, { ok: recado });
     };
-    let resposta: Response;
+    let resposta: Response | RelatoMudou;
     try {
       resposta = await tratarComAMemoriaDeAgora(pedido, locals, envio);
     } catch (e) {
       // Os dois toques passaram juntos pela conferência: o lote do segundo voltou na chave do envio
       if (envio && envioRepetidoNoLote(e)) return repetido();
       throw e;
+    }
+    if (resposta instanceof RelatoMudou) {
+      locals.memoriaDevolvida = memoriaDevolvida(dados);
+      const destino = id ? `/nova?${new URLSearchParams({ id })}` : '/nova';
+      return conflitoNoFormulario(request, rewrite, destino, RECADO_MEMORIA_MUDOU);
     }
     const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string; repetido?: boolean };
     if (corpo.repetido) return repetido();
@@ -149,7 +155,8 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
   } catch {
     return erro(400, 'Envio inválido.');
   }
-  return tratarComAMemoriaDeAgora(bruto, locals);
+  const resposta = await tratarComAMemoriaDeAgora(bruto, locals);
+  return resposta instanceof RelatoMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
 };
 
 /**
@@ -161,13 +168,15 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
  * tentativa começa do zero (Y3 do PR #160). Depois de três tentativas, a pessoa recebe o recado, com e
  * sem script.
  */
-async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals, envio?: string): Promise<Response> {
+async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals, envio?: string): Promise<Response | RelatoMudou> {
   // O código da memória, da pessoa nova ou do tema novo que outro pedido usou no meio tempo: o lote voltou
   // inteiro, e o site tenta de novo sozinho, com outro código. Se ainda assim falhar, a pessoa volta para a
   // página com o recado e com o que digitou (D2 da sessão Z, 22/11/2026)
+  const conversa = acompanharConversa();
   for (let vez = 1; ; vez++) {
     try {
-      const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals, envio));
+      const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals, conversa, envio));
+      if (resposta instanceof RelatoMudou) return resposta;
       return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
     } catch (e) {
       if (!codigoRepetido(e)) throw e;
@@ -208,7 +217,7 @@ function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unk
   };
 }
 
-async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promise<Response> {
+async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<typeof acompanharConversa>, envio?: string): Promise<Response> {
   const { usuario } = locals;
   // O mesmo envio sem script já gravou (o primeiro toque, ou o outro que ganhou a corrida enquanto esta tentativa
   // esperava): nada é conferido nem gravado, e quem chama responde como o primeiro
@@ -232,7 +241,10 @@ async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promi
   // com as regras dela (o público que a página mostrava, o relato que nasce esperando, os avisos). O relato
   // que chega por aqui, só por pedido forjado, é recusado (D6 da sessão Z)
   const comRelato = Boolean(pedido.relato && (pedido.relato.texto.trim() || pedido.relato.audios?.length || pedido.relato.mensagens?.length));
-  if (anterior?.situacao === 'publicada' && comRelato) return erro(400, 'Envio inválido.');
+  if (anterior?.situacao === 'publicada' && comRelato) {
+    if (conversa.jaLeu) throw new RelatoMudou();
+    return erro(400, 'Envio inválido.');
+  }
   // Uma memória publicada não volta a ser rascunho
   const situacao = anterior?.situacao === 'publicada' ? 'publicada' : pedido.situacao;
   if (situacao === 'publicada' && !pedido.tipo) return erro(400, 'Escolha o tipo de momento.');
@@ -380,13 +392,14 @@ async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promi
   // Relato de quem está registrando (ou de alguém sem acesso, registrado por ela)
   const textoDoRelato = pedido.relato ? arrumarTexto(pedido.relato.texto) : '';
   let relatoPor: string | undefined;
+  let relatoAnterior: Relato | undefined;
   const audiosDoRelato = pedido.relato?.audios;
   if (pedido.relato && (textoDoRelato || audiosDoRelato?.length)) {
     relatoPor = resolver(pedido.relato.por);
     if (!relatoPor) return erro(400, 'Não encontrei a pessoa que contou o relato.');
     // Conferido antes de salvar: o relato recusado não deixa a memória salva sem ele (QA de 23/11/2026, docs/historico/qa/2026-11-23-relatorio.md)
-    const existente = anterior ? await obterRelato(anterior.id, relatoPor, usuario) : undefined;
-    const decisao = podeEscreverRelato(usuario, relatoPor, existente, await pessoasComAcesso());
+    relatoAnterior = anterior ? await obterRelato(anterior.id, relatoPor, usuario) : undefined;
+    const decisao = podeEscreverRelato(usuario, relatoPor, relatoAnterior, await pessoasComAcesso());
     if (!decisao.ok) return erro(403, decisao.motivo);
   }
 
@@ -425,12 +438,12 @@ async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promi
   // Relato de quem está registrando: no mesmo lote, com os áudios e as mensagens dele. Relato já publicado
   // continua publicado; os demais acompanham a situação da memória. Um lote só: se ele falha, nada fica, o
   // áudio continua solto e a nova tentativa cria a memória uma vez (D1, revisões do PR #160)
-  let doRelato: { comandos: Comando[]; nasce: boolean } | undefined;
+  let doRelato: Comando[] | undefined;
   if (relatoPor) {
-    const existente = anterior ? await obterRelato(id, relatoPor, usuario) : undefined;
+    const existente = relatoAnterior;
     const situacaoDoRelato = existente?.situacao === 'publicada' ? 'publicada' : situacao;
     // As mensagens de antes, para o histórico e para o envio sem script, que acrescenta no fim
-    const antesDoRelato = existente ? ((await listarMensagensDosRelatos([existente])).get(existente.id) ?? []) : [];
+    const { mensagens: antesDoRelato, audios: audiosAtuais } = await conversa.ler(existente);
     const mensagens: Mensagem[] = pedido.relato?.mensagens
       ? pedido.relato.mensagens.map((m) => ({ ...(m.id ? { id: m.id } : {}), tipo: m.tipo, ...(m.tipo === 'texto' ? { texto: arrumarTexto(m.texto ?? '') } : { audioId: m.audioId }) }))
       : [...antesDoRelato, ...paragrafos(textoDoRelato).map((t) => ({ tipo: 'texto' as const, texto: t }))];
@@ -442,19 +455,16 @@ async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promi
     // Os áudios: só os que a pessoa enviou para esta memória e ainda estão soltos ou neste relato. Sem a
     // lista, os do relato ficam como estão
     const aceitos = meu && audiosDoRelato ? await audiosQueEntram(relatoId, id, audiosDoRelato, usuario) : undefined;
-    const ficaram = new Set(aceitos ? aceitos.map((a) => a.id) : relatoId ? ((await listarAudiosDosRelatos([relatoId])).get(relatoId) ?? []).map((a) => a.id) : []);
+    const ficaram = new Set((aceitos ?? audiosAtuais).map((a) => a.id));
     // Só as mensagens de áudio que ficaram mesmo no relato
     const validas = mensagens.filter((m) => (m.tipo === 'audio' ? ficaram.has(m.audioId!) : Boolean(m.texto?.trim())));
     // O relato que nasce sem nada que fique (só o áudio, que outro pedido igual levou no meio tempo) não nasce
     // vazio: a memória é gravada sem ele (fila da revisão Z2, sessão AA)
-    if (existente || validas.length > 0) doRelato = {
-      comandos: [
-        ...comandosDoRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato }),
-        ...(meu && aceitos ? comandosDosAudios(meu, id, aceitos) : []),
-        ...(meu ? await comandosDasMensagens(meu, validas) : []),
-      ],
-      nasce: !existente,
-    };
+    if (existente || validas.length > 0) doRelato = [
+      ...comandosDoRelato(id, relatoPor, texto, situacaoDoRelato, usuario, existente, { guardar: !soAcrescentou(antesDoRelato, mensagens), mensagens: antesDoRelato }, { subir: !anterior }),
+      ...(meu && aceitos ? comandosDosAudios(meu, id, aceitos) : []),
+      ...(meu ? await comandosDasMensagens(meu, validas) : []),
+    ];
   }
 
   // Quem vê mudou numa memória publicada: ao ampliar, os relatos que já existiam esperam o sim de quem
@@ -462,7 +472,7 @@ async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promi
   // público não toca em relato nenhum, e a mudança grava a memória, os relatos e os pedidos numa
   // transação só (revisão Y do PR #160)
   let esperam: { por: string }[] = [];
-  const depoisDaFicha = [...(doRelato?.comandos ?? []), ...avisos];
+  const depoisDaFicha = [...(doRelato ?? []), ...avisos];
   if (anterior) {
     const publicoAntes = { visibilidade: anterior.visibilidade, nucleos: anterior.nucleos };
     const publicoDepois = { visibilidade: dados.visibilidade, nucleos };
@@ -476,12 +486,13 @@ async function tratar(bruto: unknown, locals: App.Locals, envio?: string): Promi
         ? await mudancaDeQuemVe(id, publicoAntes, publicoDepois, usuario, anterior.criadaPor)
         : { comandos: [], esperam: [] };
     esperam = mudanca.esperam;
-    // O relato que nasce junto conta com o público que a rota leu: se a memória mudou depois, o lote volta
+    // O relato da ficha usa a versão que a rota leu, inclusive quando já existia.
     await atualizarMemoria(anterior, dados, usuario, removidas.map((f) => f.id), {
       antes: antesDaFicha,
       junto: [...mudanca.comandos, ...depoisDaFicha],
       quemVe: mudou ? 'mudou' : marcas ? 'marcas' : 'nao',
-      conferir: Boolean(doRelato?.nasce),
+      conferir: comRelato,
+      conferirLegendas: true,
     });
   } else {
     await criarMemoria(id, dados, usuario, { antes: antesDaFicha, junto: depoisDaFicha });
