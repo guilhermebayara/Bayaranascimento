@@ -13,6 +13,7 @@ import { pessoasComAcesso } from '../../lib/servidor/acesso';
 import { arrumarTexto, codigoNovo, criarSlug, slugUnico, validarData } from '../../lib/servidor/conteudo';
 import { avisosDeQuemEstava, mudancaDeQuemVe } from '../../lib/servidor/avisos';
 import { conflitoNoFormulario, erro, json, mesmaOrigem, voltar } from '../../lib/servidor/http';
+import { recadoDaValidacao } from '../../lib/servidor/recados-de-validacao';
 import { alcanceDaCorrecao, mudancaDeConteudo, podeEditarMemoria, podeEscreverRelato, podeMudarQuemVe, podeRemoverFoto, publicoMudou, validarVisibilidade } from '../../lib/servidor/permissoes';
 import {
   acompanharConversa,
@@ -51,10 +52,12 @@ import {
 } from '../../lib/servidor/repositorio';
 
 const opcional = (maximo: number) => z.string().trim().max(maximo).optional();
+const MEMORIA_NAO_ENCONTRADA = 'Memória não encontrada.';
+const fichaNaoEncontrada = () => new Response(MEMORIA_NAO_ENCONTRADA, { status: 404, headers: { 'Cache-Control': 'no-store' } });
 
 const Pedido = z.object({
   id: z.string().max(120).optional(),
-  titulo: z.string().trim().min(1, 'Dê um título para a memória.').max(120),
+  titulo: z.string().trim().min(1).max(120),
   // Sem ano, só o rascunho (ver SEM_ANO, em src/lib/datas.ts)
   ano: z.number().int().nullable().optional(),
   mes: z.number().int().min(1).max(12).optional(),
@@ -100,6 +103,7 @@ const Pedido = z.object({
     })
     .optional(),
 });
+type PedidoLido = ReturnType<typeof Pedido.safeParse>;
 
 export const POST: APIRoute = async ({ request, locals, rewrite }) => {
   if (!mesmaOrigem(request)) return erro(403, 'Pedido recusado.');
@@ -108,7 +112,9 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
     const dados = await request.formData();
     const id = String(dados.get('id') ?? '') || undefined;
     const anterior = id ? await obterMemoria(locals.usuario, id) : undefined;
-    const pedido = pedidoDoFormulario(dados, anterior);
+    if (id && !anterior) return fichaNaoEncontrada();
+    const pedido = pedidoDoFormulario(dados, id);
+    const lido = Pedido.safeParse(pedido);
     // O código de envio único da página (o toque duplo sem script em "Publicar memória", fila da revisão Z2,
     // sessão AA): a chave junta o código, quem envia, a memória e o que foi digitado. O segundo toque igual não
     // grava de novo e responde como o primeiro, como no "Publicar relato". Só para a memória que já existe: a
@@ -116,14 +122,15 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
     const codigo = String(dados.get('envio') ?? '').slice(0, 80);
     const envio = id && anterior && codigo ? await chaveDoEnvioUnico(codigo, locals.usuario.pessoa, id, pedido) : undefined;
     const repetido = async () => {
-      const agora = (await obterMemoria(locals.usuario, id!))!;
+      const agora = await obterMemoria(locals.usuario, id!);
+      if (!agora) return fichaNaoEncontrada();
       const publicada = agora.situacao === 'publicada';
       const recado = !publicada ? 'Rascunho salvo.' : String(dados.get('pagina')) === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
       return voltar(request, publicada ? `/memorias/${id}` : `/nova?id=${id}`, { ok: recado });
     };
     let resposta: Response | RelatoMudou;
     try {
-      resposta = await tratarComAMemoriaDeAgora(pedido, locals, envio);
+      resposta = await tratarComAMemoriaDeAgora(lido, locals, envio);
     } catch (e) {
       // Os dois toques passaram juntos pela conferência: o lote do segundo voltou na chave do envio
       if (envio && envioRepetidoNoLote(e)) return repetido();
@@ -134,6 +141,7 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
       const destino = id ? `/nova?${new URLSearchParams({ id })}` : '/nova';
       return conflitoNoFormulario(request, rewrite, destino, RECADO_MEMORIA_MUDOU);
     }
+    if (resposta.status === 404) return fichaNaoEncontrada();
     const corpo = (await resposta.json()) as { erro?: string; url?: string; situacao?: string; repetido?: boolean };
     if (corpo.repetido) return repetido();
     if (!resposta.ok) {
@@ -144,7 +152,12 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
       const destino = `/nova?${new URLSearchParams({ ...(id ? { id } : {}), erro: recado })}`;
       if (!rewrite) return voltar(request, destino);
       locals.memoriaDevolvida = memoriaDevolvida(dados);
-      return rewrite(new Request(new URL(destino, request.url), { method: 'GET', headers: request.headers }));
+      const pagina = await rewrite(new Request(new URL(destino, request.url), { method: 'GET', headers: request.headers }));
+      const problema = lido.success ? undefined : lido.error.issues[0]?.code;
+      if (pagina.ok && (problema === 'too_big' || problema === 'too_small')) {
+        return new Response(pagina.body, { status: 400, headers: pagina.headers });
+      }
+      return pagina;
     }
     const recado = corpo.situacao === 'rascunho' ? 'Rascunho salvo.' : anterior?.situacao === 'publicada' ? 'Memória atualizada. A versão anterior está no histórico.' : 'Memória publicada.';
     return voltar(request, corpo.url!, { ok: recado });
@@ -155,7 +168,7 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
   } catch {
     return erro(400, 'Envio inválido.');
   }
-  const resposta = await tratarComAMemoriaDeAgora(bruto, locals);
+  const resposta = await tratarComAMemoriaDeAgora(Pedido.safeParse(bruto), locals);
   return resposta instanceof RelatoMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
 };
 
@@ -168,14 +181,14 @@ export const POST: APIRoute = async ({ request, locals, rewrite }) => {
  * tentativa começa do zero (Y3 do PR #160). Depois de três tentativas, a pessoa recebe o recado, com e
  * sem script.
  */
-async function tratarComAMemoriaDeAgora(bruto: unknown, locals: App.Locals, envio?: string): Promise<Response | RelatoMudou> {
+async function tratarComAMemoriaDeAgora(lido: PedidoLido, locals: App.Locals, envio?: string): Promise<Response | RelatoMudou> {
   // O código da memória, da pessoa nova ou do tema novo que outro pedido usou no meio tempo: o lote voltou
   // inteiro, e o site tenta de novo sozinho, com outro código. Se ainda assim falhar, a pessoa volta para a
   // página com o recado e com o que digitou (D2 da sessão Z, 22/11/2026)
   const conversa = acompanharConversa();
   for (let vez = 1; ; vez++) {
     try {
-      const resposta = await refazerSeAMemoriaMudou(() => tratar(bruto, locals, conversa, envio));
+      const resposta = await refazerSeAMemoriaMudou(() => tratar(lido, locals, conversa, envio));
       if (resposta instanceof RelatoMudou) return resposta;
       return resposta instanceof MemoriaMudou ? erro(409, RECADO_MEMORIA_MUDOU) : resposta;
     } catch (e) {
@@ -192,12 +205,12 @@ const mesmasFamilias = (a: readonly string[], b: readonly string[]) => a.length 
  * O formulário comum, no formato do pedido em JSON. Fotos só se enviam e se tiram com JavaScript: sem a
  * lista, as que a memória tem na hora de gravar ficam, lidas dentro de cada tentativa (Y3 do PR #160).
  */
-function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unknown {
+function pedidoDoFormulario(dados: FormData, id: string | undefined): unknown {
   const texto = (nome: string) => String(dados.get(nome) ?? '').trim();
   const numero = (nome: string) => (texto(nome) ? Number(texto(nome)) : undefined);
   const relato = texto('relato');
   return {
-    id: anterior?.id,
+    id,
     titulo: texto('titulo'),
     ano: numero('ano'),
     mes: numero('mes'),
@@ -217,13 +230,12 @@ function pedidoDoFormulario(dados: FormData, anterior: Memoria | undefined): unk
   };
 }
 
-async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<typeof acompanharConversa>, envio?: string): Promise<Response> {
+async function tratar(lido: PedidoLido, locals: App.Locals, conversa: ReturnType<typeof acompanharConversa>, envio?: string): Promise<Response> {
   const { usuario } = locals;
   // O mesmo envio sem script já gravou (o primeiro toque, ou o outro que ganhou a corrida enquanto esta tentativa
   // esperava): nada é conferido nem gravado, e quem chama responde como o primeiro
   if (envio && (await envioJaGravado(envio))) return json({ repetido: true }, 200);
-  const lido = Pedido.safeParse(bruto);
-  if (!lido.success) return erro(400, lido.error.issues[0]?.message ?? 'Confira os campos.');
+  if (!lido.success) return erro(400, recadoDaValidacao(lido.error.issues[0], 'memoria'));
   const pedido = lido.data;
 
   // O tipo começa sem marcação no formulário. Um rascunho pode ser salvo sem ele; para publicar, é obrigatório.
@@ -232,7 +244,7 @@ async function tratar(bruto: unknown, locals: App.Locals, conversa: ReturnType<t
 
   // Edição: a memória precisa existir, ser visível para a pessoa e poder ser alterada por ela
   const anterior = pedido.id ? await obterMemoria(usuario, pedido.id) : undefined;
-  if (pedido.id && !anterior) return erro(404, 'Memória não encontrada.');
+  if (pedido.id && !anterior) return erro(404, MEMORIA_NAO_ENCONTRADA);
   if (anterior) {
     const decisao = podeEditarMemoria(usuario, anterior);
     if (!decisao.ok) return erro(403, decisao.motivo);

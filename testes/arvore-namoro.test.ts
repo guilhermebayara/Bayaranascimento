@@ -60,21 +60,22 @@ describe('o namoro na árvore', () => {
     expect(desenho.linhas.some((l) => (l.tipo === 'casal' || l.tipo === 'ponto') && l.de.includes('bia'))).toBe(false);
   });
 
-  it('o ex que virou amigo só aparece com os laços da Giovanna abertos, colado ao lado dela', () => {
+  it('o ex que virou amigo fica fora quando só os laços do Gui estão abertos', () => {
     expect(fileiras(comAmigo, ['gui']).flat()).not.toContain('Thiago');
-    const comGiovanna = [...COMBINACOES.filter((c) => c.includes('giovanna')), ['giovanna', 'lucas-magno']];
-    for (const abertos of comGiovanna) {
-      for (const amigos of [false, true]) {
-        const f = fileiras(comAmigo, abertos, amigos);
-        const texto = f.map((l) => l.join(' | ')).join('\n');
-        const linha = f.find((l) => l.includes('Giovanna'))!;
-        // Do lado de fora do casal, entre os irmãos: Gui, Thiago, Giovanna, Lucas Magno
-        expect(linha.indexOf('Thiago') + 1, texto).toBe(linha.indexOf('Giovanna'));
-        expect(linha.indexOf('Gui'), texto).toBeLessThan(linha.indexOf('Thiago'));
-        expect(linha.indexOf('Giovanna') + 1, texto).toBe(linha.indexOf('Lucas Magno'));
-        const avos = f.find((l) => l.includes('Vó Vivica'))!;
-        expect(avos.indexOf('Vó Vivica'), texto).toBeLessThan(avos.indexOf('Regina'));
-      }
+  });
+
+  const comGiovanna = [...COMBINACOES.filter((c) => c.includes('giovanna')), ['giovanna', 'lucas-magno']];
+  it.each(comGiovanna.map((abertos) => ({ abertos, nomes: abertos.join(', ') })))('o ex que virou amigo fica colado à Giovanna com $nomes', ({ abertos }) => {
+    for (const amigos of [false, true]) {
+      const f = fileiras(comAmigo, abertos, amigos);
+      const texto = f.map((l) => l.join(' | ')).join('\n');
+      const linha = f.find((l) => l.includes('Giovanna'))!;
+      // Do lado de fora do casal, entre os irmãos: Gui, Thiago, Giovanna, Lucas Magno
+      expect(linha.indexOf('Thiago') + 1, texto).toBe(linha.indexOf('Giovanna'));
+      expect(linha.indexOf('Gui'), texto).toBeLessThan(linha.indexOf('Thiago'));
+      expect(linha.indexOf('Giovanna') + 1, texto).toBe(linha.indexOf('Lucas Magno'));
+      const avos = f.find((l) => l.includes('Vó Vivica'))!;
+      expect(avos.indexOf('Vó Vivica'), texto).toBeLessThan(avos.indexOf('Regina'));
     }
   });
 

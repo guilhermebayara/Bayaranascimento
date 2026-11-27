@@ -376,8 +376,8 @@ describe.skipIf(!(await temSqlite()))('Relato como conversa em um lote', async (
     expect(mensagens(relato(id()!).id).map((m) => m.tipo)).toEqual(['texto', 'audio']);
   });
 
-  it('restaura a cópia oficial com citações, anexos e relatos de 80, 81 e 200 mensagens', async () => {
-    const id = memoria('mem8-copia');
+  async function prepararRelatoParaCopia(id: string) {
+    memoria(id);
     sql("INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 'elizete', 'elizete', '', 'rascunho')", id);
     const vazio = relato(id).id;
     const resp = await postar(relatos, '/api/relatos', { memoria: id, por: 'gui', mensagens: [texto('Publicado para citar.')] }, gui);
@@ -387,16 +387,28 @@ describe.skipIf(!(await temSqlite()))('Relato como conversa em um lote', async (
     const [citante, som, imagem] = await gravar(id, [{ ...texto('Respondendo.'), citaId }, audio, foto], 'rascunho');
     expect(relato(id).id).toBe(vazio);
     sql("UPDATE relato_mensagens SET enviada_em = '2026-11-20 12:00:00' WHERE id = ?", citante.id!);
+    return { id, vazio, citante, som, imagem, citaId };
+  }
 
-    for (const n of [80, 81, 200]) {
-      const atuais = mensagens(vazio).map((m, i) => i === 0 ? { ...citante, texto: 'Corrigida', citaId } :
-        i === 1 ? som : i === 2 ? imagem : { id: m.id, tipo: m.tipo, texto: m.texto ?? undefined });
-      const loteNovo = [...atuais, ...Array.from({ length: n - atuais.length }, (_, i) => texto(`Parágrafo ${atuais.length + i}.`))];
-      await gravar(id, loteNovo);
-      expect(mensagens(vazio)).toHaveLength(n);
-      expect(mensagens(vazio)[0]).toMatchObject({ id: citante.id, enviada_em: '2026-11-20 12:00:00', cita_id: citaId });
-      await conferirCopia(id);
-    }
+  async function gravarAte(n: number, { id, vazio, citante, som, imagem, citaId }: Awaited<ReturnType<typeof prepararRelatoParaCopia>>) {
+    const atuais = mensagens(vazio).map((m, i) => i === 0 ? { ...citante, texto: 'Corrigida', citaId } :
+      i === 1 ? som : i === 2 ? imagem : { id: m.id, tipo: m.tipo, texto: m.texto ?? undefined });
+    const loteNovo = [...atuais, ...Array.from({ length: n - atuais.length }, (_, i) => texto(`Parágrafo ${atuais.length + i}.`))];
+    await gravar(id, loteNovo);
+    expect(mensagens(vazio)).toHaveLength(n);
+    expect(mensagens(vazio)[0]).toMatchObject({ id: citante.id, enviada_em: '2026-11-20 12:00:00', cita_id: citaId });
+  }
+
+  it.each([80, 81, 200])('restaura a cópia oficial com citações, anexos e %i mensagens', async (n) => {
+    const preparo = await prepararRelatoParaCopia(`mem8-copia-${n}`);
+    await gravarAte(n, preparo);
+    await conferirCopia(preparo.id);
+  });
+
+  it('leva o mesmo relato de 80 a 81 e a 200 mensagens, recusa 201 e restaura a última cópia', async () => {
+    const preparo = await prepararRelatoParaCopia('mem8-copia-transicao');
+    const { id, vazio } = preparo;
+    for (const n of [80, 81, 200]) await gravarAte(n, preparo);
     const antes = mensagens(vazio);
     const excedeu = await salvar(id, { mensagens: Array.from({ length: 201 }, () => texto('A mais.')) });
     expect(excedeu.status).toBe(400);

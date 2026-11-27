@@ -25,16 +25,14 @@ describe('o pai ou a mãe dos meio-irmãos fica do lado deles', () => {
     expect(x.get('ex-mel')!).toBeLessThan(x.get('elizete')!);
     expect(x.get('ex-toto')!).toBeLessThan(x.get('elizete')!);
   });
-  it('de qualquer ponto de partida e com qualquer laço aberto, os bichinhos da Elizete não ficam do lado do Aguilar', () => {
+  it.each(CENTROS.map((centro) => [centro || 'padrão', centro] as const))('partindo de %s, os bichinhos da Elizete não ficam do lado do Aguilar com nenhum conjunto de laços abertos', (_nome, centro) => {
     const achados: string[] = [];
-    for (const centro of CENTROS) {
-      for (const abertos of subconjuntos) {
-        const x = arranjo(centro, abertos);
-        if (!x.has('elizete') || !x.has('aguilar')) continue;
-        const ladoDoAguilar = Math.sign(x.get('aguilar')! - x.get('elizete')!);
-        for (const bicho of ['ex-mel', 'ex-toto']) {
-          if (x.has(bicho) && Math.sign(x.get(bicho)! - x.get('elizete')!) === ladoDoAguilar) achados.push(`${bicho}, partindo de ${centro || 'gui'}, com ${abertos.join(',') || 'nada'} aberto`);
-        }
+    for (const abertos of subconjuntos) {
+      const x = arranjo(centro, abertos);
+      if (!x.has('elizete') || !x.has('aguilar')) continue;
+      const ladoDoAguilar = Math.sign(x.get('aguilar')! - x.get('elizete')!);
+      for (const bicho of ['ex-mel', 'ex-toto']) {
+        if (x.has(bicho) && Math.sign(x.get(bicho)! - x.get('elizete')!) === ladoDoAguilar) achados.push(`${bicho}, partindo de ${centro || 'gui'}, com ${abertos.join(',') || 'nada'} aberto`);
       }
     }
     expect(achados).toEqual([]);
