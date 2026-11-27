@@ -24,7 +24,7 @@ import { Familia, calcularGeracoes, lacoParaODono, possessivo, type Tratamento }
 import { jaFaleceu } from '../../lib/datas';
 import { apelidoAoLado, enderecoDePessoas, familiaPedida, gruposDaFamilia, nomeComApelido, ordemPedida, ordenarPessoas } from '../../lib/ordem-das-pessoas';
 import { enderecoDoRetrato } from '../../lib/retratos';
-import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, listarMemorias, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
+import { comoOsExesAparecem, familiasDe, listarCasais, listarFiliacoes, listarIntegrantesQueVe, listarLacosDoCoracao, contarMemoriasPorPessoa, listarNucleos, pessoasQueONaoVe, type Integrante } from '../../lib/servidor/repositorio';
 import { corDoNucleo } from '../../lib/visual';
 import { coresDasPessoas } from '../../lib/familias';
 
@@ -50,8 +50,8 @@ const naOrdem = (membros: Integrante[]) => ordenarPessoas(membros, geracoes, ord
 const nucleos = await listarNucleos();
 const ordemDosNucleos = nucleos.map((n) => n.id);
 const corDe = coresDasPessoas(integrantes, casais, ordemDosNucleos);
-const memorias = await listarMemorias(usuario);
-const contar = (id: string) => memorias.filter((m) => m.integrantes.includes(id)).length;
+const contagens = await contarMemoriasPorPessoa(usuario);
+const contar = (id: string) => contagens.get(id) ?? 0;
 const todosOsGrupos = [
   // Membros e parentes de cada família juntos, sem diferença na tela
   ...nucleos.map((n) => ({ id: n.id, nome: n.nome, cor: corDoNucleo(n.id, ordemDosNucleos), membros: naOrdem(integrantes.filter((i) => familiasDe(i).includes(n.id))) })),

@@ -29,7 +29,7 @@ import { ehDiaDaSala } from '../lib/sala';
 import { diaSimuladoDoPedido } from '../lib/servidor/dia-do-pedido';
 import { enderecosDaSala } from '../lib/servidor/tv';
 import { coresDasPessoas, familiaMaisRecente } from '../lib/familias';
-import { enderecoDoRascunhoDeRelato, fraseDoRascunho, seusRascunhos } from '../lib/conta';
+import { enderecoDoRascunhoDeRelato, fraseDoRascunho } from '../lib/conta';
 import {
   TITULO_DA_PROXIMIDADE,
   aniversarios,
@@ -38,12 +38,8 @@ import {
   anoDaUltimaVisita,
   chegarAoPainel,
   composicaoDoInicio,
-  emOutrosAnos,
   hojeNoBrasil,
-  memoriaParaContar,
   nomeParaQuemOlha,
-  novidades,
-  voceNoAcervo,
   type Dia,
 } from '../lib/painel';
 import { Familia, possessivo, type Tratamento } from '../lib/parentesco';
@@ -58,11 +54,11 @@ import {
   listarFiliacoes,
   listarAvisos,
   listarIntegrantes,
-  listarMemorias,
+  memoriasDoInicio,
+  titulosDasMemorias,
   listarNucleos,
   listarRelatosPublicadosDesde,
   listarRelatosRegistradosPor,
-  memoriasComRelatoDe,
   obterCarta,
   obterVisitas,
   pessoasQueONaoVe,
@@ -78,7 +74,7 @@ const { usuario } = Astro.locals;
 const agora = new Date();
 // O que o painel lê vai junto, sem fila (causa 1b da medição M1, docs/desempenho/): as pessoas, as famílias
 // e os laços já vêm guardados do começo do pedido.
-const [carta, visitas, integrantes, nucleos, nomesNaLixeira, naoVe, filiacoes, casais, comRascunhos, exesQueSaem, comRelatoMeu, relatosQueRegistrei, avisosDaLista] = await Promise.all([
+const [carta, visitas, integrantes, nucleos, nomesNaLixeira, naoVe, filiacoes, casais, exesQueSaem, relatosQueRegistrei, avisosDaLista] = await Promise.all([
   obterCarta(),
   obterVisitas(usuario.pessoa),
   listarIntegrantes(),
@@ -88,11 +84,8 @@ const [carta, visitas, integrantes, nucleos, nomesNaLixeira, naoVe, filiacoes, c
   pessoasQueONaoVe(usuario),
   listarFiliacoes(),
   listarCasais(usuario),
-  // Só o que a pessoa pode ver, da mais antiga para a mais nova, com os rascunhos dela numa leitura só
-  listarMemorias(usuario, { comRascunhos: true }),
   // Ex discreto ou fora sai dos aniversários de quem escolheu (resposta do Gui à sessão F, 18/11/2026)
   comoOsExesAparecem(usuario),
-  memoriasComRelatoDe(usuario.pessoa),
   listarRelatosRegistradosPor(usuario),
   listarAvisos(usuario),
 ]);
@@ -129,26 +122,23 @@ const paraQuemOlha = (id: string) => {
 };
 const nomeVisto = (id: string) => paraQuemOlha(id).nome;
 
-// No painel, só o que foi publicado. Os rascunhos da pessoa vão para a linha de rascunhos, abaixo.
-const memorias = comRascunhos.filter((m) => m.situacao === 'publicada');
-const meusRascunhos = comRascunhos.filter((m) => m.situacao === 'rascunho');
-const porId = new Map(memorias.map((m) => [m.id, m]));
-const recentes = [...memorias].reverse();
-const minhas = recentes.filter((m) => m.integrantes.includes(usuario.pessoa));
-const acervo = voceNoAcervo(minhas);
-
-// --- O que entrou de novo -------------------------------------------------------------------
-const novo = chegada.novidadesDesde
-  ? novidades(memorias, relatosDesde, chegada.novidadesDesde, usuario.pessoa)
-  : { memorias: [], relatos: [] };
+// As contagens e as escolhas ficam no banco; só as memórias dos cartões são completadas.
+const hoje = diaSimuladoDoPedido(Astro.url) ?? hojeNoBrasil(agora);
+const inicio = await memoriasDoInicio(usuario, chegada.novidadesDesde, hoje);
+const titulos = await titulosDasMemorias(usuario, relatosDesde.map((r) => r.memoriaId));
+const acervo = { quantas: inicio.minhas, comFoto: inicio.fotos, ...(inicio.minhaDe !== inicio.minhaAte ? { de: inicio.minhaDe, ate: inicio.minhaAte } : {}) };
+const novo = {
+  memorias: { length: inicio.novas },
+  relatos: relatosDesde.filter((r) => r.por !== usuario.pessoa && r.registradoPor !== usuario.pessoa && !inicio.novasIds.has(r.memoriaId)),
+};
 // Aprovado pelo Gui em 17/11/2026 (pergunta 3 do PR do grupo "pessoal"): na mesa cabem duas memórias e um relato, como
 // no conceito. O resto fica numa linha, com o caminho para "Entraram por último", no Explorar.
-const naMesa = novo.memorias.slice(0, 2);
+const naMesa = inicio.naMesa;
 const relatoNaMesa = novo.relatos[0];
 // O bilhete do relato novo: o rótulo diz só "Relato novo" e o título da memória vem numa linha própria (P24)
 const relatoDaFila = relatoNaMesa && {
   memoriaId: relatoNaMesa.memoriaId,
-  titulo: porId.get(relatoNaMesa.memoriaId)?.titulo ?? '',
+  titulo: titulos.get(relatoNaMesa.memoriaId) ?? '',
   texto: relatoNaMesa.texto ?? '',
   por: nomeVisto(relatoNaMesa.por),
   registradoPor: relatoNaMesa.registradoPor !== relatoNaMesa.por ? nomeVisto(relatoNaMesa.registradoPor) : null,
@@ -169,7 +159,6 @@ const verbo = novo.memorias.length + novo.relatos.length > 1 ? 'Entraram' : 'Ent
 // Fora da produção, "?hoje=2026-12-24" mostra o painel como num outro dia, para conferir os
 // aniversários, o "Neste dia, em outros anos" e o cartão "Na TV da sala" (e para as capturas saírem
 // sempre iguais). Na produção, o simulador nunca responde (diaSimuladoDoPedido).
-const hoje = diaSimuladoDoPedido(Astro.url) ?? hojeNoBrasil(agora);
 const ultimaVisita = chegada.novidadesDesde ? hojeNoBrasil(new Date(`${chegada.novidadesDesde.replace(' ', 'T')}Z`)) : undefined;
 
 // --- Os próximos aniversários (30 dias) ------------------------------------------------------------
@@ -188,20 +177,23 @@ const quando = (emDias: number, dia: number, mes: number) => (emDias === 0 ? 'Ho
 
 // --- A pessoa no acervo e uma memória para contar ---------------------------------------------
 // Nunca a mesma memória que já está entre as novidades
-const paraContar = memoriaParaContar(memorias, comRelatoMeu, usuario.pessoa, new Set(novo.memorias.map((m) => m.id)));
+const paraContar = inicio.paraContar;
 
 // --- Neste dia, em outros anos ------------------------------------------------------------------
-const outrosAnos = emOutrosAnos(memorias, hoje);
+const outrosAnos = inicio.outrosAnos;
 
-const primeiroAno = memorias[0]?.ano;
-const ultimoAno = memorias.at(-1)?.ano;
-const decadas = [...new Set(recentes.map((m) => Math.floor(m.ano / 10) * 10))];
+const primeiroAno = inicio.de;
+const ultimoAno = inicio.ate;
+const decadas = inicio.decadas;
 
 // --- Os rascunhos da pessoa -------------------------------------------------------------------
 // Uma linha na abertura, para continuar o que ficou pela metade (P6). A lista mora em "Sua conta".
-const rascunhos = seusRascunhos(usuario.pessoa, meusRascunhos, relatosQueRegistrei);
+const rascunhos = {
+  memorias: Array(inicio.rascunhos.total),
+  relatos: relatosQueRegistrei.filter((r) => r.situacao === 'rascunho' && !inicio.rascunhos.ids.includes(r.memoriaId)),
+};
 const quantosRascunhos = rascunhos.memorias.length + rascunhos.relatos.length;
-const oRascunho = rascunhos.memorias[0] ? `/nova?id=${rascunhos.memorias[0].id}` : rascunhos.relatos[0] ? enderecoDoRascunhoDeRelato(rascunhos.relatos[0], usuario.pessoa) : undefined;
+const oRascunho = inicio.rascunhos.primeiro ? `/nova?id=${inicio.rascunhos.primeiro}` : rascunhos.relatos[0] ? enderecoDoRascunhoDeRelato(rascunhos.relatos[0], usuario.pessoa) : undefined;
 
 // --- Onde cada parte fica -----------------------------------------------------------------------
 const composicao = composicaoDoInicio({
@@ -210,7 +202,7 @@ const composicao = composicaoDoInicio({
   outrosAnos: outrosAnos?.itens.length ?? 0,
   contar: Boolean(paraContar),
   aniversarios: lembrancas.length > 0,
-  voce: Boolean(eu && minhas.length > 0),
+  voce: Boolean(eu && inicio.minhas > 0),
 });
 
 const cartaNoAlto = chegada.cartaNoAlto && carta && eu;
@@ -240,7 +232,7 @@ const erro = Astro.url.searchParams.get('erro');
   {
     // Na primeira visita, só a carta. "Abrir o acervo" traz ao Início normal, e a carta vira o link discreto (P14, P15)
     cartaNoAlto && (
-      <Carta para={usuario.nome} carta={carta} fotos={minhas.filter((m) => m.fotos.length > 0)} acao={{ href: '/', texto: 'Abrir o acervo' }}>
+      <Carta para={usuario.nome} carta={carta} fotos={inicio.fotos} acao={{ href: '/', texto: 'Abrir o acervo' }}>
         <a class="acao" href={sala.natais}>
           Ver na TV
         </a>
@@ -365,7 +357,7 @@ const erro = Astro.url.searchParams.get('erro');
   {
     !cartaNoAlto && (
       <div class="cartoes miolo" data-colunas={composicao.naFileira} data-faixa={composicao.outrosAnosEmFaixa ? (paraContar ? 'com-contar' : 'sozinha') : undefined}>
-        {eu && minhas.length > 0 && (
+        {eu && inicio.minhas > 0 && (
           // Proposta B do conceito da sessão H (escolha do Gui, 18/11/2026): o retrato vira a assinatura do
           // cartão, o corpo é uma frase com o número grande, e as fotos das memórias mais recentes em que a
           // pessoa aparece ficam embaixo, pequenas, como fotos soltas da caixa
@@ -485,7 +477,7 @@ const erro = Astro.url.searchParams.get('erro');
     !cartaNoAlto && (
       <section class="caminho miolo" aria-labelledby="caminho">
         <p class="rotulo suave">
-          {memorias.length} {memorias.length === 1 ? 'memória' : 'memórias'}
+          {inicio.total} {inicio.total === 1 ? 'memória' : 'memórias'}
           {primeiroAno && ultimoAno && primeiroAno !== ultimoAno ? ` · de ${primeiroAno} a ${ultimoAno}` : ''}
         </p>
         {/* O convite usa a palavra do menu (P1) e desce um degrau: a saudação é o único título grande (P20) */}

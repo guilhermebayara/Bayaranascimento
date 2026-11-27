@@ -86,13 +86,34 @@ export interface MemoriaParaCapitulo extends DataSolta {
 export function memoriaDoCapitulo(
   m: MemoriaParaCapitulo,
   c: Pick<Capitulo, 'id' | 'modo' | 'inicio' | 'fim'> & Partial<Pick<Capitulo, 'pessoas' | 'familias'>>,
+  filhos: readonly string[] = [],
 ): boolean {
-  if (c.modo === 'reunido') return m.capitulos.includes(c.id);
+  if (c.modo === 'reunido') return m.capitulos.some((id) => id === c.id || filhos.includes(id));
   if (!c.inicio || !dentroDoPeriodo(m, c.inicio, c.fim)) return false;
   if (ehEpoca(c)) return true;
   const pessoas = c.pessoas ?? [];
   const familias = c.familias ?? [];
   return (m.integrantes ?? []).some((p) => pessoas.includes(p)) || (m.nucleos ?? []).some((n) => familias.includes(n));
+}
+
+/**
+ * memoriaDoCapitulo em SQL. `capitulo` contém o capítulo em JSON e `filhos` a lista JSON dos ids
+ * de dentro que o leitor vê. Lista vazia é comFilhos=false. A visibilidade da memória vem de quem-ve.ts.
+ */
+export function sqlMemoriaDoCapitulo(m = 'm', capitulo = '?2', filhos = "'[]'"): string {
+  const c = (campo: string) => `json_extract(${capitulo}, '$.${campo}')`;
+  const ordem = (data: string, fim: boolean) => `COALESCE(${data}.ano, 0) * 10000 + COALESCE(${data}.mes, ${fim ? 12 : 1}) * 100 + COALESCE(${data}.dia, ${fim ? 31 : 1})`;
+  const dataC = (campo: string, fim: boolean) => `${c(`${campo}.ano`)} * 10000 + COALESCE(${c(`${campo}.mes`)}, ${fim ? 12 : 1}) * 100 + COALESCE(${c(`${campo}.dia`)}, ${fim ? 31 : 1})`;
+  return `(CASE WHEN ${c('modo')} = 'reunido' THEN EXISTS (
+    SELECT 1 FROM capitulo_memorias cm JOIN capitulos ativo ON ativo.id = cm.capitulo_id
+    WHERE cm.memoria_id = ${m}.id AND ativo.excluido_em IS NULL
+      AND (cm.capitulo_id = ${c('id')} OR cm.capitulo_id IN (SELECT value FROM json_each(${filhos})))
+  ) ELSE ${c('inicio.ano')} IS NOT NULL
+    AND (${ordem(m, true)}) >= (${dataC('inicio', false)})
+    AND (${c('fim.ano')} IS NULL OR (${ordem(m, false)}) <= (${dataC('fim', true)}))
+    AND (json_array_length(${c('pessoas')}) + json_array_length(${c('familias')}) = 0
+      OR EXISTS (SELECT 1 FROM memoria_integrantes mi WHERE mi.memoria_id = ${m}.id AND mi.integrante_id IN (SELECT value FROM json_each(${c('pessoas')})))
+      OR EXISTS (SELECT 1 FROM memoria_nucleos mn2 WHERE mn2.memoria_id = ${m}.id AND mn2.nucleo_id IN (SELECT value FROM json_each(${c('familias')})))) END)`;
 }
 
 /**
@@ -303,7 +324,7 @@ export function achaNaBusca(texto: string, termo: string): boolean {
  */
 export function resumoDoCapitulo<M extends MemoriaParaCapitulo>(c: Capitulo, capitulos: Capitulo[], memorias: M[]): { periodo: string; ordem: number; memorias: number } {
   const ids = new Set([c.id, ...capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id)]);
-  const dele = c.modo === 'epoca' ? memorias.filter((m) => memoriaDoCapitulo(m, c)) : memorias.filter((m) => m.capitulos.some((id) => ids.has(id)));
+  const dele = memorias.filter((m) => memoriaDoCapitulo(m, c, [...ids]));
   const p = c.modo === 'epoca' ? (c.inicio ? { inicio: c.inicio, fim: c.fim } : null) : periodoDasMemorias(dele);
   return {
     periodo: p ? formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca', c.modo === 'epoca') : '',

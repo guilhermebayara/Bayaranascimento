@@ -1,11 +1,11 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
-import { gravarEspera, lerEspera, quemNaoVe, relatoAberto, relatoNaTv, sqlEstaNoPublicoDoRelato, sqlRelatoAberto, sqlRelatoNaTv, sqlCasalAberto, sqlRelatoNaoEspera, sqlVeMemoria } from './quem-ve';
+import { gravarEspera, lerEspera, quemNaoVe, relatoAberto, relatoNaTv, sqlEstaNoPublicoDoRelato, sqlRelatoAberto, sqlRelatoNaTv, sqlCasalAberto, sqlRelatoNaoEspera, sqlVeMemoria, sqlVeORelato, naoVeParaSql } from './quem-ve';
 import { ambiente, apelidosDoPedido, banco } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
 import { podeVerCasal, podeVerLacoDoCoracao } from '../parentesco';
-import { podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
-import type { RegistroDeVisitas } from '../painel';
+import { sqlMemoriaDoCapitulo, formatarPeriodo, podeVerCapitulo, type Capitulo, type Tema } from '../capitulos';
+import type { Dia, RegistroDeVisitas } from '../painel';
 import { criarSlug, slugUnico } from './conteudo';
 import type { Tipo } from '../tipos';
 import type { TipoDeAviso } from '../avisos';
@@ -971,6 +971,131 @@ export async function listarMemorias(usuario: Usuario, filtro: FiltroDeMemorias 
  * tempo e a de "Antes" e "Depois" na página da memória (vizinhasDaMemoria).
  */
 const ORDEM_DA_LINHA = 'm.ano, COALESCE(m.mes, 0), COALESCE(m.dia, 0), m.criada_em, m.rowid';
+
+const ORDEM_INVERSA = 'm.ano DESC, COALESCE(m.mes, 0) DESC, COALESCE(m.dia, 0) DESC, m.criada_em DESC, m.rowid DESC';
+
+/** Contar sem materializar as memórias nem os anexos. Mesma regra de listarMemorias, só publicadas. */
+export async function contarMemoriasPorPessoa(usuario: Usuario): Promise<Map<string, number>> {
+  const { results } = await db().prepare(`SELECT mi.integrante_id AS id, COUNT(*) AS n
+    FROM memoria_integrantes mi JOIN memorias m ON m.id = mi.memoria_id WHERE ${FILTRO_PUBLICADA} GROUP BY mi.integrante_id`).bind(usuario.pessoa).all<{ id: string; n: number }>();
+  return new Map(results.map((r) => [r.id, r.n]));
+}
+
+export async function contarMemoriasPorTipo(usuario: Usuario): Promise<Map<string, number>> {
+  const { results } = await db().prepare(`SELECT m.tipo AS id, COUNT(*) AS n FROM memorias m
+    WHERE ${FILTRO_PUBLICADA} GROUP BY m.tipo`).bind(usuario.pessoa).all<{ id: string; n: number }>();
+  return new Map(results.map((r) => [r.id, r.n]));
+}
+
+/** Só títulos, para o relato da conta e o bilhete do Início. Nenhum anexo é necessário. */
+export async function titulosDasMemorias(usuario: Usuario, ids: readonly string[]): Promise<Map<string, string>> {
+  if (!ids.length) return new Map();
+  const { results } = await db().prepare(`SELECT m.id, m.titulo FROM memorias m WHERE ${FILTRO_VISIVEL}
+    AND m.id IN (SELECT value FROM json_each(?2))`).bind(usuario.pessoa, JSON.stringify(ids)).all<{ id: string; titulo: string }>();
+  return new Map(results.map((r) => [r.id, r.titulo]));
+}
+
+/** A existência de foto como completar a devolveria, inclusive a foto de relato que espera o sim.
+ * completar só tira fotos dos relatos PUBLICADOS que o leitor não vê; conservar essa exceção é necessário.
+ */
+const TEM_FOTO_VISIVEL = `EXISTS (SELECT 1 FROM fotos f WHERE f.memoria_id = m.id AND f.removida_em IS NULL
+  AND NOT EXISTS (SELECT 1 FROM relatos r WHERE r.id = f.relato_id AND r.situacao = 'publicada' AND NOT ${sqlVeORelato()}))`;
+
+export async function fotosDaCarta(usuario: Usuario): Promise<Memoria[]> {
+  const { naoVe, excluidas } = naoVeParaSql(await pessoasQueONaoVe(usuario));
+  const { results } = await db().prepare(`SELECT m.* FROM memorias m WHERE ${FILTRO_PUBLICADA}
+    AND EXISTS (SELECT 1 FROM memoria_integrantes mi WHERE mi.memoria_id = m.id AND mi.integrante_id = ?1)
+    AND ${TEM_FOTO_VISIVEL} ORDER BY ${ORDEM_INVERSA} LIMIT 3`).bind(usuario.pessoa, naoVe, excluidas).all<Record<string, unknown>>();
+  return completar(results.map(lerMemoria), usuario);
+}
+
+/** Os agregados e até onze memórias dos cartões. A lista inteira nunca sai do banco. */
+export async function memoriasDoInicio(usuario: Usuario, desde: string | null, hoje: Dia) {
+  const { naoVe, excluidas } = naoVeParaSql(await pessoasQueONaoVe(usuario));
+  const minha = `EXISTS (SELECT 1 FROM memoria_integrantes mi WHERE mi.memoria_id = m.id AND mi.integrante_id = ?1)`;
+  const nova = `COALESCE(m.publicada_em, m.criada_em, '') > ?4 AND m.criada_por <> ?1`;
+  const valores = [usuario.pessoa, naoVe, excluidas, desde ?? '9999', hoje.ano, hoje.mes, hoje.dia];
+  const preparar = (sql: string) => {
+    const n = Math.max(...[...sql.matchAll(/\?(\d+)/g)].map((m) => Number(m[1])));
+    return db().prepare(sql).bind(...valores.slice(0, n));
+  };
+  const distancia = `ABS(julianday(printf('2000-%02d-%02d', m.mes, m.dia)) - julianday(printf('2000-%02d-%02d', ?6, ?7)))`;
+  const [conta, decadas, minhasFotos, novas, contar, outros, rascunhos] = await db().batch<Record<string, unknown>>([
+    preparar(`SELECT COUNT(*) AS total, MIN(m.ano) AS de, MAX(m.ano) AS ate,
+      COUNT(CASE WHEN ${minha} THEN 1 END) AS minhas,
+      MIN(CASE WHEN ${minha} THEN m.ano END) AS minhaDe, MAX(CASE WHEN ${minha} THEN m.ano END) AS minhaAte,
+      COUNT(CASE WHEN ${nova} THEN 1 END) AS novas,
+      json_group_array(m.id) FILTER (WHERE ${nova}) AS novasIds
+      FROM memorias m WHERE ${FILTRO_PUBLICADA}`),
+    preparar(`SELECT CAST(m.ano / 10 AS INTEGER) * 10 AS decada FROM memorias m WHERE ${FILTRO_PUBLICADA} GROUP BY decada ORDER BY decada DESC`),
+    preparar(`SELECT m.* FROM memorias m WHERE ${FILTRO_PUBLICADA} AND ${minha} AND ${TEM_FOTO_VISIVEL} ORDER BY ${ORDEM_INVERSA} LIMIT 4`),
+    preparar(`SELECT m.* FROM memorias m WHERE ${FILTRO_PUBLICADA} AND ${nova}
+      ORDER BY COALESCE(m.publicada_em, m.criada_em, '') DESC, ${ORDEM_DA_LINHA} LIMIT 2`),
+    preparar(`SELECT m.* FROM memorias m WHERE ${FILTRO_PUBLICADA} AND ${minha} AND NOT (${nova})
+      AND NOT EXISTS (SELECT 1 FROM relatos r WHERE r.memoria_id = m.id AND r.por = ?1)
+      ORDER BY ${TEM_FOTO_VISIVEL} DESC, ${ORDEM_INVERSA} LIMIT 1`),
+    preparar(`WITH candidatas AS (SELECT m.*, CASE
+        WHEN ?6 = 12 AND ?7 BETWEEN 24 AND 26 AND m.mes = 12 AND m.dia IN (24, 25) THEN 0
+        WHEN m.mes = ?6 AND m.dia = ?7 THEN 1
+        WHEN m.dia IS NOT NULL AND MIN(${distancia}, 366 - ${distancia}) <= 3 THEN 2
+        WHEN m.mes = ?6 THEN 3 ELSE 4 END AS nivel, m.rowid AS desempate
+      FROM memorias m WHERE ${FILTRO_PUBLICADA} AND m.ano < ?5 AND NOT m.aproximada AND m.mes IS NOT NULL)
+      SELECT * FROM candidatas m WHERE nivel < 4 AND nivel = (SELECT MIN(nivel) FROM candidatas)
+      ORDER BY m.ano DESC, COALESCE(m.mes, 0), COALESCE(m.dia, 0), m.criada_em, desempate LIMIT 4`),
+    preparar(`SELECT COUNT(*) AS total, json_group_array(m.id) AS ids, (SELECT m.id FROM memorias m WHERE ${FILTRO_VISIVEL} AND m.situacao = 'rascunho'
+      ORDER BY ${ORDEM_DA_LINHA} LIMIT 1) AS primeiro FROM memorias m WHERE ${FILTRO_VISIVEL} AND m.situacao = 'rascunho'`),
+  ]);
+  const escolhidas = new Map([...minhasFotos.results, ...novas.results, ...contar.results, ...outros.results].map((m) => [m.id as string, lerMemoria(m)]));
+  await completar([...escolhidas.values()], usuario);
+  const ler = (linhas: Record<string, unknown>[]) => linhas.map((r) => escolhidas.get(r.id as string)!);
+  const c = conta.results[0] as unknown as { total: number; de: number; ate: number; minhas: number; minhaDe: number; minhaAte: number; novas: number; novasIds: string };
+  return {
+    ...c, novasIds: new Set<string>(JSON.parse(c.novasIds)), decadas: decadas.results.map((d) => d.decada as number),
+    fotos: ler(minhasFotos.results), naMesa: ler(novas.results), paraContar: ler(contar.results)[0],
+    outrosAnos: outros.results.length ? { proximidade: (['natal', 'dia', 'semana', 'mes'] as const)[outros.results[0].nivel as number], itens: ler(outros.results) } : undefined,
+    rascunhos: { total: Number(rascunhos.results[0].total), primeiro: rascunhos.results[0].primeiro as string | null, ids: JSON.parse(rascunhos.results[0].ids as string) as string[] },
+  };
+}
+
+/** Só a projeção que a montagem das cores lê: sem fotos, relatos, textos nem completar. */
+export async function memoriasParaCores(usuario: Usuario) {
+  const { results } = await db().prepare(`SELECT m.id, m.ano, m.mes, m.dia,
+    (SELECT json_group_array(cm.capitulo_id) FROM capitulo_memorias cm JOIN capitulos c ON c.id = cm.capitulo_id WHERE cm.memoria_id = m.id AND c.excluido_em IS NULL) AS capitulos,
+    (SELECT json_group_array(mi.integrante_id) FROM memoria_integrantes mi WHERE mi.memoria_id = m.id) AS integrantes,
+    (SELECT json_group_array(mn2.nucleo_id) FROM memoria_nucleos mn2 WHERE mn2.memoria_id = m.id) AS nucleos
+    FROM memorias m WHERE ${FILTRO_PUBLICADA} ORDER BY ${ORDEM_DA_LINHA}`).bind(usuario.pessoa).all<{ id: string; ano: number; mes: number | null; dia: number | null; capitulos: string; integrantes: string; nucleos: string }>();
+  return results.map((r) => ({ ...r, capitulos: JSON.parse(r.capitulos) as string[], integrantes: JSON.parse(r.integrantes) as string[], nucleos: JSON.parse(r.nucleos) as string[] }));
+}
+
+const comFilhos = (c: Capitulo, capitulos: Capitulo[], incluir = true) => incluir ? capitulos.filter((x) => x.dentroDe === c.id).map((x) => x.id) : [];
+
+export async function memoriasDoCapitulo(usuario: Usuario, c: Capitulo, capitulos: Capitulo[], incluirFilhos = true): Promise<Memoria[]> {
+  const { results } = await db().prepare(`SELECT m.* FROM memorias m WHERE ${FILTRO_PUBLICADA}
+    AND ${sqlMemoriaDoCapitulo('m', '?2', '?3')} ORDER BY ${ORDEM_DA_LINHA}`)
+    .bind(usuario.pessoa, JSON.stringify(c), JSON.stringify(comFilhos(c, capitulos, incluirFilhos))).all<Record<string, unknown>>();
+  return completar(results.map(lerMemoria), usuario);
+}
+
+/** Uma linha por capítulo: COUNT e as duas datas das pontas, sem completar nenhuma memória. */
+export async function resumosDosCapitulos(usuario: Usuario, capitulos: Capitulo[]) {
+  const dados = capitulos.map((c) => ({ ...c, filhos: comFilhos(c, capitulos) }));
+  const { results } = await db().prepare(`WITH membros AS (
+      SELECT json_extract(c.value, '$.id') AS capitulo, m.id, m.ano, m.mes, m.dia,
+        ROW_NUMBER() OVER (PARTITION BY c.key ORDER BY COALESCE(m.ano, 0) * 10000 + COALESCE(m.mes, 1) * 100 + COALESCE(m.dia, 1), ${ORDEM_DA_LINHA}) AS pos,
+        COUNT(m.id) OVER (PARTITION BY c.key) AS n
+      FROM json_each(?2) c LEFT JOIN memorias m ON ${FILTRO_PUBLICADA}
+        AND ${sqlMemoriaDoCapitulo('m', 'c.value', "json_extract(c.value, '$.filhos')")})
+    SELECT capitulo, MAX(n) AS n,
+      MAX(CASE WHEN pos = 1 THEN json_object('ano', ano, 'mes', mes, 'dia', dia) END) AS inicio,
+      MAX(CASE WHEN pos = n THEN json_object('ano', ano, 'mes', mes, 'dia', dia) END) AS fim
+      FROM membros GROUP BY capitulo`).bind(usuario.pessoa, JSON.stringify(dados)).all<{ capitulo: string; n: number; inicio: string; fim: string | null }>();
+  return new Map(results.map((r) => {
+    const c = capitulos.find((c) => c.id === r.capitulo)!;
+    const p = c.modo === 'epoca' ? c.inicio && { inicio: c.inicio, fim: c.fim } : r.n ? { inicio: JSON.parse(r.inicio), fim: JSON.parse(r.fim!) } : null;
+    return [c.id, { memorias: r.n, datas: p, periodo: p ? formatarPeriodo(p.inicio, p.fim, c.modo === 'epoca', c.modo === 'epoca') : '',
+      ordem: p ? p.inicio.ano * 100 + (p.inicio.mes ?? 0) + (c.modo === 'epoca' && p.inicio.mes ? (p.inicio.dia ?? 0) / 100 : 0) : 999999 }];
+  }));
+}
 
 /**
  * A memória de antes e a de depois na linha do tempo, entre as publicadas que a pessoa vê: a mesma ordem de
