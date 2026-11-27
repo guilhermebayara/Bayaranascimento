@@ -85,4 +85,18 @@ Origem: [histórico, "Decidido, a construir"](historico/decisoes-ate-2026-11-17.
 
 - **As marcas de provisório no código**, perguntas que esperam o Gui: as cores novas dos tipos e os nomes delas (`src/lib/visual.ts`, pergunta 1 do PR dos tipos, #127); os nomes de todos os rabiscos (`src/visual/rabiscos.ts`, pergunta 2); repetir cor de tipo, que a amostra só avisa (`src/components/formularios/EscolhaDoTipo.astro`, pergunta 5); o tipo novo que nasce com uma cor e o desenho escolhido depois (`src/pages/admin/tipos.astro`, pergunta 6); o desenho da tarja do ex discreto (`TARJA_DO_DISCRETO`, em `src/lib/arvore-desenho.ts`), que vai passar pelo acabamento visual; a espécie no cartão do bichinho na árvore (`src/lib/cliente/arvore.ts`, "marca provisória"); e a aparência mínima de `src/pages/admin/familias.astro`.
 
+### A. Foto do relato retirada pela ficha
+
+Ao retirar pela ficha uma foto de um relato publicado, a gravação preenche `fotos.removida_em`. A mensagem de foto continua no banco com o `foto_id` apontando para a foto retirada. A leitura em `src/lib/conversa.ts` filtra essa mensagem e mostra só o texto nesse caso. A invariante do texto continua valendo. É uma limpeza de dados a fazer depois que o Gui decidir o que a conversa deve guardar quando a ficha retira a foto.
+
+### B. Corrida da legenda quando a ficha espera
+
+Se a ficha espera na porta do lote e o relato grava primeiro, a ficha é refeita, responde HTTP 200 e grava por cima com a legenda que a página leu ou com a que o Gui digitou. A ficha envia as legendas de todas as fotos do relato, inclusive as que ninguém mexeu. Esse comportamento já existia em `743c817`.
+
+O caminho em aberto é comparar as legendas enviadas com as que a página mostrava e gravar só as que a pessoa alterou. Se a legenda de uma dessas fotos mudou no banco desde a leitura da página, responder HTTP 409 em vez de refazer. Isso passa por `comandosDeLigacao` e pela condição da conferência em `atualizarMemoria`.
+
+### C. Versão lida pelo navegador
+
+O navegador envia o pedido sem a versão que leu ao abrir a página. Uma página aberta há muito tempo pode gravar por cima do que mudou no intervalo sem receber HTTP 409. Depois da carga do Natal, medir esse caso e decidir com o Gui se o pedido passa a levar a versão lida.
+
 Origem: [histórico, "Em aberto"](historico/decisoes-ate-2026-11-17.md#em-aberto).
