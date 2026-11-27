@@ -55,7 +55,7 @@ export function mensagensDerivadas(texto: string, audios: readonly number[], fot
 /**
  * As mensagens que valem para um relato: as gravadas, sem as que apontam para um áudio ou uma foto que
  * saiu do relato, e com os áudios e as fotos dele que ainda não têm mensagem no fim (um áudio ligado por
- * outro caminho não some). Sem nada gravado, as derivadas do relato de antes da conversa.
+ * outro caminho não some). Sem mensagem gravada, a leitura deriva a conversa, inclusive em cópias antigas.
  */
 export function mensagensDoRelato(gravadas: readonly Mensagem[], texto: string, audios: readonly number[], fotos: readonly number[]): Mensagem[] {
   if (gravadas.length === 0) return mensagensDerivadas(texto, audios, fotos);

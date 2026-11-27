@@ -3,6 +3,8 @@
 // Os exemplos cobrem os casos que precisam ser vistos: data aproximada,
 // vários relatos, relato registrado em nome de outra pessoa, memória restrita
 // a um núcleo e rascunho.
+import { mensagensDerivadas } from '../conversa';
+import { comandoDasDerivadasDoRelatoInserido } from '../sql-da-conversa';
 import { AMBIENTES_COM_EXEMPLOS, ambiente, ehHomologacao } from './ambiente';
 import { TIPOS_DE_EXEMPLO } from '../tipos-de-exemplo';
 import { AUDIOS_DE_EXEMPLO, TIPO_DOS_AUDIOS_DE_EXEMPLO, chaveDeAudioDeExemplo } from '../audios-de-exemplo';
@@ -128,6 +130,11 @@ const EXEMPLOS: Exemplo[] = [
   },
 ];
 
+function relatoComMensagens(db: D1Database, inserir: D1PreparedStatement, texto: string): D1PreparedStatement[] {
+  const comando = comandoDasDerivadasDoRelatoInserido(texto);
+  return [inserir, db.prepare(comando.sql).bind(...comando.valores)];
+}
+
 export async function semearExemplos(db: D1Database): Promise<void> {
   const ja = await db.prepare('SELECT COUNT(*) AS n FROM memorias').first<{ n: number }>();
   if (ja && ja.n > 0) return;
@@ -157,11 +164,9 @@ export async function semearExemplos(db: D1Database): Promise<void> {
       );
     });
     for (const r of e.relatos ?? []) {
-      comandos.push(
-        db
-          .prepare(`INSERT OR IGNORE INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, ?, ?)`)
-          .bind(e.id, r.por, r.registradoPor ?? r.por, r.texto, e.situacao ?? 'publicada'),
-      );
+      comandos.push(...relatoComMensagens(db, db
+        .prepare(`INSERT OR IGNORE INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, ?, ?)`)
+        .bind(e.id, r.por, r.registradoPor ?? r.por, r.texto, e.situacao ?? 'publicada'), r.texto));
     }
   }
   await db.batch(comandos);
@@ -1188,9 +1193,9 @@ export async function semearAcervoDeExemplo(db: D1Database): Promise<void> {
     });
     for (const r of e.relatos ?? []) {
       const situacao = r.rascunho || e.situacao === 'rascunho' ? 'rascunho' : 'publicada';
-      comandos.push(
-        db.prepare(`INSERT OR IGNORE INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, ?, ?)`).bind(e.id, r.por, r.registradoPor ?? r.por, r.texto, situacao),
-      );
+      comandos.push(...relatoComMensagens(db, db
+        .prepare(`INSERT OR IGNORE INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, ?, ?, ?, ?)`)
+        .bind(e.id, r.por, r.registradoPor ?? r.por, r.texto, situacao), r.texto));
     }
     for (const t of e.temas ?? []) comandos.push(db.prepare('INSERT OR IGNORE INTO tema_memorias (tema_id, memoria_id) VALUES (?, ?)').bind(slug(t), e.id));
   }
@@ -1440,14 +1445,47 @@ export async function semearAudiosDeExemplo(db: D1Database): Promise<void> {
   const comandos: D1PreparedStatement[] = [];
   for (const a of AUDIOS_DE_EXEMPLO) {
     const relato = await db
-      .prepare(`SELECT id, registrado_por FROM relatos WHERE memoria_id = ? AND por = ? AND situacao = 'publicada'`)
+      .prepare(`SELECT id, texto FROM relatos WHERE memoria_id = ? AND por = ? AND situacao = 'publicada'`)
       .bind(a.memoria, a.por)
-      .first<{ id: number; registrado_por: string }>();
+      .first<{ id: number; texto: string }>();
     if (!relato) continue;
+    const chave = chaveDeAudioDeExemplo(a.nome);
+    const paragrafos = mensagensDerivadas(relato.texto, [], []).map((m) => m.texto);
     comandos.push(
       db
-        .prepare(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, duracao, transcricao, ordem, enviado_por) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`)
-        .bind(relato.id, a.memoria, chaveDeAudioDeExemplo(a.nome), TIPO_DOS_AUDIOS_DE_EXEMPLO, a.tamanho, a.duracao, a.transcricao, relato.registrado_por),
+        .prepare(`INSERT INTO audios (relato_id, memoria_id, chave, tipo, tamanho, duracao, transcricao, ordem, enviado_por)
+          SELECT id, memoria_id, ?1, ?2, ?3, ?4, ?5, 0, registrado_por FROM relatos WHERE id = ?6
+          AND NOT EXISTS (SELECT 1 FROM audios WHERE chave = ?1)`)
+        .bind(chave, TIPO_DOS_AUDIOS_DE_EXEMPLO, a.tamanho, a.duracao, a.transcricao, relato.id),
+      db
+        .prepare(`WITH novo AS MATERIALIZED (
+            SELECT a.id, r.id AS relato_id, r.criado_em FROM audios a JOIN relatos r ON r.id = a.relato_id
+            WHERE a.id = last_insert_rowid() AND changes() = 1
+          ), existentes AS MATERIALIZED (SELECT m.* FROM relato_mensagens m JOIN novo n ON n.relato_id = m.relato_id),
+          deriva AS MATERIALIZED (SELECT * FROM novo WHERE NOT EXISTS (SELECT 1 FROM existentes)),
+          sons AS (
+            SELECT d.relato_id, d.criado_em, a.id, ROW_NUMBER() OVER (ORDER BY a.ordem, a.id) - 1 AS ordem
+            FROM deriva d JOIN audios a ON a.relato_id = d.relato_id WHERE a.removido_em IS NULL
+          ), imagens AS (
+            SELECT d.relato_id, d.criado_em, f.id, ROW_NUMBER() OVER (ORDER BY f.memoria_id IS NULL, f.ordem, f.id) - 1 AS ordem
+            FROM deriva d JOIN fotos f ON f.relato_id = d.relato_id WHERE f.removida_em IS NULL
+          )
+          INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto, audio_id, foto_id, enviada_em)
+          SELECT relato_id, ordem, 'audio', NULL, id, NULL, criado_em FROM sons
+          UNION ALL SELECT d.relato_id, (SELECT COUNT(*) FROM sons) + j.key, 'texto', j.value, NULL, NULL, d.criado_em
+            FROM deriva d, json_each(?1) j
+          UNION ALL SELECT relato_id, (SELECT COUNT(*) FROM sons) + json_array_length(?1) + ordem, 'foto', NULL, NULL, id, criado_em FROM imagens
+          UNION ALL SELECT n.relato_id,
+            CASE WHEN (SELECT json_group_array(texto ORDER BY ordem, id) FROM existentes WHERE tipo = 'texto' AND enviada_em = n.criado_em) = ?1
+              AND (SELECT COUNT(*) FROM existentes) = json_array_length(?1)
+              THEN -1 ELSE (SELECT MAX(ordem) + 1 FROM existentes) END,
+            'audio', NULL, n.id, NULL, n.criado_em FROM novo n WHERE EXISTS (SELECT 1 FROM existentes)`)
+        .bind(JSON.stringify(paragrafos)),
+      // A voz dos exemplos vem antes dos parágrafos. Quem já editou sua conversa conserva a ordem.
+      db
+        .prepare(`WITH ajustar AS MATERIALIZED (SELECT 1 FROM relato_mensagens WHERE relato_id = ?1 AND ordem = -1)
+          UPDATE relato_mensagens SET ordem = ordem + 1 WHERE relato_id = ?1 AND EXISTS (SELECT 1 FROM ajustar)`)
+        .bind(relato.id),
     );
   }
   if (comandos.length) await db.batch(comandos);
@@ -1498,12 +1536,11 @@ export async function semearRascunhoQueFicouDeExemplo(db: D1Database): Promise<v
     .prepare(`SELECT 1 AS ok FROM relatos WHERE memoria_id = '1996-ferias-em-guarapari' AND por = 'aguilar' AND situacao = 'publicada' AND registrado_por = 'gui'`)
     .first();
   if (!publicado) return;
-  await db
-    .prepare(
-      `INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES ('1996-ferias-em-guarapari', 'aguilar', 'elizete', ?, 'rascunho')`,
-    )
-    .bind('O Aguilar me contou que o peixe era do tamanho do braço dele.\n\nE que o Tio Paulo ajudou a puxar a linha.')
-    .run();
+  const texto = 'O Aguilar me contou que o peixe era do tamanho do braço dele.\n\nE que o Tio Paulo ajudou a puxar a linha.';
+  const inserir = db
+    .prepare(`INSERT OR IGNORE INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES ('1996-ferias-em-guarapari', 'aguilar', 'elizete', ?, 'rascunho')`)
+    .bind(texto);
+  await db.batch(relatoComMensagens(db, inserir, texto));
 }
 
 // Um pedido para liberar de exemplo (docs/regras/ampliar.md, "Ampliar quem vê uma memória com relatos"): um
@@ -1541,6 +1578,7 @@ export async function semearCeiaRestritaDeExemplo(db: D1Database): Promise<void>
   const id = '2024-ceia-so-nossa';
   const ja = await db.prepare(`SELECT 1 AS ok FROM memorias WHERE id = ?`).bind(id).first();
   if (ja) return;
+  const texto = 'Memória de exemplo da exploração E1, restrita à família Bayara Bracarense: aparece no Explorar de quem é dela e nunca na sala.';
   await db.batch([
     db
       .prepare(
@@ -1552,11 +1590,11 @@ export async function semearCeiaRestritaDeExemplo(db: D1Database): Promise<void>
     ...['giovanna', 'lucas-magno', 'chico'].map((i) => db.prepare('INSERT OR IGNORE INTO memoria_integrantes (memoria_id, integrante_id) VALUES (?, ?)').bind(id, i)),
     db.prepare(`INSERT INTO fotos (memoria_id, chave, legenda, principal, ordem, enviada_por) VALUES (?, '', 'A mesa posta para dois', 1, 0, 'giovanna')`).bind(id),
     db.prepare(`INSERT OR IGNORE INTO tema_memorias (tema_id, memoria_id) VALUES ('natal', ?)`).bind(id),
-    db
+    ...relatoComMensagens(db, db
       .prepare(
         `INSERT OR IGNORE INTO relatos (memoria_id, por, registrado_por, texto, situacao, criado_em, atualizado_em, publicado_em)
          VALUES (?, 'giovanna', 'giovanna', ?, 'publicada', datetime('now', '-90 days'), datetime('now', '-90 days'), datetime('now', '-90 days'))`,
       )
-      .bind(id, 'Memória de exemplo da exploração E1, restrita à família Bayara Bracarense: aparece no Explorar de quem é dela e nunca na sala.'),
+      .bind(id, texto), texto),
   ]);
 }

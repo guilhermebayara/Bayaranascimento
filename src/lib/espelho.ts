@@ -23,6 +23,7 @@
 import { NUCLEO_INICIAL } from './familias';
 import { fotoDeMemoriaDeExemplo, quantasFotosNoEspelho, retratoDeExemplo } from './fotos-de-exemplo';
 import { ID_DO_VISITANTE_DA_SALA } from './sala';
+import { comandoDasDerivadasDoRelatoInserido } from './sql-da-conversa';
 
 type Linha = Record<string, unknown>;
 
@@ -72,7 +73,7 @@ export const TABELAS_APAGADAS = [
   // saem antes deles; o teste antigo só lia o CREATE TABLE e não via essa ligação
   'fotos',
   // As mensagens do relato como conversa (migração 103) apontam para relatos reais e trazem o texto escrito:
-  // o espelho não leva nenhuma; a conversa dos relatos do espelho é derivada deles (mensagens-de-antes.ts)
+  // o espelho cria as mensagens dos próprios relatos de exemplo ao importar.
   'relato_mensagens',
   // Áudios apontam para relatos reais: o espelho não leva nenhum, e apaga os que houver
   'audios',
@@ -391,6 +392,7 @@ export function comandosDoEspelho(espelho: Espelho): { sql: string; valores: unk
         sql: `INSERT INTO ${tabela} (${colunas.join(', ')}) VALUES (${colunas.map(() => '?').join(', ')})`,
         valores: colunas.map((c) => linha[c] ?? null),
       });
+      if (tabela === 'relatos') comandos.push(comandoDasDerivadasDoRelatoInserido(String(linha.texto)));
     }
   }
   return comandos;
