@@ -9,7 +9,7 @@ import { fichaParaComparar, oQueMudou, pessoasDoLaco, semOQueEDoDono, veAVersaoD
 import { FASES, nomeDoPapel, periodosDasFases, QUALIDADES } from '../../../lib/parentesco';
 import { pessoasComAcesso } from '../../../lib/servidor/acesso';
 import { podeEditarIntegrante, podeMexerEmLaco, podeMudarLacoDoCoracao } from '../../../lib/servidor/permissoes';
-import { familiasDe, listarIntegrantes, listarIntegrantesQueVe, listarVersoesDaFicha, listarVersoesDosLacos, pessoasQueONaoVe } from '../../../lib/servidor/repositorio';
+import { familiasDe, lerSobreDaPessoa, listarIntegrantes, listarIntegrantesQueVe, listarVersoesDaFicha, listarVersoesDosLacos, pessoasQueONaoVe } from '../../../lib/servidor/repositorio';
 
 const { usuario } = Astro.locals;
 const visiveis = await listarIntegrantesQueVe(usuario);
@@ -32,6 +32,7 @@ const naoVe = await pessoasQueONaoVe(usuario);
 
 // A ficha: cada versão guarda como ela estava ANTES de uma alteração; comparando com a seguinte, sai o que mudou
 const versoesDaFicha = podeFicha ? await listarVersoesDaFicha(pessoa.id) : [];
+if (versoesDaFicha.length) await lerSobreDaPessoa(pessoa);
 const fichas = versoesDaFicha.map((v, i) => {
   const antes = fichaParaComparar(v.dados);
   const depois = fichaParaComparar(i === 0 ? pessoa : versoesDaFicha[i - 1].dados);
