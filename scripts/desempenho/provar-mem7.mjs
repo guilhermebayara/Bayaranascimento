@@ -20,7 +20,7 @@ function prova(nome,arquivo,filtro,deveFalhar=true){
   console.log(`${certa?'OK':'FALHOU'} ${nome}: saída ${r.status}`);
   if(!certa) console.error(log.slice(-4000));
 }
-prova('ponto-1','mem7-mensagens');
+prova('mensagens-como-e2b478e','mem7-mensagens');
 prova('ponto-2-e-4','mem7-paginas');
 prova('ponto-3','mem7-capitulos');
 prova('ponto-5-sem-mutacao','mem7-inicio',undefined,false);

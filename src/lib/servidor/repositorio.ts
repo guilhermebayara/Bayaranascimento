@@ -1,6 +1,5 @@
 // Leitura e gravação no banco. Toda leitura de memória recebe o usuário e já
 // aplica a regra de visibilidade: nenhuma página consulta o banco por fora.
-import { MARCA_DAS_MENSAGENS_DE_ANTES } from './mensagens-de-antes';
 import { gravarEspera, lerEspera, quemNaoVe, relatoAberto, relatoNaTv, sqlEstaNoPublicoDoRelato, sqlRelatoAberto, sqlRelatoNaTv, sqlCasalAberto, sqlRelatoNaoEspera, sqlVeMemoria, sqlVeORelato, naoVeParaSql } from './quem-ve';
 import { ambiente, apelidosDoPedido, banco } from './ambiente';
 import type { Casal, DataDaAdocao, Fase, Filiacao, LacoDoCoracao, Papel, Qualidade, TipoDeFase, Tratamento } from '../parentesco';
@@ -2468,8 +2467,6 @@ export function comandosDoRelato(
     // o único que o viu, e o pedido de sempre para quem o escreveu
     const doRelato = `SELECT MAX(id) FROM relatos WHERE memoria_id = ?1 AND por = ?2 AND registrado_por = ?3 AND descartado_em IS NULL`;
     return [
-      // A cópia entre o relato e as mensagens não pode levar uma marca de conserto pronto.
-      db().prepare('DELETE FROM ajustes WHERE chave = ?').bind(MARCA_DAS_MENSAGENS_DE_ANTES),
       db()
         .prepare('INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao, so_para_nucleos, publico_conhecido) VALUES (?, ?, ?, ?, ?, ?, ?)')
         .bind(memoriaId, por, usuario.pessoa, texto, situacao, esperando, esperando),
@@ -2486,7 +2483,6 @@ export function comandosDoRelato(
     ];
   }
   return [
-    db().prepare('DELETE FROM ajustes WHERE chave = ?').bind(MARCA_DAS_MENSAGENS_DE_ANTES),
     ...(versao.guardar
       ? [db().prepare(`INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, ?)`).bind(String(anterior.id), JSON.stringify(versao.mensagens ? { ...anterior, mensagens: versao.mensagens } : anterior), usuario.pessoa)]
       : []),

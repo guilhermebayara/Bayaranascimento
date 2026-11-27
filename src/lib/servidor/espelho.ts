@@ -9,7 +9,6 @@
 // acervo é recusada com recado, para nada além das tabelas da família chegar à homologação.
 import { comandosDoEspelho, espelhar, type CopiaDoAcervo, type Espelho } from '../espelho';
 import { recusaDaCopiaParaOEspelho } from '../copia-para-o-espelho';
-import { darMensagensAosRelatosDeAntes, MARCA_DAS_MENSAGENS_DE_ANTES } from './mensagens-de-antes';
 import { banco, ehHomologacao } from './ambiente';
 
 /** O espelho só existe na homologação e no computador. Nunca na produção nem nas outras prévias. */
@@ -23,7 +22,6 @@ export async function gravarEspelho(copia: CopiaDoAcervo): Promise<Espelho['resu
   if (recusa) throw new Error(recusa);
   const espelho = espelhar(copia);
   const db = banco();
-  await db.batch([db.prepare('DELETE FROM ajustes WHERE chave = ?').bind(MARCA_DAS_MENSAGENS_DE_ANTES), ...comandosDoEspelho(espelho).map((c) => db.prepare(c.sql).bind(...c.valores))]);
-  await darMensagensAosRelatosDeAntes(db, { estrito: true });
+  await db.batch(comandosDoEspelho(espelho).map((c) => db.prepare(c.sql).bind(...c.valores)));
   return espelho.resumo;
 }

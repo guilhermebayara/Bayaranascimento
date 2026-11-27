@@ -10,7 +10,6 @@ describe.skipIf(!(await temSqlite()))('MEM-6: preparo e leitura da ficha', async
   env.DB = d1;
   const { prepararBanco } = await import('../src/lib/servidor/banco');
   const repo = await import('../src/lib/servidor/repositorio');
-  const { darMensagensAosRelatosDeAntes, MARCA_DAS_MENSAGENS_DE_ANTES } = await import('../src/lib/servidor/mensagens-de-antes');
 
   it('as três primeiras idas estão num lote, inclusive no banco vazio', async () => {
     const lote = vi.spyOn(d1, 'batch');
@@ -22,33 +21,6 @@ describe.skipIf(!(await temSqlite()))('MEM-6: preparo e leitura da ficha', async
       `SELECT type, name FROM sqlite_master WHERE type IN ('table', 'trigger')`,
     ]);
     lote.mockRestore();
-  });
-
-  it('com a marca pronta só consulta a marca; o espelho pode refazer todos os lotes', async () => {
-    const leitura = vi.spyOn(d1, 'prepare');
-    expect(await darMensagensAosRelatosDeAntes(d1 as never)).toBe(0);
-    expect(leitura.mock.calls.map(([sql]) => sql)).toEqual(["SELECT 1 FROM ajustes WHERE chave = ? AND json_extract(valor, '$.versao') = 2"]);
-    leitura.mockRestore();
-    // Mais de um lote, e relatos vazios: não podem prender o conserto nos primeiros 500 para sempre.
-    for (let n = 0; n < 502; n++) {
-      d1.sqlite.prepare(`INSERT INTO memorias (id, titulo, ano, tipo, criada_por) VALUES (?, 'Teste do preparo', 2026, 'outro', 'gui')`).run(`mem6-preparo-${n}`);
-      d1.sqlite.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES (?, 'gui', 'gui', ?, 'rascunho')`).run(`mem6-preparo-${n}`, n === 501 ? 'O último lote.' : '');
-    }
-    const ultimo = (d1.sqlite.prepare('SELECT MAX(id) AS id FROM relatos').get() as { id: number }).id;
-    expect(await darMensagensAosRelatosDeAntes(d1 as never, { refazer: true })).toBe(1);
-    expect(d1.sqlite.prepare('SELECT texto FROM relato_mensagens WHERE relato_id = ?').get(ultimo)).toEqual({ texto: 'O último lote.' });
-    expect(await darMensagensAosRelatosDeAntes(d1 as never)).toBe(0);
-  });
-
-  it('uma falha não deixa a marca de conserto concluído', async () => {
-    d1.sqlite.prepare(`INSERT INTO memorias (id, titulo, ano, tipo, criada_por) VALUES ('mem6-falha', 'Teste da falha', 2026, 'outro', 'gui')`).run();
-    d1.sqlite.prepare(`INSERT INTO relatos (memoria_id, por, registrado_por, texto, situacao) VALUES ('mem6-falha', 'gui', 'gui', 'Tente novamente.', 'rascunho')`).run();
-    const lote = vi.spyOn(d1, 'batch').mockRejectedValueOnce(new Error('Falha simulada.'));
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(await darMensagensAosRelatosDeAntes(d1 as never, { refazer: true })).toBe(0);
-    expect(d1.sqlite.prepare('SELECT 1 FROM ajustes WHERE chave = ?').get(MARCA_DAS_MENSAGENS_DE_ANTES)).toBeUndefined();
-    lote.mockRestore(); log.mockRestore();
-    expect(await darMensagensAosRelatosDeAntes(d1 as never)).toBeGreaterThan(0);
   });
 
   it('a lista comum não traz Sobre/foto; a ficha e a versão anterior preservam o texto', async () => {
