@@ -241,6 +241,71 @@ describe.skipIf(!comSqlite)('pedido recusado não grava pela metade', async () =
     }
   });
 
+  it('/api/relatos: a falha no meio do lote volta até a versão da memória e a nova tentativa grava o relato com as mídias', async () => {
+    const relatos = await import('../src/pages/api/relatos');
+    const id = 'mem8-falha-atomica';
+    banco.sqlite.prepare("INSERT INTO memorias (id, titulo, ano, tipo, criada_por) VALUES (?, 'Teste do lote', 2001, ?, 'gui')").run(id, tipo);
+    const audioId = Number(banco.sqlite.prepare("INSERT INTO audios (chave, tipo, tamanho, enviado_por) VALUES ('teste/mem8.m4a', 'audio/mp4', 10, 'elizete')").run().lastInsertRowid);
+    const fotoId = Number(banco.sqlite.prepare("INSERT INTO fotos (chave, enviada_por) VALUES ('teste/mem8.jpg', 'elizete')").run().lastInsertRowid);
+    const pedido = { memoria: id, por: 'elizete', mensagens: [{ tipo: 'texto', texto: 'Tente de novo.' }, { tipo: 'audio', audioId }, { tipo: 'foto', fotoId }] };
+    const enviar = () => relatos.POST({
+      request: new Request('http://localhost/api/relatos', { method: 'POST', headers: { Origin: 'http://localhost', 'Content-Type': 'application/json' }, body: JSON.stringify(pedido) }),
+      locals: { usuario: elizete, tipos },
+    } as never);
+    banco.sqlite.exec(`CREATE TRIGGER mem8_teste BEFORE INSERT ON relato_mensagens WHEN NEW.foto_id = ${fotoId}
+      BEGIN SELECT RAISE(ABORT, 'memoria-mudou'); END`);
+    const antes = impressao();
+    const tabelas = () => JSON.stringify(banco.sqlite.prepare('SELECT * FROM marca_da_copia').all());
+    const marca = tabelas();
+    const lote = banco.batch.bind(banco);
+    let perdas = 0;
+    banco.batch = async (comandos) => {
+      try {
+        return await lote(comandos);
+      } catch (erro) {
+        expect(String(erro)).toContain('memoria-mudou');
+        expect(impressao()).toBe(antes);
+        expect(tabelas()).toBe(marca);
+        perdas++;
+        banco.sqlite.exec('DROP TRIGGER mem8_teste');
+        throw erro;
+      }
+    };
+    try {
+      expect((await enviar()).status).toBe(201);
+      expect(perdas).toBe(1);
+      const relato = linha<{ id: number }>('SELECT id FROM relatos WHERE memoria_id = ?', id);
+      expect(conta('SELECT COUNT(*) AS n FROM relato_mensagens WHERE relato_id = ?', relato.id)).toBe(3);
+      expect(conta('SELECT COUNT(*) AS n FROM audios WHERE relato_id = ? AND id = ?', relato.id, audioId)).toBe(1);
+      expect(conta('SELECT COUNT(*) AS n FROM fotos WHERE relato_id = ? AND id = ?', relato.id, fotoId)).toBe(1);
+    } finally {
+      banco.batch = lote;
+      banco.sqlite.exec('DROP TRIGGER IF EXISTS mem8_teste');
+    }
+  });
+
+  it('/api/lixeira: a mensagem recusada também devolve o texto e o histórico da restauração', async () => {
+    const id = 'mem8-restauracao-recusada';
+    banco.sqlite.prepare("INSERT INTO memorias (id, titulo, ano, tipo, criada_por) VALUES (?, 'Teste de restauração', 2001, ?, 'gui')").run(id, tipo);
+    const r = Number(banco.sqlite.prepare("INSERT INTO relatos (memoria_id, por, registrado_por, texto) VALUES (?, 'elizete', 'elizete', 'Hoje.')").run(id).lastInsertRowid);
+    banco.sqlite.prepare("INSERT INTO relato_mensagens (relato_id, ordem, tipo, texto) VALUES (?, 0, 'texto', 'Hoje.')").run(r);
+    const v = Number(banco.sqlite.prepare("INSERT INTO versoes (tipo, item_id, dados, autor) VALUES ('relato', ?, ?, 'elizete')").run(String(r), JSON.stringify({ texto: 'Antes.' })).lastInsertRowid);
+    const pedido = { acao: 'restaurar-relato', memoria: id, por: 'elizete', versao: String(v) };
+    banco.sqlite.exec(`CREATE TRIGGER mem8_restaurar BEFORE INSERT ON relato_mensagens WHEN NEW.relato_id = ${r}
+      BEGIN SELECT RAISE(ABORT, 'falha de teste'); END`);
+    const antes = impressao();
+    const marca = linha('SELECT * FROM marca_da_copia');
+    try {
+      await expect(formulario(lixeira, '/api/lixeira', elizete, pedido)).rejects.toThrow('falha de teste');
+      expect(impressao()).toBe(antes);
+      expect(linha('SELECT * FROM marca_da_copia')).toEqual(marca);
+    } finally {
+      banco.sqlite.exec('DROP TRIGGER mem8_restaurar');
+    }
+    expect((await formulario(lixeira, '/api/lixeira', elizete, pedido)).erro).toBeNull();
+    expect(linha("SELECT r.texto, m.texto AS mensagem FROM relatos r JOIN relato_mensagens m ON m.relato_id = r.id WHERE r.id = ?", r)).toEqual({ texto: 'Antes.', mensagem: 'Antes.' });
+  });
+
   it('/api/relatos: o público que a tela não oferece é recusado sem mudar nada (D5 da sessão Z)', async () => {
     const relatos = await import('../src/pages/api/relatos');
     const antes = impressao();

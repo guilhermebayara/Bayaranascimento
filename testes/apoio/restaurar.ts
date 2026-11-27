@@ -6,7 +6,11 @@ import type { DatabaseSync } from './d1';
 const SQLITE = 'node:sqlite';
 
 /** Restaura `copia` num banco novo com a estrutura de `origem`. Devolve o erro, ou null se entrou tudo. */
-export async function restaurarCopia(origem: DatabaseSync, copia: { tabelas: Record<string, Record<string, unknown>[]> }): Promise<string | null> {
+export async function restaurarCopia(
+  origem: DatabaseSync,
+  copia: { tabelas: Record<string, Record<string, unknown>[]> },
+  conferir?: (banco: DatabaseSync) => void,
+): Promise<string | null> {
   const { DatabaseSync } = (await import(/* @vite-ignore */ SQLITE)) as { DatabaseSync: new (arquivo: string) => DatabaseSync };
   const novo = new DatabaseSync(':memory:');
   novo.exec('PRAGMA foreign_keys = ON');
@@ -32,7 +36,6 @@ export async function restaurarCopia(origem: DatabaseSync, copia: { tabelas: Rec
       }
     }
     novo.exec('COMMIT');
-    return null;
   } catch (erro) {
     try {
       novo.exec('ROLLBACK');
@@ -41,4 +44,6 @@ export async function restaurarCopia(origem: DatabaseSync, copia: { tabelas: Rec
     }
     return String(erro);
   }
+  conferir?.(novo);
+  return null;
 }
